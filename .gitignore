@@ -1,0 +1,89 @@
+# Agent / AI tooling
+.claude/
+.agents/
+AGENTS.md
+CLAUDE.md
+docs/ai_agents/local/
+
+# Frozen local source and matching evidence
+src/
+asm/
+config/ffxivgame.yaml
+
+# Original retail binaries and assets. The directories are not tracked; these
+# rules stay as guards so recreating one locally cannot commit its contents.
+orig/
+*.exe
+*.dll
+*.pdb
+*.obj
+*.o
+*.lib
+*.exp
+*.ilk
+*.map
+*.dat
+*.dat[0-9]
+*.win32.dat*
+*.idx
+*.index
+*.index2
+
+# Generated Ghidra projects and exports
+**/*.gpr
+**/*.rep/
+**/*.lock
+**/*.lock~
+**/projectData*
+config/*.symbols.json
+config/*.strings.json
+config/*.rtti.json
+config/*.middleware.json
+config/*.vtable_slots.jsonl
+!config/ffxivgame.rtti.json
+!config/ffxivgame.vtable_slots.jsonl
+config/ffxivgame.vtable_method_names.json
+config/ffxivgame.external_dependencies.json
+config/*.paramnames.json
+config/*.paramnames_resolved.json
+config/*.gam_params.json
+config/*.gam_params.csv
+config/*.opcodes.json
+config/*.up_opcodes.json
+config/*.up_opcode_writes.json
+
+# Headless Ghidra evidence runs are reproducible scratch. Logs, projects,
+# exports, and decompiled bodies must never be published.
+tools/ghidra/logs/
+
+# Generated output and local work areas
+build/
+out/
+dist/
+.objdiff/
+.worktrees/
+.push-matches-stage/
+*.log
+
+# Local environments and credentials
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors and operating-system noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+*.swp
+*~

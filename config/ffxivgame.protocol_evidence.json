@@ -1,0 +1,395 @@
+{
+ "schema_version": 1,
+ "binary": "ffxivgame.exe retail 1.23b",
+ "source_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+ "ghidra_version": "12.1",
+ "derivation_run": {
+  "contract_version": 1,
+  "contract_status": "predates-contract",
+  "scope": "all observations and lua_binding_name_review in this file",
+  "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+  "ghidra_version": "12.1",
+  "scripts": [
+   {"path": "tools/ghidra_scripts/DecompileToText.java", "historical_sha256": null},
+   {"path": "tools/ghidra_scripts/FindCallers.java", "historical_sha256": null},
+   {"path": "tools/ghidra_scripts/DumpStrings.java", "historical_sha256": null},
+   {"path": "tools/decode_lpb.py", "historical_sha256": null},
+   {"path": "tools/extract_cpp_bindings.py", "historical_sha256": null}
+  ],
+  "historical_arguments": null,
+  "historical_output_sha256": null,
+  "unknown": [
+   "exact invocation grouping and arguments",
+   "historical script revisions",
+   "run timestamps and output fingerprints",
+   "decoded LPB corpus manifest and input-root fingerprint"
+  ],
+  "regeneration": [
+   {
+    "script": "tools/ghidra_scripts/DecompileToText.java",
+    "environment": {"DECOMP_VAS": "distinct dispatcher_va_hex and sender_va_hex values in observations whose producer names DecompileToText.java"},
+    "argument_source": "this file's observation rows"
+   },
+   {
+    "script": "tools/ghidra_scripts/FindCallers.java",
+    "environment": {"CALLER_VAS": "distinct sender_va_hex values in observations whose producer names FindCallers.java"},
+    "argument_source": "this file's observation rows"
+   },
+   {
+    "script": "tools/ghidra_scripts/DumpStrings.java",
+    "environment": {},
+    "argument_source": "no script arguments"
+   },
+   {
+    "script": "tools/decode_lpb.py and tools/extract_cpp_bindings.py",
+    "arguments": "retail 1.23b install root, an ignored LPB output directory, then that directory as --lpb-dir",
+    "argument_source": "the tools' documented interfaces; the historical corpus fingerprint is unknown"
+   }
+  ]
+ },
+ "observations": [
+  {
+   "opcode_hex": "0x0176",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576bf0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0176 to a direct call of 0x00576bf0 with the payload at packet offset 0x10.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The body forwards a payload and does not establish an application-level semantic opcode name."
+  },
+  {
+   "opcode_hex": "0x0143",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576240",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0143 to 0x00576240.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0146",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005764c0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0146 to 0x005764c0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0148",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576560",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0148 to 0x00576560.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x016d",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005763c0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x016d to 0x005763c0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x016e",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576430",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x016e to 0x00576430.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x017a",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005763b0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x017a to 0x005763b0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x017c",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576250",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x017c to 0x00576250.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x017d",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005762c0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x017d to 0x005762c0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x017e",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005762d0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x017e to 0x005762d0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x017f",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005762e0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x017f to 0x005762e0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0180",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005762f0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0180 to 0x005762f0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0181",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576300",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0181 to 0x00576300.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0182",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576310",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0182 to 0x00576310.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0183",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576320",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0183 to 0x00576320.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0184",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576330",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0184 to 0x00576330.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0185",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576340",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0185 to 0x00576340.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0186",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576350",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0186 to 0x00576350.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0187",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576390",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0187 to 0x00576390.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0188",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576360",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0188 to 0x00576360.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0189",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576370",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0189 to 0x00576370.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x018a",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576380",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x018a to 0x00576380.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x018b",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x005763a0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x018b to 0x005763a0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x018d",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00575550",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x018d to 0x00575550.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x018f",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576c60",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x018f to 0x00576c60.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0190",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576cd0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0190 to 0x00576cd0.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0191",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576d40",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0191 to 0x00576d40.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0193",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00578c90",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0193 to 0x00578c90.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0196",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576050",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0196 to 0x00576050.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0198",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576150",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x0198 to 0x00576150.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x01a3",
+   "direction": "server-to-client",
+   "dispatcher_va_hex": "0x004dc690",
+   "target_va_hex": "0x00576140",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch on the u16 value at packet offset 2 routes case 0x01a3 to 0x00576140.",
+   "confidence": "direct switch and call observation",
+   "ambiguity": "The edge establishes the opcode-to-handler mapping, not the imported semantic handler suffix."
+  },
+  {
+   "opcode_hex": "0x0135",
+   "direction": "client-to-server",
+   "sender_va_hex": "0x0075ecd0",
+   "caller_va_hex": "0x00705eb0",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and FindCallers.java",
+   "observation": "The sender writes 0x0135 and packet length 0x18 before calling 0x004d6d30; 0x00705eb0 is its single direct caller in the clean project.",
+   "confidence": "direct constant, call, and xref observation",
+   "ambiguity": "The bytes establish a one-dword payload but do not establish the external BindingSubscribeRequest semantic name or field meanings."
+  }
+ ],
+ "lua_binding_name_review": {
+  "binary_string_producer": "tools/ghidra_scripts/DumpStrings.java",
+  "script_producers": [
+   "tools/decode_lpb.py",
+   "tools/extract_cpp_bindings.py"
+  ],
+  "script_files_decoded": 2671,
+  "names_absent_from_binary_strings_and_shipped_bindings": [
+   "_queryBinding",
+   "_send6argRpc",
+   "_sendByteToggle",
+   "_sendChallenge",
+   "_sendCompoundState",
+   "_sendListIndex",
+   "_sendListObjectDelete",
+   "_sendListObjectQueueAdd",
+   "_sendMovementState",
+   "_updateWorkAlt"
+  ],
+  "observation": "All ten searches returned zero binary string rows and zero shipped-script binding rows.",
+  "confidence": "complete deterministic census of the supplied retail binary strings and shipped LPB corpus",
+  "ambiguity": "Absence does not identify replacement names for the corresponding functions."
+ }
+}
