@@ -1,0 +1,2246 @@
+{
+ "schema_version": 1,
+ "binary": "ffxivgame.exe retail 1.23b",
+ "source_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+ "ghidra_version": "12.1",
+ "derivation_run": {
+  "contract_version": 1,
+  "contract_status": "predates-contract",
+  "scope": "observations without row-level derivation_run metadata",
+  "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+  "ghidra_version": "12.1",
+  "scripts": [
+   {"path": "tools/ghidra_scripts/DumpRtti.java", "historical_sha256": null},
+   {"path": "tools/ghidra_scripts/DecompileToText.java", "historical_sha256": null},
+   {"path": "tools/ghidra_scripts/FindBytes.java", "historical_sha256": null}
+  ],
+  "historical_arguments": null,
+  "historical_output_sha256": null,
+  "unknown": [
+   "exact invocation grouping and arguments",
+   "historical script revisions",
+   "run timestamps and output fingerprints"
+  ],
+  "regeneration": [
+   {
+    "script": "tools/ghidra_scripts/DumpRtti.java",
+    "environment": {},
+    "argument_source": "no script arguments"
+   },
+   {
+    "script": "tools/ghidra_scripts/DecompileToText.java",
+    "environment": {"DECOMP_VAS": "distinct observations[].va_hex values whose producer names DecompileToText.java"},
+    "argument_source": "this file's observation rows"
+   },
+   {
+    "script": "tools/ghidra_scripts/FindBytes.java",
+    "environment": {"SEARCH_BYTES": "20 83 b8 ed"},
+    "argument_source": "little-endian 0xedb88320 bytes stated by the CRC observation; this is a regeneration recipe, not a recovered historical command"
+   }
+  ]
+ },
+ "observations": [
+  {
+   "rva": 736336,
+   "rva_hex": "0x000b3c50",
+   "va_hex": "0x004b3c50",
+   "name": "NetworkModule_topLevelTick",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function advances network subsystems, calls the network-client tick at 0x004e30a0, and processes the scene packet path in one top-level update.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct call and state-update observation",
+   "ambiguity": "Top-level describes the observed network update scope, not an original source identifier."
+  },
+  {
+   "rva": 894592,
+   "rva_hex": "0x000da680",
+   "va_hex": "0x004da680",
+   "name": "Function_004da680_gateListsAndCall00578970",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "A nonzero byte at offset 0x504 returns early. If 0x4a8 is zero while 0x17444 and 0x174dc are nonzero, the body writes one to 0x4a8. Under a separate 0x54b and helper-result gate, it walks a list rooted at 0x17808, invokes virtual offset 0x18 on non-null entries, scans the dword range bounded by 0x17828 and 0x1782c, and can call 0x00578970 when a comparison derived from 0x00443e40 succeeds.",
+   "supported_imported_fields": [],
+   "confidence": "direct field guards, writes, loops, virtual call offset, and direct call target",
+   "ambiguity": "The field meanings, the list and dword-range roles, and a once-per-frame cadence are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x004da680"]}]
+  },
+  {
+   "rva": 902800,
+   "rva_hex": "0x000dc690",
+   "va_hex": "0x004dc690",
+   "name": "Zone_MAIN_inbound_opcode_dispatcher_50plus_handlers",
+   "kind": "dispatcher",
+   "evidence_class": "dispatcher-derived",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function is a large inbound switch with more than fifty literal opcode cases and direct calls to their handler targets. The complete set of direct case labels at or below 0x11 is 0x02 through 0x11 inclusive; 0x01 is not a case in this switch. Its 15 consecutive cases from 0x148 through 0x156 directly call wrappers 0x00576560, 0x005765d0, 0x00576640, 0x005766b0, 0x00576720, 0x00576790, 0x00576800, 0x00576870, 0x005768e0, 0x00576950, 0x005769c0, 0x00576a30, 0x00576aa0, 0x00576b10, and 0x00576b80 with the payload at packet offset 0x10. Case 0x17c directly calls 0x00576250 with the payload at packet offset 0x10.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct switch and call-target observation",
+   "ambiguity": "The dispatcher role and scale are direct; MAIN is retained as the repository's protocol lane label.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-handlers-20260810", "addresses": ["0x004dc690", "0x00576560", "0x005765d0", "0x00576640", "0x005766b0", "0x00576720", "0x00576790", "0x00576800", "0x00576870", "0x005768e0", "0x00576950", "0x005769c0", "0x00576a30", "0x00576aa0", "0x00576b10", "0x00576b80"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004dc690"]}]
+  },
+  {
+   "rva": 915152,
+   "rva_hex": "0x000df6d0",
+   "va_hex": "0x004df6d0",
+   "name": "PacketSender_opcode_0x00c9_u32AndByteField0x200",
+   "kind": "chat",
+   "opcode": "0xc9",
+   "evidence_class": "packet-builder-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function writes opcode 0xc9 and body size 0x218, writes its u32 argument at application offset 0, zero-fills the 0x200-byte field at offset 4, copies the supplied byte string into that field, and enqueues the packet through 0x00db3e30.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct opcode, size, field-write, and send-call observation",
+   "ambiguity": "The replacement describes the packet shape without assigning a higher-level message domain.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-c2s-open-senders-body",
+     "addresses": ["0x004df6d0"]
+    }
+   ]
+  },
+  {
+   "rva": 925856,
+   "rva_hex": "0x000e20a0",
+   "va_hex": "0x004e20a0",
+   "name": "ZoneClient_mainLoopTick",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function repeatedly obtains inbound packets, invokes the opcode dispatcher at 0x004dc690, and sends sequence-managed work through 0x004e5ff0 during one update. After dispatch, packet opcode 0x01 reaches a branch that compares the u32 at packet offset 0x14 against literal 0x14c and conditionally calls 0x00dadf50. Packet opcode 0x02 builds a packet with literal opcode 0x06 and size 0x18. Packet opcodes 0x0e and 0x11 build a packet with literal opcode 0x04 and size 0x18. A periodic path builds a packet with literal opcode 0x01 and size 0x28. These are the direct literal packet constructions in this reviewed body; calls out of the body and indirect or virtual sends are not enumerated.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct packet loop and call-target observation",
+   "ambiguity": "Tick summarizes one observed update invocation. No semantic names are assigned to the packet literals or the 0x14c comparison.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e20a0", "0x004dc690", "0x004e5ff0", "0x00dadf50"]}]
+  },
+  {
+   "rva": 929952,
+   "rva_hex": "0x000e30a0",
+   "va_hex": "0x004e30a0",
+   "name": "NetworkClientModule_tick",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function switches on the dword at object offset 0x250 with literal cases 0 through 5. Case 0 can request 0x4a8 bytes and store the result at offset 0x240. Case 1 calls 0x004e2d00 and can write state 3 when byte 0x24c is set. Cases 2 and 3 write state 4. Case 4 calls 0x004e20a0 and can write state 5. Case 5 can clear pointers at offsets 0x240 and 0x300 and calls 0x004e20a0. The body also references the pointer at offset 0x234.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct literal switch, allocation, field-write, and call-target observation",
+   "ambiguity": "The label is a local behavioral summary. No semantic names are assigned to the six states or pointer fields.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e30a0", "0x004e2d00", "0x004e20a0"]}]
+  },
+  {
+   "rva": 941216,
+   "rva_hex": "0x000e5ca0",
+   "va_hex": "0x004e5ca0",
+   "name": "ZoneClient_treeLookupOrInsert_u32Key",
+   "kind": "named",
+   "evidence_class": "data-structure-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function compares the supplied u32 with the dword at node offset 0x0c while walking a tree, returns an equal node when present, or calls 0x004e4dd0 to insert a new keyed node.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct u32 comparisons, node offsets, and insertion-helper call",
+   "ambiguity": "The compared key and owning tree have no packet-sequence semantic assigned.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e5ca0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x004e5ca0"]}
+   ]
+  },
+  {
+   "rva": 942064,
+   "rva_hex": "0x000e5ff0",
+   "va_hex": "0x004e5ff0",
+   "name": "ZoneClient_packetDispatch_treeOrDestroy_threshold_0x1c11",
+   "kind": "dispatcher",
+   "evidence_class": "data-structure-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function calls 0x0071d420 and 0x008a87f0 before comparing the u32 at input offset 0x1c with literal 0x1c11. Values below 0x1c11 call the tree lookup-or-insert helper at 0x004e5ca0; values at or above 0x1c11 invoke virtual slot 0 on the input object with argument 1.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct literal, branch, and call-target observation",
+   "ambiguity": "The label summarizes the observed alternatives without assigning a packet-sequence semantic to the compared field.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e5ff0", "0x004e5ca0", "0x0071d420", "0x008a87f0"]}]
+  },
+  {
+   "rva": 1532496,
+   "rva_hex": "0x00176250",
+   "va_hex": "0x00576250",
+   "name": "ZoneIn_opcode_0x17c_toTypeTaggedPipeline",
+   "kind": "named",
+   "opcode": "0x17c",
+   "evidence_class": "dispatcher-derived",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The local dispatcher maps opcode 0x17c to this function. Its body obtains an object through 0x00cc9320, passes that object and its third argument to 0x006cc620, then calls 0x00cc9330.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct switch edge and call-chain observation",
+   "ambiguity": "The body does not identify the routed object's domain role.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-spawn-ring-20260810", "addresses": ["0x00576250"]}]
+  },
+  {
+   "rva": 1532656,
+   "rva_hex": "0x001762f0",
+   "va_hex": "0x005762f0",
+   "name": "Opcode_0x0180_thunk_toWideRecordBatch16",
+   "kind": "named",
+   "opcode": "0x180",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c2fe0, which passes sixteen records from payload offset 0x10 to 0x006c19d0. That helper advances by 0x30, reads three u32 fields, two u8 flags, and a trailing string from each record, performs a keyed lookup, and delivers through virtual slot 0x40; active state can first snapshot one matching record and suppress delivery.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, record-count, field-access, lookup, and delivery observation",
+   "ambiguity": "The replacement leaves the record domain and key meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x005762f0", "0x006c2fe0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006c1040", "0x006c19d0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006d04a0", "0x0075bbf0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532672,
+   "rva_hex": "0x00176300",
+   "va_hex": "0x00576300",
+   "name": "Opcode_0x0181_thunk_toWideRecordBatch32",
+   "kind": "named",
+   "opcode": "0x181",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c3040, which passes thirty-two records from payload offset 0x10 to 0x006c19d0. That helper advances by 0x30, reads three u32 fields, two u8 flags, and a trailing string from each record, performs a keyed lookup, and delivers through virtual slot 0x40; active state can first snapshot one matching record and suppress delivery.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, record-count, field-access, lookup, and delivery observation",
+   "ambiguity": "The replacement leaves the record domain and key meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x00576300", "0x006c3040"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006c1040", "0x006c19d0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006d04a0", "0x0075bbf0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532688,
+   "rva_hex": "0x00176310",
+   "va_hex": "0x00576310",
+   "name": "Opcode_0x0182_thunk_toWideRecordBatch64",
+   "kind": "named",
+   "opcode": "0x182",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c30a0, which passes sixty-four records from payload offset 0x10 to 0x006c19d0. That helper advances by 0x30, reads three u32 fields, two u8 flags, and a trailing string from each record, performs a keyed lookup, and delivers through virtual slot 0x40; active state can first snapshot one matching record and suppress delivery.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, record-count, field-access, lookup, and delivery observation",
+   "ambiguity": "The replacement leaves the record domain and key meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x00576310", "0x006c30a0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006c1040", "0x006c19d0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006d04a0", "0x0075bbf0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532720,
+   "rva_hex": "0x00176330",
+   "va_hex": "0x00576330",
+   "name": "Opcode_0x0184_thunk_toCompactRecordBatch16",
+   "kind": "named",
+   "opcode": "0x184",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c3150, which passes sixteen records from payload offset 0x10 to 0x006c1c00 when the active-state gate permits. The helper advances by 0x0c, reads two u32 fields and one u8 flag from each record, performs a keyed lookup, and delivers through virtual slot 0x40.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, state-gate, record-count, field-access, lookup, and delivery observation",
+   "ambiguity": "The replacement leaves the record domain and key meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x00576330", "0x006c3150"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006c1c00"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006d04a0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532736,
+   "rva_hex": "0x00176340",
+   "va_hex": "0x00576340",
+   "name": "Opcode_0x0185_thunk_toCompactRecordBatch32",
+   "kind": "named",
+   "opcode": "0x185",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c31a0, which passes thirty-two records from payload offset 0x10 to 0x006c1c00 when the active-state gate permits. The helper advances by 0x0c, reads two u32 fields and one u8 flag from each record, performs a keyed lookup, and delivers through virtual slot 0x40.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, state-gate, record-count, field-access, lookup, and delivery observation",
+   "ambiguity": "The replacement leaves the record domain and key meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x00576340", "0x006c31a0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006c1c00"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006d04a0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532752,
+   "rva_hex": "0x00176350",
+   "va_hex": "0x00576350",
+   "name": "Opcode_0x0186_thunk_toCompactRecordBatch64",
+   "kind": "named",
+   "opcode": "0x186",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c31f0, which passes sixty-four records from payload offset 0x10 to 0x006c1c00 when the active-state gate permits. The helper advances by 0x0c, reads two u32 fields and one u8 flag from each record, performs a keyed lookup, and delivers through virtual slot 0x40.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, state-gate, record-count, field-access, lookup, and delivery observation",
+   "ambiguity": "The replacement leaves the record domain and key meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x00576350", "0x006c31f0"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006c1c00"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006d04a0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532768,
+   "rva_hex": "0x00176360",
+   "va_hex": "0x00576360",
+   "name": "Opcode_0x0188_thunk_toStringEntryQueue",
+   "kind": "named",
+   "opcode": "0x188",
+   "evidence_class": "handler-helper-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk reaches 0x006cc390 through 0x006cd790. The body reads two u32 fields and two string objects, allocates a 0x40-byte builder whose helper allocates a 0xf8-byte child, replaces the prior entry through 0x006c4330, and enqueues the new pointer through 0x007238b0; it has no record loop.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct thunk, field-access, allocation, replacement, and queue-call observation",
+   "ambiguity": "The replacement leaves the entry domain and field meanings unspecified.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-body-2",
+     "addresses": ["0x00576360", "0x006cd790"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-helpers",
+     "addresses": ["0x006cc390"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-s2c-0180-0188-deep-helpers",
+     "addresses": ["0x006cbfb0", "0x006d79d0", "0x006c4330", "0x007238b0"]
+    }
+   ]
+  },
+  {
+   "rva": 1532832,
+   "rva_hex": "0x001763a0",
+   "va_hex": "0x005763a0",
+   "name": "Opcode_0x018b_thunk_toGuarded0x98Allocation",
+   "kind": "named",
+   "opcode": "0x18b",
+   "evidence_class": "dispatcher-and-local-call-chain",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thunk calls 0x006c5df0, which forwards to 0x006c5240. When input field 0x10 is not -1, the latter reads fields 0x0c, 0x14, and 0x16, supplies literal 0x98 to the allocation path, constructs through 0x006c4890, and queues the result through 0x007238b0.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct dispatcher edge, thunk chain, field accesses, allocation literal, and queue call",
+   "ambiguity": "The path is not assigned a member-information or Lua-callback semantic.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x005763a0", "0x006c5df0", "0x006c5240", "0x006c4890", "0x007238b0"]}]
+  },
+  {
+   "rva": 1533280,
+   "rva_hex": "0x00176560",
+   "va_hex": "0x00576560",
+   "name": "ZoneIn_opcode_0x148_toPayloadRouter",
+   "kind": "dispatcher",
+   "opcode": "0x148",
+   "evidence_class": "dispatcher-derived",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The switch at 0x004dc690 maps opcode 0x148 to this function. Its body obtains a value through 0x00cc9320 and calls 0x00580e70 with that value and the payload pointer. Across the bounded 0x148 through 0x156 set, the 15 wrappers from 0x00576560 through 0x00576b80 call, in order, 15 downstream functions from 0x00580e70 through 0x00581570; wrapper addresses advance by 0x70 and downstream function addresses advance by 0x80.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct switch edge and call-target observation",
+   "ambiguity": "The observation assigns no application-level meaning to the payload.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-handlers-20260810", "addresses": ["0x004dc690", "0x00576560", "0x005765d0", "0x00576640", "0x005766b0", "0x00576720", "0x00576790", "0x00576800", "0x00576870", "0x005768e0", "0x00576950", "0x005769c0", "0x00576a30", "0x00576aa0", "0x00576b10", "0x00576b80"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-queue-20260810", "addresses": ["0x00580e70", "0x00580ef0", "0x00580f70", "0x00580ff0", "0x00581070", "0x005810f0", "0x00581170", "0x005811f0", "0x00581270", "0x005812f0", "0x00581370", "0x005813f0", "0x00581470", "0x005814f0", "0x00581570"]}
+   ]
+  },
+  {
+   "rva": 1542512,
+   "rva_hex": "0x00178970",
+   "va_hex": "0x00578970",
+   "name": "Function_00578970_orderedCallSequence",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "After four direct setup or guard calls, the body invokes 13 fixed direct targets from 0x00766f00 through 0x00764fd0 in an observed order, then invokes virtual slot 2 through the object pointer at offset 0x34, followed by one direct cleanup call.",
+   "supported_imported_fields": [],
+   "confidence": "complete top-level call-site and call-order observation in the function body",
+   "ambiguity": "The runtime virtual target and calls made inside direct, indirect, or virtual callees are outside the body-level census; no 15-slot layout is established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x00578970"]}]
+  },
+  {
+   "rva": 1576560,
+   "rva_hex": "0x00180e70",
+   "va_hex": "0x00580e70",
+   "name": "ZoneIn_0x148_recordDispatch",
+   "kind": "named",
+   "evidence_class": "dispatcher-derived",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function directly calls 0x0076b950 with its first argument, constructs record state through 0x00771350 with its payload argument, then calls 0x00764a30 and 0x0076df10.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct branch and call-target observation",
+   "ambiguity": "The body establishes construction and dispatch calls but no actor-queue semantics.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-dispatch-20260810", "addresses": ["0x00576560", "0x00580e70"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-queue-20260810", "addresses": ["0x00580e70", "0x00764a30", "0x0076b950", "0x0076df10", "0x00771350"]}
+   ]
+  },
+  {
+   "rva": 1586240,
+   "rva_hex": "0x00183440",
+   "va_hex": "0x00583440",
+   "name": "OrderedCall_06_queuePump_completionLimit0x20",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The sixth fixed target in 0x00578970 processes a ring-backed pointer queue through 0x00773f10, stores entries reporting one sentinel for deferred cleanup, releases completed entries, and stops after literal 0x20 completed entries.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, queue arithmetic, sentinel branches, and completion-counter literal",
+   "ambiguity": "The sentinel meanings and application-level queue role are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x00583440"]}]
+  },
+  {
+   "rva": 1586896,
+   "rva_hex": "0x001836d0",
+   "va_hex": "0x005836d0",
+   "name": "OrderedCall_07_queuePump_completionLimit0x20",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The seventh fixed target in 0x00578970 performs the parallel ring-backed pointer-queue path through distinct handler 0x00794250, stores entries reporting one sentinel for deferred cleanup, invokes virtual slot 0 on completed entries, and stops after literal 0x20 completed entries.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, queue arithmetic, sentinel branches, virtual call, and completion-counter literal",
+   "ambiguity": "The sentinel meanings and application-level queue role are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x005836d0"]}]
+  },
+  {
+   "rva": 2931856,
+   "rva_hex": "0x002cbc90",
+   "va_hex": "0x006cbc90",
+   "name": "TypeTaggedEntry_conditional0x48Allocation",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body tests signed counts at offsets 0x14, 0x18, 0x1c, and 0x20. When any is positive, it supplies literal 0x48 to the allocation path and can construct through 0x006cb4c0 before calling 0x006c8cf0.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct signed-count tests, allocation literal, and call targets",
+   "ambiguity": "The allocated object's type and the downstream object's application role are not assigned.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x006cbc90", "0x006cb4c0", "0x006c8cf0"]}]
+  },
+  {
+   "rva": 2932848,
+   "rva_hex": "0x002cc070",
+   "va_hex": "0x006cc070",
+   "name": "TypeTaggedEntry_buildAndQueue",
+   "kind": "dispatcher",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "One branch tests input field 0x10 against literal 0x0e, requests 0x50 bytes through 0x009d1b35, and passes the result to 0x007238b0. The general path requests 0x40 bytes, constructs through 0x006cbee0, replaces a prior pointer through 0x006c4330, passes the result to 0x007238b0, and stores it through 0x006d75f0.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct field, allocation, and queue-helper observation",
+   "ambiguity": "The allocation and queue operations are observed without assigning an actor or spawn role.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-spawn-ring-20260810", "addresses": ["0x006cc070"]}]
+  },
+  {
+   "rva": 2934304,
+   "rva_hex": "0x002cc620",
+   "va_hex": "0x006cc620",
+   "name": "TypeTaggedEntry_route0x2711",
+   "kind": "dispatcher",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "When byte 0x24 on the first object is zero and field 0x30 on the third argument equals literal 0x2711, the function takes a gated path that requests 0x0c bytes and calls 0x006cc5b0 before setting byte 0x24. Other paths, and the gated path when its nested byte test permits, call 0x006cc070.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct literal, branch, and call-target observation",
+   "ambiguity": "The literal tag, allocation, gates, and call targets are not assigned packet or spawn semantics.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-spawn-ring-20260810", "addresses": ["0x006cc620"]}]
+  },
+  {
+   "rva": 2939104,
+   "rva_hex": "0x002cd8e0",
+   "va_hex": "0x006cd8e0",
+   "name": "TypeTaggedEntry_directStageSequence",
+   "kind": "dispatcher",
+   "evidence_class": "local-call-sequence",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "After two guarded preliminary branches, the body calls 0x006da9d0, 0x006c0e90, 0x006dae90, 0x006db050, 0x006db1d0, 0x006dacd0, 0x006db9a0, and 0x006daab0 in a fixed direct sequence.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct call-order observation",
+   "ambiguity": "No stage names, packet opcodes, or outbound-message semantics are assigned to the calls.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x006cd8e0", "0x006da9d0", "0x006c0e90", "0x006dae90", "0x006db050", "0x006db1d0", "0x006dacd0", "0x006db9a0", "0x006daab0"]}]
+  },
+  {
+   "rva": 2939520,
+   "rva_hex": "0x002cda80",
+   "va_hex": "0x006cda80",
+   "name": "TypeTaggedEntry_ringConsumer",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function indexes storage at 0x20 as groups of two 8-byte entries using capacity 0x24, head 0x28, and size 0x2c. It invokes virtual offset 0x30 on one entry path; the alternate path performs runtime casts, cleanup, and the same one-entry head and size update.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct ring-index and dispatch observation",
+   "ambiguity": "The body establishes the ring mechanics but not the entry class or one-call-per-frame scheduling.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-spawn-ring-20260810", "addresses": ["0x006cda80"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x006cda80"]}
+   ]
+  },
+  {
+   "rva": 2940192,
+   "rva_hex": "0x002cdd20",
+   "va_hex": "0x006cdd20",
+   "name": "TypeTaggedEntry_busyGate",
+   "kind": "dispatcher",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body runs only when dword 0x2c is nonzero and byte 0xea is zero. It can set byte 0xea and call 0x00cc76f0 with object offsets 0x40 or 0x94, or clear byte 0xea and call 0x006cda80.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct field guards, writes, and call targets",
+   "ambiguity": "The body does not establish a per-frame call site or a bounded count of consumed entries.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x006cdd20", "0x00cc76f0", "0x006cda80"]}]
+  },
+  {
+   "rva": 2940704,
+   "rva_hex": "0x002cdf20",
+   "va_hex": "0x006cdf20",
+   "name": "OrderedCall_05_fieldGuardedCallRouter",
+   "kind": "dispatcher",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "When field 0x0c is null, the function compares field 0x20 with a global value, can test byte 0x5c on a resolved object, tests nested field 0x38, and calls 0x006c5f40, 0x006cdd20, or 0x006c2200 according to the observed guards. Its alternate path tests byte 0x09 and nested field 0x38 before two of those calls.",
+   "supported_imported_fields": [],
+   "confidence": "direct guard and call-target observation",
+   "ambiguity": "The body does not establish a spawn pipeline, queue drain, ring stage, entry count, or frame cadence.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-spawn-ring-20260810", "addresses": ["0x006cdf20"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x006cdf20"]}
+   ]
+  },
+  {
+   "rva": 2996640,
+   "rva_hex": "0x002db9a0",
+   "va_hex": "0x006db9a0",
+   "name": "TypeTaggedEntry_fixedAndStridedDispatch",
+   "kind": "dispatcher",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body handles fixed pointer/count pairs at offsets 0x10/0x2c and 0x14/0x30, then walks the range held at 0x38 through 0x3c in 0x10-byte steps and conditionally dispatches entries with a nonzero pointer at step offset 8.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct field accesses, branches, and stride arithmetic",
+   "ambiguity": "The fixed and ranged entries have no actor or slot semantics assigned.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x006db9a0"]}]
+  },
+  {
+   "rva": 2998432,
+   "rva_hex": "0x002dc0a0",
+   "va_hex": "0x006dc0a0",
+   "name": "WaitForTurningResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to WaitForTurningResumeChecker; the body calls 0x00758d10 and selects one of two state values from its return byte.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, call, branch, and output observation",
+   "ambiguity": "The state values are not semantically named.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "resumechecker-ctors-isready-decomp-a2",
+     "addresses": ["0x006dc0a0"]
+    }
+   ]
+  },
+  {
+   "rva": 2998608,
+   "rva_hex": "0x002dc150",
+   "va_hex": "0x006dc150",
+   "name": "WaitForCharaSchedulerFinishedResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to WaitForCharaSchedulerFinishedResumeChecker; the body calls 0x00758ce0 and selects one of two state values from its return byte.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, call, branch, and output observation",
+   "ambiguity": "The state values are not semantically named.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "resumechecker-ctors-isready-decomp-a2",
+     "addresses": ["0x006dc150"]
+    }
+   ]
+  },
+  {
+   "rva": 3001392,
+   "rva_hex": "0x002dcc30",
+   "va_hex": "0x006dcc30",
+   "name": "global_cpp_defineClass_thunk",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The wrapper enters the local class-definition path, directly calls the independently recovered extractor and registrar at 0x0078c2a0, and performs the paired cleanup.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct wrapper and call-target observation",
+   "ambiguity": "The repository label describes the observed thunk and does not claim a source symbol.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x006dcc30", "0x0078c2a0"]}]
+  },
+  {
+   "rva": 3020544,
+   "rva_hex": "0x002e1700",
+   "va_hex": "0x006e1700",
+   "name": "Coroutine_resumeWrapper_0x00758D10",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function installs callback addresses, invokes 0x00758d10, loads literal 0x08 immediately before calling 0x009d1b35, constructs the non-null result through 0x006dc040, and passes it to 0x00cd2860; the imported CharaBase and waitForTurning semantics are not locally named.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct literal argument, callback construction, and call-target observation",
+   "ambiguity": "The replacement preserves only the observable wrapper shape.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "resumechecker-event-yield-decompile-20260810a",
+     "addresses": ["0x006e1700"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "resumechecker-event-yield-callers-20260810b",
+     "addresses": ["0x006e1700", "0x00cd2860"]
+    }
+   ]
+  },
+  {
+   "rva": 3108192,
+   "rva_hex": "0x002f6d60",
+   "va_hex": "0x006f6d60",
+   "name": "Lua_invoke_onInit",
+   "kind": "inbound_invoker",
+   "evidence_class": "embedded-string-and-call",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body constructs local call state using the embedded string _onInit, calls 0x00cd2980 and 0x00cc7a90, and performs the paired cleanup calls.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct embedded string and invocation path",
+   "ambiguity": "The body does not identify the owning class or connect the call to a checker field write.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x006f6d60"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-invokelua-20260810c", "addresses": ["0x006f6d60", "0x00cc7a90"]}
+   ]
+  },
+  {
+   "rva": 3142048,
+   "rva_hex": "0x002ff1a0",
+   "va_hex": "0x006ff1a0",
+   "name": "global_actorNameCreatabilityThunk",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The wrapper extracts its first supplied value through 0x0071ce70, initializes a result byte to one, calls 0x00cc7200 with the extracted value, and passes the resulting stack object to 0x00748870.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct argument extraction, initialized byte, and call-target observation",
+   "ambiguity": "The callee body was not included in this run, so sentinel comparisons and result semantics are not assigned.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x006ff1a0"]}]
+  },
+  {
+   "rva": 3142160,
+   "rva_hex": "0x002ff210",
+   "va_hex": "0x006ff210",
+   "name": "global_classMembershipThunk",
+   "kind": "dispatcher",
+   "evidence_class": "embedded-rtti-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The ActorBaseClass string branch writes true directly. The CharaBaseClass, PlayerBaseClass, NpcBaseClass, AreaBaseClass, DirectorBaseClass, and DesktopWidget branches call 0x009da6cc with LuaControl source RTTI and the matching local target RTTI; other names call 0x00cc7210.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct class strings, RTTI references, and branches",
+   "ambiguity": "The fallback helper body was not included in this run, so its chain layout and semantics are not assigned.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x006ff210"]}]
+  },
+  {
+   "rva": 3184192,
+   "rva_hex": "0x00309640",
+   "va_hex": "0x00709640",
+   "name": "global_actorFactoryThunk",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The large function selects actor construction paths and directly invokes vtable offset 0x6c on one object. Two observed branches load literal 0x10 immediately before calling 0x009d1b35, construct OnInitResumeChecker through 0x00713fe0 on a non-null result, then pass it to 0x00cd2860.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct virtual call, literal argument, constructor-call, and wrapper-call observation",
+   "ambiguity": "The observation covers this factory path only and makes no universal vtable-slot claim.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "resumechecker-queues-actor-decompile-02",
+     "addresses": ["0x00709640", "0x00713fe0", "0x00cd2860"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "resumechecker-event-yield-callers-20260810b",
+     "addresses": ["0x00709640", "0x00713fe0", "0x00cd2860"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "luaclass-class-system-20260810b",
+     "addresses": ["0x00709640", "0x00713fe0"]
+    }
+   ]
+  },
+  {
+   "rva": 3223696,
+   "rva_hex": "0x00313090",
+   "va_hex": "0x00713090",
+   "name": "PlayingResumeChecker_field0xCSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to PlayingResumeChecker; the body copies the dword at object offset 0x0c to the output.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target and field-read observation",
+   "ambiguity": "The copied state's semantic meaning is not assigned.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00713090"]}]
+  },
+  {
+   "rva": 3226144,
+   "rva_hex": "0x00313a20",
+   "va_hex": "0x00713a20",
+   "name": "AppendMessageResumeChecker_flagLatch",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to AppendMessageResumeChecker; the body tests byte 0x79 on the referenced object, latches byte 0x08, and selects a state value.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, field-read, field-write, and output observation",
+   "ambiguity": "The referenced object and state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00713a20"]}]
+  },
+  {
+   "rva": 3226304,
+   "rva_hex": "0x00313ac0",
+   "va_hex": "0x00713ac0",
+   "name": "TargetTutorialResumeChecker_pointerGate",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to TargetTutorialResumeChecker; the body selects a state value according to whether the dword at object offset 0x08 is zero.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, field-read, branch, and output observation",
+   "ambiguity": "The dword and state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00713ac0"]}]
+  },
+  {
+   "rva": 3227168,
+   "rva_hex": "0x00313e20",
+   "va_hex": "0x00713e20",
+   "name": "ItemSearchWidgetResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to s_ItemSearchWidgetResumeChecker; the body calls 0x0075bb50 and selects a state value from its return byte.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, call, branch, and output observation",
+   "ambiguity": "The state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00713e20"]}]
+  },
+  {
+   "rva": 3227440,
+   "rva_hex": "0x00313f30",
+   "va_hex": "0x00713f30",
+   "name": "CameraTutorialResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to s_CameraTutorialResumeChecker; the body calls 0x00758d50 and selects a state value from its return byte.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, call, branch, and output observation",
+   "ambiguity": "The state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00713f30"]}]
+  },
+  {
+   "rva": 3227616,
+   "rva_hex": "0x00313fe0",
+   "va_hex": "0x00713fe0",
+   "name": "OnInitResumeChecker_ctor",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-constructor",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function writes the ResumeCheckerInterface vtable followed by the local OnInitResumeChecker vtable, writes its second argument at 0x04, dereferences its third argument into 0x08, and writes its fourth byte argument at 0x0c.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct vtable writes and field initialization",
+   "ambiguity": "The class name is present in local RTTI/vtable symbols.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00713fe0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00713fe0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00713fe0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x00713fe0"]}
+   ]
+  },
+  {
+   "rva": 3227840,
+   "rva_hex": "0x003140c0",
+   "va_hex": "0x007140c0",
+   "name": "OnInitResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to OnInitResumeChecker. The body resolves the field at 0x08; when byte 0x0c is zero it calls 0x00cc72a0 on the resolved object, otherwise it reads byte 0x5c, then selects among three global state values.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, lookup, field-read, branch, and output observation",
+   "ambiguity": "The resolved object and state values are not semantically named.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x007140c0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x007140c0"]}
+   ]
+  },
+  {
+   "rva": 3238032,
+   "rva_hex": "0x00316890",
+   "va_hex": "0x00716890",
+   "name": "BgSchedulerResumeChecker_flagSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to BgSchedulerResumeChecker; the body selects a state value from byte 0x04.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, field-read, branch, and output observation",
+   "ambiguity": "The flag and state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00716890"]}]
+  },
+  {
+   "rva": 3245632,
+   "rva_hex": "0x00318640",
+   "va_hex": "0x00718640",
+   "name": "TextDataReadResumeChecker_virtualPoll",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to TextDataReadResumeChecker; the body calls vtable offset 0x04 on the object at offset 0x04 with state at 0x0c, conditionally calls 0x00447450, and selects a state value.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, virtual call, cleanup call, and output observation",
+   "ambiguity": "The referenced object, state storage, and state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x00718640"]}]
+  },
+  {
+   "rva": 3262384,
+   "rva_hex": "0x0031c7b0",
+   "va_hex": "0x0071c7b0",
+   "name": "FadeResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to s_FadeResumeChecker; the body calls 0x0075b4f0 and selects a state value from its return byte.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, call, branch, and output observation",
+   "ambiguity": "The state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x0071c7b0"]}]
+  },
+  {
+   "rva": 3262448,
+   "rva_hex": "0x0031c7f0",
+   "va_hex": "0x0071c7f0",
+   "name": "MapLoadResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI and the slot catalog assign this target to s_MapLoadResumeChecker; the body calls 0x0075c820 and selects a state value from its return byte.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, call, branch, and output observation",
+   "ambiguity": "The state values are not semantically named.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x0071c7f0"]}]
+  },
+  {
+   "rva": 3488320,
+   "rva_hex": "0x00353a40",
+   "va_hex": "0x00753a40",
+   "name": "Embedded_getAreaType_helperCall",
+   "kind": "named",
+   "evidence_class": "embedded-string-and-call",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "The function constructs local call state, embeds the literal _getAreaType, and passes the state and its second argument to 0x00cccad0. The recovered direct reference is a call from 0x00754e70.",
+   "supported_imported_fields": [],
+   "confidence": "direct embedded string, call-target, and caller observation",
+   "ambiguity": "The helper body at 0x00cccad0 was not included, so no binding or registration role is assigned.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-registrar-metatable-20260810", "addresses": ["0x00753a40"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-dispatch-callers-20260810", "addresses": ["0x00753a40", "0x00754e70"]}
+   ]
+  },
+  {
+   "rva": 3489008,
+   "rva_hex": "0x00353cf0",
+   "va_hex": "0x00753cf0",
+   "name": "AreaBase_slot2_conditionalHelperBatch9",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DumpRtti.java, tools/ghidra_scripts/DecompileToText.java, and tools/ghidra_scripts/FindCallers.java",
+   "observation": "Local RTTI and the slot catalog assign this target to AreaBase slot 2. The body tests byte 0x0e before each of nine distinct helper calls; when the byte is nonzero, the corresponding path increments the word at 0x0c instead.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, branch, field-update, and call-target observation",
+   "ambiguity": "The helper bodies were not included, so their roles and any complete registration inventory are not assigned.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-registrar-metatable-20260810", "addresses": ["0x00753cf0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-dispatch-callers-20260810", "addresses": ["0x00753cf0"]}
+   ]
+  },
+  {
+   "rva": 3493488,
+   "rva_hex": "0x00354e70",
+   "va_hex": "0x00754e70",
+   "name": "PrivateAreaBase_slot2_conditional_getAreaTypePath",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "tools/ghidra_scripts/DumpRtti.java, tools/ghidra_scripts/DecompileToText.java, and tools/ghidra_scripts/FindCallers.java",
+   "observation": "Local RTTI and the slot catalog assign this target to PrivateAreaBase slot 2. The body tests byte 0x0e, increments the word at 0x0c when it is nonzero, and otherwise calls 0x00753a40, whose body embeds _getAreaType.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, branch, field-update, embedded string, and call-target observation",
+   "ambiguity": "The downstream helper body at 0x00cccad0 was not included, so no binding or registration role is assigned.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-registrar-metatable-20260810", "addresses": ["0x00754e70", "0x00753a40"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-dispatch-callers-20260810", "addresses": ["0x00754e70", "0x00753a40"]}
+   ]
+  },
+  {
+   "rva": 3526944,
+   "rva_hex": "0x0035d120",
+   "va_hex": "0x0075d120",
+   "name": "OrderedCall_12_bindingIdPackedDispatch",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The twelfth fixed target in 0x00578970 reads root binding 0xc0000024 and child ids 0x7a121, 0x7a122, and 0x7a123. Changed masked values dispatch (((value_7a121 & 3) << 5) | (value_7a123 & 0x1f)) * 2 | 1; a cleared 0x7a122 path can dispatch zero.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, binding literals, masks, packed arithmetic, and dispatch calls",
+   "ambiguity": "The application-level meanings of the binding values are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x0075d120"]}]
+  },
+  {
+   "rva": 3533728,
+   "rva_hex": "0x0035eba0",
+   "va_hex": "0x0075eba0",
+   "name": "PacketBuilder_opcode_0x0134_u32PairAndGeneratedAscii16",
+   "kind": "opcode_sender",
+   "opcode": "0x134",
+   "evidence_class": "packet-builder-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function writes opcode 0x134 and body size 0x28, writes its u32 argument at application offset 0 and a u32 helper result at offset 4, generates fifteen ASCII letters plus a trailing NUL in a 16-byte buffer, copies that buffer to offsets 8 through 0x17, and sends through 0x004d6d30.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct opcode, size, field-write, generation-loop, and send-call observation",
+   "ambiguity": "The replacement states the generated field shape without assigning a protocol meaning to either u32 value.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-c2s-open-senders-body",
+     "addresses": ["0x0075eba0"]
+    }
+   ]
+  },
+  {
+   "rva": 3534032,
+   "rva_hex": "0x0035ecd0",
+   "va_hex": "0x0075ecd0",
+   "name": "PacketBuilder_opcode_0x0135_singleU32_24B",
+   "replaces_imported_name": "ZoneOut_send_opcode_0x135_24B_dword",
+   "kind": "opcode_sender",
+   "opcode": "0x135",
+   "evidence_class": "packet-builder-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function writes opcode 0x135 and body size 0x18, writes its u32 argument at application offset 0, and sends through 0x004d6d30.",
+   "supported_imported_fields": [
+    "kind",
+    "opcode"
+   ],
+   "confidence": "direct opcode, size, field-write, and send-call observation",
+   "ambiguity": "The replacement describes the one-u32 packet shape without assigning binding-id, subscription-type, or other semantic meaning to the value.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "opcode-semantics-c2s-open-senders-body",
+     "addresses": ["0x0075ecd0"]
+    }
+   ]
+  },
+  {
+   "rva": 3559376,
+   "rva_hex": "0x00364fd0",
+   "va_hex": "0x00764fd0",
+   "name": "OrderedCall_13_desktopWidgetCastListSweep",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The thirteenth fixed target in 0x00578970 walks flagged pairs, resolves each object, defers pairs while resolved-object byte 0x5c is zero, dynamically casts root binding 0xc0000024 from LuaControl to DesktopWidget, and removes completed pairs.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, pair traversal, byte guard, RTTI descriptors, dynamic cast, and removal call",
+   "ambiguity": "The pair contents and higher-level queue role are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x00764fd0"]}]
+  },
+  {
+   "rva": 3560256,
+   "rva_hex": "0x00365340",
+   "va_hex": "0x00765340",
+   "name": "OrderedCall_11_conditionalVirtualDeleteListSweep",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The eleventh fixed target in 0x00578970 walks a list, resolves each referenced object through 0x004d9910, tests it through 0x00535ce0 with literal zero, invokes virtual slot 0 with argument one when the test succeeds, and erases the entry.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, list traversal, helper arguments, virtual slot, and erase path",
+   "ambiguity": "The object type and reason for deletion are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x00765340"]}]
+  },
+  {
+   "rva": 3567360,
+   "rva_hex": "0x00366f00",
+   "va_hex": "0x00766f00",
+   "name": "OrderedCall_01_state0x16c_listSweep",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The first fixed target in 0x00578970 processes two lists. One path is gated on field 0x16c equaling literal 10, resolves entries through 0x00cc7a50, tests them through 0x00cc72a0, writes one to resolved-object byte 0x5c, and erases completed entries.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, field and literal guards, list traversal, resolved-object write, and erase path",
+   "ambiguity": "The state value, entries, and resolved-object type are not assigned application-level meanings.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x00766f00"]}]
+  },
+  {
+   "rva": 3575024,
+   "rva_hex": "0x00368cf0",
+   "va_hex": "0x00768cf0",
+   "name": "ZoneIn_0x14d_0x151_record_forms",
+   "kind": "named",
+   "evidence_class": "bounded-constructor-census",
+   "producer": "tools/ghidra_scripts/DecompileToText.java under Ghidra 12.1",
+   "observation": "The five constructors at 0x00768cf0, 0x00768d80, 0x00768e40, 0x00768ef0, and 0x00768fa0 implement one record, a count read from payload byte offset 0x30, and fixed counts 0x10, 0x20, and 0x40. Each record supplies 16-bit values at offsets 0 and 2 plus a byte at offset 4, and repeated-record loops advance the input by 6 bytes.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct field reads, count literals, count-byte access, and pointer arithmetic across all five constructors",
+   "ambiguity": "The bodies do not identify the fields' application-level meanings.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-leaves-20260810", "addresses": ["0x00768cf0", "0x00768d80", "0x00768e40", "0x00768ef0", "0x00768fa0"]}]
+  },
+  {
+   "rva": 3575888,
+   "rva_hex": "0x00369050",
+   "va_hex": "0x00769050",
+   "name": "ZoneIn_0x152_0x156_record_forms",
+   "kind": "named",
+   "evidence_class": "bounded-constructor-census",
+   "producer": "tools/ghidra_scripts/DecompileToText.java under Ghidra 12.1",
+   "observation": "The five constructors at 0x00769050, 0x007690d0, 0x00769170, 0x00769200, and 0x00769290 implement one unsigned 16-bit record, a count read from payload byte offset 0x10, and fixed counts 0x10, 0x20, and 0x40. Repeated-record loops index the input in 2-byte steps.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct unsigned 16-bit reads, count literals, count-byte access, and pointer arithmetic across all five constructors",
+   "ambiguity": "The bodies do not identify the values' application-level role.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-leaves-20260810", "addresses": ["0x00769050", "0x007690d0", "0x00769170", "0x00769200", "0x00769290"]}]
+  },
+  {
+   "rva": 3577040,
+   "rva_hex": "0x003694d0",
+   "va_hex": "0x007694d0",
+   "name": "OrderedCall_08_charaBaseCastListSweep",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The eighth fixed target in 0x00578970 walks a list, resolves entries through 0x00cc7a50, dynamically casts resolved objects from LuaControl to CharaBase, checks resolved-object byte 0x5c and nested state, conditionally calls 0x0075f6a0 and 0x007659c0, and can erase entries.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, list traversal, RTTI descriptors, dynamic cast, byte guard, call targets, and erase path",
+   "ambiguity": "The list role and higher-level purpose of the conditional calls are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x007694d0"]}]
+  },
+  {
+   "rva": 3582400,
+   "rva_hex": "0x0036a9c0",
+   "va_hex": "0x0076a9c0",
+   "name": "OrderedCall_04_namedDataCategoryWalk",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The fourth fixed target in 0x00578970 walks four data-category ranges through virtual readers and category-specific consumers. Three names are literal strings command, achievement, and hamletDefScore; the fourth is referenced by the worldMasterLogCategory symbol.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, category references, range loops, virtual reader calls, and downstream call targets",
+   "ambiguity": "The body does not establish a preload cadence or broader subsystem role.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x0076a9c0"]}]
+  },
+  {
+   "rva": 3584976,
+   "rva_hex": "0x0036b3d0",
+   "va_hex": "0x0076b3d0",
+   "name": "CommandRecord_allocate0x118AndInitialize",
+   "kind": "constructor_path",
+   "evidence_class": "allocation-and-field-writes",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body supplies literal 0x118 to the allocator and calls 0x00776690 on success. That constructor clears offsets 0xa8, 0xac, 0x108, 0x10c, and bytes 0x112 through 0x114, and copies supplied values to offsets 0x104, 0x10e, 0x110, and 0x111.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct allocation literal, constructor edge, and field writes",
+   "ambiguity": "Application-level meanings are not assigned to the initialized fields.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x0076b3d0", "0x00776690"]}]
+  },
+  {
+   "rva": 3594928,
+   "rva_hex": "0x0036dab0",
+   "va_hex": "0x0076dab0",
+   "name": "OrderedCall_10_twoCallWrapper",
+   "kind": "dispatcher",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The tenth fixed target in 0x00578970 is a 27-byte wrapper that calls 0x0075cea0 and then 0x0076a490 with the same argument.",
+   "supported_imported_fields": [],
+   "confidence": "complete wrapper body and direct call order",
+   "ambiguity": "The two callees' roles are not established by the wrapper.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x0076dab0"]}]
+  },
+  {
+   "rva": 3602160,
+   "rva_hex": "0x0036f6f0",
+   "va_hex": "0x0076f6f0",
+   "name": "OrderedCall_02_flags0x140_0x141_listSweep",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The second fixed target in 0x00578970 walks a list, branches on bytes 0x140 and 0x141 of an entry object, invokes virtual callbacks through entry fields, conditionally publishes a result through local helpers, releases owned objects, and erases completed entries.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, list traversal, byte guards, virtual calls, and release and erase paths",
+   "ambiguity": "The entry type and completion semantics are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x0076f6f0"]}]
+  },
+  {
+   "rva": 3604656,
+   "rva_hex": "0x003700b0",
+   "va_hex": "0x007700b0",
+   "name": "OrderedCall_03_message0xDE_listPump",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The third fixed target in 0x00578970 walks a list, passes literal 0xde to 0x0076fb10, forwards successful results through 0x00758f30, invokes virtual slot 0 on an owned object, and erases completed entries.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, list traversal, message literal, call targets, virtual call, and erase path",
+   "ambiguity": "The message and list roles are not assigned application-level meanings.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x007700b0"]}]
+  },
+  {
+   "rva": 3607552,
+   "rva_hex": "0x00370c00",
+   "va_hex": "0x00770c00",
+   "name": "OrderedCall_09_flag0x114_ringEntryDispatch",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The ninth fixed target in 0x00578970 reads one ring-backed entry when the count at 0x18 is nonzero. If 0x0076f040 succeeds, it removes that entry, selects 0x00762f00 or 0x0076fcf0 from entry-object byte 0x114, calls 0x00758c20, and frees the entry.",
+   "supported_imported_fields": [],
+   "confidence": "direct call order, ring arithmetic, helper result guard, byte dispatch, and release path",
+   "ambiguity": "The queue and flag meanings are not established; the body processes at most one entry per call and contains no 900-frame literal.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x00770c00"]}]
+  },
+  {
+   "rva": 3609424,
+   "rva_hex": "0x00371350",
+   "va_hex": "0x00771350",
+   "name": "ZoneIn_0x148_0x14c_record_forms",
+   "kind": "named",
+   "evidence_class": "bounded-constructor-census",
+   "producer": "tools/ghidra_scripts/DecompileToText.java under Ghidra 12.1",
+   "observation": "The five constructors at 0x00771350, 0x007713e0, 0x00771490, 0x00771540, and 0x007715f0 implement one record, a count read from payload byte offset 0x380, and fixed counts 0x10, 0x20, and 0x40. Every repeated-record loop advances the input by 0x70 bytes.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct count literals, count-byte access, and pointer arithmetic across all five constructors",
+   "ambiguity": "The bodies do not identify the records' application-level role or internal field meanings.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-leaves-20260810", "addresses": ["0x00771350", "0x007713e0", "0x00771490", "0x00771540", "0x007715f0"]}]
+  },
+  {
+   "rva": 3620240,
+   "rva_hex": "0x00373d90",
+   "va_hex": "0x00773d90",
+   "name": "CommandUpdater_invokeLua_onUpdateWork_clipObj",
+   "kind": "inbound_invoker",
+   "evidence_class": "embedded-string-and-call",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body invokes Lua with the literal _onUpdateWork method name and supplies the clip-object argument assembled by the local command updater path.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct embedded string and argument-flow observation",
+   "ambiguity": "The label is behavioral, not an original source identifier.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-invokelua-20260810c", "addresses": ["0x00773d90", "0x00cc7a90"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x00773d90", "0x00cc7a90"]}
+   ]
+  },
+  {
+   "rva": 3620624,
+   "rva_hex": "0x00373f10",
+   "va_hex": "0x00773f10",
+   "name": "CommandUpdater_filterAndInvokeLua_onUpdateWork",
+   "kind": "inbound_invoker",
+   "evidence_class": "embedded-string-and-control-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The body walks the pointer range at offsets 0x08 through 0x0c and invokes virtual offset 0x0c on each entry. When byte 0xc0 is nonzero, it adds one to each ushort at offsets 0xbc and 0xbe before invoking Lua with the literal _onUpdateWork method name.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct range walk, virtual call, field arithmetic, embedded string, and Lua invocation",
+   "ambiguity": "The filter entries, the two indices, and any inverse outbound conversion are not semantically identified.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x00773f10", "0x00cc7a90"]}]
+  },
+  {
+   "rva": 3630736,
+   "rva_hex": "0x00376690",
+   "va_hex": "0x00776690",
+   "name": "CommandRecord_initializeTailFields",
+   "kind": "constructor",
+   "evidence_class": "field-writes",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The constructor clears offsets 0xa8, 0xac, 0x108, 0x10c, and bytes 0x112 through 0x114, and copies supplied values to offsets 0x104, 0x10e, 0x110, and 0x111.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct constructor field writes",
+   "ambiguity": "Application-level meanings are not assigned to the initialized fields.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x00776690"]}]
+  },
+  {
+   "rva": 3710160,
+   "rva_hex": "0x00389cd0",
+   "va_hex": "0x00789cd0",
+   "name": "SourceDisplayNameResolverListener_backlinkAt0xA8",
+   "kind": "constructor",
+   "evidence_class": "rtti-vtable-and-field-write",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The constructor installs the local GetNameListenerInterface and SourceDisplayNameResolverListener vtables, initializes five dword fields, and writes its own pointer to offset 0xa8 of the object referenced by its third field.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct local vtable identities and backlink write",
+   "ambiguity": "The constructor body does not establish its allocation size, asynchronous timing, or the other object's field meanings.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "groupwork-retail-batch-20260811", "addresses": ["0x00789cd0"]}]
+  },
+  {
+   "rva": 3719840,
+   "rva_hex": "0x0038c2a0",
+   "va_hex": "0x0078c2a0",
+   "name": "defineClass_extractAndRegister",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function extracts values from supplied positions zero and one through 0x0071ce70, passes them to 0x00cc7050, then passes the first extracted value to 0x00cc71f0.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct positional extraction and call-target observation",
+   "ambiguity": "The helper bodies were not included in this run, so registry field roles and pending-state semantics are not assigned.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x0078c2a0"]}]
+  },
+  {
+   "rva": 4820256,
+   "rva_hex": "0x00498d20",
+   "va_hex": "0x00898d20",
+   "name": "Player_invokeLua_onTouch_primary",
+   "kind": "inbound_invoker",
+   "evidence_class": "embedded-string-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function validates the primary touch record at object offset 4 and invokes Lua with the literal _onTouch method name; the imported proximityBegin interpretation is not encoded locally.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct field offset, embedded string, and invocation path",
+   "ambiguity": "Primary distinguishes the two observed storage paths without assigning event semantics.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-invokelua-20260810c", "addresses": ["0x00898d20", "0x00cc7a90"]}]
+  },
+  {
+   "rva": 4820656,
+   "rva_hex": "0x00498eb0",
+   "va_hex": "0x00898eb0",
+   "name": "Player_invokeLua_onTouch_secondary",
+   "kind": "inbound_invoker",
+   "evidence_class": "embedded-string-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function validates the secondary touch record at object offset 0x10 and invokes Lua with the literal _onTouch method name; the imported proximityEnd interpretation is not encoded locally.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct field offset, embedded string, and invocation path",
+   "ambiguity": "Secondary distinguishes the two observed storage paths without assigning event semantics.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-invokelua-20260810c", "addresses": ["0x00898eb0", "0x00cc7a90"]}]
+  },
+  {
+   "rva": 4824496,
+   "rva_hex": "0x00499db0",
+   "va_hex": "0x00899db0",
+   "name": "ClientOrderEventWaitingResumeChecker_stateSelector",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "Local RTTI and the slot catalog assign this target to ClientOrderEventWaitingResumeChecker; the body selects among three state values from bytes 0x08 and 0x09. Its only recovered reference is the class vtable entry.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, field-read, branch, output, and reference observation",
+   "ambiguity": "The state values are not semantically named, and no static reference links this body to the Kick, Start, or End receiver bodies.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-decompile-20260810a", "addresses": ["0x00899db0"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00899db0"]}
+   ]
+  },
+  {
+   "rva": 4834576,
+   "rva_hex": "0x0049c510",
+   "va_hex": "0x0089c510",
+   "name": "AchievementPointReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns this slot-1 function to AchievementPointReceiver; its body casts the target to MyPlayer and calls the local achievement-point apply helper.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and body data flow",
+   "ambiguity": "The label is behavioral and does not assert an original function symbol."
+  },
+  {
+   "rva": 4834800,
+   "rva_hex": "0x0049c5f0",
+   "va_hex": "0x0089c5f0",
+   "name": "AchievementTitleReceiver_applyToPlayerBase_field_0xe8",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to AchievementTitleReceiver; the body resolves PlayerBase and applies the received value through field 0xe8.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot, cast, and field-offset observation",
+   "ambiguity": "The class and field are direct local evidence."
+  },
+  {
+   "rva": 4835024,
+   "rva_hex": "0x0049c6d0",
+   "va_hex": "0x0089c6d0",
+   "name": "AchievementIdReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns this slot-1 function to AchievementIdReceiver; the body casts the target to MyPlayer and calls the local ID apply helper.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and body data flow",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4835264,
+   "rva_hex": "0x0049c7c0",
+   "va_hex": "0x0089c7c0",
+   "name": "AchievementAchievedCountReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns this slot-1 function to AchievementAchievedCountReceiver; the body casts the target to MyPlayer and applies the received count.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and body data flow",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4835504,
+   "rva_hex": "0x0049c8b0",
+   "va_hex": "0x0089c8b0",
+   "name": "AddictLoginTimeKindReceiver_applyToMyPlayer",
+   "kind": "router",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI identifies AddictLoginTimeKindReceiver and its slot-1 target; the body resolves MyPlayer and applies the payload, while the imported handleLimitAddictedNotice terminology is not locally present.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and target-cast observation",
+   "ambiguity": "The replacement follows the locally recovered receiver class rather than the imported semantic gloss."
+  },
+  {
+   "rva": 4835968,
+   "rva_hex": "0x0049ca80",
+   "va_hex": "0x0089ca80",
+   "name": "ChangeSystemStatReceiver_applyToCharaBase",
+   "kind": "router",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI identifies ChangeSystemStatReceiver and its slot-1 target; the body resolves CharaBase and applies the payload, but local evidence says Stat rather than the imported Flag spelling.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and target-cast observation",
+   "ambiguity": "The replacement uses the local RTTI class spelling."
+  },
+  {
+   "rva": 4836192,
+   "rva_hex": "0x0049cb60",
+   "va_hex": "0x0089cb60",
+   "name": "JobChangeReceiver_applyToPlayerBase",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to JobChangeReceiver; the body resolves PlayerBase and forwards the received job-change payload.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and cast observation",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4836240,
+   "rva_hex": "0x0049cb90",
+   "va_hex": "0x0089cb90",
+   "name": "EntrustItemReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to EntrustItemReceiver; the body resolves MyPlayer and forwards the received item payload.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and cast observation",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4836704,
+   "rva_hex": "0x0049cd60",
+   "va_hex": "0x0089cd60",
+   "name": "GrandCompanyReceiver_field0xA4Dispatch",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI identifies GrandCompanyReceiver and its slot-1 target; the body dispatches through state at offset 0xa4, but the imported PlayerBase and polymorphic interpretation is not independently decided.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and field-offset observation",
+   "ambiguity": "The replacement avoids assigning the unresolved target type."
+  },
+  {
+   "rva": 4837424,
+   "rva_hex": "0x0049d030",
+   "va_hex": "0x0089d030",
+   "name": "HateStatusReceiver_applyToNpcBase",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to HateStatusReceiver; the body casts the target to NpcBase and applies values through the hate-status fields at 0x154 and 0x158.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot, cast, and field offsets",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4837888,
+   "rva_hex": "0x0049d200",
+   "va_hex": "0x0089d200",
+   "name": "EndClientOrderEventReceiver_writeOutputMarker",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "Local RTTI and the slot catalog assign this target to EndClientOrderEventReceiver; the short body writes one fixed marker byte to its output.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target and byte-write observation",
+   "ambiguity": "The marker meaning is not assigned, and the body contains no ResumeChecker access.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-decompile-20260810a", "addresses": ["0x0089d200"]}]
+  },
+  {
+   "rva": 4839520,
+   "rva_hex": "0x0049d860",
+   "va_hex": "0x0089d860",
+   "name": "SetEventStatusReceiver_applyToNpcBase",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to SetEventStatusReceiver; the body casts the target to NpcBase and applies the two event-status bytes at payload offsets 0x58 and 0x59.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot, cast, and payload offsets",
+   "ambiguity": "The local semantic derivation is complete, but an xivl-opcodes anchor remains an external consumer."
+  },
+  {
+   "rva": 4842576,
+   "rva_hex": "0x0049e450",
+   "va_hex": "0x0089e450",
+   "name": "KickClientOrderEventReceiver_actorStateGate",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "Local RTTI and the slot catalog assign this target to KickClientOrderEventReceiver; the body resolves actor state and gates on byte offset 0x5c before selecting an output state.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, actor-state lookup, field-read, and output observation",
+   "ambiguity": "The body contains no direct ClientOrderEventWaitingResumeChecker access.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-decompile-20260810a", "addresses": ["0x0089e450"]}]
+  },
+  {
+   "rva": 4844320,
+   "rva_hex": "0x0049eb20",
+   "va_hex": "0x0089eb20",
+   "name": "StartServerOrderEventFunctionReceiver_wrapper_0x0089E8E0",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "Local RTTI and the slot catalog assign this target to StartServerOrderEventFunctionReceiver; the body forwards its two arguments to 0x0089e8e0 and returns the first argument.",
+   "supported_imported_fields": [],
+   "confidence": "direct local vtable target, wrapper, and call-target observation",
+   "ambiguity": "The wrapper contains no direct ClientOrderEventWaitingResumeChecker access.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-decompile-20260810a", "addresses": ["0x0089eb20", "0x0089e8e0"]}]
+  },
+  {
+   "rva": 4848624,
+   "rva_hex": "0x0049fbf0",
+   "va_hex": "0x0089fbf0",
+   "name": "Network_UserDataReceiver_multiModeDispatcher",
+   "kind": "dispatcher",
+   "evidence_class": "field-selector-and-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java under Ghidra 12.1",
+   "observation": "At VA 0x0089fbf0, the function reads the signed byte selector at receiver offset 0x10 and uses a four-entry jump table for values 0xff, 0, 1, and 2. The four branches reach route calls 0x00771f50 or 0x00772650, 0x00771f50 or 0x00772050, 0x007721b0, and 0x00772560, respectively.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct field-selector, jump-table, and call-target observation",
+   "ambiguity": "The binary does not name the four numeric modes. Run userdata-89fbf0-decompile-20260810e reached the 180-second analysis timeout, but DecompileToText.java and read-only post-analysis completed successfully; direct disassembly of the same retail bytes independently confirmed the selector and jump table.",
+   "derivation_run": {
+    "run_id": "userdata-89fbf0-decompile-20260810e",
+    "status": "analysis-timeout",
+    "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidra_version": "12.1",
+    "script": "tools/ghidra_scripts/DecompileToText.java",
+    "script_sha256": "9ca4922a58ad93b24f847c08b7bc79f9266845d63409c0b69ffa40cbf30c46ea",
+    "environment": {"DECOMP_VAS": "0x0089FBF0"},
+    "analysis_timeout_seconds": 180,
+    "headless_exit_code": 0,
+    "post_analysis": "succeeded"
+   }
+  },
+  {
+   "rva": 4850064,
+   "rva_hex": "0x004a0190",
+   "va_hex": "0x008a0190",
+   "name": "UserDataReceiver_invokeLua_onReceiveDataPacket",
+   "kind": "inbound_invoker",
+   "evidence_class": "rtti-vtable-and-embedded-string",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to UserDataReceiver and the body invokes Lua with the literal _onReceiveDataPacket method name.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and embedded method string",
+   "ambiguity": "None material to the behavioral label.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-invokelua-20260810c", "addresses": ["0x008a0190", "0x00cc7a90"]}]
+  },
+  {
+   "rva": 4861744,
+   "rva_hex": "0x004a2f30",
+   "va_hex": "0x008a2f30",
+   "name": "ChocoboReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to ChocoboReceiver; the body resolves MyPlayer and applies the received payload.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and cast observation",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4861984,
+   "rva_hex": "0x004a3020",
+   "va_hex": "0x008a3020",
+   "name": "ChocoboGradeReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to ChocoboGradeReceiver; the body resolves MyPlayer and applies the grade payload.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and cast observation",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4862208,
+   "rva_hex": "0x004a3100",
+   "va_hex": "0x008a3100",
+   "name": "GoobbueReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to GoobbueReceiver; the body resolves MyPlayer and applies the received payload.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and cast observation",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4862432,
+   "rva_hex": "0x004a31e0",
+   "va_hex": "0x008a31e0",
+   "name": "VehicleGradeReceiver_applyToMyPlayer",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-cast",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI assigns the function to VehicleGradeReceiver; the body resolves MyPlayer and applies the vehicle-grade payload.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and cast observation",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 4868224,
+   "rva_hex": "0x004a4880",
+   "va_hex": "0x008a4880",
+   "name": "ExecuteDebugCommandReceiver_invokeLua_onDebugInput",
+   "kind": "inbound_invoker",
+   "evidence_class": "rtti-vtable-and-embedded-string",
+   "producer": "tools/ghidra_scripts/DumpRtti.java and tools/ghidra_scripts/DecompileToText.java",
+   "observation": "Local RTTI identifies ExecuteDebugCommandReceiver and its slot-1 target; the body invokes Lua with literals _onDebugInput and debug, so the imported DebugConsole owner is replaced.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct local RTTI slot and embedded method strings",
+   "ambiguity": "The replacement uses the locally recovered receiver class."
+  },
+  {
+   "rva": 9206416,
+   "rva_hex": "0x008c7a90",
+   "va_hex": "0x00cc7a90",
+   "name": "CallbackState_threeCallWrapper",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "The body calls 0x00cf0910, passes its first argument to 0x00cd7a30, then passes that result and the remaining arguments to 0x00ccf7d0. The direct-reference export emitted its truncation marker after more than 60 rows.",
+   "supported_imported_fields": [],
+   "confidence": "direct body and direct-reference observation",
+   "ambiguity": "The caller export is not an exhaustive census: it truncates after more than 60 displayed rows and does not cover indirect or virtual paths.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-invokelua-20260810c", "addresses": ["0x00cc7a90"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-dispatch-callers-20260810", "addresses": ["0x00cc7a90"]}
+   ]
+  },
+  {
+   "rva": 9229200,
+   "rva_hex": "0x008cd390",
+   "va_hex": "0x00ccd390",
+   "name": "CoroutineContext_replaceObjectAt0xE8",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "The function compares the supplied object with the object at context offset 0xe8, conditionally invokes vtable slot 0 on the previous object, stores the supplied object at 0xe8, and calls local helpers.",
+   "supported_imported_fields": [],
+   "confidence": "direct field-read, conditional virtual call, field-write, and call-target observation",
+   "ambiguity": "The object role is not semantically named, and the body does not establish a queue insertion operation.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00ccd390"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00ccd390"]}
+   ]
+  },
+  {
+   "rva": 9229872,
+   "rva_hex": "0x008cd630",
+   "va_hex": "0x00ccd630",
+   "name": "CoroutineContext_iterateCollection0x120",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function walks the collection at context offset 0x120, passes each element's field at offset 0x60 to vtable offset 0x04 on its fixed second-argument object, advances through 0x0053c240, and performs the observed exit cleanup.",
+   "supported_imported_fields": [],
+   "confidence": "direct collection-offset, element-field, virtual-call, iteration, and cleanup observation",
+   "ambiguity": "Collection ownership, insertion behavior, and callback semantics are not established by this body.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00ccd630", "0x0053c240"]}]
+  },
+  {
+   "rva": 9231392,
+   "rva_hex": "0x008cdc20",
+   "va_hex": "0x00ccdc20",
+   "name": "CoroutineContext_keyedCleanupAt0xC",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "The function uses the context value at offset 0x0c in a keyed path, calls 0x00cd0380, and performs object cleanup.",
+   "supported_imported_fields": [],
+   "confidence": "direct context-offset, call-target, and cleanup observation",
+   "ambiguity": "The key, object role, and any completion-callback relationship are not established.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00ccdc20", "0x00cd0380"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00ccdc20"]}
+   ]
+  },
+  {
+   "rva": 9250352,
+   "rva_hex": "0x008d2630",
+   "va_hex": "0x00cd2630",
+   "name": "CoroutineContext_wrapper_0x00CCD630",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The short function forwards its context to 0x00ccd630. That callee walks the collection at context offset 0x120, passes each element's field at offset 0x60 to vtable offset 0x04 on its fixed second-argument object, and advances through 0x0053c240.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct wrapper, collection-offset, element-field, virtual-call, and iteration observation",
+   "ambiguity": "The imported findPendingCallback and identical-request dedup semantics are not established.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00cd2630", "0x00ccd630"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00cd2630"]}
+   ]
+  },
+  {
+   "rva": 9250912,
+   "rva_hex": "0x008d2860",
+   "va_hex": "0x00cd2860",
+   "name": "CoroutineContext_callbackWrapper_0x00CCD390",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function wraps the supplied object in local closure state and passes it to 0x00ccd390. That callee conditionally releases the previous object at context offset 0xe8 and stores the supplied object there.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct closure construction, context field replacement, and call-target observation",
+   "ambiguity": "The imported pushResumeChecker and queue-insertion semantics are not established.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00cd2860", "0x00ccd390"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00cd2860", "0x00ccd390"]}
+   ]
+  },
+  {
+   "rva": 9251008,
+   "rva_hex": "0x008d28c0",
+   "va_hex": "0x00cd28c0",
+   "name": "CoroutineContext_callbackWrapper_0x00CCDC20",
+   "kind": "named",
+   "evidence_class": "local-call-graph",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function wraps the supplied object in local closure state and passes it to 0x00ccdc20. That callee uses the context value at offset 0x0c in a keyed path and performs object cleanup.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct closure construction, keyed context access, cleanup, and call-target observation",
+   "ambiguity": "The imported pushEndCallback and two-tier completion semantics are not established.",
+   "retail_provenance": [
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00cd28c0", "0x00ccdc20"]},
+    {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00cd28c0", "0x00ccdc20"]}
+   ]
+  },
+  {
+   "rva": 9675648,
+   "rva_hex": "0x0093a380",
+   "va_hex": "0x00d3a380",
+   "name": "Crc32_standard_tableDriven_poly_0xEDB88320",
+   "kind": "named",
+   "evidence_class": "algorithm-identifiable",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindBytes.java",
+   "observation": "The function performs complemented table-driven CRC updates through four 1 KiB tables; entry 128 of the referenced first table at 0x01110a08 is the literal reversed CRC-32 polynomial 0xedb88320. The block loop processes eight dwords per iteration, but each dword uses four table slices, so the imported sliceBy8 wording is not retained.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct table-reference, literal-byte, and control-flow observation",
+   "ambiguity": "Standard CRC-32 and the reversed polynomial are direct; the replacement deliberately makes no slicing-width claim."
+  },
+  {
+   "rva": 9711824,
+   "rva_hex": "0x009430d0",
+   "va_hex": "0x00d430d0",
+   "name": "Socket_send_thin",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function directly calls the Winsock send import on the socket at object offset 4 with flags zero, maps WSAEWOULDBLOCK to zero, and reports other errors.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct imported-call and control-flow observation",
+   "ambiguity": "The neutral label summarizes the observed wrapper; it does not claim an original source identifier."
+  },
+  {
+   "rva": 9711936,
+   "rva_hex": "0x00943140",
+   "va_hex": "0x00d43140",
+   "name": "Socket_recv_thin",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function directly calls the Winsock recv import on the socket at object offset 4 with flags zero, maps WSAEWOULDBLOCK to -2, and reports other errors.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct imported-call and control-flow observation",
+   "ambiguity": "The neutral label summarizes the observed wrapper; it does not claim an original source identifier."
+  },
+  {
+   "rva": 9717728,
+   "rva_hex": "0x009447e0",
+   "va_hex": "0x00d447e0",
+   "name": "Socket_RecvTCP_worker",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function calls the recv wrapper at 0x00d43140, updates receive time and byte counters, invokes the configured receive callback, and closes the connection on EOF.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct call and state-update observation",
+   "ambiguity": "TCP is established by the recv wrapper path; the label does not claim an original source identifier."
+  },
+  {
+   "rva": 9718096,
+   "rva_hex": "0x00944950",
+   "va_hex": "0x00d44950",
+   "name": "Socket_RecvFrom_worker",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function calls 0x00d42b80, whose body directly calls the Winsock recvfrom import, then updates receive counters and invokes the configured callback with the source address.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct call-chain and imported-call observation",
+   "ambiguity": "The neutral label summarizes the observed worker; it does not claim an original source identifier."
+  },
+  {
+   "rva": 9718496,
+   "rva_hex": "0x00944ae0",
+   "va_hex": "0x00d44ae0",
+   "name": "Socket_StateMachineTick",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function reads the atomic state at object offset 0x98 and dispatches readiness flags through a five-state switch, including the TCP and recvfrom workers at 0x00d447e0 and 0x00d44950.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct switch and call-target observation",
+   "ambiguity": "Tick is a neutral summary of one state-machine step; the label does not claim an original source identifier."
+  },
+  {
+   "rva": 9769408,
+   "rva_hex": "0x009511c0",
+   "va_hex": "0x00d511c0",
+   "name": "NetIo_HandleReadySockets",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function enumerates the local socket records, reads their readiness flags, invokes 0x00d44ae0 for each ready record, and records the resulting state category.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct iteration, readiness, and call-target observation",
+   "ambiguity": "The NetIo prefix is a repository namespace for the observed loop, not an original source identifier."
+  },
+  {
+   "rva": 9770224,
+   "rva_hex": "0x009514f0",
+   "va_hex": "0x00d514f0",
+   "name": "NetIo_PollStep",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function calls the select-based wait at 0x00d57530 and, when it reports readiness, calls 0x00d511c0 before completing the enclosing step callback.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct branch and call-chain observation",
+   "ambiguity": "PollStep is a neutral summary of the observed nonblocking step, not an original source identifier."
+  },
+  {
+   "rva": 9794864,
+   "rva_hex": "0x00957530",
+   "va_hex": "0x00d57530",
+   "name": "NetIo_SelectWait",
+   "kind": "named",
+   "evidence_class": "win32-adjacent",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function builds read, write, and exception fd_sets, calls the Winsock select import with a zero timeout, and writes the resulting readiness bits back to each socket record.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct imported-call and readiness-update observation",
+   "ambiguity": "Wait denotes the select operation even though this call uses a zero timeout; the label does not claim an original source identifier."
+  },
+  {
+   "rva": 10109280,
+   "rva_hex": "0x009a4160",
+   "va_hex": "0x00da4160",
+   "name": "LobbyProtoDown_opcode_dispatcher",
+   "kind": "dispatcher",
+   "evidence_class": "dispatcher-table-derived",
+   "producer": "tools/extract_opcode_dispatch.py",
+   "observation": "The LobbyProtoDown callback dispatcher covers 23 opcode slots and has 10 non-default cases. Those cases map opcodes 0x0001, 0x0002, 0x000c through 0x0010, and 0x0015 through 0x0017 to callback-interface vtable slots 2 through 11.",
+   "supported_imported_fields": [],
+   "confidence": "direct dispatcher-table enumeration",
+   "ambiguity": "The 10 cases are bounded to this Down dispatcher and do not establish payload layouts or the complete bidirectional lobby opcode space.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "wireproto-opcode-dispatch-20260811",
+     "addresses": [
+      "0x00da4160"
+     ]
+    }
+   ]
+  },
+  {
+   "rva": 10112384,
+   "rva_hex": "0x009a4d80",
+   "va_hex": "0x00da4d80",
+   "name": "LobbyClient_decodeRecordListAt0x200",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function decodes a size-tagged record list and updates the destination collection at object offsets 0x200 through 0x20c; RetainerList is not locally identified in the body.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct parsing, size cases, and destination offsets",
+   "ambiguity": "The replacement leaves the record domain unspecified."
+  },
+  {
+   "rva": 10122928,
+   "rva_hex": "0x009a76b0",
+   "va_hex": "0x00da76b0",
+   "name": "LobbyClient_decodePayloadTo0x1D0",
+   "kind": "named",
+   "evidence_class": "local-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function parses the supplied payload into LobbyClient state beginning at offset 0x1d0 and calls 0x00891a00 and 0x00891f00; ServiceLogin is not named in this decoder.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct parsing, destination offsets, and call targets",
+   "ambiguity": "The replacement leaves the payload's protocol identity unresolved."
+  },
+  {
+   "rva": 10136048,
+   "rva_hex": "0x009aa9f0",
+   "va_hex": "0x00daa9f0",
+   "name": "LobbyClient_dispatchInboundWorldCharaLists",
+   "kind": "dispatcher",
+   "evidence_class": "embedded-string-and-dispatch",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The inbound switch contains literals CHR_Count, CHR_SEQ, WLD_Count, and WLD_SEQ and routes to the local list and payload decoders; the broader imported ServiceLogin label is not directly established.",
+   "supported_imported_fields": [
+    "kind"
+   ],
+   "confidence": "direct switch, embedded field names, and call targets",
+   "ambiguity": "The replacement describes the concrete world and character list fields."
+  },
+  {
+   "rva": 10136624,
+   "rva_hex": "0x009aac30",
+   "va_hex": "0x00daac30",
+   "name": "LobbyClient_dispatchInbound_CharaMake",
+   "kind": "dispatcher",
+   "evidence_class": "embedded-string-and-dispatch",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function dispatches the character-creation result path and includes the literal LobbyClientMixin::onSuccessfulCharaMake plus the retainer rename callback name.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct embedded method string and dispatch control flow",
+   "ambiguity": "None material to the behavioral label."
+  },
+  {
+   "rva": 10182976,
+   "rva_hex": "0x009b6140",
+   "va_hex": "0x00db6140",
+   "name": "PacketBufferBase_tryGetNextPacket",
+   "kind": "named",
+   "evidence_class": "local-buffer-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function validates buffered header and size fields, advances the buffer only when a complete packet is available, and returns the next packet or a not-ready result.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct size checks, buffer advancement, and return flow",
+   "ambiguity": "The Base label is a repository type label, not a claimed source symbol."
+  },
+  {
+   "rva": 10186016,
+   "rva_hex": "0x009b6d20",
+   "va_hex": "0x00db6d20",
+   "name": "PacketBufferTmpl_tryGetNextTyped",
+   "kind": "named",
+   "evidence_class": "local-buffer-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The wrapper calls PacketBufferBase_tryGetNextPacket at 0x00db6140 and then materializes typed packet state through 0x00db48c0 and fields at 0x38, 0x3c, and 0x40.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct wrapper, callee, and typed-field observation",
+   "ambiguity": "Tmpl is retained as the repository's neutral wrapper label."
+  },
+  {
+   "rva": 10222864,
+   "rva_hex": "0x009bfd10",
+   "va_hex": "0x00dbfd10",
+   "name": "ZoneProtoDown_opcode_dispatcher",
+   "kind": "dispatcher",
+   "evidence_class": "dispatcher-table-derived",
+   "producer": "tools/extract_opcode_dispatch.py",
+   "observation": "The ZoneProtoDown callback dispatcher covers 502 opcode slots and has 197 non-default cases. The enumerated cases map their opcodes and case indices to callback-interface vtable slots 2 through 198.",
+   "supported_imported_fields": [],
+   "confidence": "direct dispatcher-table enumeration",
+   "ambiguity": "The 197 cases are bounded to this Down dispatcher and do not establish payload layouts or the complete bidirectional zone opcode space.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "wireproto-opcode-dispatch-20260811",
+     "addresses": [
+      "0x00dbfd10"
+     ]
+    }
+   ]
+  },
+  {
+   "rva": 10749488,
+   "rva_hex": "0x00a40630",
+   "va_hex": "0x00e40630",
+   "name": "ChatProtoDown_opcode_dispatcher",
+   "kind": "dispatcher",
+   "evidence_class": "dispatcher-table-derived",
+   "producer": "tools/extract_opcode_dispatch.py",
+   "observation": "The ChatProtoDown callback dispatcher covers 200 opcode slots and has four non-default cases. Those cases map opcodes 0x0001, 0x0002, 0x0003, and 0x00c8 to callback-interface vtable slots 6 through 9.",
+   "supported_imported_fields": [],
+   "confidence": "direct dispatcher-table enumeration",
+   "ambiguity": "The four cases are bounded to this Down dispatcher and do not establish payload layouts or the complete bidirectional chat opcode space.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "wireproto-opcode-dispatch-20260811",
+     "addresses": [
+      "0x00e40630"
+     ]
+    }
+   ]
+  },
+  {
+   "rva": 12075080,
+   "rva_hex": "0x00b84048",
+   "va_hex": "0x00f84048",
+   "name": "EmbeddedOpenSslBlowfishVersionString",
+   "kind": "embedded_data",
+   "evidence_class": "direct-pe-byte-read",
+   "producer": "Python 3 PE section-table parser and direct byte read",
+   "observation": "At .rdata file offset and RVA 0x00b84048, the binary contains the ASCII bytes 42 6c 6f 77 66 69 73 68 20 70 61 72 74 20 6f 66 20 4f 70 65 6e 53 53 4c 20 31 2e 30 2e 30 20 32 39 20 4d 61 72 20 32 30 31 30, which decode as Blowfish part of OpenSSL 1.0.0 29 Mar 2010.",
+   "supported_imported_fields": [],
+   "confidence": "direct PE section mapping and byte observation",
+   "ambiguity": "The string establishes embedded version text, not call sites, linked-suite completeness, or channel use. RVA 0x00004048 is in .text and does not contain this string."
+  },
+  {
+   "rva": 12075128,
+   "rva_hex": "0x00b84078",
+   "va_hex": "0x00f84078",
+   "name": "RdataWords_243F6A88_85A308D3",
+   "kind": "embedded_data",
+   "evidence_class": "direct-pe-byte-read",
+   "producer": "Python 3 PE section-table parser and direct byte read",
+   "observation": "At .rdata file offset and RVA 0x00b84078, the binary contains bytes 88 6a 3f 24 d3 08 a3 85 2e 8a 19 13 44 73 70 03, the little-endian words 0x243F6A88, 0x85A308D3, 0x13198A2E, and 0x03707344.",
+   "supported_imported_fields": [],
+   "confidence": "direct PE section mapping and byte observation",
+   "ambiguity": "The words alone do not establish their callers, object identity, or use by a particular channel."
+  },
+  {
+   "rva": 15102584,
+   "rva_hex": "0x00e67278",
+   "va_hex": "0x01267278",
+   "name": "DataWords_243F6A88_85A308D3",
+   "kind": "embedded_data",
+   "evidence_class": "direct-pe-byte-read",
+   "producer": "Python 3 PE section-table parser and direct byte read",
+   "observation": "At .data file offset and RVA 0x00e67278, the binary contains bytes 88 6a 3f 24 d3 08 a3 85 2e 8a 19 13 44 73 70 03, the little-endian words 0x243F6A88, 0x85A308D3, 0x13198A2E, and 0x03707344.",
+   "supported_imported_fields": [],
+   "confidence": "direct PE section mapping and byte observation",
+   "ambiguity": "The words alone do not establish their callers, object identity, initialization state, or use by a particular channel."
+  }
+ ]
+}

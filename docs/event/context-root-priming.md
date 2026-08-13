@@ -1,0 +1,415 @@
+# Context-root priming at `+0x128`
+
+This page traces the packet path that may prime `context_root[+0x128]` before a
+kick event, which would shift KickReceiver from Branch B1 to Branch B2.
+
+## TL;DR
+
+The `context_root` class is definitively identified, and the candidate writer
+set is narrowed from 98 through 57 to 26. SetEventStatusReceiver is the most
+likely indirect primer through a 2+ hop dispatch chain. Static analysis found no
+direct 1-hop primer: receivers do not directly call `[reg+0x128]` writers.
+Priming therefore occurs either through computed vtable dispatch or through a
+multi-level chain.
+
+## Confirmed structure
+
+### `context_root` class identified
+
+`Application::Lua::Script::Client::Control::NpcBase` (vtable
+`0xfd647c`, RVA `0xbd647c`, **41 slots**). NpcBase has two ctors:
+- `FUN_006f3650` (329 B) - writes initial state
+- `FUN_006f37a0` (alternate ctor, 44 fields)
+
+### NpcBase `[+0x128]`/`[+0x12c]` field semantics
+
+Per the kick-receiver decomp (`docs/event/kick-order-event-receiver.md`):
+
+| `[+0x128]` | `[+0x12c]` | State | Kick path |
+|---|---|---|---|
+| 0 | 0 | (Ctor default) | Treated as "Branch A: target exists" - needs further checks |
+| `NO_ACTOR` (`0xE0000000`) | `NO_ACTOR` | Cleared (idle) | Branch B1: store target if `receiver[+0x80]` set, else no-op |
+| `NO_ACTOR` | set | Primary kick in progress on `[+0x12c]` | Branch A: gate on `+0x5c` |
+| set | `NO_ACTOR` | **Previous target stored, init pending** NOTE | **Branch B2: look up `[+0x128]`, gate on `+0x5c`** |
+
+### Writer-set narrowing
+
+Static analysis over all `asm/ffxivgame/*.s`:
+
+| Filter | Hits |
+|---|---:|
+| All `MOV [reg+0x128], ?` writes | 98 |
+| Excluding `[ESP+0x128]` (local stack frame writes) | 57 |
+| Functions writing to BOTH `[+0x128]` AND `[+0x12c]` | 26 |
+| Receivers (1-hop direct CALL to a writer) | **0** |
+
+### Known special-case writers (already identified)
+
+| Function | RVA | Pattern | Role |
+|---|---|---|---|
+| `FUN_006e32f0` | `0x002e32f0` | `[+0x128] = NO_ACTOR; [+0x12c] = NO_ACTOR` | **Clearer** - `MyPlayer::vtable[66]`, sole writer of NO_ACTOR to both. See `docs/net/kick-dispatcher-clearer.md`. |
+| `FUN_006f3650` | `0x002f3650` | Sets all fields to 0 incl. `[+0x128]/+0x12c` | **NpcBase ctor** - initial state is 0, not NO_ACTOR |
+| `FUN_008e5ff0` | `0x004e5ff0` | Resets EDI to 0x12 fields incl. both | NpcBase reset/reinit |
+
+### 26-candidate breakdown (write to BOTH +0x128 and +0x12c)
+
+The 26 hits break into 4 categories:
+- **Clearer (1)**: `FUN_006e32f0`
+- **Ctor / reset (3)**: `FUN_006f3650`, `FUN_008e5ff0`, `FUN_00773270`
+- **Bulk copy / load state (~10)**: e.g. `FUN_008f0a70` (copies many
+  fields from source struct to NpcBase under critical-section lock -
+  this is likely a "load NpcBase from serialized blob" path)
+- **Misc (~12)**: vtable callbacks, internal state updates
+
+The bulk-copy functions are the **most suspicious category for
+priming**. `FUN_008f0a70` specifically (under `EnterCriticalSection`,
+copies ~20 fields from `[ESI+0x8..0x428]` to `[EDI+0x118..0x15c]`)
+fits the shape of "load saved NpcBase state from network or disk".
+
+## SetEventStatusReceiver - the most-likely indirect primer
+
+`SetEventStatusReceiver::Receive` (`FUN_0089d860`, 58 B) does:
+```c
+NpcBase *npc = __RTDynamicCast(actor, NpcBase);   // SrcType ActorBase
+// ECX = npc; PUSH receiver[+0x59], receiver[+0x58], &receiver[+0x4], packet
+FUN_006e67c0(npc, packet, receiver_internal, receiver_byte_a, receiver_byte_b);
+```
+
+`FUN_006e67c0` (113 B) is a 3-way switch on a packet byte:
+
+```c
+char tag = *(char*)packet;
+if (tag == byte_at_012c3f7a) {
+    handler = vector_find(npc + 0xe8, packet);    // first 16-byte slot
+} else if (tag == byte_at_012c3f7c) {
+    handler = vector_find(npc + 0xf8, packet);    // second 16-byte slot
+} else if (tag == byte_at_012c3f7b) {
+    handler = vector_find(npc + 0x108, packet);   // third 16-byte slot
+}
+if (handler) {
+    handler->vtable[9](handler, packet, npc, packet_byte);  // process
+}
+```
+
+NpcBase has **4 inline 16-byte event-handler vector slots** at
+`+0xe8`, `+0xf8`, `+0x108`, `+0x118`. Each slot is a vector of
+handler instances. `FUN_0071ca50` (the `vector_find` helper) does a
+linear walk through the vector comparing each entry against the
+packet payload via `FUN_00445d20`.
+
+If the handler's `vtable[9]` writes to `npc[+0x128]`, that's the
+priming path. Confirming this requires:
+1. Identifying the handler class (the vector-element type)
+2. Walking its vtable[9] for `[reg+0x128]` writes
+
+The 4 inline slots at `+0xe8..+0x127` (= 4 x 0x10 bytes) end
+**immediately before** `+0x128` - strongly suggesting the handlers
+own/manage the state-machine field that follows them.
+
+## Handler-vtable evidence
+
+### Handler installation chain (decoded)
+
+`SetPushEventConditionWithCircleReceiver` (group A2.1) ->
+`FUN_006f2b70` (downstream pack-forward) -> **`FUN_006f2310` (the
+inserter)** -> allocates **either 0x68 (104 B) or 0x64 (100 B)
+bytes** based on a packet byte tag, then:
+
+```c
+if (packet[0] == byte_at_0x0134c3fe) {
+    handler = (Handler68 *)operator_new(0x68);
+    FUN_00892980(handler, ...);  // init handler68 - vtable = 0x1056edc
+} else {
+    handler = (Handler64 *)operator_new(0x64);
+    FUN_00892b40(handler, ...);  // init handler64 - vtable = 0x1056f10
+}
+push_back(&npc[+0x108], handler);  // FUN_00725ed0 -> std::vector::push_back
+```
+
+So **two handler classes coexist** - `Handler68` (104 B, vtable
+`0x1056edc`) and `Handler64` (100 B, vtable `0x1056f10`). Both
+classes are NOT in `class_metadata.json` (RTTI extractor didn't
+pick them up - likely missing the COL signature).
+
+### Handler vtable layouts (read from `.rdata`)
+
+| Slot | Handler68 (`0x1056edc`) | Handler64 (`0x1056f10`) | Same? |
+|---:|---|---|:---:|
+| 0 | `0x00899910` (dtor68) | `0x00899970` (dtor64) | no |
+| 1 | `0x00897570` | `0x00897570` | **yes** |
+| 2 | `0x00712b40` | `0x00712b40` | **yes** |
+| 3 | `0x00897660` | `0x00897660` | **yes** |
+| 4 | `0x008977b0` | `0x008977b0` | **yes** |
+| 5 | `0x008998b0` | `0x008998b0` | **yes** |
+| 6 | `0x008998c0` | `0x008998c0` | **yes** |
+| 7 | `0x00b73290` | `0x005c5c80` | no |
+| 8 | `0x00899900` | `0x008993c0` | no |
+| **9** | **`0x00894d30`** | **`0x00894d30`** | **YES NOTE** |
+| 10 | `0x00892a80` | `0x00892c30` | no |
+| 11 | `0x00898760` | `0x008988d0` | no |
+
+**Slot 9 is identical** across both handler variants - `FUN_00894d30`
+(421 B, "process push trigger"). This is **the same function listed
+in `receiver_actorimpl_map.md` as the dispatcher path for
+`ExecutePushOn{Enter,Leave}TriggerBoxReceiver`**.
+
+### vtable[9] = `FUN_00894d30` does NOT write to `npc[+0x128]` directly
+
+Decompiled the 421-byte function:
+
+```c
+void Handler::ProcessPushTrigger(this, packet, EBP_local, EDI_arg) {
+    char prev_state = handler[+0x58];           // last frame's state
+    char now = *(char*)packet;                  // this frame's state
+    char global_idle = byte_at_0x012c3f77;      // "idle" sentinel
+
+    bool entering = false, leaving = false;
+
+    // 3-way state-transition matrix:
+    if (prev_state == global_idle && now != global_idle 
+        && handler[+0x62] != 0 && handler[+0x61] != 0) {
+        entering = true;                        // off -> on
+    } else if (prev_state != global_idle && now == global_idle 
+               && handler[+0x62] != 0 && handler[+0x61] != 0) {
+        leaving = true;                         // on -> off
+    }
+
+    if (entering) {
+        // Fire enter trigger:
+        FUN_008a3cf0(&local);
+        FUN_008a41e0(&local, EDI, EBP, &handler[+0x4]);
+        handler[+0x62] = 1;
+    }
+    if (some_other_flag) {
+        // Calls engine context root (TWICE here and below):
+        EAX = FUN_00cc7510(EDI);                // engine context root
+        ECX = EAX.vtable[+4];                    // (loaded but seemingly unused)
+        FUN_0057ab60(&local);                    // some context-root method
+        FUN_008a3d70(...);                       // sub-helper
+        FUN_008a4340(EBP, EDI);                  // sub-helper
+        handler[+0x62] = 1;
+    }
+    handler[+0x58] = now;                        // save current state
+    if (leaving) {
+        // Symmetric "leave trigger" path
+        FUN_008a3ce0(&local2);
+        FUN_008a4150(&local2, EDI, EBP, &handler[+0x4]);
+    }
+    if (some_other_flag2) {
+        // SECOND engine-context call (mirrors entering path):
+        EAX = FUN_00cc7510(EDI);
+        ECX = EAX.vtable[+4];
+        FUN_0057ab60(&local3);
+        FUN_008a3d00(...);
+        FUN_008a4270(EBP, EDI);
+    }
+}
+```
+
+**Crucial finding**: `FUN_00894d30` does NOT write to `npc[+0x128]`
+anywhere in its 421 bytes. The priming-write must happen DEEPER -
+inside one of the sub-helpers (likely `FUN_008a41e0`, `FUN_008a4340`,
+`FUN_008a4150`, or `FUN_008a4270`) or inside `FUN_0057ab60`.
+
+The 2x calls to `FUN_00cc7510` (the engine context root getter) +
+the loaded-but-unused `vtable[+4]` slot 1 strongly suggest the
+engine context manipulation happens via downstream calls, not via
+direct vtable dispatch from this function.
+
+### Remaining gap
+
+To find the actual `npc[+0x128]` write, walk one more level of the
+sub-helpers (FUN_0057ab60, FUN_008a41e0, FUN_008a4340, FUN_008a4150,
+FUN_008a4270). The chain is **>= 2 hops deep** from the handler
+vtable[9], which is why the 1-hop receiver->writer search found
+nothing.
+
+## Sub-helper evidence and two clearers
+
+### Sub-helper walk: vtable[9]'s downstream doesn't touch +0x128 either
+
+The 7 sub-helpers called by `FUN_00894d30` (handler vtable[9]) are:
+
+| Function | Size | +0x128 touches | +0x12c touches |
+|---|---:|---:|---:|
+| `FUN_0057ab60` | 78 B | 0 | 0 |
+| `FUN_008a41e0` | 129 B | 0 | 0 |
+| `FUN_008a4340` | 203 B | 0 | 0 |
+| `FUN_008a4150` | 129 B | 0 | 0 |
+| `FUN_008a4270` | 203 B | 0 | 0 |
+| `FUN_008a3d70` | 108 B | 0 | 0 |
+| `FUN_008a3d00` | 108 B | 0 | 0 |
+
+**ZERO of the direct sub-helpers touch +0x128 or +0x12c.** The chain
+is >= 3 hops deep from the Push EventCondition handler vtable[9],
+or - more likely - **Push event conditions are simply NOT the
+primer**. Push triggers are about position/area entry, not target
+tracking - so the absence of `+0x128` writes makes architectural
+sense.
+
+### Clearers in the Lua-actor area
+
+The 26-candidate writer set includes two relevant clearers in the Lua-actor
+RVA range (0x2dxxxx..0x37xxxx):
+
+#### `FUN_00703970` (414 B) - **selective despawn-clearer** NOTE
+
+```c
+// EBX = this (NpcBase); EAX = arg (some packet)
+if (npc[+0x128] == *(uint32*)packet) {
+    npc[+0x128] = NO_ACTOR;   // from [0x0130c778] - confirmed NO_ACTOR sentinel
+}
+if (npc[+0x12c] == *(uint32*)packet) {
+    npc[+0x12c] = NO_ACTOR;
+}
+```
+
+**This is "actor died/despawned, clear from kick state if it was
+the current/previous target".** `[0x0130c778]` = the NO_ACTOR
+constant (verified - matches the session-memory record
+`NO_ACTOR sentinel = 0xE0000000 at VA 0x0130c778`).
+
+The argument is a packet/identifier - likely the RAW actor ID of the despawning actor.
+
+#### `FUN_00706700` (250 B) - **another clearer** (NOT a setter)
+
+After full decompile, this is **also a clearer**:
+
+```c
+// EDI = this (NpcBase)
+if (npc[+0x161] == 0) goto early_exit;   // state branch
+// ... navigation chain through some sub-objects ...
+npc[+0x130] = result_of_FUN_00cc73b0_call;
+if (npc[+0x161] >= 0x15) {
+    EDX = [0x0130c778];                  // NO_ACTOR sentinel
+    npc[+0x128] = EDX;                   // NOTE clear, NOT a real id
+    FUN_00748870(&local, ...);
+} else {
+    FUN_00748920(EAX, &local);
+}
+```
+
+EDX is loaded from `[0x0130c778]` = NO_ACTOR. So this is **a
+state-machine clearer**: when `npc[+0x161] >= 0x15` (some state
+threshold), clear +0x128 to NO_ACTOR + call FUN_00748870 (some
+post-clear hook).
+
+### Final architectural conclusion
+
+**Every identified writer to `npc[+0x128]` in the Lua-actor RVA
+range (0x2dxxxx..0x37xxxx) writes NO_ACTOR - NONE writes a real
+actor id.** Specifically:
+
+| Function | What it writes | When |
+|---|---|---|
+| `FUN_006e32f0` (76 B) | `NO_ACTOR` to BOTH +0x128 and +0x12c | `MyPlayer::vtable[66]` clearer (sharp tool) |
+| `FUN_006f3650` (329 B, ctor) | `0` (not NO_ACTOR) | Object construction |
+| `FUN_00703970` (414 B) | `NO_ACTOR` conditionally | Despawn-clearer: matches actor id |
+| `FUN_00706700` (250 B) | `NO_ACTOR` conditionally | State-machine clearer: state >= 0x15 |
+
+**Implication**: `npc[+0x128]` (the "previous kick target" field)
+**cannot be primed via a packet receiver path** - there is no
+static C++ code that writes a real actor id to it. The priming
+must happen via one of these non-packet-receiver paths:
+
+1. **Lua engine binding** - Lua scripts call an engine-side
+   binding that writes the field. The shipped Lua scripts (the
+   `.le.lpb` packed corpus) presumably contain script-level
+   `npc:setKickTarget(actor)` calls or equivalent.
+2. **Bulk copy or load state** - `FUN_008f0a70` (under
+   `EnterCriticalSection`) copies many fields including the
+   +0x128 layout zone from a source struct to an NpcBase
+   destination. This could be the "load saved NpcBase from
+   serialized network blob" path.
+3. **vtable computed dispatch** - receivers might compute the
+   target slot dynamically (via Lua VM or function-pointer
+   table) rather than via direct CALL - which would evade
+   1-hop and 3-hop CALL-graph searches.
+
+## Lua-corpus confirmation
+
+### NpcBaseClass Lua API has the symmetric `_callServerOn*` family
+
+`build/wire/cpp_bindings.md` lists `npcbaseclass` with 23 methods
+including the **symmetric trio** (one per interaction kind):
+
+```
+_breakEmote_cpp  / _callServerOnEmote_cpp / _doServerOnEmote_cpp
+_breakPush_cpp   / _callServerOnPush_cpp  / _doServerOnPush_cpp
+_breakTalk_cpp   / _callServerOnTalk_cpp  / _doServerOnTalk
+```
+
+These are the **engine-side bindings** dispatched via Lua VM string
+lookup - `_<method>_cpp` names appear in shipped `.lpb` files and
+the engine looks them up by hash.
+
+### The Lua `_onTalkEvent` / `_onPushEvent` / `_onEmoteEvent` wrappers
+
+In `build/lua/729s9/wu7/wu789r57y9rr.lua` (the NpcBaseClass main
+script, 623 lines, decompiled from the shipped corpus), the
+event-entry-point methods are:
+
+```lua
+-- _onTalkEvent (line 446):
+function NpcBaseClass:_onTalkEvent(player, packet)
+    if isEventLockonCameraEnable() then
+        player:_setLockonTarget(self)
+    else
+        player:_setLockonTarget(nil)
+    end
+    self:_callServerOnTalk(player, packet)   -- NOTE ENGINE BINDING
+    player:_setLockonTarget(nil)
+    desktopWidget:cancelAllTarget()
+end
+
+-- _onEmoteEvent (line 501): symmetric with _callServerOnEmote
+-- _onPushEvent (line 525): calls self:_callServerOnPush(player, packet)
+```
+
+So the engine fires `npc:_onTalkEvent(player, packet)` when the
+player clicks an NPC -> Lua wrapper calls
+`npc:_callServerOnTalk_cpp(player, packet)` -> **the C++ binding
+side-effects `npc[+0x128] = player_actor_id`** (the priming
+write) AND sends the server-side talk request packet.
+
+This is the **previously-missing primer**. It's NOT a packet
+receiver - it's a CLIENT-SIDE engine binding that runs as part of
+the player's interaction action, BEFORE the server is even
+informed.
+
+### The full kick state-machine timing
+
+```
+1. Player clicks Yda NPC in Gridania
+2. Client engine: npc:_onTalkEvent(player, packet)
+   +- npc:_callServerOnTalk_cpp(player, packet)
+   |  +- npc[+0x128] = player_actor_id    NOTE PRIMING (side effect)
+   |  +- send TalkRequest packet to server
+3. Server processes talk request
+4. Server responds with Kick packet (cinematic start)
+5. Client KickReceiver.slot[2]:
+   +- context_root = npc (via vtable[1][+0xc])
+   +- Branch A check: [+0x12c] == NO_ACTOR? -> no current target
+   +- Branch B1/B2 check: [+0x128] == NO_ACTOR?
+   |  +- If primed (step 2 fired): Branch B2 -> look up actor -> SUCCESS
+   |  +- If NOT primed: Branch B1 -> silent fall-through
+```
+
+If the NPC is not talkable and `_isTalkable_cpp` returns false, the engine does
+not dispatch `_onTalkEvent`, so the talk request never reaches this priming
+path. The exact `_callServerOnTalk_cpp` address remains unresolved.
+
+## Cross-references
+
+- `docs/event/kick-order-event-receiver.md` - kick receiver 3-way branch
+  + state machine spec
+- `docs/net/kick-dispatcher-clearer.md` - `FUN_006e32f0` clearer
+- `docs/event/status-condition-receivers.md` - SetEventStatus
+  + SetNoticeEventCondition receivers (#8b)
+- `docs/net/receiver-gates.md` - 38 receiver classifications
+- `docs/net/receiver-class-inventory.md` - receiver inventory
+- `build/wire/cpp_bindings.md` - Lua-bound engine API catalog
+  (npcbaseclass section lists the `_callServerOn*` family)
+- `build/lua/729s9/wu7/wu789r57y9rr.lua` - NpcBaseClass main Lua
+  script (the `_onTalkEvent` / `_onPushEvent` / `_onEmoteEvent`
+  wrappers)

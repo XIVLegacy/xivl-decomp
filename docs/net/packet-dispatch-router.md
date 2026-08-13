@@ -1,0 +1,179 @@
+# Packet dispatch router at `FUN_004e20a0`
+
+This page identifies `FUN_004e20a0` as the outer per-packet dispatch loop and
+connects it to `FUN_00dae520` and the LuaActorImpl and NullActorImpl receiver
+fanout described in `docs/net/network-dispatch-paths.md` and
+`docs/net/actorimpl-receiver-dispatch.md`.
+
+## TL;DR
+
+`FUN_004e20a0` (1442 B, RVA `0x000e20a0`) is the **outer per-packet
+loop** in the network receive pipeline. It dequeues a packet via
+`FUN_00dae520` (the dummy-callback wrapper), reads the opcode, and
+splits into 4 cases via a small jump table at VA `0x004e2644`. Most
+opcodes (3-0x10, plus everything > 0x11) forward to **`FUN_004e5ff0`**,
+which performs channel-bound dispatch into `channel->vtable[2]`.
+
+The chain past `channel->vtable[2]` - the opcode -> LuaActorImpl-slot
+connection - remains unidentified. The dispatch is via a
+runtime tree lookup
+(`FUN_004e5ca0`, an RB-tree-shaped walk keyed on the packet field) into
+a per-opcode handler that's most likely a Lua-bound closure rather
+than a direct C++ vtable call.
+
+## The dispatch table
+
+After dequeuing a packet via `FUN_00dae520`, `FUN_004e20a0` reads the
+opcode as a u16 at `packet[+0x24][+2]`, subtracts 1, and either falls
+to a default case (opcode > 0x11) or indexes a jump table:
+
+```asm
+;; FUN_004e20a0 + 0xc8
+MOV EDI, [ESP+0x2c]                  ; load packet ptr
+TEST EDI, EDI; JZ default
+MOV EAX, [EDI+0x24]                  ; packet header struct
+MOVZX EAX, word [EAX+2]              ; opcode (u16)
+ADD EAX, -1                          ; opcode - 1
+CMP EAX, 0x10; JA <default_case>     ; > 16? -> default (case 3)
+MOVZX EAX, byte [0x4e2654 + EAX]     ; byte_table[opcode-1]
+JMP [0x4e2644 + EAX*4]               ; dword_table[case_idx]
+```
+
+| Opcode | byte_table[op-1] | Case body VA | Behaviour |
+|---:|---:|---|---|
+| `0x01` | 0 | `0x004e2251` | `CALL [0x00f3e55c]` - single IAT-style call. Probably **session ping / keepalive** ack. |
+| `0x02` | 1 | `0x004e22bf` | Builds a 6-byte struct on stack (constants `0x06`, `0x18`), calls `FUN_00dae010` with two struct ptrs. Then continues. - looks like **"client info" or "session resume" handshake**. |
+| `0x03` .. `0x0d` | 3 | `0x004e237d` | Default - forwards to `FUN_004e5ff0` (see section "default case"). |
+| `0x0e` | 2 | `0x004e2311` | Sets `[ESI+0x3b0] = 1`, calls `FUN_00dae010` with a `0x4`/`0x18` struct. Then forwards to `FUN_004e5ff0`. - looks like a **"disconnect / reset" trigger**. |
+| `0x0f` .. `0x10` | 3 | `0x004e237d` | Default forwarding. |
+| `0x11` | 2 | `0x004e2311` | Same as 0x0e - sets reset flag + forwards. |
+| `> 0x11` | (skipped jump) | `0x004e237d` | Default forwarding via the `JA <default>` branch above. |
+
+So FUN_004e20a0 itself only specially handles **4 control opcodes**:
+- `0x01` ping/keepalive
+- `0x02` info/handshake
+- `0x0e` reset/disconnect
+- `0x11` reset/disconnect (duplicate? maybe per-channel variant)
+
+**All other opcodes - including every gameplay opcode (0x12+) -
+forward to `FUN_004e5ff0`** via the default case. This is the bridge
+into the per-opcode dispatch, which remains unrecovered.
+
+## Default case - forwarding to FUN_004e5ff0
+
+```asm
+;; 0x004e237d (the default case body)
+MOV ECX, [EDI+8]                  ; ECX = packet[+8] = channel ptr
+PUSH EDI                          ; pass the packet
+CALL 0x004e5ff0                   ; dispatch
+MOV [ESP+0x2c], EBX               ; clear the local packet ptr (EBX=0)
+JMP 0x004e2152                    ; loop to next packet
+```
+
+So **`FUN_004e5ff0` is called with `ECX = channel`** and the packet on
+the stack. The channel object is `packet[+8]` (per the
+analysis of the dummy-callback dispatcher prologue:
+`mov eax, [edx+8]; mov eax, [eax+0x24]; movzx esi, word [eax+2]`).
+
+## FUN_004e5ff0 - channel-bound dispatcher (132 B)
+
+```c
+bool FUN_004e5ff0(Channel *channel, Packet *pkt) {   // ECX=channel, [ESP+8]=pkt
+    channel->vtable[1]();                          // setup / lock?
+    EDI = pkt;
+    EBP = pkt + 4;
+    FUN_0071d420(&channel->m_field_14, &result);   // probably a packet-header inspector
+    FUN_008a87f0(&channel->m_field_14, hdr_lo, hdr_hi, &result);  // ?
+    if (pkt[+0x1c] > 0x1c10) {
+        pkt->vtable[0](1);                         // "big packet" path
+    } else {
+        FUN_004e5ca0(&channel[+8], &result, pkt);  // NOTE opcode -> handler lookup
+    }
+    channel->vtable[2]();                          // dispatch / commit
+    return true;
+}
+```
+
+The two interesting calls:
+
+1. **`FUN_004e5ca0`** (185 B) - performs a tree walk on `channel[+8]`
+   keyed on `pkt[+0]` (a packet header field, likely the opcode or a
+   derived key). The shape is classic RB-tree iteration:
+   `CMP EDX, [EAX+0xc]` followed by `JZ` taking `[EAX+0]` (left) or
+   `[EAX+8]` (right) until found, then writing the found entry into
+   the output struct. This is most plausibly the **per-opcode handler
+   lookup table**.
+
+2. **`channel->vtable[2]()`** - the channel's "commit"-style hook,
+   which is what would actually invoke the looked-up handler. The
+   handler resolves at runtime via the tree-lookup result placed in
+   the channel's state.
+
+## Bridge to per-receiver dispatch
+
+The chain so far:
+
+```
+network packet
+   down
+FUN_004e20a0 (channel-control opcodes 1/2/0xe/0x11 inline, else ->)
+   down
+FUN_004e5ff0 (channel-bound - calls channel->vtable[1/2])
+   down
+FUN_004e5ca0 (tree-walk lookup of per-opcode handler)
+   down
+???
+   down
+LuaActorImpl::vtable[slot] (the 35 slots mapped in actorimpl-receiver-dispatch.md)
+   down
+Receiver::Receive (Kick / RunEventFunction / EndEvent decomp)
+```
+
+The `???` link remains unidentified. The tree-lookup result is either:
+
+- **A Lua closure**, in which case the script-load registration code
+  is what binds opcodes to scripts, and finding that registration is
+  the way in. Channel uses the standard `Component::Lua::GameEngine`
+  closure-call infrastructure to invoke the closure, which then calls
+  `actor:methodN()` resolving to one of the 35 LuaActorImpl slots.
+
+- **A C++ function pointer** stored in the tree's leaf node, called
+  directly. The function would be a per-opcode handler that picks the
+  target actor and invokes `actor->lua_impl->vtable[slot]`.
+
+The static-analysis evidence for the Lua hypothesis: searches for
+`CALL [reg + disp32]` with disp = `slot * 4` for any of the 35 mapped
+slots return **zero hits**. This rules out
+direct C++ virtual dispatch - the call must go through some
+indirection that the static analysis isn't catching, and Lua VM
+closures are the natural fit.
+
+## Interpretation
+
+The available static evidence establishes these points:
+
+- **Confirms the dispatch is NOT a simple static C++ vtable call** -
+  Lua-VM-driven dispatch is the most likely model, so analysis should follow the
+  `Component::Lua::GameEngine` closure-call path rather than searching
+  for more vtable-disp call sites.
+- **Confirms `FUN_004e5ca0` is the per-opcode lookup helper** - the
+  tree contents and script-load registration edge are not established
+  here, so the full opcode -> handler map remains unresolved.
+
+The script-load registration that populates the tree remains unidentified.
+
+## Cross-references
+
+- `docs/net/network-dispatch-paths.md` - FUN_00dae520
+  dummy-callback dispatch - the input to FUN_004e20a0)
+- `docs/net/actorimpl-receiver-dispatch.md` - the
+  35-slot map from LuaActorImpl/NullActorImpl down to Receiver
+  invocation)
+- `docs/script/lua-class-registry.md` - FUN_0078e3a0, the
+  single Lua-class registration function - strong candidate for the
+  per-opcode binding's sibling location)
+- `docs/event/kick-order-event-receiver.md` - the Receiver
+  decomp the full dispatch chain ultimately bottoms out in for
+  KickEvent)
+- `docs/script/lpb-format.md` - `.le.lpb` bytecode format for the
+  script-side dispatch path

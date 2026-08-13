@@ -1,0 +1,474 @@
+# KickClientOrderEvent receiver
+
+This page maps slot 2, `Receive`, of `KickClientOrderEventReceiver` at absolute
+address `0x0089e450` (Ghidra) / rva `0x0049e450` (xivl-decomp). Ghidra
+decompilation produced the three-way branch interpretation used below.
+
+## TL;DR for client porters
+
+The client's `KickClientOrderEventReceiver` (vtable `0xc574b0`,
+5 slots) processes the `0x0131 KickEvent` packet. Slot 2 - the
+actual receive entry, 207 bytes at RVA `0x0049e450` - does an
+**actor lookup followed by a `+0x5c` flag check** on the kick
+target. If the actor isn't in the client's actor list, OR if its
+`+0x5c` byte is zero, **the kick is silently dropped**.
+
+This means: when the server sends a KickEvent for an actor (e.g.
+a director), the client MUST have already received + processed
+the spawn packets for that actor. If the spawn packets were
+nullified (e.g. by a subsequent `DeleteAllActors` packet wiping
+the client's actor list), the kick fails silently and the
+cinematic never starts -> permanent "Now Loading" hang.
+
+## Vtable map (5 slots)
+
+> NOTES **Addressing convention**: xivl-decomp's asm dumps and the
+> `ffxivgame.net_handlers` index use TWO addressing schemes that
+> are easy to confuse:
+>
+> - **`fn_rva`** = offset from image base 0 (e.g. `0x0049e450`).
+> - **`fn_name`** = absolute address with image base `0x00400000`
+>   applied (e.g. `FUN_0089e450` -> absolute `0x0089e450`).
+>
+> Ghidra loads the binary at its actual image base of `0x00400000`,
+> so it always shows **absolute addresses**. To navigate from a
+> xivl-decomp `fn_rva` to the right Ghidra location, add
+> `0x00400000`. The table below lists both columns so the mapping is
+> unambiguous.
+>
+> The asm dump in section "Slot 2 (`Receive`) - annotated" uses absolute
+> addresses everywhere (the JZ targets like `0x0089e4b4` are
+> absolute) - those numbers ARE the right Ghidra navigation targets.
+
+| Slot | rva (xivl-decomp) | absolute (Ghidra) | Size | Role (inferred) |
+|---|---|---|---|---|
+| 0 | `0x004a1b90` | `0x008a1b90` | 30 B | Scalar deleting destructor (standard MSVC pattern: `CALL <body>; TEST [esp+8],1; JZ skip; PUSH ESI; CALL _free; skip:`) |
+| 1 | `0x0049f530` | `0x0089f530` | 125 B | `New()` factory - `PUSH 0x84` (size=132) -> `operator new` -> 6-arg ctor at `0x0089f2b0` constructing from member offsets `(ESI+8, ESI+0xc, ESI+0x68, ESI+0x10, ESI+0x14, ESI+0x6c)` |
+| 2 | `0x0049e450` | **`0x0089e450`** | **207 B** | **`Receive()` - the actor-lookup + flag-check entry. See per-slot analysis below.** |
+| 3 | `0x0049d230` | `0x0089d230` | 48 B | Auxiliary dispatch - `CALL 0x00cc7a50` (actor lookup) + `CALL 0x006ee680` (Director-base entry, candidate `_dispatchEvent` or similar) |
+| 4 | `0x0049d260` | `0x0089d260` | 15 B | Predicate - compares `[ECX+8]` against `[0x0130c778]` (the `0xE0000000` `NO_ACTOR` sentinel - see Critical findings below), returns `SETNZ AL`. So slot 4 = "is this kick targeting a real (non-null) actor id?" - used by callers that want to skip processing of zero-target kicks. |
+
+The 132-byte `sizeof` of the receiver class (slot 1 factory)
+encodes the kick payload's per-field offsets:
+- `+0x08` -> ECX-receiver (the receiver instance pointer in the
+  ctor call's first arg)
+- `+0x0c` -> some field (referenced by `LEA ECX,[ESI+0xc]`)
+- `+0x10` -> some field
+- `+0x14` -> some field
+- `+0x68` -> some field (referenced by both ctor + slot-2 receive)
+- `+0x6c` -> "trigger" or similar (referenced by slot 1 ctor's last arg AND by slot 2 Receive's lookup target)
+
+The exact field shapes remain unconfirmed.
+
+## Slot 2 (`Receive`) - corrected Ghidra decomp
+
+Slot 2's confirmed decomp is a **three-way** branch (Branch A / B1 / B2), not
+the two-way asm-only interpretation. Receiver field `+0x80` is the
+critical "primary kick" flag; the `context_root[+0x128]` / `[+0x12c]` pair
+forms a current/previous-target state machine.
+
+```c
+char *KickReceiver::Receive(int receiver_this, char *out_result) {
+  *out_result = 0x01;                    // pre-init to "success" (default)
+                                         // (loaded from a clever offset into
+                                         // the CommandUpdaterBase RTTI string
+                                         // at 0x012c41af = string + 0x3f)
+
+  context_root = vtable[1][+0xc];        // navigate to engine context root
+                                         // (via the trampoline at 0x00cc7510)
+
+  if (context_root[+0x12c] != NO_ACTOR) {
+    // --- BRANCH A: target IS set - kick on existing target ---
+    actor = ActorRegistry_lookup_actor(receiver_this + 0xc);
+    if (actor == NULL ||
+        actor[+0x5c] == 0 ||              // <- the kick gate
+        FUN_006e11d0() != 0) {            // <- additional Branch-A-only gate
+      *out_result = FAILURE_CODE;         // (DAT_0134c560)
+    }
+    return out_result;
+  }
+
+  // target NOT set - init path
+  if (context_root[+0x128] == NO_ACTOR) {
+    // --- BRANCH B1: completely fresh, no previous target ---
+    if (receiver[+0x80] != 0) {           // "is this a primary kick?" flag
+      context_root[+0x12c] = receiver[+0xc];   // store target id
+      *out_result = FAILURE_CODE;
+      return out_result;
+    }
+    // (else fall through -> return success, no-op kick)
+  } else {
+    // --- BRANCH B2: previous target stored at [+0x128] ---
+    FUN_0089e200(receiver + 0x6c);        // some trigger setup
+    actor = ActorRegistry_lookup_actor(context_root + 0x128);
+    if (actor == NULL ||
+        actor[+0x5c] == 0) {              // <- same kick gate, re-applied
+      *out_result = FAILURE_CODE;
+      return out_result;
+    }
+  }
+  return out_result;
+}
+```
+
+### Implications of the three-way branch
+
+The state machine across `context_root[+0x128]` / `[+0x12c]`:
+
+| `[+0x128]` | `[+0x12c]` | Meaning | What slot 2 does |
+|---|---|---|---|
+| NO_ACTOR | NO_ACTOR | No kick ever; idle | Branch B1: store target if `receiver[+0x80]` set, else no-op |
+| NO_ACTOR | set | Primary kick in progress on `[+0x12c]` | Branch A: look up `[+0x12c]`, gate on `+0x5c`, gate on `FUN_006e11d0()` |
+| set | NO_ACTOR | Previous target stored, init pending | Branch B2: look up `[+0x128]`, gate on `+0x5c` |
+| set | set | (state shouldn't normally occur - Branch A wins) | Branch A path |
+
+### ASM-only reconstruction (for comparison)
+
+```asm
+0x0049e450:
+    MOV AL, [0x012c41af]        ; load global "default kick result" byte
+    PUSH EBX
+    MOV EBX, [esp+0xc]          ; arg0: out-result pointer (the byte the
+                                ; receiver writes the dispatch result into)
+    PUSH EBP
+    MOV EBP, [esp+0xc]          ; arg1: lookup-context (per-server-tick
+                                ; ActorRegistry-like)
+    PUSH ESI
+    MOV ESI, ECX                ; this = receiver instance
+    PUSH EDI
+    MOV ECX, EBX
+    MOV [EBP], AL               ; pre-init out byte to default
+    CALL 0x00cc7510             ; vtable trampoline (MOV ECX,[ECX]; JMP) -
+                                ; resolves the receiver's parent dispatcher
+    MOV ECX, [EAX]              ; load EAX->[EAX] = vtable
+    MOV EAX, [ECX+0x4]          ; vtable[1] = some method
+    MOV EDI, [EAX+0xc]          ; +0xc field of the dispatcher = "context
+                                ; root", LuaEngine instance not established
+                                ; or DirectorRegistry root
+
+    MOV EAX, [0x0130c778]       ; load NO_ACTOR sentinel (0xE0000000) -
+                                ; confirmed via Ghidra GUI
+                                ; the constant at this RVA is
+                                ; `undefined4 E0000000h`, matches
+                                ; NO_ACTOR / null actor-id sentinel used
+                                ; when an actor-id slot can be empty.
+    CMP [EDI+0x12c], EAX        ; is the dispatcher's [+0x12c] target
+                                ; field == NO_ACTOR? (i.e. "no target
+                                ; currently set?")
+    JZ <0x0089e4b4>             ; if target unset -> branch to the init /
+                                ; setup path that establishes a target;
+                                ; if target already set -> fall through to
+                                ; the "kick on existing target" path.
+
+    ; Branch A: kick is NOT for the current player - secondary dispatch
+    ADD ESI, 0xc                ; advance into receiver state past header
+    PUSH ESI
+    MOV ECX, EBX
+    CALL 0x00cc7a50             ; ActorRegistry::lookup_actor(ECX, ESI)
+                                ; - looks up the kick-target actor by id
+    TEST EAX, EAX
+    JZ <0x0089e4a2>             ; actor not found -> write error byte, return
+    CMP byte [EAX+0x5c], 0x0    ; check actor's "+0x5c" flag - candidate
+                                ; "is_event_ready" / "spawned" / "active"
+                                ; flag the spawn packet sets.
+    JZ <0x0089e4a2>             ; flag clear -> write error byte, return
+    MOV ECX, EDI                ; ECX = dispatcher
+    CALL 0x006e11d0             ; <unknown - candidate "can-kick" gate>
+    TEST AL, AL
+    JZ <0x0089e4ab>             ; gate fail -> return without writing result
+    ; (fall through - kick succeeds)
+
+  <0x0089e4a2:>                 ; failure label
+    MOV DL, [0x0134c560]        ; load global "kick failure result code"
+    MOV [EBP], DL               ; write it to the out-result byte
+  <0x0089e4ab:>
+    POP EDI
+    POP ESI
+    MOV EAX, EBP                ; return the out-result pointer
+    POP EBP
+    POP EBX
+    RET 8                       ; cleanup 2 args (cdecl-call-clean? or
+                                ; thiscall with 2 stack args)
+
+    ; Branch B: kick IS for the current player - initialization path
+  <0x0089e4b4:>
+    CMP [EDI+0x128], EAX
+    LEA EBP, [EDI+0x128]
+    JZ <0x0089e4ef>
+    LEA ECX, [ESI+0x6c]         ; load the "trigger" field
+    CALL 0x0089e200             ; <internal> - inits the trigger handle
+    PUSH EBP
+    MOV ECX, EBX
+    CALL 0x00cc7a50             ; ActorRegistry::lookup_actor again
+    TEST EAX, EAX
+    JZ <0x0089e4dc>
+    CMP byte [EAX+0x5c], 0x0    ; SAME +0x5c flag check on this branch
+    JNZ <0x0089e514>            ; flag set -> success path
+    ; ... (rest of the function, ~70 more bytes, similar structure)
+```
+
+## Critical findings
+
+### 1. The `+0x5c` flag - actor "ready for events"
+
+**Both branches** of slot 2 do the **same `CMP byte [EAX+0x5c], 0x0`
+check** on the looked-up actor. This is THE gate. If the actor
+either doesn't exist OR has `+0x5c == 0`, the kick is silently
+dropped (the function returns with the failure-code byte written
+to the out-result pointer. The caller - presumably the IpcChannel
+dispatcher - has no way to surface "kick not delivered" to the
+user).
+
+**`+0x5c` is set by the actor spawn packets.** Specifically, the
+spawn packet sequence (`AddActor` 0x00CA + the trailing
+properties + the player-state-finalize) ends with whatever
+SetActorState / SetActorIsZoning / etc. flips the actor into
+"ready for events" mode. The flag corresponds (in C# terminology)
+to `Actor.spawned` or `Actor.isInitialized`.
+
+A subsequent `DeleteAllActors` can nullify the spawn state and cause this
+silent failure.
+
+### 2. The `[0x0130c778]` global - `NO_ACTOR` sentinel (`0xE0000000`)
+
+The constant at `0x0130c778` is not a local player actor ID. It is the
+static `0xE0000000` value that the engine compares against actor-ID slots to
+detect "no actor set". The 20+ xrefs for this address are actor-ID-bearing
+dispatchers and receivers that branch on whether a slot is empty.
+
+**Re-interpreting slot 2's branch:**
+
+```
+CMP [EDI+0x12c], NO_ACTOR
+JZ <init path>                  ; [+0x12c] == NO_ACTOR -> no target
+                                ;   currently set, take init path
+                                ;   that establishes a target
+; else                          ; [+0x12c] != NO_ACTOR -> target is
+                                ;   already set, take the dispatch
+                                ;   path that kicks on it
+```
+
+So `[EDI+0x12c]` is the dispatcher's "current target actor id" slot.
+The two slot-2 branches are NOT "self-targeted vs other-targeted" -
+they are **"first-time init for this kick" vs "kick on an already-set
+target"**. The init branch (Branch B in the asm dump) writes
+`[EDI+0x128]` and `[EDI+0x12c]` to set up the target; subsequent
+calls hit the established-target branch (Branch A).
+
+The kick gate is **universal**: any kick to any actor needs the actor's `+0x5c` flag
+set, which means the actor must have completed its spawn-packet sequence on the client.
+
+### 3. `0x00cc7a50` - `ActorRegistry::lookup_actor` (with two-collection split)
+
+The helper decompiles to:
+
+```c
+Actor* FUN_00cc7a50(Registry* this /* in ECX */, ActorId id) {
+    if (FUN_00cd80f0(id) == 0)
+        entry = FUN_00cd8160(id);   // search collection A
+    else
+        entry = FUN_00cd81d0(id);   // search collection B
+    if (entry == NULL) return NULL;
+    return *(Actor**)entry;         // unwrap hashmap-entry -> actor ptr
+}
+```
+
+20+ xrefs (every receiver that needs to look up the kick / event /
+target actor by id).
+
+**The registry layout finding** is that the registry is NOT a
+single flat map - it's split across two backing collections, with
+`FUN_00cd80f0(actor_id)` choosing which collection to search based
+purely on the actor id itself. The predicate is small (presumably a
+single comparison or bit test on the id).
+
+One plausible but unconfirmed form is an actor-type bit test such as
+`(id >> 28) & 0x7 == X`.
+
+- The kick gate finding (`+0x5c` flag check on the looked-up actor)
+  applies regardless of which collection the actor lives in, since
+  slot 2 calls `FUN_00cc7a50` once and that wrapper does the split
+  internally. So the "spawn must precede kick" rule is universal.
+- BUT the spawn-side opcode that flips `+0x5c` may differ between
+  collections (e.g. `AddActor` for collection A vs `CreateDirector`
+  for collection B).
+
+### 4. `0x00cc7510` - vtable trampoline
+
+`MOV ECX,[ECX]; JMP [vtable[X]]` pattern. Used to resolve the
+receiver's parent-dispatcher vtable. Standard MSVC indirect-call
+trampoline; not a real method.
+
+## Helper evidence
+
+### Global byte at `0x012c41af`
+
+The evidence identifies `0x0130c778` as the `0xE0000000` `NO_ACTOR` sentinel,
+not a local player actor ID. It sits immediately after the
+`Sqex::CDev::CDevMedia` RTTI Type Descriptor in the data section and has 20+
+xrefs from dispatchers and receivers that branch on whether an actor-ID slot
+is empty. See Critical findings above for the corrected slot-2 interpretation.
+
+### Helper `FUN_00cc7a50`
+
+The evidence confirms `ActorRegistry::lookup_actor(this, id) -> Actor*` and
+establishes that the registry splits across two backing collections via
+predicate `FUN_00cd80f0`. See Critical findings above for the full analysis.
+
+`FUN_00cd80f0` is a
+7-byte navigation thunk, NOT the predicate body itself:
+
+```asm
+MOV ECX, [ECX + 0x1c4]    ; navigate: this = (*ECX)->[+0x1c4]
+JMP FUN_00d035d0          ; tail-call the real predicate
+```
+
+This surfaces TWO additional architectural findings:
+
+**Registry has a nested object hierarchy.** Combined with the
+caller's `MOV ECX, [ESI]; CALL FUN_00cd80f0`, the layout is:
+
+```
+Registry              (ECX from caller)
+  [+0x0]   -> subobject_1 ptr     (loaded by caller's MOV ECX,[ESI])
+    [+0x1c4] -> id_classifier ptr (loaded inside the thunk)
+```
+
+Two levels of sub-object before we reach the predicate. Canonical
+C++ composition; the `[+0x1c4]` sub-object is a candidate "id
+classifier" / "namespace policy" component shared across registries.
+
+**Thunk shared across 6 registry-like functions** - direct evidence
+of multiple parallel registries with the same id-classification
+policy:
+
+- `FUN_00cc70b0`, `FUN_00cc7190`, `FUN_00cc7a50` - the `0x00cc7`
+  cluster (`lookup_actor` + 2 neighbors, candidate `add_actor`
+  / `remove_actor` siblings on the same registry).
+- `FUN_00d2fe00`, `FUN_00d30160`, `FUN_00d303c0` - the `0x00d2/d30`
+  cluster, distant from the `0x00cc7` cluster - candidate sibling
+  registry with the same sub-object layout (possible "directors
+  registry" or "instance-actors registry" built from the same base
+  class).
+
+This supports the theory that **directors live in a different
+registry than world actors**, and the kick gate's `+0x5c` flag
+might be set by a different opcode pipeline depending on which
+registry the target was registered into.
+
+`FUN_00d035d0`
+decompiles to:
+
+```c
+bool FUN_00d035d0(u32 *id_ptr) {        // id passed by REFERENCE
+  if (FUN_00d03540(id_ptr) == 0)        // gate: "is id known to classifier?"
+    return false;                       //   no -> false (use collection A)
+
+  char *meta = FUN_00d03340(&id_ptr, *id_ptr);   // lookup metadata
+  return *meta == 0x0F;                 // tag == 0x0F -> true (use collection B)
+}
+```
+
+**The partition is NOT id-range or bit-tag based - it's
+type-tag-based via a runtime metadata lookup.** The classifier
+sub-object maintains a `Map<ActorId, Metadata>` where Metadata's
+first byte is a type tag. Tag `0x0F` (constant `DAT_0130d426`)
+puts the actor into collection B; everything else (including
+unknown ids) defaults to collection A.
+
+This means the spawn-side opcode doesn't just write to a registry
+- it also assigns the type tag that determines which collection
+the actor ends up in. The director's `CreateDirector` packet
+may write tag `0x0F` (or another tag) AND
+sets the `+0x5c` flag; a regular `AddActor` packet writes a
+different tag AND sets `+0x5c`. Both pipelines must land before
+any kick targeting the actor.
+
+**Tag `0x0F` semantic** - best guess pending further decomp:
+- An actor "kind" enum value (Director / ZoneInstance / SystemActor)
+- A synthetic-actor flag in the engine's actor-kind taxonomy
+- Confirming requires decoding `FUN_00d03340` (the metadata-set
+  side, not just the lookup) - i.e. find the WRITES that set
+  `*meta = 0x0F`.
+
+**The 8 xrefs to FUN_00d035d0** include `FUN_00cd81d0` itself
+(collection B lookup), which re-calls the predicate to gate that
+lookup. The `FUN_00d2ab60`, `FUN_00d2ae60`, `FUN_00d2b2c0`
+cluster matches the `FUN_00d2*` cluster from `FUN_00cd80f0`'s
+xref list - strong confirmation of two parallel registries with
+identical id-classification policy.
+
+The write path that assigns metadata tag `0x0F` remains unidentified.
+
+Recovered names:
+- `FUN_00cc7a50` -> `ActorRegistry::lookup_actor`
+- `FUN_00cd80f0` -> `ActorRegistry::id_partition_predicate_thunk`
+- `FUN_00d035d0` -> `ActorRegistry::id_partition_predicate` (real
+  body - rename once decoded)
+- `FUN_00cd8160` -> `ActorRegistry::lookup_collection_a`
+- `FUN_00cd81d0` -> `ActorRegistry::lookup_collection_b`
+
+### The `+0x5c` actor flag setter
+
+A Ghidra binary-pattern search for `c6 ?? 5c 01` (MOV byte ptr
+[reg+0x5c], 1) across the entire ffxivgame.exe binary returned ~35
+disassembled "set to 1" hits and ~9 disassembled "set to 0" hits.
+
+**The search generates too many false positives to identify the
+actor-specific writer.** Many unrelated classes happen to have a
+byte field at offset `+0x5c`:
+
+- The `0x55a/0x549/0x546` cluster (~28 hits) is a **boxing /
+  variant factory** pattern: each function calls a shared
+  `FUN_00559de0` allocator, does typed conversion (CVTTSS2SI for
+  float->int, MOVSS for floats, etc.), then sets `+0x5c=1` to mark
+  the variant as "value populated". Different class entirely
+  (some `Variant` / `Box` wrapper).
+- `FUN_00a42c90` (set+clear within 32 bytes) is a **scoped guard
+  / sync primitive**: sets `[global+0x5c]=1`, spins on
+  `vtable[6]()`, clears `[global+0x5c]=0`. Different class
+  (some sync object).
+- Other scattered hits are class-private flag bytes for
+  unrelated classes (`PixelShader::vftable` adjacency
+  showed `[ESI+0x5c]` in a renderer constructor).
+
+The byte pattern alone cannot identify the actor-class writer. RTTI and call
+chain evidence in `docs/actor/kick-gate-writer.md` identifies it as
+`FUN_00766f00`.
+
+### AddActor dispatch path
+
+The spawn-side path starts with opcode `0xCA` = `OP_ADD_ACTOR` per
+`build/wire/ffxivgame.opcodes.md`: `ZoneProtoDownCallbackInterface` slot 19 at
+dispatcher RVA `0x009bfd10`. The abstract `*CallbackInterface` and
+`*DummyCallback` derived classes both ship 3-byte RET stubs at slot 19; the
+real concrete handler is in a derived class not identified here. Dispatcher
+`FUN_00dbfd10` (4682 bytes) uses the
+`byte_table[opcode-1] -> case_table[index] -> vftable[index+2]` chain. The case
+stubs start at `0x009bfd3c` (case 0), and `case * 0x15` gives the per-case
+dispatch entry.
+
+The AddActor case stub reaches the runtime session class through its vtable.
+
+The 916-byte function `FUN_00b8b560` is an actor-related false positive: it
+has a set/clear pattern in a complex state-machine function but is not needed
+to identify the writer.
+
+### Slot 3 dispatch hypothesis
+
+Slot 3's pattern may be the actual "dispatch this kick" entry
+that wraps slot 2's gate check. Its `CALL 0x006ee680` candidate
+trampolines into `DirectorBase::OnEventStarted` (or whichever
+DirectorBase slot is the "got a kick, run the noticeEvent body"
+hook). This identity remains unconfirmed.
+
+## Cross-references
+
+- `docs/net/kick-dispatcher-clearer.md` - identifies
+  `FUN_006e32f0` (76 B, MyPlayer::vtable[66]) as the SOLE writer of
+  NO_ACTOR to both `[+0x128]` and `[+0x12c]`; it is relevant to the
+  SEQ_005 stale-target unblock.
+- `docs/event/director-base-hooks.md` - DirectorBase's
+  34-slot vtable. Slot 3 of the receiver here is a candidate trampoline
+  into one of those director slots.
+- `docs/event/director-quest-framework.md` - architectural model.

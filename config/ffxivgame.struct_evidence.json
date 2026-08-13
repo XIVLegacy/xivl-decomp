@@ -1,0 +1,131 @@
+{
+ "schema_version": 1,
+ "binary": "ffxivgame.exe retail 1.23b",
+ "source_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+ "producer": "tools/ghidra_scripts/FindCallers.java and DecompileToText.java under Ghidra 12.1",
+ "derivation_run": {
+  "contract_version": 1,
+  "contract_status": "predates-contract",
+  "scope": "all class_write_sites and imported_constructor_candidates in this file",
+  "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+  "ghidra_version": "12.1",
+  "scripts": [
+   {"path": "tools/ghidra_scripts/DecompileToText.java", "historical_sha256": null},
+   {"path": "tools/ghidra_scripts/FindCallers.java", "historical_sha256": null}
+  ],
+  "historical_arguments": null,
+  "historical_output_sha256": null,
+  "unknown": [
+   "exact invocation grouping and arguments",
+   "historical script revisions",
+   "run timestamps and output fingerprints"
+  ],
+  "regeneration": [
+   {
+    "script": "tools/ghidra_scripts/DecompileToText.java",
+    "environment": {"DECOMP_VAS": "distinct class_write_sites[].function_va_hex and imported_constructor_candidates[].va_hex values"},
+    "argument_source": "this file's evidence rows"
+   },
+   {
+    "script": "tools/ghidra_scripts/FindCallers.java",
+    "environment": {"CALLER_VAS": "distinct class_write_sites[].vtable_va_hex and imported_constructor_candidates[].va_hex values"},
+    "argument_source": "this file's evidence rows"
+   }
+  ]
+ },
+ "class_write_sites": [
+  {
+   "class": "Sqex::Socket::SocketBase",
+   "vtable_va_hex": "0x011132dc",
+   "function_va_hex": "0x00d43ff0",
+   "observation": "The function writes the SocketBase vftable, initializes the base fields, then replaces it with the SocketImpl vftable.",
+   "confidence": "direct vtable and store observation",
+   "ambiguity": "This establishes a base-construction stage, not the imported 59 semantic field names or a complete 420-byte layout."
+  },
+  {
+   "class": "Application::Scene::Actor::Chara::CharaActor",
+   "vtable_va_hex": "0x00fc0d34",
+   "function_va_hex": "0x0065f180",
+   "observation": "After a base call, the function writes the CharaActor vftable and performs explicit stores including byte offset 0x169 = 1.",
+   "confidence": "direct vtable and store observation",
+   "ambiguity": "The body does not establish the imported semantic field names or a complete 11184-byte layout."
+  },
+  {
+   "class": "Application::Scene::Actor::System::TargetActor",
+   "vtable_va_hex": "0x00fb83cc",
+   "function_va_hex": "0x00612fc0",
+   "observation": "After a base call, the function writes the TargetActor vftable and initializes fixed offsets and the EID_NAME and EID_BODY_DYN strings.",
+   "confidence": "direct vtable, string, and store observation",
+   "ambiguity": "The body does not establish the imported 40 semantic field names or a complete 2496-byte layout."
+  },
+  {
+   "class": "Application::Scene::Actor::System::BootupActor",
+   "vtable_va_hex": "0x00fb86c4",
+   "function_va_hex": "0x00613530",
+   "observation": "The function writes the BootupActor vftable after its base call and clears fields at offsets 0x138, 0x13c, 0x140, and 0x240.",
+   "confidence": "direct vtable and store observation",
+   "ambiguity": "The body does not establish the imported 31 semantic field names or a complete 2496-byte layout."
+  },
+  {
+   "class": "Application::Scene::Actor::System::GameManagerActor",
+   "vtable_va_hex": "0x00fb8134",
+   "function_va_hex": "0x00614ae0",
+   "observation": "The function writes the GameManagerActor vftable and initializes its clip-listener subobject and a large set of fixed offsets.",
+   "confidence": "direct vtable and store observation",
+   "ambiguity": "The body does not establish the imported 17 semantic field names or a complete 2496-byte layout."
+  },
+  {
+   "class": "Application::Scene::Actor::Chara::CharaCutVisualCtrl",
+   "vtable_va_hex": "0x0104447c",
+   "function_va_hex": "0x00855940",
+   "observation": "The function writes the CharaCutVisualCtrl vftable and clears the dword at offset 0x0c.",
+   "confidence": "direct vtable and store observation",
+   "ambiguity": "The body does not establish the imported seven semantic field names or a complete 80-byte layout."
+  },
+  {
+   "class": "SQEX::CDev::Engine::Fw::SceneObject::Actor",
+   "vtable_va_hex": "0x0109ca94",
+   "function_va_hex": "0x00a60b80",
+   "observation": "The function writes the Actor vftable after a base call and initializes explicit fields through offset 0x84.",
+   "confidence": "direct vtable and store observation",
+   "ambiguity": "The body does not establish the two imported semantic field names or a complete 256-byte layout."
+  }
+ ],
+ "imported_constructor_candidates": [
+  {
+   "va_hex": "0x0058b4e0",
+   "verdict": "confirmed-constructor",
+   "observation": "The function calls a base constructor, writes the CharaElement vftable at offsets 0 and 8, and performs initialization stores."
+  },
+  {
+   "va_hex": "0x0065f180",
+   "verdict": "confirmed-constructor",
+   "observation": "The function calls a base constructor, writes the CharaActor vftable, and performs initialization stores."
+  },
+  {
+   "va_hex": "0x006132c0",
+   "verdict": "rejected-constructor-label",
+   "observation": "The function writes no BootupActor vftable and instead reads and updates fields on an existing object; the local BootupActor construction site is 0x00613530."
+  },
+  {
+   "va_hex": "0x00612fc0",
+   "verdict": "confirmed-constructor",
+   "observation": "The function calls a base constructor, writes the TargetActor vftable, and performs initialization stores."
+  },
+  {
+   "va_hex": "0x00612270",
+   "verdict": "rejected-constructor-label",
+   "observation": "The function writes no GameManagerActor vftable and copies values into an existing nested object; the local construction site is 0x00614ae0."
+  },
+  {
+   "va_hex": "0x0061fa40",
+   "verdict": "confirmed-construction-stage",
+   "observation": "The function writes the PostEffectController vftable and the vftables of its embedded filter subobjects."
+  },
+  {
+   "va_hex": "0x0061f9e0",
+   "verdict": "confirmed-constructor",
+   "observation": "The function calls a base constructor and writes the GameManagerActorSchedulerListener vftable."
+  }
+ ]
+}
