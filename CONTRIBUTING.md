@@ -46,6 +46,8 @@ Record any unverified edge and the binary locator and tool needed to resolve it.
 
 ## License
 
-Contributions are licensed under [AGPL-3.0-or-later](LICENSE). Required
+Contributors license their original contributions under
+[AGPL-3.0-or-later](LICENSE). This does not license client binaries or
+third-party expression represented by a research artifact. Required
 attribution is recorded in the README [Acknowledgements](README.md#acknowledgements)
 and [License](README.md#license) sections.
