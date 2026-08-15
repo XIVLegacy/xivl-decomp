@@ -1,121 +1,99 @@
 # Actor action queue and motion dispatch
 
-This page maps the seven client classes that queue a character action, drive
-its motion, and render its visual result. The per-class storage location in
-`CharaActor` remains unresolved.
+This page records the statically proven CharaAction queue topology. The
+storage location of these subsystems in `CharaActor`, the virtual callers that
+populate an entry's action object, and any wire-to-queue edge remain unresolved.
 
-## The action subsystem (7 classes)
+## Action subsystem classes
 
-The "action" subsystem in `App::Scene::Actor::Chara::*` handles the
-entire pipeline of "character executes a battle command":
-queueing -> controller orchestration -> motion playback -> visual
-rendering.
+| Class | Vtable RVA | Slots | Proven role |
+|---|---:|---:|---|
+| `CharaActionQueBase` | `0xc3e37c` | 14 | Abstract queue-entry base |
+| `CharaActionPreLoadQue` | `0xc3e3b8` | 14 | Preload specialization |
+| `CharaActionQue` secondary | `0xc3e3f4` | 12 | Multiple-inheritance secondary interface |
+| `CharaActionQue` primary | `0xc3e428` | 14 | Concrete queue entry |
+| `CharaActionController` | `0xc3e468` | 5 | Owns and ticks typed entry buckets |
+| `Status::CharaActionMotionController` | `0xbe7fb4` | 4 | Motion playback driver |
+| `CharaActionVisualBase` secondary | `0xbe4414` | 7 | Secondary visual interface |
+| `CharaActionVisualBase` primary | `0xbe4434` | 25 | Abstract action visual |
+| `CharaActionVisual` secondary | `0xbe4520` | 7 | Secondary visual interface |
+| `CharaActionVisual` primary | `0xbe4544` | 25 | Concrete action visual |
 
-| Class | Vtable RVA | Slots | Role |
-|---|---|---:|---|
-| **`CharaActionQueBase`** | `0xc3e37c` | 14 | Abstract base for action queues |
-| **`CharaActionQue`** | `0xc3e428` | 14x2 = 26 (multi-inh) | Concrete action queue |
-| **`CharaActionPreLoadQue`** | `0xc3e3b8` | 14 | Pre-load queue (caches resources for upcoming actions) |
-| **`CharaActionController`** | `0xc3e468` | 5 | Orchestrator (drives execution) |
-| **`Status::CharaActionMotionController`** | `0xbe7fb4` | 4 | Motion playback driver |
-| **`CharaActionVisualBase`** | `0xbe4434` | 32 | Abstract base for action visuals |
-| **`CharaActionVisual`** | `0xbe4544` | 32 | Concrete visual (mesh/material/effects during action) |
+The two `CharaActionQue` vtables have 14 primary slots and 12 secondary
+slots. They are not two copies of a 14-slot table, and their aggregate count
+does not imply duplicated slot ordinals or enqueue/dequeue semantics.
 
-Each class has its OWN vtable (set at `[this]` in its constructor),
-so they're allocated as **separate heap-or-inline objects** that
-CharaActor holds pointers to - NOT inline-embedded at known offsets
-in CharaActor's body.
+## Proven entry population and insertion
 
-## Multi-inheritance on `CharaActionQue` (26 slots)
+Primary `CharaActionQue` slot 7, `FUN_00844660`, handles the special idle
+aliases. It selects `initf_idle`, `initb_idle`, or `initp_idle` variants,
+updates flags at entry `+0x0c`, resolves an action object, and stores it at
+entry `+0x10`.
 
-`CharaActionQue` shows 26 slots in the slot dump because it has
-**two vtables** (multiple inheritance). Pattern:
+Primary slot 8, `FUN_00844330`, is the generic name-resolution path. It
+resolves a hashed action name through `FUN_0080E070`, stores the action object
+at entry `+0x10`, and invokes that object's vtable slot `+0xec` with the
+entry-local parameter at `+8`. Both functions have no direct callers because
+they are reached virtually. Neither function inserts into a controller
+container.
 
-- Each slot index 0..13 has TWO entries (one from primary base
-  `CharaActionQueBase`, one from a secondary base - possibly an
-  `IActionQueueListener` interface).
-- 13 of the slots have CharaActionQue-specific overrides (the *
-  marker in the slot dump). That's a substantial amount of
-  queue-specific behaviour: enqueue, dequeue, peek, clear, validate,
-  serialize, etc.
+The proven insertion path is non-virtual `FUN_00845E80`:
 
-## Slot maps (class-specific overrides only)
+1. Apply controller and actor-state gates.
+2. Allocate a 0x1c-byte `CharaActionQue` entry.
+3. Construct it through `FUN_00843B50`.
+4. Apply type-specific initialization for entry types 5 through 9.
+5. Insert the pointer through `FUN_005692F0` into the controller bucket at
+   `this + entry_type * 0x14 + 4`.
 
-`CharaActionController` (5/5 slots all unique to this class):
-- `slot[0]` = FUN_008462f0 - destructor
-- `slot[1]` = FUN_008450b0 - candidate `Init` or `Update`; role not established
-- `slot[2]` = FUN_00844080 - small (just past CharaActionQue::slot9)
-- `slot[3]` = FUN_00845430
-- `slot[4]` = FUN_00844090 - small (16 B sibling of slot[2])
+`FUN_00846050` and `FUN_00846080` are direct wrappers over this insertion
+path. Direct producers include the `FUN_0065A8F0` through `FUN_0065FDA0`
+cluster and `FUN_00662D30`; these establish real insertion callers without
+establishing a packet or VFX origin.
 
-`CharaActionMotionController` (4/4 slots all unique):
-- `slot[0]` = FUN_007a0bd0 - destructor
-- `slot[1]` = FUN_007ac9c0
-- `slot[2]` = FUN_007a0be0 - small (16 B after slot 0)
-- `slot[3]` = FUN_007c5940
+## Controller consumption
 
-`CharaActionPreLoadQue` (9 unique + 5 inherited):
-- 9 unique overrides at slots 0, 2, 3, 4, 5, 6, 7, 8, 9
-- Slots 1, 10, 11, 12, 13 inherited from QueBase
+`CharaActionController` slot 3, `FUN_00845430`, walks 26 controller buckets
+starting at `this+0x10`, with a 0x14-byte bucket stride. It invokes queued
+objects through virtual slots including `+0x08`, `+0x0c`, `+0x10`, `+0x14`,
+`+0x2c`, and `+0x30`. It does not call `FUN_00844330` or `FUN_00844660`, and
+it has no direct edge to the BattleResult VFX or CharaElement battle-effect
+queue functions.
 
-The **5-slot Controller + 4-slot MotionController** pair is the
-"narrow waist" - small interfaces driving the larger Que / Visual
-machinery.
+## Boundary with wire and VFX systems
 
-## Pipeline (inferred)
+The s2c `0x00DA` path is a separate CharaElement-local mechanism:
 
-```
-Battle Command arrives  ->  PreLoadQue resolves resources
-                               (BattleCommand metadata,
-                                animation pack ID, VFX,
-                                sound bank, etc.)
-                                       |
-                                       down
-                          ActionQue enqueues the action
-                                       |
-                                       down
-                          ActionController dispatches
-                          (drives the state machine)
-                                       |
-                          +-----------+------------+
-                          down                          down
-              MotionController                   ActionVisual
-              (skeletal animation)               (mesh + VFX render)
+```text
+FUN_004DC690 -> CharaElement slot 9 -> FUN_0058C690
+              -> actor +0xA84..+0xA90 battle-effect queue
+              -> per-frame FUN_0058DA10 drain
 ```
 
-The PreLoad step matches FFXIV's well-known "pre-cast resource
-download" behaviour (visible in client log files when entering a
-new zone - the client pre-loads action animations for nearby
-characters).
+The drain's type 3 through 0x0b branch reaches `FUN_0058CA80` and
+`FUN_0058A010`, but no CharaAction function. The BattleResult VFX processor
+`FUN_00812B50` separately constructs a VFX parameter and stops at an indirect
+dispatch through `*(object+0x12f0)` vtable slot `+0x08`. No static target from
+that call has been identified.
 
-## Per-class storage location in CharaActor - not established
+Accordingly, a server battle packet -> preload -> CharaActionQueue -> motion
+-> visual pipeline is not established by the current binary evidence. The
+known mechanisms may meet behind a virtual boundary at runtime, but the
+static record must stop at that boundary.
 
-CharaActor must hold pointers to these subsystems. None of the
-class vtable VAs are written into a `CharaActor + offset` slot in
-CharaActor's ctor - confirmed via grep for
-`MOV [ESI+disp32], <action_vtable>`. So CharaActor stores
-**pointers** (set via separately-called `new`-style allocators),
-not inline-embedded objects.
+## Storage ceiling
 
-The exact storage offsets remain unidentified. Their derivation point is the
-allocation pattern
-`CALL operator_new; PUSH ...; CALL <class_ctor>; MOV [ESI+offsetX], EAX`
-in each constructor caller, including callers of `FUN_008462b0` for
-CharaActionQue.
-
-## Practical impact for client
-
-When the server sends a `BattleAction` or equivalent packet:
-1. The client's `CharaActionQue` enqueues the action.
-2. The `PreLoadQue` ensures the relevant motion + VFX resources
-   are loaded.
-3. `ActionController` dispatches the queued action.
-4. `ActionMotionController` plays the skeletal animation
-   (mapped from the action's motion-pack ID).
-5. `ActionVisual` renders mesh / VFX overlays.
+The class constructors write their own vtables, but no confirmed constructor
+call sequence has yet established the owning `CharaActor` field offsets.
+Search for callers of the class constructors and for the pattern
+`operator_new -> constructor -> store into owner+offset`; do not infer inline
+embedding or pointer ownership from vtable presence alone.
 
 ## Cross-references
 
 - `docs/actor/architecture.md` - actor and battle architecture
 - `docs/actor/status-controllers.md` - status controller map
 - `include/actor/chara_actor.h` - CharaActor field-offset catalog
+- `config/ffxivgame.vtable_slots.jsonl` - exact primary/secondary slot maps
+- `asm/ffxivgame/00445e80_FUN_00845e80.s` - non-virtual insertion body
+- `asm/ffxivgame/00445430_FUN_00845430.s` - controller tick
