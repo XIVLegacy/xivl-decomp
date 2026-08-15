@@ -85,6 +85,36 @@ follows. The catalogs do not assign behavioral roles to the slot targets.
 Sources: [`ffxivgame.rtti.json`](../../config/ffxivgame.rtti.json) and
 [`ffxivgame.vtable_slots.jsonl`](../../config/ffxivgame.vtable_slots.jsonl).
 
+## SERVER_UTC and lobby client-number paths
+
+The launch argument and the lobby patch site are separate client paths. The
+encoded launch blob is decoded by `FUN_00450CC0`; `FUN_00450340` tokenizes the
+plaintext key/value list. Startup function `FUN_00403640` looks up
+`SERVER_UTC`, parses it through `FUN_0044FAF0`, and stores the 64-bit value at
+`0x0132CEC0/0x0132CEC4` through `FUN_0044CB50`. The sole direct reader is
+`FUN_00886120`: it obtains `tm_year`, adds 1900, and selects the title-screen
+copyright text (`2010`, `2010, 2011`, or `2010-%d`). It performs no version,
+expiry, or handshake computation. Source: observation
+`ServerUtcLaunchArgumentPath` in
+[`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json).
+
+RVA `0x009A15E3` does not contain a timestamp in the unpatched binary. Its five
+bytes are `E8 3D 41 C3 FF`, a call to `_time64(NULL)` at VA `0x009D5725`.
+`LobbyCryptEngine` vtable slot 1 (`FUN_00DA1590`) caches the returned low dword
+at object `+0x08` and writes it to InitialSessionData `+0x74`. Replacing those
+bytes with `B8 12 E8 E0 50` freezes the result at `0x50E0E812`, or
+1356916754. Source: observation `LobbyClientNumberPatchSite` in the same
+evidence file.
+
+The client makes no comparison against that dword. `LobbyCryptEngine` slot 4
+(`FUN_00DA1670`) instead includes it in a 44-byte MD5 input with the
+`0x12345678` seed, the dword `1000`, and the 32-byte `Test Ticket Data`
+buffer. The 16-byte digest initializes the Blowfish schedule used to decrypt
+the secure-session body. This classifies the value as transmitted handshake
+and key-derivation input. The server-side equality or time-window policy is
+outside the retail client and remains unproved. Source: observation
+`LobbyClientNumberKeyDerivation` in the same evidence file.
+
 ## Recovered catalogs and tooling
 
 `tools/extract_net_vtables.py` writes

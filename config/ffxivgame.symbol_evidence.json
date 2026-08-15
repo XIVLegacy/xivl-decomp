@@ -41,6 +41,34 @@
  },
  "observations": [
   {
+   "rva": 330944,
+   "rva_hex": "0x00050cc0",
+   "va_hex": "0x00450cc0",
+   "name": "ServerUtcLaunchArgumentPath",
+   "kind": "argument_consumer",
+   "evidence_class": "decompile-and-xref-derived",
+   "producer": "Ghidra 12.1 decompile and direct xref census",
+   "observation": "FUN_00450CC0 decodes the sqex launch blob and passes its plaintext key/value list to FUN_00450340. FUN_00403640 looks up SERVER_UTC, parses it as an unsigned decimal 64-bit value through FUN_0044FAF0, and stores it through FUN_0044CB50 at 0x0132CEC0/0x0132CEC4. The only direct reads of that global pair are at 0x0088616F/0x00886174 in FUN_00886120. That function converts the value to a CRT tm, adds 1900 to tm_year, and selects copyright text from the literals 2010, 2010/2011, or 2010-%d. Its sole direct caller is FUN_00886900 at 0x008873F2 in title initialization.",
+   "supported_imported_fields": [],
+   "confidence": "direct decompile, instruction, string, and complete direct-xref observation",
+   "ambiguity": "The direct-xref census establishes the retail client's static consumers. It does not expose the launcher-to-client process boundary on the wire.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "server-utc-paths-20260815",
+     "addresses": [
+      "0x00403640",
+      "0x00450cc0",
+      "0x00450340",
+      "0x0044faf0",
+      "0x0044cb50",
+      "0x00886120",
+      "0x00886900"
+     ]
+    }
+   ]
+  },
+  {
    "rva": 736336,
    "rva_hex": "0x000b3c50",
    "va_hex": "0x004b3c50",
@@ -2043,6 +2071,57 @@
    ],
    "confidence": "direct imported-call and readiness-update observation",
    "ambiguity": "Wait denotes the select operation even though this call uses a zero timeout; the label does not claim an original source identifier."
+  },
+  {
+   "rva": 10098147,
+   "rva_hex": "0x009a15e3",
+   "va_hex": "0x00da15e3",
+   "name": "LobbyClientNumberPatchSite",
+   "kind": "instruction_site",
+   "evidence_class": "direct-pe-byte-read-and-decompile-derived",
+   "producer": "Python 3 PE section parser, Capstone 5, and Ghidra 12.1 decompile",
+   "observation": "The unpatched five bytes at RVA 0x009A15E3 are E8 3D 41 C3 FF, a CALL to the CRT _time64 routine at VA 0x009D5725 with a null argument. LobbyCryptEngine vtable slot 1, FUN_00DA1590, executes the call only while this+0x08 is zero, caches EAX at this+0x08, and writes that dword to InitialSessionData+0x74. No comparison is made in this function. Replacing the CALL with B8 12 E8 E0 50 changes the operation to MOV EAX,0x50E0E812 and therefore freezes the cached client number at 1356916754.",
+   "supported_imported_fields": [],
+   "confidence": "direct PE bytes, decoded instruction, vtable slot, and field-flow observation",
+   "ambiguity": "The client contains no server-side acceptance comparison; whether a remote endpoint requires exact equality or a time window is not established by this instruction site.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "server-utc-paths-20260815",
+     "addresses": [
+      "0x00da1590",
+      "0x00da15e3",
+      "0x009d5725"
+     ]
+    }
+   ]
+  },
+  {
+   "rva": 10098288,
+   "rva_hex": "0x009a1670",
+   "va_hex": "0x00da1670",
+   "name": "LobbyClientNumberKeyDerivation",
+   "kind": "cryptographic_input_path",
+   "evidence_class": "decompile-and-instruction-derived",
+   "producer": "Ghidra 12.1 decompile and Capstone 5 instruction trace",
+   "observation": "LobbyCryptEngine vtable slot 4, FUN_00DA1670, hashes exactly 0x2C bytes beginning at this+0x04 with the MD5 implementation initialized at FUN_00D39A50. The hashed material includes the 0x12345678 seed at +0x04, the cached _time64/clientNumber dword at +0x08, 1000 at +0x0C, and the 32-byte Test Ticket Data buffer at +0x10. The resulting 16-byte digest initializes the Blowfish key schedule through FUN_0045ABF0 and decrypts the 0x280-byte secure-session body through FUN_0045ABB0. The clientNumber is therefore transmitted handshake input and cryptographic key material, not a local version, expiry, or time-window comparison.",
+   "supported_imported_fields": [],
+   "confidence": "direct object-layout, MD5 constant, length, and Blowfish call observation",
+   "ambiguity": "The generic framework reaches this override through CryptEngineInterface virtual dispatch. Static client evidence does not establish the remote comparison or acceptance policy.",
+   "retail_provenance": [
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "server-utc-paths-20260815",
+     "addresses": [
+      "0x00da1670",
+      "0x00d39a50",
+      "0x00d3a1d0",
+      "0x00d3a280",
+      "0x0045abf0",
+      "0x0045abb0"
+     ]
+    }
+   ]
   },
   {
    "rva": 10109280,
