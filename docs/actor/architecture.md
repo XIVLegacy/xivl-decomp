@@ -46,13 +46,28 @@ doing (in battle, gathering, sitting, etc.). Each is wired up to
 delegates (`Delegate00..Delegate07<...>::DelegateHolderDynamic`)
 that fire on state transitions.
 
-`CharaActor` is structurally the prize: a 188-slot class extending
-some unknown parent. Slot 0 is a 34-byte scalar deleting destructor
-that calls a 968-byte parent destructor at `FUN_00666130` (file
-0x266130), suggesting a substantial inheritance chain. The parent
-class isn't directly identifiable via slot-0 cross-reference in the
-RTTI dump, so further inheritance walking will need Ghidra-GUI
-typeinfo lookups.
+`CharaActor` is the central actor type: a 188-slot class whose immediate
+base is `Application::Scene::Actor::CDevActor`. The CharaActor constructor
+at VA `0x0065F180` calls `0x006329C0` before any member initialisation, and
+`0x006329C0` assigns `Application::Scene::Actor::CDevActor::vftable` to
+`*this`. The constructor then overwrites `*this` with
+`Application::Scene::Actor::Chara::CharaActor::vftable`. This base-constructor
+first, derived-vftable-second order is standard MSVC construction order, so
+the callee is the immediate base rather than a member or a helper.
+
+`config/ffxivgame.rtti.json` independently corroborates the relationship:
+CDevActor is depth 4 with 7 bases and 164 slots, while CharaActor is depth 5
+with 11 bases and 188 slots. Depth 5 is exactly one level below depth 4. The
+11 CharaActor entries are CDevActor's 7, plus CDevActor itself, plus three
+further side bases from multiple inheritance. The vtable grows by 24 slots,
+so CharaActor adds 24 virtuals.
+
+Slot 0 is a 34-byte scalar deleting destructor that calls a 968-byte parent
+destructor at `FUN_00666130` (file `0x266130`), suggesting a substantial
+inheritance chain. Only the immediate base is established. The three
+remaining side bases are not named; naming them needs
+`BaseClassDescriptor.pTypeDescriptor` resolution in the RTTI dumper, which is
+a tooling change rather than an open analysis question.
 
 ## CharaActor field layout
 
