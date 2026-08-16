@@ -83,11 +83,18 @@ static record must stop at that boundary.
 
 ## Storage ceiling
 
-The class constructors write their own vtables, but no confirmed constructor
-call sequence has yet established the owning `CharaActor` field offsets.
-Search for callers of the class constructors and for the pattern
-`operator_new -> constructor -> store into owner+offset`; do not infer inline
-embedding or pointer ownership from vtable presence alone.
+`CharaActionController` is an inline sub-object at `CharaActor +0x2858`.
+CharaActor's constructor and destructor use `LEA ECX,[ESI + 0x2858]` before
+calling `FUN_00845340` and `FUN_008453C0`, respectively, at
+`0x0065F6D1` / `0x0065F6D7` and `0x006662BC` / `0x006662C2`. Inline-vs-pointer
+is not inferred from vtable presence alone; the LEA addressing mode witnesses
+the inline member at both construction and destruction sites.
+
+Derived from that inline offset, `this` for `FUN_00845E80` and
+`FUN_00845430` is `CharaActor +0x2858`. Their `this+0x10` bucket base is
+`CharaActor +0x2868`, and bucket N at `this + N*0x14 + 4` is
+`CharaActor +0x285C + N*0x14`. The 0x14 stride and controller-relative base
+are witnessed in this document; only the sums with 0x2858 are derived.
 
 ## Cross-references
 

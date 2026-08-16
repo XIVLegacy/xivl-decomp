@@ -192,10 +192,18 @@ static const size_t subobj_0b80 = 0x0b80;
 static const size_t subobj_0bf0 = 0x0bf0;
 
 // ---- 0x1000..0x1400 block ----
-static const size_t subobj_0fc0 = 0x0fc0;
-static const size_t subobj_1030 = 0x1030;
-static const size_t subobj_1070 = 0x1070;
-static const size_t subobj_1110 = 0x1110;
+// Inline members, not pointers. LEA ECX,[ESI + offset] appears immediately
+// before each constructor call at 0x0065F30F, 0x0065F323, 0x0065F337 and
+// 0x0065F34B, and again in the destructor at 0x006663EC, 0x006663FC,
+// 0x0066640C and 0x0066641C. Each ctor takes one argument and stores it at
+// member offset 0, an owner back-pointer to CharaActor. None assigns a
+// vtable, so these are non-polymorphic and have no RTTI record; they cannot
+// be named from the RTTI dump. Sizes are derived from offset adjacency, not
+// witnessed structure sizes.
+static const size_t subobj_0fc0 = 0x0fc0; // ctor FUN_007b1180; size 0x70
+static const size_t subobj_1030 = 0x1030; // ctor FUN_007ab450; size 0x40
+static const size_t subobj_1070 = 0x1070; // ctor FUN_007a98e0; size 0xa0
+static const size_t subobj_1110 = 0x1110; // ctor FUN_007b2030; size unknown
 // +0x1170 (init 0xED=237): settable property with dirty-bit
 //   tracking. Setter at FUN_0065aa70 (53 B): compares-with-current,
 //   on change OR's `0x400000` into flags_2b70 (dirty bit), writes
@@ -251,7 +259,12 @@ static const size_t field_25e4 = 0x25e4;
 static const size_t field_2608 = 0x2608;
 static const size_t field_2620 = 0x2620;
 static const size_t field_2830 = 0x2830;
-static const size_t field_2858 = 0x2858;
+// Inline CharaActionController, not a pointer. Constructor FUN_00845340 and
+// destructor FUN_008453C0 receive LEA ECX,[ESI + 0x2858] at 0x0065F6D1 /
+// 0x0065F6D7 and 0x006662BC / 0x006662C2. Its vtable RVA 0xc3e468
+// (VA 0x103e468) has exactly two references, at 0x0084537c and
+// 0x008453ea; the constructor has one caller, CharaActor's ctor.
+static const size_t subobj_2858     = 0x2858; // inline CharaActionController
 
 // ---- Tail block (0x2a00+) - many sub-objects + flags ----
 static const size_t field_2a8c      = 0x2a8c;
@@ -268,6 +281,12 @@ static const size_t field_2b3c      = 0x2b3c; // dword, init = 0
 static const size_t field_2b40      = 0x2b40; // dword, init = 0
 static const size_t field_2b44      = 0x2b44; // dword, init = 0
 static const size_t subobj_2b48     = 0x2b48; // larger sub-object (dtor: FUN_00631be0)
+// The only heap sub-object CharaActor allocates in its ctor: operator
+// new(0x380) then FUN_006b7600 constructs
+// Application::Scene::Actor::Chara::CharaVisual and stores it here.
+// FUN_006b7600 assigns the CharaVisual vftable to both *this and this[1],
+// so the object has two vftables; config/ffxivgame.rtti.json lists matching
+// 7-slot and 29-slot CharaVisual entries.
 static const size_t vtable_obj_2b5c = 0x2b5c; // dword, init = 0; owned
 static const size_t subobj_2b60     = 0x2b60; // sub-object (dtor: FUN_00855970)
 static const size_t flags_2b70      = 0x2b70; // dword, init = 0
