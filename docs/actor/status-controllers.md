@@ -99,17 +99,22 @@ delegate-constructor caller, such as `FUN_007c3c00` for CharaStatusBattle.
 The caller supplies an inline CharaActor address as `ESI + offsetX`; the
 dispatcher should then expose a separate `current_state` enum or pointer.
 
+The four candidate offsets below are confirmed as inline,
+non-polymorphic sub-objects with owner back-pointers, per the constructor and
+destructor LEA evidence. This narrows but does not answer the active-pointer
+question: an inline member cannot itself be the "which one is active" pointer,
+so that pointer is a separate field still unidentified.
+
 ## Status-controller layout in CharaActor (partial)
 
-From scans so far, several CharaStatus-related fields are
-known to be inline sub-objects in CharaActor:
+Four CharaStatus-related fields are confirmed as inline sub-objects in
+CharaActor:
 
 - `subobj_0fc0`, `subobj_1030`, `subobj_1070`, `subobj_1110` -
-  CharaActor's ctor calls sub-init functions on these (visible in
-  the ctor's `LEA ECX, [ESI+0xN]; CALL <sub_ctor>` chain). These
-  are CANDIDATE locations for the inline status-controller delegate
-  storage. The delegate-ctor address invoked inside each CharaActor
-  sub-init identifies the corresponding controller.
+  CharaActor's ctor and dtor use `LEA ECX, [ESI+0xN]; CALL <sub_ctor>`
+  at both construction and destruction. Each is a non-polymorphic member
+  with an owner back-pointer; the constructor addresses identify the
+  corresponding controller sub-object.
 
 ## Cross-references
 
