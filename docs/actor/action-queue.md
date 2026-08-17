@@ -81,23 +81,45 @@ Accordingly, a server battle packet -> preload -> CharaActionQueue -> motion
 known mechanisms may meet behind a virtual boundary at runtime, but the
 static record must stop at that boundary.
 
-### Zone gate writer candidates ruled out
+### Element-container pointer writer candidates ruled out
 
-The reader's direct caller does not write the zone `+0x4d8` gate, so the
-writer is not adjacent to the read. Call-graph proximity to
-`FUN_004DC690` is therefore a weakened hypothesis rather than an untested
-one. These two candidates are eliminated and should not be re-decompiled for
-this question.
+The read at `0x004DD167` is
+`Application::Main::RaptureElementContainer+0x4d8`, not a zone-owned field.
+It loads and tests a pointer, then uses the pointee at `+0x98`.
+`FUN_004D7370` returns the same dword, and `FUN_00691F30` likewise adds
+`+0x98` to that result before use.
+
+The ownership chain fixes the reader's object identity. `FUN_004B2DF0`
+allocates the `0x17d58`-byte object and a separate `0x3b8`-byte
+`Application::Network::NetworkModule`. `FUN_004E0DC0` stores the large
+allocation at network-module `+0x8`. `FUN_004DC3A0` writes
+`Application::Main::MainModule::vftable` at the large allocation's base and
+constructs its `+0x10` subobject through `FUN_004DBF40`; at `0x004DBFAB`, that
+constructor writes vftable `0x00F912E4` for
+`Application::Main::RaptureElementContainer`. The existing
+`RaptureElementContainer` row in
+[class metadata](../resource/class-metadata.md) independently records the
+matching 81-slot result.
+
+The reader's direct caller does not write this pointer, so a writer is not
+adjacent to the read. Call-graph proximity to `FUN_004DC690` is therefore a
+weakened hypothesis rather than an untested one. These two candidates are
+eliminated and should not be re-decompiled for this question.
 
 - `0x004E20A0` is 1442 bytes, directly calls the reader `FUN_004DC690`, and is
   called from `0x004E30A0`. It has no `+0x4d8` reference as a byte offset or
   dword index. Its member-offset references cluster at `+0x234` (16 times),
   then `+0x3a8`, `+0x3ac`, and `+0x3b0`.
 - `0x0058C690` is 142 bytes and is already named in the pipeline above. It
-  writes no zone-owned field: it zeroes a 0x38-byte stack record, fills it with
-  a timestamp source, two parameters, and two literal `1` values, then passes
-  it to `FUN_00587370` and `FUN_005901D0`. It is a producer on the
-  battle-effect path, not the gate's write path.
+  does not write the element-container pointer: it zeroes a 0x38-byte stack
+  record, fills it with a timestamp source, two parameters, and two literal
+  `1` values, then passes it to `FUN_00587370` and `FUN_005901D0`. It is a
+  producer on the battle-effect path, not this field's write path.
+
+The 15-hit literal-offset corpus contains no direct writer to the pointer.
+This negative result is bounded: compound address formation, a constructor
+helper, or an indirect call can still write it outside that corpus. Evidence:
+`xivl-client-structs/tools/ghidra/logs/c309_zone-4d8-object-identity.txt`.
 
 ## Storage ceiling
 
