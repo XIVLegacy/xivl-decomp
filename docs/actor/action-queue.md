@@ -81,6 +81,24 @@ Accordingly, a server battle packet -> preload -> CharaActionQueue -> motion
 known mechanisms may meet behind a virtual boundary at runtime, but the
 static record must stop at that boundary.
 
+### Zone gate writer candidates ruled out
+
+The reader's direct caller does not write the zone `+0x4d8` gate, so the
+writer is not adjacent to the read. Call-graph proximity to
+`FUN_004DC690` is therefore a weakened hypothesis rather than an untested
+one. These two candidates are eliminated and should not be re-decompiled for
+this question.
+
+- `0x004E20A0` is 1442 bytes, directly calls the reader `FUN_004DC690`, and is
+  called from `0x004E30A0`. It has no `+0x4d8` reference as a byte offset or
+  dword index. Its member-offset references cluster at `+0x234` (16 times),
+  then `+0x3a8`, `+0x3ac`, and `+0x3b0`.
+- `0x0058C690` is 142 bytes and is already named in the pipeline above. It
+  writes no zone-owned field: it zeroes a 0x38-byte stack record, fills it with
+  a timestamp source, two parameters, and two literal `1` values, then passes
+  it to `FUN_00587370` and `FUN_005901D0`. It is a producer on the
+  battle-effect path, not the gate's write path.
+
 ## Storage ceiling
 
 `CharaActionController` is an inline sub-object at `CharaActor +0x2858`.
