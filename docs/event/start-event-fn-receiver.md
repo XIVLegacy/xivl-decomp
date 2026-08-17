@@ -150,7 +150,7 @@ The `0x00cc7` cluster on the actor registry has **6 confirmed methods**
 | `0x00cc70b0` | (xref-only - candidate add/remove sibling) | Inferred from `id_partition_predicate_thunk` xref list | Role not established |
 | `0x00cc7180` | Some lookup variant - returns bool | RunEventFunction forward lookup | Thunk -> FUN_00cd80e0 -> FUN_00d132b0 |
 | `0x00cc7190` | (xref-only - candidate add/remove sibling) | Inferred from `id_partition_predicate_thunk` xref list | Role not established |
-| `0x00cc72a0` | Some dispatch call - returns bool | RunEventFunction Phase 3 attempt D | Wrapper around FUN_00cd7a30 alias resolver |
+| `0x00cc72a0` | Some dispatch call - returns bool | RunEventFunction Phase 3 attempt D | Wrapper around FUN_00cd7a30 class-registry entry resolver |
 | `0x00cc78c0` | Some "register / enqueue" call - returns void | RunEventFunction Phase 1 attempt C | Wrapper around 1187-byte FUN_00cdde20 |
 | `0x00cc7a50` | `ActorRegistry::lookup_actor` (Actor* or NULL) | KickReceiver decomp + this one | Partitions by `[+0x1c4]`, then dispatches to A or B |
 
@@ -250,55 +250,43 @@ not yet known.
 ### FUN_00cc72a0 (18-byte flag-read wrapper)
 
 ```asm
-MOV EAX, [ESP+0x4]             ; arg0 = actor pointer
+MOV EAX, [ESP+0x4]             ; arg0 = registry lookup value
 MOV ECX, [ECX]                 ; this = *this
 PUSH EAX
-CALL FUN_00cd7a30              ; alias resolver
+CALL FUN_00cd7a30              ; class-registry entry resolver
 MOV AL, [EAX + 0x7d]           ; READ byte at +0x7d of result
 RET 4
 ```
 
-The inner FUN_00cd7a30 (29 bytes) is an **alias resolver**:
+The inner FUN_00cd7a30 (29 bytes) resolves a **Lua class-registry entry**:
 
 ```c
-void *FUN_00cd7a30(this, EDX /* actor_ptr */) {
+void *FUN_00cd7a30(this, EDX /* registry lookup value */) {
   if (EDX == NULL) return NULL;
-  EAX = this[+0x1bc];                       // registry's "focus" obj
-  if (EDX == *EAX) return EAX;              // if actor matches focus
-                                            //  -> return focus obj
-  return EDX[+0x4];                         // else return actor[+0x4]
-                                            //  (an aliased pointer
-                                            //  stored inside the actor)
+  EAX = this[+0x1bc];                       // LuaControl class registry
+  if (EDX == *EAX) return EAX;              // lookup matches first member
+                                            //  -> return registry entry
+  return EDX[+0x4];                         // else use lookup value +0x4
+                                            //  as the registry entry
 }
 ```
 
-So FUN_00cc72a0 = "look up the canonical / aliased object for
-this actor, then return the byte flag at offset `+0x7d`".
+The function dereferences the LuaControl class-registry field at `this + 0x1bc`
+and conditionally substitutes `*(EDX + 4)` when `EDX` differs from the pointed-to
+entry's first member. That conditional substitution is registry-entry behavior.
+A vbtable would not be conditionally replaced this way, so `+0x1bc` is a
+class-registry pointer, not a vbtable pointer.
 
-**Architectural finding #2 - second actor flag at `+0x7d`.**
-This is a second actor flag distinct from the `+0x5c` recorded via
-the kick receiver. Both must be set for a full kick -> run-event
-chain to land:
+So FUN_00cc72a0 resolves the Lua class-registry entry and returns its byte flag
+at offset `+0x7d`.
 
-| Actor flag | Set by | Read by | Inferred semantic |
-|---|---|---|---|
-| `+0x5c` | spawn-side opcode not established | `KickReceiver` Branch A & B2 | **"Ready for event reception"** (kick gate) |
-| `+0x7d` | writer not established | `RunEventFunction` Phase 3 dispatcher (via FUN_00cc72a0) | **"Ready for event dispatch"** |
+**Architectural finding #2 - Lua class-registry entry flag at `+0x7d`.**
+The byte is not the second actor flag previously inferred here. It belongs to a
+non-polymorphic Lua class-registry entry reached from a
+`Component::Lua::GameEngine::LuaControl` instance through `+0x1bc`.
 
-The fact that they're at different offsets - and read at
-different stages of the dispatch chain - strongly suggests they
-represent different lifecycle states:
-
-- `+0x5c` is set early (candidate `AddActor` processing)
-  and gates whether the actor can RECEIVE event packets at all.
-- `+0x7d` is set later (candidate actor event-handling
-  subsystem is initialized - e.g. after the actor's vtable
-  bindings are registered) and gates whether the event body can
-  actually RUN against it.
-
-Whether that's enough to also restore `+0x7d` depends on whether `+0x7d` is set in the
-same opcode pipeline OR in a follow-up packet (e.g. the actor's per-instance Lua-binding
-setup).
+The entry has no vftable, so it has no MSVC RTTI record. Its concrete type cannot
+be named through RTTI by construction, not because of a tooling limit.
 
 ## Helper findings
 
