@@ -264,23 +264,23 @@ static const size_t field_2830 = 0x2830;
 // 0x0065F6D7 and 0x006662BC / 0x006662C2. Its vtable RVA 0xc3e468
 // (VA 0x103e468) has exactly two references, at 0x0084537c and
 // 0x008453ea; the constructor has one caller, CharaActor's ctor.
-static const size_t subobj_2858     = 0x2858; // inline CharaActionController
+static const size_t subobj_2858 = 0x2858; // inline CharaActionController
 
 // ---- Tail block (0x2a00+) - many sub-objects + flags ----
-static const size_t field_2a8c      = 0x2a8c;
-static const size_t field_2acc      = 0x2acc;
-static const size_t field_2ae0      = 0x2ae0;
-static const size_t subobj_2aec     = 0x2aec; // small sub-object (dtor: FUN_00856ea0)
-static const size_t subobj_2af0     = 0x2af0; // small sub-object (dtor: FUN_00856ea0)
-static const size_t subobj_2afc     = 0x2afc; // small sub-object (dtor: FUN_00856df0)
-static const size_t field_2b0c      = 0x2b0c; // dword, init = 0
-static const size_t field_2b10      = 0x2b10; // dword, init = 0
-static const size_t field_2b14      = 0x2b14; // dword, init = 0
-static const size_t field_2b38      = 0x2b38; // dword, init = 0
-static const size_t field_2b3c      = 0x2b3c; // dword, init = 0
-static const size_t field_2b40      = 0x2b40; // dword, init = 0
-static const size_t field_2b44      = 0x2b44; // dword, init = 0
-static const size_t subobj_2b48     = 0x2b48; // larger sub-object (dtor: FUN_00631be0)
+static const size_t field_2a8c  = 0x2a8c;
+static const size_t field_2acc  = 0x2acc;
+static const size_t field_2ae0  = 0x2ae0;
+static const size_t subobj_2aec = 0x2aec; // small sub-object (dtor: FUN_00856ea0)
+static const size_t subobj_2af0 = 0x2af0; // small sub-object (dtor: FUN_00856ea0)
+static const size_t subobj_2afc = 0x2afc; // small sub-object (dtor: FUN_00856df0)
+static const size_t field_2b0c  = 0x2b0c; // dword, init = 0
+static const size_t field_2b10  = 0x2b10; // dword, init = 0
+static const size_t field_2b14  = 0x2b14; // dword, init = 0
+static const size_t field_2b38  = 0x2b38; // dword, init = 0
+static const size_t field_2b3c  = 0x2b3c; // dword, init = 0
+static const size_t field_2b40  = 0x2b40; // dword, init = 0
+static const size_t field_2b44  = 0x2b44; // dword, init = 0
+static const size_t subobj_2b48 = 0x2b48; // larger sub-object (dtor: FUN_00631be0)
 // The only heap sub-object CharaActor allocates in its ctor: operator
 // new(0x380) then FUN_006b7600 constructs
 // Application::Scene::Actor::Chara::CharaVisual and stores it here.
