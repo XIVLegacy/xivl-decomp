@@ -409,3 +409,38 @@ be named through RTTI by construction, not because of a tooling limit.
    cleanup needed.
 
 The compiler's pessimistic SEH wrapping doesn't change the semantic - the data is plain.
+
+## 2026-08-17 trade routing through generic RunEventFunction
+
+A read-only Ghidra decompilation of the retail 1.23b `ffxivgame.exe`
+(version `2012.09.19.0001`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`) traced
+s2c opcode `0x0130` through `FUN_004D8860` and `FUN_00575040` to
+`LuaActorImpl` vtable slot 57, `FUN_0076C220` (RVA `0x0036c220`, VA
+`0x0076c220`). The read-only `DumpVAs.java` pass requested VAs `0x004D8860`,
+`0x00575040`, `0x0076C220`, `0x0089F430`, `0x0089EB20`, `0x0089E8E0`,
+`0x0070A010`, `0x00898480`, `0x00897310`, `0x006EE680`, `0x0075E3A0`,
+`0x00776760`, `0x004D6D30`, and `0x004E0240` from the Ghidra 12.1
+auto-analysis program. The dispatcher passes the application payload at packet
+`+0x10`, so the decoder's field offsets are relative to that payload:
+
+| Offset | Size | Field |
+|---|---:|---|
+| `0x00` | `0x04` | Trigger actor id (`u32`) |
+| `0x04` | `0x04` | Owner actor id (`u32`) |
+| `0x08` | `0x01` | Event type (`u8`) |
+| `0x09` | `0x20` | Event name (`char[32]`) |
+| `0x29` | `0x20` | Function name (`char[32]`) |
+| `0x49` | `0x40` | Lua parameter input (`bytes[64]`) |
+
+The function-name field selects the Lua method and the parameter input carries
+its positional arguments. Trade therefore specializes this generic decoder at
+the Lua boundary rather than through a native trade packet layout. This is the
+client-side message shape, not an observation of trade values or server
+sequencing.
+
+`FUN_0076C220` contains no native trade-token or notice-code switch. Trade
+function and argument selection remain data-driven at the generic Lua
+boundary. This is a bounded observation of the traced decoder and route, not
+an absolute negative about indirect or otherwise untraced binary-wide
+producers.
