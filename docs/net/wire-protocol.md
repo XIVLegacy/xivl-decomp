@@ -388,3 +388,41 @@ values at or above it invoke virtual slot 0 on the input object with argument
 observations `ZoneClient_packetDispatch_treeOrDestroy_threshold_0x1c11` and
 `ZoneClient_treeLookupOrInsert_u32Key` in
 [`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json).
+
+### 2026-08-17 trade event-command routing
+
+A read-only Ghidra 12.1 decompilation of the retail 1.23b client found trade on
+the existing event-command transport. Server-to-client function delivery uses
+`0x0130` RunEventFunction through VAs `0x004D8860` -> `0x00575040` ->
+`0x0076C220`. The traced `TradeOfferCommand` and `TradeOfferCancelCommand`
+starts use `0x012D` EventStart through VAs `0x0075E3A0` -> `0x00776760` ->
+`0x004D6D30` -> `0x004E0240`. A generic client-to-server `0x012E` EventUpdate
+route exists through VAs `0x00894090` -> `0x0075E670` -> `0x004D6D30` ->
+`0x004E0240`, but no direct static edge binds an individual trade operation to
+that route. No trade-only opcode was found in the traced routes.
+
+The companion read-only `DumpVAs.java` pass requested VAs `0x0089EDB0`,
+`0x00894090`, `0x00894AB0`, `0x00894BC0`, `0x00896F70`, and `0x0075E670`
+from the same Ghidra auto-analysis program for the EventUpdate trace.
+
+Trade operation layouts stop at the dynamic Lua/event boundary. The generic
+envelopes expose event metadata and dynamic parameter data, but the static
+route does not recover fixed layouts for individual trade operations, observed
+trade values, or server sequencing. The generic `0x0130` receiver context is
+also recorded in [`start-event-fn-receiver.md`](../event/start-event-fn-receiver.md).
+
+A Ghidra `FindReferences.java` exact-string pass over all 28,414 defined strings
+queried `dictateNoticeTradeWidget`, `processTradeCommandReply`,
+`processTradeCommandOpenTray`, `processTradeCommandCloseTray`,
+`processUpdateTradeCommandTrayData`, and
+`/Command/System/TradeExecuteCommand`. A substring pass queried `Trade`,
+`trade`, `Notice`, and `notice`; it found only trade-grid strings and unrelated
+notice infrastructure. A companion address-reference pass covered VAs
+`0x0076C220`, `0x00776760`, `0x0075E670`, and `0x004E0240`; it found the generic
+receiver and send routes but no additional directly referenced native trade
+notice entry among those targets. The generic `0x0130` decoder has no
+notice-code branch. If notice codes `204`, `205`, `206`, or `212` are reached
+through the traced `0x0130` packet input, they are server-selected generic event
+inputs. This negative is bounded to directly encoded references and static Lua
+call sites. Computed, indirect, dynamically dispatched, and unanalyzed-region
+references may be absent, so it is not an absolute runtime-reference negative.
