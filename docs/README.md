@@ -18,6 +18,7 @@ checks the index against the tree in both directions.
 - [AI-assisted contributions](ai_agents/README.md)
 - [Comments and prose policy](ai_agents/comments-and-prose.md)
 - [Evidence and claims policy](ai_agents/evidence-and-claims.md)
+- [Retail input validation](ai_agents/retail-input-validation.md)
 - [Verification policy](ai_agents/verification.md)
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
 - [Context-root priming](event/context-root-priming.md)

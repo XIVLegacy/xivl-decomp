@@ -49,4 +49,5 @@ inside an external citation is part of that citation and stays.
 | Public docs entry point | [docs/README.md](../README.md) |
 | Evidence and claim boundaries | [evidence-and-claims.md](evidence-and-claims.md) |
 | Comments and public prose | [comments-and-prose.md](comments-and-prose.md) |
+| Retail input validation | [retail-input-validation.md](retail-input-validation.md) |
 | Repository checks and their limits | [verification.md](verification.md) |
