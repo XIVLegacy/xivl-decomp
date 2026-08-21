@@ -112,7 +112,7 @@ passed on 2026-08-21 for public commit
 `0c5d393638a6ce18eb9ba717ac4e97231d36afda`. Its evidence job completed in
 13 minutes 59 seconds. The downloaded pass attestation was byte-identical to a
 local regeneration for the same commit and is tracked as
-[`protocol-0x0135-single-direct-caller-v1.json`](../../config/retail_evidence/protocol-0x0135-single-direct-caller-v1.json).
+[`protocol-0x0135-single-direct-caller.json`](../../config/retail_evidence/protocol-0x0135-single-direct-caller.json).
 The retained file has SHA-256
 `62488610802f359d40251fcd6e6e4048020a19c6c64bd39a41d8f4d3bdb5fdb3`.
 Artifact allowlist, schema, cleanup, negative-control, and public-log leakage
