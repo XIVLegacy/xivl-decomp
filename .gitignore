@@ -55,7 +55,7 @@ config/*.up_opcode_writes.json
 # Headless Ghidra evidence runs are reproducible scratch. Logs, projects,
 # exports, and decompiled bodies must never be published.
 tools/ghidra/logs/
-_safe/
+/_retail-staging/
 
 # Generated output and local work areas
 build/
