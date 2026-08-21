@@ -340,7 +340,7 @@ def main() -> int:
                 errors.append(f"retail {status} attestation: {problem}")
         evidence_root = ROOT / "config/retail_evidence"
         if evidence_root.exists():
-            expected_name = f"{retail_verifier.CHECK_ID}.json"
+            expected_name = "protocol-0x0135-single-direct-caller.json"
             evidence_files = sorted(
                 path for path in evidence_root.iterdir() if path.is_file()
             )
