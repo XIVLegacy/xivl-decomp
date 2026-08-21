@@ -24,7 +24,7 @@ DEFAULT_INPUT = (
 DEFAULT_CHECK = REPO / "config" / "retail_protocol_caller_check.json"
 DEFAULT_RETAIL_INPUTS = REPO / "config" / "retail_inputs.json"
 DEFAULT_PROTOCOL_EVIDENCE = REPO / "config" / "ffxivgame.protocol_evidence.json"
-DEFAULT_SCHEMA = REPO / "schemas" / "retail-evidence-attestation-v1.schema.json"
+DEFAULT_SCHEMA = REPO / "schemas" / "retail-evidence-attestation.schema.json"
 
 CHECK_ID = "protocol-0x0135-single-direct-caller-v1"
 INPUT_ID = "ffxivgame-1.23b"

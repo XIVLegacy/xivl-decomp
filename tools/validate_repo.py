@@ -328,7 +328,7 @@ def main() -> int:
                       for error in retail_errors)
     try:
         attestation_schema = _schema_check.load_schema(
-            ROOT / "schemas/retail-evidence-attestation-v1.schema.json"
+            ROOT / "schemas/retail-evidence-attestation.schema.json"
         )
     except (OSError, ValueError, _schema_check.SchemaError) as exc:
         errors.append(f"retail attestation schema is invalid: {exc}")
