@@ -25,6 +25,7 @@ PROTOCOL = REPO / "config" / "ffxivgame.protocol_evidence.json"
 SCHEMA = REPO / "schemas" / "retail-evidence-attestation-v1.schema.json"
 VERIFY = REPO / "tools" / "verify_retail_protocol_caller.py"
 EXPORTER = REPO / "tools" / "ghidra_scripts" / "FindCallers.java"
+WORKFLOW = REPO / ".github" / "workflows" / "retail-checks.yml"
 PASSED: list[str] = []
 FAILED: list[str] = []
 
@@ -152,6 +153,30 @@ def main() -> int:
 
         exporter = EXPORTER.read_text(encoding="utf-8").lower()
         check("exporter omits expected caller literal", "0x00705eb0" not in exporter)
+
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        check("workflow is manual only",
+              "  workflow_dispatch:\n" in workflow
+              and "pull_request:" not in workflow and "push:" not in workflow)
+        check("workflow guards protected main",
+              "python tools/verify_retail_protocol_caller.py --check-dispatch"
+              in workflow
+              and "github.ref == 'refs/heads/main'" in workflow)
+        check("workflow uses protected environment",
+              "environment:\n      name: retail-evidence" in workflow)
+        check("input identity precedes toolchain and analysis",
+              workflow.index("name: Verify private input identity")
+              < workflow.index("name: Install the pinned analysis toolchain")
+              < workflow.index("name: Reproduce and verify protocol caller evidence"))
+        check("cleanup precedes artifact upload",
+              workflow.index("name: Remove all private analysis material")
+              < workflow.index("name: Upload the sanitized attestation"))
+        check("artifact upload requires cleanup and allowlist success",
+              "steps.cleanup.outcome == 'success'"
+              " && steps.retained.outcome == 'success'" in workflow)
+        check("bearer token is absent from curl arguments",
+              '--header "Authorization:' not in workflow
+              and '--config "${auth_config}"' in workflow)
 
         schema = _schema_check.load_schema(SCHEMA)
         attestation = verifier.build_attestation("pass", "1" * 40)
