@@ -14,7 +14,7 @@ already tracked direct-caller xref for the `0x0135` packet sender?
 | Check | `protocol-0x0135-single-direct-caller-v1` |
 | Input declaration | `config/retail_inputs.json` |
 | Expected result | `config/retail_protocol_caller_check.json` |
-| Attestation schema | `schemas/retail-evidence-attestation-v1.schema.json` |
+| Attestation schema | `schemas/retail-evidence-attestation.schema.json` |
 | Protected environment | `retail-evidence` |
 | Private input repository | `XIVLegacy/xivl-retail-client-inputs` |
 
