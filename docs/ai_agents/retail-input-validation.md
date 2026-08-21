@@ -49,12 +49,14 @@ SHA before the environment-bearing job is eligible. The workflow has only
 
 The repository environment variable is
 `RETAIL_INPUTS_REPOSITORY=XIVLegacy/xivl-private-assets`. Environment
-secret `RETAIL_INPUTS_TOKEN` is a distinct fine-grained token for this public
-lane, selected only for the private input repository, with Contents read-only
-and metadata read. Its maximum owner-approved lifetime is 366 days. The
-environment permits only protected branches and has no reviewer gate. Do not
-reuse another public repository's secret or create a token-expiration reminder
-or automation.
+secret `RETAIL_INPUTS_TOKEN` is a fine-grained token selected only for the
+private input repository, with Contents read-only and metadata read. Its
+maximum owner-approved lifetime is 366 days. The same token may be stored in
+another explicitly granted retail-input lane only when that lane uses this
+same private repository and permission scope. Rotation or revocation must
+update every sharing environment before another retail run. The environment
+permits only protected branches and has no reviewer gate. Do not create a
+token-expiration reminder or automation.
 
 The fetch step keeps the bearer value out of process arguments by writing its
 Authorization header to a mode-0600 curl config below the disposable private
