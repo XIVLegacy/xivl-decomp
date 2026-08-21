@@ -10,6 +10,9 @@ import subprocess
 from pathlib import Path
 from urllib.parse import unquote
 
+import _schema_check
+import verify_retail_protocol_caller as retail_verifier
+
 ROOT = Path(__file__).resolve().parent.parent
 PERMITTED_TOP_LEVEL_GROUPS = {
     "root",
@@ -17,6 +20,7 @@ PERMITTED_TOP_LEVEL_GROUPS = {
     "config",
     "docs",
     "include",
+    "schemas",
     "tools",
 }
 EXPECTED_BLOBS = {
@@ -317,6 +321,41 @@ def main() -> int:
         ],
         errors,
     )
+
+    retail_errors = retail_verifier.verify()
+    if retail_errors:
+        errors.extend(f"retail protocol-caller contract: {error}"
+                      for error in retail_errors)
+    try:
+        attestation_schema = _schema_check.load_schema(
+            ROOT / "schemas/retail-evidence-attestation-v1.schema.json"
+        )
+    except (OSError, ValueError, _schema_check.SchemaError) as exc:
+        errors.append(f"retail attestation schema is invalid: {exc}")
+        attestation_schema = None
+    if attestation_schema is not None:
+        for status in ("pass", "fail"):
+            sample = retail_verifier.build_attestation(status, "0" * 40)
+            for problem in _schema_check.validate(sample, attestation_schema):
+                errors.append(f"retail {status} attestation: {problem}")
+        evidence_root = ROOT / "config/retail_evidence"
+        if evidence_root.exists():
+            expected_name = f"{retail_verifier.CHECK_ID}.json"
+            evidence_files = sorted(
+                path for path in evidence_root.iterdir() if path.is_file()
+            )
+            if [path.name for path in evidence_files] != [expected_name]:
+                errors.append("retail evidence file allowlist differs")
+            for path in evidence_files:
+                try:
+                    document = json.loads(path.read_text(encoding="ascii"))
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    errors.append(f"invalid retail evidence {path.name}: {exc}")
+                    continue
+                for problem in _schema_check.validate(document, attestation_schema):
+                    errors.append(f"retail evidence {path.name}: {problem}")
+                if document.get("result") != {"status": "pass"}:
+                    errors.append(f"retail evidence {path.name} is not a pass")
 
     struct_evidence = json.loads(
         (ROOT / "config/ffxivgame.struct_evidence.json").read_text(encoding="ascii")

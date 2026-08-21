@@ -118,11 +118,11 @@ function Resolve-GhidraInstall {
     foreach ($candidate in ($candidates | Select-Object -Unique)) {
         $resolvedHome = [System.IO.Path]::GetFullPath($candidate)
         $version = Get-GhidraVersion $resolvedHome
-        if ($version -eq '12.1') {
+        if ($version -eq '12.1.3') {
             return [pscustomobject]@{ Home = $resolvedHome; Version = $version }
         }
     }
-    throw 'Ghidra 12.1 not found. Pass -GhidraHome or set GHIDRA_HOME to an installation containing support\analyzeHeadless.bat.'
+    throw 'Ghidra 12.1.3 not found. Pass -GhidraHome or set GHIDRA_HOME to an installation containing support\analyzeHeadless.bat.'
 }
 
 function Get-JavaVersionText {

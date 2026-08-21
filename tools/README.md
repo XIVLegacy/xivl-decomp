@@ -13,7 +13,7 @@ tracked tree.
 
 | Tool | Purpose | Required inputs |
 |---|---|---|
-| `ghidra/run-headless.ps1` | Runs one post-script from a fresh import and records a reproducible local evidence run. | An explicit retail binary, post-script, and a new ignored log output directory under `tools/ghidra/`; Ghidra 12.1 and JDK 21 are discovered or passed explicitly. |
+| `ghidra/run-headless.ps1` | Runs one post-script from a fresh import and records a reproducible local evidence run. | An explicit retail binary, post-script, and a new ignored log output directory under `tools/ghidra/`; Ghidra 12.1.3 and JDK 21 are discovered or passed explicitly. |
 | `import_to_ghidra.py` | Imports one retail executable into a headless Ghidra project and runs the selected export scripts. | `orig/<binary>.exe` or an explicit executable path, Ghidra with `support/launch.sh` on POSIX or `support/analyzeHeadless.bat` on Windows, and JDK 21 configured for that Ghidra installation. |
 | `ghidra_scripts/DumpFunctions.java` | Exports every function to `config/<binary>.symbols.json` and per-function assembly under `asm/<binary>/`. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or a repository-root script argument. |
 | `ghidra_scripts/DumpSymbolsOnly.java` | Refreshes the symbols JSON without rewriting the assembly corpus. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or a repository-root script argument. |
@@ -21,7 +21,7 @@ tracked tree.
 | `ghidra_scripts/DumpRtti.java` | Exports the tracked, deterministic MSVC RTTI class/vtable catalog and streaming vtable-slot catalog, including source and tool metadata. | A current PE32 Ghidra program after the Microsoft RTTI analyzer, with `XIVL_DECOMP_ROOT` set. |
 | `ghidra_scripts/ApplyKnownNames.java` | Applies locally generated neutral vtable names to default-named functions without replacing existing names; JSON string escapes are decoded. | A disposable Ghidra program and flat JSON catalogs selected by `APPLY_NAMES_JSON`, or `config/<binary>.vtable_method_names.json`. Never run it against an export project. |
 | `ghidra_scripts/DecompileToText.java` | Prints focused decompilation text for requested virtual addresses. | A current analyzed Ghidra program and comma-separated absolute addresses in `DECOMP_VAS`. |
-| `ghidra_scripts/FindCallers.java` | Prints code and data references to requested virtual addresses. | A current analyzed Ghidra program and comma-separated absolute addresses in `CALLER_VAS`. |
+| `ghidra_scripts/FindCallers.java` | Prints code and data references to requested virtual addresses, or emits the bounded retail protocol-caller observation. | A current analyzed Ghidra program and comma-separated absolute addresses in `CALLER_VAS`; structured mode also requires exactly one target and `XIVL_RETAIL_OBSERVATIONS_OUT`. |
 | `ghidra_scripts/FindBytes.java` | Finds an exact byte sequence without changing the program. | A current analyzed Ghidra program and space-separated hex bytes in `SEARCH_BYTES`. |
 | `build_fid.py` | Extracts MSVC 2005 object libraries, builds a stock Ghidra FidDb, applies it, and refreshes symbols. | POSIX Ghidra, JDK 21, `llvm-ar`, explicitly supplied VC8 `.lib` files, and the imported `build/ghidra/ffxivgame` project for `apply`. |
 | `ghidra_scripts/RunFidMatch.java` | Re-runs only Ghidra's Function ID analyzer after a FidDb is attached. | A current Ghidra program with the FidDb attached; optional `FID_MIN_INSTR`. |
@@ -33,7 +33,7 @@ keeps the working scripts in `tools/ghidra_scripts/` but gives them the same
 dispatcher location used by the sibling research repository. Binary, script,
 and output directory are mandatory; relative paths resolve from the repository
 root. `-GhidraHome` and `-JavaHome` override `GHIDRA_HOME` and `JAVA_HOME`.
-Otherwise the runner discovers Ghidra 12.1 and JDK 21 and fails with a specific
+Otherwise the runner discovers Ghidra 12.1.3 and JDK 21 and fails with a specific
 missing-dependency message when either is unavailable.
 
 ```text
@@ -57,6 +57,47 @@ Such a run is disposable and cannot be an export source. In particular, no
 export may come from any project touched by `ApplyKnownNames.java`; start a new
 runner invocation and fresh output directory instead. This prevents a query
 such as "currently unnamed" from silently depending on imported names.
+
+### Retail protocol-caller check
+
+`protocol-0x0135-single-direct-caller-v1` reproduces only the tracked direct
+xref from target VA `0x0075ecd0` to its unique containing-function entry. The
+exporter does not know the expected caller. It derives, deduplicates, and sorts
+direct-call owner entries from the fresh Ghidra program, then writes a small
+private JSON observation when `XIVL_RETAIL_OBSERVATIONS_OUT` is set.
+
+Run the asset-free contract without a retail executable:
+
+```powershell
+python tools\test_retail_protocol_caller.py
+python tools\verify_retail_protocol_caller.py
+```
+
+For a local evidence run, use an explicit authorized binary, pinned Ghidra
+12.1.3 and JDK 21 installations, and a new ignored output directory:
+
+```powershell
+$output = 'tools\ghidra\logs\protocol-caller-run-1'
+$observation = (Join-Path (Resolve-Path 'tools\ghidra\logs') 'protocol-caller-run-1\observation.json')
+tools\ghidra\run-headless.ps1 `
+    -Binary 'C:\path\to\ffxivgame.exe' `
+    -Script 'tools\ghidra_scripts\FindCallers.java' `
+    -OutputDirectory $output `
+    -GhidraHome 'C:\path\to\ghidra_12.1.3_PUBLIC' `
+    -JavaHome 'C:\path\to\jdk-21' `
+    -MaxMemory 6G `
+    -AnalysisTimeoutSeconds 2700 `
+    -ScriptEnvironment @{
+        CALLER_VAS = '0x0075ecd0'
+        XIVL_RETAIL_OBSERVATIONS_OUT = $observation
+    }
+python tools\verify_retail_protocol_caller.py --input $observation
+```
+
+Repeat from another empty directory and require byte-identical observation and
+attestation files. `run.json`, `headless.log`, raw observations, temporary
+projects, and machine paths are ignored local evidence and are never published.
+Only the strict sanitized attestation may be retained by the manual workflow.
 
 The tracked `ffxivgame.symbol_evidence.json`, `protocol_evidence.json`, and
 `struct_evidence.json` predate this contract. Their `derivation_run` metadata
