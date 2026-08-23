@@ -22,11 +22,14 @@ The approved input is only `ffxivgame-1.23b`: repository-relative private path
 `ffxivgame.exe` at immutable private commit
 `aeb52f6dbde95a793ee6d52be28de9f28a885b15`, size `15996808`, and SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
-The workflow resolves that commit, requires an untruncated tree containing the
-authorized executable entry, downloads that blob through the GitHub REST API,
-and verifies its size and SHA-256 before Ghidra starts. A missing commit,
-missing or duplicated authorized entry, truncated response, or identity
-mismatch fails closed; sibling tree entries are outside this contract.
+The workflow passes this local grant to the shared
+`fetch-retail-input` action pinned at
+`4920dece45e88fcb14424de1f5c4fdee94ae6d02`. That action resolves the commit,
+requires an untruncated tree containing the authorized executable entry,
+downloads the blob through the GitHub REST API, and verifies its size and
+SHA-256 before Ghidra starts. A missing commit, missing or duplicated
+authorized entry, truncated response, or identity mismatch fails closed;
+sibling tree entries are outside this contract.
 
 ## Exact assertion
 
@@ -48,34 +51,41 @@ Execution is manual `workflow_dispatch` from the reviewed revision on protected
 SHA before the environment-bearing job is eligible. The workflow has only
 `contents: read`, and checkout credentials are not persisted.
 
-The repository environment variable is
-`RETAIL_INPUTS_REPOSITORY=XIVLegacy/xivl-private-assets`. Environment
-secret `RETAIL_INPUTS_TOKEN` is a fine-grained token selected only for the
-private input repository, with Contents read-only and metadata read. Its
-maximum owner-approved lifetime is 366 days. The same token may be stored in
-another explicitly granted retail-input lane only when that lane uses this
-same private repository and permission scope. Rotation or revocation must
-update every sharing environment before another retail run. The environment
-permits only protected branches and has no reviewer gate. Do not create a
-token-expiration reminder or automation.
+Environment secret `RETAIL_INPUTS_TOKEN` is a fine-grained token selected only
+for the private input repository, with Contents read-only and metadata read.
+The workflow passes it only to the shared fetch action; the fixed repository
+name and transport checks live in that action. Its maximum owner-approved
+lifetime is 366 days. The same token may be stored in another explicitly
+granted retail-input workflow only when that workflow uses this same private repository
+and permission scope. Rotation or revocation must update every sharing
+environment before another retail run. The environment permits only protected
+branches and has no reviewer requirement. Do not create a token-expiration reminder
+or automation.
 
-The fetch step keeps the bearer value out of process arguments by writing its
-Authorization header to a mode-0600 curl config below the disposable private
-root. Shell tracing is disabled. API responses, curl logs, the credential,
-input, toolchain, project, and raw observations never enter the checkout.
+The shared action keeps the bearer value out of process arguments and rejects
+unsafe API responses before writing the validated input below `RUNNER_TEMP`.
+API responses, curl logs, the credential, input, toolchain, project, and raw
+observations never enter the checkout. The local workflow retains the input
+grant and workflow-local verifier; the shared action does not decide the
+protocol-caller assertion.
 
 ## Toolchain and retained output
 
-The hosted job checksum-pins Ghidra 12.1.3 archive
+The hosted job invokes the shared `setup-retail-toolchain` action at
+`4920dece45e88fcb14424de1f5c4fdee94ae6d02` with `include-ghidra: true`. That
+action checksum-pins the Ghidra 12.1.3 archive
 `ghidra_12.1.3_PUBLIC_20260817.zip` at SHA-256
 `93a5d11a9ad510622acaaf908c556a7b9b764d338e78a7567f3689bf5081fd54`
 and Temurin JDK 21.0.12.1+1 Linux archive
 `OpenJDK21U-jdk_x64_linux_hotspot_21.0.12.1_1.tar.gz` at SHA-256
 `ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94`.
-It uses a new empty PE32 project, standard analysis, and a read-only structured
-caller export. No cache or previously named project is allowed.
+The local analysis uses the action's `analyze-headless` output with a new empty
+PE32 project, standard analysis, and a read-only structured caller export. No
+cache or previously named project is allowed.
 
-On every outcome, the workflow deletes the entire private root before upload.
+On every outcome, the shared `finalize-retail-attestation` action at
+`4920dece45e88fcb14424de1f5c4fdee94ae6d02` deletes the entire private root and
+checks the one-file staging envelope before the local retained verifier runs.
 The retained allowlist is exactly one regular non-link file named
 `retail-evidence-attestation.json`. Its strict schema contains only the public
 repository commit, approved input hash, pinned tool versions, check ID/version,
