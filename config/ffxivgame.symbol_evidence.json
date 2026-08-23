@@ -85,6 +85,23 @@
    "ambiguity": "Top-level describes the observed network update scope, not an original source identifier."
   },
   {
+   "rva": 883072,
+   "rva_hex": "0x000d7980",
+   "va_hex": "0x004d7980",
+   "name": "Element_queueIndexedPayload",
+   "kind": "dispatcher",
+   "evidence_class": "local-data-flow-and-literal-selector-translation",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tracked assembly corpus",
+   "observation": "The function adds 0x15 to its selector argument, passes the translated kind plus a secondary dword, payload pointer, and length to 0x004ec080, then submits the constructed queue record through virtual offset 0x0c on the object at receiver offset 0x84. Selector 8 is therefore queued as kind 0x1d.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct argument flow, literal addition, queue-record construction, and virtual submission",
+   "ambiguity": "The name describes the generic observed transport. Neither the queue record nor its payload is thereby established as a wire packet.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x004d7980", "0x004ec080"]}]
+  },
+  {
    "rva": 894592,
    "rva_hex": "0x000da680",
    "va_hex": "0x004da680",
@@ -567,6 +584,23 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x005836d0"]}]
   },
   {
+   "rva": 1596784,
+   "rva_hex": "0x00185d70",
+   "va_hex": "0x00585d70",
+   "name": "CharaElement_flushAppearanceRecord",
+   "kind": "producer",
+   "evidence_class": "rtti-anchored-object-storage-and-literal-call-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java, tracked assembly corpus, and tracked RTTI catalog",
+   "observation": "On its dirty path, the CharaElement-local function calls 0x004d7980 with literal selector 8, payload pointer CharaElement object offset 0xaac, and literal length 0x74, then clears the dirty byte at offset 0xb20. The same function can rebuild a 29-dword temporary record through 0x0055d2b0 and copy it to offset 0xaac before marking it dirty. Constructor 0x0058b4e0 writes both tracked CharaElement vtables and initializes the same 116-byte block through 0x005670d0.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "tracked CharaElement RTTI, constructor vtable writes, exact object offset, literal selector and length, and direct queue call",
+   "ambiguity": "This proves an already-resolved CharaElement-local runtime record, not a sheet row or wire packet. The earlier origin and semantics of individual record fields remain unresolved.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x00585d70", "0x0055d2b0", "0x005670d0", "0x0058b4e0", "0x00586b10"]}]
+  },
+  {
    "rva": 2295536,
    "rva_hex": "0x002306f0",
    "va_hex": "0x006306f0",
@@ -597,8 +631,8 @@
     "kind"
    ],
    "confidence": "tracked RTTI slot, direct bounds and jump-table observation, and direct 116-byte copy",
-   "ambiguity": "The indirect producer that invokes slot 157 with selector 8 is not identified. Static evidence does not establish that the payload is itself a wire packet.",
-   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-producer-20260823", "addresses": ["0x00662d30", "0x00663808", "0x00663c08", "0x00663ae8", "0x006623f0"]}]
+   "ambiguity": "The producer is now traced through 0x007c93c0 to an already-resolved CharaElement-local record. Static evidence does not establish that the payload is a wire packet or that any field is a catalog ID.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-producer-20260823", "addresses": ["0x00662d30", "0x00663808", "0x00663c08", "0x00663ae8", "0x006623f0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x00585d70", "0x004d7980", "0x004ec080", "0x004e9700", "0x0060c140", "0x007c93c0", "0x00662d30"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-callers", "addresses": ["0x004e9700", "0x0060c140", "0x007c93c0", "0x00662d30"]}]
   },
   {
    "rva": 2514496,
@@ -1486,6 +1520,23 @@
    "confidence": "direct positional extraction and call-target observation",
    "ambiguity": "The helper bodies were not included in this run, so registry field roles and pending-state semantics are not assigned.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x0078c2a0"]}]
+  },
+  {
+   "rva": 3969984,
+   "rva_hex": "0x003c93c0",
+   "va_hex": "0x007c93c0",
+   "name": "ActorTarget_dispatchIndexedPayload",
+   "kind": "dispatcher",
+   "evidence_class": "registry-lookup-and-indirect-vtable-call-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java, tools/ghidra_scripts/FindCallers.java, and tracked assembly corpus",
+   "observation": "The function looks up a target actor in either of two keyed registries. For kinds 0x15 through 0x115, it loads the target's virtual method at offset 0x274, subtracts 0x15 from the kind, and calls the target with the resulting selector, unchanged payload pointer, and unchanged length. At call site 0x007c95f2, queued kind 0x1d therefore invokes CharaActor vtable slot 157 with selector 8.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct keyed-registry lookup, literal range and subtraction, vtable offset, argument flow, and indirect call",
+   "ambiguity": "The generic target dispatch is observed without assigning the registry keys or queued payloads to a wire protocol. The CharaElement producer establishes this selector-8 payload as an already-built runtime record.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x007c93c0", "0x007c95e4", "0x007c95f2"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-callers", "addresses": ["0x0060c140", "0x007c93c0", "0x00662d30"]}]
   },
   {
    "rva": 4820256,
