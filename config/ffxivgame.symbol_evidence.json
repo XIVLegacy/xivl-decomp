@@ -567,6 +567,74 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "apphierarchy-perframe-20260811b", "addresses": ["0x005836d0"]}]
   },
   {
+   "rva": 2295536,
+   "rva_hex": "0x002306f0",
+   "va_hex": "0x006306f0",
+   "name": "AppearancePackedWord_decode2_10_10_10",
+   "kind": "named",
+   "evidence_class": "local-bitfield-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function writes bits 31:30, 29:20, 19:10, and 9:0 of one input dword to four output dwords. The widths are therefore 2, 10, 10, and 10 bits; this observation does not assign semantic names to the lanes.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct shift, mask, and output-store observation",
+   "ambiguity": "Downstream equipment resource consumers establish appearance use, but the lane meanings and a catalog-ID relationship remain unresolved.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-native-20260823", "addresses": ["0x006306f0", "0x006b5770", "0x006b6480", "0x006b7a40"]}]
+  },
+  {
+   "rva": 2501936,
+   "rva_hex": "0x00262d30",
+   "va_hex": "0x00662d30",
+   "name": "CharaActor_dispatchIndexedPayload",
+   "kind": "dispatcher",
+   "evidence_class": "local-control-flow-and-direct-pe-table-read",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and direct PE table read",
+   "observation": "Application::Scene::Actor::Chara::CharaActor vtable slot 157 bounds its integer selector to 0 through 0x63 and dispatches through the byte map at 0x00663c08 and jump table at 0x00663ae8. Selector 8 maps through jump slot 7 to 0x00663808, which passes the unchanged payload pointer to 0x006623f0; that callee copies 0x1d dwords to CharaActor object offset 0x13c8.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "tracked RTTI slot, direct bounds and jump-table observation, and direct 116-byte copy",
+   "ambiguity": "The indirect producer that invokes slot 157 with selector 8 is not identified. Static evidence does not establish that the payload is itself a wire packet.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-producer-20260823", "addresses": ["0x00662d30", "0x00663808", "0x00663c08", "0x00663ae8", "0x006623f0"]}]
+  },
+  {
+   "rva": 2514496,
+   "rva_hex": "0x00265e40",
+   "va_hex": "0x00665e40",
+   "name": "CharaActor_applyAppearanceRecord",
+   "kind": "named",
+   "evidence_class": "local-data-flow-and-complete-direct-xref-census",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tracked assembly xref census",
+   "observation": "The function copies a 0x1d-dword input record to the visual update path and loops over seven packed dwords at record offsets 0x18 through 0x30. Each dword is passed with its index to 0x008465c0, which writes CharaWeaponController entry offset 0x54 at stride 0xd0. The only direct callers of 0x00665e40 in the tracked assembly are two sites in 0x00666720.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct copy, loop bounds, field offsets, callee stores, and complete direct-call census",
+   "ambiguity": "The 116-byte record's remaining fields and the semantic names of the packed lanes are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-producer-20260823", "addresses": ["0x00665e40", "0x00666720", "0x008465c0"]}]
+  },
+  {
+   "rva": 2849344,
+   "rva_hex": "0x002b7a40",
+   "va_hex": "0x006b7a40",
+   "name": "Appearance_buildEquipmentResourcePath",
+   "kind": "named",
+   "evidence_class": "local-data-flow-and-embedded-format-string",
+   "producer": "tools/ghidra_scripts/DecompileToText.java",
+   "observation": "The function constructs /client/chara/%s%03d/equ/e%03d/%s%s/%04d and related equipment sound, face, and hair paths from decoded appearance components. Its direct caller 0x006b8680 also calls 0x006b5770, which reads packed appearance words from the visual object, decodes them through 0x006306f0, and updates four resource-tag arrays.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "direct format string, arguments, decoder call, object offsets, and direct caller observation",
+   "ambiguity": "This is a resource-path consumer, not the producer that maps a catalog ID to packed appearance.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-native-20260823", "addresses": ["0x006b7a40", "0x006b8680", "0x006b5770", "0x006306f0"]}]
+  },
+  {
    "rva": 2931856,
    "rva_hex": "0x002cbc90",
    "va_hex": "0x006cbc90",

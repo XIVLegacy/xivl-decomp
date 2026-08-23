@@ -8,6 +8,7 @@ checks the index against the tree in both directions.
 - [Actor battle regimen](actor/battle-regimen.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
+- [Native item-appearance boundary](actor/item-appearance-boundary.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [PlayerBaseClass](actor/player-base-class.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
