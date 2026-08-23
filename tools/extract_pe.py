@@ -152,7 +152,7 @@ def parse_pe(path: Path) -> dict:
     has_security_cookie = b"__security_cookie" in rdata_blob
     has_msvcr_import = b"MSVCR80" in data or b"MSVCR90" in data
     has_msvcp_import = b"MSVCP80" in data or b"MSVCP90" in data
-    has_d3d9_import = b"d3d9.dll" in data.lower() or b"d3d9.dll".lower() in data
+    has_d3d9_import = b"d3d9.dll" in data.lower()
     has_dinput8 = b"dinput8.dll" in data
     has_ws2_32 = b"WS2_32.dll" in data or b"ws2_32.dll" in data
     has_lua = b"lua_pcall" in rdata_blob or b"luaL_register" in rdata_blob

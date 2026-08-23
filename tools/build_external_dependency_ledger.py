@@ -199,12 +199,6 @@ def build_catalogs():
         if (slot["class"] in base_by_class and
             len(fn_classes[slot["fn_rva"]]) == 1)
     )
-    base_candidate_slots = defaultdict(list)
-    for slot_rows in base_by_class_slot.values():
-        for slot in slot_rows:
-            if (slot["class"] in base_by_class and
-                    len(fn_classes[slot["fn_rva"]]) == 1):
-                base_candidate_slots[slot["fn_rva"]].append(slot)
     for index, source in enumerate(vtable_names):
         match = re.fullmatch(r"(.+)::vfunc(\d+)", source["name"])
         candidates = []
@@ -233,43 +227,6 @@ def build_catalogs():
             base_selected, unnamed_target, symbol_matches, unique_owner,
             unique_rva, unique_output_rva, derived_shape,
         ))
-        rejection_reasons = []
-        if not base_selected:
-            rejection_reasons.append(
-                "No clean slot edge matches the generated class, slot, and function RVA."
-            )
-        if not unnamed_target:
-            rejection_reasons.append(
-                "The clean target symbol is not a Ghidra default placeholder."
-            )
-        if not symbol_matches:
-            rejection_reasons.append(
-                "The generated current symbol differs from the clean target symbol."
-            )
-        if not unique_owner:
-            rejection_reasons.append(
-                "The function RVA belongs to more than one distinct RTTI class."
-            )
-        conflicts = sorted(
-            base_candidate_slots[source["rva"]],
-            key=lambda slot: (slot["class"], slot["slot"], slot["vtable_rva"]),
-        )
-        if not unique_rva:
-            positions = ", ".join(
-                f"{slot['class']} slot {slot['slot']}" for slot in conflicts
-            )
-            rejection_reasons.append(
-                f"The function RVA occurs in {len(conflicts)} eligible slot rows: {positions}."
-            )
-        if not unique_output_rva:
-            rejection_reasons.append(
-                "The generated catalog contains more than one row for the function RVA."
-            )
-        if not derived_shape:
-            rejection_reasons.append(
-                "The row does not have the deterministic vtable-name generator shape."
-            )
-
         if not full:
             raise SystemExit(
                 f"generated vtable row fails its own eligibility checks: {source}"
@@ -295,7 +252,7 @@ def build_catalogs():
         )
         row["eligibility"] = {
             "classification": "selected-by-generator",
-            "rejection_reasons": rejection_reasons,
+            "rejection_reasons": [],
             "deciding_inputs": [
                 "config/ffxivgame.rtti.json",
                 "config/ffxivgame.vtable_slots.jsonl",
@@ -312,7 +269,6 @@ def build_catalogs():
 
 def main() -> int:
     catalogs = build_catalogs()
-    artifacts = []
 
     all_rows = [row for catalog in catalogs for row in catalog["rows"]]
     catalog_dispositions = Counter(row["disposition"] for row in all_rows)
@@ -322,7 +278,6 @@ def main() -> int:
         for row in all_rows
         if "eligibility" in row
     )
-    artifact_dispositions = Counter(row["disposition"] for row in artifacts)
 
     document = {
         "schema_version": 1,
@@ -358,18 +313,15 @@ def main() -> int:
                 row["disposition"] == "keep-with-citation" and bool(row["blocking_consumer_ids"])
                 for row in all_rows
             ),
-            "artifact_records": len(artifacts),
-            "artifact_dispositions": dict(sorted(artifact_dispositions.items())),
         },
         "catalogs": catalogs,
-        "artifacts": artifacts,
     }
     OUTPUT.write_text(
         json.dumps(document, indent=1, ensure_ascii=True) + "\n",
         encoding="ascii", newline="\n",
     )
     print(f"wrote {OUTPUT.relative_to(ROOT)}: {len(all_rows)} catalog rows, "
-          f"{len(artifacts)} artifact records, {OUTPUT.stat().st_size} bytes")
+          f"{OUTPUT.stat().st_size} bytes")
     for catalog in catalogs:
         counts = catalog["summary"]["dispositions"]
         print(f"  {catalog['path']}: {counts}")

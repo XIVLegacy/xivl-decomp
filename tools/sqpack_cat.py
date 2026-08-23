@@ -104,7 +104,8 @@ def try_inflate(payload: bytes) -> bytes | None:
 
 def walk_chunks(data: bytes, byteswap: bool = False, limit: int = 32):
     """Iterate (chunk_index, offset, header_u32, chunk_size) tuples
-    using PackRead's chunk format. Stops at end-of-file or limit."""
+    using PackRead's chunk format. Stops at end-of-file or limit and emits a
+    truncation sentinel when the safety limit is reached."""
     cursor = 0
     idx = 0
     while cursor + 8 <= len(data):
@@ -121,7 +122,7 @@ def walk_chunks(data: bytes, byteswap: bool = False, limit: int = 32):
         yield (idx, cursor, hdr, size, "ok")
         cursor = next_cursor
         idx += 1
-        if idx >= limit:
+        if idx >= limit and cursor < len(data):
             yield (None, cursor, None, None, f"...truncated at {limit}")
             return
 
@@ -187,9 +188,11 @@ def main() -> int:
     if chunked:
         print(f"Chunks:     (PackRead format, byteswap={args.byteswap})")
         print(f"  {'idx':>4}  {'offset':>10}  {'hdr (u32)':>12}  {'size':>10}  zlib?  status")
+        truncated = False
         for idx, off, hdr, sz, status in walk_chunks(
                 data, byteswap=args.byteswap):
             if idx is None:
+                truncated = True
                 print(f"  ----  {off:>10}  {'':>12}  {'':>10}  {'':>5}  {status}")
             else:
                 payload = data[off+8:off+8+sz]
@@ -216,6 +219,10 @@ def main() -> int:
     print()
     print(f"First {min(args.hexdump_bytes, len(data))} bytes:")
     hexdump(data, args.hexdump_bytes)
+    if chunked and truncated:
+        print("error: chunk walk reached its 32-chunk safety limit; output is incomplete",
+              file=sys.stderr)
+        return 1
     return 0
 
 

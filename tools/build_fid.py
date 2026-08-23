@@ -84,9 +84,8 @@ def find_llvm_ar() -> str:
     raise SystemExit("llvm-ar not found (brew install llvm). BSD ar cannot extract MS COFF archives.")
 
 
-def run_headless(gh: Path, jh: str, proj_loc: Path, proj_name: str, rest: list[str],
-                 mem: str = "8G") -> int:
-    cmd = [str(gh / "support/launch.sh"), "fg", "jdk", "Ghidra-Headless", mem, "",
+def run_headless(gh: Path, jh: str, proj_loc: Path, proj_name: str, rest: list[str]) -> int:
+    cmd = [str(gh / "support/launch.sh"), "fg", "jdk", "Ghidra-Headless", "8G", "",
            "ghidra.app.util.headless.AnalyzeHeadless", str(proj_loc), proj_name, *rest]
     env = os.environ.copy()
     env["JAVA_HOME"] = jh

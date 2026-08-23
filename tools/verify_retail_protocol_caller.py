@@ -230,10 +230,6 @@ def retained_output_errors(directory: Path) -> list[str]:
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, dest="input_path")
-    parser.add_argument("--check", type=Path, default=DEFAULT_CHECK, dest="check_path")
-    parser.add_argument("--retail-inputs", type=Path, default=DEFAULT_RETAIL_INPUTS)
-    parser.add_argument("--protocol-evidence", type=Path,
-                        default=DEFAULT_PROTOCOL_EVIDENCE)
     parser.add_argument("--check-dispatch", action="store_true")
     parser.add_argument("--validate-retained-output", type=Path)
     return parser.parse_args(argv)
@@ -259,8 +255,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         errors = verify(
-            args.input_path, args.check_path, args.retail_inputs,
-            args.protocol_evidence,
+            args.input_path,
         )
     except (VerificationError, OSError, KeyError, TypeError, ValueError):
         errors = ["verification input is malformed"]

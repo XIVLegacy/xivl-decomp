@@ -25,7 +25,6 @@ import ghidra.program.model.symbol.ReferenceIterator;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -84,9 +83,6 @@ public class FindCallers extends GhidraScript {
 			targets.add(String.format("0x%08x",
 				Long.parseLong(token.substring(2), 16)));
 		}
-		if (targets.isEmpty()) {
-			throw new IllegalArgumentException("CALLER_VAS is empty");
-		}
 		return targets;
 	}
 
@@ -141,12 +137,7 @@ public class FindCallers extends GhidraScript {
 		try {
 			Files.write(temporary, (json.toString() + "\n").getBytes(StandardCharsets.US_ASCII),
 				StandardOpenOption.TRUNCATE_EXISTING);
-			try {
-				Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
-			}
-			catch (AtomicMoveNotSupportedException exception) {
-				Files.move(temporary, output);
-			}
+			Files.move(temporary, output, StandardCopyOption.ATOMIC_MOVE);
 		}
 		finally {
 			Files.deleteIfExists(temporary);

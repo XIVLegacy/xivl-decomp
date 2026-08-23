@@ -22,10 +22,11 @@ The approved input is only `ffxivgame-1.23b`: repository-relative private path
 `ffxivgame.exe` at immutable private commit
 `aeb52f6dbde95a793ee6d52be28de9f28a885b15`, size `15996808`, and SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
-The workflow resolves that commit, requires an exact one-file tree, downloads
-one blob through the GitHub REST API, and verifies size and SHA-256 before
-Ghidra starts. A missing commit, extra tree entry, or identity mismatch fails
-closed.
+The workflow resolves that commit, requires an untruncated tree containing the
+authorized executable entry, downloads that blob through the GitHub REST API,
+and verifies its size and SHA-256 before Ghidra starts. A missing commit,
+missing or duplicated authorized entry, truncated response, or identity
+mismatch fails closed; sibling tree entries are outside this contract.
 
 ## Exact assertion
 
@@ -119,8 +120,8 @@ Artifact allowlist, schema, cleanup, negative-control, and public-log leakage
 reviews passed.
 
 Stop on input, tree, toolchain, analysis, caller-set, determinism, cleanup,
-allowlist, protected-ref, or normal-CI drift. Runtime above 45 minutes or private
-working data above 10 GiB is also a stop. On suspected credential or byte
+allowlist, protected-ref, or normal-CI drift. Per-file analysis above 45 minutes
+or private working data above 10 GiB is also a stop. On suspected credential or byte
 exposure, cancel the run, delete unsafe artifacts, disable the workflow, revoke
 and remove the token, inspect workflow and organization audit logs, and rotate
 only after fixing the cause.

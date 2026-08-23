@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -51,14 +51,19 @@ def _fails(
     protocol: dict | None = None,
 ) -> bool:
     observation_path = _write(
-        directory / "observations.json", observation or _load(FIXTURE)
+        directory / "observations.json",
+        observation if observation is not None else _load(FIXTURE),
     )
-    expected_path = _write(directory / "expected.json", expected or _load(CHECK))
+    expected_path = _write(
+        directory / "expected.json", expected if expected is not None else _load(CHECK)
+    )
     retail_path = _write(
-        directory / "retail-inputs.json", retail_inputs or _load(RETAIL_INPUTS)
+        directory / "retail-inputs.json",
+        retail_inputs if retail_inputs is not None else _load(RETAIL_INPUTS),
     )
     protocol_path = _write(
-        directory / "protocol.json", protocol or _load(PROTOCOL)
+        directory / "protocol.json",
+        protocol if protocol is not None else _load(PROTOCOL),
     )
     try:
         return bool(verifier.verify(
@@ -200,14 +205,22 @@ def main() -> int:
         (safe / "extra").rmdir()
 
         target = directory / "symlink-target.json"
-        target.write_text("{}\n", encoding="ascii")
-        link = safe / "extra-link"
+        _write(target, verifier.build_attestation("pass", "1" * 40))
+        symlink_root = directory / "symlink-safe"
+        symlink_root.mkdir()
+        link = symlink_root / verifier.ATTESTATION_FILENAME
         try:
             link.symlink_to(target)
         except OSError:
-            check("retained symlink test is available", os.name == "nt")
+            symlink_calls = [0]
+            def fake_is_symlink():
+                symlink_calls[0] += 1
+                return symlink_calls[0] == 2
+            with mock.patch.object(Path, "is_symlink", side_effect=fake_is_symlink):
+                check("retained symlink fails",
+                      bool(verifier.retained_output_errors(symlink_root)))
         else:
-            check("retained symlink fails", bool(verifier.retained_output_errors(safe)))
+            check("retained symlink fails", bool(verifier.retained_output_errors(symlink_root)))
             link.unlink()
 
         sha = "1" * 40

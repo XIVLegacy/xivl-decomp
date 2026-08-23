@@ -329,17 +329,16 @@ def main() -> int:
 
     # Enrich gam_params.json in-place with `paramname` field.
     gam_path = CONFIG / f"{stem}.gam_params.json"
-    if gam_path.exists():
-        gam = json.loads(gam_path.read_text())
-        lookup = {(r["id"], r["ns"]): r["paramname"] for r in all_rows}
-        enriched = 0
-        for entry in gam:
-            key = (entry["id"], entry["ns"])
-            if key in lookup:
-                entry["paramname"] = lookup[key]
-                enriched += 1
-        gam_path.write_text(json.dumps(gam, indent=2))
-        print(f"  enriched {enriched} gam_params entries with resolved paramnames")
+    gam = json.loads(gam_path.read_text())
+    lookup = {(r["id"], r["ns"]): r["paramname"] for r in all_rows}
+    enriched = 0
+    for entry in gam:
+        key = (entry["id"], entry["ns"])
+        if key in lookup:
+            entry["paramname"] = lookup[key]
+            enriched += 1
+    gam_path.write_text(json.dumps(gam, indent=2))
+    print(f"  enriched {enriched} gam_params entries with resolved paramnames")
 
     print(f"wrote: {out_json.relative_to(REPO_ROOT)}")
     print(f"       {out_md.relative_to(REPO_ROOT)}")

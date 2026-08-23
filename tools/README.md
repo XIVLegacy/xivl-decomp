@@ -26,7 +26,7 @@ tracked tree.
 | `ghidra_scripts/FindCallers.java` | Prints code and data references to requested virtual addresses, or emits the bounded retail protocol-caller observation. | A current analyzed Ghidra program and comma-separated absolute addresses in `CALLER_VAS`; structured mode also requires exactly one target and `XIVL_RETAIL_OBSERVATIONS_OUT`. |
 | `ghidra_scripts/FindBytes.java` | Finds an exact byte sequence without changing the program. | A current analyzed Ghidra program and space-separated hex bytes in `SEARCH_BYTES`. |
 | `build_fid.py` | Extracts MSVC 2005 object libraries, builds a stock Ghidra FidDb, applies it, and refreshes symbols. | POSIX Ghidra, JDK 21, `llvm-ar`, explicitly supplied VC8 `.lib` files, and the imported `build/ghidra/ffxivgame` project for `apply`. |
-| `ghidra_scripts/RunFidMatch.java` | Re-runs only Ghidra's Function ID analyzer after a FidDb is attached. | A current Ghidra program with the FidDb attached; optional `FID_MIN_INSTR`. |
+| `ghidra_scripts/RunFidMatch.java` | Re-runs only Ghidra's Function ID analyzer after a FidDb is attached. | A current Ghidra program with the FidDb attached. |
 
 ### Evidence-run contract
 
@@ -142,9 +142,11 @@ Both tiers are tracked. The class/vtable catalog is 2,289,726 bytes and the
 slot catalog is 26,203,595 bytes in this baseline. Keeping the larger streaming
 catalog makes the dispatch structure reviewable and lets downstream tools run
 without access to the local Ghidra project. Slot discovery follows consecutive
-executable pointers and stops at the first null or non-executable pointer. It
-does not require Ghidra to have created a function at every target, because
-function creation varies with analysis state and can truncate valid tables.
+executable pointers and stops at the first null or non-executable pointer. The
+walk has a 256-slot corruption ceiling and records `slot_count_truncated` when
+another executable pointer exists beyond that ceiling. It does not require
+Ghidra to have created a function at every target, because function creation
+varies with analysis state and can truncate valid tables.
 
 ## Importers and derived catalogs
 
@@ -196,7 +198,7 @@ Ghidra project.
 | Tool | Purpose | Required inputs |
 |---|---|---|
 | `sqpack_path.py` | Converts a resource identifier directly to its deterministic `data/BB/BB/BB/BB.DAT` path or scans an install for DAT files. | A resource identifier, or `--scan <game-root>`; no SqPack index is read. |
-| `sqpack_cat.py` | Opens the derived DAT path, walks PackRead chunks, and optionally inflates raw-deflate payloads. | A resource identifier and `--root <game-root>` containing the matching `data/` tree. |
+| `sqpack_cat.py` | Opens the derived DAT path, walks PackRead chunks, and optionally inflates raw-deflate payloads. A 32-chunk safety limit reports incomplete output and exits nonzero. | A resource identifier and `--root <game-root>` containing the matching `data/` tree. |
 
 ## Gate and fixed-vector checks
 

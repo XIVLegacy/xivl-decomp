@@ -171,7 +171,7 @@ def find_containing_function(asm_index, rva):
     return asm_index[lo - 1]
 
 
-def classify_writes(writes, vt_abs, asm_index):
+def classify_writes(writes, asm_index):
     """Group writes by containing function, then classify each group:
     - 1 write near function start: ctor candidate
     - 2 writes in same function (first early, second late): dtor candidate
@@ -209,7 +209,8 @@ def estimate_vtable_slot_count(bin_data, sects, vt_off):
     Stop when we hit a non-.text-ptr value."""
     slots = 0
     pos = vt_off
-    while pos + 4 <= len(bin_data) and slots < 256:
+    truncated = False
+    while pos + 4 <= len(bin_data):
         val = int.from_bytes(bin_data[pos:pos+4], 'little')
         rva = val - IMAGE_BASE
         # Valid if rva is in .text
@@ -218,11 +219,14 @@ def estimate_vtable_slot_count(bin_data, sects, vt_off):
             if s['name'] == '.text' and s['vaddr'] <= rva < s['vaddr'] + s['vsize']:
                 in_text = True
                 break
+        if slots >= 256:
+            truncated = in_text
+            break
         if not in_text:
             break
         slots += 1
         pos += 4
-    return slots
+    return slots, truncated
 
 
 def main() -> int:
@@ -266,7 +270,8 @@ def main() -> int:
         for col in cols:
             for vt in find_vtables_for_col(bin_data, sects, col['abs']):
                 vt_off = rva_to_off(sects, vt['rva'])
-                vt['slot_count'] = estimate_vtable_slot_count(bin_data, sects, vt_off)
+                vt['slot_count'], vt['slot_count_truncated'] = \
+                    estimate_vtable_slot_count(bin_data, sects, vt_off)
                 vt['col_rva'] = col['rva']
                 vtables.append(vt)
 
@@ -276,7 +281,7 @@ def main() -> int:
         all_uncat = []
         for vt in vtables:
             writes = find_vtable_writes(bin_data, sects, vt['abs'])
-            ctors, dtors, uncat = classify_writes(writes, vt['abs'], asm_index)
+            ctors, dtors, uncat = classify_writes(writes, asm_index)
             for c in ctors:
                 c['vtable_rva'] = vt['rva']
             for d in dtors:

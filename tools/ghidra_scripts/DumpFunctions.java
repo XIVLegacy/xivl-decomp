@@ -70,12 +70,10 @@ public class DumpFunctions extends GhidraScript {
 
         while (iter.hasNext() && !monitor.isCancelled()) {
             Function fn = iter.next();
-            if (fn.isExternal() || fn.isThunk()) {
-                // Thunks come back labelled as their target; we still emit them
-                // because the call site needs an .obj to link against, but we
-                // skip externals (they're imports from other DLLs).
-                if (fn.isExternal()) continue;
-            }
+            // Thunks come back labelled as their target; we still emit them
+            // because the call site needs an .obj to link against, but we
+            // skip externals (they're imports from other DLLs).
+            if (fn.isExternal()) continue;
 
             Address entry = fn.getEntryPoint();
             long rva = entry.getOffset() - imageBase;

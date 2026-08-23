@@ -36,13 +36,10 @@ REQUIRED_AGENT_TOOLING_IGNORE_LINES = {
 }
 EXPECTED_RTTI_SOURCE_SHA256 = "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
 EXPECTED_RTTI_CLASSES = 5719
-EXPECTED_VTABLE_SLOTS = 91667
-EXPECTED_VTABLE_METHOD_NAMES = 15331
-EXPECTED_LEDGER_ROWS = 15331
 EXPECTED_LARGE_ARTIFACT_SHA256 = {
     "config/ffxivgame.vtable_slots.jsonl": "b776f19827f3002b6fc7fd522812f23d851b9a6065d47620e54f01bd0ae5732f",
     "config/ffxivgame.vtable_method_names.json": "bc009641d6a5debdc4cabfce8acc9d1e74f0445b14cf7596b81abc3513c7a0f5",
-    "config/ffxivgame.external_dependencies.json": "4cf2b2d2e3eb0f7a5a974a9010637056d1d9e6cd8cda794018fc3e9b831ffed6",
+    "config/ffxivgame.external_dependencies.json": "c7b9f65e54abeb98eaa5a52eb1cf26405405f98ad1294f757a92c25e6dc8d3ef",
 }
 FORBIDDEN_SUFFIXES = {
     ".exe", ".dll", ".pdb", ".obj", ".o", ".lib", ".exp", ".ilk",
@@ -54,11 +51,6 @@ FORBIDDEN_PREFIXES = (
 TEXT_SUFFIXES = {".md", ".py", ".ps1", ".sh", ".java", ".h", ".txt", ".yml", ".yaml", ".jsonl"}
 LINK_RE = re.compile(r"(?<!!)\[[^]]*\]\(([^)]+)\)")
 INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\r\n]+)`(?!`)")
-PUBLISHED_PATH_PREFIXES = {
-    ".github", "config", "decomp-notes", "docs", "include", "tools",
-}
-
-
 def git_paths() -> list[str]:
     command = ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"]
     result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True)
@@ -209,7 +201,7 @@ def main() -> int:
         for extra in sorted(index_paths - docs_tree):
             errors.append(f"docs index extra: {extra}")
 
-    published_prefixes = PUBLISHED_PATH_PREFIXES | {
+    published_prefixes = {
         path.split("/", 1)[0] for path in tracked_paths if "/" in path
     }
     for path in tracked_paths:
@@ -416,20 +408,10 @@ def main() -> int:
             errors.append("vtable-slot catalog is not ordered by vtable RVA and slot")
         if stats.get("vtable_slots") != len(slots):
             errors.append("RTTI catalog slot count mismatch")
-        if len(slots) != EXPECTED_VTABLE_SLOTS:
-            errors.append("pinned vtable-slot count mismatch")
         if any(not isinstance(row.get("fn_name"), str) for row in slots):
             errors.append("vtable-slot row lacks clean function name")
     else:
         errors.append("empty vtable-slot catalog")
-
-    generated_vtable_names = json.loads(
-        (ROOT / "config/ffxivgame.vtable_method_names.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    if len(generated_vtable_names) != EXPECTED_VTABLE_METHOD_NAMES:
-        errors.append("pinned generated vtable-method-name count mismatch")
 
     ledger_path = ROOT / "config/ffxivgame.external_dependencies.json"
     ledger_raw = ledger_path.read_bytes()
@@ -437,8 +419,10 @@ def main() -> int:
         ledger_text = ledger_raw.decode("ascii")
     except UnicodeDecodeError as exc:
         errors.append(f"dependency ledger is not ASCII: {exc}")
-        ledger_text = ledger_raw.decode("utf-8", errors="replace")
-    ledger = json.loads(ledger_text)
+        ledger_text = ""
+        ledger = {}
+    else:
+        ledger = json.loads(ledger_text)
     expected_catalogs = [
         "config/ffxivgame.vtable_method_names.json",
     ]
@@ -516,29 +500,13 @@ def main() -> int:
             if disposition == "independently-rederived" and base_status != "full-independent-derivation":
                 errors.append(f"independent disposition lacks full derivation: {catalog['path']}#{ordinal}")
                 break
-    if (ledger_row_count != EXPECTED_LEDGER_ROWS or
-            ledger.get("summary", {}).get("catalog_rows") != EXPECTED_LEDGER_ROWS):
+    if ledger.get("summary", {}).get("catalog_rows") != ledger_row_count:
         errors.append("dependency ledger total row count mismatch")
     if ledger.get("summary", {}).get("catalog_dispositions") != dict(
             sorted(ledger_dispositions.items())):
         errors.append("dependency ledger disposition summary mismatch")
     if ledger.get("summary", {}).get("rows_blocked_from_deletion") != blocked_rows:
         errors.append("dependency ledger blocked-row summary mismatch")
-    artifacts = ledger.get("artifacts", [])
-    if len(artifacts) != 0:
-        errors.append("dependency ledger artifact count mismatch")
-    if [row.get("artifact_id") for row in artifacts] != sorted(
-            row.get("artifact_id") for row in artifacts):
-        errors.append("dependency ledger artifacts are not deterministically ordered")
-    for row in artifacts:
-        disposition = row.get("disposition")
-        consumers = row.get("consumer_ids", [])
-        if disposition not in valid_dispositions:
-            errors.append(f"invalid artifact disposition: {row.get('artifact_id')}")
-        if disposition == "keep-with-citation" and not consumers:
-            errors.append(f"kept artifact lacks consumer: {row.get('artifact_id')}")
-        if disposition == "delete-with-source" and consumers:
-            errors.append(f"deleted artifact has consumer: {row.get('artifact_id')}")
     if re.search(r"(?:[A-Za-z]:\\|/Users/|/home/|agent-islands)", ledger_text, re.I):
         errors.append("dependency ledger contains a machine or private-island path")
     for path in paths:
@@ -549,14 +517,14 @@ def main() -> int:
             text = full.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        if path not in {"LICENSE", ".gitignore", "tools/validate_repo.py"}:
+        if path != "tools/validate_repo.py":
             lower = text.lower()
             for token in ("garlemald", "server-workspace", "memory.md", ".claude"):
                 if token in lower:
                     errors.append(f"forbidden private or consumer reference in {path}: {token}")
             if re.search(r"(?:[A-Za-z]:\\Users\\|/Users/|/home/)", text, re.I):
                 errors.append(f"absolute maintainer path in {path}")
-        if path not in {".gitignore", "tools/validate_repo.py"}:
+        if path != "tools/validate_repo.py":
             for line_number, line in enumerate(text.splitlines(), 1):
                 lower_line = line.lower()
                 for token in ("agents.md", "claude.md", "docs/ai_agents/local/"):

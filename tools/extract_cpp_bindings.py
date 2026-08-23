@@ -125,18 +125,12 @@ def main() -> int:
 
     # Per-class method inventory
     bindings: dict[str, list[str]] = {}
-    file_stats: list[dict] = []
 
     for path in sorted(p_files):
         cls = class_name_from_path(path, args.lpb_dir)
         methods = extract_inl_methods(path)
         if methods:
             bindings[cls] = methods
-        file_stats.append({
-            "class": cls,
-            "ciphered_path": str(path.relative_to(args.lpb_dir)),
-            "method_count": len(methods),
-        })
 
     # Sort for deterministic output
     bindings = {k: bindings[k] for k in sorted(bindings.keys())}

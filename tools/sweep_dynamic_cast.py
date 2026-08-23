@@ -46,10 +46,7 @@ def read_rtti_name(bin_data, sects, abs_addr):
     null = name_bytes.find(b'\x00')
     if null < 0:
         return None
-    try:
-        return name_bytes[:null].decode('latin-1', errors='replace')
-    except Exception:
-        return None
+    return name_bytes[:null].decode('latin-1')
 
 
 def demangle(name):
@@ -136,7 +133,6 @@ def main() -> int:
     rows = []
     edge_counts = defaultdict(int)  # (src_dem, tgt_dem) -> count
     src_targets = defaultdict(set)   # src_dem -> set of target_dem
-    target_sites = defaultdict(list) # tgt_dem -> list of (caller_fn, call_rva)
     callers_by_target = defaultdict(set) # tgt_dem -> set of caller_fn
     all_classes = set()
 
@@ -161,7 +157,6 @@ def main() -> int:
             })
             edge_counts[(src_dem, tgt_dem)] += 1
             src_targets[src_dem].add(tgt_dem)
-            target_sites[tgt_dem].append((fn_name, call_rva))
             callers_by_target[tgt_dem].add(fn_name)
             all_classes.add(src_dem)
             all_classes.add(tgt_dem)

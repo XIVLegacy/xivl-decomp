@@ -158,12 +158,6 @@ def main() -> int:
         help="re-run scripts only against an existing project (skip auto-analysis)",
     )
     ap.add_argument(
-        "--analysis-timeout",
-        type=int,
-        default=0,
-        help="cap auto-analysis at N seconds (0 = unlimited)",
-    )
-    ap.add_argument(
         "--max-memory",
         default="8G",
         help="JVM max heap (-Xmx) (default: 8G)",
@@ -238,9 +232,6 @@ def main() -> int:
         script_name = script_name.strip()
         if script_name:
             headless_args += ["-postScript", script_name]
-    if args.analysis_timeout:
-        headless_args += ["-analysisTimeoutPerFile", str(args.analysis_timeout)]
-
     if windows_launcher:
         # analyzeHeadless.bat has no heap argument. It reads this documented variable.
         cmd = [str(_windows_short_path(launch)), *headless_args]

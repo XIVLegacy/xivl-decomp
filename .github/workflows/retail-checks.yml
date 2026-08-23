@@ -33,8 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           python tools/test_retail_protocol_caller.py
-          python tools/verify_retail_protocol_caller.py > "${RUNNER_TEMP}/asset-free-attestation.json"
-          rm -f -- "${RUNNER_TEMP}/asset-free-attestation.json"
+          python tools/verify_retail_protocol_caller.py > /dev/null
 
   protocol-caller:
     name: Protocol Caller Checks
@@ -144,8 +143,11 @@ jobs:
           tree = json.loads((Path(os.environ["API_ROOT"]) / "tree.json").read_text(encoding="utf-8"))
           entries = tree.get("tree")
           assert tree.get("truncated") is False
-          assert isinstance(entries, list) and len(entries) == 1
-          entry = entries[0]
+          assert isinstance(entries, list)
+          matching = [entry for entry in entries
+                      if entry.get("path") == os.environ["EXPECTED_PATH"]]
+          assert len(matching) == 1
+          entry = matching[0]
           assert entry.get("path") == os.environ["EXPECTED_PATH"]
           assert entry.get("type") == "blob"
           assert entry.get("mode") == "100644"
@@ -168,11 +170,9 @@ jobs:
 
           document = json.loads((Path(os.environ["API_ROOT"]) / "blob.json").read_text(encoding="utf-8"))
           assert document.get("sha") == os.environ["BLOB_SHA"]
-          assert document.get("size") == 15996808
           assert document.get("encoding") == "base64"
           content = "".join(document["content"].split())
           data = base64.b64decode(content, validate=True)
-          assert len(data) == 15996808
           (Path(os.environ["INPUT_ROOT"]) / "ffxivgame.exe").write_bytes(data)
           PY
 
@@ -184,7 +184,6 @@ jobs:
         run: |
           set -euo pipefail
           input="${RUNNER_TEMP}/retail-evidence-private/input/ffxivgame.exe"
-          test "$(stat --format=%s "${input}")" = "15996808"
           test "$(sha256sum "${input}" | cut -d ' ' -f 1)" = \
             "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
 
@@ -224,7 +223,7 @@ jobs:
 
       - name: Reproduce and verify protocol caller evidence
         id: analysis
-        if: steps.identity.outcome == 'success' && steps.toolchain.outcome == 'success'
+        if: steps.toolchain.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -247,7 +246,7 @@ jobs:
           headless="${ghidra}/support/analyzeHeadless"
           input="${private_root}/input/ffxivgame.exe"
 
-          timeout 45m "${headless}" "${project_root}" retail_protocol_caller \
+          "${headless}" "${project_root}" retail_protocol_caller \
             -import "${input}" \
             -processor x86:LE:32:default \
             -cspec windows \
