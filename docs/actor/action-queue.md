@@ -2,7 +2,9 @@
 
 This page records the statically proven CharaAction queue topology. The
 storage location of these subsystems in `CharaActor`, the virtual callers that
-populate an entry's action object, and any wire-to-queue edge remain unresolved.
+populate an entry's action object, and the s2c `0x00DA` queue-to-insertion edge
+are established. Animation completion and the other wire producers remain
+unresolved.
 
 ## Action subsystem classes
 
@@ -48,8 +50,8 @@ The proven insertion path is non-virtual `FUN_00845E80`:
 
 `FUN_00846050` and `FUN_00846080` are direct wrappers over this insertion
 path. Direct producers include the `FUN_0065A8F0` through `FUN_0065FDA0`
-cluster and `FUN_00662D30`; these establish real insertion callers without
-establishing a packet or VFX origin.
+cluster and `FUN_00662D30`. The s2c `0x00DA` route below establishes the
+packet origin for `FUN_00662D30` case 4; the other producers remain separate.
 
 ## Controller consumption
 
@@ -62,24 +64,38 @@ queue functions.
 
 ## Boundary with wire and VFX systems
 
-The s2c `0x00DA` path is a separate CharaElement-local mechanism:
+The s2c `0x00DA` path reaches concrete `CharaActionQue` insertion through a
+Scene op 4 relay:
 
 ```text
-FUN_004DC690 -> CharaElement slot 9 -> FUN_0058C690
-              -> actor +0xA84..+0xA90 battle-effect queue
-              -> per-frame FUN_0058DA10 drain
+FUN_004DC690 -> CharaElement slot 9 FUN_0058CCA0
+  -> case 0x00DA FUN_0058CAD0 -> FUN_0058C690
+  -> FUN_005901D0 -> CharaElement +0xA80 ring
+  -> per-frame FUN_0058DF90 -> FUN_0058DA10
+  -> Scene op 4 -> FUN_004E9700 -> FUN_0060C140 -> FUN_007C93C0
+  -> CharaActor vtable +0x274 -> FUN_00662D30 case 4
+  -> FUN_00846080 -> FUN_00845E80 -> CharaActionQue insertion
 ```
 
-The drain's type 3 through 0x0b branch reaches `FUN_0058CA80` and
-`FUN_0058A010`, but no CharaAction function. The BattleResult VFX processor
-`FUN_00812B50` separately constructs a VFX parameter and stops at an indirect
-dispatch through `*(object+0x12f0)` vtable slot `+0x08`. No static target from
-that call has been identified.
+`FUN_0058CAD0` forces the staged source and target to the resolved actor and
+passes the packet's first application u32 into the shared record builder.
+`FUN_005901D0` queues the resulting 0x1a0-byte record at the CharaElement ring
+whose array, capacity, head, and count occupy `+0xA84..+0xA90`.
+`FUN_0058DA10` drains one record per pass, requeues it by visual class, and
+broadcasts Scene op 4. The scene dispatcher preserves the record pointer until
+`FUN_00662D30` case 4 calls the controller wrapper at `FUN_00846080`.
 
-Accordingly, a server battle packet -> preload -> CharaActionQueue -> motion
--> visual pipeline is not established by the current binary evidence. The
-known mechanisms may meet behind a virtual boundary at runtime, but the
-static record must stop at that boundary.
+The shared staged record does not retain its wire opcode. Neighboring s2c
+`0x00E0` and `0x00E1` routes differ before `FUN_0058C690`, so this finding does
+not attribute a queued record to one of those opcodes after staging. It also
+does not establish animation completion or justify the imported
+`PlayAnimationOnActorPacket` noun.
+
+The BattleResult VFX processor `FUN_00812B50` remains separate. It constructs
+a VFX parameter and stops at an indirect dispatch through
+`*(object+0x12f0)` vtable slot `+0x08`; no static target from that call has been
+identified. The proven `0x00DA` boundary therefore ends at action-queue
+insertion, not at motion or visual completion.
 
 ### Element-container pointer writer candidates ruled out
 
@@ -142,5 +158,9 @@ are witnessed in this document; only the sums with 0x2858 are derived.
 - `docs/actor/status-controllers.md` - status controller map
 - `include/actor/chara_actor.h` - CharaActor field-offset catalog
 - `config/ffxivgame.vtable_slots.jsonl` - exact primary/secondary slot maps
+- `asm/ffxivgame/0018da10_FUN_0058da10.s` - per-frame record drain
+- `asm/ffxivgame/00262d30_FUN_00662d30.s` - CharaActor Scene op switch
+- `asm/ffxivgame/003c93c0_FUN_007c93c0.s` - scene actor dispatch
+- `asm/ffxivgame/00446080_FUN_00846080.s` - case-4 controller wrapper
 - `asm/ffxivgame/00445e80_FUN_00845e80.s` - non-virtual insertion body
 - `asm/ffxivgame/00445430_FUN_00845430.s` - controller tick
