@@ -7,9 +7,11 @@ assign either operation to a specific spawn-burst opcode.
 
 The reviewed binary is the retail 1.23b `ffxivgame.exe`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
-The closing pass used Ghidra 12.1.3 in a fresh isolated import with program
-writes disabled. All requested functions produced exactly one named section
-with a completed decompilation. Decompiled bodies remain local-only.
+The function and caller analysis used Ghidra 12.1.3 in an isolated import with
+program writes disabled. All requested functions produced exactly one named
+section with a completed decompilation. The address export used the same retail
+program in an existing analyzed project, also read-only.
+Decompiled bodies remain local-only.
 
 ## Creation primitive
 
@@ -20,12 +22,18 @@ with a completed decompilation. Decompiled bodies remain local-only.
    and SID `0xC0000024`.
 3. If the lookup succeeds, it returns without creating another object.
 
-The fresh direct-caller enumeration found no callers for `FUN_0075be50`.
-Therefore the function identifies who performs creation, but its bootstrap or
-indirect dispatcher remains unresolved. Class index `0x1A` is retained as a
-numeric argument; this finding does not name its class from the number alone.
-The MyPlayer/local-control relation comes from the independently established
-bind gate that requires the same SID, not from the class index.
+The fresh direct-caller enumeration found no callers for `FUN_0075be50`. A
+separate verified-complete address-reference export then found zero references
+to the function in Ghidra's analyzed reference database. There are no recorded
+code or data reference types, operands, containing functions, or non-function
+sections to follow; this also excludes a recorded vtable or other table entry
+and a recorded thunk reference. Therefore the function identifies who performs
+creation, but the export cannot exclude a bootstrap owner reached by computed
+or indirect dispatch, dynamic setup, or an unanalyzed reference. Class index
+`0x1A` is retained as a numeric argument; this finding does not name its class
+from the number alone. The MyPlayer/local-control relation comes from the
+independently established bind gate that requires the same SID, not from the
+class index.
 
 `FUN_004d90c0` is also used by the inbound dispatcher at `0x004dc690`, including
 its generic opcode `0x00CA` find-or-create case. That shared factory does not
@@ -64,10 +72,12 @@ drain. Static evidence does not join either path to fixed SID `0xC0000024`
 creation, so no ordering between those paths and this creator is claimed.
 
 Accordingly, no `0x017B`, `0x017D`, `0x017E`, or `0x017F` ownership or MyPlayer
-creation name is promoted here. The exact next static boundary is the missing
-indirect or data reference that reaches `FUN_0075be50`. The exact next runtime
-check is a breakpoint on `0x0075BE50` in a working zone-in, recording the caller
-and the immediately preceding decoded opcode without inferring across frames.
+creation name is promoted here. The analyzed reference database contains no
+ownership edge to `FUN_0075be50`; it cannot exclude computed or indirect
+dispatch, dynamic setup, or a reference in an unanalyzed region. Static
+evidence does not identify the caller. A runtime invocation of
+`0x0075BE50` would be required to record the caller and immediately preceding
+decoded opcode without inferring across frames.
 
 Source: observations `ControlSid0xC0000024_createIfAbsent` and
 `InitializeWaitingActorContainer_scriptSuccess` in

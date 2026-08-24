@@ -1224,12 +1224,15 @@
    "name": "ControlSid0xC0000024_createIfAbsent",
    "kind": "named",
    "evidence_class": "local-control-flow",
-   "producer": "Ghidra 12.1.3 fresh-import decompilation and caller enumeration",
-   "observation": "The function looks up SID 0xc0000024 through 0x004d9910 and, only when absent, calls 0x004d90c0 with class index 0x1a and SID 0xc0000024. Fresh direct-caller enumeration reports no callers.",
+   "producer": "Ghidra 12.1.3 fresh-import decompilation and caller enumeration plus ghidra/FindReferences.java address export",
+   "observation": "The function looks up SID 0xc0000024 through 0x004d9910 and, only when absent, calls 0x004d90c0 with class index 0x1a and SID 0xc0000024. Fresh direct-caller enumeration reports no callers. A separately verified-complete address export reports zero Ghidra-recorded references to 0x0075be50, leaving no code or data reference type, operand, containing function, or non-function section to follow.",
    "supported_imported_fields": [],
-   "confidence": "direct literal arguments, branch, call targets, and complete per-function direct-caller enumeration",
-   "ambiguity": "The function establishes the create-if-absent primitive for the SID used by the MyPlayer/local-control bind gate. It does not establish the primitive's indirect owner, bootstrap name, class-index meaning, or an originating packet opcode.",
-   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "myplayer-control-bootstrap-20260824", "addresses": ["0x0075be50", "0x004d90c0", "0x004d9910"]}]
+   "confidence": "direct literal arguments, branch, call targets, complete per-function direct-caller enumeration, and verified-complete analyzed-reference negative",
+   "ambiguity": "The function establishes the create-if-absent primitive for the SID used by the MyPlayer/local-control bind gate. The analyzed reference database excludes a recorded owner edge but cannot exclude computed or indirect dispatch, dynamic setup, or unanalyzed references. The bootstrap name, class-index meaning, and originating packet opcode remain unresolved.",
+   "retail_provenance": [
+     {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "myplayer-control-bootstrap-20260824", "addresses": ["0x0075be50", "0x004d90c0", "0x004d9910"]},
+     {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "myplayer-bootstrap-address-refs-20260824", "addresses": ["0x0075be50"]}
+   ]
   },
   {
    "rva": 3526944,
