@@ -635,6 +635,20 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-decompile", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-callers", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-runtime-20260824-invocation-source-boundary", "addresses": ["0x00586b10", "0x006307a0", "0x004ee330", "0x0052a080", "0x0052a320"]}]
   },
   {
+   "rva": 1623696,
+   "rva_hex": "0x0018c690",
+   "va_hex": "0x0058c690",
+   "name": "CharaElement_buildStagedActionRecord",
+   "kind": "record_builder",
+   "evidence_class": "opcode-branch-field-flow-and-packed-selector-classification",
+   "producer": "tools/ghidra_scripts/DecompileToText.java, tracked assembly corpus, and direct PE table read",
+   "observation": "FUN_0058CCA0 maps s2c 0x00e0 to branch 0x0058d00a and 0x00e1 to 0x0058d020. Both call FUN_0058C690 with packet dwords +0x10 and +0x14; 0x00e0 supplies control halfword zero, while 0x00e1 supplies packet +0x18. FUN_0058CAD0 supplies the resolved current actor as target and zero control for 0x00da. FUN_0058C690, FUN_00587370, and FUN_00587210 preserve final record +0x0c source, +0x10 packed selector, +0x30 row count, +0x32 route control, and +0x38 target, while writing +0x04 from FUN_00585800's selector-derived action type. With fallback type 5, that classifier returns only type 5 or types 7 through 17; direct selector high bytes 0x7c, 0x6f, 0x70, and 0x71 yield types 7, 8, 9, and 10, and this route cannot yield type 6.",
+   "supported_imported_fields": [],
+   "confidence": "direct opcode-table targets, argument flow, exact field copies, packed-selector masks, and literal classifier returns",
+   "ambiguity": "The finite type set is specific to this shared builder with fallback 5. The record does not retain the wire opcode, the selector category names are not present in the binary, and queue behavior does not assign packet semantics.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "chara-action-type-selector-20260824", "addresses": ["0x0058cca0", "0x0058d00a", "0x0058d020", "0x0058cad0", "0x0058c690", "0x00585800", "0x00587370", "0x00587210", "0x00798370", "0x007982d0"]}]
+  },
+  {
    "rva": 2295536,
    "rva_hex": "0x002306f0",
    "va_hex": "0x006306f0",
@@ -1587,6 +1601,20 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x0078c2a0"]}]
   },
   {
+   "rva": 3769456,
+   "rva_hex": "0x00398470",
+   "va_hex": "0x00798470",
+   "name": "CharaActionVisual_dispatchPackedSelector",
+   "kind": "selector_dispatcher",
+   "evidence_class": "rtti-vtable-field-flow-and-packed-selector-branches",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tracked RTTI and vtable catalogs",
+   "observation": "CharaActionVisual primary vtable slot 16 reads the staged selector copy at visual-object +0x3c. It normally splits the value into an unsigned high byte and middle and low 12-bit lanes; high byte 0x0b instead retains the low 24 bits as one lane and clears the middle lane. High byte 0x78 calls the queue back-pointer's virtual slot +0x24 with the two lanes. Values below 0x6f consult the fixed category table through 0x007982d0 before visual virtual calls +0x54 or +0x58. Other values at or above 0x6f first reach visual virtual slot +0x60.",
+   "supported_imported_fields": [],
+   "confidence": "tracked visual vtable slot, direct +0x3c read, exact masks and branch predicates, fixed-table bounds, and indirect-call offsets",
+   "ambiguity": "The method has no direct callers because it is reached virtually. The indirect targets are not statically resolved here, so this observation does not name an animation or resource, establish completion, or assign semantic names to selector categories.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "chara-action-type-selector-20260824", "addresses": ["0x007983c0", "0x00798470", "0x007982d0", "0x00fe4544"]}]
+  },
+  {
    "rva": 3969984,
    "rva_hex": "0x003c93c0",
    "va_hex": "0x007c93c0",
@@ -1602,6 +1630,20 @@
    "confidence": "direct keyed-registry lookup, literal range and subtraction, vtable offset, argument flow, and indirect call",
    "ambiguity": "The generic target dispatch is observed without assigning the registry keys or queued payloads to a wire protocol. The CharaElement producer establishes this selector-8 payload as an already-built runtime record.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x007c93c0", "0x007c95e4", "0x007c95f2"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-callers", "addresses": ["0x0060c140", "0x007c93c0", "0x00662d30"]}]
+  },
+  {
+   "rva": 4480640,
+   "rva_hex": "0x00445e80",
+   "va_hex": "0x00845e80",
+   "name": "CharaActionController_insertStagedRecord",
+   "kind": "queue_inserter",
+   "evidence_class": "rtti-vtable-record-field-and-switch-table-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java, tracked assembly corpus, tracked vtable catalog, and direct PE table read",
+   "observation": "The function constructs a 0x1c-byte CharaActionQue, loads staged action type from record +0x04 at 0x00845fca, and inserts the entry into controller bucket this + type*0x14 + 4 at 0x0084600c through 0x0084601f. Its type switch uses unsigned predicate type - 5 <= 4. Types 5, 8, and 9 call concrete primary slot 1 with true; types 6 and 7 make that call only when record +0x10 selector high byte is not 0x19, then call 0x007ab0f0 on actor +0x0bf0. Concrete slot 1 is 0x00846240 and sets entry flag bit 2. Other types receive no setup from this switch, and the insertion body has no type bound before bucket indexing.",
+   "supported_imported_fields": [],
+   "confidence": "tracked CharaActionQue vtable, exact record offsets, switch predicate and targets, selector mask, flag setter, and bucket arithmetic",
+   "ambiguity": "The staged drain separately admits only unsigned types 0 through 25, matching the controller's 26 buckets, but other direct producers are not proved to produce every value or to pass through that drain. The type setup and later virtual calls do not establish packet names or animation completion.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "chara-action-type-selector-20260824", "addresses": ["0x00845e80", "0x00845fca", "0x00845fd3", "0x00845fdc", "0x00846001", "0x0084600c", "0x00846240", "0x007a14e0", "0x007ab0f0", "0x0058da62"]}]
   },
   {
    "rva": 4820256,

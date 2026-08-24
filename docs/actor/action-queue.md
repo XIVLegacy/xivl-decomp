@@ -48,6 +48,28 @@ The proven insertion path is non-virtual `FUN_00845E80`:
 5. Insert the pointer through `FUN_005692F0` into the controller bucket at
    `this + entry_type * 0x14 + 4`.
 
+The staged-record fields remain distinct throughout this path. At
+`0x00845FCA`, insertion loads the action type from record `+0x04`. At
+`0x00845EAD`, `FUN_007A0F70` wraps the record pointer, and
+`FUN_007A14E0` reads the selector at record `+0x10`; its only predicate is
+`(selector & 0xFF000000) == 0x19000000` at `0x007A14E2..0x007A14F1`.
+The type-5-through-9 switch at `0x00845FCA..0x00845FD5` has these exact
+targets:
+
+| Action type | Initializer path |
+|---:|---|
+| `5` | `0x00846001`: call entry virtual slot `+0x04` with `1`. |
+| `6` | `0x00845FDC`: make that call only when the selector high byte is not `0x19`, then call `FUN_007AB0F0` on actor `+0x0BF0`. |
+| `7` | Same as type `6`. |
+| `8` | Same as type `5`. |
+| `9` | Same as type `5`. |
+
+The concrete primary vtable resolves slot `+0x04` to `FUN_00846240`, which
+sets entry flag bit 2 to the supplied Boolean value. Types outside `5..9`
+take the unsigned-above branch at `0x00845FD3` and receive no setup from this
+switch. Insertion itself does not bounds-check the type before using it in the
+bucket address at `0x0084600C..0x0084601F`.
+
 `FUN_00846050` and `FUN_00846080` are direct wrappers over this insertion
 path. Direct producers include the `FUN_0065A8F0` through `FUN_0065FDA0`
 cluster and `FUN_00662D30`. The s2c `0x00DA` route below establishes the
@@ -61,6 +83,67 @@ objects through virtual slots including `+0x08`, `+0x0c`, `+0x10`, `+0x14`,
 `+0x2c`, and `+0x30`. It does not call `FUN_00844330` or `FUN_00844660`, and
 it has no direct edge to the BattleResult VFX or CharaElement battle-effect
 queue functions.
+
+For a concrete `CharaActionQue`, those controller calls resolve to slots 2,
+3, 4, 5, 11, and 12 respectively. The call sites are `0x00845C7E`,
+`0x00845AD8`, `0x0084575E` / `0x00845935`, `0x00845796`, the four slot-11
+sites `0x00845521`, `0x008455FC`, `0x00845B12`, and `0x00845BD9`, and
+`0x00845C0D`. The concrete methods then make indirect calls on the runtime
+object at entry `+0x14`, the resolved action object at entry `+0x10`, or the
+actor-owned object at actor `+0x12F0`. Static evidence does not resolve those
+runtime targets into a completion callback. None of the directly resolved
+concrete entry methods calls `FUN_00798470`; a connection to that visual slot,
+if present at runtime, lies behind one of the indirect calls.
+
+## Staged type and packed-selector domains
+
+The shared builder preserves the routing fields rather than collapsing them.
+`FUN_0058CCA0` maps s2c `0x00E0` to branch `0x0058D00A`, which calls
+`FUN_0058C690(packet+0x10, packet+0x14, 0)`. It maps `0x00E1` to
+`0x0058D020`, which supplies the packet halfword at `+0x18` as the third
+argument. `FUN_0058CAD0`, used by `0x00DA`, instead supplies the resolved
+current actor as the target and literal zero as that third argument.
+
+`FUN_0058C690` and `FUN_00587370` / `FUN_00587210` build the final staged
+record with these address-backed fields:
+
+| Offset | Proven value on this route |
+|---:|---|
+| `+0x04` | Action type returned by `FUN_00585800(5, selector)`. |
+| `+0x0C` | Resolved current actor, retained separately as the source. |
+| `+0x10` | Original packet dword at `+0x10`, retained as the selector. |
+| `+0x30` | Row-count halfword; this builder writes literal `1`. |
+| `+0x32` | Route-control halfword: zero for `0x00E0` and `0x00DA`, packet `+0x18` for `0x00E1`. |
+| `+0x38` | Target: packet dword `+0x14` for `0x00E0` / `0x00E1`, resolved current actor for `0x00DA`. |
+
+The type classifier first decomposes the selector through `FUN_00798370`.
+The normal representation is an unsigned high byte plus middle and low
+12-bit lanes. High byte `0x0B` is exceptional: the middle lane is zero and
+the low 24 bits remain one value. For the shared builder's literal fallback
+type `5`, `FUN_00585800` can return only
+type `5` or types `7..17`. Direct high-byte cases
+`0x7C`, `0x6F`, `0x70`, and `0x71` return types `7`, `8`, `9`, and `10`.
+The other results come from the bounded category table used by
+`FUN_007982D0`; type `13` is the category-1 subcase whose middle 12-bit lane
+is `0x00D..0x013` or `0xFE9`. This route cannot produce type `6`.
+
+That finite set is a producer-domain result, not a global enum. The staged
+drain uses the unsigned predicate `type <= 0x19` at
+`0x0058DA62..0x0058DA68`, and `CharaActionController` owns 26 buckets, so
+surviving staged types have the structural domain `0..25`. Other direct
+insertion producers have not been shown to use every value in that range.
+
+`FUN_007983C0` copies `0x38 + row_count * 0x14` bytes of the staged record to
+the `CharaActionVisual` object at `+0x2C`. The staged selector therefore lands
+at visual-object `+0x3C`. Primary visual vtable slot 16,
+`FUN_00798470`, reads it at `0x00798478` and preserves the same packed split.
+High byte `0x78` reaches the queue back-pointer's virtual slot `+0x24` at
+`0x00798527..0x00798534`. Values below `0x6F` consult the fixed category
+table through `FUN_007982D0` and then stop at visual virtual slots `+0x54` or
+`+0x58`. Other values at or above `0x6F` stop first at visual virtual slot
+`+0x60` at `0x00798564..0x0079857A`. Those indirect targets are the static
+boundary: the calls do not prove an animation resource identity or animation
+completion.
 
 ## Boundary with wire and VFX systems
 
