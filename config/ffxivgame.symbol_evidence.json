@@ -228,6 +228,23 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e5ff0", "0x004e5ca0", "0x0071d420", "0x008a87f0"]}]
   },
   {
+   "rva": 1430192,
+   "rva_hex": "0x0015d2b0",
+   "va_hex": "0x0055d2b0",
+   "name": "ActorClassGraphic_resolveAppearanceRecord",
+   "kind": "resolver",
+   "evidence_class": "literal-sheet-name-and-row-key-column-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "The function lazily opens the literal actorclass_graphic sheet, caches its handle at object offset 0xf4, and passes its caller-supplied key to virtual offset 0x18 on that handle. After resolving the row, it tests and reads numeric columns by index. Columns 0x19 through 0x1f are copied unchanged to output dwords 6 through 12, which the CharaElement caller copies to record offsets 0x18 through 0x30. A fresh xref census found exactly two direct callers, at 0x00564e6d and 0x00585da5.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "literal sheet name, caller-supplied row key, direct numeric-column reads and output stores, downstream fixed-size copy, and complete fresh xref census",
+   "ambiguity": "This proves actorclass_graphic row-ID resolution for this builder and the source column indices of the seven packed words. It does not prove that the separate statically unreferenced writer at 0x00586b10 is catalog-backed or wire-driven.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-decompile", "addresses": ["0x0055d2b0", "0x00585d70", "0x004d74c0", "0x00c9a4a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-callers", "addresses": ["0x0055d2b0", "0x00564e6d", "0x00585da5"]}]
+  },
+  {
    "rva": 1532496,
    "rva_hex": "0x00176250",
    "va_hex": "0x00576250",
@@ -591,14 +608,31 @@
    "kind": "producer",
    "evidence_class": "rtti-anchored-object-storage-and-literal-call-data-flow",
    "producer": "tools/ghidra_scripts/DecompileToText.java, tracked assembly corpus, and tracked RTTI catalog",
-   "observation": "On its dirty path, the CharaElement-local function calls 0x004d7980 with literal selector 8, payload pointer CharaElement object offset 0xaac, and literal length 0x74, then clears the dirty byte at offset 0xb20. The same function can rebuild a 29-dword temporary record through 0x0055d2b0 and copy it to offset 0xaac before marking it dirty. Constructor 0x0058b4e0 writes both tracked CharaElement vtables and initializes the same 116-byte block through 0x005670d0.",
+   "observation": "On its dirty path, the CharaElement-local function calls 0x004d7980 with literal selector 8, payload pointer CharaElement object offset 0xaac, and literal length 0x74, then clears the dirty byte at offset 0xb20. When dword CharaElement offset 0xb24 is nonzero, it passes that value as the actorclass_graphic row ID to 0x0055d2b0, copies the returned 29-dword record to offset 0xaac, marks it dirty, and clears the pending row ID. Constructor 0x0058b4e0 writes both tracked CharaElement vtables and initializes the same 116-byte block through 0x005670d0.",
    "supported_imported_fields": [
     "name",
     "kind"
    ],
-   "confidence": "tracked CharaElement RTTI, constructor vtable writes, exact object offset, literal selector and length, and direct queue call",
-   "ambiguity": "This proves an already-resolved CharaElement-local runtime record, not a sheet row or wire packet. The earlier origin and semantics of individual record fields remain unresolved.",
-   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x00585d70", "0x0055d2b0", "0x005670d0", "0x0058b4e0", "0x00586b10"]}]
+   "confidence": "tracked CharaElement RTTI, constructor vtable writes, exact object offsets, literal selector and length, direct actorclass_graphic resolver call, and direct queue call",
+   "ambiguity": "The queued payload is an already-resolved CharaElement-local runtime record, not a sheet row or proved wire packet. The row ID exists only at offset 0xb24 before the rebuild and is cleared after use.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-20260823-closing", "addresses": ["0x00585d70", "0x0055d2b0", "0x005670d0", "0x0058b4e0", "0x00586b10"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-decompile", "addresses": ["0x00585d70", "0x0055d2b0"]}]
+  },
+  {
+   "rva": 1600272,
+   "rva_hex": "0x00186b10",
+   "va_hex": "0x00586b10",
+   "name": "CharaElement_buildAppearanceFromUnpackedState",
+   "kind": "producer",
+   "evidence_class": "rtti-anchored-object-storage-and-local-bitfield-data-flow",
+   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
+   "observation": "The function writes the CharaElement appearance block and dirty byte directly. For seven packed dwords at CharaElement offsets 0xac4 through 0xadc, it reads four interleaved source arrays at offsets 0x30 through 0x48, 0x4c through 0x64, 0x68 through 0x80, and 0x84 through 0x9c. It folds the latter two values into one decimal-composed input and calls 0x006307a0, which packs three masked 10-bit values. A fresh complete xref query found no static code or data reference to this function.",
+   "supported_imported_fields": [
+    "name",
+    "kind"
+   ],
+   "confidence": "exact source and destination offsets, seven-iteration loop, direct packing-helper call, CharaElement storage identity, and complete fresh xref census",
+   "ambiguity": "The function has no observed catalog lookup or wire provenance. With no static reference, its invocation ownership and the producer of the unpacked source structure require an indirect-call or runtime trace.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-decompile", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-callers", "addresses": ["0x00586b10", "0x006307a0"]}]
   },
   {
    "rva": 2295536,
@@ -614,7 +648,7 @@
     "kind"
    ],
    "confidence": "direct shift, mask, and output-store observation",
-   "ambiguity": "Downstream equipment resource consumers establish appearance use, but the lane meanings and a catalog-ID relationship remain unresolved.",
+   "ambiguity": "Downstream equipment resource consumers establish appearance use, and 0x0055d2b0 proves one actorclass_graphic row-ID source for these words. This decoder does not establish the packed lane meanings or the source of the alternate 0x00586b10 builder.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-native-20260823", "addresses": ["0x006306f0", "0x006b5770", "0x006b6480", "0x006b7a40"]}]
   },
   {
@@ -665,7 +699,7 @@
     "kind"
    ],
    "confidence": "direct format string, arguments, decoder call, object offsets, and direct caller observation",
-   "ambiguity": "This is a resource-path consumer, not the producer that maps a catalog ID to packed appearance.",
+   "ambiguity": "This is a resource-path consumer, not the upstream 0x0055d2b0 producer that maps an actorclass_graphic row ID to packed appearance.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-native-20260823", "addresses": ["0x006b7a40", "0x006b8680", "0x006b5770", "0x006306f0"]}]
   },
   {
