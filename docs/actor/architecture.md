@@ -94,10 +94,9 @@ vtable-write pattern found at only two sites in the binary: the destructor and
 Also course-corrected: the dtor at `FUN_00666130` is **CharaActor's
 own** dtor, not the parent's. The vtable swap to 0xfc0d34 at the
 top is the standard MSVC "set vtable to this class's own table
-during destruction" pattern. The parent class is still unidentified
-- it would show up as a different vtable address being set
-somewhere later in the dtor's body (via a chained parent-dtor call),
-which is a follow-up task.
+during destruction" pattern. The immediate parent is CDevActor, as
+established by the constructor order above. The three remaining side
+bases are still unnamed.
 
 **Literal initializers with unresolved meanings:**
 - `+0x0169` = 1 (byte flag)
