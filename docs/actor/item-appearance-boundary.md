@@ -26,6 +26,16 @@ and copies numeric columns `0x19..0x1f` directly to the seven packed dwords at
 record offsets `0x18..0x30`. The row ID is not carried in the queued record,
 and the queued record is not thereby established as a wire packet.
 
+Static evidence bounds the alternate builder at `0x00586b10`. The
+retail PE contains no direct caller, data reference, exported entry, or
+little-endian VA/RVA encoding for it, so no ordinary vtable or callback slot
+can be recovered statically. Its source remains a caller-supplied pointer. A
+complete displacement census found no source-record writer that can be tied
+to that pointer; the one compact full-range zero writer is an unrelated widget
+subobject initializer. The static evidence boundary is the missing invocation
+edge. At runtime, break at `0x00586b10`, capture the call stack and second
+argument pointer, and watch the source ranges listed below for earlier writes.
+
 ## Native consumption chain
 
 All locations below are in retail `ffxivgame.exe`, SHA-256
@@ -37,7 +47,7 @@ All locations below are in retail `ffxivgame.exe`, SHA-256
 | `0x0058b4e0` | `0x0018b4e0` | Constructs an `Application::Main::Element::Chara::CharaElement`, writes both tracked CharaElement vtables, and initializes the 116-byte block beginning at object offset `0xaac` through `0x005670d0`. |
 | `0x00585d70` | `0x00185d70` | When byte `CharaElement + 0xb20` is set, calls `0x004d7980` with literal selector `8`, payload `CharaElement + 0xaac`, and literal length `0x74`, then clears the dirty byte. The same function can first rebuild the block through `0x0055d2b0` and copy exactly `0x1d` dwords into it. |
 | `0x005868a0` | `0x001868a0` | For four bounded input cases, writes one of the literal `actorclass_graphic` row IDs `0x005a0700..0x005a0703` to `CharaElement + 0xb24`. The next `0x00585d70` rebuild resolves that pending ID, copies the row-derived record, and clears the field. |
-| `0x00586b10` | `0x00186b10` | Alternate runtime-only writer. For seven slots it reads four interleaved arrays at source offsets `0x30..0x48`, `0x4c..0x64`, `0x68..0x80`, and `0x84..0x9c`, then calls `0x006307a0` to build the dwords written at `CharaElement + 0xac4..0xadc`. A fresh complete xref query found no static reference to this function. |
+| `0x00586b10` | `0x00186b10` | Alternate runtime-only writer. For seven slots it reads four interleaved arrays at source offsets `0x30..0x48`, `0x4c..0x64`, `0x68..0x80`, and `0x84..0x9c`, then calls `0x006307a0` to build the dwords written at `CharaElement + 0xac4..0xadc`. If source dword `+0x00` is nonzero, it first clears those four arrays in place, showing that the source is a mutable caller-supplied record rather than a read-only row. Complete static checks found no caller, data reference, export, or encoded function pointer. |
 | `0x004d7980` | `0x000d7980` | Adds `0x15` to the selector, constructs a queue record through `0x004ec080`, and submits it through virtual offset `0x0c` on the object at caller offset `0x84`. Selector `8` therefore becomes queued kind `0x1d`. |
 | `0x004ec080` | `0x000ec080` | Stores the secondary dword at queue-record offset `0x90`, the kind word at `0x94`, and the length word at `0x96`. Payloads no longer than `0x78` bytes are copied inline at offset `0x10`; the 116-byte appearance record takes this inline path. |
 | `0x004e9700` | `0x000e9700` | Drains the queue record, selects its inline or heap payload by the length at `0x96`, and passes kind, secondary dword, payload, and length unchanged to `0x0060c140` at call site `0x004e98f9`. |
@@ -93,8 +103,22 @@ typed column names. Catalog citation:
 The complete xref census found exactly two direct callers of `0x0055d2b0`:
 `0x00564d80` at call site `0x00564e6d` and `0x00585d70` at call site
 `0x00585da5`. It found no static code or data reference to `0x00586b10`.
-That alternate writer is therefore bounded to an unpacked runtime source; its
-invocation ownership and the producer of that source structure remain open.
+The PE has no export directory, and a raw-image search found neither the
+little-endian VA `0x00586b10` nor RVA `0x00186b10`. This excludes the normal
+static direct-call, vtable, absolute callback-table, RVA-table, and export
+routes. Runtime address computation or truly unreachable retained code remain
+possible, and static evidence does not choose between them.
+
+The source provenance stops at the second function argument. A complete
+read-only `FindFieldRefs.java` pass scanned 3,174,303 instructions for twelve
+sentinel displacements spanning `+0x30..+0x12c`; it found 15,958 hits in 7,181
+functions. Offset equality alone cannot establish pointer identity. The only
+compact external candidate writing all twelve sentinels, `0x004ee330`, zeroes
+a `0x168`-byte region, but its only callers are the `EquipWidget` constructor at
+`0x0052a080` and the `ItemListWidget` constructor at `0x0052a320`. It is
+therefore an unrelated layout collision, not the appearance source writer.
+No remaining hit supplies an alias-preserving edge to the argument of
+`0x00586b10`.
 
 ### Separate ItemBase negative
 
@@ -172,6 +196,23 @@ the two direct `0x0055d2b0` call sites stated above, no reference to
 `0x00586b10`, and the expected `0x00586d78` call from that writer to
 `0x006307a0`.
 
+The fresh read-only run
+`appearance-runtime-20260824-invocation-source-boundary` used the committed
+`DumpVAs.java` and `FindFieldRefs.java` scripts against the same project and
+pinned binary. The five-section dump covered:
+
+```text
+XIVL_TARGET_VAS=0x00586B10,0x006307A0,0x004EE330,0x0052A080,0x0052A320
+IMPLEMENTATION_OFFSET_QUERY=0x30,0x4c,0x68,0x84,0x9c,0xa0,0xb8,0xd0,0xe8,0x100,0x118,0x12c
+```
+
+Every requested VA produced exactly one named decompilation section, with no
+error or failed decompilation, and both headless runs reported read-only state
+with no saved project changes. The PE-level negative is independently
+reproducible with `llvm-readobj --file-headers --coff-exports` and a literal
+byte search for both the VA and RVA; the image reports an empty export table
+and contains neither encoding.
+
 The direct-call set is reproducible from the tracked assembly corpus:
 
 ```powershell
@@ -193,12 +234,18 @@ anchor ItemBase slot 33 and CharaActor slot 157.
 
 ## Static evidence boundary
 
-The `0x0055d2b0` branch is closed positively at the
-`actorclass_graphic` row-ID resolver and numeric columns `0x19..0x1f`. The
-remaining producer boundary is the alternate `0x00586b10` branch: recover an
-indirect or runtime invocation of this statically unreferenced function, then
-trace the source structure arrays at offsets `0x30..0x9c` to their writer. No
-wire provenance is established for that structure. Until such an edge is
+The `0x0055d2b0` branch is closed positively at the `actorclass_graphic`
+row-ID resolver and numeric columns `0x19..0x1f`. Static evidence bounds the
+alternate `0x00586b10` branch at its missing invocation edge. Break at VA
+`0x00586b10` in the pinned retail image. If it fires, capture the return address
+and full call stack, preserve the second argument pointer, and place write
+watchpoints on that pointer's ranges `+0x30..+0x48`, `+0x4c..+0x64`,
+`+0x68..+0x80`, and `+0x84..+0x9c`. The first write in the trace identifies the
+ingestion or ownership boundary for static analysis. If the breakpoint does
+not fire, that result is only a bounded negative for the exercised scenario,
+not proof that the code is unreachable.
+
+No wire provenance is established for the structure. Until a runtime edge is
 observed, the queued record must not be called a wire packet, and the packed
 lanes must not be assigned item, model, variant, or color semantics by
 magnitude or by a modern format analogy.

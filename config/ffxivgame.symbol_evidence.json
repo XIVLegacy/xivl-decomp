@@ -624,15 +624,15 @@
    "name": "CharaElement_buildAppearanceFromUnpackedState",
    "kind": "producer",
    "evidence_class": "rtti-anchored-object-storage-and-local-bitfield-data-flow",
-   "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
-   "observation": "The function writes the CharaElement appearance block and dirty byte directly. For seven packed dwords at CharaElement offsets 0xac4 through 0xadc, it reads four interleaved source arrays at offsets 0x30 through 0x48, 0x4c through 0x64, 0x68 through 0x80, and 0x84 through 0x9c. It folds the latter two values into one decimal-composed input and calls 0x006307a0, which packs three masked 10-bit values. A fresh complete xref query found no static code or data reference to this function.",
+   "producer": "ghidra/DumpVAs.java, ghidra/FindFieldRefs.java, and PE image inspection",
+   "observation": "The function writes the CharaElement appearance block and dirty byte directly. For seven packed dwords at CharaElement offsets 0xac4 through 0xadc, it reads four interleaved source arrays at offsets 0x30 through 0x48, 0x4c through 0x64, 0x68 through 0x80, and 0x84 through 0x9c. It folds the latter two values into one decimal-composed input and calls 0x006307a0, which packs three masked 10-bit values. If source dword 0 is nonzero, it clears those four arrays in place before building the output. Complete xref and displacement scans found no invocation or alias-preserving source writer. The PE has no export directory and contains neither the little-endian VA nor RVA encoding for this function. The compact full-range zero writer at 0x004ee330 is excluded because its only callers construct EquipWidget and ItemListWidget objects.",
    "supported_imported_fields": [
     "name",
     "kind"
    ],
-   "confidence": "exact source and destination offsets, seven-iteration loop, direct packing-helper call, CharaElement storage identity, and complete fresh xref census",
-   "ambiguity": "The function has no observed catalog lookup or wire provenance. With no static reference, its invocation ownership and the producer of the unpacked source structure require an indirect-call or runtime trace.",
-   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-decompile", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-callers", "addresses": ["0x00586b10", "0x006307a0"]}]
+   "confidence": "exact source and destination offsets, seven-iteration loop, direct packing-helper call, in-place source reset, CharaElement storage identity, complete fresh xref and displacement censuses, named callers excluding the only compact layout collision, and PE export and pointer-encoding checks",
+   "ambiguity": "The function has no observed catalog lookup or wire provenance. Static evidence cannot distinguish a runtime-computed invocation from retained unreachable code. The exact next boundary is an execution breakpoint at 0x00586b10, followed by call-stack capture and write watches on the second argument ranges at offsets 0x30 through 0x9c.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-decompile", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-20260824-callers", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-runtime-20260824-invocation-source-boundary", "addresses": ["0x00586b10", "0x006307a0", "0x004ee330", "0x0052a080", "0x0052a320"]}]
   },
   {
    "rva": 2295536,
