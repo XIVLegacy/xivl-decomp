@@ -10,6 +10,7 @@ checks the index against the tree in both directions.
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
 - [Native item-appearance boundary](actor/item-appearance-boundary.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
+- [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
 - [PlayerBaseClass](actor/player-base-class.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
 - [Scenario and monster hierarchy](actor/scenario-monster-hierarchy.md)

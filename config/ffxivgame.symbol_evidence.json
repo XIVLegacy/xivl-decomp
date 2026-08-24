@@ -1218,6 +1218,20 @@
    ]
   },
   {
+   "rva": 3522128,
+   "rva_hex": "0x0035be50",
+   "va_hex": "0x0075be50",
+   "name": "ControlSid0xC0000024_createIfAbsent",
+   "kind": "named",
+   "evidence_class": "local-control-flow",
+   "producer": "Ghidra 12.1.3 fresh-import decompilation and caller enumeration",
+   "observation": "The function looks up SID 0xc0000024 through 0x004d9910 and, only when absent, calls 0x004d90c0 with class index 0x1a and SID 0xc0000024. Fresh direct-caller enumeration reports no callers.",
+   "supported_imported_fields": [],
+   "confidence": "direct literal arguments, branch, call targets, and complete per-function direct-caller enumeration",
+   "ambiguity": "The function establishes the create-if-absent primitive for the SID used by the MyPlayer/local-control bind gate. It does not establish the primitive's indirect owner, bootstrap name, class-index meaning, or an originating packet opcode.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "myplayer-control-bootstrap-20260824", "addresses": ["0x0075be50", "0x004d90c0", "0x004d9910"]}]
+  },
+  {
    "rva": 3526944,
    "rva_hex": "0x0035d120",
    "va_hex": "0x0075d120",
@@ -1469,6 +1483,20 @@
    "confidence": "direct count literals, count-byte access, and pointer arithmetic across all five constructors",
    "ambiguity": "The bodies do not identify the records' application-level role or internal field meanings.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "damagematrix-leaves-20260810", "addresses": ["0x00771350", "0x007713e0", "0x00771490", "0x00771540", "0x007715f0"]}]
+  },
+  {
+   "rva": 3615872,
+   "rva_hex": "0x00372c80",
+   "va_hex": "0x00772c80",
+   "name": "InitializeWaitingActorContainer_scriptSuccess",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-control-flow",
+   "producer": "Ghidra 12.1.3 fresh-import decompilation and caller enumeration plus the local RTTI and vtable catalogs",
+   "observation": "RTTI assigns the function to InitializeWaitingActorContainer vtable slot 1. On the nonempty current-candidate path, it completes actor/class setup through 0x007687f0, reads the SID as **(container+0x2c), writes that SID to container+0x170, removes the candidate, and clears container+0x2c. Fresh direct-caller enumeration reports no callers, consistent with the vtable entry.",
+   "supported_imported_fields": [],
+   "confidence": "direct local RTTI slot, candidate-field dataflow, write, cleanup path, and complete per-function direct-caller enumeration",
+   "ambiguity": "The slot is the positive +0x170 writer after asynchronous script/class completion. Constructor 0x00773a30 writes the null-SID sentinel instead. The virtual callback edge does not identify an originating packet opcode.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "myplayer-control-bootstrap-20260824", "addresses": ["0x007663d0", "0x00772c80", "0x00773a30", "0x007687f0", "0x00cc76f0"]}]
   },
   {
    "rva": 3620240,
