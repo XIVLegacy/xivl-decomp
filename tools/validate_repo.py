@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import _schema_check
+import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_retail_protocol_caller as retail_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -313,6 +314,13 @@ def main() -> int:
         ],
         errors,
     )
+
+    lobby_ack_errors = lobby_ack_verifier.verify()
+    if lobby_ack_errors:
+        errors.extend(
+            f"lobby acknowledgement contract: {error}"
+            for error in lobby_ack_errors
+        )
 
     retail_errors = retail_verifier.verify()
     if retail_errors:

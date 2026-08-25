@@ -41,6 +41,7 @@ checks the index against the tree in both directions.
 - [Dispatcher subscriber replacer](net/dispatcher-subscriber-swap.md)
 - [Kick dispatcher clearer](net/kick-dispatcher-clearer.md)
 - [Kick receiver offset map](net/kick-receiver-offset-map.md)
+- [Lobby secure acknowledgement consumer](net/lobby-acknowledgement-consumer.md)
 - [Network dispatch paths](net/network-dispatch-paths.md)
 - [Opcode translation table](net/opcode-translation-table.md)
 - [Packet dispatch router](net/packet-dispatch-router.md)

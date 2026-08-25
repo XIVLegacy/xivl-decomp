@@ -1,0 +1,217 @@
+{
+  "format": "xivl-lobby-acknowledgement-consumer-v1",
+  "sources": {
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1",
+    "captureRepository": "xivl-captures",
+    "captureCommit": "9adee1334becf844a5340eeacfd7dd6ca55a7bb0",
+    "capturePath": "studies/lobby-handshake-triage/derived/lobby-acknowledgement-structure.json",
+    "captureArtifactSha256": "28e06b54fe559870031f077f8549b9244caafa7e5177dbca08a7feae6c2b1b62",
+    "retainedSessionCount": 2,
+    "retainedNewCharacterSessionCount": 0
+  },
+  "wire": {
+    "outerLength": 672,
+    "outerHeaderLength": 16,
+    "subrecordOffset": 16,
+    "subrecordLength": 656,
+    "subrecordHeaderLength": 16,
+    "subrecordType": 10,
+    "encryptedPayloadOffset": 32,
+    "encryptedPayloadLength": 640,
+    "blockSize": 8
+  },
+  "consumerTrace": [
+    {
+      "va": "0x00da1ab0",
+      "role": "Lobby receive poll",
+      "observation": "Polls the active connection, asks FUN_00DA25D0 to process the next record, and retries setup only while connection+0x04 remains zero.",
+      "confidence": "direct"
+    },
+    {
+      "va": "0x00da2330",
+      "role": "Envelope parser",
+      "observation": "Parses the clear subrecord header. Type 0x000A is copied as a complete 0x0290-byte subrecord only when its declared length is exact.",
+      "confidence": "direct"
+    },
+    {
+      "va": "0x00da25d0",
+      "role": "Envelope dispatcher",
+      "observation": "Case 10 invokes LobbyCryptEngine vtable slot 4 with the copied subrecord and a stack-local 0x38-byte setup result, then calls FUN_00DB34A0.",
+      "confidence": "direct"
+    },
+    {
+      "va": "0x00da1670",
+      "role": "Secure-session consumer",
+      "observation": "Derives the local Blowfish key, decrypts all 0x280 payload bytes at subrecord+0x10, copies payload+0x00 as one u32 into setup+0x10, and transiently copies payload+0x0C..+0x2B into setup+0x14..+0x33.",
+      "confidence": "instruction-derived"
+    },
+    {
+      "va": "0x00db34a0",
+      "role": "Connection assignment gate",
+      "observation": "When the current assigned value is zero, requires setup+0x10 to be nonzero, stores it, and dispatches only that u32 to the connection callbacks. It does not read the transient payload+0x0C..+0x2B copy.",
+      "confidence": "direct"
+    },
+    {
+      "va": "0x00da1430",
+      "role": "Lobby connection assignment",
+      "observation": "Logs an entity-ID assignment and writes the supplied u32 to active connection+0x04.",
+      "confidence": "direct"
+    }
+  ],
+  "payloadFields": [
+    {
+      "id": "assigned_entity_id",
+      "offset": 0,
+      "width": 4,
+      "crossSession": "mixed",
+      "dynamicRuns": [
+        { "offset": 0, "length": 2 }
+      ],
+      "consumer": "Read as a little-endian u32, required to be nonzero for connection assignment, then stored at active connection+0x04.",
+      "consumerStatus": "direct",
+      "confidence": "direct"
+    },
+    {
+      "id": "opaque_unread_04_0b",
+      "offset": 4,
+      "width": 8,
+      "crossSession": "mixed",
+      "dynamicRuns": [
+        { "offset": 8, "length": 3 }
+      ],
+      "consumer": "Decrypted in place but not copied into the setup result and not read by the bounded consumer path.",
+      "consumerStatus": "cryptographic-only",
+      "confidence": "direct-negative"
+    },
+    {
+      "id": "opaque_transient_copy_0c_2b",
+      "offset": 12,
+      "width": 32,
+      "crossSession": "mixed",
+      "dynamicRuns": [
+        { "offset": 20, "length": 1 },
+        { "offset": 23, "length": 1 }
+      ],
+      "consumer": "Copied into stack-local setup+0x14..+0x33, but the sole downstream function reads only setup+0x10 before the local record expires.",
+      "consumerStatus": "transient-copy-only",
+      "confidence": "direct-negative"
+    },
+    {
+      "id": "opaque_unread_2c_27f",
+      "offset": 44,
+      "width": 596,
+      "crossSession": "mixed",
+      "dynamicRuns": [
+        { "offset": 115, "length": 2 },
+        { "offset": 120, "length": 3 },
+        { "offset": 128, "length": 3 },
+        { "offset": 184, "length": 2 },
+        { "offset": 216, "length": 1 },
+        { "offset": 276, "length": 2 },
+        { "offset": 280, "length": 1 },
+        { "offset": 312, "length": 3 },
+        { "offset": 324, "length": 1 },
+        { "offset": 327, "length": 1 },
+        { "offset": 336, "length": 2 },
+        { "offset": 344, "length": 3 },
+        { "offset": 362, "length": 2 },
+        { "offset": 403, "length": 1 },
+        { "offset": 464, "length": 3 },
+        { "offset": 488, "length": 3 },
+        { "offset": 512, "length": 3 },
+        { "offset": 548, "length": 2 },
+        { "offset": 560, "length": 2 },
+        { "offset": 568, "length": 3 },
+        { "offset": 592, "length": 2 },
+        { "offset": 596, "length": 2 },
+        { "offset": 624, "length": 1 },
+        { "offset": 628, "length": 2 }
+      ],
+      "consumer": "Decrypted in place but never copied or read by the bounded type-0x000A consumer path.",
+      "consumerStatus": "cryptographic-only",
+      "confidence": "direct-negative"
+    }
+  ],
+  "repeatedValueGroups": [
+    {
+      "payloadOffsets": [0, 336],
+      "width": 8,
+      "variesAcrossSessions": true,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "Only the low u32 of the first occurrence is consumed as assigned_entity_id; its upper u32 and the second occurrence are ignored.",
+      "confidence": "direct-consumer-bounded-producer-negative"
+    },
+    {
+      "payloadOffsets": [8, 312],
+      "width": 8,
+      "variesAcrossSessions": true,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "Both occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    },
+    {
+      "payloadOffsets": [128, 344, 464, 488, 512, 568],
+      "width": 8,
+      "variesAcrossSessions": true,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "All occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    },
+    {
+      "payloadOffsets": [240, 304],
+      "width": 8,
+      "variesAcrossSessions": false,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "Both occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    },
+    {
+      "payloadOffsets": [264, 328],
+      "width": 8,
+      "variesAcrossSessions": false,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "Both occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    },
+    {
+      "payloadOffsets": [368, 448, 496],
+      "width": 8,
+      "variesAcrossSessions": false,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "All occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    },
+    {
+      "payloadOffsets": [416, 432],
+      "width": 8,
+      "variesAcrossSessions": false,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "Both occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    },
+    {
+      "payloadOffsets": [520, 552, 600, 632],
+      "width": 8,
+      "variesAcrossSessions": false,
+      "producer": "remote-server-only; no client producer exists on the receive path",
+      "consumer": "All occurrences are ignored after block decryption.",
+      "confidence": "direct-negative"
+    }
+  ],
+  "staticAcceptanceBoundary": {
+    "required": [
+      "A complete 0x02A0-byte outer record with one subrecord",
+      "An exact 0x0290-byte subrecord of clear type 0x000A",
+      "A 0x0280-byte block-aligned encrypted payload",
+      "A client-decrypted nonzero little-endian u32 at payload+0x00"
+    ],
+    "notObserved": [
+      "No integrity tag, marker, name, address, token, repeated-value, or trailing-payload validation occurs on this path",
+      "No retained new-character session or third successful lobby session is available",
+      "Connection-ID uniqueness and lifetime are not established"
+    ],
+    "minimumPayloadVerdict": "Static client evidence permits zero or synthetic bytes outside payload+0x00; live mutation acceptance has not been observed.",
+    "confidence": "high-static-medium-live"
+  }
+}
