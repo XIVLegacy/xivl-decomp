@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import _schema_check
+import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_retail_protocol_caller as retail_verifier
 
@@ -320,6 +321,13 @@ def main() -> int:
         errors.extend(
             f"lobby acknowledgement contract: {error}"
             for error in lobby_ack_errors
+        )
+
+    lobby_assigned_u32_errors = lobby_assigned_u32_verifier.verify()
+    if lobby_assigned_u32_errors:
+        errors.extend(
+            f"lobby assigned-u32 contract: {error}"
+            for error in lobby_assigned_u32_errors
         )
 
     retail_errors = retail_verifier.verify()

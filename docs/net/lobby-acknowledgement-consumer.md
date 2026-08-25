@@ -12,7 +12,9 @@ consumer on this path.
 The sanitized offset manifest is
 [`lobby_acknowledgement_consumer.json`](../../config/lobby_acknowledgement_consumer.json).
 Its capture comparison is pinned to `xivl-captures` commit
-`9adee1334becf844a5340eeacfd7dd6ca55a7bb0` and contains no plaintext values.
+`32a39d2a92f2268d64ab3586b8d791fa93ed19f1`, at
+`studies/lobby-handshake-triage/derived/lobby-record-census.json` member
+`crossSession.acknowledgementComparison`, and contains no plaintext values.
 
 ## Native route
 
@@ -26,8 +28,10 @@ The crypt-engine method derives the locally expected Blowfish key and decrypts
 setup record. Payload `+0x00` becomes setup `+0x10`; payload
 `+0x0C..+0x2B` is copied to setup `+0x14..+0x33`. `FUN_00DB34A0`, the sole
 downstream consumer, reads setup `+0x10` only. When it is nonzero and the
-connection has no prior assignment, `FUN_00DA1430` stores it at active
-connection `+0x04`. Later polls use that nonzero field to skip setup retries.
+connection has no prior assignment, it reaches active connection `+0x04`.
+Later polls use that nonzero field to skip setup retries. The complete owned
+field reference and lifetime trace is recorded in
+[`lobby-assigned-connection-u32.md`](lobby-assigned-connection-u32.md).
 
 There is no integrity tag, fixed marker, text, address, token, or trailing-byte
 check. Bytes outside payload `+0x00..+0x03` are either decrypted and dropped or
@@ -37,7 +41,7 @@ copied to the temporary setup record and then dropped.
 
 | Payload span | Cross-session state | Native disposition |
 |---|---|---|
-| `+0x000..+0x003` | Mixed: the first two bytes vary and the next two are invariant | Read as one u32, required nonzero, stored as the assigned entity ID |
+| `+0x000..+0x003` | Mixed: the first two bytes vary and the next two are invariant | Read as one u32, required nonzero, stored as the assigned connection value |
 | `+0x004..+0x00B` | Mixed | Decrypted only; not copied or read |
 | `+0x00C..+0x02B` | Mixed | Copied to a stack-local setup record; never read downstream |
 | `+0x02C..+0x27F` | Mixed | Decrypted only; not copied or read |
@@ -69,9 +73,10 @@ Static client evidence supports this minimum:
 - a decrypted nonzero u32 at payload `+0x00`.
 
 The remaining plaintext may be zero or synthetic without affecting the traced
-consumer. This is a static conclusion, not a live mutation result. Connection
-ID uniqueness and lifetime are unresolved, so the evidence does not authorize
-a fixed global value for concurrent or repeated connections.
+consumer. This is a static conclusion, not a live mutation result. The client
+does not require uniqueness or continuity across reconnects. A fixed nonzero
+value passes the traced client branches, although remote and live acceptance
+remain untested.
 
 ## Capture boundary
 

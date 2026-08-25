@@ -4,8 +4,9 @@
     "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
     "ghidraVersion": "12.1",
     "captureRepository": "xivl-captures",
-    "captureCommit": "9adee1334becf844a5340eeacfd7dd6ca55a7bb0",
-    "capturePath": "studies/lobby-handshake-triage/derived/lobby-acknowledgement-structure.json",
+    "captureCommit": "32a39d2a92f2268d64ab3586b8d791fa93ed19f1",
+    "capturePath": "studies/lobby-handshake-triage/derived/lobby-record-census.json",
+    "captureLocator": "crossSession.acknowledgementComparison",
     "captureArtifactSha256": "28e06b54fe559870031f077f8549b9244caafa7e5177dbca08a7feae6c2b1b62",
     "retainedSessionCount": 2,
     "retainedNewCharacterSessionCount": 0
@@ -55,13 +56,13 @@
     {
       "va": "0x00da1430",
       "role": "Lobby connection assignment",
-      "observation": "Logs an entity-ID assignment and writes the supplied u32 to active connection+0x04.",
+      "observation": "Logs the supplied assignment and writes the u32 to active connection+0x04.",
       "confidence": "direct"
     }
   ],
   "payloadFields": [
     {
-      "id": "assigned_entity_id",
+      "id": "assigned_connection_u32",
       "offset": 0,
       "width": 4,
       "crossSession": "mixed",
@@ -139,7 +140,7 @@
       "width": 8,
       "variesAcrossSessions": true,
       "producer": "remote-server-only; no client producer exists on the receive path",
-      "consumer": "Only the low u32 of the first occurrence is consumed as assigned_entity_id; its upper u32 and the second occurrence are ignored.",
+      "consumer": "Only the low u32 of the first occurrence is consumed as assigned_connection_u32; its upper u32 and the second occurrence are ignored.",
       "confidence": "direct-consumer-bounded-producer-negative"
     },
     {
@@ -209,9 +210,9 @@
     "notObserved": [
       "No integrity tag, marker, name, address, token, repeated-value, or trailing-payload validation occurs on this path",
       "No retained new-character session or third successful lobby session is available",
-      "Connection-ID uniqueness and lifetime are not established"
+      "Remote uniqueness policy and fixed-value live acceptance are not established"
     ],
-    "minimumPayloadVerdict": "Static client evidence permits zero or synthetic bytes outside payload+0x00; live mutation acceptance has not been observed.",
-    "confidence": "high-static-medium-live"
+    "minimumPayloadVerdict": "Static client evidence permits zero or synthetic bytes outside payload+0x00 and a fixed nonzero assigned u32; live mutation acceptance has not been observed.",
+    "confidence": "high-static-low-fixed-value-live"
   }
 }

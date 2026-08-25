@@ -65,8 +65,14 @@ def verify(document: dict | None = None) -> list[str]:
     sources = document.get("sources", {})
     if sources.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9":
         errors.append("binary identity changed")
-    if sources.get("captureCommit") != "9adee1334becf844a5340eeacfd7dd6ca55a7bb0":
+    if sources.get("captureCommit") != "32a39d2a92f2268d64ab3586b8d791fa93ed19f1":
         errors.append("capture evidence revision changed")
+    if sources.get("capturePath") != (
+        "studies/lobby-handshake-triage/derived/lobby-record-census.json"
+    ):
+        errors.append("capture evidence path changed")
+    if sources.get("captureLocator") != "crossSession.acknowledgementComparison":
+        errors.append("capture evidence locator changed")
     if sources.get("retainedSessionCount") != 2 or sources.get("retainedNewCharacterSessionCount") != 0:
         errors.append("capture-session boundary changed")
 
@@ -123,10 +129,10 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("cross-session dynamic runs changed")
 
     direct = [field for field in fields if field.get("consumerStatus") == "direct"]
-    if len(direct) != 1 or direct[0].get("id") != "assigned_entity_id" or direct[0].get("offset") != 0 or direct[0].get("width") != 4:
+    if len(direct) != 1 or direct[0].get("id") != "assigned_connection_u32" or direct[0].get("offset") != 0 or direct[0].get("width") != 4:
         errors.append("direct consumer field changed")
     if set(range(0, 2)) - dynamic_bytes or set(range(2, 4)) & dynamic_bytes:
-        errors.append("assigned entity ID variance changed")
+        errors.append("assigned connection u32 variance changed")
 
     groups = document.get("repeatedValueGroups", [])
     if [group.get("payloadOffsets") for group in groups] != EXPECTED_GROUPS:
@@ -141,7 +147,7 @@ def verify(document: dict | None = None) -> list[str]:
     boundary = document.get("staticAcceptanceBoundary", {})
     if "nonzero little-endian u32 at payload+0x00" not in " ".join(boundary.get("required", [])):
         errors.append("nonzero assignment gate missing")
-    if boundary.get("confidence") != "high-static-medium-live":
+    if boundary.get("confidence") != "high-static-low-fixed-value-live":
         errors.append("static/live confidence boundary changed")
 
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
