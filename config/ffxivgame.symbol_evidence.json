@@ -157,6 +157,20 @@
    ]
   },
   {
+   "rva": 921024,
+   "rva_hex": "0x000e0dc0",
+   "va_hex": "0x004e0dc0",
+   "name": "NetworkModule_constructServerClockSeed",
+   "kind": "named",
+   "evidence_class": "rtti-constructor-and-field-write",
+   "producer": "Ghidra 12.1.3 fresh read-only instruction and xref census plus tracked RTTI catalog",
+   "observation": "The Application::Network::NetworkModule constructor zeros offset 0x308 at 0x004e10aa, calls _time64(NULL) at 0x004e10b0, stores the low return dword at offset 0x30c at 0x004e10be, zeros the millisecond field at 0x310, and clears the first-anchor byte at 0x338. Its direct construction caller is 0x004b2df0.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "tracked RTTI identity, direct CRT call, exact field writes, and direct caller census",
+   "ambiguity": "The seed is replaced by the first accepted packet anchor. The constructor does not independently establish that packet field's epoch.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x004b2df0", "0x004e0dc0", "0x009d5725"]}]
+  },
+  {
    "rva": 925856,
    "rva_hex": "0x000e20a0",
    "va_hex": "0x004e20a0",
@@ -164,14 +178,14 @@
    "kind": "named",
    "evidence_class": "local-call-graph",
    "producer": "tools/ghidra_scripts/DecompileToText.java",
-   "observation": "The function repeatedly obtains inbound packets, invokes the opcode dispatcher at 0x004dc690, and sends sequence-managed work through 0x004e5ff0 during one update. After dispatch, packet opcode 0x01 reaches a branch that compares the u32 at packet offset 0x14 against literal 0x14c and conditionally calls 0x00dadf50. Packet opcode 0x02 builds a packet with literal opcode 0x06 and size 0x18. Packet opcodes 0x0e and 0x11 build a packet with literal opcode 0x04 and size 0x18. A periodic path builds a packet with literal opcode 0x01 and size 0x28. These are the direct literal packet constructions in this reviewed body; calls out of the body and indirect or virtual sends are not enumerated.",
+   "observation": "The function repeatedly obtains inbound packets, invokes the opcode dispatcher at 0x004dc690, and sends sequence-managed work through 0x004e5ff0 during one update. At 0x004e218d it reads the inbound packet-header dword at +0x08. Before the first clock anchor it calls 0x004e38b0 with that dword and half of NetworkModule+0x3ac. Every accepted packet then writes NetworkModule+0x308 as (header_seconds - current_seconds) * 1000 - current_milliseconds + half_value at 0x004e21ca..0x004e21e0. After dispatch, packet opcode 0x01 reaches a branch that compares the u32 at packet offset 0x14 against literal 0x14c and conditionally calls 0x00dadf50. Packet opcode 0x02 builds a packet with literal opcode 0x06 and size 0x18. Packet opcodes 0x0e and 0x11 build a packet with literal opcode 0x04 and size 0x18. A periodic path builds a packet with literal opcode 0x01 and size 0x28. These are the direct literal packet constructions in this reviewed body; calls out of the body and indirect or virtual sends are not enumerated.",
    "supported_imported_fields": [
     "name",
     "kind"
    ],
-   "confidence": "direct packet loop and call-target observation",
-   "ambiguity": "Tick summarizes one observed update invocation. No semantic names are assigned to the packet literals or the 0x14c comparison.",
-   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e20a0", "0x004dc690", "0x004e5ff0", "0x00dadf50"]}]
+   "confidence": "direct packet loop, arithmetic, field-write, and call-target observation",
+   "ambiguity": "Tick summarizes one observed update invocation. No semantic names are assigned to the packet literals, the 0x14c comparison, or the higher-level identity of NetworkModule+0x3ac.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e20a0", "0x004dc690", "0x004e5ff0", "0x00dadf50"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x004e20a0", "0x004e38b0"]}]
   },
   {
    "rva": 929952,
@@ -189,6 +203,20 @@
    "confidence": "direct literal switch, allocation, field-write, and call-target observation",
    "ambiguity": "The label is a local behavioral summary. No semantic names are assigned to the six states or pointer fields.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e30a0", "0x004e2d00", "0x004e20a0"]}]
+  },
+  {
+   "rva": 932016,
+   "rva_hex": "0x000e38b0",
+   "va_hex": "0x004e38b0",
+   "name": "NetworkModule_initializeServerClockAnchor",
+   "kind": "named",
+   "evidence_class": "instruction-and-call-graph",
+   "producer": "Ghidra 12.1.3 fresh read-only instruction and xref census",
+   "observation": "Called at 0x004e21aa with the subobject at NetworkModule+0x308, the inbound packet-header dword at +0x08, and half of NetworkModule+0x3ac. The function computes floor(adjustment/1000) with unsigned multiply 0x10624dd3 and shift 6, stores packet_seconds plus that quotient at subobject+4, stores adjustment modulo 1000 at subobject+8, zeros subobject+0, and records _time64, timeGetTime, and a high-resolution counter in adjacent fields.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "direct instructions, constants, field writes, import identity, and single direct caller",
+   "ambiguity": "The higher-level identity of NetworkModule+0x3ac is not assigned. This function initializes a numeric clock anchor but does not independently encode the packet field's epoch.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x004e20a0", "0x004e38b0", "0x009d5725", "0x00f3e55c"]}]
   },
   {
    "rva": 941216,
@@ -906,6 +934,20 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x006dcc30", "0x0078c2a0"]}]
   },
   {
+   "rva": 3010864,
+   "rva_hex": "0x002df130",
+   "va_hex": "0x006df130",
+   "name": "WorldMaster_constructClockCache",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-field-write",
+   "producer": "Ghidra 12.1.3 fresh read-only instruction and xref census plus tracked RTTI catalog",
+   "observation": "The constructor calls the WorldBase constructor at 0x006dbb70, writes the Application::Lua::Script::Client::Control::WorldMaster vtable VA 0x00fd5864, and initializes WorldMaster+0x60 to zero at 0x006df169.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "tracked RTTI identity, direct constructor call, vtable write, and field initialization",
+   "ambiguity": "The constructor alone does not assign a time unit or update cadence to the cached field.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x006df130", "0x00fd5864"]}]
+  },
+  {
    "rva": 3020544,
    "rva_hex": "0x002e1700",
    "va_hex": "0x006e1700",
@@ -931,6 +973,20 @@
      "addresses": ["0x006e1700", "0x00cd2860"]
     }
    ]
+  },
+  {
+   "rva": 3029664,
+   "rva_hex": "0x002e3aa0",
+   "va_hex": "0x006e3aa0",
+   "name": "WorldMaster_refreshClockCache",
+   "kind": "named",
+   "evidence_class": "rtti-vtable-and-call-data-flow",
+   "producer": "Ghidra 12.1.3 fresh read-only instruction and xref census plus tracked RTTI catalog",
+   "observation": "WorldMaster vtable slot 4 points to this function. It resolves the network-root wrapper, calls 0x0075bd80, and writes the returned whole-seconds value to WorldMaster+0x60 at 0x006e3ab3..0x006e3ab8. The xref census finds the vtable data reference and no direct call instruction.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "tracked RTTI and vtable identity, direct call target, field write, and complete direct-reference census",
+   "ambiguity": "The vtable slot's source-level lifecycle name and runtime invocation cadence are not established.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x006e3aa0", "0x0075bd80", "0x00fd5864"]}]
   },
   {
    "rva": 3108192,
@@ -982,6 +1038,20 @@
    "confidence": "direct class strings, RTTI references, and branches",
    "ambiguity": "The fallback helper body was not included in this run, so its chain layout and semantics are not assigned.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaclass-class-system-20260810b", "addresses": ["0x006ff210"]}]
+  },
+  {
+   "rva": 3176864,
+   "rva_hex": "0x003079a0",
+   "va_hex": "0x007079a0",
+   "name": "WorldMaster_getServerTimeLuaCallback",
+   "kind": "named",
+   "evidence_class": "registration-and-instruction-data-flow",
+   "producer": "Ghidra 12.1.3 fresh read-only decompile, instruction, and xref census",
+   "observation": "The leaf at 0x007079a0 adds 0x60 to the WorldMaster object, passes that address through generic Lua return marshaller 0x00584f70, and returns with RET 4. Function 0x007528a0 supplies this address as the callback registered under the literal _getServerTime. The callback has two data references in that registration function and no direct call instruction.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "direct callback instructions, field address, marshaller call, registration data flow, literal name, and direct-reference census",
+   "ambiguity": "The callback exposes the cached WorldMaster field only; its update path and numeric representation are established by separate observations.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-roots-20260824", "addresses": ["0x007079a0", "0x007528a0", "0x00584f70", "0x00fd8254"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x007079a0", "0x007528a0"]}]
   },
   {
    "rva": 3184192,
@@ -1181,6 +1251,20 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-ctors-isready-decomp-a2", "addresses": ["0x0071c7f0"]}]
   },
   {
+   "rva": 3483808,
+   "rva_hex": "0x003528a0",
+   "va_hex": "0x007528a0",
+   "name": "WorldMaster_register_getServerTime",
+   "kind": "named",
+   "evidence_class": "embedded-string-registration-data-flow",
+   "producer": "Ghidra 12.1.3 fresh read-only decompile, instruction, and xref census",
+   "observation": "The function passes callback address 0x007079a0 to 0x00726ca0, constructs the literal _getServerTime from VA 0x00fd8254, and passes the resulting registration state to 0x00cccad0. WorldMaster registration master 0x00754c70 directly calls this function at 0x00754ca1.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "fresh direct decompile, callback address, embedded string, registration calls, and single direct caller",
+   "ambiguity": "The helper types and original source-level registration API signature are not recovered.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-roots-20260824", "addresses": ["0x007079a0", "0x00726ca0", "0x007528a0", "0x00754c70", "0x00cccad0", "0x00fd8254"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x007528a0", "0x00754c70"]}]
+  },
+  {
    "rva": 3488320,
    "rva_hex": "0x00353a40",
    "va_hex": "0x00753a40",
@@ -1230,6 +1314,20 @@
     {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-registrar-metatable-20260810", "addresses": ["0x00754e70", "0x00753a40"]},
     {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "luaactorimpl-dispatch-callers-20260810", "addresses": ["0x00754e70", "0x00753a40"]}
    ]
+  },
+  {
+   "rva": 3521920,
+   "rva_hex": "0x0035bd80",
+   "va_hex": "0x0075bd80",
+   "name": "NetworkModule_getServerTimeSeconds",
+   "kind": "named",
+   "evidence_class": "accessor-and-call-data-flow",
+   "producer": "Ghidra 12.1.3 fresh read-only instruction and xref census",
+   "observation": "The function dereferences its wrapper, calls 0x004d7460 to load the NetworkModule pointer from root offset 0x174ec, returns when that pointer is null, and otherwise returns NetworkModule+0x30c. WorldMaster cache refresh 0x006e3aa0 is its direct caller on the _getServerTime path. Adjacent helper 0x0075bda0 returns NetworkModule+0x30c * 1000 + NetworkModule+0x310 as a 64-bit unsigned value, fixing the two fields as whole seconds and milliseconds.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "direct pointer chain, field read, caller census, and independent exact milliseconds conversion",
+   "ambiguity": "The accessor returns the low 32-bit seconds field and does not independently encode its epoch.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x004d7460", "0x006e3aa0", "0x0075bd80", "0x0075bda0"]}]
   },
   {
    "rva": 3522128,
@@ -2154,6 +2252,20 @@
     {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-queues-actor-decompile-02", "addresses": ["0x00cd28c0", "0x00ccdc20"]},
     {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "resumechecker-event-yield-callers-20260810b", "addresses": ["0x00cd28c0", "0x00ccdc20"]}
    ]
+  },
+  {
+   "rva": 9661760,
+   "rva_hex": "0x00936d40",
+   "va_hex": "0x00d36d40",
+   "name": "ServerClock_advanceAndSlewMilliseconds",
+   "kind": "named",
+   "evidence_class": "instruction-arithmetic-and-call-graph",
+   "producer": "Ghidra 12.1.3 fresh read-only instruction and xref census",
+   "observation": "Called on NetworkModule+0x308 at 0x004e33ab, this helper adds the unsigned timeGetTime delta to subobject+8 while consuming signed correction subobject+0 in bounded steps. Positive corrections are consumed by at most 10 ms per tick; negative corrections remove 10 ms when elapsed exceeds 11, or (elapsed-1)>>1 ms for elapsed 2 through 11. The negative branches add the selected amount without clamping at zero, so they can cross into a positive correction. When subobject+8 is greater than 1000, the helper multiplies it by the double at 0x010b4230, truncates the quotient, adds it to whole seconds at subobject+4, and stores the unsigned remainder modulo 1000 at subobject+8. The constant bytes decode as 0.0010000000474974513.",
+   "supported_imported_fields": ["name", "kind"],
+   "confidence": "direct signed branches, exact constants, field arithmetic, timeGetTime import identity, constant bytes, and direct call site",
+   "ambiguity": "The source-level helper name is not recovered. Exact millisecond value 1000 is not normalized because the branch is unsigned <= 1000.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-cast-clock-20260824", "addresses": ["0x004e30a0", "0x00d36d40", "0x00f3e55c", "0x010b4230"]}]
   },
   {
    "rva": 9675648,

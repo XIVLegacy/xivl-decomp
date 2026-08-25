@@ -6,6 +6,7 @@ checks the index against the tree in both directions.
 - [Actor action queue](actor/action-queue.md)
 - [Actor architecture](actor/architecture.md)
 - [Actor battle regimen](actor/battle-regimen.md)
+- [Cast timing clock and force override](actor/cast-timing-clock.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
 - [Native item-appearance boundary](actor/item-appearance-boundary.md)
