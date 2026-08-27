@@ -1,0 +1,122 @@
+{
+  "format": "xivl-lobby-clear-0007-0008-consumers-v1",
+  "sources": {
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1.3",
+    "captureRepository": "xivl-captures",
+    "captureCommit": "32a39d2a92f2268d64ab3586b8d791fa93ed19f1",
+    "capturePath": "studies/lobby-handshake-triage/derived/lobby-record-census.json",
+    "captureCensusSha256": "50f59c4f186be104d5d45d955560eea703c9e409ddc6e6fef4d826767bfb3d85",
+    "captureSourceSha256": "28e06b54fe559870031f077f8549b9244caafa7e5177dbca08a7feae6c2b1b62",
+    "retainedSessionCount": 2,
+    "completeFrameCount": 16,
+    "subrecordCount": 20
+  },
+  "parser": {
+    "functionVa": "0x00da2330",
+    "type7And8TargetVa": "0x00da2491",
+    "exactCopyLength": 24,
+    "subrecordHeaderLength": 16,
+    "payloadLength": 8,
+    "boundary": "Length 0x18 controls the full subrecord copy, not dispatch of the already-copied type header. Generic outer bounds still apply."
+  },
+  "dispatcher": {
+    "functionVa": "0x00da25d0",
+    "jumpTableVa": "0x00da27f0",
+    "targetsByType": [
+      "0x00da26a9", "0x00da2730", "0x00da27d5", "0x00da27d5",
+      "0x00da27d5", "0x00da27d5", "0x00da27b0", "0x00da2678",
+      "0x00da26d4", "0x00da275a"
+    ],
+    "directCallers": [
+      {"functionVa": "0x00da1ab0", "callVa": "0x00da1b7e"},
+      {"functionVa": "0x00dac490", "callVa": "0x00dac6df"},
+      {"functionVa": "0x00dac750", "callVa": "0x00dac8a9"},
+      {"functionVa": "0x00dac900", "callVa": "0x00daca8b"}
+    ]
+  },
+  "connectionState": {
+    "class": "Application::Network::LobbyProtoChannel::ServiceConsumerConnectionManager::ConsumerConnection",
+    "vtableVa": "0x011276e8",
+    "pendingFieldOffset": 56,
+    "pendingFieldWidth": 4,
+    "initialValue": 0,
+    "constructorVa": "0x00da1ea0",
+    "constructorWriteVa": "0x00da1eef",
+    "scalarConstructorVa": "0x00452a40",
+    "replacementVa": "0x00da12a0",
+    "assignedConnectionFieldOffset": 4
+  },
+  "receiveCases": [
+    {
+      "type": 7,
+      "caseVa": "0x00da27b0",
+      "exchangeCallVa": "0x00da27b6",
+      "importSlotVa": "0x00f3e148",
+      "importName": "KERNEL32.InterlockedExchange",
+      "stateEffect": "Atomically writes 1 to connection+0x38 and ignores the old value.",
+      "payloadEffect": "Reads neither payload dword.",
+      "returns": true
+    },
+    {
+      "type": 8,
+      "caseVa": "0x00da2678",
+      "stateEffect": "Performs no case-specific call or state write.",
+      "payloadEffect": "Reads neither payload dword.",
+      "returns": true
+    }
+  ],
+  "sendSelection": {
+    "route": ["0x00db3300", "0x00db3280", "0x00db3020"],
+    "eligibleGateFieldOffset": 20,
+    "eligibleCheckVa": "0x00db302d",
+    "consumeExchangeCallVa": "0x00db304b",
+    "consumeExchangeValue": 0,
+    "nonzeroBuilderType": 8,
+    "nonzeroBuilderVa": "0x00db8090",
+    "nonzeroBuilderCallVa": "0x00db305c",
+    "zeroTimedBuilderType": 7,
+    "zeroTimedBuilderVa": "0x00da1d70",
+    "zeroTimedBuilderCallVa": "0x00db307a",
+    "lastEmissionTimeFieldOffset": 48,
+    "lastEmissionTimeWriteVa": "0x00db3081",
+    "builderRecordLength": 24,
+    "builderPayloadOffsets": [16, 20],
+    "builderTimeSource": "Low dword of __time64 at payload+0x14",
+    "payloadForwarding": false
+  },
+  "pollOrdering": {
+    "functionVa": "0x00da1ab0",
+    "sendPumpCallVa": "0x00da1b38",
+    "dispatcherCallVa": "0x00da1b7e",
+    "boundedConsequence": "On this poll route, a received type 7 occurs after that invocation's send pump and can select type 8 only at a later eligible pump."
+  },
+  "captureCensus": {
+    "serverToClient": [
+      {"session": 1, "firstType": 7, "nextType": 10},
+      {"session": 2, "firstType": 7, "nextType": 10}
+    ],
+    "clientToServerType8Count": 2,
+    "type8OrderRelativeToEncryptedApplicationRecord": ["after", "before"],
+    "preKeyPlaintextClearTypes": [7, 9],
+    "observedZeroExtentClearTypes": [8]
+  },
+  "acknowledgementBoundary": {
+    "type": 10,
+    "assignedConnectionFieldOffset": 4,
+    "relationship": "Types 7 and 8 do not read or write the type-10 assigned-connection field and do not satisfy its nonzero assignment gate."
+  },
+  "provenConsequences": [
+    "Type 7 coalesces a pending condition into one dword and selects one type-8 builder on the next eligible exchange that observes it nonzero.",
+    "Type 8 is accepted by the dispatcher but has no receive-side state effect.",
+    "Both receive cases discard their eight payload bytes semantically.",
+    "Replacing the connection constructs a new zero-initialized pending field."
+  ],
+  "rejectedInterpretations": [
+    "The evidence does not establish protocol nouns for either type.",
+    "A type-8 record is not an echo or copy of the received type-7 payload.",
+    "Capture order does not prove immediate causality or a remote acceptance prerequisite.",
+    "Neither type replaces or completes the closed type-10 assignment contract."
+  ],
+  "remainingBoundary": "Remote acceptance rules, malformed-length cursor effects, and meanings of builder payload values remain unproven."
+}

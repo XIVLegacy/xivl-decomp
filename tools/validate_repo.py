@@ -13,6 +13,7 @@ from urllib.parse import unquote
 import _schema_check
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
+import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -328,6 +329,13 @@ def main() -> int:
         errors.extend(
             f"lobby assigned-u32 contract: {error}"
             for error in lobby_assigned_u32_errors
+        )
+
+    lobby_clear_errors = lobby_clear_verifier.verify()
+    if lobby_clear_errors:
+        errors.extend(
+            f"lobby clear type-7/8 contract: {error}"
+            for error in lobby_clear_errors
         )
 
     retail_errors = retail_verifier.verify()
