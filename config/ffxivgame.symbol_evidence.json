@@ -284,6 +284,20 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane2-0193-native-state-20260827", "addresses": ["0x004b2df0", "0x004dc3a0", "0x004dbf40", "0x004decf0", "0x004d7580", "0x0054e440", "0x0054b440", "0x0054b600", "0x0054b610", "0x0054b620", "0x0054b630", "0x0054b640", "0x0054b650", "0x0054b660", "0x0054b670", "0x0054b680", "0x0054b8c0", "0x0054b8d0", "0x0075b300", "0x0075b360"]}]
   },
   {
+   "rva": 1429360,
+   "rva_hex": "0x0015cf70",
+   "va_hex": "0x0055cf70",
+   "name": "ClientWorkStorage_apply_0x018D_projection",
+   "kind": "clientbound_application",
+   "evidence_class": "wire-to-storage-data-flow-rtti-and-complete-reader-census",
+   "producer": "Ghidra 12.1.3 fresh read-only decompile and exact-reference export",
+   "observation": "At 0x004dd167 the retail 0x018D route loads RaptureElementContainer+0x4d8, adds +0x98 to the nonnull pointee at 0x004dd18f, pushes the separate wire application address at 0x004dd1a6, installs the adjusted storage pointer as this at 0x004dd1a7, and calls FUN_0055CF70 at 0x004dd1a9. The apply routine projects three application header dwords to ClientWorkStorage +0x08, +0x0c, and +0x10, sign-extends the count byte into +0x14 without a clamp, and expands selected 0x28-byte wire-record fields into 0x78-byte storage records at +0x18. After helper state is built at record +0x20 and +0x74, FUN_0055CF70 obtains the registered MapScreenControl and synchronously calls 0x00671400. Exact retail strings and UI calls show that method creates or updates MapMarkerParty presentation rows in group_marker_data. PcSearchWidgetOperator vtable slot 29 separately consumes +0x798 with count +0x14 as a later refresh gate.",
+   "supported_imported_fields": [],
+   "confidence": "direct field projection, constructor and destructor topology, RTTI vtables, exact accessor references, named retail UI class and strings, and complete bounded reader census",
+   "ambiguity": "The opcode remains _0x018D. Numeric field meanings, helper-context class ownership, server behavior, and computed or runtime-only consumers are unresolved; the physical capacity of sixteen rows is not a safe runtime count.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane1-018d-client-consumer-20260827", "addresses": ["0x004dc690", "0x004dd167", "0x004dd18f", "0x004dd1a6", "0x004dd1a7", "0x004dd1a9", "0x00575550", "0x00573fc0", "0x0055cf70", "0x0055d020", "0x0055d030", "0x0055d050", "0x0055d070", "0x0055d090", "0x0055d0b0", "0x0055d0d0", "0x0055d0f0", "0x0055f830", "0x0055f8b0", "0x0055d100", "0x0055cf20", "0x004d7620", "0x00672690", "0x00678640", "0x00671400", "0x00691f30"]}]
+  },
+  {
    "rva": 1430192,
    "rva_hex": "0x0015d2b0",
    "va_hex": "0x0055d2b0",

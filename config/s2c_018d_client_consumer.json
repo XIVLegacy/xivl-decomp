@@ -1,0 +1,121 @@
+{
+  "format": "xivl-s2c-018d-client-consumer-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1.3",
+    "runId": "lane1-018d-client-consumer-20260827"
+  },
+  "wireContract": {
+    "opcode": "0x018D",
+    "neutralName": "_0x018D",
+    "commit": "67b709d5ffd90b8dc10a699e608fa1216e40660d",
+    "url": "https://github.com/XIVLegacy/xivl-opcodes/blob/67b709d5ffd90b8dc10a699e608fa1216e40660d/data/s2c_018d_wire_layout.json",
+    "applicationSize": "0x298",
+    "wireRecordOffset": "0x10",
+    "wireRecordStride": "0x28",
+    "physicalRecordCapacity": 16,
+    "countOffset": "0x290",
+    "countBoundary": "the signed byte is widened and used without a clamp; sixteen physical rows are not a safe runtime count"
+  },
+  "route": {
+    "containerDispatcherVa": "0x004dc690",
+    "ownerPointerLoadVa": "0x004dd167",
+    "storageAdjustVa": "0x004dd18f",
+    "wireArgumentVa": "0x004dd1a6",
+    "storageThisVa": "0x004dd1a7",
+    "applyCallVa": "0x004dd1a9",
+    "prepareVa": "0x00575550",
+    "applyVa": "0x0055cf70",
+    "helperVa": "0x00573fc0",
+    "helperContextDestructorVa": "0x00573f70",
+    "firstOutwardConsumerVa": "0x00671400"
+  },
+  "owner": {
+    "containerClass": "Application::Main::RaptureElementContainer",
+    "containerPointerOffset": "0x4d8",
+    "elementClass": "ClientWorkElement",
+    "elementAllocationSize": "0x838",
+    "elementFactoryVa": "0x005334c0",
+    "elementConstructorVa": "0x0055f8b0",
+    "elementDestructorVa": "0x0055d100",
+    "elementVtableVa": "0x00fa418c",
+    "storageOffset": "0x98",
+    "storageSize": "0x7a0",
+    "storageConstructorVa": "0x0055f830",
+    "storageDestructorVa": "0x0055cf20",
+    "recordConstructorVa": "0x00567210",
+    "recordVectorDestructorVa": "0x0061ec10",
+    "physicalRecordCount": 16,
+    "recordStride": "0x78"
+  },
+  "projection": {
+    "header": [
+      {"wire": "+0x00", "storage": "+0x08", "width": 4},
+      {"wire": "+0x04", "storage": "+0x0c", "width": 4},
+      {"wire": "+0x08", "storage": "+0x10", "width": 4},
+      {"wire": "+0x290", "storage": "+0x14", "width": 1, "operation": "signed-byte widen"}
+    ],
+    "recordBase": "+0x18",
+    "recordStride": "0x78",
+    "wireRecordStride": "0x28",
+    "recordFields": [
+      {"wire": "+0x00", "storageRecord": "+0x00", "width": 4},
+      {"wire": "+0x08", "storageRecord": "+0x08", "width": 4},
+      {"wire": "+0x0c", "storageRecord": "+0x0c", "width": 4},
+      {"wire": "+0x14", "storageRecord": "+0x10", "width": 4},
+      {"wire": "+0x18", "storageRecord": "+0x14", "width": 4},
+      {"wire": "+0x1c", "storageRecord": "+0x18", "width": 4}
+    ],
+    "helperOutputs": [
+      {"storageRecord": "+0x20", "consumerAccessorVa": "0x0055d030", "description": "helper-built string-like state"},
+      {"storageRecord": "+0x74", "consumerAccessorVa": "0x0055d070", "description": "helper-built scalar"}
+    ],
+    "helperBoundary": "the helper uses a temporary lookup context prepared by 0x00575550 and destroyed by 0x00573f70; no RTTI class name is proven for that context"
+  },
+  "readerCensus": [
+    {"storage": "+0x08,+0x0c,+0x10", "writers": ["0x0055cf70"], "readers": [], "boundary": "no outward reader in the exact direct, field, data, vtable, or generated-call census"},
+    {"storage": "+0x14", "writers": ["0x0055f830", "0x0055cf70"], "readers": ["0x0055d020", "0x0055d0d0"], "consumers": ["0x00671400", "0x00691f30"]},
+    {"storageRecord": "+0x00", "readers": ["0x0055d090"], "consumer": "0x00671400"},
+    {"storageRecord": "+0x08,+0x0c", "readers": ["0x0055d0b0"], "consumer": "0x00671400"},
+    {"storageRecord": "+0x10,+0x18", "readers": ["0x0055d050"], "consumer": "0x00671400", "boundary": "+0x14 is projected but has no separate load in the first consumer"},
+    {"storageRecord": "+0x20", "readers": ["0x0055d030"], "consumer": "0x00671400"},
+    {"storageRecord": "+0x74", "readers": ["0x0055d070"], "consumer": "0x00671400"},
+    {"storageRecord": "remaining tail", "readers": [], "boundary": "no additional first-consumer load is proven outside the +0x20 helper object and +0x74 scalar"},
+    {"storage": "+0x798", "writers": ["0x0055f830", "0x0055cf70", "0x0055d0f0"], "readers": ["0x0055d0d0"], "consumer": "0x00691f30"}
+  ],
+  "firstOutwardOperation": {
+    "applyVa": "0x0055cf70",
+    "registryAccessorVa": "0x004d7620",
+    "consumerClass": "MapScreenControl",
+    "consumerVa": "0x00671400",
+    "registrationVa": "0x00672690",
+    "unregistrationVa": "0x00678640",
+    "consumerVtableVa": "0x00fc358c",
+    "retailStrings": ["MapScreenControl", "group_marker_data", "MapMarkerParty", "Update"],
+    "operation": "synchronously creates or updates the MapMarkerParty presentation rows in group_marker_data",
+    "recordAccessors": ["0x0055d020", "0x0055d030", "0x0055d050", "0x0055d070", "0x0055d090", "0x0055d0b0"]
+  },
+  "deferredGate": {
+    "vtableOwner": "PcSearchWidgetOperator",
+    "vtableSlot": 29,
+    "methodVa": "0x00691f30",
+    "predicateVa": "0x0055d0d0",
+    "clearVa": "0x0055d0f0",
+    "operationVa": "0x00691e80",
+    "condition": "+0x798 is nonzero and +0x14 equals one",
+    "boundary": "the operation receives no storage or record pointer and is a later refresh gate, not the first outward consumer"
+  },
+  "verdict": {
+    "uiConsumers": ["MapScreenControl::0x00671400"],
+    "luaOrNapiConsumers": [],
+    "networkEmissions": [],
+    "rejectedInterpretations": [
+      "a semantic party-marker packet type is not an evidence-backed packet name",
+      "the physical capacity of sixteen records is not a safe runtime count",
+      "numeric fields alone do not establish coordinate or server-policy nouns",
+      "the +0x798 gate is not the first outward consumer"
+    ],
+    "remainingBoundary": "unresolved computed or dynamic indirect readers, runtime-only consumers, the meanings of projected numeric fields, helper-context class ownership, and server behavior remain unresolved"
+  }
+}

@@ -220,10 +220,11 @@ subobject state byte.
 The s2c `0x018d` handler does not store packet marker data in the gate field.
 After the null test it adds `0x98` to the pointee, prepares packet-derived
 values through `FUN_00575550`, and calls `FUN_0055CF70`. That callee updates
-the marker count and records inside the pointee's `+0x98` subobject and sets
-its `+0x798` state byte. This establishes pointer topology only; it does not
-establish party policy, membership, permissions, or a semantic class name for
-the pointee.
+the count and records inside the pointee's `+0x98` `ClientWorkStorage` member,
+sets its `+0x798` state byte, and synchronously reaches the named UI consumer
+documented in [s2c 0x018D client consumer](../net/s2c-018d-client-consumer.md).
+The pointer lifecycle here does not establish party policy, membership, or
+permissions.
 
 The fresh exact-displacement census found 18 `+0x4d8` instructions in 17
 functions. Every hit is classified below; only the two dword reads belong to
