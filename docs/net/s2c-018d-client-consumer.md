@@ -64,20 +64,66 @@ For each iterated row:
 | +0x18 | +0x14 | copy dword |
 | +0x1c | +0x18 | copy dword |
 
-`0x00575550` prepares a temporary lookup context. `0x00573fc0` first clears
-record +0x74 to zero, validates the context, looks up record +0x00, and retries
-with record +0x08 only when the first lookup returns signed -1. Record +0x0c
-is not a lookup key. The helper resets record +0x20 to an empty string before
-the lookup. A successful lookup assigns helper-resolved string state to +0x20
-and a dword to +0x74; a failed lookup leaves both outputs at their empty and
-zero defaults.
+Before projection, `0x00575550` obtains the pointer stored at
+`RaptureElementContainer+0x18` and `0x006c1570` builds a 0x18-byte value
+context. The original application +0x00/+0x04 pair selects the source record:
+a nonzero pair is looked up in the source owner's +0x14 map, while the zero
+pair takes a default path that tests a nested +0x04 value against `0x2711`.
+A pointer to original application +0x08 is forwarded into the builder but is
+not consumed there. `0x00573970` stores the source owner at context +0x00 and
+copies the 0x10-byte selector state to context +0x08. No RTTI class is proven
+for the context or the container +0x18 pointee. `0x00573f70` destroys the
+context immediately after apply.
 
-The string resolver has tagged element paths. One path dynamically casts a
-`LuaControl` to `CharaBase` and copies the source at that object's +0x60; the
-other tagged owners and the semantic field name are not proven. The scalar
-resolver returns a dword from the matched tagged element. `0x00573f70`
-destroys the temporary context after apply. No RTTI class name is proven for
-that context.
+`0x00573fc0` resets the in-place `Sqex::Misc::Utf8String` at record +0x20 to
+empty, clears record +0x74 to zero, validates the context, looks up record
++0x00, and retries with record +0x08 only when the first lookup returns signed
+-1. This -1 is an index miss sentinel, not a wire-value sentinel. Record +0x0c
+is not a lookup key. Failure leaves the outputs empty and zero.
+Only records iterated by the current projection are reset and resolved;
+uniterated storage slots are not touched and are outside the consumer count.
+
+`0x006c3320` scans 0x10-byte tagged entries between owner +0x84 and +0x88.
+`0x006d3fe0` follows tag-specific indirection and extracts the candidate key
+from the referent +0x04. After a match, `0x006c09e0` supplies the string and
+`0x006c08a0` supplies the scalar. The tag-0 string path dynamically casts
+`Component::Lua::GameEngine::LuaControl` to
+`Application::Lua::Script::Client::Control::CharaBase` and copies its +0x60
+`Utf8String`; the tag-3 path copies an object +0x08 `Utf8String`. The scalar
+resolver copies referent +0x00 to record +0x74. The semantic field names and
+remaining tagged-owner types are not proven.
+
+## Key domains and selected object
+
+The three wire dwords remain neutral selectors, with different native uses:
+
+| Storage record | Native rule | Stability boundary |
+|---:|---|---|
+| +0x00 | primary tagged-referent +0x04 lookup key; zero is still looked up, while nonzero controls eligibility; compared with selected object +0x88 | no wire-value miss sentinel; overwritten on every wire update; compatibility with the native registry key does not prove a stable wire identity |
+| +0x08 | fallback lookup key only after a signed -1 index miss; also participates in the +0x08 OR +0x0c eligibility test | zero is allowed and is not the miss sentinel; no stable identity is proven |
+| +0x0c | participates only in the +0x08 OR +0x0c eligibility test | never a lookup key; no stable identity is proven |
+
+`0x004d86b0` selects `RaptureElementContainer+0x17838`, falling back to
++0x17834 when null. These slots reference objects in the container's ordered
+`Application::Main::RaptureElement` registry. `0x004d9910` resolves a caller
+key to a registered object, and the removal path clears selection slots that
+still reference the removed element. `0x004dab50` stores a constructor
+argument at base `RaptureElement+0x88`; that value is therefore stable for the
+native object's registered lifetime. The insertion path at `0x004da9a0` uses
+that same dword as the registry key. Removal parses the key as a
+`0xc0000000`-tagged value with tag below 3 and a low-24-bit payload;
+`0xc0000000` also clears or represents invalid active selection. The semantic
+tag and payload domains are unresolved, and this native selection sentinel is
+not proven to be a wire sentinel.
+
+`0x004d8f70` independently applies the same selection rule and dynamically
+casts the selected `RaptureElement` to
+`Application::Main::Element::Chara::CharaElement`. The 0x018D consumer itself
+does not require that derived cast; it reads the base +0x88 field through
+`0x004d6750`. Base-constructor callers span multiple RaptureElement families,
+so the concrete subtype is runtime-selected. This proves a RaptureElement
+registry identity domain and that the selection may admit CharaElement, not
+that record +0x00 is an actor ID or that every selected object is CharaElement.
 
 ## Complete direct reader census
 
@@ -115,8 +161,8 @@ The consumer accepts a source row only when all three conditions hold:
 1. The byte at `MapScreenControl+0x57c` equals 2.
 2. Record +0x00 is nonzero, or the bitwise OR of record +0x08 and +0x0c is
    nonzero.
-3. Record +0x00 differs from the +0x88 dword of the object selected through
-   Main +0x17838 with +0x17834 as a null fallback.
+3. Record +0x00 differs from the stable `RaptureElement+0x88` registry key of
+   the object selected through Main +0x17838 with +0x17834 as a null fallback.
 
 These facts do not name any of the three dwords. Accepted rows are compacted
 into dense zero-based UI indexes; the source key is not the presentation
@@ -131,7 +177,7 @@ target each accepted dense index whether that index is new or already present.
 | +0x14 | +0x10 | 0055d050 | binary32 `CVTTSS2SI`, truncate toward zero to signed int32 | `X:Int` |
 | +0x18 | +0x14 | none | not read by this consumer | none |
 | +0x1c | +0x18 | 0055d050 | binary32 `CVTTSS2SI`, truncate toward zero to signed int32 | `Z:Int` |
-| helper | +0x20 | 0055d030 | remove every literal `!!!` occurrence | `Text:String` |
+| helper | +0x20 | 0055d030 | copy `Utf8String`; construct literal `!!!` through 00866010 and erase every occurrence through 0067ac00 | `Text:String` |
 | helper | +0x74 | 0055d070 | raw dword, zero on lookup failure | `Layout:Int` |
 
 The float conversion uses the x86 `CVTTSS2SI` instruction. It does not round
@@ -184,22 +230,37 @@ Lua/N-API consumer and no network builder or emission. The network boundary is
 the already proven inbound receive and projection chain; `0x00671400` only
 reads the client storage and dispatches UI properties.
 
-The three header dwords at storage +0x08, +0x0c, and +0x10, the unused middle
-record float at +0x14, and storage +0x798 do not influence this
-`MapMarkerParty` effect. The +0x798 state remains confined to the separate
-deferred `PcSearchWidgetOperator` gate described above.
+The copied header dwords at storage +0x08, +0x0c, and +0x10, the unused middle
+record float at +0x14, and storage +0x798 do not influence the presentation
+consumer. This does not make the original application header inert:
+application +0x00/+0x04 selects the helper context before projection, while a
+pointer to application +0x08 is forwarded but unused. The +0x798 state remains
+confined to the separate deferred `PcSearchWidgetOperator` gate described
+above.
 
 No evidence names record +0x00 as an actor ID or +0x08/+0x0c as a marker type
 or map ID. The unused middle float is not proven to be Y. No radius, rotation,
 icon, label, or color field is proven, and the constant visibility, sequence,
 and template values must not be reassigned to wire fields.
 
+`group_marker_data` and `MapMarkerParty` are direct resource and template
+literals at the UI boundary. They do not prove a relationship between the
+wire keys and group-marker data, party state, actor state, or map state.
+Likewise, `Text` and `Layout` are presentation property names, not native
+semantic names for record +0x20 or +0x74.
+
+The only direct chara-domain edge is the tag-0 string resolver's conditional
+`LuaControl` to `CharaBase` cast and +0x60 `Utf8String` copy. That is a helper
+text source; it does not establish an `Application::Scene::Actor` state edge
+or make either lookup selector an actor identity.
+
 The negative census covers Ghidra-recorded direct and data references, resolved
 field and affine aliases, vtable entries, and the generated direct-call corpus
 for the traced objects and methods. Unresolved computed or dynamic indirect
-readers, runtime-only consumers, the semantic names of the three key dwords
-and unused middle float, the temporary helper's class and tagged owners
-outside the proven `CharaBase` path, the source package for
+readers, runtime-only consumers, the semantic names and cross-update stability
+of the three wire key dwords, the unused middle float, RTTI for the
+`RaptureElementContainer+0x18` pointee, tagged owners outside the proven
+`CharaBase` and tag-3 string paths, the source package for
 `group_marker_data`, and server policy remain outside the result.
 
 The focused machine contract is

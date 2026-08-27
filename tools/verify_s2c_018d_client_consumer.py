@@ -42,13 +42,15 @@ def verify(document: dict | None = None) -> list[str]:
     errors: list[str] = []
     if document is None:
         document = json.loads(MANIFEST.read_text(encoding="ascii"))
-    if document.get("format") != "xivl-s2c-018d-client-consumer-v2":
+    if document.get("format") != "xivl-s2c-018d-client-consumer-v3":
         errors.append("format changed")
     source = document.get("source", {})
     if (
         source.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
         or source.get("ghidraVersion") != "12.1.3"
         or source.get("presentationRunId") != "lane1-018d-presentation-contract-20260827"
+        or source.get("followupRunId") != "lane1-018d-followup-keys-20260827"
+        or source.get("keyHelperRunId") != "lane1-018d-followup-key-helpers-20260827"
     ):
         errors.append("retail evidence identity changed")
     wire = document.get("wireContract", {})
@@ -90,6 +92,22 @@ def verify(document: dict | None = None) -> list[str]:
         or owner.get("storageDestructorVa") != "0x0055cf20"
     ):
         errors.append("owner, lifetime, or storage layout changed")
+    context = document.get("helperContext", {})
+    if (
+        context.get("prepareVa") != "0x00575550"
+        or context.get("buildVa") != "0x006c1570"
+        or context.get("copyVa") != "0x00573970"
+        or context.get("destructorVa") != "0x00573f70"
+        or context.get("size") != "0x18"
+        or context.get("sourceOwner") != "RaptureElementContainer +0x18 pointee"
+        or "application +0x00/+0x04" not in context.get("selector", "")
+        or "0x2711" not in context.get("selector", "")
+        or "application +0x08" not in context.get("forwardedUnused", "")
+        or "not consumed" not in context.get("forwardedUnused", "")
+        or "pointee RTTI class is not proven" not in context.get("sourceOwnerBoundary", "")
+        or "destroyed immediately after apply" not in context.get("lifetime", "")
+    ):
+        errors.append("helper context source, selector, or lifetime changed")
     projection = document.get("projection", {})
     projection_map = [
         (row.get("wire"), row.get("storageRecord"))
@@ -107,11 +125,15 @@ def verify(document: dict | None = None) -> list[str]:
         or projection_map != EXPECTED_PROJECTION
         or [row.get("storageRecord") for row in projection.get("helperOutputs", [])] != ["+0x20", "+0x74"]
         or [row.get("presentationArgument") for row in projection.get("helperOutputs", [])] != ["Text:String", "Layout:Int"]
-        or [row.get("defaulting") for row in projection.get("helperOutputs", [])] != [
-            "reset to empty before lookup; lookup failure leaves the value empty",
-            "cleared to zero before every lookup attempt",
+        or [row.get("description") for row in projection.get("helperOutputs", [])] != [
+            "helper-resolved Sqex::Misc::Utf8String",
+            "helper-resolved raw dword copied from the matched tagged referent +0x00",
         ]
-        or "no RTTI class name is proven" not in projection.get("helperBoundary", "")
+        or [row.get("defaulting") for row in projection.get("helperOutputs", [])] != [
+            "reset to empty before lookup for each iterated record; lookup failure leaves empty and uniterated slots are not touched",
+            "cleared to zero before lookup for each iterated record; success overwrites it, failure leaves zero, and uniterated slots are not touched",
+        ]
+        or "0x18-byte value context" not in projection.get("helperBoundary", "")
     ):
         errors.append("wire-to-storage projection or helper boundary changed")
     helper = projection.get("helperLookup", {})
@@ -120,11 +142,51 @@ def verify(document: dict | None = None) -> list[str]:
         or helper.get("fallbackKey") != "+0x08"
         or helper.get("missingSentinel") != "signed -1"
         or helper.get("unusedAsLookupKey") != "+0x0c"
+        or helper.get("entryKeyResolverVa") != "0x006d3fe0"
+        or helper.get("entryVectorOffsets") != ["+0x84", "+0x88"]
+        or helper.get("entryStride") != "0x10"
+        or helper.get("entryKeySource") != "tag-specific referent +0x04"
         or helper.get("stringResolverVa") != "0x006c09e0"
         or helper.get("scalarResolverVa") != "0x006c08a0"
         or "CharaBase" not in helper.get("resolverBoundary", "")
     ):
         errors.append("helper lookup, fallback, or resolver boundary changed")
+    keys = document.get("keyDomains", [])
+    if (
+        [row.get("storageRecord") for row in keys] != ["+0x00", "+0x08", "+0x0c"]
+        or "selected RaptureElement +0x88" not in keys[0].get("rules", "")
+        or "zero is still looked up" not in keys[0].get("rules", "")
+        or "does not prove stable wire identity" not in keys[0].get("stability", "")
+        or "signed -1" not in keys[1].get("rules", "")
+        or "zero is allowed" not in keys[1].get("stability", "")
+        or "never a helper lookup key" not in keys[2].get("rules", "")
+        or "no stable identity is proven" not in keys[2].get("stability", "")
+    ):
+        errors.append("key domains, sentinel rules, or stability boundary changed")
+    selected = document.get("selectedObject", {})
+    if (
+        selected.get("ownerClass") != "Application::Main::RaptureElementContainer"
+        or selected.get("activeSlot") != "+0x17838"
+        or selected.get("fallbackSlot") != "+0x17834"
+        or selected.get("objectBaseClass") != "Application::Main::RaptureElement"
+        or selected.get("conditionalCastEvidence") != "Application::Main::Element::Chara::CharaElement"
+        or selected.get("derivedCastVa") != "0x004d8f70"
+        or selected.get("field") != "+0x88"
+        or selected.get("fieldAccessorVa") != "0x004d6750"
+        or "constructor argument" not in selected.get("fieldSource", "")
+        or selected.get("registryInsertVa") != "0x004da9a0"
+        or selected.get("registryLookupVa") != "0x004d9910"
+        or selected.get("activeSelectionWriterVa") != "0x004d9980"
+        or "0xc0000000-tagged" not in selected.get("nativeKeyEncoding", "")
+        or "removal path separately parses" not in selected.get("nativeKeyEncoding", "")
+        or "not proven as a wire sentinel" not in selected.get("selectionClearSentinel", "")
+        or "container owns the ordered RaptureElement registry" not in selected.get("ownership", "")
+        or "cleared when the element is removed" not in selected.get("ownership", "")
+        or "stable registry identity" not in selected.get("stability", "")
+        or "runtime-selected" not in selected.get("stability", "")
+        or "no actor-ID" not in selected.get("stability", "")
+    ):
+        errors.append("selected-object type, ownership, or identity changed")
     readers = []
     for row in document.get("readerCensus", []):
         location = row.get("storage", row.get("storageRecord"))
@@ -188,7 +250,7 @@ def verify(document: dict | None = None) -> list[str]:
         ("+0x14", "+0x10", "X", "Int", None, "CVTTSS2SI truncation toward zero to signed int32"),
         ("+0x1c", "+0x18", "Z", "Int", None, "CVTTSS2SI truncation toward zero to signed int32"),
         (None, "+0x74", "Layout", "Int", None, None),
-        (None, "+0x20", "Text", "String", None, "remove every literal !!! occurrence"),
+        (None, "+0x20", "Text", "String", None, "0x00866010 constructs the literal !!! Utf8String, then 0x0067ac00 finds and erases every occurrence before dispatch"),
         (None, None, "Visibility", "String", "Visible", None),
         (None, None, "SparkleSequence", "String", "m00002", None),
         (None, None, "Template", "String", "MapMarkerParty", None),
@@ -209,7 +271,8 @@ def verify(document: dict | None = None) -> list[str]:
         or removal.get("operation") != "RemoveIndex"
         or "without dispatching Update" not in removal.get("zeroAccepted", "")
         or presentation.get("unusedByThisEffect") != [
-            "header +0x08", "header +0x0c", "header +0x10", "record +0x14", "storage +0x798"
+            "stored header +0x08", "stored header +0x0c", "stored header +0x10",
+            "original application +0x08 forwarded argument", "record +0x14", "storage +0x798"
         ]
     ):
         errors.append("property flow, row lifecycle, or unused-field verdict changed")
@@ -229,7 +292,10 @@ def verify(document: dict | None = None) -> list[str]:
         "record +0x00 is not named actor ID and record +0x08 or +0x0c is not named marker type or map ID",
         "the unused middle float is not proven to be Y, and no radius, rotation, icon, label, or color field is proven",
         "X and Z are UI property identities after truncation, not proof of a world-coordinate wire contract",
-        "the +0x798 gate and the three projected header dwords do not influence this MapMarkerParty effect",
+        "the stored header copies and +0x798 gate do not influence this presentation effect; the original application +0x00/+0x04 pair separately selects the helper context",
+        "group_marker_data and MapMarkerParty are UI resource and template literals, not proof of group, party, actor, marker, or map key domains",
+        "Layout and Text are presentation property names, not native names for record +0x74 or +0x20",
+        "the conditional CharaBase string source does not prove an Application::Scene::Actor state edge or actor identity for a wire selector",
     ]
     if (
         verdict.get("uiConsumers") != ["MapScreenControl::0x00671400"]
@@ -265,6 +331,14 @@ def mutation_test() -> list[str]:
         (("route", "storageThisVa"), "0x004dd1a6"),
         (("owner", "recordStride"), "0x28"),
         (("projection", "helperBoundary"), "NamedLookupContext"),
+        (("helperContext", "size"), "0x10"),
+        (("helperContext", "forwardedUnused"), "application +0x08 selects the context"),
+        (("helperContext", "lifetime"), "persistent global context"),
+        (("helperContext", "sourceOwner"), "party state"),
+        (("selectedObject", "objectBaseClass"), "Application::Scene::Actor"),
+        (("selectedObject", "fieldAccessorVa"), "0x004d6760"),
+        (("selectedObject", "ownership"), "unowned raw pointer"),
+        (("selectedObject", "activeSelectionWriterVa"), "0x004d9910"),
         (("firstOutwardOperation", "consumerClass"), "Unknown"),
         (("deferredGate", "vtableSlot"), 28),
         (("verdict", "luaOrNapiConsumers"), ["invented"]),
@@ -311,6 +385,15 @@ def mutation_test() -> list[str]:
     changed_helper_default = copy.deepcopy(document)
     changed_helper_default["projection"]["helperOutputs"][0]["defaulting"] = "retain prior value"
     mutations.append(changed_helper_default)
+    changed_helper_type = copy.deepcopy(document)
+    changed_helper_type["projection"]["helperOutputs"][0]["description"] = "label"
+    mutations.append(changed_helper_type)
+    changed_entry_key = copy.deepcopy(document)
+    changed_entry_key["projection"]["helperLookup"]["entryKeySource"] = "tagged entry +0x00"
+    mutations.append(changed_entry_key)
+    changed_key_stability = copy.deepcopy(document)
+    changed_key_stability["keyDomains"][0]["stability"] = "stable actor identity across updates"
+    mutations.append(changed_key_stability)
     changed_x = copy.deepcopy(document)
     changed_x["presentationContract"]["properties"][0]["localTransform"] = "round to nearest"
     mutations.append(changed_x)
@@ -343,7 +426,7 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("PASS: s2c 0x018D client-consumer manifest and 30 mutations")
+    print("PASS: s2c 0x018D client-consumer manifest and 41 mutations")
     return 0
 
 
