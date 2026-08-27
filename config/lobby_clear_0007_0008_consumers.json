@@ -1,5 +1,5 @@
 {
-  "format": "xivl-lobby-clear-0007-0008-consumers-v1",
+  "format": "xivl-lobby-clear-0007-0008-consumers-v2",
   "sources": {
     "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
     "ghidraVersion": "12.1.3",
@@ -85,6 +85,67 @@
     "builderTimeSource": "Low dword of __time64 at payload+0x14",
     "payloadForwarding": false
   },
+  "type8Builder": {
+    "functionVa": "0x00db8090",
+    "recordLength": 24,
+    "outerHeaderLength": 16,
+    "requiredEmptyBufferLength": 40,
+    "constructedBufferCapacity": 4096,
+    "emptyBufferLengthGate": {
+      "connectionOffset": 20,
+      "requiredValue": 0,
+      "checkVa": "0x00db302d"
+    },
+    "recordWrites": [
+      {"offset": 0, "width": 2, "source": "constant", "classification": "declared record length", "value": 24, "writeVa": "0x00db810c"},
+      {"offset": 2, "width": 2, "source": "constant", "classification": "clear type selector", "value": 8, "writeVa": "0x00db810c"},
+      {"offset": 4, "width": 4, "source": "constant", "classification": "zero-only common-header field", "value": 0, "writeVa": "0x00db8112"},
+      {"offset": 8, "width": 4, "source": "constant", "classification": "zero-only common-header field", "value": 0, "writeVa": "0x00db8115"},
+      {"offset": 12, "width": 4, "source": "uninitialized stack slot", "classification": "indeterminate common-header field", "writeVa": "0x00db8118"},
+      {"offset": 16, "width": 4, "source": "connection-map node key", "classification": "dynamic builder input", "writeVa": "0x00db811e"},
+      {"offset": 20, "width": 4, "source": "low dword of __time64 return", "classification": "dynamic builder-local time", "writeVa": "0x00db8121"}
+    ],
+    "outerHeaderWritesForEmptyBuffer": [
+      {"offset": 0, "width": 16, "source": "zero initialization", "writeRangeVa": ["0x00db80c9", "0x00db80d1"]},
+      {"offset": 4, "width": 2, "source": "initial outer length", "value": 16, "writeVa": "0x00db80dc"},
+      {"offset": 6, "width": 2, "source": "initial subrecord count", "value": 0, "writeVa": "0x00db80e3"},
+      {"offset": 4, "width": 2, "source": "record-length increment", "increment": 24, "writeVa": "0x00db8130"},
+      {"offset": 6, "width": 2, "source": "subrecord-count increment", "increment": 1, "writeVa": "0x00db813f"}
+    ],
+    "bufferCursorIncrement": 24,
+    "bufferCursorWriteVa": "0x00db812c",
+    "successValue": 1,
+    "successVa": "0x00db813a",
+    "failureConditions": [
+      "The connection send cursor is nonzero.",
+      "The current builder cursor plus 40 exceeds buffer capacity."
+    ],
+    "selectionReturnUse": "FUN_00DB3020 does not branch on the builder return. The constructed 4096-byte empty buffer satisfies the builder capacity invariant."
+  },
+  "terminalSend": {
+    "connectionVirtualSendVa": "0x00da1480",
+    "connectionVtableVa": "0x011276e8",
+    "connectionVtableSlot": 1,
+    "bufferPointerFieldOffset": 16,
+    "declaredBufferLengthFieldOffset": 20,
+    "sentCursorFieldOffset": 22,
+    "transportSelectorVa": "0x00d36020",
+    "transportObjectFieldOffset": 88,
+    "transportCallVa": "0x00da14c2",
+    "transportArguments": ["buffer pointer plus sent cursor", "declared buffer length minus sent cursor"],
+    "transportDispatchCandidates": [
+      {"selectorObjectOffset": 12, "virtualSlotByteOffset": 32, "branchVa": "0x00d36029"},
+      {"selectorObjectOffset": 20, "virtualSlotByteOffset": 40, "branchVa": "0x00d36037"},
+      {"selectorObjectOffset": 28, "virtualSlotByteOffset": 36, "branchVa": "0x00d36045"}
+    ],
+    "virtualSendEffects": [
+      "A positive transport result advances the sent cursor; full coverage resets the packet buffer through FUN_00DB7FB0.",
+      "A result below one closes the connection-side transport state by writing zero at connection+0x80.",
+      "Missing transport state or a sent cursor already covering the buffer clears connection+0x14, +0x16, and +0x18 without a transport call."
+    ],
+    "selectionCallerCleanup": "After either builder is selected, FUN_00DB3020 clears connection+0x14 and +0x16 and atomically clears +0x18 after the virtual send returns, regardless of its transport result.",
+    "terminalBoundary": "FUN_00D36020 tail-dispatches to one configured transport object's virtual write slot. The selected concrete transport is not established by this trace."
+  },
   "pollOrdering": {
     "functionVa": "0x00da1ab0",
     "sendPumpCallVa": "0x00da1b38",
@@ -98,6 +159,20 @@
     ],
     "clientToServerType8Count": 2,
     "type8OrderRelativeToEncryptedApplicationRecord": ["after", "before"],
+    "type8RecordByteComparisonSpans": [
+      {"kind": "invariant", "offset": 0, "length": 16},
+      {"kind": "dynamic", "offset": 16, "length": 2},
+      {"kind": "invariant", "offset": 18, "length": 2},
+      {"kind": "dynamic", "offset": 20, "length": 1},
+      {"kind": "invariant", "offset": 21, "length": 3}
+    ],
+    "type8ObservedZeroSpansPerRecord": [
+      {"offset": 1, "length": 1},
+      {"offset": 3, "length": 13},
+      {"offset": 18, "length": 1}
+    ],
+    "type8CapturedExtentClassification": "Both complete records have the exact builder framing and byte-class shape. Their common-header +0x0C dword is zero in both captures; bytes in both dynamic u32 sources include observed variation.",
+    "minimumRecordBoundary": "The captures constrain observed values only, from two 24-byte records. They do not prove that either observed dynamic u32 value, or any nonzero payload byte, is required for remote acceptance.",
     "preKeyPlaintextClearTypes": [7, 9],
     "observedZeroExtentClearTypes": [8]
   },
@@ -116,7 +191,9 @@
     "The evidence does not establish protocol nouns for either type.",
     "A type-8 record is not an echo or copy of the received type-7 payload.",
     "Capture order does not prove immediate causality or a remote acceptance prerequisite.",
-    "Neither type replaces or completes the closed type-10 assignment contract."
+    "Neither type replaces or completes the closed type-10 assignment contract.",
+    "The builder does not establish remote acceptance, acknowledgement, heartbeat, echo, or acceptance-response semantics.",
+    "Two successful captures do not turn their observed dynamic bytes into a minimum accepted record."
   ],
-  "remainingBoundary": "Remote acceptance rules, malformed-length cursor effects, and meanings of builder payload values remain unproven."
+  "remainingBoundary": "Remote acceptance rules, malformed-length cursor effects, the producer earlier than the stored connection-map key, the selected concrete transport, and meanings of builder payload values remain unproven."
 }

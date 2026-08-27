@@ -22,7 +22,7 @@ def verify(document: dict | None = None) -> list[str]:
     if document is None:
         document = json.loads(MANIFEST.read_text(encoding="ascii"))
 
-    if document.get("format") != "xivl-lobby-clear-0007-0008-consumers-v1":
+    if document.get("format") != "xivl-lobby-clear-0007-0008-consumers-v2":
         errors.append("format changed")
     sources = document.get("sources", {})
     expected_sources = {
@@ -157,6 +157,102 @@ def verify(document: dict | None = None) -> list[str]:
         if selection.get(key) != expected:
             errors.append(f"send-selection {key} changed")
 
+    builder = document.get("type8Builder", {})
+    if (
+        builder.get("functionVa"),
+        builder.get("recordLength"),
+        builder.get("outerHeaderLength"),
+        builder.get("requiredEmptyBufferLength"),
+        builder.get("constructedBufferCapacity"),
+    ) != ("0x00db8090", 24, 16, 40, 4096):
+        errors.append("type-8 builder extent changed")
+    if builder.get("emptyBufferLengthGate") != {
+        "connectionOffset": 20,
+        "requiredValue": 0,
+        "checkVa": "0x00db302d",
+    }:
+        errors.append("type-8 builder empty-buffer gate changed")
+    expected_writes = [
+        (0, 2, "constant", "declared record length", 24, "0x00db810c"),
+        (2, 2, "constant", "clear type selector", 8, "0x00db810c"),
+        (4, 4, "constant", "zero-only common-header field", 0, "0x00db8112"),
+        (8, 4, "constant", "zero-only common-header field", 0, "0x00db8115"),
+        (12, 4, "uninitialized stack slot", "indeterminate common-header field", None, "0x00db8118"),
+        (16, 4, "connection-map node key", "dynamic builder input", None, "0x00db811e"),
+        (20, 4, "low dword of __time64 return", "dynamic builder-local time", None, "0x00db8121"),
+    ]
+    writes = builder.get("recordWrites", [])
+    normalized_writes = [
+        (
+            row.get("offset"),
+            row.get("width"),
+            row.get("source"),
+            row.get("classification"),
+            row.get("value"),
+            row.get("writeVa"),
+        )
+        for row in writes
+    ]
+    if normalized_writes != expected_writes:
+        errors.append("type-8 record write manifest changed")
+    if sum(row.get("width", 0) for row in writes) != 24:
+        errors.append("type-8 record writes no longer cover 24 bytes")
+    outer_writes = builder.get("outerHeaderWritesForEmptyBuffer", [])
+    if [
+        (row.get("offset"), row.get("width"), row.get("value"), row.get("increment"))
+        for row in outer_writes
+    ] != [
+        (0, 16, None, None),
+        (4, 2, 16, None),
+        (6, 2, 0, None),
+        (4, 2, None, 24),
+        (6, 2, None, 1),
+    ]:
+        errors.append("type-8 outer-header construction changed")
+    if (
+        builder.get("bufferCursorIncrement"),
+        builder.get("bufferCursorWriteVa"),
+        builder.get("successValue"),
+        builder.get("successVa"),
+    ) != (24, "0x00db812c", 1, "0x00db813a"):
+        errors.append("type-8 builder completion changed")
+    if len(builder.get("failureConditions", [])) != 2:
+        errors.append("type-8 builder failure boundary changed")
+    if "does not branch" not in builder.get("selectionReturnUse", ""):
+        errors.append("type-8 builder return-use boundary changed")
+
+    terminal = document.get("terminalSend", {})
+    expected_terminal = {
+        "connectionVirtualSendVa": "0x00da1480",
+        "connectionVtableVa": "0x011276e8",
+        "connectionVtableSlot": 1,
+        "bufferPointerFieldOffset": 16,
+        "declaredBufferLengthFieldOffset": 20,
+        "sentCursorFieldOffset": 22,
+        "transportSelectorVa": "0x00d36020",
+        "transportObjectFieldOffset": 88,
+        "transportCallVa": "0x00da14c2",
+        "transportArguments": [
+            "buffer pointer plus sent cursor",
+            "declared buffer length minus sent cursor",
+        ],
+    }
+    for key, expected in expected_terminal.items():
+        if terminal.get(key) != expected:
+            errors.append(f"terminal-send {key} changed")
+    if terminal.get("transportDispatchCandidates") != [
+        {"selectorObjectOffset": 12, "virtualSlotByteOffset": 32, "branchVa": "0x00d36029"},
+        {"selectorObjectOffset": 20, "virtualSlotByteOffset": 40, "branchVa": "0x00d36037"},
+        {"selectorObjectOffset": 28, "virtualSlotByteOffset": 36, "branchVa": "0x00d36045"},
+    ]:
+        errors.append("terminal transport candidates changed")
+    if "not established" not in terminal.get("terminalBoundary", ""):
+        errors.append("terminal transport boundary changed")
+    if len(terminal.get("virtualSendEffects", [])) != 3:
+        errors.append("terminal virtual-send effects changed")
+    if "regardless" not in terminal.get("selectionCallerCleanup", ""):
+        errors.append("selected-builder cleanup changed")
+
     ordering = document.get("pollOrdering", {})
     if (
         ordering.get("functionVa"),
@@ -178,6 +274,22 @@ def verify(document: dict | None = None) -> list[str]:
         "type8OrderRelativeToEncryptedApplicationRecord"
     ) != ["after", "before"]:
         errors.append("capture type-8 order changed")
+    if census.get("type8RecordByteComparisonSpans") != [
+        {"kind": "invariant", "offset": 0, "length": 16},
+        {"kind": "dynamic", "offset": 16, "length": 2},
+        {"kind": "invariant", "offset": 18, "length": 2},
+        {"kind": "dynamic", "offset": 20, "length": 1},
+        {"kind": "invariant", "offset": 21, "length": 3},
+    ]:
+        errors.append("capture type-8 byte comparison changed")
+    if census.get("type8ObservedZeroSpansPerRecord") != [
+        {"offset": 1, "length": 1},
+        {"offset": 3, "length": 13},
+        {"offset": 18, "length": 1},
+    ]:
+        errors.append("capture type-8 zero spans changed")
+    if "observed values only" not in census.get("minimumRecordBoundary", ""):
+        errors.append("capture minimum-record boundary changed")
     if census.get("preKeyPlaintextClearTypes") != [7, 9]:
         errors.append("capture pre-key clear-type classification changed")
     if census.get("observedZeroExtentClearTypes") != [8]:
@@ -226,6 +338,13 @@ def mutation_test() -> list[str]:
             ["after", "after"],
         ),
         (("captureCensus", "preKeyPlaintextClearTypes"), [7, 8, 9]),
+        (("type8Builder", "recordWrites", 4, "source"), "constant zero"),
+        (("type8Builder", "recordWrites", 5, "offset"), 12),
+        (("type8Builder", "outerHeaderWritesForEmptyBuffer", 3, "increment"), 16),
+        (("terminalSend", "transportSelectorVa"), "0x00d36030"),
+        (("terminalSend", "selectionCallerCleanup"), "Cleanup depends on success."),
+        (("captureCensus", "type8RecordByteComparisonSpans", 1, "kind"), "invariant"),
+        (("captureCensus", "type8ObservedZeroSpansPerRecord", 1, "length"), 12),
         (("acknowledgementBoundary", "assignedConnectionFieldOffset"), 56),
         (("remainingBoundary",), "C:\\private"),
     ]:
@@ -249,7 +368,7 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("PASS: lobby clear type 7/8 manifest and 11 mutations")
+    print("PASS: lobby clear type 7/8 manifest and 18 mutations")
     return 0
 
 
