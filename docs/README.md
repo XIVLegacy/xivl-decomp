@@ -52,6 +52,7 @@ checks the index against the tree in both directions.
 - [Receiver dispatch through ActorImpl](net/actorimpl-receiver-dispatch.md)
 - [Receiver gates](net/receiver-gates.md)
 - [SEQ-005 receiver gates](net/seq005-receiver-gates.md)
+- [s2c 0x0193 native state](net/s2c-0193-native-state.md)
 - [SyncWriter wire format](net/sync-writer.md)
 - [FFXIV 1.x wire evidence](net/wire-protocol.md)
 - [Work-field evidence index](net/work-field-evidence-index.md)

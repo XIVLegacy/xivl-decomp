@@ -1,0 +1,163 @@
+{
+  "format": "xivl-s2c-0193-native-state-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1.3",
+    "runId": "lane2-0193-native-state-20260827"
+  },
+  "route": {
+    "opcode": "0x0193",
+    "containerDispatcherVa": "0x004dc690",
+    "stateDispatcherVa": "0x00578c90",
+    "stateMemberOffset": "0x510",
+    "stateMemberSize": "0x3c",
+    "stateMemberConstructorVa": "0x00577fd0",
+    "stateMemberInitializerVa": "0x0057a3c0"
+  },
+  "owner": {
+    "allocationVa": "0x004b2df0",
+    "allocationSize": "0x17d58",
+    "mainModuleConstructorVa": "0x004dc3a0",
+    "mainModuleVtableVa": "0x00f9142c",
+    "containerOffset": "0x10",
+    "containerClass": "Application::Main::RaptureElementContainer",
+    "containerConstructorVa": "0x004dbf40",
+    "containerVtableVa": "0x00f912e4",
+    "raptureUserControlOffset": "0x17758",
+    "raptureUserControlSize": "0x58",
+    "raptureUserControlClass": "Application::Main::SqwtInterface::RaptureUserControl",
+    "raptureUserControlAccessorVa": "0x004d7580",
+    "raptureUserControlConstructorVa": "0x004decf0",
+    "raptureUserControlDestructorVa": "0x004dd700",
+    "raptureUserControlVtableVa": "0x00f90f64",
+    "nextContainerMemberOffset": "0x177b0"
+  },
+  "timerState": {
+    "ownerPointerOffset": "0x4",
+    "terminalStateOffset": "0x10c",
+    "terminalStateClass": null,
+    "fields": [
+      {
+        "subopcodes": "0x00..0x0f",
+        "storage": "indexed-u32-vector",
+        "writerVa": "0x0075f3e0",
+        "readerVa": "0x0075f420",
+        "wrapperVa": "0x00705450",
+        "myPlayerVtableSlot": 88,
+        "luaApi": "_getOccupancyContentsTime",
+        "indexBoundary": "callback input is decremented before the vector read; individual entry meanings are unresolved"
+      },
+      {
+        "subopcodes": "0x10",
+        "storage": "+0x10",
+        "writerVa": "0x0075d210",
+        "readerVa": "0x0075d220",
+        "wrapperVa": "0x007054d0",
+        "myPlayerVtableSlot": 89,
+        "luaApi": "_getNormalBehestTime"
+      },
+      {
+        "subopcodes": "0x11",
+        "storage": "+0x14",
+        "writerVa": "0x0075d230",
+        "readerVa": "0x0075d240",
+        "wrapperVa": "0x00705510",
+        "myPlayerVtableSlot": 90,
+        "luaApi": "_getCompanyBehestTime"
+      },
+      {
+        "subopcodes": "0x12",
+        "storage": "+0x18",
+        "writerVa": "0x0075d250",
+        "readerVa": "0x0075d260",
+        "wrapperVa": "0x00705550",
+        "myPlayerVtableSlot": 91,
+        "luaApi": "_getWarpRecastTime"
+      },
+      {
+        "subopcodes": "0x16",
+        "storage": "+0x1c",
+        "writerVa": "0x0075d270",
+        "readerVa": "0x0075d280",
+        "wrapperVa": "0x00706a00",
+        "myPlayerVtableSlot": 132,
+        "luaApi": "_getNMRushUpdateTime"
+      }
+    ]
+  },
+  "raptureUserControl": {
+    "initializerVa": "0x0054e440",
+    "setupAllVa": "0x0075b300",
+    "teardownAllVa": "0x0075b360",
+    "groups": [
+      {
+        "ordinal": 1,
+        "recordOffset": "0x08",
+        "countOffset": "0x18",
+        "setupVa": "0x0054b440",
+        "decrementVa": "0x0054b600",
+        "countReaderVa": "0x0054b610",
+        "commands": ["MoveCharacter", "ShiftMoveCharacter", "MoveCharacterAutoRun"],
+        "setupRegistrations": ["MoveCharacter", "ShiftMoveCharacter"]
+      },
+      {
+        "ordinal": 2,
+        "recordOffset": "0x1c",
+        "countOffset": "0x2c",
+        "setupVa": "0x0054b620",
+        "decrementVa": "0x0054b630",
+        "countReaderVa": "0x0054b640",
+        "commands": ["ChangeTargetNext", "ChangeTargetPrev", "ChangeEnemyTargetNext", "ChangeEnemyTargetPrev", "ChangeBattleTargetNext", "ChangeBattleTargetPrev", "ChangeTargetMode"],
+        "setupRegistrations": []
+      },
+      {
+        "ordinal": 3,
+        "recordOffset": "0x30",
+        "countOffset": "0x40",
+        "setupVa": "0x0054b650",
+        "decrementVa": "0x0054b660",
+        "countReaderVa": "0x0054b670",
+        "commands": ["LockTarget", "MoveCamera", "ChangeCameraMode", "ChangeCameraLock"],
+        "setupRegistrations": []
+      },
+      {
+        "ordinal": 4,
+        "recordOffset": "0x44",
+        "countOffset": "0x54",
+        "setupVa": "0x0054b680",
+        "decrementVa": "0x0054b8c0",
+        "countReaderVa": "0x0054b8d0",
+        "commands": ["ForwardCameraOn", "ForwardCameraOff", "BackwardCameraOn", "BackwardCameraOff"],
+        "setupRegistrations": ["MoveCamera", "ForwardCameraOff", "BackwardCameraOff"]
+      }
+    ]
+  },
+  "actionCheck": {
+    "subopcode": "0x13",
+    "fieldPath": ["state+0x4", "+0xec", "+0x38"],
+    "querySentinel": "0xffffffff",
+    "diagnosticVa": "0x0075bc90",
+    "nativeConsumers": [
+      {
+        "consumerVa": "0x00578390",
+        "gatedCalleeVa": "0x00582bc0",
+        "directCallers": ["0x00587210", "0x00587370", "0x005873e0", "0x005874b0"]
+      },
+      {
+        "consumerVa": "0x005785d0",
+        "gatedCalleeVa": "0x00583290",
+        "directCallers": ["0x00585af0", "0x0058c220"]
+      }
+    ],
+    "luaOrNapiConsumers": [],
+    "negativeBoundary": "no other exact state+0x4 then +0xec then +0x38 path was found in the bounded local retail disassembly sweep; aliases and computed indirect access remain unresolved"
+  },
+  "unresolved": [
+    "the class name of the +0x510 state member and its terminal +0x10c state",
+    "individual meanings for low-vector indices 0x00 through 0x0f",
+    "high-level nouns for the four RaptureUserControl groups",
+    "timer units",
+    "aliases and computed indirect ActionCheck consumers"
+  ]
+}

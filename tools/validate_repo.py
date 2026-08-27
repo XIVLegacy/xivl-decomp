@@ -15,6 +15,7 @@ import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
+import verify_s2c_0193_native_state as s2c_0193_state_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
 PERMITTED_TOP_LEVEL_GROUPS = {
@@ -342,6 +343,12 @@ def main() -> int:
     if retail_errors:
         errors.extend(f"retail protocol-caller contract: {error}"
                       for error in retail_errors)
+    s2c_0193_errors = s2c_0193_state_verifier.verify()
+    if s2c_0193_errors:
+        errors.extend(
+            f"s2c 0x0193 native-state contract: {error}"
+            for error in s2c_0193_errors
+        )
     try:
         attestation_schema = _schema_check.load_schema(
             ROOT / "schemas/retail-evidence-attestation.schema.json"
