@@ -17,7 +17,10 @@ constructs RaptureUserControl at +0x17758, and starts the next member at
 The route-state constructor `0x00577fd0` covers offsets +0x00 through +0x3b.
 It has no discovered vtable or RTTI class. Its pointer at +0x4 leads through
 +0x10c to the timer state used by the dispatcher; that terminal state's class
-also remains unresolved.
+also remains unresolved. The +0x4 object is a separate non-vtable aggregate
+constructed by `0x00773270`. Its +0xec pointer owns the 0x3c-byte terminal
+object constructed by `0x0076fc60`; that object likewise has no proven retail
+class name.
 
 ## Timer readers
 
@@ -55,16 +58,40 @@ not establish a higher-level group name.
 ## ActionCheck consumers
 
 Subopcode 0x13 queries or writes the u32 reached through route-state +0x4,
-then +0xec, then +0x38. The diagnostic path is not its only consumer:
+then +0xec, then +0x38. Both native predicates interpret the field as signed
+and run their gated call only when it is greater than zero. Zero and negative
+values suppress the call. Their selector exclusions are exact 0x7c000062 and
+the unsigned ranges 0x10000000..0x10ffffff and
+0x14000000..0x14ffffff.
 
-- `0x00578390` tests the same field before calling `0x00582bc0`; its direct
-  callers are `0x00587210`, `0x00587370`, `0x005873e0`, and `0x005874b0`.
-- `0x005785d0` tests the same field before calling `0x00583290`; its direct
-  callers are `0x00585af0` and `0x0058c220`.
+The terminal object's +0x18 member is an ordered key container. The two gated
+operations copy a caller-supplied actor handle as the key:
 
-No Lua/N-API consumer and no other exact +0x4 -> +0xec -> +0x38 path was found
-in the bounded local retail disassembly sweep. Aliases and computed indirect
-access remain outside that negative result.
+| Predicate | Direct callers | Positive-field effect | Suppressed-field effect |
+|---:|---|---|---|
+| 0x00578390 | 00587210, 00587370, 005873e0, 005874b0 | 00582bc0 inserts the key if absent, allocating and linking one 0x14-byte node | no container mutation |
+| 0x005785d0 | 00585af0, 0058c220 | 00583290 erases every equal key, freeing its nodes and reducing the count | no container mutation |
+
+The four insert callers stage records before `0x005901d0` queues them. The two
+erase callers drain queued records through `0x0058ca80`; `0x0058c220` has two
+erase call sites, one for the leading record and one in its row loop. The
+insert helper's returned iterator remains local and unused. The erase helper's
+returned count is ignored.
+
+The gated callees contain no packet builder, Lua/N-API call, UI operation,
+animation, movement, targeting, or actor-state call. The drain callers do make
+Lua-bound `Application::Lua::Script::Client::Control::CharaBase` calls, and
+`0x0058c220` also contains UI and actor-state branches, but those operations
+are outside the ActionCheck branch. ActionCheck therefore gates only the local
+ordered-container mutation in these paths; it does not gate those externally
+visible operations. No gated result reaches Lua or another public consumer,
+and no network emission was found below either gated callee.
+
+A complete Ghidra reference export found four calls to `0x00578390`, three
+calls to `0x005785d0` (two within `0x0058c220`), and no data aliases to either
+predicate. The generated-assembly corpus independently contains those same
+direct calls. Computed or dynamic indirect access remains outside this bounded
+negative result, as does the high-level purpose of the ordered container.
 
 ## Evidence boundary
 
@@ -75,4 +102,5 @@ gate. RTTI and vtable identities come from
 [`config/ffxivgame.rtti.json`](../../config/ffxivgame.rtti.json) and
 [`config/ffxivgame.vtable_slots.jsonl`](../../config/ffxivgame.vtable_slots.jsonl).
 This finding does not name opcode 0x0193, assign server behavior, import a
-packet type, infer timer units, or invent names for the four groups.
+packet type, infer timer units or eligibility policy, import SetControlState
+semantics, or invent names for the four groups or ActionCheck container.

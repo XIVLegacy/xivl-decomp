@@ -136,28 +136,51 @@
   "actionCheck": {
     "subopcode": "0x13",
     "fieldPath": ["state+0x4", "+0xec", "+0x38"],
+    "stateObjectConstructorVa": "0x00773270",
+    "terminalObjectOffset": "0xec",
+    "terminalObjectSize": "0x3c",
+    "terminalObjectConstructorVa": "0x0076fc60",
+    "terminalObjectClass": null,
+    "orderedContainerOffset": "0x18",
     "querySentinel": "0xffffffff",
     "diagnosticVa": "0x0075bc90",
+    "predicate": "signed-greater-than-zero",
+    "suppressedValues": "zero and negative",
+    "selectorExclusions": ["0x7c000062", "0x10000000..0x10ffffff", "0x14000000..0x14ffffff"],
     "nativeConsumers": [
       {
         "consumerVa": "0x00578390",
         "gatedCalleeVa": "0x00582bc0",
-        "directCallers": ["0x00587210", "0x00587370", "0x005873e0", "0x005874b0"]
+        "operation": "insert caller-supplied actor handle if absent",
+        "mutation": "allocates and links one 0x14-byte ordered-container node only when the key is absent",
+        "resultUse": "returned iterator remains local and unused",
+        "directCallers": ["0x00587210", "0x00587370", "0x005873e0", "0x005874b0"],
+        "callerPhase": "record staging before queue insertion"
       },
       {
         "consumerVa": "0x005785d0",
         "gatedCalleeVa": "0x00583290",
-        "directCallers": ["0x00585af0", "0x0058c220"]
+        "operation": "erase every ordered-container entry equal to the caller-supplied actor handle",
+        "mutation": "unlinks and frees the equal range and decrements the container count",
+        "resultUse": "erased-entry count is ignored",
+        "directCallers": ["0x00585af0", "0x0058c220"],
+        "callerPhase": "queued-record drain"
       }
     ],
+    "positiveEffect": "executes the listed local ordered-container mutation",
+    "suppressedEffect": "returns without changing that ordered container",
+    "networkEmissions": [],
     "luaOrNapiConsumers": [],
-    "negativeBoundary": "no other exact state+0x4 then +0xec then +0x38 path was found in the bounded local retail disassembly sweep; aliases and computed indirect access remain unresolved"
+    "publicResultConsumers": [],
+    "surroundingOperationsBoundary": "Lua-bound CharaBase calls and UI or actor-state operations in the drain callers are outside the ActionCheck branch and are not gated by this field",
+    "negativeBoundary": "the complete Ghidra reference export and generated-assembly direct-call sweep found only the recorded call sites; computed or dynamic indirect access remains unresolved"
   },
   "unresolved": [
     "the class name of the +0x510 state member and its terminal +0x10c state",
     "individual meanings for low-vector indices 0x00 through 0x0f",
     "high-level nouns for the four RaptureUserControl groups",
     "timer units",
-    "aliases and computed indirect ActionCheck consumers"
+    "computed or dynamic indirect ActionCheck consumers",
+    "the high-level purpose of the ActionCheck ordered container"
   ]
 }

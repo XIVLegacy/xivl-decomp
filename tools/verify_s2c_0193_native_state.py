@@ -36,6 +36,26 @@ EXPECTED_GROUP_METHODS = [
     ("0x30", "0x40", "0x0054b650", "0x0054b660", "0x0054b670"),
     ("0x44", "0x54", "0x0054b680", "0x0054b8c0", "0x0054b8d0"),
 ]
+EXPECTED_ACTION_CONSUMERS = [
+    (
+        "0x00578390",
+        "0x00582bc0",
+        "insert caller-supplied actor handle if absent",
+        "allocates and links one 0x14-byte ordered-container node only when the key is absent",
+        ["0x00587210", "0x00587370", "0x005873e0", "0x005874b0"],
+        "returned iterator remains local and unused",
+        "record staging before queue insertion",
+    ),
+    (
+        "0x005785d0",
+        "0x00583290",
+        "erase every ordered-container entry equal to the caller-supplied actor handle",
+        "unlinks and frees the equal range and decrements the container count",
+        ["0x00585af0", "0x0058c220"],
+        "erased-entry count is ignored",
+        "queued-record drain",
+    ),
+]
 
 
 def verify(document: dict | None = None) -> list[str]:
@@ -96,13 +116,42 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("RaptureUserControl setup registrations changed")
     action = document.get("actionCheck", {})
     consumers = action.get("nativeConsumers", [])
+    consumer_map = [
+        (
+            row.get("consumerVa"),
+            row.get("gatedCalleeVa"),
+            row.get("operation"),
+            row.get("mutation"),
+            row.get("directCallers"),
+            row.get("resultUse"),
+            row.get("callerPhase"),
+        )
+        for row in consumers
+    ]
     if (
         action.get("subopcode") != "0x13"
         or action.get("fieldPath") != ["state+0x4", "+0xec", "+0x38"]
-        or [row.get("consumerVa") for row in consumers] != ["0x00578390", "0x005785d0"]
-        or [row.get("gatedCalleeVa") for row in consumers] != ["0x00582bc0", "0x00583290"]
+        or action.get("stateObjectConstructorVa") != "0x00773270"
+        or action.get("terminalObjectOffset") != "0xec"
+        or action.get("terminalObjectSize") != "0x3c"
+        or action.get("terminalObjectConstructorVa") != "0x0076fc60"
+        or action.get("terminalObjectClass") is not None
+        or action.get("orderedContainerOffset") != "0x18"
+        or action.get("predicate") != "signed-greater-than-zero"
+        or action.get("suppressedValues") != "zero and negative"
+        or action.get("selectorExclusions") != [
+            "0x7c000062",
+            "0x10000000..0x10ffffff",
+            "0x14000000..0x14ffffff",
+        ]
+        or consumer_map != EXPECTED_ACTION_CONSUMERS
+        or action.get("positiveEffect") != "executes the listed local ordered-container mutation"
+        or action.get("suppressedEffect") != "returns without changing that ordered container"
+        or action.get("networkEmissions") != []
         or action.get("luaOrNapiConsumers") != []
-        or "computed indirect" not in action.get("negativeBoundary", "")
+        or action.get("publicResultConsumers") != []
+        or "not gated" not in action.get("surroundingOperationsBoundary", "")
+        or "computed or dynamic indirect" not in action.get("negativeBoundary", "")
     ):
         errors.append("ActionCheck consumer boundary changed")
     unresolved = document.get("unresolved", [])
@@ -130,6 +179,8 @@ def mutation_test() -> list[str]:
         (("owner", "raptureUserControlOffset"), "0x1775c"),
         (("timerState", "terminalStateClass"), "InventedState"),
         (("actionCheck", "luaOrNapiConsumers"), ["invented"]),
+        (("actionCheck", "predicate"), "nonzero"),
+        (("actionCheck", "networkEmissions"), ["invented"]),
     ]:
         changed = copy.deepcopy(document)
         changed[path[0]][path[1]] = value
@@ -147,6 +198,12 @@ def mutation_test() -> list[str]:
     dropped_consumer = copy.deepcopy(document)
     dropped_consumer["actionCheck"]["nativeConsumers"].pop()
     mutations.append(dropped_consumer)
+    changed_operation = copy.deepcopy(document)
+    changed_operation["actionCheck"]["nativeConsumers"][0]["operation"] = "emit action"
+    mutations.append(changed_operation)
+    changed_phase = copy.deepcopy(document)
+    changed_phase["actionCheck"]["nativeConsumers"][1]["callerPhase"] = "packet send"
+    mutations.append(changed_phase)
     leaked = copy.deepcopy(document)
     leaked["source"]["path"] = "agent-islands/private-evidence"
     mutations.append(leaked)
@@ -160,7 +217,7 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("PASS: s2c 0x0193 native-state manifest and 9 mutations")
+    print("PASS: s2c 0x0193 native-state manifest and 13 mutations")
     return 0
 
 
