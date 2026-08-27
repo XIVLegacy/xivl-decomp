@@ -256,6 +256,20 @@
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "wireproto-session-master-20260810", "addresses": ["0x004e5ff0", "0x004e5ca0", "0x0071d420", "0x008a87f0"]}]
   },
   {
+   "rva": 1275424,
+   "rva_hex": "0x00137620",
+   "va_hex": "0x00537620",
+   "name": "RaptureElementContainer_embeddedFactoryDispatch",
+   "kind": "dispatcher",
+   "evidence_class": "constructor-alias-selector-and-field-data-flow",
+   "producer": "Ghidra 12.1.3 fresh read-only decompile, exact-reference census, and compound-store census",
+   "observation": "FUN_004DBF40 constructs an embedded object at RaptureElementContainer+0x4ac through FUN_0053B230, whose store at 0x0053b27f zeros embedded offset 0x2c and therefore container offset 0x4d8. FUN_004D7C10 and FUN_004D90C0 pass the same adjusted object to FUN_00537620. FUN_004D9110 issues selector 0x0d with encoded value 0xc000000d when its byte argument is zero and its preceding helper result is outside literal range 4 through 6. After FUN_004D90C0's selector predicate passes, FUN_00537620 calls the indexed factory and stores its returned dword at embedded offset 0x2c. FUN_004DAC20 later passes an encoded released-object selector to FUN_005374D0, whose selector 0xc000000d clears that field. The dispatcher at 0x004dc690 and accessor at 0x004d7370 load the field as a nullable pointer and use its pointee at +0x98.",
+   "supported_imported_fields": [],
+   "confidence": "direct adjusted-this lineage, exact selector cases, factory-return store, release clear, null tests, and pointee-relative uses",
+   "ambiguity": "The pointee class and application semantics are not established. The 0x018d handler updates records in the pointee's +0x98 subobject; it does not establish that the pointer field itself stores marker data or policy.",
+   "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "lane4-zone-4d8-lifecycle-20260827", "addresses": ["0x004dbf40", "0x0053b230", "0x004d9110", "0x00537620", "0x004d7c10", "0x004d90c0", "0x004dac20", "0x005374d0", "0x004d7370", "0x004dc690", "0x00691f30"]}]
+  },
+  {
    "rva": 1430192,
    "rva_hex": "0x0015d2b0",
    "va_hex": "0x0055d2b0",

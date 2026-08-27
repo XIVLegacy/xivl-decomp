@@ -180,45 +180,94 @@ a VFX parameter and stops at an indirect dispatch through
 identified. The proven `0x00DA` boundary therefore ends at action-queue
 insertion, not at motion or visual completion.
 
-### Element-container pointer writer candidates ruled out
+### Element-container `+0x4d8` pointer lifecycle
 
-The read at `0x004DD167` is
-`Application::Main::RaptureElementContainer+0x4d8`, not a zone-owned field.
-It loads and tests a pointer, then uses the pointee at `+0x98`.
-`FUN_004D7370` returns the same dword, and `FUN_00691F30` likewise adds
-`+0x98` to that result before use.
+The gate read at `0x004DD167` is
+`Application::Main::RaptureElementContainer+0x4d8`, not a zone-object field.
+The allocation and constructor chain fixes that identity: `FUN_004B2DF0`
+allocates `0x17d58` bytes, `FUN_004E0DC0` retains that allocation at
+network-module `+0x8`, `FUN_004DC3A0` constructs its `+0x10` subobject, and
+`FUN_004DBF40` writes the `RaptureElementContainer` vftable `0x00F912E4`.
+The matching 81-slot RTTI result is recorded in
+[class metadata](../resource/class-metadata.md).
 
-The ownership chain fixes the reader's object identity. `FUN_004B2DF0`
-allocates the `0x17d58`-byte object and a separate `0x3b8`-byte
-`Application::Network::NetworkModule`. `FUN_004E0DC0` stores the large
-allocation at network-module `+0x8`. `FUN_004DC3A0` writes
-`Application::Main::MainModule::vftable` at the large allocation's base and
-constructs its `+0x10` subobject through `FUN_004DBF40`; at `0x004DBFAB`, that
-constructor writes vftable `0x00F912E4` for
-`Application::Main::RaptureElementContainer`. The existing
-`RaptureElementContainer` row in
-[class metadata](../resource/class-metadata.md) independently records the
-matching 81-slot result.
+The field belongs structurally to an embedded object based at container
+`+0x4ac`: `FUN_004DBF40` passes that adjusted address to `FUN_0053B230`, which
+zeros subobject `+0x2c` at `0x0053B27F`. Later, `FUN_004D7C10` and
+`FUN_004D90C0` pass the same adjusted address to `FUN_00537620`.
+`FUN_004D9110` issues selector `0x0d` with encoded value `0xc000000d` when its
+byte argument is zero and the preceding helper result falls outside the
+literal `4..6` range. `FUN_004D90C0` additionally requires its selector
+predicate to pass. `FUN_00537620` then invokes the indexed factory entry and
+stores its returned dword at subobject `+0x2c`, making container `+0x4d8`
+nonzero when that callback returns a nonzero object. `FUN_004DAC20` passes the
+released object's encoded selector to
+`FUN_005374D0`; selector `0xc000000d` clears the same field. Destruction calls
+`FUN_004DED90` on container `+0x4ac`, but that helper releases the embedded
+containers and does not itself clear `+0x2c`. The selector-driven release is
+therefore the proven ordinary clear; no copy or move of the field was found.
+The factory and clear topology is retained in the
+[symbol evidence](../../config/ffxivgame.symbol_evidence.json).
 
-The reader's direct caller does not write this pointer, so a writer is not
-adjacent to the read. Call-graph proximity to `FUN_004DC690` is therefore a
-weakened hypothesis rather than an untested one. These two candidates are
-eliminated and should not be re-decompiled for this question.
+The dword is a nullable object pointer, not a count, Boolean, marker array, or
+opaque scalar handle. `FUN_004DC690` loads it, null-tests it, and dereferences
+the result at `+0x98`. The first separate non-mutating use is the read-only
+accessor `FUN_004D7370`, which returns the field unchanged. Its sole direct
+caller `FUN_00691F30` then uses pointer `+0x98`, tests state at subobject
+`+0x798` together with count `+0x14`, invokes its consumer, and clears that
+subobject state byte.
 
-- `0x004E20A0` is 1442 bytes, directly calls the reader `FUN_004DC690`, and is
-  called from `0x004E30A0`. It has no `+0x4d8` reference as a byte offset or
-  dword index. Its member-offset references cluster at `+0x234` (16 times),
-  then `+0x3a8`, `+0x3ac`, and `+0x3b0`.
-- `0x0058C690` is 142 bytes and is already named in the pipeline above. It
-  does not write the element-container pointer: it zeroes a 0x38-byte stack
-  record, fills it with a timestamp source, two parameters, and two literal
-  `1` values, then passes it to `FUN_00587370` and `FUN_005901D0`. It is a
-  producer on the battle-effect path, not this field's write path.
+The s2c `0x018d` handler does not store packet marker data in the gate field.
+After the null test it adds `0x98` to the pointee, prepares packet-derived
+values through `FUN_00575550`, and calls `FUN_0055CF70`. That callee updates
+the marker count and records inside the pointee's `+0x98` subobject and sets
+its `+0x798` state byte. This establishes pointer topology only; it does not
+establish party policy, membership, permissions, or a semantic class name for
+the pointee.
 
-The 15-hit literal-offset corpus contains no direct writer to the pointer.
-This negative result is bounded: compound address formation, a constructor
-helper, or an indirect call can still write it outside that corpus. Evidence:
-`xivl-client-structs/tools/ghidra/logs/c309_zone-4d8-object-identity.txt`.
+The fresh exact-displacement census found 18 `+0x4d8` instructions in 17
+functions. Every hit is classified below; only the two dword reads belong to
+the proven container lineage.
+
+| VA instruction | Classification |
+|---|---|
+| `0x00403A48 LEA` | Wrong class; inline string-like member in Main destruction. |
+| `0x004B6C50 LEA` | Seven-byte address-return helper; no store or container lineage. |
+| `0x004B8772 LEA` | Wrong class; `Application::Misc::SystemConfig` construction. |
+| `0x004BB3AC MOV` | Read of another object's member vtable before an indirect call. |
+| `0x004BB3B5 LEA` | Address of that same read-only helper member. |
+| `0x004D7370 MOV` | Proven read-only accessor for the container pointer. |
+| `0x004DD167 MOV` | Proven dispatcher read and null gate for s2c `0x018d`. |
+| `0x004F4E63 MOV` | Wrong class; dword `0x28` in a rank-widget descriptor table. |
+| `0x0060ECAC MOV` | Wrong object and byte-width store. |
+| `0x00611D3B MOV` | Wrong object and byte-width clear beside float fields. |
+| `0x00619374 MOV` | Wrong class; byte clear in `CutManagerActor` construction. |
+| `0x00673ED4 LEA` | Wrong class; `MapScreenControl` property-access arm. |
+| `0x006788CA MOV` | Wrong class; `MapScreenControl` destruction. |
+| `0x0067A364 LEA` | Wrong class; `MapScreenControl` construction. |
+| `0x007D1023 CMP` | Wrong nested object, byte-width read only. |
+| `0x009690E4 LEA` | Wrong class; `Sqwt::Controls::ComboBox` destruction. |
+| `0x00969703 LEA` | Wrong class; `Sqwt::Controls::ComboBox` construction. |
+| `0x00A5B218 MOVSS` | Wrong layout; float read in a contiguous vector. |
+
+The compound-store sweep additionally resolved the stores hidden behind the
+`MapScreenControl` and `ComboBox` LEAs and an undefined-tail
+`MapScreenControl` store; all retain those wrong-class dispositions. It found
+no other store to the proven container field. The direct container-alias
+census also reviewed the `+0x4ac` lookups in `FUN_004DA280`, `FUN_004DA300`,
+`FUN_004DA380`, `FUN_004DA400`, `FUN_004DA4A0`, `FUN_004DA510`,
+`FUN_004DAF00`, and `FUN_004DC690`; none accesses subobject `+0x2c`.
+
+The remaining static alias boundary is exact. `FUN_004D9970` adjusts its
+caller-supplied receiver by `+0x4ac` and tail-jumps to the lookup helper, but
+its parent object depends on the caller. Nine unwind stubs at `0x00E5D8C6`,
+`0x00E5DAED`, `0x00E7FDB8`, `0x00E80078`, `0x00E80258`, `0x00ECF391`,
+`0x00ECF4CF`, `0x00ED6DB2`, and `0x00ED6EE2` likewise adjust a saved local by
+`+0x4ac` without enough parent-object provenance. Beyond those static aliases,
+an unresolved indirect target or a non-affine/range write remains a runtime
+boundary. Within the resolved constructor, selector factory, release,
+destructor, accessor, dispatcher, and direct alias topology, assignment,
+clearing, and both consumers are accounted for.
 
 ## Storage ceiling
 
