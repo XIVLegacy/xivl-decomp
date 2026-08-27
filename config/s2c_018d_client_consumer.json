@@ -1,10 +1,11 @@
 {
-  "format": "xivl-s2c-018d-client-consumer-v1",
+  "format": "xivl-s2c-018d-client-consumer-v2",
   "source": {
     "binary": "ffxivgame.exe retail 1.23b",
     "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
     "ghidraVersion": "12.1.3",
-    "runId": "lane1-018d-client-consumer-20260827"
+    "runId": "lane1-018d-client-consumer-20260827",
+    "presentationRunId": "lane1-018d-presentation-contract-20260827"
   },
   "wireContract": {
     "opcode": "0x018D",
@@ -68,9 +69,34 @@
       {"wire": "+0x1c", "storageRecord": "+0x18", "width": 4}
     ],
     "helperOutputs": [
-      {"storageRecord": "+0x20", "consumerAccessorVa": "0x0055d030", "description": "helper-built string-like state"},
-      {"storageRecord": "+0x74", "consumerAccessorVa": "0x0055d070", "description": "helper-built scalar"}
+      {
+        "storageRecord": "+0x20",
+        "consumerAccessorVa": "0x0055d030",
+        "description": "helper-resolved string state",
+        "defaulting": "reset to empty before lookup; lookup failure leaves the value empty",
+        "localTransform": "remove every literal !!! occurrence",
+        "presentationArgument": "Text:String"
+      },
+      {
+        "storageRecord": "+0x74",
+        "consumerAccessorVa": "0x0055d070",
+        "description": "helper-resolved dword",
+        "defaulting": "cleared to zero before every lookup attempt",
+        "presentationArgument": "Layout:Int"
+      }
     ],
+    "helperLookup": {
+      "validityVa": "0x006cb950",
+      "primaryKey": "+0x00",
+      "fallbackKey": "+0x08",
+      "fallbackCondition": "the primary lookup returned signed -1",
+      "missingSentinel": "signed -1",
+      "indexLookupVa": "0x006c3320",
+      "stringResolverVa": "0x006c09e0",
+      "scalarResolverVa": "0x006c08a0",
+      "unusedAsLookupKey": "+0x0c",
+      "resolverBoundary": "one string path dynamically casts LuaControl to CharaBase and copies its +0x60 source; the semantic field name and the other tagged element owners are not proven"
+    },
     "helperBoundary": "the helper uses a temporary lookup context prepared by 0x00575550 and destroyed by 0x00573f70; no RTTI class name is proven for that context"
   },
   "readerCensus": [
@@ -93,8 +119,55 @@
     "unregistrationVa": "0x00678640",
     "consumerVtableVa": "0x00fc358c",
     "retailStrings": ["MapScreenControl", "group_marker_data", "MapMarkerParty", "Update"],
-    "operation": "synchronously creates or updates the MapMarkerParty presentation rows in group_marker_data",
+    "operation": "synchronously rewrites dense MapMarkerParty presentation rows in group_marker_data, then removes the stale suffix",
     "recordAccessors": ["0x0055d020", "0x0055d030", "0x0055d050", "0x0055d070", "0x0055d090", "0x0055d0b0"]
+  },
+  "presentationContract": {
+    "resourceLookup": {
+      "cacheOffset": "+0x9e8",
+      "lookupDispatch": "MapScreenControl vtable +0x1c",
+      "resourceName": "group_marker_data",
+      "sourceType": "Sqwt::ResourceDictionary",
+      "targetType": "Sqwt::Data::SqwtXmlDataMaker",
+      "failureBehavior": "return without reading records or changing rows",
+      "associatedPath": "debug/pc_mark_sample.le.spk",
+      "associatedPathVa": "0x00673923",
+      "associatedPathBoundary": "the same MapScreenControl property handler stores this exact path, but the direct lookup does not prove that group_marker_data came from this package"
+    },
+    "countPath": {
+      "wireType": "signed byte",
+      "storageType": "signed 32-bit integer",
+      "applyLoop": "zero skips projection; every nonzero value enters and the back edge compares as unsigned",
+      "consumerLoop": "signed values less than or equal to zero skip presentation; positive values iterate with a signed less-than comparison",
+      "boundary": "neither loop clamps to sixteen; a positive count above sixteen reads beyond physical storage, and a negative nonzero count is unsafe in the projection before presentation is reached"
+    },
+    "eligibility": [
+      {"source": "MapScreenControl +0x57c", "condition": "byte equals 2"},
+      {"source": "record +0x00,+0x08,+0x0c", "condition": "+0x00 is nonzero or the bitwise OR of +0x08 and +0x0c is nonzero"},
+      {"source": "record +0x00", "condition": "dword differs from +0x88 of the object selected through Main +0x17838 with +0x17834 fallback", "selectorVas": ["0x004d86b0", "0x004d6750"]}
+    ],
+    "outputIndex": "accepted rows are compacted into dense zero-based order; source-row keys are not used as UI indexes",
+    "rowWrite": "there is no separate create branch; the same seven SetAttr groups target each accepted dense index whether that index is new or already present",
+    "properties": [
+      {"wire": "+0x14", "storageRecord": "+0x10", "accessorVa": "0x0055d050", "inputType": "binary32", "localTransform": "CVTTSS2SI truncation toward zero to signed int32", "property": "X", "propertyType": "Int", "operation": "SetAttr"},
+      {"wire": "+0x1c", "storageRecord": "+0x18", "accessorVa": "0x0055d050", "inputType": "binary32", "localTransform": "CVTTSS2SI truncation toward zero to signed int32", "property": "Z", "propertyType": "Int", "operation": "SetAttr"},
+      {"storageRecord": "+0x74", "accessorVa": "0x0055d070", "inputType": "raw dword", "property": "Layout", "propertyType": "Int", "operation": "SetAttr"},
+      {"storageRecord": "+0x20", "accessorVa": "0x0055d030", "inputType": "helper-resolved string", "localTransform": "remove every literal !!! occurrence", "property": "Text", "propertyType": "String", "operation": "SetAttr"},
+      {"source": "literal", "property": "Visibility", "propertyType": "String", "value": "Visible", "operation": "SetAttr"},
+      {"source": "literal", "property": "SparkleSequence", "propertyType": "String", "value": "m00002", "operation": "SetAttr"},
+      {"source": "literal", "property": "Template", "propertyType": "String", "value": "MapMarkerParty", "operation": "SetAttr"}
+    ],
+    "batchOperation": {"operation": "Update", "condition": "at least one row was accepted", "maximumCallsPerInvocation": 1},
+    "removal": {
+      "va": "0x00942db0",
+      "condition": "accepted row count is less than the existing row count",
+      "range": "inclusive [accepted count, existing count - 1]",
+      "order": "descending",
+      "operation": "RemoveIndex",
+      "zeroAccepted": "remove all existing rows without dispatching Update",
+      "lifetime": "dense indexes are reused on the next invocation; only the stale suffix is deleted and no source-key deletion exists"
+    },
+    "unusedByThisEffect": ["header +0x08", "header +0x0c", "header +0x10", "record +0x14", "storage +0x798"]
   },
   "deferredGate": {
     "vtableOwner": "PcSearchWidgetOperator",
@@ -113,9 +186,11 @@
     "rejectedInterpretations": [
       "a semantic party-marker packet type is not an evidence-backed packet name",
       "the physical capacity of sixteen records is not a safe runtime count",
-      "numeric fields alone do not establish coordinate or server-policy nouns",
-      "the +0x798 gate is not the first outward consumer"
+      "record +0x00 is not named actor ID and record +0x08 or +0x0c is not named marker type or map ID",
+      "the unused middle float is not proven to be Y, and no radius, rotation, icon, label, or color field is proven",
+      "X and Z are UI property identities after truncation, not proof of a world-coordinate wire contract",
+      "the +0x798 gate and the three projected header dwords do not influence this MapMarkerParty effect"
     ],
-    "remainingBoundary": "unresolved computed or dynamic indirect readers, runtime-only consumers, the meanings of projected numeric fields, helper-context class ownership, and server behavior remain unresolved"
+    "remainingBoundary": "the semantic names of the three key dwords and unused middle float, helper-context and tagged-element ownership outside the proven CharaBase path, the source package for group_marker_data, computed or dynamic indirect readers, runtime-only consumers, and server policy remain unresolved"
   }
 }

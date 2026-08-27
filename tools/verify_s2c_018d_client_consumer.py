@@ -42,12 +42,13 @@ def verify(document: dict | None = None) -> list[str]:
     errors: list[str] = []
     if document is None:
         document = json.loads(MANIFEST.read_text(encoding="ascii"))
-    if document.get("format") != "xivl-s2c-018d-client-consumer-v1":
+    if document.get("format") != "xivl-s2c-018d-client-consumer-v2":
         errors.append("format changed")
     source = document.get("source", {})
     if (
         source.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
         or source.get("ghidraVersion") != "12.1.3"
+        or source.get("presentationRunId") != "lane1-018d-presentation-contract-20260827"
     ):
         errors.append("retail evidence identity changed")
     wire = document.get("wireContract", {})
@@ -105,9 +106,25 @@ def verify(document: dict | None = None) -> list[str]:
         or header_map != EXPECTED_HEADER
         or projection_map != EXPECTED_PROJECTION
         or [row.get("storageRecord") for row in projection.get("helperOutputs", [])] != ["+0x20", "+0x74"]
+        or [row.get("presentationArgument") for row in projection.get("helperOutputs", [])] != ["Text:String", "Layout:Int"]
+        or [row.get("defaulting") for row in projection.get("helperOutputs", [])] != [
+            "reset to empty before lookup; lookup failure leaves the value empty",
+            "cleared to zero before every lookup attempt",
+        ]
         or "no RTTI class name is proven" not in projection.get("helperBoundary", "")
     ):
         errors.append("wire-to-storage projection or helper boundary changed")
+    helper = projection.get("helperLookup", {})
+    if (
+        helper.get("primaryKey") != "+0x00"
+        or helper.get("fallbackKey") != "+0x08"
+        or helper.get("missingSentinel") != "signed -1"
+        or helper.get("unusedAsLookupKey") != "+0x0c"
+        or helper.get("stringResolverVa") != "0x006c09e0"
+        or helper.get("scalarResolverVa") != "0x006c08a0"
+        or "CharaBase" not in helper.get("resolverBoundary", "")
+    ):
+        errors.append("helper lookup, fallback, or resolver boundary changed")
     readers = []
     for row in document.get("readerCensus", []):
         location = row.get("storage", row.get("storageRecord"))
@@ -133,8 +150,69 @@ def verify(document: dict | None = None) -> list[str]:
         or first.get("consumerVa") != "0x00671400"
         or first.get("retailStrings") != ["MapScreenControl", "group_marker_data", "MapMarkerParty", "Update"]
         or "synchronously" not in first.get("operation", "")
+        or "stale suffix" not in first.get("operation", "")
     ):
         errors.append("first outward UI operation changed")
+    presentation = document.get("presentationContract", {})
+    resource = presentation.get("resourceLookup", {})
+    if (
+        resource.get("cacheOffset") != "+0x9e8"
+        or resource.get("resourceName") != "group_marker_data"
+        or resource.get("sourceType") != "Sqwt::ResourceDictionary"
+        or resource.get("targetType") != "Sqwt::Data::SqwtXmlDataMaker"
+        or resource.get("associatedPath") != "debug/pc_mark_sample.le.spk"
+        or "does not prove" not in resource.get("associatedPathBoundary", "")
+    ):
+        errors.append("presentation resource lookup or package boundary changed")
+    count_path = presentation.get("countPath", {})
+    if (
+        count_path.get("wireType") != "signed byte"
+        or count_path.get("storageType") != "signed 32-bit integer"
+        or "unsigned" not in count_path.get("applyLoop", "")
+        or "signed" not in count_path.get("consumerLoop", "")
+        or "negative nonzero" not in count_path.get("boundary", "")
+    ):
+        errors.append("count comparison or unsafe boundary changed")
+    properties = [
+        (
+            row.get("wire"),
+            row.get("storageRecord"),
+            row.get("property"),
+            row.get("propertyType"),
+            row.get("value"),
+            row.get("localTransform"),
+        )
+        for row in presentation.get("properties", [])
+    ]
+    expected_properties = [
+        ("+0x14", "+0x10", "X", "Int", None, "CVTTSS2SI truncation toward zero to signed int32"),
+        ("+0x1c", "+0x18", "Z", "Int", None, "CVTTSS2SI truncation toward zero to signed int32"),
+        (None, "+0x74", "Layout", "Int", None, None),
+        (None, "+0x20", "Text", "String", None, "remove every literal !!! occurrence"),
+        (None, None, "Visibility", "String", "Visible", None),
+        (None, None, "SparkleSequence", "String", "m00002", None),
+        (None, None, "Template", "String", "MapMarkerParty", None),
+    ]
+    removal = presentation.get("removal", {})
+    if (
+        properties != expected_properties
+        or len(presentation.get("eligibility", [])) != 3
+        or "dense zero-based" not in presentation.get("outputIndex", "")
+        or "no separate create branch" not in presentation.get("rowWrite", "")
+        or presentation.get("batchOperation") != {
+            "operation": "Update",
+            "condition": "at least one row was accepted",
+            "maximumCallsPerInvocation": 1,
+        }
+        or removal.get("range") != "inclusive [accepted count, existing count - 1]"
+        or removal.get("order") != "descending"
+        or removal.get("operation") != "RemoveIndex"
+        or "without dispatching Update" not in removal.get("zeroAccepted", "")
+        or presentation.get("unusedByThisEffect") != [
+            "header +0x08", "header +0x0c", "header +0x10", "record +0x14", "storage +0x798"
+        ]
+    ):
+        errors.append("property flow, row lifecycle, or unused-field verdict changed")
     deferred = document.get("deferredGate", {})
     if (
         deferred.get("vtableOwner") != "PcSearchWidgetOperator"
@@ -145,12 +223,21 @@ def verify(document: dict | None = None) -> list[str]:
     ):
         errors.append("deferred refresh gate changed")
     verdict = document.get("verdict", {})
+    expected_rejections = [
+        "a semantic party-marker packet type is not an evidence-backed packet name",
+        "the physical capacity of sixteen records is not a safe runtime count",
+        "record +0x00 is not named actor ID and record +0x08 or +0x0c is not named marker type or map ID",
+        "the unused middle float is not proven to be Y, and no radius, rotation, icon, label, or color field is proven",
+        "X and Z are UI property identities after truncation, not proof of a world-coordinate wire contract",
+        "the +0x798 gate and the three projected header dwords do not influence this MapMarkerParty effect",
+    ]
     if (
         verdict.get("uiConsumers") != ["MapScreenControl::0x00671400"]
         or verdict.get("luaOrNapiConsumers") != []
         or verdict.get("networkEmissions") != []
-        or len(verdict.get("rejectedInterpretations", [])) != 4
+        or verdict.get("rejectedInterpretations") != expected_rejections
         or "computed or dynamic indirect" not in verdict.get("remainingBoundary", "")
+        or "source package" not in verdict.get("remainingBoundary", "")
     ):
         errors.append("consumer verdict or remaining boundary changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
@@ -207,6 +294,41 @@ def mutation_test() -> list[str]:
     rejected_name = copy.deepcopy(document)
     rejected_name["wireContract"]["neutralName"] = "invented-party-marker-packet"
     mutations.append(rejected_name)
+    for section, key, value in [
+        ("resourceLookup", "resourceName", "invented"),
+        ("resourceLookup", "associatedPathBoundary", "proven source package"),
+        ("countPath", "applyLoop", "signed safe loop"),
+        ("countPath", "boundary", "sixteen rows are clamped"),
+        ("removal", "order", "ascending"),
+        ("removal", "zeroAccepted", "dispatch Update"),
+    ]:
+        changed = copy.deepcopy(document)
+        changed["presentationContract"][section][key] = value
+        mutations.append(changed)
+    changed_helper_key = copy.deepcopy(document)
+    changed_helper_key["projection"]["helperLookup"]["fallbackKey"] = "+0x0c"
+    mutations.append(changed_helper_key)
+    changed_helper_default = copy.deepcopy(document)
+    changed_helper_default["projection"]["helperOutputs"][0]["defaulting"] = "retain prior value"
+    mutations.append(changed_helper_default)
+    changed_x = copy.deepcopy(document)
+    changed_x["presentationContract"]["properties"][0]["localTransform"] = "round to nearest"
+    mutations.append(changed_x)
+    changed_middle = copy.deepcopy(document)
+    changed_middle["presentationContract"]["properties"][1]["wire"] = "+0x18"
+    mutations.append(changed_middle)
+    changed_literal = copy.deepcopy(document)
+    changed_literal["presentationContract"]["properties"][5]["value"] = "m00003"
+    mutations.append(changed_literal)
+    changed_batch = copy.deepcopy(document)
+    changed_batch["presentationContract"]["batchOperation"]["maximumCallsPerInvocation"] = 16
+    mutations.append(changed_batch)
+    changed_unused = copy.deepcopy(document)
+    changed_unused["presentationContract"]["unusedByThisEffect"].remove("storage +0x798")
+    mutations.append(changed_unused)
+    invented_actor_id = copy.deepcopy(document)
+    invented_actor_id["verdict"]["rejectedInterpretations"][2] = "record +0x00 is actor ID"
+    mutations.append(invented_actor_id)
     return [
         f"mutation {index} was accepted"
         for index, item in enumerate(mutations, 1)
@@ -221,7 +343,7 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
-    print("PASS: s2c 0x018D client-consumer manifest and 16 mutations")
+    print("PASS: s2c 0x018D client-consumer manifest and 30 mutations")
     return 0
 
 
