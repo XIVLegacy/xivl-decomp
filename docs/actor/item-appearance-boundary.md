@@ -229,8 +229,8 @@ encoding at `0x004d7980`, the queue-field reads and wrapper call in
 `0x004e9700`, and the `-0x15` plus virtual-offset `0x274` call in `0x007c93c0`.
 
 Raw projects, logs, and decompiled bodies remain ignored local evidence under
-`tools/ghidra/logs/`. The tracked RTTI and vtable-slot catalogs independently
-anchor ItemBase slot 33 and CharaActor slot 157.
+`tools/ghidra/logs/<run-id>/`. The tracked RTTI and vtable-slot catalogs
+independently anchor ItemBase slot 33 and CharaActor slot 157.
 
 ## Static evidence boundary
 
