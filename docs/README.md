@@ -9,6 +9,7 @@ checks the index against the tree in both directions.
 - [Cast timing clock and force override](actor/cast-timing-clock.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
+- [Grow-data lookup boundary](actor/grow-data-boundary.md)
 - [Native item-appearance boundary](actor/item-appearance-boundary.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)

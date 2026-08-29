@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import _schema_check
+import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
@@ -345,6 +346,12 @@ def main() -> int:
     if retail_errors:
         errors.extend(f"retail protocol-caller contract: {error}"
                       for error in retail_errors)
+    grow_data_errors = grow_data_verifier.verify()
+    if grow_data_errors:
+        errors.extend(
+            f"grow-data boundary contract: {error}"
+            for error in grow_data_errors
+        )
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:
         errors.extend(

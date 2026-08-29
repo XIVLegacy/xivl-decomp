@@ -1,0 +1,87 @@
+{
+  "format": "xivl-grow-data-boundary-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1.3",
+    "runId": "lane3-grow-boundary-20260829-closing",
+    "luaContract": "https://github.com/XIVLegacy/xivl-client-structs/blob/ef57c20da0f3b39ee7b3462450d5389f3981f44f/manifests/lua_api_contract.json",
+    "luaRegistry": "https://github.com/XIVLegacy/xivl-client-scripts/blob/f351794098124d00a673ef2714336ca23eb48d85/lua/registry.json",
+    "luaScriptIdentity": "https://github.com/XIVLegacy/xivl-client-scripts/blob/f351794098124d00a673ef2714336ca23eb48d85/manifests/scripts.json",
+    "luaFormulaBoundary": "https://github.com/XIVLegacy/xivl-client-scripts/blob/f351794098124d00a673ef2714336ca23eb48d85/docs/equipment-parameter-formulas.md",
+    "itemDataBoundary": "https://github.com/XIVLegacy/xivl-client-data/blob/76d68d2036dc99bdda2917e65efcdef4f62f4b63/docs/item-equipment-columns.md"
+  },
+  "judgeGrowColumn": {
+    "owner": "CharaBaseClass retail Lua",
+    "script": "chara/charabaseclass_parameter",
+    "functionLine": 513,
+    "assignmentLine": 569,
+    "arityIncludingSelf": 3,
+    "arguments": ["receiver actor", "comparison actor", "grow selector"],
+    "playerReceiverResult": "selector unchanged",
+    "nonPlayerToPlayer": [[69, 19], [73, 23], [77, 27], [81, 31], [85, 35], [91, 41], [95, 45], [99, 49], [89, 39]],
+    "nonPlayerToNonPlayer": [[19, 69], [23, 73], [27, 77], [31, 81], [35, 85], [41, 91], [45, 95], [49, 99], [39, 89]],
+    "unknownSelectorResult": "selector unchanged",
+    "validation": "no explicit nil, type, integer, or range validation",
+    "nativeImplementationVa": null,
+    "nativeSlot": null
+  },
+  "directConsumers": {
+    "itemGrowSourceColumns": [49, 52, 55, 58],
+    "commandGrowSourceColumns": [42, 47, 52, 57],
+    "statusGrowSourceColumns": [30, 34, 38, 26, 48],
+    "negativeSourceSelector": "converted to nil before judgeGrowColumn",
+    "getGrowDataArguments": ["lookup receiver", "level", "translated grow selector"],
+    "levelArguments": "item or command level and actor skill level adjusted only by the caller",
+    "callerLevelDistanceLimits": [-1, 15],
+    "callerHighLevelClamp": "item or command level plus min(15, actor level minus item or command level)",
+    "callerRounding": "none"
+  },
+  "staticBoundary": {
+    "classBootstrapVa": "0x0078e3a0",
+    "classNameVa": "0x00fe0670",
+    "className": "CharaBaseClass",
+    "classPathBuilderVa": "0x0078eb70",
+    "classPathVa": "0x00fe0a94",
+    "classProgPathVa": "0x00fe0aac",
+    "progLoaderVa": "0x00d0fd70",
+    "actorBaseVtableRva": "0xbd4fe4",
+    "charaBaseVtableRva": "0xbd5cac",
+    "misleadingSharedSlot": 25,
+    "misleadingSharedSlotVa": "0x005c5c80",
+    "nameToNativeJoin": null,
+    "getGrowDataImplementationVa": null,
+    "tableAddress": null,
+    "tableElementWidth": null,
+    "tableShape": null,
+    "tableProducer": null,
+    "tableOwner": null,
+    "tableLifetime": null,
+    "levelIndexBase": null,
+    "levelClamp": null,
+    "interpolation": null,
+    "lookupRounding": null,
+    "negativeBoundary": "static identity ends at Lua VM method lookup; script method ordinal 25 is not native vtable slot 25"
+  },
+  "runtimeBoundary": {
+    "loaderBreakpointVa": "0x00d0fd70",
+    "loaderPathCondition": "/Chara/CharaBaseClass.prog",
+    "loaderIndirectCallSites": ["0x00d0fe03", "0x00d0fe10", "0x00d0fe26", "0x00d0fe39"],
+    "lookupCapture": [
+      "break on Lua method lookup for key getGrowData",
+      "record the receiver userdata or table and resolved callable",
+      "record both numeric arguments before conversion",
+      "step through the callable to its first non-VM native frame"
+    ],
+    "tableWatch": [
+      "record every address used to derive the returned numeric value",
+      "break on the first write to the backing range in a fresh process",
+      "capture allocating owner, element stride, bounds checks, and destruction"
+    ]
+  },
+  "authority": {
+    "clientPredictionOnly": true,
+    "serverAuthorityEstablished": false,
+    "bahamutGrowFormulaReady": false
+  }
+}
