@@ -16,6 +16,7 @@ import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
 import verify_s2c_018d_client_consumer as s2c_018d_consumer_verifier
+import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -349,6 +350,13 @@ def main() -> int:
         errors.extend(
             f"s2c 0x018D client-consumer manifest: {error}"
             for error in s2c_018d_errors
+        )
+
+    s2c_0190_errors = s2c_0190_consumer_verifier.verify()
+    if s2c_0190_errors:
+        errors.extend(
+            f"s2c 0x0190 persistent-consumer contract: {error}"
+            for error in s2c_0190_errors
         )
 
     s2c_0193_errors = s2c_0193_state_verifier.verify()
