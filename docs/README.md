@@ -66,6 +66,7 @@ checks the index against the tree in both directions.
 - [InstallUnpacker](resource/install-unpacker.md)
 - [MurmurHash2](resource/murmur2.md)
 - [PE layout](resource/pe-layout.md)
+- [Resource path producer](resource/resource-path-producer.md)
 - [SqPack architecture](resource/sqpack.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [LPB corpus](script/lpb-corpus.md)

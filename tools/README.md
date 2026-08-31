@@ -197,7 +197,8 @@ Ghidra project.
 
 | Tool | Purpose | Required inputs |
 |---|---|---|
-| `sqpack_path.py` | Converts a resource identifier directly to its deterministic `data/BB/BB/BB/BB.DAT` path or scans an install for DAT files. | A resource identifier, or `--scan <game-root>`; no SqPack index is read. |
+| `sqpack_path.py` | Computes the formatter's numeric-mode `data/BB/BB/BB/BB.DAT` path or scans an install for matching files; it does not implement the zero-mode catalog branch. | A resource identifier, or `--scan <game-root>`; no SqPack index is read. |
+| `verify_resource_path_producer.py` | Validates the exact-build numeric producer, ownership contract, overclaim guards, and optional pre-open byte signature. | The tracked manifest; add `--exe orig/ffxivgame.exe` for local binary checks. |
 | `sqpack_cat.py` | Opens the derived DAT path, walks PackRead chunks, and optionally inflates raw-deflate payloads. A 32-chunk safety limit reports incomplete output and exits nonzero. | A resource identifier and `--root <game-root>` containing the matching `data/` tree. |
 
 ## Gate and fixed-vector checks

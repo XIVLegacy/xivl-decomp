@@ -8,8 +8,8 @@ string-hashed SqPack format used by later games.
 
 In ARR-era Sqpack, file paths are hashed (folder hash + file hash, both
 CRC32) and the hash pair indexes the `.index` file. The 1.x format
-predates that: there is **no string-path hash**. Instead every asset
-has a 32-bit `resource_id` and the file lives at:
+predates that: there is **no string-path hash**. In the client's numeric
+formatter mode, a 32-bit `resource_id` maps to:
 
 ```
 <game-root>/data/<b3>/<b2>/<b1>/<b0>.DAT
@@ -21,12 +21,17 @@ uppercase hex. Confirmed by:
 - The path-format string `"%cdata%c%02X%c%02X%c%02X%c%02X.DAT"` at
   RVA `0x00b672bc` (abs `0x00f672bc`).
 
+This byte-group mapping is conditional on the formatter's mode byte being
+nonzero. When it is zero, the same function uses a high-16 group and low-16
+index catalog path instead. See [Resource path producer](resource-path-producer.md)
+for that gate and the producer-to-open ownership chain.
+
 The recovered component map is:
 
 | Concept                        | Reality in 1.x                                |
 |--------------------------------|-----------------------------------------------|
-| Resource-id addressing         | Literal u32 resource IDs select DAT paths.   |
-| DAT path construction          | `FUN_0044b3a0` builds DAT path from u32.     |
+| Resource-id addressing         | Numeric mode maps literal u32 IDs to DAT paths. |
+| DAT path construction          | `FUN_0044b3a0` has numeric and catalog modes. |
 | Pack file readers              | `Sqex::Data::PackRead` / `PackWrite`         |
 | Chunk I/O                      | `Sqex::Data::ChunkRead<u32,u32>` / `ChunkWrite` |
 | Decompression                  | not established; candidate zlib-wrapped chunk          |
@@ -63,7 +68,7 @@ audio with smaller chunk-id and chunk-size widths).
 | `0x008c6670`  | 107 B | `PackRead::~PackRead` - sets vtable, frees heap @ this+0x74, calls into ChunkRead destructor at this+0x1c, hands over to `ChunkRead<u32,u32>::~ChunkRead` (vtable swap to 0xb931c8) |
 | `0x00942230`  |  84 B | Allocates / constructs a `PackWrite` instance (writes vtable 0x111311c) |
 | `0x00942800`  | 132 B | Constructs / re-initialises a `PackRead` instance (writes vtable 0x110dd40) |
-| `0x0004b3a0`  | 615 B | Builds the `data\<b3>\<b2>\<b1>\<b0>.DAT` path from a 32-bit `resource_id` (PUSH 0x5c separators x 5, calls into a sprintf-like helper at FUN_00447620) |
+| `0x0004b3a0`  | 615 B | In numeric mode, builds the `data\<b3>\<b2>\<b1>\<b0>.DAT` path from a 32-bit `resource_id` (PUSH 0x5c separators x 5, calls into a sprintf-like helper at FUN_00447620); zero mode uses a catalog path. |
 
 The `PackRead::~PackRead` destructor is the smallest concrete recovered unit.
 
@@ -117,9 +122,10 @@ to read 1.x pack data go through either the D2 vtable slot or the
 ## Resolver capabilities
 
 A working `tools/sqpack-cat <resource_id>` that:
-1. **Resolves a resource_id to a DAT file path** via
+1. **Computes the numeric-mode DAT path for a resource_id** via
    [`tools/sqpack_path.py`](../../tools/sqpack_path.py).
-   Verified against 140,180 real DAT files in a retail install.
+   Verified against 140,180 real DAT files in a retail install. The helper is
+   not an implementation of the formatter's zero-mode catalog branch.
 2. **Opens the DAT file** via
    [`tools/sqpack_cat.py`](../../tools/sqpack_cat.py).
 3. **Streams recognized contained chunks** - the best-effort chunk walker

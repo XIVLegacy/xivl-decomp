@@ -16,6 +16,7 @@ import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
+import verify_resource_path_producer as resource_path_verifier
 import verify_s2c_018d_client_consumer as s2c_018d_consumer_verifier
 import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
@@ -351,6 +352,12 @@ def main() -> int:
         errors.extend(
             f"grow-data boundary contract: {error}"
             for error in grow_data_errors
+        )
+    resource_path_errors = resource_path_verifier.verify()
+    if resource_path_errors:
+        errors.extend(
+            f"resource-path producer contract: {error}"
+            for error in resource_path_errors
         )
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:

@@ -1,0 +1,137 @@
+{
+  "format": "xivl-resource-path-producer-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "ghidraVersion": "12.1.3",
+    "runId": "c548-resource-path-producer-20260830",
+    "priorOpenBoundary": "https://github.com/XIVLegacy/xivl-client-structs/blob/c987ecc4256da271ee61d6aa257abb9da9a31e65/manifests/resource_dat_open.json"
+  },
+  "numericProducer": {
+    "owner": "Component::Resource::ResourceModule vtable slot 1",
+    "functionVa": "0x00c99130",
+    "input": "caller-supplied u32 resource id",
+    "formatterVa": "0x0044b3a0",
+    "resourceAllocationSize": 244,
+    "resourceConstructorVa": "0x00caedd0",
+    "resourceIdOffset": 88,
+    "resourcePathOffset": 4,
+    "initialStateOffset": 176,
+    "initialState": 1,
+    "fileThreadOffset": 36,
+    "priorityQueueOffset": 56,
+    "normalQueueOffset": 84,
+    "queueProducerVa": "0x008edda0",
+    "queueCommitVa": "0x008edbf0",
+    "resourceIndexVa": "0x00c97ba0",
+    "treeInsertVa": "0x00913c10",
+    "consumerVa": "0x00c96850",
+    "openVa": "0x00453c00",
+    "pathArgumentAtOpen": "Resource+0x04",
+    "alternateConstructorCallers": [
+      "0x00c98e40",
+      "0x00c98f80",
+      "0x00c992d0",
+      "0x00c99480",
+      "0x00c99670"
+    ],
+    "boundary": "Among direct callers of the Resource constructor, only 0x00c99130 also calls the numeric formatter. Four additional direct formatter callers are outside this Resource-constructor set. The other direct Resource-constructor callers accept or build paths by other routes."
+  },
+  "formatter": {
+    "functionVa": "0x0044b3a0",
+    "numericModeFlagVa": "0x01266b64",
+    "numericModeCondition": "nonzero",
+    "formatStringVa": "0x00f672bc",
+    "formatString": "%cdata%c%02X%c%02X%c%02X%c%02X.DAT",
+    "separator": "0x5c",
+    "byteOrder": "resource-id bytes from most significant to least significant",
+    "hexCase": "uppercase",
+    "relativeExampleInput": "0x2a080017",
+    "relativeExampleOutput": "\\data\\2A\\08\\00\\17.DAT",
+    "rootPathWrapperVa": "0x0132cb98",
+    "rootSetterVa": "0x004b2d30",
+    "joinVa": "0x0044ab90",
+    "resultCopyVa": "0x00447450",
+    "alternateMode": "When the flag is zero, the function uses a high-16 group and low-16 index table lookup instead of the numeric format string.",
+    "gateWriters": {
+      "ownerVa": "0x004b2df0",
+      "constantOneWriteVa": "0x004b2eca",
+      "conditionalByteWriteVa": "0x004b3191"
+    }
+  },
+  "pathWrapper": {
+    "size": 84,
+    "pointerOffset": 0,
+    "capacityOffset": 4,
+    "usedBytesOffset": 8,
+    "inlineBufferOffset": 18,
+    "inlineCapacity": 64,
+    "usedBytesIncludesNul": true,
+    "heapFlagOffset": 17,
+    "heapFlagValue": 0,
+    "initializerVa": "0x00445cf0",
+    "growVa": "0x00447010",
+    "deepCopyVa": "0x00447200",
+    "formatCopyVa": "0x00447620",
+    "concatVa": "0x00447c80",
+    "destructorVa": "0x00446f50",
+    "resourceDestructorBodyVa": "0x00cae7f0",
+    "resourceDeletingDestructorVa": "0x00caf120",
+    "ownership": "The Resource constructor deep-copies the producer-local path into Resource+0x04. The producer destroys its local wrapper after enqueue and indexing. Resource destruction releases its independent path wrapper.",
+    "openUse": "The FileThread consumer passes Resource+0x04 to the LocalFile open member. The open member converts it to temporary wide storage and does not destroy or mutate Resource+0x04."
+  },
+  "observedRequestCorrelation": {
+    "sanitizedRelativePath": "data\\2A\\08\\00\\17.DAT",
+    "candidateResourceId": "0x2a080017",
+    "status": "inferred",
+    "basis": "The numeric-mode formatter maps the candidate id to the observed path, but the observed request was not captured entering 0x00c99130 or 0x0044b3a0.",
+    "binaryImmediateOccurrences": 0
+  },
+  "preOpenSignature": {
+    "status": "SUPPORTED_EXACT_BUILD",
+    "functionVa": "0x00c96850",
+    "patternVa": "0x00c96972",
+    "fileOffset": "0x00896972",
+    "pattern": "6A 00 68 ?? ?? ?? ?? 83 C6 04 56 8B CF E8 ?? ?? ?? ??",
+    "callPatternOffset": 13,
+    "callVa": "0x00c9697f",
+    "callTargetVa": "0x00453c00",
+    "maskedFields": [
+      "bytes 3-6: absolute address of the rb mode literal",
+      "bytes 14-17: call rel32 displacement"
+    ],
+    "exactBuildMatchCount": 1,
+    "stableByteMutation": {
+      "patternOffset": 11,
+      "from": "0x8b",
+      "to": "0x8a",
+      "matchCount": 0
+    },
+    "scope": "This signature is validated only for the pinned executable identity; cross-build stability is not claimed."
+  },
+  "hookGate": {
+    "stableExactBuildSignature": "SUPPORTED",
+    "numericProducerChain": "SUPPORTED statically",
+    "observedRequestProducerIdentity": "INFERRED",
+    "pathOwnership": "SUPPORTED for the original Resource path",
+    "streamOwnershipAndLifetime": "PARTIAL - terminal teardown is established, but the normal successful-read per-request close point is unresolved",
+    "successfulRedirectSemantics": "NOT TESTED",
+    "missingFileFallthrough": "NOT TESTED",
+    "originalPathIdentityForwarding": "NOT TESTED"
+  },
+  "bahamutAdoption": {
+    "safeNow": [
+      "Gate the hook on the exact executable hash and unique pre-open signature.",
+      "Treat Resource+0x04 as a borrowed narrow path wrapper at the pre-open boundary.",
+      "Decode numeric resource ids as uppercase MSB-first byte groups only when the client numeric-mode gate is established."
+    ],
+    "blocked": [
+      "Do not claim that the observed 0x2a080017 candidate traversed the numeric producer.",
+      "Do not ship redirect or missing-file fallback behavior before the designed runtime experiments establish it.",
+      "Do not claim an exact normal successful-read close point or cross-build signature stability."
+    ]
+  }
+}

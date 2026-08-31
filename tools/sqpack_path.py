@@ -3,8 +3,9 @@
 # Copyright (C) 2026  XIVLegacy Dev Team
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# Resource-id -> DAT path resolver. Python reference for the
-# PathBuilder.cpp functional decomp at RVA 0x0044b3a0.
+# Resource-id -> numeric-mode DAT path resolver. Python reference for the
+# byte-group branch of the formatter at RVA 0x0044b3a0. The formatter's
+# zero-mode catalog branch is intentionally outside this helper.
 #
 # Usage:
 #   tools/sqpack_path.py 0x12345678
@@ -25,7 +26,7 @@ import sys
 
 
 def build_path(resource_id: int, posix: bool = False) -> str:
-    """Mirror of build_resource_path(_posix) in PathBuilder.cpp."""
+    """Build the formatter's nonzero-mode byte-group DAT path."""
     b3 = (resource_id >> 24) & 0xFF
     b2 = (resource_id >> 16) & 0xFF
     b1 = (resource_id >>  8) & 0xFF
@@ -73,8 +74,8 @@ def scan_data_dir(game_root: str):
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="Resource-id -> DAT path resolver (Python ref for "
-                    "PathBuilder.cpp at RVA 0x0044b3a0).",
+        description="Resource-id -> numeric-mode DAT path resolver (Python "
+                    "ref for the byte-group branch at RVA 0x0044b3a0).",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("resource_id", nargs="?",
                     help="resource_id (hex with 0x prefix or decimal); omit when --scan is given")
