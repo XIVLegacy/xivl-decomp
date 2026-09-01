@@ -23,7 +23,6 @@ catalog, not a buildable client source tree.
 
 - [Documentation home](docs/README.md)
 - [Evidence and claims](docs/ai_agents/evidence-and-claims.md)
-- [Verification](docs/ai_agents/verification.md)
 - [Wire protocol](docs/net/wire-protocol.md)
 - [Tooling and extraction](tools/README.md)
 

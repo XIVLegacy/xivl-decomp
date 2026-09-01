@@ -34,16 +34,6 @@ redistribute, or include either kind of artifact in generated output.
 Use plain ASCII in authored prose and comments. Do not alter inherited legal,
 copyright, SPDX, permission, or stamped-provenance text.
 
-## Verification
-
-Review the client evidence as described in
-[docs/ai_agents/verification.md](docs/ai_agents/verification.md). The
-[checks workflow](.github/workflows/checks.yml) is the authoritative list of
-CI-covered checks.
-
-A successful run validates the tracked repository boundary, not the client claim.
-Record any unverified edge and the binary locator and tool needed to resolve it.
-
 ## License
 
 Contributors license their original contributions under

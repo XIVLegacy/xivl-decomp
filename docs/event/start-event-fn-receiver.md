@@ -150,8 +150,8 @@ The `0x00cc7` cluster on the actor registry has **6 confirmed methods**
 | `0x00cc70b0` | (xref-only - candidate add/remove sibling) | Inferred from `id_partition_predicate_thunk` xref list | Role not established |
 | `0x00cc7180` | Some lookup variant - returns bool | RunEventFunction forward lookup | Thunk -> FUN_00cd80e0 -> FUN_00d132b0 |
 | `0x00cc7190` | (xref-only - candidate add/remove sibling) | Inferred from `id_partition_predicate_thunk` xref list | Role not established |
-| `0x00cc72a0` | Some dispatch call - returns bool | RunEventFunction Phase 3 attempt D | Wrapper around FUN_00cd7a30 class-registry entry resolver |
-| `0x00cc78c0` | Some "register / enqueue" call - returns void | RunEventFunction Phase 1 attempt C | Wrapper around 1187-byte FUN_00cdde20 |
+| `0x00cc72a0` | Some dispatch call - returns bool | RunEventFunction reverse dispatch | Wrapper around FUN_00cd7a30 class-registry entry resolver |
+| `0x00cc78c0` | Some "register / enqueue" call - returns void | RunEventFunction forward enqueue | Wrapper around 1187-byte FUN_00cdde20 |
 | `0x00cc7a50` | `ActorRegistry::lookup_actor` (Actor* or NULL) | KickReceiver decomp + this one | Partitions by `[+0x1c4]`, then dispatches to A or B |
 
 The three lookup calls in the forward pass of RunEventFunction's inner

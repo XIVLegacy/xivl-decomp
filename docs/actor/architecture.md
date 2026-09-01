@@ -91,12 +91,11 @@ The actual constructor was found by scanning for `MOV [reg], 0xfc0d34`, a
 vtable-write pattern found at only two sites in the binary: the destructor and
 `FUN_0065f180`.
 
-Also course-corrected: the dtor at `FUN_00666130` is **CharaActor's
-own** dtor, not the parent's. The vtable swap to 0xfc0d34 at the
-top is the standard MSVC "set vtable to this class's own table
-during destruction" pattern. The immediate parent is CDevActor, as
-established by the constructor order above. The three remaining side
-bases are still unnamed.
+The destructor at `FUN_00666130` belongs to CharaActor, not its parent. The
+vtable swap to 0xfc0d34 at the top is the standard MSVC pattern that sets the
+vtable to the class's own table during destruction. The immediate parent is
+CDevActor, as established by the constructor order above. The three remaining
+side bases are still unnamed.
 
 **Literal initializers with unresolved meanings:**
 - `+0x0169` = 1 (byte flag)

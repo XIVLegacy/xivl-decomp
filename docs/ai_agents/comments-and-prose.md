@@ -83,4 +83,10 @@ Public prose uses a plain, direct register.
   and its source is cited.
 - Do not describe the retired byte-matching workflow as current policy.
 
+Every tracked authored prose or structured description contains current
+evidence or contracts. It does not contain prompts, assignments, review
+summaries, checkout state, internal milestones, or work-session plans. Existing
+evidence run IDs are provenance and remain verbatim. New run IDs describe the
+observation rather than temporary work organization.
+
 Internal working notes are outside this public policy tier.

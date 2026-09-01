@@ -22,9 +22,19 @@ tracked tree.
 | `ghidra_scripts/DumpStrings.java` | Exports defined strings and classifies source, function, Lua, and other naming hints. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or the repository as Ghidra's working directory. |
 | `ghidra_scripts/DumpRtti.java` | Exports the tracked, deterministic MSVC RTTI class/vtable catalog and streaming vtable-slot catalog, including source and tool metadata. | A current PE32 Ghidra program after the Microsoft RTTI analyzer, with `XIVL_DECOMP_ROOT` set. |
 | `ghidra_scripts/ApplyKnownNames.java` | Applies locally generated neutral vtable names to default-named functions without replacing existing names; JSON string escapes are decoded. | A disposable Ghidra program and flat JSON catalogs selected by `APPLY_NAMES_JSON`, or `config/<binary>.vtable_method_names.json`. Never run it against an export project. |
+
+### Analysis queries
+
+| Tool | Purpose | Required inputs |
+|---|---|---|
 | `ghidra_scripts/DecompileToText.java` | Prints focused decompilation text for requested virtual addresses. | A current analyzed Ghidra program and comma-separated absolute addresses in `DECOMP_VAS`. |
 | `ghidra_scripts/FindCallers.java` | Prints code and data references to requested virtual addresses, or emits the bounded retail protocol-caller observation. | A current analyzed Ghidra program and comma-separated absolute addresses in `CALLER_VAS`; structured mode also requires exactly one target and `XIVL_RETAIL_OBSERVATIONS_OUT`. |
 | `ghidra_scripts/FindBytes.java` | Finds an exact byte sequence without changing the program. | A current analyzed Ghidra program and space-separated hex bytes in `SEARCH_BYTES`. |
+
+### Function ID
+
+| Tool | Purpose | Required inputs |
+|---|---|---|
 | `build_fid.py` | Extracts MSVC 2005 object libraries, builds a stock Ghidra FidDb, applies it, and refreshes symbols. | POSIX Ghidra, JDK 21, `llvm-ar`, explicitly supplied VC8 `.lib` files, and the imported `build/ghidra/ffxivgame` project for `apply`. |
 | `ghidra_scripts/RunFidMatch.java` | Re-runs only Ghidra's Function ID analyzer after a FidDb is attached. | A current Ghidra program with the FidDb attached. |
 

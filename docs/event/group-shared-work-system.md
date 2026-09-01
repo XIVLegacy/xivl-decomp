@@ -392,8 +392,6 @@ struct OnlineStatusUpdater : PacketRequestBase {
 | 17 | `0x2bfc70` | 1 | `MarkComplete()` - empty `ret` (no state change; the array length tracks completeness) |
 | 18 | `0x2c01f0` | 37 | **`IsComplete()`** - returns true when `((array_end - array_begin) / 8) == expected_count`. If `array_begin` is null, returns true only if `expected_count == 0` |
 
-### Practical impact for client
-
 ## Group::EntryBuilderBase + EntryBuilder slot maps (item #4)
 
 `EntryBuilderBase` (19 slots, RVA `0xbd415c`) is the **single-use,
@@ -496,8 +494,6 @@ for one group transition** - Add/Remove members, Build, Mark complete,
 finally Detach. The pimpl at `+0x38` holds the actual SubPacket
 under construction; the EntryBuilder is just the typed lifecycle
 wrapper.
-
-### Practical impact for client
 
 ## Cross-references
 
