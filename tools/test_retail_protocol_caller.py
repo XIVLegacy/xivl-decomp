@@ -169,15 +169,27 @@ def main() -> int:
               and "if: github.event_name == 'workflow_dispatch'" not in workflow)
         check("workflow uses protected environment",
               "environment:\n      name: retail-evidence" in workflow)
-        shared_pin = (
-            "XIVLegacy/xivl-tools/.github/actions/"
-            "fetch-retail-input@4920dece45e88fcb14424de1f5c4fdee94ae6d02"
-        )
-        check("shared retail actions use the reviewed pin",
-              workflow.count("XIVLegacy/xivl-tools/.github/actions/") == 3
-              and shared_pin in workflow
-              and "setup-retail-toolchain@4920dece45e88fcb14424de1f5c4fdee94ae6d02" in workflow
-              and "finalize-retail-attestation@4920dece45e88fcb14424de1f5c4fdee94ae6d02" in workflow)
+        shared_actions = [
+            line.strip().removeprefix("uses: ")
+            for line in workflow.splitlines()
+            if line.strip().startswith(
+                "uses: XIVLegacy/xivl-tools/.github/actions/"
+            )
+        ]
+        shared_revisions = {
+            action.rsplit("@", 1)[-1] for action in shared_actions
+        }
+        shared_revision = next(iter(shared_revisions), "")
+        check("shared retail actions use one immutable pin",
+              len(shared_actions) == 3 and len(shared_revisions) == 1
+              and len(shared_revision) == 40
+              and all(char in "0123456789abcdef" for char in shared_revision)
+              and sum("/fetch-retail-input@" in action
+                      for action in shared_actions) == 1
+              and sum("/setup-retail-toolchain@" in action
+                      for action in shared_actions) == 1
+              and sum("/finalize-retail-attestation@" in action
+                      for action in shared_actions) == 1)
         check("local grant passes the token to the shared fetch action",
               "token: ${{ secrets.RETAIL_INPUTS_TOKEN }}" in workflow
               and "commit: aeb52f6dbde95a793ee6d52be28de9f28a885b15" in workflow
