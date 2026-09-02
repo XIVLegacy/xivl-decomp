@@ -198,8 +198,9 @@ with fresh isolated Ghidra 12.1.3 read-only imports. The retained runs are
 Ghidra evidence directory. The second run includes the exact instruction
 ranges, direct-reference census, constant bytes, and absent-string scan.
 
-The script observations use `xivl-client-scripts` commit
-`49957ae64471fecd5f705dcb196afb031d4eca7b`. Relevant SHA-256 values are
+The script observations use the immutable
+[xivl-client-scripts corpus](https://github.com/XIVLegacy/xivl-client-scripts/blob/49957ae64471fecd5f705dcb196afb031d4eca7b/manifests/scripts.json).
+Relevant SHA-256 values are
 `75f366ca597f77a8e4b506fa8d7b214171cfdbb8d913fa12aa685d72a0b3256b`
 for `gamecommandbaseclass.lua`,
 `4269a53c9be52759d49289364fdbd16e7fef350c5866bdca5c5aae5eba746aff`
@@ -207,9 +208,9 @@ for `actiongaugewidget.lua`, and
 `6226b3fa15dfdbad279b7dba453f8a3b76fcb8b68bad6e14f5403d52987f76e4`
 for `playerbaseclass.lua`.
 
-The property corroboration uses `xivl-captures` commit
-`7adebcc20192139334740656721ffa7e6d47318f` and
-`studies/property-stream-hash-catalog/derived/property-records.csv` SHA-256
+The property corroboration uses the immutable
+[property record catalog](https://github.com/XIVLegacy/xivl-captures/blob/7adebcc20192139334740656721ffa7e6d47318f/studies/property-stream-hash-catalog/derived/property-records.csv),
+SHA-256
 `bb0c2ee515e550d8a01494abb682213da7458c01da1f2d81abddf9f7ade06d08`.
 
 The direct native boundary is finite:

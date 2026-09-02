@@ -123,9 +123,9 @@ at `+0x04`. No carryover route was found.
 
 ## Capture reconciliation
 
-The full decrypted lobby census is pinned to `xivl-captures` commit
-`5ec97e317c31c5f0852a518f7b64cf6a09df3286`, artifact
-`studies/lobby-handshake-triage/derived/lobby-record-census.json`. That JSON has
+The full decrypted lobby census is pinned to the immutable
+[lobby record census](https://github.com/XIVLegacy/xivl-captures/blob/5ec97e317c31c5f0852a518f7b64cf6a09df3286/studies/lobby-handshake-triage/derived/lobby-record-census.json).
+That JSON has
 SHA-256 `50f59c4f186be104d5d45d955560eea703c9e409ddc6e6fef4d826767bfb3d85`;
 its recorded source-capture SHA-256 is
 `28e06b54fe559870031f077f8549b9244caafa7e5177dbca08a7feae6c2b1b62`.
