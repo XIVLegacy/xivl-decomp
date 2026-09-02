@@ -53,7 +53,7 @@ prompt is rendered through:
 - Possibly an existing per-action-bar widget that overlays a
   highlight on the relevant skill icon
 
-This matches item #5's finding (status-effect strip is also Lua +
+This matches the status-effect strip finding (status-effect strip is also Lua +
 Sqwt, not hardcoded). 1.x's combat HUD relies heavily on Lua for
 data-driven decisions, with hardcoded C++ only where game-state
 coupling is too tight.
@@ -69,7 +69,7 @@ ApplyDamage / SetActorState packet         (with chain-flag in payload)
         down
 Client receives packet
         |
-        +--> Damage display path (item #4)
+        +--> Damage display path
         |       -> RaptureActionDamageCallClip -> DamagePlate
         |
         +--> Chain link popup (THIS item)
@@ -115,7 +115,3 @@ Related client findings:
 - `docs/actor/damage-display.md` - DamagePlate / cutscene-clip family
   (LinkPopup is a sibling popup, same parent class structure)
 - `docs/actor/status-effects.md` - bounded status-related UI RTTI search
-- `land-sand-boat-server/xi-private-server.md` - XI's Skillchain
-  system (the structural ancestor of FFXIV 1.x Battle Regimens;
-  the SC `primary_sc` / `secondary_sc` / `tertiary_sc` shape is
-  the same)

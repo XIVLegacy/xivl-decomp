@@ -222,6 +222,3 @@ The decomp confirms:
 - `docs/actor/architecture.md` - CharaActor field layout (the C++
   side that Lua scripts on top of CharaBase observe via
   SyncWriter Work fields)
-- `land-sand-boat-server/xi-private-server.md` - XI's
-  `interaction_framework.md` is the structural cousin (Lua
-  scripts subclass C++ Trader / NPC / Region bases the same way)

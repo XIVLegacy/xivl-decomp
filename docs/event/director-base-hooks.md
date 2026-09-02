@@ -2,7 +2,7 @@
 
 This page maps `DirectorBase` Lua hooks by comparing its overrides with the
 AreaBase, ActorBase, and QuestBase slot maps. Slot semantics are inferred from
-function bodies and cross-referenced Discord context.
+function bodies and related event findings.
 
 ## Director-specific overrides
 
@@ -57,7 +57,7 @@ e8 92 07 2b 00       CALL _free
 
 `operator new(0x70) + null-check + CALL ctor`. Standard
 LuaControl-binding-base factory pattern - same shape as
-QuestBase slot 1 from item #7, just with a different size +
+QuestBase slot 1, just with a different size +
 ctor.
 
 ### Slot 2 - Typed init (`FUN_00758260`, 127 B)
@@ -124,7 +124,7 @@ e8 b7 82 07 00       CALL FUN_0076f010 (42 B)
 Calls `FUN_006f6900` first - that's the **`AreaBase::slot5`
 implementation**. Director's slot 5 is "do parent's behavior,
 then add Director-specific tail." This is the
-**`_callSuperClassFunc`** idiom (from item #3) materialized as
+**`_callSuperClassFunc`** idiom materialized as
 a hardcoded super-call inside the C++ override - the standard
 MSVC pattern for an overridden virtual that needs to extend
 the parent.
@@ -198,7 +198,7 @@ a debug-build hook or a placeholder for an event-end callback.
 
 **Most likely candidate: `playScene` / `playCutscene`** - the
 standard Director-only Lua method that schedules a cutscene
-clip (item #4 RaptureActionDamageCallClip family) for the
+clip (RaptureActionDamageCallClip family) for the
 director's owning actor.
 
 ### Slot 12 - Director-only Lua hook B (`FUN_006e1ee0`, 136 B)
@@ -226,7 +226,7 @@ Director.prog file prevents further disambiguation.
 ### Slot 29 - Actor-shared hook (`FUN_006dbea0`, 13 B)
 
 Tiny generic delegate trampoline - **identical shape to
-QuestBase slot 28's `FUN_006dcfd0`** (item #7), just with a
+QuestBase slot 28's `FUN_006dcfd0`**, just with a
 different inner target:
 
 ```
@@ -262,7 +262,7 @@ on a different branch (their slot 26/29 differ from the actor
 branch).
 
 This confirms the script-binding hierarchy from the Lua
-class-registry (item #3): `DirectorBaseClass` extends from
+class-registry: `DirectorBaseClass` extends from
 `ActorBaseClass` in the Lua-side classes, mirrored by the C++
 DirectorBase extending ActorBase here.
 

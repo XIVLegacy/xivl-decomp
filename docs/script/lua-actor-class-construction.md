@@ -22,7 +22,7 @@ search for vtable-write sites) confirms:
    condition vector). Either lazy-initialized on first push, or
    initialized by an unidentified parent / sibling sub-object.
 
-The original "orphaned-conditions hypothesis" from #8b **remains
+The original "orphaned-conditions hypothesis" **remains
 unverifiable from static analysis**. It depends on what type of
 Lua-side object the SetNoticeEventConditionReceiver's `dispatch_ctx`
 points to at packet-handling time, which the opcode-to-receiver wiring does not
@@ -154,7 +154,7 @@ shared entries - confirming a true derived-class hierarchy:
 | 11 | `0x776340` | `0x6e1f70` | `0x6e17e0` | `0x6e17e0` | `0x6e17e0` |
 | 13 | `0x6dc7620` | `0x6dc7620` | `0x6dc7620` | `0x6dc7620` | `0x6dc7620` |
 
-**Inferred edges** (refined from #8b):
+**Inferred edges** (refined from the constructor evidence):
 
 - DirectorBase matches ActorBase at slot 4 (overrides slot 5/11),
   and DirectorBase ctor chains to ActorBase ctor -> **DirectorBase
@@ -163,7 +163,7 @@ shared entries - confirming a true derived-class hierarchy:
   (different from ActorBase's `0x712b40`) -> **CharaBase overrides
   slot 4; NpcBase + PlayerBase inherit that override** -> confirms
   NpcBase + PlayerBase extend CharaBase, NOT ActorBase directly
-- This refines the #8b inheritance tree to:
+- This refines the earlier inheritance tree to:
 
 ```
 ActorBase
@@ -180,7 +180,7 @@ ActorBase
 
 ## Implications for the orphaned-conditions hypothesis
 
-The hypothesis from #8b was:
+The earlier hypothesis was:
 > If `ScriptBind` is what allocates the Lua-side `DirectorBase`
 > instance, then for 6 ticks the conditions land in the wrong field,
 > and a post-`ScriptBind` `DirectorBase` would have empty `[+0x60]`.
@@ -235,7 +235,7 @@ the construction sweep established the following **fact**:
 - `docs/net/seq005-receiver-gates.md` - the
   SEQ_005-specific cross-reference)
 - `docs/net/receiver-class-inventory.md` - the receiver
-  inventory + #8b's "Lua actor class hierarchy" section refined
+  inventory plus the earlier "Lua actor class hierarchy" section refined
   here with confirmed inheritance edges)
 
 ---

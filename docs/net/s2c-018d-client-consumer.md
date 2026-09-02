@@ -8,7 +8,7 @@ records and creates or updates the `MapMarkerParty` presentation rows in
 `group_marker_data`. This is the first concrete outward operation found.
 
 The opcode remains neutral `_0x018D`. Its exact wire layout is owned by the
-[immutable xivl-opcodes contract](https://github.com/XIVLegacy/xivl-opcodes/blob/67b709d5ffd90b8dc10a699e608fa1216e40660d/data/s2c_018d_wire_layout.json).
+[immutable xivl-opcodes contract](https://github.com/XIVLegacy/xivl-opcodes/blob/0a093847d97a23dbeea5347cb072c03f0f0c030f/data/s2c_018d_wire_layout.json).
 The sixteen physical wire rows and sixteen constructed storage records are
 capacities, not a safe runtime count: the retail apply loop sign-extends the
 count byte and performs no clamp.

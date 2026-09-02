@@ -41,7 +41,7 @@ beyond the Network-namespace ones:
 |---|---|---|
 | `0x01270b4c` | `Component::Lua::GameEngine::LuaControl` | **System-namespace SrcType** - distinct from Network's `0x01270964 ActorBase` |
 | `0x012c31f8` | `Application::Lua::Script::Client::Control::StatusBase` | Additional subclass - extends LuaControl; represents an active status effect |
-| `0x012709a4` | `Application::Lua::Script::Client::Control::CharaBase` | Already known from #8d hierarchy; here its RTTI Type Descriptor address is concretely recovered |
+| `0x012709a4` | `Application::Lua::Script::Client::Control::CharaBase` | Previously inferred in the Lua actor hierarchy; its RTTI Type Descriptor address is concretely recovered here |
 
 **Stable finding**: System-namespace receivers cast from
 `Component::Lua::GameEngine::LuaControl`, NOT from

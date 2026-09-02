@@ -36,7 +36,7 @@ record +0x08 and +0x0C. It constructs a vector object at record +0x10,
 allocates 0x40 bytes, and copies exactly sixteen dwords from application
 +0x08 through +0x47 into the buffer reached through record +0x14.
 
-The [immutable application-size contract](https://github.com/XIVLegacy/xivl-client-structs/blob/25c9d48d776135eeca8f32314fa90fb9faf9fca4/manifests/unmapped_payload_decoding.json)
+The [immutable application-size contract](https://github.com/XIVLegacy/xivl-client-structs/blob/2d2bb2a201562eafb0a90421d44ba5971487473b/manifests/unmapped_payload_decoding.json)
 records a 0x68-byte application payload. The writer consumes 0x48 bytes and
 does not retain the packet pointer, so application +0x48 through +0x67 is an
 unread 0x20-byte tail on this route. A 48-byte tail results from treating the

@@ -24,7 +24,7 @@ Top SrcTypes by reach:
 |---|---:|---:|---|
 | `Component::Lua::GameEngine::LuaControl` | 24 | 105 | **Lua-script-side class system** (every BaseClass from `lua-class-registry.md` plus three additional classes) |
 | `Sqwt::FrameworkElement` | 21 | 29 | **Sqwt UI framework** (WPF-like - Border, Button, CheckBox, Grid, Label, ListBox, Panel, TabItem, TextBlock, TextBox, Window, etc.) |
-| `Application::Lua::Script::Client::Control::ActorBase` | 10 | 53 | Lua-side actor sub-hierarchy (already mapped in #8d; here with concrete RTTIs) |
+| `Application::Lua::Script::Client::Control::ActorBase` | 10 | 53 | Lua-side actor sub-hierarchy mapped here with concrete RTTIs |
 | `Application::Main::Element::Window::Debug::DebugBinder` | 9 | 22 | Debug-window data-binding system (template instantiations) |
 | `Component::Lua::GameEngine::Work::InitializeInformation` | 8 | 13 | Work-table typed information subclasses |
 | `Application::Main::Element::Window::Widget::WidgetBase` | 5 | 20 | UI widget templates (party manager, linkshell, etc.) |
@@ -75,7 +75,7 @@ Key observations:
   directly** - NOT `ActorBase`. The "actor-like" appearance was a
   naming convention, not a true inheritance edge.
 - **`MyPlayer` is at the bottom** of the player chain
-  (`ActorBase -> CharaBase -> PlayerBase -> MyPlayer`) - confirms #8d's
+  (`ActorBase -> CharaBase -> PlayerBase -> MyPlayer`) - confirms the
   inferred hierarchy.
 - **`CutScene`, `DesktopWidget`, `Global`, `Math`, `SpreadSheet`,
   `Debug`** are siblings of the actor classes - they're the
@@ -89,9 +89,9 @@ Key observations:
 
 Of the 24 LuaControl-derived classes:
 - **5 are cast targets in System-namespace receivers** (StatusBase via
-  ChangeActorSubStatStatus #2; CharaBase via the same; three roles not established)
+  ChangeActorSubStatStatus; CharaBase via the same; three roles not established)
 - **8 are cast targets in Network-namespace receivers via the
-  ActorBase intermediate path** (#8b sweep)
+  ActorBase intermediate path**
 - **11 have no known direct receiver** (CutScene, DesktopWidget,
   Global, Math, SpreadSheet, Debug, ItemBase, WidgetBase, GroupBase,
   CommandEventRelationControlBase, QuestBase) - handlers for these

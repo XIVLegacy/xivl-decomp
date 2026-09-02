@@ -99,7 +99,7 @@ The X08 mid-marker is the second subdecoder's signal.
 
 ### Wire vs runtime: 0x30 wire-slot vs 16-byte engine-internal storage
 
-A potential audit concern from item #1's findings was that `SharedWork::GetMemberAt`
+A potential audit concern was that `SharedWork::GetMemberAt`
 (slot 19) computes element offsets via `shl esi, 4` (i.e. `idx * 16` - 16-byte member
 stride).
 
@@ -303,7 +303,7 @@ Body (192 bytes = 0xC0):
   remainder: 0x00 padding
 ```
 
-## Group::PacketRequestBase slot map (item #5)
+## Group::PacketRequestBase slot map
 
 `PacketRequestBase` (13 slots, RVA `0xbd4120`) is the **abstract base
 of every send-side packet-emitter** in the Group subsystem. The 5
@@ -341,7 +341,7 @@ explains why their slot 0 dtors share the same parent (`0x6d0b90`).
 PacketRequestBase is the actual abstract send-side base. The
 `*Updater` and `*Builder` classes specialize the abstract Build hook.
 
-## Group::OnlineStatusUpdater + BreakupBuilder slot maps (item #6)
+## Group::OnlineStatusUpdater + BreakupBuilder slot maps
 
 Both classes derive from `PacketRequestBase` (via the same parent
 dtor `0x6d0b90` / `0x6cb760`). They share most of the inherited slot
@@ -392,7 +392,7 @@ struct OnlineStatusUpdater : PacketRequestBase {
 | 17 | `0x2bfc70` | 1 | `MarkComplete()` - empty `ret` (no state change; the array length tracks completeness) |
 | 18 | `0x2c01f0` | 37 | **`IsComplete()`** - returns true when `((array_end - array_begin) / 8) == expected_count`. If `array_begin` is null, returns true only if `expected_count == 0` |
 
-## Group::EntryBuilderBase + EntryBuilder slot maps (item #4)
+## Group::EntryBuilderBase + EntryBuilder slot maps
 
 `EntryBuilderBase` (19 slots, RVA `0xbd415c`) is the **single-use,
 self-destructing builder** that produces an outbound packet for one

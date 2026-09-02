@@ -405,7 +405,7 @@ path. The exact `_callServerOnTalk_cpp` address remains unresolved.
   + state machine spec
 - `docs/net/kick-dispatcher-clearer.md` - `FUN_006e32f0` clearer
 - `docs/event/status-condition-receivers.md` - SetEventStatus
-  + SetNoticeEventCondition receivers (#8b)
+  + SetNoticeEventCondition receivers
 - `docs/net/receiver-gates.md` - 38 receiver classifications
 - `docs/net/receiver-class-inventory.md` - receiver inventory
 - `build/wire/cpp_bindings.md` - Lua-bound engine API catalog

@@ -173,8 +173,8 @@ cross-binary relationships:
   fit). The init 0xED = 237 is a placeholder default that gets
   replaced from game data at load time.
 - **Table comparison**: 237 doesn't match any known
-  `BattleCommand` id (1.x commands are in 1000+ range), motion-pack
-  id (Discord ref says 1000-1109), or the spawn-protocol motion ids.
+  `BattleCommand` id (1.x commands are in 1000+ range), motion-pack id, or the
+  spawn-protocol motion ids.
   Could be a **game-internal action-state enum** distinct from the
   public BattleCommand / motion-pack registries.
 

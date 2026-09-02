@@ -191,7 +191,7 @@ actor transform / orientation block.
 Subsequent calls in slot 62:
 - `FUN_00785b90` - likely a scratch-buffer init
 - `FUN_009d22b4` (twice) - the same string-compare helper used
-  in LpbLoader (item #5)
+  in LpbLoader
 - `FUN_00447260` - Utf8String operation
 - `FUN_00446f50` - Utf8String (small)
 - `FUN_0089d530` - likely a Lua-stack push of a complex object
@@ -262,7 +262,7 @@ The exact Lua method name for each slot. The mapping
 (slot 62 <-> Lua name) lives in:
 
 1. The MemberFunctionHolder template registrations (already
-   covered as a finding in item #3 - but they don't carry the
+   covered by the class-registration analysis - but they don't carry the
    name, only the C++ method pointer).
 2. The Lua VM's metatable-binding table that's built at engine
    init.

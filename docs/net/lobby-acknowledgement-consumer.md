@@ -12,7 +12,7 @@ consumer on this path.
 The sanitized offset manifest is
 [`lobby_acknowledgement_consumer.json`](../../config/lobby_acknowledgement_consumer.json).
 Its capture comparison is pinned to `xivl-captures` commit
-`32a39d2a92f2268d64ab3586b8d791fa93ed19f1`, at
+`5ec97e317c31c5f0852a518f7b64cf6a09df3286`, at
 `studies/lobby-handshake-triage/derived/lobby-record-census.json` member
 `crossSession.acknowledgementComparison`, and contains no plaintext values.
 

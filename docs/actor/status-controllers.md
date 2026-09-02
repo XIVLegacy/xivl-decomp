@@ -122,6 +122,3 @@ CharaActor:
 - `include/actor/chara_actor.h` - CharaActor field-offset catalog
   (the sub-objects at +0xfc0/+0x1030/+0x1070/+0x1110 are candidate
   status-controller storage)
-- `land-sand-boat-server/xi-private-server.md` - XI's character
-  states are similarly state-pattern (the Idle / Mounted / Engaged
-  / Resting / Crafting / Dead / etc. enum is a direct cousin)
