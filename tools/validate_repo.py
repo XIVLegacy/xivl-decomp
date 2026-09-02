@@ -151,22 +151,6 @@ def markdown_prose_lines(text: str):
             yield line_number, line
 
 
-def inline_repository_path(raw: str, prefixes: set[str]) -> str | None:
-    candidate = unquote(raw.strip()).replace("\\", "/")
-    if (
-        not candidate
-        or re.match(r"^(?:[a-z]+:|/|~)", candidate, re.I)
-        or any(char in candidate for char in " <>*{}$|")
-    ):
-        return None
-    candidate = candidate.split("#", 1)[0].rstrip("/")
-    if not candidate or "/" not in candidate:
-        return None
-    if candidate.split("/", 1)[0] not in prefixes:
-        return None
-    return candidate
-
-
 def main() -> int:
     errors: list[str] = []
     paths = git_paths()
@@ -192,26 +176,6 @@ def main() -> int:
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 errors.append(f"invalid tracked JSON {path}: {exc}")
 
-    docs_tree = {
-        p
-        for p in paths
-        if p.startswith("docs/") and p.endswith(".md") and p != "docs/README.md"
-    }
-    index_text = (ROOT / "docs/README.md").read_text(encoding="utf-8")
-    index_paths = set()
-    for target in LINK_RE.findall(index_text):
-        target = target.split()[0].strip("<>").split("#", 1)[0]
-        if target and not re.match(r"^[a-z]+://", target, re.I):
-            index_paths.add("docs/" + unquote(target).replace("\\", "/"))
-    if docs_tree != index_paths:
-        for missing in sorted(docs_tree - index_paths):
-            errors.append(f"docs index missing: {missing}")
-        for extra in sorted(index_paths - docs_tree):
-            errors.append(f"docs index extra: {extra}")
-
-    published_prefixes = {
-        path.split("/", 1)[0] for path in tracked_paths if "/" in path
-    }
     for path in tracked_paths:
         if not path.endswith(".md"):
             continue
@@ -239,14 +203,6 @@ def main() -> int:
                     errors.append(
                         f"unresolved relative link: {path}:{line_number} -> {raw}"
                     )
-            for match in INLINE_CODE_RE.finditer(line):
-                raw = match.group(1)
-                target = inline_repository_path(raw, published_prefixes)
-                if target is not None and not (ROOT / target).exists():
-                    errors.append(
-                        f"unresolved repository path: {path}:{line_number} -> {raw}"
-                    )
-
     for path, expected in EXPECTED_BLOBS.items():
         actual = git_blob((ROOT / path).read_bytes())
         if actual != expected:

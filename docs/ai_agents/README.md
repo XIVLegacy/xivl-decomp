@@ -28,7 +28,7 @@ workflow.
 ## Documentation policy
 
 The root [README.md](../../README.md) defines project scope. The
-[documentation index](../README.md) lists every tracked page under `docs/`.
+[documentation index](../README.md) provides entry points into the public docs.
 This policy tier owns evidence and claims, comments, and prose.
 
 Use short paragraphs, ASCII punctuation, and concrete names. Put each client

@@ -1,7 +1,6 @@
 # Documentation index
 
-This index lists every tracked Markdown page under `docs/`. Repository validation
-checks the index against the tree in both directions.
+Use this index to find the repository's public findings and technical guides.
 
 - [Actor action queue](actor/action-queue.md)
 - [Actor architecture](actor/architecture.md)

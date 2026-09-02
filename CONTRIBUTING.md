@@ -24,9 +24,9 @@ permission, date, and provenance citation exactly.
 ## Repository changes
 
 Put each finding in one canonical page or catalog and link to it elsewhere.
-Update [docs/README.md](docs/README.md) with any change to the tracked Markdown
-tree under `docs/`. Change generated artifacts through their retained generator,
-and keep researcher-supplied binaries and local analysis output untracked.
+Keep [docs/README.md](docs/README.md) useful as an entry point. Change generated
+artifacts through their retained generator, and keep researcher-supplied
+binaries and local analysis output untracked.
 Keep original executables outside the checkout or under the ignored `orig/`
 path, and keep generated assembly under the ignored `asm/` path. Never commit,
 redistribute, or include either kind of artifact in generated output.
