@@ -83,6 +83,28 @@
     "ownership": "The Resource constructor deep-copies the producer-local path into Resource+0x04. The producer destroys its local wrapper after enqueue and indexing. Resource destruction releases its independent path wrapper.",
     "openUse": "The FileThread consumer passes Resource+0x04 to the LocalFile open member. The open member converts it to temporary wide storage and does not destroy or mutate Resource+0x04."
   },
+  "readServiceLifetime": {
+    "functionVa": "0x00c961f0",
+    "localFileOwner": "FileThread owns the LocalFile array at +0x8c; the service loop pairs one 0x2010-byte record with each queued Resource slot.",
+    "streamOffset": 4,
+    "closeVa": "0x00453000",
+    "closeBehavior": "When LocalFile+0x04 is non-null, flush the FILE*, close it, and clear LocalFile+0x04.",
+    "directCloseCallVas": {
+      "allocationFailure": "0x00c962d5",
+      "afterReadAttempt": "0x00c962f5",
+      "rejectedBeforeRead": "0x00c96373"
+    },
+    "successfulReadPath": "After the read attempt returns success, 0x00c962f5 closes and clears the matching LocalFile stream before state +0xb0 is published as 2.",
+    "writeServiceVa": "0x00c96380",
+    "writeStreamCloseCallVa": "0x00c96441",
+    "writeTemporaryTeardownCallVa": "0x00c9646a",
+    "teardownVa": "0x00453190",
+    "evidence": {
+      "tool": "llvm-objdump 22.1.4",
+      "method": "Exact-address disassembly of the pinned executable at 0x00453000, 0x00c961f0, and 0x00c96380; the executable verifier checks the close body and every listed direct call target.",
+      "scope": "Exact build only. This establishes client-owned stream closure; it does not assign ownership to a launcher-supplied override buffer."
+    }
+  },
   "observedRequestCorrelation": {
     "sanitizedRelativePath": "data\\2A\\08\\00\\17.DAT",
     "candidateResourceId": "0x2a080017",
@@ -110,6 +132,14 @@
       "to": "0x8a",
       "matchCount": 0
     },
+    "callSiteContract": {
+      "thisObject": "the matching FileThread-owned LocalFile record",
+      "pathArgument": "borrowed Resource+0x04 narrow path wrapper",
+      "modeArgument": "read-mode literal rb",
+      "retryCount": 0,
+      "returnVa": "0x00c96984",
+      "returnUse": "The FileThread service loop does not branch on the LocalFile open return at this call site."
+    },
     "scope": "This signature is validated only for the pinned executable identity; cross-build stability is not claimed."
   },
   "hookGate": {
@@ -117,7 +147,7 @@
     "numericProducerChain": "SUPPORTED statically",
     "observedRequestProducerIdentity": "INFERRED",
     "pathOwnership": "SUPPORTED for the original Resource path",
-    "streamOwnershipAndLifetime": "PARTIAL - terminal teardown is established, but the normal successful-read per-request close point is unresolved",
+    "streamOwnershipAndLifetime": "SUPPORTED - LocalFile owns +0x04; read service closes and clears it at 0x00c962f5 after the read attempt and before publishing success state 2",
     "successfulRedirectSemantics": "NOT TESTED",
     "missingFileFallthrough": "NOT TESTED",
     "originalPathIdentityForwarding": "NOT TESTED"
@@ -126,12 +156,14 @@
     "safeNow": [
       "Gate the hook on the exact executable hash and unique pre-open signature.",
       "Treat Resource+0x04 as a borrowed narrow path wrapper at the pre-open boundary.",
-      "Decode numeric resource ids as uppercase MSB-first byte groups only when the client numeric-mode gate is established."
+      "Decode numeric resource ids as uppercase MSB-first byte groups only when the client numeric-mode gate is established.",
+      "Rely on the client-owned LocalFile stream being closed and cleared after the normal read attempt; keep any launcher-owned substitute path alive across the borrowed open call."
     ],
     "blocked": [
       "Do not claim that the observed 0x2a080017 candidate traversed the numeric producer.",
       "Do not ship redirect or missing-file fallback behavior before the designed runtime experiments establish it.",
-      "Do not claim an exact normal successful-read close point or cross-build signature stability."
-    ]
+      "Do not infer ownership for a launcher-supplied override buffer or claim cross-build signature stability."
+    ],
+    "nextRuntimeDiscriminator": "On the pinned build, pass one independently owned substitute wrapper through the original LocalFile open call, observe the replacement FILE* complete the read and close at 0x00c962f5, then repeat a miss while proving the original Resource+0x04 bytes are forwarded unchanged."
   }
 }

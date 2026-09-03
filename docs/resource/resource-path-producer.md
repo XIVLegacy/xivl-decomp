@@ -78,9 +78,29 @@ temporary wide storage without mutating or destroying the Resource wrapper.
 
 This establishes ownership of the original path through the open call. It
 does not establish ownership rules for a launcher-supplied override buffer.
-The previously verified LocalFile stream is eventually closed by owner
-teardown, while its normal successful-read per-request close point remains
-unresolved.
+The FileThread owns the LocalFile array and pairs one 0x2010-byte record with
+each queued Resource slot. The read service at `0x00c961f0` uses the matching
+record, then directly calls LocalFile close `0x00453000` at `0x00c962f5`
+after the read attempt. That close flushes a non-null `FILE*`, closes it, and
+clears `LocalFile+0x04`. On the successful path this occurs before Resource
+state `+0xb0` is published as 2. The same read service closes at
+`0x00c962d5` on allocation failure and at `0x00c96373` when the request is
+rejected before the read.
+
+The write service at `0x00c96380` closes its matching LocalFile stream at
+`0x00c96441` and tears down a temporary LocalFile at `0x00c9646a`. Owner
+teardown remains an independent terminal safety path through `0x00453190`,
+the LocalFile deleting destructor, and FileThread array destruction. These
+edges establish client stream ownership and normal per-request read closure.
+They do not assign ownership to a launcher-supplied override buffer.
+
+| Object | Owner at the pre-open seam | Lifetime evidence |
+|---|---|---|
+| `Resource+0x04` narrow wrapper | Resource | Borrowed by LocalFile open; destroyed with the Resource |
+| 0x2010-byte LocalFile record | FileThread | Selected from the FileThread-owned array for the queued slot |
+| `LocalFile+0x04` `FILE*` | LocalFile | Open stores it; read service closes and clears it |
+| Temporary UTF-16 path and mode | LocalFile open stack frame | Destroyed before LocalFile open returns |
+| Substitute narrow wrapper | Launcher, if supplied | No client evidence assigns ownership; it must outlive the borrowed call |
 
 ## Exact-build signature
 
@@ -96,6 +116,18 @@ The call opcode is at pattern offset 13 and resolves from `0x00c9697f` to
 finds exactly one match. Changing retained opcode byte 11 from `8B` to `8A`
 produces zero matches. This supports an exact-build signature only; it does not
 claim cross-build resilience.
+
+At the matched call, `ECX` is the FileThread-owned LocalFile record. The three
+callee-clean arguments are borrowed `Resource+0x04`, the `rb` mode literal,
+and retry count zero. Execution returns at `0x00c96984`; this FileThread call
+site does not branch on the LocalFile open return. The existing masked pattern
+does not need broadening: the executable hash gates the complete build, while
+the unique pattern locates the call and its resolved target.
+
+Exact-address disassembly with `llvm-objdump 22.1.4` established the read and
+write close edges above. The executable-bearing verifier checks the close body,
+including its direct `fflush` and `fclose` targets and null store, plus every
+listed service call target without retaining binary bytes.
 
 Run the tracked structural and mutation checks with:
 
@@ -114,11 +146,20 @@ runs the asset-free manifest checks.
 An experimental pre-open hook must identify both the pinned executable hash
 and the unique signature. At that boundary, `Resource+0x04` is a borrowed
 narrow path wrapper. Render a numeric id as uppercase MSB-first byte groups
-only after independently establishing numeric mode.
+only after independently establishing numeric mode. The client owns the
+LocalFile record and its stream and closes the stream after the read attempt.
+Any substitute path remains launcher-owned and must stay alive across the
+borrowed open call; static client evidence does not supply an ownership rule
+for that buffer.
 
 Production redirect behavior remains unsupported. The observed request has not
 been joined dynamically to the numeric producer; successful
 redirect semantics, missing-file fallthrough, and original-path identity
-forwarding are untested; override-buffer ownership is untested; the exact
-normal successful-read close point and cross-build signature stability remain
-unresolved.
+forwarding are untested; override-buffer ownership is untested; and cross-build
+signature stability remains unresolved.
+
+The next runtime discriminator is one pinned-build replacement that passes an
+independently owned substitute wrapper through the original LocalFile open,
+observes the replacement stream complete and close at `0x00c962f5`, then
+repeats a miss while proving the original `Resource+0x04` bytes were forwarded
+unchanged.

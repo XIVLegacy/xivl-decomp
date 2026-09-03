@@ -18,6 +18,18 @@ EXPECTED_SIZE = 15_996_808
 EXPECTED_PATTERN_OFFSET = 0x00896972
 PATTERN = bytes.fromhex("6A 00 68 00 00 00 00 83 C6 04 56 8B CF E8 00 00 00 00")
 MASK = bytes.fromhex("FF FF FF 00 00 00 00 FF FF FF FF FF FF FF 00 00 00 00")
+CLOSE_FUNCTION_OFFSET = 0x00053000
+CLOSE_FUNCTION = bytes.fromhex(
+    "56 8B F1 8B 46 04 85 C0 74 19 50 E8 CF 41 58 00 8B 46 04 50 "
+    "E8 2D F6 57 00 83 C4 08 C7 46 04 00 00 00 00 5E C3"
+)
+DIRECT_CLOSE_CALLS = {
+    0x008962D5: 0x00453000,
+    0x008962F5: 0x00453000,
+    0x00896373: 0x00453000,
+    0x00896441: 0x00453000,
+    0x0089646A: 0x00453190,
+}
 
 
 def verify(document: dict | None = None) -> list[str]:
@@ -114,6 +126,30 @@ def verify(document: dict | None = None) -> list[str]:
         != "The FileThread consumer passes Resource+0x04 to the LocalFile open member. The open member converts it to temporary wide storage and does not destroy or mutate Resource+0x04."
     ):
         errors.append("path-wrapper ownership changed")
+    lifetime = document.get("readServiceLifetime", {})
+    if lifetime != {
+        "functionVa": "0x00c961f0",
+        "localFileOwner": "FileThread owns the LocalFile array at +0x8c; the service loop pairs one 0x2010-byte record with each queued Resource slot.",
+        "streamOffset": 4,
+        "closeVa": "0x00453000",
+        "closeBehavior": "When LocalFile+0x04 is non-null, flush the FILE*, close it, and clear LocalFile+0x04.",
+        "directCloseCallVas": {
+            "allocationFailure": "0x00c962d5",
+            "afterReadAttempt": "0x00c962f5",
+            "rejectedBeforeRead": "0x00c96373",
+        },
+        "successfulReadPath": "After the read attempt returns success, 0x00c962f5 closes and clears the matching LocalFile stream before state +0xb0 is published as 2.",
+        "writeServiceVa": "0x00c96380",
+        "writeStreamCloseCallVa": "0x00c96441",
+        "writeTemporaryTeardownCallVa": "0x00c9646a",
+        "teardownVa": "0x00453190",
+        "evidence": {
+            "tool": "llvm-objdump 22.1.4",
+            "method": "Exact-address disassembly of the pinned executable at 0x00453000, 0x00c961f0, and 0x00c96380; the executable verifier checks the close body and every listed direct call target.",
+            "scope": "Exact build only. This establishes client-owned stream closure; it does not assign ownership to a launcher-supplied override buffer.",
+        },
+    }:
+        errors.append("read-service lifetime changed")
     correlation = document.get("observedRequestCorrelation", {})
     if correlation != {
         "sanitizedRelativePath": "data\\2A\\08\\00\\17.DAT",
@@ -145,6 +181,14 @@ def verify(document: dict | None = None) -> list[str]:
             "to": "0x8a",
             "matchCount": 0,
         }
+        or signature.get("callSiteContract") != {
+            "thisObject": "the matching FileThread-owned LocalFile record",
+            "pathArgument": "borrowed Resource+0x04 narrow path wrapper",
+            "modeArgument": "read-mode literal rb",
+            "retryCount": 0,
+            "returnVa": "0x00c96984",
+            "returnUse": "The FileThread service loop does not branch on the LocalFile open return at this call site.",
+        }
         or signature.get("scope")
         != "This signature is validated only for the pinned executable identity; cross-build stability is not claimed."
     ):
@@ -155,7 +199,7 @@ def verify(document: dict | None = None) -> list[str]:
         "numericProducerChain": "SUPPORTED statically",
         "observedRequestProducerIdentity": "INFERRED",
         "pathOwnership": "SUPPORTED for the original Resource path",
-        "streamOwnershipAndLifetime": "PARTIAL - terminal teardown is established, but the normal successful-read per-request close point is unresolved",
+        "streamOwnershipAndLifetime": "SUPPORTED - LocalFile owns +0x04; read service closes and clears it at 0x00c962f5 after the read attempt and before publishing success state 2",
         "successfulRedirectSemantics": "NOT TESTED",
         "missingFileFallthrough": "NOT TESTED",
         "originalPathIdentityForwarding": "NOT TESTED",
@@ -167,12 +211,14 @@ def verify(document: dict | None = None) -> list[str]:
             "Gate the hook on the exact executable hash and unique pre-open signature.",
             "Treat Resource+0x04 as a borrowed narrow path wrapper at the pre-open boundary.",
             "Decode numeric resource ids as uppercase MSB-first byte groups only when the client numeric-mode gate is established.",
+            "Rely on the client-owned LocalFile stream being closed and cleared after the normal read attempt; keep any launcher-owned substitute path alive across the borrowed open call.",
         ],
         "blocked": [
             "Do not claim that the observed 0x2a080017 candidate traversed the numeric producer.",
             "Do not ship redirect or missing-file fallback behavior before the designed runtime experiments establish it.",
-            "Do not claim an exact normal successful-read close point or cross-build signature stability.",
+            "Do not infer ownership for a launcher-supplied override buffer or claim cross-build signature stability.",
         ],
+        "nextRuntimeDiscriminator": "On the pinned build, pass one independently owned substitute wrapper through the original LocalFile open call, observe the replacement FILE* complete the read and close at 0x00c962f5, then repeat a miss while proving the original Resource+0x04 bytes are forwarded unchanged.",
     }:
         errors.append("Bahamut adoption boundary changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
@@ -195,6 +241,8 @@ def mutation_test() -> list[str]:
         (("formatter", "numericModeCondition"), "always"),
         (("formatter", "byteOrder"), "least significant first"),
         (("pathWrapper", "heapFlagValue"), 1),
+        (("readServiceLifetime", "closeVa"), "0x00453190"),
+        (("readServiceLifetime", "directCloseCallVas"), {}),
         (("observedRequestCorrelation", "status"), "verified"),
         (("observedRequestCorrelation", "binaryImmediateOccurrences"), 1),
         (("preOpenSignature", "exactBuildMatchCount"), 2),
@@ -247,6 +295,13 @@ def find_matches(data: bytes, pattern: bytes = PATTERN, mask: bytes = MASK) -> l
         cursor = found + 1
 
 
+def resolve_rel32(data: bytes, file_offset: int) -> int | None:
+    if file_offset < 0 or file_offset + 5 > len(data) or data[file_offset] != 0xE8:
+        return None
+    displacement = int.from_bytes(data[file_offset + 1:file_offset + 5], "little", signed=True)
+    return 0x00400000 + file_offset + 5 + displacement
+
+
 def verify_executable(path: Path) -> list[str]:
     errors: list[str] = []
     data = path.read_bytes()
@@ -260,10 +315,23 @@ def verify_executable(path: Path) -> list[str]:
         errors.append(f"signature matches are {[hex(item) for item in matches]}")
     if len(data) >= EXPECTED_PATTERN_OFFSET + len(PATTERN):
         call_offset = EXPECTED_PATTERN_OFFSET + 13
-        displacement = int.from_bytes(data[call_offset + 1:call_offset + 5], "little", signed=True)
-        call_target = 0x00400000 + call_offset + 5 + displacement
+        call_target = resolve_rel32(data, call_offset)
         if call_target != 0x00453C00:
-            errors.append(f"signature call resolves to {call_target:#010x}")
+            errors.append(f"signature call resolves to {call_target!r}")
+    close_body = data[CLOSE_FUNCTION_OFFSET:CLOSE_FUNCTION_OFFSET + len(CLOSE_FUNCTION)]
+    if close_body != CLOSE_FUNCTION:
+        errors.append("LocalFile close body changed")
+    else:
+        if resolve_rel32(data, CLOSE_FUNCTION_OFFSET + 11) != 0x009D71DF:
+            errors.append("LocalFile close fflush target changed")
+        if resolve_rel32(data, CLOSE_FUNCTION_OFFSET + 20) != 0x009D2646:
+            errors.append("LocalFile close fclose target changed")
+    for call_offset, expected_target in DIRECT_CLOSE_CALLS.items():
+        target = resolve_rel32(data, call_offset)
+        if target != expected_target:
+            errors.append(
+                f"direct close call at {call_offset + 0x00400000:#010x} resolves to {target!r}"
+            )
     candidate_id = (0x2A080017).to_bytes(4, "little")
     if data.count(candidate_id) != 0:
         errors.append("candidate resource id occurs as a little-endian immediate")
@@ -287,7 +355,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
     suffix = " plus executable signature" if args.exe else ""
-    print(f"PASS: resource-path producer manifest, 13 mutations{suffix}")
+    print(f"PASS: resource-path producer manifest, 15 mutations{suffix}")
     return 0
 
 
