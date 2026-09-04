@@ -61,6 +61,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Application scheduling observations](resource/application-hierarchy.md)
 - [Class metadata](resource/class-metadata.md)
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
+- [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [MurmurHash2](resource/murmur2.md)
 - [PE layout](resource/pe-layout.md)
