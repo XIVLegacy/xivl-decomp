@@ -50,6 +50,64 @@ within its file, with no zero values. The observed bases were 32, 48, 64, and
 times, and 96 occurred once. The census corroborates the loader field but does
 not narrow the format to those four values.
 
+### Retail format mappings
+
+The format index reaches two parallel tables. Creation and upload functions
+`0x004312d0` and `0x00431080` read a little-endian dword from
+`0x00f637b8 + index * 4` and pass it as `D3DFORMAT`. Helpers `0x00433240`
+and `0x00433300` read the bits-per-pixel dword and block-format byte from a
+0x28-byte metadata record at `0x00f63c3c + index * 0x28`.
+
+Only three indices occur in the 21,161-file retail census:
+
+| GTEX index | Files | D3DFORMAT value | Direct3D name | Bits per pixel | Block format |
+|---:|---:|---:|---|---:|---|
+| 4 | 664 | 21 | `D3DFMT_A8R8G8B8` | 32 | no |
+| 24 | 13,587 | `0x31545844` | `D3DFMT_DXT1` | 4 | yes |
+| 26 | 6,910 | `0x35545844` | `D3DFMT_DXT5` | 8 | yes |
+
+The numeric-to-name assignments follow Microsoft's authoritative
+[`D3DFORMAT`](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dformat)
+definition. Client metadata independently labels the same indices
+`A8R8G8B8`, `DXT1`, and `DXT5`.
+
+### Encoded surface sizes
+
+The exact-address helper at `0x00433420` calculates one 2D surface size from
+width, height, and format index. For non-block formats it returns:
+
+```text
+width * height * bitsPerPixel / 8
+```
+
+For block formats it returns:
+
+```text
+ceil(width / 4) * ceil(height / 4) * blockBytes
+blockBytes = 8 when index == 24, otherwise 16
+```
+
+The descriptor builder at `0x00432120` calls that helper for each face and mip,
+writes the cumulative prior size as the first big-endian dword of the
+eight-byte table entry, writes the helper result as the second big-endian
+dword, and advances the cumulative offset by that result. Its volume branch
+multiplies the 2D helper result by the surface depth. The core header
+initializer at `0x00432590` writes only the fixed bytes through `+0x17`; it
+does not define a fixed header field at `+0x1c`. With the retail table base of
+24, `+0x1c` is the second dword of entry zero.
+
+Every one of the 41,217 retail table entries has a second dword equal to the
+formula above. Every table is monotonic and every declared surface is in range
+and non-overlapping. The final surface ends exactly at EOF in all 21,161 files.
+Two adjacent pairs in the sole eight-mip DXT1 resource have eight bytes of
+alignment space after an eight-byte surface; all other adjacent offsets equal
+the preceding declared size.
+
+The retail corpus contains only flag value zero, 2D textures, depth one,
+offset-table base 24, format indices 4/24/26, and one to eight mips. Cube,
+volume, flag bit 2, missing-table, and other format-index size behavior remain
+outside the retail-supported surface boundary.
+
 ## PWIB
 
 PWIB is a split container. The streaming loader at `0x004ea560` reads and
@@ -100,6 +158,7 @@ meaning. Caller `0x007cbd50` adds context only and is not required for the
 layout verdict.
 
 This finding establishes static loader arithmetic for the exact retail build.
-It does not name the GTEX format-table values, assign a semantic name to GTEX
-flag bit 2 or header `+0x1c`, explain PWIB's second segment, or establish
-cross-build stability.
+GTEX flag bit 2 is propagated as creation value 4 and as an otherwise unused
+upload argument, but no reproduced consumer assigns it a stable meaning. The
+finding does not explain PWIB's second segment or establish cross-build
+stability.
