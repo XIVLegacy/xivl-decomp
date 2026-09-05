@@ -1,202 +1,138 @@
-# SyncWriter wire format
+# SyncWriter property handlers
 
-This page maps the `SyncWriter` vtable and the per-type Set and Serialize paths
-for Boolean, Int8, Int16, Int32, Float, and String fields.
+This page describes the client-side `SyncWriter` registration, property-apply,
+and callback paths retained in the FFXIV 1.23b client. These paths explain how
+an s2c `0x0137` property record reaches typed client storage. They do not
+establish an outbound packet builder, server mutation policy, or packet
+framing.
 
-## What `SyncWriter*` is
+## Registered property apply
 
-`Component::Lua::GameEngine::Work::Memory::SyncWriter*` is the
-**typed Lua-Work-field-to-wire serializer**. Every Lua-declared
-field in a `*Work` table (e.g. `playerWork.guildleveId`,
-`npcWork.hateType`) is backed by exactly one
-SyncWriter instance on the C++ side. When game code mutates the
-field via Lua (`self.npcWork.hateType = 0xa0f05e93`), the
-SyncWriter:
+`SyncMemoryReceiver` routes the `0x0137` application payload through
+`FUN_00775A30` to `FUN_00775180`. For each property record, the parser consumes
+a value-width byte, a little-endian 32-bit property hash, and the declared raw
+value bytes. It also recognizes target-marker entries. For a property record,
+it looks up the hash in the context property map at `+0x0C`, loads the handler
+pointer from map-node `+0x10`, and calls handler vtable slot 1 at `0x00775652`.
 
-1. Writes the new value into the SyncWriter's pending-value slot.
-2. Increments a 16-bit "dirty counter" at `[this+0xc]`.
-3. On the next sync flush, serializes both the previous (live)
-   value and the new value onto the outbound packet stream, then
-   commits the new value as live and decrements the counter.
+The common scalar slot-1 thunk `FUN_00D30C70` increments the 16-bit counter at
+writer `+0x0C` and tail-jumps through typed slot 6. For example,
+`FUN_00D2F9B0` stores a four-byte integer value at writer `+0x10`. This is a
+client apply path. The capture grammar preserves raw value bytes and does not
+assign a universal signedness or byte-order interpretation to them.
 
-This is the "double-buffered diff" pattern - the wire layer
-sees both old and new, allowing per-field-change packets without
-locking the producer.
+`ActorWorkSync` owns the hash-to-handler registry. Its population route reaches
+`FUN_00CFD610`, which installs the selected writer's callback fields:
 
-## SyncWriter object layout (recovered from typed-write bodies)
-
-```
-+0x00  vtable                        (8-slot vtable below)
-+0x04  output_handler                (pointer to wire-write callback)
-+0x08  output_handler_vtable         (vtable for the handler)
-+0x0c  dirty_counter (u16)           (++ on Set, -- on Flush)
-+0x0e  is_diff_mode (u8)             (drives extra writes in Set)
-+0x0f  reserved
-+0x10  live_value                    (1, 2, or 4 bytes by type)
-+0x11  pending_value (Boolean variant only - Boolean stores
-       both at +0x10 and +0x11)
+```text
+writer +0x04 = SyncContainer +0x2C secondary callback interface
+writer +0x08 = registration-supplied callback context
 ```
 
-For `SyncWriterString`, the value is a `Sqex::Misc::Utf8String`
-inline at `+0x10` (8 bytes for the small-string-optimised
-Utf8String inline form, with overflow heap-allocated). For
-`SyncWriterArray*`, the value at `+0x10` is a pointer to the
-heap-allocated array body.
+When the field uses a shared-work wrapper, that wrapper's slot 1 forwards to
+the inner concrete writer's slot 1. The writer class is selected by the
+registered Information subtype; it is not a fixed actor-structure offset.
 
-## The 8-slot SyncWriter vtable
+## Common scalar layout
 
-All `SyncWriter*` classes share an 8-slot vtable shape. Slots
-1..5 are inherited from the `SyncWriterBase` in identical bodies
-across every typed subclass; slots 6..7 are class-specific
-(typed) overrides.
+The retained Boolean, Integer8, Integer16, Integer24, Integer32, and Float
+writers support this common prefix:
 
-| Slot | Purpose | Notes |
-|---|---|---|
-| 0 | Destructor | Class-specific (calls type-specific cleanup, e.g. Utf8String destruction for SyncWriterString) |
-| 1 | **`Set(value)` entry point** | `++[this+0xc]; jmp slot[6]` - increments the dirty counter then tail-calls slot 6 |
-| 2 | (shared no-op) | `FUN_00a72a20` - generic no-op stub |
-| 3 | **`Reset()`** | Class-specific (Boolean/Int variants share `FUN_00d30c80`; Actor/Array variants override) |
-| 4 | **`Flush()`** | If `[this+0xc] != 0`, calls slot 7 then decrements counter |
-| 5 | (shared) `FUN_006ce2e0` | Common helper (probably `GetTypeId()` returning a small enum tag) |
-| 6 | **Typed Set** (called via tail-call from slot 1) | Stores the new value into `[this+0x10..]` |
-| 7 | **Typed Serialize** (called from Flush) | Reads live + pending values from `[this+0x10..]` and emits them via the output handler at `[this+0x4]` |
-
-## Typed Set (slot 6) - bodies decoded
-
-### `SyncWriterBoolean::Set` (16 B at file `0x92f8b0`)
-
-```
-8b 44 24 04          MOV EAX, [esp+4]      ; load value-pointer arg
-80 38 00             CMP byte [EAX], 0
-0f 97 c2             SETA DL               ; DL = (*p != 0) ? 1 : 0
-88 51 11             MOV [ECX+0x11], DL    ; store at +0x11 (pending)
-c2 0c 00             RET 12
+```text
++0x00  concrete writer vtable
++0x04  callback handler object
++0x08  callback context
++0x0C  16-bit counter
++0x0E  mode byte; exact semantics unresolved
++0x10  typed storage begins
 ```
 
-Wire shape: 1 byte. Note Boolean stores at `+0x11`, not `+0x10`
-(the `+0x10` byte is the live value, written by Flush).
+Boolean uses bytes at `+0x10` and `+0x11`. Other concrete writers have
+type-specific storage beyond the common prefix. String, actor, array, and
+shared-work writers require their own layouts and must not be inferred from
+the scalar prefix.
 
-### `SyncWriterInteger8::Set` (12 B at file `0x92f8e0`)
+## Concrete scalar vtable
 
-```
-8b 44 24 04          MOV EAX, [esp+4]
-8a 10                MOV DL, [EAX]
-88 51 10             MOV [ECX+0x10], DL    ; store at +0x10 (1-byte)
-c2 0c 00             RET 12
-```
+The retained concrete scalar writers use an eight-slot vtable. Related writer
+interfaces and adapters can have different slot counts.
 
-Note Int8 stores directly to `+0x10` (no separate pending slot
-because the dirty counter handles the diff).
+| Slot | Retained behavior |
+|---:|---|
+| 0 | Destructor |
+| 1 | Increment `+0x0C`, then tail-call typed slot 6 |
+| 2 | Shared no-op `FUN_00A72A20` |
+| 3 | Common scalar body `FUN_00D30C80` returns whether `+0x0C` is nonzero; other writer families vary |
+| 4 | If `+0x0C` is nonzero, call typed slot 7 and decrement the counter |
+| 5 | Shared return stub `FUN_006CE2E0`; semantic name unresolved |
+| 6 | Typed property apply |
+| 7 | Typed callback dispatch |
 
-### `SyncWriterInteger16::Set` (59 B at file `0x92f910`)
+Slot 4 does not copy or commit a second value in its retained body. The
+retained body tests the counter before slot-7 dispatch and decrements it after
+that dispatch. Its higher-level scheduling and ownership policy remain
+unresolved.
 
-Loads the 2-byte argument, calls `memcpy(this+0x10, &value, 2)`,
-then if `[this+0xe]` (`is_diff_mode`) is set, copies the OLD
-value to a backup slot at `[this+0x12]`. This is the "snapshot
-the previous value before overwriting" path that lets Flush
-emit a true (old, new) pair on the wire.
+## Boolean callback path
 
-```
-0f b7 44 24 08       MOVZX EAX, word [esp+8]
-56 57                PUSH ESI; PUSH EDI
-8b f9                MOV EDI, ECX
-8b 4c 24 0c          MOV ECX, [esp+0xc]
-50 51                PUSH EAX; PUSH ECX
-8d 77 10             LEA ESI, [EDI+0x10]
-56                   PUSH ESI
-e8 d8 4c ca ff       CALL memcpy           ; -> 0x5d4600 (the shared memcpy)
-83 c4 0c             ADD ESP, 12
-80 7f 0e 00          CMP byte [EDI+0xe], 0
-74 15                JZ skip_diff
-8a 56 01             MOV DL, [ESI+1]       ; old MSB
-8a 06                MOV AL, [ESI]         ; old LSB
-88 54 24 10          MOV [esp+0x10], DL    ; ...
-... (snapshot the old value)
-skip_diff:
-5f 5e c2 0c 00       POP EDI; POP ESI; RET 12
-```
+The Boolean slot-7 callback body is `FUN_00D2F8C0`, at file/RVA `0x92F8C0`.
+It loads the callback handler from writer `+0x04`, the callback context from
+writer `+0x08`, and the bytes at `+0x10` and `+0x11`. It calls handler vtable
+slot 2.
 
-### `SyncWriterInteger32::Set` (73 B at `0x92f9b0`) and
-### `SyncWriterFloat::Set` (73 B at `0x92fa20`)
+The registration path makes that slot concrete:
 
-Same shape as Int16 but with 4-byte memcpy. Float uses x87
-loads/stores (`d9 44 24 10` `FLD dword [esp+0x10]` /
-`d9 1e` `FSTP dword [ESI]`) to copy the float without going
-through an integer register (avoids signaling-NaN coercion).
-
-The shared `memcpy` helper sits at file `0x5d4600` - a
-standard MSVC inlined-memcpy with size dispatch
-(`81 f9 00 01 00 00; 72 1f` = "if size < 256 use the small
-loop"). Three-way call site: Int16/Int32/Float Set all hit it.
-
-### `SyncWriterString::Set` (70 B at `0x930550`)
-
-Calls a Utf8String constructor (`FUN_00cae0ce` - tail of body),
-then a 5-arg dispatch into the output handler. String fields
-are non-trivial because they require allocation; the
-SyncWriterString takes ownership of the Utf8String and emits
-it via the standard string-on-wire protocol (length-prefixed
-or null-terminated, decided by the output handler).
-
-## Typed Serialize (slot 7)
-
-### `SyncWriterBoolean::Serialize` (29 B at `0x92f8c0`)
-
-```
-53 8b c1             PUSH EBX; MOV EAX, ECX
-0f b6 58 11          MOVZX EBX, byte [EAX+0x11]   ; pending value
-8b 48 04             MOV ECX, [EAX+0x4]            ; output_handler ptr
-8b 11 8b 52 08       MOV EDX, [ECX]; MOV EDX, [EDX+8]  ; handler vtable slot 2
-53                   PUSH EBX                       ; push pending byte
-0f b6 58 10          MOVZX EBX, byte [EAX+0x10]   ; live value
-8b 40 08             MOV EAX, [EAX+0x8]            ; (?)
-53 50                PUSH EBX; PUSH EAX
-ff d2                CALL EDX
-5b c3                POP EBX; RET
+```text
+FUN_00D2F8C0
+  -> writer +0x04
+  -> SyncContainer +0x2C secondary interface, vtable slot 2
+  -> FUN_00CFD5B0
+  -> access object at SyncContainer +0x08, vtable slot 5
 ```
 
-This emits BOTH old (`+0x10`) and new (`+0x11`) values to the
-output handler - confirming the double-buffered diff design.
-The output handler's vtable slot 2 is a **pair-write** function:
-`emit(handler, live_value, pending_value)`.
+`FUN_00CFD5B0` forwards the callback context and both Boolean bytes together
+with an opaque argument from `SyncContainer+0x10`. This establishes the exact
+slot-2 target requested from the Boolean serializer. It does not establish
+that either byte is an old/new pair or that the callback constructs a packet.
 
-### Other types' Serialize (slot 7) - same shape
+## Other typed callbacks
 
-Each typed Serialize has the same structure as Boolean's:
-load live + pending values from `+0x10..`, push them to the
-output handler with the type-appropriate width, call the
-handler's pair-write entry. Int8 / Int16 / Int32 / Float /
-Actor / Array all conform.
+The Integer8, Integer16, Integer32, Float, String, Actor, and Array slot-7
+bodies do not share the Boolean pair shape. Their retained bodies use handler
+slot 1 with one value or a range. The SyncContainer secondary slot-1 target is
+`FUN_00CFD580`, which forwards to the access object at `SyncContainer+0x08`,
+vtable slot 3.
 
-## Endian-adjusting variants
+String, actor, array, and endian-adjusting wrapper framing remains unresolved.
+The class names and shared bodies alone do not prove ownership, byte swapping,
+or an on-wire representation.
 
-`SyncWriterArrayEndianAdjust<short>` (`0xd1037c`),
-`SyncWriterArrayEndianAdjust<int>` (`0xd103a0`), and
-`SyncWriterArrayEndianAdjust<float>` (`0xd103c4`) are
-specialized array-writer wrappers that **byte-swap each
-element** before serialization.
+## Staging boundary
 
-## Client consequence
+`FUN_00CFE2B0` initializes `SyncContainer+0x08` to the static
+`detail::AccessInterface` object at `0x0130D414`. That interface's slots 1
+through 10 are pure virtual in the retained vtable. A complete reference
+export for `0x0130D414` found only its static vtable initializer and reads from
+container construction/destruction; it found no concrete access-object
+assignment.
 
-4. **Field widths are tied to the SyncWriter type** - the
-   typed slot-6 bodies identify exactly how many bytes each
-   field type writes:
-   - Boolean -> 1 byte (at `+0x11` for pending)
-   - Int8 -> 1 byte
-   - Int16 -> 2 bytes (BE on wire)
-   - Int32 -> 4 bytes (BE on wire)
-   - Float -> 4 bytes (BE on wire)
-   - String -> Utf8String (Utf8String wire form - handler-decided)
-   - Actor -> actor-reference type (8 bytes typical: actor_id u32 + slot_id u32 or similar)
-   - Array -> handler-decided count-prefixed body
+No opcode, message size, actor id, or packet-buffer write is proven along this
+callback path before the access-object dispatch. The first unresolved staging
+edge is therefore:
 
-## Cross-references
+- access object at `SyncContainer+0x08`, vtable slot 5 for the Boolean callback;
+- access object at `SyncContainer+0x08`, vtable slot 3 for the other retained
+  typed callbacks.
 
-- `docs/event/director-quest-framework.md` - the C++
-  base classes that own SyncWriter Work fields)
-- `docs/script/lua-class-registry.md` - the Lua
-  classes whose Work fields use these SyncWriters)
-- `docs/net/wire-protocol.md` - the GAM CompileTimeParameter
-  registry that names each SyncWriter's wire ID)
-- `docs/resource/murmur2.md` - the wire-id derivation that
-  identifies which SyncWriter receives a property packet)
+The two literal `PUSH 0x137` sites at `0x00476A26` and `0x0047A591` belong to
+diagnostic calls and are not packet-construction evidence.
+
+## Evidence
+
+The client-structure citations below are pinned at commit
+`a52da3a3daec72431224fa7ce321aa9ee27b2c3b`.
+
+- `xivl-client-structs:manifests/property_stream_hash_catalog.json#applyStorageBoundary`
+- `xivl-client-structs:manifests/cast_chant_presentation.json#activeCastGauge.wireCarrier`
+- `config/ffxivgame.rtti.json`
+- `config/ffxivgame.vtable_slots.jsonl`
