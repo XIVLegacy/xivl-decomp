@@ -107,22 +107,54 @@ String, actor, array, and endian-adjusting wrapper framing remains unresolved.
 The class names and shared bodies alone do not prove ownership, byte swapping,
 or an on-wire representation.
 
-## Staging boundary
+## Shared sync staging
 
-`FUN_00CFE2B0` initializes `SyncContainer+0x08` to the static
-`detail::AccessInterface` object at `0x0130D414`. That interface's slots 1
-through 10 are pure virtual in the retained vtable. A complete reference
-export for `0x0130D414` found only its static vtable initializer and reads from
-container construction/destruction; it found no concrete access-object
-assignment.
+`FUN_00CFE2B0` initially writes the static abstract `AccessInterface` object at
+`0x0130D414` to `SyncContainer+0x08`. The later configuration path is:
 
-No opcode, message size, actor id, or packet-buffer write is proven along this
-callback path before the access-object dispatch. The first unresolved staging
-edge is therefore:
+```text
+FUN_00CCB920
+  -> SyncContainer vtable slot 12
+  -> FUN_00CFD1E0(sync selector)
+  -> allocate SharedSyncAccess
+  -> store it at SyncContainer+0x08
+```
 
-- access object at `SyncContainer+0x08`, vtable slot 5 for the Boolean callback;
-- access object at `SyncContainer+0x08`, vtable slot 3 for the other retained
-  typed callbacks.
+`FUN_00CCB920` configures three operator containers. Its third dispatch uses
+the sync selector address `0x0130D423`. `FUN_00CFD1E0` recognizes the save and
+temporary selectors in its first two branches; its remaining branch installs
+the `SharedSyncAccess` vtable at `0x0110EDC0`. The same function stores the new
+object at receiver `+0x08`. This parameter-based store explains why the older
+literal-reference search for `0x0130D414` did not find the replacement.
+
+The two callback slots now resolve as follows:
+
+| Access slot | Target | Retained behavior |
+|---:|---|---|
+| 3 | `FUN_00CFE960` | Reads the current byte range, compares it with the supplied range when required by the access mode, and sends a changed range through access slot 13. |
+| 5 | `FUN_00CFE1A0` | Reads one byte, updates the selected bit, and sends the changed byte through access slot 13. |
+
+For `SharedSyncAccess`, slots 11 through 13 are adapters over the retained
+`SharedWorkInterface` pointer at access object `+0x08`:
+
+```text
+SharedSyncAccess slot 11 -> FUN_00CFCC70 -> SharedWorkInterface slot 21
+SharedSyncAccess slot 12 -> FUN_00CFCC90 -> SharedWorkInterface slot 24
+SharedSyncAccess slot 13 -> FUN_00CFCCC0 -> SharedWorkInterface slot 27
+```
+
+The retained concrete `Application::Lua::Script::Client::Group::SharedWork`
+supplies compatible slot targets at `FUN_006C2E20`, `FUN_006C9A30`, and
+`FUN_006C9BB0`. Its slot 27 resolves the sync member and byte offset, validates
+the destination extent, and copies the changed bytes to
+`[member_record+0x24] + resolved_offset` with `memcpy` at `0x006C9C77`. This is
+the first proven buffer write in that concrete implementation.
+
+The generic path accepts a `SharedWorkInterface`, and no static edge yet binds
+the Group `SharedWork` pointer to the `FUN_00CFD1E0` backing-object parameter.
+No opcode, message size, actor id, packet framing, or network-buffer write is
+established by this chain. In particular, the local SharedWork buffer copy
+must not be treated as proof of an outbound `0x0137` packet builder.
 
 The two literal `PUSH 0x137` sites at `0x00476A26` and `0x0047A591` belong to
 diagnostic calls and are not packet-construction evidence.

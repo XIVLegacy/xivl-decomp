@@ -143,7 +143,10 @@ state. Decoded slot layout:
 | **20** | `FUN_006c2dd0` | **`GetMemberAt(u16 idx)` - pipeline 2** (array B at `[+0x24..+0x28]`) |
 | **21** | `FUN_006c2e20` | **`GetMemberAt(u16 idx)` - pipeline 3** (array C at `[+0x34..+0x38]`) |
 | 22 | `FUN_006c9930` (121 B) | **`CopyMemberByLookup(key, dst, len)`** - looks up by short key, validates extent, copies len bytes via shared `memcpy` at `0x9d4600` |
-| 23..27 | `FUN_006c99b0`..`FUN_006c9bb0` | Sibling copy variants; candidate pipeline-2/3 variants of slot 22 |
+| 23 | `FUN_006c99b0` | Sibling copy variant; exact role unresolved |
+| 24 | `FUN_006c9a30` (121 B) | Reads a pipeline-3 byte range from `[member_record+0x24] + resolved_offset` into the supplied buffer |
+| 25..26 | `FUN_006c9ab0`/`FUN_006c9b30` | Sibling copy variants; exact roles unresolved |
+| 27 | `FUN_006c9bb0` (214 B) | Writes a pipeline-3 byte range to `[member_record+0x24] + resolved_offset` and can materialize the member when the supplied range contains a nonzero byte |
 
 **Member-array layout** (deduced from slots 16/17/18 + 19/20/21 + 22 -
 **resolved**):
