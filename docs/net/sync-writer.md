@@ -150,31 +150,38 @@ the destination extent, and copies the changed bytes to
 `[member_record+0x24] + resolved_offset` with `memcpy` at `0x006C9C77`. This is
 the first proven buffer write in that concrete implementation.
 
-The backing pointer can be followed farther through the construction path:
+The backing pointer is the Group `SharedWork` object on the retained
+construction path:
 
 ```text
-registration wrapper incoming ECX
-  -> FUN_00CD9360 argument 5
+FUN_006CB4C0 constructs Group SharedWork
+  -> FUN_006CBC90
+  -> FUN_006C8CF0 argument 3
+  -> FUN_006F6D60 argument 3
+  -> FUN_006E2510 argument 4
+  -> FUN_00CC8440 stack argument 6
+  -> FUN_00CD9360 stack argument 5
   -> FUN_00CEAF60 argument 2
-  -> FUN_00CE64A0 argument 2
-  -> FUN_00CCB920 argument 1
-  -> FUN_00CFD1E0 argument 2
+  -> FUN_00CE64A0 second stack argument
+  -> FUN_00CCB920 backing argument
+  -> FUN_00CFD1E0 backing parameter
   -> SharedSyncAccess+0x08
 ```
 
-`FUN_00CEAF60` is the only direct caller of `FUN_00CE64A0`, and
-`FUN_00CD9360` is its only direct caller. The seven retained registration
-wrappers at `FUN_00CC80A0`, `FUN_00CC8140`, `FUN_00CC81E0`, `FUN_00CC8280`,
-`FUN_00CC8340`, `FUN_00CC83C0`, and `FUN_00CC8440` all forward their original
-incoming `ECX` as argument 5. The static object-flow boundary is therefore the
-receiver supplied to those wrappers.
+`FUN_006CBC90` carries the new object in a one-word argument copy.
+`FUN_006C8CF0` and `FUN_006F6D60` preserve that value while building their
+other local arguments. `FUN_006E2510` receives it as argument 4 and places it
+in the last stack argument to `FUN_00CC8440`. That wrapper copies stack
+argument 6 into the slot used as `FUN_00CD9360` stack argument 5.
+`FUN_00CD9360` copies the same value into `FUN_00CEAF60` argument 2, which
+becomes the second stack argument to `FUN_00CE64A0`. The latter stores it at
+operator object `+0x08` before `FUN_00CCB920` forwards it into
+`FUN_00CFD1E0`.
 
-The targeted RTTI hierarchy identifies Group `SharedWork` as a concrete
-`SharedWorkInterface` implementation whose constructor is `FUN_006CB4C0`.
-`FUN_006CBC90` allocates that object and passes it into `FUN_006C8CF0`, but no
-static edge connects that handoff to any registration-wrapper receiver. The
-compatible hierarchy narrows the candidate; it does not prove the dynamic type
-of the forwarded pointer.
+This instruction-level flow binds the RTTI-backed Group `SharedWork` object to
+the `SharedSyncAccess` backing field for this construction path. The slot 11
+through 13 adapter calls therefore reach the Group implementation's slots 21,
+24, and 27 on this path.
 
 Within the inspected recorded-reference and field-reference results, no dirty
 marker or outbound consumer follows the slot-27 copy. Recorded references to
