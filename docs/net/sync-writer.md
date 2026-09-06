@@ -150,11 +150,39 @@ the destination extent, and copies the changed bytes to
 `[member_record+0x24] + resolved_offset` with `memcpy` at `0x006C9C77`. This is
 the first proven buffer write in that concrete implementation.
 
-The generic path accepts a `SharedWorkInterface`, and no static edge yet binds
-the Group `SharedWork` pointer to the `FUN_00CFD1E0` backing-object parameter.
-No opcode, message size, actor id, packet framing, or network-buffer write is
-established by this chain. In particular, the local SharedWork buffer copy
-must not be treated as proof of an outbound `0x0137` packet builder.
+The backing pointer can be followed farther through the construction path:
+
+```text
+registration wrapper incoming ECX
+  -> FUN_00CD9360 argument 5
+  -> FUN_00CEAF60 argument 2
+  -> FUN_00CE64A0 argument 2
+  -> FUN_00CCB920 argument 1
+  -> FUN_00CFD1E0 argument 2
+  -> SharedSyncAccess+0x08
+```
+
+`FUN_00CEAF60` is the only direct caller of `FUN_00CE64A0`, and
+`FUN_00CD9360` is its only direct caller. The seven retained registration
+wrappers at `FUN_00CC80A0`, `FUN_00CC8140`, `FUN_00CC81E0`, `FUN_00CC8280`,
+`FUN_00CC8340`, `FUN_00CC83C0`, and `FUN_00CC8440` all forward their original
+incoming `ECX` as argument 5. The static object-flow boundary is therefore the
+receiver supplied to those wrappers.
+
+The targeted RTTI hierarchy identifies Group `SharedWork` as a concrete
+`SharedWorkInterface` implementation whose constructor is `FUN_006CB4C0`.
+`FUN_006CBC90` allocates that object and passes it into `FUN_006C8CF0`, but no
+static edge connects that handoff to any registration-wrapper receiver. The
+compatible hierarchy narrows the candidate; it does not prove the dynamic type
+of the forwarded pointer.
+
+Within the inspected recorded-reference and field-reference results, no dirty
+marker or outbound consumer follows the slot-27 copy. Recorded references to
+slots 24 and 27 are their vtable entries, while another observed consumer only
+frees and clears the member vectors during teardown. No opcode, message size,
+actor id, packet framing, or network-buffer write is established by this chain.
+In particular, the local SharedWork buffer copy must not be treated as proof of
+an outbound `0x0137` packet builder.
 
 The two literal `PUSH 0x137` sites at `0x00476A26` and `0x0047A591` belong to
 diagnostic calls and are not packet-construction evidence.
