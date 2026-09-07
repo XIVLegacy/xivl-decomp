@@ -141,6 +141,7 @@ registration and negative-boundary archive; it does not claim a native
 This is client prediction behavior only. It does not establish a
 server-authoritative formula, table, rounding rule, or validation contract.
 The blank retained item selectors also leave the equipment prediction path
-dormant for the available retail item rows. Bahamut cannot implement a
-source-backed grow ratio from this result; the runtime lookup and its data
-producer must be captured first.
+dormant for the available retail item rows. The client lookup and its data
+producer remain unresolved, and this result does not support a source-backed
+grow ratio. The bounded runtime observations above identify evidence needed to
+resolve that boundary; they are not a runtime implementation requirement.

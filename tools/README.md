@@ -19,7 +19,7 @@ tracked tree.
 | `import_to_ghidra.py` | Imports one retail executable into a headless Ghidra project and runs the selected export scripts. | `orig/<binary>.exe` or an explicit executable path, Ghidra with `support/launch.sh` on POSIX or `support/analyzeHeadless.bat` on Windows, and JDK 21 configured for that Ghidra installation. |
 | `ghidra_scripts/DumpFunctions.java` | Exports every function to `config/<binary>.symbols.json` and per-function assembly under `asm/<binary>/`. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or a repository-root script argument. |
 | `ghidra_scripts/DumpSymbolsOnly.java` | Refreshes the symbols JSON without rewriting the assembly corpus. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or a repository-root script argument. |
-| `ghidra_scripts/DumpStrings.java` | Exports defined strings and classifies source, function, Lua, and other naming hints. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or the repository as Ghidra's working directory. |
+| `ghidra_scripts/DumpStrings.java` | Exports defined strings of length four or greater and classifies source, function, Lua, and other naming hints. | A current analyzed Ghidra program and `XIVL_DECOMP_ROOT` or the repository as Ghidra's working directory. |
 | `ghidra_scripts/DumpRtti.java` | Exports the tracked, deterministic MSVC RTTI class/vtable catalog and streaming vtable-slot catalog, including source and tool metadata. | A current PE32 Ghidra program after the Microsoft RTTI analyzer, with `XIVL_DECOMP_ROOT` set. |
 | `ghidra_scripts/ApplyKnownNames.java` | Applies locally generated neutral vtable names to default-named functions without replacing existing names; JSON string escapes are decoded. | A disposable Ghidra program and flat JSON catalogs selected by `APPLY_NAMES_JSON`, or `config/<binary>.vtable_method_names.json`. Never run it against an export project. |
 
@@ -153,8 +153,9 @@ slot catalog is 26,203,595 bytes in this baseline. Keeping the larger streaming
 catalog makes the dispatch structure reviewable and lets downstream tools run
 without access to the local Ghidra project. Slot discovery follows consecutive
 executable pointers and stops at the first null or non-executable pointer. The
-walk has a 256-slot corruption ceiling and records `slot_count_truncated` when
-another executable pointer exists beyond that ceiling. It does not require
+walk has a 1024-slot safety ceiling. The exporter emits no
+`slot_count_truncated` flag, so a vtable extending beyond that ceiling cannot
+be distinguished from a complete export by the catalog alone. It does not require
 Ghidra to have created a function at every target, because function creation
 varies with analysis state and can truncate valid tables.
 
@@ -178,10 +179,11 @@ python tools/build_external_dependency_ledger.py
 The tracked RTTI and slot catalogs generate
 `config/ffxivgame.vtable_method_names.json`. The ledger audits its 15,331 rows
 directly. This file and `config/ffxivgame.external_dependencies.json` are
-ignored deterministic artifacts. CI rebuilds both from tracked inputs and
-checks that the tracked tree has no resulting diff. The ignored outputs are not
-pinned in CI. Neither generator reads another repository, a retail binary, or a
-Ghidra project.
+ignored deterministic artifacts. CI rebuilds both from tracked inputs, while
+`tools/validate_repo.py` independently checks their expected SHA-256 pins and
+detects generated-output drift. The workflow's `git diff --exit-code` is a
+separate guard against accidental tracked-tree writes. Neither generator reads
+another repository, a retail binary, or a Ghidra project.
 
 ## Analysis sweeps
 
@@ -194,7 +196,7 @@ Ghidra project.
 | `extract_receiver_actorimpl_map.py` | Maps receiver vtable methods to LuaActorImpl and NullActorImpl dispatch slots. | `orig/ffxivgame.exe` and the `asm/ffxivgame/` function corpus. |
 | `extract_net_vtables.py` | Joins network RTTI classes, vtable slots, and function symbols into handler reports. | `config/<binary>.rtti.json`, `.vtable_slots.jsonl`, and `.symbols.json`; assembly exports add source links. |
 | `extract_crypt_engine.py` | Checks the ffxivgame Blowfish P/S table prefixes and emits the reviewed hard-coded LobbyCryptEngine slot map. | `orig/ffxivgame.exe`. |
-| `extract_gam_params.py` | Heuristically parses GAM compile-time parameter descriptors from Ghidra string exports. | `config/<binary>.strings.json` from `DumpStrings.java`. |
+| `extract_gam_params.py` | Heuristically parses GAM compile-time parameter descriptors from Ghidra string exports. | `config/<binary>.strings.json` from `DumpStrings.java` (which excludes strings shorter than four characters). |
 | `extract_gam_types_rtti.py` | Corrects GAM descriptor types by joining them to network RTTI handler metadata. | `build/wire/<binary>.net_handlers.json`; an existing `.gam_params.json` is enriched when present. |
 | `emit_gam_header.py` | Renders the tracked C++ GAM registry using RTTI-corrected types when available. | `config/<binary>.gam_params.json` after the parameter-name and RTTI enrichment steps. |
 | `decode_lpb.py` | Decodes shipped LPB wrappers and the filename cipher to Lua 5.1 bytecode. | A retail install root containing `client/script/`, or that root plus one decoded source name. |
