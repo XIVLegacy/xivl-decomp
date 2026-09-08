@@ -121,7 +121,7 @@ to read 1.x pack data go through either the D2 vtable slot or the
 
 ## Resolver capabilities
 
-A working `tools/sqpack-cat <resource_id>` that:
+A working `python tools/sqpack_cat.py --root <game-root> <resource_id>` that:
 1. **Computes the numeric-mode DAT path for a resource_id** via
    [`tools/sqpack_path.py`](../../tools/sqpack_path.py).
    Verified against 140,180 real DAT files in a retail install. The helper is
