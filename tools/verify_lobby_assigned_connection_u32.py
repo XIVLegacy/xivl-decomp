@@ -39,7 +39,10 @@ def verify(document: dict | None = None) -> list[str]:
     if document.get("format") != "xivl-lobby-assigned-connection-u32-v1":
         errors.append("format changed")
     source = document.get("source", {})
-    if source.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9":
+    if (
+        source.get("binarySha256")
+        != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+    ):
         errors.append("binary identity changed")
     if source.get("ghidraVersion") != "12.1.3":
         errors.append("Ghidra version changed")
@@ -53,7 +56,9 @@ def verify(document: dict | None = None) -> list[str]:
     ):
         errors.append("field ownership changed")
     references = document.get("directReferences", [])
-    if [(item.get("va"), item.get("access")) for item in references] != EXPECTED_REFERENCES:
+    if [
+        (item.get("va"), item.get("access")) for item in references
+    ] != EXPECTED_REFERENCES:
         errors.append("direct instruction references changed")
     if len({item.get("va") for item in references}) != len(EXPECTED_REFERENCES):
         errors.append("direct instruction references are not unique")
@@ -64,14 +69,18 @@ def verify(document: dict | None = None) -> list[str]:
     if (
         helper_filter.get("functionVa") != "0x00db34a0"
         or helper_filter.get("lobbyCallSites") != ["0x00da273c", "0x00da2792"]
-        or helper_filter.get("nonLobbyCallSites") != ["0x00dafb9c", "0x00dafbf2", "0x00db39ec", "0x00db3a42"]
+        or helper_filter.get("nonLobbyCallSites")
+        != ["0x00dafb9c", "0x00dafbf2", "0x00db39ec", "0x00db3a42"]
     ):
         errors.append("shared-helper ownership filter changed")
     lifecycle = document.get("lifecycle", [])
     if [item.get("stage") for item in lifecycle] != EXPECTED_STAGES:
         errors.append("lifecycle coverage changed")
     capture = document.get("captureBoundary", {})
-    if capture.get("retainedSuccessfulLobbySessions") != 2 or capture.get("publishedValues") is not False:
+    if (
+        capture.get("retainedSuccessfulLobbySessions") != 2
+        or capture.get("publishedValues") is not False
+    ):
         errors.append("capture privacy boundary changed")
     contract = document.get("contract", {})
     expected_contract = {
@@ -118,7 +127,11 @@ def mutation_test() -> list[str]:
     leaked = copy.deepcopy(document)
     leaked["captureBoundary"]["observedValue"] = "192.0.2.1"
     mutations.append(leaked)
-    return [f"mutation {index} was accepted" for index, item in enumerate(mutations, 1) if not verify(item)]
+    return [
+        f"mutation {index} was accepted"
+        for index, item in enumerate(mutations, 1)
+        if not verify(item)
+    ]
 
 
 def main() -> int:

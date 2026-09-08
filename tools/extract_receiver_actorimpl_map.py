@@ -25,6 +25,7 @@ polymorphic dispatch rather than a stack temporary.
 
 Output: `build/wire/ffxivgame.receiver_actorimpl_map.{json,md}`.
 """
+
 import json
 import os
 import re
@@ -32,118 +33,125 @@ import struct
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BIN = os.path.join(REPO, 'orig', 'ffxivgame.exe')
-ASM_DIR = os.path.join(REPO, 'asm', 'ffxivgame')
+BIN = os.path.join(REPO, "orig", "ffxivgame.exe")
+ASM_DIR = os.path.join(REPO, "asm", "ffxivgame")
 IMAGE_BASE = 0x400000
 
 # Vtable RVAs for LuaActorImpl + NullActorImpl, from the COL->TD walk
-LUA_ACTOR_IMPL_VT_RVA = 0xbdfb2c
-NULL_ACTOR_IMPL_VT_RVA = 0xbe02ac
+LUA_ACTOR_IMPL_VT_RVA = 0xBDFB2C
+NULL_ACTOR_IMPL_VT_RVA = 0xBE02AC
 VT_SLOT_COUNT = 90
 
 # 43 Receivers - source: docs/net/receiver-class-inventory.md
 RECEIVERS = [
     # (leaf_name, namespace, vt_rva, slot_count)
-    ('ExecutePushOnEnterTriggerBoxReceiver', 'System', 0xbdfaf8, 2),
-    ('ExecutePushOnLeaveTriggerBoxReceiver', 'System', 0xbdfb04, 2),
-    ('AttributeTypeEventEnterReceiver',      'System', 0xbdfb10, 2),
-    ('AttributeTypeEventLeaveReceiver',      'System', 0xbdfb1c, 2),
-    ('ChocoboReceiver',                      'System', 0xc57598, 2),
-    ('ChocoboGradeReceiver',                 'System', 0xc575a4, 2),
-    ('GoobbueReceiver',                      'System', 0xc575b0, 2),
-    ('VehicleGradeReceiver',                 'System', 0xc575bc, 2),
-    ('ChangeActorSubStatStatusReceiver',     'System', 0xc575c8, 5),
-    ('ChangeActorSubStatModeBorderReceiver', 'System', 0xc575e0, 2),
-    ('ExecuteDebugCommandReceiver',          'System', 0xc575ec, 2),
-    ('AchievementPointReceiver',             'Network', 0xc572ac, 2),
-    ('AchievementTitleReceiver',             'Network', 0xc572b8, 2),
-    ('AchievementIdReceiver',                'Network', 0xc572c4, 2),
-    ('AchievementAchievedCountReceiver',     'Network', 0xc572d0, 2),
-    ('AddictLoginTimeKindReceiver',          'Network', 0xc572dc, 2),
-    ('ChangeActorExtraStatReceiver',         'Network', 0xc572e8, 2),
-    ('ChangeSystemStatReceiver',             'Network', 0xc572f4, 2),
-    ('JobChangeReceiver',                    'Network', 0xc57300, 2),
-    ('ChangeShadowActorFlagReceiver',        'Network', 0xc5730c, 2),
-    ('GrandCompanyReceiver',                 'Network', 0xc57318, 2),
-    ('HamletSupplyRankingReceiver',          'Network', 0xc57324, 2),
-    ('HamletDefenseScoreReceiver',           'Network', 0xc57330, 2),
-    ('HateStatusReceiver',                   'Network', 0xc5733c, 2),
-    ('EndClientOrderEventReceiver',          'Network', 0xc57348, 5),
-    ('JobQuestCompleteTripleReceiver',       'Network', 0xc57360, 6),
-    ('SetCommandEventConditionReceiver',     'Network', 0xc5737c, 2),
-    ('SetDisplayNameReceiver',               'Network', 0xc57388, 2),
-    ('SetEmoteEventConditionReceiver',       'Network', 0xc57394, 2),
-    ('SetEventStatusReceiver',               'Network', 0xc573a0, 2),
-    ('SetNoticeEventConditionReceiver',      'Network', 0xc573ac, 2),
-    ('SetPushEventConditionWithCircleReceiver',     'Network', 0xc573b8, 2),
-    ('SetPushEventConditionWithFanReceiver',        'Network', 0xc573c4, 2),
-    ('SetPushEventConditionWithTriggerBoxReceiver', 'Network', 0xc573d0, 2),
-    ('SetTalkEventConditionReceiver',        'Network', 0xc573dc, 2),
-    ('SetTargetTimeReceiver',                'Network', 0xc573f4, 2),
-    ('EntrustItemReceiver',                  'Network', 0xc57470, 2),
-    ('SyncMemoryReceiver',                   'Network', 0xc5747c, 2),
-    ('UserDataReceiver',                     'Network', 0xc57488, 6),
-    ('KickClientOrderEventReceiver',         'Network', 0xc574b0, 5),
-    ('StartServerOrderEventFunctionReceiver','Network', 0xc574c8, 5),
-    ('SendLogReceiver',                      'Network', 0xc574e0, 2),
+    ("ExecutePushOnEnterTriggerBoxReceiver", "System", 0xBDFAF8, 2),
+    ("ExecutePushOnLeaveTriggerBoxReceiver", "System", 0xBDFB04, 2),
+    ("AttributeTypeEventEnterReceiver", "System", 0xBDFB10, 2),
+    ("AttributeTypeEventLeaveReceiver", "System", 0xBDFB1C, 2),
+    ("ChocoboReceiver", "System", 0xC57598, 2),
+    ("ChocoboGradeReceiver", "System", 0xC575A4, 2),
+    ("GoobbueReceiver", "System", 0xC575B0, 2),
+    ("VehicleGradeReceiver", "System", 0xC575BC, 2),
+    ("ChangeActorSubStatStatusReceiver", "System", 0xC575C8, 5),
+    ("ChangeActorSubStatModeBorderReceiver", "System", 0xC575E0, 2),
+    ("ExecuteDebugCommandReceiver", "System", 0xC575EC, 2),
+    ("AchievementPointReceiver", "Network", 0xC572AC, 2),
+    ("AchievementTitleReceiver", "Network", 0xC572B8, 2),
+    ("AchievementIdReceiver", "Network", 0xC572C4, 2),
+    ("AchievementAchievedCountReceiver", "Network", 0xC572D0, 2),
+    ("AddictLoginTimeKindReceiver", "Network", 0xC572DC, 2),
+    ("ChangeActorExtraStatReceiver", "Network", 0xC572E8, 2),
+    ("ChangeSystemStatReceiver", "Network", 0xC572F4, 2),
+    ("JobChangeReceiver", "Network", 0xC57300, 2),
+    ("ChangeShadowActorFlagReceiver", "Network", 0xC5730C, 2),
+    ("GrandCompanyReceiver", "Network", 0xC57318, 2),
+    ("HamletSupplyRankingReceiver", "Network", 0xC57324, 2),
+    ("HamletDefenseScoreReceiver", "Network", 0xC57330, 2),
+    ("HateStatusReceiver", "Network", 0xC5733C, 2),
+    ("EndClientOrderEventReceiver", "Network", 0xC57348, 5),
+    ("JobQuestCompleteTripleReceiver", "Network", 0xC57360, 6),
+    ("SetCommandEventConditionReceiver", "Network", 0xC5737C, 2),
+    ("SetDisplayNameReceiver", "Network", 0xC57388, 2),
+    ("SetEmoteEventConditionReceiver", "Network", 0xC57394, 2),
+    ("SetEventStatusReceiver", "Network", 0xC573A0, 2),
+    ("SetNoticeEventConditionReceiver", "Network", 0xC573AC, 2),
+    ("SetPushEventConditionWithCircleReceiver", "Network", 0xC573B8, 2),
+    ("SetPushEventConditionWithFanReceiver", "Network", 0xC573C4, 2),
+    ("SetPushEventConditionWithTriggerBoxReceiver", "Network", 0xC573D0, 2),
+    ("SetTalkEventConditionReceiver", "Network", 0xC573DC, 2),
+    ("SetTargetTimeReceiver", "Network", 0xC573F4, 2),
+    ("EntrustItemReceiver", "Network", 0xC57470, 2),
+    ("SyncMemoryReceiver", "Network", 0xC5747C, 2),
+    ("UserDataReceiver", "Network", 0xC57488, 6),
+    ("KickClientOrderEventReceiver", "Network", 0xC574B0, 5),
+    ("StartServerOrderEventFunctionReceiver", "Network", 0xC574C8, 5),
+    ("SendLogReceiver", "Network", 0xC574E0, 2),
 ]
 
 
 def load_pe():
-    with open(BIN, 'rb') as f:
+    with open(BIN, "rb") as f:
         data = f.read()
     dos = data[:0x40]
-    e_lfanew = struct.unpack('<I', dos[0x3c:0x40])[0]
-    n = struct.unpack('<H', data[e_lfanew+6:e_lfanew+8])[0]
-    so = struct.unpack('<H', data[e_lfanew+0x14:e_lfanew+0x16])[0]
+    e_lfanew = struct.unpack("<I", dos[0x3C:0x40])[0]
+    n = struct.unpack("<H", data[e_lfanew + 6 : e_lfanew + 8])[0]
+    so = struct.unpack("<H", data[e_lfanew + 0x14 : e_lfanew + 0x16])[0]
     sects = []
     for i in range(n):
-        off = e_lfanew + 0x18 + so + i*40
-        s = data[off:off+40]
-        name = s[:8].rstrip(b'\x00').decode(errors='replace')
-        vsz, vaddr, rsz, roff = struct.unpack('<IIII', s[8:24])
-        sects.append({'name': name, 'vaddr': vaddr, 'vsize': vsz,
-                      'raw_off': roff, 'raw_size': rsz})
+        off = e_lfanew + 0x18 + so + i * 40
+        s = data[off : off + 40]
+        name = s[:8].rstrip(b"\x00").decode(errors="replace")
+        vsz, vaddr, rsz, roff = struct.unpack("<IIII", s[8:24])
+        sects.append(
+            {
+                "name": name,
+                "vaddr": vaddr,
+                "vsize": vsz,
+                "raw_off": roff,
+                "raw_size": rsz,
+            }
+        )
     return data, sects
 
 
 def rva_to_off(sects, rva):
     for s in sects:
-        if s['vaddr'] <= rva < s['vaddr'] + max(s['vsize'], s['raw_size']):
-            return s['raw_off'] + (rva - s['vaddr'])
+        if s["vaddr"] <= rva < s["vaddr"] + max(s["vsize"], s["raw_size"]):
+            return s["raw_off"] + (rva - s["vaddr"])
     return None
 
 
 def off_to_rva(sects, off):
     for s in sects:
-        if s['raw_off'] <= off < s['raw_off'] + s['raw_size']:
-            return s['vaddr'] + (off - s['raw_off'])
+        if s["raw_off"] <= off < s["raw_off"] + s["raw_size"]:
+            return s["vaddr"] + (off - s["raw_off"])
     return None
 
 
 def read_vt(data, sects, vt_rva, n_slots):
     out = {}
     for i in range(n_slots):
-        off = rva_to_off(sects, vt_rva + i*4)
+        off = rva_to_off(sects, vt_rva + i * 4)
         if off is None:
             continue
-        val = struct.unpack('<I', data[off:off+4])[0]
+        val = struct.unpack("<I", data[off : off + 4])[0]
         out[i] = val - IMAGE_BASE
     return out
 
 
 def read_slot(data, sects, vt_rva, slot):
-    off = rva_to_off(sects, vt_rva + slot*4)
+    off = rva_to_off(sects, vt_rva + slot * 4)
     if off is None:
         return None
-    return struct.unpack('<I', data[off:off+4])[0] - IMAGE_BASE
+    return struct.unpack("<I", data[off : off + 4])[0] - IMAGE_BASE
 
 
 def build_asm_index():
     files = sorted(os.listdir(ASM_DIR))
     out = []
     for fn in files:
-        m = re.match(r'^([0-9a-f]{8})_(.+)\.s$', fn)
+        m = re.match(r"^([0-9a-f]{8})_(.+)\.s$", fn)
         if m:
             out.append((int(m.group(1), 16), m.group(2)))
     return out
@@ -166,12 +174,12 @@ def find_callers(data, sects, target_rva):
     """Find CALL rel32 instructions targeting target_rva."""
     out = []
     for s in sects:
-        if s['name'] != '.text':
+        if s["name"] != ".text":
             continue
-        end = s['raw_off'] + s['raw_size'] - 5
-        for off in range(s['raw_off'], end):
-            if data[off] == 0xe8:
-                rel = struct.unpack('<i', data[off+1:off+5])[0]
+        end = s["raw_off"] + s["raw_size"] - 5
+        for off in range(s["raw_off"], end):
+            if data[off] == 0xE8:
+                rel = struct.unpack("<i", data[off + 1 : off + 5])[0]
                 csr = off_to_rva(sects, off)
                 if csr + 5 + rel == target_rva:
                     out.append(csr)
@@ -180,15 +188,17 @@ def find_callers(data, sects, target_rva):
 
 def discover_ctor_writes(data, sects, vt_rva):
     """Find all .text functions that write the vtable address to [this+N]."""
-    pat = struct.pack('<I', IMAGE_BASE + vt_rva)
+    pat = struct.pack("<I", IMAGE_BASE + vt_rva)
     out = []
     pos = 0
     while True:
         i = data.find(pat, pos)
         if i < 0:
             break
-        if any(s['name'] == '.text' and s['raw_off'] <= i < s['raw_off'] + s['raw_size']
-               for s in sects):
+        if any(
+            s["name"] == ".text" and s["raw_off"] <= i < s["raw_off"] + s["raw_size"]
+            for s in sects
+        ):
             out.append(off_to_rva(sects, i))
         pos = i + 1
     return out
@@ -209,7 +219,7 @@ def main() -> int:
     null_by_fn = {fn: s for s, fn in null_vt.items()}
 
     results = []
-    for (name, ns, vt_rva, nslots) in RECEIVERS:
+    for name, ns, vt_rva, nslots in RECEIVERS:
         # Pick the Receive slot (slot 1 for 2-slot, slot 2 for 5/6-slot)
         receive_slot = 1 if nslots == 2 else 2
         receive_fn = read_slot(data, sects, vt_rva, receive_slot)
@@ -251,69 +261,81 @@ def main() -> int:
                     elif fn_start in null_by_fn:
                         null_slots.add(null_by_fn[fn_start])
 
-        results.append({
-            'name': name,
-            'namespace': ns,
-            'vtable_rva': hex(vt_rva),
-            'vtable_slots': nslots,
-            'receive_slot': receive_slot,
-            'receive_fn_rva': hex(receive_fn) if receive_fn else None,
-            'lua_actor_impl_slots': sorted(lua_slots),
-            'null_actor_impl_slots': sorted(null_slots),
-            'other_caller_fns': sorted(set(other_callers))[:5],
-        })
+        results.append(
+            {
+                "name": name,
+                "namespace": ns,
+                "vtable_rva": hex(vt_rva),
+                "vtable_slots": nslots,
+                "receive_slot": receive_slot,
+                "receive_fn_rva": hex(receive_fn) if receive_fn else None,
+                "lua_actor_impl_slots": sorted(lua_slots),
+                "null_actor_impl_slots": sorted(null_slots),
+                "other_caller_fns": sorted(set(other_callers))[:5],
+            }
+        )
 
-    out_json = os.path.join(REPO, 'build', 'wire',
-                            'ffxivgame.receiver_actorimpl_map.json')
+    out_json = os.path.join(
+        REPO, "build", "wire", "ffxivgame.receiver_actorimpl_map.json"
+    )
     os.makedirs(os.path.dirname(out_json), exist_ok=True)
-    with open(out_json, 'w') as f:
+    with open(out_json, "w") as f:
         json.dump(results, f, indent=2)
 
     # Pretty markdown report
-    out_md = out_json.replace('.json', '.md')
-    with open(out_md, 'w') as f:
-        f.write('# Receiver -> LuaActorImpl / NullActorImpl slot map\n\n')
-        f.write('> Auto-generated by `tools/extract_receiver_actorimpl_map.py`.\n')
-        f.write('> Source: `ffxivgame.exe` static analysis.\n\n')
-        f.write('Each Receiver\'s `Receive` method (slot 1 for 2-slot variants, '
-                'slot 2 for 5/6-slot variants) has zero direct CALL rel32 '
-                'callers - invocation happens via vtable slots on the sibling '
-                'classes `Component::Lua::GameEngine::LuaActorImpl` '
-                '(vt 0x%x, 90 slots) and `NullActorImpl` (vt 0x%x, 90 slots). '
-                'This table maps each Receiver to the slot index(es) that '
-                'dispatch to it.\n\n'
-                % (LUA_ACTOR_IMPL_VT_RVA, NULL_ACTOR_IMPL_VT_RVA))
-        f.write('For 5/6-slot Receivers (Kick / StartServerOrderEvent / '
-                'EndClientOrderEvent / JobQuestCompleteTriple / UserData / '
-                'ChangeActorSubStatStatus), `Receive` is itself only reachable '
-                'through the heap-receiver\'s vtable - the slot mapping is '
-                'derived from the **ctor**-write callsites instead.\n\n')
-        f.write('| Receiver | NS | Slots | LuaActorImpl slot | NullActorImpl slot | Other callers |\n')
-        f.write('|---|---|---:|---|---|---|\n')
+    out_md = out_json.replace(".json", ".md")
+    with open(out_md, "w") as f:
+        f.write("# Receiver -> LuaActorImpl / NullActorImpl slot map\n\n")
+        f.write("> Auto-generated by `tools/extract_receiver_actorimpl_map.py`.\n")
+        f.write("> Source: `ffxivgame.exe` static analysis.\n\n")
+        f.write(
+            "Each Receiver's `Receive` method (slot 1 for 2-slot variants, "
+            "slot 2 for 5/6-slot variants) has zero direct CALL rel32 "
+            "callers - invocation happens via vtable slots on the sibling "
+            "classes `Component::Lua::GameEngine::LuaActorImpl` "
+            "(vt 0x%x, 90 slots) and `NullActorImpl` (vt 0x%x, 90 slots). "
+            "This table maps each Receiver to the slot index(es) that "
+            "dispatch to it.\n\n" % (LUA_ACTOR_IMPL_VT_RVA, NULL_ACTOR_IMPL_VT_RVA)
+        )
+        f.write(
+            "For 5/6-slot Receivers (Kick / StartServerOrderEvent / "
+            "EndClientOrderEvent / JobQuestCompleteTriple / UserData / "
+            "ChangeActorSubStatStatus), `Receive` is itself only reachable "
+            "through the heap-receiver's vtable - the slot mapping is "
+            "derived from the **ctor**-write callsites instead.\n\n"
+        )
+        f.write(
+            "| Receiver | NS | Slots | LuaActorImpl slot | NullActorImpl slot | Other callers |\n"
+        )
+        f.write("|---|---|---:|---|---|---|\n")
         for r in results:
-            lua = ', '.join(str(s) for s in r['lua_actor_impl_slots']) or '-'
-            nul = ', '.join(str(s) for s in r['null_actor_impl_slots']) or '-'
-            oth = ', '.join(r['other_caller_fns']) or '-'
-            f.write(f'| `{r["name"]}` | {r["namespace"]} | {r["vtable_slots"]} '
-                    f'| {lua} | {nul} | {oth} |\n')
+            lua = ", ".join(str(s) for s in r["lua_actor_impl_slots"]) or "-"
+            nul = ", ".join(str(s) for s in r["null_actor_impl_slots"]) or "-"
+            oth = ", ".join(r["other_caller_fns"]) or "-"
+            f.write(
+                f"| `{r['name']}` | {r['namespace']} | {r['vtable_slots']} "
+                f"| {lua} | {nul} | {oth} |\n"
+            )
         # By-slot view
-        f.write('\n## By-slot view (LuaActorImpl)\n\n')
-        f.write('| Slot | Slot fn | Receiver |\n|---:|:---|:---|\n')
+        f.write("\n## By-slot view (LuaActorImpl)\n\n")
+        f.write("| Slot | Slot fn | Receiver |\n|---:|:---|:---|\n")
         slot_to_recv = {}
         for r in results:
-            for s in r['lua_actor_impl_slots']:
-                slot_to_recv.setdefault(s, []).append(r['name'])
+            for s in r["lua_actor_impl_slots"]:
+                slot_to_recv.setdefault(s, []).append(r["name"])
         for s in sorted(slot_to_recv):
             fn_rva = lua_vt.get(s)
-            fn_str = f'`FUN_{fn_rva + IMAGE_BASE:08x}`' if fn_rva else '-'
-            f.write(f'| {s} | {fn_str} | {", ".join(slot_to_recv[s])} |\n')
+            fn_str = f"`FUN_{fn_rva + IMAGE_BASE:08x}`" if fn_rva else "-"
+            f.write(f"| {s} | {fn_str} | {', '.join(slot_to_recv[s])} |\n")
 
-    print(f'Wrote {out_json}')
-    print(f'Wrote {out_md}')
-    mapped = sum(1 for r in results if r['lua_actor_impl_slots'] or r['null_actor_impl_slots'])
-    print(f'Receivers mapped: {mapped} / {len(results)}')
+    print(f"Wrote {out_json}")
+    print(f"Wrote {out_md}")
+    mapped = sum(
+        1 for r in results if r["lua_actor_impl_slots"] or r["null_actor_impl_slots"]
+    )
+    print(f"Receivers mapped: {mapped} / {len(results)}")
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

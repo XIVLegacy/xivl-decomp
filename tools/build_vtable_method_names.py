@@ -52,16 +52,17 @@ def main() -> int:
         fn_classes[row["fn_rva"]].add(row["class"])
 
     class_owner_candidates = [
-        row for row in slots
+        row
+        for row in slots
         if row["class"] in classes and len(fn_classes[row["fn_rva"]]) == 1
     ]
     candidate_rvas = Counter(row["fn_rva"] for row in class_owner_candidates)
     unique_rva_candidates = [
-        row for row in class_owner_candidates
-        if candidate_rvas[row["fn_rva"]] == 1
+        row for row in class_owner_candidates if candidate_rvas[row["fn_rva"]] == 1
     ]
     named_candidates = [
-        row for row in unique_rva_candidates
+        row
+        for row in unique_rva_candidates
         if UNNAMED_SYMBOL.match(row.get("fn_name", ""))
     ]
 

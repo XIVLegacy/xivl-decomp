@@ -29,8 +29,8 @@ def build_path(resource_id: int, posix: bool = False) -> str:
     """Build the formatter's nonzero-mode byte-group DAT path."""
     b3 = (resource_id >> 24) & 0xFF
     b2 = (resource_id >> 16) & 0xFF
-    b1 = (resource_id >>  8) & 0xFF
-    b0 = (resource_id >>  0) & 0xFF
+    b1 = (resource_id >> 8) & 0xFF
+    b0 = (resource_id >> 0) & 0xFF
     sep = "/" if posix else "\\"
     return f"{sep}data{sep}{b3:02X}{sep}{b2:02X}{sep}{b1:02X}{sep}{b0:02X}.DAT"
 
@@ -75,15 +75,23 @@ def scan_data_dir(game_root: str):
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Resource-id -> numeric-mode DAT path resolver (Python "
-                    "ref for the byte-group branch at RVA 0x0044b3a0).",
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("resource_id", nargs="?",
-                    help="resource_id (hex with 0x prefix or decimal); omit when --scan is given")
-    ap.add_argument("--posix", action="store_true",
-                    help="use / separators instead of \\")
+        "ref for the byte-group branch at RVA 0x0044b3a0).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument(
+        "resource_id",
+        nargs="?",
+        help="resource_id (hex with 0x prefix or decimal); omit when --scan is given",
+    )
+    ap.add_argument(
+        "--posix", action="store_true", help="use / separators instead of \\"
+    )
     ap.add_argument("--root", help="prefix output with this game-root (forces --posix)")
-    ap.add_argument("--scan", metavar="GAME_ROOT",
-                    help="walk GAME_ROOT/data/ and print every found (resource_id, path)")
+    ap.add_argument(
+        "--scan",
+        metavar="GAME_ROOT",
+        help="walk GAME_ROOT/data/ and print every found (resource_id, path)",
+    )
     args = ap.parse_args()
 
     if args.scan:

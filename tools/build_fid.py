@@ -51,15 +51,17 @@ FIDB = FID_DIR / "ffxiv_vc8.fidb"
 LANG_ID = "x86:LE:32:default"
 LIB_FAMILY, LIB_VERSION, LIB_VARIANT = "MSVC", "8.0", "x86"
 
+
 def find_ghidra() -> Path:
     configured = os.environ.get("GHIDRA_HOME")
     if configured:
         return Path(configured)
     cellar = Path("/opt/homebrew/Cellar/ghidra")
     if cellar.is_dir():
-        vs = sorted((p for p in cellar.iterdir()
-                     if (p / "libexec/support/launch.sh").exists()),
-                    key=lambda p: tuple(int(x) for x in p.name.split(".") if x.isdigit()))
+        vs = sorted(
+            (p for p in cellar.iterdir() if (p / "libexec/support/launch.sh").exists()),
+            key=lambda p: tuple(int(x) for x in p.name.split(".") if x.isdigit()),
+        )
         if vs:
             return vs[-1] / "libexec"
     raise SystemExit("Ghidra not found; set GHIDRA_HOME to a Ghidra installation")
@@ -68,7 +70,10 @@ def find_ghidra() -> Path:
 def find_java() -> str:
     cellar = Path("/opt/homebrew/Cellar/openjdk@21")
     if cellar.is_dir():
-        vs = sorted(cellar.iterdir(), key=lambda p: tuple(int(x) for x in p.name.split(".") if x.isdigit()))
+        vs = sorted(
+            cellar.iterdir(),
+            key=lambda p: tuple(int(x) for x in p.name.split(".") if x.isdigit()),
+        )
         if vs:
             return str(vs[-1] / "libexec/openjdk.jdk/Contents/Home")
     configured = os.environ.get("JAVA_HOME")
@@ -78,19 +83,39 @@ def find_java() -> str:
 
 
 def find_llvm_ar() -> str:
-    for c in ("llvm-ar", "/opt/homebrew/opt/llvm/bin/llvm-ar", "/opt/homebrew/bin/llvm-ar"):
+    for c in (
+        "llvm-ar",
+        "/opt/homebrew/opt/llvm/bin/llvm-ar",
+        "/opt/homebrew/bin/llvm-ar",
+    ):
         if shutil.which(c) or Path(c).exists():
             return c
-    raise SystemExit("llvm-ar not found (brew install llvm). BSD ar cannot extract MS COFF archives.")
+    raise SystemExit(
+        "llvm-ar not found (brew install llvm). BSD ar cannot extract MS COFF archives."
+    )
 
 
-def run_headless(gh: Path, jh: str, proj_loc: Path, proj_name: str, rest: list[str]) -> int:
-    cmd = [str(gh / "support/launch.sh"), "fg", "jdk", "Ghidra-Headless", "8G", "",
-           "ghidra.app.util.headless.AnalyzeHeadless", str(proj_loc), proj_name, *rest]
+def run_headless(
+    gh: Path, jh: str, proj_loc: Path, proj_name: str, rest: list[str]
+) -> int:
+    cmd = [
+        str(gh / "support/launch.sh"),
+        "fg",
+        "jdk",
+        "Ghidra-Headless",
+        "8G",
+        "",
+        "ghidra.app.util.headless.AnalyzeHeadless",
+        str(proj_loc),
+        proj_name,
+        *rest,
+    ]
     env = os.environ.copy()
     env["JAVA_HOME"] = jh
     env["PATH"] = f"{jh}/bin:" + env.get("PATH", "")
-    env["XIVL_DECOMP_ROOT"] = str(REPO_ROOT)  # dump scripts resolve config/ against this
+    env["XIVL_DECOMP_ROOT"] = str(
+        REPO_ROOT
+    )  # dump scripts resolve config/ against this
     print(">>>", " ".join(cmd))
     return subprocess.run(cmd, env=env).returncode
 
@@ -129,12 +154,23 @@ def cmd_import(args) -> int:
     for sub in sorted(objs_root.iterdir()):
         if not sub.is_dir():
             continue
-        rc = run_headless(gh, jh, proj_loc, proj_name, [
-            "-import", str(sub), "-recursive",
-            "-scriptPath", str(fidscripts),
-            "-preScript", "FunctionIDHeadlessPrescript.java",
-            "-postScript", "FunctionIDHeadlessPostscript.java",
-        ])
+        rc = run_headless(
+            gh,
+            jh,
+            proj_loc,
+            proj_name,
+            [
+                "-import",
+                str(sub),
+                "-recursive",
+                "-scriptPath",
+                str(fidscripts),
+                "-preScript",
+                "FunctionIDHeadlessPrescript.java",
+                "-postScript",
+                "FunctionIDHeadlessPostscript.java",
+            ],
+        )
         if rc != 0:
             return rc
     return rc
@@ -152,9 +188,12 @@ def _write_properties(fidscripts: Path):
         "Enter LanguageID To Process": LANG_ID,
     }
     text = "".join(f"{k} = {v}\n" for k, v in props.items())
-    (fidscripts / "CreateMultipleLibraries.properties").write_text(text, encoding="utf-8")
+    (fidscripts / "CreateMultipleLibraries.properties").write_text(
+        text, encoding="utf-8"
+    )
     (fidscripts / "CreateEmptyFidDatabase.properties").write_text(
-        f"Create new FidDb file = {FIDB}\n", encoding="utf-8")
+        f"Create new FidDb file = {FIDB}\n", encoding="utf-8"
+    )
 
 
 def cmd_populate(args) -> int:
@@ -175,12 +214,24 @@ def cmd_populate(args) -> int:
     # lives deep under /MSVC/8.0/x86, so scope the project to that subtree so
     # -process resolves. CreateMultipleLibraries still walks from root "/".
     proj_scoped = f"FidLibs/{LIB_FAMILY}/{LIB_VERSION}/{LIB_VARIANT}"
-    return run_headless(gh, jh, proj_loc, proj_scoped, [
-        "-process", anchor, "-readOnly", "-noanalysis",
-        "-scriptPath", str(fidscripts),
-        "-preScript", "CreateEmptyFidDatabase.java",
-        "-postScript", "CreateMultipleLibraries.java",
-    ])
+    return run_headless(
+        gh,
+        jh,
+        proj_loc,
+        proj_scoped,
+        [
+            "-process",
+            anchor,
+            "-readOnly",
+            "-noanalysis",
+            "-scriptPath",
+            str(fidscripts),
+            "-preScript",
+            "CreateEmptyFidDatabase.java",
+            "-postScript",
+            "CreateMultipleLibraries.java",
+        ],
+    )
 
 
 def cmd_apply(args) -> int:
@@ -188,13 +239,18 @@ def cmd_apply(args) -> int:
     fidscripts = gh / "Ghidra/Features/FunctionID/ghidra_scripts"
     proj_loc = REPO_ROOT / "build" / "ghidra"
     if not FIDB.exists():
-        print(f"ERROR: {FIDB} not found - run `build_fid.py gen` first.", file=sys.stderr)
+        print(
+            f"ERROR: {FIDB} not found - run `build_fid.py gen` first.", file=sys.stderr
+        )
         return 1
     # Headless ask* key = dialog title + " " + approve-button label, i.e.
     # askFile("Attach existing FidDb", "Attach") -> "Attach existing FidDb Attach".
     (fidscripts / "AttachFidDatabase.properties").write_text(
-        f"Attach existing FidDb Attach = {FIDB}\n", encoding="utf-8")
-    print(">>> attaching FidDb + running Function ID matcher on ffxivgame, then re-dumping")
+        f"Attach existing FidDb Attach = {FIDB}\n", encoding="utf-8"
+    )
+    print(
+        ">>> attaching FidDb + running Function ID matcher on ffxivgame, then re-dumping"
+    )
     # -scriptPath is ONE arg: a ';'-separated list of dirs. AttachFidDatabase
     # (+ its .properties) lives in the Ghidra FID scripts dir; RunFidMatch +
     # DumpFunctions live in ours.
@@ -202,28 +258,45 @@ def cmd_apply(args) -> int:
     # -noanalysis + RunFidMatch (force the FID analyzer to run now that the
     # fidb is attached - a plain -process won't re-run an already-run
     # analyzer). RunFidMatch applies names in-memory; DumpFunctions re-dumps.
-    rc = run_headless(gh, jh, proj_loc, "ffxivgame", [
-        "-process", "ffxivgame.exe", "-noanalysis",
-        "-scriptPath", script_path,
-        "-preScript", "AttachFidDatabase.java",
-        "-postScript", "RunFidMatch.java",
-        "-postScript", "DumpSymbolsOnly.java",
-    ])
+    rc = run_headless(
+        gh,
+        jh,
+        proj_loc,
+        "ffxivgame",
+        [
+            "-process",
+            "ffxivgame.exe",
+            "-noanalysis",
+            "-scriptPath",
+            script_path,
+            "-preScript",
+            "AttachFidDatabase.java",
+            "-postScript",
+            "RunFidMatch.java",
+            "-postScript",
+            "DumpSymbolsOnly.java",
+        ],
+    )
     if rc == 0:
         print("\nDONE. Review the updated config/ffxivgame.symbols.json catalog.")
     return rc
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     pe = sub.add_parser("extract")
     pe.add_argument("--libs", nargs="+", required=True)
     sub.add_parser("import")
     pp = sub.add_parser("populate")
-    pp.add_argument("--anchor", default="crt0dat.obj",
-                    help="a single (unique) imported program name to -process so the "
-                         "once-only CreateMultipleLibraries script runs exactly once")
+    pp.add_argument(
+        "--anchor",
+        default="crt0dat.obj",
+        help="a single (unique) imported program name to -process so the "
+        "once-only CreateMultipleLibraries script runs exactly once",
+    )
     sub.add_parser("apply")
     pg = sub.add_parser("gen")
     pg.add_argument("--libs", nargs="+", required=True)
@@ -244,7 +317,9 @@ def main() -> int:
             if rc != 0:
                 print(f"gen aborted at {step.__name__} (rc={rc})", file=sys.stderr)
                 return rc
-        print(f"\nFidDb built: {FIDB.relative_to(REPO_ROOT)}. Next: `build_fid.py apply`.")
+        print(
+            f"\nFidDb built: {FIDB.relative_to(REPO_ROOT)}. Next: `build_fid.py apply`."
+        )
         return 0
     return 1
 

@@ -111,17 +111,29 @@ def find_lpb(install_root: Path, source_name: str) -> Path | None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("install_root", type=Path,
-                    help="FFXIV install root (contains client/script/)")
-    ap.add_argument("source_name", nargs="?",
-                    help="Original source-side name to decode (e.g. 'Man0g0' or "
-                         "'OpeningDirector'). If omitted, bulk-decodes all .lpb.")
-    ap.add_argument("--out", type=Path, default=Path("build/lpb"),
-                    help="Output directory for decoded .luac files")
-    ap.add_argument("--show-cipher", action="store_true",
-                    help="Print the cipher mapping table and exit")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "install_root", type=Path, help="FFXIV install root (contains client/script/)"
+    )
+    ap.add_argument(
+        "source_name",
+        nargs="?",
+        help="Original source-side name to decode (e.g. 'Man0g0' or "
+        "'OpeningDirector'). If omitted, bulk-decodes all .lpb.",
+    )
+    ap.add_argument(
+        "--out",
+        type=Path,
+        default=Path("build/lpb"),
+        help="Output directory for decoded .luac files",
+    )
+    ap.add_argument(
+        "--show-cipher",
+        action="store_true",
+        help="Print the cipher mapping table and exit",
+    )
     args = ap.parse_args()
 
     if args.show_cipher:
@@ -137,8 +149,11 @@ def main() -> int:
         path = find_lpb(args.install_root, args.source_name)
         if path is None:
             enc = encode_filename(args.source_name)
-            print(f"error: no shipped .lpb matches source '{args.source_name}' "
-                  f"(ciphered: '{enc}.le.lpb')", file=sys.stderr)
+            print(
+                f"error: no shipped .lpb matches source '{args.source_name}' "
+                f"(ciphered: '{enc}.le.lpb')",
+                file=sys.stderr,
+            )
             return 1
         decoded = decode_lpb(path.read_bytes())
         if decoded is None:

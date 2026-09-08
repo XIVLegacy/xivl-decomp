@@ -63,18 +63,18 @@ WIRE = REPO_ROOT / "build" / "wire"
 # Discovered ClientPacketBuilder vtable VAs (image_base + RVA).
 CPB_VTABLES = {
     "lobby": 0x01127754,
-    "zone":  0x01129ae8,
-    "chat":  0x0113e8d0,
+    "zone": 0x01129AE8,
+    "chat": 0x0113E8D0,
 }
 
 # Constructor RVAs recovered from the vtable-store sites. Direct callers pass
 # the opcode as the final stack argument before calling the constructor.
 KNOWN_CPB_CTORS = {
-    "lobby_a": 0x009a2b50,
-    "lobby_b": 0x009a2be0,
-    "zone_a":  0x009c1c60,
-    "zone_b":  0x009c1cf0,
-    "chat_a":  0x00a40a60,
+    "lobby_a": 0x009A2B50,
+    "lobby_b": 0x009A2BE0,
+    "zone_a": 0x009C1C60,
+    "zone_b": 0x009C1CF0,
+    "chat_a": 0x00A40A60,
 }
 
 
@@ -116,9 +116,11 @@ def find_ctor_sites(data: bytes, text_sec: dict) -> dict[str, list[dict]]:
             if i < 0:
                 break
             # Look back 2 bytes for `c7 0?` (MOV [reg], imm32) or `c7 4?` (with disp8) etc.
-            if i >= 2 and data[i-2] == 0xc7 and (data[i-2+1] & 0x07) != 0x04:
+            if i >= 2 and data[i - 2] == 0xC7 and (data[i - 2 + 1] & 0x07) != 0x04:
                 rva = (i - text_off) + text_va_start
-                out[ch].append({"rva_hex": f"0x{rva:08x}", "store_form": f"c7 {data[i-1]:02x}"})
+                out[ch].append(
+                    {"rva_hex": f"0x{rva:08x}", "store_form": f"c7 {data[i - 1]:02x}"}
+                )
             i += 1
     return out
 
@@ -132,7 +134,7 @@ def find_ctor_callers(data: bytes, text_sec: dict, ctor_rva: int) -> list[int]:
     i = text_off
     end = text_off + text_size
     while i < end - 5:
-        if data[i] == 0xe8:
+        if data[i] == 0xE8:
             rel = struct.unpack_from("<i", data, i + 1)[0]
             call_pc = (i - text_off) + text_va + 5
             if call_pc + rel == ctor_rva:
@@ -141,8 +143,9 @@ def find_ctor_callers(data: bytes, text_sec: dict, ctor_rva: int) -> list[int]:
     return hits
 
 
-def decode_recent_pushes(data: bytes, text_sec: dict, call_rva: int,
-                         lookback: int = 80) -> list[tuple[int, str, object]]:
+def decode_recent_pushes(
+    data: bytes, text_sec: dict, call_rva: int, lookback: int = 80
+) -> list[tuple[int, str, object]]:
     """Walk back up to `lookback` bytes from a CALL site and collect the
     PUSH instructions in order. Returns list of (rva, kind, value)."""
     text_off = text_sec["raw_pointer"]
@@ -159,30 +162,51 @@ def decode_recent_pushes(data: bytes, text_sec: dict, call_rva: int,
             pushes.append((rva_here, "imm32", imm))
             j += 5
             continue
-        if b == 0x6a:  # PUSH imm8 (signed)
+        if b == 0x6A:  # PUSH imm8 (signed)
             pushes.append((rva_here, "imm8", data[j + 1]))
             j += 2
             continue
         if b in (0x50, 0x51, 0x52, 0x53, 0x55, 0x56, 0x57):
-            reg_name = {0x50: "EAX", 0x51: "ECX", 0x52: "EDX", 0x53: "EBX",
-                        0x55: "EBP", 0x56: "ESI", 0x57: "EDI"}[b]
+            reg_name = {
+                0x50: "EAX",
+                0x51: "ECX",
+                0x52: "EDX",
+                0x53: "EBX",
+                0x55: "EBP",
+                0x56: "ESI",
+                0x57: "EDI",
+            }[b]
             pushes.append((rva_here, "reg", reg_name))
             j += 1
             continue
-        if b == 0xff and j + 1 < call_off:
+        if b == 0xFF and j + 1 < call_off:
             # PUSH r/m32 - most variants are mem-based with disp8
             mr = data[j + 1]
-            if mr in (0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77,
-                      0x30, 0x31, 0x32, 0x33, 0x35, 0x36, 0x37):
+            if mr in (
+                0x70,
+                0x71,
+                0x72,
+                0x73,
+                0x74,
+                0x75,
+                0x76,
+                0x77,
+                0x30,
+                0x31,
+                0x32,
+                0x33,
+                0x35,
+                0x36,
+                0x37,
+            ):
                 pushes.append((rva_here, "mem", f"ff {mr:02x}"))
-                j += 3 if (mr & 0xf0) == 0x70 else 2
+                j += 3 if (mr & 0xF0) == 0x70 else 2
                 continue
         j += 1
     return pushes
 
 
-def enumerate_ctor_call_opcodes(data: bytes, text_sec: dict,
-                                 syms: list[dict]) -> dict:
+def enumerate_ctor_call_opcodes(data: bytes, text_sec: dict, syms: list[dict]) -> dict:
     """For each known CPB ctor, find direct CALL sites and decode the
     opcode arg.
 
@@ -213,16 +237,18 @@ def enumerate_ctor_call_opcodes(data: bytes, text_sec: dict,
             if len(recent) == 3 and recent[-1][1] in ("imm8", "imm32"):
                 # arg1 = last push (highest addr) = opcode
                 opcode = recent[-1][2]
-            per_caller.append({
-                "call_rva_hex": f"0x{c:08x}",
-                "caller_fn": caller_fn,
-                "recent_pushes": [
-                    {"rva_hex": f"0x{r[0]:08x}", "kind": r[1], "value": r[2]}
-                    for r in recent
-                ],
-                "opcode": opcode,
-                "opcode_hex": f"0x{opcode:04x}" if opcode is not None else None,
-            })
+            per_caller.append(
+                {
+                    "call_rva_hex": f"0x{c:08x}",
+                    "caller_fn": caller_fn,
+                    "recent_pushes": [
+                        {"rva_hex": f"0x{r[0]:08x}", "kind": r[1], "value": r[2]}
+                        for r in recent
+                    ],
+                    "opcode": opcode,
+                    "opcode_hex": f"0x{opcode:04x}" if opcode is not None else None,
+                }
+            )
         out[label] = {
             "ctor_rva_hex": f"0x{ctor_rva:08x}",
             "caller_count": len(callers),
@@ -232,10 +258,16 @@ def enumerate_ctor_call_opcodes(data: bytes, text_sec: dict,
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("binary", default="ffxivgame", nargs="?",
-                    choices=("ffxivgame", "ffxivgame.exe"),
-                    help="fixed supported client binary")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "binary",
+        default="ffxivgame",
+        nargs="?",
+        choices=("ffxivgame", "ffxivgame.exe"),
+        help="fixed supported client binary",
+    )
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
 
@@ -252,20 +284,29 @@ def main() -> int:
         for call in info["calls"]:
             if call["opcode"] is None:
                 continue
-            recovered.setdefault(call["opcode"], []).append({
-                "channel": label,
-                "caller_fn": call["caller_fn"] or "?",
-                "call_rva_hex": call["call_rva_hex"],
-            })
+            recovered.setdefault(call["opcode"], []).append(
+                {
+                    "channel": label,
+                    "caller_fn": call["caller_fn"] or "?",
+                    "call_rva_hex": call["call_rva_hex"],
+                }
+            )
 
-    rows = [{
-        "opcode": opcode,
-        "opcode_hex": f"0x{opcode:04x}",
-        "site_count": len(sites),
-        "channels": sorted({s["channel"] for s in sites}),
-        "caller_fns": sorted({s["caller_fn"] for s in sites}),
-    } for opcode, sites in sorted(recovered.items())]
-    summary = {"ctor_sites": ctor_sites, "ctor_callers": ctor_calls, "recovered_opcodes": rows}
+    rows = [
+        {
+            "opcode": opcode,
+            "opcode_hex": f"0x{opcode:04x}",
+            "site_count": len(sites),
+            "channels": sorted({s["channel"] for s in sites}),
+            "caller_fns": sorted({s["caller_fn"] for s in sites}),
+        }
+        for opcode, sites in sorted(recovered.items())
+    ]
+    summary = {
+        "ctor_sites": ctor_sites,
+        "ctor_callers": ctor_calls,
+        "recovered_opcodes": rows,
+    }
     out_json = CONFIG / f"{stem}.up_opcodes.json"
     out_json.write_text(json.dumps(summary, indent=2))
 
@@ -273,16 +314,30 @@ def main() -> int:
     out_md = WIRE / f"{stem}.up_opcodes.md"
     with out_md.open("w", encoding="utf-8") as f:
         f.write(f"# {stem}.exe - Up-direction opcode reconnaissance\n\n")
-        f.write("Generated by `tools/extract_up_opcodes.py` from client constructor call sites.\n\n")
-        f.write("The generic ClientPacketBuilder stores its opcode at offset `0x1c`; no compact per-opcode Up table was observed.\n\n")
-        f.write("## Constructors\n\n| channel | constructor RVA | direct callers |\n|---|---|---:|\n")
+        f.write(
+            "Generated by `tools/extract_up_opcodes.py` from client constructor call sites.\n\n"
+        )
+        f.write(
+            "The generic ClientPacketBuilder stores its opcode at offset `0x1c`; no compact per-opcode Up table was observed.\n\n"
+        )
+        f.write(
+            "## Constructors\n\n| channel | constructor RVA | direct callers |\n|---|---|---:|\n"
+        )
         for label, info in ctor_calls.items():
-            f.write(f"| {label} | `{info['ctor_rva_hex']}` | {info['caller_count']} |\n")
+            f.write(
+                f"| {label} | `{info['ctor_rva_hex']}` | {info['caller_count']} |\n"
+            )
         f.write("\n## Recovered direct-call opcodes\n\n")
-        f.write("| opcode | hex | channels | sites | caller functions |\n|---:|---:|---|---:|---|\n")
+        f.write(
+            "| opcode | hex | channels | sites | caller functions |\n|---:|---:|---|---:|---|\n"
+        )
         for row in rows:
-            f.write(f"| {row['opcode']} | `{row['opcode_hex']}` | {', '.join(row['channels'])} | {row['site_count']} | {', '.join(row['caller_fns'])} |\n")
-        f.write("\nA complete inventory requires data-flow analysis through shared builder instances and indirect Send calls.\n")
+            f.write(
+                f"| {row['opcode']} | `{row['opcode_hex']}` | {', '.join(row['channels'])} | {row['site_count']} | {', '.join(row['caller_fns'])} |\n"
+            )
+        f.write(
+            "\nA complete inventory requires data-flow analysis through shared builder instances and indirect Send calls.\n"
+        )
 
     print(f"wrote: {out_json.relative_to(REPO_ROOT)}")
     print(f"       {out_md.relative_to(REPO_ROOT)}")

@@ -102,16 +102,27 @@ def extract_inl_methods(luac_path: Path) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--lpb-dir", type=Path, default=REPO_ROOT / "build" / "lpb",
-                    help="directory of decoded .luac files (default: build/lpb)")
-    ap.add_argument("--out-dir", type=Path, default=REPO_ROOT / "build" / "wire",
-                    help="output dir for cpp_bindings.{json,md} (default: build/wire)")
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--lpb-dir",
+        type=Path,
+        default=REPO_ROOT / "build" / "lpb",
+        help="directory of decoded .luac files (default: build/lpb)",
+    )
+    ap.add_argument(
+        "--out-dir",
+        type=Path,
+        default=REPO_ROOT / "build" / "wire",
+        help="output dir for cpp_bindings.{json,md} (default: build/wire)",
+    )
     args = ap.parse_args()
 
     if not args.lpb_dir.exists():
-        print(f"error: {args.lpb_dir} not found - run tools/decode_lpb.py first",
-              file=sys.stderr)
+        print(
+            f"error: {args.lpb_dir} not found - run tools/decode_lpb.py first",
+            file=sys.stderr,
+        )
         return 1
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -139,15 +150,20 @@ def main() -> int:
 
     # Emit JSON
     json_path = args.out_dir / "cpp_bindings.json"
-    json_path.write_text(json.dumps({
-        "summary": {
-            "files_scanned": len(p_files),
-            "classes_with_bindings": len(bindings),
-            "total_method_declarations": total_methods,
-            "distinct_method_names": distinct_methods,
-        },
-        "bindings": bindings,
-    }, indent=2))
+    json_path.write_text(
+        json.dumps(
+            {
+                "summary": {
+                    "files_scanned": len(p_files),
+                    "classes_with_bindings": len(bindings),
+                    "total_method_declarations": total_methods,
+                    "distinct_method_names": distinct_methods,
+                },
+                "bindings": bindings,
+            },
+            indent=2,
+        )
+    )
 
     # Emit Markdown
     md_path = args.out_dir / "cpp_bindings.md"
@@ -159,7 +175,7 @@ def main() -> int:
         f.write("Per `docs/actor/world-master.md`, every Lua-bindable class with\n")
         f.write("C++-implemented methods declares them in a `_u` (ciphered `_p`)\n")
         f.write("file using the `_<method>_cpp` / `_<method>_inl` pair convention.\n")
-        f.write("The `_inl` stub returns `(\"self\", \"_<method>_cpp\")`; the\n")
+        f.write('The `_inl` stub returns `("self", "_<method>_cpp")`; the\n')
         f.write("engine reads those literals and dispatches to the matching C++\n")
         f.write("implementation. This tool scans every `*_p.luac` file's string\n")
         f.write("table for `_<name>_inl\\x00` patterns.\n\n")
@@ -186,7 +202,9 @@ def main() -> int:
         f.write("Methods that appear in many classes likely reflect inherited\n")
         f.write("base-class API (declared in each subclass's _u file).\n\n")
         f.write("| Method | Declared in N classes |\n|---|---:|\n")
-        for method in sorted(method_class_count, key=lambda m: -len(method_class_count[m]))[:50]:
+        for method in sorted(
+            method_class_count, key=lambda m: -len(method_class_count[m])
+        )[:50]:
             f.write(f"| `{method}` | {len(method_class_count[method])} |\n")
         f.write("\n")
 
@@ -201,8 +219,10 @@ def main() -> int:
 
     print(f"Wrote {json_path.relative_to(REPO_ROOT)}", file=sys.stderr)
     print(f"Wrote {md_path.relative_to(REPO_ROOT)}", file=sys.stderr)
-    print(f"Summary: {len(bindings)} classes, {total_methods} declarations, "
-          f"{distinct_methods} distinct methods")
+    print(
+        f"Summary: {len(bindings)} classes, {total_methods} declarations, "
+        f"{distinct_methods} distinct methods"
+    )
     return 0
 
 

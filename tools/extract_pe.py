@@ -78,8 +78,8 @@ def parse_pe(path: Path) -> dict:
         raise ValueError(f"{path}: PE signature missing")
 
     coff = e_lfanew + 4
-    machine, n_sections, timestamp, _, _, size_opt, characteristics = struct.unpack_from(
-        "<HHIIIHH", data, coff
+    machine, n_sections, timestamp, _, _, size_opt, characteristics = (
+        struct.unpack_from("<HHIIIHH", data, coff)
     )
 
     opt = coff + 20
@@ -163,7 +163,11 @@ def parse_pe(path: Path) -> dict:
         "machine": f"{machine:#x}",
         "n_sections": n_sections,
         "timestamp": timestamp,
-        "timestamp_iso": datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
+        "timestamp_iso": datetime.datetime.fromtimestamp(
+            timestamp, datetime.timezone.utc
+        )
+        .isoformat()
+        .replace("+00:00", "Z"),
         "characteristics": f"{characteristics:#x}",
         "linker_version": f"{major_link}.{minor_link}",
         "image_base": f"{image_base:#x}",
@@ -207,6 +211,7 @@ def write_summary(name: str, info: dict) -> None:
             f"vsize={s['virtual_size']:#010x}  rsize={s['raw_size']:#010x}  [{flags}]"
         )
     fp = info["fingerprints"]
+
     def on(enabled: bool) -> str:
         return "Y" if enabled else "."
 
@@ -249,14 +254,18 @@ def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if not args.orig_dir.exists():
-        print(f"error: {args.orig_dir} does not exist; supply retail executables under orig/",
-              file=sys.stderr)
+        print(
+            f"error: {args.orig_dir} does not exist; supply retail executables under orig/",
+            file=sys.stderr,
+        )
         return 1
 
     exes = sorted(args.orig_dir.glob("*.exe"))
     if not exes:
-        print(f"error: no .exe files in {args.orig_dir}; supply retail executables under orig/",
-              file=sys.stderr)
+        print(
+            f"error: no .exe files in {args.orig_dir}; supply retail executables under orig/",
+            file=sys.stderr,
+        )
         return 1
 
     for exe in exes:

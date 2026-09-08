@@ -45,11 +45,32 @@ def verify(document: dict | None = None) -> list[str]:
         or judge.get("functionLine") != 513
         or judge.get("assignmentLine") != 569
         or judge.get("arityIncludingSelf") != 3
-        or judge.get("arguments") != ["receiver actor", "comparison actor", "grow selector"]
+        or judge.get("arguments")
+        != ["receiver actor", "comparison actor", "grow selector"]
         or judge.get("nonPlayerToPlayer")
-        != [[69, 19], [73, 23], [77, 27], [81, 31], [85, 35], [91, 41], [95, 45], [99, 49], [89, 39]]
+        != [
+            [69, 19],
+            [73, 23],
+            [77, 27],
+            [81, 31],
+            [85, 35],
+            [91, 41],
+            [95, 45],
+            [99, 49],
+            [89, 39],
+        ]
         or judge.get("nonPlayerToNonPlayer")
-        != [[19, 69], [23, 73], [27, 77], [31, 81], [35, 85], [41, 91], [45, 95], [49, 99], [39, 89]]
+        != [
+            [19, 69],
+            [23, 73],
+            [27, 77],
+            [31, 81],
+            [35, 85],
+            [41, 91],
+            [45, 95],
+            [49, 99],
+            [39, 89],
+        ]
         or judge.get("playerReceiverResult") != "selector unchanged"
         or judge.get("unknownSelectorResult") != "selector unchanged"
         or judge.get("validation")

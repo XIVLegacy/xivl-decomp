@@ -8,10 +8,21 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
-SUPPORTED = frozenset({
-    "$schema", "$id", "title", "description", "type", "properties",
-    "required", "additionalProperties", "enum", "const", "pattern",
-})
+SUPPORTED = frozenset(
+    {
+        "$schema",
+        "$id",
+        "title",
+        "description",
+        "type",
+        "properties",
+        "required",
+        "additionalProperties",
+        "enum",
+        "const",
+        "pattern",
+    }
+)
 NAME_MAPS = frozenset({"properties"})
 JSON_TYPES: dict[str, type | tuple[type, ...]] = {
     "object": dict,
@@ -42,16 +53,12 @@ def _assert_supported(node: Any, location: str, in_name_map: bool) -> None:
         if not in_name_map:
             for key in node:
                 if key not in SUPPORTED:
-                    raise SchemaError(
-                        f"{location}: unsupported schema keyword {key!r}"
-                    )
+                    raise SchemaError(f"{location}: unsupported schema keyword {key!r}")
             names = node.get("type")
             if names is not None:
-                for name in ([names] if isinstance(names, str) else names):
+                for name in [names] if isinstance(names, str) else names:
                     if name not in JSON_TYPES:
-                        raise SchemaError(
-                            f"{location}/type: unknown type {name!r}"
-                        )
+                        raise SchemaError(f"{location}/type: unknown type {name!r}")
         for key, value in node.items():
             _assert_supported(
                 value,

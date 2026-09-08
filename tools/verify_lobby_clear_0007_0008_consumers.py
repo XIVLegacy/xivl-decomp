@@ -177,9 +177,23 @@ def verify(document: dict | None = None) -> list[str]:
         (2, 2, "constant", "clear type selector", 8, "0x00db810c"),
         (4, 4, "constant", "zero-only common-header field", 0, "0x00db8112"),
         (8, 4, "constant", "zero-only common-header field", 0, "0x00db8115"),
-        (12, 4, "uninitialized stack slot", "indeterminate common-header field", None, "0x00db8118"),
+        (
+            12,
+            4,
+            "uninitialized stack slot",
+            "indeterminate common-header field",
+            None,
+            "0x00db8118",
+        ),
         (16, 4, "connection-map node key", "dynamic builder input", None, "0x00db811e"),
-        (20, 4, "low dword of __time64 return", "dynamic builder-local time", None, "0x00db8121"),
+        (
+            20,
+            4,
+            "low dword of __time64 return",
+            "dynamic builder-local time",
+            None,
+            "0x00db8121",
+        ),
     ]
     writes = builder.get("recordWrites", [])
     normalized_writes = [
@@ -241,9 +255,21 @@ def verify(document: dict | None = None) -> list[str]:
         if terminal.get(key) != expected:
             errors.append(f"terminal-send {key} changed")
     if terminal.get("transportDispatchCandidates") != [
-        {"selectorObjectOffset": 12, "virtualSlotByteOffset": 32, "branchVa": "0x00d36029"},
-        {"selectorObjectOffset": 20, "virtualSlotByteOffset": 40, "branchVa": "0x00d36037"},
-        {"selectorObjectOffset": 28, "virtualSlotByteOffset": 36, "branchVa": "0x00d36045"},
+        {
+            "selectorObjectOffset": 12,
+            "virtualSlotByteOffset": 32,
+            "branchVa": "0x00d36029",
+        },
+        {
+            "selectorObjectOffset": 20,
+            "virtualSlotByteOffset": 40,
+            "branchVa": "0x00d36037",
+        },
+        {
+            "selectorObjectOffset": 28,
+            "virtualSlotByteOffset": 36,
+            "branchVa": "0x00d36045",
+        },
     ]:
         errors.append("terminal transport candidates changed")
     if "not established" not in terminal.get("terminalBoundary", ""):

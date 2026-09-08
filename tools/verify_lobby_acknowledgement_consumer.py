@@ -63,7 +63,10 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("format changed")
 
     sources = document.get("sources", {})
-    if sources.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9":
+    if (
+        sources.get("binarySha256")
+        != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+    ):
         errors.append("binary identity changed")
     if sources.get("captureCommit") != "32a39d2a92f2268d64ab3586b8d791fa93ed19f1":
         errors.append("capture evidence revision changed")
@@ -73,7 +76,10 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("capture evidence path changed")
     if sources.get("captureLocator") != "crossSession.acknowledgementComparison":
         errors.append("capture evidence locator changed")
-    if sources.get("retainedSessionCount") != 2 or sources.get("retainedNewCharacterSessionCount") != 0:
+    if (
+        sources.get("retainedSessionCount") != 2
+        or sources.get("retainedNewCharacterSessionCount") != 0
+    ):
         errors.append("capture-session boundary changed")
 
     wire = document.get("wire", {})
@@ -99,7 +105,9 @@ def verify(document: dict | None = None) -> list[str]:
         offset = field.get("offset")
         width = field.get("width")
         if offset != cursor or not isinstance(width, int) or width <= 0:
-            errors.append("payload fields are not a contiguous positive-width partition")
+            errors.append(
+                "payload fields are not a contiguous positive-width partition"
+            )
             break
         cursor += width
         if field.get("crossSession") != "mixed":
@@ -129,7 +137,12 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("cross-session dynamic runs changed")
 
     direct = [field for field in fields if field.get("consumerStatus") == "direct"]
-    if len(direct) != 1 or direct[0].get("id") != "assigned_connection_u32" or direct[0].get("offset") != 0 or direct[0].get("width") != 4:
+    if (
+        len(direct) != 1
+        or direct[0].get("id") != "assigned_connection_u32"
+        or direct[0].get("offset") != 0
+        or direct[0].get("width") != 4
+    ):
         errors.append("direct consumer field changed")
     if set(range(0, 2)) - dynamic_bytes or set(range(2, 4)) & dynamic_bytes:
         errors.append("assigned connection u32 variance changed")
@@ -139,13 +152,17 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("repeated-value groups changed")
     for group in groups:
         offsets = group.get("payloadOffsets", [])
-        if group.get("width") != 8 or any(offset % 8 or offset + 8 > 640 for offset in offsets):
+        if group.get("width") != 8 or any(
+            offset % 8 or offset + 8 > 640 for offset in offsets
+        ):
             errors.append("repeated-value group alignment changed")
         if not str(group.get("producer", "")).startswith("remote-server-only"):
             errors.append("unsupported repeated-value producer was assigned")
 
     boundary = document.get("staticAcceptanceBoundary", {})
-    if "nonzero little-endian u32 at payload+0x00" not in " ".join(boundary.get("required", [])):
+    if "nonzero little-endian u32 at payload+0x00" not in " ".join(
+        boundary.get("required", [])
+    ):
         errors.append("nonzero assignment gate missing")
     if boundary.get("confidence") != "high-static-low-fixed-value-live":
         errors.append("static/live confidence boundary changed")
@@ -184,7 +201,11 @@ def mutation_test() -> list[str]:
     moved_run["payloadFields"][-1]["dynamicRuns"][0]["offset"] += 1
     mutations.append(moved_run)
 
-    return [f"mutation {index} was accepted" for index, item in enumerate(mutations, 1) if not verify(item)]
+    return [
+        f"mutation {index} was accepted"
+        for index, item in enumerate(mutations, 1)
+        if not verify(item)
+    ]
 
 
 def main() -> int:

@@ -20,7 +20,15 @@ EXPECTED_TIMER_APIS = [
 ]
 EXPECTED_COMMANDS = [
     ["MoveCharacter", "ShiftMoveCharacter", "MoveCharacterAutoRun"],
-    ["ChangeTargetNext", "ChangeTargetPrev", "ChangeEnemyTargetNext", "ChangeEnemyTargetPrev", "ChangeBattleTargetNext", "ChangeBattleTargetPrev", "ChangeTargetMode"],
+    [
+        "ChangeTargetNext",
+        "ChangeTargetPrev",
+        "ChangeEnemyTargetNext",
+        "ChangeEnemyTargetPrev",
+        "ChangeBattleTargetNext",
+        "ChangeBattleTargetPrev",
+        "ChangeTargetMode",
+    ],
     ["LockTarget", "MoveCamera", "ChangeCameraMode", "ChangeCameraLock"],
     ["ForwardCameraOn", "ForwardCameraOff", "BackwardCameraOn", "BackwardCameraOff"],
 ]
@@ -66,7 +74,8 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("format changed")
     source = document.get("source", {})
     if (
-        source.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+        source.get("binarySha256")
+        != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
         or source.get("ghidraVersion") != "12.1.3"
     ):
         errors.append("retail evidence identity changed")
@@ -86,7 +95,8 @@ def verify(document: dict | None = None) -> list[str]:
         or owner.get("containerClass") != "Application::Main::RaptureElementContainer"
         or owner.get("raptureUserControlOffset") != "0x17758"
         or owner.get("raptureUserControlSize") != "0x58"
-        or owner.get("raptureUserControlClass") != "Application::Main::SqwtInterface::RaptureUserControl"
+        or owner.get("raptureUserControlClass")
+        != "Application::Main::SqwtInterface::RaptureUserControl"
         or owner.get("raptureUserControlAccessorVa") != "0x004d7580"
         or owner.get("nextContainerMemberOffset") != "0x177b0"
     ):
@@ -100,15 +110,30 @@ def verify(document: dict | None = None) -> list[str]:
     if timer.get("terminalStateClass") is not None or timer_apis != EXPECTED_TIMER_APIS:
         errors.append("timer consumer map or unresolved class boundary changed")
     if [row.get("readerVa") for row in fields] != [
-        "0x0075f420", "0x0075d220", "0x0075d240", "0x0075d260", "0x0075d280"
+        "0x0075f420",
+        "0x0075d220",
+        "0x0075d240",
+        "0x0075d260",
+        "0x0075d280",
     ]:
         errors.append("timer reader map changed")
     groups = document.get("raptureUserControl", {}).get("groups", [])
     methods = [
-        (row.get("recordOffset"), row.get("countOffset"), row.get("setupVa"), row.get("decrementVa"), row.get("countReaderVa"))
+        (
+            row.get("recordOffset"),
+            row.get("countOffset"),
+            row.get("setupVa"),
+            row.get("decrementVa"),
+            row.get("countReaderVa"),
+        )
         for row in groups
     ]
-    if [row.get("ordinal") for row in groups] != [1, 2, 3, 4] or methods != EXPECTED_GROUP_METHODS:
+    if [row.get("ordinal") for row in groups] != [
+        1,
+        2,
+        3,
+        4,
+    ] or methods != EXPECTED_GROUP_METHODS:
         errors.append("RaptureUserControl group pairing changed")
     if [row.get("commands") for row in groups] != EXPECTED_COMMANDS:
         errors.append("RaptureUserControl command membership changed")
@@ -139,14 +164,17 @@ def verify(document: dict | None = None) -> list[str]:
         or action.get("orderedContainerOffset") != "0x18"
         or action.get("predicate") != "signed-greater-than-zero"
         or action.get("suppressedValues") != "zero and negative"
-        or action.get("selectorExclusions") != [
+        or action.get("selectorExclusions")
+        != [
             "0x7c000062",
             "0x10000000..0x10ffffff",
             "0x14000000..0x14ffffff",
         ]
         or consumer_map != EXPECTED_ACTION_CONSUMERS
-        or action.get("positiveEffect") != "executes the listed local ordered-container mutation"
-        or action.get("suppressedEffect") != "returns without changing that ordered container"
+        or action.get("positiveEffect")
+        != "executes the listed local ordered-container mutation"
+        or action.get("suppressedEffect")
+        != "returns without changing that ordered container"
         or action.get("networkEmissions") != []
         or action.get("luaOrNapiConsumers") != []
         or action.get("publicResultConsumers") != []
@@ -155,7 +183,9 @@ def verify(document: dict | None = None) -> list[str]:
     ):
         errors.append("ActionCheck consumer boundary changed")
     unresolved = document.get("unresolved", [])
-    if not any("timer units" == item for item in unresolved) or not any("high-level nouns" in item for item in unresolved):
+    if not any("timer units" == item for item in unresolved) or not any(
+        "high-level nouns" in item for item in unresolved
+    ):
         errors.append("unresolved semantic boundary changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
     forbidden = (
@@ -193,7 +223,9 @@ def mutation_test() -> list[str]:
     moved_command["raptureUserControl"]["groups"][1]["commands"].append("LockTarget")
     mutations.append(moved_command)
     invented_registration = copy.deepcopy(document)
-    invented_registration["raptureUserControl"]["groups"][1]["setupRegistrations"].append("ChangeTargetNext")
+    invented_registration["raptureUserControl"]["groups"][1][
+        "setupRegistrations"
+    ].append("ChangeTargetNext")
     mutations.append(invented_registration)
     dropped_consumer = copy.deepcopy(document)
     dropped_consumer["actionCheck"]["nativeConsumers"].pop()
@@ -207,7 +239,11 @@ def mutation_test() -> list[str]:
     leaked = copy.deepcopy(document)
     leaked["source"]["path"] = "agent-islands/private-evidence"
     mutations.append(leaked)
-    return [f"mutation {index} was accepted" for index, item in enumerate(mutations, 1) if not verify(item)]
+    return [
+        f"mutation {index} was accepted"
+        for index, item in enumerate(mutations, 1)
+        if not verify(item)
+    ]
 
 
 def main() -> int:

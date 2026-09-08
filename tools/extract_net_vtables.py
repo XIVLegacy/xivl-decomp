@@ -65,7 +65,9 @@ def short_class_name(cls: str) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("binary", help="binary stem, e.g. ffxivgame")
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
@@ -75,12 +77,16 @@ def main() -> int:
     sym_path = CONFIG / f"{stem}.symbols.json"
     asm_dir = ASM_ROOT / stem
     if not all(p.exists() for p in (rtti_path, slots_path, sym_path)):
-        print(f"error: missing dumps for {stem}; run import_to_ghidra.py first", file=sys.stderr)
+        print(
+            f"error: missing dumps for {stem}; run import_to_ghidra.py first",
+            file=sys.stderr,
+        )
         return 1
 
     rtti_document = json.loads(rtti_path.read_text())
-    rtti = (rtti_document["classes"]
-            if isinstance(rtti_document, dict) else rtti_document)
+    rtti = (
+        rtti_document["classes"] if isinstance(rtti_document, dict) else rtti_document
+    )
     syms = {fn["rva"]: fn for fn in json.loads(sym_path.read_text())}
 
     # Build asm/ filename index by RVA prefix.
@@ -95,7 +101,8 @@ def main() -> int:
 
     # Net-relevant classes from RTTI.
     selected = [
-        r for r in rtti
+        r
+        for r in rtti
         if NET_PATTERNS.search(r["class"]) and not ANTI_PATTERNS.search(r["class"])
     ]
     print(f"selected {len(selected)} net-relevant classes (of {len(rtti)} total)")
@@ -142,7 +149,9 @@ def main() -> int:
                 slots = by_class.get(cls, [])
                 if not slots:
                     f.write(f"### `{short_class_name(cls)}`\n\n")
-                    f.write("_(no vtable slots recovered - class has only constructors / destructors / abstract slots)_\n\n")
+                    f.write(
+                        "_(no vtable slots recovered - class has only constructors / destructors / abstract slots)_\n\n"
+                    )
                     continue
                 f.write(f"### `{short_class_name(cls)}` - {len(slots)} slots\n\n")
                 f.write("| slot | fn_rva | fn_name | asm |\n")
@@ -152,15 +161,21 @@ def main() -> int:
                     rva = s["fn_rva"]
                     fn_name = syms.get(rva, {}).get("name", f"FUN_{rva + 0x400000:08x}")
                     asm = asm_by_rva.get(rva, "-")
-                    asm_link = f"[`{asm}`](../../asm/{stem}/{asm})" if asm != "-" else "-"
-                    f.write(f"| {s['slot']} | `0x{rva:08x}` | `{fn_name}` | {asm_link} |\n")
-                    structured.append({
-                        "class": cls,
-                        "slot": s["slot"],
-                        "fn_rva": rva,
-                        "fn_name": fn_name,
-                        "asm": asm if asm != "-" else None,
-                    })
+                    asm_link = (
+                        f"[`{asm}`](../../asm/{stem}/{asm})" if asm != "-" else "-"
+                    )
+                    f.write(
+                        f"| {s['slot']} | `0x{rva:08x}` | `{fn_name}` | {asm_link} |\n"
+                    )
+                    structured.append(
+                        {
+                            "class": cls,
+                            "slot": s["slot"],
+                            "fn_rva": rva,
+                            "fn_name": fn_name,
+                            "asm": asm if asm != "-" else None,
+                        }
+                    )
                 f.write("\n")
 
     out_json.write_text(json.dumps(structured, indent=2))

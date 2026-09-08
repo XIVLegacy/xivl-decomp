@@ -37,9 +37,9 @@ WIRE = REPO_ROOT / "build" / "wire"
 
 CTP_PATTERN = re.compile(
     r"^Component::GAM::CompileTimeParameter<"
-    r"(\d+),"                                           # 1: id
-    r"&char\*_([A-Za-z_:][\w:]*)::PARAMNAME_\d+,"       # 2: ns (owning Data class)
-    r"(.*?),"                                           # 3: type (lazy)
+    r"(\d+),"  # 1: id
+    r"&char\*_([A-Za-z_:][\w:]*)::PARAMNAME_\d+,"  # 2: ns (owning Data class)
+    r"(.*?),"  # 3: type (lazy)
     r"(?:class_)?Component::GAM::DecoratorSimpleAssign"
 )
 
@@ -57,8 +57,8 @@ def normalize_type(rtti_type: str) -> str:
     # underscore->space pass with a placeholder.
     t = t.replace("unsigned___int64", "\x00U64\x00")
     t = t.replace("signed___int64", "\x00I64\x00")
-    t = re.sub(r"\b(class|struct)_", "", t) # strip kind prefix
-    t = t.replace("_", " ")                 # signed_char -> signed char
+    t = re.sub(r"\b(class|struct)_", "", t)  # strip kind prefix
+    t = t.replace("_", " ")  # signed_char -> signed char
     t = t.replace("\x00U64\x00", "unsigned __int64")
     t = t.replace("\x00I64\x00", "signed __int64")
     t = t.replace("Component::GAM::Blob<", "Blob<")
@@ -71,14 +71,19 @@ def normalize_type(rtti_type: str) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("binary", default="ffxivgame", nargs="?")
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
 
     handlers_path = WIRE / f"{stem}.net_handlers.json"
     if not handlers_path.exists():
-        print(f"error: missing {handlers_path}; run extract_net_vtables.py first", file=sys.stderr)
+        print(
+            f"error: missing {handlers_path}; run extract_net_vtables.py first",
+            file=sys.stderr,
+        )
         return 1
     handlers = json.loads(handlers_path.read_text())
 
@@ -86,7 +91,10 @@ def main() -> int:
     ctp_classes: set[str] = set()
     for e in handlers:
         cls = e.get("class", "")
-        if cls.startswith("Component::GAM::CompileTimeParameter<") and "PARAMNAME" in cls:
+        if (
+            cls.startswith("Component::GAM::CompileTimeParameter<")
+            and "PARAMNAME" in cls
+        ):
             ctp_classes.add(cls)
 
     rows: list[dict] = []
@@ -95,12 +103,14 @@ def main() -> int:
         if not m:
             continue
         id_, ns, ty = int(m.group(1)), m.group(2), m.group(3)
-        rows.append({
-            "id": id_,
-            "ns": ns,
-            "rtti_type_raw": ty,
-            "rtti_type": normalize_type(ty),
-        })
+        rows.append(
+            {
+                "id": id_,
+                "ns": ns,
+                "rtti_type_raw": ty,
+                "rtti_type": normalize_type(ty),
+            }
+        )
     rows.sort(key=lambda r: (r["ns"], r["id"]))
 
     if not rows:
@@ -134,7 +144,9 @@ def main() -> int:
                     disagree += 1
         with gp_path.open("w", encoding="utf-8", newline="\r\n") as f:
             f.write(json.dumps(gp, indent=2) + "\n")
-        print(f"  enriched {gp_path.name}: {agree} agree, {disagree} differ from existing extractor")
+        print(
+            f"  enriched {gp_path.name}: {agree} agree, {disagree} differ from existing extractor"
+        )
 
     return 0
 

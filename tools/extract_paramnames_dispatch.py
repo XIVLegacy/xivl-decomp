@@ -79,12 +79,12 @@ DISPATCHERS: dict[str, dict] = {
     #                   that mapping is not established here, names are
     #                   extracted by local index without gam_params enrichment.
     "CharaMakeData": {
-        "rva": 0x001ad010,
+        "rva": 0x001AD010,
         "ns": "Application::Network::GameAttributeManager::Data::CharaMakeData",
         "key": "global_id",
     },
     "Player": {
-        "rva": 0x001add90,
+        "rva": 0x001ADD90,
         "ns": "Application::Network::GameAttributeManager::Data::Player",
         "key": "global_id",
     },
@@ -98,7 +98,7 @@ DISPATCHERS: dict[str, dict] = {
         # remaining 10 ids (580..589 + 595), but its different structure is
         # not decoded here. Their names can be cross-derived by subtracting
         # slot 2's confirmed 27 from slot 4's 37 local-index names.
-        "rva": 0x001aee30,
+        "rva": 0x001AEE30,
         "ns": "Application::Network::GameAttributeManager::Data::PlayerPlayer",
         "key": "global_id",
     },
@@ -106,7 +106,7 @@ DISPATCHERS: dict[str, dict] = {
         # Slot 2 of MetadataProvider - global-id keyed.
         # `ADD EAX, -0x64; CMP EAX, 0x13` -> ids 100..119 (20-entry JT).
         # GAM has 17 ids in this range (gaps at 101, 105, 106 -> sentinel).
-        "rva": 0x001ad580,
+        "rva": 0x001AD580,
         "ns": "Application::Network::GameAttributeManager::Data::ClientSelectData",
         "key": "global_id",
     },
@@ -114,7 +114,7 @@ DISPATCHERS: dict[str, dict] = {
         # Slot 2 of MetadataProvider - global-id keyed.
         # `ADD EAX, -0x64; CMP EAX, 0x10` -> ids 100..116 (17-entry JT,
         # contiguous, no gaps).
-        "rva": 0x001ad990,
+        "rva": 0x001AD990,
         "ns": "Application::Network::GameAttributeManager::Data::ClientSelectDataN",
         "key": "global_id",
     },
@@ -124,7 +124,7 @@ DISPATCHERS: dict[str, dict] = {
         # compare cascade rather than a JT (more compact for 3 ids).
         # Case handlers still appear in id-sorted source order, so the
         # K-th `.data` PUSH still pairs with the K-th real GAM id.
-        "rva": 0x001af640,
+        "rva": 0x001AF640,
         "ns": "Application::Network::GameAttributeManager::Data::ZoneInitData",
         "key": "global_id",
     },
@@ -146,7 +146,7 @@ def _section_for_va(sections: list[tuple], va: int) -> tuple[str | None, int]:
 
 def _parse_pe(path: Path) -> tuple[bytes, list[tuple]]:
     data = path.read_bytes()
-    e_lfanew = struct.unpack_from("<I", data, 0x3c)[0]
+    e_lfanew = struct.unpack_from("<I", data, 0x3C)[0]
     n = struct.unpack_from("<H", data, e_lfanew + 6)[0]
     size_opt = struct.unpack_from("<H", data, e_lfanew + 20)[0]
     sec_off = e_lfanew + 24 + size_opt
@@ -189,7 +189,11 @@ def extract_dispatcher(
     asm = asm_path.read_text()
 
     pushes: list[int] = []
-    for m in re.finditer(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f][0-9a-f] )+\s+PUSH (0x[0-9a-fA-F]+)$", asm, re.MULTILINE):
+    for m in re.finditer(
+        r"^\s*[0-9a-f]+:\s+(?:[0-9a-f][0-9a-f] )+\s+PUSH (0x[0-9a-fA-F]+)$",
+        asm,
+        re.MULTILINE,
+    ):
         va = int(m.group(1), 16)
         sec, _foff = _section_for_va(sections, va)
         if sec == ".data":
@@ -202,12 +206,14 @@ def extract_dispatcher(
         if sec is None:
             continue
         s = _read_cstr(pe_data, foff)
-        by_local.append({
-            "ns": info["ns"],
-            "local_index": k,
-            "paramname": s,
-            "ptr_va": f"0x{va:08x}",
-        })
+        by_local.append(
+            {
+                "ns": info["ns"],
+                "local_index": k,
+                "paramname": s,
+                "ptr_va": f"0x{va:08x}",
+            }
+        )
 
     if info["key"] == "global_id":
         if len(pushes) != len(real_ids):
@@ -220,29 +226,39 @@ def extract_dispatcher(
             if sec is None:
                 continue
             s = _read_cstr(pe_data, foff)
-            by_id.append({
-                "id": real_id,
-                "ns": info["ns"],
-                "paramname": s,
-                "ptr_va": f"0x{va:08x}",
-                "ptr_section": sec,
-                "ptr_file_off": foff,
-            })
+            by_id.append(
+                {
+                    "id": real_id,
+                    "ns": info["ns"],
+                    "paramname": s,
+                    "ptr_va": f"0x{va:08x}",
+                    "ptr_section": sec,
+                    "ptr_file_off": foff,
+                }
+            )
     return (by_id, by_local)
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("binary", default="ffxivgame", nargs="?",
-                    choices=("ffxivgame", "ffxivgame.exe"),
-                    help="fixed supported client binary")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "binary",
+        default="ffxivgame",
+        nargs="?",
+        choices=("ffxivgame", "ffxivgame.exe"),
+        help="fixed supported client binary",
+    )
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
 
     pe_path = ORIG / f"{stem}.exe"
     if not pe_path.exists():
-        print(f"error: missing {pe_path}; supply the retail executable under orig/",
-              file=sys.stderr)
+        print(
+            f"error: missing {pe_path}; supply the retail executable under orig/",
+            file=sys.stderr,
+        )
         return 1
     pe_data, sections = _parse_pe(pe_path)
 
@@ -251,7 +267,10 @@ def main() -> int:
     # maps to the K-th real id after gaps in the id sequence are removed.
     gam_path = CONFIG / f"{stem}.gam_params.json"
     if not gam_path.exists():
-        print(f"error: missing {gam_path}; run extract_gam_params.py first", file=sys.stderr)
+        print(
+            f"error: missing {gam_path}; run extract_gam_params.py first",
+            file=sys.stderr,
+        )
         return 1
     gam = json.loads(gam_path.read_text())
     ids_by_ns: dict[str, list[int]] = {}
@@ -260,27 +279,38 @@ def main() -> int:
     for ns_ids in ids_by_ns.values():
         ns_ids.sort()
 
-    all_rows: list[dict] = []           # by GAM id (only global_id dispatchers)
-    all_local_rows: list[dict] = []     # by local index (every dispatcher)
+    all_rows: list[dict] = []  # by GAM id (only global_id dispatchers)
+    all_local_rows: list[dict] = []  # by local index (every dispatcher)
     asm_dir = ASM_ROOT / stem
     for cls, info in DISPATCHERS.items():
         glob_prefix = f"{info['rva']:08x}_"
         matches = list(asm_dir.glob(f"{glob_prefix}*.s"))
         if not matches:
-            print(f"warning: dispatcher asm missing for {cls} at rva {info['rva']:#x}", file=sys.stderr)
+            print(
+                f"warning: dispatcher asm missing for {cls} at rva {info['rva']:#x}",
+                file=sys.stderr,
+            )
             continue
         real_ids = ids_by_ns.get(info["ns"], [])
         if not real_ids:
-            print(f"warning: no GAM ids found for namespace {info['ns']}", file=sys.stderr)
+            print(
+                f"warning: no GAM ids found for namespace {info['ns']}", file=sys.stderr
+            )
             continue
-        by_id, by_local = extract_dispatcher(pe_data, sections, matches[0], cls, info, real_ids)
+        by_id, by_local = extract_dispatcher(
+            pe_data, sections, matches[0], cls, info, real_ids
+        )
         all_rows.extend(by_id)
         all_local_rows.extend(by_local)
         if info["key"] == "global_id":
-            print(f"  {cls}: {len(by_id)} of {len(real_ids)} GAM ids resolved (id-keyed)")
+            print(
+                f"  {cls}: {len(by_id)} of {len(real_ids)} GAM ids resolved (id-keyed)"
+            )
         else:
-            print(f"  {cls}: {len(by_local)} names extracted (local-index-keyed; "
-                  f"GAM-id pairing TBD - see slot 2 translator)")
+            print(
+                f"  {cls}: {len(by_local)} names extracted (local-index-keyed; "
+                f"GAM-id pairing TBD - see slot 2 translator)"
+            )
 
     # JSON dump (machine-readable).
     out_json = CONFIG / f"{stem}.paramnames_resolved.json"

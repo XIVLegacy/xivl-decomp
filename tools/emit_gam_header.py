@@ -31,26 +31,26 @@ INCLUDE = REPO_ROOT / "include" / "net"
 
 # Map our friendly type strings to (C++ type, TypeKind enum, element size in bytes).
 PRIMITIVE_TYPES: dict[str, tuple[str, str, int]] = {
-    "signed char":      ("std::int8_t",   "I8",   1),
-    "char":             ("char",          "I8",   1),
-    "unsigned char":    ("std::uint8_t",  "U8",   1),
-    "short":            ("std::int16_t",  "I16",  2),
-    "unsigned short":   ("std::uint16_t", "U16",  2),
-    "int":              ("std::int32_t",  "I32",  4),
-    "unsigned int":     ("std::uint32_t", "U32",  4),
-    "long":             ("std::int32_t",  "I32",  4),
-    "unsigned long":    ("std::uint32_t", "U32",  4),
-    "float":            ("float",         "F32",  4),
-    "double":           ("double",        "F64",  8),
-    "__int64":          ("std::int64_t",  "I64",  8),
-    "unsigned __int64": ("std::uint64_t", "U64",  8),
-    "bool":             ("bool",          "BOOL", 1),
-    "wchar_t":          ("wchar_t",       "U16",  2),
+    "signed char": ("std::int8_t", "I8", 1),
+    "char": ("char", "I8", 1),
+    "unsigned char": ("std::uint8_t", "U8", 1),
+    "short": ("std::int16_t", "I16", 2),
+    "unsigned short": ("std::uint16_t", "U16", 2),
+    "int": ("std::int32_t", "I32", 4),
+    "unsigned int": ("std::uint32_t", "U32", 4),
+    "long": ("std::int32_t", "I32", 4),
+    "unsigned long": ("std::uint32_t", "U32", 4),
+    "float": ("float", "F32", 4),
+    "double": ("double", "F64", 8),
+    "__int64": ("std::int64_t", "I64", 8),
+    "unsigned __int64": ("std::uint64_t", "U64", 8),
+    "bool": ("bool", "BOOL", 1),
+    "wchar_t": ("wchar_t", "U16", 2),
     "Sqex::Misc::Utf8String": ("sqex::Utf8String", "UTF8_STRING", 0),  # variable-length
 }
 
 RE_ARRAY = re.compile(r"^(.+)\[(\d+)\]$")
-RE_BLOB  = re.compile(r"^Blob<(\d+)>$")
+RE_BLOB = re.compile(r"^Blob<(\d+)>$")
 RE_BLOB_ARRAY = re.compile(r"^Blob<(\d+)>\[(\d+)\]$")
 
 
@@ -72,7 +72,12 @@ def cpp_for_type(t: str) -> tuple[str, str, int, int]:
     m = RE_BLOB_ARRAY.match(t)
     if m:
         blob_size, n = int(m.group(1)), int(m.group(2))
-        return (f"std::array<std::array<std::uint8_t, {blob_size}>, {n}>", "ARRAY_BLOB", blob_size, blob_size * n)
+        return (
+            f"std::array<std::array<std::uint8_t, {blob_size}>, {n}>",
+            "ARRAY_BLOB",
+            blob_size,
+            blob_size * n,
+        )
     return (f"/* unhandled: {t} */ void", "UNKNOWN", 0, 0)
 
 
@@ -88,9 +93,12 @@ def resolved_type(row: dict) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("binary", nargs="?", default="ffxivgame",
-                    help="binary stem, e.g. ffxivgame")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "binary", nargs="?", default="ffxivgame", help="binary stem, e.g. ffxivgame"
+    )
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
 
@@ -170,10 +178,16 @@ def main() -> int:
         f.write("struct ParamDescriptor {\n")
         f.write("    std::uint16_t id;        // ordinal within the Data class\n")
         f.write("    TypeKind      kind;\n")
-        f.write("    std::uint16_t element_size;  // bytes per element (0 for variable-length Utf8String)\n")
-        f.write("    std::uint32_t total_bytes;   // wire footprint (0 for variable-length)\n")
-        f.write('    std::string_view name;       // property name from the binary\n')
-        f.write('    std::string_view raw_type;   // raw type token (incl. unhandled templates)\n')
+        f.write(
+            "    std::uint16_t element_size;  // bytes per element (0 for variable-length Utf8String)\n"
+        )
+        f.write(
+            "    std::uint32_t total_bytes;   // wire footprint (0 for variable-length)\n"
+        )
+        f.write("    std::string_view name;       // property name from the binary\n")
+        f.write(
+            "    std::string_view raw_type;   // raw type token (incl. unhandled templates)\n"
+        )
         f.write("};\n\n")
 
         for ns in sorted(by_ns):
@@ -182,20 +196,26 @@ def main() -> int:
             named = sum(1 for r in ns_rows if r.get("paramname"))
             f.write(f"// {ns} - {len(ns_rows)} parameters ({named} named).\n")
             f.write(f"namespace {cls.lower()}_params {{\n\n")
-            f.write(f"constexpr std::array<ParamDescriptor, {len(ns_rows)}> kRegistry {{{{\n")
+            f.write(
+                f"constexpr std::array<ParamDescriptor, {len(ns_rows)}> kRegistry {{{{\n"
+            )
             for r in ns_rows:
                 param_type = resolved_type(r)
                 _, kind, elem_size, total = cpp_for_type(param_type)
                 name = r.get("paramname") or ""
                 # Escape any " inside the name (shouldn't happen but be safe).
                 name_lit = name.replace("\\", "\\\\").replace('"', '\\"')
-                f.write(f'    {{ {r["id"]}, TypeKind::{kind}, {elem_size}, {total}, "{name_lit}", "{param_type}" }},\n')
+                f.write(
+                    f'    {{ {r["id"]}, TypeKind::{kind}, {elem_size}, {total}, "{name_lit}", "{param_type}" }},\n'
+                )
             f.write("}};\n\n")
             f.write(f"}}  // namespace {cls.lower()}_params\n\n")
 
         f.write("}  // namespace xivl_decomp::gam\n")
 
-    print(f"wrote: {out.relative_to(REPO_ROOT)}  ({sum(1 for _ in by_ns)} Data classes, {len(rows)} parameters)")
+    print(
+        f"wrote: {out.relative_to(REPO_ROOT)}  ({sum(1 for _ in by_ns)} Data classes, {len(rows)} parameters)"
+    )
     return 0
 
 

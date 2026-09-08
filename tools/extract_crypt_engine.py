@@ -53,6 +53,7 @@ BUILD_WIRE = ROOT / "build" / "wire"
 # vtable).
 # ---------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class Slot:
     idx: int
@@ -60,61 +61,107 @@ class Slot:
     semantic: str
     summary: str
 
+
 LOBBY_SLOTS: list[Slot] = [
-    Slot(0, 0x009a1e40, "~LobbyCryptEngine (dtor)",
-         "Sets parent vtable, frees [this+0x30] (= BF_KEY*) via _free."),
-    Slot(1, 0x009a1590, "PrepareHandshake / SeedRequest",
-         "Copies 32-byte seed (\"Test Ticket Data\\0\\0\\0\\0clientNumber\") "
-         "from .data 0x011274F0 to this+0x10. Calls __time64(NULL) and stores "
-         "low 32 bits of result at this+0x8 + req+0x74. Memcpys 64 bytes from "
-         "this+0x10 to req+0x34 (the cipher-init payload sent in the lobby "
-         "handshake). Returns true."),
-    Slot(2, 0x009a1640, "GetExtendedFlag (3-arg, returns 0)",
-         "Logger noise + XOR EAX, EAX; RET 0xc. Always returns 0/null. Stub "
-         "override of an interface method that real subclasses might use; "
-         "lobby has no extended payload."),
-    Slot(3, 0x009a0f10, "Verify-A (2-arg, returns false)",
-         "5-byte stub: XOR AL, AL; RET 8. Always returns false. The lobby "
-         "doesn't implement this verification slot."),
-    Slot(4, 0x009a1670, "SetSessionKey (2 args)",
-         "~600 bytes. Frees old [this+0x30] and clears it. Builds a 16-byte "
-         "key on stack from arg1+arg2 (the SqexId session token + handshake "
-         "response). Allocates 0x1048 (4168) bytes via _malloc -> new BF_KEY*. "
-         "Calls FUN_0045abf0 = BF_set_key(BF_KEY*, &key_data, 16). Stores "
-         "result at [this+0x30]. Logs progress at each step. Returns true."),
-    Slot(5, 0x009a0f20, "Verify-B (2-arg, returns false)",
-         "5-byte stub: XOR AL, AL; RET 8. Always returns false. Same shape "
-         "as slot 3; the two are kept separate rather than COMDAT-folded."),
-    Slot(6, 0x009a18d0, "Encrypt(_, buf, len)",
-         "Reads len = (uint16) [ESP+0xc], rounds DOWN to multiple of 32 "
-         "(via AND ~0x1F). If [this+0x30] != null, calls FUN_0045ab60 with "
-         "(buf, buf, len_aligned) - in-place ECB Blowfish encrypt of "
-         "len/8 blocks via BF_encrypt per-block. Returns true."),
-    Slot(7, 0x009a0f30, "Decrypt(_, buf, len)",
-         "Same shape as slot 6 but with no logging; calls FUN_0045abb0 -> "
-         "in-place ECB Blowfish decrypt via BF_decrypt per-block. The two "
-         "32-byte alignment + in-place semantics are identical."),
-    Slot(8, 0x009a1920, "GetCompatibility (1-arg, returns true)",
-         "Logs the arg, returns AL=1. A capability-probe stub the lobby "
-         "always answers \"yes\" to."),
+    Slot(
+        0,
+        0x009A1E40,
+        "~LobbyCryptEngine (dtor)",
+        "Sets parent vtable, frees [this+0x30] (= BF_KEY*) via _free.",
+    ),
+    Slot(
+        1,
+        0x009A1590,
+        "PrepareHandshake / SeedRequest",
+        'Copies 32-byte seed ("Test Ticket Data\\0\\0\\0\\0clientNumber") '
+        "from .data 0x011274F0 to this+0x10. Calls __time64(NULL) and stores "
+        "low 32 bits of result at this+0x8 + req+0x74. Memcpys 64 bytes from "
+        "this+0x10 to req+0x34 (the cipher-init payload sent in the lobby "
+        "handshake). Returns true.",
+    ),
+    Slot(
+        2,
+        0x009A1640,
+        "GetExtendedFlag (3-arg, returns 0)",
+        "Logger noise + XOR EAX, EAX; RET 0xc. Always returns 0/null. Stub "
+        "override of an interface method that real subclasses might use; "
+        "lobby has no extended payload.",
+    ),
+    Slot(
+        3,
+        0x009A0F10,
+        "Verify-A (2-arg, returns false)",
+        "5-byte stub: XOR AL, AL; RET 8. Always returns false. The lobby "
+        "doesn't implement this verification slot.",
+    ),
+    Slot(
+        4,
+        0x009A1670,
+        "SetSessionKey (2 args)",
+        "~600 bytes. Frees old [this+0x30] and clears it. Builds a 16-byte "
+        "key on stack from arg1+arg2 (the SqexId session token + handshake "
+        "response). Allocates 0x1048 (4168) bytes via _malloc -> new BF_KEY*. "
+        "Calls FUN_0045abf0 = BF_set_key(BF_KEY*, &key_data, 16). Stores "
+        "result at [this+0x30]. Logs progress at each step. Returns true.",
+    ),
+    Slot(
+        5,
+        0x009A0F20,
+        "Verify-B (2-arg, returns false)",
+        "5-byte stub: XOR AL, AL; RET 8. Always returns false. Same shape "
+        "as slot 3; the two are kept separate rather than COMDAT-folded.",
+    ),
+    Slot(
+        6,
+        0x009A18D0,
+        "Encrypt(_, buf, len)",
+        "Reads len = (uint16) [ESP+0xc], rounds DOWN to multiple of 32 "
+        "(via AND ~0x1F). If [this+0x30] != null, calls FUN_0045ab60 with "
+        "(buf, buf, len_aligned) - in-place ECB Blowfish encrypt of "
+        "len/8 blocks via BF_encrypt per-block. Returns true.",
+    ),
+    Slot(
+        7,
+        0x009A0F30,
+        "Decrypt(_, buf, len)",
+        "Same shape as slot 6 but with no logging; calls FUN_0045abb0 -> "
+        "in-place ECB Blowfish decrypt via BF_decrypt per-block. The two "
+        "32-byte alignment + in-place semantics are identical.",
+    ),
+    Slot(
+        8,
+        0x009A1920,
+        "GetCompatibility (1-arg, returns true)",
+        "Logs the arg, returns AL=1. A capability-probe stub the lobby "
+        'always answers "yes" to.',
+    ),
 ]
 
 # Per-block + key-schedule helper RVAs (file offsets, .text)
 HELPERS: dict[str, tuple[int, str]] = {
-    "BF_encrypt":  (0x0005aac0, "Forward Blowfish round (XOR P[0..17] in order)."),
-    "BF_decrypt":  (0x0005aa30, "Reverse Blowfish round (XOR P[17..0])."),
-    "BF_set_key":  (0x0005abf0, "OpenSSL key schedule: copies P+S init from .data, "
-                                "XORs key bytes (sign-extended via MOVSX!), "
-                                "then encrypts (0,0)->P[0..1] cascade."),
-    "encrypt_buf": (0x0005ab60, "Slot-6 helper: optional memcpy(dst,src,len) + "
-                                "loop calling BF_encrypt for each 8-byte block."),
-    "decrypt_buf": (0x0005abb0, "Slot-7 helper: same shape but BF_decrypt + "
-                                "different loop guard (`JZ` vs `JLE`)."),
+    "BF_encrypt": (0x0005AAC0, "Forward Blowfish round (XOR P[0..17] in order)."),
+    "BF_decrypt": (0x0005AA30, "Reverse Blowfish round (XOR P[17..0])."),
+    "BF_set_key": (
+        0x0005ABF0,
+        "OpenSSL key schedule: copies P+S init from .data, "
+        "XORs key bytes (sign-extended via MOVSX!), "
+        "then encrypts (0,0)->P[0..1] cascade.",
+    ),
+    "encrypt_buf": (
+        0x0005AB60,
+        "Slot-6 helper: optional memcpy(dst,src,len) + "
+        "loop calling BF_encrypt for each 8-byte block.",
+    ),
+    "decrypt_buf": (
+        0x0005ABB0,
+        "Slot-7 helper: same shape but BF_decrypt + "
+        "different loop guard (`JZ` vs `JLE`).",
+    ),
 }
 
 # Where the canonical pi-derived BF init tables live.
-P_INIT_VA = 0x01267278       # 72 bytes = 18 u32
-S_INIT_VA = 0x012672C0       # 4096 bytes = 4 * 256 u32
+P_INIT_VA = 0x01267278  # 72 bytes = 18 u32
+S_INIT_VA = 0x012672C0  # 4096 bytes = 4 * 256 u32
 IMAGE_BASE = 0x00400000
 
 # OpenSSL canonical pi-derived first 4 P entries, for sanity check.
@@ -132,7 +179,7 @@ def parse_pe(path: Path) -> tuple[bytes, list[tuple[str, int, int, int, int]]]:
     sec_off = e_lfanew + 0x18 + opt_size
     sections = []
     for i in range(nsec):
-        s = data[sec_off + i * 0x28: sec_off + (i + 1) * 0x28]
+        s = data[sec_off + i * 0x28 : sec_off + (i + 1) * 0x28]
         name = s[:8].rstrip(b"\x00").decode("ascii", errors="replace")
         vsize, vaddr, rsize, raddr = struct.unpack("<IIII", s[8:0x18])
         sections.append((name, vaddr, vsize, raddr, rsize))
@@ -153,9 +200,13 @@ def read_u32_le(data: bytes, off: int) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("binary", nargs="?", default="ffxivgame",
-                    choices=("ffxivgame", "ffxivgame.exe"),
-                    help="fixed supported client binary")
+    ap.add_argument(
+        "binary",
+        nargs="?",
+        default="ffxivgame",
+        choices=("ffxivgame", "ffxivgame.exe"),
+        help="fixed supported client binary",
+    )
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
     exe = ORIG / f"{stem}.exe"
@@ -169,35 +220,53 @@ def main() -> int:
     if p_off is None or s_off is None:
         print("error: P/S init VAs not in any section", file=sys.stderr)
         return 1
-    bin_p = data[p_off:p_off + 72]
-    bin_s = data[s_off:s_off + 4096]
+    bin_p = data[p_off : p_off + 72]
+    bin_s = data[s_off : s_off + 4096]
     p_ok = all(read_u32_le(bin_p, i * 4) == EXPECTED_P0[i] for i in range(4))
     s_ok = all(read_u32_le(bin_s, i * 4) == EXPECTED_S00[i] for i in range(4))
 
     BUILD_WIRE.mkdir(parents=True, exist_ok=True)
     out = BUILD_WIRE / f"{stem}.crypt_engine.md"
     lines = [
-        f"# LobbyCryptEngine decode - {stem}.exe", "",
-        "Generated by `tools/extract_crypt_engine.py` from the client executable.", "",
-        "## Client findings", "",
+        f"# LobbyCryptEngine decode - {stem}.exe",
+        "",
+        "Generated by `tools/extract_crypt_engine.py` from the client executable.",
+        "",
+        "## Client findings",
+        "",
         "- Cipher: statically linked OpenSSL Blowfish.",
         "- Block size: 8 bytes.",
         "- Session key size: 16 bytes.",
         "- Slots 6 and 7 round the processed length down to a multiple of 32 bytes.",
         "- The key schedule sign-extends key bytes with MOVSX.",
-        "- P and S initialization tables begin at VAs `0x01267278` and `0x012672c0`.", "",
-        "## Canonical table prefix check", "",
+        "- P and S initialization tables begin at VAs `0x01267278` and `0x012672c0`.",
+        "",
+        "## Canonical table prefix check",
+        "",
         f"- P prefix: {'PASS' if p_ok else 'FAIL'}",
-        f"- S prefix: {'PASS' if s_ok else 'FAIL'}", "",
-        "## Vtable slots", "",
-        "| slot | RVA | semantic | summary |", "|---:|---:|---|---|",
+        f"- S prefix: {'PASS' if s_ok else 'FAIL'}",
+        "",
+        "## Vtable slots",
+        "",
+        "| slot | RVA | semantic | summary |",
+        "|---:|---:|---|---|",
     ]
     for slot in LOBBY_SLOTS:
-        lines.append(f"| {slot.idx} | `0x{slot.rva:08x}` | {slot.semantic} | {slot.summary} |")
-    lines.extend(["", "## Helper functions", "", "| RVA | name | role |", "|---:|---|---|"])
+        lines.append(
+            f"| {slot.idx} | `0x{slot.rva:08x}` | {slot.semantic} | {slot.summary} |"
+        )
+    lines.extend(
+        ["", "## Helper functions", "", "| RVA | name | role |", "|---:|---|---|"]
+    )
     for name, (rva, role) in HELPERS.items():
         lines.append(f"| `0x{rva:08x}` | `{name}` | {role} |")
-    lines.extend(["", "The table-prefix checks validate the client bytes against fixed canonical Blowfish constants.", ""])
+    lines.extend(
+        [
+            "",
+            "The table-prefix checks validate the client bytes against fixed canonical Blowfish constants.",
+            "",
+        ]
+    )
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {out.relative_to(ROOT)}")
     print(f"  P-init prefix: {'PASS' if p_ok else 'FAIL'}")

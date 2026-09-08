@@ -11,21 +11,21 @@ import sys
 from collections import defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ASM_DIR = os.path.join(REPO, 'asm', 'ffxivgame')
-BIN = os.path.join(REPO, 'orig', 'ffxivgame.exe')
+ASM_DIR = os.path.join(REPO, "asm", "ffxivgame")
+BIN = os.path.join(REPO, "orig", "ffxivgame.exe")
 IMAGE_BASE = 0x400000
 
 
 def load_pe_sections(path):
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         dos = f.read(0x40)
-        e_lfanew = struct.unpack('<I', dos[0x3c:0x40])[0]
+        e_lfanew = struct.unpack("<I", dos[0x3C:0x40])[0]
         f.seek(e_lfanew)
         pe_hdr = f.read(0x18)
-        n = struct.unpack('<H', pe_hdr[6:8])[0]
-        so = struct.unpack('<H', pe_hdr[0x14:0x16])[0]
+        n = struct.unpack("<H", pe_hdr[6:8])[0]
+        so = struct.unpack("<H", pe_hdr[0x14:0x16])[0]
         f.seek(e_lfanew + 0x18 + so)
-        return [struct.unpack('<8sIIII', f.read(40)[:24]) for _ in range(n)]
+        return [struct.unpack("<8sIIII", f.read(40)[:24]) for _ in range(n)]
 
 
 def rva_to_off(sects, rva):
@@ -42,31 +42,31 @@ def read_rtti_name(bin_data, sects, abs_addr):
     if off is None or off + 8 + 200 > len(bin_data):
         return None
     # Type Descriptor: [vtable_ptr][spare][mangled_name_null_terminated]
-    name_bytes = bin_data[off + 8: off + 8 + 200]
-    null = name_bytes.find(b'\x00')
+    name_bytes = bin_data[off + 8 : off + 8 + 200]
+    null = name_bytes.find(b"\x00")
     if null < 0:
         return None
-    return name_bytes[:null].decode('latin-1')
+    return name_bytes[:null].decode("latin-1")
 
 
 def demangle(name):
     """Crude MSVC mangling demangle: .?AV<Name>@<NS>@<NS>@...@@ -> NS::...::Name"""
-    if not name or not name.startswith('.?A'):
+    if not name or not name.startswith(".?A"):
         return name
-    m = re.match(r'\.\?A[VU](.*?)@@', name)
+    m = re.match(r"\.\?A[VU](.*?)@@", name)
     if not m:
         return name
-    parts = m.group(1).rstrip('@').split('@')
+    parts = m.group(1).rstrip("@").split("@")
     if not parts:
         return name
     cls = parts[0]
     ns = parts[1:]
-    return '::'.join(reversed(ns)) + '::' + cls if ns else cls
+    return "::".join(reversed(ns)) + "::" + cls if ns else cls
 
 
-PUSH_LITERAL_RE = re.compile(r'^\s+[0-9a-f]+:\s+[0-9a-f ]+\s+PUSH 0x([0-9a-f]+)\s*$')
-CALL_RE = re.compile(r'^\s+([0-9a-f]+):\s+[0-9a-f ]+\s+CALL 0x009da6cc\s*$')
-FUNC_HEADER_RE = re.compile(r'^# function (FUN_[0-9a-f]+)')
+PUSH_LITERAL_RE = re.compile(r"^\s+[0-9a-f]+:\s+[0-9a-f ]+\s+PUSH 0x([0-9a-f]+)\s*$")
+CALL_RE = re.compile(r"^\s+([0-9a-f]+):\s+[0-9a-f ]+\s+CALL 0x009da6cc\s*$")
+FUNC_HEADER_RE = re.compile(r"^# function (FUN_[0-9a-f]+)")
 
 
 def parse_asm_file(path):
@@ -76,7 +76,7 @@ def parse_asm_file(path):
     pushes = []  # list of (rva, literal_value) - most recent at end
     with open(path) as f:
         for line in f:
-            if line.startswith('# function '):
+            if line.startswith("# function "):
                 m = FUNC_HEADER_RE.match(line)
                 if m:
                     fn_name = m.group(1)
@@ -118,11 +118,12 @@ def main() -> int:
         print(f"error: missing assembly export directory: {ASM_DIR}", file=sys.stderr)
         return 1
     sects = load_pe_sections(BIN)
-    with open(BIN, 'rb') as f:
+    with open(BIN, "rb") as f:
         bin_data = f.read()
 
     # Walk every asm file and find every __RTDynamicCast callsite
     rtti_cache = {}
+
     def name_of(addr):
         if addr in rtti_cache:
             return rtti_cache[addr]
@@ -132,12 +133,12 @@ def main() -> int:
 
     rows = []
     edge_counts = defaultdict(int)  # (src_dem, tgt_dem) -> count
-    src_targets = defaultdict(set)   # src_dem -> set of target_dem
-    callers_by_target = defaultdict(set) # tgt_dem -> set of caller_fn
+    src_targets = defaultdict(set)  # src_dem -> set of target_dem
+    callers_by_target = defaultdict(set)  # tgt_dem -> set of caller_fn
     all_classes = set()
 
     for fname in sorted(os.listdir(ASM_DIR)):
-        if not fname.endswith('.s'):
+        if not fname.endswith(".s"):
             continue
         path = os.path.join(ASM_DIR, fname)
         for fn_name, call_rva, src, target in parse_asm_file(path):
@@ -147,14 +148,16 @@ def main() -> int:
             tgt_name, tgt_dem = name_of(target)
             if not src_dem or not tgt_dem:
                 continue
-            rows.append({
-                'caller_fn': fn_name,
-                'call_rva': call_rva,
-                'src_addr': src,
-                'tgt_addr': target,
-                'src': src_dem,
-                'target': tgt_dem,
-            })
+            rows.append(
+                {
+                    "caller_fn": fn_name,
+                    "call_rva": call_rva,
+                    "src_addr": src,
+                    "tgt_addr": target,
+                    "src": src_dem,
+                    "target": tgt_dem,
+                }
+            )
             edge_counts[(src_dem, tgt_dem)] += 1
             src_targets[src_dem].add(tgt_dem)
             callers_by_target[tgt_dem].add(fn_name)
@@ -162,42 +165,47 @@ def main() -> int:
             all_classes.add(tgt_dem)
 
     # Output summary
-    print('## Summary')
-    print('')
-    print(f'- Total __RTDynamicCast callsites parsed: {len(rows)}')
-    print(f'- Distinct SrcType classes: {len(src_targets)}')
-    print(f'- Distinct TargetType classes: {len(callers_by_target)}')
-    print(f'- Distinct (SrcType, TargetType) edges: {len(edge_counts)}')
-    print(f'- Total distinct classes seen (src or tgt): {len(all_classes)}')
-    print('')
+    print("## Summary")
+    print("")
+    print(f"- Total __RTDynamicCast callsites parsed: {len(rows)}")
+    print(f"- Distinct SrcType classes: {len(src_targets)}")
+    print(f"- Distinct TargetType classes: {len(callers_by_target)}")
+    print(f"- Distinct (SrcType, TargetType) edges: {len(edge_counts)}")
+    print(f"- Total distinct classes seen (src or tgt): {len(all_classes)}")
+    print("")
 
-    print('## Edges by SrcType (sorted by # distinct targets, then count)')
-    print('')
+    print("## Edges by SrcType (sorted by # distinct targets, then count)")
+    print("")
     for src in sorted(src_targets.keys(), key=lambda s: (-len(src_targets[s]), s)):
         targets = sorted(src_targets[src])
         total_casts = sum(edge_counts[(src, t)] for t in targets)
-        print(f'### SrcType: `{src}` ({len(targets)} distinct targets, {total_casts} total casts)')
+        print(
+            f"### SrcType: `{src}` ({len(targets)} distinct targets, {total_casts} total casts)"
+        )
         for tgt in targets:
             n = edge_counts[(src, tgt)]
-            print(f'  - -> `{tgt}` ({n} casts)')
+            print(f"  - -> `{tgt}` ({n} casts)")
         print()
 
     # Save raw rows for downstream processing
-    out_json = os.path.join(REPO, 'build', 'dynamic_cast_callsites.json')
+    out_json = os.path.join(REPO, "build", "dynamic_cast_callsites.json")
     os.makedirs(os.path.dirname(out_json), exist_ok=True)
-    with open(out_json, 'w') as f:
+    with open(out_json, "w") as f:
         # Also include raw RTTI addresses for follow-up
-        json.dump({
-            'rows': rows,
-            'edge_counts': {f'{k[0]} -> {k[1]}': v for k, v in edge_counts.items()},
-            'rtti_addresses': {
-                dem: addr for addr, (raw, dem) in rtti_cache.items()
-                if dem and addr
+        json.dump(
+            {
+                "rows": rows,
+                "edge_counts": {f"{k[0]} -> {k[1]}": v for k, v in edge_counts.items()},
+                "rtti_addresses": {
+                    dem: addr for addr, (raw, dem) in rtti_cache.items() if dem and addr
+                },
             },
-        }, f, indent=2)
-    print(f'\n(Raw data dumped to {out_json})', file=sys.stderr)
+            f,
+            indent=2,
+        )
+    print(f"\n(Raw data dumped to {out_json})", file=sys.stderr)
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

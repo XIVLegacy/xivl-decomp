@@ -26,15 +26,45 @@ EXPECTED_HEADER = [
     ("+0x290", "+0x14", 1, "signed-byte widen"),
 ]
 EXPECTED_READERS = [
-    ("+0x08,+0x0c,+0x10", ("0x0055cf70",), (), (), "no outward reader in the exact direct, field, data, vtable, or generated-call census"),
-    ("+0x14", ("0x0055f830", "0x0055cf70"), ("0x0055d020", "0x0055d0d0"), ("0x00671400", "0x00691f30"), None),
+    (
+        "+0x08,+0x0c,+0x10",
+        ("0x0055cf70",),
+        (),
+        (),
+        "no outward reader in the exact direct, field, data, vtable, or generated-call census",
+    ),
+    (
+        "+0x14",
+        ("0x0055f830", "0x0055cf70"),
+        ("0x0055d020", "0x0055d0d0"),
+        ("0x00671400", "0x00691f30"),
+        None,
+    ),
     ("+0x00", (), ("0x0055d090",), ("0x00671400",), None),
     ("+0x08,+0x0c", (), ("0x0055d0b0",), ("0x00671400",), None),
-    ("+0x10,+0x18", (), ("0x0055d050",), ("0x00671400",), "+0x14 is projected but has no separate load in the first consumer"),
+    (
+        "+0x10,+0x18",
+        (),
+        ("0x0055d050",),
+        ("0x00671400",),
+        "+0x14 is projected but has no separate load in the first consumer",
+    ),
     ("+0x20", (), ("0x0055d030",), ("0x00671400",), None),
     ("+0x74", (), ("0x0055d070",), ("0x00671400",), None),
-    ("remaining tail", (), (), (), "no additional first-consumer load is proven outside the +0x20 helper object and +0x74 scalar"),
-    ("+0x798", ("0x0055f830", "0x0055cf70", "0x0055d0f0"), ("0x0055d0d0",), ("0x00691f30",), None),
+    (
+        "remaining tail",
+        (),
+        (),
+        (),
+        "no additional first-consumer load is proven outside the +0x20 helper object and +0x74 scalar",
+    ),
+    (
+        "+0x798",
+        ("0x0055f830", "0x0055cf70", "0x0055d0f0"),
+        ("0x0055d0d0",),
+        ("0x00691f30",),
+        None,
+    ),
 ]
 
 
@@ -46,9 +76,11 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("format changed")
     source = document.get("source", {})
     if (
-        source.get("binarySha256") != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+        source.get("binarySha256")
+        != "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
         or source.get("ghidraVersion") != "12.1.3"
-        or source.get("presentationRunId") != "lane1-018d-presentation-contract-20260827"
+        or source.get("presentationRunId")
+        != "lane1-018d-presentation-contract-20260827"
         or source.get("followupRunId") != "lane1-018d-followup-keys-20260827"
         or source.get("keyHelperRunId") != "lane1-018d-followup-key-helpers-20260827"
     ):
@@ -104,7 +136,8 @@ def verify(document: dict | None = None) -> list[str]:
         or "0x2711" not in context.get("selector", "")
         or "application +0x08" not in context.get("forwardedUnused", "")
         or "not consumed" not in context.get("forwardedUnused", "")
-        or "pointee RTTI class is not proven" not in context.get("sourceOwnerBoundary", "")
+        or "pointee RTTI class is not proven"
+        not in context.get("sourceOwnerBoundary", "")
         or "destroyed immediately after apply" not in context.get("lifetime", "")
     ):
         errors.append("helper context source, selector, or lifetime changed")
@@ -123,13 +156,20 @@ def verify(document: dict | None = None) -> list[str]:
         or projection.get("wireRecordStride") != "0x28"
         or header_map != EXPECTED_HEADER
         or projection_map != EXPECTED_PROJECTION
-        or [row.get("storageRecord") for row in projection.get("helperOutputs", [])] != ["+0x20", "+0x74"]
-        or [row.get("presentationArgument") for row in projection.get("helperOutputs", [])] != ["Text:String", "Layout:Int"]
-        or [row.get("description") for row in projection.get("helperOutputs", [])] != [
+        or [row.get("storageRecord") for row in projection.get("helperOutputs", [])]
+        != ["+0x20", "+0x74"]
+        or [
+            row.get("presentationArgument")
+            for row in projection.get("helperOutputs", [])
+        ]
+        != ["Text:String", "Layout:Int"]
+        or [row.get("description") for row in projection.get("helperOutputs", [])]
+        != [
             "helper-resolved Sqex::Misc::Utf8String",
             "helper-resolved raw dword copied from the matched tagged referent +0x00",
         ]
-        or [row.get("defaulting") for row in projection.get("helperOutputs", [])] != [
+        or [row.get("defaulting") for row in projection.get("helperOutputs", [])]
+        != [
             "reset to empty before lookup for each iterated record; lookup failure leaves empty and uniterated slots are not touched",
             "cleared to zero before lookup for each iterated record; success overwrites it, failure leaves zero, and uniterated slots are not touched",
         ]
@@ -169,7 +209,8 @@ def verify(document: dict | None = None) -> list[str]:
         or selected.get("activeSlot") != "+0x17838"
         or selected.get("fallbackSlot") != "+0x17834"
         or selected.get("objectBaseClass") != "Application::Main::RaptureElement"
-        or selected.get("conditionalCastEvidence") != "Application::Main::Element::Chara::CharaElement"
+        or selected.get("conditionalCastEvidence")
+        != "Application::Main::Element::Chara::CharaElement"
         or selected.get("derivedCastVa") != "0x004d8f70"
         or selected.get("field") != "+0x88"
         or selected.get("fieldAccessorVa") != "0x004d6750"
@@ -179,8 +220,10 @@ def verify(document: dict | None = None) -> list[str]:
         or selected.get("activeSelectionWriterVa") != "0x004d9980"
         or "0xc0000000-tagged" not in selected.get("nativeKeyEncoding", "")
         or "removal path separately parses" not in selected.get("nativeKeyEncoding", "")
-        or "not proven as a wire sentinel" not in selected.get("selectionClearSentinel", "")
-        or "container owns the ordered RaptureElement registry" not in selected.get("ownership", "")
+        or "not proven as a wire sentinel"
+        not in selected.get("selectionClearSentinel", "")
+        or "container owns the ordered RaptureElement registry"
+        not in selected.get("ownership", "")
         or "cleared when the element is removed" not in selected.get("ownership", "")
         or "stable registry identity" not in selected.get("stability", "")
         or "runtime-selected" not in selected.get("stability", "")
@@ -210,7 +253,8 @@ def verify(document: dict | None = None) -> list[str]:
         first.get("applyVa") != "0x0055cf70"
         or first.get("consumerClass") != "MapScreenControl"
         or first.get("consumerVa") != "0x00671400"
-        or first.get("retailStrings") != ["MapScreenControl", "group_marker_data", "MapMarkerParty", "Update"]
+        or first.get("retailStrings")
+        != ["MapScreenControl", "group_marker_data", "MapMarkerParty", "Update"]
         or "synchronously" not in first.get("operation", "")
         or "stale suffix" not in first.get("operation", "")
     ):
@@ -247,10 +291,31 @@ def verify(document: dict | None = None) -> list[str]:
         for row in presentation.get("properties", [])
     ]
     expected_properties = [
-        ("+0x14", "+0x10", "X", "Int", None, "CVTTSS2SI truncation toward zero to signed int32"),
-        ("+0x1c", "+0x18", "Z", "Int", None, "CVTTSS2SI truncation toward zero to signed int32"),
+        (
+            "+0x14",
+            "+0x10",
+            "X",
+            "Int",
+            None,
+            "CVTTSS2SI truncation toward zero to signed int32",
+        ),
+        (
+            "+0x1c",
+            "+0x18",
+            "Z",
+            "Int",
+            None,
+            "CVTTSS2SI truncation toward zero to signed int32",
+        ),
         (None, "+0x74", "Layout", "Int", None, None),
-        (None, "+0x20", "Text", "String", None, "0x00866010 constructs the literal !!! Utf8String, then 0x0067ac00 finds and erases every occurrence before dispatch"),
+        (
+            None,
+            "+0x20",
+            "Text",
+            "String",
+            None,
+            "0x00866010 constructs the literal !!! Utf8String, then 0x0067ac00 finds and erases every occurrence before dispatch",
+        ),
         (None, None, "Visibility", "String", "Visible", None),
         (None, None, "SparkleSequence", "String", "m00002", None),
         (None, None, "Template", "String", "MapMarkerParty", None),
@@ -261,7 +326,8 @@ def verify(document: dict | None = None) -> list[str]:
         or len(presentation.get("eligibility", [])) != 3
         or "dense zero-based" not in presentation.get("outputIndex", "")
         or "no separate create branch" not in presentation.get("rowWrite", "")
-        or presentation.get("batchOperation") != {
+        or presentation.get("batchOperation")
+        != {
             "operation": "Update",
             "condition": "at least one row was accepted",
             "maximumCallsPerInvocation": 1,
@@ -270,9 +336,14 @@ def verify(document: dict | None = None) -> list[str]:
         or removal.get("order") != "descending"
         or removal.get("operation") != "RemoveIndex"
         or "without dispatching Update" not in removal.get("zeroAccepted", "")
-        or presentation.get("unusedByThisEffect") != [
-            "stored header +0x08", "stored header +0x0c", "stored header +0x10",
-            "original application +0x08 forwarded argument", "record +0x14", "storage +0x798"
+        or presentation.get("unusedByThisEffect")
+        != [
+            "stored header +0x08",
+            "stored header +0x0c",
+            "stored header +0x10",
+            "original application +0x08 forwarded argument",
+            "record +0x14",
+            "storage +0x798",
         ]
     ):
         errors.append("property flow, row lifecycle, or unused-field verdict changed")
@@ -383,19 +454,27 @@ def mutation_test() -> list[str]:
     changed_helper_key["projection"]["helperLookup"]["fallbackKey"] = "+0x0c"
     mutations.append(changed_helper_key)
     changed_helper_default = copy.deepcopy(document)
-    changed_helper_default["projection"]["helperOutputs"][0]["defaulting"] = "retain prior value"
+    changed_helper_default["projection"]["helperOutputs"][0]["defaulting"] = (
+        "retain prior value"
+    )
     mutations.append(changed_helper_default)
     changed_helper_type = copy.deepcopy(document)
     changed_helper_type["projection"]["helperOutputs"][0]["description"] = "label"
     mutations.append(changed_helper_type)
     changed_entry_key = copy.deepcopy(document)
-    changed_entry_key["projection"]["helperLookup"]["entryKeySource"] = "tagged entry +0x00"
+    changed_entry_key["projection"]["helperLookup"]["entryKeySource"] = (
+        "tagged entry +0x00"
+    )
     mutations.append(changed_entry_key)
     changed_key_stability = copy.deepcopy(document)
-    changed_key_stability["keyDomains"][0]["stability"] = "stable actor identity across updates"
+    changed_key_stability["keyDomains"][0]["stability"] = (
+        "stable actor identity across updates"
+    )
     mutations.append(changed_key_stability)
     changed_x = copy.deepcopy(document)
-    changed_x["presentationContract"]["properties"][0]["localTransform"] = "round to nearest"
+    changed_x["presentationContract"]["properties"][0]["localTransform"] = (
+        "round to nearest"
+    )
     mutations.append(changed_x)
     changed_middle = copy.deepcopy(document)
     changed_middle["presentationContract"]["properties"][1]["wire"] = "+0x18"
@@ -404,13 +483,19 @@ def mutation_test() -> list[str]:
     changed_literal["presentationContract"]["properties"][5]["value"] = "m00003"
     mutations.append(changed_literal)
     changed_batch = copy.deepcopy(document)
-    changed_batch["presentationContract"]["batchOperation"]["maximumCallsPerInvocation"] = 16
+    changed_batch["presentationContract"]["batchOperation"][
+        "maximumCallsPerInvocation"
+    ] = 16
     mutations.append(changed_batch)
     changed_unused = copy.deepcopy(document)
-    changed_unused["presentationContract"]["unusedByThisEffect"].remove("storage +0x798")
+    changed_unused["presentationContract"]["unusedByThisEffect"].remove(
+        "storage +0x798"
+    )
     mutations.append(changed_unused)
     invented_actor_id = copy.deepcopy(document)
-    invented_actor_id["verdict"]["rejectedInterpretations"][2] = "record +0x00 is actor ID"
+    invented_actor_id["verdict"]["rejectedInterpretations"][2] = (
+        "record +0x00 is actor ID"
+    )
     mutations.append(invented_actor_id)
     return [
         f"mutation {index} was accepted"

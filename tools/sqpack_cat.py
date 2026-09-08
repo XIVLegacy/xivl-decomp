@@ -86,7 +86,7 @@ def looks_like_zlib(payload: bytes) -> bool:
     (best), 0x78 0x01 (fastest)."""
     if len(payload) < 2:
         return False
-    if (payload[0] & 0x0f) != 0x08:
+    if (payload[0] & 0x0F) != 0x08:
         return False
     return ((payload[0] << 8) | payload[1]) % 31 == 0
 
@@ -131,7 +131,7 @@ def hexdump(data: bytes, max_bytes: int = 256) -> None:
     """Standard hex+ascii dump, up to max_bytes."""
     n = min(len(data), max_bytes)
     for i in range(0, n, 16):
-        chunk = data[i:i+16]
+        chunk = data[i : i + 16]
         hex_part = " ".join(f"{b:02x}" for b in chunk).ljust(48)
         ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
         print(f"  {i:08x}  {hex_part}  {ascii_part}")
@@ -142,21 +142,36 @@ def hexdump(data: bytes, max_bytes: int = 256) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Sqpack-cat: open a DAT file by resource_id and dump contents.",
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("resource_id",
-                    help="resource_id (hex 0x... or decimal)")
-    ap.add_argument("--root", required=True,
-                    help="game-root path (e.g. .../FINAL FANTASY XIV)")
-    ap.add_argument("--raw", action="store_true",
-                    help="dump file contents to stdout as raw bytes")
-    ap.add_argument("--hexdump-bytes", type=int, default=256,
-                    help="how many bytes to hexdump (default 256)")
-    ap.add_argument("--chunks", action="store_true",
-                    help="force chunk-walk even if heuristic says not chunked")
-    ap.add_argument("--byteswap", action="store_true",
-                    help="byte-swap chunk_size (matches PackRead.m_flag15=1)")
-    ap.add_argument("--inflate", action="store_true",
-                    help="zlib-inflate each chunk's payload (and dump first bytes)")
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("resource_id", help="resource_id (hex 0x... or decimal)")
+    ap.add_argument(
+        "--root", required=True, help="game-root path (e.g. .../FINAL FANTASY XIV)"
+    )
+    ap.add_argument(
+        "--raw", action="store_true", help="dump file contents to stdout as raw bytes"
+    )
+    ap.add_argument(
+        "--hexdump-bytes",
+        type=int,
+        default=256,
+        help="how many bytes to hexdump (default 256)",
+    )
+    ap.add_argument(
+        "--chunks",
+        action="store_true",
+        help="force chunk-walk even if heuristic says not chunked",
+    )
+    ap.add_argument(
+        "--byteswap",
+        action="store_true",
+        help="byte-swap chunk_size (matches PackRead.m_flag15=1)",
+    )
+    ap.add_argument(
+        "--inflate",
+        action="store_true",
+        help="zlib-inflate each chunk's payload (and dump first bytes)",
+    )
     args = ap.parse_args()
 
     rid = int(args.resource_id, 0)
@@ -187,22 +202,25 @@ def main() -> int:
     chunked = args.chunks or (magic is None and looks_like_chunked(data))
     if chunked:
         print(f"Chunks:     (PackRead format, byteswap={args.byteswap})")
-        print(f"  {'idx':>4}  {'offset':>10}  {'hdr (u32)':>12}  {'size':>10}  zlib?  status")
+        print(
+            f"  {'idx':>4}  {'offset':>10}  {'hdr (u32)':>12}  {'size':>10}  zlib?  status"
+        )
         truncated = False
-        for idx, off, hdr, sz, status in walk_chunks(
-                data, byteswap=args.byteswap):
+        for idx, off, hdr, sz, status in walk_chunks(data, byteswap=args.byteswap):
             if idx is None:
                 truncated = True
                 print(f"  ----  {off:>10}  {'':>12}  {'':>10}  {'':>5}  {status}")
             else:
-                payload = data[off+8:off+8+sz]
+                payload = data[off + 8 : off + 8 + sz]
                 inflated = try_inflate(payload) if args.inflate else None
                 z_marker = "  yes" if looks_like_zlib(payload) else "  no "
                 line = f"  {idx:>4}  {off:>10}  0x{hdr:08x}  {sz:>10}  {z_marker}  {status}"
                 print(line)
                 if inflated is not None:
-                    print(f"           -> inflated to {len(inflated)} bytes; "
-                          f"first 32: {inflated[:32].hex()}")
+                    print(
+                        f"           -> inflated to {len(inflated)} bytes; "
+                        f"first 32: {inflated[:32].hex()}"
+                    )
     else:
         # Even when not chunk-formatted, the whole file MIGHT be zlib-
         # compressed (some installer DAT bodies are raw zlib streams).
@@ -211,8 +229,10 @@ def main() -> int:
             if args.inflate:
                 inflated = try_inflate(data)
                 if inflated is not None:
-                    print(f"           -> inflated to {len(inflated)} bytes; "
-                          f"first 32: {inflated[:32].hex()}")
+                    print(
+                        f"           -> inflated to {len(inflated)} bytes; "
+                        f"first 32: {inflated[:32].hex()}"
+                    )
         else:
             print("Chunks:     n/a (file does not look chunk-formatted)")
 
@@ -220,8 +240,10 @@ def main() -> int:
     print(f"First {min(args.hexdump_bytes, len(data))} bytes:")
     hexdump(data, args.hexdump_bytes)
     if chunked and truncated:
-        print("error: chunk walk reached its 32-chunk safety limit; output is incomplete",
-              file=sys.stderr)
+        print(
+            "error: chunk walk reached its 32-chunk safety limit; output is incomplete",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

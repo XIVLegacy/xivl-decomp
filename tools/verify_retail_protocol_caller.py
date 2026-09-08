@@ -18,9 +18,7 @@ import _schema_check  # noqa: E402
 
 
 REPO = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT = (
-    REPO / "tools" / "fixtures" / "retail_protocol_caller_observations.json"
-)
+DEFAULT_INPUT = REPO / "tools" / "fixtures" / "retail_protocol_caller_observations.json"
 DEFAULT_CHECK = REPO / "config" / "retail_protocol_caller_check.json"
 DEFAULT_RETAIL_INPUTS = REPO / "config" / "retail_inputs.json"
 DEFAULT_PROTOCOL_EVIDENCE = REPO / "config" / "ffxivgame.protocol_evidence.json"
@@ -46,13 +44,24 @@ TOOL_VERSIONS = {
 
 ADDRESS_RE = re.compile(r"^0x[0-9a-f]{8}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
-OBSERVATION_KEYS = frozenset({
-    "schema_version", "check_id", "input_id", "target_va",
-    "direct_caller_entry_vas",
-})
-CHECK_KEYS = frozenset({
-    "schema_version", "check", "input_id", "locator", "expected",
-})
+OBSERVATION_KEYS = frozenset(
+    {
+        "schema_version",
+        "check_id",
+        "input_id",
+        "target_va",
+        "direct_caller_entry_vas",
+    }
+)
+CHECK_KEYS = frozenset(
+    {
+        "schema_version",
+        "check",
+        "input_id",
+        "locator",
+        "expected",
+    }
+)
 
 
 class VerificationError(Exception):
@@ -70,8 +79,9 @@ def _read_json(path: Path) -> Any:
 def _caller_list_errors(value: Any) -> list[str]:
     if not isinstance(value, list):
         return ["caller entries are not an array"]
-    if any(not isinstance(entry, str) or not ADDRESS_RE.fullmatch(entry)
-           for entry in value):
+    if any(
+        not isinstance(entry, str) or not ADDRESS_RE.fullmatch(entry) for entry in value
+    ):
         return ["caller entry is malformed"]
     if len(value) != len(set(value)):
         return ["caller entry is duplicated"]
@@ -99,17 +109,19 @@ def _observation_errors(document: Any) -> list[str]:
 def _check_errors(document: Any) -> list[str]:
     if not isinstance(document, dict) or frozenset(document) != CHECK_KEYS:
         return ["check document shape is invalid"]
-    callers = document.get("expected", {}).get("direct_caller_entry_vas") \
-        if isinstance(document.get("expected"), dict) else None
+    callers = (
+        document.get("expected", {}).get("direct_caller_entry_vas")
+        if isinstance(document.get("expected"), dict)
+        else None
+    )
     errors = _caller_list_errors(callers)
     if (
         document.get("schema_version") != SCHEMA_VERSION
         or document.get("check") != {"id": CHECK_ID, "version": 1}
         or document.get("input_id") != INPUT_ID
         or document.get("locator") != {"target_va": TARGET_VA}
-        or document.get("expected") != {
-            "direct_caller_entry_vas": list(EXPECTED_CALLERS)
-        }
+        or document.get("expected")
+        != {"direct_caller_entry_vas": list(EXPECTED_CALLERS)}
     ):
         errors.append("check document drifted")
     return errors
@@ -118,18 +130,20 @@ def _check_errors(document: Any) -> list[str]:
 def _retail_input_errors(document: Any) -> list[str]:
     expected = {
         "schema_version": 1,
-        "inputs": [{
-            "id": INPUT_ID,
-            "filename": INPUT_FILENAME,
-            "size": INPUT_SIZE,
-            "sha256": INPUT_SHA256,
-            "source": {
-                "repository": PRIVATE_REPOSITORY,
-                "commit": PRIVATE_COMMIT,
-                "path": PRIVATE_PATH,
-            },
-            "allowed_checks": [CHECK_ID],
-        }],
+        "inputs": [
+            {
+                "id": INPUT_ID,
+                "filename": INPUT_FILENAME,
+                "size": INPUT_SIZE,
+                "sha256": INPUT_SHA256,
+                "source": {
+                    "repository": PRIVATE_REPOSITORY,
+                    "commit": PRIVATE_COMMIT,
+                    "path": PRIVATE_PATH,
+                },
+                "allowed_checks": [CHECK_ID],
+            }
+        ],
     }
     return [] if document == expected else ["retail input grant drifted"]
 
@@ -140,8 +154,11 @@ def _protocol_evidence_errors(document: Any) -> list[str]:
     observations = document.get("observations")
     if not isinstance(observations, list):
         return ["protocol evidence observations are malformed"]
-    rows = [row for row in observations if isinstance(row, dict)
-            and row.get("sender_va_hex") == TARGET_VA]
+    rows = [
+        row
+        for row in observations
+        if isinstance(row, dict) and row.get("sender_va_hex") == TARGET_VA
+    ]
     if len(rows) != 1:
         return ["tracked protocol source row is not unique"]
     row = rows[0]
@@ -157,8 +174,11 @@ def _protocol_evidence_errors(document: Any) -> list[str]:
 def _git_commit() -> str:
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=REPO, check=True,
-            capture_output=True, text=True,
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         commit = result.stdout.strip()
     except (OSError, subprocess.SubprocessError):
@@ -268,9 +288,11 @@ def main(argv: list[str] | None = None) -> int:
     if schema_errors:
         errors.append("attestation schema rejected output")
         attestation = build_attestation("fail")
-    print(json.dumps(
-        attestation, ensure_ascii=True, sort_keys=True, separators=(",", ":")
-    ))
+    print(
+        json.dumps(
+            attestation, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+        )
+    )
     for error in errors:
         print(f"ERROR: {error}", file=sys.stderr)
     return 1 if errors else 0

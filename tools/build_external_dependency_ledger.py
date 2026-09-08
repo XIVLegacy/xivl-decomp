@@ -98,8 +98,11 @@ def load_base():
         by_class[row["class"]].append(row)
 
     slots = []
-    for line in (CONFIG / "ffxivgame.vtable_slots.jsonl").read_text(
-            encoding="utf-8").splitlines():
+    for line in (
+        (CONFIG / "ffxivgame.vtable_slots.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ):
         row = json.loads(line)
         if row.get("record_type") == "vtable_slot":
             slots.append(row)
@@ -111,9 +114,14 @@ def load_base():
     return document, by_rva, by_class, by_class_slot, fn_classes
 
 
-def base_record(status: str, locator: dict | None, observation: str,
-                independent_fields: list[str], agreement_fields: list[str],
-                uncovered_fields: list[str]) -> dict:
+def base_record(
+    status: str,
+    locator: dict | None,
+    observation: str,
+    independent_fields: list[str],
+    agreement_fields: list[str],
+    uncovered_fields: list[str],
+) -> dict:
     record = {
         "status": status,
         "binary": "ffxivgame.exe retail 1.23b",
@@ -131,9 +139,16 @@ def base_record(status: str, locator: dict | None, observation: str,
     return record
 
 
-def make_row(catalog: str, ordinal: int, source: dict, disposition: str,
-             consumers: list[str], blocking_consumers: list[str],
-             evidence: dict, basis: str) -> dict:
+def make_row(
+    catalog: str,
+    ordinal: int,
+    source: dict,
+    disposition: str,
+    consumers: list[str],
+    blocking_consumers: list[str],
+    evidence: dict,
+    basis: str,
+) -> dict:
     digest = row_hash(source)
     return {
         "row_id": f"{catalog}#sha256:{digest}",
@@ -156,9 +171,7 @@ def summarize(rows: list[dict]) -> dict:
     dispositions = Counter(row["disposition"] for row in rows)
     base_status = Counter(row["base_evidence"]["status"] for row in rows)
     eligibility = Counter(
-        row["eligibility"]["classification"]
-        for row in rows
-        if "eligibility" in row
+        row["eligibility"]["classification"] for row in rows if "eligibility" in row
     )
     summary = {
         "rows": len(rows),
@@ -166,7 +179,8 @@ def summarize(rows: list[dict]) -> dict:
         "base_status": dict(sorted(base_status.items())),
         "rows_with_direct_consumers": sum(bool(row["consumer_ids"]) for row in rows),
         "rows_blocked_from_deletion": sum(
-            row["disposition"] == "keep-with-citation" and bool(row["blocking_consumer_ids"])
+            row["disposition"] == "keep-with-citation"
+            and bool(row["blocking_consumer_ids"])
             for row in rows
         ),
     }
@@ -196,8 +210,7 @@ def build_catalogs():
         slot["fn_rva"]
         for slot_rows in base_by_class_slot.values()
         for slot in slot_rows
-        if (slot["class"] in base_by_class and
-            len(fn_classes[slot["fn_rva"]]) == 1)
+        if (slot["class"] in base_by_class and len(fn_classes[slot["fn_rva"]]) == 1)
     )
     for index, source in enumerate(vtable_names):
         match = re.fullmatch(r"(.+)::vfunc(\d+)", source["name"])
@@ -208,7 +221,8 @@ def build_catalogs():
             class_name = match.group(1)
             slot_index = int(match.group(2))
             candidates = [
-                slot for slot in base_by_class_slot.get((class_name, slot_index), [])
+                slot
+                for slot in base_by_class_slot.get((class_name, slot_index), [])
                 if slot["fn_rva"] == source["rva"]
             ]
         base_selected = bool(candidates) and class_name in base_by_class
@@ -219,14 +233,21 @@ def build_catalogs():
         unique_rva = base_candidate_rvas[source["rva"]] == 1
         unique_output_rva = vtable_name_rvas[source["rva"]] == 1
         derived_shape = (
-            source.get("rva_hex") == f"0x{source['rva']:08x}" and
-            source.get("name") == f"{class_name}::vfunc{slot_index}" and
-            source.get("source") == "vtable-slot"
+            source.get("rva_hex") == f"0x{source['rva']:08x}"
+            and source.get("name") == f"{class_name}::vfunc{slot_index}"
+            and source.get("source") == "vtable-slot"
         )
-        full = all((
-            base_selected, unnamed_target, symbol_matches, unique_owner,
-            unique_rva, unique_output_rva, derived_shape,
-        ))
+        full = all(
+            (
+                base_selected,
+                unnamed_target,
+                symbol_matches,
+                unique_owner,
+                unique_rva,
+                unique_output_rva,
+                derived_shape,
+            )
+        )
         if not full:
             raise SystemExit(
                 f"generated vtable row fails its own eligibility checks: {source}"
@@ -240,15 +261,21 @@ def build_catalogs():
                 "current_symbol": base_symbol,
             },
             "The local base yields the class, slot, function RVA, unnamed target, unique owning class, and unique emitted RVA used to form the neutral Class::vfuncN label.",
-            ["rva", "rva_hex", "name", "source", "current_symbol"], [], [],
+            ["rva", "rva_hex", "name", "source", "current_symbol"],
+            [],
+            [],
         )
         disposition = "independently-rederived"
         basis = "The complete neutral vfunc fact is reproducible from the tracked RTTI and slot base without imported vocabulary."
         row = make_row(
-            "ffxivgame.vtable_method_names", index, source, disposition,
+            "ffxivgame.vtable_method_names",
+            index,
+            source,
+            disposition,
             ["decomp.apply-known-names"],
             ["decomp.apply-known-names"],
-            evidence, basis,
+            evidence,
+            basis,
         )
         row["eligibility"] = {
             "classification": "selected-by-generator",
@@ -259,9 +286,7 @@ def build_catalogs():
             ],
         }
         rows.append(row)
-    vtable_catalog = catalog_record(
-        VTABLE_GENERATED_PATH, "xivl-decomp", rows
-    )
+    vtable_catalog = catalog_record(VTABLE_GENERATED_PATH, "xivl-decomp", rows)
     catalogs.append(vtable_catalog)
 
     return catalogs
@@ -274,9 +299,7 @@ def main() -> int:
     catalog_dispositions = Counter(row["disposition"] for row in all_rows)
     base_statuses = Counter(row["base_evidence"]["status"] for row in all_rows)
     vtable_eligibility = Counter(
-        row["eligibility"]["classification"]
-        for row in all_rows
-        if "eligibility" in row
+        row["eligibility"]["classification"] for row in all_rows if "eligibility" in row
     )
 
     document = {
@@ -310,7 +333,8 @@ def main() -> int:
             "base_status": dict(sorted(base_statuses.items())),
             "vtable_name_eligibility": dict(sorted(vtable_eligibility.items())),
             "rows_blocked_from_deletion": sum(
-                row["disposition"] == "keep-with-citation" and bool(row["blocking_consumer_ids"])
+                row["disposition"] == "keep-with-citation"
+                and bool(row["blocking_consumer_ids"])
                 for row in all_rows
             ),
         },
@@ -318,10 +342,13 @@ def main() -> int:
     }
     OUTPUT.write_text(
         json.dumps(document, indent=1, ensure_ascii=True) + "\n",
-        encoding="ascii", newline="\n",
+        encoding="ascii",
+        newline="\n",
     )
-    print(f"wrote {OUTPUT.relative_to(ROOT)}: {len(all_rows)} catalog rows, "
-          f"{OUTPUT.stat().st_size} bytes")
+    print(
+        f"wrote {OUTPUT.relative_to(ROOT)}: {len(all_rows)} catalog rows, "
+        f"{OUTPUT.stat().st_size} bytes"
+    )
     for catalog in catalogs:
         counts = catalog["summary"]["dispositions"]
         print(f"  {catalog['path']}: {counts}")

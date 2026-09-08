@@ -56,12 +56,29 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # threshold for inclusion: appears with field-access patterns in
 # multiple classes / scripts.
 KNOWN_WORK_TABLES = {
-    "playerWork", "charaWork", "npcWork", "questDirectorWork",
-    "directorWork", "desktopWidgetWork", "progDebugWork",
-    "guildleveWork", "aetheryteWork", "widgetWork", "instanceRaidWork",
-    "normalItemWork", "syncItemWork", "askWork", "areaWork",
-    "battleSave", "battleTemp", "battleParameter", "battleStateForSelf",
-    "battleCommon", "generalParameter", "questWork", "itemWork",
+    "playerWork",
+    "charaWork",
+    "npcWork",
+    "questDirectorWork",
+    "directorWork",
+    "desktopWidgetWork",
+    "progDebugWork",
+    "guildleveWork",
+    "aetheryteWork",
+    "widgetWork",
+    "instanceRaidWork",
+    "normalItemWork",
+    "syncItemWork",
+    "askWork",
+    "areaWork",
+    "battleSave",
+    "battleTemp",
+    "battleParameter",
+    "battleStateForSelf",
+    "battleCommon",
+    "generalParameter",
+    "questWork",
+    "itemWork",
     "itemPackageWork",
 }
 
@@ -86,12 +103,41 @@ def looks_like_method_name(name: str) -> bool:
         return False
     # Common verb prefixes after `_` suggest methods
     verb_prefixes = (
-        "_get", "_set", "_is", "_has", "_can", "_do", "_call", "_break",
-        "_cancel", "_reset", "_init", "_load", "_unload", "_save",
-        "_run", "_wait", "_find", "_count", "_print", "_send",
-        "_fade", "_lock", "_unlock", "_force", "_create",
-        "_delete", "_clear", "_append", "_execute", "_turn",
-        "_lookAt", "_cancel", "_aim", "_transform", "_setup",
+        "_get",
+        "_set",
+        "_is",
+        "_has",
+        "_can",
+        "_do",
+        "_call",
+        "_break",
+        "_cancel",
+        "_reset",
+        "_init",
+        "_load",
+        "_unload",
+        "_save",
+        "_run",
+        "_wait",
+        "_find",
+        "_count",
+        "_print",
+        "_send",
+        "_fade",
+        "_lock",
+        "_unlock",
+        "_force",
+        "_create",
+        "_delete",
+        "_clear",
+        "_append",
+        "_execute",
+        "_turn",
+        "_lookAt",
+        "_cancel",
+        "_aim",
+        "_transform",
+        "_setup",
     )
     for p in verb_prefixes:
         if name.startswith(p):
@@ -127,9 +173,8 @@ def scan_file(path: Path) -> tuple[dict, dict, set]:
                 # Peek next line for call pattern
                 next_line = lines[i + 1] if i + 1 < len(lines) else ""
                 next_call = CALL_RE.match(next_line)
-                is_method = (
-                    looks_like_method_name(ident)
-                    or (next_call is not None and next_call.group(1) == dest)
+                is_method = looks_like_method_name(ident) or (
+                    next_call is not None and next_call.group(1) == dest
                 )
                 if is_method:
                     ambiguous[table][ident] += 1
@@ -157,16 +202,27 @@ def scan_file(path: Path) -> tuple[dict, dict, set]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--lua-dir", type=Path, default=REPO_ROOT / "build" / "lua",
-                    help="directory of decompiled .lua files (default: build/lua)")
-    ap.add_argument("--out-dir", type=Path, default=REPO_ROOT / "build" / "wire",
-                    help="output dir (default: build/wire)")
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--lua-dir",
+        type=Path,
+        default=REPO_ROOT / "build" / "lua",
+        help="directory of decompiled .lua files (default: build/lua)",
+    )
+    ap.add_argument(
+        "--out-dir",
+        type=Path,
+        default=REPO_ROOT / "build" / "wire",
+        help="output dir (default: build/wire)",
+    )
     args = ap.parse_args()
 
     if not args.lua_dir.exists():
-        print(f"error: {args.lua_dir} not found - supply decompiled Lua with --lua-dir",
-              file=sys.stderr)
+        print(
+            f"error: {args.lua_dir} not found - supply decompiled Lua with --lua-dir",
+            file=sys.stderr,
+        )
         return 1
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -199,7 +255,9 @@ def main() -> int:
             "files_scanned": n_files,
             "work_tables": len(global_fields),
             "total_distinct_fields": sum(len(v) for v in global_fields.values()),
-            "total_field_accesses": sum(sum(v.values()) for v in global_fields.values()),
+            "total_field_accesses": sum(
+                sum(v.values()) for v in global_fields.values()
+            ),
         },
         "fields": {
             table: {
@@ -208,8 +266,9 @@ def main() -> int:
                     "files": sorted(files_per_field[table][field])[:5],
                     "file_count": len(files_per_field[table][field]),
                 }
-                for field in sorted(global_fields[table],
-                                    key=lambda f: -global_fields[table][f])
+                for field in sorted(
+                    global_fields[table], key=lambda f: -global_fields[table][f]
+                )
             }
             for table in sorted(global_fields)
         },
@@ -238,20 +297,25 @@ def main() -> int:
         f.write("## Per-work-table totals\n\n")
         f.write("| Work table | Distinct fields | Total accesses |\n")
         f.write("|---|---:|---:|\n")
-        for table in sorted(global_fields, key=lambda t: -sum(global_fields[t].values())):
+        for table in sorted(
+            global_fields, key=lambda t: -sum(global_fields[t].values())
+        ):
             n_fields = len(global_fields[table])
             n_acc = sum(global_fields[table].values())
             f.write(f"| `{table}` | {n_fields} | {n_acc} |\n")
         f.write("\n")
 
         f.write("## Per-table field inventories\n\n")
-        for table in sorted(global_fields, key=lambda t: -sum(global_fields[t].values())):
+        for table in sorted(
+            global_fields, key=lambda t: -sum(global_fields[t].values())
+        ):
             n_fields = len(global_fields[table])
             n_acc = sum(global_fields[table].values())
             f.write(f"### `{table}` ({n_fields} fields, {n_acc} accesses)\n\n")
             f.write("| Field | Accesses | Files |\n|---|---:|---:|\n")
-            for field, count in sorted(global_fields[table].items(),
-                                       key=lambda x: -x[1]):
+            for field, count in sorted(
+                global_fields[table].items(), key=lambda x: -x[1]
+            ):
                 fc = len(files_per_field[table][field])
                 f.write(f"| `{field}` | {count} | {fc} |\n")
             f.write("\n")
@@ -264,8 +328,9 @@ def main() -> int:
             f.write("audit - some are genuine fields with method-like names, others\n")
             f.write("are tool false-positives.\n\n")
             f.write("<details>\n<summary>Expand</summary>\n\n")
-            for table in sorted(global_ambiguous,
-                                key=lambda t: -sum(global_ambiguous[t].values())):
+            for table in sorted(
+                global_ambiguous, key=lambda t: -sum(global_ambiguous[t].values())
+            ):
                 meths = global_ambiguous[table]
                 if not meths:
                     continue
@@ -277,9 +342,11 @@ def main() -> int:
 
     print(f"Wrote {out_json.relative_to(REPO_ROOT)}", file=sys.stderr)
     print(f"Wrote {out_md.relative_to(REPO_ROOT)}", file=sys.stderr)
-    print(f"Summary: {len(global_fields)} work tables, "
-          f"{total_fields} distinct fields, "
-          f"{total_accesses} accesses across {n_files} files")
+    print(
+        f"Summary: {len(global_fields)} work tables, "
+        f"{total_fields} distinct fields, "
+        f"{total_accesses} accesses across {n_files} files"
+    )
     return 0
 
 

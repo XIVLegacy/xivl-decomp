@@ -74,7 +74,11 @@ def _autodetect_ghidra_home() -> str:
     cellar = Path("/opt/homebrew/Cellar/ghidra")
     if cellar.is_dir():
         versions = sorted(
-            (p for p in cellar.iterdir() if p.is_dir() and (p / "libexec" / "support" / "launch.sh").exists()),
+            (
+                p
+                for p in cellar.iterdir()
+                if p.is_dir() and (p / "libexec" / "support" / "launch.sh").exists()
+            ),
             key=lambda p: tuple(int(x) for x in p.name.split(".") if x.isdigit()),
             reverse=True,
         )
@@ -135,8 +139,12 @@ def _windows_short_path(path: Path) -> Path:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("binary", help="binary name in orig/ or an absolute executable path")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "binary", help="binary name in orig/ or an absolute executable path"
+    )
     ap.add_argument(
         "--ghidra-home",
         default=os.environ.get("GHIDRA_HOME", DEFAULT_GHIDRA_HOME),
@@ -188,8 +196,10 @@ def main() -> int:
     requested = Path(args.binary)
     src = requested if requested.is_absolute() else REPO_ROOT / "orig" / requested
     if not src.exists():
-        print(f"error: missing {src}; supply the retail executable under orig/",
-              file=sys.stderr)
+        print(
+            f"error: missing {src}; supply the retail executable under orig/",
+            file=sys.stderr,
+        )
         return 1
 
     project_dir = Path(args.project_dir)

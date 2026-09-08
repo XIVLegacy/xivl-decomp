@@ -78,22 +78,22 @@ WIRE = REPO_ROOT / "build" / "wire"
 # entry-point info).
 CHANNELS: dict[str, dict] = {
     "zone": {
-        "dispatcher_rva":   0x009bfd10,
-        "callback_iface":   "Application::Network::ZoneProtoChannel::ZoneProtoDownCallbackInterface",
-        "dummy_callback":   "Application::Network::ZoneClient::ZoneProtoDownDummyCallback",
-        "expected_slots":   199,
+        "dispatcher_rva": 0x009BFD10,
+        "callback_iface": "Application::Network::ZoneProtoChannel::ZoneProtoDownCallbackInterface",
+        "dummy_callback": "Application::Network::ZoneClient::ZoneProtoDownDummyCallback",
+        "expected_slots": 199,
     },
     "lobby": {
-        "dispatcher_rva":   0x009a4160,    # slot 1 of LobbyProtoDownCallbackInterface
-        "callback_iface":   "Application::Network::LobbyProtoChannel::LobbyProtoDownCallbackInterface",
-        "dummy_callback":   "Application::Network::LobbyClient::LobbyProtoDownDummyCallback",
-        "expected_slots":   14,
+        "dispatcher_rva": 0x009A4160,  # slot 1 of LobbyProtoDownCallbackInterface
+        "callback_iface": "Application::Network::LobbyProtoChannel::LobbyProtoDownCallbackInterface",
+        "dummy_callback": "Application::Network::LobbyClient::LobbyProtoDownDummyCallback",
+        "expected_slots": 14,
     },
     "chat": {
-        "dispatcher_rva":   0x00a40630,    # slot 1 of ChatProtoDownDummyCallback
-        "callback_iface":   "Application::Network::ChatProtoChannel::ChatProtoDownCallbackInterface",
-        "dummy_callback":   "Application::Network::ChatClient::ChatProtoDownDummyCallback",
-        "expected_slots":   10,
+        "dispatcher_rva": 0x00A40630,  # slot 1 of ChatProtoDownDummyCallback
+        "callback_iface": "Application::Network::ChatProtoChannel::ChatProtoDownCallbackInterface",
+        "dummy_callback": "Application::Network::ChatClient::ChatProtoDownDummyCallback",
+        "expected_slots": 10,
     },
 }
 
@@ -101,7 +101,11 @@ CHANNELS: dict[str, dict] = {
 def _va_to_off(pe: dict, va: int) -> int | None:
     rva = va - 0x400000
     for s in pe["sections"]:
-        if s["virtual_address"] <= rva < s["virtual_address"] + max(s["virtual_size"], s["raw_size"]):
+        if (
+            s["virtual_address"]
+            <= rva
+            < s["virtual_address"] + max(s["virtual_size"], s["raw_size"])
+        ):
             return s["raw_pointer"] + (rva - s["virtual_address"])
     return None
 
@@ -145,17 +149,33 @@ def _parse_dispatcher(asm: str) -> dict:
     info: dict = {}
 
     # Try simpler ADD-style shape first.
-    sub_m = re.search(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+(?:ADD|SUB)\s+ESI,(-?0x[0-9a-fA-F]+|-?\d+)\s*$",
-                      asm, re.MULTILINE)
-    cmp_ms = list(re.finditer(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+CMP\s+ESI,(0x[0-9a-fA-F]+|\d+)\s*$",
-                               asm, re.MULTILINE))
-    bt_m  = re.search(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+MOVZX\s+ESI,byte ptr \[ESI \+ (0x[0-9a-fA-F]+)\]\s*$",
-                      asm, re.MULTILINE)
-    dt_m  = re.search(r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+JMP\s+dword ptr \[ESI\*0x4 \+ (0x[0-9a-fA-F]+)\]\s*$",
-                      asm, re.MULTILINE)
+    sub_m = re.search(
+        r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+(?:ADD|SUB)\s+ESI,(-?0x[0-9a-fA-F]+|-?\d+)\s*$",
+        asm,
+        re.MULTILINE,
+    )
+    cmp_ms = list(
+        re.finditer(
+            r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+CMP\s+ESI,(0x[0-9a-fA-F]+|\d+)\s*$",
+            asm,
+            re.MULTILINE,
+        )
+    )
+    bt_m = re.search(
+        r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+MOVZX\s+ESI,byte ptr \[ESI \+ (0x[0-9a-fA-F]+)\]\s*$",
+        asm,
+        re.MULTILINE,
+    )
+    dt_m = re.search(
+        r"^\s*[0-9a-f]+:\s+(?:[0-9a-f]{2} )+\s+JMP\s+dword ptr \[ESI\*0x4 \+ (0x[0-9a-fA-F]+)\]\s*$",
+        asm,
+        re.MULTILINE,
+    )
     if not (sub_m and cmp_ms and bt_m and dt_m):
-        raise RuntimeError(f"dispatcher prologue didn't match expected shape\n"
-                           f"sub={sub_m} cmps={cmp_ms} bt={bt_m} dt={dt_m}")
+        raise RuntimeError(
+            f"dispatcher prologue didn't match expected shape\n"
+            f"sub={sub_m} cmps={cmp_ms} bt={bt_m} dt={dt_m}"
+        )
 
     # The CMP that sets the count is the one IMMEDIATELY after the SUB/ADD -
     # for the lobby dual-range case, the FIRST CMP is the high-special bound,
@@ -173,18 +193,24 @@ def _parse_dispatcher(asm: str) -> dict:
 
     # First case body: find first `MOV EAX,dword ptr [ESI + 0x8]` after the JMP.
     # We use slot-2's offset (0x8) as anchor.
-    case0_m = re.search(r"(\s*)([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+MOV\s+EAX,dword ptr \[ESI \+ 0x8\]\s*$",
-                        asm, re.MULTILINE)
+    case0_m = re.search(
+        r"(\s*)([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+MOV\s+EAX,dword ptr \[ESI \+ 0x8\]\s*$",
+        asm,
+        re.MULTILINE,
+    )
     if case0_m is None:
         raise RuntimeError("first case body (MOV EAX, [ESI+0x8]) not found")
 
     # The case body starts a few bytes BEFORE the MOV EAX line - it begins with
     # `MOV ESI, [ECX]` (loading vtable). Find that line's address.
-    m2 = re.search(r"^\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+MOV\s+ESI,dword ptr \[ECX\]\s*\n"
-                   r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+ADD\s+EAX,0x10\s*\n"
-                   r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+PUSH\s+EAX\s*\n"
-                   r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+MOV\s+EAX,dword ptr \[ESI \+ 0x8\]",
-                   asm, re.MULTILINE)
+    m2 = re.search(
+        r"^\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+MOV\s+ESI,dword ptr \[ECX\]\s*\n"
+        r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+ADD\s+EAX,0x10\s*\n"
+        r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+PUSH\s+EAX\s*\n"
+        r"\s*([0-9a-f]+):\s+(?:[0-9a-f]{2} )+\s+MOV\s+EAX,dword ptr \[ESI \+ 0x8\]",
+        asm,
+        re.MULTILINE,
+    )
     if m2 is None:
         raise RuntimeError("first case body's full prologue not matched")
     info["case0_rva"] = int(m2.group(1), 16)
@@ -223,10 +249,12 @@ def _read_case_vtable_offset(pe: dict, case_addr_va: int) -> int:
     insn_off = off + 6
     op0 = data[insn_off]
     if op0 == 0x8B and data[insn_off + 1] == 0x46:
-        return data[insn_off + 2]                    # imm8
+        return data[insn_off + 2]  # imm8
     if op0 == 0x8B and data[insn_off + 1] == 0x86:
-        return struct.unpack_from("<I", data, insn_off + 2)[0]   # imm32
-    raise RuntimeError(f"case body at {case_addr_va:#x} has unexpected MOV EAX form: {data[insn_off:insn_off+8].hex()}")
+        return struct.unpack_from("<I", data, insn_off + 2)[0]  # imm32
+    raise RuntimeError(
+        f"case body at {case_addr_va:#x} has unexpected MOV EAX form: {data[insn_off : insn_off + 8].hex()}"
+    )
 
 
 def extract_channel(channel: str, info: dict, pe: dict) -> dict:
@@ -252,7 +280,14 @@ def extract_channel(channel: str, info: dict, pe: dict) -> dict:
         opcode = parsed["opcode_base"] + i
         case_idx = byte_table[i]
         slot = case_to_slot[case_idx] if case_idx < len(case_to_slot) else None
-        rows.append({"opcode": opcode, "opcode_hex": f"0x{opcode:04x}", "case_idx": case_idx, "vtable_slot": slot})
+        rows.append(
+            {
+                "opcode": opcode,
+                "opcode_hex": f"0x{opcode:04x}",
+                "case_idx": case_idx,
+                "vtable_slot": slot,
+            }
+        )
 
     return {
         "channel": channel,
@@ -264,17 +299,23 @@ def extract_channel(channel: str, info: dict, pe: dict) -> dict:
         "byte_table_va": f"0x{parsed['byte_table_va']:08x}",
         "dword_table_va": f"0x{parsed['dword_table_va']:08x}",
         "num_cases": num_cases,
-        "default_case_idx": num_cases - 1,    # by convention, last case = default no-op
+        "default_case_idx": num_cases - 1,  # by convention, last case = default no-op
         "real_opcode_count": sum(1 for r in rows if r["case_idx"] != num_cases - 1),
         "opcodes": rows,
     }
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("binary", default="ffxivgame", nargs="?",
-                    choices=("ffxivgame", "ffxivgame.exe"),
-                    help="fixed supported client binary")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "binary",
+        default="ffxivgame",
+        nargs="?",
+        choices=("ffxivgame", "ffxivgame.exe"),
+        help="fixed supported client binary",
+    )
     args = ap.parse_args()
     stem = args.binary.replace(".exe", "")
 
@@ -288,7 +329,9 @@ def main() -> int:
         try:
             ch = extract_channel(name, info, pe)
             channels.append(ch)
-            print(f"  {name}: {ch['real_opcode_count']} real of {ch['opcode_count']} opcodes")
+            print(
+                f"  {name}: {ch['real_opcode_count']} real of {ch['opcode_count']} opcodes"
+            )
         except Exception as exc:
             print(f"  {name}: FAILED - {exc}", file=sys.stderr)
 
@@ -299,19 +342,27 @@ def main() -> int:
     out_md = WIRE / f"{stem}.opcodes.md"
     with out_md.open("w", encoding="utf-8") as f:
         f.write(f"# {stem}.exe - opcode to vtable-slot map\n\n")
-        f.write("Generated by `tools/extract_opcode_dispatch.py` from the client dispatch tables.\n\n")
+        f.write(
+            "Generated by `tools/extract_opcode_dispatch.py` from the client dispatch tables.\n\n"
+        )
         f.write("## Summary\n\n")
-        f.write(f"- {sum(c['real_opcode_count'] for c in channels)} real Down opcodes across {len(channels)} channels.\n\n")
+        f.write(
+            f"- {sum(c['real_opcode_count'] for c in channels)} real Down opcodes across {len(channels)} channels.\n\n"
+        )
         for ch in channels:
             real = [r for r in ch["opcodes"] if r["case_idx"] != ch["default_case_idx"]]
             f.write(f"## {ch['channel']} Down channel\n\n")
             f.write(f"- Callback interface: `{ch['callback_iface']}`\n")
             f.write(f"- Dispatcher RVA: `{ch['dispatcher_rva']}`\n")
-            f.write(f"- Opcode range: `{ch['opcode_base']:#x}` through `{ch['opcode_base'] + ch['opcode_count'] - 1:#x}`\n\n")
+            f.write(
+                f"- Opcode range: `{ch['opcode_base']:#x}` through `{ch['opcode_base'] + ch['opcode_count'] - 1:#x}`\n\n"
+            )
             f.write("| opcode | hex | case | vtable slot |\n")
             f.write("|---:|---:|---:|---:|\n")
             for row in real:
-                f.write(f"| {row['opcode']} | `{row['opcode_hex']}` | {row['case_idx']} | {row['vtable_slot']} |\n")
+                f.write(
+                    f"| {row['opcode']} | `{row['opcode_hex']}` | {row['case_idx']} | {row['vtable_slot']} |\n"
+                )
             f.write("\n")
 
     print(f"wrote: {out_json.relative_to(REPO_ROOT)}")

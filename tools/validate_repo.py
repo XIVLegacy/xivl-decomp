@@ -42,7 +42,9 @@ REQUIRED_AGENT_TOOLING_IGNORE_LINES = {
     "CLAUDE.md",
     "docs/ai_agents/local/",
 }
-EXPECTED_RTTI_SOURCE_SHA256 = "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+EXPECTED_RTTI_SOURCE_SHA256 = (
+    "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+)
 EXPECTED_RTTI_CLASSES = 5719
 EXPECTED_LARGE_ARTIFACT_SHA256 = {
     "config/ffxivgame.vtable_slots.jsonl": "b776f19827f3002b6fc7fd522812f23d851b9a6065d47620e54f01bd0ae5732f",
@@ -50,15 +52,43 @@ EXPECTED_LARGE_ARTIFACT_SHA256 = {
     "config/ffxivgame.external_dependencies.json": "c7b9f65e54abeb98eaa5a52eb1cf26405405f98ad1294f757a92c25e6dc8d3ef",
 }
 FORBIDDEN_SUFFIXES = {
-    ".exe", ".dll", ".pdb", ".obj", ".o", ".lib", ".exp", ".ilk",
-    ".map", ".dat", ".idx", ".index", ".index2",
+    ".exe",
+    ".dll",
+    ".pdb",
+    ".obj",
+    ".o",
+    ".lib",
+    ".exp",
+    ".ilk",
+    ".map",
+    ".dat",
+    ".idx",
+    ".index",
+    ".index2",
 }
 FORBIDDEN_PREFIXES = (
-    "src/", "asm/", ".claude/", ".agents/", "docs/ai_agents/local/",
+    "src/",
+    "asm/",
+    ".claude/",
+    ".agents/",
+    "docs/ai_agents/local/",
 )
-TEXT_SUFFIXES = {".md", ".py", ".ps1", ".sh", ".java", ".h", ".txt", ".yml", ".yaml", ".jsonl"}
+TEXT_SUFFIXES = {
+    ".md",
+    ".py",
+    ".ps1",
+    ".sh",
+    ".java",
+    ".h",
+    ".txt",
+    ".yml",
+    ".yaml",
+    ".jsonl",
+}
 LINK_RE = re.compile(r"(?<!!)\[[^]]*\]\(([^)]+)\)")
 INLINE_CODE_RE = re.compile(r"(?<!`)`([^`\r\n]+)`(?!`)")
+
+
 def git_paths() -> list[str]:
     command = ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"]
     result = subprocess.run(command, cwd=ROOT, check=True, capture_output=True)
@@ -88,9 +118,16 @@ def validate_precontract_derivation(
 ) -> None:
     run = document.get("derivation_run", {})
     required_run_fields = {
-        "contract_version", "contract_status", "scope", "binary_sha256",
-        "ghidra_version", "scripts", "historical_arguments",
-        "historical_output_sha256", "unknown", "regeneration",
+        "contract_version",
+        "contract_status",
+        "scope",
+        "binary_sha256",
+        "ghidra_version",
+        "scripts",
+        "historical_arguments",
+        "historical_output_sha256",
+        "unknown",
+        "regeneration",
     }
     if (
         not required_run_fields <= set(run)
@@ -103,16 +140,16 @@ def validate_precontract_derivation(
     ):
         errors.append(f"pre-contract derivation metadata mismatch: {path}")
     scripts = run.get("scripts", [])
-    clean_scripts = (
-        isinstance(scripts, list)
-        and all(isinstance(row, dict) for row in scripts)
+    clean_scripts = isinstance(scripts, list) and all(
+        isinstance(row, dict) for row in scripts
     )
     if not clean_scripts or [row.get("path") for row in scripts] != expected_scripts:
         errors.append(f"pre-contract script inventory mismatch: {path}")
     if clean_scripts and any(
-            set(row) != {"path", "historical_sha256"}
-            or row["historical_sha256"] is not None
-            for row in scripts):
+        set(row) != {"path", "historical_sha256"}
+        or row["historical_sha256"] is not None
+        for row in scripts
+    ):
         errors.append(f"pre-contract script hash was invented: {path}")
     unknown = run.get("unknown", [])
     regeneration = run.get("regeneration", [])
@@ -138,7 +175,11 @@ def validate_precontract_derivation(
 def is_forbidden_asset(path: str) -> bool:
     lower = path.lower()
     suffix = Path(lower).suffix
-    return suffix in FORBIDDEN_SUFFIXES or bool(re.search(r"\.dat[0-9]$", lower)) or ".win32.dat" in lower
+    return (
+        suffix in FORBIDDEN_SUFFIXES
+        or bool(re.search(r"\.dat[0-9]$", lower))
+        or ".win32.dat" in lower
+    )
 
 
 def markdown_prose_lines(text: str):
@@ -219,7 +260,9 @@ def main() -> int:
                 f"large artifact hash mismatch: {path}: expected {expected}, got {actual}"
             )
 
-    ignore_text = (ROOT / ".gitignore").read_text(encoding="utf-8").replace("\r\n", "\n")
+    ignore_text = (
+        (ROOT / ".gitignore").read_text(encoding="utf-8").replace("\r\n", "\n")
+    )
     ignore_lines = set(ignore_text.split("\n"))
     for required in sorted(REQUIRED_AGENT_TOOLING_IGNORE_LINES):
         if required not in ignore_lines:
@@ -230,16 +273,26 @@ def main() -> int:
     )
     symbol_observations = symbol_evidence.get("observations", [])
     symbol_rvas = [row.get("rva") for row in symbol_observations]
-    if (symbol_evidence.get("schema_version") != 1 or
-            symbol_evidence.get("source_sha256") != EXPECTED_RTTI_SOURCE_SHA256 or
-            symbol_evidence.get("ghidra_version") != "12.1"):
+    if (
+        symbol_evidence.get("schema_version") != 1
+        or symbol_evidence.get("source_sha256") != EXPECTED_RTTI_SOURCE_SHA256
+        or symbol_evidence.get("ghidra_version") != "12.1"
+    ):
         errors.append("symbol-evidence metadata mismatch")
     if symbol_rvas != sorted(set(symbol_rvas)):
         errors.append("symbol-evidence rows are not uniquely ordered by RVA")
     required_symbol_fields = {
-        "rva", "rva_hex", "va_hex", "name", "kind", "evidence_class",
-        "producer", "observation", "supported_imported_fields",
-        "confidence", "ambiguity",
+        "rva",
+        "rva_hex",
+        "va_hex",
+        "name",
+        "kind",
+        "evidence_class",
+        "producer",
+        "observation",
+        "supported_imported_fields",
+        "confidence",
+        "ambiguity",
     }
     if any(not required_symbol_fields <= set(row) for row in symbol_observations):
         errors.append("symbol-evidence row lacks required fields")
@@ -281,8 +334,7 @@ def main() -> int:
     lobby_ack_errors = lobby_ack_verifier.verify()
     if lobby_ack_errors:
         errors.extend(
-            f"lobby acknowledgement contract: {error}"
-            for error in lobby_ack_errors
+            f"lobby acknowledgement contract: {error}" for error in lobby_ack_errors
         )
 
     lobby_assigned_u32_errors = lobby_assigned_u32_verifier.verify()
@@ -295,19 +347,18 @@ def main() -> int:
     lobby_clear_errors = lobby_clear_verifier.verify()
     if lobby_clear_errors:
         errors.extend(
-            f"lobby clear type-7/8 contract: {error}"
-            for error in lobby_clear_errors
+            f"lobby clear type-7/8 contract: {error}" for error in lobby_clear_errors
         )
 
     retail_errors = retail_verifier.verify()
     if retail_errors:
-        errors.extend(f"retail protocol-caller contract: {error}"
-                      for error in retail_errors)
+        errors.extend(
+            f"retail protocol-caller contract: {error}" for error in retail_errors
+        )
     grow_data_errors = grow_data_verifier.verify()
     if grow_data_errors:
         errors.extend(
-            f"grow-data boundary contract: {error}"
-            for error in grow_data_errors
+            f"grow-data boundary contract: {error}" for error in grow_data_errors
         )
     resource_path_errors = resource_path_verifier.verify()
     if resource_path_errors:
@@ -318,8 +369,7 @@ def main() -> int:
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:
         errors.extend(
-            f"s2c 0x018D client-consumer manifest: {error}"
-            for error in s2c_018d_errors
+            f"s2c 0x018D client-consumer manifest: {error}" for error in s2c_018d_errors
         )
 
     s2c_0190_errors = s2c_0190_consumer_verifier.verify()
@@ -332,8 +382,7 @@ def main() -> int:
     s2c_0193_errors = s2c_0193_state_verifier.verify()
     if s2c_0193_errors:
         errors.extend(
-            f"s2c 0x0193 native-state contract: {error}"
-            for error in s2c_0193_errors
+            f"s2c 0x0193 native-state contract: {error}" for error in s2c_0193_errors
         )
     try:
         attestation_schema = _schema_check.load_schema(
@@ -403,21 +452,27 @@ def main() -> int:
     if stats.get("vtable_records") != len(classes):
         errors.append("RTTI catalog vtable count mismatch")
 
-    slot_lines = (ROOT / "config/ffxivgame.vtable_slots.jsonl").read_text(
-        encoding="utf-8"
-    ).splitlines()
+    slot_lines = (
+        (ROOT / "config/ffxivgame.vtable_slots.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
     try:
         slot_rows = [json.loads(line) for line in slot_lines if line]
     except json.JSONDecodeError as exc:
-        errors.append(f"invalid tracked JSONL config/ffxivgame.vtable_slots.jsonl: {exc}")
+        errors.append(
+            f"invalid tracked JSONL config/ffxivgame.vtable_slots.jsonl: {exc}"
+        )
         slot_rows = []
     if slot_rows:
         slot_metadata = slot_rows[0]
         slots = slot_rows[1:]
         slot_keys = [(row.get("vtable_rva"), row.get("slot")) for row in slots]
-        if (slot_metadata.get("record_type") != "metadata" or
-                slot_metadata.get("source_sha256") != EXPECTED_RTTI_SOURCE_SHA256 or
-                slot_metadata.get("ghidra_version") != "12.1"):
+        if (
+            slot_metadata.get("record_type") != "metadata"
+            or slot_metadata.get("source_sha256") != EXPECTED_RTTI_SOURCE_SHA256
+            or slot_metadata.get("ghidra_version") != "12.1"
+        ):
             errors.append("vtable-slot metadata mismatch")
         if any(row.get("record_type") != "vtable_slot" for row in slots):
             errors.append("unexpected vtable-slot record type")
@@ -451,7 +506,9 @@ def main() -> int:
     if [catalog.get("path") for catalog in ledger_catalogs] != expected_catalogs:
         errors.append("dependency ledger catalog inventory mismatch")
     valid_dispositions = {
-        "independently-rederived", "keep-with-citation", "delete-with-source"
+        "independently-rederived",
+        "keep-with-citation",
+        "delete-with-source",
     }
     known_consumers = {
         consumer.get("id") for consumer in ledger.get("consumer_registry", [])
@@ -477,14 +534,20 @@ def main() -> int:
             errors.append(f"duplicate dependency ledger row id: {catalog['path']}")
         for ordinal, (source_row, row) in enumerate(zip(source_rows, rows)):
             digest = canonical_row_sha256(source_row)
-            if row.get("source_ordinal") != ordinal or row.get("source_row_sha256") != digest:
-                errors.append(f"stale dependency ledger row: {catalog['path']}#{ordinal}")
+            if (
+                row.get("source_ordinal") != ordinal
+                or row.get("source_row_sha256") != digest
+            ):
+                errors.append(
+                    f"stale dependency ledger row: {catalog['path']}#{ordinal}"
+                )
                 break
             disposition = row.get("disposition")
             if catalog["path"] == "config/ffxivgame.vtable_method_names.json":
                 eligibility = row.get("eligibility", {})
-                if (eligibility.get("classification") != "selected-by-generator" or
-                        eligibility.get("rejection_reasons")):
+                if eligibility.get(
+                    "classification"
+                ) != "selected-by-generator" or eligibility.get("rejection_reasons"):
                     errors.append(
                         f"generated vtable row has invalid eligibility: {catalog['path']}#{ordinal}"
                     )
@@ -497,30 +560,48 @@ def main() -> int:
             consumers = row.get("consumer_ids", [])
             blocking = row.get("blocking_consumer_ids", [])
             base_status = row.get("base_evidence", {}).get("status")
-            ledger_dispositions[disposition] = ledger_dispositions.get(disposition, 0) + 1
+            ledger_dispositions[disposition] = (
+                ledger_dispositions.get(disposition, 0) + 1
+            )
             blocked_rows += disposition == "keep-with-citation" and bool(blocking)
             if disposition not in valid_dispositions:
-                errors.append(f"invalid dependency disposition: {catalog['path']}#{ordinal}")
+                errors.append(
+                    f"invalid dependency disposition: {catalog['path']}#{ordinal}"
+                )
                 break
             if not set(blocking) <= set(consumers):
-                errors.append(f"blocking consumer is not a direct consumer: {catalog['path']}#{ordinal}")
+                errors.append(
+                    f"blocking consumer is not a direct consumer: {catalog['path']}#{ordinal}"
+                )
                 break
             if not set(consumers) <= known_consumers:
-                errors.append(f"unknown dependency consumer: {catalog['path']}#{ordinal}")
+                errors.append(
+                    f"unknown dependency consumer: {catalog['path']}#{ordinal}"
+                )
                 break
             if disposition == "delete-with-source" and blocking:
-                errors.append(f"delete disposition has blocking consumer: {catalog['path']}#{ordinal}")
+                errors.append(
+                    f"delete disposition has blocking consumer: {catalog['path']}#{ordinal}"
+                )
                 break
             if disposition == "keep-with-citation" and not blocking:
-                errors.append(f"keep disposition lacks blocking consumer: {catalog['path']}#{ordinal}")
+                errors.append(
+                    f"keep disposition lacks blocking consumer: {catalog['path']}#{ordinal}"
+                )
                 break
-            if disposition == "independently-rederived" and base_status != "full-independent-derivation":
-                errors.append(f"independent disposition lacks full derivation: {catalog['path']}#{ordinal}")
+            if (
+                disposition == "independently-rederived"
+                and base_status != "full-independent-derivation"
+            ):
+                errors.append(
+                    f"independent disposition lacks full derivation: {catalog['path']}#{ordinal}"
+                )
                 break
     if ledger.get("summary", {}).get("catalog_rows") != ledger_row_count:
         errors.append("dependency ledger total row count mismatch")
     if ledger.get("summary", {}).get("catalog_dispositions") != dict(
-            sorted(ledger_dispositions.items())):
+        sorted(ledger_dispositions.items())
+    ):
         errors.append("dependency ledger disposition summary mismatch")
     if ledger.get("summary", {}).get("rows_blocked_from_deletion") != blocked_rows:
         errors.append("dependency ledger blocked-row summary mismatch")
@@ -538,7 +619,9 @@ def main() -> int:
             lower = text.lower()
             for token in ("garlemald", "server-workspace", "memory.md", ".claude"):
                 if token in lower:
-                    errors.append(f"forbidden private or consumer reference in {path}: {token}")
+                    errors.append(
+                        f"forbidden private or consumer reference in {path}: {token}"
+                    )
             if re.search(r"(?:[A-Za-z]:\\Users\\|/Users/|/home/)", text, re.I):
                 errors.append(f"absolute maintainer path in {path}")
         if path != "tools/validate_repo.py":

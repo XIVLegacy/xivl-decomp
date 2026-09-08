@@ -84,7 +84,8 @@ def verify(document: dict | None = None) -> list[str]:
         or formatter.get("formatStringVa") != "0x00f672bc"
         or formatter.get("formatString") != "%cdata%c%02X%c%02X%c%02X%c%02X.DAT"
         or formatter.get("separator") != "0x5c"
-        or formatter.get("byteOrder") != "resource-id bytes from most significant to least significant"
+        or formatter.get("byteOrder")
+        != "resource-id bytes from most significant to least significant"
         or formatter.get("hexCase") != "uppercase"
         or formatter.get("relativeExampleInput") != "0x2a080017"
         or formatter.get("relativeExampleOutput") != "\\data\\2A\\08\\00\\17.DAT"
@@ -94,7 +95,8 @@ def verify(document: dict | None = None) -> list[str]:
         or formatter.get("resultCopyVa") != "0x00447450"
         or formatter.get("alternateMode")
         != "When the flag is zero, the function uses a high-16 group and low-16 index table lookup instead of the numeric format string."
-        or formatter.get("gateWriters") != {
+        or formatter.get("gateWriters")
+        != {
             "ownerVa": "0x004b2df0",
             "constantOneWriteVa": "0x004b2eca",
             "conditionalByteWriteVa": "0x004b3191",
@@ -170,18 +172,21 @@ def verify(document: dict | None = None) -> list[str]:
         or signature.get("callPatternOffset") != 13
         or signature.get("callVa") != "0x00c9697f"
         or signature.get("callTargetVa") != "0x00453c00"
-        or signature.get("maskedFields") != [
+        or signature.get("maskedFields")
+        != [
             "bytes 3-6: absolute address of the rb mode literal",
             "bytes 14-17: call rel32 displacement",
         ]
         or signature.get("exactBuildMatchCount") != 1
-        or signature.get("stableByteMutation") != {
+        or signature.get("stableByteMutation")
+        != {
             "patternOffset": 11,
             "from": "0x8b",
             "to": "0x8a",
             "matchCount": 0,
         }
-        or signature.get("callSiteContract") != {
+        or signature.get("callSiteContract")
+        != {
             "thisObject": "the matching FileThread-owned LocalFile record",
             "pathArgument": "borrowed Resource+0x04 narrow path wrapper",
             "modeArgument": "read-mode literal rb",
@@ -266,7 +271,9 @@ def mutation_test() -> list[str]:
     ]
 
 
-def find_matches(data: bytes, pattern: bytes = PATTERN, mask: bytes = MASK) -> list[int]:
+def find_matches(
+    data: bytes, pattern: bytes = PATTERN, mask: bytes = MASK
+) -> list[int]:
     runs: list[tuple[int, int]] = []
     start = None
     for index, keep in enumerate(mask + b"\x00"):
@@ -284,12 +291,9 @@ def find_matches(data: bytes, pattern: bytes = PATTERN, mask: bytes = MASK) -> l
         if found < 0:
             return matches
         offset = found - anchor_start
-        if (
-            0 <= offset <= len(data) - len(pattern)
-            and all(
-                not keep or data[offset + index] == pattern[index]
-                for index, keep in enumerate(mask)
-            )
+        if 0 <= offset <= len(data) - len(pattern) and all(
+            not keep or data[offset + index] == pattern[index]
+            for index, keep in enumerate(mask)
         ):
             matches.append(offset)
         cursor = found + 1
@@ -298,7 +302,9 @@ def find_matches(data: bytes, pattern: bytes = PATTERN, mask: bytes = MASK) -> l
 def resolve_rel32(data: bytes, file_offset: int) -> int | None:
     if file_offset < 0 or file_offset + 5 > len(data) or data[file_offset] != 0xE8:
         return None
-    displacement = int.from_bytes(data[file_offset + 1:file_offset + 5], "little", signed=True)
+    displacement = int.from_bytes(
+        data[file_offset + 1 : file_offset + 5], "little", signed=True
+    )
     return 0x00400000 + file_offset + 5 + displacement
 
 
@@ -318,7 +324,9 @@ def verify_executable(path: Path) -> list[str]:
         call_target = resolve_rel32(data, call_offset)
         if call_target != 0x00453C00:
             errors.append(f"signature call resolves to {call_target!r}")
-    close_body = data[CLOSE_FUNCTION_OFFSET:CLOSE_FUNCTION_OFFSET + len(CLOSE_FUNCTION)]
+    close_body = data[
+        CLOSE_FUNCTION_OFFSET : CLOSE_FUNCTION_OFFSET + len(CLOSE_FUNCTION)
+    ]
     if close_body != CLOSE_FUNCTION:
         errors.append("LocalFile close body changed")
     else:
@@ -344,7 +352,9 @@ def verify_executable(path: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--exe", type=Path, help="pinned retail executable for byte checks")
+    parser.add_argument(
+        "--exe", type=Path, help="pinned retail executable for byte checks"
+    )
     args = parser.parse_args()
     errors = verify() + mutation_test()
     if args.exe:
