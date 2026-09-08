@@ -2,6 +2,7 @@
 
 Use this index to find the repository's public findings and technical guides.
 
+- [Repository style](style-guide.md)
 - [Actor action queue](actor/action-queue.md)
 - [Actor architecture](actor/architecture.md)
 - [Actor battle regimen](actor/battle-regimen.md)

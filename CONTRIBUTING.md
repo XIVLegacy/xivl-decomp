@@ -23,6 +23,9 @@ permission, date, and provenance citation exactly.
 
 ## Repository changes
 
+Follow the [repository style guide](docs/style-guide.md) for authored code,
+headers, catalogs, and documentation.
+
 Put each finding in one canonical page or catalog and link to it elsewhere.
 Keep [docs/README.md](docs/README.md) useful as an entry point. Change generated
 artifacts through their retained generator, and keep researcher-supplied
