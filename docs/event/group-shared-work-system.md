@@ -20,11 +20,11 @@ All under `Application::Lua::Script::Client::Group::*`. Sizes from
 | `MemberInfoUpdater::Listener` | `0xbd40fc` | 2 | Listener-side stub for member-info changes |
 | `SyncWriterOwnerInterface` | `0xbd4108` | 2 | Owner-side stub for SyncWriter callbacks |
 | `Entry::EntryDisplayNameListener` | `0xbd4114` | 2 | Listener for entry display-name changes |
-| **`PacketRequestBase`** | `0xbd4120` | 13 | **Send-side packet builder base (request engine)** |
+| **`PacketRequestBase`** | `0xbd4120` | 13 | Common base for Group builders and updaters |
 | **`EntryBuilderBase`** | `0xbd415c` | 19 | **Group-entry creation (incl. EntryBuilder + EntryLinkShellBuilder)** |
 | `MemberInfoUpdater` | `0xbd41ac` | 13 | Member-info change pipeline |
 | `PropertyUpdater` | `0xbd41e4` | 13 | Property change pipeline |
-| `WorkSyncUpdater` | `0xbd421c` | 13 | Work-table sync change pipeline |
+| `WorkSyncUpdater` | `0xbd421c` | 13 | Child-handler dispatch and Lua work-update notification; see [SyncWriter](../net/sync-writer.md#group-updater-apply-and-notification) |
 | `OnlineStatusUpdater` | `0xbd4254` | 19 | Online-status change pipeline |
 | `BreakupBuilder` | `0xbd42a4` | 19 | Group-breakup pipeline |
 | **`PacketProcessor`** | `0xbd42f4` | 3 | **Receive-side dispatch** |
@@ -97,26 +97,14 @@ The X08 mid-marker is the second subdecoder's signal.
   point that callers use when they don't know if the processor is
   currently executing.
 
-### Wire vs runtime: 0x30 wire-slot vs 16-byte engine-internal storage
+### SharedWork tables and member value records
 
-A potential audit concern was that `SharedWork::GetMemberAt`
-(slot 19) computes element offsets via `shl esi, 4` (i.e. `idx * 16` - 16-byte member
-stride).
-
-These two strides are **not in conflict**:
-
-- **Engine post-parse storage** (`SharedWork::members[+0x14..+0x18]`):
-  16 bytes per entry - candidate `(actor_id, name_id_or_ptr,
-  flag_byte, padding)` after the engine condenses the wire data; exact
-  field roles are not established.
-
-The engine parses incoming X08/X16/X32/X64 packets, extracts the
-short fields it needs for fast lookup, and stores them in the 16-byte
-runtime member array. The wire-side and the runtime-side serve
-different purposes: the wire carries names + flags (for the UI),
-the runtime cares about ID-keyed lookup by index.
-
-No gap to fix.
+SharedWork's 16-byte-stride tables participate in field-offset and extent
+lookup. The stored value bytes belong to separate `0x30`-byte member records
+obtained through the resolved entry's keyed containers. These strides do not
+establish an on-wire layout or a wire-to-actor-record conversion. The exact
+lookup receivers and the third value vector are documented in
+[SyncWriter member storage](../net/sync-writer.md#member-storage-and-pointer-consumers).
 
 ## Group::SharedWork - the work-table API
 
@@ -141,17 +129,16 @@ state. Decoded slot layout:
 | **18** | `FUN_006c55c0` (92 B) | **`AppendToMember(idx, src, len)` - pipeline 3** - same shape, array C at `[+0x34..+0x38]` |
 | **19** | `FUN_006c2d80` (73 B) | **`GetMemberAt(u16 idx)` - pipeline 1** - bounds-checked 16-byte-stride lookup against array A at `[+0x14..+0x18]` |
 | **20** | `FUN_006c2dd0` | **`GetMemberAt(u16 idx)` - pipeline 2** (array B at `[+0x24..+0x28]`) |
-| **21** | `FUN_006c2e20` | **`GetMemberAt(u16 idx)` - pipeline 3** (array C at `[+0x34..+0x38]`) |
+| **21** | `FUN_006c2e20` | Checks the index in array C at `[+0x34..+0x38]`, then calls `FUN_006c1e70` for the selected table entry; this lookup does not establish a member value-buffer pointer |
 | 22 | `FUN_006c9930` (121 B) | **`CopyMemberByLookup(key, dst, len)`** - looks up by short key, validates extent, copies len bytes via shared `memcpy` at `0x9d4600` |
 | 23 | `FUN_006c99b0` | Sibling copy variant; exact role unresolved |
 | 24 | `FUN_006c9a30` (121 B) | Reads a pipeline-3 byte range from `[member_record+0x24] + resolved_offset` into the supplied buffer |
 | 25..26 | `FUN_006c9ab0`/`FUN_006c9b30` | Sibling copy variants; exact roles unresolved |
 | 27 | `FUN_006c9bb0` (214 B) | Writes a pipeline-3 byte range to `[member_record+0x24] + resolved_offset` and can materialize the member when the supplied range contains a nonzero byte |
 
-**Member-array layout** (deduced from slots 16/17/18 + 19/20/21 + 22 -
-**resolved**):
+**SharedWork table layout**:
 
-SharedWork has **3 PARALLEL member arrays** at byte-aligned offsets:
+SharedWork has three parallel tables with 16-byte entries:
 
 | Pipeline | Begin ptr | End ptr | Read slot | Write slot | Adjustor thunk |
 |---|---|---|---:|---:|---|
@@ -159,10 +146,9 @@ SharedWork has **3 PARALLEL member arrays** at byte-aligned offsets:
 | **2** (candidate `Property`) | `[this+0x24]` | `[this+0x28]` | 20 | 17 | slot 13 (`+=0x10`) |
 | **3** (candidate `WorkSync`) | `[this+0x34]` | `[this+0x38]` | 21 | 18 | slot 14 (`+=0x20`) |
 
-The 3 pipelines mirror the 3 `*Updater` classes (`MemberInfoUpdater`,
-`PropertyUpdater`, `WorkSyncUpdater`) listed in the class hierarchy
-section above. Each Updater pipeline reads/writes its own member array,
-keeping the SyncWriter callback streams independent.
+Matching updater names alone do not establish which table or value buffer a
+particular updater reads. The concrete `WorkSyncUpdater` dispatch path is
+documented in [SyncWriter](../net/sync-writer.md#group-updater-apply-and-notification).
 
 **MI adjustor thunks** (slots 13/14/15): these are the standard MSVC
 secondary-base adjustor pattern. When a method is called through the
@@ -171,16 +157,14 @@ or `+0x20` or `+0x30`), the thunk adjusts `this` back to the secondary
 base's actual address before tail-calling the shared handler
 `FUN_006dab80` (97 B, "request a member at sub-base offset").
 
-Member entries: 16 bytes each (`shl esi, 4 = idx * 16`) with:
-- `[member+0x0..+0xb]`: opaque member fields
-- `[member+0xc]`: write cursor (advanced by `AppendToMember` slots)
+Table entries: 16 bytes each (`shl esi, 4 = idx * 16`) with:
+- `[entry+0x0..+0xb]`: opaque descriptor fields
+- `[entry+0xc]`: accumulated extent (advanced by slots 16/17/18)
 - Out-of-range index -> `FUN_009d22b4` = `__report_rangecheckfailure`
 
-So `SharedWork` exposes **3 parallel bounded arrays of fixed-size
-member entries** (16 B each) with parallel typed-slot accessors per
-pipeline (read at 19/20/21, write at 16/17/18). The 28-slot vtable is
-the per-field reader/writer surface that the 3 `*Updater` pipelines
-drive when a property changes.
+The three 16-byte-stride tables are separate from the value records used by
+slots 24 and 27. Those slots resolve a record before accessing its third byte
+vector; the table index alone does not identify the value-buffer address.
 
 ## 0x0133 dispatch - runtime-registered callback
 
@@ -224,7 +208,7 @@ entry pointers at `0xdc0f5c` (jump table).
 |---|---|
 | Group class hierarchy | Inventory in this page |
 | PacketProcessor dispatch | Dispatch pattern in this page |
-| #3 | SharedWork slot map | Slots 13..18 are fully resolved. Slots 13/14/15 are 8-byte MI adjustor thunks (`+=0x10/0x20/0x30`) for the 3 parallel secondary-base subobjects. Slots 16/17/18 are 92-byte parallel `AppendToMember(idx, src, len)` methods, one per pipeline (arrays at `[+0x14/+0x24/+0x34]`). Slots 19/20/21 are the symmetric `GetMemberAt(idx)` read counterparts. SharedWork has 3 parallel member arrays for the 3 `*Updater` pipelines (MemberInfo/Property/WorkSync). See "SharedWork - the work-table API" section above. |
+| SharedWork slot map | Three 16-byte-stride tables and separate member value records; see the work-table API section above. |
 | EntryBuilderBase | 19-slot map below |
 | PacketRequestBase | 13-slot map below |
 | OnlineStatusUpdater and BreakupBuilder | Slot maps below |
@@ -308,11 +292,11 @@ Body (192 bytes = 0xC0):
 
 ## Group::PacketRequestBase slot map
 
-`PacketRequestBase` (13 slots, RVA `0xbd4120`) is the **abstract base
-of every send-side packet-emitter** in the Group subsystem. The 5
-known subclasses (`EntryBuilderBase`, `MemberInfoUpdater`,
-`PropertyUpdater`, `WorkSyncUpdater`, `BreakupBuilder`) all derive from
-it and add their per-event payload state on top.
+`PacketRequestBase` (13 slots, RVA `0xbd4120`) is a common abstract base of
+Group builders and updaters. The class name and shared interface do not
+establish traffic direction. In particular, the concrete `WorkSyncUpdater`
+path checks child handlers, invokes their slot 4, and reaches `_onUpdateWork`;
+it does not establish an outbound serializer.
 
 ### PacketRequestBase slot map
 
@@ -325,7 +309,7 @@ it and add their per-event payload state on top.
 | 4 | `0x773290` | 3 | `mov al,1; ret` - returns 1 (true) - default `IsActive` |
 | 5 | `0x1c5c80` | - | Inherited LuaControl helper |
 | 6, 7 | `0x672a20` | 3 | `ret 0xc` - accept 12-byte arg, do nothing (subclasses override for member add/remove) |
-| 8 | `__purecall` | - | **Subclasses MUST override - the `Send` / `Build` hook** |
+| 8 | `__purecall` | - | Subclass operation; `WorkSyncUpdater` checks child slot 3 here |
 | 9 | `0x1b8d90` | - | Inherited LuaControl no-op |
 | 10 | `0x40fa00` | - | Inherited |
 | 11 | `0x1c5c80` | - | Inherited |
@@ -337,12 +321,12 @@ So `PacketRequestBase` is a 5-method-real, 8-method-stub abstract:
 3. `IsCompleted()` (default false)
 4. `OnAddMember()` (default no-op)
 5. `OnRemoveMember()` (default no-op)
-6. `Send/Build()` (`__purecall`)
+6. Subclass operation (`__purecall`)
 
 The shared inheritance edge `EntryBuilderBase -> PacketRequestBase`
 explains why their slot 0 dtors share the same parent (`0x6d0b90`).
-PacketRequestBase is the actual abstract send-side base. The
-`*Updater` and `*Builder` classes specialize the abstract Build hook.
+The `*Updater` and `*Builder` classes specialize the abstract operation;
+the override body determines its behavior.
 
 ## Group::OnlineStatusUpdater + BreakupBuilder slot maps
 
