@@ -87,9 +87,9 @@ Keep a number when it carries the claim: an address, offset, size, slot,
 opcode, image base, byte sequence, hash, or exact extraction result. Preserve
 it verbatim with its locator and method.
 
-Omit an incidental count when the sentence's meaning survives without it. Do
-not hedge an evidence value with "approximately", "roughly", "about", or a
-leading `~`. Make it exact, qualify the unresolved boundary, or remove it.
-
-A figure inside an external citation or preserved source text stays verbatim,
-including its original date or approximation.
+Omit an incidental count when the sentence's meaning survives without it.
+Useful rounded figures and bounded estimates may remain when they carry the
+claim; state the measurement method, resolution, or bound. Use an exact value
+when precision affects correctness, and do not turn uncertain evidence into a
+precise value by inference. A figure inside an external citation or preserved
+source text stays verbatim, including its original date or approximation.

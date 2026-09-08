@@ -17,6 +17,9 @@ contract to a public policy, tool, or research page and leave a short pointer.
 Remove branch-time narration, matching progress, agent assignments, and notes
 that only explain the next statement.
 
+Comment length and punctuation are style guidelines. Clarity, correctness,
+source quotations, licensing, and provenance justify exceptions.
+
 ## Repository surfaces
 
 - In `tools/`, keep comments for PE assumptions, address conversion, Ghidra
