@@ -266,7 +266,8 @@ The `id` field is the **MurmurHash2** of the dotted property path
 (e.g. `MurmurHash2("contentGroupWork._globalTemp.director", 0)`). The
 `target` is the property-path leaf the client should drive (commonly
 `/_init` for group bring-up, or specific path strings for targeted
-field updates).
+field updates). The retained `director` record's concrete native handler and
+storage callback are documented in [SyncWriter](../net/sync-writer.md#group-updater-apply-and-notification).
 
 ### Cross
 

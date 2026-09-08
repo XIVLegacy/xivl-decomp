@@ -247,6 +247,62 @@ at `0x006C88DF`. `FUN_006C7020` supplies a selected pointer range to
 `+0x2C/+0x30`. The creation branch calls `FUN_006C5620`, which installs the
 Group `WorkSyncUpdater` vtable.
 
+One retained record now has a concrete registration binding. In
+`party_battle_leve.pcapng`, lane 0, frame 54, subevent 0 begins with this
+property and target sequence:
+
+```text
+27 08 7b bd d2 33 00 00 00 00 44 0d 10 45 88 2f 5f 69 6e 69 74
+```
+
+`0x27` declares the raw stream size, `0x08` declares an eight-byte value,
+`0x33D2BD7B` is the little-endian property hash, and the target marker decodes
+as `/_init`.
+MurmurHash2 with seed zero maps
+`contentGroupWork._globalTemp.director` to `0x33D2BD7B` exactly. The decoded
+retail `group/contentgroup/contentgroupbaseclass.lua` establishes the other
+half of the join: lines 51 through 60 assign `_globalTemp._nesting` an entry
+whose leaf is `director` and whose Information token is `member`.
+
+The native `member` registration resolves to one concrete handler family:
+
+```text
+"member" -> static key at 0x01377FF8 -> FUN_00D287F0
+  -> FUN_00D20190 factory entry -> FUN_00D255D0
+  -> IndividualIndexInformation (vtable 0x0110FFFC)
+  -> FUN_00D2CC70 -> FUN_00D2FD50
+  -> SyncWriterIndividualIndex (vtable 0x011102A4)
+```
+
+The string-to-key edge is explicit at `0x00F2D376..0x00F2D380`, where the
+static initializer passes the exact `member` literal to the string object at
+`0x01377FF8`. `FUN_00D287F0` returns that key, and `FUN_00D20190` installs
+`FUN_00D255D0` as its factory. `FUN_00D255D0` constructs
+`IndividualIndexInformation`; its retained sync-lane factory
+`FUN_00D2CC70` constructs `SyncWriterIndividualIndex`. The latter's typed
+slot 6, `FUN_00D2FA90`, copies exactly eight bytes into writer `+0x10`,
+matching the retained record width.
+
+The Lua-to-native ingestion edge is also retained. The exact `_nesting`
+literal initializes the native key object at `0x013780A8`.
+`FUN_00D1C810` selects that key for the assignment path, initializes the
+Information registry through `FUN_00D1F170`, and passes the Lua table to
+`FUN_00D1E0F0`. That function iterates the nesting descriptors, extracts the
+Information-token string, and calls `FUN_00D25DB0`; the latter looks up that
+string in the registry and invokes the factory stored at tree-node `+0x5C`.
+Consequently, the script's `member` token reaches the `FUN_00D255D0` factory
+rather than being only a name-based correlation.
+
+This registration belongs to the same Group registry used by the updater.
+`FUN_006C8CF0` constructs Group `WorkSync` at owner `+0xA0` and passes it to
+`FUN_00CCC590`. `FUN_00CCB780` selects the sync container and invokes slot 17;
+the concrete slot, `FUN_00CFCCF0`, stores that `WorkSync` listener at
+`SyncContainer+0x30`. Registration then reaches `FUN_00CFD610`, which installs
+the concrete writer callback and delivers its shared-work wrapper to that
+listener. Group `WorkSync` slot 1, `FUN_006C4290`, retains the wrapper, while
+its owner-interface slot 1, `FUN_006C4200`, inserts the supplied hash and
+handler pointer into the property tree through `FUN_006D45A0`.
+
 | Updater operation | Retained behavior |
 |---|---|
 | Slot 8, `FUN_006C12C0` | Tests child vtable slot 3 while walking `+0x2C/+0x30`; the completed branch sets byte `+0xEC`. |
@@ -254,11 +310,30 @@ Group `WorkSyncUpdater` vtable.
 | Callback `FUN_00B241C0` | Jumps through the child's vtable byte offset `+0x10`, which is slot 4. |
 | `FUN_006C0140 -> FUN_00700CC0` | After the child traversal and further state checks, constructs `_onUpdateWork` and calls the Lua invocation helper `FUN_00CC7A90`. |
 
-This resolves the updater's child dispatch and notification path. It does not
-bind an individual child to a particular SharedSyncAccess instance. The known
-scalar slot-4 callback behavior above must not be assigned to every child
-without its concrete registration and vtable evidence. Neither the updater
-name nor this inbound path proves a network writer.
+For hash `0x33D2BD7B`, the selected child is therefore
+`SyncWriterIndividualIndex`, and the updater's slot-4 dispatch becomes
+concrete:
+
+```text
+FUN_00B241C0 -> SyncWriterIndividualIndex slot 4 FUN_00D30C90
+  -> slot 7 FUN_00D2FB20
+  -> SyncContainer secondary slot 1 FUN_00CFD580
+  -> SharedSyncAccess slot 3 FUN_00CFE960
+  -> SharedSyncAccess slot 13 FUN_00CFCCC0
+  -> Group SharedWork slot 27 FUN_006C9BB0
+  -> memcpy([member_record+0x24] + resolved_offset, value, 8)
+```
+
+`FUN_00D30C90` performs the callback only while the writer counter is nonzero.
+`FUN_00CFE960` likewise forwards to slot 13 only on the retained changed-range
+path. These identities are not assigned from compatible offsets alone:
+`config/ffxivgame.vtable_slots.jsonl` records `FUN_00D30C90` and
+`FUN_00D2FB20` as `SyncWriterIndividualIndex` slots 4 and 7, and records
+`FUN_00CFD580` as slot 1 of the secondary SyncContainer vtable installed at
+object `+0x2C`. Subject to the counter and changed-range guards, this closes
+the requested hash-to-handler-to-storage chain. It does not make the updater
+an outbound network writer and does not generalize this handler identity to
+other property hashes.
 
 No opcode, packet framing, or network-buffer write is established downstream
 of the SharedWork slot-27 copy. In particular, the local copy must not be
@@ -276,6 +351,16 @@ The member-storage and Group-updater observations use the retained retail
 `xivl-client-structs:ghidra/DumpFunctionListing.java`, invoked through
 `xivl-client-structs:tools/ghidra/run-headless.ps1` with `-ReadOnly`,
 `-ScriptPath @('ghidra')`, and the relevant VAs in `XIVL_TARGET_VAS`.
+
+The `0x33D2BD7B` join additionally uses the retained retail capture
+`xivl-captures:sources/pcap-1.23b/objects/party_battle_leve.pcapng` and the
+retained locator at
+`xivl-captures:studies/director-wire-identity/derived/group-packets.csv`
+(s2c lane 0, frame 54, subevent 0, offset 0). It also uses the
+decoded retail Lua member
+`group/contentgroup/contentgroupbaseclass.lua`, read directly from its external
+archive without hydrating or modifying the script repository. Hash identity
+was checked with `xivl-client-structs:tools/verify_murmur2.py`.
 
 The client-structure citations below are pinned at commit
 `a52da3a3daec72431224fa7ce321aa9ee27b2c3b`.
