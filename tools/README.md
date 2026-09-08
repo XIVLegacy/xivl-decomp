@@ -225,3 +225,13 @@ Run repository validation with:
 ```text
 python tools/validate_repo.py
 ```
+
+## Python formatting and linting
+
+Ruff 0.15.21 is the formatter and linter for authored Python tools. Check the
+tree with:
+
+```text
+ruff format --check tools
+ruff check --no-cache tools
+```

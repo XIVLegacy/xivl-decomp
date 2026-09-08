@@ -32,6 +32,8 @@ citations, confidence, and provenance.
 - Raise or report specific failures instead of using broad exception handlers.
 - Add type annotations where they clarify catalog records, addresses, paths,
   or public helper contracts.
+- Use Ruff 0.15.21 as the Python formatter and linter. Run `ruff format` and
+  `ruff check --no-cache tools` for authored Python changes.
 
 ## Ghidra Java
 
