@@ -358,14 +358,68 @@ entry token and context-sensitive display lookup. It does not establish an
 actor, party, linkshell, or sender identifier, the u16 display enum, or server
 routing policy.
 
-The `+0x70` token vector is not party-exclusive. The shared implementation
-constructor at `0x006cbdd0` copy-constructs it for the ordinary EntryBuilder
-path at `0x006cbee0` and the linkshell-specific EntryLinkShellBuilder path at
-`0x006cbfb0`; `0x006cc390` supplies the latter from a named-group record source
-vector. This proves that linkshell-backed Group entries use the same token-table
-mechanism. It does not prove player-linkshell chat: no recovered edge joins the
-chat ExecuteParameters to a linkshell-backed Group or to the distinct `0x018a`
-state-update path.
+The shipped `DesktopWidget` script supplies the previously missing chat
+producer edge. `chat` reads the active chat mode, then `chatDirect` handles mode
+4 as the player party and mode 5 as the player linkshell route. The mode-5
+branch calls `MyPlayer:getCommunityGroupCurrent(20002)`, rejects a null or dead
+result through `checkActor`, and calls
+`MyPlayer:_chat(text, "group", selected_group, 1)`. The same function passes
+the party Group and index 1 for mode 4. These calls are at lines 7295-7312,
+7377-7396, and 7404-7433 of
+`xivl-client-scripts:lua/scripts/widget/desktopwidget_connector.lua`. The
+canonical script is from extraction `2012.09.19.0001`, has SHA-256
+`9c33f21c1f70a0056147e716d53300634efabe5b744ef6e8690114db21613a01`,
+and is recorded by `xivl-client-scripts` revision
+`5f5557ffc06b736c6dc9c38ee9906375ff8b8809`.
+
+The script-level selection inputs are also bounded. `chat` obtains the numeric
+mode and optional tell target from static widget 2 through `getChatMode` before
+calling `chatDirect`. The `UILuaCommands.SetCurrentLinkshell` branch resolves
+`getCommunityGroup(20002, index)` and calls
+`executePlayerSetCurrentLinkshell`; that helper extracts the selected Group's
+unique identifier and submits local command 24236. The sibling
+`ChangeCurrentLinkshell` path cycles the type-20002 Group list by comparing
+each entry with `getCommunityGroupCurrent(20002)`. These paths are at lines
+3455-3521 and 15017-15112 of the same script. They establish which client-side
+state the chat getter consumes, but not the server-side meaning or handling of
+command 24236.
+
+`CharaBaseClass:getCommunityGroupCurrent` calls
+`_getExtendedTemporaryGroupCurrent(type)` at lines 357-366 of
+`xivl-client-scripts:lua/scripts/chara/charabaseclass_cliprog.lua`. The native
+binding at `0x0072f460` registers callback thunk `0x0071e000`. That thunk calls
+MyPlayer vtable slot 38 (`0x00706a40`, then `0x00701710`) with the literal
+extended selector 1. `0x00701710` reads the supplied type, reaches the Group
+registry through the same owner-side `+0xe4` field used by chat, and resolves
+the current entry through `0x006c20c0`. The returned object becomes selector 2
+of `_chat`; the script's literal 1 becomes selector 3. At `0x006e93a5`, the
+native group branch retrieves those selectors, subtracts one from the latter,
+and passes the address of the former object's `+0x68` field to `0x006c0590`,
+which dereferences that field. This is a complete static chain from the active
+player-linkshell selection to the token read and subsequent `0x00c9` emission.
+
+The `+0x70` token vector remains shared rather than linkshell-exclusive. The
+constructor at `0x006cbdd0` copy-constructs it for the ordinary EntryBuilder at
+`0x006cbee0` and the linkshell-specific EntryLinkShellBuilder at `0x006cbfb0`.
+`0x006cc390` builds the latter from a named-group record, prepares its
+`0xf8`-byte child through `0x006c4330`, and queues the outer builder through
+`0x007238b0`; processing uses EntryLinkShellBuilder slot 8 at `0x006cd690`.
+Static analysis still does not prove that the particular current type-20002
+object returned to Lua is the same allocation produced by that builder path.
+That missing allocation-identity edge is no longer needed to establish the
+player-linkshell chat producer because the shipped script selects and supplies
+the current type-20002 object directly.
+
+The inbound `0x018a` route is separate. `0x00576380` passes its receiver's
+`+0x18` object to `0x006c82a0`. That handler lazily owns a `0x18`-byte state at
+`+0x10`; `0x006c6a70` reads a signed count at payload `+0x60`, pairs keys from
+payload `+0x40` with eight-byte records from payload `+0x00`, and merges them
+through `0x006c58c0`. This path does not select type 20002, call the current
+Group lookup, supply selector 3, or read the `+0x70` token vector. No direct
+traced edge therefore establishes that it selects or changes the active
+player-linkshell selection used by chat. Whether its opaque state aliases or
+indirectly affects the current-state storage reached through `0x006c20c0`
+remains unresolved.
 
 The `group` send path accepts an empty message: the control parser treats an
 initial NUL as success and no later nonempty check precedes `0x004df6d0`.
@@ -382,6 +436,9 @@ Source: observation `WorldChat_selected_group_0x00c9_route` in
 [`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json),
 pinned to SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The Lua producer is independently pinned by the script digest above; neither
+source establishes retail server recipient, echo, offline, cross-zone,
+presence, or membership-race policy.
 
 ### CRC32 body
 

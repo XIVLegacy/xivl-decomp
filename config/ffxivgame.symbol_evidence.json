@@ -139,20 +139,43 @@
    "name": "WorldChat_selected_group_0x00c9_route",
    "kind": "chat",
    "opcode": "0xc9",
-   "evidence_class": "packet-builder-data-flow",
-   "producer": "canonical assembly and read-only instruction trace",
-   "observation": "The MyPlayer chat ingress at 0x006e91f0 handles the literal group branch at 0x006e9395. ExecuteParameters selectors 2 and 3 supply a Group context and a one-based selected index. After decrementing the index, 0x006c0590 selects a u32 entry token from the Group-owned table at +0x70; 0x006c9690 passes that token to 0x006c7b80 and a zero result suppresses emission. The shared constructor at 0x006cbdd0 copy-constructs the +0x70 u32 vector. Both the ordinary EntryBuilder path at 0x006cbee0 and the linkshell-specific EntryLinkShellBuilder path at 0x006cbfb0 use it; 0x006cc390 builds the latter from a named-group record source vector. This proves that linkshell-backed Group entries use the same token-table mechanism, but no recovered edge joins the chat ExecuteParameters to a linkshell-backed Group or the distinct 0x018a state path. The nonzero u16 result is forwarded as a presentation argument while 0x004df6d0 writes opcode 0xc9, internal record size 0x218, the selected Group entry token at record +0x18, and a bounded 0x200-byte message at record +0x1c before enqueue through 0x00db3e30. On receive, the 0xc9 case at 0x004d8e7b passes normalized application +0x08 to 0x005754e0 and drops the message when the same Group resolver returns zero. Within 0x006c7b80, 0x006c13d0 matches the full token against a Group-record u32 vector at +0x74, and the match index selects a u16 from a secondary tree node's range at +0x28. This proves a selected Group entry token and context-sensitive display lookup, not an actor, party, linkshell, or sender identifier. The writer and enum domain of the secondary u16 range remain unresolved. FUN_00c99b80 accepts an initial NUL, so the group route has no message-nonempty rejection before emission. FUN_004df810 rejects an empty tell target but not an empty tell message. On receive, the selected-group case uses bounded 0x20- and 0x200-byte copies that append a destination NUL; the tell case uses the -1 path in 0x00447260 and therefore scans until NUL without a packet-length bound. Embedded controls have direct grammar rejection predicates, while extended types 0xf0..0xfe read fixed bytes without an input-length argument.",
+   "evidence_class": "packet-builder-and-shipped-lua-data-flow",
+   "producer": "canonical assembly, read-only instruction trace, and pinned shipped Lua corpus",
+   "observation": "The shipped DesktopWidget script reads the active chat mode and handles mode 5 by calling MyPlayer:getCommunityGroupCurrent(20002), rejecting a null or dead result, and invoking MyPlayer:_chat(text, group, selected_group, 1). CharaBaseClass:getCommunityGroupCurrent delegates to _getExtendedTemporaryGroupCurrent(type). Native binding 0x0072f460 registers callback thunk 0x0071e000, which calls MyPlayer vtable slot 38 at 0x00706a40 with extended selector 1 and reaches 0x00701710. That function reads the supplied type, reaches the Group registry through the owner-side +0xe4 field, and resolves the current entry through 0x006c20c0. The MyPlayer chat ingress at 0x006e91f0 handles the literal group branch at 0x006e9395: ExecuteParameters selector 2 supplies that selected Group object and selector 3 supplies the script's one-based index. After decrementing the index, 0x006c0590 selects a u32 entry token from the Group-owned table at +0x70; 0x006c9690 passes that token to 0x006c7b80 and a zero result suppresses emission. This is a complete static chain from active player-linkshell selection to 0x00c9 emission. The shared constructor at 0x006cbdd0 copy-constructs the +0x70 u32 vector. Both the ordinary EntryBuilder path at 0x006cbee0 and the linkshell-specific EntryLinkShellBuilder path at 0x006cbfb0 use it; 0x006cc390 builds the latter from a named-group record source vector, prepares its child through 0x006c4330, queues the outer builder through 0x007238b0, and processing reaches EntryLinkShellBuilder slot 8 at 0x006cd690. The particular current type-20002 object's allocation identity is not statically joined to that builder output. The distinct 0x018a path runs 0x00576380 to 0x006c82a0, 0x006c6a70, and 0x006c58c0 to update an opaque two-container state; it does not select type 20002, supply the one-based index, or read the token vector. The nonzero u16 result is forwarded as a presentation argument while 0x004df6d0 writes opcode 0xc9, internal record size 0x218, the selected Group entry token at record +0x18, and a bounded 0x200-byte message at record +0x1c before enqueue through 0x00db3e30. On receive, the 0xc9 case at 0x004d8e7b passes normalized application +0x08 to 0x005754e0 and drops the message when the same Group resolver returns zero. Within 0x006c7b80, 0x006c13d0 matches the full token against a Group-record u32 vector at +0x74, and the match index selects a u16 from a secondary tree node's range at +0x28. This proves a selected Group entry token and context-sensitive display lookup, not an actor, party, linkshell, or sender identifier. The writer and enum domain of the secondary u16 range remain unresolved. FUN_00c99b80 accepts an initial NUL, so the group route has no message-nonempty rejection before emission. FUN_004df810 rejects an empty tell target but not an empty tell message. On receive, the selected-group case uses bounded 0x20- and 0x200-byte copies that append a destination NUL; the tell case uses the -1 path in 0x00447260 and therefore scans until NUL without a packet-length bound. Embedded controls have direct grammar rejection predicates, while extended types 0xf0..0xfe read fixed bytes without an input-length argument.",
    "supported_imported_fields": [
     "kind",
     "opcode"
    ],
-   "confidence": "direct command branch, selected-entry lookup, opcode, size, field-write, receive lookup, drop, and display-argument observation",
-   "ambiguity": "The selected Group entry-token role and linkshell-compatible token-table construction are direct. The chat producer's selection of a linkshell-backed Group, the backing token's allocation domain, the secondary u16 display enum, party-versus-linkshell mapping, and server routing policy remain unresolved.",
+   "confidence": "direct shipped-script producer, native binding and lookup, command branch, selected-entry lookup, opcode, size, field-write, receive lookup, drop, and display-argument observation",
+   "ambiguity": "The active player-linkshell selection of current type 20002, selected Group entry-token role, and linkshell-compatible token-table construction are direct. The allocation-identity edge from the current type-20002 object to one specific EntryLinkShellBuilder output, the backing token's allocation domain, the secondary u16 display enum, and all server routing, recipient, echo, offline, cross-zone, presence, and membership-race policy remain unresolved.",
    "retail_provenance": [
     {
      "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
      "run_id": "world-chat-selected-group-static-20260919",
      "addresses": ["0x00447260", "0x004d8d10", "0x004df6d0", "0x004df810", "0x005754e0", "0x006c0590", "0x006c13d0", "0x006c7b80", "0x006c9690", "0x006cbdd0", "0x006cbee0", "0x006cbfb0", "0x006cc390", "0x006e91f0", "0x00c99b80", "0x00cb2020"]
+    },
+    {
+     "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+     "run_id": "world-chat-player-linkshell-static-20260920",
+     "addresses": ["0x00576380", "0x006c20c0", "0x006c58c0", "0x006c6a70", "0x006c82a0", "0x006cd690", "0x00701710", "0x00706a40", "0x0071e000", "0x0072f460"]
+    }
+   ],
+   "script_provenance": [
+    {
+     "repository": "XIVLegacy/xivl-client-scripts",
+     "revision": "5f5557ffc06b736c6dc9c38ee9906375ff8b8809",
+     "extraction": "2012.09.19.0001",
+     "path": "lua/scripts/widget/desktopwidget_connector.lua",
+     "sha256": "9c33f21c1f70a0056147e716d53300634efabe5b744ef6e8690114db21613a01",
+     "lines": [857, 868, 3455, 3521, 7295, 7312, 7377, 7396, 7404, 7433, 15017, 15112]
+    },
+    {
+     "repository": "XIVLegacy/xivl-client-scripts",
+     "revision": "5f5557ffc06b736c6dc9c38ee9906375ff8b8809",
+     "extraction": "2012.09.19.0001",
+     "path": "lua/scripts/chara/charabaseclass_cliprog.lua",
+     "sha256": "ea04844921f8820562afd172845cab7baf2df235725d20ad179bb713754c87fd",
+     "lines": [357, 366]
     }
    ]
   },
