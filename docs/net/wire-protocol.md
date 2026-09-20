@@ -330,14 +330,49 @@ callers.
 
 | Local kind/opcode | Written size | Direct field observation |
 |---|---:|---|
-| Chat `0xc9` | `0x218` | Writes a u32 at application offset `0`, zero-fills `0x200` bytes at offset `4`, then copies the supplied byte string there. |
+| Chat `0xc9` | `0x218` internal record; `0x228` wire subpacket | Writes the selected Group entry token at record `+0x18` and the bounded `0x200`-byte message at `+0x1c`. In the normalized application that retains the final eight game-header bytes, these are `+0x08` and `+0x0c` after selector `10` and reserved zero. |
 | Zone `0x134` | `0x28` | Writes a supplied u32 at application offset `0`, a helper result at offset `4`, and fifteen generated ASCII letters plus NUL at offsets `8..0x17`. |
 | Zone `0x135` | `0x18` | Writes one supplied u32 at application offset `0`. |
 
-Source: observations `PacketSender_opcode_0x00c9_u32AndByteField0x200`,
+Source: observations `WorldChat_selected_group_0x00c9_route`,
 `PacketBuilder_opcode_0x0134_u32PairAndGeneratedAscii16`, and
 `PacketBuilder_opcode_0x0135_singleU32_24B` in
 [`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json).
+
+### World Chat selected-group route
+
+The MyPlayer chat ingress at `0x006e91f0` recognizes the literal `group`
+branch at `0x006e9395`. Its ExecuteParameters selectors 2 and 3 provide a
+Group context and a one-based selection index. After decrementing the index,
+`0x006c0590` reads one u32 token from the Group-owned table at `+0x70`.
+`0x006c9690` passes that token to `0x006c7b80`; a zero result prevents the send,
+while a nonzero u16 result is forwarded as a presentation argument along with
+the token and text to the `0x00c9` emitter.
+
+The receive case at `0x004d8e7b` applies the normalized application `+0x08`
+token through `0x005754e0` and the same Group resolver. A zero result drops the
+message. On a match, `0x006c13d0` has found the full token in a Group-record u32
+vector at `+0x74`, and the match index selects a u16 from a secondary tree
+node's range at `+0x28`. The client therefore establishes a selected Group
+entry token and context-sensitive display lookup. It does not establish an
+actor, party, linkshell, or sender identifier, the u16 display enum, or server
+routing policy.
+
+The `group` send path accepts an empty message: the control parser treats an
+initial NUL as success and no later nonempty check precedes `0x004df6d0`.
+Tell likewise rejects an empty target but does not reject an empty message.
+Selected-group receive copies are bounded to `0x20` and `0x200` bytes and append
+a destination NUL, so embedded NUL truncates display and a complete fixed field
+without NUL is still bounded. The tell receive path instead selects the `-1`
+copy path and scans until NUL without a packet-length bound. Neither path proves
+short-packet safety because the callback carries no packet-length argument.
+Extended control decoding also reads fixed bytes without an input-length
+argument, so truncated-control safety is not established.
+
+Source: observation `WorldChat_selected_group_0x00c9_route` in
+[`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json),
+pinned to SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 
 ### CRC32 body
 

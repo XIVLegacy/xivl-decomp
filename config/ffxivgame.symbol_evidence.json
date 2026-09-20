@@ -136,23 +136,23 @@
    "rva": 915152,
    "rva_hex": "0x000df6d0",
    "va_hex": "0x004df6d0",
-   "name": "PacketSender_opcode_0x00c9_u32AndByteField0x200",
+   "name": "WorldChat_selected_group_0x00c9_route",
    "kind": "chat",
    "opcode": "0xc9",
    "evidence_class": "packet-builder-data-flow",
-   "producer": "tools/ghidra_scripts/DecompileToText.java",
-   "observation": "The function writes opcode 0xc9 and body size 0x218, writes its u32 argument at application offset 0, zero-fills the 0x200-byte field at offset 4, copies the supplied byte string into that field, and enqueues the packet through 0x00db3e30.",
+   "producer": "canonical assembly and read-only instruction trace",
+   "observation": "The MyPlayer chat ingress at 0x006e91f0 handles the literal group branch at 0x006e9395. ExecuteParameters selectors 2 and 3 supply a Group context and a one-based selected index. After decrementing the index, 0x006c0590 selects a u32 entry token from the Group-owned table at +0x70; 0x006c9690 passes that token to 0x006c7b80 and a zero result suppresses emission. The nonzero u16 result is forwarded as a presentation argument while 0x004df6d0 writes opcode 0xc9, internal record size 0x218, the selected Group entry token at record +0x18, and a bounded 0x200-byte message at record +0x1c before enqueue through 0x00db3e30. On receive, the 0xc9 case at 0x004d8e7b passes normalized application +0x08 to 0x005754e0 and drops the message when the same Group resolver returns zero. Within 0x006c7b80, 0x006c13d0 matches the full token against a Group-record u32 vector at +0x74, and the match index selects a u16 from a secondary tree node's range at +0x28. This proves a selected Group entry token and context-sensitive display lookup, not an actor, party, linkshell, or sender identifier. The writer and enum domain of the secondary u16 range remain unresolved. FUN_00c99b80 accepts an initial NUL, so the group route has no message-nonempty rejection before emission. FUN_004df810 rejects an empty tell target but not an empty tell message. On receive, the selected-group case uses bounded 0x20- and 0x200-byte copies that append a destination NUL; the tell case uses the -1 path in 0x00447260 and therefore scans until NUL without a packet-length bound. Embedded controls have direct grammar rejection predicates, while extended types 0xf0..0xfe read fixed bytes without an input-length argument.",
    "supported_imported_fields": [
     "kind",
     "opcode"
    ],
-   "confidence": "direct opcode, size, field-write, and send-call observation",
-   "ambiguity": "The replacement describes the packet shape without assigning a higher-level message domain.",
+   "confidence": "direct command branch, selected-entry lookup, opcode, size, field-write, receive lookup, drop, and display-argument observation",
+   "ambiguity": "The selected Group entry-token role is direct. The backing token's allocation domain, the secondary u16 display enum, party-versus-linkshell mapping, and server routing policy remain unresolved.",
    "retail_provenance": [
     {
      "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
-     "run_id": "opcode-semantics-c2s-open-senders-body",
-     "addresses": ["0x004df6d0"]
+     "run_id": "world-chat-selected-group-static-20260919",
+     "addresses": ["0x00447260", "0x004d8d10", "0x004df6d0", "0x004df810", "0x005754e0", "0x006c0590", "0x006c13d0", "0x006c7b80", "0x006c9690", "0x006e91f0", "0x00c99b80", "0x00cb2020"]
     }
    ]
   },
