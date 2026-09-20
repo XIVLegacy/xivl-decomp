@@ -18,6 +18,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Scenario and monster hierarchy](actor/scenario-monster-hierarchy.md)
 - [Actor status controllers](actor/status-controllers.md)
 - [Status-related UI RTTI search](actor/status-effects.md)
+- [WindowActor nameplate anchor producer](actor/window-actor-anchor-producer.md)
 - [WorldMaster](actor/world-master.md)
 - [AI-assisted contributions](ai_agents/README.md)
 - [Comments and prose policy](ai_agents/comments-and-prose.md)
