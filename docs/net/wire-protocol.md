@@ -358,6 +358,15 @@ entry token and context-sensitive display lookup. It does not establish an
 actor, party, linkshell, or sender identifier, the u16 display enum, or server
 routing policy.
 
+The `+0x70` token vector is not party-exclusive. The shared implementation
+constructor at `0x006cbdd0` copy-constructs it for the ordinary EntryBuilder
+path at `0x006cbee0` and the linkshell-specific EntryLinkShellBuilder path at
+`0x006cbfb0`; `0x006cc390` supplies the latter from a named-group record source
+vector. This proves that linkshell-backed Group entries use the same token-table
+mechanism. It does not prove player-linkshell chat: no recovered edge joins the
+chat ExecuteParameters to a linkshell-backed Group or to the distinct `0x018a`
+state-update path.
+
 The `group` send path accepts an empty message: the control parser treats an
 initial NUL as success and no later nonempty check precedes `0x004df6d0`.
 Tell likewise rejects an empty target but does not reject an empty message.
