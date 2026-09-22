@@ -79,6 +79,7 @@ Use this index to find the repository's public findings and technical guides.
 - [PE layout](resource/pe-layout.md)
 - [Resource path producer](resource/resource-path-producer.md)
 - [SqPack architecture](resource/sqpack.md)
+- [Stronghold door owners](resource/stronghold-door-owners.md)
 - [Transmission Tower rendering](resource/transmission-tower-rendering.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [LPB corpus](script/lpb-corpus.md)
