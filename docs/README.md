@@ -50,6 +50,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Push-event condition receivers](event/push-condition-receivers.md)
 - [Quest dispatch](event/quest-dispatch.md)
 - [Seasonal event work control plane](event/seasonal-control-plane.md)
+- [Little Ladies' Day and Foundation actor scripts](event/spring-foundation-actor-scripts.md)
 - [Winter and Valentione actor protocol](event/winter-valentione-actor-protocol.md)
 - [StartServerOrderEventFunction receiver](event/start-event-fn-receiver.md)
 - [Event status-condition receivers](event/status-condition-receivers.md)
