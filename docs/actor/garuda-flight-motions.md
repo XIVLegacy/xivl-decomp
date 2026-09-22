@@ -23,3 +23,20 @@ movement are outside this asset decode.
 The same client has other elevated Garuda motion arcs, so these three
 banks cannot be assigned to a named ability by shape alone. No retail
 command-to-WSS selector or historical phase timing was recovered here.
+
+## Separate scene bundles
+
+Installed CUT bundles also carry Garuda-family actor and effect literals:
+
+| Bundle under `client/cut/` | Bytes | SHA-256 | Checked literals |
+| --- | ---: | --- | --- |
+| `gc010410/gc010410` | 2,847,872 | `b85515a0f7eb54071288091bd4869208eec4ee3d0de629212e041dc7f568d539` | `m851a0`, `m527a0`, `toppu` |
+| `gc010420/gc010420` | 3,896,960 | `738b8ddcde950d06b5898ffb27a3daf50340f5bbf14fa991c59b41a4670cd091` | `m851a0`, `m527a0`, `grd_dead_a` |
+| `gc010430/gc010430` | 3,897,488 | `7c7b149d6c3b79ad127e207ff5c2edef5a2cdb83c2a23fc7bd84ad24089dfe48` | `m851a0`, `m527a0`, `grd_dead_a` |
+| `gc010440/gc010440` | 3,894,512 | `419f9383ef9533b83dd58c92e2e68632f3aafe046ec5a2c25a6686a86da8ef35` | `m851a0`, `m527a0`, `grd_dead_a` |
+| `sum6g000/sum6g000` | 10,626,512 | `c0bdcb72ac50d712642e56d29df4ef00403717f433c3fdcd553e5de0eb071e74` | `m851a0`, `m527a0`, `m526`, `gal_land`, `gal_sonic` |
+
+These literals establish separate cinematic material for the Garuda,
+feather, and rock families. A scene clip is not a combat WSS selector;
+the static bundles do not assign the three flight banks above to a
+particular retail encounter phase.
