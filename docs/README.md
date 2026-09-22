@@ -6,6 +6,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Actor action queue](actor/action-queue.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md)
 - [Actor architecture](actor/architecture.md)
+- [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
 - [Cast timing clock and force override](actor/cast-timing-clock.md)
