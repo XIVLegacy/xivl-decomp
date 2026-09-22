@@ -81,6 +81,7 @@ Use this index to find the repository's public findings and technical guides.
 - [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
 - [Class metadata](resource/class-metadata.md)
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
+- [City seasonal root effects](resource/city-seasonal-root-effects.md)
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
 - [Dungeon layout timeline corpus](resource/dungeon-layout-timeline-corpus.md)
 - [Ferry door schedulers](resource/ferry-door-schedulers.md)
