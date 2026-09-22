@@ -13,6 +13,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
 - [Grow-data lookup boundary](actor/grow-data-boundary.md)
+- [Guildleve transformation presentation](actor/guildleve-transformation.md)
 - [Native item-appearance boundary](actor/item-appearance-boundary.md)
 - [Monster model-state and color transitions](actor/model-state-color-transitions.md)
 - [Thornmarch Moogle action contract](actor/moogle-action-contract.md)
