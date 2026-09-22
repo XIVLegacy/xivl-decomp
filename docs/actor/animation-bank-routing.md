@@ -117,6 +117,26 @@ The previously proposed `0x01001094` loads `cmn/mgc/base/0001` and effect
 bank `mgc/0148`; the latter contains no `MotionClip`. It is not evidence for
 the recovered `cbnm_revive` bank.
 
+## Ferry steersman motion assets
+
+The installed c001 FID bank `client/chara/pc/c001/act/cmn/fid/base/2072`
+(SHA-256 `1e9b9fea8f61bea7127265c5dd6e6ddaa57db06fc5bd1432da204cb782ede05a`)
+contains the persistent `fxpf_idle` scheduler and authored
+`cbmm_h2_sud_b` motion references. The separate LIB bank
+`client/chara/pc/c001/act/cmn/lib/base/1037`
+(SHA-256 `a1f4d5a21329225c098299eb764e4d342488b3445d7f1b56c4581b8c736e028a`)
+has a direct-action `main` scheduler referring to the same named motion.
+FID bank 2013
+(SHA-256 `ecffdb6b6abd35209f7b147c7c6ab63822a88facf81d0d6a4c70458eb71ac729`)
+instead names `cbmm_h2_sud_a`, so it is not an asset-identical replacement.
+
+Those installed-file hashes were independently checked. The scheduler and
+motion observations come from the contributor's
+`ferry_steersman_pose_investigation_2026-09-11.md`, Installed asset evidence.
+The reported intermittent reference pose remains undiagnosed: asset
+presence and named motion references do not prove successful playback,
+identify a lifecycle failure, or authorize a periodic restart.
+
 ## Evidence boundary
 
 Native routing and decoded scheduler edges prove the selector layout and the
