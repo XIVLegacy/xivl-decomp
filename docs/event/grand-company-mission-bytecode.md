@@ -27,6 +27,23 @@ an extra argument to their NQ scenes `COM0l110`, `COM0G110`, and
 The value sent by the historical retail server remains unknown; neither
 zero nor an actor ID is justified as a replacement.
 
+The installed aftermath scene assets each contain one setup `NumberClip`.
+Their decoded initial values are separate from that missing forwarded
+argument:
+
+| Scene | NumberClip offset | Initial value | Scene SHA-256 |
+| --- | ---: | ---: | --- |
+| `com0l110` | `0x1C854` | 1 | `14e65131816c1565dc0a2c7037595f0b7d675f6b28f0f684a04c96728a930fa2` |
+| `com0g110` | `0x7D0` | 0 | `0426afa3a584e160368d4e7cfa05ec95e4f440122574a06cf0a866e6f0ec7a40` |
+| `com0u110` | `0xBE6C` | 1 | `d5592f033a39f38ac38cecf89c507fa9e026c0c71e87861fdf3912f061338db2` |
+
+The three installed `client/cut/<scene>/<scene>` file hashes match the
+contributor's `outputs/job-gc-decomp-20260907/scenes/<scene>.json`
+inventories. The `gc_quest_transition_safety_2026-09-16.md` native
+trace identifies a register-1 reader in each scene. These serialized
+values are not a proven fallback when the NQ playback argument is
+missing, nor proof of the server's historical choice for any player.
+
 ## Level-22 finale predicates
 
 | Quest / method | Scene branch | Other branch |
