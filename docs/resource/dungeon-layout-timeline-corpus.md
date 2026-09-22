@@ -89,10 +89,30 @@ show/hide and collision clips. Three shifting-sands packages last 3.0, 5.0,
 and 3.3 seconds. The layout proves those presentations exist, but no installed
 resource edge identifies a server actor or trigger for them.
 
+The direct owner groups expand to 39 exact timeline-placement rows: five rows
+apiece for the door show and hide timelines, 11 for normal shifting sands, ten
+for small shifting sands, and eight for large shifting sands. The door rows
+repeat the same five serialized instances across the complementary timelines.
+These coordinates prove authored layout targets, not active server bindings;
+no current map-object or DoorServer row joins a Cutter instance to them.
+
 Twenty `sdef_*` strings in the layout are sound definitions. Three sand sound
 objects are owned by the sand timelines; 17 numbered sound definitions are
 resident but have no unit-tree-member or instance reference in this layout.
 Their presence alone is not a callable scheduler contract.
+
+BG-object family b996 supplies two separate sand-warp candidates:
+
+| Variant | Bank | Bytes | Active block | SHA-256 |
+| --- | ---: | ---: | ---: | --- |
+| e001 | 0001 | 271,216 | 0.4 s | `62370fad21e0e716bcabe64a4d7149ffe32b41340940f333c0b2a1fdb59f9c24` |
+| e002 | 0002 | 271,408 | 0.4 s | `94a2473921490f4bfc1f8a5172724ece8ced6806e3598c19e200fcb158a745af` |
+
+Each bank contains BindActor, sound, action, and effect presentation for its
+own b996 variant. They are physical sand-warp assets, but no serialized edge
+joins either variant to the normal, small, or large Cutter owner group. Their
+0.4-second active blocks also do not replace the layout timelines' 3.0-, 5.0-,
+or 3.3-second choreography.
 
 ## Evidence boundary
 
@@ -101,4 +121,6 @@ serialized placement. It does not prove initial state, server construction,
 trigger conditions, state replay, or late-join behavior. A compiled timeline
 without a placed owner remains a resource definition. A placed owner without
 a selected alias remains a capability. Neither should be promoted into
-runtime behavior from a name match alone.
+runtime behavior from a name match alone. For Cutter's Cry, the historical
+runtime carrier, trigger ordering, destination, initial state, and reconnect
+state remain unavailable; the static b996 candidates do not resolve them.
