@@ -145,3 +145,20 @@ effect lookup, or establish which slow body motion retail Return used. Asset
 names alone cannot select between those Return candidates. Scheduler raw units
 also must not be called seconds merely because dividing by one million yields
 a plausible number; the MTB frame counts are the direct timing evidence.
+
+## Motion-command controller clock
+
+`MotionCommandClip` update at VA `0x00DE7B40` (RVA `0x009E7B40`) loads a
+signed timeline integer at `0x00DE7B5B`, divides it by the double
+`10000.0` at VA `0x00FE0570`, and passes the float result to the motion
+player through the virtual call at `0x00DE7B79`. These instructions and
+the constant were checked directly in the pinned `ffxivgame.exe` with
+`pefile` and Capstone x86-32. This controller uses 10,000 raw units per
+motion frame, not microseconds. It does not establish a universal time
+unit for other scheduler fields or clip classes.
+
+The contributor's `mandragora_controller_followup_2026-09-13.md`,
+Concrete controller errors, cross-checks native m020 idle, walk, and run
+MCB durations against their MTB frame counts. Its authored m521 overlay
+and reported playback symptoms are separate experimental material, not
+retail motion evidence.
