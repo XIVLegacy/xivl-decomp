@@ -69,6 +69,7 @@ Use this index to find the repository's public findings and technical guides.
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [MurmurHash2](resource/murmur2.md)
+- [Monster action scheduler corpus](resource/monster-action-scheduler-corpus.md)
 - [PE layout](resource/pe-layout.md)
 - [Resource path producer](resource/resource-path-producer.md)
 - [SqPack architecture](resource/sqpack.md)
