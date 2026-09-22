@@ -4,6 +4,7 @@ Use this index to find the repository's public findings and technical guides.
 
 - [Repository style](style-guide.md)
 - [Actor action queue](actor/action-queue.md)
+- [Character and effect animation bank routing](actor/animation-bank-routing.md)
 - [Actor architecture](actor/architecture.md)
 - [Actor battle regimen](actor/battle-regimen.md)
 - [Cast timing clock and force override](actor/cast-timing-clock.md)
