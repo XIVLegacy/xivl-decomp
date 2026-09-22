@@ -49,6 +49,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Lobby assigned connection u32 lifecycle](net/lobby-assigned-connection-u32.md)
 - [Lobby clear types 0x0007 and 0x0008](net/lobby-clear-0007-0008-consumers.md)
 - [Network dispatch paths](net/network-dispatch-paths.md)
+- [Chocobo rental state and widget callback](net/chocobo-rental-state.md)
 - [Opcode translation table](net/opcode-translation-table.md)
 - [Packet dispatch router](net/packet-dispatch-router.md)
 - [Network consumer vtables and packet flow](net/packet-header-candidates.md)
