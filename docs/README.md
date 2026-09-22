@@ -43,6 +43,7 @@ Use this index to find the repository's public findings and technical guides.
 - [EndClientOrderEvent receiver](event/end-order-event-receiver.md)
 - [Group and SharedWork system](event/group-shared-work-system.md)
 - [Grand Company promotion presentation](event/grand-company-promotion.md)
+- [Grand Company and exchange catalogs](event/grand-company-exchanges.md)
 - [Instance-raid widget lifecycle](event/instance-raid-widget-lifecycle.md)
 - [JobQuestCompleteTriple receiver](event/job-quest-triple-receiver.md)
 - [KickClientOrderEvent receiver](event/kick-order-event-receiver.md)
