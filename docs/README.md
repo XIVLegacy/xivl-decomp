@@ -76,6 +76,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Ferry door schedulers](resource/ferry-door-schedulers.md)
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [InstallUnpacker](resource/install-unpacker.md)
+- [Magitek circle geometry](resource/magitek-circle-geometry.md)
 - [MurmurHash2](resource/murmur2.md)
 - [Monster action scheduler corpus](resource/monster-action-scheduler-corpus.md)
 - [PE layout](resource/pe-layout.md)
