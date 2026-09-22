@@ -26,3 +26,19 @@ Each listed offset begins with `SEDBSCB`; the size field at payload
 The show/hide names also occur in the layout's name table. This direct
 asset check does not recover the runtime dispatcher, battle-phase
 conditions, initial visibility, or a world transform for the ring.
+
+## Primal atmosphere resource
+
+The installed RegionResourceData at `data/03/C0/00/00.DAT` is 52,336
+bytes, SHA-256
+`c04b0d998aea4c1b13ed322292a5aa5af45485c698da2315171c3c024bcb9a74`.
+Its record at file offset `0xD90` pairs child ID 8028, resource key
+`0x29B0001E`, and the `wtr_smmn` token. The corresponding resource at
+`data/29/B0/00/1E.DAT` is 88,912 bytes, SHA-256
+`1b9ca79a141a8cfd4cd6cc28d4497cd14222d5c6b79137f25beb548e1c5f468a`.
+It contains 12 `SEDBSCB` and 62 `SEDBmtb` signatures, along with
+`moguri01`, `sdef_mog_loop`, `sdef_mog_spot`, `cbind_mog`,
+`time_wtr_00`, and `envmap_smmn` literals. These are authored
+atmosphere and effect resources. The static wrapper does not establish
+when the encounter selected them or what a player saw in a particular
+phase.

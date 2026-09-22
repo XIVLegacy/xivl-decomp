@@ -75,6 +75,18 @@ The class identities can bind a spawned actor to the appropriate client Lua
 surface. They cannot reconstruct server behavior merely because the class
 file or an action bank exists.
 
+## Court cutscene bank
+
+The installed `client/cut/sum6m000/sum6m000` bundle is 10,431,968
+bytes, SHA-256
+`d393cf0811f3d26543057ada07a7fbdae551c9a606b4345ce48001869f4b9259`.
+It contains the distinct actor-alias literals `m701b0` through
+`m701h0`. Those scene aliases demonstrate a court-specific cinematic
+surface separate from the m701 combat WSS banks. Literal presence does
+not associate an alias with a particular server actor-class ID, prove a
+King actor in this bundle, or select an animation for any named combat
+command.
+
 ## Selector boundary
 
 No original command-to-animation dispatch table was recovered. The installed
