@@ -181,6 +181,20 @@ The exact path is recovered `chara/npc/npcbaseclass.lua:_onInit` and
 `getHateType`, and `judge/depictionjudge.lua:judgeNameplate` at the
 `getHateType` and `_getOccupancyGroup` branches.
 
+This claimed-mob branch is distinct from the non-player party-color branch:
+`judgeNameplate` tests `myPlayer:getPlayerParty():_isMember(actor)` there.
+The recovered `PartyParameterWidget.updateMemberList` and
+`PartyManagerWidget.updateMemberList` normally enumerate that same player
+party group with `_countMember()` (the former can receive an override group).
+Thus adding an actor to the client-visible party group to obtain its exact
+party-member color also makes it eligible for the party roster; the decoded
+client does not supply a separate no-slot party-color switch in these paths.
+This is an inference about the examined UI paths, not a claim that retail
+Charm status changes group membership. Sources are recovered
+`judge/depictionjudge.lua:judgeNameplate`,
+`widget/partyparameterwidget.lua:updateMemberList`, and
+`widget/partymanagerwidget.lua:updateMemberList`.
+
 ### `aetheryteWork` populates the leve-reward UI
 
 The 14 aetheryteWork fields (`glRewardItem`, `glRewardSubItem`, `difficulty`,
