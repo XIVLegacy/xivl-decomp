@@ -161,8 +161,25 @@ content-command set during a director's lifetime.
 
 ### `npcWork.hateType` is a single field client should populate
 
-`npcWork.hateType` controls the nameplate colour for hostile NPCs (hostile / neutral /
-friendly).
+`NpcBaseClass` syncs `hateType` in the `npcWork/hate` tag and returns it from
+`getHateType()`. In the recovered `DepictionJudge.judgeNameplate` NPC branch,
+the script selects these `_setNameplateColor` RGBA values:
+
+| `hateType` and occupancy condition | RGBA |
+| --- | --- |
+| 1 | `(1, 1, 0.5, 1)` |
+| 2 | `(1, 0.7, 0.2, 1)` |
+| Other value, viewer in actor party's occupancy group | `(1, 0.38, 0.44, 1)` |
+| Other value, viewer not in occupancy group | `(0.6, 0.45, 0.94, 1)` |
+
+The red/purple claim distinction is therefore a conjunction of the synced
+field and occupancy membership, not a direct comparison of a numeric hate
+amount. The `else` branch also accepts zero if sent; the script does not
+restrict it to a single claimed value. This describes decoded client logic,
+not a proven historical server policy for when each value was emitted.
+The exact path is recovered `chara/npc/npcbaseclass.lua:_onInit` and
+`getHateType`, and `judge/depictionjudge.lua:judgeNameplate` at the
+`getHateType` and `_getOccupancyGroup` branches.
 
 ### `aetheryteWork` populates the leve-reward UI
 
