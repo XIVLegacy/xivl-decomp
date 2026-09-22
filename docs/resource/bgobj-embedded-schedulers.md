@@ -11,6 +11,9 @@ and 23 VEFF-bearing families have no standalone action bank. Their
 presentations must therefore be inventoried from the model slot itself rather
 than classified as missing from the client.
 
+Portable seasonal model identities and their unresolved placement boundary are
+recorded in [Seasonal BG-object assets](seasonal-bgobj-assets.md).
+
 Twenty-two legacy PWIB envelopes declare exactly 12 bytes beyond their
 physical files. Padding those envelopes in parser memory yields structurally
 complete resources; no installed file is modified. Other size mismatches are

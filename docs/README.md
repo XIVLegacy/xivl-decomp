@@ -91,6 +91,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Monster action scheduler corpus](resource/monster-action-scheduler-corpus.md)
 - [PE layout](resource/pe-layout.md)
 - [Resource path producer](resource/resource-path-producer.md)
+- [Seasonal BG-object assets](resource/seasonal-bgobj-assets.md)
 - [SqPack architecture](resource/sqpack.md)
 - [Stronghold door owners](resource/stronghold-door-owners.md)
 - [Transmission Tower rendering](resource/transmission-tower-rendering.md)
