@@ -16,6 +16,38 @@ physical files. Padding those envelopes in parser memory yields structurally
 complete resources; no installed file is modified. Other size mismatches are
 not accepted by this rule.
 
+## Model slots and appearance fields
+
+The complete installed BG-object model atlas contains 93 `b###` families, 224
+`e###` asset directories, and 236 model binaries. The extra model slots come
+from variants that carry more than one of `top_mdl`, `met_mdl`, and `sho_mdl`.
+Those slots join to the official appearance table through `body`, `head`, and
+`feet`, respectively, using the exact serialized variant value: e001 is 1024,
+e002 is 2048, and later variants continue in 1024 increments.
+
+The client DAT export and the actor-appearance SQL contain the same 586 BG
+appearance rows with no differing IDs. They reduce to 227 distinct equipment
+and model signatures. Of the 236 installed model slots, 226 have at least one
+official appearance binding and ten do not:
+
+| Model slot | Required appearance value |
+| --- | ---: |
+| `b900/e001/top_mdl` | `body=1024` |
+| `b930/e002/top_mdl` | `body=2048` |
+| `b931/e002/top_mdl` | `body=2048` |
+| `b932/e002/top_mdl` | `body=2048` |
+| `b933/e001/sho_mdl` | `feet=1024` |
+| `b934/e001/sho_mdl` | `feet=1024` |
+| `b935/e001/sho_mdl` | `feet=1024` |
+| `b964/e002/top_mdl` | `body=2048` |
+| `b998/e005/top_mdl` | `body=5120` |
+| `b998/e007/top_mdl` | `body=7168` |
+
+Family b900 exists in the installed model tree without an official appearance
+base. Conversely, official appearance base b956 has no installed client model
+family. Synthetic appearance rows can exercise an unbound installed slot, but
+they are test inputs and must not be described as official or retail mappings.
+
 ## Scheduler graph
 
 The 122 instances reduce to 115 unique scheduler hashes. Parsing every
