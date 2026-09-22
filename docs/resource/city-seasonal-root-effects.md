@@ -41,6 +41,28 @@ The installed root layouts also do not show a direct 8029 weather-selector
 mask for the hanabi groups; weather and timeline activation must not be
 conflated.
 
+## Compiled hanabi bodies and owner candidates
+
+Each root contains eight hanabi-bearing `SEDBSCB` chunks, four in each of
+two banks. All three cities have the same eight chunk sizes (928, 1024,
+1024, 1152, 1184, 1184, 1216, and 1232 bytes) and controlled-actor-count
+fingerprint (1, 2, 2, 4, 4, 4, 4, 5), while all 24 raw chunk hashes are
+distinct. Gridania therefore retains compiled bodies even without the
+expanded `time_vfx_hanabi*_vtp#` names. Each corresponding primitive has
+matching timing words across the cities, including 9,000,000- and
+6,000,000-unit block fields. Their unit interpretation and the higher
+`vtp#`-to-primitive selection are not established by those bytes alone.
+
+The bank markers immediately follow serialized `isgrp` names in six root
+layout neighborhoods. Their candidate instance IDs are 41 and 62 in
+Gridania, 199 and 222 in Limsa, and 251 and 265 in Ul'dah. Strict 0x20-byte
+transform records encode the four Limsa/Ul'dah IDs in their final word as
+`(instance_id << 8) | slot`; 82 such records decode. Gridania uses a
+different transform representation here, so neither of its candidate IDs
+has that second join. These are structural owner candidates, not verified
+retail map-object spawn rows. No actor-class-to-owner or activation join
+follows from the neighborhoods or transforms.
+
 ## Provenance
 
 The installed `MapLayoutResourceData` root DATs are 664,720, 529,376, and
@@ -59,7 +81,13 @@ The layout counts and names were checked against
 `build_moonfire_hanabi_residue_atlas.py` outputs
 `moonfire_hanabi_city_root_summary.csv` and
 `moonfire_hanabi_scheduler_tokens.csv` in the contributor's July 2026
-atlases. The script call path is in recovered
+atlases. The compiled-body and transform analysis comes from
+`build_moonfire_hanabi_executable_atlas.py` outputs
+`hanabi_sedb_scheduler_chunks.csv`, `hanabi_sedb_structure_summary.csv`,
+`hanabi_cross_city_choreography.csv`, and
+`hanabi_owner_transform_summary.csv`; the candidate neighborhoods are
+`build_moonfire_hanabi_owner_atlas.py` output
+`hanabi_group_owner_neighborhoods.csv`. The script call path is in recovered
 `lua/chara/npc/mapobj/mapobjfireworks.lua`, methods `_onLoop` and
 `getFireworksSchedulor`. The absence of a Lua `vtp` caller comes from the
 residue atlas's `moonfire_hanabi_controller_gap.csv` and scan summary; it
