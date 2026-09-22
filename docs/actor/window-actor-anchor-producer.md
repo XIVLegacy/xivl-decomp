@@ -70,6 +70,20 @@ dword jump tables at `0x007FA950` and `0x007FA91C` resolve the writers exactly:
   later queries the associated context through `0x008CDEA0`; on acceptance it
   emits operation `0x2A` and clears that bit.
 
+Two DrawingToolContext dirty-bit paths produce part of this operation set.
+Vtable slot 47 at `0x0055A5A0` writes a bounded selector into record `+0x388`
+and sets record byte `+0x5A` bit `0x08`; the cached-record publisher at
+`0x0054E890` submits that record as operation `0x1E` with length `0x10`.
+Vtable slot 41 at `0x0055A650` sets record byte `+0x5B` bit `0x02`; the same
+publisher submits operation `0x29` with no payload. The PrimaryLabel
+constructor at `0x006A34B0` is only statically joined to DrawingToolContext
+slot 49 at `0x0055A620`, which marks record byte `+0x5A` bit `0x20` and later
+produces the separate operation `0x20`. Generic emitters at `0x0055EE60`,
+`0x0055C970`, and `0x0055C980` submit operations `0x1B`, `0x1C`, and `0x1D`
+through the cross-actor broadcaster at `0x004D7980`; no recovered static edge
+binds their payloads to the captured PrimaryLabel owner. These producers
+identify available state-selection mechanisms, not the active captured values.
+
 Vtable slot 135 at `0x007F9D00` derives the producer's integer time argument
 from the current timer minus `WindowActor+0x130`. It invokes `0x007F8D20` only
 when lookup of `+0x1AC` succeeds. Vtable slot 42 at `0x007F8C60` computes the
@@ -128,6 +142,24 @@ direct read of either registry key or actor-local Y. The capture did not record
 `pA`, `pB`, or their vtables, so this specialization remains a statically
 supported candidate rather than the captured runtime identity.
 
+The generic actor implementations are different. Slot 94 at `0x007CD090`
+dispatches slot 25 with index 0 and ignores the secondary actor arguments;
+slot 95 at `0x007CD1A0` obtains the generic index-0 transform through
+`0x00A5FEF0`. Thus a non-Chara runtime subtype need not follow the secondary-
+actor search described above.
+
+The Chara attachment helper has an explicit owner and update path.
+`0x00855150` stores its owning `CharaActor` at helper `+0xE4`.
+`0x00664890` refreshes the resolved attachment tables and the owner's
+`+0x1960` attachment records. The static tables consumed by `0x00855160`
+contain 16 directional `EID_DAM_*` names and 41 entries comprising
+`EID_NONE`, ten foot names, and `EID_V01` through `EID_V30`. For a positive
+attachment index,
+`0x00855070` consults the owner and can dispatch a selected record through its
+slot 25; a failed test returns to the generic actor path through `0x007CCF70`.
+This establishes attachment ownership and refresh relationships without
+identifying the selector, record, or runtime subtype used by the capture.
+
 ## Retention filters and publication
 
 The optional first stage writes `+0x180` and marks `+0x1C0` bit `0x01`:
@@ -158,8 +190,10 @@ up to the computed number of four-lane `0.7f` blends, repeating the comparison
 each iteration and stopping early on a snap. Each blend stores that iteration's
 pre-blend comparison distance in `+0x1B8`.
 
-At `0x007F9175`, the producer adds `+0x164` to `+0x190`, forces W to `1.0f`,
-and calls `0x00CA3E10`; that function copies the four lanes to global
+The producer loads `+0x190` at `0x007F913E` and the stack-built `+0x164`
+vector at `0x007F9175`, adds them at `0x007F917A`, forces W to `1.0f`, and
+calls `0x00CA3E10`; that function
+copies the four lanes to global
 `0x0130BBC4`. The accepted consumer reads that publication.
 
 The capture's short decay tails include successive-delta ratios compatible
@@ -173,6 +207,17 @@ and conditional `V`, and the entry and exit values of `+0x180`, `+0x190`, and
 target source are therefore irreducible historical unknowns. Static analysis
 and emulator comparisons may rank hypotheses, but cannot promote either choice
 as a retail fact.
+
+The smallest historical observation that would have distinguished the branches
+was one accepted-label-correlated entry/exit tuple at `0x007F8D20`. The ABI is
+`ECX=WindowActor`, one explicit integer time argument at entry stack `+0x04`,
+and callee cleanup by `RET 4` at `0x007F9201`. The tuple would have needed the
+`+0x140` selector, `+0x1AC/+0x1B0` keys, `+0x1BC/+0x1C0` branch state, timer
+delta, resolved `pA/pB` pointers and vtables, raw `U` and conditional `V`, and
+entry/exit `+0x180/+0x190/+0x1B8`. Ownership would have required the same
+`WindowActor`, `+0x1A4` context/root association, and accepted glyph-consumer
+join. This describes the unavailable evidence boundary; it is not a pending
+capture request.
 
 ## Boundary
 
