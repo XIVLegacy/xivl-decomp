@@ -33,6 +33,31 @@ load the normal item character bank. `0x00799c90` loads
 `/client/vfx/itm/%04d.bin` for route kinds 6 and 7 only when the low
 `effectBank` field is nonzero.
 
+## Raid-dungeon warp bank
+
+The retail `RaidDungeonWarp.activateWarpDevice` client method requests
+decimal scheduler 67493888 (`0x0405E000`), as recorded in
+`xivl-client-scripts:docs/raid-object-client-contracts.md` under Object
+behavior. The packed category is 4 (`lib`), the middle bank field is
+94, and the low field is zero. The installed
+`client/chara/bgobj/b936/act/cmn/lib/base/0094` is 1,232 bytes,
+SHA-256
+`ba71a7d66808704200a99eb508d306e8fae2ffe5fdd98bc4135f8f8f0dd74cd0`.
+It contains `b936e004`, `initf_idle`, `BindActorClip`, and
+`RaptureCancelChantSyncClip` literals. This joins the method's packed
+selector to an authored e004 control bank when the receiving actor has
+the compatible b936 resource family.
+
+The separate e004 bank `0004` is 55,040 bytes, SHA-256
+`4a12fc6f6076b919cf008c9f14a0215ed4b7774aee49b8fc43cc1c62b7dd48fa`.
+It contains `b936e04v2` and `EffectClip`, but no recovered retail
+caller in this evidence selects `0x04004000`. Bank `0014` is another
+1,232-byte e004 control (SHA-256
+`3af9353f36d0585d09e115a6965764321a0178962c4b17fe07731caa4984c414`);
+it differs from `0094` at only four byte positions. Neither asset
+presence nor the Lua call identifies a retail world actor ID, transport
+destination, or phase-specific activation policy.
+
 ## Food and drink bank composition
 
 The c001 standing character banks establish the motion side of the route:
