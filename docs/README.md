@@ -18,6 +18,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Guildleve transformation presentation](actor/guildleve-transformation.md)
 - [Hamlet PushEvent presentation](actor/hamlet-push-event.md)
 - [Native item-appearance boundary](actor/item-appearance-boundary.md)
+- [Actor and coordinate map-marker lanes](actor/map-marker-lanes.md)
 - [Monster model-state and color transitions](actor/model-state-color-transitions.md)
 - [Thornmarch Moogle action contract](actor/moogle-action-contract.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
