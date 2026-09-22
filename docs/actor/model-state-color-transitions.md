@@ -52,6 +52,27 @@ Consequently, a compatible publisher must send the m049 state in payload byte
 state division is model metadata, so m049's three-bit interpretation must not
 be generalized to every monster.
 
+## m034 drake bit-4 resources
+
+The installed m034 BID bank has `init_msb4_1` and `init_msb4_0` schedulers
+whose motion references are `cbxs_st2` and `cbxs_st1`, respectively.
+The m034 WSS101 and WSS201 `mon_main` schedulers reference
+`cbxs_st1to2`; WSS501 references `cbxs_st2to1`. These are authored
+resources for both state directions, not proof that combat entry or a
+particular server status triggers them. A separate historical source
+associates drake glow with Smoulder, but the client resource names alone
+do not establish the exact retail command-to-state packet sequence.
+
+The BID at `client/chara/mon/m034/act/emp_emp/bid/base/0000` is 503,328
+bytes, SHA-256
+`fa03315aeed7fc7553384b1a16bf6c4a410bce1ab96cb04962f58b6092c2da84`.
+The WSS201 bank at `act/emp_emp/wss/base/0002` is 206,768 bytes,
+SHA-256
+`3530ba8206deffa6ab836095e945a6317a4a65c9abd1556f3aca466fae02d671`.
+These identities were checked against installed files. The scheduler and
+motion joins come from `monster-action-scheduler-contract-20260810`
+`scheduler_manifest.csv`, rows for m034 BID and WSS101/201/501.
+
 ## m508 Spirit of the Wood route
 
 The Spirit of the Wood transition is a separate scenario effect, not an m049
