@@ -89,13 +89,77 @@ forward actor fields, caller values, or packet payload. None fixes `@0`,
 `initf_idle`, `2nitf_idle`, 1208, or 1228, and the executable contains no
 `2nitf_idle` literal.
 
+## Static owner coverage
+
+A hash-locked join of the embedded-only families against official appearance
+fields, actor-class rows, the checked-in server placement table, and local and
+recovered class scripts covers 82 installed variants and 86 model slots. Those
+slots contain 62 embedded scheduler instances and 53 VEFF instances from the
+families without standalone banks.
+
+Eighty-three of the 86 slots have at least one official appearance-field
+owner. The three exceptions are the `sho_mdl` slots for `b933/e001`,
+`b934/e001`, and `b935/e001`. Their body slots have appearance owners, but no
+official appearance field equals the value required to select those shoe
+slots. The shoe assets therefore remain installed capabilities without an
+official slot binding.
+
+The 83 mapped slots join to 226 actor-class rows:
+
+| Client class path | Actor classes | Placed classes | Placement rows |
+| --- | ---: | ---: | ---: |
+| `/Chara/Npc/Object/Aetheryte/AetheryteChild` | 81 | 63 | 67 |
+| `/Chara/Npc/Object/Aetheryte/AetheryteParent` | 37 | 35 | 37 |
+| `/Chara/Npc/Object/MiningPoint` | 6 | 1 | 1 |
+| `/Chara/Npc/Object/RaidDungeonLight` | 1 | 1 | 16 |
+| `/Chara/Npc/Populace/PopulaceHamletPushEvent` | 1 | 0 | 0 |
+| `/Chara/Npc/Populace/PopulaceStandard` | 3 | 3 | 23 |
+| empty class path | 97 | 0 | 0 |
+
+All 129 nonempty-path rows resolve both a local class script and a recovered
+retail class script. The 97 empty-path rows cannot be joined to script behavior
+from family or appearance alone. Overall, 103 actor classes have 144 checked-in
+placement rows and 123 actor classes are static-only.
+
+The placement counts describe the examined server data, not original retail
+world ownership. Appearance plus actor class proves a valid static client
+owner. A placement row proves that the project constructs that owner. Neither
+one proves which embedded scheduler the retail client starts.
+
+The joined script corpus contains 531 actor-ID literal references, but a
+literal reference is not receiver ownership. Only three class scripts expose
+an animation-call surface in this scope, and all three arguments are dynamic:
+`AetheryteChild` and `AetheryteParent` call `PlayAnimation` with a guildleve
+sheet result, while recovered `PopulaceHamletPushEvent` forwards a variable to
+`_runCharaScheduler`. No literal call matches an embedded scheduler ID.
+
+The residual report has 58 family/variant rows covering all 62 scheduler
+instances, and none has an exact script selector. Four b992 child schedulers do
+have exact incoming managed-scheduler edges, but an internal edge is not a
+script selector. This absence is preserved as an invocation gap, not filled
+with `initf_idle` merely because that name is present in the model.
+
+### b925 ownership detail
+
+The b925/e001 model slot joins to 83 actor classes. Eighty-one use
+`/Chara/Npc/Object/Aetheryte/AetheryteChild`; 63 of those have checked-in
+placements and 18 do not. Four unplaced child classes - 1280023, 1280056,
+1280087, and 1280116 - still occur as numeric references in recovered retail
+scripts. The other 14 lack both a placement and a static script reference in
+the examined corpora. Two additional b925 actor rows have empty class paths
+and no placement.
+
+These joins establish that the b925 model is shared by the AetheryteChild
+class family. They still do not establish an automatic invocation edge from
+class construction to the embedded `initf_idle` scheduler.
+
 ## Evidence boundary
 
 The embedded graph proves client resource availability, model-slot ownership,
-internal child selection, and the scheduler resolver ABI. It does not prove an
-appearance-load invocation, world placement, actor-class association, or
-server selector. No root is labeled automatically invoked: there is no exact
-appearance-load-to-request edge and no recovered script names an embedded
-scheduler. Indirect or data-driven invocation remains possible, but a class
-file, root name, or numeric vocabulary entry cannot substitute for that missing
-edge.
+internal child selection, appearance and class associations where explicitly
+joined, and the scheduler resolver ABI. It does not prove an appearance-load
+invocation, historical world placement, or server selector. No root is labeled
+automatically invoked: there is no exact appearance-load-to-request edge and
+no recovered script names an embedded scheduler. Indirect or data-driven
+invocation remains possible, but a class file, root name, appearance match, or
+numeric vocabulary entry cannot substitute for that missing edge.
