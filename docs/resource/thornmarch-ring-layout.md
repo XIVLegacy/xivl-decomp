@@ -42,3 +42,50 @@ It contains 12 `SEDBSCB` and 62 `SEDBmtb` signatures, along with
 atmosphere and effect resources. The static wrapper does not establish
 when the encounter selected them or what a player saw in a particular
 phase.
+
+## Serialized arena instances
+
+The layout's `lyb` payload starts at physical file offset `0x5C50`.
+Its root `LaySettingsObject` pointer is relative `0x25780`, and the
+root translation is `(0, 0, 0)`. Following each
+`RefObjects/InstanceObject` reference to a
+`RefObjects/UnitTree/UnitTreeObject` recovers one ring instance and
+24 wall instances. Each row below gives the instance's relative node
+offset and its serialized translation at node `+0x20`; coordinates
+are rounded to 0.001 client units. They are authored layout
+placements, not enemy spawn points or proof of a runtime visibility
+state.
+
+| Instance | Node offset | X | Y | Z |
+| --- | ---: | ---: | ---: | ---: |
+| `isgrp_mog_ring` | `0x8BC10` | -2368.000 | -16.000 | -896.000 |
+| `isgrp_mog_w1_01` | `0x8BC50` | -2386.729 | -16.034 | -845.864 |
+| `isgrp_mog_w1_02` | `0x8BC90` | -2406.722 | -8.739 | -959.267 |
+| `isgrp_mog_w1_03` | `0x8BCD0` | -2336.189 | -1.841 | -963.409 |
+| `isgrp_mog_w1_04` | `0x8BD10` | -2289.911 | -20.795 | -876.032 |
+| `isgrp_mog_w2_01` | `0x8BD50` | -2402.089 | -23.571 | -861.673 |
+| `isgrp_mog_w2_02` | `0x8BD90` | -2389.818 | -23.377 | -845.553 |
+| `isgrp_mog_w2_03` | `0x8BDD0` | -2327.012 | -23.808 | -871.055 |
+| `isgrp_mog_w2_04` | `0x8BE10` | -2338.799 | -23.517 | -921.975 |
+| `isgrp_mog_w2_05` | `0x8BE50` | -2315.430 | 0.008 | -959.433 |
+| `isgrp_mog_w2_06` | `0x8BE90` | -2326.687 | -23.102 | -921.217 |
+| `isgrp_mog_w2_07` | `0x8BED0` | -2371.827 | -23.603 | -939.002 |
+| `isgrp_mog_w2_08` | `0x8BF10` | -2424.176 | -22.468 | -931.299 |
+| `isgrp_mog_w2_09` | `0x8BF50` | -2372.180 | -23.618 | -928.936 |
+| `isgrp_mog_w2_10` | `0x8BF90` | -2402.669 | -23.745 | -918.563 |
+| `isgrp_mog_w2_11` | `0x8BFD0` | -2447.643 | -10.801 | -832.020 |
+| `isgrp_mog_w2_12` | `0x8C010` | -2397.450 | -28.055 | -899.844 |
+| `isgrp_mog_w3_01` | `0x8C050` | -2425.160 | -22.911 | -837.232 |
+| `isgrp_mog_w3_02` | `0x8C090` | -2338.923 | -24.332 | -887.171 |
+| `isgrp_mog_w3_03` | `0x8C0D0` | -2416.979 | -23.349 | -861.587 |
+| `isgrp_mog_w3_04` | `0x8C110` | -2405.523 | -8.874 | -959.204 |
+| `isgrp_mog_w4_01` | `0x8C150` | -2339.164 | -11.497 | -895.499 |
+| `isgrp_mog_w4_02` | `0x8C190` | -2342.053 | -0.574 | -965.886 |
+| `isgrp_mog_w4_03` | `0x8C1D0` | -2444.937 | 0.538 | -912.944 |
+| `isgrp_mog_w4_04` | `0x8C210` | -2323.853 | -16.830 | -875.850 |
+
+The matching references are `sgrp_f0f0_mog_ring_h` for the ring and
+`sgrp_f0f0_mog_w001_h` through `sgrp_f0f0_mog_w004_h` for the wall
+families. This explicit node/reference join is required: searching for
+coordinate-shaped floats or wall labels alone can misassign a position
+to the wrong wall family.
