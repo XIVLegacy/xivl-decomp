@@ -1,10 +1,8 @@
 # City seasonal weather selectors
 
-This note covers the installed 2012.09.19.0001 FFXIV 1.23b client layout
-DATs and supplied extracted October and December 2011 retail patch payloads.
-It documents static weather-conditioned visibility, not a live retail event
-replay. The associated executable has image base `0x00400000` and
-SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The installed city layouts and recovered 2011 patch payloads preserve
+weather-conditioned decoration selectors. Their layouts identify client-side
+visibility conditions, not retail server timing or a live event replay.
 
 ## Six city layouts
 
@@ -91,8 +89,8 @@ no weather; three select only 8028; two select 8014 and 8028; one selects only
 8014/8028 masks show that this is a general weather-conditioned layout
 mechanism, not a seasonal-only byte pattern.
 
-The final-installation counts come from the typed selector and scheduler
-parser that produced `city-seasonal-weather-selector-atlas-20260711`
+The final 2012.09.19.0001 installation counts come from the typed selector
+and scheduler parser that produced `city-seasonal-weather-selector-atlas-20260711`
 (`layout_weather_selector_summary.csv` and
 `region_layout_weather_selector_inventory.csv`). The historical counts and
 offsets come from `build_historical_seasonal_layout_timeline.py` output

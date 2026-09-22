@@ -1,10 +1,8 @@
 # Seasonal event work control plane
 
-This note covers the installed 2012.09.19.0001 FFXIV 1.23b client. The
-`ffxivgame.exe` image base is `0x00400000`; its SHA-256 is
-`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
-The findings derive from pinned x86 disassembly and decoded client Lua. They
-describe static client behavior, not a reconstructed historical server schedule.
+Player special-event work and area weather use separate client control paths.
+The decoded Lua uses the former for content gates; city layouts use the latter
+for weather-conditioned decoration visibility.
 
 ## Player event work
 
@@ -49,11 +47,13 @@ states the historical retail server sent to a particular player and area.
 
 ## Evidence and limits
 
-The packet and getter claims come from the pinned executable at the addresses
-above. The index-9 effects come from the decoded Lua locators above, cross-
-checked against the decoded Grand Company catalog rows 102001/102002,
-202001/202002, and 302001/302002. The source extraction produced the
-`seasonal-control-plane-decomp-atlas-20260711` packet, work-layout, consumer,
-and shop-row tables; its output is an aid to review, not independent runtime
-evidence. Neither static lane proves that the retail server activated any
-specific seasonal combination at a particular time.
+The packet and getter claims come from `ffxivgame.exe` (image base
+`0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`)
+at the addresses above. The index-9 effects come from the decoded Lua
+locators above, cross-checked against the decoded Grand Company catalog
+rows 102001/102002, 202001/202002, and 302001/302002. The source extraction
+produced the `seasonal-control-plane-decomp-atlas-20260711` packet,
+work-layout, consumer, and shop-row tables; its output is an aid to review,
+not independent runtime evidence. Neither static lane proves that the retail
+server activated any specific seasonal combination at a particular time.

@@ -1,10 +1,8 @@
 # Seasonal BG-object assets and placement boundary
 
-The installed 2012.09.19.0001 FFXIV 1.23b client retains portable seasonal
-BG-object models beyond the weather-selected city schedulers. This is an asset
-inventory, not a reconstruction of retail world placement or activation.
-The associated `ffxivgame.exe` has image base `0x00400000` and SHA-256
-`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+Portable seasonal BG-object models survive beyond the weather-selected city
+schedulers. The model evidence identifies asset families, not retail world
+placement or activation.
 
 ## Direct and contextual identities
 
@@ -46,8 +44,8 @@ model candidate; that is not a claim that Foundation Day had no decorations.
 
 ## Derivation
 
-Model shader stems and appearance joins were extracted from the installed
-BG-object model payloads and official actor-appearance rows by
+Model shader stems and appearance joins were extracted from BG-object model
+payloads and official actor-appearance rows in the 2012.09.19.0001 client by
 `build_orphan_seasonal_bgobj_atlas.py` (`seasonal_bgobj_model_contract.csv`,
 `installed_layout_placement_scan.csv`).
 The three-way copy and repeated-shape comparisons came from
