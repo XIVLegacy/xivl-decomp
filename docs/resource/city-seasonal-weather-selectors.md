@@ -79,6 +79,35 @@ October-to-December delta (key is the eight-hex-digit DAT filename):
 | 2011.12.14 | `29D90002` | `9720349a2c8da8e58a86455cd267e647b306a619ac33cfe9deb5fcf1bb37ac67` |
 | 2011.12.14 | `615A0003` | `10270b05d6724c514aefc8b588a2ab74dcb740c70a7784c7e9152640a3f63821` |
 
+## Weather payload reuse
+
+The supplied `D2012.07.21.0000.patch` payloads replace the marker families
+at existing weather-resource keys without changing their legacy `wtr_xmas`
+or `wtr_hall` tokens. The decoded December 2011 payloads at the same keys
+provide the direct comparison:
+
+| Weather / city / DAT key | December 2011 marker | July 2012 marker | July payload SHA-256 |
+| --- | --- | --- | --- |
+| 8032 / Gridania / `0x29B0001A` | `cbind_xmas`, `vfx_cam_xmas` | `vfx_lastwtr`, `vfx_tunder1` | `d5091df5591691482a712c606ba8b733bd9341db361beb99cc27226ac3eb6405` |
+| 8032 / Limsa Lominsa / `0x29D9001A` | `cbind_xmas`, `vfx_cam_xmas` | `vfx_lastwtr`, `vfx_tunder1` | `1c85433b1194c39680b122706d36b1debd3adbf25a417b7b06f934e6690103f3` |
+| 8032 / Ul'dah / `0x615A001D` | `cbind_xmas`, `vfx_cam_xmas` | `vfx_lastwtr`, `vfx_tunder1` | `9ae218a998bc965c2e973eaa4a303864a227bb175a8cba7fc66126f63d1d452a` |
+| 8027 / Gridania / `0x29B00020` | `sdef_hallo_imp` | `cbind_xmas`, `vfx_cam_xmas` | `44cff7e75f20f8c0735f4ecd91bc1e7c2b9c28551806d5ee3fa3e5b1b1a122f1` |
+
+All four July files match their recorded byte lengths and hashes, and the
+listed markers were checked in the extracted bytes. The supplied
+`D2012.09.19.0001.patch` updates Ul'dah's 8032 DAT again (SHA-256
+`fd1d2aa16538dd7203dbb7e3d0077b32082b830e525a9af138c08a851e4ecc7b`);
+that later payload still contains `vfx_lastwtr` and `vfx_tunder1`, not the
+December `cbind_xmas` or `vfx_cam_xmas` markers.
+
+The final installed layout scan still finds 8027-only masks alongside
+Halloween-named scheduler pairs in all three cities. In Gridania, that
+layout condition coexists with an Xmas-marked 8027 weather payload. These
+static resources do not prove the resulting rendered combination or a retail
+server event schedule. In particular, historical Starlight 8032 is not a
+safe Starlight command for the final client, and 8027 does not denote one
+uniform atmosphere across the three cities.
+
 ## Corpus boundary
 
 The typed scan covered 287 DATs referenced by recovered
@@ -98,8 +127,11 @@ offsets come from `build_historical_seasonal_layout_timeline.py` output
 (`patch_city_layout_inventory.csv`, `historical_event_scheduler_pairs.csv`,
 `historical_event_weather_selectors.csv`,
 `december_starlight_layout_delta.csv`, and
-`december_starlight_compiled_scheduler_chunks.csv`). The supplied extracted
-DAT bytes, sizes, hashes, and show/hide differences were locally checked;
-the original patch archive envelope was not independently re-verified in
-this checkout. Names and matching counts support family-level interpretation,
-not direct visual captures or historical server state.
+`december_starlight_compiled_scheduler_chunks.csv`). The weather-payload
+comparison uses `build_late_seasonal_patch_timeline.py` output
+`late-seasonal-patch-timeline-20260712/late_event_payload_identity.csv`.
+The supplied extracted DAT bytes, sizes, hashes, markers, and show/hide
+differences were locally checked. The original patch archive envelope was
+not independently re-verified in this checkout. Names and matching counts
+support family-level interpretation, not direct visual captures or
+historical server state.
