@@ -108,6 +108,32 @@ server event schedule. In particular, historical Starlight 8032 is not a
 safe Starlight command for the final client, and 8027 does not denote one
 uniform atmosphere across the three cities.
 
+## Starlight component residue
+
+The direct-dependency graph of the 287 installed layouts identifies 55
+Starlight-named structured component DATs. Thirty-nine have a current layout
+owner: seven in Gridania's 8027 payload and 32 in retained last-weather or
+thunder groups. Sixteen have no direct owner: four Gridania, six Limsa, and
+six Ul'dah files. Internal resource identifiers join the orphan camera,
+cloud, snow-effect, model, and texture leaves into city-local atmosphere
+chains; nine additional non-Xmas-named cloud support DATs lack current
+ownership. These are retained components, not an authenticated final-layout
+wrapper or retail placement.
+
+Two old Gridania effect keys are exact byte duplicates of effects used by
+its final 8027 payload:
+
+| Old key | Final key | Bytes | Shared SHA-256 |
+| --- | --- | ---: | --- |
+| `0x5D210080` | `0x5D2100AA` | 6,940 | `df4386c42ed3fce40763e1a10b571882930924eb891565733579480c7b60a638` |
+| `0x5D210081` | `0x5D2100AB` | 12,136 | `d9d21cdabce67e272e86941f3fb58a6235a969ef8ef86114115729ae50f1412d` |
+
+The duplicate bytes prove preservation under different dependency keys, not
+the exact historical event transition. None of the 203 examined installed
+`SEDBvins` controllers references the six orphan historical Xmas leaves.
+The missing Limsa/Ul'dah controller, layout wrapper, selector, and placed
+transforms cannot be inferred from the surviving component graph.
+
 ## Corpus boundary
 
 The typed scan covered 287 DATs referenced by recovered
@@ -135,3 +161,12 @@ differences were locally checked. The original patch archive envelope was
 not independently re-verified in this checkout. Names and matching counts
 support family-level interpretation, not direct visual captures or
 historical server state.
+
+The component-owner counts, identifier edges, and VINS scan derive from
+`build_seasonal_component_residue_atlas.py` outputs
+`seasonal_component_ownership.csv`,
+`starlight_resource_identifier_edges.csv`,
+`starlight_cloud_support_ownership.csv`, and
+`starlight_vins_controller_scan.csv`. The four Gridania DAT sizes and
+SHA-256 digests in the table were checked directly against the installed
+files.
