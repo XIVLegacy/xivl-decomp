@@ -5,6 +5,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Repository style](style-guide.md)
 - [Actor action queue](actor/action-queue.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md)
+- [Large coffer action families](resource/coffer-action-families.md)
 - [Actor architecture](actor/architecture.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
