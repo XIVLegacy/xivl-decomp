@@ -110,6 +110,43 @@ This explains what the authored client resources can hide. It does not
 recover retail rock HP, damage thresholds, server timing, placements, or
 the historical packet sequence that selected each state.
 
+## m999 ground-helper state resources
+
+The installed `client/chara/mon/m999/equ/e001/met_mdl/0001` resource
+(SHA-256 `c80a1e587b5b0e21cc19cad2baa08c75ed31482ea3fd5219e125053c00e3b105`)
+contains two named on/off state pairs. Bit 4 of the queued mode word
+selects `init_msb4_1` or `_0`; bit 5 selects `init_msb5_1` or `_0`
+through the model-state route above. Their extracted scheduler hashes
+are:
+
+| State pair | On SCB SHA-256 | Off SCB SHA-256 |
+| --- | --- | --- |
+| `init_msb4` | `cef7f840816daab125531a943ded9e2b6db6bc85b191d62ac21ab785dfd982ce` | `957de5016af9321fd83e75d3ebf05d48fc875162ad9bd2a07f30630e7a76c9ec` |
+| `init_msb5` | `36e2818b521fb27b258823c010605d26df41d157573d74655c54528b5499fb60` | `61b73c999e996dd87cddce4cf8546e1233e89b3246693a6b375bf340da0419f8` |
+
+The state-4 effect graph uses actor-root position controls. The
+state-5 graph includes `Position3DMapBind` and generated terrain-normal
+binding. This is an authored difference in attachment behavior, not
+proof of the retail Eruption or Plume command mapping.
+
+The installed m999 WSS4 and WSS5 wrappers have different whole-file
+hashes (`769514e370b57a5024e1f646fbe7ab05563f802c615e2f32890c51895d7a9423`
+and `d5f262f0d06fe1fa8f1f990df3333cc8093a1c72fea22aedc507aba16baaec72`),
+but both embed the same `main` SCB
+`7da7c8b13a2096a23de59d6719c2e2cad385cb8e6e295974273b33e7a08c0422`
+and `mon_main` SCB
+`e7075d9e96134471ae4532f71e37d88489f5cfd660f248bf633a3bad05d54e14`.
+Each `mon_main` contains a `RaptureActionSubStatusSchKickClip`.
+The functional scheduler payloads do not themselves distinguish state 4
+from state 5; the queued mode and compatible model resource do.
+
+The installed file hashes were checked directly. Nested SCB and effect
+locators are in the contributor's
+`tools/outputs/ifrit-model-state-decomp-20260805/{state_resources.csv,resources.csv}`
+and `IFRIT_GROUND_STATE_AND_NAIL_DEATH_CLOSURE_2026-08-05.md`.
+No historical helper owner, command, world coordinate, trigger order,
+or visible lifetime is recovered by these asset joins.
+
 ## m508 Spirit of the Wood route
 
 The Spirit of the Wood transition is a separate scenario effect, not an m049
