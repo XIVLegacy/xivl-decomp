@@ -8,6 +8,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Large coffer action families](resource/coffer-action-families.md)
 - [Bowl of Embers fire-ring layout](resource/ifrit-bowl-ring.md)
 - [Thornmarch ring layout controls](resource/thornmarch-ring-layout.md)
+- [Garuda battlefield atmosphere](resource/garuda-battlefield-atmosphere.md)
 - [Actor architecture](actor/architecture.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
