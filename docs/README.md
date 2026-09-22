@@ -15,6 +15,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Crafting presentation routing](actor/crafting-presentation.md)
 - [Garuda tornado presentation](actor/garuda-tornado-presentation.md)
 - [Garuda plume color-root boundary](actor/garuda-plume-color-root.md)
+- [Ifrit and Infernal Nail action banks](actor/ifrit-nail-action-banks.md)
 - [Goobbue mount appearance resolver](actor/goobbue-mount-resolver.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
