@@ -36,6 +36,25 @@ establish a summer decoration switch for that weather ID.
 
 ## Historical layout delta
 
+The extracted `D2010.12.13.0000.patch` binding table directly maps weather
+8032 / `wtr_xmas` to Limsa `0x29D9001A`, Gridania `0x29B0001A`, and
+Ul'dah `0x615A001D`. All three extracted weather payloads contain
+`cbind_xmas` and `cam_xmas`, establishing an all-city Starlight atmosphere
+in that patch version. The binding-table DAT `0x03C00000` is 20,464 bytes
+with SHA-256
+`f1579303ae88efc2ec2f50f90e5b44ad4a5aaccd1be026076f2112a3e14780c8`.
+The three payload SHA-256 digests, in the same city order, are
+`d2377abcb114e4e23cac6cedece40cdbc67225efa6ee3b51afeb0f02241d4196`,
+`5a19f20d5b3b9052a098bce3ae49efdfb7386342106310a59048051467a976b0`,
+and `fc984c755fdc3e55c79a977cdb5c5a7dd0737452e93554441d03beced5cc91db`.
+This historical binding does not transfer to the final payloads at the same
+keys; see [Weather payload reuse](#weather-payload-reuse).
+
+The same December table binds 8031 / `wtr_chry` in all three cities. Its
+extracted payloads have `cbind_chry`, `vfx_cam_chry`, and `sky0_star`, but no
+Hina or blossom marker. A later Little Ladies' Day association for 8031 is
+therefore a candidate, not a verified event control.
+
 The extracted `D2011.10.04.0000.patch` payloads retain the same six city
 layout keys listed above. Typed parsing finds 60 Halloween-named show/hide
 pairs and 60 8027-only masks: Gridania 21, Limsa Lominsa 22, Ul'dah 17.
@@ -156,6 +175,11 @@ offsets come from `build_historical_seasonal_layout_timeline.py` output
 `december_starlight_compiled_scheduler_chunks.csv`). The weather-payload
 comparison uses `build_late_seasonal_patch_timeline.py` output
 `late-seasonal-patch-timeline-20260712/late_event_payload_identity.csv`.
+The December 2010 bindings and markers come from
+`build_historical_seasonal_patch_recovery.py` outputs
+`historical_weather_bindings.csv`, `historical_chry_payload_audit.csv`,
+and the extracted `0x03C00000` and three city weather DATs. Their listed
+sizes and SHA-256 digests were checked against the extracted bytes.
 The supplied extracted DAT bytes, sizes, hashes, markers, and show/hide
 differences were locally checked. The original patch archive envelope was
 not independently re-verified in this checkout. Names and matching counts
