@@ -129,6 +129,30 @@ state-5 graph includes `Position3DMapBind` and generated terrain-normal
 binding. This is an authored difference in attachment behavior, not
 proof of the retail Eruption or Plume command mapping.
 
+The nested `SEDBveff` payloads identify state 4 as
+`0Xv7Tfift_eish2` (28,908 bytes, SHA-256
+`1e3d19959accc04b7d2ba78ad473040f7ce6353d4edfd86fc4e63ccaa31183a6`)
+and state 5 as `2Jckltift_skleb` (17,952 bytes, SHA-256
+`6c1767731acff97324e526a7d35891501e5d97c1619462f51738570da3dba83e`).
+Parsing their little-endian `{data offset, count, stride}` descriptors
+gives 152 entries at payload offsets `0x428..0xB47` for state 4 and 90 at
+`0x4C0..0x8F7` for state 5. Every computed array range is inside its
+payload; both tables end immediately before an `RGBA` literal. Root
+objects at `0x1170` and `0x1090` join 66+66 and 35+35 primary/secondary
+records, respectively, into 12 and 7 graph groups. The first two primary
+records in each graph are resource/container prefixes, leaving 64 and 33
+mechanically joinable control records.
+
+The state-4 control class table includes 11 `DrawResource`, 9
+`AbstractPosition3D`, 11 `AbstractAngle3D`, and 11 `AbstractScale3D`
+records. State 5 includes two `Position3DMapBind:CoordRoot` records and
+three `DrawResource` records. These are controls within authored effect
+graphs, not counts of network-spawned helpers. The serialized 12-byte
+pools also contain offsets, indices, and tagged keys; interpreting each
+row as three world-coordinate floats would invent placements. Neither
+graph identifies retail helper origins, actor-class ownership, or the
+runtime mode/kick sequence.
+
 The installed m999 WSS4 and WSS5 wrappers have different whole-file
 hashes (`769514e370b57a5024e1f646fbe7ab05563f802c615e2f32890c51895d7a9423`
 and `d5f262f0d06fe1fa8f1f990df3333cc8093a1c72fea22aedc507aba16baaec72`),
