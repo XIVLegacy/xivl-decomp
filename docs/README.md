@@ -9,6 +9,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
 - [Cast timing clock and force override](actor/cast-timing-clock.md)
+- [Garuda tornado presentation](actor/garuda-tornado-presentation.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
 - [Grow-data lookup boundary](actor/grow-data-boundary.md)
