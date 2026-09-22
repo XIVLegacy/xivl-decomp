@@ -19,6 +19,7 @@ Use this index to find the repository's public findings and technical guides.
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
 - [PlayerBaseClass](actor/player-base-class.md)
+- [Retainer presentation contract](actor/retainer-presentation.md)
 - [Rivenroad command and presentation contract](actor/rivenroad-presentation.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
 - [Scenario and monster hierarchy](actor/scenario-monster-hierarchy.md)
