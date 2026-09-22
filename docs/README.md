@@ -38,6 +38,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Evidence and claims policy](ai_agents/evidence-and-claims.md)
 - [Retail input validation](ai_agents/retail-input-validation.md)
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
+- [City airship scene sequence](event/airship-scene-sequence.md)
 - [Context-root priming](event/context-root-priming.md)
 - [DirectorBase hooks](event/director-base-hooks.md)
 - [Director and quest framework](event/director-quest-framework.md)
