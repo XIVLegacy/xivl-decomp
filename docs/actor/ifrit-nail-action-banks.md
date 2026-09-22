@@ -27,6 +27,36 @@ The `cbbm_sp_01` transform is 90 frames at 30 fps. Its authored motion
 length is distinct from the WSS scheduler's active block and any
 server-side visibility delay.
 
+## Native death-scheduler route
+
+The pinned executable's main-state transition function at VA
+`0x007C0E10` calls `0x007AC7F0` for its death-scheduler setup. The
+per-frame state machine at VA `0x007BADE0` (RVA `0x003BADE0`) probes
+the literal SCB names `dead1`, `dead2`, then `dead`. The strings at
+`0x00FE73B8`, `0x00FE73C0`, and `0x00FE73C8`, and their references in
+that function, were checked directly in the installed PE with
+`pefile` and Capstone x86-32. Thus a normal main-state death can
+request an active `dead` scheduler without a separate defeat WSS.
+
+The installed m524/e002 model package at
+`client/chara/mon/m524/equ/e002/met_mdl/0001` is 352,064 bytes,
+SHA-256 `5a5a4414c7327ca5dd0f04d78677e76827d535126b8db3edd5633a7ea24784ff`.
+Its nested `dead` SCB is 1,888 bytes, SHA-256
+`5b4b3631be6ac08e27f99efabc685893fe93e11e8146d2b73fabab1e03ea63f6`.
+The decoded 12-entry scheduler cancels `init_msb4_1`, includes motion
+and move-stop clips, and launches `m524_ded`. The nested VEFF
+`151rmjanc_dead1` has SHA-256
+`85745f0569c3b2f1aaa0ecf01267f586c86a2f4507b2aa64fa8e051fbc6a5278`.
+These nested locators are in
+`tools/outputs/ifrit-model-state-decomp-20260805/{resources.csv,scheduler_graph.csv}`;
+the native route is in
+`IFRIT_GROUND_STATE_AND_NAIL_DEATH_CLOSURE_2026-08-05.md`, section 3.
+The whole model package hash was checked against the installed file.
+
+This closes the static death-selection mechanism and the e002 asset's
+availability, not live root precedence when more than one model
+resource is active, actual visual playback, or a retail corpse lifetime.
+
 All eight listed action-file identities were checked against the
 installed client. The contributor's
 `docs/ifrit-animation-decomp-2026-08-02/IFRIT_CLIENT_ANIMATION_BANKS.md`
@@ -40,6 +70,6 @@ also indexes the WSS scheduler/resource joins.
 Installed banks establish client capability. Bank numbers, command IDs,
 effect names, and mechanics are separate namespaces. No retained retail
 selector here proves when a battle used these banks, how flames attached,
-whether a Nail's death resources played automatically, or how either
+which Nail death resource root won in a live actor, or how either
 presentation was reconstructed for late joiners. Motion frame counts are
 not server cast, travel, telegraph, or action-lock durations.
