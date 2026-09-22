@@ -69,6 +69,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Work-field evidence index](net/work-field-evidence-index.md)
 - [Work-field inventory](net/work-field-inventory.md)
 - [Application scheduling observations](resource/application-hierarchy.md)
+- [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
 - [Class metadata](resource/class-metadata.md)
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
 - [Dungeon layout timeline corpus](resource/dungeon-layout-timeline-corpus.md)
