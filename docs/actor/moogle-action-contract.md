@@ -52,6 +52,10 @@ set includes:
 - battle bank 0001;
 - the installed MGC and WSS families for the court models.
 
+The installed WSS ordinals are `0001` through `0023` and `0025`;
+`0024` is absent from this action tree. This is a file inventory, not
+evidence for a missing retail combat command.
+
 For example, `client/chara/mon/m701/act/emp_emp/bid/base/0000` is 611,712
 bytes with SHA-256
 `9b0c73a319c1817a96507ec8c6c3799f9c08e96e243a78c01aa0c17965fb7514`,
@@ -62,6 +66,15 @@ MTB frame count and fps are the timing authority for a motion. An outer
 scheduler envelope is not a cast duration, and a common LIB dance, jump, or
 bounce name does not prove its combat use. The command table's cast time and
 the action bank's motion or scheduler timing are separate clocks.
+
+The BID bank also contains a staged death-motion family:
+`cbbm_ft_ded_1` (40 frames), `cbbm_ft_ded_2lp` (4 frames), and
+`cbbm_ft_ded_3` (36 frames), all at 30 fps. Its `cbbm_dedpose` is
+100 frames. The `cbbm_msb5_1` MTB is byte-identical to `cbbm_dedpose`
+(SHA-256 `b4d74ab86ff28cb418e838f9c09c31d7d3ebb8ac5339d9473cb988e9bc3ef211`),
+while `cbbm_msb6_1` is a distinct 91-frame motion. These installed
+motion identities do not establish which court actor or retail phase
+selected a death or model-state presentation.
 
 ## Lua boundary
 
