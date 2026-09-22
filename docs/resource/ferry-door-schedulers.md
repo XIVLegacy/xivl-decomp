@@ -1,0 +1,89 @@
+# Ferry door schedulers
+
+The installed FFXIV 1.23b layout resources distinguish independently callable
+voyage doors from door motion nested beneath the docked-ship scheduler. Native
+addresses below refer to the pinned executable with image base `0x00400000`
+and SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+
+## Layout owners
+
+| Role | Layout | Resource | Binding | Unit tree |
+| --- | ---: | --- | --- | --- |
+| Limsa docked ship | 196 | `sea_s0_lin01` | 456 | `sgrp_teikisen` |
+| Thanalan docked ship | 496 | `wil_w0_lin01` | 456 | `sgrp_teikisen` |
+| Voyage line 1 | 5142 | `srt_o0_lin01` | 323 | `sgrp_bg_door_d1` |
+| Voyage line 1 | 5142 | `srt_o0_lin01` | 326 | `sgrp_bg_door_d2` |
+| Voyage line 2 | 5143 | `srt_o0_lin02` | 323 | `sgrp_bg_door_d1` |
+| Voyage line 2 | 5143 | `srt_o0_lin02` | 326 | `sgrp_bg_door_d2` |
+
+The two voyage layouts contain the same four scheduler payloads. Their
+instances are mirrored across the route: layout 5142 places instances 323 and
+326 at `(10.2920, 7.75, -5.4863)` and `(-3.9854, 4.75, -5.4898)`; layout 5143
+places them at `(-10.2920, 7.75, 5.4863)` and
+`(3.9854, 4.75, 5.4898)`.
+
+## Public aliases and effects
+
+Each voyage-door unit tree publishes the aliases used by the actor animation
+packet:
+
+| Binding | Alias | Timeline | Controlled members |
+| ---: | --- | --- | --- |
+| 323 | `open` | `time_bg_door_d1_open` | four leaves, sound, two collision boxes |
+| 323 | `clos` | `time_bg_door_d1_clos` | four leaves, sound, two collision boxes |
+| 326 | `open` | `time_bg_door_d2_open` | two leaves, sound, two collision boxes |
+| 326 | `clos` | `time_bg_door_d2_clos` | two leaves, sound, two collision boxes |
+
+All four timelines last 0.45 seconds. The open timelines disable both
+collision boxes at 0.15 seconds; the close timelines enable them at 0.44
+seconds. The payload hashes are identical in layouts 5142 and 5143:
+
+| Timeline | SCB SHA-256 |
+| --- | --- |
+| `time_bg_door_d1_open` | `63d24dec761b07a91a027d467d8cec2b9aaaa2fdfd0d90c3de3fb6723ef4a9d4` |
+| `time_bg_door_d1_clos` | `2dd675fd910edaa26da4cadca0fb654d9f06605e3241d2d8ca55490be20141b9` |
+| `time_bg_door_d2_open` | `3ca85710ae2ba08ed9a2a6b50c597375021537c4bf68e9b540a04f93c3f6bfa1` |
+| `time_bg_door_d2_clos` | `8a0357e0bc6a877eefe48c8fbd08b39d1b6d256cfc52501b4e24bb51c86e8f96` |
+
+The strings `sdef_door_l_open` and `sdef_door_l_clos` refer to sound
+definitions reached by `LaySEClip`; they are not scheduler aliases. The same
+applies to the dock-resource strings `sdef_door_a_open/clos` and
+`sdef_door_b_open/clos`.
+
+The actor-packet switch at `0x0058cca0` handles the associated map-object
+messages. Packet `0x00d8` creates a binding from the instance ID at packet
+offset `+0x10` and layout ID at `+0x14`. Packet `0x00d9` resolves an animation
+through that binding. The helper at `0x00585320` copies four name bytes and
+then writes a terminator, matching `open` and `clos` exactly.
+
+## Docked-ship boundary
+
+Bindings `196/456` and `496/456` expose `spin`, `spot`, `_ex_show`,
+`_ex_hide`, `_in_show`, `_in_hide`, `vst1`, `vst2`, `vst3`, and `set0` from
+`sgrp_teikisen`. They do not expose a standalone `open` or `clos` alias.
+Their resources contain eight `time_bg_door_a*` and `time_bg_door_b*`
+timelines, and the ship sequences invoke nested schedulers, but that proves
+only authored internal capability. It does not prove that a caller can safely
+address an individual dock-side door.
+
+The dock decoder also reports `unexpected collision body size` for
+`time_bg_door_b1_open` and `time_bg_door_b2_open` in both dock resources.
+Those four timelines remain only partially decoded. Their close counterparts
+and all A-door timelines decode, but the successful neighbors do not justify
+inventing the missing collision records.
+
+## Evidence identity and limits
+
+| Layout | Installed DAT SHA-256 |
+| ---: | --- |
+| 196 | `35f5df6d3138398f8b6fcba0025b4a870eb8370cbaaabad423ae8da4f17fa4db` |
+| 496 | `fbd36f5d2fa3b9681815d52ecd4030d274bcc2f837589186a29cba1a2d96c98d` |
+| 5142 | `d1f86185bc09c0f5b0875c2a85052685cdab8c295b1dc46c68eae928d2999b47` |
+| 5143 | `47eb8f538bda6d354f7595e168d9ba6a5d7d901acde594021e1ed8fca4abc5df` |
+
+The resources prove layout ownership, callable aliases, authored transforms,
+sound clips, and collision timing. They do not supply the server schedule,
+proximity policy, active route, actor spawn mapping, or historical runtime
+selection. Those behaviors need independent server or capture evidence; they
+must not be inferred from resource names or mirrored coordinates.
