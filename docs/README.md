@@ -12,6 +12,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Cast timing clock and force override](actor/cast-timing-clock.md)
 - [Crafting presentation routing](actor/crafting-presentation.md)
 - [Garuda tornado presentation](actor/garuda-tornado-presentation.md)
+- [Goobbue mount appearance resolver](actor/goobbue-mount-resolver.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
 - [Grow-data lookup boundary](actor/grow-data-boundary.md)
