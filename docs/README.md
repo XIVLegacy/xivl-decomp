@@ -93,6 +93,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Stronghold door owners](resource/stronghold-door-owners.md)
 - [Transmission Tower rendering](resource/transmission-tower-rendering.md)
 - [DesktopWidget](script/desktop-widget.md)
+- [Actions and Traits menu contract](script/actions-traits-menu.md)
 - [LPB corpus](script/lpb-corpus.md)
 - [LPB format and filename cipher](script/lpb-format.md)
 - [Lua actor class construction](script/lua-actor-class-construction.md)
