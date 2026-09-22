@@ -73,6 +73,43 @@ These identities were checked against installed files. The scheduler and
 motion joins come from `monster-action-scheduler-contract-20260810`
 `scheduler_manifest.csv`, rows for m034 BID and WSS101/201/501.
 
+## m526 rock section masks
+
+The installed m526 BID bank at
+`client/chara/mon/m526/act/emp_emp/bid/base/0000` (SHA-256
+`23e5a6fa702023a5f9d94de5d96c12ab5335e8aca2c39f44da6f61274de50a7a`)
+contains `RaptureCharaNodeGroupMaskClip` entries in four state-on
+schedulers. The decoded entries are:
+
+| Scheduler | Groups cleared by its clips |
+| --- | --- |
+| `init_msb4_1` | 1, 2 |
+| `init_msb5_1` | 3, 4 |
+| `init_msb6_1` | 5, 6 |
+| `init_msb7_1` | 1 through 6 |
+
+Each listed clip has flag 1. In the pinned executable, handler VA
+`0x00825B20` (RVA `0x00425B20`) reads the group and flag at clip-data
+`+0x10/+0x11` and forwards them through `0x0065E5B0`. The model-mask
+operation at VA `0x0065C020` (RVA `0x0025C020`) obtains the current mask,
+computes `1 << group`, and clears that bit when the flag is nonzero;
+flag zero instead sets it. This directly supports a section-visibility
+interpretation, not a uniform scale-down.
+
+The m526/e001 top model at
+`client/chara/mon/m526/equ/e001/top_mdl/0001` (SHA-256
+`eb9723b10763b589e06c17ef03eedfc3c7cdafff4cfc909c968cae7fcaa5fc9d`)
+has six named groups. The contributor's decoded `model_groups.json`
+places groups 1/2 highest, 3/4 in the middle, and 5/6 lowest by their
+local Y bounds. The rock-state clip entries are in
+`outputs/garuda-rock-state-followup-20260907/rock_state_clips.json`;
+their BID identity also matches
+`monster-action-scheduler-contract-20260810/scheduler_manifest.csv`.
+
+This explains what the authored client resources can hide. It does not
+recover retail rock HP, damage thresholds, server timing, placements, or
+the historical packet sequence that selected each state.
+
 ## m508 Spirit of the Wood route
 
 The Spirit of the Wood transition is a separate scenario effect, not an m049
