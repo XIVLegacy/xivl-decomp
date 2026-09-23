@@ -26,11 +26,6 @@ catalog, not a buildable client source tree.
 - [Wire protocol](docs/net/wire-protocol.md)
 - [Tooling and extraction](tools/README.md)
 
-## Contributing
-
-Pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
-opening one.
-
 ## License
 
 <a href="LICENSE"><img src="https://www.gnu.org/graphics/agplv3-155x51.png" alt="GNU AGPLv3 logo"></a>
