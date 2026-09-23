@@ -41,6 +41,21 @@ The `cbbm_sp_01` transform is 90 frames at 30 fps. Its authored motion
 length is distinct from the WSS scheduler's active block and any
 server-side visibility delay.
 
+The nested `cbbm_sp_01` MTB (1,879 bytes, SHA-256
+`dd9ce2e2a0f918a3839101d40a9cb21fe9f7a12d84563727c2dcb3df138d9fd3`)
+has a decoded bone-1 `n_hara` local-Y track at payload `+0x100`.
+Frames 53, 54, 55, and 90 decode to `+0.082535`, `+0.023412`,
+`-0.000071`, and `-0.000071`, respectively; frames 55 and 90 have the
+same raw quantized value 31877. The rise curve holds near zero through
+its final authored frame rather than containing a terminal descent.
+The separate BID `cbbm_id0` MTB (SHA-256
+`f6570a520c987a0718234d6ada56ae083ddfbc919d273e25a6b20ece01567011`)
+has one frame and a constant bone-1 local Y of `-5.999999523` at payload
+`+0x108`. This resource contrast can explain a return to a buried idle
+pose if WSS1 releases without another state owning the pose; it does not
+prove that this handoff occurred in a historical retail encounter or fix
+a server timing value.
+
 Two installed m852 banks reuse the nested m999 impact payloads. Recursive
 PWIB/SEDB comparison found 39 of 40 embedded resources byte-identical
 between m852 WSS0021 (SHA-256
