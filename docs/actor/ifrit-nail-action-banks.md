@@ -72,6 +72,26 @@ Selected m852 banks expose distinct authored motion and effect content:
 | 0018 | `05ac1317b3ae797466e9e323927ec51799ebfde1dbd0ec048c04af9575a4d469` | Five-frame `cbbm_sp_05` with upward local hara-Y change |
 | 0019 | `8aa13bcd9a161966f6aee5a1b6914e86ebae9dcc43378d120cb7443bb231f4e8` | 30-frame `cbbm_sp_06` with downward local hara-Y change |
 
+WSS 0001 (423,680 bytes, SHA-256
+`10b6aac9583319ddde403800df8b0939ab535440cb5c9178c53a72452576c32b`)
+contains three forward-offset VMDL meshes in its caster-side effect
+resources. The decoded `SEDBvmdl` kind-14, size-68, live-1 bounds
+records give these model-local extents before VEFF transforms:
+
+| Model ID | Nested VMDL SHA-256 | Local X/Y/Z extent |
+| --- | --- | --- |
+| `cy0fir01y` | `ed8a43743dade41b04addbe887f4fec37b4af129a969aae29ea0ba52688afeb8` | `17.136 / 4.118 / 8.201` |
+| `ds0dis01y` | `e957565b3b63aff55c8ff94a072ebe6e7c3eda17ca13894e84aba77801d62e17` | `17.012 / 0.860 / 8.492` |
+| `ds0lin01y` | `ffd7423dae717b368ff2bc1fc3c6c0f83209c79ea6579697e9e1cfe8b03be16d` | `16.480 / 0.461 / 8.210` |
+
+The same bank also embeds `rg0fire06`, a roughly
+`6.883 / 6.661 / 0.081` local-extent ring (VMDL SHA-256
+`b758c7fdc8a5acfde2006c3d4a3d83f462e3fd196a975f0b748031a4467379e4`).
+The forward meshes make WSS1 an Incinerate/breath candidate by authored
+shape, not a verified retail command-to-bank mapping or world-space
+damage volume. Raw model bounds do not include effect transforms,
+attachment, emission, or scale at render time.
+
 The m524 BID 0000 (SHA-256
 `d2b2761da954a4704145e7ed644e31d39b20d6742b499d76eba9adfbf5df8c17`)
 contains named activation, deactivation, idle, death, held-death,
