@@ -229,7 +229,15 @@ records. The listed times are local to each authored block.
 
 The cut-2 and cut-15 camera records occupy tracks 69, 71, 73, and 75,
 while the other `man0u180` camera records above use track 77. This
-proves distinct authored tracks, not whether they are mutually exclusive,
-which one retail selected, or what the selector values mean. In
-particular, a player race/body/size interpretation is not established
-by the camera records alone.
+proves distinct authored tracks. The SCB type-name table identifies
+type 16 as `RaptureGetActorNumberClip` (name at `0x92306`) and type 18
+as `IfClip` (name at `0x92335`). Setup contains one 28-byte type-16
+record at `0x82DC0` (clip 169), then two type-18 records at `0x82DF8`
+(64 bytes, clip 171, actor index 4 / `PC`) and `0x82E38` (92 bytes,
+clip 172, actor index 1 / camera). Both conditional records have local
+time 0.18 s, and each ends with the literal `99999` word. Their bodies
+also contain integer fields with values `7`, `5`, `6`, `3`, `4`, and `9`,
+but this audit does not decode their category enum or establish which
+branch retail selected. The proposed player race/body/size
+accommodation remains an inference, not a verified enum mapping or
+runtime observation.
