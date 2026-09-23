@@ -92,6 +92,10 @@ shape, not a verified retail command-to-bank mapping or world-space
 damage volume. Raw model bounds do not include effect transforms,
 attachment, emission, or scale at render time.
 
+The comparative caster, target, rock, and generated-control resources
+for WSS2/3/4/10/12-14/21/22 are in
+[Ifrit ground-effect bank resources](ifrit-ground-effect-banks.md).
+
 The m524 BID 0000 (SHA-256
 `d2b2761da954a4704145e7ed644e31d39b20d6742b499d76eba9adfbf5df8c17`)
 contains named activation, deactivation, idle, death, held-death,

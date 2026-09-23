@@ -22,6 +22,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Garuda flight-motion assets](actor/garuda-flight-motions.md)
 - [Garuda plume color-root boundary](actor/garuda-plume-color-root.md)
 - [Ifrit and Infernal Nail action banks](actor/ifrit-nail-action-banks.md)
+- [Ifrit ground-effect bank resources](actor/ifrit-ground-effect-banks.md)
 - [Goobbue mount appearance resolver](actor/goobbue-mount-resolver.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
