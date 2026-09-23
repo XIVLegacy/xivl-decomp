@@ -1,7 +1,7 @@
 # Retainer presentation contract
 
 This note records the client-owned retainer presentation recovered from the
-FFXIV 1.23b scripts, actor tables, and installed resource corpus. It separates
+FFXIV 1.23b scripts, actor tables, and resource corpus. It separates
 those presentation paths from server-owned hiring, inventory, naming, and
 retainer-lifetime decisions.
 
@@ -15,7 +15,7 @@ and low selector 0.
 Actor classes 1200027 and 1200135 both have class path
 `/Chara/Npc/Object/RetainerFurniture`. Their actor-appearance rows resolve to
 base 20958 and body 1024, or BG-object family b958/e001. That owner join selects
-`b958/lib/0101/main`; the installed b928 bank with the same numeric library ID
+`b958/lib/0101/main`; the b928 bank with the same numeric library ID
 is a collision, not a retainer-bell owner.
 
 The b958 bank is 53,264 bytes and contains 13 recursively decoded resources.
@@ -34,7 +34,7 @@ that the widget result authorizes or performs a server transaction.
 
 `PopulaceRetainerManager.eventTaklSelectCutSeane` creates a city-specific scene
 and calls `startCutScene` with mode `(1, 61, 2, 0)` plus five candidate actor
-class IDs. Each installed scene has two
+class IDs. Each scene has two
 `RaptureCharaActorClassIdClip` records that replace its dynamic Retainer
 placeholder from those arguments. The SCB then owns the preview actor, motion,
 facial, camera, timing, and cancellation choreography.
@@ -45,7 +45,7 @@ facial, camera, timing, and cancellation choreography.
 | `rtn0u010` | Ul'dah | 1000865 | 1000002 at actor 5 | 23 | 28 | 605 | 142 | 30 |
 | `rtn0g010` | Gridania | 1001184 | 1000002 at actor 4 | 25 | 28 | 581 | 130 | 29 |
 
-The installed main and SCB identities are:
+The main and SCB identities are:
 
 | Scene | Main SHA-256 | SCB SHA-256 |
 | --- | --- | --- |
@@ -79,7 +79,7 @@ and 902. This establishes the client's dialogue-row mapping. No call to
 `sayToPlayer` was found in the audited local server retainer scripts, so it
 does not establish when retail requested any message type.
 
-## Installed animation boundary
+## Animation boundary
 
 The nine PC families contain both `emp_emp/bid` banks 0000 and 0001. The
 decoded corpus comprises 18 banks, 1,584 MTB/MCB/CIBT resources, 144 embedded
@@ -107,7 +107,7 @@ Lua sources have SHA-256 values
 and `53ab90efdd0bc7d05b921b95c762d0b7636f3ee0edcb8e24154cda2c21c1a909`.
 
 The evidence proves the bell owner and scheduler, candidate appearance joins,
-hiring-preview choreography, dialogue selector formula, and installed PC
+hiring-preview choreography, dialogue selector formula, and PC
 animation corpus. It does not recover retail server authorization, persistence,
 inventory or naming validation, world-retainer battle state, WSS selection, or
 the runtime occasions on which dynamic speech was requested. Those behaviors

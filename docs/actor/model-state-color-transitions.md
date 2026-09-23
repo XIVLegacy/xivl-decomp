@@ -1,7 +1,7 @@
 # Monster model-state and color transitions
 
 This note separates two retail presentation mechanisms recovered from the
-FFXIV 1.23b client and installed resources. The executable evidence uses the
+FFXIV 1.23b client and its resources. The executable evidence uses the
 pinned image with SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`
 and image base `0x00400000`.
@@ -35,7 +35,7 @@ the executable strings at `0x00fe75bc` and `0x00fe75cc`. These are static
 gates, not proof of a particular encounter's queued mode or kick timing.
 
 For m049, the metadata partitions the low three bits of payload byte `+0x04`
-as an `init_msnNNN` ordinal. The installed BID and `e001/top_tex1` banks expose
+as an `init_msnNNN` ordinal. The BID and `e001/top_tex1` banks expose
 states 0 through 6 and establish this mapping:
 
 | State | Element | Transition | Steady motion | `multiDiffuseColor` |
@@ -68,7 +68,7 @@ be generalized to every monster.
 
 ## m034 drake bit-4 resources
 
-The installed m034 BID bank has `init_msb4_1` and `init_msb4_0` schedulers
+The m034 BID bank has `init_msb4_1` and `init_msb4_0` schedulers
 whose motion references are `cbxs_st2` and `cbxs_st1`, respectively.
 The m034 WSS101 and WSS201 `mon_main` schedulers reference
 `cbxs_st1to2`; WSS501 references `cbxs_st2to1`. These are authored
@@ -83,16 +83,16 @@ bytes, SHA-256
 The WSS201 bank at `act/emp_emp/wss/base/0002` is 206,768 bytes,
 SHA-256
 `3530ba8206deffa6ab836095e945a6317a4a65c9abd1556f3aca466fae02d671`.
-These identities were checked against installed files. The scheduler and
+These identities were checked against the 1.23b files. The scheduler and
 motion joins come from `monster-action-scheduler-contract-20260810`
 `scheduler_manifest.csv`, rows for m034 BID and WSS101/201/501.
 
 ## m037 ogre limb-effect state
 
-Installed `client/chara/mon/m037/skl/0001` (SHA-256
+`client/chara/mon/m037/skl/0001` (SHA-256
 `34296f469e58b5ad29e0d18d64dc214bf670bb7f0f3fb29fb244cb03817037d5`)
 has `info_m037` metadata with ordinal split 4 and supported mask `0xf0`.
-The installed BID at `act/emp_emp/bid/base/0000` (SHA-256
+The BID at `act/emp_emp/bid/base/0000` (SHA-256
 `d22bc300c6043d21cda6a6eb5af087d6e7e110aa5ce28f98e4adb999a40dfbc3`)
 provides `init_msb7_1` and `init_msb7_0` for supported bit 7 (`0x80`).
 The on scheduler's ActionClip at payload offset `0x274` names ACB
@@ -110,7 +110,7 @@ health threshold, state packet, or visible onset.
 
 ## m054 gargoyle weapon-effect state
 
-Installed `client/chara/mon/m054/skl/0001` (SHA-256
+`client/chara/mon/m054/skl/0001` (SHA-256
 `1aa51fd820700ad31be4fdd06999e4a421453a713d1ea69106ab321d82948f61`)
 has `info_m054` metadata with ordinal split 4 and supported bits 4 and 5
 (`0x30`). The BID at `act/emp_emp/bid/base/0000` (SHA-256
@@ -131,7 +131,7 @@ effect cleanup, or retail state delivery follows from these resources.
 
 ## m505 immediate alpha state
 
-Installed `client/chara/mon/m505/skl/0001` (SHA-256
+`client/chara/mon/m505/skl/0001` (SHA-256
 `65aabb1f35ab859757292df66cff7f99f449f9ddfbe14f6ec0ebfa62892dc25e`)
 advertises model-state bit 4 (`0x10`) in `info_m505`. Its BID at
 `act/emp_emp/bid/base/0000` (SHA-256
@@ -157,7 +157,7 @@ interval, targetability, or encounter timing.
 
 ## m526 rock section masks
 
-The installed m526 BID bank at
+The m526 BID bank at
 `client/chara/mon/m526/act/emp_emp/bid/base/0000` (SHA-256
 `23e5a6fa702023a5f9d94de5d96c12ab5335e8aca2c39f44da6f61274de50a7a`)
 contains `RaptureCharaNodeGroupMaskClip` entries in four state-on
@@ -194,7 +194,7 @@ the historical packet sequence that selected each state.
 
 ## m999 ground-helper state resources
 
-The installed `client/chara/mon/m999/equ/e001/met_mdl/0001` resource
+The `client/chara/mon/m999/equ/e001/met_mdl/0001` resource
 (SHA-256 `c80a1e587b5b0e21cc19cad2baa08c75ed31482ea3fd5219e125053c00e3b105`)
 contains two named on/off state pairs. Bit 4 of the queued mode word
 selects `init_msb4_1` or `_0`; bit 5 selects `init_msb5_1` or `_0`
@@ -246,7 +246,7 @@ Thus `0x100a0000`
 selects runtime module index 10, not VEFF serialized class-table row 10.
 That module's identity requires the context's template append order.
 
-Re-extracting the two installed VEFFs' paired 0x24-byte control and
+Re-extracting the two VEFFs' paired 0x24-byte control and
 0x1c-byte link records yielded both serialized link vectors. State 4 has
 44 head (`+0x00/+0x04`) and 53 tail (`+0x14/+0x18`) keys; state 5 has
 21 head and 32 tail keys. State-5 `Position3DMapBind:CoordRoot` paired
@@ -273,13 +273,13 @@ linked input through `+0x30` and, when dirty, adds the double constant
 (`0x00d7e4bf..0x00d7e4e4`); a hit stores the height adjustment at
 control `+0x24`. The query holds X/Z, constructs a vertical segment
 from supplied Y + 0.01 to Y - 200.0, and passes byte tag `0x1e`
-(`0x00d85800..0x00d85a20`). The installed constants are 0.01 at
+(`0x00d85800..0x00d85a20`). The executable constants are 0.01 at
 `0x00fb7dec` and -200.0 at `0x0109d91c`. This is a client terrain
 conformance operation, not evidence that a historical server placed a
 helper at any particular world coordinate.
 
 The state-5 VEFF's six 0x38-byte layer records carry three raw words at
-indices 8-10. Re-extraction from the installed model gives selected
+indices 8-10. Re-extraction from the m999 model gives selected
 rows below; the serializer's semantic field-name join remains absent:
 
 | Layer label | Raw word 8 | Raw word 9 | Raw word 10 |
@@ -293,7 +293,7 @@ not independently identified as start, duration, and end fields. They
 cannot determine a retail cast length, active mode sequence, or helper
 cleanup policy.
 
-The installed m999 WSS4 and WSS5 wrappers have different whole-file
+The m999 WSS4 and WSS5 wrappers have different whole-file
 hashes (`769514e370b57a5024e1f646fbe7ab05563f802c615e2f32890c51895d7a9423`
 and `d5f262f0d06fe1fa8f1f990df3333cc8093a1c72fea22aedc507aba16baaec72`),
 but both embed the same `main` SCB
@@ -304,7 +304,7 @@ Each `mon_main` contains a `RaptureActionSubStatusSchKickClip`.
 The functional scheduler payloads do not themselves distinguish state 4
 from state 5; the queued mode and compatible model resource do.
 
-The installed file hashes were checked directly. Nested SCB and effect
+The resource file hashes were checked directly. Nested SCB and effect
 locators are in the contributor's
 `tools/outputs/ifrit-model-state-decomp-20260805/{state_resources.csv,resources.csv}`
 and `IFRIT_GROUND_STATE_AND_NAIL_DEATH_CLOSURE_2026-08-05.md`.
@@ -314,7 +314,7 @@ or visible lifetime is recovered by these asset joins.
 ## m508 Spirit of the Wood route
 
 The Spirit of the Wood transition is a separate scenario effect, not an m049
-model-state transition and not a BODYGEAR interpolation. The installed
+model-state transition and not a BODYGEAR interpolation. The
 `man2g000` resource is 9,608,688 bytes with SHA-256
 `c895ce29d8f28246cfe9f6238e364754c82f1e003c43fd15289ec616f8b7cc19`.
 Its actor 24 (`m508t0`, class `6000249`) has this authored chain:

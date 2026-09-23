@@ -1,12 +1,12 @@
 # Ifrit and Infernal Nail action banks
 
-The installed `client/chara/mon/m852/act` tree has 26 action files:
+The `client/chara/mon/m852/act` tree has 26 action files:
 FID 1110, BID 0000, BTL 0001, MGC 0001-0004, and 19 WSS banks.
-WSS 0006, 0009, and 0011 are absent from this m852 path. The
-installed m524 Nail tree has only BID 0000 and WSS 0001. These are
+WSS 0006, 0009, and 0011 are absent from this m852 path. The m524 Nail tree
+has only BID 0000 and WSS 0001. These are
 path-level inventories, not a complete runtime command selection map.
 
-The complete installed model roots also include non-action resources:
+The complete model roots also include non-action resources:
 
 | Root | Action files | Equipment/model files | Skeleton files | Total bytes |
 | --- | ---: | ---: | ---: | ---: |
@@ -14,19 +14,19 @@ The complete installed model roots also include non-action resources:
 | `client/chara/mon/m524` | 2 | 6 | 1 | 2,889,204 |
 
 All 43 direct-root paths, lengths, and SHA-256 digests were checked
-against the installed files and the direct-file manifest in
+against the 1.23b files and the direct-file manifest in
 `EXHAUSTIVE_CLIENT_ASSET_COVERAGE.md`, section "Complete direct file
 manifest." The 15 equipment/model and skeleton files are not extra WSS
 banks. This root census does not exclude dependencies reached by hashed,
 numeric, or executable-generated references outside those paths.
 
-An independent case-sensitive binary literal scan of the installed
+An independent case-sensitive binary literal scan of the
 `client` tree (`rg -a -l -F -e m852 -e m524 --no-ignore --hidden`)
 found seven matching files outside those two direct model roots. The
 tree contained 51,772 files totaling 5,469,534,267 bytes at this
 check; this count differs from the 51,111-file source report, so the
 scan scope is recorded here rather than inheriting its count. Each
-external hit's installed bytes and SHA-256 matched the source report:
+external hit's bytes and SHA-256 matched the source report:
 
 | External path under `client/` | Bytes | SHA-256 | Literal-reference boundary |
 | --- | ---: | --- | --- |
@@ -121,7 +121,7 @@ pose if WSS1 releases without another state owning the pose; it does not
 prove that this handoff occurred in a historical retail encounter or fix
 a server timing value.
 
-Two installed m852 banks reuse the nested m999 impact payloads. Recursive
+Two m852 banks reuse the nested m999 impact payloads. Recursive
 PWIB/SEDB comparison found 39 of 40 embedded resources byte-identical
 between m852 WSS0021 (SHA-256
 `d365c2f62241323971e73880bddd3b1908bfa8ffea269d17fa3dd158f25ecd34`)
@@ -145,11 +145,11 @@ The pinned executable's main-state transition function at VA
 per-frame state machine at VA `0x007BADE0` (RVA `0x003BADE0`) probes
 the literal SCB names `dead1`, `dead2`, then `dead`. The strings at
 `0x00FE73B8`, `0x00FE73C0`, and `0x00FE73C8`, and their references in
-that function, were checked directly in the installed PE with
+that function, were checked directly in the pinned PE with
 `pefile` and Capstone x86-32. Thus a normal main-state death can
 request an active `dead` scheduler without a separate defeat WSS.
 
-The installed m524/e002 model package at
+The m524/e002 model package at
 `client/chara/mon/m524/equ/e002/met_mdl/0001` is 352,064 bytes,
 SHA-256 `5a5a4414c7327ca5dd0f04d78677e76827d535126b8db3edd5633a7ea24784ff`.
 Its nested `dead` SCB is 1,888 bytes, SHA-256
@@ -162,14 +162,14 @@ These nested locators are in
 `tools/outputs/ifrit-model-state-decomp-20260805/{resources.csv,scheduler_graph.csv}`;
 the native route is in
 `IFRIT_GROUND_STATE_AND_NAIL_DEATH_CLOSURE_2026-08-05.md`, section 3.
-The whole model package hash was checked against the installed file.
+The whole model package hash was checked against that file.
 
 This closes the static death-selection mechanism and the e002 asset's
 availability, not live root precedence when more than one model
 resource is active, actual visual playback, or a retail corpse lifetime.
 
 All eight listed action-file identities were checked against the
-installed client. The contributor's
+1.23b client. The contributor's
 `docs/ifrit-animation-decomp-2026-08-02/IFRIT_CLIENT_ANIMATION_BANKS.md`
 (SHA-256 `852de41825e101b0d875d930343832fcb8a2fdefb090f8e08c53dbe657719fdd`)
 and `INFERNAL_NAIL_ANIMATIONS.md` in the same directory
@@ -178,7 +178,7 @@ provide bank, nested-resource, and curve locators. The broader
 `monster-action-scheduler-contract-20260810/scheduler_manifest.csv`
 also indexes the WSS scheduler/resource joins.
 
-Installed banks establish client capability. Bank numbers, command IDs,
+The banks establish client capability. Bank numbers, command IDs,
 effect names, and mechanics are separate namespaces. No retained retail
 selector here proves when a battle used these banks, how flames attached,
 which Nail death resource root won in a live actor, or how either

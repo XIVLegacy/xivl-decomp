@@ -2,7 +2,7 @@
 
 Twenty FFXIV 1.23b guildleves have recovered objective text that explicitly
 describes a disguised group transforming. Their mob slots join to 17 monster
-families and the c005 humanoid family. The installed resources and pinned
+families and the c005 humanoid family. Resources and the pinned
 executable establish a state-driven BID transition; they do not establish a
 packed animation selector or recover the missing encounter choreography.
 
@@ -47,7 +47,7 @@ Their objective descriptions and 52 populated mob slots are source-backed.
 Numeric coordinate-search collisions are not actor-ID joins and do not recover
 positions, search-circle layouts, spawn grouping, or reveal order.
 
-## Installed BID resources
+## BID resources
 
 Every joined family has `cbbm_activ` and `cbbm_deact` MTB, MCB, and CIBT
 resources under `emp_emp/bid/base/0000`. The complete decoded set contains 114
@@ -109,7 +109,7 @@ library selector into a BID request.
 `0x04000000` decodes as category 4, `cmn/lib`, middle bank 0000, low selector
 0. None of the 18 joined families has `cmn/lib/0000`, and no recovered Lua
 caller requests decimal 67108864 for monster activation. The value therefore
-cannot select the installed `emp_emp/bid/base/0000` resources merely because
+cannot select the `emp_emp/bid/base/0000` resources merely because
 both paths contain the text `0000`.
 
 Guildleve reveal presentation must use the actor-state transition bridge. A

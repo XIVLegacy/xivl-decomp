@@ -2,7 +2,7 @@
 
 The pinned client's native mount resolver receives a family and grade, but
 does not use the grade to select a Goobbue model. This is a retail-client
-selection limit, not an absence of other installed `m048` model assets.
+selection limit, not an absence of other `m048` model assets.
 
 At `0x0065E040` (RVA `0x0025E040`), the resolver reads the family and
 selects a table pointer. The branch at `0x0065E068` enters the grade-key
@@ -14,11 +14,11 @@ therefore cannot select a second retail Goobbue record through this
 resolver; it selects the same first record.
 
 The contributor's static trace follows opcode `0x01A0` grade through actor
-and scene fields into this resolver, and identifies installed `m048/e001`
+and scene fields into this resolver, and identifies `m048/e001`
 and `e002` models sharing a skeleton and bone palette. Those facts support
 a possible alternate model asset but not a stock grade-to-asset mapping.
 No retail capture here proves a grade-2 Goobbue was displayed, and no
-client hook, installed-file edit, or runtime probe was performed.
+client hook, client-file edit, or runtime probe was performed.
 
 The resolver branch and 20-byte table records were checked directly in
 `ffxivgame.exe` (image base `0x00400000`, SHA-256

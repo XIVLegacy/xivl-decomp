@@ -1,6 +1,6 @@
 # Bowl of Embers fire-ring layout
 
-The installed layout `data/61/5A/00/08.DAT` contains a named fire-ring
+The layout `data/61/5A/00/08.DAT` contains a named fire-ring
 unit in `wil_w0_fld05` / `wil0Field05a`. Client instance
 `isgrp_016280`, internal layout node 949, references
 `sgrp_vfx_ifring` at `(2526.596924, 248.343002, 2208.061035)`.
@@ -27,7 +27,7 @@ the collision clip values. They do not establish the initial visible
 state, runtime show/hide order, retail server caller, late-join replay,
 or a link from this ring to an Eruption or Plume combat selector.
 
-The same installed layout has 225 decoded `RefObjects/InstanceObject`
+The same layout has 225 decoded `RefObjects/InstanceObject`
 records. A structural scan of the Bowl floor tile's X/Z bounds
 `2496..2560` / `2176..2240` finds six instances:
 
@@ -45,7 +45,7 @@ encounter spawn catalog. In particular, the one named `Boss` marker is a
 client layout marker, not a proven retail Ifrit spawn coordinate. The
 set does not contain a repeated placed Plume or Nail pattern; numeric,
 script-created, or otherwise non-instance placements remain outside it.
-The installed-file extraction reproduced the six saved instance rows
+Layout extraction reproduced the six saved instance rows
 field-for-field; their node and physical offsets are in
 `arena_tile_instances.csv` from `extract_ifrit_bowl_layout_neighborhood.py`.
 
@@ -54,7 +54,7 @@ The layout is 1,245,056 bytes, SHA-256
 The related `f0ifuring1.veff` resource at `data/89/84/00/74.DAT`
 is 11,676 bytes, SHA-256
 `f399fa88a3654a81ee8c00744c5994a063dcc785ddc9ccc868841ee5c323be39`.
-Both identities were checked against installed files. The decoded
+Both identities were checked against the 1.23b client files. The decoded
 instance and clip locators are in the contributor's
 `tools/outputs/ifrit-bowl-layout-neighborhood-20260805/summary.json`,
 `arena_tile_instances.csv`, and `ring_scheduler_clips.csv`; the

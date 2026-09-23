@@ -12,7 +12,7 @@ indirectly through vtable slot `+0x54`; the concrete target is not
 recovered. Neither the root update nor its additive helper clamps the
 channels to 0..1.
 
-The installed m527 WSS1 bank at
+The m527 WSS1 bank at
 `client/chara/mon/m527/act/emp_emp/wss/base/0001` has SHA-256
 `c49a8064a8eda96210dd8e67c553a452042b1acb473b102c268a1a1541c0e3f6`.
 The contributor's bounded material decoder reports that all 18 material
@@ -31,7 +31,7 @@ The native observations are from `ffxivgame.exe` (image base
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`).
 The three function byte ranges at VAs `0x00BA64D0` (271 bytes),
 `0x00BA4B50` (123 bytes), and `0x00E39F60` (18 bytes) were compared
-directly with the installed PE and match the contributor's
+directly with the pinned PE and match the contributor's
 `outputs/garuda-plume-color-followup-20260908/color_contract.json`.
 That file and `garuda-plume-color-followup-2026-09-08.md` provide the
 material and VEFF locators. Per-node runtime inputs and final rendered

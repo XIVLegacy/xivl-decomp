@@ -12,7 +12,7 @@ and `GRI_JIJO`; and Ul'dah's `UL_HIME`, `UL_SHITSU`, and `UL_JIJO`.
 The decoded dialogue explicitly names Little Ladies' Day and peach blossoms
 in all three cities (`spl000.csv` rows 46, 29, and 9 respectively). Across
 those nine methods are 30 character-scheduler calls, 16 waits, and three
-dialogue-widget calls, but no weather setter. The installed `b929` Hina
+dialogue-widget calls, but no weather setter. The `b929` Hina
 display and `b930..b932` blossom assets are catalogued in
 [Seasonal BG-object assets](../resource/seasonal-bgobj-assets.md). Neither
 the methods nor the portable models establish placed city decorations or a
@@ -31,12 +31,12 @@ The independent player-work and shop gate is documented in
 [Seasonal event work control plane](seasonal-control-plane.md).
 
 Gridania's `fst_f0_twn01` layout is the sole `gcflag` hit in a scan of 287
-installed layouts: 30 raw occurrences, 27 unique strings, including six
+layouts: 30 raw occurrences, 27 unique strings, including six
 scheduler-group rows. It has no `time_bg_gcflag`, show/hide control, or
 recovered event-mode-11 visual consumer, and no Limsa or Ul'dah counterpart
 was found. Thus `gcflag` is a Grand Company flag resource lead, not an
 authenticated Foundation decoration binding. The negative finding is
-limited to the examined installed layout and script corpora, not to all
+limited to the examined layout and script corpora, not to all
 historical retail revisions.
 
 ## Provenance

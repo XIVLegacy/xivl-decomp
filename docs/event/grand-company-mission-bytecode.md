@@ -3,7 +3,7 @@
 An offline bytecode pass over 18 `Com0[lgu]1..4` and `Com5[lgu]0..1`
 scenario chunks recovered client-side argument and choice behavior that
 readable decompilation can obscure. All 18 examined `.luac` chunks matched
-the bytes decoded from the corresponding installed `.le.lpb` files. Their
+the bytes decoded from the corresponding `.le.lpb` files. Their
 readable Lua exports do not match the published client-script manifest's
 canonical text hashes, so this note relies on compiled bytecode and the
 bounded control-flow pass, not on textual equivalence.
@@ -27,7 +27,7 @@ an extra argument to their NQ scenes `COM0l110`, `COM0G110`, and
 The value sent by the historical retail server remains unknown; neither
 zero nor an actor ID is justified as a replacement.
 
-The installed aftermath scene assets each contain one setup `NumberClip`.
+The aftermath scene assets each contain one setup `NumberClip`.
 Their decoded initial values are separate from that missing forwarded
 argument:
 
@@ -37,7 +37,7 @@ argument:
 | `com0g110` | `0x7D0` | 0 | `0426afa3a584e160368d4e7cfa05ec95e4f440122574a06cf0a866e6f0ec7a40` |
 | `com0u110` | `0xBE6C` | 1 | `d5592f033a39f38ac38cecf89c507fa9e026c0c71e87861fdf3912f061338db2` |
 
-The three installed `client/cut/<scene>/<scene>` file hashes match the
+The three `client/cut/<scene>/<scene>` file hashes match the
 contributor's `outputs/job-gc-decomp-20260907/scenes/<scene>.json`
 inventories. The `gc_quest_transition_safety_2026-09-16.md` native
 trace identifies a register-1 reader in each scene. These serialized
@@ -56,7 +56,7 @@ In particular, `(false, false)` is not `(0, 0)` for Gridania. The branches
 establish client presentation selection only, not the server's reason for
 choosing a tuple or the quest's completion policy.
 
-The installed scene dictionaries for all three `410` branches contain
+The scene dictionaries for all three `410` branches contain
 `Cid` (actor class 1001572) and `Ebrelnaux` (1060011). Their records are
 byte-identical across the three scenes, but the enclosing assets have
 distinct SHA-256 identities:
@@ -83,7 +83,7 @@ The contributor's `build_gc_mission_decomp.py` output
 `event-traces.json` supply the disassembled methods, bounded stub traces,
 and program-counter locators. The input `.luac` tree is
 `tools/outputs/lpb/decomp_more_20260617/luac/quest/scenario/com/`.
-Each of its 18 listed chunks was compared byte-for-byte to the installed
+Each of its 18 listed chunks was compared byte-for-byte to the
 `client/script` LPB decoded by `decode_lpb.py`; there were zero mismatches.
 The trace domain was `nil`, 0, 1, `false`, and `true` for extra arguments,
 with sampled choices 0 and 1. That coverage does not prove behavior for

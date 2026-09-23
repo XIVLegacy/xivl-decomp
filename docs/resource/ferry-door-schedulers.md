@@ -1,6 +1,6 @@
 # Ferry door schedulers
 
-The installed FFXIV 1.23b layout resources distinguish independently callable
+The FFXIV 1.23b layout resources distinguish independently callable
 voyage doors from door motion nested beneath the docked-ship scheduler. Native
 addresses below refer to the pinned executable with image base `0x00400000`
 and SHA-256
@@ -75,7 +75,7 @@ inventing the missing collision records.
 
 ## Summer-named strings
 
-The installed resources at `0x89ED0003` and `0x89ED0004` each contain the
+The resources at `0x89ED0003` and `0x89ED0004` each contain the
 literal names `time_bg_smmr_show` and `time_bg_smmr_hide`:
 
 | DAT key | String | Offset |
@@ -85,7 +85,7 @@ literal names `time_bg_smmr_show` and `time_bg_smmr_hide`:
 | `0x89ED0004` | `time_bg_smmr_show` | `0x4F06` |
 | `0x89ED0004` | `time_bg_smmr_hide` | `0x4F18` |
 
-| DAT key | Installed DAT SHA-256 |
+| DAT key | DAT SHA-256 |
 | --- | --- |
 | `0x89ED0003` | `d1f86185bc09c0f5b0875c2a85052685cdab8c295b1dc46c68eae928d2999b47` |
 | `0x89ED0004` | `47eb8f538bda6d354f7595e168d9ba6a5d7d901acde594021e1ed8fca4abc5df` |
@@ -94,12 +94,12 @@ These offsets establish resident names only. They do not identify an event,
 owner, call route, or historical activation.
 The source inventory is `support_resource_scheduler_strings.csv` rows 9-12;
 the layout-key associations are listed in `region_resource_all_rows.csv`
-rows 961-962. The strings and offsets were checked against the installed DAT
+rows 961-962. The strings and offsets were checked against the DAT
 bytes.
 
 ## Evidence identity and limits
 
-| Layout | Installed DAT SHA-256 |
+| Layout | DAT SHA-256 |
 | ---: | --- |
 | 196 | `35f5df6d3138398f8b6fcba0025b4a870eb8370cbaaabad423ae8da4f17fa4db` |
 | 496 | `fbd36f5d2fa3b9681815d52ecd4030d274bcc2f837589186a29cba1a2d96c98d` |

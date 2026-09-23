@@ -9,7 +9,7 @@ Native addresses refer to the pinned executable with image base `0x00400000`
 and SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 
-## Installed corpus and motion banks
+## Crafting corpus and motion banks
 
 The decoded crafting inventory contains 875 files, 1,453 schedulers, 7,884
 clips, and 864 motion headers, with no parse failures. Category 16 resolves its
@@ -109,7 +109,7 @@ name-based scheduler ownership but not the active DAT bank.
 | Bits 5-7 equal 1, low bits | 5 | `gkac_cf` |
 
 These result selectors are separate from combat hit flags and from the
-persistent `SubState.chantId` groups. Other installed variants are capabilities
+persistent `SubState.chantId` groups. Other variants are capabilities
 only until a native result mapping selects them.
 
 ## Evidence boundary

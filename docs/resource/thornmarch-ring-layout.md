@@ -1,6 +1,6 @@
 # Thornmarch ring layout controls
 
-The installed MapLayoutResourceData at `data/29/B0/00/06.DAT` is
+The MapLayoutResourceData at `data/29/B0/00/06.DAT` is
 1,692,336 bytes, SHA-256
 `f539b71233efa49c3f869d88ca494ab88db2a55487f2a2c64543bbaf0091d7fa`.
 It contains named Moogle arena ring and wall groups, plus paired
@@ -29,7 +29,7 @@ conditions, initial visibility, or a world transform for the ring.
 
 ## Primal atmosphere resource
 
-The installed RegionResourceData at `data/03/C0/00/00.DAT` is 52,336
+The RegionResourceData at `data/03/C0/00/00.DAT` is 52,336
 bytes, SHA-256
 `c04b0d998aea4c1b13ed322292a5aa5af45485c698da2315171c3c024bcb9a74`.
 Its record at file offset `0xD90` pairs child ID 8028, resource key

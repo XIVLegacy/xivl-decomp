@@ -1,6 +1,6 @@
 # Monster action scheduler corpus
 
-The installed FFXIV 1.23b monster action corpus contains 1,899 inventoried
+The FFXIV 1.23b monster action corpus contains 1,899 inventoried
 resource banks. A format-complete decode found schedulers in 1,856 banks and
 structurally decoded the remaining 43 banks without promoting resource
 capability into actor or trigger ownership.
@@ -70,7 +70,7 @@ records are command capabilities, not proof of an external sound resource.
 
 One declared PWIB envelope,
 `mon/m999/act/cmn/fid/base/0001`, lacks seven terminal zero bytes in the
-installed file. Padding those bytes in parser memory is sufficient to decode
+source file. Padding those bytes in parser memory is sufficient to decode
 the declared envelope; it does not modify the retail resource.
 
 ## Ownership joins and limits

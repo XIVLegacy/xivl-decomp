@@ -1,6 +1,6 @@
 # Man304 cutscene actor records
 
-The installed client is stamped `2012.09.19.0001` by `game.ver`. The four
+The 1.23b client is stamped `2012.09.19.0001` by `game.ver`. The four
 `client/cut/<scene>/<scene>` files below contain actor dictionaries and
 spatial records. A read-only structural scan used the record signature,
 actor-index join, coordinate fields, and float checks described in

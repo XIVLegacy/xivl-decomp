@@ -1,6 +1,6 @@
 # Large coffer action families
 
-Four installed BG-object families, `b919`, `b920`, `b923`, and `b927`,
+Four 1.23b BG-object families, `b919`, `b920`, `b923`, and `b927`,
 each have `e001` through `e003` model variants, one family skeleton,
 and LIB action banks `0001`, `0101`, and `0201`. The contributor's
 decoded skeleton and motion analysis found one lid chain in b919, b923,
@@ -24,7 +24,7 @@ the asset analysis.
 
 The files are under `client/chara/bgobj/<family>/skl/0001` and
 `client/chara/bgobj/<family>/act/cmn/lib/base/0201`; all eight
-identities were checked against the installed client. The source
+identities were checked against the 1.23b client. The source
 analysis is
 `docs/garuda-moogle-coffer-animation-decomp-2026-08-02/GIANT_COFFER_CLIENT_AND_OPENING_FINDINGS.md`
 (SHA-256 `cdfa851e06b8a1d20cc0a4e4cd89e5deb9c8d76473b1e00c6f6023959c0f9093`),
@@ -37,13 +37,13 @@ The retail `RaidDungeonTreasureBox` script requests packed scheduler
 not encode a b-family or e-variant; that identity comes from the
 receiving actor. The call is recorded in
 `xivl-client-scripts:docs/raid-object-client-contracts.md`.
-Neither the script nor these installed assets map a particular family
+Neither the script nor these client assets map a particular family
 to Garuda, Moogle, another primal, or a reward placement. Those joins
 remain unresolved.
 
 ## b923 model and color variants
 
-The three installed `client/chara/bgobj/b923/equ/<variant>/top_mdl/0001`
+The three `client/chara/bgobj/b923/equ/<variant>/top_mdl/0001`
 models each reference their matching `o_v11_tbx0N_ch.dds` resource in
 `top_tex2/0000`. The decoded 512-by-512 color textures show these unlit
 materials; the descriptions are visual observations of texture pixels,

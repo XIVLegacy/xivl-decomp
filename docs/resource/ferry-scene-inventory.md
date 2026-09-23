@@ -1,11 +1,11 @@
 # Ferry scene inventory
 
-The installed client is stamped `2012.09.19.0001` by `game.ver`.
+The 1.23b client is stamped `2012.09.19.0001` by `game.ver`.
 The read-only `tools/decompile_ferry_scenes.py` extractor (SHA-256
 `134b27fec603154cf83b216369560e3aa6cf49b666d79fc6024aea1e5c3952a8`)
-hash-checks two installed movie resources, reads their actor dictionaries,
+hash-checks two movie resources, reads their actor dictionaries,
 and decodes the contained SEDBSCB timeline blocks. A fresh build and check
-of its seven output artifacts agreed. The installed `client/cut/` tree has
+of its seven output artifacts agreed. The 1.23b `client/cut/` tree has
 exactly two immediate directory names beginning `vsl`.
 
 | Scene resource | Bytes | SHA-256 | Actor records | Timeline clips |

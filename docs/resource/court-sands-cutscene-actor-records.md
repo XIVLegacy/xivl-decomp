@@ -1,6 +1,6 @@
 # Court in the Sands cutscene actor records
 
-The installed `client/cut/<scene>/<scene>` files for `man0u175` and
+The 1.23b `client/cut/<scene>/<scene>` files for `man0u175` and
 `man0u180` have the following byte identities. Each has one embedded
 `SEDBSCB` header; its little-endian length at header `+0x10` bounds the
 SCB digest. The surrounding PWIB is larger than that embedded scheduler.

@@ -1,6 +1,6 @@
 # Khimaira action-bank boundary
 
-The installed client is stamped `2012.09.19.0001` by `game.ver`. It has
+The 1.23b client is stamped `2012.09.19.0001` by `game.ver`. It has
 WSS banks 0010 through 0020 under
 `client/chara/mon/m047/act/emp_emp/wss/base/`. The table records exact
 file SHA-256 values and selected visible ASCII literals from a raw-byte
@@ -27,7 +27,7 @@ it does not independently identify part 4 as legs or specify a part-HP
 formula.
 
 The contributor's Cutter's Cry report proposes a sequential mapping from
-commands 23465-23475 to WSS10-20. The installed files above establish the
+commands 23465-23475 to WSS10-20. The files above establish the
 bank sequence, but do not serialize those command IDs or a retail caller.
 The report's cited `KhimairaNormalStandard.lua` part identifiers are in its
 server script; the independently recovered client class only declares

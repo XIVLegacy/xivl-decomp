@@ -1,6 +1,6 @@
 # Region weather resource rows
 
-The installed `data/03/C0/00/00.DAT` has SHA-256
+The `data/03/C0/00/00.DAT` has SHA-256
 `c04b0d998aea4c1b13ed322292a5aa5af45485c698da2315171c3c024bcb9a74`.
 Scanning 0x30-byte little-endian records from file offset `0x40`, reading the
 ID at `+0x00`, DAT key at `+0x08`, and 16-byte ASCII token at `+0x10`,

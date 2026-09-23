@@ -1,6 +1,6 @@
 # Dungeon layout timeline corpus
 
-The installed FFXIV 1.23b client contains 24 regional dungeon layout DATs.
+The FFXIV 1.23b client contains 24 regional dungeon layout DATs.
 A typed decode of every timeline node found 332 nodes: 299 compiled SCB
 packages and 33 intentional zero-pointer, zero-size stubs.
 
@@ -80,7 +80,7 @@ join that place to layout 114. The full direct row provenance is in
 `xivl-client-data:docs/shposhae-map-identity.md`. No equivalent pinned row
 in this evidence names layout 112 as Shposhae.
 
-The installed DAT identity for each row is fixed by its layout family and
+Each DAT's identity is fixed by its layout family and
 content hash. Notable examples are U'Ghamaro layout 116,
 `d8ff9874f392367fa111a75997915257a465bf8fc4c613cafa035cd12f6e733a`;
 Dzemael layout 211,
@@ -115,7 +115,7 @@ dispatch or which zone row selected either layout.
 
 ## Paired door-timeline placements
 
-A fresh typed extraction of the installed layouts matched the saved
+A fresh typed extraction of the layouts matched the saved
 `timeline_instance_placements.csv` and `timeline_unit_tree_owners.csv`
 byte-for-byte. The scanner follows each compiled timeline's direct UnitTree
 member target pointer and then reads that owner's serialized `isgrp` instance
@@ -124,7 +124,7 @@ matching instance sets for their `open` and `clos` timelines. The extractor
 was `build_dungeon_layout_animation_atlas.py`, source SHA-256
 `3f7e3ee6486d95ab0b654e202936b834b60a048b1a2053327c4ad87c7902658d`.
 
-| Layout / installed DAT SHA-256 | Distinct paired `isgrp` instance IDs |
+| Layout / DAT SHA-256 | Distinct paired `isgrp` instance IDs |
 | --- | --- |
 | 111 / `data/29/D9/00/08.DAT` / `4574985fb2d1e4b6068411350375777dd9d257fa2c5111f1de53a775172e67ec` | 3616-3617, 3619-3627 |
 | 112 / `data/29/D9/00/09.DAT` / `0fdba99375f3282d58286d98ecb2af734170ff3cfb3369967b569488c8df46c2` | 3679-3690 |
@@ -165,7 +165,7 @@ actor name is not a universal owner join.
 Layout 413's five packages show why capability and runtime ownership must stay
 separate. Two nine-second packages control a wall and collision box through
 show/hide and collision clips. Three shifting-sands packages last 3.0, 5.0,
-and 3.3 seconds. The layout proves those presentations exist, but no installed
+and 3.3 seconds. The layout proves those presentations exist, but no 1.23b
 resource edge identifies a server actor or trigger for them.
 
 The direct owner groups expand to 39 exact timeline-placement rows: five rows

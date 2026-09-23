@@ -1,7 +1,7 @@
 # BG-object embedded schedulers
 
 Standalone `cmn` and `lib` action banks are not the complete BG-object
-presentation corpus. A recursive decode of all 236 installed FFXIV 1.23b
+presentation corpus. A recursive decode of all 236 FFXIV 1.23b
 BG-object model binaries found 2,972 resources across 93 families and 224
 appearance variants.
 
@@ -16,12 +16,12 @@ recorded in [Seasonal BG-object assets](seasonal-bgobj-assets.md).
 
 Twenty-two legacy PWIB envelopes declare exactly 12 bytes beyond their
 physical files. Padding those envelopes in parser memory yields structurally
-complete resources; no installed file is modified. Other size mismatches are
+complete resources; no file is modified. Other size mismatches are
 not accepted by this rule.
 
 ## Model slots and appearance fields
 
-The complete installed BG-object model atlas contains 93 `b###` families, 224
+The complete BG-object model atlas contains 93 `b###` families, 224
 `e###` asset directories, and 236 model binaries. The extra model slots come
 from variants that carry more than one of `top_mdl`, `met_mdl`, and `sho_mdl`.
 Those slots join to the official appearance table through `body`, `head`, and
@@ -30,7 +30,7 @@ e002 is 2048, and later variants continue in 1024 increments.
 
 The client DAT export and the actor-appearance SQL contain the same 586 BG
 appearance rows with no differing IDs. They reduce to 227 distinct equipment
-and model signatures. Of the 236 installed model slots, 226 have at least one
+and model signatures. Of the 236 model slots, 226 have at least one
 official appearance binding and ten do not:
 
 | Model slot | Required appearance value |
@@ -46,9 +46,9 @@ official appearance binding and ten do not:
 | `b998/e005/top_mdl` | `body=5120` |
 | `b998/e007/top_mdl` | `body=7168` |
 
-Family b900 exists in the installed model tree without an official appearance
-base. Conversely, official appearance base b956 has no installed client model
-family. Synthetic appearance rows can exercise an unbound installed slot, but
+Family b900 exists in the model tree without an official appearance
+base. Conversely, official appearance base b956 has no corresponding client model
+family. Synthetic appearance rows can exercise an unbound model slot, but
 they are test inputs and must not be described as official or retail mappings.
 
 ## Scheduler graph
@@ -128,7 +128,7 @@ forward actor fields, caller values, or packet payload. None fixes `@0`,
 
 A hash-locked join of the embedded-only families against official appearance
 fields, actor-class rows, the checked-in server placement table, and local and
-recovered class scripts covers 82 installed variants and 86 model slots. Those
+recovered class scripts covers 82 variants and 86 model slots. Those
 slots contain 62 embedded scheduler instances and 53 VEFF instances from the
 families without standalone banks.
 
@@ -136,7 +136,7 @@ Eighty-three of the 86 slots have at least one official appearance-field
 owner. The three exceptions are the `sho_mdl` slots for `b933/e001`,
 `b934/e001`, and `b935/e001`. Their body slots have appearance owners, but no
 official appearance field equals the value required to select those shoe
-slots. The shoe assets therefore remain installed capabilities without an
+slots. The shoe assets therefore remain client assets without an
 official slot binding.
 
 The 83 mapped slots join to 226 actor-class rows:

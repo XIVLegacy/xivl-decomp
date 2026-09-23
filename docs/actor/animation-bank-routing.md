@@ -39,8 +39,8 @@ The retail `RaidDungeonWarp.activateWarpDevice` client method requests
 decimal scheduler 67493888 (`0x0405E000`), as recorded in
 `xivl-client-scripts:docs/raid-object-client-contracts.md` under Object
 behavior. The packed category is 4 (`lib`), the middle bank field is
-94, and the low field is zero. The installed
-`client/chara/bgobj/b936/act/cmn/lib/base/0094` is 1,232 bytes,
+94, and the low field is zero. The
+`client/chara/bgobj/b936/act/cmn/lib/base/0094` resource is 1,232 bytes,
 SHA-256
 `ba71a7d66808704200a99eb508d306e8fae2ffe5fdd98bc4135f8f8f0dd74cd0`.
 It contains `b936e004`, `initf_idle`, `BindActorClip`, and
@@ -102,7 +102,7 @@ calls `0x0058cad0`, then `0x0058c690`. This route constructs its own internal
 single-target action context; its second on-wire dword is not read here.
 
 The packed IDs prove the bank combination, not a universal item mapping.
-Installed resources contain distinct meat, cake, salad, egg, soup, apple,
+Resources contain distinct meat, cake, salad, egg, soup, apple,
 cheese, and cookie effects. No recovered table in this evidence maps every
 catalog item ID to its retail effect bank. `0x05fa1001` combines the generic
 self-item character bank with the effect whose authored path contains
@@ -122,10 +122,10 @@ Renderer code at `0x006631ce` selects a POP effect only for spawn types 2
 through 10, plus type 23 remapped to 2. `0x0065aab0` and `0x0065aad0` pack
 those as category 15 with character bank 0 and the spawn type as effect bank.
 Spawn type 1 instead follows `0x00663201 -> 0x00661ab0(20)`, which configures
-a color fade. The installed POP resources contain no `0001` bank. Thus spawn
+a color fade. The POP resources contain no `0001` bank. Thus spawn
 type 1 does not itself select a resurrection or get-up motion.
 
-For an accepted type-7 arrival, the same installed executable has a more
+For an accepted type-7 arrival, the same executable has a more
 specific conditional path. `0x0058ce85/0x0058ce89` read the two arrival
 words and `0x0058ceed` calls `0x0058b2a0`; its type dispatch reaches
 `0x0058adc0`. That function's non-flag-1 branch stores type and flag at
@@ -142,7 +142,7 @@ destination into actor position fields. Stage 14 (`0x0058a6e6`) emits
 category-15 POP route. These are executable paths, not evidence that a
 particular historical actor or event selected type 7.
 
-Installed `client/vfx/pop/0007` has SHA-256
+`client/vfx/pop/0007` has SHA-256
 `ffd87484a18d27242fc25e5202d7459702815063ec9e33873dc555e82474d950`.
 Its three 60-byte color records at file offsets `0x358`, `0x3ac`, and
 `0x3e8` have SHA-256 `17e57a3c1083f167d27bc74310608d78a44933d4b76bdc8724258b8404eddae2`,
@@ -194,7 +194,7 @@ the recovered `cbnm_revive` bank.
 
 ## Ferry steersman motion assets
 
-The installed c001 FID bank `client/chara/pc/c001/act/cmn/fid/base/2072`
+The c001 FID bank `client/chara/pc/c001/act/cmn/fid/base/2072`
 (SHA-256 `1e9b9fea8f61bea7127265c5dd6e6ddaa57db06fc5bd1432da204cb782ede05a`)
 contains the persistent `fxpf_idle` scheduler and authored
 `cbmm_h2_sud_b` motion references. The separate LIB bank
@@ -205,7 +205,7 @@ FID bank 2013
 (SHA-256 `ecffdb6b6abd35209f7b147c7c6ab63822a88facf81d0d6a4c70458eb71ac729`)
 instead names `cbmm_h2_sud_a`, so it is not an asset-identical replacement.
 
-Those installed-file hashes were independently checked. The scheduler and
+Those file hashes were independently checked. The scheduler and
 motion observations come from the contributor's
 `ferry_steersman_pose_investigation_2026-09-11.md`, Installed asset evidence.
 The reported intermittent reference pose remains undiagnosed: asset

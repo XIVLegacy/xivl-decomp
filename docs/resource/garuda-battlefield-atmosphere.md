@@ -1,6 +1,6 @@
 # Garuda battlefield atmosphere resources
 
-The installed MapLayoutResourceData at `data/28/D9/00/15.DAT` is
+The MapLayoutResourceData at `data/28/D9/00/15.DAT` is
 87,024 bytes, SHA-256
 `db13649451a75054235319e93bc9bfd3c236eb776bdd45c6df12e96e49e2a383`.
 Its exact literals include `wind_00_0000`, `vfx_smn01`, `cbind_cam`,

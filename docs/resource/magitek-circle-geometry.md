@@ -1,6 +1,6 @@
 # Magitek circle geometry
 
-Five installed b936 model variants form a geometric 2, 3, 4, 6, and 8 arc
+Five b936 model variants form a geometric 2, 3, 4, 6, and 8 arc
 family. The count comes from embedded model topology, not appearance ordering,
 server configuration, or a guessed party-size ladder.
 
@@ -27,12 +27,12 @@ the count.
 
 The appearance joins are exact body-field bindings in base b936: e005 through
 e009 encode body values 5120, 6144, 7168, 8192, and 9216. Multiple appearance
-IDs can select the same installed model variant; their existence does not give
+IDs can select the same model variant; their existence does not give
 the geometry different semantics.
 
 ## Action-bank family
 
-The same five variants have matching installed BG-object action banks:
+The same five variants have matching BG-object action banks:
 
 | Arcs | Variant | Full bank | Duration-control bank | Immediate-control bank |
 | ---: | --- | --- | --- | --- |
@@ -43,13 +43,13 @@ The same five variants have matching installed BG-object action banks:
 | 8 | e005 | `0x04005000` | `0x0400f000` | `0x0405f000` |
 
 The full banks are `bgobj/b936/act/cmn/lib/base/0005` through `0009`.
-The packed values identify installed category-4 selectors and matching banks;
+The packed values identify category-4 selectors and matching banks;
 they do not prove which server event issued one. Variant e004 is a separate
 terminal or warp presentation family and is not part of the arc-count set.
 
 ## Initializer condition and one-shot resources
 
-The installed b936 `e003` through `e009` `top_mdl/0001` packages each
+The b936 `e003` through `e009` `top_mdl/0001` packages each
 contain one `initf_idle` scheduler. All seven carry byte-identical
 `extrastat` conditions with the value `0x80`. The conditional branch that
 references the variant's `b936eNNv1` ACB (spelled `b936_e03v1` for e003)
@@ -58,7 +58,7 @@ contains its effect-end and kill clips. The other decoded branch contains
 authored branches and resource references; the native conditional evaluator
 and retail extra-stat producer are not recovered by this asset audit.
 
-Separate installed LIB banks `0004` through `0009` contain corresponding
+Separate LIB banks `0004` through `0009` contain corresponding
 `b936eNNv2` ACB references. Their package identities are:
 
 | Variant | LIB bank SHA-256 |
@@ -73,7 +73,7 @@ Separate installed LIB banks `0004` through `0009` contain corresponding
 The initializer's v1 condition and the LIB v2 references are distinct
 native presentations. They do not prescribe when a server should clear
 `0x80`, which LIB bank retail invoked on completion, replay policy, or a
-charge threshold. The seven installed model hashes and six LIB hashes
+charge threshold. The seven model hashes and six LIB hashes
 were checked directly; e005-e009 model identities are listed above,
 while e003 and e004 model SHA-256 values are
 `412b12e9a9c14f31fbf162469e0fc9260533a5b89dabaabff44a4c492e0d47bf`

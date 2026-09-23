@@ -1,6 +1,6 @@
 # Raid cutscene numeric actor records
 
-Nine installed `client/cut/` bundles contain the same bounded PWIB
+Nine `client/cut/` bundles contain the same bounded PWIB
 actor-record form. At each listed actor-ID offset, the record begins
 `0x30` bytes earlier with byte `0x3C`; its words at record `+0x20`,
 `+0x28`, and `+0x2C` are 5, `0xFFFFFFFF`, and 2. The little-endian
@@ -18,7 +18,7 @@ word at record `+0x30` is the numeric actor token below.
 | `rad0r403` | 566,944 | `cfd572945fae0dc1899cec24f36132fb7973ac7a7a164b333d6e8b4c4bd196d6` | `0x5710C` | 1200200 |
 | `rad0w503` | 572,624 | `7cefae5e6f71b4ec756e24760c418b39f972c3855df99000f1a155f34b685ae5` | `0x39730` | 1200332 |
 
-## Additional installed scene dictionaries
+## Additional scene dictionaries
 
 The six files listed below, along with `rad0r403` and `rad0w503` pinned
 above, contain standard PWIB actor records. Their little-endian numeric
@@ -96,12 +96,12 @@ literal in a scene is not an appearance binding for its actor record.
 `rad0r102` instead has a distinct compact/proxy `Actor_swich` record at
 `0x1298C`: its header names actor index 5 and its word at `0x129F4`
 is 1200204. It does not satisfy the standard record invariants above.
-The installed scene is SHA-256
+The scene's SHA-256 is
 `05c1e336768f421a0058be3aa19561a8a5f6e77a18a34eef6d79f582d192944a`.
 Its scheduler has two `RaptureBgActionClip` records at payload offsets
 `0xB50` and `0xDA8`, both naming layout `roc_r0_dun01` and target
 `isgrp_001406` with trailing words `[16, 1]`. The referenced instance
-exists in installed layout 211 (`data/28/D9/00/06.DAT`, SHA-256
+exists in pinned layout 211 (`data/28/D9/00/06.DAT`, SHA-256
 `98bc9d3a0111de81a95b01a3e1c9a94453f51f11169634eea0c80f97d329b368`).
 This is a direct scene-to-layout reference, not proof of a retail
 activation trigger, server actor binding, or runtime playback rule.
@@ -114,7 +114,7 @@ name `roc_r0_dun01` and `time_door_a1_open`, with trailing words
 The trailing words' dispatch ABI and historical viewing policy remain
 unknown.
 
-The same installed layout's relative `lyb` base is physical offset
+The same layout's relative `lyb` base is physical offset
 `0x4A50`. Its node at relative `0x22680` names `roc_r0_dun01` and has
 type `MiscObjects/LaySettings/LaySettingsObject`. The three float32 values
 at node `+0x40` (physical `0x27110`) are `(-16, 188, 32)`. They are a
@@ -165,8 +165,8 @@ the listed scene played during a particular encounter.
 `RaidFst0Dungeon03.eventNoticeCutScene` names `rad0f306`, `rad0f307`, and
 `rad0f308` as close scenes; its `rad0f300` opening scene and widget behavior
 are documented in
-`xivl-client-scripts:docs/content-director-ui-contracts.md`. The installed
-client marked by `game.ver` as `2012.09.19.0001` has these files at
+`xivl-client-scripts:docs/content-director-ui-contracts.md`. The client
+marked by `game.ver` as `2012.09.19.0001` has these files at
 `client/cut/<scene>/<scene>`. They contain selected actor setup records with
 a `0x40`-byte stride. The actor index is the byte at record `+0x03`; position
 is three float32 values at `+0x10`; rotation is a float32 at `+0x20`. The
@@ -200,24 +200,24 @@ that any listed scene played in a particular historical run.
 
 ## Dzemael boss-scene cast and appearance joins
 
-The installed `client/cut/rad0r101/rad0r101` (SHA-256
+The `client/cut/rad0r101/rad0r101` (SHA-256
 `6443e8bfdb7f34a287124d0193fd5e4ec37de1138dd80e4f31431679457ba0c2`)
 has standard dictionary records for PC index 4, three party-member slots
 at indices 5-7, and `MON` index 8 / actor class 6500030 (record offset
 `0x310`). Its single scheduler (SHA-256
 `66493744bb5d1cc6de69d6543f92ba047a2ec9b154070b3652a3da13ed4409d7`)
-references `enter01` (`brt`) and m029 motion resources. The installed
+references `enter01` (`brt`) and m029 motion resources. The client-data
 `actorclass_graphic.csv` identifies both 6500030 and dungeon class 2301701
 with `(base, size, head, body) = (10029, 3, 0, 1120)`. These facts make an
 early Ahriman scene plausible; neither the original Eye's runtime actor
 identity nor a retail approach-trigger volume follows from them.
 
-The installed `client/cut/rad0r104/rad0r104` (SHA-256
+The `client/cut/rad0r104/rad0r104` (SHA-256
 `f6f17a2f04e4831dc3c0ecc6610202ebe8461fc88170a6f96dad741f92d47f00`)
 has standard actor-dictionary records for PC, seven party-member slots,
 `Orga` index 12 / actor class 6500031, and `Gost1`-`Gost4` indices 13-16 /
 actor class 6500036. Its scheduler references `midboss01` (`brt`) and
-`eb_rad0r104a01x` (`bcm`). The installed
+`eb_rad0r104a01x` (`bcm`). The
 `client/cut/rad0r105/rad0r105` (SHA-256
 `edb8478fc81b2cf0b7e9e064492dbbf71e1576a885592e88e045913cfd9690ae`)
 has PC, seven party-member slots, `Gargoile` index 12 / 6500032,
@@ -226,7 +226,7 @@ has PC, seven party-member slots, `Gargoile` index 12 / 6500032,
 `boss01` (`brt`) and `eb_rad0r105a03x` (`bcm`). These are cinematic
 dictionary tokens, not a combat-spawn count or a server roster.
 
-The installed data's `actorclass.csv` (SHA-256
+The client-data `actorclass.csv` (SHA-256
 `3ac9f8d1812d49101f367e2a41356be96b5d64b1fc5ca29949195f50ebe1d984`)
 and `actorclass_graphic.csv` (SHA-256
 `7da8241400530885e0a28ded04a03acf2771b0580a79c1f49f46ee0861010611`)

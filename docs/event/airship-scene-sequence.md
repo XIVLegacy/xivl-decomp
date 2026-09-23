@@ -10,7 +10,7 @@ player argument when it calls the delegated method. This is why the scene
 keys are the later arguments to `DftSrt.eventDeparture`, rather than fields
 on a `PopulaceFlyingShip` actor.
 
-The installed scene assets have city-specific departure (`*000`) and arrival
+The scene assets have city-specific departure (`*000`) and arrival
 (`*010`) names. Their byte identities were checked directly:
 
 | City | Scene | Bytes | SHA-256 |
@@ -31,7 +31,7 @@ not authenticate that choice.
 
 ## Parsed actor and scheduler boundary
 
-The six hash-matched installed files yield 77 actor-dictionary records and
+The six hash-matched files yield 77 actor-dictionary records and
 74 structurally plausible spatial records in total. The setup
 stream accounts for 24 of those spatial records; the wider scan also finds
 later timeline placements. These are parser counts, not a count of actors
@@ -53,14 +53,14 @@ playback durations: branch order, waits, and scene completion are not
 reconstructed by this header read. In particular, the common outer
 `9,000,000` value does not prove that each movie plays for nine seconds.
 The actor and spatial counts use `decompile_airship_cutscene_setup.py`
-against the installed files. The block fields were read directly from
+against those six scene files. The block fields were read directly from
 each hash-matched SCB.
 
 Provenance: recovered
 `quest/scenario/defaulttalk/dftsrt.lua:eventDeparture`,
 `director/directorbaseclass.lua:delegateEvent`, and
 `quest/questbaseclass_common.lua:startNQCutScene` establish the script
-sequence. Installed `client/cut/zep0*/zep0*` files supply the six sizes and
+sequence. `client/cut/zep0*/zep0*` files supply the six sizes and
 hashes; `tools/outputs/lpb/airship_decomp_20260824/scene_inventory.csv`
 records their parsed roles and dictionaries. No retail runtime probe or
 new capture was used.

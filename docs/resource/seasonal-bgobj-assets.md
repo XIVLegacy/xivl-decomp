@@ -33,7 +33,7 @@ sweets shaders. `b937` has `cofn` coffin shaders but no encoded event owner.
 
 ## Placement and activation limits
 
-The typed scan of 287 installed mapped layout DATs found no ASCII references
+The typed scan of 287 mapped layout DATs found no ASCII references
 to `b901`, `b929..b932`, `b981`, or `b982`. Fifteen raw occurrences of their
 official appearance IDs were all inside regular `uint32` offset tables, so
 none is an authenticated placement. The scan does not exclude other resource
@@ -42,7 +42,7 @@ activation owner, or weather relationship is recovered for these portable
 families. The examined inventory has no positive Foundation Day portable
 model candidate; that is not a claim that Foundation Day had no decorations.
 
-Gridania's installed town layout DAT `0x29B00001` (SHA-256
+Gridania's town layout DAT `0x29B00001` (SHA-256
 `abc13bd6f096b0fe9703b2092ca4a7f819ff2b88e4d08ae222a9db447f618312`)
 contains 30 `gcflag` string occurrences, 27 distinct: six `sgrp` names and
 24 mesh/attribute names. The scanned bytes contain no `time_bg_gcflag*`,
@@ -52,7 +52,7 @@ prove that Foundation had no decorations. The source inventory is
 `foundation_gcflag_inventory.csv` rows 2-31; its sorted resource-key and
 file-hash manifest is SHA-256
 `97e42a4520a96836587bf9cf90c44cf645c492e2265926baf54d991a4296a7ed`. The
-named bytes and bounded negative scan were checked against the installed DAT.
+named bytes and bounded negative scan were checked against the DAT bytes.
 
 ## Derivation
 

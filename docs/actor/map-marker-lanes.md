@@ -19,7 +19,7 @@ The separate `MiniMapWidget.setMiniMapWidgetMarkerData` path writes
 `GLMakerData[slot].X/Y/Z/Radius` for a coordinate marker. Its recovered
 branches associate size arguments 1, 2, and 3 with radius values 32, 64,
 and 128, and reject slots outside 0..8. The decompiled method contains
-invalid `break` statements, but direct disassembly of the installed LPB
+invalid `break` statements, but direct disassembly of the retail LPB
 confirms the three size branches and the stored-property writes. The exact
 caravan step/status gate and full-map counterpart are recorded in
 `xivl-client-scripts:docs/content-director-ui-contracts.md`.

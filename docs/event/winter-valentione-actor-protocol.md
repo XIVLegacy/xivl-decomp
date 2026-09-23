@@ -31,7 +31,7 @@ not an observed grant or a recovered completion rule.
 ## Valentione numeric actor groups
 
 `actorclass.csv` column 5 joins the nine actor class IDs below to their
-display-name IDs. The installed `PopulaceValentMaster.getTownMasterType`
+display-name IDs. The `PopulaceValentMaster.getTownMasterType`
 method independently compares the same IDs and returns numeric types 1, 2,
 and 3 as recorded in
 `xivl-client-scripts:docs/seasonal-event-actor-contracts.md`. The decoded
@@ -68,5 +68,5 @@ Actor-class ID to display-ID joins are `actorclass.csv` column 5, rows
 `xtx_displayName.csv` at those display IDs. These seven cited CSV files were read
 from the canonical `2012.09.19.0001` corpus and matched their individual
 `xivl-client-data:manifests/tables.json` SHA-256 entries. The numeric
-Valentione method and its installed LPB identity are in
+Valentione method and its LPB identity are in
 `xivl-client-scripts:docs/seasonal-event-actor-contracts.md`.

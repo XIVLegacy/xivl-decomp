@@ -202,7 +202,7 @@ leading color slot. The actual player-party branch calls
 `_setNameplateColor(1, 0.5, 1, 1, 1)`, or RGBA `(0.5, 1, 1, 1)`. The former is
 not an exact party-blue substitute and does not establish a Charm-specific
 presentation path. This is the independently decompiled
-`judge/depictionjudge.lua:judgeNameplate` method: the installed 1.23b
+`judge/depictionjudge.lua:judgeNameplate` method: the 1.23b
 `client/script/0p635/65u17q1vw0p635.le.lpb` has SHA-256
 `9eb9b7054434cd5281cb52c89a2d5b43a40913dc47ab4d11cc18fdda4ade6e76`;
 `xivl-client-structs:tools/decode_lpb.py` decoded it to Lua 5.1 bytecode
@@ -211,7 +211,7 @@ identical to the independently recovered chunk used by `unluac` for this
 method. The decoded/ciphered name join is in
 `xivl-client-scripts:lua/registry.json` (`judge/depictionjudge`).
 
-The same installed `judgeNameplate` bytecode also defines an NM map-marker
+The same `judgeNameplate` bytecode also defines an NM map-marker
 override in its NPC path. `isNotoriousMonster()` returns two values; its
 `chara/charabaseclass_battle.lua` definition maps `charaWork.battleSave.potencial`
 `-1`, `-2`, `-3`, and `-4` to `(true, 11)`, `(true, 12)`, `(true, 13)`, and
@@ -224,10 +224,10 @@ mis-renders the second result as a call on the first result; the bytecode's
 `CALL R11 2 3`, `EQ R11 true`, and `EQ R12 12` establish the actual test.
 This proves the client-side presentation rule for potential `-2`, not that
 any specific retail actor was assigned that potential or displayed marker 7.
-The bytecode is the decoded installed `judge/depictionjudge` chunk identified
+The bytecode is the decoded `judge/depictionjudge` chunk identified
 above. The NM/potential methods are recovered
 `chara/charabaseclass_battle.lua:isNotoriousMonster` and `getPotencial`;
-their installed `client/script/729s9/729s989r57y9rr_89qqy5.le.lpb`
+their `client/script/729s9/729s989r57y9rr_89qqy5.le.lpb`
 has SHA-256 `ef6a85336b605cb404428efbc711cdf54c5b39a34f7cb9f18dab480568b650c3`.
 Its decoded Lua 5.1 bytecode has SHA-256
 `6d3f4bc0eb35827d3ced5e6a4c10cbd44ec0db9c729eed7075efe36e83982e9c`,

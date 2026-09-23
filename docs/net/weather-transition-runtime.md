@@ -71,7 +71,7 @@ which samples it alone cannot measure a 20- or 180-second packet transition.
 
 ## Zone-name and micro-area boundary
 
-The same installed executable constructs an `AreaBase` string member at
+The same executable constructs an `AreaBase` string member at
 `+0x64` (`0x006F3252..0x006F3255`). The `_getZoneName` binding at
 `0x006F9700..0x006F9715` passes that member to the string-return helper;
 registration at `0x00749BC7` loads the binding address. This getter does

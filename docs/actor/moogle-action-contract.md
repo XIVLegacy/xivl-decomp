@@ -1,6 +1,6 @@
 # Thornmarch Moogle action contract
 
-The FFXIV 1.23b command tables and installed m701 action banks preserve exact
+The FFXIV 1.23b command tables and m701 action banks preserve exact
 presentation inputs for the Thornmarch court. They do not preserve the lost
 server combat rotation, potency formulas, target policy, or command-to-WSS
 dispatch table.
@@ -39,9 +39,9 @@ Attribute 13 is a neutral command-table value. It does not by itself prove
 slashing, projectile, or magic damage, and it is not an emulator action-type
 enumeration.
 
-## Installed action corpus
+## Action corpus
 
-The installed m701 inventory contains 47 selected action-bank files, 1,102
+The m701 inventory contains 47 selected action-bank files, 1,102
 nested resources, 1,027 scheduler clips, and 97 motion resources. The decoded
 set includes:
 
@@ -50,9 +50,9 @@ set includes:
   and 0774;
 - BID bank 0000;
 - battle bank 0001;
-- the installed MGC and WSS families for the court models.
+- the MGC and WSS families for the court models.
 
-The installed WSS ordinals are `0001` through `0023` and `0025`;
+The WSS ordinals are `0001` through `0023` and `0025`;
 `0024` is absent from this action tree. This is a file inventory, not
 evidence for a missing retail combat command.
 
@@ -72,7 +72,7 @@ The BID bank also contains a staged death-motion family:
 `cbbm_ft_ded_3` (36 frames), all at 30 fps. Its `cbbm_dedpose` is
 100 frames. The `cbbm_msb5_1` MTB is byte-identical to `cbbm_dedpose`
 (SHA-256 `b4d74ab86ff28cb418e838f9c09c31d7d3ebb8ac5339d9473cb988e9bc3ef211`),
-while `cbbm_msb6_1` is a distinct 91-frame motion. These installed
+while `cbbm_msb6_1` is a distinct 91-frame motion. These
 motion identities do not establish which court actor or retail phase
 selected a death or model-state presentation.
 
@@ -90,7 +90,7 @@ file or an action bank exists.
 
 ## Court cutscene bank
 
-The installed `client/cut/sum6m000/sum6m000` bundle is 10,431,968
+The `client/cut/sum6m000/sum6m000` bundle is 10,431,968
 bytes, SHA-256
 `d393cf0811f3d26543057ada07a7fbdae551c9a606b4345ce48001869f4b9259`.
 It contains the distinct actor-alias literals `m701b0` through
@@ -102,7 +102,7 @@ command.
 
 ## Selector boundary
 
-No original command-to-animation dispatch table was recovered. The installed
+No original command-to-animation dispatch table was recovered. The
 command row proves command fields, and a WSS file proves that the model can
 play its authored presentation. Neither fact alone selects a bank for a
 particular command.

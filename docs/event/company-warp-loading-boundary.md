@@ -2,7 +2,7 @@
 
 `PopulaceCompanyWarp.eventAfterWarpOtherZone` calls `_fadeOut(1)`,
 `_waitForFading()`, then `_fadeInAfterWarp()` in the recovered client Lua.
-The installed `client/script/729s9/wu7/uvupy975/uvupy9757vxu9wln9su.le.lpb`
+The `client/script/729s9/wu7/uvupy975/uvupy9757vxu9wln9su.le.lpb`
 has SHA-256
 `7eddca072fa1e50eb83a6508bbdfafffe9efc0a828cfb6c7e6db1094aa13d0fe`;
 its decoded chunk (SHA-256

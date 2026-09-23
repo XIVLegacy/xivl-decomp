@@ -1,6 +1,6 @@
 # Garuda flight-motion assets
 
-The installed m851 Garuda action banks include one upward and two downward
+The m851 Garuda action banks include one upward and two downward
 bone-local motion packages. This is an asset finding, not a recovered retail
 command or encounter-phase selector.
 
@@ -14,7 +14,7 @@ The nested `SEDBmtb` payload in `0013` and `0014` is byte-identical,
 SHA-256 `a0d92b0ed4bdda11f39214e85157e49c7d2d14527168959a8dc528bb6ba6bac4`;
 the containing banks differ. The `0012` MTB is SHA-256
 `b30450a6fcbd154acfa09dc0381591980c1ce8df6003739396574e77509dac98`.
-An MTB/SPU decode of the installed banks and m851 skeleton yields the
+An MTB/SPU decode of the banks and m851 skeleton yields the
 root-bone local translation keys above. The motion direction supports
 takeoff and landing interpretations, but skeletal coordinates are not
 actor world coordinates. Native blending, actor transforms, and server
@@ -26,7 +26,7 @@ command-to-WSS selector or historical phase timing was recovered here.
 
 ## Separate scene bundles
 
-Installed CUT bundles also carry Garuda-family actor and effect literals:
+CUT bundles also carry Garuda-family actor and effect literals:
 
 | Bundle under `client/cut/` | Bytes | SHA-256 | Checked literals |
 | --- | ---: | --- | --- |

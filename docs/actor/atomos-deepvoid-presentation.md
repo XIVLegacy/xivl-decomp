@@ -1,6 +1,6 @@
 # Atomos and Deepvoid presentation
 
-This note records installed-resource and native evidence for the Atomos event
+This note records resource and native evidence for the Atomos event
 presentation. Native addresses refer to the pinned FFXIV 1.23b executable with
 image base `0x00400000` and SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
@@ -9,7 +9,7 @@ image base `0x00400000` and SHA-256
 
 The appearance value `5120` is the `head` field and selects equipment set
 `e005`; it is not a body-equipment value. Eighteen recovered Deepvoid
-appearance rows cover eight model families, and every associated installed
+appearance rows cover eight model families, and every associated
 `e005/met_mdl/0001` package carries the aura lifecycle.
 
 The package starts `awl*_on` from normal or battle idle hooks, binds its effect
@@ -101,7 +101,7 @@ at 30 fps, or 57.6 seconds. Their motion and VFX bytes are identical; shaders
 and textures differ. e001 is the pale/cyan variant, while e002 contains orange
 crystal and warm fuzz-ramp textures.
 
-This makes b902 e002 the strongest installed persistent orange-crystal
+This makes b902 e002 the strongest persistent orange-crystal
 candidate. It does not identify the original event-director selection. A
 separate transient orange-white ground flare is not bound by these assets.
 

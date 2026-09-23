@@ -1,11 +1,11 @@
 # Ifrit ground-effect bank resources
 
-The installed m852 WSS containers separate compact target-ring art,
+The m852 WSS containers separate compact target-ring art,
 rock-bearing caster art, and generated-layout vocabulary. These are
 resource associations and model-local shapes, not a recovered retail
 Plume or Eruption command map.
 
-The read-only comparison parsed each installed
+The read-only comparison parsed each
 `client/chara/mon/m852/act/emp_emp/wss/base/NNNN` PWIB/SEDBRES table,
 recursed into its live nested resources, identified `SEDBveff` and
 `SEDBvmdl` payloads, and checked literal control names inside each
@@ -13,7 +13,7 @@ VEFF. Model bounds come from the unique kind-14, size-68, live-1 VMDL
 record. The parser is `build_ifrit_ground_vfx_decomp.py`; the table
 below gives whole-file SHA-256 pins and selected nested payload pins.
 
-| WSS | Installed SHA-256 | Direct resource observation |
+| WSS | SHA-256 | Direct resource observation |
 | --- | --- | --- |
 | 0002 | `5f832618e64f086be4ae33d75ea4552c92876e7ed4e01b6cd31cea0ac15af45e` | Caster- and target-named ACB/VEFF pairs; both VEFFs contain `GenerateMaster`, neither contains the four `ManyGenerate*` names checked below; no `rock` literal in its recursively parsed resources |
 | 0003 | `9b99c9ac481c0036fb6e66fec69b479599c99c4b9e3df401d97bb2127268e7b9` | Caster- and target-named ACB/VEFF pairs; neither VEFF contains `GenerateMaster` or the checked `ManyGenerate*` names |

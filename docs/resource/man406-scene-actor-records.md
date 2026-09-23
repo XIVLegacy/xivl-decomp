@@ -1,7 +1,7 @@
 # Man406 cutscene actor records
 
-The installed client is stamped `2012.09.19.0001` by `game.ver`. A read-only
-structural scan of the installed `client/cut/<scene>/<scene>` files below used
+The 1.23b client is stamped `2012.09.19.0001` by `game.ver`. A read-only
+structural scan of the `client/cut/<scene>/<scene>` files below used
 the actor-dictionary signature, actor-index join, and `0x40`-byte spatial
 record fields described in [Man308 cutscene actor records](man308-scene-actor-records.md).
 The `decompile_man406_cutscene_setup.py` scene selector had SHA-256

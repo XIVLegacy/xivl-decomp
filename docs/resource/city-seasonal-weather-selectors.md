@@ -1,6 +1,6 @@
 # City seasonal weather selectors
 
-The installed city layouts and recovered 2011 patch payloads preserve
+The 1.23b city layouts and recovered 2011 patch payloads preserve
 weather-conditioned decoration selectors. Their layouts identify client-side
 visibility conditions, not retail server timing or a live event replay.
 
@@ -119,7 +119,7 @@ listed markers were checked in the extracted bytes. The supplied
 that later payload still contains `vfx_lastwtr` and `vfx_tunder1`, not the
 December `cbind_xmas` or `vfx_cam_xmas` markers.
 
-The final installed layout scan still finds 8027-only masks alongside
+The final layout scan still finds 8027-only masks alongside
 Halloween-named scheduler pairs in all three cities. In Gridania, that
 layout condition coexists with an Xmas-marked 8027 weather payload. These
 static resources do not prove the resulting rendered combination or a retail
@@ -129,7 +129,7 @@ uniform atmosphere across the three cities.
 
 ## Starlight component residue
 
-The direct-dependency graph of the 287 installed layouts identifies 55
+The direct-dependency graph of the 287 layouts identifies 55
 Starlight-named structured component DATs. Thirty-nine have a current layout
 owner: seven in Gridania's 8027 payload and 32 in retained last-weather or
 thunder groups. Sixteen have no direct owner: four Gridania, six Limsa, and
@@ -148,14 +148,14 @@ its final 8027 payload:
 | `0x5D210081` | `0x5D2100AB` | 12,136 | `d9d21cdabce67e272e86941f3fb58a6235a969ef8ef86114115729ae50f1412d` |
 
 The duplicate bytes prove preservation under different dependency keys, not
-the exact historical event transition. None of the 203 examined installed
+the exact historical event transition. None of the 203 examined
 `SEDBvins` controllers references the six orphan historical Xmas leaves.
 The missing Limsa/Ul'dah controller, layout wrapper, selector, and placed
 transforms cannot be inferred from the surviving component graph.
 
 ## Other city-layout show/hide names
 
-The installed city DATs also contain these 24 name-paired show/hide strings.
+The 1.23b city DATs also contain these 24 name-paired show/hide strings.
 Each listed string was checked at its byte offset. The pair is based only on
 the shared base name and `_show`/`_hide` suffix; it does not prove a common
 owner, event, or invocation.
@@ -189,9 +189,9 @@ owner, event, or invocation.
 
 The 24 entries are the rows outside the Halloween- and Starlight-named groups
 in `city_layout_paired_schedulers.csv` rows 2-90. Each literal and offset was
-checked against the corresponding installed DAT bytes.
+checked against the corresponding DAT bytes.
 
-The installed resources are pinned independently of the names:
+The resource files are pinned independently of the names:
 
 | DAT key | SHA-256 |
 | --- | --- |
@@ -242,5 +242,5 @@ The component-owner counts, identifier edges, and VINS scan derive from
 `starlight_resource_identifier_edges.csv`,
 `starlight_cloud_support_ownership.csv`, and
 `starlight_vins_controller_scan.csv`. The four Gridania DAT sizes and
-SHA-256 digests in the table were checked directly against the installed
+SHA-256 digests in the table were checked directly against the 1.23b client
 files.

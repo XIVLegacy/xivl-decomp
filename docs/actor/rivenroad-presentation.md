@@ -43,7 +43,7 @@ phase ordering.
 
 ## Nael and fragment resources
 
-Nael uses model family m917. The installed sources include BID banks 0000 and
+Nael uses model family m917. The sources include BID banks 0000 and
 0001 plus WSS banks 0001-0007, 0009-0012, and 0014-0019. Selected immutable
 identities are:
 
@@ -90,7 +90,7 @@ encounter.
 
 ## Arena layout
 
-The installed Rivenroad layout is `data/AB/F4/00/00.DAT`, 67,904 bytes,
+The Rivenroad layout is `data/AB/F4/00/00.DAT`, 67,904 bytes,
 SHA-256
 `8dbf9335b4f357421a6dab2dc349bcd5009d2760c7f421d9b52ffaf6c57fb830`.
 It contains 13 layout instances and 48 nested members. The root group is

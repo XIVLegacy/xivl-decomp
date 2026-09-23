@@ -23,15 +23,15 @@ aetherytes were unlocked for any character.
 
 - `ffxivgame.exe`, image base `0x00400000`, SHA-256
   `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`:
-  the instructions above were decoded directly from the installed PE
+  the instructions above were decoded directly from the PE
   using `pefile` and Capstone x86-32.
-- Installed `client/script/729s9/uy9l5s/uy9l5s_nvsz.le.lpb`, SHA-256
+- `client/script/729s9/uy9l5s/uy9l5s_nvsz.le.lpb`, SHA-256
   `069a353c7141ff1b8086f1c4273bb131335013cb8a1b33aa66260ce0b6eeebca`:
   decoded Lua 5.1 chunk SHA-256
   `b21536b66d51ac6967358b053bdd25f6d57270125e936ee141a5fbe48eb0c819`.
   The matching contributor decompilation is
   `tools/outputs/lpb/decomp_further_20260617/lua/chara/player/player_work.lua:391-401`.
-- Installed `client/script/n1635q/65rzqvun1635q_7vww57qvs.le.lpb`,
+- `client/script/n1635q/65rzqvun1635q_7vww57qvs.le.lpb`,
   SHA-256
   `0f8ca1585bb97c40d36cbf120dd3f6fa6351927c4530e3fad76a71582af95425`:
   decoded Lua 5.1 chunk SHA-256

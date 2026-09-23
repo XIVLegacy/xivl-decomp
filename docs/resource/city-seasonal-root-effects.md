@@ -1,6 +1,6 @@
 # City seasonal root effects
 
-The three installed capital root layouts retain separate egg and hanabi
+The three 1.23b capital root layouts retain separate egg and hanabi
 visual families. Their names identify authored resource families; the layouts
 alone do not identify a retail actor owner or an activation schedule.
 
@@ -14,7 +14,7 @@ Each root has `vfx_egg_001..005` and the fifteen
 `time_vfx_egg_v_[lcr][1-5]` names. The three roots also have
 `vfx_hanabi1..9`. Limsa and Ul'dah additionally have two five-member
 `time_vfx_hanabi*_vtp1..5` name families. Gridania lacks those expanded
-hanabi timeline names in the installed DAT scan; this does not mean its
+hanabi timeline names in the 1.23b DAT scan; this does not mean its
 hanabi assets or compiled scheduler bodies are absent. All ten sparse weather
 masks in these roots select 8030 and 8032, not 8027 or 8029. The separate
 city layouts that contain weather-conditioned decorations are described in
@@ -27,7 +27,8 @@ at offsets `0x6D10`, `0x6D15`, `0x6D1A`, `0x6D1F`, and `0x6D24` in
 expanded `time_vfx_hanabi*_vtp#` string occurs in that DAT. This distinguishes
 the resident short keys from timeline references; it does not link a key to a
 primitive, object group, or activation.
-The source inventory is `moonfire_hanabi_executable_atlas_20260712/hanabi_short_key_string_reuse.csv`, rows 2-6; these offsets and the negative expanded-name scan were checked against the installed DAT bytes.
+The source inventory is `moonfire_hanabi_executable_atlas_20260712/hanabi_short_key_string_reuse.csv`, rows 2-6; these offsets and the negative
+expanded-name scan were checked against the DAT bytes.
 
 ## Script and activation boundary
 
@@ -46,7 +47,7 @@ with no `vtp1..5` caller found by the examined literal scan. Native BG
 scheduler dispatch can accept server-supplied names, so that negative Lua
 scan does not rule out retail hanabi playback. No authenticated retail owner
 binding, trigger, or orchestration timing is recovered for either family.
-The installed root layouts also do not show a direct 8029 weather-selector
+The root layouts also do not show a direct 8029 weather-selector
 mask for the hanabi groups; weather and timeline activation must not be
 conflated.
 
@@ -78,7 +79,7 @@ follows from the neighborhoods or transforms.
 
 ## Provenance
 
-The installed `MapLayoutResourceData` root DATs are 664,720, 529,376, and
+The three `MapLayoutResourceData` root DATs are 664,720, 529,376, and
 438,960 bytes respectively, with SHA-256 digests:
 
 | DAT key | SHA-256 |

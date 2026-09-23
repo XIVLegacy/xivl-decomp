@@ -1,6 +1,6 @@
 # Man308 cutscene actor records
 
-The installed client is stamped `2012.09.19.0001` by `game.ver`. The files
+The 1.23b client is stamped `2012.09.19.0001` by `game.ver`. The files
 below are `client/cut/<scene>/<scene>` resources. A read-only structural scan
 of their bytes found actor-dictionary records beginning with `3c 00`, with
 little-endian words 5 at record `+0x20`, `0xffffffff` at `+0x28`, and 2 at

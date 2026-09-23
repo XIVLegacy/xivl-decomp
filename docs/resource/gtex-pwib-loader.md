@@ -146,15 +146,15 @@ arithmetic without replacing it with fixed constants.
 
 ### m520/e001 texture-bank boundary
 
-The installed `client/chara/mon/m520/equ/e001/top_tex1/0000` through `0007`
+The `client/chara/mon/m520/equ/e001/top_tex1/0000` through `0007`
 resources are each 103,600 bytes. The `xivl-tools` `xivl inspect` reader at
 commit `bcc31ced63f326195ff533b3eadd25d25d7c2d56` identifies all eight as
 bounded PWIB resources with first segment `[16, 5296)` and second segment
 `[5296, 103600)`. It reports the second segment as opaque; this parser output
 does not establish a GTEX texture, pixel format, palette, or element meaning.
 
-The source identities below were checked against the installed
-`2012.09.19.0001` client. The executable in that install matches the pinned
+The source identities below were checked against the client stamped
+`2012.09.19.0001`. Its executable matches the pinned
 `ffxivgame.exe` hash above.
 
 | Resource | Bytes | SHA-256 |
@@ -168,7 +168,7 @@ The source identities below were checked against the installed
 | `m520/equ/e001/top_tex1/0006` | 103,600 | `a0c62abbc19804ecf8578e2d9bdb2cd4ac99878e8be1f3c4028587cdcafd2c3d` |
 | `m520/equ/e001/top_tex1/0007` | 103,600 | `4f7c681ae338eed7558ee999c3ecdd0d186fd7ee2ad496136e33e7e7f3d86aa5` |
 
-These identities pin the installed resource files, not the interpretation of
+These identities pin the resource files, not the interpretation of
 their opaque second segment. They do not associate a texture index with an
 actor-class ID or prove which appearance any retail encounter selected.
 

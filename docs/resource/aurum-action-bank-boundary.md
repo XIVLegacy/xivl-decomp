@@ -1,6 +1,6 @@
 # m055 and m012 action-bank boundary
 
-The installed client stamped `2012.09.19.0001` has nine m055 and seven
+The 1.23b client stamped `2012.09.19.0001` has nine m055 and seven
 m012 WSS banks under
 `client/chara/mon/<model>/act/emp_emp/wss/base/`. The table records
 exact SHA-256 values and selected visible ASCII motion literals from a
@@ -26,7 +26,7 @@ raw-byte scan. A literal is not a decoded command-to-bank mapping.
 | m012 / 7 | 376,928 | `6a228d7a84a15ba94ad5b5ba855d2d45d6c707524c0ab607c15771fda3154b38` | `cbbm_sp_b02` |
 
 The contributor's Aurum Vale implementation assigns named Coincounter and
-Miser's Mistress actions to these banks by order. The installed files
+Miser's Mistress actions to these banks by order. The files above
 confirm the bank ranges and exact bytes, but this observation has no
 serialized command ID, actor class ID, boss identity, or retail action
 selector. In particular, m012 banks 2, 3, and 5 share the visible

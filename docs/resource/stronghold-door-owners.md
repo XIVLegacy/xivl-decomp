@@ -1,6 +1,6 @@
 # Stronghold door owners
 
-The installed FFXIV 1.23b layouts for Natalan, Zahar'ak, U'Ghamaro Mines,
+The FFXIV 1.23b layouts for Natalan, Zahar'ak, U'Ghamaro Mines,
 and Castrum Novum contain 46 placed unit-tree instances with compiled
 open/close door timelines. This inventory uses serialized placement ownership,
 not proximity between names in the resource.

@@ -7,7 +7,7 @@ model-state tornado resources. Native addresses refer to the pinned FFXIV
 
 ## Resource ownership
 
-The installed sources establish three non-interchangeable presentation sets:
+The sources establish three non-interchangeable presentation sets:
 
 | Source | Role | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
@@ -34,7 +34,7 @@ m851 WSS11 runs `cbbm_sp_b04` for 90 frames at 30 fps. Its caster package is
 0.07 seconds. It contains two caster ActionClips and one target ActionClip,
 references the m851 skill11 effect family, and carries `tatumaki` and `LOOP`
 tokens plus scene-texture, camera, draw, and filter controls. It is the
-strongest installed Aerial Blast presentation candidate, but static assets do
+strongest Aerial Blast presentation candidate, but static assets do
 not establish the exact server command selector.
 
 ## One-shot m999 hazard banks

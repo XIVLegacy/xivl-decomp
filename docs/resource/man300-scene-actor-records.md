@@ -1,6 +1,6 @@
 # Man300 cutscene actor records
 
-The installed client is stamped `2012.09.19.0001` by `game.ver`. A read-only
+The 1.23b client is stamped `2012.09.19.0001` by `game.ver`. A read-only
 scan of the seven `client/cut/<scene>/<scene>` resources below decoded
 actor-dictionary records using the signature and field offsets in
 [Man308 cutscene actor records](man308-scene-actor-records.md). The

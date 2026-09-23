@@ -15,7 +15,7 @@ provide catalog and selector contracts, not transaction authority.
 | Materia | 66 raw / 71 SQL | 64 archive families and 256 compatibility rows |
 
 The 79 expeditionary rows are fixed requests, not arbitrary-gear Expert
-Delivery. A hash-locked search of 2,517 installed LPBs, their recovered Lua and
+Delivery. A hash-locked search of 2,517 LPBs, their recovered Lua and
 bytecode, and 804 DAT CSVs found no Expert Delivery contract or complete weekly
 ledger. The recovered 32-row weekly list contains 24 week-1 rows and eight
 partial week-2 rows; it must not be presented as an eight-week rotation.
