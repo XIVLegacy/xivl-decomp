@@ -144,6 +144,34 @@ ranged from 96 to 4,486,464 bytes and second-segment lengths from 376 to
 5,592,404 bytes. Those retail observations corroborate the general loader
 arithmetic without replacing it with fixed constants.
 
+### m520/e001 texture-bank boundary
+
+The installed `client/chara/mon/m520/equ/e001/top_tex1/0000` through `0007`
+resources are each 103,600 bytes. The `xivl-tools` `xivl inspect` reader at
+commit `bcc31ced63f326195ff533b3eadd25d25d7c2d56` identifies all eight as
+bounded PWIB resources with first segment `[16, 5296)` and second segment
+`[5296, 103600)`. It reports the second segment as opaque; this parser output
+does not establish a GTEX texture, pixel format, palette, or element meaning.
+
+The source identities below were checked against the installed
+`2012.09.19.0001` client. The executable in that install matches the pinned
+`ffxivgame.exe` hash above.
+
+| Resource | Bytes | SHA-256 |
+|---|---:|---|
+| `m520/equ/e001/top_tex1/0000` | 103,600 | `23b3f4cbd2a25e3d43f4864bbf8b79f9b7d68322b96849bb044483c62286314d` |
+| `m520/equ/e001/top_tex1/0001` | 103,600 | `8c2cf135908ac641d3cf95324e66b0c0e5b8f4af5ec2dbab558d87b5faa28408` |
+| `m520/equ/e001/top_tex1/0002` | 103,600 | `2a47a92d74231689d947dba473ab07ca89c6cebb3ee26212e9d18915fe8fc9e7` |
+| `m520/equ/e001/top_tex1/0003` | 103,600 | `bcddb821e5057ab208b5c555ecbe93b214425c291469f2dad2e9cdcfeca96f41` |
+| `m520/equ/e001/top_tex1/0004` | 103,600 | `1fd2d138b6b726050679a8fb962ca900a429982695d5f228d4e8b047a6c53eca` |
+| `m520/equ/e001/top_tex1/0005` | 103,600 | `1817ebf25a986c2ae54c24794ff7f68e7d46fdddf50beb2e5afb96177ef8007c` |
+| `m520/equ/e001/top_tex1/0006` | 103,600 | `a0c62abbc19804ecf8578e2d9bdb2cd4ac99878e8be1f3c4028587cdcafd2c3d` |
+| `m520/equ/e001/top_tex1/0007` | 103,600 | `4f7c681ae338eed7558ee999c3ecdd0d186fd7ee2ad496136e33e7e7f3d86aa5` |
+
+These identities pin the installed resource files, not the interpretation of
+their opaque second segment. They do not associate a texture index with an
+actor-class ID or prove which appearance any retail encounter selected.
+
 ## Evidence boundary
 
 The GTEX claim is reproduced from the functions above plus format helpers
