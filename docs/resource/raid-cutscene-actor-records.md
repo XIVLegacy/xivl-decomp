@@ -160,6 +160,44 @@ These coordinates describe cutscene staging data only. They do not establish
 a combat spawn, runtime activation, exact in-world actor identity, or that
 the listed scene played during a particular encounter.
 
+## `rad0f` selected setup positions
+
+`RaidFst0Dungeon03.eventNoticeCutScene` names `rad0f306`, `rad0f307`, and
+`rad0f308` as close scenes; its `rad0f300` opening scene and widget behavior
+are documented in
+`xivl-client-scripts:docs/content-director-ui-contracts.md`. The installed
+client marked by `game.ver` as `2012.09.19.0001` has these files at
+`client/cut/<scene>/<scene>`. They contain selected actor setup records with
+a `0x40`-byte stride. The actor index is the byte at record `+0x03`; position
+is three float32 values at `+0x10`; rotation is a float32 at `+0x20`. The
+actor dictionary records use the `0x3C` header and fields at `+0x20`, `+0x28`,
+and `+0x2C` described above; the token is at `+0x30`. The following positions
+are scene-local and selected examples, not complete scene inventories. The
+`rad0f303`-`rad0f305` entries are not directly joined to that recovered
+director by the cited script evidence.
+
+| Scene | Bytes | SHA-256 | Setup record offset | Actor index / dictionary token | Position / rotation (float32) |
+| --- | ---: | --- | ---: | --- | --- |
+| `rad0f303` | 274,080 | `090895067773bc7646967c28604d2baf016fc5df6542e7b8e651f5f7676a74cf` | `0x39CD0` | 0 / 0 (`PC`) | `(11.951040267944336, -7.046751499176025, 176.3068084716797)` / `1.4150407314300537` |
+| `rad0f303` | 274,080 | `090895067773bc7646967c28604d2baf016fc5df6542e7b8e651f5f7676a74cf` | `0x39B48` | 5 / 6500025 (`SPIDER`) | `(38.23274230957031, -6.922284126281738, 195.77716064453125)` / `-2.1833078861236572` |
+| `rad0f304` | 237,584 | `c77d345725b3707663850774723f69f3ae9d9297664ed1a59bc2cb478e536d3e` | `0x336B8` | 4 / 0 (`PC`) | `(260.5799865722656, -18.899999618530273, -102.7699966430664)` / `0` |
+| `rad0f305` | 316,080 | `f8756b1fbb952df550e73b0f33d45833c77fa26eeba1409d9e7b14a2bbe9a409` | `0x2B8C8` | 4 / 0 (`PC`) | `(129.0070037841797, -22.95591926574707, -187.89328002929688)` / `0` |
+| `rad0f305` | 316,080 | `f8756b1fbb952df550e73b0f33d45833c77fa26eeba1409d9e7b14a2bbe9a409` | `0x2B64C` | 8 / 6500028 (`Boss`) | `(148.2517852783203, -22.947641372680664, -192.58460998535156)` / `0` |
+| `rad0f306` | 310,576 | `75288fc08b47d0f2de791dad0b9da6df8731fec33d20bc8c881de4ffc089e3ad` | `0x1F550`, `0x1F9CC` | 4 / 0 (`PC`) | `(30.156877517700195, -6.97169303894043, 190.43927001953125)` / `0.9864543676376343` |
+| `rad0f306` | 310,576 | `75288fc08b47d0f2de791dad0b9da6df8731fec33d20bc8c881de4ffc089e3ad` | `0x1F450`, `0x1FA0C` | 8 / 6500025 (`BOSS`) | `(33.27090835571289, -7.010288238525391, 193.2140655517578)` / `-2.4346797466278076` |
+| `rad0f306` | 310,576 | `75288fc08b47d0f2de791dad0b9da6df8731fec33d20bc8c881de4ffc089e3ad` | `0x1F920` | 14 / 1200203 (`gate`) | `(37.880001068115234, -6.889999866485596, 195.94000244140625)` / `0` |
+| `rad0f307` | 305,264 | `e20e39bc6355118a916c856329f37d9d4e38ecab96a74b1f8e904bc38ca670c8` | `0x204C8` | 4 / 0 (`PC`) | `(260.5799865722656, -18.899999618530273, -102.7699966430664)` / `0` |
+| `rad0f307` | 305,264 | `e20e39bc6355118a916c856329f37d9d4e38ecab96a74b1f8e904bc38ca670c8` | `0x205DC` | 8 / 6500025 (`MON1`) | `(257.03729248046875, -18.899999618530273, -97.50544738769531)` / `-0.6303591728210449` |
+| `rad0f307` | 305,264 | `e20e39bc6355118a916c856329f37d9d4e38ecab96a74b1f8e904bc38ca670c8` | `0x20704` | 13 / 1200203 (`GOAL`) | `(260.5799865722656, -18.899999618530273, -102.7699966430664)` / `0` |
+| `rad0f308` | 310,880 | `6a746d45ca1b0c7f319c583b2095f704bd1ec70824bfdd672a23e59f371aa5c5` | `0x1F098` | 4 / 0 (`PC`) | `(128.4386749267578, -22.941726684570312, -191.6654510498047)` / `1.7921223640441895` |
+| `rad0f308` | 310,880 | `6a746d45ca1b0c7f319c583b2095f704bd1ec70824bfdd672a23e59f371aa5c5` | `0x1EFC0` | 8 / 6500028 (`Boss`) | `(133.2774658203125, -22.993947982788086, -192.25765991210938)` / `-1.4220055341720581` |
+| `rad0f308` | 310,880 | `6a746d45ca1b0c7f319c583b2095f704bd1ec70824bfdd672a23e59f371aa5c5` | `0x1EE80` | 14 / 1200204 (`vfx`) | `(136.44000244140625, -22.979999542236328, -193.5500030517578)` / `0` |
+
+The dictionary tokens above are scene-local values; this table does not map
+them to world actor classes or server class paths. No layout transform is
+applied. These records do not establish dispatch, timing, actor ownership, or
+that any listed scene played in a particular historical run.
+
 ## Dzemael boss-scene cast and appearance joins
 
 The installed `client/cut/rad0r101/rad0r101` (SHA-256

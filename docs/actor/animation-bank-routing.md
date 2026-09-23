@@ -153,6 +153,27 @@ alpha 1, and a later white target with alpha 1, respectively. Raw timeline
 units do not establish wall-clock visibility or combat targeting. The
 historical Chain Bearer arrival type and selector remain unknown.
 
+The arrival dispatcher at VA `0x0058b2a0` also routes spawn types 16 and 21
+through its common setup branch. It indexes its byte table at VA `0x0058b464`
+with `type - 1`; entries 15 and 20 both select pointer-table entry 0 at
+`0x0058b45c`, which targets `0x0058b302`. That path passes the selected type
+to `0x0058adc0` and then calls the state machine at `0x0058a090`. The state
+index is `([this+0xe8] >> 1) & 0x1f`; the pointer table at `0x0058a7a8` maps
+state 12 to `0x0058a5cd`.
+
+In that state-12 path, comparisons at `0x0058a5f2` and `0x0058a5f8` route
+types 16 and 21 past the conditional calls at `0x0058a60e` and `0x0058a631`.
+The later comparisons at `0x0058a645` and `0x0058a64b` also route types 16
+and 21 past the call at `0x0058a667` (which otherwise receives constant 30).
+The shared tail writes `0x14` to actor byte `+0xea` at `0x0058a684` and
+updates the state word. The instruction paths were checked in the Ghidra 12.1
+disassembly; the switch-table entries were read from the raw pinned PE.
+These branches establish native capability, not the semantics of each helper
+or a historical selection. `RaidFst0Dungeon03`'s `rad0f300` call is a separate
+client-script observation in
+`xivl-client-scripts:docs/content-director-ui-contracts.md`; no cited evidence
+joins that scene to spawn type 16 or 21.
+
 The decoded resources expose these separate candidates:
 
 | Selector | Resource evidence | Status |
