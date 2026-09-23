@@ -103,6 +103,7 @@ Use this index to find the repository's public findings and technical guides.
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
 - [Region weather resource rows](resource/region-weather-resource-rows.md)
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
+- [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
 - [Dungeon layout timeline corpus](resource/dungeon-layout-timeline-corpus.md)
 - [Ferry door schedulers](resource/ferry-door-schedulers.md)
