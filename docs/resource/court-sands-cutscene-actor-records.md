@@ -187,6 +187,49 @@ include dialogue waits or establish on-screen playback duration.
 
 The paired `cut13` resource references are simultaneous in the authored
 timeline. Their rendered pose, narrative meaning, and any quest-state
-effect are not established by these identifiers. The report's camera
-selection and player-presentation interpretation remain to be checked
-against the installed scheduler.
+effect are not established by these identifiers.
+
+## Local camera selectors
+
+The two SCBs have serialized local-camera selector records with actor
+index 1 and a selector word at record `+0x14`. `man0u175` uses type 3
+records on track 10 (32 or 64 bytes); `man0u180` uses 32-byte type 20
+records. The listed times are local to each authored block.
+
+| Scene / block | Local time | Selector | Record offset / clip ID | Track |
+| --- | ---: | ---: | --- | ---: |
+| `man0u175` / `setup` | 0.00 s | 0 | `0x874` / 14 | 10 |
+| `man0u175` / `c01` | 0.00 s | 4 | `0x1314` / 85 | 10 |
+| `man0u175` / `c01` | 1.20 s | 5 | `0x1560` / 99 | 10 |
+| `man0u175` / `c02` | 0.00 s | 8 | `0x1A00` / 126 | 10 |
+| `man0u175` / `c03` | 0.00 s | 9 | `0x1B60` / 132 | 10 |
+| `man0u175` / `c04` | 0.00 s | 13 | `0x1EA4` / 152 | 10 |
+| `man0u175` / `c05` | 0.00 s | 18 | `0x2134` / 166 | 10 |
+| `man0u180` / `cut1` | 0.00 s | 0 | `0x83150` / 192 | 77 |
+| `man0u180` / `cut2` | 0.00 s | 3 | `0x83280` / 199 | 75 |
+| `man0u180` / `cut2` | 0.00 s | 4 | `0x832A0` / 200 | 73 |
+| `man0u180` / `cut2` | 0.00 s | 5 | `0x832C0` / 201 | 71 |
+| `man0u180` / `cut2` | 0.00 s | 6 | `0x832E0` / 202 | 69 |
+| `man0u180` / `cut3` | 0.00 s | 10 | `0x83744` / 225 | 77 |
+| `man0u180` / `cut4` | 0.00 s | 12 | `0x83C8C` / 255 | 77 |
+| `man0u180` / `cut4` | 0.60 s | 13 | `0x83CF8` / 258 | 77 |
+| `man0u180` / `cut5` | 0.00 s | 15 | `0x83FC0` / 271 | 77 |
+| `man0u180` / `cut6` | 0.00 s | 18 | `0x847E8` / 316 | 77 |
+| `man0u180` / `cut8` | 0.00 s | 19 | `0x84D44` / 346 | 77 |
+| `man0u180` / `cut9` | 0.00 s | 20 | `0x850C0` / 366 | 77 |
+| `man0u180` / `cut10` | 0.00 s | 21 | `0x85200` / 375 | 77 |
+| `man0u180` / `cut11` | 0.00 s | 22 | `0x853E8` / 386 | 77 |
+| `man0u180` / `cut12` | 0.00 s | 23 | `0x855BC` / 397 | 77 |
+| `man0u180` / `cut13` | 0.00 s | 24 | `0x8583C` / 412 | 77 |
+| `man0u180` / `cut14` | 0.00 s | 25 | `0x85CC0` / 439 | 77 |
+| `man0u180` / `cut15` | 0.00 s | 26 | `0x85DCC` / 445 | 69 |
+| `man0u180` / `cut15` | 0.00 s | 27 | `0x85ED0` / 450 | 71 |
+| `man0u180` / `cut15` | 0.00 s | 28 | `0x85FE4` / 455 | 73 |
+| `man0u180` / `cut15` | 0.00 s | 29 | `0x86004` / 456 | 75 |
+
+The cut-2 and cut-15 camera records occupy tracks 69, 71, 73, and 75,
+while the other `man0u180` camera records above use track 77. This
+proves distinct authored tracks, not whether they are mutually exclusive,
+which one retail selected, or what the selector values mean. In
+particular, a player race/body/size interpretation is not established
+by the camera records alone.
