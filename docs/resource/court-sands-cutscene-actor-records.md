@@ -78,3 +78,54 @@ F'lhaminn visibility swap and aetheryte hide/show staging change. They
 do not by themselves prove a historical private-area transfer or the
 retail server trigger for the scene. Dialogue timing, motion semantics,
 and the narrative interpretation of the swap remain outside this audit.
+
+## Action and message records
+
+The `man0u180` resource-name table begins at `RIDT` offset `0x865D0`;
+its 16-byte entries begin at `0x865F0`. Slot 40 is `kako_in1`
+(`0x86870`), and slot 46 is `heal` (`0x868D0`). Two 40-byte type-29
+action records refer to those slots:
+
+| Block | Record offset | Clip ID | Local time | Actor / track | Resource slot | Flags |
+| --- | ---: | ---: | ---: | --- | --- | ---: |
+| `cut5` | `0x84034` | 274 | 0.00 s | `FLHAMINN_kako` / 18 | 40 / `kako_in1` | `0x00A0` |
+| `cut6` | `0x84B50` | 337 | 1.95 s | `CORGUEVAIS` / 25 | 46 / `heal` | `0x02A0` |
+
+At `0x84D2C`, a type-30 record in `cut8` has clip ID 345 at local time
+zero and targets clip ID 337 in its word at `+0x14`. This is a direct
+scheduled end reference to the `heal` action. The numeric flags and
+action names do not establish a gameplay heal, health change, or exact
+effect appearance.
+
+Both SCBs contain 36-byte message-row records. The row is the word at
+record `+0x14`; local time is the microsecond word at `+4`. The three
+`man0u175` records are type 18 and all have flags `0x02A0`:
+
+| Scene | Record offset | Clip ID | Local time | Text row |
+| --- | ---: | ---: | ---: | ---: |
+| `man0u175` | `0x1ADC` | 130 | 0.59 s | 144 |
+| `man0u175` | `0x1C9C` | 141 | 0.42 s | 145 |
+| `man0u175` | `0x1F24` | 155 | 0.06 s | 146 |
+
+The thirteen `man0u180` records are type 24:
+
+| Block | Record offset | Clip ID | Local time | Text row | Flags |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `cut2` | `0x8341C` | 210 | 0.75 s | 147 | `0x02A0` |
+| `cut3` | `0x83A30` | 244 | 1.20 s | 148 | `0x02A0` |
+| `cut5` | `0x84204` | 286 | 0.50 s | 149 | `0x02A0` |
+| `cut5` | `0x843E0` | 297 | 1.06 s | 150 | `0x02A0` |
+| `cut6` | `0x848B4` | 322 | 0.10 s | 151 | `0x00A0` |
+| `cut8` | `0x84E74` | 354 | 0.10 s | 152 | `0x00A0` |
+| `cut9` | `0x85110` | 369 | 0.12 s | 153 | `0x02A0` |
+| `cut9` | `0x85160` | 372 | 0.60 s | 154 | `0x02A0` |
+| `cut10` | `0x852A4` | 379 | 0.10 s | 155 | `0x02A0` |
+| `cut11` | `0x85420` | 388 | 0.12 s | 156 | `0x00A0` |
+| `cut11` | `0x85494` | 391 | 0.82 s | 157 | `0x00A0` |
+| `cut12` | `0x85678` | 402 | 0.20 s | 158 | `0x02A0` |
+| `cut13` | `0x85B7C` | 432 | 0.32 s | 159 | `0x00A0` |
+
+These rows prove authored scene references, not spoken text, actor/speaker
+ownership, live playback duration, or a retail quest transition. The
+report's broader motion and camera interpretation remains to be checked
+against the installed scheduler before promotion.
