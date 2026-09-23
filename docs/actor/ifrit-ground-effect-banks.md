@@ -31,6 +31,20 @@ activation, placement, scale, or lifetime. An absent literal excludes
 only that spelling in the inspected payloads, not every possible
 rendering path.
 
+The embedded `FCurve####.fcr` wrappers in WSS1/2/3/4/10/12/13/14/21/22
+were decoded separately: 5/2/2/3/1/3/3/3/2/2, or 26 wrappers. Each
+wrapper's `SEDBmtb` has a nine-channel constant `TransForm` property
+with float32 values `(0,0,0, 0,0,0, 1,1,1)`; the concatenated value
+bytes have SHA-256
+`00657a7a21cbb44edb4fd9c48b3ede966b1248ae01c023131febdd386d793750`
+in every wrapper. Each also has one animated `MoveRatio` channel with
+two parsed keys. This check used the `FCurve####.fcr` resource marker,
+the embedded `SEDBmtb` at wrapper `+0x20`, and its three offset tables
+beginning at `SEDBmtb+0x40`; property type low bytes give channel
+counts. The identity outer transform does not inject the source's
+gameplay radius, but internal VEFF controls, static node transforms,
+or multiple owners could still scale or distribute the visual.
+
 Selected nested VEFF pins make the branch comparison reproducible:
 
 | WSS / named branch | VEFF ID | Bytes | SHA-256 |
