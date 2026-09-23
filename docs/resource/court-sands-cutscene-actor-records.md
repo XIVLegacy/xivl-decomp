@@ -126,6 +126,45 @@ The thirteen `man0u180` records are type 24:
 | `cut13` | `0x85B7C` | 432 | 0.32 s | 159 | `0x00A0` |
 
 These rows prove authored scene references, not spoken text, actor/speaker
-ownership, live playback duration, or a retail quest transition. The
-report's broader motion and camera interpretation remains to be checked
-against the installed scheduler before promotion.
+ownership, live playback duration, or a retail quest transition.
+
+## Motion resource starts
+
+The `man0u180` SCB has 24 type-15 motion records. Their actor index at
+record `+3` joins the dictionary above, and their resource slot at
+`+0x10` joins the same 16-byte `RIDT` entries used by the action clips.
+The names below are literal resource identifiers; local times do not
+include dialogue waits or establish on-screen playback duration.
+
+| Block | Local time | Actor | RIDT resource | Record offset / clip ID |
+| --- | ---: | --- | --- | --- |
+| `setup` | 0.12 s | `_AETHERYTE` | `cbnm_id0` | `0x82CB8` / 162 |
+| `cut3` | 0.00 s | `dami_rd` | `cbfm_swalk_ed` | `0x836B0` / 222 |
+| `cut3` | 0.00 s | `dami_rrm2` | `cbfp_u_ude` | `0x83764` / 226 |
+| `cut3` | 0.00 s | `ACilLIA` | `eb_man0u180a01x` | `0x837A4` / 228 |
+| `cut3` | 0.32 s | `dami_ldob` | `cbfp_u_talk01` | `0x83904` / 237 |
+| `cut5` | 0.00 s | `dami_rrm2` | `cbfp_u_ude` | `0x83F94` / 270 |
+| `cut5` | 0.00 s | `CORGUEVAIS` | `cbfm_swalk_ed` | `0x84114` / 280 |
+| `cut5` | 0.47 s | `Villagers_A` | `cbfp_u_talk02` | `0x8418C` / 283 |
+| `cut5` | 1.03 s | `Villagers_B` | `cbfp_u_talk01` | `0x8439C` / 295 |
+| `cut6` | 0.00 s | `CORGUEVAIS` | `cbfm_swalk_ed` | `0x847BC` / 315 |
+| `cut6` | 0.62 s | `CORGUEVAIS` | `cbfm_sit_take` | `0x848D8` / 323 |
+| `cut6` | 1.46 s | `CORGUEVAIS` | `cbfm_healing` | `0x84A50` / 331 |
+| `cut8` | 0.00 s | `ACilLIA` | `eb_man0u180a01x` | `0x84D78` / 348 |
+| `cut8` | 0.92 s | `CORGUEVAIS` | `cbfm_hiza_up` | `0x84F0C` / 359 |
+| `cut9` | 0.00 s | `CORGUEVAIS` | `cbfm_hiza_up` | `0x85060` / 364 |
+| `cut10` | 1.12 s | `ACilLIA` | `eb_man0u180a01x` | `0x852E0` / 381 |
+| `cut12` | 0.00 s | `ACilLIA` | `eb_man0u180a01x` | `0x85590` / 396 |
+| `cut12` | 0.22 s | `dami_rrm2` | `cbfm_surprised` | `0x8569C` / 403 |
+| `cut13` | 0.00 s | `CORGUEVAIS` | `eb_man0u180a03x` | `0x859A0` / 420 |
+| `cut13` | 0.00 s | `ACilLIA` | `eb_man0u180a02x` | `0x859CC` / 421 |
+| `cut13` | 0.27 s | `dami_hf` | `cbem_panic` | `0x85B24` / 430 |
+| `cut13` | 0.28 s | `dami_hm` | `cbfm_surprised` | `0x85B50` / 431 |
+| `cut13` | 0.48 s | `Villagers_B` | `cbfm_surprised` | `0x85BF0` / 435 |
+| `cut15` | 0.00 s | `dami_ldob` | `cbfp_u_ude` | `0x85DEC` / 446 |
+
+The paired `cut13` resource references are simultaneous in the authored
+timeline. Their rendered pose, narrative meaning, and any quest-state
+effect are not established by these identifiers. The report's camera
+selection and player-presentation interpretation remain to be checked
+against the installed scheduler.
