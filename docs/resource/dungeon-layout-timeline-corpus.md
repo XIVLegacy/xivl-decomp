@@ -30,9 +30,9 @@ retained during the decode rather than normalized away.
 | Layout | Internal name | Known content | Compiled | Stubs | Clips |
 | ---: | --- | --- | ---: | ---: | ---: |
 | 111 | `sea0Dungeon01` | Mistbeard Cove | 17 | 2 | 81 |
-| 112 | `sea0Dungeon02` | Shposhae | 7 | 0 | 39 |
+| 112 | `sea0Dungeon02` | unresolved | 7 | 0 | 39 |
 | 113 | `sea0Dungeon03` | Cassiopeia Hollow | 12 | 0 | 32 |
-| 114 | `sea0Dungeon04` | unresolved | 21 | 0 | 47 |
+| 114 | `sea0Dungeon04` | Shposhae map pages | 21 | 0 | 47 |
 | 115 | `sea0Dungeon05` | unresolved | 7 | 0 | 37 |
 | 116 | `sea0Dungeon06` | U'Ghamaro Mines | 18 | 0 | 194 |
 | 211 | `roc0Dungeon01` | Dzemael Darkhold | 18 | 3 | 93 |
@@ -53,6 +53,13 @@ retained during the decode rather than normalized away.
 | 414 | `wil0Dungeon04` | Copperbell Mines | 10 | 0 | 50 |
 | 415 | `wil0Dungeon05` | unresolved | 11 | 0 | 47 |
 | 416 | `wil0Dungeon06` | unresolved | 2 | 0 | 4 |
+
+The Shposhae annotation is a map-page association, not a historical
+instance dispatch. Pinned `xivl-client-data:csv/_zoneParam.csv` joins zone
+235 to place 1122 (Shposhae); `mapNavi_data.csv` rows 5000 and 5002-5005
+join that place to layout 114. The full direct row provenance is in
+`xivl-client-data:docs/shposhae-map-identity.md`. No equivalent pinned row
+in this evidence names layout 112 as Shposhae.
 
 The installed DAT identity for each row is fixed by its layout family and
 content hash. Notable examples are U'Ghamaro layout 116,
