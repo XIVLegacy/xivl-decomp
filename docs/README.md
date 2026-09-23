@@ -72,7 +72,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Event status-condition receivers](event/status-condition-receivers.md)
 - [UserData receiver](event/user-data-receiver.md)
 - [Network u32 tree and RTTI census](net/channel-dispatch-tree.md)
-- [Dispatcher subscriber replacer](net/dispatcher-subscriber-swap.md)
+- [MyPlayer PlayerManager replacement](net/dispatcher-subscriber-swap.md)
 - [Kick dispatcher clearer](net/kick-dispatcher-clearer.md)
 - [Kick receiver offset map](net/kick-receiver-offset-map.md)
 - [Ferry scene notice constructors](net/ferry-scene-notice-producer.md)

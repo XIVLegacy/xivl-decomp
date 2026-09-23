@@ -1,18 +1,19 @@
-# `context_root[+0x128]` / `[+0x12c]` clearer - `FUN_006e32f0` = MyPlayer::vtable[66]
+# MyPlayer slot-66 `+0x128` / `+0x12c` clearer
 
-This page identifies `FUN_006e32f0` as the function that clears
-`context_root[+0x128]` and `[+0x12c]`, allowing a later kick to use Branch B1
-rather than stale Branch A. It complements
+This page identifies `FUN_006e32f0` as a `MyPlayer` vtable method that
+clears its receiver's `+0x128` and `+0x12c` fields. The relationship
+between that receiver and the kick handler's context pointer requires
+an explicit object-identity join. It complements
 `docs/event/kick-order-event-receiver.md`.
 
 ## The clearer
 
 `FUN_006e32f0`, **76 bytes**, RVA `0x002e32f0`, VA `0x006e32f0`. It's
 the **only** function in the binary that writes NO_ACTOR (`0xE0000000`)
-to BOTH `[+0x128]` and `[+0x12c]` of the kick dispatcher:
+to BOTH `[+0x128]` and `[+0x12c]` of its `this` object:
 
 ```c
-void KickDispatcher::ResetTarget(this, arg1) {  // ECX=this, [ESP+8]=arg1
+void MyPlayer_slot66(this, arg1) {  // ECX=this, [ESP+8]=arg1
     EAX = *NO_ACTOR;                  // load 0xE0000000 sentinel
     if (this[+0x128] == NO_ACTOR && this[+0x12c] == NO_ACTOR)
         return;                       // already cleared - no-op guard
@@ -67,24 +68,16 @@ MyPlayer vtable @ 0xbd785c
   slot 67..:  ...
 ```
 
-So the clearer is **invoked as a virtual method on the local-player
-MyPlayer instance**. Whatever class holds the `[+0x128]/[+0x12c]`
-target-state IS the MyPlayer instance (or a parent class that shares
-the layout - `MyPlayer : PlayerBase : CharaBase : ActorBase`, per the
-hierarchy in `docs/net/receiver-class-inventory.md`).
+The vtable associates this method with `MyPlayer`. Its instructions
+write the method receiver's `[+0x128]/[+0x12c]` fields. The vtable
+alone does not show which concrete instance receives a historical call,
+or equate it with the context pointer used by KickReceiver.
 
-Direct virtual-call searches (`CALL [reg + 0x108]` for slot 66 *
-4 = 0x108) return **zero hits** in `.text`. The same outcome appears in
-([[receiver_dispatch_via_actorimpl]]) - the dispatch chain isn't
-through a static C++ virtual call. Most likely path:
-
-1. **Lua VM closure**: MyPlayer's 90+ vtable slots are Lua-bindable
-   methods. Slot 66 is exposed under a Lua name (probably
-   `mainPlayer:resetKickTarget()` or `mainPlayer:clearEvent()`) and
-   invoked from a Lua script in response to some lifecycle event.
-2. **Computed-index dispatch**: a sibling function loads the slot
-   index from a runtime variable, then `CALL [EAX + ECX*4]`. Hard to
-   trace statically; would surface via runtime tracing.
+The direct virtual-call search described here found no `CALL [reg+0x108]`
+site. The Lua binding is identified below as
+`_fadeInNowLoadingForNoticeEventJustInArea`; that registration does not
+establish when or whether a retail script invoked it in the historical
+kick sequence.
 
 ## The `[+0x128]/[+0x12c]` state machine - full picture
 
@@ -96,15 +89,11 @@ Combining the KickReceiver decomp with this finding:
 | **`MyPlayer::vtable[66]`** | `FUN_006e32f0` (this doc) | Resets BOTH `[+0x128]` and `[+0x12c]` to NO_ACTOR |
 | (no other clearer in the binary) | - | - |
 
-So the dispatcher target-state lifecycle is:
-- Initial: both NO_ACTOR
-- Kick fires Branch B1 (primary kick, `receiver[+0x80] != 0`) -> `[+0x12c]` set to kick-target
-- Subsequent kicks hit Branch A (target is already set), gate on `[+0x12c]`-target's `+0x5c` flag
-- At end-of-event, the clearer must run to reset state -> next kick can re-enter Branch B1
-
-If the clearer doesn't run between two events, the second event's kick sees Branch A
-with the stale `[+0x12c]` value -> ActorRegistry lookup of the stale id returns NULL ->
-kick silently fails.
+The KickReceiver write and MyPlayer slot-66 clear are separate static
+paths. They form a single target-state lifecycle only if their receiver
+objects are joined; this note does not establish that join. In
+particular, an end-of-event call to slot 66 and a stale-target cause
+for the historical kick are not proven.
 
 ## Ghidra corrections and Lua binding
 
@@ -231,42 +220,33 @@ char * KickReceiver::Receive(this, *out_result) {
 }
 ```
 
-### The +0x1e writer and missing explicit clearer
+### The `+0x1e` object boundary
 
-The chain `Branch A -> FUN_006e11d0 -> dispatcher->[+0xf8]->[+0x1e]`
-leads to these writers of `[reg+0x1e]`:
+The earlier same-offset writer scan conflated two object types. In the pinned
+`ffxivgame.exe` (SHA-256
+`9341F2B4567440B310A4D494F5CC5599CA334BA51C8042247317FF466492F2E9`,
+image base `0x00400000`), `llvm-objdump` shows `FUN_006e11d0` at VA
+`0x006e11d0` (RVA `0x002e11d0`) reading the byte through
+`[MyPlayer+0xf8]`. The pointed-to object is RTTI-identified as
+`PlayerManager`, as detailed in
+[`dispatcher-subscriber-swap.md`](dispatcher-subscriber-swap.md).
 
-- `0x00d7ce49`/`ceef`/`cf9b` (3 hits) - **red herring**: inside `FUN_00d7cae0`, a 600-line trail/particle ringbuffer renderer (SIMD math, 0x20-stride structs of "trail points" each with active flag at +0x1e).
-- `0x00d90c9c` (1 hit) - **red herring**: inside `FUN_00d90bc0`, a particle emitter that initializes random particle params via FUN_00e3f2x0 RNGs; the +0x1e write is when no particle template exists.
-- `0x0089313c` (1 hit) - **the relevant one**: inside `FUN_008930e0`, in the same 0x89xxxx code region as KickReceiver. **Sets `[+0x1e] = 1`.**
+`FUN_008930e0` at VA `0x008930e0` writes `1` at its own object's
+`+0x1e` (VA `0x0089313c`). But its caller at VA `0x008955c0` passes
+an active entry from `[esi+8]` at `0x0089568e`-`0x00895691`, or a list
+entry subobject at `0x008956d1`-`0x008956ec`. This does not establish a
+write to `PlayerManager+0x1e`.
 
-`FUN_008930e0` is called from `FUN_008955c0` at two call sites. `FUN_008955c0` is **the event dispatcher**:
-- Walks a linked list of subscribers at `this->[+0x14]`
-- For each subscriber, calls `FUN_008930e0` (sets `[+0x1e] = 1`), then dispatches via vtable
-- Has explicit clears for `[+0x1c]` (line 00895671) and `[+0x1d]` (line 00895675) - **but NEVER clears `[+0x1e]`**
-
-`FUN_008955c0`'s sole caller is `FUN_006e11b0` (just 0x20 bytes before `FUN_006e11d0` - they are sibling methods of the same dispatcher class):
-
-```
-DispatcherClass (engine-side, ~0x6e1000 method region)
-  ::FUN_006e11b0(...)      - dispatches event -> calls FUN_008955c0
-  ::FUN_006e11d0()         - returns this->[+0xf8]->[+0x1e]
-                              (Branch A's "inhibitor" predicate)
-
-FUN_008955c0(this) - the dispatcher's event-fan-out helper
-  iterates this->[+0x14] subscriber list
-  for each subscriber:
-    FUN_008930e0(subscriber) - sets subscriber->[+0x1e] = 1
-    invoke subscriber callback
-```
-
-So the byte at `dispatcher->[+0xf8]->[+0x1e]` represents **"the subscriber at +0xf8 is/has been in notification"**. It is set to 1 by FUN_008930e0 and **has no explicit `MOV imm` clear in the searched bodies**.
-
-### Subscriber replacement clears the predicate
-
-`FUN_006e3440` replaces `dispatcher->[+0xf8]` with a fresh subscriber
-whose `[+0x1e]` byte starts at 0. The old byte remains 1, but the predicate
-reads through the new pointer. See `docs/net/dispatcher-subscriber-swap.md`.
+The method at VA `0x008947c0` (RVA `0x004947c0`) writes its byte
+argument to `[ecx+0x1e]` at `0x008947c9`, with additional
+pending/active-entry work on the nonzero path. Its callers at
+`0x006f9514` and `0x00703fa8` pass `[esi+0xf8]` as `ecx`, with byte
+arguments 1 and 0 respectively. The constructor
+at `0x00895f50` explicitly initializes that byte to zero at
+`0x00895fbc`; `MyPlayer` slot 3 at `0x006e3440` replaces the
+`+0xf8` pointer with a new instance. These static paths do not identify
+which runtime call, if any, set or cleared the gate during the historical
+kick sequence.
 
 ### Reusable findings + key addresses
 
@@ -288,10 +268,11 @@ reads through the new pointer. See `docs/net/dispatcher-subscriber-swap.md`.
 | `FUN_0078f840` | iterator advance + return (byte == 0x03) predicate |
 | `FUN_0076c0d0` | **The packet parser** - constructs stack KickReceiver via FUN_0089f180, dispatches, destructs via FUN_0089e800 |
 | `FUN_006e11d0` | Branch A predicate - returns `dispatcher->[+0xf8]->[+0x1e]` byte |
-| `FUN_006e11b0` | Sibling of FUN_006e11d0 (engine event-dispatcher class method); single caller of FUN_008955c0 |
-| `FUN_008955c0` | Event-fan-out helper - walks subscriber list at `this->[+0x14]`, calls FUN_008930e0 + dispatches |
-| `FUN_008930e0` | The subscriber `[+0x1e] = 1` setter (with sub-object install at `[+0x4]`) |
-| `dispatcher->[+0xf8]->[+0x1e]` | **The inhibitor byte** Branch A checks; set by FUN_008930e0; cleared logically by replacing the subscriber pointer |
+| `FUN_006e11b0` | Nearby event helper; calls `FUN_008955c0` |
+| `FUN_008955c0` | Event fan-out helper; passes active/list entries to `FUN_008930e0` |
+| `FUN_008930e0` | Writes `+0x1e` on an entry object, not the PlayerManager gate |
+| `FUN_008947c0` | Writes PlayerManager `+0x1e`; direct callers pass 1 or 0 |
+| `MyPlayer->[+0xf8]->[+0x1e]` | Branch A's read through the PlayerManager pointer; initialized zero on replacement |
 
 ## Cross-references
 
