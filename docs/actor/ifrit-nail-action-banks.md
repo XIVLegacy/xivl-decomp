@@ -20,6 +20,22 @@ manifest." The 15 equipment/model and skeleton files are not extra WSS
 banks. This root census does not exclude dependencies reached by hashed,
 numeric, or executable-generated references outside those paths.
 
+Parsing the 28 direct action containers' outer `SEDBRES` tables yields
+251 live resource entries. A row is counted only when its type, size,
+and live field are nonzero:
+
+| Root | SCB | MCB | MTB | nested RES | CIBT | CIBC | Total |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| m852 | 57 | 54 | 54 | 22 | 36 | 1 | 224 |
+| m524 | 2 | 9 | 9 | 1 | 5 | 1 | 27 |
+
+The CIBT/CIBC type words are `0x63696274`/`0x63696263`; the other
+types are identified by their `SEDB` payload tags. This is an outer-table
+content census, not a complete recursive dependency graph or retail
+action-selection map. The source tables and per-entry locators are in
+`EXHAUSTIVE_CLIENT_ASSET_COVERAGE.md`, section "Complete outer
+action-resource catalog."
+
 Selected m852 banks expose distinct authored motion and effect content:
 
 | WSS | Bank SHA-256 | Decoded motion evidence |
