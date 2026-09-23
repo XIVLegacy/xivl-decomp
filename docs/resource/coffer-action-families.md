@@ -40,3 +40,26 @@ receiving actor. The call is recorded in
 Neither the script nor these installed assets map a particular family
 to Garuda, Moogle, another primal, or a reward placement. Those joins
 remain unresolved.
+
+## b923 model and color variants
+
+The three installed `client/chara/bgobj/b923/equ/<variant>/top_mdl/0001`
+models each reference their matching `o_v11_tbx0N_ch.dds` resource in
+`top_tex2/0000`. The decoded 512-by-512 color textures show these unlit
+materials; the descriptions are visual observations of texture pixels,
+not a rendering under client lighting.
+
+| Variant | Model SHA-256 | Texture-container SHA-256 | Texture appearance |
+| --- | --- | --- | --- |
+| `e001` | `a3231db60f72af525aa716b9b400cda70ae0d58053761cdedf0b33a4426eef99` | `e50381c3ddaed05970fdc923e3aa165b8f19d5b25fd4c8553edf9ae574a41b3f` | Copper trim, black panels, red lining |
+| `e002` | `6609521ade303343ec6c8cb831f93cf9aa9896a04cbd8cddd20675d15928d707` | `d0f4ba84260282d20391a161b12ad9982734b99343233260e8376d88c00946ca` | Silver trim, blue panels, red lining |
+| `e003` | `5f54881a89ca25a440ed90bac2a582807a1ee392953d85adbd57b889b2d7fdd2` | `bdeb32d62c9e7cdb05c6c3ba1b9afeafd239664152c2633112479225c28a8ee1` | Gold trim, red panels, blue lining |
+
+The decoded `xivl-client-data:csv/actorclass_graphic.csv` rows
+1080001, 1200160, and 1200161 carry `(base, size, body)` values
+`(20923, 2, 1024)`, `(20923, 2, 2048)`, and `(20923, 2, 3072)`,
+respectively (sheet SHA-256
+`7da8241400530885e0a28ded04a03acf2771b0580a79c1f49f46ee0861010611`).
+That is a static appearance-to-asset crosswalk. It does not establish a
+particular retail dungeon coffer's actor class, reward, placement, or
+opening behavior.
