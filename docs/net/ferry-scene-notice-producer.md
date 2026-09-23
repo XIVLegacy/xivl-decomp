@@ -4,7 +4,8 @@ This is a static outbound-message finding for the pinned retail 1.23b
 `ffxivgame.exe` (image base `0x00400000`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`).
 The locators below are VAs; subtract the image base for RVAs. Observations
-come from the repository's local per-function x86 disassembly. The contributor
+come from the repository's local per-function x86 disassembly exported
+by `tools/ghidra_scripts/DumpFunctions.java` from Ghidra 12.1. The contributor
 lead is `FF14-Memory:docs/ferry_cutscenes_2026-09-16.md`, section
 "Implemented transaction"; its server transaction and live reports are not
 retail-client proof.
