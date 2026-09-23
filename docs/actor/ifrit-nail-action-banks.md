@@ -6,6 +6,20 @@ WSS 0006, 0009, and 0011 are absent from this m852 path. The
 installed m524 Nail tree has only BID 0000 and WSS 0001. These are
 path-level inventories, not a complete runtime command selection map.
 
+The complete installed model roots also include non-action resources:
+
+| Root | Action files | Equipment/model files | Skeleton files | Total bytes |
+| --- | ---: | ---: | ---: | ---: |
+| `client/chara/mon/m852` | 26 | 6 | 2 | 21,080,376 |
+| `client/chara/mon/m524` | 2 | 6 | 1 | 2,889,204 |
+
+All 43 direct-root paths, lengths, and SHA-256 digests were checked
+against the installed files and the direct-file manifest in
+`EXHAUSTIVE_CLIENT_ASSET_COVERAGE.md`, section "Complete direct file
+manifest." The 15 equipment/model and skeleton files are not extra WSS
+banks. This root census does not exclude dependencies reached by hashed,
+numeric, or executable-generated references outside those paths.
+
 Selected m852 banks expose distinct authored motion and effect content:
 
 | WSS | Bank SHA-256 | Decoded motion evidence |
