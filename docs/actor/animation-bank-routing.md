@@ -112,8 +112,9 @@ every medicine.
 ## Arrival type and revival motions
 
 Wire opcode `0x00ce` reaches `0x0058ce03`. The payload's spawn type at
-`+0x24` and zoning flag at `+0x26` reach `0x0058b2a0` and are stored at actor
-`+0xe4` and `+0xe6`. `0x0058a090` later emits internal actor message `0x27`
+`+0x24` and zoning flag at `+0x26` reach `0x0058b2a0`. Its non-flag-1 path
+stores them at actor `+0xe4` and `+0xe6`. `0x0058a090` later emits internal
+actor message `0x27`
 with the spawn type during arrival stage 14. This `0x27` is an internal
 message ID, not a network opcode.
 
@@ -123,6 +124,34 @@ those as category 15 with character bank 0 and the spawn type as effect bank.
 Spawn type 1 instead follows `0x00663201 -> 0x00661ab0(20)`, which configures
 a color fade. The installed POP resources contain no `0001` bank. Thus spawn
 type 1 does not itself select a resurrection or get-up motion.
+
+For an accepted type-7 arrival, the same installed executable has a more
+specific conditional path. `0x0058ce85/0x0058ce89` read the two arrival
+words and `0x0058ceed` calls `0x0058b2a0`; its type dispatch reaches
+`0x0058adc0`. That function's non-flag-1 branch stores type and flag at
+actor `+0xe4/+0xe6` (`0x0058ae7b/0x0058aec3`); the flag-1 branch follows
+a different return path.
+The `0x0058a090` stage dispatcher emits internal message `0x27 {0,type}`
+at `0x0058a19d`; renderer subtype 0 (`0x00663183`) calls
+`0x00661990(0)`, whose mask-8 zero-target color update sets the fourth
+color component to zero. Stage 3 (`0x0058a274`) has conditional calls to
+`0x005878a0` at `0x0058a2b6/0x0058a2c2`; that function copies the stored
+destination into actor position fields. Stage 14 (`0x0058a6e6`) emits
+`0x27 {2,type}`. Renderer subtype 2 (`0x006631ce`) retains type 7 in its
+2-10 range and passes effect bank 7 to `0x0065aab0`, under the existing
+category-15 POP route. These are executable paths, not evidence that a
+particular historical actor or event selected type 7.
+
+Installed `client/vfx/pop/0007` has SHA-256
+`ffd87484a18d27242fc25e5202d7459702815063ec9e33873dc555e82474d950`.
+Its three 60-byte color records at file offsets `0x358`, `0x3ac`, and
+`0x3e8` have SHA-256 `17e57a3c1083f167d27bc74310608d78a44933d4b76bdc8724258b8404eddae2`,
+`156dcfdb37b0cebed37e1bb8a204b210dba62f61cc2191993ea911ebfb83f9bf`,
+and `35c39fd6e413c5fa246fd8a1c20a15a8f1e286c2f5bf23a531e10094c43b2423`.
+They contain zero alpha at start 0, a later 1.8/1.8/1.7 color target with
+alpha 1, and a later white target with alpha 1, respectively. Raw timeline
+units do not establish wall-clock visibility or combat targeting. The
+historical Chain Bearer arrival type and selector remain unknown.
 
 The decoded resources expose these separate candidates:
 
