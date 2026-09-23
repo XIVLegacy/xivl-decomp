@@ -54,7 +54,27 @@ system/camera/sound/light records and unlabeled background proxies.
 
 `man0u180` therefore contains distinct `FLHAMINN_kako` and
 `FLHAMINN` records, not a duplicate label inferred from a name match.
-The source report's clip-level visibility swap, dialogue timing, motion,
-and temporal-transition interpretation require a separate direct scheduler
-audit. These dictionary records alone do not establish a retail escort
-route, scene trigger, zone transfer, persistent spawn, or client class path.
+
+The `man0u180` SCB also contains 20-byte type-3 visibility records. Their
+word at `+0x10` toggles between zero and one. Joining their actor index
+and track to the dictionary above gives this direct authored sequence:
+
+| Block | Record offset | Clip ID | Actor / track | Value at `+0x10` |
+| --- | ---: | ---: | --- | ---: |
+| `setup` | `0x81E1C` | 72 | `_AETHERYTE` / 53 | 1 |
+| `setup` | `0x82EE8` | 176 | `FLHAMINN` / 20 | 1 |
+| `setup` | `0x82FA4` | 182 | `FLHAMINN_kako` / 18 | 0 |
+| `cut5` | `0x83F80` | 269 | `_AETHERYTE` / 53 | 0 |
+| `cut5` | `0x84084` | 276 | `FLHAMINN` / 20 | 0 |
+| `cut5` | `0x840D8` | 278 | `FLHAMINN_kako` / 18 | 1 |
+| `cut6` | `0x84870` | 319 | `_AETHERYTE` / 53 | 1 |
+
+The `0x40`-byte type-1 position records for `_AETHERYTE` track 53
+place it at `(55.900002, 200.001587, -493.200012)` in setup clip 57
+(`0x81BB8`), then `(34.900002, 200.001587, -480.200012)` in setup
+clip 158 (`0x82BF0`). These are scene-authored positions, not persistent
+world placement coordinates. The complementary type-3 values support a
+F'lhaminn visibility swap and aetheryte hide/show staging change. They
+do not by themselves prove a historical private-area transfer or the
+retail server trigger for the scene. Dialogue timing, motion semantics,
+and the narrative interpretation of the swap remain outside this audit.
