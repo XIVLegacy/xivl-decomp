@@ -241,3 +241,29 @@ but this audit does not decode their category enum or establish which
 branch retail selected. The proposed player race/body/size
 accommodation remains an inference, not a verified enum mapping or
 runtime observation.
+
+## Numeric audio cues
+
+The `man0u180` SCB type-name table maps type 0 to `RaptureBgmClip`
+(name at `0x921C2`) and type 28 to `RaptureSoundClip` (name at
+`0x923E3`). The three 36-byte BGM records have a constant high halfword
+`0x07FE` in their trailing word; its low halfword changes as follows:
+
+| Block | Local time | Record offset / clip ID | Low halfword |
+| --- | ---: | --- | ---: |
+| `setup` | 0.00 s | `0x81570` / 0 | 37 |
+| `cut4` | 0.90 s | `0x83D78` / 261 | 7 |
+| `cut5` | 0.80 s | `0x84290` / 289 | 40 |
+
+The 44-byte sound records carry these final two halfwords:
+
+| Block | Local time | Record offset / clip ID | Sequence / cue tail |
+| --- | ---: | --- | --- |
+| `cut5` | 0.00 s | `0x83E60` / 264 | 0 / `0x2868` |
+| `cut6` | 1.95 s | `0x84B24` / 336 | 1 / `0x8A74` |
+| `cut8` | 0.00 s | `0x84C30` / 340 | 2 / `0x8A74` |
+| `cut13` | 0.00 s | `0x85810` / 411 | 3 / `0x8A74` |
+
+The shared cue tail and increasing sequence are literal authored fields.
+They do not identify the sound bank, audible title, retail playback
+outcome, or any gameplay effect.
