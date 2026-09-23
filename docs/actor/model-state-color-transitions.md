@@ -87,6 +87,74 @@ These identities were checked against installed files. The scheduler and
 motion joins come from `monster-action-scheduler-contract-20260810`
 `scheduler_manifest.csv`, rows for m034 BID and WSS101/201/501.
 
+## m037 ogre limb-effect state
+
+Installed `client/chara/mon/m037/skl/0001` (SHA-256
+`34296f469e58b5ad29e0d18d64dc214bf670bb7f0f3fb29fb244cb03817037d5`)
+has `info_m037` metadata with ordinal split 4 and supported mask `0xf0`.
+The installed BID at `act/emp_emp/bid/base/0000` (SHA-256
+`d22bc300c6043d21cda6a6eb5af087d6e7e110aa5ce28f98e4adb999a40dfbc3`)
+provides `init_msb7_1` and `init_msb7_0` for supported bit 7 (`0x80`).
+The on scheduler's ActionClip at payload offset `0x274` names ACB
+`msb_7_1`; that ACB references VINS `1UGmYVvleafinst`, which has four
+typed references to leaf `1D30TRmsb_7_1`. The VINS attachment names are
+`EID_L_FOOT`, `EID_L_HAND`, `EID_R_FOOT`, and `EID_R_HAND`. The leaf
+references VEFF `4leD72ogr_hokb6`, whose embedded authoring name includes
+`ogre_m037/berserk_loop/ogr_hokb6t.veffbin`. The off scheduler and `dead`
+each cancel `init_msb7_1` at native start value zero. The selected on SCB
+and VEFF payloads have SHA-256
+`fcdf2b82d7a8837103399bcfe0b3c4df5af5ad5afd4caded63b9a497929e1524`
+and `3c36dc6d93fd3a0981709987f9c515395d5150ecaf68e6b73ac04f37e59ce803`.
+This is an authored four-limb effect route; it does not recover the retail
+health threshold, state packet, or visible onset.
+
+## m054 gargoyle weapon-effect state
+
+Installed `client/chara/mon/m054/skl/0001` (SHA-256
+`1aa51fd820700ad31be4fdd06999e4a421453a713d1ea69106ab321d82948f61`)
+has `info_m054` metadata with ordinal split 4 and supported bits 4 and 5
+(`0x30`). The BID at `act/emp_emp/bid/base/0000` (SHA-256
+`386bdd68a6f5b05b835970a23d4d1665bfee26d44283ee540a34e89ddbc4f561`)
+contains `init_msb4_1` with two typed ActionClips at payload offsets
+`0x2a0` and `0x2c8`. They name ACBs `m054_aura_r` and `m054_aura_l`;
+their VINS/leaf branches converge on VEFF `1lciMXggl_sklh5` and its
+embedded `gargoyle_054/weapon_aura` authoring name. The branches use
+attachment ports `EID_SUBT_EFF2` and `EID_SUBT_EFF3`, respectively;
+those port names alone do not identify anatomical bones.
+`init_msb4_0` cancels the on scheduler at native start value zero.
+Bit 5 selects separate motion/chant schedulers, not these aura ACBs.
+The on SCB and shared VEFF payloads have SHA-256
+`25b1616abfe77f2eac6965726e2a31ff6c6dbb53733ffd2ea4ee68e461f8cba7`
+and `1fc1f56053fd3729ed6879c124c98e98c685349fe9e48a3203bf7fa430d1e307`.
+No original empowerment threshold, north-terminal control rule, death-time
+effect cleanup, or retail state delivery follows from these resources.
+
+## m505 immediate alpha state
+
+Installed `client/chara/mon/m505/skl/0001` (SHA-256
+`65aabb1f35ab859757292df66cff7f99f449f9ddfbe14f6ec0ebfa62892dc25e`)
+advertises model-state bit 4 (`0x10`) in `info_m505`. Its BID at
+`act/emp_emp/bid/base/0000` (SHA-256
+`eba7345fa9cdfa9a0330fa5caae2f653a4f2c0c0135e128c6f888b382f317aef`)
+contains `init_msb4_1` and `init_msb4_0`, each with one
+`RaptureCharaColorFadeClip` at SCB payload offset `0x264`.
+
+The complete 60-byte hide record has transition duration zero at
+full-record `+0x14`, component mask `0x00000008` at `+0x18`, and target
+RGBA `(1, 1, 1, 0)`. The show record has duration zero, mask
+`0x80000008`, and target `(1, 1, 1, 1)`; its high mask bit forces the
+start value. Their record SHA-256 values are
+`3875e113fa62257f8abc3081368349c48c09b1abcb95d670e62799bbdeae4d19`
+and `9f6c51275a49c2bfd63ba75daac58fc5f495d08d75922011c093829eb90d8523`.
+The pinned executable's color-fade consumer at `0x008262a0` reads
+duration from `+0x14` and mask from `+0x18`; downstream `0x008422e0`
+uses mask bit 8 for alpha and directly assigns the target when duration
+is zero. Thus the value 8 is a channel mask, not an eight-frame fade;
+the SCB block's 40,000-unit length is not the opacity-transition duration.
+This proves an immediate alpha control in the m505 model. It does not
+prove the retail Chain Bearer state selector, relocation mode, hidden
+interval, targetability, or encounter timing.
+
 ## m526 rock section masks
 
 The installed m526 BID bank at
