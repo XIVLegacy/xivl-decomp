@@ -18,6 +18,77 @@ word at record `+0x30` is the numeric actor token below.
 | `rad0r403` | 566,944 | `cfd572945fae0dc1899cec24f36132fb7973ac7a7a164b333d6e8b4c4bd196d6` | `0x5710C` | 1200200 |
 | `rad0w503` | 572,624 | `7cefae5e6f71b4ec756e24760c418b39f972c3855df99000f1a155f34b685ae5` | `0x39730` | 1200332 |
 
+## Additional installed scene dictionaries
+
+The six files listed below, along with `rad0r403` and `rad0w503` pinned
+above, contain standard PWIB actor records. Their little-endian numeric
+tokens are at the listed offsets; each record begins `0x30` bytes earlier
+with the same `0x3C` signature and
+field invariants described above. The table lists nonzero tokens; zero-token
+records are omitted. Repeated labels in `rad0r400` remain separate where
+their tokens or offsets differ. These scene-local records do not establish
+the scenes' retail dispatch roles or world-spawn associations.
+
+| Scene | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `client/cut/rad0r400/rad0r400` | 312,704 | `fb7f12c99b23401ed56a78f363f514a01fe924573d78885b6efa293a94c551fd` |
+| `client/cut/rad0r401/rad0r401` | 233,232 | `b51fec8ac6ab027fc00c5338efaf594132eac3daed59bbd85c8866e4e5afa0c1` |
+| `client/cut/rad0r402/rad0r402` | 820,640 | `a6fbb1f8e70ed6cc5546a304d540d1c9ebc64332c4ffbee5ec80f92d72f74144` |
+| `client/cut/rad0w500/rad0w500` | 250,288 | `90cb437b3fbda04110f92c5742b9cd3f831bd2fb23857e7fddca3e617e988e35` |
+| `client/cut/rad0w501/rad0w501` | 344,528 | `23ae9cc5b7d80eaf09ad27644f1fc71636eb273cc77b262e331c38114088f740` |
+| `client/cut/rad0w502/rad0w502` | 1,115,312 | `520e9b055a57633ad595b2d02eee9364309a7297ae9cb780b61d74e199c7e03a` |
+
+| Scene | Actor index / label | Numeric token | Token offset |
+| --- | --- | ---: | --- |
+| `rad0r400` | 0 / `namecoA` | 1001851 | `0x46024` |
+| `rad0r400` | 4 / `POPULACE_RAD0R1` | 1001855 | `0x460C0` |
+| `rad0r400` | 5 / `POPULACE_RAD0R1` | 1001854 | `0x460FC` |
+| `rad0r400` | 6 / `hanaA` | 1001852 | `0x46138` |
+| `rad0r400` | 7 / `hanaB` | 1001852 | `0x46174` |
+| `rad0r400` | 8 / `POPULACE_RAD0R1` | 1001853 | `0x461B0` |
+| `rad0r400` | 9 / `namecoC` | 1001851 | `0x461EC` |
+| `rad0r400` | 10 / `namecoB` | 1001851 | `0x46228` |
+| `rad0r400` | 11 / `GIGANTOAD_NORMA` | 6500043 | `0x46264` |
+| `rad0r400` | 12 / `hanaC` | 1001852 | `0x462A0` |
+| `rad0r400` | 14 / `kurage` | 1002013 | `0x46300` |
+| `rad0r400` | 15 / `kinoko` | 1002012 | `0x4633C` |
+| `rad0r400` | 16 / `kinoko` | 1002012 | `0x46378` |
+| `rad0r400` | 17 / `kurage` | 1002013 | `0x463B4` |
+| `rad0r400` | 18 / `hanaD` | 1001852 | `0x463F0` |
+| `rad0r400` | 19 / `kurage` | 1002013 | `0x4642C` |
+| `rad0r401` | 12 / `Cyclops` | 1001954 | `0x2CB2C` |
+| `rad0r402` | 4 / `hanaA` | 1001852 | `0xAB95C` |
+| `rad0r402` | 5 / `hanaB` | 1001852 | `0xAB998` |
+| `rad0r402` | 6 / `Molbol` | 1001856 | `0xAB9D4` |
+| `rad0r402` | 7 / `hanaC` | 1001852 | `0xABA10` |
+| `rad0r402` | 11 / `hanaD` | 1001852 | `0xABB00` |
+| `rad0r402` | 12 / `hanaE` | 1001852 | `0xABB3C` |
+| `rad0r402` | 13 / `hanaG` | 1001852 | `0xABB78` |
+| `rad0r402` | 14 / `hanaF` | 1001852 | `0xABBB4` |
+| `rad0r403` | 4 / `Molbol` | 1001856 | `0x5701C` |
+| `rad0r403` | 8 / `Tool` | 1200200 | `0x5710C` |
+| `rad0w500` | 0 / `AntlingA` | 1001857 | `0xA68C` |
+| `rad0w500` | 4 / `BombA` | 1001859 | `0xA728` |
+| `rad0w500` | 5 / `BombB` | 1001859 | `0xA764` |
+| `rad0w500` | 6 / `RyusaA` | 6500003 | `0xA7A0` |
+| `rad0w500` | 7 / `RyusaB` | 6500003 | `0xA7DC` |
+| `rad0w500` | 8 / `Basilisk` | 1001860 | `0xA818` |
+| `rad0w500` | 9 / `AntlingC` | 1001857 | `0xA854` |
+| `rad0w500` | 10 / `AntlingB` | 1001857 | `0xA890` |
+| `rad0w500` | 12 / `RyusaC` | 6500003 | `0xA8F0` |
+| `rad0w501` | 12 / `Antling01` | 1001858 | `0xD070` |
+| `rad0w501` | 14 / `Antling02` | 1001857 | `0xD0D0` |
+| `rad0w501` | 15 / `Antling03` | 1001857 | `0xD10C` |
+| `rad0w501` | 16 / `Antling04` | 1001857 | `0xD148` |
+| `rad0w501` | 17 / `Antling05` | 1001857 | `0xD184` |
+| `rad0w501` | 18 / `Antling06` | 1001857 | `0xD1C0` |
+| `rad0w501` | 19 / `Antling07` | 1001857 | `0xD1FC` |
+| `rad0w501` | 20 / `Antling08` | 1001857 | `0xD238` |
+| `rad0w501` | 21 / `Antling09` | 1001857 | `0xD274` |
+| `rad0w502` | 4 / `Kimera` | 1001861 | `0x78130` |
+| `rad0w503` | 4 / `Kimera` | 1001861 | `0x39640` |
+| `rad0w503` | 8 / `Tool` | 1200332 | `0x39730` |
+
 These records prove numeric tokens in scene actor dictionaries, not a
 retail world-spawn placement, server class path, appearance selection,
 or interactive dungeon object. In particular, a separate b936 effect
