@@ -130,6 +130,28 @@ ownership, live playback duration, or a retail quest transition.
 
 ## Motion resource starts
 
+The smaller `man0u175` SCB has 13 type-9 motion records. Its `RIDT`
+header is at `0x22A0`, with 16-byte resource-name entries beginning at
+`0x22C0`. The serialized block labels are `setup` and `c01` through
+`c05`; the records below occur in `setup`, `c01`, `c02`, and `c04`.
+Their actor index is at record `+3` and their `RIDT` slot is at `+0x10`.
+
+| Block | Local time | Actor | RIDT resource | Record offset / clip ID |
+| --- | ---: | --- | --- | --- |
+| `setup` | 0.07 s | `TerrorAdv` | `cbfm_chair_idle` | `0xFE4` / 64 |
+| `c01` | 0.00 s | `KiraKiraAdv` | `cbfm_walk_ed_r` | `0x1228` / 77 |
+| `c01` | 0.33 s | `ManlyAdv` | `cbfp_u_greeting` | `0x13C0` / 89 |
+| `c01` | 0.64 s | `KiraKiraAdv` | `cbfp_u_greeting` | `0x13EC` / 90 |
+| `c01` | 0.66 s | `QuickAdv` | `cbfm_talk_big` | `0x1418` / 91 |
+| `c01` | 0.71 s | `WeakyAdv` | `cbfm_suffering` | `0x1478` / 93 |
+| `c01` | 1.20 s | `BeastyAdv` | `cbfm_bwalk_mv` | `0x15A0` / 100 |
+| `c02` | 0.00 s | `EvisAdv` | `cbfm_swalk_mv` | `0x1850` / 114 |
+| `c02` | 0.00 s | `SunnyMerchant` | `cbfm_smile` | `0x187C` / 115 |
+| `c02` | 0.00 s | `GleedyMerchant` | `cbfm_smile` | `0x18BC` / 117 |
+| `c02` | 0.00 s | `BeastyAdv` | `cbfm_bwalk_mv` | `0x18FC` / 119 |
+| `c02` | 0.10 s | `FLhaminn` | `cbfp_u_greeting` | `0x1A40` / 127 |
+| `c04` | 0.11 s | `PC` | `cbfa_bow` | `0x1F48` / 156 |
+
 The `man0u180` SCB has 24 type-15 motion records. Their actor index at
 record `+3` joins the dictionary above, and their resource slot at
 `+0x10` joins the same 16-byte `RIDT` entries used by the action clips.
