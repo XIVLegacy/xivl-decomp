@@ -45,6 +45,18 @@ unknown.
 
 ## Dzemael boss-scene cast and appearance joins
 
+The installed `client/cut/rad0r101/rad0r101` (SHA-256
+`6443e8bfdb7f34a287124d0193fd5e4ec37de1138dd80e4f31431679457ba0c2`)
+has standard dictionary records for PC index 4, three party-member slots
+at indices 5-7, and `MON` index 8 / actor class 6500030 (record offset
+`0x310`). Its single scheduler (SHA-256
+`66493744bb5d1cc6de69d6543f92ba047a2ec9b154070b3652a3da13ed4409d7`)
+references `enter01` (`brt`) and m029 motion resources. The installed
+`actorclass_graphic.csv` identifies both 6500030 and dungeon class 2301701
+with `(base, size, head, body) = (10029, 3, 0, 1120)`. These facts make an
+early Ahriman scene plausible; neither the original Eye's runtime actor
+identity nor a retail approach-trigger volume follows from them.
+
 The installed `client/cut/rad0r104/rad0r104` (SHA-256
 `f6f17a2f04e4831dc3c0ecc6610202ebe8461fc88170a6f96dad741f92d47f00`)
 has standard actor-dictionary records for PC, seven party-member slots,
