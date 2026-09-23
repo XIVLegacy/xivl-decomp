@@ -27,6 +27,28 @@ the collision clip values. They do not establish the initial visible
 state, runtime show/hide order, retail server caller, late-join replay,
 or a link from this ring to an Eruption or Plume combat selector.
 
+The same installed layout has 225 decoded `RefObjects/InstanceObject`
+records. A structural scan of the Bowl floor tile's X/Z bounds
+`2496..2560` / `2176..2240` finds six instances:
+
+| Instance | World XYZ | Referenced object |
+| --- | --- | --- |
+| `isgrp_000396` | `(2528, 248, 2208)` | regional floor/collision group |
+| `isgrp_016281` | `(2528, 248, 2208)` | Bowl floor chip |
+| `isgrp_016280` | `(2526.597, 248.343, 2208.061)` | `sgrp_vfx_ifring` |
+| `w0f5_bbr1_Boss` | `(2516, 246.919, 2212)` | `pomk_0006` position marker |
+| `isgrp_007349` | `(2520.917, 170.147, 2225.860)` | point light below the floor |
+| `isgrp_007144` | `(2551.625, 247.880, 2236.699)` | bridge-lamp group |
+
+These are the complete decoded instance set inside those bounds, not an
+encounter spawn catalog. In particular, the one named `Boss` marker is a
+client layout marker, not a proven retail Ifrit spawn coordinate. The
+set does not contain a repeated placed Plume or Nail pattern; numeric,
+script-created, or otherwise non-instance placements remain outside it.
+The installed-file extraction reproduced the six saved instance rows
+field-for-field; their node and physical offsets are in
+`arena_tile_instances.csv` from `extract_ifrit_bowl_layout_neighborhood.py`.
+
 The layout is 1,245,056 bytes, SHA-256
 `56b24e6aca53911810848baf7be254a2c20038d8c127bcc0c8603ba6b0614e7c`.
 The related `f0ifuring1.veff` resource at `data/89/84/00/74.DAT`
