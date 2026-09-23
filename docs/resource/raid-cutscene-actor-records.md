@@ -42,3 +42,38 @@ name `roc_r0_dun01` and `time_door_a1_open`, with trailing words
 1408-1412), so the target string alone does not select a unique door.
 The trailing words' dispatch ABI and historical viewing policy remain
 unknown.
+
+## Dzemael boss-scene cast and appearance joins
+
+The installed `client/cut/rad0r104/rad0r104` (SHA-256
+`f6f17a2f04e4831dc3c0ecc6610202ebe8461fc88170a6f96dad741f92d47f00`)
+has standard actor-dictionary records for PC, seven party-member slots,
+`Orga` index 12 / actor class 6500031, and `Gost1`-`Gost4` indices 13-16 /
+actor class 6500036. Its scheduler references `midboss01` (`brt`) and
+`eb_rad0r104a01x` (`bcm`). The installed
+`client/cut/rad0r105/rad0r105` (SHA-256
+`edb8478fc81b2cf0b7e9e064492dbbf71e1576a885592e88e045913cfd9690ae`)
+has PC, seven party-member slots, `Gargoile` index 12 / 6500032,
+`Skelton1`-`Skelton4` indices 13-16 / 6500037, and `Arliman1` and
+`Arliman2` indices 18-19 / 6500030 and 6500038. Its scheduler references
+`boss01` (`brt`) and `eb_rad0r105a03x` (`bcm`). These are cinematic
+dictionary tokens, not a combat-spawn count or a server roster.
+
+The installed data's `actorclass.csv` (SHA-256
+`3ac9f8d1812d49101f367e2a41356be96b5d64b1fc5ca29949195f50ebe1d984`)
+and `actorclass_graphic.csv` (SHA-256
+`7da8241400530885e0a28ded04a03acf2771b0580a79c1f49f46ee0861010611`)
+give these exact shared `(base, size, head, body)` tuples:
+
+| Scene class ID | Compared dungeon class ID | Shared appearance tuple |
+| ---: | ---: | --- |
+| 6500031 (`Orga`) | 2302501 | `(10037, 3, 0, 2048)` |
+| 6500036 (`Gost`) | 2304302 | `(10505, 3, 0, 1056)` |
+| 6500032 (`Gargoile`) | 2303501 | `(10054, 3, 0, 1056)` |
+| 6500037 (`Skelton`) | 2301902 | `(10031, 2, 0, 1024)` |
+
+The scene cast, resource names, and appearance matches support identifying
+`rad0r104` as a Deepvoid-themed scene and `rad0r105` as a Batraal-themed
+scene. They do not identify the retail scene trigger, original viewing
+conditions, argument, or exact scene-to-world actor association. Scene-local
+positions are cinematic staging, not dungeon spawn coordinates.
