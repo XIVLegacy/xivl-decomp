@@ -167,6 +167,36 @@ row as three world-coordinate floats would invent placements. Neither
 graph identifies retail helper origins, actor-class ownership, or the
 runtime mode/kick sequence.
 
+The pinned `ffxivgame.exe` resolver at VA `0x00bdbf10` reads a serialized
+32-bit static-link key from a control node. Its top nibble selects a path:
+class 0 uses bits 16..27 as a producer-instance index with 0x34 stride
+and bits 0..15 as an output slot with 0x24 stride. In the ordinary-input
+branch, class 1 uses a context-owned 0xe8-stride control-module record
+and provider/fallback lookup; class 2 searches an external/context list
+before falling back to class 1; class 3 takes an unsupported-code path.
+Thus `0x100a0000`
+selects runtime module index 10, not VEFF serialized class-table row 10.
+That module's identity requires the context's template append order.
+
+Re-extracting the two installed VEFFs' paired 0x24-byte control and
+0x1c-byte link records yielded both serialized link vectors. State 4 has
+44 head (`+0x00/+0x04`) and 53 tail (`+0x14/+0x18`) keys; state 5 has
+21 head and 32 tail keys. State-5 `Position3DMapBind:CoordRoot` paired
+records 6 and 18 have no head vector. Their tail inputs are:
+
+| Paired record | Tail key 0 | Tail key 1 |
+| ---: | --- | --- |
+| 6 | `0x10000000` | `0x10000000` |
+| 18 | `0x100a0000` | `0x00010000` |
+
+The last key selects producer instance 1, output slot 0. The first three
+have class-1 registry-selector encoding; they do not name a target,
+terrain normal, or actor transform. The static loader pairs control/link
+records by index, but the source head/tail vectors have not been joined
+to the resolver's two runtime destination arrays. A separate self-local
+resolver branch can write null for a class-1 key. These key joins do not
+recover the historical owner or active encounter invocation.
+
 The installed m999 WSS4 and WSS5 wrappers have different whole-file
 hashes (`769514e370b57a5024e1f646fbe7ab05563f802c615e2f32890c51895d7a9423`
 and `d5f262f0d06fe1fa8f1f990df3333cc8093a1c72fea22aedc507aba16baaec72`),
