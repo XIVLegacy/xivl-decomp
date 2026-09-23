@@ -109,6 +109,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
 - [Man304 cutscene actor records](resource/man304-scene-actor-records.md)
 - [Man308 cutscene actor records](resource/man308-scene-actor-records.md)
+- [Man406 cutscene actor records](resource/man406-scene-actor-records.md)
 - [Mandragora m521 asset boundary](resource/mandragora-asset-boundary.md)
 - [MurmurHash2](resource/murmur2.md)
 - [Monster action scheduler corpus](resource/monster-action-scheduler-corpus.md)
