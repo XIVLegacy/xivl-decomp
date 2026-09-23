@@ -29,6 +29,33 @@ server route's choice of a departure/arrival pair is an implementation
 decision unless joined to retail route evidence; asset presence alone does
 not authenticate that choice.
 
+## Parsed actor and scheduler boundary
+
+The six hash-matched installed files yield 77 actor-dictionary records and
+74 structurally plausible spatial records in total. The setup
+stream accounts for 24 of those spatial records; the wider scan also finds
+later timeline placements. These are parser counts, not a count of actors
+simultaneously visible or proof of world-spawn locations.
+
+| Scene | SCB file offset | Actor records | Setup spatial | Wider spatial | Inner block span sum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `zep0g000` | `0x16498` | 8 | 5 | 16 | 8,800,000 |
+| `zep0g010` | `0x19050` | 11 | 3 | 8 | 12,050,000 |
+| `zep0l000` | `0x18840` | 14 | 6 | 14 | 8,100,000 |
+| `zep0l010` | `0x22658` | 14 | 3 | 10 | 11,100,000 |
+| `zep0u000` | `0x1BAA8` | 15 | 4 | 15 | 8,700,000 |
+| `zep0u010` | `0x203D8` | 15 | 3 | 11 | 10,800,000 |
+
+Each embedded `SEDBSCB` has a first `@CBLK` with raw span `9,000,000` and
+zero clips. The last column sums the other `@CBLK` span words, read at
+block offset `+0x24`; the clip count is at `+0x28`. These sums are not
+playback durations: branch order, waits, and scene completion are not
+reconstructed by this header read. In particular, the common outer
+`9,000,000` value does not prove that each movie plays for nine seconds.
+The actor and spatial counts use `decompile_airship_cutscene_setup.py`
+against the installed files. The block fields were read directly from
+each hash-matched SCB.
+
 Provenance: recovered
 `quest/scenario/defaulttalk/dftsrt.lua:eventDeparture`,
 `director/directorbaseclass.lua:delegateEvent`, and
