@@ -197,6 +197,34 @@ to the resolver's two runtime destination arrays. A separate self-local
 resolver branch can write null for a class-1 key. These key joins do not
 recover the historical owner or active encounter invocation.
 
+The two state-5 MapBind controls have a native terrain-query path.
+`Position3DMapBind:CoordRoot` evaluation at VA `0x00d7e370` reads its
+linked input through `+0x30` and, when dirty, adds the double constant
+2.0 at `0x00f63028` to the sample Y before calling `0x00d85800`
+(`0x00d7e49b..0x00d7e4b3`). On a miss it adds 2.0 and calls again
+(`0x00d7e4bf..0x00d7e4e4`); a hit stores the height adjustment at
+control `+0x24`. The query holds X/Z, constructs a vertical segment
+from supplied Y + 0.01 to Y - 200.0, and passes byte tag `0x1e`
+(`0x00d85800..0x00d85a20`). The installed constants are 0.01 at
+`0x00fb7dec` and -200.0 at `0x0109d91c`. This is a client terrain
+conformance operation, not evidence that a historical server placed a
+helper at any particular world coordinate.
+
+The state-5 VEFF's six 0x38-byte layer records carry three raw words at
+indices 8-10. Re-extraction from the installed model gives selected
+rows below; the serializer's semantic field-name join remains absent:
+
+| Layer label | Raw word 8 | Raw word 9 | Raw word 10 |
+| --- | ---: | ---: | ---: |
+| Ground crack (additive) loop | 310,000 | 80,000 | 20,000 |
+| Telegraph-spawn distortion | 255,000 | 0 | 300,000 |
+| Crack (subtractive) | 115,000 | 0 | 115,000 |
+
+At 100,000 units per second these numbers are timing-like, but they are
+not independently identified as start, duration, and end fields. They
+cannot determine a retail cast length, active mode sequence, or helper
+cleanup policy.
+
 The installed m999 WSS4 and WSS5 wrappers have different whole-file
 hashes (`769514e370b57a5024e1f646fbe7ab05563f802c615e2f32890c51895d7a9423`
 and `d5f262f0d06fe1fa8f1f990df3333cc8093a1c72fea22aedc507aba16baaec72`),
