@@ -102,6 +102,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
 - [Dungeon layout timeline corpus](resource/dungeon-layout-timeline-corpus.md)
 - [Ferry door schedulers](resource/ferry-door-schedulers.md)
+- [Ferry scene inventory](resource/ferry-scene-inventory.md)
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
