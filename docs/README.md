@@ -107,6 +107,7 @@ Use this index to find the repository's public findings and technical guides.
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
+- [Man308 cutscene actor records](resource/man308-scene-actor-records.md)
 - [Mandragora m521 asset boundary](resource/mandragora-asset-boundary.md)
 - [MurmurHash2](resource/murmur2.md)
 - [Monster action scheduler corpus](resource/monster-action-scheduler-corpus.md)
