@@ -78,6 +78,15 @@ FCurve property structure and values. Recovered client Lua contains no static
 content-13 to weather-8032 assignment. Resource locality and the thunder
 payload make it a comparison candidate, not proof that the duty selected it.
 
+The pinned executable's WeatherManager registration at `0x007e7480`
+compares names against `dwev_0`, `dwev_1`, and `dwev_2` family substrings
+(literals at `0x00fef4c0`-`0x00fef4e8`). Its caller at
+`0x007dce65`-`0x007dce8c` detects a changed spatial-object pointer, obtains
+that object's name through vtable offset `0xa4`, and passes the name into
+registration. This is a name-family classifier and a selected-object path,
+not a static choice of the Tower's `dwev_20` or `dwev_00`. The selected
+spatial object and active exact suffix remain unobserved historically.
+
 The native `RaptureMaterial2Clip` implementation gives an independent ABI for
 weather material overrides. Initialization at `0x00835250` resolves an
 `Attr` FCurve and four channels. Application at `0x00835470` appends `R`,
@@ -98,7 +107,8 @@ weather.
 ## Evidence boundary
 
 The retail artifacts prove layout identity, initial layout components, light
-types and parameters, shutter ownership and timing, and the Material2 ABI.
+types and parameters, shutter ownership and timing, the DrawEnv name-family
+classifier, and the Material2 ABI.
 They do not prove the duty's historical weather ID, exact active DrawEnv lane,
 server weather bootstrap, or the final enabled state after a weather blend.
 WeatherManager behavior is documented separately in
