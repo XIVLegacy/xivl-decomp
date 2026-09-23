@@ -122,6 +122,44 @@ serialized layout translation suitable for staging comparisons with
 scene-local coordinates, not a retail trigger volume, terrain height,
 server spawn point, or proof that a scene played at a particular time.
 
+### Dzemael scene staging coordinates
+
+The scheduler payloads contain these scene-local position tuples:
+
+| Scene | Clip payload offset / block size / start | Actor | Position field / float32 tuple |
+| --- | --- | --- | --- |
+| `rad0r102` | `0x668` / `0x400` / 50,000 | index 5 (`Actor_swich`, token 1200204) | `0x678`: `(81.81999969482422, -7.179999828338623, 169.9499969482422)` |
+| `rad0r103` | `0x598` / `0x350` / 90,000 | index 5 (`Gimic`, token 1200204) | `0x5A8`: `(145.02999877929688, -7.820000171661377, 170.52000427246094)` |
+
+Both scenes explicitly reference `roc_r0_dun01`, and the referenced layout
+translation is `(-16, 188, 32)` above. Adding that translation componentwise,
+without applying rotation, gives comparison coordinates `(65.81999969482422,
+180.82000017166138, 201.9499969482422)` for `rad0r102` and
+`(129.02999877929688, 180.17999982833862, 202.52000427246094)` for
+`rad0r103`.
+These are derived staging comparisons, not independently established world
+positions. The source scenes are `rad0r102` (241,408 bytes, SHA-256
+`05c1e336768f421a0058be3aa19561a8a5f6e77a18a34eef6d79f582d192944a`) and
+`rad0r103` (241,104 bytes, SHA-256
+`71aba8060ed725a33419005e9eadfd5d0261467f086f1d9aca609eb46a370bee`).
+The actor-5 `rad0r102` tuple repeats at payload offsets `0x880` and `0xC2C`;
+the `rad0r103` tuple repeats at `0x660`, `0x82C`, `0x9F8`, `0xB7C`, and
+`0xD5C`.
+
+`rad0r101` has a separate `RaptureBgSetupClip` at scheduler payload offset
+`0x480` (block size `0x440`, actor field 0, start 0), whose float32 position
+at `0x4A4` is `(-48.57600021362305, 18.47800064086914, 245.75)`. Its scene
+has no explicit `roc_r0_dun01` reference, so this remains an unjoined
+scene-local tuple; do not add the layout translation to it. The scene is
+21,120 bytes, SHA-256
+`6443e8bfdb7f34a287124d0193fd5e4ec37de1138dd80e4f31431679457ba0c2`, and
+its scheduler payload SHA-256 is
+`66493744bb5d1cc6de69d6543f92ba047a2ec9b154070b3652a3da13ed4409d7`.
+
+These coordinates describe cutscene staging data only. They do not establish
+a combat spawn, runtime activation, exact in-world actor identity, or that
+the listed scene played during a particular encounter.
+
 ## Dzemael boss-scene cast and appearance joins
 
 The installed `client/cut/rad0r101/rad0r101` (SHA-256
