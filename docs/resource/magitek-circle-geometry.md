@@ -47,6 +47,38 @@ The packed values identify installed category-4 selectors and matching banks;
 they do not prove which server event issued one. Variant e004 is a separate
 terminal or warp presentation family and is not part of the arc-count set.
 
+## Initializer condition and one-shot resources
+
+The installed b936 `e003` through `e009` `top_mdl/0001` packages each
+contain one `initf_idle` scheduler. All seven carry byte-identical
+`extrastat` conditions with the value `0x80`. The conditional branch that
+references the variant's `b936eNNv1` ACB (spelled `b936_e03v1` for e003)
+contains its effect-end and kill clips. The other decoded branch contains
+`RaptureChantSyncClip`, not an immediate `KillClip`. This describes
+authored branches and resource references; the native conditional evaluator
+and retail extra-stat producer are not recovered by this asset audit.
+
+Separate installed LIB banks `0004` through `0009` contain corresponding
+`b936eNNv2` ACB references. Their package identities are:
+
+| Variant | LIB bank SHA-256 |
+| --- | --- |
+| e004 | `4a12fc6f6076b919cf008c9f14a0215ed4b7774aee49b8fc43cc1c62b7dd48fa` |
+| e005 | `8866411888dd7b928e91a107901a3a4facf989af733d479847728aac667a4aa5` |
+| e006 | `191d7592cd77223904c4881c725adfedd8aa7cd09e5d023c45232302e1984373` |
+| e007 | `2c78bb6c6666f4ebdfc96ab39acf6c01d064d1eb3e44bc5de168867b16b8b38d` |
+| e008 | `788d29e482ab00a276897b3cf49ec73debcfb48532e67c850e8e04fa29921381` |
+| e009 | `7741eade3c71ca95aff6b98a419c3f03679f94f9793649b463b24294d24000cd` |
+
+The initializer's v1 condition and the LIB v2 references are distinct
+native presentations. They do not prescribe when a server should clear
+`0x80`, which LIB bank retail invoked on completion, replay policy, or a
+charge threshold. The seven installed model hashes and six LIB hashes
+were checked directly; e005-e009 model identities are listed above,
+while e003 and e004 model SHA-256 values are
+`412b12e9a9c14f31fbf162469e0fc9260533a5b89dabaabff44a4c492e0d47bf`
+and `4f46a94527df6834c6a763e66549f3c0ace28d0c30a363ab37dcf13e125ba93d`.
+
 ## Evidence boundary
 
 The meshes prove intrinsic visual arc counts. They do not prove required
