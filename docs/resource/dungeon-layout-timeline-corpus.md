@@ -51,7 +51,7 @@ retained during the decode rather than normalized away.
 | 412 | `wil0Dungeon02` | Nanawa Mines | 23 | 2 | 100 |
 | 413 | `wil0Dungeon03` | Cutter's Cry | 5 | 0 | 31 |
 | 414 | `wil0Dungeon04` | Copperbell Mines | 10 | 0 | 50 |
-| 415 | `wil0Dungeon05` | unresolved | 11 | 0 | 47 |
+| 415 | `wil0Dungeon05` | unresolved (`placeNameId` 3123) | 11 | 0 | 47 |
 | 416 | `wil0Dungeon06` | unresolved | 2 | 0 | 4 |
 
 The Shposhae annotation is a map-page association, not a historical
@@ -70,6 +70,23 @@ Tam-Tara layout 312,
 `360bef1ab5917e3d2e87e4a946c3fc848a7d76ced5159e21a5bb01af1cd4f111`;
 and Cutter's Cry layout 413,
 `c669f65d3f0897f8c328ebe51f2dbc8417dcfb9ec327af49eba14de9320afa06`.
+
+The canonical client-data catalog also records layout 415 as
+`wil0Dungeon05`, with `placeNameId` 3123 and MapNavi row 5400. Pinned
+`mapNavi_data.csv` rows 5400-5404 and 5411-5422 identify region 104/layout
+415. The `_layout.csv` and `mapNavi_data.csv` identities are pinned at SHA-256
+`2fd242794ec24288b8d4f6f54878b6d8f9241a80eea7a4ce4f2e62df0286ba88` and
+`a33f166fe9ec1ced44f2c614f849c295113352e9f8b7b03b7ecb818a53925a3f`,
+respectively. The corresponding DAT is `0x615A000D` at SHA-256
+`aaa14a56cb812cc82f91ab62b3df01c61a2fe6d9e95b74d7ca0df3a4c3fd3df4`.
+These rows support a static map/layout association; they do not establish
+historical instance dispatch or the human-readable place name. The canonical
+`xtx_placeName.csv` manifest pins 357,220 bytes at SHA-256
+`81467ef42e8aeba82fe95f6c4249356550c02e41e6734abf9fdd194051dc1714`; the
+available decoded copy is 228,320 bytes at SHA-256
+`8462d94ae611d51083a2a9c784699648417a2bec4daab605ccfc74e1a992fe21`, so its
+row 3123 cannot be used. The name therefore remains unresolved; this evidence
+does not reassign or disprove the existing layout-413 content label.
 
 ## Paired door-timeline placements
 
