@@ -211,6 +211,28 @@ identical to the independently recovered chunk used by `unluac` for this
 method. The decoded/ciphered name join is in
 `xivl-client-scripts:lua/registry.json` (`judge/depictionjudge`).
 
+The same installed `judgeNameplate` bytecode also defines an NM map-marker
+override in its NPC path. `isNotoriousMonster()` returns two values; its
+`chara/charabaseclass_battle.lua` definition maps `charaWork.battleSave.potencial`
+`-1`, `-2`, `-3`, and `-4` to `(true, 11)`, `(true, 12)`, `(true, 13)`, and
+`(true, 14)`, respectively. At `judgeNameplate` bytecode PCs 564-570, the
+client calls that method with two results and replaces the selected marker
+with type `7` when the first result is true and the second is `12`. PCs
+571-578 then clear the marker if `isMapMarkerVisibleForTalkable()` is false
+and pass the resulting value to `_setMapMarker`. The recovered Lua text
+mis-renders the second result as a call on the first result; the bytecode's
+`CALL R11 2 3`, `EQ R11 true`, and `EQ R12 12` establish the actual test.
+This proves the client-side presentation rule for potential `-2`, not that
+any specific retail actor was assigned that potential or displayed marker 7.
+The bytecode is the decoded installed `judge/depictionjudge` chunk identified
+above. The NM/potential methods are recovered
+`chara/charabaseclass_battle.lua:isNotoriousMonster` and `getPotencial`;
+their installed `client/script/729s9/729s989r57y9rr_89qqy5.le.lpb`
+has SHA-256 `ef6a85336b605cb404428efbc711cdf54c5b39a34f7cb9f18dab480568b650c3`.
+Its decoded Lua 5.1 bytecode has SHA-256
+`6d3f4bc0eb35827d3ced5e6a4c10cbd44ec0db9c729eed7075efe36e83982e9c`,
+equal to the independently recovered chunk used for those methods.
+
 ### `aetheryteWork` populates the leve-reward UI
 
 The 14 aetheryteWork fields (`glRewardItem`, `glRewardSubItem`, `difficulty`,
