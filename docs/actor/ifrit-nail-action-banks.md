@@ -27,6 +27,23 @@ The `cbbm_sp_01` transform is 90 frames at 30 fps. Its authored motion
 length is distinct from the WSS scheduler's active block and any
 server-side visibility delay.
 
+Two installed m852 banks reuse the nested m999 impact payloads. Recursive
+PWIB/SEDB comparison found 39 of 40 embedded resources byte-identical
+between m852 WSS0021 (SHA-256
+`d365c2f62241323971e73880bddd3b1908bfa8ffea269d17fa3dd158f25ecd34`)
+and m999 WSS0002 (SHA-256
+`495d76a562dbe2bebfb2698468dd114cd2aa024e6f22004b9fd0520ddd72cfc1`).
+For m852 WSS0022 (SHA-256
+`035e5346203e2d9a715b8c89cee14d8f0001fc38d7b43bc1bf74c44db24e78e3`)
+and m999 WSS0003 (SHA-256
+`0ddecf22508dcd151e302c7484981932b52db02f8ca926c3a114c65168046ac6`),
+42 of 43 match. In each pair the one different embedded entry is the
+outer `SEDBSCB` action scheduler; nested effect payloads are shared.
+This is an asset-equivalence join, not proof that the historical encounter
+selected either m852 wrapper or its m999 counterpart. The reproducible
+comparison is in `build_ifrit_ground_vfx_decomp.py` and its
+`pair_equivalence_detail.json` output.
+
 ## Native death-scheduler route
 
 The pinned executable's main-state transition function at VA
