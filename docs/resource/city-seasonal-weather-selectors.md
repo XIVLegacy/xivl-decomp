@@ -153,6 +153,56 @@ the exact historical event transition. None of the 203 examined installed
 The missing Limsa/Ul'dah controller, layout wrapper, selector, and placed
 transforms cannot be inferred from the surviving component graph.
 
+## Other city-layout show/hide names
+
+The installed city DATs also contain these 24 name-paired show/hide strings.
+Each listed string was checked at its byte offset. The pair is based only on
+the shared base name and `_show`/`_hide` suffix; it does not prove a common
+owner, event, or invocation.
+
+| Layout | DAT key | Show string @ offset | Hide string @ offset |
+| ---: | --- | --- | --- |
+| 321 | `0x29B00001` | `time_bg_coll_a1_show` @ `0x2F465` | `time_bg_coll_a1_hide` @ `0x2F47A` |
+| 321 | `0x29B00001` | `time_bg_comp_show` @ `0x2F5AD` | `time_bg_comp_hide` @ `0x2F5BF` |
+| 321 | `0x29B00001` | `time_bg_flag1_show` @ `0x2F561` | `time_bg_flag1_hide` @ `0x2F574` |
+| 321 | `0x29B00001` | `time_bg_flag2_show` @ `0x2F587` | `time_bg_flag2_hide` @ `0x2F59A` |
+| 391 | `0x29B00018` | `time_bg_air_show` @ `0x227A` | `time_bg_air_hide` @ `0x228B` |
+| 121 | `0x29D90001` | `time_bg_coll_a1_show` @ `0x25DF4` | `time_bg_coll_a1_hide` @ `0x25E09` |
+| 121 | `0x29D90001` | `time_bg_flg1_show` @ `0x25F06` | `time_bg_flg1_hide` @ `0x25F18` |
+| 121 | `0x29D90001` | `time_bg_flg2_show` @ `0x25F2A` | `time_bg_flg2_hide` @ `0x25F3C` |
+| 121 | `0x29D90001` | `time_bg_flg3_show` @ `0x25F4E` | `time_bg_flg3_hide` @ `0x25F60` |
+| 121 | `0x29D90001` | `time_bg_gci1_show` @ `0x25F72` | `time_bg_gci1_hide` @ `0x25F84` |
+| 121 | `0x29D90001` | `time_bg_hdi1_show` @ `0x25FBA` | `time_bg_hdi1_hide` @ `0x25FCC` |
+| 121 | `0x29D90001` | `time_bg_kki2_show` @ `0x25F96` | `time_bg_kki2_hide` @ `0x25FA8` |
+| 121 | `0x29D90001` | `time_bg_lamp1_show` @ `0x25FDE` | `time_bg_lamp1_hide` @ `0x25FF1` |
+| 131 | `0x29D90002` | `time_bg_coll_a1_show` @ `0x1DBFB` | `time_bg_coll_a1_hide` @ `0x1DC10` |
+| 131 | `0x29D90002` | `time_bg_tutrl01_show` @ `0x1DCA7` | `time_bg_tutrl01_hide` @ `0x1DCBC` |
+| 196 | `0x29D90017` | `time_bg_lin_ex_show` @ `0x47E2` | `time_bg_lin_ex_hide` @ `0x47F6` |
+| 196 | `0x29D90017` | `time_bg_lin_in_show` @ `0x480A` | `time_bg_lin_in_hide` @ `0x481E` |
+| 196 | `0x29D90017` | `time_bg_objc_l0_wl_show` @ `0x4703` | `time_bg_objc_l0_wl_hide` @ `0x471B` |
+| 421 | `0x615A0001` | `time_bg_coll_a1_show` @ `0x228BE` | `time_bg_coll_a1_hide` @ `0x228D3` |
+| 421 | `0x615A0001` | `time_bg_flag1_show` @ `0x22A25` | `time_bg_flag1_hide` @ `0x22A38` |
+| 421 | `0x615A0001` | `time_bg_flag2_show` @ `0x22A82` | `time_bg_flag2_hide` @ `0x22A95` |
+| 421 | `0x615A0001` | `time_bg_wall1_show` @ `0x22A4B` | `time_bg_wall1_hide` @ `0x22A5E` |
+| 421 | `0x615A0001` | `time_bg_wall2_show` @ `0x22AA8` | `time_bg_wall2_hide` @ `0x22ABB` |
+| 431 | `0x615A0003` | `time_bg_coll_a1_show` @ `0x156CD` | `time_bg_coll_a1_hide` @ `0x156E2` |
+
+The 24 entries are the rows outside the Halloween- and Starlight-named groups
+in `city_layout_paired_schedulers.csv` rows 2-90. Each literal and offset was
+checked against the corresponding installed DAT bytes.
+
+The installed resources are pinned independently of the names:
+
+| DAT key | SHA-256 |
+| --- | --- |
+| `0x29B00001` | `abc13bd6f096b0fe9703b2092ca4a7f819ff2b88e4d08ae222a9db447f618312` |
+| `0x29B00018` | `c9e8dd231cf675cb6cf7ed9239ff1f6889e9f1e2bbc8099d78ab956a9d41d44c` |
+| `0x29D90001` | `bc40d7ff57ab8998978532cce4564e2488ed81d6d10b8f7ede3e1586b0b26523` |
+| `0x29D90002` | `c6d86bfea2692e612464e7e08f6604df4f26fc1ea99da16727e824c920a693d8` |
+| `0x29D90017` | `35f5df6d3138398f8b6fcba0025b4a870eb8370cbaaabad423ae8da4f17fa4db` |
+| `0x615A0001` | `69c6ff8488ed9c407a28705cf6cb844d55845f7eed3ad58b31845b11a8331c4c` |
+| `0x615A0003` | `d969e982a55d5c986e7bea24ae5af1bf23bfe7ed18854f7dd7c4f21a11d2353f` |
+
 ## Corpus boundary
 
 The typed scan covered 287 DATs referenced by recovered

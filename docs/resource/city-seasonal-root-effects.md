@@ -20,6 +20,15 @@ masks in these roots select 8030 and 8032, not 8027 or 8029. The separate
 city layouts that contain weather-conditioned decorations are described in
 [City seasonal weather selectors](city-seasonal-weather-selectors.md).
 
+Gridania's root DAT also contains the pooled strings `vtp1..vtp5` once each,
+at offsets `0x6D10`, `0x6D15`, `0x6D1A`, `0x6D1F`, and `0x6D24` in
+`0x29B00000` (SHA-256
+`b5ae5559d9e1eaea1bdb94a545b861ee5d751faaa5e9e451415edcac66bf184b`). No
+expanded `time_vfx_hanabi*_vtp#` string occurs in that DAT. This distinguishes
+the resident short keys from timeline references; it does not link a key to a
+primitive, object group, or activation.
+The source inventory is `moonfire_hanabi_executable_atlas_20260712/hanabi_short_key_string_reuse.csv`, rows 2-6; these offsets and the negative expanded-name scan were checked against the installed DAT bytes.
+
 ## Script and activation boundary
 
 Recovered `MapObjFireworks._onLoop` reads server time, checks Hydaelyn night,

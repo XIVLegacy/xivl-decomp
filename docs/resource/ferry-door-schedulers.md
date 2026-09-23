@@ -73,6 +73,30 @@ Those four timelines remain only partially decoded. Their close counterparts
 and all A-door timelines decode, but the successful neighbors do not justify
 inventing the missing collision records.
 
+## Summer-named strings
+
+The installed resources at `0x89ED0003` and `0x89ED0004` each contain the
+literal names `time_bg_smmr_show` and `time_bg_smmr_hide`:
+
+| DAT key | String | Offset |
+| --- | --- | ---: |
+| `0x89ED0003` | `time_bg_smmr_show` | `0x500F` |
+| `0x89ED0003` | `time_bg_smmr_hide` | `0x5021` |
+| `0x89ED0004` | `time_bg_smmr_show` | `0x4F06` |
+| `0x89ED0004` | `time_bg_smmr_hide` | `0x4F18` |
+
+| DAT key | Installed DAT SHA-256 |
+| --- | --- |
+| `0x89ED0003` | `d1f86185bc09c0f5b0875c2a85052685cdab8c295b1dc46c68eae928d2999b47` |
+| `0x89ED0004` | `47eb8f538bda6d354f7595e168d9ba6a5d7d901acde594021e1ed8fca4abc5df` |
+
+These offsets establish resident names only. They do not identify an event,
+owner, call route, or historical activation.
+The source inventory is `support_resource_scheduler_strings.csv` rows 9-12;
+the layout-key associations are listed in `region_resource_all_rows.csv`
+rows 961-962. The strings and offsets were checked against the installed DAT
+bytes.
+
 ## Evidence identity and limits
 
 | Layout | Installed DAT SHA-256 |
