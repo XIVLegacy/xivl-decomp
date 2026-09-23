@@ -19,11 +19,14 @@ The separate `MiniMapWidget.setMiniMapWidgetMarkerData` path writes
 `GLMakerData[slot].X/Y/Z/Radius` for a coordinate marker. Its recovered
 branches associate size arguments 1, 2, and 3 with radius values 32, 64,
 and 128, and reject slots outside 0..8. The decompiled method contains
-invalid `break` statements, so this branch reconstruction is a static
-candidate rather than a runtime-verified control flow. `CaravanGuardDirector`
-submits group 2, size 1, and its `work.markerX/Y/Z` coordinates for the
-caravan circle. This is director-fed marker state, not an actor-attached
-marker or an actor-icon packet.
+invalid `break` statements, but direct disassembly of the installed LPB
+confirms the three size branches and the stored-property writes. The exact
+caravan step/status gate and full-map counterpart are recorded in
+`xivl-client-scripts:docs/content-director-ui-contracts.md`.
+`CaravanGuardDirector` submits group 2, size 1, and its retained
+`work.markerX/Y/Z` coordinates. This is director-fed marker state, not an
+actor-attached marker or an actor-icon packet; it does not prove a particular
+historical server update or world-space circle radius.
 
 ## Provenance
 
