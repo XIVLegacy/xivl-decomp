@@ -68,9 +68,9 @@ activation, or runtime behavior.
 | 316 | `fst0Dungeon06` | unresolved | 22 | 6 | 88 |
 | 411 | `wil0Dungeon01` | unresolved | 11 | 0 | 52 |
 | 412 | `wil0Dungeon02` | Nanawa Mines | 23 | 2 | 100 |
-| 413 | `wil0Dungeon03` | Cutter's Cry | 5 | 0 | 31 |
+| 413 | `wil0Dungeon03` | Eastern Thanalan (place-name; duty unresolved) | 5 | 0 | 31 |
 | 414 | `wil0Dungeon04` | Copperbell Mines | 10 | 0 | 50 |
-| 415 | `wil0Dungeon05` | unresolved (`placeNameId` 3123) | 11 | 0 | 47 |
+| 415 | `wil0Dungeon05` | Cutter's Cry | 11 | 0 | 47 |
 | 416 | `wil0Dungeon06` | unresolved | 2 | 0 | 4 |
 
 The Shposhae annotation is a map-page association, not a historical
@@ -87,25 +87,31 @@ Dzemael layout 211,
 `98bc9d3a0111de81a95b01a3e1c9a94453f51f11169634eea0c80f97d329b368`;
 Tam-Tara layout 312,
 `360bef1ab5917e3d2e87e4a946c3fc848a7d76ced5159e21a5bb01af1cd4f111`;
-and Cutter's Cry layout 413,
+and layout 413,
 `c669f65d3f0897f8c328ebe51f2dbc8417dcfb9ec327af49eba14de9320afa06`.
 
-The canonical client-data catalog also records layout 415 as
-`wil0Dungeon05`, with `placeNameId` 3123 and MapNavi row 5400. Pinned
-`mapNavi_data.csv` rows 5400-5404 and 5411-5422 identify region 104/layout
-415. The `_layout.csv` and `mapNavi_data.csv` identities are pinned at SHA-256
-`2fd242794ec24288b8d4f6f54878b6d8f9241a80eea7a4ce4f2e62df0286ba88` and
-`a33f166fe9ec1ced44f2c614f849c295113352e9f8b7b03b7ecb818a53925a3f`,
-respectively. The corresponding DAT is `0x615A000D` at SHA-256
+The canonical client-data catalog records layouts 413 and 415 as
+`wil0Dungeon03`/`wil0Dungeon05`, with `placeNameId` 3002/3123 and MapNavi
+rows 4400/5400. Pinned `xtx_placeName.csv` rows 3002 and 3123 name Eastern
+Thanalan and Cutter's Cry. Pinned `mapNavi_data.csv` row 4400 identifies
+region 104/layout 413 but carries placeholder place-name IDs; rows 5400-5404
+and 5411-5422 identify region 104/layout 415 and use place-name ID 3123.
+The `_layout.csv`, `mapNavi_data.csv`, and `xtx_placeName.csv` hashes are
+`2fd242794ec24288b8d4f6f54878b6d8f9241a80eea7a4ce4f2e62df0286ba88`,
+`a33f166fe9ec1ced44f2c614f849c295113352e9f8b7b03b7ecb818a53925a3f`, and
+`81467ef42e8aeba82fe95f6c4249356550c02e41e6734abf9fdd194051dc1714`,
+respectively.
+The decoded CSV corpus is pinned by
+`xivl-client-data:manifests/private_csv_corpus.json` at archive SHA-256
+`006f9438a8cfd9277376f0ab28474500c67e4665050aa631cae64c9e6f38a5b0`.
+The layout DATs are `0x615A000B` at SHA-256
+`c669f65d3f0897f8c328ebe51f2dbc8417dcfb9ec327af49eba14de9320afa06` and
+`0x615A000D` at SHA-256
 `aaa14a56cb812cc82f91ab62b3df01c61a2fe6d9e95b74d7ca0df3a4c3fd3df4`.
-These rows support a static map/layout association; they do not establish
-historical instance dispatch or the human-readable place name. The canonical
-`xtx_placeName.csv` manifest pins 357,220 bytes at SHA-256
-`81467ef42e8aeba82fe95f6c4249356550c02e41e6734abf9fdd194051dc1714`; the
-available decoded copy is 228,320 bytes at SHA-256
-`8462d94ae611d51083a2a9c784699648417a2bec4daab605ccfc74e1a992fe21`, so its
-row 3123 cannot be used. The name therefore remains unresolved; this evidence
-does not reassign or disprove the existing layout-413 content label.
+These rows support static map/layout place-name associations. Layout 413's
+place-name row does not identify its dungeon duty; layout 415's row directly
+names Cutter's Cry. The map/layout rows do not establish historical instance
+dispatch or which zone row selected either layout.
 
 ## Paired door-timeline placements
 
@@ -154,7 +160,7 @@ a serialized GID that appears in a direct owner's member table, producing 440
 candidate rows. Donor and internal references are common, so a matching GID or
 actor name is not a universal owner join.
 
-## Cutter's Cry example
+## Layout 413 example
 
 Layout 413's five packages show why capability and runtime ownership must stay
 separate. Two nine-second packages control a wall and collision box through
@@ -167,7 +173,7 @@ apiece for the door show and hide timelines, 11 for normal shifting sands, ten
 for small shifting sands, and eight for large shifting sands. The door rows
 repeat the same five serialized instances across the complementary timelines.
 These coordinates prove authored layout targets, not active server bindings;
-no current map-object or DoorServer row joins a Cutter instance to them.
+no current map-object or DoorServer row joins a named duty instance to them.
 
 Twenty `sdef_*` strings in the layout are sound definitions. Three sand sound
 objects are owned by the sand timelines; 17 numbered sound definitions are
@@ -194,6 +200,6 @@ serialized placement. It does not prove initial state, server construction,
 trigger conditions, state replay, or late-join behavior. A compiled timeline
 without a placed owner remains a resource definition. A placed owner without
 a selected alias remains a capability. Neither should be promoted into
-runtime behavior from a name match alone. For Cutter's Cry, the historical
+runtime behavior from a name match alone. For layout 413, the historical
 runtime carrier, trigger ordering, destination, initial state, and reconnect
 state remain unavailable; the static b996 candidates do not resolve them.
