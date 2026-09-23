@@ -69,6 +69,19 @@ cannot be lengthened by increasing opcode `0x000d`'s transition byte.
 The `+0x8c` value is not the packet-driven weather fraction. Any diagnostic
 which samples it alone cannot measure a 20- or 180-second packet transition.
 
+## Zone-name and micro-area boundary
+
+The same installed executable constructs an `AreaBase` string member at
+`+0x64` (`0x006F3252..0x006F3255`). The `_getZoneName` binding at
+`0x006F9700..0x006F9715` passes that member to the string-return helper;
+registration at `0x00749BC7` loads the binding address. This getter does
+not compute a name from coordinates. The weather packet reader above also
+receives no coordinate or micro-area field. These observations do not
+recover historical spatial name/weather polygons or prove that no other
+system could select an area name; a nearest-anchor partition derived from
+client place labels and contributor spawn coordinates is a reconstruction,
+not a retail boundary table.
+
 ## Evidence boundary
 
 The binary proves field widths, counter math, queue behavior, and the separate
