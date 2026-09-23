@@ -42,7 +42,30 @@ and command association unverified. The installed `m010` directory is
 also absent, so the earlier m009/m010 Mandragora guess is not supported
 by these client assets.
 
+## Clay golem contrast
+
+The canonical `xivl-client-data` CSV archive joins `actorclass.csv` row
+2208903 to display ID 3208903, `xtx_displayName.csv` row 3208903 to
+English `clay golem`, and `actorclass_graphic.csv` row 2208903 column 6
+to appearance base 10051. The native base decoder above maps that base
+to `mon/m051`, not `m521`. Installed
+`client/chara/mon/m051/act/emp_emp/wss/base/0001` (SHA-256
+`1906c2737bebd6d5f42b5c3ddb25d787ebb7c1ba19252240ac1498581c93672b`)
+contains the literal `vfx\mon\golem_m051`. These independent data and
+asset observations distinguish the clay golem row from the Mandragora
+`m521` asset. They do not identify the actor's retail Lua class path,
+server spawn, command list, or behavior.
+
+The three CSV entry SHA-256 values are, respectively,
+`3ac9f8d1812d49101f367e2a41356be96b5d64b1fc5ca29949195f50ebe1d984`,
+`36c5dfba312695d9f4ee090dba123dfd7792feba55d88b0062c070d98abc0505`,
+and `7da8241400530885e0a28ded04a03acf2771b0580a79c1f49f46ee0861010611`.
+
 Contributor lead: `FF14-Memory:docs/mandragora_model_decomp_findings_2026-06-19.md`,
 "2026-06-19 Continuation Update" and "Native Client Decoder". Its custom
 Mandragora experiments, server SQL/script joins, and live tests are not
 retail actor-binding evidence.
+The clay golem contrast follows the separate contributor lead
+`FF14-Memory:docs/candidate_monster_decomp_implementation_audit_2026-06-19.md`,
+"Clay Golem Command Pass"; its class-path and spawn recommendations were
+not adopted from contributor SQL.
