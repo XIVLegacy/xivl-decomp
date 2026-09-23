@@ -56,6 +56,20 @@ In particular, `(false, false)` is not `(0, 0)` for Gridania. The branches
 establish client presentation selection only, not the server's reason for
 choosing a tuple or the quest's completion policy.
 
+The installed scene dictionaries for all three `410` branches contain
+`Cid` (actor class 1001572) and `Ebrelnaux` (1060011). Their records are
+byte-identical across the three scenes, but the enclosing assets have
+distinct SHA-256 identities:
+
+| Scene | Cid offset | Ebrelnaux offset | Scene SHA-256 |
+| --- | ---: | ---: | --- |
+| `com0l410` | `0x68F58` | `0x68F94` | `ab0c92f5736cc408661acb95e79fbd0e26c26a691913b331240e2be994976e42` |
+| `com0g410` | `0x68838` | `0x68874` | `0f6eb2614085e11b91b327add82c36adc0db43d992042e1c5e77b6fb642f017d` |
+| `com0u410` | `0x68988` | `0x689C4` | `4b176033b0baf575b3c04340eaf7f27e6820886b4a6a41363157cc99c0996ac1` |
+
+These are cutscene dictionary identities, not persistent NPC spawns,
+combat participants, or evidence of the server's scene-selection trigger.
+
 The six `Com5[lgu]0..1` dungeon-entry ask methods in the examined pass call
 `ask` once and return the saved choice. On sampled choice 1 they leave the
 talk turn open for the next handoff; on sampled decline 0 they close it.
