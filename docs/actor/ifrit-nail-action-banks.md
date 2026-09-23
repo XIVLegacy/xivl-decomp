@@ -20,6 +20,31 @@ manifest." The 15 equipment/model and skeleton files are not extra WSS
 banks. This root census does not exclude dependencies reached by hashed,
 numeric, or executable-generated references outside those paths.
 
+An independent case-sensitive binary literal scan of the installed
+`client` tree (`rg -a -l -F -e m852 -e m524 --no-ignore --hidden`)
+found seven matching files outside those two direct model roots. The
+tree contained 51,772 files totaling 5,469,534,267 bytes at this
+check; this count differs from the 51,111-file source report, so the
+scan scope is recorded here rather than inheriting its count. Each
+external hit's installed bytes and SHA-256 matched the source report:
+
+| External path under `client/` | Bytes | SHA-256 | Literal-reference boundary |
+| --- | ---: | --- | --- |
+| `cut/sum6a000/sum6a000` | 2,563,296 | `2b2e7cfddf8effc655279e5645b7e436c80b2149ef556eb650daa3705ea1e66f` | m852 cinematic paths |
+| `cut/man30880/man30880` | 2,358,128 | `ad3502659271a9d5a5dc384b7a8b2315a193bd693ff34ed8912077bb3c4a74bc` | m852 cinematic paths |
+| `cut/man30850/man30850` | 4,777,472 | `2bad417f5fde6110215fa5872a11d0b5522d15d70b47e4162f7c5fd682b86474` | m852 cinematic paths |
+| `cut/man40640/man40640` | 9,909,200 | `992d373847cedea4ea794aaf169d5c4bde5a9d63eb3aa66cad6062108e9646c0` | m852 cinematic paths |
+| `chara/mon/m999/act/emp_emp/wss/base/0001` | 275,472 | `a849d146a606332e773e6f151a61bbbdfb22d6a15102a8f4c0c3d93881113a94` | `mon\ifrit_852\skill09` |
+| `chara/mon/m999/act/emp_emp/wss/base/0006` | 490,912 | `4eaa0bf9aeba22ae4b0fffb56425d080ea12aed36a1673139b7854b43c52308b` | m852 spillover token |
+| `chara/mon/m526/act/emp_emp/bid/base/0000` | 44,448 | `23e5a6fa702023a5f9d94de5d96c12ab5335e8aca2c39f44da6f61274de50a7a` | `m524e001` and `skl_m524b001` |
+
+The cut resources are authored cinematic capabilities, not combat-bank
+selection. The m526 body motions have five bones, versus the Nail's
+12, so its literal reference is not a Nail motion-selection join.
+The search cannot rule out dependencies encoded without either literal,
+including hashed or numeric references; none of these files establishes
+the historical encounter's active command or asset selector.
+
 Parsing the 28 direct action containers' outer `SEDBRES` tables yields
 251 live resource entries. A row is counted only when its type, size,
 and live field are nonzero:
