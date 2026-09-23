@@ -64,6 +64,36 @@ Tam-Tara layout 312,
 and Cutter's Cry layout 413,
 `c669f65d3f0897f8c328ebe51f2dbc8417dcfb9ec327af49eba14de9320afa06`.
 
+## Paired door-timeline placements
+
+A fresh typed extraction of the installed layouts matched the saved
+`timeline_instance_placements.csv` and `timeline_unit_tree_owners.csv`
+byte-for-byte. The scanner follows each compiled timeline's direct UnitTree
+member target pointer and then reads that owner's serialized `isgrp` instance
+placements. In the nine layouts below, 29 door-named owner groups have exact
+matching instance sets for their `open` and `clos` timelines. The extractor
+was `build_dungeon_layout_animation_atlas.py`, source SHA-256
+`3f7e3ee6486d95ab0b654e202936b834b60a048b1a2053327c4ad87c7902658d`.
+
+| Layout / installed DAT SHA-256 | Distinct paired `isgrp` instance IDs |
+| --- | --- |
+| 111 / `data/29/D9/00/08.DAT` / `4574985fb2d1e4b6068411350375777dd9d257fa2c5111f1de53a775172e67ec` | 3616-3617, 3619-3627 |
+| 112 / `data/29/D9/00/09.DAT` / `0fdba99375f3282d58286d98ecb2af734170ff3cfb3369967b569488c8df46c2` | 3679-3690 |
+| 116 / `data/29/D9/00/0D.DAT` / `d8ff9874f392367fa111a75997915257a465bf8fc4c613cafa035cd12f6e733a` | 487-488, 490, 492-501, 1095, 1114, 1116, 1124, 1132, 1280, 1315, 1333, 1585 |
+| 211 / `data/28/D9/00/06.DAT` / `98bc9d3a0111de81a95b01a3e1c9a94453f51f11169634eea0c80f97d329b368` | 1406, 1408-1412, 1418, 1486, 1493-1496 |
+| 214 / `data/28/D9/00/09.DAT` / `a4fdee1c2f4767aefd204a118173155cb89ef03713fb35a93776e64b23d7fe2c` | 1292-1293 |
+| 311 / `data/29/B0/00/08.DAT` / `263c2a90566037253c69b4c32c99f1cc8b9aae1e7bd23247b9234b4c41ae7b4d` | 3156-3173, 3225-3226 |
+| 312 / `data/29/B0/00/09.DAT` / `360bef1ab5917e3d2e87e4a946c3fc848a7d76ced5159e21a5bb01af1cd4f111` | 3598-3609, 3649 |
+| 412 / `data/61/5A/00/0A.DAT` / `019c70f30dc49d9c26b86d7c60033eac075c44222a95c2063048df8e089a3892` | 2717-2731 |
+| 414 / `data/61/5A/00/0C.DAT` / `ffbab10a565160d2dd06c8fb36f0f9e136db9eb81ad0f1a8ab6b817519d4ab49` | 2645, 2652-2661 |
+
+These are authored layout placements and paired timeline capabilities. They
+do not identify a retail `DoorServer` or other actor class, an active spawn,
+the server's proximity policy, a safe packet tuple, or a visible door state.
+Layout 211 includes encounter-owned door groups, so its whole set must not be
+treated as ordinary automatic doors. Toto-Rak layout 313 has a separate
+occupancy/door population and is not classified by this table.
+
 ## Ownership joins
 
 Every compiled timeline has a direct unit-tree owner through a serialized
