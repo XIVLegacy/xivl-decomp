@@ -25,6 +25,25 @@ The remaining nine classes account for 59 clips. Raw flags, start units,
 tracks, clip IDs, payload bytes, controlled actors, and active durations were
 retained during the decode rather than normalized away.
 
+## Raw string locator index
+
+The companion [dungeon layout token index](dungeon-layout-token-index.csv)
+records 8,373 selected `(token class, string)` rows across the 24
+hash-pinned SqPack DAT files used by this corpus; their occurrence counts sum
+to 9,849. Each row pins the DAT key, relative path, SHA-256, first byte offset,
+and number of occurrences. The scanner reads each DAT file as stored and does
+not decompress or resolve individual SqPack resources. Offsets are relative to
+the complete DAT file, and repeated strings retain only their first offset.
+
+`build_dungeon_layout_token_index.py` regenerates the CSV from a local client
+installation and rejects any DAT whose hash differs from the pinned inputs.
+It scans printable ASCII runs of at least four bytes and retains selected
+timeline/control names plus keyword-matched resource-like strings. This proves
+raw byte presence in the indexed DAT files only. Its string categories are
+lexical locator aids, not decoded ownership edges: presence, proximity, and
+names do not establish a resource-entry mapping, timeline link, actor owner,
+activation, or runtime behavior.
+
 ## Per-layout coverage
 
 | Layout | Internal name | Known content | Compiled | Stubs | Clips |
