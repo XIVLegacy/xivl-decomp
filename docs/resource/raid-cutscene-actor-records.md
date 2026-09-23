@@ -43,6 +43,14 @@ name `roc_r0_dun01` and `time_door_a1_open`, with trailing words
 The trailing words' dispatch ABI and historical viewing policy remain
 unknown.
 
+The same installed layout's relative `lyb` base is physical offset
+`0x4A50`. Its node at relative `0x22680` names `roc_r0_dun01` and has
+type `MiscObjects/LaySettings/LaySettingsObject`. The three float32 values
+at node `+0x40` (physical `0x27110`) are `(-16, 188, 32)`. They are a
+serialized layout translation suitable for staging comparisons with
+scene-local coordinates, not a retail trigger volume, terrain height,
+server spawn point, or proof that a scene played at a particular time.
+
 ## Dzemael boss-scene cast and appearance joins
 
 The installed `client/cut/rad0r101/rad0r101` (SHA-256
