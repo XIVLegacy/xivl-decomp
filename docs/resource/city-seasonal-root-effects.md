@@ -52,6 +52,10 @@ expanded `time_vfx_hanabi*_vtp#` names. Each corresponding primitive has
 matching timing words across the cities, including 9,000,000- and
 6,000,000-unit block fields. Their unit interpretation and the higher
 `vtp#`-to-primitive selection are not established by those bytes alone.
+The u32 at `+0x28` in the second `@CBLK` header is `3 | 5 | 5 | 6` for bank
+one and `7 | 7 | 8 | 7` for bank two, with each sequence matching across the
+three city DATs. These encoded values do not establish visible effect counts,
+elapsed seconds, or retail activation.
 
 The bank markers immediately follow serialized `isgrp` names in six root
 layout neighborhoods. Their candidate instance IDs are 41 and 62 in
