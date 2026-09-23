@@ -13,6 +13,20 @@ a coordinate/radius row. Exact `MiningPoint` actor-ID-to-marker mappings
 are recorded in `xivl-client-scripts/docs/gathering-marker-fishing-ui.md`
 and are not inferred from this generic call site.
 
+`DepictionJudge.judgeNameplate` also selects actor-local marker type `1` for
+another living player actor when `myPlayer:getPlayerParty():_isMember(actor)`
+returns true. Both sides of the following `_isAccessibleInServer` color branch
+make the same marker assignment. This is separate from the s2c `0x018D`
+`MapMarkerParty` full-map path and proves script selection, not successful
+historical rendering. The source LPB
+`client/script/0p635/65u17q1vw0p635.le.lpb` has SHA-256
+`9eb9b7054434cd5281cb52c89a2d5b43a40913dc47ab4d11cc18fdda4ade6e76`; its
+decoded Lua 5.1 bytecode has SHA-256
+`756fa626bf9703afb5f97a36eb5bc3643eaf216cc602137dde5f034f678b9f19`.
+Pinned unluac output, after CRLF-to-LF normalization, matches
+`xivl-client-scripts:manifests/scripts.json` SHA-256
+`8db4d613d72ddf1921e3c9c4a961714371d2eac38fcc3b0211023105cb41a3e1`.
+
 ## Coordinate circles
 
 The separate `MiniMapWidget.setMiniMapWidgetMarkerData` path writes
