@@ -73,6 +73,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Dispatcher subscriber replacer](net/dispatcher-subscriber-swap.md)
 - [Kick dispatcher clearer](net/kick-dispatcher-clearer.md)
 - [Kick receiver offset map](net/kick-receiver-offset-map.md)
+- [Ferry scene notice constructors](net/ferry-scene-notice-producer.md)
 - [Lobby secure acknowledgement consumer](net/lobby-acknowledgement-consumer.md)
 - [Lobby assigned connection u32 lifecycle](net/lobby-assigned-connection-u32.md)
 - [Lobby clear types 0x0007 and 0x0008](net/lobby-clear-0007-0008-consumers.md)
