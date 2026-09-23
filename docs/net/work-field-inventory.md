@@ -195,6 +195,22 @@ Charm status changes group membership. Sources are recovered
 `widget/partyparameterwidget.lua:updateMemberList`, and
 `widget/partymanagerwidget.lua:updateMemberList`.
 
+After the player-party membership test fails, `DepictionJudge.judgeNameplate`
+also tests `isPropertyEnabled(3)` and `getBattalion() == 1`. That branch calls
+`_setNameplateColor(1, 0.5, 1, 0.5, 1)`, or RGBA `(0.5, 1, 0.5, 1)` after the
+leading color slot. The actual player-party branch calls
+`_setNameplateColor(1, 0.5, 1, 1, 1)`, or RGBA `(0.5, 1, 1, 1)`. The former is
+not an exact party-blue substitute and does not establish a Charm-specific
+presentation path. This is the independently decompiled
+`judge/depictionjudge.lua:judgeNameplate` method: the installed 1.23b
+`client/script/0p635/65u17q1vw0p635.le.lpb` has SHA-256
+`9eb9b7054434cd5281cb52c89a2d5b43a40913dc47ab4d11cc18fdda4ade6e76`;
+`xivl-client-structs:tools/decode_lpb.py` decoded it to Lua 5.1 bytecode
+SHA-256 `756fa626bf9703afb5f97a36eb5bc3643eaf216cc602137dde5f034f678b9f19`,
+identical to the independently recovered chunk used by `unluac` for this
+method. The decoded/ciphered name join is in
+`xivl-client-scripts:lua/registry.json` (`judge/depictionjudge`).
+
 ### `aetheryteWork` populates the leve-reward UI
 
 The 14 aetheryteWork fields (`glRewardItem`, `glRewardSubItem`, `difficulty`,
