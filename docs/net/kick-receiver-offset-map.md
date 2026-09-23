@@ -6,18 +6,22 @@ the meaning of `receiver[+0x80]`.
 
 ## TL;DR
 
-**`receiver[+0x80]` is set to 1 IFF the KickEvent's `event_type`
-byte == `0x05` ("noticeEvent" type).** Specifically:
+In the parser constructor, **`receiver[+0x80]` is set only when the
+KickEvent's `event_type` byte is `0x05` ("noticeEvent" type) and the
+first Lua-parameter byte is tag `0x03`**. The receive path can call the
+setter again on its separate Branch B2. Specifically:
 
 1. The kick packet parser `FUN_0089f180` reads the event_type
    byte from an arg pointer (caller pre-extracted it from packet
    bytes), stores it at `this[+0x68]`.
 2. Just before returning, the parser compares `this[+0x68]`
    against the byte at global `[0x012c3f7e] = 0x05`.
-3. **If equal**: parser calls `FUN_0089e200(LuaParamsContainer*)`
-   which sets `LuaParamsContainer[+0x14] = 1` (== `receiver[+0x80] = 1`).
-4. **If not equal**: `receiver[+0x80]` stays `0` -> KickReceiver's
-   Branch B1 silently falls through (no-op).
+3. **If equal**: parser calls `FUN_0078f840`, which compares the first
+   Lua-parameter byte with `0x03`. Only a nonzero result calls
+   `FUN_0089e200(LuaParamsContainer*)`, setting
+   `LuaParamsContainer[+0x14] = 1` (== `receiver[+0x80] = 1`).
+4. **If either test fails**: the constructor leaves `receiver[+0x80]`
+   clear, so fresh-target Branch B1 cannot queue the kick.
 
 The byte table at `0x012c3f7a..7e` is a small enum: `{0x01, 0x02,
 0x03, 0x04, 0x05}` indexed by event type. `0x05` is the
@@ -48,14 +52,14 @@ struct LuaParamsContainer {  // 0x18 bytes (at receiver +0x6c)
   /* +0x08 */ void*    param_buffer_end;          // (= begin + length)
   /* +0x0c */ void*    param_buffer_cap;          // (capacity)
   /* +0x10 */ uint32_t spare;                     // (some 4-byte spare/flags)
-  /* +0x14 */ uint8_t  is_notice_flag;            // <- receiver[+0x80]; set to 1 iff event_type==0x05
+  /* +0x14 */ uint8_t  is_notice_flag;            // <- receiver[+0x80]; constructor needs type 5 and tag 3
   /* +0x15 */ uint8_t  pad[3];                    // (alignment)
 };
 ```
 
 So **`receiver[+0x80]` = `(LuaParamsContainer at +0x6c)[+0x14]`** =
-the `is_notice_flag` byte, set by **`FUN_0089e200`** when the parser
-detects `event_type == 0x05`.
+the `is_notice_flag` byte, set by **`FUN_0089e200`** only after both
+constructor tests pass (or on the separate receive Branch B2).
 
 ## The decisive code path (FUN_0089f180 - kick packet parser)
 
@@ -70,13 +74,14 @@ detects `event_type == 0x05`.
 ; The decisive check:
 0049f237: MOV AL, [ESI+0x68]              ; reload event_type_byte
 0049f23a: CMP AL, byte ptr [0x012c3f7e]   ; compare against tag table[4] = 0x05
-0049f240: JNZ skip                        ; <- BRANCH: if not 5, skip the +0x80 set
+0049f240: JNZ skip                        ; if not 5, skip the param-tag test
 
-; (intermediate setup - LuaParams handling)
-0049f242-64: setup local for FUN_0078f810/40 sub-calls
+; initialize parameter iterator, then test first tag
+0049f24d: CALL 0x0078f810                 ; iterator setup
+0049f260: CALL 0x0078f840                 ; compares first byte with 0x03
 
-0049f265: CMP byte ptr [ESP+0x30], 0      ; check intermediate result
-0049f26a: JZ skip                         ; skip if zero
+0049f265: CMP byte ptr [ESP+0x30], 0      ; check tag predicate
+0049f26a: JZ skip                         ; skip if first tag was not 0x03
 0049f26c: MOV ECX, EDI                    ; EDI = &receiver[+0x6c] = LuaParamsContainer
 0049f26e: CALL 0x0089e200                 ; NOTE THE +0x80 SETTER
 
@@ -144,12 +149,14 @@ if (context_root[+0x128] == NO_ACTOR) {
 ## Implications for client's SEQ_005 silent-drop
 
 For non-notice event types (for example, `0x01` for talk and `0x03` for push),
-`receiver[+0x80]` stays 0. Branch B1 then silently falls through, so the kick
-never fires, matching the observed silent drop.
+or for a notice event whose first parameter tag is not `0x03`, the constructor
+leaves `receiver[+0x80]` clear. Fresh-target Branch B1 then cannot queue
+the kick. That is a client gate, not proof of a particular runtime drop.
 
-The byte at packet body offset 8 (`receiver[+0x68]`) must be `0x05` for the kick
-to register. This is the most consequential byte for the kick condition and
-should be re-verified against packet evidence.
+The event type at packet body offset 8 (`receiver[+0x68]`) must be `0x05`
+for this constructor path, but that byte is insufficient without the first
+parameter tag. The original packet parameters and dispatcher state still
+need separate evidence for any specific event.
 
 ## Cross-reference: Branch B2 also uses FUN_0089e200
 
@@ -177,7 +184,7 @@ re-asserted before the +0x5c gate check.
 | Step | Status |
 |---|---|
 | Map receiver[+0x80] to instance offset (LuaParamsContainer[+0x14]) | PASS (pre-existing) |
-| Packet byte source | `event_type == 0x05` triggers `FUN_0089e200`, which sets it |
+| Constructor gate | `event_type == 0x05` and first Lua-parameter tag `0x03` trigger `FUN_0089e200` |
 | Identify the trigger function | PASS `FUN_0089e200` (92 B) |
 | Identify the parser | PASS `FUN_0089f180` (289 B) |
 

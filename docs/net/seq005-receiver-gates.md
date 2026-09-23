@@ -73,11 +73,14 @@ where both dispatcher target slots are empty, has different behavior: a set
 `receiver[+0x80]` stores the target at `[+0x12c]` for a later attempt, while a
 clear flag returns without storing it.
 
-Parser `FUN_0089f180` maps the packet's `event_type == 0x05` case to the flag
-at `(LuaParamsContainer at receiver + 0x6c)[+0x14]`, which is
-`receiver[+0x80]`. This mapping identifies what drives Branch B1, but it does
-not establish which branch or flag value applied during a particular runtime
-failure.
+Parser `FUN_0089f180` first requires `event_type == 0x05`, then calls
+`FUN_0078f840` to test the first Lua-parameter tag against `0x03`.
+Only both passing conditions call `FUN_0089e200` to set
+`(LuaParamsContainer at receiver + 0x6c)[+0x14]`, which is
+`receiver[+0x80]`. This identifies the constructor gate for Branch B1;
+it does not establish which branch or flag value applied during a
+particular runtime failure. The receive path has a separate Branch B2
+setter.
 
 ## Evidence summary
 
@@ -86,7 +89,7 @@ failure.
 | `SetEventStatusReceiver` | `FUN_0089d860` (RVA `0x0049d860`) has no actor-state gate. |
 | `SetNoticeEventConditionReceiver` | `FUN_0089d980` (RVA `0x0049d980`) has no actor-state gate; a failed cast routes registration to `ActorBase[+0x118]`. |
 | `KickClientOrderEventReceiver` | `FUN_0089e450` (RVA `0x0049e450`) gates established-target paths on actor lookup and `actor[+0x5c]`; fresh-target Branch B1 depends on `receiver[+0x80]`. |
-| Kick parser | `FUN_0089f180` maps `event_type == 0x05` to `receiver[+0x80]`. |
+| Kick parser | `FUN_0089f180` requires event type `0x05` and first Lua-parameter tag `0x03` to set `receiver[+0x80]` in the constructor. |
 
 ## Cross-references
 
