@@ -22,6 +22,23 @@ These records prove numeric tokens in scene actor dictionaries, not a
 retail world-spawn placement, server class path, appearance selection,
 or interactive dungeon object. In particular, a separate b936 effect
 literal in a scene is not an appearance binding for its actor record.
-`rad0r102` has a raw 1200204 word at `0x129F4`, but its surrounding
-bytes do not match the standard record invariants above; this finding
-does not promote that compact/proxy interpretation to the same tier.
+`rad0r102` instead has a distinct compact/proxy `Actor_swich` record at
+`0x1298C`: its header names actor index 5 and its word at `0x129F4`
+is 1200204. It does not satisfy the standard record invariants above.
+The installed scene is SHA-256
+`05c1e336768f421a0058be3aa19561a8a5f6e77a18a34eef6d79f582d192944a`.
+Its scheduler has two `RaptureBgActionClip` records at payload offsets
+`0xB50` and `0xDA8`, both naming layout `roc_r0_dun01` and target
+`isgrp_001406` with trailing words `[16, 1]`. The referenced instance
+exists in installed layout 211 (`data/28/D9/00/06.DAT`, SHA-256
+`98bc9d3a0111de81a95b01a3e1c9a94453f51f11169634eea0c80f97d329b368`).
+This is a direct scene-to-layout reference, not proof of a retail
+activation trigger, server actor binding, or runtime playback rule.
+
+For comparison, `rad0r103` uses the standard `Gimic` record above. Its
+two `RaptureBgActionClip` records at payload offsets `0xA38` and `0xD9C`
+name `roc_r0_dun01` and `time_door_a1_open`, with trailing words
+`[18, 0]`. That timeline belongs to six door instances (1406 and
+1408-1412), so the target string alone does not select a unique door.
+The trailing words' dispatch ABI and historical viewing policy remain
+unknown.
