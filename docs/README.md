@@ -49,6 +49,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Retail input validation](ai_agents/retail-input-validation.md)
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
 - [City airship scene sequence](event/airship-scene-sequence.md)
+- [Company-warp after-warp loading boundary](event/company-warp-loading-boundary.md)
 - [Context-root priming](event/context-root-priming.md)
 - [DirectorBase hooks](event/director-base-hooks.md)
 - [Director and quest framework](event/director-quest-framework.md)
