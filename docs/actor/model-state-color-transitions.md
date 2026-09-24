@@ -126,8 +126,22 @@ Bit 5 selects separate motion/chant schedulers, not these aura ACBs.
 The on SCB and shared VEFF payloads have SHA-256
 `25b1616abfe77f2eac6965726e2a31ff6c6dbb53733ffd2ea4ee68e461f8cba7`
 and `1fc1f56053fd3729ed6879c124c98e98c685349fe9e48a3203bf7fa430d1e307`.
-No original empowerment threshold, north-terminal control rule, death-time
-effect cleanup, or retail state delivery follows from these resources.
+The same BID contains a `dead` resource in `outer/RES:s_bid00`, with path
+`chr\sch\mon\m054\emp_emp\dead\bin\dead`. It is a 1,344-byte SEDBSCB at
+file offset `0x59428`, SHA-256
+`31228e756e8fb5e374ddc1e721740afed6454d6e05506a6c3aef952d8ab6ee82`.
+Its second `@CBLK` begins at payload offset `0x230` and declares five
+records. The type-name strings at payload offsets `0x474` through `0x4CC`
+are `ProxyActor`, `BindActorClip`,
+`RaptureServerMoveStopClip`, `RaptureClientMoveStopClip`, `MotionClip`, and
+`RaptureCharaActionSoundClip`; this list has no
+`RaptureCancelChantSyncClip` or `RaptureEffectEndClip` entry. This bounds
+one named scheduler and does not show when it runs or whether another client
+route clears the effect.
+
+No original empowerment threshold, north-terminal control rule, complete
+death-time effect-cleanup policy, or retail state delivery follows from
+these resources.
 
 ## m505 immediate alpha state
 

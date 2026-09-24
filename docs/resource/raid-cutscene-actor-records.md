@@ -18,6 +18,20 @@ word at record `+0x30` is the numeric actor token below.
 | `rad0r403` | 566,944 | `cfd572945fae0dc1899cec24f36132fb7973ac7a7a164b333d6e8b4c4bd196d6` | `0x5710C` | 1200200 |
 | `rad0w503` | 572,624 | `7cefae5e6f71b4ec756e24760c418b39f972c3855df99000f1a155f34b685ae5` | `0x39730` | 1200332 |
 
+The `rad0r106` record beginning at `0x2F240` has actor index 8 and the
+four ASCII bytes `GOAL` at `+4`. Its little-endian token at `+0x30` is
+`1200203` (`0x0012504B`). This pins dictionary data only; it does not
+establish a victory role or scene dispatch.
+
+The `client/cut/rad0r105/rad0r105` bundle is 529,632 bytes (SHA-256
+`edb8478fc81b2cf0b7e9e064492dbbf71e1576a885592e88e045913cfd9690ae`).
+Its NUL-terminated `String` marker is at `0x80BE4`. The 96-byte region
+starting at `0x80BF4` holds 48 little-endian u16 values: 47 nonzero offsets
+and a final zero at `0x80C52`. Each nonzero offset is relative to `0x80BF4`
+and points to a string start in the bundle; the first value, `0x0060`,
+reaches `CommonActor` at `0x80C54`. This records the table layout, not the
+consumer behavior or use of the trailing zero.
+
 ## Additional scene dictionaries
 
 The six files listed below, along with `rad0r403` and `rad0w503` pinned
