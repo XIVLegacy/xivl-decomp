@@ -1,8 +1,8 @@
 # Local pair constructor variants
 
-This page records instruction-level initialization at two related bodies and
-two shared child helpers. Their object identity and application role remain
-unresolved.
+This page records instruction-level initialization at two related bodies, a
+tail-jump body, and two shared child helpers. Their object identity and
+application role remain unresolved.
 
 ## Binary and method
 
@@ -43,6 +43,16 @@ of stack arguments (`0x00DC1EA0`-`0x00DC1EBB`). Its callers pass
 `destination+0x10`, so the observed writes are at destination `+0x10`,
 `+0x12`, `+0x14`, and `+0x18`. The `0x00DC1C60` body later overwrites the
 last two dwords; the `0x00DC1CF0` body does not.
+
+The separate body at `0x00DC1C40` writes `0x01129AD4` at `[ecx]` and
+`0x01129ACC` at `[ecx+4]`, advances `ECX` by 8, then jumps to
+`0x00DC1DF0`, whose sole instruction is `ret`. Its body is 21 bytes and the
+tail target is one byte. This records the emitted stores and control flow
+without assigning a destructor or cleanup role. See
+`asm/ffxivgame/009c1c40_FUN_00dc1c40.s:6-9` and
+`asm/ffxivgame/009c1df0_FUN_00dc1df0.s:6`; source note
+`FF14-Memory/tools/outputs/lpb/native_retainer_dispatch_children_20260617/child_notes/child_00DC1C40_packet_pair_cleanup.md`
+has SHA-256 `005f3ff4685169385f10fdff4ccd33a35dc94c90b97dec9bb7ab438fe5a290cd`.
 
 ## Limits
 

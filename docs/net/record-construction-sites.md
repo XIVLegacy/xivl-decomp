@@ -116,6 +116,64 @@ After a successful copy and follow-on call, the second path stores 2 at
 receiver `+0x8C` (`0x00DAE17D`), whereas the value-3 path leaves that field
 unchanged in this body. This is a local state distinction, not a packet name.
 
+## Related dispatch helpers
+
+The helper at `0x004E4C10` tests dword `[ecx+0x88]`; zero returns zero. For a
+nonzero field, it passes the field address to `0x004E4B40`. If that call returns
+nonzero, the helper reads the field value, passes it to `0x004E4BA0` with the
+first result as `ECX`, and returns the second call's `EAX`. See
+`asm/ffxivgame/000e4c10_FUN_004e4c10.s` (VA `0x004E4C10`-`0x004E4C3A`) and the source note
+`FF14-Memory/tools/outputs/lpb/native_retainer_dispatch_children_20260617/child_notes/child_004E4C10_dispatch_context_provider.md`
+(SHA-256 `f86c444503a58a492a461f23cd8405acddd08a5bbf106bda8a0c7299ab69767a`).
+The note's provider/context wording is a role hypothesis; the instructions
+establish only the field access, calls, and return path.
+
+In `0x00DAF850`, after `0x00DAF1A0` returns nonzero, that result is stored at
+input `ESI+0x0C` and becomes `EDI`. The helper writes `EDI+0x14` from initial
+`ECX+0x18` with an optional `+8` indirection, or from initial `ECX+0x14` when
+`+0x18` is zero. It similarly writes `EDI+0x18` from initial `ECX+0x20` with
+an optional `+8` indirection, or from initial `ECX+0x1C` when `+0x20` is
+zero. `EDI+0x20` receives a zero-extended word from an accessor call. The
+helper then calls `0x009D2110` with `EDI+0x24`, zero, and another
+zero-extended accessor word. If the earlier
+`0x00DAF1A0` result is nonzero, it reads that result's `+0x24` and passes it to
+the indirect slot at vtable offset `+8` on the `ESI` input; otherwise it calls
+that slot with zero. These are direct dataflow observations, with no field or
+callee roles assigned. See `asm/ffxivgame/009af850_FUN_00daf850.s` (VA
+`0x00DAF850`-`0x00DAF914`) and source
+note `FF14-Memory/tools/outputs/lpb/native_retainer_dispatch_children_20260617/child_notes/child_00DAF850_dispatch_prepare_or_resolve_destination.md`
+(SHA-256 `66a3f20644905e326e87ecef8606c7c86856b67512776692588acd5851a5bb90`).
+
+The separate helper at `0x00DB06A0` calls `0x00DAE710` with the input at
+`ESI+4`, then obtains a pointer through the `ESI` vtable slot at `+4` and adds
+four. Unless that pointer equals the returned object's `+0x0C`, it copies two
+dwords from it to returned-object `+0x0C` and `+0x10`. It then calls the `ESI`
+vtable slot at `+0x0C`, pushing the returned object's `+0x20` and then `+0x24`.
+It calls `0x00DAF920` with the original receiver's `+0x20` as `ECX` and the
+returned object as an argument. The bundle's commit/notify label is not
+established by these instructions. See
+`asm/ffxivgame/009b06a0_FUN_00db06a0.s` (VA `0x00DB06A0`-`0x00DB06F5`) and source note
+`FF14-Memory/tools/outputs/lpb/native_retainer_dispatch_children_20260617/child_notes/child_00DB06A0_dispatch_commit_or_notify.md`
+(SHA-256 `0c91c12b8322b85316dbcab918e60877a4ebb585f8963211db7f4dc21fb05da1`).
+
+At `0x00DAE1E0`, the receiver path proceeds only when `[this+0x8C]` equals 1,
+the field at `+0x88` is nonzero, and the `0x004E4B40`/`0x004E4BA0` calls
+produce a nonzero result. It initializes a local pair through
+`0x00DC1CF0` after pushing `0`, `0x28`, then `2` (`0x00DAE25D`-`0x00DAE267`),
+then passes the pair to `0x00DAF850`. On a nonzero return, it calls
+`0x00DC1490`, writes dword
+`0x3C6B` and byte zero at the returned address and `+4`, and calls
+`0x00DB06A0`. It then calls `0x004E7290`, `0x00CE0F20`, `0x004E78D0`, and
+`0x004E6110`, stores 2 at `[this+0x8C]`, and reaches a return that tests
+whether that field equals 2. The body calls `0x00DC1C40` at `0x00DAE2E9`
+before that return. These observations do not identify the state, constant,
+accessor result, or subsequent calls' roles. See
+`asm/ffxivgame/009ae1e0_FUN_00dae1e0.s` (VA `0x00DAE1E0`-`0x00DAE30F`);
+incoming-xref rows 7 and 10 in
+`FF14-Memory/tools/outputs/lpb/native_retainer_dispatch_children_20260617/child_incoming_xrefs.csv` (SHA-256
+`ba0bec0f1e367588ec440f9a2ff3616fc42fc368a9b92e891ff77e613bad0319`) index
+the related incoming callsites.
+
 ## Raw comparison instructions
 
 | VA | RVA | Bytes | Comparison decoded from the instruction |
