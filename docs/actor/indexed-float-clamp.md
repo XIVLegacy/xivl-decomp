@@ -27,3 +27,18 @@ camera mode reads each entry. The `CameraActor` RTTI vtable is cataloged in
 `config/ffxivgame.rtti.json` at RVA `0x00BB906C`; the getter and setter
 instructions here do not by themselves prove that `ecx` is a `CameraActor`.
 No runtime range or visual effect is inferred from the static clamp.
+
+## Separate boolean predicate
+
+VA `0x00616F90` follows receiver `+0x118`, then that object's `+0x70`.
+If the latter pointer is zero, it returns one at `0x00616FBC`.
+For a nonzero pointer, it passes its `+0x134` dword to `0x007D2A50`
+with ECX derived from its `+0x118` pointer plus `0xA4`; a zero return
+also selects one (`0x00616FA0`-`0x00616FBA`). On the other path it
+compares receiver `+0x440` with `0xC0000000`, conditionally calls
+`0x00616310`, and may test a pointer at the first object's `+0xD0`.
+The selected nonzero pointer reaches `0x007A3A60` with ECX advanced by
+`0x590`; a nonzero byte result selects one, while the final path returns
+zero (`0x00616FC0`-`0x00616FFB`). These instructions establish only the
+branches and return values, not the objects' identities or an on-screen
+effect.

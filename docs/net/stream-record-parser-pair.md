@@ -51,7 +51,8 @@ pushes `0` and `0x1C10` before calling VA `0x00DAF210` (`0x00DAF77A`); VA
 (`0x00DB37AA`). If the helper returns a nonzero pointer, each body copies the
 two local prefix fields at `+0x04` and `+0x08` to that pointer's offsets
 `+0x14` and `+0x18`. It passes the word at local offset `+0x00` minus `0x10`,
-the stream cursor `+0x10`, and the returned pointer `+0x24` to VA `0x009D4600`
+the stream cursor `+0x10`, and the pointer stored at returned object `+0x24`
+to VA `0x009D4600`
 (`0x00DAF7AD`, `0x00DB37DD`), then stores the derived byte count at returned
 pointer `+0x20` (`0x00DAF7C2`, `0x00DB37F2`). It adds the record length to
 stream offset `+0x0E`, clears `+0x0C` and `+0x0E` if the updated offset equals
@@ -59,6 +60,21 @@ the total, and returns that nonzero pointer. Each body also
 contains a conditional indirect call through an optional provider vtable at
 offset `+0x1C` (`0x00DAF7DD`, `0x00DB380D`), after the call to
 `0x009D4600`.
+
+## Related parser branch
+
+The separate parser at VA `0x00DA2330`, also used by the
+[lobby acknowledgement path](lobby-acknowledgement-consumer.md), has a
+selector-3 table entry at VA `0x00DA25AC` targeting `0x00DA24E6`. That
+branch calls a supplied pointer's vtable slot `+0x40` at `0x00DA24EF`,
+pushes `0` and `0x3C0`, and calls `0x00DA22C0` at `0x00DA24FA`.
+On a nonzero return, it writes two local dwords to returned pointer
+`+0x14` and `+0x18`, and calls `0x009D4600` to copy the record length
+minus `0x10` from the stream into the buffer pointed to by returned object
+`+0x24`
+(`0x00DA2509`-`0x00DA252D`). This is a third observed selector-3
+helper path with a different constant; its application role and the
+constant's meaning remain unresolved.
 
 ## Interpretation and limits
 

@@ -116,3 +116,19 @@ among `0x00A91911`-`0x00A91917` to `0x007213F0`. The byte is tested at masks
 `0x01`-`0x40`; enabled paths pass codes `0x1B0E5`-`0x1B0E8` and
 `0x00A91918`-`0x00A9191D`. The pointer's relationship to the repeated-row,
 append, and vector sites above is not established by these instructions.
+
+The code block at VA `0x004DD391` (RVA
+`0x000DD391`) adds `0x10` to ESI, pushes that pointer, sets ECX from EBX, and calls
+`0x00576140` (RVA `0x00176140`). That helper loads `[ECX+4]`, then
+`[ECX+0x10C]`, and tail-jumps to `0x00767370` (RVA `0x00367370`). This confirms
+the static call path without assigning an opcode or wire-level meaning to the
+block.
+
+In `0x00767370`, the code reads four qwords from the EDI-based structure at
+offsets `+0x109`, `+0x111`, `+0x119`, and `+0x121`, places them in a local
+32-byte buffer, and passes that buffer through `0x00447260`. The returned
+value is then passed to `0x00447450` with ECX set to ESI `+0x2C`. After those
+calls, the function copies the word at `[EDI+4]` to `[ESI+0x80]`, the byte at
+`[EDI+6]` to `[ESI+0x82]`, and the byte at `[EDI+7]` to `[ESI+0x83]`. These
+are storage widths and offsets only; this observation does not assign field
+meanings.

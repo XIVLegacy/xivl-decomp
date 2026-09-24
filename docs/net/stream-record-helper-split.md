@@ -51,6 +51,21 @@ calls `0x00DB2D30` at `0x00DAF56E`. The branch and both call destinations
 are explicit in the decoded instructions; the callee contracts remain
 unresolved.
 
+## Factory threshold callers
+
+At VA `0x00DAF210`, the body adds its two stack dwords and compares the 32-bit
+result with `0x1C10` (`0x00DAF21E` through `0x00DAF220`). Unsigned `JBE` at
+`0x00DAF227` selects a direct call to `0x00DAF110` at `0x00DAF26B` for results
+at or below the threshold. Above it, the body calls `0x00DAEC70` at
+`0x00DAF22B`, then calls `0x004E5CA0` at `0x00DAF253` with `ECX` set to owner
+`+0x14`.
+
+VA `0x00DB3430` has the same instruction shape with threshold `0x238`. Unsigned
+`JBE` at `0x00DB3447` selects `0x00DB33A0` at `0x00DB348B`. For larger results,
+the body calls `0x00DB31D0` at `0x00DB344B`, then `0x004E5CA0` at
+`0x00DB3473` with `ECX` set to owner `+0x14`. In both bodies, the compare
+overwrites the addition flags; no separate carry branch follows the addition.
+
 ## Limits
 
 These observations do not identify a packet opcode, application meaning, C++

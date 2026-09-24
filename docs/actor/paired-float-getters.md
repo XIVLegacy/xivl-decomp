@@ -12,7 +12,23 @@ VA minus the image base.
 | `0x2576D0` | `0x006576D0` | `D9 81 F4 00 00 00 C3` - `fld dword ptr [ecx+0xF4]; ret` | Returns the float stored at the receiver's `+0xF4`. The field's semantic name is not established here. |
 | `0x4002C0` | `0x008002C0` | Reads `[ecx+0xF8]` and `[ecx+0xFC]` with `F3 0F 10 81 F8 00 00 00` and `F3 0F 10 89 FC 00 00 00`, compares them with `66 0F 2F DA`, then branches with `76 0A`. The paths store `xmm0` or `xmm1` to the stack using `F3 0F 11 04 24` or `F3 0F 11 0C 24`, then return the stack float with `D9 04 24 59 C3`. | For ordered finite values, returns the smaller field value. The comparison and branch do not establish a general-purpose minimum for unordered values, nor do they identify either field's meaning. |
 
-These instructions establish only the values returned from the receiver. This
-trace does not show a model or LOD selection rule, which layouts use either
-value, or a resulting visual change. The sites do not replace the separate
+The two getter paths meet in a bounds check at `0x007FEAC0`. Its branch at
+`0x007FEB68` either calls `0x00624890` (which dispatches through receiver
+vtable slot `+0x188` at `0x006248BF`) or directly calls `0x008002C0` at
+`0x007FEB76`. Four vtables in `config/ffxivgame.vtable_slots.jsonl`
+(rows 20314, 42162, 42320, and 42478)
+place `0x006576D0` in slot `+0x188`; the receiver at this call is not
+individually typed by that catalog.
+Both branches add the float at `[ebx+0x1D0]` to the returned value at
+`0x007FEB7F`-`0x007FEB9B`. The result reaches `0x00628250` through the call
+at `0x007FEBE1`-`0x007FEBEF`; that callee compares squared point-to-box
+distance with the squared supplied radius. `0x007FF140` calls this bounds
+path with both branch modes at `0x007FF167` and `0x007FF1A2`.
+
+The virtual getter path is also called from `0x007FB470` at `0x007FB525`
+and `0x007FB55E`, from `0x00800F60` at `0x0080100D`, from `0x00801050`
+at `0x0080108D`, and from `0x008010D0` at `0x00801101`. These calls
+establish uses of the indirect getter path in range and bounds code. They do
+not establish a model or LOD selection rule, which layouts use either value,
+or a resulting visual change. The sites do not replace the separate
 background visibility and pixel-clipping evidence.
