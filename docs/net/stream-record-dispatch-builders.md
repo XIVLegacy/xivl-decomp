@@ -51,6 +51,8 @@ The `0x00DB2D30` path copies 14 dwords from its stack staging span to `P + zero_
 
 The `0x00DB2E00` path writes words `0x290` and `0x0A` into a local staging area. If its first stack argument is nonzero, it loads a pointer from that argument, then loads the call target from offset `+0x14` of that pointer and calls it, passing the second stack argument and the staging address. A zero `AL` result takes the failure path; a nonzero result permits a copy of `0xA4` dwords from the staging span to `P + zero_extend([B+0x0C])`. It then adds `0x290` to the cursor word and word `P+4`, increments word `P+6`, and sets `AL=1` on that path. The failure block sets `AL=0` at `0x00DB2EEC`. These instructions describe the capacity operands, copy counts, and counter updates; the buffer and callback contracts remain unresolved.
 
+The second stack argument at `[ebp+0x0C]` is also stored at `[esp+0x20]` (`0x00DB2E6F`, `0x00DB2E88`). Since the staging span begins at `[esp+0x10]` (`0x00DB2E90`), this places that argument at staging offset `+0x10`. The field's meaning is unresolved.
+
 ## Raw pair arithmetic at `0x00DA1C80`
 
 At VA `0x00DA1C80` (RVA `0x009A1C80`), the body increments dword `[ECX+8]` and calls `0x004E36A0`. It then treats `EAX` as a low dword and `EDX` as a high dword. If the existing pair at `[ECX+0x18]` (low) and `[ECX+0x1C]` (high) is nonzero, `SUB`/`SBB` computes the pair difference and writes low/high dwords at `+0x10`/`+0x14`; for an all-zero existing pair, it writes zero to those two fields. It stores the `EAX`/`EDX` pair at `+0x18`/`+0x1C`.
