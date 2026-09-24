@@ -31,8 +31,7 @@ actor used that base.
 The canonical `xivl-client-data:manifests/tables.json` lists
 `csv/actorclass_graphic.csv` at SHA-256
 `7DA8241400530885E0A28DED04A03ACF2771B0580A79C1F49F46EE0861010611`.
-The contributor's `FF14-Memory:docs/Dat Mining/actorclass_graphic.csv` is
-byte-identical to it. An exact numeric-field search found no 10521 value
+An exact numeric-field search found no 10521 value
 in that CSV; specifically, no column-6 appearance base 10521 is present.
 The same sheet has row 2100801 with column 6 equal to 10009 and row
 2100901 with column 6 equal to 10011, but those neighboring values do
@@ -60,12 +59,3 @@ The three CSV entry SHA-256 values are, respectively,
 `3ac9f8d1812d49101f367e2a41356be96b5d64b1fc5ca29949195f50ebe1d984`,
 `36c5dfba312695d9f4ee090dba123dfd7792feba55d88b0062c070d98abc0505`,
 and `7da8241400530885e0a28ded04a03acf2771b0580a79c1f49f46ee0861010611`.
-
-Contributor lead: `FF14-Memory:docs/mandragora_model_decomp_findings_2026-06-19.md`,
-"2026-06-19 Continuation Update" and "Native Client Decoder". Its custom
-Mandragora experiments, server SQL/script joins, and live tests are not
-retail actor-binding evidence.
-The clay golem contrast follows the separate contributor lead
-`FF14-Memory:docs/candidate_monster_decomp_implementation_audit_2026-06-19.md`,
-"Clay Golem Command Pass"; its class-path and spawn recommendations were
-not adopted from contributor SQL.

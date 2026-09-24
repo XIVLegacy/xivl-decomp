@@ -24,15 +24,17 @@ prove ownership by a combat command.
 
 ## Garuda cast banks
 
-m851 WSS5 runs `cbbm_sp_b02` for 65 frames at 30 fps. Its caster package is
-1.2 seconds, its target package is 0.35 seconds, and the target damage selector
-begins at 0.03 seconds. It references `skl05cas01m.veffbin` and
+m851 WSS5 runs `cbbm_sp_b02` for 65 frames at 30 fps. Its caster scheduler
+spans 1,200,000 raw units, its target scheduler spans 350,000, and the target
+damage selector starts at 30,000 raw units. It references
+`skl05cas01m.veffbin` and
 `skl05tar01m.veffbin`, with an authored `tatumaki` token and camera shake.
 
-m851 WSS11 runs `cbbm_sp_b04` for 90 frames at 30 fps. Its caster package is
-1.6 seconds and target package 0.6 seconds, with target damage selection at
-0.07 seconds. It contains two caster ActionClips and one target ActionClip,
-references the m851 skill11 effect family, and carries `tatumaki` and `LOOP`
+m851 WSS11 runs `cbbm_sp_b04` for 90 frames at 30 fps. Its caster scheduler
+spans 1,600,000 raw units and its target scheduler spans 600,000, with target
+damage selection at 70,000 raw units. The bank contains two caster ActionClips
+and one target ActionClip, references the m851 skill11 effect family, and carries
+`tatumaki` and `LOOP`
 tokens plus scene-texture, camera, draw, and filter controls. It is the
 strongest Aerial Blast presentation candidate, but static assets do
 not establish the exact server command selector.
@@ -40,13 +42,15 @@ not establish the exact server command selector.
 ## One-shot m999 hazard banks
 
 m999 WSS15 contains `tatumaki` and `tn_hit` resources. Its caster and target
-schedulers are 1.86 and 0.5 seconds, and its damage selector begins at 0.06
-seconds. The asset semantics support a small tornado or Great Whirlwind
+schedulers span 1,860,000 and 500,000 raw units, and its damage selector starts
+at 60,000 raw units. The asset semantics support a small tornado or Great
+Whirlwind
 presentation.
 
 m999 WSS18 contains `taihuu`, `tm_hit`, and `taihu_end`. Its caster and target
-schedulers are 1.5 and 0.5 seconds, and its damage selector begins at 0.07
-seconds. The asset semantics support an arena typhoon or Eye of the Storm
+schedulers span 1,500,000 and 500,000 raw units, and its damage selector starts
+at 70,000 raw units. The asset semantics support an arena typhoon or Eye of the
+Storm
 presentation.
 
 These names are strong presentation inferences, not recovered command-to-bank
@@ -54,6 +58,10 @@ bindings. Command-result opcodes `0x0139` through `0x013c` carry command ID and
 animation ID as independent fields. The animation ID already encodes the
 model-dependent bank, so the client does not need a command-ID-to-WSS lookup
 to display the result.
+
+The SCB scheduler spans and selector starts above are serialized integers.
+No native conversion to seconds is established for those fields; the MTB
+motion durations have a separate frame and frame-rate basis.
 
 ## Persistent m999 states
 
