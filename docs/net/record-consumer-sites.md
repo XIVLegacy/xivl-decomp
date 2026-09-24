@@ -44,6 +44,23 @@ format text `@%d/i%d` at `0x00FA0160`, `0x00FA0168`, and `0x00FA0170`.
 These strings and formatter arguments do not establish meanings for the row
 fields.
 
+The two optional flag branches from `0x004B62C0` converge at the same small
+helper. At VA `0x00532BB0` (RVA `0x00132BB0`) and VA `0x00532BD0` (RVA
+`0x00132BD0`), a nonzero object byte `+0x244` calls `0x00532B30`. That helper
+returns immediately when signed object dword `+0x23C` is positive. Otherwise,
+object byte `+0x245` selects literal numeric argument `0x297E` or `0x2985`
+for `0x009D4F83`, and the resulting local buffer is passed with object dword
+`+0x238` to `0x004EC720` (`0x00532B47`-`0x00532B8F`). These are guarded call
+effects; the flag and message meanings remain unresolved.
+
+At VA `0x004B6290` (RVA `0x000B6290`), a separate wrapper calls `0x004D7380`,
+loads the returned object's `+0xE8` pointer, and conditionally calls
+`0x00526060`. That callee checks object byte `+0xC60`; when nonzero, it writes
+`1` to byte `+0xC54` and calls `0x00522830` (`0x00526060`-`0x00526070`).
+The wrapper then calls `0x004F1070`, which increments global dword
+`0x013302CC` (`0x004B62AC`, `0x004F1070`). This is a distinct path from the
+`0x004B62C0` row wrapper; no message or refresh semantics are assigned.
+
 ## Byte-counted fixed-size append
 
 The bodies at VA `0x004B6250` (RVA `0x000B6250`) and VA `0x004B6270`

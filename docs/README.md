@@ -93,6 +93,8 @@ Use this index to find the repository's public findings and technical guides.
 - [Message-ID selector and create path](net/message-id-dispatch-and-create.md)
 - [Native record construction sites](net/record-construction-sites.md)
 - [Native record consumer sites](net/record-consumer-sites.md)
+- [Four-case payload consumer](net/payload-c8-cb-consumer.md)
+- [Setup record builders](net/setup-record-builders.md)
 - [Record detail and buffer constructor](net/record-detail-and-buffer-constructor.md)
 - [Stream buffer and node helpers](net/stream-buffer-and-node-helpers.md)
 - [Stream record dispatch and builders](net/stream-record-dispatch-builders.md)

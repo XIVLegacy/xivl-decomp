@@ -97,6 +97,14 @@ source pointer to `0x009D4600` (`0x00DAE0AC`-`0x00DAE0B8` and
 counts are `0x10` and `0x40` bytes. These are arguments passed by the client
 helper; they do not establish wire framing.
 
+The `0x00DAE010` copy paths are selected by dword state at receiver `+0x8C`.
+Nonpositive values and values above 3 return `AL=0`; value 3 enters the
+first path after a nonzero resolver result. Values 1 and 2 enter the second
+path only when the input dword at `+0` equals 2 (`0x00DAE038`-`0x00DAE115`).
+After a successful copy and follow-on call, the second path stores 2 at
+receiver `+0x8C` (`0x00DAE17D`), whereas the value-3 path leaves that field
+unchanged in this body. This is a local state distinction, not a packet name.
+
 ## Raw comparison instructions
 
 | VA | RVA | Bytes | Comparison decoded from the instruction |
@@ -126,6 +134,20 @@ callee roles are assigned here.
 | `0x0085E1B0` | `0x0085E1EE -> 0x004F10A0`; `0x0085E1F7 -> 0x004F5480`; `0x0085E200 -> 0x004D7460`; `0x0085E23E -> 0x0085D160`; `0x0085E24F -> 0x004E0240` |
 | `0x004E0240` | `0x004E026E -> 0x00DAE010` |
 | `0x00DAE010` | `0x00DAE0B8` and `0x00DAE163 -> 0x009D4600` |
+
+At VA `0x004D7460` (RVA `0x000D7460`), the entire accessor is
+`mov eax,[ecx+0x174EC]; ret`. The `0x004C7150` call at `0x004C7172` above
+uses this accessor; its returned pointer's application role is unresolved.
+
+The `0x004C7150` call at `0x004C715E` passes receiver `+0x2110` as ECX to
+`0x004C45B0` and tests its `AL` result. Within that callee, equality of
+receiver dword `+0x20` with `0x01DD` at `0x004C4647` clears dword `+0x38`
+and word `+0x3C`, passes arguments derived from receiver `+0x50` to
+`0x0071CC50`, and passes arguments derived from receiver `+0x40` to
+`0x004D1C00` (`0x004C4654`-`0x004C46E4`). The common path calls
+`0x004B5DF0` with literal 1 and returns `AL=1`; an earlier branch at
+`0x004C45F4` instead returns `AL=0`. The called routines and receiver fields
+need separate evidence before assigning roles.
 
 The literals, helper arguments, and comparisons above are instruction operands
 or memory values. Application identity, packet direction, network encoding,
