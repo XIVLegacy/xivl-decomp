@@ -501,6 +501,8 @@ The local inbound dispatcher maps `0x17c` to `0x00576250`. That route reaches
 `0x006cc620`, whose literal-`0x2711` branch can call `0x006cc070`.
 `0x006cc070` requests either `0x50` or `0x40` bytes and queues the resulting
 pointer. No actor, spawn, or acknowledgement meaning is assigned to this path.
+The [block normalization and construction note](../net/high-017c-object-builder.md)
+records the deeper byte and branch observations.
 Source: observations `Zone_MAIN_inbound_opcode_dispatcher_50plus_handlers`,
 `ZoneIn_opcode_0x17c_toTypeTaggedPipeline`, `TypeTaggedEntry_route0x2711`, and
 `TypeTaggedEntry_buildAndQueue` in

@@ -26,6 +26,26 @@ At `0x00DAEB90`, the body pushes `0x28` and calls `0x009D1B35` at
 maps RVA `0x00D28EA4` to `Component::Network::IpcChannel::NetBufferTmpl` for
 `Application::Network::ZoneProtoChannel::ZoneProtoUp`.
 
+Two other constructor bodies use different thresholds and vtables. At
+`0x00DA1F70` (RVA `0x009A1F70`), the body compares a requested size with
+`0x3C0` at `0x00DA1F89` and writes vtable `0x011276D8` at `0x00DA1F8F`.
+The [RTTI row](../../config/ffxivgame.rtti.json#L5244) identifies that vtable
+as `NetBufferTmpl<LobbyProtoDown>`. At `0x00DAEA10` (RVA `0x009AEA10`),
+the body compares with `0x1C10` at `0x00DAEA29` and writes vtable
+`0x01128EB4` at `0x00DAEA2F`. Its
+[RTTI row](../../config/ffxivgame.rtti.json#L5296) identifies
+`NetBufferTmpl<ZoneProtoDown>`. These are three distinct network-buffer
+families; the threshold and vtable instructions do not assign a retainer role.
+
+Two container constructors have similarly distinct RTTI. VA `0x00DAFEF0`
+(RVA `0x009AFEF0`) writes vtable `0x01128F64` at `0x00DAFF37`; its
+[RTTI row](../../config/ffxivgame.rtti.json#L5302) names
+`EntityContainerTmpl<ZoneProtoUp,ZoneProtoDown>`. VA `0x00DB54D0`
+(RVA `0x009B54D0`) writes vtable `0x01129474` at `0x00DB5517`; its
+[RTTI row](../../config/ffxivgame.rtti.json#L5328) names
+`EntityContainerTmpl<ChatProtoUp,ChatProtoDown>`. Their generic container
+identity does not make the donor's queue or retainer labels a PE fact.
+
 ## Node walk and repeated call site
 
 At `0x00DB4CC0`, the direct call at `0x00DB4CE5` targets `0x00DAEC20`. That
