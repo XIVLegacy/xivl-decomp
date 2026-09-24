@@ -68,6 +68,14 @@ serialization, or echo consumes the assigned u32 in these bodies. The
 secondary callback target is runtime-supplied, so the static negative is
 bounded to direct serialization and the resolved lobby manager callback.
 
+At VA `0x00DA21B0`, the body prepares pointers derived from `ESI+0x5C` and
+`ESI+0x60`, then calls through the pointer at `0x00F3E16C`
+(`0x00DA21D7`-`0x00DA21E2`). It copies two stack dwords into local storage,
+then calls `0x00994A90` with `ECX=ESI+0x0C`
+(`0x00DA21E8`-`0x00DA220D`), then calls through the pointer at
+`0x00F3E168` with the saved `+0x60` pointer (`0x00DA2212`-`0x00DA2213`).
+The helper contracts and these fields' meanings remain unresolved.
+
 `FUN_00DA12A0` implements replacement: it invokes the old connection's
 deleting destructor, clears manager `+0x110`, allocates another 0x10F0-byte
 connection, and runs the constructor chain that zeros the new field.

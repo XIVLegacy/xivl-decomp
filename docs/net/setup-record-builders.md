@@ -39,6 +39,8 @@ The constructor at VA `0x00DA28C0` (RVA `0x009A28C0`) performs the same observed
 
 At VA `0x00DB3CB0` (RVA `0x009B3CB0`), the caller references `=== tryToAddSecSetupPacket` at VA `0x01129130` (RVA `0x00D29130`) and `=== tryToAddSetupPacket` at VA `0x0112914C` (RVA `0x00D2914C`). When state `+0x78` is nonzero it logs the secure-labeled string and calls `0x00DB2BD0`; if that call fails, it proceeds to log the plain-labeled string and call `0x00DB2A90`. If `+0x78` is zero, it goes directly to the plain-labeled call. Other direct pairs appear at callsites `0x00DB847A` / `0x00DB84BB` and `0x00DA2A0A` / `0x00DA2A4B`.
 
+At `0x00DB3D42`-`0x00DB3D58`, the body calls through slot `+4` of the vtable pointer at `[EDI]` only when byte `[ESP+0x1C]` and word `[EDI+0x14]` are both nonzero. The call sets `ECX=EDI` and pushes EBP; at `0x00DB3D5D`, AL is restored from BL, the saved earlier builder result. The indirect call contract remains unresolved.
+
 ## Limits
 
 The log strings and append behavior support describing these as setup-record builders, while the stored words and copied lengths remain raw byte observations. The constructor layouts and callsites do not establish retainer-specific meaning, a wire schema, a server contract, or a receive-side response layout.

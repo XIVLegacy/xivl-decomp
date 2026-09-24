@@ -170,10 +170,22 @@ value, compares payload `+0x10` with another, and follows `[node]` on a mismatch
 caller-supplied value to `[out]` and the current node pointer or sentinel to
 `[out+4]` (`0x00DAEC56` through `0x00DAEC66`).
 
+The wrapper at `0x00DB4CC0` compares its saved input with the first dword
+returned by `0x00DAEC20` and calls `0x009D22B4` when they differ
+(`0x00DB4CF2`-`0x00DB4CF6`). It then writes the saved input and returned
+second dword to the caller's output pair (`0x00DB4CFB`-`0x00DB4D03`).
+
 `0x00DAF280` calls `0x00DB4CC0` at `0x00DAF2C2` and `0x00DAF31F`.
 The separate body at `0x00DAF920` calls `0x00DAF280` at `0x00DAF964`
 and `0x00DAF994`. These are direct call edges into the node helper path,
 without an established application role.
+
+At `0x00DB48C0`, when ESI differs from `[EDI+4]`, the body writes the dword
+at `[ESI]` to the address held at `[ESI+4]`, then writes that pointer to
+offset `+4` of the address held at `[ESI]`. It passes ESI to `0x009D1B17`,
+subtracts one from `[EDI+8]`, and writes EBX plus the saved dword at `[ESI]` to
+the caller's output pair (`0x00DB48E8`-`0x00DB4915`). The pointer and counter
+meanings are unknown.
 
 ## Variable-length record writer
 

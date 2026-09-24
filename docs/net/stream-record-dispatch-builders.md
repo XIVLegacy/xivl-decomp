@@ -49,6 +49,8 @@ At `0x00DB2D65`-`0x00DB2D71` and `0x00DB2E2E`-`0x00DB2E3D`, each sum is rejected
 
 The `0x00DB2D30` path copies 14 dwords from its stack staging span to `P + zero_extend([B+0x0C])`. The visible staging writes include the words `0x38` and `2`, two zero dwords, and the stack argument pointer; the entire 0x38-byte copy span is not shown initialized by this body. On the copy path it adds `0x38` to the cursor word and to word `P+4`, increments word `P+6`, and sets `AL=1` on the copy path; the entry gate or capacity failure sets `AL=0` at `0x00DB2D50`.
 
+The first stack argument, loaded from `[ebp+8]`, is stored at `[esp+0x18]`. Since the staging span begins at `[esp+8]`, this argument is at staging offset `+0x10` (`0x00DB2DAC`-`0x00DB2DBD`).
+
 The `0x00DB2E00` path writes words `0x290` and `0x0A` into a local staging area. If its first stack argument is nonzero, it loads a pointer from that argument, then loads the call target from offset `+0x14` of that pointer and calls it, passing the second stack argument and the staging address. A zero `AL` result takes the failure path; a nonzero result permits a copy of `0xA4` dwords from the staging span to `P + zero_extend([B+0x0C])`. It then adds `0x290` to the cursor word and word `P+4`, increments word `P+6`, and sets `AL=1` on that path. The failure block sets `AL=0` at `0x00DB2EEC`. These instructions describe the capacity operands, copy counts, and counter updates; the buffer and callback contracts remain unresolved.
 
 The second stack argument at `[ebp+0x0C]` is also stored at `[esp+0x20]` (`0x00DB2E6F`, `0x00DB2E88`). Since the staging span begins at `[esp+0x10]` (`0x00DB2E90`), this places that argument at staging offset `+0x10`. The field's meaning is unresolved.

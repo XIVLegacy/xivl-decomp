@@ -1,7 +1,8 @@
 # Stream receive entry paths
 
-This page records the direct gates and calls in two stream dispatcher callers.
-Their timing policies, owner types, and application roles remain unknown.
+This page records the direct gates and calls in two stream dispatcher callers,
+plus selected call mechanics in helper `0x00DB3300`. Their timing policies,
+owner types, and application roles remain unknown.
 
 ## Binary and method
 
@@ -80,3 +81,13 @@ dispatcher succeeded.
 No direct incoming reference to either function was decoded in the
 screened output. Their exact callers and any retail workflow association
 remain open.
+
+## Helper body at `0x00DB3300`
+
+The body prepares pointers derived from `ESI+0x5C`/`ESI+0x60` and
+`ESI+0x40`/`ESI+0x44`,
+then calls through the pointer at `0x00F3E16C` for each pair
+(`0x00DB332F`-`0x00DB3350`). It calls `0x00DB3280` at `0x00DB336A`, then calls
+through the pointer at `0x00F3E168` with the `+0x44` and `+0x60` pointers
+(`0x00DB336F`-`0x00DB337C`). The indirect-call contracts and the roles of
+these owner offsets remain unknown.

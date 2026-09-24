@@ -58,3 +58,11 @@ ECX=`this`; zero AL returns the same way. On the passing path it loads
 `[this+0x18]` into ECX and tail-jumps to `0x006C7B80`, preserving the original
 stack argument. The called routines' meanings are not established by these
 instructions.
+
+At VA `0x004D6B40`, the body calls through slot `+0x18` of the vtable reached
+from `[ESI+0x174F8]`, then compares dword `[EAX]` with `4` and `5`
+(`0x004D6B67`-`0x004D6B89`). Either value selects calls to `0x00445470` and
+`0x00447A40`; other values select `0x00445220`. Both paths then call through
+slot `+8` of the object at owner `+0x664` (`0x004D6B8F`-`0x004D6C0E`).
+These are direct call and branch observations; the indirect routines' contracts
+remain unresolved.

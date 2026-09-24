@@ -65,6 +65,10 @@ VA `0x00DB3430` has the same instruction shape with threshold `0x238`. Unsigned
 the body calls `0x00DB31D0` at `0x00DB344B`, then `0x004E5CA0` at
 `0x00DB3473` with `ECX` set to owner `+0x14`. In both bodies, the compare
 overwrites the addition flags; no separate carry branch follows the addition.
+On the larger-result path in `0x00DB3430`, calls through slots `+4` and `+8`
+of the vtable pointer at `[ESI]` also bracket the `0x004E5CA0` call, with
+`ECX=ESI` at both indirect calls (`0x00DB3450`-`0x00DB3459`,
+`0x00DB3478`-`0x00DB347F`). Their contracts remain unresolved.
 
 ## Limits
 
