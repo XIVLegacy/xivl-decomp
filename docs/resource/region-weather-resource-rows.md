@@ -61,6 +61,10 @@ Selected rows expose why the token is not an event label: `sea_s0`
 8027/`wtr_hall` is at `0x1450` with key `0x615A0023`. The three
 8032/`wtr_xmas` rows are at `0x1F0`/`0x29D9001A`,
 `0xCD0`/`0x29B0001A`, and `0x1330`/`0x615A001D`, respectively.
+The 8029/`wtr_smmr` rows are at `0x280`/`0x29D9001E` under `sea_s0`,
+`0xD60`/`0x29B0001D` under `fst_f0`, and `0x1420`/`0x615A0022` under
+`wil_w0`. These are resource-row bindings, not proof of a runtime weather
+selection or event interpretation.
 These are file offsets and resource bindings. The differing payloads and
 historical layout selectors are in [City seasonal weather selectors](city-seasonal-weather-selectors.md).
 
