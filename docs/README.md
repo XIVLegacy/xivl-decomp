@@ -95,6 +95,8 @@ Use this index to find the repository's public findings and technical guides.
 - [Native record construction sites](net/record-construction-sites.md)
 - [Native record consumer sites](net/record-consumer-sites.md)
 - [Four-case payload consumer](net/payload-c8-cb-consumer.md)
+- [State-ID transition helper](net/state-id-transition-helper.md)
+- [ID acceptance guard](net/id-acceptance-guard.md)
 - [Setup record builders](net/setup-record-builders.md)
 - [Record detail and buffer constructor](net/record-detail-and-buffer-constructor.md)
 - [Stream buffer and node helpers](net/stream-buffer-and-node-helpers.md)
