@@ -35,6 +35,15 @@ four calls to `0x00944ED0` per processed row, using reads at cursor `+0`,
 For a positive packet count, the function also calls `0x00943980` after the
 loop.
 
+The same `0x00532660` body passes PE literal pointers for `UnitPrice`
+(`0x00FA011C`), `UnitCost` (`0x00FA0128`), `Set` (`0x00FA0134`),
+`StreetName` (`0x00FA0138`), `UnitTime` (`0x00FA0144`), `Visible`
+(`0x00FA0150`), and `Hidden` (`0x00FA0158`) to `0x00447260`. It also passes
+numeric IDs `0x2981`, `0x2982`, and `0x2987` to `0x009D4F83` with the literal
+format text `@%d/i%d` at `0x00FA0160`, `0x00FA0168`, and `0x00FA0170`.
+These strings and formatter arguments do not establish meanings for the row
+fields.
+
 ## Byte-counted fixed-size append
 
 The bodies at VA `0x004B6250` (RVA `0x000B6250`) and VA `0x004B6270`
