@@ -88,22 +88,12 @@ entries and 40 distinct dependency DAT keys:
 | Limsa Lominsa | 104 | 40 |
 | Ul'dah | 104 | 40 |
 
-The three roots total 312 serialized entries and 120 city-scoped distinct-key
-observations; the latter is the sum of each city's distinct-key count, not a
-claim that all 120 keys differ globally. The row-level inventory records each
-entry index, name, extension, dependency key, and flags in
-`outputs/moonfire-hanabi-residue-atlas-20260712/moonfire_hanabi_component_entries.csv`
-(SHA-256
-`e1cb811aac4d5df93eae39b1bcdcd25b776f138e68b2184b2582163e87d39fa0`); the
-summary is
-`outputs/moonfire-hanabi-residue-atlas-20260712/moonfire_hanabi_city_root_summary.csv`
-(SHA-256
-`d81f34fc5e2355179bd9eba41a02c3a7ebdb30515215a80df40f6cddc8b4436a`). The
-inventory generator is
-`tools/build_moonfire_hanabi_residue_atlas.py` (SHA-256
-`28a3e1c51f912831bb60306efe5d624069cadf1e7ab6ae60394d53ec30eddb2b`). The
-root DAT hashes below pin the source layouts. These are serialized references,
-not proof that every dependency was loaded, displayed, or activated in retail.
+Direct parsing of the hash-matched root DATs yields 312 serialized entries and 120 city-scoped
+distinct-key observations; the latter is the sum of each city's distinct-key
+count, not a claim that all 120 keys differ globally. Each parsed entry has
+an index, name, extension, dependency key, and flags. The root DAT hashes
+below identify the source layouts. These are serialized references, not proof that every
+dependency was loaded, displayed, or activated in retail.
 
 ## Provenance
 
@@ -116,21 +106,11 @@ The three `MapLayoutResourceData` root DATs are 664,720, 529,376, and
 | `0x29D90000` | `b61cf798a02fc1bf72f1445a01b6a94a2e58793e7dd82d0d654f1d422bbceff3` |
 | `0x615A0000` | `f7ce6e6db1f5862248bc6108f149c69f4a5981b057eb4e2707b3297fc5fc9434` |
 
-The layout counts and names were checked against
-`build_decoration_only_hatching_tide_atlas.py` outputs
-`hatching_tide_city_root_summary.csv` and
-`hatching_tide_scheduler_tokens.csv`, and
-`build_moonfire_hanabi_residue_atlas.py` outputs
-`moonfire_hanabi_city_root_summary.csv` and
-`moonfire_hanabi_scheduler_tokens.csv` in the contributor's July 2026
-atlases. The compiled-body and transform analysis comes from
-`build_moonfire_hanabi_executable_atlas.py` outputs
-`hanabi_sedb_scheduler_chunks.csv`, `hanabi_sedb_structure_summary.csv`,
-`hanabi_cross_city_choreography.csv`, and
-`hanabi_owner_transform_summary.csv`; the candidate neighborhoods are
-`build_moonfire_hanabi_owner_atlas.py` output
-`hanabi_group_owner_neighborhoods.csv`. The script call path is in recovered
-`lua/chara/npc/mapobj/mapobjfireworks.lua`, methods `_onLoop` and
-`getFireworksSchedulor`. The absence of a Lua `vtp` caller comes from the
-residue atlas's `moonfire_hanabi_controller_gap.csv` and scan summary; it
-is a corpus limit, not a universal absence claim.
+The root DAT hashes above identify the layouts used for the direct group,
+scheduler, and component scans. The compiled SCB records and local transforms
+support structural neighborhoods, not active owners. The recovered
+`chara/npc/mapobj/mapobjfireworks.lua` methods `_onLoop` and
+`getFireworksSchedulor` identify the inspected script path. A literal scan
+of the pinned `xivl-client-scripts:manifests/private_lua_corpus.json` corpus
+found no Lua `vtp` caller; this is a corpus limit, not a universal absence
+claim.

@@ -47,13 +47,10 @@ runtime probe performed for this note.
 ## Provenance
 
 The `.san` byte identity, record count, and ID lookups were checked directly
-against the `.san` file itself using the read-only decoder in
-`build_assassin_static_actor_registry.py:decode_registry`. Native comparisons
+against the `.san` file itself with a read-only XOR and record walk. Native comparisons
 were checked against `ffxivgame.exe` (image base `0x00400000`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`)
 at the addresses above. The script access path is recovered
 `chara/charabaseclass_cliprog.lua:getCustomCommand` and
-`widget/actionmenuwidget.lua:updateMainSlot`; the contributor's
-`assassin_client_command_registry_decomp_2026-08-19.md` provides the broader
-call-path investigation. Neither a generated registry nor a live retail
+`widget/actionmenuwidget.lua:updateMainSlot`. Neither a generated registry nor a live retail
 client run establishes the `/StaticActor.san` mappings.

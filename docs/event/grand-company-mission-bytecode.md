@@ -37,10 +37,11 @@ argument:
 | `com0g110` | `0x7D0` | 0 | `0426afa3a584e160368d4e7cfa05ec95e4f440122574a06cf0a866e6f0ec7a40` |
 | `com0u110` | `0xBE6C` | 1 | `d5592f033a39f38ac38cecf89c507fa9e026c0c71e87861fdf3912f061338db2` |
 
-The three `client/cut/<scene>/<scene>` file hashes match the
-contributor's `outputs/job-gc-decomp-20260907/scenes/<scene>.json`
-inventories. The `gc_quest_transition_safety_2026-09-16.md` native
-trace identifies a register-1 reader in each scene. These serialized
+The three `client/cut/<scene>/<scene>` file hashes and NumberClip offsets
+above identify the inspected scene assets. In the pinned executable, the
+`GetNumberRegisterClip` factory at VA `0x00A4F860`, constructor at
+`0x00DFAE70`, and execution at `0x00DFAEC0` identify each scene's
+register-1 reader. These serialized
 values are not a proven fallback when the NQ playback argument is
 missing, nor proof of the server's historical choice for any player.
 
@@ -76,15 +77,46 @@ talk turn open for the next handoff; on sampled decline 0 they close it.
 Repeated `ask` expressions in a readable decompile must not be implemented
 as repeated prompts without a bytecode check.
 
+## Bytecode trace locators
+
+The following locators use zero-based Lua 5.1 instruction PCs within the
+named method. Call offsets are byte offsets in the decoded chunk identified
+by the [source table](grand-company-mission-bytecode-sources.csv). The `EQ`
+PC is the conditional instruction; the two following PCs are its sampled
+successor edges. These records make the bounded branch observations
+independently inspectable in the original chunks.
+
+| Chunk | Method | `EQ` PC | Relevant call PC (chunk offset) |
+| --- | --- | ---: | --- |
+| `com0l1` | `processEvent_020` | 7 | `startNQCutScene` 6 (`0x92E`) |
+| `com0g1` | `processEventUrianger` | 7 | `startNQCutScene` 6 (`0x953`) |
+| `com0u1` | `processEvent_020` | 7 | `startNQCutScene` 6 (`0x8B1`) |
+| `com0l1` | `processEvent_030` | - | `startNQCutScene` 8 (`0xE7A`) |
+| `com0g1` | `processEventUriangerMore` | - | `startNQCutScene` 8 (`0xA5C`) |
+| `com0u1` | `processEvent_030` | - | `startNQCutScene` 8 (`0x9B6`) |
+| `com0l4` | `processEvent_020` | 12 | `startNQCutScene` 44 (`0x121E`) |
+| `com0g4` | `processEventClear` | 21, 26, 28 | `doSalute` 7 (`0xF1D`) |
+| `com0u4` | `processEvent_050` | 20 | `startNQCutScene` 57 (`0xFF5`) |
+| `com5l0` | `processEvent_010_01` | 14 | `ask` 13 (`0xF9A`) |
+| `com5g0` | `processEvent_010_1` | 14 | `ask` 13 (`0x9B6`) |
+| `com5u0` | `processEvent_010_01` | 14 | `ask` 13 (`0xE49`) |
+| `com5l1` | `processEvent_030_1` | 14 | `ask` 13 (`0xD9F`) |
+| `com5g1` | `processEvent_020_1` | 14 | `ask` 13 (`0x10FA`) |
+| `com5u1` | `processEvent_020_1` | 14 | `ask` 13 (`0xB54`) |
+
+The familiar predicates were sampled with `nil`, 0, 1, `false`, and `true`;
+the finale predicates used the corresponding extra-argument tuples. The
+six ask methods were sampled with choices 0 and 1. Client calls were
+recording stubs; their effects outside these methods were not simulated.
+
 ## Provenance and limits
 
-The contributor's `build_gc_mission_decomp.py` output
-`gc-mission-decomp-20260904/bytecode.txt`, `method-inventory.csv`, and
-`event-traces.json` supply the disassembled methods, bounded stub traces,
-and program-counter locators. The input `.luac` tree is
-`tools/outputs/lpb/decomp_more_20260617/luac/quest/scenario/com/`.
-Each of its 18 listed chunks was compared byte-for-byte to the
-`client/script` LPB decoded by `decode_lpb.py`; there were zero mismatches.
+The [source table](grand-company-mission-bytecode-sources.csv) identifies
+all 18 original `client/script` LPBs by path and SHA-256, plus the SHA-256
+of each decoded Lua 5.1 chunk. Decoding those LPBs with
+`xivl-client-structs/tools/decode_lpb.py` reproduced all 18 chunks used by
+the bytecode pass byte-for-byte. The method and PC locators above identify
+the relevant instructions in those chunks.
 The trace domain was `nil`, 0, 1, `false`, and `true` for extra arguments,
 with sampled choices 0 and 1. That coverage does not prove behavior for
 arbitrary inputs, client rendering, or historical server dispatch.

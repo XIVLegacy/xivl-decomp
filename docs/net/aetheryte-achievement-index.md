@@ -29,17 +29,18 @@ aetherytes were unlocked for any character.
   `069a353c7141ff1b8086f1c4273bb131335013cb8a1b33aa66260ce0b6eeebca`:
   decoded Lua 5.1 chunk SHA-256
   `b21536b66d51ac6967358b053bdd25f6d57270125e936ee141a5fbe48eb0c819`.
-  The matching contributor decompilation is
-  `tools/outputs/lpb/decomp_further_20260617/lua/chara/player/player_work.lua:391-401`.
+  The pinned readable corpus has
+  `chara/player/player_work.lua:520-529`.
 - `client/script/n1635q/65rzqvun1635q_7vww57qvs.le.lpb`,
   SHA-256
   `0f8ca1585bb97c40d36cbf120dd3f6fa6351927c4530e3fad76a71582af95425`:
   decoded Lua 5.1 chunk SHA-256
   `685a0a6dda2d4ae6fe06a9c684e57efd7e819938e145cb1a4a65df56555bd621`.
-  The matching contributor decompilation is
-  `tools/outputs/lpb/decomp_further_20260617/lua/widget/desktopwidget_connector.lua:9514-9524`.
-- Both `.le.lpb` chunks were decoded using
-  `xivl-client-structs/tools/decode_lpb.py` and compared byte-for-byte
-  with those contributor `.luac` outputs. The readable Lua is a
-  decompiler interpretation of the matching bytecode, not original
-  source code.
+  The pinned readable corpus has
+  `widget/desktopwidget_connector.lua:17698-17721`.
+- The readable Lua members are identified by
+  `xivl-client-scripts:manifests/private_lua_corpus.json` (archive SHA-256
+  `0e8f902f7a2f592fc1220d41b89a3f35ec395cfb261806d4bd590a530099ae31`)
+  and their individual `manifests/scripts.json` hashes. The `.le.lpb`
+  chunks were decoded with `xivl-client-structs/tools/decode_lpb.py`;
+  readable Lua is a decompiler interpretation, not original source code.

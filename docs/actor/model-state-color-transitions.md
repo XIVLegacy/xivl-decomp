@@ -214,12 +214,9 @@ interpretation, not a uniform scale-down.
 The m526/e001 top model at
 `client/chara/mon/m526/equ/e001/top_mdl/0001` (SHA-256
 `eb9723b10763b589e06c17ef03eedfc3c7cdafff4cfc909c968cae7fcaa5fc9d`)
-has six named groups. The contributor's decoded `model_groups.json`
-places groups 1/2 highest, 3/4 in the middle, and 5/6 lowest by their
-local Y bounds. The rock-state clip entries are in
-`outputs/garuda-rock-state-followup-20260907/rock_state_clips.json`;
-their BID identity also matches
-`monster-action-scheduler-contract-20260810/scheduler_manifest.csv`.
+has six named groups. Their local Y bounds place groups 1/2 highest,
+3/4 in the middle, and 5/6 lowest. The state clips use the m526 BID
+identity described above.
 
 This explains what the authored client resources can hide. It does not
 recover retail rock HP, damage thresholds, server timing, placements, or
@@ -337,10 +334,8 @@ Each `mon_main` contains a `RaptureActionSubStatusSchKickClip`.
 The functional scheduler payloads do not themselves distinguish state 4
 from state 5; the queued mode and compatible model resource do.
 
-The resource file hashes were checked directly. Nested SCB and effect
-locators are in the contributor's
-`tools/outputs/ifrit-model-state-decomp-20260805/{state_resources.csv,resources.csv}`
-and `IFRIT_GROUND_STATE_AND_NAIL_DEATH_CLOSURE_2026-08-05.md`.
+The resource file hashes were checked directly. The nested SCB and effect
+identities above locate the inspected resource records.
 No historical helper owner, command, world coordinate, trigger order,
 or visible lifetime is recovered by these asset joins.
 

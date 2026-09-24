@@ -2,8 +2,8 @@
 
 Four 1.23b BG-object families, `b919`, `b920`, `b923`, and `b927`,
 each have `e001` through `e003` model variants, one family skeleton,
-and LIB action banks `0001`, `0101`, and `0201`. The contributor's
-decoded skeleton and motion analysis found one lid chain in b919, b923,
+and LIB action banks `0001`, `0101`, and `0201`. The decoded skeleton and
+motion records show one lid chain in b919, b923,
 and b927 (`n_root -> n_hara -> n_lid`). b920 instead has one
 joint-and-handle chain (`n_root -> n_hara -> n_joint -> n_handle`). No
 analyzed skeleton has a left/right door pair.

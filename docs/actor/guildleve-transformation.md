@@ -43,7 +43,9 @@ Fourteen source-backed rows have no local encounter script:
 | 12525 | Out of its Shell | none |
 | 13026 | My Fey Lady | none |
 
-Their objective descriptions and 52 populated mob slots are source-backed.
+Their objective descriptions are present in the client data. The count of 52
+populated mob slots comes from a separate contributor server SQL join; it is
+not a recovered retail spawn roster.
 Numeric coordinate-search collisions are not actor-ID joins and do not recover
 positions, search-circle layouts, spawn grouping, or reveal order.
 

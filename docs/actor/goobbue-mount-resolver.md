@@ -13,7 +13,7 @@ record. The Goobbue family-1 table at `0x00FC0CA8` contains one record,
 therefore cannot select a second retail Goobbue record through this
 resolver; it selects the same first record.
 
-The contributor's static trace follows opcode `0x01A0` grade through actor
+A static trace follows opcode `0x01A0` grade through actor
 and scene fields into this resolver, and identifies `m048/e001`
 and `e002` models sharing a skeleton and bone palette. Those facts support
 a possible alternate model asset but not a stock grade-to-asset mapping.
@@ -23,6 +23,5 @@ client hook, client-file edit, or runtime probe was performed.
 The resolver branch and 20-byte table records were checked directly in
 `ffxivgame.exe` (image base `0x00400000`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`).
-The transport and model-compatibility analysis is in the contributor's
-`goobbue_mount_variant_native_decomp_2026-08-12.md`; its proposed patch
-is outside this retail evidence claim.
+The listed model resources and native branch establish the bounded asset
+and grade observations; they do not establish a runtime model swap.

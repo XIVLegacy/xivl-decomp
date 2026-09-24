@@ -8,24 +8,17 @@ provide catalog and selector contracts, not transaction authority.
 
 | Surface | Rows | Verified scope |
 | --- | ---: | --- |
-| GC seal shops | 402 | 134 per company; exact local projection parity |
-| GC ranks | 22 | exact local seal-cap parity |
+| GC seal shops | 402 | 134 per company in the client catalog |
+| GC ranks | 22 | 19 normal rank IDs and three special IDs |
 | Expeditionary supply | 79 | fixed NM, Toto-Rak, Dzemael, and primal requests |
-| Rowena exchanges | 33 | 7 Ifrit, 7 Moogle, 7 Garuda, 12 relic/runestone |
-| Materia | 66 raw / 71 SQL | 64 archive families and 256 compatibility rows |
+| Rowena exchanges | 33 reported | 7 Ifrit, 7 Moogle, 7 Garuda, 12 relic/runestone; script count needs a primary locator |
+| Materia | 66 | Raw client rows only; equipment-target names remain unjoined |
 
 The 79 expeditionary rows are fixed requests, not arbitrary-gear Expert
-Delivery. A hash-locked search of 2,517 LPBs, their recovered Lua and
-bytecode, and 804 DAT CSVs found no Expert Delivery contract or complete weekly
-ledger. The recovered 32-row weekly list contains 24 week-1 rows and eight
-partial week-2 rows; it must not be presented as an eight-week rotation.
+Delivery. The reviewed client catalogs and script owners do not establish an
+Expert Delivery contract, a complete weekly ledger, or a retail server schedule.
 
-## Owners and widgets
-
-Eleven placed actors join directly to their retail class paths: company shop
-actors 1500202/1500203/1500201, officers 1500199/1500200/1500198, supply
-actors 1500210/1500211/1500212, Rowena actor 1500182, and materia remover
-1001727.
+## Widgets and selectors
 
 The six recovered surfaces are `GrandCompanyShopWidget`,
 `GrandCompanyStatusWidget`, `GrandCompanyJoinWidget`,
@@ -48,15 +41,34 @@ grant.
 
 ## Materia boundary
 
-The expanded materia evidence contains 288 tier/catalog/icon joins, 1,152
-grade-value pairs, and 2,736 raw `meldable1..38` flags. Those raw indexes are
-not human-readable equipment targets without a direct mapping. Materia removal
-is present; stale artifacts describing it as missing are superseded.
+The 66 client `materia.csv` rows each carry 38 raw `meldable` flags. Those
+indexes are not human-readable equipment targets without a direct mapping.
+Client script paths also expose materia removal; the client rows alone do not
+establish its server transaction.
+
+## Source identity
+
+The row counts above were checked against the pinned 1.23b
+`xivl-client-data:manifests/tables.json` entries: `gcSealShopItem.csv`
+(402 rows, SHA-256 `8fa5976bed87f23364bd1bd86d5b6246e8d4af6688466209b4511869b721ff9d`),
+`gcRank.csv` (22 rows, SHA-256
+`56a1b837925824b3c42d1d54bbf450ead7e1cb0704f6712db79b9302cd880ba9`),
+`itemGcExSupply.csv` (79 rows, SHA-256
+`3d0dcfb00c84e460b8b509b5cb526694b82785ecf3d8272e1ab446f4224f13b9`),
+and `materia.csv` (66 rows, SHA-256
+`1dd9af2b7a8c2c2f63221aaeeff412c8050e0941a6c530317c3c644f36d91675`).
+The shop company IDs are in sheet field 5 (the seventh CSV field), with
+134 rows each for 1, 2, and 3.
+The rank IDs have 19 normal values plus 0, 111, and 127. Rowena offers,
+widget behavior, and materia removal need their separate script sources;
+these CSV counts do not establish those behaviors.
 
 ## Evidence boundary
 
-The evidence proves catalog rows, direct owners, widget functions, GC tab
-routing, and Rowena result normalization. It does not prove eligibility,
+The evidence supports the client catalog rows. Widget ownership, GC tab
+routing, and Rowena result normalization need pinned method locators to
+complete their source trail. The static client material does not prove
+eligibility,
 balances, quantity revalidation, atomic currency/item debit, inventory grant,
 rollback, persistence, weekly rotation beyond the recovered subset, Expert
 Delivery, or authoritative materia compatibility names. Every exchange needs a

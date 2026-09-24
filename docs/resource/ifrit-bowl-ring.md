@@ -54,10 +54,6 @@ The layout is 1,245,056 bytes, SHA-256
 The related `f0ifuring1.veff` resource at `data/89/84/00/74.DAT`
 is 11,676 bytes, SHA-256
 `f399fa88a3654a81ee8c00744c5994a063dcc785ddc9ccc868841ee5c323be39`.
-Both identities were checked against the 1.23b client files. The decoded
-instance and clip locators are in the contributor's
-`tools/outputs/ifrit-bowl-layout-neighborhood-20260805/summary.json`,
-`arena_tile_instances.csv`, and `ring_scheduler_clips.csv`; the
-interpretation is bounded in
-`docs/ifrit-animation-decomp-2026-08-02/COMPLETE_COVERAGE_MATRIX.md`,
-Battlefield fire-ring correction.
+Both identities were checked against the 1.23b client files. The node,
+instance, and clip identifiers above describe the parsed static records;
+they do not establish a retail ring trigger or visible timing.

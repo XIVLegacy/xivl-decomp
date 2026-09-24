@@ -22,9 +22,10 @@ The b958 bank is 53,264 bytes and contains 13 recursively decoded resources.
 Its main SCB is 1,280 bytes with SHA-256
 `d2db8131ff54ab669478752f6e897e7fb41c9f609c9cf4a92555d67fb837a6eb`.
 The authored block contains four clips, all starting at zero: BindActor,
-RaptureSound, Action, and Motion. The block duration is 1.2 seconds; its outer
-SCB envelope is 9 seconds and is not the bell animation duration. The motion is
-`cbfm_mp_act1`, 120 frames at 30 fps.
+RaptureSound, Action, and Motion. The block has a raw SCB span of 1,200,000
+units; its outer envelope spans 9,000,000 units and is not the bell animation
+duration. No native conversion of these SCB units to seconds is established.
+The motion is `cbfm_mp_act1`, 120 frames at 30 fps.
 
 The local event flow rings the bell before requesting the selected retainer
 spawn. The scheduler is therefore verified client presentation, not evidence

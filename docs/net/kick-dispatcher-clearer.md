@@ -30,8 +30,9 @@ void MyPlayer_slot66(this, arg1) {  // ECX=this, [ESP+8]=arg1
 ```
 
 The body is symmetric: it touches both fields, and only does any work
-if at least one was non-NO_ACTOR. So calling this is **idempotent and
-safe** - when both fields are already cleared it just returns.
+if at least one was non-NO_ACTOR. When both fields are already cleared,
+the method returns without writing them. The effects of its helper calls
+in other states are not established here.
 
 ## Method
 
@@ -57,12 +58,12 @@ or set up the target rather than clear it.
 ## The clearer is a virtual method - `MyPlayer::vtable[66]`
 
 `FUN_006e32f0` has **zero direct CALL rel32 callers**. Its only address
-reference in the binary is at `.rdata 0xbd7964` - a slot in the
+reference in the binary is at `.rdata` VA `0x00fd7964` - a slot in the
 vtable of `Application::Lua::Script::Client::Control::MyPlayer`
-(RTTI confirmed via COL->TD walk; vtable starts at `0xbd785c`).
+(RTTI confirmed via COL->TD walk; vtable starts at VA `0x00fd785c`).
 
 ```
-MyPlayer vtable @ 0xbd785c
+MyPlayer vtable @ VA 0x00fd785c
   slot 0..65: ...
   slot 66:    FUN_006e32f0   <- THE CLEARER
   slot 67..:  ...
@@ -99,8 +100,8 @@ for the historical kick are not proven.
 
 Ghidra evidence establishes the following:
 
-**Corrected addresses and body:**
-- Vtable address was a typo: `0xbd785c` -> **`0x00fd785c`** (`b` -> `f`, single digit off). The xref to `FUN_006e32f0` is at `0x00fd7964`, not `0xbd7964`. Confirmed in Ghidra GUI: 0xfd785c carries the RTTI label `const Application::Lua::Script::Client::Control::MyPlayer` (slot 0 = `FUN_007493e0`, the scalar-deleting destructor). The doc's class identification was right; just the address was wrong.
+**Addresses and body:**
+- VA `0x00fd785c` carries the RTTI label `const Application::Lua::Script::Client::Control::MyPlayer`; slot 0 is `FUN_007493e0`, the scalar-deleting destructor. The slot-66 xref is at VA `0x00fd7964`.
 - `FUN_006e32f0` body confirmed byte-for-byte as the clearer: loads `DAT_0130c778` (= `0xE0000000` = NO_ACTOR), guards `if [+0x128] != NO_ACTOR || [+0x12c] != NO_ACTOR`, calls `FUN_00cc7510` + `FUN_0075b510`, writes NO_ACTOR to both fields. ~76 bytes PASS.
 
 **Lua-binding name identified:** slot 66 of MyPlayer's vtable corresponds to the Lua method **`_fadeInNowLoadingForNoticeEventJustInArea`**.

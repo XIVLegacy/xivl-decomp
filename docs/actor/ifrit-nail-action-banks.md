@@ -158,25 +158,17 @@ The decoded 12-entry scheduler cancels `init_msb4_1`, includes motion
 and move-stop clips, and launches `m524_ded`. The nested VEFF
 `151rmjanc_dead1` has SHA-256
 `85745f0569c3b2f1aaa0ecf01267f586c86a2f4507b2aa64fa8e051fbc6a5278`.
-These nested locators are in
-`tools/outputs/ifrit-model-state-decomp-20260805/{resources.csv,scheduler_graph.csv}`;
-the native route is in
-`IFRIT_GROUND_STATE_AND_NAIL_DEATH_CLOSURE_2026-08-05.md`, section 3.
+The resource hashes above identify the nested SCB and VEFF. The native
+death-selection route is at the pinned executable VAs described above.
 The whole model package hash was checked against that file.
 
 This closes the static death-selection mechanism and the e002 asset's
 availability, not live root precedence when more than one model
 resource is active, actual visual playback, or a retail corpse lifetime.
 
-All eight listed action-file identities were checked against the
-1.23b client. The contributor's
-`docs/ifrit-animation-decomp-2026-08-02/IFRIT_CLIENT_ANIMATION_BANKS.md`
-(SHA-256 `852de41825e101b0d875d930343832fcb8a2fdefb090f8e08c53dbe657719fdd`)
-and `INFERNAL_NAIL_ANIMATIONS.md` in the same directory
-(SHA-256 `df3b6720640eed0dc916481c92407042910fde4c529c01c80ed96fcce4783b84`)
-provide bank, nested-resource, and curve locators. The broader
-`monster-action-scheduler-contract-20260810/scheduler_manifest.csv`
-also indexes the WSS scheduler/resource joins.
+All eight listed action-file identities were checked against the 1.23b
+client. Their bank, nested-resource, and curve identities are bounded to
+those files; the static join does not identify a live action selector.
 
 The banks establish client capability. Bank numbers, command IDs,
 effect names, and mechanics are separate namespaces. No retained retail

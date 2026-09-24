@@ -5,10 +5,9 @@ This is a static outbound-message finding for the pinned retail 1.23b
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`).
 The locators below are VAs; subtract the image base for RVAs. Observations
 come from the repository's local per-function x86 disassembly exported
-by `tools/ghidra_scripts/DumpFunctions.java` from Ghidra 12.1. The contributor
-lead is `FF14-Memory:docs/ferry_cutscenes_2026-09-16.md`, section
-"Implemented transaction"; its server transaction and live reports are not
-retail-client proof.
+by `tools/ghidra_scripts/DumpFunctions.java` from Ghidra 12.1. The
+constructor and caller locators below establish only static client message
+construction; they do not establish a retail server transaction.
 
 At VA `0x0076D79C`, `FUN_0076D610` writes code `0x00CE` to the local
 message at offset 0 and `0x38` at offset 4. At VA `0x0076D7AC`, it writes

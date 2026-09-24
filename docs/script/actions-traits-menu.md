@@ -4,12 +4,15 @@ The FFXIV 1.23b command catalog and recovered widgets define how learned and
 equipped actions are displayed and submitted. Menu presence is presentation
 evidence, not proof that the server permits a command.
 
-## Catalog join
+## Catalog and comparison boundary
 
-The atlas joins 1,661 client command rows with 1,418 server command rows and 77
-server trait rows, producing 1,681 joined records. Differences are retained:
-client-only rows, server overlays, and conflicting class or level assignments
-must not be collapsed into a single presumed retail definition.
+The pinned `xivl-client-data:manifests/tables.json` entry for `command.csv`
+(SHA-256 `14548e379a6c4f76c10a4ac53866161ebf1622ce7f1e76a760e85f0577f38848`)
+has 1,661 nonzero command rows, plus ID 0. A separate
+comparison combined those rows with 1,418 contributor server command rows and
+77 contributor server trait rows, producing 1,681 joined records. The joined
+count is an analysis result, not a retail-only catalog count. Server overlays
+and conflicting class or level assignments do not establish retail behavior.
 
 Seven released battle classes map to jobs: Pugilist/Monk, Gladiator/Paladin,
 Marauder/Warrior, Archer/Bard, Lancer/Dragoon, Thaumaturge/Black Mage, and
@@ -19,7 +22,7 @@ and experience storage but no job pair.
 Fencer, Enforcer, Musketeer, Sentinel, Samurai, Stavesman, Assassin, Flayer,
 Mystic, Arcanist, and Shepherd are unreleased-class identities in this corpus.
 Their storage columns or client action rows do not prove that the retail class
-was playable. Forty-six custom/unreleased anchor rows remain explicitly
+was playable. Forty-six custom or unreleased comparison anchors remain
 separate from released retail commands.
 
 ## UI ownership
@@ -51,11 +54,11 @@ immediately equippable.
 
 ## Job change and equip boundaries
 
-The server-side job-change command validates the required soul-key item,
-updates current job/class state, and drives the associated presentation. The
-equip command owns equip/unequip validation, additional-action slot limits, and
-class/job gating. These authoritative checks are distinct from widget lists and
-button availability.
+The examined client widgets expose job-change and equip requests, but do not
+establish the retail server's checks or state changes. A server implementation
+must validate the soul-key item, learned actions, additional-action limits,
+and class/job gating before committing a change. Widget lists and button
+availability do not supply that authority.
 
 Client text rows identify Actions and Traits, Ability, Trait, and Job Change
 surfaces, but labels and icons are not execution contracts. In particular, an
@@ -64,7 +67,7 @@ custom anchor unless released retail ownership is independently proven.
 
 ## Evidence boundary
 
-The evidence establishes catalog joins, class/job identities, widget ownership,
+The client evidence establishes the command catalog, class/job identities, widget ownership,
 equip and execution handoffs, and job-reward popup calls. It does not prove
 retail availability of unreleased classes, reconcile custom overlays into
 retail truth, authorize a command, establish learned-state persistence, or

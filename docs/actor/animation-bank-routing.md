@@ -231,9 +231,8 @@ FID bank 2013
 (SHA-256 `ecffdb6b6abd35209f7b147c7c6ab63822a88facf81d0d6a4c70458eb71ac729`)
 instead names `cbmm_h2_sud_a`, so it is not an asset-identical replacement.
 
-Those file hashes were independently checked. The scheduler and
-motion observations come from the contributor's
-`ferry_steersman_pose_investigation_2026-09-11.md`, Installed asset evidence.
+Those file hashes were independently checked against the installed action
+banks. The named scheduler and motion references are static asset records.
 The reported intermittent reference pose remains undiagnosed: asset
 presence and named motion references do not prove successful playback,
 identify a lifecycle failure, or authorize a periodic restart.
@@ -258,8 +257,6 @@ the constant were checked directly in the pinned `ffxivgame.exe` with
 motion frame, not microseconds. It does not establish a universal time
 unit for other scheduler fields or clip classes.
 
-The contributor's `mandragora_controller_followup_2026-09-13.md`,
-Concrete controller errors, cross-checks native m020 idle, walk, and run
-MCB durations against their MTB frame counts. Its authored m521 overlay
-and reported playback symptoms are separate experimental material, not
-retail motion evidence.
+The m020 idle, walk, and run MCB values can be compared with their MTB frame
+counts, but authored replacement m521 motions and reported playback symptoms
+do not establish a retail motion binding.

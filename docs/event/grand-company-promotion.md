@@ -7,20 +7,33 @@ debit seals or persist a rank.
 
 ## Company routes
 
-| Company | ID | Officer actor | Seal item | Rank effect |
+| Company | ID | Candidate officer actor | Seal item | Rank effect |
 | --- | ---: | ---: | ---: | ---: |
 | Maelstrom | 1 | 1500199 | 1000201 | `0x05032000` |
 | Order of the Twin Adder | 2 | 1500200 | 1000202 | `0x05033000` |
 | Immortal Flames | 3 | 1500198 | 1000203 | `0x05034000` |
 
-The recovered officer source has SHA-256
-`8597d83d4edb98d7ec9fcc4187cfb398faf671a730885e66537cf62554219dd5`.
+The candidate officer IDs have canonical `actorclass.csv` rows, but a retail
+placement or actor-class-to-script binding is not established by those rows.
+
+The installed officer LPB is
+`client/script/729s9/wu7/uvupy975/uvupy9757vxu9wlv44175s.le.lpb`
+(SHA-256 `020e8eb67018a6669f915bc61e736b36bcfc05bc2ff70b4f1646dc6423d8637b`).
+Its decoded chunk is SHA-256
+`ba827b063fd9747cbab293e97d07ccf039768299342e3891abafbdaff0837e95`;
+the pinned readable `chara/npc/populace/populacecompanyofficer.lua` member is
+SHA-256 `8d27e9aa2ab9fa98041275110134abc21d320d8c846e22c8d9172504f7fb4b4f`
+in `xivl-client-scripts:manifests/scripts.json`.
 Its confirmation path reads current seals, accepts a server-supplied
 affordability boolean, and returns the user's choice. It never changes currency
 or rank state.
 
-The rank sheet contains 18 ordered transitions across 19 normal ranks. Expanding
-those rows across the three companies produces 54 presentation rows, but the
+The canonical `xivl-client-data:manifests/tables.json` entry for `gcRank.csv`
+pins 22 rows at SHA-256
+`56a1b837925824b3c42d1d54bbf450ead7e1cb0704f6712db79b9302cd880ba9`.
+It contains 19 normal rank IDs plus 0, 111, and 127. The normal IDs define
+18 ordered transitions. Expanding those rows across the three companies
+produces 54 presentation rows, but the
 sheet does not prove eligibility, quest prerequisites, or the currently allowed
 next rank.
 
@@ -39,12 +52,23 @@ The status widget disables Status, SkillList, Important, and Contents tabs.
 The join surface closes any prior slot-13 widget, starts its animation, and has
 no result value. It is presentation only.
 
+The pinned `xivl-client-scripts:manifests/scripts.json` members are
+`widget/ask/grandcompanyofficialjoinwidget.lua` (SHA-256
+`8a109332010762534e85e75a7fedeb77dddd7ffd638d206c5aa46a6397506a49`),
+`widget/grandcompanystatuswidget.lua` (SHA-256
+`893b7f452119b5afd6b277a8d25a326b3c9089b71228f9406b1a4d2bf0cf7f18`),
+and `widget/grandcompanyjoinwidget.lua` (SHA-256
+`4025d1367708dacf3a2183e6422b637613bd3fda3c32773bb4297dc1e4484ab1`).
+
 ## Seal reader
 
 `GrandCompanyStatusWidget.getGrandCompanyPoint` was damaged in the decompiled
-Lua. Its hash-locked 49-instruction Lua 5.1 prototype, SHA-256
+Lua. Its decoded Lua 5.1 chunk has SHA-256
 `c28038e3c596621b0e87d7a9fd5d2857274a836fedaabd6a83ffaf4729e5b070`,
-establishes the exact read:
+decoded from `client/script/n1635q/3s9w67vxu9wlrq9qprn1635q.le.lpb`
+(SHA-256 `e04bb2ab645a1d4f71db191a40059b5947d562052ac1c6301cd7333bead17998`),
+and its prototype with `line_defined=279` and `last_line_defined=310`
+contains 49 instructions. That bytecode establishes the read:
 
 1. Select inventory package 100.
 2. Scan its used range, capacity minus free space.
@@ -73,7 +97,11 @@ character satisfies its prerequisite.
 ## Rank publication
 
 Opcode `0x0194` serializes Grand Company allegiance and all three company rank
-bytes. The packet is available in player-state publication and login replay,
+bytes. Its client receiver is `FUN_0089CD60` through dispatcher
+`FUN_004DC690` (`xivl-opcodes:data/client_receivers.json`,
+`SetGrandCompanyPacket`); the capture layout is in
+`xivl-opcodes:data/vendor/captures/payload_layouts.json:25499`. The packet
+is available in player-state publication and login replay,
 but no recovered promotion path commits a rank and then sends it.
 
 Presentation must follow durable server mutation. Sending `0x0194`, playing a

@@ -35,9 +35,11 @@ packet:
 | 326 | `open` | `time_bg_door_d2_open` | two leaves, sound, two collision boxes |
 | 326 | `clos` | `time_bg_door_d2_clos` | two leaves, sound, two collision boxes |
 
-All four timelines last 0.45 seconds. The open timelines disable both
-collision boxes at 0.15 seconds; the close timelines enable them at 0.44
-seconds. The payload hashes are identical in layouts 5142 and 5143:
+All four timelines have a raw SCB span of 450,000 units. The open timelines
+disable both collision boxes at raw start value 150,000; the close timelines
+enable them at raw start value 440,000. The client timebase for these SCB
+fields is not established here. The payload hashes are identical in layouts
+5142 and 5143:
 
 | Timeline | SCB SHA-256 |
 | --- | --- |

@@ -62,11 +62,12 @@ Layout instance `isgrp_000012` binds packet instance ID 12 to unit tree
 `sgrp_shutter`. Its serialized node GID 935 is a different identifier. The
 unit tree exposes `open` and `clos`.
 
-`time_bg_gate_open` has a 1.0-second active block. Its transform starts at
-0.0 seconds and its sound starts at 0.01 seconds. `time_bg_gate_close` has a
-0.25-second active block with both sound and transform starting at 0.0
-seconds. These resources prove the callable shutter presentation; they do not
-define the server condition that opens it.
+`time_bg_gate_open` has a raw SCB active-block span of 1,000,000 units. Its
+transform starts at raw value 0 and its sound at 10,000. The close block has
+a raw span of 250,000, with sound and transform both starting at 0. No
+client SCB timebase is established here. These resources describe the
+callable shutter presentation; they do not define the server condition that
+opens it.
 
 ## Weather and material overrides
 

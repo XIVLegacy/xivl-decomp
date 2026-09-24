@@ -49,5 +49,5 @@ Coordinate storage is
 recovered `widget/minimapwidget.lua:setMiniMapWidgetMarkerData`, and the
 caravan call sites are `director/caravanguard/caravanguarddirector.lua`
 methods `processUIInit`, `processUIUpdate`, and `processUIFinalize`.
-The contributor's `npc_escort_minimap_circle_decomp_2026-07-04.md` provides
-the broader source inventory; no new runtime observation was made here.
+The script methods above identify the inspected client paths. No runtime
+observation establishes historical marker publication or display.

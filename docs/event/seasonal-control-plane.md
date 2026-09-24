@@ -20,10 +20,10 @@ another index. Their explicit comparisons and effects are:
 
 | Value | Decoded Lua locator | Supported effect |
 | ---: | --- | --- |
-| 8 | `chara/npc/populace/populacecompanyshop.lua:481` | Sets Grand Company shop `eventFlag` to 8. |
-| 11 | `chara/npc/populace/populacecompanyshop.lua:483` | Sets that shop flag to 11. |
-| 18 | `command/system/emotestandardcommand.lua:16`; `widget/emotelistwidget.lua:294` | Permits and lists emote 156 (Fire Dance). |
-| 20 | `command/system/teleportcommand.lua:348`; `quest/scenario/etc/etc304.lua:107` | Changes teleport filtering and selects cutscene music ID 29. |
+| 8 | `chara/npc/populace/populacecompanyshop.lua:1084` | Sets Grand Company shop `eventFlag` to 8. |
+| 11 | `chara/npc/populace/populacecompanyshop.lua:1093`; `widget/ask/questdetailwidget.lua:1062-1072`; `widget/ask/questrewardwidget.lua:645-655` | Sets that shop flag to 11; both widget `isFestival` methods return true for 11. |
+| 18 | `command/system/emotestandardcommand.lua:40`; `widget/emotelistwidget.lua:948` | Permits and lists emote 156 (Fire Dance). |
+| 20 | `command/system/teleportcommand.lua:541`; `quest/scenario/etc/etc304.lua:446` | Changes teleport filtering and selects cutscene music ID 29. |
 
 The company catalog applies `required <= eventFlag`: at 8 the Maelstrom,
 Twin Adder, and Immortal Flames shops expose Storm Tracer (3020601), Serpent
@@ -51,9 +51,10 @@ The packet and getter claims come from `ffxivgame.exe` (image base
 `0x00400000`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`)
 at the addresses above. The index-9 effects come from the decoded Lua
-locators above, cross-checked against the decoded Grand Company catalog
-rows 102001/102002, 202001/202002, and 302001/302002. The source extraction
-produced the `seasonal-control-plane-decomp-atlas-20260711` packet,
-work-layout, consumer, and shop-row tables; its output is an aid to review,
-not independent runtime evidence. Neither static lane proves that the retail
+locators above in the pinned `xivl-client-scripts` corpus
+(`manifests/private_lua_corpus.json`, archive SHA-256
+`0e8f902f7a2f592fc1220d41b89a3f35ec395cfb261806d4bd590a530099ae31`;
+member hashes in `manifests/scripts.json`), cross-checked against the decoded
+Grand Company catalog rows 102001/102002, 202001/202002, and
+302001/302002. Neither static lane proves that the retail
 server activated any specific seasonal combination at a particular time.

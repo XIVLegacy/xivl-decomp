@@ -22,8 +22,8 @@ The scene assets have city-specific departure (`*000`) and arrival
 | Ul'dah | `zep0u000` | 129,424 | `71634fb82d460530bbda822dea9bb5ea7b5e8154559788611a2cd376fdc6966f` |
 | Ul'dah | `zep0u010` | 149,824 | `5923855356423f238a412bf578470e8d26d04cb034e5e1a201a52768cc205ee5` |
 
-The contributor's scene inventory parses actor dictionaries and cutscene
-transforms from these assets. Those transforms are cinematic placements,
+A direct parse of the six hash-matched scene assets finds actor dictionaries
+and cutscene transforms. Those transforms are cinematic placements,
 not authenticated public-zone spawns or arrival coordinates. A current
 server route's choice of a departure/arrival pair is an implementation
 decision unless joined to retail route evidence; asset presence alone does
@@ -31,7 +31,7 @@ not authenticate that choice.
 
 ## Parsed actor and scheduler boundary
 
-The six hash-matched files yield 77 actor-dictionary records and
+A direct parse of the six hash-matched files yields 77 actor-dictionary records and
 74 structurally plausible spatial records in total. The setup
 stream accounts for 24 of those spatial records; the wider scan also finds
 later timeline placements. These are parser counts, not a count of actors
@@ -61,6 +61,8 @@ Provenance: recovered
 `director/directorbaseclass.lua:delegateEvent`, and
 `quest/questbaseclass_common.lua:startNQCutScene` establish the script
 sequence. `client/cut/zep0*/zep0*` files supply the six sizes and
-hashes; `tools/outputs/lpb/airship_decomp_20260824/scene_inventory.csv`
-records their parsed roles and dictionaries. No retail runtime probe or
+hashes and SCB offsets above identify the source scenes;
+`decompile_airship_cutscene_setup.py` produced the parsed roles and
+dictionaries from those hash-matched files.
+No retail runtime probe or
 new capture was used.
