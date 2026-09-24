@@ -97,6 +97,17 @@ source pointer to `0x009D4600` (`0x00DAE0AC`-`0x00DAE0B8` and
 counts are `0x10` and `0x40` bytes. These are arguments passed by the client
 helper; they do not establish wire framing.
 
+The destination is derived separately. In `0x00DAF850`, the pointer argument
+is held in `ESI`, and `EBP` is set to that pointer plus `4`; after a nonzero
+result from `0x00DAF1A0`, the body stores that result at `[EBP+8]`, the local
+pair's `+0x0C` (`0x00DAF876`-`0x00DAF886`). Each successful caller path loads
+that field at `0x00DAE09A` or `0x00DAE145`. If nonzero, it reads the pointed-to
+dword at `+0x24` (`0x00DAE0A2` or `0x00DAE14D`), adds `0x10`
+(`0x00DAE0B3` or `0x00DAE15E`), and passes the result as the destination
+argument to `0x009D4600` (`0x00DAE0B8` or `0x00DAE163`). The zero branch uses
+zero as the base before adding `0x10`; these instructions establish pointer
+arithmetic, not the pointed-to object's type or application role.
+
 The `0x00DAE010` copy paths are selected by dword state at receiver `+0x8C`.
 Nonpositive values and values above 3 return `AL=0`; value 3 enters the
 first path after a nonzero resolver result. Values 1 and 2 enter the second
