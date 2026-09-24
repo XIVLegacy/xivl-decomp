@@ -38,3 +38,47 @@ at `0x0089568e`-`0x00895691`, its caller passes the active object from
 from a list. Neither call passes the PlayerManager `esi` directly. See
 [`kick-dispatcher-clearer.md`](kick-dispatcher-clearer.md) for the kick
 receiver context.
+
+## Active and pending event fields
+
+The constructor at `0x00895f50` initializes `PlayerManager+0x08` and
+`PlayerManager+0x0c` to null at `0x00895f99` and `0x00895fa1`.
+`0x00895a30` classifies an incoming event and selects an active or pending
+assignment:
+
+| Classifier result | Assignment | Direct store |
+|---|---|---:|
+| `byte_12d7c40 == 1` | Allocate/replace the active server-side event at `+0x08`. | `0x00895bb2` |
+| `byte_12d7c41 == 2` | Allocate/replace the pending server-side event at `+0x0c`. | `0x00895ccf` |
+| Client-side attach path | Attach/replace the active client-side event at `+0x08`. | `0x008973cb` |
+
+When `PlayerManager+0x1d` is nonzero, `0x00893410` moves the pending
+`+0x0c` pointer to active `+0x08` and clears `+0x0c`. If the promoted event
+fails the subsequent virtual transition, `0x00893489` clears `+0x08`.
+Other active-field clear sites include `0x00893504`, `0x00893589`,
+`0x008938f1`, `0x00893adf`, and `0x00893b42`.
+
+Before this classifier, `0x00895d20` calls the incoming object's vtable slot
+`+0x1c`. A true result continues to `0x00895a30`; a false result goes to
+`0x00893b50` and does not take this active/pending assignment path. This is
+the static method path, not proof that a particular outer packet reached it.
+
+## PlayerManager token dispatch
+
+PlayerManager vtable slots `+0x04` and `+0x08` enter `0x00896090` and
+`0x00896260`. Both compare a 16-bit value returned from their input helper
+against globals initialized by the code at `0x00f18620` onward. The setup
+calls pass `0x00c9` with global `0x0134bc18`, `0x00ca` with
+`0x0134bc1c`, and `0x00cc` through `0x00d3` with globals
+`0x0134bc20` through `0x0134bc3c`.
+
+| Compared value | Slot `+0x04`, `0x00896090` | Slot `+0x08`, `0x00896260` |
+|---:|---:|---:|
+| `0x00c9` | `0x00893ab0` | `0x00893b00` |
+| `0x00ca` | `0x00894ab0` | `0x00894bc0` |
+| `0x00cc`-`0x00d3` | `0x00895dd0` | `0x00895e60` |
+
+The range begins at `0x00cc`, so `0x00cb` is not handled by these two
+methods. This table records native comparisons and branch destinations only;
+it does not assign message names or meanings to the values, establish the
+outer opcode, or prove runtime invocation.
