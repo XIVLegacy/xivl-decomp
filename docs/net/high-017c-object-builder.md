@@ -52,6 +52,20 @@ current `EDI` value through the returned slot. The `0x50` path also
 calls `0x006D75F0` with the context pointer plus `0x30` and writes the current
 `EDI` value through the returned slot.
 
+## Child-record setup
+
+After earlier gates, including a zero result and an owner `+0x0C` zero check,
+`0x006CC620` requests `0x0C` bytes at VA `0x006CC697`. If non-null, that
+allocation is passed to `0x006C6CA0` by the direct call at VA `0x006CC6B4`;
+the returned pointer (or zero on allocation failure) is then passed to
+`0x006D1DC0` with `ECX` set to owner `+0x0C`. `0x006C6CA0` requests `0xFC`
+bytes from `0x009D1B35`. On success, it calls `0x006C5E80` with the allocation
+in `ECX` and its stack argument; otherwise it uses zero. It stores that value
+at record `+0x00`, writes zero at `+0x04`, sets byte `+0x08` to `1`, and sets
+bytes `+0x09` and `+0x0A` to zero. It returns the outer record pointer in
+`EAX` and does not explicitly write byte `+0x0B`. These instructions establish
+allocation and initialized offsets, not a higher-level type or helper purpose.
+
 ## Evidence
 
 Addresses in this note are virtual addresses (VA). The observations come from
@@ -59,4 +73,6 @@ Ghidra instruction listings exported with the repository's
 [`DumpFunctions.java`](../../tools/ghidra_scripts/DumpFunctions.java) script
 from `ffxivgame.exe`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`. The
-instruction bytes at both function ranges were checked against that executable.
+instruction bytes at function ranges beginning at VAs `0x006CC5B0`,
+`0x006CC070`, `0x006CC620`, and `0x006C6CA0` were checked against that
+executable.

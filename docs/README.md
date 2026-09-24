@@ -97,6 +97,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Four-case payload consumer](net/payload-c8-cb-consumer.md)
 - [State-ID transition helper](net/state-id-transition-helper.md)
 - [ID acceptance guard](net/id-acceptance-guard.md)
+- [Wrapper output attachment](net/wrapper-output-attach.md)
 - [Setup record builders](net/setup-record-builders.md)
 - [Record detail and buffer constructor](net/record-detail-and-buffer-constructor.md)
 - [Stream buffer and node helpers](net/stream-buffer-and-node-helpers.md)
