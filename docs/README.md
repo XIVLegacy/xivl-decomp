@@ -106,6 +106,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Stream record parser pair](net/stream-record-parser-pair.md)
 - [Stream pump and state path](net/stream-pump-and-state.md)
 - [Stream receive entry path](net/stream-receive-entry.md)
+- [Signed delta helper](net/dispatch-delta-helper.md)
 - [Stream selection helpers](net/stream-selection-helpers.md)
 - [Staged-object size branches](net/staged-result-ownership.md)
 - [Receiver class inventory](net/receiver-class-inventory.md)
