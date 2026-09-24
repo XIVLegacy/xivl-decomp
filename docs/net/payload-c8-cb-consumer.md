@@ -31,3 +31,30 @@ The `0x00CB` branch does not clamp nonzero values to at least 3: values 1 and
 2 pass through unchanged. The called helpers and copied local objects need
 separate evidence before naming these branches or treating their input layout
 as a retail application protocol.
+
+## Helper boundaries
+
+These helper observations were disassembled from the pinned PE above with
+Capstone 5.0.7.
+
+At VA `0x004D8560` (RVA `0x000D8560`), the helper calls `0x004B4ED0` with
+ECX=`this+0x17430` and pushed `1`. It then calls `0x00C99E80` with
+ECX=`this+0x7F8`, pushing the prior call's EAX, `1`, and a stack dword; zero
+AL returns false. Next it calls `0x00445C70` with a stack dword in ECX; zero
+AL also returns false. It calls `0x004C3DD0` with ECX=`this+0x950` and that
+same dword pushed; nonzero AL returns false. After those gates, a null
+`this+0x660` skips the last call. If nonnull, `0x004CE760` is called with that
+pointer in ECX after pushing EBX, EDI, and the dword loaded from `[ESP+0x10]`;
+its AL is not tested. Both paths return AL=1. These calls establish only the
+local gates and forwarding; their contracts and the stack values' meanings
+remain unresolved.
+
+At VA `0x004C80B0` (RVA `0x000C80B0`), the helper loads `[ECX+0x18]` into ECX,
+writes `0x40F` to `[ESP+4]`, and tail-jumps to `0x004C7710`.
+
+At VA `0x005754E0` (RVA `0x001754E0`), a null dword at `[this]` returns AX=0
+and removes one stack argument. Otherwise the helper calls `0x00575400` with
+ECX=`this`; zero AL returns the same way. On the passing path it loads
+`[this+0x18]` into ECX and tail-jumps to `0x006C7B80`, preserving the original
+stack argument. The called routines' meanings are not established by these
+instructions.
