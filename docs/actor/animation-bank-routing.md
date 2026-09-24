@@ -148,18 +148,22 @@ Its three 60-byte color records at file offsets `0x358`, `0x3ac`, and
 `0x3e8` have SHA-256 `17e57a3c1083f167d27bc74310608d78a44933d4b76bdc8724258b8404eddae2`,
 `156dcfdb37b0cebed37e1bb8a204b210dba62f61cc2191993ea911ebfb83f9bf`,
 and `35c39fd6e413c5fa246fd8a1c20a15a8f1e286c2f5bf23a531e10094c43b2423`.
-They contain zero alpha at start 0, a later 1.8/1.8/1.7 color target with
-alpha 1, and a later white target with alpha 1, respectively. Raw timeline
-units do not establish wall-clock visibility or combat targeting. The
-historical Chain Bearer arrival type and selector remain unknown.
+They are `RaptureCharaColorFadeClip` records: zero alpha at start 0, a later
+1.8/1.8/1.7 color target with alpha 1, and a later white target with alpha 1,
+respectively. Raw timeline units do not establish wall-clock visibility or
+combat targeting. The historical Chain Bearer arrival type and selector
+remain unknown.
 
-The arrival dispatcher at VA `0x0058b2a0` also routes spawn types 16 and 21
-through its common setup branch. It indexes its byte table at VA `0x0058b464`
-with `type - 1`; entries 15 and 20 both select pointer-table entry 0 at
-`0x0058b45c`, which targets `0x0058b302`. That path passes the selected type
-to `0x0058adc0` and then calls the state machine at `0x0058a090`. The state
-index is `([this+0xe8] >> 1) & 0x1f`; the pointer table at `0x0058a7a8` maps
-state 12 to `0x0058a5cd`.
+The arrival dispatcher at VA `0x0058b2a0` accepts spawn types 1 through 10
+and 15 through 24 in its switch. Type 15 therefore reaches the common setup
+call at `0x0058adc0` and the state machine at `0x0058a090`; this establishes
+native handling capability, not that any historical transport selected type
+15 or used a separate scene. The dispatcher indexes its byte table at VA
+`0x0058b464` with `type - 1`; entries 15 and 20 (types 16 and 21) both select
+pointer-table entry 0 at `0x0058b45c`, which targets `0x0058b302`. That path
+passes the selected type to `0x0058adc0` and then calls the state machine at
+`0x0058a090`. The state index is `([this+0xe8] >> 1) & 0x1f`; the pointer
+table at `0x0058a7a8` maps state 12 to `0x0058a5cd`.
 
 In that state-12 path, comparisons at `0x0058a5f2` and `0x0058a5f8` route
 types 16 and 21 past the conditional calls at `0x0058a60e` and `0x0058a631`.

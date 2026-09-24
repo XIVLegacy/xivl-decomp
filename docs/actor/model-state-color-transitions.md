@@ -155,6 +155,25 @@ This proves an immediate alpha control in the m505 model. It does not
 prove the retail Chain Bearer state selector, relocation mode, hidden
 interval, targetability, or encounter timing.
 
+## Shared color-fade storage
+
+The pinned executable (SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`)
+routes `RaptureCharaColorFadeClip` updates through `0x008262a0` and
+`0x0065ef60`. The bridge requires a nonnull actor and a zero return from its
+vfunc at `+0x268`. On that branch, `0x0065ef8d` passes lane 1 and the
+renderer `+0x1560` color state to `0x008422e0`. Arrival's initial hide also
+calls `0x008422e0` for lane 1 with alpha mask `0x8` and a zero alpha target
+(`0x00661990`). The m505 hide/show records and the POP-7 scheduler records
+therefore target the same native color-fade lane; they are not independent
+opacity layers. See
+[animation bank routing](animation-bank-routing.md#arrival-type-and-revival-motions)
+for the POP-7 resource and arrival path.
+
+This shared destination establishes a competing-write hazard, but not which
+effect or clip ran last for any historical encounter, nor the actor, selector,
+timing, or runtime state that chose it.
+
 ## m526 rock section masks
 
 The m526 BID bank at
