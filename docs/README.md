@@ -41,6 +41,7 @@ Use this index to find the repository's public findings and technical guides.
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
 - [Scenario and monster hierarchy](actor/scenario-monster-hierarchy.md)
 - [Actor status controllers](actor/status-controllers.md)
+- [Lay scheduler member dispatch](actor/lay-scheduler-member-dispatch.md)
 - [Status-related UI RTTI search](actor/status-effects.md)
 - [WindowActor nameplate anchor producer](actor/window-actor-anchor-producer.md)
 - [WorldMaster](actor/world-master.md)
