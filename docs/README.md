@@ -13,6 +13,7 @@ Use this index to find the repository's public findings and technical guides.
 - [m055 and m012 action-bank boundary](resource/aurum-action-bank-boundary.md)
 - [Garuda battlefield atmosphere](resource/garuda-battlefield-atmosphere.md)
 - [Actor architecture](actor/architecture.md)
+- [Background visibility ranges](actor/background-visibility.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
