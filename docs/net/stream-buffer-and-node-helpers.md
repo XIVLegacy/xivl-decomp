@@ -81,6 +81,50 @@ Two container constructors have similarly distinct RTTI. VA `0x00DAFEF0`
 `EntityContainerTmpl<ChatProtoUp,ChatProtoDown>`. Their generic container
 identity does not make the donor's queue or retainer labels a PE fact.
 
+### Additional direct field paths
+
+At `0x00DA1F70` and `0x00DAEA10`, each body calls `0x00DC1E70`, copies two
+stack values to `this+0x4` and `this+0x8`, and zeros `this+0xC`, `this+0x10`,
+and `this+0x24` (`0x00DA1F76`-`0x00DA1FA1`; `0x00DAEA16`-`0x00DAEA41`).
+After their respective `0x3C0` and `0x1C10` comparisons, each path stores a
+nonzero helper result or zero at `+0x24`, writes the compared value or boundary
+literal at `+0x1C`, and zeros `+0x20` (`0x00DA1FC4`-`0x00DA2017`;
+`0x00DAEA64`-`0x00DAEAB7`).
+
+At `0x00DAE9D0`, `0x00DAEAD0`, and `0x00DB47A0`, each body reads
+`[this+0x24]`, writes the first dword as `0x01128EA4`, `0x01128EB4`, or
+`0x011293C4`, conditionally passes the loaded value to `0x009D5C88`, clears
+`+0x24`, and calls `0x00DC1E60`. Each tests `[esp+0x8] & 1` before its
+optional call to `0x009D1B17` (`0x00DAE9D3`-`0x00DAE9FF`;
+`0x00DAEAD3`-`0x00DAEAFF`; `0x00DB47A3`-`0x00DB47CF`).
+
+At `0x00DAEB10` and `0x00DB47E0`, each body calls `0x00DC1EE0`, stores a
+stack value at `this+0x10`, writes first dword `0x01128EC4` or `0x011293D4`,
+copies two adjacent source dwords to `+0x14` and `+0x18`, and copies another
+pair to `+0x1C` and `+0x20` (`0x00DAEB27`-`0x00DAEB51`;
+`0x00DB47F7`-`0x00DB4821`).
+
+At `0x00DAEC70`, the body passes literal `0x28` to `0x009D1B35` at
+`0x00DAECAE`; for a nonzero result it calls `0x00DAEA10` at `0x00DAECCF`.
+The separate body at `0x00DAED00` passes literal `0x24` to `0x009D1B35` at
+`0x00DAED27`; for a nonzero result it calls `0x00DC1EE0` at `0x00DAED67` and
+writes first dword `0x01128EC4` and offsets `+0x10`, `+0x14`, `+0x18`,
+`+0x1C`, and `+0x20`
+(`0x00DAED70`-`0x00DAED88`). The bodies at `0x00DAEDB0` and `0x00DB49D0`
+also pass literal `0x24` to `0x009D1B35` (`0x00DAEDD5`-`0x00DAEDD7`;
+`0x00DB49F5`-`0x00DB49F7`); on a nonzero result they call `0x00DC1EE0`
+and write first dword `0x01128EC4` or `0x011293D4`, plus offsets `+0x10`,
+`+0x14`, `+0x18`, `+0x1C`, and `+0x20`
+(`0x00DAEE1D`-`0x00DAEE3C`; `0x00DB4A3D`-`0x00DB4A5C`). These operands
+and stores do not identify the contracts of the callees or the meanings of
+the fields.
+
+Besides the vtable writes above, `0x00DAFEF0` and `0x00DB54D0` each store a
+stack value at `this+0x10`, call `0x0095E590` with `ECX=this+0x14`, store its
+return at `this+0x18`, set the returned pointer's `+0x15` byte to `1`,
+self-link its `+0`, `+0x4`, and `+0x8` dwords, and zero `this+0x1C`
+(`0x00DAFF27`-`0x00DAFF5A`; `0x00DB5507`-`0x00DB553A`).
+
 ## Parent object constructor bodies
 
 At VA `0x00DB1AF0`, the body tests byte `[esp+0x2C]`. If nonzero, it pushes
