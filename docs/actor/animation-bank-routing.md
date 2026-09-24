@@ -154,6 +154,28 @@ respectively. Raw timeline units do not establish wall-clock visibility or
 combat targeting. The historical Chain Bearer arrival type and selector
 remain unknown.
 
+Row 15 of the 12-byte category table at VA `0x00FE32D8` is at VA
+`0x00FE338C` (file offset `0x00BE338C`) with bytes
+`8C 32 FE 00 00 01 00 00 0D 00 00 00`;
+the first dword points to VA `0x00FE328C` (file offset `0x00BE328C`),
+whose NUL-terminated name is `pop`. The row records character bank 0, VFX
+bank 1, and route kind 13. This resolves the static category mapping, not
+any encounter's selector.
+
+The same asset's `outer/RES:main` resource is a 1,360-byte `SEDBSCB`
+payload with SHA-256
+`718af4c8b24cb3a10932f6a4ee31dfd44b1057e4d534e8ab9997706696e8ad19`.
+Its `Block000` declares 990,000 raw timeline units. Its seven records are
+`BindActorClip` at payload offset `0x260` (20 bytes), `RaptureSoundClip` at
+`0x274` (44 bytes), `ActionClip` at `0x2A0` (40 bytes, referencing `pop7`),
+`RaptureCharaColorFadeClip` at `0x2C8` (60 bytes), `ClipSyncClip` at
+`0x304` (24 bytes), and `RaptureCharaColorFadeClip` at `0x31C` and `0x358`
+(60 bytes each). The three fade
+records' u32 parameter fields at payload offsets `0x2DC`, `0x330`, and
+`0x36C` are 0, 10, and 20; these are authored values, not wall-clock timing.
+These authored records do not establish that a historical actor selected
+type 7 or that these clips rendered live.
+
 The arrival dispatcher at VA `0x0058b2a0` accepts spawn types 1 through 10
 and 15 through 24 in its switch. Type 15 therefore reaches the common setup
 call at `0x0058adc0` and the state machine at `0x0058a090`; this establishes
