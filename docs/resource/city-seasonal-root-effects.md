@@ -77,6 +77,34 @@ has that second join. These are structural owner candidates, not verified
 retail map-object spawn rows. No actor-class-to-owner or activation join
 follows from the neighborhoods or transforms.
 
+### Serialized hanabi component references
+
+Each root's nine `vfx_hanabi*` groups contain 104 serialized component-reference
+entries and 40 distinct dependency DAT keys:
+
+| City | Component-reference entries | Distinct dependency DAT keys |
+| --- | ---: | ---: |
+| Gridania | 104 | 40 |
+| Limsa Lominsa | 104 | 40 |
+| Ul'dah | 104 | 40 |
+
+The three roots total 312 serialized entries and 120 city-scoped distinct-key
+observations; the latter is the sum of each city's distinct-key count, not a
+claim that all 120 keys differ globally. The row-level inventory records each
+entry index, name, extension, dependency key, and flags in
+`outputs/moonfire-hanabi-residue-atlas-20260712/moonfire_hanabi_component_entries.csv`
+(SHA-256
+`e1cb811aac4d5df93eae39b1bcdcd25b776f138e68b2184b2582163e87d39fa0`); the
+summary is
+`outputs/moonfire-hanabi-residue-atlas-20260712/moonfire_hanabi_city_root_summary.csv`
+(SHA-256
+`d81f34fc5e2355179bd9eba41a02c3a7ebdb30515215a80df40f6cddc8b4436a`). The
+inventory generator is
+`tools/build_moonfire_hanabi_residue_atlas.py` (SHA-256
+`28a3e1c51f912831bb60306efe5d624069cadf1e7ab6ae60394d53ec30eddb2b`). The
+root DAT hashes below pin the source layouts. These are serialized references,
+not proof that every dependency was loaded, displayed, or activated in retail.
+
 ## Provenance
 
 The three `MapLayoutResourceData` root DATs are 664,720, 529,376, and
