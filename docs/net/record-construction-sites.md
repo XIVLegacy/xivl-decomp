@@ -130,6 +130,20 @@ then calls `0x004E0240` at `0x004FA7D6`. The call seed is at
 These are stack values and a call edge; they do not establish a record or
 message role.
 
+The same caller prepares three dwords in the internal builder body at offsets
+`+0x18`, `+0x1C`, and `+0x20`. The dword at `+0x18` comes from the pointer
+reached through widget `+0x2C`, its `+0xC8` field, and then `+0x1220`
+(`0x004FA785`-`0x004FA78E`). The dword at `+0x1C` is the return from
+`0x004F7FE0` (`0x004FA794`, stored at `0x004FA79F` and written at
+`0x004FA7D2`). The dword at `+0x20` comes from widget `+0xC48`
+(`0x004FA7A6`-`0x004FA7B7`). The decoded caller window has no explicit write
+to builder `+0x24`. The sender's size and copy path expose builder
+`+0x18` through `+0x27` as a 16-byte body, but these source values' request or
+session meanings remain unresolved. FF14-Memory's
+`tools/outputs/lpb/native_retainer_price_request_01d9_receive_01de_deeper_20260618/outbound_01d9_body_layout.csv:4-8`
+(SHA-256 `a5a06c62ec4285116e58937f093c72a332f968e2d0b8b63cc06115b3a126074d`)
+is the candidate locator.
+
 The same body gates the call on byte `[ESI+0xC60]` not being `1`
 (`0x004FA76E`), and on global dwords `0x013302C8` and `0x013302CC` being equal
 (`0x004FA77D`-`0x004FA783`). After the call at `0x004FA7D6`, it writes byte

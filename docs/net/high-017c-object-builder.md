@@ -52,6 +52,16 @@ current `EDI` value through the returned slot. The `0x50` path also
 calls `0x006D75F0` with the context pointer plus `0x30` and writes the current
 `EDI` value through the returned slot.
 
+The callee at VA `0x006D75F0` passes its argument pointer to `0x006CF090` and
+compares three dwords from the argument pointer, in order `+0x08`, `+0x04`,
+and `+0x00`, with dwords at `+0x18`, `+0x14`, and `+0x10` of the pointer
+returned by `0x006CF090` (`0x006D7612`-`0x006D762D`). The function returns the
+final pointer plus `0x20` (`0x006D767F`). The compared data and returned slot
+have no assigned object or key semantics. The source candidate is
+FF14-Memory's
+`tools/outputs/lpb/native_retainer_object_result_high017c_deeper_20260618/high_017c_core_parser.csv:6`
+(SHA-256 `0979ef3bc26bf3c4549685b39cf17a484d73c583e6b7defd0a38be96b35a666f`).
+
 ## Child-record setup
 
 After earlier gates, including a zero result and an owner `+0x0C` zero check,

@@ -31,9 +31,8 @@ check. Its row cursor begins at packet `+0x16` and advances by `0x50` per
 iteration. Before processing an iteration, it stops when object dword `+0x23C`
 is at least `0x14`; completed iterations increment that dword. The loop makes
 four calls to `0x00944ED0` per processed row, using reads at cursor `+0`,
-`+2`, `+6`, and `-6`; this page does not assign field names to those values.
-For a positive packet count, the function also calls `0x00943980` after the
-loop.
+`+2`, `+6`, and `-6`. For a positive packet count, the function also calls
+`0x00943980` after the loop.
 
 The same `0x00532660` body passes PE literal pointers for `UnitPrice`
 (`0x00FA011C`), `UnitCost` (`0x00FA0128`), `Set` (`0x00FA0134`),
@@ -41,8 +40,27 @@ The same `0x00532660` body passes PE literal pointers for `UnitPrice`
 (`0x00FA0150`), and `Hidden` (`0x00FA0158`) to `0x00447260`. It also passes
 numeric IDs `0x2981`, `0x2982`, and `0x2987` to `0x009D4F83` with the literal
 format text `@%d/i%d` at `0x00FA0160`, `0x00FA0168`, and `0x00FA0170`.
-These strings and formatter arguments do not establish meanings for the row
-fields.
+The pre-loop setup and row-loop stack arguments associate four input reads with
+four local column objects. The cursor is six bytes into the row that begins at
+packet `+0x10`. For `UnitPrice`, the helper divides the signed dword at row
+`+0x08` by the signed word at row `+0x06`, formats the quotient with ID
+`0x2981`, and passes that value with the `UnitPrice` object to the sink at VA
+`0x00532835`. For `UnitCost`, the signed word at row `+0x06` is formatted with
+ID `0x2982` and paired with the `UnitCost` object at `0x005328A1`. For `Set`,
+the helper pairs the `Set` object with its prebuilt `Visible` or `Hidden` value;
+the value is `Visible` only when row byte `+0x0C` is nonzero and the signed
+word at row `+0x06` is greater than 1 (`0x005328BA`-`0x005328E4`). The dword at
+row `+0x00` is paired with the `UnitTime` object and formatted with ID
+`0x2987` at `0x0053293C`. These are local display-column associations; they do
+not establish a wire schema or the meanings of the input fields.
+
+The row-to-column candidates are `FF14-Memory`'s
+`tools/outputs/lpb/native_retainer_market_row_sink_deeper_20260618/receive_01dd_column_contract.csv:8-11`
+(SHA-256 `176d452879dbb29172320849e28f29b8d97064fd3690f466f1c6e139a4942d12`)
+and `tools/outputs/lpb/native_retainer_01dc_01dd_binary_helpers_20260618/ui_string_refs.csv:18-27`
+(SHA-256 `fc5caaebf0a21757e5b030950be62223a5df3f6140b81fb2152d71905b98462f`).
+The listed call sites and stack-local label/value objects were checked against
+the pinned PE.
 
 The two optional flag branches from `0x004B62C0` converge at the same small
 helper. At VA `0x00532BB0` (RVA `0x00132BB0`) and VA `0x00532BD0` (RVA
@@ -52,6 +70,14 @@ object byte `+0x245` selects literal numeric argument `0x297E` or `0x2985`
 for `0x009D4F83`, and the resulting local buffer is passed with object dword
 `+0x238` to `0x004EC720` (`0x00532B47`-`0x00532B8F`). These are guarded call
 effects; the flag and message meanings remain unresolved.
+
+After the `0x02` or `0x04` packet-flag path, the wrapper tests mask `0x06` and
+calls `0x00532640` at VA `0x004B6316`. That helper writes zero to byte
+`0x013362C0` and returns (`0x00532640`-`0x00532647`). The destination byte's
+owner and role are unknown. FF14-Memory's
+`tools/outputs/lpb/native_retainer_01dc_01dd_binary_helpers_20260618/helper_body_summary.csv:9-12`
+(SHA-256 `f602acdfc67e8d7e2e8172fdc1e626b75da66801d202bd152d11557eebd83e85`)
+records this helper and the two terminal flag calls.
 
 At VA `0x004B6290` (RVA `0x000B6290`), a separate wrapper calls `0x004D7380`,
 loads the returned object's `+0xE8` pointer, and conditionally calls
@@ -76,6 +102,20 @@ checks count dword `+0x244` at `0x00522A13`, sets its loop cursor to
 `0x00522A50`. It calls `0x00943980` at `0x00522DCD` after the loop. The row
 record base and detail-copy range are documented separately in
 [`record-detail-and-buffer-constructor.md`](record-detail-and-buffer-constructor.md).
+
+At VA `0x00522A1F`, EBP is set to object `+0x264`; the row begins at object
+`+0x248`, so EBP is row `+0x1C`. In the `Set` cell path, byte `[EBP-4]`
+(row `+0x18`) must be nonzero and dword `[EBP-8]` (row `+0x14`) must be
+greater than 1 to select the prebuilt `Visible` object; otherwise it selects
+`Hidden`. The selected object and prebuilt `Set` object are passed to
+`0x00944ED0` at `0x00522D39`. The stack objects trace to the PE literals
+`Visible` `0x00F99DB8`, `Hidden` `0x00F99DC0`, and `Set` `0x00F99DB4` in the
+renderer setup. This describes the stored-row display branch only. The source
+leads are `FF14-Memory`'s
+`tools/outputs/lpb/native_retainer_market_row_sink_deeper_20260618/display_01dc_object_row_contract.csv:15`
+(SHA-256 `7048f86f608732c36235e2b42bc6ad92a2a2bc8be2fd83334c6e08ecdbb5489d`)
+and `tools/outputs/lpb/native_retainer_01dc_01dd_binary_helpers_20260618/ui_string_refs.csv:7-9`
+(SHA-256 `fc5caaebf0a21757e5b030950be62223a5df3f6140b81fb2152d71905b98462f`).
 
 The corresponding FF14-Memory leads are
 `tools/outputs/lpb/native_retainer_01dc_01dd_binary_helpers_20260618/helper_body_summary.csv:5`
@@ -266,6 +306,18 @@ Otherwise it copies `0x89` dwords (`0x224` bytes) from the first argument
 pointer `+8` to object offset `+0x2170`, writes `3` to the first stack argument,
 and tail-jumps to `0x004B5DF0` with ECX set to object `+0x2110`. The comparison
 and branch behavior do not establish meanings for these values or fields.
+
+At VA `0x004C45B0`, a separate state path requires dword `[ESI+0x24]` to be
+nonzero and dword `[ESI]` to be at most 2 before calling `0x009D5725`. It
+subtracts dword `[ESI+0x08]` from that call's result and compares the low
+dword with `[ESI+0x30]`; when the guarded value is greater, it passes literal
+5 to `0x004B5DF0` (`0x004C45CE`-`0x004C45E3`). On the setter's accepted-state
+path, `0x004B5DF0` stores its argument at the receiver's offset `+0`
+(`0x004B5E05`-`0x004B5E09`). These instructions do not name the compared
+fields or the helper result. FF14-Memory's
+`tools/outputs/lpb/native_retainer_followon_state_01de_01df_01e0_deeper_20260618/state_object_layout.csv:3,8`
+(SHA-256 `2b4016b742f872d83a2d99067dbf259692600f476666628c607083f630808795`)
+was the candidate locator.
 
 ### `0x01C3`, `0x01C4`, `0x01C6`, and `0x01D1`
 
