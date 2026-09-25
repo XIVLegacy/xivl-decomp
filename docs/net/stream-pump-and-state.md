@@ -13,6 +13,11 @@ the vtable entries are also recorded in the
 [vtable slot catalog](../../config/ffxivgame.vtable_slots.jsonl) at RVA
 `0x00D29360` (rows 84009-84018).
 
+The additional ranges at VA `0x00DB1D30`-`0x00DB1D62` and
+`0x00DB75F5`-`0x00DB7623`, plus the call at `0x00DB7F96`, were mapped with
+pefile 2024.8.26 and decoded with Capstone 5.0.7; their instruction bytes
+matched the pinned executable.
+
 ## VA `0x004E2670`
 
 The body follows the pointer at `this+0x238` to offset `+0x70` and, when that
@@ -63,6 +68,24 @@ value through calls to `0x004E4B40` and `0x004E4BA0`, then pushes `0`,
 path. That path references the `Send Packet :` literal, performs additional
 calls, and stores `2` at owner `+0x8C` (`0x00DB40E2`-`0x00DB4113`). The return
 value reports whether owner `+0x8C` equals `2` (`0x00DB4130`-`0x00DB4137`).
+
+## Pointer-field helpers and guarded follow-up
+
+At VA `0x00DB1D30`, the code loads `[ECX+0xF4]`, returns zero if that dword
+is null, and otherwise returns the dword at the pointed-to address `+0x10B8`.
+The body at `0x00DB1D50` has the same null check and returns the dword at
+the pointed-to address `+0x10BC`. These are direct field reads; the meanings
+of the fields and the callers' roles remain unresolved.
+
+The function at VA `0x00DB75D0` is called from `0x00DB7F96`. It tests
+`[EDI+0x84]` and branches to `0x00DB7629` when the value is nonzero. On the
+zero path, it forms addresses `EDI+0x10B8` and `EDI+0x10BC`; immediately
+before the first indirect call it writes the first address to `[ESP+0x10]`
+and passes the second on the stack to a call through `0x00F3E16C`. It then
+calls `0x00D3D690` with `ECX` set to the original receiver `+0x4C`, and
+passes the second address on the stack to an
+indirect call through `0x00F3E168` (`0x00DB75F5`-`0x00DB7623`). The indirect
+call contracts, field meanings, and gate purpose are unresolved.
 
 ## Limits
 

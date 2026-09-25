@@ -9,6 +9,7 @@ The input was retail 1.23b `ffxivgame.exe`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`. Its PE32
 image base is `0x00400000`. Capstone 5.0.7 decoded the target VAs in x86-32 mode
 after mapping them through the PE section table. Addresses below are VAs.
+Bytes at VA `0x0045722D`-`0x00457240` were also compared with the pinned PE.
 
 ## Size branch and destination initialization
 
@@ -270,6 +271,12 @@ branch adds `EAX+EDX` and writes the result to `[ECX+8]`. The other branch
 calls `0x009D1B9F` before reaching the same add and store
 (`0x00D35144`-`0x00D351BD`). The call contract and field meaning are
 unresolved.
+
+At VA `0x0045722D`, the code compares `[EDX+EDI*4]` with zero. On the zero
+path it pushes `0x10` and calls `0x009D1B35`, then loads `ECX` from `[ESI+4]`
+and stores `EAX` through `[ECX+EDI*4]` (`0x0045722D`-`0x00457240`). The
+indexed bases are loaded separately; the call contract and relationship
+between the slot and stored value remain unresolved.
 
 ## RTTI boundary
 
