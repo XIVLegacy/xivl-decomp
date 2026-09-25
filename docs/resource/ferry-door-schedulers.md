@@ -120,6 +120,23 @@ meaning of `A1`, the units used by `_getServerTime()` or the offset argument,
 the route or endpoint, or visible playback. Their authored calls do not
 establish that a scheduler ran in a historical session.
 
+## Native midstream bridge
+
+The pinned executable named above was mapped with pefile 2024.8.26 and decoded
+with Capstone 5.0.7 for x86-32. Wrapper VA `0x00737F80` loads handler VA
+`0x006F3BA0` into its setup sequence; the wrapper also passes the string at
+`0x00FD6F2C`, whose bytes spell `_runBgSchedulerFromMidstream`. The helper
+contracts in that sequence are not assigned here.
+
+In the handler, argument index 1 is read as a 32-bit float at
+`0x006F3C21-0x006F3C33`. Instructions at `0x006F3C3B-0x006F3C45` multiply
+that value by the double at `0x00F91C48` (`1000.0`). The following conversion
+sets the x87 rounding mode to truncate toward zero and stores an integer with
+`fistp`; the low 32 bits proceed into later member-container work. This
+establishes the native numeric transformation, not the argument's semantic
+unit, a milliseconds or ticks interpretation, server scheduling, or visible
+playback.
+
 ## Summer-named strings
 
 The resources at `0x89ED0003` and `0x89ED0004` each contain the

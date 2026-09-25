@@ -76,6 +76,29 @@ Likewise, a positive resource-row ID alone does not establish a command
 alias, rendered appearance, retail event schedule, or active selector.
 The packet-side boundary is in [Weather transition runtime](../net/weather-transition-runtime.md).
 
+## Native loader boundary
+
+The pinned 1.23b `ffxivgame.exe` (SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`, PE32
+image base `0x00400000`) was mapped with pefile 2024.8.26 and decoded with
+Capstone 5.0.7 for x86-32. At VA `0x0079D900`, the loader compares the table
+name `RegionResourceData` and version `1.1.0` using bounded string-comparison
+calls. The name pointer is pushed by the instruction at `0x0079DA63`; its
+immediate begins at `0x0079DA64`.
+
+The loader reads the root-row count from header `+0x24`, begins at `+0x40`,
+and advances rows in `0x30`-byte steps. For a root row, `+0x0C` supplies the
+number of following child rows. Root and child rows are passed to separate
+constructors at `0x0079CD60` and `0x0079A280`; child objects are appended to a
+container at parent `+0xBC`, and root objects to a container at loader `+0x08`.
+The child constructor also receives its row's `+0x0C` value, so that offset is
+only identified as a following-child count on root rows.
+
+One direct caller at `0x0062B27D` checks the loader's begin and end fields
+after loading and returns early when the root container is empty. This records
+a loader handoff only. It does not establish weather selection, token or ID
+meaning, travel routes, endpoint selection, or runtime behavior.
+
 ## Selected non-weather resource rows
 
 Five other rows in this DAT bind these literal IDs and tokens to DAT keys:
