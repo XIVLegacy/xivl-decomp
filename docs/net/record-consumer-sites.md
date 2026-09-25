@@ -61,6 +61,46 @@ The wrapper then calls `0x004F1070`, which increments global dword
 `0x013302CC` (`0x004B62AC`, `0x004F1070`). This is a distinct path from the
 `0x004B62C0` row wrapper; no message or refresh semantics are assigned.
 
+At VA `0x00522830` (RVA `0x00122830`), the body compares byte `[ESI+0xC61]`
+with `1` at `0x0052286D`. On equality, it formats a local value using the
+pinned PE literal `@%d` at VA `0x00F99D80` and numeric argument `0x297E`, then
+passes that value with object dword `+0x240` to `0x004EC720` at
+`0x005228A6`; it then jumps to cleanup at `0x005228AB`. In the other branch,
+it initializes the `+0x240` sink through `0x0093C2A0` at `0x005228C5` and
+builds local values using literals including `SellerName`, `UnitPrice`,
+`UnitCost`, `StreetName`, `Set`, `Visible`, `Hidden`, `MateriaIcon`,
+`MateriaNumber`, and `HQGrade` (PE VAs `0x00F99D84`-`0x00F99DE4`). The body
+checks count dword `+0x244` at `0x00522A13`, sets its loop cursor to
+`+0x264` at `0x00522A1F`, advances it by `0x80` at `0x00522DB2`, and calls
+`0x00944ED0` with dword `+0x230` as receiver; the first such call is at
+`0x00522A50`. It calls `0x00943980` at `0x00522DCD` after the loop. The row
+record base and detail-copy range are documented separately in
+[`record-detail-and-buffer-constructor.md`](record-detail-and-buffer-constructor.md).
+
+The corresponding FF14-Memory leads are
+`tools/outputs/lpb/native_retainer_01dc_01dd_binary_helpers_20260618/helper_body_summary.csv:5`
+(SHA-256 `f602acdfc67e8d7e2e8172fdc1e626b75da66801d202bd152d11557eebd83e85`)
+and `tools/outputs/lpb/native_retainer_01dc_01dd_binary_helpers_20260618/ui_string_refs.csv:2-17`
+(SHA-256
+`fc5caaebf0a21757e5b030950be62223a5df3f6140b81fb2152d71905b98462f`). The
+instructions establish literal arguments and local object paths; they do not
+identify upstream row writers, packet fields, server behavior, or successful
+runtime display.
+
+At VA `0x00944ED0` (RVA `0x00544ED0`), the body reads three stack dwords. It
+passes the first to `0x00944850` with the original ECX at `0x00944F77`-
+`0x00944F82`; a nonzero return is advanced by `8` at `0x00944F87`. The body
+passes the third stack dword and a local address to `0x00914C70` at
+`0x00944F99`-`0x00944FAA`, then calls `0x009425B0` with the original ECX at
+`0x00944FC4`, using the saved second stack dword and intermediate pointers.
+The function returns with `ret 0x0C` at `0x00944FF7`. The `0x00522830` calls
+above and the `0x00532660` calls in the repeated-row path show this helper in
+table updates, but its argument types, callee contracts, and application
+meaning remain unresolved. FF14-Memory's `tools/outputs/lpb/native_retainer_market_row_sink_deeper_20260618/row_sink_contract.csv:2`
+(SHA-256 `51a18c87a04744215c6cd26e5d73b143cf6cc6cd385eeff110a72493f67839d9`)
+was checked against these pinned-PE instructions; no source-level prototype is
+assigned here.
+
 ## Byte-counted fixed-size append
 
 The bodies at VA `0x004B6250` (RVA `0x000B6250`) and VA `0x004B6270`

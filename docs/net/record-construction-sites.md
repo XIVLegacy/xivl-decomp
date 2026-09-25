@@ -130,6 +130,17 @@ then calls `0x004E0240` at `0x004FA7D6`. The call seed is at
 These are stack values and a call edge; they do not establish a record or
 message role.
 
+The same body gates the call on byte `[ESI+0xC60]` not being `1`
+(`0x004FA76E`), and on global dwords `0x013302C8` and `0x013302CC` being equal
+(`0x004FA77D`-`0x004FA783`). After the call at `0x004FA7D6`, it writes byte
+`1` to `[ESI+0xC60]` at `0x004FA7DB` and increments global dword
+`0x013302C8` at `0x004FA7E2`. FF14-Memory's
+`tools/outputs/lpb/native_retainer_direct_purchase_action_01de_deeper_20260618/shared_sender_contract.csv:6`
+(SHA-256 `781984b070c1a12d603e296fe5810bb47853f3743441e20efd2d6ed6bdb8fb81`)
+records these adjacent instructions. They establish only local gates and
+state effects; the global values' roles and any request outcome remain
+unresolved.
+
 The existing callers at `0x00532A40` and `0x0085E1B0` are identified as
 ItemSearchHistoryViewWidget vtable slot 5 and ItemSearchDirectPurchaseWidget
 vtable slot 11, respectively (`FF14-Memory/tools/outputs/lpb/native_xref_decomp_20260617/retainer_market_vtable_functions.csv:172,264`,

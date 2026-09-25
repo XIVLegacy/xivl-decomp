@@ -111,6 +111,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Stream selection helpers](net/stream-selection-helpers.md)
 - [Staged-object size branches](net/staged-result-ownership.md)
 - [Receiver class inventory](net/receiver-class-inventory.md)
+- [Hamlet result payload parsers](net/hamlet-result-payloads.md)
 - [Receiver dispatch through ActorImpl](net/actorimpl-receiver-dispatch.md)
 - [Receiver gates](net/receiver-gates.md)
 - [SEQ-005 receiver gates](net/seq005-receiver-gates.md)

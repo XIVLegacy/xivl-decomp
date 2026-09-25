@@ -47,6 +47,21 @@ the body compares with `0x1C10` at `0x00DAEA29` and writes vtable
 `NetBufferTmpl<ZoneProtoDown>`. These are three distinct network-buffer
 families; the threshold and vtable instructions do not assign a retainer role.
 
+At VA `0x004E44B0` (RVA `0x000E44B0`), the constructor compares the dword
+loaded from `[esp+0x2C]` with `0x1E0` at `0x004E44F2` and writes vtable
+`0x00F91B40` at `0x004E44F8`. The [RTTI row](../../config/ffxivgame.rtti.json#L161)
+maps vtable RVA `0x00B91B40` to
+`Component::Network::IpcChannel::NetBufferTmpl<Application::Network::LobbyProtoChannel::LobbyProtoUp>`.
+The body copies two incoming values to object `+0x04` and `+0x08`, clears
+`+0x0C`, `+0x10`, and `+0x24`, then uses the compared value when it exceeds
+`0x1E0` and otherwise uses `0x1E0`. It passes the selected size to
+`0x009D5BC5`; after a nonzero return, it calls `0x009D2110` with the pointer,
+zero, and `0x1E0`. It stores the returned pointer or zero at `+0x24`, the
+selected size at `+0x1C`, and zero at `+0x20` (`0x004E4504`-`0x004E4569`).
+These instructions and the RTTI row identify a LobbyProtoUp `NetBufferTmpl`
+constructor; argument and field meanings and higher-level behavior remain
+unresolved.
+
 ## Lobby buffer path at 0x3C0
 
 The related selector-3 parser branch calls VA `0x00DA22C0` with `0` and
