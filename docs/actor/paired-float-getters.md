@@ -12,6 +12,15 @@ VA minus the image base.
 | `0x2576D0` | `0x006576D0` | `D9 81 F4 00 00 00 C3` - `fld dword ptr [ecx+0xF4]; ret` | Returns the float stored at the receiver's `+0xF4`. The field's semantic name is not established here. |
 | `0x4002C0` | `0x008002C0` | Reads `[ecx+0xF8]` and `[ecx+0xFC]` with `F3 0F 10 81 F8 00 00 00` and `F3 0F 10 89 FC 00 00 00`, compares them with `66 0F 2F DA`, then branches with `76 0A`. The paths store `xmm0` or `xmm1` to the stack using `F3 0F 11 04 24` or `F3 0F 11 0C 24`, then return the stack float with `D9 04 24 59 C3`. | For ordered finite values, returns the smaller field value. The comparison and branch do not establish a general-purpose minimum for unordered values, nor do they identify either field's meaning. |
 
+At RVA `0x224890` (VA `0x00624890`), the boundary helper first tests
+`[ecx+0x1BC]`. A nonzero byte returns the float at `[ecx+0x1C8]`.
+Otherwise, it reads the first stack argument at `[esp+4]`; if that pointer is
+null, it checks `[ecx+0x168]`. If both are null, it returns the global float
+at VA `0x00FB6E84`. A non-null pointer is advanced by four bytes, and the
+helper calls vtable slot `+0x188` on that receiver at `0x006248BF`. The
+field roles, receiver types, and global fallback meaning are not established
+by these instructions.
+
 The two getter paths meet in a bounds check at `0x007FEAC0`. Its branch at
 `0x007FEB68` either calls `0x00624890` (which dispatches through receiver
 vtable slot `+0x188` at `0x006248BF`) or directly calls `0x008002C0` at

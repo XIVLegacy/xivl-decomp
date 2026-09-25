@@ -38,6 +38,24 @@ or visible effect.
 | `0x6580F0` | `0x00A580F0` | `8B 41 08 8B 48 08 F3 0F 10 44 24 04 F3 0F 11 41 50 C2 04 00` - follows pointers through `[ecx+8]` and `[eax+8]`, then stores the input float at `[ecx+0x50]`. | A two-step pointer-based float setter to offset `+0x50`. The field is not independently identified as ambient-occlusion strength. |
 | `0x1CD00` | `0x0041CD00` | `0F BE 44 24 14 F2 0F 2A C0 F2 0F 59 05 A8 98 F5 00` - sign-extends a byte argument, converts it to double, and multiplies it by the double at absolute VA `0x00F598A8` (RVA `0xB598A8`). That constant's PE bytes are `00 00 00 00 00 00 C0 3F`, which encode `0.125`. | The signed-byte argument is scaled by `0.125` and converted through the observed floating-point path. This establishes a scaled floating-point intermediate; downstream API and sampler-state meaning are not identified here. |
 
+## Gameplay-depth preset tail
+
+The complete 57-byte block at RVA `0x20B58C` (VA `0x0060B58C`) is:
+
+```text
+C6 44 24 04 01 F3 0F 7E 44 24 04 66 0F D6 00
+F3 0F 7E 44 24 0C 66 0F D6 40 08
+F3 0F 7E 44 24 14 66 0F D6 40 10
+F3 0F 7E 44 24 1C 66 0F D6 40 18
+83 49 2C 04 5E 83 C4 20 C3
+```
+
+It sets the low byte of the first eight-byte stack value to `1`, copies four
+stack qwords at offsets `+0x04`, `+0x0C`, `+0x14`, and `+0x1C` to the
+destinations at `[eax]`, `[eax+8]`, `[eax+0x10]`, and `[eax+0x18]`, then ORs
+`4` into `[ecx+0x2C]` and returns. The copied structure, flag meaning,
+producer role, and effect remain unresolved.
+
 ## Evidence boundary
 
 These sites establish specific field writes, literal call arguments, a
