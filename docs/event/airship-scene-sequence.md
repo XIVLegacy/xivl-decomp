@@ -56,6 +56,94 @@ The actor and spatial counts use `decompile_airship_cutscene_setup.py`
 against those six scene files. The block fields were read directly from
 each hash-matched SCB.
 
+## Scene-local actor dictionaries
+
+The six hash-pinned scene assets contain 77 scene-local kind-1 dictionary
+records. Each stores an index, a NUL-terminated label, and a four-byte value
+at record offset +0x30. The table preserves the literal fields and offsets
+read from those assets. These entries do not establish persistent world-actor
+identities, route assignment, world placement, or playback.
+
+| Scene | Index | Stored label | Stored value | Record offset |
+| --- | ---: | --- | ---: | ---: |
+| `zep0g000` | 4 | `PC` | 0 | `0x16628` |
+| `zep0g000` | 5 | `Airship` | 1200090 | `0x16664` |
+| `zep0g000` | 6 | `Memama` | 1001706 | `0x166A0` |
+| `zep0g000` | 7 | `Pfarahr` | 1001707 | `0x166DC` |
+| `zep0g000` | 8 | `Npc_hyuranosu` | 1000299 | `0x16718` |
+| `zep0g000` | 9 | `Npc_Mikotte` | 1000786 | `0x16754` |
+| `zep0g000` | 13 | `ZamuQ` | 1001711 | `0x16808` |
+| `zep0g000` | 14 | `sentyou` | 1001781 | `0x16844` |
+| `zep0g010` | 4 | `PC` | 0 | `0x191E0` |
+| `zep0g010` | 5 | `Airship` | 1200090 | `0x1921C` |
+| `zep0g010` | 6 | `Lionnellais` | 1500055 | `0x19258` |
+| `zep0g010` | 7 | `Hida` | 1500056 | `0x19294` |
+| `zep0g010` | 8 | `Memama` | 1001706 | `0x192D0` |
+| `zep0g010` | 9 | `Pfarahr` | 1001707 | `0x1930C` |
+| `zep0g010` | 10 | `Beaudonet` | 1001708 | `0x19348` |
+| `zep0g010` | 11 | `Fryswyde` | 1001709 | `0x19384` |
+| `zep0g010` | 12 | `Willielmus` | 1001710 | `0x193C0` |
+| `zep0g010` | 13 | `QZamqo` | 1001711 | `0x193FC` |
+| `zep0g010` | 17 | `sentyou` | 1001781 | `0x194A0` |
+| `zep0l000` | 4 | `PC` | 0 | `0x189D0` |
+| `zep0l000` | 5 | `Airship` | 1200090 | `0x18A0C` |
+| `zep0l000` | 6 | `Ajin_Zukajin` | 1001700 | `0x18A48` |
+| `zep0l000` | 7 | `Raplulu` | 1001701 | `0x18A84` |
+| `zep0l000` | 8 | `G_Zentsa_Rhof` | 1001702 | `0x18AC0` |
+| `zep0l000` | 9 | `Aldyet` | 1001703 | `0x18AFC` |
+| `zep0l000` | 10 | `Murlskylt` | 1001704 | `0x18B38` |
+| `zep0l000` | 11 | `Aenore` | 1001705 | `0x18B74` |
+| `zep0l000` | 12 | `T_Noggya_Bham` | 1600093 | `0x18BB0` |
+| `zep0l000` | 13 | `L_Nophlo` | 1500206 | `0x18BEC` |
+| `zep0l000` | 14 | `Wineburg` | 1500207 | `0x18C28` |
+| `zep0l000` | 15 | `Merchant023` | 1001493 | `0x18C64` |
+| `zep0l000` | 16 | `Ruga` | 1000678 | `0x18CA0` |
+| `zep0l000` | 19 | `sentyou` | 1001781 | `0x18D20` |
+| `zep0l010` | 4 | `PC` | 0 | `0x227E8` |
+| `zep0l010` | 5 | `Airship` | 1200090 | `0x22824` |
+| `zep0l010` | 6 | `Ajin_Zukajin` | 1001700 | `0x22860` |
+| `zep0l010` | 7 | `Raplulu` | 1001701 | `0x2289C` |
+| `zep0l010` | 8 | `G_Zentsa_Rhof` | 1001702 | `0x228D8` |
+| `zep0l010` | 9 | `Aldyet` | 1001703 | `0x22914` |
+| `zep0l010` | 10 | `Murlskylt` | 1001704 | `0x22950` |
+| `zep0l010` | 11 | `Aenore` | 1001705 | `0x2298C` |
+| `zep0l010` | 12 | `T_Noggya_Bham` | 1600093 | `0x229C8` |
+| `zep0l010` | 13 | `L_Nophlo` | 1500206 | `0x22A04` |
+| `zep0l010` | 14 | `Wineburg` | 1500207 | `0x22A40` |
+| `zep0l010` | 15 | `Merchant023` | 1001493 | `0x22A7C` |
+| `zep0l010` | 16 | `Lady031` | 1001226 | `0x22AB8` |
+| `zep0l010` | 20 | `sentyou` | 1001781 | `0x22B5C` |
+| `zep0u000` | 4 | `PC` | 0 | `0x1BC38` |
+| `zep0u000` | 5 | `Airship` | 1200090 | `0x1BC74` |
+| `zep0u000` | 6 | `STANGYTH` | 1500208 | `0x1BCB0` |
+| `zep0u000` | 7 | `LUNNIE` | 1500209 | `0x1BCEC` |
+| `zep0u000` | 8 | `GUILLESTET` | 1001712 | `0x1BD28` |
+| `zep0u000` | 9 | `H_CIDJAA` | 1001713 | `0x1BD64` |
+| `zep0u000` | 10 | `AUTGAR` | 1001714 | `0x1BDA0` |
+| `zep0u000` | 11 | `AHLDBYRT` | 1001715 | `0x1BDDC` |
+| `zep0u000` | 12 | `NEYMI_FUNOMI` | 1001716 | `0x1BE18` |
+| `zep0u000` | 13 | `GOODIFE` | 1001717 | `0x1BE54` |
+| `zep0u000` | 14 | `LADY030` | 1001215 | `0x1BE90` |
+| `zep0u000` | 15 | `PEDESTRIANU006` | 1001119 | `0x1BECC` |
+| `zep0u000` | 16 | `PEDESTRIANU009` | 1001122 | `0x1BF08` |
+| `zep0u000` | 17 | `ADVENTURER088` | 1001062 | `0x1BF44` |
+| `zep0u000` | 20 | `sentyou` | 1001781 | `0x1BFC4` |
+| `zep0u010` | 4 | `PC` | 0 | `0x20558` |
+| `zep0u010` | 5 | `Airship` | 1200090 | `0x20594` |
+| `zep0u010` | 6 | `STANGYTH` | 1500208 | `0x205D0` |
+| `zep0u010` | 7 | `LUNNIE` | 1500209 | `0x2060C` |
+| `zep0u010` | 8 | `GUILLESTET` | 1001712 | `0x20648` |
+| `zep0u010` | 9 | `H_CIDJAA` | 1001713 | `0x20684` |
+| `zep0u010` | 10 | `AUTGAR` | 1001714 | `0x206C0` |
+| `zep0u010` | 11 | `AHLDBYRT` | 1001715 | `0x206FC` |
+| `zep0u010` | 12 | `NEYMI_FUNOMI` | 1001716 | `0x20738` |
+| `zep0u010` | 13 | `GOODIFE` | 1001717 | `0x20774` |
+| `zep0u010` | 14 | `LADY030` | 1001215 | `0x207B0` |
+| `zep0u010` | 15 | `PEDESTRIANU006` | 1001119 | `0x207EC` |
+| `zep0u010` | 16 | `PEDESTRIANU009` | 1001122 | `0x20828` |
+| `zep0u010` | 17 | `ADVENTURER088` | 1001062 | `0x20864` |
+| `zep0u010` | 20 | `sentyou` | 1001781 | `0x208E4` |
+
 Provenance: recovered
 `quest/scenario/defaulttalk/dftsrt.lua:eventDeparture`,
 `director/directorbaseclass.lua:delegateEvent`, and
