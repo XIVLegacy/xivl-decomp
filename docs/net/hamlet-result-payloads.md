@@ -52,6 +52,21 @@ stores its second argument as a word, then appends the first argument to the
 nonzero input code `n` selects vector entry `n - 1`; this page does not
 associate an entry with a physical CSV line or assign meaning to its key.
 
+The `xivl-client-data:manifests/tables.json` entry for
+`csv/hamletDefScore.csv` pins a 75-row table at SHA-256
+`ABD6038174A3A54B5C78F7334FB2E8A5FC80A50296CD0184D54D69AA6F014E17`.
+The native path loads the literal sheet name `hamletDefScore`, then enumerates
+runtime start/count intervals and retains increasing key lookups
+(`0x0076B045`-`0x0076B138`). The interval endpoints are read through runtime
+row accessors and are not fixed in the executable. The walker consumes range
+pairs in returned order, increments candidate keys inside each range, and
+skips candidates that are not greater than the last retained key
+(`0x0076B0D4`-`0x0076B0D7`, `0x0076B126`-`0x0076B138`). It therefore builds an
+increasing emitted-key vector, but neither ties the runtime category bytes to
+the manifest's CSV digest nor proves that the vector covers all 75 physical
+rows or follows CSV line order. A code-to-CSV-row assignment remains
+unresolved.
+
 The selected vector word is passed to lookup helper `0x00725F50` with table
 `0x0134B75C` (`0x006F14EB-0x006F14F5`). The parser reads a signed 16-bit
 value from the returned record (`0x006F1503`, bytes `0F BF 00`). It reads a
