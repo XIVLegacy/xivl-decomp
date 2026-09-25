@@ -227,22 +227,133 @@ pointer `+8` to object offset `+0x2170`, writes `3` to the first stack argument,
 and tail-jumps to `0x004B5DF0` with ECX set to object `+0x2110`. The comparison
 and branch behavior do not establish meanings for these values or fields.
 
+### `0x01C3`, `0x01C4`, `0x01C6`, and `0x01D1`
+
+At VA `0x004C9B20` (RVA `0x000C9B20`), the body writes zero to an eight-byte
+field at object `+0x80`, copies the first input byte there, and tests that byte.
+It calls `0x004C7710` with `0xB87` when the byte is `1`, otherwise with `0xB88`;
+both paths write `4` to object dword `+0x10`.
+
+At VA `0x004C9B70` (RVA `0x000C9B70`), the body tests the first input byte and
+calls `0x004C7710` with `0xB89` for `1`, otherwise with `0xB8A`. Both paths
+write `6` to object dword `+0x10`.
+
+At VA `0x004C9D60` (RVA `0x000C9D60`), the body writes zero to an eight-byte
+field at object `+0xBE8`, copies the first input byte there, and calls
+`0x004C7710` with `0xB8D` only when that byte is zero. It writes `0x0C` to
+object dword `+0x10`.
+
+At VA `0x004CA9D0` (RVA `0x000CA9D0`), the body passes object pointer `+0xF40`,
+zero, and size `0x808` to `0x009D2110`. It copies the input's first dword to
+object `+0xF40`, then copies `0x800` bytes from input `+4` to object `+0xF44`.
+If the first copied byte is zero, it calls `0x004C7710` with `0xF15`. It writes
+`0x1E` to object dword `+0x10`. The call to `0x009D2110` is recorded by its
+arguments; this observation does not assign that helper a contract.
+
+### `0x01D3`-`0x01D6`
+
+At VA `0x004B6140` (RVA `0x000B6140`), if the first input byte is `1`, the body
+writes `1` to object byte `+0x14` and returns. Otherwise, a byte value of `2`
+leaves object byte `+0x15` untouched; any other value writes zero to `+0x15`.
+
+At VA `0x004B6160` (RVA `0x000B6160`), the body passes object pointer `+0x1748`,
+zero, and size `0x880` to `0x009D2110`. It copies `0x80` input bytes to object
+`+0x1748`, then copies `0x800` bytes from input `+0x80` to object `+0x17C8`.
+It writes `0x24` to object dword `+0x10`.
+
+At VA `0x004CAA30` (RVA `0x000CAA30`), the body copies the first input byte to
+object `+0x2108`. For byte value `1`, it writes `1` to object byte `+0x15` and
+calls `0x004C7710` with `0xF17`; otherwise it calls that function with `0xF16`
+without writing `+0x15`. Both paths write `0x26` to object dword `+0x10`.
+
+At VA `0x004B61B0` (RVA `0x000B61B0`), if the first input byte is `1`, the body
+writes zero to object byte `+0x15`, passes object pointer `+0x1748`, zero, and
+size `0x880` to `0x009D2110`, then writes zero to object byte `+0x14`.
+Otherwise those bytes are untouched. Both paths write `0x28` to object dword
+`+0x10`.
+
+### `0x01C9`-`0x01CF`
+
+At VA `0x004CDB60` (RVA `0x000CDB60`), the body sign-extends the first input
+byte for its `0`, `1`, and `2` case checks and copies it to object `+0xBF0`. In
+case `2`, it copies four qwords from input offsets `+0x1`, `+0x9`, `+0x11`, and
+`+0x19` into a local block passed to `0x004C9DA0`.
+
+At VA `0x004C9FF0` (RVA `0x000C9FF0`), when the first input byte is `1`, the
+body loads a pointer from object `+0xC4C`, dereferences it to obtain a node, and
+takes the address of node `+0x8` and passes that pointer to `0x00445210`. It
+compares the returned text with bytes beginning at input `+0x1`. Equality
+reaches a call to `0x004D1760`; other paths do not take that call. All paths
+write `0x10` to object dword `+0x10`.
+
+At VA `0x004CDCF0` (RVA `0x000CDCF0`), the body reads a count from input `+0x4`.
+When nonzero, it walks entries beginning at input `+0x8` with a `0x20`-byte
+stride, calling `0x004D1270` and `0x004D2260` during each iteration. After the
+loop, another branch tests the first input dword against zero. Entry layout
+and helper contracts are not established here.
+
+At VA `0x004CA410` (RVA `0x000CA410`), the body copies the byte at input `+0x9`
+to object byte `+0xC61`, separately sign-extends it for the `0`, `1`, and `2`
+case checks, and branches on those values. In case `2`, it copies qwords from
+input offsets `+0x0A`, `+0x12`, `+0x1A`, and `+0x22` to a local block passed to
+`0x004CA1B0`.
+
+At VA `0x004CA600` (RVA `0x000CA600`), when the first input byte is `1`, the
+body loads a pointer from object `+0xCB8`, dereferences it to obtain a node, and
+takes the address of node `+0x18` and passes that pointer to `0x00445210`. It
+compares the returned text with bytes beginning at input `+0x1` and reaches
+`0x004D1D80` on equality. All paths write `0x16` to object dword `+0x10`.
+
+At VA `0x004CA7E0` (RVA `0x000CA7E0`), the body reads a count from input `+0x4`.
+When nonzero, it walks entries beginning at input `+0x28` with a `0x28`-byte
+stride, passing entry dwords and local temporary data through calls to
+`0x004D0DF0` and `0x004D23D0`. Entry layout and helper contracts are not
+established here.
+
+At VA `0x004C3DE0` (RVA `0x000C3DE0`), the body reads a count from input `+0x4`
+and walks entries beginning at input `+0x8` with a `0x10`-byte stride. It
+compares each entry's first two dwords during a lookup; the selected path
+writes entry byte `+0x8` to byte `[EDI+0x6C]`. The lookup structure and byte
+meaning are not established here.
+
 The source leads are in FF14-Memory
-`tools/outputs/lpb/native_retainer_dispatch_helpers_next_20260618`. Its
+`tools/outputs/lpb/native_retainer_dispatch_helpers_next_20260618`. The pinned
+`xivl-decomp:orig/ffxivgame.exe` has SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`. The
+`pre_sink_sink_family_summary.csv` has SHA-256
+`65abe2498eadb15d70dc8ed293ab7bbf16f638e50563c3ca8430e01bc8e0815e` and 31
+data rows. `README.md` has SHA-256
+`e509fd260aa28594e6e30d9b131f9306f5911ef07d05920706f0c2e2382b4e34` and
+reports 29 pre-sink targets; the difference is unresolved.
 `target_instruction_decode.csv` has SHA-256
-`74ac458bc03a6c9f08e9e9705c2b045917010803f9b9cc0859614a91496fee52`; each
-listed target-note decode was compared instruction-for-instruction with this
-PE's bytes.
+`74ac458bc03a6c9f08e9e9705c2b045917010803f9b9cc0859614a91496fee52`. Each
+listed target-note instruction matches the CSV and was decoded at its own
+address from the pinned PE bytes.
 
 | Site | Target note and SHA-256 | Decode CSV rows |
 |---|---|---:|
+| `0x01C3` | `target_notes/target_004C9B20_pre_sink_0x01C3_sink.md` (`d144d9bd18d60dee322f4a240f2d84a3a9c1c3ced56436d209debbb1f00b6911`) | `570-589` |
+| `0x01C4` | `target_notes/target_004C9B70_pre_sink_0x01C4_sink.md` (`51cf3dc9a8b6b585d01211d160ceebf8a59beeecba65124c2b826116b4947791`) | `590-604` |
 | `0x01C5` | `target_notes/target_004B5EF0_pre_sink_0x01C5_sink.md` (`0f4b3882067e21f5b2361e62e1d894b7b1026d1a9522a3ee1ee4fbbd390e548d`) | `605-624` |
+| `0x01C6` | `target_notes/target_004C9D60_pre_sink_0x01C6_sink.md` (`30eedef7111893b8f1de70d9d1028318face866221ca29ef426bf042e74ad753`) | `625-639` |
 | `0x01C7` | `target_notes/target_004B5F50_pre_sink_0x01C7_sink.md` (`b96c598523a2955b7b79ff3dc1462aa66845d150b99f25407b199f1114c16c84`) | `640-700` |
 | `0x01C8` | `target_notes/target_004C9BB0_pre_sink_0x01C8_sink.md` (`5c3a6d66f2c90c6878febc597f98ff5ad181dce7b9dc18b41dede7cbb08ced09`) | `701-813` |
+| `0x01C9` | `target_notes/target_004CDB60_pre_sink_0x01C9_sink.md` (`8bdb1470363bad5c7b5358ec747b71e7c03cbf5d53efe9891058f30dbeac1cb2`) | `814-914` |
+| `0x01CA` | `target_notes/target_004C9FF0_pre_sink_0x01CA_sink.md` (`0aa44dd38b42c93ccb6bb047aac23e3d42832be2a0fe4d7f383def3c1cede3c1`) | `915-996` |
+| `0x01CB` | `target_notes/target_004CDCF0_pre_sink_0x01CB_sink.md` (`07b1bf57caa1ba0fb2ef32ab105bf84b79cc2df45ccfc0c3c7ea0fb9fee22540`) | `997-1079` |
+| `0x01CC` | `target_notes/target_004CA410_pre_sink_0x01CC_sink.md` (`1ac0930bdef6ce83322f2904cd532357e89a4a481a6b6142484e838ed803e00c`) | `1080-1196` |
+| `0x01CD` | `target_notes/target_004CA600_pre_sink_0x01CD_sink.md` (`ca6325a10ece112f0aabbc33e52c0bd7aace83adb06ccbe04e219296d6e83141`) | `1197-1287` |
+| `0x01CE` | `target_notes/target_004CA7E0_pre_sink_0x01CE_sink.md` (`6b63842c5897891bef3938c7b3f6552ce86a8c1f8175cc03528e08f337268f4a`) | `1288-1402` |
+| `0x01CF` | `target_notes/target_004C3DE0_pre_sink_0x01CF_sink.md` (`982aa90a75e78ffb8a48cdaf20004805a2ddc0aa1f74247bd6cc7ded1bfe2faf`) | `1403-1500` |
 | `0x01D0` | `target_notes/target_004B6030_pre_sink_0x01D0_sink.md` (`3b881d17646b275f92f20f7d634693e07c2ec7cb149dfb783ca2cc912b38a6f6`) | `1501-1535` |
+| `0x01D1` | `target_notes/target_004CA9D0_pre_sink_0x01D1_sink.md` (`4c384707f952c93cd2283b87e64570e82e089d10cb958d57e78568949ec14bc4`) | `1536-1563` |
 | `0x01D2` | `target_notes/target_004B60C0_pre_sink_0x01D2_sink.md` (`c4583e318aa9cb1f78199eb9517ec23b21dacc80bc367fdc1495ac326a6692f2`) | `1564-1598` |
-| `0x01D7` | `target_notes/target_004B61F0_pre_sink_0x01D7_sink.md` (`67404ac9c6cc15cf9f44267368dc88a86ee57fb88fd223dadb66ec864f372f2c`) | `1667-1687` |
-| `0x01D8` | `target_notes/target_004B6210_pre_sink_0x01D8_sink.md` (`3d62b9858408231fdc24feac74b86cb85b6f3129fee0bbed0a76d43ddf518c59`) | `1667-1687` |
-| `0x01D9` | `target_notes/target_004B6230_pre_sink_0x01D9_sink.md` (`2e9d41d091a962506c4865ae370b0b85023b014e5c3e161cb75729f27b3c123e`) | `1667-1687` |
+| `0x01D3` | `target_notes/target_004B6140_pre_sink_0x01D3_sink.md` (`05db9b1987e6c58c67c1563ba7eb6349e3cfcdadf7012ae62f5b7b097e59028b`) | `1599-1608` |
+| `0x01D4` | `target_notes/target_004B6160_pre_sink_0x01D4_sink.md` (`a74e8b3ee83e0a5e1f809d24586fdfbbb9d36e7756bc0ad865d565e0ac594c74`) | `1609-1631` |
+| `0x01D5` | `target_notes/target_004CAA30_pre_sink_0x01D5_sink.md` (`42a0709416cb38d8fe5b29dae60153544daff80e43283ac71cf09eb1328122f7`) | `1632-1650` |
+| `0x01D6` | `target_notes/target_004B61B0_pre_sink_0x01D6_sink.md` (`8de4d85d35d9a16e979ac6aa92fba3a067a5d4773bebcea9b8ed614806c39193`) | `1651-1666` |
+| `0x01D7` | `target_notes/target_004B61F0_pre_sink_0x01D7_sink.md` (`67404ac9c6cc15cf9f44267368dc88a86ee57fb88fd223dadb66ec864f372f2c`) | `1667-1673` |
+| `0x01D8` | `target_notes/target_004B6210_pre_sink_0x01D8_sink.md` (`3d62b9858408231fdc24feac74b86cb85b6f3129fee0bbed0a76d43ddf518c59`) | `1674-1680` |
+| `0x01D9` | `target_notes/target_004B6230_pre_sink_0x01D9_sink.md` (`2e9d41d091a962506c4865ae370b0b85023b014e5c3e161cb75729f27b3c123e`) | `1681-1687` |
 | `0x01DE` | `target_notes/target_004D0DA0_pre_sink_0x01DE_sink.md` (`1268bb2b2fc5befacfc9fbc49014534a085a3f5c35ddfa5049b40eeb95334521`) | `1747-1769` |
 | `0x01E1` | `target_notes/target_004B6320_pre_sink_0x01E1_sink.md` (`3866f8b6e770d7647927e9709b215773c26406473360c3b217941c6f6889ade2`) | `1770-1776` |
