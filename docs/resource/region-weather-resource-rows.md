@@ -86,6 +86,13 @@ name `RegionResourceData` and version `1.1.0` using bounded string-comparison
 calls. The name pointer is pushed by the instruction at `0x0079DA63`; its
 immediate begins at `0x0079DA64`.
 
+The image global at VA `0x012C492C` contains resource key `0x03C00000`, which
+maps to the DAT named above under the
+[resource path formatter](resource-path-producer.md).
+That pinned DAT repeats the table name and version, declares size `0xCC70`,
+and has 61 root rows. Walking those roots and their following child rows in
+`0x30`-byte steps consumes 1,089 rows and ends at EOF.
+
 The loader reads the root-row count from header `+0x24`, begins at `+0x40`,
 and advances rows in `0x30`-byte steps. For a root row, `+0x0C` supplies the
 number of following child rows. Root and child rows are passed to separate
