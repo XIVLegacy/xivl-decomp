@@ -100,6 +100,31 @@ The reverse ACTIVE 2 to PASSIVE 0 transition enters phase 5 at `0x007BD120`,
 requests transition ID `0x1E` through `0x007AC400`, and maps it at `0x008A8DD0`
 to `cbbm_deact`. Actor flag `0x40` selects `cbbp_u_deact` instead.
 
+### Request helper and pair filter
+
+Capstone 5.0.7 x86 decoding of the pinned executable shows that
+`0x008ACB90` saves the prior value from receiver `+0x2C` at `+0x30`, writes
+the new requested value at `+0x2C`, then calls `0x008A8D80` with the new value
+followed by the prior value. The filter switches on its second argument: prior
+IDs `0x11` through `0x14` pass only when the new ID is also in that range;
+prior IDs `0x1D` or `0x1E` pass for any new ID; other prior IDs fail. These are
+the filter's static acceptance rules, not a recovered transformation timeline.
+
+At `0x008BF040`, the code points an inline record at receiver `+0x1C` through
+`+0x18`, copies qwords from the input at `+0x4` and `+0xC` into `+0x1C` and
+`+0x24`, then calls `0x008ACB90` with `(0x1E, 1, 10, 0, 0)`. After that call,
+it calls `0x007A3010` on the owner object at `+0x438` only when the value at
+that owner's `+0x2B74` has bit `0x40` clear. The code does not establish the
+record's application meaning or this helper's caller in the path that enters
+phase 5.
+
+Inside `0x008ACB90`, two comparisons of 13 bytes, including the terminating
+NUL, use the pinned `.rdata` strings `cbbp_u_activ` at `0x01059718` and
+`cbbp_u_deact` at `0x01059728`. The activation-name match calls `0x007BF750`.
+The deactivation-name match calls `0x006690D0`, then `0x007BF750`, tests
+`0x007A4880`, and conditionally calls `0x007A4120`. These distinct static
+branches do not establish scheduler semantics or a visible effect.
+
 A later controller call through vtable `0x00FD3ED4`, slot `0x6C`, target
 `0x006B5710`, supplies bank selector 1 (`bid/0001`) during activation or 0
 (`cmn/fid`) during deactivation. That controller selection is a separate stage
