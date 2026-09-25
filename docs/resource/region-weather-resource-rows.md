@@ -75,3 +75,19 @@ at `0xCA90` / `0x29BF0008`, and `wtr_fine_wil` at `0xCAC0` /
 Likewise, a positive resource-row ID alone does not establish a command
 alias, rendered appearance, retail event schedule, or active selector.
 The packet-side boundary is in [Weather transition runtime](../net/weather-transition-runtime.md).
+
+## Selected non-weather resource rows
+
+Five other rows in this DAT bind these literal IDs and tokens to DAT keys:
+
+| ID | File offset | Token | DAT key |
+| ---: | ---: | --- | --- |
+| 801 | `0xA9F0` | `art_s0` | `0x8B380000` |
+| 802 | `0xABD0` | `art_r0` | `0x8B450000` |
+| 803 | `0xADB0` | `art_f0` | `0x8B520000` |
+| 804 | `0xAF90` | `art_w0` | `0x72AD0000` |
+| 805 | `0xB170` | `srt_o0` | `0x89ED0000` |
+
+These are direct resource-row values from the DAT identified above. They do
+not establish runtime selection, route endpoints, or the meaning of the row
+IDs.

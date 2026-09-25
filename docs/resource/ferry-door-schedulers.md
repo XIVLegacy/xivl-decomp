@@ -75,6 +75,51 @@ Those four timelines remain only partially decoded. Their close counterparts
 and all A-door timelines decode, but the successful neighbors do not justify
 inventing the missing collision records.
 
+## Scripted map-object selectors
+
+The 1.23b `MapObjShipPort` script is LPB
+`729s9/wu7/x9uv80/x9uv80r21uuvsq.le.lpb` (SHA-256
+`01a5ae6466cfe2717c22d22eb4e491c3942bd5b6e53e64ffc4a688e448c5267f`);
+its 1,044-byte decoded payload has SHA-256
+`74ff78c013cb389e77314f77f00cdb5ce8d7d065889d1f35e1b78ca55e755fb8`.
+The matched script is
+`lua/scripts/chara/npc/mapobj/mapobjshipport.lua` in
+`xivl-client-scripts:manifests/retail_lua_coverage.json`.
+`MapObjShipPort.initForEvent` uses its second argument `A1` to select a cycle
+of 600 when `A1` is 196 or 496, and 300 otherwise. It reads
+`worldMaster:_getServerTime()` once and takes the result modulo that cycle.
+For `A1` values 131, 321, or 431, it calls `stt0` when the phase is in
+`[cycle/2 - 40, cycle/2 - 20)`, passing `phase - cycle/2 + 40` clamped at
+zero. It calls `end0` when the phase is in
+`[cycle/2 - 10, cycle/2 + 10)`, passing `phase - cycle/2 - 10` clamped at
+zero; that expression is negative throughout the tested interval, so the
+passed value is zero. It makes no scheduler call for those three `A1` values
+outside the two intervals. For `A1` 196 or 496, it calls `spot` in the first
+half with the phase as its offset and `spin` in the second half with the
+phase relative to the half-cycle. The remaining values use the reverse
+`spin`/`spot` order. It calls `_setGroundOn(false)` after the selector.
+
+The 1.23b `MapObjShipRouteLand` script is LPB
+`729s9/wu7/x9uv80/x9uv80r21usvpq5y9w6.le.lpb` (SHA-256
+`f18f8d6c5b5717108a14ef0a36d01082e8400e7884424731d8a725d69dde6298`);
+its 756-byte decoded payload has SHA-256
+`9fdbfe23fa56d493849fd09a83dcb40cfe1c121a47f20a04f703d04702bfc74e`.
+The matched script is
+`lua/scripts/chara/npc/mapobj/mapobjshiprouteland.lua` in the same coverage
+manifest. `MapObjShipRouteLand.initForEvent` checks `A1 == 5145`; if true,
+it tests `_getServerTime() % 600 < 240` and calls `fdot` with
+`240 - _getServerTime() % 600` when that test passes. The value used for
+the call is from a separate time read. For other `A1` values, it tests
+`_getServerTime() % 600 >= 360` and calls `fdin` with
+`_getServerTime() % 600 - 360` when that test passes, again using another
+time read. It then calls `_setGroundOn(false)`.
+
+These bodies establish the numeric selectors, branch intervals, scheduler
+names, and arguments in the client initializer. They do not identify the
+meaning of `A1`, the units used by `_getServerTime()` or the offset argument,
+the route or endpoint, or visible playback. Their authored calls do not
+establish that a scheduler ran in a historical session.
+
 ## Summer-named strings
 
 The resources at `0x89ED0003` and `0x89ED0004` each contain the
