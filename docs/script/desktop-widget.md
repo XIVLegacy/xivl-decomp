@@ -245,6 +245,16 @@ These are called from tutorial scripts (the SimpleQuestBattleBaseClass hierarchy
 decomped in `docs/event/director-quest-hierarchy.md`) to pause the script until the player
 completes the corresponding tutorial.
 
+## Native string
+
+The pinned 1.23b `ffxivgame.exe` (SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`) contains
+one NUL-terminated ASCII literal `_waitForItemSearchWidget` in `.rdata` at RVA
+`0x00BD7184` (VA `0x00FD7184`, file offset `0x00BD7184`). The section mapping
+was checked with `pefile` 2024.8.26. This establishes string presence only; it
+does not identify an xref or native function body, show when the method is
+called, or establish its runtime UI result.
+
 ## Cross-references
 
 - `docs/actor/world-master.md` - companion (the other major Lua
