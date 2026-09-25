@@ -158,3 +158,91 @@ calls, the function copies the word at `[EDI+4]` to `[ESI+0x80]`, the byte at
 `[EDI+6]` to `[ESI+0x82]`, and the byte at `[EDI+7]` to `[ESI+0x83]`. These
 are storage widths and offsets only; this observation does not assign field
 meanings.
+
+## Additional message consumer bodies
+
+The selector-to-target rows are in
+[message-id-dispatch-and-create.md](message-id-dispatch-and-create.md). The
+following bodies add instruction-level copy, branch, and tail-jump observations;
+they do not establish message direction, wire layout, or workflow meanings.
+
+### `0x01C5`, `0x01C7`, and `0x01C8`
+
+At VA `0x004B5EF0` (RVA `0x000B5EF0`), the first stack argument is read as an
+input pointer. If its byte `+0x0D` equals `1`, three input dwords at `+0`, `+4`,
+and `+8` are copied to the ECX-based object at `+0x88`, `+0x8C`, and `+0x90`,
+and input byte `+0x0C` is copied to object byte `+0x94`. Otherwise those three
+dwords and byte are zeroed. Both paths write `2` to object dword `+0x10`.
+
+At VA `0x004B5F50` (RVA `0x000B5F50`), the body passes object pointer
+`+0x98`, zero, and size `0x968` to `0x009D2110`. It stores input dwords
+`+0x960` and `+0x964` at object `+0x9F8` and `+0x9FC`, then uses input dword
+`+0x960` as the iteration count. Each input record and object output slot
+advances by `0x50`; the loop copies selected fields from each input record into
+the corresponding slot. No local upper-bound check appears before this
+count-driven loop, so where that count is bounded remains unresolved. The body
+writes `0x0A` to object dword `+0x10` after the loop.
+
+At VA `0x004C9BB0` (RVA `0x000C9BB0`), the body passes object pointer
+`+0xA00`, zero, and size `0x1E8` to `0x009D2110`, then copies input byte
+`+0x1E0` to object byte `+0xBE0`. If the input byte equals `1`, it copies four
+dwords from input `+0` through `+0x0C`, copies four entries at `0x0C`-byte
+strides using two dwords and two bytes per entry, and copies four qwords from
+input `+0x1C0` through `+0x1D8` to object `+0xBC0` through `+0xBD8`. If the
+byte is not `1`, it calls `0x004C7710` with `0xB8B`. Both paths write `8` to
+object dword `+0x10`. Other helper calls in the selected branch remain
+unassigned.
+
+### `0x01D0` and `0x01D2`
+
+At VA `0x004B6030` (RVA `0x000B6030`), the body passes object pointer
+`+0xCC0`, zero, and size `0x280` to `0x009D2110`. It then copies five `0x80`-
+byte blocks from input offsets `+0`, `+0x80`, `+0x100`, `+0x180`, and `+0x200`
+to object offsets `+0xCC0`, `+0xD40`, `+0xDC0`, `+0xE40`, and `+0xEC0`, and
+writes `0x1C` to object dword `+0x10`.
+
+At VA `0x004B60C0` (RVA `0x000B60C0`), the body passes object pointer
+`+0x1FC8`, zero, and size `0x140` to `0x009D2110`. It copies five `0x40`-byte
+blocks from input offsets `+0`, `+0x40`, `+0x80`, `+0xC0`, and `+0x100` to
+object offsets `+0x1FC8`, `+0x2008`, `+0x2048`, `+0x2088`, and `+0x20C8`, and
+writes `0x20` to object dword `+0x10`.
+
+### `0x01D7`-`0x01D9` and `0x01E1`
+
+The wrappers at VA `0x004B61F0` (RVA `0x000B61F0`), `0x004B6210` (RVA
+`0x000B6210`), `0x004B6230` (RVA `0x000B6230`), and `0x004B6320` (RVA
+`0x000B6320`) load `[ECX+8]`, call `0x004D7380`, then load the returned
+pointer's `+0xC8` field. A nonzero field tail-jumps to `0x004EEAF0`,
+`0x00525DD0`, `0x00527EE0`, and `0x004F7F70`, respectively; a zero field
+returns with `ret 4`. These branches establish no contract for the called
+functions or the object field.
+
+### `0x01DE`
+
+At VA `0x004D0DA0` (RVA `0x000D0DA0`), the existing comparison of object dword
+`+0x2130` with `0x1DB` gates the remaining path. If it matches, the body reads
+object dword `+0x2110` and returns when that value is `3`, `4`, or `5`.
+Otherwise it copies `0x89` dwords (`0x224` bytes) from the first argument
+pointer `+8` to object offset `+0x2170`, writes `3` to the first stack argument,
+and tail-jumps to `0x004B5DF0` with ECX set to object `+0x2110`. The comparison
+and branch behavior do not establish meanings for these values or fields.
+
+The source leads are in FF14-Memory
+`tools/outputs/lpb/native_retainer_dispatch_helpers_next_20260618`. Its
+`target_instruction_decode.csv` has SHA-256
+`74ac458bc03a6c9f08e9e9705c2b045917010803f9b9cc0859614a91496fee52`; each
+listed target-note decode was compared instruction-for-instruction with this
+PE's bytes.
+
+| Site | Target note and SHA-256 | Decode CSV rows |
+|---|---|---:|
+| `0x01C5` | `target_notes/target_004B5EF0_pre_sink_0x01C5_sink.md` (`0f4b3882067e21f5b2361e62e1d894b7b1026d1a9522a3ee1ee4fbbd390e548d`) | `605-624` |
+| `0x01C7` | `target_notes/target_004B5F50_pre_sink_0x01C7_sink.md` (`b96c598523a2955b7b79ff3dc1462aa66845d150b99f25407b199f1114c16c84`) | `640-700` |
+| `0x01C8` | `target_notes/target_004C9BB0_pre_sink_0x01C8_sink.md` (`5c3a6d66f2c90c6878febc597f98ff5ad181dce7b9dc18b41dede7cbb08ced09`) | `701-813` |
+| `0x01D0` | `target_notes/target_004B6030_pre_sink_0x01D0_sink.md` (`3b881d17646b275f92f20f7d634693e07c2ec7cb149dfb783ca2cc912b38a6f6`) | `1501-1535` |
+| `0x01D2` | `target_notes/target_004B60C0_pre_sink_0x01D2_sink.md` (`c4583e318aa9cb1f78199eb9517ec23b21dacc80bc367fdc1495ac326a6692f2`) | `1564-1598` |
+| `0x01D7` | `target_notes/target_004B61F0_pre_sink_0x01D7_sink.md` (`67404ac9c6cc15cf9f44267368dc88a86ee57fb88fd223dadb66ec864f372f2c`) | `1667-1687` |
+| `0x01D8` | `target_notes/target_004B6210_pre_sink_0x01D8_sink.md` (`3d62b9858408231fdc24feac74b86cb85b6f3129fee0bbed0a76d43ddf518c59`) | `1667-1687` |
+| `0x01D9` | `target_notes/target_004B6230_pre_sink_0x01D9_sink.md` (`2e9d41d091a962506c4865ae370b0b85023b014e5c3e161cb75729f27b3c123e`) | `1667-1687` |
+| `0x01DE` | `target_notes/target_004D0DA0_pre_sink_0x01DE_sink.md` (`1268bb2b2fc5befacfc9fbc49014534a085a3f5c35ddfa5049b40eeb95334521`) | `1747-1769` |
+| `0x01E1` | `target_notes/target_004B6320_pre_sink_0x01E1_sink.md` (`3866f8b6e770d7647927e9709b215773c26406473360c3b217941c6f6889ade2`) | `1770-1776` |

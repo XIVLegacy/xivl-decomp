@@ -17,6 +17,58 @@ for vtable RVAs `0x00B9E71C` and `0x00C55264`. The instructions establish
 literal arguments and call edges. They do not establish successful widget
 lookup, the result of the formatted name, or any retail UI interaction.
 
+## Unassigned marketItem references
+
+Two call sites push separate NUL-terminated `marketItem` literals and then
+call `0x00447260`:
+
+| Push VA | String VA | String RVA and file offset | Call VA | Target VA |
+|---|---|---|---|---|
+| `0x0051B7A2` | `0x00F979FC` | `0x00B979FC` | `0x0051B7AB` | `0x00447260` |
+| `0x0051B962` | `0x00F97A0C` | `0x00B97A0C` | `0x0051B96B` | `0x00447260` |
+
+The source xref rows include the byte windows at FF14-Memory
+`tools/outputs/lpb/native_function_decode_20260617/focus_xref_exact_decode.csv:2-3`
+(SHA-256 `555bc6bcf721f11b1d64d0e72265033eda9d9cec8a36ba747108d94fac7243ef`).
+The first push and call also appear in `function_decode.csv:1411,1413`
+(SHA-256 `33fdf5c211e0d6df041317dcd4c55488bd1801786708e062fb1e7d6fe14c4da8`).
+Pinned PE bytes confirm both instruction pairs and the two NUL-terminated
+string copies. These observations do not assign a function or vtable owner,
+callee behavior, or application meaning to the literal.
+
+## Additional direct literal pushes
+
+The pinned PE contains these further immediate string pushes:
+
+| Push VA | Bytes | String VA | ASCII target |
+|---|---|---|---|
+| `0x004EC8ED` | `68 e0 37 f9 00` | `0x00F937E0` | `IconVisibility` |
+| `0x004EC931` | `68 f0 37 f9 00` | `0x00F937F0` | `CostVisibility` |
+| `0x004EC976` | `68 00 38 f9 00` | `0x00F93800` | `CostTitleVisibility` |
+| `0x004EC9BB` | `68 14 38 f9 00` | `0x00F93814` | `ListStyle` |
+| `0x004EDBAA` | `68 20 65 f9 00` | `0x00F96520` | `_item` |
+| `0x004EDBF4` | `68 28 65 f9 00` | `0x00F96528` | `itemData` |
+| `0x004EDC37` | `68 34 65 f9 00` | `0x00F96534` | `equipment` |
+| `0x004EDC7E` | `68 40 65 f9 00` | `0x00F96540` | `weapon` |
+| `0x004EDCC5` | `68 48 65 f9 00` | `0x00F96548` | `armor` |
+| `0x004EDD0C` | `68 50 65 f9 00` | `0x00F96550` | `accessory` |
+| `0x0085D221` | `68 d0 9a 04 01` | `0x01049AD0` | `\widget\DirectPurchaseWidget.form` |
+| `0x0088B109` | `68 08 56 05 01` | `0x01055608` | `\system\bootup\BootupMenu.form` |
+
+The four visibility/style pushes are reported in FF14-Memory
+`tools/outputs/lpb/native_helper_expand_20260617/helper_notes/helper_4EC810.md:13,15,17,19` (SHA-256
+`6dffde53021180148175ca9a36672a6b8ad60fa50f21d46fd5b0b65cce9a4de8`). The
+six item-related pushes are in
+`tools/outputs/lpb/native_helper_expand_20260617/helper_string_refs.csv:495-500`;
+the direct purchase path push is at `:700` in the same CSV (shared SHA-256
+`4b435c7cd64aa70cb6f05ada447da6a9e4fad9d6e1c0f37229854c1ae03d8947`).
+The bootup path push appears in FF14-Memory
+`tools/outputs/lpb/native_helper_expand_20260617/helper_notes/helper_88ADD0.md:17` (SHA-256
+`58c8d5e05122669fadc0400da51dbef63527ad159afb99bc2c4d3635121befd3`);
+its source note's helper attribution is not established by that note's strict
+window. These rows record push instructions and string addresses only. They
+do not assign a UI owner or show that any path is loaded.
+
 ## Unassigned string pushes
 
 The following rows record literal push instructions and their exact

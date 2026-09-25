@@ -18,6 +18,28 @@ search of the pinned PE confirms each exact literal occurs once with a trailing
 NUL, at the listed file offset and RVA. The string presence does not establish
 that a corresponding form asset is present, loaded, or used at runtime.
 
+## Additional code-referenced paths
+
+Two more NUL-terminated paths have direct push references in the pinned PE.
+Their instruction sites are recorded in
+[widget-string-call-sites.md](../script/widget-string-call-sites.md):
+
+| Literal | Code-referenced RVA and file offset | Exact occurrences |
+|---|---:|---:|
+| `\widget\DirectPurchaseWidget.form` | `0x00C49AD0` | 1 |
+| `\system\bootup\BootupMenu.form` | `0x00C55608` | 9 |
+
+The direct-purchase reference appears in FF14-Memory
+`tools/outputs/lpb/native_helper_expand_20260617/helper_string_refs.csv:700`
+(SHA-256 `4b435c7cd64aa70cb6f05ada447da6a9e4fad9d6e1c0f37229854c1ae03d8947`).
+The BootupMenu reference is in
+`tools/outputs/lpb/native_helper_expand_20260617/helper_notes/helper_88ADD0.md:17`
+(SHA-256 `58c8d5e05122669fadc0400da51dbef63527ad159afb99bc2c4d3635121befd3`).
+That note's helper attribution is not established by the cited window. The
+linked code-site page records the pinned-PE push address and bytes. The
+BootupMenu literal has eight other occurrences. The push references do not
+establish that the client loads either form.
+
 Sources: FF14-Memory
 `tools/outputs/lpb/native_boundary_scan_20260617/native_focus_ui_asset_hits.csv:2-8`
 (SHA-256 `dda3926a5ff9e9232495baf393b5c8393c615b73f30648be524c91d51e433016`),
