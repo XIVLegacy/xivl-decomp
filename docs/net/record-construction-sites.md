@@ -14,14 +14,15 @@ the bytes in x86-32 mode. VA equals image base plus RVA.
 
 ## Direct stack writes
 
-The first table records only the immediate stores of `0x01DA` through `0x01DD`.
-The destination is the live stack offset named by each instruction.
+The first table records immediate stores of `0x01D9` through `0x01DD`. The
+destination is the live stack offset named by each instruction.
 
 | VA | RVA | Bytes | Observed store |
 |---|---|---|---|
 | `0x004C7333` | `0x000C7333` | `c7 44 24 48 dd 01 00 00` | `[esp+0x48] = 0x01DD` |
 | `0x004C73FD` | `0x000C73FD` | `c7 44 24 40 db 01 00 00` | `[esp+0x40] = 0x01DB` |
 | `0x004C74BF` | `0x000C74BF` | `c7 44 24 48 dc 01 00 00` | `[esp+0x48] = 0x01DC` |
+| `0x004FA7BE` | `0x000FA7BE` | `c7 44 24 1c d9 01 00 00` | `[esp+0x1C] = 0x01D9` |
 | `0x00532ABD` | `0x00132ABD` | `c7 44 24 1c da 01 00 00` | `[esp+0x1C] = 0x01DA` |
 
 At `0x00532AA7` (RVA `0x00132AA7`) the same function also executes `push
@@ -39,6 +40,7 @@ records the `rep movsd` count and its byte product.
 | `0x004C733B` | `0x000C733B` | `c7 44 24 4c 18 01 00 00` | `[esp+0x4C] = 0x118` |
 | `0x004C7405` | `0x000C7405` | `c7 44 24 44 18 00 00 00` | `[esp+0x44] = 0x18` |
 | `0x004C74C7` | `0x000C74C7` | `c7 44 24 4c 38 02 00 00` | `[esp+0x4C] = 0x238` |
+| `0x004FA7C6` | `0x000FA7C6` | `c7 44 24 20 20 00 00 00` | `[esp+0x20] = 0x20` |
 | `0x00532AC5` | `0x00132AC5` | `c7 44 24 20 20 00 00 00` | `[esp+0x20] = 0x20` |
 
 | VA | RVA | Count setup | Copy instruction | Dword product |
@@ -115,6 +117,55 @@ path only when the input dword at `+0` equals 2 (`0x00DAE038`-`0x00DAE115`).
 After a successful copy and follow-on call, the second path stores 2 at
 receiver `+0x8C` (`0x00DAE17D`), whereas the value-3 path leaves that field
 unchanged in this body. This is a local state distinction, not a packet name.
+
+## Item-search caller and helper paths
+
+The 174-byte function at VA `0x004FA750` is ItemSearchPriceViewWidget vtable
+slot 5 (`FF14-Memory/tools/outputs/lpb/native_xref_decomp_20260617/retainer_market_vtable_functions.csv:92`,
+`config/ffxivgame.rtti.json:239`, and
+`config/ffxivgame.vtable_slots.jsonl:2208`). It pushes `0x01D9` at
+`0x004FA7AE`, writes `0x01D9` at `[esp+0x1C]` and `0x20` at `[esp+0x20]`,
+then calls `0x004E0240` at `0x004FA7D6`. The call seed is at
+`FF14-Memory/tools/outputs/lpb/native_xref_decomp_20260617/retainer_market_vfunction_call_seeds.csv:3179`.
+These are stack values and a call edge; they do not establish a record or
+message role.
+
+The existing callers at `0x00532A40` and `0x0085E1B0` are identified as
+ItemSearchHistoryViewWidget vtable slot 5 and ItemSearchDirectPurchaseWidget
+vtable slot 11, respectively (`FF14-Memory/tools/outputs/lpb/native_xref_decomp_20260617/retainer_market_vtable_functions.csv:172,264`,
+`config/ffxivgame.vtable_slots.jsonl:3623,42724`). Their existing calls to
+`0x004E0240` remain at `0x00532AD5` and `0x0085E24F`. These class and slot
+associations do not assign a semantic role to the values stored in their
+blocks.
+
+The 110-byte body at VA `0x00D353F0`-`0x00D3545D` saves incoming `ECX` in
+`ESI`, stores a call result at `[ESI]`, another call result at `[ESI+8]`, zero
+at `[ESI+0xC]`, and an `EAX`/`EDX` pair from `0x004CFA50` at
+`[ESI+0x10]`/`[ESI+0x14]`. When both global dwords at `0x01378658` and
+`0x0137865C` are zero, it calls through pointer `0x00F3E15C` with a local
+pair. If that call returns nonzero, the body copies the pair to those globals,
+calls `0x004CFA50` again, and replaces `[ESI+0x10]`/`[ESI+0x14]` with the
+new result pair. The helper decoder for this path is
+`FF14-Memory/tools/outputs/lpb/native_retainer_send_pipeline_20260617/helper_instruction_decode.csv`
+(`helper_va=0x00D353F0`; body instructions end at `0x00D3545D`). The global
+and local values' meanings remain unresolved.
+
+The 68-byte body at VA `0x004C7150` calls `0x004C45B0` and tests its `AL`
+result. A zero result returns `AL=0`. Otherwise it reads `[EBX+8]`, calls
+`0x004D7460`, and calls `0x004E0240` only when that call returns nonzero.
+Whether `0x004E0240` is called or skipped, the passing gate reaches the return
+that sets `AL=1`. The helper decoder records this body at
+`FF14-Memory/tools/outputs/lpb/native_retainer_send_pipeline_20260617/helper_instruction_decode.csv`
+(`helper_va=0x004C7150`; `0x004C7150`-`0x004C7193`).
+
+The 65-byte body at VA `0x004E0240` checks `[ECX+0x234]`, then the dword at
+`[EAX+0x70]`; either null check returns `AL=0`. On the passing path, it copies
+the dwords read from `[esp+0x10]` and `[esp+0x14]` into a local pair, then calls
+`0x00DAE010` with the selected pointer in `ECX`. The helper decoder records
+this body at
+`FF14-Memory/tools/outputs/lpb/native_retainer_send_pipeline_20260617/helper_instruction_decode.csv`
+(`helper_va=0x004E0240`; `0x004E0240`-`0x004E0280`). These call and field
+paths do not establish network or workflow meaning.
 
 ## Related dispatch helpers
 

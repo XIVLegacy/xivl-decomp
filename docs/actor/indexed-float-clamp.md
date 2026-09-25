@@ -28,6 +28,15 @@ camera mode reads each entry. The `CameraActor` RTTI vtable is cataloged in
 instructions here do not by themselves prove that `ecx` is a `CameraActor`.
 No runtime range or visual effect is inferred from the static clamp.
 
+At FF14-Launcher commit
+`a291186d197892dd2c1cb2a4ea310037b156e4d1`,
+`FFXIV Windower/CameraControlPatch.cs:17-22,118-123,177-220` sets its
+expected vtable from RVA `0x00BB906C`, checks the candidate receiver's first
+dword against that address, and then calls the getter and setter with indices
+`0` and `1`. Together with the tracked RTTI entry, this identifies the vtable
+class accepted by that patch path as `CameraActor`. Runtime hook success and
+client-authored meanings for the two profile indices remain unverified.
+
 ## Separate boolean predicate
 
 VA `0x00616F90` follows receiver `+0x118`, then that object's `+0x70`.

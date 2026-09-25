@@ -26,6 +26,16 @@ At `0x00DAEB90`, the body pushes `0x28` and calls `0x009D1B35` at
 maps RVA `0x00D28EA4` to `Component::Network::IpcChannel::NetBufferTmpl` for
 `Application::Network::ZoneProtoChannel::ZoneProtoUp`.
 
+At `0x00DAE910`, after zeroing `EBX` with `xor ebx, ebx` at `0x00DAE927`,
+the body copies incoming `EAX` and `ECX` to `this+4` and `this+8`, then
+stores zero at `this+0xC`, `this+0x10`, and `this+0x24`
+(`0x00DAE927`-`0x00DAE941`). For a comparison value above `0x898`, it stores
+a nonzero helper result or zero at `+0x24`, the compared value at `+0x1C`,
+and zero at `+0x20` (`0x00DAE944`-`0x00DAE987`). The other branch stores a
+nonzero helper result or zero at `+0x24`, literal `0x898` at `+0x1C`, and
+zero at `+0x20` (`0x00DAE98A`-`0x00DAE9C3`). These field meanings and helper
+contracts remain unresolved.
+
 Two other constructor bodies use different thresholds and vtables. At
 `0x00DA1F70` (RVA `0x009A1F70`), the body compares a requested size with
 `0x3C0` at `0x00DA1F89` and writes vtable `0x011276D8` at `0x00DA1F8F`.
@@ -202,6 +212,17 @@ stored at argument `+0x24` to the cursor after that header.
 application meaning of type `3`
 are not established.
 
+The entry compares word `[ESI+0xE]` with zero; a greater value returns
+`AL=0` (`0x00DAE77D`-`0x00DAE7D9`). After the capacity check, a zero cursor
+at `+0xC` clears four dwords at the pointer in `[ESI+8]`, then writes byte
+`1` at offset `0`, word `0x10` at `+4`, and zero words at `+2` and `+6`; it
+sets the cursor to `0x10` (`0x00DAE7E5`-`0x00DAE819`). The record copies
+dwords from `[ECX+0x14]`, `[ECX+0x18]`, and `[ESP+0x24]` to record offsets
+`+4`, `+8`, and `+0xC` (`0x00DAE81D`-`0x00DAE856`). After copying, the body
+zero-fills through the aligned boundary and returns `AL=1`; the early path
+returns `AL=0` (`0x00DAE859`-`0x00DAE902`). The buffer and record roles remain
+unresolved.
+
 ## Time output
 
 At `0x00DAE8AC`, `0x00DAE770` directly calls `0x004E36A0`. At `0x00DAE8B4` and
@@ -215,6 +236,26 @@ The body converts the current time and a local 1970-01-01 `SYSTEMTIME` to
 literals `0x3E8` and `0xA`. These instructions establish a time-derived pair;
 this finding assigns no output units.
 
+## Additional helper paths
+
+At `0x0053CB60`, the body calls `0x009D22B4` when `[ESI]` is zero, then
+compares `[ESI+4]` with `[EAX+4]` and calls `0x009D22B4` again when they are
+equal. It returns `[ESI+4]+8` in `EAX` (`0x0053CB63`-`0x0053CB81`). The
+callee contract and field meanings are unresolved.
+
+At `0x008EA4E0`, the body pushes literal `0x0C` and calls `0x009D1B35`.
+When the return is nonzero, it writes a stack-derived value at the returned
+pointer, then writes another at `+4` and a dereferenced stack value at `+8`
+(`0x008EA4E0`-`0x008EA512`). This operand and these writes do not identify a
+callee contract or data structure.
+
+In the first body at `0x00D35120`, the code computes
+`0x3FFFFFFF-[ECX+8]`, compares it with `[ESP+0x5C]`, and on the direct
+branch adds `EAX+EDX` and writes the result to `[ECX+8]`. The other branch
+calls `0x009D1B9F` before reaching the same add and store
+(`0x00D35144`-`0x00D351BD`). The call contract and field meaning are
+unresolved.
+
 ## RTTI boundary
 
 The call from `0x00DB4920` to `0x00DC1EE0` at `0x00DB4987` is not evidence for a
@@ -226,6 +267,14 @@ object vtable with `0x011293D4` at `0x00DB4993`. Its
 `TargetEntityTmpl<ChatProtoUp, ChatProtoDown>` for
 `Application::Network::ChatProtoChannel`. This call path does not support
 labeling `0x00DC1EE0` a constructor for a queue entry.
+
+In the separate body at `0x00DB4920`, the code pushes literal `0x24` to
+`0x009D1B35` at `0x00DB4945`-`0x00DB494B`. On a nonzero return, it calls
+`0x00DC1EE0`, copies `[EDI+0x10]`, `[EDI+0x14]`, and `[EDI+0x18]` into
+the returned object offsets `+0x10`, `+0x14`, and `+0x18`, stores the
+current `EBP` and `EBX` values at `+0x1C` and `+0x20`, and writes vtable
+`0x011293D4` at the first dword (`0x00DB4987`-`0x00DB49A8`). Literal `0x24` is only
+recorded as the pushed operand; its meaning and the field roles are unknown.
 
 ## Limits
 

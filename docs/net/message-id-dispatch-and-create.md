@@ -115,3 +115,7 @@ epilogue or the call shown below:
 These observations preserve the tested numeric inputs, callback path,
 indirect-call boundary, jump-table targets, and stores. They do not name the
 factory entries, object fields, or higher-level behavior.
+
+A separate family of fixed-word comparison helpers is documented in
+[`word-match-helper-family.md`](word-match-helper-family.md). No caller edge
+connects those bodies to the selector table above.

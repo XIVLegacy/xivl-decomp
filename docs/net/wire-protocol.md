@@ -272,6 +272,8 @@ indirect and virtual calls, are outside the bound. Source: observations
 `Zone_MAIN_inbound_opcode_dispatcher_50plus_handlers` and
 `ZoneClient_mainLoopTick` in
 [`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json).
+The full low, middle, and high numeric range-to-target map for this dispatcher
+is recorded in [`receive-dispatch-ranges.md`](receive-dispatch-ranges.md).
 
 The reviewed `0x004e20a0` body contains three direct literal packet
 constructions. This is exhaustive only for literal constructions in that body;

@@ -16,3 +16,70 @@ The slot-to-function links are the pinned RTTI-derived entries in
 for vtable RVAs `0x00B9E71C` and `0x00C55264`. The instructions establish
 literal arguments and call edges. They do not establish successful widget
 lookup, the result of the formatted name, or any retail UI interaction.
+
+## Unassigned string pushes
+
+The following rows record literal push instructions and their exact
+NUL-terminated ASCII targets in the pinned executable. These helper entries
+are unassigned; the strings do not identify a vtable owner or application
+role.
+
+Rows with helper entry `0x0050AE90` cite
+`tools/outputs/lpb/native_helper_expand_20260617/helper_notes/helper_50AE90.md:12-48`
+(SHA-256 `257D530030420AFC8D98F3EC9564219BB37DDD387A481D8F3052582CBA7F53AB`);
+rows with `0x00510940` cite
+`tools/outputs/lpb/native_helper_expand_20260617/helper_notes/helper_510940.md:11-47`
+(SHA-256 `E6FD126D2ECF8FE61C0551147F055D02DCC6A7D6576EF4B0579A11AFA17CAE2A`);
+and rows with `0x009245C0` cite
+`tools/outputs/lpb/native_helper_expand_20260617/helper_notes/helper_9245C0.md:35-44`
+(SHA-256 `F1520B523DEA54A2D30A9D010B0C1227F8F6085E5D1035C5FB60D825DF57FB1C`).
+The shared reference source is
+`tools/outputs/lpb/native_helper_expand_20260617/helper_string_refs.csv`
+(SHA-256 `4B435C7CD64AA70CB6F05ADA447DA6A9E4FAD9D6E1C0F37229854C1AE03D8947`).
+
+| Helper entry | Push VA | String VA | ASCII target |
+| --- | --- | --- | --- |
+| `0x0050AE90` | `0x0050AED3` | `0x00F97A24` | `Grid_ItemNameSearch` |
+| `0x0050AE90` | `0x0050AF38` | `0x00F97A38` | `TextBlock_ItemNameSearch` |
+| `0x0050AE90` | `0x0050AF9A` | `0x00F97A54` | `TextBox_ItemNameSearch_ChatInput` |
+| `0x0050AE90` | `0x0050AFFC` | `0x00F97A78` | `Button_ItemNameSearch` |
+| `0x0050AE90` | `0x0050B05E` | `0x00F97A90` | `TextBlock_ItemName` |
+| `0x0050AE90` | `0x0050B0C0` | `0x00F97AA4` | `IconControl_ItemIcon` |
+| `0x0050AE90` | `0x0050B122` | `0x00F97ABC` | `Grid_ItemRare` |
+| `0x0050AE90` | `0x0050B184` | `0x00F97ACC` | `Grid_ItemTrade` |
+| `0x0050AE90` | `0x0050B1E6` | `0x00F97ADC` | `Grid_ItemNameBase` |
+| `0x0050AE90` | `0x0050B248` | `0x00F97AF0` | `TextBlock_ItemStack` |
+| `0x0050AE90` | `0x0050B2AA` | `0x00F97B04` | `TextBlock_ItemKind` |
+| `0x0050AE90` | `0x0050B30C` | `0x00F97B18` | `TextBlock_ItemHelp` |
+| `0x0050AE90` | `0x0050B36E` | `0x00F97B2C` | `TextBlock_ItemEquipCondition` |
+| `0x0050AE90` | `0x0050B3D0` | `0x00F97B4C` | `Grid_ItemDetail1` |
+| `0x0050AE90` | `0x0050B432` | `0x00F97B60` | `Grid_ItemDetail2` |
+| `0x0050AE90` | `0x0050B494` | `0x00F97B74` | `Grid_ItemDetail3` |
+| `0x0050AE90` | `0x0050B4F6` | `0x00F97B88` | `Grid_AP` |
+| `0x0050AE90` | `0x0050B558` | `0x00F97B90` | `Grid_ItemLife` |
+| `0x0050AE90` | `0x0050B5BA` | `0x00F97BA0` | `Label_ItemBonus5` |
+| `0x00510940` | `0x005109B9` | `0x00F9BD00` | `name1234567890` |
+| `0x00510940` | `0x00510AD2` | `0x00F9BD2C` | `Button_Back` |
+| `0x00510940` | `0x00510B2E` | `0x00F9BD38` | `Button_Done` |
+| `0x00510940` | `0x00510B87` | `0x00F9BD44` | `TextBlock_ItemName` |
+| `0x00510940` | `0x00510BE0` | `0x00F9BD58` | `TextBlock_WindowTitle` |
+| `0x00510940` | `0x00510C39` | `0x00F9BD70` | `TextBlock_CloseBlacket` |
+| `0x00510940` | `0x00510C92` | `0x00F9BD88` | `TextBlock_OpenBlacket` |
+| `0x00510940` | `0x00510CEB` | `0x00F9BDA0` | `TextBlock_TotalGilMark` |
+| `0x00510940` | `0x00510D44` | `0x00F9BDB8` | `TextBlock_Price` |
+| `0x00510940` | `0x00510D9D` | `0x00F9BDC8` | `TextBlock_TotalPrice` |
+| `0x00510940` | `0x00510DF6` | `0x00F9BDE0` | `TextBlock_ItemStackMax` |
+| `0x00510940` | `0x00510E4F` | `0x00F9BDF8` | `IconControl_ItemIcon` |
+| `0x00510940` | `0x00510EA8` | `0x00F9BE10` | `IconControl_Gil` |
+| `0x00510940` | `0x00510F01` | `0x00F9BE20` | `IconControl_TotalGil` |
+| `0x00510940` | `0x00510F5A` | `0x00F9BE38` | `Grid_ItemStack` |
+| `0x00510940` | `0x00510FB3` | `0x00F9BE48` | `Grid_NumberInput_Gil` |
+| `0x00510940` | `0x0051100C` | `0x00F9BE60` | `Grid_NumberInput_TotalGil` |
+| `0x00510940` | `0x00511065` | `0x00F9BE7C` | `CustomControl_NumberInput` |
+| `0x009245C0` | `0x00924B0B` | `0x01069E4C` | `Window` |
+| `0x009245C0` | `0x00924B77` | `0x01069E54` | `Window` |
+| `0x009245C0` | `0x00924C0A` | `0x01069E5C` | `FocusManager.IsFocusScope` |
+| `0x009245C0` | `0x00924C2C` | `0x01069E78` | `True` |
+| `0x009245C0` | `0x00924C7B` | `0x01069E80` | `PopupHelp.Show` |
+| `0x009245C0` | `0x00924CDF` | `0x01069E90` | `PopupHelp.Close` |
+| `0x009245C0` | `0x00924D42` | `0x01069EA0` | `PopupHelp.Closed` |
