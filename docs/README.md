@@ -136,6 +136,7 @@ Use this index to find the repository's public findings and technical guides.
 - [Ferry scene inventory](resource/ferry-scene-inventory.md)
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [InstallUnpacker](resource/install-unpacker.md)
+- [Launcher startup patch addresses](resource/launcher-startup-patch-addresses.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
 - [Man300 cutscene actor records](resource/man300-scene-actor-records.md)
 - [Man304 cutscene actor records](resource/man304-scene-actor-records.md)
