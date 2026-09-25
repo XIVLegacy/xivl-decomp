@@ -69,6 +69,99 @@ path. That path references the `Send Packet :` literal, performs additional
 calls, and stores `2` at owner `+0x8C` (`0x00DB40E2`-`0x00DB4113`). The return
 value reports whether owner `+0x8C` equals `2` (`0x00DB4130`-`0x00DB4137`).
 
+## Additional state and object paths
+
+At VA `0x00DB3E30` (RVA `0x009B3E30`), the body reads owner dword `+0x8C`.
+Values at or below zero and values above 3 return false; values 1 and 2 take
+the first branch, and value 3 enters the alternate branch
+(`0x00DB3E58`-`0x00DB3E89`). For states 1 or 2, input dword `[input] == 2`
+calls `0x004E4C10`; a nonzero result is passed to `0x00DB5010`
+(`0x00DB3EF3`-`0x00DB3F2D`). Otherwise, including state 3, the body requires
+owner dword `+0x88` to be nonzero, passes its address through `0x004E4B40`
+and `0x004E4BA0`, and passes a nonzero result to `0x00DB5010`
+(`0x00DB3E7C`-`0x00DB3ED7`). Both successful branches use the output-argument
+pointer set by `0x00DB5010`: when nonzero, its `+0x24` value is the copy base;
+otherwise the copy base is zero. The body adds `0x10` to that base, then passes
+the resulting destination, source `input+0x18`, and length
+`dword[input+4]-0x10` to `0x009D4600`
+(`0x00DB3EDF`-`0x00DB3F4F`, `0x00DB3F9D`-`0x00DB3FAE`). It then calls
+`0x00DB5A90`. Only the input-dword-equals-2 branch writes 2 to owner `+0x8C`
+(`0x00DB3F60`-`0x00DB3F69`); the alternate branch has no such write in this
+body. These are direct gates, copies, and calls; the states and input fields
+have no assigned application meaning.
+
+At VA `0x00DB5010` (RVA `0x009B5010`), the body calls vtable entry `+0x04`
+through its argument pointer and reads a 16-bit word through the returned
+pointer (`0x00DB5024`-`0x00DB5026`). It passes that word and zero through
+vtable entry `+0x38` of the pointer at the incoming receiver's `+0x10`, then
+passes the call result to
+`0x00DB4E30` (`0x00DB5029`-`0x00DB5042`). If that helper returns a nonzero
+pointer, the body stores it at argument-pointer `+0x0C`, writes offsets
+`+0x14`, `+0x18`, and `+0x20` on the returned pointer, and calls
+`0x009D2110` after pushing the word from the argument-pointer's vtable entry
+`+0x04`, zero, and the returned pointer's `+0x24` value in that instruction
+order (`0x00DB5046`-`0x00DB50A2`). It then calls argument-pointer vtable entry
+`+0x08` with the returned pointer's `+0x24` value when the argument-pointer's
+`+0x0C` field is nonzero, or with zero when that field is null
+(`0x00DB50A5`-`0x00DB50C9`). If `0x00DB4E30` returns null, the body returns
+zero before this call (`0x00DB5042`-`0x00DB505D`). Both `+0x08` call paths
+return the argument pointer plus 4. The offsets, virtual-call contracts, and
+returned pointer's role remain unresolved.
+
+At VA `0x00DB5A90` (RVA `0x009B5A90`), the body calls `0x00DB4680` with
+receiver `argument-pointer+4` and a caller argument. It calls the argument
+pointer's vtable entry `+0x04`, advances that result by four, and, when it differs from the
+destination at returned pointer `+0x0C`, copies two dwords to returned pointer
+`+0x0C` and `+0x10` (`0x00DB5A9D`-`0x00DB5AC2`). It then passes returned pointer
+`+0x20` and `+0x24` to the argument pointer's vtable entry `+0x0C`, and calls
+`0x00DB50E0` with receiver `[incoming receiver+0x20]` and the returned pointer
+(`0x00DB5AC5`-`0x00DB5ADA`). These calls and copies do not establish a
+schedule, publish, queue, or application role.
+
+The three function bodies are recorded in the FF14-Memory candidate table
+`tools/outputs/lpb/linkshell_journal_retainer_deeper_followup_20260618/retainer_native_candidate_routes.csv:5-7`
+(SHA-256
+`3DCEA947DA1B2B3F55FBA37A6EC2AF38A3E2E976423BA675821E01960B3544F0`).
+Their instruction ranges were mapped in `orig/ffxivgame.exe` with
+`pefile 2024.8.26` and decoded with Capstone 5.0.7 as x86-32; all three
+complete ranges matched the pinned executable. The observations do not
+establish retainer workflow or server behavior.
+
+The router at VA `0x00E40630` (RVA `0x00A40630`) reads a 16-bit word at
+payload `+2` and selects these vtable entry byte offsets:
+
+| Payload word | Vtable entry offset |
+| --- | ---: |
+| `1` | `+0x08` |
+| `2` | `+0x0C` |
+| `0x64` | `+0x10` |
+| `0xC8` | `+0x14` |
+| `0xC9` | `+0x18` |
+| `0xCA` | `+0x1C` |
+| `0xCB` | `+0x20` |
+| `0x190` | `+0x24` |
+
+The branches for `1`, `2`, `0x64`, and `0xC8` are direct; the lookup bytes
+at VA `0x00E40734` map `0xC9`, `0xCA`, `0xCB`, and `0x190` to the four-entry
+jump table at VA `0x00E40720` (`0x00E4063A`-`0x00E4071A`). Separately, the
+cataloged vtable at VA `0x0113E878` (RVA `0x00D3E878`) identifies
+`Application::Network::ChatProtoChannel::ChatProtoDownCallbackInterface`.
+Its entry `+0x04` is the router at `0x00E40630`; entries `+0x08` through
+`+0x24` point to `0x00E3FE10` through `0x00E3FE80`, each a three-byte
+`ret 0x0C` stub. This is a separate table from the active temporary vtable
+at `0x01129360` described above, though both contain the same router and
+stub targets. The direct mapping does not establish workflow meaning or
+connect this interface table to the consumer at `0x004D8D10`.
+
+The mapping lead is
+`FF14-Memory/tools/outputs/lpb/linkshell_journal_retainer_deeper_followup_20260618/retainer_native_candidate_routes.csv:17`
+(SHA-256
+`3DCEA947DA1B2B3F55FBA37A6EC2AF38A3E2E976423BA675821E01960B3544F0`).
+The vtable pointer and stub bytes were checked against the pinned PE; the
+class and slot entries are in `config/ffxivgame.vtable_slots.jsonl:91634-91643`
+and `config/ffxivgame.rtti.json:5719`. The executable identity and tool
+versions are given above.
+
 ## Pointer-field helpers and guarded follow-up
 
 At VA `0x00DB1D30`, the code loads `[ECX+0xF4]`, returns zero if that dword

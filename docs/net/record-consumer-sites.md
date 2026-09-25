@@ -15,6 +15,17 @@ The PE image base is `0x00400000`; each entry below gives both its VA and RVA.
 The byte ranges were independently mapped with `pefile 2024.8.26` and decoded
 as x86-32 with Capstone 5.0.7.
 
+## Accessor used by the record wrappers
+
+At VA `0x004D7380` (RVA `0x000D7380`), the complete body is the seven bytes
+`8B 81 DC 04 00 00 C3`: it loads the dword at `[ECX+0x4DC]` into EAX and
+returns. This records the accessor's direct field read without assigning a
+type or role to the receiver or returned value. The source lead is
+`FF14-Memory/tools/outputs/lpb/linkshell_journal_retainer_event_map_followup_20260618/retainer_01dc_01dd_helper_decode.csv:2`
+(SHA-256
+`56BAEF3F6E8720C267EB748D36B6B5429FE0EA1FDA2DBFC8528C005600D90DFF`);
+its retainer/item-search label is not established by this instruction.
+
 ## Repeated-row table path
 
 At VA `0x004B62C0` (RVA `0x000B62C0`), the wrapper preserves its packet
