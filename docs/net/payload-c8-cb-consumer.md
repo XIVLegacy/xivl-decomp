@@ -72,7 +72,7 @@ remain unresolved.
 ## Direct call paths into `0x00C99B80`
 
 The FF14-Memory candidate lead is
-`native_retainer_constructor_submit_deeper_20260618/target_instruction_decode.csv`
+`tools/outputs/lpb/native_retainer_constructor_submit_deeper_20260618/target_instruction_decode.csv`
 (SHA-256
 `78d60986d3c65186d642be50adaa0c9a8a4d36f065ab3ac4bda1723c54b13bbf`). Its
 `0x00C99C00` comparison is `cmp al,0x37` followed by an unsigned `jae` to
@@ -92,7 +92,7 @@ retainer-specific role. The `0x37` cutoff remains unexplained.
 ## Repeated call path at `0x004DAD80`
 
 FF14-Memory's
-`native_retainer_setup_submit_next_20260618/target_instruction_decode.csv`
+`tools/outputs/lpb/native_retainer_setup_submit_next_20260618/target_instruction_decode.csv`
 (SHA-256
 `b7944d06c9085e008a75f3b3e0f7ffcb9fce46f339ce7c8314bb0ac6023653ad`,
 rows 523-529) records a repeated call to `0x004D6B40`. In the pinned
