@@ -3,9 +3,11 @@
 The dispatcher at VA `0x004DC690` reads the opcode word at `[esi+2]`. Its
 three dispatch intervals are `0x0002..0x00E5`, `0x012E..0x013D`, and
 `0x0143..0x01A8`. Table-default values and codes outside these intervals
-branch to the common exit at `0x004DD3A9`. The captured target note starts after the
-prologue at `0x004DC696`; the tracked assembly is
-[`000dc690_FUN_004dc690.s`](../../asm/ffxivgame/000dc690_FUN_004dc690.s).
+branch to the common exit at `0x004DD3A9`. The captured target note starts after
+the prologue at `0x004DC696`. Local disassembly from
+`tools/ghidra_scripts/DumpFunctions.java` is retained under ignored
+`asm/ffxivgame/000dc690_FUN_004dc690.s`; this page records the durable
+observations and the pinned PE table identities.
 
 The low range subtracts `2`, reads a byte from the 228-byte table at RVA
 `0x00DD414`, then uses that byte as an index into the 17-entry target table at

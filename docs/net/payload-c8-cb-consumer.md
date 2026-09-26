@@ -9,9 +9,10 @@ alone do not establish wire opcodes, UI meaning, or a retainer workflow.
 Input: local retail 1.23b `orig/ffxivgame.exe`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 The PE image base is `0x00400000`. Addresses below are VAs; subtract the
-image base for an RVA. The relevant branches were read from the tracked
-`asm/ffxivgame/000d8d10_FUN_004d8d10.s` disassembly and checked against the
-pinned PE bytes.
+image base for an RVA. The relevant branches were read from local
+`asm/ffxivgame/000d8d10_FUN_004d8d10.s` disassembly, produced by
+`tools/ghidra_scripts/DumpFunctions.java`, and checked against the pinned PE
+bytes. The assembly export is ignored; the observations are retained below.
 
 ## Direct branches at `0x004D8D10`
 
@@ -111,7 +112,7 @@ That caller label does not name the adjusted receiver or the loop arguments.
 The caller and repeated-step facts do not establish a retainer workflow or
 application-level meaning.
 
-The tracked `config/ffxivgame.symbols.json` (SHA-256
+The local, ignored `config/ffxivgame.symbols.json` export (SHA-256
 `0639fc4a84a0778e67dc2f781f36f2132e83c3bb66ac6b6d0bf0eba9ebf33f81`, rows
 4022-4023) reports `FUN_004DAD80` as size `0x170`, ending at `0x004DAEF0`.
 Pinned bytes at `0x004DAEEC` contain `add esp,0xC4`, followed by `ret` at

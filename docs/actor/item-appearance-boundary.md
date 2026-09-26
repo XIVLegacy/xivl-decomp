@@ -129,7 +129,7 @@ that this function resolves an ItemBase backing record through `0x006ee480` or
 `0x24` to its output. It neither calls the packed-word decoder nor enters the
 actor appearance chain.
 
-A complete direct-call scan of the tracked assembly found these appearance
+A complete direct-call scan of the local assembly exports found these appearance
 edges only:
 
 - `0x006306f0` is called by `0x006b5770`, `0x006b6480`, `0x006b6850`,
@@ -213,7 +213,8 @@ reproducible with `llvm-readobj --file-headers --coff-exports` and a literal
 byte search for both the VA and RVA; the image reports an empty export table
 and contains neither encoding.
 
-The direct-call set is reproducible from the tracked assembly corpus:
+The direct-call scan uses local assembly exports from
+`tools/ghidra_scripts/DumpFunctions.java` under ignored `asm/ffxivgame/`:
 
 ```powershell
 rg -n "CALL 0x(006306f0|006b5770|006b6480|006b7a40|008465c0|00665e40)" asm\ffxivgame -g "*.s"

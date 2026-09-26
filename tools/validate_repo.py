@@ -192,6 +192,48 @@ def markdown_prose_lines(text: str):
             yield line_number, line
 
 
+def markdown_link_errors(tracked_paths: list[str]) -> list[str]:
+    errors: list[str] = []
+    # Hash-checked generated catalogs are documented public prerequisites.
+    published = set(tracked_paths) | EXPECTED_LARGE_ARTIFACT_SHA256.keys()
+    for path in tracked_paths:
+        if not path.endswith(".md"):
+            continue
+        full = ROOT / path
+        text = full.read_text(encoding="utf-8")
+        for line_number, line in markdown_prose_lines(text):
+            link_line = INLINE_CODE_RE.sub("", line)
+            for match in LINK_RE.finditer(link_line):
+                raw = match.group(1)
+                target = raw.strip().strip("<>")
+                if re.match(r"^(?:[a-z]+:|#)", target, re.I):
+                    continue
+                target = target.split()[0].split("#", 1)[0]
+                if not target:
+                    continue
+                resolved = (full.parent / unquote(target)).resolve()
+                try:
+                    relative = resolved.relative_to(ROOT).as_posix()
+                except ValueError:
+                    errors.append(
+                        f"relative link escapes repository: {path}:{line_number} -> {raw}"
+                    )
+                    continue
+                if not resolved.exists():
+                    errors.append(
+                        f"unresolved relative link: {path}:{line_number} -> {raw}"
+                    )
+                elif (
+                    relative != "."
+                    and relative not in published
+                    and not any(entry.startswith(relative + "/") for entry in published)
+                ):
+                    errors.append(
+                        f"untracked relative link: {path}:{line_number} -> {raw}"
+                    )
+    return errors
+
+
 def main() -> int:
     errors: list[str] = []
     paths = git_paths()
@@ -217,33 +259,7 @@ def main() -> int:
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 errors.append(f"invalid tracked JSON {path}: {exc}")
 
-    for path in tracked_paths:
-        if not path.endswith(".md"):
-            continue
-        full = ROOT / path
-        text = full.read_text(encoding="utf-8")
-        for line_number, line in markdown_prose_lines(text):
-            link_line = INLINE_CODE_RE.sub("", line)
-            for match in LINK_RE.finditer(link_line):
-                raw = match.group(1)
-                target = raw.strip().strip("<>")
-                if re.match(r"^(?:[a-z]+:|#)", target, re.I):
-                    continue
-                target = target.split()[0].split("#", 1)[0]
-                if not target:
-                    continue
-                resolved = (full.parent / unquote(target)).resolve()
-                try:
-                    resolved.relative_to(ROOT)
-                except ValueError:
-                    errors.append(
-                        f"relative link escapes repository: {path}:{line_number} -> {raw}"
-                    )
-                    continue
-                if not resolved.exists():
-                    errors.append(
-                        f"unresolved relative link: {path}:{line_number} -> {raw}"
-                    )
+    errors.extend(markdown_link_errors(tracked_paths))
     for path, expected in EXPECTED_BLOBS.items():
         actual = git_blob((ROOT / path).read_bytes())
         if actual != expected:
