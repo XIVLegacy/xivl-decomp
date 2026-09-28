@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "check": {
+    "id": "protocol-0x0135-single-direct-caller-v1",
+    "version": 1
+  },
+  "input_id": "ffxivgame-1.23b",
+  "locator": {
+    "target_va": "0x0075ecd0"
+  },
+  "expected": {
+    "direct_caller_entry_vas": [
+      "0x00705eb0"
+    ]
+  }
+}
