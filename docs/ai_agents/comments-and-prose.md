@@ -90,7 +90,8 @@ source identity, legal metadata, or required vendor artifact names.
   identity through confident wording.
 - Omit progress counts and volatile inventories unless the number is the claim
   and its source is cited.
-- Do not describe the retired byte-matching workflow as current policy.
+- Do not describe byte-identical recompilation as a repository verification
+  method.
 
 Every tracked authored prose or structured description contains current
 evidence or contracts. It does not contain prompts, assignments, review

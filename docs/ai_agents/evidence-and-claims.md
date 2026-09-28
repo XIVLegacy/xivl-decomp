@@ -56,9 +56,9 @@ executables, generated assembly, Ghidra projects, and local decompiled output
 stay outside the tracked tree. The ignored `orig/` and `asm/` paths may hold
 local inputs and outputs, but never tracked artifacts.
 
-Do not use the retired byte-identical recompilation workflow as an evidence
-class or verification method. A historical match note does not replace a
-current binary locator and tool-backed observation.
+Do not use byte-identical recompilation as an evidence class or verification
+method. A match note does not replace a current binary locator and tool-backed
+observation.
 
 A claim that leaves this repository must be citable without it. Because the
 local decompiled output is untracked, a consumer cannot resolve a citation

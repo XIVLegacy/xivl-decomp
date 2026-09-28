@@ -21,9 +21,9 @@ analysis tools. It does not publish retail binaries, generated assembly, Ghidra
 project state, or the local source reconstruction. The ignored `orig/` and
 `asm/` paths are local-only inputs and outputs, not tracked placeholders.
 
-Byte-identical recompilation is retired. Do not introduce match percentages,
-matching queues, per-function build rules, or claims based on the old matching
-workflow.
+This repository does not perform byte-identical recompilation. Do not introduce
+match percentages, matching queues, per-function build rules, or claims based
+on byte-identical recompilation.
 
 ## Documentation policy
 

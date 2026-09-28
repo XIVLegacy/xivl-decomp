@@ -127,17 +127,17 @@ historical command by guesswork.
 The tracked `config/ffxivgame.rtti.json` and
 `config/ffxivgame.vtable_slots.jsonl` catalogs are direct local observations
 from the retail 1.23b executable. Rebuild them from a fresh analysis on Windows
-with Ghidra 12.1:
+with Ghidra 12.1. Select a new explicit external project directory:
 
 ```text
-python tools/import_to_ghidra.py "C:\path\to\ffxivgame.exe" --ghidra-home "C:\path\to\ghidra_12.1_PUBLIC" --project-dir docs\ai_agents\local\.tmp\rtti-base\ghidra --max-memory 8G --scripts=DumpRtti.java --reanalyze
+python tools/import_to_ghidra.py "C:\path\to\ffxivgame.exe" --ghidra-home "C:\path\to\ghidra_12.1_PUBLIC" --project-dir "<explicit-external-project-dir>" --max-memory 8G --scripts=DumpRtti.java --reanalyze
 ```
 
-When that project already exists and is intact, rerun only the deterministic
-export:
+When that clean project already exists and is intact, use the same explicit
+external directory to rerun only the deterministic export:
 
 ```text
-python tools/import_to_ghidra.py "C:\path\to\ffxivgame.exe" --ghidra-home "C:\path\to\ghidra_12.1_PUBLIC" --project-dir docs\ai_agents\local\.tmp\rtti-base\ghidra --max-memory 8G --scripts=DumpRtti.java --skip-import
+python tools/import_to_ghidra.py "C:\path\to\ffxivgame.exe" --ghidra-home "C:\path\to\ghidra_12.1_PUBLIC" --project-dir "<explicit-external-project-dir>" --max-memory 8G --scripts=DumpRtti.java --skip-import
 ```
 
 The catalogs record the source binary SHA-256, Ghidra version, producer,
