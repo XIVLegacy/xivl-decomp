@@ -1,0 +1,64 @@
+{
+  "format": "xivl-lobby-assigned-connection-u32-v1",
+  "source": {
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1.3",
+    "imageBase": "0x00400000"
+  },
+  "owner": {
+    "class": "Application::Network::LobbyProtoChannel::ServiceConsumerConnectionManager::ConsumerConnection",
+    "baseClass": "Component::Network::IpcChannel::ConnectionManagerTmpl<Application::Network::LobbyProtoChannel::LobbyProtoUp,Application::Network::LobbyProtoChannel::LobbyProtoDown>::ConnectionData",
+    "vtableRva": "0x00d276e8",
+    "fieldOffset": 4,
+    "fieldWidth": 4,
+    "fieldId": "assigned_connection_u32"
+  },
+  "directReferences": [
+    {"va": "0x00da1efc", "functionVa": "0x00da1ea0", "access": "write-zero", "role": "Base construction initializes ConnectionData+0x04 to zero."},
+    {"va": "0x00da1ae0", "functionVa": "0x00da1ab0", "access": "read-compare-zero", "role": "A nonzero value suppresses the timed setup request path."},
+    {"va": "0x00da1b47", "functionVa": "0x00da1ab0", "access": "read-compare-zero", "role": "A nonzero value suppresses further setup-record polling."},
+    {"va": "0x00db34cd", "functionVa": "0x00db34a0", "access": "read-compare-zero", "role": "An existing assignment rejects replacement on this consumer path."},
+    {"va": "0x00db3590", "functionVa": "0x00db34a0", "access": "write-assigned", "role": "Stores setup+0x10 after both the current field and candidate gates pass."},
+    {"va": "0x00db3598", "functionVa": "0x00db34a0", "access": "read-callback", "role": "Loads the stored u32 for the manager virtual callback."},
+    {"va": "0x00db35ae", "functionVa": "0x00db34a0", "access": "read-callback", "role": "Loads the stored u32 for the optional secondary callback."},
+    {"va": "0x00da146d", "functionVa": "0x00da1430", "access": "write-callback", "role": "The manager slot-3 callback writes its u32 argument to the active connection field."}
+  ],
+  "sameDisplacementFalseOwners": [
+    {"va": "0x00da0d23", "functionVa": "0x00da0c90", "reason": "Reads a 16-bit buffered-record field through the ConsumerConnection+0x24 pointer, not ConsumerConnection+0x04."},
+    {"va": "0x00da14e5", "functionVa": "0x00da1480", "reason": "Reads a logger-interface adjustment through a separately returned object, not the active connection."},
+    {"va": "0x00da19a5", "functionVa": "0x00da1960", "reason": "Forms ServiceConsumerConnectionManager+0x84 inside its LobbyCryptEngine subobject, not ConsumerConnection+0x04."},
+    {"va": "0x00da2a62", "functionVa": "0x00da29c0", "reason": "Loads virtual slot 1 from a packet-buffer vtable, not a connection data field."},
+    {"va": "0x00db3525", "functionVa": "0x00db34a0", "reason": "Reads the second dword of a map helper result after the connection argument register was repurposed."},
+    {"va": "0x00db3528", "functionVa": "0x00db34a0", "reason": "Reads a map-container field at consumer object+0x10, not the connection argument."}
+  ],
+  "sharedHelperOwnershipFilter": {
+    "functionVa": "0x00db34a0",
+    "lobbyCallSites": ["0x00da273c", "0x00da2792"],
+    "nonLobbyCallSites": ["0x00dafb9c", "0x00dafbf2", "0x00db39ec", "0x00db3a42"],
+    "observation": "The helper instructions are shared by three call families. Only the two FUN_00DA25D0 call sites supply the lobby ConsumerConnection owner; the other four homologous call contexts are excluded from this field manifest."
+  },
+  "lifecycle": [
+    {"stage": "construct", "functionVa": "0x00da1060", "observation": "The ConsumerConnection constructor calls the ConnectionData constructor, which zeros the field, before installing the derived vtable."},
+    {"stage": "assign", "functionVa": "0x00db34a0", "observation": "Assignment requires current field zero and candidate setup+0x10 nonzero; it stores the candidate once."},
+    {"stage": "notify", "functionVa": "0x00db34a0", "observation": "The stored value is passed to the manager slot-3 callback and, when present, one secondary callback. No direct outgoing serialization is present in the traced bodies."},
+    {"stage": "live", "functionVa": "0x00da1ab0", "observation": "Nonzero is used only as setup-complete state and suppresses retries; no arithmetic, range, equality-to-constant, or uniqueness check uses it."},
+    {"stage": "replace", "functionVa": "0x00da12a0", "observation": "Reconnect replacement destroys the old object, clears the active pointer, allocates a new object, and therefore reinitializes the new field to zero."},
+    {"stage": "destroy", "functionVa": "0x00da11d0", "observation": "Destruction releases the connection object without reading, serializing, or explicitly clearing the field; object lifetime ends instead."}
+  ],
+  "captureBoundary": {
+    "retainedSuccessfulLobbySessions": 2,
+    "structuralObservation": "Both retained sessions supply a nonzero candidate and the assigned u32 differs between them.",
+    "publishedValues": false
+  },
+  "contract": {
+    "required": "nonzero per newly assigned live connection",
+    "stableWithinLiveConnection": true,
+    "stableAcrossReconnect": false,
+    "uniquenessRequiredByStaticClient": false,
+    "restrictedValueDomain": false,
+    "fixedNonzeroFailsTracedClientBranch": false,
+    "directOutgoingSerializationObserved": false,
+    "staticConfidence": "high",
+    "liveFixedValueConfidence": "low"
+  }
+}
