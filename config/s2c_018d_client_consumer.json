@@ -1,0 +1,253 @@
+{
+  "format": "xivl-s2c-018d-client-consumer-v3",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "ghidraVersion": "12.1.3",
+    "runId": "lane1-018d-client-consumer",
+    "presentationRunId": "lane1-018d-presentation-contract",
+    "followupRunId": "lane1-018d-followup-keys",
+    "keyHelperRunId": "lane1-018d-followup-key-helpers"
+  },
+  "wireContract": {
+    "opcode": "0x018D",
+    "neutralName": "_0x018D",
+    "commit": "db9e9d770698b086f19758ecc5803012308f5891",
+    "url": "https://github.com/XIVLegacy/xivl-opcodes/blob/db9e9d770698b086f19758ecc5803012308f5891/data/s2c_018d_wire_layout.json",
+    "applicationSize": "0x298",
+    "wireRecordOffset": "0x10",
+    "wireRecordStride": "0x28",
+    "physicalRecordCapacity": 16,
+    "countOffset": "0x290",
+    "countBoundary": "the signed byte is widened and used without a clamp; sixteen physical rows are not a safe runtime count"
+  },
+  "route": {
+    "containerDispatcherVa": "0x004dc690",
+    "ownerPointerLoadVa": "0x004dd167",
+    "storageAdjustVa": "0x004dd18f",
+    "wireArgumentVa": "0x004dd1a6",
+    "storageThisVa": "0x004dd1a7",
+    "applyCallVa": "0x004dd1a9",
+    "prepareVa": "0x00575550",
+    "applyVa": "0x0055cf70",
+    "helperVa": "0x00573fc0",
+    "helperContextDestructorVa": "0x00573f70",
+    "firstOutwardConsumerVa": "0x00671400"
+  },
+  "helperContext": {
+    "prepareVa": "0x00575550",
+    "buildVa": "0x006c1570",
+    "copyVa": "0x00573970",
+    "destructorVa": "0x00573f70",
+    "size": "0x18",
+    "sourceOwner": "RaptureElementContainer +0x18 pointee",
+    "sourceOwnerBoundary": "the pointer member is owned by RaptureElementContainer, but the pointee RTTI class is not proven",
+    "selector": "the original application +0x00/+0x04 pair selects a source record; the nonzero pair is looked up in the source-owner +0x14 map and the zero pair takes a default path that tests nested +0x04 against 0x2711",
+    "forwardedUnused": "a pointer to original application +0x08 is forwarded through 0x00575550 but is not consumed by 0x006c1570",
+    "lifetime": "the value context is built before projection and destroyed immediately after apply"
+  },
+  "owner": {
+    "containerClass": "Application::Main::RaptureElementContainer",
+    "containerPointerOffset": "0x4d8",
+    "elementClass": "ClientWorkElement",
+    "elementAllocationSize": "0x838",
+    "elementFactoryVa": "0x005334c0",
+    "elementConstructorVa": "0x0055f8b0",
+    "elementDestructorVa": "0x0055d100",
+    "elementVtableVa": "0x00fa418c",
+    "storageOffset": "0x98",
+    "storageSize": "0x7a0",
+    "storageConstructorVa": "0x0055f830",
+    "storageDestructorVa": "0x0055cf20",
+    "recordConstructorVa": "0x00567210",
+    "recordVectorDestructorVa": "0x0061ec10",
+    "physicalRecordCount": 16,
+    "recordStride": "0x78"
+  },
+  "projection": {
+    "header": [
+      {"wire": "+0x00", "storage": "+0x08", "width": 4},
+      {"wire": "+0x04", "storage": "+0x0c", "width": 4},
+      {"wire": "+0x08", "storage": "+0x10", "width": 4},
+      {"wire": "+0x290", "storage": "+0x14", "width": 1, "operation": "signed-byte widen"}
+    ],
+    "recordBase": "+0x18",
+    "recordStride": "0x78",
+    "wireRecordStride": "0x28",
+    "recordFields": [
+      {"wire": "+0x00", "storageRecord": "+0x00", "width": 4},
+      {"wire": "+0x08", "storageRecord": "+0x08", "width": 4},
+      {"wire": "+0x0c", "storageRecord": "+0x0c", "width": 4},
+      {"wire": "+0x14", "storageRecord": "+0x10", "width": 4},
+      {"wire": "+0x18", "storageRecord": "+0x14", "width": 4},
+      {"wire": "+0x1c", "storageRecord": "+0x18", "width": 4}
+    ],
+    "helperOutputs": [
+      {
+        "storageRecord": "+0x20",
+        "consumerAccessorVa": "0x0055d030",
+        "description": "helper-resolved Sqex::Misc::Utf8String",
+        "defaulting": "reset to empty before lookup for each iterated record; lookup failure leaves empty and uniterated slots are not touched",
+        "localTransform": "0x00866010 constructs the literal !!! Utf8String, then 0x0067ac00 finds and erases every occurrence before dispatch",
+        "presentationArgument": "Text:String"
+      },
+      {
+        "storageRecord": "+0x74",
+        "consumerAccessorVa": "0x0055d070",
+        "description": "helper-resolved raw dword copied from the matched tagged referent +0x00",
+        "defaulting": "cleared to zero before lookup for each iterated record; success overwrites it, failure leaves zero, and uniterated slots are not touched",
+        "presentationArgument": "Layout:Int"
+      }
+    ],
+    "helperLookup": {
+      "validityVa": "0x006cb950",
+      "primaryKey": "+0x00",
+      "fallbackKey": "+0x08",
+      "fallbackCondition": "the primary lookup returned signed -1",
+      "missingSentinel": "signed -1",
+      "indexLookupVa": "0x006c3320",
+      "entryKeyResolverVa": "0x006d3fe0",
+      "entryVectorOffsets": ["+0x84", "+0x88"],
+      "entryStride": "0x10",
+      "entryKeySource": "tag-specific referent +0x04",
+      "stringResolverVa": "0x006c09e0",
+      "scalarResolverVa": "0x006c08a0",
+      "unusedAsLookupKey": "+0x0c",
+      "resolverBoundary": "tag 0 dynamically casts LuaControl to CharaBase and copies its +0x60 Utf8String; tag 3 follows its nested owner to an object +0x08 Utf8String; the semantic field names and remaining tagged owners are not proven"
+    },
+    "helperBoundary": "the helper uses a 0x18-byte value context prepared by 0x00575550 and destroyed by 0x00573f70; no RTTI class name is proven for the context or the RaptureElementContainer +0x18 pointee"
+  },
+  "keyDomains": [
+    {
+      "storageRecord": "+0x00",
+      "rules": "primary tagged-entry lookup key with no wire-value miss sentinel; zero is still looked up, while nonzero is the eligibility condition; compared with the selected RaptureElement +0x88 registry key",
+      "stability": "overwritten from every wire update; equality compatibility with a stable native registry key does not prove stable wire identity"
+    },
+    {
+      "storageRecord": "+0x08",
+      "rules": "fallback tagged-entry lookup key only when the primary lookup returns signed -1; also participates in the +0x08 OR +0x0c eligibility test",
+      "stability": "overwritten from every wire update; zero is allowed and is not the missing sentinel"
+    },
+    {
+      "storageRecord": "+0x0c",
+      "rules": "participates only in the +0x08 OR +0x0c eligibility test and is never a helper lookup key",
+      "stability": "overwritten from every wire update; no stable identity is proven"
+    }
+  ],
+  "selectedObject": {
+    "ownerClass": "Application::Main::RaptureElementContainer",
+    "activeSlot": "+0x17838",
+    "fallbackSlot": "+0x17834",
+    "selectorVa": "0x004d86b0",
+    "fieldAccessorVa": "0x004d6750",
+    "objectBaseClass": "Application::Main::RaptureElement",
+    "conditionalCastEvidence": "Application::Main::Element::Chara::CharaElement",
+    "derivedCastVa": "0x004d8f70",
+    "field": "+0x88",
+    "fieldSource": "RaptureElement constructor argument stored by 0x004dab50",
+    "registryInsertVa": "0x004da9a0",
+    "registryLookupVa": "0x004d9910",
+    "activeSelectionWriterVa": "0x004d9980",
+    "nativeKeyEncoding": "the registry stores and looks up the exact +0x88 dword; the removal path separately parses it as a 0xc0000000-tagged value with tag below 3 and a low-24-bit payload; semantic tag and payload names are unresolved",
+    "selectionClearSentinel": "0xc0000000 clears or represents invalid active selection in the selected-object path; this is not proven as a wire sentinel",
+    "ownership": "the container owns the ordered RaptureElement registry; selection slots reference registered elements and are cleared when the element is removed",
+    "stability": "the +0x88 value is a stable registry identity for the native object lifetime; the concrete dynamic subtype is runtime-selected and no actor-ID semantic name is proven"
+  },
+  "readerCensus": [
+    {"storage": "+0x08,+0x0c,+0x10", "writers": ["0x0055cf70"], "readers": [], "boundary": "no outward reader in the exact direct, field, data, vtable, or generated-call census"},
+    {"storage": "+0x14", "writers": ["0x0055f830", "0x0055cf70"], "readers": ["0x0055d020", "0x0055d0d0"], "consumers": ["0x00671400", "0x00691f30"]},
+    {"storageRecord": "+0x00", "readers": ["0x0055d090"], "consumer": "0x00671400"},
+    {"storageRecord": "+0x08,+0x0c", "readers": ["0x0055d0b0"], "consumer": "0x00671400"},
+    {"storageRecord": "+0x10,+0x18", "readers": ["0x0055d050"], "consumer": "0x00671400", "boundary": "+0x14 is projected but has no separate load in the first consumer"},
+    {"storageRecord": "+0x20", "readers": ["0x0055d030"], "consumer": "0x00671400"},
+    {"storageRecord": "+0x74", "readers": ["0x0055d070"], "consumer": "0x00671400"},
+    {"storageRecord": "remaining tail", "readers": [], "boundary": "no additional first-consumer load is proven outside the +0x20 helper object and +0x74 scalar"},
+    {"storage": "+0x798", "writers": ["0x0055f830", "0x0055cf70", "0x0055d0f0"], "readers": ["0x0055d0d0"], "consumer": "0x00691f30"}
+  ],
+  "firstOutwardOperation": {
+    "applyVa": "0x0055cf70",
+    "registryAccessorVa": "0x004d7620",
+    "consumerClass": "MapScreenControl",
+    "consumerVa": "0x00671400",
+    "registrationVa": "0x00672690",
+    "unregistrationVa": "0x00678640",
+    "consumerVtableVa": "0x00fc358c",
+    "retailStrings": ["MapScreenControl", "group_marker_data", "MapMarkerParty", "Update"],
+    "operation": "synchronously rewrites dense MapMarkerParty presentation rows in group_marker_data, then removes the stale suffix",
+    "recordAccessors": ["0x0055d020", "0x0055d030", "0x0055d050", "0x0055d070", "0x0055d090", "0x0055d0b0"]
+  },
+  "presentationContract": {
+    "resourceLookup": {
+      "cacheOffset": "+0x9e8",
+      "lookupDispatch": "MapScreenControl vtable +0x1c",
+      "resourceName": "group_marker_data",
+      "sourceType": "Sqwt::ResourceDictionary",
+      "targetType": "Sqwt::Data::SqwtXmlDataMaker",
+      "failureBehavior": "return without reading records or changing rows",
+      "associatedPath": "debug/pc_mark_sample.le.spk",
+      "associatedPathVa": "0x00673923",
+      "associatedPathBoundary": "the same MapScreenControl property handler stores this exact path, but the direct lookup does not prove that group_marker_data came from this package"
+    },
+    "countPath": {
+      "wireType": "signed byte",
+      "storageType": "signed 32-bit integer",
+      "applyLoop": "zero skips projection; every nonzero value enters and the back edge compares as unsigned",
+      "consumerLoop": "signed values less than or equal to zero skip presentation; positive values iterate with a signed less-than comparison",
+      "boundary": "neither loop clamps to sixteen; a positive count above sixteen reads beyond physical storage, and a negative nonzero count is unsafe in the projection before presentation is reached"
+    },
+    "eligibility": [
+      {"source": "MapScreenControl +0x57c", "condition": "byte equals 2"},
+      {"source": "record +0x00,+0x08,+0x0c", "condition": "+0x00 is nonzero or the bitwise OR of +0x08 and +0x0c is nonzero"},
+      {"source": "record +0x00", "condition": "dword differs from the stable RaptureElement registry key at selected object +0x88, selected through Main +0x17838 with +0x17834 fallback", "selectorVas": ["0x004d86b0", "0x004d6750"]}
+    ],
+    "outputIndex": "accepted rows are compacted into dense zero-based order; source-row keys are not used as UI indexes",
+    "rowWrite": "there is no separate create branch; the same seven SetAttr groups target each accepted dense index whether that index is new or already present",
+    "properties": [
+      {"wire": "+0x14", "storageRecord": "+0x10", "accessorVa": "0x0055d050", "inputType": "binary32", "localTransform": "CVTTSS2SI truncation toward zero to signed int32", "property": "X", "propertyType": "Int", "operation": "SetAttr"},
+      {"wire": "+0x1c", "storageRecord": "+0x18", "accessorVa": "0x0055d050", "inputType": "binary32", "localTransform": "CVTTSS2SI truncation toward zero to signed int32", "property": "Z", "propertyType": "Int", "operation": "SetAttr"},
+      {"storageRecord": "+0x74", "accessorVa": "0x0055d070", "inputType": "raw dword", "property": "Layout", "propertyType": "Int", "operation": "SetAttr"},
+      {"storageRecord": "+0x20", "accessorVa": "0x0055d030", "inputType": "Sqex::Misc::Utf8String", "localTransform": "0x00866010 constructs the literal !!! Utf8String, then 0x0067ac00 finds and erases every occurrence before dispatch", "property": "Text", "propertyType": "String", "operation": "SetAttr"},
+      {"source": "literal", "property": "Visibility", "propertyType": "String", "value": "Visible", "operation": "SetAttr"},
+      {"source": "literal", "property": "SparkleSequence", "propertyType": "String", "value": "m00002", "operation": "SetAttr"},
+      {"source": "literal", "property": "Template", "propertyType": "String", "value": "MapMarkerParty", "operation": "SetAttr"}
+    ],
+    "batchOperation": {"operation": "Update", "condition": "at least one row was accepted", "maximumCallsPerInvocation": 1},
+    "removal": {
+      "va": "0x00942db0",
+      "condition": "accepted row count is less than the existing row count",
+      "range": "inclusive [accepted count, existing count - 1]",
+      "order": "descending",
+      "operation": "RemoveIndex",
+      "zeroAccepted": "remove all existing rows without dispatching Update",
+      "lifetime": "dense indexes are reused on the next invocation; only the stale suffix is deleted and no source-key deletion exists"
+    },
+    "unusedByThisEffect": ["stored header +0x08", "stored header +0x0c", "stored header +0x10", "original application +0x08 forwarded argument", "record +0x14", "storage +0x798"]
+  },
+  "deferredGate": {
+    "vtableOwner": "PcSearchWidgetOperator",
+    "vtableSlot": 29,
+    "methodVa": "0x00691f30",
+    "predicateVa": "0x0055d0d0",
+    "clearVa": "0x0055d0f0",
+    "operationVa": "0x00691e80",
+    "condition": "+0x798 is nonzero and +0x14 equals one",
+    "boundary": "the operation receives no storage or record pointer and is a later refresh gate, not the first outward consumer"
+  },
+  "verdict": {
+    "uiConsumers": ["MapScreenControl::0x00671400"],
+    "luaOrNapiConsumers": [],
+    "networkEmissions": [],
+    "rejectedInterpretations": [
+      "a semantic party-marker packet type is not an evidence-backed packet name",
+      "the physical capacity of sixteen records is not a safe runtime count",
+      "record +0x00 is not named actor ID and record +0x08 or +0x0c is not named marker type or map ID",
+      "the unused middle float is not proven to be Y, and no radius, rotation, icon, label, or color field is proven",
+      "X and Z are UI property identities after truncation, not proof of a world-coordinate wire contract",
+      "the stored header copies and +0x798 gate do not influence this presentation effect; the original application +0x00/+0x04 pair separately selects the helper context",
+      "group_marker_data and MapMarkerParty are UI resource and template literals, not proof of group, party, actor, marker, or map key domains",
+      "Layout and Text are presentation property names, not native names for record +0x74 or +0x20",
+      "the conditional CharaBase string source does not prove an Application::Scene::Actor state edge or actor identity for a wire selector"
+    ],
+    "remainingBoundary": "the semantic names and cross-update stability of the three wire key dwords, the unused middle float, RTTI for the RaptureElementContainer +0x18 pointee, tagged-element ownership outside the proven CharaBase and tag-3 string paths, the source package for group_marker_data, computed or dynamic indirect readers, runtime-only consumers, and server policy remain unresolved"
+  }
+}
