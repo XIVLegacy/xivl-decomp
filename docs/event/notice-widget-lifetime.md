@@ -38,6 +38,42 @@ state, manager priority, actor readiness, and the distinct fallback branches
 still matter. It does not establish that false is correct for every Notice
 caller or that a particular widget command uses a nonblocking source.
 
+## Clearing the staged target through Lua
+
+The Lua binding `_fadeInNowLoadingForNoticeEventJustInArea` invokes MyPlayer
+slot 66 at `0x006e32f0`, as established in
+[the slot-66 finding](../net/kick-dispatcher-clearer.md#ghidra-corrections-and-lua-binding).
+When either target is set, its instructions call `0x0075b510`, then write
+`NO_ACTOR` to both MyPlayer `+0x128` and `+0x12c` at `0x006e3326` and
+`0x006e3332`. This method does not itself access PlayerManager `+8` or invoke
+event completion. The target-clear stores are separate from EndEvent's
+active-event destruction below.
+
+The helper at `0x0075b510` passes 1 to `0x004d70b0`. That function checks
+its receiver's `+0x175a4`, calls `0x004d6820` with the image's fade constant
+and selectors `(0, 0, 1)`, and calls `0x0056a7c0` on the pointed-to object.
+The latter checks `+0x21c`, invokes `0x0056a6d0` with `(1, 0)`, and clears
+`+0x21c`. These are different receivers from MyPlayer and PlayerManager;
+matching field offsets alone cannot equate their state.
+
+The canonical decoded `quest/questbaseclass_common.lua`, SHA-256
+`CF61A5687DBC7B6ACCD26C8CD3A138DECC0372FB72518AC6F2054F125BC1465E`,
+lines 1016-1034, contains `questBaseRewardSeting`. It calls the binding on
+its player argument, starts the default cutscene fade-in, and waits with
+literal 0.5. Source identity is recorded in
+`xivl-client-scripts:manifests/scripts.json`, entry
+`lua/scripts/quest/questbaseclass_common.lua`. The method's existence and
+native stores establish an available target-clear operation, not a historical
+server invocation or successful widget acceptance in every event state.
+
+Reproduction: export `0x006e32f0`, `0x0075b510`, `0x004d70b0`,
+`0x004d6820`, `0x0056a7c0`, and `0x0056a6d0` with read-only
+`xivl-client-structs:ghidra/DumpVAs.java`; verify each requested function's
+name and successful decompilation. Independently disassemble `0x006e32f0`
+through its `RET 4` in the hash-pinned PE above to verify both stores and
+the helper call. The helper observations are bounded to these bodies, not
+a claim about every indirect effect of their callees.
+
 ## Widget gate and event completion
 
 MyPlayer command dispatch at `0x0070a010` rejects a command at `0x0070a07b`
