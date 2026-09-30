@@ -9,8 +9,8 @@ an explicit object-identity join. It complements
 ## The clearer
 
 `FUN_006e32f0`, **76 bytes**, RVA `0x002e32f0`, VA `0x006e32f0`. It's
-the **only** function in the binary that writes NO_ACTOR (`0xE0000000`)
-to BOTH `[+0x128]` and `[+0x12c]` of its `this` object:
+an unconditional paired clearer of NO_ACTOR (`0xE0000000`) at
+`[+0x128]` and `[+0x12c]` of its `this` object:
 
 ```c
 void MyPlayer_slot66(this, arg1) {  // ECX=this, [ESP+8]=arg1
@@ -48,12 +48,12 @@ Out of 40 writers and 146 NO_ACTOR readers, 4 functions intersect:
 |---|---|
 | `FUN_0089e450` | `KickReceiver::Receive` (already known - establishes the target) |
 | `FUN_006e32f0` | **The clearer** (this doc) |
-| `FUN_00703970` | Unrelated - 414-byte fn with 5 internal call sites |
+| `FUN_00703970` | Clears each matching target reference, including event completion |
 | `FUN_00773270` | Unrelated - 283-byte fn with 1 caller (FUN_0057a3c0) |
 
-Only `FUN_006e32f0` writes NO_ACTOR (the critical behavior). The
-other two write register values that happen to be NO_ACTOR sometimes,
-or set up the target rather than clear it.
+`FUN_00703970` also writes NO_ACTOR to matching target references. Its event
+completion caller is documented in
+[Notice target staging and widget lifetime](../event/notice-widget-lifetime.md).
 
 ## The clearer is a virtual method - `MyPlayer::vtable[66]`
 
@@ -209,7 +209,7 @@ char * KickReceiver::Receive(this, *out_result) {
         context[+0x12c] = this[+0xc];    // store for retry
         *out_result = FAILURE;
     }
-    // else: silent no-op
+    // else: success; the dispatcher then invokes Apply
   }
   else {
     // ----- Branch B2: [+0x128] set, [+0x12c] clean - process queued -----

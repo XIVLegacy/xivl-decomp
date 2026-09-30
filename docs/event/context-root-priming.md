@@ -250,10 +250,10 @@ sense.
 The 26-candidate writer set includes two relevant clearers in the Lua-actor
 RVA range (0x2dxxxx..0x37xxxx):
 
-#### `FUN_00703970` (414 B) - **selective despawn-clearer** NOTE
+#### `FUN_00703970` - matching target-reference cleanup
 
 ```c
-// EBX = this (NpcBase); EAX = arg (some packet)
+// EBX = receiver; EAX = actor-reference argument
 if (npc[+0x128] == *(uint32*)packet) {
     npc[+0x128] = NO_ACTOR;   // from [0x0130c778] - confirmed NO_ACTOR sentinel
 }
@@ -262,12 +262,14 @@ if (npc[+0x12c] == *(uint32*)packet) {
 }
 ```
 
-**This is "actor died/despawned, clear from kick state if it was
-the current/previous target".** `[0x0130c778]` = the NO_ACTOR
+This clears either target when it matches the argument. Event completion also
+calls it, so it is not restricted to despawn. See
+[Notice target staging and widget lifetime](notice-widget-lifetime.md).
+`[0x0130c778]` = the NO_ACTOR
 constant (verified - matches the session-memory record
 `NO_ACTOR sentinel = 0xE0000000 at VA 0x0130c778`).
 
-The argument is a packet/identifier - likely the RAW actor ID of the despawning actor.
+The observed comparisons read the actor reference from the argument.
 
 #### `FUN_00706700` (250 B) - **another clearer** (NOT a setter)
 
@@ -302,7 +304,7 @@ actor id.** Specifically:
 |---|---|---|
 | `FUN_006e32f0` (76 B) | `NO_ACTOR` to BOTH +0x128 and +0x12c | `MyPlayer::vtable[66]` clearer (sharp tool) |
 | `FUN_006f3650` (329 B, ctor) | `0` (not NO_ACTOR) | Object construction |
-| `FUN_00703970` (414 B) | `NO_ACTOR` conditionally | Despawn-clearer: matches actor id |
+| `FUN_00703970` | `NO_ACTOR` conditionally | Cleanup: matches actor reference |
 | `FUN_00706700` (250 B) | `NO_ACTOR` conditionally | State-machine clearer: state >= 0x15 |
 
 **Implication**: `npc[+0x128]` (the "previous kick target" field) is not
