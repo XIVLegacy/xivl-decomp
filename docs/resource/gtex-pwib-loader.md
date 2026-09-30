@@ -3,7 +3,8 @@
 This page records the fields consumed by the retail 1.23b client loaders for
 standalone GTEX and PWIB resources. The reviewed `ffxivgame.exe` has SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
-All multibyte resource fields below are big-endian.
+The GTEX fields and PWIB boundary fields below are big-endian. The SEDBRES
+consumer described below also handles an in-place endian conversion.
 
 ## GTEX
 
@@ -127,15 +128,17 @@ second = [field(+0x0c), field(+0x04))
 ```
 
 Helpers `0x004ebed0` and `0x004ebf00` compute those two lengths. The streaming
-path supplies them independently to `0x004e8bf0` and `0x004e8ca0`, then reads
-both allocations through `0x004e8b90`.
+path supplies them independently to `0x004e8bf0` and `0x004e8ca0`. It reads
+the first allocation directly through `0x00453030` at `0x004ea72a`, and the
+second through `0x004e8b90` at `0x004ea761`; that wrapper also calls
+`0x00453030`. These lengths are bytes.
 
 The resource consumer at `0x00a642f0` maps both spans with the same boundary
 arithmetic and requires an `SEDB` signature at the first-segment offset. It
 does not establish that the first segment is a complete standalone SEDB file.
-The purpose of the second segment remains unresolved. Consequently PWIB must
-not be modeled as an unbounded 16-byte prefix followed by an ordinary nested
-SEDB extent.
+The generic consumer forwards the second span separately, as described below.
+Consequently PWIB must not be modeled as an unbounded 16-byte prefix followed
+by an ordinary nested SEDB extent.
 
 A header-only census of 3,544 retail PWIB resources found no unordered
 boundaries, total-size mismatches, or missing `SEDB` signatures at the first
@@ -143,6 +146,105 @@ offset. The first offset was 16 in every observed file. First-segment lengths
 ranged from 96 to 4,486,464 bytes and second-segment lengths from 376 to
 5,592,404 bytes. Those retail observations corroborate the general loader
 arithmetic without replacing it with fixed constants.
+
+### Native consumer boundary
+
+The reproduced generic path establishes first-span block selection and
+second-span context forwarding. It does not establish a complete split-buffer
+resource contract. This bounded negative covers `0x00a642f0`, its SEDBRES
+reader and generic type dispatcher, and the registered `bin`/`trb` recursive
+callbacks listed below. It does not cover every concrete resource handler.
+
+At `0x00a64484` through `0x00a644d7`, the consumer obtains the second byte
+length and requests a view from the input object's virtual slot `+0x24`, with
+the second offset, that length, and alignment 16. When the view is nonnull,
+`0x00a644d7` stores it at parser-context `+0x0c`. This assignment also occurs
+with a supplied context; only creation of a zero-initialized local context is
+conditional. The first view is requested separately at `0x00a644fa` through
+`0x00a64505`, using the first offset and first byte length. Its virtual slot
+`+0x04` supplies the pointer used for the `SEDB` check.
+
+For subtype bytes `RES` or `res` at first-span `+0x04..+0x06`, the consumer
+constructs reader `0x00e0d4c0` and calls `0x00a3d6c0`. Other subtypes are
+derived from four bytes at `+0x04`: zero and space bytes are skipped, uppercase
+ASCII letters are lowered, and remaining bytes are accumulated by an
+eight-bit shift. `0x00a3c800` looks up that value and the consumer invokes the
+selected handler's virtual slot `+0x04` or `+0x0c`. No filename participates
+in this selection.
+
+For the SEDBRES branch, let `S` be the first view's pointer. Reader initializer
+`0x00e0d120` uses the following fields after any endian conversion:
+
+| First-span offset | Width | Observed use |
+|---|---:|---|
+| `+0x08` | 4 | Compared against 4000 after checking `SEDBRES ` |
+| `+0x0c` | 1 | Nonzero triggers endian conversion unless already initialized |
+| `+0x2c` | 4 | Initialization marker `0x494e4954` in native memory |
+| `+0x30` | 4 | Entry count `N` |
+| `+0x34` | 4 | Byte offset of names, relative to payload base `D` |
+| `+0x38` | 4 | Count of consecutive NUL-terminated names |
+| `+0x3c` | 4 | Scalar returned by reader virtual slot `+0x28` |
+| `+0x40` | `16*N` | Entry table `T` |
+
+The payload base is `D = S + 0x40 + 16*N`. Entry `i` at `T + 16*i` supplies
+a name index at `+0x00`, a byte offset `o` at `+0x04`, and byte length `L` at
+`+0x08`. The fourth dword has no promoted meaning here. Pointer accessor
+`0x00e0c9b0` returns `D + o`; length accessor `0x00e0cb40` returns `L`.
+Constructor `0x00e0d4c0` requests a block view from the first view's virtual
+slot `+0x24`, with offset `(D + o) - S` and length `L`. Its requested alignment
+is a power of two no greater than 128, reduced according to pointer, offset,
+and the first view's virtual `+0x0c` value `A`: it chooses the largest `2^k`,
+`0 <= k <= 7`, for which `((S & 0x7f) | ((D + o) - S) | A) & (2^k - 1)`
+is zero. These are first-view-relative byte
+ranges, not demonstrated offsets into the second span.
+
+Names begin at `D + field(+0x34)`. `0x00e0c8d0` searches those names for the
+literal blocks `RESOURCE_TYPE` and `RESOURCE_ID`. Each present metadata block
+reduces the exposed entry count by one, giving `V = N - metadataCount`.
+Pointer, length, name, view, and ID accessors check an unsigned index against
+`V`; the type accessor `0x00e0cd00` checks against `N`. Type values are dwords
+at the type block's payload plus `4*i`. ID accessor `0x00e0c940` reads a
+16-byte pair at the ID block's payload plus `16*i`: selector 1 returns the
+second qword; other selectors return the first. Named pointer accessor
+`0x00e0caa0` also selects a requested occurrence among the exposed entries.
+View and name accessors are `0x00e0c9e0` and `0x00e0ccd0`; visible-count
+accessor `0x00e0d6b0` returns `V`.
+
+The initializer mutates first-span storage. When `S+0x0c` is nonzero and the
+marker is absent, it clears that byte and calls `0x00e0ce20`, which swaps the
+dword at `+0x08`, word at `+0x0e`, qwords at `+0x10/+0x18`, four dwords at
+`+0x30`, and the first three dwords of every table entry. It swaps `N` type
+dwords on that conversion path. Before marking an uninitialized buffer, it
+also reverses `2*N` ID qwords when the endian byte is zero, through
+`0x00a3ca30`. `0x00e0d0c0` writes the native marker. Dispatcher `0x00a3bf10`
+reverses both selected ID qwords before passing them onward. These operations
+do not copy or transform the second span.
+
+These index checks do not validate `D`, name indices, the name walk, metadata sizes, or
+`o + L` against the first span's length. The signature and version failures
+call an assertion callback. Whether the requested extent is enforced depends
+on the concrete virtual slot `+0x24` implementation, which is outside this
+finding. The reader uses 32-bit offset/count arithmetic without a demonstrated
+overflow check.
+
+Reader virtual slot `+0x14` (`0x00e0ca10`) returns the saved parser context.
+`0x00a3bf10` carries it with the selected block pointer or view, length, type,
+name, and ID pair into `0x00a44660` or `0x00a44730`, then `0x00a443a0`.
+The registration at `0x00a3c4f0` binds `bin` (`0x0062696e`) and `trb`
+(`0x00747262`) to vtable `0x00fb6e68`. Its callbacks `0x00a3d700`,
+`0x00a3d7d0`, and `0x00a3d880` construct another reader through
+`0x00e0d450` or `0x00e0d4c0` and re-enter the generic parser with that context.
+They add no demonstrated second-span read or seek.
+
+The first unresolved edge for second-span interpretation is the concrete type
+callback at `0x00a443a0` virtual slots `+0x04/+0x08/+0x0c` (calls at
+`0x00a445be/0x00a44576/0x00a445fb`), or the corresponding non-RES dispatch
+at `0x00a642f0`. A specific callback must be tied to the supplied resource
+type and shown to consume context `+0x0c`, with its offset base, byte units,
+length checks, and transformations. The searched generic family supplies no
+cross-buffer offset resolution and no second-span byte read. This is not a
+negative claim about unsearched concrete handlers, nor evidence for a texture,
+palette, compression, or standalone SEDB interpretation.
 
 ### m520/e001 texture-bank boundary
 
@@ -180,10 +282,14 @@ the dispatcher, loader, three texture constructors, and upload-loop bodies
 under `src/ffxivgame/_rosetta/`.
 
 The PWIB claim uses the streaming path, exact length helpers, request helpers,
-and resource consumer listed above. `0x004e8bf0`, `0x004e8ca0`, and
-`0x004e8b90` corroborate allocation and read sequencing but add no field
-meaning. Caller `0x007cbd50` adds context only and is not required for the
-layout verdict.
+and resource consumer listed above. The consumer extension was reproduced
+with committed `DecompileToText.java` and `FindCallers.java` through
+`tools/ghidra/run-headless.ps1`, using fresh read-only imports, Ghidra 12.1.3,
+JDK 21, and image base `0x00400000`. The decisive sections include all functions
+named in the native consumer boundary; caller `0x007cbd50` corroborates supplied
+context forwarding. Instruction encodings and the reader/handler vtable slots
+were checked against the pinned PE bytes. No raw bodies or projects form part
+of this tracked finding.
 
 This finding establishes static loader arithmetic for the exact retail build.
 GTEX flag bit 2 is propagated as creation value 4 and as an otherwise unused
