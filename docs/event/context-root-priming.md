@@ -47,7 +47,7 @@ Static analysis over all `asm/ffxivgame/*.s`:
 
 | Function | RVA | Pattern | Role |
 |---|---|---|---|
-| `FUN_006e32f0` | `0x002e32f0` | `[+0x128] = NO_ACTOR; [+0x12c] = NO_ACTOR` | **Clearer** - `MyPlayer::vtable[66]`, sole writer of NO_ACTOR to both. See `docs/net/kick-dispatcher-clearer.md`. |
+| `FUN_006e32f0` | `0x002e32f0` | `[+0x128] = NO_ACTOR; [+0x12c] = NO_ACTOR` | **Paired clearer** - `MyPlayer::vtable[66]`. See `docs/net/kick-dispatcher-clearer.md`. |
 | `FUN_006f3650` | `0x002f3650` | Sets all fields to 0 incl. `[+0x128]/+0x12c` | **NpcBase ctor** - initial state is 0, not NO_ACTOR |
 | `FUN_008e5ff0` | `0x004e5ff0` | Resets EDI to 0x12 fields incl. both | NpcBase reset/reinit |
 

@@ -88,7 +88,6 @@ Combining the KickReceiver decomp with this finding:
 |---|---|---|
 | `KickReceiver::Receive` Branch B1 | `FUN_0089e450` @ `0x49e4ff` | Sets `[+0x12c] = receiver[+0xc]` (the incoming kick's target id) |
 | **`MyPlayer::vtable[66]`** | `FUN_006e32f0` (this doc) | Resets BOTH `[+0x128]` and `[+0x12c]` to NO_ACTOR |
-| (no other clearer in the binary) | - | - |
 
 The KickReceiver write and MyPlayer slot-66 clear are separate static
 paths. They form a single target-state lifecycle only if their receiver
@@ -125,13 +124,13 @@ In man0g0 specifically, the 3 calls are inside:
 
 The call pattern is consistent: `setTutorialMask(...)` -> `player:_fadeInNowLoadingForNoticeEventJustInArea()` -> `startFadeOut(player, 0)`. The clearer fires INSIDE cinematic-prep code that the server triggers via `RunEventFunction("delegateEvent processTtrX...")`.
 
-**SEQ_005 implication:** the opening cinematic's `processTtrNomal001`
-calls the clearer, so state should be clean entering SEQ_005. That weakens
-the stale `[+0x12c]` hypothesis and supports the Branch B1
-`receiver[+0x80] == 0` silent no-op: when the byte is zero, the kick is
-dropped without storage for retry. The source of `receiver[+0x80]` remains
-unidentified without a packet-byte -> instance-offset mapping for
-`KickEventPacket`.
+The opening cinematic's `processTtrNomal001` calls the clearer, but that
+call alone does not establish the target state when SEQ_005 executes.
+On the fresh, ready-actor path, Branch B1 with `receiver[+0x80] == 0`
+returns success and reaches Apply. The Notice constructor obtains this
+flag from the first Lua Boolean. See
+[Notice target staging and widget lifetime](../event/notice-widget-lifetime.md#fresh-notice-dispatch)
+for the dispatch path and its limits.
 
 ## Receive and gate setter
 
