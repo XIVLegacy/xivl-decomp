@@ -20,7 +20,7 @@ checking the `GTEX` signature. The loader consumes this header surface:
 | `+0x0c` | 2 | Height |
 | `+0x0e` | 2 | Depth |
 | `+0x10` | 4 | Optional surface-offset table base, relative to the blob |
-| `+0x14` | 4 | Source-data base, relative to the blob |
+| `+0x14` | 4 | Nonzero source-data base relative to the blob; zero selects a supplied source view |
 
 Flag bit 0 selects a cube texture, otherwise bit 1 selects a volume texture,
 otherwise the object is a 2D texture. When both type bits are set, the cube
@@ -41,7 +41,10 @@ blob + source-data base + per-surface offset
 ```
 
 The upload loop at `0x00431e20` passes that result through `0x00431080` to a
-D3DX load-from-memory call. This makes `+0x14`, not `+0x1c`, the proven data
+D3DX load-from-memory call. With a zero source-data base, it instead adds the
+per-surface offset to the supplied view's pointer, after checking the offset
+against that view's byte length. The [selected PWIB consumer](#selected-restxb-consumer)
+below selects this branch. This makes `+0x14`, not `+0x1c`, the proven data
 boundary. No function in the reproduced loader path reads `+0x1c`, so it has
 no promoted extent meaning.
 
@@ -270,9 +273,120 @@ The source identities below were checked against the client stamped
 | `m520/equ/e001/top_tex1/0006` | 103,600 | `a0c62abbc19804ecf8578e2d9bdb2cd4ac99878e8be1f3c4028587cdcafd2c3d` |
 | `m520/equ/e001/top_tex1/0007` | 103,600 | `4f7c681ae338eed7558ee999c3ecdd0d186fd7ee2ad496136e33e7e7f3d86aa5` |
 
-These identities pin the resource files, not the interpretation of
-their opaque second segment. They do not associate a texture index with an
-actor-class ID or prove which appearance any retail encounter selected.
+These identities pin the resource files. The concrete interpretation below
+covers one selected block in `0000`; it does not associate a texture index
+with an actor-class ID or prove which appearance any retail encounter selected.
+
+### Selected RES/txb consumer
+
+For the pinned `m520/equ/e001/top_tex1/0000` resource, visible entry 6 selects
+a concrete split texture contract: its first-span `txb` block supplies a GTEX
+descriptor, and the descriptor's surface offset selects DXT1 source bytes in
+the second span. This is a static contract of the selected handler and its
+node method; no observed runtime invocation or rendered appearance is claimed.
+
+The first span begins with `SEDBRES ` and has endian byte zero. Its native
+little-endian entry count is 11, with nine exposed entries after the two
+metadata blocks. The payload base is first-relative 240. The `RESOURCE_TYPE`
+payload starts at first-relative 4504; its dword at `+4*6` is `0x00747862`
+(`txb`). Entry 6 has payload offset 3976 and byte length 96, selecting
+first-relative `[4216, 4312)`, or file `[4232, 4328)`. This metadata, rather
+than its filename or a neighboring block, selects the handler.
+
+Registration `0x00c4ab70` installs factory vtable `0x010f2c44` with key
+`0x00747862`: the vtable write is at `0x00c4acd5`, key assignment at
+`0x00c4acdf`, and registration call at `0x00c4ad01`. Wrapper
+`0x0060dac0` obtains the manager through `0x0060d8a0`, then inserts through
+`0x00a3be10` and `0x00a44860`. Dispatcher `0x00a44730` looks up the same
+key through `0x00a44b00`. Function `0x00a475a0` calls this registration at
+`0x00a47747`. Factory predicates at slots `+0x14/+0x18` both
+resolve to `0x00b73290`, which returns true. With context flag `+0x14` zero,
+the allocated view path in `0x00a443a0` therefore calls factory slot
+`+0x0c`, `0x00c78b70`, at `0x00a445fb`. Its preceding size pass calls
+slot `+0x08`, `0x0060d980`; slot `+0x10`, `0x005afd10`, supplies node size
+`0x68`. The raw slot `+0x04` is outside this selected view-path finding.
+
+At `0x00c78ba1`, callback `0x00c78b70` loads parser-context `+0x0c`.
+Constructor `0x00c788c0` installs node vtable `0x010faddc` and calls
+`0x00c786e0`, which retains the first block view at node `+0x50` and the
+second view at `+0x58`. Its node virtual slot `+0x3c` resolves to
+`0x00c78a00`. That initializer checks `SEDBtxb\0` and version at least
+one through `0x00c78e60`, then reads the native word at block `+0x0e`.
+For a word no greater than `0x30`, the descriptor is at
+`block + 0x30 + word`; otherwise it is at `block + dword(block+0x30)`.
+The selected block has endian byte zero, version one, word `0x40`, and
+dword `0x40`, so node `+0x60` receives `block+0x40`, file offset 4296.
+The initializer does not demonstrate a descriptor-offset extent guard;
+the selected descriptor and table fit within the verified 96-byte block.
+Failure of the signature/version check calls diagnostics and an assertion
+callback, then continues to descriptor selection if those calls return.
+
+The callback retains the views; it does not immediately upload their bytes.
+When this node's virtual slot `+0x18`, `0x00c787f0`, executes, it loads
+the descriptor and second view at `0x00c7882a/0x00c7882e` and calls
+`0x00c74660` at `0x00c78862`. That method forwards both through
+`0x00418f90` to `0x004323d0`, which selects `0x00431f30` by the descriptor's
+`GTEX` signature. The concrete node-vtable join proves this deferred consumer;
+it does not prove when a retail encounter invokes it.
+
+The selected 32-byte descriptor has these big-endian scalar values:
+
+| Descriptor offset | Value | Selected use |
+|---|---:|---|
+| `+0x06/+0x07/+0x09` | 24 / 1 / 0 | DXT1 format index, one mip, 2D flags |
+| `+0x0a/+0x0c/+0x0e` | 256 / 256 / 1 | Width, height, depth |
+| `+0x10` | 24 | Eight-byte surface table starts at descriptor `+0x18` |
+| `+0x14` | 0 | Use the supplied second view instead of descriptor-relative source data |
+| Entry 0 `+0/+4` | 0 / 32768 | Byte offset and declared encoded size |
+
+The three one-byte values in the first row have no endian conversion.
+`0x00431f30` allows a zero source-data base only when a source view is
+supplied. At `0x004320db..0x004320ec`, it obtains that view's byte length
+through virtual slot `+0x08` and pointer through `+0x04`, then calls
+`0x00431e20`. The selected flags choose one face, and one mip chooses table
+entry zero. With source-data base zero, `0x00431e9b..0x00431ee1` reads the
+first big-endian table dword; `0x00431ee5` compares it unsigned against the
+supplied byte length. An offset at or beyond that length skips the upload.
+For an accepted offset, `0x00431eeb/0x00431eef` adds the supplied pointer,
+and `0x00431f00` calls `0x00431080` with the resulting source pointer.
+
+Thus the selected cross-buffer resolution is:
+
+```text
+descriptor = firstBlockPointer + 0x40
+table      = descriptor + BE32(descriptor+0x10)
+source     = secondViewPointer + BE32(table+8*surfaceIndex)
+```
+
+For entry zero, the source begins at second-relative zero, file offset 5296.
+Upload `0x00431080` uses index 24 to read `D3DFORMAT 0x31545844` from
+`0x00f637b8 + 24*4`, and four bits per pixel with a nonzero block-format byte
+from the metadata record at `0x00f63c3c + 24*0x28`. The uploader obtains
+destination surface dimensions through its Direct3D virtual methods. For a
+256 by 256 destination it computes compressed source row pitch 512 bytes
+and passes the source, format, pitch, and dimensions to
+`D3DXLoadSurfaceFromMemory` at
+`0x004312a5`, through import thunk `0x009fc76e`. Those 64 block rows imply a
+32768-byte footprint, agreeing with entry zero's second dword and the GTEX
+size formula above. No reproduced selected-path instruction reads that
+second dword to bound the upload. The native check guards the start offset,
+not `offset + footprint`; descriptor/table extents and addition overflow
+also have no demonstrated guard in these methods.
+
+For the pinned file, offline extent checks verified descriptor and table
+within the first block and source `[0, 32768)` within the 98304-byte second
+view, corresponding to file `[5296, 38064)`. The selected path byte-swaps
+GTEX scalar values into local native values and hands the compressed source
+bytes directly to D3DX; it demonstrates no second-span copying, decompression,
+or endian conversion before that API boundary. It does not establish the
+remaining second-span bytes, other entries, resource variants, or a complete
+standalone first-span resource.
+
+This contract supports a bounded decoder follow-up for this exact RES/txb
+entry: parse the first-span descriptor and resolve its encoded surface against
+the separately bounded second span. A decoder must enforce whole-range
+bounds itself. Broader handler coverage needs a separately selected type and
+callback; runtime appearance selection remains a separate discriminator.
 
 ## Evidence boundary
 
@@ -291,8 +405,20 @@ context forwarding. Instruction encodings and the reader/handler vtable slots
 were checked against the pinned PE bytes. No raw bodies or projects form part
 of this tracked finding.
 
+The selected RES/txb extension used the same fresh-import runner and committed
+`DecompileToText.java`, Ghidra 12.1.3, JDK 21, image base, and binary pin.
+The registration, factory predicates, dispatcher, constructors, deferred node
+method, GTEX source-view branch, creation/upload helpers, and import thunk
+named above were reproduced as complete exact-entry sections. Both producers
+completed in read-only mode without analysis timeout. Factory and node vtables,
+format metadata, import identity, and instruction encodings were checked
+against the pinned PE; the selected resource hash, metadata, descriptor fields,
+and byte ranges were checked directly against the pinned resource.
+The additional direct registration call at `0x00a47747` was corroborated
+against its PE instruction encoding.
+
 This finding establishes static loader arithmetic for the exact retail build.
 GTEX flag bit 2 is propagated as creation value 4 and as an otherwise unused
 upload argument, but no reproduced consumer assigns it a stable meaning. The
-finding does not explain PWIB's second segment or establish cross-build
-stability.
+selected RES/txb finding explains one surface's use of the second segment. It
+does not establish every PWIB handler or cross-build stability.
