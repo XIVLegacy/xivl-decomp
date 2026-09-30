@@ -2,8 +2,8 @@
 
 This page records the retail 1.23b native path from a CharaElement-owned
 appearance record, through queued actor dispatch, to equipment resource paths.
-It also records the upstream catalog-ID resolver and the remaining
-runtime-only producer boundary.
+It also records the upstream `actorclass_graphic` row resolver, the bounded
+item-sheet consumer result, and the remaining runtime-only producer boundary.
 
 ## Verdict
 
@@ -94,8 +94,9 @@ row key. A complete literal-displacement scan found its constructor zero and
 its flush clear plus the bounded writer `0x005868a0`, which selects literal
 IDs `0x005a0700..0x005a0703`. The retail `actorclass_graphic` catalog contains
 those exact row IDs as decimal rows 5900032 through 5900035. This proves a
-direct catalog-ID-to-packed-appearance edge without inferring the mapping from
-typed column names. Catalog citation:
+direct `actorclass_graphic` row-ID-to-packed-appearance edge without inferring
+the mapping from typed column names. It does not establish an item catalog ID.
+Catalog citation:
 `xivl-client-data:csv/actorclass_graphic.csv`; rows `5900032..5900035`;
 `sha256=7DA8241400530885E0A28DED04A03ACF2771B0580A79C1F49F46EE0861010611`;
 `extraction=2012.09.19.0001`.
@@ -146,7 +147,136 @@ CharaElement record. This remains a closed negative for a direct
 ItemBase-to-known-appearance path, not proof that no earlier per-field catalog
 resolver exists elsewhere.
 
+### Named item-sheet preload boundary
+
+The exact `equipment`/`weapon` name registration and
+`equipmentSheet`/`weaponSheet` property-consumer family does not establish an
+item catalog-ID-to-appearance mapping. Its observed work is name registration,
+sheet-control resolution, delegated source-key/value access, integer-key range
+checks, and preload bookkeeping.
+The first missing edge is the provenance that identifies a supplied integer
+key as an item catalog ID. No appearance-column read or value transfer to the
+known packed appearance path is proved in this family. This is a bounded
+negative for the entry points below, not for every possible sheet consumer or
+their unresolved indirect callbacks.
+
+All addresses are VAs in the pinned retail image identified above. Each of
+these six exact string addresses has one recognized reference in the fresh
+Ghidra export; none of the six reference sections is truncated.
+
+| String VA | Literal | Reference VA | Containing function VA |
+|---:|---|---:|---:|
+| `0x00f96534` | `equipment` | `0x004edc37` | `0x004edb60` |
+| `0x00f96540` | `weapon` | `0x004edc7e` | `0x004edb60` |
+| `0x00fd4c40` | `equipmentSheet` | `0x006f2769` | `0x006f2620` |
+| `0x00fd4c50` | `weaponSheet` | `0x006f2789` | `0x006f2620` |
+| `0x00fd4c88` | `equipmentSheet` | `0x006f64ef` | `0x006f6480` |
+| `0x00fd4c98` | `weaponSheet` | `0x006f650e` | `0x006f6480` |
+
+`0x004edb60` appends six names to storage with stride `0x54`, including the
+two sheet names. It stores its supplied value at receiver offset `0x510`;
+it does not itself open a sheet or look up a row. Its direct callers are
+`0x0050a8f0`, `0x0050a960`, and `0x00513660`, at call sites `0x0050a948`,
+`0x0050acd9`, and `0x005136cc`. Their setup calls supply the dword at offset
+`0x7c` in the object reached through owner offset `0x2c`; its item catalog-ID
+domain is not established.
+
+`0x006f2620` extracts four generic request arguments, resolves five named
+properties through `0x00cc7a20`, and casts the resulting controls from
+LuaControl to SpreadSheet. The five names include `equipmentSheet` and
+`weaponSheet`. It builds a checker through `0x007258c0` and submits it through
+`0x00cd2860`. The constructor stores its supplied values and sheet vector;
+the vtable installed at `0x00fd6150` selects `0x00727810` at slot 1. Neither
+the argument conversion nor the RTTI cast establishes the key's catalog
+namespace. The instructions at `0x006f2769`, `0x006f2789`, and
+`0x006f2828..0x006f2840` retain literal and cast operands that the decompiler
+omits from its call rendering.
+
+`0x006f6480` resolves and casts the same five properties, iterates integer
+keys from its owner's pointer range at `+0x134`, and tests each key against
+each resolved sheet through `0x006dffc0` at call site `0x006f669f`. That
+helper obtains `(start, length)` pairs through virtual offset `0x38` and
+tests `start <= key <= start + length - 1`. A successful test calls
+`0x006f63a0` at `0x006f66b3`; this removes a queued key and updates the
+keyed reference-count state at receiver offset `0xc4`. The callback at
+`0x006f646f` remains indirect. Range membership and reference counts do not
+supply an appearance tuple.
+
+The recognized references to the property-consumer entries are the function
+address load at `0x0073f897` and its register push at `0x0073f8ce` for
+`0x006f2620`, plus the corresponding load/push at `0x00746547` and
+`0x0074657e` for `0x006f6480`. They are not direct calls and do not establish
+a runtime invocation with a known item catalog ID. The separate direct callers of
+`0x006f63a0` are `0x006f6480`, `0x0075cea0`, `0x0075cf30`, `0x007631c0`,
+`0x0076a490`, and `0x0076e620`; the other callers' internals are outside this
+named-property trace.
+
+The checker `0x00727810` first enumerates its source object's key ranges and
+delegates access through `0x0078e220`, `0x0078e270`, and `0x0078e320`, then
+collects returned values through `0x00723c60`. Those helper internals are not
+part of the fresh body export, and no appearance-column semantics are proved
+for the collected values. It then routes keys through `0x006dffc0` and
+`0x006f0d80`. The latter checks the backing sheet at receiver offset `0xb4`,
+updates queued-key/reference-count state, and delegates a preload request to
+`0x00cc73e0`. That wrapper calls `0x00cd7a30` and `0x00cdaa30`; their internal
+effects are outside this bounded export. No numeric appearance columns are
+identified by these entry points, and the integer keys must remain unnamed
+until their input domain is established. Indirect completion callbacks and
+generic preload internals are not excluded as possible later evidence.
+
+The complete direct-reference export for `0x006307a0` contains only
+`0x00586b10` at `0x00586d78`, `0x006a7570` at `0x006a77ee`, and
+`0x00847be0` at `0x008481c0`. The first retains its separate missing static
+invocation edge. At the pack call in `0x006a7570`, the values come from a
+locally initialized constant array. At `0x008481c0`, a value bounded to
+`1..6` selects a word from the static table at `0x0103ee68`, alongside
+literal components `1` and `0`; its item catalog-ID domain is not proved.
+Neither call site establishes an item-sheet row lookup. In particular,
+`0x006307a0` ignores its first nominal component argument and packs the other
+three after masking each to ten bits; it leaves
+bits `31:30` zero. `0x006306f0` independently reads the four `2/10/10/10`
+lanes. Four incoming arguments therefore do not prove four sheet columns or
+four meaningful appearance components.
+
+The remaining discriminator is an alias-preserving trace from an independently
+identified item catalog ID to a `weapon` or `equipment` row lookup, its numeric
+columns and transformations, and a value passed into `0x006307a0` or a record
+proved to reach `0x006306f0`. A property name, a key-range match, or a preload
+callback registration cannot replace those edges.
+
 ## Reproduction
+
+The four `item-sheet-*` runs used the committed read-only runner
+`tools/ghidra/run-headless.ps1`, Ghidra 12.1.3, JDK 21, and the pinned binary
+above. Each run used a fresh import, completed with status `ok` and no analysis
+timeout, and discarded the imported program through the read-only option.
+Their exact query inputs were:
+
+```text
+item-sheet-literal-refs / FindCallers.java
+CALLER_VAS=0x00f96534,0x00f96540,0x00fd4c40,0x00fd4c50,0x00fd4c88,0x00fd4c98,0x006307a0,0x006306f0
+
+item-sheet-openers / DecompileToText.java
+DECOMP_VAS=0x004edb60,0x006f2620,0x006f6480,0x006307a0,0x006306f0
+
+item-sheet-owner-refs / FindCallers.java
+CALLER_VAS=0x004edb60,0x006f2620,0x006f6480,0x006f63a0
+
+item-sheet-handle-flow / DecompileToText.java
+DECOMP_VAS=0x0050a8f0,0x0050a960,0x00513660,0x006f63a0,0x006dffc0,0x007258c0,0x00727810,0x006f0d80,0x006f6160,0x00cc73e0,0x006a7570,0x00847be0
+```
+
+The script SHA-256 pins are
+`b553bdef091a047a6ec1639724fd5cf94775d5be05b5263bc9662dbf9071614f`
+for `FindCallers.java` and
+`83a31add99e86bea0128470e4cc52b193e373ebc342cf060861bd3c17339668a`
+for `DecompileToText.java`. All twelve requested reference sections are
+present and untruncated; all seventeen requested function bodies are present
+without a failed decompilation. Supporting instruction locators were checked
+against bytes in the same pinned PE. The global analyzer reported exception
+handling disassembly diagnostics at `0x005d615b`, `0x005d705b`, `0x005d6e5b`,
+and `0x00720075`, outside these body targets. Completeness here means the
+requested exports, not recovery of every computed or runtime call in the image.
 
 The fresh, read-only Ghidra run `item-appearance-native` used Ghidra
 12.1.3, JDK 21, the pinned binary above, and
