@@ -259,17 +259,130 @@ The generic named visibility helper has an authenticated scene producer.
 tools and executable pin. They establish a scene clip path, not a wire opcode
 or fleet policy binding.
 
+### Clip data producer
+
+The clip supplies resource-backed names and a Boolean at its execution entry.
+At `0x00816BD6`, clip instance
+`+0x14` supplies the current data record. Its u32 fields `+0x14/+0x1C`
+are indices passed at `0x00816C04/0x00816C35` to `0x00A20080`, then
+`0x00A26F00`. The latter adds a signed 16-bit table entry to the table base.
+`0x00A26FBE..0x00A26FC1` binds that table from the resource's `String`
+chunk, identified by the pointer at `0x01097FAC` to literal `0x00FAB6E8`.
+The byte at data `+0x25` is normalized with `SETNE` at `0x00816C56`.
+Data `+0x24` selects the resolver branch. Data `+0x18` supplies the kind,
+with a conditional `0x11` to `0x12` remap at `0x00816C13..0x00816C2A`.
+Data `+0x20` supplies the additional resolver selector.
+
+Registration at `0x00635C23..0x00635C33` associates literal
+`RaptureBgShowHideClip` (`0x00FBC914`) with factory `0x00639090`.
+That factory calls constructor `0x00816A90` at `0x006390F7`, through
+`0x008169B0` to base constructor `0x00A21260`. The base stores the supplied
+data pointer at clip instance `+0x14` (`0x00A21275`). Scheduler method
+`0x00A1CCF0` also calls `0x00A28420`, which rebinds that field at
+`0x00A284B7` to the current record returned by `0x00A29D80`.
+`0x00A29D90` advances records by a signed relative 16-bit offset.
+These are fields of the selected resource record. In an authored SCB, its
+record and `String` table fix the names, selectors and Boolean. No traced
+server input replaces those fields independently.
+The fleet SCB registry above names the engine `ShowHideClip`. It does not
+join that authored playback to the application `RaptureBgShowHideClip`.
+
+The searched producer set comprises that registration, factory, constructor,
+record binding and string lookup, the direct caller chain of `0x00617000`
+and `0x00616530`, both named resolvers, and the scene-operation dispatcher
+`0x0062CDA0`. Catalog-anchored native call inspection found the clip call at
+`0x00816C7F` as the only direct caller of `0x00617000` among the
+catalog-decoded functions.
+This is not an exhaustive indirect-call or script-API search.
+The dispatch byte table at `0x0062D0E0`, indexed by operation minus 4,
+and pointer table at `0x0062D078` join operation `0x15` to `0x0062CE38`.
+It passes a byte and three string spans to `0x00623CF0`, then requests a
+layout scheduler through `0x0064C000`. That request has no authenticated
+join to a fleet-only `RaptureBgShowHideClip` or its data `+0x25`.
+The resource-data entry at `0x00A2519A` is a virtual call through provider
+`+0x40`, slot `+0x04`; its selected input was not joined to a server API.
+On this traced clip path, the first unresolved producer edge is a
+server-reachable selection of an authored record containing the fleet-only
+targets and required value.
+
+These producer observations use the executable and native tool versions
+above. The direct-call search linearly decoded only function ranges in
+`config/ffxivgame.symbols.json` at
+`1944d844fbf8bb441aec1224d34b1fa92a538b3a`, then checked the selected
+calls, registration pointers and dispatch tables against the executable.
+Fresh read-only Ghidra runs `fleet-clip-producer-20261001-02` and
+`fleet-clip-data-20261001-02` used the same committed
+`DecompileToText.java` digest and runner as the earlier runs, Ghidra 12.1.3,
+JDK `21.0.12+8`, memory `8G`, and analysis timeout `0`. Both completed
+without an analysis timeout or selected-function failure. Their respective
+`DECOMP_VAS` sets were:
+
+- `0x00816B50,0x00816A20,0x00816CE0,0x00816CF0,0x0080FA00,0x00A21040,0x00A21220,0x00617000,0x00616530,0x0062BC40,0x0062A170,0x0062CDA0`
+- `0x00635760,0x00639090,0x00816A90,0x008169B0,0x00A21260,0x00A20080,0x00A26F00,0x00A26F70,0x00A25170,0x00A22C30,0x00A23DD0,0x00A25FA0,0x00A26260,0x00A26910,0x00A2A7D0,0x00A2A8A0,0x00A02360,0x00A01540`
+
+The current-record rebinding at `0x00A284B7` was checked by native
+disassembly. Resolver argument forwarding follows the native stack reads,
+not the decompiler's incomplete inferred signatures. The exports and
+temporary projects remain local-only.
+
+### Instance flag consumer
+
 At instance vtable `+0x98`, VA `0x00A99DB0` takes the low byte of its first
 argument, compares it with bit 1 at instance `+0x2A`, updates only that bit,
-and notifies parent `+0x44` and child `+0x48`. Inputs 0 and 1 clear and set
+and notifies receivers at `+0x44/+0x48`. Inputs 0 and 1 clear and set
 that bit. Direct stack tracing joins normalized clip data `+0x25` to that
 argument. Clip data `+0x24` selects the named resolution branch instead.
 The wrapper forwards its stack arguments 2 through 7, and each resolver
 passes its original argument 2 as `0x00629F20` argument 3. This is an exact
-generic flag boundary, with high confidence. Its effect on the fleet's
-complete body/VFX/sound family and post-load replay remain unresolved.
-No verified server operation supplies a fleet-only name and value through
-this path.
+generic flag boundary, with high confidence.
+
+The catalog places that setter at slot 38 of both `RaptureLayoutInstanceObject`
+vtable `0x00FF279C` and engine `LayoutInstanceObject` vtable `0x010A4024`.
+On a change, it calls the receiver stored at instance `+0x44` through vtable
+`+0x1D0` at `0x00A99DDF`, then the receiver at `+0x48` through `+0x9C`
+at `0x00A99DF0`, without passing the value as an explicit argument.
+The getter at `0x00A99DA0` returns bit 1. The separate setter at `0x00A99D50`
+changes bit 0, not bit 1. The first unresolved downstream edge is the concrete
+fleet receiver of those notifications and its render/audio consumer. The
+inspected setter and getter do not establish hide/show polarity, descendant
+coverage, or a sound mute.
+
+The searched consumer set comprised these instance methods and their vtable
+references, the named resolution/fanout methods, layout lookup and traversal,
+and selected body/VFX/sound clip entries. `0x00629F20` calls each resolved
+element's `+0x98`; this is vector fanout, not proof of recursive group effects.
+The inspected engine `ShowHideClip` entry at `0x00DE8130`, slot 1 of
+vtable `0x01134304`, resolves a dynamic receiver at `0x00DE8147` and calls
+its `+0x24` at `0x00DE818D` or `+0x20` at `0x00DE81B9`.
+It does not directly call instance `+0x98`; the dynamic calls remain unresolved.
+Application `LayVFXClip` (`0x010380E4`, entry `0x00833400`) and
+`LaySEClip` (`0x01038EAC`, entry `0x00833E90`) each call a resolved
+target's `+0x98` with literal 1 at `0x008334E7/0x00833F5A`.
+The engine clip classes have separate RTTI/vtables. Neither the fleet SCB
+registry-to-constructor mapping nor these resolved targets was authenticated
+to those application classes and `0x00A99DB0`. Consequently those literal-1
+calls do not prove that the fleet's clock-driven playback overwrites bit 1.
+They also do not prove that clearing it suppresses the complete body/VFX/sound
+family. No verified server operation supplies a fleet-only name and value
+through this path, so suppression initialization, reset and reapplication
+ordering remain unresolved separately for login, ordinary transfer and
+seamless crossing.
+
+Fresh read-only runs `fleet-instance-effect-20261001-02/decompile` and
+`fleet-instance-effect-20261001-02/callers` used the pinned executable,
+the same Ghidra/JDK versions and memory above, and analysis timeout `2700`.
+Both completed without a timeout or selected-function failure. The committed
+`DecompileToText.java` digest is given above; `FindCallers.java` had SHA-256
+`b553bdef091a047a6ec1639724fd5cf94775d5be05b5263bc9662dbf9071614f`.
+Both selected this VA set for decompilation or reference lookup:
+
+- `0x00A99C00,0x00A99D50,0x00A99DA0,0x00A99DB0,0x00629F20,0x0062A170,0x0062BC40,0x0062A1F0,0x0062A250,0x00DE8130,0x00833400,0x00833E90,0x00A20070,0x00A1FFA0,0x00A20F30,0x00624B30,0x00626710,0x00629E40`
+
+Native disassembly checked the flag writes and virtual call sites; catalog
+RTTI/vtable rows checked the application/engine identities. The reference
+export found only the two vtable data references to `0x00A99DB0`; it does not
+enumerate polymorphic calls or prove the absence of another writer. Raw
+exports and temporary projects remain local-only.
 
 The clock path is client-owned and targets the fleet timeline independently
 of SetDalamud. Changing its shared clock would also change other clock users.
@@ -364,13 +477,7 @@ the non-hit proves neither automatic playback nor absence of a server update.
 No activation stack or exact SCB runtime instance was obtained. The debugger
 was detached and the client remained running.
 
-If an observed playback-request stack is needed, the single bounded probe is a
-read-only breakpoint at `0x00627328` during one ordinary Ul'dah load.
-Require instance vtable `0x00FF279C`, owner `isgrp_000003`, hash-matched
-`wil_w0_air01`, and manipulator secondary vtable `0x0109F484`. Record the
-first matching caller stack, cursor, and clock, then capture the phase arguments
-at `0x00627384` within that same invocation, without invoking functions or
-writing state. Stop after that request or the completed load.
-This proposal has not been executed and does not prove independent suppression
-or its persistence across later transfers. Further capture is not required
-to reproduce the offline conclusions above.
+The offline findings above do not require another runtime probe. The traced
+application-clip candidate still needs a concrete fleet-only authored record
+and a server-reachable selection path; neither is authenticated here. The
+historical non-hit does not close that edge.
