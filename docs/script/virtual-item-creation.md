@@ -80,6 +80,55 @@ often it was polled, the cost per catalog entry, or when a window became
 visible. Short operating-system thread waits and fast completed file reads
 do not by themselves exclude time spent awaiting these client states.
 
+## First-stage sheet-loader state
+
+Fresh read-only runs `shop-predicate-dependencies-20261001-01` and
+`shop-sheet-loader-20261001-01` used the binary, script digest, Ghidra,
+JDK, memory limit and analysis-timeout qualification above. Their completed
+post-scripts decoded these respective argument sets:
+
+```text
+0x006df9f0:0x160 0x006dfb50:0x210 0x0075f5a0:0xb0
+0x006e0440:0x10f 0x006f6a80:0x23d
+
+0x006dfb50:0x610 0x006e0ef0:0x150 0x006dfad0:0x80
+0x006dd9d0:0x70 0x006e2d30:0x6b
+```
+
+Checker constructor `0x006e0440` allocates a child through
+`0x006df9f0` and stores it at checker `+0x08`
+(`0x006e047c..0x006e04a9`). The child constructor writes vtable VA
+`0x00fd5a30` at `0x006dfa23`, cataloged as
+`Application::Lua::Script::Client::Control::ItemSheetLoader`.
+The first-stage call loads that child as `ECX` at `0x006f6acf`.
+
+The checker also constructs an `ItemSheetLoadRequestSimple` through
+`0x006dd9d0`, whose vtable VA is `0x00fd5580`
+(`0x006e04f5..0x006e052c`, `0x006dda09`). Setter `0x006dfad0`
+stores the request at loader `+0x04` and clears its state bytes
+`+0x08` through `+0x0c` (`0x006dfb16..0x006dfb25`).
+
+The `0x006e2d30` query returns true immediately when loader byte
+`+0x0c` is 1. Otherwise, while byte `+0x08` is zero, it calls
+`0x006dfb50` and stores the returned boolean at `+0x08`
+(`0x006e2d39..0x006e2d73`). A false result remains incomplete.
+It also remains incomplete while byte `+0x0a` is zero. With `+0x0a`
+nonzero and `+0x0c` zero, the query calls `0x00419bc0` on the request
+field with argument zero, sets `+0x0c` to 1 and returns true
+(`0x006e2d75..0x006e2d98`).
+
+The loader's cataloged slot 1, `0x006e0ef0`, calls slot 3 on its
+request and writes byte `+0x0a` to 1 at `0x006e0f01`. The loader's
+constructor first writes vtable VA `0x00fd403c`, cataloged as
+`Component::Lua::GameEngine::ExecuteScriptListenerInterface`.
+This anchors the completion callback that changes the queried state.
+It does not identify the runtime caller or the callback's scheduling cost.
+
+A false first-stage result alone cannot distinguish an unsuccessful
+`0x006dfb50` attempt from waiting for the callback. The loader bytes
+and request path must be observed to resolve that distinction. The
+second-stage identifier-list predicate is a separate condition.
+
 ## Predicate observation points
 
 Fresh read-only run `shop-predicate-logpoints-20261001-01` used the same
