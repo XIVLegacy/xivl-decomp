@@ -96,6 +96,20 @@ for association with the visually described fleet. No decoded automatic-start
 field or runtime owner join follows from the absence of `IfClip`.
 The authored family includes fleet VFX and sound as well as body visibility.
 Changing the body words alone is not proof of a complete fleet disable.
+Four layouts also contain a separate authored airship unit tree. A whole-layout
+disable would couple the fleet to that tree; it is not an isolated fleet
+boundary. These physical DAT locators use the same LYB decoder and input
+hashes above. They do not establish a callable server control or a historical
+travel schedule.
+
+| Layout | Other unit tree @ physical DAT offset | Member aliases |
+| --- | --- | --- |
+| `sea_s0_air01` | `sgrp_bg_air` @ `0x2D40` | `spin`, `spot`, `_air_wing_spin`, `_air_wing_spot`, `_air_wing_clos`, `_air_wing_open`, `_air_show`, `_air_hide` |
+| `roc_r0_air01` | `sgrp_bg_air_low` @ `0x1AB0` | `stt0`, `end0`, `von1` |
+| `fst_f0_air01` | `sgrp_bg_air` @ `0x2D30` | Same eight aliases as Limsa |
+| `wil_w0_air01` | `sgrp_bg_air` @ `0x2D60` | Same eight aliases as Limsa |
+| `lak_l0_air01` | No second unit tree in the decoded node table | Unresolved controls remain |
+
 The separate group supplies a candidate boundary for isolation, but no
 authenticated server path to that boundary establishes preservation of
 travel/cutscene airships, moon, weather, or other decorations. Neither
@@ -200,11 +214,41 @@ observation does not authenticate an unmodified runtime or historical
 retail activation schedule. Raw snapshots, debugger logs, and image remain
 local-only.
 
+A subsequent read-only snapshot joined the loaded Ul'dah layout to placement
+`isgrp_000003`, serialized GID 935, and its `sgrp_bg_emp` base object, GID
+1157. The placement's unit-info table contained the exact eight aliases
+`emp_stt0`, `w_air_fuji_l_body1/2/3`, `vfx_hiku002_011/012/013`, and
+`sdef_teikoku_hikutei`. The relocated `emp_stt0` binding matched DAT member
+`0x35E0` and target timeline `0x47B4`, GID 1634. Each saved binding key,
+alias and target matched the pinned DAT bytes. This authenticates the live
+fleet resource/group join, with high confidence for those identities. It
+does not show whether that scheduler was running or which caller started it.
+
+The producing tool was Python 3.12 `ReadProcessMemory`; the snapshot SHA-256
+was `49fc4c21327b7377e97f632bcd924b15da82dc129c4367890507f1031f34b498`.
+To reproduce, resolve the named layout through `MapLayoutActor+0x138`, then
+subtract 4 from the pointer at layout `+0x24` to obtain its block manager,
+then walk the block's instance
+array at `+0x20` with count at `+0x24 & 0xFFFFFF`. Match the placed node and
+base-object identities against the DAT before inspecting unit-info members.
+Instance `+0x1C` points to unit-info; its `+0x84` points to the member
+table. Table `+0x14` points to the tree head, whose `+0x04` is the root.
+Tree nodes have left/right links at `+0x00/+0x08`, key at `+0x0C`,
+and member instance at `+0x10`; member instance `+0x20` points to the
+serialized binding with alias/target at `+0x14/+0x18`.
+The instance-name getter at VA `0x00A99C90` returns serialized node `+0x08`
+when instance `+0x08` is nonnull, otherwise member `+0x14` through instance
+`+0x20`. Direct Capstone disassembly authenticated those name fields. Live
+pointers are session-local and must be reacquired after layout unload.
+The saved snapshot omits the raw table-head and tree-node links; its member
+bindings can be checked against the DAT, but the traversal itself cannot be
+fully replayed from that snapshot.
+
 ## Unresolved control edges
 
 | Edge | Status |
 | --- | --- |
-| Fleet resource to layout group | Placed `sgrp_bg_emp` -> `emp_stt0` -> `time_bg_emp_stt0` -> SCB established; visual association probable |
+| Fleet resource to layout group | Static placed chain and live Ul'dah aliases/target established; exact rendered-object attribution remains unobserved |
 | Visibility consumer to initialization and producer | Unresolved |
 | Wire opcode/field, scene operation, actor work, or authored condition | Unresolved |
 | Exact enable and disable values | Authored body show/hide words 1/0 established; producer command values unresolved |
