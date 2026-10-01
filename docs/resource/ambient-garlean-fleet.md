@@ -12,8 +12,9 @@ The raw `RegionResourceData` at `data/03/C0/00/00.DAT` is 52,336 bytes,
 SHA-256 `c04b0d998aea4c1b13ed322292a5aa5af45485c698da2315171c3c024bcb9a74`.
 Its child rows join the following tokens to MapL DAT keys. The row offset is
 the first matching child record in that DAT. Parent IDs are resource-table
-IDs, not authenticated wire/server zone IDs. Actual per-zone loading and
-camera visibility are unresolved.
+IDs, not authenticated wire/server zone IDs. Per-zone coverage and camera
+visibility are unresolved; the live Ul'dah observation below is one exception
+to the absence of a loading observation.
 
 | Area family | Child / token | DAT key / bytes | SHA-256 | Region row / parent IDs | `sgrp_bg_emp` / `time_bg_emp_stt0` string offsets |
 | --- | --- | --- | --- | --- | --- |
@@ -173,6 +174,32 @@ their known boundaries are in
 [Weather transition runtime](../net/weather-transition-runtime.md).
 An event name or weather label supplies no fleet join.
 
+## Live Ul'dah observation
+
+On 2026-10-01 UTC, a test session using the hash-matched executable above
+had `wil_w0_air01` in `MapLayoutActor`'s loaded-layout array at `+0x138`.
+The object had RTTI vtable VA `0x00FBFEE4` (`RaptureLayoutManager`),
+resource key `0x615A001A` at `+0x158`, and name `wil_w0_air01` at `+0x17C`.
+The array's end pointer was at `+0x13C`. Direct disassembly of
+VA `0x00626710..0x0062681C` with Capstone 5.0.7 authenticated the pointer
+array walk and name comparison. This establishes a loaded resource, with
+high confidence; it does not establish an active scheduler or its producer.
+
+The producing tools were x86 CDB 10.0.29617.1000 and Python 3.12
+`ReadProcessMemory`, with no client function invocation or memory write.
+The retained local layout snapshot had SHA-256
+`189bdbee5ab8445376f963943237075148d0789e531be2a3bf106d2abb39693f`.
+A user-supplied image showed three Imperial ship bodies overhead; its
+SHA-256 was
+`716cd74c3be4df920fc2404086f36a581877066efa75acdfb11d16f517e3a001`.
+The user identified the area as Ul'dah privatearea, server zone 184. That
+reported zone number is not a decoded retail resource ID. The image and
+loaded resource strengthen the fleet association but do not isolate its
+render objects. The session included launcher and navigation hooks, so this
+observation does not authenticate an unmodified runtime or historical
+retail activation schedule. Raw snapshots, debugger logs, and image remain
+local-only.
+
 ## Unresolved control edges
 
 | Edge | Status |
@@ -190,17 +217,23 @@ An event name or weather label supplies no fleet join.
 | Need for a client change | Unresolved |
 
 No historical retail activation schedule follows from these static sources.
-No runtime probe or new capture was performed.
+The live observation above does not resolve the activation edge.
 
-## Single proposed probe
+## Activation probe boundary
 
-The first missing edge is the runtime activation owner. In a separately
-authorized retail debugger session, observe one ordinary load of Gridania
-layout 391 and stop on activation of the hash-matched `time_bg_emp_stt0`
-SCB above. Record only its caller stack, owning layout/instance, requested
-name and initial arguments, including whether activation came from layout
-initialization or an incoming update. Do not inject scheduler commands or
-change actor work, weather, Dalamud, or server state. End after the first
-matching activation or the completed load without one; a non-hit leaves
-the edge unresolved. This probe has not been executed and does not answer
-the later transfer/reset edges by itself.
+The initial probe used an authorized Ul'dah session. The fleet appeared
+before its start call was captured. A conditional hardware execution
+breakpoint at VA `0x0064C000` produced no matching fleet request during the
+retained observation. This candidate path was not established as exhaustive;
+the non-hit proves neither automatic playback nor absence of a server update.
+No activation stack or exact SCB runtime instance was obtained. The debugger
+was detached and the client remained running.
+
+The single remaining bounded probe is to arm an authenticated fleet scheduler
+start site before one ordinary Ul'dah load, then record the first matching
+`time_bg_emp_stt0` activation's caller stack, owning layout/instance, requested
+name and initial arguments. Establish whether it came from initialization or
+an incoming update. Do not inject commands or change actor work, weather,
+Dalamud, or server state. Stop after the first activation or completed load.
+That follow-up has not been executed and would not by itself resolve the
+later transfer/reset edges.
