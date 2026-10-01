@@ -1,6 +1,7 @@
 # Virtual-item predicate diagnostic
 
-`sample_virtual_item_state` records the two native completion results
+`sample_virtual_item_state` records the two native completion results,
+loader flags, a selected sheet-binding lookup and visited identifier checks
 identified in [virtual-item creation](../../docs/script/virtual-item-creation.md).
 It accepts only the pinned retail 1.23b executable and fixed observation
 addresses, apart from its separate synthetic fixture mode.
@@ -32,8 +33,10 @@ Windows 11. A Store-packaged engine can reject loading from an external
 executable. No debugger download or installation is performed by this tool.
 
 The asset-free fixture has independent instruction sites and known state.
-Tests check both phases and both boolean values, the raw builder field,
-the pre-store latch, idle capture, invalid-state cleanup, identity and
+Tests check both phases and both boolean values, the raw builder fields,
+loader state transitions, matching/different/null binding collections,
+identifier results and fixed field reads, the pre-store latch, idle capture,
+invalid checker/loader cleanup, identity and
 existing-output refusal, and Ctrl+Break cancellation. Each test requires
 that the fixture is no longer debugged, produces a heartbeat after detach,
 and subsequently exits normally. Fixtures are never terminated to pass
@@ -64,7 +67,8 @@ cancellation path. Do not close it while attached.
 
 The tool holds the queried process handle to prevent PID reuse, rejects
 an already debugged target, verifies the executable digest and loaded site
-signatures, and validates checker vtable and boolean state at each sample.
+signatures, and validates checker/loader vtables and known boolean fields
+at predicate samples. It uses four hardware execute observation points.
 It removes its breakpoints and resumes through the debugger engine before
 detaching. A timer interrupts the blocking event wait; it is joined before
 cleanup. This avoids losing available target context through a timed-out
@@ -74,18 +78,45 @@ and [detach behavior](https://learn.microsoft.com/en-us/windows-hardware/drivers
 
 ## Record interpretation
 
-The JSONL identity row records PID and executable/engine SHA-256. Predicate
-rows are buffered during attachment and written after cleanup; each records:
+The JSONL identity row records PID, executable/engine SHA-256 and
+`format_version: 2`. Observation rows are buffered during attachment and
+written after cleanup. All have `tid`, `utc_filetime` and `elapsed_ms`.
+The record contains three kinds of observation:
 
 | Field | Meaning |
 |---|---|
+| `kind=predicate` | Returned result at either original observation point. |
 | `phase` | 1: result from `0x006e2d30`; 2: result from `0x006ed9e0`. |
 | `result` | The returned `AL` boolean; 0 is pending and 1 is complete for that stage. |
 | `checker`, `builder` | Observed 32-bit addresses, not permanent operation IDs. |
 | `builder_18` | Raw dword at builder `+0x18`, without a semantic catalog-ID claim. |
+| `builder_10`, `builder_14` | Raw builder dwords, without an operation-ID claim. |
 | `first_done_before_store` | Checker byte `+0x21` at the observation point. |
+| `loader`, `loader_08` through `loader_0c` | Loader pointer and state bytes; `0b` remains uninterpreted. `08=1` with `0a=0` on a pending first query indicates waiting for its callback. |
+| `collection`, `collection_08` | Checker-owned collection pointer and its raw `+0x08` field. |
 | `tid` | Windows thread ID at the breakpoint. |
 | `utc_filetime`, `elapsed_ms` | Host observation time in FILETIME ticks and milliseconds since arming. |
+
+`kind=binding` at `0x006f5461` records `item`, `key_low`, `key_high`,
+`identifier`, `owner`, `container`, `context`, the returned `collection`,
+and `collection_08_before_insert` (null for a null returned collection).
+It observes only the selected native helper's conditional lookup path,
+before insertion. Compare its collection pointer with a predicate's
+checker-owned collection within the same lifetime; do not assume they match.
+A zero collection is still recorded, not replaced or repaired.
+
+`kind=identifier` at `0x006eda5a` records `collection`,
+`collection_08_before_erase`, `node`, `identifier`, `result` and `manager`.
+Result zero leaves that collection query pending; result one proceeds to
+conditional removal. The query stops on its first pending identifier,
+so these rows are the visited prefix, not a complete membership list.
+The [native observation contract](../../docs/script/virtual-item-creation.md#loader-and-collection-observation-contract)
+owns each register and field locator. No tree traversal or target function
+invocation occurs.
+
+Format 2 retains the original predicate fields but adds two row kinds.
+Analysis written for format 1 must filter by `kind` and understand these
+additional records; treating all observations as predicates is invalid.
 
 A `detached` row reports observation count, stop reason, and
 `host_snapshot_ms`: summed host time spent reading and buffering snapshots.

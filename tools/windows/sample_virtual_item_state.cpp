@@ -15,11 +15,13 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <type_traits>
+#include <variant>
 #include <vector>
 #include <wrl/client.h>
 
@@ -29,6 +31,7 @@ namespace
 {
 
 constexpr char              retail_sha[]        = "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9";
+constexpr unsigned          observation_sites   = 4;
 std::atomic<bool>           cancelled           = false;
 std::atomic<bool>           interrupt_requested = false;
 std::condition_variable_any timer_condition;
@@ -287,7 +290,7 @@ struct Session
             require(control->SetInterrupt(DEBUG_INTERRUPT_ACTIVE), "Request detach stop");
             require_event(control->WaitForEvent(0, 5000), "Detach stop");
         }
-        for (ULONG id = 0; id < 2; ++id)
+        for (ULONG id = 0; id < observation_sites; ++id)
         {
             if (!(owned & (1u << id)))
             {
@@ -378,6 +381,17 @@ ULONG reg(IDebugRegisters* registers, const char* name)
     return value.I32;
 }
 
+template <typename T>
+std::remove_cv_t<T> field(IDebugDataSpaces* memory, ULONG base, ULONG offset)
+{
+    const ULONG64 address = static_cast<ULONG64>(base) + offset;
+    if (!base || address + sizeof(T) - 1 > MAXDWORD)
+    {
+        throw std::runtime_error("Invalid x86 field address");
+    }
+    return read<T>(memory, address);
+}
+
 void breakpoint(Session& session, ULONG id, ULONG64 address)
 {
     // DbgEng owns breakpoint lifetime; RemoveBreakpoint deletes the object.
@@ -389,11 +403,30 @@ void breakpoint(Session& session, ULONG id, ULONG64 address)
     require(point->AddFlags(DEBUG_BREAKPOINT_ENABLED), "Enable processor breakpoint");
 }
 
+struct Predicate
+{
+    ULONG                        phase, checker, builder, builder_18, first_done, result;
+    ULONG                        builder_10, builder_14, loader, collection, collection_08;
+    std::array<unsigned char, 5> loader_flags;
+};
+
+struct Binding
+{
+    ULONG                item, key_low, key_high, identifier, owner, container, collection, context;
+    std::optional<ULONG> collection_08;
+};
+
+struct Identifier
+{
+    ULONG collection, collection_08, node, identifier, result, manager;
+};
+
 struct Observation
 {
-    ULONG   phase, tid, checker, builder, builder_18, first_done, result;
-    ULONG64 utc;
-    double  elapsed_ms;
+    ULONG                                        tid;
+    ULONG64                                      utc;
+    double                                       elapsed_ms;
+    std::variant<Predicate, Binding, Identifier> state;
 };
 
 std::string rows(const std::vector<Observation>& observations)
@@ -401,10 +434,44 @@ std::string rows(const std::vector<Observation>& observations)
     std::ostringstream lines;
     for (const auto& row : observations)
     {
-        lines << "{\"kind\":\"predicate\",\"phase\":" << row.phase << ",\"utc_filetime\":" << row.utc
-              << ",\"elapsed_ms\":" << row.elapsed_ms << ",\"tid\":" << row.tid << ",\"checker\":" << row.checker
-              << ",\"builder\":" << row.builder << ",\"builder_18\":" << row.builder_18
-              << ",\"first_done_before_store\":" << row.first_done << ",\"result\":" << row.result << "}\n";
+        if (const auto* predicate = std::get_if<Predicate>(&row.state))
+        {
+            lines << "{\"kind\":\"predicate\",\"phase\":" << predicate->phase << ",\"checker\":" << predicate->checker
+                  << ",\"builder\":" << predicate->builder << ",\"builder_18\":" << predicate->builder_18
+                  << ",\"builder_10\":" << predicate->builder_10 << ",\"builder_14\":" << predicate->builder_14
+                  << ",\"first_done_before_store\":" << predicate->first_done << ",\"result\":" << predicate->result
+                  << ",\"loader\":" << predicate->loader << ",\"collection\":" << predicate->collection
+                  << ",\"collection_08\":" << predicate->collection_08;
+            for (unsigned index = 0; index < predicate->loader_flags.size(); ++index)
+            {
+                lines << ",\"loader_0" << std::hex << index + 8 << std::dec << "\":" << static_cast<unsigned>(predicate->loader_flags[index]);
+            }
+        }
+        else if (const auto* binding = std::get_if<Binding>(&row.state))
+        {
+            lines << "{\"kind\":\"binding\",\"item\":" << binding->item << ",\"key_low\":" << binding->key_low
+                  << ",\"key_high\":" << binding->key_high << ",\"identifier\":" << binding->identifier
+                  << ",\"owner\":" << binding->owner << ",\"container\":" << binding->container
+                  << ",\"collection\":" << binding->collection << ",\"context\":" << binding->context
+                  << ",\"collection_08_before_insert\":";
+            if (binding->collection_08)
+            {
+                lines << *binding->collection_08;
+            }
+            else
+            {
+                lines << "null";
+            }
+        }
+        else
+        {
+            const auto& identifier = std::get<Identifier>(row.state);
+            lines << "{\"kind\":\"identifier\",\"collection\":" << identifier.collection
+                  << ",\"collection_08_before_erase\":" << identifier.collection_08 << ",\"node\":" << identifier.node
+                  << ",\"identifier\":" << identifier.identifier << ",\"result\":" << identifier.result
+                  << ",\"manager\":" << identifier.manager;
+        }
+        lines << ",\"utc_filetime\":" << row.utc << ",\"elapsed_ms\":" << row.elapsed_ms << ",\"tid\":" << row.tid << "}\n";
     }
     return lines.str();
 }
@@ -423,11 +490,12 @@ int wmain(int argc, wchar_t** argv)
         {
             throw std::runtime_error("Cannot install cancellation handler");
         }
-        ULONG        pid     = 0;
-        unsigned     seconds = 12;
-        std::wstring output_path, engine_path;
-        ULONG        site_one = 0x006f6ad8, site_two = 0x006f6c5c, checker_vtable = 0x00fd5958;
-        bool         fixture = false;
+        ULONG                                pid     = 0;
+        unsigned                             seconds = 12;
+        std::wstring                         output_path, engine_path;
+        std::array<ULONG, observation_sites> sites          = { 0x006f6ad8, 0x006f6c5c, 0x006f5461, 0x006eda5a };
+        ULONG                                checker_vtable = 0x00fd5958, loader_vtable = 0x00fd5a30;
+        bool                                 fixture = false;
         for (int index = 1; index < argc; ++index)
         {
             const std::wstring key = argv[index];
@@ -459,11 +527,19 @@ int wmain(int argc, wchar_t** argv)
             }
             else if (key == L"--first-site")
             {
-                site_one = std::stoul(value, nullptr, 0);
+                sites[0] = std::stoul(value, nullptr, 0);
             }
             else if (key == L"--second-site")
             {
-                site_two = std::stoul(value, nullptr, 0);
+                sites[1] = std::stoul(value, nullptr, 0);
+            }
+            else if (key == L"--binding-site")
+            {
+                sites[2] = std::stoul(value, nullptr, 0);
+            }
+            else if (key == L"--identifier-site")
+            {
+                sites[3] = std::stoul(value, nullptr, 0);
             }
             else
             {
@@ -474,7 +550,8 @@ int wmain(int argc, wchar_t** argv)
         {
             throw std::runtime_error("Use --pid, --output, --dbgeng absolute path, and --seconds 1..30");
         }
-        if (!fixture && (site_one != 0x006f6ad8 || site_two != 0x006f6c5c))
+        const std::array<ULONG, observation_sites> retail_sites = { 0x006f6ad8, 0x006f6c5c, 0x006f5461, 0x006eda5a };
+        if (!fixture && sites != retail_sites)
         {
             throw std::runtime_error("Retail observation points are fixed");
         }
@@ -488,11 +565,13 @@ int wmain(int argc, wchar_t** argv)
         if (fixture)
         {
             checker_vtable = 0x12345678;
+            loader_vtable  = 0x87654321;
         }
         output = std::make_unique<Output>(output_path);
         std::ostringstream identity;
         identity << "{\"kind\":\"identity\",\"pid\":" << pid << ",\"image_sha256\":\"" << sha
-                 << "\",\"engine_sha256\":\"" << hash_file(engine_path) << "\",\"fixture\":" << (fixture ? "true" : "false") << "}\n";
+                 << "\",\"engine_sha256\":\"" << hash_file(engine_path) << "\",\"fixture\":" << (fixture ? "true" : "false")
+                 << ",\"format_version\":2}\n";
         output->write(identity.str());
         // Keep the engine loaded until all COM objects and the session have gone.
         HMODULE engine = LoadLibraryExW(engine_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
@@ -528,22 +607,30 @@ int wmain(int argc, wchar_t** argv)
         require(session.client->AddProcessOptions(DEBUG_PROCESS_DETACH_ON_EXIT), "Detach-on-exit option");
         if (fixture)
         {
-            if (read<unsigned char>(memory.Get(), site_one) != 0x90 || read<unsigned char>(memory.Get(), site_two) != 0x90)
+            for (const auto site : sites)
             {
-                throw std::runtime_error("Fixture site signature rejected");
+                if (read<unsigned char>(memory.Get(), site) != 0x90)
+                {
+                    throw std::runtime_error("Fixture site signature rejected");
+                }
             }
         }
         else
         {
-            const std::array<unsigned char, 12> first  = { 0x3c, 0x01, 0x88, 0x46, 0x21, 0x0f, 0x85, 0x6a, 0x01, 0x00, 0x00, 0x8b };
-            const std::array<unsigned char, 4>  second = { 0x3c, 0x01, 0x75, 0x31 };
-            if (read<decltype(first)>(memory.Get(), site_one) != first || read<decltype(second)>(memory.Get(), site_two) != second)
+            const std::array<unsigned char, 12> first      = { 0x3c, 0x01, 0x88, 0x46, 0x21, 0x0f, 0x85, 0x6a, 0x01, 0x00, 0x00, 0x8b };
+            const std::array<unsigned char, 4>  second     = { 0x3c, 0x01, 0x75, 0x31 };
+            const std::array<unsigned char, 5>  binding    = { 0x8d, 0x4c, 0x24, 0x28, 0x51 };
+            const std::array<unsigned char, 4>  identifier = { 0x84, 0xc0, 0x74, 0x21 };
+            if (read<decltype(first)>(memory.Get(), sites[0]) != first || read<decltype(second)>(memory.Get(), sites[1]) != second ||
+                read<decltype(binding)>(memory.Get(), sites[2]) != binding || read<decltype(identifier)>(memory.Get(), sites[3]) != identifier)
             {
                 throw std::runtime_error("Loaded observation-point signatures rejected");
             }
         }
-        breakpoint(session, 0, site_one);
-        breakpoint(session, 1, site_two);
+        for (ULONG id = 0; id < sites.size(); ++id)
+        {
+            breakpoint(session, id, sites[id]);
+        }
         constexpr unsigned maximum_observations = 10000;
         observations.reserve(maximum_observations);
         const auto started     = std::chrono::steady_clock::now();
@@ -586,23 +673,72 @@ int wmain(int argc, wchar_t** argv)
             {
                 break;
             }
-            if (events.last_id > 1)
+            if (events.last_id >= sites.size())
             {
                 throw std::runtime_error("Unexpected debug stop, exception " + std::to_string(events.exception_code));
             }
-            const auto  before = std::chrono::steady_clock::now();
-            const ULONG self   = reg(registers.Get(), "esi");
-            const ULONG result = reg(registers.Get(), "eax") & 0xff;
-            if (read<ULONG>(memory.Get(), self) != checker_vtable)
+            const auto                                   before = std::chrono::steady_clock::now();
+            std::variant<Predicate, Binding, Identifier> state;
+            if (events.last_id < 2)
             {
-                throw std::runtime_error("Checker vtable rejected");
+                Predicate row{};
+                row.phase   = events.last_id + 1;
+                row.checker = reg(registers.Get(), "esi");
+                row.result  = reg(registers.Get(), "eax") & 0xff;
+                if (field<ULONG>(memory.Get(), row.checker, 0) != checker_vtable)
+                {
+                    throw std::runtime_error("Checker vtable rejected");
+                }
+                row.builder       = field<ULONG>(memory.Get(), row.checker, 0x10);
+                row.builder_18    = field<ULONG>(memory.Get(), row.builder, 0x18);
+                row.builder_10    = field<ULONG>(memory.Get(), row.builder, 0x10);
+                row.builder_14    = field<ULONG>(memory.Get(), row.builder, 0x14);
+                row.first_done    = field<unsigned char>(memory.Get(), row.checker, 0x21);
+                row.loader        = field<ULONG>(memory.Get(), row.checker, 0x08);
+                row.collection    = field<ULONG>(memory.Get(), row.checker, 0x0c);
+                row.collection_08 = field<ULONG>(memory.Get(), row.collection, 0x08);
+                if (field<ULONG>(memory.Get(), row.loader, 0) != loader_vtable)
+                {
+                    throw std::runtime_error("Loader vtable rejected");
+                }
+                row.loader_flags = field<decltype(row.loader_flags)>(memory.Get(), row.loader, 0x08);
+                if (row.result > 1 || row.first_done > 1 || row.loader_flags[0] > 1 || row.loader_flags[1] > 1 || row.loader_flags[2] > 1 || row.loader_flags[4] > 1)
+                {
+                    throw std::runtime_error("Non-boolean predicate state rejected");
+                }
+                state = row;
             }
-            const ULONG    builder    = read<ULONG>(memory.Get(), self + 0x10);
-            const ULONG    raw_item   = read<ULONG>(memory.Get(), builder + 0x18);
-            const unsigned first_done = read<unsigned char>(memory.Get(), self + 0x21);
-            if (result > 1 || first_done > 1)
+            else if (events.last_id == 2)
             {
-                throw std::runtime_error("Non-boolean predicate state rejected");
+                Binding row{};
+                row.item       = reg(registers.Get(), "esi");
+                row.key_low    = field<ULONG>(memory.Get(), row.item, 0x10);
+                row.key_high   = field<ULONG>(memory.Get(), row.item, 0x14);
+                row.identifier = reg(registers.Get(), "edi");
+                row.owner      = reg(registers.Get(), "ebx");
+                row.container  = field<ULONG>(memory.Get(), row.owner, 0x12c);
+                row.collection = reg(registers.Get(), "eax");
+                row.context    = reg(registers.Get(), "ebp");
+                if (row.collection)
+                {
+                    row.collection_08 = field<ULONG>(memory.Get(), row.collection, 0x08);
+                }
+                state = row;
+            }
+            else
+            {
+                Identifier row{};
+                row.collection    = reg(registers.Get(), "edi");
+                row.collection_08 = field<ULONG>(memory.Get(), row.collection, 0x08);
+                row.node          = reg(registers.Get(), "ebx");
+                row.identifier    = field<ULONG>(memory.Get(), row.node, 0x0c);
+                row.result        = reg(registers.Get(), "eax") & 0xff;
+                row.manager       = field<ULONG>(memory.Get(), reg(registers.Get(), "esp"), 0x0c);
+                if (row.result > 1)
+                {
+                    throw std::runtime_error("Non-boolean identifier result rejected");
+                }
+                state = row;
             }
             ULONG tid = 0;
             require(system->GetCurrentThreadSystemId(&tid), "Thread identity");
@@ -611,7 +747,7 @@ int wmain(int argc, wchar_t** argv)
             ULARGE_INTEGER utc{};
             utc.LowPart  = stamp.dwLowDateTime;
             utc.HighPart = stamp.dwHighDateTime;
-            observations.push_back({ events.last_id + 1, tid, self, builder, raw_item, first_done, result, utc.QuadPart, std::chrono::duration<double, std::milli>(before - started).count() });
+            observations.push_back({ tid, utc.QuadPart, std::chrono::duration<double, std::milli>(before - started).count(), state });
             snapshot_ms += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - before).count();
             if (cancelled || std::chrono::steady_clock::now() >= deadline || observations.size() == maximum_observations)
             {

@@ -286,3 +286,54 @@ records these two results against an explicitly selected live process.
 Synthetic fixture verification proves the instrument's state capture
 and tested cleanup paths; a retail runtime record is still needed to
 identify which stage remains pending during an actual shop opening.
+
+### Loader and collection observation contract
+
+Fresh read-only run `shop-item-state-sites-20261001-01` used the evidence
+identity and bounded-analysis contract above. Its completed post-script
+decoded these arguments:
+
+```text
+0x6ed9e0:0xb5 0x763240:0x7e 0x6eb5a0:0x99
+0x6f5400:0x92 0x6f54a0:0x68 0x6df580:0xab 0x6f6a80:0x23d
+```
+
+Focused read-only run `shop-item-state-return-20261001-01` used the same
+contract with argument `0x763240:0x81`. Its completed post-script included
+both returns from the identifier query: `RET 0x4` at `0x007632b2` and
+`0x007632be`. Both results remove the supplied argument before returning
+to `0x006eda5a`, preserving the caller's manager slot at `[ESP+0x0c]`.
+
+At either predicate site, checker `+0x08` holds the loader pointer and
+`+0x0c` holds the checked collection. The diagnostic reads loader bytes
+`+0x08..+0x0c` with the `ItemSheetLoader` vtable identity above. Byte
+`+0x0b` remains uninterpreted. Builder `+0x10/+0x14` are recorded as raw
+dwords, without assigning them an operation or catalog identity. The base
+constructor copies the supplied two-dword value to those fields
+(`0x006df5b9..0x006df5c9`).
+
+At `0x006f5461`, `EAX` is the just-returned collection from `0x007646d0`.
+`ESI` is the resolved item, with its key at `+0x10/+0x14`; `EDI` retains
+its raw `+0x24` identifier. `EBX` holds the owner whose `+0x12c` supplies
+the collection container; `EBP` holds the Lua context
+(`0x006f5422..0x006f5461`). The next instructions insert the identifier.
+A sample here establishes entry to this selected binding path, not coverage
+of every `_bindSpreadSheetData` branch. A null lookup is recorded without
+reading through it; the diagnostic does not repair the target's result.
+
+At `0x006eda5a`, `AL` is the returned boolean from `0x00763240` for node
+`EBX`'s `+0x0c` identifier. `EDI` still holds the checked collection and
+`[ESP+0x0c]` holds the manager pointer
+(`0x006ed9ec..0x006eda5a`). Result zero exits the collection query as pending.
+Result one continues to the conditional removal path
+(`0x006eda5c..0x006eda7f`). These samples expose the visited identifiers;
+the query stops at its first pending result, so they are not a full membership
+enumeration. The raw collection `+0x08` field is captured at both predicate
+sites and before binding insertion or conditional identifier removal.
+
+Loaded signatures for the added sites are `8d 4c 24 28 51` at
+`0x006f5461` and `84 c0 74 21` at `0x006eda5a`. Both are hardware execute
+observation points. The instrument only reads registers and fixed fields;
+it neither invokes target functions nor traverses collection nodes.
+Pointer/key comparisons require the same live lifetime: addresses may be
+reused, and a matching key alone does not establish the container instance.

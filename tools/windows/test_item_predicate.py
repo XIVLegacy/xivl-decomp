@@ -18,7 +18,8 @@ def main():
     parser.add_argument("--engine", type=Path, required=True)
     parser.add_argument("--output-directory", type=Path, required=True)
     parser.add_argument(
-        "--case", choices=["capture", "idle", "bad-state", "guards", "cancel"]
+        "--case",
+        choices=["capture", "idle", "bad-state", "bad-loader", "guards", "cancel"],
     )
     args = parser.parse_args()
     args.output_directory.mkdir(parents=True, exist_ok=False)
@@ -48,8 +49,32 @@ def main():
             text=True,
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
-        pid, first, second = fixture.stdout.readline().split()
-        assert first != second, "Compiler folded fixture sites together"
+        pid, first, second, binding, identifier = fixture.stdout.readline().split()
+        assert len({first, second, binding, identifier}) == 4, (
+            "Compiler folded fixture sites together"
+        )
+        state_label, *state_values = fixture.stdout.readline().split()
+        assert state_label == "state" and len(state_values) == 12
+        expected = dict(
+            zip(
+                [
+                    "checker",
+                    "builder",
+                    "loader",
+                    "collection",
+                    "other_collection",
+                    "item",
+                    "other_item",
+                    "owner",
+                    "container",
+                    "context",
+                    "node",
+                    "manager",
+                ],
+                (int(value, 16) for value in state_values),
+                strict=True,
+            )
+        )
         heartbeats = []
 
         def drain():
@@ -71,7 +96,16 @@ def main():
             "--dbgeng",
             str(args.engine.resolve()),
         ]
-        sites = ["--first-site", "0x" + first, "--second-site", "0x" + second]
+        sites = [
+            "--first-site",
+            "0x" + first,
+            "--second-site",
+            "0x" + second,
+            "--binding-site",
+            "0x" + binding,
+            "--identifier-site",
+            "0x" + identifier,
+        ]
         try:
             if name == "guards":
                 rejected = subprocess.run(
@@ -122,9 +156,13 @@ def main():
                         ctypes.get_last_error()
                     )
                 stdout, stderr = tool.communicate(timeout=15)
-                if mode == "bad-state":
+                if mode in {"bad-state", "bad-loader"}:
                     assert tool.returncode == 1, (stdout, stderr)
-                    assert "Checker vtable rejected" in stderr
+                    assert (
+                        "Checker vtable rejected"
+                        if mode == "bad-state"
+                        else "Loader vtable rejected"
+                    ) in stderr
                     records = [
                         json.loads(line)
                         for line in log.read_text(encoding="utf-8").splitlines()
@@ -139,6 +177,7 @@ def main():
                         json.loads(line) for line in log.read_text().splitlines()
                     ]
                     assert records[0]["fixture"] is True
+                    assert records[0]["format_version"] == 2
                     assert records[-1]["kind"] == "detached"
                     assert records[-1]["observations"] == len(records) - 2
                     assert records[-1]["stop_reason"] == (
@@ -148,16 +187,113 @@ def main():
                     if mode == "idle":
                         assert not observations
                     else:
-                        assert {(r["phase"], r["result"]) for r in observations} == {
+                        predicates = [
+                            r for r in observations if r["kind"] == "predicate"
+                        ]
+                        bindings = [r for r in observations if r["kind"] == "binding"]
+                        identifiers = [
+                            r for r in observations if r["kind"] == "identifier"
+                        ]
+                        assert {(r["phase"], r["result"]) for r in predicates} == {
                             (1, 0),
                             (1, 1),
                             (2, 0),
                             (2, 1),
                         }
-                        assert all(r["builder_18"] == 314159 for r in observations)
+                        assert all(r["builder_18"] == 314159 for r in predicates)
+                        assert all(
+                            all(
+                                r[field] == expected[field]
+                                for field in [
+                                    "checker",
+                                    "builder",
+                                    "loader",
+                                    "collection",
+                                ]
+                            )
+                            for r in predicates
+                        )
                         assert all(
                             r["first_done_before_store"] == r["phase"] - 1
-                            for r in observations
+                            for r in predicates
+                        )
+                        assert all(
+                            (r["builder_10"], r["builder_14"])
+                            == (0x10203040, 0x50607080)
+                            for r in predicates
+                        )
+                        assert all(r["loader_0b"] == 0x5A for r in predicates)
+                        assert {
+                            (
+                                r["loader_08"],
+                                r["loader_09"],
+                                r["loader_0a"],
+                                r["loader_0c"],
+                            )
+                            for r in predicates
+                            if r["phase"] == 1
+                        } == {(0, 0, 0, 0), (1, 1, 0, 0), (1, 1, 1, 1)}
+                        owned_collections = {r["collection"] for r in predicates}
+                        assert len(owned_collections) == 1
+                        assert any(
+                            r["collection"] in owned_collections
+                            and (r["key_low"], r["key_high"])
+                            == (0x10203040, 0x50607080)
+                            for r in bindings
+                        )
+                        assert any(
+                            r["collection"] not in owned_collections
+                            and r["collection"] != 0
+                            and (r["key_low"], r["key_high"])
+                            == (0x11111111, 0x22222222)
+                            for r in bindings
+                        )
+                        assert any(
+                            r["collection"] == 0
+                            and r["collection_08_before_insert"] is None
+                            for r in bindings
+                        )
+                        assert all(
+                            r["collection_08_before_insert"] in {0, None}
+                            for r in bindings
+                        )
+                        assert all(
+                            r["item"] == expected["item"] and r["identifier"] == 271828
+                            if r["collection"] == expected["collection"]
+                            else r["item"] == expected["other_item"]
+                            and r["identifier"] == 161803
+                            for r in bindings
+                        )
+                        assert {r["collection"] for r in bindings} == {
+                            expected["collection"],
+                            expected["other_collection"],
+                            0,
+                        }
+                        assert all(
+                            r["identifier"] == 271828
+                            and r["collection"] in owned_collections
+                            and r["collection_08_before_erase"] == 1
+                            for r in identifiers
+                        )
+                        assert {r["result"] for r in identifiers} == {0, 1}
+                        assert all(
+                            r["collection_08"] == 1 - r["result"]
+                            for r in predicates
+                            if r["phase"] == 2
+                        )
+                        assert all(
+                            all(
+                                r[field] == expected[field]
+                                for field in ["owner", "container", "context"]
+                            )
+                            for r in bindings
+                        )
+                        assert all(
+                            all(
+                                r[field] == expected[field]
+                                for field in ["manager", "node"]
+                            )
+                            for r in identifiers
                         )
             finished = time.monotonic()
             time.sleep(0.2)
@@ -185,10 +321,12 @@ def main():
     for name in (
         [args.case]
         if args.case
-        else ["capture", "idle", "bad-state", "guards", "cancel"]
+        else ["capture", "idle", "bad-state", "bad-loader", "guards", "cancel"]
     ):
         exercise(
-            name, name if name in {"idle", "bad-state"} else None, name == "cancel"
+            name,
+            name if name in {"idle", "bad-state", "bad-loader"} else None,
+            name == "cancel",
         )
 
 
