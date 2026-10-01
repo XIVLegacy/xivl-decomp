@@ -3,7 +3,9 @@
 Five retail air layouts name an Imperial airship family through `sgrp_bg_emp`,
 `grp_air_emp1/2/3`, `w_air_fuji_l_body1/2/3`, `sdef_teikoku_hikutei`,
 `emp_stt0`, and `time_bg_emp_stt0`. Their assignment to the observed ambient
-Garlean fleet is probable. An independent server control remains unresolved.
+Garlean fleet is supported by the live resource join below. Retail code
+directly selects `emp_stt0` and applies a clock-derived timeline phase.
+An independent server control remains unresolved.
 The meteor selector and ordinary transport scenes do not establish that control.
 
 ## Affected-layout and control candidates
@@ -35,7 +37,8 @@ the three body names at `0x1401/0x1431/0x1461`,
 `sdef_teikoku_hikutei` at `0x1484`, and `emp_stt0` at `0x1499`.
 These are exact literal locators, with high confidence for byte presence.
 The structural join below establishes a placed scheduler family. Automatic
-playback and a server enable/disable value remain unresolved for every row.
+playback has a direct binary consumer below. A server enable/disable value
+remains unresolved for every row.
 
 The producing method was a Python 3 binary read: walk the `0x30`-byte
 RegionResourceData records from `0x40` using parent count at `0x24` and child
@@ -188,6 +191,93 @@ their known boundaries are in
 [Weather transition runtime](../net/weather-transition-runtime.md).
 An event name or weather label supplies no fleet join.
 
+## Direct fleet clock consumer
+
+VA `0x00627180` directly joins the placed fleet to timeline playback.
+It selects the first stored layout whose `+0x150` classification is
+`0x4000` through `0x00626940`, looks up kind 7 and literal `emp_stt0`
+(`0x00FB9860`) through layout `+0xE0`, and accepts only placement owners
+`isgrp_000002`, `isgrp_000003`, or `isgrp_000005`. The owner pointer table
+is at `0x012B82DC`; its strings are at `0x00FB9850`, `0x00FB9840`, and
+`0x00FB9830`. All five placements in the DAT table match these names.
+The selector itself does not test layout readiness.
+
+At `0x00627301..0x00627333`, instance vtable `+0xBC` supplies the timeline
+property and its secondary interface vtable `+0x78` supplies the manipulator.
+The constructor at `0x00A78180` authenticates
+`SQEX::CDev::Engine::Lay::Default::External::Cut::Scheduler::LaySchedulerManipulator`,
+with secondary vtable `0x0109F484`. Its `+0x10` method (`0x00A77D60`)
+clears flag bits with mask `0xF9` and invokes child cleanup. Its `+0x0C`
+method (`0x00A77D10`) forwards the first argument to child vtable `+0x84`,
+calls child `+0x2C`, then dispatches manipulator `+0x20`. The child phase
+setter at `0x00A1B8B0` stores the argument at `+0x1CC` and clears three
+evaluation fields. This supports a reset followed by start/seek at a phase,
+with high confidence. The second argument `-1` bypasses a positive-only
+branch in `0x00A77D10`; it is not a fleet enable value.
+
+The phase comes from the unsigned 64-bit clock at `WeatherManager+0x108`,
+returned by `0x007E0450`. RTTI at vtable `0x00FF05CC` and constructor
+`0x007E8AE0` authenticate that owner. Native CRT helpers at
+`0x009D5880`, `0x009D9970`, and `0x009D9AB0` derive
+`floor(clock / 60) % 1440`. The signed boundary table at `0x00FBAC28` is
+`[-180, 180, 540, 900, 1260, 1620]`, forming six-clock-hour windows.
+The initial cursor at `MapLayoutActor+0x330` selects the current window.
+After a successful dispatch, the cursor advances and wraps to 1 at 5.
+Subsequent dispatches occur within windows beginning at 03:00, 09:00,
+15:00, and 21:00, rather than requiring a call at those exact times.
+
+For nonnegative minute offset `delta` within a window, the native phase is
+the truncation of `float32(floor(delta * 4200000 / 1440) / 1000) * 300000`.
+The relevant instructions are `0x0062722E..0x00627245` and
+`0x00627353..0x00627384`. These clock phases and the authored SCB values
+describe client playback. They do not establish historical retail activation
+dates or a separate server policy.
+
+| Control or lifecycle boundary | Retail observation / locator | Remaining limit |
+| --- | --- | --- |
+| Scope | First stored classification `0x4000` layout, `emp_stt0`, and the three placement names above | No per-player or independent server Boolean established |
+| Entry gate | `0x00627186` rejects `MapLayoutActor+0x1F0 == 3`; null `+0x158` also exits | Meaning of state 3 unresolved |
+| Readiness | Caller `0x00629890` requires any one of `+0x17C/+0x180/+0x184`, nonnull `+0x164`, and `0x00623E20` success before call at `0x006298E2` | Readiness is for the selected main/other layout, not proof that every fleet target is ready |
+| Initialization | Constructor `0x0062D520` writes cursor 0 at `0x0062D7C1`; it creates the clock owner and supplies clock 36000 through `0x007E1600` | Actual login ordering and later synchronization unresolved |
+| Reset | `0x0062D1C0` writes cursor 0 at `0x0062D403`; scene operation `0x14` in `0x0062CDA0` writes it at `0x0062CE22` | Resource-miss/requeue paths bypass the first write; ordinary transfer and seamless crossing are not separately authenticated |
+| Retry | Cursor selection precedes object/owner/manipulator lookup; advancement follows the dispatch at `0x00627384` | A nonzero cursor retries only in its selected window; failure in initial interval 0 leaves the zero sentinel and permits another window search |
+| Clock production | `0x007E1600` writes the shared clock; scene operation `0x64` reaches it at `0x0062CEBF`. Operation `0x66` reaches alternate writer `0x007E1820`. Per-frame `0x007E91D0` calls clock advancement `0x007E0BC0` | Incoming wire field and complete clock override ordering unresolved |
+| Exact values | SCB body show/hide words are 1/0; the direct fleet path supplies phase and `-1` to playback | No producer enable/disable command values established |
+
+These observations were read directly from the pinned executable with Python
+3.12, Capstone 5.0.7, and pefile 2024.8.26. The native constants, CRT return
+registers, cursor writes, RTTI, and vtable destinations were checked against
+the bytes. No decompiled function body is retained here.
+
+## Independent suppression boundary
+
+The generic named visibility helper has an authenticated scene producer.
+`Application::Scene::Cut::Clip::RaptureBgShowHideClip`, vtable
+`0x0100226C`, dispatches VA `0x00816B50`; its call at `0x00816C7F` reaches
+`0x00617000`, then `0x00616530`, the named resolution helpers above, and
+`0x00629F20`. These instructions and RTTI were checked with the same native
+tools and executable pin. They establish a scene clip path, not a wire opcode
+or fleet policy binding.
+
+At instance vtable `+0x98`, VA `0x00A99DB0` takes the low byte of its first
+argument, compares it with bit 1 at instance `+0x2A`, updates only that bit,
+and notifies parent `+0x44` and child `+0x48`. Inputs 0 and 1 clear and set
+that bit. Direct stack tracing joins normalized clip data `+0x25` to that
+argument. Clip data `+0x24` selects the named resolution branch instead.
+The wrapper forwards its stack arguments 2 through 7, and each resolver
+passes its original argument 2 as `0x00629F20` argument 3. This is an exact
+generic flag boundary, with high confidence. Its effect on the fleet's
+complete body/VFX/sound family and post-load replay remain unresolved.
+No verified server operation supplies a fleet-only name and value through
+this path.
+
+The clock path is client-owned and targets the fleet timeline independently
+of SetDalamud. Changing its shared clock would also change other clock users.
+Hiding the entire air layout would couple the separate airship trees listed
+above. Neither action satisfies an isolated fleet switch. The available
+evidence supports the fleet group as a candidate boundary, but does not yet
+establish a server-only switch or prove that a client change is necessary.
+
 ## Live Ul'dah observation
 
 On 2026-10-01 UTC, a test session using the hash-matched executable above
@@ -249,19 +339,20 @@ fully replayed from that snapshot.
 | Edge | Status |
 | --- | --- |
 | Fleet resource to layout group | Static placed chain and live Ul'dah aliases/target established; exact rendered-object attribution remains unobserved |
-| Visibility consumer to initialization and producer | Unresolved |
-| Wire opcode/field, scene operation, actor work, or authored condition | Unresolved |
-| Exact enable and disable values | Authored body show/hide words 1/0 established; producer command values unresolved |
-| Player, area, layout, or global scope | Unresolved |
-| Login reset and reapplication | Unresolved |
-| Ordinary zone-transfer reset and reapplication | Unresolved |
-| Seamless-crossing reset and reapplication | Unresolved |
-| Ordering relative to layout readiness or another update | Unresolved |
+| Visibility consumer to initialization and producer | Direct `emp_stt0` clock phase and scheduler reset/start/seek established above |
+| Wire opcode/field, scene operation, actor work, or authored condition | Shared clock writers and operations `0x64/0x66` established; no dedicated fleet switch established |
+| Exact enable and disable values | Authored body words 1/0 and generic instance bit clear/set inputs 0/1 established above; producer switch values unresolved |
+| Player, area, layout, or global scope | Direct consumer targets one classification `0x4000` layout and matching placement; server policy scope unresolved |
+| Login reset and reapplication | Constructor cursor reset established; actual login order unresolved |
+| Ordinary zone-transfer reset and reapplication | Resource-transition cursor reset established; ordinary transfer binding and suppression replay unresolved |
+| Seamless-crossing reset and reapplication | Unresolved separately from the resource-transition reset |
+| Ordering relative to layout readiness or another update | Caller readiness and clock-window retry established; suppression ordering unresolved |
 | Independent server-only switch and coupled content | Unresolved |
 | Need for a client change | Unresolved |
 
 No historical retail activation schedule follows from these static sources.
-The live observation above does not resolve the activation edge.
+The live observation above does not establish which activation occurred in
+that session. The offline consumer establishes a retail activation mechanism.
 
 ## Activation probe boundary
 
@@ -273,11 +364,13 @@ the non-hit proves neither automatic playback nor absence of a server update.
 No activation stack or exact SCB runtime instance was obtained. The debugger
 was detached and the client remained running.
 
-The single remaining bounded probe is to arm an authenticated fleet scheduler
-start site before one ordinary Ul'dah load, then record the first matching
-`time_bg_emp_stt0` activation's caller stack, owning layout/instance, requested
-name and initial arguments. Establish whether it came from initialization or
-an incoming update. Do not inject commands or change actor work, weather,
-Dalamud, or server state. Stop after the first activation or completed load.
-That follow-up has not been executed and would not by itself resolve the
-later transfer/reset edges.
+If an observed playback-request stack is needed, the single bounded probe is a
+read-only breakpoint at `0x00627328` during one ordinary Ul'dah load.
+Require instance vtable `0x00FF279C`, owner `isgrp_000003`, hash-matched
+`wil_w0_air01`, and manipulator secondary vtable `0x0109F484`. Record the
+first matching caller stack, cursor, and clock, then capture the phase arguments
+at `0x00627384` within that same invocation, without invoking functions or
+writing state. Stop after that request or the completed load.
+This proposal has not been executed and does not prove independent suppression
+or its persistence across later transfers. Further capture is not required
+to reproduce the offline conclusions above.
