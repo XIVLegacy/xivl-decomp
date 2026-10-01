@@ -366,38 +366,20 @@ end
 -- _onPushEvent (line 525): calls self:_callServerOnPush(player, packet)
 ```
 
-So the engine fires `npc:_onTalkEvent(player, packet)` when the
-player clicks an NPC -> Lua wrapper calls
-`npc:_callServerOnTalk_cpp(player, packet)` -> **the C++ binding
-side-effects `npc[+0x128] = player_actor_id`** (the priming
-write) AND sends the server-side talk request packet.
+The Lua wrapper establishes a call to the native talk binding. It does not
+establish a write to `npc[+0x128]`. Direct Capstone inspection of the matching
+retail binary identifies native entry `0x006e9520` and its helper
+`0x006e5c00`. The entry resolves a condition from the NPC's `+0xe8` vector.
+The helper calls the request sender at `0x006e2e40`, then accesses the
+player's `+0xf8` event context and installs a checker for its active block.
+Neither bounded body contains the asserted NPC `+0x128` priming write.
+An indirect write remains unresolved.
 
-This is the **previously-missing primer**. It's NOT a packet
-receiver - it's a CLIENT-SIDE engine binding that runs as part of
-the player's interaction action, BEFORE the server is even
-informed.
-
-### The full kick state-machine timing
-
-```
-1. Player clicks Yda NPC in Gridania
-2. Client engine: npc:_onTalkEvent(player, packet)
-   +- npc:_callServerOnTalk_cpp(player, packet)
-   |  +- npc[+0x128] = player_actor_id    NOTE PRIMING (side effect)
-   |  +- send TalkRequest packet to server
-3. Server processes talk request
-4. Server responds with Kick packet (cinematic start)
-5. Client KickReceiver.slot[2]:
-   +- context_root = npc (via vtable[1][+0xc])
-   +- Branch A check: [+0x12c] == NO_ACTOR? -> no current target
-   +- Branch B1/B2 check: [+0x128] == NO_ACTOR?
-   |  +- If primed (step 2 fired): Branch B2 -> look up actor -> SUCCESS
-   |  +- If NOT primed: Branch B1 -> silent fall-through
-```
-
-If the NPC is not talkable and `_isTalkable_cpp` returns false, the engine does
-not dispatch `_onTalkEvent`, so the talk request never reaches this priming
-path. The exact `_callServerOnTalk_cpp` address remains unresolved.
+The binary identity and direct-disassembly method are recorded in
+[Server-order talk admission](server-order-talk-admission.md#evidence-identity-and-method).
+That finding also distinguishes a pending talk request from a normal talk
+callback. A talk request alone does not prove that the normal callback ran or
+that the kick-target fields were primed.
 
 ## Cross-references
 

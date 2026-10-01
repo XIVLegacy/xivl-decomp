@@ -162,8 +162,9 @@ cause. The hang is at the **KICK** stage (`+0x5c` gate) and
 possibly cascades to **RunEventFunction** (`+0x7d` gate). EndEvent
 will eventually land regardless.
 
-This is a discriminated-union opcode with up to 102 type variants. The exact
-byte-value mapping remains unidentified in `FUN_008a13a0`'s jump table.
+This is a discriminated-union opcode with up to 102 type variants. The active
+bands are mapped below. The concrete type-51 producer and its selector-2
+admission path are recorded in [Server-order talk admission](server-order-talk-admission.md).
 
 ## Architectural insight - the consistent receiver shape
 
@@ -345,14 +346,11 @@ slot 3 doesn't affect the response.
    | 6..49, 56..99 | no-op | RET |
    | 75..80, 100..101 | no-op | RET (different `RET 0x4` instance) |
 
-   The cleanup-band trigger remains unidentified. Candidate explanations are:
-   - Special engine events (cinematic teardown, instance
-     dismissal) emitted outside the quest-script path
-   - Internal client-driven cleanup (the receiver might call
-     itself with event_type+50 after an invoke), but no static
-     evidence of this
-   - Dead code from an earlier protocol revision that's no
-     longer reachable
+   Type `51` has a concrete client-side request producer. Selector `2`
+   admits its pending block and selector `3` rejects it. See
+   [Server-order talk admission](server-order-talk-admission.md) for the
+   producer, matching checks, and notification path. The semantic mapping
+   of other variants is outside that finding.
 
    This local decoder reproduces the static slot table from a
    researcher-supplied `ffxivgame.exe`:

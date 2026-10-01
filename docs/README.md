@@ -72,6 +72,7 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [Push-event condition receivers](event/push-condition-receivers.md)
 - [Quest dispatch](event/quest-dispatch.md)
 - [Seasonal event work control plane](event/seasonal-control-plane.md)
+- [Server-order talk admission](event/server-order-talk-admission.md)
 - [Little Ladies' Day and Foundation actor scripts](event/spring-foundation-actor-scripts.md)
 - [Winter and Valentione actor protocol](event/winter-valentione-actor-protocol.md)
 - [StartServerOrderEventFunction receiver](event/start-event-fn-receiver.md)
