@@ -44,8 +44,13 @@ The two active thunks call `0x0078dee0` to convert the server-order type back
 to its condition kind. Type `51` converts to kind `1`. Admission at
 `0x00893660` requires a pending block, matching condition kind through its
 virtual method at `+0x18`, and matching event name through `0x00445d20`.
-The actor comes from the EndEvent receiver's actor lookup. A server must echo
-the request owner, type, and name for this matching path.
+Parser `0x0076c3b0` reads payload dword `0` at `0x0076c414`. Constructor
+`0x0089d070` stores it at receiver `+0x08` at `0x0089d0b1`.
+Receiver `0x0089e2d0` resolves the player identified by this actor field.
+Thunk `0x006e1100` reads that actor's `+0xf8` to select its PlayerManager.
+The reply must identify that player and echo the request type and event name.
+The request's NPC owner is not the EndEvent actor field, and `0x00893660`
+does not compare an NPC owner ID.
 
 Admission sets `+0x1d` directly when there is no prior active block. Otherwise
 it sets `+0x1c` and requests or awaits the prior block's completion. If the
