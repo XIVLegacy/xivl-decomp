@@ -129,6 +129,125 @@ A false first-stage result alone cannot distinguish an unsuccessful
 and request path must be observed to resolve that distinction. The
 second-stage identifier-list predicate is a separate condition.
 
+## Script submission and sheet-binding lookup
+
+The first stage submits an item script path with the loader as its listener.
+After that stage succeeds, item setup invokes `_onInit`. A special
+`_bindSpreadSheetData` path looks up an identifier collection by a resolved
+item's key and inserts into it. Joining that lookup to the checker-owned
+collection requires matching the container and key. These are separate
+completion conditions; the second query is not simply the return value
+of `_onInit`.
+
+Fresh read-only run `shop-item-completion-route-20261001-01` used the binary,
+disassembly script digest, Ghidra, JDK, memory limit and analysis-timeout
+qualification above. Its completed post-script decoded these arguments:
+
+```text
+0x6dfb50:0x290 0x6dd920:0xa3 0xcc76f0:0x9 0xcd7da0:0x1c
+0xd0c440:0x85 0xd0d7a0:0x6a 0xd0f790:0x5f 0xd0d900:0x51
+0xd0d630:0x69 0xd0c070:0x2ca 0x76b4c0:0xb7 0x743c30:0x14a
+0x6f54a0:0x68 0x6f5400:0x92 0x7646d0:0x60 0x7213f0:0xb9
+```
+
+Run `shop-item-completion-keys-20261001-01` used the same contract and
+completed `0x6d1020:0x66 0x7852b0:0x87`. Both helpers compare the supplied
+key's two dwords against node `+0x10/+0x14`, establishing its 64-bit width.
+
+Read-only `tools/ghidra_scripts/ReadAsciiStrings.java`, SHA-256
+`621379366480908ead5ad737a2d1012a3ae53b6737b289f538cecc9ae80b6886`,
+used the same input and toolchain in runs
+`shop-completion-names-20261001-02` and
+`shop-completion-names-20261001-03`. Their completed post-scripts used
+these respective arguments and read the following NUL-terminated strings:
+
+```text
+0xfd4a18:64 0xfd45d4:64
+0x110f174:0x40 0xfd765c:0x40
+
+0x00fd4a18 = "/Item/"
+0x00fd45d4 = "_onInit"
+0x0110f174 = "require"
+0x00fd765c = "_bindSpreadSheetData"
+```
+
+### First-stage submission
+
+The first-stage helper calls `0x006dd920` at `0x006dfd98`.
+That body sets loader byte `+0x09` to 1, constructs a string from `/Item/`
+and the supplied descriptor, then calls `0x00cc76f0` with that string
+and the loader pointer (`0x006dd95b..0x006dd98d`). The latter forwards to
+`0x00cd7da0`, which calls `0x00d0c440` through engine field `+0x1d0`.
+
+`0x00d0c440` constructs a request through `0x00d0d7a0`, supplies literal
+1 as its last argument, inserts the request into its queue at `+0xcc`
+through `0x00d0f790`, then calls `0x00d0c070`
+(`0x00d0c478..0x00d0c4ad`). The constructor stores the supplied listener
+at request `+0x5c` and the last byte argument at `+0x60`
+(`0x00d0d7e7..0x00d0d7f2`). The queue's copy route through
+`0x00d0d900` and `0x00d0d630` preserves those fields
+(`0x00d0d677..0x00d0d680`).
+
+The `0x00d0c070` processing body returns while its queue count at `+0xdc`
+is zero or its field `+0xc8` is nonzero (`0x00d0c0b2..0x00d0c0c6`).
+Otherwise it reads the queued string, listener and byte argument
+(`0x00d0c0f0..0x00d0c126`). Its later processing path references `require`
+at `0x00d0c1ff` and supplies the queued string, listener and byte value
+to the Lua-call helpers (`0x00d0c216..0x00d0c259`). This anchors submission
+and the retained listener without asserting when the engine dispatches its
+completion callback or what dominates the request's cost.
+
+At the first predicate observation point, loader `+0x08` distinguishes
+whether its request helper returned true; `+0x09` records entry to the
+submission body; `+0x0a` records the completion callback described above.
+A false query with `+0x08=1` and `+0x0a=0` is awaiting that callback.
+The boolean alone does not establish these field values.
+
+### Second-stage collection registration and binding
+
+The original item-creation body obtains a 64-bit value from `0x00758e00`
+and supplies it to `0x0076b4c0` (`0x00702c14..0x00702c36`). That helper
+allocates an identifier collection, stores its pointer in a map keyed by
+the supplied value, and returns the pointer
+(`0x0076b4f4..0x0076b560`). The caller passes it to checker constructor
+`0x006e0440`, which stores it at checker `+0x0c`. Those caller and
+constructor instructions are in the original reproduction ranges above.
+
+After the first stage succeeds, `0x006f6a80` creates the item script object
+through `0x006e2770`, stores it at checker `+0x18`, and invokes
+`0x00cc7a90` with that object and `_onInit`
+(`0x006f6b65..0x006f6bea`). This identifies the initialization call before
+the second query; it does not identify that query as a Lua-call result.
+
+Registration `0x00743c30` pairs `_bindSpreadSheetData` with native callback
+`0x006f54a0` (`0x00743c67`, `0x00743d19..0x00743d49`). The callback
+selects helper `0x006f5400` when its object's field `+0x68` equals the dword
+at `0x00fe0508`; its other path calls `0x006f5380`
+(`0x006f54d8..0x006f5505`). The value at that global and the branch taken
+in a live invocation remain unobserved here.
+
+Within the selected `0x006f5400` path, after the `0x006dffc0` query returns
+1, the helper reads a 64-bit key from a resolved item's `+0x10/+0x14`
+and looks up a registered collection through `0x007646d0`
+(`0x006f5431..0x006f545c`). The lookup uses the collection map at container
+`+0x08` and returns its stored pointer at node `+0x18`
+(`0x007646da..0x00764724`). The binding helper then inserts the resolved
+item's raw `+0x24` identifier through `0x007213f0`
+(`0x006f5424`, `0x006f5461..0x006f5471`). The insertion body compares
+existing node values at `+0x0c` and inserts through `0x0077e820` when
+needed. This matches the node-value layout consumed by the second-stage query.
+
+This establishes the collection lookup and insertion in the sheet-binding
+path. The ranges above do not join the resolved item's key and container
+instance to the creation registration; that identity still needs a static
+join or runtime observation. They also do not prove membership, selected
+callback branch, sheet rows, poll cadence or cost in a live item creation.
+The collection query can succeed with no remaining identifiers; its result
+is not a guarantee that every possible item initialization task has completed.
+A latency measurement
+must distinguish request submission, loader callback completion and these
+binding states while accounting for the observation tool's own pauses.
+
 ## Predicate observation points
 
 Fresh read-only run `shop-predicate-logpoints-20261001-01` used the same
