@@ -9,6 +9,10 @@ reviewed tracked catalog, page, or header.
 Repository validation rejects retail binaries and generated assembly from the
 tracked tree.
 
+The optional [Windows virtual-item diagnostic](windows/README.md) records
+native pending/completion results with a bounded debugger attachment and
+includes an asset-free synthetic fixture.
+
 ## Ghidra tools
 
 ### Import and catalog export

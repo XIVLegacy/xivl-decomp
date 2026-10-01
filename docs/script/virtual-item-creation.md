@@ -79,3 +79,42 @@ It does not establish which checker was active in a live opening, how
 often it was polled, the cost per catalog entry, or when a window became
 visible. Short operating-system thread waits and fast completed file reads
 do not by themselves exclude time spent awaiting these client states.
+
+## Predicate observation points
+
+Fresh read-only run `shop-predicate-logpoints-20261001-01` used the same
+binary, script digest, Ghidra, JDK, memory limit and analysis-timeout
+qualification as above. Its completed post-script decoded these ranges:
+
+```text
+0x006f6a80:0x23d 0x006e0440:0x10f 0x006df580:0xab
+0x00702a20:0x404 0x006e0550:0xfa
+```
+
+At `0x006f6ad8`, `AL` holds the just-returned boolean from
+`0x006e2d30`; `ESI` still points to the checker, assigned at
+`0x006f6ac2`. The next instruction at `0x006f6ada` writes that result
+to checker byte `+0x21`. A snapshot at the comparison therefore reads
+the latch before that store, rather than its new value.
+
+At `0x006f6c5c`, `AL` holds the just-returned boolean from
+`0x006ed9e0`; `ESI` still points to the checker. The later instruction
+at `0x006f6c67` replaces `ESI` with checker field `+0x10`.
+The constructor stores the supplied builder pointer in that field
+at `0x006e04bb` and initializes byte `+0x21` to zero at `0x006e04dd`.
+The diagnostic's `builder_18` is the raw dword at builder `+0x18`;
+this observation does not assign it a catalog-ID meaning.
+
+The initial checker is constructed on the caller's stack. On the
+pending path, `0x00702d59..0x00702d65` invokes helper `0x006e0550`
+on that object before transferring the resulting object to the Lua context.
+The helper copies fields to another object and clears source ownership,
+including builder `+0x10` at `0x006e05b6..0x006e05cf`.
+Checker addresses alone are therefore unsuitable
+as permanent operation identities, and builder addresses can be reused.
+
+The optional [Windows diagnostic](../../tools/windows/README.md)
+records these two results against an explicitly selected live process.
+Synthetic fixture verification proves the instrument's state capture
+and tested cleanup paths; a retail runtime record is still needed to
+identify which stage remains pending during an actual shop opening.
