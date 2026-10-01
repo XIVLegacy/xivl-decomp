@@ -28,6 +28,7 @@ tracked tree.
 | Tool | Purpose | Required inputs |
 |---|---|---|
 | `ghidra_scripts/DecompileToText.java` | Prints focused decompilation text for requested virtual addresses. | A current analyzed Ghidra program and comma-separated absolute addresses in `DECOMP_VAS`. |
+| `ghidra_scripts/DisassembleRanges.java` | Decodes bounded instruction ranges without creating functions or changing the program. | Explicit script arguments `VA:byte-count`, with each count from 1 to 4096; these are linear ranges, not recovered function boundaries or exhaustive control-flow graphs. |
 | `ghidra_scripts/FindCallers.java` | Prints code and data references to requested virtual addresses, or emits the bounded retail protocol-caller observation. | A current analyzed Ghidra program and comma-separated absolute addresses in `CALLER_VAS`; structured mode also requires exactly one target and `XIVL_RETAIL_OBSERVATIONS_OUT`. |
 | `ghidra_scripts/FindBytes.java` | Finds an exact byte sequence without changing the program. | A current analyzed Ghidra program and space-separated hex bytes in `SEARCH_BYTES`. |
 
