@@ -337,3 +337,70 @@ observation points. The instrument only reads registers and fixed fields;
 it neither invokes target functions nor traverses collection nodes.
 Pointer/key comparisons require the same live lifetime: addresses may be
 reused, and a matching key alone does not establish the container instance.
+
+## Native pending-query conditions
+
+Fresh read-only runs `shop-feasibility-native-first-20261001-01` and
+`shop-feasibility-native-second-20261001-01` used the evidence identity,
+disassembly script digest, toolchain, memory limit and analysis-timeout
+qualification above. Both post-scripts completed these respective ranges:
+
+```text
+0x006dfb50:0x290 0x006e2d30:0x6b 0x006e0ef0:0x150
+0x0078e220:0x60 0x0078e260:0x30 0x0078e270:0x80 0x0078e280:0x40
+
+0x006eb5a0:0x99 0x0071cac0:0x120 0x0071d960:0x120
+0x00763240:0x81 0x006ed9e0:0xb5
+```
+
+### First-stage lookup
+
+Before script submission, `0x006dfb50` calls the supplied object's vtable
+slot 1 at `0x006dfbd4`. It returns false if the returned pointer is null
+(`0x006dfbeb..0x006dfbed`) or that returned object's own slot-1 call yields
+a nonzero byte (`0x006dfbf6..0x006dfbfa`). Both reach the false return at
+`0x006dfc32`.
+
+The next lookup passes the returned object and the third supplied argument's
+raw `+0x24` value to `0x0078e220` at `0x006dfc05`. That helper calls the
+object's vtable `+0x18` entry and stores its returned dword in a temporary wrapper
+(`0x0078e227..0x0078e233`). Query `0x0078e270` only tests that stored dword
+for nonzero (`0x0078e270..0x0078e276`). A zero value takes another route to
+the same false return (`0x006dfc1e..0x006dfc32`). The supplied and returned
+objects' class identities and the virtual lookup's meaning remain unproven.
+These branches do not identify a duration or the cost of obtaining the value.
+
+### Second-stage identifier lookup
+
+`0x006ed9e0` receives the identifier collection as its object input. It
+returns true when the raw collection dword at `+0x08` is zero
+(`0x006ed9ee..0x006ed9f2`, `0x006eda8a`). Otherwise it visits identifiers
+and calls `0x00763240`. A false result stops this query; a true result
+continues through its conditional-removal path, as described in the
+observation contract above.
+
+`0x00763240` walks its manager list and calls `0x006eb5a0` on each listed
+object with the supplied identifier (`0x00763284..0x0076328c`). Result 1
+returns false immediately (`0x00763291..0x007632ac`). Other results call
+`0x00420630` and continue iteration; reaching the list sentinel returns
+true (`0x00763296..0x007632be`). This range does not establish a semantic
+role for `0x00420630`.
+
+On its normal lookup path, `0x006eb5a0` first queries the structure at
+object `+0xc4` through `0x0071cac0`. If the output pair's node differs from
+the dword at object `+0xc8`, it returns 0
+(`0x006eb5b5..0x006eb5e9`). Otherwise it queries the structure at object
+`+0xb8` through `0x0071d960`, using the saved dword at `+0xbc` as the
+end marker. It compares the output pair's node at pair `+0x04` with that
+marker and returns 2 for equality or 1 for inequality
+(`0x006eb5ec..0x006eb636`). The latter is the pending result consumed by
+`0x00763240`.
+
+The nearest helpers establish structural lookups: `0x0071cac0` follows
+tree links and compares node `+0x0c` with the supplied dword
+(`0x0071cac9..0x0071cb1f`); `0x0071d960` follows node `+0x00` links and
+compares node `+0x08` with the supplied dword
+(`0x0071d975..0x0071d995`). The owner class and the meanings of the
+`+0xb8`, `+0xbc` and `+0xc4` structures remain unproven. The decoded
+conditions expose no established server-controlled input. They do not
+exclude upstream server influence or attribute a live opening's latency.
