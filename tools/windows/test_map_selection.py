@@ -19,6 +19,14 @@ SECOND_REGION = 0x89ABCDEF
 SECOND_ZONE = 0x10203040
 SECOND_MODE = 0x5A
 EXPECTED_VTABLE = 0x0BADF00D
+HOOK_KINDS = {
+    "setmap",
+    "receiver_ignored",
+    "region_constructor",
+    "region_lookup",
+    "lookup_result",
+    "partial_error",
+}
 
 
 def main():
@@ -36,6 +44,9 @@ def main():
             "guards",
             "cancel",
             "breakpoint",
+            "target-exit",
+            "record-cap",
+            "retail-refusal",
         ],
     )
     args = parser.parse_args()
@@ -135,19 +146,46 @@ def main():
             and time.monotonic() < deadline
         ):
             if fixture.poll() is not None:
-                raise AssertionError("Fixture exited before post-detach check")
+                reader.join(timeout=2)
+                raise AssertionError(
+                    (
+                        "Fixture exited before post-detach check",
+                        fixture.returncode,
+                        fixture_events[-20:],
+                    )
+                )
             time.sleep(0.05)
         if fixture.poll() is not None:
-            raise AssertionError("Fixture exited before post-detach check")
+            reader.join(timeout=2)
+            raise AssertionError(
+                (
+                    "Fixture exited before post-detach check",
+                    fixture.returncode,
+                    fixture_events[-20:],
+                )
+            )
         if debugged(fixture.pid):
             raise AssertionError("Debugger remains attached")
         if not any(
             stamp > finished and line == "alive 0" for stamp, line in heartbeats
         ):
             raise AssertionError("Fixture did not run after detach")
-        if fixture.wait(timeout=25) != 0:
-            raise AssertionError("Fixture did not exit normally")
+        try:
+            exit_code = fixture.wait(timeout=25)
+        except subprocess.TimeoutExpired as error:
+            reader.join(timeout=2)
+            raise AssertionError(
+                (
+                    "Fixture did not exit before cleanup timeout",
+                    fixture.poll(),
+                    fixture_events[-20:],
+                )
+            ) from error
         reader.join(timeout=2)
+        if exit_code != 0:
+            raise AssertionError(
+                ("Fixture did not exit normally", exit_code, fixture_events[-20:])
+            )
         replay = [
             line for _, line in fixture_events if line.startswith("post-detach-cycles ")
         ]
@@ -160,8 +198,40 @@ def main():
                 ("Fixture did not replay all seams after detach", replay)
             )
 
-    def base_command(pid, sites, state, log, seconds):
-        return [
+    def assert_fixture_exit(fixture, fixture_events, reader):
+        try:
+            exit_code = fixture.wait(timeout=15)
+        except subprocess.TimeoutExpired as error:
+            reader.join(timeout=2)
+            raise AssertionError(
+                (
+                    "Fixture did not exit before target-exit cleanup timeout",
+                    fixture.poll(),
+                    fixture_events[-20:],
+                )
+            ) from error
+        reader.join(timeout=2)
+        if exit_code != 0:
+            raise AssertionError(
+                ("Fixture did not exit normally", exit_code, fixture_events[-20:])
+            )
+        if not any(line.startswith("worker-cycles ") for _, line in fixture_events):
+            raise AssertionError(
+                ("Target exit omitted worker cleanup", fixture_events[-10:])
+            )
+        if not any(line == "post-detach-cycles 0" for _, line in fixture_events):
+            raise AssertionError(("Target exited after detach", fixture_events[-10:]))
+
+    def base_command(
+        pid,
+        sites,
+        state,
+        log,
+        seconds,
+        fixture_record_cap=None,
+        fixture_initial_threads_only=False,
+    ):
+        command = [
             str(diagnostic),
             "--pid",
             str(pid),
@@ -185,11 +255,22 @@ def main():
             "--manager-vtable",
             hex(state["manager_vtable"]),
         ]
+        if fixture_record_cap is not None:
+            command.extend(["--fixture-record-cap", str(fixture_record_cap)])
+        if fixture_initial_threads_only:
+            command.append("--fixture-initial-threads-only")
+        return command
 
     def load_rows(path):
         return [
             json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()
         ]
+
+    def assert_observation_count(rows):
+        terminal = rows[-1]
+        hook_rows = [row for row in rows if row.get("kind") in HOOK_KINDS]
+        if terminal.get("observations") != len(hook_rows):
+            raise AssertionError((terminal, len(hook_rows), hook_rows[-3:]))
 
     def post_detach_records(fixture_events):
         records = []
@@ -225,7 +306,14 @@ def main():
                     sites,
                     state,
                     log,
-                    4 if cancel else 3 if name == "breakpoint" else 1,
+                    4
+                    if cancel
+                    else 3
+                    if name
+                    in {"breakpoint", "record-cap", "target-exit", "retail-refusal"}
+                    else 1,
+                    12 if name == "record-cap" else None,
+                    name == "retail-refusal",
                 ),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -237,14 +325,85 @@ def main():
                 stdout, stderr = tool.communicate(timeout=15)
                 raise AssertionError((armed, stdout, stderr))
             if cancel:
-                time.sleep(0.75)
+                deadline = time.monotonic() + 5.0
+                while (
+                    not any(line.startswith("workers ") for _, line in fixture_events)
+                    and time.monotonic() < deadline
+                ):
+                    if fixture.poll() is not None:
+                        raise AssertionError(
+                            "Fixture exited before cancel coordination"
+                        )
+                    time.sleep(0.05)
+                if not any(line.startswith("workers ") for _, line in fixture_events):
+                    raise AssertionError(
+                        (
+                            "Cancel coordination did not create workers",
+                            fixture_events[-10:],
+                        )
+                    )
                 if not kernel.GenerateConsoleCtrlEvent(1, tool.pid):
                     raise AssertionError(ctypes.get_last_error())
             stdout, stderr = tool.communicate(timeout=20)
+            if name == "retail-refusal":
+                if (
+                    tool.returncode != 1
+                    or not log.exists()
+                    or "Application thread creation is outside the bounded four-point profile"
+                    not in stderr
+                ):
+                    raise AssertionError(
+                        (tool.returncode, stdout, stderr, fixture_events[-20:])
+                    )
+                rows = load_rows(log)
+                assert_observation_count(rows)
+                terminal = rows[-1]
+                if (
+                    terminal["kind"] != "failed"
+                    or not terminal["detach_confirmed"]
+                    or terminal["thread_policy"] != "initial_threads_only"
+                    or terminal["thread_created_events"] < 1
+                    or "Application thread creation is outside the bounded four-point profile"
+                    not in terminal.get("error", "")
+                ):
+                    raise AssertionError((terminal, fixture_events[-20:]))
+                if not any(row["kind"] == "thread_created" for row in rows):
+                    raise AssertionError((terminal, rows[-5:]))
+                finished = time.monotonic()
+                assert_fixture_cleanup(
+                    fixture,
+                    heartbeats,
+                    fixture_events,
+                    reader,
+                    finished,
+                    1,
+                )
+                (
+                    args.output_directory / "retail-refusal-fixture-events.txt"
+                ).write_text(
+                    "\n".join(line for _, line in fixture_events) + "\n",
+                    encoding="utf-8",
+                )
+                post_replays = post_detach_records(fixture_events)
+                roles = {role: tid for role, tid in post_replays}
+                if not {"main", "worker0"}.issubset(roles) or len(roles) < 3:
+                    raise AssertionError((post_replays, fixture_events[-20:]))
+                if len(set(roles.values())) != len(roles):
+                    raise AssertionError((post_replays, fixture_events[-20:]))
+                if not any(line.startswith("workers ") for _, line in fixture_events):
+                    raise AssertionError(
+                        (
+                            "Refusal did not leave later workers alive",
+                            fixture_events[-20:],
+                        )
+                    )
+                print("PASS retail-refusal", flush=True)
+                return
             if name in {"bad-read", "bad-profile"}:
                 if tool.returncode != 1 or not log.exists():
                     raise AssertionError((tool.returncode, stdout, stderr))
                 rows = load_rows(log)
+                assert_observation_count(rows)
                 if rows[-1]["kind"] != "failed" or not rows[-1]["detach_confirmed"]:
                     raise AssertionError(rows[-1])
                 if (
@@ -267,18 +426,24 @@ def main():
                     exercise_attachment_exception()
                 return
             if name == "capture":
-                if tool.returncode != 1 or not stderr or not log.exists():
+                if tool.returncode != 0 or stderr or not log.exists():
                     raise AssertionError((tool.returncode, stdout, stderr))
             elif tool.returncode != 0 or stderr:
                 raise AssertionError((tool.returncode, stdout, stderr))
+            if name == "target-exit":
+                if "Target exited. Observations:" not in stdout:
+                    raise AssertionError((stdout, stderr))
+            elif "Detached; target left running. Observations:" not in stdout:
+                raise AssertionError((stdout, stderr))
             rows = load_rows(log)
+            assert_observation_count(rows)
             if rows[0]["fixture"] is not True:
                 raise AssertionError(rows[0])
             profiles = [row for row in rows if row["kind"] == "profile"]
             if len(profiles) != 4 or not all(row["passed"] for row in profiles):
                 raise AssertionError(profiles)
             terminal = rows[-1]
-            expected_terminal_kind = "failed" if name == "capture" else "detached"
+            expected_terminal_kind = "detached"
             if (
                 terminal["kind"] != expected_terminal_kind
                 or not terminal["detach_confirmed"]
@@ -291,17 +456,76 @@ def main():
                 != terminal.get("expected_helper_start")
             ):
                 raise AssertionError(terminal)
-            if name == "capture":
-                if "thread creation" not in terminal["error"]:
-                    raise AssertionError(terminal)
-            else:
-                expected_reason = "cancelled" if cancel else "duration"
+            if name != "capture":
+                expected_reason = (
+                    "cancelled"
+                    if cancel
+                    else "target_exit"
+                    if name == "target-exit"
+                    else "record_cap"
+                    if name == "record-cap"
+                    else "duration"
+                )
                 if terminal["stop_reason"] != expected_reason:
                     raise AssertionError(terminal)
+            if name == "record-cap":
+                hook_rows = [row for row in rows if row.get("kind") in HOOK_KINDS]
+                lifecycle_rows = [
+                    row
+                    for row in rows
+                    if row.get("kind") in {"thread_created", "thread_exited"}
+                ]
+                record_rows = [
+                    row
+                    for row in rows
+                    if row.get("kind")
+                    not in {"identity", "profile", "detached", "failed"}
+                ]
+                if (
+                    terminal["stop_reason"] != "record_cap"
+                    or terminal["record_cap"] != 12
+                    or terminal["records"] != terminal["record_cap"]
+                    or terminal["observations"] != 10
+                    or len(record_rows) != terminal["records"]
+                    or len(hook_rows) != 10
+                    or len(lifecycle_rows) != 2
+                    or record_rows[-1]["kind"] != "thread_created"
+                ):
+                    raise AssertionError(
+                        (terminal, record_rows, hook_rows, lifecycle_rows)
+                    )
+                finished = time.monotonic()
+                assert_fixture_cleanup(
+                    fixture,
+                    heartbeats,
+                    fixture_events,
+                    reader,
+                    finished,
+                    1,
+                )
+                (args.output_directory / "record-cap-fixture-events.txt").write_text(
+                    "\n".join(line for _, line in fixture_events) + "\n",
+                    encoding="utf-8",
+                )
+                if not any(
+                    line.startswith("record-cap-worker ") for _, line in fixture_events
+                ):
+                    raise AssertionError((terminal, fixture_events[-10:]))
+                print("PASS record-cap", flush=True)
+                return
             observations = [
                 row
                 for row in rows
-                if row["kind"] not in {"identity", "profile", "detached", "failed"}
+                if row["kind"]
+                not in {
+                    "identity",
+                    "profile",
+                    "detached",
+                    "failed",
+                    "thread_created",
+                    "thread_exited",
+                    "target_exception",
+                }
             ]
             if name == "idle":
                 if observations:
@@ -436,20 +660,27 @@ def main():
                 if any("manager_region" in row for row in unrelated):
                     raise AssertionError(unrelated)
             finished = time.monotonic()
-            assert_fixture_cleanup(
-                fixture,
-                heartbeats,
-                fixture_events,
-                reader,
-                finished,
-                4 if name == "capture" else 1,
+            if name == "target-exit":
+                assert_fixture_exit(fixture, fixture_events, reader)
+            else:
+                assert_fixture_cleanup(
+                    fixture,
+                    heartbeats,
+                    fixture_events,
+                    reader,
+                    finished,
+                    3 if name == "capture" else 1,
+                )
+            (args.output_directory / f"{name}-fixture-events.txt").write_text(
+                "\n".join(line for _, line in fixture_events) + "\n",
+                encoding="utf-8",
             )
             post_replays = post_detach_records(fixture_events)
             if name == "capture":
                 roles = {role: tid for role, tid in post_replays}
-                if set(roles) != {"main", "worker0", "worker1", "worker2"}:
+                if set(roles) != {"main", "worker0", "worker2"}:
                     raise AssertionError((post_replays, fixture_events[-10:]))
-                if len(set(roles.values())) != 4:
+                if len(set(roles.values())) != 3:
                     raise AssertionError((post_replays, fixture_events[-10:]))
                 workers = [
                     line for _, line in fixture_events if line.startswith("workers ")
@@ -467,12 +698,88 @@ def main():
                     len(worker_ids) != 3
                     or not initial_worker_id
                     or int(initial_worker_id) != roles["worker0"]
-                    or int(worker_ids[1]) != roles["worker1"]
                     or int(worker_ids[2]) != roles["worker2"]
                 ):
                     raise AssertionError((workers, post_replays, fixture_events[-10:]))
+                worker1_id = int(worker_ids[1])
+                worker2_id = int(worker_ids[2])
+                lifecycle_created = [
+                    row for row in rows if row["kind"] == "thread_created"
+                ]
+                lifecycle_exited = [
+                    row for row in rows if row["kind"] == "thread_exited"
+                ]
+                if (
+                    terminal["thread_policy"] != "global_all_threads"
+                    or terminal["thread_created_events"] < 2
+                    or terminal["thread_exit_events"] < 1
+                    or not any(row["tid"] == worker1_id for row in lifecycle_created)
+                    or not any(row["tid"] == worker2_id for row in lifecycle_created)
+                    or not any(row["tid"] == worker1_id for row in lifecycle_exited)
+                ):
+                    raise AssertionError(
+                        (terminal, lifecycle_created, lifecycle_exited)
+                    )
+                required_kinds = {
+                    "setmap",
+                    "region_constructor",
+                    "region_lookup",
+                    "lookup_result",
+                }
+                attached_by_tid = {}
+                for row in observations:
+                    attached_by_tid.setdefault(row["tid"], set()).add(row["kind"])
+                for tid in (roles["worker0"], worker1_id, worker2_id):
+                    if required_kinds - attached_by_tid.get(tid, set()):
+                        raise AssertionError((tid, attached_by_tid, observations))
+                if not any(
+                    line.startswith("worker-exit worker1 ")
+                    for _, line in fixture_events
+                ):
+                    raise AssertionError(
+                        ("worker1 did not exit while attached", fixture_events[-10:])
+                    )
+                if not any(
+                    line.startswith("worker-exception-handled 1 ")
+                    for _, line in fixture_events
+                ):
+                    raise AssertionError(
+                        ("worker exception was not handled", fixture_events[-10:])
+                    )
+                target_exceptions = [
+                    row for row in rows if row["kind"] == "target_exception"
+                ]
+                if not any(
+                    row["tid"] == worker2_id and row["exception_code"] == 0x80000003
+                    for row in target_exceptions
+                ):
+                    raise AssertionError((worker2_id, target_exceptions))
             elif name == "idle" and len(post_replays) != 1:
                 raise AssertionError((post_replays, fixture_events[-10:]))
+            elif name == "cancel":
+                if (
+                    terminal["thread_policy"] != "global_all_threads"
+                    or terminal["thread_created_events"] < 1
+                ):
+                    raise AssertionError(terminal)
+                if not {role for role, _ in post_replays}.intersection(
+                    {"worker0", "worker1", "worker2"}
+                ):
+                    raise AssertionError((post_replays, fixture_events[-10:]))
+            elif name == "target-exit":
+                if (
+                    not terminal["process_exited"]
+                    or terminal["thread_policy"] != "global_all_threads"
+                ):
+                    raise AssertionError(terminal)
+                if not any(
+                    line.startswith("worker-exit worker1 ")
+                    for _, line in fixture_events
+                ) or not any(
+                    line.startswith("worker-exception-handled 1 ")
+                    for _, line in fixture_events
+                ):
+                    raise AssertionError((terminal, fixture_events[-10:]))
             if name == "capture":
                 if not any(
                     line.startswith("post-detach-cycles ")
@@ -529,6 +836,7 @@ def main():
             ):
                 raise AssertionError((tool.returncode, stdout, stderr))
             rows = load_rows(log)
+            assert_observation_count(rows)
             if rows[-1]["kind"] != "failed" or not rows[-1]["detach_confirmed"]:
                 raise AssertionError(rows[-1])
             if rows[-1].get("attachment_validated") is not False:
@@ -654,6 +962,9 @@ def main():
             "guards",
             "cancel",
             "breakpoint",
+            "target-exit",
+            "record-cap",
+            "retail-refusal",
         ]
     )
     for name in names:
@@ -663,7 +974,16 @@ def main():
             exercise(
                 name,
                 name
-                if name in {"idle", "bad-read", "bad-profile", "cancel", "breakpoint"}
+                if name
+                in {
+                    "idle",
+                    "bad-read",
+                    "bad-profile",
+                    "cancel",
+                    "breakpoint",
+                    "target-exit",
+                    "record-cap",
+                }
                 else None,
                 name == "cancel",
             )

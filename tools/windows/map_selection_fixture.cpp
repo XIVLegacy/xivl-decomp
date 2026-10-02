@@ -52,6 +52,10 @@ struct CycleState
     std::atomic<bool>*     was_debugged;
     std::atomic<unsigned>* post_detach_cycles;
     std::atomic<unsigned>* breakpoint_handlers;
+    std::atomic<unsigned>* worker_exception_handlers;
+    std::atomic<bool>*     record_cap_cycle_done;
+    std::atomic<bool>*     record_cap_worker_created;
+    CRITICAL_SECTION*      cycle_lock;
 };
 
 struct WorkerContext
@@ -238,6 +242,7 @@ void emit_bad_read(CycleState& state)
 
 void emit_normal_cycle(CycleState& state)
 {
+    EnterCriticalSection(state.cycle_lock);
     if (state.bad_profile)
     {
         put_u32(state.manager->value, 0, 0);
@@ -255,6 +260,7 @@ void emit_normal_cycle(CycleState& state)
     emit_manager(state.table->value, first_region, 0xaaaabbbb, state.manager->value, state.region_root->value);
     emit_manager(state.table->value, 0xfeedbeef, 0xccccdddd, state.manager->value, nullptr);
     emit_unrelated(state.table->value, second_region, 0xeeeeffff, state.other_manager->value, state.second_root->value);
+    LeaveCriticalSection(state.cycle_lock);
 }
 
 void emit_post_detach_cycle(CycleState& state, const char* role)
@@ -268,8 +274,9 @@ void emit_post_detach_cycle(CycleState& state, const char* role)
 DWORD WINAPI worker_proc(void* raw_context)
 {
     auto& context = *static_cast<WorkerContext*>(raw_context);
-    Sleep(50);
-    bool replayed_after_detach = false;
+    Sleep(context.state->record_cap_cycle_done ? 1500 : 50);
+    bool     replayed_after_detach = false;
+    unsigned debugged_cycles       = 0;
     while (!context.stop->load(std::memory_order_acquire) && GetTickCount64() < context.deadline)
     {
         const bool debugged = IsDebuggerPresent() != FALSE;
@@ -277,6 +284,7 @@ DWORD WINAPI worker_proc(void* raw_context)
         {
             context.state->was_debugged->store(true, std::memory_order_release);
             context.cycles->fetch_add(1, std::memory_order_relaxed);
+            ++debugged_cycles;
             if (context.state->bad_read)
             {
                 emit_bad_read(*context.state);
@@ -284,6 +292,39 @@ DWORD WINAPI worker_proc(void* raw_context)
             else
             {
                 emit_normal_cycle(*context.state);
+                if (context.slot == 0)
+                {
+                    if (context.state->record_cap_cycle_done)
+                    {
+                        context.state->record_cap_cycle_done->store(true, std::memory_order_release);
+                        while (!context.state->record_cap_worker_created->load(std::memory_order_acquire) &&
+                               !context.stop->load(std::memory_order_acquire))
+                        {
+                            Sleep(1);
+                        }
+                    }
+                }
+                if (context.slot == 1 && debugged_cycles == 2)
+                {
+                    std::printf("worker-exit worker%u %lu\n", context.slot, static_cast<unsigned long>(GetCurrentThreadId()));
+                    std::fflush(stdout);
+                    return 0;
+                }
+                if (context.slot == 2 && debugged_cycles == 1)
+                {
+                    std::printf("worker-exception-before %lu\n", static_cast<unsigned long>(GetCurrentThreadId()));
+                    std::fflush(stdout);
+                    __try
+                    {
+                        DebugBreak();
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        const unsigned count = context.state->worker_exception_handlers->fetch_add(1, std::memory_order_relaxed) + 1;
+                        std::printf("worker-exception-handled %u %lu\n", count, static_cast<unsigned long>(GetCurrentThreadId()));
+                        std::fflush(stdout);
+                    }
+                }
             }
         }
         else if (context.state->was_debugged->load(std::memory_order_acquire) && !replayed_after_detach)
@@ -309,6 +350,8 @@ int main(int argc, char** argv)
     const bool guards               = argc == 2 && std::strcmp(argv[1], "guards") == 0;
     const bool cancel               = argc == 2 && std::strcmp(argv[1], "cancel") == 0;
     const bool breakpoint           = argc == 2 && std::strcmp(argv[1], "breakpoint") == 0;
+    const bool target_exit          = argc == 2 && std::strcmp(argv[1], "target-exit") == 0;
+    const bool record_cap           = argc == 2 && std::strcmp(argv[1], "record-cap") == 0;
 
     Bytes  scene{};
     Bytes  table{};
@@ -376,10 +419,36 @@ int main(int argc, char** argv)
     std::atomic<bool>     was_debugged{ false };
     std::atomic<unsigned> post_detach_cycles{ 0 };
     std::atomic<unsigned> breakpoint_handlers{ 0 };
-    CycleState            state{ &scene, &table, &manager, &other_manager, &region_root, &second_root, &element, &first_packet, &second_packet, &ignored_packet, bad_read, bad_profile, attachment_exception, &was_debugged, &post_detach_cycles, &breakpoint_handlers };
+    std::atomic<unsigned> worker_exception_handlers{ 0 };
+    std::atomic<bool>     record_cap_cycle_done{ false };
+    std::atomic<bool>     record_cap_worker_created{ false };
+    CRITICAL_SECTION      cycle_lock{};
+    InitializeCriticalSection(&cycle_lock);
+    CycleState            state{ &scene,
+                                 &table,
+                                 &manager,
+                                 &other_manager,
+                                 &region_root,
+                                 &second_root,
+                                 &element,
+                                 &first_packet,
+                                 &second_packet,
+                                 &ignored_packet,
+                                 bad_read,
+                                 bad_profile,
+                                 attachment_exception,
+                                 &was_debugged,
+                                 &post_detach_cycles,
+                                 &breakpoint_handlers,
+                                 &worker_exception_handlers,
+                                 record_cap ? &record_cap_cycle_done : nullptr,
+                                 record_cap ? &record_cap_worker_created : nullptr,
+                                 &cycle_lock };
     std::atomic<bool>     stop_worker{ false };
     std::atomic<unsigned> worker_cycles{ 0 };
-    const ULONGLONG       lifetime = guards ? 20000 : 8000;
+    const ULONGLONG       lifetime = guards ? 20000 : target_exit ? 1500
+                                                  : record_cap    ? 12000
+                                                                  : 8000;
     WorkerContext         worker_contexts[3]{
         { &state, &stop_worker, &worker_cycles, GetTickCount64() + lifetime, 0 },
         { &state, &stop_worker, &worker_cycles, GetTickCount64() + lifetime, 1 },
@@ -390,13 +459,14 @@ int main(int argc, char** argv)
     bool            first_cycle_done           = false;
     bool            main_replayed_after_detach = false;
     const ULONGLONG started                    = GetTickCount64();
-    const bool      initial_worker_enabled     = !idle && !bad_read && !bad_profile && !cancel && !breakpoint;
+    const bool      initial_worker_enabled     = !idle && !bad_read && !bad_profile && !breakpoint;
     if (initial_worker_enabled)
     {
         workers[0] = CreateThread(nullptr, 0, worker_proc, &worker_contexts[0], 0, &worker_ids[0]);
         if (!workers[0])
         {
             std::fprintf(stderr, "CreateThread failed\n");
+            DeleteCriticalSection(&cycle_lock);
             return 1;
         }
         std::printf("initial-worker %lu\n", static_cast<unsigned long>(worker_ids[0]));
@@ -425,10 +495,32 @@ int main(int argc, char** argv)
                 std::fflush(stdout);
             }
         }
-        else if (debugged && !idle && !first_cycle_done)
+        else if (debugged && !idle && !first_cycle_done &&
+                 (!record_cap || record_cap_cycle_done.load(std::memory_order_acquire)))
         {
             first_cycle_done = true;
-            if (bad_read)
+            if (record_cap)
+            {
+                Sleep(250);
+                workers[1] = CreateThread(nullptr, 0, worker_proc, &worker_contexts[1], 0, &worker_ids[1]);
+                if (!workers[1])
+                {
+                    std::fprintf(stderr, "CreateThread failed\n");
+                    stop_worker.store(true, std::memory_order_release);
+                    if (workers[0])
+                    {
+                        WaitForSingleObject(workers[0], INFINITE);
+                        CloseHandle(workers[0]);
+                    }
+                    DeleteCriticalSection(&cycle_lock);
+                    return 1;
+                }
+                std::printf("record-cap-worker %lu\n", static_cast<unsigned long>(worker_ids[1]));
+                std::fflush(stdout);
+                Sleep(100);
+                record_cap_worker_created.store(true, std::memory_order_release);
+            }
+            else if (bad_read)
             {
                 Sleep(300);
                 emit_bad_read(state);
@@ -455,7 +547,7 @@ int main(int argc, char** argv)
                         std::fflush(stdout);
                     }
                 }
-                if (!cancel && !breakpoint)
+                if (!breakpoint)
                 {
                     Sleep(200);
                     workers[1] = CreateThread(nullptr, 0, worker_proc, &worker_contexts[1], 0, &worker_ids[1]);
@@ -485,5 +577,6 @@ int main(int argc, char** argv)
     }
     std::printf("worker-cycles %u\n", worker_cycles.load(std::memory_order_relaxed));
     std::printf("post-detach-cycles %u\n", post_detach_cycles.load(std::memory_order_relaxed));
+    DeleteCriticalSection(&cycle_lock);
     return 0;
 }

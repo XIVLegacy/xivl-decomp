@@ -2,6 +2,7 @@
 // Native map-selection observation for the pinned retail 1.23b client.
 #include <windows.h>
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <bcrypt.h>
@@ -10,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <dbgeng.h>
+#include <deque>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -356,45 +358,196 @@ struct AttachmentSnapshot
 {
     ULONG64 observer_breakin_address   = 0;
     ULONG   observer_breakin_thread_id = 0;
+    ULONG   observer_breakin_engine_id = DEBUG_ANY_ID;
     ULONG64 attach_thread_data_offset  = 0;
+    ULONG64 attach_thread_teb_offset   = 0;
     ULONG64 attach_thread_start_offset = 0;
+    ULONG64 attach_thread_generation   = 0;
     ULONG64 expected_breakin_address   = 0;
     ULONG64 expected_helper_start      = 0;
     bool    attachment_validated       = false;
 };
 
+struct ThreadIdentity
+{
+    ULONG         engine_id    = DEBUG_ANY_ID;
+    ULONG         system_id    = 0;
+    ULONG64       data_offset  = 0;
+    ULONG64       teb_offset   = 0;
+    ULONG64       start_offset = 0;
+    std::uint64_t generation   = 0;
+};
+
+bool same_thread_identity(const ThreadIdentity& left, const ThreadIdentity& right, bool require_generation = false)
+{
+    if (left.engine_id == DEBUG_ANY_ID || right.engine_id == DEBUG_ANY_ID || left.engine_id != right.engine_id ||
+        !left.system_id || !right.system_id || left.system_id != right.system_id)
+    {
+        return false;
+    }
+    if (left.data_offset && right.data_offset && left.data_offset != right.data_offset)
+    {
+        return false;
+    }
+    if (left.teb_offset && right.teb_offset && left.teb_offset != right.teb_offset)
+    {
+        return false;
+    }
+    if (require_generation && (!left.generation || !right.generation || left.generation != right.generation))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool complete_helper_identity(const ThreadIdentity& identity)
+{
+    return identity.engine_id != DEBUG_ANY_ID && identity.system_id != 0 && identity.data_offset != 0 && identity.teb_offset != 0 &&
+           identity.start_offset != 0 && identity.generation != 0;
+}
+
+ThreadIdentity current_thread_identity(IDebugSystemObjects* systems, ULONG64 start_offset = 0)
+{
+    ThreadIdentity identity;
+    if (!systems)
+    {
+        return identity;
+    }
+    if (FAILED(systems->GetCurrentThreadId(&identity.engine_id)))
+    {
+        identity.engine_id = DEBUG_ANY_ID;
+    }
+    if (FAILED(systems->GetCurrentThreadSystemId(&identity.system_id)))
+    {
+        identity.system_id = 0;
+    }
+    if (FAILED(systems->GetCurrentThreadDataOffset(&identity.data_offset)))
+    {
+        identity.data_offset = 0;
+    }
+    if (FAILED(systems->GetCurrentThreadTeb(&identity.teb_offset)))
+    {
+        identity.teb_offset = 0;
+    }
+    identity.start_offset = start_offset;
+    return identity;
+}
+
 class Events final : public IDebugEventCallbacks
 {
 public:
-    struct ThreadCreation
+    struct ThreadLifecycle
     {
-        ULONG   system_id    = 0;
-        ULONG64 data_offset  = 0;
-        ULONG64 start_offset = 0;
+        ThreadIdentity identity;
+        bool           active       = true;
+        bool           initial      = false;
+        ULONG          exit_code    = 0;
+        std::uint64_t  event_number = 0;
     };
 
-    ULONG                       refs                        = 1;
-    ULONG                       last_id                     = DEBUG_ANY_ID;
-    ULONG                       exception_code              = 0;
-    ULONG64                     exception_address           = 0;
-    ULONG                       exception_flags             = 0;
-    ULONG                       exception_first_chance      = 0;
-    ULONG                       exception_thread_id         = 0;
-    ULONG64                     attach_breakin_address      = 0;
-    ULONG                       attach_breakin_thread_id    = 0;
-    ULONG64                     attach_thread_data_offset   = 0;
-    ULONG64                     attach_thread_start_offset  = 0;
-    ULONG64                     expected_breakin_address    = 0;
-    ULONG64                     expected_helper_start       = 0;
-    ULONG                       created_thread_id           = 0;
-    ULONG64                     created_thread_data_offset  = 0;
-    ULONG64                     created_thread_start_offset = 0;
-    bool                        thread_created              = false;
-    bool                        watch_threads               = false;
-    bool                        attachment_validated        = false;
-    ComPtr<IDebugSystemObjects> systems;
-    std::vector<ThreadCreation> attach_threads;
-    AttachmentSnapshot*         snapshot = nullptr;
+    struct LifecycleEvent
+    {
+        bool           created = false;
+        std::size_t    index   = static_cast<std::size_t>(-1);
+        ThreadIdentity identity;
+        ULONG          exit_code    = 0;
+        std::uint64_t  event_number = 0;
+    };
+
+    ULONG                        refs                   = 1;
+    ULONG                        last_id                = DEBUG_ANY_ID;
+    ULONG                        exception_code         = 0;
+    ULONG64                      exception_address      = 0;
+    ULONG                        exception_flags        = 0;
+    ULONG                        exception_first_chance = 0;
+    ThreadIdentity               exception_identity;
+    ULONG                        last_exception_code         = 0;
+    ULONG64                      last_exception_address      = 0;
+    ULONG                        last_exception_flags        = 0;
+    ULONG                        last_exception_first_chance = 0;
+    ThreadIdentity               last_exception_identity;
+    ThreadIdentity               last_breakpoint_identity;
+    ULONG64                      attach_breakin_address = 0;
+    ThreadIdentity               attach_breakin_identity;
+    ULONG64                      attach_thread_data_offset  = 0;
+    ULONG64                      attach_thread_teb_offset   = 0;
+    ULONG64                      attach_thread_start_offset = 0;
+    ULONG64                      expected_breakin_address   = 0;
+    ULONG64                      expected_helper_start      = 0;
+    bool                         watch_threads              = false;
+    bool                         attachment_validated       = false;
+    bool                         process_exited             = false;
+    std::uint64_t                event_number               = 0;
+    std::uint64_t                next_generation            = 0;
+    std::uint64_t                armed_event_number         = 0;
+    unsigned                     forwarded_exceptions       = 0;
+    unsigned                     owned_interrupts           = 0;
+    unsigned                     created_events             = 0;
+    unsigned                     exited_events              = 0;
+    ComPtr<IDebugSystemObjects>  systems;
+    std::vector<ThreadLifecycle> lifecycles;
+    std::deque<LifecycleEvent>   pending_lifecycle;
+    AttachmentSnapshot*          snapshot = nullptr;
+
+    ThreadIdentity resolve_current_identity() const
+    {
+        ThreadIdentity identity = current_thread_identity(systems.Get());
+        for (const ThreadLifecycle& lifecycle : lifecycles)
+        {
+            if (lifecycle.active && same_thread_identity(identity, lifecycle.identity))
+            {
+                return lifecycle.identity;
+            }
+        }
+        return identity;
+    }
+
+    std::size_t find_active(const ThreadIdentity& identity) const
+    {
+        for (std::size_t index = 0; index < lifecycles.size(); ++index)
+        {
+            if (lifecycles[index].active && same_thread_identity(identity, lifecycles[index].identity))
+            {
+                return index;
+            }
+        }
+        return static_cast<std::size_t>(-1);
+    }
+
+    ThreadIdentity register_initial(ThreadIdentity identity)
+    {
+        const std::size_t existing = find_active(identity);
+        if (existing != static_cast<std::size_t>(-1))
+        {
+            lifecycles[existing].initial = true;
+            return lifecycles[existing].identity;
+        }
+        identity.generation = ++next_generation;
+        lifecycles.push_back({ identity, true, true, 0, 0 });
+        return identity;
+    }
+
+    void mark_armed()
+    {
+        watch_threads      = true;
+        armed_event_number = event_number;
+    }
+
+    bool take_lifecycle(LifecycleEvent& event)
+    {
+        if (pending_lifecycle.empty())
+        {
+            return false;
+        }
+        event = pending_lifecycle.front();
+        pending_lifecycle.pop_front();
+        return true;
+    }
+
+    void discard_lifecycle()
+    {
+        pending_lifecycle.clear();
+    }
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, PVOID* object) override
     {
@@ -420,17 +573,19 @@ public:
 
     HRESULT STDMETHODCALLTYPE GetInterestMask(PULONG mask) override
     {
-        *mask = DEBUG_EVENT_BREAKPOINT | DEBUG_EVENT_EXCEPTION | DEBUG_EVENT_CREATE_THREAD;
+        *mask = DEBUG_EVENT_BREAKPOINT | DEBUG_EVENT_EXCEPTION | DEBUG_EVENT_CREATE_THREAD | DEBUG_EVENT_EXIT_THREAD | DEBUG_EVENT_EXIT_PROCESS;
         return S_OK;
     }
 
     HRESULT STDMETHODCALLTYPE Breakpoint(PDEBUG_BREAKPOINT point) override
     {
-        exception_code         = 0;
-        exception_address      = 0;
-        exception_flags        = 0;
-        exception_first_chance = 0;
-        exception_thread_id    = 0;
+        exception_code           = 0;
+        exception_address        = 0;
+        exception_flags          = 0;
+        exception_first_chance   = 0;
+        exception_identity       = {};
+        last_breakpoint_identity = resolve_current_identity();
+        ++event_number;
         if (FAILED(point->GetId(&last_id)))
         {
             last_id = DEBUG_ANY_ID;
@@ -440,39 +595,59 @@ public:
 
     HRESULT STDMETHODCALLTYPE Exception(PEXCEPTION_RECORD64 exception, ULONG first_chance) override
     {
-        last_id                = DEBUG_ANY_ID;
-        exception_code         = exception->ExceptionCode;
-        exception_address      = exception->ExceptionAddress;
-        exception_flags        = exception->ExceptionFlags;
-        exception_first_chance = first_chance;
-        exception_thread_id    = 0;
+        last_id                     = DEBUG_ANY_ID;
+        exception_code              = exception->ExceptionCode;
+        exception_address           = exception->ExceptionAddress;
+        exception_flags             = exception->ExceptionFlags;
+        exception_first_chance      = first_chance;
+        exception_identity          = resolve_current_identity();
+        last_exception_code         = exception_code;
+        last_exception_address      = exception_address;
+        last_exception_flags        = exception_flags;
+        last_exception_first_chance = exception_first_chance;
+        last_exception_identity     = exception_identity;
+        ++event_number;
         return DEBUG_STATUS_BREAK;
     }
 
     HRESULT STDMETHODCALLTYPE CreateThread(ULONG64, ULONG64 data_offset, ULONG64 start_offset) override
     {
-        ULONG system_id = 0;
-        if (systems && FAILED(systems->GetCurrentThreadSystemId(&system_id)))
+        ThreadIdentity identity = current_thread_identity(systems.Get(), start_offset);
+        if (data_offset)
         {
-            system_id = 0;
+            identity.data_offset = data_offset;
         }
+        identity.generation        = ++next_generation;
+        const std::uint64_t number = ++event_number;
+        const std::size_t   index  = lifecycles.size();
+        lifecycles.push_back({ identity, true, false, 0, number });
         if (watch_threads)
         {
-            thread_created              = true;
-            created_thread_id           = system_id;
-            created_thread_data_offset  = data_offset;
-            created_thread_start_offset = start_offset;
+            pending_lifecycle.push_back({ true, index, identity, 0, number });
+            ++created_events;
             return DEBUG_STATUS_BREAK;
-        }
-        if (attach_threads.size() < 64)
-        {
-            attach_threads.push_back({ system_id, data_offset, start_offset });
         }
         return DEBUG_STATUS_NO_CHANGE;
     }
 
-    HRESULT STDMETHODCALLTYPE ExitThread(ULONG) override
+    HRESULT STDMETHODCALLTYPE ExitThread(ULONG exit_code) override
     {
+        const ThreadIdentity current  = resolve_current_identity();
+        const std::size_t    index    = find_active(current);
+        ThreadIdentity       identity = current;
+        if (index != static_cast<std::size_t>(-1))
+        {
+            lifecycles[index].active    = false;
+            lifecycles[index].exit_code = exit_code;
+            identity                    = lifecycles[index].identity;
+        }
+        const std::uint64_t number = ++event_number;
+        if (watch_threads)
+        {
+            pending_lifecycle.push_back({ false, index, identity, exit_code, number });
+            ++exited_events;
+            return DEBUG_STATUS_BREAK;
+        }
         return DEBUG_STATUS_NO_CHANGE;
     }
 
@@ -483,6 +658,8 @@ public:
 
     HRESULT STDMETHODCALLTYPE ExitProcess(ULONG) override
     {
+        process_exited = true;
+        ++event_number;
         return DEBUG_STATUS_NO_CHANGE;
     }
 
@@ -521,25 +698,37 @@ public:
         return DEBUG_STATUS_NO_CHANGE;
     }
 
-    bool is_observer_breakin(const std::vector<ULONG>& initial_system_threads) const
+    bool is_observer_breakin(const std::vector<ThreadIdentity>& initial_threads) const
     {
-        if (!attachment_validated || exception_code != EXCEPTION_BREAKPOINT || exception_address == 0 || attach_breakin_address == 0 ||
-            exception_address != attach_breakin_address || exception_thread_id == 0 ||
-            exception_thread_id == attach_breakin_thread_id || created_thread_id != exception_thread_id ||
-            created_thread_data_offset == 0 || created_thread_start_offset == 0 || expected_breakin_address == 0 ||
-            expected_helper_start == 0 || attach_breakin_address != expected_breakin_address ||
-            created_thread_start_offset != expected_helper_start)
+        if (!attachment_validated || exception_code != EXCEPTION_BREAKPOINT || exception_address != expected_breakin_address ||
+            expected_breakin_address == 0 || expected_helper_start == 0 || !complete_helper_identity(exception_identity))
         {
             return false;
         }
-        for (const ULONG initial : initial_system_threads)
+        for (const ThreadIdentity& initial : initial_threads)
         {
-            if (initial == exception_thread_id)
+            if (same_thread_identity(initial, exception_identity, true))
             {
                 return false;
             }
         }
-        return true;
+        for (const ThreadLifecycle& lifecycle : lifecycles)
+        {
+            if (!lifecycle.active || lifecycle.initial || lifecycle.event_number <= armed_event_number ||
+                lifecycle.identity.start_offset != expected_helper_start || !complete_helper_identity(lifecycle.identity) ||
+                !same_thread_identity(lifecycle.identity, exception_identity, true))
+            {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    bool is_observer_helper(const LifecycleEvent& event) const
+    {
+        return event.created && event.event_number > armed_event_number && expected_helper_start != 0 &&
+               event.identity.start_offset == expected_helper_start && complete_helper_identity(event.identity);
     }
 
     void clear_exception()
@@ -549,19 +738,23 @@ public:
         exception_address      = 0;
         exception_flags        = 0;
         exception_first_chance = 0;
-        exception_thread_id    = 0;
+        exception_identity     = {};
     }
 
     void capture_attach_thread_context()
     {
-        attach_thread_data_offset  = 0;
-        attach_thread_start_offset = 0;
-        for (const ThreadCreation& thread : attach_threads)
+        attach_thread_data_offset          = 0;
+        attach_thread_teb_offset           = 0;
+        attach_thread_start_offset         = 0;
+        attach_breakin_identity.generation = 0;
+        for (const ThreadLifecycle& lifecycle : lifecycles)
         {
-            if (thread.system_id == attach_breakin_thread_id && thread.system_id != 0)
+            if (lifecycle.active && same_thread_identity(lifecycle.identity, attach_breakin_identity))
             {
-                attach_thread_data_offset  = thread.data_offset;
-                attach_thread_start_offset = thread.start_offset;
+                attach_breakin_identity    = lifecycle.identity;
+                attach_thread_data_offset  = lifecycle.identity.data_offset;
+                attach_thread_teb_offset   = lifecycle.identity.teb_offset;
+                attach_thread_start_offset = lifecycle.identity.start_offset;
                 break;
             }
         }
@@ -571,7 +764,9 @@ public:
     {
         attachment_validated = false;
         if (exception_code != EXCEPTION_BREAKPOINT || attach_breakin_address != expected_address ||
-            attach_breakin_thread_id == 0 || attach_thread_start_offset != expected_start)
+            attach_breakin_identity.system_id == 0 || attach_breakin_identity.engine_id == DEBUG_ANY_ID ||
+            attach_thread_start_offset != expected_start || !attach_breakin_identity.generation ||
+            !attach_thread_data_offset || !attach_thread_teb_offset)
         {
             return false;
         }
@@ -586,9 +781,12 @@ public:
             return;
         }
         snapshot->observer_breakin_address   = attach_breakin_address;
-        snapshot->observer_breakin_thread_id = attach_breakin_thread_id;
+        snapshot->observer_breakin_thread_id = attach_breakin_identity.system_id;
+        snapshot->observer_breakin_engine_id = attach_breakin_identity.engine_id;
         snapshot->attach_thread_data_offset  = attach_thread_data_offset;
+        snapshot->attach_thread_teb_offset   = attach_thread_teb_offset;
         snapshot->attach_thread_start_offset = attach_thread_start_offset;
+        snapshot->attach_thread_generation   = attach_breakin_identity.generation;
         snapshot->expected_breakin_address   = expected_breakin_address;
         snapshot->expected_helper_start      = expected_helper_start;
         snapshot->attachment_validated       = attachment_validated;
@@ -605,9 +803,8 @@ struct Session
     bool                        attached        = false;
     unsigned                    owned           = 0;
     bool                        removal_pending = false;
-    // DbgEng thread IDs and Windows system TIDs are distinct namespaces.
-    std::vector<ULONG> initial_threads;
-    std::vector<ULONG> initial_system_threads;
+    // DbgEng engine IDs and Windows system TIDs are distinct lifecycle keys.
+    std::vector<ThreadIdentity> initial_threads;
 
     void detach()
     {
@@ -615,18 +812,24 @@ struct Session
         {
             return;
         }
-        ULONG status = 0;
-        require(control->GetExecutionStatus(&status), "Cleanup execution status");
-        if (status != DEBUG_STATUS_BREAK)
+        const bool target_exited = events && events->process_exited;
+        ULONG      status        = 0;
+        if (!target_exited)
         {
-            require(control->SetInterrupt(DEBUG_INTERRUPT_ACTIVE), "Request detach stop");
-            require_event(control->WaitForEvent(0, 5000), "Detach stop");
-            if (events && events->exception_code != 0 && system)
+            require(control->GetExecutionStatus(&status), "Cleanup execution status");
+            if (status != DEBUG_STATUS_BREAK)
             {
-                require(system->GetCurrentThreadSystemId(&events->exception_thread_id), "Cleanup exception thread identity");
+                require(control->SetInterrupt(DEBUG_INTERRUPT_ACTIVE), "Request detach stop");
+                require_event(control->WaitForEvent(0, 5000), "Detach stop");
             }
         }
-        for (ULONG id = 0; id < site_count; ++id)
+        if (target_exited)
+        {
+            // The engine has already discarded target breakpoints with the process.
+            owned           = 0;
+            removal_pending = false;
+        }
+        for (ULONG id = 0; !target_exited && id < site_count; ++id)
         {
             if (!(owned & (1u << id)))
             {
@@ -639,14 +842,22 @@ struct Session
             owned &= ~(1u << id);
             removal_pending = true;
         }
+        if (events)
+        {
+            events->watch_threads = false;
+        }
         const bool pending_exception = events && events->exception_code != 0;
-        const bool forward_exception = pending_exception && !events->is_observer_breakin(initial_system_threads);
-        if (removal_pending || forward_exception)
+        const bool forward_exception = pending_exception && !events->is_observer_breakin(initial_threads);
+        if (!target_exited && (removal_pending || forward_exception))
         {
             require(control->SetExecutionStatus(forward_exception ? DEBUG_STATUS_GO_NOT_HANDLED : DEBUG_STATUS_GO),
                     "Resume without observation breakpoints");
-            if (forward_exception)
+            if (events && pending_exception)
             {
+                if (forward_exception)
+                {
+                    ++events->forwarded_exceptions;
+                }
                 events->clear_exception();
             }
             for (unsigned attempt = 0; attempt < 8; ++attempt)
@@ -657,11 +868,13 @@ struct Session
                     break;
                 }
                 require_event(drained, "Drain breakpoint removal");
-                if (events && events->exception_code != 0 && system)
+                Events::LifecycleEvent lifecycle_event;
+                if (events && events->take_lifecycle(lifecycle_event))
                 {
-                    require(system->GetCurrentThreadSystemId(&events->exception_thread_id), "Cleanup exception thread identity");
+                    require(control->SetExecutionStatus(DEBUG_STATUS_GO), "Resume cleanup thread lifecycle");
+                    continue;
                 }
-                if (!events || events->exception_code == 0 || events->is_observer_breakin(initial_system_threads))
+                if (!events || events->exception_code == 0 || events->is_observer_breakin(initial_threads))
                 {
                     break;
                 }
@@ -670,7 +883,10 @@ struct Session
             }
             removal_pending = false;
         }
-        require_event(client->DetachProcesses(), "Detach");
+        if (!target_exited)
+        {
+            require_event(client->DetachProcesses(), "Detach");
+        }
         attached = false;
         if (confirmed)
         {
@@ -683,45 +899,27 @@ struct Session
         ULONG count = 0;
         require(systems->GetNumberThreads(&count), "Initial thread count");
         initial_threads.clear();
-        initial_system_threads.clear();
         if (!count)
         {
             return;
         }
+        std::vector<ULONG> engine_ids(count);
         std::vector<ULONG> system_ids(count);
-        initial_threads.resize(count);
-        require(systems->GetThreadIdsByIndex(0, count, initial_threads.data(), system_ids.data()), "Initial thread enumeration");
-        initial_system_threads = std::move(system_ids);
-    }
-
-    bool has_new_thread(IDebugSystemObjects* systems) const
-    {
-        ULONG count = 0;
-        require(systems->GetNumberThreads(&count), "Current thread count");
-        if (!count)
+        require(systems->GetThreadIdsByIndex(0, count, engine_ids.data(), system_ids.data()), "Initial thread enumeration");
+        ULONG current_engine_id = DEBUG_ANY_ID;
+        require(systems->GetCurrentThreadId(&current_engine_id), "Initial current thread");
+        for (ULONG index = 0; index < count; ++index)
         {
-            return false;
+            require(systems->SetCurrentThreadId(engine_ids[index]), "Initial thread selection");
+            ThreadIdentity identity = current_thread_identity(systems);
+            identity.engine_id      = engine_ids[index];
+            identity.system_id      = system_ids[index];
+            initial_threads.push_back(events ? events->register_initial(identity) : identity);
         }
-        std::vector<ULONG> ids(count);
-        std::vector<ULONG> system_ids(count);
-        require(systems->GetThreadIdsByIndex(0, count, ids.data(), system_ids.data()), "Current thread enumeration");
-        for (const ULONG id : ids)
+        if (current_engine_id != DEBUG_ANY_ID)
         {
-            bool known = false;
-            for (const ULONG initial : initial_threads)
-            {
-                if (id == initial)
-                {
-                    known = true;
-                    break;
-                }
-            }
-            if (!known)
-            {
-                return true;
-            }
+            require(systems->SetCurrentThreadId(current_engine_id), "Restore current thread");
         }
-        return false;
     }
 
     ~Session()
@@ -851,10 +1049,15 @@ Registers read_registers(IDebugRegisters* registers)
 
 struct Common
 {
-    std::size_t          sequence   = 0;
-    ULONG                tid        = 0;
-    ULONG64              utc        = 0;
-    double               elapsed_ms = 0.0;
+    std::size_t          sequence             = 0;
+    ULONG                tid                  = 0;
+    ULONG                engine_tid           = DEBUG_ANY_ID;
+    ULONG64              thread_data_offset   = 0;
+    ULONG64              thread_teb_offset    = 0;
+    std::uint64_t        lifecycle_generation = 0;
+    std::uint64_t        event_number         = 0;
+    ULONG64              utc                  = 0;
+    double               elapsed_ms           = 0.0;
     Registers            regs;
     std::array<ULONG, 8> stack{};
     bool                 stack_valid = false;
@@ -871,9 +1074,23 @@ ULONG64 filetime_value()
     return value.QuadPart;
 }
 
+bool target_has_exited(ULONG pid)
+{
+    const HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (!process)
+    {
+        return GetLastError() == ERROR_INVALID_PARAMETER;
+    }
+    DWORD      exit_code = STILL_ACTIVE;
+    const bool queried   = GetExitCodeProcess(process, &exit_code) != FALSE;
+    CloseHandle(process);
+    return queried && exit_code != STILL_ACTIVE;
+}
+
 Common capture_common(IDebugRegisters*                             registers,
                       IDebugDataSpaces*                            memory,
                       IDebugSystemObjects*                         system,
+                      const Events*                                events,
                       ULONG                                        expected_eip,
                       std::size_t                                  sequence,
                       const std::chrono::steady_clock::time_point& started)
@@ -884,8 +1101,18 @@ Common capture_common(IDebugRegisters*                             registers,
     value.elapsed_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - started).count();
     try
     {
-        value.regs = read_registers(registers);
-        require(system->GetCurrentThreadSystemId(&value.tid), "Thread identity");
+        value.regs                    = read_registers(registers);
+        const ThreadIdentity identity = events ? events->resolve_current_identity() : current_thread_identity(system);
+        if (!identity.system_id)
+        {
+            throw std::runtime_error("Thread identity unavailable");
+        }
+        value.tid                  = identity.system_id;
+        value.engine_tid           = identity.engine_id;
+        value.thread_data_offset   = identity.data_offset;
+        value.thread_teb_offset    = identity.teb_offset;
+        value.lifecycle_generation = identity.generation;
+        value.event_number         = events ? events->event_number : 0;
         if (value.regs.eip != expected_eip)
         {
             value.error = "Hook EIP mismatch";
@@ -916,7 +1143,10 @@ Common capture_common(IDebugRegisters*                             registers,
 std::string common_json(const char* kind, const Common& value)
 {
     std::ostringstream row;
-    row << "{\"kind\":" << quote_json(kind) << ",\"sequence\":" << value.sequence << ",\"tid\":" << value.tid
+    row << "{\"kind\":" << quote_json(kind) << ",\"sequence\":" << value.sequence << ",\"event_number\":" << value.event_number
+        << ",\"tid\":" << value.tid << ",\"engine_tid\":" << value.engine_tid << ",\"thread_data_offset\":"
+        << value.thread_data_offset << ",\"thread_teb_offset\":" << value.thread_teb_offset << ",\"lifecycle_generation\":"
+        << value.lifecycle_generation
         << ",\"utc_filetime\":" << value.utc << ",\"elapsed_ms\":" << value.elapsed_ms << ",\"hook_eip\":" << value.regs.eip
         << ",\"eax\":" << value.regs.eax << ",\"ebx\":" << value.regs.ebx << ",\"ecx\":" << value.regs.ecx
         << ",\"edx\":" << value.regs.edx << ",\"esi\":" << value.regs.esi << ",\"edi\":" << value.regs.edi
@@ -976,17 +1206,19 @@ struct Options
     unsigned             seconds = 0;
     std::wstring         output;
     std::wstring         engine;
-    bool                 fixture            = false;
-    bool                 seconds_set        = false;
-    bool                 output_set         = false;
-    bool                 engine_set         = false;
-    bool                 scene_global_set   = false;
-    bool                 fixture_vtable_set = false;
-    std::array<ULONG, 4> sites              = retail_sites;
+    bool                 fixture                      = false;
+    bool                 seconds_set                  = false;
+    bool                 output_set                   = false;
+    bool                 engine_set                   = false;
+    bool                 scene_global_set             = false;
+    bool                 fixture_vtable_set           = false;
+    bool                 fixture_initial_threads_only = false;
+    std::array<ULONG, 4> sites                        = retail_sites;
     std::array<bool, 4>  site_overrides{};
     ULONG                scene_global   = 0;
     ULONG                fixture_vtable = 0;
     std::optional<ULONG> fixture_manager_call;
+    std::optional<ULONG> fixture_record_cap;
 };
 
 Options parse_options(int argc, wchar_t** argv)
@@ -998,6 +1230,11 @@ Options parse_options(int argc, wchar_t** argv)
         if (key == L"--fixture")
         {
             options.fixture = true;
+            continue;
+        }
+        if (key == L"--fixture-initial-threads-only")
+        {
+            options.fixture_initial_threads_only = true;
             continue;
         }
         if (++index >= argc)
@@ -1058,6 +1295,10 @@ Options parse_options(int argc, wchar_t** argv)
         {
             options.fixture_manager_call = parse_ulong(value, "--manager-caller");
         }
+        else if (key == L"--fixture-record-cap")
+        {
+            options.fixture_record_cap = parse_ulong(value, "--fixture-record-cap");
+        }
         else
         {
             throw std::runtime_error("Unknown option");
@@ -1071,6 +1312,14 @@ Options parse_options(int argc, wchar_t** argv)
     }
     if (!options.fixture)
     {
+        if (options.fixture_initial_threads_only)
+        {
+            throw std::runtime_error("Fixture initial-thread policy requires --fixture");
+        }
+        if (options.fixture_record_cap)
+        {
+            throw std::runtime_error("Fixture record cap requires --fixture");
+        }
         for (const bool override : options.site_overrides)
         {
             if (override)
@@ -1087,6 +1336,10 @@ Options parse_options(int argc, wchar_t** argv)
     else if (!options.scene_global || !options.fixture_vtable)
     {
         throw std::runtime_error("Fixture mode requires --scene-global and --manager-vtable");
+    }
+    if (options.fixture_record_cap && (*options.fixture_record_cap < 1 || *options.fixture_record_cap > maximum_records))
+    {
+        throw std::runtime_error("Fixture record cap must be 1..10000");
     }
     return options;
 }
@@ -1130,16 +1383,46 @@ std::string profile_row(const ProfileSpan& profile, const std::vector<unsigned c
     return finish_json("{\"kind\":\"profile\",\"locator_value\":" + std::to_string(profile.address), fields.str());
 }
 
+std::string lifecycle_row(const Events::LifecycleEvent& event)
+{
+    std::ostringstream fields;
+    fields << "{\"kind\":\"" << (event.created ? "thread_created" : "thread_exited") << "\",\"event_number\":"
+           << event.event_number << ",\"engine_tid\":" << event.identity.engine_id << ",\"tid\":" << event.identity.system_id
+           << ",\"thread_data_offset\":" << event.identity.data_offset << ",\"thread_teb_offset\":" << event.identity.teb_offset
+           << ",\"thread_start_offset\":" << event.identity.start_offset << ",\"lifecycle_generation\":"
+           << event.identity.generation;
+    if (!event.created)
+    {
+        fields << ",\"exit_code\":" << event.exit_code;
+    }
+    fields << "}\n";
+    return fields.str();
+}
+
+std::string exception_row(const Events& events)
+{
+    std::ostringstream row;
+    row << "{\"kind\":\"target_exception\",\"event_number\":" << events.event_number
+        << ",\"exception_code\":" << events.exception_code << ",\"exception_address\":" << events.exception_address
+        << ",\"exception_flags\":" << events.exception_flags << ",\"first_chance\":" << events.exception_first_chance
+        << ",\"engine_tid\":" << events.exception_identity.engine_id << ",\"tid\":" << events.exception_identity.system_id
+        << ",\"thread_data_offset\":" << events.exception_identity.data_offset << ",\"thread_teb_offset\":"
+        << events.exception_identity.teb_offset << ",\"lifecycle_generation\":" << events.exception_identity.generation
+        << ",\"forwarded\":true}\n";
+    return row.str();
+}
+
 struct LookupContext
 {
-    ULONG64     entry_esp     = 0;
-    ULONG64     join_esp      = 0;
-    ULONG       tid           = 0;
-    ULONG       caller_return = 0;
-    ULONG       query         = 0;
-    ULONG       manager       = 0;
-    std::size_t sequence      = 0;
-    bool        consumed      = false;
+    ThreadIdentity identity;
+    ULONG64        entry_esp     = 0;
+    ULONG64        join_esp      = 0;
+    ULONG          tid           = 0;
+    ULONG          caller_return = 0;
+    ULONG          query         = 0;
+    ULONG          manager       = 0;
+    std::size_t    sequence      = 0;
+    bool           consumed      = false;
 };
 
 struct Counts
@@ -1152,6 +1435,15 @@ struct Counts
     unsigned result_hits           = 0;
 };
 
+void retire_lookup_contexts(std::vector<LookupContext>& lookups, const ThreadIdentity& identity)
+{
+    lookups.erase(std::remove_if(lookups.begin(), lookups.end(), [&identity](const LookupContext& context)
+                                 {
+                                     return same_thread_identity(context.identity, identity, true);
+                                 }),
+                  lookups.end());
+}
+
 void append_error_record(std::vector<std::string>& records, Common& common, const char* site)
 {
     records.push_back(partial_row(common, site));
@@ -1162,13 +1454,14 @@ void process_receiver(const Options&                               options,
                       IDebugRegisters*                             registers,
                       IDebugDataSpaces*                            memory,
                       IDebugSystemObjects*                         system,
+                      const Events*                                events,
                       const std::chrono::steady_clock::time_point& started,
                       std::size_t                                  sequence,
                       Counts&                                      counts,
                       std::vector<std::string>&                    records)
 {
     ++counts.receiver_hits;
-    Common common = capture_common(registers, memory, system, options.sites[0], sequence, started);
+    Common common = capture_common(registers, memory, system, events, options.sites[0], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "setmap_receiver");
@@ -1213,13 +1506,14 @@ void process_constructor(const Options&                               options,
                          IDebugRegisters*                             registers,
                          IDebugDataSpaces*                            memory,
                          IDebugSystemObjects*                         system,
+                         const Events*                                events,
                          const std::chrono::steady_clock::time_point& started,
                          std::size_t                                  sequence,
                          Counts&                                      counts,
                          std::vector<std::string>&                    records)
 {
     ++counts.constructor_hits;
-    Common common = capture_common(registers, memory, system, options.sites[1], sequence, started);
+    Common common = capture_common(registers, memory, system, events, options.sites[1], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "region_constructor");
@@ -1246,6 +1540,7 @@ void process_lookup(const Options&                               options,
                     IDebugRegisters*                             registers,
                     IDebugDataSpaces*                            memory,
                     IDebugSystemObjects*                         system,
+                    const Events*                                events,
                     const std::chrono::steady_clock::time_point& started,
                     std::size_t                                  sequence,
                     Counts&                                      counts,
@@ -1254,7 +1549,7 @@ void process_lookup(const Options&                               options,
                     ULONG&                                       expected_caller)
 {
     ++counts.lookup_hits;
-    Common common = capture_common(registers, memory, system, options.sites[2], sequence, started);
+    Common common = capture_common(registers, memory, system, events, options.sites[2], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "region_lookup");
@@ -1292,6 +1587,7 @@ void process_lookup(const Options&                               options,
             throw std::runtime_error("Lookup stack join overflows x86 address");
         }
         LookupContext context;
+        context.identity      = { common.engine_tid, common.tid, common.thread_data_offset, common.thread_teb_offset, 0, common.lifecycle_generation };
         context.entry_esp     = common.regs.esp;
         context.join_esp      = static_cast<ULONG64>(common.regs.esp) + 8;
         context.tid           = common.tid;
@@ -1332,6 +1628,7 @@ void process_result(const Options&                               options,
                     IDebugRegisters*                             registers,
                     IDebugDataSpaces*                            memory,
                     IDebugSystemObjects*                         system,
+                    const Events*                                events,
                     const std::chrono::steady_clock::time_point& started,
                     std::size_t                                  sequence,
                     Counts&                                      counts,
@@ -1340,7 +1637,7 @@ void process_result(const Options&                               options,
                     ULONG                                        expected_caller)
 {
     ++counts.result_hits;
-    Common common = capture_common(registers, memory, system, options.sites[3], sequence, started);
+    Common common = capture_common(registers, memory, system, events, options.sites[3], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "lookup_result");
@@ -1350,7 +1647,9 @@ void process_result(const Options&                               options,
         LookupContext* joined = nullptr;
         for (auto iterator = lookups.rbegin(); iterator != lookups.rend(); ++iterator)
         {
-            if (!iterator->consumed && iterator->tid == common.tid && iterator->join_esp == common.regs.esp)
+            const ThreadIdentity result_identity{ common.engine_tid, common.tid, common.thread_data_offset, common.thread_teb_offset, 0, common.lifecycle_generation };
+            if (!iterator->consumed && same_thread_identity(iterator->identity, result_identity, true) &&
+                iterator->join_esp == common.regs.esp)
             {
                 joined = &*iterator;
                 break;
@@ -1426,7 +1725,7 @@ std::string identity_row(const Options& options, const std::string& target_hash,
     row << "{\"kind\":\"identity\",\"pid\":" << options.pid << ",\"image_sha256\":" << quote_json(target_hash)
         << ",\"engine_sha256\":" << quote_json(engine_hash) << ",\"fixture\":" << (options.fixture ? "true" : "false")
         << ",\"image_base\":" << retail_image_base << ",\"retail_sha256\":" << quote_json(retail_sha)
-        << ",\"format_version\":1}\n";
+        << ",\"format_version\":2}\n";
     return row.str();
 }
 
@@ -1467,10 +1766,22 @@ int wmain(int argc, wchar_t** argv)
     std::vector<std::string> records;
     Counts                   counts;
     AttachmentSnapshot       attachment_snapshot;
-    bool                     attachment_started   = false;
-    bool                     detach_confirmed     = false;
-    ULONG                    expected_caller      = manager_caller;
-    ULONG                    initial_thread_count = 0;
+    bool                     attachment_started          = false;
+    bool                     detach_confirmed            = false;
+    ULONG                    expected_caller             = manager_caller;
+    ULONG                    initial_thread_count        = 0;
+    unsigned                 lifecycle_created           = 0;
+    unsigned                 lifecycle_exited            = 0;
+    unsigned                 forwarded_exceptions        = 0;
+    unsigned                 owned_interrupts            = 0;
+    ULONG                    last_exception_code         = 0;
+    ULONG64                  last_exception_address      = 0;
+    ULONG                    last_exception_flags        = 0;
+    ULONG                    last_exception_first_chance = 0;
+    ThreadIdentity           last_exception_identity;
+    std::size_t              observation_sequence = 0;
+    std::size_t              record_cap           = maximum_records;
+    std::string              thread_policy        = "initial_threads_only";
     try
     {
         cancelled           = false;
@@ -1480,6 +1791,8 @@ int wmain(int argc, wchar_t** argv)
             throw std::runtime_error("Cannot install cancellation handler");
         }
         const Options options = parse_options(argc, argv);
+        record_cap            = options.fixture_record_cap.value_or(maximum_records);
+        thread_policy         = options.fixture && !options.fixture_initial_threads_only ? "global_all_threads" : "initial_threads_only";
         if (options.fixture && options.fixture_manager_call)
         {
             expected_caller = *options.fixture_manager_call;
@@ -1548,9 +1861,8 @@ int wmain(int argc, wchar_t** argv)
         require_event(session.control->WaitForEvent(0, 10000), "Initial attach event");
         if (events.exception_code != 0)
         {
-            require(system->GetCurrentThreadSystemId(&events.exception_thread_id), "Initial exception thread identity");
-            events.attach_breakin_address   = events.exception_address;
-            events.attach_breakin_thread_id = events.exception_thread_id;
+            events.attach_breakin_address  = events.exception_address;
+            events.attach_breakin_identity = events.exception_identity;
             events.capture_attach_thread_context();
         }
         require(session.client->AddProcessOptions(DEBUG_PROCESS_DETACH_ON_EXIT), "Detach-on-exit option");
@@ -1630,7 +1942,7 @@ int wmain(int argc, wchar_t** argv)
         {
             add_breakpoint(session, id, id, options.sites[id]);
         }
-        events.watch_threads                = true;
+        events.mark_armed();
         const auto                 started  = std::chrono::steady_clock::now();
         const auto                 deadline = started + std::chrono::seconds(options.seconds);
         std::vector<LookupContext> lookups;
@@ -1663,47 +1975,82 @@ int wmain(int argc, wchar_t** argv)
         while (true)
         {
             const HRESULT status = session.control->WaitForEvent(0, INFINITE);
+            if (status == E_UNEXPECTED && target_has_exited(options.pid))
+            {
+                events.process_exited = true;
+                stop_reason           = "target_exit";
+                break;
+            }
             require(timer_error.load(), "Timer interrupt");
             require_event(status, "Wait for diagnostic event");
-            if (events.exception_code != 0)
+            if (events.process_exited)
             {
-                require(system->GetCurrentThreadSystemId(&events.exception_thread_id), "Exception thread identity");
+                stop_reason = "target_exit";
+                break;
             }
-            if (interrupt_requested && events.last_id == DEBUG_ANY_ID && events.is_observer_breakin(session.initial_system_threads))
+            if (records.size() >= record_cap)
             {
+                stop_reason = "record_cap";
+                break;
+            }
+            if (interrupt_requested && events.last_id == DEBUG_ANY_ID && events.is_observer_breakin(session.initial_threads))
+            {
+                ++events.owned_interrupts;
+                ++owned_interrupts;
+                events.clear_exception();
                 stop_reason = cancelled ? "cancelled" : "duration";
                 break;
             }
-            if (events.thread_created)
+            Events::LifecycleEvent lifecycle_event;
+            if (events.take_lifecycle(lifecycle_event))
             {
-                require(system->GetCurrentThreadSystemId(&events.created_thread_id), "Created thread identity");
-                events.thread_created = false;
-                if (session.has_new_thread(system.Get()))
+                if (records.size() >= record_cap)
+                {
+                    stop_reason = "record_cap";
+                    break;
+                }
+                records.push_back(lifecycle_row(lifecycle_event));
+                if (lifecycle_event.created)
+                {
+                    ++lifecycle_created;
+                }
+                else
+                {
+                    ++lifecycle_exited;
+                }
+                if (!lifecycle_event.created)
+                {
+                    retire_lookup_contexts(lookups, lifecycle_event.identity);
+                }
+                if (lifecycle_event.created && thread_policy == "initial_threads_only" && !events.is_observer_helper(lifecycle_event))
                 {
                     std::ostringstream error;
-                    error << "Application thread creation is outside the bounded four-point profile (tid=" << events.created_thread_id
-                          << ",data_offset=" << hex64(events.created_thread_data_offset) << ",start_offset="
-                          << hex64(events.created_thread_start_offset) << ')';
+                    error << "Application thread creation is outside the bounded four-point profile (tid="
+                          << lifecycle_event.identity.system_id << ",data_offset=" << hex64(lifecycle_event.identity.data_offset)
+                          << ",start_offset=" << hex64(lifecycle_event.identity.start_offset) << ')';
                     throw std::runtime_error(error.str());
                 }
-                events.last_id                = DEBUG_ANY_ID;
-                events.exception_code         = 0;
-                events.exception_address      = 0;
-                events.exception_flags        = 0;
-                events.exception_first_chance = 0;
-                events.exception_thread_id    = 0;
-                require(session.control->SetExecutionStatus(DEBUG_STATUS_GO), "Resume after initial thread event");
+                events.clear_exception();
+                require(session.control->SetExecutionStatus(DEBUG_STATUS_GO), "Resume after thread lifecycle event");
                 continue;
             }
             if (events.exception_code != 0)
             {
+                if (records.size() >= record_cap)
+                {
+                    stop_reason = "record_cap";
+                    break;
+                }
+                records.push_back(exception_row(events));
+                ++events.forwarded_exceptions;
+                ++forwarded_exceptions;
+                last_exception_code         = events.exception_code;
+                last_exception_address      = events.exception_address;
+                last_exception_flags        = events.exception_flags;
+                last_exception_first_chance = events.exception_first_chance;
+                last_exception_identity     = events.exception_identity;
                 require(session.control->SetExecutionStatus(DEBUG_STATUS_GO_NOT_HANDLED), "Forward target exception");
-                events.last_id                = DEBUG_ANY_ID;
-                events.exception_code         = 0;
-                events.exception_address      = 0;
-                events.exception_flags        = 0;
-                events.exception_first_chance = 0;
-                events.exception_thread_id    = 0;
+                events.clear_exception();
                 continue;
             }
             ULONG64 instruction = 0;
@@ -1725,22 +2072,22 @@ int wmain(int argc, wchar_t** argv)
             {
                 throw std::runtime_error("Unexpected debug stop at " + hex32(static_cast<ULONG>(instruction)));
             }
-            const std::size_t sequence = records.size() + 1;
+            const std::size_t sequence = ++observation_sequence;
             if (*site == 0)
             {
-                process_receiver(options, registers.Get(), memory.Get(), system.Get(), started, sequence, counts, records);
+                process_receiver(options, registers.Get(), memory.Get(), system.Get(), &events, started, sequence, counts, records);
             }
             else if (*site == 1)
             {
-                process_constructor(options, registers.Get(), memory.Get(), system.Get(), started, sequence, counts, records);
+                process_constructor(options, registers.Get(), memory.Get(), system.Get(), &events, started, sequence, counts, records);
             }
             else if (*site == 2)
             {
-                process_lookup(options, registers.Get(), memory.Get(), system.Get(), started, sequence, counts, lookups, records, expected_caller);
+                process_lookup(options, registers.Get(), memory.Get(), system.Get(), &events, started, sequence, counts, lookups, records, expected_caller);
             }
             else
             {
-                process_result(options, registers.Get(), memory.Get(), system.Get(), started, sequence, counts, lookups, records, expected_caller);
+                process_result(options, registers.Get(), memory.Get(), system.Get(), &events, started, sequence, counts, lookups, records, expected_caller);
             }
             if (cancelled)
             {
@@ -1752,7 +2099,7 @@ int wmain(int argc, wchar_t** argv)
                 stop_reason = "duration";
                 break;
             }
-            if (records.size() >= maximum_records)
+            if (records.size() >= record_cap)
             {
                 stop_reason = "record_cap";
                 break;
@@ -1764,30 +2111,43 @@ int wmain(int argc, wchar_t** argv)
         timer.join();
         require(timer_error.load(), "Timer interrupt");
         session.detach();
-        const std::string terminal = "{\"kind\":\"detached\",\"observations\":" + std::to_string(records.size()) + "," + counts_fields(counts) +
-                                     ",\"record_cap\":" + std::to_string(maximum_records) + ",\"stop_reason\":" + quote_json(stop_reason) +
+        const std::string terminal = "{\"kind\":\"detached\",\"records\":" + std::to_string(records.size()) + ",\"observations\":" +
+                                     std::to_string(observation_sequence) + "," + counts_fields(counts) +
+                                     ",\"record_cap\":" + std::to_string(record_cap) + ",\"stop_reason\":" + quote_json(stop_reason) +
                                      ",\"timeout\":" + std::string(stop_reason == std::string("duration") ? "true" : "false") +
                                      ",\"cancelled\":" + std::string(stop_reason == std::string("cancelled") ? "true" : "false") +
                                      ",\"detach_confirmed\":" + (detach_confirmed ? "true" : "false") + ",\"initial_thread_count\":" +
-                                     std::to_string(initial_thread_count) + ",\"thread_policy\":\"initial_threads_only\",\"last_exception_code\":" +
-                                     std::to_string(events.exception_code) + ",\"last_exception_address\":" +
-                                     std::to_string(events.exception_address) + ",\"last_exception_flags\":" +
-                                     std::to_string(events.exception_flags) + ",\"last_exception_first_chance\":" +
-                                     std::to_string(events.exception_first_chance) + ",\"last_exception_thread_id\":" +
-                                     std::to_string(events.exception_thread_id) + ",\"observer_breakin_address\":" +
-                                     std::to_string(events.attach_breakin_address) + ",\"observer_breakin_thread_id\":" +
-                                     std::to_string(events.attach_breakin_thread_id) + ",\"attach_thread_data_offset\":" +
-                                     std::to_string(events.attach_thread_data_offset) + ",\"attach_thread_start_offset\":" +
-                                     std::to_string(events.attach_thread_start_offset) + ",\"attachment_validated\":" +
-                                     (events.attachment_validated ? "true" : "false") + ",\"created_thread_id\":" +
-                                     std::to_string(events.created_thread_id) + ",\"created_thread_data_offset\":" +
-                                     std::to_string(events.created_thread_data_offset) + ",\"created_thread_start_offset\":" +
-                                     std::to_string(events.created_thread_start_offset) + ",\"expected_breakin_address\":" +
-                                     std::to_string(events.expected_breakin_address) + ",\"expected_helper_start\":" +
-                                     std::to_string(events.expected_helper_start) + ",\"snapshot_filetime\":" + std::to_string(filetime_value()) + "}\n";
+                                     std::to_string(initial_thread_count) + ",\"thread_policy\":" + quote_json(thread_policy) + ",\"thread_created_events\":" +
+                                     std::to_string(events.created_events) + ",\"thread_exit_events\":" + std::to_string(events.exited_events) +
+                                     ",\"forwarded_exception_count\":" + std::to_string(events.forwarded_exceptions) +
+                                     ",\"owned_interrupt_count\":" + std::to_string(events.owned_interrupts) +
+                                     ",\"last_exception_code\":" + std::to_string(events.last_exception_code) +
+                                     ",\"last_exception_address\":" + std::to_string(events.last_exception_address) +
+                                     ",\"last_exception_flags\":" + std::to_string(events.last_exception_flags) +
+                                     ",\"last_exception_first_chance\":" + std::to_string(events.last_exception_first_chance) +
+                                     ",\"last_exception_thread_id\":" + std::to_string(events.last_exception_identity.system_id) +
+                                     ",\"observer_breakin_address\":" + std::to_string(events.attach_breakin_address) +
+                                     ",\"observer_breakin_thread_id\":" + std::to_string(events.attach_breakin_identity.system_id) +
+                                     ",\"observer_breakin_engine_id\":" + std::to_string(events.attach_breakin_identity.engine_id) +
+                                     ",\"attach_thread_data_offset\":" + std::to_string(events.attach_thread_data_offset) +
+                                     ",\"attach_thread_teb_offset\":" + std::to_string(events.attach_thread_teb_offset) +
+                                     ",\"attach_thread_start_offset\":" + std::to_string(events.attach_thread_start_offset) +
+                                     ",\"attach_thread_generation\":" + std::to_string(events.attach_breakin_identity.generation) +
+                                     ",\"attachment_validated\":" + (events.attachment_validated ? "true" : "false") +
+                                     ",\"expected_breakin_address\":" + std::to_string(events.expected_breakin_address) +
+                                     ",\"expected_helper_start\":" + std::to_string(events.expected_helper_start) +
+                                     ",\"process_exited\":" + (events.process_exited ? "true" : "false") +
+                                     ",\"snapshot_filetime\":" + std::to_string(filetime_value()) + "}\n";
         write_all(*output, identity, profiles, records, terminal);
         SetConsoleCtrlHandler(cancel_handler, FALSE);
-        std::cout << "Detached; target left running. Observations: " << records.size() << "\n";
+        if (events.process_exited || std::string(stop_reason) == "target_exit")
+        {
+            std::cout << "Target exited. Observations: " << observation_sequence << "\n";
+        }
+        else
+        {
+            std::cout << "Detached; target left running. Observations: " << observation_sequence << "\n";
+        }
         return 0;
     }
     catch (const std::exception& error)
@@ -1797,16 +2157,29 @@ int wmain(int argc, wchar_t** argv)
         {
             try
             {
-                const std::string terminal = "{\"kind\":\"failed\",\"observations\":" + std::to_string(records.size()) + "," + counts_fields(counts) +
-                                             ",\"record_cap\":" + std::to_string(maximum_records) + ",\"attachment_started\":" +
+                const std::string terminal = "{\"kind\":\"failed\",\"records\":" + std::to_string(records.size()) + ",\"observations\":" +
+                                             std::to_string(observation_sequence) + "," + counts_fields(counts) +
+                                             ",\"record_cap\":" + std::to_string(record_cap) + ",\"attachment_started\":" +
                                              (attachment_started ? "true" : "false") + ",\"detach_confirmed\":" +
                                              (detach_confirmed ? "true" : "false") + ",\"stop_reason\":\"error\",\"timeout\":false,\"cancelled\":" +
                                              (cancelled ? "true" : "false") + ",\"initial_thread_count\":" + std::to_string(initial_thread_count) +
-                                             ",\"thread_policy\":\"initial_threads_only\",\"observer_breakin_address\":" +
+                                             ",\"thread_policy\":" + quote_json(thread_policy) + ",\"thread_created_events\":" +
+                                             std::to_string(lifecycle_created) + ",\"thread_exit_events\":" + std::to_string(lifecycle_exited) +
+                                             ",\"forwarded_exception_count\":" + std::to_string(forwarded_exceptions) +
+                                             ",\"owned_interrupt_count\":" + std::to_string(owned_interrupts) +
+                                             ",\"last_exception_code\":" + std::to_string(last_exception_code) +
+                                             ",\"last_exception_address\":" + std::to_string(last_exception_address) +
+                                             ",\"last_exception_flags\":" + std::to_string(last_exception_flags) +
+                                             ",\"last_exception_first_chance\":" + std::to_string(last_exception_first_chance) +
+                                             ",\"last_exception_thread_id\":" + std::to_string(last_exception_identity.system_id) +
+                                             ",\"observer_breakin_address\":" +
                                              std::to_string(attachment_snapshot.observer_breakin_address) + ",\"observer_breakin_thread_id\":" +
-                                             std::to_string(attachment_snapshot.observer_breakin_thread_id) + ",\"attach_thread_data_offset\":" +
-                                             std::to_string(attachment_snapshot.attach_thread_data_offset) + ",\"attach_thread_start_offset\":" +
-                                             std::to_string(attachment_snapshot.attach_thread_start_offset) + ",\"attachment_validated\":" +
+                                             std::to_string(attachment_snapshot.observer_breakin_thread_id) + ",\"observer_breakin_engine_id\":" +
+                                             std::to_string(attachment_snapshot.observer_breakin_engine_id) + ",\"attach_thread_data_offset\":" +
+                                             std::to_string(attachment_snapshot.attach_thread_data_offset) + ",\"attach_thread_teb_offset\":" +
+                                             std::to_string(attachment_snapshot.attach_thread_teb_offset) + ",\"attach_thread_start_offset\":" +
+                                             std::to_string(attachment_snapshot.attach_thread_start_offset) + ",\"attach_thread_generation\":" +
+                                             std::to_string(attachment_snapshot.attach_thread_generation) + ",\"attachment_validated\":" +
                                              (attachment_snapshot.attachment_validated ? "true" : "false") + ",\"expected_breakin_address\":" +
                                              std::to_string(attachment_snapshot.expected_breakin_address) + ",\"expected_helper_start\":" +
                                              std::to_string(attachment_snapshot.expected_helper_start) + ",\"snapshot_filetime\":" + std::to_string(filetime_value()) +

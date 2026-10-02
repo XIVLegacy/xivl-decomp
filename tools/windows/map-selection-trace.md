@@ -17,12 +17,29 @@ SHA-256
 PE32 I386 loaded at VA `0x00400000`. Retail addresses are fixed. The observer
 rejects other images, rebasing and mismatched resident instruction spans.
 
-The supported thread policy is `initial_threads_only`. The four breakpoint
-objects apply to the threads present when capture is armed. Creation of a new
-application thread ends the interval with a failed record and cleanup; that
-interval is not an accepted control. A fresh login or selection that creates
-threads may therefore exceed this profile. A broader thread profile requires
-separate debugger and cleanup verification.
+The four observations use DbgEng processor breakpoints with one-byte execute
+access and no thread restriction. The
+[match-thread contract](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/dbgeng/nf-dbgeng-idebugbreakpoint-setmatchthreadid)
+allows any thread to trigger an unrestricted breakpoint. The engine owns
+breakpoint installation and
+[removal](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/dbgeng/nf-dbgeng-idebugcontrol-removebreakpoint);
+the fixture verifies coverage and removal on the supported Windows profile.
+
+The supported retail thread policy is `initial_threads_only`. A new
+application thread ends the interval with a failed record and cleanup before
+it resumes with observation breakpoints. Such an interval is not an accepted
+control. Debugger attachment and interrupt helpers require a separately
+verified identity before their breakpoint exceptions can be handled as
+observer-owned events.
+
+The synthetic fixture can exercise `global_all_threads`; this policy is not
+available for the retail image. Synthetic captures observed an unmapped
+single-step exception at an observation site followed by an ordinary
+breakpoint callback. The exception's origin and application delivery were
+not established, so those tests do not support retail use of that policy.
+Thread creation and exit records distinguish debugger engine IDs from Windows
+thread IDs. A lifecycle generation separates reused identities and expires
+pending lookup entries when their thread exits.
 
 The following VAs and arguments were recovered with Ghidra
 `tools/ghidra_scripts/DumpFunctions.java` and exact-address x86-32
@@ -94,10 +111,14 @@ records its digest and performs no download or installation. Its separate
 synthetic fixture supplies independent instruction sites and contains no
 client assets. Fixture verification checks actual register/stack and buffer
 bases, matched/null lookup values, bounded idle capture, input refusals,
-failure cleanup and cancellation. The thread-creation refusal checks replay of
-all four sites after detach on both initial application threads and two later workers.
-Every attached fixture must resume after detach, lose its debugger and exit
-normally; tests never terminate it to make cleanup pass.
+failure cleanup, cancellation and the total-record cap. The retail-policy
+fixture checks new-thread refusal and cleanup. The separate synthetic global
+policy exercises workers created during capture, worker exit and a handled
+exception. Surviving initial and later workers replay all four sites after
+detach; these checks do not resolve the unmapped single-step's provenance.
+Every surviving fixture must resume after detach, lose its debugger and exit
+normally. A separate case checks a normal target exit during capture; tests
+never terminate a fixture to make cleanup pass.
 
 ## Capture one unchanged selection
 
@@ -119,7 +140,7 @@ C:\scratch\map-selection-build\Release\trace_map_selection.exe `
    value and record whether the client continued normally. A successful
    capture also prints `Detached`.
 
-An explicit duration of 1 through 30 seconds is required. A 10,000-observation
+An explicit duration of 1 through 30 seconds is required. A 10,000-record
 limit and Ctrl+C / Ctrl+Break also end capture through cleanup. Closing the
 console is not a tested cancellation path. An already debugged target, invalid profile or
 existing output is refused. Raw process records and executable/build digests
@@ -127,13 +148,16 @@ stay private and outside tracked trees.
 
 ## Records
 
-Format 1 begins with an `identity` row containing the target and engine
+Format 2 begins with an `identity` row containing the target and engine
 digests and the retail/fixture distinction. `profile` rows retain the resident
 locator checks. Observation rows have `sequence`, `tid`, `utc_filetime`,
 `elapsed_ms`, `hook_eip`, integer registers and `stack_slots`.
 `utc_filetime` is the Windows FILETIME tick value, not a Unix timestamp;
 elapsed time uses a separate steady clock. Stack slots begin at the recorded
 ESP and are raw dwords, rather than universally named function arguments.
+Observations also retain `engine_tid`, `thread_data_offset`, `thread_teb_offset`
+and `lifecycle_generation` to identify the thread lifetime used for a lookup
+join. Engine IDs and Windows thread IDs are separate namespaces.
 
 | Observation kind | Meaning |
 |---|---|
@@ -143,13 +167,23 @@ ESP and are raw dwords, rather than universally named function arguments.
 | `region_lookup` | Table, full-dword query, pointer-span bounds and actual caller. Manager fields require the known caller. |
 | `lookup_result` | Returned/null root, lookup correlation and guarded manager/scene fields. |
 | `partial_error` | Raw observation context retained when an interpreted read failed. |
+| `thread_created` / `thread_exited` | Ordered lifecycle events, with identity and an exit code for exit events. |
+| `target_exception` | An unowned exception for which forwarding was requested, with its actual thread identity. |
 
 Terminal `detached` or `failed` records contain observation/hit counts and
-detach status, `thread_policy` and `initial_thread_count`. Observation rows are
-buffered while attached and written after cleanup, preserving order. A count
+detach status, `thread_policy`, `initial_thread_count`, `thread_created_events`
+and `thread_exit_events`. Captured rows are buffered while attached and written
+after cleanup, preserving order. A record count includes lifecycle and
+forwarded-exception rows. An observation count
 includes filtered receiver observations, so it is not a count of SetMaps.
-Host observation times cannot measure total
-target pause or natural loading latency.
+Host observation times cannot measure total target pause or natural loading latency.
+An exception row's `forwarded` flag records the request to resume with
+`DEBUG_STATUS_GO_NOT_HANDLED`; it does not establish the exception's origin
+or prove delivery to an application handler. An address match alone cannot
+assign an exception to an observation breakpoint.
+Failed-terminal forwarding counts cover the recording loop and omit
+additional cleanup forwarding. A zero failed-terminal count therefore does
+not establish that no exception was forwarded during detach.
 After attachment starts, `detach_confirmed: false` leaves target state
 unresolved even if best-effort cleanup was attempted.
 
@@ -157,8 +191,8 @@ unresolved even if best-effort cleanup was attempted.
 
 Order observations by sequence and retain thread IDs, hook EIP, registers,
 stack slots and pointer bases. A manager lookup entry/result pair requires
-the entry's actual return address `0x0064E87A`, the same thread and manager,
-and result ESP equal to entry ESP plus eight, accounting for `RET 4`.
+the entry's actual return address `0x0064E87A`, the same thread lifetime and
+manager, and result ESP equal to entry ESP plus eight, accounting for `RET 4`.
 Retain the observed query and matched root key even when they differ.
 Incomplete, interleaved or ambiguous records do not establish a pair.
 
@@ -170,7 +204,8 @@ manager values visible when reporting a correlation.
 
 A zero-observation capture establishes only that no accepted site was seen
 in that instrumented interval. A failed record or unconfirmed detach is not
-an accepted control. Neither a lookup hit nor a shared retail resource set
+an accepted control. A `record_cap` stop leaves the later event stream
+unobserved. Neither a lookup hit nor a shared retail resource set
 accepts an independent authored scene. Ordered ResourceModule requests,
 Resource-correlated DAT opens and downstream completion remain required by
 the [request boundary](../../docs/resource/map-layout-request-boundary.md)
