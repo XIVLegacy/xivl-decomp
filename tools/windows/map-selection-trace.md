@@ -288,3 +288,41 @@ the [request boundary](../../docs/resource/map-layout-request-boundary.md)
 and [auxiliary completion contract](../../docs/resource/region-auxiliary-resource.md).
 Rendering, collision, walking and ZoneMaster/script initialization require
 their own acceptance evidence.
+
+### Raw event ownership boundary
+
+The observer does not record the raw Windows wait result or actual continue
+disposition. Establishing the unmapped single-step's handling path requires
+those records from the same DbgEng session, joined to the callback and target
+thread lifetime. A separate Win32 debugger comparison cannot establish that
+session's callback ownership.
+
+Static analysis with LLVM `llvm-readobj` and `llvm-objdump` established a
+candidate native profile for PE32 I386 `dbgeng.dll`, SHA-256
+`d032b53cd7478c58bc2b63c5c27d0ae1bb7108652c48ab6de3817ab9843ac631`,
+and PE32 I386 `ntdll.dll`, SHA-256
+`7e15bd30890e9bf93b47fc894a68b2445618ee7528eb39584a263b21e112f9df`.
+The observations used Windows 11 x64 build 26200. An x86 observer still sees
+the Windows/WOW64 representation, rather than a processor trap frame.
+
+DbgEng's resolver uses its own GetProcAddress IAT at RVA `0x5A3180`.
+The call at RVA `0x3C9897` stores GetThreadContext at RVA `0x5A8798`;
+calls through that slot occur at RVAs `0x3BC27B` and `0x3BC3BA`.
+These bindings and context reads do not establish the raw wait boundary.
+
+The pinned ntdll exports establish a four-word native wait wrapper at RVA
+`0x7B9E0` and a three-word continue wrapper at RVA `0x7A910`.
+The converter wrapper at RVA `0xCE640` takes input then output pointers.
+Its helper at RVA `0xCE67C` maps states 6, 7 and 8 to a shared exception
+dispatch path.
+The ordinary exception branch at RVA `0xCE7D1` copies 20 dwords from input
+`+0x0C`, then the first-chance word at `+0x5C`, establishing a `0x60`-byte
+extent for that branch. This does not establish every state variant's extent.
+
+The missing edge is DbgEng's actual native wait/continue invocation, including
+the resolved slot or caller, live buffer lifetime and all-state extent, plus
+its context-write coverage. An absolute-address reference scan did not find
+that edge; indexed table access remains possible. No raw decoder or
+interception is supported from API-name metadata alone. A resolver binding
+record would still require a demonstrated invocation before it could support
+a raw event record. Retail thread policy remains `initial_threads_only`.
