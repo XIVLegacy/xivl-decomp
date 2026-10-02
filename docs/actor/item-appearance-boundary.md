@@ -3,7 +3,7 @@
 This page records the retail 1.23b native path from a CharaElement-owned
 appearance record, through queued actor dispatch, to equipment resource paths.
 It also records the upstream `actorclass_graphic` row resolver, the bounded
-item-sheet consumer result, and the remaining runtime-only producer boundary.
+item-sheet consumer result, and the alternate builder's missing invocation edge.
 
 ## Verdict
 
@@ -33,8 +33,7 @@ can be recovered statically. Its source remains a caller-supplied pointer. A
 complete displacement census found no source-record writer that can be tied
 to that pointer; the one compact full-range zero writer is an unrelated widget
 subobject initializer. The static evidence boundary is the missing invocation
-edge. At runtime, break at `0x00586b10`, capture the call stack and second
-argument pointer, and watch the source ranges listed below for earlier writes.
+edge. That absence does not establish that the function is unreachable.
 
 ## Native consumption chain
 
@@ -47,7 +46,7 @@ All locations below are in retail `ffxivgame.exe`, SHA-256
 | `0x0058b4e0` | `0x0018b4e0` | Constructs an `Application::Main::Element::Chara::CharaElement`, writes both tracked CharaElement vtables, and initializes the 116-byte block beginning at object offset `0xaac` through `0x005670d0`. |
 | `0x00585d70` | `0x00185d70` | When byte `CharaElement + 0xb20` is set, calls `0x004d7980` with literal selector `8`, payload `CharaElement + 0xaac`, and literal length `0x74`, then clears the dirty byte. The same function can first rebuild the block through `0x0055d2b0` and copy exactly `0x1d` dwords into it. |
 | `0x005868a0` | `0x001868a0` | For four bounded input cases, writes one of the literal `actorclass_graphic` row IDs `0x005a0700..0x005a0703` to `CharaElement + 0xb24`. The next `0x00585d70` rebuild resolves that pending ID, copies the row-derived record, and clears the field. |
-| `0x00586b10` | `0x00186b10` | Alternate runtime-only writer. For seven slots it reads four interleaved arrays at source offsets `0x30..0x48`, `0x4c..0x64`, `0x68..0x80`, and `0x84..0x9c`, then calls `0x006307a0` to build the dwords written at `CharaElement + 0xac4..0xadc`. If source dword `+0x00` is nonzero, it first clears those four arrays in place, showing that the source is a mutable caller-supplied record rather than a read-only row. Complete static checks found no caller, data reference, export, or encoded function pointer. |
+| `0x00586b10` | `0x00186b10` | Alternate unpacked-state builder. For seven slots it reads four interleaved arrays at source offsets `0x30..0x48`, `0x4c..0x64`, `0x68..0x80`, and `0x84..0x9c`, then calls `0x006307a0` to build the dwords written at `CharaElement + 0xac4..0xadc`. If source dword `+0x00` is nonzero, it first clears those four arrays in place, showing that the source is a mutable caller-supplied record rather than a read-only row. Complete static checks found no caller, data reference, export, or encoded function pointer. |
 | `0x004d7980` | `0x000d7980` | Adds `0x15` to the selector, constructs a queue record through `0x004ec080`, and submits it through virtual offset `0x0c` on the object at caller offset `0x84`. Selector `8` therefore becomes queued kind `0x1d`. |
 | `0x004ec080` | `0x000ec080` | Stores the secondary dword at queue-record offset `0x90`, the kind word at `0x94`, and the length word at `0x96`. Payloads no longer than `0x78` bytes are copied inline at offset `0x10`; the 116-byte appearance record takes this inline path. |
 | `0x004e9700` | `0x000e9700` | Drains the queue record, selects its inline or heap payload by the length at `0x96`, and passes kind, secondary dword, payload, and length unchanged to `0x0060c140` at call site `0x004e98f9`. |
@@ -367,16 +366,16 @@ independently anchor ItemBase slot 33 and CharaActor slot 157.
 
 The `0x0055d2b0` branch is closed positively at the `actorclass_graphic`
 row-ID resolver and numeric columns `0x19..0x1f`. Static evidence bounds the
-alternate `0x00586b10` branch at its missing invocation edge. Break at VA
-`0x00586b10` in the pinned retail image. If it fires, capture the return address
-and full call stack, preserve the second argument pointer, and place write
-watchpoints on that pointer's ranges `+0x30..+0x48`, `+0x4c..+0x64`,
-`+0x68..+0x80`, and `+0x84..+0x9c`. The first write in the trace identifies the
-ingestion or ownership boundary for static analysis. If the breakpoint does
-not fire, that result is only a bounded negative for the exercised scenario,
-not proof that the code is unreachable.
+alternate `0x00586b10` branch at its missing invocation edge and unidentified
+source writer. Static evidence cannot distinguish a runtime-computed invocation
+from retained unreachable code.
 
-No wire provenance is established for the structure. Until a runtime edge is
-observed, the queued record must not be called a wire packet, and the packed
-lanes must not be assigned item, model, variant, or color semantics by
+A new live retail-session observation is unavailable. This is an evidence
+ceiling at the invocation and source-writer boundary. A new invocation or
+alias-preserving source-writer edge from static analysis or preserved evidence
+would change that result.
+
+No wire provenance is established for the structure. Calling the queued record
+a wire packet requires a demonstrated network-to-record data-flow edge. The
+packed lanes must not be assigned item, model, variant, or color semantics by
 magnitude or by a modern format analogy.

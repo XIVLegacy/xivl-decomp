@@ -739,7 +739,7 @@
     "kind"
    ],
    "confidence": "exact source and destination offsets, seven-iteration loop, direct packing-helper call, in-place source reset, CharaElement storage identity, complete fresh xref and displacement censuses, named callers excluding the only compact layout collision, and PE export and pointer-encoding checks",
-   "ambiguity": "The function has no observed catalog lookup or wire provenance. Static evidence cannot distinguish a runtime-computed invocation from retained unreachable code. The exact next boundary is an execution breakpoint at 0x00586b10, followed by call-stack capture and write watches on the second argument ranges at offsets 0x30 through 0x9c.",
+   "ambiguity": "The function has no observed catalog lookup or wire provenance. Static evidence cannot distinguish a runtime-computed invocation from retained unreachable code. Its invocation and source-writer identities remain unresolved; a new invocation or alias-preserving source-writer edge from static analysis or preserved evidence would change that result.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-decompile", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-upstream-callers", "addresses": ["0x00586b10", "0x006307a0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "appearance-runtime-invocation-source-boundary", "addresses": ["0x00586b10", "0x006307a0", "0x004ee330", "0x0052a080", "0x0052a320"]}]
   },
   {
