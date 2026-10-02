@@ -153,6 +153,8 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [Monster action scheduler corpus](resource/monster-action-scheduler-corpus.md)
 - [PE layout](resource/pe-layout.md)
 - [Resource path producer](resource/resource-path-producer.md)
+- [MapLayout numeric request boundary](resource/map-layout-request-boundary.md)
+- [RegionInfo and LayoutInfo selection](resource/map-layout-selector.md)
 - [Seasonal BG-object assets](resource/seasonal-bgobj-assets.md)
 - [Float and mask instruction sites](resource/float-and-mask-sites.md)
 - [Static-actor command registry](resource/static-actor-registry.md)
