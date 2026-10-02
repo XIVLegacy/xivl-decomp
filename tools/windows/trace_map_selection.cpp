@@ -378,6 +378,43 @@ struct ThreadIdentity
     std::uint64_t generation   = 0;
 };
 
+struct RegisterRead
+{
+    bool    available = false;
+    HRESULT result    = E_FAIL;
+    ULONG64 value     = 0;
+};
+
+struct DebugContext
+{
+    RegisterRead                eip;
+    RegisterRead                eflags;
+    std::array<RegisterRead, 8> debug_registers;
+};
+
+struct BreakpointSnapshot
+{
+    bool           callback = false;
+    ThreadIdentity callback_identity;
+    ULONG          id               = DEBUG_ANY_ID;
+    HRESULT        id_result        = E_FAIL;
+    bool           id_available     = false;
+    ULONG64        offset           = 0;
+    HRESULT        offset_result    = E_FAIL;
+    bool           offset_available = false;
+    ULONG          break_type       = 0;
+    ULONG          processor_type   = 0;
+    HRESULT        type_result      = E_FAIL;
+    bool           type_available   = false;
+    ULONG          flags            = 0;
+    HRESULT        flags_result     = E_FAIL;
+    bool           flags_available  = false;
+    ULONG          data_size        = 0;
+    ULONG          access_type      = 0;
+    HRESULT        data_result      = E_FAIL;
+    bool           data_available   = false;
+};
+
 bool same_thread_identity(const ThreadIdentity& left, const ThreadIdentity& right, bool require_generation = false)
 {
     if (left.engine_id == DEBUG_ANY_ID || right.engine_id == DEBUG_ANY_ID || left.engine_id != right.engine_id ||
@@ -433,6 +470,77 @@ ThreadIdentity current_thread_identity(IDebugSystemObjects* systems, ULONG64 sta
     return identity;
 }
 
+RegisterRead read_event_thread(IDebugSystemObjects* systems)
+{
+    RegisterRead result;
+    if (!systems)
+    {
+        return result;
+    }
+    ULONG engine_id = DEBUG_ANY_ID;
+    result.result   = systems->GetEventThread(&engine_id);
+    if (SUCCEEDED(result.result))
+    {
+        result.value     = engine_id;
+        result.available = true;
+    }
+    return result;
+}
+
+RegisterRead read_debug_register(IDebugRegisters* registers, const char* name)
+{
+    RegisterRead result;
+    if (!registers)
+    {
+        return result;
+    }
+    ULONG index   = 0;
+    result.result = registers->GetIndexByName(name, &index);
+    if (FAILED(result.result))
+    {
+        return result;
+    }
+    DEBUG_VALUE value{};
+    result.result = registers->GetValue(index, &value);
+    if (FAILED(result.result))
+    {
+        return result;
+    }
+    if (value.Type == DEBUG_VALUE_INT32)
+    {
+        result.value     = value.I32;
+        result.available = true;
+    }
+    else if (value.Type == DEBUG_VALUE_INT64)
+    {
+        result.value     = value.I64;
+        result.available = true;
+    }
+    else
+    {
+        result.result = E_UNEXPECTED;
+    }
+    return result;
+}
+
+DebugContext read_debug_context(IDebugRegisters* registers)
+{
+    DebugContext context;
+    if (!registers)
+    {
+        return context;
+    }
+    context.eip.result    = registers->GetInstructionOffset(&context.eip.value);
+    context.eip.available = SUCCEEDED(context.eip.result);
+    context.eflags        = read_debug_register(registers, "efl");
+    for (unsigned index = 0; index < context.debug_registers.size(); ++index)
+    {
+        const std::string name         = "dr" + std::to_string(index);
+        context.debug_registers[index] = read_debug_register(registers, name.c_str());
+    }
+    return context;
+}
+
 class Events final : public IDebugEventCallbacks
 {
 public:
@@ -467,6 +575,7 @@ public:
     ULONG                        last_exception_first_chance = 0;
     ThreadIdentity               last_exception_identity;
     ThreadIdentity               last_breakpoint_identity;
+    BreakpointSnapshot           breakpoint;
     ULONG64                      attach_breakin_address = 0;
     ThreadIdentity               attach_breakin_identity;
     ULONG64                      attach_thread_data_offset  = 0;
@@ -579,14 +688,28 @@ public:
 
     HRESULT STDMETHODCALLTYPE Breakpoint(PDEBUG_BREAKPOINT point) override
     {
-        exception_code           = 0;
-        exception_address        = 0;
-        exception_flags          = 0;
-        exception_first_chance   = 0;
-        exception_identity       = {};
-        last_breakpoint_identity = resolve_current_identity();
+        exception_code               = 0;
+        exception_address            = 0;
+        exception_flags              = 0;
+        exception_first_chance       = 0;
+        exception_identity           = {};
+        last_breakpoint_identity     = resolve_current_identity();
+        breakpoint                   = {};
+        breakpoint.callback          = true;
+        breakpoint.callback_identity = last_breakpoint_identity;
         ++event_number;
-        if (FAILED(point->GetId(&last_id)))
+        breakpoint.id_result        = point ? point->GetId(&breakpoint.id) : E_POINTER;
+        breakpoint.id_available     = SUCCEEDED(breakpoint.id_result);
+        last_id                     = breakpoint.id_available ? breakpoint.id : DEBUG_ANY_ID;
+        breakpoint.offset_result    = point ? point->GetOffset(&breakpoint.offset) : E_POINTER;
+        breakpoint.offset_available = SUCCEEDED(breakpoint.offset_result);
+        breakpoint.type_result      = point ? point->GetType(&breakpoint.break_type, &breakpoint.processor_type) : E_POINTER;
+        breakpoint.type_available   = SUCCEEDED(breakpoint.type_result);
+        breakpoint.flags_result     = point ? point->GetFlags(&breakpoint.flags) : E_POINTER;
+        breakpoint.flags_available  = SUCCEEDED(breakpoint.flags_result);
+        breakpoint.data_result      = point ? point->GetDataParameters(&breakpoint.data_size, &breakpoint.access_type) : E_POINTER;
+        breakpoint.data_available   = SUCCEEDED(breakpoint.data_result);
+        if (!breakpoint.id_available)
         {
             last_id = DEBUG_ANY_ID;
         }
@@ -601,6 +724,7 @@ public:
         exception_flags             = exception->ExceptionFlags;
         exception_first_chance      = first_chance;
         exception_identity          = resolve_current_identity();
+        breakpoint                  = {};
         last_exception_code         = exception_code;
         last_exception_address      = exception_address;
         last_exception_flags        = exception_flags;
@@ -1058,7 +1182,11 @@ struct Common
     std::uint64_t        event_number         = 0;
     ULONG64              utc                  = 0;
     double               elapsed_ms           = 0.0;
+    ThreadIdentity       selected_identity;
+    RegisterRead         event_thread;
     Registers            regs;
+    DebugContext         debug_context;
+    BreakpointSnapshot   breakpoint;
     std::array<ULONG, 8> stack{};
     bool                 stack_valid = false;
     std::string          error;
@@ -1091,6 +1219,7 @@ Common capture_common(IDebugRegisters*                             registers,
                       IDebugDataSpaces*                            memory,
                       IDebugSystemObjects*                         system,
                       const Events*                                events,
+                      unsigned                                     expected_site,
                       ULONG                                        expected_eip,
                       std::size_t                                  sequence,
                       const std::chrono::steady_clock::time_point& started)
@@ -1102,22 +1231,21 @@ Common capture_common(IDebugRegisters*                             registers,
     try
     {
         value.regs                    = read_registers(registers);
+        value.debug_context           = read_debug_context(registers);
         const ThreadIdentity identity = events ? events->resolve_current_identity() : current_thread_identity(system);
         if (!identity.system_id)
         {
             throw std::runtime_error("Thread identity unavailable");
         }
+        value.selected_identity    = identity;
         value.tid                  = identity.system_id;
         value.engine_tid           = identity.engine_id;
         value.thread_data_offset   = identity.data_offset;
         value.thread_teb_offset    = identity.teb_offset;
         value.lifecycle_generation = identity.generation;
         value.event_number         = events ? events->event_number : 0;
-        if (value.regs.eip != expected_eip)
-        {
-            value.error = "Hook EIP mismatch";
-            return value;
-        }
+        value.event_thread         = read_event_thread(system);
+        value.breakpoint           = events ? events->breakpoint : BreakpointSnapshot{};
         std::array<ULONG, 8> stack{};
         ULONG                actual = 0;
         if (!valid_address(value.regs.esp, sizeof(stack)))
@@ -1132,6 +1260,46 @@ Common capture_common(IDebugRegisters*                             registers,
         }
         value.stack       = stack;
         value.stack_valid = true;
+        if (!value.event_thread.available)
+        {
+            value.error = "Debugger event thread identity unavailable";
+            return value;
+        }
+        if (value.event_thread.value != value.selected_identity.engine_id)
+        {
+            value.error = "Debugger event thread ID mismatch with selected context";
+            return value;
+        }
+        if (value.event_thread.value != value.breakpoint.callback_identity.engine_id)
+        {
+            value.error = "Debugger event thread ID mismatch with callback identity";
+            return value;
+        }
+        if (value.regs.eip != expected_eip)
+        {
+            value.error = "Hook EIP mismatch";
+            return value;
+        }
+        if (!value.breakpoint.callback)
+        {
+            value.error = "Hook breakpoint callback metadata unavailable";
+            return value;
+        }
+        if (!value.breakpoint.id_available || value.breakpoint.id != expected_site)
+        {
+            value.error = "Hook breakpoint ID mismatch";
+            return value;
+        }
+        if (!value.breakpoint.offset_available || value.breakpoint.offset != expected_eip)
+        {
+            value.error = "Hook breakpoint offset mismatch";
+            return value;
+        }
+        if (!same_thread_identity(value.breakpoint.callback_identity, value.selected_identity, true))
+        {
+            value.error = "Hook breakpoint callback thread identity mismatch";
+            return value;
+        }
     }
     catch (const std::exception& error)
     {
@@ -1147,6 +1315,9 @@ std::string common_json(const char* kind, const Common& value)
         << ",\"tid\":" << value.tid << ",\"engine_tid\":" << value.engine_tid << ",\"thread_data_offset\":"
         << value.thread_data_offset << ",\"thread_teb_offset\":" << value.thread_teb_offset << ",\"lifecycle_generation\":"
         << value.lifecycle_generation
+        << ",\"event_thread\":{\"available\":" << (value.event_thread.available ? "true" : "false")
+        << ",\"result\":" << static_cast<std::uint32_t>(value.event_thread.result) << ",\"value\":" << value.event_thread.value
+        << "}"
         << ",\"utc_filetime\":" << value.utc << ",\"elapsed_ms\":" << value.elapsed_ms << ",\"hook_eip\":" << value.regs.eip
         << ",\"eax\":" << value.regs.eax << ",\"ebx\":" << value.regs.ebx << ",\"ecx\":" << value.regs.ecx
         << ",\"edx\":" << value.regs.edx << ",\"esi\":" << value.regs.esi << ",\"edi\":" << value.regs.edi
@@ -1161,6 +1332,45 @@ std::string common_json(const char* kind, const Common& value)
         row << value.stack[index];
     }
     row << ']';
+    row << ",\"debug_context\":{";
+    const auto append_register = [&row](const char* name, const RegisterRead& value, bool& first)
+    {
+        if (!first)
+        {
+            row << ',';
+        }
+        first = false;
+        row << quote_json(name) << ":{\"available\":" << (value.available ? "true" : "false")
+            << ",\"result\":" << static_cast<std::uint32_t>(value.result) << ",\"value\":" << value.value << '}';
+    };
+    bool first = true;
+    append_register("eip", value.debug_context.eip, first);
+    append_register("eflags", value.debug_context.eflags, first);
+    for (unsigned index = 0; index < value.debug_context.debug_registers.size(); ++index)
+    {
+        const std::string name = "dr" + std::to_string(index);
+        append_register(name.c_str(), value.debug_context.debug_registers[index], first);
+    }
+    row << "},\"breakpoint\":{";
+    row << "\"callback\":" << (value.breakpoint.callback ? "true" : "false")
+        << ",\"callback_identity\":{\"engine_id\":" << value.breakpoint.callback_identity.engine_id
+        << ",\"system_id\":" << value.breakpoint.callback_identity.system_id
+        << ",\"data_offset\":" << value.breakpoint.callback_identity.data_offset
+        << ",\"teb_offset\":" << value.breakpoint.callback_identity.teb_offset
+        << ",\"start_offset\":" << value.breakpoint.callback_identity.start_offset
+        << ",\"generation\":" << value.breakpoint.callback_identity.generation << "}"
+        << ",\"id_available\":" << (value.breakpoint.id_available ? "true" : "false")
+        << ",\"id_result\":" << static_cast<std::uint32_t>(value.breakpoint.id_result) << ",\"id\":" << value.breakpoint.id
+        << ",\"offset_available\":" << (value.breakpoint.offset_available ? "true" : "false")
+        << ",\"offset_result\":" << static_cast<std::uint32_t>(value.breakpoint.offset_result) << ",\"offset\":"
+        << value.breakpoint.offset << ",\"type_available\":" << (value.breakpoint.type_available ? "true" : "false")
+        << ",\"type_result\":" << static_cast<std::uint32_t>(value.breakpoint.type_result) << ",\"break_type\":"
+        << value.breakpoint.break_type << ",\"processor_type\":" << value.breakpoint.processor_type
+        << ",\"flags_available\":" << (value.breakpoint.flags_available ? "true" : "false")
+        << ",\"flags_result\":" << static_cast<std::uint32_t>(value.breakpoint.flags_result) << ",\"flags\":" << value.breakpoint.flags
+        << ",\"data_available\":" << (value.breakpoint.data_available ? "true" : "false")
+        << ",\"data_result\":" << static_cast<std::uint32_t>(value.breakpoint.data_result) << ",\"data_size\":"
+        << value.breakpoint.data_size << ",\"access_type\":" << value.breakpoint.access_type << "}";
     return row.str();
 }
 
@@ -1206,6 +1416,7 @@ struct Options
     unsigned             seconds = 0;
     std::wstring         output;
     std::wstring         engine;
+    std::string          fixture_label;
     bool                 fixture                      = false;
     bool                 seconds_set                  = false;
     bool                 output_set                   = false;
@@ -1260,6 +1471,10 @@ Options parse_options(int argc, wchar_t** argv)
         {
             options.engine     = value;
             options.engine_set = true;
+        }
+        else if (key == L"--fixture-label")
+        {
+            options.fixture_label = std::filesystem::path(value).string();
         }
         else if (key == L"--setmap-site")
         {
@@ -1331,6 +1546,10 @@ Options parse_options(int argc, wchar_t** argv)
         {
             throw std::runtime_error("Retail profile globals and caller are fixed");
         }
+        if (!options.fixture_label.empty())
+        {
+            throw std::runtime_error("Fixture label requires --fixture");
+        }
         options.scene_global = 0x0133def4;
     }
     else if (!options.scene_global || !options.fixture_vtable)
@@ -1399,16 +1618,58 @@ std::string lifecycle_row(const Events::LifecycleEvent& event)
     return fields.str();
 }
 
-std::string exception_row(const Events& events)
+std::string exception_row(const Events&         events,
+                          const DebugContext&   context,
+                          const RegisterRead&   event_thread,
+                          const ThreadIdentity& selected_identity)
 {
     std::ostringstream row;
+    const bool         event_matches_callback    = event_thread.available && event_thread.value == events.exception_identity.engine_id;
+    const bool         event_matches_selected    = event_thread.available && event_thread.value == selected_identity.engine_id;
+    const bool         callback_matches_selected = same_thread_identity(events.exception_identity, selected_identity, true);
+    const bool         identity_validated        = event_matches_callback && event_matches_selected && callback_matches_selected;
     row << "{\"kind\":\"target_exception\",\"event_number\":" << events.event_number
         << ",\"exception_code\":" << events.exception_code << ",\"exception_address\":" << events.exception_address
         << ",\"exception_flags\":" << events.exception_flags << ",\"first_chance\":" << events.exception_first_chance
         << ",\"engine_tid\":" << events.exception_identity.engine_id << ",\"tid\":" << events.exception_identity.system_id
         << ",\"thread_data_offset\":" << events.exception_identity.data_offset << ",\"thread_teb_offset\":"
         << events.exception_identity.teb_offset << ",\"lifecycle_generation\":" << events.exception_identity.generation
-        << ",\"forwarded\":true}\n";
+        << ",\"selected_engine_tid\":" << selected_identity.engine_id << ",\"selected_tid\":" << selected_identity.system_id
+        << ",\"selected_thread_data_offset\":" << selected_identity.data_offset << ",\"selected_thread_teb_offset\":"
+        << selected_identity.teb_offset << ",\"selected_lifecycle_generation\":" << selected_identity.generation
+        << ",\"event_thread\":{\"available\":" << (event_thread.available ? "true" : "false")
+        << ",\"result\":" << static_cast<std::uint32_t>(event_thread.result) << ",\"value\":" << event_thread.value
+        << "},\"identity_validation\":{\"event_matches_callback\":" << (event_matches_callback ? "true" : "false")
+        << ",\"event_matches_selected\":" << (event_matches_selected ? "true" : "false")
+        << ",\"callback_matches_selected\":" << (callback_matches_selected ? "true" : "false")
+        << ",\"validated\":" << (identity_validated ? "true" : "false") << "},\"tid_qualification\":"
+        << quote_json(identity_validated ? "validated_event" : "selected_context")
+        << ",\"forwarded\":true,\"debug_context\":{";
+    const auto append_register = [&row](const char* name, const RegisterRead& value, bool& first)
+    {
+        if (!first)
+        {
+            row << ',';
+        }
+        first = false;
+        row << quote_json(name) << ":{\"available\":" << (value.available ? "true" : "false")
+            << ",\"result\":" << static_cast<std::uint32_t>(value.result) << ",\"value\":" << value.value << '}';
+    };
+    bool first = true;
+    append_register("eip", context.eip, first);
+    append_register("eflags", context.eflags, first);
+    for (unsigned index = 0; index < context.debug_registers.size(); ++index)
+    {
+        const std::string name = "dr" + std::to_string(index);
+        append_register(name.c_str(), context.debug_registers[index], first);
+    }
+    row << "},\"breakpoint\":{";
+    row << "\"callback\":false,\"id_available\":false,\"id_result\":" << static_cast<std::uint32_t>(E_FAIL)
+        << ",\"id\":" << DEBUG_ANY_ID << ",\"offset_available\":false,\"offset_result\":"
+        << static_cast<std::uint32_t>(E_FAIL) << ",\"offset\":0,\"type_available\":false,\"type_result\":"
+        << static_cast<std::uint32_t>(E_FAIL) << ",\"break_type\":0,\"processor_type\":0,\"flags_available\":false,\"flags_result\":"
+        << static_cast<std::uint32_t>(E_FAIL) << ",\"flags\":0,\"data_available\":false,\"data_result\":"
+        << static_cast<std::uint32_t>(E_FAIL) << ",\"data_size\":0,\"access_type\":0}}\n";
     return row.str();
 }
 
@@ -1461,7 +1722,7 @@ void process_receiver(const Options&                               options,
                       std::vector<std::string>&                    records)
 {
     ++counts.receiver_hits;
-    Common common = capture_common(registers, memory, system, events, options.sites[0], sequence, started);
+    Common common = capture_common(registers, memory, system, events, 0, options.sites[0], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "setmap_receiver");
@@ -1513,7 +1774,7 @@ void process_constructor(const Options&                               options,
                          std::vector<std::string>&                    records)
 {
     ++counts.constructor_hits;
-    Common common = capture_common(registers, memory, system, events, options.sites[1], sequence, started);
+    Common common = capture_common(registers, memory, system, events, 1, options.sites[1], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "region_constructor");
@@ -1549,7 +1810,7 @@ void process_lookup(const Options&                               options,
                     ULONG&                                       expected_caller)
 {
     ++counts.lookup_hits;
-    Common common = capture_common(registers, memory, system, events, options.sites[2], sequence, started);
+    Common common = capture_common(registers, memory, system, events, 2, options.sites[2], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "region_lookup");
@@ -1637,7 +1898,7 @@ void process_result(const Options&                               options,
                     ULONG                                        expected_caller)
 {
     ++counts.result_hits;
-    Common common = capture_common(registers, memory, system, events, options.sites[3], sequence, started);
+    Common common = capture_common(registers, memory, system, events, 3, options.sites[3], sequence, started);
     if (!common.error.empty() || !common.stack_valid)
     {
         append_error_record(records, common, "lookup_result");
@@ -1724,6 +1985,7 @@ std::string identity_row(const Options& options, const std::string& target_hash,
     std::ostringstream row;
     row << "{\"kind\":\"identity\",\"pid\":" << options.pid << ",\"image_sha256\":" << quote_json(target_hash)
         << ",\"engine_sha256\":" << quote_json(engine_hash) << ",\"fixture\":" << (options.fixture ? "true" : "false")
+        << ",\"fixture_label\":" << quote_json(options.fixture_label)
         << ",\"image_base\":" << retail_image_base << ",\"retail_sha256\":" << quote_json(retail_sha)
         << ",\"format_version\":2}\n";
     return row.str();
@@ -2041,7 +2303,10 @@ int wmain(int argc, wchar_t** argv)
                     stop_reason = "record_cap";
                     break;
                 }
-                records.push_back(exception_row(events));
+                const DebugContext   debug_context     = read_debug_context(registers.Get());
+                const RegisterRead   event_thread      = read_event_thread(system.Get());
+                const ThreadIdentity selected_identity = events.resolve_current_identity();
+                records.push_back(exception_row(events, debug_context, event_thread, selected_identity));
                 ++events.forwarded_exceptions;
                 ++forwarded_exceptions;
                 last_exception_code         = events.exception_code;

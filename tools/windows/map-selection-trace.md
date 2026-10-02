@@ -33,10 +33,10 @@ verified identity before their breakpoint exceptions can be handled as
 observer-owned events.
 
 The synthetic fixture can exercise `global_all_threads`; this policy is not
-available for the retail image. Synthetic captures observed an unmapped
-single-step exception at an observation site followed by an ordinary
-breakpoint callback. The exception's origin and application delivery were
-not established, so those tests do not support retail use of that policy.
+available for the retail image. An unmapped single-step exception can occur
+at an observation site before an ordinary breakpoint callback. A matching
+fixture handler record can establish application delivery for that event;
+it does not establish its origin or support retail use of that policy.
 Thread creation and exit records distinguish debugger engine IDs from Windows
 thread IDs. A lifecycle generation separates reused identities and expires
 pending lookup entries when their thread exits.
@@ -116,9 +116,51 @@ fixture checks new-thread refusal and cleanup. The separate synthetic global
 policy exercises workers created during capture, worker exit and a handled
 exception. Surviving initial and later workers replay all four sites after
 detach; these checks do not resolve the unmapped single-step's provenance.
-Every surviving fixture must resume after detach, lose its debugger and exit
-normally. A separate case checks a normal target exit during capture; tests
-never terminate a fixture to make cleanup pass.
+Ordinary surviving fixtures must resume after detach, lose their debugger and
+exit normally. A separate case checks a normal target exit during capture.
+The deliberate unhandled TF controls below retain their exception exit codes;
+tests never terminate a fixture to make cleanup pass.
+
+### Exception delivery comparisons
+
+Run the deliberate delivery calibrations with explicit build, engine and
+output paths:
+
+```powershell
+python tools/windows/test_map_selection.py `
+    --build-directory C:\scratch\map-selection-build\Release `
+    --engine C:\Windows\SysWOW64\dbgeng.dll `
+    --output-directory C:\scratch\map-exception-tests `
+    --case exception-delivery
+```
+
+These controls deliberately set the CPU trap flag or raise an application
+breakpoint. Their known triggers calibrate delivery instrumentation.
+
+Run a separate bounded comparison of unchanged fixture cycles and a
+handler-only variant:
+
+```powershell
+python tools/windows/test_map_selection.py `
+    --build-directory C:\scratch\map-selection-build\Release `
+    --engine C:\Windows\SysWOW64\dbgeng.dll `
+    --output-directory C:\scratch\map-natural-comparison `
+    --case natural-comparison
+```
+
+Each variant runs for three seconds. The handler logs delivery and returns
+`EXCEPTION_CONTINUE_SEARCH`. It neither changes the exception context nor
+swallows the exception. The default verification matrix does not run these
+comparisons. Keep the deliberate TF controls separate from spontaneous
+single-step observations, and do not repeat comparisons until an event occurs.
+
+The [vectored-handler contract](https://learn.microsoft.com/en-us/windows/win32/debug/vectored-exception-handling)
+places handler invocation after the debugger's first-chance notification.
+Pair debugger and fixture records using actual thread identities and instruction
+addresses. Keep unmatched records and actual fixture exit codes. A passing
+calibration or a comparison with no spontaneous event leaves that event's
+origin unresolved. These comparisons use synthetic processes and do not
+extend the supported retail thread policy.
 
 ## Capture one unchanged selection
 
@@ -152,12 +194,44 @@ Format 2 begins with an `identity` row containing the target and engine
 digests and the retail/fixture distinction. `profile` rows retain the resident
 locator checks. Observation rows have `sequence`, `tid`, `utc_filetime`,
 `elapsed_ms`, `hook_eip`, integer registers and `stack_slots`.
+In fixture identities, `image_base` and `retail_sha256` describe the retail
+reference profile; `image_base` is not the fixture's observed module base.
+Fixture site addresses come from the actual fixture launch.
 `utc_filetime` is the Windows FILETIME tick value, not a Unix timestamp;
 elapsed time uses a separate steady clock. Stack slots begin at the recorded
 ESP and are raw dwords, rather than universally named function arguments.
 Observations also retain `engine_tid`, `thread_data_offset`, `thread_teb_offset`
 and `lifecycle_generation` to identify the thread lifetime used for a lookup
 join. Engine IDs and Windows thread IDs are separate namespaces.
+
+Hook and exception rows also contain `debug_context` reads for EIP, EFLAGS
+and DR0 through DR7. Each read retains `available`, `result` as an unsigned
+HRESULT, and `value`. An unavailable read's value is not an observed register
+value. These are the selected thread's debugger-visible values after the
+event stop; they do not establish the processor state before engine handling.
+Hook rows copy the actual breakpoint callback object's ID, offset, type,
+flags and data-access parameters into `breakpoint`, with availability/results.
+Exception rows record `breakpoint.callback: false` and do not infer an engine
+breakpoint from an address match.
+Before decoding hook arguments, the observer requires the callback object's
+ID and offset and its captured thread identity to agree with the selected
+thread and observation site. The separately read
+[event engine thread ID](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/dbgeng/nf-dbgeng-idebugsystemobjects-geteventthread)
+must also agree. A contradictory or unavailable mapping produces
+`partial_error` with the raw context, without interpreted hook fields.
+Exception records retain the event-thread read and its validation separately
+from selected debugger context. An unavailable or contradictory event identity
+does not turn the selected Windows thread ID into a proven event thread;
+the unowned exception is still retained and forwarded.
+`identity_validation.validated` requires agreement of event engine IDs,
+Windows thread IDs and lifecycle generation. `tid_qualification` distinguishes
+`validated_event` from `selected_context`. Handler comparisons consume only
+first-chance candidates with available successful EIP reads, once per handler
+line. Older rows without event validation retain their selected-context limit.
+
+`--fixture-label` requires fixture mode and records the caller's comparison
+label in the identity row. The label describes the requested comparison; it
+does not independently establish the exception's source.
 
 | Observation kind | Meaning |
 |---|---|
@@ -166,9 +240,9 @@ join. Engine IDs and Windows thread IDs are separate namespaces.
 | `region_constructor` | Scene and entry arguments, with prior scene region/manager values. |
 | `region_lookup` | Table, full-dword query, pointer-span bounds and actual caller. Manager fields require the known caller. |
 | `lookup_result` | Returned/null root, lookup correlation and guarded manager/scene fields. |
-| `partial_error` | Raw observation context retained when an interpreted read failed. |
+| `partial_error` | Raw context retained when callback ownership validation or an interpreted read failed. |
 | `thread_created` / `thread_exited` | Ordered lifecycle events, with identity and an exit code for exit events. |
-| `target_exception` | An unowned exception for which forwarding was requested, with its actual thread identity. |
+| `target_exception` | An unowned exception for which forwarding was requested, with selected context and event-thread validation. |
 
 Terminal `detached` or `failed` records contain observation/hit counts and
 detach status, `thread_policy`, `initial_thread_count`, `thread_created_events`
@@ -181,6 +255,8 @@ An exception row's `forwarded` flag records the request to resume with
 `DEBUG_STATUS_GO_NOT_HANDLED`; it does not establish the exception's origin
 or prove delivery to an application handler. An address match alone cannot
 assign an exception to an observation breakpoint.
+The [execution-status contract](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/dbgeng/nf-dbgeng-idebugcontrol-setexecutionstatus)
+describes a request: execution occurs on the next `WaitForEvent` call.
 Failed-terminal forwarding counts cover the recording loop and omit
 additional cleanup forwarding. A zero failed-terminal count therefore does
 not establish that no exception was forwarded during detach.

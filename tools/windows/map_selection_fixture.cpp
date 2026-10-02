@@ -67,7 +67,36 @@ struct WorkerContext
     unsigned               slot;
 };
 
-extern "C" volatile std::uint32_t lookup_result_value = 0;
+extern "C" volatile std::uint32_t lookup_result_value            = 0;
+std::atomic<unsigned>*            single_step_handler_deliveries = nullptr;
+
+LONG CALLBACK single_step_veh(EXCEPTION_POINTERS* pointers)
+{
+    if (!pointers || !pointers->ExceptionRecord || pointers->ExceptionRecord->ExceptionCode != EXCEPTION_SINGLE_STEP)
+    {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+    const unsigned count       = single_step_handler_deliveries
+                                     ? single_step_handler_deliveries->fetch_add(1, std::memory_order_relaxed) + 1
+                                     : 0;
+    const ULONG    instruction = pointers->ContextRecord ? pointers->ContextRecord->Eip : 0;
+    std::printf("single-step-handler %u %lu %08lx continue-search\n", count, static_cast<unsigned long>(GetCurrentThreadId()), static_cast<unsigned long>(instruction));
+    std::fflush(stdout);
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+// Intentional TF control; this is not a reproduction of a debugger-originated stop.
+__declspec(noinline) void trigger_intentional_single_step()
+{
+    __asm
+    {
+        pushfd
+        or dword ptr [esp], 0x100
+        popfd
+        nop
+        nop
+    }
+}
 
 // Each observation site is the first instruction after the caller establishes
 // the native register/stack contract. /OPT:NOICF keeps the four NOPs distinct.
@@ -343,15 +372,20 @@ DWORD WINAPI worker_proc(void* raw_context)
 
 int main(int argc, char** argv)
 {
-    const bool idle                 = argc == 2 && std::strcmp(argv[1], "idle") == 0;
-    const bool bad_read             = argc == 2 && std::strcmp(argv[1], "bad-read") == 0;
-    const bool bad_profile          = argc == 2 && std::strcmp(argv[1], "bad-profile") == 0;
-    const bool attachment_exception = argc == 2 && std::strcmp(argv[1], "attach-exception") == 0;
-    const bool guards               = argc == 2 && std::strcmp(argv[1], "guards") == 0;
-    const bool cancel               = argc == 2 && std::strcmp(argv[1], "cancel") == 0;
-    const bool breakpoint           = argc == 2 && std::strcmp(argv[1], "breakpoint") == 0;
-    const bool target_exit          = argc == 2 && std::strcmp(argv[1], "target-exit") == 0;
-    const bool record_cap           = argc == 2 && std::strcmp(argv[1], "record-cap") == 0;
+    const bool idle                   = argc == 2 && std::strcmp(argv[1], "idle") == 0;
+    const bool bad_read               = argc == 2 && std::strcmp(argv[1], "bad-read") == 0;
+    const bool bad_profile            = argc == 2 && std::strcmp(argv[1], "bad-profile") == 0;
+    const bool attachment_exception   = argc == 2 && std::strcmp(argv[1], "attach-exception") == 0;
+    const bool guards                 = argc == 2 && std::strcmp(argv[1], "guards") == 0;
+    const bool cancel                 = argc == 2 && std::strcmp(argv[1], "cancel") == 0;
+    const bool breakpoint             = argc == 2 && std::strcmp(argv[1], "breakpoint") == 0;
+    const bool application_exception  = argc == 2 && std::strcmp(argv[1], "application-exception") == 0;
+    const bool intentional_breakpoint = breakpoint || application_exception;
+    const bool intentional_tf         = argc == 2 && std::strcmp(argv[1], "single-step-tf") == 0;
+    const bool intentional_tf_logging = argc == 2 && std::strcmp(argv[1], "single-step-tf-handler") == 0;
+    const bool natural_logging        = argc == 2 && std::strcmp(argv[1], "natural-handler") == 0;
+    const bool target_exit            = argc == 2 && std::strcmp(argv[1], "target-exit") == 0;
+    const bool record_cap             = argc == 2 && std::strcmp(argv[1], "record-cap") == 0;
 
     Bytes  scene{};
     Bytes  table{};
@@ -420,6 +454,7 @@ int main(int argc, char** argv)
     std::atomic<unsigned> post_detach_cycles{ 0 };
     std::atomic<unsigned> breakpoint_handlers{ 0 };
     std::atomic<unsigned> worker_exception_handlers{ 0 };
+    std::atomic<unsigned> single_step_handler_count{ 0 };
     std::atomic<bool>     record_cap_cycle_done{ false };
     std::atomic<bool>     record_cap_worker_created{ false };
     CRITICAL_SECTION      cycle_lock{};
@@ -446,9 +481,10 @@ int main(int argc, char** argv)
                                  &cycle_lock };
     std::atomic<bool>     stop_worker{ false };
     std::atomic<unsigned> worker_cycles{ 0 };
-    const ULONGLONG       lifetime = guards ? 20000 : target_exit ? 1500
-                                                  : record_cap    ? 12000
-                                                                  : 8000;
+    const ULONGLONG       lifetime = guards ? 20000 : target_exit                            ? 1500
+                                                  : record_cap                               ? 12000
+                                                  : intentional_tf || intentional_tf_logging ? 4000
+                                                                                             : 8000;
     WorkerContext         worker_contexts[3]{
         { &state, &stop_worker, &worker_cycles, GetTickCount64() + lifetime, 0 },
         { &state, &stop_worker, &worker_cycles, GetTickCount64() + lifetime, 1 },
@@ -459,7 +495,21 @@ int main(int argc, char** argv)
     bool            first_cycle_done           = false;
     bool            main_replayed_after_detach = false;
     const ULONGLONG started                    = GetTickCount64();
-    const bool      initial_worker_enabled     = !idle && !bad_read && !bad_profile && !breakpoint;
+    single_step_handler_deliveries             = intentional_tf_logging || natural_logging ? &single_step_handler_count : nullptr;
+    PVOID single_step_handler_cookie           = nullptr;
+    if (intentional_tf_logging || natural_logging)
+    {
+        single_step_handler_cookie = AddVectoredExceptionHandler(1, single_step_veh);
+        if (!single_step_handler_cookie)
+        {
+            std::fprintf(stderr, "AddVectoredExceptionHandler failed\n");
+            single_step_handler_deliveries = nullptr;
+            DeleteCriticalSection(&cycle_lock);
+            return 1;
+        }
+    }
+    const bool initial_worker_enabled = !idle && !bad_read && !bad_profile && !intentional_breakpoint && !intentional_tf &&
+                                        !intentional_tf_logging;
     if (initial_worker_enabled)
     {
         workers[0] = CreateThread(nullptr, 0, worker_proc, &worker_contexts[0], 0, &worker_ids[0]);
@@ -495,6 +545,14 @@ int main(int argc, char** argv)
                 std::fflush(stdout);
             }
         }
+        else if (debugged && (intentional_tf || intentional_tf_logging) && !first_cycle_done)
+        {
+            first_cycle_done = true;
+            Sleep(250);
+            std::printf("%s-before %u\n", intentional_tf_logging ? "single-step-tf-handler" : "single-step-tf-no-handler", IsDebuggerPresent() != FALSE ? 1u : 0u);
+            std::fflush(stdout);
+            trigger_intentional_single_step();
+        }
         else if (debugged && !idle && !first_cycle_done &&
                  (!record_cap || record_cap_cycle_done.load(std::memory_order_acquire)))
         {
@@ -527,14 +585,15 @@ int main(int argc, char** argv)
             }
             else
             {
-                if (cancel || breakpoint)
+                if (cancel || intentional_breakpoint)
                 {
-                    Sleep(breakpoint ? 900 : 300);
+                    Sleep(intentional_breakpoint ? 900 : 300);
                 }
                 emit_normal_cycle(state);
-                if (breakpoint)
+                if (intentional_breakpoint)
                 {
-                    std::printf("breakpoint-before %u\n", IsDebuggerPresent() != FALSE ? 1u : 0u);
+                    const char* label = application_exception ? "application-exception" : "breakpoint";
+                    std::printf("%s-before %u\n", label, IsDebuggerPresent() != FALSE ? 1u : 0u);
                     std::fflush(stdout);
                     __try
                     {
@@ -543,11 +602,11 @@ int main(int argc, char** argv)
                     __except (EXCEPTION_EXECUTE_HANDLER)
                     {
                         const unsigned count = state.breakpoint_handlers->fetch_add(1, std::memory_order_relaxed) + 1;
-                        std::printf("breakpoint-handled %u\n", count);
+                        std::printf("%s-handled %u\n", label, count);
                         std::fflush(stdout);
                     }
                 }
-                if (!breakpoint)
+                if (!intentional_breakpoint)
                 {
                     Sleep(200);
                     workers[1] = CreateThread(nullptr, 0, worker_proc, &worker_contexts[1], 0, &worker_ids[1]);
@@ -577,6 +636,11 @@ int main(int argc, char** argv)
     }
     std::printf("worker-cycles %u\n", worker_cycles.load(std::memory_order_relaxed));
     std::printf("post-detach-cycles %u\n", post_detach_cycles.load(std::memory_order_relaxed));
+    if (single_step_handler_cookie)
+    {
+        RemoveVectoredExceptionHandler(single_step_handler_cookie);
+    }
+    single_step_handler_deliveries = nullptr;
     DeleteCriticalSection(&cycle_lock);
     return 0;
 }

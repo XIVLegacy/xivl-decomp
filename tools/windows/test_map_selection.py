@@ -29,6 +29,79 @@ HOOK_KINDS = {
 }
 
 
+def event_identity_is_validated(row):
+    if "event_thread" not in row:
+        return True
+    event_thread = row.get("event_thread")
+    validation = row.get("identity_validation")
+    return (
+        isinstance(event_thread, dict)
+        and event_thread.get("available") is True
+        and event_thread.get("result") == 0
+        and isinstance(validation, dict)
+        and validation.get("validated") is True
+        and row.get("tid_qualification") == "validated_event"
+    )
+
+
+def correlate_handler_delivery(handler_lines, exception_rows):
+    first_chance_rows = [row for row in exception_rows if row.get("first_chance") == 1]
+    deferred_rows = [row for row in exception_rows if row.get("first_chance") != 1]
+    deliveries = []
+    matched_rows = set()
+    unmatched_handlers = []
+    for line in handler_lines:
+        fields = line.split()
+        if len(fields) != 5 or fields[0] != "single-step-handler":
+            unmatched_handlers.append((line, "malformed"))
+            continue
+        try:
+            handler_tid = int(fields[2])
+            handler_eip = int(fields[3], 16)
+        except ValueError:
+            unmatched_handlers.append((line, "malformed"))
+            continue
+        if fields[4] != "continue-search":
+            unmatched_handlers.append((line, "handler did not continue search"))
+            continue
+        match = next(
+            (
+                (index, row)
+                for index, row in enumerate(first_chance_rows)
+                if index not in matched_rows
+                and row.get("tid") == handler_tid
+                and row.get("exception_address") == handler_eip
+                and row.get("debug_context", {}).get("eip", {}).get("available") is True
+                and row.get("debug_context", {}).get("eip", {}).get("result") == 0
+                and row.get("debug_context", {}).get("eip", {}).get("value")
+                == handler_eip
+                and event_identity_is_validated(row)
+            ),
+            None,
+        )
+        if match is None:
+            unmatched_handlers.append((line, "no TID and address match"))
+        else:
+            index, row = match
+            matched_rows.add(index)
+            deliveries.append(row)
+    unmatched_rows = [
+        row for index, row in enumerate(first_chance_rows) if index not in matched_rows
+    ]
+    if unmatched_handlers or unmatched_rows:
+        raise AssertionError(
+            (
+                "Unmatched handler delivery evidence",
+                unmatched_handlers,
+                unmatched_rows,
+                deferred_rows,
+                handler_lines,
+                exception_rows,
+            )
+        )
+    return {"deliveries": deliveries, "deferred_rows": deferred_rows}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-directory", type=Path, required=True)
@@ -44,6 +117,8 @@ def main():
             "guards",
             "cancel",
             "breakpoint",
+            "exception-delivery",
+            "natural-comparison",
             "target-exit",
             "record-cap",
             "retail-refusal",
@@ -222,6 +297,51 @@ def main():
         if not any(line == "post-detach-cycles 0" for _, line in fixture_events):
             raise AssertionError(("Target exited after detach", fixture_events[-10:]))
 
+    def retain_fixture_result(name, fixture, fixture_events, reader):
+        try:
+            exit_code = fixture.wait(timeout=15)
+        except subprocess.TimeoutExpired as error:
+            exit_code = fixture.poll()
+            reader.join(timeout=2)
+            tail = fixture_events[-20:]
+            (args.output_directory / f"{name}-fixture-events.txt").write_text(
+                "\n".join(line for _, line in fixture_events) + "\n",
+                encoding="utf-8",
+            )
+            (args.output_directory / f"{name}-fixture-exit.txt").write_text(
+                f"exit_code={exit_code}\n" + "\n".join(line for _, line in tail) + "\n",
+                encoding="utf-8",
+            )
+            raise AssertionError(("Fixture did not exit", exit_code, tail)) from error
+        reader.join(timeout=2)
+        tail = fixture_events[-20:]
+        (args.output_directory / f"{name}-fixture-events.txt").write_text(
+            "\n".join(line for _, line in fixture_events) + "\n",
+            encoding="utf-8",
+        )
+        (args.output_directory / f"{name}-fixture-exit.txt").write_text(
+            f"exit_code={exit_code}\n" + "\n".join(line for _, line in tail) + "\n",
+            encoding="utf-8",
+        )
+        return exit_code
+
+    def preserve_fixture_tail(name, fixture, fixture_events):
+        events_path = args.output_directory / f"{name}-fixture-events.txt"
+        exit_path = args.output_directory / f"{name}-fixture-exit.txt"
+        exit_code = fixture.poll()
+        if not events_path.exists():
+            events_path.write_text(
+                "\n".join(line for _, line in fixture_events) + "\n",
+                encoding="utf-8",
+            )
+        if not exit_path.exists():
+            exit_path.write_text(
+                f"exit_code={exit_code}\n"
+                + "\n".join(line for _, line in fixture_events[-20:])
+                + "\n",
+                encoding="utf-8",
+            )
+
     def base_command(
         pid,
         sites,
@@ -230,6 +350,7 @@ def main():
         seconds,
         fixture_record_cap=None,
         fixture_initial_threads_only=False,
+        fixture_label=None,
     ):
         command = [
             str(diagnostic),
@@ -259,6 +380,8 @@ def main():
             command.extend(["--fixture-record-cap", str(fixture_record_cap)])
         if fixture_initial_threads_only:
             command.append("--fixture-initial-threads-only")
+        if fixture_label is not None:
+            command.extend(["--fixture-label", fixture_label])
         return command
 
     def load_rows(path):
@@ -804,13 +927,20 @@ def main():
                 )
             print(f"PASS {name}", flush=True)
         finally:
-            if tool is not None and tool.poll() is None:
-                tool.wait(timeout=20)
-            if fixture.poll() is None:
-                fixture.wait(timeout=15)
-            reader.join(timeout=1)
-            if owned_console:
-                kernel.FreeConsole()
+            try:
+                if tool is not None and tool.poll() is None:
+                    tool.wait(timeout=20)
+                if fixture.poll() is None:
+                    fixture.wait(timeout=15)
+            finally:
+                try:
+                    reader.join(timeout=1)
+                finally:
+                    try:
+                        preserve_fixture_tail(name, fixture, fixture_events)
+                    finally:
+                        if owned_console:
+                            kernel.FreeConsole()
 
     def exercise_attachment_exception():
         fixture, reader, heartbeats, fixture_events, pid, sites, state = parse_fixture(
@@ -856,6 +986,267 @@ def main():
             if fixture.poll() is None:
                 fixture.wait(timeout=15)
             reader.join(timeout=1)
+
+    def exercise_exception_delivery(include_forced, include_natural):
+        def assert_exception_context(rows):
+            exceptions = [row for row in rows if row["kind"] == "target_exception"]
+            for row in exceptions:
+                context = row.get("debug_context", {})
+                if set(context) != {
+                    "eip",
+                    "eflags",
+                    "dr0",
+                    "dr1",
+                    "dr2",
+                    "dr3",
+                    "dr4",
+                    "dr5",
+                    "dr6",
+                    "dr7",
+                }:
+                    raise AssertionError(row)
+                if any(
+                    set(value) != {"available", "result", "value"}
+                    for value in context.values()
+                ):
+                    raise AssertionError(row)
+                if not row.get("forwarded") or row.get("breakpoint", {}).get(
+                    "callback"
+                ):
+                    raise AssertionError(row)
+            return exceptions
+
+        controls = (
+            (
+                (
+                    "intentional-tf-no-handler",
+                    "single-step-tf",
+                    "intentional-tf-single-step-no-handler",
+                    False,
+                ),
+                (
+                    "intentional-tf-handler",
+                    "single-step-tf-handler",
+                    "intentional-tf-single-step-handler",
+                    False,
+                ),
+                (
+                    "application-exception",
+                    "application-exception",
+                    "intentional-application-exception",
+                    True,
+                ),
+            )
+            if include_forced
+            else ()
+        )
+        for name, mode, label, intentional in controls:
+            fixture, reader, heartbeats, fixture_events, pid, sites, state = (
+                parse_fixture(mode)
+            )
+            log = args.output_directory / f"{name}.jsonl"
+            tool = None
+            try:
+                tool = subprocess.Popen(
+                    base_command(
+                        pid,
+                        sites,
+                        state,
+                        log,
+                        3,
+                        fixture_label=label,
+                    ),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+                armed = tool.stdout.readline()
+                if "Recording armed" not in armed:
+                    stdout, stderr = tool.communicate(timeout=20)
+                    raise AssertionError((armed, stdout, stderr))
+                stdout, stderr = tool.communicate(timeout=20)
+                if tool.returncode != 0 or stderr or not log.exists():
+                    raise AssertionError((tool.returncode, stdout, stderr))
+                rows = load_rows(log)
+                assert_observation_count(rows)
+                if rows[0].get("fixture_label") != label:
+                    raise AssertionError(rows[0])
+                exceptions = assert_exception_context(rows)
+                expected_code = 0x80000003 if intentional else 0x80000004
+                if not exceptions or any(
+                    row["exception_code"] != expected_code for row in exceptions
+                ):
+                    raise AssertionError((expected_code, exceptions))
+                terminal = rows[-1]
+                if terminal["kind"] != "detached" or not terminal.get(
+                    "detach_confirmed"
+                ):
+                    raise AssertionError(terminal)
+                if terminal.get("forwarded_exception_count", 0) < len(exceptions):
+                    raise AssertionError(terminal)
+                if intentional:
+                    if terminal.get("process_exited"):
+                        raise AssertionError(terminal)
+                    finished = time.monotonic()
+                    assert_fixture_cleanup(
+                        fixture, heartbeats, fixture_events, reader, finished, 1
+                    )
+                    exit_code = retain_fixture_result(
+                        name, fixture, fixture_events, reader
+                    )
+                    if exit_code != 0 or not any(
+                        line.startswith("application-exception-handled 1")
+                        for _, line in fixture_events
+                    ):
+                        raise AssertionError((exit_code, fixture_events[-20:]))
+                else:
+                    exit_code = retain_fixture_result(
+                        name, fixture, fixture_events, reader
+                    )
+                    if exit_code == 0:
+                        raise AssertionError(
+                            (
+                                "Intentional TF control unexpectedly exited normally",
+                                fixture_events[-20:],
+                            )
+                        )
+                    handler_lines = [
+                        line
+                        for _, line in fixture_events
+                        if line.startswith("single-step-handler ")
+                    ]
+                    if mode == "single-step-tf-handler":
+                        if not any(
+                            line.endswith("continue-search") for line in handler_lines
+                        ):
+                            raise AssertionError(
+                                (
+                                    "Handler delivery was not logged",
+                                    fixture_events[-20:],
+                                )
+                            )
+                        correlation = correlate_handler_delivery(
+                            handler_lines, exceptions
+                        )
+                        if len(correlation["deliveries"]) != len(handler_lines):
+                            raise AssertionError(correlation)
+                    elif handler_lines:
+                        raise AssertionError(
+                            (
+                                "No-handler control installed a handler",
+                                fixture_events[-20:],
+                            )
+                        )
+                print(f"PASS {name}", flush=True)
+            finally:
+                try:
+                    if tool is not None and tool.poll() is None:
+                        tool.wait(timeout=20)
+                    if fixture.poll() is None:
+                        fixture.wait(timeout=15)
+                finally:
+                    reader.join(timeout=1)
+                    preserve_fixture_tail(name, fixture, fixture_events)
+
+        natural_controls = (
+            ("natural-no-handler", None, "natural-single-step-no-handler"),
+            ("natural-handler", "natural-handler", "natural-single-step-handler"),
+        )
+        if not include_natural:
+            natural_controls = ()
+        for name, mode, label in natural_controls:
+            fixture, reader, heartbeats, fixture_events, pid, sites, state = (
+                parse_fixture(mode)
+            )
+            log = args.output_directory / f"{name}.jsonl"
+            tool = None
+            try:
+                tool = subprocess.Popen(
+                    base_command(
+                        pid,
+                        sites,
+                        state,
+                        log,
+                        3,
+                        fixture_label=label,
+                    ),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
+                armed = tool.stdout.readline()
+                if "Recording armed" not in armed:
+                    stdout, stderr = tool.communicate(timeout=20)
+                    raise AssertionError((armed, stdout, stderr))
+                stdout, stderr = tool.communicate(timeout=20)
+                if tool.returncode != 0 or stderr or not log.exists():
+                    raise AssertionError((tool.returncode, stdout, stderr))
+                rows = load_rows(log)
+                assert_observation_count(rows)
+                if rows[0].get("fixture_label") != label:
+                    raise AssertionError(rows[0])
+                terminal = rows[-1]
+                if terminal["kind"] != "detached" or not terminal.get(
+                    "detach_confirmed"
+                ):
+                    raise AssertionError(terminal)
+                exceptions = assert_exception_context(rows)
+                single_steps = [
+                    row for row in exceptions if row["exception_code"] == 0x80000004
+                ]
+                handler_lines = [
+                    line
+                    for _, line in fixture_events
+                    if line.startswith("single-step-handler ")
+                ]
+                if mode is None and handler_lines:
+                    raise AssertionError(
+                        (
+                            "Unchanged no-handler control logged delivery",
+                            fixture_events[-20:],
+                        )
+                    )
+                if not single_steps:
+                    if handler_lines:
+                        correlate_handler_delivery(handler_lines, single_steps)
+                    print(
+                        f"NO OCCURRENCE {name}: no spontaneous EXCEPTION_SINGLE_STEP; origin and delivery discriminator unavailable",
+                        flush=True,
+                    )
+                elif mode == "natural-handler":
+                    if not handler_lines:
+                        raise AssertionError(
+                            (
+                                "Observed natural single-step without handler delivery evidence",
+                                single_steps,
+                                handler_lines,
+                            )
+                        )
+                    correlation = correlate_handler_delivery(
+                        handler_lines, single_steps
+                    )
+                    if len(correlation["deliveries"]) != len(handler_lines):
+                        raise AssertionError(correlation)
+                if fixture.poll() is None:
+                    finished = time.monotonic()
+                    assert_fixture_cleanup(
+                        fixture, heartbeats, fixture_events, reader, finished, 1
+                    )
+                exit_code = retain_fixture_result(name, fixture, fixture_events, reader)
+                if mode is None and exit_code != 0:
+                    raise AssertionError((exit_code, fixture_events[-20:]))
+                print(f"PASS {name}", flush=True)
+            finally:
+                try:
+                    if tool is not None and tool.poll() is None:
+                        tool.wait(timeout=20)
+                    if fixture.poll() is None:
+                        fixture.wait(timeout=15)
+                finally:
+                    reader.join(timeout=1)
+                    preserve_fixture_tail(name, fixture, fixture_events)
 
     def guards():
         fixture, reader, heartbeats, fixture_events, pid, sites, state = parse_fixture(
@@ -970,6 +1361,10 @@ def main():
     for name in names:
         if name == "guards":
             guards()
+        elif name == "exception-delivery":
+            exercise_exception_delivery(include_forced=True, include_natural=False)
+        elif name == "natural-comparison":
+            exercise_exception_delivery(include_forced=False, include_natural=True)
         else:
             exercise(
                 name,
