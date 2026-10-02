@@ -147,14 +147,11 @@ Its fixed scene root is getter `0x00623C60`, which loads global `0x0133DEF4`;
 construction at `0x00626E57` stores the region manager at scene `+0x17C`.
 
 A manager snapshot is not a SetMap observation. If a displayed area or retained
-control differs from manager `+0x14`, record the actual packet base and arguments
-at SetMap receiver `0x0059CED0`, then region construction `0x00626DF0` and
-lookup `0x0064E830` -> `0x0079B380`. The constructor's entry ECX is the scene;
-entry `[ESP+0x04]` is the region, and `[ESP+0x08]` must remain a raw argument
-until its role is established. At `0x00626E25` it stores that region at scene
-`+0x190`, then at `0x00626E57` stores the constructed manager at `+0x17C`.
-[SetMap processing](map-layout-selector.md) owns packet framing and transport;
-do not infer its region or zone dwords from this later manager field.
+control differs from manager `+0x14`, use the
+[native map selection trace](../../tools/windows/map-selection-trace.md)
+to record the actual buffer base, construction arguments and lookup result.
+That contract owns the native hook arguments and packet framing; do not infer
+SetMap's region or zone dwords from this later manager field.
 
 Region-manager readiness `0x00644E90` walks the layout-manager collection
 at manager `+0x30` and requires each child's signed state `+0x140` to be at

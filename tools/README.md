@@ -17,6 +17,10 @@ The [region resource snapshot](windows/region-resource-snapshot.md) reads
 current region-event and virtual-target identities without debugger attachment.
 It prepares a native consumer trace; it does not record resource opens or calls.
 
+The [native map selection trace](windows/map-selection-trace.md) records
+SetMap buffers, region construction arguments and RegionInfo lookup results
+with a bounded debugger attachment and an asset-free fixture.
+
 ## Ghidra tools
 
 ### Import and catalog export
