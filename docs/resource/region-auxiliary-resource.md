@@ -96,8 +96,47 @@ The CommonResourceActor slot `+0x18` target is `0x00620880`, recorded at
 vtable VA `0x00FB7E4C`. It forwards the same two arguments through the
 object at actor `+0x08`, using that object's virtual slot `+0x18` at
 `0x00620917`; a null object follows its diagnostic branch. The concrete
-runtime target of this forwarded call, and of the decoder at `0x00631DEB`,
-remain the edges needed to establish the accepted payload format and effect.
+objects and targets reached by a particular request, its supplied payload and
+its completion result must still be recorded. The following class profiles
+identify static downstream paths when the runtime vtables match them.
+
+## Catalogued consumer profiles
+
+`Application::Scene::RaptureResourceSceneGraph` has primary vtable VA
+`0x00FE96FC`, with type descriptor `0x012C5AA8` and mangled name
+`.?AVRaptureResourceSceneGraph@Scene@Application@@`. Its slot `+0x58`
+is `0x007CB8D0`; slot `+0x5C` is `0x007CBDF0`. These entries were checked
+directly in the pinned PE image against the RTTI and slot catalogs.
+
+The synchronous wrapper dispatches through its own slot `+0x54` at
+`0x007CB90C`, whose catalogued target is `0x007CBCC0`. That method obtains
+a root through slot `+0x4C` (`0x007CC660`) and calls `0x00A63760` at
+`0x007CBD22`. The allocator creates a `0x40`-byte RaptureResourceFileRoot
+through `0x007CC980` and attaches it through `0x007CC770`; allocation alone
+does not decode payload bytes. Creation `0x00A63760` sets parser-context byte
+`+0x14` to one at `0x00A63797`, then calls SceneGraph slot `+0x08` at
+`0x00A637E0`. The asynchronous wrapper calls `0x00A63840` at
+`0x007CBE5C`; that helper calls the same slot at `0x00A6387F`.
+For this vtable the shared target is `0x00A642F0`.
+
+The [generic native consumer boundary](gtex-pwib-loader.md#native-consumer-boundary)
+owns the PWIB/SEDB, RES/res reader and other subtype dispatch rules at
+`0x00A642F0`. A numeric auxiliary key or RegionInfo name does not establish
+its supplied subtype, selected handler or valid authored bytes. The missing
+payload edge is the actual input view and its bytes, followed by the selected
+reader or registered handler and a nonnull decoded result. A selected
+texture-bank callback in that finding does not establish a region payload.
+
+`Application::Scene::RaptureReferenceResource` has primary vtable VA
+`0x01047240`, type descriptor `0x012D15D8`, mangled name
+`.?AVRaptureReferenceResource@Scene@Application@@`, and slot `+0x18`
+target `0x00A6ABE0`. That target accepts a pointer and a dword index, with
+`RET 0x08`. It increments the nonnull pointer's reference count through
+`0x00A3E670`, computes `[this+0x10] + 4*index` at `0x00A6AC30`, checks
+it against `[this+0x10]` and `[this+0x14]`, and calls insertion helper
+`0x00A6B5A0` at `0x00A6AC50` with ECX `this+0x0C`. It releases the
+temporary reference through `0x00A3E680`. This method has no payload subtype
+test; retaining a decoded object is not proof of scene activation.
 
 ## Selection readiness and remaining evidence
 
@@ -106,6 +145,16 @@ can identify the current object's virtual targets before a native-call trace.
 It observes object configuration, not call execution or request/open results.
 Its fixed scene root is getter `0x00623C60`, which loads global `0x0133DEF4`;
 construction at `0x00626E57` stores the region manager at scene `+0x17C`.
+
+A manager snapshot is not a SetMap observation. If a displayed area or retained
+control differs from manager `+0x14`, record the actual packet base and arguments
+at SetMap receiver `0x0059CED0`, then region construction `0x00626DF0` and
+lookup `0x0064E830` -> `0x0079B380`. The constructor's entry ECX is the scene;
+entry `[ESP+0x04]` is the region, and `[ESP+0x08]` must remain a raw argument
+until its role is established. At `0x00626E25` it stores that region at scene
+`+0x190`, then at `0x00626E57` stores the constructed manager at `+0x17C`.
+[SetMap processing](map-layout-selector.md) owns packet framing and transport;
+do not infer its region or zone dwords from this later manager field.
 
 Region-manager readiness `0x00644E90` walks the layout-manager collection
 at manager `+0x30` and requires each child's signed state `+0x140` to be at

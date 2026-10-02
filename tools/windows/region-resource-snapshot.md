@@ -1,6 +1,6 @@
 # Region resource object snapshot
 
-`snapshot_region_resource.py` reads the current region manager and its
+`snapshot_region_resource.py` reads the scene's region-manager field and its
 resource-event objects from the pinned retail 1.23b process. It identifies
 the configured decoder and forwarded actor targets for subsequent native
 call tracing. It does not attach a debugger, invoke a target function,
