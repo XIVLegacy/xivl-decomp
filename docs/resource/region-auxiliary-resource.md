@@ -101,6 +101,12 @@ remain the edges needed to establish the accepted payload format and effect.
 
 ## Selection readiness and remaining evidence
 
+The [read-only region snapshot](../../tools/windows/region-resource-snapshot.md)
+can identify the current object's virtual targets before a native-call trace.
+It observes object configuration, not call execution or request/open results.
+Its fixed scene root is getter `0x00623C60`, which loads global `0x0133DEF4`;
+construction at `0x00626E57` stores the region manager at scene `+0x17C`.
+
 Region-manager readiness `0x00644E90` walks the layout-manager collection
 at manager `+0x30` and requires each child's signed state `+0x140` to be at
 least 5. It reads neither auxiliary Resource `+0x54` nor decoded object

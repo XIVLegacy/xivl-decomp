@@ -72,6 +72,8 @@ jobs:
         run: python tools/test_retail_protocol_caller.py
       - name: Test public evidence links
         run: python tools/test_repository_links.py
+      - name: Test region snapshot contract
+        run: python tools/windows/test_region_resource_snapshot.py
       - name: Regenerate and compare dependency catalogs
         run: |
           python tools/build_vtable_method_names.py

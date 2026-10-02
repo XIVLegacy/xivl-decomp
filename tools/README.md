@@ -13,6 +13,10 @@ The optional [Windows virtual-item diagnostic](windows/README.md) records
 native pending/completion results with a bounded debugger attachment and
 includes an asset-free synthetic fixture.
 
+The [region resource snapshot](windows/region-resource-snapshot.md) reads
+current region-event and virtual-target identities without debugger attachment.
+It prepares a native consumer trace; it does not record resource opens or calls.
+
 ## Ghidra tools
 
 ### Import and catalog export
