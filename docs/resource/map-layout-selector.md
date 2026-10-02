@@ -103,8 +103,9 @@ not only the eligible child DAT. Reserve the derived key and avoid low-index
 overflow; do not let it resolve into a retail resource. `0x0061D2F0` obtains
 the context from scene `+0x114`, calls getter `0x0060B250`, and invokes
 ResourceModule virtual slot `+0x04` with nine stack arguments. This closes
-an additional numeric Resource request. The payload format and semantic role
-of that auxiliary resource are not established here.
+an additional numeric Resource request. Its event completion and remaining
+payload-consumer boundary are in
+[Region auxiliary resource completion](region-auxiliary-resource.md).
 
 The concrete slot target is `0x00648570`. It uses the registered factory
 at `0x01365788`; initialization `0x004EA360` constructs it through
