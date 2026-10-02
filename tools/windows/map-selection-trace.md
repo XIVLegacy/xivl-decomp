@@ -319,10 +319,39 @@ The ordinary exception branch at RVA `0xCE7D1` copies 20 dwords from input
 `+0x0C`, then the first-chance word at `+0x5C`, establishing a `0x60`-byte
 extent for that branch. This does not establish every state variant's extent.
 
-The missing edge is DbgEng's actual native wait/continue invocation, including
-the resolved slot or caller, live buffer lifetime and all-state extent, plus
-its context-write coverage. An absolute-address reference scan did not find
-that edge; indexed table access remains possible. No raw decoder or
-interception is supported from API-name metadata alone. A resolver binding
-record would still require a demonstrated invocation before it could support
-a raw event record. Retail thread policy remains `initial_threads_only`.
+The indexed resolver at RVA `0x3D2007` establishes the native bindings.
+Its ntdll descriptor at RVA `0x5A9B90` contains `0x3B` name/flag pairs
+starting at RVA `0x5A96A8`, with function slots starting at RVA `0x5A85C8`.
+The loop advances name pairs by eight bytes and slots by four bytes;
+GetProcAddress at RVA `0x3D20D8` stores its result at RVA `0x3D20E1`.
+Indices 4, 12 and 26 bind the converter, native continue and native wait
+slots at RVAs `0x5A85D8`, `0x5A85F8` and `0x5A8630`, respectively.
+
+The native wait call at RVA `0x3DE6B6` uses the wait slot. It passes the
+object's `+0x15C` value, zero, a local timeout pointer and a local stack
+buffer pointer in the wait routine. Return `0x102` and negative results
+bypass conversion; other nonnegative results reach the converter call at
+RVA `0x3DE6E6`.
+This establishes the inspected branch's predicate, rather than a raw event
+observed in a retained capture. The buffer remains in the wait routine's frame
+through conversion; its all-state initialized-byte contract needs proof.
+
+The native continue call at RVA `0x3DE7F8` uses the continue slot and passes
+the object's `+0x15C` value, a pointer to two words copied from object
+`+0x148/+0x14C`, and the caller's continuation value. A negative return
+leaves `+0x148` intact; a nonnegative return clears it. The wait path copies
+the converted event's `+4/+8` words into those object fields.
+
+The debug-object source is backed by the NtCreateDebugObject call at RVA
+`0x3DC6B2`, which receives the address of object `+0x15C` as its output slot.
+Qualified context writes use the SetThreadContext wrapper at RVA `0x3D049D`:
+its call at RVA `0x3D04C2` selects the API-set slot `0x5A82A0` or kernel32
+slot `0x5A8360`. This establishes those paths, not complete context-write
+coverage or persistence of every requested context bit.
+
+The first missing context edge is the event's Windows thread identity-to-handle
+acquisition and lifetime join before engine consumption. A static branch does
+not establish which path a retained session used. All-state raw-byte validity,
+interception timing, callable-target validity, cache restoration lifetime and
+WOW64/native context bypass coverage remain unproved. No raw decoder or
+interception is implemented. Retail thread policy remains `initial_threads_only`.
