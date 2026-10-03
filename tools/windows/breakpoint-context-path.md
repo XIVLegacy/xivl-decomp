@@ -9,8 +9,9 @@ between the disputed raw events or establish the exception's producer.
 This finding applies to PE32 I386 DbgEng SHA-256
 `d032b53cd7478c58bc2b63c5c27d0ae1bb7108652c48ab6de3817ab9843ac631`.
 All engine locators below are RVAs; the preferred file image base is
-`0x10000000`. LLVM `22.1.4` disassembly and PE pointer reads establish the
-static observations. The x86 callback ABI was checked against Windows SDK
+`0x10000000`. LLVM `22.1.4` and Capstone `5.0.7` disassembly, with PE
+pointer reads, establish the static observations. The x86 callback ABI was
+checked against Windows SDK
 `10.0.26100.0` `DbgEng.h`, SHA-256
 `3daa5d6aebbfca3aefcee6fd0b5b34abd2eebf2a0313facb3f5939da6ae8defa`,
 `IDebugEventCallbacks` declaration and `Breakpoint` method. No engine was loaded
@@ -89,9 +90,9 @@ jump table `0x17476C` to enter cache-only blocks
 internal writes; object `+0xC0` is not the `EFlags` field of a Windows
 `CONTEXT`.
 
-The inspected staging chain does not connect those pairs to the caller-owned
-Windows context buffer at the SetThreadContext boundary. It also supplies no
-EFLAGS writer for the disputed transition.
+The staging chain reaches separate main-state and debug-register-cache flush
+dispatches described below. It does not establish which dispatch ran during
+the disputed transition or supply its context-write inputs/results.
 
 After a successful internal write, calls at `0x173F02/0x173F0D` reach
 `0x275FA4/0x19CEFF`. The latter reaches client enumeration at `0x19CE4A`:
@@ -137,18 +138,116 @@ A separate preparation entry `0x3DF500` calls the resolved
 `SetXStateFeaturesMask` helper at `0x3DF5A0`, and caller-range copy helper
 `0x3DF7B6` at `0x3DF5C0`. It reaches `0x3DF730` at `0x3DF5DB` and
 the Set wrapper at `0x3DF770`. The inspected preparation/copy windows do
-not read the internal state/cache pairs above. Their caller-supplied buffer
-producer and its connection to those pairs remain untraced; absence in these
-windows does not prove absence from the whole image.
+not read the internal state/cache pairs above. The state-buffer dispatches
+below do not yet bind those inputs to this preparation entry; absence in
+these windows does not prove absence from the whole image. Constructor
+`0x3D8BB4` stores context-interface table `0x5B8E0`, whose `+0x98` and
+`+0x130` entries are `0x3DDE40` and `0x3DF500`. Their pointer-slot RVAs
+are `0x5B978` and `0x5BA10`, respectively; those are data locations,
+not method entries.
+
+## State-buffer flush and conversion
+
+Table `0x47B8C` binds `+0x38` to read/refill method `0x170930` and
+`+0x3C` to write/flush method `0x170A60`. These are distinct from the
+register setter's notification tail. Here `state` names the register object;
+`child` names the object at `[state+0x8]`, without assigning its runtime type.
+
+At `0x170A90`, the flush method calls `0x1E4932` with ECX equal to
+`child` and five stack arguments in callee order: `[child+0xD8]`, that
+descriptor's values at `+0x30/+0x34`, `state+0xC0`, and `state+0x17F0`.
+The helper returns with `ret 0x14`. After success, the method loads
+`[child_vtable+0x134]` at `0x170AA0` and calls it at `0x170AC8`, with
+ECX equal to `child` and callee-order stack arguments descriptor `+0x30`,
+descriptor `+0x34`, and `state+0xB38`. This second buffer contains the
+cache pairs written by the internal register setter.
+
+Helper `0x1E4932` reads backend `[child+0x21C]` at `0x1E4943` and
+compares `[backend+0x90]` with `[child+0xB8]` at `0x1E4957/0x1E495D`.
+When the backend size is larger, it calls backend virtual slot `+0x48`
+at `0x1E4992`, with the main buffer, `[child+0x58]`, and local destination
+buffer in callee order. The fallback branch loads child virtual slot
+`+0x128` at `0x1E4ADA` and calls it at `0x1E4AEE`, with descriptor,
+descriptor `+0x30/+0x34`, selected main-buffer pointer, and auxiliary
+buffer in callee order. The intervening interface branch is separate;
+these locators do not establish its runtime selection.
+
+Both state tables `0x47B8C` and `0x4868C` map `+0x48` to converter
+`0x170F30` and `+0x4C` to `0x171410`. The first receives source, size
+and destination as three stack arguments. Its guarded branches copy and
+rearrange caller-provided ranges; its first `0x40`-dword copy is at
+`0x170F80`. The second stores mode-dependent flags at its first argument
+`+0x30` at `0x17144B`. These are buffer operations, without proof that a
+particular runtime call produced a Windows context.
+
+Factory `0x2765FA` compares signatures `0xA641/0xAA64` at
+`0x276731/0x276739` and stores table `0x4868C` at `0x276794` after
+common construction. Its other branch retains `0x47B8C`. The alternate
+table's `+0x3C` method `0x186B00` loads inner object `[child+0x1F4]`
+at `0x186B1E`, calls inner slot `+0x4C` at `0x186B40` with
+`inner+0xC0`, `[child+0xB8]`, zero, then inner slot `+0x3C` at
+`0x186B5A` with no explicit stack arguments. Signature selection is not
+evidence of the runtime architecture or process mode.
+
+Read/refill method `0x170930` separately zeros `0xE0` bytes at
+`state+0xB38` at `0x1709A8` and calls child slot `+0x130` at
+`0x1709D2` with descriptor `+0x30/+0x34` and that buffer. It enters
+this cache block only for an incoming level at least 5 and stored level
+below 5. Matching slot numbers on different objects do not bind this call
+to preparation method `0x3DF500`: that method has a different call ABI.
+
+One statically bound owner family uses table `0x4AB30`, stored at
+`0x3A1F4C/0x3A1FFA`. Its method `0x3A20C0`, present at table offsets
+`+0x2F8/+0x5F4`, forwards incoming ECX through calls to `0x2D0571` at
+`0x3A27E9/0x3A290A`. That function passes the owner to state factory
+`0x2765FA` at `0x2D0645`; construction stores the argument at
+`[state+0x8]` at `0x26F2CE`. This establishes a candidate object family,
+without proving its use in the retained fixture.
+
+In that family, owner table `+0x128` is `0x2DE820` and `+0x134` is
+`0x1E40F0`. The latter forwards its third stack argument, the cache buffer,
+through a nested interface call at `0x1E4286`, with zero and `0x440` also
+supplied; a fallback dispatch at `0x1E4305` uses owner slot `+0xB4`
+(`0x1C6440`). Lazy getter `0x2D8981` supplies the nested object from
+owner `+0xE98`, loading a global-backed provider's virtual slot `+0x0C`
+at `0x2D89A5` when empty. The guard call at `0x2D89B1` precedes the
+actual provider dispatch at `0x2D89B7`. These observations do not bind the
+selected nested interface or its targets to the SetThreadContext preparation
+table.
+
+The provider has a further static lead: the lazy getter reads global
+`0x596F84` and uses the object's `+0x0C` field. Initialization stores EBX
+to that global at `0x39787C`, following allocation, constructor call
+`0x3985EB` at `0x397844`, and initialization call `0x390804` at
+`0x397859`. The provider-field assignment, concrete nested table and
+buffer bridge are not traced here; this is a remaining offline edge,
+not proof that the provider can only be resolved at runtime.
+
+Backend selection stores an array entry at owner `+0x21C` at
+`0x2D071E/0x2D09A7`. The first path decodes `0xC031` to index `0xE`
+at `0x276C54/0x276C5D`, selecting owner `+0x214`. Its special
+constructor `0x1A03A9` stores table `0x4A05C` at `0x1A03C7`;
+that table's `+0x48` method `0x179820` returns `E_NOTIMPL`.
+The later input-dependent initialization can replace array entries at
+`0x2D0906`. The first selection therefore does not bind the later
+conversion to either of the state tables above.
+
+These locators narrow the static edge to the actual owner/backend/inner
+objects, their selected virtual implementations, and the nested provider.
+An unrelated table's matching slot number or a constructor candidate does
+not establish the runtime object. No retained row records these identities
+or any write call. The buffer's Windows context identity and its connection
+to `0x3DF500` remain unproved.
 
 ## Concrete missing edge
 
 To discriminate the slot-list candidate, evidence must connect one raw
 debug-object/PID/TID/generation and event to:
 
-1. The producer of the prepared context buffer and its connection to the
-   internal state/cache, before attributing a staging operation to a native
-   commit. The setter's state notification does not close this static edge.
+1. The selected owner/backend/inner and nested-provider objects and the
+   buffer bridge to the prepared Windows context, before attributing a flush
+   dispatch to a native commit. The setter's state notification does not
+   close this edge, and the inspected owner family is not runtime evidence.
 2. The actual CPU object, register metadata, rebuilt slot vector and selected
    breakpoint pointer/ID/offset at matching and native callback entry.
 3. Every relevant context-write invocation, actual destination, handle identity,
