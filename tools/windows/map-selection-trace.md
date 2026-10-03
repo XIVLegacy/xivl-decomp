@@ -415,9 +415,10 @@ and API success do not identify the exception producer or prove context-write
 persistence. Callback engine IDs and generations do not provide this raw
 Windows event/lifetime join.
 
-The identity fields and documented acquisition route are statically supported;
-an implemented recorder's successful acquisition, stopped-thread read and
-raw lifecycle correlation before engine consumption remain unobserved.
+The identity fields and documented acquisition route are statically supported.
+The [raw fixture evidence](raw-event-recorder.md#fixture-evidence-and-remaining-limits)
+records actual wrapper invocation, owned stopped-context reads and qualified
+joins within its synthetic cases, including a failed callback binding.
 The [recorder preflight](recorder-preflight.md) checks the pinned loaded
 module/slot profile, fake-wrapper ABI and dual error preservation, compiled CFG
 targets, and an optional isolated own-engine protection transition. These checks
@@ -425,6 +426,7 @@ do not establish an engine call to a wrapper, concurrent interception, raw-byte
 admission, context bypass coverage or cache restoration during observation.
 The fixture-only raw recorder implements strict admission and owned
 installation/restoration. Its synthetic and isolated own-process checks
-establish mechanics only. Actual engine-to-wrapper invocation, stopped
-context acquisition and an accepted raw/callback/continuation chain require
-bounded fixture evidence. Retail thread policy remains `initial_threads_only`.
+establish mechanics only. The
+[offline breakpoint and context path](breakpoint-context-path.md)
+identifies the unresolved slot-list, context-write and callback-ownership edge
+in the failed fixture. Retail thread policy remains `initial_threads_only`.

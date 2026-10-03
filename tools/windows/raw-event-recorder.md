@@ -252,6 +252,9 @@ observer detached. Survival after the handled second chance does not qualify
 the failed observation or survival after an unhandled second chance. The
 ordinary failure produced no raw rows and cannot supply native event evidence.
 
+The [offline breakpoint and context path](breakpoint-context-path.md)
+identifies the slot-list, register-programming, context API and callback
+delivery locators, plus the concrete missing invocation and ownership edge.
 The callback-ID/EIP disagreement and exception producer remain unresolved.
 The context rows are Windows API snapshots at the wait boundary, rather than
 processor trap frames. They do not cover later engine context writes or
