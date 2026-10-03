@@ -17,6 +17,7 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [Background visibility ranges](actor/background-visibility.md)
 - [Indexed float storage and clamp](actor/indexed-float-clamp.md)
 - [Camera context registration and selection](actor/camera-context-selection.md)
+- [CameraActor transform input path](actor/camera-transform-inputs.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
