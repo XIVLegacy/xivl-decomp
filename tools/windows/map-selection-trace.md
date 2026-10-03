@@ -349,9 +349,61 @@ its call at RVA `0x3D04C2` selects the API-set slot `0x5A82A0` or kernel32
 slot `0x5A8360`. This establishes those paths, not complete context-write
 coverage or persistence of every requested context bit.
 
-The first missing context edge is the event's Windows thread identity-to-handle
-acquisition and lifetime join before engine consumption. A static branch does
-not establish which path a retained session used. All-state raw-byte validity,
-interception timing, callable-target validity, cache restoration lifetime and
-WOW64/native context bypass coverage remain unproved. No raw decoder or
-interception is implemented. Retail thread policy remains `initial_threads_only`.
+### Event identity and observer-owned context handle
+
+The pinned converter helper copies native input DWORDs `+4/+8` to
+`DEBUG_EVENT.dwProcessId/dwThreadId`: the loads at ntdll RVAs `0xCE68D` and
+`0xCE693` store at `0xCE690` and `0xCE696`. The common helper is reached by
+the ordinary converter export at `0xCE640`; the separate Ex export at
+`0xCE660` reaches the same helper with a different mode argument.
+DbgEng loads converted `+4/+8` at `0x3DE715/0x3DE71E` and stores the pending
+pair at `0x3DE718/0x3DE721`. Its Win32 continuation branch loads pending TID
+and PID at `0x3DE826/0x3DE82C`; helper `0x3D0DE4` passes them to
+`ContinueDebugEvent` as PID, TID, status. Windows SDK 10.0.26100.0 x86
+`um/minwinbase.h`, `DEBUG_EVENT`, defines those DWORD fields at offsets 4
+and 8 and the union at 12; a Clang I386 syntax check verified these offsets
+and the `0x60` structure size. The header SHA-256 is
+`7d1408f4b8eeba96ae45892209132258cde80cab6dab192b4cceea591972c78b`.
+
+These copies establish the raw header's field meanings without requiring
+the recorder to invoke the converter. The proposed observation boundary stays
+at native wait return RVA `0x3DE6B8`, before converter call `0x3DE6E6`.
+The wait result and recognized raw state must be retained separately;
+timeout/error output and unsupported unions cannot be treated as events.
+Converter reads establish the minimum input extent each branch consumes,
+rather than an all-state initialized-byte guarantee or a runtime stop observation.
+
+A candidate context reader can obtain its own handle using
+[`OpenThread`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openthread)
+with `THREAD_GET_CONTEXT | THREAD_QUERY_LIMITED_INFORMATION` (`0x808`),
+noninheritable, and the raw TID. Require nonzero
+[`GetThreadId`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadid) and
+[`GetProcessIdOfThread`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getprocessidofthread)
+results matching both raw IDs. A successful
+[`GetThreadTimes`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes)
+creation FILETIME is an additional lifetime observation, not a unique identity
+or a replacement for raw lifecycle correlation. Prefer a fresh owned handle
+for each read; no cache lifetime has been established. Use
+[`CloseHandle`](https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle)
+only for that owned handle on every path after acquisition. Retain API errors
+immediately and distinguish failed closure from confirmed closure. The debug
+object at `+0x15C` and CREATE-event union handles have separate ownership.
+
+[`GetThreadContext`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadcontext)
+requires a stopped thread and the processor-specific context layout. EXIT
+events are lifecycle records, not context-read targets. Initialize
+`ContextFlags` to the requested mask before the call. Require API success
+and the complete requested mask in returned flags, rather than a nonzero intersection:
+x86 groups share architecture bit `0x10000`. The x86 debug group contains
+Dr0-Dr3, Dr6 and Dr7; zero values remain valid observations. Returned flags
+and API success do not identify the exception producer or prove context-write
+persistence. Callback engine IDs and generations do not provide this raw
+Windows event/lifetime join.
+
+The identity fields and documented acquisition route are statically supported;
+an implemented recorder's successful acquisition, stopped-thread read and
+raw lifecycle correlation before engine consumption remain unobserved.
+All-state raw-byte validity, interception timing, callable-target validity,
+cache restoration lifetime and WOW64/native context bypass coverage remain
+unproved. No raw decoder or interception is implemented. Retail thread policy
+remains `initial_threads_only`.
