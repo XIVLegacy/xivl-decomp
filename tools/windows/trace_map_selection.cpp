@@ -2692,6 +2692,28 @@ void append_raw_rows(const xivl::raw_recorder::RawRecorder& recorder,
             << ",\"coverage_gap_overflow\":"
             << (gap_count > stored_gap_count ? "true" : "false") << "}\n";
     rows->push_back(summary.str());
+    const auto&        cleanup = recorder.install_report();
+    std::ostringstream state;
+    state << "{\"kind\":\"raw_cleanup\",\"restored\":"
+          << (cleanup.restored ? "true" : "false")
+          << ",\"slots_installed\":" << (recorder.slots_installed() ? "true" : "false")
+          << ",\"ownership_unknown\":" << (cleanup.ownership_unknown ? "true" : "false")
+          << ",\"error\":" << cleanup.error
+          << ",\"engine_base\":" << cleanup.engine_base
+          << ",\"ntdll_base\":" << cleanup.ntdll_base << "}\n";
+    rows->push_back(state.str());
+}
+
+void append_raw_rows_once(xivl::raw_recorder::RawRecorder* recorder,
+                          bool*                            attempted,
+                          std::vector<std::string>*        rows)
+{
+    if (recorder != nullptr && !*attempted)
+    {
+        *attempted = true;
+        recorder->deactivate();
+        append_raw_rows(*recorder, rows);
+    }
 }
 
 void record_raw_callback(xivl::raw_recorder::RawRecorder* recorder,
@@ -2755,6 +2777,7 @@ int wmain(int argc, wchar_t** argv)
     std::size_t                      record_cap           = maximum_records;
     std::string                      thread_policy        = "initial_threads_only";
     xivl::raw_recorder::RawRecorder* raw_recorder         = nullptr;
+    bool                             raw_rows_attempted   = false;
     try
     {
         cancelled           = false;
@@ -3185,7 +3208,7 @@ int wmain(int argc, wchar_t** argv)
             }
             raw_recorder->deactivate();
             raw_guard.armed = false;
-            append_raw_rows(*raw_recorder, &records);
+            append_raw_rows_once(raw_recorder, &raw_rows_attempted, &records);
         }
         const std::string terminal =
             "{\"kind\":\"detached\",\"records\":" + std::to_string(records.size()) +
@@ -3258,6 +3281,9 @@ int wmain(int argc, wchar_t** argv)
         {
             try
             {
+                // Stack unwinding has finished the raw restore guard; retain
+                // admitted rows even when hook validation or capture failed.
+                append_raw_rows_once(raw_recorder, &raw_rows_attempted, &records);
                 const std::string terminal =
                     "{\"kind\":\"failed\",\"records\":" +
                     std::to_string(records.size()) +

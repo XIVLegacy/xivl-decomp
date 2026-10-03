@@ -111,6 +111,13 @@ references and reports failure.
 Raw mode accepts `--seconds 1..3`; the existing non-raw fixture and retail
 profiles retain their 1..30 duration range.
 
+Failed captures retain admitted raw rows after the restore guard has completed
+and recording has stopped. `raw_cleanup` records restoration, remaining slot
+ownership, ambiguity, error and loaded bases separately from data coverage.
+A true `raw_summary.coverage` does not qualify a failed hook observation or
+unconfirmed cleanup. Serialization is attempted once so a later output error
+cannot append duplicate raw rows.
+
 The accepted file identities are PE32 I386 DbgEng SHA-256
 `d032b53cd7478c58bc2b63c5c27d0ae1bb7108652c48ab6de3817ab9843ac631` and ntdll
 SHA-256 `7e15bd30890e9bf93b47fc894a68b2445618ee7528eb39584a263b21e112f9df`.
@@ -220,8 +227,34 @@ public map-selection profile also establishes the actual wait call at RVA
 `0x3DE6B6` with return at `0x3DE6B8` and conversion at `0x3DE6E6`, plus
 continue at `0x3DE7F8` and return at `0x3DE7FA`; see the
 [raw event ownership contract](map-selection-trace.md#raw-event-ownership-boundary).
-The remaining qualification limit is runtime: concurrent writers, bounded-storage overflow,
-context or identity failures, callback joins, and late cleanup ambiguity set
-coverage false and are reported as raw coverage gaps. Actual
-engine-to-wrapper invocation, stopped-thread context acquisition,
-and a qualified lifecycle/callback/continuation chain require fixture evidence.
+Concurrent writers, bounded-storage overflow, context or identity failures,
+callback joins, and late cleanup ambiguity set coverage false and are reported
+as raw coverage gaps.
+
+## Fixture evidence and remaining limits
+
+The bounded synthetic fixture observations on 2026-10-03 used the pinned
+DbgEng and ntdll images above. The TF calibration recorded actual wait and
+continue wrapper return addresses at engine RVAs `0x3DE6B8` and `0x3DE7FA`,
+admitted ordinary exception bytes, successful fresh owned-handle context reads,
+and uniquely matched continuation results. It recorded no breakpoint callback,
+so it did not establish a complete callback chain or an exception producer.
+
+The unchanged ordinary and VEH continue-search fixtures both failed hook
+validation: a callback named the constructor breakpoint while the selected EIP
+named the receiver. The VEH failure retained raw rows and confirmed native
+slot restoration. Earlier callbacks joined uniquely, but the final callback
+could not bind to a compatible pending raw event and marked coverage false.
+The VEH first-chance exception was continued as not handled. The unchanged
+handler logged continue-search at the same thread and address. The matching
+second-chance event was continued as handled. Both fixtures exited normally after the
+observer detached. Survival after the handled second chance does not qualify
+the failed observation or survival after an unhandled second chance. The
+ordinary failure produced no raw rows and cannot supply native event evidence.
+
+The callback-ID/EIP disagreement and exception producer remain unresolved.
+The context rows are Windows API snapshots at the wait boundary, rather than
+processor trap frames. They do not cover later engine context writes or
+WOW64/native bypasses. These fixture results do not qualify broader retail
+thread support, a SetMap selection, resource requests, DAT opens or game
+collision.
