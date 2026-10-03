@@ -1,10 +1,9 @@
 # Hamlet PushEvent presentation
 
-The recovered FFXIV 1.23b `PopulaceHamletPushEvent` bytecode defines actor
-roles, support dialogue, gesture selectors, and craft-choice return values. It
-is a client presentation and selection contract. It does not authorize item
-changes, select BG-object damage stages, or identify the missing server
-entrypoints.
+Recovered FFXIV 1.23b `PopulaceHamletPushEvent` bytecode defines actor roles,
+support dialogue, gesture selectors, and craft-choice return values. These
+findings describe client presentation and selection. They do not authorize item
+changes, select BG-object damage stages, or identify server entrypoints.
 
 ## Actor roles
 

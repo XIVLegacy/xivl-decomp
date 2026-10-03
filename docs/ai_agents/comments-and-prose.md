@@ -12,7 +12,7 @@ Keep comments for:
 - a non-obvious extraction, regeneration, or API contract
 - ownership of generated output when the file cannot make it clear
 
-Compress a survivor to one to three lines at the use site. Move a longer
+Shorten a retained comment to one to three lines at the use site. Move a longer
 contract to a public policy, tool, or research page and leave a short pointer.
 Remove branch-time narration, matching progress, agent assignments, and notes
 that only explain the next statement.
@@ -81,8 +81,9 @@ provenance metadata, actual evidence observations or captures, retail build or
 source identity, legal metadata, or required vendor artifact names.
 
 - Use ASCII punctuation and short declarative sentences.
-- Avoid over-hyphenation and invented compound modifiers. Established
-  technical terms keep their hyphens.
+- Avoid awkward compounds and strings of modifiers. Rewrite the sentence
+  rather than joining more words with hyphens. Preserve established technical
+  terms, identifiers, and quoted source text.
 - Use semicolons sparingly, preferring periods, commas, or short lists.
 - Prefer exact executable names and locators over vague references.
 - Separate observed instructions or data from the interpretation they support.

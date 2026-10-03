@@ -38,7 +38,7 @@ wire roles:
 
 It separately records `Sqex::Socket::SocketBase`, `SocketImpl`, `RUDPSocket`,
 and `RUDP2::RUDPImpl` at vtable RVAs `0xd132dc`, `0xd1332c`, `0xd134dc`, and
-`0xd13378`. The catalog metrics do not by themselves establish the previously
+`0xd13378`. The catalog metrics alone do not establish the previously
 stated inheritance chain or connect any type to a live client connection.
 Source: [`ffxivgame.rtti.json`](../../config/ffxivgame.rtti.json), produced by
 `tools/ghidra_scripts/DumpRtti.java` under Ghidra 12.1.

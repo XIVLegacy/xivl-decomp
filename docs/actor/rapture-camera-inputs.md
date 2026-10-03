@@ -1,10 +1,10 @@
 # RaptureModelObject camera input getters
 
-This static trace follows the retail `RaptureModelObject` vtable selected by
-the catalog rows for slots 17, 20, and 22. Each bounded getter returns a
-receiver-relative pointer. The CharaActor wrappers copy 16 bytes from the
-returned pointer to their caller output; the payload is recorded as raw words
-without a physical vector or numeric type assignment.
+The catalog rows for slots 17, 20, and 22 select the retail
+`RaptureModelObject` vtable traced below. Each examined getter returns a pointer
+relative to its receiver. The CharaActor wrappers copy 16 bytes from that pointer
+to the caller's output. The payload remains raw words; its physical vector
+meaning and numeric type are not established.
 
 ## Evidence identity
 

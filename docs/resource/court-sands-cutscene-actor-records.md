@@ -77,7 +77,7 @@ place it at `(55.900002, 200.001587, -493.200012)` in setup clip 57
 clip 158 (`0x82BF0`). These are scene-authored positions, not persistent
 world placement coordinates. The complementary type-3 values support a
 F'lhaminn visibility swap and aetheryte hide/show staging change. They
-do not by themselves prove a historical private-area transfer or the
+alone do not prove a historical private-area transfer or the
 retail server trigger for the scene. Dialogue timing, motion semantics,
 and the narrative interpretation of the swap remain outside this audit.
 

@@ -25,7 +25,7 @@ The indexed field is a float array, but these instructions
 alone do not name its owner, assign meanings to indices, or establish which
 camera mode reads each entry. The `CameraActor` RTTI vtable is cataloged in
 `config/ffxivgame.rtti.json` at RVA `0x00BB906C`; the getter and setter
-instructions here do not by themselves prove that `ecx` is a `CameraActor`.
+instructions here alone do not prove that `ecx` is a `CameraActor`.
 No runtime range or visual effect is inferred from the static clamp.
 
 At FF14-Launcher commit

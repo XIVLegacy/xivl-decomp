@@ -1,10 +1,10 @@
 # Instance-raid widget lifecycle
 
-The recovered FFXIV 1.23b instance-raid scripts define a shared start, relogin,
-clear, and failure presentation contract. Hamlet Defense adds exact title,
-start-effect, HUD, and result surfaces. This note records client ownership; it
-does not prescribe a server adapter or treat direct widget construction as an
-equivalent path.
+The recovered FFXIV 1.23b raid scripts share presentation paths for starting,
+relogging, clearing, and failing an instance. Hamlet Defense adds the title,
+start effect, HUD, and result displays documented below. The client paths do
+not prescribe a server adapter or establish direct widget construction as
+an equivalent route.
 
 Native addresses refer to the pinned executable with image base `0x00400000`
 and SHA-256

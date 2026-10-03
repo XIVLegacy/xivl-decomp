@@ -55,7 +55,7 @@ the `.text` bytes are
 `85 C2` (`test edx,eax`) and `85 C1` (`test ecx,eax`), each followed by a
 conditional branch. The code at VA `0x00BB9535` also compares ECX with
 `0x20`. The source comments describe a 32-thread limit, but the literal
-comparison and nearby mask tests do not by themselves establish thread
+comparison and nearby mask tests alone do not establish thread
 semantics or the intended effect of either replacement.
 
 At `FF14-Launcher:FFXIV Meteor Launcher/MemoryPatcher.cs:101-115`,

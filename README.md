@@ -1,8 +1,7 @@
 <h1 align="center">XIVLegacy Decomp</h1>
 
 <p align="center">
-Reverse-engineering notes and tools for the Final Fantasy XIV 1.23b<br>
-Windows client.
+Research and analysis tools for the Final Fantasy XIV 1.23b Windows client.
 </p>
 
 <p align="center">
@@ -10,18 +9,13 @@ Windows client.
 <a href="https://github.com/XIVLegacy/xivl-decomp/actions/workflows/checks.yml"><img src="https://github.com/XIVLegacy/xivl-decomp/actions/workflows/checks.yml/badge.svg" alt="Checks"></a>
 </p>
 
-## About
+This repository documents client structures, protocols, resource formats, and
+behavior. It includes findings, catalogs, and headers, not a buildable client
+source tree.
 
-This repository documents structures, symbols, protocols, resource formats,
-and client behavior. It contains research notes, machine-readable catalogs,
-headers, and analysis tools rather than a buildable client source tree.
-
-## Documentation
-
-- [Documentation home](docs/README.md)
-- [Evidence and claims](docs/ai_agents/evidence-and-claims.md)
+- [Documentation](docs/README.md)
 - [Wire protocol](docs/net/wire-protocol.md)
-- [Tooling and extraction](tools/README.md)
+- [Tools and extraction](tools/README.md)
 
 ## License
 

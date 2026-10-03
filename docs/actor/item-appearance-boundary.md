@@ -1,9 +1,9 @@
 # Native item-appearance boundary
 
-This page records the retail 1.23b native path from a CharaElement-owned
-appearance record, through queued actor dispatch, to equipment resource paths.
-It also records the upstream `actorclass_graphic` row resolver, the bounded
-item-sheet consumer result, and the alternate builder's missing invocation edge.
+The retail 1.23b client passes a CharaElement-owned appearance record through
+queued actor dispatch to equipment resource paths. This page traces that path
+and the `actorclass_graphic` row lookup. It also records the limited item-sheet
+findings and the alternate builder whose invocation remains unknown.
 
 ## Verdict
 

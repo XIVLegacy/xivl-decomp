@@ -1,10 +1,9 @@
 # CharaActor camera object input wrappers
 
-The static trace records the exact retail wrapper flow for the three
-`CharaActor` vtable entries used by the object-vector helpers. It identifies
-the bytes copied into the caller output and the immediate receiver-pointer
-fields. The concrete object behind that pointer remains a runtime dispatch
-edge.
+The three `CharaActor` vtable entries used by the object-vector helpers
+copy bytes into the caller's output through the wrapper paths below. The
+static trace identifies those bytes and the immediate receiver-pointer fields.
+The object behind that pointer still needs runtime identification.
 
 The [RaptureModelObject getters](rapture-camera-inputs.md) establish direct
 copy-source ranges for the table at `0x010653A4`.

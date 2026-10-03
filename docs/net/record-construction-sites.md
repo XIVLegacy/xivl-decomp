@@ -32,7 +32,7 @@ writer site.
 ## Adjacent dword values and bulk-copy counts
 
 These are separate observations. The first table records neighboring dword stores;
-those values do not by themselves establish an aggregate length. The second table
+those values alone do not establish an aggregate length. The second table
 records the `rep movsd` count and its byte product.
 
 | VA | RVA | Bytes | Observed store |

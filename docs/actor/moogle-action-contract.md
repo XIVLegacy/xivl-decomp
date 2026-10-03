@@ -35,7 +35,7 @@ and their basic rows share
 `844d8cc6ee23ab858b4ca6879175e4dd91d0ed860f80a8bf14e2ee5ea25889fa`.
 
 Element 11 is Astral on Pom Flare and Memento; element 8 is Earth on Break.
-Attribute 13 is a neutral command-table value. It does not by itself prove
+Attribute 13 is a neutral command-table value. It alone does not prove
 slashing, projectile, or magic damage, and it is not an emulator action-type
 enumeration.
 

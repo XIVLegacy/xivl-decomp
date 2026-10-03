@@ -21,7 +21,7 @@ scan. These are resource observations, not a command-to-bank join.
 | 20 | 27,008 | `a0460bb00a6cda7158cbd6160775498f1ea0cc506bde17dc4e696d70632c97b9` | `cbbm_sp_01` |
 
 Banks 13/14, 15/16, and 17/18 are byte-identical pairs. Their separate
-bank numbers do not by themselves establish distinct motions or which head
+bank numbers alone do not establish distinct motions or which head
 or mode each represents. The `pb04` name in bank 19 is an authored literal;
 it does not independently identify part 4 as legs or specify a part-HP
 formula.

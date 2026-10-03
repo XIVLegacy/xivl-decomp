@@ -1,10 +1,9 @@
 # MyPlayer slot-66 `+0x128` / `+0x12c` clearer
 
-This page identifies `FUN_006e32f0` as a `MyPlayer` vtable method that
-clears its receiver's `+0x128` and `+0x12c` fields. The relationship
-between that receiver and the kick handler's context pointer requires
-an explicit object-identity join. It complements
-`docs/event/kick-order-event-receiver.md`.
+`FUN_006e32f0` is a `MyPlayer` vtable method that clears its receiver's
+`+0x128` and `+0x12c` fields. Whether that receiver is the kick handler's
+context pointer remains unverified. See `docs/event/kick-order-event-receiver.md`
+for the handler trace.
 
 ## The clearer
 

@@ -1,18 +1,17 @@
-# Documentation index
+# Documentation
 
-The public documentation covers findings and technical guides for `xivl-decomp`.
+Research on the Final Fantasy XIV 1.23b Windows client, grouped by subject.
+Each finding records its evidence and the limits of what it establishes.
+
+## Start here
 
 - [Repository style](style-guide.md)
+
+## Actors and gameplay presentation
+
 - [Actor action queue](actor/action-queue.md)
 - [Integer-to-float setter candidate](actor/integer-float-setter.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md)
-- [Large coffer action families](resource/coffer-action-families.md)
-- [Bowl of Embers fire-ring layout](resource/ifrit-bowl-ring.md)
-- [Thornmarch ring layout controls](resource/thornmarch-ring-layout.md)
-- [Raid cutscene numeric actor records](resource/raid-cutscene-actor-records.md)
-- [Khimaira action-bank boundary](resource/khimaira-action-bank-boundary.md)
-- [m055 and m012 action-bank boundary](resource/aurum-action-bank-boundary.md)
-- [Garuda battlefield atmosphere](resource/garuda-battlefield-atmosphere.md)
 - [Actor architecture](actor/architecture.md)
 - [Background visibility ranges](actor/background-visibility.md)
 - [Indexed float storage and clamp](actor/indexed-float-clamp.md)
@@ -45,7 +44,6 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
 - [PlayerBaseClass](actor/player-base-class.md)
-- [Widget command admission and completion](script/widget-command-completion.md)
 - [Retainer presentation contract](actor/retainer-presentation.md)
 - [Rivenroad command and presentation contract](actor/rivenroad-presentation.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
@@ -56,10 +54,9 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [Status-related UI RTTI search](actor/status-effects.md)
 - [WindowActor nameplate anchor producer](actor/window-actor-anchor-producer.md)
 - [WorldMaster](actor/world-master.md)
-- [AI-assisted contributions](ai_agents/README.md)
-- [Comments and prose policy](ai_agents/comments-and-prose.md)
-- [Evidence and claims policy](ai_agents/evidence-and-claims.md)
-- [Retail input validation](ai_agents/retail-input-validation.md)
+
+## Events and quests
+
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
 - [City airship scene sequence](event/airship-scene-sequence.md)
 - [Company-warp after-warp loading boundary](event/company-warp-loading-boundary.md)
@@ -84,6 +81,9 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [StartServerOrderEventFunction receiver](event/start-event-fn-receiver.md)
 - [Event status-condition receivers](event/status-condition-receivers.md)
 - [UserData receiver](event/user-data-receiver.md)
+
+## Networking
+
 - [Network u32 tree and RTTI census](net/channel-dispatch-tree.md)
 - [MyPlayer PlayerManager replacement](net/dispatcher-subscriber-swap.md)
 - [Kick dispatcher clearer](net/kick-dispatcher-clearer.md)
@@ -133,6 +133,16 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [FFXIV 1.x wire evidence](net/wire-protocol.md)
 - [Work-field evidence index](net/work-field-evidence-index.md)
 - [Work-field inventory](net/work-field-inventory.md)
+
+## Resources and file formats
+
+- [Large coffer action families](resource/coffer-action-families.md)
+- [Bowl of Embers fire-ring layout](resource/ifrit-bowl-ring.md)
+- [Thornmarch ring layout controls](resource/thornmarch-ring-layout.md)
+- [Raid cutscene numeric actor records](resource/raid-cutscene-actor-records.md)
+- [Khimaira action-bank boundary](resource/khimaira-action-bank-boundary.md)
+- [m055 and m012 action-bank boundary](resource/aurum-action-bank-boundary.md)
+- [Garuda battlefield atmosphere](resource/garuda-battlefield-atmosphere.md)
 - [Application scheduling observations](resource/application-hierarchy.md)
 - [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
 - [Class metadata](resource/class-metadata.md)
@@ -167,10 +177,14 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [SqPack architecture](resource/sqpack.md)
 - [Stronghold door owners](resource/stronghold-door-owners.md)
 - [Transmission Tower rendering](resource/transmission-tower-rendering.md)
+- [UI form path strings](resource/ui-form-path-strings.md)
+
+## Lua and UI
+
+- [Widget command admission and completion](script/widget-command-completion.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)
 - [Widget string call sites](script/widget-string-call-sites.md)
-- [UI form path strings](resource/ui-form-path-strings.md)
 - [Actions and Traits menu contract](script/actions-traits-menu.md)
 - [LPB corpus](script/lpb-corpus.md)
 - [LPB format and filename cipher](script/lpb-format.md)
@@ -178,6 +192,9 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [LuaActorImpl slot map](script/lua-actor-impl.md)
 - [Lua bytecode format](script/lua-bytecode-format.md)
 - [Lua class registry](script/lua-class-registry.md)
+
+## Type notes
+
 - [Type evidence notes](types/ffxivgame/README.md)
 - [Type note 0x00006ab0](types/ffxivgame/0x00006ab0.md)
 - [Type note 0x000089f0](types/ffxivgame/0x000089f0.md)
@@ -205,3 +222,10 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [Type note 0x000158b0](types/ffxivgame/0x000158b0.md)
 - [Type note 0x00015bf0](types/ffxivgame/0x00015bf0.md)
 - [Type note 0x00016360](types/ffxivgame/0x00016360.md)
+
+## Repository policy
+
+- [AI-assisted contributions](ai_agents/README.md)
+- [Comments and prose policy](ai_agents/comments-and-prose.md)
+- [Evidence and claims policy](ai_agents/evidence-and-claims.md)
+- [Retail input validation](ai_agents/retail-input-validation.md)

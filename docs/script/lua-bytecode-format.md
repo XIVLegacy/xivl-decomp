@@ -2,23 +2,19 @@
 
 This page documents the standard Lua 5.1 bytecode embedded in `.rdata` chunks
 and the wrapper used by shipped `.le.lpb` files.
->
-> **CORRECTION:** the shipped `client/script/*.le.lpb`
-> files use a custom XOR-0x73 wrapper around the Lua bytecode +
-> a substitution-cipher on filenames. See
-> [`docs/script/lpb-format.md`](lpb-format.md) for the wrapper format
-> + filename cipher + `tools/decode_lpb.py` decoder. Anyone with
-> `unluac` can decompile a shipped `.lpb` file ONLY AFTER
-> applying the wrapper decoder.
+
+Shipped `client/script/*.le.lpb` files use an uncompressed or XOR-0x73
+wrapper and a substitution cipher for filenames. Decode the wrapper with
+`tools/decode_lpb.py` before using `unluac`. The
+[LPB format guide](lpb-format.md) describes both the wrapper and filename cipher.
 
 ## Finding
 
-`.lpb` and `.prog` files are **standard Lua 5.1 bytecode** with
-the official format byte (no engine-specific extensions). The
-default settings - little-endian, 4-byte int, 4-byte size_t,
-4-byte instruction word, 8-byte double-precision float - mean
-existing Lua 5.0/5.1 tooling (`unluac`, `luadec`, `ChunkSpy`)
-works on them out of the box.
+The decoded `.lpb` and `.prog` bytecode uses the standard Lua 5.1 format
+byte, with no engine-specific extensions. Its settings are little-endian,
+4-byte int, 4-byte size_t, 4-byte instruction word, and 8-byte
+double-precision float. Lua 5.0/5.1 tools such as `unluac`, `luadec`, and
+`ChunkSpy` can read the decoded chunks; shipped wrappers must be removed first.
 
 ## Two embedded Lua chunks in the .text/.rdata
 

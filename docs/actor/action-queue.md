@@ -1,10 +1,9 @@
 # Actor action queue and motion dispatch
 
-This page records the statically proven CharaAction queue topology. The
-storage location of these subsystems in `CharaActor`, the virtual callers that
-populate an entry's action object, and the s2c `0x00DA` queue-to-insertion edge
-are established. Animation completion and the other wire producers remain
-unresolved.
+Static analysis establishes the CharaAction queues, their storage in
+`CharaActor`, the virtual calls that populate an entry's action object, and
+the s2c `0x00DA` path to queue insertion. Animation completion and the other
+wire inputs remain unresolved.
 
 ## Action subsystem classes
 

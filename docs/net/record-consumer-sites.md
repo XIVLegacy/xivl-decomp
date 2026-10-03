@@ -1,11 +1,9 @@
 # 1.23b native record consumer sites
 
-This page records instruction-level observations from independent code sites in
-the pinned client binary. It does not assign packet opcodes or domain field
-names where the instructions do not establish them. The row cursor, fixed-size
-append, vector record, block storage, and packed-bit code mapping below remain
-separate observations except where a direct call or pointer calculation joins
-them.
+The instruction sites below show separate client operations: a row cursor,
+fixed-size append, vector record, block storage, and packed-bit code mapping.
+A direct call or pointer calculation links them only where stated. The
+instructions do not establish packet opcodes or names for undocumented fields.
 
 ## Binary and method
 
