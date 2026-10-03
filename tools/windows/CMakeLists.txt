@@ -11,7 +11,10 @@ add_executable(sample_virtual_item_state sample_virtual_item_state.cpp)
 target_link_libraries(sample_virtual_item_state PRIVATE bcrypt)
 add_executable(item_predicate_fixture item_predicate_fixture.cpp)
 target_link_options(item_predicate_fixture PRIVATE /OPT:NOICF)
-add_executable(trace_map_selection trace_map_selection.cpp)
+add_executable(trace_map_selection trace_map_selection.cpp raw_event_recorder.cpp)
+target_compile_options(trace_map_selection PRIVATE /guard:cf /sdl)
+target_link_options(trace_map_selection PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
+                    "/MAP:${CMAKE_CURRENT_BINARY_DIR}/trace_map_selection.map")
 target_link_libraries(trace_map_selection PRIVATE bcrypt)
 add_executable(map_selection_fixture map_selection_fixture.cpp)
 target_link_options(map_selection_fixture PRIVATE /OPT:NOICF)
@@ -23,3 +26,11 @@ target_compile_options(recorder_preflight PRIVATE /guard:cf /sdl)
 target_link_options(recorder_preflight PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/recorder_preflight.map")
 target_link_libraries(recorder_preflight PRIVATE bcrypt)
+
+add_executable(raw_recorder_check raw_recorder_check.cpp raw_event_recorder.cpp)
+set_target_properties(raw_recorder_check PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_definitions(raw_recorder_check PRIVATE _WIN32_WINNT=0x0A00)
+target_compile_options(raw_recorder_check PRIVATE /guard:cf /sdl)
+target_link_options(raw_recorder_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
+                    "/MAP:${CMAKE_CURRENT_BINARY_DIR}/raw_recorder_check.map")
+target_link_libraries(raw_recorder_check PRIVATE bcrypt)

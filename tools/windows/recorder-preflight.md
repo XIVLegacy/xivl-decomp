@@ -77,6 +77,8 @@ than DbgEng's actual nonnegative, non-timeout conversion predicate.
 Timeout/error buffers and unsupported state unions supply no valid event
 payload. Lifecycle headers need their own proven minimum extents and join.
 No decoder or raw event/context correlation is implemented by this tool.
+The separate [fixture-only recorder](raw-event-recorder.md) owns that
+implementation and its acceptance requirements.
 
 ## Dual error state and ABI
 
@@ -209,9 +211,12 @@ wrapper code, state, slot storage and modules must remain resident through
 late calls. Loss of slot ownership or ambiguous event/continuation joins
 invalidates coverage even if the observer remains memory-safe.
 
-The isolated check does not establish ongoing protection participation, raw wait/continue
-interception, event admission, lifecycle correlation, stopped context reads,
-all context-write paths, or actual continuation outcomes. These remaining
-edges must be demonstrated before another bounded fixture capture. Retail
-thread policy remains `initial_threads_only`. Selector, resource-open,
-authored-scene, rendering and walking acceptance remain separate.
+The isolated check does not establish ongoing protection participation,
+raw wait/continue interception, event admission, lifecycle correlation,
+stopped context reads, all context-write paths or actual continuation
+outcomes. The separate recorder's implementation, failure tests and review
+must pass before its bounded fixture captures. Those captures then test
+runtime invocation, acquisition and correlation; successful mechanics checks
+do not substitute for them. Retail thread policy remains
+`initial_threads_only`. Selector, resource-open, authored-scene, rendering
+and walking acceptance remain separate.

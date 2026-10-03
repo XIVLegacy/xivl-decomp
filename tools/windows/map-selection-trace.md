@@ -291,9 +291,12 @@ their own acceptance evidence.
 
 ### Raw event ownership boundary
 
-The observer does not record the raw Windows wait result or actual continue
-disposition. Establishing the unmapped single-step's handling path requires
-those records from the same DbgEng session, joined to the callback and target
+Default observation does not record the raw Windows wait result or actual
+continue disposition. The explicit fixture-only
+[raw recorder](raw-event-recorder.md) implements those records before engine
+conversion, with separate identity, context and continuation qualifications.
+Establishing the unmapped single-step's handling path still requires an
+accepted run from the same DbgEng session, joined to the callback and target
 thread lifetime. A separate Win32 debugger comparison cannot establish that
 session's callback ownership.
 
@@ -318,6 +321,18 @@ dispatch path.
 The ordinary exception branch at RVA `0xCE7D1` copies 20 dwords from input
 `+0x0C`, then the first-chance word at `+0x5C`, establishing a `0x60`-byte
 extent for that branch. This does not establish every state variant's extent.
+
+The helper reads state at `+0`, then subtracts 2 at `0xCE69B`, checks the
+unsigned bound 8 at `0xCE69F` and dispatches through table `0xCE830` at
+`0xCE6A7`. States 2 through 5 reach `0xCE6AE`, `0xCE6E4`, `0xCE742` and
+`0xCE74D`, which write Win32 create-thread, create-process, exit-thread and
+exit-process event codes. States 9 and 10 reach `0xCE7E4` and `0xCE811`,
+which write load-DLL and unload-DLL codes. Together with the common PID/TID
+copies below, these branches support a 12-byte identity header for those
+recognized states. That subset supplies no lifecycle exit code, module field
+or CREATE-event handle. It does not establish full union extents or an
+all-state initialized-byte guarantee. The ordinary exception's actual
+`rep movsl` is at `0xCE7DA`; the first-chance load is at `0xCE7DC`.
 
 The indexed resolver at RVA `0x3D2007` establishes the native bindings.
 Its ntdll descriptor at RVA `0x5A9B90` contains `0x3B` name/flag pairs
@@ -408,5 +423,8 @@ module/slot profile, fake-wrapper ABI and dual error preservation, compiled CFG
 targets, and an optional isolated own-engine protection transition. These checks
 do not establish an engine call to a wrapper, concurrent interception, raw-byte
 admission, context bypass coverage or cache restoration during observation.
-No raw decoder or interception is implemented. Retail thread policy remains
-`initial_threads_only`.
+The fixture-only raw recorder implements strict admission and owned
+installation/restoration. Its synthetic and isolated own-process checks
+establish mechanics only. Actual engine-to-wrapper invocation, stopped
+context acquisition and an accepted raw/callback/continuation chain require
+bounded fixture evidence. Retail thread policy remains `initial_threads_only`.
