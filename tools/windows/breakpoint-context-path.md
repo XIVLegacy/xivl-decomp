@@ -211,17 +211,16 @@ supplied; a fallback dispatch at `0x1E4305` uses owner slot `+0xB4`
 (`0x1C6440`). Lazy getter `0x2D8981` supplies the nested object from
 owner `+0xE98`, loading a global-backed provider's virtual slot `+0x0C`
 at `0x2D89A5` when empty. The guard call at `0x2D89B1` precedes the
-actual provider dispatch at `0x2D89B7`. These observations do not bind the
-selected nested interface or its targets to the SetThreadContext preparation
-table.
+actual provider dispatch at `0x2D89B7`. Its construction path is described
+below; it is separate from the subsequently queried buffer interface.
 
 The provider has a further static lead: the lazy getter reads global
 `0x596F84` and uses the object's `+0x0C` field. Initialization stores EBX
 to that global at `0x39787C`, following allocation, constructor call
 `0x3985EB` at `0x397844`, and initialization call `0x390804` at
-`0x397859`. The provider-field assignment, concrete nested table and
-buffer bridge are not traced here; this is a remaining offline edge,
-not proof that the provider can only be resolved at runtime.
+`0x397859`. Initializer `0x390804` calls factory `0x45C117` at
+`0x390852` with a local output pointer in ECX. Its success branch moves
+that output to the holder's `+0x0C` field at `0x390863`.
 
 Backend selection stores an array entry at owner `+0x21C` at
 `0x2D071E/0x2D09A7`. The first path decodes `0xC031` to index `0xE`
@@ -233,21 +232,85 @@ The later input-dependent initialization can replace array entries at
 conversion to either of the state tables above.
 
 These locators narrow the static edge to the actual owner/backend/inner
-objects, their selected virtual implementations, and the nested provider.
+objects, their selected virtual implementations, and the queried interfaces.
 An unrelated table's matching slot number or a constructor candidate does
 not establish the runtime object. No retained row records these identities
 or any write call. The buffer's Windows context identity and its connection
 to `0x3DF500` remain unproved.
+
+## Provider construction and queried buffer
+
+Factory `0x45C117` allocates `0x8C` bytes at `0x45C139`, calls
+constructor `0x45D285` at `0x45C15C`, initializes the object through
+`0x453DE0` at `0x45C171`, and returns it through the output pointer at
+`0x45C199` after success. Constructor store `0x45D2D2` binds provider
+table `0x5DACC`; its `+0x0C` entry is `0x453E90`, the lazy getter's
+dispatch target on this construction path.
+
+That method calls factory `0x45BF79` at `0x453EB6`. Allocation at
+`0x45BF9B` and constructor call `0x45BFBE` create a `0x58`-byte
+object. Constructor store `0x45C098` binds table `0x5E110` and clears
+its array range at `+0x14/+0x18`. Factory store `0x45BFFA` retains
+the provider in the new object's `+0x0C` field; successful transfer at
+`0x453EC8` returns the new interface through the output pointer supplied
+by the lazy getter. These stores close the previously untraced provider
+field and created-interface table on this static path.
+
+Table `0x5E110` maps `+0x10` to `0x468B10` and `+0x14` to
+`0x468AC0`. The former takes interface, service GUID, requested IID and
+output pointer as four stack arguments. It calls its own lookup slot at
+`0x468B46`, then queries the returned object for the requested IID at
+`0x468B62`. Lookup helper `0x467F13` scans the pointer array bounded by
+object `+0x14/+0x18`, compares four GUID words and requires entry
+`+0x3C == 0`. `0x468AC0` obtains the entry's interface at `+0x10`;
+without a match, it returns `E_NOINTERFACE` at `0x468AE1`.
+
+The cache path pushes IID at `0x9C390` at `0x1E41F3` and service GUID
+at `0x894B0` at `0x1E41F8`. It subsequently queries a different returned
+object for IID at `0x9C380` at `0x1E4255`, then writes through that
+interface's slot `+0x14` at `0x1E4286`. The main helper instead queries IID
+`0x9C2F0` through `0x1EC5A5` (push `0x1EC5FD`, call `0x1EC60B`) and
+writes through slot `+0x14` at `0x1E4A8F`. The supplied lengths are
+`0x440` and `0xA70`, respectively,
+with zero high length word. Neither call uses the created provider-context
+object's lookup slot as its buffer writer.
+
+One buffer implementation is statically anchored by constructor stores
+`0x27A27C/0x27A28B`: primary table `0x50D30` and interface table
+`0x50D00` at object `+0x08`. Query wrapper `0x27A8D0` passes object
+`+0x04` to `0x27A870`, which adds another four bytes for IID `0x9C380`.
+The resulting interface's `+0x14` entry is `0x393070`. That method checks
+interface-relative byte `+0xA88`, compares the caller's 64-bit length with
+the size returned through its own slot `+0x0C`, copies the returned low
+size from the caller buffer to interface `+0xA90` at `0x3930B9`, and
+sets byte `+0xA89` at `0x3930C1`. This is concrete internal staging,
+without proof that this implementation served either retained write path.
+
+For IID `0x9C2F0`, the same query helper returns primary object `+0x04`
+without the additional adjustment. Constructor store `0x27A284` binds
+table `0x50D18` there; its `+0x14` entry is `0x392F50`. This method also
+checks the supplied length against its size getter and copies the returned
+low size, but to interface `+0x1C` at `0x392F85`. Its complete body through
+`0x392F92` has no staging-flag store. This is a second static candidate,
+with no selected-service or fixture object binding.
+
+The remaining static bridge is the registry entry and requested-IID object
+selected by those service calls, its buffer implementation and later commit
+or fallback dispatch. The constructed provider table alone does not bind
+that object to the Windows context preparation table `0x5B8E0`, nor does
+the staging candidate prove its buffers have Windows `CONTEXT` layout.
+Runtime object and event/write correlation remain independently unobserved.
 
 ## Concrete missing edge
 
 To discriminate the slot-list candidate, evidence must connect one raw
 debug-object/PID/TID/generation and event to:
 
-1. The selected owner/backend/inner and nested-provider objects and the
-   buffer bridge to the prepared Windows context, before attributing a flush
-   dispatch to a native commit. The setter's state notification does not
-   close this edge, and the inspected owner family is not runtime evidence.
+1. The selected owner/backend/inner objects, service registry entry and
+   requested-IID implementations, and the buffer bridge to the prepared
+   Windows context, before attributing a flush dispatch to a native commit.
+   Provider construction and internal staging do not close this edge, and
+   the inspected owner family is not runtime evidence.
 2. The actual CPU object, register metadata, rebuilt slot vector and selected
    breakpoint pointer/ID/offset at matching and native callback entry.
 3. Every relevant context-write invocation, actual destination, handle identity,
