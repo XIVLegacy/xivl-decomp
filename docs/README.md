@@ -18,6 +18,7 @@ The public documentation covers findings and technical guides for `xivl-decomp`.
 - [Indexed float storage and clamp](actor/indexed-float-clamp.md)
 - [Camera context registration and selection](actor/camera-context-selection.md)
 - [CameraActor transform input path](actor/camera-transform-inputs.md)
+- [Key-2 camera endpoint calculation](actor/camera-endpoint-calculation.md)
 - [CharaActor camera object inputs](actor/camera-object-inputs.md)
 - [RaptureModelObject camera input getters](actor/rapture-camera-inputs.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)

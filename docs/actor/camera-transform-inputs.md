@@ -7,6 +7,8 @@ boundaries are listed below.
 
 The [CharaActor object input wrappers](camera-object-inputs.md) trace the
 three indirect object methods and their conditional receiver fields.
+The [key-2 endpoint calculation](camera-endpoint-calculation.md) follows
+its arithmetic and guarded query updates.
 
 ## Evidence identity
 
