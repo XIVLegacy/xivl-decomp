@@ -6,6 +6,9 @@ the bytes copied into the caller output and the immediate receiver-pointer
 fields. The concrete object behind that pointer remains a runtime dispatch
 edge.
 
+The [RaptureModelObject getters](rapture-camera-inputs.md) establish direct
+copy-source ranges for the table at `0x010653A4`.
+
 ## Evidence identity
 
 - Binary: `orig/ffxivgame.exe`, image base `0x00400000`, 15,996,808 bytes,
@@ -20,19 +23,19 @@ edge.
 All three methods are 32-bit `__thiscall` methods. `ECX` is the CharaActor
 receiver, `[ebp+8]` is a caller output pointer, and `ret 4` removes that one
 stack argument. Each method first loads the four-byte pointer at
-`CharaActor+0x0C`, dispatches one Actor vtable slot, then copies one 16-byte
-SSE value from the delegated `EAX` pointer to the caller output at offset
+`CharaActor+0x0C`, dispatches a slot on that receiver's vtable, then copies
+one 16-byte SSE value from the delegated `EAX` pointer to the caller output at offset
 `0x00`.
 
 The two `MOVAPS` instructions in each wrapper prove a 16-byte copy width.
 The caller output is a call-site buffer, so this width is static copy evidence;
 no uninvoked caller output is claimed observed or remotely readable.
 
-| CharaActor entry | slot | method VA | Actor byte offset | copy | key instruction VAs |
+| CharaActor entry | slot | method VA | receiver byte offset | copy | key instruction VAs |
 | --- | ---: | ---: | ---: | --- | --- |
-| `+0x88` | 34 | `0x00A5F8A0` | `+0x44` (slot 17) | `[EAX+0x00..0x0F]` to `[out+0x00..0x0F]` | load `0x00A5F8A6`, dispatch `0x00A5F8AB`, copy `0x00A5F8B0/0x00A5F8B6`, return `0x00A5F8BC` |
-| `+0x94` | 37 | `0x00A5F8E0` | `+0x50` (slot 20) | `[EAX+0x00..0x0F]` to `[out+0x00..0x0F]` | load `0x00A5F8E6`, dispatch `0x00A5F8EB`, copy `0x00A5F8F0/0x00A5F8F6`, return `0x00A5F8FC` |
-| `+0x9C` | 39 | `0x00A5F910` | `+0x58` (slot 22) | `[EAX+0x00..0x0F]` to `[out+0x00..0x0F]` | load `0x00A5F916`, dispatch `0x00A5F91B`, copy `0x00A5F920/0x00A5F926`, return `0x00A5F92C` |
+| `+0x88` | 34 | `0x00A5F8A0` | `+0x44` (slot 17) | `[EAX+0x00..0x0F]` to `[out+0x00..0x0F]` | pointer load `0x00A5F8A6`, slot load `0x00A5F8AB`, call `0x00A5F8AE`, copy `0x00A5F8B0/0x00A5F8B6`, return `0x00A5F8BC` |
+| `+0x94` | 37 | `0x00A5F8E0` | `+0x50` (slot 20) | `[EAX+0x00..0x0F]` to `[out+0x00..0x0F]` | pointer load `0x00A5F8E6`, slot load `0x00A5F8EB`, call `0x00A5F8EE`, copy `0x00A5F8F0/0x00A5F8F6`, return `0x00A5F8FC` |
+| `+0x9C` | 39 | `0x00A5F910` | `+0x58` (slot 22) | `[EAX+0x00..0x0F]` to `[out+0x00..0x0F]` | pointer load `0x00A5F916`, slot load `0x00A5F91B`, call `0x00A5F91E`, copy `0x00A5F920/0x00A5F926`, return `0x00A5F92C` |
 
 The catalog maps the entries to the CharaActor vtable at `0x00FC0D34`
 (`0x00BC0D34` RVA). The image contains the same words at `+0x88`, `+0x94`,
@@ -40,7 +43,7 @@ and `+0x9C`: `0x00A5F8A0`, `0x00A5F8E0`, and `0x00A5F910` respectively.
 
 ## Immediate helper boundary
 
-The Actor vtable is at `0x0109CA94` (`0x00C9CA94` RVA), catalog class
+The conditional Actor table is at `0x0109CA94` (`0x00C9CA94` RVA), catalog class
 `SQEX::CDev::Engine::Fw::SceneObject::Actor`. Its exact words for the three
 calls are `0x00A5F5E0` at byte `+0x44`, `0x00A5F730` at `+0x50`, and
 `0x00A5F970` at `+0x58`.
