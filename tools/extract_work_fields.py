@@ -89,7 +89,7 @@ CALL_RE = re.compile(r"^\s*(?:L\d+_\d+\s*=\s*)?(L\d+_\d+)\s*\(")
 
 def looks_like_method_name(name: str) -> bool:
     """Heuristic: identifiers starting with `_` are usually methods,
-    not fields. This isn't bullet-proof - some engine fields legitimately
+    not fields. Some engine fields also
     start with `_` (e.g., `_temp`, `_sync`, `_tag` are work-table
     sub-fields per `docs/event/director-quest-framework.md`) - so we only flag
     names that look like verb-prefixed methods.
@@ -226,7 +226,6 @@ def main() -> int:
         return 1
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Aggregate
     global_fields: dict[str, Counter] = defaultdict(Counter)
     global_ambiguous: dict[str, Counter] = defaultdict(Counter)
     files_per_field: dict[str, dict[str, set]] = defaultdict(lambda: defaultdict(set))
@@ -248,7 +247,6 @@ def main() -> int:
                 for method, count in methods.items():
                     global_ambiguous[table][method] += count
 
-    # JSON output
     out_json = args.out_dir / "work_field_inventory.json"
     out_data = {
         "summary": {
@@ -279,7 +277,6 @@ def main() -> int:
     }
     out_json.write_text(json.dumps(out_data, indent=2))
 
-    # Markdown
     out_md = args.out_dir / "work_field_inventory.md"
     with out_md.open("w") as f:
         f.write("# Work-table state-field inventory\n\n")

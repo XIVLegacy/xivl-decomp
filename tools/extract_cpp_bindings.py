@@ -126,7 +126,6 @@ def main() -> int:
         return 1
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Walk all *_p.luac files
     p_files: list[Path] = []
     for root, _, files in os.walk(args.lpb_dir):
         for f in files:
@@ -134,7 +133,6 @@ def main() -> int:
                 p_files.append(Path(root) / f)
     print(f"Scanning {len(p_files)} *_p.luac files ...", file=sys.stderr)
 
-    # Per-class method inventory
     bindings: dict[str, list[str]] = {}
 
     for path in sorted(p_files):
@@ -143,12 +141,10 @@ def main() -> int:
         if methods:
             bindings[cls] = methods
 
-    # Sort for deterministic output
     bindings = {k: bindings[k] for k in sorted(bindings.keys())}
     total_methods = sum(len(v) for v in bindings.values())
     distinct_methods = len({m for v in bindings.values() for m in v})
 
-    # Emit JSON
     json_path = args.out_dir / "cpp_bindings.json"
     json_path.write_text(
         json.dumps(
@@ -165,7 +161,6 @@ def main() -> int:
         )
     )
 
-    # Emit Markdown
     md_path = args.out_dir / "cpp_bindings.md"
     with md_path.open("w") as f:
         f.write("# Engine-bound (C++) Lua API - corpus inventory\n\n")
@@ -185,7 +180,6 @@ def main() -> int:
         f.write(f"- **Total method declarations**: {total_methods}\n")
         f.write(f"- **Distinct method names**: {distinct_methods}\n\n")
 
-        # Top-N classes by method count
         top = sorted(bindings.items(), key=lambda x: -len(x[1]))
         f.write("## Top 30 classes by C++-bound method count\n\n")
         f.write("| Class | Methods |\n|---|---:|\n")
@@ -193,7 +187,6 @@ def main() -> int:
             f.write(f"| `{cls}` | {len(methods)} |\n")
         f.write("\n")
 
-        # Most-frequent method names (occur across many classes)
         method_class_count: dict[str, set[str]] = defaultdict(set)
         for cls, methods in bindings.items():
             for m in methods:
@@ -208,7 +201,6 @@ def main() -> int:
             f.write(f"| `{method}` | {len(method_class_count[method])} |\n")
         f.write("\n")
 
-        # Per-class detailed listing
         f.write("## Per-class C++ binding inventory\n\n")
         for cls, methods in bindings.items():
             f.write(f"### `{cls}` ({len(methods)} methods)\n\n")

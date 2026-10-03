@@ -4,10 +4,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """
 Emit a C++ header that declares the GAM CompileTimeParameter registry
-as a `constexpr` table - one struct per Data class plus a per-class
-const array of `(id, type_kind, byte_size)` tuples. This is the
-source-of-truth schema that future code (Rust <-> C++ FFI, validation
-tools, etc.) can include.
+as a `constexpr` table: one struct per Data class and a per-class
+const array of `(id, type_kind, byte_size)` tuples.
 
 Reads:
   config/<binary>.gam_params.json  (from extract_gam_params.py)

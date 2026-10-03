@@ -102,7 +102,7 @@ def _find_fn(rva: int, syms: list[dict]) -> str | None:
 def find_ctor_sites(data: bytes, text_sec: dict) -> dict[str, list[dict]]:
     """For each CPB vtable VA, find places that store it into an object's
     first slot - those are constructor invocations of the CPB class
-    hierarchy. We don't decode WHICH constructor, just locate them."""
+    hierarchy. This scan locates stores without identifying the constructor."""
     text_off = text_sec["raw_pointer"]
     text_size = text_sec["raw_size"]
     text_va_start = text_sec["virtual_address"]

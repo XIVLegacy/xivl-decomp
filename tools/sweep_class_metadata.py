@@ -260,7 +260,7 @@ def main() -> int:
             f"error: missing dynamic-cast sweep output: {sweep_path}", file=sys.stderr
         )
         return 1
-    # Load PE + dynamic_cast sweep output
+
     print("Loading PE sections...", file=sys.stderr)
     sects = load_pe_sections(BIN)
     with open(BIN, "rb") as f:
@@ -273,12 +273,10 @@ def main() -> int:
     rtti_map = sweep["rtti_addresses"]  # demangled_name -> rtti abs_addr
     print(f"Loaded {len(rtti_map)} RTTI addresses", file=sys.stderr)
 
-    # Build asm function index
     print("Building asm function index...", file=sys.stderr)
     asm_index = build_asm_function_index()
     print(f"Indexed {len(asm_index)} asm functions", file=sys.stderr)
 
-    # For each RTTI, find COLs, vtables, ctors, dtors
     print("Walking classes...", file=sys.stderr)
     results = {}
     for i, (cls_name, rtti_abs) in enumerate(sorted(rtti_map.items())):
@@ -325,13 +323,11 @@ def main() -> int:
             "uncategorized_sites": all_uncat,
         }
 
-    # Output
     out_json = os.path.join(REPO, "build", "class_metadata.json")
     with open(out_json, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\nWrote {out_json}", file=sys.stderr)
 
-    # Print summary
     print("\n## Class-metadata sweep summary\n")
     print(f"- Total classes processed: {len(results)}")
     n_with_vtable = sum(1 for v in results.values() if v["vtable_count"] > 0)

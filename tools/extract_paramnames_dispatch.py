@@ -312,11 +312,9 @@ def main() -> int:
                 f"GAM-id pairing TBD - see slot 2 translator)"
             )
 
-    # JSON dump (machine-readable).
     out_json = CONFIG / f"{stem}.paramnames_resolved.json"
     out_json.write_text(json.dumps(all_rows, indent=2))
 
-    # Markdown report.
     WIRE.mkdir(parents=True, exist_ok=True)
     out_md = WIRE / f"{stem}.paramnames.md"
     by_ns_id: dict[str, list[dict]] = {}

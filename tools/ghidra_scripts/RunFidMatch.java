@@ -8,12 +8,10 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Force the Ghidra "Function ID" analyzer to run against an already-analyzed
-// program, so a freshly-attached FidDb actually matches. A plain
-// `-process` won't re-run an analyzer that already ran during import (when no
-// FidDb was attached -> 0 matches). We temporarily disable every other
-// analyzer, run analyzeAll() (only FID fires), then restore the originals so
-// the project's analysis options aren't left corrupted.
+// Rerun Ghidra's Function ID analyzer after attaching a FidDb. A plain
+// `-process` does not rerun an analyzer that completed during import.
+// Temporarily disable other analyzers, run analyzeAll(), then restore the
+// original analysis options.
 //
 // Run headless after AttachFidDatabase.java (which attaches the FidDb):
 //   analyzeHeadless ... -preScript AttachFidDatabase.java \

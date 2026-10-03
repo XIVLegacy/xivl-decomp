@@ -8,10 +8,9 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Emit ONLY config/<binary>.symbols.json (RVA -> name + size + section) for
-// currentProgram. A symbols-only variant of DumpFunctions.java that does NOT
-// write the per-function asm/<binary>/*.s files - used after a Function ID
-// pass to refresh just the symbol names, and to side-step a broken asm/ dir.
+// Emit config/<binary>.symbols.json (RVA -> name + size + section) for
+// currentProgram without writing per-function asm/<binary>/*.s files.
+// Use after a Function ID pass to refresh symbol names independently of asm/.
 // Output format is byte-for-byte the same as DumpFunctions' symbols.json.
 //
 // Needs XIVL_DECOMP_ROOT in the environment (the launcher sets it).

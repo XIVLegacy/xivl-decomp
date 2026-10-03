@@ -9,8 +9,7 @@ Two wrapper formats observed across the ~2671 shipped script files in
 `<install>/client/script/`:
 
   rlu\\x0b  - uncompressed: 8-byte header + raw Lua 5.1 bytecode.
-              Only 1 file out of 2671 uses this variant (some sort of
-              edge-case test fixture or unencoded build leftover).
+              Only 1 file out of 2671 uses this variant.
 
   rle\\x0c  - XOR-obfuscated: 16-byte header + payload XOR'd with 0x73.
               The first 3 bytes of the Lua 5.1 signature (`\\x1bLu`) are
@@ -145,7 +144,6 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
 
     if args.source_name:
-        # Single-file mode
         path = find_lpb(args.install_root, args.source_name)
         if path is None:
             enc = encode_filename(args.source_name)
@@ -167,7 +165,6 @@ def main() -> int:
             print("  PASS valid Lua 5.1 bytecode (run unluac to decompile)")
         return 0
 
-    # Bulk mode
     script_dir = args.install_root / "client" / "script"
     if not script_dir.is_dir():
         print(f"error: missing shipped script directory: {script_dir}", file=sys.stderr)

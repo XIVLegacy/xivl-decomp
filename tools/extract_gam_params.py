@@ -16,9 +16,7 @@ and an "assignment decorator" (almost always `DecoratorSimpleAssign<T>`).
 
 The `PARAMNAME_<id>` symbols are NOT separate strings - they're
 type-template placeholders. The actual semantic interpretation
-(which id == health, which == XP, etc.) lives on the server side
-The binary enforces the
-type discipline.
+(which id == health, which == XP, etc.) is not established by these type names. The binary enforces their types.
 
 Output:
   config/<binary>.gam_params.json   - list of {id, ns, type, decorator, raw}
@@ -79,8 +77,7 @@ def decode_int_literal(token: str) -> int | None:
 
     Empirical confirmation (via VS 2005 `undname.exe`):
         `$03@` -> `Array<int, 4>`        (3+1 = 4)
-        `$0BA@` -> `Array<int, 16>`      (0xB*16 + 0xA*0 = wait,
-                                         actually B=1, A=0 -> 0x10=16)
+        `$0BA@` -> `Array<int, 16>`      (B=1, A=0 -> 0x10=16)
         `$0HM@` -> `...<int, 124, ...>`     (no bias for multi-char)
     """
     m = re.match(r"^\$0([0-9A-Pa-p@]+)@$", token)
@@ -254,10 +251,8 @@ def main() -> int:
 
     rows.sort(key=lambda r: (r["ns"], r["id"]))
 
-    # JSON.
     out_json.write_text(json.dumps(rows, indent=2))
 
-    # CSV.
     with out_csv.open("w", newline="") as f:
         wr = csv.DictWriter(
             f,
@@ -268,7 +263,6 @@ def main() -> int:
             row = {k: r[k] for k in wr.fieldnames}
             wr.writerow(row)
 
-    # Markdown report grouped by namespace.
     by_ns: dict[str, list[dict]] = defaultdict(list)
     for r in rows:
         by_ns[r["ns"]].append(r)

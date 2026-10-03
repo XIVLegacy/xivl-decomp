@@ -58,8 +58,7 @@ ANTI_PATTERNS = re.compile(
 
 
 def short_class_name(cls: str) -> str:
-    """For grouping: drop template params and the leading namespace
-    fluff to get a stable bucket key."""
+    """Return a grouping key with template argument text replaced by <...>."""
     cls = re.sub(r"<[^>]*>", "<...>", cls)
     return cls
 
