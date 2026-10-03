@@ -15,3 +15,11 @@ add_executable(trace_map_selection trace_map_selection.cpp)
 target_link_libraries(trace_map_selection PRIVATE bcrypt)
 add_executable(map_selection_fixture map_selection_fixture.cpp)
 target_link_options(map_selection_fixture PRIVATE /OPT:NOICF)
+
+add_executable(recorder_preflight recorder_preflight.cpp)
+set_target_properties(recorder_preflight PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_definitions(recorder_preflight PRIVATE _WIN32_WINNT=0x0A00)
+target_compile_options(recorder_preflight PRIVATE /guard:cf /sdl)
+target_link_options(recorder_preflight PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
+                    "/MAP:${CMAKE_CURRENT_BINARY_DIR}/recorder_preflight.map")
+target_link_libraries(recorder_preflight PRIVATE bcrypt)

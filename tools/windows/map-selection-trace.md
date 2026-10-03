@@ -403,7 +403,10 @@ Windows event/lifetime join.
 The identity fields and documented acquisition route are statically supported;
 an implemented recorder's successful acquisition, stopped-thread read and
 raw lifecycle correlation before engine consumption remain unobserved.
-All-state raw-byte validity, interception timing, callable-target validity,
-cache restoration lifetime and WOW64/native context bypass coverage remain
-unproved. No raw decoder or interception is implemented. Retail thread policy
-remains `initial_threads_only`.
+The [recorder preflight](recorder-preflight.md) checks the pinned loaded
+module/slot profile, fake-wrapper ABI and dual error preservation, compiled CFG
+targets, and an optional isolated own-engine protection transition. These checks
+do not establish an engine call to a wrapper, concurrent interception, raw-byte
+admission, context bypass coverage or cache restoration during observation.
+No raw decoder or interception is implemented. Retail thread policy remains
+`initial_threads_only`.
