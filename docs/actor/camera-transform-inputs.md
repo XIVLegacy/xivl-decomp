@@ -5,6 +5,9 @@ context endpoint fields through `0x0060E4C0`, and builds transform fields
 through `0x00617A80` and `0x0061D050`. The traced sources and unresolved
 boundaries are listed below.
 
+The [CharaActor object input wrappers](camera-object-inputs.md) trace the
+three indirect object methods and their conditional receiver fields.
+
 ## Evidence identity
 
 - Binary: `orig/ffxivgame.exe`, image base `0x00400000`, 15,996,808 bytes,
