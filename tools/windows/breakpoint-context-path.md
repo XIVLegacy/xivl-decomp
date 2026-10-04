@@ -579,6 +579,62 @@ registered implementation enters the path and a possible intervening flush.
 No retained mismatch row records the registry/interface identities or proves
 that a service change, flush or native write occurred during that event.
 
+## Observer creation and service-manager initialization
+
+The observer source at revision
+`28bf2cd1c4eec3fffce99142e2aaa36ffc1e873b`,
+[trace_map_selection.cpp](trace_map_selection.cpp), `wmain`, requests
+`IDebugClient` from `DebugCreate`, retains debugger interfaces, sets callbacks
+and calls `AttachProcess` with server zero and `DEBUG_ATTACH_DEFAULT`.
+The source contains no translation-service registration. This describes its
+API inputs; it does not reconstruct the engine's runtime registry.
+
+In the pinned engine, exported `DebugCreate` (`0x1AFBB0`) forwards to
+`DebugCreateEx` at `0x1AFBC1`. That path calls global initialization
+`0x1AF0DD` at `0x1AFAE0`. Its successful first-initialization path calls
+`0x1AEBCF` at `0x1AF5C9`, then factory `0x397803` at `0x1AEBE7`.
+The factory calls `0x390804` at `0x397859` and publishes the resulting
+holder in global `0x596F84` at `0x39787C`. Holder initialization creates
+the provider at `+0x0C` through `0x45C117`, as bound above.
+Initialization guards and failures remain part of this path.
+
+Client construction `0x1A6176` installs primary table `0x4BB5C` and
+secondary table `0x4B9CC` at object `+0x04` at `0x1A6193`.
+Primary query `0x1A64A0` compares IID `0x894D0`, matching SDK
+`IID_IDebugClient` (header lines 69..70), and returns object `+0x04`
+at `0x1A65C3`. This secondary table's `+0x30` is `AttachProcess`,
+`0x1A8000`. The SDK declaration (2033..2134) agrees with that slot
+and the five-dword x86 stack: interface, server low/high, PID and flags.
+The method calls owner resolution/construction `0x1B0168` at `0x1A8050`.
+That helper can reuse an existing owner. Its new native-owner branch calls
+`0x2DDB03` at `0x1B02A1`, then owner `+0x24` at `0x1B02D7`.
+For table `0x53648`, this slot is `0x2DDC40`, which jumps to
+`0x2D49B0` and calls lazy manager getter `0x2D8981`.
+Server zero alone does not prove that the new-owner branch was selected.
+
+Getter `0x2D8981` uses owner field `+0xE98`. When empty, it obtains
+global holder `0x596F84`'s `+0x0C` provider and calls provider `+0x0C`
+at `0x2D89B7`, with that owner field as the output. The bound getter
+`0x453E90` calls manager factory `0x45BF79`; this allocates `0x58`
+bytes and calls constructor `0x45C04E` at `0x45BFBE`.
+The constructor installs table `0x5E110`, clears registry vector
+`+0x14/+0x18/+0x1C`, and the factory retains the supplied provider
+at manager `+0x0C` at `0x45BFFA`. This is a provider reference,
+not evidence of inherited translation-service selection.
+
+Owner-local setup `0x2D4FD0` obtains that manager, creates the previously
+bound service layer through `0x2A7E6E` at `0x2D5001`, and calls its
+`RegisterServices` slot at `0x2D5020`. Its two GUID registrations are
+identified above. Manager `InitializeServices` is a separate method,
+table `+0x0C = 0x4686E0`; its guarded path sets manager `+0x10` to
+1 at `0x468700`, calls worker `0x469F08` at `0x468710`, and sets it
+to 2 at `0x46873A` after the worker's nonnegative result.
+Creating a manager, registering a layer and initializing services are
+distinct operations. These bounded paths do not identify the translation
+service's registration, concrete setter, or the mismatch event's selected
+owner. The remaining binding requires the actual manager record and
+IID-query output; its values cannot be recovered from the retained rows.
+
 ## Concrete missing edge
 
 To discriminate the slot-list candidate, evidence must connect one raw
