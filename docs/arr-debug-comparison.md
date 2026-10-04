@@ -731,9 +731,127 @@ libraries or socket I/O.
 
 Confidence is high in the retail EAK serializer identity and the visible
 correspondence for valid, stable raw sources and nonempty vectors. The
-diagnostic difference, wrapped length, trailing gaps and untraced list producer
+diagnostic difference, wrapped length, trailing gaps and unproved upstream queue bound
 bound complete functional and wire claims. ARR field names do not independently
 assign retail list-byte meanings or game opcodes.
+
+## EAK list production and narrowing
+
+Retail `0x00D465F0` corresponds to the normal list-producing path in ARR
+`RUDPImpl::sendExtendedAck()`, direct code VA `0xE387D4`, size `0x2A4`
+and 169 PPC instructions. ARR body DIE `0x6863509` references declaration
+`0x68621E9` in CU `0x683F4F5`. The declaration has no return type and
+only an artificial this parameter: const pointer DIE `0x686A0ED` to
+pointer `0x686717F`, then mutable RUDPImpl `0x6861919`. The ELF
+`STT_FUNC` entry places this body directly in `.text`; no descriptor is
+treated as its code. The CU's address size is four, and the relevant loads,
+stores and pointer arithmetic use four-byte values despite the ELF64 container.
+
+The authenticated read-only Ghidra export records 355 retail body bytes and
+113 instructions. Their addresses agree with direct PE/Capstone decoding.
+The fully decoded extent `0x00D465F0..0x00D4675B` has 364 bytes and
+115 instructions. Outside the Ghidra body are a six-byte alignment instruction
+at `0x00D4666A` and a three-byte `add esp, 4` at `0x00D46745`, after
+the call Ghidra renders as non-returning `_free`. The latter is caller
+cleanup, not padding; the analyzed function body alone is not full coverage
+of the raw extent.
+Retail takes this in ECX, with a plain `ret` and no explicit stack arguments.
+The export records five caller functions; the verified reference query
+records seven direct call sites at `0x00D46ABF`, `0x00D47041`,
+`0x00D4720D`, `0x00D473E4`, `0x00D4750A`, `0x00D47614` and
+`0x00D4773B`. This is the analyzed database's reference set, not all possible
+computed or runtime callers.
+
+| Inspected state | Retail object offset | ARR offset / declaration |
+|---|---|---|
+| List storage | `+0x1C4` | `+0x1BC`, `m_OutSequenceRecvQueue`, member DIE `0x6861B36` |
+| Sentinel / stored count | `+0x1C8 / +0x1CC` | `+0x1C0 / +0x1C4` |
+| Source for the constructor's two header bytes | `+0xCC` | `+0xC4`, `m_Counters.m_LastInSequence` |
+| Two counters cleared on the nonzero-count path | `+0xD0 / +0xD4` | `+0xC8 / +0xCC`, `m_CumAckCounter / m_OutSequenceCounter` |
+
+ARR's `SegmentQueue` typedef DIE `0x68619B1` resolves to a twelve-byte
+`List` at `0x68502B3`. RUDPCounters DIE `0x6860C26` declares five
+four-byte signed ints in `0x14` bytes; the three named members above are
+DIEs `0x6860C4C / 0x6860C5F / 0x6860C72` at `+4/+8/+0x0C`.
+Retail offsets are independently read from its producer. Its RTTI-owned
+RUDPImpl constructor `0x00D45510` additionally selects storage `+0x1C4`
+at `0x00D45714`, calls sentinel helper `0x00D51550` at `0x00D45721`,
+stores the returned pointer at storage `+4`, and clears storage `+8`.
+These are local access and initialization facts, not a complete retail layout.
+
+Both producers return when the stored count is zero. Otherwise they clear
+the two counters and allocate a byte buffer from that count. Retail calls
+vector construction helper `0x005D1070`, 142 bytes and 53 instructions, at
+`0x00D4664B`. The helper sets first/end/capacity at vector `+4/+8/+0x0C`,
+calls allocator `0x00403C60` with the full count, and fills through leaf
+`0x006D1920`, 46 bytes and 21 instructions. The leaf writes the supplied
+zero byte once per count and returns first plus count. ARR inlines the
+buffer construction, calls allocator `0x33630` at `0xE388F8`, and zeroes
+the same count in `0xE38918..0xE38934`. Each contains an unsigned count
+comparison against `0xFFFFFFFF`; the greater-than branch cannot be taken
+by a four-byte unsigned value. Neither supplies a 249-byte cap. Allocators
+and allocation-failure behavior are not equated.
+
+Both traverse from sentinel next until sentinel, follow node next at
+`+0`, read each segment pointer from node `+8`, and copy its byte `+6`
+to successive buffer bytes. Retail's byte read/write are
+`0x00D466C7 / 0x00D466CA`; ARR's are `0xE38958 / 0xE3895C`.
+The producer bodies do not sort, deduplicate, remove nodes or change the
+stored queue count. Under a stable valid list with matching count, the buffer
+therefore preserves every node's byte in list order.
+
+Retail obtains end minus first, pushes it at `0x00D4670D` and calls
+EAK constructor `0x00D52040` at `0x00D46715`. The constructor consumes
+its low byte. ARR computes the same extent, explicitly narrows it at
+`0xE389C4`, and calls constructor `0xE37910` at `0xE389D4`.
+Both select raw storage with the final boolean zero. The constructor's
+acknowledgment byte is the low byte of the stored counter; its sequence
+byte is the low byte of signed remainder
+`signed32(counter + 1) % 255`, with truncation toward zero. Retail uses
+`idiv` at `0x00D46709`; ARR uses signed high multiply constant
+`0x80808081`, shifts and subtraction in `0xE38978..0xE389B4`.
+No meaning for the modulus or reserved sequence values is assigned here.
+They then pass the temporary segment to the already compared outbound
+method: retail `0x00D44FD0` at `0x00D46728`, ARR `0xE385EC` at
+`0xE389E0`. Normal cleanup follows; exception and ownership behavior are
+outside the compared path.
+
+Retail calls diagnostic `0x009D22B4` for list ownership/sentinel and buffer
+bounds failures at `0x00D4668B / 0x00D4669A / 0x00D466A4 /
+0x00D466BE / 0x00D466D5`, and for a null or empty resulting buffer at
+`0x00D466FB`. ARR has no corresponding diagnostic calls in this body.
+Its list-copy loop has no bound check against the allocated count.
+As in the serializer comparison, diagnostic effects and returns remain
+unproved; mismatched, null, changing or malformed storage is not equated.
+
+The local producer bound is now explicit. For a valid stable queue count
+`N > 0`, matching list cardinality and successful allocation, constructor
+length is `N & 0xFF`. Counts 250..255 therefore reach the constructor with
+those lengths, retaining raw copy count 250..255 and wrapped header length
+0..5. Counts 256 and 512 instead yield constructor length zero, despite
+building buffers of those full sizes. This is conditional reachability through
+the producer, not proof that upstream receive paths can form those queues or
+that an undersized output allocation occurs at runtime. No upstream capacity
+or list-cardinality invariant has been established.
+
+Confidence is high in the normal producer correspondence, supported by
+list traversal, byte source, buffer extent, counter ordering, constructor
+arguments and outbound calls. Retail diagnostics and unproved upstream bounds
+prevent complete functional or wire equivalence. The retail function identity
+is promoted; helper, constructor, allocator, queue layout and game opcodes are
+not promoted by this comparison.
+
+Raw instruction interpretation made 67,024 comparisons: 1,026 stable-list
+cases for counts 0..512 and two byte patterns, 442 producer cases combining
+boundary counts and signed counter values, seven count/cardinality mismatch
+cases, and 65,549 separate sequence-arithmetic cases covering 0..65535 and
+signed boundaries. Stable normal paths agreed on counters, byte order and
+constructor arguments. Mismatch cases stopped retail at diagnostics when
+node count exceeded storage count, while ARR crossed the modeled allocation
+extent. Normal successful allocation/vector storage was modeled from the
+inspected helper and fill leaf; no allocator, constructor, outbound method,
+diagnostic callback, client or socket was executed. These cases do not prove
+an upstream queue invariant or complete signed-counter domain equivalence.
 
 ## Utf8String layout contradiction
 
@@ -778,8 +896,9 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is the EAK list producer at retail `0x00D465F0`
-against ARR `RUDPImpl::sendExtendedAck` at `0xE387D4`. The retail constructor
-export records the former as a direct caller, and ARR calls its EAK constructor
-from the latter. Compare list assembly and length bounds to establish whether
-the serializer's 250..255 constructor states are reachable.
+The next bounded target is DAT receive handling at retail `0x00D468F0`
+against ARR `RUDPImpl::onReceivedSegment(DATSegment const&)` at
+`0xE3D464`. The receive dispatcher selects both, and retail's verified
+reference set records its EAK-producer call at `0x00D46ABF`. Compare
+out-of-sequence admission, duplicate rejection, count changes and configured
+limits to establish an upstream bound for EAK list production.
