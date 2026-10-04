@@ -26,10 +26,10 @@ parents, CU-relative references, specifications, member-location expressions,
 and formal parameters. All DWARF offsets below are section-relative offsets
 in `.debug_info`, not ELF file offsets. Member expressions use
 `DW_OP_plus_uconst`; referenced typedefs were followed to their base types.
-The three selected compilation units have address size 4. ARR pointer loads,
+The selected compilation units have address size 4. ARR pointer loads,
 stores and vtable entries are four bytes in the inspected code; ELF64 alone
-does not determine those widths. The selected string and segment
-bodies inspected here decoded completely within their symbol sizes.
+does not determine those widths. The selected ARR bodies inspected here decoded completely within their
+symbol sizes.
 
 Retail decompilation and caller lists used Ghidra 12.1.3 and the read-only
 `xivl-client-structs:ghidra/DumpVAs.java` exporter. The analyzed program was
@@ -981,6 +981,101 @@ is unresolved. Only the retail function identity is promoted. Full layouts,
 helper identities, packet meanings, opcodes, global queue invariants and
 complete functional equivalence are not promoted.
 
+## ZoneClient outbound packet forwarding
+
+ARR `Application::Network::ZoneClient::RaptureChannelManager::pushSendPacket`
+at VA `0x1057680` and retail `0x00DAE010` demonstrate a partial normal-flow
+correspondence. Retail is the existing `BCS-Y-0304`,
+`ZoneOutbound_GenericForwarder_FUN_00DAE010`, in
+`xivl-client-structs:manifests/symbols.json`. State decisions, builder selection,
+payload-copy arguments and the special-path state update agree after accounting
+for different member offsets and special input values. Their signatures and
+some operations differ; this is not complete functional equivalence.
+
+The ARR body is `0x340` bytes, 208 PPC instructions, with body/declaration
+DIEs `0x72EA573 / 0x72EA1D3` in CU `0x72B65A0`,
+`server/Application/Rapture/source/Network/ZoneClient/RaptureChannelManager.cpp`
+beneath the embedded source prefix given above. Its declared return is bool,
+one-byte base-type DIE `0x72B663D`. Besides the artificial this parameter,
+it takes `Up_Packet const&`, `NetBufferReplaceParam const&` and bool; formal
+DIEs are `0x72EA1F2 / 0x72EA1F7 / 0x72EA1FC`. The artificial this type is a
+const pointer to the mutable manager, not a pointer to a const manager.
+The body symbol is directly in `.text`; it is not an `.opd` descriptor.
+Virtual calls load the code and TOC words at descriptor `+0/+4`.
+
+| ARR declaration | DIE | Independently recovered declaration |
+|---|---|---|
+| RaptureChannelManager | `0x72EA0BE` | Size `0xB0`; public ChannelManagerOnSingleConnectionTmpl base at zero, inheritance `0x72EA0D1`; currentStatus_ enum at `+0xA8`, packetOptionParam_ uint16_t at `+0xAC` |
+| ChannelManagerOnSingleConnectionTmpl | `0x72C856A` | Size `0xA8`; ChannelManagerTmpl_LF base at zero, inheritance `0x72C858F`; mySelf_ at `+0xA4`, member `0x72C8599` |
+| Up_Packet | `0x72D0B2A` | Size `0xC20`; protoNo at zero, baseSize at `+4`, packet at `+8`; members `0x72D0B3D / 0x72D0B50 / 0x72D0B63` |
+| NetBufferReplaceParam | `0x72C5A64` | Size 8; uint32_t keyValue/grpValue at `+0/+4`, members `0x72C5A77 / 0x72C5A8A` |
+| ClientPacketBuilder | `0x72E5E7B` | Size `0x38`; ZoneProtoUpPacketBuilder base at zero, packetAssignParam_ at `+0x20`, uint16_t optionParam_ at `+0x34` |
+
+Retail identity is independent of ARR spelling: vtable VA `0x01129094`
+has 25 slots and its complete-object locator `0x011A2570` points to type
+descriptor `0x0131BD10`, naming
+`.?AVRaptureChannelManager@ZoneClient@Network@Application@@`.
+Constructor `0x00DAE5E0` stores that vtable at `0x00DAE625`, initializes
+the lookup key dword `+0x88`, state dword `+0x8C` and byte `+0x90` to zero.
+Its slot-zero deleting destructor `0x00DB1C00` calls `0x00DADF80`, which
+also stores the same vtable. The forwarding function is not among those
+25 virtual slots. Its complete extent is 451 bytes and 142 instructions,
+ending with `ret 8`: this is ECX plus two explicit stack arguments, the
+source record pointer and replacement parameter pointer. It returns a
+boolean result in AL; the decompiler's wider return type is not an original
+declaration. No complete retail manager or builder size is established here.
+
+| Normal operation | Retail raw-code evidence | ARR raw-code evidence |
+|---|---|---|
+| State and special-value gate | Signed state `+0x8C`; states 1 and 2 require source dword zero-offset value 2; state 3 permits any value; other states reject, `0x00DAE038..0x00DAE10C` | Signed state `+0xA8`; states 1 and 2 require value `0x66`; state 3 permits any value; other states reject, `0x10576A0..0x1057854` |
+| Resolve target | `0x004E4C10` requires key `+0x88 != 0`, invokes `0x004E4B40`, then `0x004E4BA0` with that key; null target rejects | Requires key `+0xA4 != 0`, calls findPrimaryEntity `0x154FEB8`, then findTargetEntity `0x154FFC4`; either null result rejects |
+| Select builder | Special constructor `0x00DC1CF0` receives value, size and literal zero; general `0x00DC1C60` also receives the second caller argument | Special constructor `0x105CF24` receives value, size and literal zero; general `0x105CFA8` also receives the replacement reference |
+| Supply option | The forwarding body does not copy manager byte `+0x90` into either builder | Reads manager uint16_t `+0xAC` into builder `+0x34`, at `0x1057728..0x1057730` and `0x10578A0..0x10578AC` |
+| Acquire buffer and copy | `0x00DAF850`; zero result cleans up and returns false. memcpy calls at `0x00DAE0B8 / 0x00DAE163` | getPacketBuffer `0x1701A48`; zero result cleans up and returns false. memcpy calls at `0x1057774 / 0x10578EC` |
+| Finalize and submit | `0x00DB06A0(builder, 0)` calls `0x00DAE710` with zero, copies header metadata and invokes builder finalization before `0x00DAF920(buffer)` | Fix `0x17017F4` receives zero; copies header metadata and invokes builder finalization before sendBuffer `0x16FC478(buffer, bool)` |
+| Special completion | Writes state 2 at `0x00DAE17D`; destroys builder and returns true in AL | Writes state 2 at `0x1057820`; destroys builder and returns true in r3 |
+
+Both memcpy boundaries receive destination `NetBuffer.data + 0x10`, source
+`record + 0x18`, and low 32 bits of `record.size - 0x10`; the data pointer
+is loaded from NetBuffer `+0x24`. Neither forwarding body supplies a local
+minimum-size check before subtraction. Upstream input constraints remain
+unproved, so this is not a demonstrated short-packet runtime fault.
+ARR's packet aggregate declaration does not supply a retail record size.
+
+The finalization wrapper's common zero argument is a buffer-size adjustment,
+not evidence of a retail send flag. Retail `0x00DAF920` takes one buffer
+argument and returns with `ret 4`. ARR passes literal false on the special
+path (`0x105780C`) and the low byte of its caller bool on the general path
+(`0x1057988..0x105798C`). Both select a primary pointer from target `+0x20`,
+but complete queue, connection and delivery behavior has not been compared.
+The inspected Fix helpers detach their builder pointer at `+8` for a zero
+adjustment. Their positive-adjustment caps differ, retail `0x898` versus
+ARR `0xC18`; that branch is outside the compared zero-adjustment calls.
+
+ARR enum `ZoneProtoUp_protoNo`, DIE `0x72D0B77`, declares
+`ZONEPROTOUP_SYSTEM_Login = 0x66` at enumerator DIE `0x72D0B93`.
+The special-value role alone does not establish that retail value 2 has
+that name or is a wire opcode. Retail layouts, serialized fields and packet
+meanings must be derived from retail constructors, serialization and callers.
+The complete reference export contains five direct call sites in four
+functions: `0x004E026E` in `0x004E0240`, `0x004E02EC` in `0x004E0290`,
+`0x004E048B` in `0x004E0320`, and `0x004E230A / 0x004E235E` in
+`0x004E20A0`. These callers are locators, not complete semantic comparisons.
+
+Selected raw-block interpretation covered 5,632 state/value cases and 104
+copy-boundary cases. It preserved the four gate differences at states 1/2
+and values 2/0x66, and checked successful and failed acquisition results,
+null/non-null constructed buffer states, and thirteen size boundaries.
+These are conditional block checks: lookup, constructors, allocation,
+memcpy, finalization, send, destruction and the clients are not executed.
+They establish no runtime reachability for malformed constructed states.
+
+Confidence is high in the retail owner identity and this partial normal-flow
+correspondence. Lookup internals, allocation failure/capacity behavior,
+exceptions, full send behavior and wire meanings remain unresolved. The
+existing retail symbol's notes and evidence citation are corrected; no ARR
+name, type size, member name, packet meaning or opcode is promoted to retail.
+
 ## Utf8String layout contradiction
 
 ARR CU `0x4A4168`, `client/System/String/_UnityString.cpp`, contains
@@ -1017,16 +1112,14 @@ the complete string classes or lobby login paths remains unproved.
 
 ## Other saved leads and next target
 
-IPC/ZoneProto has strong retained nested type names but no established pair
-for the saved `pushSendPacket` body at ARR `0x1057680`. ExcelEntry remains a
-type-name lead: its saved `OnReady` consumer at ARR `0x22900C` is not an
-ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
-uses a different namespace and template arguments from the retail stream
-RTTI. None supplies a stronger small function pair than the segment methods.
+ExcelEntry remains a type-name lead: its saved OnReady consumer at ARR
+`0x22900C` is not an ExcelEntry implementation anchor. The allocator example
+at ARR `0x6E12DC` uses a different namespace and template arguments from
+the retail stream RTTI. Neither supplies a demonstrated function pair.
 
-The next bounded target is IPC/ZoneProto: recover the ARR signature and
-normal body of `RaptureChannelManager::pushSendPacket` at `0x1057680`,
-then identify a retail consumer through the independently named ZoneClient
-channel-manager RTTI, vtable VA `0x01129094` with 25 slots (RVA
-`0xD29094` in the RTTI catalog), and its caller context. A concrete consumer
-and its field accesses must precede any layout, packet-meaning or opcode claim.
+The next bounded target is receive dequeue: compare ARR
+RaptureChannelManager::popReceievedPacket at `0x10575CC` with retail
+`0x00DAE520`, using the manager identity and the retail consumer context in
+[network dispatch paths](net/network-dispatch-paths.md). This is a candidate,
+not a demonstrated pair. Its state and option accesses can test whether the
+outbound layout differences also hold on the receive side.
