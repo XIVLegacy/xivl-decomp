@@ -635,6 +635,63 @@ service's registration, concrete setter, or the mismatch event's selected
 owner. The remaining binding requires the actual manager record and
 IID-query output; its values cannot be recovered from the retained rows.
 
+## Remaining owner-local registration helpers
+
+The remaining explicit layer-registration fallbacks in setup `0x2D4FD0`
+can be bound to their created objects. The setup calls helpers `0x2E1E7B`,
+`0x2D4F61`, `0x2D4E0C`, `0x2D4E53` and `0x2E1C5D` at
+`0x2D503E/0x2D504D/0x2D505C/0x2D506B/0x2D5082`.
+For owner `+0xE8C` equal to 2 or 3, it also calls `0x2E2C5E` and
+`0x2E2CEE` at `0x2D50B1/0x2D50D4`. For `+0xE8C == 1` and
+owner `+0xD4 == 2`, it calls `0x2E1AB1`, `0x2E1B3F` and
+`0x2D4EEB` at `0x2D5101/0x2D5114/0x2D511F`. Earlier failures
+can bypass these calls; the numeric modes do not identify a runtime owner.
+
+Dispatch helper `0x2D4E0C` calls `0x2E1D79` at `0x2D4E29` for
+mode 1, or `0x2E29D9` at `0x2D4E42` for modes 2/3.
+Helper `0x2D4E53` similarly calls `0x2E1E07` at `0x2D4E70`, or
+`0x2E2ACB` at `0x2D4E89`. Each helper below queries manager `+0x10`
+for the listed GUID with its requested IID. A nonnegative query result
+bypasses its fallback. A negative result enters the registration factory;
+successful allocation returns the constructor's primary pointer, whose
+`+0x0C` registration method the factory calls.
+
+All addresses in this inventory are RVAs in the pinned engine. Factory
+columns show the registration factory followed by its allocation factory.
+The constructor's final primary-table store, rather than a neighboring
+table or a secondary interface, binds the registration method.
+
+| Query helper | Registration/allocation factories | Constructor | Primary table | RegisterServices | Queried and registered GUID |
+|---|---|---|---|---|---|
+| `0x2E1E7B` | `0x2E2E41/0x2E3DB2` | `0x2E48B9` | `0x52D44` | `0x2E7910` | `0x89A30` |
+| `0x2D4F61` | `0x2E2DE2/0x2E3D1B` | `0x2E4836` | `0x52D78` | `0x2E7940` | `0x89A40` |
+| `0x2E1D79` | `0x2E2975/0x2E38E2` | `0x2E4667` | `0x52E40` | `0x391BB0` | `0x899C0` |
+| `0x2E29D9` | `0x2E3982/0x2E3FB0` | `0x2E4B1E` | `0x5297C` | `0x391BB0` | `0x899C0` |
+| `0x2E1E07` | `0x2E2A67/0x2E39E6` | `0x2E4706` | `0x52DF8` | `0x392290` | `0x89650` |
+| `0x2E2ACB` | `0x2E3A86/0x2E4050` | `0x2E4BAF` | `0x52944` | `0x392290` | `0x89650` |
+| `0x2E1C5D` | `0x2E2849/0x2E3702` | `0x2E4498` | `0x52F0C` | `0x392800` | `0x89970` |
+| `0x2E2C5E` | `0x2E3BB3/0x2E40F0` | `0x2E4C40` | `0x52884` | `0x394510` | `0x89510` |
+| `0x2E2CEE` | `0x2E3C17/0x2E4190` | `0x2E4CD1` | `0x52850` | `0x2E76D0` | `0x89AA0` |
+| `0x2E1AB1` | `0x2E26BA/0x2E3522` | `0x2E4230` | `0x53038` | `0x2E7A00` | `0x897D0` |
+| `0x2E1B3F` | `0x2E271E/0x2E35C2` | `0x2E42CF` | `0x52FEC` | `0x2E79D0` | `0x89A70` |
+| `0x2D4EEB` | `0x2E2D7E/0x2E3C7B` | `0x2E47A5` | `0x52DB0` | `0x2E7970` | `0x898F0` |
+
+Each of the ten distinct registration methods has one GUID argument,
+one manager `+0x18` dispatch after the CFG check, and `ret 8`.
+Its complete body ends at method start plus `0x26` (exclusive).
+These explicit bodies register the listed GUIDs; all ten GUID byte values
+differ from execution-context translation GUID `0x89690`.
+This bounds those registration calls, not every operation performed by setup,
+constructors, query implementations, initialization or service notifications.
+
+The inventory does not determine which queries succeeded, which fallback
+objects were created, or whether initialization or other registrations supplied
+translation. No row binds `IID_ISvcContextTranslation` output to a concrete
+setter. The remaining edge is still the selected manager's GUID-matched
+record and adjusted query output, with ordered event and context-write
+identities. Inspecting these local defaults does not recover those values
+from the retained failure rows or authorize another capture.
+
 ## Concrete missing edge
 
 To discriminate the slot-list candidate, evidence must connect one raw
