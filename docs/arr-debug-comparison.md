@@ -157,7 +157,8 @@ Retail's six-way dispatch table at `0x00D479D8` reaches cases at
 handler and destroys the temporary. ARR uses stack objects, inlines five
 constructors, and calls the SYN constructor at `0xE3EE0C`. Its handler
 signatures are the corresponding const segment references in DWARF. The table
-establishes dispatch edges; the six handler bodies have not been paired.
+establishes dispatch edges. The ACK helper is compared below; the five other
+handler bodies have not been paired.
 
 In both builds, construction copies input bytes `+0..+3` into object
 `+0x04..+0x07` and clears dword `+0x08`. DAT and EAK additionally store input
@@ -205,6 +206,96 @@ No ACK-window algorithm, sequence arithmetic, retransmission policy, checksum,
 reserved-byte meaning, live connection use, or handler correspondence follows
 from this dispatcher match.
 
+## ACK-driven queue pruning
+
+Retail VA `0x00D46760` corresponds to the visible ACK-pruning operation in
+ARR `RUDPImpl::checkAndGetAck(RUDPSegment const&)`, direct code VA
+`0xE3CFC8`, size `0x220`. ARR subprogram DIE `0x6864489` references private
+declaration `0x6862242` in CU `0x683F4F5`. It has an artificial this parameter,
+the const segment reference and no return type. Retail preserves ECX as the
+object, takes one stack segment pointer and returns with `ret 4`.
+
+The retail instruction span is `0x00D46760..0x00D468E7`, including internal
+alignment. Ghidra reports a disjoint 378-byte body: it omits that alignment
+and the continuation after `_free` at `0x00D4684C`. Direct PE decoding restores
+`add esp, 4` at `0x00D46851` and the count decrement at `0x00D46854`.
+The thunk at `0x009D1B17` jumps to `_free` at `0x009D5C88`, whose raw exit
+path reaches `ret` at `0x009D5D15`. The non-returning decompiler annotation
+must not erase the caller's continuation. Capstone decoded the complete
+retail span and the complete symbol-sized ARR body.
+
+Both functions return before changing the object when segment byte `+0x04`
+lacks mask `0x40`. With that mask, they zero-extend segment byte `+0x07`, clear
+one object counter, and change the state word from 2 to 4 when it equals 2.
+ARR then calls `connectionOpened` at `0xE3C528`; retail calls `0x00D463A0`.
+DWARF names the ARR states `STATE_SYN_RCVD` and `STATE_ESTABLISHED`. The retail
+finding is the observed 2-to-4 update, without assigning the complete ARR enum.
+Both retain an ineffective negative test after the byte was zero-extended.
+
+The loop reads each queued segment pointer from node `+0x08` and its sequence
+byte at segment `+0x06`. Let `s` be that queued byte and `a` the input byte
+`+0x07`. The removal branches at ARR `0xE3D048..0xE3D06F` and retail
+`0x00D46801..0x00D4681A` implement these exact comparisons:
+
+| Relationship | Remove the queued node when |
+|---|---|
+| `s == a` | Always |
+| `s < a` | `a - s <= 127` |
+| `s > a` | `s - a >= 127` |
+
+Bounded interpretation of the raw decoded instructions agreed for all
+65,536 pairs of byte values. The checks evaluated the comparison blocks,
+without running either client. In particular, `(s, a) = (0, 127)` and
+`(127, 0)` both remove, while `(0, 128)` retains and `(128, 0)` removes.
+The `0xFF` value remains in the compared byte domain when the flag is set.
+These are the implemented inequalities; they do not establish a sequence
+generator's modulus, a permitted send window or a reserved-byte meaning.
+
+For a selected node, both save its successor, relink predecessor `+0x00` and
+successor `+0x04`, release the node, decrement the queue count and invoke
+virtual cleanup on its segment. They continue from the saved successor.
+For a retained node, they advance through node `+0x00`. The loop scans the
+whole list rather than stopping at the first retained sequence.
+
+| Access | ARR object offset | Retail object offset |
+|---|---|---|
+| State word | `+0x74` | `+0x7C` |
+| Cleared counter | `+0xD0` | `+0xD8` |
+| Queue sentinel pointer | `+0x1A8` | `+0x1B0` |
+| Queue count | `+0x1AC` | `+0x1B4` |
+| Timer phase cleared when the count is zero | `+0x118` | `+0x120` |
+
+ARR DWARF places `m_UnackedSentQueue` at `+0x1A4`,
+`m_Counters.m_SegmentsCounter` at `+0xD0` and `m_RetransTimer` at `+0x100`.
+Retail queue storage has an independent construction anchor: RTTI-owned
+RUDPImpl constructor `0x00D45510` passes object `+0x1AC` to `0x00D51550`,
+stores its returned self-linked node at `+0x1B0` and clears count `+0x1B4`.
+That node allocator requests `0x0C` bytes and initializes links `+0x00/+0x04`.
+The table records the accesses, not a complete retail RUDPImpl layout.
+
+ARR releases a node through `BlockMemoryAllocatorManager::deallocate` at
+`0x0338EC`, passing size `0x0C`. Retail calls `_free` and contains iterator
+guard calls to `0x009D22B4`. Segment cleanup uses ARR vtable `+0x04` through
+an eight-byte code/TOC descriptor and retail vtable slot 0 with flag 1.
+For ACKSegment, those slots resolve to ARR descriptor `0x1B7EE10`, code
+`0xE3753C`, and retail `0x00D51A80`. These anchors establish deleting cleanup
+for that segment without equating the two allocator implementations or ABIs.
+
+After scanning, ARR calls `retrySendAndQueueSegment` at `0xE3CC88` and retail
+calls `0x00D45C00`. Both then clear the timer phase when the queue count is
+zero, or refresh clock fields when it is nonzero. ARR uses `time` and the
+PS3 time base; retail uses `__time64`, `timeGetTime` and `0x004CFA50`.
+The clock units and the two pairs of callees have not been proved equivalent.
+
+Confidence is high in the shared ACK-pruning role. Retail has six recorded
+direct callers: receive dispatcher `0x00D477C0` and the DAT, SYN, EAK, RST
+and NUL handlers in the dispatch table. This is a shared helper for flagged
+segments, not an ACK-only packet handler. The flag, byte accesses, literal
+sequence comparisons, list operations, count changes, state update and timer
+branch support correspondence beyond the ARR name. No complete ACK-window
+algorithm, retransmission policy, game opcode or runtime connection behavior
+is established by this pair.
+
 ## Utf8String layout contradiction
 
 ARR CU `0x4A4168`, `client/System/String/_UnityString.cpp`, contains
@@ -248,7 +339,7 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is retail `0x00D46760`, the ACK dispatch target,
-against ARR `RUDPImpl::checkAndGetAck` at `0xE3CFC8`. Compare the `0x40`
-flag test, byte `+0x07`, queue traversal and modular sequence comparisons
-before assigning ACK-window or retransmission meanings.
+The next bounded target is retail `0x00D45C00`, called after ACK pruning,
+against ARR `RUDPImpl::retrySendAndQueueSegment` at `0xE3CC88`. Compare
+queue admission limits, count changes and outbound calls before assigning
+the retail helper that role or proposing retransmission behavior.
