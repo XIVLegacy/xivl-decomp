@@ -58,6 +58,29 @@ The layout `data/61/5A/00/08.DAT` is 1,245,056 bytes, SHA-256
 `56b24e6aca53911810848baf7be254a2c20038d8c127bcc0c8603ba6b0614e7c`.
 Both file identities match the installed `2012.09.19.0001` client.
 
+## Serialized scheduler words
+
+Direct reads from the hash-pinned layout above found these five raw
+little-endian 32-bit words. All offsets are physical byte offsets from the
+beginning of `data/61/5A/00/08.DAT`.
+
+| SCB offset | SCB bytes | Word offset | Raw unsigned value |
+| --- | ---: | --- | ---: |
+| `0x12EB60` | 816 | `0x12ED24` | 600000 |
+| `0x12EE90` | 816 | `0x12F054` | 600000 |
+| `0x12F5A0` | 896 | `0x12F794` | 600000 |
+| `0x12F920` | 816 | `0x12FAE4` | 9000000 |
+| `0x12FC50` | 816 | `0x12FE14` | 9000000 |
+
+Each selected span begins with `SEDBSCB`. Each word is at `+0x24` from that
+span's second `@CBLK` marker. Python 3 standard-library checks used
+`hashlib.sha256` for the whole layout and SCB spans and
+`struct.unpack_from('<I', data, offset)` for each word.
+
+The time unit and conversion to seconds remain unresolved. These raw words
+do not establish a runtime invocation, encounter order, or how long the ring
+was visible or collidable.
+
 ## Fire-ring resource identities
 
 The resource table uses 0x20-byte rows with a 16-byte token, 4-byte type,
