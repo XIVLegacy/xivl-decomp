@@ -472,8 +472,9 @@ retail `0x00D51D50 / 0x00D51D80`, ARR descriptors
 `0x1B7EF30 / 0x1B7EF38`, code `0x15446C0 / 0x1544708`.
 SYN and EAK override serialization at retail `0x00D52560 / 0x00D52150`,
 ARR descriptors `0x1B7EF88 / 0x1B7EF50`, code
-`0x1544C2C / 0x1544924`. These are dispatch locators, not comparisons of
-the SYN or EAK serializer bodies. The DAT pair is compared below.
+`0x1544C2C / 0x1544924`. The SYN entry is a dispatch locator;
+its serializer body remains un-compared. The DAT and EAK serializers are
+compared below.
 The base four-byte copy described above does not
 establish every byte sent by this caller. Neither caller independently
 checks the length returned after serialization against `0x2000`.
@@ -627,6 +628,113 @@ the stated correspondence for valid, stable raw sources and nonempty vectors.
 The diagnostic branch, mutable state, unknown destination bytes, full object
 ownership, packet meanings and game opcodes remain outside that claim.
 
+## EAK list serialization and length boundary
+
+Retail `0x00D52150` corresponds to ARR
+`EAKSegment::getBytes(unsigned char*, int) const` at direct code VA
+`0x1544924`, descriptor `0x1B7EF50`. The retail body is
+`0x00D52150..0x00D521E0`, `0x91` bytes and 62 x86 instructions; ARR occupies
+`0xD4` bytes and 53 PPC instructions. Complete raw and read-only Ghidra
+instruction listings agree. ARR body DIE `0x6865027` refers to declaration
+`0x686158A` in CU `0x683F4F5`: a one-byte bool return, const-qualified this,
+mutable byte-buffer pointer and four-byte signed int capacity. Retail uses
+ECX for this and two stack arguments, with `ret 8` exits.
+
+Independent retail RTTI is `.?AVEAKSegment@RUDP2@Socket@Sqex@@`, type
+descriptor `0x0130F3D4`, COL `0x011A0CD4`, vtable `0x011142F4`. The base
+array identifies `RUDPSegment` at displacement zero. Slot 4, word
+`0x01114304`, selects the serializer; slot 3, word `0x01114300`, selects
+the already compared base length getter `0x00D51960`. ARR's EAK vtable
+symbol `0x19DC9F8`, address point `0x19DCA00`, likewise selects inherited
+length code `0x1544428` through descriptor `0x1B7EF00`. Length returns
+the unsigned byte at object `+0x05`; it does not recompute the list extent.
+The verified reference query recorded one serializer reference at its
+vtable word and four references to the EAK vtable, including constructor
+`0x00D52040`. This bounds recorded database references, not virtual or
+computed callers.
+
+ARR class DIE `0x6861471` declares size `0x18` and public base at zero
+through inheritance DIE `0x6861484`. Retail field access, constructor
+stores and clone allocation independently support these inspected offsets:
+
+| Access | ARR declaration | Offset in both inspected objects |
+|---|---|---|
+| Four copied header bytes | Base byte members described above | `+0x04..+0x07` |
+| Raw list pointer | `m_Acks`, member DIE `0x686148E` | `+0x0C` |
+| Raw list length word | `int m_AcksLength`, DIE `0x68614A1` | `+0x10` |
+| Alternative buffer-object pointer | `m_pAcksBuffer`, DIE `0x68614B4` | `+0x14` |
+| Buffer first / end words | `RUDP_UINT8_VECTOR` resolves to a 16-byte vector | Buffer `+0x04 / +0x08` |
+
+Pointer and vtable loads are four bytes. The pointer DIEs do not explicitly
+declare their byte sizes; the descriptor contains two 32-bit code/TOC words,
+with TOC `0x1BA5FB0`. ELF64 supplies no additional layout proof.
+
+Both serializers call virtual length first: retail at `0x00D52158`, ARR at
+`0x1544960`. If signed capacity is smaller, they return false before any
+destination store or copy. Otherwise object bytes `+0x04..+0x07` become
+destination bytes 0..3. A null object `+0x14` selects the raw source at
+`+0x0C` and count at `+0x10`; a nonnull buffer selects its first pointer
+and zero for a null first pointer, or the low 32-bit end-minus-first extent.
+Memcpy receives destination `+4`, unlike DAT's `+6`, and success returns
+true after the copy returns. Retail calls `0x009D4600`; ARR calls
+`0x1079614`. This compares caller arguments under a valid nonoverlapping
+copy contract, not the two library implementations.
+
+Retail calls diagnostic helper `0x009D22B4` at `0x00D521A7` when the
+buffer first pointer is null or end equals first, after the four header stores.
+ARR has no counterpart call and reaches a zero-size copy. The helper's
+dispatch boundary is described in the DAT comparison; neither its return nor
+its effects were assumed. Retail reloads the source pointer after that call
+but retains the previously computed count. Empty or invalid buffer behavior,
+mutable state and complete object ownership are not equated.
+
+Retail constructor `0x00D52040`, `0x106` bytes, and ARR constructor
+`0xE37910`, `0x258` bytes, independently establish the length boundary.
+Retail adds 6 in an eight-bit register at `0x00D52075` and stores it to
+object `+0x05` at `0x00D5207E`. ARR zero-extends its unsigned-byte list
+length at `0xE37930`, adds 6 at `0xE37938`, and stores one byte at
+`0xE37954`. Both select raw or allocated-buffer storage at
+`+0x0C/+0x10/+0x14`, establish flag byte `0x60` and install the EAK
+vptr: retail at `0x00D52097`, ARR at `0xE3796C`. Retail clone
+`0x00D52250`, `0x11A` bytes, requests `0x18` bytes before that constructor;
+ARR clone `0x15447DC`, `0x138` bytes, makes the same request.
+These are supporting anchors, not constructor, clone or allocator promotions.
+
+For stable raw or nonempty-vector length `n` from 0 through 249, these
+constructor-established fields give returned length `n + 6`, while the
+serializer writes only four header bytes and `n` list bytes. Destination
+bytes `n + 4` and `n + 5` are untouched. They are trailing gaps, rather
+than DAT's fixed gap at bytes 4/5. Neither body clears output, and the outbound
+caller above sends the separately returned length from its uncleared buffer.
+No meaning or value for those trailing bytes, complete wire serialization,
+or runtime disclosure is established.
+
+For list lengths 250..255, the stored header byte wraps to 0..5. The inherited
+getter and capacity test consume that wrapped value while the raw copy count
+remains 250..255. For example, length 250 gives returned length and accepted
+capacity zero, yet the visible stores write four header bytes and copy 250
+bytes at destination `+4`. This shows that the capacity check alone does not
+bound constructor-established lengths over that range. It does not establish
+that an actual caller supplies such lengths or an undersized allocation.
+Malformed or changing extents are also outside the safe bound.
+
+Bounded raw-block interpretation covered all 256 unsigned-byte constructor
+lengths, raw/nonempty-or-empty-vector/null-first-vector branches, two header
+patterns, two output sentinels, signed extremes and capacities around both
+returned length and copied extent: 42,744 cases. The inherited getters agreed
+throughout. Serializer results and copy/write observations agreed in 38,528
+cases, comprising 30,144 false and 8,384 true results. The remaining 4,216
+stopped at retail's diagnostic boundary while ARR reached a zero-size copy.
+Both models retained the two sentinels immediately after the copied extent.
+This did not execute clients, allocation, diagnostic callbacks, memcpy
+libraries or socket I/O.
+
+Confidence is high in the retail EAK serializer identity and the visible
+correspondence for valid, stable raw sources and nonempty vectors. The
+diagnostic difference, wrapped length, trailing gaps and untraced list producer
+bound complete functional and wire claims. ARR field names do not independently
+assign retail list-byte meanings or game opcodes.
+
 ## Utf8String layout contradiction
 
 ARR CU `0x4A4168`, `client/System/String/_UnityString.cpp`, contains
@@ -670,7 +778,8 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is retail EAK serializer `0x00D52150` against ARR
-`EAKSegment::getBytes` at `0x1544924`, anchored by descriptor `0x1B7EF50`.
-Compare its length calculation, list extent and byte writes before assigning
-wire meanings or extending the DAT correspondence to another segment class.
+The next bounded target is the EAK list producer at retail `0x00D465F0`
+against ARR `RUDPImpl::sendExtendedAck` at `0xE387D4`. The retail constructor
+export records the former as a direct caller, and ARR calls its EAK constructor
+from the latter. Compare list assembly and length bounds to establish whether
+the serializer's 250..255 constructor states are reachable.
