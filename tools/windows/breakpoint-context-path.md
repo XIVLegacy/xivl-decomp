@@ -578,6 +578,67 @@ concrete `SetTranslatedContext` implementation. They identify where the
 registered implementation enters the path and a possible intervening flush.
 No retained mismatch row records the registry/interface identities or proves
 that a service change, flush or native write occurred during that event.
+The [direct-reference inventory](#translation-guid-reference-boundary)
+classifies the remaining uses of these GUID constants.
+
+## Translation GUID reference boundary
+
+A file-wide byte-pattern audit of the pinned engine found the translation
+service GUID `AE987DC0-7D24-4C33-A5A6-312D96192C8E` only at `0x89690`
+and IID `BE5E232C-1D4B-4983-A520-383DA865DA1C` only at `0x9C370`.
+Searching for their preferred-base absolute pointers found the following
+instruction operands. Complete-function Capstone/LLVM disassembly established
+their instruction alignment and roles; byte hits alone do not establish an xref.
+
+| Function RVA | Service GUID instruction | IID instruction | Operation |
+|---|---|---|---|
+| `0x1E4646` | `0x1E46DF` | `0x1E46DA` | Manager `+0x10` query at `0x1E46ED` |
+| `0x1E4811` | `0x1E485F` | `0x1E485A` | Manager `+0x10` query at `0x1E486D` |
+| `0x1E4932` | `0x1E49DD` | `0x1E49D8` | Manager `+0x10` query at `0x1E49EB` |
+| `0x396D20` | `0x396E1D` | None | Service-change GUID comparison at `0x396E27` |
+
+These direct references are queries and a comparison, not a registration or
+an IID-accepting implementation. The audit covers these exact GUID sequences
+and absolute-pointer patterns in this file. It does not exclude synthesized
+GUIDs, indirect pointers, generic registration with a caller-supplied GUID,
+other modules or runtime-provided implementations. It does not identify a
+provider module. The [registration path](#translation-registration-and-change-notification)
+still supplies an unbound object at service record `+0x10`.
+
+The pinned `DbgServices.h`, lines 6197..6221, places
+`ISvcContextTranslation::GetTranslatedContext` at `+0x0C` and
+`SetTranslatedContext` at `+0x10`. The two read consumers query the same
+service/IID pair as the previously bound setter consumer `0x1E4932`.
+Reader `0x1E4646` first requires the incoming ECX object's `+0x21C` pointer
+to be nonnull. Otherwise it returns `0x8000FFFF` at `0x1E4661` before
+reaching the query or argument checks described below.
+On nonnegative query result, `0x1E4646` calls returned `+0x0C` at `0x1E472A`,
+with execution-unit pointer from its first stack argument's `+4`, flags
+`0xFFFF` and a register-context output slot. A negative getter result skips
+its conversion/export steps and proceeds to cleanup. It does not take the
+query-failure fallback. A null first argument, null execution-unit pointer
+or negative query result instead enters `0x1E478B`, which calls the incoming
+object's table `+0x120` at `0x1E47AE`. That fallback implementation remains
+unbound by this audit.
+
+Consumer `0x1E4811` similarly calls the queried interface's `+0x0C` at
+`0x1E489B`, with execution-unit pointer from first argument `+4`, flags
+`0xFFFF` and a local context output slot. It initializes the caller's output
+to null at `0x1E482A`. A null first argument, null execution unit or negative
+query result enters the incoming object's `+0x124` fallback at `0x1E48CA`.
+After either getter or fallback returns ordinarily, `0x1E48D8` transfers the
+local output to the caller and the function returns the saved method result.
+There is no retry through the fallback after a negative translated getter
+result. Output publication alone does not establish successful acquisition.
+
+The direct-reference inventory closes these consumer routes without supplying
+a concrete translation table or setter. The remaining edge is the actual
+GUID-matched registry record, retained object and its module provenance,
+adjusted IID-query output and concrete implementation, correlated with the
+disputed event and ordered context writes. The retained mismatch rows do
+not record those identities. A repeated search of the same direct patterns
+cannot recover them or justify another capture. This finding establishes
+neither a producer verdict nor retail selector or authored-scene acceptance.
 
 ## Observer creation and service-manager initialization
 
