@@ -853,6 +853,134 @@ inspected helper and fill leaf; no allocator, constructor, outbound method,
 diagnostic callback, client or socket was executed. These cases do not prove
 an upstream queue invariant or complete signed-counter domain equivalence.
 
+## DAT receive admission and queue bound
+
+Retail `0x00D468F0` corresponds to the normal admission path of ARR
+`RUDPImpl::onReceivedSegment(DATSegment const&)`, direct code `0xE3D464`,
+size `0x760`, 472 PPC instructions. Body/declaration DIEs are
+`0x68645A2 / 0x6862037` in CU `0x683F4F5`. The declaration is void;
+this formal `0x686204C` follows const pointer `0x686A07F`, pointer
+`0x686717F` and mutable RUDPImpl `0x6861919`. Explicit formal
+`0x6862052` follows reference `0x686A084`, const `0x6869EEF` and
+DATSegment `0x68612A1`, size `0x18`. The direct `STT_FUNC` entry is
+in `.text`. Four-byte addresses, members and pointer accesses are supported
+by the DWARF CU and instructions, rather than inferred from ELF64.
+
+The authenticated read-only retail export has 642 bytes and 203 instructions;
+direct PE decoding covers the same complete extent
+`0x00D468F0..0x00D46B71`. Retail uses this in ECX, one stack segment
+argument and `ret 4`. The verified address query records one direct call,
+`0x00D47889` in receive dispatcher `0x00D477C0`. Its DAT selection,
+constructor and RTTI anchors are recorded in the receive comparison above.
+The reference query does not establish all indirect or runtime callers.
+
+| Inspected state | Retail offset | ARR offset / declaration |
+|---|---|---|
+| Stored last value, L | `+0xCC` | `+0xC4`, `m_Counters.m_LastInSequence` |
+| In-sequence queue storage / sentinel / count, I | `+0x1D0 / +0x1D4 / +0x1D8` | `+0x1C8 / +0x1CC / +0x1D0`, `m_InSequenceRecvQueue`, DIE `0x6861B4A` |
+| Out-of-sequence storage / sentinel / count, O | `+0x1C4 / +0x1C8 / +0x1CC` | `+0x1BC / +0x1C0 / +0x1C4`, `m_OutSequenceRecvQueue` |
+| Capacity, C | `+0x1E0` | `+0x1D8`, `m_RecvQueueSize`, DIE `0x6861B72` |
+| Out-of-sequence event counter | `+0xD4` | `+0xCC`, `m_Counters.m_OutSequenceCounter` |
+
+Let S be the unsigned incoming segment byte `+6`. Both handlers reject
+`S == L`. Otherwise the eligible branch is exactly:
+
+```text
+(S < L && signed32(L - S) > 127)
+|| (L < S && signed32(S - L) < 127)
+```
+
+Comparisons with L are signed; additions and subtractions retain the low
+32 bits. Retail implements this at `0x00D46906..0x00D46928`, ARR at
+`0xE3D48C..0xE3D4B0`. The asymmetry at 127 must be retained. Eligibility
+alone permits at most 128 distinct S values when L is a byte; it does not
+prove queue uniqueness or a lifetime cardinality bound.
+
+Eligible S is compared with the full signed remainder
+`signed32(L + 1) % 255`, with truncation toward zero. Retail uses `idiv`
+at `0x00D46937`; ARR uses the signed multiply/shift sequence
+`0xE3D4B4..0xE3D4DC`. Neither comparison narrows that remainder to a byte.
+If equal, in-sequence admission requires `I == 0` or
+`signed32(I + O) < C`. The zero-I branch bypasses capacity. It stores S
+to L before virtual cloning, appends the clone to the in-sequence queue,
+increments I and calls the queue advancement helper with boolean true:
+retail `0x00D45D70` at `0x00D469A3`, ARR `0xE3D1E8` at `0xE3D6B4`.
+The clone call uses retail vtable `+4`, ARR `+8`; ARR loads code and TOC
+from the selected descriptor. Clone, allocator and failure effects are not
+equated by this comparison.
+
+Otherwise out-of-sequence admission requires `signed32(I + O) < C`.
+The handlers traverse from sentinel next, reading segment pointer at node
+`+8` and its byte `+6`. Equal bytes stop insertion without incrementing O.
+For incoming S and queued Q, traversal skips Q when
+`S < Q && Q - S > 127` or `S > Q && S - Q < 127`;
+otherwise it clones S and inserts before Q. Reaching the sentinel without
+handling S appends a clone. Every successful insertion increments O once.
+The comparison anchors are retail `0x00D46A06..0x00D46A1E` and ARR
+`0xE3D720..0xE3D74C`. Retail helper `0x00D48360` inserts before a node;
+`0x008EA4E0` allocates twelve bytes and initializes next/previous/segment
+at `+0/+4/+8`. Count helper `0x00D35120` guards growth against
+`0x3FFFFFFF`, unlike ARR's inline `0xFFFFFFFF` guard. These are container
+limits, not an EAK-specific 249-entry bound.
+
+The event counter increments after out-of-sequence handling, including an
+equal-byte hit, but not after capacity rejection. Common processing still
+runs for rejected inputs: a positive event counter exceeding profile `+0x18`
+(or with a zero threshold) invokes the compared EAK producer. Otherwise
+the corresponding cumulative-ack test uses profile `+0x14`; a timer path
+uses profile `+0x28`. Every normal completion invokes the compared ACK
+pruner, retail `0x00D46760` / ARR `0xE3CFC8`. Timer and platform clock
+implementations, exception paths and diagnostic effects remain unproved.
+
+The advancement helper is ARR `checkRecvQueues(bool)`, size `0x27C`,
+159 PPC instructions, body/declaration DIEs `0x6864526 / 0x6862263`.
+On its true branch, each queued byte equal to the current full remainder
+updates L, appends that segment pointer to the in-sequence queue, increments
+I, unlinks the old node and decrements O. It traverses once forward, skips
+nonmatching nodes and does not generally purge stale bytes. Retail's full
+extent `0x00D45D70..0x00D45EA4` has 309 bytes and 99 instructions.
+Ghidra lists 302 bytes and 97 instructions: it omits `add esp, 4` at
+`0x00D45E6E` and the O decrement at `0x00D45E71`, following the free call
+it marks non-returning. Direct bytes recover both. ARR's O decrement is
+at `0xE3D43C / 0xE3D440`. The false branch's virtual destruction and
+ownership semantics are outside this normal DAT-admission comparison.
+
+For nonnegative counts, matching list cardinality, stable successful storage
+and no signed sum overflow, a DAT out-of-sequence insertion gives
+`O_after <= C - I`. Retail constructor `0x00D45510` reads profile `+4`
+at `0x00D45770` and stores it to C at `0x00D45773`; this supplies no
+fixed cap in the inspected constructor or DAT body. In-sequence admission
+can exceed combined capacity when I was zero, and advancement preserves the
+combined count while moving nodes. The permitted profile values and all
+writers of C, L and the queues have not been proved. In particular, the
+export records the same advancement/insertion helpers in RST `0x00D47300`
+and NUL `0x00D47590`; those handlers have not been compared here.
+
+Duplicate rejection is also conditional on list order. A raw-decision
+counterexample starts with L=255, I=O=0 and C=512, and alternates incoming
+0 and 127. Both are eligible out-of-sequence values; at their distance 127,
+each inserts before the first other value, so the existing equal value later
+in the list is never inspected. The modeled decisions form 256 nodes and
+pass counts 250..255. This is conditional input-state reachability only.
+No constructor, handshake or normal handler history establishing L=255 has
+been demonstrated, and allocation, counter reset, ACK pruning and actual
+network input are not executed. It is not a runtime overflow claim.
+
+Bounded raw-decision interpretation agreed across both builds in 150,845
+comparisons: all 65,536 byte-valued L/S admission pairs, all 65,536 S/Q
+insertion pairs, and 19,773 capacity cases across nine input/last pairs and
+thirteen boundary count/capacity values, including signed extremes. The
+conditional duplicate example used the same inspected decisions. These
+checks do not execute complete handlers or prove an inductive queue bound.
+
+Confidence is high in the retail DAT handler identity and the selected
+normal admission correspondence. The evidence ceiling is precise: the
+capacity-dependent insertion bound and conditional long-list example are
+supported; normal runtime reachability or exclusion of EAK counts 250..255
+is unresolved. Only the retail function identity is promoted. Full layouts,
+helper identities, packet meanings, opcodes, global queue invariants and
+complete functional equivalence are not promoted.
+
 ## Utf8String layout contradiction
 
 ARR CU `0x4A4168`, `client/System/String/_UnityString.cpp`, contains
@@ -896,9 +1024,9 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is DAT receive handling at retail `0x00D468F0`
-against ARR `RUDPImpl::onReceivedSegment(DATSegment const&)` at
-`0xE3D464`. The receive dispatcher selects both, and retail's verified
-reference set records its EAK-producer call at `0x00D46ABF`. Compare
-out-of-sequence admission, duplicate rejection, count changes and configured
-limits to establish an upstream bound for EAK list production.
+The next bounded target is IPC/ZoneProto: recover the ARR signature and
+normal body of `RaptureChannelManager::pushSendPacket` at `0x1057680`,
+then identify a retail consumer through the independently named ZoneClient
+channel-manager RTTI, vtable VA `0x01129094` with 25 slots (RVA
+`0xD29094` in the RTTI catalog), and its caller context. A concrete consumer
+and its field accesses must precede any layout, packet-meaning or opcode claim.
