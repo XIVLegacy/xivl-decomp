@@ -360,11 +360,78 @@ After the separate cache-buffer write, it loads that object at `0x1E428E`
 and calls its `+0x10` at `0x1E42A4`, supplying interface, flags `0x20`
 and the created buffer. These are distinct interface-producing paths.
 
-The remaining static bridge is the selected main/cache commit interface and
-its implementation, including the fallback dispatches described above.
-Local service registration and buffer creation do not connect those targets
-to Windows context preparation table `0x5B8E0`. Runtime owner/backend,
-registry-entry, commit-interface and event/write identities remain unobserved.
+## Published service contracts
+
+The GUID bytes match `DbgServices.h` from
+[Microsoft.Debugging.TargetModel.SDK `20220505.1011.0`](https://www.nuget.org/packages/Microsoft.Debugging.TargetModel.SDK/20220505.1011.0).
+The package SHA-256 is
+`b52abaff31bffc8c16c48a2e61fe24468e863f8a7335804d1774a29fe7bed643`;
+header SHA-256 is
+`e4cffdb5a90b8752db99b0d149fcd8cc78ecfed261564dc78c6cb1482495e7de`.
+The Microsoft TextDump sample's
+[`packages.config`](https://github.com/microsoft/WinDbg-Samples/blob/1630094509e27ffb12db1550833e28f18f82bf57/TargetComposition/TextDump/packages.config)
+selects that version.
+These byte matches and the x86 argument order identify the declared contracts,
+without binding a selected implementation.
+
+| Engine GUID RVA | Header identifier | Header line |
+|---|---|---|
+| `0x89690` | `DEBUG_SERVICE_EXECUTION_CONTEXT_TRANSLATION` | 2795 |
+| `0x9C370` | `IID_ISvcContextTranslation` | 322 |
+| `0x897D0` | `DEBUG_SERVICE_MACHINE` | 2654 |
+| `0x9842C` | `IID_ISvcMachineDebug` | 262 |
+| `0x9C310` | `IID_ISvcExecutionUnitHardware` | 259 |
+| `0x894B0` | `DEBUG_SERVICE_ARCHINFO` | 2634 |
+| `0x9C390` | `IID_ISvcMachineArchitecture` | 148 |
+| `0x9C2F0` | `IID_ISvcClassicRegisterContext` | 226 |
+| `0x9C380` | `IID_ISvcClassicSpecialContext` | 229 |
+
+`ISvcContextTranslation` (header lines 6197..6220) places
+`SetTranslatedContext` at `+0x10`, matching main call `0x1E4AB6`.
+`ISvcMachineDebug` (4640..4677) places `GetProcessor` at `+0x14`,
+matching `0x1E4175`; its output is an `ISvcExecutionUnit`.
+That interface (4565..4600) places `SetContext` at `+0x10`, matching
+cache call `0x1E42A4`. Flags `0x20` name `SvcContextSpecial` (3492).
+The classic interfaces (4225..4309) expose setters at `+0x14` for
+platform context and special-register bytes; those setters stage the record.
+Architecture `CreateRegisterContext` (3846..3849) occupies `+0x2C`.
+
+The declared record contracts narrow the buffer interpretation. They do not
+establish the concrete architecture's layout, a native API invocation, or
+fixture selection. In particular, the special-register path is not established
+as the user-mode fixture's ordinary thread-context writer.
+
+## Fallback targets
+
+For the bound owner family `0x4AB30`, main fallback `+0x128` is
+`0x2DE820`. It takes the interface from descriptor `+0x04` at
+`0x2DE86A`, retaining it through `0x1B9852` at `0x2DE870`.
+When that field is null and owner `+0xE8C == 1`, it queries
+`0x897D0/0x9842C` at `0x2DE8CB` and calls `GetProcessor` at
+`0x2DE8F7`, supplying the two caller dwords as a 64-bit processor number.
+The later buffer creation still uses the architecture service at `0x2DE9B3`,
+factory `+0x2C` at `0x2DE9DD`, and classic record query at `0x2DE9F6`.
+
+After classic staging at `0x2DEA1E`, it loads that original interface
+at `0x2DEA26` and calls `+0x10` at `0x2DEA3F`, with flags `0xFFFF`
+and the created record. This matches the declared execution-unit `SetContext`
+ABI, rather than the four-argument translated-context ABI. The descriptor
+field's implementation remains unbound. Query helper `0x2E259C`, invoked
+at `0x2DE969`, uses IID `0x104B50`; success refuses the path with
+`E_NOTIMPL` at `0x2DE972`. Neither that IID nor cache IID `0x9C300`
+has an identified contract in this header; their semantics remain unresolved.
+
+Cache fallback `+0xB4` in the same owner table is `0x1C6440`.
+Its complete body is `mov eax, 0x8000FFFF` at `0x1C6440` and
+`ret 0x18` at `0x1C6445`: an `E_UNEXPECTED` refusal, without a native
+write. This conclusion applies to that bound implementation only.
+
+The remaining static bridge is the selected translation service's
+`SetTranslatedContext` or execution unit's `SetContext` implementation,
+including descriptor `+0x04`.
+Registration and record creation do not connect these targets to Windows
+context preparation table `0x5B8E0`. Runtime owner/backend, registry-entry,
+execution-unit, translation-interface and event/write identities remain unobserved.
 
 ## Concrete missing edge
 
