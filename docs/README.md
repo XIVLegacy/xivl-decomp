@@ -174,7 +174,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Seasonal BG-object assets](resource/seasonal-bgobj-assets.md)
 - [Float and mask instruction sites](resource/float-and-mask-sites.md)
 - [Static-actor command registry](resource/static-actor-registry.md)
-- [SqPack architecture](resource/sqpack.md)
+- [Pack, ChunkRead, and ZiPatch architecture](resource/sqpack.md)
 - [Stronghold door owners](resource/stronghold-door-owners.md)
 - [Transmission Tower rendering](resource/transmission-tower-rendering.md)
 - [UI form path strings](resource/ui-form-path-strings.md)
