@@ -1,10 +1,11 @@
 # ARR debug and retail client comparison
 
-Three RUDP2 segment methods have demonstrated functional correspondence
-between the ARR PS3 debug executable and the Windows 1.23b client. The string
-comparison demonstrates incompatible object layouts. These conclusions concern
-the functions and objects below; they do not establish packet meanings,
-game opcodes, source identity, or correspondence across the whole subsystem.
+RUDP2 segment methods and the receive dispatcher have demonstrated functional
+correspondence between the ARR PS3 debug executable and the Windows 1.23b
+client. The receive comparison preserves differences in handling unsupported
+input and validating SYN data. The string comparison demonstrates incompatible
+object layouts. The functions and objects below do not establish game opcodes,
+source identity, or correspondence across the whole subsystem.
 
 ## Inputs and producing methods
 
@@ -104,7 +105,105 @@ These matching branches, constants, fields, allocation and independently
 named vtables support method correspondence beyond name similarity. They do
 not establish the six-byte wire header as a complete serialization, validity
 checks on input, the meaning of the byte fields, retransmission behavior,
-RUDPImpl correspondence, or a game-message opcode.
+the remaining RUDPImpl methods, or a game-message opcode.
+
+## Receive classifier and dispatch
+
+ARR `RUDPImpl::onReceived(uint8_t const*, int)` is the direct code entry at
+VA `0xE3EEF4`, size `0x464`. Subprogram DIE `0x6864A53` references declaration
+`0x68620FD` in CU `0x683F4F5`. The declaration has an artificial this parameter,
+the const byte pointer and signed int length, and no return type. Its owner,
+`Client::Network::Socket::RUDP2::RUDPImpl`, has DIE `0x6861919`, size `0x1F8`,
+and public bases `SocketCallbackHandler` at `+0x04` and
+`SocketInfomationReport` at `+0x30`. Those are ARR declarations, not retail
+layout assignments.
+
+Retail VA `0x00D477C0`, size `0x208`, preserves the object argument from ECX
+and consumes two stack arguments, returning with `ret 8`. Its classifier is
+VA `0x00D51AA0`, size `0x50`. Capstone decoded both bodies completely.
+The Ghidra decompilation, instruction listing, direct PE table reads and
+constructor vtable stores independently fix the following control flow.
+
+Retail classification at `0x00D51AA0` matches ARR's inlined block
+`0xE3EF18..0xE3EF88`. Both first compare the signed input length against 6,
+then test input byte zero in priority order `0x80`, `0x08`, `0x20`, `0x10`,
+`0x40`. With the final mask set, length 6 selects category 2 and a longer
+input selects category 0. Short input or absence of every tested mask selects
+category 6. Bounded evaluation of the decoded instructions agreed for all
+256 flag bytes at lengths 0, 5, 6, 7 and 22. This checks classification only.
+
+| Category | Selection after the length check | Retail constructor / vtable VA | ARR handler VA | Retail handler VA |
+|---|---|---|---|---|
+| 0, DAT | `0x40`, length greater than 6, after earlier masks fail | `0x00D51BB0` / `0x011142DC` | `0xE3D464` | `0x00D468F0` |
+| 1, SYN | `0x80` | `0x00D524B0` / `0x01114324` | `0xE3DBC4` | `0x00D470D0` |
+| 2, ACK | `0x40`, length 6, after earlier masks fail | `0x00D519E0` / `0x011142AC` | `0xE3CFC8` | `0x00D46760` |
+| 3, EAK | `0x20`, after earlier masks fail | `0x00D51FA0` / `0x011142F4` | `0xE3DDD8` | `0x00D46B90` |
+| 4, RST | `0x10`, after earlier masks fail | `0x00D51B20` / `0x011142C4` | `0xE3E090` | `0x00D47300` |
+| 5, NUL | `0x08`, after `0x80` fails | `0x00D523A0` / `0x0111430C` | `0xE3E824` | `0x00D47590` |
+
+The category names are independently anchored by the named retail RTTI
+vtables and the constructor stores. ARR's `RUDPSegment::Type`, DIE
+`0x6860EDC`, declares the same integer categories and invalid category 6.
+Its static `parseType(uint8_t const*, int)` declaration is DIE `0x6861195`.
+The associated subprogram DIE `0x6862CB7` carries low PC `0xFFFFFFFF` and
+does not supply a usable standalone function locator. The compared ARR code
+is the classifier inside onReceived. Retail's classifier is cataloged with a
+descriptive role name rather than assigning that ARR source declaration.
+These category integers are classifier results, not game-message opcodes.
+
+Retail's six-way dispatch table at `0x00D479D8` reaches cases at
+`0x00D47870`, `0x00D478A7`, `0x00D478DE`, `0x00D47915`, `0x00D47949` and
+`0x00D4797D`, in category order. Each constructs a stack segment, calls its
+handler and destroys the temporary. ARR uses stack objects, inlines five
+constructors, and calls the SYN constructor at `0xE3EE0C`. Its handler
+signatures are the corresponding const segment references in DWARF. The table
+establishes dispatch edges; the six handler bodies have not been paired.
+
+In both builds, construction copies input bytes `+0..+3` into object
+`+0x04..+0x07` and clears dword `+0x08`. DAT and EAK additionally store input
+views at object `+0x0C`: input plus 6 for DAT and plus 4 for EAK. Their lengths
+at `+0x10` are input length minus 6, and dword `+0x14` starts at zero.
+The ARR address points used here are DAT `0x19DC968`, SYN `0x19DCC10`, ACK
+`0x19DC8D0`, EAK `0x19DCA00`, RST `0x19DCB30` and NUL `0x19DCA98`.
+The saved symbol and raw vtable words resolve those address points without
+treating `.opd` descriptors as code or importing pointer widths from ELF64.
+
+The dispatchers increment one counter for categories 0, 1, 4 and 5 only:
+ARR object `+0xC8` at `0xE3EFBC..0xE3EFC0`, retail object `+0xD0` at
+`0x00D47819`. Retail's counter-case index at `0x00D479D0` is
+`0, 0, 1, 1, 0, 0`, selecting the increment or skip targets from
+`0x00D479C8`. Both then conditionally refresh clock state, controlled by ARR
+byte `+0x1A0` and retail byte `+0x1A8`. ARR uses `time` and the PS3 time base;
+retail uses `__time64`, `timeGetTime` and helper `0x004CFA50`. These offsets
+and clock providers differ, so the matching structure does not transfer the
+complete RUDPImpl layout or establish identical clock units.
+
+Retail ownership has a separate callback anchor. RUDPImpl vtable slots 5..8
+call `0x00D47E60`. That helper records the object at socket `+0x24` and
+passes callback `0x00D47A90` at `0x00D47EA1` to setter `0x00D36380`.
+The setter writes backing state `+0x3C` when socket `+0x0C` is nonzero.
+The callback loads socket `+0x24` into ECX at `0x00D47AA2` and calls
+`0x00D479F0` at `0x00D47AA6`.
+That function selects a child object when needed and passes ECX, the input
+pointer and length to `0x00D477C0` at `0x00D47A75`. The helper callers are
+RTTI-owned by RUDPImpl vtable VA `0x01113378`. The reference queries were
+verified complete for their explicit targets. Their coverage is Ghidra's
+recorded references, not all computed or runtime references.
+
+Confidence is high in the shared classification and receive-dispatch role,
+supported by the callback ownership, case graph, constructors, fields and
+counter selection. Two differences prevent complete behavioral equivalence.
+For category 6, ARR reaches trap instruction `0xE3F344`; retail skips segment
+dispatch and returns after the optional clock refresh. Also, ARR's SYN
+constructor reads through input byte `+0x13`, then checks length at least
+`0x16` and the high nibble of input byte `+0x04` equal to 1, trapping on
+failure. Retail's SYN constructor reads those fields and returns without
+either check. The ARR checks occur after the reads. Neither classifier alone
+establishes complete input validation or safe bounds.
+
+No ACK-window algorithm, sequence arithmetic, retransmission policy, checksum,
+reserved-byte meaning, live connection use, or handler correspondence follows
+from this dispatcher match.
 
 ## Utf8String layout contradiction
 
@@ -149,9 +248,7 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is retail `0x00D477C0`, the recorded caller of the
-input-copy ACK constructor, against ARR `RUDPImpl::onReceived` at
-`0xE3EEF4`, size `0x464`. Inspect length checks, flag tests, constructor
-selection and dispatch before proposing a receive-path match or assigning
-wire meanings. The present record establishes that retail caller edge, not
-correspondence of those two larger functions.
+The next bounded target is retail `0x00D46760`, the ACK dispatch target,
+against ARR `RUDPImpl::checkAndGetAck` at `0xE3CFC8`. Compare the `0x40`
+flag test, byte `+0x07`, queue traversal and modular sequence comparisons
+before assigning ACK-window or retransmission meanings.
