@@ -1004,16 +1004,85 @@ interface and callback argument to `0x457AAA` at `0x44F9F6`.
 That helper passes the argument to `0x1B9A14`, using incoming interface
 `+0x10` (root `+0x48`), at `0x457AC6`, then calls `0x471D4C` at
 `0x457AD3`. The latter calls body `0x471AFA` at `0x471D5C`.
-That body's implementation is outside this construction/query binding.
+That body [rebuilds a string segment vector](#supplied-child-callback-string-parsing).
 The owner helper later calls the conditional wrapper setup `0x2D5134`
 at `0x2D550A`; this orders the candidate child submission before wrapping.
 
 This binds one supplied-child construction route for `0x89560`. It does
 not identify the manager's pre-existing child, an equivalent caller for
-`0x89AF0`, the callback body at `0x471AFA`, or which branch the mismatch
-event used. The next static edge is that concrete callback body. Runtime
+`0x89AF0`, or which branch the mismatch event used. Runtime
 manager records, adjusted query outputs and ordered context-write identities
 remain necessary before attributing a native context commit to this path.
+
+## Supplied-child callback string parsing
+
+The concrete supplied child's completion body `0x471AFA` rebuilds a vector
+of semicolon-delimited wide strings. All addresses in this section are RVAs
+in the pinned engine, not retail-client addresses. Capstone 5.0.7 and LLVM
+22.1.4 agree on the complete body `0x471AFA..0x471BA5` (exclusive end),
+the callback wrappers and the string/vector helpers below. Direct branch
+targets remain within decoded instruction boundaries in each inspected body.
+
+At `0x44F9E0`, stack argument `[ebp+0x08]` is the incoming completion
+interface; `[ebp+0x0C]` is the callback's string argument. The local bundle
+passed to `0x457AAA` contains the interface and the address of that second
+stack slot. Helper `0x457AAA` dereferences that slot and copies the
+NUL-terminated wide string through `0x1B9A14` at `0x457AC6`, into interface
+`+0x10` (root `+0x48`). Helper `0x1B9A14` counts two-byte code units and
+delegates assignment to `0x1B99BD`; its capacity-growth branch is `0x1B993D`.
+The assignment stores the length at string `+0x10`, capacity at `+0x14`,
+and a terminating zero word. Capacity at most seven uses inline storage;
+larger capacity uses the pointer at string `+0x00`.
+
+The parsing body receives a bundle whose first dword is that interface.
+Its field accesses therefore use this adjusted pointer:
+
+| Field | Interface offset | Allocation-root offset |
+|---|---|---|
+| Source wide-string object | `+0x10` | `+0x48` |
+| Source string length | `+0x20` | `+0x58` |
+| Source string capacity | `+0x24` | `+0x5C` |
+| Segment-vector begin | `+0x28` | `+0x60` |
+| Segment-vector end | `+0x2C` | `+0x64` |
+| Segment-vector capacity end | `+0x30` | `+0x68` |
+
+The body first calls `0x249BD4` at `0x471B0D` to destroy the previous
+24-byte string records through `0x193867` and reset vector end to begin.
+This clear retains the vector allocation. A zero source length at
+`0x471B14` skips parsing after that clear. Otherwise it selects inline or
+heap string storage at `0x471B21..0x471B27`, then searches for word
+`0x003B` at `0x471B35..0x471B38`, calling `0x483B24`. That helper's scalar
+and SIMD branches search for the delimiter or terminating zero word; it
+returns the delimiter address or zero for a nonmatching terminator.
+
+With spare vector capacity, a delimiter causes range-string construction
+through `0x1B33E7` at `0x471B5A`. The range excludes the delimiter and its
+length is the byte difference divided by two. With no delimiter, the body
+constructs the NUL-terminated final segment through `0x193997` at
+`0x471B7F`. Both constructors use `0x193912` and produce 24-byte string
+objects. The body advances vector end by `0x18` at `0x471B84`.
+When capacity is exhausted, `0x369A9D` at `0x471B6D` or `0x471E34` at
+`0x471B92` constructs the same respective segment in new vector storage;
+both call `0x1FC910` to replace begin, end and capacity-end fields.
+
+The loop resumes two bytes after each delimiter at `0x471B32`. For a valid
+NUL-terminated input and ordinary completion, leading, consecutive and
+trailing delimiters produce empty records: `;a;;` yields four segments
+`["", "a", "", ""]`. An entirely empty source produces no records because
+of the source-length guard. These are instruction-derived cases, not
+executed engine tests. The source string is copied before parsing; neither
+stage establishes an atomic update if an allocation or construction fails.
+
+The body's ordinary return clears EAX at `0x471BA0`. Its six direct calls
+are vector clear, delimiter search, two string constructors and their two
+vector-growth forms. There is no direct context setter, native write API
+or virtual service callback in this body. Wrappers `0x471D4C` and
+`0x457AAA` also contain alternate result stores `0x8007000E` and
+`0x80004005`; the ordinary zero return does not establish exception-free
+execution. This string parsing route supplies no native-context commit
+evidence. The source string's semantic purpose and actual callback argument
+remain unbound, as do other children and the mismatch event's selected
+objects. A complete engine-wide absence of context writes is not inferred.
 
 ## Concrete missing edge
 
