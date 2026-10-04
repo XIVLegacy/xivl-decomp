@@ -513,6 +513,72 @@ setter through an identified owner to the native context wrapper.
 It does not bind the incoming implementation, the translation service,
 the fixture's selected owner/backend, or any mismatch-event write.
 
+## Translation registration and change notification
+
+On the constructed manager table `0x5E110`, `RegisterService` (`+0x18`)
+is `0x44FAF0`. It passes the caller's GUID and service pointer to
+`0x4682A1` at `0x44FAFE`. The non-deferred replacement branch updates
+the matching record's `+0x10` at `0x468312` through `0x1B84FA`;
+store `0x1B8539` installs the retained incoming pointer. New-record
+construction retains that same input at record `+0x10` through
+`0x1B9852` at `0x4683EE`, before appending it at `0x468429`.
+These are caller-supplied service objects, not an identified translation
+factory. The declared manager contract in the pinned SDK header
+(980..1027) agrees with `QueryService`/`LocateService`/`RegisterService`
+slots `+0x10/+0x14/+0x18`.
+
+For the translation GUID `0x89690`, lookup `0x467F13` scans manager
+`+0x14/+0x18`, compares all four GUID dwords and requires record
+`+0x3C == 0`. `0x468AC0` returns record `+0x10` through
+`0x468AE8..0x468AF7`. `QueryService` at `0x468B10` then calls that
+object's `QueryInterface` at `0x468B62`, supplying requested IID
+`0x9C370` on the main consumer path. On success, the output becomes
+the interface used at `0x1E4AB6`. Its `+0x10` setter depends on that
+registered object's query result, including any pointer adjustment.
+The missing binding is the GUID-matched record, its service pointer,
+the IID query output and that output's concrete table and setter.
+Neither a matching GUID nor the manager's table supplies those identities.
+
+The translation GUID reference at `0x396E1D` belongs to a service-change
+handler, `0x396D20`. Constructor `0x2A7F0E` installs table `0x52588`
+at `0x2A7F7D`; its `+0x18` is that handler. Query wrapper `0x2A80C0`
+recognizes IID `0x96570` at `0x2A80E7` and returns its primary pointer
+at `0x2A80F8`. The bytes match `IID_IDebugServiceLayer` (header line
+106), whose `NotifyServiceChange` declaration (1334..1347) has this slot
+and six-argument x86 ABI. The complete handler ends in `ret 0x18` at
+`0x397095`. Its registration method `0x2A81B0` registers GUIDs
+`0x895A0/0x898A0` at `0x2A81D0/0x2A81EC`; it does not register the
+translation GUID on that complete method's path.
+
+The manager's non-deferred registration path calls notification helper
+`0x468F73` at `0x468370`, after the record update or insertion.
+With manager state 2 or 3, that helper iterates registered service
+pointers and calls each `+0x18` at `0x4690CC`, passing notification
+kind zero, manager, GUID, prior service and new service. In the bound
+handler, a match for `0x89690` or `0x89610` enters `0x396E49`.
+The latter GUID matches `DEBUG_SERVICE_WINDOWS_EXECUTION_EXCEPTION_TRANSLATION`
+in the pinned header. With global `0x58C368` nonnull, the branch calls
+`0x26FE57` at `0x396E53`, reloads the global at `0x396E58`, then
+calls the current object's `+0x40` at `0x396E6D`.
+
+This is a conditional flush followed by state invalidation. `0x26FE57`
+enters the flush logic only when state `+0xB4 == 7`; with prior guards
+satisfied, the owner `+0xE8C == 1` branch calls state `+0x3C` at
+`0x26FF58`. Table `0x47B8C` binds that slot to main flush `0x170A60`,
+which calls helper `0x1E4932` at `0x170A90`.
+The same table's `+0x40` is `0x270200`,
+which clears state `+0xB4` at `0x27020A` and sets eight dwords from
+state `+0xF88`, stride `0x18`, to `0xFFFFFFFF` at `0x27022E`.
+This gives a service change a static path into the main translation
+query/commit sequence before invalidation.
+Its conditions and ignored flush result do not establish a successful write.
+
+The inspected registration, query and notification paths do not bind a
+concrete `SetTranslatedContext` implementation. They identify where the
+registered implementation enters the path and a possible intervening flush.
+No retained mismatch row records the registry/interface identities or proves
+that a service change, flush or native write occurred during that event.
+
 ## Concrete missing edge
 
 To discriminate the slot-list candidate, evidence must connect one raw
