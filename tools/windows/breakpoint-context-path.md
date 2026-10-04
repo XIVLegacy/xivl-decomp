@@ -1173,9 +1173,107 @@ or a consumer's acceptance of that object.
 Capstone and LLVM inspection bound these instructions, tables and GUIDs
 without loading the engine. This construction route supplies no native
 context-write evidence. The actual path string, queried service objects,
-event subscribers and their results remain unobserved. Static subscribers
-and consumers of `0x893F0` remain a separate edge, as do the selected
-translation service, context setter and ordered write identities.
+event subscribers and their results remain unobserved. The
+[fixed subscriber candidates](#search-path-event-subscribers) bind static
+registration and consumption. The selected translation service, context setter
+and ordered write identities remain separate edges.
+
+## Search-path event subscribers
+
+Two fixed layer tables bind registration and consumption of the search-path
+event `0x893F0`. All offsets here are relative to the incoming layer interface
+pointer, not an established allocation root. The pinned SDK places
+`InitializeServices` at `+0x14`, `NotifyEvent` at `+0x1C`, manager
+`RegisterEventNotification` at `+0x1C` and `FireEventNotification` at `+0x24`.
+PE pointer reads and Capstone/LLVM inspection bind these candidates:
+
+| Layer table RVA | InitializeServices | NotifyEvent | Local wide-string field |
+|---|---|---|---|
+| `0x5DB24` | `0x451E70` | `0x470840` | layer `+0x28` |
+| `0x5E550` | `0x452190` | `0x46F310` | layer `+0x20` |
+
+For table `0x5DB24`, initialization checks layer byte `+0x58` at `0x451E7B`.
+When clear, it passes the layer and the address of its manager argument slot
+to wrapper `0x458247`, which calls body `0x451EAC` at `0x458257`.
+That body checks a separate registration byte `+0x59` at `0x451EC3`.
+When clear, it supplies the layer and GUID `0x893F0` to manager `+0x1C`
+at `0x451ECC..0x451EE1`. A negative result skips the rest of the body;
+a nonnegative result sets `+0x59` at `0x451EED`. Later service queries
+can still fail. The outer callback sets `+0x58` according to the sign of
+the wrapper result at `0x451E9E`. Thus event registration can precede a
+failed overall initialization while the separate registration guard remains set.
+
+For table `0x5E550`, initialization checks layer byte `+0x38` at `0x45219A`.
+When clear, it supplies the layer and GUID `0x893F0` to manager `+0x1C`
+at `0x4521AD..0x4521C0`. A negative result exits; service queries and a
+conditional queried-object callback follow a nonnegative result. Only after
+those steps succeed does `0x45226D` set `+0x38`. Neither complete body
+unregisters the event after a later failure. This does not establish atomic
+initialization, manager deduplication or the outcome of a retry.
+
+The two NotifyEvent entries have the SDK's four-argument x86 callback layout:
+layer `[ebp+0x08]`, manager `[ebp+0x0C]`, event GUID `[ebp+0x10]` and event
+argument `[ebp+0x14]`. They construct a bundle containing the GUID pointer,
+the address of the event-argument stack slot, and the layer pointer at bundle
+`+0/+4/+8`. Entry `0x46F310` calls wrapper `0x4705C0`, then body `0x46F33C`;
+entry `0x470840` calls wrapper `0x47195A`, then body `0x47086C`.
+The manager argument is not included in these bundles. Both entries end
+with `ret 0x10`. These stack offsets describe the callback ABI.
+
+Both bodies compare all four event GUID dwords with `0x893F0`, dereference
+bundle `+4` to obtain the argument object, and query that object for IID
+`0x11C498`, `996F652A-C052-413E-9406-87884D24FA1D`. On successful query,
+they call the returned interface's `+0x0C` getter with a BSTR output slot.
+This is the same IID accepted by the constructed event object in the
+[argument binding](#search-path-initialization-and-event-argument).
+The IID's semantic name remains unidentified.
+
+| Body RVA | Query call | Getter call | Nonempty-string copy | Additional store |
+|---|---|---|---|---|
+| `0x46F33C` | `0x46F39C` | `0x46F3B7` | `0x46F3DB` to layer `+0x20` | None in this branch |
+| `0x47086C` | `0x4708CF` | `0x4708EA` | `0x47090E` to layer `+0x28` | Clears layer byte `+0x40` at `0x470916` |
+
+The copy calls the wide-string assignment helper `0x1B9A14`. The meaning of
+the `+0x40` flag is unbound. Its clear occurs only after the nonempty copy
+returns. After a nonnegative getter result, the bodies free nonnull BSTRs through OLEAUT32
+`SysFreeString`, IAT `0x5A3014`, and release the queried interface through
+`0x191790`. Their ordinary result cases are:
+
+- An unmatched GUID, null argument or failed IID query returns zero.
+  Query failure is suppressed, so zero does not prove argument acceptance.
+- A negative getter result is returned after interface cleanup.
+- A nonnegative getter with a null or empty BSTR leaves the local string
+  unchanged. It also leaves the `0x5DB24` candidate's `+0x40` flag unchanged.
+- A nonempty BSTR is copied to the local field, then freed. The body returns
+  the saved getter result after interface cleanup.
+
+The wrappers also contain alternate result stores `0x8007000E` and
+`0x80004005`; the ordinary paths do not establish exception-free execution
+or an atomic update. The SDK's reserved-null event-argument comment differs
+from the pinned engine's object-bearing construction and these consumers.
+Their static object contract does not establish generic interoperability or
+acceptance by every subscriber.
+
+Manager dispatcher `0x4693A0` looks up the event list through `0x458A2E`
+at `0x4693BA` and iterates nodes whose sink pointer is at node `+0x08`.
+At `0x4693D8..0x4693ED`, it supplies the argument, GUID, manager and sink
+to sink `+0x1C`. Its aggregate result starts at zero. The `cmovns` at
+`0x4693F9` adopts each callback result while the saved aggregate is
+nonnegative; after the first negative result, it retains that result.
+Iteration continues after failures. An empty list produces aggregate zero;
+all nonnegative results produce the last result. At `0x46940C`, a nonnull
+output pointer receives the aggregate, while the method ordinarily returns
+zero at `0x46940E`. Caller `0x390EBF` ignores both outputs.
+
+These fixed registrations and consumers identify local search-path updates.
+They do not bind constructors, runtime registration success, the selected
+subscriber list or order, argument bytes, query outputs or dispatch results.
+The inspected bodies contain string assignment and a byte store, with no
+direct native context setter. Their virtual query/getter calls and unbound
+runtime objects do not prove an engine-wide absence of context writes.
+The selected translation implementation and mismatch-event write identities
+remain the concrete context-path question. No selector, rendering, collision
+or walking acceptance follows from this event route.
 
 ## Concrete missing edge
 
