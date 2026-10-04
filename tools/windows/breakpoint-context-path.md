@@ -415,8 +415,9 @@ factory `+0x2C` at `0x2DE9DD`, and classic record query at `0x2DE9F6`.
 After classic staging at `0x2DEA1E`, it loads that original interface
 at `0x2DEA26` and calls `+0x10` at `0x2DEA3F`, with flags `0xFFFF`
 and the created record. This matches the declared execution-unit `SetContext`
-ABI, rather than the four-argument translated-context ABI. The descriptor
-field's implementation remains unbound. Query helper `0x2E259C`, invoked
+ABI, rather than the four-argument translated-context ABI. The imported
+descriptor implementation remains unbound; the local adapter is identified
+below. Query helper `0x2E259C`, invoked
 at `0x2DE969`, uses IID `0x104B50`; success refuses the path with
 `E_NOTIMPL` at `0x2DE972`. Neither that IID nor cache IID `0x9C300`
 has an identified contract in this header; their semantics remain unresolved.
@@ -426,12 +427,91 @@ Its complete body is `mov eax, 0x8000FFFF` at `0x1C6440` and
 `ret 0x18` at `0x1C6445`: an `E_UNEXPECTED` refusal, without a native
 write. This conclusion applies to that bound implementation only.
 
-The remaining static bridge is the selected translation service's
-`SetTranslatedContext` or execution unit's `SetContext` implementation,
-including descriptor `+0x04`.
-Registration and record creation do not connect these targets to Windows
-context preparation table `0x5B8E0`. Runtime owner/backend, registry-entry,
-execution-unit, translation-interface and event/write identities remain unobserved.
+The descriptor producer and one local execution-unit implementation are
+identified below, including a conditional bridge to table `0x5B8E0`.
+The imported implementation and selected translation service remain unbound.
+Runtime owner/backend, registry-entry, execution-unit, translation-interface
+and event/write identities remain unobserved.
+
+## Descriptor producer and local setter
+
+Descriptor selection `0x2D0CF0` checks descriptor `+0x00`'s `+0x2C`
+against the owner at `0x2D0D04`, then stores the descriptor in owner
+`+0xD8` at `0x2D0D9F`. Constructor `0x2E9596` stores its containing
+object in descriptor `+0x00` at `0x2E95C6` and its third argument in
+`+0x04` at `0x2E95DF`. A non-null interface is retained at `0x2E95F8`.
+The imported-object path `0x29637E` queries IID `0x9C2D0` at
+`0x2963BE` and supplies that result at `0x296475` to constructor
+call `0x29647F`. The IID matches `IID_ISvcExecutionUnit` in the pinned
+SDK header, line 256. This branch retains an incoming implementation;
+the query does not identify its concrete factory.
+
+With a null third argument, the constructor calls `0x2EB387` at
+`0x2E9611`, with descriptor `+0x04` as the output. Factory constructor
+`0x2EB417` installs primary table `0x5682C` at `0x2EB478` and
+execution-unit table `0x56818` at primary object `+0x04` at `0x2EB480`.
+Query helper `0x2EB552` recognizes `IID_ISvcThread` (`0xF7520`, header
+line 178) and `IID_ISvcExecutionUnit` (`0x9C2D0`); the latter returns
+primary object `+0x04` at `0x2EB56E`, after adjustment `0x2EB579`.
+Factory query `0x2EB3F6` returns that interface to the descriptor.
+Its query thunk `0x2EB500` subtracts four from the incoming interface
+pointer before reaching primary query wrapper `0x2EB5B0`.
+
+The same helper recognizes IID `0x104B50` and returns primary object
+`+0x08` at `0x2EB599`. Thus this local adapter satisfies the IID that
+main fallback `0x2DE820` uses to refuse its path with `E_NOTIMPL`.
+The IID's semantic name remains unidentified. Binding the local setter
+does not establish that this fallback invokes it.
+
+Execution-unit table `0x56818` binds `SetContext` (`+0x10`) to
+`0x392030`. It queries the incoming record for the classic interface at
+`0x392069` and reads up to `0xA70` bytes through `+0x10` at `0x39209C`.
+It takes the adapter-held root from interface `+0x10` at `0x3920AB`,
+resolves the containing object at `0x3920B3` and descriptor at
+`0x3920CF`, obtains backend context metadata through root `+0x21C`
+at `0x39211E`, copies the record at `0x39215A`, and masks its flags
+word at the metadata-supplied offset at `0x39215C`.
+It then takes owner = containing object `+0x2C` at `0x392167`
+and calls owner `+0x11C` at `0x39218F`, with descriptor, its
+`+0x30/+0x34` dwords and the rebuilt local buffer.
+
+## Conditional bridge to the native writer
+
+The dispatch depends on the owner implementation. Table `0x4AB30`
+binds `+0x11C` to `0x1C5AF0`, whose complete body returns
+`E_UNEXPECTED` (`0x8000FFFF`) and executes `ret 0x10`.
+Another constructor, `0x2DDB03`, installs table `0x53648` at
+`0x2DDB1E`. That table binds `+0x11C` to `0x1E7CB0` and main
+fallback `+0x128` to `0x1E7D10`.
+
+The aligned construction block `0x1B027E..0x1B0373` calls
+`0x2DDB03` at `0x1B02A1`. One later branch constructs the native
+object through `0x3D8BB4` at `0x1B032B` and stores it in owner
+`+0xED0` at `0x1B036D`; another retains a supplied object.
+Constructor `0x3D8BB4` installs table `0x5B8E0` at `0x3D8BCF`.
+These branches connect the two tables conditionally; they do not prove
+the fixture selected either object.
+
+Owner method `0x1E7CB0` returns `E_ACCESSDENIED` when a non-null
+descriptor's containing-object `+0x100` has bit 5 set. Otherwise it
+loads owner `+0xED0` at `0x1E7CD6` and calls its `+0x98` at
+`0x1E7CFC`. The stack arguments are that interface, caller dwords
+from `+0x0C/+0x10`, caller buffer from `+0x14`, owner `+0x58`, and
+zero. In the constructed table `0x5B8E0`, `+0x98` is `0x3DDE40`.
+
+`0x3DDE40` validates the two-dword handle and supplied context size.
+Its ordinary branch calls wrapper `0x3D049D` at `0x3DDE8A`, with
+ECX = handle low dword and EDX = context buffer. That wrapper calls
+the resolved SetThreadContext slot `0x5A82A0` at `0x3D04C2`, or
+fallback slot `0x5A8360` through the same call site. The XState branch
+instead calls `0x3DF730` at `0x3DDE7A`; see the context preparation
+locators above. Size/flag checks, refusal branches and API results
+remain part of the path, so reaching the adapter does not prove a write.
+
+This closes a conditional static bridge from the local execution-unit
+setter through an identified owner to the native context wrapper.
+It does not bind the incoming implementation, the translation service,
+the fixture's selected owner/backend, or any mismatch-event write.
 
 ## Concrete missing edge
 
