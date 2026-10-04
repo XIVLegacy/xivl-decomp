@@ -1,8 +1,8 @@
 # ARR debug and retail client comparison
 
-RUDP2 segment methods and the receive dispatcher have demonstrated functional
-correspondence between the ARR PS3 debug executable and the Windows 1.23b
-client. The receive comparison preserves differences in handling unsupported
+Selected RUDP2 operations have demonstrated functional correspondence between
+the ARR PS3 debug executable and the Windows 1.23b client. The receive
+comparison preserves differences in handling unsupported
 input and validating SYN data. The string comparison demonstrates incompatible
 object layouts. The functions and objects below do not establish game opcodes,
 source identity, or correspondence across the whole subsystem.
@@ -381,7 +381,7 @@ nonzero phase skips initialization. Clock providers and units retain the
 differences described above. Both then pass the saved segment pointer to an
 outbound helper: ARR `sendSegment` at `0xE385EC`, retail `0x00D44FD0`.
 The caller does not branch on its result before rechecking the queues.
-The outbound bodies have not been paired in this comparison.
+The outbound preparation and call sequence are compared below.
 
 Bounded interpretation of the raw admission blocks agreed for 57,122 cases:
 empty/nonempty unsent counts and the Cartesian product of signed count/limit
@@ -398,6 +398,121 @@ timer initialization. Retail has two recorded direct calls, at
 The recorded references do not exclude computed or runtime calls. No full
 retransmission algorithm, outbound serialization, game opcode or runtime
 connection behavior follows from this pair.
+
+## Outbound segment preparation and send call
+
+Retail VA `0x00D44FD0` corresponds to the visible preparation and send-call
+operation in ARR `RUDPImpl::sendSegment(RUDPSegment&)`, direct code VA
+`0xE385EC`, size `0x1E8`. ARR body DIE `0x686343A` references private
+declaration `0x686214E` in CU `0x683F4F5`. It has an artificial this parameter,
+a mutable segment reference and no return type. Retail receives the object
+in ECX, takes one stack segment pointer and ends with `ret 4` at
+`0x00D450B6`. Capstone decoded all 122 ARR instructions and all 67 retail
+instructions in the contiguous `0xE9`-byte body `0x00D44FD0..0x00D450B8`.
+The complete Ghidra listing agrees with that retail span.
+
+Both call the segment's virtual type getter, anchored to the six values in
+the table above. For values 0, 4 or 5, both read and clear one object counter.
+When its old value is nonzero, they OR segment byte `+0x04` with `0x40` and
+copy the low byte of another object word into segment byte `+0x07`. The
+counter is cleared even when its old value was zero. Other type values skip
+these stores. ARR writes byte `+0x07` before `+0x04`; retail writes `+0x04`
+before `+0x07`. Their final local effects agree for ordinary distinct objects,
+without establishing identical concurrent or atomic behavior.
+
+| Access | ARR object offset | Retail object offset |
+|---|---|---|
+| Word supplying segment byte `+0x07` | `+0xC4` | `+0xCC` |
+| Read-and-cleared counter | `+0xC8` | `+0xD0` |
+| Clock seconds / two further clock fields | `+0xD8 / +0xE0 / +0xE8` | `+0xE0 / +0xE8 / +0xF0` |
+| Socket pointer passed to the outbound helper | `+0x6C` | `+0x74` |
+| Address of the endpoint passed to that helper | `+0x7A` | `+0x82` |
+
+ARR DWARF names the words `m_Counters.m_LastInSequence` and
+`m_Counters.m_CumAckCounter`, the timer `m_NullSegmentTimer`, the socket
+`m_pSocket` and the endpoint `m_Endpoint`. `RUDPTimer` inherits `Timer` at
+zero; that base declares a four-byte seconds field and two eight-byte clock
+fields. These are ARR declarations. Retail constructor `0x00D45510`
+independently stores its supplied or locally constructed socket at `+0x74`,
+constructs the endpoint at `+0x82`, clears the two words at `+0xCC/+0xD0`,
+and initializes timer storage at `+0xE0`. The local socket constructor
+`0x00D36800` installs RTTI-owned Socket vtable `0x01110730` at `0x00D3680B`.
+RUDPImpl's vptr at `0x00D4559C` points to RTTI-owned
+RUDPImpl vtable `0x01113378`. These accesses do not establish complete retail
+counter, timer, endpoint or RUDPImpl layouts.
+
+For type values 0 and 4, both refresh the three clock fields before
+serialization. ARR calls `time` and uses the PS3 time base; retail calls
+`__time64`, `timeGetTime` and `0x004CFA50`. Retail stores only the low dword
+of the seconds result here. It zeroes the upper dword paired with
+`timeGetTime`, then stores the EDX:EAX result of the last helper. Clock
+providers, values and units have not been equated. This function does not
+test or set the timer phase.
+
+Both pass a stack buffer and capacity `0x2000` to virtual `getBytes`.
+Retail reserves `0x2004` bytes through `__alloca_probe` at `0x009D29D0`:
+the buffer occupies the first `0x2000` bytes, with a security cookie above it.
+The LEAs at `0x00D45075` and `0x00D45093` resolve to the same buffer after
+their respective argument pushes. Ghidra's inferred 8184-byte local array
+does not establish the buffer extent. ARR reserves a `0x2080`-byte frame
+and supplies the buffer at stack `+0x70`. Neither caller clears the buffer.
+
+For a false serializer result, both skip the length getter and socket call.
+For a true result, both call virtual `getLength` on the same segment and
+pass the same buffer, the returned length and the endpoint address to the
+socket helper. Retail uses segment vtable `+0x10` for serialization and
+`+0x0C` for length; ARR uses `+0x14/+0x10`, resolving each entry through its
+two-word code/TOC descriptor. The virtual declarations return bool and int,
+respectively. Retail tests AL for the bool; ARR compares the 32-bit value in
+r3 with zero. The comparison assumes the declared Boolean return contract.
+
+Raw vtable words independently select the base serializer and length getter
+for ACK, RST and NUL. DAT has distinct length and serialization targets:
+retail `0x00D51D50 / 0x00D51D80`, ARR descriptors
+`0x1B7EF30 / 0x1B7EF38`, code `0x15446C0 / 0x1544708`.
+SYN and EAK override serialization at retail `0x00D52560 / 0x00D52150`,
+ARR descriptors `0x1B7EF88 / 0x1B7EF50`, code
+`0x1544C2C / 0x1544924`. These are dispatch locators, not comparisons of
+those serializer bodies. The base four-byte copy described above does not
+establish every byte sent by this caller. Neither caller independently
+checks the length returned after serialization against `0x2000`.
+
+The outbound calls are ARR `Socket::sendTo` at `0xE2AC08` and retail
+`0x00D360A0` at callsite `0x00D4509B`. Both wrappers read socket object
+`+0x0C` and return `-0x1000` for a null implementation. Retail tail-calls
+`0x00D446F0` otherwise; ARR incorporates the report and error-callback
+branches in its wrapper. They pass an address extent of `0x10` to retail
+`0x00D431B0` and ARR `SocketPS3::sendto` at `0xE36EF0`. The retail leaf calls
+the PE import `sendto`; ARR calls symbol `.sendto` at `0x1782618`.
+Both pass the stored socket handle at implementation `+0x04`, the buffer,
+length, flags zero, endpoint and extent. On a result of -1, their leaves map
+one literal error value to zero: retail `0x2733`, ARR `0x23`. Other errors
+enter different diagnostic helper chains; their raw continuations select -1
+when those helpers return. Their APIs and
+error handling have not been equated. Complete lower-level
+socket behavior is outside this pair's correspondence.
+
+The main functions do not test the socket result or restore the earlier
+counter, segment bytes or clock fields. In particular, a false serializer
+result retains the prior updates without invoking the socket, and a socket
+error produces no retry or rollback branch in this function. These local
+effects do not establish overall acknowledgement delivery, retry policy,
+complete serialization, packet meanings, game opcodes or runtime success.
+
+Bounded interpretation of the raw mutation and clock-selection blocks agreed
+for 42,240 cases: type values 0..7, `0x7FFFFFFF`, `0x80000000` and
+`0xFFFFFFFF`; counter values 0, 1 and `0xFFFFFFFF`; all 256 flag bytes; and
+source words 0, 127, 255, 256 and `0xFFFFFFFF`. The serializer branch agreed
+for Boolean results 0 and 1. Those separate blocks yield 84,480 combinations;
+virtual bodies, clocks and socket calls were not executed or modeled.
+
+Confidence is high in the shared preparation and send-call role, beyond
+the ARR name. Retail has five recorded direct calls: `0x00D45125`,
+`0x00D45B8A`, `0x00D45D44`, `0x00D465CE` and `0x00D46728`, owned by
+functions `0x00D450C0`, `0x00D45AF0`, `0x00D45C00`, `0x00D46560` and
+`0x00D465F0`. The queue-drain caller is independently compared above.
+The verified reference query covers Ghidra-recorded references to the exact
+target, without excluding computed or runtime calls.
 
 ## Utf8String layout contradiction
 
@@ -442,7 +557,7 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is retail `0x00D44FD0` against ARR
-`RUDPImpl::sendSegment` at `0xE385EC`. Compare segment serialization,
-buffer sizes, socket call arguments and failure branches before assigning
-wire or retransmission meanings.
+The next bounded target is retail DAT serializer `0x00D51D80` against ARR
+`DATSegment::getBytes` at `0x1544708`, anchored by descriptor `0x1B7EF38`.
+Compare its capacity checks, header and payload writes, and length getter
+before assigning a complete wire layout or meaning to remaining bytes.
