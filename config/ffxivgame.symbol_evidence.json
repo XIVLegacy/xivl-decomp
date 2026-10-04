@@ -328,7 +328,7 @@
    "kind": "resolver",
    "evidence_class": "literal-sheet-name-and-row-key-column-data-flow",
    "producer": "tools/ghidra_scripts/DecompileToText.java and tools/ghidra_scripts/FindCallers.java",
-   "observation": "The function lazily opens the literal actorclass_graphic sheet, caches its handle at object offset 0xf4, and passes its caller-supplied key to virtual offset 0x18 on that handle. After resolving the row, it tests and reads numeric columns by index. Columns 0x19 through 0x1f are copied unchanged to output dwords 6 through 12, which the CharaElement caller copies to record offsets 0x18 through 0x30. A fresh xref census found exactly two direct callers, at 0x00564e6d and 0x00585da5.",
+   "observation": "The function lazily opens the literal actorclass_graphic sheet, caches its handle at object offset 0xf4, and passes its caller-supplied key to virtual offset 0x18 on that handle. After resolving the row, it tests and reads numeric columns by index. Columns 0x19 through 0x1f are copied unchanged to output dwords 6 through 12, which the CharaElement caller copies to record offsets 0x18 through 0x30. An xref census found exactly two direct callers, at 0x00564e6d and 0x00585da5.",
    "supported_imported_fields": [
     "name",
     "kind"
@@ -787,7 +787,7 @@
     "kind"
    ],
    "confidence": "tracked RTTI slot, direct bounds and jump-table observation, and direct 116-byte copy",
-   "ambiguity": "The producer is now traced through 0x007c93c0 to an already-resolved CharaElement-local record. Static evidence does not establish that the payload is a wire packet or that any field is a catalog ID.",
+   "ambiguity": "The producer is traced through 0x007c93c0 to an already-resolved CharaElement-local record. Static evidence does not establish that the payload is a wire packet or that any field is a catalog ID.",
    "retail_provenance": [{"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-producer", "addresses": ["0x00662d30", "0x00663808", "0x00663c08", "0x00663ae8", "0x006623f0"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-closing", "addresses": ["0x00585d70", "0x004d7980", "0x004ec080", "0x004e9700", "0x0060c140", "0x007c93c0", "0x00662d30"]}, {"binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9", "run_id": "item-appearance-slot157-producer-callers", "addresses": ["0x004e9700", "0x0060c140", "0x007c93c0", "0x00662d30"]}]
   },
   {
@@ -1417,7 +1417,7 @@
    "kind": "named",
    "evidence_class": "local-control-flow",
    "producer": "Ghidra 12.1.3 fresh-import decompilation and caller enumeration plus ghidra/FindReferences.java address export",
-   "observation": "The function looks up SID 0xc0000024 through 0x004d9910 and, only when absent, calls 0x004d90c0 with class index 0x1a and SID 0xc0000024. Fresh direct-caller enumeration reports no callers. A separately verified-complete address export reports zero Ghidra-recorded references to 0x0075be50, leaving no code or data reference type, operand, containing function, or non-function section to follow.",
+   "observation": "The function looks up SID 0xc0000024 through 0x004d9910 and, only when absent, calls 0x004d90c0 with class index 0x1a and SID 0xc0000024. Direct-caller enumeration reports no callers. A separately verified-complete address export reports zero Ghidra-recorded references to 0x0075be50, leaving no code or data reference type, operand, containing function, or non-function section to follow.",
    "supported_imported_fields": [],
    "confidence": "direct literal arguments, branch, call targets, complete per-function direct-caller enumeration, and verified-complete analyzed-reference negative",
    "ambiguity": "The function establishes the create-if-absent primitive for the SID used by the MyPlayer/local-control bind gate. The analyzed reference database excludes a recorded owner edge but cannot exclude computed or indirect dispatch, dynamic setup, or unanalyzed references. The bootstrap name, class-index meaning, and originating packet opcode remain unresolved.",
@@ -1687,7 +1687,7 @@
    "kind": "named",
    "evidence_class": "rtti-vtable-and-control-flow",
    "producer": "Ghidra 12.1.3 fresh-import decompilation and caller enumeration plus the local RTTI and vtable catalogs",
-   "observation": "RTTI assigns the function to InitializeWaitingActorContainer vtable slot 1. On the nonempty current-candidate path, it completes actor/class setup through 0x007687f0, reads the SID as **(container+0x2c), writes that SID to container+0x170, removes the candidate, and clears container+0x2c. Fresh direct-caller enumeration reports no callers, consistent with the vtable entry.",
+   "observation": "RTTI assigns the function to InitializeWaitingActorContainer vtable slot 1. On the nonempty current-candidate path, it completes actor/class setup through 0x007687f0, reads the SID as **(container+0x2c), writes that SID to container+0x170, removes the candidate, and clears container+0x2c. Direct-caller enumeration reports no callers, consistent with the vtable entry.",
    "supported_imported_fields": [],
    "confidence": "direct local RTTI slot, candidate-field dataflow, write, cleanup path, and complete per-function direct-caller enumeration",
    "ambiguity": "The slot is the positive +0x170 writer after asynchronous script/class completion. Constructor 0x00773a30 writes the null-SID sentinel instead. The virtual callback edge does not identify an originating packet opcode.",
