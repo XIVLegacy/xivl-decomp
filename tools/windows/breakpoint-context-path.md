@@ -754,8 +754,9 @@ and nonnull global `0x5969BC` guard lead to helper `0x390EBF` at
 `0x396C3B`. That helper queries GUID `0x89560` at `0x390F10` and
 GUID `0x89AF0` at `0x390F56`, both for IID `0xF5350`. A nonnegative
 query calls the returned interface's `+0x0C` at `0x390F2D` or
-`0x390F73`. These query-selected interfaces and methods are unbound;
-neither query identifies the execution-context translation GUID or IID.
+`0x390F73`. The [local wrapper implementations](#completion-event-service-wrappers)
+can be bound statically; the retained event's query-selected objects remain
+unobserved. Neither query identifies the execution-context translation GUID or IID.
 The helper also calls `0x398DCB` at `0x390F82` and, on success,
 fires event `0x893F0` at `0x390FA5`. That helper's implementation and
 the latter event's selected sinks are outside the inspected dispatch binding.
@@ -766,6 +767,84 @@ Neither route binds the translation record or concrete setter used by the
 mismatch event. The retained rows do not record these callbacks, query results,
 or event sinks; this static inventory does not establish translation-service
 absence or a successful context write.
+
+## Completion-event service wrappers
+
+In the pinned engine, helper `0x2D5134` conditionally wraps existing services
+before registering the wrapper's primary pointer. For GUID `0x89560`, it
+requests IID `0x104CB0` at `0x2D5184`; for `0x89AF0`, it requests IID
+`0xE3C1C` at `0x2D5247`. A negative initial query bypasses that wrapper.
+A nonnegative query is followed by `QueryInterface` for IID `0x104BA0`
+at `0x2D51B6/0x2D5275`. Success bypasses construction; failure enters
+factory `0x2E1F08/0x2E1FC9` at `0x2D51D9/0x2D5299`.
+These are wrappers of query-selected services, not defaults created after
+a failed initial service lookup. All addresses below are engine RVAs.
+
+| Service GUID | Factory and allocation size | Constructor and primary table | RegisterServices | IID `0xF5350` output | Output table and `+0x0C` |
+|---|---|---|---|---|---|
+| `0x89560` | `0x2E1F08`, `0x38` bytes | `0x2E3165`, `0x532D4` | `0x2E8440` | primary `+0x08` | `0x532B0`, `0x2E5F40` |
+| `0x89AF0` | `0x2E1FC9`, `0x60` bytes | `0x2E3207`, `0x53254` | `0x2E8410` | primary `+0x0C` | `0x53220`, `0x2E57B0` |
+
+The factories call the constructors at `0x2E1F5B/0x2E201C`.
+Their final primary-table stores at `0x2E31CA/0x2E3273` bind the
+registration methods. Setup calls the resulting layer's `+0x0C`
+at `0x2D51F9/0x2D52B8`. Both complete registration methods pass
+the listed GUID and primary pointer to manager `+0x18`
+at `0x2E845F/0x2E842F` and end in `ret 8`.
+
+The factories also call binders `0x2E7898/0x2E7823` at
+`0x2E1F75/0x2E2036`. These retain the original query-selected service
+at primary `+0x2C/+0x34`, storing it at `0x2E78D0/0x2E785B`.
+The owner is supplied separately and stored at primary `+0x30`.
+The service-pointer retention and interface adjustment are needed to follow
+the later callbacks; nearby tables do not substitute for this binding.
+
+For table `0x532D4`, primary `QueryInterface` is `0x2E62E0`.
+It calls `0x2E61FD` at `0x2E62EE`; that helper compares IID
+`0xF5350` at `0x2E6265` after two four-byte pointer increments
+at `0x2E6259/0x2E626A`. A match stores primary `+0x08`
+at `0x2E6276`. Constructor store `0x2E31D7` binds that subobject
+to table `0x532B0`, whose `+0x0C` is `0x2E5F40`.
+
+For table `0x53254`, primary `QueryInterface` is `0x2E5B60`.
+It calls `0x2E5B03` at `0x2E5B8D`. After two four-byte increments,
+that helper passes primary `+0x0C` to `0x2E61C3` at `0x2E5B4F`.
+The latter compares IID `0xF5350` at `0x2E61CB` and stores its
+incoming subobject pointer at `0x2E61DF` on a match. Constructor
+store `0x2E3287` binds that pointer to table `0x53220`, whose
+`+0x0C` is `0x2E57B0`.
+
+Each callback queries the retained service for IID `0xF5350` through
+its `QueryInterface` slot. Method `0x2E5F40` reads the retained pointer
+at interface `+0x24` (primary `+0x2C`) at `0x2E5F60` and queries
+at `0x2E5F7B`. Method `0x2E57B0` reads interface `+0x28`
+(primary `+0x34`) at `0x2E57D8` and queries at `0x2E57F3`.
+On success, they call the newly returned interface's `+0x0C` at
+`0x2E5FA3/0x2E5813`, forwarding their second stack argument unchanged.
+On the completion-event path this is global `0x5969BC`'s value.
+The actual retained objects, their IID-query results and the methods reached
+by these further indirect calls remain unbound.
+
+The failure paths differ. `0x2E57B0` returns its negative query result;
+`0x2E5F40` leaves its result zero when the query fails. Thus a successful
+outer wrapper call need not establish a successful inner query or callback.
+Both complete methods end in `ret 8`, at `0x2E5826/0x2E5FB6`.
+No native context-write success follows from these wrapper results.
+
+A separate inspected primary table, `0x5D248`, shares registration method
+`0x2E8440` but has `QueryInterface = 0x455FE0`. Its complete query body
+accepts the three IID values at `0x94F14/0x96570/0x104CB0` and otherwise
+returns `E_NOINTERFACE` (`0x80004002`) through `0x456039`.
+The four GUID byte values, including `0xF5350`, are distinct. This table
+therefore does not supply the requested IID; its registration slot or a
+neighboring interface table cannot prove completion-event callback selection.
+
+These conditional construction paths bind local wrapper candidates, not the
+objects selected by the retained mismatch event. They leave the translation
+service record, concrete setter, ordered context writes, helper `0x398DCB`
+and event `0x893F0`'s selected sinks unresolved. The next static edge is the
+retained services behind primary `+0x2C/+0x34` and their IID `0xF5350`
+implementations. Static tracing cannot supply the missing event identities.
 
 ## Concrete missing edge
 
