@@ -6,6 +6,7 @@ Each finding records its evidence and the limits of what it establishes.
 ## Start here
 
 - [Repository style](style-guide.md)
+- [ARR debug and retail comparison](arr-debug-comparison.md)
 
 ## Actors and gameplay presentation
 
