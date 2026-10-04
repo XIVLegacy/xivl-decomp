@@ -758,8 +758,10 @@ query calls the returned interface's `+0x0C` at `0x390F2D` or
 can be bound statically; the retained event's query-selected objects remain
 unobserved. Neither query identifies the execution-context translation GUID or IID.
 The helper also calls `0x398DCB` at `0x390F82` and, on success,
-fires event `0x893F0` at `0x390FA5`. That helper's implementation and
-the latter event's selected sinks are outside the inspected dispatch binding.
+fires event `0x893F0` at `0x390FA5`. The
+[search-path initialization binding](#search-path-initialization-and-event-argument)
+identifies that helper and these GUIDs; the event's selected sinks remain
+unobserved.
 
 The local no-op callbacks close one possible initialization route. The shared
 layer exposes a completion-event route with additional query-selected calls.
@@ -841,8 +843,8 @@ neighboring interface table cannot prove completion-event callback selection.
 
 These conditional construction paths bind local wrapper candidates, not the
 objects selected by the retained mismatch event. They leave the translation
-service record, concrete setter, ordered context writes, helper `0x398DCB`
-and event `0x893F0`'s selected sinks unresolved. The
+service record, concrete setter, ordered context writes and event
+`0x893F0`'s selected sinks unresolved. The
 [standard aggregator families](#retained-service-aggregators) provide static
 candidates for the retained services behind primary `+0x2C/+0x34`.
 Static tracing cannot supply the missing event identities.
@@ -1080,9 +1082,100 @@ or virtual service callback in this body. Wrappers `0x471D4C` and
 `0x457AAA` also contain alternate result stores `0x8007000E` and
 `0x80004005`; the ordinary zero return does not establish exception-free
 execution. This string parsing route supplies no native-context commit
-evidence. The source string's semantic purpose and actual callback argument
-remain unbound, as do other children and the mismatch event's selected
-objects. A complete engine-wide absence of context writes is not inferred.
+evidence. The [SDK GUID binding](#search-path-initialization-and-event-argument)
+identifies this interface's search-path role. Its actual runtime string,
+other children and the mismatch event's selected objects remain unbound.
+A complete engine-wide absence of context writes is not inferred.
+
+## Search-path initialization and event argument
+
+The pinned `DbgServices.h` identifies the interfaces used by `0x390EBF`
+as debugger search-path configuration. Its SHA-256 is
+`e4cffdb5a90b8752db99b0d149fcd8cc78ecfed261564dc78c6cb1482495e7de`
+from Microsoft.Debugging.TargetModel.SDK `20220505.1011.0`. Engine GUID bytes
+match its `DEFINE_GUID` declarations at the following RVAs:
+
+| Engine RVA | SDK identifier | GUID |
+|---|---|---|
+| `0x89560` | `DEBUG_SERVICE_IMAGE_PROVIDER` | `F656EC69-9E28-41BA-BC6A-CAF8A5CEC8ED` |
+| `0x89AF0` | `DEBUG_SERVICE_SYMBOL_PROVIDER` | `088C65CF-5950-4C41-9F2E-82FF1F93EFB3` |
+| `0x104CB0` | `IID_ISvcImageProvider` | `76D4EDDF-282E-4381-8389-6FA9EEB067C2` |
+| `0xE3C1C` | `IID_ISvcSymbolProvider` | `23ED1044-166C-4C62-91FC-B5656E4A74EF` |
+| `0xF5350` | `IID_ISvcSearchPaths` | `F3E0DAE9-6385-41BE-9EA6-75BCFBF5B727` |
+| `0x893F0` | `DEBUG_SVCEVENT_SEARCHPATHSCHANGED` | `53E3027B-535E-4E21-972E-F76FE605A1B0` |
+
+The SDK's `ISvcSearchPaths` declaration, lines 8408..8435, places
+`SetAllPaths(PCWSTR)` at `+0x0C` and `GetAllPaths(BSTR*)` at `+0x10`
+after IUnknown. It defines a semicolon-separated image/symbol search-path
+list. Consequently the completion-event calls at `0x390F2D/0x390F73`,
+the wrapper delegations and the supplied-child parsing body `0x471AFA`
+implement the search-path interface's first method. Their string purpose
+is identified independently of runtime callback selection. These are not
+execution-context translation interface methods.
+
+For a nonnull second stack argument, `0x390EBF` queries the image and
+symbol service entries for that search-path interface. A failed query skips
+its call. The results of successful-query `SetAllPaths` calls are not checked:
+control proceeds to the next query or argument construction. Therefore the
+subsequent event does not establish that either service accepted the paths.
+The two `SetAllPaths` calls push the string pointer from global `0x5969BC`
+at `0x390F19/0x390F5F`; the argument-object helper separately reads the
+caller's second stack-argument slot. Their runtime string bytes are unobserved.
+The null-second-argument branch at `0x390ECB` calls `0x44F8D9` and returns
+one without this query/construction/event sequence; that callee's behavior
+is outside this binding.
+
+At `0x390F78/0x390F7F`, EDX is the address of the caller's second stack
+argument (`[ebp+0x0C]`), and ECX points to its local output object slot
+(`[ebp-0x14]`). Helper `0x398DCB` clears that output at `0x398DDE`,
+requests `0x24` allocation bytes through `0x482B52` at `0x398DEC`,
+and returns `0x8007000E` if that request returns zero. On success,
+constructor `0x3998A3` sets reference count root `+0x08` to one,
+root table `0x5AB4C`, and an empty wide-string object at root `+0x0C`,
+with length `+0x1C` zero and capacity `+0x20` seven. The constructor
+also conditionally calls global `0x596904`'s `+0x04`; its runtime object
+is not identified here.
+
+The helper reads the string pointer through its incoming EDX at `0x398E10`
+and bundles the new root with the address of that string pointer.
+Initialization wrapper `0x31479D`, called at `0x398E26`, copies the
+NUL-terminated wide string to root `+0x0C` through `0x1B9A14` at
+`0x3147B8`, using the previously bound assignment/growth helpers. Its
+ordinary result is zero; alternate result stores are `0x8007000E` and
+`0x80004005`. A negative result skips publication of the output object.
+On nonnegative completion, the helper calls root `+0x04` at `0x398E47`,
+publishes the root at `0x398E4E`, releases the temporary reference through
+`0x191790` at `0x398E53`, and ordinarily returns zero. This binds object
+construction and string copy, without asserting exception-free execution.
+
+Table `0x5AB4C` binds query `0x39A390`, AddRef `0x19F0C0`, Release
+`0x29AEA0` and string getter `0x39A350` at offsets `+0/+4/+8/+0x0C`.
+The query accepts IUnknown or engine IID `0x11C498`,
+`996F652A-C052-413E-9406-87884D24FA1D`, returns the root and adds a
+reference; other IIDs return `0x80004002`. The latter IID's semantic name
+is not identified by this SDK binding. The getter chooses inline or heap
+storage from the root `+0x0C` string and calls `SysAllocString` through
+IAT RVA `0x5A302C` at `0x39A364`, then stores the returned pointer through
+its output argument. This is a string-bearing event object, not a Windows
+context buffer. No claim about successful BSTR allocation follows from its
+ordinary return code alone.
+
+A nonnegative helper result gates `0x390FA5`, where manager `+0x24`
+receives the constructed object as the `0x893F0` event argument. Neither
+that method's result nor its sink-result output is checked; `0x390EBF`
+returns the saved construction result at `0x390FB8`. It releases its
+local object at `0x390FAB`. The pinned SDK's event comment at lines
+9661..9673 describes a reserved, currently null argument, whereas this
+pinned engine path supplies the string object. GUID identity is established;
+the SDK comment does not establish this engine revision's argument contract
+or a consumer's acceptance of that object.
+
+Capstone and LLVM inspection bound these instructions, tables and GUIDs
+without loading the engine. This construction route supplies no native
+context-write evidence. The actual path string, queried service objects,
+event subscribers and their results remain unobserved. Static subscribers
+and consumers of `0x893F0` remain a separate edge, as do the selected
+translation service, context setter and ordered write identities.
 
 ## Concrete missing edge
 
