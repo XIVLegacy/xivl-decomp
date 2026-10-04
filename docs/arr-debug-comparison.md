@@ -473,7 +473,8 @@ retail `0x00D51D50 / 0x00D51D80`, ARR descriptors
 SYN and EAK override serialization at retail `0x00D52560 / 0x00D52150`,
 ARR descriptors `0x1B7EF88 / 0x1B7EF50`, code
 `0x1544C2C / 0x1544924`. These are dispatch locators, not comparisons of
-those serializer bodies. The base four-byte copy described above does not
+the SYN or EAK serializer bodies. The DAT pair is compared below.
+The base four-byte copy described above does not
 establish every byte sent by this caller. Neither caller independently
 checks the length returned after serialization against `0x2000`.
 
@@ -513,6 +514,118 @@ functions `0x00D450C0`, `0x00D45AF0`, `0x00D45C00`, `0x00D46560` and
 `0x00D465F0`. The queue-drain caller is independently compared above.
 The verified reference query covers Ghidra-recorded references to the exact
 target, without excluding computed or runtime calls.
+
+## DAT length and payload serialization
+
+Retail `0x00D51D50` and `0x00D51D80` correspond to the visible DAT length
+calculation and capacity-checked header/payload copy in ARR
+`DATSegment::getLength() const` and
+`DATSegment::getBytes(unsigned char*, int) const`. The independently recovered
+retail RTTI is `.?AVDATSegment@RUDP2@Socket@Sqex@@`, type descriptor
+`0x0130F3A8`, COL `0x011A0C88`, vtable `0x011142DC`. Its base-class array
+includes `RUDPSegment` at displacement zero. Vtable slots 3 and 4, at
+`0x011142E8` and `0x011142EC`, select the two retail methods.
+The verified reference query recorded one data reference to each function,
+at those words; this does not exclude virtual or computed calls.
+
+| Method | ARR body / specification DIE | ARR code / descriptor VA | Retail body |
+|---|---|---|---|
+| `getLength` | `0x6864F3F / 0x68613CF` | `0x15446C0 / 0x1B7EF30` | `0x00D51D50..0x00D51D7D`, `0x2E` bytes, 21 instructions |
+| `getBytes` | `0x6864F6C / 0x68613F3` | `0x1544708 / 0x1B7EF38` | `0x00D51D80..0x00D51E10`, `0x91` bytes, 62 instructions |
+
+The ARR bodies occupy `0x48` and `0xD4` bytes, 18 and 53 PPC instructions.
+Both descriptor entries contain a 32-bit code word and TOC `0x1BA5FB0`.
+They are data locators; the code addresses above are direct `.text` functions.
+The complete raw and Ghidra retail instruction listings agree. ARR DWARF in
+CU `0x683F4F5` declares a four-byte signed int return for length and a one-byte
+bool return for serialization, a const-qualified this parameter, a mutable
+byte-buffer pointer and signed int capacity. Retail receives this in ECX;
+serialization takes two stack arguments and its exits use `ret 8`.
+
+ARR class DIE `0x68612A1` declares size `0x18`, with public `RUDPSegment`
+base at zero through inheritance DIE `0x68612B4`. The following field accesses
+were recovered independently from retail instructions:
+
+| Access | ARR declaration | Offset in both inspected objects |
+|---|---|---|
+| Four copied header bytes | Base `m_Flags`, `m_HeaderLength`, `m_SequenceNumber`, `m_AckNumber` | `+0x04..+0x07` |
+| Raw payload pointer | `m_Data`, member DIE `0x68612BE` | `+0x0C` |
+| Raw payload length word | `int m_DataLength`, DIE `0x68612D1` | `+0x10` |
+| Alternative buffer-object pointer | `m_pDataBuffer`, DIE `0x68612E4` | `+0x14` |
+| Buffer-object first / end words | ARR `RUDP_UINT8_VECTOR` resolves to a 16-byte vector | Buffer `+0x04 / +0x08` |
+
+Pointer access widths come from four-byte loads, stores and vtable words;
+the referenced pointer DIEs do not explicitly declare their byte size.
+Retail clone `0x00D51E80` requests `0x18` bytes before calling constructor
+`0x00D51C50`. That constructor installs the DAT vptr at `0x00D51CA5`, sets
+object byte `+0x05` to 6 at `0x00D51C85`, and selects raw-pointer/length or
+allocated-buffer storage at `+0x0C/+0x10/+0x14`. ARR constructor
+`0xE37580`, size `0x25C`, makes the same storage selection, sets byte `+0x05`
+to 6 at `0xE375BC`, and installs its DAT address point `0x19DC968` at
+`0xE375DC`. Allocation implementations, constructor failure behavior,
+destruction and complete layouts are outside this method pair's promotion.
+
+For a null buffer-object pointer, both length getters add the unsigned byte
+at object `+0x05` to the raw word at `+0x10`. For a nonnull buffer object,
+they instead add that byte to zero when its first word is null, or to the
+32-bit end-minus-first difference otherwise. The returned low 32 bits agree;
+there is no independent pointer-order, overflow or raw-length validation in
+these getters. ARR member names do not supply retail wire semantics.
+
+Both serializers call virtual length first: retail through vtable `+0x0C`
+at `0x00D51D88`, ARR through the descriptor selected at vtable `+0x10`,
+called at `0x1544744`. They compare the signed 32-bit capacity against that
+result. A smaller capacity returns false before either serializer writes the
+destination or calls memcpy. Otherwise both copy object bytes `+0x04..+0x07`
+in order to destination bytes 0..3. They select the raw source at `+0x0C`
+and size at `+0x10`, or buffer first and end-minus-first size, then call
+memcpy to destination `+6`. Both return true after that copy call returns.
+Retail calls `_memcpy` at `0x009D4600`; ARR calls `.memcpy` at `0x1079614`.
+This compares the caller's arguments and visible effects under the valid,
+nonoverlapping copy contract, not the two library implementations.
+
+Neither serializer writes destination bytes 4 or 5, and neither clears the
+destination. The payload begins at constant offset 6, independently of the
+byte used in the length calculation. With constructor-established header
+length 6 and a stable payload extent from zero through `INT_MAX - 6`, the
+nonoverflowing signed total lets the capacity test account for that offset.
+It does not establish a safe bound for overflowing, malformed or changing
+length state. For example, raw length `0x7FFFFFFA` plus header length 6 yields
+`0x80000000`; signed capacity zero passes into a copy with count `0x7FFFFFFA`.
+This is a raw-state counterexample, without establishing its runtime
+reachability or performing the copy. The outbound caller above supplies an uncleared stack buffer
+and sends the separately returned length. No static observation here assigns
+values or protocol meaning to bytes 4/5, demonstrates a runtime disclosure,
+or establishes complete deterministic wire serialization.
+
+The buffer branch contains a concrete difference. After passing capacity and
+writing the four header bytes, retail calls `0x009D22B4` at `0x00D51DD7` when
+the first pointer is null or end equals first. ARR has no corresponding call
+and proceeds with copy size zero. The retail helper is a `0x10`-byte wrapper
+that passes five zero arguments to `0x009D2290`; the latter calls `0x009DF187`
+with word `0x01363F1C` and tail-dispatches a nonnull result, or follows a
+separate fallback. Neither its return nor its effects were assumed.
+The raw retail continuation reloads the
+source pointer while retaining the previously computed copy count. Empty or
+invalid buffer handling is therefore not functionally equated, even when
+length getters return the same value.
+
+Bounded interpretation of these raw getters and serializer blocks covered
+1,278 cases across raw, nonnull-vector and null-first-vector branches;
+payload sizes 0, 1, 2, 31, 255, 8186 and 8187; three four-byte header patterns
+with length bytes 4, 6 and 255; signed capacity boundaries and fixed capacities
+including `INT_MIN`, -1, 0, 4, 5, 6, `0x2000` and `INT_MAX`; and two destination
+sentinels. All length results agreed. Visible serializer results, copy
+arguments and destination writes agreed in 1,070 cases: 776 false and 294
+true. The remaining 208 stopped at retail's diagnostic call while ARR reached
+its zero-size copy. Destination bytes 4/5 retained their sentinels throughout.
+This was instruction-block interpretation with a memcpy argument/copy model;
+it did not run either client, allocation, diagnostic callbacks or socket I/O.
+
+Confidence is high in the retail DAT length and serialization identities and
+the stated correspondence for valid, stable raw sources and nonempty vectors.
+The diagnostic branch, mutable state, unknown destination bytes, full object
+ownership, packet meanings and game opcodes remain outside that claim.
 
 ## Utf8String layout contradiction
 
@@ -557,7 +670,7 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is retail DAT serializer `0x00D51D80` against ARR
-`DATSegment::getBytes` at `0x1544708`, anchored by descriptor `0x1B7EF38`.
-Compare its capacity checks, header and payload writes, and length getter
-before assigning a complete wire layout or meaning to remaining bytes.
+The next bounded target is retail EAK serializer `0x00D52150` against ARR
+`EAKSegment::getBytes` at `0x1544924`, anchored by descriptor `0x1B7EF50`.
+Compare its length calculation, list extent and byte writes before assigning
+wire meanings or extending the DAT correspondence to another segment class.
