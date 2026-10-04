@@ -58,6 +58,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Events and quests
 
+- [Counted Lua item references](event/counted-lua-item-references.md)
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
 - [City airship scene sequence](event/airship-scene-sequence.md)
 - [Company-warp after-warp loading boundary](event/company-warp-loading-boundary.md)
