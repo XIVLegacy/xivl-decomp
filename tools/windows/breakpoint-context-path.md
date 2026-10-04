@@ -294,12 +294,77 @@ low size, but to interface `+0x1C` at `0x392F85`. Its complete body through
 `0x392F92` has no staging-flag store. This is a second static candidate,
 with no selected-service or fixture object binding.
 
-The remaining static bridge is the registry entry and requested-IID object
-selected by those service calls, its buffer implementation and later commit
-or fallback dispatch. The constructed provider table alone does not bind
-that object to the Windows context preparation table `0x5B8E0`, nor does
-the staging candidate prove its buffers have Windows `CONTEXT` layout.
-Runtime object and event/write correlation remain independently unobserved.
+## Local service registration and buffer creation
+
+Owner initialization queries service GUID `0x894B0` and IID `0x9C390`
+at `0x2D07CC`. A negative result enters the factory call `0x2D27E8`
+at `0x2D07E4`. Factory allocation `0x2D282C` requests `0x1C` bytes,
+constructor call `0x2D2840` reaches `0x2D288F`, and store `0x2D284C`
+retains the owner at primary object `+0x14`. The constructor's final stores
+`0x2D28F0/0x2D28FF` bind primary table `0x5268C` and secondary table
+`0x52654` at object `+0x08`.
+
+The new service's initializer is primary table `+0x0C`, `0x392660`,
+called at `0x2D0808` with the service and lazy provider context. It calls
+that context's slot `+0x18` at `0x39267F`, passing GUID `0x894B0` and
+the service's primary pointer. Table `0x5E110` maps this slot to `0x44FAF0`,
+which forwards to registration helper `0x4682A1` at `0x44FAFE`.
+The helper's non-deferred branch searches the existing GUID at `0x4682DF`.
+An existing record's interface is updated through `0x1B84FA` at
+`0x468312`; a missing record with nonnull interface enters `0x469DB3`
+at `0x468332` and then `0x4683B3` at `0x469DC3`.
+
+New-record allocation `0x4683CD` requests `0x70` bytes. The four GUID
+dwords are copied to the record at `0x4683E5..0x4683E8`; its interface
+field `+0x10` is initialized through `0x1B9852` at `0x4683EE` and
+status `+0x3C` is cleared at `0x468416`. The record is appended through
+`0x469C75` at `0x468429`, using the registry vector at context `+0x14`.
+Deferred registration, replacement and later lifecycle operations remain
+separate branches; these locators describe the local insertion path.
+
+Primary QueryInterface `0x2D29C0` calls helper `0x2D2960` at
+`0x2D29ED`. For IID `0x9C390`, the comparisons and adjustments at
+`0x2D2987/0x2D2993/0x2D29A4` return primary object `+0x08`.
+Its table `0x52654` maps `+0x2C` to `0x3934A0`, the buffer factory
+used by the cache/main consumers on this registration path. That method
+reads the owner through interface `+0x0C`, requires owner `+0x21C`, and
+passes that selected backend to `0x279E5C` at `0x3934D9`.
+The latter calls `0x27A0FC` at `0x279E92`; allocation `0x27A120`
+requests `0xED8` bytes, constructor call `0x27A136` reaches `0x27A214`,
+and initializer call `0x27A14E` reaches `0x3930D5`. Thus the prior
+`0x50D18/0x50D00` buffer candidates are connected to this local service's
+creation path, without establishing its selection in the retained fixture.
+
+Initializer `0x3930D5` stores the selected backend at primary buffer
+`+0x18`, clears `0xA70` bytes at primary `+0x20` and `0x440` bytes at
+primary `+0xA98`, then calls the backend's `+0x4C` at `0x393131`.
+These offsets agree with the adjusted buffer interfaces' copy destinations.
+The initializer and copy methods still do not establish Windows `CONTEXT`
+layout or a native context write.
+
+## Separate commit interfaces
+
+The main helper first requests service GUID `0x89690` at `0x1E49DD`
+and IID `0x9C370` at `0x1E49D8`, with actual dispatch `0x1E49EB`. It saves that
+result at `[ebp-0x24]`, then separately obtains the `0x894B0/0x9C390`
+buffer factory. After the buffer write succeeds, it loads the first result
+at `0x1E4A97` and calls its slot `+0x10` at `0x1E4AB6`, supplying
+that interface, descriptor `+0x04`, flags `0xFFFF` and the created buffer.
+The local buffer factory's own `+0x10` is `0x3926D0`, a different method
+with `ret 8`; it is not the main helper's commit target.
+
+The cache helper requests GUID `0x897D0` at `0x1E413A` and IID
+`0x9842C` at `0x1E4135`, then calls the returned interface's `+0x14`
+at `0x1E4175`. Its resulting object is stored at `[ebp-0x20]`.
+After the separate cache-buffer write, it loads that object at `0x1E428E`
+and calls its `+0x10` at `0x1E42A4`, supplying interface, flags `0x20`
+and the created buffer. These are distinct interface-producing paths.
+
+The remaining static bridge is the selected main/cache commit interface and
+its implementation, including the fallback dispatches described above.
+Local service registration and buffer creation do not connect those targets
+to Windows context preparation table `0x5B8E0`. Runtime owner/backend,
+registry-entry, commit-interface and event/write identities remain unobserved.
 
 ## Concrete missing edge
 
