@@ -285,7 +285,8 @@ After scanning, ARR calls `retrySendAndQueueSegment` at `0xE3CC88` and retail
 calls `0x00D45C00`. Both then clear the timer phase when the queue count is
 zero, or refresh clock fields when it is nonzero. ARR uses `time` and the
 PS3 time base; retail uses `__time64`, `timeGetTime` and `0x004CFA50`.
-The clock units and the two pairs of callees have not been proved equivalent.
+The clock units and the connectionOpened pair remain unproved. The queue
+helper is compared below.
 
 Confidence is high in the shared ACK-pruning role. Retail has six recorded
 direct callers: receive dispatcher `0x00D477C0` and the DAT, SYN, EAK, RST
@@ -295,6 +296,108 @@ sequence comparisons, list operations, count changes, state update and timer
 branch support correspondence beyond the ARR name. No complete ACK-window
 algorithm, retransmission policy, game opcode or runtime connection behavior
 is established by this pair.
+
+## Unsent-queue admission and drain
+
+Retail VA `0x00D45C00` corresponds to the normal queue-draining operation in
+ARR `RUDPImpl::retrySendAndQueueSegment()`, direct code VA `0xE3CC88`, size
+`0x340`. ARR body DIE `0x6864421` references private declaration
+`0x68621B1` in CU `0x683F4F5`. The declaration has only an artificial this
+parameter and no return type. Retail receives the object in ECX, has no
+explicit stack argument and ends with plain `ret` at `0x00D45D5B`.
+
+Capstone decoded all 208 ARR instructions and the 93 retail instructions in
+`0x00D45C00..0x00D45D5B`, a `0x15C`-byte span. Ghidra reports 338 body bytes
+and omits ten bytes after the `_free` call at `0x00D45C7C`: stack cleanup at
+`0x00D45C81` and the unsent-count decrement at `0x00D45C84`. The raw return
+path through the `_free` thunk and implementation described above also
+supports this continuation.
+
+Both stop when the unsent count is zero, the unacknowledged count is greater
+than or equal to a stored capacity, or a separate segment counter is greater
+than profile word `+0x0C`. Both count/limit comparisons are signed 32-bit
+comparisons. Equality at the profile limit still admits one iteration: the
+counter is incremented before the outbound call and rechecked on the next
+iteration. This does not establish an end-to-end send-window bound.
+
+| Access | ARR object offset | Retail object offset |
+|---|---|---|
+| Unsent sentinel / count | `+0x1B4 / +0x1B8` | `+0x1BC / +0x1C0` |
+| Unacknowledged sentinel / count | `+0x1A8 / +0x1AC` | `+0x1B0 / +0x1B4` |
+| Stored capacity | `+0x1D4` | `+0x1DC` |
+| Separate segment counter | `+0xD0` | `+0xD8` |
+| Profile pointer | `+0xBC` | `+0xC4` |
+| Timer phase / delay / period | `+0x118 / +0x11C / +0x120` | `+0x120 / +0x124 / +0x128` |
+
+ARR DWARF names the two queues `m_UnsentQueue` and `m_UnackedSentQueue`,
+the capacity `m_SendQueueSize`, and the counter
+`m_Counters.m_SegmentsCounter`. The profile's `+0x0C` and `+0x24` fields are
+`m_MaxSegments` and `m_RetransTimeout`. The timer is `m_RetransTimer`.
+Those names describe the ARR declarations; the table records independently
+observed retail accesses. Retail constructor `0x00D45510` initializes queue
+storage at `+0x1B8` with a sentinel at `+0x1BC` and count at `+0x1C0`.
+It allocates a `0x2C`-byte profile, stores 3 at profile `+0x0C` and 600 at
+`+0x24`, and copies profile word zero into object `+0x1DC`. The constructor
+and node helper `0x00D51550` anchor these selected fields without establishing
+a complete retail profile, timer or RUDPImpl layout.
+
+Each admitted iteration reads the first unsent node through sentinel `+0x00`
+and saves its segment pointer from node `+0x08`. It relinks the old node's
+neighbors, releases that node and decrements the unsent count. It increments
+the separate counter, creates a new `0x0C`-byte node holding the same segment
+pointer, increments the unacknowledged count, and links the new node before
+that queue's sentinel using its previous tail. The container transfer calls
+neither the segment's clone slot nor its deleting-cleanup slot.
+
+ARR uses `BlockMemoryAllocatorManager::deallocate` at `0x0338EC` and
+`allocate` at `0x033630`. Retail uses `_free`, node helper `0x008EA4E0` and
+growth helper `0x00D35120`. The node helper requests `0x0C` bytes and stores
+next, previous and segment at `+0x00/+0x04/+0x08`. The growth checks differ:
+for increment 1, retail throws when unsigned
+`(0x3FFFFFFF - count) mod 2^32 < 1`; ARR raises an exception when
+`(0xFFFFFFFF - count) mod 2^32 < 1`. These literal guards differ at their
+respective constants and wrap for counts above them. Matching allocation-failure
+behavior and reachability of these extreme counts remain unproved. The
+normal-path comparison assumes valid lists and successful node allocation.
+
+The segment's virtual type getter uses retail vtable `+0x08`; ARR uses
+`+0x0C` through an eight-byte code/TOC descriptor. The retail jump tables at
+`0x00D45D5C` and `0x00D45D64`, and ARR branches at `0xE3CEA0..0xE3CED0`,
+select type values 0, 1, 4 and 5. Named constructor vtables above and these
+getter bodies independently anchor the values:
+
+| Type | Value | Retail getter VA | ARR descriptor / code VA |
+|---|---|---|---|
+| DAT | 0 | `0x00AB7340` | `0x1B7EF28 / 0x15446B0` |
+| SYN | 1 | `0x007254A0` | `0x1B7EF80 / 0x1544C1C` |
+| ACK | 2 | `0x00B8D680` | `0x1B7EF18 / 0x1544568` |
+| EAK | 3 | `0x006A7AC0` | `0x1B7EF48 / 0x1544914` |
+| RST | 4 | `0x00602600` | `0x1B7EF70 / 0x1544B28` |
+| NUL | 5 | `0x005D29B0` | `0x1B7EF60 / 0x1544A88` |
+
+For a selected type and zero timer phase, both set phase to 1, copy profile
+word `+0x24` into delay and period, and refresh clock fields. An already
+nonzero phase skips initialization. Clock providers and units retain the
+differences described above. Both then pass the saved segment pointer to an
+outbound helper: ARR `sendSegment` at `0xE385EC`, retail `0x00D44FD0`.
+The caller does not branch on its result before rechecking the queues.
+The outbound bodies have not been paired in this comparison.
+
+Bounded interpretation of the raw admission blocks agreed for 57,122 cases:
+empty/nonempty unsent counts and the Cartesian product of signed count/limit
+values 0, 1, 2, 3, 4, 5, 127, 128, `0x3FFFFFFF`, `0x40000000`,
+`0x7FFFFFFF`, `0x80000000` and `0xFFFFFFFF`. The raw timer gates agreed for
+33 type/phase cases, and 15 growth-bound cases reproduced the two different
+guards. These checks evaluated instruction blocks without executing either
+client or proving that every modeled state is reachable.
+
+Confidence is high in the shared queue-draining role, supported by admission
+branches, pointer transfer, list edits, count ordering, type selection and
+timer initialization. Retail has two recorded direct calls, at
+`0x00D4688D` in the ACK helper and `0x00D46E0A` in the EAK handler.
+The recorded references do not exclude computed or runtime calls. No full
+retransmission algorithm, outbound serialization, game opcode or runtime
+connection behavior follows from this pair.
 
 ## Utf8String layout contradiction
 
@@ -339,7 +442,7 @@ ExcelEntry implementation anchor. The allocator example at ARR `0x6E12DC`
 uses a different namespace and template arguments from the retail stream
 RTTI. None supplies a stronger small function pair than the segment methods.
 
-The next bounded target is retail `0x00D45C00`, called after ACK pruning,
-against ARR `RUDPImpl::retrySendAndQueueSegment` at `0xE3CC88`. Compare
-queue admission limits, count changes and outbound calls before assigning
-the retail helper that role or proposing retransmission behavior.
+The next bounded target is retail `0x00D44FD0` against ARR
+`RUDPImpl::sendSegment` at `0xE385EC`. Compare segment serialization,
+buffer sizes, socket call arguments and failure branches before assigning
+wire or retransmission meanings.
