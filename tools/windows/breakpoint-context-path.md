@@ -931,11 +931,89 @@ clears record byte `+0x04` at `0x462922`, and advances the end by eight
 at `0x462925`. This binds the vector's writer boundary; it does not
 identify its caller-supplied child objects.
 
-The concrete next static edge is the aggregation callers and child-service
-construction/query implementations. The retained trace supplies neither
+The [manager aggregation path and supplied child](#aggregation-callers-and-supplied-child)
+bind one construction route. The retained trace supplies neither
 the actual vector contents nor the delegated IID-query results, callback
 results or event/write identities. These standard aggregator families do
 not bind the selected translation service or prove a native context write.
+
+## Aggregation callers and supplied child
+
+The pinned SDK's `IDebugServiceManager5::AggregateService` is manager
+`+0x3C`; table `0x5E110` binds it to `0x468DC0`. Its behavior depends
+on the existing GUID entry, rather than always constructing an aggregator.
+All addresses here are engine RVAs.
+
+Method `0x468DC0` calls manager `LocateService` (`+0x14`) at `0x468DF1`.
+On a negative lookup, it calls the new child's `RegisterServices` (`+0x0C`)
+at `0x468E09` and returns that result. On success, helper `0x469F92`
+queries the existing service for `IDebugServiceAggregate`, IID `0x13827C`,
+at `0x469FF8`. A successful query delegates to that interface's
+`AggregateService` (`+0x0C`) at `0x468E3B`, supplying the GUID and new child.
+
+If that aggregate query returns a negative result, the method queries
+manager `+0x0C`'s composition object for `IDebugTargetComposition3`,
+IID `0x13828C`, at `0x468E6C`. It calls the returned composition's
+`CreateServiceAggregatorComponent` (`+0x30`) at `0x468E9E`, with the
+requested service GUID. After a successful query for the new aggregator's
+aggregate interface at `0x468EAD`, it calls the aggregator layer's
+`RegisterServices` at `0x468ECC`. It then inserts the previous service
+at `0x468EE9` and the caller's new service at `0x468F06`, in that order.
+Each negative result stops the following steps. Registration precedes both
+insertions; this path does not establish an atomic replacement contract.
+The previous child pointer comes from the located registry object, not from
+a fixed default-child table.
+
+Owner helper `0x2D531B` contains a caller for service `0x89560`.
+A nonzero owner byte `+0xE87` returns zero; otherwise the helper sets
+that byte to one at `0x2D533C`. The inspected
+branch also requires owner dword `+0xD4 == 2` at `0x2D536A`.
+It obtains the owner-local manager through `0x2D8981` at `0x2D537F`
+and queries IID `0x104CA0` at `0x2D53C5`. That GUID's bytes match
+the SDK's `IDebugServiceManager5`. Manager query helper `0x459FF6`
+returns the incoming manager pointer for this IID at `0x45A04B`.
+
+The owner branch calls global composition `+0x14` (`CreateComponent`)
+at `0x2D544C`, requesting component GUID `0x89870`. On success, it
+passes the returned pointer and service GUID `0x89560` to manager
+`+0x3C` at `0x2D546B`. The component GUID matches factory row
+`0x557B1C`, whose function dword at `0x557B2C` is `0x453AC0`.
+That factory calls allocation helper `0x45BE4A` at `0x453AD9` and
+returns its root pointer at `0x453AEB`, without a layer adjustment.
+The helper allocates `0x78` bytes and calls constructor `0x45DD7F`
+at `0x45BE78`. Its final table stores at `0x45BE7D/0x45BE8A/0x45BE91`
+bind root table `0x5DD64`, root `+0x34` table `0x5E238` and root
+`+0x38` table `0x5D708`. Initialization helper `0x453A58` copies
+service GUID `0x89560` to root `+0x24` at `0x453A69..0x453A6C`.
+Root `RegisterServices`, `0x453710`, passes that GUID and the root
+pointer to manager `+0x18` at `0x45372F`. This child's layer is the
+root, unlike the standard aggregators' root `+0x04` layers.
+
+Root query `0x456270` calls helper `0x458F99` at `0x45627E`.
+After common layer-interface checks through `0x45A2A2`, that helper
+returns root `+0x34` for IID `0x104CB0`; otherwise it passes root
+`+0x38` to `0x45AC84` at `0x459012`. The latter returns its incoming
+pointer for IID `0xF5350`. Table `0x5E238`'s query thunk `0x45EE20`
+subtracts `0x34` and re-enters root query. Table `0x5D708`'s thunk
+`0x45EF20` subtracts `0x38` and re-enters the same query. These bind
+a concrete initial service and completion-interface candidate, including
+the direct-registration branch where no aggregator is constructed.
+
+The completion table's `+0x0C` is `0x44F9E0`. It passes the incoming
+interface and callback argument to `0x457AAA` at `0x44F9F6`.
+That helper passes the argument to `0x1B9A14`, using incoming interface
+`+0x10` (root `+0x48`), at `0x457AC6`, then calls `0x471D4C` at
+`0x457AD3`. The latter calls body `0x471AFA` at `0x471D5C`.
+That body's implementation is outside this construction/query binding.
+The owner helper later calls the conditional wrapper setup `0x2D5134`
+at `0x2D550A`; this orders the candidate child submission before wrapping.
+
+This binds one supplied-child construction route for `0x89560`. It does
+not identify the manager's pre-existing child, an equivalent caller for
+`0x89AF0`, the callback body at `0x471AFA`, or which branch the mismatch
+event used. The next static edge is that concrete callback body. Runtime
+manager records, adjusted query outputs and ordered context-write identities
+remain necessary before attributing a native context commit to this path.
 
 ## Concrete missing edge
 
