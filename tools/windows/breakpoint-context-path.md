@@ -692,6 +692,81 @@ record and adjusted query output, with ordered event and context-write
 identities. Inspecting these local defaults does not recover those values
 from the retained failure rows or authorize another capture.
 
+## Service initialization and completion event
+
+Worker `0x469F08` calls body `0x46874D` at `0x469F18`.
+That body queries each registry record's service pointer at `+0x10` for
+dependencies through service `+0x10` at `0x4687CD/0x4688C9`: first
+for counts, then for the arrays. A negative result or changed returned
+counts fails initialization. It calls dependency resolution `0x46941B`
+at `0x46890F`, then initialization dispatcher `0x4696B4` at `0x468922`.
+
+The dispatcher builds a list through `0x4697DB` at `0x469702`.
+That helper recursively visits record dependencies at `+0x2C/+0x30`
+and appends the record after its dependencies. The dispatcher calls the
+listed record's service `+0x14` at `0x469745`, passing its primary service
+pointer, notification kind zero, manager and record GUID. A nonnegative
+callback result sets record `+0x38` to 3 at `0x469752`.
+Helper `0x46A067`, called at `0x4697AF`, collects records whose
+`+0x38 == 0`; the subsequent pass repeats the initialization call at
+`0x46978A`. This loop permits additional records to be initialized, but
+does not identify a record added during the retained failure event.
+
+Every one of the twelve primary tables in the
+[registration inventory](#remaining-owner-local-registration-helpers)
+has dependency slot `+0x10 = 0x1B8320` and initialization slot
+`+0x14 = 0x1B8300`. The complete dependency callback clears both
+64-bit count outputs through pointers from `[EBP+0x24]/[EBP+0x34]`, returns zero
+and ends with `ret 0x30` at `0x1B833A`.
+The complete initialization callback is `xor eax,eax; ret 0x10`.
+Neither callback calls another method or registers a service.
+The pinned `DbgServices.h` declarations of `GetServiceDependencies` and
+layer `InitializeServices` agree with these slots and x86 stack widths.
+
+Shared layer table `0x52588` also uses the zero-dependency callback,
+but its `+0x14` is `0x396180`. This callback optionally calls
+global helper `0x2B7694` at `0x396190`, then compares the supplied GUID
+with `0x898A0`. For a match, it registers ten event notifications through
+manager `+0x1C`, including GUID `0x89300` at `0x396287`.
+This is `RegisterEventNotification`, distinct from `RegisterService`
+at manager `+0x18`. Table `0x5E110` binds the event method to
+`0x469120`, which calls `0x46A017` at `0x46913D`, then `0x46914C`
+at `0x46A027`. The implementation uses manager's event collection
+at `+0x38`; it does not select the translation service registry record.
+The shared callback's other global-helper callees remain outside this binding.
+
+After the worker's nonnegative result, manager initialization fires event
+GUID `0x89300` through manager `+0x24` at `0x468734`, before setting
+manager state to 2 at `0x46873A`. That table slot is `0x4693A0`,
+`FireEventNotification` in the pinned SDK. It walks the GUID's registered
+sinks and calls sink `+0x1C` at `0x4693ED`, passing sink, manager,
+event GUID and event argument. Shared layer table `0x52588` binds this
+`NotifyEvent` slot to `0x3969B0`. These are four-dword x86 callbacks;
+they are separate from six-dword `NotifyServiceChange` callbacks.
+
+At `0x468737`, manager initialization reloads the saved worker result.
+It does not check the event method's result or the sink-result output before
+setting state 2. A successful manager initialization therefore does not
+establish completion-event callback success.
+
+In the bound event handler, the `0x89300` comparison at `0x396C16`
+and nonnull global `0x5969BC` guard lead to helper `0x390EBF` at
+`0x396C3B`. That helper queries GUID `0x89560` at `0x390F10` and
+GUID `0x89AF0` at `0x390F56`, both for IID `0xF5350`. A nonnegative
+query calls the returned interface's `+0x0C` at `0x390F2D` or
+`0x390F73`. These query-selected interfaces and methods are unbound;
+neither query identifies the execution-context translation GUID or IID.
+The helper also calls `0x398DCB` at `0x390F82` and, on success,
+fires event `0x893F0` at `0x390FA5`. That helper's implementation and
+the latter event's selected sinks are outside the inspected dispatch binding.
+
+The local no-op callbacks close one possible initialization route. The shared
+layer exposes a completion-event route with additional query-selected calls.
+Neither route binds the translation record or concrete setter used by the
+mismatch event. The retained rows do not record these callbacks, query results,
+or event sinks; this static inventory does not establish translation-service
+absence or a successful context write.
+
 ## Concrete missing edge
 
 To discriminate the slot-list candidate, evidence must connect one raw
