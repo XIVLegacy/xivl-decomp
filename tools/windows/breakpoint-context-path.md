@@ -842,9 +842,100 @@ neighboring interface table cannot prove completion-event callback selection.
 These conditional construction paths bind local wrapper candidates, not the
 objects selected by the retained mismatch event. They leave the translation
 service record, concrete setter, ordered context writes, helper `0x398DCB`
-and event `0x893F0`'s selected sinks unresolved. The next static edge is the
-retained services behind primary `+0x2C/+0x34` and their IID `0xF5350`
-implementations. Static tracing cannot supply the missing event identities.
+and event `0x893F0`'s selected sinks unresolved. The
+[standard aggregator families](#retained-service-aggregators) provide static
+candidates for the retained services behind primary `+0x2C/+0x34`.
+Static tracing cannot supply the missing event identities.
+
+## Retained service aggregators
+
+The pinned engine's default composition maps both service GUIDs to standard
+aggregator components. This binds candidate implementations behind the
+wrappers, not the objects selected by the retained event. All locators below
+are engine RVAs, not retail client addresses. The pinned SDK's
+`IDebugTargetComposition3::CreateServiceAggregatorComponent` is composition
+`+0x30`; table `0x5DACC` binds it to `0x454A90`.
+
+Initializer `0x453DE0` installs factory rows from
+`[0x5579A0, 0x557CFC)` with stride `0x14`, calling `0x4588E0`
+at `0x453E00`. That helper copies the row into composition `+0x0C`.
+The initializer then installs service-to-component rows from
+`[0x56E150, 0x56E230)` with stride `0x20`, calling `0x45894C`
+at `0x453E25`; that helper copies the GUID pair into composition `+0x6C`.
+Additional factory rows can follow through `0x599184/0x599188` and
+`0x4589B9`; the fixed inventory is not an engine-wide exclusivity claim.
+
+| Service GUID | Mapping row | Component GUID | Factory row and target |
+|---|---|---|---|
+| `0x89AF0` | `0x56E1B0` | `380A71A1-669F-4612-B80F-677865DBE3AF` | `0x557C98`, `0x452E80` |
+| `0x89560` | `0x56E1D0` | `B945EEF5-85D7-4D51-AD75-8CD33EF04678` | `0x557CAC`, `0x452F00` |
+
+Method `0x454A90` looks up the service GUID in composition `+0x6C`
+at `0x454AAB`. A missing entry returns `0x80070490` at `0x454AB8`.
+A found node supplies its component GUID at node `+0x18`; the method
+calls composition `+0x14` at `0x454AD3`. This is `CreateComponent`,
+bound to `0x4545F0`. Its fixed-factory branch reads the function at
+entry `+0x28` at `0x45466F` and calls it at `0x454686`.
+Its alternative registered-component branch is a separate indirect call at
+`0x45466B`; no retained event proves which construction branch ran.
+
+| Service GUID | Factory helper and constructor | Root and layer tables | Initial retained IID and root offset | IID `0xF5350` offset, table and callback |
+|---|---|---|---|---|
+| `0x89AF0` | `0x45BC9F`, `0x45CCBD` | `0x5D498`, `0x5E204` | `0xE3C1C`, `+0x34` | `+0x3C`, `0x5E70C`, `0x461E50` |
+| `0x89560` | `0x45BD2B`, `0x45CD99` | `0x5E404`, `0x5D478` | `0x104CB0`, `+0x34` | `+0x38`, `0x5D340`, `0x4632C0` |
+
+The factory helpers allocate `0x68` bytes and call the constructors at
+`0x45BCCF/0x45BD5B`. Factories `0x452E80/0x452F00` return root
+`+0x04`, the layer interface. Both layer tables bind `RegisterServices`
+at `+0x0C` to `0x4524E0`. That complete method retains the manager
+at layer `+0x28` (root `+0x2C`) and passes the layer pointer and GUID
+at layer `+0x0C` (root `+0x10`) to manager `+0x18` at `0x452514`.
+The registered pointer is the adjusted layer, not the allocation root.
+
+Layer query thunks `0x45EE80/0x45F230` subtract four bytes and jump to
+root queries `0x456530/0x456510`. The former calls `0x45A347` with
+root `+0x34` at `0x456575`; its IID `0xE3C1C` result is that pointer,
+while its IID `0xF5350` result is root `+0x3C`. The latter root query
+calls `0x459179` at `0x45651E`; that helper returns root `+0x34` for
+IID `0x104CB0` and calls `0x45AC84` with root `+0x38` at `0x4591F1`
+for further queries. IID `0xF5350` returns that incoming pointer.
+The retained interfaces' query thunks `0x45F2B0/0x45EE70` subtract
+`0x34` and re-enter the corresponding root queries. Constructor stores
+`0x45CD60/0x45CE35` bind the final IID outputs to the listed callback
+tables. The neighboring root `+0x3C` table `0x5E528` in the second
+family belongs to another IID; it does not bind this callback.
+
+Callbacks `0x461E50/0x4632C0` subtract `0x3C/0x38` from their interface
+pointers at `0x461E5D/0x4632CD`, then call common wrapper `0x4621CA`
+at `0x461E69/0x4632D9`. It calls dispatcher `0x461E78` at `0x4621DA`.
+That complete dispatcher reads root child-vector begin/end at
+`+0x20/+0x24` at `0x461E9F/0x461EA2` and walks eight-byte records,
+incrementing at `0x461F20`. Each record's first dword supplies a child
+whose query requests IID `0xF5350` at `0x461ED7`. A negative query
+skips that child through `0x461F11`. A successful query calls its
+returned interface's `+0x0C` at `0x461EF6`, forwarding the original
+callback argument. A negative delegated result exits; otherwise the
+dispatcher continues and returns the last delegated result. An empty
+vector or a vector whose children all reject the IID returns zero.
+Aggregator success therefore does not prove that any child callback ran.
+
+The SDK's `IDebugServiceAggregate` GUID matches engine bytes at `0x13827C`.
+Common query helper `0x45A411` returns root `+0x08` for that IID.
+Constructor stores `0x45CD4B/0x45CE27` bind it to tables
+`0x5DFEC/0x5DA74`, whose `AggregateService` slots are
+`0x462090/0x462880`. The former calls the latter at `0x4620A6`.
+The shared insertion path calls `0x462E8B` at `0x4628C9`, then
+`0x4628E4` at `0x462E9B`. Its available-capacity branch stores the
+child pointer at the current root `+0x24` position at `0x46291D`,
+clears record byte `+0x04` at `0x462922`, and advances the end by eight
+at `0x462925`. This binds the vector's writer boundary; it does not
+identify its caller-supplied child objects.
+
+The concrete next static edge is the aggregation callers and child-service
+construction/query implementations. The retained trace supplies neither
+the actual vector contents nor the delegated IID-query results, callback
+results or event/write identities. These standard aggregator families do
+not bind the selected translation service or prove a native context write.
 
 ## Concrete missing edge
 
