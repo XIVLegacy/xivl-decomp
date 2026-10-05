@@ -1125,6 +1125,7 @@ They support a partial retail layout, with an option-transfer contradiction.
 The embedded Up/Down NetBufferFactoryTmpl_LF storage comparison is in
 `xivl-client-structs:structs/ffxiv/client/network/buffer-factory.md`.
 It promotes retail partial layouts and records the interface/vtable differences.
-The next struct target is the Up NetBufferTmpl candidate behind the first
-factory tree's object pointer, using ARR declarations against retail
-allocation, constructor and field-access anchors.
+The Up NetBufferTmpl allocation-backed layout is in
+`xivl-client-structs:structs/ffxiv/client/network/net-buffer-up.md`.
+The next struct target is the Down specialization, independently named by
+retail table `0x01128EB4`, with constructor candidate `0x00DAEA10`.
