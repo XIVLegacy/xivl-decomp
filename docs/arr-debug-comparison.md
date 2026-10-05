@@ -1005,11 +1005,13 @@ Virtual calls load the code and TOC words at descriptor `+0/+4`.
 
 | ARR declaration | DIE | Independently recovered declaration |
 |---|---|---|
-| RaptureChannelManager | `0x72EA0BE` | Size `0xB0`; public ChannelManagerOnSingleConnectionTmpl base at zero, inheritance `0x72EA0D1`; currentStatus_ enum at `+0xA8`, packetOptionParam_ uint16_t at `+0xAC` |
-| ChannelManagerOnSingleConnectionTmpl | `0x72C856A` | Size `0xA8`; ChannelManagerTmpl_LF base at zero, inheritance `0x72C858F`; mySelf_ at `+0xA4`, member `0x72C8599` |
 | Up_Packet | `0x72D0B2A` | Size `0xC20`; protoNo at zero, baseSize at `+4`, packet at `+8`; members `0x72D0B3D / 0x72D0B50 / 0x72D0B63` |
 | NetBufferReplaceParam | `0x72C5A64` | Size 8; uint32_t keyValue/grpValue at `+0/+4`, members `0x72C5A77 / 0x72C5A8A` |
 | ClientPacketBuilder | `0x72E5E7B` | Size `0x38`; ZoneProtoUpPacketBuilder base at zero, packetAssignParam_ at `+0x20`, uint16_t optionParam_ at `+0x34` |
+
+The manager declarations, inheritance and allocation-backed retail layout are
+recorded in
+`xivl-client-structs:structs/ffxiv/client/network/zone-channel-manager.md`.
 
 Retail identity is independent of ARR spelling: vtable VA `0x01129094`
 has 25 slots and its complete-object locator `0x011A2570` points to type
@@ -1117,9 +1119,9 @@ ExcelEntry remains a type-name lead: its saved OnReady consumer at ARR
 at ARR `0x6E12DC` uses a different namespace and template arguments from
 the retail stream RTTI. Neither supplies a demonstrated function pair.
 
-The next bounded target is receive dequeue: compare ARR
-RaptureChannelManager::popReceievedPacket at `0x10575CC` with retail
-`0x00DAE520`, using the manager identity and the retail consumer context in
-[network dispatch paths](net/network-dispatch-paths.md). This is a candidate,
-not a demonstrated pair. Its state and option accesses can test whether the
-outbound layout differences also hold on the receive side.
+The manager layout and bounded receive-side state/option comparison are in
+`xivl-client-structs:structs/ffxiv/client/network/zone-channel-manager.md`.
+They support a partial retail layout, with an option-transfer contradiction.
+The next layout target is the embedded Up/Down NetBufferFactoryTmpl_LF pair,
+retail constructors `0x00DAFDB0 / 0x00DAFE50`, using the named subobjects
+and their constructor field accesses rather than ARR sizes alone.
