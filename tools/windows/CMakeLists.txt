@@ -41,3 +41,13 @@ set_target_properties(observer_diagnostic_check PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(observer_diagnostic_check PRIVATE /guard:cf /sdl)
 target_link_options(observer_diagnostic_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_diagnostic_check.map")
+
+add_executable(observer_runtime_check observer_runtime_check.cpp
+               observer_diagnostic.cpp observer_diagnostic_tests.cpp raw_event_recorder.cpp
+               observer_event_bridge.cpp observer_event_bridge_tests.cpp
+               observer_hook_install.cpp observer_hook_install_tests.cpp)
+set_target_properties(observer_runtime_check PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(observer_runtime_check PRIVATE /guard:cf /sdl)
+target_link_options(observer_runtime_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
+                    "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_runtime_check.map")
+target_link_libraries(observer_runtime_check PRIVATE bcrypt)

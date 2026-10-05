@@ -47,8 +47,8 @@ def sample_trace() -> dict:
             returned_error_known=True,
             incoming_last_error=0,
             returned_last_error=0,
-            incoming_c_error=0,
-            returned_c_error=0,
+            incoming_last_status=0,
+            returned_last_status=0,
             **fields,
         )
 
@@ -127,6 +127,9 @@ def sample_trace() -> dict:
         provenance="synthetic-forwarding-profile",
         live_coverage="incomplete",
         overflow_count=0,
+        passthrough_generation=0,
+        passthrough_published=False,
+        unlogged_calls=0,
         rows=rows,
     )
 
@@ -152,17 +155,32 @@ class TraceTests(unittest.TestCase):
     def test_complete_synthetic_trace(self) -> None:
         self.assertEqual(validator.validate_trace(self.trace), len(self.trace["rows"]))
 
+    def test_zero_based_raw_event_index_is_preserved(self) -> None:
+        for row in self.trace["rows"]:
+            row["event_index"] = 0
+            if row["kind"] == "pending_event":
+                row["pending_event_index"] = 0
+        self.assertEqual(validator.validate_trace(self.trace), len(self.trace["rows"]))
+
     def test_duplicate_keys_are_not_last_writer_wins(self) -> None:
         with self.assertRaisesRegex(ValueError, "duplicate JSON key"):
             json.loads(
                 '{"result":0,"result":-1}', object_pairs_hook=validator.unique_object
             )
 
+    def test_known_zero_engine_generation_is_refused(self) -> None:
+        for row in self.trace["rows"]:
+            row["engine_generation"] = 0
+            if row["kind"] == "pending_event":
+                row["pending_engine_generation"] = 0
+        self.reject()
+
     def test_no_live_or_overflow_claim(self) -> None:
         for key, value in [
             ("live_coverage", "complete"),
             ("provenance", "live"),
             ("overflow_count", 1),
+            ("unlogged_calls", 1),
         ]:
             with self.subTest(key=key):
                 trace = copy.deepcopy(self.trace)

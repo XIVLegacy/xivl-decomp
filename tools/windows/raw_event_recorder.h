@@ -80,6 +80,7 @@ enum class CoverageGapReason : std::uint32_t
     restore_refused,
     module_pin_failed,
     debug_object_mismatch,
+    observer_sink_exception,
 };
 
 struct CoverageGap
@@ -247,6 +248,38 @@ struct ContextSnapshot
     ULONG_PTR dr7                   = 0;
 };
 
+class RawRecorder;
+
+enum class RawObserverNotificationKind : std::uint8_t
+{
+    event,
+    continuation,
+    gap,
+};
+
+struct RawObserverNotification
+{
+    RawObserverNotificationKind kind             = RawObserverNotificationKind::gap;
+    const RawRecorder*          recorder         = nullptr;
+    std::uint64_t               attempt_id       = 0;
+    std::size_t                 raw_event_index  = static_cast<std::size_t>(-1);
+    const RawEvent*             event            = nullptr;
+    const WaitReturnRecord*     wait_return      = nullptr;
+    const ContextSnapshot*      context_snapshot = nullptr;
+    const ContinueEntryRecord*  continue_entry   = nullptr;
+    const ContinueResultRecord* continue_result  = nullptr;
+    const CoverageGap*          coverage_gap     = nullptr;
+    CoverageGapReason           gap_reason       = CoverageGapReason::admission_busy;
+};
+
+using RawObserverFunction = void (*)(void* user, const RawObserverNotification& notification);
+
+struct RawObserverSink
+{
+    RawObserverFunction observe = nullptr;
+    void*               user    = nullptr;
+};
+
 struct SlotProfile
 {
     std::array<ULONG_PTR, 3> expected{};
@@ -305,6 +338,14 @@ public:
     void deactivate() noexcept;
     bool active() const noexcept;
 
+    // Configuration is accepted only while the recorder is inactive and no
+    // wrapper admission is in flight. The sink user must outlive the active
+    // recorder and remain valid through deactivate. The sink is called
+    // synchronously after a row is complete and never spans the native call.
+    // Callers must serialize configuration calls with their own lifecycle.
+    bool set_observer_sink(const RawObserverSink& sink) noexcept;
+    bool clear_observer_sink() noexcept;
+
     // The resident instance is never destroyed while cached thunks can execute.
     // Local instances are suitable only for synthetic core tests.
     static RawRecorder& resident() noexcept;
@@ -355,23 +396,38 @@ private:
     bool add_lifecycle(RawEvent& event) noexcept;
     bool match_pending(ULONG debug_object, ULONG process_id, ULONG thread_id, std::uint64_t generation, bool generation_known, std::size_t* index) noexcept;
     void record_gap(std::uint64_t attempt_id, CoverageGapReason reason) noexcept;
+    void record_gap_without_sink(std::uint64_t attempt_id, CoverageGapReason reason) noexcept;
+    bool notify_observer(const RawObserverNotification& notification) noexcept;
+    bool notify_event(std::uint64_t           attempt_id,
+                      std::size_t             event_index,
+                      const WaitReturnRecord* wait_return,
+                      const ContextSnapshot*  context_snapshot) noexcept;
+    bool notify_continuation(std::uint64_t               attempt_id,
+                             const ContinueEntryRecord*  continue_entry,
+                             const ContinueResultRecord* continue_result,
+                             std::size_t                 matched_event) noexcept;
     void mark_coverage_lost() noexcept;
     bool enter() noexcept;
     void leave() noexcept;
 
     static std::atomic<RawRecorder*>                      active_recorder_;
-    std::atomic<WaitFunction>                             original_wait_         = nullptr;
-    std::atomic<ContinueFunction>                         original_continue_     = nullptr;
-    std::atomic<LONG>                                     admission_             = 0;
-    ULONG                                                 debug_object_          = 0;
-    bool                                                  debug_object_known_    = false;
-    std::atomic<bool>                                     coverage_              = true;
-    std::atomic<bool>                                     terminal_forward_only_ = false;
-    std::atomic_flag                                      gap_write_             = ATOMIC_FLAG_INIT;
-    std::atomic<std::uint64_t>                            next_attempt_          = 1;
-    std::atomic<std::uint64_t>                            next_continue_         = 1;
-    std::atomic<std::uint64_t>                            next_callback_         = 1;
-    std::uint64_t                                         next_generation_       = 1;
+    std::atomic<WaitFunction>                             original_wait_             = nullptr;
+    std::atomic<ContinueFunction>                         original_continue_         = nullptr;
+    std::atomic<LONG>                                     admission_                 = 0;
+    ULONG                                                 debug_object_              = 0;
+    bool                                                  debug_object_known_        = false;
+    std::atomic<bool>                                     coverage_                  = true;
+    std::atomic<bool>                                     terminal_forward_only_     = false;
+    std::atomic_flag                                      gap_write_                 = ATOMIC_FLAG_INIT;
+    std::atomic_flag                                      observer_write_            = ATOMIC_FLAG_INIT;
+    std::atomic<std::size_t>                              observer_inflight_         = 0;
+    std::atomic<bool>                                     observer_deferred_         = false;
+    std::atomic<std::uint64_t>                            observer_deferred_attempt_ = 0;
+    std::atomic<std::uint32_t>                            observer_deferred_reason_  = 0;
+    std::atomic<std::uint64_t>                            next_attempt_              = 1;
+    std::atomic<std::uint64_t>                            next_continue_             = 1;
+    std::atomic<std::uint64_t>                            next_callback_             = 1;
+    std::uint64_t                                         next_generation_           = 1;
     ContextApi                                            context_api_{};
     bool                                                  context_api_set_ = false;
     std::array<WaitReturnRecord, kMaxWaitReturns>         wait_returns_{};
@@ -390,6 +446,7 @@ private:
     std::size_t                                           callback_count_        = 0;
     std::size_t                                           context_count_         = 0;
     std::atomic<std::size_t>                              coverage_gap_count_    = 0;
+    RawObserverSink                                       observer_sink_{};
 
     // These fields belong only to resident(), and are intentionally retained
     // if cleanup cannot prove that the shared slot state is still ours.

@@ -1776,6 +1776,55 @@ void RawRecorder::deactivate() noexcept
     {
         SwitchToThread();
     }
+    for (;;)
+    {
+        if (observer_inflight_.load(std::memory_order_acquire) == 0 &&
+            observer_deferred_.load(std::memory_order_acquire))
+        {
+            RawObserverNotification deferred;
+            deferred.kind       = RawObserverNotificationKind::gap;
+            deferred.recorder   = this;
+            deferred.attempt_id = observer_deferred_attempt_.load(std::memory_order_relaxed);
+            deferred.gap_reason = static_cast<CoverageGapReason>(
+                observer_deferred_reason_.load(std::memory_order_relaxed));
+            if (!notify_observer(deferred))
+            {
+                record_gap_without_sink(deferred.attempt_id,
+                                        CoverageGapReason::observer_sink_exception);
+            }
+            continue;
+        }
+        if (observer_inflight_.load(std::memory_order_acquire) == 0 &&
+            !observer_deferred_.load(std::memory_order_acquire))
+        {
+            break;
+        }
+        SwitchToThread();
+    }
+}
+
+bool RawRecorder::set_observer_sink(const RawObserverSink& sink) noexcept
+{
+    if (observer_write_.test_and_set(std::memory_order_acquire))
+    {
+        return false;
+    }
+    const bool quiescent =
+        active_recorder_.load(std::memory_order_acquire) == nullptr &&
+        admission_.load(std::memory_order_acquire) == 0 &&
+        observer_inflight_.load(std::memory_order_acquire) == 0 &&
+        !observer_deferred_.load(std::memory_order_acquire);
+    if (quiescent)
+    {
+        observer_sink_ = sink;
+    }
+    observer_write_.clear(std::memory_order_release);
+    return quiescent;
+}
+
+bool RawRecorder::clear_observer_sink() noexcept
+{
+    return set_observer_sink({});
 }
 
 bool RawRecorder::active() const noexcept
@@ -1979,6 +2028,41 @@ void RawRecorder::record_gap(std::uint64_t     attempt_id,
         gap_write_.clear(std::memory_order_release);
         return;
     }
+    const std::size_t slot   = coverage_gap_count_.load(std::memory_order_relaxed);
+    bool              stored = false;
+    if (slot < coverage_gaps_.size())
+    {
+        coverage_gaps_[slot] = { attempt_id, reason };
+        coverage_gap_count_.store(slot + 1, std::memory_order_release);
+        stored = true;
+    }
+    else
+    {
+        coverage_gap_count_.store(slot + 1, std::memory_order_release);
+        coverage_.store(false, std::memory_order_release);
+    }
+    gap_write_.clear(std::memory_order_release);
+
+    RawObserverNotification notification;
+    notification.kind         = RawObserverNotificationKind::gap;
+    notification.recorder     = this;
+    notification.attempt_id   = attempt_id;
+    notification.gap_reason   = reason;
+    notification.coverage_gap = stored ? &coverage_gaps_[slot] : nullptr;
+    if (!notify_observer(notification))
+    {
+        record_gap_without_sink(attempt_id, CoverageGapReason::observer_sink_exception);
+    }
+}
+
+void RawRecorder::record_gap_without_sink(std::uint64_t     attempt_id,
+                                          CoverageGapReason reason) noexcept
+{
+    if (gap_write_.test_and_set(std::memory_order_acquire))
+    {
+        coverage_.store(false, std::memory_order_release);
+        return;
+    }
     const std::size_t slot = coverage_gap_count_.load(std::memory_order_relaxed);
     if (slot < coverage_gaps_.size())
     {
@@ -1988,9 +2072,109 @@ void RawRecorder::record_gap(std::uint64_t     attempt_id,
     else
     {
         coverage_gap_count_.store(slot + 1, std::memory_order_release);
+    }
+    coverage_.store(false, std::memory_order_release);
+    gap_write_.clear(std::memory_order_release);
+}
+
+bool RawRecorder::notify_observer(const RawObserverNotification& notification) noexcept
+{
+    if (observer_write_.test_and_set(std::memory_order_acquire))
+    {
+        coverage_.store(false, std::memory_order_release);
+        observer_deferred_attempt_.store(notification.attempt_id, std::memory_order_relaxed);
+        observer_deferred_reason_.store(static_cast<std::uint32_t>(notification.gap_reason),
+                                        std::memory_order_relaxed);
+        observer_deferred_.store(true, std::memory_order_release);
+        return false;
+    }
+    const RawObserverSink sink = observer_sink_;
+    if (sink.observe == nullptr)
+    {
+        observer_write_.clear(std::memory_order_release);
+        return true;
+    }
+    observer_inflight_.fetch_add(1, std::memory_order_acq_rel);
+    bool succeeded = true;
+    try
+    {
+        sink.observe(sink.user, notification);
+    }
+    catch (...)
+    {
+        succeeded = false;
         coverage_.store(false, std::memory_order_release);
     }
-    gap_write_.clear(std::memory_order_release);
+    if (observer_deferred_.exchange(false, std::memory_order_acq_rel))
+    {
+        RawObserverNotification deferred;
+        deferred.kind       = RawObserverNotificationKind::gap;
+        deferred.recorder   = this;
+        deferred.attempt_id = observer_deferred_attempt_.load(std::memory_order_relaxed);
+        deferred.gap_reason = static_cast<CoverageGapReason>(
+            observer_deferred_reason_.load(std::memory_order_relaxed));
+        try
+        {
+            // Deliver one deferred gap while the reservation remains held.
+            // Reentrant notifications are recorded as a local coverage loss
+            // and dropped instead of recursively growing the stack.
+            sink.observe(sink.user, deferred);
+        }
+        catch (...)
+        {
+            succeeded = false;
+            coverage_.store(false, std::memory_order_release);
+        }
+        if (observer_deferred_.exchange(false, std::memory_order_acq_rel))
+        {
+            coverage_.store(false, std::memory_order_release);
+        }
+    }
+    observer_write_.clear(std::memory_order_release);
+    observer_inflight_.fetch_sub(1, std::memory_order_acq_rel);
+    return succeeded;
+}
+
+bool RawRecorder::notify_event(std::uint64_t           attempt_id,
+                               std::size_t             event_index,
+                               const WaitReturnRecord* wait_return,
+                               const ContextSnapshot*  context_snapshot) noexcept
+{
+    RawObserverNotification notification;
+    notification.kind             = RawObserverNotificationKind::event;
+    notification.recorder         = this;
+    notification.attempt_id       = attempt_id;
+    notification.raw_event_index  = event_index;
+    notification.event            = event_index < event_count_ ? &events_[event_index] : nullptr;
+    notification.wait_return      = wait_return;
+    notification.context_snapshot = context_snapshot;
+    if (notify_observer(notification))
+    {
+        return true;
+    }
+    record_gap_without_sink(attempt_id, CoverageGapReason::observer_sink_exception);
+    return false;
+}
+
+bool RawRecorder::notify_continuation(std::uint64_t               attempt_id,
+                                      const ContinueEntryRecord*  continue_entry,
+                                      const ContinueResultRecord* continue_result,
+                                      std::size_t                 matched_event) noexcept
+{
+    RawObserverNotification notification;
+    notification.kind            = RawObserverNotificationKind::continuation;
+    notification.recorder        = this;
+    notification.attempt_id      = attempt_id;
+    notification.raw_event_index = matched_event;
+    notification.event           = matched_event < event_count_ ? &events_[matched_event] : nullptr;
+    notification.continue_entry  = continue_entry;
+    notification.continue_result = continue_result;
+    if (notify_observer(notification))
+    {
+        return true;
+    }
+    record_gap_without_sink(attempt_id, CoverageGapReason::observer_sink_exception);
+    return false;
 }
 
 void RawRecorder::mark_coverage_lost() noexcept
@@ -2084,17 +2268,19 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
     }
     if (object_mismatch)
     {
-        const LONG result = forward_wait(debug_object,
-                                         alertable,
-                                         timeout,
-                                         state,
-                                         attempt_id,
-                                         true,
-                                         caller_return_address,
-                                         argument_stack_base,
-                                         false);
+        const LONG      result   = forward_wait(debug_object,
+                                                alertable,
+                                                timeout,
+                                                state,
+                                                attempt_id,
+                                                true,
+                                                caller_return_address,
+                                                argument_stack_base,
+                                                false);
+        const ErrorPair returned = read_errors();
         record_gap(attempt_id, CoverageGapReason::debug_object_mismatch);
         mark_coverage_lost();
+        write_errors(returned);
         leave();
         return result;
     }
@@ -2108,6 +2294,9 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
         leave();
         return result;
     }
+    WaitReturnRecord* stored_wait    = nullptr;
+    ContextSnapshot*  stored_context = nullptr;
+    std::size_t       decoded_event  = static_cast<std::size_t>(-1);
     if (wait_count_ >= wait_returns_.size())
     {
         record_gap(attempt_id, CoverageGapReason::wait_record_overflow);
@@ -2116,6 +2305,7 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
     else
     {
         WaitReturnRecord& record     = wait_returns_[wait_count_++];
+        stored_wait                  = &record;
         record.attempt_id            = attempt_id;
         record.debug_object          = debug_object;
         record.alertable             = alertable;
@@ -2131,6 +2321,7 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
         {
             record.decoded =
                 decode_event(attempt_id, debug_object, state, &record.event_index);
+            decoded_event = record.event_index;
             if (record.decoded && record.event_index < event_count_ &&
                 events_[record.event_index].kind == RawEventKind::exception)
             {
@@ -2149,9 +2340,9 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
                     const std::size_t context_index           = context_count_++;
                     record.context_index                      = context_index;
                     events_[record.event_index].context_index = context_index;
+                    stored_context                            = &context_snapshots_[context_index];
                     const bool captured =
-                        context_api_set_ &&
-                        capture_context(events_[record.event_index], context_api_, &context_snapshots_[context_index]);
+                        context_api_set_ && capture_context(events_[record.event_index], context_api_, stored_context);
                     if (!captured)
                     {
                         record_gap(attempt_id, CoverageGapReason::context_capture_failed);
@@ -2167,6 +2358,11 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
             record_gap(attempt_id, CoverageGapReason::positive_wait_status);
             mark_coverage_lost();
         }
+    }
+    if (stored_wait != nullptr && stored_wait->decoded &&
+        decoded_event < event_count_)
+    {
+        notify_event(attempt_id, decoded_event, stored_wait, stored_context);
     }
     write_errors(returned);
     leave();
@@ -2205,16 +2401,18 @@ LONG RawRecorder::on_continue(ULONG debug_object, PVOID client_id, ULONG status,
     }
     if (object_mismatch)
     {
-        const LONG result = forward_continue(debug_object,
-                                             client_id,
-                                             status,
-                                             attempt_id,
-                                             true,
-                                             caller_return_address,
-                                             argument_stack_base,
-                                             false);
+        const LONG      result   = forward_continue(debug_object,
+                                                    client_id,
+                                                    status,
+                                                    attempt_id,
+                                                    true,
+                                                    caller_return_address,
+                                                    argument_stack_base,
+                                                    false);
+        const ErrorPair returned = read_errors();
         record_gap(attempt_id, CoverageGapReason::debug_object_mismatch);
         mark_coverage_lost();
+        write_errors(returned);
         leave();
         return result;
     }
@@ -2237,11 +2435,14 @@ LONG RawRecorder::on_continue(ULONG debug_object, PVOID client_id, ULONG status,
                       0,
                       false,
                       &matched_event);
-    std::size_t entry_index = static_cast<std::size_t>(-1);
+    std::size_t           entry_index   = static_cast<std::size_t>(-1);
+    ContinueEntryRecord*  stored_entry  = nullptr;
+    ContinueResultRecord* stored_result = nullptr;
     if (continue_entry_count_ < continue_entries_.size())
     {
         entry_index                 = continue_entry_count_++;
         ContinueEntryRecord& entry  = continue_entries_[entry_index];
+        stored_entry                = &entry;
         entry.attempt_id            = attempt_id;
         entry.debug_object          = debug_object;
         entry.client_id             = client_id;
@@ -2275,6 +2476,7 @@ LONG RawRecorder::on_continue(ULONG debug_object, PVOID client_id, ULONG status,
     else
     {
         ContinueResultRecord& output = continue_results_[continue_result_count_++];
+        stored_result                = &output;
         output.attempt_id            = attempt_id;
         output.debug_object          = debug_object;
         output.client_id             = client_id;
@@ -2308,6 +2510,10 @@ LONG RawRecorder::on_continue(ULONG debug_object, PVOID client_id, ULONG status,
                 mark_coverage_lost();
             }
         }
+    }
+    if (stored_result != nullptr)
+    {
+        notify_continuation(attempt_id, stored_entry, stored_result, matched_event);
     }
     write_errors(returned);
     leave();

@@ -54,8 +54,8 @@ struct GuidBytes
 
 struct ErrorPair
 {
-    std::uint32_t last_error = 0;
-    std::int32_t  c_error    = 0;
+    std::uint32_t last_error  = 0;
+    std::int32_t  last_status = 0;
 };
 
 struct NativeContext
@@ -108,6 +108,21 @@ struct Originals
     QueryOriginal        query         = nullptr;
     ContextWriteOriginal context_write = nullptr;
 };
+
+struct PassthroughSnapshot
+{
+    Originals     originals{};
+    std::uint64_t generation     = 0;
+    std::uint64_t active_calls   = 0;
+    std::uint64_t unlogged_calls = 0;
+    bool          published      = false;
+};
+
+// Publication and removal require external thread quiescence. The active count
+// alone cannot prove that another thread will not enter a patched function.
+bool                publish_passthrough(const Originals& originals, std::uint64_t* generation);
+bool                clear_passthrough(std::uint64_t generation, const Originals& expected);
+PassthroughSnapshot passthrough_snapshot();
 
 enum class ObservationStatus : std::uint8_t
 {

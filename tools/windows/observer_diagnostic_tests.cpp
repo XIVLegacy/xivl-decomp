@@ -69,6 +69,10 @@ struct FakeState
     bool                            throw_lookup             = false;
     bool                            throw_query              = false;
     bool                            throw_context            = false;
+    bool                            clear_during_lookup      = false;
+    bool                            clear_result             = false;
+    std::uint64_t                   publication_generation   = 0;
+    Originals                       published_originals{};
 
     FakeState()
     {
@@ -208,6 +212,10 @@ void* XIVL_OBSERVER_FASTCALL fake_lookup(void* manager, void* ignored_edx, const
         state->lookup_entry_error = g_fake_error;
     }
     ++state->lookup_calls;
+    if (state->clear_during_lookup)
+    {
+        state->clear_result = clear_passthrough(state->publication_generation, state->published_originals);
+    }
     if (state->throw_lookup)
     {
         g_fake_error = ErrorPair{ 0x77, -77 };
@@ -376,8 +384,8 @@ void exercise_forwarding(TestState& tests)
     tests.check(state.lookup_manager == manager, "lookup manager argument");
     tests.check(state.lookup_edx == ignored_edx, "lookup edx argument");
     tests.check(state.lookup_guid == &state.service_guid, "lookup guid argument");
-    tests.check(state.lookup_entry_error.last_error == 0x10 && state.lookup_entry_error.c_error == -10, "lookup incoming errors restored");
-    tests.check(g_fake_error.last_error == 0x20 && g_fake_error.c_error == -20, "lookup returned errors restored");
+    tests.check(state.lookup_entry_error.last_error == 0x10 && state.lookup_entry_error.last_status == -10, "lookup incoming errors restored");
+    tests.check(g_fake_error.last_error == 0x20 && g_fake_error.last_status == -20, "lookup returned errors restored");
     const std::vector<SelectedRecordRow> lookup_rows = recorder.selected_record_rows();
     tests.check(lookup_rows.size() == 1, "lookup row count");
     tests.check(lookup_rows[0].record_service == reinterpret_cast<std::uintptr_t>(state.interface_bytes.data()), "lookup service link");
@@ -407,15 +415,15 @@ void exercise_forwarding(TestState& tests)
     tests.check(state.query_iid == &state.iid, "query iid argument");
     tests.check(state.query_output_slot == &output_value, "query output slot argument");
     tests.check(output_value == state.output_value, "query output value");
-    tests.check(g_fake_error.last_error == 0x30 && g_fake_error.c_error == -30, "query returned errors restored");
+    tests.check(g_fake_error.last_error == 0x30 && g_fake_error.last_status == -30, "query returned errors restored");
     const std::vector<QueryRow> query_rows = recorder.query_rows();
     tests.check(query_rows.size() == 1, "query row count");
     tests.check(query_rows[0].returned_interface == reinterpret_cast<std::uintptr_t>(state.interface_bytes.data()), "query interface");
     tests.check(query_rows[0].vtable == state.vtable_token, "query vtable");
     tests.check(query_rows[0].slot_plus_10_target == state.slot_target_token, "query slot target");
     tests.check(query_rows[0].successful_interface_qualified, "query qualified interface");
-    tests.check(query_rows[0].header.incoming_error.last_error == 0x11 && query_rows[0].header.incoming_error.c_error == -11, "query incoming errors captured");
-    tests.check(state.query_entry_error.last_error == 0x11 && state.query_entry_error.c_error == -11, "query incoming errors restored");
+    tests.check(query_rows[0].header.incoming_error.last_error == 0x11 && query_rows[0].header.incoming_error.last_status == -11, "query incoming errors captured");
+    tests.check(state.query_entry_error.last_error == 0x11 && state.query_entry_error.last_status == -11, "query incoming errors restored");
     const std::vector<SelectedRecordRow> nested_rows = recorder.selected_record_rows();
     tests.check(nested_rows.size() == 2, "nested lookup row count");
     tests.check(nested_rows[1].manager == query_rows[0].manager, "nested manager identity");
@@ -444,7 +452,7 @@ void exercise_forwarding(TestState& tests)
     tests.check(context_result == 1, "context result");
     tests.check(state.context_handle_arg == state.handle, "context handle argument");
     tests.check(state.context_pointer_arg == state.native_context.data(), "context pointer argument");
-    tests.check(g_fake_error.last_error == 0x40 && g_fake_error.c_error == -40, "context returned errors restored");
+    tests.check(g_fake_error.last_error == 0x40 && g_fake_error.last_status == -40, "context returned errors restored");
     const std::vector<ContextWriteRow> context_rows = recorder.context_write_rows();
     tests.check(context_rows.size() == 1, "context row count");
     tests.check(context_rows[0].context_before.context_flags == 0x10007, "context flags");
@@ -458,8 +466,8 @@ void exercise_forwarding(TestState& tests)
     tests.check(context_rows[0].context_before.dr7 == 0x60, "context dr7");
     tests.check(context_rows[0].target_identity_status == ObservationStatus::Read, "context identity");
     tests.check(context_rows[0].target_identity.thread_id == 77, "context target identity");
-    tests.check(context_rows[0].header.incoming_error.last_error == 0x12 && context_rows[0].header.incoming_error.c_error == -12, "context incoming errors captured");
-    tests.check(state.context_entry_error.last_error == 0x12 && state.context_entry_error.c_error == -12, "context incoming errors restored");
+    tests.check(context_rows[0].header.incoming_error.last_error == 0x12 && context_rows[0].header.incoming_error.last_status == -12, "context incoming errors captured");
+    tests.check(state.context_entry_error.last_error == 0x12 && state.context_entry_error.last_status == -12, "context incoming errors restored");
     g_fake_state = nullptr;
 }
 
@@ -543,6 +551,14 @@ void exercise_identity_gaps(TestState& tests)
     tests.check(unknown_generation.close_pending_event(engine_unknown) == PendingEventStatus::Closed, "unknown engine generation closes");
     tests.check(unknown_generation.pending_event_rows().back().header.incomplete, "unknown generation close incomplete");
 
+    EventIdentity zero_generation     = event_identity();
+    zero_generation.engine_generation = 0;
+    Recorder malformed_generation(fake_config(&state));
+    tests.check(malformed_generation.admit_pending_event(zero_generation) == PendingEventStatus::Admitted, "raw identity admitted with zero engine generation");
+    tests.check(malformed_generation.pending_event_rows().back().header.incomplete, "zero engine generation incomplete");
+    tests.check(malformed_generation.close_pending_event(zero_generation) == PendingEventStatus::Closed, "zero engine generation closes");
+    tests.check(malformed_generation.pending_event_rows().back().header.incomplete, "zero engine generation close incomplete");
+
     g_fake_thread_id = 0;
     Recorder no_thread(fake_config(&state));
     tests.check(no_thread.admit_pending_event(event_identity()) == PendingEventStatus::Admitted, "zero observer thread admits raw identity");
@@ -550,6 +566,59 @@ void exercise_identity_gaps(TestState& tests)
 
     g_fake_thread_id = 77;
     g_fake_state     = nullptr;
+}
+
+void exercise_passthrough(TestState& tests)
+{
+    FakeState state;
+    g_fake_state               = &state;
+    const Originals originals  = fake_config(&state).originals;
+    std::uint64_t   generation = 0;
+    tests.check(!publish_passthrough(Originals{}, &generation), "null originals refused");
+    Originals recursive = originals;
+    recursive.lookup    = lookup_bridge;
+    tests.check(!publish_passthrough(recursive, &generation), "recursive bridge original refused");
+    tests.check(publish_passthrough(originals, &generation), "passthrough publication");
+    state.publication_generation = generation;
+    state.published_originals    = originals;
+    tests.check(!publish_passthrough(originals, &generation), "duplicate publication refused");
+    const auto manager = reinterpret_cast<void*>(state.manager_token);
+    const auto edx     = reinterpret_cast<void*>(0x1234);
+    g_fake_error       = ErrorPair{ 0x18, -18 };
+    tests.check(lookup_bridge(manager, edx, &state.service_guid) == state.record.data(), "unbound lookup forwards");
+    tests.check(state.lookup_manager == manager && state.lookup_edx == edx && state.lookup_guid == &state.service_guid, "unbound lookup arguments");
+    tests.check(state.lookup_entry_error.last_error == 0x18 && state.lookup_entry_error.last_status == -18 && g_fake_error.last_error == 0x20 && g_fake_error.last_status == -20, "unbound lookup errors");
+    void* output = nullptr;
+    tests.check(query_bridge(manager, &state.service_guid, &state.iid, &output) == 0 && output == state.output_value, "unbound query forwards");
+    tests.check(state.query_manager == manager && state.query_service_guid == &state.service_guid && state.query_iid == &state.iid && state.query_output_slot == &output, "unbound query arguments");
+    tests.check(g_fake_error.last_error == 0x30 && g_fake_error.last_status == -30, "unbound query errors");
+    tests.check(context_write_bridge(state.handle, state.native_context.data()) == 1, "unbound context forwards");
+    tests.check(state.context_handle_arg == state.handle && state.context_pointer_arg == state.native_context.data(), "unbound context arguments");
+    tests.check(g_fake_error.last_error == 0x40 && g_fake_error.last_status == -40, "unbound context errors");
+    tests.check(passthrough_snapshot().unlogged_calls == 3, "unbound calls counted as coverage gaps");
+    state.clear_during_lookup = true;
+    lookup_bridge(manager, edx, &state.service_guid);
+    tests.check(!state.clear_result, "active call refuses publication removal");
+    state.clear_during_lookup = false;
+    RecorderConfig wrong      = fake_config(&state);
+    wrong.originals.lookup    = nullptr;
+    Recorder mismatched(wrong);
+    {
+        Recorder::BridgeScope scope(mismatched);
+        tests.check(lookup_bridge(manager, edx, &state.service_guid) == state.record.data(), "mismatched logger uses published original");
+        tests.check(mismatched.rows().empty(), "mismatched logger cannot emit borrowed evidence");
+    }
+    tests.check(!clear_passthrough(generation + 1, originals), "stale publication generation refused");
+    tests.check(!clear_passthrough(generation, Originals{}), "changed original ownership refused");
+    tests.check(clear_passthrough(generation, originals), "quiescent publication removal");
+    tests.check(!passthrough_snapshot().published && passthrough_snapshot().active_calls == 0, "passthrough lifetime closed");
+    tests.check(lookup_bridge(manager, edx, &state.service_guid) == nullptr, "unbound uninstalled bridge remains unsupported");
+    Recorder      zero_index(fake_config(&state));
+    EventIdentity identity = event_identity();
+    identity.event_index   = 0;
+    tests.check(zero_index.admit_pending_event(identity) == PendingEventStatus::Admitted, "native event index zero admitted");
+    tests.check(zero_index.close_pending_event(identity) == PendingEventStatus::Closed, "native event index zero closed");
+    g_fake_state = nullptr;
 }
 
 void exercise_pending_and_overflow(TestState& tests)
@@ -590,7 +659,7 @@ void exercise_pending_and_overflow(TestState& tests)
     g_fake_error                = ErrorPair{ 0x16, -16 };
     const void* overflow_result = zero.forward_lookup(&state, nullptr, &state.service_guid);
     tests.check(overflow_result == state.record.data(), "overflow return preserved");
-    tests.check(g_fake_error.last_error == 0x20 && g_fake_error.c_error == -20, "overflow errors restored");
+    tests.check(g_fake_error.last_error == 0x20 && g_fake_error.last_status == -20, "overflow errors restored");
     tests.check(zero.overflow_count() == 1, "overflow call retained");
     state.refuse_error_writes = true;
     Recorder logging_failure(fake_config(&state));
@@ -624,7 +693,7 @@ void exercise_exceptions_and_concurrency(TestState& tests)
     tests.check(caught, "exception forwarded");
     const SelectedRecordRow exception_row = recorder.selected_record_rows().back();
     tests.check(exception_row.header.rethrown && exception_row.header.incomplete, "exception row incomplete");
-    tests.check(g_fake_error.last_error == 0x77 && g_fake_error.c_error == -77, "exception errors restored");
+    tests.check(g_fake_error.last_error == 0x77 && g_fake_error.last_status == -77, "exception errors restored");
 
     state.throw_lookup                    = false;
     const std::uint32_t      thread_count = 4;
@@ -660,6 +729,7 @@ SelfTestReport run_self_tests()
     exercise_identity_gaps(tests);
     exercise_pending_and_overflow(tests);
     exercise_exceptions_and_concurrency(tests);
+    exercise_passthrough(tests);
     tests.report.passed = tests.report.failures == 0;
     std::ostringstream summary;
     summary << "checks=" << tests.report.checks << ",failures=" << tests.report.failures;

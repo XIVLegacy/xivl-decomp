@@ -39,10 +39,10 @@ def _identity(row: dict, prefix: str = "") -> tuple:
     pid = _integer(row, prefix + "event_pid", 1, 0xFFFFFFFF)
     tid = _integer(row, prefix + "event_tid", 1, 0xFFFFFFFF)
     generation = _integer(row, prefix + "raw_generation", 1)
-    index = _integer(row, prefix + "event_index", 1)
+    index = _integer(row, prefix + "event_index", 0)
     if not raw or row.get(prefix + "engine_generation_known") is not True:
         raise ValueError("unknown raw object or engine generation")
-    engine = _integer(row, prefix + "engine_generation")
+    engine = _integer(row, prefix + "engine_generation", 1)
     return raw, pid, tid, generation, index, engine
 
 
@@ -63,6 +63,11 @@ def validate_trace(trace: object) -> int:
         raise ValueError("unsupported provenance or live coverage claim")
     if _integer(trace, "overflow_count"):
         raise ValueError("trace overflow")
+    _integer(trace, "passthrough_generation")
+    if type(trace.get("passthrough_published")) is not bool:
+        raise ValueError("unknown publication state")
+    if _integer(trace, "unlogged_calls"):
+        raise ValueError("unlogged passthrough calls")
     rows = trace.get("rows")
     if not isinstance(rows, list) or not rows:
         raise ValueError("missing trace rows")
@@ -158,7 +163,7 @@ def validate_trace(trace: object) -> int:
             raise ValueError("unknown error fields")
         for key in ("incoming_last_error", "returned_last_error"):
             _integer(row, key, 0, 0xFFFFFFFF)
-        for key in ("incoming_c_error", "returned_c_error"):
+        for key in ("incoming_last_status", "returned_last_status"):
             _integer(row, key, -0x80000000, 0x7FFFFFFF)
         if row["kind"] == "lookup":
             for key in ("manager", "guid_pointer"):

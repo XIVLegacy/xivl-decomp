@@ -2488,6 +2488,8 @@ std::string raw_gap_name(xivl::raw_recorder::CoverageGapReason reason)
             return "restore_refused";
         case CoverageGapReason::module_pin_failed:
             return "module_pin_failed";
+        case CoverageGapReason::observer_sink_exception:
+            return "observer_sink_exception";
         default:
             return "unknown";
     }
