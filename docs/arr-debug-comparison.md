@@ -1122,6 +1122,9 @@ the retail stream RTTI. Neither supplies a demonstrated function pair.
 The manager layout and bounded receive-side state/option comparison are in
 `xivl-client-structs:structs/ffxiv/client/network/zone-channel-manager.md`.
 They support a partial retail layout, with an option-transfer contradiction.
-The next layout target is the embedded Up/Down NetBufferFactoryTmpl_LF pair,
-retail constructors `0x00DAFDB0 / 0x00DAFE50`, using the named subobjects
-and their constructor field accesses rather than ARR sizes alone.
+The embedded Up/Down NetBufferFactoryTmpl_LF storage comparison is in
+`xivl-client-structs:structs/ffxiv/client/network/buffer-factory.md`.
+It promotes retail partial layouts and records the interface/vtable differences.
+The next struct target is the Up NetBufferTmpl candidate behind the first
+factory tree's object pointer, using ARR declarations against retail
+allocation, constructor and field-access anchors.
