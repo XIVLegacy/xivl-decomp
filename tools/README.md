@@ -21,6 +21,10 @@ The [native map selection trace](windows/map-selection-trace.md) records
 SetMap buffers, region construction arguments and RegionInfo lookup results
 with a bounded debugger attachment and an asset-free fixture.
 
+The [observer forwarding diagnostic](windows/observer-diagnostic.md) tests
+x86 service-query and context-write adapters with fake originals and supplies
+an offline entry-byte planner for one pinned DbgEng image.
+
 ## Ghidra tools
 
 ### Import and catalog export

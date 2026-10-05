@@ -34,3 +34,10 @@ target_compile_options(raw_recorder_check PRIVATE /guard:cf /sdl)
 target_link_options(raw_recorder_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/raw_recorder_check.map")
 target_link_libraries(raw_recorder_check PRIVATE bcrypt)
+
+add_executable(observer_diagnostic_check observer_diagnostic_check.cpp
+               observer_diagnostic.cpp observer_diagnostic_tests.cpp)
+set_target_properties(observer_diagnostic_check PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(observer_diagnostic_check PRIVATE /guard:cf /sdl)
+target_link_options(observer_diagnostic_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
+                    "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_diagnostic_check.map")

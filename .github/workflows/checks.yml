@@ -74,6 +74,10 @@ jobs:
         run: python tools/test_repository_links.py
       - name: Test region snapshot contract
         run: python tools/windows/test_region_resource_snapshot.py
+      - name: Test offline observer contracts
+        run: |
+          python tools/windows/test_observer_hook_plan.py
+          python tools/windows/test_validate_observer_diagnostic.py
       - name: Regenerate and compare dependency catalogs
         run: |
           python tools/build_vtable_method_names.py
