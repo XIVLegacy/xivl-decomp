@@ -1127,5 +1127,8 @@ The embedded Up/Down NetBufferFactoryTmpl_LF storage comparison is in
 It promotes retail partial layouts and records the interface/vtable differences.
 The Up NetBufferTmpl allocation-backed layout is in
 `xivl-client-structs:structs/ffxiv/client/network/net-buffer-up.md`.
-The next struct target is the Down specialization, independently named by
-retail table `0x01128EB4`, with constructor candidate `0x00DAEA10`.
+The Down NetBufferTmpl allocation-backed layout is in
+`xivl-client-structs:structs/ffxiv/client/network/net-buffer-down.md`.
+It independently verifies construction and receive-copy storage accesses.
+The next struct target is the receive-result record passed to `0x00DAF5B0`,
+with caller `0x00DAFA30`.
