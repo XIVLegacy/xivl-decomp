@@ -637,8 +637,49 @@ GUID-matched registry record, retained object and its module provenance,
 adjusted IID-query output and concrete implementation, correlated with the
 disputed event and ordered context writes. The retained mismatch rows do
 not record those identities. A repeated search of the same direct patterns
-cannot recover them or justify another capture. This finding establishes
-neither a producer verdict nor retail selector or authored-scene acceptance.
+cannot recover them or justify another capture. The
+[retained module evidence](#retained-module-evidence-boundary) does not supply
+the missing object identities. This finding establishes neither a producer
+verdict nor retail selector or authored-scene acceptance.
+
+## Retained module evidence boundary
+
+The retained TF and VEH fixture traces contain module load/unload events,
+but each such raw row contains only the 12-byte state/PID/TID header.
+The TF trace SHA-256 is
+`cfd187922c802b23adcbdfbe78c1a720b18e00f7eadea7125124e3a803ac3a3b`;
+the VEH trace identity is recorded in [the retained disagreement](#retained-disagreement).
+Neither header contains a module base, size, path or service-object identity.
+The ordinary failure retained no raw rows, so it supplies no corresponding
+native module observations.
+
+The captured source profile's `RawRecorder::decode_event` in
+[raw_event_recorder.cpp](raw_event_recorder.cpp), at revision
+`91421b34a70c7634e99e85f1c7f284f2d0aa63ae`, copies 12 bytes initially and
+extends the copy to `0x60` only for an exception. Its module branch joins
+the target PID/TID to lifecycle generation without copying the module payload.
+`append_raw_rows` in [trace_map_selection.cpp](trace_map_selection.cpp) emits
+those copied bytes. Its `Events::LoadModule` and `Events::UnloadModule`
+callbacks return `DEBUG_STATUS_NO_CHANGE` without retaining their arguments.
+The source snapshot used for the VEH failure has SHA-256
+`951ca8b3d5aa03909b864c1467f098d93fc9dc66b4df2ac7abedb7937dbe0a66`.
+
+Separate no-target recorder receipts identify the loaded DbgEng and ntdll
+images and native wait/continue/converter slots. The VEH cleanup row reports
+their bases `0x5D1C0000/0x77300000`. Those are recorder module identities,
+not a binding from the selected translation service object to its implementation.
+The [provider construction](#provider-construction-and-queried-buffer) and
+[manager initialization](#observer-creation-and-service-manager-initialization)
+findings are static candidates. They do not add a runtime service-registry
+record, adjusted IID-query output or module map for those pointers.
+
+Consequently these traces and receipts cannot identify the translation
+provider module. Further implementation tracing needs observer-side evidence
+of the selected service record and object, adjusted IID-query output and
+their concrete tables, together with a module mapping and the same event
+identity. Target module headers or fixture MapLayout manager addresses cannot
+substitute for debugger-side service identities. No provider absence, context
+write, mismatch cause or authored-scene acceptance follows from this audit.
 
 ## Observer creation and service-manager initialization
 
