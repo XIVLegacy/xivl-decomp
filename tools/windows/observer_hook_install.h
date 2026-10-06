@@ -100,10 +100,17 @@ struct HookProtectionChange
     HookProtection  requested = HookProtection::None;
 };
 
+// Backend attestations. The transaction requires every field at each revalidation
+// and verifies none of them. The thread conditions cover every thread of the
+// process that hosts the module from acquire_quiescence to release_quiescence,
+// not a snapshot of the threads present at acquisition.
 struct HookQuiescenceProof
 {
-    bool zero_active_calls                 = false;
-    bool all_participating_threads_covered = false;
+    bool zero_active_calls                   = false;
+    bool other_threads_held                  = false;
+    bool thread_creation_barred              = false;
+    bool no_context_in_span_interiors        = false;
+    bool no_context_in_wrapper_or_trampoline = false;
 };
 
 using HookRetainModule = HookBackendResult (*)(
@@ -152,6 +159,7 @@ using HookWriteBytes = HookBackendResult (*)(
     std::uintptr_t      address,
     const std::uint8_t* source,
     std::size_t         size);
+// Success only when the bytes equal expected, Refused when they differ.
 using HookVerifyBytes = HookBackendResult (*)(
     void*               user,
     std::uintptr_t      address,
@@ -219,6 +227,7 @@ struct HookWrapperSpec
 
 struct HookInstallRequest
 {
+    // The loaded base address of the module, which is its HMODULE value.
     void*                                        module = nullptr;
     std::array<HookWrapperSpec, kHookEntryCount> wrappers{};
 };
@@ -255,6 +264,10 @@ enum class HookTransactionState : std::uint8_t
     Retained,
 };
 
+// Retained with unknown_side_effects false means the recorded state is accurate
+// and restore may retry. protection_unverified means a write window may still
+// lack its inspected protection. Both reports copy the two flags from the state
+// when they retain it.
 struct HookInstallState
 {
     HookInstallBackend                          backend{};
@@ -265,7 +278,9 @@ struct HookInstallState
     HookTransactionState                        state                 = HookTransactionState::Empty;
     bool                                        module_pin_held       = false;
     bool                                        quiescence_lease_held = false;
+    bool                                        installed             = false;
     bool                                        unknown_side_effects  = false;
+    bool                                        protection_unverified = false;
 };
 
 enum class HookInstallDisposition : std::uint8_t
@@ -303,19 +318,23 @@ enum class HookFailure : std::uint8_t
 
 struct HookInstallReport
 {
-    HookInstallDisposition disposition        = HookInstallDisposition::Rejected;
-    HookFailure            failure            = HookFailure::None;
-    std::uint32_t          prepared_entries   = 0;
-    std::uint32_t          redirected_entries = 0;
-    bool                   resources_retained = false;
+    HookInstallDisposition disposition           = HookInstallDisposition::Rejected;
+    HookFailure            failure               = HookFailure::None;
+    std::uint32_t          prepared_entries      = 0;
+    std::uint32_t          redirected_entries    = 0;
+    bool                   resources_retained    = false;
+    bool                   protection_unverified = false;
+    bool                   unknown_side_effects  = false;
 };
 
 struct HookRestoreReport
 {
-    HookInstallDisposition disposition        = HookInstallDisposition::Rejected;
-    HookFailure            failure            = HookFailure::None;
-    std::uint32_t          restored_entries   = 0;
-    bool                   resources_retained = false;
+    HookInstallDisposition disposition           = HookInstallDisposition::Rejected;
+    HookFailure            failure               = HookFailure::None;
+    std::uint32_t          restored_entries      = 0;
+    bool                   resources_retained    = false;
+    bool                   protection_unverified = false;
+    bool                   unknown_side_effects  = false;
 };
 
 // Callers serialize transaction calls and state inspection for each state.
