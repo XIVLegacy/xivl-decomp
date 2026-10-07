@@ -74,6 +74,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Instance-raid widget lifecycle](event/instance-raid-widget-lifecycle.md)
 - [JobQuestCompleteTriple receiver](event/job-quest-triple-receiver.md)
 - [KickClientOrderEvent receiver](event/kick-order-event-receiver.md)
+- [Notice target staging and widget lifetime](event/notice-widget-lifetime.md)
 - [Push-event condition receivers](event/push-condition-receivers.md)
 - [Quest dispatch](event/quest-dispatch.md)
 - [Seasonal event work control plane](event/seasonal-control-plane.md)
@@ -138,6 +139,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Resources and file formats
 
+- [Ambient Garlean fleet visibility boundary](resource/ambient-garlean-fleet.md)
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
 - [Bitmap font text bytes and glyph keys](resource/bitmap-font-text-key-consumers.md)
 - [Bitmap font multibyte numeric key handoff](resource/bitmap-font-multibyte-key-consumers.md)
@@ -204,6 +206,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Widget command admission and completion](script/widget-command-completion.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)
+- [Virtual-item creation completion](script/virtual-item-creation.md)
 - [Widget string call sites](script/widget-string-call-sites.md)
 - [Actions and Traits menu contract](script/actions-traits-menu.md)
 - [LPB corpus](script/lpb-corpus.md)
