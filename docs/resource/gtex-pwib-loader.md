@@ -75,6 +75,46 @@ The numeric-to-name assignments follow Microsoft's authoritative
 definition. Client metadata independently labels the same indices
 `A8R8G8B8`, `DXT1`, and `DXT5`.
 
+#### GTEX index 22
+
+Decimal GTEX index 22 selects little-endian dword 26, `0x0000001A`, from VA
+`0x00F63810`, the entry at `0x00F637B8 + 4 * 22`. The observed 2D creation
+path reads it at VA `0x00431449`, pushes it at VA `0x0043145F`, and passes it
+to `d3dx9_41.dll!D3DXCreateTexture` at VA `0x0043149E` through thunk VA
+`0x009FC77A` and PE import slot VA `0x00F3E60C`. Upload reads the same table
+at VA `0x00431218` and `0x00431281`, passing the selected format to the
+D3DX volume and surface load-from-memory paths.
+
+Its metadata record is at VA `0x00F63FAC`,
+`0x00F63C3C + 0x28 * 22`. The first dword is 16, read as bits per pixel by
+`FUN_00433240` at VA `0x00433247`. The block-format byte at record `+0x21`,
+VA `0x00F63FCD`, is zero, read by `FUN_00433300` at VA `0x00433307`.
+The record's pointer at `+0x24`, VA `0x00F63FD0`, selects the retained label
+`R5G5B5A1` at VA `0x00F63BA8`. That label conflicts with the consumed
+numeric API format name and does not corroborate it.
+
+Microsoft's authoritative
+[D3DFORMAT](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dformat)
+definition assigns 26 to `D3DFMT_A4R4G4B4`, an unsigned 16-bit ARGB format
+with four bits per channel. For a little-endian 16-bit stored value, Blue is
+bits 0 through 3, Green bits 4 through 7, Red bits 8 through 11, and Alpha
+bits 12 through 15. This channel layout follows the API format definition.
+It is distinct from the client metadata label.
+
+These observations use the pinned `ffxivgame.exe` identity above,
+ghidra-cli `0.2.2`, Ghidra `12.1.4`, JDK `26.0.2.1`, and image base VA
+`0x00400000`. Bounded constants and import identity were independently
+checked against the PE. The analyzed program's stored SHA-256 matched the
+file pin. Inspected instruction encodings matched the pinned executable.
+No fresh import or live device validation ran.
+
+This establishes a generic client table mapping and API-side channel layout.
+It does not establish that a font resource uses index 22, the contents or
+extent of such a resource, or an actual device texture format. The
+[D3DXCreateTexture contract](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxcreatetexture)
+permits the returned texture format to differ from the requested format.
+Index 22 is outside the format indices observed in the retained GTEX census.
+
 ### Encoded surface sizes
 
 The exact-address helper at `0x00433420` calculates one 2D surface size from

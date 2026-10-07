@@ -3,7 +3,8 @@
 The selected bitmap font draw path normalizes source coordinates with the
 texture wrapper's requested width and height. It packs the selector vector
 into a four-byte vertex field. The observations below establish the wrapper
-and vertex delivery, but leave shader operations and coverage unresolved.
+and vertex delivery. The [shader consumer finding](bitmap-font-shader-consumers.md)
+owns the selected program pair's operations. Coverage remains unresolved.
 
 The [glyph consumer finding](bitmap-font-glyph-consumers.md) owns the GLYP
 lookup, source rectangle, resource indices, selector vectors, and draw-path
@@ -51,7 +52,7 @@ not establish recovered source-level signatures.
 | `FUN_00CB8FB0` | `0x00CB8FB0` | `0x008B8FB0` | Declaration initialization |
 | `FUN_00419A20` | `0x00419A20` | `0x00019A20` | Declaration conversion |
 | Descriptor table | `0x0130C22C` | `0x00F0C22C` | Input to declaration factory |
-| Selected shader payload | `0x0110A900` | `0x00D0A900` | Bounded unresolved decoder target |
+| Selected shader payload | `0x0110A900` | `0x00D0A900` | [Selected pixel program decode](bitmap-font-shader-consumers.md#pixel-mathematical-effects) |
 
 `xivl-client-structs:manifests/symbols.json`, `BCS-Y-2357`, records the
 probable name
@@ -120,8 +121,9 @@ Applying that packing to the selector vectors in the glyph finding gives:
 | 2 | `0x000000FF` |
 | 3 | `0xFF000000` |
 
-These are numeric packing results. They do not assign channel names or a valid
-selector range.
+These are numeric packing results. The
+[shader consumer finding](bitmap-font-shader-consumers.md) joins them to the
+selected program pair's component use. A valid selector range remains unresolved.
 
 | Observation | Locator |
 |---|---|
@@ -145,15 +147,17 @@ declaration record from that entry.
 | Usage index | 2 | VA `0x00419A82` through `0x00419A8B`, selected byte VA `0x00F57DC9` |
 
 The converter submits the declaration array to the device's virtual offset
-`+0x158` at VA `0x00419ABF` through `0x00419AD3`. These numeric fields
-remain distinct from named Direct3D enum assignments and shader semantics.
+`+0x158` at VA `0x00419ABF` through `0x00419AD3`. The
+[shader consumer finding](bitmap-font-shader-consumers.md#vertex-fields-and-forwarding)
+supplies named API assignments and the selected program pair's forwarding.
 
 Interpretation: the selector vector reaches a packed byte field at vertex
-offset `+0x14` through this bounded batch and declaration path. The finding
-does not establish the shader's use of that field, component-to-channel
-mapping, alpha computation, or rendered coverage.
+offset `+0x14` through this bounded batch and declaration path. The
+[shader consumer finding](bitmap-font-shader-consumers.md) joins that field
+to the selected program pair's component selection and alpha data dependence.
+Rendered coverage remains unresolved.
 
-## Selected shader decoder boundary
+## Selected shader entry
 
 On the `FUN_00CA55A0` path with flags bit `0x02` clear, state setup occurs
 when global VA `0x01376490` differs from 5. It passes arguments 6 and 3 to
@@ -188,11 +192,10 @@ payload and size to `FUN_0041B210` at VA `0x00419608` through
 `0x00419612`. The latter has a device call through virtual offset `+0x1A8`
 at VA `0x0041B2D8` through `0x0041B2EC` on its cache-miss path.
 
-No authoritative shader-token decode is included in this finding. Ghidra's
-x86 disassembler does not establish this payload's operations. The surviving
-boundary is a bounded decode of VA `0x0110A900`, length `0x110`, plus the
-corresponding vertex shader's input/output forwarding. The declaration's
-numeric fields and packing order alone do not establish channels or coverage.
+The [shader consumer finding](bitmap-font-shader-consumers.md) records the
+bounded token decode and corresponding vertex program forwarding. Ghidra's
+x86 disassembler does not establish payload operations. Final context binding,
+runtime texture identity, and rendered coverage remain unresolved.
 
 ## Reproduction recipe
 

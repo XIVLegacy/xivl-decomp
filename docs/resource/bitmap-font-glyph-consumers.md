@@ -4,7 +4,9 @@ The retail client uses a two-stage lookup to select a 14-byte glyph record.
 Its bitmap font consumers read signed placement and advance bytes, unsigned
 source-rectangle origin words, a resource index, and a selector index. These
 observations describe the cited static paths. They do not establish a complete
-font format, texture channel contract, or runtime rendering result.
+font format, texture channel contract, or runtime rendering result. The
+[shader consumer finding](bitmap-font-shader-consumers.md) owns the selected
+program pair's component data dependence.
 
 ## Input and method
 
@@ -288,8 +290,9 @@ little-endian IEEE float32 values, gives these vectors.
 | 3 | `0x0110D8B0` | `[0, 0, 0, 1]` |
 
 Interpretation: byte `0x00` selects resource-array entries, and byte `0x01`
-selects a vector. The table does not establish a valid selector range,
-R/G/B/A names, channel storage order, shader interpretation, or coverage.
+selects a vector. The [shader consumer finding](bitmap-font-shader-consumers.md)
+joins these vectors to the selected program pair's component use. Valid
+selector range, font channel storage, and rendered coverage remain unresolved.
 Record bytes `0x08` and `0x09` have no complete semantic names here. Byte
 `0x08` participates in the observed advance adjustment.
 
