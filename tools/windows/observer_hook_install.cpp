@@ -200,16 +200,21 @@ void retain_state(HookInstallState* state)
 HookInstallReport retained_install(HookInstallState* state,
                                    HookFailure       failure,
                                    std::uint32_t     prepared,
-                                   std::uint32_t     redirected)
+                                   std::uint32_t     redirected,
+                                   bool              unknown_side_effects = true)
 {
     retain_state(state);
-    state->unknown_side_effects = true;
+    state->unknown_side_effects = state->unknown_side_effects || unknown_side_effects ||
+                                  failure == HookFailure::Ambiguous ||
+                                  failure == HookFailure::OwnershipChanged;
     HookInstallReport report;
-    report.disposition        = HookInstallDisposition::Retained;
-    report.failure            = failure;
-    report.prepared_entries   = prepared;
-    report.redirected_entries = redirected;
-    report.resources_retained = true;
+    report.disposition           = HookInstallDisposition::Retained;
+    report.failure               = failure;
+    report.prepared_entries      = prepared;
+    report.redirected_entries    = redirected;
+    report.resources_retained    = true;
+    report.unknown_side_effects  = state->unknown_side_effects;
+    report.protection_unverified = state->protection_unverified;
     return report;
 }
 
@@ -218,15 +223,16 @@ HookRestoreReport retained_restore(HookInstallState* state,
                                    std::uint32_t     restored)
 {
     retain_state(state);
-    if (failure != HookFailure::Quiescence)
-    {
-        state->unknown_side_effects = true;
-    }
+    state->unknown_side_effects = state->unknown_side_effects ||
+                                  failure == HookFailure::Ambiguous ||
+                                  failure == HookFailure::OwnershipChanged;
     HookRestoreReport report;
-    report.disposition        = HookInstallDisposition::Retained;
-    report.failure            = failure;
-    report.restored_entries   = restored;
-    report.resources_retained = true;
+    report.disposition           = HookInstallDisposition::Retained;
+    report.failure               = failure;
+    report.restored_entries      = restored;
+    report.resources_retained    = true;
+    report.unknown_side_effects  = state->unknown_side_effects;
+    report.protection_unverified = state->protection_unverified;
     return report;
 }
 
@@ -312,10 +318,57 @@ bool validate_transition(const HookProtectionChange& change,
            no_write_execute(change.previous);
 }
 
+bool confirm_protection(HookInstallState*           state,
+                        std::uintptr_t              address,
+                        std::size_t                 size,
+                        const HookProtectionChange& change)
+{
+    HookRangeInspection     inspection;
+    const HookBackendResult result = call_backend(state->backend.inspect_range,
+                                                  state->backend.user,
+                                                  address,
+                                                  size,
+                                                  &inspection);
+    if (result != HookBackendResult::Success || !valid_code_range(inspection, address, size) ||
+        inspection.protection != change.previous)
+    {
+        state->protection_unverified = true;
+        state->unknown_side_effects  = true;
+        return false;
+    }
+    return true;
+}
+
+bool restore_protection_once(HookInstallState*           state,
+                             std::uintptr_t              address,
+                             std::size_t                 size,
+                             const HookProtectionChange& change,
+                             bool                        restoration_attempted)
+{
+    if (!valid_token(change.token))
+    {
+        state->protection_unverified = true;
+        state->unknown_side_effects  = true;
+        return false;
+    }
+    if (!restoration_attempted)
+    {
+        const HookBackendResult result = call_backend(state->backend.restore_protection,
+                                                      state->backend.user,
+                                                      &change);
+        if (result != HookBackendResult::Success)
+        {
+            state->unknown_side_effects = true;
+        }
+    }
+    return confirm_protection(state, address, size, change);
+}
+
 HookFailure write_region(HookInstallState*     state,
                          std::uintptr_t        address,
                          const std::uint8_t*   bytes,
                          std::size_t           size,
+                         const std::uint8_t*   expected_before_write,
                          HookProtection        previous,
                          HookProtectionChange* saved_change)
 {
@@ -339,77 +392,119 @@ HookFailure write_region(HookInstallState*     state,
     HookFailure lease_failure = HookFailure::None;
     if (!require_lease(&lease_failure))
     {
+        if (lease_failure == HookFailure::Ambiguous)
+        {
+            state->unknown_side_effects = true;
+        }
         return lease_failure;
     }
     HookProtectionChange change;
-    HookBackendResult    result = call_backend(backend.change_protection,
-                                               backend.user,
-                                               address,
-                                               size,
-                                               HookProtection::Read | HookProtection::Write,
-                                               &change);
-    if (result != HookBackendResult::Success || !validate_transition(change, address, size, previous))
+    HookBackendResult    result           = call_backend(backend.change_protection,
+                                                         backend.user,
+                                                         address,
+                                                         size,
+                                                         HookProtection::Read | HookProtection::Write,
+                                                         &change);
+    const bool           transition_valid = validate_transition(change, address, size, previous);
+    if (!transition_valid)
     {
-        state->unknown_side_effects = true;
+        state->unknown_side_effects  = true;
+        state->protection_unverified = true;
         return result == HookBackendResult::Refused ? HookFailure::Protection : HookFailure::Ambiguous;
     }
-    *saved_change = change;
-    if (!require_lease(&lease_failure))
+    *saved_change                    = change;
+    bool       restoration_attempted = false;
+    const auto fail_inside_window    = [&](HookFailure failure, bool may_have_mutated)
+    {
+        if (may_have_mutated || failure == HookFailure::Ambiguous ||
+            failure == HookFailure::OwnershipChanged || failure == HookFailure::Quiescence)
+        {
+            state->unknown_side_effects = true;
+        }
+        restore_protection_once(state,
+                                address,
+                                size,
+                                change,
+                                restoration_attempted);
+        restoration_attempted = true;
+        return failure;
+    };
+    if (result != HookBackendResult::Success)
     {
         state->unknown_side_effects = true;
-        return lease_failure;
+        return fail_inside_window(result == HookBackendResult::Refused ? HookFailure::Protection
+                                                                       : HookFailure::Ambiguous,
+                                  true);
+    }
+    if (!require_lease(&lease_failure))
+    {
+        return fail_inside_window(lease_failure, false);
+    }
+    if (expected_before_write != nullptr)
+    {
+        std::array<std::uint8_t, kHookMaxPatchSize> actual{};
+        result = call_backend(backend.read_bytes,
+                              backend.user,
+                              address,
+                              actual.data(),
+                              size);
+        if (result != HookBackendResult::Success)
+        {
+            return fail_inside_window(result == HookBackendResult::Ambiguous
+                                          ? HookFailure::Ambiguous
+                                          : HookFailure::OwnershipChanged,
+                                      result == HookBackendResult::Ambiguous);
+        }
+        if (std::memcmp(actual.data(), expected_before_write, size) != 0)
+        {
+            return fail_inside_window(HookFailure::OwnershipChanged, false);
+        }
     }
     result = call_backend(backend.write_bytes, backend.user, address, bytes, size);
     if (result != HookBackendResult::Success)
     {
-        state->unknown_side_effects = true;
-        return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::MemoryWrite;
+        return fail_inside_window(result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                                         : HookFailure::MemoryWrite,
+                                  true);
     }
     if (!require_lease(&lease_failure))
     {
-        state->unknown_side_effects = true;
-        return lease_failure;
+        return fail_inside_window(lease_failure, true);
     }
     result = call_backend(backend.verify_bytes, backend.user, address, bytes, size);
     if (result != HookBackendResult::Success)
     {
-        state->unknown_side_effects = true;
-        return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
-                                                      : HookFailure::ByteVerification;
+        return fail_inside_window(result == HookBackendResult::Ambiguous
+                                      ? HookFailure::Ambiguous
+                                      : HookFailure::ByteVerification,
+                                  true);
     }
     if (!require_lease(&lease_failure))
     {
-        state->unknown_side_effects = true;
-        return lease_failure;
+        return fail_inside_window(lease_failure, true);
     }
     result = call_backend(backend.flush_instruction_cache, backend.user, address, size);
     if (result != HookBackendResult::Success)
     {
-        state->unknown_side_effects = true;
-        return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
-                                                      : HookFailure::InstructionCache;
+        return fail_inside_window(result == HookBackendResult::Ambiguous
+                                      ? HookFailure::Ambiguous
+                                      : HookFailure::InstructionCache,
+                                  true);
     }
     if (!require_lease(&lease_failure))
     {
-        state->unknown_side_effects = true;
-        return lease_failure;
+        return fail_inside_window(lease_failure, true);
     }
-    result = call_backend(backend.restore_protection, backend.user, &change);
+    result                = call_backend(backend.restore_protection, backend.user, &change);
+    restoration_attempted = true;
     if (result != HookBackendResult::Success)
     {
         state->unknown_side_effects = true;
+        confirm_protection(state, address, size, change);
         return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Protection;
     }
-    HookRangeInspection inspection;
-    result = call_backend(backend.inspect_range, backend.user, address, size, &inspection);
-    if (result != HookBackendResult::Success)
+    if (!confirm_protection(state, address, size, change))
     {
-        state->unknown_side_effects = true;
-        return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Protection;
-    }
-    if (!valid_code_range(inspection, address, size) || inspection.protection != previous)
-    {
-        state->unknown_side_effects = true;
         return HookFailure::Protection;
     }
     return HookFailure::None;
@@ -421,16 +516,27 @@ struct CleanupResult
     HookFailure failure  = HookFailure::None;
 };
 
+bool has_code_resources(const HookInstallState& state)
+{
+    for (const HookEntryState& entry : state.entries)
+    {
+        if (entry.cfg_registered || entry.original_published || entry.storage_held ||
+            entry.redirect_maybe_visible || entry.redirect_visible)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 CleanupResult release_resources(HookInstallState* state)
 {
     const HookInstallBackend& backend       = state->backend;
     const auto                require_lease = [state]() -> HookFailure
     {
-        bool code_resource = false;
-        for (const HookEntryState& entry : state->entries)
+        if (!has_code_resources(*state))
         {
-            code_resource = code_resource || entry.cfg_registered || entry.original_published ||
-                            entry.storage_held;
+            return HookFailure::None;
         }
         if (!state->quiescence_lease_held)
         {
@@ -439,12 +545,8 @@ CleanupResult release_resources(HookInstallState* state)
         const HookBackendResult result = check_quiescence(*state);
         if (result != HookBackendResult::Success)
         {
-            if (result == HookBackendResult::Ambiguous || code_resource)
-            {
-                return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
-                                                              : HookFailure::Quiescence;
-            }
-            return HookFailure::None;
+            return result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                          : HookFailure::Quiescence;
         }
         return HookFailure::None;
     };
@@ -464,6 +566,7 @@ CleanupResult release_resources(HookInstallState* state)
                                                       entry.cfg_registration);
         if (result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Cfg };
         }
         entry.cfg_registered = false;
@@ -485,6 +588,7 @@ CleanupResult release_resources(HookInstallState* state)
                                                       entry.trampoline);
         if (result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Publication };
         }
         entry.original_published = false;
@@ -505,6 +609,7 @@ CleanupResult release_resources(HookInstallState* state)
                                                       entry.storage);
         if (result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Release };
         }
         entry.storage_held = false;
@@ -521,6 +626,7 @@ CleanupResult release_resources(HookInstallState* state)
                                                       state->quiescence_lease);
         if (result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Release };
         }
         state->quiescence_lease_held = false;
@@ -533,11 +639,27 @@ CleanupResult release_resources(HookInstallState* state)
                                                       state->module_pin);
         if (result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Release };
         }
         state->module_pin_held = false;
     }
     return { true, HookFailure::None };
+}
+
+HookRestoreReport complete_restore(HookInstallState* state, std::uint32_t restored)
+{
+    const bool installed_history     = state->installed_history;
+    const bool unknown_side_effects  = state->unknown_side_effects;
+    const bool protection_unverified = state->protection_unverified;
+    clear_state(state);
+    HookRestoreReport report;
+    report.disposition           = installed_history ? HookInstallDisposition::Restored
+                                                     : HookInstallDisposition::RolledBack;
+    report.restored_entries      = restored;
+    report.unknown_side_effects  = unknown_side_effects;
+    report.protection_unverified = protection_unverified;
+    return report;
 }
 
 HookInstallReport reject_before_mutation(HookInstallState* state,
@@ -547,7 +669,11 @@ HookInstallReport reject_before_mutation(HookInstallState* state,
     const CleanupResult cleanup = release_resources(state);
     if (!cleanup.complete)
     {
-        return retained_install(state, cleanup.failure, prepared, 0);
+        return retained_install(state,
+                                cleanup.failure,
+                                prepared,
+                                0,
+                                cleanup.failure != HookFailure::Quiescence);
     }
     clear_state(state);
     HookInstallReport report;
@@ -559,37 +685,48 @@ HookInstallReport reject_before_mutation(HookInstallState* state,
 
 HookBackendResult check_quiescence(const HookInstallState& state)
 {
-    HookQuiescenceProof     proof;
-    const HookBackendResult result = call_backend(state.backend.revalidate_quiescence,
-                                                  state.backend.user,
-                                                  state.quiescence_lease,
-                                                  &proof);
+    HookQuiescenceAttestation attestation;
+    const HookBackendResult   result = call_backend(state.backend.revalidate_quiescence,
+                                                    state.backend.user,
+                                                    state.quiescence_lease,
+                                                    &attestation);
     if (result != HookBackendResult::Success)
     {
         return result;
     }
-    return proof.zero_active_calls && proof.all_participating_threads_covered
+    return attestation.no_active_forwarding_calls && attestation.all_other_process_threads_held &&
+                   attestation.thread_creation_barred &&
+                   attestation.no_held_instruction_context_in_entry_span_interiors &&
+                   attestation.no_context_in_wrappers_or_trampolines
                ? HookBackendResult::Success
                : HookBackendResult::Refused;
 }
 
-bool read_site(const HookInstallState&                      state,
-               const HookEntryState&                        entry,
-               std::array<std::uint8_t, kHookMaxPatchSize>* bytes)
+HookBackendResult read_site(const HookInstallState&                      state,
+                            const HookEntryState&                        entry,
+                            std::array<std::uint8_t, kHookMaxPatchSize>* bytes)
 {
     return call_backend(state.backend.read_bytes,
                         state.backend.user,
                         entry.site,
                         bytes->data(),
-                        entry.span) == HookBackendResult::Success;
+                        entry.span);
 }
 
-HookRestoreReport restore_entries_and_resources(HookInstallState* state,
-                                                bool              was_installed)
+HookRestoreReport restore_entries_and_resources(HookInstallState* state)
 {
-    if (state->unknown_side_effects)
+    if (state->unknown_side_effects || state->protection_unverified)
     {
         return retained_restore(state, HookFailure::Ambiguous, 0);
+    }
+    if (!has_code_resources(*state))
+    {
+        const CleanupResult cleanup = release_resources(state);
+        if (!cleanup.complete)
+        {
+            return retained_restore(state, cleanup.failure, 0);
+        }
+        return complete_restore(state, 0);
     }
     if (!state->quiescence_lease_held)
     {
@@ -608,6 +745,7 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
             const bool returned_token    = valid_token(state->quiescence_lease);
             if (acquire == HookBackendResult::Ambiguous || malformed_success || returned_token)
             {
+                state->unknown_side_effects = true;
                 return retained_restore(state, HookFailure::Ambiguous, 0);
             }
             return retained_restore(state, HookFailure::Quiescence, 0);
@@ -617,6 +755,10 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
     const HookBackendResult revalidation = check_quiescence(*state);
     if (revalidation != HookBackendResult::Success)
     {
+        if (revalidation == HookBackendResult::Ambiguous)
+        {
+            state->unknown_side_effects = true;
+        }
         return retained_restore(state,
                                 revalidation == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
                                                                              : HookFailure::Quiescence,
@@ -630,8 +772,10 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
             continue;
         }
         std::array<std::uint8_t, kHookMaxPatchSize> actual{};
-        if (!read_site(*state, entry, &actual))
+        const HookBackendResult                     read_result = read_site(*state, entry, &actual);
+        if (read_result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return retained_restore(state, HookFailure::Ambiguous, restored);
         }
         HookRangeInspection     range;
@@ -642,6 +786,7 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
                                                             &range);
         if (range_result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return retained_restore(state,
                                     range_result == HookBackendResult::Ambiguous
                                         ? HookFailure::Ambiguous
@@ -657,7 +802,6 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
         {
             entry.redirect_maybe_visible = false;
             entry.redirect_visible       = false;
-            ++restored;
             continue;
         }
         if (!same_bytes(actual, entry.redirect, entry.span))
@@ -671,10 +815,22 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
         {
             continue;
         }
+        std::array<std::uint8_t, kHookMaxPatchSize> actual{};
+        const HookBackendResult                     read_result = read_site(*state, entry, &actual);
+        if (read_result != HookBackendResult::Success)
+        {
+            state->unknown_side_effects = true;
+            return retained_restore(state, HookFailure::Ambiguous, restored);
+        }
+        if (!same_bytes(actual, entry.redirect, entry.span))
+        {
+            return retained_restore(state, HookFailure::OwnershipChanged, restored);
+        }
         const HookFailure failure = write_region(state,
                                                  entry.site,
                                                  entry.resident.data(),
                                                  entry.span,
+                                                 entry.redirect.data(),
                                                  entry.original_protection,
                                                  &entry.site_protection);
         if (failure != HookFailure::None)
@@ -690,12 +846,7 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state,
     {
         return retained_restore(state, cleanup.failure, restored);
     }
-    clear_state(state);
-    HookRestoreReport report;
-    report.disposition      = was_installed ? HookInstallDisposition::Restored
-                                            : HookInstallDisposition::RolledBack;
-    report.restored_entries = restored;
-    return report;
+    return complete_restore(state, restored);
 }
 
 } // namespace
@@ -707,13 +858,20 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
     HookInstallReport report;
     if (state == nullptr || request.module == nullptr)
     {
+        if (state != nullptr)
+        {
+            report.unknown_side_effects  = state->unknown_side_effects;
+            report.protection_unverified = state->protection_unverified;
+        }
         report.failure = HookFailure::InvalidRequest;
         return report;
     }
     if (!required_backend(backend) || state->state != HookTransactionState::Empty)
     {
-        report.failure = state->state != HookTransactionState::Empty ? HookFailure::InvalidRequest
-                                                                     : HookFailure::MissingBackend;
+        report.unknown_side_effects  = state->unknown_side_effects;
+        report.protection_unverified = state->protection_unverified;
+        report.failure               = state->state != HookTransactionState::Empty ? HookFailure::InvalidRequest
+                                                                                   : HookFailure::MissingBackend;
         return report;
     }
     for (const HookWrapperSpec& wrapper : request.wrappers)
@@ -789,6 +947,10 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
     if (!valid_inspection(inspection))
     {
         return reject_before_mutation(state, HookFailure::UnsupportedProfile, 0);
+    }
+    if (reinterpret_cast<std::uintptr_t>(request.module) != inspection.loaded_base)
+    {
+        return reject_before_mutation(state, HookFailure::ModuleHandle, 0);
     }
     const std::uint64_t image_end = static_cast<std::uint64_t>(inspection.loaded_base) + inspection.image_size;
     if (image_end > 0x100000000ULL)
@@ -911,7 +1073,8 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                         ? HookFailure::Ambiguous
                                         : HookFailure::Quiescence,
                                     prepared,
-                                    0);
+                                    0,
+                                    reserve_quiescence == HookBackendResult::Ambiguous);
         }
         const FixedEntry& fixed          = kEntries[entry_index(entry.id)];
         HookBackendResult reserve_result = call_backend(backend.reserve_executable,
@@ -1023,17 +1186,19 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                         ? HookFailure::Ambiguous
                                         : HookFailure::Quiescence,
                                     prepared,
-                                    0);
+                                    0,
+                                    entry_quiescence == HookBackendResult::Ambiguous);
         }
         const HookFailure failure = write_region(state,
                                                  entry.trampoline,
                                                  entry.trampoline_bytes.data(),
                                                  entry.trampoline_size,
+                                                 nullptr,
                                                  entry.trampoline_protection.previous,
                                                  &entry.trampoline_protection);
         if (failure != HookFailure::None)
         {
-            return retained_install(state, failure, prepared, 0);
+            return retained_install(state, failure, prepared, 0, state->unknown_side_effects);
         }
     }
     for (HookEntryState& entry : state->entries)
@@ -1046,7 +1211,8 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                         ? HookFailure::Ambiguous
                                         : HookFailure::Quiescence,
                                     prepared,
-                                    0);
+                                    0,
+                                    entry_quiescence == HookBackendResult::Ambiguous);
         }
         result = call_backend(backend.register_cfg,
                               backend.user,
@@ -1069,7 +1235,8 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                         ? HookFailure::Ambiguous
                                         : HookFailure::Quiescence,
                                     prepared,
-                                    0);
+                                    0,
+                                    entry_quiescence == HookBackendResult::Ambiguous);
         }
         result = call_backend(backend.publish_original,
                               backend.user,
@@ -1092,18 +1259,39 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                         ? HookFailure::Ambiguous
                                         : HookFailure::Quiescence,
                                     prepared,
-                                    redirected);
+                                    redirected,
+                                    entry_quiescence == HookBackendResult::Ambiguous);
+        }
+        std::array<std::uint8_t, kHookMaxPatchSize> actual{};
+        const HookBackendResult                     read_result = read_site(*state, entry, &actual);
+        if (read_result != HookBackendResult::Success)
+        {
+            state->unknown_side_effects = true;
+            return retained_install(state, HookFailure::Ambiguous, prepared, redirected);
+        }
+        if (!same_bytes(actual, entry.resident, entry.span))
+        {
+            return retained_install(state,
+                                    HookFailure::OwnershipChanged,
+                                    prepared,
+                                    redirected,
+                                    false);
         }
         entry.redirect_maybe_visible = true;
         const HookFailure failure    = write_region(state,
                                                     entry.site,
                                                     entry.redirect.data(),
                                                     entry.span,
+                                                    entry.resident.data(),
                                                     entry.original_protection,
                                                     &entry.site_protection);
         if (failure != HookFailure::None)
         {
-            return retained_install(state, failure, prepared, redirected);
+            return retained_install(state,
+                                    failure,
+                                    prepared,
+                                    redirected,
+                                    state->unknown_side_effects);
         }
         entry.redirect_visible = true;
         ++redirected;
@@ -1116,7 +1304,8 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                     ? HookFailure::Ambiguous
                                     : HookFailure::Quiescence,
                                 prepared,
-                                redirected);
+                                redirected,
+                                final_quiescence == HookBackendResult::Ambiguous);
     }
     result = call_backend(backend.release_quiescence, backend.user, state->quiescence_lease);
     if (result != HookBackendResult::Success)
@@ -1125,14 +1314,18 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                 result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
                                                                        : HookFailure::Release,
                                 prepared,
-                                redirected);
+                                redirected,
+                                true);
     }
     state->quiescence_lease_held = false;
     state->quiescence_lease      = HookOpaqueToken{};
     state->state                 = HookTransactionState::Installed;
+    state->installed_history     = true;
     report.disposition           = HookInstallDisposition::Installed;
     report.prepared_entries      = prepared;
     report.redirected_entries    = redirected;
+    report.unknown_side_effects  = state->unknown_side_effects;
+    report.protection_unverified = state->protection_unverified;
     return report;
 }
 
@@ -1143,12 +1336,16 @@ HookRestoreReport restore_hook_transaction(HookInstallState* state)
          state->state != HookTransactionState::Retained))
     {
         HookRestoreReport report;
+        if (state != nullptr)
+        {
+            report.unknown_side_effects  = state->unknown_side_effects;
+            report.protection_unverified = state->protection_unverified;
+        }
         report.failure = HookFailure::InvalidRequest;
         return report;
     }
-    const bool was_installed = state->state == HookTransactionState::Installed;
-    state->state             = HookTransactionState::Preparing;
-    return restore_entries_and_resources(state, was_installed);
+    state->state = HookTransactionState::Preparing;
+    return restore_entries_and_resources(state);
 }
 
 } // namespace xivl::observer_diagnostic

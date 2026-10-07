@@ -128,28 +128,115 @@ resident mappings and never writes executable memory. Receipts state
 
 [The transaction API](observer_hook_install.h) admits the same fixed three
 entries and pinned file profile as the offline planner. Its injected backend
-must bind the file identity to the retained resident module, prove relocation
-coverage, inspect full code ranges, and supply a quiescence lease covering
-every participating thread. An idle-call count alone is insufficient.
-Successful installation releases the lease; restoration acquires a new one.
+owns native module retention, resident-image binding, relocation evidence,
+range inspection, protection, CFG, publication and thread exclusion. The
+transaction checks their reported values and operation ordering. No Windows
+backend factory is provided.
+
+### Quiescence and resident-module contract
+
+A lease must exclude entry throughout each mutation and code-bearing cleanup
+step. Its revalidation callback returns `HookQuiescenceAttestation` and must
+attest all five conditions:
+
+1. No call through any of the three forwarding adapters is active.
+2. Every other thread in the observer process is held against execution.
+3. Creation of any new thread in that process is barred while the lease is held.
+4. No held instruction context is inside an overwritten entry span, excluding
+   its first byte and original resume address.
+5. No instruction context is in a wrapper or trampoline that the transaction
+   may publish, overwrite or release.
+
+The mutating thread must remain outside the engine and these call-through
+paths, including during backend callbacks. These are backend attestations,
+not independently established thread facts. The transaction does not enumerate
+threads, inspect their contexts or implement a thread-creation barrier.
+An idle-call count or a thread snapshot cannot supply that exclusion contract.
+
+Microsoft's API contracts supply constraints for a native implementation:
+
+- A [Tool Help snapshot](https://learn.microsoft.com/en-us/windows/win32/toolhelp/snapshots-of-the-system)
+  copies current lists. It does not describe a barrier against later thread
+  creation.
+- [SuspendThread](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-suspendthread)
+  can suspend a thread that owns a lock needed by the caller. Its documented
+  deadlock risk prevents assuming that an arbitrary freeze is a usable lease.
+- [GetThreadContext](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadcontext)
+  requires a suspended thread for a valid context and does not return a valid
+  context for the calling thread.
+
+These constraints leave the required hold, creation barrier and safe mutator
+placement unestablished.
+
+The module handle value must equal the reported loaded base. The transaction
+checks the pinned architecture, file size/digest, preferred base, image extent
+and relocation descriptions returned by the backend. It independently reads
+and compares only the three copied entry spans, totaling 18 resident bytes.
+The backend must still establish that the retained mapping belongs to that
+file and stays valid for every reachable original, wrapper and trampoline.
+A file digest, reported path or equal handle/base alone does not establish
+resident-image identity.
+
+Successful installation releases the lease. Restoration acquires a new lease
+when code-bearing state remains and no lease is held. A native implementation
+must establish all five conditions for both phases, rather than assuming that
+an installation lease supplies restoration coverage.
+
+### Mutation, repair and retained state
 
 The transaction prepares relocated trampolines, verifies their bytes, changes
 them from writable to executable, flushes instruction caches, registers CFG
 targets and publishes originals before redirects become visible. It checks
-nonwrapping x86 ranges and full wrapper/trampoline overlap. Restoration checks
-owned bytes before changing them. Uncertain writes, changed ownership or lost
-quiescence retain the state and reachable resources for inspection. There is
-no destructor cleanup or automatic retry. Backend exceptions are ambiguous
-results, not evidence that a mutation did not occur.
-Unknown side effects block subsequent cleanup. No reconciliation API is
-provided; a failed callback result cannot establish resource ownership.
+nonwrapping x86 ranges and full wrapper/trampoline overlap. It compares current
+site bytes with the expected resident or redirect bytes immediately before
+each redirect or restore write, in addition to preparation and restore
+preflight. Earlier accepted bytes do not establish later ownership.
 
-The backend owns native module, mapping, protection, CFG, publication and
-thread-proof semantics. No Windows backend factory is provided. Fake-backend
-tests establish transaction ordering and failure handling only.
+After a known writable protection transition, a failure inside that window
+gets one attempt to restore the recorded protection and confirm it through
+range inspection. This repair also runs when revalidation refuses inside the
+window. It does not write more bytes, complete a failed cache flush or prove
+that the code is safe to resume. An already attempted protection restore is
+not retried. `protection_unverified` records an unconfirmed repair.
+
+A refused revalidation before a step's first mutation leaves known state
+restorable. Refusal after a writable transition, uncertain writes, changed
+ownership and failed mutating callbacks retain unknown side effects.
+Backend exceptions are ambiguous results, not evidence that a mutation did
+not occur. Both operation reports expose `unknown_side_effects`; a false
+value is a transaction classification, not a native safety attestation.
+Unknown side effects block subsequent cleanup. No reconciliation API is
+provided.
+
+When no reachable redirect or code-bearing resource remains, known lease and
+module retention can be released without another passing attestation poll.
+Otherwise, release and cleanup still require the lease conditions. A retained
+freeze after a latched failure has no automatic release policy. There is no
+destructor cleanup or automatic retry. The installation history survives a
+refused restoration attempt so a later successful restoration reports
+`Restored`. `restored_entries` counts completed redirect restorations in that
+attempt, excluding entries already containing original bytes at preflight.
+
+Fake-backend tests establish transaction ordering and failure handling only.
 Calls and state inspection for one transaction must be externally serialized.
 The transient preparation state rejects callback reentry into installation
 or restoration; it does not synchronize competing threads.
+
+### Edges not established
+
+All engine RVAs below refer to the pinned image in the offline entry plan.
+The locators identify required boundaries; they do not establish a native
+lease or qualify live installation.
+
+| Required edge | Static locator or absence | Missing evidence |
+|---|---|---|
+| Exclude other threads and newly created entrants | No hold or creation-barrier implementation is established. Entry RVAs are `0x467F13`, `0x468B10` and `0x3D049D`. | A continuous hold and creation barrier covering the observer process, with a mutator that can finish while other threads are held. |
+| Exclude instruction contexts from overwritten interiors | Copied spans are 5, 7 and 6 bytes at those entry RVAs. | Native context checks under the same hold, including the mutator's placement. |
+| Exclude wrapper and trampoline contexts | Wrapper extents are request values; trampoline addresses are backend allocation results. No fixed engine locator exists. | Demonstrated context exclusion and lifetime through publication, forwarding, restoration and release. |
+| Bind the retained resident image to the pinned file | The three copied spans and QueryService HIGHLOW relocation at span `+3`; handle/base equality is enforced. | A retained native mapping and reproducible file-to-resident binding beyond the 18 compared bytes. |
+| Own protection, cache and CFG transitions | Redirect and trampoline ranges come from the entry plan; no native callback implementation exists. | Native ownership, transition receipts, cache effects and valid indirect-call targets. |
+| Preserve copied-entry exception and unwind behavior | QueryService begins at `0x468B10`; copied spans and resume addresses are in the entry plan. | A supported exception/unwind contract for relocated prologues and the actual wrappers. |
+| Release a freeze after refusal or a latched failure | No native lease-release implementation or failure policy exists. | A selected release policy that reconciles held threads, retained code and unknown side effects. |
 
 ## Synchronous raw-event bridge
 

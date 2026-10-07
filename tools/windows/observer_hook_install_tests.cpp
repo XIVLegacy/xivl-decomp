@@ -14,7 +14,6 @@ namespace
 constexpr std::uintptr_t kLoadedBase     = 0x20000000;
 constexpr std::uintptr_t kWrapperBase    = 0x30000000;
 constexpr std::uintptr_t kTrampolineBase = 0x40000000;
-constexpr std::uintptr_t kModuleToken    = 0x1111;
 constexpr std::uintptr_t kPinToken       = 0x2222;
 constexpr std::uintptr_t kLeaseToken     = 0x3333;
 
@@ -78,11 +77,18 @@ enum class FailurePoint : std::uint8_t
     RegisterCfg,
     Publish,
     RevalidateBeforeRedirect,
+    RevalidateBeforeRestore,
+    RevalidateBeforeProtection,
+    RevalidateBeforeProtectionAmbiguous,
+    RevalidateInsideWindow,
+    RevalidateInsideWindowAmbiguous,
     ChangeRedirect,
     WriteRedirect,
     VerifyRedirect,
     FlushRedirect,
     RestoreRedirect,
+    RepairRestoreTrampoline,
+    RepairRestoreRedirect,
     RevokeCfg,
     Clear,
     Free,
@@ -110,27 +116,44 @@ struct FakeBackend
     std::array<bool, kHookEntryCount>                                        site_owned{};
     std::array<bool, kHookEntryCount>                                        wrapper_owned{};
     std::array<int, 128>                                                     events{};
-    std::size_t                                                              event_count              = 0;
-    FailurePoint                                                             failure                  = FailurePoint::None;
-    bool                                                                     failure_used             = false;
-    bool                                                                     zero_active_calls        = true;
-    bool                                                                     all_threads_covered      = true;
-    bool                                                                     invalidate_after_change  = false;
-    bool                                                                     invalidate_after_reserve = false;
-    bool                                                                     acquire_invalid_success  = false;
-    bool                                                                     acquire_refused_token    = false;
-    bool                                                                     publish_before_ambiguous = false;
-    HookInstallState*                                                        reentry_state            = nullptr;
-    bool                                                                     reentry_attempted        = false;
-    HookInstallDisposition                                                   reentry_disposition      = HookInstallDisposition::Rejected;
-    HookFailure                                                              reentry_failure          = HookFailure::None;
-    bool                                                                     threw                    = false;
-    std::uint32_t                                                            revalidate_calls         = 0;
-    std::uint32_t                                                            writes                   = 0;
-    std::uint32_t                                                            cache_flushes            = 0;
-    std::uint32_t                                                            frees                    = 0;
-    bool                                                                     pin_held                 = false;
-    bool                                                                     lease_held               = false;
+    std::size_t                                                              event_count                                         = 0;
+    FailurePoint                                                             failure                                             = FailurePoint::None;
+    bool                                                                     failure_used                                        = false;
+    bool                                                                     no_active_forwarding_calls                          = true;
+    bool                                                                     all_other_process_threads_held                      = true;
+    bool                                                                     thread_creation_barred                              = true;
+    bool                                                                     no_held_instruction_context_in_entry_span_interiors = true;
+    bool                                                                     no_context_in_wrappers_or_trampolines               = true;
+    bool                                                                     persistent_quiescence_refusal                       = false;
+    bool                                                                     invalidate_after_change                             = false;
+    bool                                                                     invalidate_after_reserve                            = false;
+    bool                                                                     acquire_invalid_success                             = false;
+    bool                                                                     acquire_refused_token                               = false;
+    bool                                                                     publish_before_ambiguous                            = false;
+    bool                                                                     quiescence_failure_used                             = false;
+    bool                                                                     protection_window_open                              = false;
+    bool                                                                     callback_failed_in_window                           = false;
+    bool                                                                     repair_restore_failure                              = false;
+    bool                                                                     mutate_site_after_preflight                         = false;
+    bool                                                                     mutate_site_after_protection_change                 = false;
+    bool                                                                     mutate_site_after_restore_preflight                 = false;
+    bool                                                                     restore_phase                                       = false;
+    std::size_t                                                              mutation_target                                     = 0;
+    std::array<std::size_t, kHookEntryCount>                                 site_reads{};
+    std::uint32_t                                                            site_writes               = 0;
+    std::uint32_t                                                            protection_restore_calls  = 0;
+    HookInstallState*                                                        reentry_state             = nullptr;
+    bool                                                                     reentry_attempted         = false;
+    HookInstallDisposition                                                   reentry_disposition       = HookInstallDisposition::Rejected;
+    HookFailure                                                              reentry_failure           = HookFailure::None;
+    bool                                                                     threw                     = false;
+    std::uint32_t                                                            revalidate_calls          = 0;
+    std::uint32_t                                                            redirect_quiescence_polls = 0;
+    std::uint32_t                                                            writes                    = 0;
+    std::uint32_t                                                            cache_flushes             = 0;
+    std::uint32_t                                                            frees                     = 0;
+    bool                                                                     pin_held                  = false;
+    bool                                                                     lease_held                = false;
 
     FakeBackend()
     {
@@ -338,7 +361,9 @@ HookBackendResult fake_acquire(void* user, void*, HookOpaqueToken, HookOpaqueTok
     return HookBackendResult::Success;
 }
 
-HookBackendResult fake_revalidate(void* user, HookOpaqueToken, HookQuiescenceProof* proof)
+HookBackendResult fake_revalidate(void* user,
+                                  HookOpaqueToken,
+                                  HookQuiescenceAttestation* attestation)
 {
     FakeBackend* backend = fake(user);
     ++backend->revalidate_calls;
@@ -349,16 +374,46 @@ HookBackendResult fake_revalidate(void* user, HookOpaqueToken, HookQuiescencePro
         backend->reentry_disposition   = report.disposition;
         backend->reentry_failure       = report.failure;
     }
-    if (backend->failure == FailurePoint::RevalidateBeforeRedirect && backend->revalidate_calls >= 4)
+    bool all_published = true;
+    for (bool published : backend->published_flags)
+    {
+        all_published = all_published && published;
+    }
+    const bool before_redirect   = all_published && backend->site_writes == 0;
+    const bool before_restore    = backend->restore_phase;
+    const bool inside_window     = backend->protection_window_open;
+    const bool before_protection = before_redirect && !inside_window &&
+                                   ++backend->redirect_quiescence_polls >= 2;
+    const bool fail_poll =
+        (backend->failure == FailurePoint::RevalidateBeforeRedirect && before_redirect) ||
+        (backend->failure == FailurePoint::RevalidateBeforeRestore && before_restore) ||
+        (backend->failure == FailurePoint::RevalidateBeforeProtection && before_protection) ||
+        (backend->failure == FailurePoint::RevalidateBeforeProtectionAmbiguous && before_protection) ||
+        (backend->failure == FailurePoint::RevalidateInsideWindow && inside_window) ||
+        (backend->failure == FailurePoint::RevalidateInsideWindowAmbiguous && inside_window);
+    if (backend->persistent_quiescence_refusal)
     {
         return HookBackendResult::Refused;
     }
-    if (proof == nullptr)
+    if (fail_poll && !backend->quiescence_failure_used)
+    {
+        backend->quiescence_failure_used   = true;
+        backend->callback_failed_in_window = inside_window;
+        return backend->failure == FailurePoint::RevalidateBeforeProtectionAmbiguous ||
+                       backend->failure == FailurePoint::RevalidateInsideWindowAmbiguous
+                   ? HookBackendResult::Ambiguous
+                   : HookBackendResult::Refused;
+    }
+    if (attestation == nullptr)
     {
         return HookBackendResult::Refused;
     }
-    proof->zero_active_calls                 = backend->zero_active_calls;
-    proof->all_participating_threads_covered = backend->all_threads_covered;
+    attestation->no_active_forwarding_calls     = backend->no_active_forwarding_calls;
+    attestation->all_other_process_threads_held = backend->all_other_process_threads_held;
+    attestation->thread_creation_barred         = backend->thread_creation_barred;
+    attestation->no_held_instruction_context_in_entry_span_interiors =
+        backend->no_held_instruction_context_in_entry_span_interiors;
+    attestation->no_context_in_wrappers_or_trampolines = backend->no_context_in_wrappers_or_trampolines;
     return HookBackendResult::Success;
 }
 
@@ -392,6 +447,12 @@ HookBackendResult fake_inspect_range(void*                user,
         inspection->protection  = backend->site_protection[index];
         inspection->executable  = true;
         inspection->owned       = backend->site_owned[index];
+        if (backend->mutate_site_after_restore_preflight && backend->restore_phase &&
+            index == backend->mutation_target)
+        {
+            backend->sites[index][0] ^= 0x01;
+            backend->mutate_site_after_restore_preflight = false;
+        }
         return HookBackendResult::Success;
     }
     for (std::size_t index = 0; index < kHookEntryCount; ++index)
@@ -441,7 +502,7 @@ HookBackendResult fake_reserve(void* user, std::size_t size, HookExecutableStora
             *storage                          = backend->blocks[index].storage;
             if (backend->invalidate_after_reserve)
             {
-                backend->zero_active_calls = false;
+                backend->no_active_forwarding_calls = false;
             }
             return HookBackendResult::Success;
         }
@@ -472,6 +533,21 @@ HookBackendResult fake_read(void*          user,
                             std::size_t    size)
 {
     FakeBackend* backend = fake(user);
+    const int    site    = backend->site_index(address);
+    if (site >= 0)
+    {
+        bool all_preflight_sites_read = true;
+        for (std::size_t read_count : backend->site_reads)
+        {
+            all_preflight_sites_read = all_preflight_sites_read && read_count > 0;
+        }
+        ++backend->site_reads[static_cast<std::size_t>(site)];
+        if (backend->mutate_site_after_preflight && all_preflight_sites_read)
+        {
+            backend->sites[backend->mutation_target][0] ^= 0x01;
+            backend->mutate_site_after_preflight = false;
+        }
+    }
     if (backend->fail(FailurePoint::Read) || destination == nullptr ||
         !backend->copy_from(address, destination, size))
     {
@@ -496,7 +572,8 @@ HookBackendResult fake_write(void*               user,
                                      : FailurePoint::WriteRedirect;
     if (backend->fail(point))
     {
-        const std::size_t partial = size > 1 ? size / 2 : size;
+        backend->callback_failed_in_window = true;
+        const std::size_t partial          = size > 1 ? size / 2 : size;
         backend->copy_to(address, source, partial);
         ++backend->writes;
         return HookBackendResult::Ambiguous;
@@ -507,6 +584,10 @@ HookBackendResult fake_write(void*               user,
     }
     ++backend->writes;
     const int site = backend->site_index(address);
+    if (site >= 0)
+    {
+        ++backend->site_writes;
+    }
     backend->event(site >= 0 ? 2 : 1);
     return HookBackendResult::Success;
 }
@@ -522,6 +603,7 @@ HookBackendResult fake_verify(void*               user,
                                      : FailurePoint::VerifyRedirect;
     if (backend->fail(point))
     {
+        backend->callback_failed_in_window = true;
         return HookBackendResult::Ambiguous;
     }
     std::array<std::uint8_t, kHookMaxTrampolineSize> actual{};
@@ -564,15 +646,21 @@ HookBackendResult fake_change(void*                 user,
     {
         return HookBackendResult::Refused;
     }
-    *change  = { { 0x5000 + static_cast<std::uintptr_t>(address & 0xff) },
-                 address,
-                 size,
-                 *current,
-                 requested };
-    *current = requested;
+    *change                         = { { 0x5000 + static_cast<std::uintptr_t>(address & 0xff) },
+                                        address,
+                                        size,
+                                        *current,
+                                        requested };
+    *current                        = requested;
+    backend->protection_window_open = true;
+    if (!trampoline && backend->mutate_site_after_protection_change)
+    {
+        backend->sites[backend->mutation_target][0] ^= 0x01;
+        backend->mutate_site_after_protection_change = false;
+    }
     if (backend->invalidate_after_change)
     {
-        backend->zero_active_calls = false;
+        backend->no_active_forwarding_calls = false;
     }
     return HookBackendResult::Success;
 }
@@ -585,6 +673,11 @@ HookBackendResult fake_restore_protection(void* user, const HookProtectionChange
         return HookBackendResult::Refused;
     }
     const bool trampoline = address_is_trampoline(*backend, change->address);
+    ++backend->protection_restore_calls;
+    if (backend->callback_failed_in_window && backend->repair_restore_failure)
+    {
+        return HookBackendResult::Ambiguous;
+    }
     if (backend->fail(trampoline ? FailurePoint::RestoreTrampoline : FailurePoint::RestoreRedirect))
     {
         return HookBackendResult::Ambiguous;
@@ -593,12 +686,16 @@ HookBackendResult fake_restore_protection(void* user, const HookProtectionChange
     if (site >= 0)
     {
         backend->site_protection[static_cast<std::size_t>(site)] = change->previous;
+        backend->protection_window_open                          = false;
+        backend->callback_failed_in_window                       = false;
         return HookBackendResult::Success;
     }
     const int block = backend->block_index(change->address);
     if (block >= 0)
     {
         backend->blocks[static_cast<std::size_t>(block)].protection = change->previous;
+        backend->protection_window_open                             = false;
+        backend->callback_failed_in_window                          = false;
         return HookBackendResult::Success;
     }
     return HookBackendResult::Refused;
@@ -610,6 +707,7 @@ HookBackendResult fake_flush(void* user, std::uintptr_t address, std::size_t)
     const bool   trampoline = address_is_trampoline(*backend, address);
     if (backend->fail(trampoline ? FailurePoint::FlushTrampoline : FailurePoint::FlushRedirect))
     {
+        backend->callback_failed_in_window = true;
         return HookBackendResult::Ambiguous;
     }
     ++backend->cache_flushes;
@@ -716,7 +814,7 @@ HookInstallBackend fake_backend(FakeBackend* backend)
 HookInstallRequest fake_request(const FakeBackend& backend)
 {
     HookInstallRequest request;
-    request.module = reinterpret_cast<void*>(kModuleToken);
+    request.module = reinterpret_cast<void*>(backend.inspection.loaded_base);
     for (std::size_t index = 0; index < kHookEntryCount; ++index)
     {
         request.wrappers[index] = { backend.wrapper_address(index), 0x100 };
@@ -743,6 +841,314 @@ struct TestState
 HookInstallReport install(FakeBackend* backend, HookInstallState* state)
 {
     return install_hook_transaction(fake_request(*backend), fake_backend(backend), state);
+}
+
+void test_quiescence_attestations(TestState* tests)
+{
+    for (std::size_t missing = 0; missing < 5; ++missing)
+    {
+        FakeBackend backend;
+        switch (missing)
+        {
+            case 0:
+                backend.no_active_forwarding_calls = false;
+                break;
+            case 1:
+                backend.all_other_process_threads_held = false;
+                break;
+            case 2:
+                backend.thread_creation_barred = false;
+                break;
+            case 3:
+                backend.no_held_instruction_context_in_entry_span_interiors = false;
+                break;
+            default:
+                backend.no_context_in_wrappers_or_trampolines = false;
+                break;
+        }
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Rejected &&
+                         report.failure == HookFailure::Quiescence &&
+                         !report.unknown_side_effects && !state.unknown_side_effects &&
+                         !backend.pin_held && !backend.lease_held && backend.revalidate_calls == 1,
+                     "each quiescence attestation is required");
+    }
+}
+
+void test_module_identity_and_live_bytes(TestState* tests)
+{
+    {
+        FakeBackend        backend;
+        HookInstallRequest request = fake_request(backend);
+        request.module             = reinterpret_cast<void*>(0x1111);
+        HookInstallState        state;
+        const HookInstallReport report = install_hook_transaction(request, fake_backend(&backend), &state);
+        tests->check(report.disposition == HookInstallDisposition::Rejected &&
+                         report.failure == HookFailure::ModuleHandle &&
+                         !report.unknown_side_effects && !backend.pin_held && !backend.lease_held,
+                     "module handle must match loaded base");
+    }
+    {
+        FakeBackend backend;
+        backend.mutate_site_after_preflight = true;
+        backend.mutation_target             = 0;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::OwnershipChanged &&
+                         report.unknown_side_effects && backend.site_writes == 0,
+                     "live bytes are checked before redirect write");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.failure == HookFailure::Ambiguous && restored.unknown_side_effects &&
+                         backend.pin_held && backend.blocks[0].alive,
+                     "live-byte ownership change blocks cleanup");
+    }
+    {
+        FakeBackend backend;
+        backend.mutate_site_after_protection_change = true;
+        backend.mutation_target                     = 0;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::OwnershipChanged &&
+                         report.unknown_side_effects && backend.site_writes == 0,
+                     "live bytes are checked inside protection window");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.failure == HookFailure::Ambiguous && restored.unknown_side_effects,
+                     "inside-window ownership change blocks cleanup");
+    }
+    {
+        FakeBackend      backend;
+        HookInstallState state;
+        tests->check(install(&backend, &state).disposition == HookInstallDisposition::Installed,
+                     "restore live-byte setup install");
+        backend.restore_phase                       = true;
+        backend.mutate_site_after_restore_preflight = true;
+        backend.mutation_target                     = 1;
+        const HookRestoreReport report              = restore_hook_transaction(&state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::OwnershipChanged &&
+                         report.unknown_side_effects && backend.site_writes == 4,
+                     "live bytes are checked before restore write");
+        std::memcpy(backend.sites[1].data(),
+                    state.entries[1].redirect.data(),
+                    state.entries[1].span);
+        const HookRestoreReport retry = restore_hook_transaction(&state);
+        tests->check(retry.disposition == HookInstallDisposition::Retained &&
+                         retry.failure == HookFailure::Ambiguous && retry.unknown_side_effects &&
+                         backend.pin_held && backend.blocks[0].alive,
+                     "restore ownership change blocks cleanup after bytes reset");
+    }
+    {
+        FakeBackend      backend;
+        HookInstallState state;
+        tests->check(install(&backend, &state).disposition == HookInstallDisposition::Installed,
+                     "restore window ownership setup install");
+        backend.restore_phase                       = true;
+        backend.mutate_site_after_protection_change = true;
+        backend.mutation_target                     = 0;
+        const HookRestoreReport report              = restore_hook_transaction(&state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::OwnershipChanged && report.unknown_side_effects,
+                     "restore ownership change inside protection window is terminal");
+        std::memcpy(backend.sites[0].data(),
+                    state.entries[0].redirect.data(),
+                    state.entries[0].span);
+        const HookRestoreReport retry = restore_hook_transaction(&state);
+        tests->check(retry.disposition == HookInstallDisposition::Retained &&
+                         retry.failure == HookFailure::Ambiguous && retry.unknown_side_effects &&
+                         backend.pin_held && backend.blocks[0].alive,
+                     "inside-window restore ownership change blocks cleanup");
+    }
+}
+
+void test_protection_repairs(TestState* tests)
+{
+    const std::array<FailurePoint, 3> failures = {
+        FailurePoint::WriteTrampoline,
+        FailurePoint::VerifyTrampoline,
+        FailurePoint::FlushTrampoline,
+    };
+    for (const FailurePoint failure : failures)
+    {
+        FakeBackend backend;
+        backend.failure = failure;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.unknown_side_effects && !report.protection_unverified &&
+                         backend.protection_restore_calls == 1 &&
+                         backend.blocks[0].protection == (HookProtection::Read | HookProtection::Execute),
+                     "write failure repairs protection once");
+    }
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::RevalidateInsideWindow;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Quiescence &&
+                         report.unknown_side_effects && !report.protection_unverified &&
+                         backend.protection_restore_calls == 1 &&
+                         backend.blocks[0].protection == (HookProtection::Read | HookProtection::Execute),
+                     "poll refusal inside window repairs protection");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.failure == HookFailure::Ambiguous && restored.unknown_side_effects,
+                     "repaired window refusal blocks cleanup");
+    }
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::RevalidateInsideWindowAmbiguous;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Ambiguous && report.unknown_side_effects &&
+                         !report.protection_unverified && backend.protection_restore_calls == 1 &&
+                         backend.blocks[0].protection == (HookProtection::Read | HookProtection::Execute),
+                     "ambiguous poll inside window repairs protection");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.failure == HookFailure::Ambiguous && restored.unknown_side_effects,
+                     "ambiguous repaired window blocks cleanup");
+    }
+    {
+        FakeBackend backend;
+        backend.failure                = FailurePoint::WriteTrampoline;
+        backend.repair_restore_failure = true;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Ambiguous &&
+                         report.unknown_side_effects && report.protection_unverified &&
+                         backend.protection_restore_calls == 1,
+                     "failed protection repair is retained and reported");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.unknown_side_effects && restored.protection_unverified,
+                     "unverified protection blocks cleanup");
+    }
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::RestoreTrampoline;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Ambiguous &&
+                         report.unknown_side_effects && report.protection_unverified &&
+                         backend.protection_restore_calls == 1,
+                     "failed normal protection restore is not retried");
+    }
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::ChangeTrampoline;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Ambiguous && report.unknown_side_effects &&
+                         report.protection_unverified && backend.protection_restore_calls == 0,
+                     "malformed protection transition is unverified");
+    }
+}
+
+void test_quiescence_refusals_and_restore_history(TestState* tests)
+{
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::RevalidateBeforeRedirect;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Quiescence &&
+                         !report.unknown_side_effects && backend.site_writes == 0,
+                     "poll refusal before redirect keeps known state");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::RolledBack &&
+                         !restored.unknown_side_effects,
+                     "refused before redirect remains retryable");
+    }
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::RevalidateBeforeProtection;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Quiescence && !report.unknown_side_effects &&
+                         backend.site_writes == 0,
+                     "refused poll before protection remains retryable");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::RolledBack &&
+                         !restored.unknown_side_effects && !backend.pin_held && !backend.lease_held,
+                     "refused pre-protection poll permits cleanup retry");
+    }
+    {
+        FakeBackend backend;
+        backend.failure = FailurePoint::RevalidateBeforeProtectionAmbiguous;
+        HookInstallState        state;
+        const HookInstallReport report = install(&backend, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Ambiguous && report.unknown_side_effects &&
+                         backend.site_writes == 0,
+                     "ambiguous poll before protection latches unknown state");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.failure == HookFailure::Ambiguous && restored.unknown_side_effects &&
+                         backend.pin_held && backend.blocks[0].alive,
+                     "ambiguous pre-protection poll blocks cleanup");
+    }
+    {
+        FakeBackend backend;
+        backend.persistent_quiescence_refusal = true;
+        backend.pin_held                      = true;
+        backend.lease_held                    = true;
+        HookInstallState state;
+        state.backend                    = fake_backend(&backend);
+        state.module                     = reinterpret_cast<void*>(backend.inspection.loaded_base);
+        state.module_pin                 = { kPinToken };
+        state.quiescence_lease           = { kLeaseToken };
+        state.module_pin_held            = true;
+        state.quiescence_lease_held      = true;
+        state.state                      = HookTransactionState::Retained;
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::RolledBack &&
+                         restored.failure == HookFailure::None && !restored.unknown_side_effects &&
+                         backend.revalidate_calls == 0 && !backend.pin_held && !backend.lease_held,
+                     "resource-only cleanup releases pin and lease without polling");
+    }
+    {
+        FakeBackend      backend;
+        HookInstallState state;
+        tests->check(install(&backend, &state).disposition == HookInstallDisposition::Installed,
+                     "restore history setup install");
+        backend.failure                 = FailurePoint::RevalidateBeforeRestore;
+        backend.restore_phase           = true;
+        const HookRestoreReport refused = restore_hook_transaction(&state);
+        tests->check(refused.disposition == HookInstallDisposition::Retained &&
+                         refused.failure == HookFailure::Quiescence &&
+                         !refused.unknown_side_effects,
+                     "restore poll refusal is retryable");
+        backend.failure                  = FailurePoint::None;
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Restored &&
+                         restored.restored_entries == 3 && !restored.unknown_side_effects,
+                     "successful retry keeps installed history and counts writes");
+    }
+    {
+        FakeBackend      backend;
+        HookInstallState state;
+        tests->check(install(&backend, &state).disposition == HookInstallDisposition::Installed,
+                     "already-original setup install");
+        std::memcpy(backend.sites[0].data(),
+                    state.entries[0].resident.data(),
+                    state.entries[0].span);
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Restored &&
+                         restored.restored_entries == 2,
+                     "already-original bytes are excluded from restore count");
+    }
 }
 
 void test_success_and_restore(TestState* tests)
@@ -870,7 +1276,7 @@ void test_rejections(TestState* tests)
     }
     {
         FakeBackend backend;
-        backend.zero_active_calls = false;
+        backend.no_active_forwarding_calls = false;
         HookInstallState        state;
         const HookInstallReport report = install(&backend, &state);
         tests->check(report.disposition == HookInstallDisposition::Rejected &&
@@ -879,7 +1285,7 @@ void test_rejections(TestState* tests)
     }
     {
         FakeBackend backend;
-        backend.all_threads_covered = false;
+        backend.all_other_process_threads_held = false;
         HookInstallState        state;
         const HookInstallReport report = install(&backend, &state);
         tests->check(report.disposition == HookInstallDisposition::Rejected &&
@@ -1017,11 +1423,12 @@ void test_restore_ownership_and_rollback_failures(TestState* tests)
         HookInstallState        state;
         const HookInstallReport install_report = install(&backend, &state);
         tests->check(install_report.disposition == HookInstallDisposition::Retained &&
-                         state.unknown_side_effects,
+                         install_report.unknown_side_effects && state.unknown_side_effects,
                      "publication ambiguity latches state");
         const HookRestoreReport restore_report = restore_hook_transaction(&state);
         tests->check(restore_report.disposition == HookInstallDisposition::Retained &&
-                         restore_report.failure == HookFailure::Ambiguous,
+                         restore_report.failure == HookFailure::Ambiguous &&
+                         restore_report.unknown_side_effects,
                      "publication ambiguity blocks cleanup retry");
         tests->check(backend.published_flags[0] && backend.frees == 0,
                      "publication ambiguity retains reachable storage");
@@ -1032,8 +1439,13 @@ void test_restore_ownership_and_rollback_failures(TestState* tests)
         HookInstallState        state;
         const HookInstallReport report = install(&backend, &state);
         tests->check(report.disposition == HookInstallDisposition::Retained &&
-                         state.unknown_side_effects && backend.writes == 0,
-                     "lease loss after protection blocks next write");
+                         report.unknown_side_effects && state.unknown_side_effects &&
+                         backend.writes == 0,
+                     "lease refusal after protection latches unknown state");
+        const HookRestoreReport restored = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Retained &&
+                         restored.failure == HookFailure::Ambiguous && restored.unknown_side_effects,
+                     "lease refusal after protection blocks cleanup");
     }
     {
         FakeBackend backend;
@@ -1041,8 +1453,9 @@ void test_restore_ownership_and_rollback_failures(TestState* tests)
         HookInstallState        state;
         const HookInstallReport report = install(&backend, &state);
         tests->check(report.disposition == HookInstallDisposition::Retained &&
-                         state.unknown_side_effects && backend.blocks[0].alive && backend.writes == 0,
-                     "lease loss after reserve blocks next reservation");
+                         !report.unknown_side_effects && !state.unknown_side_effects &&
+                         backend.blocks[0].alive && backend.writes == 0,
+                     "lease refusal after reserve keeps known state");
     }
     {
         FakeBackend      backend;
@@ -1077,6 +1490,10 @@ void test_restore_ownership_and_rollback_failures(TestState* tests)
 SelfTestReport run_hook_install_self_tests()
 {
     TestState tests;
+    test_quiescence_attestations(&tests);
+    test_module_identity_and_live_bytes(&tests);
+    test_protection_repairs(&tests);
+    test_quiescence_refusals_and_restore_history(&tests);
     test_success_and_restore(&tests);
     test_order_and_rebase(&tests);
     test_rejections(&tests);

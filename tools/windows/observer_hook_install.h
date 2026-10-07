@@ -100,10 +100,13 @@ struct HookProtectionChange
     HookProtection  requested = HookProtection::None;
 };
 
-struct HookQuiescenceProof
+struct HookQuiescenceAttestation
 {
-    bool zero_active_calls                 = false;
-    bool all_participating_threads_covered = false;
+    bool no_active_forwarding_calls                          = false;
+    bool all_other_process_threads_held                      = false;
+    bool thread_creation_barred                              = false;
+    bool no_held_instruction_context_in_entry_span_interiors = false;
+    bool no_context_in_wrappers_or_trampolines               = false;
 };
 
 using HookRetainModule = HookBackendResult (*)(
@@ -124,9 +127,9 @@ using HookAcquireQuiescence = HookBackendResult (*)(
     HookOpaqueToken  pin,
     HookOpaqueToken* lease);
 using HookRevalidateQuiescence = HookBackendResult (*)(
-    void*                user,
-    HookOpaqueToken      lease,
-    HookQuiescenceProof* proof);
+    void*                      user,
+    HookOpaqueToken            lease,
+    HookQuiescenceAttestation* attestation);
 using HookReleaseQuiescence = HookBackendResult (*)(
     void*           user,
     HookOpaqueToken lease);
@@ -266,6 +269,8 @@ struct HookInstallState
     bool                                        module_pin_held       = false;
     bool                                        quiescence_lease_held = false;
     bool                                        unknown_side_effects  = false;
+    bool                                        protection_unverified = false;
+    bool                                        installed_history     = false;
 };
 
 enum class HookInstallDisposition : std::uint8_t
@@ -284,6 +289,7 @@ enum class HookFailure : std::uint8_t
     MissingBackend,
     ModulePin,
     ModuleInspection,
+    ModuleHandle,
     UnsupportedProfile,
     Quiescence,
     RangeOwnership,
@@ -303,19 +309,23 @@ enum class HookFailure : std::uint8_t
 
 struct HookInstallReport
 {
-    HookInstallDisposition disposition        = HookInstallDisposition::Rejected;
-    HookFailure            failure            = HookFailure::None;
-    std::uint32_t          prepared_entries   = 0;
-    std::uint32_t          redirected_entries = 0;
-    bool                   resources_retained = false;
+    HookInstallDisposition disposition           = HookInstallDisposition::Rejected;
+    HookFailure            failure               = HookFailure::None;
+    std::uint32_t          prepared_entries      = 0;
+    std::uint32_t          redirected_entries    = 0;
+    bool                   resources_retained    = false;
+    bool                   unknown_side_effects  = false;
+    bool                   protection_unverified = false;
 };
 
 struct HookRestoreReport
 {
-    HookInstallDisposition disposition        = HookInstallDisposition::Rejected;
-    HookFailure            failure            = HookFailure::None;
-    std::uint32_t          restored_entries   = 0;
-    bool                   resources_retained = false;
+    HookInstallDisposition disposition           = HookInstallDisposition::Rejected;
+    HookFailure            failure               = HookFailure::None;
+    std::uint32_t          restored_entries      = 0;
+    bool                   resources_retained    = false;
+    bool                   unknown_side_effects  = false;
+    bool                   protection_unverified = false;
 };
 
 // Callers serialize transaction calls and state inspection for each state.
