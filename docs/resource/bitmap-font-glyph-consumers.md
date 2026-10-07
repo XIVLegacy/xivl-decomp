@@ -80,6 +80,38 @@ Interpretation: `C+0x20` and `F+0x28` identify the same storage under the
 observed 8-byte adjustment. The chunk-size path includes an endian-conversion
 branch. This does not establish a format-wide endian rule.
 
+## VERS and FSIZ scalars
+
+These observations use the executable and tool identity in Input and method.
+`F` is the complete FontData-relative pointer. `C` is its callback-relative
+pointer at `F+8`. The constructor stores the callback vtable at complete
+object+8, and its slot-0 thunk subtracts 8 from the callback pointer at VA
+`0x00CA6D90`. The constructor clears the dwords at `F+0x18` and `F+0x2C`
+at VA `0x00CA62FF` and `0x00CA630E`.
+
+| Scalar | Observation | Locator |
+|---|---|---|
+| `F+0x18` | On the matching VERS path, `FUN_00CA65C0` loads the dword at chunk+8 and stores it at `C+0x10`. No byte swap, mask, or numerical conversion intervenes. | Comparison VA `0x00CA6673`, mismatch branch VA `0x00CA667D`, load VA `0x00CA6683`, store VA `0x00CA668A`, VERS constant VA `0x0110B374` |
+| `F+0x18` | The matching VERS path in `FUN_004EAD50` loads chunk+8 and stores it at callback+`0x10` without conversion. Its later call to `FUN_00CA6340` uses callback-8. | Comparison VA `0x004EAE09`, mismatch branch VA `0x004EAE13`, load VA `0x004EAE19`, store VA `0x004EAE20`, adjustment VA `0x004EB522`, VERS constant VA `0x00F92320` |
+| `F+0x2C` | On the matching FSIZ path, `FUN_00CA65C0` loads the dword at chunk+8 and stores it at `C+0x24`. No byte swap, mask, or numerical conversion intervenes. | Comparison VA `0x00CA68E8`, match branch VA `0x00CA68F2`, load VA `0x00CA691A`, store VA `0x00CA6921`, FSIZ constant VA `0x0110B418` |
+
+The four-byte comparisons call `FUN_009D5475`. Its length-four path compares
+successive bytes and returns zero after equality through the requested length
+at VA `0x009D5507` through `0x009D5531`.
+
+Interpretation: the observed VERS writers supply a raw little-endian 32-bit
+scalar to `F+0x18`. The observed matching FSIZ path supplies a distinct raw
+little-endian 32-bit scalar to `F+0x2C`. Lookup tests `F+0x18` for equality
+with zero at VA `0x00CA652B` to select its copy layout.
+
+These are observed writers, not an exhaustive writer inventory. The VERS
+mismatch branches skip their stores. Constructor zero does not establish that
+a repeated read without VERS clears a previously stored value. The FSIZ
+mismatch branch takes a reporting path before joining the load sequence, so
+this observation does not assert that the reporting path always terminates.
+The complete VERS domain, version semantics, accepted FSIZ domain, and FSIZ
+unit remain unresolved.
+
 ## Lookup and normalized output
 
 `FUN_00CA6490` reads a 16-bit key. The instruction range VA `0x00CA64A5`
@@ -102,11 +134,63 @@ copy layouts. Its semantic name and full version domain are unresolved.
 | Word `0x0A` | Record word `0x0A` | Record word `0x08` | VA `0x00CA6544` through `0x00CA6548`, `0x00CA6569` through `0x00CA656D` |
 | Word `0x0C` | Record word `0x0C` | Record word `0x0A` | VA `0x00CA654C` through `0x00CA6550`, `0x00CA6571` through `0x00CA6575` |
 
-For the nonzero branch, flag bit `0x02` adds output byte `0x08` to output byte
-`0x06` with byte-width arithmetic at VA `0x00CA6554` through `0x00CA655C`.
-In both layouts, flag bit `0x08` subsequently clears output byte `0x02` and
-overrides output byte `0x06` at VA `0x00CA6579` through `0x00CA65AD`.
-This page does not assign a semantic formula to that override.
+## Caller arguments and normalization flags
+
+`FUN_00CA6490` reads its 16-bit key from the first explicit argument, the
+flag pointer from the second, and the output pointer from the third. Relative
+to the entry stack pointer, their locations are +4, +8, and +`0x0C`. The
+reads at VA `0x00CA64A9`, `0x00CA6530`, and `0x00CA64E2` include the
+function's intervening stack pushes. The call at VA `0x00CA6495` removes its
+own four-byte argument on return at VA `0x00CA6487`. Lookup returns remove
+`0x0C` bytes of explicit arguments at VA `0x00CA64A2`, `0x00CA64DF`,
+`0x00CA6594`, and `0x00CA65B4`.
+
+Lookup tests bits `0x02` and `0x08` through the caller-supplied flag pointer's
+low byte. These tests do not read a flag field from the selected GLYP record.
+The complete lookup range VA `0x00CA6490` through `0x00CA65B4` contains no
+bit-`0x01` test. This does not rule out a supplied pointer that aliases other
+memory.
+
+For nonzero `F+0x18`, flag bit `0x02` adds output byte `0x08` to output byte
+`0x06` at VA `0x00CA6554` through `0x00CA655C`. The operation has eight-bit
+width and wraps modulo 256. The zero layout bypasses this addition.
+
+After both layouts converge, flag bit `0x08` controls the override at VA
+`0x00CA6579` through `0x00CA65AD`. Failed lookups return before this test.
+When the bit is set, the override clears output byte `0x02` and replaces
+output byte `0x06`. The key comparison at VA `0x00CA657F` is 16-bit, and the
+branch at VA `0x00CA6588` is unsigned less-than.
+
+| Key | Output byte `0x06` operation | Locator |
+|---|---|---|
+| At least `0x0100` | Store the low eight bits of dword `F+0x2C`. | VA `0x00CA658A` through `0x00CA658E` |
+| Below `0x0100` | Apply the integer operations below, then store the low eight result bits. | VA `0x00CA6597` through `0x00CA65AD` |
+
+The low-key branch performs these operations in order:
+
+1. Load the 32-bit pattern at `F+0x2C` and form three times that pattern with
+   32-bit arithmetic at VA `0x00CA659A`. Retain the low 32 bits, wrapping
+   modulo `2^32`.
+2. Interpret that pattern as signed 32-bit and multiply it by signed 32-bit
+   `0x66666667` at VA `0x00CA659D` through `0x00CA65A2`. The product is
+   signed 64-bit.
+3. Retain the upper 32-bit product half and arithmetic-right-shift it by one
+   at VA `0x00CA65A4`.
+4. Logically right-shift a copy of that shifted 32-bit pattern by 31 at VA
+   `0x00CA65A8`, producing its sign bit as zero or one. Add that value to the
+   shifted product half with 32-bit arithmetic at VA `0x00CA65AB`.
+5. Store only the low eight result bits at VA `0x00CA65AD`.
+
+Within this final override, only output bytes `0x02` and `0x06` are written.
+Both key branches return success. Neither byte store clips or saturates.
+The `0x08` store replaces any preceding `0x02` addition to output byte `0x06`.
+The downstream signed-byte interpretation does not change this truncating
+storage operation.
+
+No semantic flag name, style mode, key encoding, legal flag combination, or
+caller default is established. A shorter fractional formula requires a
+separate proof over the admitted input domain and must preserve the observed
+32-bit wrap and byte truncation.
 
 The following field interpretations describe the normalized output as consumed.
 They are not a promise that every record byte reaches the consumer unchanged.
@@ -125,16 +209,40 @@ calls. Subsequent stack changes must be included when tracing the output.
 | Byte `0x05` | Sign-extended. Supplies the second source-rectangle extent and the scaled second drawing-rectangle extent. | Signed 8-bit height consumed by this path | VA `0x00CAC4EB`, `0x00CAC535`, `0x00CAC55A`, `0x00CAC576` through `0x00CAC58B` |
 | Byte `0x06` | Sign-extended, scaled, converted to integer, and added to the running first drawing-position coordinate | Signed 8-bit horizontal advance after lookup normalization | VA `0x00CAC5FD` through `0x00CAC667` |
 
-The scalar consumer `FUN_00CAC1A0` also sign-extends normalized output+`0x06`
-at VA `0x00CAC1DB`. It multiplies the value by the object's float at `0x224`
-and two explicit float arguments. A signed comparison of `F+0x18` against 3
-controls an additional 1 when flags contain `0x02` or `0x01`. The final
-conversion truncates the float to an integer at VA `0x00CAC243`. These
-observations are confined to VA `0x00CAC1DB` through `0x00CAC247`.
+The [consumer flag term](#consumer-flag-term) records the scalar and draw
+paths' caller flag tests and their ordering before final truncation.
 
 These consumers support the placement, extent, and horizontal-advance names.
 They do not establish baseline conventions, vertical advance, line height,
 pixel-center rules, or the meaning of byte `0x07`.
+
+## Consumer flag term
+
+The scalar consumer `FUN_00CAC1A0` reads its incoming flag pointer from entry
+stack+`0x0C` at VA `0x00CAC1A5`. It passes that pointer to lookup at VA
+`0x00CAC1BC` and fallback lookup at VA `0x00CAC1D6`. The draw consumer
+`FUN_00CAC330` reads its incoming flag pointer from entry stack+`0x14` at VA
+`0x00CAC376`. It forwards that pointer at the lookup calls VA `0x00CAC4AB`
+and `0x00CAC4C5`.
+
+The scalar consumer sign-extends normalized output byte `0x06` at VA
+`0x00CAC1DB`. It multiplies the value by the object's float at `0x224` and
+two explicit float arguments. The scalar path initializes an additive integer
+term to zero at VA `0x00CAC20F`. The draw path initializes the corresponding
+term to zero at VA `0x00CAC62E`.
+
+| Consumer | Signed threshold | Caller flag test and term | Final ordering |
+|---|---|---|---|
+| `FUN_00CAC1A0` | Compare dword `F+0x18` with 3 at VA `0x00CAC211`. Signed greater-than at VA `0x00CAC21D` skips the flag tests. | For signed values at most 3, read the caller flag dword at VA `0x00CAC21F` and test low-byte bits `0x02` and `0x01` at VA `0x00CAC221` and `0x00CAC225`. Either bit sets the integer term to 1 at VA `0x00CAC229`. | Add the converted term before the final float-to-integer truncation at VA `0x00CAC243`. |
+| `FUN_00CAC330` | Compare dword `F+0x18` with 3 at VA `0x00CAC630`. Signed greater-than at VA `0x00CAC63C` skips the flag tests. | For signed values at most 3, read the caller flag dword at VA `0x00CAC63E` and test low-byte bits `0x02` and `0x01` at VA `0x00CAC640` and `0x00CAC645`. Either bit sets the integer term to 1 at VA `0x00CAC64A`. | Add the converted term before final truncation at VA `0x00CAC663` and the running horizontal accumulator update at VA `0x00CAC667`. |
+
+These are caller flag tests, separate from normalized output byte `0x01`
+consumed as a selector index. Lookup's flag-`0x02` byte addition and the
+consumer's additive term are distinct operations. The signed comparison does
+not establish that VERS values are nonnegative or permit an unsigned version
+threshold. Upstream flag origin, legal combinations, defaults, and semantic
+style names remain unresolved. The table does not specify the consumers'
+complete floating-point metric formulas.
 
 ## Source rectangle and normalization
 
@@ -148,9 +256,12 @@ pixel-center rules, or the meaning of byte `0x07`.
 Interpretation: normalized words `0x0A` and `0x0C` are unsigned 16-bit source
 x and y origins. The nonzero lookup layout supplies them from record words at
 the matching offsets. The zero lookup layout supplies different record offsets.
-The resource fields' identities as texture dimensions remain unresolved.
-Pixel units and atlas semantics require that separate identity evidence. The
-alternate dispatcher path through `FUN_00CA54D0` is outside this observation.
+The [texture consumer finding](bitmap-font-texture-consumers.md) identifies
+the resource fields as requested texture width and height on the observed
+2D construction path. That join supports pixel-coordinate source origins and
+extents. Actual device surface dimensions and atlas contents remain
+unverified. The alternate dispatcher path through `FUN_00CA54D0` is outside
+this observation.
 
 ## Resource and selector indices
 
@@ -231,6 +342,37 @@ ghidra memory read 0x0126A790 40
 ghidra memory read 0x0130BD54 40
 ghidra memory read 0x00F54A54 4
 ghidra memory read 0x0110D880 64
+```
+
+### Normalization reproduction locators
+
+Use the input identity and local-output boundary in Reproduction recipe. These
+additional ghidra-cli commands expose the bounded scalar writers, comparison
+helper, lookup override, and caller paths. Their output remains local.
+
+```text
+ghidra function get 0x00CA6490
+ghidra function get 0x00CAC1A0
+ghidra function get 0x00CAC330
+ghidra disasm 0x00CA65FE -n 48
+ghidra disasm 0x004EAD8E -n 55
+ghidra disasm 0x004EB50E -n 12
+ghidra disasm 0x00CA68B5 -n 37
+ghidra disasm 0x009D5475 -n 35
+ghidra disasm 0x009D5507 -n 17
+ghidra disasm 0x009D5527 -n 11
+ghidra disasm 0x00CA6474 -n 9
+ghidra disasm 0x00CA6490 -n 103
+ghidra disasm 0x00CAC1A0 -n 55
+ghidra disasm 0x00CAC330 -n 30
+ghidra disasm 0x00CAC387 -n 75
+ghidra disasm 0x00CAC46E -n 19
+ghidra disasm 0x00CAC49E -n 15
+ghidra disasm 0x00CAC4CA -n 95
+ghidra disasm 0x00CAC630 -n 19
+ghidra memory read 0x0110B374 4
+ghidra memory read 0x00F92320 4
+ghidra memory read 0x0110B418 4
 ```
 
 Do not publish generated assembly, decompiled function bodies, executable

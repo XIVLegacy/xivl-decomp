@@ -139,6 +139,7 @@ Each finding records its evidence and the limits of what it establishes.
 ## Resources and file formats
 
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
+- [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Large coffer action families](resource/coffer-action-families.md)
 - [Bowl of Embers fire-ring layout](resource/ifrit-bowl-ring.md)
 - [Thornmarch ring layout controls](resource/thornmarch-ring-layout.md)
