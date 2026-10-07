@@ -175,10 +175,10 @@ preceding record.
 Let the parent output contain matrix `G_parent` at `+0x00`, inherited
 scale `S_parent` at `+0x80` and quaternion `Q_parent` at `+0x90`.
 VA `0x00a3f980` obtains the local unscaled matrix. Callsite `0x00a3fa22`
-passes it to `0x00a419a0`. That helper selects trace/diagonal candidates
-through SIMD comparison masks and uses reciprocal-square-root refinement.
-Call the returned quaternion `recoverQuaternion(localMatrix)`. Its exact
-rounding and sign selection remain unresolved. This intermediate must not
+passes it to `0x00a419a0`. The [bounded recovery finding](skeleton-quaternion-recovery.md) establishes
+its ordered comparison masks, candidate lanes and reciprocal-square-root
+refinement. Call the returned quaternion `recoverQuaternion(localMatrix)`.
+Native floating-point parity remains unresolved. This intermediate must not
 be replaced by an assumed copy of the serialized quaternion.
 
 The selected mathematical relation is:
@@ -259,8 +259,8 @@ inputs outside the public tree.
 
 This finding does not establish alternative scalar versions, conversion,
 multiple directory rows, mixed-selector behavior, Euler-branch input
-coverage or the alternative hierarchy calculation. Exact recovery,
-reciprocal and floating-point parity remain unresolved. Serialized matrix
+coverage or the alternative hierarchy calculation. Portable native
+floating-point parity remains unresolved. Serialized matrix
 blocks, authored bind pose, inverse-bind semantics, absolute world axes,
 handedness, units and actor placement remain unresolved. Mesh palettes,
 joint associations, skin weights, shader conventions, MTB channels,

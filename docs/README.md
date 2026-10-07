@@ -172,6 +172,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [Bounded SKL record and hierarchy framing](resource/skeleton-bone-framing.md)
 - [Bounded SKL constructor-pose transforms](resource/skeleton-constructor-pose.md)
+- [Bounded SKL constructor quaternion recovery](resource/skeleton-quaternion-recovery.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Launcher startup patch addresses](resource/launcher-startup-patch-addresses.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
