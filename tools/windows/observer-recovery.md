@@ -39,14 +39,35 @@ APIs; mutating step reentry is refused. A blocked callback prevents serialized
 steps from progressing, so this contract does not establish a native supervisor
 deadline for an arbitrary blocking callback.
 
-Copy the transaction state, uncertainty/protection flags and lease/pin flags
-from `HookInstallState`. Its code-bearing summary includes every entry with
-held storage, CFG registration, a published original target or a visible or
+The [snapshot adapter](observer_recovery_snapshot.h) derives the hook and
+publication components from `HookInstallState`,
+`ObserverPublicationController` and an injected copy of the publication
+record. Supply the expected publication binding independently, the record's
+read result and the transaction disposition. The adapter performs no read,
+write or cleanup operation and does not create an identity or hold proof.
+
+The hook component copies the transaction state, uncertainty/protection flags
+and lease/pin flags. Its code-bearing summary includes every entry with held
+storage, CFG registration, a published original target or a visible or
 possibly visible redirect. `Retained` alone does not establish that code remains.
-Copy publication ownership, aggregate/clear state and uncertainty from
-`ObserverPublicationController`; derive target, publication and active-call
-facts from a checked record with the expected binding and generation. A local
-controller flag cannot replace that record check.
+The publication component copies ownership, aggregate/clear state and
+uncertainty, then checks the copied record's header, binding, owner, generation
+and targets against the expected binding, controller state and live hook
+publication state. A fresh controller may inspect an empty record with
+preserved generation history before its first publication. Cleared historical
+targets do not stand for live code after transaction resources are released.
+A local controller flag cannot replace the record check. Missing or refused
+record input cannot produce a complete publication component or authorize
+cleanup.
+
+The caller must copy all inputs within its serialization domain and supply
+the remaining `RecoveryStateSnapshot` fields separately, including its
+generation, synchronization, creation/connection state and current hold or
+typed exit-event evidence. The adapter does not establish continuous native
+exclusion, remote read coherence or creation-owned identity. It preserves
+existing uncertainty flags without creating a mutation-uncertainty latch for
+a read-only refusal. The coordinator retains observed safety failures across
+later observations.
 
 `update_observation` supplies a synchronized current copy. The original copy
 and classification remain historical evidence. Each action callback must

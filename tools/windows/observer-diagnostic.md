@@ -7,7 +7,8 @@ sequence source. The executable has no attachment, DLL loading, hook
 installation or retail mode. `observer_runtime_check` additionally exercises
 the raw-event bridge, an injected installation transaction, the
 [publication protocol](observer-publication-protocol.md) and the
-[recovery model](observer-recovery.md) with fake backends.
+[recovery model](observer-recovery.md), including its snapshot adapter, with
+fake backends.
 It also has no live execution mode.
 
 The supported execution profile is `synthetic-forwarding-profile`. A checked

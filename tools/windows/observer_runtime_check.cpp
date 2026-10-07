@@ -3,6 +3,7 @@
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
 #include "observer_recovery.h"
+#include "observer_recovery_snapshot.h"
 
 #include <filesystem>
 #include <iostream>
@@ -17,13 +18,18 @@ int wmain(int argc, wchar_t** argv)
         const auto bridge      = run_event_bridge_self_tests();
         const auto install     = run_hook_install_self_tests();
         const auto publication = run_publication_protocol_self_tests();
+        const auto snapshot    = run_observer_recovery_snapshot_self_tests();
         const auto recovery    = run_recovery_self_tests();
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
                   << "transaction: checks=" << install.checks << ",failures=" << install.failures << ',' << install.summary << '\n'
                   << "publication: checks=" << publication.checks << ",failures=" << publication.failures << ',' << publication.summary << '\n'
+                  << "snapshot: checks=" << snapshot.checks << ",failures=" << snapshot.failures << ',' << snapshot.summary << '\n'
                   << "recovery: checks=" << recovery.checks << ",failures=" << recovery.failures << ',' << recovery.summary << '\n';
-        return diagnostic.passed && bridge.passed && install.passed && publication.passed && recovery.passed ? 0 : 1;
+        return diagnostic.passed && bridge.passed && install.passed && publication.passed && snapshot.passed &&
+                       recovery.passed
+                   ? 0
+                   : 1;
     }
     if (argc != 3 || std::wstring(argv[1]) != L"--bridge-output")
     {

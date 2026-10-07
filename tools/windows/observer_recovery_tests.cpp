@@ -2,6 +2,7 @@
 #include "observer_recovery.h"
 
 #include "observer_publication_protocol.h"
+#include "observer_recovery_snapshot.h"
 
 #include <array>
 #include <atomic>
@@ -487,8 +488,9 @@ struct FakeAggregateFlow
         {
             return HookBackendResult::Refused;
         }
-        flow->released = true;
-        flow->claimed  = false;
+        flow->released                   = true;
+        flow->claimed                    = false;
+        flow->record.controller_owner_id = 0;
         return HookBackendResult::Success;
     }
 
@@ -1056,33 +1058,20 @@ RecoveryActionResult FakeRecovery::run_actual_aggregate_restore(RecoveryActionRe
     bool       success             = hook_cleared && publication_cleared;
     if (success && coordinator != nullptr)
     {
-        RecoveryStateSnapshot actual            = aggregate_base_state;
-        actual.generation                       = aggregate_base_state.generation +
-                                                  (aggregate_base_state.hold.no_context_in_wrappers_or_trampolines ? 1 : 2);
-        actual.hook.complete                    = true;
-        actual.hook.transaction_state           = HookTransactionState::Empty;
-        actual.hook.disposition                 = report.disposition;
-        actual.hook.unknown_side_effects        = report.unknown_side_effects;
-        actual.hook.protection_unverified       = report.protection_unverified;
-        actual.hook.module_pin_held             = aggregate_flow.hook.module_pin_held;
-        actual.hook.quiescence_lease_held       = aggregate_flow.hook.quiescence_lease_held;
-        actual.hook.installed_history           = report.disposition == HookInstallDisposition::Restored;
-        actual.hook.code_bearing_resources      = false;
-        actual.hook.binding_matches             = true;
-        actual.publication.complete             = true;
-        actual.publication.unknown_side_effects = aggregate_flow.publication.unknown_side_effects;
-        actual.publication.ownership_claimed    = aggregate_flow.publication.ownership_claimed;
-        actual.publication.aggregate_committed  = aggregate_flow.publication.aggregate_committed;
-        actual.publication.clear_completed      = aggregate_flow.publication.clear_completed;
-        actual.publication.record_published =
-            (aggregate_flow.record.flags & kObserverPublicationPublishedFlag) != 0;
-        actual.publication.code_bearing_resources = false;
-        actual.publication.targets_empty          = record_cleared;
-        actual.publication.active_forwarding_calls_zero =
-            aggregate_flow.record.active_forwarding_calls == 0;
-        actual.publication.binding_matches                = true;
-        actual.publication.owner_matches                  = true;
-        actual.publication.controller_owner_id            = aggregate_flow.binding.controller_owner_id;
+        RecoveryStateSnapshot actual = aggregate_base_state;
+        actual.generation            = aggregate_base_state.generation +
+                                       (aggregate_base_state.hold.no_context_in_wrappers_or_trampolines ? 1 : 2);
+        ObserverPublicationRecordRead record_read;
+        record_read.result                       = HookBackendResult::Success;
+        record_read.record                       = aggregate_flow.record;
+        const ObserverRecoverySnapshot snapshots = make_observer_recovery_snapshot(
+            aggregate_flow.hook,
+            report.disposition,
+            aggregate_flow.publication,
+            aggregate_flow.binding,
+            record_read);
+        actual.hook                                       = snapshots.hook;
+        actual.publication                                = snapshots.publication;
         actual.hold.complete                              = true;
         actual.hold.event_outstanding                     = false;
         actual.hold.lease_held                            = false;
