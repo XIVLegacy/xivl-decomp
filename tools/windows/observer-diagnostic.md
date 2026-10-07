@@ -5,8 +5,9 @@ fake originals and injected memory, error and handle-identity readers. It
 exports synthetic service-selection and context-write rows with one entry/exit
 sequence source. The executable has no attachment, DLL loading, hook
 installation or retail mode. `observer_runtime_check` additionally exercises
-the raw-event bridge, an injected installation transaction and the
-[publication protocol](observer-publication-protocol.md) with fake backends.
+the raw-event bridge, an injected installation transaction, the
+[publication protocol](observer-publication-protocol.md) and the
+[recovery model](observer-recovery.md) with fake backends.
 It also has no live execution mode.
 
 The supported execution profile is `synthetic-forwarding-profile`. A checked
@@ -290,7 +291,7 @@ lease or qualify live installation.
 | Bind the retained resident image to the pinned file | The three copied spans and QueryService HIGHLOW relocation at span `+3`; handle/base equality is enforced. | A retained native mapping and reproducible file-to-resident binding beyond the 18 compared bytes. |
 | Own protection, cache and CFG transitions | Redirect and trampoline ranges come from the entry plan; no native callback implementation exists. | Native ownership, transition receipts, cache effects and valid indirect-call targets. |
 | Preserve copied-entry exception and unwind behavior | QueryService begins at `0x468B10`; copied spans and resume addresses are in the entry plan. | A supported exception/unwind contract for relocated prologues and the actual wrappers. |
-| Release a freeze after refusal or a latched failure | No native lease-release implementation or failure policy exists. | A selected release policy that reconciles held threads, retained code and unknown side effects. |
+| Recover after refusal or a latched failure | The [offline recovery model](observer-recovery.md) supplies injected failure decisions; no native recovery backend exists. | Native hold, retained-handle ownership, dispatch synchronization and independently confirmed shutdown under the same recovery policy. |
 
 ## Synchronous raw-event bridge
 
