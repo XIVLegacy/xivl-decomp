@@ -46,6 +46,51 @@ overflow, reentry and concurrent forwarding. They do not run a native context AP
 validator rejects incomplete samples and malformed event joins. Validator
 acceptance establishes this synthetic record contract only.
 
+## Callback identity reader
+
+`CallbackIdentityReader` in
+[`observer_callback_identity.h`](observer_callback_identity.h) accepts a
+borrowed SDK `IUnknown`, obtains `IDebugSystemObjects` with the Windows SDK
+declaration, and records the actual `QueryInterface` result plus the six
+selected and event ID getters. It initializes each output to its documented
+unknown sentinel, preserves the HRESULT and output-known flag, and releases a
+successful non-null interface reference exactly once. The configured error-pair
+callbacks record and restore the injected LastError/LastStatus values; missing
+or failed callbacks keep binding ineligible.
+
+`Recorder::begin_callback`, `begin_callback_acquisition`,
+`finish_callback_acquisition` and `end_callback` use the recorder sequence
+source for callback entry, SDK acquisition and callback exit. The acquisition
+row retains both raw-key snapshots, owner authority and lifetime evidence, the
+cached raw lifecycle tuple (debug object, raw PID/TID and raw generation), all
+SDK method results, and the explicit binding outcome. A callback entry always
+starts with raw identity; it is not retrofitted with an engine generation.
+`RawEventBridge::bind_engine_event` receives the linked callback and
+acquisition IDs only after the raw key, owner witness, SDK reads and error-pair
+restoration are eligible. A missing callback exit remains an incomplete row.
+Preflight and owner refusals retain the acquisition caller's observer thread and
+canonical not-attempted slots for all six SDK methods; an accepted acquisition
+must retain the callback-entry observer thread.
+
+The fake COM objects in `observer_callback_identity_tests.cpp` exercise this
+same SDK reader path, including failed getters, refused `QueryInterface`,
+cleanup exceptions, deferred binding, nested forwarding and continuation
+closure. Build the Win32 target and emit its fresh synthetic callback record
+with:
+
+```powershell
+cmake --build C:\scratch\observer-build --config Release --target observer_runtime_check
+C:\scratch\observer-build\Release\observer_runtime_check.exe --self-test
+C:\scratch\observer-build\Release\observer_runtime_check.exe --callback-output C:\scratch\observer-callback.json
+python tools/windows/validate_observer_diagnostic.py --trace C:\scratch\observer-callback.json
+```
+
+This reader is compiled against the Windows SDK but does not load DbgEng, call
+`DebugCreate`, attach to a process, or receive a native callback. The
+`--callback-output` record is fake-only evidence and keeps `live_coverage` as
+`incomplete`; native callback entry and lifecycle ownership still require a
+separate integration.
+
 ## Query-bound provenance
 
 `QueryRow` can carry evidence from an injected

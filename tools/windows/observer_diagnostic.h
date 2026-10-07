@@ -228,8 +228,10 @@ struct EventIdentity
     std::uint64_t  engine_generation       = 0;
 };
 
-constexpr std::uint32_t kDebugAnyEngineId  = 0xFFFFFFFFU;
-constexpr std::size_t   kMaxBindingHistory = 256;
+constexpr std::uint32_t kDebugAnyEngineId       = 0xFFFFFFFFU;
+constexpr std::size_t   kMaxBindingHistory      = 256;
+constexpr std::size_t   kCallbackSdkMethodCount = 6;
+constexpr Hresult       kCallbackUnsetHresult   = static_cast<Hresult>(0x80004005u);
 
 // These values are injected observations. Even complete, agreeing values only
 // validate witness consistency; they do not identify a native DbgEng object.
@@ -456,16 +458,189 @@ struct EngineBindingRow
     EventIdentity             raw_identity{};
     EventIdentity             qualified_identity{};
     EngineIdentityObservation observation{};
-    std::uint64_t             engine_generation = 0;
-    EngineBindingStatus       status            = EngineBindingStatus::Refused;
-    bool                      qualified         = false;
+    std::uint64_t             engine_generation                 = 0;
+    EngineBindingStatus       status                            = EngineBindingStatus::Refused;
+    bool                      qualified                         = false;
+    std::uint64_t             callback_operation_id             = 0;
+    std::uint64_t             callback_acquisition_operation_id = 0;
+    std::uint64_t             binding_attempt_id                = 0;
+};
+
+enum class CallbackSdkMethod : std::uint8_t
+{
+    CurrentThreadId = 0,
+    EventThread,
+    CurrentProcessId,
+    EventProcess,
+    CurrentThreadSystemId,
+    CurrentProcessSystemId,
+};
+
+enum class CallbackSdkReadStatus : std::uint8_t
+{
+    NotAttempted,
+    Succeeded,
+    Failed,
+    InvalidOutput,
+    Exception,
+};
+
+struct CallbackSdkRead
+{
+    CallbackSdkMethod     method       = CallbackSdkMethod::CurrentThreadId;
+    Hresult               hresult      = kCallbackUnsetHresult;
+    std::uint32_t         output       = kDebugAnyEngineId;
+    bool                  output_known = false;
+    CallbackSdkReadStatus status       = CallbackSdkReadStatus::NotAttempted;
+};
+
+struct CallbackQueryInterfaceRead
+{
+    Hresult               hresult           = kCallbackUnsetHresult;
+    std::uintptr_t        output            = 0;
+    bool                  output_known      = false;
+    CallbackSdkReadStatus status            = CallbackSdkReadStatus::NotAttempted;
+    bool                  release_attempted = false;
+    bool                  release_succeeded = false;
+    bool                  release_threw     = false;
+    std::uint32_t         release_result    = 0;
+};
+
+struct CallbackOwnerEvidence
+{
+    bool          serialized_selected_state_access = false;
+    bool          retained_source_lifetime         = false;
+    std::uint64_t authority_id                     = 0;
+    std::uint64_t lifetime_id                      = 0;
+    bool          cached_raw_lifecycle_associated  = false;
+    // The cached lifecycle witness excludes event_index.  Event index joins a
+    // particular raw event; these fields identify the retained debug object,
+    // process, thread and raw lifecycle generation.
+    std::uintptr_t cached_raw_debug_object = 0;
+    std::uint32_t  cached_raw_process_id   = 0;
+    std::uint32_t  cached_raw_thread_id    = 0;
+    std::uint64_t  cached_raw_generation   = 0;
+    bool           cached_engine_id_known  = false;
+    std::uint32_t  cached_engine_id        = kDebugAnyEngineId;
+    bool           lifecycle_token_known   = false;
+    std::uint64_t  lifecycle_token         = 0;
+};
+
+enum class CallbackAcquisitionOutcome : std::uint8_t
+{
+    NotAttempted,
+    Accepted,
+    MissingCallback,
+    MissingRawKey,
+    ChangedRawKey,
+    MissingOwnerEvidence,
+    ChangedOwnerEvidence,
+    QueryInterfaceRefused,
+    GetterRefused,
+    InvalidOutput,
+    Exception,
+    ReferenceCleanupFailed,
+    BindingRefused,
+    Overflow,
+};
+
+enum class CallbackExitOutcome : std::uint8_t
+{
+    NotAttempted,
+    Completed,
+    Incomplete,
+    Exception,
+};
+
+struct CallbackAcquisitionInput
+{
+    CallbackQueryInterfaceRead
+                                                         query_interface{};
+    std::array<CallbackSdkRead, kCallbackSdkMethodCount> sdk_reads{};
+    CallbackOwnerEvidence                                owner{};
+    CallbackAcquisitionOutcome                           reader_outcome = CallbackAcquisitionOutcome::NotAttempted;
+    ErrorPair                                            incoming_error{};
+    ErrorPair                                            returned_error{};
+    bool                                                 incoming_error_known    = false;
+    bool                                                 returned_error_known    = false;
+    bool                                                 error_restore_attempted = false;
+    bool                                                 error_restore_succeeded = false;
+    bool                                                 binding_eligible        = false;
+    EngineIdentityObservation                            binding_observation{};
+};
+
+struct CallbackEntryRow
+{
+    RowHeader           header{};
+    std::uint64_t       callback_operation_id = 0;
+    std::string         callback_kind;
+    EventIdentity       raw_identity{};
+    CallbackExitOutcome exit_outcome             = CallbackExitOutcome::NotAttempted;
+    bool                entry_raw_identity_known = false;
+    bool                exit_observed            = false;
+};
+
+struct CallbackAcquisitionRow
+{
+    RowHeader                                            header{};
+    std::uint64_t                                        callback_operation_id    = 0;
+    std::uint64_t                                        acquisition_operation_id = 0;
+    std::string                                          callback_kind;
+    EventIdentity                                        raw_identity{};
+    EventIdentity                                        rechecked_identity{};
+    std::uint64_t                                        acquisition_begin_sequence = 0;
+    std::uint64_t                                        acquisition_end_sequence   = 0;
+    CallbackQueryInterfaceRead                           query_interface{};
+    std::array<CallbackSdkRead, kCallbackSdkMethodCount> sdk_reads{};
+    CallbackOwnerEvidence                                owner{};
+    CallbackAcquisitionOutcome                           outcome = CallbackAcquisitionOutcome::NotAttempted;
+    EngineIdentityObservation                            binding_observation{};
+    EngineBindingStatus                                  binding_status          = EngineBindingStatus::Refused;
+    std::uint64_t                                        binding_attempt_id      = 0;
+    bool                                                 binding_eligible        = false;
+    bool                                                 error_restore_attempted = false;
+    bool                                                 error_restore_succeeded = false;
+};
+
+struct CallbackBeginResult
+{
+    std::uint64_t callback_operation_id = 0;
+    EventIdentity raw_identity{};
+    bool          recorded = false;
+};
+
+struct CallbackAcquisitionStart
+{
+    std::uint64_t              acquisition_operation_id   = 0;
+    std::uint64_t              callback_operation_id      = 0;
+    std::uint64_t              acquisition_begin_sequence = 0;
+    EventIdentity              raw_identity{};
+    EventIdentity              rechecked_identity{};
+    CallbackAcquisitionOutcome outcome  = CallbackAcquisitionOutcome::NotAttempted;
+    bool                       accepted = false;
+};
+
+struct CallbackAcquisitionResult
+{
+    std::uint64_t              callback_operation_id      = 0;
+    std::uint64_t              acquisition_operation_id   = 0;
+    std::uint64_t              acquisition_begin_sequence = 0;
+    std::uint64_t              acquisition_end_sequence   = 0;
+    EventIdentity              raw_identity{};
+    EventIdentity              rechecked_identity{};
+    CallbackAcquisitionOutcome outcome          = CallbackAcquisitionOutcome::NotAttempted;
+    EngineBindingStatus        binding_status   = EngineBindingStatus::Refused;
+    bool                       binding_eligible = false;
+    bool                       recorded         = false;
 };
 
 using TraceRow = std::variant<SelectedRecordRow,
                               QueryRow,
                               ContextWriteRow,
                               PendingEventRow,
-                              EngineBindingRow>;
+                              EngineBindingRow,
+                              CallbackEntryRow,
+                              CallbackAcquisitionRow>;
 
 struct RecorderConfig
 {
@@ -508,17 +683,35 @@ public:
     PendingEventStatus           close_pending_event(const EventIdentity& identity);
     EngineBindingStatus          bind_pending_event(const EventIdentity&             raw_identity,
                                                     const EngineIdentityObservation& observation,
-                                                    std::uint64_t                    engine_generation);
+                                                    std::uint64_t                    engine_generation,
+                                                    std::uint64_t                    callback_operation_id             = 0,
+                                                    std::uint64_t                    callback_acquisition_operation_id = 0,
+                                                    std::uint64_t                    binding_attempt_id                = 0);
     std::optional<EventIdentity> pending_event() const;
 
-    std::vector<TraceRow>          rows() const;
-    std::vector<SelectedRecordRow> selected_record_rows() const;
-    std::vector<QueryRow>          query_rows() const;
-    std::vector<ContextWriteRow>   context_write_rows() const;
-    std::vector<PendingEventRow>   pending_event_rows() const;
-    std::vector<EngineBindingRow>  engine_binding_rows() const;
-    std::size_t                    overflow_count() const;
-    std::string                    serialize() const;
+    CallbackBeginResult      begin_callback(const std::string& callback_kind);
+    CallbackAcquisitionStart begin_callback_acquisition(std::uint64_t callback_operation_id);
+    bool                     finish_callback_acquisition(
+        std::uint64_t                   callback_operation_id,
+        const CallbackAcquisitionInput& input,
+        CallbackAcquisitionResult*      result);
+    bool record_callback_binding_result(
+        std::uint64_t       callback_acquisition_operation_id,
+        EngineBindingStatus status,
+        std::uint64_t       binding_attempt_id);
+    bool end_callback(std::uint64_t       callback_operation_id,
+                      CallbackExitOutcome outcome);
+
+    std::vector<TraceRow>               rows() const;
+    std::vector<SelectedRecordRow>      selected_record_rows() const;
+    std::vector<QueryRow>               query_rows() const;
+    std::vector<ContextWriteRow>        context_write_rows() const;
+    std::vector<PendingEventRow>        pending_event_rows() const;
+    std::vector<EngineBindingRow>       engine_binding_rows() const;
+    std::vector<CallbackEntryRow>       callback_entry_rows() const;
+    std::vector<CallbackAcquisitionRow> callback_acquisition_rows() const;
+    std::size_t                         overflow_count() const;
+    std::string                         serialize() const;
 
     const Originals& originals() const;
 
@@ -557,6 +750,19 @@ private:
     std::size_t                                   bound_history_count_ = 0;
     std::atomic<std::uint64_t>                    next_sequence_{ 1 };
     std::atomic<std::uint64_t>                    next_operation_{ 1 };
+
+    struct PendingCallbackAcquisition
+    {
+        std::uint64_t              callback_operation_id      = 0;
+        std::uint64_t              acquisition_operation_id   = 0;
+        std::uint64_t              acquisition_begin_sequence = 0;
+        std::string                callback_kind;
+        EventIdentity              raw_identity{};
+        CallbackAcquisitionOutcome preflight_outcome  = CallbackAcquisitionOutcome::NotAttempted;
+        std::uint32_t              observer_thread_id = 0;
+    };
+
+    std::vector<PendingCallbackAcquisition> pending_callback_acquisitions_;
 };
 
 void* XIVL_OBSERVER_FASTCALL  lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid);

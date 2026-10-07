@@ -141,6 +141,8 @@ bool same_identity(const EventIdentity& left, const EventIdentity& right)
     return left.complete == right.complete && left.raw_debug_object == right.raw_debug_object && left.process_id == right.process_id && left.thread_id == right.thread_id && left.raw_generation == right.raw_generation && left.event_index == right.event_index && left.engine_generation_known == right.engine_generation_known && left.engine_generation == right.engine_generation;
 }
 
+bool raw_identity_complete(const EventIdentity& identity);
+
 bool same_raw_identity(const EventIdentity& left, const EventIdentity& right)
 {
     return left.complete && right.complete && left.raw_debug_object == right.raw_debug_object &&
@@ -148,11 +150,45 @@ bool same_raw_identity(const EventIdentity& left, const EventIdentity& right)
            left.raw_generation == right.raw_generation && left.event_index == right.event_index;
 }
 
+EventIdentity raw_only_identity(const EventIdentity& identity)
+{
+    EventIdentity raw           = identity;
+    raw.engine_generation_known = false;
+    raw.engine_generation       = 0;
+    return raw;
+}
+
+bool raw_key_available(const EventIdentity& identity)
+{
+    return raw_identity_complete(identity);
+}
+
+bool callback_owner_evidence_complete(const CallbackOwnerEvidence& owner)
+{
+    return owner.serialized_selected_state_access && owner.retained_source_lifetime &&
+           owner.authority_id != 0 && owner.lifetime_id != 0 &&
+           owner.cached_raw_lifecycle_associated && owner.cached_raw_debug_object != 0 &&
+           owner.cached_raw_process_id != 0 && owner.cached_raw_thread_id != 0 &&
+           owner.cached_raw_generation != 0 && owner.cached_engine_id_known &&
+           owner.cached_engine_id != kDebugAnyEngineId && owner.lifecycle_token_known &&
+           owner.lifecycle_token != 0;
+}
+
 bool same_lifecycle_identity(const EventIdentity& left, const EventIdentity& right)
 {
     return left.complete && right.complete && left.raw_debug_object == right.raw_debug_object &&
            left.process_id == right.process_id && left.thread_id == right.thread_id &&
            left.raw_generation == right.raw_generation;
+}
+
+bool owner_lifecycle_matches(const CallbackOwnerEvidence& owner, const EventIdentity& identity)
+{
+    return owner.cached_raw_lifecycle_associated && identity.complete && identity.raw_debug_object != 0 &&
+           identity.process_id != 0 && identity.thread_id != 0 && identity.raw_generation != 0 &&
+           owner.cached_raw_debug_object == identity.raw_debug_object &&
+           owner.cached_raw_process_id == identity.process_id &&
+           owner.cached_raw_thread_id == identity.thread_id &&
+           owner.cached_raw_generation == identity.raw_generation;
 }
 
 bool binding_evidence_complete(const EventIdentity&             raw,
@@ -259,6 +295,96 @@ const char* binding_name(EngineBindingStatus status)
             return "overflow";
     }
     return "refused";
+}
+
+const char* callback_sdk_method_name(CallbackSdkMethod method)
+{
+    switch (method)
+    {
+        case CallbackSdkMethod::CurrentThreadId:
+            return "GetCurrentThreadId";
+        case CallbackSdkMethod::EventThread:
+            return "GetEventThread";
+        case CallbackSdkMethod::CurrentProcessId:
+            return "GetCurrentProcessId";
+        case CallbackSdkMethod::EventProcess:
+            return "GetEventProcess";
+        case CallbackSdkMethod::CurrentThreadSystemId:
+            return "GetCurrentThreadSystemId";
+        case CallbackSdkMethod::CurrentProcessSystemId:
+            return "GetCurrentProcessSystemId";
+    }
+    return "unknown";
+}
+
+const char* callback_sdk_status_name(CallbackSdkReadStatus status)
+{
+    switch (status)
+    {
+        case CallbackSdkReadStatus::NotAttempted:
+            return "not_attempted";
+        case CallbackSdkReadStatus::Succeeded:
+            return "succeeded";
+        case CallbackSdkReadStatus::Failed:
+            return "failed";
+        case CallbackSdkReadStatus::InvalidOutput:
+            return "invalid_output";
+        case CallbackSdkReadStatus::Exception:
+            return "exception";
+    }
+    return "unknown";
+}
+
+const char* callback_outcome_name(CallbackAcquisitionOutcome outcome)
+{
+    switch (outcome)
+    {
+        case CallbackAcquisitionOutcome::NotAttempted:
+            return "not_attempted";
+        case CallbackAcquisitionOutcome::Accepted:
+            return "accepted";
+        case CallbackAcquisitionOutcome::MissingCallback:
+            return "missing_callback";
+        case CallbackAcquisitionOutcome::MissingRawKey:
+            return "missing_raw_key";
+        case CallbackAcquisitionOutcome::ChangedRawKey:
+            return "changed_raw_key";
+        case CallbackAcquisitionOutcome::MissingOwnerEvidence:
+            return "missing_owner_evidence";
+        case CallbackAcquisitionOutcome::ChangedOwnerEvidence:
+            return "changed_owner_evidence";
+        case CallbackAcquisitionOutcome::QueryInterfaceRefused:
+            return "query_interface_refused";
+        case CallbackAcquisitionOutcome::GetterRefused:
+            return "getter_refused";
+        case CallbackAcquisitionOutcome::InvalidOutput:
+            return "invalid_output";
+        case CallbackAcquisitionOutcome::Exception:
+            return "exception";
+        case CallbackAcquisitionOutcome::ReferenceCleanupFailed:
+            return "reference_cleanup_failed";
+        case CallbackAcquisitionOutcome::BindingRefused:
+            return "binding_refused";
+        case CallbackAcquisitionOutcome::Overflow:
+            return "overflow";
+    }
+    return "not_attempted";
+}
+
+const char* callback_exit_name(CallbackExitOutcome outcome)
+{
+    switch (outcome)
+    {
+        case CallbackExitOutcome::NotAttempted:
+            return "not_attempted";
+        case CallbackExitOutcome::Completed:
+            return "completed";
+        case CallbackExitOutcome::Incomplete:
+            return "incomplete";
+        case CallbackExitOutcome::Exception:
+            return "exception";
+    }
+    return "not_attempted";
 }
 
 const char* provenance_status_name(QueryProvenanceStatus status)
@@ -497,6 +623,62 @@ void serialize_header(std::ostringstream& stream, const RowHeader& header)
     stream << ",\"engine_generation\":" << header.event.engine_generation;
 }
 
+void serialize_callback_identity(std::ostringstream&  stream,
+                                 const char*          prefix,
+                                 const EventIdentity& identity)
+{
+    stream << ",\"" << prefix << "_event_complete\":" << (identity.complete ? "true" : "false");
+    stream << ",\"" << prefix << "_raw_debug_object\":" << hex_value(identity.raw_debug_object);
+    stream << ",\"" << prefix << "_event_pid\":" << identity.process_id;
+    stream << ",\"" << prefix << "_event_tid\":" << identity.thread_id;
+    stream << ",\"" << prefix << "_raw_generation\":" << identity.raw_generation;
+    stream << ",\"" << prefix << "_event_index\":" << identity.event_index;
+    stream << ",\"" << prefix << "_engine_generation_known\":"
+           << (identity.engine_generation_known ? "true" : "false");
+    stream << ",\"" << prefix << "_engine_generation\":" << identity.engine_generation;
+}
+
+void serialize_callback_sdk_read(std::ostringstream& stream, const CallbackSdkRead& read)
+{
+    stream << "{\"method\":\"" << callback_sdk_method_name(read.method) << '\"';
+    stream << ",\"hresult\":" << read.hresult;
+    stream << ",\"output\":" << read.output;
+    stream << ",\"output_known\":" << (read.output_known ? "true" : "false");
+    stream << ",\"status\":\"" << callback_sdk_status_name(read.status) << "\"}";
+}
+
+void serialize_callback_owner(std::ostringstream& stream, const CallbackOwnerEvidence& owner)
+{
+    stream << "{\"serialized_selected_state_access\":"
+           << (owner.serialized_selected_state_access ? "true" : "false");
+    stream << ",\"retained_source_lifetime\":" << (owner.retained_source_lifetime ? "true" : "false");
+    stream << ",\"authority_id\":" << owner.authority_id;
+    stream << ",\"lifetime_id\":" << owner.lifetime_id;
+    stream << ",\"cached_raw_lifecycle_associated\":"
+           << (owner.cached_raw_lifecycle_associated ? "true" : "false");
+    stream << ",\"cached_raw_debug_object\":" << hex_value(owner.cached_raw_debug_object);
+    stream << ",\"cached_raw_process_id\":" << owner.cached_raw_process_id;
+    stream << ",\"cached_raw_thread_id\":" << owner.cached_raw_thread_id;
+    stream << ",\"cached_raw_generation\":" << owner.cached_raw_generation;
+    stream << ",\"cached_engine_id_known\":" << (owner.cached_engine_id_known ? "true" : "false");
+    stream << ",\"cached_engine_id\":" << owner.cached_engine_id;
+    stream << ",\"lifecycle_token_known\":" << (owner.lifecycle_token_known ? "true" : "false");
+    stream << ",\"lifecycle_token\":" << owner.lifecycle_token << '}';
+}
+
+void serialize_callback_query_interface(std::ostringstream&               stream,
+                                        const CallbackQueryInterfaceRead& query)
+{
+    stream << "{\"hresult\":" << query.hresult;
+    stream << ",\"output\":" << hex_value(query.output);
+    stream << ",\"output_known\":" << (query.output_known ? "true" : "false");
+    stream << ",\"status\":\"" << callback_sdk_status_name(query.status) << "\"";
+    stream << ",\"release_attempted\":" << (query.release_attempted ? "true" : "false");
+    stream << ",\"release_succeeded\":" << (query.release_succeeded ? "true" : "false");
+    stream << ",\"release_threw\":" << (query.release_threw ? "true" : "false");
+    stream << ",\"release_result\":" << query.release_result << '}';
+}
+
 void serialize_provenance_mapping(std::ostringstream& stream, const QueryProvenanceMapping& mapping)
 {
     stream << "{\"status\":\"" << observation_name(mapping.status) << '\"';
@@ -611,7 +793,7 @@ RowHeader Recorder::make_header(std::uint64_t operation_id)
 bool Recorder::append_row(const TraceRow& row)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (rows_.size() >= max_rows_)
+    if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
     {
         ++overflow_count_;
         return false;
@@ -1284,19 +1466,330 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
     return status;
 }
 
+CallbackBeginResult Recorder::begin_callback(const std::string& callback_kind)
+{
+    CallbackBeginResult result;
+    result.callback_operation_id                = next_operation_id();
+    const std::uint32_t         observer_thread = thread_id();
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+    {
+        ++overflow_count_;
+        return result;
+    }
+
+    CallbackEntryRow row;
+    row.header.session_id         = session_id_;
+    row.header.operation_id       = result.callback_operation_id;
+    row.header.sequence           = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    row.header.observer_thread_id = observer_thread;
+    row.callback_operation_id     = result.callback_operation_id;
+    row.callback_kind             = callback_kind.empty() ? "unknown" : callback_kind;
+    row.raw_identity              = raw_only_identity(current_event_locked());
+    row.entry_raw_identity_known  = raw_key_available(row.raw_identity);
+    row.header.event              = row.raw_identity;
+    row.header.incomplete         = true;
+    row.header.incomplete         = row.header.incomplete || observer_thread == 0 || !row.entry_raw_identity_known;
+    rows_.push_back(row);
+    result.raw_identity = row.raw_identity;
+    result.recorded     = true;
+    return result;
+}
+
+CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t callback_operation_id)
+{
+    CallbackAcquisitionStart result;
+    result.callback_operation_id                = callback_operation_id;
+    result.acquisition_operation_id             = next_operation_id();
+    const std::uint32_t         observer_thread = thread_id();
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    const auto entry = std::find_if(
+        rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
+        {
+            const auto* row = std::get_if<CallbackEntryRow>(&stored);
+            return row != nullptr && row->callback_operation_id == callback_operation_id;
+        });
+    const EventIdentity current = raw_only_identity(current_event_locked());
+    if (entry == rows_.end())
+    {
+        result.outcome = CallbackAcquisitionOutcome::MissingCallback;
+        return result;
+    }
+    const CallbackEntryRow& entry_row = std::get<CallbackEntryRow>(*entry);
+    result.raw_identity               = entry_row.raw_identity;
+    result.rechecked_identity         = current;
+
+    const auto pending_for_callback = [&]()
+    {
+        return std::any_of(pending_callback_acquisitions_.begin(),
+                           pending_callback_acquisitions_.end(),
+                           [callback_operation_id](const PendingCallbackAcquisition& pending)
+                           {
+                               return pending.callback_operation_id == callback_operation_id;
+                           });
+    };
+    const auto retain_refusal = [&](CallbackAcquisitionOutcome outcome)
+    {
+        result.outcome = outcome;
+        if (pending_for_callback())
+        {
+            result.outcome = CallbackAcquisitionOutcome::MissingCallback;
+            return;
+        }
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            result.outcome = CallbackAcquisitionOutcome::Overflow;
+            return;
+        }
+        PendingCallbackAcquisition pending;
+        pending.callback_operation_id      = callback_operation_id;
+        pending.acquisition_operation_id   = result.acquisition_operation_id;
+        pending.acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        pending.callback_kind              = entry_row.callback_kind;
+        pending.raw_identity               = entry_row.raw_identity;
+        pending.preflight_outcome          = outcome;
+        pending.observer_thread_id         = observer_thread;
+        pending_callback_acquisitions_.push_back(pending);
+        result.acquisition_begin_sequence = pending.acquisition_begin_sequence;
+        result.accepted                   = false;
+    };
+    if (entry_row.exit_observed)
+    {
+        retain_refusal(CallbackAcquisitionOutcome::MissingCallback);
+        return result;
+    }
+    if (observer_thread == 0 || entry_row.header.observer_thread_id != observer_thread)
+    {
+        retain_refusal(CallbackAcquisitionOutcome::ChangedOwnerEvidence);
+        return result;
+    }
+    if (!raw_key_available(entry_row.raw_identity) || !raw_key_available(current))
+    {
+        retain_refusal(CallbackAcquisitionOutcome::MissingRawKey);
+        return result;
+    }
+    if (!same_raw_identity(entry_row.raw_identity, current))
+    {
+        retain_refusal(CallbackAcquisitionOutcome::ChangedRawKey);
+        return result;
+    }
+    if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+    {
+        ++overflow_count_;
+        result.outcome = CallbackAcquisitionOutcome::Overflow;
+        return result;
+    }
+    if (pending_for_callback())
+    {
+        result.outcome = CallbackAcquisitionOutcome::MissingCallback;
+        return result;
+    }
+
+    PendingCallbackAcquisition pending;
+    pending.callback_operation_id      = callback_operation_id;
+    pending.acquisition_operation_id   = result.acquisition_operation_id;
+    pending.acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    pending.callback_kind              = entry_row.callback_kind;
+    pending.raw_identity               = entry_row.raw_identity;
+    pending.preflight_outcome          = CallbackAcquisitionOutcome::NotAttempted;
+    pending.observer_thread_id         = observer_thread;
+    pending_callback_acquisitions_.push_back(pending);
+    result.acquisition_begin_sequence = pending.acquisition_begin_sequence;
+    result.raw_identity               = pending.raw_identity;
+    result.rechecked_identity         = current;
+    result.outcome                    = CallbackAcquisitionOutcome::NotAttempted;
+    result.accepted                   = true;
+    return result;
+}
+
+bool Recorder::finish_callback_acquisition(
+    std::uint64_t                   callback_operation_id,
+    const CallbackAcquisitionInput& input,
+    CallbackAcquisitionResult*      result)
+{
+    if (result == nullptr)
+    {
+        return false;
+    }
+    *result                       = {};
+    result->callback_operation_id = callback_operation_id;
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto                  pending = std::find_if(
+        pending_callback_acquisitions_.begin(),
+        pending_callback_acquisitions_.end(),
+        [callback_operation_id](const PendingCallbackAcquisition& value)
+        {
+            return value.callback_operation_id == callback_operation_id;
+        });
+    if (pending == pending_callback_acquisitions_.end())
+    {
+        result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+        return false;
+    }
+
+    const PendingCallbackAcquisition start   = *pending;
+    const EventIdentity              current = raw_only_identity(current_event_locked());
+    const auto                       entry   = std::find_if(
+        rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
+        {
+            const auto* row = std::get_if<CallbackEntryRow>(&stored);
+            return row != nullptr && row->callback_operation_id == callback_operation_id;
+        });
+    result->acquisition_operation_id   = start.acquisition_operation_id;
+    result->acquisition_begin_sequence = start.acquisition_begin_sequence;
+    result->raw_identity               = start.raw_identity;
+    result->rechecked_identity         = current;
+    result->binding_eligible           = input.binding_eligible;
+    result->outcome                    = input.reader_outcome;
+    if (start.preflight_outcome != CallbackAcquisitionOutcome::NotAttempted)
+    {
+        result->outcome = start.preflight_outcome;
+    }
+    if (entry == rows_.end())
+    {
+        result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+    }
+    else if (std::get<CallbackEntryRow>(*entry).exit_observed)
+    {
+        result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+    }
+    else if (thread_id() == 0 || thread_id() != start.observer_thread_id)
+    {
+        result->outcome = CallbackAcquisitionOutcome::ChangedOwnerEvidence;
+    }
+    else if (!raw_key_available(start.raw_identity) || !raw_key_available(current))
+    {
+        result->outcome = CallbackAcquisitionOutcome::MissingRawKey;
+    }
+    else if (!same_raw_identity(start.raw_identity, std::get<CallbackEntryRow>(*entry).raw_identity) ||
+             !same_raw_identity(start.raw_identity, current))
+    {
+        result->outcome = CallbackAcquisitionOutcome::ChangedRawKey;
+    }
+    else if (result->outcome == CallbackAcquisitionOutcome::Accepted &&
+             !callback_owner_evidence_complete(input.owner))
+    {
+        result->outcome = CallbackAcquisitionOutcome::MissingOwnerEvidence;
+    }
+    else if (result->outcome == CallbackAcquisitionOutcome::NotAttempted)
+    {
+        result->outcome = CallbackAcquisitionOutcome::Exception;
+    }
+    const std::uint64_t end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    result->acquisition_end_sequence = end_sequence;
+
+    pending_callback_acquisitions_.erase(pending);
+    if (rows_.size() >= max_rows_)
+    {
+        ++overflow_count_;
+        result->outcome = CallbackAcquisitionOutcome::Overflow;
+        return false;
+    }
+
+    CallbackAcquisitionRow row;
+    row.header.session_id           = session_id_;
+    row.header.sequence             = start.acquisition_begin_sequence;
+    row.header.exit_sequence        = end_sequence;
+    row.header.operation_id         = start.acquisition_operation_id;
+    row.header.parent_operation_id  = callback_operation_id;
+    row.header.observer_thread_id   = start.observer_thread_id;
+    row.header.event                = start.raw_identity;
+    row.header.incoming_error_known = input.incoming_error_known;
+    row.header.returned_error_known = input.returned_error_known;
+    row.header.incoming_error       = input.incoming_error;
+    row.header.returned_error       = input.returned_error;
+    row.header.incomplete           = true;
+    row.header.incomplete           = row.header.incomplete || result->outcome != CallbackAcquisitionOutcome::Accepted ||
+                                      !input.binding_eligible || !input.error_restore_attempted ||
+                                      !input.error_restore_succeeded ||
+                                      !input.incoming_error_known || !input.returned_error_known;
+    row.callback_operation_id       = callback_operation_id;
+    row.acquisition_operation_id    = start.acquisition_operation_id;
+    row.callback_kind               = entry == rows_.end() ? "unknown" : std::get<CallbackEntryRow>(*entry).callback_kind;
+    row.raw_identity                = start.raw_identity;
+    row.rechecked_identity          = current;
+    row.acquisition_begin_sequence  = start.acquisition_begin_sequence;
+    row.acquisition_end_sequence    = end_sequence;
+    row.query_interface             = input.query_interface;
+    row.sdk_reads                   = input.sdk_reads;
+    row.owner                       = input.owner;
+    row.outcome                     = result->outcome;
+    row.binding_observation         = input.binding_observation;
+    row.binding_eligible            = input.binding_eligible && result->outcome == CallbackAcquisitionOutcome::Accepted;
+    row.binding_status              = EngineBindingStatus::Refused;
+    row.error_restore_attempted     = input.error_restore_attempted;
+    row.error_restore_succeeded     = input.error_restore_succeeded;
+    rows_.push_back(row);
+    result->recorded = true;
+    return true;
+}
+
+bool Recorder::record_callback_binding_result(
+    std::uint64_t       callback_acquisition_operation_id,
+    EngineBindingStatus status,
+    std::uint64_t       binding_attempt_id)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackAcquisitionRow>(&stored);
+        if (row == nullptr || row->acquisition_operation_id != callback_acquisition_operation_id)
+        {
+            continue;
+        }
+        row->binding_status     = status;
+        row->binding_attempt_id = binding_attempt_id;
+        if (status != EngineBindingStatus::Bound)
+        {
+            row->outcome           = CallbackAcquisitionOutcome::BindingRefused;
+            row->header.incomplete = true;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool Recorder::end_callback(std::uint64_t callback_operation_id, CallbackExitOutcome outcome)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed)
+        {
+            continue;
+        }
+        row->header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        row->exit_outcome         = outcome;
+        row->exit_observed        = true;
+        row->header.incomplete    = true;
+        return true;
+    }
+    return false;
+}
+
 EngineBindingStatus Recorder::bind_pending_event(
     const EventIdentity&             raw_identity,
     const EngineIdentityObservation& observation,
-    std::uint64_t                    engine_generation)
+    std::uint64_t                    engine_generation,
+    std::uint64_t                    callback_operation_id,
+    std::uint64_t                    callback_acquisition_operation_id,
+    std::uint64_t                    binding_attempt_id)
 {
     const std::uint64_t operation_id = next_operation_id();
     EngineBindingRow    row;
-    row.header            = make_header(operation_id);
-    row.raw_identity      = raw_identity;
-    row.observation       = observation;
-    row.engine_generation = engine_generation;
-    row.status            = EngineBindingStatus::Refused;
-    row.qualified         = false;
+    row.header                            = make_header(operation_id);
+    row.raw_identity                      = raw_identity;
+    row.observation                       = observation;
+    row.engine_generation                 = engine_generation;
+    row.status                            = EngineBindingStatus::Refused;
+    row.qualified                         = false;
+    row.callback_operation_id             = callback_operation_id;
+    row.callback_acquisition_operation_id = callback_acquisition_operation_id;
+    row.binding_attempt_id                = binding_attempt_id;
 
     if (!binding_evidence_complete(raw_identity, observation, engine_generation))
     {
@@ -1304,7 +1797,7 @@ EngineBindingStatus Recorder::bind_pending_event(
         row.header.incomplete    = true;
         row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
         std::lock_guard<std::mutex> lock(mutex_);
-        if (rows_.size() >= max_rows_)
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
         {
             ++overflow_count_;
             return EngineBindingStatus::Overflow;
@@ -1321,7 +1814,7 @@ EngineBindingStatus Recorder::bind_pending_event(
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (rows_.size() >= max_rows_)
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
         {
             ++overflow_count_;
             return EngineBindingStatus::Overflow;
@@ -1489,6 +1982,32 @@ std::vector<EngineBindingRow> Recorder::engine_binding_rows() const
     return result;
 }
 
+std::vector<CallbackEntryRow> Recorder::callback_entry_rows() const
+{
+    std::vector<CallbackEntryRow> result;
+    for (const TraceRow& row : rows())
+    {
+        if (const auto* value = std::get_if<CallbackEntryRow>(&row))
+        {
+            result.push_back(*value);
+        }
+    }
+    return result;
+}
+
+std::vector<CallbackAcquisitionRow> Recorder::callback_acquisition_rows() const
+{
+    std::vector<CallbackAcquisitionRow> result;
+    for (const TraceRow& row : rows())
+    {
+        if (const auto* value = std::get_if<CallbackAcquisitionRow>(&row))
+        {
+            result.push_back(*value);
+        }
+    }
+    return result;
+}
+
 std::size_t Recorder::overflow_count() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -1615,7 +2134,7 @@ std::string Recorder::serialize() const
                            << (row.identity.engine_generation_known ? "true" : "false");
                     stream << ",\"pending_engine_generation\":" << row.identity.engine_generation;
                 }
-                else
+                else if constexpr (std::is_same_v<RowType, EngineBindingRow>)
                 {
                     stream << ",\"kind\":\"engine_binding\"";
                     stream << ",\"binding_status\":\"" << binding_name(row.status) << '"';
@@ -1664,6 +2183,75 @@ std::string Recorder::serialize() const
                            << (row.qualified_identity.engine_generation_known ? "true" : "false");
                     stream << ",\"binding_qualified_engine_generation\":"
                            << row.qualified_identity.engine_generation;
+                    stream << ",\"callback_operation_id\":" << row.callback_operation_id;
+                    stream << ",\"callback_acquisition_operation_id\":"
+                           << row.callback_acquisition_operation_id;
+                    stream << ",\"binding_attempt_id\":" << row.binding_attempt_id;
+                }
+                else if constexpr (std::is_same_v<RowType, CallbackEntryRow>)
+                {
+                    stream << ",\"kind\":\"callback_entry\"";
+                    stream << ",\"callback_operation_id\":" << row.callback_operation_id;
+                    stream << ",\"callback_kind\":" << json_string(row.callback_kind);
+                    stream << ",\"entry_raw_identity_known\":"
+                           << (row.entry_raw_identity_known ? "true" : "false");
+                    serialize_callback_identity(stream, "callback_raw", row.raw_identity);
+                    stream << ",\"exit_outcome\":\"" << callback_exit_name(row.exit_outcome) << "\"";
+                    stream << ",\"exit_observed\":" << (row.exit_observed ? "true" : "false");
+                }
+                else if constexpr (std::is_same_v<RowType, CallbackAcquisitionRow>)
+                {
+                    stream << ",\"kind\":\"callback_acquisition\"";
+                    stream << ",\"callback_operation_id\":" << row.callback_operation_id;
+                    stream << ",\"acquisition_operation_id\":" << row.acquisition_operation_id;
+                    stream << ",\"callback_kind\":" << json_string(row.callback_kind);
+                    stream << ",\"acquisition_begin_sequence\":" << row.acquisition_begin_sequence;
+                    stream << ",\"acquisition_end_sequence\":" << row.acquisition_end_sequence;
+                    serialize_callback_identity(stream, "acquisition_raw", row.raw_identity);
+                    serialize_callback_identity(stream, "acquisition_rechecked", row.rechecked_identity);
+                    stream << ",\"query_interface\":";
+                    serialize_callback_query_interface(stream, row.query_interface);
+                    stream << ",\"sdk_reads\":[";
+                    for (std::size_t index = 0; index < row.sdk_reads.size(); ++index)
+                    {
+                        if (index != 0)
+                        {
+                            stream << ',';
+                        }
+                        serialize_callback_sdk_read(stream, row.sdk_reads[index]);
+                    }
+                    stream << "]";
+                    stream << ",\"owner\":";
+                    serialize_callback_owner(stream, row.owner);
+                    stream << ",\"outcome\":\"" << callback_outcome_name(row.outcome) << "\"";
+                    stream << ",\"binding_eligible\":" << (row.binding_eligible ? "true" : "false");
+                    stream << ",\"binding_status\":\"" << binding_name(row.binding_status) << "\"";
+                    stream << ",\"binding_attempt_id\":" << row.binding_attempt_id;
+                    stream << ",\"error_restore_attempted\":"
+                           << (row.error_restore_attempted ? "true" : "false");
+                    stream << ",\"error_restore_succeeded\":"
+                           << (row.error_restore_succeeded ? "true" : "false");
+                    stream << ",\"binding_current_thread_known\":"
+                           << (row.binding_observation.current_thread_known ? "true" : "false");
+                    stream << ",\"binding_current_thread_id\":" << row.binding_observation.current_thread_id;
+                    stream << ",\"binding_event_thread_known\":"
+                           << (row.binding_observation.event_thread_known ? "true" : "false");
+                    stream << ",\"binding_event_thread_id\":" << row.binding_observation.event_thread_id;
+                    stream << ",\"binding_cached_thread_known\":"
+                           << (row.binding_observation.cached_thread_known ? "true" : "false");
+                    stream << ",\"binding_cached_thread_id\":" << row.binding_observation.cached_thread_id;
+                    stream << ",\"binding_current_process_known\":"
+                           << (row.binding_observation.current_process_known ? "true" : "false");
+                    stream << ",\"binding_current_process_id\":" << row.binding_observation.current_process_id;
+                    stream << ",\"binding_event_process_known\":"
+                           << (row.binding_observation.event_process_known ? "true" : "false");
+                    stream << ",\"binding_event_process_id\":" << row.binding_observation.event_process_id;
+                    stream << ",\"binding_current_system_pid_known\":"
+                           << (row.binding_observation.current_system_pid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_pid\":" << row.binding_observation.current_system_pid;
+                    stream << ",\"binding_current_system_tid_known\":"
+                           << (row.binding_observation.current_system_tid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_tid\":" << row.binding_observation.current_system_tid;
                 }
                 stream << '}';
             },

@@ -253,7 +253,9 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
     const RawIdentityBinding&        raw_identity,
     const EngineIdentityObservation& observation,
     std::uint64_t                    engine_generation,
-    std::uint64_t                    attempt_id) noexcept
+    std::uint64_t                    attempt_id,
+    std::uint64_t                    callback_operation_id,
+    std::uint64_t                    callback_acquisition_operation_id) noexcept
 {
     if (binding_count_ >= bindings_.size())
     {
@@ -262,13 +264,15 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
         return EngineBindingStatus::Overflow;
     }
 
-    EngineBindingReceipt& receipt      = bindings_[binding_count_++];
-    receipt                            = {};
-    receipt.attempt_id                 = attempt_id;
-    receipt.raw_identity               = raw_identity;
-    receipt.observation                = observation;
-    receipt.engine_generation          = engine_generation;
-    const std::size_t event_slot_index = event_slot(raw_identity.event_index);
+    EngineBindingReceipt& receipt             = bindings_[binding_count_++];
+    receipt                                   = {};
+    receipt.attempt_id                        = attempt_id;
+    receipt.raw_identity                      = raw_identity;
+    receipt.observation                       = observation;
+    receipt.engine_generation                 = engine_generation;
+    receipt.callback_operation_id             = callback_operation_id;
+    receipt.callback_acquisition_operation_id = callback_acquisition_operation_id;
+    const std::size_t event_slot_index        = event_slot(raw_identity.event_index);
     if (receipt.attempt_id == 0 && event_slot_index < events_.size())
     {
         receipt.attempt_id = events_[event_slot_index].event.attempt_id;
@@ -293,7 +297,12 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
         try
         {
             status = recorder_.bind_pending_event(
-                events_[event_slot_index].identity, observation, engine_generation);
+                events_[event_slot_index].identity,
+                observation,
+                engine_generation,
+                callback_operation_id,
+                callback_acquisition_operation_id,
+                receipt.attempt_id);
         }
         catch (...)
         {
@@ -859,6 +868,9 @@ std::string make_bridge_synthetic_trace()
                << ",\"engine_generation\":" << receipt.engine_generation
                << ",\"status\":" << static_cast<unsigned int>(receipt.status)
                << ",\"qualified\":" << (receipt.qualified ? "true" : "false")
+               << ",\"callback_operation_id\":" << receipt.callback_operation_id
+               << ",\"callback_acquisition_operation_id\":"
+               << receipt.callback_acquisition_operation_id
                << '}';
     }
     output << "],\"continuations\":[";

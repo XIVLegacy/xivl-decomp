@@ -136,8 +136,10 @@ counter.
    identifier, read interval, and source lifetime identifier for the selected
    state. Equal sequential getter IDs and a raw-key recheck are consistency
    checks only; they are not an atomic snapshot or lifetime proof. The
-   callback-specific cached ID and lifecycle token must come from that same
-   lifecycle owner, not from an arbitrary cache.
+   callback-specific cached ID, lifecycle token, and cached raw lifecycle tuple
+   (debug object, raw PID, raw TID, and raw generation) must come from that
+   same lifecycle owner, not from an arbitrary cache. The zero-based event
+   index remains the event join key and is not part of the lifecycle tuple.
 3. On the proposed native `Breakpoint` callback-entry reader, snapshot the
    pending raw key before any SDK or breakpoint-object reads. This reader is a
    proposed callback-entry mechanism; the current post-wait `raw_callback`
@@ -199,6 +201,38 @@ callback join. The callback/session owner must therefore supply a token already
 associated with the selected callback identity and retain its authority and
 lifetime evidence, or the binding remains refused.
 
+## Offline reader and shared-clock record
+
+The concrete offline implementation is `CallbackIdentityReader` in
+`observer_callback_identity.h`. Its `read` method accepts a borrowed
+`IUnknown`, queries `IDebugSystemObjects` through the Windows SDK declaration,
+and records the six SDK getters in the order listed above. Its `capture` method
+composes that evidence with `Recorder` callback entry, acquisition and exit
+rows and may call `RawEventBridge::bind_engine_event` only after the exact raw
+key recheck and the supplied owner witness pass. The recorder mutex covers the
+pending-key recheck and row-capacity publication, while callers serialize the
+callback, raw-event, binding and continuation operations.
+
+The acquisition row is the bounded source record: it contains the entry-linked
+callback operation, a shared-clock begin/end pair, both raw-key snapshots, the
+actual `QueryInterface` result and release evidence, every SDK HRESULT/output
+status, owner authority and lifetime fields, and an explicit outcome. A
+successful SDK read does not supply an owner token. A failed read, changed or
+missing raw key, missing owner evidence, cleanup exception or refused binding
+is retained with its actual evidence and remains incomplete; preflight refusals
+are recorded before any SDK read with the acquisition caller's observer thread
+and canonical not-attempted slots for all six SDK methods. Callback entry
+does not gain an engine generation after the fact, and a missing callback exit
+remains incomplete.
+
+`observer_runtime_check --callback-output` and the C++ fake COM tests exercise
+raw admission, callback entry, all six SDK reads, deferred binding, a nested
+post-bind query, a context write, callback exit and continuation closure. The
+output is
+synthetic forwarding evidence only. It does not load DbgEng or establish native
+callback entry, lifecycle allocation, selected-state serialization or live
+event identity; those remain required before any native coverage claim.
+
 ## Interval decision
 
 Callback-delayed binding can support event correlation for a later adapter
@@ -219,9 +253,9 @@ continue or closure result. Until that record exists, an observed adapter row
 must remain raw or unqualified under `query-output-identity-v1`; it cannot be
 attributed to `0x1E49EB` from static bytes alone.
 
-No native provider or reader exists in this design. Synthetic delayed-binding
-checks validate interval admission and immutable-row behavior only; they do
-not establish native ordering or engine identity.
+No native provider or native callback-entry reader exists in this design.
+Synthetic delayed-binding checks validate interval admission and immutable-row
+behavior only; they do not establish native ordering or engine identity.
 
 ## Limits
 

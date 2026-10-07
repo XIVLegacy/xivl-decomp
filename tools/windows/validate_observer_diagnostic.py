@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import re
 
+CALLBACK_UNSET_HRESULT = -2147467259
+
 
 def unique_object(pairs: list[tuple[str, object]]) -> dict:
     result = {}
@@ -69,6 +71,423 @@ def _binding_raw_identity(row: dict) -> tuple:
     if not raw:
         raise ValueError("unknown binding raw object")
     return raw, pid, tid, generation, index
+
+
+def _callback_identity(row: dict, prefix: str, require_complete: bool = True) -> tuple:
+    field_prefix = prefix + "_" if prefix else ""
+    complete = row.get(field_prefix + "event_complete")
+    if type(complete) is not bool:
+        raise ValueError(f"unknown callback identity state: {prefix}")
+    raw = _address(row, field_prefix + "raw_debug_object")
+    pid = _integer(
+        row,
+        field_prefix + "event_pid",
+        1 if complete else 0,
+        0xFFFFFFFF,
+    )
+    tid = _integer(
+        row,
+        field_prefix + "event_tid",
+        1 if complete else 0,
+        0xFFFFFFFF,
+    )
+    generation = _integer(row, field_prefix + "raw_generation", 1 if complete else 0)
+    index = _integer(row, field_prefix + "event_index", 0)
+    engine_known = row.get(field_prefix + "engine_generation_known")
+    if type(engine_known) is not bool:
+        raise ValueError(f"unknown callback engine identity state: {prefix}")
+    engine_generation = _integer(row, field_prefix + "engine_generation", 0)
+    if engine_known is not False or engine_generation != 0:
+        raise ValueError(f"callback identity token is not unknown: {prefix}")
+    if not complete and not require_complete:
+        return raw, pid, tid, generation, index
+    if not raw or not complete:
+        raise ValueError(f"incomplete callback raw identity: {prefix}")
+    return raw, pid, tid, generation, index
+
+
+def _validate_callback_sdk_read(read: dict, expected_method: str) -> None:
+    if not isinstance(read, dict) or read.get("method") != expected_method:
+        raise ValueError("callback SDK method order mismatch")
+    _integer(read, "hresult", -0x80000000, 0x7FFFFFFF)
+    _integer(read, "output", 0, 0xFFFFFFFF)
+    if type(read.get("output_known")) is not bool:
+        raise ValueError("unknown callback SDK output state")
+    if read.get("status") not in {
+        "not_attempted",
+        "succeeded",
+        "failed",
+        "invalid_output",
+        "exception",
+    }:
+        raise ValueError("unknown callback SDK read status")
+    if read["status"] == "succeeded" and read["output_known"] is not True:
+        raise ValueError("successful callback SDK read has unknown output")
+    if read["status"] != "succeeded" and read["output_known"] is True:
+        raise ValueError("failed callback SDK read claims known output")
+    if read["status"] == "succeeded" and read["hresult"] < 0:
+        raise ValueError("successful callback SDK read has a failure HRESULT")
+    engine_method = expected_method in {
+        "GetCurrentThreadId",
+        "GetEventThread",
+        "GetCurrentProcessId",
+        "GetEventProcess",
+    }
+    invalid_output = 0xFFFFFFFF if engine_method else 0
+    if read["status"] == "failed" and read["hresult"] >= 0:
+        raise ValueError("failed callback SDK read has a success HRESULT")
+    if read["status"] == "invalid_output" and (
+        read["hresult"] < 0 or read["output"] != invalid_output
+    ):
+        raise ValueError("invalid callback SDK output has inconsistent evidence")
+    if read["status"] == "not_attempted" and (
+        read["hresult"] != CALLBACK_UNSET_HRESULT or read["output"] != invalid_output
+    ):
+        raise ValueError("unattempted callback SDK read has observed evidence")
+    if read["status"] == "exception" and read["hresult"] != CALLBACK_UNSET_HRESULT:
+        raise ValueError("exception callback SDK read has a returned HRESULT")
+    if read["status"] == "succeeded":
+        if engine_method and read["output"] == 0xFFFFFFFF:
+            raise ValueError("successful callback engine ID is DEBUG_ANY_ID")
+        if not engine_method and read["output"] == 0:
+            raise ValueError("successful callback system ID is zero")
+
+
+def _validate_callback_owner(owner: dict, require_complete: bool) -> None:
+    if not isinstance(owner, dict):
+        raise ValueError("missing callback owner evidence")
+    for key in (
+        "serialized_selected_state_access",
+        "retained_source_lifetime",
+        "cached_raw_lifecycle_associated",
+        "cached_engine_id_known",
+        "lifecycle_token_known",
+    ):
+        if type(owner.get(key)) is not bool:
+            raise ValueError(f"unknown callback owner state: {key}")
+    authority = _integer(owner, "authority_id", 0)
+    lifetime = _integer(owner, "lifetime_id", 0)
+    cached_raw = _address(owner, "cached_raw_debug_object")
+    cached_raw_pid = _integer(owner, "cached_raw_process_id", 0, 0xFFFFFFFF)
+    cached_raw_tid = _integer(owner, "cached_raw_thread_id", 0, 0xFFFFFFFF)
+    cached_raw_generation = _integer(owner, "cached_raw_generation", 0)
+    cached_engine = _integer(owner, "cached_engine_id", 0, 0xFFFFFFFF)
+    token = _integer(owner, "lifecycle_token", 0)
+    if require_complete and (
+        not owner["serialized_selected_state_access"]
+        or not owner["retained_source_lifetime"]
+        or not authority
+        or not lifetime
+        or not owner["cached_raw_lifecycle_associated"]
+        or not cached_raw
+        or not cached_raw_pid
+        or not cached_raw_tid
+        or not cached_raw_generation
+        or not owner["cached_engine_id_known"]
+        or cached_engine == 0xFFFFFFFF
+        or not owner["lifecycle_token_known"]
+        or not token
+    ):
+        raise ValueError("incomplete callback owner evidence")
+
+
+def _validate_callback_entry(row: dict) -> tuple[int, tuple | None]:
+    operation = _integer(row, "operation_id", 1)
+    if _integer(row, "callback_operation_id", 1) != operation:
+        raise ValueError("callback operation identifier mismatch")
+    kind = row.get("callback_kind")
+    if not isinstance(kind, str) or not kind:
+        raise ValueError("missing callback kind")
+    if type(row.get("entry_raw_identity_known")) is not bool:
+        raise ValueError("unknown callback entry raw state")
+    if type(row.get("exit_observed")) is not bool:
+        raise ValueError("unknown callback exit state")
+    if row.get("exit_outcome") not in {
+        "not_attempted",
+        "completed",
+        "incomplete",
+        "exception",
+    }:
+        raise ValueError("unknown callback exit outcome")
+    if row["exit_observed"]:
+        if row["exit_outcome"] == "not_attempted":
+            raise ValueError("callback exit has no outcome")
+        if row["exit_sequence"] <= row["sequence"]:
+            raise ValueError("callback exit interval mismatch")
+    else:
+        if row["exit_sequence"] != 0 or row["exit_outcome"] != "not_attempted":
+            raise ValueError("missing callback exit was rewritten")
+        if row["incomplete"] is not True:
+            raise ValueError("missing callback exit is complete")
+    if row["entry_raw_identity_known"]:
+        raw = _callback_identity(row, "callback_raw")
+        if (
+            _raw_identity(row) != raw
+            or row.get("engine_generation_known") is not False
+            or _integer(row, "engine_generation") != 0
+        ):
+            raise ValueError("callback entry rewrote raw identity")
+        return operation, raw
+    return operation, None
+
+
+def _validate_callback_observation(
+    row: dict, raw: tuple, require_complete: bool = True
+) -> None:
+    keys = (
+        "binding_current_thread_known",
+        "binding_event_thread_known",
+        "binding_cached_thread_known",
+        "binding_current_process_known",
+        "binding_event_process_known",
+        "binding_current_system_pid_known",
+        "binding_current_system_tid_known",
+    )
+    if any(type(row.get(key)) is not bool for key in keys):
+        raise ValueError("unknown callback SDK witness state")
+    if not require_complete:
+        for key in (
+            "binding_current_thread_id",
+            "binding_event_thread_id",
+            "binding_cached_thread_id",
+            "binding_current_process_id",
+            "binding_event_process_id",
+            "binding_current_system_pid",
+            "binding_current_system_tid",
+        ):
+            _integer(row, key, 0, 0xFFFFFFFF)
+        return
+    if any(row.get(key) is not True for key in keys):
+        raise ValueError("incomplete callback SDK witness")
+    current_thread = _integer(row, "binding_current_thread_id", 0, 0xFFFFFFFF)
+    event_thread = _integer(row, "binding_event_thread_id", 0, 0xFFFFFFFF)
+    cached_thread = _integer(row, "binding_cached_thread_id", 0, 0xFFFFFFFF)
+    current_process = _integer(row, "binding_current_process_id", 0, 0xFFFFFFFF)
+    event_process = _integer(row, "binding_event_process_id", 0, 0xFFFFFFFF)
+    if (
+        0xFFFFFFFF
+        in {current_thread, event_thread, cached_thread, current_process, event_process}
+        or current_thread != event_thread
+        or current_thread != cached_thread
+        or current_process != event_process
+    ):
+        raise ValueError("inconsistent callback SDK witness")
+    if _integer(row, "binding_current_system_pid", 1, 0xFFFFFFFF) != raw[1]:
+        raise ValueError("callback SDK system PID mismatch")
+    if _integer(row, "binding_current_system_tid", 1, 0xFFFFFFFF) != raw[2]:
+        raise ValueError("callback SDK system TID mismatch")
+
+
+def _validate_callback_acquisition(
+    row: dict, entries: dict[int, dict]
+) -> tuple[int, tuple, tuple]:
+    operation = _integer(row, "operation_id", 1)
+    callback_operation = _integer(row, "callback_operation_id", 1)
+    if _integer(row, "acquisition_operation_id", 1) != operation:
+        raise ValueError("callback acquisition identifier mismatch")
+    if _integer(row, "parent_operation_id", 1) != callback_operation:
+        raise ValueError("callback acquisition parent mismatch")
+    if callback_operation not in entries:
+        raise ValueError("callback acquisition has no entry")
+    kind = row.get("callback_kind")
+    if not isinstance(kind, str) or not kind:
+        raise ValueError("missing callback acquisition kind")
+    outcome = row.get("outcome")
+    allow_incomplete_identity = outcome != "accepted" and row.get("incomplete") is True
+    begin = _integer(row, "acquisition_begin_sequence", 1)
+    end = _integer(row, "acquisition_end_sequence", begin + 1)
+    if row["sequence"] != begin or row["exit_sequence"] != end or not begin < end:
+        raise ValueError("callback acquisition interval mismatch")
+    raw = _callback_identity(
+        row, "acquisition_raw", require_complete=not allow_incomplete_identity
+    )
+    rechecked = _callback_identity(
+        row, "acquisition_rechecked", require_complete=not allow_incomplete_identity
+    )
+    header_raw = _callback_identity(
+        row, "", require_complete=not allow_incomplete_identity
+    )
+    if (raw != rechecked and outcome != "changed_raw_key") or header_raw != raw:
+        raise ValueError("callback acquisition raw key mismatch")
+    entry = entries[callback_operation]
+    if row.get("callback_kind") != entry.get("callback_kind"):
+        raise ValueError("callback acquisition kind mismatch")
+    if row.get("outcome") == "accepted" and row.get("observer_thread_id") != entry.get(
+        "observer_thread_id"
+    ):
+        raise ValueError("accepted callback acquisition has foreign observer thread")
+    if entry.get("entry_raw_identity_known"):
+        entry_raw = _callback_identity(entry, "callback_raw")
+        if raw != entry_raw:
+            raise ValueError("callback acquisition entry raw mismatch")
+    query = row.get("query_interface")
+    if not isinstance(query, dict):
+        raise ValueError("missing callback QueryInterface result")
+    _integer(query, "hresult", -0x80000000, 0x7FFFFFFF)
+    query_output = _address(query, "output")
+    for key in (
+        "output_known",
+        "release_attempted",
+        "release_succeeded",
+        "release_threw",
+    ):
+        if type(query.get(key)) is not bool:
+            raise ValueError(f"unknown callback QueryInterface state: {key}")
+    if query.get("status") not in {
+        "not_attempted",
+        "succeeded",
+        "failed",
+        "invalid_output",
+        "exception",
+    }:
+        raise ValueError("unknown callback QueryInterface status")
+    _integer(query, "release_result", 0, 0xFFFFFFFF)
+    if query["release_succeeded"] and query["release_threw"]:
+        raise ValueError("callback QueryInterface cleanup has conflicting state")
+    if (query["release_succeeded"] or query["release_threw"]) and not query[
+        "release_attempted"
+    ]:
+        raise ValueError("callback QueryInterface cleanup was not attempted")
+    if query["status"] == "succeeded" and (
+        query["output_known"] is not True
+        or query_output == 0
+        or query["release_attempted"] is not True
+    ):
+        raise ValueError("successful QueryInterface lacks owned reference evidence")
+    if query["status"] == "succeeded" and query["hresult"] < 0:
+        raise ValueError("successful QueryInterface has a failure HRESULT")
+    if query["status"] != "succeeded" and query["output_known"] is True:
+        raise ValueError("failed QueryInterface claims known interface")
+    if query["status"] == "failed" and query["hresult"] >= 0:
+        raise ValueError("failed QueryInterface has a success HRESULT")
+    if query["status"] == "invalid_output" and (
+        query["hresult"] < 0 or query_output != 0
+    ):
+        raise ValueError("invalid QueryInterface output has inconsistent evidence")
+    if query["status"] == "not_attempted" and (
+        query["hresult"] != CALLBACK_UNSET_HRESULT
+        or query_output != 0
+        or query["release_attempted"]
+    ):
+        raise ValueError("unattempted QueryInterface has observed evidence")
+    if query["status"] == "exception" and (
+        query["hresult"] != CALLBACK_UNSET_HRESULT or query["release_attempted"]
+    ):
+        raise ValueError("exception QueryInterface has cleanup or HRESULT evidence")
+    methods = (
+        "GetCurrentThreadId",
+        "GetEventThread",
+        "GetCurrentProcessId",
+        "GetEventProcess",
+        "GetCurrentThreadSystemId",
+        "GetCurrentProcessSystemId",
+    )
+    reads = row.get("sdk_reads")
+    if not isinstance(reads, list) or len(reads) != len(methods):
+        raise ValueError("callback SDK read set is incomplete")
+    for read, method in zip(reads, methods):
+        _validate_callback_sdk_read(read, method)
+    _validate_callback_owner(row.get("owner"), row.get("outcome") == "accepted")
+    if row.get("outcome") not in {
+        "not_attempted",
+        "accepted",
+        "missing_callback",
+        "missing_raw_key",
+        "changed_raw_key",
+        "missing_owner_evidence",
+        "changed_owner_evidence",
+        "query_interface_refused",
+        "getter_refused",
+        "invalid_output",
+        "exception",
+        "reference_cleanup_failed",
+        "binding_refused",
+        "overflow",
+    }:
+        raise ValueError("unknown callback acquisition outcome")
+    if type(row.get("binding_eligible")) is not bool:
+        raise ValueError("unknown callback binding eligibility")
+    for key in ("error_restore_attempted", "error_restore_succeeded"):
+        if type(row.get(key)) is not bool:
+            raise ValueError(f"unknown callback error restoration state: {key}")
+    if row.get("binding_status") not in {
+        "bound",
+        "missing",
+        "changed",
+        "stale",
+        "already_bound",
+        "conflict",
+        "duplicate",
+        "incomplete_evidence",
+        "continuation_closed",
+        "refused",
+        "overflow",
+    }:
+        raise ValueError("unknown callback binding status")
+    _integer(row, "binding_attempt_id", 0)
+    _validate_callback_observation(
+        row,
+        raw,
+        row.get("binding_eligible") is True
+        or row.get("outcome") == "accepted"
+        or row.get("binding_status") == "bound",
+    )
+    owner = row["owner"]
+    if (
+        row.get("outcome") in {"accepted", "binding_refused"}
+        or row.get("binding_status") == "bound"
+    ):
+        if (
+            _address(owner, "cached_raw_debug_object"),
+            _integer(owner, "cached_raw_process_id"),
+            _integer(owner, "cached_raw_thread_id"),
+            _integer(owner, "cached_raw_generation"),
+        ) != raw[:4]:
+            raise ValueError(
+                "callback owner lifecycle does not match acquisition raw key"
+            )
+    if row.get("outcome") == "accepted":
+        sdk_outputs = [read["output"] for read in reads]
+        witness_outputs = [
+            _integer(row, "binding_current_thread_id"),
+            _integer(row, "binding_event_thread_id"),
+            _integer(row, "binding_current_process_id"),
+            _integer(row, "binding_event_process_id"),
+            _integer(row, "binding_current_system_tid"),
+            _integer(row, "binding_current_system_pid"),
+        ]
+        if sdk_outputs != witness_outputs:
+            raise ValueError("callback SDK reads do not match binding witness")
+        if _integer(row, "binding_cached_thread_id") != _integer(
+            owner, "cached_engine_id"
+        ):
+            raise ValueError("callback owner engine ID does not match binding witness")
+        if row.get("binding_status") != "bound" or not _integer(
+            row, "binding_attempt_id"
+        ):
+            raise ValueError("accepted callback acquisition is not bound")
+    if row.get("outcome") != "accepted" and row.get("binding_status") == "bound":
+        raise ValueError("refused callback acquisition links to bound state")
+    if row.get("outcome") == "accepted":
+        if row.get("binding_eligible") is not True:
+            raise ValueError("accepted callback acquisition is ineligible")
+        if (
+            query["status"] != "succeeded"
+            or query["release_succeeded"] is not True
+            or not all(
+                read["status"] == "succeeded" and read["output_known"] for read in reads
+            )
+        ):
+            raise ValueError("accepted callback acquisition has failed SDK evidence")
+        for key in ("incoming_error_known", "returned_error_known"):
+            if row.get(key) is not True:
+                raise ValueError("accepted callback acquisition has unknown error pair")
+        if (
+            row.get("error_restore_attempted") is not True
+            or row.get("error_restore_succeeded") is not True
+        ):
+            raise ValueError("accepted callback acquisition lacks error restoration")
+    return callback_operation, raw, rechecked
 
 
 def _guid(row: dict, key: str) -> str:
@@ -413,10 +832,21 @@ def _validate_deferred_trace(trace: dict) -> int:
         if not isinstance(row, dict):
             raise ValueError("row must be an object")
         seq = _integer(row, "sequence", 1)
-        exit_seq = _integer(row, "exit_sequence", seq + 1)
-        if exit_seq <= seq or seq in used_sequences or exit_seq in used_sequences:
+        is_missing_callback_exit = (
+            row.get("kind") == "callback_entry" and row.get("exit_sequence") == 0
+        )
+        exit_seq = (
+            0 if is_missing_callback_exit else _integer(row, "exit_sequence", seq + 1)
+        )
+        if (
+            (not is_missing_callback_exit and exit_seq <= seq)
+            or seq in used_sequences
+            or (exit_seq and exit_seq in used_sequences)
+        ):
             raise ValueError("duplicate entry/exit sequence")
-        used_sequences.update((seq, exit_seq))
+        used_sequences.add(seq)
+        if exit_seq:
+            used_sequences.add(exit_seq)
         provenance = row.get("provenance")
         if isinstance(provenance, dict) and provenance.get("status") != "not_attempted":
             begin = _integer(provenance, "acquisition_begin_sequence", 1)
@@ -447,24 +877,55 @@ def _validate_deferred_trace(trace: dict) -> int:
             "context_write",
             "pending_event",
             "engine_binding",
+            "callback_entry",
+            "callback_acquisition",
         }:
             raise ValueError("unsupported row kind")
 
     kinds = {row["kind"] for row in rows}
-    if not {
-        "lookup",
-        "query",
-        "context_write",
-        "pending_event",
-        "engine_binding",
-    }.issubset(kinds):
+    if "callback_entry" in kinds or "callback_acquisition" in kinds:
+        required_kinds = {
+            "lookup",
+            "query",
+            "context_write",
+            "pending_event",
+            "engine_binding",
+            "callback_entry",
+            "callback_acquisition",
+        }
+    else:
+        required_kinds = {
+            "lookup",
+            "query",
+            "context_write",
+            "pending_event",
+            "engine_binding",
+        }
+    if not required_kinds.issubset(kinds):
         raise ValueError("missing delayed binding boundary")
+    callback_entries: dict[int, dict] = {}
+    callback_acquisitions: dict[int, dict] = {}
+    for row in rows:
+        if row["kind"] == "callback_entry":
+            callback_operation, _ = _validate_callback_entry(row)
+            if callback_operation in callback_entries:
+                raise ValueError("duplicate callback entry")
+            callback_entries[callback_operation] = row
+    for row in rows:
+        if row["kind"] == "callback_acquisition":
+            callback_operation, _, _ = _validate_callback_acquisition(
+                row, callback_entries
+            )
+            if _integer(row, "acquisition_operation_id", 1) in callback_acquisitions:
+                raise ValueError("duplicate callback acquisition")
+            callback_acquisitions[_integer(row, "acquisition_operation_id", 1)] = row
     ordered = sorted(rows, key=lambda row: row["sequence"])
     pending_raw = None
     pending_qualified = None
     admitted_exit = 0
     binding_exit_sequence = None
     event_operations: list[dict] = []
+    callback_bound_links: dict[int, list[dict]] = {}
     bound_raw: set[tuple] = set()
     bound_lifecycles: dict[tuple, int] = {}
     bound_generation_lifecycles: dict[int, tuple] = {}
@@ -473,14 +934,34 @@ def _validate_deferred_trace(trace: dict) -> int:
         parent_id = _integer(row, "parent_operation_id")
         if parent_id:
             parent = operations.get(parent_id)
-            if (
-                parent is None
-                or not parent["sequence"]
+            closed_callback_refusal = (
+                row.get("kind") == "callback_acquisition"
+                and row.get("outcome") != "accepted"
+                and row.get("incomplete") is True
+                and isinstance(parent, dict)
+                and parent.get("kind") == "callback_entry"
+                and parent.get("exit_observed") is True
+                and parent.get("exit_sequence", 0) <= row["sequence"]
+            )
+            callback_refusal = (
+                row.get("kind") == "callback_acquisition"
+                and row.get("outcome") != "accepted"
+                and row.get("incomplete") is True
+                and isinstance(parent, dict)
+                and parent.get("kind") == "callback_entry"
+            )
+            parent_interval_valid = (
+                parent is not None
+                and parent["sequence"]
                 < row["sequence"]
                 < row["exit_sequence"]
                 < parent["exit_sequence"]
-                or parent["observer_thread_id"] != row["observer_thread_id"]
-            ):
+                and (
+                    parent["observer_thread_id"] == row["observer_thread_id"]
+                    or callback_refusal
+                )
+            )
+            if not parent_interval_valid and not closed_callback_refusal:
                 raise ValueError("invalid parent interval or thread")
 
         kind = row["kind"]
@@ -524,6 +1005,61 @@ def _validate_deferred_trace(trace: dict) -> int:
                 raise ValueError("duplicate, changed or missing pending event")
             continue
 
+        if kind == "callback_entry":
+            callback_operation = _integer(row, "callback_operation_id", 1)
+            raw = (
+                _callback_identity(row, "callback_raw")
+                if row.get("entry_raw_identity_known")
+                else None
+            )
+            if pending_raw is None:
+                if raw is not None or row["incomplete"] is not True:
+                    raise ValueError("callback entry has no pending raw key")
+            else:
+                if raw is not None and raw != pending_raw:
+                    raise ValueError("callback entry raw identity mismatch")
+                if row["sequence"] <= admitted_exit:
+                    raise ValueError("callback entry crosses event admission")
+                event_operations.append(row)
+            continue
+
+        if kind == "callback_acquisition":
+            callback_operation = _integer(row, "callback_operation_id", 1)
+            raw = _callback_identity(
+                row,
+                "acquisition_raw",
+                require_complete=row.get("outcome") == "accepted"
+                or row.get("incomplete") is not True,
+            )
+            refusal = row.get("outcome") != "accepted" and row["incomplete"] is True
+            if not raw[0] and refusal:
+                continue
+            if pending_raw is None or raw != pending_raw:
+                if refusal:
+                    continue
+                raise ValueError("callback acquisition has no exact pending event")
+            if row["sequence"] <= admitted_exit:
+                raise ValueError("callback acquisition crosses event admission")
+            if pending_qualified is None:
+                if (
+                    row.get("engine_generation_known") is True
+                    or row["incomplete"] is not True
+                ):
+                    raise ValueError(
+                        "unbound callback acquisition claims qualification"
+                    )
+            elif (
+                binding_exit_sequence is not None
+                and row["sequence"] <= binding_exit_sequence
+            ):
+                if (
+                    row.get("engine_generation_known") is True
+                    or row["incomplete"] is not True
+                ):
+                    raise ValueError("early callback acquisition claims qualification")
+            event_operations.append(row)
+            continue
+
         if kind == "engine_binding":
             status = row.get("binding_status")
             if status not in {
@@ -548,6 +1084,82 @@ def _validate_deferred_trace(trace: dict) -> int:
                 raise ValueError("non-bound binding claims qualification")
             raw = _binding_raw_identity(row)
             binding_generation_value = _integer(row, "binding_engine_generation")
+            callback_operation = (
+                _integer(row, "callback_operation_id")
+                if "callback_operation_id" in row
+                else 0
+            )
+            callback_acquisition = (
+                _integer(row, "callback_acquisition_operation_id")
+                if "callback_acquisition_operation_id" in row
+                else 0
+            )
+            binding_attempt = (
+                _integer(row, "binding_attempt_id")
+                if "binding_attempt_id" in row
+                else 0
+            )
+            if callback_operation or callback_acquisition:
+                if not callback_operation or not callback_acquisition:
+                    raise ValueError("partial callback binding link")
+                acquisition = callback_acquisitions.get(callback_acquisition)
+                if (
+                    acquisition is None
+                    or _integer(acquisition, "callback_operation_id", 1)
+                    != callback_operation
+                ):
+                    raise ValueError("callback binding link mismatch")
+                if _callback_identity(acquisition, "acquisition_raw") != raw:
+                    raise ValueError("callback binding raw key mismatch")
+                if binding_attempt == 0 or binding_attempt != _integer(
+                    acquisition, "binding_attempt_id"
+                ):
+                    raise ValueError("callback binding attempt mismatch")
+                if acquisition.get("binding_status") != status:
+                    raise ValueError("callback binding status mismatch")
+                if status == "bound":
+                    if (
+                        acquisition.get("outcome") != "accepted"
+                        or acquisition.get("binding_eligible") is not True
+                        or acquisition.get("query_interface", {}).get("status")
+                        != "succeeded"
+                        or acquisition.get("query_interface", {}).get(
+                            "release_succeeded"
+                        )
+                        is not True
+                        or acquisition.get("error_restore_attempted") is not True
+                        or acquisition.get("error_restore_succeeded") is not True
+                        or not all(
+                            read.get("status") == "succeeded"
+                            and read.get("output_known") is True
+                            for read in acquisition.get("sdk_reads", [])
+                        )
+                    ):
+                        raise ValueError("bound callback links to refused acquisition")
+                    if _integer(row, "binding_engine_generation") != _integer(
+                        acquisition.get("owner", {}), "lifecycle_token"
+                    ):
+                        raise ValueError(
+                            "callback binding generation does not match owner token"
+                        )
+                    for key in (
+                        "binding_current_thread_id",
+                        "binding_event_thread_id",
+                        "binding_cached_thread_id",
+                        "binding_current_process_id",
+                        "binding_event_process_id",
+                        "binding_current_system_pid",
+                        "binding_current_system_tid",
+                    ):
+                        if row.get(key) != acquisition.get(key):
+                            raise ValueError(
+                                "callback binding witness differs from acquisition"
+                            )
+                    callback_bound_links.setdefault(callback_acquisition, []).append(
+                        row
+                    )
+                if row["sequence"] <= acquisition["exit_sequence"]:
+                    raise ValueError("callback binding precedes acquisition end")
             if status == "bound" and binding_generation_value == 0:
                 raise ValueError("zero binding generation")
             if pending_raw is None:
@@ -602,7 +1214,7 @@ def _validate_deferred_trace(trace: dict) -> int:
                 bound_generation_lifecycles[binding_generation_value] = lifecycle
                 binding_exit_sequence = row["exit_sequence"]
                 if any(
-                    operation["kind"] != "engine_binding"
+                    operation["kind"] not in {"engine_binding", "callback_entry"}
                     and operation["sequence"]
                     <= binding_exit_sequence
                     <= operation["exit_sequence"]
@@ -638,6 +1250,12 @@ def _validate_deferred_trace(trace: dict) -> int:
                 raise ValueError("post-binding operation lost qualified identity")
         event_operations.append(row)
         _validate_deferred_operation(row, parent_id, operations, pending_raw)
+
+    for acquisition_operation, acquisition in callback_acquisitions.items():
+        if acquisition.get("outcome") != "accepted":
+            continue
+        if len(callback_bound_links.get(acquisition_operation, [])) != 1:
+            raise ValueError("accepted callback acquisition lacks one bound link")
 
     if pending_raw is not None:
         raise ValueError("pending event not closed")

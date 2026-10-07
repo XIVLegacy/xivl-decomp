@@ -66,8 +66,10 @@ struct EngineBindingReceipt
     EngineIdentityObservation observation{};
     std::uint64_t             engine_generation = 0;
     EventIdentity             qualified_identity{};
-    EngineBindingStatus       status    = EngineBindingStatus::Refused;
-    bool                      qualified = false;
+    EngineBindingStatus       status                            = EngineBindingStatus::Refused;
+    bool                      qualified                         = false;
+    std::uint64_t             callback_operation_id             = 0;
+    std::uint64_t             callback_acquisition_operation_id = 0;
 };
 
 struct BridgeContinuationEvidence
@@ -131,7 +133,9 @@ public:
     EngineBindingStatus bind_engine_event(const RawIdentityBinding&        raw_identity,
                                           const EngineIdentityObservation& observation,
                                           std::uint64_t                    engine_generation,
-                                          std::uint64_t                    attempt_id = 0) noexcept;
+                                          std::uint64_t                    attempt_id                        = 0,
+                                          std::uint64_t                    callback_operation_id             = 0,
+                                          std::uint64_t                    callback_acquisition_operation_id = 0) noexcept;
     RawEventBindingMode binding_mode() const noexcept;
 
 private:

@@ -322,6 +322,209 @@ def sample_deferred_trace() -> dict:
     return trace
 
 
+def sample_callback_trace() -> dict:
+    trace = sample_deferred_trace()
+    admitted = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "admitted"
+    )
+    query = next(row for row in trace["rows"] if row["kind"] == "query")
+    lookup = next(row for row in trace["rows"] if row["kind"] == "lookup")
+    binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+    closed = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+
+    raw = dict(
+        event_complete=True,
+        raw_debug_object="0x20",
+        event_pid=10,
+        event_tid=11,
+        raw_generation=1,
+        event_index=1,
+    )
+    qualified = dict(raw, engine_generation_known=True, engine_generation=0x44)
+
+    def header(
+        kind: str, operation: int, parent: int, sequence: int, exit_sequence: int
+    ) -> dict:
+        return dict(
+            kind=kind,
+            session_id=1,
+            operation_id=operation,
+            parent_operation_id=parent,
+            sequence=sequence,
+            exit_sequence=exit_sequence,
+            observer_thread_id=12,
+            incomplete=True,
+            pre_log_failed=False,
+            post_log_failed=False,
+            rethrown=False,
+            incoming_error_known=False,
+            returned_error_known=False,
+            incoming_last_error=0,
+            returned_last_error=0,
+            incoming_last_status=0,
+            returned_last_status=0,
+            engine_generation_known=False,
+            engine_generation=0,
+            **raw,
+        )
+
+    entry = header("callback_entry", 7, 0, 3, 18)
+    entry.update(
+        callback_operation_id=7,
+        callback_kind="breakpoint",
+        entry_raw_identity_known=True,
+        callback_raw_event_complete=True,
+        callback_raw_raw_debug_object="0x20",
+        callback_raw_event_pid=10,
+        callback_raw_event_tid=11,
+        callback_raw_raw_generation=1,
+        callback_raw_event_index=1,
+        callback_raw_engine_generation_known=False,
+        callback_raw_engine_generation=0,
+        exit_outcome="completed",
+        exit_observed=True,
+    )
+
+    acquisition = header("callback_acquisition", 8, 7, 4, 5)
+    acquisition.update(
+        incoming_error_known=True,
+        returned_error_known=True,
+        callback_operation_id=7,
+        acquisition_operation_id=8,
+        callback_kind="breakpoint",
+        acquisition_begin_sequence=4,
+        acquisition_end_sequence=5,
+        acquisition_raw_event_complete=True,
+        acquisition_raw_raw_debug_object="0x20",
+        acquisition_raw_event_pid=10,
+        acquisition_raw_event_tid=11,
+        acquisition_raw_raw_generation=1,
+        acquisition_raw_event_index=1,
+        acquisition_raw_engine_generation_known=False,
+        acquisition_raw_engine_generation=0,
+        acquisition_rechecked_event_complete=True,
+        acquisition_rechecked_raw_debug_object="0x20",
+        acquisition_rechecked_event_pid=10,
+        acquisition_rechecked_event_tid=11,
+        acquisition_rechecked_raw_generation=1,
+        acquisition_rechecked_event_index=1,
+        acquisition_rechecked_engine_generation_known=False,
+        acquisition_rechecked_engine_generation=0,
+        query_interface=dict(
+            hresult=0,
+            output="0x200",
+            output_known=True,
+            status="succeeded",
+            release_attempted=True,
+            release_succeeded=True,
+            release_threw=False,
+            release_result=1,
+        ),
+        sdk_reads=[
+            dict(
+                method=method,
+                hresult=0,
+                output=output,
+                output_known=True,
+                status="succeeded",
+            )
+            for method, output in (
+                ("GetCurrentThreadId", 7),
+                ("GetEventThread", 7),
+                ("GetCurrentProcessId", 2),
+                ("GetEventProcess", 2),
+                ("GetCurrentThreadSystemId", 11),
+                ("GetCurrentProcessSystemId", 10),
+            )
+        ],
+        owner=dict(
+            serialized_selected_state_access=True,
+            retained_source_lifetime=True,
+            authority_id=0xA1,
+            lifetime_id=0xB2,
+            cached_raw_lifecycle_associated=True,
+            cached_raw_debug_object="0x20",
+            cached_raw_process_id=10,
+            cached_raw_thread_id=11,
+            cached_raw_generation=1,
+            cached_engine_id_known=True,
+            cached_engine_id=7,
+            lifecycle_token_known=True,
+            lifecycle_token=0x44,
+        ),
+        outcome="accepted",
+        binding_eligible=True,
+        binding_status="bound",
+        binding_attempt_id=9,
+        error_restore_attempted=True,
+        error_restore_succeeded=True,
+        binding_current_thread_known=True,
+        binding_current_thread_id=7,
+        binding_event_thread_known=True,
+        binding_event_thread_id=7,
+        binding_cached_thread_known=True,
+        binding_cached_thread_id=7,
+        binding_current_process_known=True,
+        binding_current_process_id=2,
+        binding_event_process_known=True,
+        binding_event_process_id=2,
+        binding_current_system_pid_known=True,
+        binding_current_system_pid=10,
+        binding_current_system_tid_known=True,
+        binding_current_system_tid=11,
+    )
+
+    for row in (query, lookup):
+        row.update(
+            engine_generation_known=True, engine_generation=0x44, incomplete=False
+        )
+    query["sequence"], query["exit_sequence"] = 8, 11
+    lookup["sequence"], lookup["exit_sequence"] = 9, 10
+    binding["sequence"], binding["exit_sequence"] = 6, 7
+    binding.update(
+        callback_operation_id=7,
+        callback_acquisition_operation_id=8,
+        binding_attempt_id=9,
+        engine_generation=0x44,
+        binding_engine_generation=0x44,
+        binding_qualified_engine_generation=0x44,
+        binding_current_thread_id=7,
+        binding_event_thread_id=7,
+        binding_cached_thread_id=7,
+        binding_current_process_id=2,
+        binding_event_process_id=2,
+        binding_current_system_pid=10,
+        binding_current_system_tid=11,
+    )
+    closed.update(
+        engine_generation_known=True, engine_generation=0x44, incomplete=False
+    )
+    closed["pending_engine_generation_known"] = True
+    closed["pending_engine_generation"] = 0x44
+    closed["sequence"], closed["exit_sequence"] = 19, 20
+    context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+    context.update(qualified)
+    context["incomplete"] = False
+    context["sequence"], context["exit_sequence"] = 13, 14
+    trace["rows"] = [
+        admitted,
+        entry,
+        acquisition,
+        binding,
+        query,
+        lookup,
+        context,
+        closed,
+    ]
+    return trace
+
+
 class TraceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.trace = (
@@ -349,6 +552,254 @@ class TraceTests(unittest.TestCase):
         early = next(row for row in trace["rows"] if row["kind"] == "query")
         self.assertTrue(early["incomplete"])
         self.assertFalse(early["engine_generation_known"])
+
+    def test_callback_trace_accepts_shared_clock_and_full_sdk_evidence(self) -> None:
+        trace = sample_callback_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+    def test_callback_sdk_method_type_is_rejected(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sdk_reads"][0]["method"] = "GetEventProcess"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_successful_id_cannot_use_invalid_sentinel(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sdk_reads"][5]["output"] = 0
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_successful_sdk_read_cannot_have_failure_hresult(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sdk_reads"][0]["hresult"] = -1
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["query_interface"]["hresult"] = -1
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_witness_must_match_all_sdk_outputs(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["binding_event_process_id"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_owner_lifecycle_tuple_must_match_raw_key(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["owner"]["cached_raw_generation"] = 2
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_kind_and_binding_generation_links_are_strict(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["callback_kind"] = "create_thread"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+        trace = sample_callback_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding.update(
+            binding_engine_generation=0x45,
+            binding_qualified_engine_generation=0x45,
+            engine_generation=0x45,
+        )
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_bound_acquisition_requires_one_reciprocal_binding_link(
+        self,
+    ) -> None:
+        trace = sample_callback_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding.update(
+            callback_operation_id=0,
+            callback_acquisition_operation_id=0,
+            binding_attempt_id=999,
+        )
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_refused_acquisition_cannot_link_to_bound_row(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["outcome"] = "query_interface_refused"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_accepted_acquisition_cannot_use_foreign_observer_thread(
+        self,
+    ) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["observer_thread_id"] = 99
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_trace_keeps_context_write_boundary(self) -> None:
+        trace = sample_callback_trace()
+        trace["rows"] = [row for row in trace["rows"] if row["kind"] != "context_write"]
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_owner_token_must_be_nonzero(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["owner"]["lifecycle_token"] = 0
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_error_pair_restoration_is_required(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["error_restore_succeeded"] = False
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_qi_cleanup_must_release_owned_reference(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["query_interface"]["release_succeeded"] = False
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_refusal_preserves_unqualified_rows(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["outcome"] = "query_interface_refused"
+        acquisition["binding_eligible"] = False
+        acquisition["binding_status"] = "refused"
+        acquisition["query_interface"].update(
+            hresult=-2147467262,
+            output="0x0",
+            output_known=False,
+            status="failed",
+            release_attempted=False,
+            release_succeeded=False,
+            release_result=0,
+        )
+        for read in acquisition["sdk_reads"]:
+            read.update(
+                output=(
+                    0xFFFFFFFF
+                    if read["method"]
+                    in {
+                        "GetCurrentThreadId",
+                        "GetEventThread",
+                        "GetCurrentProcessId",
+                        "GetEventProcess",
+                    }
+                    else 0
+                ),
+                hresult=-2147467259,
+                output_known=False,
+                status="not_attempted",
+            )
+        for key in (
+            "serialized_selected_state_access",
+            "retained_source_lifetime",
+            "cached_raw_lifecycle_associated",
+            "cached_engine_id_known",
+            "lifecycle_token_known",
+        ):
+            acquisition["owner"][key] = False
+        acquisition["owner"].update(
+            authority_id=0,
+            lifetime_id=0,
+            cached_engine_id=0xFFFFFFFF,
+            lifecycle_token=0,
+        )
+        for key in (
+            "binding_current_thread_known",
+            "binding_event_thread_known",
+            "binding_cached_thread_known",
+            "binding_current_process_known",
+            "binding_event_process_known",
+            "binding_current_system_pid_known",
+            "binding_current_system_tid_known",
+        ):
+            acquisition[key] = False
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding.update(
+            binding_status="refused",
+            binding_qualified=False,
+            binding_engine_generation=0,
+            incomplete=True,
+        )
+        for row in trace["rows"]:
+            if row["kind"] in {"query", "lookup", "context_write", "pending_event"}:
+                row["engine_generation_known"] = False
+                row["engine_generation"] = 0
+                row["incomplete"] = True
+                if row["kind"] == "pending_event":
+                    row["pending_engine_generation_known"] = False
+                    row["pending_engine_generation"] = 0
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+        foreign_refusal = copy.deepcopy(trace)
+        foreign_refusal["rows"][2]["observer_thread_id"] = 99
+        self.assertEqual(
+            validator.validate_trace(foreign_refusal), len(foreign_refusal["rows"])
+        )
+
+        malformed = copy.deepcopy(trace)
+        malformed_read = malformed["rows"][2]["sdk_reads"][0]
+        malformed_read.update(status="failed", hresult=0)
+        self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+        malformed = copy.deepcopy(trace)
+        malformed_read = malformed["rows"][2]["sdk_reads"][0]
+        malformed_read.update(status="invalid_output", hresult=-1)
+        self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+        malformed = copy.deepcopy(trace)
+        malformed_read = malformed["rows"][2]["sdk_reads"][0]
+        malformed_read.update(status="not_attempted", hresult=0)
+        self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+        for prefix in ("acquisition_raw", "acquisition_rechecked", ""):
+            malformed = copy.deepcopy(trace)
+            malformed_acquisition = malformed["rows"][2]
+            complete_key = f"{prefix}_event_complete" if prefix else "event_complete"
+            known_key = (
+                f"{prefix}_engine_generation_known"
+                if prefix
+                else "engine_generation_known"
+            )
+            generation_key = (
+                f"{prefix}_engine_generation" if prefix else "engine_generation"
+            )
+            malformed_acquisition[complete_key] = False
+            malformed_acquisition[known_key] = True
+            malformed_acquisition[generation_key] = 999
+            self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+    def test_callback_acquisition_interval_must_match_shared_clock(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["acquisition_end_sequence"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
 
     def test_deferred_query_crossing_binding_is_rejected(self) -> None:
         trace = sample_deferred_trace()
