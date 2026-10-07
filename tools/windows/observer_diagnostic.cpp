@@ -141,6 +141,48 @@ bool same_identity(const EventIdentity& left, const EventIdentity& right)
     return left.complete == right.complete && left.raw_debug_object == right.raw_debug_object && left.process_id == right.process_id && left.thread_id == right.thread_id && left.raw_generation == right.raw_generation && left.event_index == right.event_index && left.engine_generation_known == right.engine_generation_known && left.engine_generation == right.engine_generation;
 }
 
+bool same_raw_identity(const EventIdentity& left, const EventIdentity& right)
+{
+    return left.complete && right.complete && left.raw_debug_object == right.raw_debug_object &&
+           left.process_id == right.process_id && left.thread_id == right.thread_id &&
+           left.raw_generation == right.raw_generation && left.event_index == right.event_index;
+}
+
+bool same_lifecycle_identity(const EventIdentity& left, const EventIdentity& right)
+{
+    return left.complete && right.complete && left.raw_debug_object == right.raw_debug_object &&
+           left.process_id == right.process_id && left.thread_id == right.thread_id &&
+           left.raw_generation == right.raw_generation;
+}
+
+bool binding_evidence_complete(const EventIdentity&             raw,
+                               const EngineIdentityObservation& observation,
+                               std::uint64_t                    engine_generation)
+{
+    if (!raw.complete || raw.raw_debug_object == 0 || raw.process_id == 0 ||
+        raw.thread_id == 0 || raw.raw_generation == 0 || engine_generation == 0 ||
+        !observation.current_thread_known || !observation.event_thread_known ||
+        !observation.cached_thread_known || !observation.current_process_known ||
+        !observation.event_process_known || !observation.current_system_pid_known ||
+        !observation.current_system_tid_known)
+    {
+        return false;
+    }
+    if (observation.current_thread_id == kDebugAnyEngineId ||
+        observation.event_thread_id == kDebugAnyEngineId ||
+        observation.cached_thread_id == kDebugAnyEngineId ||
+        observation.current_process_id == kDebugAnyEngineId ||
+        observation.event_process_id == kDebugAnyEngineId)
+    {
+        return false;
+    }
+    return observation.current_thread_id == observation.event_thread_id &&
+           observation.current_thread_id == observation.cached_thread_id &&
+           observation.current_process_id == observation.event_process_id &&
+           observation.current_system_pid == raw.process_id &&
+           observation.current_system_tid == raw.thread_id;
+}
+
 bool raw_identity_complete(const EventIdentity& identity)
 {
     return identity.complete && identity.raw_debug_object != 0 && identity.process_id != 0 && identity.thread_id != 0 && identity.raw_generation != 0;
@@ -187,6 +229,36 @@ const char* pending_name(PendingEventStatus status)
             return "missing";
     }
     return "unknown";
+}
+
+const char* binding_name(EngineBindingStatus status)
+{
+    switch (status)
+    {
+        case EngineBindingStatus::Bound:
+            return "bound";
+        case EngineBindingStatus::Missing:
+            return "missing";
+        case EngineBindingStatus::Changed:
+            return "changed";
+        case EngineBindingStatus::Stale:
+            return "stale";
+        case EngineBindingStatus::AlreadyBound:
+            return "already_bound";
+        case EngineBindingStatus::Conflict:
+            return "conflict";
+        case EngineBindingStatus::Duplicate:
+            return "duplicate";
+        case EngineBindingStatus::IncompleteEvidence:
+            return "incomplete_evidence";
+        case EngineBindingStatus::ContinuationClosed:
+            return "continuation_closed";
+        case EngineBindingStatus::Refused:
+            return "refused";
+        case EngineBindingStatus::Overflow:
+            return "overflow";
+    }
+    return "refused";
 }
 
 const char* provenance_status_name(QueryProvenanceStatus status)
@@ -516,7 +588,6 @@ std::uint64_t Recorder::next_operation_id()
 RowHeader Recorder::make_header(std::uint64_t operation_id)
 {
     RowHeader header;
-    header.sequence     = next_sequence_.fetch_add(1, std::memory_order_relaxed);
     header.session_id   = session_id_;
     header.operation_id = operation_id;
     for (ActiveFrame* frame = g_active_frame; frame != nullptr; frame = frame->previous)
@@ -527,12 +598,13 @@ RowHeader Recorder::make_header(std::uint64_t operation_id)
             break;
         }
     }
-    header.observer_thread_id = thread_id();
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        header.event = current_event_locked();
+        header.sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        header.event    = current_event_locked();
     }
-    header.incomplete = header.observer_thread_id == 0 || !qualified_identity(header.event);
+    header.observer_thread_id = thread_id();
+    header.incomplete         = header.observer_thread_id == 0 || !qualified_identity(header.event);
     return header;
 }
 
@@ -1200,6 +1272,7 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
         }
         else
         {
+            last_closed_event_ = pending_event_;
             pending_event_.reset();
             status = PendingEventStatus::Closed;
         }
@@ -1209,6 +1282,129 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
     row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
     append_row(row);
     return status;
+}
+
+EngineBindingStatus Recorder::bind_pending_event(
+    const EventIdentity&             raw_identity,
+    const EngineIdentityObservation& observation,
+    std::uint64_t                    engine_generation)
+{
+    const std::uint64_t operation_id = next_operation_id();
+    EngineBindingRow    row;
+    row.header            = make_header(operation_id);
+    row.raw_identity      = raw_identity;
+    row.observation       = observation;
+    row.engine_generation = engine_generation;
+    row.status            = EngineBindingStatus::Refused;
+    row.qualified         = false;
+
+    if (!binding_evidence_complete(raw_identity, observation, engine_generation))
+    {
+        row.status               = EngineBindingStatus::IncompleteEvidence;
+        row.header.incomplete    = true;
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (rows_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            return EngineBindingStatus::Overflow;
+        }
+        rows_.push_back(row);
+        return row.status;
+    }
+
+    EventIdentity qualified           = raw_identity;
+    qualified.engine_generation_known = true;
+    qualified.engine_generation       = engine_generation;
+    qualified.complete                = true;
+    row.qualified_identity            = qualified;
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (rows_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            return EngineBindingStatus::Overflow;
+        }
+        if (!pending_event_.has_value())
+        {
+            row.status = last_closed_event_.has_value() &&
+                                 same_raw_identity(*last_closed_event_, raw_identity)
+                             ? EngineBindingStatus::Stale
+                             : EngineBindingStatus::Missing;
+        }
+        else if (!same_raw_identity(*pending_event_, raw_identity))
+        {
+            row.status = EngineBindingStatus::Changed;
+        }
+        else if (pending_event_->engine_generation_known)
+        {
+            row.status = pending_event_->engine_generation == engine_generation
+                             ? EngineBindingStatus::Duplicate
+                             : EngineBindingStatus::Conflict;
+        }
+        else if (std::any_of(bound_history_identities_.begin(),
+                             bound_history_identities_.begin() + bound_history_count_,
+                             [&raw_identity](const EventIdentity& prior)
+                             {
+                                 return same_raw_identity(prior, raw_identity);
+                             }))
+        {
+            row.status = EngineBindingStatus::Stale;
+        }
+        else
+        {
+            const auto prior_lifecycle = std::find_if(
+                bound_history_identities_.begin(),
+                bound_history_identities_.begin() + bound_history_count_,
+                [&raw_identity](const EventIdentity& prior)
+                {
+                    return same_lifecycle_identity(prior, raw_identity);
+                });
+            const auto prior_generation = std::find_if(
+                bound_history_generations_.begin(),
+                bound_history_generations_.begin() + bound_history_count_,
+                [engine_generation](std::uint64_t prior)
+                {
+                    return prior == engine_generation;
+                });
+            const auto history_end = bound_history_identities_.begin() + bound_history_count_;
+            if (prior_lifecycle != history_end &&
+                bound_history_generations_[static_cast<std::size_t>(
+                    prior_lifecycle - bound_history_identities_.begin())] != engine_generation)
+            {
+                row.status = EngineBindingStatus::Conflict;
+            }
+            else if (prior_generation != bound_history_generations_.begin() + bound_history_count_ &&
+                     !same_lifecycle_identity(
+                         bound_history_identities_[static_cast<std::size_t>(
+                             prior_generation - bound_history_generations_.begin())],
+                         raw_identity))
+            {
+                row.status = EngineBindingStatus::Conflict;
+            }
+            else if (bound_history_count_ >= bound_history_identities_.size())
+            {
+                row.status = EngineBindingStatus::Overflow;
+            }
+            else
+            {
+                pending_event_                                   = qualified;
+                row.status                                       = EngineBindingStatus::Bound;
+                row.qualified                                    = true;
+                bound_history_identities_[bound_history_count_]  = raw_identity;
+                bound_history_generations_[bound_history_count_] = engine_generation;
+                ++bound_history_count_;
+            }
+        }
+        row.header.event         = pending_event_.has_value() ? *pending_event_ : raw_identity;
+        row.header.incomplete    = row.header.observer_thread_id == 0 ||
+                                   row.status != EngineBindingStatus::Bound ||
+                                   !qualified_identity(row.header.event);
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        rows_.push_back(row);
+    }
+    return row.status;
 }
 
 std::optional<EventIdentity> Recorder::pending_event() const
@@ -1273,6 +1469,19 @@ std::vector<PendingEventRow> Recorder::pending_event_rows() const
     for (const TraceRow& row : rows())
     {
         if (const auto* value = std::get_if<PendingEventRow>(&row))
+        {
+            result.push_back(*value);
+        }
+    }
+    return result;
+}
+
+std::vector<EngineBindingRow> Recorder::engine_binding_rows() const
+{
+    std::vector<EngineBindingRow> result;
+    for (const TraceRow& row : rows())
+    {
+        if (const auto* value = std::get_if<EngineBindingRow>(&row))
         {
             result.push_back(*value);
         }
@@ -1392,7 +1601,7 @@ std::string Recorder::serialize() const
                     stream << ",\"original_target\":" << hex_value(row.original_target);
                     stream << ",\"call_completed\":" << (row.call_completed ? "true" : "false");
                 }
-                else
+                else if constexpr (std::is_same_v<RowType, PendingEventRow>)
                 {
                     stream << ",\"kind\":\"pending_event\"";
                     stream << ",\"pending_status\":\"" << pending_name(row.status) << '"';
@@ -1405,6 +1614,56 @@ std::string Recorder::serialize() const
                     stream << ",\"pending_engine_generation_known\":"
                            << (row.identity.engine_generation_known ? "true" : "false");
                     stream << ",\"pending_engine_generation\":" << row.identity.engine_generation;
+                }
+                else
+                {
+                    stream << ",\"kind\":\"engine_binding\"";
+                    stream << ",\"binding_status\":\"" << binding_name(row.status) << '"';
+                    stream << ",\"binding_qualified\":"
+                           << (row.qualified ? "true" : "false");
+                    stream << ",\"binding_engine_generation\":" << row.engine_generation;
+                    stream << ",\"binding_raw_event_complete\":"
+                           << (row.raw_identity.complete ? "true" : "false");
+                    stream << ",\"binding_raw_debug_object\":"
+                           << hex_value(row.raw_identity.raw_debug_object);
+                    stream << ",\"binding_event_pid\":" << row.raw_identity.process_id;
+                    stream << ",\"binding_event_tid\":" << row.raw_identity.thread_id;
+                    stream << ",\"binding_raw_generation\":" << row.raw_identity.raw_generation;
+                    stream << ",\"binding_event_index\":" << row.raw_identity.event_index;
+                    stream << ",\"binding_current_thread_known\":"
+                           << (row.observation.current_thread_known ? "true" : "false");
+                    stream << ",\"binding_current_thread_id\":"
+                           << row.observation.current_thread_id;
+                    stream << ",\"binding_event_thread_known\":"
+                           << (row.observation.event_thread_known ? "true" : "false");
+                    stream << ",\"binding_event_thread_id\":"
+                           << row.observation.event_thread_id;
+                    stream << ",\"binding_cached_thread_known\":"
+                           << (row.observation.cached_thread_known ? "true" : "false");
+                    stream << ",\"binding_cached_thread_id\":"
+                           << row.observation.cached_thread_id;
+                    stream << ",\"binding_current_process_known\":"
+                           << (row.observation.current_process_known ? "true" : "false");
+                    stream << ",\"binding_current_process_id\":"
+                           << row.observation.current_process_id;
+                    stream << ",\"binding_event_process_known\":"
+                           << (row.observation.event_process_known ? "true" : "false");
+                    stream << ",\"binding_event_process_id\":"
+                           << row.observation.event_process_id;
+                    stream << ",\"binding_current_system_pid_known\":"
+                           << (row.observation.current_system_pid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_pid\":"
+                           << row.observation.current_system_pid;
+                    stream << ",\"binding_current_system_tid_known\":"
+                           << (row.observation.current_system_tid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_tid\":"
+                           << row.observation.current_system_tid;
+                    stream << ",\"binding_qualified_event_complete\":"
+                           << (row.qualified_identity.complete ? "true" : "false");
+                    stream << ",\"binding_qualified_engine_generation_known\":"
+                           << (row.qualified_identity.engine_generation_known ? "true" : "false");
+                    stream << ",\"binding_qualified_engine_generation\":"
+                           << row.qualified_identity.engine_generation;
                 }
                 stream << '}';
             },

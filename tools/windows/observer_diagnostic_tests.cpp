@@ -75,6 +75,12 @@ struct FakeState
     bool                            provenance_reenter       = false;
     bool                            provenance_reentered     = false;
     std::atomic<std::uint32_t>      provenance_calls{ 0 };
+    std::atomic<bool>               hold_query{ false };
+    std::atomic<bool>               query_entered{ false };
+    std::atomic<bool>               release_query{ false };
+    std::atomic<bool>               hold_thread_id{ false };
+    std::atomic<bool>               thread_id_entered{ false };
+    std::atomic<bool>               release_thread_id{ false };
     bool                            clear_during_lookup    = false;
     bool                            clear_result           = false;
     std::uint64_t                   publication_generation = 0;
@@ -195,6 +201,14 @@ bool fake_write_error(void* user, const ErrorPair* value)
 
 std::uint32_t fake_thread_id(void*)
 {
+    if (g_fake_state != nullptr && g_fake_state->hold_thread_id.load(std::memory_order_acquire))
+    {
+        g_fake_state->thread_id_entered.store(true, std::memory_order_release);
+        while (!g_fake_state->release_thread_id.load(std::memory_order_acquire))
+        {
+            std::this_thread::yield();
+        }
+    }
     if (g_fake_state != nullptr && g_fake_state->clobber_telemetry_errors)
     {
         g_fake_error = ErrorPair{ 0xEE, -0xEE };
@@ -333,6 +347,14 @@ Hresult XIVL_OBSERVER_STDCALL fake_query(
         state->query_entry_error    = g_fake_error;
     }
     ++state->query_calls;
+    if (state->hold_query.load(std::memory_order_acquire))
+    {
+        state->query_entered.store(true, std::memory_order_release);
+        while (!state->release_query.load(std::memory_order_acquire))
+        {
+            std::this_thread::yield();
+        }
+    }
     if (state->throw_query)
     {
         g_fake_error = ErrorPair{ 0x78, -78 };
@@ -424,6 +446,26 @@ EventIdentity event_identity(std::uint64_t raw_generation = 5, std::uint64_t eve
     identity.engine_generation_known = true;
     identity.engine_generation       = 9;
     return identity;
+}
+
+EngineIdentityObservation complete_binding_observation(const EventIdentity& identity)
+{
+    EngineIdentityObservation observation;
+    observation.current_thread_known     = true;
+    observation.current_thread_id        = 0;
+    observation.event_thread_known       = true;
+    observation.event_thread_id          = 0;
+    observation.cached_thread_known      = true;
+    observation.cached_thread_id         = 0;
+    observation.current_process_known    = true;
+    observation.current_process_id       = 1;
+    observation.event_process_known      = true;
+    observation.event_process_id         = 1;
+    observation.current_system_pid_known = true;
+    observation.current_system_pid       = identity.process_id;
+    observation.current_system_tid_known = true;
+    observation.current_system_tid       = identity.thread_id;
+    return observation;
 }
 
 struct TestState
@@ -761,6 +803,160 @@ void exercise_pending_and_overflow(TestState& tests)
     g_fake_state              = nullptr;
 }
 
+void exercise_delayed_binding(TestState& tests)
+{
+    FakeState state;
+    g_fake_state     = &state;
+    g_fake_thread_id = 77;
+    Recorder recorder(fake_config(&state, true));
+
+    EventIdentity raw           = event_identity();
+    raw.engine_generation_known = false;
+    raw.engine_generation       = 0;
+    Recorder missing(fake_config(&state));
+    tests.check(missing.bind_pending_event(raw, complete_binding_observation(raw), 17) ==
+                    EngineBindingStatus::Missing,
+                "binding with no pending event refused");
+    tests.check(recorder.admit_pending_event(raw) == PendingEventStatus::Admitted,
+                "deferred raw admission");
+    state.hold_thread_id.store(true, std::memory_order_release);
+    std::thread return_after_binding([&]
+                                     {
+                                         g_fake_state = &state;
+                                         recorder.forward_query(
+                                             &state, &state.service_guid, &state.iid, &state.output_value);
+                                         g_fake_state = nullptr;
+                                     });
+    while (!state.thread_id_entered.load(std::memory_order_acquire))
+    {
+        std::this_thread::yield();
+    }
+    state.hold_thread_id.store(false, std::memory_order_release);
+
+    const EngineIdentityObservation observation = complete_binding_observation(raw);
+    EngineIdentityObservation       any_id      = observation;
+    any_id.current_thread_id                    = kDebugAnyEngineId;
+    tests.check(recorder.bind_pending_event(raw, any_id, 17) ==
+                    EngineBindingStatus::IncompleteEvidence,
+                "DEBUG_ANY_ID witness refused");
+    EngineIdentityObservation mismatched_thread = observation;
+    mismatched_thread.cached_thread_id          = 1;
+    tests.check(recorder.bind_pending_event(raw, mismatched_thread, 17) ==
+                    EngineBindingStatus::IncompleteEvidence,
+                "mismatched thread witness refused");
+    EngineIdentityObservation mismatched_process = observation;
+    mismatched_process.event_process_id          = 2;
+    tests.check(recorder.bind_pending_event(raw, mismatched_process, 17) ==
+                    EngineBindingStatus::IncompleteEvidence,
+                "mismatched process witness refused");
+    tests.check(recorder.bind_pending_event(raw, observation, 17) == EngineBindingStatus::Bound,
+                "late binding accepted");
+    state.release_thread_id.store(true, std::memory_order_release);
+    return_after_binding.join();
+    const QueryRow early = recorder.query_rows().front();
+    tests.check(early.call_completed && !early.header.event.engine_generation_known &&
+                    early.header.event.engine_generation == 0 && early.header.incomplete,
+                "early query stays raw-only after late return");
+    recorder.forward_query(&state, &state.service_guid, &state.iid, &state.output_value);
+    const QueryRow late = recorder.query_rows().back();
+    tests.check(late.header.event.engine_generation_known && !late.header.incomplete,
+                "post-binding query qualified");
+    tests.check(recorder.bind_pending_event(raw, observation, 17) == EngineBindingStatus::Duplicate,
+                "duplicate binding refused");
+    tests.check(recorder.bind_pending_event(raw, observation, 18) == EngineBindingStatus::Conflict,
+                "conflicting binding refused");
+
+    EngineIdentityObservation incomplete = observation;
+    incomplete.event_process_known       = false;
+    tests.check(recorder.bind_pending_event(raw, incomplete, 19) == EngineBindingStatus::IncompleteEvidence,
+                "incomplete witness refused");
+    tests.check(recorder.close_pending_event(late.header.event) == PendingEventStatus::Closed,
+                "bound interval closes");
+    tests.check(recorder.bind_pending_event(raw, observation, 20) == EngineBindingStatus::Stale,
+                "binding after close is stale");
+    EventIdentity same_lifecycle = raw;
+    same_lifecycle.event_index   = 13;
+    tests.check(recorder.admit_pending_event(same_lifecycle) == PendingEventStatus::Admitted,
+                "successive raw event in same lifecycle admitted");
+    tests.check(recorder.bind_pending_event(same_lifecycle, observation, 17) ==
+                    EngineBindingStatus::Bound,
+                "same lifecycle reuses consistent engine token");
+    const std::optional<EventIdentity> bound_same_lifecycle = recorder.pending_event();
+    tests.check(bound_same_lifecycle.has_value() &&
+                    recorder.close_pending_event(*bound_same_lifecycle) == PendingEventStatus::Closed,
+                "successive same lifecycle event closes");
+    EventIdentity changed_lifecycle_token = same_lifecycle;
+    changed_lifecycle_token.event_index   = 14;
+    tests.check(recorder.admit_pending_event(changed_lifecycle_token) == PendingEventStatus::Admitted,
+                "same lifecycle token change event admitted");
+    tests.check(recorder.bind_pending_event(changed_lifecycle_token, observation, 18) ==
+                    EngineBindingStatus::Conflict,
+                "engine token change across same lifecycle refused");
+    tests.check(recorder.close_pending_event(changed_lifecycle_token) == PendingEventStatus::Closed,
+                "changed token event closes unbound");
+    EventIdentity reused_lifecycle  = raw;
+    reused_lifecycle.raw_generation = 6;
+    reused_lifecycle.event_index    = 15;
+    tests.check(recorder.admit_pending_event(reused_lifecycle) == PendingEventStatus::Admitted,
+                "new raw lifecycle admitted");
+    tests.check(recorder.bind_pending_event(reused_lifecycle, observation, 17) ==
+                    EngineBindingStatus::Conflict,
+                "engine token reuse across raw lifecycle refused");
+    tests.check(recorder.close_pending_event(reused_lifecycle) == PendingEventStatus::Closed,
+                "new raw lifecycle closes unbound");
+    const std::vector<EngineBindingRow> bindings = recorder.engine_binding_rows();
+    tests.check(bindings.size() == 11 && bindings[0].status == EngineBindingStatus::IncompleteEvidence &&
+                    bindings[1].status == EngineBindingStatus::IncompleteEvidence &&
+                    bindings[2].status == EngineBindingStatus::IncompleteEvidence &&
+                    bindings[3].status == EngineBindingStatus::Bound &&
+                    bindings[4].status == EngineBindingStatus::Duplicate &&
+                    bindings[5].status == EngineBindingStatus::Conflict &&
+                    bindings[6].status == EngineBindingStatus::IncompleteEvidence &&
+                    bindings[7].status == EngineBindingStatus::Stale &&
+                    bindings[8].status == EngineBindingStatus::Bound &&
+                    bindings[9].status == EngineBindingStatus::Conflict &&
+                    bindings[10].status == EngineBindingStatus::Conflict,
+                "binding receipts preserve statuses");
+    tests.check(recorder.query_rows().front().header.event.engine_generation == 0,
+                "early query engine token remains immutable");
+
+    FakeState      capacity_state;
+    RecorderConfig capacity_config = fake_config(&capacity_state);
+    capacity_config.max_rows       = 2;
+    Recorder      capacity(capacity_config);
+    EventIdentity capacity_raw           = event_identity(7, 21);
+    capacity_raw.engine_generation_known = false;
+    capacity_raw.engine_generation       = 0;
+    tests.check(capacity.admit_pending_event(capacity_raw) == PendingEventStatus::Admitted,
+                "capacity race raw admission");
+    capacity_state.hold_query.store(true, std::memory_order_release);
+    g_fake_state = &capacity_state;
+    std::thread capacity_query([&]
+                               {
+                                   g_fake_state = &capacity_state;
+                                   capacity.forward_query(&capacity_state,
+                                                          &capacity_state.service_guid,
+                                                          &capacity_state.iid,
+                                                          &capacity_state.output_value);
+                                   g_fake_state = nullptr;
+                               });
+    while (!capacity_state.query_entered.load(std::memory_order_acquire))
+    {
+        std::this_thread::yield();
+    }
+    tests.check(capacity.bind_pending_event(
+                    capacity_raw, complete_binding_observation(capacity_raw), 23) ==
+                    EngineBindingStatus::Overflow,
+                "capacity race refuses unrecorded binding");
+    const std::optional<EventIdentity> capacity_pending = capacity.pending_event();
+    tests.check(capacity_pending.has_value() && !capacity_pending->engine_generation_known &&
+                    capacity.engine_binding_rows().empty() && capacity.overflow_count() != 0,
+                "capacity race keeps pending raw and no phantom receipt");
+    capacity_state.release_query.store(true, std::memory_order_release);
+    capacity_query.join();
+    g_fake_state = nullptr;
+}
+
 void exercise_exceptions_and_concurrency(TestState& tests)
 {
     FakeState state;
@@ -956,6 +1152,7 @@ SelfTestReport run_self_tests()
     exercise_gaps(tests);
     exercise_identity_gaps(tests);
     exercise_pending_and_overflow(tests);
+    exercise_delayed_binding(tests);
     exercise_exceptions_and_concurrency(tests);
     exercise_query_provenance(tests);
     exercise_passthrough(tests);

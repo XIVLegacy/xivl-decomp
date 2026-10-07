@@ -181,13 +181,27 @@ event, and cached engine IDs in
 not backfill the earlier `RawEventBridge::raw_identity` admission or convert
 the observer lifecycle token into native identity.
 
-`RawEventBridge::raw_identity` invokes its provider synchronously at
-[`observer_event_bridge.cpp:280`](observer_event_bridge.cpp#L280), while the
-raw notification is still on the pre-conversion wait path. The smallest
-integration decision is consequently to leave that engine-generation request
-unqualified and perform any engine binding at the later callback/post-wait
-boundary. A delayed observation may carry an explicit callback token, but this
-finding supplies no native token offset and no provider implementation.
+The default `RawEventBridge` mode still invokes its injected provider
+synchronously while the raw notification is on the pre-conversion wait path.
+The current API also supplies an explicit deferred mode: it admits the raw
+tuple first, then `bind_engine_event` accepts a later injected
+`EngineIdentityObservation` and separate nonzero lifecycle token. The bridge
+records the attempt and `Recorder::bind_pending_event` upgrades only the exact
+still-pending raw tuple. Raw admission and query rows are immutable; a query
+that entered before binding remains unqualified even if its original returns
+after binding. This preparation API validates witness consistency only and
+supplies no native token offset or provider implementation. The source-level
+implementation is anchored to `xivl-decomp@dc2990361f901976db158eb78964a6fff60a71a7`
+for the prior static boundary; current line locations are maintained by the
+implementation files.
+
+The explicit event index is part of the exact pending-event key. Binding
+history uses the lifecycle key (debug object, PID/TID and raw generation) and
+therefore permits successive event indices in one lifecycle to retain the same
+observer token, rejects a token change within that lifecycle, and rejects reuse
+of that token by a different lifecycle. A replay of the exact closed tuple is
+stale. Binding receipts preserve every refused attempt, and any refusal keeps
+bridge coverage incomplete.
 
 ## Limits
 

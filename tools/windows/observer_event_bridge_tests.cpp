@@ -169,6 +169,26 @@ bool exact_engine_binding(void*,
     return true;
 }
 
+EngineIdentityObservation complete_deferred_observation(const RawIdentityBinding& raw)
+{
+    EngineIdentityObservation observation;
+    observation.current_thread_known     = true;
+    observation.current_thread_id        = 0;
+    observation.event_thread_known       = true;
+    observation.event_thread_id          = 0;
+    observation.cached_thread_known      = true;
+    observation.cached_thread_id         = 0;
+    observation.current_process_known    = true;
+    observation.current_process_id       = 1;
+    observation.event_process_known      = true;
+    observation.event_process_id         = 1;
+    observation.current_system_pid_known = true;
+    observation.current_system_pid       = raw.process_id;
+    observation.current_system_tid_known = true;
+    observation.current_system_tid       = raw.thread_id;
+    return observation;
+}
+
 void throwing_sink(void*, const raw_recorder::RawObserverNotification&)
 {
     throw 1;
@@ -562,6 +582,163 @@ void exercise_unknown_mismatch_throw_and_overflow(TestState& tests)
     }
 }
 
+void exercise_deferred_binding(TestState& tests)
+{
+    const auto raw_binding_from_pending = [](const std::optional<EventIdentity>& pending)
+    {
+        RawIdentityBinding binding;
+        if (!pending.has_value())
+        {
+            return binding;
+        }
+        binding.raw_debug_object = pending->raw_debug_object;
+        binding.process_id       = pending->process_id;
+        binding.thread_id        = pending->thread_id;
+        binding.raw_generation   = pending->raw_generation;
+        binding.event_index      = static_cast<std::size_t>(pending->event_index);
+        return binding;
+    };
+
+    {
+        std::unique_ptr<raw_recorder::RawRecorder> raw =
+            std::make_unique<raw_recorder::RawRecorder>();
+        Recorder                        diagnostic;
+        std::unique_ptr<RawEventBridge> bridge = std::make_unique<RawEventBridge>(
+            diagnostic, nullptr, nullptr, RawEventBindingMode::deferred);
+        FakeState state;
+        g_fake_state = &state;
+        std::array<std::uint8_t, 0x60> create{};
+        make_lifecycle(&create, 3);
+        tests.check(bridge->attach(*raw), "missing binding sink attach");
+        tests.check(raw->activate(&fake_wait, &fake_continue), "missing binding activate");
+        tests.check(raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, create.data()) == 0,
+                    "missing binding raw wait");
+        const RawIdentityBinding pending_identity =
+            raw_binding_from_pending(diagnostic.pending_event());
+        tests.check(pending_identity.event_index != static_cast<std::size_t>(-1),
+                    "missing binding pending snapshot");
+        ClientId client{ 100, 200 };
+        state.continue_result = 0;
+        tests.check(raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U) == 0,
+                    "missing binding successful continue");
+        raw->deactivate();
+        tests.check(raw->clear_observer_sink(), "missing binding sink clear");
+        tests.check(bridge->continuation_count() == 1 &&
+                        bridge->continuation(0).close_status == PendingEventStatus::Closed &&
+                        !bridge->continuation(0).complete && !bridge->coverage(),
+                    "successful continue keeps unbound interval incomplete");
+        tests.check(bridge->bind_engine_event(
+                        pending_identity,
+                        complete_deferred_observation(pending_identity),
+                        0x21) == EngineBindingStatus::Stale,
+                    "binding after unbound successful continue is stale");
+        g_fake_state = nullptr;
+    }
+
+    std::unique_ptr<raw_recorder::RawRecorder> raw =
+        std::make_unique<raw_recorder::RawRecorder>();
+    Recorder                        diagnostic;
+    std::unique_ptr<RawEventBridge> bridge = std::make_unique<RawEventBridge>(
+        diagnostic, nullptr, nullptr, RawEventBindingMode::deferred);
+    tests.check(bridge->binding_mode() == RawEventBindingMode::deferred,
+                "deferred mode selected explicitly");
+    tests.check(bridge->attach(*raw), "deferred sink attach");
+    FakeState state;
+    g_fake_state = &state;
+    std::array<std::uint8_t, 0x60> create{};
+    make_lifecycle(&create, 3);
+    tests.check(raw->activate(&fake_wait, &fake_continue), "deferred activate");
+    tests.check(raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, create.data()) == 0,
+                "deferred raw wait");
+    const std::optional<EventIdentity> pending      = diagnostic.pending_event();
+    const RawIdentityBinding           raw_identity = raw_binding_from_pending(pending);
+    tests.check(pending.has_value() && raw_identity.event_index != static_cast<std::size_t>(-1),
+                "deferred raw evidence awaits binding snapshot");
+    EngineIdentityObservation incomplete = complete_deferred_observation(raw_identity);
+    incomplete.event_process_known       = false;
+    tests.check(bridge->bind_engine_event(raw_identity, incomplete, 0x22) ==
+                    EngineBindingStatus::IncompleteEvidence,
+                "deferred incomplete witness refused");
+    RawIdentityBinding changed = raw_identity;
+    changed.raw_generation += 1;
+    tests.check(bridge->bind_engine_event(changed, complete_deferred_observation(changed), 0x22) ==
+                    EngineBindingStatus::Changed,
+                "deferred changed key refused");
+    tests.check(bridge->bind_engine_event(raw_identity,
+                                          complete_deferred_observation(raw_identity),
+                                          0x22) == EngineBindingStatus::Bound,
+                "deferred binding accepted after raw wait");
+    tests.check(bridge->bind_engine_event(raw_identity,
+                                          complete_deferred_observation(raw_identity),
+                                          0x22) == EngineBindingStatus::Duplicate,
+                "deferred duplicate refused");
+    tests.check(bridge->bind_engine_event(raw_identity,
+                                          complete_deferred_observation(raw_identity),
+                                          0x23) == EngineBindingStatus::Conflict,
+                "deferred conflict refused");
+    ClientId client{ 100, 200 };
+    state.continue_result = -9;
+    tests.check(raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U) == -9,
+                "deferred failed continue preserved");
+    state.continue_result = 0;
+    tests.check(raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U) == 0,
+                "deferred successful continue preserved");
+    raw->deactivate();
+    tests.check(raw->clear_observer_sink(), "deferred sink clear");
+    tests.check(bridge->event_count() == 1 && bridge->gap_count() == 0 &&
+                    bridge->event(0).awaiting_binding,
+                "deferred raw evidence awaits binding without gap");
+    tests.check(bridge->binding_receipt_count() == 5 &&
+                    bridge->binding_receipt(2).qualified &&
+                    bridge->binding_receipt(2).qualified_identity.engine_generation == 0x22,
+                "deferred receipt keeps qualified token");
+    tests.check(!bridge->coverage(), "deferred refusal latches incomplete coverage");
+    tests.check(bridge->continuation(0).matched_identity.engine_generation == 0x22 &&
+                    bridge->continuation(0).result.pending_retained,
+                "deferred failed continue retains qualified identity");
+    tests.check(bridge->continuation(1).close_status == PendingEventStatus::Closed &&
+                    !bridge->coverage(),
+                "deferred close retains refusal coverage state");
+    tests.check(bridge->bind_engine_event(raw_identity,
+                                          complete_deferred_observation(raw_identity),
+                                          0x24) == EngineBindingStatus::Stale,
+                "deferred binding after close is stale");
+
+    Recorder                        reattach_diagnostic;
+    std::unique_ptr<RawEventBridge> reattach_bridge = std::make_unique<RawEventBridge>(
+        reattach_diagnostic, nullptr, nullptr, RawEventBindingMode::deferred);
+    std::array<std::uint8_t, 0x60> reattach_exception{};
+    make_exception(&reattach_exception);
+    tests.check(reattach_bridge->attach(*raw), "reattach deferred sink");
+    tests.check(raw->activate(&fake_wait, &fake_continue), "reattach deferred activate");
+    tests.check(raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, reattach_exception.data()) == 0,
+                "reattach raw wait");
+    const std::optional<EventIdentity> reattach_pending = reattach_diagnostic.pending_event();
+    const RawIdentityBinding           reattach_identity =
+        raw_binding_from_pending(reattach_pending);
+    tests.check(reattach_pending.has_value() && reattach_identity.event_index == 1,
+                "reattach preserves nonzero raw event index");
+    const EngineBindingStatus reattach_status = reattach_bridge->bind_engine_event(
+        reattach_identity, complete_deferred_observation(reattach_identity), 0x31);
+    tests.check(reattach_status == EngineBindingStatus::Bound,
+                "reattach binds packed event by raw index");
+    state.continue_result = 0;
+    tests.check(raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U) == 0,
+                "reattach successful continue");
+    raw->deactivate();
+    tests.check(raw->clear_observer_sink(), "reattach sink clear");
+    tests.check(reattach_bridge->continuation(0).close_status == PendingEventStatus::Closed,
+                "reattach bound interval closes");
+    tests.check(!reattach_bridge->coverage() && reattach_bridge->gap_count() != 0,
+                "reattach retains raw gap evidence");
+    tests.check(reattach_bridge->event_count() == 1 &&
+                    reattach_bridge->event(0).raw_event_index == 1 &&
+                    reattach_bridge->binding_receipt(0).attempt_id != 0 &&
+                    reattach_bridge->binding_receipt(0).qualified,
+                "reattach receipt uses matched raw event");
+    g_fake_state = nullptr;
+}
+
 } // namespace
 
 SelfTestReport run_event_bridge_self_tests()
@@ -570,6 +747,7 @@ SelfTestReport run_event_bridge_self_tests()
     exercise_reentrant_and_error_restore(tests);
     exercise_event_and_continuation(tests);
     exercise_unknown_mismatch_throw_and_overflow(tests);
+    exercise_deferred_binding(tests);
     tests.report.passed = tests.report.failures == 0;
     std::ostringstream summary;
     summary << "checks=" << tests.report.checks << ",failures=" << tests.report.failures;

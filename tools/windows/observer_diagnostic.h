@@ -228,6 +228,44 @@ struct EventIdentity
     std::uint64_t  engine_generation       = 0;
 };
 
+constexpr std::uint32_t kDebugAnyEngineId  = 0xFFFFFFFFU;
+constexpr std::size_t   kMaxBindingHistory = 256;
+
+// These values are injected observations. Even complete, agreeing values only
+// validate witness consistency; they do not identify a native DbgEng object.
+struct EngineIdentityObservation
+{
+    bool          current_thread_known     = false;
+    std::uint32_t current_thread_id        = kDebugAnyEngineId;
+    bool          event_thread_known       = false;
+    std::uint32_t event_thread_id          = kDebugAnyEngineId;
+    bool          cached_thread_known      = false;
+    std::uint32_t cached_thread_id         = kDebugAnyEngineId;
+    bool          current_process_known    = false;
+    std::uint32_t current_process_id       = kDebugAnyEngineId;
+    bool          event_process_known      = false;
+    std::uint32_t event_process_id         = kDebugAnyEngineId;
+    bool          current_system_pid_known = false;
+    std::uint32_t current_system_pid       = 0;
+    bool          current_system_tid_known = false;
+    std::uint32_t current_system_tid       = 0;
+};
+
+enum class EngineBindingStatus : std::uint8_t
+{
+    Bound,
+    Missing,
+    Changed,
+    Stale,
+    AlreadyBound,
+    Conflict,
+    Duplicate,
+    IncompleteEvidence,
+    ContinuationClosed,
+    Refused,
+    Overflow,
+};
+
 enum class QueryProvenanceStatus : std::uint8_t
 {
     NotAttempted,
@@ -412,7 +450,22 @@ struct PendingEventRow
     PendingEventStatus status = PendingEventStatus::Unknown;
 };
 
-using TraceRow = std::variant<SelectedRecordRow, QueryRow, ContextWriteRow, PendingEventRow>;
+struct EngineBindingRow
+{
+    RowHeader                 header{};
+    EventIdentity             raw_identity{};
+    EventIdentity             qualified_identity{};
+    EngineIdentityObservation observation{};
+    std::uint64_t             engine_generation = 0;
+    EngineBindingStatus       status            = EngineBindingStatus::Refused;
+    bool                      qualified         = false;
+};
+
+using TraceRow = std::variant<SelectedRecordRow,
+                              QueryRow,
+                              ContextWriteRow,
+                              PendingEventRow,
+                              EngineBindingRow>;
 
 struct RecorderConfig
 {
@@ -453,6 +506,9 @@ public:
 
     PendingEventStatus           admit_pending_event(const EventIdentity& identity);
     PendingEventStatus           close_pending_event(const EventIdentity& identity);
+    EngineBindingStatus          bind_pending_event(const EventIdentity&             raw_identity,
+                                                    const EngineIdentityObservation& observation,
+                                                    std::uint64_t                    engine_generation);
     std::optional<EventIdentity> pending_event() const;
 
     std::vector<TraceRow>          rows() const;
@@ -460,6 +516,7 @@ public:
     std::vector<QueryRow>          query_rows() const;
     std::vector<ContextWriteRow>   context_write_rows() const;
     std::vector<PendingEventRow>   pending_event_rows() const;
+    std::vector<EngineBindingRow>  engine_binding_rows() const;
     std::size_t                    overflow_count() const;
     std::string                    serialize() const;
 
@@ -486,16 +543,20 @@ private:
     bool          resolve_target(std::uintptr_t handle, TargetIdentity* identity) const;
     void          collect_query_provenance(QueryRow& row);
 
-    mutable std::mutex           mutex_;
-    std::uint64_t                session_id_ = 1;
-    std::size_t                  max_rows_   = 256;
-    Callbacks                    callbacks_{};
-    Originals                    originals_{};
-    std::vector<TraceRow>        rows_;
-    std::size_t                  overflow_count_ = 0;
-    std::optional<EventIdentity> pending_event_;
-    std::atomic<std::uint64_t>   next_sequence_{ 1 };
-    std::atomic<std::uint64_t>   next_operation_{ 1 };
+    mutable std::mutex                            mutex_;
+    std::uint64_t                                 session_id_ = 1;
+    std::size_t                                   max_rows_   = 256;
+    Callbacks                                     callbacks_{};
+    Originals                                     originals_{};
+    std::vector<TraceRow>                         rows_;
+    std::size_t                                   overflow_count_ = 0;
+    std::optional<EventIdentity>                  pending_event_;
+    std::optional<EventIdentity>                  last_closed_event_;
+    std::array<EventIdentity, kMaxBindingHistory> bound_history_identities_{};
+    std::array<std::uint64_t, kMaxBindingHistory> bound_history_generations_{};
+    std::size_t                                   bound_history_count_ = 0;
+    std::atomic<std::uint64_t>                    next_sequence_{ 1 };
+    std::atomic<std::uint64_t>                    next_operation_{ 1 };
 };
 
 void* XIVL_OBSERVER_FASTCALL  lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid);

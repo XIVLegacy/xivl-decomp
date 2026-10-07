@@ -342,7 +342,7 @@ lease or qualify live installation.
 | Preserve copied-entry exception and unwind behavior | QueryService begins at `0x468B10`; copied spans and resume addresses are in the entry plan. | A supported exception/unwind contract for relocated prologues and the actual wrappers. |
 | Recover after refusal or a latched failure | The [offline recovery model](observer-recovery.md) supplies injected failure decisions; no native recovery backend exists. | Native hold, retained-handle ownership, dispatch synchronization and independently confirmed shutdown under the same recovery policy. |
 
-## Synchronous raw-event bridge
+## Raw-event bridge and delayed binding
 
 [The bridge API](observer_event_bridge.h) attaches an optional sink to
 `RawRecorder` while inactive and quiescent. Supported events are offered after
@@ -352,23 +352,56 @@ Failed continuation retains the pending identity; successful continuation
 closes only a uniquely matched event. Wait/continue originals, arguments,
 results and LastError/LastStatus are preserved.
 
-The engine-generation provider receives the exact debug object, PID/TID, raw
-generation and raw index. `engine_generation` is an observer-assigned engine
-thread lifecycle token; it is not a counter read from DbgEng. The
+The default synchronous mode asks an injected engine-generation provider for
+the exact debug object, PID/TID, raw generation and raw index before the wait
+wrapper returns. `engine_generation` is an observer-assigned engine thread
+lifecycle token; it is not a counter read from DbgEng. The
 [engine event binding finding](engine-event-binding.md) owns its source
-semantics and the native event-selection timing. The bridge requests the
-binding before the wrapped wait returns to DbgEng, before conversion and
-pending PID/TID stores for that event. It has no delayed binding stage.
-The provider must establish a separate engine binding. Missing
-or failed bindings remain unknown; the bridge never derives one from raw
-generation, addresses or neighboring rows. Missing identities, overlap,
-overflow and sink failures make coverage incomplete. Snapshot readers require
-quiescence. The bridge, recorder, callbacks and callback data must outlive all
-notifications; detach the sink only after deactivation and quiescence.
+semantics and native event-selection timing.
 
-`--bridge-output` emits a fresh synthetic receipt from fake wait, context and
-continuation calls. Its raw bytes and event identities belong to that harness.
-It does not qualify engine identities or complete native write coverage.
+Explicit deferred mode admits a complete raw tuple with an unknown engine
+token and records it as awaiting binding without adding an unknown-generation
+gap. A later caller supplies the exact raw tuple and an injected
+`EngineIdentityObservation`: current, event and cached thread engine IDs must
+be known, equal and different from `DEBUG_ANY_ID`; current and event process
+engine IDs must be known and equal; current system PID/TID must equal the raw
+PID/TID; and a separate nonzero lifecycle token must be supplied. These checks
+validate witness consistency only and do not qualify a native identity.
+
+The later caller obtains the admitted tuple from the Recorder's
+`pending_event()` snapshot and supplies it to `RawEventBridge::bind_engine_event`;
+the bridge's event and receipt accessors are quiescent snapshot readers.
+`RawEventBridge::bind_engine_event` records every bounded attempt in an
+immutable receipt and asks `Recorder::bind_pending_event` to upgrade only the
+exact still-pending raw tuple. Missing, changed, stale, already-bound,
+conflicting, duplicate, incomplete and overflow attempts remain refusal
+evidence. The raw admission row and event evidence are never rewritten. A
+query that entered before binding remains unqualified even when its original
+returns after binding; only a query whose complete interval starts after the
+binding row can qualify. A query crossing the binding transition is
+incomplete. Failed continuation retains its identity, while successful
+continuation closes the exact pending interval and rejects later binding. The
+exact event index joins one pending tuple, while the lifecycle key (debug
+object, PID/TID and raw generation) keeps one observer token consistent across
+successive event indices. A changed token within that lifecycle, token reuse
+by another lifecycle, and exact closed-tuple replay are refused. The bridge's
+`coverage()` is raw-event bridge coverage; it latches false after any refused
+binding and does not claim that the Recorder's forwarding rows are globally
+complete. The synthetic output keeps `live_coverage` incomplete, including
+when early query rows remain raw-only.
+
+Raw notifications, delayed binding and continuation require explicit external
+serialization. Query calls use the Recorder's existing interval and
+concurrency contract. Snapshot readers require quiescence. The bridge,
+recorder, callbacks and callback data must outlive all notifications; detach
+the sink only after deactivation and quiescence. Unresolved or refused
+bindings keep coverage incomplete, and the bridge never derives a token from
+raw generation, addresses or neighboring rows.
+
+`--bridge-output` emits a fresh synthetic receipt from fake wait, delayed
+binding, context and continuation calls. Its raw bytes and event identities
+belong to that harness. The binding receipts are injected witness checks and
+do not qualify native engine identities or complete native write coverage.
 
 ## Remaining runtime requirements
 

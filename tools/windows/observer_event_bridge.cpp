@@ -147,10 +147,12 @@ void synthetic_exception(std::array<std::uint8_t, 0x60>* bytes)
 
 RawEventBridge::RawEventBridge(Recorder&                recorder,
                                EngineGenerationProvider provider,
-                               void*                    provider_user) noexcept
+                               void*                    provider_user,
+                               RawEventBindingMode      mode) noexcept
 : recorder_(recorder)
 , provider_(provider)
 , provider_user_(provider_user)
+, mode_(mode)
 {
 }
 
@@ -166,7 +168,19 @@ raw_recorder::RawObserverSink RawEventBridge::sink() noexcept
 
 bool RawEventBridge::coverage() const noexcept
 {
-    return coverage_.load(std::memory_order_acquire);
+    if (!coverage_.load(std::memory_order_acquire))
+    {
+        return false;
+    }
+    for (std::size_t index = 0; index < event_count_; ++index)
+    {
+        const BridgeEventEvidence& event = events_[index];
+        if (!event.complete && !bound_identity_present_[event.raw_event_index])
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::size_t RawEventBridge::event_count() const noexcept
@@ -177,6 +191,11 @@ std::size_t RawEventBridge::event_count() const noexcept
 std::size_t RawEventBridge::continuation_count() const noexcept
 {
     return continuation_count_;
+}
+
+std::size_t RawEventBridge::binding_receipt_count() const noexcept
+{
+    return binding_count_;
 }
 
 std::size_t RawEventBridge::gap_count() const noexcept
@@ -195,9 +214,109 @@ RawEventBridge::continuation(std::size_t index) const noexcept
     return continuations_[index];
 }
 
+const EngineBindingReceipt& RawEventBridge::binding_receipt(std::size_t index) const noexcept
+{
+    return bindings_[index];
+}
+
 const BridgeGapEvidence& RawEventBridge::gap(std::size_t index) const noexcept
 {
     return gaps_[index];
+}
+
+RawEventBindingMode RawEventBridge::binding_mode() const noexcept
+{
+    return mode_;
+}
+
+bool RawEventBridge::same_raw_identity(const RawIdentityBinding& left,
+                                       const RawIdentityBinding& right) const noexcept
+{
+    return left.raw_debug_object == right.raw_debug_object && left.process_id == right.process_id &&
+           left.thread_id == right.thread_id && left.raw_generation == right.raw_generation &&
+           left.event_index == right.event_index;
+}
+
+std::size_t RawEventBridge::event_slot(std::size_t raw_event_index) const noexcept
+{
+    for (std::size_t index = 0; index < event_count_; ++index)
+    {
+        if (events_[index].raw_event_index == raw_event_index)
+        {
+            return index;
+        }
+    }
+    return events_.size();
+}
+
+EngineBindingStatus RawEventBridge::bind_engine_event(
+    const RawIdentityBinding&        raw_identity,
+    const EngineIdentityObservation& observation,
+    std::uint64_t                    engine_generation,
+    std::uint64_t                    attempt_id) noexcept
+{
+    if (binding_count_ >= bindings_.size())
+    {
+        coverage_.store(false, std::memory_order_release);
+        mark_gap(attempt_id, raw_recorder::CoverageGapReason::event_record_overflow);
+        return EngineBindingStatus::Overflow;
+    }
+
+    EngineBindingReceipt& receipt      = bindings_[binding_count_++];
+    receipt                            = {};
+    receipt.attempt_id                 = attempt_id;
+    receipt.raw_identity               = raw_identity;
+    receipt.observation                = observation;
+    receipt.engine_generation          = engine_generation;
+    const std::size_t event_slot_index = event_slot(raw_identity.event_index);
+    if (receipt.attempt_id == 0 && event_slot_index < events_.size())
+    {
+        receipt.attempt_id = events_[event_slot_index].event.attempt_id;
+    }
+
+    EngineBindingStatus status = EngineBindingStatus::Refused;
+    if (mode_ != RawEventBindingMode::deferred)
+    {
+        status = EngineBindingStatus::Refused;
+    }
+    else if (event_slot_index >= events_.size())
+    {
+        status = EngineBindingStatus::Stale;
+    }
+    else if (!same_raw_identity(raw_identity,
+                                events_[event_slot_index].raw_identity))
+    {
+        status = EngineBindingStatus::Changed;
+    }
+    else
+    {
+        try
+        {
+            status = recorder_.bind_pending_event(
+                events_[event_slot_index].identity, observation, engine_generation);
+        }
+        catch (...)
+        {
+            status = EngineBindingStatus::Refused;
+        }
+        if (status == EngineBindingStatus::Bound)
+        {
+            EventIdentity qualified                           = events_[event_slot_index].identity;
+            qualified.engine_generation_known                 = true;
+            qualified.engine_generation                       = engine_generation;
+            qualified.complete                                = true;
+            bound_identities_[raw_identity.event_index]       = qualified;
+            bound_identity_present_[raw_identity.event_index] = true;
+            receipt.qualified_identity                        = qualified;
+            receipt.qualified                                 = true;
+        }
+    }
+    receipt.status = status;
+    if (status != EngineBindingStatus::Bound)
+    {
+        coverage_.store(false, std::memory_order_release);
+    }
+    return status;
 }
 
 void RawEventBridge::observe_sink(
@@ -268,6 +387,10 @@ bool RawEventBridge::raw_identity(std::size_t                   event_index,
         return false;
     }
 
+    if (mode_ == RawEventBindingMode::deferred)
+    {
+        return true;
+    }
     if (provider_ == nullptr)
     {
         coverage_.store(false, std::memory_order_release);
@@ -329,8 +452,10 @@ void RawEventBridge::observe_event(
     output.engine_binding_known = false;
     raw_identity(index, output.event, &output.identity, &output.raw_identity);
     output.engine_binding_known = output.identity.engine_generation_known;
+    output.awaiting_binding     = mode_ == RawEventBindingMode::deferred &&
+                                  output.identity.complete && !output.engine_binding_known;
     output.complete             = output.identity.complete && output.engine_binding_known;
-    if (!output.engine_binding_known)
+    if (!output.engine_binding_known && !output.awaiting_binding)
     {
         mark_gap(notification.attempt_id, raw_recorder::CoverageGapReason::unknown_generation);
     }
@@ -359,7 +484,10 @@ void RawEventBridge::observe_event(
     }
     if (!output.complete)
     {
-        coverage_.store(false, std::memory_order_release);
+        if (!output.awaiting_binding)
+        {
+            coverage_.store(false, std::memory_order_release);
+        }
     }
 }
 
@@ -403,7 +531,9 @@ void RawEventBridge::observe_continuation(
         }
         else
         {
-            output.matched_identity = identities_[matched];
+            output.matched_identity = bound_identity_present_[matched]
+                                          ? bound_identities_[matched]
+                                          : identities_[matched];
             try
             {
                 output.close_status = recorder_.close_pending_event(output.matched_identity);
@@ -424,7 +554,9 @@ void RawEventBridge::observe_continuation(
     {
         output.matched_identity = matched < raw_recorder::kMaxRawEvents &&
                                           identity_present_[matched]
-                                      ? identities_[matched]
+                                      ? (bound_identity_present_[matched]
+                                             ? bound_identities_[matched]
+                                             : identities_[matched])
                                       : EventIdentity{};
         output.complete         = output.result.match_unique &&
                                   output.matched_identity.complete &&
@@ -512,8 +644,8 @@ std::string make_bridge_synthetic_trace()
     std::unique_ptr<raw_recorder::RawRecorder> raw =
         std::make_unique<raw_recorder::RawRecorder>();
     Recorder                        diagnostic;
-    std::unique_ptr<RawEventBridge> bridge =
-        std::make_unique<RawEventBridge>(diagnostic, &synthetic_generation);
+    std::unique_ptr<RawEventBridge> bridge = std::make_unique<RawEventBridge>(
+        diagnostic, nullptr, nullptr, RawEventBindingMode::deferred);
     if (!bridge->attach(*raw))
     {
         return "{\"provenance\":\"raw-event-bridge-synthetic\",\"live_coverage\":\"incomplete\",\"error\":\"sink_attach\"}";
@@ -527,6 +659,16 @@ std::string make_bridge_synthetic_trace()
     synthetic_lifecycle(&create, 3);
     synthetic_exception(&exception);
     ClientIdWords client{ 100, 200 };
+    const auto    raw_binding_from_pending = [](const EventIdentity& identity)
+    {
+        RawIdentityBinding binding;
+        binding.raw_debug_object = identity.raw_debug_object;
+        binding.process_id       = identity.process_id;
+        binding.thread_id        = identity.thread_id;
+        binding.raw_generation   = identity.raw_generation;
+        binding.event_index      = static_cast<std::size_t>(identity.event_index);
+        return binding;
+    };
     raw->set_context_api({ &synthetic_open_thread,
                            &synthetic_thread_id,
                            &synthetic_process_id,
@@ -539,9 +681,36 @@ std::string make_bridge_synthetic_trace()
     if (activated)
     {
         raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, create.data());
+        const std::optional<EventIdentity> create_pending  = diagnostic.pending_event();
+        const RawIdentityBinding           create_identity = create_pending.has_value()
+                                                                 ? raw_binding_from_pending(*create_pending)
+                                                                 : RawIdentityBinding{};
+        EngineIdentityObservation          create_observation;
+        create_observation.current_thread_known     = true;
+        create_observation.current_thread_id        = 0;
+        create_observation.event_thread_known       = true;
+        create_observation.event_thread_id          = 0;
+        create_observation.cached_thread_known      = true;
+        create_observation.cached_thread_id         = 0;
+        create_observation.current_process_known    = true;
+        create_observation.current_process_id       = 1;
+        create_observation.event_process_known      = true;
+        create_observation.event_process_id         = 1;
+        create_observation.current_system_pid_known = true;
+        create_observation.current_system_pid       = create_identity.process_id;
+        create_observation.current_system_tid_known = true;
+        create_observation.current_system_tid       = create_identity.thread_id;
+        bridge->bind_engine_event(create_identity, create_observation, 0x9001U);
         raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U);
         raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U);
         raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, exception.data());
+        const std::optional<EventIdentity> exception_pending  = diagnostic.pending_event();
+        const RawIdentityBinding           exception_identity = exception_pending.has_value()
+                                                                    ? raw_binding_from_pending(*exception_pending)
+                                                                    : RawIdentityBinding{};
+        create_observation.current_system_pid                 = exception_identity.process_id;
+        create_observation.current_system_tid                 = exception_identity.thread_id;
+        bridge->bind_engine_event(exception_identity, create_observation, 0x9001U);
         raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U);
         raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U);
         raw->deactivate();
@@ -672,6 +841,25 @@ std::string make_bridge_synthetic_trace()
                    << ",\"dr7\":" << snapshot.dr7 << '}';
         }
         output << '}';
+    }
+    output << "],\"binding_receipts\":[";
+    for (std::size_t index = 0; index < bridge->binding_receipt_count(); ++index)
+    {
+        if (index != 0)
+        {
+            output << ',';
+        }
+        const EngineBindingReceipt& receipt = bridge->binding_receipt(index);
+        output << "{\"attempt_id\":" << receipt.attempt_id
+               << ",\"raw_debug_object\":" << receipt.raw_identity.raw_debug_object
+               << ",\"pid\":" << receipt.raw_identity.process_id
+               << ",\"tid\":" << receipt.raw_identity.thread_id
+               << ",\"raw_generation\":" << receipt.raw_identity.raw_generation
+               << ",\"event_index\":" << receipt.raw_identity.event_index
+               << ",\"engine_generation\":" << receipt.engine_generation
+               << ",\"status\":" << static_cast<unsigned int>(receipt.status)
+               << ",\"qualified\":" << (receipt.qualified ? "true" : "false")
+               << '}';
     }
     output << "],\"continuations\":[";
     for (std::size_t index = 0; index < bridge->continuation_count(); ++index)

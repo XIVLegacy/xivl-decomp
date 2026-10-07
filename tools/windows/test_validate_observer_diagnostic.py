@@ -232,6 +232,96 @@ def sample_provenance_trace() -> dict:
     return trace
 
 
+def sample_deferred_trace() -> dict:
+    trace = sample_trace()
+    raw_rows = trace["rows"]
+    for row in raw_rows:
+        row["engine_generation_known"] = False
+        row["engine_generation"] = 0
+        row["incomplete"] = True
+    admitted = next(
+        row
+        for row in raw_rows
+        if row["kind"] == "pending_event" and row["pending_status"] == "admitted"
+    )
+    admitted["pending_engine_generation_known"] = False
+    admitted["pending_engine_generation"] = 0
+    lookup = next(row for row in raw_rows if row["kind"] == "lookup")
+    context = next(row for row in raw_rows if row["kind"] == "context_write")
+    query = next(row for row in raw_rows if row["kind"] == "query")
+    query["sequence"], query["exit_sequence"] = 3, 6
+    lookup["sequence"], lookup["exit_sequence"] = 4, 5
+    context["sequence"], context["exit_sequence"] = 9, 10
+    closed = next(
+        row
+        for row in raw_rows
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+    qualified = dict(
+        event_complete=True,
+        raw_debug_object="0x20",
+        event_pid=10,
+        event_tid=11,
+        raw_generation=1,
+        event_index=1,
+        engine_generation_known=True,
+        engine_generation=2,
+    )
+    binding = dict(
+        identity=qualified,
+        kind="engine_binding",
+        session_id=1,
+        operation_id=6,
+        parent_operation_id=0,
+        sequence=7,
+        exit_sequence=8,
+        observer_thread_id=12,
+        incomplete=False,
+        pre_log_failed=False,
+        post_log_failed=False,
+        rethrown=False,
+        binding_status="bound",
+        binding_qualified=True,
+        binding_engine_generation=2,
+        binding_raw_event_complete=True,
+        binding_raw_debug_object="0x20",
+        binding_event_pid=10,
+        binding_event_tid=11,
+        binding_raw_generation=1,
+        binding_event_index=1,
+        binding_qualified_event_complete=True,
+        binding_qualified_engine_generation_known=True,
+        binding_qualified_engine_generation=2,
+    )
+    witness = dict(
+        binding_current_thread_known=True,
+        binding_current_thread_id=0,
+        binding_event_thread_known=True,
+        binding_event_thread_id=0,
+        binding_cached_thread_known=True,
+        binding_cached_thread_id=0,
+        binding_current_process_known=True,
+        binding_current_process_id=1,
+        binding_event_process_known=True,
+        binding_event_process_id=1,
+        binding_current_system_pid_known=True,
+        binding_current_system_pid=10,
+        binding_current_system_tid_known=True,
+        binding_current_system_tid=11,
+    )
+    binding.update(witness)
+    for key, value in qualified.items():
+        binding[key] = value
+    for key, value in qualified.items():
+        closed[key] = value
+        closed["pending_" + key] = value
+    closed["sequence"], closed["exit_sequence"] = 11, 12
+    context.update(qualified)
+    context["incomplete"] = False
+    trace["rows"] = [admitted, query, lookup, binding, context, closed]
+    return trace
+
+
 class TraceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.trace = (
@@ -252,6 +342,146 @@ class TraceTests(unittest.TestCase):
 
     def test_complete_synthetic_trace(self) -> None:
         self.assertEqual(validator.validate_trace(self.trace), len(self.trace["rows"]))
+
+    def test_deferred_binding_keeps_early_query_unqualified(self) -> None:
+        trace = sample_deferred_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+        early = next(row for row in trace["rows"] if row["kind"] == "query")
+        self.assertTrue(early["incomplete"])
+        self.assertFalse(early["engine_generation_known"])
+
+    def test_deferred_query_crossing_binding_is_rejected(self) -> None:
+        trace = sample_deferred_trace()
+        early = next(row for row in trace["rows"] if row["kind"] == "query")
+        context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        early["exit_sequence"] = 9
+        context["sequence"], context["exit_sequence"] = 10, 11
+        closed["sequence"], closed["exit_sequence"] = 12, 13
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_must_match_raw_tuple(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_event_index"] = 2
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_rejects_inconsistent_witness(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_event_process_id"] = 2
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_generation_must_match_qualified_identity(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_qualified_engine_generation"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_close_must_match_bound_identity(self) -> None:
+        trace = sample_deferred_trace()
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        closed["pending_engine_generation"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_forwarding_keeps_strict_query_fields(self) -> None:
+        trace = sample_deferred_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["service_guid_status"] = "null"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_complete_forwarding_rejects_logging_failure(self) -> None:
+        for key in ("pre_log_failed", "post_log_failed", "rethrown"):
+            with self.subTest(key=key):
+                trace = sample_deferred_trace()
+                context = next(
+                    row for row in trace["rows"] if row["kind"] == "context_write"
+                )
+                context[key] = True
+                self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_exit_overlap_is_rejected(self) -> None:
+        trace = sample_deferred_trace()
+        early = next(row for row in trace["rows"] if row["kind"] == "query")
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        binding["exit_sequence"] = 9
+        early["exit_sequence"] = 10
+        context["sequence"], context["exit_sequence"] = 11, 12
+        closed["sequence"], closed["exit_sequence"] = 13, 14
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_raw_only_identity_fields_are_typed(self) -> None:
+        for key, value in (
+            ("engine_generation_known", "bogus"),
+            ("engine_generation", "invalid"),
+        ):
+            with self.subTest(key=key):
+                trace = sample_deferred_trace()
+                early = next(row for row in trace["rows"] if row["kind"] == "query")
+                early[key] = value
+                self.assertRaises(ValueError, validator.validate_trace, trace)
+        trace = sample_deferred_trace()
+        admitted = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "admitted"
+        )
+        admitted["pending_engine_generation"] = "invalid"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_bound_qualification_flag_is_boolean(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_qualified"] = "yes"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_nonbound_binding_cannot_claim_qualification(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        binding["binding_status"] = "duplicate"
+        binding["binding_qualified"] = True
+        binding["incomplete"] = True
+        binding["sequence"], binding["exit_sequence"] = 9, 10
+        context["sequence"], context["exit_sequence"] = 11, 12
+        closed["sequence"], closed["exit_sequence"] = 13, 14
+        with self.assertRaisesRegex(
+            ValueError, "non-bound binding claims qualification"
+        ):
+            validator.validate_trace(trace)
+
+        trace = sample_deferred_trace()
+        bound = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        stale = bound.copy()
+        stale["binding_status"] = "stale"
+        stale["binding_qualified"] = True
+        stale["incomplete"] = True
+        stale["operation_id"] = 7
+        stale["sequence"], stale["exit_sequence"] = 15, 16
+        trace["rows"].append(stale)
+        with self.assertRaisesRegex(
+            ValueError, "non-bound binding claims qualification"
+        ):
+            validator.validate_trace(trace)
 
     def test_zero_based_raw_event_index_is_preserved(self) -> None:
         for row in self.trace["rows"]:

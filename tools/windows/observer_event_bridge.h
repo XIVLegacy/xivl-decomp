@@ -29,6 +29,12 @@ using EngineGenerationProvider = bool (*)(void*                     user,
                                           const RawIdentityBinding& binding,
                                           std::uint64_t*            generation);
 
+enum class RawEventBindingMode : std::uint8_t
+{
+    synchronous,
+    deferred,
+};
+
 enum class BridgeEvidenceKind : std::uint8_t
 {
     event,
@@ -49,7 +55,19 @@ struct BridgeEventEvidence
     bool                           has_wait_return      = false;
     bool                           has_context_snapshot = false;
     bool                           engine_binding_known = false;
+    bool                           awaiting_binding     = false;
     bool                           complete             = false;
+};
+
+struct EngineBindingReceipt
+{
+    std::uint64_t             attempt_id = 0;
+    RawIdentityBinding        raw_identity{};
+    EngineIdentityObservation observation{};
+    std::uint64_t             engine_generation = 0;
+    EventIdentity             qualified_identity{};
+    EngineBindingStatus       status    = EngineBindingStatus::Refused;
+    bool                      qualified = false;
 };
 
 struct BridgeContinuationEvidence
@@ -82,7 +100,8 @@ class RawEventBridge final
 public:
     explicit RawEventBridge(Recorder&                recorder,
                             EngineGenerationProvider provider      = nullptr,
-                            void*                    provider_user = nullptr) noexcept;
+                            void*                    provider_user = nullptr,
+                            RawEventBindingMode      mode          = RawEventBindingMode::synchronous) noexcept;
 
     // The recorder enforces inactive/quiescent configuration. A failed attach
     // leaves the previously configured sink unchanged. The bridge must outlive
@@ -98,10 +117,22 @@ public:
     bool                              coverage() const noexcept;
     std::size_t                       event_count() const noexcept;
     std::size_t                       continuation_count() const noexcept;
+    std::size_t                       binding_receipt_count() const noexcept;
     std::size_t                       gap_count() const noexcept;
     const BridgeEventEvidence&        event(std::size_t index) const noexcept;
     const BridgeContinuationEvidence& continuation(std::size_t index) const noexcept;
+    const EngineBindingReceipt&       binding_receipt(std::size_t index) const noexcept;
     const BridgeGapEvidence&          gap(std::size_t index) const noexcept;
+
+    // Deferred mode accepts a complete raw tuple while its engine lifecycle
+    // token is not yet available. The caller must serialize this operation
+    // with raw notifications and continuation; the bridge supplies no
+    // synchronization framework or native identity lookup.
+    EngineBindingStatus bind_engine_event(const RawIdentityBinding&        raw_identity,
+                                          const EngineIdentityObservation& observation,
+                                          std::uint64_t                    engine_generation,
+                                          std::uint64_t                    attempt_id = 0) noexcept;
+    RawEventBindingMode binding_mode() const noexcept;
 
 private:
     static void observe_sink(void*                                        user,
@@ -116,18 +147,26 @@ private:
                              const raw_recorder::RawEvent& event,
                              EventIdentity*                identity,
                              RawIdentityBinding*           binding) noexcept;
+    bool        same_raw_identity(const RawIdentityBinding& left,
+                                  const RawIdentityBinding& right) const noexcept;
+    std::size_t event_slot(std::size_t raw_event_index) const noexcept;
 
     Recorder&                                                                 recorder_;
     EngineGenerationProvider                                                  provider_      = nullptr;
     void*                                                                     provider_user_ = nullptr;
+    RawEventBindingMode                                                       mode_          = RawEventBindingMode::synchronous;
     std::atomic<bool>                                                         coverage_{ true };
     std::array<EventIdentity, raw_recorder::kMaxRawEvents>                    identities_{};
+    std::array<EventIdentity, raw_recorder::kMaxRawEvents>                    bound_identities_{};
     std::array<bool, raw_recorder::kMaxRawEvents>                             identity_present_{};
+    std::array<bool, raw_recorder::kMaxRawEvents>                             bound_identity_present_{};
     std::array<BridgeEventEvidence, raw_recorder::kMaxRawEvents>              events_{};
+    std::array<EngineBindingReceipt, raw_recorder::kMaxRawEvents>             bindings_{};
     std::array<BridgeContinuationEvidence, raw_recorder::kMaxContinueRecords> continuations_{};
     std::array<BridgeGapEvidence, raw_recorder::kMaxCoverageGaps>             gaps_{};
     std::size_t                                                               event_count_        = 0;
     std::size_t                                                               continuation_count_ = 0;
+    std::size_t                                                               binding_count_      = 0;
     std::size_t                                                               gap_count_          = 0;
 };
 
