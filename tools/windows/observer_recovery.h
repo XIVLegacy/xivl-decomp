@@ -277,6 +277,31 @@ struct RecoveryActionReceipt
     RecoveryExitWaitResult exit_wait                     = RecoveryExitWaitResult::NotAttempted;
 };
 
+enum class RecoveryExecutionDomain : std::uint8_t
+{
+    Owner,
+    Supervisor,
+};
+
+// This is copied while the coordinator owns its serialization domain. An
+// adapter may retain the copy until the caller-driven execution pump runs it;
+// the pointed-to dispatch gate remains owned by the attempt caller.
+struct RecoveryActionWork
+{
+    std::uint64_t             operation_id = 0;
+    RecoveryAction            action       = RecoveryAction::None;
+    RecoveryExecutionDomain   domain       = RecoveryExecutionDomain::Owner;
+    RecoveryIntent            intent       = RecoveryIntent::None;
+    RecoveryPhase             phase        = RecoveryPhase::Idle;
+    bool                      abort_domain = false;
+    RecoveryIdentity          expected_identity{};
+    RecoveryIdentityEvidence  observed_identity{};
+    RecoveryStateSnapshot     current_state{};
+    bool                      exit_event_identity_bound = false;
+    RecoveryExitEventIdentity exit_event_identity{};
+    ObserverDispatchGate*     dispatch_gate = nullptr;
+};
+
 // Each callback is one caller-side gate for one native transaction or
 // publication step. It must return promptly; outstanding work returns
 // InFlight and is completed by operation ID. A composite callback must not
@@ -286,6 +311,10 @@ using RecoveryActionCallback = RecoveryActionResult (*)(
     void*                  user,
     RecoveryAction         action,
     RecoveryActionReceipt* receipt);
+using RecoveryActionCallbackWithId = RecoveryActionResult (*)(
+    void*                     user,
+    const RecoveryActionWork* work,
+    RecoveryActionReceipt*    receipt);
 
 struct RecoveryLedgerRow
 {
@@ -332,6 +361,10 @@ struct RecoveryCallbacks
     // publication adapters. The coordinator uses it for abort/success
     // competition; callbacks admit each native operation they dispatch.
     ObserverDispatchGate* dispatch_gate = nullptr;
+    // Optional nonblocking adapter entry point. It is appended so existing
+    // aggregate initialization and legacy callback signatures remain
+    // compatible.
+    RecoveryActionCallbackWithId action_with_id = nullptr;
 };
 
 struct RecoveryOutcome
@@ -429,6 +462,11 @@ public:
     RecoveryActionResult complete_in_flight(std::uint64_t                operation_id,
                                             RecoveryActionResult         result,
                                             const RecoveryActionReceipt& receipt);
+    // The caller-driven action adapter admits the exact retained envelope
+    // immediately before execution. Admission is separate from completion so
+    // abort escalation can continue while owner work remains outside this
+    // serialization domain.
+    RecoveryActionResult admit_in_flight_execution(const RecoveryActionWork& work);
     RecoveryActionResult complete_in_flight(RecoveryAction               action,
                                             RecoveryActionResult         result,
                                             const RecoveryActionReceipt& receipt);
@@ -444,6 +482,8 @@ private:
         bool                      expired                   = false;
         bool                      completed                 = false;
         bool                      abort_domain              = false;
+        bool                      adapter_dispatch          = false;
+        bool                      execution_admitted        = false;
         bool                      effect_unknown            = false;
         bool                      exit_event_identity_bound = false;
         RecoveryExitEventIdentity exit_event_identity{};

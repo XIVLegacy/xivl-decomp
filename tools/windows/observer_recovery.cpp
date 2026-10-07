@@ -831,11 +831,13 @@ RecoveryActionResult RecoveryCoordinator::start_action_locked(RecoveryAction act
     }
 
     Operation operation;
-    operation.id           = next_operation_id_++;
-    operation.action       = action;
-    operation.owner_domain = action_is_owner(action);
-    operation.abort_domain = abort_active() || action_is_supervisor(action) ||
-                             action == RecoveryAction::AcknowledgeExitEvent;
+    operation.id                 = next_operation_id_++;
+    operation.action             = action;
+    operation.owner_domain       = action_is_owner(action);
+    operation.abort_domain       = abort_active() || action_is_supervisor(action) ||
+                                   action == RecoveryAction::AcknowledgeExitEvent;
+    operation.adapter_dispatch   = callbacks_.action_with_id != nullptr;
+    operation.execution_admitted = !operation.adapter_dispatch;
     if ((action == RecoveryAction::AcknowledgeExitEvent ||
          action == RecoveryAction::WaitForProcessExit) &&
         outcome_.exit_event_delivered && outcome_.exit_event_admitted &&
@@ -881,9 +883,30 @@ RecoveryActionResult RecoveryCoordinator::start_action_locked(RecoveryAction act
     RecoveryActionResult  result = RecoveryActionResult::Refused;
     try
     {
-        result = callbacks_.action == nullptr
-                     ? RecoveryActionResult::Refused
-                     : callbacks_.action(callbacks_.user, action, &receipt);
+        if (callbacks_.action_with_id != nullptr)
+        {
+            RecoveryActionWork work;
+            work.operation_id              = registered_id;
+            work.action                    = action;
+            work.domain                    = operation.owner_domain ? RecoveryExecutionDomain::Owner
+                                                                    : RecoveryExecutionDomain::Supervisor;
+            work.intent                    = intent_;
+            work.phase                     = phase_;
+            work.abort_domain              = operation.abort_domain;
+            work.expected_identity         = request_.expected_identity;
+            work.observed_identity         = request_.observed_identity;
+            work.current_state             = current_state_;
+            work.exit_event_identity_bound = operation.exit_event_identity_bound;
+            work.exit_event_identity       = operation.exit_event_identity;
+            work.dispatch_gate             = dispatch_gate_;
+            result                         = callbacks_.action_with_id(callbacks_.user, &work, &receipt);
+        }
+        else
+        {
+            result = callbacks_.action == nullptr
+                         ? RecoveryActionResult::Refused
+                         : callbacks_.action(callbacks_.user, action, &receipt);
+        }
     }
     catch (...)
     {
@@ -923,6 +946,11 @@ RecoveryActionResult RecoveryCoordinator::complete_in_flight(
     {
         return RecoveryActionResult::Refused;
     }
+    if (operation->adapter_dispatch && !operation->execution_admitted &&
+        result != RecoveryActionResult::Refused)
+    {
+        return RecoveryActionResult::Refused;
+    }
     if (result == RecoveryActionResult::InFlight)
     {
         return RecoveryActionResult::InFlight;
@@ -931,6 +959,51 @@ RecoveryActionResult RecoveryCoordinator::complete_in_flight(
                                      result,
                                      receipt,
                                      operation->expired || (abort_active() && !operation->abort_domain));
+}
+
+RecoveryActionResult RecoveryCoordinator::admit_in_flight_execution(
+    const RecoveryActionWork& work)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    synchronize_dispatch_abort_locked();
+    materialize_abort_locked();
+    if (callback_mutation_reentry_locked())
+    {
+        return RecoveryActionResult::Refused;
+    }
+    Operation* operation = find_operation_locked(work.operation_id);
+    if (operation == nullptr || operation->completed || operation->expired ||
+        !operation->adapter_dispatch || operation->execution_admitted ||
+        work.operation_id != operation->id || work.action != operation->action ||
+        work.abort_domain != operation->abort_domain ||
+        work.domain != (operation->owner_domain ? RecoveryExecutionDomain::Owner
+                                                : RecoveryExecutionDomain::Supervisor) ||
+        work.current_state.generation != current_state_.generation ||
+        !same_identity(work.expected_identity, request_.expected_identity) ||
+        !same_identity(work.observed_identity.value, request_.observed_identity.value))
+    {
+        return RecoveryActionResult::Refused;
+    }
+    if ((work.action == RecoveryAction::AcknowledgeExitEvent ||
+         work.action == RecoveryAction::WaitForProcessExit) &&
+        (operation->exit_event_identity_bound != work.exit_event_identity_bound ||
+         (operation->exit_event_identity_bound &&
+          (operation->exit_event_identity.creator_thread_id !=
+               work.exit_event_identity.creator_thread_id ||
+           operation->exit_event_identity.event_identity != work.exit_event_identity.event_identity ||
+           operation->exit_event_identity.session_identity !=
+               work.exit_event_identity.session_identity ||
+           !exit_operation_matches_current_event(*operation)))))
+    {
+        return RecoveryActionResult::Refused;
+    }
+    if (!action_allowed(operation->action) ||
+        (!operation->abort_domain && abort_active()))
+    {
+        return RecoveryActionResult::Refused;
+    }
+    operation->execution_admitted = true;
+    return RecoveryActionResult::Success;
 }
 
 RecoveryActionResult RecoveryCoordinator::complete_in_flight(
@@ -952,6 +1025,11 @@ RecoveryActionResult RecoveryCoordinator::complete_in_flight(
     }
     const Operation* operation = find_operation_locked(operation_id);
     if (operation == nullptr || operation->action != action)
+    {
+        return RecoveryActionResult::Refused;
+    }
+    if (operation->adapter_dispatch && !operation->execution_admitted &&
+        result != RecoveryActionResult::Refused)
     {
         return RecoveryActionResult::Refused;
     }

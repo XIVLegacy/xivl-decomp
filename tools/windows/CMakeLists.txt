@@ -49,7 +49,8 @@ add_executable(observer_runtime_check observer_runtime_check.cpp
                observer_hook_install.cpp observer_hook_install_tests.cpp
                observer_publication_protocol.cpp observer_publication_protocol_tests.cpp
                observer_recovery_snapshot.cpp observer_recovery_snapshot_tests.cpp
-               observer_recovery.cpp observer_recovery_tests.cpp)
+               observer_recovery.cpp observer_recovery_tests.cpp
+               observer_recovery_actions.cpp observer_recovery_actions_tests.cpp)
 set_target_properties(observer_runtime_check PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(observer_runtime_check PRIVATE /guard:cf /sdl)
 target_link_options(observer_runtime_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF

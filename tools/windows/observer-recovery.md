@@ -39,6 +39,11 @@ APIs; mutating step reentry is refused. A blocked callback prevents serialized
 steps from progressing, so this contract does not establish a native supervisor
 deadline for an arbitrary blocking callback.
 
+The [action adapter](observer-recovery-actions.md) queues action work for
+execution outside this serialization domain and retains exact operation IDs
+for completion. Owner and supervisor work use separate execution domains.
+It supplements the prompt action/ledger submission contract.
+
 The [snapshot adapter](observer_recovery_snapshot.h) derives the hook and
 publication components from `HookInstallState`,
 `ObserverPublicationController` and an injected copy of the publication

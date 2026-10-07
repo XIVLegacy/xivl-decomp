@@ -2,11 +2,13 @@
 #include "observer_recovery.h"
 
 #include "observer_publication_protocol.h"
+#include "observer_recovery_actions.h"
 #include "observer_recovery_snapshot.h"
 
 #include <array>
 #include <atomic>
 #include <cstring>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <thread>
@@ -577,6 +579,7 @@ struct FakeAggregateFlow
 struct FakeRecovery
 {
     RecoveryCoordinator*           coordinator = nullptr;
+    mutable std::mutex             mutex;
     std::vector<RecoveryAction>    actions;
     std::vector<RecoveryLedgerRow> ledger_rows;
     RecoveryAction                 pending_action            = RecoveryAction::None;
@@ -634,7 +637,10 @@ struct FakeRecovery
                 return RecoveryActionResult::Refused;
             }
         }
-        fake->actions.push_back(action);
+        {
+            std::lock_guard<std::mutex> lock(fake->mutex);
+            fake->actions.push_back(action);
+        }
         if (fake->abort_during_action && fake->dispatch_gate != nullptr)
         {
             fake->abort_during_action = false;
@@ -740,6 +746,17 @@ struct FakeRecovery
         return RecoveryActionResult::Success;
     }
 
+    static RecoveryActionResult execute_adapter(void*                     user,
+                                                const RecoveryActionWork* work,
+                                                RecoveryActionReceipt*    receipt)
+    {
+        if (work == nullptr)
+        {
+            return RecoveryActionResult::Refused;
+        }
+        return action(user, work->action, receipt);
+    }
+
     static RecoveryActionResult ledger(void* user, const RecoveryLedgerRow* row)
     {
         auto* fake = static_cast<FakeRecovery*>(user);
@@ -747,7 +764,10 @@ struct FakeRecovery
         {
             return RecoveryActionResult::Failed;
         }
-        fake->ledger_rows.push_back(*row);
+        {
+            std::lock_guard<std::mutex> lock(fake->mutex);
+            fake->ledger_rows.push_back(*row);
+        }
         if (fake->ledger_reenter_step && fake->coordinator != nullptr)
         {
             fake->ledger_reentry_result = fake->coordinator->owner_step();
@@ -769,6 +789,7 @@ struct FakeRecovery
 
     bool has(RecoveryAction action) const
     {
+        std::lock_guard<std::mutex> lock(mutex);
         for (RecoveryAction value : actions)
         {
             if (value == action)
@@ -781,7 +802,8 @@ struct FakeRecovery
 
     std::size_t count(RecoveryAction action) const
     {
-        std::size_t result = 0;
+        std::lock_guard<std::mutex> lock(mutex);
+        std::size_t                 result = 0;
         for (RecoveryAction value : actions)
         {
             if (value == action)
@@ -794,6 +816,7 @@ struct FakeRecovery
 
     std::size_t position(RecoveryAction action) const
     {
+        std::lock_guard<std::mutex> lock(mutex);
         for (std::size_t index = 0; index < actions.size(); ++index)
         {
             if (actions[index] == action)
@@ -1124,6 +1147,9 @@ RecoveryActionResult FakeRecovery::run_actual_aggregate_restore(RecoveryActionRe
         success                                           = coordinator->update_observation(actual) != RecoveryActionResult::Refused;
     }
     receipt->restoration_confirmed = success;
+    receipt->effect_unknown        = report.unknown_side_effects ||
+                                     aggregate_flow.hook.unknown_side_effects ||
+                                     aggregate_flow.publication.unknown_side_effects;
     aggregate_restore_success      = success;
     return success ? RecoveryActionResult::Success : RecoveryActionResult::Failed;
 }
@@ -1353,35 +1379,65 @@ void exercise_integrated_aggregate_abort(TestState& tests)
     configure_actual_aggregate_restore(&fake, request);
     FakeAggregateFlow& flow = fake.aggregate_flow;
     flow.block_inner_write.store(true, std::memory_order_release);
-    const std::uint32_t publication_writes_before = flow.publication_writes;
-    RecoveryCoordinator coordinator(request, fake.callbacks());
+    const std::uint32_t   publication_writes_before = flow.publication_writes;
+    RecoveryActionAdapter adapter({ 2, 2, {}, {} }, &fake, &FakeRecovery::execute_adapter);
+    RecoveryCoordinator   coordinator(request, adapter.callbacks(fake.callbacks()));
+    tests.check(adapter.attach(&coordinator), "adapter aggregate attach binds coordinator");
+    adapter.bind_supervisor_thread(std::this_thread::get_id());
     fake.coordinator = &coordinator;
 
-    RecoveryActionResult owner_result = RecoveryActionResult::Refused;
-    std::thread          owner([&coordinator, &owner_result]
-                               {
-                          owner_result = coordinator.request_cancel();
-                               });
+    const RecoveryActionResult owner_submission = coordinator.request_cancel();
+    const std::uint64_t        restore_id =
+        coordinator.in_flight_operation(RecoveryAction::RestoreKnownState);
+    std::size_t owner_processed = 0;
+    std::thread owner([&adapter, &owner_processed]
+                      {
+                          adapter.bind_owner_thread(std::this_thread::get_id());
+                          owner_processed = adapter.pump_owner();
+                      });
     while (!flow.inner_write_entered.load(std::memory_order_acquire))
     {
         std::this_thread::yield();
     }
     const std::size_t active_before_abort = gate.active_admissions();
     const bool        abort_won           = coordinator.request_abort();
+    fake.owner_responsive                 = false;
+    fake.owner_dead                       = true;
+    for (std::size_t step = 0; step != 6; ++step)
+    {
+        coordinator.supervisor_step();
+        adapter.pump_supervisor();
+    }
+    const RecoveryOutcome escalated             = coordinator.outcome();
+    const bool            supervisor_progressed = flow.inner_write_entered.load(std::memory_order_acquire) &&
+                                                  !flow.release_inner_write.load(std::memory_order_acquire) &&
+                                                  escalated.termination_requested &&
+                                                  escalated.termination_request_succeeded &&
+                                                  escalated.observer_exit_confirmed &&
+                                                  fake.count(RecoveryAction::RequestTermination) == 1 &&
+                                                  fake.count(RecoveryAction::WaitForProcessExit) == 1;
+    tests.check(supervisor_progressed,
+                "supervisor terminates while aggregate owner write remains blocked");
     flow.block_inner_write.store(false, std::memory_order_release);
     flow.release_inner_write.store(true, std::memory_order_release);
     owner.join();
 
-    const RecoveryOutcome outcome = coordinator.outcome();
+    const RecoveryOutcome    outcome = coordinator.outcome();
+    RecoveryActionCompletion restore_completion;
     tests.check(flow.dispatch_gate == &gate && flow.hook.backend.dispatch_gate == &gate &&
                     flow.publication.transport.dispatch_gate == &gate && active_before_abort != 0 &&
-                    abort_won && gate.abort_requested(),
-                "integrated aggregate abort shares one gate");
-    tests.check(owner_result == RecoveryActionResult::Failed &&
-                    outcome.operation_completed_after_abort && !outcome.continuation_authorized &&
+                    owner_submission == RecoveryActionResult::InFlight && owner_processed == 1 &&
+                    restore_id != 0 && abort_won && gate.abort_requested(),
+                "adapter aggregate abort shares one gate");
+    tests.check(adapter.result_for(restore_id, &restore_completion) &&
+                    restore_completion.execution_result == RecoveryActionResult::Failed &&
+                    restore_completion.receipt.effect_unknown &&
+                    restore_completion.coordinator_result == RecoveryActionResult::Failed &&
+                    outcome.operation_completed_after_abort && outcome.late_operation_result_count == 1 &&
+                    !outcome.continuation_authorized &&
                     !fake.has(RecoveryAction::ReleaseRestoredResources) &&
                     !fake.has(RecoveryAction::ReleaseRestoredPublicationOwner),
-                "integrated aggregate abort blocks later recovery operations");
+                "adapter aggregate abort blocks later recovery operations");
     tests.check(flow.publication_writes == publication_writes_before + 1 &&
                     (flow.record.flags & kObserverPublicationPublishedFlag) == 0 &&
                     flow.record.lookup_original != 0 && flow.publication.unknown_side_effects &&

@@ -4,6 +4,7 @@
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
 #include "observer_recovery.h"
+#include "observer_recovery_actions.h"
 #include "observer_recovery_snapshot.h"
 
 #include <filesystem>
@@ -22,15 +23,17 @@ int wmain(int argc, wchar_t** argv)
         const auto publication = run_publication_protocol_self_tests();
         const auto snapshot    = run_observer_recovery_snapshot_self_tests();
         const auto recovery    = run_recovery_self_tests();
+        const auto actions     = run_recovery_action_adapter_self_tests();
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
                   << "dispatch: checks=" << dispatch.checks << ",failures=" << dispatch.failures << ',' << dispatch.summary << '\n'
                   << "transaction: checks=" << install.checks << ",failures=" << install.failures << ',' << install.summary << '\n'
                   << "publication: checks=" << publication.checks << ",failures=" << publication.failures << ',' << publication.summary << '\n'
                   << "snapshot: checks=" << snapshot.checks << ",failures=" << snapshot.failures << ',' << snapshot.summary << '\n'
-                  << "recovery: checks=" << recovery.checks << ",failures=" << recovery.failures << ',' << recovery.summary << '\n';
+                  << "recovery: checks=" << recovery.checks << ",failures=" << recovery.failures << ',' << recovery.summary << '\n'
+                  << "actions: checks=" << actions.checks << ",failures=" << actions.failures << ',' << actions.summary << '\n';
         return diagnostic.passed && bridge.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
-                       recovery.passed
+                       recovery.passed && actions.passed
                    ? 0
                    : 1;
     }
