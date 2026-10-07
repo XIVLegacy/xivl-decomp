@@ -353,7 +353,13 @@ closes only a uniquely matched event. Wait/continue originals, arguments,
 results and LastError/LastStatus are preserved.
 
 The engine-generation provider receives the exact debug object, PID/TID, raw
-generation and raw index. It must establish a separate engine binding. Missing
+generation and raw index. `engine_generation` is an observer-assigned engine
+thread lifecycle token; it is not a counter read from DbgEng. The
+[engine event binding finding](engine-event-binding.md) owns its source
+semantics and the native event-selection timing. The bridge requests the
+binding before the wrapped wait returns to DbgEng, before conversion and
+pending PID/TID stores for that event. It has no delayed binding stage.
+The provider must establish a separate engine binding. Missing
 or failed bindings remain unknown; the bridge never derives one from raw
 generation, addresses or neighboring rows. Missing identities, overlap,
 overflow and sink failures make coverage incomplete. Snapshot readers require
