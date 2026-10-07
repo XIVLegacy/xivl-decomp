@@ -177,6 +177,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Bounded SKL constructor quaternion recovery](resource/skeleton-quaternion-recovery.md)
 - [Bounded skeleton Joint association and name lookup](resource/skeleton-joint-access.md)
 - [Bounded skeleton constructor affine inverse](resource/skeleton-constructor-affine-inverse.md)
+- [Bounded skeleton Joint and output access](resource/skeleton-joint-output-access.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Launcher startup patch addresses](resource/launcher-startup-patch-addresses.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)

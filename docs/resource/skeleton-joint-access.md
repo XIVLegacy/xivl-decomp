@@ -186,6 +186,10 @@ read access. No indexed-Joint return or runtime final-output getter is
 established by these walks. The association
 equations do not authorize calling a direct memory read a retail getter.
 
+The [bounded access finding](skeleton-joint-output-access.md) owns an indexed
+primary-string return and an in-body associated output-pointer consumer.
+Neither establishes a standalone indexed-Joint API or runtime matrix getter.
+
 ## Reproduction and limits
 
 Verify the executable identity, PE32 machine and image base. Resolve the
