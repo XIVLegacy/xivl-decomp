@@ -203,6 +203,11 @@ of that token by a different lifecycle. A replay of the exact closed tuple is
 stale. Binding receipts preserve every refused attempt, and any refusal keeps
 bridge coverage incomplete.
 
+The [callback acquisition and query timing finding](callback-query-timing.md)
+defines the required method-result record and acquisition authority. Its
+bounded static query and callback routes do not establish their event-specific
+order.
+
 ## Limits
 
 - The raw state and converted `DEBUG_EVENT` header are statically bounded;
