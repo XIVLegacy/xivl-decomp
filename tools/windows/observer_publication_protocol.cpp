@@ -28,6 +28,35 @@ HookBackendResult call_transport(Function function, void* user, Arguments... arg
     }
 }
 
+struct MutatingTransportCall
+{
+    HookBackendResult result   = HookBackendResult::Refused;
+    bool              admitted = true;
+};
+
+template <typename Function, typename... Arguments>
+MutatingTransportCall call_mutating_transport(const ObserverPublicationTransport& transport,
+                                              Function                            function,
+                                              Arguments... arguments)
+{
+    if (function == nullptr)
+    {
+        return { HookBackendResult::Refused, true };
+    }
+    if (transport.dispatch_gate == nullptr)
+    {
+        return { call_transport(function, transport.user, arguments...), true };
+    }
+    ObserverDispatchPermit permit = transport.dispatch_gate->admit();
+    if (!permit)
+    {
+        return { HookBackendResult::Refused, false };
+    }
+    const HookBackendResult result = call_transport(function, transport.user, arguments...);
+    permit.complete();
+    return { result, true };
+}
+
 bool any_nonzero(const std::array<std::uint8_t, 32>& value)
 {
     return std::any_of(value.begin(), value.end(), [](std::uint8_t byte)
@@ -282,12 +311,17 @@ HookBackendResult write_field(ObserverPublicationController*     controller,
     {
         return HookBackendResult::Refused;
     }
-    const HookBackendResult result = call_transport(controller->transport.write,
-                                                    controller->transport.user,
-                                                    address,
-                                                    reinterpret_cast<const std::uint8_t*>(&value),
-                                                    sizeof(Value));
-    if (result != HookBackendResult::Success)
+    const MutatingTransportCall write_call = call_mutating_transport(
+        controller->transport,
+        controller->transport.write,
+        address,
+        reinterpret_cast<const std::uint8_t*>(&value),
+        sizeof(Value));
+    if (!write_call.admitted)
+    {
+        return HookBackendResult::Refused;
+    }
+    if (write_call.result != HookBackendResult::Success)
     {
         latch_unknown(controller);
         return HookBackendResult::Ambiguous;
@@ -650,9 +684,11 @@ HookBackendResult claim_observer_publication_ownership(ObserverPublicationContro
         return controller != nullptr && controller->unknown_side_effects ? HookBackendResult::Ambiguous
                                                                          : HookBackendResult::Refused;
     }
-    const HookBackendResult result = call_transport(controller->transport.claim_ownership,
-                                                    controller->transport.user,
-                                                    controller->binding.controller_owner_id);
+    const MutatingTransportCall call = call_mutating_transport(
+        controller->transport,
+        controller->transport.claim_ownership,
+        controller->binding.controller_owner_id);
+    const HookBackendResult result = call.result;
     if (result == HookBackendResult::Success)
     {
         controller->ownership_claimed = true;
@@ -679,9 +715,11 @@ HookBackendResult release_observer_publication_ownership(ObserverPublicationCont
             return HookBackendResult::Refused;
         }
     }
-    const HookBackendResult result = call_transport(controller->transport.release_ownership,
-                                                    controller->transport.user,
-                                                    controller->binding.controller_owner_id);
+    const MutatingTransportCall call = call_mutating_transport(
+        controller->transport,
+        controller->transport.release_ownership,
+        controller->binding.controller_owner_id);
+    const HookBackendResult result = call.result;
     if (result == HookBackendResult::Success)
     {
         controller->ownership_claimed = false;

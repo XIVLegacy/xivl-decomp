@@ -36,6 +36,9 @@ struct ProtocolFake
     bool                              read_refusal_armed                 = false;
     bool                              read_refusal_first                 = false;
     bool                              ambiguous_claim                    = false;
+    ObserverDispatchGate*             dispatch_gate                      = nullptr;
+    bool                              abort_during_write                 = false;
+    bool                              abort_during_flags_write           = false;
     int                               fail_write_at                      = -1;
     std::uint32_t                     write_calls                        = 0;
 
@@ -155,6 +158,15 @@ HookBackendResult fake_write(void*               user,
     {
         fake->hold.no_wrapper_contexts = 0;
         fake->change_hold_after_write  = false;
+    }
+    if ((fake->abort_during_write ||
+         (fake->abort_during_flags_write &&
+          address == kRecordAddress + offsetof(ObserverPublicationRecordV1, flags))) &&
+        fake->dispatch_gate != nullptr)
+    {
+        fake->abort_during_write       = false;
+        fake->abort_during_flags_write = false;
+        fake->dispatch_gate->request_abort();
     }
     return HookBackendResult::Success;
 }
@@ -865,6 +877,90 @@ void test_bridge_visible_global_record(TestState* tests)
                  release_observer_publication_ownership(&controller) == HookBackendResult::Success);
 }
 
+void test_dispatch_gate(TestState* tests)
+{
+    {
+        ProtocolFake                  fake;
+        ObserverDispatchGate          gate;
+        ObserverPublicationController controller = make_unclaimed_controller(&fake);
+        controller.transport.dispatch_gate       = &gate;
+        gate.request_abort();
+        tests->check("claim_refused_after_abort",
+                     claim_observer_publication_ownership(&controller) == HookBackendResult::Refused &&
+                         !fake.owner_claimed);
+    }
+    {
+        ProtocolFake                  fake;
+        ObserverDispatchGate          gate;
+        ObserverPublicationController controller = make_controller(&fake);
+        controller.transport.dispatch_gate       = &gate;
+        gate.request_abort();
+        const HookBackendResult result = observer_publication_publish_original(
+            &controller,
+            HookEntryId::Lookup,
+            kRemoteLookupWrapper + 0x100);
+        tests->check("field_write_refused_before_dispatch",
+                     result == HookBackendResult::Refused && fake.write_calls == 0 &&
+                         !controller.unknown_side_effects && fake.record.lookup_original == 0);
+    }
+    {
+        ProtocolFake                  fake;
+        ObserverDispatchGate          gate;
+        ObserverPublicationController controller = make_controller(&fake);
+        controller.transport.dispatch_gate       = &gate;
+        fake.dispatch_gate                       = &gate;
+        fake.abort_during_write                  = true;
+        const HookBackendResult first            = observer_publication_publish_original(
+            &controller,
+            HookEntryId::Lookup,
+            kRemoteLookupWrapper + 0x100);
+        const HookBackendResult second = observer_publication_publish_original(
+            &controller,
+            HookEntryId::Query,
+            kRemoteQueryWrapper + 0x100);
+        tests->check("admitted_field_first_result", first == HookBackendResult::Success);
+        tests->check("admitted_field_second_refused", second == HookBackendResult::Refused);
+        tests->check("admitted_field_value_retained",
+                     fake.record.lookup_original == kRemoteLookupWrapper + 0x100 &&
+                         fake.record.query_original == 0);
+        tests->check("admitted_field_no_unknown", !controller.unknown_side_effects);
+    }
+    {
+        ProtocolFake                  fake;
+        ObserverDispatchGate          gate;
+        ObserverPublicationController controller = make_controller(&fake);
+        controller.transport.dispatch_gate       = &gate;
+        fake.dispatch_gate                       = &gate;
+        fake.abort_during_flags_write            = true;
+        const HookBackendResult lookup           = observer_publication_publish_original(
+            &controller,
+            HookEntryId::Lookup,
+            kRemoteLookupWrapper + 0x100);
+        const HookBackendResult query = observer_publication_publish_original(
+            &controller,
+            HookEntryId::Query,
+            kRemoteQueryWrapper + 0x100);
+        const HookBackendResult context = observer_publication_publish_original(
+            &controller,
+            HookEntryId::ContextWrite,
+            kRemoteContextWrapper + 0x100);
+        tests->check("final_field_result_survives_abort",
+                     lookup == HookBackendResult::Success && query == HookBackendResult::Success &&
+                         context == HookBackendResult::Success && gate.abort_requested() &&
+                         controller.aggregate_committed && !controller.unknown_side_effects);
+        const Originals        originals = protocol_originals();
+        const HookInstallState state     = clear_state_for_all_entries(originals);
+        tests->check("clear_refused_after_final_abort",
+                     observer_publication_clear_original(
+                         &controller,
+                         HookEntryId::Lookup,
+                         state.entries[0].trampoline,
+                         &state) == HookBackendResult::Refused &&
+                         (fake.record.flags & kObserverPublicationPublishedFlag) != 0 &&
+                         !controller.unknown_side_effects);
+    }
+}
+
 } // namespace
 
 SelfTestReport run_publication_protocol_self_tests()
@@ -878,6 +974,7 @@ SelfTestReport run_publication_protocol_self_tests()
     test_partial_phase_latches(&tests);
     test_staged_cleanup(&tests);
     test_bridge_visible_global_record(&tests);
+    test_dispatch_gate(&tests);
     tests.report.passed = tests.report.failures == 0;
     if (tests.report.passed)
     {

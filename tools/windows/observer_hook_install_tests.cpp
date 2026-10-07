@@ -132,6 +132,7 @@ struct FakeBackend
     bool                                                                     acquire_invalid_success                             = false;
     bool                                                                     acquire_refused_token                               = false;
     bool                                                                     publish_before_ambiguous                            = false;
+    bool                                                                     refuse_publish                                      = false;
     bool                                                                     quiescence_failure_used                             = false;
     bool                                                                     protection_window_open                              = false;
     bool                                                                     callback_failed_in_window                           = false;
@@ -139,6 +140,10 @@ struct FakeBackend
     bool                                                                     mutate_site_after_preflight                         = false;
     bool                                                                     mutate_site_after_protection_change                 = false;
     bool                                                                     mutate_site_after_restore_preflight                 = false;
+    ObserverDispatchGate*                                                    dispatch_gate                                       = nullptr;
+    bool                                                                     abort_during_retain                                 = false;
+    bool                                                                     abort_during_change                                 = false;
+    bool                                                                     abort_during_release_quiescence                     = false;
     bool                                                                     restore_phase                                       = false;
     std::size_t                                                              mutation_target                                     = 0;
     std::array<std::size_t, kHookEntryCount>                                 site_reads{};
@@ -152,6 +157,7 @@ struct FakeBackend
     std::uint32_t                                                            revalidate_calls          = 0;
     std::uint32_t                                                            redirect_quiescence_polls = 0;
     std::uint32_t                                                            writes                    = 0;
+    std::uint32_t                                                            publish_calls             = 0;
     std::uint32_t                                                            cache_flushes             = 0;
     std::uint32_t                                                            frees                     = 0;
     bool                                                                     pin_held                  = false;
@@ -449,6 +455,11 @@ HookBackendResult fake_retain(void* user, void*, HookOpaqueToken* pin)
     }
     *pin              = { kPinToken };
     backend->pin_held = true;
+    if (backend->abort_during_retain && backend->dispatch_gate != nullptr)
+    {
+        backend->abort_during_retain = false;
+        backend->dispatch_gate->request_abort();
+    }
     return HookBackendResult::Success;
 }
 
@@ -564,6 +575,11 @@ HookBackendResult fake_release_quiescence(void* user, HookOpaqueToken)
     }
     backend->lease_held                  = false;
     backend->publication_hold.lease_held = 0;
+    if (backend->abort_during_release_quiescence && backend->dispatch_gate != nullptr)
+    {
+        backend->abort_during_release_quiescence = false;
+        backend->dispatch_gate->request_abort();
+    }
     return HookBackendResult::Success;
 }
 
@@ -801,6 +817,11 @@ HookBackendResult fake_change(void*                 user,
     {
         backend->no_active_forwarding_calls = false;
     }
+    if (backend->abort_during_change && backend->dispatch_gate != nullptr)
+    {
+        backend->abort_during_change = false;
+        backend->dispatch_gate->request_abort();
+    }
     return HookBackendResult::Success;
 }
 
@@ -897,7 +918,13 @@ HookBackendResult fake_publish(void* user, HookEntryId entry, std::uintptr_t tra
         return observer_publication_publish_original(&backend->publication_controller, entry, trampoline);
     }
     backend->event(3);
+    ++backend->publish_calls;
     const std::size_t index = entry_index(entry);
+    if (backend->refuse_publish)
+    {
+        backend->refuse_publish = false;
+        return HookBackendResult::Refused;
+    }
     if (backend->fail(FailurePoint::Publish))
     {
         if (backend->publish_before_ambiguous)
@@ -1695,6 +1722,75 @@ void test_restore_ownership_and_rollback_failures(TestState* tests)
     }
 }
 
+void test_dispatch_gate(TestState* tests)
+{
+    {
+        FakeBackend          backend;
+        ObserverDispatchGate gate;
+        backend.dispatch_gate    = &gate;
+        backend.refuse_publish   = true;
+        HookInstallBackend gated = fake_backend(&backend);
+        gated.dispatch_gate      = &gate;
+        HookInstallState        state;
+        const HookInstallReport report =
+            install_hook_transaction(fake_request(backend), gated, &state);
+        tests->check(report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Publication && report.unknown_side_effects &&
+                         state.unknown_side_effects && backend.publish_calls == 1 && backend.pin_held,
+                     "admitted refused publication callback latches unknown state");
+    }
+    {
+        FakeBackend          backend;
+        ObserverDispatchGate gate;
+        backend.dispatch_gate       = &gate;
+        backend.abort_during_retain = true;
+        HookInstallBackend gated    = fake_backend(&backend);
+        gated.dispatch_gate         = &gate;
+        HookInstallState        state;
+        const HookInstallReport report =
+            install_hook_transaction(fake_request(backend), gated, &state);
+        tests->check(gate.abort_requested() && report.disposition == HookInstallDisposition::Retained &&
+                         report.failure == HookFailure::Release && report.resources_retained &&
+                         !report.unknown_side_effects && backend.pin_held,
+                     "abort during admitted retain preserves pin and refuses release");
+    }
+    {
+        FakeBackend          backend;
+        ObserverDispatchGate gate;
+        backend.dispatch_gate       = &gate;
+        backend.abort_during_change = true;
+        HookInstallBackend gated    = fake_backend(&backend);
+        gated.dispatch_gate         = &gate;
+        HookInstallState        state;
+        const HookInstallReport report =
+            install_hook_transaction(fake_request(backend), gated, &state);
+        const bool block_changed =
+            backend.blocks[0].protection == (HookProtection::Read | HookProtection::Write);
+        tests->check(gate.abort_requested() && report.disposition == HookInstallDisposition::Retained &&
+                         report.unknown_side_effects && report.protection_unverified &&
+                         backend.writes == 0 && block_changed && state.unknown_side_effects,
+                     "abort after protection callback retains actual partial effect");
+    }
+    {
+        FakeBackend          backend;
+        ObserverDispatchGate gate;
+        backend.dispatch_gate                   = &gate;
+        backend.abort_during_release_quiescence = true;
+        HookInstallBackend gated                = fake_backend(&backend);
+        gated.dispatch_gate                     = &gate;
+        HookInstallState        state;
+        const HookInstallReport report =
+            install_hook_transaction(fake_request(backend), gated, &state);
+        const std::uint32_t     writes_before_restore = backend.writes;
+        const HookRestoreReport restore               = restore_hook_transaction(&state);
+        tests->check(gate.abort_requested() && report.disposition == HookInstallDisposition::Installed &&
+                         !state.quiescence_lease_held && restore.disposition == HookInstallDisposition::Retained &&
+                         restore.failure == HookFailure::Quiescence &&
+                         backend.writes == writes_before_restore && backend.frees == 0,
+                     "successful final callback cannot reopen aborted cleanup");
+    }
+}
+
 } // namespace
 
 SelfTestReport run_hook_install_self_tests()
@@ -1711,6 +1807,7 @@ SelfTestReport run_hook_install_self_tests()
     test_rejections(&tests);
     test_mutation_failures(&tests);
     test_restore_ownership_and_rollback_failures(&tests);
+    test_dispatch_gate(&tests);
     tests.report.passed  = tests.report.failures == 0;
     tests.report.summary = tests.report.passed ? "hook install fake backend checks passed"
                                                : tests.failures.str();

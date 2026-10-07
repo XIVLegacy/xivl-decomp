@@ -55,6 +55,10 @@ An earlier successful read is insufficient for a later write. Hold evidence,
 binding, expected bytes and active-call count are checked again at each step.
 An exception from a transport callback is classified as ambiguous.
 
+The [dispatch gate](observer-dispatch-gate.md) orders each injected field write
+and ownership operation against the shared attempt's abort decision. An
+aggregate publication callback does not supply admission for all its writes.
+
 ## Clearing and retention
 
 The clear callback receives the live `HookInstallState` before its per-entry
@@ -69,7 +73,7 @@ Counter history belongs to a publication generation. Clearing leaves the
 generation and unlogged count available for inspection. The next publication
 records the prior count before confirming its reset. Ownership release is a
 separate operation after successful clearing and outside the held mutation
-phase. A known empty abort before the first publication may also release
+phase. A known empty cancellation before the first publication may also release
 ownership. The target-local release callback confirms the owner, unpublished
 state, zero targets and zero active calls under the local mutex.
 

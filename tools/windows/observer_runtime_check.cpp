@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+#include "observer_dispatch_gate.h"
 #include "observer_event_bridge.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
@@ -16,17 +17,19 @@ int wmain(int argc, wchar_t** argv)
     {
         const auto diagnostic  = run_self_tests();
         const auto bridge      = run_event_bridge_self_tests();
+        const auto dispatch    = run_dispatch_gate_self_tests();
         const auto install     = run_hook_install_self_tests();
         const auto publication = run_publication_protocol_self_tests();
         const auto snapshot    = run_observer_recovery_snapshot_self_tests();
         const auto recovery    = run_recovery_self_tests();
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
+                  << "dispatch: checks=" << dispatch.checks << ",failures=" << dispatch.failures << ',' << dispatch.summary << '\n'
                   << "transaction: checks=" << install.checks << ",failures=" << install.failures << ',' << install.summary << '\n'
                   << "publication: checks=" << publication.checks << ",failures=" << publication.failures << ',' << publication.summary << '\n'
                   << "snapshot: checks=" << snapshot.checks << ",failures=" << snapshot.failures << ',' << snapshot.summary << '\n'
                   << "recovery: checks=" << recovery.checks << ",failures=" << recovery.failures << ',' << recovery.summary << '\n';
-        return diagnostic.passed && bridge.passed && install.passed && publication.passed && snapshot.passed &&
+        return diagnostic.passed && bridge.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
                        recovery.passed
                    ? 0
                    : 1;

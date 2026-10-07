@@ -173,6 +173,31 @@ HookBackendResult call_backend(Function function, void* user, Arguments... argum
     }
 }
 
+struct MutatingBackendCall
+{
+    HookBackendResult result   = HookBackendResult::Refused;
+    bool              admitted = true;
+};
+
+template <typename Function, typename... Arguments>
+MutatingBackendCall call_mutating_backend(const HookInstallBackend& backend,
+                                          Function                  function,
+                                          Arguments... arguments)
+{
+    if (backend.dispatch_gate == nullptr)
+    {
+        return { call_backend(function, backend.user, arguments...), true };
+    }
+    ObserverDispatchPermit permit = backend.dispatch_gate->admit();
+    if (!permit)
+    {
+        return { HookBackendResult::Refused, false };
+    }
+    const HookBackendResult result = call_backend(function, backend.user, arguments...);
+    permit.complete();
+    return { result, true };
+}
+
 bool required_backend(const HookInstallBackend& backend)
 {
     return backend.retain_module != nullptr && backend.release_module != nullptr &&
@@ -353,10 +378,10 @@ bool restore_protection_once(HookInstallState*           state,
     }
     if (!restoration_attempted)
     {
-        const HookBackendResult result = call_backend(state->backend.restore_protection,
-                                                      state->backend.user,
-                                                      &change);
-        if (result != HookBackendResult::Success)
+        const MutatingBackendCall call = call_mutating_backend(state->backend,
+                                                               state->backend.restore_protection,
+                                                               &change);
+        if (call.result != HookBackendResult::Success && call.admitted)
         {
             state->unknown_side_effects = true;
         }
@@ -398,14 +423,20 @@ HookFailure write_region(HookInstallState*     state,
         }
         return lease_failure;
     }
-    HookProtectionChange change;
-    HookBackendResult    result           = call_backend(backend.change_protection,
-                                                         backend.user,
-                                                         address,
-                                                         size,
-                                                         HookProtection::Read | HookProtection::Write,
-                                                         &change);
-    const bool           transition_valid = validate_transition(change, address, size, previous);
+    HookProtectionChange      change;
+    const MutatingBackendCall change_call = call_mutating_backend(
+        backend,
+        backend.change_protection,
+        address,
+        size,
+        HookProtection::Read | HookProtection::Write,
+        &change);
+    HookBackendResult result = change_call.result;
+    if (!change_call.admitted)
+    {
+        return HookFailure::Protection;
+    }
+    const bool transition_valid = validate_transition(change, address, size, previous);
     if (!transition_valid)
     {
         state->unknown_side_effects  = true;
@@ -460,7 +491,9 @@ HookFailure write_region(HookInstallState*     state,
             return fail_inside_window(HookFailure::OwnershipChanged, false);
         }
     }
-    result = call_backend(backend.write_bytes, backend.user, address, bytes, size);
+    const MutatingBackendCall write_call =
+        call_mutating_backend(backend, backend.write_bytes, address, bytes, size);
+    result = write_call.result;
     if (result != HookBackendResult::Success)
     {
         return fail_inside_window(result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
@@ -483,7 +516,9 @@ HookFailure write_region(HookInstallState*     state,
     {
         return fail_inside_window(lease_failure, true);
     }
-    result = call_backend(backend.flush_instruction_cache, backend.user, address, size);
+    const MutatingBackendCall flush_call =
+        call_mutating_backend(backend, backend.flush_instruction_cache, address, size);
+    result = flush_call.result;
     if (result != HookBackendResult::Success)
     {
         return fail_inside_window(result == HookBackendResult::Ambiguous
@@ -495,7 +530,9 @@ HookFailure write_region(HookInstallState*     state,
     {
         return fail_inside_window(lease_failure, true);
     }
-    result                = call_backend(backend.restore_protection, backend.user, &change);
+    const MutatingBackendCall restore_call =
+        call_mutating_backend(backend, backend.restore_protection, &change);
+    result                = restore_call.result;
     restoration_attempted = true;
     if (result != HookBackendResult::Success)
     {
@@ -512,8 +549,9 @@ HookFailure write_region(HookInstallState*     state,
 
 struct CleanupResult
 {
-    bool        complete = false;
-    HookFailure failure  = HookFailure::None;
+    bool        complete         = false;
+    HookFailure failure          = HookFailure::None;
+    bool        dispatch_refused = false;
 };
 
 bool has_code_resources(const HookInstallState& state)
@@ -561,13 +599,19 @@ CleanupResult release_resources(HookInstallState* state)
         {
             return { false, lease_failure };
         }
-        const HookBackendResult result = call_backend(backend.revoke_cfg,
-                                                      backend.user,
-                                                      entry.cfg_registration);
-        if (result != HookBackendResult::Success)
+        const MutatingBackendCall call = call_mutating_backend(backend,
+                                                               backend.revoke_cfg,
+                                                               entry.cfg_registration);
+        if (call.result != HookBackendResult::Success)
         {
-            state->unknown_side_effects = true;
-            return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Cfg };
+            if (call.admitted)
+            {
+                state->unknown_side_effects = true;
+            }
+            return { false,
+                     call.result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                                 : HookFailure::Cfg,
+                     !call.admitted };
         }
         entry.cfg_registered = false;
     }
@@ -582,15 +626,21 @@ CleanupResult release_resources(HookInstallState* state)
         {
             return { false, lease_failure };
         }
-        const HookBackendResult result = call_backend(backend.clear_original,
-                                                      backend.user,
-                                                      entry.id,
-                                                      entry.trampoline,
-                                                      state);
-        if (result != HookBackendResult::Success)
+        const MutatingBackendCall call = call_mutating_backend(backend,
+                                                               backend.clear_original,
+                                                               entry.id,
+                                                               entry.trampoline,
+                                                               state);
+        if (call.result != HookBackendResult::Success)
         {
-            state->unknown_side_effects = true;
-            return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Publication };
+            if (call.admitted)
+            {
+                state->unknown_side_effects = true;
+            }
+            return { false,
+                     call.result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                                 : HookFailure::Publication,
+                     !call.admitted };
         }
         entry.original_published = false;
     }
@@ -605,13 +655,19 @@ CleanupResult release_resources(HookInstallState* state)
         {
             return { false, lease_failure };
         }
-        const HookBackendResult result = call_backend(backend.free_executable,
-                                                      backend.user,
-                                                      entry.storage);
-        if (result != HookBackendResult::Success)
+        const MutatingBackendCall call = call_mutating_backend(backend,
+                                                               backend.free_executable,
+                                                               entry.storage);
+        if (call.result != HookBackendResult::Success)
         {
-            state->unknown_side_effects = true;
-            return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Release };
+            if (call.admitted)
+            {
+                state->unknown_side_effects = true;
+            }
+            return { false,
+                     call.result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                                 : HookFailure::Release,
+                     !call.admitted };
         }
         entry.storage_held = false;
     }
@@ -622,26 +678,38 @@ CleanupResult release_resources(HookInstallState* state)
         {
             return { false, lease_failure };
         }
-        const HookBackendResult result = call_backend(backend.release_quiescence,
-                                                      backend.user,
-                                                      state->quiescence_lease);
-        if (result != HookBackendResult::Success)
+        const MutatingBackendCall call = call_mutating_backend(backend,
+                                                               backend.release_quiescence,
+                                                               state->quiescence_lease);
+        if (call.result != HookBackendResult::Success)
         {
-            state->unknown_side_effects = true;
-            return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Release };
+            if (call.admitted)
+            {
+                state->unknown_side_effects = true;
+            }
+            return { false,
+                     call.result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                                 : HookFailure::Release,
+                     !call.admitted };
         }
         state->quiescence_lease_held = false;
         state->quiescence_lease      = HookOpaqueToken{};
     }
     if (state->module_pin_held)
     {
-        const HookBackendResult result = call_backend(backend.release_module,
-                                                      backend.user,
-                                                      state->module_pin);
-        if (result != HookBackendResult::Success)
+        const MutatingBackendCall call = call_mutating_backend(backend,
+                                                               backend.release_module,
+                                                               state->module_pin);
+        if (call.result != HookBackendResult::Success)
         {
-            state->unknown_side_effects = true;
-            return { false, result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous : HookFailure::Release };
+            if (call.admitted)
+            {
+                state->unknown_side_effects = true;
+            }
+            return { false,
+                     call.result == HookBackendResult::Ambiguous ? HookFailure::Ambiguous
+                                                                 : HookFailure::Release,
+                     !call.admitted };
         }
         state->module_pin_held = false;
     }
@@ -674,7 +742,8 @@ HookInstallReport reject_before_mutation(HookInstallState* state,
                                 cleanup.failure,
                                 prepared,
                                 0,
-                                cleanup.failure != HookFailure::Quiescence);
+                                cleanup.failure != HookFailure::Quiescence &&
+                                    !cleanup.dispatch_refused);
     }
     clear_state(state);
     HookInstallReport report;
@@ -735,11 +804,13 @@ HookRestoreReport restore_entries_and_resources(HookInstallState* state)
         {
             return retained_restore(state, HookFailure::Release, 0);
         }
-        const HookBackendResult acquire = call_backend(state->backend.acquire_quiescence,
-                                                       state->backend.user,
-                                                       state->module,
-                                                       state->module_pin,
-                                                       &state->quiescence_lease);
+        const MutatingBackendCall acquire_call = call_mutating_backend(
+            state->backend,
+            state->backend.acquire_quiescence,
+            state->module,
+            state->module_pin,
+            &state->quiescence_lease);
+        const HookBackendResult acquire = acquire_call.result;
         if (acquire != HookBackendResult::Success || !valid_token(state->quiescence_lease))
         {
             const bool malformed_success = acquire == HookBackendResult::Success;
@@ -897,13 +968,14 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
             }
         }
     }
-    state->backend           = backend;
-    state->module            = request.module;
-    state->state             = HookTransactionState::Preparing;
-    HookBackendResult result = call_backend(backend.retain_module,
-                                            backend.user,
-                                            request.module,
-                                            &state->module_pin);
+    state->backend                        = backend;
+    state->module                         = request.module;
+    state->state                          = HookTransactionState::Preparing;
+    const MutatingBackendCall retain_call = call_mutating_backend(backend,
+                                                                  backend.retain_module,
+                                                                  request.module,
+                                                                  &state->module_pin);
+    HookBackendResult         result      = retain_call.result;
     if (result != HookBackendResult::Success || !valid_token(state->module_pin))
     {
         if (result == HookBackendResult::Ambiguous || result == HookBackendResult::Success ||
@@ -915,12 +987,13 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
         report.failure = HookFailure::ModulePin;
         return report;
     }
-    state->module_pin_held = true;
-    result                 = call_backend(backend.acquire_quiescence,
-                                          backend.user,
-                                          request.module,
-                                          state->module_pin,
-                                          &state->quiescence_lease);
+    state->module_pin_held                 = true;
+    const MutatingBackendCall acquire_call = call_mutating_backend(backend,
+                                                                   backend.acquire_quiescence,
+                                                                   request.module,
+                                                                   state->module_pin,
+                                                                   &state->quiescence_lease);
+    result                                 = acquire_call.result;
     if (result != HookBackendResult::Success || !valid_token(state->quiescence_lease))
     {
         if (result == HookBackendResult::Ambiguous || result == HookBackendResult::Success ||
@@ -1077,11 +1150,12 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                     0,
                                     reserve_quiescence == HookBackendResult::Ambiguous);
         }
-        const FixedEntry& fixed          = kEntries[entry_index(entry.id)];
-        HookBackendResult reserve_result = call_backend(backend.reserve_executable,
-                                                        backend.user,
-                                                        fixed.span + 5,
-                                                        &entry.storage);
+        const FixedEntry&         fixed          = kEntries[entry_index(entry.id)];
+        const MutatingBackendCall reserve_call   = call_mutating_backend(backend,
+                                                                         backend.reserve_executable,
+                                                                         fixed.span + 5,
+                                                                         &entry.storage);
+        HookBackendResult         reserve_result = reserve_call.result;
         if (reserve_result != HookBackendResult::Success ||
             !valid_token(entry.storage.token) ||
             !valid_x86_range(entry.storage.address, entry.storage.size, nullptr) ||
@@ -1215,14 +1289,19 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                     0,
                                     entry_quiescence == HookBackendResult::Ambiguous);
         }
-        result = call_backend(backend.register_cfg,
-                              backend.user,
-                              entry.trampoline,
-                              entry.trampoline_size,
-                              &entry.cfg_registration);
+        const MutatingBackendCall register_call = call_mutating_backend(backend,
+                                                                        backend.register_cfg,
+                                                                        entry.trampoline,
+                                                                        entry.trampoline_size,
+                                                                        &entry.cfg_registration);
+        result                                  = register_call.result;
         if (result != HookBackendResult::Success || !valid_token(entry.cfg_registration))
         {
-            return retained_install(state, HookFailure::Cfg, prepared, 0);
+            return retained_install(state,
+                                    HookFailure::Cfg,
+                                    prepared,
+                                    0,
+                                    register_call.admitted);
         }
         entry.cfg_registered = true;
     }
@@ -1239,14 +1318,22 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                     0,
                                     entry_quiescence == HookBackendResult::Ambiguous);
         }
-        result = call_backend(backend.publish_original,
-                              backend.user,
-                              entry.id,
-                              entry.trampoline);
+        const MutatingBackendCall publish_call = call_mutating_backend(backend,
+                                                                       backend.publish_original,
+                                                                       entry.id,
+                                                                       entry.trampoline);
+        result                                 = publish_call.result;
         if (result != HookBackendResult::Success)
         {
-            state->unknown_side_effects = true;
-            return retained_install(state, HookFailure::Publication, prepared, 0);
+            if (publish_call.admitted)
+            {
+                state->unknown_side_effects = true;
+            }
+            return retained_install(state,
+                                    HookFailure::Publication,
+                                    prepared,
+                                    0,
+                                    publish_call.admitted);
         }
         entry.original_published = true;
     }
@@ -1309,7 +1396,10 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                 redirected,
                                 final_quiescence == HookBackendResult::Ambiguous);
     }
-    result = call_backend(backend.release_quiescence, backend.user, state->quiescence_lease);
+    const MutatingBackendCall release_call = call_mutating_backend(backend,
+                                                                   backend.release_quiescence,
+                                                                   state->quiescence_lease);
+    result                                 = release_call.result;
     if (result != HookBackendResult::Success)
     {
         return retained_install(state,
@@ -1317,7 +1407,7 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                                                                        : HookFailure::Release,
                                 prepared,
                                 redirected,
-                                true);
+                                release_call.admitted);
     }
     state->quiescence_lease_held = false;
     state->quiescence_lease      = HookOpaqueToken{};

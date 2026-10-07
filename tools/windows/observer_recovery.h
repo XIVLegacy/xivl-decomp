@@ -328,6 +328,10 @@ struct RecoveryCallbacks
     void*                  user   = nullptr;
     RecoveryActionCallback action = nullptr;
     RecoveryLedgerCallback ledger = nullptr;
+    // The attempt authority shared by action callbacks and transaction or
+    // publication adapters. The coordinator uses it for abort/success
+    // competition; callbacks admit each native operation they dispatch.
+    ObserverDispatchGate* dispatch_gate = nullptr;
 };
 
 struct RecoveryOutcome
@@ -464,6 +468,7 @@ private:
     bool                   exit_acknowledged_for_current_event_locked() const;
     bool                   exit_completion_ready_locked() const;
     bool                   exit_operation_matches_current_event(const Operation& operation) const;
+    void                   synchronize_dispatch_abort_locked();
     bool                   callback_mutation_reentry_locked() const;
     void                   observe_monotonic_latches_locked(const RecoveryStateSnapshot& state);
     void                   advance_owner_exit_fallback_locked(RecoveryFailure failure);
@@ -502,6 +507,7 @@ private:
 
     RecoveryRequest           request_{};
     RecoveryCallbacks         callbacks_{};
+    ObserverDispatchGate*     dispatch_gate_ = nullptr;
     RecoveryStateSnapshot     initial_state_{};
     RecoveryStateSnapshot     current_state_{};
     RecoveryOutcome           outcome_{};

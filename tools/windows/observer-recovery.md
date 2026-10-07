@@ -80,10 +80,11 @@ uncertainty, protection or binding failure. Passing proofs within the declared
 limit can enable the single known-state restoration attempt; an expired
 operation remains a separate unresolved operation.
 
-The native caller must serialize action dispatch with the abort decision and
-gate every mutation within a composite transaction. The model cannot revoke
-an existing action, interrupt a callback or make the existing backend's inner
-steps atomic with a supervisor request.
+The [dispatch gate](observer-dispatch-gate.md) supplies offline ordering for
+individual injected mutations inside composite transaction/publication calls.
+The native caller must preserve that granularity and share the attempt's abort
+authority. An existing admitted operation cannot be revoked or interrupted;
+its actual result remains separate from the attempt's failed disposition.
 
 ## Cleanup decisions
 

@@ -76,6 +76,7 @@ RecoveryCoordinator::RecoveryCoordinator(const RecoveryRequest&   request,
                                          const RecoveryCallbacks& callbacks)
 : request_(request)
 , callbacks_(callbacks)
+, dispatch_gate_(callbacks.dispatch_gate)
 , initial_state_(request.state)
 , current_state_(request.state)
 , current_observation_valid_(request.state.synchronized)
@@ -406,9 +407,11 @@ RecoveryOutcome RecoveryCoordinator::outcome() const
             : find_operation_locked(supervisor_in_flight_id_)->action;
     const RecoveryTerminal terminal = value.terminal;
     value.abort_requested           = abort_requested_.load(std::memory_order_acquire) ||
-                                      terminal == RecoveryTerminal::Aborting;
+                                      terminal == RecoveryTerminal::Aborting ||
+                                      (dispatch_gate_ != nullptr && dispatch_gate_->abort_requested());
     value.abort_won                 = abort_won_.load(std::memory_order_acquire) ||
-                                      terminal == RecoveryTerminal::Aborting;
+                                      terminal == RecoveryTerminal::Aborting ||
+                                      (dispatch_gate_ != nullptr && dispatch_gate_->abort_requested());
     value.current_hold_verified     = current_observation_valid_ && hold_verified(current_state_);
     value.pending_operation_count   = pending_count_locked();
     value.callback_active           = callback_active_.load(std::memory_order_acquire);
@@ -419,7 +422,8 @@ RecoveryOutcome RecoveryCoordinator::outcome() const
 bool RecoveryCoordinator::abort_active() const
 {
     return abort_won_.load(std::memory_order_acquire) ||
-           terminal_.load(std::memory_order_acquire) == RecoveryTerminal::Aborting;
+           terminal_.load(std::memory_order_acquire) == RecoveryTerminal::Aborting ||
+           (dispatch_gate_ != nullptr && dispatch_gate_->abort_requested());
 }
 
 bool RecoveryCoordinator::request_abort()
@@ -429,6 +433,18 @@ bool RecoveryCoordinator::request_abort()
     if (!abort_admitted_)
     {
         return false;
+    }
+    if (dispatch_gate_ != nullptr)
+    {
+        if (dispatch_gate_->success_committed())
+        {
+            return false;
+        }
+        if (!dispatch_gate_->abort_requested() && !dispatch_gate_->request_abort() &&
+            !dispatch_gate_->abort_requested())
+        {
+            return false;
+        }
     }
     RecoveryTerminal expected = RecoveryTerminal::Active;
     if (!terminal_.compare_exchange_strong(expected,
@@ -440,6 +456,14 @@ bool RecoveryCoordinator::request_abort()
     abort_requested_.store(true, std::memory_order_release);
     abort_won_.store(true, std::memory_order_release);
     return true;
+}
+
+void RecoveryCoordinator::synchronize_dispatch_abort_locked()
+{
+    if (dispatch_gate_ != nullptr && dispatch_gate_->abort_requested())
+    {
+        request_abort();
+    }
 }
 
 void RecoveryCoordinator::materialize_abort_locked()
@@ -502,6 +526,11 @@ RecoveryActionResult RecoveryCoordinator::request_cancel()
     {
         return RecoveryActionResult::Refused;
     }
+    if (dispatch_gate_ != nullptr)
+    {
+        synchronize_dispatch_abort_locked();
+        materialize_abort_locked();
+    }
     if (intent_ != RecoveryIntent::None ||
         terminal_.load(std::memory_order_acquire) != RecoveryTerminal::Active)
     {
@@ -544,6 +573,11 @@ RecoveryActionResult RecoveryCoordinator::request_normal_completion()
     if (callback_mutation_reentry_locked())
     {
         return RecoveryActionResult::Refused;
+    }
+    if (dispatch_gate_ != nullptr)
+    {
+        synchronize_dispatch_abort_locked();
+        materialize_abort_locked();
     }
     if (intent_ != RecoveryIntent::None ||
         terminal_.load(std::memory_order_acquire) != RecoveryTerminal::Active)
@@ -859,6 +893,7 @@ RecoveryActionResult RecoveryCoordinator::start_action_locked(RecoveryAction act
     callback_active_.store(false, std::memory_order_release);
     callback_dispatch_active_ = false;
     callback_thread_id_       = std::thread::id{};
+    synchronize_dispatch_abort_locked();
 
     Operation* after_callback = find_operation_locked(registered_id);
     if (after_callback == nullptr || after_callback->completed)
@@ -878,6 +913,7 @@ RecoveryActionResult RecoveryCoordinator::complete_in_flight(
     const RecoveryActionReceipt& receipt)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    synchronize_dispatch_abort_locked();
     if (callback_mutation_reentry_locked())
     {
         return RecoveryActionResult::Refused;
@@ -903,6 +939,7 @@ RecoveryActionResult RecoveryCoordinator::complete_in_flight(
     const RecoveryActionReceipt& receipt)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    synchronize_dispatch_abort_locked();
     if (callback_mutation_reentry_locked())
     {
         return RecoveryActionResult::Refused;
@@ -1073,6 +1110,7 @@ RecoveryActionResult RecoveryCoordinator::apply_action_locked(
     const RecoveryActionReceipt& receipt,
     bool                         late)
 {
+    synchronize_dispatch_abort_locked();
     const RecoveryTerminal terminal                   = terminal_.load(std::memory_order_acquire);
     const bool             forbidden_owner_completion = abort_active() && operation.owner_domain &&
                                                         !operation.abort_domain;
@@ -1398,6 +1436,7 @@ RecoveryActionResult RecoveryCoordinator::apply_action_locked(
 RecoveryActionResult RecoveryCoordinator::owner_step()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    synchronize_dispatch_abort_locked();
     if (callback_mutation_reentry_locked())
     {
         return RecoveryActionResult::Refused;
@@ -1543,6 +1582,7 @@ RecoveryActionResult RecoveryCoordinator::owner_step_locked()
 RecoveryActionResult RecoveryCoordinator::supervisor_step()
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    synchronize_dispatch_abort_locked();
     if (callback_mutation_reentry_locked())
     {
         return RecoveryActionResult::Refused;
@@ -1646,6 +1686,7 @@ RecoveryActionResult RecoveryCoordinator::admit_exit_event(std::uint32_t creator
     {
         return RecoveryActionResult::Refused;
     }
+    synchronize_dispatch_abort_locked();
     materialize_abort_locked();
     if (is_terminal(terminal_.load(std::memory_order_acquire)) ||
         current_state_.delivered_exit_event ||
@@ -1687,6 +1728,7 @@ RecoveryActionResult RecoveryCoordinator::creator_acknowledge_exit_event(
     {
         return RecoveryActionResult::Refused;
     }
+    synchronize_dispatch_abort_locked();
     materialize_abort_locked();
     if (!current_state_.delivered_exit_event || !delivered_exit_identity_.known ||
         creator_thread_id != delivered_exit_identity_.creator_thread_id ||
@@ -1708,6 +1750,7 @@ RecoveryActionResult RecoveryCoordinator::creator_acknowledge_exit_event(
 
 RecoveryActionResult RecoveryCoordinator::finish_success_locked()
 {
+    synchronize_dispatch_abort_locked();
     if (abort_active())
     {
         materialize_abort_locked();
@@ -1727,6 +1770,14 @@ RecoveryActionResult RecoveryCoordinator::finish_success_locked()
     if (!cleanup_state_ready(current_state_) || code_bearing_resources(current_state_))
     {
         return begin_abort_locked(RecoveryFailure::ActionFailed);
+    }
+    if (dispatch_gate_ != nullptr && !dispatch_gate_->try_complete_success())
+    {
+        if (dispatch_gate_->abort_requested())
+        {
+            materialize_abort_locked();
+        }
+        return RecoveryActionResult::InFlight;
     }
     RecoveryTerminal expected = RecoveryTerminal::Active;
     if (!terminal_.compare_exchange_strong(expected,

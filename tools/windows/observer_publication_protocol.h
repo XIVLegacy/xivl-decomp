@@ -118,6 +118,7 @@ struct ObserverPublicationTransport
     ObserverPublicationReadHold         read_hold         = nullptr;
     ObserverPublicationClaimOwnership   claim_ownership   = nullptr;
     ObserverPublicationReleaseOwnership release_ownership = nullptr;
+    ObserverDispatchGate*               dispatch_gate     = nullptr;
 };
 
 struct ObserverPublicationController

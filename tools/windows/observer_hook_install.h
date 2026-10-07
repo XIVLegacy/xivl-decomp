@@ -3,6 +3,7 @@
 #define XIVL_OBSERVER_HOOK_INSTALL_H
 
 #include "observer_diagnostic.h"
+#include "observer_dispatch_gate.h"
 
 #include <array>
 #include <cstddef>
@@ -218,6 +219,9 @@ struct HookInstallBackend
     HookRevokeCfg             revoke_cfg              = nullptr;
     HookPublishOriginal       publish_original        = nullptr;
     HookClearOriginal         clear_original          = nullptr;
+    // A null gate retains legacy fake behavior. A configured gate is the
+    // authoritative attempt boundary for every mutating callback above.
+    ObserverDispatchGate* dispatch_gate = nullptr;
 };
 
 struct HookWrapperSpec

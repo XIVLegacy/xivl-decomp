@@ -240,6 +240,10 @@ can promise safe lease release.
 
 ### Mutation, repair and retained state
 
+The [dispatch gate](observer-dispatch-gate.md) orders individual injected
+mutation and cleanup operations against permanent abort. It supplements the
+required lease and ownership checks.
+
 The transaction prepares relocated trampolines, verifies their bytes, changes
 them from writable to executable, flushes instruction caches, registers CFG
 targets and publishes originals before redirects become visible. It checks

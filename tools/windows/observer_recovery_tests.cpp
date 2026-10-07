@@ -63,6 +63,11 @@ struct FakeAggregateFlow
     bool                                                                     released         = false;
     bool                                                                     prepared         = false;
     bool                                                                     module_pin_held  = false;
+    ObserverDispatchGate*                                                    dispatch_gate    = nullptr;
+    std::atomic<bool>                                                        block_inner_write{ false };
+    std::atomic<bool>                                                        inner_write_entered{ false };
+    std::atomic<bool>                                                        release_inner_write{ false };
+    std::uint32_t                                                            publication_writes = 0;
     std::array<std::array<std::uint8_t, kHookMaxPatchSize>, kHookEntryCount> sites{};
     std::array<HookProtection, kHookEntryCount>                              site_protection{};
     std::array<HookExecutableStorage, kHookEntryCount>                       storages{};
@@ -258,6 +263,15 @@ struct FakeAggregateFlow
             return HookBackendResult::Refused;
         }
         std::memcpy(reinterpret_cast<std::uint8_t*>(&flow->record) + offset, source, size);
+        ++flow->publication_writes;
+        if (flow->block_inner_write.load(std::memory_order_acquire))
+        {
+            flow->inner_write_entered.store(true, std::memory_order_release);
+            while (!flow->release_inner_write.load(std::memory_order_acquire))
+            {
+                std::this_thread::yield();
+            }
+        }
         return HookBackendResult::Success;
     }
 
@@ -592,6 +606,8 @@ struct FakeRecovery
     RecoveryAction                 block_action  = RecoveryAction::None;
     std::atomic<bool>              callback_entered{ false };
     std::atomic<bool>              release_callback{ false };
+    ObserverDispatchGate*          dispatch_gate       = nullptr;
+    bool                           abort_during_action = false;
 
     static RecoveryActionResult action(void*                  user,
                                        RecoveryAction         action,
@@ -602,7 +618,28 @@ struct FakeRecovery
         {
             return RecoveryActionResult::Refused;
         }
+        ObserverDispatchPermit dispatch_permit;
+        const bool             gated_mutation =
+            fake->dispatch_gate != nullptr &&
+            (action == RecoveryAction::ReleaseKnownEmptyLeasePin ||
+             action == RecoveryAction::ReleaseKnownEmptyPublicationOwner ||
+             action == RecoveryAction::RestoreKnownState ||
+             action == RecoveryAction::ReleaseRestoredResources ||
+             action == RecoveryAction::ReleaseRestoredPublicationOwner);
+        if (gated_mutation)
+        {
+            dispatch_permit = fake->dispatch_gate->admit();
+            if (!dispatch_permit)
+            {
+                return RecoveryActionResult::Refused;
+            }
+        }
         fake->actions.push_back(action);
+        if (fake->abort_during_action && fake->dispatch_gate != nullptr)
+        {
+            fake->abort_during_action = false;
+            fake->dispatch_gate->request_abort();
+        }
         if (fake->reenter_action == action && fake->coordinator != nullptr)
         {
             fake->reentry_result = fake->coordinator->supervisor_step();
@@ -725,7 +762,7 @@ struct FakeRecovery
 
     RecoveryCallbacks callbacks()
     {
-        return { this, &FakeRecovery::action, &FakeRecovery::ledger };
+        return { this, &FakeRecovery::action, &FakeRecovery::ledger, dispatch_gate };
     }
 
     RecoveryActionResult run_actual_aggregate_restore(RecoveryActionReceipt* receipt);
@@ -909,6 +946,7 @@ void configure_actual_aggregate_restore(FakeRecovery* fake, const RecoveryReques
     fake->actual_aggregate_restore                 = true;
     fake->aggregate_base_state                     = request.state;
     FakeAggregateFlow& flow                        = fake->aggregate_flow;
+    flow.dispatch_gate                             = fake->dispatch_gate;
     flow.binding                                   = aggregate_binding();
     flow.hold.size_bytes                           = sizeof(ObserverPublicationHoldEvidenceV1);
     flow.hold.version                              = kObserverPublicationHoldVersion;
@@ -981,6 +1019,7 @@ void configure_actual_aggregate_restore(FakeRecovery* fake, const RecoveryReques
     transport.read_hold         = &FakeAggregateFlow::read_hold;
     transport.claim_ownership   = &FakeAggregateFlow::claim_ownership;
     transport.release_ownership = &FakeAggregateFlow::release_ownership;
+    transport.dispatch_gate     = fake->dispatch_gate;
     ObserverPublicationHoldExpectationV1 expected_hold;
     expected_hold.owner_thread_id  = request.expected_identity.creator_thread_id;
     expected_hold.event_identity   = request.expected_identity.event_identity;
@@ -1018,6 +1057,7 @@ void configure_actual_aggregate_restore(FakeRecovery* fake, const RecoveryReques
     flow.hook.backend.revoke_cfg              = &FakeAggregateFlow::revoke_cfg_backend;
     flow.hook.backend.publish_original        = &FakeAggregateFlow::publish_original;
     flow.hook.backend.clear_original          = &FakeAggregateFlow::clear_original;
+    flow.hook.backend.dispatch_gate           = fake->dispatch_gate;
     HookInstallRequest install_request;
     install_request.module      = reinterpret_cast<void*>(flow.inspection.loaded_base);
     install_request.wrappers[0] = { flow.binding.lookup_wrapper, 0x100 };
@@ -1231,8 +1271,10 @@ void exercise_concurrent_abort(TestState& tests)
 {
     RecoveryRequest request = base_request();
     make_installed(&request);
-    FakeRecovery fake;
-    fake.block_action = RecoveryAction::RestoreKnownState;
+    ObserverDispatchGate gate;
+    FakeRecovery         fake;
+    fake.dispatch_gate = &gate;
+    fake.block_action  = RecoveryAction::RestoreKnownState;
     RecoveryCoordinator coordinator(request, fake.callbacks());
     fake.coordinator = &coordinator;
 
@@ -1245,7 +1287,8 @@ void exercise_concurrent_abort(TestState& tests)
         std::this_thread::yield();
     }
     tests.check(coordinator.owner_callback_active(), "owner callback is observable");
-    tests.check(coordinator.request_abort(), "concurrent abort wins atomically");
+    tests.check(coordinator.request_abort() && gate.abort_requested(),
+                "concurrent abort wins atomically");
     fake.release_callback.store(true, std::memory_order_release);
     owner.join();
 
@@ -1254,11 +1297,101 @@ void exercise_concurrent_abort(TestState& tests)
                 "abort winner is immediately visible");
     tests.check(outcome.operation_completed_after_abort &&
                     !outcome.continuation_authorized &&
-                    !fake.has(RecoveryAction::ReleaseRestoredResources),
+                    !fake.has(RecoveryAction::ReleaseRestoredResources) &&
+                    gate.active_admissions() == 0 && !gate.try_complete_success(),
                 "late owner callback cannot continue");
     finish_abort(&coordinator);
     tests.check(coordinator.outcome().terminal == RecoveryTerminal::Failed,
                 "concurrent abort remains failed");
+
+    RecoveryRequest      callback_abort_request = base_request();
+    ObserverDispatchGate callback_abort_gate;
+    FakeRecovery         callback_abort_fake;
+    callback_abort_fake.dispatch_gate       = &callback_abort_gate;
+    callback_abort_fake.abort_during_action = true;
+    RecoveryCoordinator callback_abort(callback_abort_request, callback_abort_fake.callbacks());
+    callback_abort.request_normal_completion();
+    const RecoveryOutcome callback_abort_outcome = callback_abort.outcome();
+    tests.check(callback_abort_gate.abort_requested() && callback_abort_outcome.abort_won &&
+                    callback_abort_outcome.operation_completed_after_abort &&
+                    !callback_abort_fake.has(RecoveryAction::ReleaseKnownEmptyPublicationOwner),
+                "callback gate abort stops later cleanup");
+    finish_abort(&callback_abort);
+
+    RecoveryRequest      success_request = base_request();
+    ObserverDispatchGate success_gate;
+    FakeRecovery         success_fake;
+    success_fake.dispatch_gate = &success_gate;
+    RecoveryCoordinator        success(success_request, success_fake.callbacks());
+    const RecoveryActionResult success_start = success.request_normal_completion();
+    const bool                 success_done  = complete_normal(&success, success_request);
+    tests.check(success_start == RecoveryActionResult::InFlight, "shared gate normal start");
+    tests.check(success.outcome().failure == RecoveryFailure::None,
+                "shared gate normal has no failure");
+    tests.check(success_fake.has(RecoveryAction::RequestOrderlyOwnerExit),
+                "shared gate orderly exit dispatched");
+    tests.check(success_gate.active_admissions() == 0,
+                "shared gate action admissions complete");
+    tests.check(success.outcome().phase == RecoveryPhase::Completed,
+                "shared gate reaches completed state");
+    tests.check(success_done, "shared gate normal completion");
+    tests.check(success.outcome().terminal == RecoveryTerminal::Succeeded,
+                "shared gate terminal success");
+    tests.check(success_gate.success_committed(), "shared gate success committed");
+    tests.check(!success_gate.request_abort(), "shared gate rejects abort after success");
+    tests.check(!success_gate.admit(), "shared gate rejects operation after success");
+}
+
+void exercise_integrated_aggregate_abort(TestState& tests)
+{
+    RecoveryRequest request = base_request();
+    make_installed(&request);
+    ObserverDispatchGate gate;
+    FakeRecovery         fake;
+    fake.dispatch_gate            = &gate;
+    fake.actual_aggregate_restore = true;
+    configure_actual_aggregate_restore(&fake, request);
+    FakeAggregateFlow& flow = fake.aggregate_flow;
+    flow.block_inner_write.store(true, std::memory_order_release);
+    const std::uint32_t publication_writes_before = flow.publication_writes;
+    RecoveryCoordinator coordinator(request, fake.callbacks());
+    fake.coordinator = &coordinator;
+
+    RecoveryActionResult owner_result = RecoveryActionResult::Refused;
+    std::thread          owner([&coordinator, &owner_result]
+                               {
+                          owner_result = coordinator.request_cancel();
+                               });
+    while (!flow.inner_write_entered.load(std::memory_order_acquire))
+    {
+        std::this_thread::yield();
+    }
+    const std::size_t active_before_abort = gate.active_admissions();
+    const bool        abort_won           = coordinator.request_abort();
+    flow.block_inner_write.store(false, std::memory_order_release);
+    flow.release_inner_write.store(true, std::memory_order_release);
+    owner.join();
+
+    const RecoveryOutcome outcome = coordinator.outcome();
+    tests.check(flow.dispatch_gate == &gate && flow.hook.backend.dispatch_gate == &gate &&
+                    flow.publication.transport.dispatch_gate == &gate && active_before_abort != 0 &&
+                    abort_won && gate.abort_requested(),
+                "integrated aggregate abort shares one gate");
+    tests.check(owner_result == RecoveryActionResult::Failed &&
+                    outcome.operation_completed_after_abort && !outcome.continuation_authorized &&
+                    !fake.has(RecoveryAction::ReleaseRestoredResources) &&
+                    !fake.has(RecoveryAction::ReleaseRestoredPublicationOwner),
+                "integrated aggregate abort blocks later recovery operations");
+    tests.check(flow.publication_writes == publication_writes_before + 1 &&
+                    (flow.record.flags & kObserverPublicationPublishedFlag) == 0 &&
+                    flow.record.lookup_original != 0 && flow.publication.unknown_side_effects &&
+                    flow.hook.unknown_side_effects,
+                "integrated aggregate abort retains completed inner field effect");
+    tests.check(flow.freed_storage == 0 && flow.released_modules == 0 &&
+                    flow.released_leases == 1 && flow.revoked_cfg == kHookEntryCount &&
+                    flow.hook.state == HookTransactionState::Retained &&
+                    gate.active_admissions() == 0,
+                "integrated aggregate abort refuses cleanup after inner mutation");
 }
 
 void exercise_identity_and_ownership(TestState& tests)
@@ -2672,6 +2805,7 @@ SelfTestReport run_recovery_self_tests()
     exercise_latches_and_snapshot(tests);
     exercise_all_proofs(tests);
     exercise_concurrent_abort(tests);
+    exercise_integrated_aggregate_abort(tests);
     exercise_identity_and_ownership(tests);
     exercise_empty_paths_and_retained(tests);
     exercise_current_revalidation(tests);
