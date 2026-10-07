@@ -171,6 +171,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Ferry scene inventory](resource/ferry-scene-inventory.md)
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
 - [Bounded SKL record and hierarchy framing](resource/skeleton-bone-framing.md)
+- [Bounded SKL constructor-pose transforms](resource/skeleton-constructor-pose.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Launcher startup patch addresses](resource/launcher-startup-patch-addresses.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
