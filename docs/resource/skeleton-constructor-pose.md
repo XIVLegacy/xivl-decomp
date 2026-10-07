@@ -201,6 +201,12 @@ The initial call at `0x00a412cf..0x00a412e3` requires the first runtime
 parent index to be negative, which this selected input satisfies.
 No arbitrary-skeleton ordering or reordering rule follows.
 
+The [Joint association finding](skeleton-joint-access.md) owns the construction-ordinal
+pose and output associations. The [affine inverse finding](skeleton-constructor-affine-inverse.md)
+owns the affine inverse algorithm applied to the first output matrix and
+its transfer to pose `[+0x40,+0x80)`. Bind or inverse-bind meaning remains
+unresolved.
+
 ## Complete selected accounting
 
 The established six ranges partition all `17812` selected bytes. Their
@@ -263,7 +269,7 @@ coverage or the alternative hierarchy calculation. Portable native
 floating-point parity remains unresolved. Serialized matrix
 blocks, authored bind pose, inverse-bind semantics, absolute world axes,
 handedness, units and actor placement remain unresolved. Mesh palettes,
-joint associations, skin weights, shader conventions, MTB channels,
+skin weights, shader conventions, MTB channels,
 actions, timing, interpolation, defaults, runtime selection, live rendering
 and visual parity were not established. Static instruction and structure
 checks do not imply those results.

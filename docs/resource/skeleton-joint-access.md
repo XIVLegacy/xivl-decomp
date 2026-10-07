@@ -4,7 +4,8 @@ The retail constructor associates each construction ordinal with one Joint,
 one pose record and one hierarchy-output record. The identified name lookup
 returns an unsigned 16-bit ordinal on exact byte-string equality and
 `0xffffffff` on its observed miss paths. An indexed-Joint accessor and a
-final-output getter or read-copy chain remain unresolved.
+runtime final-output getter remain unresolved. The constructor matrix
+transfer is established by the [affine inverse finding](skeleton-constructor-affine-inverse.md).
 
 ## Identity and method
 
@@ -170,9 +171,9 @@ No palette or inverse-bind interpretation follows from its stores.
 
 VA `0x00a41300..0x00a4134d` reads `J+0x10` into ECX, supplies a stack
 destination to direct callee `0x006522d0`, and transfers four returned
-16-byte blocks into pose `[+0x40,+0x80)`. That callee's body and extent
-are uninspected. A literal-copy, inverse-matrix or final-output-access
-contract is not established by the caller alone.
+16-byte blocks into pose `[+0x40,+0x80)`. The [affine inverse finding](skeleton-constructor-affine-inverse.md)
+establishes the callee's arithmetic and this constructor transfer. Runtime
+final-output getter access remains unresolved.
 
 The bounded walk `[0x00a3f770,0x00a3f79e)` iterates the Joint array in
 `0x1c` steps and calls `0x00a45f30`. The prior constructor-pose finding
@@ -181,8 +182,8 @@ The partial range `[0x00a3f6b0,0x00a3f756)` backs up pose and output
 bases by their prefix strides and reaches cleanup paths, including Joint
 slot `0` dispatch. It ends before branch target `0x00a3f75f`, so complete
 function behavior is not established. Neither range supplies final-output
-read access. No indexed-Joint return or final-output getter or read-copy
-chain is established within these inspected paths. The association
+read access. No indexed-Joint return or runtime final-output getter is
+established by these walks. The association
 equations do not authorize calling a direct memory read a retail getter.
 
 ## Reproduction and limits
