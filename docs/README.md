@@ -140,6 +140,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
 - [Bitmap font metric consumers](resource/bitmap-font-metric-consumers.md)
+- [Bitmap font runtime bridge consumers](resource/bitmap-font-runtime-bridge-consumers.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Large coffer action families](resource/coffer-action-families.md)
