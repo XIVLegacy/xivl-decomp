@@ -105,8 +105,11 @@ and the associated pointer read.
 The earlier window displays EBX zeroed at `0x00c6c214`. It also shows
 requests scaled by `4` and `2`, retained bases at receiver `+0x10` and
 `+0x14`, and corresponding dword and word initialization stores.
-The called allocation targets are uninspected. The instruction gap
-`[0x00c6c2c0,0x00c6c2cf)` and outgoing callees remain uninspected.
+The
+[pointer-initialization finding](skeleton-output-pointer-initialization.md)
+owns retained output-base and first-Joint pointer stores, the direct incoming
+receiver route and local EBX tracking across the filled instruction window.
+The called allocation targets and outgoing callees remain uninspected.
 Thus the comparisons above are reported against EBX as observed. A
 complete zero-sentinel, null-safety, signed-index-validation, allocation
 or ownership contract is not established.
