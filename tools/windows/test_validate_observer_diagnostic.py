@@ -134,6 +134,104 @@ def sample_trace() -> dict:
     )
 
 
+def sample_provenance_trace() -> dict:
+    trace = sample_trace()
+    query = next(row for row in trace["rows"] if row["kind"] == "query")
+    lookup = next(row for row in trace["rows"] if row["kind"] == "lookup")
+    query["service_guid"] = validator.TRANSLATION_SERVICE_GUID
+    query["iid"] = validator.TRANSLATION_IID
+    lookup["service_guid"] = validator.TRANSLATION_SERVICE_GUID
+    query["exit_sequence"] = 8
+    next(row for row in trace["rows"] if row["kind"] == "context_write")["sequence"] = 9
+    next(row for row in trace["rows"] if row["kind"] == "context_write")[
+        "exit_sequence"
+    ] = 10
+    next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )["sequence"] = 11
+    next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )["exit_sequence"] = 12
+    unknown_mapping = dict(
+        status="not_attempted",
+        kind="unknown",
+        base="0x0",
+        extent=0,
+        executable=False,
+        module=dict(
+            mapping_status="not_attempted",
+            resident_base="0x0",
+            resident_extent=0,
+            resident_path="",
+            architecture="",
+            backing_file_size=0,
+            backing_sha256="0" * 64,
+            binding_resident_base="0x0",
+            binding_resident_extent=0,
+            binding_file_size=0,
+            binding_file_sha256="0" * 64,
+            binding_lifetime_id=0,
+            binding_authority_id="",
+            binding_mechanism="",
+            binding_status="unknown",
+            binding_evidence=False,
+        ),
+    )
+    target_mapping = copy.deepcopy(unknown_mapping)
+    target_mapping.update(
+        status="read", kind="image", base="0x300", extent=0x1000, executable=True
+    )
+    target_mapping["module"].update(
+        mapping_status="read",
+        resident_base="0x300",
+        resident_extent=0x1000,
+        resident_path="C:\\synthetic\\provider.dll",
+        architecture="PE32",
+        backing_file_size=0x1000,
+        backing_sha256="5a" * 32,
+        binding_resident_base="0x300",
+        binding_resident_extent=0x1000,
+        binding_file_size=0x1000,
+        binding_file_sha256="5a" * 32,
+        binding_lifetime_id=0xA1,
+        binding_authority_id='synthetic"witness\n1',
+        binding_mechanism="injected-witness",
+        binding_status="bound",
+        binding_evidence=True,
+    )
+    query["provenance"] = dict(
+        status="accepted",
+        acquisition_begin_sequence=6,
+        acquisition_end_sequence=7,
+        lifetime_id=0xA1,
+        lifetime="retained",
+        coherence="coherent",
+        output_complete=True,
+        session_id=query["session_id"],
+        operation_id=query["operation_id"],
+        event_complete=query["event_complete"],
+        raw_debug_object=query["raw_debug_object"],
+        event_pid=query["event_pid"],
+        event_tid=query["event_tid"],
+        raw_generation=query["raw_generation"],
+        event_index=query["event_index"],
+        engine_generation_known=query["engine_generation_known"],
+        engine_generation=query["engine_generation"],
+        returned_interface=query["returned_interface"],
+        vtable=query["vtable"],
+        slot_plus_10_address=query["slot_plus_10_address"],
+        slot_plus_10_target=query["slot_plus_10_target"],
+        interface_mapping=unknown_mapping,
+        vtable_mapping=copy.deepcopy(unknown_mapping),
+        target_mapping=target_mapping,
+    )
+    return trace
+
+
 class TraceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.trace = (
@@ -262,6 +360,119 @@ class TraceTests(unittest.TestCase):
             )
         ]
         self.reject()
+
+    def test_strict_provenance_requires_selected_query(self) -> None:
+        with self.assertRaisesRegex(ValueError, "no qualified translation query"):
+            validator.validate_provenance(sample_trace())
+
+    def test_strict_provenance_accepts_synthetic_output(self) -> None:
+        trace = self.trace if TRACE_PATH is not None else sample_provenance_trace()
+        self.assertGreaterEqual(validator.validate_provenance(trace), 1)
+
+    def test_strict_provenance_rejects_target_binding_mutation(self) -> None:
+        trace = self.trace if TRACE_PATH is not None else sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["module"]["binding_status"] = "unbound"
+        with self.assertRaisesRegex(ValueError, "backing file"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_association_mutation(self) -> None:
+        trace = self.trace if TRACE_PATH is not None else sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["provenance"]["operation_id"] += 1
+        with self.assertRaisesRegex(ValueError, "operation mismatch"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_address_and_session_mutations(self) -> None:
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["provenance"]["slot_plus_10_target"] = "0x401"
+        with self.assertRaisesRegex(ValueError, "address mismatch"):
+            validator.validate_provenance(trace)
+
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["session_id"] += 1
+        with self.assertRaisesRegex(ValueError, "mixed sessions"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_unknown_or_unread_target(self) -> None:
+        for field, value, message in [
+            ("status", "not_attempted", "unread provenance mapping"),
+            ("kind", "unknown", "unknown claimed provenance mapping"),
+        ]:
+            with self.subTest(field=field):
+                trace = sample_provenance_trace()
+                target = next(row for row in trace["rows"] if row["kind"] == "query")[
+                    "provenance"
+                ]["target_mapping"]
+                target[field] = value
+                with self.assertRaisesRegex(ValueError, message):
+                    validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_changed_or_incomplete_evidence(self) -> None:
+        for field, value, message in [
+            ("coherence", "changed", "not coherent"),
+            ("output_complete", False, "incomplete query output"),
+            ("event_complete", False, "unknown event identity"),
+        ]:
+            with self.subTest(field=field):
+                trace = sample_provenance_trace()
+                query = next(row for row in trace["rows"] if row["kind"] == "query")
+                if field == "event_complete":
+                    query["provenance"][field] = value
+                else:
+                    query["provenance"][field] = value
+                with self.assertRaisesRegex(ValueError, message):
+                    validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_matching_incomplete_events(self) -> None:
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["event_complete"] = False
+        query["provenance"]["event_complete"] = False
+        query["incomplete"] = False
+        with self.assertRaisesRegex(ValueError, "unknown event identity"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_hash_only_or_zero_hash_binding(self) -> None:
+        trace = sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["module"]["binding_status"] = "unknown"
+        target["module"]["binding_evidence"] = False
+        with self.assertRaisesRegex(ValueError, "backing file"):
+            validator.validate_provenance(trace)
+
+        trace = sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["module"]["backing_sha256"] = "0" * 64
+        target["module"]["binding_file_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "invalid resident backing hash"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_non_x86_target_extent(self) -> None:
+        trace = sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["extent"] = 0xFFFFFFFFFFFFFFFF
+        target["module"]["resident_extent"] = 0xFFFFFFFFFFFFFFFF
+        target["module"]["binding_resident_extent"] = 0xFFFFFFFFFFFFFFFF
+        with self.assertRaisesRegex(ValueError, "non x86"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_duplicate_acquisition_sequence(self) -> None:
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["provenance"]["acquisition_begin_sequence"] = query["sequence"]
+        with self.assertRaisesRegex(ValueError, "duplicate provenance acquisition"):
+            validator.validate_provenance(trace)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_diagnostic.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <mutex>
@@ -69,9 +70,14 @@ struct FakeState
     bool                            throw_lookup             = false;
     bool                            throw_query              = false;
     bool                            throw_context            = false;
-    bool                            clear_during_lookup      = false;
-    bool                            clear_result             = false;
-    std::uint64_t                   publication_generation   = 0;
+    bool                            refuse_provenance        = false;
+    bool                            throw_provenance         = false;
+    bool                            provenance_reenter       = false;
+    bool                            provenance_reentered     = false;
+    std::atomic<std::uint32_t>      provenance_calls{ 0 };
+    bool                            clear_during_lookup    = false;
+    bool                            clear_result           = false;
+    std::uint64_t                   publication_generation = 0;
     Originals                       published_originals{};
 
     FakeState()
@@ -112,6 +118,20 @@ struct FakeState
         std::memcpy(native_context.data() + kContextEflagsOffset, &context.eflags, sizeof(context.eflags));
     }
 };
+
+GuidBytes windows_guid_bytes(
+    std::uint32_t               data1,
+    std::uint16_t               data2,
+    std::uint16_t               data3,
+    std::array<std::uint8_t, 8> tail)
+{
+    GuidBytes value;
+    std::memcpy(value.bytes.data(), &data1, sizeof(data1));
+    std::memcpy(value.bytes.data() + 4, &data2, sizeof(data2));
+    std::memcpy(value.bytes.data() + 6, &data3, sizeof(data3));
+    std::copy(tail.begin(), tail.end(), value.bytes.begin() + 8);
+    return value;
+}
 
 template <typename T>
 bool copy_region(std::uintptr_t address, const T* source, std::size_t source_size, void* destination, std::size_t size)
@@ -194,6 +214,73 @@ bool fake_resolve_identity(void* user, std::uintptr_t handle, TargetIdentity* va
     {
         g_fake_error = ErrorPair{ 0xEE, -0xEE };
     }
+    return true;
+}
+
+bool fake_collect_provenance(void* user, const QueryRow& query, QueryProvenanceEvidence* evidence)
+{
+    auto* state = static_cast<FakeState*>(user);
+    if (state == nullptr || evidence == nullptr)
+    {
+        return false;
+    }
+    ++state->provenance_calls;
+    g_fake_error = ErrorPair{ 0xED, -0xED };
+    if (state->throw_provenance)
+    {
+        throw std::runtime_error("fake provenance exception");
+    }
+    if (state->refuse_provenance)
+    {
+        return false;
+    }
+    if (state->provenance_reenter && !state->provenance_reentered && state->recorder != nullptr)
+    {
+        state->provenance_reentered = true;
+        void* nested_output         = nullptr;
+        state->recorder->forward_query(
+            reinterpret_cast<void*>(query.manager),
+            &state->service_guid,
+            &state->iid,
+            &nested_output);
+    }
+
+    evidence->output_complete            = true;
+    evidence->session_id                 = query.header.session_id;
+    evidence->operation_id               = query.header.operation_id;
+    evidence->event                      = query.header.event;
+    evidence->returned_interface         = query.returned_interface;
+    evidence->vtable                     = query.vtable;
+    evidence->slot_plus_10_address       = query.slot_plus_10_address;
+    evidence->slot_plus_10_target        = query.slot_plus_10_target;
+    evidence->lifetime_id                = 0xA1;
+    evidence->lifetime                   = QueryProvenanceLifetime::Retained;
+    evidence->coherence                  = QueryProvenanceCoherence::Coherent;
+    evidence->acquisition_begin_sequence = 0xFFFFFFFFFFFFFFFFull;
+    evidence->acquisition_end_sequence   = 0xFFFFFFFFFFFFFFFFull;
+
+    QueryProvenanceMapping& target_mapping  = evidence->target_mapping;
+    target_mapping.status                   = ObservationStatus::Read;
+    target_mapping.kind                     = QueryProvenanceMappingKind::Image;
+    target_mapping.base                     = 0x3000;
+    target_mapping.extent                   = 0x1000;
+    target_mapping.executable               = true;
+    target_mapping.module.mapping_status    = ObservationStatus::Read;
+    target_mapping.module.resident_base     = target_mapping.base;
+    target_mapping.module.resident_extent   = target_mapping.extent;
+    target_mapping.module.resident_path     = "C:\\synthetic\\provider.dll";
+    target_mapping.module.architecture      = "PE32";
+    target_mapping.module.backing_file_size = 0x1000;
+    target_mapping.module.backing_sha256.fill(0x5A);
+    target_mapping.module.binding_resident_base   = target_mapping.module.resident_base;
+    target_mapping.module.binding_resident_extent = target_mapping.module.resident_extent;
+    target_mapping.module.binding_file_size       = target_mapping.module.backing_file_size;
+    target_mapping.module.binding_file_sha256     = target_mapping.module.backing_sha256;
+    target_mapping.module.binding_lifetime_id     = evidence->lifetime_id;
+    target_mapping.module.binding_authority_id    = "synthetic\"witness\n1";
+    target_mapping.module.binding_mechanism       = "injected-witness";
+    target_mapping.module.binding_status          = QueryProvenanceBindingStatus::Bound;
+    target_mapping.module.binding_evidence        = true;
     return true;
 }
 
@@ -307,20 +394,21 @@ std::uintptr_t stack_pointer()
 }
 #endif
 
-RecorderConfig fake_config(FakeState* state)
+RecorderConfig fake_config(FakeState* state, bool with_provenance = false)
 {
     RecorderConfig config;
-    config.session_id                        = 0xABCD;
-    config.max_rows                          = 256;
-    config.callbacks.user                    = state;
-    config.callbacks.read_memory             = fake_read_memory;
-    config.callbacks.read_error_pair         = fake_read_error;
-    config.callbacks.write_error_pair        = fake_write_error;
-    config.callbacks.read_thread_id          = fake_thread_id;
-    config.callbacks.resolve_target_identity = fake_resolve_identity;
-    config.originals.lookup                  = fake_lookup;
-    config.originals.query                   = fake_query;
-    config.originals.context_write           = fake_context_write;
+    config.session_id                         = 0xABCD;
+    config.max_rows                           = 256;
+    config.callbacks.user                     = state;
+    config.callbacks.read_memory              = fake_read_memory;
+    config.callbacks.read_error_pair          = fake_read_error;
+    config.callbacks.write_error_pair         = fake_write_error;
+    config.callbacks.read_thread_id           = fake_thread_id;
+    config.callbacks.resolve_target_identity  = fake_resolve_identity;
+    config.callbacks.collect_query_provenance = with_provenance ? fake_collect_provenance : nullptr;
+    config.originals.lookup                   = fake_lookup;
+    config.originals.query                    = fake_query;
+    config.originals.context_write            = fake_context_write;
     return config;
 }
 
@@ -719,6 +807,146 @@ void exercise_exceptions_and_concurrency(TestState& tests)
     g_fake_state = nullptr;
 }
 
+void exercise_query_provenance(TestState& tests)
+{
+    FakeState       state;
+    const GuidBytes expected_service = windows_guid_bytes(
+        0xAE987DC0u,
+        0x7D24u,
+        0x4C33u,
+        { 0xA5, 0xA6, 0x31, 0x2D, 0x96, 0x19, 0x2C, 0x8E });
+    const GuidBytes expected_iid = windows_guid_bytes(
+        0xBE5E232Cu,
+        0x1D4Bu,
+        0x4983u,
+        { 0xA5, 0x20, 0x38, 0x3D, 0xA8, 0x65, 0xDA, 0x1C });
+    tests.check(kTranslationServiceGuid.bytes == expected_service.bytes, "service GUID raw bytes");
+    tests.check(kTranslationIid.bytes == expected_iid.bytes, "IID raw bytes");
+    state.service_guid = expected_service;
+    state.iid          = expected_iid;
+    Recorder recorder(fake_config(&state, true));
+    state.recorder   = &recorder;
+    g_fake_state     = &state;
+    g_fake_thread_id = 77;
+    tests.check(recorder.admit_pending_event(event_identity()) == PendingEventStatus::Admitted, "provenance admit");
+
+    void* output = nullptr;
+    g_fake_error = ErrorPair{ 0x51, -51 };
+    tests.check(recorder.forward_query(&state, &state.service_guid, &state.iid, &output) == 0, "provenance query result");
+    const QueryRow accepted = recorder.query_rows().back();
+    tests.check(accepted.provenance.status == QueryProvenanceStatus::Accepted, "provenance accepted");
+    tests.check(accepted.provenance.output_complete, "provenance output complete");
+    tests.check(accepted.provenance.session_id == accepted.header.session_id, "provenance session binding");
+    tests.check(accepted.provenance.operation_id == accepted.header.operation_id, "provenance operation binding");
+    tests.check(accepted.provenance.event.raw_generation == accepted.header.event.raw_generation, "provenance event binding");
+    tests.check(
+        accepted.provenance.acquisition_begin_sequence != std::numeric_limits<std::uint64_t>::max() &&
+            accepted.provenance.acquisition_begin_sequence < accepted.provenance.acquisition_end_sequence,
+        "provenance acquisition stamps authoritative");
+    tests.check(accepted.provenance.interface_mapping.status == ObservationStatus::NotAttempted, "unknown interface mapping preserved");
+    tests.check(accepted.provenance.vtable_mapping.status == ObservationStatus::NotAttempted, "unknown vtable mapping preserved");
+    tests.check(accepted.header.returned_error.last_error == 0x30 && accepted.header.returned_error.last_status == -30, "provenance returned errors");
+    tests.check(query_provenance_qualified(accepted), "provenance strict qualification");
+    tests.check(state.provenance_calls.load() == 1, "provenance callback count");
+
+    QueryRow tampered = accepted;
+    tampered.provenance.operation_id += 1;
+    tests.check(!query_provenance_qualified(tampered), "provenance operation tamper refused");
+    tampered                                                 = accepted;
+    tampered.provenance.target_mapping.module.binding_status = QueryProvenanceBindingStatus::Unbound;
+    tests.check(!query_provenance_qualified(tampered), "provenance unbound target refused");
+    tampered                                  = accepted;
+    tampered.provenance.target_mapping.status = ObservationStatus::ReadRefused;
+    tests.check(!query_provenance_qualified(tampered), "provenance unread target refused");
+    tampered                                = accepted;
+    tampered.provenance.target_mapping.kind = QueryProvenanceMappingKind::Unknown;
+    tests.check(!query_provenance_qualified(tampered), "provenance unknown target mapping refused");
+    tampered                      = accepted;
+    tampered.provenance.coherence = QueryProvenanceCoherence::Changed;
+    tests.check(!query_provenance_qualified(tampered), "provenance changed coherence refused");
+    tampered                            = accepted;
+    tampered.provenance.output_complete = false;
+    tests.check(!query_provenance_qualified(tampered), "provenance incomplete output refused");
+    tampered                           = accepted;
+    tampered.provenance.event.complete = false;
+    tampered.header.incomplete         = false;
+    tests.check(!query_provenance_qualified(tampered), "provenance incomplete event refused");
+    tampered                           = accepted;
+    tampered.header.event.complete     = false;
+    tampered.provenance.event.complete = false;
+    tampered.header.incomplete         = false;
+    tests.check(!query_provenance_qualified(tampered), "matching incomplete events refused");
+    tampered = accepted;
+    tampered.header.session_id += 1;
+    tests.check(!query_provenance_qualified(tampered), "provenance session tamper refused");
+    tampered = accepted;
+    tampered.returned_interface += 1;
+    tests.check(!query_provenance_qualified(tampered), "provenance address tamper refused");
+    tampered                                     = accepted;
+    tampered.provenance.interface_mapping.status = ObservationStatus::Read;
+    tampered.provenance.interface_mapping.kind   = QueryProvenanceMappingKind::Allocation;
+    tests.check(!query_provenance_qualified(tampered), "provenance malformed known object mapping refused");
+    tampered                                  = accepted;
+    tampered.provenance.target_mapping.extent = std::numeric_limits<std::uint64_t>::max();
+    tests.check(!query_provenance_qualified(tampered), "provenance wrapping target mapping refused");
+    tampered = accepted;
+    tampered.provenance.target_mapping.module.backing_sha256.fill(0);
+    tampered.provenance.target_mapping.module.binding_file_sha256.fill(0);
+    tests.check(!query_provenance_qualified(tampered), "provenance zero target hash refused");
+    tampered                                               = accepted;
+    tampered.provenance.target_mapping.module.architecture = "x64";
+    tests.check(!query_provenance_qualified(tampered), "provenance unsupported target architecture refused");
+    tampered                             = accepted;
+    tampered.header.returned_error_known = false;
+    tests.check(!query_provenance_qualified(tampered), "provenance unknown returned error refused");
+
+    state.query_result                      = -1;
+    const std::uint32_t calls_before_failed = state.provenance_calls.load();
+    void*               untouched           = reinterpret_cast<void*>(0x9999);
+    recorder.forward_query(&state, &state.service_guid, &state.iid, &untouched);
+    const QueryRow failed = recorder.query_rows().back();
+    tests.check(failed.provenance.status == QueryProvenanceStatus::NotAttempted, "failed query no provenance acquisition");
+    tests.check(state.provenance_calls.load() == calls_before_failed, "failed query callback skipped");
+    tests.check(untouched == reinterpret_cast<void*>(0x9999), "failed query output preserved");
+
+    state.query_result = 0;
+    state.output_value = nullptr;
+    recorder.forward_query(&state, &state.service_guid, &state.iid, &untouched);
+    const QueryRow null_output = recorder.query_rows().back();
+    tests.check(null_output.provenance.status == QueryProvenanceStatus::NotAttempted, "null query no provenance acquisition");
+
+    state.output_value      = state.interface_bytes.data();
+    state.refuse_provenance = true;
+    g_fake_error            = ErrorPair{ 0x52, -52 };
+    recorder.forward_query(&state, &state.service_guid, &state.iid, &output);
+    const QueryRow refused = recorder.query_rows().back();
+    tests.check(refused.provenance.status == QueryProvenanceStatus::Refused && refused.header.incomplete, "provenance refusal retained");
+    tests.check(g_fake_error.last_error == 0x30 && g_fake_error.last_status == -30, "provenance refusal errors restored");
+
+    state.refuse_provenance = false;
+    state.throw_provenance  = true;
+    recorder.forward_query(&state, &state.service_guid, &state.iid, &output);
+    const QueryRow exception = recorder.query_rows().back();
+    tests.check(exception.provenance.status == QueryProvenanceStatus::Exception && exception.header.incomplete, "provenance exception retained");
+    tests.check(g_fake_error.last_error == 0x30 && g_fake_error.last_status == -30, "provenance exception errors restored");
+
+    state.throw_provenance           = false;
+    state.provenance_reenter         = true;
+    const std::size_t before_overlap = recorder.query_rows().size();
+    recorder.forward_query(&state, &state.service_guid, &state.iid, &output);
+    const std::vector<QueryRow> overlap_rows = recorder.query_rows();
+    tests.check(overlap_rows.size() == before_overlap + 2, "overlapping provenance query rows");
+    const QueryRow& outer  = overlap_rows[overlap_rows.size() - 2];
+    const QueryRow& nested = overlap_rows.back();
+    tests.check(outer.header.operation_id != nested.header.operation_id, "overlapping provenance operation IDs");
+    tests.check(outer.header.sequence < nested.header.sequence && nested.header.exit_sequence < outer.header.exit_sequence, "overlapping provenance order");
+    tests.check(outer.provenance.operation_id == outer.header.operation_id && nested.provenance.operation_id == nested.header.operation_id, "overlapping provenance associations");
+    tests.check(query_provenance_qualified(outer) && query_provenance_qualified(nested), "overlapping provenance qualification");
+
+    tests.check(recorder.close_pending_event(event_identity()) == PendingEventStatus::Closed, "provenance close");
+    g_fake_state = nullptr;
+}
+
 } // namespace
 
 SelfTestReport run_self_tests()
@@ -729,6 +957,7 @@ SelfTestReport run_self_tests()
     exercise_identity_gaps(tests);
     exercise_pending_and_overflow(tests);
     exercise_exceptions_and_concurrency(tests);
+    exercise_query_provenance(tests);
     exercise_passthrough(tests);
     tests.report.passed = tests.report.failures == 0;
     std::ostringstream summary;
@@ -744,7 +973,9 @@ SelfTestReport run_self_tests()
 std::string make_synthetic_trace()
 {
     FakeState state;
-    Recorder  recorder(fake_config(&state));
+    state.service_guid = kTranslationServiceGuid;
+    state.iid          = kTranslationIid;
+    Recorder recorder(fake_config(&state, true));
     state.recorder   = &recorder;
     g_fake_state     = &state;
     g_fake_thread_id = 77;

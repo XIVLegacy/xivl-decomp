@@ -30,6 +30,7 @@ C:\scratch\observer-build\Release\observer_runtime_check.exe --self-test
 C:\scratch\observer-build\Release\observer_runtime_check.exe --bridge-output C:\scratch\observer-bridge.json
 C:\scratch\observer-build\Release\observer_diagnostic_check.exe --synthetic-output C:\scratch\observer-synthetic.json
 python tools/windows/validate_observer_diagnostic.py --trace C:\scratch\observer-synthetic.json
+python tools/windows/validate_observer_diagnostic.py --trace C:\scratch\observer-synthetic.json --strict-provenance
 python tools/windows/test_validate_observer_diagnostic.py --trace C:\scratch\observer-synthetic.json
 python tools/windows/test_observer_hook_plan.py
 ```
@@ -44,6 +45,49 @@ interface pointers, real x86 CONTEXT field offsets, refused reads, exceptions,
 overflow, reentry and concurrent forwarding. They do not run a native context API. The offline
 validator rejects incomplete samples and malformed event joins. Validator
 acceptance establishes this synthetic record contract only.
+
+## Query-bound provenance
+
+`QueryRow` can carry evidence from an injected
+`QueryProvenanceCollector`. The collector runs after a successful query has
+returned and the interface, vtable and slot `+0x10` reads have completed. It
+receives query return observations and records the exact session, operation,
+event, returned interface, vtable and slot target. Its acquisition interval
+uses the recorder's common sequence source and records the observed lifetime
+and read coherence. The recorder assigns the authoritative exit stamp and
+restores the returned error pair after collection, so the callback cannot
+qualify the final row itself. `output_complete` means that the collector
+completed its own evidence capture; it does not report row persistence or
+writer success.
+
+The evidence preserves mapping observations for the returned interface, vtable
+and setter target. Interface and vtable mappings may remain explicitly unknown
+when no mapping reader was used, or may be reported as allocations. A selected
+target requires an executable image mapping, resident base and extent, path,
+supported PE32/I386 architecture, backing file size and nonzero SHA-256, plus
+explicit evidence binding that file to the resident image. The binding carries
+an authority identifier and mechanism, and a lifetime identifier that ties the
+binding to the resident/file tuple for the acquisition interval. A path or
+matching hash without that binding is refused. Unread, changed, mismatched or
+incomplete evidence stays in the query row and cannot qualify.
+
+The fake provider uses the synthetic absolute path
+`C:\synthetic\provider.dll` as injected evidence; it is never opened or
+resolved by this component. The authority and lifetime fields describe that
+injected witness only and do not establish native identity.
+
+The strict validator accepts only the exact translation service GUID
+`AE987DC0-7D24-4C33-A5A6-312D96192C8E` and IID
+`BE5E232C-1D4B-4983-A520-383DA865DA1C`. Other queries may be retained as raw
+observations, but they do not satisfy this selected profile. The collector is
+optional, so existing forwarding remains available with unknown provenance
+when no callback is installed. Callback refusal or exception leaves the row
+incomplete and does not change the forwarded result or error pair.
+
+`--strict-provenance` checks this injected evidence and still reports native
+qualification as unsupported. Synthetic output always keeps
+`live_coverage` set to `incomplete`; no native reader, engine load, process or
+context query, live command or capture is provided by this profile.
 
 ## Adapter contract
 

@@ -53,6 +53,10 @@ struct GuidBytes
     std::array<std::uint8_t, 16> bytes{};
 };
 
+// Windows GUID fields are stored little-endian for Data1, Data2 and Data3.
+constexpr GuidBytes kTranslationServiceGuid{ { 0xC0, 0x7D, 0x98, 0xAE, 0x24, 0x7D, 0x33, 0x4C, 0xA5, 0xA6, 0x31, 0x2D, 0x96, 0x19, 0x2C, 0x8E } };
+constexpr GuidBytes kTranslationIid{ { 0x2C, 0x23, 0x5E, 0xBE, 0x4B, 0x1D, 0x83, 0x49, 0xA5, 0x20, 0x38, 0x3D, 0xA8, 0x65, 0xDA, 0x1C } };
+
 struct ErrorPair
 {
     std::uint32_t last_error  = 0;
@@ -79,6 +83,10 @@ struct TargetIdentity
     std::uint32_t thread_id    = 0;
 };
 
+struct QueryRow;
+struct QueryProvenanceEvidence;
+using QueryProvenanceCollector = bool (*)(void* user, const QueryRow& query, QueryProvenanceEvidence* evidence);
+
 using MemoryReader         = bool (*)(void* user, std::uintptr_t address, void* destination, std::size_t size);
 using ErrorReader          = bool (*)(void* user, ErrorPair* value);
 using ErrorWriter          = bool (*)(void* user, const ErrorPair* value);
@@ -87,12 +95,13 @@ using TargetIdentityReader = bool (*)(void* user, std::uintptr_t handle, TargetI
 
 struct Callbacks
 {
-    void*                user                    = nullptr;
-    MemoryReader         read_memory             = nullptr;
-    ErrorReader          read_error_pair         = nullptr;
-    ErrorWriter          write_error_pair        = nullptr;
-    ThreadIdReader       read_thread_id          = nullptr;
-    TargetIdentityReader resolve_target_identity = nullptr;
+    void*                    user                     = nullptr;
+    MemoryReader             read_memory              = nullptr;
+    ErrorReader              read_error_pair          = nullptr;
+    ErrorWriter              write_error_pair         = nullptr;
+    ThreadIdReader           read_thread_id           = nullptr;
+    TargetIdentityReader     resolve_target_identity  = nullptr;
+    QueryProvenanceCollector collect_query_provenance = nullptr;
 };
 
 using LookupOriginal = void*(XIVL_OBSERVER_FASTCALL*)(void* manager, void* ignored_edx, const GuidBytes* service_guid);
@@ -219,6 +228,98 @@ struct EventIdentity
     std::uint64_t  engine_generation       = 0;
 };
 
+enum class QueryProvenanceStatus : std::uint8_t
+{
+    NotAttempted,
+    Accepted,
+    Refused,
+    Exception,
+};
+
+enum class QueryProvenanceMappingKind : std::uint8_t
+{
+    Unknown,
+    Allocation,
+    Image,
+};
+
+enum class QueryProvenanceCoherence : std::uint8_t
+{
+    Unknown,
+    Coherent,
+    Changed,
+    ReadRefused,
+};
+
+enum class QueryProvenanceLifetime : std::uint8_t
+{
+    Unknown,
+    Retained,
+    Ended,
+    Changed,
+};
+
+enum class QueryProvenanceBindingStatus : std::uint8_t
+{
+    Unknown,
+    Bound,
+    Unbound,
+    Mismatch,
+};
+
+struct QueryProvenanceModule
+{
+    ObservationStatus            mapping_status  = ObservationStatus::NotAttempted;
+    std::uintptr_t               resident_base   = 0;
+    std::uint64_t                resident_extent = 0;
+    std::string                  resident_path;
+    std::string                  architecture;
+    std::uint64_t                backing_file_size = 0;
+    std::array<std::uint8_t, 32> backing_sha256{};
+    std::uintptr_t               binding_resident_base   = 0;
+    std::uint64_t                binding_resident_extent = 0;
+    std::uint64_t                binding_file_size       = 0;
+    std::array<std::uint8_t, 32> binding_file_sha256{};
+    std::uint64_t                binding_lifetime_id = 0;
+    std::string                  binding_authority_id;
+    std::string                  binding_mechanism;
+    QueryProvenanceBindingStatus binding_status   = QueryProvenanceBindingStatus::Unknown;
+    bool                         binding_evidence = false;
+};
+
+struct QueryProvenanceMapping
+{
+    ObservationStatus          status     = ObservationStatus::NotAttempted;
+    QueryProvenanceMappingKind kind       = QueryProvenanceMappingKind::Unknown;
+    std::uintptr_t             base       = 0;
+    std::uint64_t              extent     = 0;
+    bool                       executable = false;
+    QueryProvenanceModule      module{};
+};
+
+struct QueryProvenanceEvidence
+{
+    QueryProvenanceStatus    status                     = QueryProvenanceStatus::NotAttempted;
+    std::uint64_t            acquisition_begin_sequence = 0;
+    std::uint64_t            acquisition_end_sequence   = 0;
+    std::uint64_t            lifetime_id                = 0;
+    QueryProvenanceLifetime  lifetime                   = QueryProvenanceLifetime::Unknown;
+    QueryProvenanceCoherence coherence                  = QueryProvenanceCoherence::Unknown;
+    bool                     output_complete            = false;
+
+    std::uint64_t  session_id   = 0;
+    std::uint64_t  operation_id = 0;
+    EventIdentity  event{};
+    std::uintptr_t returned_interface   = 0;
+    std::uintptr_t vtable               = 0;
+    std::uintptr_t slot_plus_10_address = 0;
+    std::uintptr_t slot_plus_10_target  = 0;
+
+    QueryProvenanceMapping interface_mapping{};
+    QueryProvenanceMapping vtable_mapping{};
+    QueryProvenanceMapping target_mapping{};
+};
+
 struct RowHeader
 {
     std::uint64_t sequence            = 0;
@@ -257,26 +358,27 @@ struct SelectedRecordRow
 
 struct QueryRow
 {
-    RowHeader         header{};
-    std::uintptr_t    manager              = 0;
-    std::uintptr_t    service_guid_pointer = 0;
-    std::uintptr_t    iid_pointer          = 0;
-    std::uintptr_t    output_slot          = 0;
-    GuidBytes         service_guid{};
-    GuidBytes         iid{};
-    ObservationStatus service_guid_status            = ObservationStatus::NotAttempted;
-    ObservationStatus iid_status                     = ObservationStatus::NotAttempted;
-    Hresult           result                         = 0;
-    std::uintptr_t    returned_interface             = 0;
-    ObservationStatus returned_interface_status      = ObservationStatus::NotAttempted;
-    std::uintptr_t    vtable                         = 0;
-    ObservationStatus vtable_status                  = ObservationStatus::NotAttempted;
-    std::uintptr_t    slot_plus_10_address           = 0;
-    std::uintptr_t    slot_plus_10_target            = 0;
-    ObservationStatus slot_plus_10_status            = ObservationStatus::NotAttempted;
-    bool              successful_interface_qualified = false;
-    std::uintptr_t    original_target                = 0;
-    bool              call_completed                 = false;
+    RowHeader               header{};
+    std::uintptr_t          manager              = 0;
+    std::uintptr_t          service_guid_pointer = 0;
+    std::uintptr_t          iid_pointer          = 0;
+    std::uintptr_t          output_slot          = 0;
+    GuidBytes               service_guid{};
+    GuidBytes               iid{};
+    ObservationStatus       service_guid_status            = ObservationStatus::NotAttempted;
+    ObservationStatus       iid_status                     = ObservationStatus::NotAttempted;
+    Hresult                 result                         = 0;
+    std::uintptr_t          returned_interface             = 0;
+    ObservationStatus       returned_interface_status      = ObservationStatus::NotAttempted;
+    std::uintptr_t          vtable                         = 0;
+    ObservationStatus       vtable_status                  = ObservationStatus::NotAttempted;
+    std::uintptr_t          slot_plus_10_address           = 0;
+    std::uintptr_t          slot_plus_10_target            = 0;
+    ObservationStatus       slot_plus_10_status            = ObservationStatus::NotAttempted;
+    bool                    successful_interface_qualified = false;
+    std::uintptr_t          original_target                = 0;
+    bool                    call_completed                 = false;
+    QueryProvenanceEvidence provenance{};
 };
 
 struct ContextWriteRow
@@ -382,6 +484,7 @@ private:
     bool          write_error(const ErrorPair& value) const;
     std::uint32_t thread_id() const;
     bool          resolve_target(std::uintptr_t handle, TargetIdentity* identity) const;
+    void          collect_query_provenance(QueryRow& row);
 
     mutable std::mutex           mutex_;
     std::uint64_t                session_id_ = 1;
@@ -405,6 +508,7 @@ BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* conte
 
 SelfTestReport run_self_tests();
 std::string    make_synthetic_trace();
+bool           query_provenance_qualified(const QueryRow& row);
 
 } // namespace xivl::observer_diagnostic
 

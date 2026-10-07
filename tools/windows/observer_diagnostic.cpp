@@ -7,6 +7,7 @@
 #include <limits>
 #include <sstream>
 #include <type_traits>
+#include <utility>
 
 namespace xivl::observer_diagnostic
 {
@@ -188,6 +189,84 @@ const char* pending_name(PendingEventStatus status)
     return "unknown";
 }
 
+const char* provenance_status_name(QueryProvenanceStatus status)
+{
+    switch (status)
+    {
+        case QueryProvenanceStatus::NotAttempted:
+            return "not_attempted";
+        case QueryProvenanceStatus::Accepted:
+            return "accepted";
+        case QueryProvenanceStatus::Refused:
+            return "refused";
+        case QueryProvenanceStatus::Exception:
+            return "exception";
+    }
+    return "unknown";
+}
+
+const char* provenance_mapping_kind_name(QueryProvenanceMappingKind kind)
+{
+    switch (kind)
+    {
+        case QueryProvenanceMappingKind::Unknown:
+            return "unknown";
+        case QueryProvenanceMappingKind::Allocation:
+            return "allocation";
+        case QueryProvenanceMappingKind::Image:
+            return "image";
+    }
+    return "unknown";
+}
+
+const char* provenance_coherence_name(QueryProvenanceCoherence coherence)
+{
+    switch (coherence)
+    {
+        case QueryProvenanceCoherence::Unknown:
+            return "unknown";
+        case QueryProvenanceCoherence::Coherent:
+            return "coherent";
+        case QueryProvenanceCoherence::Changed:
+            return "changed";
+        case QueryProvenanceCoherence::ReadRefused:
+            return "read_refused";
+    }
+    return "unknown";
+}
+
+const char* provenance_lifetime_name(QueryProvenanceLifetime lifetime)
+{
+    switch (lifetime)
+    {
+        case QueryProvenanceLifetime::Unknown:
+            return "unknown";
+        case QueryProvenanceLifetime::Retained:
+            return "retained";
+        case QueryProvenanceLifetime::Ended:
+            return "ended";
+        case QueryProvenanceLifetime::Changed:
+            return "changed";
+    }
+    return "unknown";
+}
+
+const char* provenance_binding_name(QueryProvenanceBindingStatus status)
+{
+    switch (status)
+    {
+        case QueryProvenanceBindingStatus::Unknown:
+            return "unknown";
+        case QueryProvenanceBindingStatus::Bound:
+            return "bound";
+        case QueryProvenanceBindingStatus::Unbound:
+            return "unbound";
+        case QueryProvenanceBindingStatus::Mismatch:
+            return "mismatch";
+    }
+    return "unknown";
+}
+
 std::string hex_value(std::uintptr_t value)
 {
     std::ostringstream stream;
@@ -204,6 +283,117 @@ std::string guid_value(const GuidBytes& guid)
         stream << std::setw(2) << static_cast<unsigned int>(byte);
     }
     return stream.str();
+}
+
+std::string bytes_value(const std::array<std::uint8_t, 32>& bytes)
+{
+    std::ostringstream stream;
+    stream << '"' << std::hex << std::setfill('0');
+    for (const std::uint8_t byte : bytes)
+    {
+        stream << std::setw(2) << static_cast<unsigned int>(byte);
+    }
+    stream << '"';
+    return stream.str();
+}
+
+std::string json_string(const std::string& value)
+{
+    std::ostringstream stream;
+    stream << std::setfill('0') << '"';
+    for (const unsigned char character : value)
+    {
+        switch (character)
+        {
+            case '"':
+                stream << "\\\"";
+                break;
+            case '\\':
+                stream << "\\\\";
+                break;
+            case '\b':
+                stream << "\\b";
+                break;
+            case '\f':
+                stream << "\\f";
+                break;
+            case '\n':
+                stream << "\\n";
+                break;
+            case '\r':
+                stream << "\\r";
+                break;
+            case '\t':
+                stream << "\\t";
+                break;
+            default:
+                if (character < 0x20)
+                {
+                    stream << "\\u00" << std::hex << std::setw(2) << static_cast<unsigned int>(character);
+                }
+                else
+                {
+                    stream << character;
+                }
+                break;
+        }
+    }
+    stream << '"';
+    return stream.str();
+}
+
+constexpr std::uint64_t kX86AddressLimit = std::uint64_t{ 1 } << 32;
+
+bool mapping_extent_is_valid(std::uintptr_t base, std::uint64_t extent)
+{
+    return base != 0 && base <= std::numeric_limits<std::uint32_t>::max() && extent != 0 &&
+           extent <= kX86AddressLimit - static_cast<std::uint64_t>(base);
+}
+
+bool mapping_contains(const QueryProvenanceMapping& mapping, std::uintptr_t address)
+{
+    return mapping.status == ObservationStatus::Read && mapping.kind != QueryProvenanceMappingKind::Unknown &&
+           mapping_extent_is_valid(mapping.base, mapping.extent) && address >= mapping.base &&
+           address - mapping.base < mapping.extent;
+}
+
+bool mapping_is_explicitly_unknown(const QueryProvenanceMapping& mapping)
+{
+    return mapping.status == ObservationStatus::NotAttempted && mapping.kind == QueryProvenanceMappingKind::Unknown &&
+           mapping.base == 0 && mapping.extent == 0 && !mapping.executable;
+}
+
+bool object_mapping_is_qualified(const QueryProvenanceMapping& mapping, std::uintptr_t address)
+{
+    return mapping_is_explicitly_unknown(mapping) || mapping_contains(mapping, address);
+}
+
+bool nonzero_hash(const std::array<std::uint8_t, 32>& hash)
+{
+    return std::any_of(hash.begin(), hash.end(), [](std::uint8_t byte)
+                       {
+                           return byte != 0;
+                       });
+}
+
+bool same_guid(const GuidBytes& left, const GuidBytes& right)
+{
+    return left.bytes == right.bytes;
+}
+
+bool module_binding_is_qualified(const QueryProvenanceMapping& mapping, std::uintptr_t address, std::uint64_t lifetime_id)
+{
+    const QueryProvenanceModule& module = mapping.module;
+    return mapping_contains(mapping, address) && mapping.kind == QueryProvenanceMappingKind::Image && mapping.executable &&
+           module.mapping_status == ObservationStatus::Read && mapping_extent_is_valid(module.resident_base, module.resident_extent) &&
+           !module.resident_path.empty() && (module.architecture == "PE32" || module.architecture == "I386") &&
+           module.backing_file_size != 0 &&
+           nonzero_hash(module.backing_sha256) && module.binding_status == QueryProvenanceBindingStatus::Bound &&
+           module.binding_evidence && module.binding_lifetime_id == lifetime_id && !module.binding_authority_id.empty() &&
+           !module.binding_mechanism.empty() && module.resident_base == mapping.base && module.resident_extent == mapping.extent &&
+           module.binding_resident_base == module.resident_base && module.binding_resident_extent == module.resident_extent &&
+           module.binding_file_size == module.backing_file_size && nonzero_hash(module.binding_file_sha256) &&
+           module.binding_file_sha256 == module.backing_sha256;
 }
 
 void serialize_header(std::ostringstream& stream, const RowHeader& header)
@@ -233,6 +423,67 @@ void serialize_header(std::ostringstream& stream, const RowHeader& header)
     stream << ",\"engine_generation_known\":"
            << (header.event.engine_generation_known ? "true" : "false");
     stream << ",\"engine_generation\":" << header.event.engine_generation;
+}
+
+void serialize_provenance_mapping(std::ostringstream& stream, const QueryProvenanceMapping& mapping)
+{
+    stream << "{\"status\":\"" << observation_name(mapping.status) << '\"';
+    stream << ",\"kind\":\"" << provenance_mapping_kind_name(mapping.kind) << '\"';
+    stream << ",\"base\":" << hex_value(mapping.base);
+    stream << ",\"extent\":" << mapping.extent;
+    stream << ",\"executable\":" << (mapping.executable ? "true" : "false");
+    stream << ",\"module\":{";
+    stream << "\"mapping_status\":\"" << observation_name(mapping.module.mapping_status) << '\"';
+    stream << ",\"resident_base\":" << hex_value(mapping.module.resident_base);
+    stream << ",\"resident_extent\":" << mapping.module.resident_extent;
+    stream << ",\"resident_path\":" << json_string(mapping.module.resident_path);
+    stream << ",\"architecture\":" << json_string(mapping.module.architecture);
+    stream << ",\"backing_file_size\":" << mapping.module.backing_file_size;
+    stream << ",\"backing_sha256\":" << bytes_value(mapping.module.backing_sha256);
+    stream << ",\"binding_resident_base\":" << hex_value(mapping.module.binding_resident_base);
+    stream << ",\"binding_resident_extent\":" << mapping.module.binding_resident_extent;
+    stream << ",\"binding_file_size\":" << mapping.module.binding_file_size;
+    stream << ",\"binding_file_sha256\":" << bytes_value(mapping.module.binding_file_sha256);
+    stream << ",\"binding_lifetime_id\":" << mapping.module.binding_lifetime_id;
+    stream << ",\"binding_authority_id\":" << json_string(mapping.module.binding_authority_id);
+    stream << ",\"binding_mechanism\":" << json_string(mapping.module.binding_mechanism);
+    stream << ",\"binding_status\":\"" << provenance_binding_name(mapping.module.binding_status) << '\"';
+    stream << ",\"binding_evidence\":" << (mapping.module.binding_evidence ? "true" : "false");
+    stream << "}";
+    stream << "}";
+}
+
+void serialize_provenance(std::ostringstream& stream, const QueryProvenanceEvidence& evidence)
+{
+    stream << "{\"status\":\"" << provenance_status_name(evidence.status) << '\"';
+    stream << ",\"acquisition_begin_sequence\":" << evidence.acquisition_begin_sequence;
+    stream << ",\"acquisition_end_sequence\":" << evidence.acquisition_end_sequence;
+    stream << ",\"lifetime_id\":" << evidence.lifetime_id;
+    stream << ",\"lifetime\":\"" << provenance_lifetime_name(evidence.lifetime) << '\"';
+    stream << ",\"coherence\":\"" << provenance_coherence_name(evidence.coherence) << '\"';
+    stream << ",\"output_complete\":" << (evidence.output_complete ? "true" : "false");
+    stream << ",\"session_id\":" << evidence.session_id;
+    stream << ",\"operation_id\":" << evidence.operation_id;
+    stream << ",\"event_complete\":" << (evidence.event.complete ? "true" : "false");
+    stream << ",\"raw_debug_object\":" << hex_value(evidence.event.raw_debug_object);
+    stream << ",\"event_pid\":" << evidence.event.process_id;
+    stream << ",\"event_tid\":" << evidence.event.thread_id;
+    stream << ",\"raw_generation\":" << evidence.event.raw_generation;
+    stream << ",\"event_index\":" << evidence.event.event_index;
+    stream << ",\"engine_generation_known\":"
+           << (evidence.event.engine_generation_known ? "true" : "false");
+    stream << ",\"engine_generation\":" << evidence.event.engine_generation;
+    stream << ",\"returned_interface\":" << hex_value(evidence.returned_interface);
+    stream << ",\"vtable\":" << hex_value(evidence.vtable);
+    stream << ",\"slot_plus_10_address\":" << hex_value(evidence.slot_plus_10_address);
+    stream << ",\"slot_plus_10_target\":" << hex_value(evidence.slot_plus_10_target);
+    stream << ",\"interface_mapping\":";
+    serialize_provenance_mapping(stream, evidence.interface_mapping);
+    stream << ",\"vtable_mapping\":";
+    serialize_provenance_mapping(stream, evidence.vtable_mapping);
+    stream << ",\"target_mapping\":";
+    serialize_provenance_mapping(stream, evidence.target_mapping);
+    stream << "}";
 }
 
 } // namespace
@@ -397,6 +648,34 @@ bool Recorder::resolve_target(std::uintptr_t handle, TargetIdentity* identity) c
     catch (...)
     {
         return false;
+    }
+}
+
+void Recorder::collect_query_provenance(QueryRow& row)
+{
+    if (callbacks_.collect_query_provenance == nullptr)
+    {
+        return;
+    }
+
+    QueryProvenanceEvidence evidence;
+    const std::uint64_t     acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    try
+    {
+        const bool accepted = callbacks_.collect_query_provenance(callbacks_.user, row, &evidence);
+        evidence.status     = accepted ? QueryProvenanceStatus::Accepted : QueryProvenanceStatus::Refused;
+    }
+    catch (...)
+    {
+        evidence.status = QueryProvenanceStatus::Exception;
+    }
+    const std::uint64_t acquisition_end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    evidence.acquisition_begin_sequence          = acquisition_begin_sequence;
+    evidence.acquisition_end_sequence            = acquisition_end_sequence;
+    row.provenance                               = std::move(evidence);
+    if (row.provenance.status != QueryProvenanceStatus::Accepted)
+    {
+        row.header.incomplete = true;
     }
 }
 
@@ -690,6 +969,10 @@ Hresult Recorder::forward_query(void* manager, const GuidBytes* service_guid, co
     else
     {
         row.header.incomplete = true;
+    }
+    if (exception == nullptr && result >= 0 && row.successful_interface_qualified)
+    {
+        collect_query_provenance(row);
     }
     row.header.incomplete    = row.header.incomplete || exception != nullptr;
     row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
@@ -1082,6 +1365,8 @@ std::string Recorder::serialize() const
                            << (row.successful_interface_qualified ? "true" : "false");
                     stream << ",\"original_target\":" << hex_value(row.original_target);
                     stream << ",\"call_completed\":" << (row.call_completed ? "true" : "false");
+                    stream << ",\"provenance\":";
+                    serialize_provenance(stream, row.provenance);
                 }
                 else if constexpr (std::is_same_v<RowType, ContextWriteRow>)
                 {
@@ -1132,6 +1417,36 @@ std::string Recorder::serialize() const
 const Originals& Recorder::originals() const
 {
     return originals_;
+}
+
+bool query_provenance_qualified(const QueryRow& row)
+{
+    const QueryProvenanceEvidence& evidence = row.provenance;
+    if (row.header.incomplete || row.header.pre_log_failed || row.header.post_log_failed || row.header.rethrown ||
+        !row.header.incoming_error_known || !row.header.returned_error_known || !qualified_identity(row.header.event) ||
+        !row.call_completed || row.result < 0 ||
+        row.service_guid_status != ObservationStatus::Read || row.iid_status != ObservationStatus::Read ||
+        !same_guid(row.service_guid, kTranslationServiceGuid) || !same_guid(row.iid, kTranslationIid) ||
+        !row.successful_interface_qualified || row.returned_interface_status != ObservationStatus::Read ||
+        row.vtable_status != ObservationStatus::Read || row.slot_plus_10_status != ObservationStatus::Read ||
+        row.returned_interface == 0 || row.vtable == 0 || row.slot_plus_10_target == 0 ||
+        row.slot_plus_10_address != row.vtable + kInterfaceSlot10Offset || evidence.status != QueryProvenanceStatus::Accepted ||
+        !evidence.output_complete || evidence.session_id != row.header.session_id ||
+        evidence.operation_id != row.header.operation_id || !qualified_identity(evidence.event) ||
+        !same_identity(evidence.event, row.header.event) ||
+        evidence.returned_interface != row.returned_interface || evidence.vtable != row.vtable ||
+        evidence.slot_plus_10_address != row.slot_plus_10_address || evidence.slot_plus_10_target != row.slot_plus_10_target ||
+        evidence.acquisition_begin_sequence <= row.header.sequence ||
+        evidence.acquisition_end_sequence <= evidence.acquisition_begin_sequence ||
+        row.header.exit_sequence <= evidence.acquisition_end_sequence || evidence.lifetime_id == 0 ||
+        evidence.lifetime != QueryProvenanceLifetime::Retained || evidence.coherence != QueryProvenanceCoherence::Coherent ||
+        !object_mapping_is_qualified(evidence.interface_mapping, row.returned_interface) ||
+        !object_mapping_is_qualified(evidence.vtable_mapping, row.vtable) ||
+        !module_binding_is_qualified(evidence.target_mapping, row.slot_plus_10_target, evidence.lifetime_id))
+    {
+        return false;
+    }
+    return true;
 }
 
 bool publish_passthrough(const Originals& originals, std::uint64_t* generation)
