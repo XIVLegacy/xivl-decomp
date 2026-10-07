@@ -140,6 +140,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
 - [Bitmap font text bytes and glyph keys](resource/bitmap-font-text-key-consumers.md)
+- [Bitmap font multibyte numeric key handoff](resource/bitmap-font-multibyte-key-consumers.md)
 - [Bitmap font metric consumers](resource/bitmap-font-metric-consumers.md)
 - [Bitmap font scalar advance consumers](resource/bitmap-font-scalar-advance-consumers.md)
 - [Bitmap font runtime bridge consumers](resource/bitmap-font-runtime-bridge-consumers.md)
