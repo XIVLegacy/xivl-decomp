@@ -695,7 +695,7 @@ HookBackendResult check_quiescence(const HookInstallState& state)
         return result;
     }
     return attestation.no_active_forwarding_calls && attestation.all_other_process_threads_held &&
-                   attestation.thread_creation_barred &&
+                   attestation.new_threads_prevented_from_executing &&
                    attestation.no_held_instruction_context_in_entry_span_interiors &&
                    attestation.no_context_in_wrappers_or_trampolines
                ? HookBackendResult::Success

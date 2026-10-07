@@ -102,9 +102,10 @@ struct HookProtectionChange
 
 struct HookQuiescenceAttestation
 {
-    bool no_active_forwarding_calls                          = false;
-    bool all_other_process_threads_held                      = false;
-    bool thread_creation_barred                              = false;
+    bool no_active_forwarding_calls     = false;
+    bool all_other_process_threads_held = false;
+    // Creation may proceed; new threads must not execute user-mode code while the lease is held.
+    bool new_threads_prevented_from_executing                = false;
     bool no_held_instruction_context_in_entry_span_interiors = false;
     bool no_context_in_wrappers_or_trampolines               = false;
 };

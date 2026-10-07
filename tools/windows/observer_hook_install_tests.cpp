@@ -121,7 +121,7 @@ struct FakeBackend
     bool                                                                     failure_used                                        = false;
     bool                                                                     no_active_forwarding_calls                          = true;
     bool                                                                     all_other_process_threads_held                      = true;
-    bool                                                                     thread_creation_barred                              = true;
+    bool                                                                     new_threads_prevented_from_executing                = true;
     bool                                                                     no_held_instruction_context_in_entry_span_interiors = true;
     bool                                                                     no_context_in_wrappers_or_trampolines               = true;
     bool                                                                     persistent_quiescence_refusal                       = false;
@@ -408,9 +408,9 @@ HookBackendResult fake_revalidate(void* user,
     {
         return HookBackendResult::Refused;
     }
-    attestation->no_active_forwarding_calls     = backend->no_active_forwarding_calls;
-    attestation->all_other_process_threads_held = backend->all_other_process_threads_held;
-    attestation->thread_creation_barred         = backend->thread_creation_barred;
+    attestation->no_active_forwarding_calls           = backend->no_active_forwarding_calls;
+    attestation->all_other_process_threads_held       = backend->all_other_process_threads_held;
+    attestation->new_threads_prevented_from_executing = backend->new_threads_prevented_from_executing;
     attestation->no_held_instruction_context_in_entry_span_interiors =
         backend->no_held_instruction_context_in_entry_span_interiors;
     attestation->no_context_in_wrappers_or_trampolines = backend->no_context_in_wrappers_or_trampolines;
@@ -857,7 +857,7 @@ void test_quiescence_attestations(TestState* tests)
                 backend.all_other_process_threads_held = false;
                 break;
             case 2:
-                backend.thread_creation_barred = false;
+                backend.new_threads_prevented_from_executing = false;
                 break;
             case 3:
                 backend.no_held_instruction_context_in_entry_span_interiors = false;
@@ -874,6 +874,30 @@ void test_quiescence_attestations(TestState* tests)
                          !backend.pin_held && !backend.lease_held && backend.revalidate_calls == 1,
                      "each quiescence attestation is required");
     }
+}
+
+void test_new_thread_execution_exclusion_restore(TestState* tests)
+{
+    FakeBackend      backend;
+    HookInstallState state;
+    tests->check(install(&backend, &state).disposition == HookInstallDisposition::Installed,
+                 "new-thread exclusion restore setup");
+    backend.new_threads_prevented_from_executing = false;
+    const std::uint32_t     site_writes          = backend.site_writes;
+    const HookRestoreReport refused              = restore_hook_transaction(&state);
+    tests->check(refused.disposition == HookInstallDisposition::Retained &&
+                     refused.failure == HookFailure::Quiescence &&
+                     !refused.unknown_side_effects && !state.unknown_side_effects &&
+                     refused.restored_entries == 0 && backend.site_writes == site_writes &&
+                     backend.frees == 0 && backend.pin_held && backend.lease_held,
+                 "missing new-thread execution exclusion refuses restore before mutation");
+    backend.new_threads_prevented_from_executing = true;
+    const HookRestoreReport restored             = restore_hook_transaction(&state);
+    tests->check(restored.disposition == HookInstallDisposition::Restored &&
+                     restored.restored_entries == 3 &&
+                     !restored.unknown_side_effects && !backend.pin_held && !backend.lease_held &&
+                     backend.frees == 3,
+                 "new-thread execution exclusion permits known-state restore retry");
 }
 
 void test_module_identity_and_live_bytes(TestState* tests)
@@ -1491,6 +1515,7 @@ SelfTestReport run_hook_install_self_tests()
 {
     TestState tests;
     test_quiescence_attestations(&tests);
+    test_new_thread_execution_exclusion_restore(&tests);
     test_module_identity_and_live_bytes(&tests);
     test_protection_repairs(&tests);
     test_quiescence_refusals_and_restore_history(&tests);

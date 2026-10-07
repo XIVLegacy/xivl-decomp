@@ -141,7 +141,8 @@ attest all five conditions:
 
 1. No call through any of the three forwarding adapters is active.
 2. Every other thread in the observer process is held against execution.
-3. Creation of any new thread in that process is barred while the lease is held.
+3. Every new thread in that process is prevented from executing user-mode code
+   while the lease is held.
 4. No held instruction context is inside an overwritten entry span, excluding
    its first byte and original resume address.
 5. No instruction context is in a wrapper or trampoline that the transaction
@@ -150,7 +151,7 @@ attest all five conditions:
 The mutating thread must remain outside the engine and these call-through
 paths, including during backend callbacks. These are backend attestations,
 not independently established thread facts. The transaction does not enumerate
-threads, inspect their contexts or implement a thread-creation barrier.
+threads, inspect their contexts or implement new-thread execution exclusion.
 An idle-call count or a thread snapshot cannot supply that exclusion contract.
 
 Microsoft's API contracts supply constraints for a native implementation:
@@ -165,8 +166,8 @@ Microsoft's API contracts supply constraints for a native implementation:
   requires a suspended thread for a valid context and does not return a valid
   context for the calling thread.
 
-These constraints leave the required hold, creation barrier and safe mutator
-placement unestablished.
+A native implementation must establish a continuous hold, new-thread execution
+exclusion and safe mutator placement.
 
 The module handle value must equal the reported loaded base. The transaction
 checks the pinned architecture, file size/digest, preferred base, image extent
@@ -181,6 +182,56 @@ Successful installation releases the lease. Restoration acquires a new lease
 when code-bearing state remains and no lease is held. A native implementation
 must establish all five conditions for both phases, rather than assuming that
 an installation lease supplies restoration coverage.
+
+#### Documented native mechanisms
+
+The `new_threads_prevented_from_executing` attestation requires continuous
+exclusion before a new observer thread executes user-mode code. Thread creation
+may proceed. The backend must establish exclusion for the whole held lease.
+
+| Mechanism | Documented boundary | Transaction limitation |
+|---|---|---|
+| Cooperative entry gate | Excludes callers that obey the gate. | It does not establish that every process thread is held or that new threads cannot execute unrelated code. |
+| Thread snapshot followed by suspension | Enumerates a copied thread list and suspends the selected threads. | It does not provide continuous exclusion of newly created threads; held threads may own locks needed by a mutating callback. |
+| External debugger with an outstanding observer-process event | The system holds all threads in the affected process until the event is continued. | This requires a controller outside the held process and does not establish the other attestations or backend operations. |
+
+Microsoft's [debugging-event contract](https://learn.microsoft.com/en-us/windows/win32/debug/debugging-events)
+places `CREATE_THREAD_DEBUG_EVENT` after creation and before user-mode execution.
+Its [debugger loop](https://learn.microsoft.com/en-us/windows/win32/debug/writing-the-debugger-s-main-loop)
+allows a separate debugger to inspect and change the stopped process. These
+contracts support investigating an external controller with continuous
+exclusion before thread execution. The backend still needs evidence for each
+attestation and the native mutation, publication and cleanup operations.
+
+An outstanding event in the fixture stops the fixture, not the observer that
+hosts DbgEng and these adapters. An external controller would need to hold an
+event for the observer process itself. Its debug session must be scoped to that
+observer. The [process-creation flags](https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags)
+provide `DEBUG_ONLY_THIS_PROCESS` for that scope. A controller that follows
+descendant processes can acquire fixture events intended for DbgEng. Running
+a publication callback in a held observer would require releasing the hold
+and establishing exclusion again.
+
+The existing `publish_passthrough`, `clear_passthrough` and
+`passthrough_snapshot` functions execute locally and take a mutex. They are
+not a remote publication or inspection protocol. A native design must also
+establish how the controller observes the forwarding count, publishes all
+originals, checks their generation and keeps their storage alive without
+executing a held observer thread or waiting for its locks.
+
+The [GetModuleHandleEx contract](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexa)
+acquires a reference in the calling process. A controller's module or file
+handle cannot substitute for retention of the observer's mapping. The
+observer's reference acquisition and release must fit the same native
+lifetime design.
+
+For an external debugger, keeping an event outstanding is a process hold,
+not a complete recovery policy. [DebugSetProcessKillOnExit](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-debugsetprocesskillonexit)
+defaults to terminating connected debuggees when the controller thread exits;
+the alternate setting detaches them. Neither behavior confirms restoration
+or preserves a held lease for an unknown transaction state. A native design
+must select controller lifetime, failure disposition and recovery before it
+can promise safe lease release.
 
 ### Mutation, repair and retained state
 
@@ -230,7 +281,7 @@ lease or qualify live installation.
 
 | Required edge | Static locator or absence | Missing evidence |
 |---|---|---|
-| Exclude other threads and newly created entrants | No hold or creation-barrier implementation is established. Entry RVAs are `0x467F13`, `0x468B10` and `0x3D049D`. | A continuous hold and creation barrier covering the observer process, with a mutator that can finish while other threads are held. |
+| Exclude other threads and newly created entrants | No hold or new-thread execution-exclusion implementation is established. Entry RVAs are `0x467F13`, `0x468B10` and `0x3D049D`. | A continuous hold and exclusion before new threads execute user-mode code, covering the observer process, with a mutator that can finish while other threads are held. |
 | Exclude instruction contexts from overwritten interiors | Copied spans are 5, 7 and 6 bytes at those entry RVAs. | Native context checks under the same hold, including the mutator's placement. |
 | Exclude wrapper and trampoline contexts | Wrapper extents are request values; trampoline addresses are backend allocation results. No fixed engine locator exists. | Demonstrated context exclusion and lifetime through publication, forwarding, restoration and release. |
 | Bind the retained resident image to the pinned file | The three copied spans and QueryService HIGHLOW relocation at span `+3`; handle/base equality is enforced. | A retained native mapping and reproducible file-to-resident binding beyond the 18 compared bytes. |
