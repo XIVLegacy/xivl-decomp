@@ -9,6 +9,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -109,13 +110,76 @@ struct Originals
     ContextWriteOriginal context_write = nullptr;
 };
 
+// This is the only byte-addressable publication state shared with the
+// controller protocol.  Function pointers, mutexes and atomics are kept out
+// of the record; the bridge accesses the target and counter fields through
+// target-local atomic_ref objects instead.
+constexpr std::uint32_t kObserverPublicationRecordVersion = 1;
+constexpr std::uint32_t kObserverPublicationBoundFlag     = 0x00000001u;
+constexpr std::uint32_t kObserverPublicationPublishedFlag = 0x00000002u;
+
+struct alignas(8) ObserverPublicationRecordV1
+{
+    std::uint32_t size_bytes = 0;
+    std::uint32_t version    = 0;
+    std::uint32_t flags      = 0;
+    std::uint32_t reserved0  = 0;
+
+    std::uint32_t observer_process_id  = 0;
+    std::uint32_t observer_instance_id = 0;
+    std::uint32_t loaded_image_base    = 0;
+    std::uint32_t module_handle        = 0;
+    std::uint64_t module_pin_identity  = 0;
+    std::uint32_t publication_address  = 0;
+    std::uint32_t reserved1            = 0;
+    std::uint64_t controller_owner_id  = 0;
+
+    std::array<std::uint8_t, 32> profile_id{};
+    std::array<std::uint8_t, 32> executable_sha256{};
+
+    std::uint64_t publication_generation  = 0;
+    std::uint32_t lookup_original         = 0;
+    std::uint32_t query_original          = 0;
+    std::uint32_t context_original        = 0;
+    std::uint32_t lookup_wrapper          = 0;
+    std::uint32_t query_wrapper           = 0;
+    std::uint32_t context_wrapper         = 0;
+    std::uint32_t reserved2               = 0;
+    std::uint64_t active_forwarding_calls = 0;
+    std::uint64_t unlogged_calls          = 0;
+};
+
+static_assert(offsetof(ObserverPublicationRecordV1, size_bytes) == 0);
+static_assert(offsetof(ObserverPublicationRecordV1, version) == 4);
+static_assert(offsetof(ObserverPublicationRecordV1, flags) == 8);
+static_assert(offsetof(ObserverPublicationRecordV1, observer_process_id) == 16);
+static_assert(offsetof(ObserverPublicationRecordV1, module_pin_identity) == 32);
+static_assert(offsetof(ObserverPublicationRecordV1, controller_owner_id) == 48);
+static_assert(offsetof(ObserverPublicationRecordV1, profile_id) == 56);
+static_assert(offsetof(ObserverPublicationRecordV1, executable_sha256) == 88);
+static_assert(offsetof(ObserverPublicationRecordV1, publication_generation) == 120);
+static_assert(offsetof(ObserverPublicationRecordV1, lookup_original) == 128);
+static_assert(offsetof(ObserverPublicationRecordV1, query_original) == 132);
+static_assert(offsetof(ObserverPublicationRecordV1, context_original) == 136);
+static_assert(offsetof(ObserverPublicationRecordV1, lookup_wrapper) == 140);
+static_assert(offsetof(ObserverPublicationRecordV1, query_wrapper) == 144);
+static_assert(offsetof(ObserverPublicationRecordV1, context_wrapper) == 148);
+static_assert(offsetof(ObserverPublicationRecordV1, reserved2) == 152);
+static_assert(offsetof(ObserverPublicationRecordV1, active_forwarding_calls) == 160);
+static_assert(offsetof(ObserverPublicationRecordV1, unlogged_calls) == 168);
+static_assert(sizeof(ObserverPublicationRecordV1) == 176);
+static_assert(alignof(ObserverPublicationRecordV1) >= alignof(std::uint64_t));
+static_assert(std::is_standard_layout_v<ObserverPublicationRecordV1>);
+static_assert(std::is_trivially_copyable_v<ObserverPublicationRecordV1>);
+
 struct PassthroughSnapshot
 {
     Originals     originals{};
-    std::uint64_t generation     = 0;
-    std::uint64_t active_calls   = 0;
-    std::uint64_t unlogged_calls = 0;
-    bool          published      = false;
+    std::uint64_t generation          = 0;
+    std::uint64_t active_calls        = 0;
+    std::uint64_t unlogged_calls      = 0;
+    std::uint64_t controller_owner_id = 0;
+    bool          published           = false;
 };
 
 // Publication and removal require external thread quiescence. The active count
@@ -123,6 +187,14 @@ struct PassthroughSnapshot
 bool                publish_passthrough(const Originals& originals, std::uint64_t* generation);
 bool                clear_passthrough(std::uint64_t generation, const Originals& expected);
 PassthroughSnapshot passthrough_snapshot();
+
+// Controller ownership is claimed during observer initialization, before a
+// held mutation.  While claimed, the ordinary local publication helpers can
+// inspect state but cannot mutate it.
+ObserverPublicationRecordV1* passthrough_publication_record();
+std::uintptr_t               passthrough_publication_address();
+bool                         claim_passthrough_controller_ownership(std::uint64_t owner_id);
+bool                         release_passthrough_controller_ownership(std::uint64_t owner_id);
 
 enum class ObservationStatus : std::uint8_t
 {

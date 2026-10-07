@@ -585,7 +585,8 @@ CleanupResult release_resources(HookInstallState* state)
         const HookBackendResult result = call_backend(backend.clear_original,
                                                       backend.user,
                                                       entry.id,
-                                                      entry.trampoline);
+                                                      entry.trampoline,
+                                                      state);
         if (result != HookBackendResult::Success)
         {
             state->unknown_side_effects = true;
@@ -1244,6 +1245,7 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
                               entry.trampoline);
         if (result != HookBackendResult::Success)
         {
+            state->unknown_side_effects = true;
             return retained_install(state, HookFailure::Publication, prepared, 0);
         }
         entry.original_published = true;

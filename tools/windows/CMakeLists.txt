@@ -45,7 +45,8 @@ target_link_options(observer_diagnostic_check PRIVATE /guard:cf /DYNAMICBASE /NX
 add_executable(observer_runtime_check observer_runtime_check.cpp
                observer_diagnostic.cpp observer_diagnostic_tests.cpp raw_event_recorder.cpp
                observer_event_bridge.cpp observer_event_bridge_tests.cpp
-               observer_hook_install.cpp observer_hook_install_tests.cpp)
+               observer_hook_install.cpp observer_hook_install_tests.cpp
+               observer_publication_protocol.cpp observer_publication_protocol_tests.cpp)
 set_target_properties(observer_runtime_check PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(observer_runtime_check PRIVATE /guard:cf /sdl)
 target_link_options(observer_runtime_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF

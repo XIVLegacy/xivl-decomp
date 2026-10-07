@@ -16,25 +16,22 @@ namespace
 
 thread_local Recorder* g_bridge_recorder = nullptr;
 
-std::mutex                        g_passthrough_mutex;
-std::atomic<LookupOriginal>       g_passthrough_lookup{ nullptr };
-std::atomic<QueryOriginal>        g_passthrough_query{ nullptr };
-std::atomic<ContextWriteOriginal> g_passthrough_context{ nullptr };
-std::atomic<bool>                 g_passthrough_published{ false };
-std::atomic<std::uint64_t>        g_bridge_calls{ 0 };
-std::atomic<std::uint64_t>        g_unlogged_calls{ 0 };
-std::uint64_t                     g_passthrough_generation = 0;
+std::mutex                  g_passthrough_mutex;
+ObserverPublicationRecordV1 g_passthrough_record{};
+std::uint64_t               g_controller_owner_id = 0;
 
 struct BridgeCall
 {
     BridgeCall()
     {
-        g_bridge_calls.fetch_add(1, std::memory_order_acq_rel);
+        std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
+            .fetch_add(1, std::memory_order_acq_rel);
     }
 
     ~BridgeCall()
     {
-        g_bridge_calls.fetch_sub(1, std::memory_order_release);
+        std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
+            .fetch_sub(1, std::memory_order_release);
     }
 
     BridgeCall(const BridgeCall&)            = delete;
@@ -63,6 +60,54 @@ std::uintptr_t function_address(QueryOriginal value)
 std::uintptr_t function_address(ContextWriteOriginal value)
 {
     return reinterpret_cast<std::uintptr_t>(value);
+}
+
+std::uint32_t target_value(LookupOriginal value)
+{
+    return static_cast<std::uint32_t>(function_address(value));
+}
+
+std::uint32_t target_value(QueryOriginal value)
+{
+    return static_cast<std::uint32_t>(function_address(value));
+}
+
+std::uint32_t target_value(ContextWriteOriginal value)
+{
+    return static_cast<std::uint32_t>(function_address(value));
+}
+
+LookupOriginal lookup_target(std::uint32_t value)
+{
+    return reinterpret_cast<LookupOriginal>(static_cast<std::uintptr_t>(value));
+}
+
+QueryOriginal query_target(std::uint32_t value)
+{
+    return reinterpret_cast<QueryOriginal>(static_cast<std::uintptr_t>(value));
+}
+
+ContextWriteOriginal context_target(std::uint32_t value)
+{
+    return reinterpret_cast<ContextWriteOriginal>(static_cast<std::uintptr_t>(value));
+}
+
+bool publication_is_published()
+{
+    return (std::atomic_ref<std::uint32_t>(g_passthrough_record.flags).load(std::memory_order_acquire) &
+            kObserverPublicationPublishedFlag) != 0;
+}
+
+std::uint64_t active_forwarding_calls()
+{
+    return std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
+        .load(std::memory_order_acquire);
+}
+
+std::uint64_t unlogged_calls()
+{
+    return std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+        .load(std::memory_order_relaxed);
 }
 
 std::uintptr_t pointer_address(const void* value)
@@ -977,6 +1022,7 @@ std::string Recorder::serialize() const
     stream << ",\"overflow_count\":" << snapshot_overflow_count;
     stream << ",\"passthrough_generation\":" << passthrough.generation;
     stream << ",\"passthrough_published\":" << (passthrough.published ? "true" : "false");
+    stream << ",\"active_calls\":" << passthrough.active_calls;
     stream << ",\"unlogged_calls\":" << passthrough.unlogged_calls;
     stream << ",\"rows\":[";
     bool first = true;
@@ -1108,30 +1154,46 @@ bool publish_passthrough(const Originals& originals, std::uint64_t* generation)
         }
     }
     std::lock_guard<std::mutex> lock(g_passthrough_mutex);
-    if (g_passthrough_published.load(std::memory_order_acquire) || g_bridge_calls.load(std::memory_order_acquire) != 0 || g_passthrough_generation == std::numeric_limits<std::uint64_t>::max())
+    if (g_controller_owner_id != 0 || publication_is_published() || active_forwarding_calls() != 0 ||
+        g_passthrough_record.publication_generation == std::numeric_limits<std::uint64_t>::max())
     {
         return false;
     }
-    g_passthrough_lookup.store(originals.lookup, std::memory_order_relaxed);
-    g_passthrough_query.store(originals.query, std::memory_order_relaxed);
-    g_passthrough_context.store(originals.context_write, std::memory_order_relaxed);
-    g_unlogged_calls.store(0, std::memory_order_relaxed);
-    *generation = ++g_passthrough_generation;
-    g_passthrough_published.store(true, std::memory_order_release);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.lookup_original)
+        .store(target_value(originals.lookup), std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.query_original)
+        .store(target_value(originals.query), std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.context_original)
+        .store(target_value(originals.context_write), std::memory_order_relaxed);
+    std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+        .store(0, std::memory_order_relaxed);
+    *generation = ++g_passthrough_record.publication_generation;
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.flags)
+        .fetch_or(kObserverPublicationPublishedFlag, std::memory_order_release);
     return true;
 }
 
 bool clear_passthrough(std::uint64_t generation, const Originals& expected)
 {
     std::lock_guard<std::mutex> lock(g_passthrough_mutex);
-    if (!g_passthrough_published.load(std::memory_order_acquire) || generation != g_passthrough_generation || g_bridge_calls.load(std::memory_order_acquire) != 0 || expected.lookup != g_passthrough_lookup.load(std::memory_order_relaxed) || expected.query != g_passthrough_query.load(std::memory_order_relaxed) || expected.context_write != g_passthrough_context.load(std::memory_order_relaxed))
+    const Originals             actual{ lookup_target(g_passthrough_record.lookup_original),
+                                        query_target(g_passthrough_record.query_original),
+                                        context_target(g_passthrough_record.context_original) };
+    if (g_controller_owner_id != 0 || !publication_is_published() ||
+        generation != g_passthrough_record.publication_generation || active_forwarding_calls() != 0 ||
+        expected.lookup != actual.lookup || expected.query != actual.query ||
+        expected.context_write != actual.context_write)
     {
         return false;
     }
-    g_passthrough_published.store(false, std::memory_order_release);
-    g_passthrough_lookup.store(nullptr, std::memory_order_relaxed);
-    g_passthrough_query.store(nullptr, std::memory_order_relaxed);
-    g_passthrough_context.store(nullptr, std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.flags)
+        .fetch_and(~kObserverPublicationPublishedFlag, std::memory_order_release);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.lookup_original)
+        .store(0, std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.query_original)
+        .store(0, std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.context_original)
+        .store(0, std::memory_order_relaxed);
     return true;
 }
 
@@ -1139,25 +1201,80 @@ PassthroughSnapshot passthrough_snapshot()
 {
     std::lock_guard<std::mutex> lock(g_passthrough_mutex);
     PassthroughSnapshot         snapshot;
-    snapshot.published      = g_passthrough_published.load(std::memory_order_acquire);
-    snapshot.originals      = { g_passthrough_lookup.load(std::memory_order_relaxed),
-                                g_passthrough_query.load(std::memory_order_relaxed),
-                                g_passthrough_context.load(std::memory_order_relaxed) };
-    snapshot.generation     = g_passthrough_generation;
-    snapshot.active_calls   = g_bridge_calls.load(std::memory_order_acquire);
-    snapshot.unlogged_calls = g_unlogged_calls.load(std::memory_order_relaxed);
+    snapshot.published           = publication_is_published();
+    snapshot.originals           = { lookup_target(g_passthrough_record.lookup_original),
+                                     query_target(g_passthrough_record.query_original),
+                                     context_target(g_passthrough_record.context_original) };
+    snapshot.generation          = g_passthrough_record.publication_generation;
+    snapshot.active_calls        = active_forwarding_calls();
+    snapshot.unlogged_calls      = unlogged_calls();
+    snapshot.controller_owner_id = g_controller_owner_id;
     return snapshot;
+}
+
+ObserverPublicationRecordV1* passthrough_publication_record()
+{
+    return &g_passthrough_record;
+}
+
+std::uintptr_t passthrough_publication_address()
+{
+    return reinterpret_cast<std::uintptr_t>(&g_passthrough_record);
+}
+
+bool claim_passthrough_controller_ownership(std::uint64_t owner_id)
+{
+    if (owner_id == 0)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_passthrough_mutex);
+    if (g_controller_owner_id != 0 || publication_is_published() || active_forwarding_calls() != 0 ||
+        (g_passthrough_record.controller_owner_id != 0 &&
+         g_passthrough_record.controller_owner_id != owner_id) ||
+        g_passthrough_record.lookup_original != 0 || g_passthrough_record.query_original != 0 ||
+        g_passthrough_record.context_original != 0)
+    {
+        return false;
+    }
+    g_controller_owner_id = owner_id;
+    std::atomic_ref<std::uint64_t>(g_passthrough_record.controller_owner_id)
+        .store(owner_id, std::memory_order_relaxed);
+    return true;
+}
+
+bool release_passthrough_controller_ownership(std::uint64_t owner_id)
+{
+    if (owner_id == 0)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_passthrough_mutex);
+    if (g_controller_owner_id != owner_id || g_passthrough_record.controller_owner_id != owner_id ||
+        publication_is_published() || active_forwarding_calls() != 0 ||
+        g_passthrough_record.lookup_original != 0 || g_passthrough_record.query_original != 0 ||
+        g_passthrough_record.context_original != 0)
+    {
+        return false;
+    }
+    g_controller_owner_id = 0;
+    std::atomic_ref<std::uint64_t>(g_passthrough_record.controller_owner_id)
+        .store(0, std::memory_order_relaxed);
+    return true;
 }
 
 void* XIVL_OBSERVER_FASTCALL lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid)
 {
     BridgeCall call;
-    if (g_passthrough_published.load(std::memory_order_acquire))
+    if (publication_is_published())
     {
-        const auto original = g_passthrough_lookup.load(std::memory_order_relaxed);
+        const auto original = lookup_target(
+            std::atomic_ref<std::uint32_t>(g_passthrough_record.lookup_original)
+                .load(std::memory_order_relaxed));
         if (g_bridge_recorder == nullptr || g_bridge_recorder->originals().lookup != original)
         {
-            g_unlogged_calls.fetch_add(1, std::memory_order_relaxed);
+            std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+                .fetch_add(1, std::memory_order_relaxed);
             return original(manager, ignored_edx, service_guid);
         }
     }
@@ -1175,12 +1292,15 @@ Hresult XIVL_OBSERVER_STDCALL query_bridge(
     void**           output_slot)
 {
     BridgeCall call;
-    if (g_passthrough_published.load(std::memory_order_acquire))
+    if (publication_is_published())
     {
-        const auto original = g_passthrough_query.load(std::memory_order_relaxed);
+        const auto original = query_target(
+            std::atomic_ref<std::uint32_t>(g_passthrough_record.query_original)
+                .load(std::memory_order_relaxed));
         if (g_bridge_recorder == nullptr || g_bridge_recorder->originals().query != original)
         {
-            g_unlogged_calls.fetch_add(1, std::memory_order_relaxed);
+            std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+                .fetch_add(1, std::memory_order_relaxed);
             return original(manager, service_guid, iid, output_slot);
         }
     }
@@ -1194,12 +1314,15 @@ Hresult XIVL_OBSERVER_STDCALL query_bridge(
 BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* context)
 {
     BridgeCall call;
-    if (g_passthrough_published.load(std::memory_order_acquire))
+    if (publication_is_published())
     {
-        const auto original = g_passthrough_context.load(std::memory_order_relaxed);
+        const auto original = context_target(
+            std::atomic_ref<std::uint32_t>(g_passthrough_record.context_original)
+                .load(std::memory_order_relaxed));
         if (g_bridge_recorder == nullptr || g_bridge_recorder->originals().context_write != original)
         {
-            g_unlogged_calls.fetch_add(1, std::memory_order_relaxed);
+            std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+                .fetch_add(1, std::memory_order_relaxed);
             return original(handle, context);
         }
     }

@@ -5,8 +5,9 @@ fake originals and injected memory, error and handle-identity readers. It
 exports synthetic service-selection and context-write rows with one entry/exit
 sequence source. The executable has no attachment, DLL loading, hook
 installation or retail mode. `observer_runtime_check` additionally exercises
-the raw-event bridge and an injected installation transaction with fake
-backends. It also has no live execution mode.
+the raw-event bridge, an injected installation transaction and the
+[publication protocol](observer-publication-protocol.md) with fake backends.
+It also has no live execution mode.
 
 The supported execution profile is `synthetic-forwarding-profile`. A checked
 query output means the fake reader copied its returned interface, vtable and
@@ -212,12 +213,14 @@ descendant processes can acquire fixture events intended for DbgEng. Running
 a publication callback in a held observer would require releasing the hold
 and establishing exclusion again.
 
-The existing `publish_passthrough`, `clear_passthrough` and
-`passthrough_snapshot` functions execute locally and take a mutex. They are
-not a remote publication or inspection protocol. A native design must also
-establish how the controller observes the forwarding count, publishes all
-originals, checks their generation and keeps their storage alive without
-executing a held observer thread or waiting for its locks.
+The `publish_passthrough`, `clear_passthrough` and `passthrough_snapshot`
+functions execute locally and take a mutex. The injected
+[publication protocol](observer-publication-protocol.md) instead operates on a
+versioned shared record and integrates per-entry callbacks with aggregate
+forwarding state. Its ownership handshake runs before the hold. A native
+transport must still establish remote write ordering, address and lifetime
+bindings, and access without executing held observer code or waiting for its
+locks.
 
 The [GetModuleHandleEx contract](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandleexa)
 acquires a reference in the calling process. A controller's module or file

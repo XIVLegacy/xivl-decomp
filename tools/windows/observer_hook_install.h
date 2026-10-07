@@ -110,6 +110,8 @@ struct HookQuiescenceAttestation
     bool no_context_in_wrappers_or_trampolines               = false;
 };
 
+struct HookInstallState;
+
 using HookRetainModule = HookBackendResult (*)(
     void*            user,
     void*            module,
@@ -186,10 +188,13 @@ using HookPublishOriginal = HookBackendResult (*)(
     void*          user,
     HookEntryId    entry,
     std::uintptr_t trampoline);
+// The state is the live transaction state before this entry's publication flag
+// is cleared, so a publication adapter can reject reachable redirects.
 using HookClearOriginal = HookBackendResult (*)(
-    void*          user,
-    HookEntryId    entry,
-    std::uintptr_t trampoline);
+    void*                   user,
+    HookEntryId             entry,
+    std::uintptr_t          trampoline,
+    const HookInstallState* state);
 
 struct HookInstallBackend
 {

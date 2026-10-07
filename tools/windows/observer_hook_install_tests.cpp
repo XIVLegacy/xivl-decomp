@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_hook_install.h"
+#include "observer_publication_protocol.h"
 
 #include <array>
 #include <cstring>
@@ -11,11 +12,12 @@ namespace xivl::observer_diagnostic
 namespace
 {
 
-constexpr std::uintptr_t kLoadedBase     = 0x20000000;
-constexpr std::uintptr_t kWrapperBase    = 0x30000000;
-constexpr std::uintptr_t kTrampolineBase = 0x40000000;
-constexpr std::uintptr_t kPinToken       = 0x2222;
-constexpr std::uintptr_t kLeaseToken     = 0x3333;
+constexpr std::uintptr_t kLoadedBase         = 0x20000000;
+constexpr std::uintptr_t kWrapperBase        = 0x30000000;
+constexpr std::uintptr_t kTrampolineBase     = 0x40000000;
+constexpr std::uintptr_t kPinToken           = 0x2222;
+constexpr std::uintptr_t kLeaseToken         = 0x3333;
+constexpr std::uint32_t  kPublicationAddress = 0x50000000;
 
 constexpr std::array<std::uintptr_t, kHookEntryCount> kRvas = {
     0x467f13,
@@ -154,6 +156,12 @@ struct FakeBackend
     std::uint32_t                                                            frees                     = 0;
     bool                                                                     pin_held                  = false;
     bool                                                                     lease_held                = false;
+    bool                                                                     publication_enabled       = false;
+    bool                                                                     publication_owner         = false;
+    ObserverPublicationRecordV1                                              publication_record{};
+    ObserverPublicationBindingV1                                             publication_binding{};
+    ObserverPublicationHoldEvidenceV1                                        publication_hold{};
+    ObserverPublicationController                                            publication_controller{};
 
     FakeBackend()
     {
@@ -172,6 +180,39 @@ struct FakeBackend
         site_protection.fill(HookProtection::Read | HookProtection::Execute);
         site_owned.fill(true);
         wrapper_owned.fill(true);
+        publication_binding.observer_process_id  = 77;
+        publication_binding.observer_instance_id = 0x1234;
+        publication_binding.loaded_image_base    = static_cast<std::uint32_t>(kLoadedBase);
+        publication_binding.module_handle        = static_cast<std::uint32_t>(kLoadedBase);
+        publication_binding.module_pin_identity  = kPinToken;
+        publication_binding.publication_address  = kPublicationAddress;
+        publication_binding.controller_owner_id  = 0x7788;
+        publication_binding.lookup_wrapper       = static_cast<std::uint32_t>(wrapper_address(0));
+        publication_binding.query_wrapper        = static_cast<std::uint32_t>(wrapper_address(1));
+        publication_binding.context_wrapper      = static_cast<std::uint32_t>(wrapper_address(2));
+        for (std::size_t index = 0; index < publication_binding.profile_id.size(); ++index)
+        {
+            publication_binding.profile_id[index]        = static_cast<std::uint8_t>(index + 1);
+            publication_binding.executable_sha256[index] = static_cast<std::uint8_t>(0xa0 + index);
+        }
+        publication_hold.size_bytes                           = sizeof(publication_hold);
+        publication_hold.version                              = kObserverPublicationHoldVersion;
+        publication_hold.observer_process_id                  = publication_binding.observer_process_id;
+        publication_hold.observer_instance_id                 = publication_binding.observer_instance_id;
+        publication_hold.owner_thread_id                      = 0x456;
+        publication_hold.event_outstanding                    = 1;
+        publication_hold.lease_held                           = 1;
+        publication_hold.event_identity                       = 0x111;
+        publication_hold.session_identity                     = 0x222;
+        publication_hold.lease_identity                       = kLeaseToken;
+        publication_hold.module_pin_identity                  = publication_binding.module_pin_identity;
+        publication_hold.controller_owner_id                  = publication_binding.controller_owner_id;
+        publication_hold.no_active_forwarding_calls           = 1;
+        publication_hold.all_other_process_threads_held       = 1;
+        publication_hold.new_threads_prevented_from_executing = 1;
+        publication_hold.no_entry_span_contexts               = 1;
+        publication_hold.no_wrapper_contexts                  = 1;
+        publication_hold.active_forwarding_calls              = 0;
     }
 
     bool fail(FailurePoint point)
@@ -273,6 +314,102 @@ FakeBackend* fake(void* user)
     return static_cast<FakeBackend*>(user);
 }
 
+HookBackendResult publication_read(void*         user,
+                                   std::uint32_t address,
+                                   std::uint8_t* destination,
+                                   std::size_t   size)
+{
+    FakeBackend* backend = fake(user);
+    if (backend == nullptr || destination == nullptr || address < kPublicationAddress ||
+        static_cast<std::uint64_t>(address) + size >
+            static_cast<std::uint64_t>(kPublicationAddress) + sizeof(backend->publication_record))
+    {
+        return HookBackendResult::Refused;
+    }
+    std::memcpy(destination,
+                reinterpret_cast<const std::uint8_t*>(&backend->publication_record) +
+                    (address - kPublicationAddress),
+                size);
+    return HookBackendResult::Success;
+}
+
+HookBackendResult publication_write(void*               user,
+                                    std::uint32_t       address,
+                                    const std::uint8_t* source,
+                                    std::size_t         size)
+{
+    FakeBackend* backend = fake(user);
+    if (backend == nullptr || source == nullptr || address < kPublicationAddress ||
+        static_cast<std::uint64_t>(address) + size >
+            static_cast<std::uint64_t>(kPublicationAddress) + sizeof(backend->publication_record))
+    {
+        return HookBackendResult::Refused;
+    }
+    std::memcpy(reinterpret_cast<std::uint8_t*>(&backend->publication_record) +
+                    (address - kPublicationAddress),
+                source,
+                size);
+    return HookBackendResult::Success;
+}
+
+HookBackendResult publication_read_hold(void* user, ObserverPublicationHoldEvidenceV1* evidence)
+{
+    FakeBackend* backend = fake(user);
+    if (backend == nullptr || evidence == nullptr)
+    {
+        return HookBackendResult::Refused;
+    }
+    *evidence = backend->publication_hold;
+    return HookBackendResult::Success;
+}
+
+HookBackendResult publication_claim(void* user, std::uint64_t owner_id)
+{
+    FakeBackend* backend = fake(user);
+    if (backend == nullptr || backend->publication_owner ||
+        owner_id != backend->publication_binding.controller_owner_id)
+    {
+        return HookBackendResult::Refused;
+    }
+    backend->publication_owner = true;
+    return HookBackendResult::Success;
+}
+
+HookBackendResult publication_release(void* user, std::uint64_t owner_id)
+{
+    FakeBackend* backend = fake(user);
+    if (backend == nullptr || !backend->publication_owner ||
+        owner_id != backend->publication_binding.controller_owner_id)
+    {
+        return HookBackendResult::Refused;
+    }
+    backend->publication_owner = false;
+    return HookBackendResult::Success;
+}
+
+void enable_publication(FakeBackend* backend)
+{
+    ObserverPublicationTransport transport;
+    transport.user              = backend;
+    transport.read              = publication_read;
+    transport.write             = publication_write;
+    transport.read_hold         = publication_read_hold;
+    transport.claim_ownership   = publication_claim;
+    transport.release_ownership = publication_release;
+    initialize_observer_publication_record_v1(&backend->publication_record,
+                                              backend->publication_binding);
+    initialize_observer_publication_controller(&backend->publication_controller,
+                                               transport,
+                                               backend->publication_binding,
+                                               { backend->publication_hold.owner_thread_id,
+                                                 backend->publication_hold.event_identity,
+                                                 backend->publication_hold.session_identity,
+                                                 backend->publication_hold.lease_identity });
+    backend->publication_enabled =
+        claim_observer_publication_ownership(&backend->publication_controller) ==
+        HookBackendResult::Success;
+}
+
 bool jump_reaches(const std::array<std::uint8_t, kHookMaxPatchSize>& bytes,
                   std::uintptr_t                                     source,
                   std::uintptr_t                                     destination)
@@ -356,8 +493,9 @@ HookBackendResult fake_acquire(void* user, void*, HookOpaqueToken, HookOpaqueTok
         backend->lease_held = true;
         return HookBackendResult::Refused;
     }
-    *lease              = { kLeaseToken };
-    backend->lease_held = true;
+    *lease                               = { kLeaseToken };
+    backend->lease_held                  = true;
+    backend->publication_hold.lease_held = 1;
     return HookBackendResult::Success;
 }
 
@@ -424,7 +562,8 @@ HookBackendResult fake_release_quiescence(void* user, HookOpaqueToken)
     {
         return HookBackendResult::Ambiguous;
     }
-    backend->lease_held = false;
+    backend->lease_held                  = false;
+    backend->publication_hold.lease_held = 0;
     return HookBackendResult::Success;
 }
 
@@ -753,6 +892,10 @@ HookBackendResult fake_revoke_cfg(void* user, HookOpaqueToken registration)
 HookBackendResult fake_publish(void* user, HookEntryId entry, std::uintptr_t trampoline)
 {
     FakeBackend* backend = fake(user);
+    if (backend->publication_enabled)
+    {
+        return observer_publication_publish_original(&backend->publication_controller, entry, trampoline);
+    }
     backend->event(3);
     const std::size_t index = entry_index(entry);
     if (backend->fail(FailurePoint::Publish))
@@ -769,9 +912,17 @@ HookBackendResult fake_publish(void* user, HookEntryId entry, std::uintptr_t tra
     return HookBackendResult::Success;
 }
 
-HookBackendResult fake_clear(void* user, HookEntryId entry, std::uintptr_t trampoline)
+HookBackendResult fake_clear(void*                   user,
+                             HookEntryId             entry,
+                             std::uintptr_t          trampoline,
+                             const HookInstallState* state)
 {
     FakeBackend* backend = fake(user);
+    if (backend->publication_enabled)
+    {
+        return observer_publication_clear_original(
+            &backend->publication_controller, entry, trampoline, state);
+    }
     if (backend->fail(FailurePoint::Clear))
     {
         return HookBackendResult::Ambiguous;
@@ -1216,6 +1367,41 @@ void test_success_and_restore(TestState* tests)
     }
 }
 
+void test_publication_protocol_transaction_integration(TestState* tests)
+{
+    FakeBackend backend;
+    enable_publication(&backend);
+    HookInstallState        state;
+    const HookInstallReport installed = install(&backend, &state);
+    tests->check(installed.disposition == HookInstallDisposition::Installed,
+                 "protocol transaction install success");
+    tests->check((backend.publication_record.flags & kObserverPublicationPublishedFlag) != 0 &&
+                     backend.publication_record.lookup_original == backend.trampoline_address(0) &&
+                     backend.publication_record.query_original == backend.trampoline_address(1) &&
+                     backend.publication_record.context_original == backend.trampoline_address(2),
+                 "protocol aggregate commit after redirects prepared");
+    const HookRestoreReport restored = restore_hook_transaction(&state);
+    tests->check(restored.disposition == HookInstallDisposition::Restored,
+                 "protocol transaction restore success");
+    tests->check((backend.publication_record.flags & kObserverPublicationPublishedFlag) == 0 &&
+                     backend.publication_record.lookup_original == 0 &&
+                     backend.publication_record.query_original == 0 &&
+                     backend.publication_record.context_original == 0,
+                 "protocol aggregate clear precedes trampoline free");
+    tests->check(backend.frees == 3, "protocol transaction frees after clear");
+    tests->check(!backend.publication_controller.unknown_side_effects &&
+                     backend.publication_controller.clear_completed,
+                 "protocol controller remains releasable after restore");
+    tests->check(backend.publication_controller.ownership_claimed &&
+                     backend.publication_record.controller_owner_id ==
+                         backend.publication_binding.controller_owner_id,
+                 "protocol owner identity retained after restore");
+    const HookBackendResult release_result =
+        release_observer_publication_ownership(&backend.publication_controller);
+    tests->check(release_result == HookBackendResult::Success,
+                 "protocol ownership released after restore");
+}
+
 void test_order_and_rebase(TestState* tests)
 {
     FakeBackend backend;
@@ -1520,6 +1706,7 @@ SelfTestReport run_hook_install_self_tests()
     test_protection_repairs(&tests);
     test_quiescence_refusals_and_restore_history(&tests);
     test_success_and_restore(&tests);
+    test_publication_protocol_transaction_integration(&tests);
     test_order_and_rebase(&tests);
     test_rejections(&tests);
     test_mutation_failures(&tests);
