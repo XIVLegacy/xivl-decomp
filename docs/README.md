@@ -145,6 +145,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt FontSize property bridge](resource/sqwt-font-size-property-bridge.md)
 - [Sqwt FontType property bridge](resource/sqwt-font-type-property-bridge.md)
 - [Sqwt markup numeric font properties](resource/sqwt-markup-font-numeric-properties.md)
+- [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Large coffer action families](resource/coffer-action-families.md)
