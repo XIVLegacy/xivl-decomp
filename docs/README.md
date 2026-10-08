@@ -186,6 +186,8 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Lua and UI
 
+- [Controller configuration](input/controller-configuration.md)
+- [Game controller startup](input/game-controller-startup.md)
 - [Widget command admission and completion](script/widget-command-completion.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)
