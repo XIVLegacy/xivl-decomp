@@ -172,6 +172,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Ferry door schedulers](resource/ferry-door-schedulers.md)
 - [Ferry scene inventory](resource/ferry-scene-inventory.md)
 - [GTEX and PWIB loader fields](resource/gtex-pwib-loader.md)
+- [WRB vertex declaration boundary](resource/wrb-vertex-declaration.md)
 - [Bounded SKL record and hierarchy framing](resource/skeleton-bone-framing.md)
 - [Bounded SKL constructor-pose transforms](resource/skeleton-constructor-pose.md)
 - [Bounded SKL constructor quaternion recovery](resource/skeleton-quaternion-recovery.md)
