@@ -3,7 +3,7 @@
 #define XIVL_OBSERVER_CALLBACK_DISPATCH_H
 
 #include "observer_callback_identity.h"
-#include "observer_event_bridge.h"
+#include "observer_callback_session.h"
 
 #include <dbgeng.h>
 
@@ -12,18 +12,6 @@
 
 namespace xivl::observer_diagnostic
 {
-
-enum class CallbackDispatchPhase : std::uint8_t
-{
-    BeforeDelegate,
-    AfterDelegate,
-};
-
-using CallbackOwnerProvider = bool (*)(void*                  user,
-                                       const char*            callback_kind,
-                                       CallbackDispatchPhase  phase,
-                                       const EventIdentity&   entry_raw_identity,
-                                       CallbackOwnerEvidence* owner);
 
 // A bounded adapter for one currently admitted raw event. The owner supplies
 // every authority, lifetime, cached lifecycle and token field; this adapter
@@ -105,12 +93,15 @@ struct CallbackDispatchConfig
 {
     IDebugEventCallbacks* delegate = nullptr;
     // Borrowed SDK client used by CallbackIdentityReader::capture.
-    IUnknown*               client              = nullptr;
-    Recorder*               recorder            = nullptr;
-    CallbackIdentityReader* identity_reader     = nullptr;
-    RawEventBridge*         raw_bridge          = nullptr;
-    CallbackOwnerProvider   owner_provider      = nullptr;
-    void*                   owner_provider_user = nullptr;
+    IUnknown*                            client                         = nullptr;
+    Recorder*                            recorder                       = nullptr;
+    CallbackIdentityReader*              identity_reader                = nullptr;
+    RawEventBridge*                      raw_bridge                     = nullptr;
+    ObserverCallbackSession*             callback_session               = nullptr;
+    CallbackLifecycleObservationProvider lifecycle_observation_provider = nullptr;
+    void*                                lifecycle_observation_user     = nullptr;
+    CallbackOwnerProvider                owner_provider                 = nullptr;
+    void*                                owner_provider_user            = nullptr;
     // Zero is unknown and refuses instrumentation; the caller selects the
     // owner thread explicitly.
     std::uint32_t instrumentation_thread_id = 0;
@@ -209,19 +200,23 @@ private:
     void          end_callback(std::uint64_t       callback_operation_id,
                                CallbackExitOutcome outcome) noexcept;
 
-    IDebugEventCallbacks*   delegate_                  = nullptr;
-    IUnknown*               client_                    = nullptr;
-    Recorder*               recorder_                  = nullptr;
-    CallbackIdentityReader* identity_reader_           = nullptr;
-    RawEventBridge*         raw_bridge_                = nullptr;
-    CallbackOwnerProvider   owner_provider_            = nullptr;
-    void*                   owner_provider_user_       = nullptr;
-    std::uint32_t           instrumentation_thread_id_ = 0;
-    ErrorReader             read_error_pair_           = nullptr;
-    ErrorWriter             write_error_pair_          = nullptr;
-    void*                   error_user_                = nullptr;
-    std::atomic<ULONG>      references_{ 1 };
-    std::atomic_flag        instrumentation_guard_ = ATOMIC_FLAG_INIT;
+    IDebugEventCallbacks*                delegate_                       = nullptr;
+    IUnknown*                            client_                         = nullptr;
+    Recorder*                            recorder_                       = nullptr;
+    CallbackIdentityReader*              identity_reader_                = nullptr;
+    RawEventBridge*                      raw_bridge_                     = nullptr;
+    ObserverCallbackSession*             callback_session_               = nullptr;
+    CallbackLifecycleObservationProvider lifecycle_observation_provider_ = nullptr;
+    void*                                lifecycle_observation_user_     = nullptr;
+    CallbackOwnerProvider                owner_provider_                 = nullptr;
+    void*                                owner_provider_user_            = nullptr;
+    std::uint32_t                        instrumentation_thread_id_      = 0;
+    ErrorReader                          read_error_pair_                = nullptr;
+    ErrorWriter                          write_error_pair_               = nullptr;
+    void*                                error_user_                     = nullptr;
+    std::atomic<ULONG>                   references_{ 1 };
+    std::atomic_flag                     instrumentation_guard_         = ATOMIC_FLAG_INIT;
+    bool                                 session_configuration_refused_ = false;
 };
 
 using CallbackDispatch = ObserverCallbackDispatch;
@@ -229,6 +224,7 @@ using CallbackDispatch = ObserverCallbackDispatch;
 SelfTestReport run_callback_dispatch_self_tests();
 std::string    make_callback_dispatch_synthetic_trace();
 std::string    make_callback_owner_integration_trace();
+std::string    make_callback_session_integration_trace();
 
 } // namespace xivl::observer_diagnostic
 

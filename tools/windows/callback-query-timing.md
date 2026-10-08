@@ -252,6 +252,46 @@ synthetic forwarding evidence only. It does not load DbgEng or establish native
 callback entry, lifecycle allocation, selected-state serialization or live
 event identity; those remain required before any native coverage claim.
 
+`ObserverCallbackSession` provides the offline owner composition. It retains
+the configured SDK client reference only after an explicit creator-thread
+check, consumes the admitted raw lifecycle source, and creates authority and
+lifetime IDs in its own bounded cache when it stores a typed cached lifecycle
+observation. That observation carries a complete debug-object, process, thread
+and raw-generation lifecycle association; the admitted raw event index remains
+a separate key checked by the session and dispatch. The raw key never supplies
+the cached engine ID or lifecycle token, which come from the typed source.
+Engine ID zero is valid when known. A create-thread or create-process key may be
+admitted before its delegate, but the matching typed source observation is what
+allocates the lifecycle cache entry after normal delegate completion. These
+values support interval joins in the synthetic trace and do not qualify a
+native selected thread or DbgEng object.
+
+Dispatch opens the session's serialized access scope only for owner evidence
+and SDK acquisition, then closes only the nonce acquired by that capture. The
+exact retained client pointer is required. Reentry, foreign delivery, alias or
+bridge-source changes, unknown or ended lifetimes, closed keys and
+post-teardown use are refused before SDK reads. Refused or exceptional paths
+cannot clear an outer access scope. Finalized event and continuation sink
+outcomes are checked before SDK reads. A failed continue retains the source
+and pending key; an exact successful continue closes the raw lease. Teardown
+requires both closure and scope release before dropping the retained client
+reference; destruction before that boundary retains the reference and is not a
+teardown path. A session and custom owner provider cannot be combined because
+that would bypass the controlled session lease. `CreateThread` requires a
+typed source update after normal delegate completion.
+
+A configured session requires the same retained client pointer, bound raw bridge
+and Recorder pointer in `CallbackDispatchConfig`; a mismatch refuses before the
+typed lifecycle source or SDK reads. The exported session provider is rejected
+when supplied through generic `owner_provider` without its matching
+`callback_session`.
+
+`observer_runtime_check --callback-session-output` invokes the raw wait thunk,
+session sink, dispatch wrapper, fake COM identity reads, nested query and
+context forwarding, both continuation outcomes and teardown. It remains
+synthetic forwarding evidence with `live_coverage` incomplete and is not wired
+to the native `Events::ThreadLifecycle` or native callback registration.
+
 ## Concrete SDK dispatch entrypoint
 
 `ObserverCallbackDispatch` implements the Windows SDK

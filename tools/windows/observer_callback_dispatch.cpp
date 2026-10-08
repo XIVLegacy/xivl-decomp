@@ -382,17 +382,54 @@ const char* callback_dispatch_phase_name(CallbackDispatchPhase phase) noexcept
 
 ObserverCallbackDispatch::ObserverCallbackDispatch(const CallbackDispatchConfig& config) noexcept
 : delegate_(config.delegate)
-, client_(config.client)
+, client_(config.client != nullptr
+              ? config.client
+          : config.callback_session != nullptr ? config.callback_session->retained_client()
+                                               : nullptr)
 , recorder_(config.recorder)
 , identity_reader_(config.identity_reader)
 , raw_bridge_(config.raw_bridge)
-, owner_provider_(config.owner_provider)
-, owner_provider_user_(config.owner_provider_user)
+, callback_session_(config.callback_session)
+, lifecycle_observation_provider_(config.lifecycle_observation_provider)
+, lifecycle_observation_user_(config.lifecycle_observation_user)
+, owner_provider_(config.owner_provider != nullptr
+                      ? config.owner_provider
+                  : config.callback_session != nullptr ? config.callback_session->owner_provider()
+                                                       : nullptr)
+, owner_provider_user_(config.owner_provider != nullptr
+                           ? config.owner_provider_user
+                       : config.callback_session != nullptr ? config.callback_session->provider_user()
+                                                            : nullptr)
 , instrumentation_thread_id_(config.instrumentation_thread_id)
 , read_error_pair_(config.read_error_pair)
 , write_error_pair_(config.write_error_pair)
 , error_user_(config.error_user)
 {
+    // A session owns the serialized lease and its provider. Combining it with
+    // a custom owner provider would bypass that lease, so the configuration is
+    // refused before any callback can acquire SDK state.
+    if (callback_session_ != nullptr && config.owner_provider != nullptr)
+    {
+        session_configuration_refused_ = true;
+        owner_provider_                = nullptr;
+        owner_provider_user_           = nullptr;
+    }
+    if (callback_session_ == nullptr &&
+        is_callback_session_owner_provider(config.owner_provider))
+    {
+        // The exported session provider carries a serialized lease in its
+        // untyped user state. It is invalid without the matching session
+        // field, and the user pointer is deliberately never inspected here.
+        session_configuration_refused_ = true;
+        owner_provider_                = nullptr;
+        owner_provider_user_           = nullptr;
+    }
+    if (callback_session_ != nullptr && !callback_session_->recorder_matches(config.recorder))
+    {
+        session_configuration_refused_ = true;
+        owner_provider_                = nullptr;
+        owner_provider_user_           = nullptr;
+    }
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::QueryInterface(REFIID interface_id,
@@ -574,6 +611,8 @@ bool ObserverCallbackDispatch::capture(CallbackDispatchEntry*     entry,
     }
     bool restoration_ok      = !entry->error_restore_attempted || entry->error_restore_succeeded;
     entry->capture_attempted = true;
+    const std::uint64_t session_scope_before =
+        callback_session_ == nullptr ? 0 : callback_session_->access_scope_nonce();
     CallbackOwnerEvidence owner{};
     if (!allow_provider)
     {
@@ -585,6 +624,18 @@ bool ObserverCallbackDispatch::capture(CallbackDispatchEntry*     entry,
         entry->invalid_configuration_refused = true;
     }
     else if (owner_provider_ == nullptr)
+    {
+        entry->invalid_configuration_refused = true;
+    }
+    else if (session_configuration_refused_)
+    {
+        entry->invalid_configuration_refused = true;
+    }
+    else if (callback_session_ != nullptr && !callback_session_->source_bridge_bound_to(raw_bridge_))
+    {
+        entry->invalid_configuration_refused = true;
+    }
+    else if (callback_session_ != nullptr && !callback_session_->client_alias_matches(client_))
     {
         entry->invalid_configuration_refused = true;
     }
@@ -623,6 +674,15 @@ bool ObserverCallbackDispatch::capture(CallbackDispatchEntry*     entry,
     {
         entry->invalid_configuration_refused = true;
         entry->error_restore_succeeded       = false;
+        if (callback_session_ != nullptr)
+        {
+            const std::uint64_t session_scope_after = callback_session_->access_scope_nonce();
+            if (session_scope_after != 0 && session_scope_after != session_scope_before &&
+                !callback_session_->end_access_scope(session_scope_after))
+            {
+                entry->invalid_configuration_refused = true;
+            }
+        }
         return false;
     }
 
@@ -682,6 +742,16 @@ bool ObserverCallbackDispatch::capture(CallbackDispatchEntry*     entry,
     }
     restoration_ok                 = late_restore_succeeded && restoration_ok;
     entry->error_restore_succeeded = restoration_ok;
+    if (callback_session_ != nullptr)
+    {
+        const std::uint64_t session_scope_after = callback_session_->access_scope_nonce();
+        if (session_scope_after != 0 && session_scope_after != session_scope_before &&
+            !callback_session_->end_access_scope(session_scope_after))
+        {
+            entry->invalid_configuration_refused = true;
+            entry->error_restore_succeeded       = false;
+        }
+    }
     return restoration_ok;
 }
 
@@ -941,6 +1011,34 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateThread(ULONG64 handle,
     if (dispatch_recorded)
     {
         finish_delegate(begin.callback_operation_id, exit);
+        if (callback_session_ != nullptr)
+        {
+            bool observed = false;
+            if (allow_instrumentation && !session_configuration_refused_ &&
+                delegate_error == nullptr && lifecycle_observation_provider_ != nullptr &&
+                callback_session_->client_alias_matches(client_) &&
+                callback_session_->source_bridge_bound_to(raw_bridge_))
+            {
+                CachedLifecycleObservation observation{};
+                try
+                {
+                    observed = lifecycle_observation_provider_(lifecycle_observation_user_,
+                                                               begin.raw_identity,
+                                                               &observation) &&
+                               callback_session_->observe_delegate_create_thread(
+                                   begin.raw_identity, observation);
+                }
+                catch (...)
+                {
+                    observed = false;
+                }
+            }
+            if (!observed)
+            {
+                entry.invalid_configuration_refused = true;
+                allow_instrumentation               = false;
+            }
+        }
         capture(&entry,
                 begin,
                 CallbackDispatchPhase::AfterDelegate,

@@ -149,6 +149,54 @@ binding while keeping an earlier bound receipt factual; successful continuation
 clears the view. Unknown, changed, foreign, ended and reused witnesses remain
 refused.
 
+`ObserverCallbackSession` in
+[`observer_callback_session.h`](observer_callback_session.h) supplies the
+concrete offline owner path. Its bridge sink consumes the Recorder's admitted
+raw event. Separate initial and create lifecycle source operations accept a
+typed `CachedLifecycleObservation` from the retained lifecycle source. The
+typed source identity is a complete debug-object,
+process, thread and raw-generation association for the cached lifecycle; the
+admitted raw event index remains a separate key checked by the session and
+dispatch. Neither raw key supplies the cached engine ID or lifecycle token.
+Engine ID zero is valid when the source marks it known. A create-thread or
+create-process event may be admitted key-only before its delegate; after normal
+delegate completion, a matching typed source observation allocates the cache
+entry. Typed source operations allocate later entries, and admitted exit rows
+retire them; an exact ended lifecycle cannot be recreated, while a new raw
+generation and new source observation receives new session-created authority
+and lifetime IDs. The IDs and typed source values are exposed with the access
+sequence in the session snapshot. This metadata does not qualify a native
+selected thread.
+
+The session retains the configured SDK client with `AddRef` only when an
+explicit creator thread is supplied and matches the current thread. Unknown or
+foreign construction does not add a reference. Dispatch selects the session
+provider when `callback_session` is configured, checks that the wrapper uses
+the exact retained client pointer, and closes only the nonce acquired by its
+own provider call. A refused reentry, foreign delivery, source change, sink
+failure or provider exception cannot clear an outer scope. The provider checks
+the finalized exact event sink and every matching continuation sink before SDK
+reads. A failed continuation keeps the raw key and source active; a
+successful exact close clears the raw lease. Teardown is explicit and refuses
+while either raw or access state is active; the destructor cannot prove that
+boundary and therefore does not release the client reference. Combining a
+session with a custom owner provider is refused, while the pure custom
+provider path remains available. `CreateThread` requires a typed lifecycle
+observation obtained after normal delegate completion.
+
+A configured session requires the same retained client pointer, bound raw bridge
+and Recorder pointer in `CallbackDispatchConfig`; a mismatch refuses before the
+typed lifecycle source or SDK reads. The exported session provider is refused
+when supplied through generic `owner_provider` without its matching
+`callback_session`.
+
+`--callback-session-output` drives the raw wait thunk, session sink, dispatch,
+fake SDK identity, nested query and context write, failed continuation
+retention, successful close and teardown. It is synthetic forwarding evidence
+only: the session is not wired to the native `Events::ThreadLifecycle`, does
+not call `SetEventCallbacks`, and supplies no native selected-state or engine
+qualification.
+
 `instrumentation_thread_id` is a caller-selected owner thread ID. Zero remains
 unknown and refuses instrumentation without marking delivery as foreign; the
 delegate still runs once and the refused reader attempt remains incomplete when

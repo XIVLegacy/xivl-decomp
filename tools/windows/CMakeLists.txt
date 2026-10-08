@@ -45,6 +45,7 @@ target_link_options(observer_diagnostic_check PRIVATE /guard:cf /DYNAMICBASE /NX
 add_executable(observer_runtime_check observer_runtime_check.cpp
                observer_diagnostic.cpp observer_diagnostic_tests.cpp raw_event_recorder.cpp
                observer_callback_identity.cpp observer_callback_identity_tests.cpp
+               observer_callback_session.cpp observer_callback_session_tests.cpp
                observer_callback_dispatch.cpp observer_callback_dispatch_tests.cpp
                observer_dispatch_gate.cpp observer_dispatch_gate_tests.cpp
                observer_event_bridge.cpp observer_event_bridge_tests.cpp

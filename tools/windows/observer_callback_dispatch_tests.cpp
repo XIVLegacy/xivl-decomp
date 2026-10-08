@@ -835,6 +835,467 @@ CallbackDispatchConfig dispatch_config(DispatchState*          state,
     return config;
 }
 
+CachedLifecycleSourceIdentity source_identity_for(const EventIdentity& value)
+{
+    CachedLifecycleSourceIdentity source;
+    source.complete         = true;
+    source.raw_debug_object = value.raw_debug_object;
+    source.process_id       = value.process_id;
+    source.thread_id        = value.thread_id;
+    source.raw_generation   = value.raw_generation;
+    return source;
+}
+
+CachedLifecycleObservation typed_observation(const EventIdentity& source,
+                                             std::uint32_t        engine,
+                                             std::uint64_t        token,
+                                             std::uint64_t        sequence)
+{
+    CachedLifecycleObservation value;
+    value.source_identity       = source_identity_for(source);
+    value.engine_id_known       = true;
+    value.engine_id             = engine;
+    value.lifecycle_token_known = true;
+    value.lifecycle_token       = token;
+    value.observation_sequence  = sequence;
+    return value;
+}
+
+struct SessionObservationState
+{
+    bool                          refuse          = false;
+    bool                          throw_exception = false;
+    std::uint32_t                 calls           = 0;
+    CachedLifecycleSourceIdentity source_identity{};
+    std::uint32_t                 engine_id       = 42;
+    std::uint64_t                 lifecycle_token = 68;
+    std::uint64_t                 sequence        = 1;
+};
+
+bool session_observation_provider(void* user,
+                                  const EventIdentity&,
+                                  CachedLifecycleObservation* observation)
+{
+    auto* state = static_cast<SessionObservationState*>(user);
+    if (state == nullptr || observation == nullptr)
+    {
+        return false;
+    }
+    ++state->calls;
+    if (state->throw_exception)
+    {
+        throw std::runtime_error("typed lifecycle observation failure");
+    }
+    if (state->refuse || !state->source_identity.complete || state->sequence == 0)
+    {
+        return false;
+    }
+    observation->source_identity       = state->source_identity;
+    observation->engine_id_known       = true;
+    observation->engine_id             = state->engine_id;
+    observation->lifecycle_token_known = true;
+    observation->lifecycle_token       = state->lifecycle_token;
+    observation->observation_sequence  = state->sequence;
+    return true;
+}
+
+void run_session_create_thread_case(TestState* tests,
+                                    bool       refuse,
+                                    bool       throw_exception,
+                                    bool       wrong_source,
+                                    bool       stale_source)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    state.nested_query    = true;
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate delegate(&state);
+    delegate.systems.values = { 42, 42, 2, 2, 200, 100 };
+    FakeClient              client(&delegate.systems);
+    ObserverCallbackSession session(&recorder, &client, state.callback_thread);
+    EventIdentity           planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    auto                    bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                 "session create-thread admits raw key");
+    const auto admitted = session.snapshot();
+    tests->check(admitted.authority_id == 0 && admitted.lifetime_id == 0 && !admitted.lifecycle_active,
+                 "new create-thread raw admission is key-only");
+    SessionObservationState provider_state{ refuse,
+                                            throw_exception,
+                                            0,
+                                            source_identity_for(planned),
+                                            42,
+                                            68,
+                                            static_cast<std::uint64_t>(stale_source ? 0 : 1) };
+    if (wrong_source)
+    {
+        provider_state.source_identity.thread_id = 201;
+    }
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    auto                   config         = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session               = &session;
+    config.owner_provider                 = nullptr;
+    config.owner_provider_user            = nullptr;
+    config.lifecycle_observation_provider = &session_observation_provider;
+    config.lifecycle_observation_user     = &provider_state;
+    ObserverCallbackDispatch wrapper(config);
+    state.error                = ErrorPair{ 0x41, -41 };
+    const HRESULT result       = wrapper.CreateThread(1, 2, 3);
+    const auto    entries      = recorder.callback_entry_rows();
+    const auto    acquisitions = recorder.callback_acquisition_rows();
+    if (refuse || throw_exception || wrong_source || stale_source)
+    {
+        tests->check(result == S_OK && provider_state.calls == 1 && state.sdk_getter_calls == 0 &&
+                         !acquisitions.empty() &&
+                         acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                         entries.back().invalid_configuration_refused && state.error.last_error == 0xB2,
+                     "typed lifecycle refusal keeps delegate result and blocks SDK reads");
+    }
+    else
+    {
+        tests->check(result == S_OK && provider_state.calls == 1 &&
+                         state.sdk_getter_calls == kCallbackSdkMethodCount && !acquisitions.empty() &&
+                         acquisitions.back().binding_status == EngineBindingStatus::Bound &&
+                         acquisitions.back().owner.cached_engine_id == 42 &&
+                         acquisitions.back().owner.lifecycle_token == 68,
+                     "typed lifecycle observation creates the new lifecycle after delegate completion");
+    }
+    finish_raw(&raw);
+    tests->check(session.teardown(), "session create-thread teardown is explicit and quiescent");
+}
+
+void run_session_dispatch_paths(TestState* tests)
+{
+    run_session_create_thread_case(tests, false, false, false, false);
+    run_session_create_thread_case(tests, true, false, false, false);
+    run_session_create_thread_case(tests, false, true, false, false);
+    run_session_create_thread_case(tests, false, false, true, false);
+    run_session_create_thread_case(tests, false, false, false, true);
+}
+
+void run_session_create_thread_gate_case(TestState* tests,
+                                         bool       wrong_client,
+                                         bool       unrelated_bridge,
+                                         bool       foreign_instrumentation)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate            delegate(&state);
+    FakeClient              session_client(&delegate.systems);
+    FakeClient              foreign_client(&delegate.systems);
+    ObserverCallbackSession session(&recorder, &session_client, state.callback_thread);
+    const EventIdentity     planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    auto                    source_bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&recorder, &raw, source_bridge.get()),
+                 "create-thread gate admits raw key");
+    SessionObservationState provider_state{ false,
+                                            false,
+                                            0,
+                                            source_identity_for(planned),
+                                            42,
+                                            68,
+                                            1 };
+    CallbackIdentityReader  reader({ &state, read_error, write_error });
+    auto                    config        = dispatch_config(&state,
+                                                            &recorder,
+                                                            &reader,
+                                                            source_bridge.get(),
+                                                            &delegate,
+                                                            wrong_client ? &foreign_client : &session_client);
+    config.callback_session               = &session;
+    config.owner_provider                 = nullptr;
+    config.owner_provider_user            = nullptr;
+    config.lifecycle_observation_provider = &session_observation_provider;
+    config.lifecycle_observation_user     = &provider_state;
+    std::unique_ptr<RawEventBridge> unrelated;
+    if (unrelated_bridge)
+    {
+        unrelated         = std::make_unique<RawEventBridge>(recorder);
+        config.raw_bridge = unrelated.get();
+    }
+    if (foreign_instrumentation)
+    {
+        config.instrumentation_thread_id = state.callback_thread + 1;
+    }
+    ObserverCallbackDispatch wrapper(config);
+    state.error            = ErrorPair{ 0x41, -41 };
+    const HRESULT result   = wrapper.CreateThread(1, 2, 3);
+    const auto    snapshot = session.snapshot();
+    const auto    entries  = recorder.callback_entry_rows();
+    const auto    captures = recorder.callback_acquisition_rows();
+    const bool    refused  = wrong_client || unrelated_bridge || foreign_instrumentation;
+    tests->check(refused && result == S_OK && state.create_thread_calls == 1 &&
+                     provider_state.calls == 0 && state.sdk_getter_calls == 0 &&
+                     snapshot.source_count == 0 && snapshot.authority_id == 0 &&
+                     snapshot.lifetime_id == 0 && !snapshot.access_scope_active &&
+                     !captures.empty() && captures.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                     !entries.empty() && entries.back().invalid_configuration_refused,
+                 wrong_client       ? "create-thread wrong client gates lifecycle source"
+                 : unrelated_bridge ? "create-thread unrelated bridge gates lifecycle source"
+                                    : "create-thread foreign instrumentation gates lifecycle source");
+    finish_raw(&raw);
+    tests->check(session.teardown(), "create-thread gate refusal teardown is quiescent");
+}
+
+void run_session_create_thread_gate_regressions(TestState* tests)
+{
+    run_session_create_thread_gate_case(tests, true, false, false);
+    run_session_create_thread_gate_case(tests, false, true, false);
+    run_session_create_thread_gate_case(tests, false, false, true);
+}
+
+void run_session_outer_scope_reentry(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate                     delegate(&state);
+    FakeClient                       client(&delegate.systems);
+    ObserverCallbackSession          session(&recorder, &client, state.callback_thread);
+    EventIdentity                    planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    const CachedLifecycleObservation initial = typed_observation(planned, 42, 68, 1);
+    tests->check(session.seed_initial(planned, initial), "session outer scope seeds source");
+    auto bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&recorder, &raw, bridge.get()), "session outer scope admits raw event");
+    CallbackOwnerEvidence  outer_owner;
+    const bool             outer_acquired = session.owner_provider()(session.provider_user(),
+                                                                     "breakpoint",
+                                                                     CallbackDispatchPhase::BeforeDelegate,
+                                                                     session.current_raw_identity(),
+                                                                     &outer_owner);
+    const std::uint64_t    outer_nonce    = session.access_scope_nonce();
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    auto                   config = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session       = &session;
+    config.owner_provider         = nullptr;
+    config.owner_provider_user    = nullptr;
+    ObserverCallbackDispatch wrapper(config);
+    state.error          = ErrorPair{ 0x41, -41 };
+    const HRESULT result = wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    tests->check(outer_acquired && outer_nonce != 0 && result == S_OK &&
+                     session.access_scope_active() && session.access_scope_nonce() == outer_nonce &&
+                     state.sdk_getter_calls == 0,
+                 "refused nested session capture preserves outer nonce and blocks SDK reads");
+    tests->check(session.end_access_scope(outer_nonce), "outer session nonce releases explicitly");
+    finish_raw(&raw);
+    tests->check(session.teardown(), "outer session scope teardown is quiescent");
+}
+
+void run_session_sink_final_refusal(TestState* tests, bool fail_event, bool fail_continuation)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate                     delegate(&state);
+    FakeClient                       client(&delegate.systems);
+    ObserverCallbackSession          session(&recorder, &client, state.callback_thread);
+    EventIdentity                    planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    const CachedLifecycleObservation initial = typed_observation(planned, 42, 68, 1);
+    tests->check(session.seed_initial(planned, initial), "session sink failure seeds source");
+    OwnerSinkWrapper      wrapped{ session.owner_sink(), fail_event, false, fail_continuation, false };
+    RawLifecycleOwnerSink sink{ &wrapped_owner_event, &wrapped_owner_continuation, &wrapped };
+    auto                  bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, sink);
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&recorder, &raw, bridge.get()), "session sink failure admits raw event");
+    if (fail_continuation)
+    {
+        struct ClientId
+        {
+            ULONG process_id = 100;
+            ULONG thread_id  = 200;
+        } client_id;
+
+        g_dispatch_continue_result = -9;
+        tests->check(raw_recorder::RawRecorder::ContinueThunk(
+                         0x1111U, &client_id, 0x40010000U) == -9 &&
+                         bridge->continuation_count() == 1 &&
+                         !bridge->continuation(0).owner_sink_succeeded,
+                     "session continuation sink refusal is finalized");
+        wrapped.fail_continuation = false;
+    }
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    auto                   config = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session       = &session;
+    config.owner_provider         = nullptr;
+    config.owner_provider_user    = nullptr;
+    ObserverCallbackDispatch wrapper(config);
+    state.error                = ErrorPair{ 0x41, -41 };
+    const HRESULT result       = wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    const auto    entries      = recorder.callback_entry_rows();
+    const auto    acquisitions = recorder.callback_acquisition_rows();
+    tests->check(result == S_OK && state.sdk_getter_calls == 0 && !acquisitions.empty() &&
+                     acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                     !entries.back().binding_succeeded,
+                 fail_event ? "session event sink refusal blocks SDK reads"
+                            : "session continuation sink refusal blocks SDK reads");
+    g_dispatch_continue_result = 0;
+    finish_raw(&raw);
+    tests->check(session.teardown(), "session sink failure teardown is quiescent");
+}
+
+void run_session_custom_provider_refusal(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate                     delegate(&state);
+    FakeClient                       client(&delegate.systems);
+    ObserverCallbackSession          session(&recorder, &client, state.callback_thread);
+    EventIdentity                    planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    const CachedLifecycleObservation initial = typed_observation(planned, 42, 68, 1);
+    tests->check(session.seed_initial(planned, initial), "session custom provider seeds source");
+    auto bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                 "session custom provider admits raw event");
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    auto                   config = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session       = &session;
+    // Keep the deliberately supplied custom provider to exercise the
+    // contradictory configuration guard.
+    ObserverCallbackDispatch wrapper(config);
+    const HRESULT            result  = wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    const auto               entries = recorder.callback_entry_rows();
+    tests->check(result == S_OK && state.sdk_getter_calls == 0 && !entries.empty() &&
+                     entries.back().invalid_configuration_refused,
+                 "session and custom provider configuration is refused");
+    finish_raw(&raw);
+    tests->check(session.teardown(), "session custom provider teardown is quiescent");
+}
+
+void run_session_unrelated_bridge(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    state.nested_query    = true;
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate                     delegate(&state);
+    FakeClient                       client(&delegate.systems);
+    ObserverCallbackSession          session(&recorder, &client, state.callback_thread);
+    EventIdentity                    planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    const CachedLifecycleObservation initial = typed_observation(planned, 42, 68, 1);
+    tests->check(session.seed_initial(planned, initial), "unrelated bridge seeds source");
+    auto source_bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&recorder, &raw, source_bridge.get()), "unrelated bridge source admits raw event");
+    auto                   unrelated_bridge = std::make_unique<RawEventBridge>(recorder);
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    auto                   config = dispatch_config(&state, &recorder, &reader, unrelated_bridge.get(), &delegate, &client);
+    config.callback_session       = &session;
+    config.owner_provider         = nullptr;
+    config.owner_provider_user    = nullptr;
+    ObserverCallbackDispatch wrapper(config);
+    state.error           = ErrorPair{ 0x41, -41 };
+    const HRESULT result  = wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    const auto    entries = recorder.callback_entry_rows();
+    tests->check(result == S_OK && state.sdk_getter_calls == 0 && !entries.empty() &&
+                     entries.back().invalid_configuration_refused,
+                 "unrelated session bridge refuses before SDK reads");
+    finish_raw(&raw);
+    tests->check(session.teardown(), "unrelated bridge teardown is quiescent");
+}
+
+void run_session_provider_bypass_refusal(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    state.nested_query    = true;
+    Recorder session_recorder(recorder_config(&state));
+    state.recorder = &session_recorder;
+    FakeDelegate            delegate(&state);
+    FakeClient              session_client(&delegate.systems);
+    FakeClient              foreign_client(&delegate.systems);
+    ObserverCallbackSession session(&session_recorder, &session_client, state.callback_thread);
+    const EventIdentity     planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    tests->check(session.seed_initial(planned, typed_observation(planned, 42, 68, 1)),
+                 "exported session provider seeds source");
+    auto bridge = std::make_unique<RawEventBridge>(
+        session_recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&session_recorder, &raw, bridge.get()),
+                 "exported session provider admits raw event");
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    auto                   config = dispatch_config(
+        &state, &session_recorder, &reader, bridge.get(), &delegate, &foreign_client);
+    config.callback_session               = nullptr;
+    config.owner_provider                 = session.owner_provider();
+    config.owner_provider_user            = session.provider_user();
+    config.lifecycle_observation_provider = nullptr;
+    ObserverCallbackDispatch wrapper(config);
+    state.error            = ErrorPair{ 0x41, -41 };
+    const HRESULT result   = wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    const auto    entries  = session_recorder.callback_entry_rows();
+    const auto    captures = session_recorder.callback_acquisition_rows();
+    tests->check(result == S_OK && foreign_client.query_calls == 0 && state.sdk_getter_calls == 0 &&
+                     !captures.empty() && captures.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                     !entries.empty() && entries.back().invalid_configuration_refused &&
+                     !session.access_scope_active(),
+                 "exported session provider without session field refuses before SDK reads");
+    finish_raw(&raw);
+    tests->check(session.teardown() && !session.access_scope_active() && session.released(),
+                 "exported session provider refusal leaves no lease");
+}
+
+void run_session_recorder_mismatch_refusal(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder session_recorder;
+    Recorder configured_recorder(recorder_config(&state));
+    state.recorder = &configured_recorder;
+    FakeDelegate            delegate(&state);
+    FakeClient              client(&delegate.systems);
+    ObserverCallbackSession session(&session_recorder, &client, state.callback_thread);
+    auto                    bridge = std::make_unique<RawEventBridge>(
+        configured_recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    tests->check(admit_raw(&configured_recorder, &raw, bridge.get()),
+                 "session recorder mismatch admits configured raw event");
+    SessionObservationState provider_state{ false,
+                                            false,
+                                            0,
+                                            source_identity_for({ true, 0x1111, 100, 200, 1, 0, false, 0 }),
+                                            42,
+                                            68,
+                                            1 };
+    CallbackIdentityReader  reader({ &state, read_error, write_error });
+    auto                    config = dispatch_config(
+        &state, &configured_recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session               = &session;
+    config.owner_provider                 = nullptr;
+    config.owner_provider_user            = nullptr;
+    config.lifecycle_observation_provider = &session_observation_provider;
+    config.lifecycle_observation_user     = &provider_state;
+    ObserverCallbackDispatch wrapper(config);
+    state.error           = ErrorPair{ 0x41, -41 };
+    const HRESULT result  = wrapper.CreateThread(1, 2, 3);
+    const auto    entries = configured_recorder.callback_entry_rows();
+    tests->check(!session.recorder_matches(&configured_recorder) && result == S_OK &&
+                     provider_state.calls == 0 && state.sdk_getter_calls == 0 &&
+                     !entries.empty() && entries.back().invalid_configuration_refused &&
+                     !session.raw_open() && !session.access_scope_active(),
+                 "session recorder mismatch refuses before lifecycle source or SDK reads");
+    finish_raw(&raw);
+    tests->check(session.teardown() && session.released(),
+                 "session recorder mismatch teardown is quiescent");
+}
+
 void run_breakpoint_success(TestState* tests)
 {
     DispatchState state;
@@ -1965,6 +2426,15 @@ SelfTestReport run_callback_dispatch_self_tests()
     TestState tests;
     run_breakpoint_success(&tests);
     run_create_thread_order(&tests);
+    run_session_dispatch_paths(&tests);
+    run_session_create_thread_gate_regressions(&tests);
+    run_session_outer_scope_reentry(&tests);
+    run_session_sink_final_refusal(&tests, true, false);
+    run_session_sink_final_refusal(&tests, false, true);
+    run_session_custom_provider_refusal(&tests);
+    run_session_unrelated_bridge(&tests);
+    run_session_provider_bypass_refusal(&tests);
+    run_session_recorder_mismatch_refusal(&tests);
     run_retained_owner_integration(&tests);
     run_retained_owner_refusals(&tests);
     run_retained_owner_reuse(&tests);
@@ -2214,6 +2684,127 @@ std::string make_callback_owner_integration_trace()
     owner_output << "]}";
     owner_output << '}';
     return trace + owner_output.str() + '}';
+}
+
+std::string make_callback_session_integration_trace()
+{
+    // Fake-only end-to-end path: raw WaitThunk admission retains a create key,
+    // normal CreateThread delegate completion supplies the typed lifecycle
+    // source, and the session then owns the nested SDK reads.
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.nested_query           = true;
+    state.readable_memory        = true;
+    state.fake_vtable[4]         = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0]      = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value           = state.fake_interface.data();
+    const std::uintptr_t service = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate delegate(&state);
+    delegate.systems.values = { 42, 42, 2, 2, 200, 100 };
+    FakeClient              client(&delegate.systems);
+    ObserverCallbackSession session(&recorder, &client, state.callback_thread);
+    const EventIdentity     planned{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    auto                    bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    const bool                                 admitted = admit_raw(&recorder, &raw, bridge.get());
+    SessionObservationState                    provider_state{ false,
+                                                               false,
+                                                               0,
+                                                               source_identity_for(planned),
+                                                               42,
+                                                               68,
+                                                               1 };
+    CallbackIdentityReader                     reader({ &state, read_error, write_error });
+    CallbackDispatchConfig                     config =
+        dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session               = &session;
+    config.owner_provider                 = nullptr;
+    config.owner_provider_user            = nullptr;
+    config.lifecycle_observation_provider = &session_observation_provider;
+    config.lifecycle_observation_user     = &provider_state;
+    ObserverCallbackDispatch wrapper(config);
+    state.error                   = ErrorPair{ 0x41, -41 };
+    const HRESULT callback_result = admitted ? wrapper.CreateThread(1, 2, 3) : E_FAIL;
+    recorder.forward_lookup(&state, nullptr, &state.service);
+    std::array<std::uint8_t, 0xC4> context{};
+    std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+    recorder.forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+    const auto open_snapshot = session.snapshot();
+
+    struct ClientId
+    {
+        ULONG process_id = 100;
+        ULONG thread_id  = 200;
+    } client_id;
+
+    g_dispatch_continue_result = -9;
+    const LONG retained_result = admitted
+                                     ? raw_recorder::RawRecorder::ContinueThunk(
+                                           0x1111U, &client_id, 0x40010000U)
+                                     : 0;
+    g_dispatch_continue_result = 0;
+    const LONG closed_result   = admitted
+                                     ? raw_recorder::RawRecorder::ContinueThunk(
+                                           0x1111U, &client_id, 0x40010000U)
+                                     : 0;
+    const auto closed_snapshot = session.snapshot();
+    const bool torn_down       = session.teardown();
+    if (raw != nullptr)
+    {
+        raw->deactivate();
+        (void)raw->clear_observer_sink();
+    }
+
+    const auto acquisitions = recorder.callback_acquisition_rows();
+    const auto queries      = recorder.query_rows();
+    const auto contexts     = recorder.context_write_rows();
+    const bool integration_complete =
+        admitted && callback_result == S_OK && provider_state.calls == 1 &&
+        state.sdk_getter_calls == kCallbackSdkMethodCount && !acquisitions.empty() &&
+        acquisitions.back().binding_status == EngineBindingStatus::Bound && !queries.empty() &&
+        !contexts.empty() &&
+        retained_result == -9 && closed_result == 0 && open_snapshot.raw_open &&
+        !open_snapshot.access_scope_active && open_snapshot.access_sequence == 1 &&
+        !closed_snapshot.raw_open && torn_down;
+
+    std::string trace = recorder.serialize();
+    if (trace.empty() || trace.back() != '}')
+    {
+        return {};
+    }
+    trace.pop_back();
+    std::ostringstream output;
+    output << ",\"callback_session_integration\":{\"profile\":\"retained-callback-session-fake-v6\"";
+    output << ",\"integration_complete\":" << (integration_complete ? "true" : "false");
+    output << ",\"raw_wait\":{\"debug_object\":\"0x1111\",\"process_id\":100,\"thread_id\":200,\"raw_generation\":1,\"event_index\":0}";
+    output << ",\"cached_lifecycle\":{\"engine_id\":42,\"lifecycle_token\":68,\"observation_sequence\":1}";
+    output << ",\"access_scope\":{\"sequence\":" << open_snapshot.access_sequence
+           << ",\"nonce\":" << open_snapshot.last_access_scope_nonce
+           << ",\"released_before_continuation\":true"
+           << ",\"retained_client\":" << (open_snapshot.retained_client ? "true" : "false") << '}';
+    output << ",\"owner_sink\":{\"event_attempted\":"
+           << (bridge->event_count() != 0 && bridge->event(0).owner_sink_attempted ? "true" : "false")
+           << ",\"event_succeeded\":"
+           << (bridge->event_count() != 0 && bridge->event(0).owner_sink_succeeded ? "true" : "false")
+           << '}';
+    output << ",\"callback\":{\"kind\":\"create_thread\",\"phase\":\"after_delegate\",\"result\":"
+           << static_cast<Hresult>(callback_result) << '}';
+    output << ",\"sdk\":{\"getter_calls\":" << state.sdk_getter_calls
+           << ",\"query_rows\":" << queries.size() << ",\"context_rows\":" << contexts.size()
+           << ",\"bound\":"
+           << (!acquisitions.empty() && acquisitions.back().binding_status == EngineBindingStatus::Bound ? "true" : "false")
+           << '}';
+    output << ",\"continuation\":{\"retained_result\":" << retained_result
+           << ",\"closed_result\":" << closed_result << ",\"raw_closed\":"
+           << (!closed_snapshot.raw_open ? "true" : "false") << '}';
+    output << ",\"teardown\":{\"explicit\":" << (torn_down ? "true" : "false")
+           << ",\"released\":" << (session.released() ? "true" : "false") << "}}";
+    return trace + output.str() + '}';
 }
 
 } // namespace xivl::observer_diagnostic
