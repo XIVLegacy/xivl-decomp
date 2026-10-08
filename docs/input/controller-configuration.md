@@ -101,6 +101,16 @@ selects the DirectInput route. That branch requires non-negative results from
 pointer at VA `0x0044f1dc` (RVA `0x4f1dc`), the axis-object enumeration below,
 and `Acquire` before appending the record.
 
+The five calls occur at VAs `0x004415a3` (`CreateDevice`), `0x004415bf`
+(`SetCooperativeLevel`), `0x004415db` (`SetDataFormat`), `0x00441601`
+(`EnumObjects`), and `0x00441618` (`Acquire`). Each signed-negative HRESULT
+branches to cleanup at `0x0044173d`, with conditional `Release` at
+`0x0044174e`, instead of the record append at `0x00441736`. The optional
+`GetDeviceInfo` and `GetObjectInfo` calls at `0x004416a6` and `0x004416be`
+have no HRESULT gate. In the XInput branch, the optional `CreateDevice` at
+`0x00441451` can fail without preventing the append at `0x0044158a`; that
+branch does not run the four later DirectInput admission calls.
+
 Before `Acquire`, the DirectInput branch calls
 `IDirectInputDevice8::EnumObjects` with callback VA `0x004400d0`, context, and
 `dwFlags=3` (`DIDFT_AXIS`). A negative HRESULT releases the device and omits
@@ -109,6 +119,16 @@ and Slider, and only `(dwFlags & 0x0f00)` values `0x100`, `0x200`, `0x300`, or
 `0x400`; it maps the accepted ranges into the per-record axis metadata and
 returns continuation for ignored objects. The GUID comparisons and aspect
 mask are at VA `0x004400d0` (RVA `0x400d0`).
+
+Before those filters, each object receives a `GetProperty(DIPROP_RANGE)`
+call through vtable `+0x14` at VA `0x0044011f` (RVA `0x4011f`). Its
+`DIPROPRANGE` header has size `0x18`, header size `0x10`, `dwObj` from the
+object's `dwType`, and `dwHow=2` (`DIPH_BYID`). The signed-negative branch
+at `0x00440123` skips metadata for that object and reaches the common
+continuation return at `0x00440446..0x0044044e`. A range-property failure
+therefore does not reject the controller. There is no `SetProperty` call in
+this callback. A successful query still needs the GUID and aspect filters
+before metadata is populated.
 
 The controller callback `FUN_004413e0` returns `1` on every exit. Therefore a
 failed WMI query, failed device creation, failed axis enumeration, failed
@@ -133,6 +153,36 @@ and 24 derivative LONGs. The binary format's `dwDataSize=0x94` and 61-object
 table do not match that standard `DIJOYSTATE2` layout. The pointer at
 `0x0044f1dc` is therefore documented as an unnamed embedded DirectInput
 format; the `c_dfDIJoystick2` name is not asserted.
+
+The object table expands in the following order. Each listed offset and
+aspect pair is a separate entry; button offsets advance by one byte.
+
+| Rows | SDK GUID identity | GUID VA | Offsets | Type | Aspect flags |
+|---|---|---|---|---|---|
+| `0..31` | `GUID_Button` | `0x0044d0d8` | `0x00..0x1f` | `0x80ffff0c` | `0` |
+| `32..35` | `GUID_XAxis` | `0x0044d0c8` | `0x20,0x24,0x28,0x2c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `36..39` | `GUID_YAxis` | `0x0044d0b8` | `0x30,0x34,0x38,0x3c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `40..43` | `GUID_ZAxis` | `0x0044d0a8` | `0x40,0x44,0x48,0x4c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `44..47` | `GUID_RxAxis` | `0x0044d098` | `0x50,0x54,0x58,0x5c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `48..51` | `GUID_RyAxis` | `0x0044d088` | `0x60,0x64,0x68,0x6c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `52..55` | `GUID_RzAxis` | `0x0044d078` | `0x70,0x74,0x78,0x7c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `56..59` | `GUID_Slider` | `0x0044d068` | `0x80,0x84,0x88,0x8c` | `0x80ffff03` | `0x100,0x200,0x300,0x400` |
+| `60` | `GUID_POV` | `0x0044d058` | `0x90` | `0x80ffff10` | `0` |
+
+Hash-gated byte reads checked all 61 entries and the nine pointed-to GUIDs
+against Windows SDK `10.0.26100.0` `um/dinput.h` GUID definitions. PE section
+mapping places the header and GUIDs in `.rdata` (RVA/raw start `0x4b000`)
+and the table in `.data` (RVA/raw start `0x56000`); these particular RVAs
+equal their raw file offsets. This equality is a property of this image,
+not a general VA-to-file conversion.
+
+The low type values are `DIDFT_BUTTON=0x0c`, `DIDFT_AXIS=0x03`, and
+`DIDFT_POV=0x10`, with `DIDFT_ANYINSTANCE=0x00ffff00`. The high bit is
+`0x80000000`, named `DIDFT_OPTIONAL` in
+[Wine 11.18's DirectInput header](https://github.com/wine-mirror/wine/blob/wine-11.18/include/dinput.h#L729).
+It is distinct from `DIDFT_NODATA=0x80` in the SDK. These symbolic names
+identify the recovered values; they do not establish a particular runtime's
+object matching or format acceptance.
 
 For records with route marker nonzero, `FUN_004405f0` calls the XInput ordinal-2
 import with the saved index at `record+0x04` and output at `record+0x08`, and
