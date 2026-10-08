@@ -3,8 +3,9 @@
 The native mesh descriptor path builds compact elements and translates them
 into the layout of `D3DVERTEXELEMENT9`. Its format and usage lookups select
 numeric D3D9 declaration values. This establishes a static declaration
-boundary. The exact join from the stream lookup helper to an `STMS` child
-and the descriptors of an actual retail skeletal mesh remain unresolved.
+boundary. The stream lookup helper selects a zero-based occurrence of an
+exact `STMS` child and returns its payload pointer. The descriptors of an
+actual retail skeletal mesh remain unresolved.
 
 ## Identity and method
 
@@ -21,11 +22,50 @@ instructions and constant windows were independently compared with the
 original executable through its PE mapping. API names and normalization
 below are interpretations against Microsoft's primary D3D9 documentation.
 
+## STMS child selection
+
+The complete helper at `0x00c8f5a0` forwards its occurrence argument and
+tag literal at `0x01106fd4` to `0x00c698f0`, at callsite `0x00c8f5aa`.
+The bounded eight-byte constant window identifies `STMS` followed by four
+zero bytes. At `0x00c8f5b3`, a nonzero search result is advanced by `0x10`.
+The alternate path returns zero. Direct call xrefs at `0x00c8df38` and
+`0x00c8e0a8` join this helper to producer `0x00c8dc10`.
+
+Search `0x00c698f0` starts at the supplied container pointer plus `0x20`,
+at `0x00c69917`. It obtains each candidate tag through `0x00c2d7d0`.
+That helper copies the candidate's first dword at `0x00c2d7e3` into a
+stack buffer and places a zero byte after it. It does not swap those bytes.
+Its assignment call to `0x0043f590` at `0x00c2d81a` supplies the buffer and
+its measured length. For the four-byte tag, the initialized capacity `15`
+and length `0` select inline storage. Instructions at
+`0x0043f62b..0x0043f644` pass the source, four-byte count and inline
+destination to copy target `0x009d17f3`, save length `4` and terminate the
+destination. The copy callee itself was not inspected.
+
+At `0x00c69970`, the search calls comparator `0x0044f9a0` with the shorter
+of the candidate and requested tag lengths. The comparator's complete
+scoped body returns zero only when that many bytes agree. It compares
+four-byte groups and resolves a differing group or tail by unsigned-byte
+comparisons. Instructions at `0x00c69978..0x00c6998e` additionally require
+equal lengths. This is an exact tag comparison rather than a prefix match.
+
+The matching-occurrence counter is initialized to zero at `0x00c6991c`.
+At `0x00c699b5..0x00c699bf`, equality with the requested occurrence selects
+the candidate before the counter increments. An unmatched candidate or an
+earlier occurrence advances using its big-endian dword at chunk-header
+`+0x0c`, byte-swapped at `0x00c699cf` and `0x00c699e7`, then added at
+`0x00c699ed`. A zero advance ends the search with zero. The selected
+candidate is returned at `0x00c69a0f`, so the wrapper's returned payload
+pointer is the selected `STMS` chunk pointer plus `0x10`.
+
+This is a static lookup and call-contract finding. It does not establish
+container bounds, malformed-input handling or execution of a resource load.
+
 ## Descriptor and intermediate record
 
-Routine `0x00c8dc10` obtains a pointer through `0x00c8f5a0`. The helper's
-body was not inspected. The ordinary descriptor loop uses a 16-byte source
-record beginning 16 bytes after the returned pointer. Instructions at
+Routine `0x00c8dc10` obtains the selected `STMS` payload pointer through
+`0x00c8f5a0`. The ordinary descriptor loop uses a 16-byte source record
+beginning 16 bytes after that payload pointer. Instructions at
 `0x00c8e3a7` position the loop pointer at source record `+0x0c`.
 Instructions at `0x00c8e46d..0x00c8e517` swap the consumed dwords and words
 and assemble this intermediate record on the stack:
@@ -189,7 +229,26 @@ Every retrieved instruction and constant byte in these queries agreed
 with the original executable. Overlapping windows are separate queries,
 not additional independent evidence.
 
-The uninspected helper `0x00c8f5a0` prevents an exact `STMS` lookup join.
+For the child-selection join, use `ghidra decompile <VA> --json` for
+`0x00c8f5a0`, `0x00c698f0`, `0x00c2d7d0`, `0x0044f9a0` and `0x0043f590`.
+Use `ghidra memory read 0x01106fd4 8 --json` and
+`ghidra x-ref to 0x00c8f5a0 --limit 4 --json`. The xref query returns the
+two producer callsites stated above. These complete instruction windows
+stay inside the five scoped functions:
+
+| Start VA | Instruction count | End VA, exclusive |
+|---|---:|---|
+| `0x00c8f5a0` | 10 | `0x00c8f5be` |
+| `0x00c698f0` | 102 | `0x00c69a13` |
+| `0x00c2d7d0` | 35 | `0x00c2d834` |
+| `0x0044f9a0` | 59 | `0x0044fa2e` |
+| `0x0043f590` | 88 | `0x0043f651` |
+
+The child-selection instruction union contains `294` instructions and
+`756` instruction bytes. Every instruction and the eight-byte tag constant
+agreed with the original executable through PE mapping. No adjacent
+function body was retrieved. The copy target `0x009d17f3` remains uninspected.
+
 No sampled skeletal mesh establishes a weight format, index format, joint
 correspondence or palette mapping. Pose, MTB, buffer-producer and shader
 behavior, native execution, live rendering and retail sessions are outside
