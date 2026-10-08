@@ -3,6 +3,7 @@
 #define XIVL_OBSERVER_CALLBACK_SESSION_H
 
 #include "observer_event_bridge.h"
+#include "observer_event_lifecycle.h"
 
 #include <array>
 #include <atomic>
@@ -25,30 +26,6 @@ using CallbackOwnerProvider = bool (*)(void*                  user,
                                        const EventIdentity&   entry_raw_identity,
                                        CallbackOwnerEvidence* owner);
 
-// This is the source-owned lifecycle association. It persists across later
-// callback event indices; those exact admitted keys are checked separately.
-struct CachedLifecycleSourceIdentity
-{
-    bool           complete         = false;
-    std::uintptr_t raw_debug_object = 0;
-    std::uint32_t  process_id       = 0;
-    std::uint32_t  thread_id        = 0;
-    std::uint64_t  raw_generation   = 0;
-};
-
-// These facts are supplied by a concrete retained lifecycle source. The raw
-// debugger tuple is only the association key; it never supplies either value.
-// Engine id zero is valid when engine_id_known is true.
-struct CachedLifecycleObservation
-{
-    CachedLifecycleSourceIdentity source_identity{};
-    bool                          engine_id_known       = false;
-    std::uint32_t                 engine_id             = kDebugAnyEngineId;
-    bool                          lifecycle_token_known = false;
-    std::uint64_t                 lifecycle_token       = 0;
-    std::uint64_t                 observation_sequence  = 0;
-};
-
 // A delegate lifecycle source returns the cached facts it actually observed
 // after normal delegate completion. It does not return authority/lifetime
 // booleans or IDs.
@@ -56,6 +33,15 @@ using CallbackLifecycleObservationProvider = bool (*)(
     void*                       user,
     const EventIdentity&        identity,
     CachedLifecycleObservation* observation);
+
+// A concrete lifecycle provider returns both the current observation and a
+// shared source hold. The session revalidates that hold before every SDK
+// acquisition; the observation alone is never an authority token.
+using CallbackLifecycleSourceProvider = bool (*)(
+    void*                                     user,
+    const EventIdentity&                      identity,
+    CachedLifecycleObservation*               observation,
+    ObserverEventLifecycleSource::SourceHold* hold);
 
 // The exported session provider is recognizable without dereferencing its
 // untyped user pointer. Generic custom providers remain distinct.
@@ -87,6 +73,9 @@ public:
     // lifecycle token. The session creates its own authority/lifetime IDs.
     bool seed_initial(const EventIdentity&              identity,
                       const CachedLifecycleObservation& observation) noexcept;
+    bool seed_initial(const EventIdentity&                            identity,
+                      const CachedLifecycleObservation&               observation,
+                      const ObserverEventLifecycleSource::SourceHold& hold) noexcept;
     bool observe_create(const EventIdentity&              identity,
                         const CachedLifecycleObservation& observation) noexcept;
     bool observe_exit(const EventIdentity& identity) noexcept;
@@ -96,6 +85,10 @@ public:
     bool observe_delegate_create_thread(
         const EventIdentity&              identity,
         const CachedLifecycleObservation& observation) noexcept;
+    bool observe_delegate_create_thread(
+        const EventIdentity&                            identity,
+        const CachedLifecycleObservation&               observation,
+        const ObserverEventLifecycleSource::SourceHold& hold) noexcept;
 
     // Kept as an explicit compatibility refusal. No unqualified bool can
     // establish a lifecycle fact.
@@ -145,15 +138,17 @@ private:
 
     struct LifecycleEntry
     {
-        EventIdentity              identity{};
-        CachedLifecycleObservation observation{};
-        std::uint64_t              authority_id             = 0;
-        std::uint64_t              lifetime_id              = 0;
-        bool                       present                  = false;
-        bool                       active                   = false;
-        bool                       initial                  = false;
-        bool                       source_ended             = false;
-        bool                       delegate_create_observed = false;
+        EventIdentity                            identity{};
+        CachedLifecycleObservation               observation{};
+        std::uint64_t                            authority_id             = 0;
+        std::uint64_t                            lifetime_id              = 0;
+        bool                                     present                  = false;
+        bool                                     active                   = false;
+        bool                                     initial                  = false;
+        bool                                     source_ended             = false;
+        bool                                     delegate_create_observed = false;
+        ObserverEventLifecycleSource::SourceHold source_hold{};
+        bool                                     source_hold_present = false;
     };
 
     enum class CallbackKind : std::uint8_t
@@ -179,17 +174,23 @@ private:
                  const EventIdentity&   entry_raw_identity,
                  CallbackOwnerEvidence* owner) noexcept;
 
-    bool                  on_owner_thread() const noexcept;
-    bool                  pending_raw_matches(const EventIdentity& identity) const noexcept;
-    bool                  same_raw_key(const EventIdentity& left, const EventIdentity& right) const noexcept;
-    bool                  same_lifecycle(const EventIdentity& left, const EventIdentity& right) const noexcept;
-    bool                  source_bridge_matches(const RawEventBridge* bridge) const noexcept;
-    bool                  raw_key_complete(const EventIdentity& identity) const noexcept;
-    bool                  lifecycle_identity_complete(const EventIdentity& identity) const noexcept;
-    bool                  source_identity_complete(const CachedLifecycleSourceIdentity& identity) const noexcept;
-    bool                  observation_complete(const CachedLifecycleObservation& observation) const noexcept;
-    bool                  observation_matches_identity(const EventIdentity&              identity,
-                                                       const CachedLifecycleObservation& observation) const noexcept;
+    bool on_owner_thread() const noexcept;
+    bool pending_raw_matches(const EventIdentity& identity) const noexcept;
+    bool same_raw_key(const EventIdentity& left, const EventIdentity& right) const noexcept;
+    bool same_lifecycle(const EventIdentity& left, const EventIdentity& right) const noexcept;
+    bool source_bridge_matches(const RawEventBridge* bridge) const noexcept;
+    bool raw_key_complete(const EventIdentity& identity) const noexcept;
+    bool lifecycle_identity_complete(const EventIdentity& identity) const noexcept;
+    bool source_identity_complete(const CachedLifecycleSourceIdentity& identity) const noexcept;
+    bool observation_complete(const CachedLifecycleObservation& observation) const noexcept;
+    bool observation_matches_identity(const EventIdentity&              identity,
+                                      const CachedLifecycleObservation& observation) const noexcept;
+    bool source_hold_matches(const EventIdentity&                            identity,
+                             const CachedLifecycleObservation&               observation,
+                             const ObserverEventLifecycleSource::SourceHold& hold) const noexcept;
+    bool source_hold_entry_matches(
+        const ObserverEventLifecycleSource::SourceHold& left,
+        const ObserverEventLifecycleSource::SourceHold& right) const noexcept;
     bool                  create_lifecycle_event(raw_recorder::RawEventKind kind) const noexcept;
     bool                  owner_complete(const CallbackOwnerEvidence& owner) const noexcept;
     bool                  expected_callback(const char*           callback_kind,
@@ -200,9 +201,13 @@ private:
     LifecycleEntry*       find_lifecycle(const EventIdentity& identity) noexcept;
     const LifecycleEntry* find_lifecycle(const EventIdentity& identity) const noexcept;
     LifecycleEntry*       find_active_thread(const EventIdentity& identity) noexcept;
-    LifecycleEntry*       allocate_lifecycle(const EventIdentity&              identity,
-                                             const CachedLifecycleObservation& observation,
-                                             bool                              initial) noexcept;
+    LifecycleEntry*       allocate_lifecycle(const EventIdentity&                            identity,
+                                             const CachedLifecycleObservation&               observation,
+                                             bool                                            initial,
+                                             const ObserverEventLifecycleSource::SourceHold* hold = nullptr) noexcept;
+    bool                  begin_source_access(const EventIdentity& entry_raw_identity,
+                                              LifecycleEntry&      lifecycle) noexcept;
+    bool                  release_source_access() noexcept;
     void                  release_client() noexcept;
     void                  poison() noexcept;
 
@@ -214,15 +219,16 @@ private:
     std::size_t                                             lifecycle_count_   = 0;
     LifecycleEntry*                                         current_lifecycle_ = nullptr;
     EventIdentity                                           raw_identity_{};
-    bool                                                    raw_create_event_    = false;
-    CallbackKind                                            access_kind_         = CallbackKind::none;
-    CallbackDispatchPhase                                   access_phase_        = CallbackDispatchPhase::BeforeDelegate;
-    std::uint64_t                                           next_authority_id_   = 1;
-    std::uint64_t                                           next_lifetime_id_    = 1;
-    std::uint64_t                                           source_count_        = 0;
-    std::uint64_t                                           access_sequence_     = 0;
-    std::uint64_t                                           access_nonce_        = 0;
-    std::uint64_t                                           last_access_nonce_   = 0;
+    bool                                                    raw_create_event_  = false;
+    CallbackKind                                            access_kind_       = CallbackKind::none;
+    CallbackDispatchPhase                                   access_phase_      = CallbackDispatchPhase::BeforeDelegate;
+    std::uint64_t                                           next_authority_id_ = 1;
+    std::uint64_t                                           next_lifetime_id_  = 1;
+    std::uint64_t                                           source_count_      = 0;
+    std::uint64_t                                           access_sequence_   = 0;
+    std::uint64_t                                           access_nonce_      = 0;
+    std::uint64_t                                           last_access_nonce_ = 0;
+    ObserverEventLifecycleSource::SourceAccessScope         source_access_scope_{};
     std::atomic_flag                                        access_lock_         = ATOMIC_FLAG_INIT;
     bool                                                    raw_open_            = false;
     bool                                                    access_scope_active_ = false;

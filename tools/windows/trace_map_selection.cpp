@@ -2,6 +2,7 @@
 // Native map-selection observation for the pinned retail 1.23b client.
 #include <windows.h>
 
+#include "observer_event_lifecycle.h"
 #include "raw_event_recorder.h"
 
 #include <algorithm>
@@ -33,6 +34,11 @@ using Microsoft::WRL::ComPtr;
 
 namespace
 {
+
+using xivl::observer_diagnostic::ObserverEventLifecycleCache;
+using xivl::observer_diagnostic::ObserverEventLifecycleSource;
+using xivl::observer_diagnostic::same_thread_identity;
+using xivl::observer_diagnostic::ThreadIdentity;
 
 constexpr char retail_sha[] =
     "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9";
@@ -401,16 +407,6 @@ struct AttachmentSnapshot
     bool    attachment_validated       = false;
 };
 
-struct ThreadIdentity
-{
-    ULONG         engine_id    = DEBUG_ANY_ID;
-    ULONG         system_id    = 0;
-    ULONG64       data_offset  = 0;
-    ULONG64       teb_offset   = 0;
-    ULONG64       start_offset = 0;
-    std::uint64_t generation   = 0;
-};
-
 struct RegisterRead
 {
     bool    available = false;
@@ -448,39 +444,9 @@ struct BreakpointSnapshot
     bool           data_available   = false;
 };
 
-bool same_thread_identity(const ThreadIdentity& left,
-                          const ThreadIdentity& right,
-                          bool                  require_generation = false)
-{
-    if (left.engine_id == DEBUG_ANY_ID || right.engine_id == DEBUG_ANY_ID ||
-        left.engine_id != right.engine_id || !left.system_id ||
-        !right.system_id || left.system_id != right.system_id)
-    {
-        return false;
-    }
-    if (left.data_offset && right.data_offset &&
-        left.data_offset != right.data_offset)
-    {
-        return false;
-    }
-    if (left.teb_offset && right.teb_offset &&
-        left.teb_offset != right.teb_offset)
-    {
-        return false;
-    }
-    if (require_generation && (!left.generation || !right.generation ||
-                               left.generation != right.generation))
-    {
-        return false;
-    }
-    return true;
-}
-
 bool complete_helper_identity(const ThreadIdentity& identity)
 {
-    return identity.engine_id != DEBUG_ANY_ID && identity.system_id != 0 &&
-           identity.data_offset != 0 && identity.teb_offset != 0 &&
-           identity.start_offset != 0 && identity.generation != 0;
+    return xivl::observer_diagnostic::complete_thread_identity(identity);
 }
 
 ThreadIdentity current_thread_identity(IDebugSystemObjects* systems,
@@ -586,23 +552,18 @@ DebugContext read_debug_context(IDebugRegisters* registers)
 class Events final : public IDebugEventCallbacks
 {
 public:
-    struct ThreadLifecycle
-    {
-        ThreadIdentity identity;
-        bool           active       = true;
-        bool           initial      = false;
-        ULONG          exit_code    = 0;
-        std::uint64_t  event_number = 0;
-    };
+    using ThreadLifecycle = ObserverEventLifecycleCache::ThreadLifecycle;
+    using LifecycleEvent  = ObserverEventLifecycleCache::LifecycleEvent;
 
-    struct LifecycleEvent
+    Events()
+    : lifecycle_source(lifecycle_cache, GetCurrentThreadId())
     {
-        bool           created = false;
-        std::size_t    index   = static_cast<std::size_t>(-1);
-        ThreadIdentity identity;
-        ULONG          exit_code    = 0;
-        std::uint64_t  event_number = 0;
-    };
+    }
+
+    ObserverEventLifecycleSource* prepared_lifecycle_source() noexcept
+    {
+        return &lifecycle_source;
+    }
 
     ULONG                        refs                   = 1;
     ULONG                        last_id                = DEBUG_ANY_ID;
@@ -629,55 +590,30 @@ public:
     bool                         attachment_validated       = false;
     bool                         process_exited             = false;
     std::uint64_t                event_number               = 0;
-    std::uint64_t                next_generation            = 0;
     std::uint64_t                armed_event_number         = 0;
     unsigned                     forwarded_exceptions       = 0;
     unsigned                     owned_interrupts           = 0;
     unsigned                     created_events             = 0;
     unsigned                     exited_events              = 0;
     ComPtr<IDebugSystemObjects>  systems;
-    std::vector<ThreadLifecycle> lifecycles;
+    ObserverEventLifecycleCache  lifecycle_cache;
+    ObserverEventLifecycleSource lifecycle_source;
     std::deque<LifecycleEvent>   pending_lifecycle;
     AttachmentSnapshot*          snapshot = nullptr;
 
     ThreadIdentity resolve_current_identity() const
     {
-        ThreadIdentity identity = current_thread_identity(systems.Get());
-        for (const ThreadLifecycle& lifecycle : lifecycles)
-        {
-            if (lifecycle.active &&
-                same_thread_identity(identity, lifecycle.identity))
-            {
-                return lifecycle.identity;
-            }
-        }
-        return identity;
+        return lifecycle_cache.resolve_current_identity(current_thread_identity(systems.Get()));
     }
 
     std::size_t find_active(const ThreadIdentity& identity) const
     {
-        for (std::size_t index = 0; index < lifecycles.size(); ++index)
-        {
-            if (lifecycles[index].active &&
-                same_thread_identity(identity, lifecycles[index].identity))
-            {
-                return index;
-            }
-        }
-        return static_cast<std::size_t>(-1);
+        return lifecycle_cache.find_active(identity);
     }
 
     ThreadIdentity register_initial(ThreadIdentity identity)
     {
-        const std::size_t existing = find_active(identity);
-        if (existing != static_cast<std::size_t>(-1))
-        {
-            lifecycles[existing].initial = true;
-            return lifecycles[existing].identity;
-        }
-        identity.generation = ++next_generation;
-        lifecycles.push_back({ identity, true, true, 0, 0 });
-        return identity;
+        return lifecycle_cache.register_initial(identity);
     }
 
     void mark_armed()
@@ -796,13 +732,11 @@ public:
         {
             identity.data_offset = data_offset;
         }
-        identity.generation        = ++next_generation;
-        const std::uint64_t number = ++event_number;
-        const std::size_t   index  = lifecycles.size();
-        lifecycles.push_back({ identity, true, false, 0, number });
+        const std::uint64_t  number          = ++event_number;
+        const LifecycleEvent lifecycle_event = lifecycle_cache.create_thread(identity, number);
         if (watch_threads)
         {
-            pending_lifecycle.push_back({ true, index, identity, 0, number });
+            pending_lifecycle.push_back(lifecycle_event);
             ++created_events;
             return DEBUG_STATUS_BREAK;
         }
@@ -811,19 +745,13 @@ public:
 
     HRESULT STDMETHODCALLTYPE ExitThread(ULONG exit_code) override
     {
-        const ThreadIdentity current  = resolve_current_identity();
-        const std::size_t    index    = find_active(current);
-        ThreadIdentity       identity = current;
-        if (index != static_cast<std::size_t>(-1))
-        {
-            lifecycles[index].active    = false;
-            lifecycles[index].exit_code = exit_code;
-            identity                    = lifecycles[index].identity;
-        }
-        const std::uint64_t number = ++event_number;
+        const ThreadIdentity current = resolve_current_identity();
+        const std::uint64_t  number  = ++event_number;
+        const LifecycleEvent lifecycle_event =
+            lifecycle_cache.exit_thread(current, exit_code, number);
         if (watch_threads)
         {
-            pending_lifecycle.push_back({ false, index, identity, exit_code, number });
+            pending_lifecycle.push_back(lifecycle_event);
             ++exited_events;
             return DEBUG_STATUS_BREAK;
         }
@@ -894,7 +822,7 @@ public:
                 return false;
             }
         }
-        for (const ThreadLifecycle& lifecycle : lifecycles)
+        for (const ThreadLifecycle& lifecycle : lifecycle_cache.lifecycles())
         {
             if (!lifecycle.active || lifecycle.initial ||
                 lifecycle.event_number <= armed_event_number ||
@@ -933,7 +861,7 @@ public:
         attach_thread_teb_offset           = 0;
         attach_thread_start_offset         = 0;
         attach_breakin_identity.generation = 0;
-        for (const ThreadLifecycle& lifecycle : lifecycles)
+        for (const ThreadLifecycle& lifecycle : lifecycle_cache.lifecycles())
         {
             if (lifecycle.active &&
                 same_thread_identity(lifecycle.identity, attach_breakin_identity))

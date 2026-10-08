@@ -233,6 +233,72 @@ void run_known_lifecycle_update_boundary(TestState* tests)
     tests->check(session.teardown());
 }
 
+void run_source_hold_fact_boundary(TestState* tests)
+{
+    FakeUnknown                  client;
+    Recorder                     recorder;
+    ObserverEventLifecycleCache  cache;
+    ObserverEventLifecycleSource source(cache, GetCurrentThreadId());
+    const EventIdentity          raw = identity(1, 0);
+    ThreadIdentity               cached;
+    cached.engine_id                                    = 0;
+    cached.system_id                                    = raw.thread_id;
+    cached.data_offset                                  = 0x1100;
+    cached.teb_offset                                   = 0x1100;
+    cached.start_offset                                 = 0x2200;
+    const ThreadIdentity                     registered = cache.register_initial(cached);
+    ObserverEventLifecycleSource::SourceHold hold;
+    CachedLifecycleObservation               actual;
+    tests->check(source.bind_initial(cache, raw, registered) && source.acquire(raw, &hold, &actual));
+
+    ObserverCallbackSession    session(&recorder, &client, GetCurrentThreadId());
+    CachedLifecycleObservation edited_engine = actual;
+    edited_engine.engine_id                  = 42;
+    CachedLifecycleObservation edited_token  = actual;
+    ++edited_token.lifecycle_token;
+    tests->check(!session.seed_initial(raw, edited_engine, hold) &&
+                 !session.seed_initial(raw, edited_token, hold) &&
+                 session.seed_initial(raw, actual, hold));
+
+    auto bridge = std::make_unique<RawEventBridge>(recorder);
+    tests->check(recorder.admit_pending_event(raw) == PendingEventStatus::Admitted);
+    const RawLifecycleOwnerSink sink  = session.owner_sink();
+    const BridgeEventEvidence   event = event_evidence(raw, bridge.get(), raw_recorder::RawEventKind::create_process);
+    tests->check(sink.observe_event(sink.user, event));
+
+    const auto typed_before_generic = session.snapshot();
+    tests->check(!session.observe_delegate_create_thread(raw, observation(raw, 0, 1, 2)));
+    const auto typed_after_generic = session.snapshot();
+    tests->check(typed_after_generic.cached_engine_id == typed_before_generic.cached_engine_id &&
+                 typed_after_generic.lifecycle_token == typed_before_generic.lifecycle_token &&
+                 !typed_after_generic.delegate_create_observed);
+    CachedLifecycleObservation newer;
+    tests->check(source.acquire(raw, &hold, &newer) && newer.observation_sequence == 2 &&
+                 session.observe_delegate_create_thread(raw, newer, hold));
+    const auto typed_after_newer = session.snapshot();
+    tests->check(typed_after_newer.delegate_create_observed &&
+                 typed_after_newer.cached_engine_id == 0 && typed_after_newer.lifecycle_token == 1);
+
+    ObserverEventLifecycleCache              other_cache;
+    const ThreadIdentity                     other_registered = other_cache.register_initial(cached);
+    ObserverEventLifecycleSource             source_other(other_cache, GetCurrentThreadId());
+    ObserverEventLifecycleSource::SourceHold other_hold;
+    CachedLifecycleObservation               other_observation;
+    tests->check(source_other.bind_initial(other_cache, raw, other_registered) &&
+                 source_other.acquire(raw, &other_hold, &other_observation) &&
+                 source_other.acquire(raw, &other_hold, &other_observation) &&
+                 !session.observe_delegate_create_thread(raw, other_observation, other_hold));
+
+    BridgeContinuationEvidence closed;
+    closed.bridge                 = bridge.get();
+    closed.matched_identity       = raw;
+    closed.result.match_unique    = true;
+    closed.result.pending_cleared = true;
+    closed.close_status           = PendingEventStatus::Closed;
+    tests->check(recorder.close_pending_event(raw) == PendingEventStatus::Closed &&
+                 sink.observe_continuation(sink.user, closed) && session.teardown());
+}
+
 void run_destructor_retention(TestState* tests)
 {
     FakeUnknown client;
@@ -252,6 +318,7 @@ SelfTestReport run_callback_session_self_tests()
     run_raw_boundary(&tests);
     run_key_only_create_boundary(&tests);
     run_known_lifecycle_update_boundary(&tests);
+    run_source_hold_fact_boundary(&tests);
     run_destructor_retention(&tests);
     tests.report.passed  = tests.report.failures == 0;
     tests.report.summary = "checks=" + std::to_string(tests.report.checks) +

@@ -392,6 +392,8 @@ ObserverCallbackDispatch::ObserverCallbackDispatch(const CallbackDispatchConfig&
 , callback_session_(config.callback_session)
 , lifecycle_observation_provider_(config.lifecycle_observation_provider)
 , lifecycle_observation_user_(config.lifecycle_observation_user)
+, lifecycle_source_provider_(config.lifecycle_source_provider)
+, lifecycle_source_user_(config.lifecycle_source_user)
 , owner_provider_(config.owner_provider != nullptr
                       ? config.owner_provider
                   : config.callback_session != nullptr ? config.callback_session->owner_provider()
@@ -429,6 +431,18 @@ ObserverCallbackDispatch::ObserverCallbackDispatch(const CallbackDispatchConfig&
         session_configuration_refused_ = true;
         owner_provider_                = nullptr;
         owner_provider_user_           = nullptr;
+    }
+    if (callback_session_ == nullptr && lifecycle_source_provider_ != nullptr)
+    {
+        session_configuration_refused_ = true;
+        lifecycle_source_provider_     = nullptr;
+        lifecycle_source_user_         = nullptr;
+    }
+    if (lifecycle_source_provider_ != nullptr && lifecycle_observation_provider_ != nullptr)
+    {
+        session_configuration_refused_ = true;
+        lifecycle_source_provider_     = nullptr;
+        lifecycle_source_user_         = nullptr;
     }
 }
 
@@ -517,6 +531,11 @@ bool ObserverCallbackDispatch::restore_error(const ErrorSnapshot& snapshot) cons
 bool ObserverCallbackDispatch::owner_thread() const noexcept
 {
     return instrumentation_thread_id_ != 0 && GetCurrentThreadId() == instrumentation_thread_id_;
+}
+
+bool ObserverCallbackDispatch::capture_prerequisites(const CallbackBeginResult& begin) const noexcept
+{
+    return recorder_ != nullptr && identity_reader_ != nullptr && client_ != nullptr && begin.recorded;
 }
 
 bool ObserverCallbackDispatch::acquire_guard(DispatchGuard* guard) noexcept
@@ -623,6 +642,10 @@ bool ObserverCallbackDispatch::capture(CallbackDispatchEntry*     entry,
     {
         entry->invalid_configuration_refused = true;
     }
+    else if (!capture_prerequisites(begin))
+    {
+        entry->invalid_configuration_refused = true;
+    }
     else if (owner_provider_ == nullptr)
     {
         entry->invalid_configuration_refused = true;
@@ -694,7 +717,7 @@ bool ObserverCallbackDispatch::capture(CallbackDispatchEntry*     entry,
     }
     const CallbackOwnerEvidence capture_owner =
         restoration_ok && entry->provider_succeeded ? owner : CallbackOwnerEvidence{};
-    if (recorder_ == nullptr || identity_reader_ == nullptr || client_ == nullptr || !begin.recorded)
+    if (!capture_prerequisites(begin))
     {
         entry->invalid_configuration_refused = true;
     }
@@ -856,6 +879,11 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::Breakpoint(PDEBUG_BREAKPOINT
 
     if (dispatch_recorded)
     {
+        if (!capture_prerequisites(begin))
+        {
+            entry.invalid_configuration_refused = true;
+            allow_instrumentation               = false;
+        }
         try
         {
             (void)recorder_->begin_callback_delegate(begin.callback_operation_id);
@@ -968,6 +996,11 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateThread(ULONG64 handle,
 
     if (dispatch_recorded)
     {
+        if (!capture_prerequisites(begin))
+        {
+            entry.invalid_configuration_refused = true;
+            allow_instrumentation               = false;
+        }
         try
         {
             (void)recorder_->begin_callback_delegate(begin.callback_operation_id);
@@ -1015,22 +1048,42 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateThread(ULONG64 handle,
         {
             bool observed = false;
             if (allow_instrumentation && !session_configuration_refused_ &&
-                delegate_error == nullptr && lifecycle_observation_provider_ != nullptr &&
+                delegate_error == nullptr &&
                 callback_session_->client_alias_matches(client_) &&
                 callback_session_->source_bridge_bound_to(raw_bridge_))
             {
                 CachedLifecycleObservation observation{};
-                try
+                if (lifecycle_source_provider_ != nullptr)
                 {
-                    observed = lifecycle_observation_provider_(lifecycle_observation_user_,
-                                                               begin.raw_identity,
-                                                               &observation) &&
-                               callback_session_->observe_delegate_create_thread(
-                                   begin.raw_identity, observation);
+                    ObserverEventLifecycleSource::SourceHold hold;
+                    try
+                    {
+                        observed = lifecycle_source_provider_(lifecycle_source_user_,
+                                                              begin.raw_identity,
+                                                              &observation,
+                                                              &hold) &&
+                                   callback_session_->observe_delegate_create_thread(
+                                       begin.raw_identity, observation, hold);
+                    }
+                    catch (...)
+                    {
+                        observed = false;
+                    }
                 }
-                catch (...)
+                else if (lifecycle_observation_provider_ != nullptr)
                 {
-                    observed = false;
+                    try
+                    {
+                        observed = lifecycle_observation_provider_(lifecycle_observation_user_,
+                                                                   begin.raw_identity,
+                                                                   &observation) &&
+                                   callback_session_->observe_delegate_create_thread(
+                                       begin.raw_identity, observation);
+                    }
+                    catch (...)
+                    {
+                        observed = false;
+                    }
                 }
             }
             if (!observed)

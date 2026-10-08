@@ -2,6 +2,7 @@
 #include "observer_callback_dispatch.h"
 
 #include "observer_event_bridge.h"
+#include "observer_event_lifecycle.h"
 #include "raw_event_recorder.h"
 
 #include <windows.h>
@@ -42,52 +43,77 @@ struct TestState
 
 struct DispatchState
 {
-    Recorder*                      recorder = nullptr;
-    IDebugEventCallbacks*          wrapper  = nullptr;
-    ErrorPair                      error{ 0x41, -41 };
-    ErrorPair                      delegate_incoming{};
-    std::uint32_t                  callback_thread            = 0;
-    std::uint32_t                  sdk_getter_calls           = 0;
-    std::uint32_t                  provider_calls             = 0;
-    std::uint32_t                  provider_phase             = 0;
-    std::uint32_t                  nested_queries             = 0;
-    std::uint32_t                  breakpoint_calls           = 0;
-    std::uint32_t                  create_thread_calls        = 0;
-    std::uint32_t                  other_calls                = 0;
-    bool                           nested_query               = false;
-    bool                           provider_returns_false     = false;
-    bool                           provider_throws            = false;
-    bool                           owner_generation_mismatch  = false;
-    bool                           owner_raw_mismatch         = false;
-    bool                           owner_lifetime_ended       = false;
-    bool                           change_raw_on_provider     = false;
-    bool                           raw_change_done            = false;
-    bool                           nested_callback            = false;
-    bool                           nested_callback_fired      = false;
-    bool                           allocate_owner_in_delegate = false;
-    bool                           delegate_owner_allocated   = false;
-    bool                           readable_memory            = false;
-    bool                           provider_raw_seen          = false;
-    EventIdentity                  provider_raw{};
-    CallbackOwnerEvidence          owner_source{};
-    RetainedCallbackOwnerAdapter*  retained_owner         = nullptr;
-    bool                           retained_owner_publish = false;
-    void*                          output_value           = nullptr;
-    std::array<std::uint8_t, 0x20> fake_record{};
-    std::array<std::uintptr_t, 1>  fake_interface{};
-    std::array<std::uintptr_t, 5>  fake_vtable{};
-    bool                           delegate_throws       = false;
-    bool                           clobber_thread        = false;
-    bool                           clobber_returned_read = false;
-    bool                           clobber_provider      = false;
-    std::uint32_t                  failed_writes         = 0;
-    std::uint32_t                  wrapper_write_calls   = 0;
-    std::uint32_t                  wrapper_fail_write_at = 0;
-    HRESULT                        breakpoint_result     = S_OK;
-    HRESULT                        create_thread_result  = S_OK;
-    ULONG                          interest_mask         = 0x51;
-    GuidBytes                      service               = kTranslationServiceGuid;
-    GuidBytes                      iid                   = kTranslationIid;
+    Recorder*                                   recorder = nullptr;
+    IDebugEventCallbacks*                       wrapper  = nullptr;
+    ErrorPair                                   error{ 0x41, -41 };
+    ErrorPair                                   delegate_incoming{};
+    std::uint32_t                               callback_thread            = 0;
+    std::uint32_t                               sdk_getter_calls           = 0;
+    std::uint32_t                               provider_calls             = 0;
+    std::uint32_t                               provider_phase             = 0;
+    std::uint32_t                               nested_queries             = 0;
+    std::uint32_t                               breakpoint_calls           = 0;
+    std::uint32_t                               create_thread_calls        = 0;
+    std::uint32_t                               other_calls                = 0;
+    bool                                        nested_query               = false;
+    bool                                        provider_returns_false     = false;
+    bool                                        provider_throws            = false;
+    bool                                        owner_generation_mismatch  = false;
+    bool                                        owner_raw_mismatch         = false;
+    bool                                        owner_lifetime_ended       = false;
+    bool                                        change_raw_on_provider     = false;
+    bool                                        raw_change_done            = false;
+    bool                                        nested_callback            = false;
+    bool                                        nested_callback_fired      = false;
+    bool                                        nested_create_callback     = false;
+    bool                                        allocate_owner_in_delegate = false;
+    bool                                        delegate_owner_allocated   = false;
+    bool                                        readable_memory            = false;
+    bool                                        provider_raw_seen          = false;
+    EventIdentity                               provider_raw{};
+    CallbackOwnerEvidence                       owner_source{};
+    RetainedCallbackOwnerAdapter*               retained_owner         = nullptr;
+    bool                                        retained_owner_publish = false;
+    void*                                       output_value           = nullptr;
+    std::array<std::uint8_t, 0x20>              fake_record{};
+    std::array<std::uintptr_t, 1>               fake_interface{};
+    std::array<std::uintptr_t, 5>               fake_vtable{};
+    bool                                        delegate_throws          = false;
+    bool                                        clobber_thread           = false;
+    bool                                        clobber_returned_read    = false;
+    bool                                        clobber_provider         = false;
+    ObserverEventLifecycleCache*                source_cache_for_reads   = nullptr;
+    ObserverEventLifecycleSource*               source_for_reads         = nullptr;
+    ObserverEventLifecycleCache*                delegate_lifecycle_cache = nullptr;
+    ThreadIdentity                              delegate_lifecycle_identity{};
+    ObserverEventLifecycleCache::LifecycleEvent delegate_lifecycle_event{};
+    std::uint64_t                               delegate_lifecycle_event_number   = 1;
+    bool                                        delegate_lifecycle_create         = false;
+    bool                                        delegate_lifecycle_cache_created  = false;
+    bool                                        delegate_lifecycle_event_selected = false;
+    bool                                        delegate_callback_args_captured   = false;
+    bool                                        delegate_cache_before_provider    = false;
+    bool                                        delegate_identity_matches_args    = false;
+    bool                                        nested_source_mutation            = false;
+    bool                                        close_source_on_query             = false;
+    bool                                        source_probe_during_access        = false;
+    EventIdentity                               source_probe_raw{};
+    ObserverEventLifecycleCache::LifecycleEvent source_probe_event{};
+    std::size_t                                 source_probe_bindings_before     = 0;
+    std::uint64_t                               source_probe_observations_before = 0;
+    bool                                        source_probe_refused             = false;
+    bool                                        source_hooks_armed               = false;
+    bool                                        source_hooks_seen                = false;
+    bool                                        nested_source_mutation_refused   = false;
+    bool                                        source_closed_during_access      = false;
+    std::uint32_t                               failed_writes                    = 0;
+    std::uint32_t                               wrapper_write_calls              = 0;
+    std::uint32_t                               wrapper_fail_write_at            = 0;
+    HRESULT                                     breakpoint_result                = S_OK;
+    HRESULT                                     create_thread_result             = S_OK;
+    ULONG                                       interest_mask                    = 0x51;
+    GuidBytes                                   service                          = kTranslationServiceGuid;
+    GuidBytes                                   iid                              = kTranslationIid;
 };
 
 bool read_error(void* user, ErrorPair* value)
@@ -334,6 +360,63 @@ bool owner_provider(void* user,
     return true;
 }
 
+void run_source_read_hooks(DispatchState* state)
+{
+    if (state == nullptr || !state->source_hooks_armed)
+    {
+        return;
+    }
+    if (state->nested_source_mutation && state->source_cache_for_reads != nullptr)
+    {
+        const std::size_t   before_entries    = state->source_cache_for_reads->lifecycles().size();
+        const std::uint64_t before_generation = state->source_cache_for_reads->next_generation();
+        ThreadIdentity      nested_identity;
+        nested_identity.engine_id    = 9;
+        nested_identity.system_id    = 200;
+        nested_identity.data_offset  = 0xA100;
+        nested_identity.teb_offset   = 0xA100;
+        nested_identity.start_offset = 0xA200;
+        const ThreadIdentity nested_initial =
+            state->source_cache_for_reads->register_initial(nested_identity);
+        const auto nested_created = state->source_cache_for_reads->create_thread(
+            nested_identity, before_generation + 1);
+        const auto nested_exit = state->source_cache_for_reads->exit_thread(
+            nested_identity, 0xE1, before_generation + 2);
+        state->nested_source_mutation_refused =
+            nested_initial.generation == 0 && !nested_created.created &&
+            nested_created.index == ObserverEventLifecycleCache::kInvalidIndex &&
+            nested_exit.index == ObserverEventLifecycleCache::kInvalidIndex &&
+            state->source_cache_for_reads->lifecycles().size() == before_entries &&
+            state->source_cache_for_reads->next_generation() == before_generation;
+        state->nested_source_mutation = false;
+    }
+    if (state->source_probe_during_access && state->source_cache_for_reads != nullptr &&
+        state->source_for_reads != nullptr)
+    {
+        const bool                               bound = state->source_for_reads->bind_created(*state->source_cache_for_reads,
+                                                                                               state->source_probe_raw,
+                                                                                               state->source_probe_event);
+        ObserverEventLifecycleSource::SourceHold nested_hold;
+        CachedLifecycleObservation               nested_observation;
+        const bool                               acquired = state->source_for_reads->acquire(
+            state->source_probe_raw, &nested_hold, &nested_observation);
+        CachedLifecycleObservation observed;
+        const bool                 observed_result = state->source_for_reads->observation(
+            state->source_probe_raw, &observed);
+        state->source_probe_refused =
+            !bound && !acquired && !observed_result &&
+            state->source_for_reads->binding_count() == state->source_probe_bindings_before &&
+            state->source_for_reads->observation_count() == state->source_probe_observations_before;
+        state->source_probe_during_access = false;
+    }
+    if (state->close_source_on_query && state->source_for_reads != nullptr)
+    {
+        state->source_closed_during_access = state->source_for_reads->close();
+        state->close_source_on_query       = false;
+    }
+    state->source_hooks_armed = false;
+}
+
 class FakeSystemObjects final : public IDebugSystemObjects
 {
 public:
@@ -380,6 +463,7 @@ private:
         }
         if (state != nullptr)
         {
+            run_source_read_hooks(state);
             ++state->sdk_getter_calls;
             state->error = ErrorPair{ static_cast<std::uint32_t>(0xC0 + index),
                                       -static_cast<std::int32_t>(0xC0 + index) };
@@ -674,10 +758,38 @@ public:
         return static_cast<HRESULT>(0x101);
     }
 
-    HRESULT STDMETHODCALLTYPE CreateThread(ULONG64, ULONG64, ULONG64) override
+    HRESULT STDMETHODCALLTYPE CreateThread(ULONG64 handle,
+                                           ULONG64 data_offset,
+                                           ULONG64 start_offset) override
     {
+        (void)handle;
         state->delegate_incoming = state->error;
         ++state->create_thread_calls;
+        if (state->delegate_lifecycle_create && state->delegate_lifecycle_cache != nullptr)
+        {
+            ThreadIdentity created_identity = state->delegate_lifecycle_identity;
+            created_identity.data_offset    = data_offset;
+            created_identity.teb_offset     = data_offset;
+            created_identity.start_offset   = start_offset;
+            const auto produced             = state->delegate_lifecycle_cache->create_thread(
+                created_identity, ++state->delegate_lifecycle_event_number);
+            if (!state->delegate_lifecycle_event_selected)
+            {
+                state->delegate_lifecycle_event          = produced;
+                state->delegate_lifecycle_event_selected = produced.created;
+                state->delegate_lifecycle_cache_created  = produced.created;
+                state->delegate_callback_args_captured   = true;
+                state->delegate_identity_matches_args =
+                    produced.created && produced.identity.data_offset == data_offset &&
+                    produced.identity.start_offset == start_offset;
+            }
+            state->source_hooks_seen = state->source_hooks_seen || produced.created;
+        }
+        if (state->nested_create_callback && !state->nested_callback_fired && state->wrapper != nullptr)
+        {
+            state->nested_callback_fired = true;
+            (void)state->wrapper->CreateThread(0x11, 0x22, 0x33);
+        }
         if (state->allocate_owner_in_delegate)
         {
             state->delegate_owner_allocated = true;
@@ -812,6 +924,37 @@ void finish_raw(std::unique_ptr<raw_recorder::RawRecorder>* raw)
     }
 }
 
+bool continue_raw_event(std::unique_ptr<raw_recorder::RawRecorder>* raw)
+{
+    struct ClientId
+    {
+        ULONG process_id = 100;
+        ULONG thread_id  = 200;
+    } client;
+
+    return raw != nullptr && raw->get() != nullptr &&
+           raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U) == 0;
+}
+
+bool admit_next_lifecycle_event(ULONG state_type)
+{
+    std::array<std::uint8_t, 0x60> event{};
+    *reinterpret_cast<ULONG*>(event.data())     = state_type;
+    *reinterpret_cast<ULONG*>(event.data() + 4) = 100;
+    *reinterpret_cast<ULONG*>(event.data() + 8) = 200;
+    return raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data()) == 0;
+}
+
+bool admit_next_create_event()
+{
+    return admit_next_lifecycle_event(3);
+}
+
+bool admit_next_exit_event()
+{
+    return admit_next_lifecycle_event(4);
+}
+
 CallbackDispatchConfig dispatch_config(DispatchState*          state,
                                        Recorder*               recorder,
                                        CallbackIdentityReader* reader,
@@ -899,6 +1042,57 @@ bool session_observation_provider(void* user,
     return true;
 }
 
+struct LifecycleSourceProviderState
+{
+    DispatchState*                              dispatch_state = nullptr;
+    ObserverEventLifecycleCache*                cache          = nullptr;
+    ObserverEventLifecycleSource*               source         = nullptr;
+    std::uint32_t                               calls          = 0;
+    ObserverEventLifecycleCache::LifecycleEvent created{};
+    bool                                        cache_created       = false;
+    bool                                        source_bound        = false;
+    bool                                        producer_preexisted = false;
+};
+
+bool lifecycle_source_provider(void*                                     user,
+                               const EventIdentity&                      identity,
+                               CachedLifecycleObservation*               observation,
+                               ObserverEventLifecycleSource::SourceHold* hold)
+{
+    auto* state = static_cast<LifecycleSourceProviderState*>(user);
+    if (state == nullptr || state->cache == nullptr || state->source == nullptr ||
+        observation == nullptr || hold == nullptr)
+    {
+        return false;
+    }
+    ++state->calls;
+    if (state->dispatch_state == nullptr ||
+        !state->dispatch_state->delegate_lifecycle_cache_created ||
+        state->dispatch_state->delegate_lifecycle_cache != state->cache)
+    {
+        return false;
+    }
+    state->created                                        = state->dispatch_state->delegate_lifecycle_event;
+    state->cache_created                                  = state->created.created;
+    state->producer_preexisted                            = state->cache_created;
+    state->dispatch_state->delegate_cache_before_provider = state->producer_preexisted;
+    if (!state->cache_created || state->created.identity.system_id != identity.thread_id)
+    {
+        return false;
+    }
+    state->source_bound = state->source->bind_created(*state->cache, identity, state->created);
+    if (!state->source_bound)
+    {
+        return false;
+    }
+    const bool acquired = state->source->acquire(identity, hold, observation);
+    if (acquired && state->dispatch_state != nullptr)
+    {
+        state->dispatch_state->source_hooks_armed = true;
+    }
+    return acquired;
+}
+
 void run_session_create_thread_case(TestState* tests,
                                     bool       refuse,
                                     bool       throw_exception,
@@ -974,6 +1168,209 @@ void run_session_dispatch_paths(TestState* tests)
     run_session_create_thread_case(tests, false, true, false, false);
     run_session_create_thread_case(tests, false, false, true, false);
     run_session_create_thread_case(tests, false, false, false, true);
+}
+
+void run_source_dispatch_gate_case(TestState* tests,
+                                   bool       invalid_configuration,
+                                   bool       foreign_thread,
+                                   bool       reentrant)
+{
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.nested_create_callback = reentrant;
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    ObserverEventLifecycleCache  cache;
+    ObserverEventLifecycleSource source(cache, state.callback_thread);
+    const EventIdentity          raw{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    if (reentrant)
+    {
+        state.delegate_lifecycle_cache              = &cache;
+        state.delegate_lifecycle_create             = true;
+        state.delegate_lifecycle_identity.engine_id = 42;
+        state.delegate_lifecycle_identity.system_id = raw.thread_id;
+    }
+    ThreadIdentity initial_identity;
+    initial_identity.engine_id    = 0;
+    initial_identity.system_id    = raw.thread_id;
+    initial_identity.data_offset  = 0x1100;
+    initial_identity.teb_offset   = 0x1100;
+    initial_identity.start_offset = 0x2200;
+    const ThreadIdentity registered =
+        reentrant ? ThreadIdentity{} : cache.register_initial(initial_identity);
+    CachedLifecycleObservation               initial_observation;
+    ObserverEventLifecycleSource::SourceHold initial_hold;
+    const bool                               seeded_source =
+        reentrant || (source.bind_initial(cache, raw, registered) &&
+                      source.acquire(raw, &initial_hold, &initial_observation));
+    FakeDelegate            delegate(&state);
+    FakeClient              client(&delegate.systems);
+    ObserverCallbackSession session(&recorder, &client, state.callback_thread);
+    const bool              seeded =
+        reentrant || (seeded_source && session.seed_initial(raw, initial_observation, initial_hold));
+    auto bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw_recorder;
+    const bool                                 admitted = seeded && admit_raw(&recorder, &raw_recorder, bridge.get());
+    CallbackIdentityReader                     reader({ &state, read_error, write_error });
+    LifecycleSourceProviderState               provider_state;
+    provider_state.dispatch_state    = &state;
+    provider_state.cache             = &cache;
+    provider_state.source            = &source;
+    auto config                      = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session          = &session;
+    config.owner_provider            = nullptr;
+    config.owner_provider_user       = nullptr;
+    config.lifecycle_source_provider = &lifecycle_source_provider;
+    config.lifecycle_source_user     = &provider_state;
+    if (invalid_configuration)
+    {
+        SessionObservationState conflicting{};
+        conflicting.source_identity           = source_identity_for(raw);
+        config.lifecycle_observation_provider = &session_observation_provider;
+        config.lifecycle_observation_user     = &conflicting;
+    }
+    if (foreign_thread)
+    {
+        config.instrumentation_thread_id = state.callback_thread + 1;
+    }
+    ObserverCallbackDispatch wrapper(config);
+    state.wrapper                       = &wrapper;
+    state.error                         = ErrorPair{ 0x41, -41 };
+    const HRESULT result                = admitted ? wrapper.CreateThread(1, 2, 3) : E_FAIL;
+    const auto    entries               = recorder.callback_entry_rows();
+    const bool    refused_before_source = invalid_configuration || foreign_thread;
+    const bool    provider_refused      = provider_state.calls == 0 && cache.lifecycles().size() == 1 &&
+                                          cache.next_generation() == 1 && state.sdk_getter_calls == 0;
+    const bool    reentry_refused =
+        reentrant && provider_state.calls == 1 && cache.lifecycles().size() == 2 &&
+        cache.next_generation() == 2 && state.sdk_getter_calls == kCallbackSdkMethodCount &&
+        state.delegate_lifecycle_cache_created && state.delegate_cache_before_provider &&
+        entries.size() >= 2 && entries.back().reentry_refused;
+    tests->check(admitted && result == S_OK &&
+                     (refused_before_source ? provider_refused : reentry_refused),
+                 refused_before_source
+                     ? "concrete source CT gate refuses before provider and cache mutation"
+                     : "concrete source CT reentry refuses inner provider before cache mutation");
+    if (raw_recorder != nullptr)
+    {
+        finish_raw(&raw_recorder);
+    }
+    tests->check(session.teardown(), "concrete source CT gate teardown remains explicit");
+}
+
+void run_source_dispatch_gates(TestState* tests)
+{
+    run_source_dispatch_gate_case(tests, true, false, false);
+    run_source_dispatch_gate_case(tests, false, true, false);
+    run_source_dispatch_gate_case(tests, false, false, true);
+}
+
+void run_source_access_mutation_boundary(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    ObserverEventLifecycleCache  cache;
+    ObserverEventLifecycleSource source(cache, state.callback_thread);
+    const EventIdentity          initial_raw{ true, 0x2222, 300, 401, 1, 0, false, 0 };
+    const EventIdentity          probe_raw{ true, 0x2222, 300, 401, 2, 1, false, 0 };
+    ThreadIdentity               initial_identity;
+    initial_identity.engine_id      = 0;
+    initial_identity.system_id      = 401;
+    initial_identity.data_offset    = 0x7100;
+    initial_identity.teb_offset     = 0x7100;
+    initial_identity.start_offset   = 0x7200;
+    const ThreadIdentity registered = cache.register_initial(initial_identity);
+    ThreadIdentity       probe_identity;
+    probe_identity.engine_id                             = 9;
+    probe_identity.system_id                             = 401;
+    probe_identity.data_offset                           = 0x7300;
+    probe_identity.teb_offset                            = 0x7300;
+    probe_identity.start_offset                          = 0x7400;
+    const auto                               probe_event = cache.create_thread(probe_identity, 2);
+    ObserverEventLifecycleSource::SourceHold hold;
+    CachedLifecycleObservation               observation;
+    tests->check(source.bind_initial(cache, initial_raw, registered) &&
+                     source.acquire(initial_raw, &hold, &observation) && probe_event.created,
+                 "source mutation probe prepares distinct cache entry");
+
+    state.source_cache_for_reads           = &cache;
+    state.source_for_reads                 = &source;
+    state.source_probe_during_access       = true;
+    state.source_probe_raw                 = probe_raw;
+    state.source_probe_event               = probe_event;
+    state.source_probe_bindings_before     = source.binding_count();
+    state.source_probe_observations_before = source.observation_count();
+    state.source_hooks_armed               = true;
+    ObserverEventLifecycleSource::SourceAccessScope scope;
+    tests->check(hold.begin_access(initial_raw, &scope) && scope.active(),
+                 "source mutation probe opens outer access scope");
+    FakeSystemObjects systems;
+    systems.state      = &state;
+    ULONG event_thread = 0;
+    tests->check(systems.GetEventThread(&event_thread) == S_OK && state.source_probe_refused &&
+                     source.binding_count() == state.source_probe_bindings_before &&
+                     source.observation_count() == state.source_probe_observations_before,
+                 "fake getter refuses source bind acquire and observation mutation in outer scope");
+    tests->check(scope.release() && !scope.active(),
+                 "source mutation probe releases the outer access scope explicitly");
+
+    ObserverEventLifecycleSource::SourceHold probe_hold;
+    CachedLifecycleObservation               probe_observation;
+    tests->check(source.bind_created(cache, probe_raw, probe_event) &&
+                     source.acquire(probe_raw, &probe_hold, &probe_observation),
+                 "source mutation probe permits the same operations after release");
+}
+
+void run_source_dispatch_null_identity_reader(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    ObserverEventLifecycleCache  cache;
+    ObserverEventLifecycleSource source(cache, state.callback_thread);
+    FakeDelegate                 delegate(&state);
+    FakeClient                   client(&delegate.systems);
+    ObserverCallbackSession      session(&recorder, &client, state.callback_thread);
+    const EventIdentity          raw{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    auto                         bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw_recorder;
+    const bool                                 admitted = admit_raw(&recorder, &raw_recorder, bridge.get());
+    LifecycleSourceProviderState               provider_state;
+    provider_state.dispatch_state               = &state;
+    provider_state.cache                        = &cache;
+    provider_state.source                       = &source;
+    state.delegate_lifecycle_cache              = &cache;
+    state.delegate_lifecycle_create             = true;
+    state.delegate_lifecycle_identity.engine_id = 42;
+    state.delegate_lifecycle_identity.system_id = raw.thread_id;
+    auto config                                 = dispatch_config(&state, &recorder, nullptr, bridge.get(), &delegate, &client);
+    config.callback_session                     = &session;
+    config.owner_provider                       = nullptr;
+    config.owner_provider_user                  = nullptr;
+    config.lifecycle_source_provider            = &lifecycle_source_provider;
+    config.lifecycle_source_user                = &provider_state;
+    ObserverCallbackDispatch wrapper(config);
+    state.error                = ErrorPair{ 0x41, -41 };
+    const HRESULT result       = admitted ? wrapper.CreateThread(1, 2, 3) : E_FAIL;
+    const auto    entries      = recorder.callback_entry_rows();
+    const auto    acquisitions = recorder.callback_acquisition_rows();
+    const auto    snapshot     = session.snapshot();
+    tests->check(admitted && result == S_OK && state.create_thread_calls == 1 &&
+                     state.delegate_lifecycle_cache_created && provider_state.calls == 0 &&
+                     cache.lifecycles().size() == 1 &&
+                     source.binding_count() == 0 && source.observation_count() == 0 &&
+                     state.sdk_getter_calls == 0 && snapshot.source_count == 0 &&
+                     acquisitions.empty() &&
+                     !entries.empty() && entries.back().invalid_configuration_refused,
+                 "null identity reader refuses before typed provider while delegate cache production remains");
+    if (raw_recorder != nullptr)
+    {
+        finish_raw(&raw_recorder);
+    }
+    tests->check(session.teardown(), "null identity reader keeps explicit teardown available");
 }
 
 void run_session_create_thread_gate_case(TestState* tests,
@@ -2427,6 +2824,9 @@ SelfTestReport run_callback_dispatch_self_tests()
     run_breakpoint_success(&tests);
     run_create_thread_order(&tests);
     run_session_dispatch_paths(&tests);
+    run_source_dispatch_gates(&tests);
+    run_source_access_mutation_boundary(&tests);
+    run_source_dispatch_null_identity_reader(&tests);
     run_session_create_thread_gate_regressions(&tests);
     run_session_outer_scope_reentry(&tests);
     run_session_sink_final_refusal(&tests, true, false);
@@ -2802,6 +3202,219 @@ std::string make_callback_session_integration_trace()
     output << ",\"continuation\":{\"retained_result\":" << retained_result
            << ",\"closed_result\":" << closed_result << ",\"raw_closed\":"
            << (!closed_snapshot.raw_open ? "true" : "false") << '}';
+    output << ",\"teardown\":{\"explicit\":" << (torn_down ? "true" : "false")
+           << ",\"released\":" << (session.released() ? "true" : "false") << "}}";
+    return trace + output.str() + '}';
+}
+
+std::string make_event_lifecycle_integration_trace()
+{
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.nested_query           = true;
+    state.readable_memory        = true;
+    state.fake_vtable[4]         = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0]      = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value           = state.fake_interface.data();
+    const std::uintptr_t service = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate delegate(&state);
+    delegate.systems.values = { 42, 42, 2, 2, 200, 100 };
+    FakeClient client(&delegate.systems);
+
+    ObserverEventLifecycleCache  cache;
+    ObserverEventLifecycleSource source(cache, state.callback_thread);
+    const EventIdentity          initial_raw{ true, 0x1111, 100, 200, 1, 0, false, 0 };
+    const EventIdentity          planned{ true, 0x1111, 100, 200, 2, 2, false, 0 };
+    ThreadIdentity               initial_identity;
+    initial_identity.engine_id                                  = 0;
+    initial_identity.system_id                                  = planned.thread_id;
+    initial_identity.data_offset                                = 0x1100;
+    initial_identity.teb_offset                                 = 0x1100;
+    initial_identity.start_offset                               = 0x2200;
+    const ThreadIdentity                     registered_initial = cache.register_initial(initial_identity);
+    CachedLifecycleObservation               initial_observation;
+    ObserverEventLifecycleSource::SourceHold initial_hold;
+    const bool                               initial_bound    = source.bind_initial(cache, initial_raw, registered_initial);
+    const bool                               initial_acquired = initial_bound &&
+                                                                source.acquire(initial_raw, &initial_hold, &initial_observation);
+
+    ObserverCallbackSession session(&recorder, &client, state.callback_thread);
+    const bool              seeded = initial_acquired &&
+                                     session.seed_initial(initial_raw,
+                                                          initial_observation,
+                                                          initial_hold);
+    auto                    bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    const bool                                 initial_admitted = seeded && admit_raw(&recorder, &raw, bridge.get());
+    const bool                                 initial_closed   = initial_admitted && continue_raw_event(&raw);
+    const bool                                 exit_admitted    = initial_closed && admit_next_exit_event();
+    const bool                                 exit_closed      = exit_admitted && continue_raw_event(&raw);
+    const auto                                 initial_exit     = exit_closed
+                                                                      ? cache.exit_thread(registered_initial, 0xB0, 1)
+                                                                      : ObserverEventLifecycleCache::LifecycleEvent{};
+    const bool                                 admitted =
+        initial_exit.index != ObserverEventLifecycleCache::kInvalidIndex &&
+        admit_next_create_event();
+
+    LifecycleSourceProviderState provider_state;
+    provider_state.dispatch_state               = &state;
+    provider_state.cache                        = &cache;
+    provider_state.source                       = &source;
+    state.delegate_lifecycle_cache              = &cache;
+    state.delegate_lifecycle_create             = true;
+    state.delegate_lifecycle_identity.engine_id = 42;
+    state.delegate_lifecycle_identity.system_id = 200;
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    CallbackDispatchConfig config =
+        dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session               = &session;
+    config.owner_provider                 = nullptr;
+    config.owner_provider_user            = nullptr;
+    config.lifecycle_observation_provider = nullptr;
+    config.lifecycle_observation_user     = nullptr;
+    config.lifecycle_source_provider      = &lifecycle_source_provider;
+    config.lifecycle_source_user          = &provider_state;
+    ObserverCallbackDispatch wrapper(config);
+
+    state.source_cache_for_reads                    = &cache;
+    state.source_for_reads                          = &source;
+    state.nested_source_mutation                    = true;
+    state.close_source_on_query                     = true;
+    state.error                                     = ErrorPair{ 0x41, -41 };
+    const HRESULT       callback_result             = admitted ? wrapper.CreateThread(0x111, 0x222, 0x333) : E_FAIL;
+    const auto          callback_snapshot           = session.snapshot();
+    const bool          source_access_released      = source.active_access_count() == 0;
+    const bool          source_closed_during_access = state.source_closed_during_access;
+    const bool          nested_mutation_refused     = state.nested_source_mutation_refused;
+    const std::uint64_t observations_after_callback = source.observation_count();
+
+    recorder.forward_lookup(&state, nullptr, &state.service);
+    std::array<std::uint8_t, 0xC4> context{};
+    std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+    recorder.forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+
+    ObserverEventLifecycleSource::SourceHold closed_hold;
+    CachedLifecycleObservation               closed_observation;
+    const bool                               closed_acquire = source.acquire(planned, &closed_hold, &closed_observation);
+
+    const auto retired                                    = provider_state.cache_created
+                                                                ? cache.exit_thread(provider_state.created.identity, 0xC0, 3)
+                                                                : ObserverEventLifecycleCache::LifecycleEvent{};
+    state.error                                           = ErrorPair{ 0x51, -51 };
+    const std::uint32_t getters_before_retired_breakpoint = state.sdk_getter_calls;
+    const HRESULT       retired_breakpoint                = admitted
+                                                                ? wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x88))
+                                                                : E_FAIL;
+    const bool          retired_refused_before_sdk =
+        retired_breakpoint == S_OK && state.sdk_getter_calls == getters_before_retired_breakpoint &&
+        source.observation_count() == observations_after_callback;
+
+    EventIdentity reused_raw                        = planned;
+    reused_raw.raw_generation                       = 3;
+    reused_raw.event_index                          = 1;
+    ThreadIdentity reused_identity                  = provider_state.created.identity;
+    reused_identity.engine_id                       = 0;
+    reused_identity.data_offset                     = 0x5500;
+    reused_identity.teb_offset                      = 0x5500;
+    reused_identity.start_offset                    = 0x6600;
+    const auto                               reused = cache.create_thread(reused_identity, 4);
+    ObserverEventLifecycleSource             reused_source(cache, state.callback_thread);
+    const bool                               reused_bound = reused_source.bind_created(cache, reused_raw, reused);
+    ObserverEventLifecycleSource::SourceHold reused_hold;
+    CachedLifecycleObservation               reused_observation;
+    const bool                               reused_observed = reused_bound &&
+                                                               reused_source.acquire(reused_raw, &reused_hold, &reused_observation);
+    const bool                               stale_event_refused =
+        !reused_source.bind_created(cache, reused_raw, provider_state.created);
+    EventIdentity mismatched_raw               = reused_raw;
+    mismatched_raw.thread_id                   = reused_raw.thread_id + 1;
+    const std::size_t bindings_before_mismatch = reused_source.binding_count();
+    const bool        mismatch_refused =
+        !reused_source.bind_created(cache, mismatched_raw, reused) &&
+        reused_source.binding_count() == bindings_before_mismatch;
+    const auto reused_exit = cache.exit_thread(reused.identity, 0xC1, 5);
+
+    if (raw != nullptr)
+    {
+        finish_raw(&raw);
+    }
+    const bool torn_down = admitted && session.teardown();
+
+    const auto acquisitions    = recorder.callback_acquisition_rows();
+    const auto queries         = recorder.query_rows();
+    const auto contexts        = recorder.context_write_rows();
+    const bool live_capture    = !acquisitions.empty() &&
+                                 acquisitions.front().binding_status == EngineBindingStatus::Bound;
+    const bool refused_capture = acquisitions.size() >= 2 &&
+                                 acquisitions.back().outcome ==
+                                     CallbackAcquisitionOutcome::MissingOwnerEvidence;
+    const bool integration_complete =
+        admitted && callback_result == S_OK && provider_state.calls == 1 &&
+        provider_state.cache_created && provider_state.source_bound && initial_bound &&
+        provider_state.producer_preexisted && state.delegate_cache_before_provider &&
+        state.delegate_callback_args_captured && state.delegate_identity_matches_args &&
+        initial_acquired && source_access_released && source_closed_during_access &&
+        nested_mutation_refused && !closed_acquire && retired.index == provider_state.created.index &&
+        retired_refused_before_sdk && reused.created && reused_bound && reused_observed &&
+        stale_event_refused && mismatch_refused && reused_exit.index == reused.index && live_capture &&
+        refused_capture && state.sdk_getter_calls == kCallbackSdkMethodCount &&
+        source.observation_count() == observations_after_callback && !queries.empty() &&
+        !contexts.empty() && torn_down && session.released();
+
+    std::string trace = recorder.serialize();
+    if (trace.empty() || trace.back() != '}')
+    {
+        return {};
+    }
+    trace.pop_back();
+    std::ostringstream output;
+    output << ",\"event_lifecycle_integration\":{\"profile\":\"event-lifecycle-fake-v2\"";
+    output << ",\"live_coverage\":\"incomplete\"";
+    output << ",\"integration_complete\":" << (integration_complete ? "true" : "false");
+    output << ",\"ordinary_rows\":{\"callbacks\":" << recorder.callback_entry_rows().size()
+           << ",\"captures\":" << acquisitions.size() << ",\"queries\":" << queries.size()
+           << ",\"contexts\":" << contexts.size() << '}';
+    output << ",\"cache\":{\"entries\":" << cache.lifecycles().size()
+           << ",\"next_generation\":" << cache.next_generation()
+           << ",\"retired_index\":" << retired.index << ",\"reused_index\":" << reused.index
+           << '}';
+    output << ",\"source\":{\"initial_engine_id\":" << initial_observation.engine_id
+           << ",\"initial_token\":" << initial_observation.lifecycle_token
+           << ",\"created_engine_id\":" << provider_state.created.identity.engine_id
+           << ",\"created_token\":" << provider_state.created.identity.generation
+           << ",\"reused_engine_id\":" << reused_observation.engine_id
+           << ",\"reused_token\":" << reused_observation.lifecycle_token
+           << ",\"observations\":" << source.observation_count()
+           << ",\"closed_acquire_refused\":" << (!closed_acquire ? "true" : "false")
+           << ",\"stale_event_refused\":" << (stale_event_refused ? "true" : "false")
+           << ",\"mismatch_refused\":" << (mismatch_refused ? "true" : "false") << '}';
+    output << ",\"provider\":{\"calls\":" << provider_state.calls
+           << ",\"cache_created\":" << (provider_state.cache_created ? "true" : "false")
+           << ",\"source_bound\":" << (provider_state.source_bound ? "true" : "false")
+           << ",\"producer_preexisted\":" << (provider_state.producer_preexisted ? "true" : "false")
+           << ",\"hooks_observed\":" << (state.source_hooks_seen ? "true" : "false") << '}';
+    output << ",\"delegate_producer\":{\"cache_created_before_provider\":"
+           << (state.delegate_cache_before_provider ? "true" : "false")
+           << ",\"callback_data_offset\":" << state.delegate_lifecycle_event.identity.data_offset
+           << ",\"callback_start_offset\":" << state.delegate_lifecycle_event.identity.start_offset
+           << ",\"args_captured\":" << (state.delegate_callback_args_captured ? "true" : "false")
+           << ",\"identity_matches_args\":"
+           << (state.delegate_identity_matches_args ? "true" : "false") << '}';
+    output << ",\"session\":{\"engine_id\":" << callback_snapshot.cached_engine_id
+           << ",\"lifecycle_token\":" << callback_snapshot.lifecycle_token
+           << ",\"delegate_create_observed\":"
+           << (callback_snapshot.delegate_create_observed ? "true" : "false") << '}';
+    output << ",\"access\":{\"nested_mutation_refused\":"
+           << (nested_mutation_refused ? "true" : "false")
+           << ",\"closed_during_access\":" << (source_closed_during_access ? "true" : "false")
+           << ",\"retired_refused_before_sdk\":"
+           << (retired_refused_before_sdk ? "true" : "false")
+           << ",\"sdk_getter_calls\":" << state.sdk_getter_calls << '}';
     output << ",\"teardown\":{\"explicit\":" << (torn_down ? "true" : "false")
            << ",\"released\":" << (session.released() ? "true" : "false") << "}}";
     return trace + output.str() + '}';

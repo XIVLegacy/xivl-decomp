@@ -93,30 +93,43 @@ The relevant interface slots and current source use are:
 
 | Interface slot | SDK method | Meaning available through the public ABI | Current source use |
 | --- | --- | --- | --- |
-| 3 | `GetEventThread` | Engine ID of the thread on which the last event occurred. | [`read_event_thread`](trace_map_selection.cpp#L514) reads it; [`record_raw_callback`](trace_map_selection.cpp#L2721) reads it again. |
+| 3 | `GetEventThread` | Engine ID of the thread on which the last event occurred. | [`read_event_thread`](trace_map_selection.cpp#L480) reads it; [`record_raw_callback`](trace_map_selection.cpp#L2649) reads it again. |
 | 4 | `GetEventProcess` | Engine ID of the process on which the last event occurred. | No call in the bounded source path. A selected engine process ID is therefore missing. |
-| 5 | `GetCurrentThreadId` | Current implicit engine thread ID. | [`current_thread_identity`](trace_map_selection.cpp#L486) and [`record_raw_callback`](trace_map_selection.cpp#L2730) read it. |
+| 5 | `GetCurrentThreadId` | Current implicit engine thread ID. | [`current_thread_identity`](trace_map_selection.cpp#L452) and [`record_raw_callback`](trace_map_selection.cpp#L2649) read it. |
 | 7 | `GetCurrentProcessId` | Current implicit engine process ID. | No call in the bounded source path. |
-| 13 | `GetCurrentThreadDataOffset` | Offset of the current thread system data structure; in user mode this is the current TEB offset. | [`current_thread_identity`](trace_map_selection.cpp#L502) reads it. |
-| 15 | `GetCurrentThreadTeb` | Offset of the current thread TEB; in user mode it is equivalent to the data offset. | [`current_thread_identity`](trace_map_selection.cpp#L506) reads it. |
-| 17 | `GetCurrentThreadSystemId` | System TID for the current engine thread. | [`current_thread_identity`](trace_map_selection.cpp#L498) reads it. |
+| 13 | `GetCurrentThreadDataOffset` | Offset of the current thread system data structure; in user mode this is the current TEB offset. | [`current_thread_identity`](trace_map_selection.cpp#L452) reads it. |
+| 15 | `GetCurrentThreadTeb` | Offset of the current thread TEB; in user mode it is equivalent to the data offset. | [`current_thread_identity`](trace_map_selection.cpp#L452) reads it. |
+| 17 | `GetCurrentThreadSystemId` | System TID for the current engine thread. | [`current_thread_identity`](trace_map_selection.cpp#L452) reads it. |
 | 27 | `GetCurrentProcessSystemId` | System PID for the current engine process. | No call in the bounded source path. |
 
 The `IDebugEventCallbacks` declaration places `Breakpoint` at slot 4,
 `Exception` at slot 5, `CreateThread` at slot 6, and `ExitThread` at slot 7.
-The source registers its callback object before `AttachProcess` and the first
-`WaitForEvent` at [`trace_map_selection.cpp:2907`](trace_map_selection.cpp#L2907).
+The source registers its callback object at
+[`trace_map_selection.cpp:2835`](trace_map_selection.cpp#L2835), before
+`AttachProcess`, and reaches the first `WaitForEvent` at
+[`trace_map_selection.cpp:2840`](trace_map_selection.cpp#L2840).
 The SDK header documents that event callbacks are delivered when the client
 thread calls `WaitForEvent` or `DispatchCallbacks`; the header does not expose
 the native storage member that carries the selected IDs.
 
 The callback implementation obtains selected thread fields through the
-`IDebugSystemObjects` calls above. `CreateThread` and `register_initial` then
-allocate an observer lifecycle token with `++next_generation` at
-[`trace_map_selection.cpp:678`](trace_map_selection.cpp#L678) and
-[`trace_map_selection.cpp:799`](trace_map_selection.cpp#L799). This is an
-observer allocation domain, not a known DbgEng counter or native object
-offset.
+`IDebugSystemObjects` calls above. `Events` now delegates its existing
+`ThreadIdentity` matching and lifecycle vector to the shared
+`ObserverEventLifecycleCache`. Initial registration remains at
+[`trace_map_selection.cpp:1024`](trace_map_selection.cpp#L1024), while
+`CreateThread` and `ExitThread` use the cache at
+[`trace_map_selection.cpp:727`](trace_map_selection.cpp#L727) and
+[`trace_map_selection.cpp:746`](trace_map_selection.cpp#L746). The cache
+starts its observer allocation domain at zero and allocates an initial or
+created lifecycle token with `++next_generation` at
+[`observer_event_lifecycle.cpp:279`](observer_event_lifecycle.cpp#L279) and
+[`observer_event_lifecycle.cpp:292`](observer_event_lifecycle.cpp#L292).
+This is an observer allocation domain, not a known DbgEng counter or native
+object offset. The source hold revalidates the exact active cache entry before
+each observation or SDK access and retains its shared storage until explicit
+scope release. The source association remains separate from `ThreadIdentity`;
+the cache does not claim that it observed a raw PID. The native callback
+registration does not activate the prepared source.
 
 The `CreateThread` token is allocated when that callback executes, after the
 raw wait notification has already run. A pre-conversion provider therefore
@@ -127,10 +140,10 @@ that token beside the explicit raw event index and PID/TID checks, but it
 cannot retroactively change the earlier `RawEventBridge` admission.
 
 The current loop consumes a pending lifecycle event at
-[`trace_map_selection.cpp:3076`](trace_map_selection.cpp#L3076) and resumes
+[`trace_map_selection.cpp:3004`](trace_map_selection.cpp#L3004) and resumes
 execution before reaching the breakpoint path that calls
 `record_raw_callback` at
-[`trace_map_selection.cpp:3160`](trace_map_selection.cpp#L3160). Thus a
+[`trace_map_selection.cpp:3090`](trace_map_selection.cpp#L3090). Thus a
 `CreateThread` callback currently has no raw-recorder callback join in this
 path; adding one would be the
 smallest future observation change, and it would still need the explicit raw
@@ -169,11 +182,12 @@ The defensible collection order is:
    that qualify the later callback; they are not replacements for the raw
    key.
 
-The current [`record_raw_callback`](trace_map_selection.cpp#L2721) path
+The current [`record_raw_callback`](trace_map_selection.cpp#L2649) path
 illustrates the seam limitation. It sets
 `callback.thread = { options.pid, identity.system_id, 0, false }` and copies
-`identity.generation` separately to `callback.engine_generation` at lines
-2739-2740. The callback thread generation is therefore explicitly unknown;
+`identity.generation` separately to `callback.engine_generation` in the
+[`record_raw_callback`](trace_map_selection.cpp#L2649) body. The callback thread
+generation is therefore explicitly unknown;
 the DbgEng generation field is not filled from a native counter. The raw
 recorder then joins by pending raw debug object/PID/TID plus equal current,
 event, and cached engine IDs in

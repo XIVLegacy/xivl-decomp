@@ -159,14 +159,44 @@ process, thread and raw-generation association for the cached lifecycle; the
 admitted raw event index remains a separate key checked by the session and
 dispatch. Neither raw key supplies the cached engine ID or lifecycle token.
 Engine ID zero is valid when the source marks it known. A create-thread or
-create-process event may be admitted key-only before its delegate; after normal
-delegate completion, a matching typed source observation allocates the cache
-entry. Typed source operations allocate later entries, and admitted exit rows
+create-process event may be admitted key-only before its delegate; the delegate's
+production cache hook creates the lifecycle entry during normal completion, and a
+matching typed source observation binds and acquires that existing entry. Typed
+source operations do not manufacture cache entries, and admitted exit rows
 retire them; an exact ended lifecycle cannot be recreated, while a new raw
 generation and new source observation receives new session-created authority
 and lifetime IDs. The IDs and typed source values are exposed with the access
 sequence in the session snapshot. This metadata does not qualify a native
 selected thread.
+
+`ObserverEventLifecycleCache` in
+[`observer_event_lifecycle.h`](observer_event_lifecycle.h) is the shared
+production cache used by `Events::ThreadLifecycle` and the offline source.
+`Events` keeps its existing event queue, counters and SDK enumeration while
+delegating identity matching, initial registration, creation, exit and
+generation allocation to that cache. The cache keeps its legacy wildcard
+matching, unknown-identity and incomplete-cache results. The source stores an
+owned `SourceHold` for an exact cache entry and a separate raw
+debug-object/PID/TID/raw-generation association. Initial and created bindings
+require the raw TID to match the cached system TID; the created-event overload
+also checks the full cached identity, entry index and event number. Every
+observation and access scope rereads the live entry, so retirement, replacement,
+reuse, a mismatched raw tuple or an invalid owner refuses before SDK reads.
+Before the first concrete source binding, the caller must quiesce all access to
+the unclaimed legacy cache. The first binding then claims its shared cache domain
+for the source owner before the exact entry lookup. After that claim, foreign
+cache reads and mutations refuse; an unclaimed cache keeps the legacy owner-free
+behavior, and the claim does not retroactively synchronize an already in-flight
+legacy call.
+One raw source association cannot bind a second cache entry; reuse requires a
+distinct raw generation.
+An active `SourceAccessScope` retains the shared storage across wrapper close or
+destruction. Its owner-thread release guards the shared cache while SDK
+getters run; nested cache mutation refuses for the duration, and explicit
+session teardown requires that scope to be released. Wrapper close prevents
+new source acquisitions or access scopes but does not clear an active scope;
+the retained storage remains available only for that scope's release. The
+prepared source is not passed to native callback registration.
 
 The session retains the configured SDK client with `AddRef` only when an
 explicit creator thread is supplied and matches the current thread. Unknown or
@@ -192,10 +222,21 @@ when supplied through generic `owner_provider` without its matching
 
 `--callback-session-output` drives the raw wait thunk, session sink, dispatch,
 fake SDK identity, nested query and context write, failed continuation
-retention, successful close and teardown. It is synthetic forwarding evidence
-only: the session is not wired to the native `Events::ThreadLifecycle`, does
-not call `SetEventCallbacks`, and supplies no native selected-state or engine
-qualification.
+retention, successful close and teardown. It preserves the legacy generic
+provider profile and output, including its observer token and row ordering.
+It is synthetic forwarding evidence only and supplies no native selected-state
+or engine qualification.
+
+`--event-lifecycle-output` drives one fake-only ordinary recorder trace through
+the shared cache, fake delegate production hook, typed source provider, callback
+session and dispatch wrapper. The fake delegate selects the engine/system
+identity and records the actual callback data/start arguments while the provider
+only binds and acquires the already-created cache entry. It records initial engine
+ID zero, a distinct creation engine ID and token, source closure during fake SDK
+getters, nested mutation refusal, retirement before the next SDK read, TID reuse
+with a distinct raw generation and explicit session teardown. It reports
+`live_coverage` as incomplete; the prepared source remains outside native
+callback registration.
 
 `instrumentation_thread_id` is a caller-selected owner thread ID. Zero remains
 unknown and refuses instrumentation without marking delivery as foreign; the

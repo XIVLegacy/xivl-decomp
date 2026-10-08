@@ -3,6 +3,7 @@
 #include "observer_callback_identity.h"
 #include "observer_dispatch_gate.h"
 #include "observer_event_bridge.h"
+#include "observer_event_lifecycle.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
 #include "observer_recovery.h"
@@ -21,6 +22,7 @@ int wmain(int argc, wchar_t** argv)
         const auto diagnostic        = run_self_tests();
         const auto bridge            = run_event_bridge_self_tests();
         const auto callback          = run_callback_identity_self_tests();
+        const auto lifecycle         = run_event_lifecycle_self_tests();
         const auto callback_session  = run_callback_session_self_tests();
         const auto callback_dispatch = run_callback_dispatch_self_tests();
         const auto dispatch          = run_dispatch_gate_self_tests();
@@ -32,6 +34,7 @@ int wmain(int argc, wchar_t** argv)
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
                   << "callback: " << callback.summary << '\n'
+                  << "event_lifecycle: " << lifecycle.summary << '\n'
                   << "callback_session: " << callback_session.summary << '\n'
                   << "callback_dispatch: " << callback_dispatch.summary << '\n'
                   << "dispatch: checks=" << dispatch.checks << ",failures=" << dispatch.failures << ',' << dispatch.summary << '\n'
@@ -40,7 +43,7 @@ int wmain(int argc, wchar_t** argv)
                   << "snapshot: checks=" << snapshot.checks << ",failures=" << snapshot.failures << ',' << snapshot.summary << '\n'
                   << "recovery: checks=" << recovery.checks << ",failures=" << recovery.failures << ',' << recovery.summary << '\n'
                   << "actions: checks=" << actions.checks << ",failures=" << actions.failures << ',' << actions.summary << '\n';
-        return diagnostic.passed && bridge.passed && callback.passed && callback_session.passed && callback_dispatch.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
+        return diagnostic.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
                        recovery.passed && actions.passed
                    ? 0
                    : 1;
@@ -49,9 +52,10 @@ int wmain(int argc, wchar_t** argv)
                       std::wstring(argv[1]) != L"--callback-output" &&
                       std::wstring(argv[1]) != L"--callback-dispatch-output" &&
                       std::wstring(argv[1]) != L"--callback-owner-output" &&
-                      std::wstring(argv[1]) != L"--callback-session-output"))
+                      std::wstring(argv[1]) != L"--callback-session-output" &&
+                      std::wstring(argv[1]) != L"--event-lifecycle-output"))
     {
-        std::cerr << "usage: observer_runtime_check --self-test | --bridge-output ABSOLUTE_PATH | --callback-output ABSOLUTE_PATH | --callback-dispatch-output ABSOLUTE_PATH | --callback-owner-output ABSOLUTE_PATH | --callback-session-output ABSOLUTE_PATH\n";
+        std::cerr << "usage: observer_runtime_check --self-test | --bridge-output ABSOLUTE_PATH | --callback-output ABSOLUTE_PATH | --callback-dispatch-output ABSOLUTE_PATH | --callback-owner-output ABSOLUTE_PATH | --callback-session-output ABSOLUTE_PATH | --event-lifecycle-output ABSOLUTE_PATH\n";
         return 2;
     }
     const std::filesystem::path path(argv[2]);
@@ -64,14 +68,17 @@ int wmain(int argc, wchar_t** argv)
     const bool        callback_dispatch_output = std::wstring(argv[1]) == L"--callback-dispatch-output";
     const bool        callback_owner_output    = std::wstring(argv[1]) == L"--callback-owner-output";
     const bool        callback_session_output  = std::wstring(argv[1]) == L"--callback-session-output";
+    const bool        event_lifecycle_output   = std::wstring(argv[1]) == L"--event-lifecycle-output";
     const std::string trace                    = (callback_owner_output
                                                       ? make_callback_owner_integration_trace()
                                                   : callback_session_output  ? make_callback_session_integration_trace()
+                                                  : event_lifecycle_output   ? make_event_lifecycle_integration_trace()
                                                   : callback_dispatch_output ? make_callback_dispatch_synthetic_trace()
                                                   : callback_output          ? make_callback_identity_synthetic_trace()
                                                                              : make_bridge_synthetic_trace()) +
                                                  '\n';
-    if ((callback_owner_output || callback_session_output) && trace.size() <= 1)
+    if ((callback_owner_output || callback_session_output || event_lifecycle_output) &&
+        trace.size() <= 1)
     {
         std::cerr << "callback owner integration did not produce complete evidence\n";
         return 1;
@@ -94,6 +101,8 @@ int wmain(int argc, wchar_t** argv)
                       ? "saved synthetic callback owner integration evidence; no live engine or installation\n"
                   : callback_session_output
                       ? "saved synthetic callback session integration evidence; no live engine or installation\n"
+                  : event_lifecycle_output
+                      ? "saved synthetic event lifecycle integration evidence; no live engine or installation\n"
                   : callback_dispatch_output ? "saved synthetic callback dispatch evidence; no live engine or installation\n"
                   : callback_output          ? "saved synthetic callback identity evidence; no live engine or installation\n"
                                              : "saved synthetic raw bridge evidence; no live engine or installation\n");

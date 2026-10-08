@@ -100,6 +100,8 @@ struct CallbackDispatchConfig
     ObserverCallbackSession*             callback_session               = nullptr;
     CallbackLifecycleObservationProvider lifecycle_observation_provider = nullptr;
     void*                                lifecycle_observation_user     = nullptr;
+    CallbackLifecycleSourceProvider      lifecycle_source_provider      = nullptr;
+    void*                                lifecycle_source_user          = nullptr;
     CallbackOwnerProvider                owner_provider                 = nullptr;
     void*                                owner_provider_user            = nullptr;
     // Zero is unknown and refuses instrumentation; the caller selects the
@@ -182,6 +184,7 @@ private:
     ErrorSnapshot read_error() const noexcept;
     bool          restore_error(const ErrorSnapshot& snapshot) const noexcept;
     bool          owner_thread() const noexcept;
+    bool          capture_prerequisites(const CallbackBeginResult& begin) const noexcept;
     bool          acquire_guard(DispatchGuard* guard) noexcept;
     void          release_guard() noexcept;
     bool          capture(CallbackDispatchEntry*     entry,
@@ -208,6 +211,8 @@ private:
     ObserverCallbackSession*             callback_session_               = nullptr;
     CallbackLifecycleObservationProvider lifecycle_observation_provider_ = nullptr;
     void*                                lifecycle_observation_user_     = nullptr;
+    CallbackLifecycleSourceProvider      lifecycle_source_provider_      = nullptr;
+    void*                                lifecycle_source_user_          = nullptr;
     CallbackOwnerProvider                owner_provider_                 = nullptr;
     void*                                owner_provider_user_            = nullptr;
     std::uint32_t                        instrumentation_thread_id_      = 0;
@@ -225,6 +230,7 @@ SelfTestReport run_callback_dispatch_self_tests();
 std::string    make_callback_dispatch_synthetic_trace();
 std::string    make_callback_owner_integration_trace();
 std::string    make_callback_session_integration_trace();
+std::string    make_event_lifecycle_integration_trace();
 
 } // namespace xivl::observer_diagnostic
 

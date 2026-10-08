@@ -38,10 +38,11 @@ The SDK inputs were Windows SDK `10.0.26100.0` `DbgEng.h`, SHA-256
 These versions and hashes match the ABI record in
 [engine-event-binding.md](engine-event-binding.md#selected-state-abi-and-virtual-calls).
 
-Source observations of `trace_map_selection.cpp` are pinned to host revision
-`eaf38e8d1b6dae049705e4c23c72c8a679dfdd91`; the source links below use that
-revision's line numbers. The current source file may carry pointer-only edits
-after that baseline.
+Source observations of the historical `trace_map_selection.cpp` path are
+pinned to host revision `eaf38e8d1b6dae049705e4c23c72c8a679dfdd91`; those
+links retain that revision's line numbers. The current callback path keeps the
+same event ordering while its lifecycle cache is shared with
+[`observer_event_lifecycle.cpp`](observer_event_lifecycle.cpp).
 
 ## Static route witnesses
 
@@ -190,17 +191,20 @@ counter.
 
 The immutable source observation shows why the observer token must remain
 separate. At revision `eaf38e8d1b6dae049705e4c23c72c8a679dfdd91`, the
-post-wait callback record reads current and event engine thread IDs at
-[`record_raw_callback`](trace_map_selection.cpp#L2721), but stores
+post-wait callback record reads current and event engine thread IDs at the
+historical [`record_raw_callback`](trace_map_selection.cpp#L2721), but stores
 `options.pid` as its process field, leaves `debug_object` unresolved, and sets
 the callback thread generation to unknown while copying the observer generation
-separately. The native callback entry is [`Events::Breakpoint`](trace_map_selection.cpp#L735),
-but the current `record_raw_callback` invocation at
-[`wmain`](trace_map_selection.cpp#L3162) occurs after `WaitForEvent` returns;
-it is not a native callback-entry reader. `CreateThread` allocates a token only
-when that callback runs at [`Events::CreateThread`](trace_map_selection.cpp#L791).
+separately. The current native callback entry is
+[`Events::Breakpoint`](trace_map_selection.cpp#L671), and the current create
+entry is [`Events::CreateThread`](trace_map_selection.cpp#L727). The current
+`record_raw_callback` invocation at
+[`wmain`](trace_map_selection.cpp#L3090) occurs after `WaitForEvent` returns;
+it is not a native callback-entry reader. The shared cache allocates a token
+only when that callback runs, through
+[`ObserverEventLifecycleCache::create_thread`](observer_event_lifecycle.cpp#L284).
 The main wait loop consumes the lifecycle row at
-[`wmain`](trace_map_selection.cpp#L3076) before it reaches the post-wait
+[`wmain`](trace_map_selection.cpp#L3004) before it reaches the post-wait
 breakpoint observation. That later lifecycle allocation has no current raw-
 callback join. The callback/session owner must therefore supply a token already
 associated with the selected callback identity and retain its authority and
@@ -261,8 +265,9 @@ and raw-generation lifecycle association; the admitted raw event index remains
 a separate key checked by the session and dispatch. The raw key never supplies
 the cached engine ID or lifecycle token, which come from the typed source.
 Engine ID zero is valid when known. A create-thread or create-process key may be
-admitted before its delegate, but the matching typed source observation is what
-allocates the lifecycle cache entry after normal delegate completion. These
+admitted before its delegate; normal delegate completion creates the production
+cache entry, and the matching typed source observation binds and acquires it.
+These
 values support interval joins in the synthetic trace and do not qualify a
 native selected thread or DbgEng object.
 
@@ -277,8 +282,9 @@ and pending key; an exact successful continue closes the raw lease. Teardown
 requires both closure and scope release before dropping the retained client
 reference; destruction before that boundary retains the reference and is not a
 teardown path. A session and custom owner provider cannot be combined because
-that would bypass the controlled session lease. `CreateThread` requires a
-typed source update after normal delegate completion.
+that would bypass the controlled session lease. `CreateThread` requires the
+delegate-created cache event and a typed source binding after normal delegate
+completion.
 
 A configured session requires the same retained client pointer, bound raw bridge
 and Recorder pointer in `CallbackDispatchConfig`; a mismatch refuses before the
@@ -288,9 +294,21 @@ when supplied through generic `owner_provider` without its matching
 
 `observer_runtime_check --callback-session-output` invokes the raw wait thunk,
 session sink, dispatch wrapper, fake COM identity reads, nested query and
-context forwarding, both continuation outcomes and teardown. It remains
-synthetic forwarding evidence with `live_coverage` incomplete and is not wired
-to the native `Events::ThreadLifecycle` or native callback registration.
+context forwarding, both continuation outcomes and teardown. It preserves the
+legacy generic provider profile and output, including its observer token and
+row ordering. It remains synthetic forwarding evidence with
+`live_coverage` incomplete.
+
+`observer_runtime_check --event-lifecycle-output` drives one fake-only ordinary
+recorder trace through the shared cache, fake delegate production hook, typed
+source provider, callback session and dispatch wrapper. The delegate creates the
+cache record from its selected engine/system identity and actual callback
+data/start arguments; the provider only binds and acquires that record. The
+trace binds the exact source entry, checks source association and TID reuse with
+a distinct raw generation, closes the wrapper during fake SDK getters, rejects
+nested cache mutation and refuses a retired source before the next SDK read. It
+keeps `live_coverage` incomplete while the prepared source remains outside
+native callback registration.
 
 ## Concrete SDK dispatch entrypoint
 

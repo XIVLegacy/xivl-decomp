@@ -124,6 +124,44 @@ bool ObserverCallbackSession::observation_matches_identity(
            observation.source_identity.raw_generation == identity.raw_generation;
 }
 
+bool ObserverCallbackSession::source_hold_matches(
+    const EventIdentity&                            identity,
+    const CachedLifecycleObservation&               observation,
+    const ObserverEventLifecycleSource::SourceHold& hold) const noexcept
+{
+    return hold.valid() && observation_matches_identity(identity, observation) &&
+           hold.source_identity.complete == observation.source_identity.complete &&
+           hold.source_identity.raw_debug_object == observation.source_identity.raw_debug_object &&
+           hold.source_identity.process_id == observation.source_identity.process_id &&
+           hold.source_identity.thread_id == observation.source_identity.thread_id &&
+           hold.source_identity.raw_generation == observation.source_identity.raw_generation &&
+           hold.generation == observation.lifecycle_token && hold.generation != 0 &&
+           hold.observation.source_identity.complete == observation.source_identity.complete &&
+           hold.observation.source_identity.raw_debug_object == observation.source_identity.raw_debug_object &&
+           hold.observation.source_identity.process_id == observation.source_identity.process_id &&
+           hold.observation.source_identity.thread_id == observation.source_identity.thread_id &&
+           hold.observation.source_identity.raw_generation == observation.source_identity.raw_generation &&
+           hold.observation.engine_id_known == observation.engine_id_known &&
+           hold.observation.engine_id == observation.engine_id &&
+           hold.observation.lifecycle_token_known == observation.lifecycle_token_known &&
+           hold.observation.lifecycle_token == observation.lifecycle_token &&
+           hold.observation.observation_sequence == observation.observation_sequence;
+}
+
+bool ObserverCallbackSession::source_hold_entry_matches(
+    const ObserverEventLifecycleSource::SourceHold& left,
+    const ObserverEventLifecycleSource::SourceHold& right) const noexcept
+{
+    return left.valid() && right.valid() && left.storage == right.storage &&
+           left.binding_slot == right.binding_slot && left.index == right.index &&
+           left.generation == right.generation &&
+           left.source_identity.complete == right.source_identity.complete &&
+           left.source_identity.raw_debug_object == right.source_identity.raw_debug_object &&
+           left.source_identity.process_id == right.source_identity.process_id &&
+           left.source_identity.thread_id == right.source_identity.thread_id &&
+           left.source_identity.raw_generation == right.source_identity.raw_generation;
+}
+
 bool ObserverCallbackSession::create_lifecycle_event(raw_recorder::RawEventKind kind) const noexcept
 {
     return kind == raw_recorder::RawEventKind::create_thread ||
@@ -222,14 +260,16 @@ ObserverCallbackSession::LifecycleEntry* ObserverCallbackSession::find_active_th
 }
 
 ObserverCallbackSession::LifecycleEntry* ObserverCallbackSession::allocate_lifecycle(
-    const EventIdentity&              identity,
-    const CachedLifecycleObservation& observation,
-    bool                              initial) noexcept
+    const EventIdentity&                            identity,
+    const CachedLifecycleObservation&               observation,
+    bool                                            initial,
+    const ObserverEventLifecycleSource::SourceHold* hold) noexcept
 {
     if (!on_owner_thread() || released_ || poisoned_ || !lifecycle_identity_complete(identity) ||
         !observation_matches_identity(identity, observation) || lifecycle_count_ >= lifecycles_.size() ||
         next_authority_id_ == 0 || next_lifetime_id_ == 0 || find_lifecycle(identity) != nullptr ||
-        find_active_thread(identity) != nullptr)
+        find_active_thread(identity) != nullptr ||
+        (hold != nullptr && !source_hold_matches(identity, observation, *hold)))
     {
         return nullptr;
     }
@@ -256,6 +296,11 @@ ObserverCallbackSession::LifecycleEntry* ObserverCallbackSession::allocate_lifec
     entry.present         = true;
     entry.active          = true;
     entry.initial         = initial;
+    if (hold != nullptr)
+    {
+        entry.source_hold         = *hold;
+        entry.source_hold_present = true;
+    }
     ++source_count_;
     return &entry;
 }
@@ -270,6 +315,25 @@ bool ObserverCallbackSession::seed_initial(
         return false;
     }
     LifecycleEntry* entry = allocate_lifecycle(identity, observation, true);
+    if (entry == nullptr)
+    {
+        return false;
+    }
+    current_lifecycle_ = entry;
+    return true;
+}
+
+bool ObserverCallbackSession::seed_initial(
+    const EventIdentity&                            identity,
+    const CachedLifecycleObservation&               observation,
+    const ObserverEventLifecycleSource::SourceHold& hold) noexcept
+{
+    if (!on_owner_thread() || released_ || poisoned_ || raw_open_ || access_scope_active_ ||
+        source_bridge_ != nullptr || !source_hold_matches(identity, observation, hold))
+    {
+        return false;
+    }
+    LifecycleEntry* entry = allocate_lifecycle(identity, observation, true, &hold);
     if (entry == nullptr)
     {
         return false;
@@ -339,7 +403,10 @@ bool ObserverCallbackSession::observe_delegate_create_thread(
         return true;
     }
     if (!current_lifecycle_->active || current_lifecycle_->source_ended ||
+        current_lifecycle_->source_hold_present ||
+        current_lifecycle_->observation.engine_id_known != observation.engine_id_known ||
         current_lifecycle_->observation.engine_id != observation.engine_id ||
+        current_lifecycle_->observation.lifecycle_token_known != observation.lifecycle_token_known ||
         current_lifecycle_->observation.lifecycle_token != observation.lifecycle_token ||
         observation.observation_sequence <= current_lifecycle_->observation.observation_sequence)
     {
@@ -347,6 +414,47 @@ bool ObserverCallbackSession::observe_delegate_create_thread(
     }
     current_lifecycle_->observation.observation_sequence = observation.observation_sequence;
     current_lifecycle_->delegate_create_observed         = true;
+    return true;
+}
+
+bool ObserverCallbackSession::observe_delegate_create_thread(
+    const EventIdentity&                            identity,
+    const CachedLifecycleObservation&               observation,
+    const ObserverEventLifecycleSource::SourceHold& hold) noexcept
+{
+    if (!on_owner_thread() || released_ || poisoned_ || !raw_open_ || access_scope_active_ ||
+        !same_raw_key(raw_identity_, identity) || !source_hold_matches(identity, observation, hold))
+    {
+        return false;
+    }
+    if (current_lifecycle_ == nullptr)
+    {
+        if (!raw_create_event_)
+        {
+            return false;
+        }
+        current_lifecycle_ = allocate_lifecycle(identity, observation, false, &hold);
+        if (current_lifecycle_ == nullptr)
+        {
+            return false;
+        }
+        current_lifecycle_->delegate_create_observed = true;
+        return true;
+    }
+    if (!current_lifecycle_->active || current_lifecycle_->source_ended ||
+        current_lifecycle_->observation.engine_id_known != observation.engine_id_known ||
+        current_lifecycle_->observation.engine_id != observation.engine_id ||
+        current_lifecycle_->observation.lifecycle_token_known != observation.lifecycle_token_known ||
+        current_lifecycle_->observation.lifecycle_token != observation.lifecycle_token ||
+        !source_hold_entry_matches(current_lifecycle_->source_hold, hold) ||
+        observation.observation_sequence <= current_lifecycle_->observation.observation_sequence)
+    {
+        return false;
+    }
+    current_lifecycle_->observation              = observation;
+    current_lifecycle_->source_hold              = hold;
+    current_lifecycle_->source_hold_present      = true;
+    current_lifecycle_->delegate_create_observed = true;
     return true;
 }
 
@@ -466,6 +574,21 @@ bool ObserverCallbackSession::bridge_continuation_final() const noexcept
     return true;
 }
 
+bool ObserverCallbackSession::begin_source_access(const EventIdentity& entry_raw_identity,
+                                                  LifecycleEntry&      lifecycle) noexcept
+{
+    if (!lifecycle.source_hold_present)
+    {
+        return true;
+    }
+    return lifecycle.source_hold.begin_access(entry_raw_identity, &source_access_scope_);
+}
+
+bool ObserverCallbackSession::release_source_access() noexcept
+{
+    return !source_access_scope_.active() || source_access_scope_.release();
+}
+
 bool ObserverCallbackSession::retain_event(const BridgeEventEvidence& evidence) noexcept
 {
     // These are non-mutating refusals. In particular, a foreign, reentrant or
@@ -578,9 +701,15 @@ bool ObserverCallbackSession::provide(const char*            callback_kind,
     {
         return false;
     }
+    if (!begin_source_access(entry_raw_identity, *current_lifecycle_))
+    {
+        access_lock_.clear(std::memory_order_release);
+        return false;
+    }
     ++access_sequence_;
     if (access_sequence_ == 0)
     {
+        (void)release_source_access();
         access_lock_.clear(std::memory_order_release);
         return false;
     }
@@ -610,6 +739,7 @@ bool ObserverCallbackSession::provide(const char*            callback_kind,
         access_scope_active_ = false;
         access_kind_         = CallbackKind::none;
         access_nonce_        = 0;
+        (void)release_source_access();
         access_lock_.clear(std::memory_order_release);
         return false;
     }
@@ -629,6 +759,10 @@ bool ObserverCallbackSession::end_access_scope(std::uint64_t expected_nonce) noe
     }
     if (!on_owner_thread() || released_ ||
         (expected_nonce != 0 && expected_nonce != access_nonce_))
+    {
+        return false;
+    }
+    if (!release_source_access())
     {
         return false;
     }
@@ -667,14 +801,17 @@ void ObserverCallbackSession::poison() noexcept
 
 bool ObserverCallbackSession::teardown() noexcept
 {
-    if (released_ || !on_owner_thread() || raw_open_ || access_scope_active_)
+    if (released_ || !on_owner_thread() || raw_open_ || access_scope_active_ ||
+        source_access_scope_.active())
     {
         return false;
     }
     for (std::size_t index = 0; index < lifecycle_count_; ++index)
     {
-        lifecycles_[index].active       = false;
-        lifecycles_[index].source_ended = true;
+        lifecycles_[index].active              = false;
+        lifecycles_[index].source_ended        = true;
+        lifecycles_[index].source_hold         = {};
+        lifecycles_[index].source_hold_present = false;
     }
     current_lifecycle_ = nullptr;
     release_client();
