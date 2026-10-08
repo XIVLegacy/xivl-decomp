@@ -203,9 +203,28 @@ object offset `+0x218` at VAs `0x0092F40B..0x0092F425` (RVAs
 `0x00B22070`) pushes string VA `0x0106A9D4` (RVA `0x00C6A9D4`), whose
 value is `SqwtImagePartsIndex`, then binds this descriptor at VA `0x00F22075`
 (RVA `0x00B22075`). This path switches an image-part index; it does not set
-`IsEnabled` or prove click acceptance. The toggle method's separate guard bit
-`0x02` is tested at VA `0x0095D4A6` (RVA `0x0055D4A6`); its producer and
-availability meaning are not established here.
+`IsEnabled` or prove click acceptance.
+
+### Checked-state mutation guard comes from metadata
+
+The toggle method tests a separate state bit `0x02` at VA `0x0095D4A6`
+(RVA `0x0055D4A6`). Constructor `FUN_0095D620` (VA `0x0095D620`, RVA
+`0x0055D620`) clears the low six bits at object `+0x3B4` at VA `0x0095D669`
+(RVA `0x0055D669`), then seeds bit 1 from bit 7 of the IsChecked descriptor's
+metadata dword at VA `0x0135A7B4` (RVA `0x00F5A7B4`, descriptor `+0x18`).
+The load, shift, mask and merge are at VAs `0x0095D695..0x0095D6AC`
+(RVAs `0x0055D695..0x0055D6AC`). The recovered equation is
+`state.bit1 = (IsChecked.metadata >> 7) & 1`.
+
+The metadata starts in the loader-zeroed tail of `.data`: its section RVA is
+`0x00E65000`, virtual size `0x00117940`, and raw size `0x000BF000`, so target
+RVA `0x00F5A7B4` lies beyond the raw end `0x00F24000` but within the virtual
+end `0x00F7C940`. The shared name initializer `FUN_009108E0` (VA
+`0x009108E0`, RVA `0x005108E0`) writes descriptor `+0..+0x10` at VAs
+`0x009108EA..0x00910915` (RVAs `0x005108EA..0x00510915`), leaving `+0x18`
+untouched. A later indirect metadata writer is not excluded by these checks.
+This establishes a metadata-derived checked-state mutation guard, not a
+controller-presence, enabled-state or input-routing predicate.
 
 ## Enable properties and remaining barrier
 
@@ -274,8 +293,9 @@ The game reads group 0/key 9 in two input-binding paths: `FUN_004DAF00` (VA
 it at VA `0x004DBA68` (RVA `0x000DBA68`). Both pass the value to
 `FUN_00547340` (VA `0x00547340`, RVA `0x00147340`), which stores it at global
 VA `0x01336BC4` (RVA `0x00F36BC4`) at VA `0x00547344` (RVA `0x00147344`).
-The text reload below can overwrite the registered current value. Its resource
-key and on-disk filename are not yet joined to the startup `config.sys` reader.
+The text reload below can overwrite the registered current value from the
+ResourceModule's per-user `game` path. The startup `config.sys` reader is a
+separate reader.
 
 ## GameConfig text serialization and reload
 
@@ -314,10 +334,84 @@ by `FUN_004D9980` (VA `0x004D9980`, RVA `0x000D9980`), which calls
 (RVA `0x000D9A44`) and the buffer parser helper above at VA `0x004D9A4B`
 (RVA `0x000D9A4B`). `FUN_004C71A0` (VA `0x004C71A0`, RVA `0x000C71A0`)
 serializes the table at VA `0x004C71EE` (RVA `0x000C71EE`) before dispatching
-through its ExcelModule backing object at VA `0x004C721C` (RVA `0x000C721C`).
-This establishes the table/request/reload dependency, without claiming that a
-particular resource request completed or that a particular disk file supplied
-the buffer. The generated-name and resource-key handoff remains unresolved.
+through ResourceModule slot 5 at VA `0x004C721C` (RVA `0x000C721C`). Its
+target is `FUN_00C98E40` (VA `0x00C98E40`, RVA `0x00898E40`), with four
+arguments and `RET 0x10` at VA `0x00C98F71` (RVA `0x00898F71`).
+
+### ResourceModule builds the physical user/game path
+
+Let `G` be the GameConfig object address. Its backing pointer at `G+0x18`
+is a ResourceModule. Rapture's
+initializer constructs it with `FUN_00C99090` (VA `0x00C99090`, RVA
+`0x00899090`) at VA `0x004B33B6` (RVA `0x000B33B6`) and stores it at
+`I+0x50` at VA `0x004B33C8` (RVA `0x000B33C8`). The constructor installs
+vtable VA `0x01108C3C` (RVA `0x00D08C3C`) at VA `0x00C990C3` (RVA
+`0x008990C3`). The pushes at VAs `0x004B368F..0x004B3694` (RVAs
+`0x000B368F..0x000B3694`) pass this pointer as argument 2 to
+`FUN_004DC3A0` (VA `0x004DC3A0`, RVA `0x000DC3A0`). Its pushes at VAs
+`0x004DC3ED..0x004DC404` (RVAs `0x000DC3ED..0x000DC404`) make that pointer
+argument 1 to `FUN_004DBF40`. The latter reloads argument 1 at VA
+`0x004DC0C1` (RVA `0x000DC0C1`) and passes it to GameConfig's constructor
+at VA `0x004DC124` (RVA `0x000DC124`). The GameConfig/base-constructor calls
+at VAs `0x004C478D..0x004C479A` (RVAs `0x000C478D..0x000C479A`) forward
+it to `FUN_004B66F0` (VA `0x004B66F0`, RVA `0x000B66F0`), which stores
+it to `G+0x18` at VA `0x004B674F` (RVA `0x000B674F`).
+
+`FUN_004D9980` constructs the string `game` from VA `0x00F90DBC` (RVA
+`0x00B90DBC`) at VA `0x004D9A88` (RVA `0x000D9A88`). The call at VA
+`0x004D9AA3` (RVA `0x000D9AA3`) passes the incoming numeric key, that name,
+and zero to `FUN_004B71F0` (VA `0x004B71F0`, RVA `0x000B71F0`). The latter
+copies the name to `G+0x30`, stores the key at `G+0x28`, and dispatches
+ResourceModule slot 3 at VA `0x004B7239` (RVA `0x000B7239`). Its seven
+arguments, in callee order, are `key, G+0x30, 0, 0, G+0x10, 0, 0`.
+The target `FUN_00C99480` (VA `0x00C99480`, RVA `0x00899480`) has the
+matching `RET 0x1C` at VA `0x00C995F0` (RVA `0x008995F0`). This concrete
+receiver join distinguishes it from ExcelModule's numeric data request.
+
+The target calls `FUN_0044AC40` (VA `0x0044AC40`, RVA `0x0004AC40`) at VA
+`0x00C994F3` (RVA `0x008994F3`). For flag zero, the builder copies root
+wrapper VA `0x0132CC48` (RVA `0x00F2CC48`) at VA `0x0044AC84` (RVA
+`0x0004AC84`), appends format `\\user\\%08X\\` from VA `0x00F672E8`
+(RVA `0x00B672E8`) using the numeric key at VA `0x0044ACA3` (RVA
+`0x0004ACA3`), then appends the name at VA `0x0044ACDA` (RVA `0x0004ACDA`).
+The request therefore addresses `root\\user\\<eight-hex-digit key>\\game`.
+The root and key values for a particular run remain runtime inputs.
+
+The new-resource branch constructs the Resource at VA `0x00C9957C` (RVA
+`0x0089957C`) with this path and the `G+0x10` callback. The constructor
+`FUN_00CAEDD0` (VA `0x00CAEDD0`, RVA `0x008AEDD0`) copies the path to
+Resource `+0x04` at VA `0x00CAEE11` (RVA `0x008AEE11`). The request is
+queued at VA `0x00C995AD` (RVA `0x008995AD`). FileThread's read service
+`FUN_00C96850` (VA `0x00C96850`, RVA `0x00896850`) opens Resource `+0x04`
+through `FUN_00453C00` (VA `0x00453C00`, RVA `0x00053C00`) at VA
+`0x00C9697F` (RVA `0x0089697F`), with mode `rb` from VA `0x01108930`
+(RVA `0x00D08930`). This proves a physical file-read route, without claiming
+that its open or queued response succeeded in any captured run.
+
+### Encoded response reaches the named-record parser
+
+The serializer calls `FUN_00D358D0` (VA `0x00D358D0`, RVA `0x009358D0`)
+at VA `0x004C726C` (RVA `0x000C726C`). It writes a leading byte `0xFF` at
+VA `0x00D358F6` (RVA `0x009358F6`) and XORs source bytes with `0x73` at
+VA `0x00D35906` (RVA `0x00935906`).
+
+GameConfig's constructor installs nested vtable VA `0x00F90A88` (RVA
+`0x00B90A88`) at `G+0x10` at VA `0x004C47B1` (RVA `0x000C47B1`). Slot 1
+points to response callback `FUN_004B8540` (VA `0x004B8540`, RVA `0x000B8540`),
+which uses that adjusted GameConfig receiver. On its success branch it gets
+the response buffer and count through vtable offsets `+0x20` and `+0x28`
+at VAs `0x004B8577`, `0x004B8597`, and `0x004B85A5` (RVAs
+`0x000B8577`, `0x000B8597`, and `0x000B85A5`). The call at VA `0x004B85AD`
+(RVA `0x000B85AD`) invokes `FUN_00D35930` (VA `0x00D35930`, RVA
+`0x00935930`) with the same source/destination buffer and destination capacity
+one byte smaller than the source count. The decoder requires `0xFF` at VA
+`0x00D35938` (RVA `0x00935938`), skips that prefix at VA `0x00D35953`
+(RVA `0x00935953`), and XORs each payload byte with `0x73` at VA
+`0x00D35966` (RVA `0x00935966`). The callback then passes the buffer to
+`FUN_004448E0` at VA `0x004B85C0` (RVA `0x000B85C0`), subtracting `0x10`
+from its adjusted receiver to recover `G`. It does not test the decoder's
+return before that parser call. This proves the response-to-record handoff,
+without proving a file open or a successful runtime parse.
 
 ## Result
 
@@ -325,7 +419,8 @@ The startup Pad initializer returns `AL=1` after its enumeration setup, even
 when no controller record is selected. Count and saved-selection active state
 reach the adapter through separate fields. The exact recovered UI predicate is
 the checked-state equation above; its callback changes an image-part index.
-Loaded text can replace the registered `input_mode` value, but its disk source
-remains unresolved. Gamepad availability remains unresolved in the control
+Loaded text can replace the registered `input_mode` value from the runtime-rooted
+per-user `game` file. The response decoder uses an `FF` prefix and XOR `0x73`.
+Gamepad availability remains unresolved in the control
 identity and enable property dependencies, including generic dispatch and
 inherited resources.
