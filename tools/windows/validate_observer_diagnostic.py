@@ -227,8 +227,200 @@ def _validate_callback_entry(row: dict) -> tuple[int, tuple | None]:
             or _integer(row, "engine_generation") != 0
         ):
             raise ValueError("callback entry rewrote raw identity")
+        _validate_callback_dispatch_fields(row)
         return operation, raw
+    _validate_callback_dispatch_fields(row)
     return operation, None
+
+
+def _validate_callback_dispatch_fields(row: dict) -> None:
+    marker = row.get("dispatch_marker", False)
+    if type(marker) is not bool:
+        raise ValueError("unknown callback dispatch marker")
+    if not marker:
+        return
+    _integer(row, "sequence", 1)
+    _integer(row, "exit_sequence", 0)
+    for key in ("incomplete", "exit_observed"):
+        if type(row.get(key)) is not bool:
+            raise ValueError(f"unknown callback dispatch row state: {key}")
+    if row.get("dispatch_phase") not in {"before_delegate", "after_delegate"}:
+        raise ValueError("unknown callback dispatch phase")
+    identity = row.get("delegate_identity")
+    if identity not in {
+        "IDebugEventCallbacks::Breakpoint",
+        "IDebugEventCallbacks::CreateThread",
+    }:
+        raise ValueError("unknown callback delegate identity")
+    if (
+        row["dispatch_phase"] == "before_delegate"
+        and identity != "IDebugEventCallbacks::Breakpoint"
+    ):
+        raise ValueError("callback dispatch phase does not match delegate")
+    if (
+        row["dispatch_phase"] == "after_delegate"
+        and identity != "IDebugEventCallbacks::CreateThread"
+    ):
+        raise ValueError("callback dispatch phase does not match delegate")
+    expected_kind = (
+        "breakpoint"
+        if identity == "IDebugEventCallbacks::Breakpoint"
+        else "create_thread"
+    )
+    if row.get("callback_kind") != expected_kind:
+        raise ValueError("callback dispatch delegate does not match callback kind")
+    bool_fields = (
+        "delegate_completion_known",
+        "delegate_hresult_known",
+        "delegate_threw",
+        "provider_attempted",
+        "provider_succeeded",
+        "provider_threw",
+        "owner_evidence_complete",
+        "capture_attempted",
+        "capture_completed",
+        "binding_attempted",
+        "binding_succeeded",
+        "foreign_thread_refused",
+        "reentry_refused",
+        "invalid_configuration_refused",
+        "capacity_refused",
+        "error_restore_attempted",
+        "error_restore_succeeded",
+        "error_restore_prerequisite_attempted",
+        "error_restore_prerequisite_succeeded",
+        "error_restore_late_failure",
+        "dispatch_incoming_error_known",
+        "dispatch_returned_error_known",
+        "callback_arguments_known",
+    )
+    if any(type(row.get(key)) is not bool for key in bool_fields):
+        raise ValueError("unknown callback dispatch state")
+    _integer(row, "delegate_begin_sequence", 0)
+    _integer(row, "delegate_end_sequence", 0)
+    _integer(row, "dispatch_acquisition_operation_id", 0)
+    _integer(row, "dispatch_binding_attempt_id", 0)
+    _address(row, "breakpoint_pointer")
+    for key in (
+        "create_thread_handle",
+        "create_thread_data_offset",
+        "create_thread_start_offset",
+        "dispatch_incoming_last_error",
+        "dispatch_returned_last_error",
+    ):
+        _integer(row, key, 0)
+    for key in (
+        "dispatch_incoming_last_status",
+        "dispatch_returned_last_status",
+        "delegate_hresult",
+    ):
+        _integer(row, key, -0x80000000, 0x7FFFFFFF)
+    if not row["callback_arguments_known"]:
+        raise ValueError("callback dispatch arguments are unknown")
+    if (
+        identity == "IDebugEventCallbacks::Breakpoint"
+        and row["breakpoint_pointer"] == 0
+    ):
+        raise ValueError("breakpoint dispatch has null callback argument")
+    if row["delegate_threw"] and row["delegate_completion_known"]:
+        raise ValueError("delegate exception claims completion")
+    if row["delegate_completion_known"] and not row["delegate_hresult_known"]:
+        raise ValueError("completed delegate lacks HRESULT")
+    if row["delegate_hresult_known"] and not row["delegate_completion_known"]:
+        raise ValueError("delegate HRESULT lacks completion")
+    if row["exit_observed"] and row["exit_outcome"] == "exception":
+        if not row["delegate_threw"] or row["delegate_completion_known"]:
+            raise ValueError("exception callback exit contradicts delegate state")
+    elif row["exit_observed"] and row["exit_outcome"] == "completed":
+        if row["delegate_threw"] or not row["delegate_completion_known"]:
+            raise ValueError("completed callback exit contradicts delegate state")
+    if row["provider_succeeded"] and not row["provider_attempted"]:
+        raise ValueError("provider success lacks attempt")
+    if row["provider_threw"] and not row["provider_attempted"]:
+        raise ValueError("provider exception lacks attempt")
+    if row["provider_threw"] and row["provider_succeeded"]:
+        raise ValueError("provider exception claims success")
+    if row["owner_evidence_complete"] and not row["provider_succeeded"]:
+        raise ValueError("owner evidence lacks provider success")
+    if row["binding_succeeded"] and not row["binding_attempted"]:
+        raise ValueError("binding success lacks attempt")
+    if row["binding_attempted"] and not row["dispatch_acquisition_operation_id"]:
+        raise ValueError("callback binding lacks acquisition link")
+    if row["binding_attempted"] and not row["capture_completed"]:
+        raise ValueError("binding attempt lacks capture completion")
+    if row["capture_completed"] and not row["capture_attempted"]:
+        raise ValueError("capture completion lacks attempt")
+    if row["capture_completed"] and not row["dispatch_acquisition_operation_id"]:
+        raise ValueError("callback capture lacks acquisition link")
+    if row["error_restore_succeeded"] and not row["error_restore_attempted"]:
+        raise ValueError("error restore success lacks attempt")
+    if (
+        row["error_restore_prerequisite_succeeded"]
+        and not row["error_restore_prerequisite_attempted"]
+    ):
+        raise ValueError("error restore prerequisite success lacks attempt")
+    if row["error_restore_late_failure"]:
+        if (
+            not row["error_restore_attempted"]
+            or not row["error_restore_prerequisite_attempted"]
+            or not row["error_restore_prerequisite_succeeded"]
+            or row["error_restore_succeeded"]
+            or not row["capture_completed"]
+            or not row["dispatch_acquisition_operation_id"]
+        ):
+            raise ValueError(
+                "late error restore failure lacks post-acquisition evidence"
+            )
+    if (
+        not row["dispatch_incoming_error_known"]
+        and row["error_restore_attempted"]
+        and not row["dispatch_returned_error_known"]
+    ):
+        raise ValueError("error restore attempted without known error pair")
+    if (row["delegate_begin_sequence"] == 0) != (row["delegate_end_sequence"] == 0):
+        raise ValueError("callback delegate interval is incomplete")
+    if row["delegate_begin_sequence"] == 0:
+        if not row["incomplete"]:
+            raise ValueError("complete dispatch lacks delegate interval")
+    elif row["delegate_end_sequence"] <= row["delegate_begin_sequence"]:
+        raise ValueError("callback delegate interval is reversed")
+    if row["delegate_begin_sequence"] and row["delegate_end_sequence"]:
+        if (
+            not row["sequence"]
+            < row["delegate_begin_sequence"]
+            < row["delegate_end_sequence"]
+        ):
+            raise ValueError("delegate interval escapes callback entry")
+        if (
+            row["exit_observed"]
+            and not row["delegate_end_sequence"] < row["exit_sequence"]
+        ):
+            raise ValueError("delegate interval escapes callback exit")
+    if not row["incomplete"]:
+        if (
+            not row["delegate_completion_known"]
+            or not row["delegate_hresult_known"]
+            or row["delegate_threw"]
+            or not row["provider_attempted"]
+            or not row["provider_succeeded"]
+            or not row["owner_evidence_complete"]
+            or not row["capture_attempted"]
+            or not row["capture_completed"]
+            or not row["binding_attempted"]
+            or not row["binding_succeeded"]
+            or not row["error_restore_attempted"]
+            or not row["error_restore_succeeded"]
+            or not row["error_restore_prerequisite_attempted"]
+            or not row["error_restore_prerequisite_succeeded"]
+            or row["error_restore_late_failure"]
+            or not row["dispatch_incoming_error_known"]
+            or not row["dispatch_returned_error_known"]
+            or row["foreign_thread_refused"]
+            or row["reentry_refused"]
+            or row["invalid_configuration_refused"]
+            or row["capacity_refused"]
+        ):
+            raise ValueError("complete callback dispatch lacks coverage evidence")
 
 
 def _validate_callback_observation(
@@ -462,10 +654,15 @@ def _validate_callback_acquisition(
             owner, "cached_engine_id"
         ):
             raise ValueError("callback owner engine ID does not match binding witness")
-        if row.get("binding_status") != "bound" or not _integer(
+        if row.get("binding_status") == "bound":
+            if not _integer(row, "binding_attempt_id"):
+                raise ValueError("bound callback acquisition lacks binding receipt")
+        elif row.get("binding_status") != "refused" or _integer(
             row, "binding_attempt_id"
         ):
-            raise ValueError("accepted callback acquisition is not bound")
+            raise ValueError(
+                "accepted callback acquisition has inconsistent binding state"
+            )
     if row.get("outcome") != "accepted" and row.get("binding_status") == "bound":
         raise ValueError("refused callback acquisition links to bound state")
     if row.get("outcome") == "accepted":
@@ -847,6 +1044,14 @@ def _validate_deferred_trace(trace: dict) -> int:
         used_sequences.add(seq)
         if exit_seq:
             used_sequences.add(exit_seq)
+        if row.get("kind") == "callback_entry" and row.get("dispatch_marker", False):
+            _validate_callback_dispatch_fields(row)
+            for key in ("delegate_begin_sequence", "delegate_end_sequence"):
+                stamp = _integer(row, key, 0)
+                if stamp and stamp in used_sequences:
+                    raise ValueError("duplicate callback delegate sequence")
+                if stamp:
+                    used_sequences.add(stamp)
         provenance = row.get("provenance")
         if isinstance(provenance, dict) and provenance.get("status") != "not_attempted":
             begin = _integer(provenance, "acquisition_begin_sequence", 1)
@@ -919,6 +1124,110 @@ def _validate_deferred_trace(trace: dict) -> int:
             if _integer(row, "acquisition_operation_id", 1) in callback_acquisitions:
                 raise ValueError("duplicate callback acquisition")
             callback_acquisitions[_integer(row, "acquisition_operation_id", 1)] = row
+    for callback_operation, entry in callback_entries.items():
+        if not entry.get("dispatch_marker", False):
+            continue
+        acquisition_id = _integer(entry, "dispatch_acquisition_operation_id", 0)
+        if acquisition_id == 0:
+            if not entry["incomplete"]:
+                raise ValueError("complete callback dispatch has no acquisition link")
+            continue
+        acquisition = callback_acquisitions.get(acquisition_id)
+        if (
+            acquisition is None
+            or _integer(acquisition, "callback_operation_id", 1) != callback_operation
+        ):
+            raise ValueError("callback dispatch acquisition link mismatch")
+        accepted = acquisition.get("outcome") == "accepted"
+        acquisition_binding_attempted = (
+            acquisition.get("binding_status") != "refused"
+            or _integer(acquisition, "binding_attempt_id", 0) != 0
+        )
+        dispatch_binding_attempted = entry.get("binding_attempted") is True
+        dispatch_binding_succeeded = entry.get("binding_succeeded") is True
+        dispatch_binding_receipt = (
+            _integer(entry, "dispatch_binding_attempt_id", 0) != 0
+        )
+        binding_evidence_present = (
+            acquisition_binding_attempted
+            or dispatch_binding_attempted
+            or dispatch_binding_succeeded
+            or dispatch_binding_receipt
+        )
+        if (
+            accepted
+            or acquisition.get("binding_status") == "bound"
+            or dispatch_binding_succeeded
+        ):
+            late_restore_failure = entry.get("error_restore_late_failure") is True
+            if (
+                entry.get("foreign_thread_refused")
+                or entry.get("reentry_refused")
+                or entry.get("invalid_configuration_refused")
+                or entry.get("provider_attempted") is not True
+                or entry.get("provider_succeeded") is not True
+                or entry.get("provider_threw")
+                or entry.get("owner_evidence_complete") is not True
+                or entry.get("capture_attempted") is not True
+                or entry.get("capture_completed") is not True
+                or entry.get("error_restore_attempted") is not True
+                or entry.get("error_restore_prerequisite_attempted") is not True
+                or entry.get("error_restore_prerequisite_succeeded") is not True
+                or (
+                    entry.get("error_restore_succeeded") is not True
+                    and not late_restore_failure
+                )
+                or (late_restore_failure and entry.get("incomplete") is not True)
+                or entry.get("dispatch_incoming_error_known") is not True
+                or entry.get("dispatch_returned_error_known") is not True
+            ):
+                raise ValueError(
+                    "accepted callback acquisition contradicts dispatch evidence"
+                )
+            if binding_evidence_present:
+                if (
+                    entry.get("binding_attempted") is not True
+                    or entry.get("binding_succeeded") is not True
+                    or acquisition.get("binding_status") != "bound"
+                    or not _integer(acquisition, "binding_attempt_id", 1)
+                ):
+                    raise ValueError(
+                        "callback dispatch binding evidence contradicts acquisition"
+                    )
+            elif (
+                not accepted
+                or acquisition.get("binding_status") != "refused"
+                or _integer(acquisition, "binding_attempt_id", 0) != 0
+                or entry.get("binding_attempted") is not False
+                or entry.get("binding_succeeded") is not False
+                or dispatch_binding_receipt
+            ):
+                raise ValueError(
+                    "accepted callback acquisition has inconsistent binding evidence"
+                )
+        entry_begin = _integer(entry, "delegate_begin_sequence", 0)
+        entry_end = _integer(entry, "delegate_end_sequence", 0)
+        acquisition_begin = _integer(acquisition, "acquisition_begin_sequence", 1)
+        acquisition_end = _integer(
+            acquisition, "acquisition_end_sequence", acquisition_begin + 1
+        )
+        if entry_begin == 0 or entry_end == 0:
+            if not entry["incomplete"]:
+                raise ValueError("complete callback dispatch has no delegate interval")
+        elif entry["dispatch_phase"] == "before_delegate":
+            if not acquisition_end < entry_begin:
+                raise ValueError("breakpoint acquisition does not precede delegate")
+        elif not entry_end < acquisition_begin:
+            raise ValueError("create-thread delegate does not precede acquisition")
+        if entry.get("binding_succeeded"):
+            if (
+                acquisition.get("outcome") != "accepted"
+                or acquisition.get("binding_status") != "bound"
+                or not _integer(acquisition, "binding_attempt_id", 1)
+                or _integer(entry, "dispatch_binding_attempt_id", 0)
+                != _integer(acquisition, "binding_attempt_id", 1)
+            ):
+                raise ValueError("callback dispatch binding link mismatch")
     ordered = sorted(rows, key=lambda row: row["sequence"])
     pending_raw = None
     pending_qualified = None
@@ -1254,8 +1563,15 @@ def _validate_deferred_trace(trace: dict) -> int:
     for acquisition_operation, acquisition in callback_acquisitions.items():
         if acquisition.get("outcome") != "accepted":
             continue
-        if len(callback_bound_links.get(acquisition_operation, [])) != 1:
+        bound_links = callback_bound_links.get(acquisition_operation, [])
+        binding_attempted = (
+            acquisition.get("binding_status") != "refused"
+            or _integer(acquisition, "binding_attempt_id", 0) != 0
+        )
+        if binding_attempted and len(bound_links) != 1:
             raise ValueError("accepted callback acquisition lacks one bound link")
+        if not binding_attempted and bound_links:
+            raise ValueError("unbound callback acquisition has a bound link")
 
     if pending_raw is not None:
         raise ValueError("pending event not closed")

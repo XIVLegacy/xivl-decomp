@@ -233,6 +233,56 @@ synthetic forwarding evidence only. It does not load DbgEng or establish native
 callback entry, lifecycle allocation, selected-state serialization or live
 event identity; those remain required before any native coverage claim.
 
+## Concrete SDK dispatch entrypoint
+
+`ObserverCallbackDispatch` implements the Windows SDK
+`IDebugEventCallbacks` interface and keeps the existing `CallbackIdentityReader`
+and deferred `RawEventBridge` as separate collaborators. The delegate, SDK
+client, recorder, bridge, provider and SDK references are borrowed caller-owned
+objects. COM
+`QueryInterface`, `AddRef` and `Release` report the ordinary interface count,
+but `Release` never destroys wrapper storage; the caller supplies the lifetime
+and quiescent teardown boundary.
+
+The wrapper records callback entry before any owner or SDK read. For
+`Breakpoint`, owner evidence and SDK capture finish before the delegate begins.
+For `CreateThread`, the delegate begins and ends first, then owner evidence and
+SDK capture run against the unchanged entry raw key. Recorder-owned begin/end
+stamps prove this ordering, while the callback entry and exit stamps enclose the
+whole interval. The provider receives the exact entry raw key and the phase; it
+does not derive lifecycle ownership from SDK IDs or create a token itself.
+
+The wrapper forwards every delegate method once and preserves its arguments,
+completed `HRESULT` (including negative values), exception and returned error
+pair. Instrumentation restores the injected incoming pair after its reads and
+does not replace the delegate's returned pair. A failed prerequisite restore
+remains sticky and prevents SDK reads and binding. If a restore fails after the
+reader has produced a real acquisition and binding, those rows remain factual;
+typed late-failure evidence keeps the dispatch row incomplete. A provider
+exception, changed or
+ended owner/raw key, foreign thread, reentry, invalid configuration or capacity
+refusal prevents binding and records incomplete dispatch evidence while the
+delegate call still proceeds once. A nested query before `CreateThread`
+acquisition remains raw and unqualified; a `Breakpoint` nested query after a
+successful binding sees the bound lifecycle token.
+An eligible reader with no raw bridge can still record an Accepted acquisition,
+but its refused zero-receipt binding state leaves the dispatch row incomplete.
+
+`instrumentation_thread_id` is a caller-selected owner thread ID. Zero remains
+unknown and refuses instrumentation without marking delivery as foreign; the
+delegate still runs once and the refused reader attempt remains incomplete when
+capacity permits.
+
+Dispatch fields live on `CallbackEntryRow` and use `dispatch_marker` to preserve
+legacy caller-invoked rows. The validator requires typed phase, delegate,
+argument, interval, refusal, error, acquisition and binding fields when the
+marker is true. It rejects reused sequence stamps, wrong phase/delegate pairs,
+forged complete success, broken acquisition order and mismatched binding
+attempts. The fresh `--callback-dispatch-output` profile invokes fake objects
+through the actual wrapper methods and retains `live_coverage: incomplete`; it
+does not register callbacks, call `SetEventCallbacks`, create or attach an
+engine, or claim native timing.
+
 ## Interval decision
 
 Callback-delayed binding can support event correlation for a later adapter

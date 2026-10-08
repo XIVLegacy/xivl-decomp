@@ -1496,6 +1496,135 @@ CallbackBeginResult Recorder::begin_callback(const std::string& callback_kind)
     return result;
 }
 
+bool Recorder::record_callback_dispatch_entry(
+    std::uint64_t                callback_operation_id,
+    const CallbackDispatchEntry& entry)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed)
+        {
+            continue;
+        }
+        row->dispatch_marker                      = true;
+        row->dispatch_phase                       = entry.phase;
+        row->delegate_identity                    = entry.delegate_identity;
+        row->breakpoint_pointer                   = entry.breakpoint_pointer;
+        row->create_thread_handle                 = entry.create_thread_handle;
+        row->create_thread_data_offset            = entry.create_thread_data_offset;
+        row->create_thread_start_offset           = entry.create_thread_start_offset;
+        row->callback_arguments_known             = entry.callback_arguments_known;
+        row->provider_attempted                   = entry.provider_attempted;
+        row->provider_succeeded                   = entry.provider_succeeded;
+        row->provider_threw                       = entry.provider_threw;
+        row->owner_evidence_complete              = entry.owner_evidence_complete;
+        row->capture_attempted                    = entry.capture_attempted;
+        row->capture_completed                    = entry.capture_completed;
+        row->binding_attempted                    = entry.binding_attempted;
+        row->binding_succeeded                    = entry.binding_succeeded;
+        row->dispatch_binding_attempt_id          = entry.binding_attempt_id;
+        row->foreign_thread_refused               = entry.foreign_thread_refused;
+        row->reentry_refused                      = entry.reentry_refused;
+        row->invalid_configuration_refused        = entry.invalid_configuration_refused;
+        row->capacity_refused                     = entry.capacity_refused;
+        row->error_restore_attempted              = entry.error_restore_attempted;
+        row->error_restore_succeeded              = entry.error_restore_succeeded;
+        row->error_restore_prerequisite_attempted = entry.error_restore_prerequisite_attempted;
+        row->error_restore_prerequisite_succeeded = entry.error_restore_prerequisite_succeeded;
+        row->error_restore_late_failure           = entry.error_restore_late_failure;
+        row->dispatch_incoming_error_known        = entry.incoming_error_known;
+        row->dispatch_incoming_error              = entry.incoming_error;
+        row->dispatch_acquisition_operation_id    = entry.acquisition_operation_id;
+        row->header.incoming_error_known          = entry.incoming_error_known;
+        row->header.incoming_error                = entry.incoming_error;
+        row->header.incomplete                    = true;
+        return true;
+    }
+    return false;
+}
+
+bool Recorder::record_callback_dispatch_capture(
+    std::uint64_t                callback_operation_id,
+    const CallbackDispatchEntry& entry)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || !row->dispatch_marker)
+        {
+            continue;
+        }
+        row->provider_attempted                   = entry.provider_attempted;
+        row->provider_succeeded                   = entry.provider_succeeded;
+        row->provider_threw                       = entry.provider_threw;
+        row->owner_evidence_complete              = entry.owner_evidence_complete;
+        row->capture_attempted                    = entry.capture_attempted;
+        row->capture_completed                    = entry.capture_completed;
+        row->binding_attempted                    = entry.binding_attempted;
+        row->binding_succeeded                    = entry.binding_succeeded;
+        row->dispatch_binding_attempt_id          = entry.binding_attempt_id;
+        row->foreign_thread_refused               = entry.foreign_thread_refused;
+        row->reentry_refused                      = entry.reentry_refused;
+        row->invalid_configuration_refused        = entry.invalid_configuration_refused;
+        row->capacity_refused                     = entry.capacity_refused;
+        row->error_restore_attempted              = entry.error_restore_attempted;
+        row->error_restore_succeeded              = entry.error_restore_succeeded;
+        row->error_restore_prerequisite_attempted = entry.error_restore_prerequisite_attempted;
+        row->error_restore_prerequisite_succeeded = entry.error_restore_prerequisite_succeeded;
+        row->error_restore_late_failure           = entry.error_restore_late_failure;
+        row->dispatch_acquisition_operation_id    = entry.acquisition_operation_id;
+        return true;
+    }
+    return false;
+}
+
+std::uint64_t Recorder::begin_callback_delegate(std::uint64_t callback_operation_id)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed ||
+            !row->dispatch_marker || row->delegate_begin_sequence != 0)
+        {
+            continue;
+        }
+        row->delegate_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        return row->delegate_begin_sequence;
+    }
+    return 0;
+}
+
+bool Recorder::finish_callback_delegate(
+    std::uint64_t               callback_operation_id,
+    const CallbackDispatchExit& exit)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || !row->dispatch_marker ||
+            row->delegate_begin_sequence == 0 || row->delegate_end_sequence != 0)
+        {
+            continue;
+        }
+        row->delegate_end_sequence         = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        row->delegate_completion_known     = exit.delegate_completion_known;
+        row->delegate_hresult_known        = exit.delegate_hresult_known;
+        row->delegate_hresult              = exit.delegate_hresult;
+        row->delegate_threw                = exit.delegate_threw;
+        row->dispatch_returned_error_known = exit.returned_error_known;
+        row->dispatch_returned_error       = exit.returned_error;
+        row->header.returned_error_known   = exit.returned_error_known;
+        row->header.returned_error         = exit.returned_error;
+        return true;
+    }
+    return false;
+}
+
 CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t callback_operation_id)
 {
     CallbackAcquisitionStart result;
@@ -1765,7 +1894,30 @@ bool Recorder::end_callback(std::uint64_t callback_operation_id, CallbackExitOut
         row->header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
         row->exit_outcome         = outcome;
         row->exit_observed        = true;
-        row->header.incomplete    = true;
+        if (!row->dispatch_marker)
+        {
+            row->header.incomplete = true;
+        }
+        else
+        {
+            const bool dispatch_complete = row->delegate_begin_sequence != 0 &&
+                                           row->delegate_end_sequence != 0 &&
+                                           row->delegate_completion_known &&
+                                           row->delegate_hresult_known && !row->delegate_threw &&
+                                           row->entry_raw_identity_known &&
+                                           row->header.observer_thread_id != 0 &&
+                                           raw_identity_complete(row->raw_identity) &&
+                                           row->provider_attempted && row->provider_succeeded &&
+                                           row->owner_evidence_complete && row->capture_attempted &&
+                                           row->capture_completed && row->binding_attempted &&
+                                           row->binding_succeeded && row->error_restore_attempted &&
+                                           row->error_restore_succeeded && row->dispatch_incoming_error_known &&
+                                           row->dispatch_returned_error_known && !row->foreign_thread_refused &&
+                                           !row->reentry_refused && !row->invalid_configuration_refused &&
+                                           !row->capacity_refused && outcome == CallbackExitOutcome::Completed;
+            row->header.incomplete       = !dispatch_complete || row->header.pre_log_failed ||
+                                           row->header.post_log_failed || row->header.rethrown;
+        }
         return true;
     }
     return false;
@@ -2198,6 +2350,59 @@ std::string Recorder::serialize() const
                     serialize_callback_identity(stream, "callback_raw", row.raw_identity);
                     stream << ",\"exit_outcome\":\"" << callback_exit_name(row.exit_outcome) << "\"";
                     stream << ",\"exit_observed\":" << (row.exit_observed ? "true" : "false");
+                    stream << ",\"dispatch_marker\":" << (row.dispatch_marker ? "true" : "false");
+                    stream << ",\"dispatch_phase\":" << json_string(row.dispatch_phase);
+                    stream << ",\"delegate_identity\":" << json_string(row.delegate_identity);
+                    stream << ",\"delegate_completion_known\":"
+                           << (row.delegate_completion_known ? "true" : "false");
+                    stream << ",\"delegate_hresult_known\":"
+                           << (row.delegate_hresult_known ? "true" : "false");
+                    stream << ",\"delegate_hresult\":" << row.delegate_hresult;
+                    stream << ",\"delegate_threw\":" << (row.delegate_threw ? "true" : "false");
+                    stream << ",\"delegate_begin_sequence\":" << row.delegate_begin_sequence;
+                    stream << ",\"delegate_end_sequence\":" << row.delegate_end_sequence;
+                    stream << ",\"dispatch_acquisition_operation_id\":"
+                           << row.dispatch_acquisition_operation_id;
+                    stream << ",\"dispatch_binding_attempt_id\":" << row.dispatch_binding_attempt_id;
+                    stream << ",\"provider_attempted\":" << (row.provider_attempted ? "true" : "false");
+                    stream << ",\"provider_succeeded\":" << (row.provider_succeeded ? "true" : "false");
+                    stream << ",\"provider_threw\":" << (row.provider_threw ? "true" : "false");
+                    stream << ",\"owner_evidence_complete\":"
+                           << (row.owner_evidence_complete ? "true" : "false");
+                    stream << ",\"capture_attempted\":" << (row.capture_attempted ? "true" : "false");
+                    stream << ",\"capture_completed\":" << (row.capture_completed ? "true" : "false");
+                    stream << ",\"binding_attempted\":" << (row.binding_attempted ? "true" : "false");
+                    stream << ",\"binding_succeeded\":" << (row.binding_succeeded ? "true" : "false");
+                    stream << ",\"foreign_thread_refused\":"
+                           << (row.foreign_thread_refused ? "true" : "false");
+                    stream << ",\"reentry_refused\":" << (row.reentry_refused ? "true" : "false");
+                    stream << ",\"invalid_configuration_refused\":"
+                           << (row.invalid_configuration_refused ? "true" : "false");
+                    stream << ",\"capacity_refused\":" << (row.capacity_refused ? "true" : "false");
+                    stream << ",\"error_restore_attempted\":"
+                           << (row.error_restore_attempted ? "true" : "false");
+                    stream << ",\"error_restore_succeeded\":"
+                           << (row.error_restore_succeeded ? "true" : "false");
+                    stream << ",\"error_restore_prerequisite_attempted\":"
+                           << (row.error_restore_prerequisite_attempted ? "true" : "false");
+                    stream << ",\"error_restore_prerequisite_succeeded\":"
+                           << (row.error_restore_prerequisite_succeeded ? "true" : "false");
+                    stream << ",\"error_restore_late_failure\":"
+                           << (row.error_restore_late_failure ? "true" : "false");
+                    stream << ",\"dispatch_incoming_error_known\":"
+                           << (row.dispatch_incoming_error_known ? "true" : "false");
+                    stream << ",\"dispatch_returned_error_known\":"
+                           << (row.dispatch_returned_error_known ? "true" : "false");
+                    stream << ",\"dispatch_incoming_last_error\":" << row.dispatch_incoming_error.last_error;
+                    stream << ",\"dispatch_incoming_last_status\":" << row.dispatch_incoming_error.last_status;
+                    stream << ",\"dispatch_returned_last_error\":" << row.dispatch_returned_error.last_error;
+                    stream << ",\"dispatch_returned_last_status\":" << row.dispatch_returned_error.last_status;
+                    stream << ",\"breakpoint_pointer\":" << hex_value(row.breakpoint_pointer);
+                    stream << ",\"create_thread_handle\":" << row.create_thread_handle;
+                    stream << ",\"create_thread_data_offset\":" << row.create_thread_data_offset;
+                    stream << ",\"create_thread_start_offset\":" << row.create_thread_start_offset;
+                    stream << ",\"callback_arguments_known\":"
+                           << (row.callback_arguments_known ? "true" : "false");
                 }
                 else if constexpr (std::is_same_v<RowType, CallbackAcquisitionRow>)
                 {

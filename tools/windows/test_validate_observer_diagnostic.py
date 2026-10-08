@@ -525,6 +525,141 @@ def sample_callback_trace() -> dict:
     return trace
 
 
+def sample_dispatch_trace(phase: str = "before_delegate") -> dict:
+    trace = sample_callback_trace()
+    entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+    acquisition = next(
+        row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+    )
+    binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+    query = next(row for row in trace["rows"] if row["kind"] == "query")
+    lookup = next(row for row in trace["rows"] if row["kind"] == "lookup")
+    context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+    closed = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+    entry.update(
+        incomplete=False,
+        incoming_error_known=True,
+        returned_error_known=True,
+        incoming_last_error=0x41,
+        incoming_last_status=-41,
+        returned_last_error=0xB1,
+        returned_last_status=-177,
+        dispatch_marker=True,
+        dispatch_phase=phase,
+        delegate_identity=(
+            "IDebugEventCallbacks::Breakpoint"
+            if phase == "before_delegate"
+            else "IDebugEventCallbacks::CreateThread"
+        ),
+        delegate_completion_known=True,
+        delegate_hresult_known=True,
+        delegate_hresult=-2147467259,
+        delegate_threw=False,
+        delegate_begin_sequence=12,
+        delegate_end_sequence=13,
+        dispatch_acquisition_operation_id=8,
+        dispatch_binding_attempt_id=9,
+        provider_attempted=True,
+        provider_succeeded=True,
+        provider_threw=False,
+        owner_evidence_complete=True,
+        capture_attempted=True,
+        capture_completed=True,
+        binding_attempted=True,
+        binding_succeeded=True,
+        foreign_thread_refused=False,
+        reentry_refused=False,
+        invalid_configuration_refused=False,
+        capacity_refused=False,
+        error_restore_attempted=True,
+        error_restore_succeeded=True,
+        error_restore_prerequisite_attempted=True,
+        error_restore_prerequisite_succeeded=True,
+        error_restore_late_failure=False,
+        dispatch_incoming_error_known=True,
+        dispatch_returned_error_known=True,
+        dispatch_incoming_last_error=0x41,
+        dispatch_incoming_last_status=-41,
+        dispatch_returned_last_error=0xB1,
+        dispatch_returned_last_status=-177,
+        breakpoint_pointer="0x1234",
+        create_thread_handle=0,
+        create_thread_data_offset=0,
+        create_thread_start_offset=0,
+        callback_arguments_known=True,
+    )
+    if phase == "after_delegate":
+        entry["callback_kind"] = "create_thread"
+        acquisition["callback_kind"] = "create_thread"
+        entry["breakpoint_pointer"] = "0x0"
+        entry["create_thread_handle"] = 0x2000
+        entry["create_thread_data_offset"] = 0x3000
+        entry["create_thread_start_offset"] = 0x4000
+        entry["delegate_begin_sequence"], entry["delegate_end_sequence"] = 8, 13
+        entry["sequence"], entry["exit_sequence"] = 3, 26
+        acquisition["sequence"], acquisition["exit_sequence"] = 14, 15
+        acquisition["acquisition_begin_sequence"] = 14
+        acquisition["acquisition_end_sequence"] = 15
+        binding["sequence"], binding["exit_sequence"] = 16, 17
+        query["sequence"], query["exit_sequence"] = 18, 21
+        lookup["sequence"], lookup["exit_sequence"] = 19, 20
+        context["sequence"], context["exit_sequence"] = 22, 23
+        closed["sequence"], closed["exit_sequence"] = 27, 28
+    else:
+        context["sequence"], context["exit_sequence"] = 14, 15
+    return trace
+
+
+def sample_dispatch_unbound_trace(phase: str = "before_delegate") -> dict:
+    trace = sample_dispatch_trace(phase)
+    entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+    acquisition = next(
+        row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+    )
+    binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+    entry.update(
+        incomplete=True,
+        binding_attempted=False,
+        binding_succeeded=False,
+        dispatch_binding_attempt_id=0,
+    )
+    acquisition.update(binding_status="refused", binding_attempt_id=0)
+    binding.update(
+        callback_operation_id=0,
+        callback_acquisition_operation_id=0,
+        binding_attempt_id=0,
+        binding_status="refused",
+        binding_qualified=False,
+        binding_engine_generation=0,
+        binding_qualified_event_complete=False,
+        binding_qualified_engine_generation_known=False,
+        binding_qualified_engine_generation=0,
+        incomplete=True,
+    )
+    for row in trace["rows"]:
+        if row["kind"] in {"query", "lookup", "context_write"}:
+            row.update(
+                engine_generation_known=False, engine_generation=0, incomplete=True
+            )
+    closed = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+    closed.update(
+        engine_generation_known=False,
+        engine_generation=0,
+        pending_engine_generation_known=False,
+        pending_engine_generation=0,
+        incomplete=True,
+    )
+    return trace
+
+
 class TraceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.trace = (
@@ -556,6 +691,156 @@ class TraceTests(unittest.TestCase):
     def test_callback_trace_accepts_shared_clock_and_full_sdk_evidence(self) -> None:
         trace = sample_callback_trace()
         self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+    def test_callback_dispatch_accepts_completed_negative_hresult(self) -> None:
+        trace = sample_dispatch_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        self.assertEqual(entry["delegate_hresult"], -2147467259)
+
+    def test_callback_dispatch_accepts_create_thread_after_delegate_order(self) -> None:
+        trace = sample_dispatch_trace("after_delegate")
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+    def test_callback_dispatch_accepts_reader_capture_without_raw_bridge(self) -> None:
+        trace = sample_dispatch_unbound_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        self.assertTrue(entry["incomplete"])
+        self.assertFalse(entry["binding_attempted"])
+        self.assertFalse(entry["binding_succeeded"])
+        self.assertEqual(acquisition["outcome"], "accepted")
+        self.assertEqual(acquisition["binding_status"], "refused")
+        self.assertEqual(acquisition["binding_attempt_id"], 0)
+
+        forged = sample_dispatch_unbound_trace()
+        forged_entry = next(
+            row for row in forged["rows"] if row["kind"] == "callback_entry"
+        )
+        forged_entry["binding_attempted"] = True
+        with self.assertRaisesRegex(ValueError, "binding evidence"):
+            validator.validate_trace(forged)
+
+    def test_callback_dispatch_accepts_bound_late_restore_failure(self) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["incomplete"] = True
+        entry["error_restore_succeeded"] = False
+        entry["error_restore_late_failure"] = True
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["incomplete"] = True
+        entry["error_restore_succeeded"] = False
+        entry["error_restore_late_failure"] = True
+        entry["dispatch_binding_attempt_id"] = 0
+        with self.assertRaisesRegex(ValueError, "binding link"):
+            validator.validate_trace(trace)
+
+    def test_callback_dispatch_rejects_forged_complete_success(self) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["binding_succeeded"] = False
+        with self.assertRaisesRegex(ValueError, "complete callback dispatch"):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["dispatch_acquisition_operation_id"] = 0
+        entry["binding_attempted"] = False
+        entry["binding_succeeded"] = False
+        with self.assertRaisesRegex(ValueError, "capture lacks acquisition link"):
+            validator.validate_trace(trace)
+
+    def test_callback_dispatch_rejects_accepted_contradictory_wrapper_evidence(
+        self,
+    ) -> None:
+        for field in (
+            "foreign_thread_refused",
+            "reentry_refused",
+            "invalid_configuration_refused",
+            "error_restore_succeeded",
+            "error_restore_prerequisite_succeeded",
+            "provider_succeeded",
+            "owner_evidence_complete",
+            "capture_completed",
+            "dispatch_returned_error_known",
+        ):
+            trace = sample_dispatch_trace()
+            entry = next(
+                row for row in trace["rows"] if row["kind"] == "callback_entry"
+            )
+            entry["incomplete"] = True
+            if field == "provider_succeeded":
+                entry["provider_attempted"] = False
+                entry["provider_succeeded"] = False
+                entry["owner_evidence_complete"] = False
+            elif field in {
+                "foreign_thread_refused",
+                "reentry_refused",
+                "invalid_configuration_refused",
+            }:
+                entry[field] = True
+            elif field == "owner_evidence_complete":
+                entry[field] = False
+            elif field == "capture_completed":
+                entry[field] = False
+            elif field == "dispatch_returned_error_known":
+                entry[field] = False
+            else:
+                entry[field] = False
+            try:
+                validator.validate_trace(trace)
+            except ValueError:
+                pass
+            else:
+                self.fail(f"accepted contradictory dispatch field: {field}")
+
+    def test_callback_dispatch_exit_outcome_must_match_delegate_exception(self) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["exit_outcome"] = "exception"
+        with self.assertRaisesRegex(ValueError, "exception callback exit"):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["delegate_threw"] = True
+        entry["delegate_completion_known"] = False
+        entry["delegate_hresult_known"] = False
+        entry["delegate_hresult"] = -2147467259
+        with self.assertRaisesRegex(ValueError, "completed callback exit"):
+            validator.validate_trace(trace)
+
+    def test_callback_dispatch_rejects_delegate_order_or_binding_link_mutation(
+        self,
+    ) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["delegate_begin_sequence"] = 3
+        with self.assertRaises(ValueError):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["dispatch_binding_attempt_id"] = 10
+        with self.assertRaisesRegex(ValueError, "binding link"):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace("after_delegate")
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sequence"], acquisition["exit_sequence"] = 11, 12
+        acquisition["acquisition_begin_sequence"] = 11
+        acquisition["acquisition_end_sequence"] = 12
+        with self.assertRaisesRegex(ValueError, "create-thread delegate"):
+            validator.validate_trace(trace)
 
     def test_callback_sdk_method_type_is_rejected(self) -> None:
         trace = sample_callback_trace()

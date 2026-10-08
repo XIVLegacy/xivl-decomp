@@ -578,6 +578,88 @@ struct CallbackEntryRow
     CallbackExitOutcome exit_outcome             = CallbackExitOutcome::NotAttempted;
     bool                entry_raw_identity_known = false;
     bool                exit_observed            = false;
+
+    // Dispatch fields are populated only by the concrete SDK callback wrapper.
+    // Caller-invoked legacy rows leave dispatch_marker false.
+    bool           dispatch_marker = false;
+    std::string    dispatch_phase;
+    std::string    delegate_identity;
+    bool           delegate_completion_known            = false;
+    bool           delegate_hresult_known               = false;
+    Hresult        delegate_hresult                     = kCallbackUnsetHresult;
+    bool           delegate_threw                       = false;
+    std::uint64_t  delegate_begin_sequence              = 0;
+    std::uint64_t  delegate_end_sequence                = 0;
+    std::uint64_t  dispatch_acquisition_operation_id    = 0;
+    std::uint64_t  dispatch_binding_attempt_id          = 0;
+    bool           provider_attempted                   = false;
+    bool           provider_succeeded                   = false;
+    bool           provider_threw                       = false;
+    bool           owner_evidence_complete              = false;
+    bool           capture_attempted                    = false;
+    bool           capture_completed                    = false;
+    bool           binding_attempted                    = false;
+    bool           binding_succeeded                    = false;
+    bool           foreign_thread_refused               = false;
+    bool           reentry_refused                      = false;
+    bool           invalid_configuration_refused        = false;
+    bool           capacity_refused                     = false;
+    bool           error_restore_attempted              = false;
+    bool           error_restore_succeeded              = false;
+    bool           error_restore_prerequisite_attempted = false;
+    bool           error_restore_prerequisite_succeeded = false;
+    bool           error_restore_late_failure           = false;
+    bool           dispatch_incoming_error_known        = false;
+    bool           dispatch_returned_error_known        = false;
+    ErrorPair      dispatch_incoming_error{};
+    ErrorPair      dispatch_returned_error{};
+    std::uintptr_t breakpoint_pointer         = 0;
+    std::uint64_t  create_thread_handle       = 0;
+    std::uint64_t  create_thread_data_offset  = 0;
+    std::uint64_t  create_thread_start_offset = 0;
+    bool           callback_arguments_known   = false;
+};
+
+struct CallbackDispatchEntry
+{
+    std::string    phase;
+    std::string    delegate_identity;
+    std::uintptr_t breakpoint_pointer                   = 0;
+    std::uint64_t  create_thread_handle                 = 0;
+    std::uint64_t  create_thread_data_offset            = 0;
+    std::uint64_t  create_thread_start_offset           = 0;
+    bool           callback_arguments_known             = false;
+    bool           provider_attempted                   = false;
+    bool           provider_succeeded                   = false;
+    bool           provider_threw                       = false;
+    bool           owner_evidence_complete              = false;
+    bool           capture_attempted                    = false;
+    bool           capture_completed                    = false;
+    bool           binding_attempted                    = false;
+    bool           binding_succeeded                    = false;
+    std::uint64_t  binding_attempt_id                   = 0;
+    bool           foreign_thread_refused               = false;
+    bool           reentry_refused                      = false;
+    bool           invalid_configuration_refused        = false;
+    bool           capacity_refused                     = false;
+    bool           error_restore_attempted              = false;
+    bool           error_restore_succeeded              = false;
+    bool           error_restore_prerequisite_attempted = false;
+    bool           error_restore_prerequisite_succeeded = false;
+    bool           error_restore_late_failure           = false;
+    bool           incoming_error_known                 = false;
+    ErrorPair      incoming_error{};
+    std::uint64_t  acquisition_operation_id = 0;
+};
+
+struct CallbackDispatchExit
+{
+    bool      delegate_completion_known = false;
+    bool      delegate_hresult_known    = false;
+    Hresult   delegate_hresult          = kCallbackUnsetHresult;
+    bool      delegate_threw            = false;
+    bool      returned_error_known      = false;
+    ErrorPair returned_error{};
 };
 
 struct CallbackAcquisitionRow
@@ -689,7 +771,17 @@ public:
                                                     std::uint64_t                    binding_attempt_id                = 0);
     std::optional<EventIdentity> pending_event() const;
 
-    CallbackBeginResult      begin_callback(const std::string& callback_kind);
+    CallbackBeginResult begin_callback(const std::string& callback_kind);
+    bool                record_callback_dispatch_entry(
+        std::uint64_t                callback_operation_id,
+        const CallbackDispatchEntry& entry);
+    bool record_callback_dispatch_capture(
+        std::uint64_t                callback_operation_id,
+        const CallbackDispatchEntry& entry);
+    std::uint64_t begin_callback_delegate(std::uint64_t callback_operation_id);
+    bool          finish_callback_delegate(
+        std::uint64_t               callback_operation_id,
+        const CallbackDispatchExit& exit);
     CallbackAcquisitionStart begin_callback_acquisition(std::uint64_t callback_operation_id);
     bool                     finish_callback_acquisition(
         std::uint64_t                   callback_operation_id,
