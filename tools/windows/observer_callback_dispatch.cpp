@@ -481,8 +481,38 @@ ULONG STDMETHODCALLTYPE ObserverCallbackDispatch::Release()
     return current == 0 ? 0 : current - 1;
 }
 
+ObserverCallbackDispatch::CallbackLifetimeGuard::CallbackLifetimeGuard(
+    ObserverCallbackDispatch* value) noexcept
+: owner(value)
+{
+    if (owner != nullptr)
+    {
+        owner->active_callbacks_.fetch_add(1, std::memory_order_acq_rel);
+    }
+}
+
+ObserverCallbackDispatch::CallbackLifetimeGuard::~CallbackLifetimeGuard() noexcept
+{
+    if (owner != nullptr)
+    {
+        owner->active_callbacks_.fetch_sub(1, std::memory_order_acq_rel);
+    }
+}
+
+bool ObserverCallbackDispatch::quiescent_for_teardown() const noexcept
+{
+    return active_callbacks_.load(std::memory_order_acquire) == 0 &&
+           references_.load(std::memory_order_acquire) == 1;
+}
+
+bool ObserverCallbackDispatch::has_retained_com_alias() const noexcept
+{
+    return references_.load(std::memory_order_acquire) > 1;
+}
+
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::GetInterestMask(PULONG mask)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->GetInterestMask(mask);
 }
 
@@ -812,8 +842,9 @@ void ObserverCallbackDispatch::end_callback(std::uint64_t       callback_operati
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::Breakpoint(PDEBUG_BREAKPOINT breakpoint)
 {
-    const ErrorSnapshot incoming = read_error();
-    CallbackBeginResult begin{};
+    CallbackLifetimeGuard callback_lifetime(this);
+    const ErrorSnapshot   incoming = read_error();
+    CallbackBeginResult   begin{};
     if (recorder_ != nullptr)
     {
         try
@@ -948,8 +979,9 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateThread(ULONG64 handle,
                                                                  ULONG64 data_offset,
                                                                  ULONG64 start_offset)
 {
-    const ErrorSnapshot incoming = read_error();
-    CallbackBeginResult begin{};
+    CallbackLifetimeGuard callback_lifetime(this);
+    const ErrorSnapshot   incoming = read_error();
+    CallbackBeginResult   begin{};
     if (recorder_ != nullptr)
     {
         try
@@ -1127,11 +1159,13 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateThread(ULONG64 handle,
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::Exception(PEXCEPTION_RECORD64 exception,
                                                               ULONG               first_chance)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->Exception(exception, first_chance);
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::ExitThread(ULONG exit_code)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->ExitThread(exit_code);
 }
 
@@ -1147,6 +1181,7 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateProcess(ULONG64 image_
                                                                   ULONG64 thread_data_offset,
                                                                   ULONG64 start_offset)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr
                ? E_NOINTERFACE
                : delegate_->CreateProcess(image_file_handle,
@@ -1164,6 +1199,7 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateProcess(ULONG64 image_
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::ExitProcess(ULONG exit_code)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->ExitProcess(exit_code);
 }
 
@@ -1175,6 +1211,7 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::LoadModule(ULONG64 image_fil
                                                                ULONG   checksum,
                                                                ULONG   time_date_stamp)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr
                ? E_NOINTERFACE
                : delegate_->LoadModule(image_file_handle,
@@ -1189,31 +1226,37 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::LoadModule(ULONG64 image_fil
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::UnloadModule(PCSTR   image_base_name,
                                                                  ULONG64 base_offset)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->UnloadModule(image_base_name, base_offset);
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::SystemError(ULONG error, ULONG level)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->SystemError(error, level);
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::SessionStatus(ULONG status)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->SessionStatus(status);
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::ChangeDebuggeeState(ULONG flags, ULONG64 argument)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->ChangeDebuggeeState(flags, argument);
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::ChangeEngineState(ULONG flags, ULONG64 argument)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->ChangeEngineState(flags, argument);
 }
 
 HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::ChangeSymbolState(ULONG flags, ULONG64 argument)
 {
+    CallbackLifetimeGuard callback_lifetime(this);
     return delegate_ == nullptr ? E_NOINTERFACE : delegate_->ChangeSymbolState(flags, argument);
 }
 

@@ -221,6 +221,42 @@ python tools/windows/validate_observer_diagnostic.py --trace C:\scratch\observer
 
 Its ordinary recorder rows remain synthetic and live coverage remains incomplete.
 
+The concrete
+[`TraceMapObserverCallbacks`](trace_map_observer_callbacks.h) composition owns
+stable storage for Events and its cache/source, Recorder, RawRecorder, deferred
+bridge, retained callback session, identity reader and dispatch wrapper. It
+requires an explicit creator thread and retains the supplied SDK client.
+The delegate's system interface comes from that client. Recorder callbacks,
+their user data and raw call-through functions remain borrowed dependencies.
+Their storage must remain valid through explicit teardown, including any
+retention after refused teardown.
+
+Its production source provider captures the delegate event number at raw
+admission, before conversion or callback delivery. After normal CreateThread
+completion it checks the exact raw key and creation queue record before binding
+the retained source. It leaves queue consumption to the caller and refuses
+stale or changed associations. The caller serializes access to the privately
+owned cache before the first source claim and throughout the composition's
+lifetime. These local checks do not establish native selected-state authority
+or SDK alias exclusivity.
+
+Explicit teardown requires stopped raw recording, closed pending state,
+released source access, no in-flight callback and no retained COM callback
+reference. It detaches the raw sink before releasing the retained session and
+SDK sources. Destruction without successful explicit teardown retains the
+whole backing state so reachable callbacks and sinks keep their storage.
+The caller must exclude other uses of borrowed pointers and callback data;
+local counters cannot establish that external exclusion. The native trace tool
+compiles this component but continues to register Events directly.
+
+```powershell
+C:\scratch\observer-build\Release\observer_runtime_check.exe --callback-composition-output C:\scratch\observer-composition.json
+python tools/windows/validate_observer_diagnostic.py --trace C:\scratch\observer-composition.json
+```
+
+This command exercises the concrete composition with CPU fakes. It supplies no
+native callback registration, engine load or live authority qualification.
+
 The session retains the configured SDK client with `AddRef` only when an
 explicit creator thread is supplied and matches the current thread. Unknown or
 foreign construction does not add a reference. Dispatch selects the session

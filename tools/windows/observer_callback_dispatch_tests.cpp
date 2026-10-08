@@ -5,6 +5,7 @@
 #include "observer_event_lifecycle.h"
 #include "raw_event_recorder.h"
 #include "trace_map_events.h"
+#include "trace_map_observer_callbacks.h"
 
 #include <windows.h>
 
@@ -108,6 +109,9 @@ struct DispatchState
     bool                                        nested_source_mutation_refused   = false;
     bool                                        source_closed_during_access      = false;
     std::uint32_t                               failed_writes                    = 0;
+    bool                                        fail_read_error                  = false;
+    bool                                        throw_read_error                 = false;
+    bool                                        throw_write_error                = false;
     std::uint32_t                               wrapper_write_calls              = 0;
     std::uint32_t                               wrapper_fail_write_at            = 0;
     HRESULT                                     breakpoint_result                = S_OK;
@@ -121,6 +125,14 @@ bool read_error(void* user, ErrorPair* value)
 {
     auto* state = static_cast<DispatchState*>(user);
     if (state == nullptr || value == nullptr)
+    {
+        return false;
+    }
+    if (state->throw_read_error)
+    {
+        throw std::runtime_error("read error pair failure");
+    }
+    if (state->fail_read_error)
     {
         return false;
     }
@@ -139,6 +151,10 @@ bool write_error(void* user, const ErrorPair* value)
     if (state == nullptr || value == nullptr)
     {
         return false;
+    }
+    if (state->throw_write_error)
+    {
+        throw std::runtime_error("write error pair failure");
     }
     if (state->failed_writes != 0)
     {
@@ -3162,6 +3178,464 @@ void run_production_events_direct(TestState* tests)
 }
 
 } // namespace
+
+map_selection::TraceMapObserverCallbacksConfig composition_config(
+    DispatchState* state,
+    IUnknown*      client,
+    std::uint32_t  creator_thread)
+{
+    map_selection::TraceMapObserverCallbacksConfig config;
+    config.recorder          = recorder_config(state);
+    config.client            = client;
+    config.creator_thread_id = creator_thread;
+    config.context_api       = { &production_fake_open_thread,
+                                 &production_fake_thread_id,
+                                 &production_fake_process_id,
+                                 &production_fake_thread_times,
+                                 &production_fake_thread_context,
+                                 &production_fake_close_handle,
+                                 nullptr };
+    config.wait              = &fake_wait;
+    config.continue_call     = &fake_continue;
+    return config;
+}
+
+bool admit_composition_raw(map_selection::TraceMapObserverCallbacks& owner,
+                           ULONG                                     thread_id = 200)
+{
+    if (owner.raw_recorder() == nullptr)
+    {
+        return false;
+    }
+    std::array<std::uint8_t, 0x60> event{};
+    *reinterpret_cast<ULONG*>(event.data())     = 2;
+    *reinterpret_cast<ULONG*>(event.data() + 4) = 100;
+    *reinterpret_cast<ULONG*>(event.data() + 8) = thread_id;
+    return raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data()) == 0 &&
+           owner.has_pending_raw();
+}
+
+bool close_composition_raw(LONG result, ULONG thread_id = 200)
+{
+    struct ClientId
+    {
+        ULONG process_id = 100;
+        ULONG thread_id;
+    } client{ 100, thread_id };
+
+    g_dispatch_continue_result = result;
+    const LONG returned        = raw_recorder::RawRecorder::ContinueThunk(
+        0x1111U, &client, 0x40010000U);
+    g_dispatch_continue_result = 0;
+    return returned == result;
+}
+
+void run_trace_map_observer_callbacks_owner_tests(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.readable_memory        = true;
+    state.fake_vtable[4]         = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0]      = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value           = state.fake_interface.data();
+    const std::uintptr_t service = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+
+    FakeSystemObjects systems;
+    systems.state         = &state;
+    systems.values        = { 42, 42, 2, 2, 200, 100 };
+    systems.offset_result = S_OK;
+    FakeClient client(&systems);
+
+    const ErrorPair constructor_pair = state.error;
+    auto            owner            = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&state, &client, state.callback_thread));
+    state.recorder = owner->recorder();
+    tests->check(owner->ready() && owner->status() == map_selection::TraceMapObserverCallbacksStatus::Ready,
+                 "composition retains a ready production owner");
+    tests->check(state.error.last_error == constructor_pair.last_error &&
+                     state.error.last_status == constructor_pair.last_status,
+                 "composition preserves the constructor error pair");
+    tests->check(owner->events() != nullptr && owner->callback_dispatch() != nullptr &&
+                     owner->raw_bridge() != nullptr && owner->callback_session() != nullptr,
+                 "composition exposes stable owned callback components");
+
+    ULONG interest = 0;
+    tests->check(owner->callbacks()->GetInterestMask(&interest) == S_OK &&
+                     (interest & DEBUG_EVENT_CREATE_THREAD) != 0,
+                 "composition forwards the production interest mask");
+    tests->check(owner->activate() && owner->activated(),
+                 "composition arms Events and attaches its raw sink");
+    tests->check(admit_composition_raw(*owner),
+                 "composition admits the raw create key before conversion");
+    tests->check(!owner->teardown() &&
+                     owner->status() == map_selection::TraceMapObserverCallbacksStatus::ActiveRawRecorder &&
+                     owner->ready(),
+                 "composition refuses teardown while the raw recorder is active");
+
+    const HRESULT callback_result = owner->callback_dispatch()->CreateThread(0x111, 0x222, 0x333);
+    tests->check(callback_result == DEBUG_STATUS_BREAK && owner->events()->event_number == 1 &&
+                     owner->events()->pending_lifecycle.size() == 1,
+                 "composition forwards CreateThread into the production queue");
+    void* query_output = nullptr;
+    state.recorder->forward_query(&state, &state.service, &state.iid, &query_output);
+    std::array<std::uint8_t, 0xC4> context{};
+    std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+    state.recorder->forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+    const auto acquisitions = state.recorder->callback_acquisition_rows();
+    tests->check(!acquisitions.empty() &&
+                     acquisitions.back().binding_status == EngineBindingStatus::Bound &&
+                     acquisitions.back().owner.cached_engine_id == 42 &&
+                     acquisitions.back().owner.lifecycle_token == 1,
+                 "composition binds the expected queued Events lifecycle facts");
+    tests->check(state.sdk_getter_calls == 8U,
+                 "composition forwards all SDK identity reads");
+    if (state.sdk_getter_calls != 8U)
+    {
+        tests->failures << ",composition_sdk_getter_count=" << state.sdk_getter_calls;
+    }
+    tests->check(!state.recorder->query_rows().empty(),
+                 "composition forwards the query observation");
+    if (state.recorder->query_rows().empty())
+    {
+        tests->failures << ",composition_query_rows=0";
+    }
+    tests->check(!state.recorder->context_write_rows().empty(),
+                 "composition forwards the context observation");
+    if (state.recorder->context_write_rows().empty())
+    {
+        tests->failures << ",composition_context_rows=0";
+    }
+
+    const bool failed_continuation = close_composition_raw(-9);
+    tests->check(failed_continuation && owner->has_pending_raw(),
+                 "composition retains a failed continuation and pending raw key");
+    if (!failed_continuation || !owner->has_pending_raw())
+    {
+        tests->failures << ",composition_failed_continuation_returned="
+                        << (failed_continuation ? 1 : 0)
+                        << ",composition_pending_after_failure="
+                        << (owner->has_pending_raw() ? 1 : 0);
+    }
+    tests->check(!owner->teardown() &&
+                     owner->status() == map_selection::TraceMapObserverCallbacksStatus::ActiveRawRecorder &&
+                     owner->ready(),
+                 "composition keeps active pending cleanup refused");
+    tests->check(close_composition_raw(0) && !owner->has_pending_raw(),
+                 "composition closes the exact raw/session key");
+    tests->check(owner->deactivate_raw() && !owner->activated(),
+                 "composition detaches only its raw sink after closure");
+
+    IDebugEventCallbacks* alias = owner->callbacks();
+    alias->AddRef();
+    const bool alias_teardown = owner->teardown();
+    tests->check(!alias_teardown &&
+                     owner->status() == map_selection::TraceMapObserverCallbacksStatus::CallbackAliasRetained &&
+                     owner->ready(),
+                 "composition refuses teardown with a retained COM callback alias");
+    if (alias_teardown)
+    {
+        tests->failures << ",composition_alias_teardown_returned=1";
+    }
+    tests->check(alias->Release() == 1 && owner->teardown() && owner->released() &&
+                     client.references == 1 && systems.references == 1,
+                 "composition releases retained COM sources only after explicit teardown");
+    tests->check(!owner->ready() && owner->callbacks() == nullptr &&
+                     owner->raw_recorder() == nullptr && owner->raw_bridge() == nullptr &&
+                     owner->callback_session() == nullptr && owner->callback_dispatch() == nullptr &&
+                     owner->events() != nullptr && owner->recorder() != nullptr,
+                 "composition closes callback services after explicit teardown");
+
+    DispatchState exposed_state;
+    exposed_state.callback_thread = GetCurrentThreadId();
+    FakeSystemObjects exposed_systems;
+    exposed_systems.state = &exposed_state;
+    FakeClient exposed_client(&exposed_systems);
+    auto       exposed_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&exposed_state, &exposed_client, exposed_state.callback_thread));
+    IDebugEventCallbacks*    exposed_callbacks        = exposed_owner->callbacks();
+    ObserverCallbackSession* exposed_session          = exposed_owner->callback_session();
+    const bool               exposed_session_teardown = exposed_session != nullptr && exposed_session->teardown();
+    tests->check(exposed_owner->ready() && exposed_callbacks != nullptr &&
+                     exposed_session_teardown && exposed_client.references == 1,
+                 "composition retains initialized state after exposed session teardown");
+    exposed_owner.reset();
+    ULONG exposed_interest = 0;
+    tests->check(exposed_client.references == 1 && exposed_callbacks != nullptr &&
+                     exposed_callbacks->GetInterestMask(&exposed_interest) == S_OK,
+                 "composition retains callback storage after owner destruction");
+
+    DispatchState pending_state;
+    pending_state.callback_thread = GetCurrentThreadId();
+    FakeSystemObjects pending_systems;
+    pending_systems.state         = &pending_state;
+    pending_systems.values        = { 42, 42, 2, 2, 200, 100 };
+    pending_systems.offset_result = S_OK;
+    FakeClient pending_client(&pending_systems);
+    auto       pending_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&pending_state, &pending_client, pending_state.callback_thread));
+    pending_state.recorder = pending_owner->recorder();
+    tests->check(pending_owner->activate() && admit_composition_raw(*pending_owner),
+                 "composition prepares a second owner for pending teardown");
+    tests->check(pending_owner->deactivate_raw() && !pending_owner->teardown() &&
+                     pending_owner->status() == map_selection::TraceMapObserverCallbacksStatus::PendingRawEvent,
+                 "composition refuses teardown after deactivation with a pending key");
+    tests->check(pending_owner->has_pending_raw() && pending_owner->callback_session()->raw_open() &&
+                     pending_owner->callback_dispatch() != nullptr,
+                 "composition retains stable callback storage after pending refusal");
+    const ULONG pending_references = pending_client.references;
+    pending_owner.reset();
+    tests->check(pending_client.references == pending_references,
+                 "composition destruction retains state after incomplete teardown");
+
+    DispatchState       wrong_state;
+    FakeSystemObjects   wrong_systems;
+    FakeClient          wrong_client(&wrong_systems);
+    const std::uint32_t wrong_thread = state.callback_thread == UINT32_MAX
+                                           ? state.callback_thread - 1
+                                           : state.callback_thread + 1;
+    auto                wrong_owner  = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&wrong_state, &wrong_client, wrong_thread));
+    tests->check(!wrong_owner->ready() &&
+                     wrong_owner->status() == map_selection::TraceMapObserverCallbacksStatus::InvalidCreatorThread &&
+                     wrong_client.references == 1 && wrong_owner->callbacks() == nullptr &&
+                     wrong_owner->events() == nullptr && wrong_owner->recorder() == nullptr,
+                 "composition refuses a creator thread it did not receive");
+    tests->check(!wrong_owner->activate() &&
+                     wrong_owner->status() == map_selection::TraceMapObserverCallbacksStatus::InvalidCreatorThread &&
+                     !wrong_owner->deactivate_raw(),
+                 "composition refuses foreign-thread activation and deactivation");
+
+    FakeClient failed_client(nullptr);
+    auto       failed_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&wrong_state, &failed_client, GetCurrentThreadId()));
+    tests->check(!failed_owner->ready() &&
+                     failed_owner->status() ==
+                         map_selection::TraceMapObserverCallbacksStatus::SystemObjectsQueryFailed &&
+                     failed_owner->callbacks() == nullptr && failed_owner->events() == nullptr &&
+                     failed_owner->recorder() == nullptr,
+                 "composition refuses failed retained SDK source initialization");
+
+    DispatchState restore_state;
+    restore_state.failed_writes = 1;
+    FakeSystemObjects restore_systems;
+    restore_systems.state = &restore_state;
+    FakeClient restore_client(&restore_systems);
+    auto       restore_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&restore_state, &restore_client, GetCurrentThreadId()));
+    tests->check(!restore_owner->ready() &&
+                     restore_owner->status() ==
+                         map_selection::TraceMapObserverCallbacksStatus::ConstructorErrorRestoreFailed &&
+                     restore_owner->callbacks() == nullptr && restore_owner->events() == nullptr &&
+                     restore_owner->recorder() == nullptr && restore_owner->raw_bridge() == nullptr &&
+                     restore_owner->callback_session() == nullptr &&
+                     restore_owner->callback_dispatch() == nullptr,
+                 "composition refuses an unconfirmed constructor error restoration");
+
+    DispatchState throwing_restore_state;
+    throwing_restore_state.throw_write_error = true;
+    FakeSystemObjects throwing_restore_systems;
+    throwing_restore_systems.state = &throwing_restore_state;
+    FakeClient throwing_restore_client(&throwing_restore_systems);
+    auto       throwing_restore_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&throwing_restore_state, &throwing_restore_client, GetCurrentThreadId()));
+    tests->check(!throwing_restore_owner->ready() &&
+                     throwing_restore_owner->status() ==
+                         map_selection::TraceMapObserverCallbacksStatus::ConstructorErrorRestoreFailed &&
+                     throwing_restore_owner->callbacks() == nullptr &&
+                     throwing_restore_owner->events() == nullptr &&
+                     throwing_restore_owner->recorder() == nullptr,
+                 "composition refuses a throwing constructor error restoration");
+
+    DispatchState failed_read_state;
+    failed_read_state.fail_read_error = true;
+    FakeSystemObjects failed_read_systems;
+    failed_read_systems.state = &failed_read_state;
+    FakeClient failed_read_client(&failed_read_systems);
+    auto       failed_read_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&failed_read_state, &failed_read_client, GetCurrentThreadId()));
+    tests->check(!failed_read_owner->ready() &&
+                     failed_read_owner->status() ==
+                         map_selection::TraceMapObserverCallbacksStatus::ErrorPairUnavailable,
+                 "composition refuses a false constructor error reader");
+
+    DispatchState throwing_read_state;
+    throwing_read_state.throw_read_error = true;
+    FakeSystemObjects throwing_read_systems;
+    throwing_read_systems.state = &throwing_read_state;
+    FakeClient throwing_read_client(&throwing_read_systems);
+    auto       throwing_read_owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&throwing_read_state, &throwing_read_client, GetCurrentThreadId()));
+    tests->check(!throwing_read_owner->ready() &&
+                     throwing_read_owner->status() ==
+                         map_selection::TraceMapObserverCallbacksStatus::ErrorPairUnavailable,
+                 "composition refuses a throwing constructor error reader");
+}
+
+SelfTestReport run_trace_map_observer_callbacks_self_tests()
+{
+    TestState tests;
+    run_trace_map_observer_callbacks_owner_tests(&tests);
+    tests.report.passed = tests.report.failures == 0;
+    std::ostringstream summary;
+    summary << "checks=" << tests.report.checks << ",failures=" << tests.report.failures;
+    if (tests.report.failures != 0)
+    {
+        summary << ",failed=" << tests.failures.str();
+    }
+    tests.report.summary = summary.str();
+    return tests.report;
+}
+
+void append_composition_continuation(std::ostringstream&               output,
+                                     const BridgeContinuationEvidence& evidence)
+{
+    output << "{\"attempt_id\":" << evidence.attempt_id
+           << ",\"has_entry\":" << (evidence.has_entry ? "true" : "false")
+           << ",\"entry_debug_object\":" << evidence.entry.debug_object
+           << ",\"entry_process_id\":" << evidence.entry.process_id
+           << ",\"entry_thread_id\":" << evidence.entry.thread_id
+           << ",\"entry_status\":" << evidence.entry.status
+           << ",\"entry_client_id_valid\":"
+           << (evidence.entry.client_id_valid ? "true" : "false")
+           << ",\"entry_incoming_last_error\":" << evidence.entry.incoming.last_error
+           << ",\"entry_incoming_last_status\":" << evidence.entry.incoming.last_status
+           << ",\"entry_caller_return_address\":"
+           << evidence.entry.caller_return_address
+           << ",\"entry_argument_stack_base\":" << evidence.entry.argument_stack_base
+           << ",\"result\":" << evidence.result.result
+           << ",\"result_returned_last_error\":" << evidence.result.returned.last_error
+           << ",\"result_returned_last_status\":" << evidence.result.returned.last_status
+           << ",\"result_matched_event\":" << evidence.result.matched_event
+           << ",\"result_client_id_valid\":"
+           << (evidence.result.client_id_valid ? "true" : "false")
+           << ",\"result_match_unique\":"
+           << (evidence.result.match_unique ? "true" : "false")
+           << ",\"pending_retained\":"
+           << (evidence.result.pending_retained ? "true" : "false")
+           << ",\"pending_cleared\":"
+           << (evidence.result.pending_cleared ? "true" : "false")
+           << ",\"matched_identity_raw_debug_object\":"
+           << evidence.matched_identity.raw_debug_object
+           << ",\"matched_identity_process_id\":"
+           << evidence.matched_identity.process_id
+           << ",\"matched_identity_thread_id\":"
+           << evidence.matched_identity.thread_id
+           << ",\"matched_identity_raw_generation\":"
+           << evidence.matched_identity.raw_generation
+           << ",\"matched_identity_event_index\":"
+           << evidence.matched_identity.event_index
+           << ",\"matched_identity_engine_generation\":"
+           << evidence.matched_identity.engine_generation
+           << ",\"close_status\":" << static_cast<unsigned>(evidence.close_status)
+           << ",\"close_attempted\":" << (evidence.close_attempted ? "true" : "false")
+           << ",\"complete\":" << (evidence.complete ? "true" : "false")
+           << ",\"owner_sink_attempted\":"
+           << (evidence.owner_sink_attempted ? "true" : "false")
+           << ",\"owner_sink_succeeded\":"
+           << (evidence.owner_sink_succeeded ? "true" : "false") << '}';
+}
+
+std::string make_callback_composition_trace()
+{
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.readable_memory        = true;
+    state.fake_vtable[4]         = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0]      = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value           = state.fake_interface.data();
+    const std::uintptr_t service = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+    FakeSystemObjects systems;
+    systems.state         = &state;
+    systems.values        = { 42, 42, 2, 2, 200, 100 };
+    systems.offset_result = S_OK;
+    FakeClient client(&systems);
+    auto       owner = std::make_unique<map_selection::TraceMapObserverCallbacks>(
+        composition_config(&state, &client, state.callback_thread));
+    state.recorder = owner->recorder();
+    if (!owner->ready() || !owner->activate() || !admit_composition_raw(*owner))
+    {
+        return {};
+    }
+    if (owner->callback_dispatch()->CreateThread(0x111, 0x222, 0x333) != DEBUG_STATUS_BREAK)
+    {
+        return {};
+    }
+    void* query_output = nullptr;
+    state.recorder->forward_query(&state, &state.service, &state.iid, &query_output);
+    std::array<std::uint8_t, 0xC4> context{};
+    std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+    state.recorder->forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+    if (!close_composition_raw(-9) || !owner->has_pending_raw() || owner->raw_bridge() == nullptr ||
+        owner->raw_bridge()->continuation_count() != 1)
+    {
+        return {};
+    }
+    const BridgeContinuationEvidence failed_continuation = owner->raw_bridge()->continuation(0);
+    if (!close_composition_raw(0) || owner->has_pending_raw() ||
+        owner->raw_bridge()->continuation_count() != 2)
+    {
+        return {};
+    }
+    map_selection::Events::LifecycleEvent consumed{};
+    systems.values[4] = 201;
+    if (!owner->events()->take_lifecycle(consumed) || !admit_composition_raw(*owner, 201) ||
+        owner->callback_dispatch()->CreateThread(0x444, 0x555, 0x666) != DEBUG_STATUS_BREAK)
+    {
+        return {};
+    }
+    state.recorder->forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+    state.recorder->forward_lookup(&state, nullptr, &state.service);
+    const auto preclose_snapshot        = owner->callback_session()->snapshot();
+    const auto composition_acquisitions = state.recorder->callback_acquisition_rows();
+    if (!close_composition_raw(0, 201) || owner->has_pending_raw() ||
+        owner->raw_bridge() == nullptr || owner->raw_bridge()->continuation_count() != 3)
+    {
+        return {};
+    }
+    const BridgeContinuationEvidence first_success_continuation =
+        owner->raw_bridge()->continuation(1);
+    const BridgeContinuationEvidence second_success_continuation =
+        owner->raw_bridge()->continuation(2);
+    const bool bridge_coverage = owner->raw_bridge()->coverage();
+    const bool deactivated     = owner->deactivate_raw();
+    const bool torn_down       = deactivated && owner->teardown();
+    if (!torn_down)
+    {
+        return {};
+    }
+    std::string trace = state.recorder->serialize();
+    if (trace.empty() || trace.back() != '}')
+    {
+        return {};
+    }
+    trace.pop_back();
+    std::ostringstream metadata;
+    metadata << ",\"callback_composition\":{\"profile\":\"trace-map-observer-callbacks-fake-v1\""
+             << ",\"live_coverage\":\"incomplete\",\"integration_complete\":true"
+             << ",\"event_number\":" << owner->events()->event_number
+             << ",\"queue_entries\":" << owner->events()->pending_lifecycle.size()
+             << ",\"source_provider_calls\":" << composition_acquisitions.size()
+             << ",\"bound\":"
+             << (!composition_acquisitions.empty() &&
+                         composition_acquisitions.back().binding_status == EngineBindingStatus::Bound
+                     ? "true"
+                     : "false")
+             << ",\"session_source_count\":" << preclose_snapshot.source_count
+             << ",\"session_raw_open\":" << (preclose_snapshot.raw_open ? "true" : "false")
+             << ",\"bridge_coverage\":" << (bridge_coverage ? "true" : "false")
+             << ",\"continuations\":[";
+    append_composition_continuation(metadata, failed_continuation);
+    metadata << ',';
+    append_composition_continuation(metadata, first_success_continuation);
+    metadata << ',';
+    append_composition_continuation(metadata, second_success_continuation);
+    metadata << "]"
+             << ",\"teardown\":{\"explicit\":" << (deactivated ? "true" : "false")
+             << ",\"released\":" << (owner->released() ? "true" : "false") << "}}";
+    return trace + metadata.str() + '}';
+}
 
 SelfTestReport run_callback_dispatch_self_tests()
 {

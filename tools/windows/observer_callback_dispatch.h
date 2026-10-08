@@ -129,6 +129,12 @@ public:
     ULONG STDMETHODCALLTYPE   AddRef() override;
     ULONG STDMETHODCALLTYPE   Release() override;
 
+    // The composition owner uses these local facts during explicit teardown.
+    // They cover calls entering this wrapper and its COM reference count;
+    // callers still serialize any borrowed delegate or Recorder users.
+    bool quiescent_for_teardown() const noexcept;
+    bool has_retained_com_alias() const noexcept;
+
     HRESULT STDMETHODCALLTYPE GetInterestMask(PULONG mask) override;
     HRESULT STDMETHODCALLTYPE Breakpoint(PDEBUG_BREAKPOINT breakpoint) override;
     HRESULT STDMETHODCALLTYPE Exception(PEXCEPTION_RECORD64 exception,
@@ -181,6 +187,16 @@ private:
         DispatchGuard& operator=(const DispatchGuard&) = delete;
     };
 
+    struct CallbackLifetimeGuard
+    {
+        ObserverCallbackDispatch* owner = nullptr;
+
+        explicit CallbackLifetimeGuard(ObserverCallbackDispatch* value) noexcept;
+        ~CallbackLifetimeGuard() noexcept;
+        CallbackLifetimeGuard(const CallbackLifetimeGuard&)            = delete;
+        CallbackLifetimeGuard& operator=(const CallbackLifetimeGuard&) = delete;
+    };
+
     ErrorSnapshot read_error() const noexcept;
     bool          restore_error(const ErrorSnapshot& snapshot) const noexcept;
     bool          owner_thread() const noexcept;
@@ -220,6 +236,7 @@ private:
     ErrorWriter                          write_error_pair_               = nullptr;
     void*                                error_user_                     = nullptr;
     std::atomic<ULONG>                   references_{ 1 };
+    std::atomic<std::uint32_t>           active_callbacks_{ 0 };
     std::atomic_flag                     instrumentation_guard_         = ATOMIC_FLAG_INIT;
     bool                                 session_configuration_refused_ = false;
 };
@@ -227,7 +244,9 @@ private:
 using CallbackDispatch = ObserverCallbackDispatch;
 
 SelfTestReport run_callback_dispatch_self_tests();
+SelfTestReport run_trace_map_observer_callbacks_self_tests();
 std::string    make_callback_dispatch_synthetic_trace();
+std::string    make_callback_composition_trace();
 std::string    make_callback_owner_integration_trace();
 std::string    make_callback_session_integration_trace();
 std::string    make_event_lifecycle_integration_trace();

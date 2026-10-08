@@ -12,7 +12,10 @@ target_link_libraries(sample_virtual_item_state PRIVATE bcrypt)
 add_executable(item_predicate_fixture item_predicate_fixture.cpp)
 target_link_options(item_predicate_fixture PRIVATE /OPT:NOICF)
 add_executable(trace_map_selection trace_map_selection.cpp raw_event_recorder.cpp
-               observer_event_lifecycle.cpp)
+               observer_diagnostic.cpp observer_event_lifecycle.cpp
+               observer_event_bridge.cpp observer_callback_identity.cpp
+               observer_callback_session.cpp observer_callback_dispatch.cpp
+               trace_map_observer_callbacks.cpp)
 target_compile_options(trace_map_selection PRIVATE /guard:cf /sdl)
 target_link_options(trace_map_selection PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/trace_map_selection.map")
@@ -49,6 +52,7 @@ add_executable(observer_runtime_check observer_runtime_check.cpp
                observer_event_lifecycle.cpp observer_event_lifecycle_tests.cpp
                observer_callback_session.cpp observer_callback_session_tests.cpp
                observer_callback_dispatch.cpp observer_callback_dispatch_tests.cpp
+               trace_map_observer_callbacks.cpp
                observer_dispatch_gate.cpp observer_dispatch_gate_tests.cpp
                observer_event_bridge.cpp observer_event_bridge_tests.cpp
                observer_hook_install.cpp observer_hook_install_tests.cpp
