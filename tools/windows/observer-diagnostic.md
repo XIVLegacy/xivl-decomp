@@ -131,6 +131,24 @@ With no raw bridge configured, an eligible reader can still record an Accepted
 acquisition with a refused status and zero binding receipt; the dispatch row
 stays incomplete and makes no binding claim.
 
+`RetainedCallbackOwnerAdapter` is the bounded offline adapter for a borrowed
+lifecycle-owner view. It retains one currently admitted raw key and exposes the
+existing owner-provider function. The owner publishes its actual callback kind,
+phase, authority ID, source lifetime ID, cached raw lifecycle tuple, cached
+engine ID and lifecycle token; the adapter validates those fields and never
+allocates or derives any of them. A failed or partial publication poisons that
+current event until a later admitted event. The provider also requires the
+configured owner thread, the Recorder's live pending raw key and matching
+callback phase. The pointer publish form borrows a stable caller-owned source;
+the provider rereads it on the owner thread and refuses an ended or changed
+witness. The bridge finalizes each sink result after the sink returns, so a
+refusal or exception cannot be repaired by later partial owner data. A
+negative continuation result with a healthy owner sink keeps the pending owner
+view valid. An owner-sink refusal or exception poisons later SDK reads and
+binding while keeping an earlier bound receipt factual; successful continuation
+clears the view. Unknown, changed, foreign, ended and reused witnesses remain
+refused.
+
 `instrumentation_thread_id` is a caller-selected owner thread ID. Zero remains
 unknown and refuses instrumentation without marking delivery as foreign; the
 delegate still runs once and the refused reader attempt remains incomplete when
@@ -453,6 +471,17 @@ returns. Continuation observations include the actual result before return.
 Failed continuation retains the pending identity; successful continuation
 closes only a uniquely matched event. Wait/continue originals, arguments,
 results and LastError/LastStatus are preserved.
+
+`RawEventBridge` may also receive one immutable `RawLifecycleOwnerSink` in its
+constructor. Its event callback runs only after the exact raw identity has been
+admitted to the Recorder, while the raw thunk is still in its synchronous
+notification path. Its continuation callback runs after the bridge has recorded
+the exact matched identity and close or retention result. The sink is borrowed
+and must retain only owner evidence supplied by its caller; it cannot query the
+engine, allocate a lifecycle token or change the bridge key. A refusal or
+exception remains in the event or continuation evidence, latches bridge
+coverage incomplete and prevents later partial owner data from qualifying a
+binding. Leaving this optional sink unset preserves the existing bridge path.
 
 The default synchronous mode asks an injected engine-generation provider for
 the exact debug object, PID/TID, raw generation and raw index before the wait

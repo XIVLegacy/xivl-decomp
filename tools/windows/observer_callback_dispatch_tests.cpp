@@ -69,7 +69,10 @@ struct DispatchState
     bool                           readable_memory            = false;
     bool                           provider_raw_seen          = false;
     EventIdentity                  provider_raw{};
-    void*                          output_value = nullptr;
+    CallbackOwnerEvidence          owner_source{};
+    RetainedCallbackOwnerAdapter*  retained_owner         = nullptr;
+    bool                           retained_owner_publish = false;
+    void*                          output_value           = nullptr;
     std::array<std::uint8_t, 0x20> fake_record{};
     std::array<std::uintptr_t, 1>  fake_interface{};
     std::array<std::uintptr_t, 5>  fake_vtable{};
@@ -240,6 +243,47 @@ CallbackOwnerEvidence owner_for(const EventIdentity& raw, DispatchState* state)
         owner.lifecycle_token = 0x44;
     }
     return owner;
+}
+
+struct OwnerSinkWrapper
+{
+    RawLifecycleOwnerSink adapter{};
+    bool                  fail_event         = false;
+    bool                  throw_event        = false;
+    bool                  fail_continuation  = false;
+    bool                  throw_continuation = false;
+};
+
+bool wrapped_owner_event(void* user, const BridgeEventEvidence& evidence)
+{
+    auto* wrapper = static_cast<OwnerSinkWrapper*>(user);
+    if (wrapper == nullptr || wrapper->adapter.observe_event == nullptr)
+    {
+        return false;
+    }
+    const bool retained = wrapper->adapter.observe_event(wrapper->adapter.user, evidence);
+    if (wrapper->throw_event)
+    {
+        throw std::runtime_error("wrapped owner event failure");
+    }
+    return !wrapper->fail_event && retained;
+}
+
+bool wrapped_owner_continuation(void*                             user,
+                                const BridgeContinuationEvidence& evidence)
+{
+    auto* wrapper = static_cast<OwnerSinkWrapper*>(user);
+    if (wrapper == nullptr || wrapper->adapter.observe_continuation == nullptr)
+    {
+        return false;
+    }
+    const bool retained =
+        wrapper->adapter.observe_continuation(wrapper->adapter.user, evidence);
+    if (wrapper->throw_continuation)
+    {
+        throw std::runtime_error("wrapped owner continuation failure");
+    }
+    return !wrapper->fail_continuation && retained;
 }
 
 bool owner_provider(void* user,
@@ -638,6 +682,16 @@ public:
         {
             state->delegate_owner_allocated = true;
         }
+        if (state->retained_owner != nullptr)
+        {
+            const EventIdentity raw       = state->retained_owner->current_raw_identity();
+            state->owner_source           = owner_for(raw, state);
+            state->retained_owner_publish = state->retained_owner->publish(
+                raw,
+                "create_thread",
+                CallbackDispatchPhase::AfterDelegate,
+                &state->owner_source);
+        }
         if (state->nested_query && state->recorder != nullptr)
         {
             void* output = nullptr;
@@ -720,9 +774,11 @@ LONG __stdcall fake_wait(ULONG, ULONG, PVOID, PVOID) noexcept
     return 0;
 }
 
+LONG g_dispatch_continue_result = 0;
+
 LONG __stdcall fake_continue(ULONG, PVOID, ULONG) noexcept
 {
-    return 0;
+    return g_dispatch_continue_result;
 }
 
 bool admit_raw(Recorder* recorder, std::unique_ptr<raw_recorder::RawRecorder>* raw, RawEventBridge* bridge)
@@ -858,6 +914,498 @@ void run_create_thread_order(TestState* tests)
                      state.error.last_error == 0xB2 && state.error.last_status == -178,
                  "create thread restores delegate error pair");
     finish_raw(&raw);
+}
+
+void run_retained_owner_integration(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.nested_query           = true;
+    state.readable_memory        = true;
+    state.fake_vtable[4]         = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0]      = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value           = state.fake_interface.data();
+    const std::uintptr_t service = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    RetainedCallbackOwnerAdapter               owner(state.callback_thread, &recorder);
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    auto                                       bridge = std::make_unique<RawEventBridge>(
+        recorder,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        owner.owner_sink());
+    tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                 "retained owner admits raw event");
+    state.retained_owner = &owner;
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    FakeDelegate           delegate(&state);
+    FakeClient             client(&delegate.systems);
+    CallbackDispatchConfig config =
+        dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.owner_provider      = owner.owner_provider();
+    config.owner_provider_user = owner.provider_user();
+    ObserverCallbackDispatch wrapper(config);
+
+    const EventIdentity raw_identity = owner.current_raw_identity();
+    tests->check(raw_identity.complete && owner.raw_open() && bridge->event_count() == 1 &&
+                     bridge->event(0).owner_sink_attempted &&
+                     bridge->event(0).owner_sink_succeeded,
+                 "owner retains admitted raw key before callback");
+    state.owner_source = owner_for(raw_identity, &state);
+    tests->check(owner.publish(raw_identity,
+                               "breakpoint",
+                               CallbackDispatchPhase::BeforeDelegate,
+                               &state.owner_source),
+                 "owner publishes breakpoint witness");
+
+    const HRESULT breakpoint_result =
+        wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    tests->check(breakpoint_result == state.breakpoint_result &&
+                     recorder.callback_acquisition_rows().size() == 1 &&
+                     recorder.callback_acquisition_rows().back().binding_status ==
+                         EngineBindingStatus::Bound,
+                 "retained owner binds breakpoint through deferred bridge");
+    recorder.forward_lookup(&state, nullptr, &state.service);
+    std::array<std::uint8_t, 0xC4> context{};
+    std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+    recorder.forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+    tests->check(recorder.query_rows().size() == 1 && recorder.context_write_rows().size() == 1 &&
+                     recorder.query_rows().back().header.event.engine_generation_known,
+                 "bound callback permits nested query and context evidence");
+
+    struct ClientId
+    {
+        ULONG process_id = 100;
+        ULONG thread_id  = 200;
+    } client_id;
+
+    g_dispatch_continue_result = -9;
+    tests->check(raw_recorder::RawRecorder::ContinueThunk(
+                     0x1111U, &client_id, 0x40010000U) == -9 &&
+                     owner.raw_open() &&
+                     bridge->continuation_count() == 1 &&
+                     bridge->continuation(0).result.pending_retained &&
+                     bridge->continuation(0).owner_sink_succeeded,
+                 "failed continuation retains owner and pending raw key");
+    g_dispatch_continue_result = 0;
+    tests->check(raw_recorder::RawRecorder::ContinueThunk(
+                     0x1111U, &client_id, 0x40010000U) == 0 &&
+                     !owner.raw_open() &&
+                     bridge->continuation_count() == 2 &&
+                     bridge->continuation(1).close_status == PendingEventStatus::Closed &&
+                     bridge->continuation(1).owner_sink_succeeded,
+                 "successful continuation closes retained owner and raw key");
+    raw->deactivate();
+    tests->check(raw->clear_observer_sink(), "retained owner sink clears quiescently");
+
+    DispatchState create_state;
+    create_state.callback_thread            = GetCurrentThreadId();
+    create_state.nested_query               = true;
+    create_state.allocate_owner_in_delegate = true;
+    Recorder create_recorder(recorder_config(&create_state));
+    create_state.recorder = &create_recorder;
+    RetainedCallbackOwnerAdapter               create_owner(create_state.callback_thread, &create_recorder);
+    std::unique_ptr<raw_recorder::RawRecorder> create_raw;
+    auto                                       create_bridge = std::make_unique<RawEventBridge>(
+        create_recorder,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        create_owner.owner_sink());
+    tests->check(admit_raw(&create_recorder, &create_raw, create_bridge.get()),
+                 "create-thread owner admits raw event");
+    create_state.retained_owner = &create_owner;
+    CallbackIdentityReader create_reader({ &create_state, read_error, write_error });
+    FakeDelegate           create_delegate(&create_state);
+    FakeClient             create_client(&create_delegate.systems);
+    CallbackDispatchConfig create_config = dispatch_config(&create_state,
+                                                           &create_recorder,
+                                                           &create_reader,
+                                                           create_bridge.get(),
+                                                           &create_delegate,
+                                                           &create_client);
+    create_config.owner_provider         = create_owner.owner_provider();
+    create_config.owner_provider_user    = create_owner.provider_user();
+    ObserverCallbackDispatch create_wrapper(create_config);
+    const HRESULT            create_result = create_wrapper.CreateThread(0x2000, 0x3000, 0x4000);
+    tests->check(create_result == S_OK && create_state.retained_owner_publish &&
+                     !create_recorder.callback_acquisition_rows().empty() &&
+                     create_recorder.callback_acquisition_rows().back().binding_status ==
+                         EngineBindingStatus::Bound,
+                 "create-thread publishes retained token after delegate");
+    tests->check(create_recorder.query_rows().size() == 1 &&
+                     !create_recorder.query_rows().back().header.event.engine_generation_known,
+                 "create-thread delegate query remains before binding");
+    create_raw->deactivate();
+    tests->check(create_raw->clear_observer_sink(),
+                 "create-thread owner sink clears quiescently");
+    g_dispatch_continue_result = 0;
+}
+
+enum class RetainedOwnerRefusal
+{
+    unknown,
+    changed,
+    foreign,
+    ended,
+};
+
+void run_retained_owner_refusal(TestState* tests, RetainedOwnerRefusal refusal)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    const std::uint32_t adapter_thread =
+        refusal == RetainedOwnerRefusal::foreign ? state.callback_thread + 1
+                                                 : state.callback_thread;
+    RetainedCallbackOwnerAdapter               owner(adapter_thread, &recorder);
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    auto                                       bridge = std::make_unique<RawEventBridge>(
+        recorder,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        owner.owner_sink());
+    tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                 "refusal case admits raw event");
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    FakeDelegate           delegate(&state);
+    FakeClient             client(&delegate.systems);
+    CallbackDispatchConfig config =
+        dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.owner_provider      = owner.owner_provider();
+    config.owner_provider_user = owner.provider_user();
+    ObserverCallbackDispatch wrapper(config);
+
+    const EventIdentity raw_identity = owner.current_raw_identity();
+    bool                published    = false;
+    if (refusal != RetainedOwnerRefusal::unknown)
+    {
+        state.owner_source = owner_for(raw_identity, &state);
+        if (refusal == RetainedOwnerRefusal::changed)
+        {
+            ++state.owner_source.cached_raw_generation;
+        }
+        else if (refusal == RetainedOwnerRefusal::ended)
+        {
+            state.owner_source.retained_source_lifetime = false;
+        }
+        published = owner.publish(raw_identity,
+                                  "breakpoint",
+                                  CallbackDispatchPhase::BeforeDelegate,
+                                  &state.owner_source);
+    }
+    tests->check(!published,
+                 refusal == RetainedOwnerRefusal::unknown
+                     ? "unknown owner remains unpublished"
+                 : refusal == RetainedOwnerRefusal::changed
+                     ? "changed owner witness is refused"
+                 : refusal == RetainedOwnerRefusal::foreign
+                     ? "foreign owner thread is refused"
+                     : "ended owner lifetime is refused");
+    if (refusal == RetainedOwnerRefusal::foreign)
+    {
+        tests->check(!owner.raw_open() && bridge->event_count() == 1 &&
+                         bridge->event(0).owner_sink_attempted &&
+                         !bridge->event(0).owner_sink_succeeded,
+                     "foreign owner thread leaves event unretained");
+    }
+    (void)wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    const auto acquisitions = recorder.callback_acquisition_rows();
+    tests->check(state.breakpoint_calls == 1 && !acquisitions.empty() &&
+                     acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                     !acquisitions.back().binding_eligible,
+                 "owner refusal prevents SDK reads and binding");
+    raw->deactivate();
+    tests->check(raw->clear_observer_sink(), "refusal owner sink clears quiescently");
+}
+
+void run_retained_owner_refusals(TestState* tests)
+{
+    run_retained_owner_refusal(tests, RetainedOwnerRefusal::unknown);
+    run_retained_owner_refusal(tests, RetainedOwnerRefusal::changed);
+    run_retained_owner_refusal(tests, RetainedOwnerRefusal::foreign);
+    run_retained_owner_refusal(tests, RetainedOwnerRefusal::ended);
+}
+
+void run_retained_owner_reuse(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    RetainedCallbackOwnerAdapter               owner(state.callback_thread, &recorder);
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    auto                                       bridge = std::make_unique<RawEventBridge>(
+        recorder,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        owner.owner_sink());
+    tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                 "reused owner admits initial raw event");
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    FakeDelegate           delegate(&state);
+    FakeClient             client(&delegate.systems);
+    auto                   config = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.owner_provider         = owner.owner_provider();
+    config.owner_provider_user    = owner.provider_user();
+    ObserverCallbackDispatch wrapper(config);
+    state.owner_source = owner_for(owner.current_raw_identity(), &state);
+    tests->check(owner.publish(owner.current_raw_identity(),
+                               "breakpoint",
+                               CallbackDispatchPhase::BeforeDelegate,
+                               &state.owner_source) &&
+                     wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234)) == S_OK,
+                 "reused owner binds initial lifecycle");
+
+    struct ClientId
+    {
+        ULONG process_id = 100;
+        ULONG thread_id  = 200;
+    } client_id;
+
+    g_dispatch_continue_result = 0;
+    tests->check(raw_recorder::RawRecorder::ContinueThunk(
+                     0x1111U, &client_id, 0x40010000U) == 0 &&
+                     !owner.raw_open(),
+                 "reused owner closes initial lifecycle");
+
+    std::array<std::uint8_t, 0x60> exit_event{};
+    *reinterpret_cast<ULONG*>(exit_event.data())     = 5;
+    *reinterpret_cast<ULONG*>(exit_event.data() + 4) = 100;
+    *reinterpret_cast<ULONG*>(exit_event.data() + 8) = 200;
+    tests->check(raw_recorder::RawRecorder::WaitThunk(
+                     0x1111U, 0, nullptr, exit_event.data()) == 0,
+                 "reused owner observes lifecycle exit");
+    tests->check(raw_recorder::RawRecorder::ContinueThunk(
+                     0x1111U, &client_id, 0x40010000U) == 0,
+                 "reused owner closes lifecycle exit");
+
+    std::array<std::uint8_t, 0x60> create_event{};
+    *reinterpret_cast<ULONG*>(create_event.data())     = 3;
+    *reinterpret_cast<ULONG*>(create_event.data() + 4) = 100;
+    *reinterpret_cast<ULONG*>(create_event.data() + 8) = 200;
+    tests->check(raw_recorder::RawRecorder::WaitThunk(
+                     0x1111U, 0, nullptr, create_event.data()) == 0,
+                 "reused owner observes next lifecycle");
+    const EventIdentity reused_raw = owner.current_raw_identity();
+    state.owner_source             = owner_for(reused_raw, &state);
+    tests->check(reused_raw.raw_generation != 0 &&
+                     reused_raw.raw_generation != 1 &&
+                     owner.publish(reused_raw,
+                                   "breakpoint",
+                                   CallbackDispatchPhase::BeforeDelegate,
+                                   &state.owner_source),
+                 "reused owner publishes same token for changed lifecycle");
+    (void)wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+    const auto acquisitions = recorder.callback_acquisition_rows();
+    tests->check(acquisitions.size() == 2 &&
+                     acquisitions.back().binding_status == EngineBindingStatus::Conflict &&
+                     acquisitions.back().binding_eligible,
+                 "Recorder history refuses cross-lifecycle token reuse");
+    tests->check(raw_recorder::RawRecorder::ContinueThunk(
+                     0x1111U, &client_id, 0x40010000U) == 0 &&
+                     !owner.raw_open(),
+                 "reused owner closes refused lifecycle interval");
+    raw->deactivate();
+    tests->check(raw->clear_observer_sink(), "reused owner sink clears quiescently");
+    g_dispatch_continue_result = 0;
+}
+
+void run_owner_liveness_regressions(TestState* tests)
+{
+    {
+        DispatchState state;
+        state.callback_thread = GetCurrentThreadId();
+        Recorder recorder(recorder_config(&state));
+        state.recorder = &recorder;
+        RetainedCallbackOwnerAdapter               owner(state.callback_thread, &recorder);
+        std::unique_ptr<raw_recorder::RawRecorder> raw;
+        auto                                       bridge = std::make_unique<RawEventBridge>(
+            recorder,
+            nullptr,
+            nullptr,
+            RawEventBindingMode::deferred,
+            owner.owner_sink());
+        tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                     "owner republish admits raw event");
+        CallbackIdentityReader reader({ &state, read_error, write_error });
+        FakeDelegate           delegate(&state);
+        FakeClient             client(&delegate.systems);
+        auto                   config =
+            dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+        config.owner_provider      = owner.owner_provider();
+        config.owner_provider_user = owner.provider_user();
+        ObserverCallbackDispatch wrapper(config);
+        const EventIdentity      key = owner.current_raw_identity();
+        state.owner_source           = owner_for(key, &state);
+        const bool first             = owner.publish(
+            key, "breakpoint", CallbackDispatchPhase::BeforeDelegate, &state.owner_source);
+        ++state.owner_source.authority_id;
+        ++state.owner_source.lifetime_id;
+        ++state.owner_source.lifecycle_token;
+        const bool replacement = owner.publish(
+            key, "breakpoint", CallbackDispatchPhase::BeforeDelegate, &state.owner_source);
+        (void)wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+        const auto acquisitions = recorder.callback_acquisition_rows();
+        tests->check(first && !replacement,
+                     "changed owner identity cannot be republished");
+        tests->check(state.sdk_getter_calls == 0 && !acquisitions.empty() &&
+                         acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                         acquisitions.back().binding_status != EngineBindingStatus::Bound,
+                     "changed owner identity refuses SDK and binding");
+        finish_raw(&raw);
+    }
+
+    {
+        DispatchState state;
+        state.callback_thread = GetCurrentThreadId();
+        Recorder recorder(recorder_config(&state));
+        state.recorder = &recorder;
+        RetainedCallbackOwnerAdapter               owner(state.callback_thread, &recorder);
+        std::unique_ptr<raw_recorder::RawRecorder> raw;
+        auto                                       bridge = std::make_unique<RawEventBridge>(
+            recorder,
+            nullptr,
+            nullptr,
+            RawEventBindingMode::deferred,
+            owner.owner_sink());
+        tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                     "ended owner admits raw event");
+        CallbackIdentityReader reader({ &state, read_error, write_error });
+        FakeDelegate           delegate(&state);
+        FakeClient             client(&delegate.systems);
+        auto                   config =
+            dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+        config.owner_provider      = owner.owner_provider();
+        config.owner_provider_user = owner.provider_user();
+        ObserverCallbackDispatch wrapper(config);
+        const EventIdentity      key = owner.current_raw_identity();
+        state.owner_source           = owner_for(key, &state);
+        const bool published         = owner.publish(
+            key, "breakpoint", CallbackDispatchPhase::BeforeDelegate, &state.owner_source);
+        state.owner_source.retained_source_lifetime = false;
+        (void)wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+        const auto acquisitions = recorder.callback_acquisition_rows();
+        tests->check(published && state.sdk_getter_calls == 0 && !acquisitions.empty() &&
+                         acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                         acquisitions.back().binding_status != EngineBindingStatus::Bound,
+                     "ended live owner source refuses SDK and binding");
+        finish_raw(&raw);
+    }
+
+    for (int mode = 0; mode != 2; ++mode)
+    {
+        DispatchState state;
+        state.callback_thread = GetCurrentThreadId();
+        Recorder recorder(recorder_config(&state));
+        state.recorder = &recorder;
+        RetainedCallbackOwnerAdapter owner(state.callback_thread, &recorder);
+        OwnerSinkWrapper             wrapped{ owner.owner_sink(), true, mode == 1, false, false };
+        const RawLifecycleOwnerSink  sink{
+            &wrapped_owner_event, &wrapped_owner_continuation, &wrapped
+        };
+        std::unique_ptr<raw_recorder::RawRecorder> raw;
+        auto                                       bridge = std::make_unique<RawEventBridge>(
+            recorder, nullptr, nullptr, RawEventBindingMode::deferred, sink);
+        tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                     "partial event sink admits raw event");
+        CallbackIdentityReader reader({ &state, read_error, write_error });
+        FakeDelegate           delegate(&state);
+        FakeClient             client(&delegate.systems);
+        auto                   config =
+            dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+        config.owner_provider      = owner.owner_provider();
+        config.owner_provider_user = owner.provider_user();
+        ObserverCallbackDispatch wrapper(config);
+        const EventIdentity      key = owner.current_raw_identity();
+        state.owner_source           = owner_for(key, &state);
+        const bool published         = owner.publish(
+            key, "breakpoint", CallbackDispatchPhase::BeforeDelegate, &state.owner_source);
+        (void)wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+        const auto acquisitions = recorder.callback_acquisition_rows();
+        tests->check(published && !bridge->event(0).owner_sink_succeeded &&
+                         state.sdk_getter_calls == 0 && !acquisitions.empty() &&
+                         acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                         acquisitions.back().binding_status != EngineBindingStatus::Bound,
+                     mode == 0 ? "partial event sink refuses SDK and binding"
+                               : "throwing event sink refuses SDK and binding");
+        finish_raw(&raw);
+    }
+
+    for (int mode = 0; mode != 2; ++mode)
+    {
+        DispatchState state;
+        state.callback_thread = GetCurrentThreadId();
+        state.readable_memory = true;
+        Recorder recorder(recorder_config(&state));
+        state.recorder = &recorder;
+        RetainedCallbackOwnerAdapter owner(state.callback_thread, &recorder);
+        OwnerSinkWrapper             wrapped{ owner.owner_sink(), false, false, true, mode == 1 };
+        const RawLifecycleOwnerSink  sink{
+            &wrapped_owner_event, &wrapped_owner_continuation, &wrapped
+        };
+        std::unique_ptr<raw_recorder::RawRecorder> raw;
+        auto                                       bridge = std::make_unique<RawEventBridge>(
+            recorder, nullptr, nullptr, RawEventBindingMode::deferred, sink);
+        tests->check(admit_raw(&recorder, &raw, bridge.get()),
+                     "partial continuation sink admits raw event");
+        CallbackIdentityReader reader({ &state, read_error, write_error });
+        FakeDelegate           delegate(&state);
+        FakeClient             client(&delegate.systems);
+        auto                   config =
+            dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+        config.owner_provider      = owner.owner_provider();
+        config.owner_provider_user = owner.provider_user();
+        ObserverCallbackDispatch wrapper(config);
+        const EventIdentity      key = owner.current_raw_identity();
+        state.owner_source           = owner_for(key, &state);
+        const bool published         = owner.publish(
+            key, "breakpoint", CallbackDispatchPhase::BeforeDelegate, &state.owner_source);
+        const HRESULT first_result =
+            wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+
+        struct ClientId
+        {
+            ULONG process_id = 100;
+            ULONG thread_id  = 200;
+        } client_id;
+
+        g_dispatch_continue_result = -9;
+        const LONG failed_continue = raw_recorder::RawRecorder::ContinueThunk(
+            0x1111U, &client_id, 0x40010000U);
+        wrapped.fail_continuation           = false;
+        wrapped.throw_continuation          = false;
+        const LONG repeated_failed_continue = raw_recorder::RawRecorder::ContinueThunk(
+            0x1111U, &client_id, 0x40010000U);
+        const std::uint32_t getter_count = state.sdk_getter_calls;
+        const HRESULT       second_result =
+            wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
+        const auto acquisitions = recorder.callback_acquisition_rows();
+        tests->check(published && first_result == S_OK && failed_continue == -9 &&
+                         repeated_failed_continue == -9 && bridge->continuation_count() == 2 &&
+                         !bridge->continuation(0).owner_sink_succeeded &&
+                         bridge->continuation(1).owner_sink_succeeded &&
+                         second_result == S_OK && acquisitions.size() >= 2 &&
+                         acquisitions[0].binding_status == EngineBindingStatus::Bound &&
+                         acquisitions.back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence &&
+                         state.sdk_getter_calls == getter_count,
+                     mode == 0 ? "partial continuation preserves prior bound and blocks new SDK"
+                               : "throwing continuation preserves prior bound and blocks new SDK");
+        g_dispatch_continue_result = 0;
+        (void)raw_recorder::RawRecorder::ContinueThunk(
+            0x1111U, &client_id, 0x40010000U);
+        raw->deactivate();
+        tests->check(raw->clear_observer_sink(),
+                     "partial continuation sink clears quiescently");
+    }
+    g_dispatch_continue_result = 0;
 }
 
 void run_refusal_cases(TestState* tests)
@@ -1417,6 +1965,10 @@ SelfTestReport run_callback_dispatch_self_tests()
     TestState tests;
     run_breakpoint_success(&tests);
     run_create_thread_order(&tests);
+    run_retained_owner_integration(&tests);
+    run_retained_owner_refusals(&tests);
+    run_retained_owner_reuse(&tests);
+    run_owner_liveness_regressions(&tests);
     run_refusal_cases(&tests);
     run_com_and_forwarding(&tests);
     run_reentry_refusal(&tests);
@@ -1448,17 +2000,33 @@ std::string make_callback_dispatch_synthetic_trace()
     state.breakpoint_result = S_OK;
     Recorder recorder(recorder_config(&state));
     state.recorder = &recorder;
+    RetainedCallbackOwnerAdapter               owner(state.callback_thread, &recorder);
     std::unique_ptr<raw_recorder::RawRecorder> raw;
-    auto                                       bridge = std::make_unique<RawEventBridge>(recorder, nullptr, nullptr, RawEventBindingMode::deferred);
+    auto                                       bridge = std::make_unique<RawEventBridge>(
+        recorder,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        owner.owner_sink());
     if (!admit_raw(&recorder, &raw, bridge.get()))
     {
         return recorder.serialize();
     }
-    CallbackIdentityReader   reader({ &state, read_error, write_error });
-    FakeDelegate             delegate(&state);
-    FakeClient               client(&delegate.systems);
-    ObserverCallbackDispatch wrapper(
-        dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client));
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    FakeDelegate           delegate(&state);
+    FakeClient             client(&delegate.systems);
+    auto                   config = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.owner_provider         = owner.owner_provider();
+    config.owner_provider_user    = owner.provider_user();
+    ObserverCallbackDispatch wrapper(config);
+    state.owner_source = owner_for(owner.current_raw_identity(), &state);
+    if (!owner.publish(owner.current_raw_identity(),
+                       "breakpoint",
+                       CallbackDispatchPhase::BeforeDelegate,
+                       &state.owner_source))
+    {
+        return recorder.serialize();
+    }
     (void)wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234));
     recorder.forward_lookup(&state, nullptr, &state.service);
     std::array<std::uint8_t, 0xC4> context{};
@@ -1466,6 +2034,186 @@ std::string make_callback_dispatch_synthetic_trace()
     recorder.forward_context_write(reinterpret_cast<void*>(0x900), context.data());
     finish_raw(&raw);
     return recorder.serialize();
+}
+
+std::string make_callback_owner_integration_trace()
+{
+    // This command is fake-only; it drives the raw thunk and retained owner
+    // sink through the same wrapper path used by the self-test.
+    DispatchState state;
+    state.callback_thread        = GetCurrentThreadId();
+    state.nested_query           = true;
+    state.readable_memory        = true;
+    state.fake_vtable[4]         = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0]      = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value           = state.fake_interface.data();
+    const std::uintptr_t service = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    RetainedCallbackOwnerAdapter               owner(state.callback_thread, &recorder);
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    auto                                       bridge = std::make_unique<RawEventBridge>(
+        recorder,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        owner.owner_sink());
+    const bool admitted = admit_raw(&recorder, &raw, bridge.get());
+
+    CallbackIdentityReader reader({ &state, read_error, write_error });
+    FakeDelegate           delegate(&state);
+    FakeClient             client(&delegate.systems);
+    auto                   config = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.owner_provider         = owner.owner_provider();
+    config.owner_provider_user    = owner.provider_user();
+    ObserverCallbackDispatch wrapper(config);
+
+    const EventIdentity raw_identity        = owner.current_raw_identity();
+    const bool          owner_sink_admitted = admitted && bridge->event_count() == 1 &&
+                                              bridge->event(0).owner_sink_attempted &&
+                                              bridge->event(0).owner_sink_succeeded &&
+                                              raw_identity.complete && owner.raw_open();
+    state.owner_source                      = owner_for(raw_identity, &state);
+    const bool    owner_published           = owner_sink_admitted &&
+                                              owner.publish(raw_identity,
+                                                            "breakpoint",
+                                                            CallbackDispatchPhase::BeforeDelegate,
+                                                            &state.owner_source);
+    const HRESULT callback_result           = owner_published
+                                                  ? wrapper.Breakpoint(reinterpret_cast<PDEBUG_BREAKPOINT>(0x1234))
+                                                  : E_FAIL;
+
+    // The wrapper's fake query emits one lookup. Keep a second direct lookup
+    // and a context write in the trace so the output includes both forwarded
+    // SDK paths after the owner binding.
+    recorder.forward_lookup(&state, nullptr, &state.service);
+    std::array<std::uint8_t, 0xC4> context{};
+    std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+    recorder.forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+
+    struct ClientId
+    {
+        ULONG process_id = 100;
+        ULONG thread_id  = 200;
+    } client_id;
+
+    g_dispatch_continue_result = -9;
+    const LONG failed_continue = raw_recorder::RawRecorder::ContinueThunk(
+        0x1111U, &client_id, 0x40010000U);
+    const bool failed_retained = bridge->continuation_count() >= 1 &&
+                                 bridge->continuation(0).result.pending_retained &&
+                                 bridge->continuation(0).result.match_unique &&
+                                 bridge->continuation(0).owner_sink_attempted &&
+                                 bridge->continuation(0).owner_sink_succeeded && owner.raw_open();
+
+    g_dispatch_continue_result     = 0;
+    const LONG successful_continue = raw_recorder::RawRecorder::ContinueThunk(
+        0x1111U, &client_id, 0x40010000U);
+    const bool successful_closed = bridge->continuation_count() >= 2 &&
+                                   bridge->continuation(1).result.pending_cleared &&
+                                   bridge->continuation(1).close_status == PendingEventStatus::Closed &&
+                                   bridge->continuation(1).owner_sink_attempted &&
+                                   bridge->continuation(1).owner_sink_succeeded && !owner.raw_open();
+
+    const auto entries              = recorder.callback_entry_rows();
+    const auto acquisitions         = recorder.callback_acquisition_rows();
+    const auto queries              = recorder.query_rows();
+    const auto lookups              = recorder.selected_record_rows();
+    const auto contexts             = recorder.context_write_rows();
+    const auto pending              = recorder.pending_event_rows();
+    const bool integration_complete = owner_published &&
+                                      callback_result == state.breakpoint_result &&
+                                      !entries.empty() && !acquisitions.empty() &&
+                                      acquisitions.back().outcome == CallbackAcquisitionOutcome::Accepted &&
+                                      acquisitions.back().binding_status == EngineBindingStatus::Bound &&
+                                      queries.size() == 1 && lookups.size() == 2 && contexts.size() == 1 &&
+                                      pending.size() == 2 && failed_continue == -9 && failed_retained &&
+                                      successful_continue == 0 && successful_closed;
+
+    if (raw != nullptr)
+    {
+        raw->deactivate();
+        (void)raw->clear_observer_sink();
+    }
+    g_dispatch_continue_result = 0;
+
+    std::string trace = recorder.serialize();
+    if (trace.empty() || trace.back() != '}')
+    {
+        return {};
+    }
+    trace.pop_back();
+    std::ostringstream owner_output;
+    owner_output << ",\"owner_integration\":{";
+    owner_output << "\"profile\":\"retained-callback-owner-fake\"";
+    owner_output << ",\"integration_complete\":" << (integration_complete ? "true" : "false");
+    owner_output << ",\"raw_wait\":{";
+    owner_output << "\"debug_object\":" << raw_identity.raw_debug_object;
+    owner_output << ",\"process_id\":" << raw_identity.process_id;
+    owner_output << ",\"thread_id\":" << raw_identity.thread_id;
+    owner_output << ",\"raw_generation\":" << raw_identity.raw_generation;
+    owner_output << ",\"event_index\":" << raw_identity.event_index;
+    owner_output << ",\"complete\":" << (raw_identity.complete ? "true" : "false") << '}';
+    owner_output << ",\"owner_sink\":{";
+    owner_output << "\"event_attempted\":"
+                 << (bridge->event_count() != 0 && bridge->event(0).owner_sink_attempted ? "true" : "false");
+    owner_output << ",\"event_succeeded\":"
+                 << (bridge->event_count() != 0 && bridge->event(0).owner_sink_succeeded ? "true" : "false") << '}';
+    owner_output << ",\"callback\":{";
+    owner_output << "\"kind\":\"breakpoint\",\"phase\":\"before_delegate\"";
+    owner_output << ",\"publish_succeeded\":" << (owner_published ? "true" : "false");
+    owner_output << ",\"result\":" << callback_result << '}';
+    owner_output << ",\"continuations\":[";
+    if (bridge->continuation_count() >= 1)
+    {
+        const auto& continuation = bridge->continuation(0);
+        owner_output << "{\"result\":" << continuation.result.result
+                     << ",\"attempt_id\":" << continuation.result.attempt_id
+                     << ",\"matched_event\":" << continuation.result.matched_event
+                     << ",\"match_unique\":" << (continuation.result.match_unique ? "true" : "false")
+                     << ",\"pending_retained\":" << (continuation.result.pending_retained ? "true" : "false")
+                     << ",\"pending_cleared\":" << (continuation.result.pending_cleared ? "true" : "false")
+                     << ",\"owner_sink_attempted\":"
+                     << (continuation.owner_sink_attempted ? "true" : "false")
+                     << ",\"owner_sink_succeeded\":"
+                     << (continuation.owner_sink_succeeded ? "true" : "false") << '}';
+    }
+    if (bridge->continuation_count() >= 2)
+    {
+        const auto& continuation = bridge->continuation(1);
+        owner_output << ",{\"result\":" << continuation.result.result
+                     << ",\"attempt_id\":" << continuation.result.attempt_id
+                     << ",\"matched_event\":" << continuation.result.matched_event
+                     << ",\"match_unique\":" << (continuation.result.match_unique ? "true" : "false")
+                     << ",\"pending_retained\":" << (continuation.result.pending_retained ? "true" : "false")
+                     << ",\"pending_cleared\":" << (continuation.result.pending_cleared ? "true" : "false")
+                     << ",\"close_status\":" << static_cast<unsigned int>(continuation.close_status)
+                     << ",\"owner_sink_attempted\":"
+                     << (continuation.owner_sink_attempted ? "true" : "false")
+                     << ",\"owner_sink_succeeded\":"
+                     << (continuation.owner_sink_succeeded ? "true" : "false") << '}';
+    }
+    owner_output << ']';
+    owner_output << ",\"shared_clock\":{";
+    owner_output << "\"row_count\":" << recorder.rows().size();
+    owner_output << ",\"pending_event_rows\":[";
+    for (std::size_t index = 0; index < pending.size(); ++index)
+    {
+        if (index != 0)
+        {
+            owner_output << ',';
+        }
+        owner_output << "{\"sequence\":" << pending[index].header.sequence
+                     << ",\"exit_sequence\":" << pending[index].header.exit_sequence
+                     << ",\"pending_status\":\""
+                     << (pending[index].status == PendingEventStatus::Admitted ? "admitted" : "closed")
+                     << "\"}";
+    }
+    owner_output << "]}";
+    owner_output << '}';
+    return trace + owner_output.str() + '}';
 }
 
 } // namespace xivl::observer_diagnostic

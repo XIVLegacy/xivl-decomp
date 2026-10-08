@@ -3,6 +3,7 @@
 #define XIVL_OBSERVER_CALLBACK_DISPATCH_H
 
 #include "observer_callback_identity.h"
+#include "observer_event_bridge.h"
 
 #include <dbgeng.h>
 
@@ -23,6 +24,82 @@ using CallbackOwnerProvider = bool (*)(void*                  user,
                                        CallbackDispatchPhase  phase,
                                        const EventIdentity&   entry_raw_identity,
                                        CallbackOwnerEvidence* owner);
+
+// A bounded adapter for one currently admitted raw event. The owner supplies
+// every authority, lifetime, cached lifecycle and token field; this adapter
+// only retains and matches that borrowed witness and the Recorder's live
+// pending key. It has no token allocator or cross-event registry. The Recorder
+// pointer is borrowed and must outlive the adapter.
+// The admitting RawEventBridge must remain alive through quiescent raw close
+// and every provider call.
+class RetainedCallbackOwnerAdapter final
+{
+public:
+    explicit RetainedCallbackOwnerAdapter(std::uint32_t owner_thread_id = 0,
+                                          Recorder*     recorder        = nullptr) noexcept;
+
+    RawLifecycleOwnerSink owner_sink() noexcept;
+    CallbackOwnerProvider owner_provider() noexcept;
+    void*                 provider_user() noexcept;
+
+    // Publish the actual owner witness for the retained raw key. The pointer
+    // must remain stable and live through quiescent raw close. The adapter
+    // copies the published identity but rereads the pointed-to witness before
+    // every provider call. A failed or partial publish poisons this event.
+    bool publish(const EventIdentity&         raw_identity,
+                 const char*                  callback_kind,
+                 CallbackDispatchPhase        phase,
+                 const CallbackOwnerEvidence* owner_source) noexcept;
+
+    EventIdentity current_raw_identity() const noexcept;
+    bool          raw_open() const noexcept;
+
+private:
+    enum class CallbackKind : std::uint8_t
+    {
+        none,
+        breakpoint,
+        create_thread,
+    };
+
+    static bool observe_event(void* user, const BridgeEventEvidence& evidence) noexcept;
+    static bool observe_continuation(void*                             user,
+                                     const BridgeContinuationEvidence& evidence) noexcept;
+    static bool provide_owner(void*                  user,
+                              const char*            callback_kind,
+                              CallbackDispatchPhase  phase,
+                              const EventIdentity&   entry_raw_identity,
+                              CallbackOwnerEvidence* owner) noexcept;
+
+    bool                retain_event(const BridgeEventEvidence& evidence) noexcept;
+    bool                retain_continuation(const BridgeContinuationEvidence& evidence) noexcept;
+    bool                provide(const char*            callback_kind,
+                                CallbackDispatchPhase  phase,
+                                const EventIdentity&   entry_raw_identity,
+                                CallbackOwnerEvidence* owner) noexcept;
+    bool                on_owner_thread() const noexcept;
+    bool                bridge_event_final() const noexcept;
+    bool                bridge_continuation_final() const noexcept;
+    bool                same_raw_key(const EventIdentity& left, const EventIdentity& right) const noexcept;
+    static bool         same_owner_identity(const CallbackOwnerEvidence& left,
+                                            const CallbackOwnerEvidence& right) noexcept;
+    bool                pending_raw_matches(const EventIdentity& identity) const noexcept;
+    static bool         raw_key_complete(const EventIdentity& identity) noexcept;
+    static bool         owner_complete(const CallbackOwnerEvidence& owner) noexcept;
+    static CallbackKind callback_kind(const char* value) noexcept;
+
+    EventIdentity                raw_identity_{};
+    CallbackOwnerEvidence        owner_{};
+    const CallbackOwnerEvidence* owner_source_    = nullptr;
+    const RawEventBridge*        bridge_          = nullptr;
+    std::uint32_t                owner_thread_id_ = 0;
+    Recorder*                    recorder_        = nullptr;
+    CallbackKind                 callback_kind_   = CallbackKind::none;
+    CallbackDispatchPhase        owner_phase_     = CallbackDispatchPhase::BeforeDelegate;
+    bool                         raw_open_        = false;
+    bool                         owner_published_ = false;
+    bool                         invalid_         = false;
+};
 
 struct CallbackDispatchConfig
 {
@@ -151,6 +228,7 @@ using CallbackDispatch = ObserverCallbackDispatch;
 
 SelfTestReport run_callback_dispatch_self_tests();
 std::string    make_callback_dispatch_synthetic_trace();
+std::string    make_callback_owner_integration_trace();
 
 } // namespace xivl::observer_diagnostic
 

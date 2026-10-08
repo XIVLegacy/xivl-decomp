@@ -7,6 +7,7 @@
 #include <atomic>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 
 namespace xivl::observer_diagnostic
@@ -35,6 +36,44 @@ struct FakeState
     ULONG                           continue_status       = 0;
     std::array<std::uint8_t, 0x60>* wait_bytes            = nullptr;
 };
+
+struct OwnerSinkState
+{
+    std::uint32_t event_calls         = 0;
+    std::uint32_t continuation_calls  = 0;
+    bool          event_result        = true;
+    bool          continuation_result = true;
+    bool          throw_event         = false;
+};
+
+bool owner_event_sink(void* user, const BridgeEventEvidence& evidence)
+{
+    auto* state = static_cast<OwnerSinkState*>(user);
+    if (state == nullptr)
+    {
+        return false;
+    }
+    ++state->event_calls;
+    if (state->throw_event)
+    {
+        throw std::runtime_error("owner event sink exception");
+    }
+    return state->event_result && evidence.pending_status == PendingEventStatus::Admitted &&
+           evidence.raw_identity.event_index != static_cast<std::size_t>(-1);
+}
+
+bool owner_continuation_sink(void*                             user,
+                             const BridgeContinuationEvidence& evidence)
+{
+    auto* state = static_cast<OwnerSinkState*>(user);
+    if (state == nullptr)
+    {
+        return false;
+    }
+    ++state->continuation_calls;
+    return state->continuation_result &&
+           evidence.matched_event_index != static_cast<std::size_t>(-1);
+}
 
 FakeState* g_fake_state = nullptr;
 
@@ -361,6 +400,62 @@ void exercise_reentrant_and_error_restore(TestState& tests)
         tests.check(raw->clear_observer_sink(), "error clobber sink clear");
         g_fake_state = nullptr;
     }
+
+    {
+        std::unique_ptr<raw_recorder::RawRecorder> raw =
+            std::make_unique<raw_recorder::RawRecorder>();
+        Recorder       diagnostic;
+        OwnerSinkState owner_state;
+        owner_state.continuation_result = false;
+        const RawLifecycleOwnerSink owner_sink{
+            &owner_event_sink, &owner_continuation_sink, &owner_state
+        };
+        auto bridge = std::make_unique<RawEventBridge>(
+            diagnostic, nullptr, nullptr, RawEventBindingMode::deferred, owner_sink);
+        FakeState state;
+        state.continue_result = -9;
+        g_fake_state          = &state;
+        std::array<std::uint8_t, 0x60> create{};
+        make_lifecycle(&create, 3);
+        tests.check(bridge->attach(*raw), "owner repeated continuation sink attach");
+        tests.check(raw->activate(&fake_wait, &fake_continue),
+                    "owner repeated continuation sink activate");
+        tests.check(raw_recorder::RawRecorder::WaitThunk(
+                        0x1111U, 0, nullptr, create.data()) == 0,
+                    "owner repeated continuation sink wait");
+        ClientId client{ 100, 200 };
+        tests.check(raw_recorder::RawRecorder::ContinueThunk(
+                        0x1111U, &client, 0x40010000U) == -9,
+                    "owner repeated continuation sink refusal");
+        owner_state.continuation_result = true;
+        tests.check(raw_recorder::RawRecorder::ContinueThunk(
+                        0x1111U, &client, 0x40010000U) == -9,
+                    "owner repeated continuation sink later retention");
+        const std::optional<EventIdentity> pending = diagnostic.pending_event();
+        RawIdentityBinding                 binding;
+        if (pending.has_value())
+        {
+            binding.raw_debug_object = pending->raw_debug_object;
+            binding.process_id       = pending->process_id;
+            binding.thread_id        = pending->thread_id;
+            binding.raw_generation   = pending->raw_generation;
+            binding.event_index      = static_cast<std::size_t>(pending->event_index);
+        }
+        tests.check(bridge->continuation_count() == 2 &&
+                        !bridge->continuation(0).owner_sink_succeeded &&
+                        bridge->continuation(1).owner_sink_succeeded &&
+                        bridge->bind_engine_event(binding,
+                                                  complete_deferred_observation(binding),
+                                                  0x31U) == EngineBindingStatus::IncompleteEvidence,
+                    "earlier owner refusal blocks later binding");
+        state.continue_result = 0;
+        tests.check(raw_recorder::RawRecorder::ContinueThunk(
+                        0x1111U, &client, 0x40010000U) == 0,
+                    "owner repeated continuation sink close");
+        raw->deactivate();
+        tests.check(raw->clear_observer_sink(), "owner repeated continuation sink clear");
+        g_fake_state = nullptr;
+    }
 }
 
 void exercise_event_and_continuation(TestState& tests)
@@ -452,6 +547,131 @@ void exercise_event_and_continuation(TestState& tests)
     tests.check(raw->clear_observer_sink(), "quiescent sink clear");
     g_fake_context = nullptr;
     g_fake_state   = nullptr;
+}
+
+void exercise_owner_sink_contract(TestState& tests)
+{
+    {
+        std::unique_ptr<raw_recorder::RawRecorder> raw =
+            std::make_unique<raw_recorder::RawRecorder>();
+        Recorder       diagnostic;
+        OwnerSinkState owner_state;
+        owner_state.event_result = false;
+        const RawLifecycleOwnerSink owner_sink{
+            &owner_event_sink, &owner_continuation_sink, &owner_state
+        };
+        auto bridge = std::make_unique<RawEventBridge>(
+            diagnostic, nullptr, nullptr, RawEventBindingMode::deferred, owner_sink);
+        FakeState state;
+        g_fake_state = &state;
+        std::array<std::uint8_t, 0x60> create{};
+        make_lifecycle(&create, 3);
+        tests.check(bridge->attach(*raw), "owner refusal sink attach");
+        tests.check(raw->activate(&fake_wait, &fake_continue), "owner refusal sink activate");
+        tests.check(raw_recorder::RawRecorder::WaitThunk(
+                        0x1111U, 0, nullptr, create.data()) == 0,
+                    "owner refusal sink wait");
+        tests.check(owner_state.event_calls == 1 && bridge->event_count() == 1 &&
+                        bridge->event(0).owner_sink_attempted &&
+                        !bridge->event(0).owner_sink_succeeded &&
+                        bridge->event(0).pending_status == PendingEventStatus::Admitted &&
+                        !bridge->coverage(),
+                    "owner refusal remains admitted but incomplete");
+        raw->deactivate();
+        tests.check(raw->clear_observer_sink(), "owner refusal sink clear");
+        g_fake_state = nullptr;
+    }
+
+    {
+        std::unique_ptr<raw_recorder::RawRecorder> raw =
+            std::make_unique<raw_recorder::RawRecorder>();
+        Recorder       diagnostic;
+        OwnerSinkState owner_state;
+        owner_state.throw_event = true;
+        const RawLifecycleOwnerSink owner_sink{
+            &owner_event_sink, &owner_continuation_sink, &owner_state
+        };
+        auto bridge = std::make_unique<RawEventBridge>(
+            diagnostic, nullptr, nullptr, RawEventBindingMode::deferred, owner_sink);
+        FakeState state;
+        g_fake_state = &state;
+        std::array<std::uint8_t, 0x60> create{};
+        make_lifecycle(&create, 3);
+        tests.check(bridge->attach(*raw), "owner throw sink attach");
+        tests.check(raw->activate(&fake_wait, &fake_continue), "owner throw sink activate");
+        tests.check(raw_recorder::RawRecorder::WaitThunk(
+                        0x1111U, 0, nullptr, create.data()) == 0,
+                    "owner throw sink wait");
+        const DWORD wait_error  = GetLastError();
+        const ULONG wait_status = __readfsdword(0xBF4U);
+        tests.check(owner_state.event_calls == 1 && bridge->event_count() == 1 &&
+                        bridge->event(0).owner_sink_attempted &&
+                        !bridge->event(0).owner_sink_succeeded && bridge->gap_count() != 0 &&
+                        !bridge->coverage(),
+                    "owner sink exception remains a retained gap");
+        tests.check(wait_error == 0xA11U && wait_status == 0xA22U,
+                    "owner sink exception preserves wait error pair");
+        raw->deactivate();
+        tests.check(raw->clear_observer_sink(), "owner throw sink clear");
+        g_fake_state = nullptr;
+    }
+
+    {
+        std::unique_ptr<raw_recorder::RawRecorder> raw =
+            std::make_unique<raw_recorder::RawRecorder>();
+        Recorder       diagnostic;
+        OwnerSinkState owner_state;
+        owner_state.continuation_result = false;
+        const RawLifecycleOwnerSink owner_sink{
+            &owner_event_sink, &owner_continuation_sink, &owner_state
+        };
+        auto bridge = std::make_unique<RawEventBridge>(
+            diagnostic, nullptr, nullptr, RawEventBindingMode::deferred, owner_sink);
+        FakeState state;
+        g_fake_state = &state;
+        std::array<std::uint8_t, 0x60> create{};
+        make_lifecycle(&create, 3);
+        tests.check(bridge->attach(*raw), "owner continuation sink attach");
+        tests.check(raw->activate(&fake_wait, &fake_continue),
+                    "owner continuation sink activate");
+        tests.check(raw_recorder::RawRecorder::WaitThunk(
+                        0x1111U, 0, nullptr, create.data()) == 0,
+                    "owner continuation sink wait");
+        const std::optional<EventIdentity> pending = diagnostic.pending_event();
+        tests.check(pending.has_value(), "owner continuation pending snapshot");
+        RawIdentityBinding binding;
+        if (pending.has_value())
+        {
+            binding.raw_debug_object = pending->raw_debug_object;
+            binding.process_id       = pending->process_id;
+            binding.thread_id        = pending->thread_id;
+            binding.raw_generation   = pending->raw_generation;
+            binding.event_index      = static_cast<std::size_t>(pending->event_index);
+        }
+        tests.check(bridge->bind_engine_event(binding,
+                                              complete_deferred_observation(binding),
+                                              0x31U) == EngineBindingStatus::Bound,
+                    "owner continuation bind before refusal");
+        state.continue_result = 0;
+        ClientId client{ 100, 200 };
+        tests.check(raw_recorder::RawRecorder::ContinueThunk(
+                        0x1111U, &client, 0x40010000U) == 0,
+                    "owner continuation close result");
+        const DWORD continue_error  = GetLastError();
+        const ULONG continue_status = __readfsdword(0xBF4U);
+        tests.check(owner_state.continuation_calls == 1 &&
+                        bridge->continuation_count() == 1 &&
+                        bridge->continuation(0).owner_sink_attempted &&
+                        !bridge->continuation(0).owner_sink_succeeded &&
+                        bridge->continuation(0).close_status == PendingEventStatus::Closed &&
+                        !bridge->coverage(),
+                    "owner continuation refusal remains incomplete after close");
+        tests.check(continue_error == 0xB22U && continue_status == 0xB33U,
+                    "owner continuation refusal preserves continue error pair");
+        raw->deactivate();
+        tests.check(raw->clear_observer_sink(), "owner continuation sink clear");
+        g_fake_state = nullptr;
+    }
 }
 
 void exercise_unknown_mismatch_throw_and_overflow(TestState& tests)
@@ -746,6 +966,7 @@ SelfTestReport run_event_bridge_self_tests()
     TestState tests;
     exercise_reentrant_and_error_restore(tests);
     exercise_event_and_continuation(tests);
+    exercise_owner_sink_contract(tests);
     exercise_unknown_mismatch_throw_and_overflow(tests);
     exercise_deferred_binding(tests);
     tests.report.passed = tests.report.failures == 0;

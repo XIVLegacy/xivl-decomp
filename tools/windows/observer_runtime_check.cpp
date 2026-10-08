@@ -45,9 +45,10 @@ int wmain(int argc, wchar_t** argv)
     }
     if (argc != 3 || (std::wstring(argv[1]) != L"--bridge-output" &&
                       std::wstring(argv[1]) != L"--callback-output" &&
-                      std::wstring(argv[1]) != L"--callback-dispatch-output"))
+                      std::wstring(argv[1]) != L"--callback-dispatch-output" &&
+                      std::wstring(argv[1]) != L"--callback-owner-output"))
     {
-        std::cerr << "usage: observer_runtime_check --self-test | --bridge-output ABSOLUTE_PATH | --callback-output ABSOLUTE_PATH | --callback-dispatch-output ABSOLUTE_PATH\n";
+        std::cerr << "usage: observer_runtime_check --self-test | --bridge-output ABSOLUTE_PATH | --callback-output ABSOLUTE_PATH | --callback-dispatch-output ABSOLUTE_PATH | --callback-owner-output ABSOLUTE_PATH\n";
         return 2;
     }
     const std::filesystem::path path(argv[2]);
@@ -58,11 +59,18 @@ int wmain(int argc, wchar_t** argv)
     }
     const bool        callback_output          = std::wstring(argv[1]) == L"--callback-output";
     const bool        callback_dispatch_output = std::wstring(argv[1]) == L"--callback-dispatch-output";
-    const std::string trace                    = (callback_dispatch_output ? make_callback_dispatch_synthetic_trace()
-                                                  : callback_output        ? make_callback_identity_synthetic_trace()
-                                                                           : make_bridge_synthetic_trace()) +
+    const bool        callback_owner_output    = std::wstring(argv[1]) == L"--callback-owner-output";
+    const std::string trace                    = (callback_owner_output      ? make_callback_owner_integration_trace()
+                                                  : callback_dispatch_output ? make_callback_dispatch_synthetic_trace()
+                                                  : callback_output          ? make_callback_identity_synthetic_trace()
+                                                                             : make_bridge_synthetic_trace()) +
                                                  '\n';
-    const HANDLE      output                   = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (callback_owner_output && trace.size() <= 1)
+    {
+        std::cerr << "callback owner integration did not produce complete evidence\n";
+        return 1;
+    }
+    const HANDLE output = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (output == INVALID_HANDLE_VALUE)
     {
         std::cerr << "cannot create fresh output: " << GetLastError() << '\n';
@@ -76,8 +84,9 @@ int wmain(int argc, wchar_t** argv)
         std::cerr << "output write or close failed; retain the incomplete file\n";
         return 1;
     }
-    std::cout << (callback_dispatch_output ? "saved synthetic callback dispatch evidence; no live engine or installation\n"
-                  : callback_output        ? "saved synthetic callback identity evidence; no live engine or installation\n"
-                                           : "saved synthetic raw bridge evidence; no live engine or installation\n");
+    std::cout << (callback_owner_output      ? "saved synthetic callback owner integration evidence; no live engine or installation\n"
+                  : callback_dispatch_output ? "saved synthetic callback dispatch evidence; no live engine or installation\n"
+                  : callback_output          ? "saved synthetic callback identity evidence; no live engine or installation\n"
+                                             : "saved synthetic raw bridge evidence; no live engine or installation\n");
     return 0;
 }

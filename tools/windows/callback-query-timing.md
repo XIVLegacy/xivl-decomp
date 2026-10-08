@@ -140,6 +140,11 @@ counter.
    (debug object, raw PID, raw TID, and raw generation) must come from that
    same lifecycle owner, not from an arbitrary cache. The zero-based event
    index remains the event join key and is not part of the lifecycle tuple.
+   `RawEventBridge` can deliver the admitted key to one borrowed
+   `RawLifecycleOwnerSink` after the Recorder admits it and before the raw
+   thunk returns. The sink may retain the key for the later callback owner,
+   but cannot read selected SDK state or create an authority, lifetime or
+   lifecycle token.
 3. On the proposed native `Breakpoint` callback-entry reader, snapshot the
    pending raw key before any SDK or breakpoint-object reads. This reader is a
    proposed callback-entry mechanism; the current post-wait `raw_callback`
@@ -212,6 +217,20 @@ rows and may call `RawEventBridge::bind_engine_event` only after the exact raw
 key recheck and the supplied owner witness pass. The recorder mutex covers the
 pending-key recheck and row-capacity publication, while callers serialize the
 callback, raw-event, binding and continuation operations.
+
+`RetainedCallbackOwnerAdapter` in `observer_callback_dispatch.h` is the
+bounded borrowed owner view used by the fake integration. It retains one
+current admitted raw key, accepts a complete caller-supplied witness for the
+exact callback kind and phase, and clears the view only after successful exact
+continuation closure. It does not allocate tokens or authority values and has
+no cross-event registry. Its pointer publish form borrows stable caller-owned
+storage and the provider rereads that source before SDK acquisition. Bridge
+sink results are final after each sink returns, so unknown, changed, foreign,
+ended or partially published owner state remains refused. A negative
+continuation result with a healthy sink retains the pending owner view; a sink
+refusal or exception poisons later acquisition. The native `Events` owner still
+needs a demonstrated source for these authority, source-lifetime and
+serialization attestations before any live binding claim.
 
 The acquisition row is the bounded source record: it contains the entry-linked
 callback operation, a shared-clock begin/end pair, both raw-key snapshots, the

@@ -148,11 +148,13 @@ void synthetic_exception(std::array<std::uint8_t, 0x60>* bytes)
 RawEventBridge::RawEventBridge(Recorder&                recorder,
                                EngineGenerationProvider provider,
                                void*                    provider_user,
-                               RawEventBindingMode      mode) noexcept
+                               RawEventBindingMode      mode,
+                               RawLifecycleOwnerSink    owner_sink) noexcept
 : recorder_(recorder)
 , provider_(provider)
 , provider_user_(provider_user)
 , mode_(mode)
+, owner_sink_(owner_sink)
 {
 }
 
@@ -175,7 +177,21 @@ bool RawEventBridge::coverage() const noexcept
     for (std::size_t index = 0; index < event_count_; ++index)
     {
         const BridgeEventEvidence& event = events_[index];
+        if (owner_sink_.observe_event && event.pending_status == PendingEventStatus::Admitted &&
+            (!event.owner_sink_attempted || !event.owner_sink_succeeded))
+        {
+            return false;
+        }
         if (!event.complete && !bound_identity_present_[event.raw_event_index])
+        {
+            return false;
+        }
+    }
+    for (std::size_t index = 0; index < continuation_count_; ++index)
+    {
+        const BridgeContinuationEvidence& continuation = continuations_[index];
+        if (owner_sink_.observe_continuation &&
+            (!continuation.owner_sink_attempted || !continuation.owner_sink_succeeded))
         {
             return false;
         }
@@ -249,6 +265,42 @@ std::size_t RawEventBridge::event_slot(std::size_t raw_event_index) const noexce
     return events_.size();
 }
 
+bool RawEventBridge::owner_notification_complete(
+    const RawIdentityBinding& raw_identity) const noexcept
+{
+    if (owner_sink_.observe_event)
+    {
+        const std::size_t slot = event_slot(raw_identity.event_index);
+        if (slot >= events_.size() ||
+            !same_raw_identity(raw_identity, events_[slot].raw_identity) ||
+            !events_[slot].owner_sink_attempted || !events_[slot].owner_sink_succeeded)
+        {
+            return false;
+        }
+    }
+    if (owner_sink_.observe_continuation)
+    {
+        for (std::size_t index = 0; index < continuation_count_; ++index)
+        {
+            const BridgeContinuationEvidence& continuation = continuations_[index];
+            if (continuation.matched_identity.complete &&
+                continuation.matched_identity.raw_debug_object == raw_identity.raw_debug_object &&
+                continuation.matched_identity.process_id == raw_identity.process_id &&
+                continuation.matched_identity.thread_id == raw_identity.thread_id &&
+                continuation.matched_identity.raw_generation == raw_identity.raw_generation &&
+                continuation.matched_identity.event_index == raw_identity.event_index)
+            {
+                if (!continuation.owner_sink_attempted ||
+                    !continuation.owner_sink_succeeded)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
 EngineBindingStatus RawEventBridge::bind_engine_event(
     const RawIdentityBinding&        raw_identity,
     const EngineIdentityObservation& observation,
@@ -291,6 +343,10 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
                                 events_[event_slot_index].raw_identity))
     {
         status = EngineBindingStatus::Changed;
+    }
+    else if (!owner_notification_complete(raw_identity))
+    {
+        status = EngineBindingStatus::IncompleteEvidence;
     }
     else
     {
@@ -446,6 +502,7 @@ void RawEventBridge::observe_event(
     const std::size_t    index  = notification.raw_event_index;
     BridgeEventEvidence& output = events_[event_count_++];
     output                      = {};
+    output.bridge               = this;
     output.raw_event_index      = index;
     output.event                = *notification.event;
     if (notification.wait_return != nullptr)
@@ -498,6 +555,26 @@ void RawEventBridge::observe_event(
             coverage_.store(false, std::memory_order_release);
         }
     }
+    if (owner_sink_.observe_event && output.pending_status == PendingEventStatus::Admitted)
+    {
+        output.owner_sink_attempted = true;
+        bool owner_retained         = false;
+        try
+        {
+            owner_retained = owner_sink_.observe_event(owner_sink_.user, output);
+        }
+        catch (...)
+        {
+            coverage_.store(false, std::memory_order_release);
+            mark_gap(notification.attempt_id,
+                     raw_recorder::CoverageGapReason::observer_sink_exception);
+        }
+        output.owner_sink_succeeded = owner_retained;
+        if (!owner_retained)
+        {
+            coverage_.store(false, std::memory_order_release);
+        }
+    }
 }
 
 void RawEventBridge::observe_continuation(
@@ -514,6 +591,7 @@ void RawEventBridge::observe_continuation(
 
     BridgeContinuationEvidence& output = continuations_[continuation_count_++];
     output                             = {};
+    output.bridge                      = this;
     output.attempt_id                  = notification.attempt_id;
     output.matched_event_index         = notification.continue_result->matched_event;
     output.result                      = *notification.continue_result;
@@ -591,6 +669,26 @@ void RawEventBridge::observe_continuation(
                           output.matched_identity.complete &&
                           output.matched_identity.engine_generation_known;
         if (!output.complete)
+        {
+            coverage_.store(false, std::memory_order_release);
+        }
+    }
+    if (owner_sink_.observe_continuation)
+    {
+        output.owner_sink_attempted = true;
+        bool owner_retained         = false;
+        try
+        {
+            owner_retained = owner_sink_.observe_continuation(owner_sink_.user, output);
+        }
+        catch (...)
+        {
+            coverage_.store(false, std::memory_order_release);
+            mark_gap(notification.attempt_id,
+                     raw_recorder::CoverageGapReason::observer_sink_exception);
+        }
+        output.owner_sink_succeeded = owner_retained;
+        if (!owner_retained)
         {
             coverage_.store(false, std::memory_order_release);
         }

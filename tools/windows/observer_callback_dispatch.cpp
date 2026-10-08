@@ -4,7 +4,9 @@
 
 #include <windows.h>
 
+#include <cstring>
 #include <exception>
+#include <optional>
 
 namespace xivl::observer_diagnostic
 {
@@ -29,6 +31,342 @@ bool owner_complete(const CallbackOwnerEvidence& owner) noexcept
 }
 
 } // namespace
+
+RetainedCallbackOwnerAdapter::RetainedCallbackOwnerAdapter(
+    std::uint32_t owner_thread_id,
+    Recorder*     recorder) noexcept
+: owner_thread_id_(owner_thread_id)
+, recorder_(recorder)
+{
+}
+
+RawLifecycleOwnerSink RetainedCallbackOwnerAdapter::owner_sink() noexcept
+{
+    return { &RetainedCallbackOwnerAdapter::observe_event,
+             &RetainedCallbackOwnerAdapter::observe_continuation,
+             this };
+}
+
+CallbackOwnerProvider RetainedCallbackOwnerAdapter::owner_provider() noexcept
+{
+    return &RetainedCallbackOwnerAdapter::provide_owner;
+}
+
+void* RetainedCallbackOwnerAdapter::provider_user() noexcept
+{
+    return this;
+}
+
+EventIdentity RetainedCallbackOwnerAdapter::current_raw_identity() const noexcept
+{
+    return raw_open_ ? raw_identity_ : EventIdentity{};
+}
+
+bool RetainedCallbackOwnerAdapter::raw_open() const noexcept
+{
+    return raw_open_;
+}
+
+bool RetainedCallbackOwnerAdapter::on_owner_thread() const noexcept
+{
+    return owner_thread_id_ != 0 && GetCurrentThreadId() == owner_thread_id_;
+}
+
+bool RetainedCallbackOwnerAdapter::raw_key_complete(const EventIdentity& identity) noexcept
+{
+    return identity.complete && identity.raw_debug_object != 0 && identity.process_id != 0 &&
+           identity.thread_id != 0 && identity.raw_generation != 0 &&
+           identity.event_index != static_cast<std::uint64_t>(-1);
+}
+
+bool RetainedCallbackOwnerAdapter::owner_complete(
+    const CallbackOwnerEvidence& owner) noexcept
+{
+    return owner.serialized_selected_state_access && owner.retained_source_lifetime &&
+           owner.authority_id != 0 && owner.lifetime_id != 0 &&
+           owner.cached_raw_lifecycle_associated && owner.cached_raw_debug_object != 0 &&
+           owner.cached_raw_process_id != 0 && owner.cached_raw_thread_id != 0 &&
+           owner.cached_raw_generation != 0 && owner.cached_engine_id_known &&
+           owner.cached_engine_id != kDebugAnyEngineId && owner.lifecycle_token_known &&
+           owner.lifecycle_token != 0;
+}
+
+RetainedCallbackOwnerAdapter::CallbackKind RetainedCallbackOwnerAdapter::callback_kind(
+    const char* value) noexcept
+{
+    if (value == nullptr)
+    {
+        return CallbackKind::none;
+    }
+    if (std::strcmp(value, "breakpoint") == 0)
+    {
+        return CallbackKind::breakpoint;
+    }
+    if (std::strcmp(value, "create_thread") == 0)
+    {
+        return CallbackKind::create_thread;
+    }
+    return CallbackKind::none;
+}
+
+bool RetainedCallbackOwnerAdapter::same_raw_key(const EventIdentity& left,
+                                                const EventIdentity& right) const noexcept
+{
+    return raw_key_complete(left) && raw_key_complete(right) &&
+           left.raw_debug_object == right.raw_debug_object &&
+           left.process_id == right.process_id && left.thread_id == right.thread_id &&
+           left.raw_generation == right.raw_generation &&
+           left.event_index == right.event_index;
+}
+
+bool RetainedCallbackOwnerAdapter::same_owner_identity(
+    const CallbackOwnerEvidence& left,
+    const CallbackOwnerEvidence& right) noexcept
+{
+    return left.serialized_selected_state_access == right.serialized_selected_state_access &&
+           left.retained_source_lifetime == right.retained_source_lifetime &&
+           left.authority_id == right.authority_id && left.lifetime_id == right.lifetime_id &&
+           left.cached_raw_lifecycle_associated == right.cached_raw_lifecycle_associated &&
+           left.cached_raw_debug_object == right.cached_raw_debug_object &&
+           left.cached_raw_process_id == right.cached_raw_process_id &&
+           left.cached_raw_thread_id == right.cached_raw_thread_id &&
+           left.cached_raw_generation == right.cached_raw_generation &&
+           left.cached_engine_id_known == right.cached_engine_id_known &&
+           left.cached_engine_id == right.cached_engine_id &&
+           left.lifecycle_token_known == right.lifecycle_token_known &&
+           left.lifecycle_token == right.lifecycle_token;
+}
+
+bool RetainedCallbackOwnerAdapter::pending_raw_matches(
+    const EventIdentity& identity) const noexcept
+{
+    if (recorder_ == nullptr)
+    {
+        return false;
+    }
+    try
+    {
+        const std::optional<EventIdentity> pending = recorder_->pending_event();
+        return pending.has_value() && same_raw_key(identity, *pending);
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+bool RetainedCallbackOwnerAdapter::observe_event(void*                      user,
+                                                 const BridgeEventEvidence& evidence) noexcept
+{
+    auto* adapter = static_cast<RetainedCallbackOwnerAdapter*>(user);
+    return adapter != nullptr && adapter->retain_event(evidence);
+}
+
+bool RetainedCallbackOwnerAdapter::observe_continuation(
+    void*                             user,
+    const BridgeContinuationEvidence& evidence) noexcept
+{
+    auto* adapter = static_cast<RetainedCallbackOwnerAdapter*>(user);
+    return adapter != nullptr && adapter->retain_continuation(evidence);
+}
+
+bool RetainedCallbackOwnerAdapter::provide_owner(void*                  user,
+                                                 const char*            callback_kind,
+                                                 CallbackDispatchPhase  phase,
+                                                 const EventIdentity&   entry_raw_identity,
+                                                 CallbackOwnerEvidence* owner) noexcept
+{
+    auto* adapter = static_cast<RetainedCallbackOwnerAdapter*>(user);
+    return adapter != nullptr &&
+           adapter->provide(callback_kind, phase, entry_raw_identity, owner);
+}
+
+bool RetainedCallbackOwnerAdapter::bridge_event_final() const noexcept
+{
+    if (bridge_ == nullptr)
+    {
+        return false;
+    }
+    for (std::size_t index = 0; index < bridge_->event_count(); ++index)
+    {
+        const BridgeEventEvidence& evidence = bridge_->event(index);
+        if (same_raw_key(evidence.identity, raw_identity_))
+        {
+            return evidence.owner_sink_attempted && evidence.owner_sink_succeeded;
+        }
+    }
+    return false;
+}
+
+bool RetainedCallbackOwnerAdapter::bridge_continuation_final() const noexcept
+{
+    if (bridge_ == nullptr)
+    {
+        return false;
+    }
+    for (std::size_t index = 0; index < bridge_->continuation_count(); ++index)
+    {
+        const BridgeContinuationEvidence& evidence = bridge_->continuation(index);
+        if (same_raw_key(evidence.matched_identity, raw_identity_) &&
+            (!evidence.owner_sink_attempted || !evidence.owner_sink_succeeded))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool RetainedCallbackOwnerAdapter::retain_event(const BridgeEventEvidence& evidence) noexcept
+{
+    if (!on_owner_thread())
+    {
+        return false;
+    }
+    if (raw_open_ || evidence.pending_status != PendingEventStatus::Admitted ||
+        evidence.bridge == nullptr ||
+        !raw_key_complete(evidence.identity) ||
+        !pending_raw_matches(evidence.identity) ||
+        evidence.raw_identity.event_index == static_cast<std::size_t>(-1) ||
+        evidence.raw_identity.raw_debug_object != evidence.identity.raw_debug_object ||
+        evidence.raw_identity.process_id != evidence.identity.process_id ||
+        evidence.raw_identity.thread_id != evidence.identity.thread_id ||
+        evidence.raw_identity.raw_generation != evidence.identity.raw_generation ||
+        evidence.raw_identity.event_index !=
+            static_cast<std::size_t>(evidence.identity.event_index))
+    {
+        invalid_ = true;
+        return false;
+    }
+
+    raw_identity_    = evidence.identity;
+    owner_           = {};
+    owner_source_    = nullptr;
+    bridge_          = evidence.bridge;
+    callback_kind_   = CallbackKind::none;
+    owner_phase_     = CallbackDispatchPhase::BeforeDelegate;
+    raw_open_        = true;
+    owner_published_ = false;
+    invalid_         = false;
+    return true;
+}
+
+bool RetainedCallbackOwnerAdapter::retain_continuation(
+    const BridgeContinuationEvidence& evidence) noexcept
+{
+    if (!on_owner_thread())
+    {
+        return false;
+    }
+    if (!raw_open_ || !same_raw_key(raw_identity_, evidence.matched_identity))
+    {
+        invalid_ = true;
+        return false;
+    }
+
+    if (evidence.result.pending_retained)
+    {
+        if (!evidence.result.match_unique || !owner_published_)
+        {
+            invalid_ = true;
+            return false;
+        }
+        bridge_ = evidence.bridge;
+        return true;
+    }
+
+    if (evidence.result.pending_cleared &&
+        evidence.close_status == PendingEventStatus::Closed)
+    {
+        const bool had_owner = owner_published_;
+        raw_open_            = false;
+        owner_published_     = false;
+        owner_source_        = nullptr;
+        bridge_              = nullptr;
+        callback_kind_       = CallbackKind::none;
+        owner_               = {};
+        raw_identity_        = {};
+        invalid_             = !had_owner;
+        return had_owner;
+    }
+
+    invalid_ = true;
+    return false;
+}
+
+bool RetainedCallbackOwnerAdapter::publish(
+    const EventIdentity&         raw_identity,
+    const char*                  callback_kind_name,
+    CallbackDispatchPhase        phase,
+    const CallbackOwnerEvidence* owner_source) noexcept
+{
+    if (!on_owner_thread())
+    {
+        return false;
+    }
+    const CallbackKind kind = callback_kind(callback_kind_name);
+    const bool         expected_phase =
+        (kind == CallbackKind::breakpoint && phase == CallbackDispatchPhase::BeforeDelegate) ||
+        (kind == CallbackKind::create_thread && phase == CallbackDispatchPhase::AfterDelegate);
+    if (owner_source == nullptr || !raw_open_ || !pending_raw_matches(raw_identity) ||
+        invalid_ || owner_published_ || kind == CallbackKind::none || !expected_phase ||
+        !same_raw_key(raw_identity_, raw_identity) || !owner_complete(*owner_source) ||
+        owner_source->cached_raw_debug_object != raw_identity.raw_debug_object ||
+        owner_source->cached_raw_process_id != raw_identity.process_id ||
+        owner_source->cached_raw_thread_id != raw_identity.thread_id ||
+        owner_source->cached_raw_generation != raw_identity.raw_generation)
+    {
+        invalid_         = true;
+        owner_published_ = false;
+        owner_source_    = nullptr;
+        owner_           = {};
+        return false;
+    }
+
+    owner_           = *owner_source;
+    owner_source_    = owner_source;
+    callback_kind_   = kind;
+    owner_phase_     = phase;
+    owner_published_ = true;
+    return true;
+}
+
+bool RetainedCallbackOwnerAdapter::provide(const char*            callback_kind_name,
+                                           CallbackDispatchPhase  phase,
+                                           const EventIdentity&   entry_raw_identity,
+                                           CallbackOwnerEvidence* owner) noexcept
+{
+    if (owner == nullptr)
+    {
+        return false;
+    }
+    if (!on_owner_thread())
+    {
+        return false;
+    }
+    *owner                  = {};
+    const CallbackKind kind = callback_kind(callback_kind_name);
+    const bool         expected_phase =
+        (kind == CallbackKind::breakpoint && phase == CallbackDispatchPhase::BeforeDelegate) ||
+        (kind == CallbackKind::create_thread && phase == CallbackDispatchPhase::AfterDelegate);
+    if (!raw_open_ || !pending_raw_matches(entry_raw_identity) || invalid_ ||
+        !owner_published_ || kind == CallbackKind::none || !expected_phase ||
+        kind != callback_kind_ || phase != owner_phase_ ||
+        !same_raw_key(raw_identity_, entry_raw_identity) || owner_source_ == nullptr ||
+        !owner_complete(*owner_source_) || !same_owner_identity(owner_, *owner_source_) ||
+        !bridge_event_final() || !bridge_continuation_final() ||
+        owner_.cached_raw_debug_object != entry_raw_identity.raw_debug_object ||
+        owner_.cached_raw_process_id != entry_raw_identity.process_id ||
+        owner_.cached_raw_thread_id != entry_raw_identity.thread_id ||
+        owner_.cached_raw_generation != entry_raw_identity.raw_generation)
+    {
+        invalid_         = true;
+        owner_published_ = false;
+        owner_           = {};
+        return false;
+    }
+    *owner = owner_;
+    return true;
+}
 
 const char* callback_dispatch_phase_name(CallbackDispatchPhase phase) noexcept
 {
