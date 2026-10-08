@@ -231,6 +231,7 @@ std::string    make_callback_dispatch_synthetic_trace();
 std::string    make_callback_owner_integration_trace();
 std::string    make_callback_session_integration_trace();
 std::string    make_event_lifecycle_integration_trace();
+std::string    make_events_delegate_integration_trace();
 
 } // namespace xivl::observer_diagnostic
 

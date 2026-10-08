@@ -4,6 +4,7 @@
 #include "observer_event_bridge.h"
 #include "observer_event_lifecycle.h"
 #include "raw_event_recorder.h"
+#include "trace_map_events.h"
 
 #include <windows.h>
 
@@ -420,11 +421,17 @@ void run_source_read_hooks(DispatchState* state)
 class FakeSystemObjects final : public IDebugSystemObjects
 {
 public:
-    DispatchState*                             state = nullptr;
-    std::array<ULONG, kCallbackSdkMethodCount> values{ 7, 7, 2, 2, 200, 100 };
-    ULONG                                      references    = 1;
-    ULONG                                      query_calls   = 0;
-    ULONG                                      release_calls = 0;
+    DispatchState*                               state = nullptr;
+    std::array<ULONG, kCallbackSdkMethodCount>   values{ 7, 7, 2, 2, 200, 100 };
+    std::array<HRESULT, kCallbackSdkMethodCount> results{};
+    ULONG64                                      data_offset   = 0x444;
+    ULONG64                                      teb_offset    = 0x555;
+    HRESULT                                      offset_result = E_NOTIMPL;
+    ULONG                                        data_calls    = 0;
+    ULONG                                        teb_calls     = 0;
+    ULONG                                        references    = 1;
+    ULONG                                        query_calls   = 0;
+    ULONG                                        release_calls = 0;
 
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, PVOID* object) override
     {
@@ -469,7 +476,7 @@ private:
                                       -static_cast<std::int32_t>(0xC0 + index) };
         }
         *output = values[index];
-        return S_OK;
+        return results[index];
     }
 
 public:
@@ -523,9 +530,11 @@ public:
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE GetCurrentThreadDataOffset(PULONG64) override
+    HRESULT STDMETHODCALLTYPE GetCurrentThreadDataOffset(PULONG64 output) override
     {
-        return E_NOTIMPL;
+        ++data_calls;
+        *output = data_offset;
+        return offset_result;
     }
 
     HRESULT STDMETHODCALLTYPE GetThreadIdByDataOffset(ULONG64, PULONG) override
@@ -533,9 +542,11 @@ public:
         return E_NOTIMPL;
     }
 
-    HRESULT STDMETHODCALLTYPE GetCurrentThreadTeb(PULONG64) override
+    HRESULT STDMETHODCALLTYPE GetCurrentThreadTeb(PULONG64 output) override
     {
-        return E_NOTIMPL;
+        ++teb_calls;
+        *output = teb_offset;
+        return offset_result;
     }
 
     HRESULT STDMETHODCALLTYPE GetThreadIdByTeb(ULONG64, PULONG) override
@@ -893,9 +904,13 @@ LONG __stdcall fake_continue(ULONG, PVOID, ULONG) noexcept
     return g_dispatch_continue_result;
 }
 
-bool admit_raw(Recorder* recorder, std::unique_ptr<raw_recorder::RawRecorder>* raw, RawEventBridge* bridge)
+bool admit_raw(Recorder* recorder, std::unique_ptr<raw_recorder::RawRecorder>* raw, RawEventBridge* bridge, const raw_recorder::ContextApi* context_api = nullptr)
 {
     *raw = std::make_unique<raw_recorder::RawRecorder>();
+    if (context_api != nullptr)
+    {
+        (*raw)->set_context_api(*context_api);
+    }
     if (bridge == nullptr || !bridge->attach(**raw) || !(*raw)->activate(&fake_wait, &fake_continue))
     {
         return false;
@@ -953,6 +968,17 @@ bool admit_next_create_event()
 bool admit_next_exit_event()
 {
     return admit_next_lifecycle_event(4);
+}
+
+bool admit_next_exception_event()
+{
+    std::array<std::uint8_t, 0x60> event{};
+    *reinterpret_cast<ULONG*>(event.data())        = 6;
+    *reinterpret_cast<ULONG*>(event.data() + 4)    = 100;
+    *reinterpret_cast<ULONG*>(event.data() + 8)    = 200;
+    *reinterpret_cast<ULONG*>(event.data() + 0x0C) = EXCEPTION_BREAKPOINT;
+    *reinterpret_cast<ULONG*>(event.data() + 0x5C) = 1;
+    return raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data()) == 0;
 }
 
 CallbackDispatchConfig dispatch_config(DispatchState*          state,
@@ -2816,6 +2842,325 @@ void run_error_preservation_refusals(TestState* tests)
     }
 }
 
+struct ProductionEventsSourceState
+{
+    map_selection::Events*                      events              = nullptr;
+    std::uint64_t                               event_number_before = 0;
+    std::uint32_t                               calls               = 0;
+    ObserverEventLifecycleCache::LifecycleEvent created{};
+    bool                                        bound = false;
+};
+
+HANDLE WINAPI production_fake_open_thread(DWORD access, BOOL inherit, DWORD tid)
+{
+    return access == (THREAD_GET_CONTEXT | THREAD_QUERY_LIMITED_INFORMATION) && !inherit && tid == 200
+               ? reinterpret_cast<HANDLE>(0xF00)
+               : nullptr;
+}
+
+DWORD WINAPI production_fake_thread_id(HANDLE handle)
+{
+    return handle == reinterpret_cast<HANDLE>(0xF00) ? 200 : 0;
+}
+
+DWORD WINAPI production_fake_process_id(HANDLE handle)
+{
+    return handle == reinterpret_cast<HANDLE>(0xF00) ? 100 : 0;
+}
+
+BOOL WINAPI production_fake_thread_times(HANDLE handle, LPFILETIME creation, LPFILETIME exit, LPFILETIME kernel, LPFILETIME user)
+{
+    *creation = FILETIME{ 7, 0 };
+    *exit = *kernel = *user = FILETIME{};
+    return handle == reinterpret_cast<HANDLE>(0xF00);
+}
+
+BOOL WINAPI production_fake_thread_context(HANDLE handle, LPCONTEXT context)
+{
+    context->Eip = 0x1234;
+    return handle == reinterpret_cast<HANDLE>(0xF00) && context->ContextFlags == raw_recorder::kContextMask;
+}
+
+BOOL WINAPI production_fake_close_handle(HANDLE handle)
+{
+    return handle == reinterpret_cast<HANDLE>(0xF00);
+}
+
+// This provider belongs to the CPU harness. It reads the production queue
+// without consuming it and supplies no native selected-state authority.
+bool production_events_source(void*                                     user,
+                              const EventIdentity&                      raw,
+                              CachedLifecycleObservation*               observation,
+                              ObserverEventLifecycleSource::SourceHold* hold)
+{
+    auto* state = static_cast<ProductionEventsSourceState*>(user);
+    if (state == nullptr || state->events == nullptr || observation == nullptr || hold == nullptr)
+    {
+        return false;
+    }
+    ++state->calls;
+    auto& events = *state->events;
+    if (events.pending_lifecycle.size() != 1)
+    {
+        return false;
+    }
+    state->created = events.pending_lifecycle.front();
+    if (!state->created.created ||
+        state->created.event_number != state->event_number_before + 1 ||
+        state->created.event_number != events.event_number)
+    {
+        return false;
+    }
+    auto* source = events.prepared_lifecycle_source();
+    state->bound = source->bind_created(events.lifecycle_cache, raw, state->created);
+    return state->bound && source->acquire(raw, hold, observation);
+}
+
+enum class ProductionEventsCase
+{
+    success,
+    mismatched_tid,
+    failed_selected_thread,
+    failed_acquisition,
+    invalid_instrumentation,
+    unwatched,
+    stale_queue,
+};
+
+std::string run_production_events_integration(TestState* tests, ProductionEventsCase scenario)
+{
+    const auto    failures_before = tests->report.failures;
+    DispatchState state;
+    state.callback_thread   = GetCurrentThreadId();
+    state.readable_memory   = true;
+    state.fake_vtable[4]    = reinterpret_cast<std::uintptr_t>(&fake_query);
+    state.fake_interface[0] = reinterpret_cast<std::uintptr_t>(state.fake_vtable.data());
+    state.output_value      = state.fake_interface.data();
+    const auto service      = reinterpret_cast<std::uintptr_t>(state.fake_interface.data());
+    std::memcpy(state.fake_record.data() + kRecordServiceOffset, &service, sizeof(service));
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeSystemObjects systems;
+    systems.state         = &state;
+    systems.values        = { 42, 42, 2, 2, 200, 100 };
+    systems.data_offset   = 0x222;
+    systems.offset_result = S_OK;
+    if (scenario == ProductionEventsCase::mismatched_tid)
+    {
+        systems.values[4] = 201;
+    }
+    if (scenario == ProductionEventsCase::failed_selected_thread)
+    {
+        systems.results[0] = E_FAIL;
+    }
+    if (scenario == ProductionEventsCase::failed_acquisition)
+    {
+        systems.results[3] = E_FAIL;
+    }
+    FakeClient            client(&systems);
+    map_selection::Events events;
+    events.systems = &systems;
+    if (scenario != ProductionEventsCase::unwatched)
+    {
+        events.mark_armed();
+    }
+    if (scenario == ProductionEventsCase::stale_queue)
+    {
+        events.CreateThread(0x10, 0x20, 0x30);
+        state.sdk_getter_calls = 0;
+    }
+    ObserverCallbackSession session(&recorder, &client, state.callback_thread);
+    auto                    bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+    const raw_recorder::ContextApi             context_api{ &production_fake_open_thread, &production_fake_thread_id, &production_fake_process_id, &production_fake_thread_times, &production_fake_thread_context, &production_fake_close_handle, nullptr };
+    tests->check(admit_raw(&recorder, &raw, bridge.get(), &context_api), "production Events raw admission uses only fake context APIs");
+    ProductionEventsSourceState provider{ &events, events.event_number };
+    CallbackIdentityReader      reader({ &state, read_error, write_error });
+    auto                        config = dispatch_config(&state, &recorder, &reader, bridge.get(), &events, &client);
+    config.callback_session            = &session;
+    config.owner_provider              = nullptr;
+    config.owner_provider_user         = nullptr;
+    config.lifecycle_source_provider   = &production_events_source;
+    config.lifecycle_source_user       = &provider;
+    if (scenario == ProductionEventsCase::invalid_instrumentation)
+    {
+        config.instrumentation_thread_id = 0;
+    }
+    ObserverCallbackDispatch wrapper(config);
+    const auto               result = wrapper.CreateThread(0x111, 0x222, 0x333);
+    tests->check(result == (events.watch_threads ? DEBUG_STATUS_BREAK : DEBUG_STATUS_NO_CHANGE) &&
+                     events.event_number == provider.event_number_before + 1 &&
+                     events.created_events == (events.watch_threads ? events.event_number : 0),
+                 "production CreateThread return, event number and counter preserved");
+    const auto& created = events.lifecycle_cache.lifecycles().back().identity;
+    tests->check(created.engine_id == (scenario == ProductionEventsCase::failed_selected_thread ? DEBUG_ANY_ID : 42) &&
+                     created.system_id == systems.values[4] && created.data_offset == 0x222 &&
+                     created.teb_offset == 0x555 && created.start_offset == 0x333,
+                 "production selected SDK identity and callback offsets populate cache");
+    tests->check(events.pending_lifecycle.size() == (events.watch_threads ? events.event_number : 0),
+                 "CPU source leaves production lifecycle queue intact");
+    tests->check(state.error.last_error == 0xC4 && state.error.last_status == -0xC4,
+                 "production delegate returned error pair survives acquisition");
+    const auto acquisitions = recorder.callback_acquisition_rows();
+    const bool bound        = !acquisitions.empty() && acquisitions.back().binding_status == EngineBindingStatus::Bound;
+    const bool success      = scenario == ProductionEventsCase::success;
+    tests->check(bound == success && systems.query_calls == (success || scenario == ProductionEventsCase::failed_acquisition ? 1U : 0U) &&
+                     state.sdk_getter_calls == (success || scenario == ProductionEventsCase::failed_acquisition ? 8U : 2U),
+                 "production source refuses before acquisition or retains actual SDK failure");
+    tests->check(provider.calls == (scenario == ProductionEventsCase::invalid_instrumentation ? 0U : 1U),
+                 "invalid instrumentation preserves delegate effects without calling source");
+    const auto create_entry = recorder.callback_entry_rows().back();
+    tests->check(create_entry.delegate_hresult_known && create_entry.delegate_hresult == result &&
+                     create_entry.delegate_begin_sequence < create_entry.delegate_end_sequence &&
+                     create_entry.header.incomplete == !success,
+                 "production dispatch records actual delegate outcome and completeness");
+    if (success)
+    {
+        const auto acquisition = acquisitions.back();
+        tests->check(acquisition.owner.cached_engine_id == created.engine_id &&
+                         acquisition.owner.lifecycle_token == created.generation &&
+                         created.generation == 1 && create_entry.delegate_end_sequence < acquisition.acquisition_begin_sequence,
+                     "production cache token joins only after CreateThread delegate returns");
+        void* output = nullptr;
+        recorder.forward_query(&state, &state.service, &state.iid, &output);
+        std::array<std::uint8_t, 0xC4> context{};
+        std::fill(context.begin(), context.end(), std::uint8_t{ 1 });
+        recorder.forward_context_write(reinterpret_cast<void*>(0x900), context.data());
+        tests->check(!recorder.query_rows().back().header.incomplete &&
+                         recorder.query_rows().back().header.event.engine_generation == created.generation,
+                     "post-bind production event query uses admitted lifecycle token");
+        g_dispatch_continue_result = -1;
+        tests->check(!continue_raw_event(&raw) && session.raw_open(), "production integration retains failed continuation");
+        g_dispatch_continue_result = 0;
+        tests->check(continue_raw_event(&raw) && !session.raw_open(), "production creation closes before next callback event");
+        tests->check(admit_next_exception_event() && session.raw_open(), "production breakpoint admits distinct raw event");
+        const auto getters_before_breakpoint = state.sdk_getter_calls;
+        tests->check(wrapper.Breakpoint(nullptr) == DEBUG_STATUS_BREAK && events.event_number == 2 &&
+                         events.breakpoint.callback && !events.breakpoint.id_available &&
+                         events.breakpoint.id_result == E_POINTER && events.last_id == DEBUG_ANY_ID &&
+                         events.last_breakpoint_identity.generation == created.generation &&
+                         state.sdk_getter_calls == getters_before_breakpoint + 8,
+                     "production Breakpoint follows acquisition and preserves null-point snapshot");
+        const auto breakpoint_entry = recorder.callback_entry_rows().back();
+        tests->check(recorder.callback_acquisition_rows().back().acquisition_end_sequence < breakpoint_entry.delegate_begin_sequence &&
+                         breakpoint_entry.binding_succeeded && !breakpoint_entry.header.incomplete &&
+                         breakpoint_entry.header.event.event_index == 1,
+                     "production Breakpoint acquisition precedes delegate interval");
+        tests->check(wrapper.ExitThread(0xC0) == DEBUG_STATUS_BREAK && events.exited_events == 1 &&
+                         !events.lifecycle_cache.lifecycles().back().active && events.pending_lifecycle.size() == 2,
+                     "production ExitThread retires cache and appends existing queue record");
+        const auto getters_before_retired = state.sdk_getter_calls;
+        tests->check(wrapper.Breakpoint(nullptr) == DEBUG_STATUS_BREAK && events.event_number == 4 &&
+                         state.sdk_getter_calls == getters_before_retired + 2 &&
+                         recorder.callback_acquisition_rows().back().outcome == CallbackAcquisitionOutcome::MissingOwnerEvidence,
+                     "retired production source refuses SDK acquisition while delegate still runs");
+        map_selection::Events::LifecycleEvent queued;
+        tests->check(events.take_lifecycle(queued) && queued.created && queued.identity.generation == 1 && queued.event_number == 1,
+                     "production creation queue order preserved");
+        tests->check(events.take_lifecycle(queued) && !queued.created && queued.exit_code == 0xC0 && queued.event_number == 3 &&
+                         !events.take_lifecycle(queued),
+                     "production exit queue order and exhaustion preserved");
+    }
+    tests->check(continue_raw_event(&raw) && !session.raw_open(), "production integration closes exact raw key");
+    raw->deactivate();
+    raw->clear_observer_sink();
+    tests->check(session.teardown() && session.released() && events.prepared_lifecycle_source()->active_access_count() == 0,
+                 "production integration explicitly tears down released acquisition scope");
+    if (!success)
+    {
+        return {};
+    }
+    std::string trace = recorder.serialize();
+    trace.pop_back();
+    std::ostringstream metadata;
+    metadata << ",\"events_delegate_integration\":{\"profile\":\"events-delegate-fake-v1\",\"live_coverage\":\"incomplete\""
+             << ",\"integration_complete\":" << (tests->report.failures == failures_before ? "true" : "false")
+             << ",\"event_number\":" << events.event_number
+             << ",\"created_events\":" << events.created_events << ",\"exited_events\":" << events.exited_events
+             << ",\"engine_id\":" << provider.created.identity.engine_id
+             << ",\"lifecycle_token\":" << provider.created.identity.generation
+             << ",\"data_offset\":" << provider.created.identity.data_offset
+             << ",\"teb_offset\":" << provider.created.identity.teb_offset
+             << ",\"start_offset\":" << provider.created.identity.start_offset
+             << ",\"queue_empty\":" << (events.pending_lifecycle.empty() ? "true" : "false")
+             << ",\"released\":" << (session.released() ? "true" : "false") << ",\"continuations\":[";
+    for (std::size_t index = 0; index < bridge->continuation_count(); ++index)
+    {
+        const auto& continuation = bridge->continuation(index);
+        if (index != 0)
+        {
+            metadata << ',';
+        }
+        metadata << "{\"attempt_id\":" << continuation.attempt_id
+                 << ",\"debug_object\":" << continuation.entry.debug_object
+                 << ",\"process_id\":" << continuation.entry.process_id
+                 << ",\"thread_id\":" << continuation.entry.thread_id
+                 << ",\"continue_status\":" << continuation.entry.status
+                 << ",\"result\":" << continuation.result.result
+                 << ",\"returned_last_error\":" << continuation.result.returned.last_error
+                 << ",\"returned_last_status\":" << continuation.result.returned.last_status
+                 << ",\"matched_event_index\":" << continuation.matched_event_index
+                 << ",\"match_unique\":" << (continuation.result.match_unique ? "true" : "false")
+                 << ",\"pending_retained\":" << (continuation.result.pending_retained ? "true" : "false")
+                 << ",\"pending_cleared\":" << (continuation.result.pending_cleared ? "true" : "false")
+                 << ",\"close_attempted\":" << (continuation.close_attempted ? "true" : "false")
+                 << ",\"close_confirmed\":" << (continuation.close_status == PendingEventStatus::Closed ? "true" : "false")
+                 << ",\"owner_sink_succeeded\":" << (continuation.owner_sink_succeeded ? "true" : "false") << '}';
+    }
+    metadata << "]}}";
+    return trace + metadata.str();
+}
+
+void run_production_events_direct(TestState* tests)
+{
+    map_selection::Events events;
+    FakeSystemObjects     systems;
+    systems.offset_result = S_OK;
+    systems.values        = { 0, 0, 2, 2, 200, 100 };
+    events.systems        = &systems;
+    ULONG mask            = 0;
+    tests->check(events.GetInterestMask(&mask) == S_OK && mask == (DEBUG_EVENT_BREAKPOINT | DEBUG_EVENT_EXCEPTION | DEBUG_EVENT_CREATE_THREAD | DEBUG_EVENT_EXIT_THREAD | DEBUG_EVENT_EXIT_PROCESS),
+                 "production callback interest mask unchanged");
+    auto       identity = map_selection::current_thread_identity(&systems, 0x333);
+    const auto initial  = events.register_initial(identity);
+    tests->check(initial.engine_id == 0 && initial.generation == 1 && events.resolve_current_identity().generation == 1,
+                 "production initial registration preserves valid engine ID zero");
+    ++systems.data_offset;
+    tests->check(events.resolve_current_identity().generation == 0,
+                 "production changed selected offset refuses cached lifecycle identity");
+    --systems.data_offset;
+    tests->check(events.CreateThread(0, 0, 0x777) == DEBUG_STATUS_NO_CHANGE && events.pending_lifecycle.empty() &&
+                     events.lifecycle_cache.lifecycles().back().identity.data_offset == systems.data_offset &&
+                     events.lifecycle_cache.lifecycles().back().identity.start_offset == 0x777 && events.created_events == 0,
+                 "unwatched production creation retains SDK data offset for zero callback offset");
+    tests->check(events.ExitThread(7) == DEBUG_STATUS_NO_CHANGE && events.pending_lifecycle.empty() && events.exited_events == 0,
+                 "unwatched production exit retains legacy return and counter");
+    EXCEPTION_RECORD64 exception{};
+    exception.ExceptionCode    = EXCEPTION_BREAKPOINT;
+    exception.ExceptionAddress = 0x1234;
+    exception.ExceptionFlags   = 5;
+    tests->check(events.Exception(&exception, 1) == DEBUG_STATUS_BREAK && events.last_exception_code == EXCEPTION_BREAKPOINT &&
+                     events.last_exception_address == 0x1234 && events.last_exception_flags == 5 && events.last_exception_first_chance == 1,
+                 "production exception snapshot preserved");
+    events.clear_exception();
+    tests->check(events.exception_code == 0 && events.last_exception_code == EXCEPTION_BREAKPOINT,
+                 "production clear preserves separate last exception snapshot");
+    tests->check(events.ExitProcess(0) == DEBUG_STATUS_NO_CHANGE && events.process_exited,
+                 "production process exit outcome remains separate");
+    void* object = nullptr;
+    tests->check(events.QueryInterface(IID_IDebugEventCallbacks, &object) == S_OK && object == static_cast<IDebugEventCallbacks*>(&events) && events.Release() == 1,
+                 "production callback COM reference semantics unchanged");
+    systems.results[0]    = E_FAIL;
+    systems.results[4]    = E_FAIL;
+    systems.offset_result = E_FAIL;
+    identity              = map_selection::current_thread_identity(&systems, 0x888);
+    tests->check(identity.engine_id == DEBUG_ANY_ID && identity.system_id == 0 && identity.data_offset == 0 && identity.teb_offset == 0 && identity.start_offset == 0x888,
+                 "production failed getters discard written outputs");
+    tests->check(map_selection::current_thread_identity(nullptr, 0x999).start_offset == 0,
+                 "production missing SDK source preserves unknown identity");
+}
+
 } // namespace
 
 SelfTestReport run_callback_dispatch_self_tests()
@@ -2844,6 +3189,11 @@ SelfTestReport run_callback_dispatch_self_tests()
     run_reentry_refusal(&tests);
     run_exception_and_capacity(&tests);
     run_error_preservation_refusals(&tests);
+    run_production_events_direct(&tests);
+    for (const auto scenario : { ProductionEventsCase::success, ProductionEventsCase::mismatched_tid, ProductionEventsCase::failed_selected_thread, ProductionEventsCase::failed_acquisition, ProductionEventsCase::invalid_instrumentation, ProductionEventsCase::unwatched, ProductionEventsCase::stale_queue })
+    {
+        (void)run_production_events_integration(&tests, scenario);
+    }
     tests.report.passed = tests.report.failures == 0;
     std::ostringstream summary;
     summary << "checks=" << tests.report.checks << ",failures=" << tests.report.failures;
@@ -2853,6 +3203,13 @@ SelfTestReport run_callback_dispatch_self_tests()
     }
     tests.report.summary = summary.str();
     return tests.report;
+}
+
+std::string make_events_delegate_integration_trace()
+{
+    TestState  tests;
+    const auto trace = run_production_events_integration(&tests, ProductionEventsCase::success);
+    return tests.report.failures == 0 ? trace : std::string{};
 }
 
 std::string make_callback_dispatch_synthetic_trace()

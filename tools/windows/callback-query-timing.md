@@ -196,15 +196,15 @@ historical [`record_raw_callback`](trace_map_selection.cpp#L2721), but stores
 `options.pid` as its process field, leaves `debug_object` unresolved, and sets
 the callback thread generation to unknown while copying the observer generation
 separately. The current native callback entry is
-[`Events::Breakpoint`](trace_map_selection.cpp#L671), and the current create
-entry is [`Events::CreateThread`](trace_map_selection.cpp#L727). The current
+[`Events::Breakpoint`](trace_map_events.h#L210), and the current create
+entry is [`Events::CreateThread`](trace_map_events.h#L266). The current
 `record_raw_callback` invocation at
-[`wmain`](trace_map_selection.cpp#L3090) occurs after `WaitForEvent` returns;
+[`wmain`](trace_map_selection.cpp#L2660) occurs after `WaitForEvent` returns;
 it is not a native callback-entry reader. The shared cache allocates a token
 only when that callback runs, through
 [`ObserverEventLifecycleCache::create_thread`](observer_event_lifecycle.cpp#L284).
 The main wait loop consumes the lifecycle row at
-[`wmain`](trace_map_selection.cpp#L3004) before it reaches the post-wait
+[`wmain`](trace_map_selection.cpp#L2574) before it reaches the post-wait
 breakpoint observation. That later lifecycle allocation has no current raw-
 callback join. The callback/session owner must therefore supply a token already
 associated with the selected callback identity and retain its authority and

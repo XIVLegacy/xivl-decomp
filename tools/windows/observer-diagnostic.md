@@ -198,6 +198,29 @@ new source acquisitions or access scopes but does not clear an active scope;
 the retained storage remains available only for that scope's release. The
 prepared source is not passed to native callback registration.
 
+The production `Events` delegate is shared in
+[`trace_map_events.h`](trace_map_events.h). `trace_map_selection` and the CPU
+harness compile the same class, selected-thread reader and snapshot types.
+Its callback interest mask, queue, counters, SDK reads and return values keep
+their existing behavior. Native registration still selects that delegate.
+
+`--events-delegate-output` composes the actual production delegate with fake
+SDK objects, the retained lifecycle source, session and dispatch wrapper. The
+harness provider reads the delegate's existing creation queue without consuming
+it, checks the callback event number, then binds and acquires that cache entry.
+The provider belongs to the harness; it is not a native registration or
+selected-state authority. The trace retains a post-bind query, a context write,
+acquisition before the production breakpoint delegate, retirement refusal,
+failed continuation retention, exact closure and explicit teardown. Source
+refusal still permits the production delegate's queue and cache effects.
+
+```powershell
+C:\scratch\observer-build\Release\observer_runtime_check.exe --events-delegate-output C:\scratch\observer-events.json
+python tools/windows/validate_observer_diagnostic.py --trace C:\scratch\observer-events.json
+```
+
+Its ordinary recorder rows remain synthetic and live coverage remains incomplete.
+
 The session retains the configured SDK client with `AddRef` only when an
 explicit creator thread is supplied and matches the current thread. Unknown or
 foreign construction does not add a reference. Dispatch selects the session
