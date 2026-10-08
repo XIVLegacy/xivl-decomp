@@ -62,10 +62,15 @@ prove that a controller record was enumerated.
 
 ## Controller initialization and selection
 
+Rapture's initializer and update use the adjusted `IRapture` receiver `I=R+4`,
+where `R` is the complete object. Constructor `FUN_004B3B50` (VA `0x004B3B50`,
+RVA `0x000B3B50`) installs their vtable at `R+4` at VA `0x004B3B9C`
+(RVA `0x000B3B9C`), and its slot 1 points directly to the update
+`FUN_004B3C50` (VA `0x004B3C50`, RVA `0x000B3C50`).
 `FUN_004B2DF0` (VA `0x004B2DF0`, RVA `0x000B2DF0`) stores Pad, Mouse, and
-Keyboard objects at Rapture offsets `+0x40`, `+0x44`, and `+0x48` at VAs
-`0x004B35F6`, `0x004B3627`, and `0x004B3645` (RVAs
-`0x000B35F6`, `0x000B3627`, `0x000B3645`). Its slot-1 calls occur at VAs
+Keyboard objects at `I+0x40`, `I+0x44`, and `I+0x48` at VAs
+`0x004B35F6`, `0x004B3627`, and `0x004B365B` (RVAs
+`0x000B35F6`, `0x000B3627`, `0x000B365B`). Its slot-1 calls occur at VAs
 `0x004B3769`, `0x004B377C`, and `0x004B378D` (RVAs `0x000B3769`,
 `0x000B377C`, `0x000B378D`); the count rejects initialization only when all
 three return zero. Because the Pad call reaches `FUN_00D34410`, the Pad leg
@@ -100,17 +105,48 @@ then checks `Pad+0xA4` at VAs `0x00D337CB` and `0x00D337D2` (RVAs
 comparison; a nonzero value bypasses it. Since `Pad+0xA4` is the loaded
 `config.pad+0x24` value, this setting controls focus/background polling.
 
-The adapter state is also distinct from enumeration. `FUN_00548210` (VA
-`0x00548210`, RVA `0x00148210`) copies raw state byte `+0x28` to adapter
-`+0x5C` and raw dword `+0x24` to adapter `+0x58` at VAs
-`0x00548221..0x0054822A` (RVAs `0x00148221..0x0014822A`).
-`FUN_005483D0` (VA `0x005483D0`, RVA `0x001483D0`) returns that adapter byte
-at its first instruction. It is not a record-count predicate. The raw Pad
-count getter `FUN_00D32440` (VA `0x00D32440`, RVA `0x00932440`) instead
+The raw Pad count getter `FUN_00D32440` (VA `0x00D32440`, RVA `0x00932440`)
 computes `(end - begin) / 0x72C` from `Pad+0x20` and `Pad+0x1C` at VAs
 `0x00D32440..0x00D3245E` (RVAs `0x00932440..0x0093245E`), returning zero
 when the begin pointer is null. No caller join in this pass connected that
 count to the controller control's enabled state.
+
+### Count and active state reach the UI adapter separately
+
+`FUN_00D32A30` (VA `0x00D32A30`, RVA `0x00932A30`) writes the normalized
+output's two metadata fields before rejecting an invalid selected index. At
+VAs `0x00D32A3C..0x00D32A42` (RVAs `0x00932A3C..0x00932A42`) it copies
+`Pad+0x1CE` to `output+0x28`. Its virtual slot-4 call at VA `0x00D32A51`
+(RVA `0x00932A51`) reaches the count getter above, as identified by the
+`Sqex::Input::PadDevice` vtable at VA `0x01110624` (RVA `0x00D10624`), and
+the result is stored to `output+0x24` at VA `0x00D32A5C` (RVA
+`0x00932A5C`). A negative selected index branches away at VA `0x00D32A5F`
+(RVA `0x00932A5F`) after both writes.
+
+At the end of polling, VAs `0x00D343E0..0x00D343F0` (RVAs
+`0x009343E0..0x009343F0`) load `Pad+0x1C8`, subtract one, and invoke this
+writer with destination `Pad+0x28`. The vtable's slot-5 getter
+`FUN_00D320F0` (VA `0x00D320F0`, RVA `0x009320F0`) returns `Pad+0x28`
+for argument zero and `Pad+0x54` for a nonzero argument. Rapture's update
+copies both `0x2C`-byte blocks through that getter at VAs
+`0x004B3CE4..0x004B3D2E` (RVAs `0x000B3CE4..0x000B3D2E`).
+Its first destination is `I+0x6C` (`R+0x70`). That address is passed to
+`FUN_004D6570` (VA `0x004D6570`, RVA `0x000D6570`) at VAs
+`0x004B3DC8..0x004B3DCC` (RVAs `0x000B3DC8..0x000B3DCC`). The callee
+forwards that first argument to `FUN_00548210` at VAs
+`0x004D65A5..0x004D65B3` (RVAs `0x000D65A5..0x000D65B3`), using the
+adapter at its object offset `+0x17C80`.
+
+`FUN_00548210` (VA `0x00548210`, RVA `0x00148210`) copies normalized
+byte `+0x28` to adapter `+0x5C` and dword `+0x24` to adapter `+0x58` at
+VAs `0x00548221..0x0054822A` (RVAs `0x00148221..0x0014822A`). The
+`Application::Main::SqwtInterface::RapturePadDevice` vtable at VA
+`0x00FA2B28` (RVA `0x00BA2B28`) identifies slot 11 as `FUN_005483C0`
+(VA `0x005483C0`, RVA `0x001483C0`), which returns `+0x58`, and slot 12
+as `FUN_005483D0` (VA `0x005483D0`, RVA `0x001483D0`), which returns
+`+0x5C`. These expose count and saved-selection active state separately;
+the active getter is not a count or a successful-identity-match predicate.
+This metadata join does not establish a UI enable-property consumer.
 
 ## GameConfig and checked-state identity
 
@@ -148,6 +184,28 @@ proven predicate is:
 `ToggleButton_Controler.IsChecked = (GameConfig[0,9].current_value > 0)`.
 
 This is a checked-state result, not an enabled or available result.
+
+### Checked-state callback changes the image-part index
+
+The setter binds `FUN_0095D2F0` (VA `0x0095D2F0`, RVA `0x0055D2F0`) as
+the changed callback at VA `0x0095D453` (RVA `0x0055D453`). The callback
+tests bit `0x20` at VA `0x0095D331` (RVA `0x0055D331`) and dispatches
+through ToggleButton slots 73 or 74 at VAs `0x0095D386` and `0x0095D3C7`
+(RVAs `0x0055D386` and `0x0055D3C7`). Their targets `FUN_0095D230`
+(VA `0x0095D230`, RVA `0x0055D230`) and `FUN_0095D270` (VA `0x0095D270`,
+RVA `0x0055D270`) pass values 1 and 0 to `FUN_0092F400` (VA
+`0x0092F400`, RVA `0x0052F400`) at VAs `0x0095D239` and `0x0095D279`
+(RVAs `0x0055D239` and `0x0055D279`).
+
+That wrapper uses descriptor VA `0x013587CC` (RVA `0x00F587CC`) and
+object offset `+0x218` at VAs `0x0092F40B..0x0092F425` (RVAs
+`0x0052F40B..0x0052F425`). The initializer at VA `0x00F22070` (RVA
+`0x00B22070`) pushes string VA `0x0106A9D4` (RVA `0x00C6A9D4`), whose
+value is `SqwtImagePartsIndex`, then binds this descriptor at VA `0x00F22075`
+(RVA `0x00B22075`). This path switches an image-part index; it does not set
+`IsEnabled` or prove click acceptance. The toggle method's separate guard bit
+`0x02` is tested at VA `0x0095D4A6` (RVA `0x0055D4A6`); its producer and
+availability meaning are not established here.
 
 ## Enable properties and remaining barrier
 
@@ -199,8 +257,16 @@ The form element named `ToggleButton_Controler` has `IsChecked=True`,
 true sets `Button_KeyBoard.IsEnabled=False`, and false sets it true. Those
 setters target the keyboard button, not the controller toggle. This named
 template therefore does not supply the missing controller-availability gate.
-The form's window also references `common/default.style`; broader inherited
-style or property dispatch remains outside the recovered predicate.
+The form's window references `common/default.style`, whose installed SQEX image
+is 353,783 bytes, SHA-256
+`632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0`.
+The same filename-key decoding and exact re-encoding check passed for this
+image. Its `ToggleButton`/`TOG_config` style maps the `CheckedButton` part to
+`TOG_config_leftOn` and the `UncheckedButton` part to `TOG_config_rightOn`.
+Those two button styles map state names, including `Disabled`, to frame skins;
+they do not assign an enable property. A disabled skin entry is therefore not
+an availability predicate. The enabled state of the two inner button parts and
+generic property dispatch remain separate tracing targets.
 
 The game reads group 0/key 9 in two input-binding paths: `FUN_004DAF00` (VA
 `0x004DAF00`, RVA `0x000DAF00`) calls the getter at VA `0x004DB4AD` (RVA
@@ -208,13 +274,58 @@ The game reads group 0/key 9 in two input-binding paths: `FUN_004DAF00` (VA
 it at VA `0x004DBA68` (RVA `0x000DBA68`). Both pass the value to
 `FUN_00547340` (VA `0x00547340`, RVA `0x00147340`), which stores it at global
 VA `0x01336BC4` (RVA `0x00F36BC4`) at VA `0x00547344` (RVA `0x00147344`).
-No direct setter was found that joins an on-disk `config.sys` field to the
-current `input_mode` value.
+The text reload below can overwrite the registered current value. Its resource
+key and on-disk filename are not yet joined to the startup `config.sys` reader.
+
+## GameConfig text serialization and reload
+
+`FUN_00443CF0` (VA `0x00443CF0`, RVA `0x00043CF0`) stores the registration
+metadata at record `+0x58/+0x5C` and the initial value at both `+0x60/+0x64`
+at VAs `0x00443D28..0x00443D35` (RVAs `0x00043D28..0x00043D35`). The
+`input_mode` registration passes metadata 0 and 1 and initial value 0. These
+metadata values are distinct from the group 0/key 9 table index.
+
+`FUN_00444730` (VA `0x00444730`, RVA `0x00044730`) serializes type-1 records
+with format string VA `0x00F6726C` (RVA `0x00B6726C`), whose value is
+`%s,\t%d,\t%d,\t%d\n`. The pushes at VAs `0x004447A0..0x004447C2`
+(RVAs `0x000447A0..0x000447C2`) supply the record name, metadata `+0x58`,
+metadata `+0x5C`, and current value `+0x60`. The initialized representation
+is therefore `input_mode,\t0,\t1,\t0\n`, with backslash escapes standing for
+tab and newline bytes. This is a serialized record, not an identified disk file.
+
+`FUN_004B7250` (VA `0x004B7250`, RVA `0x000B7250`) supplies its buffer range
+`+0x88..+0x8C` to parser `FUN_004448E0` (VA `0x004448E0`, RVA
+`0x000448E0`) at VA `0x004B7288` (RVA `0x000B7288`). The parser's record
+lookup call at VA `0x00444AC9` (RVA `0x00044AC9`) uses `FUN_00444090`
+(VA `0x00444090`, RVA `0x00044090`), which scans record names at `+0x04`
+with stride `0xBC` and returns the matching record. In the four-field row
+branch, the final token is parsed with base 10 at VA `0x00444B42` (RVA
+`0x00044B42`), then written directly to that record's current value `+0x60`
+at VA `0x00444B4A` (RVA `0x00044B4A`). Thus a matching loaded text row can
+replace the constructor's initial `input_mode` value; the getter and UI use
+that current field.
+
+The container constructs this GameConfig at offset `+0x17430` in
+`FUN_004DBF40` (VA `0x004DBF40`, RVA `0x000DBF40`), through the address
+and constructor call at VAs `0x004DC125..0x004DC12B` (RVAs
+`0x000DC125..0x000DC12B`). The same object is used
+by `FUN_004D9980` (VA `0x004D9980`, RVA `0x000D9980`), which calls
+`FUN_004C72F0` (VA `0x004C72F0`, RVA `0x000C72F0`) at VA `0x004D9A44`
+(RVA `0x000D9A44`) and the buffer parser helper above at VA `0x004D9A4B`
+(RVA `0x000D9A4B`). `FUN_004C71A0` (VA `0x004C71A0`, RVA `0x000C71A0`)
+serializes the table at VA `0x004C71EE` (RVA `0x000C71EE`) before dispatching
+through its ExcelModule backing object at VA `0x004C721C` (RVA `0x000C721C`).
+This establishes the table/request/reload dependency, without claiming that a
+particular resource request completed or that a particular disk file supplied
+the buffer. The generated-name and resource-key handoff remains unresolved.
 
 ## Result
 
 The startup Pad initializer returns `AL=1` after its enumeration setup, even
-when no controller record is selected. The only exact UI predicate proved in
-this pass is the checked-state equation above. Gamepad availability remains
-unresolved in the control identity and enable property dependencies, including
-generic dispatch and inherited resources.
+when no controller record is selected. Count and saved-selection active state
+reach the adapter through separate fields. The exact recovered UI predicate is
+the checked-state equation above; its callback changes an image-part index.
+Loaded text can replace the registered `input_mode` value, but its disk source
+remains unresolved. Gamepad availability remains unresolved in the control
+identity and enable property dependencies, including generic dispatch and
+inherited resources.
