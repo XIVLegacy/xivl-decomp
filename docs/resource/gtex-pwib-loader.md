@@ -54,6 +54,71 @@ within its file, with no zero values. The observed bases were 32, 48, 64, and
 times, and 96 occurred once. The census corroborates the loader field but does
 not narrow the format to those four values.
 
+### Cube upload boundary
+
+For flag bit 0, loader `0x00431f30` selects constructor `0x00418d00`.
+Its type scalar 2 reaches texture-object `+0x0c` through `0x00431710`.
+Creation `0x004312d0` calls `d3dx9_41.dll!D3DXCreateCubeTexture` at VA
+`0x0043139b`, through thunk VA `0x009fc786`, with its output pointer at
+object `+0x30`. Microsoft's
+[creation contract](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxcreatecubetexture)
+identifies that output as `IDirect3DCubeTexture9`.
+
+Upload loop `0x00431e20` iterates outer ordinal `f` from 0 through 5 and
+inner mip `m` with `0 <= m < retainedMipCount`, read from object `+0x24`.
+VA `0x00431e70..0x00431e7a` selects eight-byte table entry
+`headerMipCount * f + m`, using header byte `+0x07` as the face stride.
+At VA `0x00431f00`, it passes `f` and `m` as the first two stack arguments
+to uploader `0x00431080`. In the type-2 branch, stack tracking at VA
+`0x0043110b..0x0043111a` establishes the virtual call arguments as the
+object `+0x30` pointer, unmodified `f`, unmodified `m`, and an output-surface
+pointer. No face permutation intervenes.
+
+The API interpretation of virtual slot `+0x48` is
+[`GetCubeMapSurface`](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3dcubetexture9-getcubemapsurface).
+Microsoft's
+[`d3d9.h` interface declaration](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L1378-L1404)
+places it at zero-based slot 18, or byte offset `0x48` for 32-bit pointers.
+Its first parameter is `D3DCUBEMAP_FACES`, followed by the mip level.
+The observed numerical mapping is `f -> API face argument f`.
+Microsoft's
+[`D3DCUBEMAP_FACES` definition](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dcubemap-faces)
+assigns those arguments as follows:
+
+| Table face ordinal | API argument | API face |
+|---:|---:|---|
+| 0 | 0 | `D3DCUBEMAP_FACE_POSITIVE_X` |
+| 1 | 1 | `D3DCUBEMAP_FACE_NEGATIVE_X` |
+| 2 | 2 | `D3DCUBEMAP_FACE_POSITIVE_Y` |
+| 3 | 3 | `D3DCUBEMAP_FACE_NEGATIVE_Y` |
+| 4 | 4 | `D3DCUBEMAP_FACE_POSITIVE_Z` |
+| 5 | 5 | `D3DCUBEMAP_FACE_NEGATIVE_Z` |
+
+Each entry's first big-endian dword selects the source offset by the GTEX
+arithmetic above. Nonzero header `+0x14` uses helper `0x00432500`.
+Zero `+0x14` uses the supplied view and checks only the start offset at VA
+`0x00431ee5`. Neither inspected path reads the entry's second dword to bound
+the upload. A missing table selects offset zero.
+
+The cube branch obtains destination surface dimensions and reaches the common
+surface upload at VA `0x00431273..0x004312a5`. It forwards the resolved source
+pointer unchanged to `d3dx9_41.dll!D3DXLoadSurfaceFromMemory`, through thunk
+VA `0x009fc76e`, with source and destination rectangles starting at zero and
+using those dimensions. The GTEX callsite passes zero as the uploader's last
+argument, which is distinct from the flag-bit-2 argument. No source copying,
+row or column reversal, rotation, texel shuffle, or face-specific source
+coordinate transform was observed in the complete `0x00431e20` and
+`0x00431080` bodies before this API boundary. The
+[D3DX upload contract](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxloadsurfacefrommemory)
+handles format conversion, including compressed formats. Imported-library
+operations and actual device behavior are outside this observation.
+
+This establishes face-major table consumption and API argument identity for
+the pinned loader. No retail cube resource or live cube upload was inspected.
+The 2D-only corpus boundary below remains unchanged. Source alias names,
+stored texel orientation, producer intent, face-to-camera basis, renderer
+sampling conventions, and end-to-end rendered orientation remain unknown.
+
 ### Retail format mappings
 
 The format index reaches two parallel tables. Creation and upload functions
@@ -434,6 +499,18 @@ The GTEX claim is reproduced from the functions above plus format helpers
 `0x00431710`, `0x00433300`, and `0x00433240`. Tracked Rosetta sources preserve
 the dispatcher, loader, three texture constructors, and upload-loop bodies
 under `src/ffxivgame/_rosetta/`.
+
+The cube upload finding used ghidra-cli `0.2.2`, Ghidra `12.1.4`, JDK
+`26.0.2.1`, and image base VA `0x00400000`, reusing an analyzed program whose
+stored executable SHA-256 and independently hashed executable matched the
+pin above. Exact-entry decompilation covered `0x00431f30`, `0x00418d00`,
+`0x00431710`, `0x004312d0`, `0x00431e20`, `0x00432500`, `0x00431080`, and
+the two import thunks. Bounded disassembly of the complete upload loop,
+source-offset helper, and uploader, plus the cube creation callsite,
+corroborated stack argument order and pointer forwarding. The import query
+corroborated both D3DX names. No fresh import, retained raw output, resource
+inspection, live device validation, or retail session forms part of this
+cube finding.
 
 The PWIB claim uses the streaming path, exact length helpers, request helpers,
 and resource consumer listed above. The consumer extension was reproduced
