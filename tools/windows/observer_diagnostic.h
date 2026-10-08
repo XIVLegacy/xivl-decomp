@@ -24,6 +24,16 @@
 #define XIVL_OBSERVER_STDCALL
 #endif
 
+#if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
+#define XIVL_OBSERVER_LOOKUP_CODE_SEG  __declspec(code_seg(".xvlook"))
+#define XIVL_OBSERVER_QUERY_CODE_SEG   __declspec(code_seg(".xvquery"))
+#define XIVL_OBSERVER_CONTEXT_CODE_SEG __declspec(code_seg(".xvctx"))
+#else
+#define XIVL_OBSERVER_LOOKUP_CODE_SEG
+#define XIVL_OBSERVER_QUERY_CODE_SEG
+#define XIVL_OBSERVER_CONTEXT_CODE_SEG
+#endif
+
 namespace xivl::observer_diagnostic
 {
 
@@ -808,13 +818,18 @@ public:
     const Originals& originals() const;
 
 private:
-    friend void* XIVL_OBSERVER_FASTCALL  lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid);
-    friend Hresult XIVL_OBSERVER_STDCALL query_bridge(
+    friend XIVL_OBSERVER_LOOKUP_CODE_SEG void* XIVL_OBSERVER_FASTCALL lookup_bridge(
+        void*            manager,
+        void*            ignored_edx,
+        const GuidBytes* service_guid);
+    friend XIVL_OBSERVER_QUERY_CODE_SEG Hresult XIVL_OBSERVER_STDCALL query_bridge(
         void*            manager,
         const GuidBytes* service_guid,
         const GuidBytes* iid,
         void**           output_slot);
-    friend BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* context);
+    friend XIVL_OBSERVER_CONTEXT_CODE_SEG BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(
+        void* handle,
+        void* context);
 
     RowHeader     make_header(std::uint64_t operation_id);
     std::uint64_t next_operation_id();
@@ -857,13 +872,18 @@ private:
     std::vector<PendingCallbackAcquisition> pending_callback_acquisitions_;
 };
 
-void* XIVL_OBSERVER_FASTCALL  lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid);
-Hresult XIVL_OBSERVER_STDCALL query_bridge(
+XIVL_OBSERVER_LOOKUP_CODE_SEG void* XIVL_OBSERVER_FASTCALL lookup_bridge(
+    void*            manager,
+    void*            ignored_edx,
+    const GuidBytes* service_guid);
+XIVL_OBSERVER_QUERY_CODE_SEG Hresult XIVL_OBSERVER_STDCALL query_bridge(
     void*            manager,
     const GuidBytes* service_guid,
     const GuidBytes* iid,
     void**           output_slot);
-BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* context);
+XIVL_OBSERVER_CONTEXT_CODE_SEG BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(
+    void* handle,
+    void* context);
 
 SelfTestReport run_self_tests();
 std::string    make_synthetic_trace();

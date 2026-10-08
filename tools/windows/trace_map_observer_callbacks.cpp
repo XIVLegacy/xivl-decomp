@@ -181,9 +181,10 @@ struct TraceMapObserverCallbacks::State
             RawLifecycleOwnerSink{ &State::observe_event,
                                    &State::observe_continuation,
                                    this });
-        CallbackDispatchConfig configured = dispatch_config;
-        configured.raw_bridge             = bridge.get();
-        dispatch                          = std::make_unique<ObserverCallbackDispatch>(configured);
+        CallbackDispatchConfig configured    = dispatch_config;
+        configured.raw_bridge                = bridge.get();
+        configured.instrumentation_thread_id = config.creator_thread_id;
+        dispatch                             = std::make_unique<ObserverCallbackDispatch>(configured);
     }
 
     ~State() noexcept = default;
@@ -267,29 +268,41 @@ struct TraceMapObserverCallbacks::State
             *observation = {};
             *hold        = {};
             if (!state->activated || !state->admission.present ||
-                state->admission.kind != raw_recorder::RawEventKind::create_thread ||
                 !same_raw_key(state->admission.identity, identity) ||
-                state->admission.expected_event_number == 0 ||
-                !state->events.watch_threads ||
-                state->events.event_number != state->admission.expected_event_number ||
-                state->events.pending_lifecycle.size() != 1)
+                state->admission.expected_event_number == 0 || !state->events.watch_threads ||
+                state->events.event_number != state->admission.expected_event_number)
             {
                 return false;
             }
-            const Events::LifecycleEvent& event = state->events.pending_lifecycle.front();
-            if (!event.created || event.event_number != state->admission.expected_event_number ||
-                event.event_number != state->events.event_number ||
-                !complete_helper_identity(event.identity))
+            if (state->admission.kind == raw_recorder::RawEventKind::create_thread)
+            {
+                if (state->events.pending_lifecycle.size() != 1)
+                {
+                    return false;
+                }
+                const Events::LifecycleEvent& event = state->events.pending_lifecycle.front();
+                if (!event.created || event.event_number != state->admission.expected_event_number ||
+                    event.event_number != state->events.event_number ||
+                    !complete_helper_identity(event.identity))
+                {
+                    return false;
+                }
+                ObserverEventLifecycleSource* source = state->events.prepared_lifecycle_source();
+                return source != nullptr &&
+                       source->bind_created(state->events.lifecycle_cache, identity, event) &&
+                       source->acquire(identity, hold, observation);
+            }
+            if (state->admission.kind != raw_recorder::RawEventKind::exception)
             {
                 return false;
             }
+            // The exception raw key retains the earlier create-thread source. The
+            // source returns its generation token and SDK-associated engine ID;
+            // no raw PID/TID to engine ID inference occurs here. The queue may
+            // contain unrelated lifecycle notifications; acquire() uses the
+            // exact retained source identity instead of a queue wildcard.
             ObserverEventLifecycleSource* source = state->events.prepared_lifecycle_source();
-            if (source == nullptr || !source->bind_created(state->events.lifecycle_cache, identity, event) ||
-                !source->acquire(identity, hold, observation))
-            {
-                return false;
-            }
-            return true;
+            return source != nullptr && source->acquire(identity, hold, observation);
         }
         catch (...)
         {

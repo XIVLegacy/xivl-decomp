@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_diagnostic.h"
 
+#if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
+#include <intrin.h>
+#pragma intrinsic(_InterlockedCompareExchange64)
+#define XIVL_OBSERVER_BRIDGE_FORCEINLINE __forceinline
+#else
+#define XIVL_OBSERVER_BRIDGE_FORCEINLINE
+#endif
+
 #include <algorithm>
 #include <exception>
 #include <iomanip>
@@ -23,6 +31,41 @@ std::uint64_t               g_controller_owner_id = 0;
 
 struct BridgeCall
 {
+#if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
+    XIVL_OBSERVER_BRIDGE_FORCEINLINE BridgeCall()
+    {
+        volatile __int64* counter =
+            reinterpret_cast<volatile __int64*>(&g_passthrough_record.active_forwarding_calls);
+        for (;;)
+        {
+            const __int64 observed = _InterlockedCompareExchange64(counter, 0, 0);
+            const __int64 desired  = observed + 1;
+            if (_InterlockedCompareExchange64(counter, desired, observed) == observed)
+            {
+                break;
+            }
+        }
+    }
+
+    XIVL_OBSERVER_BRIDGE_FORCEINLINE void finish() noexcept
+    {
+        volatile __int64* counter =
+            reinterpret_cast<volatile __int64*>(&g_passthrough_record.active_forwarding_calls);
+        for (;;)
+        {
+            const __int64 observed = _InterlockedCompareExchange64(counter, 0, 0);
+            const __int64 desired  = observed - 1;
+            if (_InterlockedCompareExchange64(counter, desired, observed) == observed)
+            {
+                break;
+            }
+        }
+    }
+
+    // Exceptional bridge unwinds retain the admission count so publication
+    // and qualification refuse the unknown cleanup state.
+    ~BridgeCall() = default;
+#else
     BridgeCall()
     {
         std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
@@ -34,6 +77,11 @@ struct BridgeCall
         std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
             .fetch_sub(1, std::memory_order_release);
     }
+
+    void finish() noexcept
+    {
+    }
+#endif
 
     BridgeCall(const BridgeCall&)            = delete;
     BridgeCall& operator=(const BridgeCall&) = delete;
@@ -2630,7 +2678,10 @@ bool release_passthrough_controller_ownership(std::uint64_t owner_id)
     return true;
 }
 
-void* XIVL_OBSERVER_FASTCALL lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid)
+XIVL_OBSERVER_LOOKUP_CODE_SEG void* XIVL_OBSERVER_FASTCALL lookup_bridge(
+    void*            manager,
+    void*            ignored_edx,
+    const GuidBytes* service_guid)
 {
     BridgeCall call;
     if (publication_is_published())
@@ -2642,17 +2693,22 @@ void* XIVL_OBSERVER_FASTCALL lookup_bridge(void* manager, void* ignored_edx, con
         {
             std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
                 .fetch_add(1, std::memory_order_relaxed);
-            return original(manager, ignored_edx, service_guid);
+            const auto result = original(manager, ignored_edx, service_guid);
+            call.finish();
+            return result;
         }
     }
     if (g_bridge_recorder == nullptr)
     {
+        call.finish();
         return nullptr;
     }
-    return g_bridge_recorder->forward_lookup(manager, ignored_edx, service_guid);
+    const auto result = g_bridge_recorder->forward_lookup(manager, ignored_edx, service_guid);
+    call.finish();
+    return result;
 }
 
-Hresult XIVL_OBSERVER_STDCALL query_bridge(
+XIVL_OBSERVER_QUERY_CODE_SEG Hresult XIVL_OBSERVER_STDCALL query_bridge(
     void*            manager,
     const GuidBytes* service_guid,
     const GuidBytes* iid,
@@ -2668,17 +2724,24 @@ Hresult XIVL_OBSERVER_STDCALL query_bridge(
         {
             std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
                 .fetch_add(1, std::memory_order_relaxed);
-            return original(manager, service_guid, iid, output_slot);
+            const auto result = original(manager, service_guid, iid, output_slot);
+            call.finish();
+            return result;
         }
     }
     if (g_bridge_recorder == nullptr)
     {
+        call.finish();
         return kBridgeUnavailableHresult;
     }
-    return g_bridge_recorder->forward_query(manager, service_guid, iid, output_slot);
+    const auto result = g_bridge_recorder->forward_query(manager, service_guid, iid, output_slot);
+    call.finish();
+    return result;
 }
 
-BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* context)
+XIVL_OBSERVER_CONTEXT_CODE_SEG BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(
+    void* handle,
+    void* context)
 {
     BridgeCall call;
     if (publication_is_published())
@@ -2690,14 +2753,19 @@ BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* conte
         {
             std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
                 .fetch_add(1, std::memory_order_relaxed);
-            return original(handle, context);
+            const auto result = original(handle, context);
+            call.finish();
+            return result;
         }
     }
     if (g_bridge_recorder == nullptr)
     {
+        call.finish();
         return 0;
     }
-    return g_bridge_recorder->forward_context_write(handle, context);
+    const auto result = g_bridge_recorder->forward_context_write(handle, context);
+    call.finish();
+    return result;
 }
 
 } // namespace xivl::observer_diagnostic

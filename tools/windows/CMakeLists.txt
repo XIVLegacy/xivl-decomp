@@ -65,3 +65,20 @@ target_compile_options(observer_runtime_check PRIVATE /guard:cf /sdl)
 target_link_options(observer_runtime_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_runtime_check.map")
 target_link_libraries(observer_runtime_check PRIVATE bcrypt)
+
+add_executable(observer_candidate observer_candidate.cpp observer_controller.cpp
+               observer_native_backend.cpp observer_live_runtime.cpp observer_live_bootstrap.cpp
+               raw_event_recorder.cpp observer_diagnostic.cpp
+               observer_event_lifecycle.cpp observer_event_bridge.cpp
+               observer_callback_identity.cpp observer_callback_session.cpp
+               observer_callback_dispatch.cpp trace_map_observer_callbacks.cpp
+               observer_dispatch_gate.cpp observer_hook_install.cpp
+               observer_publication_protocol.cpp observer_recovery_snapshot.cpp
+               observer_recovery.cpp observer_recovery_actions.cpp)
+set_target_properties(observer_candidate PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_definitions(observer_candidate PRIVATE _WIN32_WINNT=0x0A00
+                            XIVL_OBSERVER_BRIDGE_EXTENTS)
+target_compile_options(observer_candidate PRIVATE /guard:cf /sdl)
+target_link_options(observer_candidate PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
+                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_candidate.map")
+target_link_libraries(observer_candidate PRIVATE bcrypt OneCore)
