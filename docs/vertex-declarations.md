@@ -221,6 +221,49 @@ exact size/count division, width tests, inline source pointer and copy calls
 at the cited locators. No actual model payload, downstream decoder binding,
 live upload success or runtime rendering behavior follows.
 
+## Conditional additional declarations and stream binding
+
+**Observation.** Read-only `ghidra-cli 0.2.2` instruction inspection finds
+conditional additional record producers in the mesh parser VA `0x00C8DC10`.
+The later walk obtains existing records at VA `0x00C8EF87`. A record with
+usage field `+0x14` equal to zero reaches a copy whose usage becomes `0x0B`
+at VA `0x00C8F005`, then an append call at VA `0x00C8F018`. A separate
+branch requires a nonzero local control byte and source usage `3` at VAs
+`0x00C8F01D` through `0x00C8F02C`. Its copy receives usage `0x0A` at
+VA `0x00C8F09A` and is appended at VA `0x00C8F0B3`. The copies inherit
+format and component count from their existing source records. Their stream
+fields are also adjusted. The control byte's meaning is unknown.
+
+Append helper VA `0x00C37C70` copies a `0x24`-byte record through
+VA `0x00C37630` and advances the collection end at VA `0x00C37CDC`.
+The builder call at VA `0x00C8F0E7` uses the collection containing these
+records. The converter operations at VAs `0x00419A69` through `0x00419A8F`
+and selected entries at VAs `0x00F57DC8` and `0x00F57DCA` give compact
+usage `0x0A` the Direct3D usage/index pair `5/2`, and `0x0B` the pair `5/3`.
+These are declaration metadata. No component values follow.
+
+Mesh routine VA `0x00C6A440` calls binder VA `0x00C6D290`, which populates
+indexed stream records rooted at VA `0x01328DC8` from existing record
+references and strides. Routine VA `0x0041D240` submits their resource,
+offset and stride through VA `0x004231E0`. In the observed direct backend,
+VA `0x00438850` passes those arguments to VA `0x00435840`. Its device call
+at VA `0x0043585E` uses virtual offset `0x190`, matching `SetStreamSource`
+slot `100` in Microsoft's
+[IDirect3DDevice9 ABI](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L429-L588).
+When a record has no reference and its corresponding manager mask bit is
+set, VAs `0x0041D28B` through `0x0041D298` instead submit a null buffer,
+zero offset and zero stride. This branch does not populate a constant buffer.
+
+**Interpretation, high confidence within these conditions.** The original
+client can generate additional declaration records from existing records and
+has a concrete stream-binding producer. This does not establish a fallback
+for an active shader input absent from STMS. Neither a stride-zero default
+buffer nor its contents are proved. Reproduce the observation by tracing the
+record copy, usage change, append, builder and indexed stream arguments at
+the cited locators. Active-model input matching, dynamic buffer provenance,
+control flags, other producers, backend selection, queued dispatch, missing
+blend inputs, TEXCOORD6/7 defaults and runtime results remain unresolved.
+
 ## Bounded reproduction
 
 1. Verify the module size, SHA-256, image base and Ghidra program identity.
