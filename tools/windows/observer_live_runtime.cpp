@@ -880,14 +880,87 @@ bool exact_fixture_command(const std::filesystem::path& executable,
 
 std::string win32_error(DWORD error);
 
+bool within_tick_bound(ULONGLONG started, std::uint32_t bound) noexcept;
+
+struct FixtureProcessInvocation
+{
+    LPCWSTR               application_name   = nullptr;
+    LPWSTR                command_line       = nullptr;
+    LPSECURITY_ATTRIBUTES process_attributes = nullptr;
+    LPSECURITY_ATTRIBUTES thread_attributes  = nullptr;
+    BOOL                  inherit_handles    = FALSE;
+    DWORD                 creation_flags     = 0;
+    LPVOID                environment        = nullptr;
+    LPCWSTR               current_directory  = nullptr;
+    LPSTARTUPINFOW        startup_info       = nullptr;
+    LPPROCESS_INFORMATION process_info       = nullptr;
+};
+
+using FixtureProcessInvoker = BOOL (*)(const FixtureProcessInvocation&, void*) noexcept;
+
+enum class FixtureCreateBoundaryResult : std::uint8_t
+{
+    Expired,
+    Aborted,
+    InvokedFailed,
+    InvokedSucceeded,
+};
+
+FixtureCreateBoundaryResult invoke_fixture_create_at_boundary(
+    ULONGLONG                       lifecycle_started_tick,
+    std::uint32_t                   lifecycle_ticks,
+    const std::atomic<bool>*        abort_requested,
+    ULONGLONG                       current_tick,
+    const FixtureProcessInvocation& invocation,
+    FixtureProcessInvoker           invoker,
+    void*                           invoker_context) noexcept
+{
+    if (abort_requested == nullptr || abort_requested->load(std::memory_order_acquire))
+    {
+        return FixtureCreateBoundaryResult::Aborted;
+    }
+    if (lifecycle_started_tick == 0 ||
+        !observer_diagnostic::ObserverFinitePhaseBudget::within(lifecycle_started_tick,
+                                                                current_tick,
+                                                                lifecycle_ticks))
+    {
+        return FixtureCreateBoundaryResult::Expired;
+    }
+    if (invoker == nullptr)
+    {
+        return FixtureCreateBoundaryResult::InvokedFailed;
+    }
+    return invoker(invocation, invoker_context) != FALSE
+               ? FixtureCreateBoundaryResult::InvokedSucceeded
+               : FixtureCreateBoundaryResult::InvokedFailed;
+}
+
+BOOL invoke_fixture_process(const FixtureProcessInvocation& invocation,
+                            void*) noexcept
+{
+    return CreateProcessW(invocation.application_name,
+                          invocation.command_line,
+                          invocation.process_attributes,
+                          invocation.thread_attributes,
+                          invocation.inherit_handles,
+                          invocation.creation_flags,
+                          invocation.environment,
+                          invocation.current_directory,
+                          invocation.startup_info,
+                          invocation.process_info);
+}
+
 bool create_controller_fixture(const ObserverLiveRequest& request,
                                ObserverFixtureEvidence*   evidence,
+                               ULONGLONG                  lifecycle_started_tick,
+                               const std::atomic<bool>*   abort_requested,
                                std::string*               refusal) noexcept
 {
     if (evidence == nullptr || !absolute_path(request.fixture_executable) ||
         !exact_fixture_command(request.fixture_executable, request.fixture_command_line) ||
         request.fixture_file_pin.size_bytes != kFixtureFileSize ||
-        request.fixture_file_pin.sha256 != kFixtureSha256)
+        request.fixture_file_pin.sha256 != kFixtureSha256 || lifecycle_started_tick == 0 ||
+        abort_requested == nullptr)
     {
         if (refusal != nullptr)
         {
@@ -895,8 +968,12 @@ bool create_controller_fixture(const ObserverLiveRequest& request,
         }
         return false;
     }
-    if (!evidence->create_controller_storage(request.output, request.session_id, refusal))
+    if (!evidence->controller_storage().created)
     {
+        if (refusal != nullptr)
+        {
+            *refusal = "controller fixture evidence storage was not prepared before fixture creation";
+        }
         return false;
     }
     HANDLE standard_input = CreateFileW(L"NUL",
@@ -984,18 +1061,41 @@ bool create_controller_fixture(const ObserverLiveRequest& request,
     startup.StartupInfo.hStdOutput = evidence->controller_storage().stdout_handle;
     startup.StartupInfo.hStdError  = evidence->controller_storage().stderr_handle;
     startup.lpAttributeList        = attributes;
-    PROCESS_INFORMATION process_info{};
-    const BOOL          created = !command.empty() &&
-                                  CreateProcessW(request.fixture_executable.c_str(),
-                                                 command.data(),
-                                                 nullptr,
-                                                 nullptr,
-                                                 TRUE,
-                                                 CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT,
-                                                 nullptr,
-                                                 nullptr,
-                                                 &startup.StartupInfo,
-                                                 &process_info);
+    PROCESS_INFORMATION            process_info{};
+    const FixtureProcessInvocation invocation = {
+        request.fixture_executable.c_str(),
+        command.data(),
+        nullptr,
+        nullptr,
+        TRUE,
+        CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT,
+        nullptr,
+        nullptr,
+        &startup.StartupInfo,
+        &process_info,
+    };
+    const FixtureCreateBoundaryResult boundary_result = invoke_fixture_create_at_boundary(
+        lifecycle_started_tick,
+        request.limits.child_completion_ticks,
+        abort_requested,
+        GetTickCount64(),
+        invocation,
+        &invoke_fixture_process,
+        nullptr);
+    if (boundary_result == FixtureCreateBoundaryResult::Expired ||
+        boundary_result == FixtureCreateBoundaryResult::Aborted)
+    {
+        DeleteProcThreadAttributeList(attributes);
+        CloseHandle(standard_input);
+        if (refusal != nullptr)
+        {
+            *refusal = boundary_result == FixtureCreateBoundaryResult::Aborted
+                           ? "fixture CreateProcessW permit was permanently aborted"
+                           : "fixture CreateProcessW permit expired before the actual call";
+        }
+        return false;
+    }
+    const BOOL created = boundary_result == FixtureCreateBoundaryResult::InvokedSucceeded;
     DeleteProcThreadAttributeList(attributes);
     CloseHandle(standard_input);
     if (!created)
@@ -2256,39 +2356,6 @@ ObserverDebugOwner::~ObserverDebugOwner() noexcept
     close();
 }
 
-bool ObserverDebugOwner::set_fixture_launch(HANDLE                         process,
-                                            HANDLE                         thread,
-                                            HANDLE                         stdout_handle,
-                                            HANDLE                         stderr_handle,
-                                            HANDLE                         state_handle,
-                                            const ObserverFixtureIdentity& identity,
-                                            std::uint64_t                  state_sequence,
-                                            std::string*                   refusal) noexcept
-{
-    const auto valid = [](HANDLE value) noexcept
-    {
-        return value != nullptr && value != INVALID_HANDLE_VALUE;
-    };
-    if (!valid(process) || !valid(thread) || !valid(stdout_handle) || !valid(stderr_handle) ||
-        !valid(state_handle) || !identity.complete() || state_sequence == 0 || fixture_launch_bound_)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "observer launch requires one complete creation-bound fixture handle set";
-        }
-        return false;
-    }
-    fixture_process_handle_ = process;
-    fixture_thread_handle_  = thread;
-    fixture_stdout_handle_  = stdout_handle;
-    fixture_stderr_handle_  = stderr_handle;
-    fixture_state_handle_   = state_handle;
-    fixture_state_sequence_ = state_sequence;
-    fixture_identity_       = identity;
-    fixture_launch_bound_   = true;
-    return true;
-}
-
 bool ObserverDebugOwner::authority_allows(const ObserverLiveAuthority& authority,
                                           std::string*                 refusal) const noexcept
 {
@@ -2804,8 +2871,7 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         !absolute_path(request.observer_executable) || request.observer_command_line.empty() ||
         !request.limits.valid() ||
         !file_pin_matches(request.observer_executable,
-                          request.observer_executable_pin) ||
-        !fixture_launch_bound_)
+                          request.observer_executable_pin))
     {
         if (refusal != nullptr)
         {
@@ -2895,102 +2961,30 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         command += L" ";
         command += std::to_wstring(static_cast<unsigned long long>(value));
     };
-    append_decimal(L"--fixture-process-handle",
-                   reinterpret_cast<std::uintptr_t>(fixture_process_handle_));
-    append_decimal(L"--fixture-thread-handle",
-                   reinterpret_cast<std::uintptr_t>(fixture_thread_handle_));
-    append_decimal(L"--fixture-stdout-handle",
-                   reinterpret_cast<std::uintptr_t>(fixture_stdout_handle_));
-    append_decimal(L"--fixture-stderr-handle",
-                   reinterpret_cast<std::uintptr_t>(fixture_stderr_handle_));
-    append_decimal(L"--fixture-state-handle",
-                   reinterpret_cast<std::uintptr_t>(fixture_state_handle_));
-    append_decimal(L"--fixture-pid", fixture_identity_.process_id);
-    append_decimal(L"--fixture-creation-low", fixture_identity_.creation_time.dwLowDateTime);
-    append_decimal(L"--fixture-creation-high", fixture_identity_.creation_time.dwHighDateTime);
-    append_decimal(L"--fixture-state-sequence", fixture_state_sequence_);
+    // The caller supplies the executable command, while these values remain
+    // controller authority.  Append them last so the child parser's final
+    // occurrence is the exact retained request, even if the supplied command
+    // contains stale copies.
     append_decimal(L"--session", request.session_id);
     append_decimal(L"--row-cap", request.row_cap);
     append_decimal(L"--provenance-hash-cap", request.provenance_hash_cap);
     append_decimal(L"--collection-ticks", request.limits.collection_ticks);
     append_decimal(L"--child-completion-ticks", request.limits.child_completion_ticks);
     append_decimal(L"--cleanup-ticks", request.limits.known_cleanup_ticks);
-
-    SIZE_T attribute_bytes = 0;
-    InitializeProcThreadAttributeList(nullptr, 1, 0, &attribute_bytes);
-    if (attribute_bytes == 0)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "observer restricted handle-list sizing failed";
-        }
-        close();
-        return false;
-    }
-    std::vector<std::uint8_t> attribute_storage;
-    try
-    {
-        attribute_storage.resize(attribute_bytes);
-    }
-    catch (...)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "observer restricted handle-list allocation failed";
-        }
-        close();
-        return false;
-    }
-    auto* attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attribute_storage.data());
-    if (!InitializeProcThreadAttributeList(attributes, 1, 0, &attribute_bytes))
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "observer restricted handle-list initialization failed";
-        }
-        close();
-        return false;
-    }
-    const HANDLE inherited_handles[] = {
-        fixture_process_handle_,
-        fixture_thread_handle_,
-        fixture_stdout_handle_,
-        fixture_stderr_handle_,
-        fixture_state_handle_,
-    };
-    const bool handle_list_ready = UpdateProcThreadAttribute(attributes,
-                                                             0,
-                                                             PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-                                                             const_cast<HANDLE*>(inherited_handles),
-                                                             sizeof(inherited_handles),
-                                                             nullptr,
-                                                             nullptr) != FALSE;
-    if (!handle_list_ready)
-    {
-        DeleteProcThreadAttributeList(attributes);
-        if (refusal != nullptr)
-        {
-            *refusal = "observer restricted handle-list publication failed";
-        }
-        close();
-        return false;
-    }
-    STARTUPINFOEXW startup{};
-    startup.StartupInfo.cb  = sizeof(startup);
-    startup.lpAttributeList = attributes;
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
     PROCESS_INFORMATION process_info{};
     if (!CreateProcessW(request.observer_executable.c_str(),
                         command.data(),
                         nullptr,
                         nullptr,
-                        TRUE,
-                        DEBUG_ONLY_THIS_PROCESS | EXTENDED_STARTUPINFO_PRESENT,
+                        FALSE,
+                        DEBUG_ONLY_THIS_PROCESS,
                         nullptr,
                         nullptr,
-                        &startup.StartupInfo,
+                        &startup,
                         &process_info))
     {
-        DeleteProcThreadAttributeList(attributes);
         if (refusal != nullptr)
         {
             *refusal = "CreateProcess(DEBUG_ONLY_THIS_PROCESS) failed: " +
@@ -2999,7 +2993,6 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         close();
         return false;
     }
-    DeleteProcThreadAttributeList(attributes);
     handles_.process_info_process         = process_info.hProcess;
     handles_.process_info_thread          = process_info.hThread;
     handles_.process_id                   = process_info.dwProcessId;
@@ -4300,10 +4293,12 @@ bool              attest_remote_hold(ObserverRemoteTransport::State* state,
 bool              write_remote_hold_evidence(ObserverRemoteTransport::State*  state,
                                              const HookQuiescenceAttestation& attestation) noexcept;
 bool              require_mutation_attestation(ObserverRemoteTransport::State* state) noexcept;
-HookBackendResult invoke_owner_control(ObserverRemoteTransport::State* state,
-                                       std::uintptr_t                  control,
-                                       std::uint64_t                   owner_id,
-                                       bool                            module_control) noexcept;
+HookBackendResult invoke_owner_control(ObserverRemoteTransport::State*          state,
+                                       std::uintptr_t                           control,
+                                       std::uint64_t                            owner_id,
+                                       bool                                     module_control,
+                                       const ObserverLiveOwnerControlRequestV1* payload           = nullptr,
+                                       bool*                                    execution_started = nullptr) noexcept;
 
 } // namespace
 
@@ -4930,11 +4925,17 @@ bool ObserverRemoteTransport::complete_module_release() noexcept
 namespace
 {
 
-HookBackendResult invoke_owner_control(ObserverRemoteTransport::State* state,
-                                       std::uintptr_t                  control,
-                                       std::uint64_t                   owner_id,
-                                       bool                            module_control) noexcept
+HookBackendResult invoke_owner_control(ObserverRemoteTransport::State*          state,
+                                       std::uintptr_t                           control,
+                                       std::uint64_t                            owner_id,
+                                       bool                                     module_control,
+                                       const ObserverLiveOwnerControlRequestV1* payload,
+                                       bool*                                    execution_started) noexcept
 {
+    if (execution_started != nullptr)
+    {
+        *execution_started = false;
+    }
     if (state == nullptr || state->owner == nullptr || state->process == nullptr ||
         control == 0 || owner_id == 0 || state->held || state->lease_held ||
         state->control_timeout_ticks == 0 || state->publication_address == 0 ||
@@ -4959,19 +4960,21 @@ HookBackendResult invoke_owner_control(ObserverRemoteTransport::State* state,
         state->owner->release_remote_control_reservation();
         return HookBackendResult::Refused;
     }
-    ObserverLiveOwnerControlRequestV1 request;
-    request.observer_process_id   = state->process_id;
-    request.observer_instance_id  = state->observer_instance_id;
-    request.publication_address   = static_cast<std::uint32_t>(state->publication_address);
-    request.owner_witness_address = static_cast<std::uint32_t>(state->owner_witness_address);
-    request.module_base           = module_control ? static_cast<std::uint32_t>(state->module_base) : 0;
-    request.module_handle         = module_control ? static_cast<std::uint32_t>(state->module_base) : 0;
-    request.owner_id              = owner_id;
-    request.module_pin_identity   = state->module_pin_identity;
-    const bool request_written    = write_block(state->process,
-                                                reinterpret_cast<std::uintptr_t>(remote_request),
-                                                &request,
-                                                sizeof(request));
+    ObserverLiveOwnerControlRequestV1 request = payload == nullptr
+                                                    ? ObserverLiveOwnerControlRequestV1{}
+                                                    : *payload;
+    request.observer_process_id               = state->process_id;
+    request.observer_instance_id              = state->observer_instance_id;
+    request.publication_address               = static_cast<std::uint32_t>(state->publication_address);
+    request.owner_witness_address             = static_cast<std::uint32_t>(state->owner_witness_address);
+    request.module_base                       = module_control ? static_cast<std::uint32_t>(state->module_base) : 0;
+    request.module_handle                     = module_control ? static_cast<std::uint32_t>(state->module_base) : 0;
+    request.owner_id                          = owner_id;
+    request.module_pin_identity               = state->module_pin_identity;
+    const bool request_written                = write_block(state->process,
+                                                            reinterpret_cast<std::uintptr_t>(remote_request),
+                                                            &request,
+                                                            sizeof(request));
     if (!request_written)
     {
         VirtualFreeEx(state->process, remote_request, 0, MEM_RELEASE);
@@ -4993,6 +4996,13 @@ HookBackendResult invoke_owner_control(ObserverRemoteTransport::State* state,
         VirtualFreeEx(state->process, remote_request, 0, MEM_RELEASE);
         state->owner->release_remote_control_reservation();
         return HookBackendResult::Refused;
+    }
+    if (execution_started != nullptr)
+    {
+        // A created remote thread is the first settled witness that the
+        // target may have consumed the request and any transferred handles.
+        // Every later refusal remains an ownership-unknown result.
+        *execution_started = true;
     }
     if (remote_thread_id == 0)
     {
@@ -5137,6 +5147,16 @@ HookBackendResult invoke_owner_control(ObserverRemoteTransport::State* state,
           response.module_handle != static_cast<std::uint32_t>(state->module_base))) ||
         response.owner_id != owner_id ||
         response.module_pin_identity != state->module_pin_identity ||
+        (payload != nullptr &&
+         (response.fixture_process_handle != request.fixture_process_handle ||
+          response.fixture_thread_handle != request.fixture_thread_handle ||
+          response.fixture_stdout_handle != request.fixture_stdout_handle ||
+          response.fixture_stderr_handle != request.fixture_stderr_handle ||
+          response.fixture_state_handle != request.fixture_state_handle ||
+          response.fixture_process_id != request.fixture_process_id ||
+          response.fixture_creation_low != request.fixture_creation_low ||
+          response.fixture_creation_high != request.fixture_creation_high ||
+          response.fixture_state_sequence != request.fixture_state_sequence)) ||
         response.result != ERROR_SUCCESS || response.witness == 0)
     {
         return HookBackendResult::Refused;
@@ -5219,26 +5239,278 @@ bool submit_hold_request(ObserverRemoteTransport::State* state,
 
 } // namespace
 
-bool ObserverRemoteTransport::start_child(std::string* refusal) noexcept
+using FixtureTransferClose      = void (*)(void*, HANDLE) noexcept;
+using FixtureTransferAbort      = void (*)(void*) noexcept;
+using FixtureOwnerControlInvoke = HookBackendResult (*)(
+    ObserverRemoteTransport::State*,
+    std::uintptr_t,
+    std::uint64_t,
+    bool,
+    const ObserverLiveOwnerControlRequestV1*,
+    bool*,
+    void*) noexcept;
+
+void settle_fixture_transfer(std::array<HANDLE, 5>* transferred,
+                             HookBackendResult      result,
+                             bool                   remote_execution_started,
+                             FixtureTransferClose   close_handle,
+                             FixtureTransferAbort   request_abort,
+                             void*                  context) noexcept
 {
+    if (transferred == nullptr || result == HookBackendResult::Success)
+    {
+        return;
+    }
+    if (!remote_execution_started)
+    {
+        if (close_handle != nullptr)
+        {
+            for (HANDLE& handle : *transferred)
+            {
+                if (handle != nullptr && handle != INVALID_HANDLE_VALUE)
+                {
+                    close_handle(context, handle);
+                }
+                handle = nullptr;
+            }
+        }
+        return;
+    }
+    transferred->fill(nullptr);
+    if (request_abort != nullptr)
+    {
+        request_abort(context);
+    }
+}
+
+void close_transferred_handle(void* context, HANDLE handle) noexcept
+{
+    auto* state = static_cast<ObserverRemoteTransport::State*>(context);
+    if (state == nullptr || state->process == nullptr || handle == nullptr ||
+        handle == INVALID_HANDLE_VALUE)
+    {
+        return;
+    }
+    HANDLE local_duplicate = nullptr;
+    (void)DuplicateHandle(state->process,
+                          handle,
+                          GetCurrentProcess(),
+                          &local_duplicate,
+                          0,
+                          FALSE,
+                          DUPLICATE_CLOSE_SOURCE);
+    if (local_duplicate != nullptr && local_duplicate != INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(local_duplicate);
+    }
+}
+
+void abort_transferred_handle_use(void* context) noexcept
+{
+    auto* state = static_cast<ObserverRemoteTransport::State*>(context);
+    if (state != nullptr && state->owner != nullptr)
+    {
+        (void)state->owner->request_permanent_abort(state->authority, nullptr);
+    }
+}
+
+HookBackendResult invoke_fixture_owner_control(ObserverRemoteTransport::State*          state,
+                                               std::uintptr_t                           control,
+                                               std::uint64_t                            owner_id,
+                                               bool                                     module_control,
+                                               const ObserverLiveOwnerControlRequestV1* payload,
+                                               bool*                                    execution_started,
+                                               void*) noexcept
+{
+    return invoke_owner_control(state,
+                                control,
+                                owner_id,
+                                module_control,
+                                payload,
+                                execution_started);
+}
+
+HookBackendResult dispatch_fixture_transfer(
+    std::array<HANDLE, 5>*                   transferred,
+    ObserverRemoteTransport::State*          state,
+    std::uintptr_t                           control,
+    std::uint64_t                            owner_id,
+    const ObserverLiveOwnerControlRequestV1* request,
+    FixtureOwnerControlInvoke                invoke,
+    void*                                    invoke_context,
+    FixtureTransferClose                     close_handle,
+    FixtureTransferAbort                     request_abort,
+    void*                                    settle_context,
+    bool*                                    execution_started) noexcept
+{
+    if (execution_started != nullptr)
+    {
+        *execution_started = false;
+    }
+    if (transferred == nullptr)
+    {
+        return HookBackendResult::Refused;
+    }
+    if (request == nullptr || invoke == nullptr)
+    {
+        settle_fixture_transfer(transferred,
+                                HookBackendResult::Refused,
+                                false,
+                                close_handle,
+                                request_abort,
+                                settle_context);
+        return HookBackendResult::Refused;
+    }
+    bool                    remote_started = false;
+    const HookBackendResult result         = invoke(state,
+                                                    control,
+                                                    owner_id,
+                                                    false,
+                                                    request,
+                                                    &remote_started,
+                                                    invoke_context);
+    if (execution_started != nullptr)
+    {
+        *execution_started = remote_started;
+    }
+    if (result == HookBackendResult::Success)
+    {
+        transferred->fill(nullptr);
+        return result;
+    }
+    settle_fixture_transfer(transferred,
+                            result,
+                            remote_started,
+                            close_handle,
+                            request_abort,
+                            settle_context);
+    return result;
+}
+
+bool ObserverRemoteTransport::start_child(HANDLE                         fixture_process,
+                                          HANDLE                         fixture_thread,
+                                          HANDLE                         fixture_stdout,
+                                          HANDLE                         fixture_stderr,
+                                          HANDLE                         fixture_state,
+                                          const ObserverFixtureIdentity& fixture_identity,
+                                          std::uint64_t                  fixture_state_sequence,
+                                          std::string*                   refusal) noexcept
+{
+    const auto valid_handle = [](HANDLE value) noexcept
+    {
+        return value != nullptr && value != INVALID_HANDLE_VALUE;
+    };
     if (state_ == nullptr || !state_->publication_atomic_witness || state_->held ||
-        state_->lease_held || state_->child_start_control == 0)
+        state_->lease_held || state_->child_start_control == 0 || !valid_handle(fixture_process) ||
+        !valid_handle(fixture_thread) || !valid_handle(fixture_stdout) || !valid_handle(fixture_stderr) ||
+        !valid_handle(fixture_state) || !fixture_identity.complete() || fixture_state_sequence == 0 ||
+        fixture_identity.process_id == 0)
     {
         if (refusal != nullptr)
         {
-            *refusal = "target child start requires the claimed publication outside the hold";
+            *refusal = "target child start requires the retained fixture identity and handles";
         }
         return false;
     }
-    const HookBackendResult result = invoke_owner_control(state_.get(),
-                                                          state_->child_start_control,
-                                                          state_->owner_id,
-                                                          false);
-    if (result != HookBackendResult::Success && refusal != nullptr)
+    std::array<HANDLE, 5>       transferred{};
+    const std::array<HANDLE, 5> source = {
+        fixture_process,
+        fixture_thread,
+        fixture_stdout,
+        fixture_stderr,
+        fixture_state,
+    };
+    for (std::size_t index = 0; index != source.size(); ++index)
     {
-        *refusal = "target child start control refused";
+        if (!DuplicateHandle(GetCurrentProcess(),
+                             source[index],
+                             state_->process,
+                             &transferred[index],
+                             0,
+                             FALSE,
+                             DUPLICATE_SAME_ACCESS))
+        {
+            settle_fixture_transfer(&transferred,
+                                    HookBackendResult::Refused,
+                                    false,
+                                    &close_transferred_handle,
+                                    nullptr,
+                                    state_.get());
+            if (refusal != nullptr)
+            {
+                *refusal = "creation-bound fixture handle transfer into observer failed";
+            }
+            return false;
+        }
     }
-    return result == HookBackendResult::Success;
+    ObserverLiveOwnerControlRequestV1 request;
+    request.fixture_process_handle = static_cast<std::uint32_t>(
+        reinterpret_cast<std::uintptr_t>(transferred[0]));
+    request.fixture_thread_handle = static_cast<std::uint32_t>(
+        reinterpret_cast<std::uintptr_t>(transferred[1]));
+    request.fixture_stdout_handle = static_cast<std::uint32_t>(
+        reinterpret_cast<std::uintptr_t>(transferred[2]));
+    request.fixture_stderr_handle = static_cast<std::uint32_t>(
+        reinterpret_cast<std::uintptr_t>(transferred[3]));
+    request.fixture_state_handle = static_cast<std::uint32_t>(
+        reinterpret_cast<std::uintptr_t>(transferred[4]));
+    request.fixture_process_id     = fixture_identity.process_id;
+    request.fixture_creation_low   = fixture_identity.creation_time.dwLowDateTime;
+    request.fixture_creation_high  = fixture_identity.creation_time.dwHighDateTime;
+    request.fixture_state_sequence = fixture_state_sequence;
+    for (const std::uint32_t handle : { request.fixture_process_handle,
+                                        request.fixture_thread_handle,
+                                        request.fixture_stdout_handle,
+                                        request.fixture_stderr_handle,
+                                        request.fixture_state_handle })
+    {
+        if (handle == 0)
+        {
+            settle_fixture_transfer(&transferred,
+                                    HookBackendResult::Refused,
+                                    false,
+                                    &close_transferred_handle,
+                                    nullptr,
+                                    state_.get());
+            if (refusal != nullptr)
+            {
+                *refusal = "transferred fixture handle did not fit the Win32 observer ABI";
+            }
+            return false;
+        }
+    }
+    bool                    remote_execution_started = false;
+    const HookBackendResult result                   = dispatch_fixture_transfer(
+        &transferred,
+        state_.get(),
+        state_->child_start_control,
+        state_->owner_id,
+        &request,
+        &invoke_fixture_owner_control,
+        nullptr,
+        &close_transferred_handle,
+        &abort_transferred_handle_use,
+        state_.get(),
+        &remote_execution_started);
+    if (result != HookBackendResult::Success)
+    {
+        // A remote thread is an execution witness, not a consumption proof:
+        // bind_fixture can consume some values before request_start refuses,
+        // and a completed response can be unreadable or identity-mismatched.
+        // Keep the complete transferred set in the observer quarantine for
+        // every such result.  Only a proven pre-thread failure permits local
+        // duplicate cleanup.
+        if (refusal != nullptr)
+        {
+            *refusal = remote_execution_started
+                           ? "creation-bound fixture transfer or child start was refused after remote execution"
+                           : "creation-bound fixture transfer was refused before remote execution";
+        }
+        return false;
+    }
+    // The target owns the duplicated values after the successful bind.  The
+    // controller retains and closes its originals through ObserverFixtureEvidence.
+    return true;
 }
 
 bool ObserverRemoteTransport::request_initial_hold(std::string* refusal) noexcept
@@ -7808,11 +8080,13 @@ struct ObserverChildComposition::State
     HRESULT                                  engine_options_add_result      = E_FAIL;
     HRESULT                                  engine_options_get_result      = E_FAIL;
     ULONG                                    engine_options_returned        = 0;
+    std::uint64_t                            engine_options_client_identity = 0;
     bool                                     fixture_attach_recorded        = false;
     bool                                     fixture_attach_completed       = false;
     bool                                     fixture_resumed                = false;
     bool                                     fixture_exit_confirmed         = false;
     bool                                     fixture_image_binding_verified = false;
+    bool                                     fixture_bound                  = false;
     bool                                     prepared                       = false;
     bool                                     fixture_started                = false;
     bool                                     released                       = false;
@@ -7951,11 +8225,7 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         !request.collection->configured() || !child_authority(authority, refusal) ||
         !absolute_path(request.dbgeng_image) || !absolute_path(request.fixture_executable) ||
         !exact_fixture_command(request.fixture_executable, request.fixture_command_line) ||
-        request.session_id == 0 || request.row_cap == 0 || request.provenance_hash_cap < kObserverImageSize ||
-        request.fixture_process_handle == 0 || request.fixture_thread_handle == 0 ||
-        request.fixture_stdout_handle == 0 || request.fixture_stderr_handle == 0 ||
-        request.fixture_state_handle == 0 || request.fixture_state_sequence == 0 ||
-        !request.fixture_identity.complete())
+        request.session_id == 0 || request.row_cap == 0 || request.provenance_hash_cap < kObserverImageSize)
     {
         if (refusal != nullptr && refusal->empty())
         {
@@ -7974,7 +8244,7 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    if (request.fixture_identity.process_id == 0 || request.fixture_identity.executable.empty() ||
+    if (request.fixture_identity.executable.empty() ||
         !same_windows_path(request.fixture_identity.executable.wstring(), request.fixture_executable.wstring()) ||
         request.fixture_identity.file_size != fixture_size || request.fixture_identity.file_sha256 != fixture_digest)
     {
@@ -7984,28 +8254,14 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    state_->request                = request;
-    state_->collection_owner       = request.collection_owner;
-    state_->fixture_process_handle = reinterpret_cast<HANDLE>(request.fixture_process_handle);
-    state_->fixture_thread_handle  = reinterpret_cast<HANDLE>(request.fixture_thread_handle);
-    state_->fixture_process_id     = request.fixture_identity.process_id;
-    state_->target_process_id      = state_->fixture_process_id;
-    state_->fixture_evidence       = std::make_unique<ObserverFixtureEvidence>();
-    if (state_->fixture_evidence == nullptr ||
-        !state_->fixture_evidence->attach_observer_storage(
-            state_->fixture_process_handle,
-            state_->fixture_thread_handle,
-            reinterpret_cast<HANDLE>(request.fixture_stdout_handle),
-            reinterpret_cast<HANDLE>(request.fixture_stderr_handle),
-            reinterpret_cast<HANDLE>(request.fixture_state_handle),
-            request.fixture_identity,
-            request.session_id,
-            request.fixture_state_sequence,
-            refusal))
+    state_->request          = request;
+    state_->collection_owner = request.collection_owner;
+    state_->fixture_evidence = std::make_unique<ObserverFixtureEvidence>();
+    if (state_->fixture_evidence == nullptr)
     {
         if (refusal != nullptr && refusal->empty())
         {
-            *refusal = "creation-bound fixture evidence storage could not be attached";
+            *refusal = "creation-bound fixture evidence storage could not be allocated";
         }
         return false;
     }
@@ -8065,6 +8321,49 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         {
             *refusal = "DbgEng target control or system object acquisition failed";
         }
+        state_->client.Reset();
+        FreeLibrary(state_->engine);
+        state_->engine = nullptr;
+        return false;
+    }
+    state_->engine_options_client_identity =
+        reinterpret_cast<std::uintptr_t>(state_->client.Get());
+    if (state_->engine_options_client_identity == 0)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "retained DbgEng IDebugClient identity was not published";
+        }
+        state_->systems.Reset();
+        state_->control.Reset();
+        state_->client.Reset();
+        FreeLibrary(state_->engine);
+        state_->engine = nullptr;
+        return false;
+    }
+    // Acquire the process option on the retained client while preparation is
+    // still fixture-free.  The controller publishes this exact receipt before
+    // it is allowed to create the suspended fixture; the later bind transfers
+    // only creation-bound handles and identity into this same composition.
+    state_->engine_options_requested  = DEBUG_PROCESS_DETACH_ON_EXIT;
+    state_->engine_options_add_result = state_->client->AddProcessOptions(
+        state_->engine_options_requested);
+    state_->engine_options_returned   = 0;
+    state_->engine_options_get_result = state_->client->GetProcessOptions(
+        &state_->engine_options_returned);
+    state_->engine_options_readback =
+        state_->engine_options_add_result == S_OK &&
+        state_->engine_options_get_result == S_OK &&
+        (state_->engine_options_returned & state_->engine_options_requested) ==
+            state_->engine_options_requested;
+    if (!state_->engine_options_readback)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "DbgEng process option HRESULT/mask readback did not retain detach-on-exit";
+        }
+        state_->systems.Reset();
+        state_->control.Reset();
         state_->client.Reset();
         FreeLibrary(state_->engine);
         state_->engine = nullptr;
@@ -8167,36 +8466,89 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
     return true;
 }
 
+bool ObserverChildComposition::bind_fixture(const ObserverChildRequest& request,
+                                            std::string*                refusal) noexcept
+{
+    ObserverChildRequest bound_request = request;
+    if (bound_request.fixture_identity.executable.empty() && state_ != nullptr)
+    {
+        bound_request.fixture_identity.executable = state_->request.fixture_executable;
+    }
+    const auto valid_handle = [](std::uintptr_t value) noexcept
+    {
+        return value != 0 && value != reinterpret_cast<std::uintptr_t>(INVALID_HANDLE_VALUE);
+    };
+    if (state_ == nullptr || !state_->prepared || state_->fixture_bound ||
+        state_->client.Get() == nullptr ||
+        reinterpret_cast<std::uintptr_t>(state_->client.Get()) != state_->engine_options_client_identity ||
+        !valid_handle(request.fixture_process_handle) || !valid_handle(request.fixture_thread_handle) ||
+        !valid_handle(request.fixture_stdout_handle) || !valid_handle(request.fixture_stderr_handle) ||
+        !valid_handle(request.fixture_state_handle) || request.fixture_state_sequence == 0 ||
+        !bound_request.fixture_identity.complete() || state_->fixture_evidence == nullptr ||
+        bound_request.fixture_identity.file_size != kFixtureFileSize ||
+        bound_request.fixture_identity.file_sha256 != kFixtureSha256 ||
+        !same_windows_path(bound_request.fixture_identity.executable.wstring(),
+                           state_->request.fixture_executable.wstring()))
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "creation-bound fixture transfer requires a fresh complete identity and handle set";
+        }
+        return false;
+    }
+    HANDLE process = reinterpret_cast<HANDLE>(request.fixture_process_handle);
+    HANDLE thread  = reinterpret_cast<HANDLE>(request.fixture_thread_handle);
+    if (GetProcessId(process) != bound_request.fixture_identity.process_id ||
+        GetProcessIdOfThread(thread) != bound_request.fixture_identity.process_id)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "transferred fixture handles did not retain the creation-bound process identity";
+        }
+        return false;
+    }
+    if (!state_->fixture_evidence->attach_observer_storage(
+            process,
+            thread,
+            reinterpret_cast<HANDLE>(request.fixture_stdout_handle),
+            reinterpret_cast<HANDLE>(request.fixture_stderr_handle),
+            reinterpret_cast<HANDLE>(request.fixture_state_handle),
+            bound_request.fixture_identity,
+            state_->request.session_id,
+            request.fixture_state_sequence,
+            refusal))
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "creation-bound fixture evidence storage could not be attached";
+        }
+        return false;
+    }
+    state_->request.fixture_process_handle = request.fixture_process_handle;
+    state_->request.fixture_thread_handle  = request.fixture_thread_handle;
+    state_->request.fixture_stdout_handle  = request.fixture_stdout_handle;
+    state_->request.fixture_stderr_handle  = request.fixture_stderr_handle;
+    state_->request.fixture_state_handle   = request.fixture_state_handle;
+    state_->request.fixture_state_sequence = request.fixture_state_sequence;
+    state_->request.fixture_identity       = bound_request.fixture_identity;
+    state_->fixture_process_handle         = process;
+    state_->fixture_thread_handle          = thread;
+    state_->fixture_process_id             = request.fixture_identity.process_id;
+    state_->target_process_id              = state_->fixture_process_id;
+    state_->fixture_bound                  = true;
+    return true;
+}
+
 bool ObserverChildComposition::start_fixture(const ObserverLiveAuthority& authority,
                                              std::uint32_t                timeout_ticks,
                                              std::string*                 refusal) noexcept
 {
-    if (state_ == nullptr || !state_->prepared || state_->fixture_started ||
+    if (state_ == nullptr || !state_->prepared || !state_->fixture_bound || state_->fixture_started ||
         timeout_ticks == 0 || timeout_ticks == INFINITE || !child_authority(authority, refusal))
     {
         if (refusal != nullptr && refusal->empty())
         {
             *refusal = "fixture start requires a prepared child composition and revised authority";
-        }
-        return false;
-    }
-    state_->engine_options_requested  = DEBUG_PROCESS_DETACH_ON_EXIT;
-    state_->engine_options_add_result = state_->client->AddProcessOptions(
-        state_->engine_options_requested);
-    state_->engine_options_returned   = 0;
-    state_->engine_options_get_result = state_->client->GetProcessOptions(
-        &state_->engine_options_returned);
-    state_->engine_options_readback =
-        state_->fixture_evidence != nullptr &&
-        state_->fixture_evidence->record_process_options(state_->engine_options_requested,
-                                                         state_->engine_options_add_result,
-                                                         state_->engine_options_get_result,
-                                                         state_->engine_options_returned);
-    if (!state_->engine_options_readback)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "DbgEng process option HRESULT/mask readback did not retain detach-on-exit";
         }
         return false;
     }
@@ -8594,6 +8946,31 @@ bool ObserverChildComposition::engine_options_readback() const noexcept
     return state_ != nullptr && state_->engine_options_readback;
 }
 
+ULONG ObserverChildComposition::engine_options_requested() const noexcept
+{
+    return state_ == nullptr ? 0 : state_->engine_options_requested;
+}
+
+HRESULT ObserverChildComposition::engine_options_add_result() const noexcept
+{
+    return state_ == nullptr ? E_FAIL : state_->engine_options_add_result;
+}
+
+HRESULT ObserverChildComposition::engine_options_get_result() const noexcept
+{
+    return state_ == nullptr ? E_FAIL : state_->engine_options_get_result;
+}
+
+ULONG ObserverChildComposition::engine_options_returned() const noexcept
+{
+    return state_ == nullptr ? 0 : state_->engine_options_returned;
+}
+
+std::uint64_t ObserverChildComposition::engine_options_client_identity() const noexcept
+{
+    return state_ == nullptr ? 0 : state_->engine_options_client_identity;
+}
+
 bool ObserverChildComposition::fixture_evidence_valid() const noexcept
 {
     return state_ != nullptr && state_->fixture_evidence != nullptr &&
@@ -8694,8 +9071,12 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     result.native_effects_started = false;
     result.intent_recorded        = true;
     result.session_identity       = request.session_id;
-    const std::uint64_t owner_id  = controller_owner_id();
-    result.owner_id               = owner_id;
+    // Start the immutable lifecycle clock before observer preparation.  Every
+    // readiness and fixture-creation permit remains inside this original
+    // finite phase; no later child-start clock may extend it.
+    const ULONGLONG     lifecycle_started_tick = GetTickCount64();
+    const std::uint64_t owner_id               = controller_owner_id();
+    result.owner_id                            = owner_id;
     std::unique_ptr<ObserverDebugOwner>       owner_holder(new (std::nothrow) ObserverDebugOwner());
     bool                                      abort_exit_pending = false;
     ObserverDebugOwner*                       owner_ptr          = owner_holder.get();
@@ -9249,35 +9630,10 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         request.retention_publication->fixture.store(fixture_retention,
                                                      std::memory_order_release);
     }
-    if (!record_intent("create_fixture"))
+    if (!fixture_retention->create_controller_storage(request.output, request.session_id, &refusal))
     {
-        return fail("failure_ledger", "fixture creation intent could not be persisted");
+        return fail("fixture_evidence", refusal.empty() ? "controller fixture evidence storage could not be prepared" : refusal);
     }
-    const bool fixture_created = create_controller_fixture(request,
-                                                           fixture_retention.get(),
-                                                           &refusal);
-    if (fixture_retention->controller_fixture_process() != nullptr)
-    {
-        result.native_effects_started = true;
-    }
-    const bool fixture_result_recorded = record_result(fixture_created,
-                                                       fixture_created ? "created" : "create_failed");
-    if (!fixture_created || !fixture_result_recorded)
-    {
-        return fail("fixture_create", refusal.empty() ? "controller fixture creation did not retain its creation-bound evidence" : refusal);
-    }
-    if (!owner.set_fixture_launch(fixture_retention->controller_fixture_process(),
-                                  fixture_retention->controller_fixture_thread(),
-                                  fixture_retention->controller_storage().stdout_handle,
-                                  fixture_retention->controller_storage().stderr_handle,
-                                  fixture_retention->controller_storage().state_handle,
-                                  fixture_retention->identity(),
-                                  fixture_retention->record_sequence(),
-                                  &refusal))
-    {
-        return fail("fixture_create", refusal);
-    }
-
     if (!record_intent("create_observer"))
     {
         return fail("failure_ledger", "observer creation intent could not be persisted");
@@ -9922,12 +10278,90 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         return fail("observer_continue", "mutation hold continuation failed");
     }
 
+    // The same retained child IDebugClient has already acquired and read back
+    // its process options during fixture-free preparation.  Persist that
+    // receipt in controller-owned storage and verify its observer/session
+    // identity before the first fixture CreateProcessW call.
+    ObserverLiveChildControlV1 options_control{};
+    if (!remote.read_child_control(&options_control, &refusal) ||
+        static_cast<ObserverLiveChildState>(options_control.state) != ObserverLiveChildState::Prepared ||
+        options_control.session_id != request.session_id ||
+        options_control.observer_process_id != owner.handles().process_id ||
+        options_control.observer_instance_id != bootstrap.instance_id ||
+        options_control.options_readiness_sequence == 0 ||
+        options_control.options_readiness_sequence != options_control.transition_sequence ||
+        options_control.engine_options_client_identity == 0 ||
+        options_control.engine_options_module_identity != bootstrap.module_pin_identity ||
+        options_control.engine_options_requested != DEBUG_PROCESS_DETACH_ON_EXIT ||
+        options_control.engine_options_add_result != S_OK ||
+        options_control.engine_options_get_result != S_OK ||
+        (options_control.engine_options_returned & DEBUG_PROCESS_DETACH_ON_EXIT) == 0 ||
+        options_control.engine_options_readback == 0)
+    {
+        abort_created();
+        return fail("options_ready", refusal.empty() ? "observer option readiness was missing, failed, stale or unacknowledged" : refusal);
+    }
+    if (!within_tick_bound(lifecycle_started_tick, request.limits.child_completion_ticks))
+    {
+        abort_created();
+        return fail("options_ready", "original child lifecycle deadline expired before fixture creation");
+    }
+    if (!fixture_retention->record_process_options(
+            options_control.engine_options_requested,
+            static_cast<HRESULT>(options_control.engine_options_add_result),
+            static_cast<HRESULT>(options_control.engine_options_get_result),
+            options_control.engine_options_returned,
+            options_control.observer_process_id,
+            options_control.observer_instance_id,
+            options_control.options_readiness_sequence,
+            options_control.engine_options_client_identity,
+            options_control.engine_options_module_identity) ||
+        !fixture_retention->options_ready_for_fixture(owner.handles().process_id,
+                                                      bootstrap.instance_id,
+                                                      options_control.options_readiness_sequence,
+                                                      options_control.engine_options_client_identity,
+                                                      options_control.engine_options_module_identity,
+                                                      &refusal))
+    {
+        abort_created();
+        return fail("options_ready", refusal.empty() ? "controller option readiness receipt was not durably acknowledged" : refusal);
+    }
+    if (!record_intent("create_fixture"))
+    {
+        abort_created();
+        return fail("failure_ledger", "fixture creation intent could not be persisted");
+    }
+    if (!within_tick_bound(lifecycle_started_tick, request.limits.child_completion_ticks))
+    {
+        (void)record_result(false, "expired_before_create");
+        abort_created();
+        return fail("options_ready", "original child lifecycle deadline expired before fixture CreateProcessW");
+    }
+    const bool fixture_created = create_controller_fixture(request,
+                                                           fixture_retention.get(),
+                                                           lifecycle_started_tick,
+                                                           owner.abort_token(),
+                                                           &refusal);
+    if (fixture_retention->controller_fixture_process() != nullptr)
+    {
+        result.native_effects_started = true;
+    }
+    const bool fixture_result_recorded = record_result(fixture_created,
+                                                       fixture_created ? "created" : "create_failed");
+    const bool fixture_create_overrun =
+        !within_tick_bound(lifecycle_started_tick, request.limits.child_completion_ticks);
+    if (!fixture_created || !fixture_result_recorded || fixture_create_overrun)
+    {
+        abort_created();
+        return fail("fixture_create", refusal.empty() ? "controller fixture creation did not retain its creation-bound evidence" : refusal);
+    }
+
     if (!record_intent("start_child"))
     {
         abort_created();
         return fail("failure_ledger", "child-start intent could not be persisted");
     }
-    const ULONGLONG child_started_tick         = GetTickCount64();
+    const ULONGLONG child_started_tick         = lifecycle_started_tick;
     const auto      child_completion_remaining = [child_started_tick, &request]() -> std::uint32_t
     {
         return observer_diagnostic::ObserverFinitePhaseBudget::remaining(
@@ -9938,10 +10372,18 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("child_completion", phase == nullptr ? "target child completion bound expired" : phase);
     };
-    const bool child_started_result = remote.start_child(&refusal);
-    const bool child_start_overrun  = !within_tick_bound(child_started_tick,
-                                                         request.limits.child_completion_ticks);
-    child_started                   = child_started_result;
+    const bool child_started_result = remote.start_child(
+        fixture_retention->controller_fixture_process(),
+        fixture_retention->controller_fixture_thread(),
+        fixture_retention->controller_storage().stdout_handle,
+        fixture_retention->controller_storage().stderr_handle,
+        fixture_retention->controller_storage().state_handle,
+        fixture_retention->identity(),
+        fixture_retention->record_sequence(),
+        &refusal);
+    const bool child_start_overrun = !within_tick_bound(child_started_tick,
+                                                        request.limits.child_completion_ticks);
+    child_started                  = child_started_result;
     if (!record_result(child_started_result,
                        child_started_result ? "started" : "failed"))
     {
@@ -9982,7 +10424,14 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         if (child_state == ObserverLiveChildState::Complete)
         {
             if (child_control.trace_size_bytes == 0 ||
-                child_control.engine_options_readback == 0 || child_control.raw_trace_persisted == 0)
+                child_control.engine_options_readback == 0 ||
+                child_control.engine_options_client_identity !=
+                    options_control.engine_options_client_identity ||
+                child_control.engine_options_module_identity !=
+                    options_control.engine_options_module_identity ||
+                child_control.options_readiness_sequence !=
+                    options_control.options_readiness_sequence ||
+                child_control.raw_trace_persisted == 0)
             {
                 abort_created();
                 return fail("child_output", "target child completion carried no persisted trace and option witness");
@@ -10108,7 +10557,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     const bool cleanup_deadline_published =
         remote.begin_cleanup(cleanup_started,
                              request.limits.known_cleanup_ticks,
-                             child_started_tick,
+                             lifecycle_started_tick,
                              request.limits.child_completion_ticks,
                              &refusal);
     if (!record_result(cleanup_deadline_published,
@@ -10608,6 +11057,205 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         return fail("failure_ledger", "native completion could not be persisted");
     }
     return result;
+}
+
+ObserverLiveRuntimeSelfTestReport run_observer_live_runtime_self_tests() noexcept
+{
+    ObserverLiveRuntimeSelfTestReport report;
+    const auto                        check = [&report](bool condition) noexcept
+    {
+        ++report.checks;
+        if (!condition)
+        {
+            ++report.failures;
+        }
+    };
+
+    struct FakeCreateState
+    {
+        std::uint32_t calls  = 0;
+        BOOL          result = TRUE;
+    };
+
+    const auto fake_create = [](const FixtureProcessInvocation&, void* context) noexcept -> BOOL
+    {
+        auto* state = static_cast<FakeCreateState*>(context);
+        if (state == nullptr)
+        {
+            return FALSE;
+        }
+        ++state->calls;
+        return state->result;
+    };
+    FixtureProcessInvocation invocation{};
+    FakeCreateState          create_state;
+    std::atomic<bool>        abort_requested{ false };
+    const auto               expired = invoke_fixture_create_at_boundary(
+        100,
+        10,
+        &abort_requested,
+        111,
+        invocation,
+        fake_create,
+        &create_state);
+    check(expired == FixtureCreateBoundaryResult::Expired && create_state.calls == 0);
+    abort_requested.store(true, std::memory_order_release);
+    const auto aborted = invoke_fixture_create_at_boundary(
+        100,
+        10,
+        &abort_requested,
+        101,
+        invocation,
+        fake_create,
+        &create_state);
+    check(aborted == FixtureCreateBoundaryResult::Aborted && create_state.calls == 0);
+    abort_requested.store(false, std::memory_order_release);
+    const auto invoked = invoke_fixture_create_at_boundary(
+        100,
+        10,
+        &abort_requested,
+        101,
+        invocation,
+        fake_create,
+        &create_state);
+    check(invoked == FixtureCreateBoundaryResult::InvokedSucceeded && create_state.calls == 1);
+
+    struct FakeTransferState
+    {
+        std::uint32_t closes  = 0;
+        std::uint32_t aborts  = 0;
+        std::uint32_t resumes = 0;
+    } transfer_state;
+
+    struct FakeOwnerControlState
+    {
+        HookBackendResult result          = HookBackendResult::Refused;
+        bool              execution_start = false;
+        bool              request_seen    = false;
+        bool              module_control  = true;
+        std::uintptr_t    control         = 0;
+        std::uint64_t     owner_id        = 0;
+        std::uint32_t     calls           = 0;
+    } owner_control_state;
+
+    const auto fake_close = [](void* context, HANDLE) noexcept
+    {
+        auto* state = static_cast<FakeTransferState*>(context);
+        if (state != nullptr)
+        {
+            ++state->closes;
+        }
+    };
+    const auto fake_abort = [](void* context) noexcept
+    {
+        auto* state = static_cast<FakeTransferState*>(context);
+        if (state != nullptr)
+        {
+            ++state->aborts;
+        }
+    };
+    const auto fake_owner_control = [](ObserverRemoteTransport::State*,
+                                       std::uintptr_t                           control,
+                                       std::uint64_t                            owner_id,
+                                       bool                                     module_control,
+                                       const ObserverLiveOwnerControlRequestV1* request,
+                                       bool*                                    execution_started,
+                                       void*                                    context) noexcept -> HookBackendResult
+    {
+        auto* state = static_cast<FakeOwnerControlState*>(context);
+        if (state == nullptr)
+        {
+            return HookBackendResult::Refused;
+        }
+        ++state->calls;
+        state->request_seen   = request != nullptr;
+        state->module_control = module_control;
+        state->control        = control;
+        state->owner_id       = owner_id;
+        if (execution_started != nullptr)
+        {
+            *execution_started = state->execution_start;
+        }
+        return state->result;
+    };
+    const auto unchanged = [](const std::array<HANDLE, 5>& left,
+                              const std::array<HANDLE, 5>& right) noexcept
+    {
+        for (std::size_t index = 0; index != left.size(); ++index)
+        {
+            if (left[index] != right[index])
+            {
+                return false;
+            }
+        }
+        return true;
+    };
+    const std::array<HANDLE, 5> originals = {
+        reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(0x101)),
+        reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(0x102)),
+        reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(0x103)),
+        reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(0x104)),
+        reinterpret_cast<HANDLE>(static_cast<std::uintptr_t>(0x105)),
+    };
+    const std::array<HANDLE, 5>            controller_originals = originals;
+    const std::array<HookBackendResult, 4> consumed_refusals    = {
+        HookBackendResult::Refused,
+        HookBackendResult::Refused,
+        HookBackendResult::Refused,
+        HookBackendResult::Ambiguous,
+    };
+    // These cases model bind-success/start-failure, partial-bind/persistence
+    // failure, completed unreadable/mismatched response, and delayed remote
+    // completion.  Each has a remote execution witness.
+    for (std::size_t case_index = 0; case_index != consumed_refusals.size(); ++case_index)
+    {
+        std::array<HANDLE, 5> transferred   = originals;
+        transfer_state                      = {};
+        owner_control_state                 = {};
+        owner_control_state.result          = consumed_refusals[case_index];
+        owner_control_state.execution_start = true;
+        ObserverLiveOwnerControlRequestV1 request{};
+        bool                              execution_started = false;
+        const HookBackendResult           result            = dispatch_fixture_transfer(
+            &transferred,
+            nullptr,
+            0x701,
+            0x702,
+            &request,
+            fake_owner_control,
+            &owner_control_state,
+            fake_close,
+            fake_abort,
+            &transfer_state,
+            &execution_started);
+        check(result == consumed_refusals[case_index] && owner_control_state.calls == 1 &&
+              owner_control_state.request_seen && !owner_control_state.module_control &&
+              owner_control_state.control == 0x701 && owner_control_state.owner_id == 0x702 &&
+              execution_started && transfer_state.closes == 0 && transfer_state.aborts == 1 &&
+              transfer_state.resumes == 0 && unchanged(controller_originals, originals));
+        bool cleared = true;
+        for (const HANDLE handle : transferred)
+        {
+            cleared = cleared && handle == nullptr;
+        }
+        check(cleared);
+    }
+    {
+        std::array<HANDLE, 5> transferred = originals;
+        transfer_state                    = {};
+        settle_fixture_transfer(&transferred,
+                                HookBackendResult::Refused,
+                                false,
+                                fake_close,
+                                fake_abort,
+                                &transfer_state);
+        check(transfer_state.closes == originals.size() && transfer_state.aborts == 0 &&
+              transfer_state.resumes == 0 && unchanged(controller_originals, originals));
+    }
+    report.passed  = report.failures == 0;
+    report.summary = report.passed ? "production options-first seam checks passed"
+                                   : "production options-first seam checks failed";
+    return report;
 }
 
 } // namespace xivl::observer_candidate

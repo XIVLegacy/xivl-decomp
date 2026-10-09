@@ -145,10 +145,25 @@ public:
     HANDLE controller_fixture_process() const noexcept;
     HANDLE controller_fixture_thread() const noexcept;
     void   close_controller_fixture_handles() noexcept;
-    bool   record_process_options(ULONG   requested_mask,
-                                  HRESULT add_result,
-                                  HRESULT get_result,
-                                  ULONG   returned_mask) noexcept;
+    bool   record_process_options(ULONG         requested_mask,
+                                  HRESULT       add_result,
+                                  HRESULT       get_result,
+                                  ULONG         returned_mask,
+                                  DWORD         observer_process_id  = 0,
+                                  DWORD         observer_instance_id = 0,
+                                  std::uint64_t readiness_sequence   = 0,
+                                  std::uint64_t client_identity      = 0,
+                                  std::uint64_t module_identity      = 0) noexcept;
+    bool   options_ready_for_fixture(DWORD         observer_process_id,
+                                     DWORD         observer_instance_id,
+                                     std::uint64_t readiness_sequence,
+                                     std::string*  refusal) const noexcept;
+    bool   options_ready_for_fixture(DWORD         observer_process_id,
+                                     DWORD         observer_instance_id,
+                                     std::uint64_t readiness_sequence,
+                                     std::uint64_t client_identity,
+                                     std::uint64_t module_identity,
+                                     std::string*  refusal) const noexcept;
     bool   record_attachment(HRESULT result, ULONG flags, bool event_available) noexcept;
     bool   record_attachment_completion(bool event_available) noexcept;
     bool   record_resume(DWORD result) noexcept;
@@ -240,6 +255,12 @@ private:
     bool                                                   mixed_writer_injected_        = false;
     bool                                                   unknown_                      = false;
     bool                                                   options_recorded_             = false;
+    DWORD                                                  options_observer_process_id_  = 0;
+    DWORD                                                  options_observer_instance_id_ = 0;
+    std::uint64_t                                          options_readiness_sequence_   = 0;
+    std::uint64_t                                          options_client_identity_      = 0;
+    std::uint64_t                                          options_module_identity_      = 0;
+    std::uint64_t                                          options_record_sequence_      = 0;
     bool                                                   attachment_recorded_          = false;
     bool                                                   attachment_completed_         = false;
     bool                                                   resume_recorded_              = false;

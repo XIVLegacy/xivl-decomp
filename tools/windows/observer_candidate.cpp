@@ -927,6 +927,13 @@ int observer_candidate_main(int argc, char* argv[])
         return result.disposition == ObserverLiveDisposition::RefusedPolicy ? 3 : 2;
     }
 
+    const auto runtime_seams = xivl::observer_candidate::run_observer_live_runtime_self_tests();
+    std::cout << "runtime_seams: checks=" << runtime_seams.checks
+              << ",failures=" << runtime_seams.failures << ',' << runtime_seams.summary << '\n';
+    if (!runtime_seams.passed)
+    {
+        return 1;
+    }
     ObserverController controller;
     const auto         result = controller.run_offline(parsed.request);
     std::cout << "status=" << result.status << '\n'

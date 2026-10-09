@@ -473,6 +473,51 @@ bool state_schema(const StateFields&                      fields,
     return true;
 }
 
+bool state_schema_optional(const StateFields&                      fields,
+                           std::initializer_list<std::string_view> required,
+                           std::initializer_list<std::string_view> optional) noexcept
+{
+    if (fields.size() < required.size() || fields.size() > required.size() + optional.size())
+    {
+        return false;
+    }
+    for (const StateField& field : fields)
+    {
+        bool found = false;
+        for (const std::string_view name : required)
+        {
+            if (field.name == name)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            for (const std::string_view name : optional)
+            {
+                if (field.name == name)
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+        {
+            return false;
+        }
+    }
+    for (const std::string_view name : required)
+    {
+        if (state_field(fields, name) == nullptr)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 template <std::size_t N>
 bool state_key_in_group(std::string_view                       key,
                         std::string_view                       prefix,
@@ -740,11 +785,16 @@ bool ObserverFixtureEvidence::bind_created_fixture(const ObserverFixtureIdentity
                                                    std::string*                   refusal) noexcept
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    if ((!storage_.created && !in_memory_test_sink_) || !identity.complete() || identity_bound_)
+    if ((!storage_.created && !in_memory_test_sink_) ||
+        (storage_.created && (!options_recorded_ || options_record_sequence_ == 0 ||
+                              options_observer_process_id_ == 0 || options_observer_instance_id_ == 0 ||
+                              options_readiness_sequence_ == 0 || options_client_identity_ == 0 ||
+                              options_module_identity_ == 0)) ||
+        !identity.complete() || identity_bound_)
     {
         if (refusal != nullptr)
         {
-            *refusal = "fixture identity binding requires controller storage and a fresh complete identity";
+            *refusal = "fixture identity binding requires controller storage, process-option readiness and a fresh complete identity";
         }
         unknown_ = true;
         return false;
@@ -758,7 +808,17 @@ bool ObserverFixtureEvidence::bind_created_fixture(const ObserverFixtureIdentity
            << ",\"path\":" << json_text(identity.executable.string())
            << ",\"size\":" << identity.file_size
            << ",\"sha256\":"
-           << json_text(hex_bytes(identity.file_sha256.data(), identity.file_sha256.size())) << "}\n";
+           << json_text(hex_bytes(identity.file_sha256.data(), identity.file_sha256.size()));
+    if (options_recorded_ && options_record_sequence_ != 0)
+    {
+        record << ",\"options-sequence\":" << options_record_sequence_
+               << ",\"options-observer-pid\":" << options_observer_process_id_
+               << ",\"options-observer-instance\":" << options_observer_instance_id_
+               << ",\"options-readiness-sequence\":" << options_readiness_sequence_
+               << ",\"options-client-identity\":" << options_client_identity_
+               << ",\"options-module-identity\":" << options_module_identity_;
+    }
+    record << "}\n";
     if (!append_record(record.str()))
     {
         if (refusal != nullptr)
@@ -1369,26 +1429,85 @@ bool parse_post_detach_cycles_line(std::string_view line, std::uint64_t* cycles)
     return parse_positive_decimal(line.substr(prefix.size()), cycles);
 }
 
-bool ObserverFixtureEvidence::record_process_options(ULONG   requested_mask,
-                                                     HRESULT add_result,
-                                                     HRESULT get_result,
-                                                     ULONG   returned_mask) noexcept
+bool ObserverFixtureEvidence::record_process_options(ULONG         requested_mask,
+                                                     HRESULT       add_result,
+                                                     HRESULT       get_result,
+                                                     ULONG         returned_mask,
+                                                     DWORD         observer_process_id,
+                                                     DWORD         observer_instance_id,
+                                                     std::uint64_t readiness_sequence,
+                                                     std::uint64_t client_identity,
+                                                     std::uint64_t module_identity) noexcept
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::ostringstream                    record;
     record << "{\"kind\":\"process-options\",\"requested\":" << requested_mask
            << ",\"add-hr\":" << static_cast<std::int64_t>(add_result)
            << ",\"get-hr\":" << static_cast<std::int64_t>(get_result)
-           << ",\"returned\":" << returned_mask << "}\n";
-    const bool retained = append_record(record.str());
-    options_recorded_   = add_result == S_OK && get_result == S_OK &&
-                          requested_mask == DEBUG_PROCESS_DETACH_ON_EXIT &&
-                          returned_mask == DEBUG_PROCESS_DETACH_ON_EXIT;
+           << ",\"returned\":" << returned_mask;
+    if (observer_process_id != 0 || observer_instance_id != 0 || readiness_sequence != 0)
+    {
+        record << ",\"observer-pid\":" << observer_process_id
+               << ",\"observer-instance\":" << observer_instance_id
+               << ",\"readiness-sequence\":" << readiness_sequence
+               << ",\"client-identity\":" << client_identity
+               << ",\"module-identity\":" << module_identity;
+    }
+    record << "}\n";
+    const bool retained           = append_record(record.str());
+    options_recorded_             = retained && add_result == S_OK && get_result == S_OK &&
+                                    requested_mask == DEBUG_PROCESS_DETACH_ON_EXIT &&
+                                    (returned_mask & requested_mask) == requested_mask;
+    options_observer_process_id_  = observer_process_id;
+    options_observer_instance_id_ = observer_instance_id;
+    options_readiness_sequence_   = readiness_sequence;
+    options_client_identity_      = client_identity;
+    options_module_identity_      = module_identity;
+    options_record_sequence_      = options_recorded_ ? record_sequence_ : 0;
     if (!options_recorded_)
     {
         unknown_ = true;
     }
-    return retained && options_recorded_;
+    return options_recorded_;
+}
+
+bool ObserverFixtureEvidence::options_ready_for_fixture(DWORD         observer_process_id,
+                                                        DWORD         observer_instance_id,
+                                                        std::uint64_t readiness_sequence,
+                                                        std::string*  refusal) const noexcept
+{
+    return options_ready_for_fixture(observer_process_id,
+                                     observer_instance_id,
+                                     readiness_sequence,
+                                     0,
+                                     0,
+                                     refusal);
+}
+
+bool ObserverFixtureEvidence::options_ready_for_fixture(DWORD         observer_process_id,
+                                                        DWORD         observer_instance_id,
+                                                        std::uint64_t readiness_sequence,
+                                                        std::uint64_t client_identity,
+                                                        std::uint64_t module_identity,
+                                                        std::string*  refusal) const noexcept
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    const bool                            ready = options_recorded_ && !unknown_ && options_record_sequence_ != 0 &&
+                                                  observer_process_id != 0 && observer_instance_id != 0 &&
+                                                  readiness_sequence != 0 &&
+                                                  options_observer_process_id_ == observer_process_id &&
+                                                  options_observer_instance_id_ == observer_instance_id &&
+                                                  options_readiness_sequence_ == readiness_sequence &&
+                                                  (in_memory_test_sink_ && client_identity == 0 && module_identity == 0
+                                                       ? true
+                                                       : client_identity != 0 && module_identity != 0 &&
+                                                             options_client_identity_ == client_identity &&
+                                                             options_module_identity_ == module_identity);
+    if (!ready && refusal != nullptr)
+    {
+        *refusal = "controller process-option readiness receipt was missing, stale or unacknowledged";
+    }
+    return ready;
 }
 
 bool ObserverFixtureEvidence::record_attachment(HRESULT result,
@@ -2090,27 +2209,28 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
     try
     {
         std::vector<ReplayEvent>     events;
-        bool                         created            = false;
-        bool                         handles            = false;
-        bool                         storage_attached   = false;
-        bool                         options            = false;
-        bool                         attached           = false;
-        bool                         attach_completed   = false;
-        bool                         resumed            = false;
-        bool                         collection         = false;
-        bool                         terminal           = false;
-        bool                         raw_boundary       = false;
-        bool                         live_at_release    = false;
-        bool                         release            = false;
-        bool                         exit               = false;
-        bool                         output_stdout_pre  = false;
-        bool                         output_stderr_pre  = false;
-        bool                         output_stdout_post = false;
-        bool                         output_stderr_post = false;
-        std::uint64_t                expected_sequence  = 1;
-        std::uint64_t                controller_writer  = 0;
-        std::uint64_t                observer_writer    = 0;
-        int                          phase              = 0;
+        bool                         created             = false;
+        bool                         handles             = false;
+        bool                         storage_attached    = false;
+        bool                         options             = false;
+        bool                         attached            = false;
+        bool                         attach_completed    = false;
+        bool                         resumed             = false;
+        bool                         collection          = false;
+        bool                         terminal            = false;
+        bool                         raw_boundary        = false;
+        bool                         live_at_release     = false;
+        bool                         release             = false;
+        bool                         exit                = false;
+        bool                         options_precreation = false;
+        bool                         output_stdout_pre   = false;
+        bool                         output_stderr_pre   = false;
+        bool                         output_stdout_post  = false;
+        bool                         output_stderr_post  = false;
+        std::uint64_t                expected_sequence   = 1;
+        std::uint64_t                controller_writer   = 0;
+        std::uint64_t                observer_writer     = 0;
+        int                          phase               = 0;
         std::array<std::uint64_t, 2> output_offsets{};
         std::array<bool, 2>          output_offset_seen{};
         std::string                  stdout_pending;
@@ -2126,6 +2246,12 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
         std::uint64_t                terminal_record_sequence     = 0;
         std::uint64_t                last_continuation_index_seen = 0;
         std::uint64_t                continuation_records         = 0;
+        std::uint64_t                options_record_sequence      = 0;
+        std::uint64_t                options_observer_pid         = 0;
+        std::uint64_t                options_observer_instance    = 0;
+        std::uint64_t                options_readiness_sequence   = 0;
+        std::uint64_t                options_client_identity      = 0;
+        std::uint64_t                options_module_identity      = 0;
 
         const auto state_group_u64 = [](const StateFields& fields,
                                         std::string_view   prefix,
@@ -2246,6 +2372,10 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
             }
             if (kind == "fixture-storage-attached")
             {
+                if (!options || options_observer_pid != writer)
+                {
+                    return false;
+                }
                 if (observer_writer == 0)
                 {
                     observer_writer = writer;
@@ -2268,8 +2398,9 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
             if (kind == "fixture-created")
             {
                 if (!controller_record() || phase != 0 || created ||
-                    !state_schema(fields,
-                                  { "sequence", "session", "writer", "kind", "pid", "creation-low", "creation-high", "path", "size", "sha256" }))
+                    !state_schema_optional(fields,
+                                           { "sequence", "session", "writer", "kind", "pid", "creation-low", "creation-high", "path", "size", "sha256" },
+                                           { "options-sequence", "options-observer-pid", "options-observer-instance", "options-readiness-sequence", "options-client-identity", "options-module-identity" }))
                 {
                     return false;
                 }
@@ -2288,6 +2419,48 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                     sha != hex_bytes(identity_.file_sha256.data(), identity_.file_sha256.size()))
                 {
                     return false;
+                }
+                const StateValue* options_sequence_field = state_field(fields, "options-sequence");
+                const StateValue* options_pid_field      = state_field(fields, "options-observer-pid");
+                const StateValue* options_instance_field = state_field(fields, "options-observer-instance");
+                const StateValue* options_ready_field    = state_field(fields, "options-readiness-sequence");
+                const StateValue* options_client_field   = state_field(fields, "options-client-identity");
+                const StateValue* options_module_field   = state_field(fields, "options-module-identity");
+                const bool        has_options_link       = options_sequence_field != nullptr ||
+                                                           options_pid_field != nullptr ||
+                                                           options_instance_field != nullptr ||
+                                                           options_ready_field != nullptr ||
+                                                           options_client_field != nullptr ||
+                                                           options_module_field != nullptr;
+                if (!has_options_link || options_sequence_field == nullptr || options_pid_field == nullptr ||
+                    options_instance_field == nullptr || options_ready_field == nullptr ||
+                    options_client_field == nullptr || options_module_field == nullptr)
+                {
+                    return false;
+                }
+                if (has_options_link)
+                {
+                    std::uint64_t options_sequence = 0;
+                    std::uint64_t options_pid      = 0;
+                    std::uint64_t options_instance = 0;
+                    std::uint64_t options_ready    = 0;
+                    std::uint64_t options_client   = 0;
+                    std::uint64_t options_module   = 0;
+                    if (!state_u64(fields, "options-sequence", &options_sequence) ||
+                        !state_u64(fields, "options-observer-pid", &options_pid) ||
+                        !state_u64(fields, "options-observer-instance", &options_instance) ||
+                        !state_u64(fields, "options-readiness-sequence", &options_ready) ||
+                        !state_u64(fields, "options-client-identity", &options_client) ||
+                        !state_u64(fields, "options-module-identity", &options_module) ||
+                        options_sequence == 0 || options_pid == 0 || options_instance == 0 || options_ready == 0 ||
+                        options_client == 0 || options_module == 0 ||
+                        options_sequence >= expected_sequence || !options || !options_precreation ||
+                        options_sequence != options_record_sequence || options_pid != options_observer_pid ||
+                        options_instance != options_observer_instance || options_ready != options_readiness_sequence ||
+                        options_client != options_client_identity || options_module != options_module_identity)
+                    {
+                        return false;
+                    }
                 }
                 created = true;
                 handles = false;
@@ -2311,13 +2484,15 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                     return false;
                 }
                 storage_attached = true;
-                phase            = 3;
+                phase            = options ? 4 : 3;
             }
             else if (kind == "process-options")
             {
-                if (!observer_record() || phase != 3 || options ||
-                    !state_schema(fields,
-                                  { "sequence", "session", "writer", "kind", "requested", "add-hr", "get-hr", "returned" }))
+                const bool precreation = phase == 0 && !created && !options;
+                if (!precreation || !controller_record() ||
+                    !state_schema_optional(fields,
+                                           { "sequence", "session", "writer", "kind", "requested", "add-hr", "get-hr", "returned" },
+                                           { "observer-pid", "observer-instance", "readiness-sequence", "client-identity", "module-identity" }))
                 {
                     return false;
                 }
@@ -2328,12 +2503,60 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                 if (!state_u64(fields, "requested", &requested) || !state_u64(fields, "returned", &returned) ||
                     !state_i64(fields, "add-hr", &add_hr) || !state_i64(fields, "get-hr", &get_hr) ||
                     requested != DEBUG_PROCESS_DETACH_ON_EXIT || add_hr != S_OK || get_hr != S_OK ||
-                    returned != DEBUG_PROCESS_DETACH_ON_EXIT)
+                    (returned & requested) != requested)
                 {
                     return false;
                 }
-                options = true;
-                phase   = 4;
+                const bool has_identity = state_field(fields, "observer-pid") != nullptr ||
+                                          state_field(fields, "observer-instance") != nullptr ||
+                                          state_field(fields, "readiness-sequence") != nullptr ||
+                                          state_field(fields, "client-identity") != nullptr ||
+                                          state_field(fields, "module-identity") != nullptr;
+                if (has_identity &&
+                    (state_field(fields, "observer-pid") == nullptr ||
+                     state_field(fields, "observer-instance") == nullptr ||
+                     state_field(fields, "readiness-sequence") == nullptr ||
+                     state_field(fields, "client-identity") == nullptr ||
+                     state_field(fields, "module-identity") == nullptr))
+                {
+                    return false;
+                }
+                if (has_identity)
+                {
+                    std::uint64_t observer_pid      = 0;
+                    std::uint64_t observer_instance = 0;
+                    std::uint64_t readiness         = 0;
+                    std::uint64_t client_identity   = 0;
+                    std::uint64_t module_identity   = 0;
+                    if (!state_u64(fields, "observer-pid", &observer_pid) ||
+                        !state_u64(fields, "observer-instance", &observer_instance) ||
+                        !state_u64(fields, "readiness-sequence", &readiness) ||
+                        !state_u64(fields, "client-identity", &client_identity) ||
+                        !state_u64(fields, "module-identity", &module_identity) ||
+                        observer_pid == 0 || observer_instance == 0 || readiness == 0 ||
+                        client_identity == 0 || module_identity == 0)
+                    {
+                        return false;
+                    }
+                }
+                if (precreation && !has_identity)
+                {
+                    return false;
+                }
+                options                 = true;
+                options_precreation     = precreation;
+                options_record_sequence = expected_sequence;
+                if (has_identity)
+                {
+                    if (!state_u64(fields, "observer-pid", &options_observer_pid) ||
+                        !state_u64(fields, "observer-instance", &options_observer_instance) ||
+                        !state_u64(fields, "readiness-sequence", &options_readiness_sequence) ||
+                        !state_u64(fields, "client-identity", &options_client_identity) ||
+                        !state_u64(fields, "module-identity", &options_module_identity))
+                    {
+                        return false;
+                    }
+                }
             }
             else if (kind == "attach")
             {
@@ -3341,11 +3564,11 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
     {
         ObserverFixtureEvidence value;
         value.enable_in_memory_test_sink();
-        const bool          created           = value.bind_created_fixture(identity, nullptr);
         const bool          options           = value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
                                                                              S_OK,
                                                                              S_OK,
                                                                              DEBUG_PROCESS_DETACH_ON_EXIT);
+        const bool          created           = options && value.bind_created_fixture(identity, nullptr);
         const bool          attach            = value.record_attachment(S_OK, DEBUG_ATTACH_DEFAULT, false);
         const bool          resume            = value.record_resume(1);
         const bool          event             = value.record_event(make_event());
@@ -3521,21 +3744,31 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                           std::to_string(GetTickCount64()) + ".trace");
             ObserverFixtureEvidence value;
             std::string             refusal;
-            const bool              created = value.create_controller_storage(trace_path, 77, &refusal) &&
-                                              value.bind_created_fixture(identity, &refusal);
-            const char              bytes[] = "fixture stdout bytes";
-            DWORD                   written = 0;
-            const bool              wrote   = created &&
-                                              WriteFile(value.controller_storage().stdout_handle,
-                                                        bytes,
-                                                        static_cast<DWORD>(sizeof(bytes) - 1),
-                                                        &written,
-                                                        nullptr) != FALSE &&
-                                              written == sizeof(bytes) - 1 &&
-                                              FlushFileBuffers(value.controller_storage().stdout_handle) != FALSE;
-            std::uint64_t           offset  = 0;
-            std::uint64_t           length  = 0;
-            std::string             raw;
+            const bool              created =
+                value.create_controller_storage(trace_path, 77, &refusal) &&
+                value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                             S_OK,
+                                             S_OK,
+                                             DEBUG_PROCESS_DETACH_ON_EXIT,
+                                             111,
+                                             222,
+                                             333,
+                                             444,
+                                             555) &&
+                value.bind_created_fixture(identity, &refusal);
+            const char    bytes[] = "fixture stdout bytes";
+            DWORD         written = 0;
+            const bool    wrote   = created &&
+                                    WriteFile(value.controller_storage().stdout_handle,
+                                              bytes,
+                                              static_cast<DWORD>(sizeof(bytes) - 1),
+                                              &written,
+                                              nullptr) != FALSE &&
+                                    written == sizeof(bytes) - 1 &&
+                                    FlushFileBuffers(value.controller_storage().stdout_handle) != FALSE;
+            std::uint64_t offset  = 0;
+            std::uint64_t length  = 0;
+            std::string   raw;
             external          = wrote && value.read_output_snapshot(ObserverFixtureChannel::stdout_bytes, &offset, &length, &raw, &refusal) &&
                                 raw == bytes && length == sizeof(bytes) - 1 && value.persistence_available();
             const char tail[] = "fixture stdout tail";
@@ -3622,9 +3855,32 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                               std::to_string(GetTickCount64()) + ".trace");
                 ObserverFixtureEvidence controller;
                 std::string             refusal;
-                const bool              created =
-                    identity_ready && controller.create_controller_storage(trace_path, 9001, &refusal) &&
-                    controller.bind_created_fixture(persisted_identity, &refusal);
+                const bool              storage_ready =
+                    identity_ready && controller.create_controller_storage(trace_path, 9001, &refusal);
+                const DWORD         option_observer_pid       = GetCurrentProcessId();
+                const DWORD         option_observer_instance  = 5678;
+                const std::uint64_t option_readiness_sequence = 9;
+                const std::uint64_t option_client_identity    = 6789;
+                const std::uint64_t option_module_identity    = 7890;
+                const bool          options_ready =
+                    storage_ready &&
+                    controller.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                                      S_OK,
+                                                      S_OK,
+                                                      DEBUG_PROCESS_DETACH_ON_EXIT | 0x80000000U,
+                                                      option_observer_pid,
+                                                      option_observer_instance,
+                                                      option_readiness_sequence,
+                                                      option_client_identity,
+                                                      option_module_identity) &&
+                    controller.options_ready_for_fixture(option_observer_pid,
+                                                         option_observer_instance,
+                                                         option_readiness_sequence,
+                                                         option_client_identity,
+                                                         option_module_identity,
+                                                         &refusal);
+                const bool created =
+                    options_ready && storage_ready && controller.bind_created_fixture(persisted_identity, &refusal);
                 HANDLE     retained_process = created ? duplicate_handle(process_source) : nullptr;
                 HANDLE     retained_thread  = created ? duplicate_handle(thread_source) : nullptr;
                 const bool retained         = created && controller.retain_controller_fixture_handles(
@@ -3693,18 +3949,13 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                         persisted_binding.observation.current_system_pid    = persisted_identity.process_id;
                         persisted_binding.callback_operation_id             = 3;
                         persisted_binding.callback_acquisition_operation_id = 4;
-                        observer_records =
-                            observer.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
-                                                            S_OK,
-                                                            S_OK,
-                                                            DEBUG_PROCESS_DETACH_ON_EXIT) &&
-                            observer.record_attachment(S_OK, DEBUG_ATTACH_DEFAULT, false) &&
-                            observer.record_resume(1) && observer.record_event(persisted_event) &&
-                            observer.record_binding_receipt(persisted_binding) &&
-                            observer.record_attachment_completion(true) &&
-                            observer.record_continuation(persisted_continuation) &&
-                            observer.record_collection_stop(10, 1, true) &&
-                            observer.record_terminal_raw_tail(1, 1, 0, 0, false, true);
+                        observer_records                                    = observer.record_attachment(S_OK, DEBUG_ATTACH_DEFAULT, false) &&
+                                                                              observer.record_resume(1) && observer.record_event(persisted_event) &&
+                                                                              observer.record_binding_receipt(persisted_binding) &&
+                                                                              observer.record_attachment_completion(true) &&
+                                                                              observer.record_continuation(persisted_continuation) &&
+                                                                              observer.record_collection_stop(10, 1, true) &&
+                                                                              observer.record_terminal_raw_tail(1, 1, 0, 0, false, true);
                     }
                     if (observer_process != nullptr)
                     {
@@ -3774,13 +4025,16 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                         state_file.close();
                         result = mutated && !controller.valid_for_success();
                     }
-                    else if (case_name == "writer")
+                    else if (case_name == "writer" || case_name == "options-observer-writer")
                     {
                         std::fstream      state_file(controller.controller_storage().state_path,
                                                      std::ios::in | std::ios::out | std::ios::binary);
                         std::string       state((std::istreambuf_iterator<char>(state_file)),
                                                 std::istreambuf_iterator<char>());
-                        const std::size_t kind       = state.find("\"kind\":\"process-options\"");
+                        const std::size_t kind = state.find(
+                            case_name == "options-observer-writer"
+                                ? "\"kind\":\"fixture-storage-attached\""
+                                : "\"kind\":\"process-options\"");
                         const std::size_t row        = kind == std::string::npos
                                                            ? std::string::npos
                                                            : state.rfind('{', kind);
@@ -3797,6 +4051,45 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                             state.replace(writer_key + std::string("\"writer\":").size(),
                                           writer_end - writer_key - std::string("\"writer\":").size(),
                                           std::to_string(static_cast<std::uint64_t>(GetCurrentProcessId()) + 1));
+                            state_file.clear();
+                            state_file.seekp(0, std::ios::beg);
+                            state_file.write(state.data(), static_cast<std::streamsize>(state.size()));
+                            state_file.flush();
+                        }
+                        state_file.close();
+                        result = mutated && !controller.valid_for_success();
+                    }
+                    else if (case_name == "options-session" || case_name == "options-link")
+                    {
+                        std::fstream      state_file(controller.controller_storage().state_path,
+                                                     std::ios::in | std::ios::out | std::ios::binary);
+                        std::string       state((std::istreambuf_iterator<char>(state_file)),
+                                                std::istreambuf_iterator<char>());
+                        const std::string kind_name   = case_name == "options-session"
+                                                            ? "\"kind\":\"process-options\""
+                                                            : "\"kind\":\"fixture-created\"";
+                        const std::size_t kind        = state.find(kind_name);
+                        const std::size_t row         = kind == std::string::npos
+                                                            ? std::string::npos
+                                                            : state.rfind('{', kind);
+                        const std::string field_name  = case_name == "options-session"
+                                                            ? "\"session\":"
+                                                            : "\"options-observer-pid\":";
+                        const std::size_t field       = row == std::string::npos
+                                                            ? std::string::npos
+                                                            : state.find(field_name, row);
+                        const std::size_t value_begin = field == std::string::npos
+                                                            ? std::string::npos
+                                                            : field + field_name.size();
+                        const std::size_t value_end   = value_begin == std::string::npos
+                                                            ? std::string::npos
+                                                            : state.find(',', value_begin);
+                        const bool        mutated     = value_end != std::string::npos;
+                        if (mutated)
+                        {
+                            state.replace(value_begin,
+                                          value_end - value_begin,
+                                          case_name == "options-session" ? "9002" : "1235");
                             state_file.clear();
                             state_file.seekp(0, std::ios::beg);
                             state_file.write(state.data(), static_cast<std::streamsize>(state.size()));
@@ -3926,10 +4219,14 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
             return result;
         };
         check(identity_ready && persisted_case("valid"), "persisted_replay");
+        check(identity_ready && persisted_case("options-first"), "persisted_options_before_creation");
         check(identity_ready && persisted_case("unrelated"), "persisted_unrelated_rejected");
         check(identity_ready && persisted_case("gap"), "persisted_gap_rejected");
         check(identity_ready && persisted_case("truncated"), "persisted_truncated_rejected");
         check(identity_ready && persisted_case("writer"), "persisted_writer_rejected");
+        check(identity_ready && persisted_case("options-observer-writer"), "persisted_observer_writer_rejected");
+        check(identity_ready && persisted_case("options-session"), "persisted_options_session_rejected");
+        check(identity_ready && persisted_case("options-link"), "persisted_options_link_rejected");
         check(identity_ready && persisted_case("bad-release"), "persisted_failure_rejected");
         check(identity_ready && persisted_case("binding-known"), "persisted_binding_known_rejected");
         check(identity_ready && persisted_case("binding-id"), "persisted_binding_id_rejected");
@@ -4024,12 +4321,83 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
         ObserverFixtureEvidence value;
         value.enable_in_memory_test_sink();
         value.bind_created_fixture(identity, nullptr);
-        check(!value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
-                                            S_OK,
-                                            S_OK,
-                                            DEBUG_PROCESS_DETACH_ON_EXIT | 0x80000000U) &&
-                  value.unknown(),
-              "option_mask_exact");
+        check(value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                           S_OK,
+                                           S_OK,
+                                           DEBUG_PROCESS_DETACH_ON_EXIT | 0x80000000U) &&
+                  !value.unknown(),
+              "option_mask_preserves_extra_bits");
+        ObserverFixtureEvidence missing;
+        missing.enable_in_memory_test_sink();
+        missing.bind_created_fixture(identity, nullptr);
+        check(!missing.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                              S_OK,
+                                              S_OK,
+                                              0x80000000U) &&
+                  missing.unknown(),
+              "option_mask_missing_requested_bit");
+    }
+    {
+        const DWORD             observer_pid      = 1111;
+        const DWORD             observer_instance = 2222;
+        const std::uint64_t     readiness         = 3333;
+        const std::uint64_t     client_identity   = 4444;
+        const std::uint64_t     module_identity   = 5555;
+        ObserverFixtureEvidence value;
+        value.enable_in_memory_test_sink();
+        value.bind_created_fixture(identity, nullptr);
+        std::string refusal;
+        const bool  recorded  = value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                                             S_OK,
+                                                             S_OK,
+                                                             DEBUG_PROCESS_DETACH_ON_EXIT | 0x40000000U,
+                                                             observer_pid,
+                                                             observer_instance,
+                                                             readiness,
+                                                             client_identity,
+                                                             module_identity);
+        const bool  exact     = recorded && value.options_ready_for_fixture(
+                                                observer_pid,
+                                                observer_instance,
+                                                readiness,
+                                                client_identity,
+                                                module_identity,
+                                                &refusal);
+        const bool  stale_pid = !value.options_ready_for_fixture(
+            observer_pid + 1, observer_instance, readiness, &refusal);
+        const bool stale_instance = !value.options_ready_for_fixture(
+            observer_pid, observer_instance + 1, readiness, &refusal);
+        const bool stale_readiness = !value.options_ready_for_fixture(
+            observer_pid, observer_instance, readiness + 1, &refusal);
+        const bool stale_client = !value.options_ready_for_fixture(
+            observer_pid,
+            observer_instance,
+            readiness,
+            client_identity + 1,
+            module_identity,
+            &refusal);
+        const bool stale_module = !value.options_ready_for_fixture(
+            observer_pid,
+            observer_instance,
+            readiness,
+            client_identity,
+            module_identity + 1,
+            &refusal);
+        ObserverFixtureEvidence failed;
+        failed.enable_in_memory_test_sink();
+        failed.bind_created_fixture(identity, nullptr);
+        const bool failed_add = !failed.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                                               E_FAIL,
+                                                               S_OK,
+                                                               DEBUG_PROCESS_DETACH_ON_EXIT,
+                                                               observer_pid,
+                                                               observer_instance,
+                                                               readiness) &&
+                                !failed.options_ready_for_fixture(
+                                    observer_pid, observer_instance, readiness, &refusal);
+        check(exact && stale_pid && stale_instance && stale_readiness && stale_client &&
+                  stale_module && failed_add,
+              "option_readiness_identity_and_failure_gate");
     }
     {
         ObserverFixtureEvidence value;

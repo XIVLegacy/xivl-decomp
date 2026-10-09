@@ -135,44 +135,51 @@ enum class ObserverLiveFailureOutcome : std::uint32_t
 
 struct alignas(8) ObserverLiveChildControlV1
 {
-    std::uint32_t size_bytes                    = sizeof(ObserverLiveChildControlV1);
-    std::uint32_t version                       = kObserverLiveBootstrapVersion;
-    std::uint32_t observer_process_id           = 0;
-    std::uint32_t observer_instance_id          = 0;
-    std::uint32_t state                         = static_cast<std::uint32_t>(ObserverLiveChildState::Uninitialized);
-    std::uint32_t error_code                    = ERROR_SUCCESS;
-    std::uint64_t session_id                    = 0;
-    std::uint32_t row_count                     = 0;
-    std::uint32_t qualified_row_count           = 0;
-    std::uint32_t fixture_exit_code             = 0;
-    std::uint32_t fixture_exit_confirmed        = 0;
-    std::uint32_t engine_options_readback       = 0;
-    std::uint32_t initial_hold_thread_id        = 0;
-    std::uint32_t cleanup_thread_id             = 0;
-    std::uint64_t trace_size_bytes              = 0;
-    std::uint64_t event_tail_sequence           = 0;
-    std::uint64_t transition_sequence           = 0;
-    std::uint32_t raw_trace_persisted           = 0;
-    std::uint32_t raw_trace_incomplete          = 0;
-    std::uint32_t failure_outcome               = 0;
-    std::uint32_t fixture_exit_code_known       = 0;
-    std::uint32_t collection_complete           = 0;
-    std::uint32_t collection_stop_reason        = 0;
-    std::uint64_t cleanup_start_tick            = 0;
-    std::uint64_t collection_start_tick         = 0;
-    std::uint64_t collection_deadline_tick      = 0;
-    std::uint64_t collection_stop_tick          = 0;
-    std::uint64_t collection_admitted_rows      = 0;
-    std::uint64_t collection_rejected_rows      = 0;
-    std::uint64_t collection_clock_failures     = 0;
-    std::uint64_t collection_operation_failures = 0;
-    std::uint64_t collection_admitted_intervals = 0;
-    std::uint64_t collection_active_intervals   = 0;
+    std::uint32_t size_bytes                     = sizeof(ObserverLiveChildControlV1);
+    std::uint32_t version                        = kObserverLiveBootstrapVersion;
+    std::uint32_t observer_process_id            = 0;
+    std::uint32_t observer_instance_id           = 0;
+    std::uint32_t state                          = static_cast<std::uint32_t>(ObserverLiveChildState::Uninitialized);
+    std::uint32_t error_code                     = ERROR_SUCCESS;
+    std::uint64_t session_id                     = 0;
+    std::uint32_t row_count                      = 0;
+    std::uint32_t qualified_row_count            = 0;
+    std::uint32_t fixture_exit_code              = 0;
+    std::uint32_t fixture_exit_confirmed         = 0;
+    std::uint32_t engine_options_readback        = 0;
+    std::uint32_t engine_options_requested       = 0;
+    std::int32_t  engine_options_add_result      = E_FAIL;
+    std::int32_t  engine_options_get_result      = E_FAIL;
+    std::uint32_t engine_options_returned        = 0;
+    std::uint64_t options_readiness_sequence     = 0;
+    std::uint64_t engine_options_client_identity = 0;
+    std::uint64_t engine_options_module_identity = 0;
+    std::uint32_t initial_hold_thread_id         = 0;
+    std::uint32_t cleanup_thread_id              = 0;
+    std::uint64_t trace_size_bytes               = 0;
+    std::uint64_t event_tail_sequence            = 0;
+    std::uint64_t transition_sequence            = 0;
+    std::uint32_t raw_trace_persisted            = 0;
+    std::uint32_t raw_trace_incomplete           = 0;
+    std::uint32_t failure_outcome                = 0;
+    std::uint32_t fixture_exit_code_known        = 0;
+    std::uint32_t collection_complete            = 0;
+    std::uint32_t collection_stop_reason         = 0;
+    std::uint64_t cleanup_start_tick             = 0;
+    std::uint64_t collection_start_tick          = 0;
+    std::uint64_t collection_deadline_tick       = 0;
+    std::uint64_t collection_stop_tick           = 0;
+    std::uint64_t collection_admitted_rows       = 0;
+    std::uint64_t collection_rejected_rows       = 0;
+    std::uint64_t collection_clock_failures      = 0;
+    std::uint64_t collection_operation_failures  = 0;
+    std::uint64_t collection_admitted_intervals  = 0;
+    std::uint64_t collection_active_intervals    = 0;
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveChildControlV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveChildControlV1>);
-static_assert(sizeof(ObserverLiveChildControlV1) == 192);
+static_assert(sizeof(ObserverLiveChildControlV1) == 232);
 
 struct ObserverLiveOwnerControlRequestV1
 {
@@ -188,11 +195,25 @@ struct ObserverLiveOwnerControlRequestV1
     std::uint64_t module_pin_identity   = 0;
     std::uint32_t result                = ERROR_INVALID_DATA;
     std::uint32_t witness               = 0;
+    // A nonzero fixture handle set is a creation-bound transfer.  The
+    // controller duplicates these handles into the already-retained observer
+    // process and the target validates the same process/thread identity before
+    // allowing the child request to start.  Zero keeps the existing owner
+    // control requests unchanged.
+    std::uint32_t fixture_process_handle = 0;
+    std::uint32_t fixture_thread_handle  = 0;
+    std::uint32_t fixture_stdout_handle  = 0;
+    std::uint32_t fixture_stderr_handle  = 0;
+    std::uint32_t fixture_state_handle   = 0;
+    std::uint32_t fixture_process_id     = 0;
+    std::uint32_t fixture_creation_low   = 0;
+    std::uint32_t fixture_creation_high  = 0;
+    std::uint64_t fixture_state_sequence = 0;
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveOwnerControlRequestV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveOwnerControlRequestV1>);
-static_assert(sizeof(ObserverLiveOwnerControlRequestV1) == 56);
+static_assert(sizeof(ObserverLiveOwnerControlRequestV1) == 96);
 
 enum class ObserverLiveHoldRequestKind : std::uint32_t
 {
@@ -470,14 +491,6 @@ public:
     bool create(const ObserverLiveAuthority& authority,
                 const ObserverLiveRequest&   request,
                 std::string*                 refusal) noexcept;
-    bool set_fixture_launch(HANDLE                         process,
-                            HANDLE                         thread,
-                            HANDLE                         stdout_handle,
-                            HANDLE                         stderr_handle,
-                            HANDLE                         state_handle,
-                            const ObserverFixtureIdentity& identity,
-                            std::uint64_t                  state_sequence,
-                            std::string*                   refusal) noexcept;
     bool establish_kill_on_exit(const ObserverLiveAuthority& authority,
                                 std::string*                 refusal) noexcept;
     bool wait(const ObserverLiveAuthority& authority,
@@ -561,14 +574,6 @@ private:
     std::atomic<std::uint64_t>                           controller_progress_tick_{ 0 };
     std::unique_ptr<ObserverSupervisorLedger>            supervisor_ledger_;
     std::shared_ptr<ObserverRemoteControlRetentionStore> remote_control_store_;
-    HANDLE                                               fixture_process_handle_ = nullptr;
-    HANDLE                                               fixture_thread_handle_  = nullptr;
-    HANDLE                                               fixture_stdout_handle_  = nullptr;
-    HANDLE                                               fixture_stderr_handle_  = nullptr;
-    HANDLE                                               fixture_state_handle_   = nullptr;
-    std::uint64_t                                        fixture_state_sequence_ = 0;
-    ObserverFixtureIdentity                              fixture_identity_{};
-    bool                                                 fixture_launch_bound_ = false;
     bool                                                 creator_thread_bound_ = false;
 };
 
@@ -697,7 +702,14 @@ public:
                                 std::string*  refusal) noexcept;
     std::uint64_t initial_hold_request_epoch() const noexcept;
     std::uint64_t cleanup_hold_request_epoch() const noexcept;
-    bool          start_child(std::string* refusal) noexcept;
+    bool          start_child(HANDLE                         fixture_process,
+                              HANDLE                         fixture_thread,
+                              HANDLE                         fixture_stdout,
+                              HANDLE                         fixture_stderr,
+                              HANDLE                         fixture_state,
+                              const ObserverFixtureIdentity& fixture_identity,
+                              std::uint64_t                  fixture_state_sequence,
+                              std::string*                   refusal) noexcept;
     bool          read_child_control(ObserverLiveChildControlV1* control,
                                      std::string*                refusal) const noexcept;
     bool          release_child(std::string* refusal) noexcept;
@@ -845,6 +857,8 @@ public:
     bool prepare(const ObserverLiveAuthority& authority,
                  const ObserverChildRequest&  request,
                  std::string*                 refusal) noexcept;
+    bool bind_fixture(const ObserverChildRequest& request,
+                      std::string*                refusal) noexcept;
     bool start_fixture(const ObserverLiveAuthority& authority,
                        std::uint32_t                timeout_ticks,
                        std::string*                 refusal) noexcept;
@@ -865,6 +879,11 @@ public:
     bool                                      fixture_exit_code_known() const noexcept;
     std::uint64_t                             event_tail_sequence() const noexcept;
     bool                                      engine_options_readback() const noexcept;
+    ULONG                                     engine_options_requested() const noexcept;
+    HRESULT                                   engine_options_add_result() const noexcept;
+    HRESULT                                   engine_options_get_result() const noexcept;
+    ULONG                                     engine_options_returned() const noexcept;
+    std::uint64_t                             engine_options_client_identity() const noexcept;
     bool                                      fixture_evidence_valid() const noexcept;
     ObserverFixtureEvidence*                  fixture_evidence() const noexcept;
     void                                      set_provenance_hook_layout(
@@ -886,6 +905,16 @@ public:
                                                     std::string_view           reason) noexcept;
     ObserverLiveResult        run(const ObserverLiveRequest& request) const noexcept;
 };
+
+struct ObserverLiveRuntimeSelfTestReport
+{
+    std::uint32_t checks   = 0;
+    std::uint32_t failures = 0;
+    bool          passed   = false;
+    std::string   summary;
+};
+
+ObserverLiveRuntimeSelfTestReport run_observer_live_runtime_self_tests() noexcept;
 
 } // namespace xivl::observer_candidate
 

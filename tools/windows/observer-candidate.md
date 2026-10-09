@@ -151,16 +151,20 @@ publication stays closed. Natural fixture exit and its separately known exit cod
 cannot extend collection or repair incomplete evidence.
 
 The ordinary fixture command line is exactly the quoted pinned fixture
-executable with no arguments. Before the observer is created, the controller
-creates that fixture with `CREATE_SUSPENDED` and a `STARTUPINFOEX` handle list
-containing only its stdin, stdout and stderr channels. The controller retains
-the fixture process and primary thread handles and records the process ID and
-creation time in a separate `.fixture.state` stream. The observer receives
-those creation-bound handles, the two output handles and the state handle via
-its own restricted handle list; it never reopens the fixture by PID.
+executable with no arguments. The controller first starts the isolated
+observer and the child acquires `DEBUG_PROCESS_DETACH_ON_EXIT` on its retained
+DbgEng client. It records the raw requested mask, both HRESULTs, every returned
+bit and the observer/session readiness sequence in controller-owned storage.
+The controller creates the unchanged fixture with `CREATE_SUSPENDED` only
+after that receipt is externally validated. It retains the fixture process and
+primary thread handles, records the process ID and creation time in a separate
+`.fixture.state` stream, duplicates those creation-bound handles plus the
+stdout, stderr and state channels into the same observer process, and requires
+the target-local identity acknowledgment before attach. The observer never
+reopens the fixture by PID.
 
 The child calls `AttachProcess` with `DEBUG_ATTACH_DEFAULT`, records the
-HRESULT and option mask, resumes the inherited primary thread, records the
+HRESULT and flags, resumes the transferred creation-bound primary thread, records the
 raw `ResumeThread` prior suspend count (`DWORD(-1)` is failure), and waits for
 the first available DbgEng event before treating attachment as complete. A
 successful `AttachProcess` HRESULT alone is insufficient. Collection stops at
@@ -236,10 +240,11 @@ user-mode execution. These are the documented
 An event in the separate fixture session supplies no observer-process hold.
 
 The fixture is a separate controller-created process. Its inherited handle
-list is limited to stdin, stdout and stderr, while the observer's list is
-limited to the creation-bound fixture process/thread handles and the three
-controller-owned evidence channels. The controller retains the original
-fixture handles and evidence storage independently of the observer. It keeps
+list is limited to stdin, stdout and stderr. After readiness, the observer
+receives duplicates of the creation-bound fixture process/thread handles and
+the three controller-owned evidence channels through the reviewed control
+transfer. The controller retains the original fixture handles and evidence
+storage independently of the observer. It keeps
 them through observer loss or any unknown fixture outcome until a finite
 owner-intervention poll establishes a separate result.
 

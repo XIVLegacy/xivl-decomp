@@ -67,6 +67,8 @@ public:
     bool                  start_fixture(const ObserverLiveAuthority& authority,
                                         std::uint32_t                timeout_ticks,
                                         std::string*                 refusal) noexcept;
+    bool                  bind_fixture(const ObserverChildRequest& request,
+                                       std::string*                refusal) noexcept;
     bool                  wait_for_fixture_event(const ObserverLiveAuthority& authority,
                                                  std::uint32_t                timeout_ticks,
                                                  std::string*                 refusal) noexcept;

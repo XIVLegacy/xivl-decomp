@@ -859,6 +859,33 @@ DWORD start_child(ObserverLiveOwnerControlRequestV1* request) noexcept
         session = g_active_child_session;
     }
     std::string refusal;
+    if (request->fixture_process_handle == 0 || request->fixture_thread_handle == 0 ||
+        request->fixture_stdout_handle == 0 || request->fixture_stderr_handle == 0 ||
+        request->fixture_state_handle == 0 || request->fixture_process_id == 0 ||
+        request->fixture_state_sequence == 0 ||
+        request->fixture_process_id != GetProcessId(reinterpret_cast<HANDLE>(
+                                           static_cast<ULONG_PTR>(request->fixture_process_handle))) ||
+        request->fixture_process_id != GetProcessIdOfThread(reinterpret_cast<HANDLE>(
+                                           static_cast<ULONG_PTR>(request->fixture_thread_handle))))
+    {
+        return finish_request(request, ERROR_INVALID_DATA, 0);
+    }
+    ObserverChildRequest fixture_request;
+    fixture_request.fixture_process_handle                        = request->fixture_process_handle;
+    fixture_request.fixture_thread_handle                         = request->fixture_thread_handle;
+    fixture_request.fixture_stdout_handle                         = request->fixture_stdout_handle;
+    fixture_request.fixture_stderr_handle                         = request->fixture_stderr_handle;
+    fixture_request.fixture_state_handle                          = request->fixture_state_handle;
+    fixture_request.fixture_state_sequence                        = request->fixture_state_sequence;
+    fixture_request.fixture_identity.process_id                   = request->fixture_process_id;
+    fixture_request.fixture_identity.creation_time.dwLowDateTime  = request->fixture_creation_low;
+    fixture_request.fixture_identity.creation_time.dwHighDateTime = request->fixture_creation_high;
+    fixture_request.fixture_identity.file_size                    = kObserverFixturePinnedFileSize;
+    fixture_request.fixture_identity.file_sha256                  = kObserverFixturePinnedSha256;
+    if (!session->bind_fixture(fixture_request, &refusal))
+    {
+        return finish_request(request, ERROR_INVALID_DATA, 0);
+    }
     if (!session->request_start(&refusal))
     {
         return finish_request(request, ERROR_BUSY, 0);
@@ -1531,6 +1558,8 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
     if (initialized == nullptr || publication == nullptr ||
         publication->observer_process_id != initialized->process_id ||
         publication->observer_instance_id != initialized->instance_id ||
+        initialized->module_pin_identity == 0 ||
+        state_->composition.engine_options_client_identity() == 0 ||
         publication->loaded_image_base != initialized->loaded_image_base ||
         publication->module_handle != initialized->module_handle ||
         publication->module_pin_identity != initialized->module_pin_identity ||
@@ -1585,33 +1614,65 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
         }
         g_active_child_session = this;
     }
-    g_child_control.session_id                    = request.composition.session_id;
-    g_child_control.row_count                     = 0;
-    g_child_control.qualified_row_count           = 0;
-    g_child_control.fixture_exit_code             = 0;
-    g_child_control.fixture_exit_code_known       = 0;
-    g_child_control.fixture_exit_confirmed        = 0;
-    g_child_control.engine_options_readback       = 0;
-    g_child_control.initial_hold_thread_id        = 0;
-    g_child_control.cleanup_thread_id             = 0;
-    g_child_control.trace_size_bytes              = 0;
-    g_child_control.event_tail_sequence           = 0;
-    g_child_control.raw_trace_persisted           = 0;
-    g_child_control.raw_trace_incomplete          = 0;
-    g_child_control.failure_outcome               = 0;
-    g_child_control.collection_complete           = 0;
-    g_child_control.collection_stop_reason        = 0;
-    g_child_control.cleanup_start_tick            = 0;
-    g_child_control.collection_start_tick         = 0;
-    g_child_control.collection_deadline_tick      = 0;
-    g_child_control.collection_stop_tick          = 0;
-    g_child_control.collection_admitted_rows      = 0;
-    g_child_control.collection_rejected_rows      = 0;
-    g_child_control.collection_clock_failures     = 0;
-    g_child_control.collection_operation_failures = 0;
-    g_child_control.collection_admitted_intervals = 0;
-    g_child_control.collection_active_intervals   = 0;
+    g_child_control.session_id                     = request.composition.session_id;
+    g_child_control.row_count                      = 0;
+    g_child_control.qualified_row_count            = 0;
+    g_child_control.fixture_exit_code              = 0;
+    g_child_control.fixture_exit_code_known        = 0;
+    g_child_control.fixture_exit_confirmed         = 0;
+    g_child_control.engine_options_readback        = 0;
+    g_child_control.engine_options_requested       = 0;
+    g_child_control.engine_options_add_result      = E_FAIL;
+    g_child_control.engine_options_get_result      = E_FAIL;
+    g_child_control.engine_options_returned        = 0;
+    g_child_control.options_readiness_sequence     = 0;
+    g_child_control.engine_options_client_identity = 0;
+    g_child_control.engine_options_module_identity = 0;
+    g_child_control.initial_hold_thread_id         = 0;
+    g_child_control.cleanup_thread_id              = 0;
+    g_child_control.trace_size_bytes               = 0;
+    g_child_control.event_tail_sequence            = 0;
+    g_child_control.raw_trace_persisted            = 0;
+    g_child_control.raw_trace_incomplete           = 0;
+    g_child_control.failure_outcome                = 0;
+    g_child_control.collection_complete            = 0;
+    g_child_control.collection_stop_reason         = 0;
+    g_child_control.cleanup_start_tick             = 0;
+    g_child_control.collection_start_tick          = 0;
+    g_child_control.collection_deadline_tick       = 0;
+    g_child_control.collection_stop_tick           = 0;
+    g_child_control.collection_admitted_rows       = 0;
+    g_child_control.collection_rejected_rows       = 0;
+    g_child_control.collection_clock_failures      = 0;
+    g_child_control.collection_operation_failures  = 0;
+    g_child_control.collection_admitted_intervals  = 0;
+    g_child_control.collection_active_intervals    = 0;
+    g_child_control.engine_options_requested       = state_->composition.engine_options_requested();
+    g_child_control.engine_options_add_result      = state_->composition.engine_options_add_result();
+    g_child_control.engine_options_get_result      = state_->composition.engine_options_get_result();
+    g_child_control.engine_options_returned        = state_->composition.engine_options_returned();
+    g_child_control.engine_options_readback        = state_->composition.engine_options_readback() ? 1U : 0U;
+    g_child_control.engine_options_client_identity =
+        state_->composition.engine_options_client_identity();
+    g_child_control.engine_options_module_identity = initialized->module_pin_identity;
+    g_child_control.options_readiness_sequence     = g_child_control.transition_sequence + 1;
     set_child_state(ObserverLiveChildState::Prepared);
+    return true;
+}
+
+bool ObserverLiveChildSession::bind_fixture(const ObserverChildRequest& request,
+                                            std::string*                refusal) noexcept
+{
+    if (state_ == nullptr ||
+        state_->state.load(std::memory_order_acquire) != ObserverLiveChildState::Prepared ||
+        !state_->composition.bind_fixture(request, refusal))
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "target child fixture transfer was missing, stale or refused";
+        }
+        return false;
+    }
     return true;
 }
 
@@ -1750,6 +1811,10 @@ bool ObserverLiveChildSession::persist_trace_artifact(bool                      
     g_child_control.fixture_exit_code_known       = state_->fixture_exit_code_known ? 1U : 0U;
     g_child_control.fixture_exit_confirmed        = state_->composition.fixture_exit_confirmed() ? 1U : 0U;
     g_child_control.engine_options_readback       = state_->composition.engine_options_readback() ? 1U : 0U;
+    g_child_control.engine_options_requested      = state_->composition.engine_options_requested();
+    g_child_control.engine_options_add_result     = state_->composition.engine_options_add_result();
+    g_child_control.engine_options_get_result     = state_->composition.engine_options_get_result();
+    g_child_control.engine_options_returned       = state_->composition.engine_options_returned();
     g_child_control.initial_hold_thread_id        = state_->initial_thread_id;
     g_child_control.cleanup_thread_id             = state_->cleanup_thread_id;
     g_child_control.trace_size_bytes              = static_cast<std::uint64_t>(trace.size());
@@ -2572,16 +2637,7 @@ int observer_live_child_main(int                          argc,
         cleanup_ticks == 0 || cleanup_ticks == INFINITE ||
         request.composition.fixture_command_line.empty() ||
         !request.output.is_absolute() || !request.composition.dbgeng_image.is_absolute() ||
-        !request.composition.fixture_executable.is_absolute() ||
-        request.composition.fixture_process_handle == 0 ||
-        request.composition.fixture_thread_handle == 0 ||
-        request.composition.fixture_stdout_handle == 0 ||
-        request.composition.fixture_stderr_handle == 0 ||
-        request.composition.fixture_state_handle == 0 ||
-        request.composition.fixture_state_sequence == 0 ||
-        request.composition.fixture_identity.process_id == 0 ||
-        (request.composition.fixture_identity.creation_time.dwLowDateTime == 0 &&
-         request.composition.fixture_identity.creation_time.dwHighDateTime == 0))
+        !request.composition.fixture_executable.is_absolute())
     {
         return 2;
     }
