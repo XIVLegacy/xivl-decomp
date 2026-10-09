@@ -264,6 +264,66 @@ the cited locators. Active-model input matching, dynamic buffer provenance,
 control flags, other producers, backend selection, queued dispatch, missing
 blend inputs, TEXCOORD6/7 defaults and runtime results remain unresolved.
 
+## Conditional TEXCOORD6 and TEXCOORD7 metadata
+
+**Observation.** Read-only `ghidra-cli 0.2.2` inspection of converter VAs
+`0x00419A69` through `0x00419A8F` and selected lookup entries at VAs
+`0x00F57DD0` and `0x00F57DD2` gives compact usage `0x0E` the Direct3D
+usage/index pair `5/6`, and `0x0F` the pair `5/7`. Microsoft's
+[D3DDECLUSAGE](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddeclusage)
+identifies usage `5` as `TEXCOORD`. These selector entries establish
+`TEXCOORD6` and `TEXCOORD7` semantics independently of storage or stream
+number.
+
+A separate generic producer at VA `0x0041ED70` receives a caller-supplied
+descriptor mask. On its construction path, VAs `0x0041EEA6` through
+`0x0041EEB3` obtain a loop count from mask bits `8` through `11`. VAs
+`0x0041EEE7` through `0x0041EEFB` generate compact usage `8` plus the
+zero-based ordinal. For bounded counts `7` or `8`, ordinal `6` generates
+selector `0x0E`. Count `8` also generates selector `0x0F` at ordinal `7`.
+These conditions do not establish any actual caller mask.
+
+This producer writes Stream `0` at VA `0x0041EEF1` and format selector `1`
+at VA `0x0041EEF6`. VAs `0x0041EEC0` through `0x0041EEE4` select a separate
+two-bit mask field per ordinal, beginning at bit `16`. Codes `0`, `1`, `2`
+and `3` give component counts `2`, `3`, `4` and `1`, respectively. The
+running Offset is written at VA `0x0041EEEC` and advanced by four bytes per
+component at VA `0x0041EF14`. The selected format-`1`, count-`1` through
+count-`4` lookup entries at VAs `0x00F57D94` through `0x00F57D97` give
+Types `0` through `3`, which Microsoft's
+[D3DDECLTYPE](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddecltype)
+identifies as `FLOAT1` through `FLOAT4`. No actual Offset, Stride or float
+value is established.
+
+The producer passes its list to factory VA `0x004188B0` at VA `0x0041EF28`
+and binds the resulting declaration through VA `0x0041D240` at
+VA `0x0041EF78`. Caller VA `0x0041EFC0` supplies its third argument as the
+mask at VA `0x0041EFE6`. VAs `0x0041EFEB` through `0x0041F000` pass its
+fourth argument as stride and fifth argument as a data pointer through
+VA `0x004232E0`. In the observed direct backend, adapter VA `0x00438AB0`
+passes those arguments to command VA `0x00435CF0`. Its device call at
+VA `0x00435D0E` uses virtual offset `0x14C`, matching `DrawPrimitiveUP`
+slot `83` in Microsoft's
+[IDirect3DDevice9 ABI](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L429-L588).
+The official
+[DrawPrimitiveUP contract](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3ddevice9-drawprimitiveup)
+identifies this pointer and stride as stream-`0` data.
+
+**Interpretation, high confidence within these conditions.** The selector
+lookup establishes semantics. The mask-driven producer can declare them
+conditionally on Stream `0`. The draw call consumes a caller-provided data
+pointer and stride. This identifies a consumer and argument provenance,
+without identifying the routine that populated the data.
+
+No active STMS model or selected shader is linked to this generic path.
+Actual masks, payloads, data producers, dynamic buffer ownership, backend
+selection, queued dispatch and API success remain unresolved. Neither
+semantic index establishes a stream ordinal, default component value,
+stride-zero fallback, matrix meaning or runtime rendering result. Reproduce
+the finding by following the selected lookup entries, bounded count-`7`/`8`
+construction, component-count and offset operations, then caller arguments
+through the direct draw adapter at the cited locators.
+
 ## Bounded reproduction
 
 1. Verify the module size, SHA-256, image base and Ghidra program identity.
