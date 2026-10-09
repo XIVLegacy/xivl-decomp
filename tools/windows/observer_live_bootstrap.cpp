@@ -1026,6 +1026,22 @@ bool parse_child_unsigned(std::string_view text, std::uint64_t* value) noexcept
     return true;
 }
 
+bool parse_child_unsigned_allow_zero(std::string_view text, std::uint64_t* value) noexcept
+{
+    if (value == nullptr || text.empty())
+    {
+        return false;
+    }
+    std::uint64_t parsed = 0;
+    const auto    result = std::from_chars(text.data(), text.data() + text.size(), parsed, 10);
+    if (result.ec != std::errc{} || result.ptr != text.data() + text.size())
+    {
+        return false;
+    }
+    *value = parsed;
+    return true;
+}
+
 bool take_child_argument(int* index, int argc, char* argv[], std::string* value) noexcept
 {
     if (index == nullptr || value == nullptr || argv == nullptr || *index + 1 >= argc ||
@@ -1585,7 +1601,7 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
     g_child_control.failure_outcome               = 0;
     g_child_control.collection_complete           = 0;
     g_child_control.collection_stop_reason        = 0;
-    g_child_control.collection_reserved0          = 0;
+    g_child_control.cleanup_start_tick            = 0;
     g_child_control.collection_start_tick         = 0;
     g_child_control.collection_deadline_tick      = 0;
     g_child_control.collection_stop_tick          = 0;
@@ -1693,15 +1709,13 @@ bool ObserverLiveChildSession::persist_trace_artifact(bool                      
     state_->rows                = static_cast<std::uint32_t>(std::min<std::size_t>(rows.size(),
                                                                                    std::numeric_limits<std::uint32_t>::max()));
     state_->qualified_rows      = 0;
-    state_->event_tail_sequence = 0;
+    state_->event_tail_sequence = state_->composition.event_tail_sequence();
     for (const observer_diagnostic::QueryRow& row : rows)
     {
         if (observer_diagnostic::query_provenance_qualified(row))
         {
             ++state_->qualified_rows;
         }
-        state_->event_tail_sequence = std::max(state_->event_tail_sequence,
-                                               row.header.exit_sequence);
     }
     state_->fixture_exit_code       = state_->composition.fixture_exit_code();
     state_->fixture_exit_code_known = state_->composition.fixture_exit_code_known();
@@ -1827,17 +1841,39 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
         set_child_state(ObserverLiveChildState::Failed, ERROR_WRITE_FAULT);
         return false;
     }
-    const bool collection_complete = state_->collection_owner != nullptr &&
-                                     state_->collection_owner->complete();
+    const bool                           collection_complete = state_->collection_owner != nullptr &&
+                                                               state_->collection_owner->complete();
+    ObserverFixtureEvidence*             fixture_evidence    = state_->composition.fixture_evidence();
+    observer_diagnostic::RawEventBridge* raw_bridge          = state_->composition.raw_bridge();
+    bool                                 terminal_raw_tail   = false;
+    if (!pending_raw && raw_bridge != nullptr && raw_bridge->event_count() != 0 &&
+        raw_bridge->continuation_count() != 0 && fixture_evidence != nullptr)
+    {
+        const auto& last_event = raw_bridge->event(raw_bridge->event_count() - 1);
+        const auto& last_continuation =
+            raw_bridge->continuation(raw_bridge->continuation_count() - 1);
+        terminal_raw_tail = fixture_evidence->record_terminal_raw_tail(
+            raw_bridge->event_count(),
+            raw_bridge->continuation_count(),
+            static_cast<std::uint64_t>(last_event.raw_event_index),
+            static_cast<std::uint64_t>(last_continuation.matched_event_index),
+            pending_raw,
+            raw_bridge->coverage());
+        if (terminal_raw_tail)
+        {
+            state_->event_tail_sequence         = fixture_evidence->record_sequence();
+            g_child_control.event_tail_sequence = state_->event_tail_sequence;
+            std::atomic_thread_fence(std::memory_order_release);
+        }
+    }
     if (state_->qualified_rows == 0 || state_->event_tail_sequence == 0 || pending_raw ||
-        !state_->composition.fixture_exit_confirmed() ||
-        !state_->composition.engine_options_readback() ||
-        !state_->fixture_exit_code_known || state_->fixture_exit_code != ERROR_SUCCESS ||
-        !collection_complete)
+        fixture_evidence == nullptr || !fixture_evidence->has_event_tail() ||
+        !fixture_evidence->has_continuation_tail() || !terminal_raw_tail ||
+        !state_->composition.engine_options_readback() || !collection_complete)
     {
         if (refusal != nullptr)
         {
-            *refusal = "target child lacked qualified rows, event-tail, process-option or fixture exit evidence";
+            *refusal = "target child lacked qualified rows, raw event/continuation tails, process-option or collection evidence";
         }
         g_child_control.raw_trace_incomplete = 1U;
         g_child_control.failure_outcome =
@@ -1874,8 +1910,16 @@ bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    const ULONGLONG cleanup_started     = GetTickCount64();
-    const auto      remaining_lifecycle = [lifecycle_started, lifecycle_ticks]() -> std::uint32_t
+    const ULONGLONG cleanup_started = g_child_control.cleanup_start_tick;
+    if (cleanup_started == 0 || cleanup_started > GetTickCount64())
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "target child release requires the controller-published cleanup deadline";
+        }
+        return false;
+    }
+    const auto remaining_lifecycle = [lifecycle_started, lifecycle_ticks]() -> std::uint32_t
     {
         return observer_diagnostic::ObserverFinitePhaseBudget::remaining(
             lifecycle_started, GetTickCount64(), lifecycle_ticks);
@@ -2303,8 +2347,9 @@ bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
             {
                 return fail_lifecycle_overrun("target child fixture start exceeded its finite lifecycle bound");
             }
-            const std::uint32_t wait_remaining = remaining_lifecycle();
-            if (wait_remaining == 0 || !session.wait_for_fixture_event(authority, wait_remaining, refusal))
+            const std::uint32_t collection_bound = request.collection_ticks;
+            if (collection_bound == 0 || collection_bound > 3000 ||
+                !session.wait_for_fixture_event(authority, collection_bound, refusal))
             {
                 return false;
             }
@@ -2393,16 +2438,87 @@ int observer_live_child_main(int                          argc,
             continue;
         }
         std::uint64_t parsed = 0;
-        if (option == "--session" || option == "--row-cap" ||
+        if (option == "--fixture-process-handle" || option == "--fixture-thread-handle" ||
+            option == "--fixture-stdout-handle" || option == "--fixture-stderr-handle" ||
+            option == "--fixture-state-handle" || option == "--fixture-pid" ||
+            option == "--fixture-creation-low" || option == "--fixture-creation-high" ||
+            option == "--fixture-state-sequence" || option == "--session" || option == "--row-cap" ||
             option == "--provenance-hash-cap" || option == "--collection-ticks" ||
             option == "--child-completion-ticks" || option == "--cleanup-ticks")
         {
+            const bool allow_zero = option == "--fixture-creation-low" ||
+                                    option == "--fixture-creation-high";
             if (!take_child_argument(&index, argc, argv, &value) ||
-                !parse_child_unsigned(value, &parsed))
+                !(allow_zero ? parse_child_unsigned_allow_zero(value, &parsed)
+                             : parse_child_unsigned(value, &parsed)))
             {
                 return 2;
             }
-            if (option == "--session")
+            if (option == "--fixture-process-handle" || option == "--fixture-thread-handle" ||
+                option == "--fixture-stdout-handle" || option == "--fixture-stderr-handle" ||
+                option == "--fixture-state-handle")
+            {
+                if (parsed == 0 || parsed > std::numeric_limits<std::uintptr_t>::max())
+                {
+                    return 2;
+                }
+                const std::uintptr_t handle = static_cast<std::uintptr_t>(parsed);
+                if (option == "--fixture-process-handle")
+                {
+                    request.composition.fixture_process_handle = handle;
+                }
+                else if (option == "--fixture-thread-handle")
+                {
+                    request.composition.fixture_thread_handle = handle;
+                }
+                else if (option == "--fixture-stdout-handle")
+                {
+                    request.composition.fixture_stdout_handle = handle;
+                }
+                else if (option == "--fixture-stderr-handle")
+                {
+                    request.composition.fixture_stderr_handle = handle;
+                }
+                else
+                {
+                    request.composition.fixture_state_handle = handle;
+                }
+            }
+            else if (option == "--fixture-pid")
+            {
+                if (parsed == 0 || parsed > std::numeric_limits<DWORD>::max())
+                {
+                    return 2;
+                }
+                request.composition.fixture_identity.process_id = static_cast<DWORD>(parsed);
+            }
+            else if (option == "--fixture-creation-low")
+            {
+                if (parsed > std::numeric_limits<DWORD>::max())
+                {
+                    return 2;
+                }
+                request.composition.fixture_identity.creation_time.dwLowDateTime =
+                    static_cast<DWORD>(parsed);
+            }
+            else if (option == "--fixture-creation-high")
+            {
+                if (parsed > std::numeric_limits<DWORD>::max())
+                {
+                    return 2;
+                }
+                request.composition.fixture_identity.creation_time.dwHighDateTime =
+                    static_cast<DWORD>(parsed);
+            }
+            else if (option == "--fixture-state-sequence")
+            {
+                if (parsed == 0)
+                {
+                    return 2;
+                }
+                request.composition.fixture_state_sequence = parsed;
+            }
+            else if (option == "--session")
             {
                 request.composition.session_id = parsed;
             }
@@ -2456,13 +2572,25 @@ int observer_live_child_main(int                          argc,
         cleanup_ticks == 0 || cleanup_ticks == INFINITE ||
         request.composition.fixture_command_line.empty() ||
         !request.output.is_absolute() || !request.composition.dbgeng_image.is_absolute() ||
-        !request.composition.fixture_executable.is_absolute())
+        !request.composition.fixture_executable.is_absolute() ||
+        request.composition.fixture_process_handle == 0 ||
+        request.composition.fixture_thread_handle == 0 ||
+        request.composition.fixture_stdout_handle == 0 ||
+        request.composition.fixture_stderr_handle == 0 ||
+        request.composition.fixture_state_handle == 0 ||
+        request.composition.fixture_state_sequence == 0 ||
+        request.composition.fixture_identity.process_id == 0 ||
+        (request.composition.fixture_identity.creation_time.dwLowDateTime == 0 &&
+         request.composition.fixture_identity.creation_time.dwHighDateTime == 0))
     {
         return 2;
     }
-    request.collection_ticks = collection_ticks;
-    request.completion_ticks = completion_ticks;
-    request.cleanup_ticks    = cleanup_ticks;
+    request.composition.fixture_identity.executable  = request.composition.fixture_executable;
+    request.composition.fixture_identity.file_size   = kObserverFixturePinnedFileSize;
+    request.composition.fixture_identity.file_sha256 = kObserverFixturePinnedSha256;
+    request.collection_ticks                         = collection_ticks;
+    request.completion_ticks                         = completion_ticks;
+    request.cleanup_ticks                            = cleanup_ticks;
     std::string refusal;
     if (!authority.allows_native(&refusal))
     {

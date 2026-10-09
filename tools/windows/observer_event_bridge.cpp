@@ -196,6 +196,10 @@ bool RawEventBridge::coverage() const noexcept
             return false;
         }
     }
+    if (owner_sink_.observe_binding && binding_count_ != event_count_)
+    {
+        return false;
+    }
     return true;
 }
 
@@ -377,6 +381,22 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
         }
     }
     receipt.status = status;
+    if (owner_sink_.observe_binding != nullptr)
+    {
+        bool retained = false;
+        try
+        {
+            retained = owner_sink_.observe_binding(owner_sink_.user, receipt);
+        }
+        catch (...)
+        {
+            retained = false;
+        }
+        if (!retained)
+        {
+            coverage_.store(false, std::memory_order_release);
+        }
+    }
     if (status != EngineBindingStatus::Bound)
     {
         coverage_.store(false, std::memory_order_release);

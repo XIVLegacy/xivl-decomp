@@ -22,6 +22,8 @@ namespace
 {
 
 using xivl::observer_candidate::ObserverController;
+using xivl::observer_candidate::ObserverFixtureChannel;
+using xivl::observer_candidate::ObserverFixtureWaitDisposition;
 using xivl::observer_candidate::ObserverLiveAuthority;
 using xivl::observer_candidate::ObserverLiveDisposition;
 using xivl::observer_candidate::ObserverLiveRuntime;
@@ -39,9 +41,10 @@ struct ParsedArguments
 
 struct NativeRunContext
 {
-    xivl::observer_candidate::ObserverLiveRequest request{};
-    xivl::observer_candidate::ObserverLiveResult  result{};
-    std::atomic<bool>                             returned{ false };
+    xivl::observer_candidate::ObserverLiveRequest              request{};
+    xivl::observer_candidate::ObserverLiveResult               result{};
+    xivl::observer_candidate::ObserverLiveRetentionPublication retention{};
+    std::atomic<bool>                                          returned{ false };
 };
 
 NativeRunContext* g_retained_native_context = nullptr;
@@ -67,6 +70,7 @@ DWORD WINAPI native_run_thread(LPVOID raw_context) noexcept
         context->result.native_effects_started      = true;
         context->result.owner_intervention_required = true;
     }
+    context->retention.worker_completed.store(true, std::memory_order_release);
     context->returned.store(true, std::memory_order_release);
     return ERROR_SUCCESS;
 }
@@ -123,6 +127,7 @@ xivl::observer_candidate::ObserverLiveResult run_native_isolated(
         return refused;
     }
     context->request                            = request;
+    context->request.retention_publication      = &context->retention;
     context->result.disposition                 = ObserverLiveDisposition::Failed;
     context->result.stage                       = "native_controller";
     context->result.reason                      = "native creator thread exited before returning its outcome";
@@ -182,6 +187,13 @@ xivl::observer_candidate::ObserverLiveResult run_native_isolated(
 
 int quarantine_retained_native_controller() noexcept
 {
+    // This is one absolute owner-intervention observation interval. Once it
+    // expires, 1 ms waits continue against the retained creation handle; no
+    // new lifecycle budget, PID lookup, retry or termination is introduced.
+    const ULONGLONG observation_started = GetTickCount64();
+    bool            timeout_recorded    = false;
+    bool            failed_recorded     = false;
+    bool            thread_completed    = false;
     for (;;)
     {
         HANDLE thread  = g_retained_native_thread;
@@ -192,26 +204,142 @@ int quarantine_retained_native_controller() noexcept
             continue;
         }
 
-        const DWORD wait_result = WaitForSingleObject(thread, 1);
-        if (wait_result != WAIT_OBJECT_0)
+        const DWORD thread_wait = WaitForSingleObject(thread, 1);
+        if (thread_wait == WAIT_OBJECT_0 &&
+            context->retention.worker_completed.load(std::memory_order_acquire))
         {
-            Sleep(1);
-            continue;
+            thread_completed = true;
         }
 
-        const auto& result = context->result;
-        if (!result.observer_exit_confirmed || !result.fixture_exit_confirmed ||
-            !result.exit_event_acknowledged || !result.restoration_confirmed)
+        // The worker may still be blocked inside the observer runtime.  Load
+        // the creation-bound evidence publication independently; the result
+        // object is read only after the creator thread has signaled.
+        const auto published_retention = context->retention.fixture.load(std::memory_order_acquire);
+        const bool result_ready        = thread_completed;
+        auto*      result              = result_ready ? &context->result : nullptr;
+        const auto retention           = published_retention != nullptr
+                                             ? published_retention
+                                             : (result == nullptr ? nullptr : result->fixture_retention);
+        if (!result_ready)
         {
-            Sleep(1);
-            continue;
+            // Do not enter mutable evidence while the worker may be blocked in
+            // its synchronous WriteFile/FlushFileBuffers path.  The raw
+            // creation-bound handle is published independently and remains a
+            // valid finite owner observation; unavailable output/state stays
+            // unknown until the worker completes.
+            const HANDLE fixture = reinterpret_cast<HANDLE>(
+                context->retention.fixture_process_handle.load(std::memory_order_acquire));
+            const DWORD fixture_wait = fixture == nullptr ? WAIT_TIMEOUT : WaitForSingleObject(fixture, 1);
+            if (fixture_wait == WAIT_OBJECT_0)
+            {
+                DWORD      exit_code  = 0;
+                const bool code_known = GetExitCodeProcess(fixture, &exit_code) != FALSE;
+                context->retention.fixture_signaled.store(true, std::memory_order_release);
+                context->retention.fixture_exit_code_known.store(code_known, std::memory_order_release);
+                if (code_known)
+                {
+                    context->retention.fixture_exit_code.store(exit_code, std::memory_order_release);
+                }
+            }
+            else if (fixture != nullptr && fixture_wait == WAIT_FAILED)
+            {
+                failed_recorded = true;
+            }
+            else if (GetTickCount64() - observation_started >= context->request.limits.owner_exit_ticks)
+            {
+                timeout_recorded = true;
+            }
+        }
+        else if (retention != nullptr)
+        {
+            const bool post_release   = retention->session_release_succeeded();
+            const auto capture_output = [&](ObserverFixtureChannel channel,
+                                            const char*            source) noexcept
+            {
+                const std::uint64_t before = retention->output_offset(channel);
+                std::uint64_t       offset = before;
+                std::uint64_t       bytes  = 0;
+                std::string         raw;
+                std::string         refusal;
+                const bool          read_ok = retention->read_output_snapshot(
+                    channel, &offset, &bytes, &raw, &refusal);
+                return retention->record_output_snapshot(channel,
+                                                         source,
+                                                         GetTickCount64(),
+                                                         before,
+                                                         bytes,
+                                                         read_ok,
+                                                         post_release,
+                                                         raw);
+            };
+            const bool stdout_ok = capture_output(ObserverFixtureChannel::stdout_bytes, "stdout");
+            const bool stderr_ok = capture_output(ObserverFixtureChannel::stderr_bytes, "stderr");
+            (void)stdout_ok;
+            (void)stderr_ok;
+
+            if (failed_recorded)
+            {
+                (void)retention->record_owner_observation(ObserverFixtureWaitDisposition::failed);
+            }
+            else if (timeout_recorded && !context->retention.fixture_signaled.load(std::memory_order_acquire))
+            {
+                (void)retention->record_owner_observation(ObserverFixtureWaitDisposition::timeout);
+            }
+
+            if (!retention->fixture_exit_signaled())
+            {
+                HANDLE fixture = reinterpret_cast<HANDLE>(
+                    context->retention.fixture_process_handle.load(std::memory_order_acquire));
+                if (fixture == nullptr)
+                {
+                    fixture = retention->controller_fixture_process();
+                }
+                const DWORD fixture_wait = fixture == nullptr ? WAIT_FAILED : WaitForSingleObject(fixture, 1);
+                if (fixture_wait == WAIT_OBJECT_0)
+                {
+                    DWORD      exit_code  = 0;
+                    const bool code_known = GetExitCodeProcess(fixture, &exit_code) != FALSE;
+                    context->retention.fixture_signaled.store(true, std::memory_order_release);
+                    context->retention.fixture_exit_code_known.store(code_known, std::memory_order_release);
+                    if (code_known)
+                    {
+                        context->retention.fixture_exit_code.store(exit_code, std::memory_order_release);
+                    }
+                    (void)retention->record_exit(ObserverFixtureWaitDisposition::signaled,
+                                                 code_known,
+                                                 code_known ? exit_code : 0);
+                    if (result != nullptr)
+                    {
+                        result->fixture_exit_confirmed  = retention->fixture_exit_signaled();
+                        result->fixture_exit_code_known = retention->fixture_exit_code_known();
+                        result->fixture_exit_code       = retention->fixture_exit_code();
+                    }
+                }
+                else if (fixture_wait == WAIT_FAILED && !failed_recorded)
+                {
+                    failed_recorded = true;
+                    (void)retention->record_owner_observation(ObserverFixtureWaitDisposition::failed);
+                }
+                else if (GetTickCount64() - observation_started >=
+                             context->request.limits.owner_exit_ticks &&
+                         !timeout_recorded)
+                {
+                    timeout_recorded = true;
+                    (void)retention->record_owner_observation(ObserverFixtureWaitDisposition::timeout);
+                }
+            }
         }
 
-        CloseHandle(thread);
-        g_retained_native_thread  = nullptr;
-        g_retained_native_context = nullptr;
-        delete context;
-        return 4;
+        if (result != nullptr && result->observer_exit_confirmed && result->fixture_exit_confirmed &&
+            result->exit_event_acknowledged && result->restoration_confirmed)
+        {
+            CloseHandle(thread);
+            g_retained_native_thread  = nullptr;
+            g_retained_native_context = nullptr;
+            delete context;
+            return 4;
+        }
+        Sleep(1);
     }
 }
 
@@ -785,6 +913,9 @@ int observer_candidate_main(int argc, char* argv[])
                   << "collection_operation_failures=" << result.collection_operation_failures << '\n'
                   << "collection_admitted_intervals=" << result.collection_admitted_intervals << '\n'
                   << "collection_active_intervals=" << result.collection_active_intervals << '\n'
+                  << "cleanup_start_tick=" << result.cleanup_start_tick << '\n'
+                  << "cleanup_deadline_tick=" << result.cleanup_deadline_tick << '\n'
+                  << "cleanup_completion_tick=" << result.cleanup_completion_tick << '\n'
                   << "owner_intervention_required="
                   << (result.owner_intervention_required || retained ? 1 : 0) << '\n';
         if (result.owner_intervention_required || retained)

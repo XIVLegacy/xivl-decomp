@@ -180,7 +180,8 @@ struct TraceMapObserverCallbacks::State
             RawEventBindingMode::deferred,
             RawLifecycleOwnerSink{ &State::observe_event,
                                    &State::observe_continuation,
-                                   this });
+                                   this,
+                                   &State::observe_binding });
         CallbackDispatchConfig configured    = dispatch_config;
         configured.raw_bridge                = bridge.get();
         configured.instrumentation_thread_id = config.creator_thread_id;
@@ -210,12 +211,35 @@ struct TraceMapObserverCallbacks::State
             {
                 return false;
             }
+            if (state->config.fixture_evidence != nullptr &&
+                !state->config.fixture_evidence->record_event(evidence))
+            {
+                return false;
+            }
             state->admission.identity              = evidence.identity;
             state->admission.kind                  = evidence.event.kind;
             state->admission.event_number_before   = state->events.event_number;
             state->admission.expected_event_number = state->events.event_number + 1;
             state->admission.present               = true;
             return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    static bool observe_binding(void* user, const EngineBindingReceipt& receipt) noexcept
+    {
+        auto* state = static_cast<State*>(user);
+        if (state == nullptr || state->bridge == nullptr)
+        {
+            return false;
+        }
+        try
+        {
+            return state->config.fixture_evidence == nullptr ||
+                   state->config.fixture_evidence->record_binding_receipt(receipt);
         }
         catch (...)
         {
@@ -236,6 +260,11 @@ struct TraceMapObserverCallbacks::State
             const RawLifecycleOwnerSink sink = state->session.owner_sink();
             if (sink.observe_continuation == nullptr ||
                 !sink.observe_continuation(sink.user, evidence))
+            {
+                return false;
+            }
+            if (state->config.fixture_evidence != nullptr &&
+                !state->config.fixture_evidence->record_continuation(evidence))
             {
                 return false;
             }

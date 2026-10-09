@@ -5,7 +5,10 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstring>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -62,12 +65,14 @@ bool fake_clock(void* user, std::uint64_t* tick) noexcept
 
 struct ConcurrentClock
 {
-    std::atomic<unsigned> calls{ 0 };
-    std::atomic<bool>     hold_first{ false };
-    std::atomic<bool>     first_entered{ false };
-    std::atomic<bool>     release_first{ false };
-    std::uint64_t         first_tick  = 1;
-    std::uint64_t         second_tick = 2;
+    std::atomic<unsigned>    calls{ 0 };
+    std::atomic<bool>        hold_first{ false };
+    std::atomic<bool>        first_entered{ false };
+    std::atomic<bool>        release_first{ false };
+    std::mutex*              wake_mutex  = nullptr;
+    std::condition_variable* wake_cv     = nullptr;
+    std::uint64_t            first_tick  = 1;
+    std::uint64_t            second_tick = 2;
 };
 
 bool concurrent_clock(void* user, std::uint64_t* tick) noexcept
@@ -81,9 +86,25 @@ bool concurrent_clock(void* user, std::uint64_t* tick) noexcept
     if (call == 1 && clock->hold_first.load(std::memory_order_acquire))
     {
         clock->first_entered.store(true, std::memory_order_release);
-        while (!clock->release_first.load(std::memory_order_acquire))
+        if (clock->wake_cv != nullptr)
         {
-            std::this_thread::yield();
+            clock->wake_cv->notify_all();
+        }
+        if (clock->wake_mutex != nullptr && clock->wake_cv != nullptr)
+        {
+            std::unique_lock<std::mutex> lock(*clock->wake_mutex);
+            clock->wake_cv->wait(lock,
+                                 [&]
+                                 {
+                                     return clock->release_first.load(std::memory_order_acquire);
+                                 });
+        }
+        else
+        {
+            while (!clock->release_first.load(std::memory_order_acquire))
+            {
+                std::this_thread::yield();
+            }
         }
         *tick = clock->first_tick;
         return true;
@@ -415,6 +436,10 @@ void run_admission_and_concurrent_case(TestState* tests)
     cap_clock.first_tick  = 3;
     cap_clock.second_tick = 3;
     cap_clock.hold_first.store(true, std::memory_order_release);
+    std::mutex              cap_mutex;
+    std::condition_variable cap_cv;
+    cap_clock.wake_mutex = &cap_mutex;
+    cap_clock.wake_cv    = &cap_cv;
     std::atomic<bool> poll_finished{ false };
     std::atomic<bool> allow_started{ false };
     std::atomic<bool> allow_finished{ false };
@@ -425,29 +450,40 @@ void run_admission_and_concurrent_case(TestState* tests)
             (void)concurrent_boundary.poll();
             poll_finished.store(true, std::memory_order_release);
         });
-    for (std::uint32_t attempt = 0;
-         attempt != 1000 && !cap_clock.first_entered.load(std::memory_order_acquire);
-         ++attempt)
     {
-        std::this_thread::yield();
+        std::unique_lock<std::mutex> lock(cap_mutex);
+        (void)cap_cv.wait_for(lock,
+                              std::chrono::seconds(1),
+                              [&]
+                              {
+                                  return cap_clock.first_entered.load(std::memory_order_acquire);
+                              });
     }
     std::thread admission_thread(
         [&]
         {
             allow_started.store(true, std::memory_order_release);
+            cap_cv.notify_all();
             allowed.store(concurrent_boundary.allow_row(), std::memory_order_release);
             allow_finished.store(true, std::memory_order_release);
         });
-    for (std::uint32_t attempt = 0;
-         attempt != 1000 && !allow_started.load(std::memory_order_acquire);
-         ++attempt)
     {
-        std::this_thread::yield();
+        std::unique_lock<std::mutex> lock(cap_mutex);
+        (void)cap_cv.wait_for(lock,
+                              std::chrono::seconds(1),
+                              [&]
+                              {
+                                  return allow_started.load(std::memory_order_acquire);
+                              });
     }
     tests->check(cap_clock.first_entered.load(std::memory_order_acquire) &&
                      !allow_finished.load(std::memory_order_acquire),
                  "overlapping clock callers wait for one serialized observation");
-    cap_clock.release_first.store(true, std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lock(cap_mutex);
+        cap_clock.release_first.store(true, std::memory_order_release);
+    }
+    cap_cv.notify_all();
     poller.join();
     admission_thread.join();
     const ObserverCollectionSnapshot concurrent_snapshot = concurrent_boundary.snapshot();
@@ -464,6 +500,10 @@ void run_admission_and_concurrent_case(TestState* tests)
     ordered_clock.first_tick  = 1;
     ordered_clock.second_tick = 2;
     ordered_clock.hold_first.store(true, std::memory_order_release);
+    std::mutex              ordered_mutex;
+    std::condition_variable ordered_cv;
+    ordered_clock.wake_mutex = &ordered_mutex;
+    ordered_clock.wake_cv    = &ordered_cv;
     std::atomic<bool> first_poll_result{ false };
     std::atomic<bool> second_poll_result{ false };
     std::thread       first_poll(
@@ -471,18 +511,25 @@ void run_admission_and_concurrent_case(TestState* tests)
         {
             first_poll_result.store(ordered_boundary.poll(), std::memory_order_release);
         });
-    for (std::uint32_t attempt = 0;
-         attempt != 1000 && !ordered_clock.first_entered.load(std::memory_order_acquire);
-         ++attempt)
     {
-        std::this_thread::yield();
+        std::unique_lock<std::mutex> lock(ordered_mutex);
+        (void)ordered_cv.wait_for(lock,
+                                  std::chrono::seconds(1),
+                                  [&]
+                                  {
+                                      return ordered_clock.first_entered.load(std::memory_order_acquire);
+                                  });
     }
     std::thread second_poll(
         [&]
         {
             second_poll_result.store(ordered_boundary.poll(), std::memory_order_release);
         });
-    ordered_clock.release_first.store(true, std::memory_order_release);
+    {
+        std::lock_guard<std::mutex> lock(ordered_mutex);
+        ordered_clock.release_first.store(true, std::memory_order_release);
+    }
+    ordered_cv.notify_all();
     first_poll.join();
     second_poll.join();
     tests->check(first_poll_result.load(std::memory_order_acquire) &&
@@ -495,9 +542,11 @@ void run_admission_and_concurrent_case(TestState* tests)
     ObserverCollectionBoundary concurrent_fake_boundary;
     tests->check(concurrent_fake_boundary.start({ 3, &fake_clock, &concurrent_fake_clock }),
                  "concurrent admission lease boundary starts");
-    std::atomic<bool> stop_started{ false };
-    std::atomic<bool> stop_finished{ false };
-    std::thread       stopper;
+    std::atomic<bool>       stop_started{ false };
+    std::atomic<bool>       stop_finished{ false };
+    std::mutex              stop_mutex;
+    std::condition_variable stop_cv;
+    std::thread             stopper;
     {
         auto admission = concurrent_fake_boundary.admit_row();
         tests->check(static_cast<bool>(admission) && admission.acquire(),
@@ -506,14 +555,18 @@ void run_admission_and_concurrent_case(TestState* tests)
             [&]
             {
                 stop_started.store(true, std::memory_order_release);
+                stop_cv.notify_all();
                 (void)concurrent_fake_boundary.stop();
                 stop_finished.store(true, std::memory_order_release);
             });
-        for (std::uint32_t attempt = 0;
-             attempt != 1000 && !stop_started.load(std::memory_order_acquire);
-             ++attempt)
         {
-            std::this_thread::yield();
+            std::unique_lock<std::mutex> lock(stop_mutex);
+            (void)stop_cv.wait_for(lock,
+                                   std::chrono::seconds(1),
+                                   [&]
+                                   {
+                                       return stop_started.load(std::memory_order_acquire);
+                                   });
         }
         tests->check(stop_started.load(std::memory_order_acquire) &&
                          !stop_finished.load(std::memory_order_acquire),

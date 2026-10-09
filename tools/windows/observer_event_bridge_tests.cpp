@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_event_bridge.h"
+#include "observer_fixture_evidence.h"
 
 #include <intrin.h>
 
@@ -45,6 +46,49 @@ struct OwnerSinkState
     bool          continuation_result = true;
     bool          throw_event         = false;
 };
+
+struct FixtureEvidenceSinkState
+{
+    observer_candidate::ObserverFixtureEvidence* evidence           = nullptr;
+    std::uint32_t                                event_calls        = 0;
+    std::uint32_t                                binding_calls      = 0;
+    std::uint32_t                                continuation_calls = 0;
+};
+
+bool fixture_evidence_event_sink(void* user, const BridgeEventEvidence& evidence)
+{
+    auto* state = static_cast<FixtureEvidenceSinkState*>(user);
+    if (state == nullptr || state->evidence == nullptr)
+    {
+        return false;
+    }
+    ++state->event_calls;
+    return state->evidence->record_event(evidence);
+}
+
+bool fixture_evidence_binding_sink(void* user, const EngineBindingReceipt& receipt)
+{
+    auto* state = static_cast<FixtureEvidenceSinkState*>(user);
+    if (state == nullptr || state->evidence == nullptr)
+    {
+        return false;
+    }
+    ++state->binding_calls;
+    return state->evidence->record_binding_receipt(receipt);
+}
+
+bool fixture_evidence_continuation_sink(
+    void*                             user,
+    const BridgeContinuationEvidence& evidence)
+{
+    auto* state = static_cast<FixtureEvidenceSinkState*>(user);
+    if (state == nullptr || state->evidence == nullptr)
+    {
+        return false;
+    }
+    ++state->continuation_calls;
+    return state->evidence->record_continuation(evidence);
+}
 
 bool owner_event_sink(void* user, const BridgeEventEvidence& evidence)
 {
@@ -959,6 +1003,74 @@ void exercise_deferred_binding(TestState& tests)
     g_fake_state = nullptr;
 }
 
+void exercise_deferred_fixture_evidence_sink(TestState& tests)
+{
+    std::unique_ptr<raw_recorder::RawRecorder> raw =
+        std::make_unique<raw_recorder::RawRecorder>();
+    Recorder                                    diagnostic;
+    observer_candidate::ObserverFixtureEvidence evidence;
+    evidence.enable_in_memory_test_sink();
+    observer_candidate::ObserverFixtureIdentity identity;
+    identity.process_id    = 100;
+    identity.creation_time = { 1, 2 };
+    identity.executable    = L"fixture.exe";
+    identity.file_size     = 17920;
+    identity.file_sha256.fill(0xA5);
+    const bool identity_bound = evidence.bind_created_fixture(identity, nullptr);
+
+    FixtureEvidenceSinkState        sink_state{ &evidence };
+    const RawLifecycleOwnerSink     owner_sink{ &fixture_evidence_event_sink,
+                                                &fixture_evidence_continuation_sink,
+                                                &sink_state,
+                                                &fixture_evidence_binding_sink };
+    std::unique_ptr<RawEventBridge> bridge = std::make_unique<RawEventBridge>(
+        diagnostic,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        owner_sink);
+    FakeState state;
+    g_fake_state = &state;
+    std::array<std::uint8_t, 0x60> create{};
+    make_lifecycle(&create, 3);
+    const bool                         attached  = bridge->attach(*raw);
+    const bool                         activated = raw->activate(&fake_wait, &fake_continue);
+    const bool                         waited    = raw_recorder::RawRecorder::WaitThunk(
+                                                       0x1111U, 0, nullptr, create.data()) == 0;
+    const std::optional<EventIdentity> pending   = diagnostic.pending_event();
+    RawIdentityBinding                 raw_identity;
+    if (pending.has_value())
+    {
+        raw_identity.raw_debug_object = pending->raw_debug_object;
+        raw_identity.process_id       = pending->process_id;
+        raw_identity.thread_id        = pending->thread_id;
+        raw_identity.raw_generation   = pending->raw_generation;
+        raw_identity.event_index      = static_cast<std::size_t>(pending->event_index);
+    }
+    const EngineIdentityObservation observation = complete_deferred_observation(raw_identity);
+    const EngineBindingStatus       binding_status =
+        bridge->bind_engine_event(raw_identity, observation, 0x22U, 1U, 3U, 4U);
+    ClientId client{ 100, 200 };
+    state.continue_result = 0;
+    const bool continued  = raw_recorder::RawRecorder::ContinueThunk(
+                                0x1111U, &client, 0x40010000U) == 0;
+    raw->deactivate();
+    const bool sink_cleared = raw->clear_observer_sink();
+    g_fake_state            = nullptr;
+
+    tests.check(identity_bound && attached && activated && waited &&
+                    pending.has_value() &&
+                    binding_status == EngineBindingStatus::Bound && continued &&
+                    sink_cleared,
+                "fixture sink follows deferred production order");
+    tests.check(sink_state.event_calls == 1 && sink_state.binding_calls == 1 &&
+                    sink_state.continuation_calls == 1 &&
+                    evidence.event_record_count() == 1 &&
+                    evidence.continuation_record_count() == 1 && !evidence.unknown() &&
+                    bridge->coverage(),
+                "fixture sink retains admitted raw and binding receipts");
+}
+
 } // namespace
 
 SelfTestReport run_event_bridge_self_tests()
@@ -969,6 +1081,7 @@ SelfTestReport run_event_bridge_self_tests()
     exercise_owner_sink_contract(tests);
     exercise_unknown_mismatch_throw_and_overflow(tests);
     exercise_deferred_binding(tests);
+    exercise_deferred_fixture_evidence_sink(tests);
     tests.report.passed = tests.report.failures == 0;
     std::ostringstream summary;
     summary << "checks=" << tests.report.checks << ",failures=" << tests.report.failures;

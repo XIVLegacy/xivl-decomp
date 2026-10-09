@@ -6,6 +6,7 @@
 #include "observer_callback_identity.h"
 #include "observer_event_bridge.h"
 #include "observer_event_lifecycle.h"
+#include "observer_fixture_evidence.h"
 #include "raw_event_recorder.h"
 #include "trace_map_events.h"
 
@@ -17,6 +18,7 @@ struct IUnknown;
 namespace xivl::map_selection
 {
 
+using observer_candidate::ObserverFixtureEvidence;
 using observer_diagnostic::ObserverCallbackDispatch;
 using observer_diagnostic::ObserverCallbackSession;
 using observer_diagnostic::RawEventBridge;
@@ -38,6 +40,10 @@ struct TraceMapObserverCallbacksConfig
     raw_recorder::ContextApi            context_api{};
     raw_recorder::WaitFunction          wait          = nullptr;
     raw_recorder::ContinueFunction      continue_call = nullptr;
+    // Borrowed controller-owned fixture state channel. The callback owner
+    // writes actual raw event and continuation evidence as it is delivered;
+    // the channel remains valid until explicit teardown.
+    ObserverFixtureEvidence* fixture_evidence = nullptr;
 };
 
 enum class TraceMapObserverCallbacksStatus : std::uint8_t

@@ -52,6 +52,7 @@ separate ordinary fixture. There is no retail or arbitrary-PID profile.
 | Entry and input contract | [observer_candidate.cpp](observer_candidate.cpp) | Parse the explicit request and apply the current authority gate. |
 | External controller and transport | [observer_live_runtime.cpp](observer_live_runtime.cpp) | Own observer creation, debug-event holds, supervisor deadlines, resident inspection, remote installation and cleanup. |
 | Observer child | [observer_live_bootstrap.cpp](observer_live_bootstrap.cpp) | Publish target-local control records and connect the retained child session to DbgEng and the ordinary fixture. |
+| Fixture evidence retention | [observer_fixture_evidence.cpp](observer_fixture_evidence.cpp) | Retain creation-bound handles, raw event and continuation receipts, separate stdout/stderr/state channels, release results and post-detach exit evidence. |
 | Collection boundary | [observer_collection.cpp](observer_collection.cpp) | Close Recorder admission at one immutable monotonic deadline, independently of child completion and cleanup. |
 | Production callback owner | [trace_map_observer_callbacks.cpp](trace_map_observer_callbacks.cpp) | Connect raw admission, Events, retained lifecycle acquisition and the shared Recorder. |
 | CPU qualification | [observer_controller.cpp](observer_controller.cpp) and [observer_native_backend.cpp](observer_native_backend.cpp) | Exercise that callback and forwarding composition with injected authority, memory and results. |
@@ -149,6 +150,37 @@ remain incomplete. Post-stop originals still forward, while diagnostic row
 publication stays closed. Natural fixture exit and its separately known exit code
 cannot extend collection or repair incomplete evidence.
 
+The ordinary fixture command line is exactly the quoted pinned fixture
+executable with no arguments. Before the observer is created, the controller
+creates that fixture with `CREATE_SUSPENDED` and a `STARTUPINFOEX` handle list
+containing only its stdin, stdout and stderr channels. The controller retains
+the fixture process and primary thread handles and records the process ID and
+creation time in a separate `.fixture.state` stream. The observer receives
+those creation-bound handles, the two output handles and the state handle via
+its own restricted handle list; it never reopens the fixture by PID.
+
+The child calls `AttachProcess` with `DEBUG_ATTACH_DEFAULT`, records the
+HRESULT and option mask, resumes the inherited primary thread, records the
+raw `ResumeThread` prior suspend count (`DWORD(-1)` is failure), and waits for
+the first available DbgEng event before treating attachment as complete. A
+successful `AttachProcess` HRESULT alone is insufficient. Collection stops at
+the immutable collection deadline. The controller starts one absolute cleanup
+deadline before reading pre-release output from the retained channels, publishes
+that same deadline and obtains a cleanup hold. While that hold is active it
+restores the hook and raw
+slots, records the terminal raw-tail boundary, and continues the hold. The
+restoration latch is set before publication ownership is released outside the
+hold; the child then releases its workers, deactivates raw delivery, clears
+callbacks and performs `DEBUG_END_ACTIVE_DETACH`. The terminal raw-tail record
+covers the observed boundary before raw restoration and does not claim unseen
+bytes from the child's later detach path. The controller keeps polling the
+retained output channels and creation-bound fixture handle within the same
+finite cleanup bound, records the final output after release, requires a
+source-conditioned post-detach marker, and reads the process exit code only
+from the retained creation handle. An `alive 0` line alone is not a
+post-detach marker. Missing output, continuation, release, marker, wait or
+code evidence remains unknown.
+
 Native activation still requires a reviewed fixture failure contract covering
 creation-bound external retention, actual event/continuation tail, session
 release, post-release state and natural fixture exit after collection stops.
@@ -202,6 +234,14 @@ until continuation, and a thread-creation event precedes the new thread's
 user-mode execution. These are the documented
 [Windows event boundaries](https://learn.microsoft.com/en-us/windows/win32/debug/debugging-events).
 An event in the separate fixture session supplies no observer-process hold.
+
+The fixture is a separate controller-created process. Its inherited handle
+list is limited to stdin, stdout and stderr, while the observer's list is
+limited to the creation-bound fixture process/thread handles and the three
+controller-owned evidence channels. The controller retains the original
+fixture handles and evidence storage independently of the observer. It keeps
+them through observer loss or any unknown fixture outcome until a finite
+owner-intervention poll establishes a separate result.
 
 Every mutation and code-bearing cleanup requires all five
 [quiescence attestations](observer-diagnostic.md#quiescence-and-resident-module-contract)

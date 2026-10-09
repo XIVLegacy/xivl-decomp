@@ -110,6 +110,8 @@ using RawLifecycleOwnerEventFunction        = bool (*)(void*                    
 using RawLifecycleOwnerContinuationFunction = bool (*)(
     void*                             user,
     const BridgeContinuationEvidence& evidence);
+using RawLifecycleOwnerBindingFunction = bool (*)(void*                       user,
+                                                  const EngineBindingReceipt& receipt);
 
 // This is a borrowed, immutable owner view. The event callback runs only
 // after Recorder admits the exact raw key; the continuation callback runs
@@ -121,6 +123,10 @@ struct RawLifecycleOwnerSink
     RawLifecycleOwnerEventFunction        observe_event        = nullptr;
     RawLifecycleOwnerContinuationFunction observe_continuation = nullptr;
     void*                                 user                 = nullptr;
+    // Binding is reported after the existing deferred raw admission and before
+    // the matching continuation. Appending this member preserves legacy three
+    // field aggregate initializers while retaining the actual bridge receipt.
+    RawLifecycleOwnerBindingFunction observe_binding = nullptr;
 };
 
 class RawEventBridge final

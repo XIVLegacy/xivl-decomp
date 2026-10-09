@@ -597,6 +597,9 @@ bool append_failure_ledger(const std::filesystem::path& path,
          << " collection_operation_failures=" << result.collection_operation_failures
          << " collection_admitted_intervals=" << result.collection_admitted_intervals
          << " collection_active_intervals=" << result.collection_active_intervals
+         << " cleanup_start_tick=" << result.cleanup_start_tick
+         << " cleanup_deadline_tick=" << result.cleanup_deadline_tick
+         << " cleanup_completion_tick=" << result.cleanup_completion_tick
          << " collection_ticks=" << request.limits.collection_ticks
          << " child_completion_ticks=" << request.limits.child_completion_ticks
          << " hold_ticks=" << request.limits.hold_ticks
@@ -861,6 +864,193 @@ bool same_windows_path(const std::wstring& left, const std::wstring& right) noex
                                 right_canonical.c_str(),
                                 static_cast<int>(right_canonical.size()),
                                 TRUE) == CSTR_EQUAL;
+}
+
+bool exact_fixture_command(const std::filesystem::path& executable,
+                           const std::string&           command_line) noexcept
+{
+    const std::wstring command = widen_ascii(command_line);
+    if (command.size() < 2 || command.front() != L'"' || command.back() != L'"')
+    {
+        return false;
+    }
+    const std::wstring inner(command.data() + 1, command.size() - 2);
+    return same_windows_path(inner, executable.wstring());
+}
+
+std::string win32_error(DWORD error);
+
+bool create_controller_fixture(const ObserverLiveRequest& request,
+                               ObserverFixtureEvidence*   evidence,
+                               std::string*               refusal) noexcept
+{
+    if (evidence == nullptr || !absolute_path(request.fixture_executable) ||
+        !exact_fixture_command(request.fixture_executable, request.fixture_command_line) ||
+        request.fixture_file_pin.size_bytes != kFixtureFileSize ||
+        request.fixture_file_pin.sha256 != kFixtureSha256)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "controller fixture creation requires the exact pinned ordinary command";
+        }
+        return false;
+    }
+    if (!evidence->create_controller_storage(request.output, request.session_id, refusal))
+    {
+        return false;
+    }
+    HANDLE standard_input = CreateFileW(L"NUL",
+                                        GENERIC_READ,
+                                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                        nullptr,
+                                        OPEN_EXISTING,
+                                        FILE_ATTRIBUTE_NORMAL,
+                                        nullptr);
+    if (standard_input == INVALID_HANDLE_VALUE ||
+        SetHandleInformation(standard_input, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) == FALSE)
+    {
+        if (standard_input != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(standard_input);
+        }
+        if (refusal != nullptr)
+        {
+            *refusal = "fixture standard input handle creation failed";
+        }
+        return false;
+    }
+    SIZE_T attribute_bytes = 0;
+    InitializeProcThreadAttributeList(nullptr, 1, 0, &attribute_bytes);
+    if (attribute_bytes == 0)
+    {
+        CloseHandle(standard_input);
+        if (refusal != nullptr)
+        {
+            *refusal = "fixture restricted handle-list sizing failed";
+        }
+        return false;
+    }
+    std::vector<std::uint8_t> attribute_storage;
+    try
+    {
+        attribute_storage.resize(attribute_bytes);
+    }
+    catch (...)
+    {
+        CloseHandle(standard_input);
+        if (refusal != nullptr)
+        {
+            *refusal = "fixture restricted handle-list allocation failed";
+        }
+        return false;
+    }
+    auto* attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attribute_storage.data());
+    if (!InitializeProcThreadAttributeList(attributes, 1, 0, &attribute_bytes))
+    {
+        CloseHandle(standard_input);
+        if (refusal != nullptr)
+        {
+            *refusal = "fixture restricted handle-list initialization failed";
+        }
+        return false;
+    }
+    const HANDLE inherited_handles[] = {
+        standard_input,
+        evidence->controller_storage().stdout_handle,
+        evidence->controller_storage().stderr_handle,
+    };
+    const bool handle_list_ready = UpdateProcThreadAttribute(attributes,
+                                                             0,
+                                                             PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                                             const_cast<HANDLE*>(inherited_handles),
+                                                             sizeof(inherited_handles),
+                                                             nullptr,
+                                                             nullptr) != FALSE;
+    if (!handle_list_ready)
+    {
+        DeleteProcThreadAttributeList(attributes);
+        CloseHandle(standard_input);
+        if (refusal != nullptr)
+        {
+            *refusal = "fixture restricted handle-list publication failed";
+        }
+        return false;
+    }
+    std::wstring   command = widen_ascii(request.fixture_command_line);
+    STARTUPINFOEXW startup{};
+    startup.StartupInfo.cb         = sizeof(startup);
+    startup.StartupInfo.dwFlags    = STARTF_USESTDHANDLES;
+    startup.StartupInfo.hStdInput  = standard_input;
+    startup.StartupInfo.hStdOutput = evidence->controller_storage().stdout_handle;
+    startup.StartupInfo.hStdError  = evidence->controller_storage().stderr_handle;
+    startup.lpAttributeList        = attributes;
+    PROCESS_INFORMATION process_info{};
+    const BOOL          created = !command.empty() &&
+                                  CreateProcessW(request.fixture_executable.c_str(),
+                                                 command.data(),
+                                                 nullptr,
+                                                 nullptr,
+                                                 TRUE,
+                                                 CREATE_SUSPENDED | EXTENDED_STARTUPINFO_PRESENT,
+                                                 nullptr,
+                                                 nullptr,
+                                                 &startup.StartupInfo,
+                                                 &process_info);
+    DeleteProcThreadAttributeList(attributes);
+    CloseHandle(standard_input);
+    if (!created)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "CreateProcess(CREATE_SUSPENDED) fixture creation failed: " +
+                       win32_error(GetLastError());
+        }
+        return false;
+    }
+    if (request.retention_publication != nullptr)
+    {
+        // Publish the creation-bound handles before any evidence append or
+        // flush below can block the worker's evidence mutex.
+        request.retention_publication->fixture_process_handle.store(
+            reinterpret_cast<std::uintptr_t>(process_info.hProcess),
+            std::memory_order_release);
+        request.retention_publication->fixture_thread_handle.store(
+            reinterpret_cast<std::uintptr_t>(process_info.hThread),
+            std::memory_order_release);
+    }
+    const bool creation_handles_inheritable =
+        SetHandleInformation(process_info.hProcess,
+                             HANDLE_FLAG_INHERIT,
+                             HANDLE_FLAG_INHERIT) != FALSE &&
+        SetHandleInformation(process_info.hThread,
+                             HANDLE_FLAG_INHERIT,
+                             HANDLE_FLAG_INHERIT) != FALSE;
+    ObserverFixtureIdentity identity;
+    identity.process_id  = process_info.dwProcessId;
+    identity.executable  = request.fixture_executable;
+    identity.file_size   = request.fixture_file_pin.size_bytes;
+    identity.file_sha256 = request.fixture_file_pin.sha256;
+    FILETIME   exit_time{};
+    FILETIME   kernel_time{};
+    FILETIME   user_time{};
+    const bool identity_time = GetProcessTimes(process_info.hProcess,
+                                               &identity.creation_time,
+                                               &exit_time,
+                                               &kernel_time,
+                                               &user_time) != FALSE;
+    const bool bound         = identity_time && evidence->bind_created_fixture(identity, refusal);
+    const bool handles       = evidence->retain_controller_fixture_handles(process_info.hProcess,
+                                                                           process_info.hThread,
+                                                                           refusal);
+    if (!creation_handles_inheritable || !bound || !handles)
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "controller fixture identity or handles could not be retained";
+        }
+        return false;
+    }
+    return true;
 }
 
 std::string win32_error(DWORD error)
@@ -2066,6 +2256,39 @@ ObserverDebugOwner::~ObserverDebugOwner() noexcept
     close();
 }
 
+bool ObserverDebugOwner::set_fixture_launch(HANDLE                         process,
+                                            HANDLE                         thread,
+                                            HANDLE                         stdout_handle,
+                                            HANDLE                         stderr_handle,
+                                            HANDLE                         state_handle,
+                                            const ObserverFixtureIdentity& identity,
+                                            std::uint64_t                  state_sequence,
+                                            std::string*                   refusal) noexcept
+{
+    const auto valid = [](HANDLE value) noexcept
+    {
+        return value != nullptr && value != INVALID_HANDLE_VALUE;
+    };
+    if (!valid(process) || !valid(thread) || !valid(stdout_handle) || !valid(stderr_handle) ||
+        !valid(state_handle) || !identity.complete() || state_sequence == 0 || fixture_launch_bound_)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "observer launch requires one complete creation-bound fixture handle set";
+        }
+        return false;
+    }
+    fixture_process_handle_ = process;
+    fixture_thread_handle_  = thread;
+    fixture_stdout_handle_  = stdout_handle;
+    fixture_stderr_handle_  = stderr_handle;
+    fixture_state_handle_   = state_handle;
+    fixture_state_sequence_ = state_sequence;
+    fixture_identity_       = identity;
+    fixture_launch_bound_   = true;
+    return true;
+}
+
 bool ObserverDebugOwner::authority_allows(const ObserverLiveAuthority& authority,
                                           std::string*                 refusal) const noexcept
 {
@@ -2581,7 +2804,8 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         !absolute_path(request.observer_executable) || request.observer_command_line.empty() ||
         !request.limits.valid() ||
         !file_pin_matches(request.observer_executable,
-                          request.observer_executable_pin))
+                          request.observer_executable_pin) ||
+        !fixture_launch_bound_)
     {
         if (refusal != nullptr)
         {
@@ -2664,20 +2888,109 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         close();
         return false;
     }
-    STARTUPINFOW startup{};
-    startup.cb = sizeof(startup);
+    const auto append_decimal = [&command](const wchar_t* name, std::uint64_t value)
+    {
+        command += L" ";
+        command += name;
+        command += L" ";
+        command += std::to_wstring(static_cast<unsigned long long>(value));
+    };
+    append_decimal(L"--fixture-process-handle",
+                   reinterpret_cast<std::uintptr_t>(fixture_process_handle_));
+    append_decimal(L"--fixture-thread-handle",
+                   reinterpret_cast<std::uintptr_t>(fixture_thread_handle_));
+    append_decimal(L"--fixture-stdout-handle",
+                   reinterpret_cast<std::uintptr_t>(fixture_stdout_handle_));
+    append_decimal(L"--fixture-stderr-handle",
+                   reinterpret_cast<std::uintptr_t>(fixture_stderr_handle_));
+    append_decimal(L"--fixture-state-handle",
+                   reinterpret_cast<std::uintptr_t>(fixture_state_handle_));
+    append_decimal(L"--fixture-pid", fixture_identity_.process_id);
+    append_decimal(L"--fixture-creation-low", fixture_identity_.creation_time.dwLowDateTime);
+    append_decimal(L"--fixture-creation-high", fixture_identity_.creation_time.dwHighDateTime);
+    append_decimal(L"--fixture-state-sequence", fixture_state_sequence_);
+    append_decimal(L"--session", request.session_id);
+    append_decimal(L"--row-cap", request.row_cap);
+    append_decimal(L"--provenance-hash-cap", request.provenance_hash_cap);
+    append_decimal(L"--collection-ticks", request.limits.collection_ticks);
+    append_decimal(L"--child-completion-ticks", request.limits.child_completion_ticks);
+    append_decimal(L"--cleanup-ticks", request.limits.known_cleanup_ticks);
+
+    SIZE_T attribute_bytes = 0;
+    InitializeProcThreadAttributeList(nullptr, 1, 0, &attribute_bytes);
+    if (attribute_bytes == 0)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "observer restricted handle-list sizing failed";
+        }
+        close();
+        return false;
+    }
+    std::vector<std::uint8_t> attribute_storage;
+    try
+    {
+        attribute_storage.resize(attribute_bytes);
+    }
+    catch (...)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "observer restricted handle-list allocation failed";
+        }
+        close();
+        return false;
+    }
+    auto* attributes = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attribute_storage.data());
+    if (!InitializeProcThreadAttributeList(attributes, 1, 0, &attribute_bytes))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "observer restricted handle-list initialization failed";
+        }
+        close();
+        return false;
+    }
+    const HANDLE inherited_handles[] = {
+        fixture_process_handle_,
+        fixture_thread_handle_,
+        fixture_stdout_handle_,
+        fixture_stderr_handle_,
+        fixture_state_handle_,
+    };
+    const bool handle_list_ready = UpdateProcThreadAttribute(attributes,
+                                                             0,
+                                                             PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                                             const_cast<HANDLE*>(inherited_handles),
+                                                             sizeof(inherited_handles),
+                                                             nullptr,
+                                                             nullptr) != FALSE;
+    if (!handle_list_ready)
+    {
+        DeleteProcThreadAttributeList(attributes);
+        if (refusal != nullptr)
+        {
+            *refusal = "observer restricted handle-list publication failed";
+        }
+        close();
+        return false;
+    }
+    STARTUPINFOEXW startup{};
+    startup.StartupInfo.cb  = sizeof(startup);
+    startup.lpAttributeList = attributes;
     PROCESS_INFORMATION process_info{};
     if (!CreateProcessW(request.observer_executable.c_str(),
                         command.data(),
                         nullptr,
                         nullptr,
-                        FALSE,
-                        DEBUG_ONLY_THIS_PROCESS,
+                        TRUE,
+                        DEBUG_ONLY_THIS_PROCESS | EXTENDED_STARTUPINFO_PRESENT,
                         nullptr,
                         nullptr,
-                        &startup,
+                        &startup.StartupInfo,
                         &process_info))
     {
+        DeleteProcThreadAttributeList(attributes);
         if (refusal != nullptr)
         {
             *refusal = "CreateProcess(DEBUG_ONLY_THIS_PROCESS) failed: " +
@@ -2686,6 +2999,7 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         close();
         return false;
     }
+    DeleteProcThreadAttributeList(attributes);
     handles_.process_info_process         = process_info.hProcess;
     handles_.process_info_thread          = process_info.hThread;
     handles_.process_id                   = process_info.dwProcessId;
@@ -3335,20 +3649,24 @@ struct ObserverRemoteTransport::State
     std::uint64_t                                owner_id                      = 0;
     std::uint64_t                                session_id                    = 0;
     ObserverLiveAuthority                        authority{};
-    std::uint32_t                                control_timeout_ticks      = 0;
-    std::uint64_t                                module_pin_identity        = 0;
-    std::uint32_t                                observer_instance_id       = 0;
-    std::uint64_t                                lease_identity             = 0;
-    std::uint64_t                                lease_token                = 0;
-    std::uint64_t                                initial_hold_request_epoch = 0;
-    std::uint64_t                                cleanup_hold_request_epoch = 0;
-    std::uint64_t                                next_hold_request_epoch    = 1;
-    std::uint64_t                                module_pin_token           = 0;
-    bool                                         module_pin_retained        = false;
-    bool                                         module_pin_release_pending = false;
-    std::uintptr_t                               observer_image_base        = 0;
-    std::uintptr_t                               module_base                = 0;
-    std::uint32_t                                module_size                = 0;
+    std::uint32_t                                control_timeout_ticks        = 0;
+    std::uint64_t                                module_pin_identity          = 0;
+    std::uint32_t                                observer_instance_id         = 0;
+    std::uint64_t                                lease_identity               = 0;
+    std::uint64_t                                lease_token                  = 0;
+    std::uint64_t                                initial_hold_request_epoch   = 0;
+    std::uint64_t                                cleanup_hold_request_epoch   = 0;
+    std::uint64_t                                cleanup_start_tick           = 0;
+    std::uint32_t                                cleanup_ticks                = 0;
+    std::uint64_t                                cleanup_lifecycle_start_tick = 0;
+    std::uint32_t                                cleanup_lifecycle_ticks      = 0;
+    std::uint64_t                                next_hold_request_epoch      = 1;
+    std::uint64_t                                module_pin_token             = 0;
+    bool                                         module_pin_retained          = false;
+    bool                                         module_pin_release_pending   = false;
+    std::uintptr_t                               observer_image_base          = 0;
+    std::uintptr_t                               module_base                  = 0;
+    std::uint32_t                                module_size                  = 0;
     HookInstallRequest                           hook_layout{};
     ObserverPublicationController                publication_controller{};
     std::array<Allocation, kHookEntryCount>      allocations{};
@@ -4965,6 +5283,51 @@ bool ObserverRemoteTransport::request_cleanup_hold(std::string* refusal) noexcep
                                refusal);
 }
 
+bool ObserverRemoteTransport::begin_cleanup(std::uint64_t cleanup_start_tick,
+                                            std::uint32_t cleanup_ticks,
+                                            std::uint64_t lifecycle_start_tick,
+                                            std::uint32_t lifecycle_ticks,
+                                            std::string*  refusal) noexcept
+{
+    if (state_ == nullptr || !ready() || state_->held || state_->lease_held ||
+        state_->child_control_address == 0 || cleanup_start_tick == 0 || cleanup_ticks == 0 ||
+        cleanup_ticks == INFINITE || lifecycle_start_tick == 0 || lifecycle_ticks == 0 ||
+        lifecycle_ticks == INFINITE || cleanup_start_tick > GetTickCount64())
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "cleanup deadline publication requires one finite controller and child lifecycle";
+        }
+        return false;
+    }
+    const std::uintptr_t address = state_->child_control_address +
+                                   offsetof(ObserverLiveChildControlV1, cleanup_start_tick);
+    if (!valid_x86_range(address, sizeof(cleanup_start_tick)) ||
+        !write_block(state_->process, address, &cleanup_start_tick, sizeof(cleanup_start_tick)))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "controller cleanup deadline could not be published to the creation-bound child";
+        }
+        return false;
+    }
+    std::uint64_t published = 0;
+    if (!read_block(state_->process, address, &published, sizeof(published)) ||
+        published != cleanup_start_tick)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "controller cleanup deadline readback did not retain the exact start tick";
+        }
+        return false;
+    }
+    state_->cleanup_start_tick           = cleanup_start_tick;
+    state_->cleanup_ticks                = cleanup_ticks;
+    state_->cleanup_lifecycle_start_tick = lifecycle_start_tick;
+    state_->cleanup_lifecycle_ticks      = lifecycle_ticks;
+    return true;
+}
+
 std::uint64_t ObserverRemoteTransport::initial_hold_request_epoch() const noexcept
 {
     return state_ == nullptr ? 0 : state_->initial_hold_request_epoch;
@@ -5020,8 +5383,24 @@ bool ObserverRemoteTransport::release_child(std::string* refusal) noexcept
         }
         return false;
     }
-    const ULONGLONG started = GetTickCount64();
-    while (within_tick_bound(started, state_->control_timeout_ticks))
+    if (state_->cleanup_start_tick == 0 || state_->cleanup_ticks == 0 ||
+        state_->cleanup_lifecycle_start_tick == 0 || state_->cleanup_lifecycle_ticks == 0)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "target child release has no controller-published cleanup deadline";
+        }
+        return false;
+    }
+    const auto remaining_cleanup = [&]() noexcept -> std::uint32_t
+    {
+        const std::uint32_t cleanup_remaining = observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            state_->cleanup_start_tick, GetTickCount64(), state_->cleanup_ticks);
+        const std::uint32_t lifecycle_remaining = observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            state_->cleanup_lifecycle_start_tick, GetTickCount64(), state_->cleanup_lifecycle_ticks);
+        return std::min(cleanup_remaining, lifecycle_remaining);
+    };
+    while (remaining_cleanup() != 0)
     {
         ObserverLiveChildControlV1 control;
         if (read_child_control(&control, refusal))
@@ -7416,21 +7795,30 @@ struct ObserverChildComposition::State
     // QueryService returns observer-local interface addresses.  Keep this
     // transport bound to the child observer for all query reads and mapping
     // evidence; the fixture handle below is retained independently.
-    ObserverRemoteTransport    provenance;
-    DWORD                      target_process_id              = 0;
-    HANDLE                     fixture_process_handle         = nullptr;
-    DWORD                      fixture_process_id             = 0;
-    DWORD                      fixture_exit_code              = 0;
-    bool                       fixture_exit_code_known        = false;
-    std::uint64_t              event_tail_sequence            = 0;
-    bool                       engine_options_readback        = false;
-    bool                       fixture_exit_confirmed         = false;
-    bool                       fixture_image_binding_verified = false;
-    bool                       prepared                       = false;
-    bool                       fixture_started                = false;
-    bool                       released                       = false;
-    RtlGetLastNtStatusFunction get_last_nt_status             = nullptr;
-    RtlSetLastNtStatusFunction set_last_nt_status             = nullptr;
+    ObserverRemoteTransport                  provenance;
+    DWORD                                    target_process_id              = 0;
+    HANDLE                                   fixture_process_handle         = nullptr;
+    HANDLE                                   fixture_thread_handle          = nullptr;
+    DWORD                                    fixture_process_id             = 0;
+    DWORD                                    fixture_exit_code              = 0;
+    bool                                     fixture_exit_code_known        = false;
+    std::uint64_t                            event_tail_sequence            = 0;
+    bool                                     engine_options_readback        = false;
+    ULONG                                    engine_options_requested       = 0;
+    HRESULT                                  engine_options_add_result      = E_FAIL;
+    HRESULT                                  engine_options_get_result      = E_FAIL;
+    ULONG                                    engine_options_returned        = 0;
+    bool                                     fixture_attach_recorded        = false;
+    bool                                     fixture_attach_completed       = false;
+    bool                                     fixture_resumed                = false;
+    bool                                     fixture_exit_confirmed         = false;
+    bool                                     fixture_image_binding_verified = false;
+    bool                                     prepared                       = false;
+    bool                                     fixture_started                = false;
+    bool                                     released                       = false;
+    std::unique_ptr<ObserverFixtureEvidence> fixture_evidence;
+    RtlGetLastNtStatusFunction               get_last_nt_status = nullptr;
+    RtlSetLastNtStatusFunction               set_last_nt_status = nullptr;
 };
 
 namespace
@@ -7542,6 +7930,11 @@ ObserverChildComposition::ObserverChildComposition() noexcept
 
 ObserverChildComposition::~ObserverChildComposition() noexcept
 {
+    if (state_ != nullptr && state_->fixture_thread_handle != nullptr)
+    {
+        CloseHandle(state_->fixture_thread_handle);
+        state_->fixture_thread_handle = nullptr;
+    }
     if (state_ != nullptr && state_->fixture_process_handle != nullptr)
     {
         CloseHandle(state_->fixture_process_handle);
@@ -7557,8 +7950,12 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         request.collection_owner == nullptr || request.collection_owner.get() != request.collection ||
         !request.collection->configured() || !child_authority(authority, refusal) ||
         !absolute_path(request.dbgeng_image) || !absolute_path(request.fixture_executable) ||
-        request.fixture_command_line.empty() || request.session_id == 0 || request.row_cap == 0 ||
-        request.provenance_hash_cap < kObserverImageSize)
+        !exact_fixture_command(request.fixture_executable, request.fixture_command_line) ||
+        request.session_id == 0 || request.row_cap == 0 || request.provenance_hash_cap < kObserverImageSize ||
+        request.fixture_process_handle == 0 || request.fixture_thread_handle == 0 ||
+        request.fixture_stdout_handle == 0 || request.fixture_stderr_handle == 0 ||
+        request.fixture_state_handle == 0 || request.fixture_state_sequence == 0 ||
+        !request.fixture_identity.complete())
     {
         if (refusal != nullptr && refusal->empty())
         {
@@ -7577,11 +7974,44 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    state_->request          = request;
-    state_->collection_owner = request.collection_owner;
-    state_->engine           = LoadLibraryExW(request.dbgeng_image.c_str(),
-                                              nullptr,
-                                              LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    if (request.fixture_identity.process_id == 0 || request.fixture_identity.executable.empty() ||
+        !same_windows_path(request.fixture_identity.executable.wstring(), request.fixture_executable.wstring()) ||
+        request.fixture_identity.file_size != fixture_size || request.fixture_identity.file_sha256 != fixture_digest)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "creation-bound fixture identity did not match the pinned executable";
+        }
+        return false;
+    }
+    state_->request                = request;
+    state_->collection_owner       = request.collection_owner;
+    state_->fixture_process_handle = reinterpret_cast<HANDLE>(request.fixture_process_handle);
+    state_->fixture_thread_handle  = reinterpret_cast<HANDLE>(request.fixture_thread_handle);
+    state_->fixture_process_id     = request.fixture_identity.process_id;
+    state_->target_process_id      = state_->fixture_process_id;
+    state_->fixture_evidence       = std::make_unique<ObserverFixtureEvidence>();
+    if (state_->fixture_evidence == nullptr ||
+        !state_->fixture_evidence->attach_observer_storage(
+            state_->fixture_process_handle,
+            state_->fixture_thread_handle,
+            reinterpret_cast<HANDLE>(request.fixture_stdout_handle),
+            reinterpret_cast<HANDLE>(request.fixture_stderr_handle),
+            reinterpret_cast<HANDLE>(request.fixture_state_handle),
+            request.fixture_identity,
+            request.session_id,
+            request.fixture_state_sequence,
+            refusal))
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "creation-bound fixture evidence storage could not be attached";
+        }
+        return false;
+    }
+    state_->engine = LoadLibraryExW(request.dbgeng_image.c_str(),
+                                    nullptr,
+                                    LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (state_->engine == nullptr)
     {
         if (refusal != nullptr)
@@ -7703,6 +8133,7 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
     composition_config.context_api       = raw_recorder::ContextApi::Windows();
     composition_config.wait              = wait;
     composition_config.continue_call     = continue_call;
+    composition_config.fixture_evidence  = state_->fixture_evidence.get();
     state_->composition                  = std::make_unique<TraceMapObserverCallbacks>(composition_config);
     if (state_->composition == nullptr || !state_->composition->ready())
     {
@@ -7749,25 +8180,26 @@ bool ObserverChildComposition::start_fixture(const ObserverLiveAuthority& author
         }
         return false;
     }
-    if (FAILED(state_->client->AddProcessOptions(DEBUG_PROCESS_DETACH_ON_EXIT)))
+    state_->engine_options_requested  = DEBUG_PROCESS_DETACH_ON_EXIT;
+    state_->engine_options_add_result = state_->client->AddProcessOptions(
+        state_->engine_options_requested);
+    state_->engine_options_returned   = 0;
+    state_->engine_options_get_result = state_->client->GetProcessOptions(
+        &state_->engine_options_returned);
+    state_->engine_options_readback =
+        state_->fixture_evidence != nullptr &&
+        state_->fixture_evidence->record_process_options(state_->engine_options_requested,
+                                                         state_->engine_options_add_result,
+                                                         state_->engine_options_get_result,
+                                                         state_->engine_options_returned);
+    if (!state_->engine_options_readback)
     {
         if (refusal != nullptr)
         {
-            *refusal = "DbgEng detach-on-exit option failed";
+            *refusal = "DbgEng process option HRESULT/mask readback did not retain detach-on-exit";
         }
         return false;
     }
-    ULONG process_options = 0;
-    if (FAILED(state_->client->GetProcessOptions(&process_options)) ||
-        (process_options & DEBUG_PROCESS_DETACH_ON_EXIT) == 0)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "DbgEng process option readback did not retain detach-on-exit";
-        }
-        return false;
-    }
-    state_->engine_options_readback = true;
     if (FAILED(state_->client->SetEventCallbacks(state_->composition->callbacks())))
     {
         if (refusal != nullptr)
@@ -7776,31 +8208,38 @@ bool ObserverChildComposition::start_fixture(const ObserverLiveAuthority& author
         }
         return false;
     }
-    std::wstring command = widen_ascii(state_->request.fixture_command_line);
-    if (command.empty())
+    if (state_->fixture_process_handle == nullptr || state_->fixture_thread_handle == nullptr ||
+        GetProcessId(state_->fixture_process_handle) != state_->fixture_process_id ||
+        GetProcessIdOfThread(state_->fixture_thread_handle) != state_->fixture_process_id)
     {
         if (refusal != nullptr)
         {
-            *refusal = "fixture command line must contain ASCII text";
+            *refusal = "creation-bound fixture handles were not retained before DbgEng attach";
         }
         return false;
     }
-    std::string narrow = narrow_ascii(command);
-    if (narrow.empty())
+    const ULONG   attach_flags  = DEBUG_ATTACH_DEFAULT;
+    const HRESULT attach_result = state_->client->AttachProcess(
+        0, state_->fixture_process_id, attach_flags);
+    state_->fixture_attach_recorded = state_->fixture_evidence != nullptr &&
+                                      state_->fixture_evidence->record_attachment(
+                                          attach_result, attach_flags, false);
+    if (!state_->fixture_attach_recorded)
     {
         if (refusal != nullptr)
         {
-            *refusal = "fixture command line must contain ASCII text";
+            *refusal = "DbgEng AttachProcess failed for the creation-bound fixture";
         }
         return false;
     }
-    if (FAILED(state_->client->CreateProcess(0,
-                                             narrow.data(),
-                                             DEBUG_PROCESS)))
+    const DWORD resume_result = ResumeThread(state_->fixture_thread_handle);
+    state_->fixture_resumed   = state_->fixture_evidence != nullptr &&
+                                state_->fixture_evidence->record_resume(resume_result);
+    if (!state_->fixture_resumed)
     {
         if (refusal != nullptr)
         {
-            *refusal = "DbgEng fixture CreateProcess failed";
+            *refusal = "creation-bound fixture primary thread could not be resumed after attach";
         }
         return false;
     }
@@ -7815,6 +8254,16 @@ bool ObserverChildComposition::start_fixture(const ObserverLiveAuthority& author
         const HRESULT wait_result = state_->control->WaitForEvent(DEBUG_WAIT_DEFAULT, 1);
         if (wait_result == S_OK)
         {
+            state_->fixture_attach_completed = state_->fixture_evidence != nullptr &&
+                                               state_->fixture_evidence->record_attachment_completion(true);
+            if (!state_->fixture_attach_completed)
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "DbgEng AttachProcess did not retain the first available event evidence";
+                }
+                return false;
+            }
             creation_event = true;
             break;
         }
@@ -7829,87 +8278,22 @@ bool ObserverChildComposition::start_fixture(const ObserverLiveAuthority& author
     }
     if (!creation_event)
     {
+        if (state_->fixture_evidence != nullptr)
+        {
+            (void)state_->fixture_evidence->record_attachment_completion(false);
+        }
         if (refusal != nullptr)
         {
             *refusal = "DbgEng initial creation event was not admitted within the finite bound";
         }
         return false;
     }
-    ULONG64 target_handle_value = 0;
-    if (state_->systems == nullptr ||
-        FAILED(state_->systems->GetCurrentProcessHandle(&target_handle_value)) ||
-        target_handle_value == 0)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "DbgEng target process handle could not be retained for child reads";
-        }
-        return false;
-    }
-    HANDLE target_handle = reinterpret_cast<HANDLE>(static_cast<ULONG_PTR>(target_handle_value));
-    // This is creation-retained fixture evidence only.  Never rebind
-    // provenance here: QueryService outputs are addresses in the observer
-    // process, whose local transport was established during prepare().
-    if (!DuplicateHandle(GetCurrentProcess(),
-                         target_handle,
-                         GetCurrentProcess(),
-                         &state_->fixture_process_handle,
-                         0,
-                         FALSE,
-                         DUPLICATE_SAME_ACCESS) ||
-        state_->fixture_process_handle == nullptr)
-    {
-        if (state_->fixture_process_handle != nullptr)
-        {
-            CloseHandle(state_->fixture_process_handle);
-            state_->fixture_process_handle = nullptr;
-        }
-        if (refusal != nullptr)
-        {
-            *refusal = "DbgEng target process handle could not be retained for child reads";
-        }
-        return false;
-    }
-    state_->fixture_process_id = GetProcessId(state_->fixture_process_handle);
-    state_->target_process_id  = state_->fixture_process_id;
-    if (state_->target_process_id == 0)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "retained DbgEng target process handle has no process identity";
-        }
-        return false;
-    }
-    std::array<wchar_t, 32768> fixture_image_path{};
-    const DWORD                fixture_image_path_length = K32GetModuleFileNameExW(
-        state_->fixture_process_handle,
-        nullptr,
-        fixture_image_path.data(),
-        static_cast<DWORD>(fixture_image_path.size()));
-    std::array<std::uint8_t, kSha256Bytes> fixture_image_digest{};
-    std::uint64_t                          fixture_image_size = 0;
-    const std::wstring                     actual_fixture_path =
-        fixture_image_path_length == 0 || fixture_image_path_length >= fixture_image_path.size()
-            ? std::wstring{}
-            : std::wstring(fixture_image_path.data(), fixture_image_path_length);
-    state_->fixture_image_binding_verified =
-        !actual_fixture_path.empty() &&
-        same_windows_path(actual_fixture_path, state_->request.fixture_executable.wstring()) &&
-        hash_file(actual_fixture_path, &fixture_image_digest, &fixture_image_size) &&
-        fixture_image_size == kFixtureFileSize && fixture_image_digest == kFixtureSha256;
-    if (!state_->fixture_image_binding_verified)
-    {
-        if (refusal != nullptr)
-        {
-            *refusal = "creation-retained fixture image did not match the requested path and byte pin";
-        }
-        return false;
-    }
+    state_->fixture_image_binding_verified = true;
     if (FAILED(state_->control->SetExecutionStatus(DEBUG_STATUS_GO)))
     {
         if (refusal != nullptr)
         {
-            *refusal = "DbgEng initial creation event continuation refused";
+            *refusal = "DbgEng attach event continuation refused";
         }
         return false;
     }
@@ -7941,6 +8325,36 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
         }
         return false;
     }
+    const auto stop_collection = [&](observer_diagnostic::ObserverCollectionStopReason reason) noexcept
+    {
+        bool stopped = true;
+        if (state_->request.collection != nullptr && state_->request.collection->collecting())
+        {
+            stopped = state_->request.collection->stop(reason);
+        }
+        if (state_->request.collection != nullptr && state_->fixture_evidence != nullptr)
+        {
+            if (state_->composition != nullptr && state_->composition->raw_bridge() != nullptr)
+            {
+                RawEventBridge* bridge = state_->composition->raw_bridge();
+                for (std::size_t index = 0; index < bridge->gap_count(); ++index)
+                {
+                    const auto& gap = bridge->gap(index);
+                    stopped         = state_->fixture_evidence->record_gap(
+                                          gap.attempt_id,
+                                          static_cast<std::uint32_t>(gap.reason)) &&
+                                      stopped;
+                }
+            }
+            const auto snapshot = state_->request.collection->snapshot();
+            const bool retained = state_->fixture_evidence->record_collection_stop(
+                snapshot.stop_tick,
+                static_cast<std::uint32_t>(snapshot.stop_reason),
+                state_->request.collection->complete());
+            stopped = stopped && retained;
+        }
+        return stopped;
+    };
     const ULONGLONG started = GetTickCount64();
     bool            exited  = false;
     while (within_tick_bound(started, timeout_ticks))
@@ -7948,6 +8362,10 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
         if (state_->request.collection != nullptr)
         {
             (void)state_->request.collection->poll();
+            if (!state_->request.collection->collecting())
+            {
+                break;
+            }
         }
         if (WaitForSingleObject(state_->fixture_process_handle, 0) == WAIT_OBJECT_0)
         {
@@ -7963,6 +8381,7 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
                 {
                     *refusal = "DbgEng WaitForEvent failed";
                 }
+                (void)stop_collection(observer_diagnostic::ObserverCollectionStopReason::OperationFailure);
                 return false;
             }
             continue;
@@ -7979,6 +8398,7 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
             {
                 *refusal = "DbgEng event tail identity readback failed";
             }
+            (void)stop_collection(observer_diagnostic::ObserverCollectionStopReason::OperationFailure);
             return false;
         }
         if (execution_status != DEBUG_STATUS_NO_DEBUGGEE &&
@@ -7989,46 +8409,36 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
             {
                 *refusal = "DbgEng event tail continuation refused";
             }
+            (void)stop_collection(observer_diagnostic::ObserverCollectionStopReason::OperationFailure);
             return false;
         }
     }
-    if (!exited)
+    if (!stop_collection(exited ? observer_diagnostic::ObserverCollectionStopReason::Explicit
+                                : observer_diagnostic::ObserverCollectionStopReason::Deadline))
     {
         if (refusal != nullptr)
         {
-            *refusal = "creation-retained fixture process did not provide exit evidence";
+            *refusal = "external fixture evidence could not retain the collection stop boundary";
         }
         return false;
     }
-    const bool exit_code_read =
-        GetExitCodeProcess(state_->fixture_process_handle, &state_->fixture_exit_code) != FALSE;
-    const observer_diagnostic::ObserverFixtureExitState exit_state =
-        observer_diagnostic::observer_fixture_exit_state(exited, exit_code_read, state_->fixture_exit_code);
-    state_->fixture_exit_confirmed  = exit_state.signaled;
-    state_->fixture_exit_code_known = exit_state.code_known;
-    state_->fixture_exit_code       = exit_state.code;
-    if (!exit_state.code_known)
+    state_->event_tail_sequence = state_->fixture_evidence == nullptr
+                                      ? 0
+                                      : state_->fixture_evidence->last_event_sequence();
+    if (exited)
     {
-        state_->fixture_exit_code = 0;
-    }
-    if (state_->request.collection != nullptr && state_->request.collection->collecting())
-    {
-        (void)state_->request.collection->stop(observer_diagnostic::ObserverCollectionStopReason::Explicit);
-    }
-    const Recorder* recorder = state_->composition == nullptr ? nullptr : state_->composition->recorder();
-    if (recorder != nullptr)
-    {
-        for (const QueryRow& row : recorder->query_rows())
+        const bool exit_code_read =
+            GetExitCodeProcess(state_->fixture_process_handle, &state_->fixture_exit_code) != FALSE;
+        state_->fixture_exit_confirmed  = exit_code_read ||
+                                          WaitForSingleObject(state_->fixture_process_handle, 0) == WAIT_OBJECT_0;
+        state_->fixture_exit_code_known = exit_code_read;
+        if (state_->fixture_evidence != nullptr)
         {
-            state_->event_tail_sequence = std::max(state_->event_tail_sequence,
-                                                   row.header.exit_sequence);
+            (void)state_->fixture_evidence->record_exit(
+                ObserverFixtureWaitDisposition::signaled,
+                exit_code_read,
+                exit_code_read ? state_->fixture_exit_code : 0);
         }
-    }
-    if (state_->event_tail_sequence == 0)
-    {
-        // Natural fixture exit is retained independently. A missing recorder
-        // tail makes collection incomplete, but it must not erase the exit
-        // observation needed by the separate cleanup phase.
     }
     return true;
 }
@@ -8082,11 +8492,31 @@ bool ObserverChildComposition::release(const ObserverLiveAuthority& authority,
     state_->bridge_scope.reset();
     if (state_->fixture_started)
     {
-        if (FAILED(state_->client->EndSession(DEBUG_END_PASSIVE)))
+        DWORD      fixture_state = 0;
+        const bool fixture_live  = state_->fixture_process_handle != nullptr &&
+                                   WaitForSingleObject(state_->fixture_process_handle, 0) == WAIT_TIMEOUT &&
+                                   GetExitCodeProcess(state_->fixture_process_handle, &fixture_state) != FALSE &&
+                                   fixture_state == STILL_ACTIVE;
+        if (state_->fixture_evidence == nullptr ||
+            !state_->fixture_evidence->record_live_at_release(fixture_live))
         {
             if (refusal != nullptr)
             {
-                *refusal = "DbgEng passive session end refused";
+                *refusal = "creation-bound fixture was not externally observed live at active release";
+            }
+            return false;
+        }
+        const HRESULT release_result   = state_->client->EndSession(DEBUG_END_ACTIVE_DETACH);
+        const bool    release_recorded = state_->fixture_evidence != nullptr &&
+                                         state_->fixture_evidence->record_session_release(
+                                             release_result,
+                                             DEBUG_END_ACTIVE_DETACH,
+                                             false);
+        if (FAILED(release_result) || !release_recorded)
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "DbgEng active detach or external release evidence was refused";
             }
             return false;
         }
@@ -8164,6 +8594,17 @@ bool ObserverChildComposition::engine_options_readback() const noexcept
     return state_ != nullptr && state_->engine_options_readback;
 }
 
+bool ObserverChildComposition::fixture_evidence_valid() const noexcept
+{
+    return state_ != nullptr && state_->fixture_evidence != nullptr &&
+           state_->fixture_evidence->valid_for_success();
+}
+
+ObserverFixtureEvidence* ObserverChildComposition::fixture_evidence() const noexcept
+{
+    return state_ == nullptr ? nullptr : state_->fixture_evidence.get();
+}
+
 void ObserverChildComposition::set_provenance_hook_layout(const HookInstallRequest& request) noexcept
 {
     if (state_ != nullptr)
@@ -8191,7 +8632,9 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         !request.limits.valid() || request.provenance_hash_cap < kObserverImageSize ||
         !absolute_path(request.observer_executable) || !absolute_path(request.dbgeng_image) ||
         !absolute_path(request.fixture_executable) || request.observer_command_line.empty() ||
-        request.fixture_command_line.empty() || !absolute_path(request.output))
+        request.fixture_command_line.empty() ||
+        !exact_fixture_command(request.fixture_executable, request.fixture_command_line) ||
+        !absolute_path(request.output))
     {
         ObserverLiveResult result;
         result.disposition = ObserverLiveDisposition::RefusedInput;
@@ -8277,6 +8720,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     std::uint64_t                             next_operation_id   = 0;
     std::uint64_t                             active_operation_id = 0;
     std::string                               active_operation;
+    std::shared_ptr<ObserverFixtureEvidence>  fixture_retention;
 
     const auto ledger_resources = [&]()
     {
@@ -8385,6 +8829,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
                        &ledger_path,
                        &owner_holder,
                        &abort_exit_pending,
+                       &fixture_retention,
                        owner_ptr](const char*        stage,
                                   const std::string& reason)
     {
@@ -8420,6 +8865,21 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             !owner_ptr->handles().shutdown_waited)
         {
             result.owner_intervention_required = true;
+            result.resources_uncertain         = true;
+        }
+        if (fixture_retention != nullptr &&
+            (fixture_retention->controller_fixture_process() != nullptr ||
+             fixture_retention->unknown()))
+        {
+            if (result.observer_exit_confirmed &&
+                !fixture_retention->fixture_exit_code_known())
+            {
+                (void)fixture_retention->record_observer_loss(
+                    "observer exit confirmed while fixture outcome remained unknown");
+            }
+            result.fixture_retention           = fixture_retention;
+            result.owner_intervention_required = result.owner_intervention_required ||
+                                                 !fixture_retention->valid_for_success();
             result.resources_uncertain         = true;
         }
         bool owner_close_confirmed = true;
@@ -8775,6 +9235,48 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         // that independent supervisor.
         abort_exit_pending = requested || owner.abort_requested() || owner.handles().kill_on_exit;
     };
+
+    try
+    {
+        fixture_retention = std::make_shared<ObserverFixtureEvidence>();
+    }
+    catch (...)
+    {
+        return fail("fixture_evidence", "controller fixture evidence allocation failed");
+    }
+    if (request.retention_publication != nullptr)
+    {
+        request.retention_publication->fixture.store(fixture_retention,
+                                                     std::memory_order_release);
+    }
+    if (!record_intent("create_fixture"))
+    {
+        return fail("failure_ledger", "fixture creation intent could not be persisted");
+    }
+    const bool fixture_created = create_controller_fixture(request,
+                                                           fixture_retention.get(),
+                                                           &refusal);
+    if (fixture_retention->controller_fixture_process() != nullptr)
+    {
+        result.native_effects_started = true;
+    }
+    const bool fixture_result_recorded = record_result(fixture_created,
+                                                       fixture_created ? "created" : "create_failed");
+    if (!fixture_created || !fixture_result_recorded)
+    {
+        return fail("fixture_create", refusal.empty() ? "controller fixture creation did not retain its creation-bound evidence" : refusal);
+    }
+    if (!owner.set_fixture_launch(fixture_retention->controller_fixture_process(),
+                                  fixture_retention->controller_fixture_thread(),
+                                  fixture_retention->controller_storage().stdout_handle,
+                                  fixture_retention->controller_storage().stderr_handle,
+                                  fixture_retention->controller_storage().state_handle,
+                                  fixture_retention->identity(),
+                                  fixture_retention->record_sequence(),
+                                  &refusal))
+    {
+        return fail("fixture_create", refusal);
+    }
 
     if (!record_intent("create_observer"))
     {
@@ -9479,16 +9981,20 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         }
         if (child_state == ObserverLiveChildState::Complete)
         {
-            if (child_control.trace_size_bytes == 0 || child_control.fixture_exit_confirmed == 0 ||
+            if (child_control.trace_size_bytes == 0 ||
                 child_control.engine_options_readback == 0 || child_control.raw_trace_persisted == 0)
             {
                 abort_created();
-                return fail("child_output", "target child completion carried no persisted exit witness");
+                return fail("child_output", "target child completion carried no persisted trace and option witness");
             }
-            completed_child_control              = child_control;
-            result.fixture_exit_confirmed        = child_control.fixture_exit_confirmed != 0;
-            result.fixture_exit_code_known       = child_control.fixture_exit_code_known != 0;
-            result.fixture_exit_code             = child_control.fixture_exit_code;
+            completed_child_control = child_control;
+            // Fixture exit is read from the controller-retained creation handle
+            // only after active detach and the causal post-release output
+            // marker. Child-published exit fields are retained as diagnostics,
+            // never as the independent natural-exit proof.
+            result.fixture_exit_confirmed        = false;
+            result.fixture_exit_code_known       = false;
+            result.fixture_exit_code             = 0;
             result.collection_complete           = child_control.collection_complete != 0;
             result.collection_incomplete         = child_control.raw_trace_incomplete != 0 ||
                                                    child_control.failure_outcome !=
@@ -9513,6 +10019,22 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("child_output", "target child did not publish completion within the explicit bound");
     }
+    // The known-cleanup clock starts before any external output read or hold
+    // request.  The same absolute deadline is transported to child release
+    // and intersected with the immutable child-completion deadline.
+    const ULONGLONG cleanup_started = GetTickCount64();
+    result.cleanup_start_tick       = cleanup_started;
+    result.cleanup_deadline_tick =
+        cleanup_started > std::numeric_limits<std::uint64_t>::max() -
+                              request.limits.known_cleanup_ticks
+            ? std::numeric_limits<std::uint64_t>::max()
+            : cleanup_started + request.limits.known_cleanup_ticks;
+    const auto cleanup_remaining = [&]() -> std::uint32_t
+    {
+        const std::uint32_t known_remaining = observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            cleanup_started, GetTickCount64(), request.limits.known_cleanup_ticks);
+        return std::min(known_remaining, child_completion_remaining());
+    };
     std::error_code output_error;
     const bool      output_ready = std::filesystem::is_regular_file(request.output, output_error) &&
                                    std::filesystem::file_size(request.output, output_error) != 0;
@@ -9521,10 +10043,84 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("child_output", "target child did not create the fresh trace artifact");
     }
+    std::uint64_t fixture_stdout_offset  = 0;
+    std::uint64_t fixture_stderr_offset  = 0;
+    const auto    capture_fixture_output = [&](bool post_release, std::uint64_t tick)
+    {
+        if (fixture_retention == nullptr)
+        {
+            return false;
+        }
+        const auto capture = [&](ObserverFixtureChannel channel,
+                                 std::uint64_t*         offset,
+                                 const char*            source)
+        {
+            const std::uint64_t before = *offset;
+            std::uint64_t       bytes  = 0;
+            std::string         raw;
+            std::string         snapshot_refusal;
+            if (!fixture_retention->read_output_snapshot(channel,
+                                                         offset,
+                                                         &bytes,
+                                                         &raw,
+                                                         &snapshot_refusal) ||
+                !fixture_retention->record_output_snapshot(channel,
+                                                           source,
+                                                           tick,
+                                                           before,
+                                                           bytes,
+                                                           true,
+                                                           post_release,
+                                                           raw))
+            {
+                if (refusal.empty())
+                {
+                    refusal = snapshot_refusal.empty()
+                                  ? "controller fixture output snapshot could not be retained"
+                                  : snapshot_refusal;
+                }
+                return false;
+            }
+            return true;
+        };
+        return capture(ObserverFixtureChannel::stdout_bytes,
+                       &fixture_stdout_offset,
+                       "stdout") &&
+               capture(ObserverFixtureChannel::stderr_bytes,
+                       &fixture_stderr_offset,
+                       "stderr");
+    };
+    if (!capture_fixture_output(false, GetTickCount64()))
+    {
+        abort_created();
+        return fail("fixture_output", refusal.empty() ? "pre-release fixture output snapshot failed" : refusal);
+    }
     if (child_completion_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired before restoration began");
+    }
+    if (!record_intent("publish_cleanup_deadline"))
+    {
+        abort_created();
+        return fail("failure_ledger", "cleanup deadline publication intent could not be persisted");
+    }
+    const bool cleanup_deadline_published =
+        remote.begin_cleanup(cleanup_started,
+                             request.limits.known_cleanup_ticks,
+                             child_started_tick,
+                             request.limits.child_completion_ticks,
+                             &refusal);
+    if (!record_result(cleanup_deadline_published,
+                       cleanup_deadline_published ? "published" : "failed"))
+    {
+        abort_created();
+        return fail("failure_ledger", "cleanup deadline publication result could not be persisted");
+    }
+    if (!cleanup_deadline_published)
+    {
+        abort_created();
+        return fail("cleanup_deadline", refusal);
     }
     if (!record_intent("request_cleanup_hold"))
     {
@@ -9547,7 +10143,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     }
     ObserverHeldDebugEvent restore_event;
     const std::uint32_t    cleanup_hold_ticks = std::min(request.limits.hold_ticks,
-                                                         child_completion_remaining());
+                                                         cleanup_remaining());
     if (cleanup_hold_ticks == 0)
     {
         return fail_child_completion_overrun(
@@ -9564,7 +10160,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("restore_hold", refusal.empty() ? "no cleanup CREATE_THREAD_DEBUG_EVENT reached" : refusal);
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during cleanup hold acquisition");
@@ -9595,7 +10191,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("restore_hold", refusal);
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during cleanup hold admission");
@@ -9620,7 +10216,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("restore_hold", refusal);
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during cleanup hold attestation");
@@ -9647,7 +10243,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("hook_restore", "external hook restoration retained unknown state");
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during hook restoration");
@@ -9677,7 +10273,18 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("raw_restore", "external raw-slot restoration refused");
     }
-    if (child_completion_remaining() == 0)
+    if (fixture_retention == nullptr || completed_child_control.event_tail_sequence == 0 ||
+        !fixture_retention->record_raw_restore_boundary(completed_child_control.event_tail_sequence))
+    {
+        abort_created();
+        return fail("raw_restore", "controller raw-slot restore boundary was not retained under hold");
+    }
+    // Hook and raw code restoration are proven while the cleanup hold is still
+    // owned.  Latch that fact before any deadline check, hold continuation or
+    // outside publication-owner release so later failures preserve the
+    // restoration result independently.
+    result.restoration_confirmed = true;
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during raw-slot restoration");
@@ -9687,7 +10294,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("restore_continue", "cleanup hold continuation failed");
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during cleanup continuation");
@@ -9714,7 +10321,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("publication_release", "target-local publication owner release failed");
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during publication release");
@@ -9728,6 +10335,13 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     if (child_released)
     {
         child_started = false;
+        ObserverLiveChildControlV1 cleanup_control{};
+        if (!remote.read_child_control(&cleanup_control, &refusal) ||
+            cleanup_control.cleanup_start_tick != cleanup_started)
+        {
+            abort_created();
+            return fail("child_release", "target child did not retain the controller cleanup deadline");
+        }
     }
     if (!record_result(child_released, child_released ? "released" : "failed"))
     {
@@ -9739,7 +10353,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("child_release", refusal);
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during child release");
@@ -9764,13 +10378,73 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("module_release", "target-local module release witness was not cleared");
     }
-    if (child_completion_remaining() == 0)
+    if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during module release");
     }
-    result.restoration_confirmed = true;
-    const ULONGLONG exit_started = GetTickCount64();
+    bool fixture_signaled = false;
+    while (cleanup_remaining() != 0)
+    {
+        const DWORD wait_result = WaitForSingleObject(
+            fixture_retention == nullptr ? nullptr : fixture_retention->controller_fixture_process(),
+            1);
+        if (!capture_fixture_output(true, GetTickCount64()))
+        {
+            abort_created();
+            return fail("fixture_output", refusal.empty() ? "post-release fixture output snapshot failed" : refusal);
+        }
+        if (wait_result == WAIT_OBJECT_0)
+        {
+            fixture_signaled = true;
+            break;
+        }
+        if (wait_result == WAIT_FAILED)
+        {
+            if (fixture_retention != nullptr)
+            {
+                (void)fixture_retention->record_exit(ObserverFixtureWaitDisposition::failed,
+                                                     false,
+                                                     0);
+            }
+            abort_created();
+            return fail("fixture_exit", "controller fixture process wait failed after active detach");
+        }
+    }
+    if (!fixture_signaled)
+    {
+        if (fixture_retention != nullptr)
+        {
+            (void)fixture_retention->record_exit(ObserverFixtureWaitDisposition::timeout,
+                                                 false,
+                                                 0);
+        }
+        abort_created();
+        return fail("fixture_exit", "controller fixture natural exit was not observed within the finite cleanup bound");
+    }
+    DWORD      fixture_exit_code  = 0;
+    const bool fixture_code_known = fixture_retention != nullptr &&
+                                    GetExitCodeProcess(fixture_retention->controller_fixture_process(),
+                                                       &fixture_exit_code) != FALSE;
+    if (fixture_retention == nullptr || !capture_fixture_output(true, GetTickCount64()) ||
+        !fixture_retention->record_exit(ObserverFixtureWaitDisposition::signaled,
+                                        fixture_code_known,
+                                        fixture_code_known ? fixture_exit_code : 0))
+    {
+        abort_created();
+        return fail("fixture_exit", "controller fixture exit code or final output was not retained");
+    }
+    result.fixture_exit_confirmed  = fixture_retention->fixture_exit_signaled();
+    result.fixture_exit_code_known = fixture_retention->fixture_exit_code_known();
+    result.fixture_exit_code       = fixture_retention->fixture_exit_code();
+    if (!result.fixture_exit_code_known || result.fixture_exit_code != ERROR_SUCCESS ||
+        !fixture_retention->post_release_marker_seen())
+    {
+        abort_created();
+        return fail("fixture_exit", "controller fixture natural exit or post-release marker was not valid");
+    }
+    result.cleanup_completion_tick = GetTickCount64();
+    const ULONGLONG exit_started   = GetTickCount64();
     while (within_tick_bound(exit_started, request.limits.acknowledgement_ticks))
     {
         if (!record_intent("wait_exit_event"))
@@ -9914,6 +10588,10 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         result.fixture_exit_code != ERROR_SUCCESS)
     {
         return fail("fixture_exit", "fixture natural exit was not confirmed with a zero exit code");
+    }
+    if (fixture_retention == nullptr || !fixture_retention->valid_for_success())
+    {
+        return fail("fixture_evidence", "externally retained fixture lifecycle evidence was incomplete");
     }
     if (!owner.close())
     {

@@ -7,6 +7,7 @@
 
 #include "observer_collection.h"
 #include "observer_diagnostic.h"
+#include "observer_fixture_evidence.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
 #include "raw_event_recorder.h"
@@ -157,7 +158,7 @@ struct alignas(8) ObserverLiveChildControlV1
     std::uint32_t fixture_exit_code_known       = 0;
     std::uint32_t collection_complete           = 0;
     std::uint32_t collection_stop_reason        = 0;
-    std::uint32_t collection_reserved0          = 0;
+    std::uint64_t cleanup_start_tick            = 0;
     std::uint64_t collection_start_tick         = 0;
     std::uint64_t collection_deadline_tick      = 0;
     std::uint64_t collection_stop_tick          = 0;
@@ -283,26 +284,45 @@ struct ObserverLiveAuthority
     bool allows_native(std::string* reason = nullptr) const noexcept;
 };
 
+// The controller publishes the creation-bound fixture evidence before the
+// native worker can block in observer setup.  The shared_ptr is accessed only
+// through its atomic specialization; the completion latch lets quarantine
+// defer reading the worker's final result until the worker handle is signaled.
+struct ObserverLiveRetentionPublication
+{
+    std::atomic<std::shared_ptr<ObserverFixtureEvidence>> fixture;
+    std::atomic<bool>                                     worker_completed{ false };
+    // These handles are published immediately after CreateProcessW returns,
+    // before evidence append/flush can block.  Quarantine uses them directly;
+    // mutable evidence remains unknown until the worker completes.
+    std::atomic<std::uintptr_t> fixture_process_handle{ 0 };
+    std::atomic<std::uintptr_t> fixture_thread_handle{ 0 };
+    std::atomic<bool>           fixture_signaled{ false };
+    std::atomic<bool>           fixture_exit_code_known{ false };
+    std::atomic<DWORD>          fixture_exit_code{ 0 };
+};
+
 struct ObserverLiveRequest
 {
     std::string profile;
     // External qualification supplies the exact source revision that owns the
     // executable pin; this runtime never infers it from a resident process.
-    std::string           source_revision;
-    std::filesystem::path observer_executable;
-    std::filesystem::path dbgeng_image;
-    std::filesystem::path fixture_executable;
-    ObserverLiveFilePin   observer_executable_pin{};
-    ObserverLiveFilePin   dbgeng_file_pin{};
-    ObserverLiveFilePin   fixture_file_pin{};
-    std::filesystem::path output;
-    std::string           observer_command_line;
-    std::string           fixture_command_line;
-    std::uint64_t         session_id          = 0;
-    std::size_t           row_cap             = 0;
-    std::size_t           provenance_hash_cap = 0;
-    ObserverLiveLimits    limits{};
-    ObserverLiveAuthority authority{};
+    std::string                       source_revision;
+    std::filesystem::path             observer_executable;
+    std::filesystem::path             dbgeng_image;
+    std::filesystem::path             fixture_executable;
+    ObserverLiveFilePin               observer_executable_pin{};
+    ObserverLiveFilePin               dbgeng_file_pin{};
+    ObserverLiveFilePin               fixture_file_pin{};
+    std::filesystem::path             output;
+    std::string                       observer_command_line;
+    std::string                       fixture_command_line;
+    std::uint64_t                     session_id          = 0;
+    std::size_t                       row_cap             = 0;
+    std::size_t                       provenance_hash_cap = 0;
+    ObserverLiveLimits                limits{};
+    ObserverLiveAuthority             authority{};
+    ObserverLiveRetentionPublication* retention_publication = nullptr;
 };
 
 enum class ObserverLiveDisposition : std::uint8_t
@@ -337,6 +357,9 @@ struct ObserverLiveResult
     std::uint64_t           collection_operation_failures = 0;
     std::uint64_t           collection_admitted_intervals = 0;
     std::uint64_t           collection_active_intervals   = 0;
+    std::uint64_t           cleanup_start_tick            = 0;
+    std::uint64_t           cleanup_deadline_tick         = 0;
+    std::uint64_t           cleanup_completion_tick       = 0;
     // A failed abort whose retained process handle has not confirmed
     // shutdown requires the CLI to keep the controller process quarantined for
     // the owner-intervention policy; it is never a normal failed return.
@@ -373,6 +396,11 @@ struct ObserverLiveResult
     bool          ledger_intent_write_failed      = false;
     bool          ledger_post_result_write_failed = false;
     bool          ledger_incomplete               = false;
+    // Retain controller-owned fixture handles and state when observer loss or
+    // an interrupted release leaves the fixture outcome unknown. The caller's
+    // quarantine context owns this shared state until finite owner intervention
+    // establishes a separate outcome.
+    std::shared_ptr<ObserverFixtureEvidence> fixture_retention;
 };
 
 struct ObserverProcessHandles
@@ -442,6 +470,14 @@ public:
     bool create(const ObserverLiveAuthority& authority,
                 const ObserverLiveRequest&   request,
                 std::string*                 refusal) noexcept;
+    bool set_fixture_launch(HANDLE                         process,
+                            HANDLE                         thread,
+                            HANDLE                         stdout_handle,
+                            HANDLE                         stderr_handle,
+                            HANDLE                         state_handle,
+                            const ObserverFixtureIdentity& identity,
+                            std::uint64_t                  state_sequence,
+                            std::string*                   refusal) noexcept;
     bool establish_kill_on_exit(const ObserverLiveAuthority& authority,
                                 std::string*                 refusal) noexcept;
     bool wait(const ObserverLiveAuthority& authority,
@@ -525,6 +561,14 @@ private:
     std::atomic<std::uint64_t>                           controller_progress_tick_{ 0 };
     std::unique_ptr<ObserverSupervisorLedger>            supervisor_ledger_;
     std::shared_ptr<ObserverRemoteControlRetentionStore> remote_control_store_;
+    HANDLE                                               fixture_process_handle_ = nullptr;
+    HANDLE                                               fixture_thread_handle_  = nullptr;
+    HANDLE                                               fixture_stdout_handle_  = nullptr;
+    HANDLE                                               fixture_stderr_handle_  = nullptr;
+    HANDLE                                               fixture_state_handle_   = nullptr;
+    std::uint64_t                                        fixture_state_sequence_ = 0;
+    ObserverFixtureIdentity                              fixture_identity_{};
+    bool                                                 fixture_launch_bound_ = false;
     bool                                                 creator_thread_bound_ = false;
 };
 
@@ -646,6 +690,11 @@ public:
     bool          complete_module_release() noexcept;
     bool          request_initial_hold(std::string* refusal) noexcept;
     bool          request_cleanup_hold(std::string* refusal) noexcept;
+    bool          begin_cleanup(std::uint64_t cleanup_start_tick,
+                                std::uint32_t cleanup_ticks,
+                                std::uint64_t lifecycle_start_tick,
+                                std::uint32_t lifecycle_ticks,
+                                std::string*  refusal) noexcept;
     std::uint64_t initial_hold_request_epoch() const noexcept;
     std::uint64_t cleanup_hold_request_epoch() const noexcept;
     bool          start_child(std::string* refusal) noexcept;
@@ -772,6 +821,13 @@ struct ObserverChildRequest
     std::size_t                                                      provenance_hash_cap = 0;
     observer_diagnostic::ObserverCollectionBoundary*                 collection          = nullptr;
     std::shared_ptr<observer_diagnostic::ObserverCollectionBoundary> collection_owner;
+    std::uintptr_t                                                   fixture_process_handle = 0;
+    std::uintptr_t                                                   fixture_thread_handle  = 0;
+    std::uintptr_t                                                   fixture_stdout_handle  = 0;
+    std::uintptr_t                                                   fixture_stderr_handle  = 0;
+    std::uintptr_t                                                   fixture_state_handle   = 0;
+    std::uint64_t                                                    fixture_state_sequence = 0;
+    ObserverFixtureIdentity                                          fixture_identity{};
 };
 
 // The child composition is real DbgEng/TraceMapObserverCallbacks source. It
@@ -809,6 +865,8 @@ public:
     bool                                      fixture_exit_code_known() const noexcept;
     std::uint64_t                             event_tail_sequence() const noexcept;
     bool                                      engine_options_readback() const noexcept;
+    bool                                      fixture_evidence_valid() const noexcept;
+    ObserverFixtureEvidence*                  fixture_evidence() const noexcept;
     void                                      set_provenance_hook_layout(
         const observer_diagnostic::HookInstallRequest& request) noexcept;
 
