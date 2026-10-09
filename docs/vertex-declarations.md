@@ -173,6 +173,54 @@ independently establish format `3` and component count `4` before applying
 it. `COLOR1` alone establishes neither value and must not select a packed
 decoder. Signed normal or tangent reconstruction is unproved.
 
+## Conditional STMS byte order
+
+**Observation.** Read-only `ghidra-cli 0.2.2` instruction inspection at
+VA `0x00C93770` follows the exact format-`3`, component-count-`4`,
+usage-other-than-`0xFF` tuple above. The size-helper call at VA `0x00C937F3`
+and division at VA `0x00C937FD` give width `1` per component. The tests at
+VAs `0x00C9383E` through `0x00C93848` bypass both payload swap loops and
+advance to VA `0x00C938D2`. This descriptor's branch writes no payload.
+The initial state test at VA `0x00C93776` can skip processing altogether.
+
+For inline data, STMS body byte `+0x0E` equals zero. The parser calls the
+preliminary routine with requested state `1` at VA `0x00C8E0B3`. VAs
+`0x00C8E0BF` through `0x00C8E129` derive the inline data pointer and
+item-count-times-stride byte count, then call factory VA `0x00419640`.
+For a nonzero source pointer, its staging consumer copies that byte range
+through VA `0x0041A59A` using helper VA `0x009D4600`.
+
+The helper's valid nonoverlapping forward copies preserve matching byte
+positions. Bounded inspection covers alignment prefixes at VAs
+`0x009D4698` through `0x009D4705`, bulk copies at VA `0x009D465A`, tails
+at VAs `0x009D478C` through `0x009D47B9`, and the accelerated path at
+VA `0x009E46D9` with SIMD copies at VAs `0x009E4672` through `0x009E46CD`.
+The alignment prefix was decoded with Ghidra's read-only
+`PseudoDisassembler.disassemble(Address)` without changing program state.
+
+The observed direct upload helper VA `0x00435F50` calls resource virtual
+offsets `0x2C` and `0x30` at VAs `0x00435F6E` and `0x00435F92`.
+Only a zero result from the first call reaches the copy at VA `0x00435F81`,
+which uses the same byte-copy helper. These slots match `Lock` and `Unlock`
+in Microsoft's
+[IDirect3DVertexBuffer9 ABI](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L1478-L1507),
+counting inherited methods at four bytes per slot for PE32.
+
+**Interpretation, high confidence within these conditions.** This ordinary
+descriptor's preliminary branch and the observed copies preserve the current
+order of its four byte lanes. They neither reverse that group as a dword nor
+normalize its components on the CPU. Type `8` normalization remains a
+separate declaration property.
+
+Other descriptors can overlap the same payload and enter their swap loops.
+External data, prior state and producer history, later mutable-buffer writes,
+invalid ranges, allocation failures and source/destination aliasing are
+outside this observation. Backend selection, skip flags and alternate queued
+upload paths remain unresolved. Reproduce this finding by following the
+exact size/count division, width tests, inline source pointer and copy calls
+at the cited locators. No actual model payload, downstream decoder binding,
+live upload success or runtime rendering behavior follows.
+
 ## Bounded reproduction
 
 1. Verify the module size, SHA-256, image base and Ghidra program identity.
