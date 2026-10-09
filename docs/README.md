@@ -138,6 +138,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Resources and file formats
 
+- [Model vertex Bool submission](model-vertex-bool.md)
 - [Vertex declaration descriptor lanes](vertex-declarations.md)
 - [Large coffer action families](resource/coffer-action-families.md)
 - [Bowl of Embers fire-ring layout](resource/ifrit-bowl-ring.md)
