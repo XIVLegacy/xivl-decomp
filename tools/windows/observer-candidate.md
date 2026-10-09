@@ -52,6 +52,7 @@ separate ordinary fixture. There is no retail or arbitrary-PID profile.
 | Entry and input contract | [observer_candidate.cpp](observer_candidate.cpp) | Parse the explicit request and apply the current authority gate. |
 | External controller and transport | [observer_live_runtime.cpp](observer_live_runtime.cpp) | Own observer creation, debug-event holds, supervisor deadlines, resident inspection, remote installation and cleanup. |
 | Observer child | [observer_live_bootstrap.cpp](observer_live_bootstrap.cpp) | Publish target-local control records and connect the retained child session to DbgEng and the ordinary fixture. |
+| Collection boundary | [observer_collection.cpp](observer_collection.cpp) | Close Recorder admission at one immutable monotonic deadline, independently of child completion and cleanup. |
 | Production callback owner | [trace_map_observer_callbacks.cpp](trace_map_observer_callbacks.cpp) | Connect raw admission, Events, retained lifecycle acquisition and the shared Recorder. |
 | CPU qualification | [observer_controller.cpp](observer_controller.cpp) and [observer_native_backend.cpp](observer_native_backend.cpp) | Exercise that callback and forwarding composition with injected authority, memory and results. |
 | Receipt acceptance | [validate_observer_candidate.py](validate_observer_candidate.py) | Check the positive trace and persisted causal failure artifacts. |
@@ -103,14 +104,17 @@ permits collection of unresolved identities; it cannot mark them qualified.
 
 ## Conditional native qualification
 
-The native command accepts the same profile and seven limits, plus absolute
+The native command accepts the same profile and seven controller limits, plus
+explicit `--collection-ticks` and `--child-completion-ticks`, absolute
 observer, engine and fixture paths, explicit command lines, three file sizes
 and SHA-256 digests, the full 40-hex source revision, and a positive provenance
 hash byte cap. The external build manifest binds that declared revision to the
 executable bytes. The observer
 executable digest is supplied externally after building; it is not embedded
 as its own expected digest. Native limits use Windows milliseconds and reject
-zero and `INFINITE`. CPU step limits cannot qualify these deadlines.
+zero and `INFINITE`. Collection must be at most 3000 ms. Child completion is
+separate from responsiveness, collection and known cleanup. CPU step limits
+cannot qualify these deadlines.
 
 The following is a proposed command shape for a separately authorized run.
 Every variable must be recorded with the pinned source and executable
@@ -130,19 +134,25 @@ the command:
   --hold-ticks $hold --known-cleanup-ticks $cleanup `
   --responsiveness-ticks $responsiveness --owner-exit-ticks $ownerExit `
   --termination-ticks $termination --acknowledgement-ticks $acknowledgement `
-  --exit-confirmation-ticks $exitConfirmation
+  --exit-confirmation-ticks $exitConfirmation `
+  --collection-ticks $collection --child-completion-ticks $childCompletion
 ```
 
 The observer command line selects `--native-child` and supplies `--profile`,
 `--dbgeng`, `--fixture`, `--fixture-command-line`, `--output`, `--session`,
-`--row-cap`, `--provenance-hash-cap` and a positive finite `--timeout-ticks`.
-Its output is the fresh native trace path. The current child reuses this
-timeout for initialization, fixture event collection and cleanup. The controller
-also uses its responsiveness limit for child completion. These shared bounds
-cannot establish an independently capped collection interval. Native activation
-requires separate collection, lifecycle and cleanup bounds, with a reviewed
-fixture failure contract that accounts for natural fixture exit after collection
-has stopped. File pins and timeout values alone cannot satisfy that requirement.
+`--row-cap`, `--provenance-hash-cap`, `--collection-ticks`,
+`--child-completion-ticks` and `--cleanup-ticks`. Its output is the fresh native
+trace path. Every limit is explicit, positive and finite. The collection deadline
+cannot be refreshed by startup, overlapping originals or cleanup. A deadline
+stop and evidence completeness are separate facts; unfinished admitted intervals
+remain incomplete. Post-stop originals still forward, while diagnostic row
+publication stays closed. Natural fixture exit and its separately known exit code
+cannot extend collection or repair incomplete evidence.
+
+Native activation still requires a reviewed fixture failure contract covering
+creation-bound external retention, actual event/continuation tail, session
+release, post-release state and natural fixture exit after collection stops.
+Source timing checks and file pins cannot satisfy that contract.
 The external controller writes a
 separate `.failure-ledger` sidecar at that path before activation and records
 failures or completion there. Preserve both artifacts; a nonempty trace file

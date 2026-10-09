@@ -2,10 +2,13 @@
 #ifndef XIVL_OBSERVER_DIAGNOSTIC_H
 #define XIVL_OBSERVER_DIAGNOSTIC_H
 
+#include "observer_collection.h"
+
 #include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -736,10 +739,12 @@ using TraceRow = std::variant<SelectedRecordRow,
 
 struct RecorderConfig
 {
-    std::uint64_t session_id = 1;
-    std::size_t   max_rows   = 256;
-    Callbacks     callbacks{};
-    Originals     originals{};
+    std::uint64_t                               session_id = 1;
+    std::size_t                                 max_rows   = 256;
+    ObserverCollectionBoundary*                 collection = nullptr;
+    std::shared_ptr<ObserverCollectionBoundary> collection_owner;
+    Callbacks                                   callbacks{};
+    Originals                                   originals{};
 };
 
 struct SelfTestReport
@@ -814,6 +819,7 @@ public:
     std::vector<CallbackAcquisitionRow> callback_acquisition_rows() const;
     std::size_t                         overflow_count() const;
     std::string                         serialize() const;
+    void                                freeze_collection_evidence() noexcept;
 
     const Originals& originals() const;
 
@@ -831,42 +837,55 @@ private:
         void* handle,
         void* context);
 
-    RowHeader     make_header(std::uint64_t operation_id);
-    std::uint64_t next_operation_id();
-    bool          append_row(const TraceRow& row);
-    void          update_row(const RowHeader& header, const TraceRow& row);
-    EventIdentity current_event_locked() const;
-    bool          read_memory(std::uintptr_t address, void* destination, std::size_t size) const;
-    bool          read_error(ErrorPair* value) const;
-    bool          write_error(const ErrorPair& value) const;
-    std::uint32_t thread_id() const;
-    bool          resolve_target(std::uintptr_t handle, TargetIdentity* identity) const;
-    void          collect_query_provenance(QueryRow& row);
+    RowHeader                             make_header(std::uint64_t operation_id);
+    std::uint64_t                         next_operation_id();
+    bool                                  append_row(const TraceRow& row);
+    void                                  update_row(const RowHeader& header, const TraceRow& row);
+    ObserverCollectionBoundary::Admission collection_admission() noexcept;
+    EventIdentity                         current_event_locked() const;
+    bool                                  read_memory(std::uintptr_t address, void* destination, std::size_t size) const;
+    bool                                  read_error(ErrorPair* value) const;
+    bool                                  write_error(const ErrorPair& value) const;
+    std::uint32_t                         thread_id() const;
+    bool                                  resolve_target(std::uintptr_t handle, TargetIdentity* identity) const;
+    void                                  collect_query_provenance(QueryRow& row);
 
-    mutable std::mutex                            mutex_;
-    std::uint64_t                                 session_id_ = 1;
-    std::size_t                                   max_rows_   = 256;
-    Callbacks                                     callbacks_{};
-    Originals                                     originals_{};
-    std::vector<TraceRow>                         rows_;
-    std::size_t                                   overflow_count_ = 0;
-    std::optional<EventIdentity>                  pending_event_;
-    std::optional<EventIdentity>                  last_closed_event_;
-    std::array<EventIdentity, kMaxBindingHistory> bound_history_identities_{};
-    std::array<std::uint64_t, kMaxBindingHistory> bound_history_generations_{};
-    std::size_t                                   bound_history_count_ = 0;
-    std::atomic<std::uint64_t>                    next_sequence_{ 1 };
-    std::atomic<std::uint64_t>                    next_operation_{ 1 };
+    mutable std::mutex                                  mutex_;
+    std::uint64_t                                       session_id_ = 1;
+    std::size_t                                         max_rows_   = 256;
+    ObserverCollectionBoundary*                         collection_ = nullptr;
+    std::shared_ptr<ObserverCollectionBoundary>         collection_owner_;
+    Callbacks                                           callbacks_{};
+    Originals                                           originals_{};
+    std::vector<TraceRow>                               rows_;
+    std::size_t                                         overflow_count_ = 0;
+    std::optional<EventIdentity>                        pending_event_;
+    std::optional<ObserverCollectionBoundary::Interval> pending_event_interval_;
+    std::optional<EventIdentity>                        last_closed_event_;
+    std::array<EventIdentity, kMaxBindingHistory>       bound_history_identities_{};
+    std::array<std::uint64_t, kMaxBindingHistory>       bound_history_generations_{};
+    std::size_t                                         bound_history_count_ = 0;
+    std::atomic<std::uint64_t>                          next_sequence_{ 1 };
+    std::atomic<std::uint64_t>                          next_operation_{ 1 };
+
+    struct ActiveCallback
+    {
+        std::uint64_t                                       callback_operation_id = 0;
+        std::optional<ObserverCollectionBoundary::Interval> interval;
+    };
+
+    std::vector<ActiveCallback> active_callbacks_;
 
     struct PendingCallbackAcquisition
     {
-        std::uint64_t              callback_operation_id      = 0;
-        std::uint64_t              acquisition_operation_id   = 0;
-        std::uint64_t              acquisition_begin_sequence = 0;
-        std::string                callback_kind;
-        EventIdentity              raw_identity{};
-        CallbackAcquisitionOutcome preflight_outcome  = CallbackAcquisitionOutcome::NotAttempted;
-        std::uint32_t              observer_thread_id = 0;
+        std::uint64_t                                       callback_operation_id      = 0;
+        std::uint64_t                                       acquisition_operation_id   = 0;
+        std::uint64_t                                       acquisition_begin_sequence = 0;
+        std::string                                         callback_kind;
+        EventIdentity                                       raw_identity{};
+        CallbackAcquisitionOutcome                          preflight_outcome  = CallbackAcquisitionOutcome::NotAttempted;
+        std::uint32_t                                       observer_thread_id = 0;
+        std::optional<ObserverCollectionBoundary::Interval> interval;
     };
 
     std::vector<PendingCallbackAcquisition> pending_callback_acquisitions_;
@@ -886,6 +905,7 @@ XIVL_OBSERVER_CONTEXT_CODE_SEG BoolResult XIVL_OBSERVER_FASTCALL context_write_b
     void* context);
 
 SelfTestReport run_self_tests();
+SelfTestReport run_observer_collection_self_tests();
 std::string    make_synthetic_trace();
 bool           query_provenance_qualified(const QueryRow& row);
 

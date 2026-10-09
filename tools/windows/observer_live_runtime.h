@@ -5,6 +5,7 @@
 #define _WIN32_WINNT 0x0A00
 #include <windows.h>
 
+#include "observer_collection.h"
 #include "observer_diagnostic.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
@@ -133,32 +134,44 @@ enum class ObserverLiveFailureOutcome : std::uint32_t
 
 struct alignas(8) ObserverLiveChildControlV1
 {
-    std::uint32_t size_bytes              = sizeof(ObserverLiveChildControlV1);
-    std::uint32_t version                 = kObserverLiveBootstrapVersion;
-    std::uint32_t observer_process_id     = 0;
-    std::uint32_t observer_instance_id    = 0;
-    std::uint32_t state                   = static_cast<std::uint32_t>(ObserverLiveChildState::Uninitialized);
-    std::uint32_t error_code              = ERROR_SUCCESS;
-    std::uint64_t session_id              = 0;
-    std::uint32_t row_count               = 0;
-    std::uint32_t qualified_row_count     = 0;
-    std::uint32_t fixture_exit_code       = 0;
-    std::uint32_t fixture_exit_confirmed  = 0;
-    std::uint32_t engine_options_readback = 0;
-    std::uint32_t initial_hold_thread_id  = 0;
-    std::uint32_t cleanup_thread_id       = 0;
-    std::uint64_t trace_size_bytes        = 0;
-    std::uint64_t event_tail_sequence     = 0;
-    std::uint64_t transition_sequence     = 0;
-    std::uint32_t raw_trace_persisted     = 0;
-    std::uint32_t raw_trace_incomplete    = 0;
-    std::uint32_t failure_outcome         = 0;
-    std::uint32_t reserved0               = 0;
+    std::uint32_t size_bytes                    = sizeof(ObserverLiveChildControlV1);
+    std::uint32_t version                       = kObserverLiveBootstrapVersion;
+    std::uint32_t observer_process_id           = 0;
+    std::uint32_t observer_instance_id          = 0;
+    std::uint32_t state                         = static_cast<std::uint32_t>(ObserverLiveChildState::Uninitialized);
+    std::uint32_t error_code                    = ERROR_SUCCESS;
+    std::uint64_t session_id                    = 0;
+    std::uint32_t row_count                     = 0;
+    std::uint32_t qualified_row_count           = 0;
+    std::uint32_t fixture_exit_code             = 0;
+    std::uint32_t fixture_exit_confirmed        = 0;
+    std::uint32_t engine_options_readback       = 0;
+    std::uint32_t initial_hold_thread_id        = 0;
+    std::uint32_t cleanup_thread_id             = 0;
+    std::uint64_t trace_size_bytes              = 0;
+    std::uint64_t event_tail_sequence           = 0;
+    std::uint64_t transition_sequence           = 0;
+    std::uint32_t raw_trace_persisted           = 0;
+    std::uint32_t raw_trace_incomplete          = 0;
+    std::uint32_t failure_outcome               = 0;
+    std::uint32_t fixture_exit_code_known       = 0;
+    std::uint32_t collection_complete           = 0;
+    std::uint32_t collection_stop_reason        = 0;
+    std::uint32_t collection_reserved0          = 0;
+    std::uint64_t collection_start_tick         = 0;
+    std::uint64_t collection_deadline_tick      = 0;
+    std::uint64_t collection_stop_tick          = 0;
+    std::uint64_t collection_admitted_rows      = 0;
+    std::uint64_t collection_rejected_rows      = 0;
+    std::uint64_t collection_clock_failures     = 0;
+    std::uint64_t collection_operation_failures = 0;
+    std::uint64_t collection_admitted_intervals = 0;
+    std::uint64_t collection_active_intervals   = 0;
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveChildControlV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveChildControlV1>);
-static_assert(sizeof(ObserverLiveChildControlV1) == 104);
+static_assert(sizeof(ObserverLiveChildControlV1) == 192);
 
 struct ObserverLiveOwnerControlRequestV1
 {
@@ -237,6 +250,8 @@ inline constexpr std::uintptr_t kObserverLiveRawMarkerRva          = 0x596924u;
 
 struct ObserverLiveLimits
 {
+    std::uint32_t collection_ticks        = 0;
+    std::uint32_t child_completion_ticks  = 0;
     std::uint32_t hold_ticks              = 0;
     std::uint32_t known_cleanup_ticks     = 0;
     std::uint32_t responsiveness_ticks    = 0;
@@ -303,11 +318,25 @@ struct ObserverLiveResult
     ObserverLiveDisposition disposition = ObserverLiveDisposition::RefusedPolicy;
     std::string             reason;
     std::string             stage;
-    bool                    native_effects_started  = false;
-    bool                    observer_exit_confirmed = false;
-    bool                    exit_event_acknowledged = false;
-    bool                    restoration_confirmed   = false;
-    bool                    fixture_exit_confirmed  = false;
+    bool                    native_effects_started        = false;
+    bool                    observer_exit_confirmed       = false;
+    bool                    exit_event_acknowledged       = false;
+    bool                    restoration_confirmed         = false;
+    bool                    fixture_exit_confirmed        = false;
+    bool                    fixture_exit_code_known       = false;
+    bool                    collection_complete           = false;
+    bool                    collection_incomplete         = false;
+    std::uint32_t           fixture_exit_code             = 0;
+    std::uint32_t           collection_stop_reason        = 0;
+    std::uint64_t           collection_start_tick         = 0;
+    std::uint64_t           collection_deadline_tick      = 0;
+    std::uint64_t           collection_stop_tick          = 0;
+    std::uint64_t           collection_admitted_rows      = 0;
+    std::uint64_t           collection_rejected_rows      = 0;
+    std::uint64_t           collection_clock_failures     = 0;
+    std::uint64_t           collection_operation_failures = 0;
+    std::uint64_t           collection_admitted_intervals = 0;
+    std::uint64_t           collection_active_intervals   = 0;
     // A failed abort whose retained process handle has not confirmed
     // shutdown requires the CLI to keep the controller process quarantined for
     // the owner-intervention policy; it is never a normal failed return.
@@ -735,12 +764,14 @@ private:
 
 struct ObserverChildRequest
 {
-    std::filesystem::path dbgeng_image;
-    std::filesystem::path fixture_executable;
-    std::string           fixture_command_line;
-    std::uint64_t         session_id          = 0;
-    std::size_t           row_cap             = 0;
-    std::size_t           provenance_hash_cap = 0;
+    std::filesystem::path                                            dbgeng_image;
+    std::filesystem::path                                            fixture_executable;
+    std::string                                                      fixture_command_line;
+    std::uint64_t                                                    session_id          = 0;
+    std::size_t                                                      row_cap             = 0;
+    std::size_t                                                      provenance_hash_cap = 0;
+    observer_diagnostic::ObserverCollectionBoundary*                 collection          = nullptr;
+    std::shared_ptr<observer_diagnostic::ObserverCollectionBoundary> collection_owner;
 };
 
 // The child composition is real DbgEng/TraceMapObserverCallbacks source. It
@@ -775,6 +806,7 @@ public:
     observer_diagnostic::RawEventBridge*      raw_bridge() const noexcept;
     bool                                      fixture_exit_confirmed() const noexcept;
     std::uint32_t                             fixture_exit_code() const noexcept;
+    bool                                      fixture_exit_code_known() const noexcept;
     std::uint64_t                             event_tail_sequence() const noexcept;
     bool                                      engine_options_readback() const noexcept;
     void                                      set_provenance_hook_layout(

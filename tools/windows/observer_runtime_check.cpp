@@ -20,6 +20,7 @@ int wmain(int argc, wchar_t** argv)
     if (argc == 2 && std::wstring(argv[1]) == L"--self-test")
     {
         const auto diagnostic           = run_self_tests();
+        const auto collection           = run_observer_collection_self_tests();
         const auto bridge               = run_event_bridge_self_tests();
         const auto callback             = run_callback_identity_self_tests();
         const auto lifecycle            = run_event_lifecycle_self_tests();
@@ -33,6 +34,7 @@ int wmain(int argc, wchar_t** argv)
         const auto recovery             = run_recovery_self_tests();
         const auto actions              = run_recovery_action_adapter_self_tests();
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
+                  << "collection: " << collection.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
                   << "callback: " << callback.summary << '\n'
                   << "event_lifecycle: " << lifecycle.summary << '\n'
@@ -45,7 +47,7 @@ int wmain(int argc, wchar_t** argv)
                   << "snapshot: checks=" << snapshot.checks << ",failures=" << snapshot.failures << ',' << snapshot.summary << '\n'
                   << "recovery: checks=" << recovery.checks << ",failures=" << recovery.failures << ',' << recovery.summary << '\n'
                   << "actions: checks=" << actions.checks << ",failures=" << actions.failures << ',' << actions.summary << '\n';
-        return diagnostic.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && callback_composition.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
+        return diagnostic.passed && collection.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && callback_composition.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
                        recovery.passed && actions.passed
                    ? 0
                    : 1;

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_diagnostic.h"
 
+#include "observer_collection.h"
+
 #if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
 #include <intrin.h>
 #pragma intrinsic(_InterlockedCompareExchange64)
@@ -804,10 +806,17 @@ Recorder::BridgeScope::~BridgeScope()
 Recorder::Recorder(const RecorderConfig& config)
 : session_id_(config.session_id)
 , max_rows_(config.max_rows)
+, collection_(config.collection)
+, collection_owner_(config.collection_owner)
 , callbacks_(config.callbacks)
 , originals_(config.originals)
 {
     rows_.reserve(max_rows_);
+}
+
+ObserverCollectionBoundary::Admission Recorder::collection_admission() noexcept
+{
+    return collection_ == nullptr ? ObserverCollectionBoundary::Admission{} : collection_->admit_row();
 }
 
 std::uint64_t Recorder::next_operation_id()
@@ -833,14 +842,27 @@ RowHeader Recorder::make_header(std::uint64_t operation_id)
         header.sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
         header.event    = current_event_locked();
     }
-    header.observer_thread_id = thread_id();
-    header.incomplete         = header.observer_thread_id == 0 || !qualified_identity(header.event);
+    // Read the injected thread identity after the event snapshot and outside
+    // the Recorder mutex. A delayed reader must not change which event owns
+    // this row or re-enter the boundary while a lock is held.
+    const std::uint32_t observer_thread = thread_id();
+    header.observer_thread_id           = observer_thread;
+    header.incomplete                   = header.observer_thread_id == 0 || !qualified_identity(header.event);
     return header;
 }
 
 bool Recorder::append_row(const TraceRow& row)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
     if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
     {
         ++overflow_count_;
@@ -852,7 +874,16 @@ bool Recorder::append_row(const TraceRow& row)
 
 void Recorder::update_row(const RowHeader& header, const TraceRow& row)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return;
+    }
     for (TraceRow& stored : rows_)
     {
         if (row_header(stored).sequence != header.sequence)
@@ -959,6 +990,11 @@ void Recorder::collect_query_provenance(QueryRow& row)
     {
         return;
     }
+    if (collection_ != nullptr && !collection_->allow_provenance())
+    {
+        row.header.incomplete = true;
+        return;
+    }
 
     QueryProvenanceEvidence evidence;
     const std::uint64_t     acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
@@ -969,6 +1005,10 @@ void Recorder::collect_query_provenance(QueryRow& row)
     }
     catch (...)
     {
+        if (collection_ != nullptr)
+        {
+            collection_->operation_failed();
+        }
         evidence.status = QueryProvenanceStatus::Exception;
     }
     const std::uint64_t acquisition_end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
@@ -985,6 +1025,8 @@ void* Recorder::forward_lookup(void* manager, void* ignored_edx, const GuidBytes
 {
     ErrorPair           incoming_error;
     const bool          incoming_error_known = read_error(&incoming_error);
+    const auto          interval             = collection_ == nullptr ? ObserverCollectionBoundary::Interval{}
+                                                                      : collection_->begin_interval();
     const std::uint64_t operation_id         = next_operation_id();
     SelectedRecordRow   row;
     row.header          = make_header(operation_id);
@@ -1050,6 +1092,10 @@ void* Recorder::forward_lookup(void* manager, void* ignored_edx, const GuidBytes
 
     ErrorPair  returned_error;
     const bool returned_error_known = read_error(&returned_error);
+    if (exception != nullptr && collection_ != nullptr)
+    {
+        collection_->operation_failed();
+    }
 
     row.returned_record = pointer_address(result);
     if (result == nullptr)
@@ -1113,6 +1159,8 @@ Hresult Recorder::forward_query(void* manager, const GuidBytes* service_guid, co
 {
     ErrorPair           incoming_error;
     const bool          incoming_error_known = read_error(&incoming_error);
+    const auto          interval             = collection_ == nullptr ? ObserverCollectionBoundary::Interval{}
+                                                                      : collection_->begin_interval();
     const std::uint64_t operation_id         = next_operation_id();
     QueryRow            row;
     row.header               = make_header(operation_id);
@@ -1191,7 +1239,11 @@ Hresult Recorder::forward_query(void* manager, const GuidBytes* service_guid, co
 
     ErrorPair  returned_error;
     const bool returned_error_known = read_error(&returned_error);
-    row.result                      = result;
+    if (exception != nullptr && collection_ != nullptr)
+    {
+        collection_->operation_failed();
+    }
+    row.result = result;
 
     if (exception == nullptr && result >= 0)
     {
@@ -1302,6 +1354,8 @@ BoolResult Recorder::forward_context_write(void* handle, void* context)
 {
     ErrorPair           incoming_error;
     const bool          incoming_error_known = read_error(&incoming_error);
+    const auto          interval             = collection_ == nullptr ? ObserverCollectionBoundary::Interval{}
+                                                                      : collection_->begin_interval();
     const std::uint64_t operation_id         = next_operation_id();
     ContextWriteRow     row;
     row.header          = make_header(operation_id);
@@ -1402,6 +1456,10 @@ BoolResult Recorder::forward_context_write(void* handle, void* context)
     g_active_frame = frame.previous;
     ErrorPair  returned_error;
     const bool returned_error_known = read_error(&returned_error);
+    if (exception != nullptr && collection_ != nullptr)
+    {
+        collection_->operation_failed();
+    }
     row.result                      = result;
     row.header.returned_error_known = returned_error_known;
     if (row.header.returned_error_known)
@@ -1439,11 +1497,20 @@ PendingEventStatus Recorder::admit_pending_event(const EventIdentity& identity)
     const std::uint64_t operation_id = next_operation_id();
     PendingEventRow     row;
     // Allocate the entry sequence and snapshot the active event before changing pending_event_.
-    row.header                = make_header(operation_id);
-    row.identity              = identity;
+    row.header     = make_header(operation_id);
+    row.identity   = identity;
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return PendingEventStatus::Unknown;
+    }
     PendingEventStatus status = PendingEventStatus::Unknown;
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (!admission.acquire())
+        {
+            return PendingEventStatus::Unknown;
+        }
         if (!raw_identity_complete(identity))
         {
             status = PendingEventStatus::Unknown;
@@ -1451,7 +1518,8 @@ PendingEventStatus Recorder::admit_pending_event(const EventIdentity& identity)
         else if (!pending_event_.has_value())
         {
             pending_event_ = identity;
-            status         = PendingEventStatus::Admitted;
+            pending_event_interval_.emplace(admission.begin_interval());
+            status = PendingEventStatus::Admitted;
         }
         else if (same_identity(*pending_event_, identity))
         {
@@ -1461,20 +1529,26 @@ PendingEventStatus Recorder::admit_pending_event(const EventIdentity& identity)
         {
             status = PendingEventStatus::Changed;
         }
+        row.status = status;
+        if (status == PendingEventStatus::Admitted)
+        {
+            row.header.event      = identity;
+            row.header.incomplete = row.header.observer_thread_id == 0 || !qualified_identity(identity);
+        }
+        else
+        {
+            // A failed admission keeps the active event in the row header; identity is the attempted event.
+            row.header.incomplete = row.header.incomplete || status != PendingEventStatus::Admitted ||
+                                    !qualified_identity(identity);
+        }
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            return PendingEventStatus::Unknown;
+        }
+        rows_.push_back(row);
     }
-    row.status = status;
-    if (status == PendingEventStatus::Admitted)
-    {
-        row.header.event      = identity;
-        row.header.incomplete = row.header.observer_thread_id == 0 || !qualified_identity(identity);
-    }
-    else
-    {
-        // A failed admission keeps the active event in the row header; identity is the attempted event.
-        row.header.incomplete = row.header.incomplete || status != PendingEventStatus::Admitted || !qualified_identity(identity);
-    }
-    row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
-    append_row(row);
     return status;
 }
 
@@ -1483,11 +1557,17 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
     const std::uint64_t operation_id = next_operation_id();
     PendingEventRow     row;
     // Capture the closing attempt before clearing the active pending event.
-    row.header                = make_header(operation_id);
-    row.identity              = identity;
-    PendingEventStatus status = PendingEventStatus::Unknown;
+    row.header                                                    = make_header(operation_id);
+    row.identity                                                  = identity;
+    auto                                                admission = collection_admission();
+    PendingEventStatus                                  status    = PendingEventStatus::Unknown;
+    std::optional<ObserverCollectionBoundary::Interval> interval_to_end;
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (admission)
+        {
+            (void)admission.acquire();
+        }
         if (!raw_identity_complete(identity))
         {
             status = PendingEventStatus::Unknown;
@@ -1504,22 +1584,62 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
         {
             last_closed_event_ = pending_event_;
             pending_event_.reset();
+            if (pending_event_interval_.has_value())
+            {
+                if (admission)
+                {
+                    admission.end_interval(*pending_event_interval_);
+                }
+                else
+                {
+                    interval_to_end = std::move(pending_event_interval_);
+                }
+                pending_event_interval_.reset();
+            }
             status = PendingEventStatus::Closed;
         }
+        row.status               = status;
+        row.header.incomplete    = row.header.incomplete || status != PendingEventStatus::Closed ||
+                                   !qualified_identity(identity);
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        if (admission)
+        {
+            if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+            {
+                ++overflow_count_;
+            }
+            else
+            {
+                rows_.push_back(row);
+            }
+        }
     }
-    row.status               = status;
-    row.header.incomplete    = row.header.incomplete || status != PendingEventStatus::Closed || !qualified_identity(identity);
-    row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
-    append_row(row);
+    if (!admission && interval_to_end.has_value())
+    {
+        admission.end_interval(*interval_to_end);
+    }
+    if (!admission && collection_ != nullptr && status == PendingEventStatus::Closed)
+    {
+        collection_->mark_incomplete();
+    }
     return status;
 }
 
 CallbackBeginResult Recorder::begin_callback(const std::string& callback_kind)
 {
     CallbackBeginResult result;
-    result.callback_operation_id                = next_operation_id();
-    const std::uint32_t         observer_thread = thread_id();
+    result.callback_operation_id        = next_operation_id();
+    const std::uint32_t observer_thread = thread_id();
+    auto                admission       = collection_admission();
+    if (!admission)
+    {
+        return result;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return result;
+    }
     if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
     {
         ++overflow_count_;
@@ -1539,6 +1659,10 @@ CallbackBeginResult Recorder::begin_callback(const std::string& callback_kind)
     row.header.incomplete         = true;
     row.header.incomplete         = row.header.incomplete || observer_thread == 0 || !row.entry_raw_identity_known;
     rows_.push_back(row);
+    ActiveCallback active;
+    active.callback_operation_id = result.callback_operation_id;
+    active.interval.emplace(admission.begin_interval());
+    active_callbacks_.push_back(std::move(active));
     result.raw_identity = row.raw_identity;
     result.recorded     = true;
     return result;
@@ -1548,7 +1672,16 @@ bool Recorder::record_callback_dispatch_entry(
     std::uint64_t                callback_operation_id,
     const CallbackDispatchEntry& entry)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
     for (TraceRow& stored : rows_)
     {
         auto* row = std::get_if<CallbackEntryRow>(&stored);
@@ -1597,7 +1730,16 @@ bool Recorder::record_callback_dispatch_capture(
     std::uint64_t                callback_operation_id,
     const CallbackDispatchEntry& entry)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
     for (TraceRow& stored : rows_)
     {
         auto* row = std::get_if<CallbackEntryRow>(&stored);
@@ -1631,7 +1773,16 @@ bool Recorder::record_callback_dispatch_capture(
 
 std::uint64_t Recorder::begin_callback_delegate(std::uint64_t callback_operation_id)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return 0;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return 0;
+    }
     for (TraceRow& stored : rows_)
     {
         auto* row = std::get_if<CallbackEntryRow>(&stored);
@@ -1650,7 +1801,16 @@ bool Recorder::finish_callback_delegate(
     std::uint64_t               callback_operation_id,
     const CallbackDispatchExit& exit)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
     for (TraceRow& stored : rows_)
     {
         auto* row = std::get_if<CallbackEntryRow>(&stored);
@@ -1676,10 +1836,21 @@ bool Recorder::finish_callback_delegate(
 CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t callback_operation_id)
 {
     CallbackAcquisitionStart result;
-    result.callback_operation_id                = callback_operation_id;
-    result.acquisition_operation_id             = next_operation_id();
-    const std::uint32_t         observer_thread = thread_id();
+    result.callback_operation_id        = callback_operation_id;
+    result.acquisition_operation_id     = next_operation_id();
+    const std::uint32_t observer_thread = thread_id();
+    auto                admission       = collection_admission();
+    if (!admission)
+    {
+        result.outcome = CallbackAcquisitionOutcome::BindingRefused;
+        return result;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        result.outcome = CallbackAcquisitionOutcome::BindingRefused;
+        return result;
+    }
 
     const auto entry = std::find_if(
         rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
@@ -1728,7 +1899,8 @@ CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t call
         pending.raw_identity               = entry_row.raw_identity;
         pending.preflight_outcome          = outcome;
         pending.observer_thread_id         = observer_thread;
-        pending_callback_acquisitions_.push_back(pending);
+        pending.interval.emplace(admission.begin_interval());
+        pending_callback_acquisitions_.push_back(std::move(pending));
         result.acquisition_begin_sequence = pending.acquisition_begin_sequence;
         result.accepted                   = false;
     };
@@ -1772,7 +1944,8 @@ CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t call
     pending.raw_identity               = entry_row.raw_identity;
     pending.preflight_outcome          = CallbackAcquisitionOutcome::NotAttempted;
     pending.observer_thread_id         = observer_thread;
-    pending_callback_acquisitions_.push_back(pending);
+    pending.interval.emplace(admission.begin_interval());
+    pending_callback_acquisitions_.push_back(std::move(pending));
     result.acquisition_begin_sequence = pending.acquisition_begin_sequence;
     result.raw_identity               = pending.raw_identity;
     result.rechecked_identity         = current;
@@ -1790,118 +1963,150 @@ bool Recorder::finish_callback_acquisition(
     {
         return false;
     }
-    *result                       = {};
-    result->callback_operation_id = callback_operation_id;
-
-    std::lock_guard<std::mutex> lock(mutex_);
-    const auto                  pending = std::find_if(
-        pending_callback_acquisitions_.begin(),
-        pending_callback_acquisitions_.end(),
-        [callback_operation_id](const PendingCallbackAcquisition& value)
+    *result                                                             = {};
+    result->callback_operation_id                                       = callback_operation_id;
+    const std::uint32_t                                 observer_thread = thread_id();
+    auto                                                admission       = collection_admission();
+    std::optional<ObserverCollectionBoundary::Interval> interval_to_end;
+    bool                                                recorded = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (admission)
         {
-            return value.callback_operation_id == callback_operation_id;
-        });
-    if (pending == pending_callback_acquisitions_.end())
-    {
-        result->outcome = CallbackAcquisitionOutcome::MissingCallback;
-        return false;
-    }
-
-    const PendingCallbackAcquisition start   = *pending;
-    const EventIdentity              current = raw_only_identity(current_event_locked());
-    const auto                       entry   = std::find_if(
-        rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
+            (void)admission.acquire();
+        }
+        const auto pending = std::find_if(
+            pending_callback_acquisitions_.begin(),
+            pending_callback_acquisitions_.end(),
+            [callback_operation_id](const PendingCallbackAcquisition& value)
+            {
+                return value.callback_operation_id == callback_operation_id;
+            });
+        if (pending == pending_callback_acquisitions_.end())
         {
-            const auto* row = std::get_if<CallbackEntryRow>(&stored);
-            return row != nullptr && row->callback_operation_id == callback_operation_id;
-        });
-    result->acquisition_operation_id   = start.acquisition_operation_id;
-    result->acquisition_begin_sequence = start.acquisition_begin_sequence;
-    result->raw_identity               = start.raw_identity;
-    result->rechecked_identity         = current;
-    result->binding_eligible           = input.binding_eligible;
-    result->outcome                    = input.reader_outcome;
-    if (start.preflight_outcome != CallbackAcquisitionOutcome::NotAttempted)
-    {
-        result->outcome = start.preflight_outcome;
-    }
-    if (entry == rows_.end())
-    {
-        result->outcome = CallbackAcquisitionOutcome::MissingCallback;
-    }
-    else if (std::get<CallbackEntryRow>(*entry).exit_observed)
-    {
-        result->outcome = CallbackAcquisitionOutcome::MissingCallback;
-    }
-    else if (thread_id() == 0 || thread_id() != start.observer_thread_id)
-    {
-        result->outcome = CallbackAcquisitionOutcome::ChangedOwnerEvidence;
-    }
-    else if (!raw_key_available(start.raw_identity) || !raw_key_available(current))
-    {
-        result->outcome = CallbackAcquisitionOutcome::MissingRawKey;
-    }
-    else if (!same_raw_identity(start.raw_identity, std::get<CallbackEntryRow>(*entry).raw_identity) ||
-             !same_raw_identity(start.raw_identity, current))
-    {
-        result->outcome = CallbackAcquisitionOutcome::ChangedRawKey;
-    }
-    else if (result->outcome == CallbackAcquisitionOutcome::Accepted &&
-             !callback_owner_evidence_complete(input.owner))
-    {
-        result->outcome = CallbackAcquisitionOutcome::MissingOwnerEvidence;
-    }
-    else if (result->outcome == CallbackAcquisitionOutcome::NotAttempted)
-    {
-        result->outcome = CallbackAcquisitionOutcome::Exception;
-    }
-    const std::uint64_t end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
-    result->acquisition_end_sequence = end_sequence;
+            result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+        }
+        else if (!admission)
+        {
+            result->outcome = CallbackAcquisitionOutcome::BindingRefused;
+            interval_to_end = std::move(pending->interval);
+            pending_callback_acquisitions_.erase(pending);
+        }
+        else
+        {
+            PendingCallbackAcquisition start = std::move(*pending);
+            pending_callback_acquisitions_.erase(pending);
+            const EventIdentity current = raw_only_identity(current_event_locked());
+            const auto          entry   = std::find_if(
+                rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
+                {
+                    const auto* row = std::get_if<CallbackEntryRow>(&stored);
+                    return row != nullptr && row->callback_operation_id == callback_operation_id;
+                });
+            result->acquisition_operation_id   = start.acquisition_operation_id;
+            result->acquisition_begin_sequence = start.acquisition_begin_sequence;
+            result->raw_identity               = start.raw_identity;
+            result->rechecked_identity         = current;
+            result->binding_eligible           = input.binding_eligible;
+            result->outcome                    = input.reader_outcome;
+            if (start.preflight_outcome != CallbackAcquisitionOutcome::NotAttempted)
+            {
+                result->outcome = start.preflight_outcome;
+            }
+            if (entry == rows_.end())
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+            }
+            else if (std::get<CallbackEntryRow>(*entry).exit_observed)
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+            }
+            else if (observer_thread == 0 || observer_thread != start.observer_thread_id)
+            {
+                result->outcome = CallbackAcquisitionOutcome::ChangedOwnerEvidence;
+            }
+            else if (!raw_key_available(start.raw_identity) || !raw_key_available(current))
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingRawKey;
+            }
+            else if (!same_raw_identity(start.raw_identity, std::get<CallbackEntryRow>(*entry).raw_identity) ||
+                     !same_raw_identity(start.raw_identity, current))
+            {
+                result->outcome = CallbackAcquisitionOutcome::ChangedRawKey;
+            }
+            else if (result->outcome == CallbackAcquisitionOutcome::Accepted &&
+                     !callback_owner_evidence_complete(input.owner))
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingOwnerEvidence;
+            }
+            else if (result->outcome == CallbackAcquisitionOutcome::NotAttempted)
+            {
+                result->outcome = CallbackAcquisitionOutcome::Exception;
+            }
+            const std::uint64_t end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+            result->acquisition_end_sequence = end_sequence;
+            if (start.interval.has_value())
+            {
+                admission.end_interval(*start.interval);
+            }
 
-    pending_callback_acquisitions_.erase(pending);
-    if (rows_.size() >= max_rows_)
-    {
-        ++overflow_count_;
-        result->outcome = CallbackAcquisitionOutcome::Overflow;
-        return false;
+            if (rows_.size() >= max_rows_)
+            {
+                ++overflow_count_;
+                result->outcome = CallbackAcquisitionOutcome::Overflow;
+            }
+            else
+            {
+                CallbackAcquisitionRow row;
+                row.header.session_id           = session_id_;
+                row.header.sequence             = start.acquisition_begin_sequence;
+                row.header.exit_sequence        = end_sequence;
+                row.header.operation_id         = start.acquisition_operation_id;
+                row.header.parent_operation_id  = callback_operation_id;
+                row.header.observer_thread_id   = start.observer_thread_id;
+                row.header.event                = start.raw_identity;
+                row.header.incoming_error_known = input.incoming_error_known;
+                row.header.returned_error_known = input.returned_error_known;
+                row.header.incoming_error       = input.incoming_error;
+                row.header.returned_error       = input.returned_error;
+                row.header.incomplete           = true;
+                row.header.incomplete           = row.header.incomplete ||
+                                                  result->outcome != CallbackAcquisitionOutcome::Accepted ||
+                                                  !input.binding_eligible || !input.error_restore_attempted ||
+                                                  !input.error_restore_succeeded || !input.incoming_error_known ||
+                                                  !input.returned_error_known;
+                row.callback_operation_id       = callback_operation_id;
+                row.acquisition_operation_id    = start.acquisition_operation_id;
+                row.callback_kind               = entry == rows_.end() ? "unknown" : std::get<CallbackEntryRow>(*entry).callback_kind;
+                row.raw_identity                = start.raw_identity;
+                row.rechecked_identity          = current;
+                row.acquisition_begin_sequence  = start.acquisition_begin_sequence;
+                row.acquisition_end_sequence    = end_sequence;
+                row.query_interface             = input.query_interface;
+                row.sdk_reads                   = input.sdk_reads;
+                row.owner                       = input.owner;
+                row.outcome                     = result->outcome;
+                row.binding_observation         = input.binding_observation;
+                row.binding_eligible            = input.binding_eligible &&
+                                                  result->outcome == CallbackAcquisitionOutcome::Accepted;
+                row.binding_status              = EngineBindingStatus::Refused;
+                row.error_restore_attempted     = input.error_restore_attempted;
+                row.error_restore_succeeded     = input.error_restore_succeeded;
+                rows_.push_back(std::move(row));
+                result->recorded = true;
+                recorded         = true;
+            }
+        }
     }
-
-    CallbackAcquisitionRow row;
-    row.header.session_id           = session_id_;
-    row.header.sequence             = start.acquisition_begin_sequence;
-    row.header.exit_sequence        = end_sequence;
-    row.header.operation_id         = start.acquisition_operation_id;
-    row.header.parent_operation_id  = callback_operation_id;
-    row.header.observer_thread_id   = start.observer_thread_id;
-    row.header.event                = start.raw_identity;
-    row.header.incoming_error_known = input.incoming_error_known;
-    row.header.returned_error_known = input.returned_error_known;
-    row.header.incoming_error       = input.incoming_error;
-    row.header.returned_error       = input.returned_error;
-    row.header.incomplete           = true;
-    row.header.incomplete           = row.header.incomplete || result->outcome != CallbackAcquisitionOutcome::Accepted ||
-                                      !input.binding_eligible || !input.error_restore_attempted ||
-                                      !input.error_restore_succeeded ||
-                                      !input.incoming_error_known || !input.returned_error_known;
-    row.callback_operation_id       = callback_operation_id;
-    row.acquisition_operation_id    = start.acquisition_operation_id;
-    row.callback_kind               = entry == rows_.end() ? "unknown" : std::get<CallbackEntryRow>(*entry).callback_kind;
-    row.raw_identity                = start.raw_identity;
-    row.rechecked_identity          = current;
-    row.acquisition_begin_sequence  = start.acquisition_begin_sequence;
-    row.acquisition_end_sequence    = end_sequence;
-    row.query_interface             = input.query_interface;
-    row.sdk_reads                   = input.sdk_reads;
-    row.owner                       = input.owner;
-    row.outcome                     = result->outcome;
-    row.binding_observation         = input.binding_observation;
-    row.binding_eligible            = input.binding_eligible && result->outcome == CallbackAcquisitionOutcome::Accepted;
-    row.binding_status              = EngineBindingStatus::Refused;
-    row.error_restore_attempted     = input.error_restore_attempted;
-    row.error_restore_succeeded     = input.error_restore_succeeded;
-    rows_.push_back(row);
-    result->recorded = true;
-    return true;
+    if (!admission && interval_to_end.has_value())
+    {
+        admission.end_interval(*interval_to_end);
+    }
+    if (!admission && collection_ != nullptr)
+    {
+        collection_->mark_incomplete();
+    }
+    return recorded;
 }
 
 bool Recorder::record_callback_binding_result(
@@ -1909,7 +2114,16 @@ bool Recorder::record_callback_binding_result(
     EngineBindingStatus status,
     std::uint64_t       binding_attempt_id)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
     for (TraceRow& stored : rows_)
     {
         auto* row = std::get_if<CallbackAcquisitionRow>(&stored);
@@ -1931,44 +2145,85 @@ bool Recorder::record_callback_binding_result(
 
 bool Recorder::end_callback(std::uint64_t callback_operation_id, CallbackExitOutcome outcome)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (TraceRow& stored : rows_)
+    auto                                                admission = collection_admission();
+    std::optional<ObserverCollectionBoundary::Interval> interval_to_end;
+    bool                                                row_finished = false;
     {
-        auto* row = std::get_if<CallbackEntryRow>(&stored);
-        if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed)
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (admission)
         {
-            continue;
+            (void)admission.acquire();
         }
-        row->header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
-        row->exit_outcome         = outcome;
-        row->exit_observed        = true;
-        if (!row->dispatch_marker)
+        const auto active = std::find_if(
+            active_callbacks_.begin(), active_callbacks_.end(), [callback_operation_id](const ActiveCallback& value)
+            {
+                return value.callback_operation_id == callback_operation_id;
+            });
+        if (active != active_callbacks_.end())
         {
-            row->header.incomplete = true;
+            if (admission)
+            {
+                if (active->interval.has_value())
+                {
+                    admission.end_interval(*active->interval);
+                }
+            }
+            else
+            {
+                interval_to_end = std::move(active->interval);
+            }
+            active_callbacks_.erase(active);
         }
-        else
+        if (admission)
         {
-            const bool dispatch_complete = row->delegate_begin_sequence != 0 &&
-                                           row->delegate_end_sequence != 0 &&
-                                           row->delegate_completion_known &&
-                                           row->delegate_hresult_known && !row->delegate_threw &&
-                                           row->entry_raw_identity_known &&
-                                           row->header.observer_thread_id != 0 &&
-                                           raw_identity_complete(row->raw_identity) &&
-                                           row->provider_attempted && row->provider_succeeded &&
-                                           row->owner_evidence_complete && row->capture_attempted &&
-                                           row->capture_completed && row->binding_attempted &&
-                                           row->binding_succeeded && row->error_restore_attempted &&
-                                           row->error_restore_succeeded && row->dispatch_incoming_error_known &&
-                                           row->dispatch_returned_error_known && !row->foreign_thread_refused &&
-                                           !row->reentry_refused && !row->invalid_configuration_refused &&
-                                           !row->capacity_refused && outcome == CallbackExitOutcome::Completed;
-            row->header.incomplete       = !dispatch_complete || row->header.pre_log_failed ||
-                                           row->header.post_log_failed || row->header.rethrown;
+            for (TraceRow& stored : rows_)
+            {
+                auto* row = std::get_if<CallbackEntryRow>(&stored);
+                if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed)
+                {
+                    continue;
+                }
+                row->header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+                row->exit_outcome         = outcome;
+                row->exit_observed        = true;
+                if (!row->dispatch_marker)
+                {
+                    row->header.incomplete = true;
+                }
+                else
+                {
+                    const bool dispatch_complete = row->delegate_begin_sequence != 0 &&
+                                                   row->delegate_end_sequence != 0 &&
+                                                   row->delegate_completion_known &&
+                                                   row->delegate_hresult_known && !row->delegate_threw &&
+                                                   row->entry_raw_identity_known &&
+                                                   row->header.observer_thread_id != 0 &&
+                                                   raw_identity_complete(row->raw_identity) &&
+                                                   row->provider_attempted && row->provider_succeeded &&
+                                                   row->owner_evidence_complete && row->capture_attempted &&
+                                                   row->capture_completed && row->binding_attempted &&
+                                                   row->binding_succeeded && row->error_restore_attempted &&
+                                                   row->error_restore_succeeded && row->dispatch_incoming_error_known &&
+                                                   row->dispatch_returned_error_known && !row->foreign_thread_refused &&
+                                                   !row->reentry_refused && !row->invalid_configuration_refused &&
+                                                   !row->capacity_refused && outcome == CallbackExitOutcome::Completed;
+                    row->header.incomplete       = !dispatch_complete || row->header.pre_log_failed ||
+                                                   row->header.post_log_failed || row->header.rethrown;
+                }
+                row_finished = true;
+                break;
+            }
         }
-        return true;
     }
-    return false;
+    if (!admission && interval_to_end.has_value())
+    {
+        admission.end_interval(*interval_to_end);
+    }
+    if (!admission && collection_ != nullptr)
+    {
+        collection_->mark_incomplete();
+    }
+    return row_finished;
 }
 
 EngineBindingStatus Recorder::bind_pending_event(
@@ -1990,6 +2245,11 @@ EngineBindingStatus Recorder::bind_pending_event(
     row.callback_operation_id             = callback_operation_id;
     row.callback_acquisition_operation_id = callback_acquisition_operation_id;
     row.binding_attempt_id                = binding_attempt_id;
+    auto admission                        = collection_admission();
+    if (!admission)
+    {
+        return EngineBindingStatus::ContinuationClosed;
+    }
 
     if (!binding_evidence_complete(raw_identity, observation, engine_generation))
     {
@@ -1997,6 +2257,10 @@ EngineBindingStatus Recorder::bind_pending_event(
         row.header.incomplete    = true;
         row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
         std::lock_guard<std::mutex> lock(mutex_);
+        if (!admission.acquire())
+        {
+            return EngineBindingStatus::ContinuationClosed;
+        }
         if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
         {
             ++overflow_count_;
@@ -2014,6 +2278,10 @@ EngineBindingStatus Recorder::bind_pending_event(
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (!admission.acquire())
+        {
+            return EngineBindingStatus::ContinuationClosed;
+        }
         if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
         {
             ++overflow_count_;
@@ -2218,10 +2486,16 @@ std::string Recorder::serialize() const
 {
     std::vector<TraceRow> snapshot;
     std::size_t           snapshot_overflow_count = 0;
+    bool                  pending_event           = false;
+    std::size_t           pending_acquisitions    = 0;
+    std::size_t           active_callbacks        = 0;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         snapshot                = rows_;
         snapshot_overflow_count = overflow_count_;
+        pending_event           = pending_event_.has_value() || pending_event_interval_.has_value();
+        pending_acquisitions    = pending_callback_acquisitions_.size();
+        active_callbacks        = active_callbacks_.size();
     }
     std::sort(snapshot.begin(), snapshot.end(), [](const TraceRow& left, const TraceRow& right)
               {
@@ -2235,6 +2509,28 @@ std::string Recorder::serialize() const
     stream << ",\"passthrough_published\":" << (passthrough.published ? "true" : "false");
     stream << ",\"active_calls\":" << passthrough.active_calls;
     stream << ",\"unlogged_calls\":" << passthrough.unlogged_calls;
+    if (collection_ != nullptr)
+    {
+        const ObserverCollectionSnapshot collection          = collection_->snapshot();
+        const bool                       collection_complete = collection_->complete();
+        stream << ",\"collection_schema\":\"observer-collection-v1\"";
+        stream << ",\"collection_state\":" << static_cast<unsigned>(collection.state);
+        stream << ",\"collection_stop_reason\":" << static_cast<unsigned>(collection.stop_reason);
+        stream << ",\"collection_complete\":" << (collection_complete ? "true" : "false");
+        stream << ",\"collection_incomplete\":" << (collection.incomplete ? "true" : "false");
+        stream << ",\"collection_start_tick\":" << collection.start_tick;
+        stream << ",\"collection_deadline_tick\":" << collection.deadline_tick;
+        stream << ",\"collection_stop_tick\":" << collection.stop_tick;
+        stream << ",\"collection_admitted_rows\":" << collection.admitted_rows;
+        stream << ",\"collection_rejected_rows\":" << collection.rejected_rows;
+        stream << ",\"collection_clock_failures\":" << collection.clock_failures;
+        stream << ",\"collection_operation_failures\":" << collection.operation_failures;
+        stream << ",\"collection_admitted_intervals\":" << collection.admitted_intervals;
+        stream << ",\"collection_active_intervals\":" << collection.active_intervals;
+        stream << ",\"collection_pending_event\":" << (pending_event ? "true" : "false");
+        stream << ",\"collection_pending_acquisitions\":" << pending_acquisitions;
+        stream << ",\"collection_active_callbacks\":" << active_callbacks;
+    }
     stream << ",\"rows\":[";
     bool first = true;
     for (const TraceRow& trace_row : snapshot)
@@ -2512,6 +2808,42 @@ std::string Recorder::serialize() const
     }
     stream << "]}";
     return stream.str();
+}
+
+void Recorder::freeze_collection_evidence() noexcept
+{
+    if (collection_ == nullptr)
+    {
+        return;
+    }
+    bool incomplete = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        incomplete = pending_event_.has_value() || pending_event_interval_.has_value() ||
+                     !pending_callback_acquisitions_.empty() || !active_callbacks_.empty();
+        if (!incomplete)
+        {
+            for (const TraceRow& stored : rows_)
+            {
+                const RowHeader& header = row_header(stored);
+                if (header.exit_sequence == 0)
+                {
+                    incomplete = true;
+                    break;
+                }
+                const auto* callback = std::get_if<CallbackEntryRow>(&stored);
+                if (callback != nullptr && !callback->exit_observed)
+                {
+                    incomplete = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (incomplete)
+    {
+        collection_->mark_incomplete();
+    }
 }
 
 const Originals& Recorder::originals() const

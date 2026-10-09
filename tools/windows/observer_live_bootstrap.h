@@ -47,7 +47,9 @@ struct ObserverLiveChildRequest
     // synthesized here.
     ObserverLiveBootstrapInput bootstrap{};
     std::filesystem::path      output;
-    std::uint32_t              cleanup_ticks = 0;
+    std::uint32_t              collection_ticks = 0;
+    std::uint32_t              completion_ticks = 0;
+    std::uint32_t              cleanup_ticks    = 0;
 };
 
 class ObserverLiveChildSession final
@@ -69,6 +71,8 @@ public:
                                                  std::uint32_t                timeout_ticks,
                                                  std::string*                 refusal) noexcept;
     bool                  release(const ObserverLiveAuthority& authority,
+                                  std::uint64_t                lifecycle_started,
+                                  std::uint32_t                lifecycle_ticks,
                                   std::string*                 refusal) noexcept;
     bool                  request_start(std::string* refusal) noexcept;
     bool                  request_initial_hold(std::string* refusal) noexcept;
@@ -130,7 +134,7 @@ extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_request_cleanup_hold
 // teardown.
 bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
                                const ObserverLiveChildRequest& request,
-                               std::uint32_t                   timeout_ticks,
+                               std::uint32_t                   completion_ticks,
                                std::string*                    refusal) noexcept;
 
 // Concrete child command-line adapter for candidate main.  It accepts only

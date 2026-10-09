@@ -538,6 +538,15 @@ bool initialize_failure_ledger(const std::filesystem::path& path,
          << " fixture_pin_size=" << request.fixture_file_pin.size_bytes
          << " fixture_pin_sha256=" << ledger_hex_digest(request.fixture_file_pin.sha256)
          << " session_id=" << request.session_id
+         << " collection_ticks=" << request.limits.collection_ticks
+         << " child_completion_ticks=" << request.limits.child_completion_ticks
+         << " hold_ticks=" << request.limits.hold_ticks
+         << " known_cleanup_ticks=" << request.limits.known_cleanup_ticks
+         << " responsiveness_ticks=" << request.limits.responsiveness_ticks
+         << " owner_exit_ticks=" << request.limits.owner_exit_ticks
+         << " termination_ticks=" << request.limits.termination_ticks
+         << " acknowledgement_ticks=" << request.limits.acknowledgement_ticks
+         << " exit_confirmation_ticks=" << request.limits.exit_confirmation_ticks
          << " created_observer_process_id=0 observer_instance_id=0 controller_thread_id=0"
          << " owner_id=0 event_identity=0 lease_identity=0 module_pin_identity=0"
          << " publication_generation=0 initial_hold_request_epoch=0 cleanup_hold_request_epoch=0"
@@ -574,6 +583,29 @@ bool append_failure_ledger(const std::filesystem::path& path,
          << " publication_exit_acknowledged=" << (result.exit_event_acknowledged ? 1 : 0)
          << " observer_exit_confirmed=" << (result.observer_exit_confirmed ? 1 : 0)
          << " fixture_exit_confirmed=" << (result.fixture_exit_confirmed ? 1 : 0)
+         << " fixture_exit_code_known=" << (result.fixture_exit_code_known ? 1 : 0)
+         << " fixture_exit_code=" << result.fixture_exit_code
+         << " collection_complete=" << (result.collection_complete ? 1 : 0)
+         << " collection_incomplete=" << (result.collection_incomplete ? 1 : 0)
+         << " collection_stop_reason=" << result.collection_stop_reason
+         << " collection_start_tick=" << result.collection_start_tick
+         << " collection_deadline_tick=" << result.collection_deadline_tick
+         << " collection_stop_tick=" << result.collection_stop_tick
+         << " collection_admitted_rows=" << result.collection_admitted_rows
+         << " collection_rejected_rows=" << result.collection_rejected_rows
+         << " collection_clock_failures=" << result.collection_clock_failures
+         << " collection_operation_failures=" << result.collection_operation_failures
+         << " collection_admitted_intervals=" << result.collection_admitted_intervals
+         << " collection_active_intervals=" << result.collection_active_intervals
+         << " collection_ticks=" << request.limits.collection_ticks
+         << " child_completion_ticks=" << request.limits.child_completion_ticks
+         << " hold_ticks=" << request.limits.hold_ticks
+         << " known_cleanup_ticks=" << request.limits.known_cleanup_ticks
+         << " responsiveness_ticks=" << request.limits.responsiveness_ticks
+         << " owner_exit_ticks=" << request.limits.owner_exit_ticks
+         << " termination_ticks=" << request.limits.termination_ticks
+         << " acknowledgement_ticks=" << request.limits.acknowledgement_ticks
+         << " exit_confirmation_ticks=" << request.limits.exit_confirmation_ticks
          << " owner_intervention_required=" << (result.owner_intervention_required ? 1 : 0)
          << " created_observer_process_id=" << result.observer_process_id
          << " observer_instance_id=" << result.observer_instance_id
@@ -1623,7 +1655,8 @@ std::uint64_t controller_owner_id() noexcept
 
 bool within_tick_bound(ULONGLONG started, std::uint32_t bound) noexcept
 {
-    return static_cast<ULONGLONG>(GetTickCount64() - started) <= bound;
+    return observer_diagnostic::ObserverFinitePhaseBudget::within(
+        started, GetTickCount64(), bound);
 }
 
 struct SupervisorContext
@@ -1986,7 +2019,9 @@ bool ObserverLiveLimits::valid() const noexcept
     {
         return value != 0 && value != INFINITE;
     };
-    return finite_positive(hold_ticks) && finite_positive(known_cleanup_ticks) &&
+    return collection_ticks <= 3000 && finite_positive(collection_ticks) &&
+           finite_positive(child_completion_ticks) && finite_positive(hold_ticks) &&
+           finite_positive(known_cleanup_ticks) &&
            finite_positive(responsiveness_ticks) && finite_positive(owner_exit_ticks) &&
            finite_positive(termination_ticks) && finite_positive(acknowledgement_ticks) &&
            finite_positive(exit_confirmation_ticks);
@@ -2550,7 +2585,7 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
     {
         if (refusal != nullptr)
         {
-            *refusal = "observer creation requires the selected profile, an absolute executable, command line and seven limits";
+            *refusal = "observer creation requires the selected profile, an absolute executable, command line and nine limits";
         }
         return false;
     }
@@ -7370,13 +7405,14 @@ using RtlSetLastNtStatusFunction = VOID(NTAPI*)(LONG);
 
 struct ObserverChildComposition::State
 {
-    ObserverChildRequest                       request{};
-    HMODULE                                    engine = nullptr;
-    ComPtr<IDebugClient>                       client;
-    ComPtr<IDebugControl>                      control;
-    ComPtr<IDebugSystemObjects>                systems;
-    std::unique_ptr<TraceMapObserverCallbacks> composition;
-    std::unique_ptr<Recorder::BridgeScope>     bridge_scope;
+    ObserverChildRequest                        request{};
+    std::shared_ptr<ObserverCollectionBoundary> collection_owner;
+    HMODULE                                     engine = nullptr;
+    ComPtr<IDebugClient>                        client;
+    ComPtr<IDebugControl>                       control;
+    ComPtr<IDebugSystemObjects>                 systems;
+    std::unique_ptr<TraceMapObserverCallbacks>  composition;
+    std::unique_ptr<Recorder::BridgeScope>      bridge_scope;
     // QueryService returns observer-local interface addresses.  Keep this
     // transport bound to the child observer for all query reads and mapping
     // evidence; the fixture handle below is retained independently.
@@ -7385,6 +7421,7 @@ struct ObserverChildComposition::State
     HANDLE                     fixture_process_handle         = nullptr;
     DWORD                      fixture_process_id             = 0;
     DWORD                      fixture_exit_code              = 0;
+    bool                       fixture_exit_code_known        = false;
     std::uint64_t              event_tail_sequence            = 0;
     bool                       engine_options_readback        = false;
     bool                       fixture_exit_confirmed         = false;
@@ -7516,7 +7553,9 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
                                        const ObserverChildRequest&  request,
                                        std::string*                 refusal) noexcept
 {
-    if (state_ == nullptr || state_->prepared || !child_authority(authority, refusal) ||
+    if (state_ == nullptr || state_->prepared || request.collection == nullptr ||
+        request.collection_owner == nullptr || request.collection_owner.get() != request.collection ||
+        !request.collection->configured() || !child_authority(authority, refusal) ||
         !absolute_path(request.dbgeng_image) || !absolute_path(request.fixture_executable) ||
         request.fixture_command_line.empty() || request.session_id == 0 || request.row_cap == 0 ||
         request.provenance_hash_cap < kObserverImageSize)
@@ -7538,10 +7577,11 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    state_->request = request;
-    state_->engine  = LoadLibraryExW(request.dbgeng_image.c_str(),
-                                     nullptr,
-                                     LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+    state_->request          = request;
+    state_->collection_owner = request.collection_owner;
+    state_->engine           = LoadLibraryExW(request.dbgeng_image.c_str(),
+                                              nullptr,
+                                              LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (state_->engine == nullptr)
     {
         if (refusal != nullptr)
@@ -7640,6 +7680,8 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
     RecorderConfig recorder_config;
     recorder_config.session_id                         = request.session_id;
     recorder_config.max_rows                           = request.row_cap;
+    recorder_config.collection                         = request.collection;
+    recorder_config.collection_owner                   = state_->collection_owner;
     recorder_config.callbacks.user                     = state_.get();
     recorder_config.callbacks.read_memory              = &child_read_memory;
     recorder_config.callbacks.read_error_pair          = &child_read_error;
@@ -7766,6 +7808,10 @@ bool ObserverChildComposition::start_fixture(const ObserverLiveAuthority& author
     bool            creation_event        = false;
     while (within_tick_bound(creation_wait_started, timeout_ticks))
     {
+        if (state_->request.collection != nullptr)
+        {
+            (void)state_->request.collection->poll();
+        }
         const HRESULT wait_result = state_->control->WaitForEvent(DEBUG_WAIT_DEFAULT, 1);
         if (wait_result == S_OK)
         {
@@ -7899,6 +7945,10 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
     bool            exited  = false;
     while (within_tick_bound(started, timeout_ticks))
     {
+        if (state_->request.collection != nullptr)
+        {
+            (void)state_->request.collection->poll();
+        }
         if (WaitForSingleObject(state_->fixture_process_handle, 0) == WAIT_OBJECT_0)
         {
             exited = true;
@@ -7942,7 +7992,7 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
             return false;
         }
     }
-    if (!exited || !GetExitCodeProcess(state_->fixture_process_handle, &state_->fixture_exit_code))
+    if (!exited)
     {
         if (refusal != nullptr)
         {
@@ -7950,8 +8000,22 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
         }
         return false;
     }
-    state_->fixture_exit_confirmed = true;
-    const Recorder* recorder       = state_->composition == nullptr ? nullptr : state_->composition->recorder();
+    const bool exit_code_read =
+        GetExitCodeProcess(state_->fixture_process_handle, &state_->fixture_exit_code) != FALSE;
+    const observer_diagnostic::ObserverFixtureExitState exit_state =
+        observer_diagnostic::observer_fixture_exit_state(exited, exit_code_read, state_->fixture_exit_code);
+    state_->fixture_exit_confirmed  = exit_state.signaled;
+    state_->fixture_exit_code_known = exit_state.code_known;
+    state_->fixture_exit_code       = exit_state.code;
+    if (!exit_state.code_known)
+    {
+        state_->fixture_exit_code = 0;
+    }
+    if (state_->request.collection != nullptr && state_->request.collection->collecting())
+    {
+        (void)state_->request.collection->stop(observer_diagnostic::ObserverCollectionStopReason::Explicit);
+    }
+    const Recorder* recorder = state_->composition == nullptr ? nullptr : state_->composition->recorder();
     if (recorder != nullptr)
     {
         for (const QueryRow& row : recorder->query_rows())
@@ -7962,11 +8026,9 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
     }
     if (state_->event_tail_sequence == 0)
     {
-        if (refusal != nullptr)
-        {
-            *refusal = "DbgEng event tail carried no recorder exit sequence";
-        }
-        return false;
+        // Natural fixture exit is retained independently. A missing recorder
+        // tail makes collection incomplete, but it must not erase the exit
+        // observation needed by the separate cleanup phase.
     }
     return true;
 }
@@ -8087,6 +8149,11 @@ std::uint32_t ObserverChildComposition::fixture_exit_code() const noexcept
     return state_ == nullptr ? 0 : state_->fixture_exit_code;
 }
 
+bool ObserverChildComposition::fixture_exit_code_known() const noexcept
+{
+    return state_ != nullptr && state_->fixture_exit_code_known;
+}
+
 std::uint64_t ObserverChildComposition::event_tail_sequence() const noexcept
 {
     return state_ == nullptr ? 0 : state_->event_tail_sequence;
@@ -8129,7 +8196,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         ObserverLiveResult result;
         result.disposition = ObserverLiveDisposition::RefusedInput;
         result.stage       = "request";
-        result.reason      = "profile, source revision, absolute inputs, fresh output and seven positive finite limits are required";
+        result.reason      = "profile, source revision, absolute inputs, fresh output and nine positive finite limits are required";
         return result;
     }
     std::string refusal;
@@ -9358,7 +9425,20 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("failure_ledger", "child-start intent could not be persisted");
     }
+    const ULONGLONG child_started_tick         = GetTickCount64();
+    const auto      child_completion_remaining = [child_started_tick, &request]() -> std::uint32_t
+    {
+        return observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            child_started_tick, GetTickCount64(), request.limits.child_completion_ticks);
+    };
+    const auto fail_child_completion_overrun = [&](const char* phase)
+    {
+        abort_created();
+        return fail("child_completion", phase == nullptr ? "target child completion bound expired" : phase);
+    };
     const bool child_started_result = remote.start_child(&refusal);
+    const bool child_start_overrun  = !within_tick_bound(child_started_tick,
+                                                         request.limits.child_completion_ticks);
     child_started                   = child_started_result;
     if (!record_result(child_started_result,
                        child_started_result ? "started" : "failed"))
@@ -9371,10 +9451,14 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("child_start", refusal);
     }
+    if (child_start_overrun)
+    {
+        abort_created();
+        return fail("child_start", "target child start control exceeded its finite completion bound");
+    }
     bool                       child_complete = false;
     ObserverLiveChildControlV1 completed_child_control{};
-    const ULONGLONG            child_started_tick = GetTickCount64();
-    while (within_tick_bound(child_started_tick, request.limits.responsiveness_ticks))
+    while (within_tick_bound(child_started_tick, request.limits.child_completion_ticks))
     {
         if (!service_debug_stream())
         {
@@ -9395,20 +9479,31 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         }
         if (child_state == ObserverLiveChildState::Complete)
         {
-            if (child_control.qualified_row_count == 0 || child_control.trace_size_bytes == 0 ||
-                child_control.event_tail_sequence == 0 ||
-                child_control.fixture_exit_confirmed == 0 ||
-                child_control.engine_options_readback == 0 ||
-                child_control.raw_trace_persisted == 0 || child_control.raw_trace_incomplete != 0 ||
-                child_control.failure_outcome !=
-                    static_cast<std::uint32_t>(ObserverLiveFailureOutcome::None))
+            if (child_control.trace_size_bytes == 0 || child_control.fixture_exit_confirmed == 0 ||
+                child_control.engine_options_readback == 0 || child_control.raw_trace_persisted == 0)
             {
                 abort_created();
-                return fail("child_output", "target child completion carried no exit or event-tail witness");
+                return fail("child_output", "target child completion carried no persisted exit witness");
             }
-            completed_child_control       = child_control;
-            result.fixture_exit_confirmed = child_control.fixture_exit_confirmed != 0;
-            child_complete                = true;
+            completed_child_control              = child_control;
+            result.fixture_exit_confirmed        = child_control.fixture_exit_confirmed != 0;
+            result.fixture_exit_code_known       = child_control.fixture_exit_code_known != 0;
+            result.fixture_exit_code             = child_control.fixture_exit_code;
+            result.collection_complete           = child_control.collection_complete != 0;
+            result.collection_incomplete         = child_control.raw_trace_incomplete != 0 ||
+                                                   child_control.failure_outcome !=
+                                                       static_cast<std::uint32_t>(ObserverLiveFailureOutcome::None);
+            result.collection_stop_reason        = child_control.collection_stop_reason;
+            result.collection_start_tick         = child_control.collection_start_tick;
+            result.collection_deadline_tick      = child_control.collection_deadline_tick;
+            result.collection_stop_tick          = child_control.collection_stop_tick;
+            result.collection_admitted_rows      = child_control.collection_admitted_rows;
+            result.collection_rejected_rows      = child_control.collection_rejected_rows;
+            result.collection_clock_failures     = child_control.collection_clock_failures;
+            result.collection_operation_failures = child_control.collection_operation_failures;
+            result.collection_admitted_intervals = child_control.collection_admitted_intervals;
+            result.collection_active_intervals   = child_control.collection_active_intervals;
+            child_complete                       = true;
             break;
         }
         Sleep(1);
@@ -9425,6 +9520,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         abort_created();
         return fail("child_output", "target child did not create the fresh trace artifact");
+    }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired before restoration began");
     }
     if (!record_intent("request_cleanup_hold"))
     {
@@ -9446,16 +9546,28 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         return fail("cleanup_request", refusal.empty() ? "target cleanup hold did not publish its exact thread identity" : refusal);
     }
     ObserverHeldDebugEvent restore_event;
-    const bool             cleanup_hold_observed = wait_for_create_thread(request.limits.known_cleanup_ticks,
-                                                                          bootstrap.cleanup_hold_request_address,
-                                                                          ObserverLiveHoldRequestKind::Cleanup,
-                                                                          bootstrap.cleanup_hold_worker_start,
-                                                                          remote.cleanup_hold_request_epoch(),
-                                                                          &restore_event);
+    const std::uint32_t    cleanup_hold_ticks = std::min(request.limits.hold_ticks,
+                                                         child_completion_remaining());
+    if (cleanup_hold_ticks == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired before cleanup hold acquisition");
+    }
+    const bool cleanup_hold_observed = wait_for_create_thread(cleanup_hold_ticks,
+                                                              bootstrap.cleanup_hold_request_address,
+                                                              ObserverLiveHoldRequestKind::Cleanup,
+                                                              bootstrap.cleanup_hold_worker_start,
+                                                              remote.cleanup_hold_request_epoch(),
+                                                              &restore_event);
     if (!cleanup_hold_observed)
     {
         abort_created();
         return fail("restore_hold", refusal.empty() ? "no cleanup CREATE_THREAD_DEBUG_EVENT reached" : refusal);
+    }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during cleanup hold acquisition");
     }
     if (!record_intent("set_cleanup_hold_event"))
     {
@@ -9483,6 +9595,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("restore_hold", refusal);
     }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during cleanup hold admission");
+    }
     if (!record_intent("attest_cleanup_hold"))
     {
         abort_created();
@@ -9502,6 +9619,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         abort_created();
         return fail("restore_hold", refusal);
+    }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during cleanup hold attestation");
     }
     if (!record_intent("restore_hook_transaction"))
     {
@@ -9524,6 +9646,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         abort_created();
         return fail("hook_restore", "external hook restoration retained unknown state");
+    }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during hook restoration");
     }
     if (raw_installed && !record_intent("restore_raw_slots"))
     {
@@ -9550,10 +9677,20 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("raw_restore", "external raw-slot restoration refused");
     }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during raw-slot restoration");
+    }
     if (!continue_held(&restore_event))
     {
         abort_created();
         return fail("restore_continue", "cleanup hold continuation failed");
+    }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during cleanup continuation");
     }
     result.last_verified_hold = false;
     if (!record_intent("release_publication_ownership"))
@@ -9577,6 +9714,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("publication_release", "target-local publication owner release failed");
     }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during publication release");
+    }
     if (!record_intent("release_child"))
     {
         abort_created();
@@ -9597,6 +9739,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("child_release", refusal);
     }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during child release");
+    }
     if (!record_intent("release_bound_module"))
     {
         abort_created();
@@ -9616,6 +9763,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         abort_created();
         return fail("module_release", "target-local module release witness was not cleared");
+    }
+    if (child_completion_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during module release");
     }
     result.restoration_confirmed = true;
     const ULONGLONG exit_started = GetTickCount64();
@@ -9753,6 +9905,15 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         abort_created();
         return fail("observer_shutdown", refusal);
+    }
+    if (!result.collection_complete || result.collection_incomplete)
+    {
+        return fail("collection", "diagnostic collection stopped before complete evidence was captured");
+    }
+    if (!result.fixture_exit_confirmed || !result.fixture_exit_code_known ||
+        result.fixture_exit_code != ERROR_SUCCESS)
+    {
+        return fail("fixture_exit", "fixture natural exit was not confirmed with a zero exit code");
     }
     if (!owner.close())
     {

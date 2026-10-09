@@ -79,6 +79,8 @@ std::uint64_t native_observation_budget(
     {
         budget += value;
     };
+    add(limits.collection_ticks);
+    add(limits.child_completion_ticks);
     add(limits.hold_ticks);
     add(limits.known_cleanup_ticks);
     add(limits.responsiveness_ticks);
@@ -453,6 +455,28 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             continue;
         }
 
+        if (option == "--collection-ticks" || option == "--child-completion-ticks")
+        {
+            parsed->native_option_seen = true;
+            if (!take_value(&index, argc, argv, option, &value, error) ||
+                !parse_unsigned(value, &number) ||
+                number > std::numeric_limits<std::uint32_t>::max())
+            {
+                *error = std::string(option) + " requires a positive finite 32-bit integer";
+                return false;
+            }
+            if (option == "--collection-ticks")
+            {
+                parsed->native_request.limits.collection_ticks = static_cast<std::uint32_t>(number);
+            }
+            else
+            {
+                parsed->native_request.limits.child_completion_ticks =
+                    static_cast<std::uint32_t>(number);
+            }
+            continue;
+        }
+
         auto parse_native_pin_size = [&](std::uint64_t* destination) -> bool
         {
             if (!take_value(&index, argc, argv, option, &value, error) ||
@@ -635,7 +659,7 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
         parsed->request.session_id == 0 || parsed->request.row_cap == 0 ||
         !parsed->request.limits.valid())
     {
-        *error = "--output, --profile, --session, --row-cap and all seven limits are required";
+        *error = "--output, --profile, --session, --row-cap and all seven offline limits are required";
         return false;
     }
     if (parsed->native)
@@ -666,7 +690,7 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             !pin_complete(parsed->native_request.dbgeng_file_pin) ||
             !pin_complete(parsed->native_request.fixture_file_pin))
         {
-            *error = "--native requires absolute observer, DbgEng, fixture and fresh output paths, commands, hash cap, seven limits and three byte pins";
+            *error = "--native requires absolute observer, DbgEng, fixture and fresh output paths, commands, hash cap, nine limits and three byte pins";
             return false;
         }
         std::error_code output_error;
@@ -692,12 +716,14 @@ void print_usage()
                  "--profile query-output-identity-v1 --source-revision HEX40 --session N --row-cap N "
                  "--provenance-hash-cap N --observer-size N --observer-sha256 HEX64 "
                  "--dbgeng-size N --dbgeng-sha256 HEX64 --fixture-size N --fixture-sha256 HEX64 "
+                 "--collection-ticks N --child-completion-ticks N "
                  "--hold-ticks N --known-cleanup-ticks N --responsiveness-ticks N "
                  "--owner-exit-ticks N --termination-ticks N --acknowledgement-ticks N "
                  "--exit-confirmation-ticks N\n"
               << "       observer_candidate --native-child --profile query-output-identity-v1 "
                  "--dbgeng PATH --fixture PATH --fixture-command-line TEXT --output PATH "
-                 "--session N --row-cap N --provenance-hash-cap N --timeout-ticks N\n";
+                 "--session N --row-cap N --provenance-hash-cap N --collection-ticks N "
+                 "--child-completion-ticks N --cleanup-ticks N\n";
 }
 
 } // namespace
@@ -745,6 +771,20 @@ int observer_candidate_main(int argc, char* argv[])
                   << "exit_event_acknowledged=" << (result.exit_event_acknowledged ? 1 : 0) << '\n'
                   << "restoration_confirmed=" << (result.restoration_confirmed ? 1 : 0) << '\n'
                   << "fixture_exit_confirmed=" << (result.fixture_exit_confirmed ? 1 : 0) << '\n'
+                  << "fixture_exit_code_known=" << (result.fixture_exit_code_known ? 1 : 0) << '\n'
+                  << "fixture_exit_code=" << result.fixture_exit_code << '\n'
+                  << "collection_complete=" << (result.collection_complete ? 1 : 0) << '\n'
+                  << "collection_incomplete=" << (result.collection_incomplete ? 1 : 0) << '\n'
+                  << "collection_stop_reason=" << result.collection_stop_reason << '\n'
+                  << "collection_start_tick=" << result.collection_start_tick << '\n'
+                  << "collection_deadline_tick=" << result.collection_deadline_tick << '\n'
+                  << "collection_stop_tick=" << result.collection_stop_tick << '\n'
+                  << "collection_admitted_rows=" << result.collection_admitted_rows << '\n'
+                  << "collection_rejected_rows=" << result.collection_rejected_rows << '\n'
+                  << "collection_clock_failures=" << result.collection_clock_failures << '\n'
+                  << "collection_operation_failures=" << result.collection_operation_failures << '\n'
+                  << "collection_admitted_intervals=" << result.collection_admitted_intervals << '\n'
+                  << "collection_active_intervals=" << result.collection_active_intervals << '\n'
                   << "owner_intervention_required="
                   << (result.owner_intervention_required || retained ? 1 : 0) << '\n';
         if (result.owner_intervention_required || retained)

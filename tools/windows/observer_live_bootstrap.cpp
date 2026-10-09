@@ -1345,25 +1345,27 @@ ObserverLiveChildControlV1* observer_live_child_control() noexcept
 
 struct ObserverLiveChildSession::State
 {
-    ObserverChildComposition            composition{};
-    ObserverLiveChildRequest            request{};
-    ObserverLiveAuthority               authority{};
-    std::atomic<ObserverLiveChildState> state{ ObserverLiveChildState::Uninitialized };
-    std::uint32_t                       qualified_rows           = 0;
-    std::uint32_t                       rows                     = 0;
-    std::uint32_t                       fixture_exit_code        = 0;
-    std::uint64_t                       event_tail_sequence      = 0;
-    HANDLE                              initial_release_event    = nullptr;
-    HANDLE                              initial_thread           = nullptr;
-    DWORD                               initial_thread_id        = 0;
-    bool                                initial_thread_suspended = false;
-    HANDLE                              cleanup_release_event    = nullptr;
-    HANDLE                              cleanup_thread           = nullptr;
-    DWORD                               cleanup_thread_id        = 0;
-    bool                                cleanup_thread_suspended = false;
-    std::atomic<bool>                   start_requested{ false };
-    std::atomic<bool>                   release_requested{ false };
-    bool                                trace_persist_attempted = false;
+    ObserverChildComposition                                         composition{};
+    std::shared_ptr<observer_diagnostic::ObserverCollectionBoundary> collection_owner;
+    ObserverLiveChildRequest                                         request{};
+    ObserverLiveAuthority                                            authority{};
+    std::atomic<ObserverLiveChildState>                              state{ ObserverLiveChildState::Uninitialized };
+    std::uint32_t                                                    qualified_rows           = 0;
+    std::uint32_t                                                    rows                     = 0;
+    std::uint32_t                                                    fixture_exit_code        = 0;
+    bool                                                             fixture_exit_code_known  = false;
+    std::uint64_t                                                    event_tail_sequence      = 0;
+    HANDLE                                                           initial_release_event    = nullptr;
+    HANDLE                                                           initial_thread           = nullptr;
+    DWORD                                                            initial_thread_id        = 0;
+    bool                                                             initial_thread_suspended = false;
+    HANDLE                                                           cleanup_release_event    = nullptr;
+    HANDLE                                                           cleanup_thread           = nullptr;
+    DWORD                                                            cleanup_thread_id        = 0;
+    bool                                                             cleanup_thread_suspended = false;
+    std::atomic<bool>                                                start_requested{ false };
+    std::atomic<bool>                                                release_requested{ false };
+    bool                                                             trace_persist_attempted = false;
 };
 
 DWORD WINAPI ObserverLiveChildSession::cleanup_thread_proc(LPVOID raw_event) noexcept
@@ -1397,6 +1399,12 @@ ObserverLiveChildSession::~ObserverLiveChildSession() noexcept
 {
     if (state_ != nullptr)
     {
+        const ULONGLONG cleanup_started   = GetTickCount64();
+        const auto      remaining_cleanup = [cleanup_started](std::uint32_t limit) -> std::uint32_t
+        {
+            return observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+                cleanup_started, GetTickCount64(), limit);
+        };
         if (state_->state.load(std::memory_order_acquire) != ObserverLiveChildState::Uninitialized &&
             state_->state.load(std::memory_order_acquire) != ObserverLiveChildState::Released &&
             !state_->trace_persist_attempted)
@@ -1406,7 +1414,7 @@ ObserverLiveChildSession::~ObserverLiveChildSession() noexcept
                                          ObserverLiveFailureOutcome::Lifecycle,
                                          &ignored);
         }
-        const auto close_worker = [&](HANDLE* event, HANDLE* thread, bool* suspended)
+        const auto close_worker = [&](HANDLE* event, HANDLE* thread, bool* suspended, std::uint32_t timeout)
         {
             if (suspended != nullptr && *suspended && *thread != nullptr)
             {
@@ -1419,9 +1427,9 @@ ObserverLiveChildSession::~ObserverLiveChildSession() noexcept
             }
             if (*thread != nullptr)
             {
-                if (finite_tick_bound(state_->request.cleanup_ticks))
+                if (finite_tick_bound(timeout))
                 {
-                    (void)WaitForSingleObject(*thread, state_->request.cleanup_ticks);
+                    (void)WaitForSingleObject(*thread, timeout);
                 }
                 CloseHandle(*thread);
                 *thread = nullptr;
@@ -1434,10 +1442,12 @@ ObserverLiveChildSession::~ObserverLiveChildSession() noexcept
         };
         close_worker(&state_->initial_release_event,
                      &state_->initial_thread,
-                     &state_->initial_thread_suspended);
+                     &state_->initial_thread_suspended,
+                     remaining_cleanup(state_->request.cleanup_ticks));
         close_worker(&state_->cleanup_release_event,
                      &state_->cleanup_thread,
-                     &state_->cleanup_thread_suspended);
+                     &state_->cleanup_thread_suspended,
+                     remaining_cleanup(state_->request.cleanup_ticks));
     }
     std::lock_guard<std::mutex> lock(g_bootstrap_mutex);
     if (g_active_child_session == this)
@@ -1461,15 +1471,31 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
         }
         return false;
     }
-    if (request.cleanup_ticks == 0 || request.cleanup_ticks == INFINITE)
+    if (request.collection_ticks == 0 || request.collection_ticks > 3000 ||
+        request.completion_ticks == 0 || request.completion_ticks == INFINITE ||
+        request.cleanup_ticks == 0 || request.cleanup_ticks == INFINITE)
     {
         if (refusal != nullptr)
         {
-            *refusal = "target child cleanup requires a positive finite bound";
+            *refusal = "target child requires distinct finite collection, completion and cleanup bounds";
         }
         return false;
     }
-    if (!state_->composition.prepare(authority, request.composition, refusal))
+    state_->collection_owner = std::make_shared<observer_diagnostic::ObserverCollectionBoundary>();
+    if (state_->collection_owner == nullptr ||
+        !state_->collection_owner->start(observer_collection_windows_input(request.collection_ticks)))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "target child diagnostic collection boundary could not start";
+        }
+        set_child_state(ObserverLiveChildState::Failed, ERROR_INVALID_DATA);
+        return false;
+    }
+    ObserverLiveChildRequest prepared_request     = request;
+    prepared_request.composition.collection       = state_->collection_owner.get();
+    prepared_request.composition.collection_owner = state_->collection_owner;
+    if (!state_->composition.prepare(authority, prepared_request.composition, refusal))
     {
         set_child_state(ObserverLiveChildState::Failed, ERROR_DLL_INIT_FAILED);
         return false;
@@ -1513,12 +1539,13 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
         hook_layout.wrappers[index].extent  = bootstrap_input.hook_wrapper_extents[index];
     }
     state_->composition.set_provenance_hook_layout(hook_layout);
-    state_->request   = request;
+    state_->request   = prepared_request;
     state_->authority = authority;
     state_->state.store(ObserverLiveChildState::Prepared, std::memory_order_release);
     state_->rows                     = 0;
     state_->qualified_rows           = 0;
     state_->fixture_exit_code        = 0;
+    state_->fixture_exit_code_known  = false;
     state_->event_tail_sequence      = 0;
     state_->initial_thread_id        = 0;
     state_->cleanup_thread_id        = 0;
@@ -1542,20 +1569,32 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
         }
         g_active_child_session = this;
     }
-    g_child_control.session_id              = request.composition.session_id;
-    g_child_control.row_count               = 0;
-    g_child_control.qualified_row_count     = 0;
-    g_child_control.fixture_exit_code       = 0;
-    g_child_control.fixture_exit_confirmed  = 0;
-    g_child_control.engine_options_readback = 0;
-    g_child_control.initial_hold_thread_id  = 0;
-    g_child_control.cleanup_thread_id       = 0;
-    g_child_control.trace_size_bytes        = 0;
-    g_child_control.event_tail_sequence     = 0;
-    g_child_control.raw_trace_persisted     = 0;
-    g_child_control.raw_trace_incomplete    = 0;
-    g_child_control.failure_outcome         = 0;
-    g_child_control.reserved0               = 0;
+    g_child_control.session_id                    = request.composition.session_id;
+    g_child_control.row_count                     = 0;
+    g_child_control.qualified_row_count           = 0;
+    g_child_control.fixture_exit_code             = 0;
+    g_child_control.fixture_exit_code_known       = 0;
+    g_child_control.fixture_exit_confirmed        = 0;
+    g_child_control.engine_options_readback       = 0;
+    g_child_control.initial_hold_thread_id        = 0;
+    g_child_control.cleanup_thread_id             = 0;
+    g_child_control.trace_size_bytes              = 0;
+    g_child_control.event_tail_sequence           = 0;
+    g_child_control.raw_trace_persisted           = 0;
+    g_child_control.raw_trace_incomplete          = 0;
+    g_child_control.failure_outcome               = 0;
+    g_child_control.collection_complete           = 0;
+    g_child_control.collection_stop_reason        = 0;
+    g_child_control.collection_reserved0          = 0;
+    g_child_control.collection_start_tick         = 0;
+    g_child_control.collection_deadline_tick      = 0;
+    g_child_control.collection_stop_tick          = 0;
+    g_child_control.collection_admitted_rows      = 0;
+    g_child_control.collection_rejected_rows      = 0;
+    g_child_control.collection_clock_failures     = 0;
+    g_child_control.collection_operation_failures = 0;
+    g_child_control.collection_admitted_intervals = 0;
+    g_child_control.collection_active_intervals   = 0;
     set_child_state(ObserverLiveChildState::Prepared);
     return true;
 }
@@ -1615,14 +1654,21 @@ bool ObserverLiveChildSession::persist_trace_artifact(bool                      
         }
         return false;
     }
-    state_->trace_persist_attempted               = true;
-    const observer_diagnostic::Recorder* recorder = state_->composition.recorder();
-    std::string                          trace;
-    bool                                 serialized = recorder != nullptr;
+    state_->trace_persist_attempted         = true;
+    observer_diagnostic::Recorder* recorder = state_->composition.recorder();
+    std::string                    trace;
+    bool                           serialized  = recorder != nullptr;
+    const bool                     pending_raw = state_->composition.callbacks() != nullptr &&
+                                                 state_->composition.callbacks()->has_pending_raw();
+    if (pending_raw && state_->collection_owner != nullptr)
+    {
+        state_->collection_owner->mark_incomplete();
+    }
     if (recorder != nullptr)
     {
         try
         {
+            recorder->freeze_collection_evidence();
             trace = recorder->serialize();
         }
         catch (...)
@@ -1657,10 +1703,17 @@ bool ObserverLiveChildSession::persist_trace_artifact(bool                      
         state_->event_tail_sequence = std::max(state_->event_tail_sequence,
                                                row.header.exit_sequence);
     }
-    state_->fixture_exit_code                 = state_->composition.fixture_exit_code();
-    const bool                 output_written = write_fresh_output(state_->request.output, trace);
-    const bool                 persisted      = serialized && output_written;
-    ObserverLiveFailureOutcome stored_outcome = outcome;
+    state_->fixture_exit_code       = state_->composition.fixture_exit_code();
+    state_->fixture_exit_code_known = state_->composition.fixture_exit_code_known();
+    const observer_diagnostic::ObserverCollectionSnapshot collection =
+        state_->collection_owner == nullptr ? observer_diagnostic::ObserverCollectionSnapshot{}
+                                            : state_->collection_owner->snapshot();
+    const bool                 collection_complete   = state_->collection_owner != nullptr &&
+                                                       state_->collection_owner->complete();
+    const bool                 collection_incomplete = !collection_complete;
+    const bool                 output_written        = write_fresh_output(state_->request.output, trace);
+    const bool                 persisted             = serialized && output_written;
+    ObserverLiveFailureOutcome stored_outcome        = outcome;
     if (stored_outcome == ObserverLiveFailureOutcome::None && recorder == nullptr)
     {
         stored_outcome = ObserverLiveFailureOutcome::RecorderMissing;
@@ -1673,18 +1726,34 @@ bool ObserverLiveChildSession::persist_trace_artifact(bool                      
     {
         stored_outcome = ObserverLiveFailureOutcome::OutputWrite;
     }
-    g_child_control.row_count               = state_->rows;
-    g_child_control.qualified_row_count     = state_->qualified_rows;
-    g_child_control.fixture_exit_code       = state_->fixture_exit_code;
-    g_child_control.fixture_exit_confirmed  = state_->composition.fixture_exit_confirmed() ? 1U : 0U;
-    g_child_control.engine_options_readback = state_->composition.engine_options_readback() ? 1U : 0U;
-    g_child_control.initial_hold_thread_id  = state_->initial_thread_id;
-    g_child_control.cleanup_thread_id       = state_->cleanup_thread_id;
-    g_child_control.trace_size_bytes        = static_cast<std::uint64_t>(trace.size());
-    g_child_control.event_tail_sequence     = state_->event_tail_sequence;
-    g_child_control.raw_trace_persisted     = persisted ? 1U : 0U;
-    g_child_control.raw_trace_incomplete    = incomplete ? 1U : 0U;
-    g_child_control.failure_outcome         = static_cast<std::uint32_t>(stored_outcome);
+    else if (stored_outcome == ObserverLiveFailureOutcome::None && collection_incomplete)
+    {
+        stored_outcome = ObserverLiveFailureOutcome::IncompleteEvidence;
+    }
+    g_child_control.row_count                     = state_->rows;
+    g_child_control.qualified_row_count           = state_->qualified_rows;
+    g_child_control.fixture_exit_code             = state_->fixture_exit_code;
+    g_child_control.fixture_exit_code_known       = state_->fixture_exit_code_known ? 1U : 0U;
+    g_child_control.fixture_exit_confirmed        = state_->composition.fixture_exit_confirmed() ? 1U : 0U;
+    g_child_control.engine_options_readback       = state_->composition.engine_options_readback() ? 1U : 0U;
+    g_child_control.initial_hold_thread_id        = state_->initial_thread_id;
+    g_child_control.cleanup_thread_id             = state_->cleanup_thread_id;
+    g_child_control.trace_size_bytes              = static_cast<std::uint64_t>(trace.size());
+    g_child_control.event_tail_sequence           = state_->event_tail_sequence;
+    g_child_control.raw_trace_persisted           = persisted ? 1U : 0U;
+    g_child_control.raw_trace_incomplete          = incomplete || pending_raw || collection_incomplete ? 1U : 0U;
+    g_child_control.failure_outcome               = static_cast<std::uint32_t>(stored_outcome);
+    g_child_control.collection_complete           = collection_complete ? 1U : 0U;
+    g_child_control.collection_stop_reason        = static_cast<std::uint32_t>(collection.stop_reason);
+    g_child_control.collection_start_tick         = collection.start_tick;
+    g_child_control.collection_deadline_tick      = collection.deadline_tick;
+    g_child_control.collection_stop_tick          = collection.stop_tick;
+    g_child_control.collection_admitted_rows      = collection.admitted_rows;
+    g_child_control.collection_rejected_rows      = collection.rejected_rows;
+    g_child_control.collection_clock_failures     = collection.clock_failures;
+    g_child_control.collection_operation_failures = collection.operation_failures;
+    g_child_control.collection_admitted_intervals = collection.admitted_intervals;
+    g_child_control.collection_active_intervals   = collection.active_intervals;
     std::atomic_thread_fence(std::memory_order_release);
     if (!persisted && refusal != nullptr)
     {
@@ -1739,9 +1808,15 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
         return false;
     }
     std::string persist_refusal;
-    const bool  persisted = persist_trace_artifact(false,
-                                                   ObserverLiveFailureOutcome::None,
-                                                   &persist_refusal);
+    const bool  pending_raw = state_->composition.callbacks() != nullptr &&
+                              state_->composition.callbacks()->has_pending_raw();
+    if (pending_raw && state_->collection_owner != nullptr)
+    {
+        state_->collection_owner->mark_incomplete();
+    }
+    const bool persisted = persist_trace_artifact(false,
+                                                  ObserverLiveFailureOutcome::None,
+                                                  &persist_refusal);
     if (!persisted)
     {
         if (refusal != nullptr)
@@ -1752,9 +1827,13 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
         set_child_state(ObserverLiveChildState::Failed, ERROR_WRITE_FAULT);
         return false;
     }
-    if (state_->qualified_rows == 0 || state_->event_tail_sequence == 0 ||
+    const bool collection_complete = state_->collection_owner != nullptr &&
+                                     state_->collection_owner->complete();
+    if (state_->qualified_rows == 0 || state_->event_tail_sequence == 0 || pending_raw ||
         !state_->composition.fixture_exit_confirmed() ||
-        !state_->composition.engine_options_readback())
+        !state_->composition.engine_options_readback() ||
+        !state_->fixture_exit_code_known || state_->fixture_exit_code != ERROR_SUCCESS ||
+        !collection_complete)
     {
         if (refusal != nullptr)
         {
@@ -1763,9 +1842,9 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
         g_child_control.raw_trace_incomplete = 1U;
         g_child_control.failure_outcome =
             static_cast<std::uint32_t>(ObserverLiveFailureOutcome::IncompleteEvidence);
-        state_->state.store(ObserverLiveChildState::Failed, std::memory_order_release);
-        set_child_state(ObserverLiveChildState::Failed, ERROR_INVALID_DATA);
-        return false;
+        state_->state.store(ObserverLiveChildState::Complete, std::memory_order_release);
+        set_child_state(ObserverLiveChildState::Complete, ERROR_INVALID_DATA);
+        return true;
     }
     state_->state.store(ObserverLiveChildState::Complete, std::memory_order_release);
     set_child_state(ObserverLiveChildState::Complete);
@@ -1773,6 +1852,8 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
 }
 
 bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
+                                       std::uint64_t                lifecycle_started,
+                                       std::uint32_t                lifecycle_ticks,
                                        std::string*                 refusal) noexcept
 {
     if (state_ == nullptr ||
@@ -1785,10 +1866,31 @@ bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    const auto release_worker = [&](HANDLE*     event,
-                                    HANDLE*     thread,
-                                    bool*       suspended,
-                                    const char* name)
+    if (lifecycle_ticks == 0 || lifecycle_ticks == INFINITE)
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "target child release requires a positive finite lifecycle bound";
+        }
+        return false;
+    }
+    const ULONGLONG cleanup_started     = GetTickCount64();
+    const auto      remaining_lifecycle = [lifecycle_started, lifecycle_ticks]() -> std::uint32_t
+    {
+        return observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            lifecycle_started, GetTickCount64(), lifecycle_ticks);
+    };
+    const auto remaining_cleanup = [cleanup_started, &remaining_lifecycle](std::uint32_t limit) -> std::uint32_t
+    {
+        const std::uint32_t cleanup_remaining = observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            cleanup_started, GetTickCount64(), limit);
+        return std::min(cleanup_remaining, remaining_lifecycle());
+    };
+    const auto release_worker = [&](HANDLE*       event,
+                                    HANDLE*       thread,
+                                    bool*         suspended,
+                                    const char*   name,
+                                    std::uint32_t timeout)
     {
         if (suspended != nullptr && *suspended && *thread != nullptr)
         {
@@ -1812,8 +1914,7 @@ bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
         }
         if (*thread != nullptr)
         {
-            if (!finite_tick_bound(state_->request.cleanup_ticks) ||
-                WaitForSingleObject(*thread, state_->request.cleanup_ticks) != WAIT_OBJECT_0)
+            if (!finite_tick_bound(timeout) || WaitForSingleObject(*thread, timeout) != WAIT_OBJECT_0)
             {
                 if (refusal != nullptr)
                 {
@@ -1831,18 +1932,67 @@ bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
         }
         return true;
     };
-    if (!release_worker(&state_->initial_release_event,
-                        &state_->initial_thread,
-                        &state_->initial_thread_suspended,
-                        "target child initial hold") ||
-        !release_worker(&state_->cleanup_release_event,
-                        &state_->cleanup_thread,
-                        &state_->cleanup_thread_suspended,
-                        "target child cleanup"))
+    const auto release_worker_checked = [&](HANDLE*     event,
+                                            HANDLE*     thread,
+                                            bool*       suspended,
+                                            const char* name)
+    {
+        const std::uint32_t timeout = remaining_cleanup(state_->request.cleanup_ticks);
+        if (timeout == 0)
+        {
+            g_child_control.failure_outcome = static_cast<std::uint32_t>(ObserverLiveFailureOutcome::Lifecycle);
+            if (refusal != nullptr)
+            {
+                *refusal = remaining_lifecycle() == 0
+                               ? "target child release exceeded its finite lifecycle bound before worker release"
+                               : "target child release exceeded its finite cleanup bound before worker release";
+            }
+            set_child_state(ObserverLiveChildState::Failed, ERROR_TIMEOUT);
+            return false;
+        }
+        return release_worker(event, thread, suspended, name, timeout);
+    };
+    if (!release_worker_checked(&state_->initial_release_event,
+                                &state_->initial_thread,
+                                &state_->initial_thread_suspended,
+                                "target child initial hold") ||
+        !release_worker_checked(&state_->cleanup_release_event,
+                                &state_->cleanup_thread,
+                                &state_->cleanup_thread_suspended,
+                                "target child cleanup"))
     {
         return false;
     }
-    if (!state_->composition.release(authority, refusal))
+    const std::uint32_t composition_remaining = remaining_cleanup(state_->request.cleanup_ticks);
+    if (!finite_tick_bound(composition_remaining))
+    {
+        g_child_control.failure_outcome = static_cast<std::uint32_t>(ObserverLiveFailureOutcome::Lifecycle);
+        if (refusal != nullptr)
+        {
+            *refusal = "target child cleanup bound expired before composition release";
+        }
+        set_child_state(ObserverLiveChildState::Failed, ERROR_TIMEOUT);
+        return false;
+    }
+    const bool composition_released = state_->composition.release(authority, refusal);
+    const bool lifecycle_overrun    = remaining_lifecycle() == 0;
+    const bool cleanup_overrun      = observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+                                          cleanup_started,
+                                          GetTickCount64(),
+                                          state_->request.cleanup_ticks) == 0;
+    if (lifecycle_overrun || cleanup_overrun)
+    {
+        g_child_control.failure_outcome = static_cast<std::uint32_t>(ObserverLiveFailureOutcome::Lifecycle);
+        if (refusal != nullptr)
+        {
+            *refusal = lifecycle_overrun
+                           ? "target child composition release exceeded its finite lifecycle bound"
+                           : "target child composition release exceeded its finite cleanup bound";
+        }
+        set_child_state(ObserverLiveChildState::Failed, ERROR_TIMEOUT);
+        return false;
+    }
+    if (!composition_released)
     {
         if (refusal != nullptr && refusal->empty())
         {
@@ -2094,10 +2244,10 @@ ObserverLiveChildState ObserverLiveChildSession::state() const noexcept
 
 bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
                                const ObserverLiveChildRequest& request,
-                               std::uint32_t                   timeout_ticks,
+                               std::uint32_t                   completion_ticks,
                                std::string*                    refusal) noexcept
 {
-    if (timeout_ticks == 0 || timeout_ticks == INFINITE)
+    if (completion_ticks == 0 || completion_ticks == INFINITE)
     {
         if (refusal != nullptr)
         {
@@ -2105,13 +2255,33 @@ bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
         }
         return false;
     }
+    const ULONGLONG lifecycle_started   = GetTickCount64();
+    const auto      remaining_lifecycle = [lifecycle_started, completion_ticks]() -> std::uint32_t
+    {
+        return observer_diagnostic::ObserverFinitePhaseBudget::remaining(
+            lifecycle_started, GetTickCount64(), completion_ticks);
+    };
+    const auto fail_lifecycle_overrun = [refusal](const char* reason) noexcept
+    {
+        g_child_control.failure_outcome = static_cast<std::uint32_t>(ObserverLiveFailureOutcome::Lifecycle);
+        if (refusal != nullptr)
+        {
+            *refusal = reason;
+        }
+        set_child_state(ObserverLiveChildState::Failed, ERROR_TIMEOUT);
+        return false;
+    };
     ObserverLiveChildSession session;
     if (!session.prepare(authority, request, refusal))
     {
         return false;
     }
-    const ULONGLONG started = GetTickCount64();
-    while (GetTickCount64() - started < timeout_ticks)
+    if (remaining_lifecycle() == 0)
+    {
+        return fail_lifecycle_overrun(
+            "target child entry exceeded its finite lifecycle bound during preparation");
+    }
+    while (remaining_lifecycle() != 0)
     {
         if (session.state() == ObserverLiveChildState::Failed ||
             session.state() == ObserverLiveChildState::Released)
@@ -2124,24 +2294,47 @@ bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
         }
         if (session.state() == ObserverLiveChildState::Prepared && session.start_requested())
         {
-            if (!session.start_fixture(authority, timeout_ticks, refusal) ||
-                !session.wait_for_fixture_event(authority, timeout_ticks, refusal))
+            const std::uint32_t start_remaining = remaining_lifecycle();
+            if (start_remaining == 0 || !session.start_fixture(authority, start_remaining, refusal))
             {
                 return false;
+            }
+            if (remaining_lifecycle() == 0)
+            {
+                return fail_lifecycle_overrun("target child fixture start exceeded its finite lifecycle bound");
+            }
+            const std::uint32_t wait_remaining = remaining_lifecycle();
+            if (wait_remaining == 0 || !session.wait_for_fixture_event(authority, wait_remaining, refusal))
+            {
+                return false;
+            }
+            if (remaining_lifecycle() == 0)
+            {
+                return fail_lifecycle_overrun("target child fixture wait exceeded its finite lifecycle bound");
             }
         }
         if (session.state() == ObserverLiveChildState::Complete && session.release_requested())
         {
-            return session.release(authority, refusal);
+            if (remaining_lifecycle() == 0)
+            {
+                return fail_lifecycle_overrun(
+                    "target child entry exceeded its finite lifecycle bound before release");
+            }
+            const bool released = session.release(authority, lifecycle_started, completion_ticks, refusal);
+            if (!released)
+            {
+                return false;
+            }
+            if (remaining_lifecycle() == 0)
+            {
+                return fail_lifecycle_overrun(
+                    "target child release exceeded its finite lifecycle bound");
+            }
+            return true;
         }
         Sleep(1);
     }
-    if (refusal != nullptr)
-    {
-        *refusal = "target child entry exceeded its finite lifecycle bound";
-    }
-    set_child_state(ObserverLiveChildState::Failed, ERROR_TIMEOUT);
-    return false;
+    return fail_lifecycle_overrun("target child entry exceeded its finite lifecycle bound");
 }
 
 int observer_live_child_main(int                          argc,
@@ -2153,8 +2346,10 @@ int observer_live_child_main(int                          argc,
         return 2;
     }
     ObserverLiveChildRequest request;
-    std::uint32_t            timeout_ticks = 0;
-    bool                     child_mode    = false;
+    std::uint32_t            collection_ticks = 0;
+    std::uint32_t            completion_ticks = 0;
+    std::uint32_t            cleanup_ticks    = 0;
+    bool                     child_mode       = false;
     for (int index = 1; index < argc; ++index)
     {
         const std::string_view option = argv[index] == nullptr ? "" : argv[index];
@@ -2199,7 +2394,8 @@ int observer_live_child_main(int                          argc,
         }
         std::uint64_t parsed = 0;
         if (option == "--session" || option == "--row-cap" ||
-            option == "--provenance-hash-cap" || option == "--timeout-ticks")
+            option == "--provenance-hash-cap" || option == "--collection-ticks" ||
+            option == "--child-completion-ticks" || option == "--cleanup-ticks")
         {
             if (!take_child_argument(&index, argc, argv, &value) ||
                 !parse_child_unsigned(value, &parsed))
@@ -2226,27 +2422,47 @@ int observer_live_child_main(int                          argc,
                 }
                 request.composition.provenance_hash_cap = static_cast<std::size_t>(parsed);
             }
+            else if (option == "--collection-ticks")
+            {
+                if (parsed > std::numeric_limits<std::uint32_t>::max())
+                {
+                    return 2;
+                }
+                collection_ticks = static_cast<std::uint32_t>(parsed);
+            }
+            else if (option == "--child-completion-ticks")
+            {
+                if (parsed > std::numeric_limits<std::uint32_t>::max())
+                {
+                    return 2;
+                }
+                completion_ticks = static_cast<std::uint32_t>(parsed);
+            }
             else
             {
                 if (parsed > std::numeric_limits<std::uint32_t>::max())
                 {
                     return 2;
                 }
-                timeout_ticks = static_cast<std::uint32_t>(parsed);
+                cleanup_ticks = static_cast<std::uint32_t>(parsed);
             }
             continue;
         }
         return 2;
     }
     if (!child_mode || request.composition.session_id == 0 || request.composition.row_cap == 0 ||
-        request.composition.provenance_hash_cap == 0 || timeout_ticks == 0 ||
-        timeout_ticks == INFINITE || request.composition.fixture_command_line.empty() ||
+        request.composition.provenance_hash_cap == 0 || collection_ticks == 0 ||
+        collection_ticks > 3000 || completion_ticks == 0 || completion_ticks == INFINITE ||
+        cleanup_ticks == 0 || cleanup_ticks == INFINITE ||
+        request.composition.fixture_command_line.empty() ||
         !request.output.is_absolute() || !request.composition.dbgeng_image.is_absolute() ||
         !request.composition.fixture_executable.is_absolute())
     {
         return 2;
     }
-    request.cleanup_ticks = timeout_ticks;
+    request.collection_ticks = collection_ticks;
+    request.completion_ticks = completion_ticks;
+    request.cleanup_ticks    = cleanup_ticks;
     std::string refusal;
     if (!authority.allows_native(&refusal))
     {
@@ -2256,7 +2472,7 @@ int observer_live_child_main(int                          argc,
     {
         return 2;
     }
-    return observer_live_child_entry(authority, request, timeout_ticks, &refusal) ? 0 : 1;
+    return observer_live_child_entry(authority, request, completion_ticks, &refusal) ? 0 : 1;
 }
 
 } // namespace xivl::observer_candidate
