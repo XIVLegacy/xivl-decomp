@@ -97,8 +97,9 @@ output file.
 
 Passing this command establishes the recorded CPU scenario. It does not
 establish native callback delivery, SDK alias exclusivity, resident identity,
-execution exclusion or fixture survival. The current capture allowance and
-runtime identity prerequisites prohibit native activation.
+execution exclusion or fixture survival. Native activation requires separate
+owner authorization and a reviewed run contract. An identity-gathering exception
+permits collection of unresolved identities; it cannot mark them qualified.
 
 ## Conditional native qualification
 
@@ -135,15 +136,24 @@ the command:
 The observer command line selects `--native-child` and supplies `--profile`,
 `--dbgeng`, `--fixture`, `--fixture-command-line`, `--output`, `--session`,
 `--row-cap`, `--provenance-hash-cap` and a positive finite `--timeout-ticks`.
-Its output is the fresh native trace path. The external controller writes a
+Its output is the fresh native trace path. The current child reuses this
+timeout for initialization, fixture event collection and cleanup. The controller
+also uses its responsiveness limit for child completion. These shared bounds
+cannot establish an independently capped collection interval. Native activation
+requires separate collection, lifecycle and cleanup bounds, with a reviewed
+fixture failure contract that accounts for natural fixture exit after collection
+has stopped. File pins and timeout values alone cannot satisfy that requirement.
+The external controller writes a
 separate `.failure-ledger` sidecar at that path before activation and records
 failures or completion there. Preserve both artifacts; a nonempty trace file
 alone cannot establish an accepted observation.
 
 Both native entries retain a hard authority refusal before native APIs. No
-command-line flag grants authority. A future run needs a reviewed policy
-revision, revised capture allowance and qualified runtime identities, as well
-as supplied finite bounds. The CPU receipt validator accepts only its offline
+command-line flag grants authority. A run needs a reviewed policy revision,
+an available attempt allowance, supplied finite bounds and qualified runtime
+identities or an explicit exception permitting their collection. That exception
+cannot substitute for observation, exclusion or fixture failure evidence.
+The CPU receipt validator accepts only its offline
 schema; a native result requires review of the raw trace, resident evidence,
 controller ledger and separate cleanup outcomes against this contract.
 
