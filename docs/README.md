@@ -150,6 +150,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Garuda battlefield atmosphere](resource/garuda-battlefield-atmosphere.md)
 - [Application scheduling observations](resource/application-hierarchy.md)
 - [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
+- [BGChip model resource binding](resource/bgchip-model-binding.md)
 - [Class metadata](resource/class-metadata.md)
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
 - [Region weather resource rows](resource/region-weather-resource-rows.md)
