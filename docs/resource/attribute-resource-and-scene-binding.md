@@ -219,6 +219,68 @@ record linked indices `+0x46/+0x48`. These operations qualify the native
 registration mechanism; they do not identify which selected PHB leaf
 successfully produced a shape.
 
+## Authored floor descriptor
+
+The retained-allocation floor uses native template `data/7E/B5/00/10.DAT`,
+1,232 bytes, SHA-256
+`e62b997c8d0a0822402848ad7c2a045d31b630813cade05d32f0d127fbe1b291`.
+The authored floor has the same length, SHA-256
+`5e78f80bac19dfc276a4d9ce4395c718c138de839fea017ec8b471bdfbb29d6c`.
+Its 107 changed bytes are confined to geometry, counts, surface aggregates,
+bounds and leaf fields owned by the author. The prefix before file `0xC0`
+and every byte outside those owned fields are identical to the template.
+The authoring operation's format and preservation contract is in
+`xivl-tools:docs/formats/phb-collision.md`.
+
+For a raw input beginning at file zero, `0x00AC06E0` reads the endian byte
+at `+0x0C` and accepts a version at `+0x08` in `[0x118,0x120]`. The floor
+supplies zero and `0x120`, selecting the little-endian path. `0x00AC0350`
+then follows these self-relative fields; each target is its field's address
+plus the stored unsigned 32-bit value:
+
+| Field at file offset | Stored value | Target or guard |
+|---|---|---|
+| `0x3C` | `0x0C` | One outer table entry at `0x48`; count at `0x40` is 1 |
+| `0x48` | `0x04` | Record at `0x4C`, type 1; its byte `+0x0C` is 1 |
+| `0x64`, record `+0x18` | `0x18` | Shape table at `0x7C`; count at `0x68` is 1 |
+| `0x7C` | `0x14` | Shape descriptor at `0x90`, type 10 |
+| `0xB8`, shape `+0x28` | `0x08` | GBD input at `0xC0` |
+
+Thus the unchanged prefix satisfies the initial version, enabled-record and
+nonzero-child guards for the type-10 mesh branch. This is a replay of field
+addressing on the pinned file, conditional on the resource getter supplying
+that raw input; it is not an observation of an acquired runtime buffer.
+
+The raw shape descriptor is distinct from the manipulator's type-9
+descriptor. The latter's `+0x0C` is the retained resource pointer; the
+Attribute route supplies its embedded `+0x44` interface as the memory handler
+to `0x00AC0350`. A zero field in the raw shape at file `0x9C` does not select
+the default handler for this caller.
+
+Type-10 shape dispatch at `0x00AC0C35` resolves shape `+0x28` and supplies
+the resulting GBD pointer to `0x00AFC410`. After shape construction, that
+routine initializes a data wrapper through `0x00AFEE00`. The wrapper retains
+the handler at `+0x14` and its slot-2 result at `+0x10`. For the Attribute's
+PhysicsResourceNode interface, vtable `0x0109D278`, slot 2 is `0x00A64CC0`:
+it stores the GBD pointer unchanged when node `+0x58` is null, or subtracts
+node `+0x48` to store an offset when backing exists. Slot 1, `0x00A64CA0`,
+reverses that operation using the same base. Pointer recovery remains
+conditional on stable handler fields.
+
+`0x00AFDBE0` retains the wrapper at native shape record `+0x80`.
+Its call to `0x00AFEBD0` recovers the GBD pointer through handler slot 1
+and adds `0x40`; it copies the resulting 32-byte bounds into native record
+`+0x50/+0x60`. For the audited input, these are the authored bounds at file
+`0x100/+0x110`, enclosing the four local vertices at X/Z `[-16,16]`, Y zero,
+with the retained positive per-axis margin. Shape and wrapper allocation,
+valid body/world context and stable resource data remain conditions.
+
+The construction path retains the mesh data and copies bounds. It does not
+decode or validate the authored TBC/TBD leaf, its two triangle references or
+the triangle/vertex arrays. Those bytes remain part of the retained data for
+the later geometry consumer, rather than a leaf-acceptance result from shape
+construction. No native execution or target-process observation was used.
+
 ## Placed setup flags and group byte
 
 Attribute slot 52, `0x00AA8480`, supplies true to manipulator slots 18 and
