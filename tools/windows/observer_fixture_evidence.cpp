@@ -1562,9 +1562,13 @@ bool ObserverFixtureEvidence::record_event(
     const observer_diagnostic::BridgeEventEvidence& evidence) noexcept
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    const bool                            identity_matches = identity_bound_ && evidence.identity.complete &&
-                                                             evidence.identity.process_id == identity_.process_id;
-    const bool                            raw_size_valid   = evidence.event.raw_size <= evidence.event.raw.size();
+    const bool                            raw_index_valid =
+        evidence.raw_event_index != static_cast<std::size_t>(-1) &&
+        evidence.identity.event_index == evidence.raw_event_index &&
+        evidence.raw_identity.event_index == evidence.raw_event_index;
+    const bool identity_matches = identity_bound_ && evidence.identity.complete &&
+                                  evidence.identity.process_id == identity_.process_id;
+    const bool raw_size_valid   = evidence.event.raw_size <= evidence.event.raw.size();
     if (!raw_size_valid)
     {
         unknown_ = true;
@@ -1592,13 +1596,15 @@ bool ObserverFixtureEvidence::record_event(
     const bool raw_admitted = evidence.identity.complete &&
                               evidence.pending_status == observer_diagnostic::PendingEventStatus::Admitted &&
                               evidence.event.pending && evidence.owner_sink_attempted;
-    const bool actual       = retained && identity_matches && raw_admitted &&
-                              (evidence.complete || evidence.awaiting_binding);
+    const bool actual = retained && raw_index_valid && identity_matches && raw_admitted &&
+                        (evidence.complete || evidence.awaiting_binding);
     if (actual)
     {
         event_tail_ = true;
         ++event_record_count_;
-        last_event_sequence_ = record_sequence_;
+        last_event_index_seen_ = static_cast<std::uint64_t>(evidence.raw_event_index);
+        event_index_seen_      = true;
+        last_event_sequence_   = record_sequence_;
     }
     else
     {
@@ -1611,12 +1617,15 @@ bool ObserverFixtureEvidence::record_continuation(
     const observer_diagnostic::BridgeContinuationEvidence& evidence) noexcept
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    const bool                            identity_matches       = identity_bound_ && evidence.matched_identity.complete &&
-                                                                   evidence.matched_identity.process_id == identity_.process_id;
-    const bool                            matched_raw_size_valid = evidence.matched_event.raw_size <= evidence.matched_event.raw.size();
-    const bool                            client_joined          = evidence.entry.client_id_valid && evidence.result.client_id_valid &&
-                                                                   evidence.entry.client_id != nullptr &&
-                                                                   evidence.entry.client_id == evidence.result.client_id;
+    const bool                            continuation_index_valid =
+        evidence.matched_event_index != static_cast<std::size_t>(-1) &&
+        evidence.matched_identity.event_index == evidence.matched_event_index;
+    const bool identity_matches       = identity_bound_ && evidence.matched_identity.complete &&
+                                        evidence.matched_identity.process_id == identity_.process_id;
+    const bool matched_raw_size_valid = evidence.matched_event.raw_size <= evidence.matched_event.raw.size();
+    const bool client_joined          = evidence.entry.client_id_valid && evidence.result.client_id_valid &&
+                                        evidence.entry.client_id != nullptr &&
+                                        evidence.entry.client_id == evidence.result.client_id;
     if (!matched_raw_size_valid)
     {
         unknown_ = true;
@@ -1693,7 +1702,7 @@ bool ObserverFixtureEvidence::record_continuation(
                    receipt.raw_identity.event_index == evidence.matched_event_index;
         });
     const bool bound_identity_matches = binding != binding_receipts_.end();
-    const bool actual                 = retained && identity_matches && evidence.matched_identity.complete &&
+    const bool actual                 = retained && continuation_index_valid && identity_matches && evidence.matched_identity.complete &&
                                         evidence.matched_identity.engine_generation_known &&
                                         evidence.matched_identity.engine_generation != 0 && continuation_shape &&
                                         evidence.matched_event.process_id == evidence.matched_identity.process_id &&
@@ -1703,7 +1712,9 @@ bool ObserverFixtureEvidence::record_continuation(
     {
         continuation_tail_ = true;
         ++continuation_record_count_;
-        last_continuation_sequence_ = record_sequence_;
+        last_continuation_index_seen_ = static_cast<std::uint64_t>(evidence.matched_event_index);
+        continuation_index_seen_      = true;
+        last_continuation_sequence_   = record_sequence_;
     }
     else
     {
@@ -1811,6 +1822,9 @@ bool ObserverFixtureEvidence::record_terminal_raw_tail(std::uint64_t event_count
                           event_count != 0 && continuation_count != 0 &&
                           event_record_count_ == event_count &&
                           continuation_record_count_ == continuation_count && binding_tail_ &&
+                          event_index_seen_ && continuation_index_seen_ &&
+                          last_event_index == last_event_index_seen_ &&
+                          last_continuation_index == last_continuation_index_seen_ &&
                           !pending_raw && bridge_coverage;
     if (actual)
     {
@@ -1828,21 +1842,164 @@ bool ObserverFixtureEvidence::record_terminal_raw_tail(std::uint64_t event_count
     return actual;
 }
 
-bool ObserverFixtureEvidence::record_raw_restore_boundary(std::uint64_t terminal_sequence) noexcept
+bool ObserverFixtureEvidence::record_post_detach_raw_tail(
+    std::uint64_t event_count,
+    std::uint64_t continuation_count,
+    std::uint64_t last_event_index,
+    std::uint64_t last_continuation_index,
+    bool          pending_raw,
+    bool          bridge_coverage) noexcept
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::ostringstream                    record;
-    record << "{\"kind\":\"raw-restore-boundary\",\"terminal-sequence\":"
-           << terminal_sequence << ",\"under-hold\":true}\n";
+    record << "{\"kind\":\"post-detach-raw-tail\",\"event-count\":"
+           << event_count << ",\"continuation-count\":" << continuation_count
+           << ",\"last-event-index\":" << last_event_index
+           << ",\"last-continuation-index\":" << last_continuation_index
+           << ",\"pending\":" << (pending_raw ? "true" : "false")
+           << ",\"coverage\":" << (bridge_coverage ? "true" : "false") << "}\n";
     const bool retained = append_record(record.str());
-    // The controller writes this boundary after the observer's terminal row is
-    // acknowledged through the shared child-control channel.  Its own state
-    // file therefore need not contain that terminal row; the replay validator
-    // joins the supplied sequence against the observer writer's terminal row.
-    const bool actual = retained && terminal_sequence != 0;
+    const bool joined_post_tail =
+        event_record_count_ == event_count && continuation_record_count_ == continuation_count &&
+        binding_tail_ && event_tail_ && continuation_tail_;
+    const bool has_post_activity = event_count > terminal_event_count_ ||
+                                   continuation_count > terminal_continuation_count_;
+    const bool actual            = retained && terminal_raw_tail_ && collection_stopped_ &&
+                                   collection_complete_ && event_count >= terminal_event_count_ &&
+                                   continuation_count >= terminal_continuation_count_ &&
+                                   event_count != 0 && continuation_count != 0 && event_index_seen_ &&
+                                   continuation_index_seen_ && last_event_index == last_event_index_seen_ &&
+                                   last_continuation_index == last_continuation_index_seen_ && !pending_raw &&
+                                   bridge_coverage && has_post_activity && joined_post_tail;
     if (actual)
     {
-        raw_restore_boundary_ = true;
+        post_detach_raw_tail_       = true;
+        post_detach_tail_sequence_  = record_sequence_;
+        last_event_sequence_        = record_sequence_;
+        last_continuation_sequence_ = record_sequence_;
+    }
+    else
+    {
+        unknown_ = true;
+    }
+    return actual;
+}
+
+bool ObserverFixtureEvidence::record_detach_intent(std::uint32_t flags) noexcept
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::ostringstream                    record;
+    record << "{\"kind\":\"detach-intent\",\"flags\":" << flags << "}\n";
+    const bool retained = append_record(record.str());
+    const bool actual   = retained && terminal_raw_tail_ && live_at_release_recorded_ &&
+                          live_at_release_ && !detach_intent_ && flags == DEBUG_END_ACTIVE_DETACH;
+    if (actual)
+    {
+        detach_intent_ = true;
+    }
+    else
+    {
+        unknown_ = true;
+    }
+    return actual;
+}
+
+bool ObserverFixtureEvidence::record_raw_second_hold_evidence(
+    std::uint64_t acknowledged_tail_sequence,
+    std::uint64_t event_count,
+    std::uint64_t continuation_count,
+    std::uint64_t binding_count,
+    std::uint64_t last_event_index,
+    std::uint64_t last_continuation_index,
+    std::uint64_t terminal_event_count,
+    std::uint64_t terminal_continuation_count,
+    std::uint64_t terminal_last_event_index,
+    std::uint64_t terminal_last_continuation_index,
+    bool          pending_raw,
+    bool          bridge_coverage,
+    bool          persistence,
+    std::uint64_t hold_request_epoch,
+    std::uint64_t event_identity,
+    std::uint64_t lease_identity) noexcept
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::ostringstream                    record;
+    record << "{\"kind\":\"raw-second-hold-evidence\",\"ack-tail-sequence\":"
+           << acknowledged_tail_sequence << ",\"event-count\":" << event_count
+           << ",\"continuation-count\":" << continuation_count
+           << ",\"binding-count\":" << binding_count
+           << ",\"last-event-index\":" << last_event_index
+           << ",\"last-continuation-index\":" << last_continuation_index
+           << ",\"terminal-event-count\":" << terminal_event_count
+           << ",\"terminal-continuation-count\":" << terminal_continuation_count
+           << ",\"terminal-last-event-index\":" << terminal_last_event_index
+           << ",\"terminal-last-continuation-index\":" << terminal_last_continuation_index
+           << ",\"pending\":" << (pending_raw ? "true" : "false")
+           << ",\"coverage\":" << (bridge_coverage ? "true" : "false")
+           << ",\"persistence\":" << (persistence ? "true" : "false")
+           << ",\"hold-request-epoch\":" << hold_request_epoch
+           << ",\"event-identity\":" << event_identity
+           << ",\"lease-identity\":" << lease_identity << ",\"under-hold\":true}\n";
+    const bool retained          = append_record(record.str());
+    const bool controller_record = !observer_storage_attached_ && !in_memory_test_sink_;
+    const bool has_post_activity = event_count > terminal_event_count ||
+                                   continuation_count > terminal_continuation_count;
+    const bool joined_post_tail  = controller_record
+                                       ? acknowledged_tail_sequence != 0
+                                       : (post_detach_raw_tail_ && detach_intent_ && release_succeeded_ &&
+                                          acknowledged_tail_sequence == post_detach_tail_sequence_);
+    const bool actual            = retained && joined_post_tail && acknowledged_tail_sequence != 0 &&
+                                   event_count != 0 && continuation_count != 0 &&
+                                   binding_count == event_count && last_event_index != std::numeric_limits<std::uint64_t>::max() &&
+                                   last_continuation_index != std::numeric_limits<std::uint64_t>::max() &&
+                                   terminal_event_count != 0 && terminal_continuation_count != 0 &&
+                                   event_count >= terminal_event_count && continuation_count >= terminal_continuation_count &&
+                                   has_post_activity && !pending_raw && bridge_coverage && persistence &&
+                                   hold_request_epoch != 0 && event_identity != 0 && lease_identity != 0;
+    if (actual)
+    {
+        raw_second_hold_evidence_               = true;
+        raw_second_hold_tail_sequence_          = acknowledged_tail_sequence;
+        raw_second_hold_event_count_            = event_count;
+        raw_second_hold_continuation_count_     = continuation_count;
+        raw_second_hold_binding_count_          = binding_count;
+        raw_second_hold_last_event_index        = last_event_index;
+        raw_second_hold_last_continuation_index = last_continuation_index;
+        raw_second_hold_epoch_                  = hold_request_epoch;
+        raw_second_hold_event_identity_         = event_identity;
+        raw_second_hold_lease_identity_         = lease_identity;
+    }
+    else
+    {
+        unknown_ = true;
+    }
+    return actual;
+}
+
+bool ObserverFixtureEvidence::record_raw_restore_boundary(
+    std::uint64_t acknowledged_tail_sequence,
+    std::uint64_t hold_request_epoch,
+    std::uint64_t event_identity,
+    std::uint64_t lease_identity) noexcept
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::ostringstream                    record;
+    record << "{\"kind\":\"raw-restore-boundary\",\"ack-tail-sequence\":"
+           << acknowledged_tail_sequence << ",\"hold-request-epoch\":"
+           << hold_request_epoch << ",\"event-identity\":" << event_identity
+           << ",\"lease-identity\":" << lease_identity << ",\"under-hold\":true}\n";
+    const bool retained = append_record(record.str());
+    const bool actual   = retained && raw_second_hold_evidence_ &&
+                          acknowledged_tail_sequence == raw_second_hold_tail_sequence_ &&
+                          hold_request_epoch == raw_second_hold_epoch_ &&
+                          event_identity == raw_second_hold_event_identity_ &&
+                          lease_identity == raw_second_hold_lease_identity_;
+    if (actual)
+    {
+        raw_restore_boundary_       = true;
+        raw_restore_hold_epoch_     = hold_request_epoch;
+        raw_restore_event_identity_ = event_identity;
+        raw_restore_lease_identity_ = lease_identity;
     }
     else
     {
@@ -1894,8 +2051,8 @@ bool ObserverFixtureEvidence::record_session_release(HRESULT       result,
     release_attempted_  = true;
     // The selected production release is an active detach. Passive cleanup is
     // deliberately rejected because it cannot prove a live fixture detach.
-    release_succeeded_ = retained && result == S_OK && flags == DEBUG_END_ACTIVE_DETACH &&
-                         !outstanding_event;
+    release_succeeded_ = retained && detach_intent_ && result == S_OK &&
+                         flags == DEBUG_END_ACTIVE_DETACH && !outstanding_event;
     if (!release_succeeded_)
     {
         unknown_ = true;
@@ -2216,21 +2373,24 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
         bool                         attached            = false;
         bool                         attach_completed    = false;
         bool                         resumed             = false;
-        bool                         collection          = false;
-        bool                         terminal            = false;
-        bool                         raw_boundary        = false;
-        bool                         live_at_release     = false;
-        bool                         release             = false;
-        bool                         exit                = false;
-        bool                         options_precreation = false;
-        bool                         output_stdout_pre   = false;
-        bool                         output_stderr_pre   = false;
-        bool                         output_stdout_post  = false;
-        bool                         output_stderr_post  = false;
-        std::uint64_t                expected_sequence   = 1;
-        std::uint64_t                controller_writer   = 0;
-        std::uint64_t                observer_writer     = 0;
-        int                          phase               = 0;
+        bool                         collection           = false;
+        bool                         terminal             = false;
+        bool                         post_detach_raw_tail = false;
+        bool                         detach_intent        = false;
+        bool                         raw_boundary         = false;
+        bool                         second_hold_evidence = false;
+        bool                         live_at_release      = false;
+        bool                         release              = false;
+        bool                         exit                 = false;
+        bool                         options_precreation  = false;
+        bool                         output_stdout_pre    = false;
+        bool                         output_stderr_pre    = false;
+        bool                         output_stdout_post   = false;
+        bool                         output_stderr_post   = false;
+        std::uint64_t                expected_sequence    = 1;
+        std::uint64_t                controller_writer    = 0;
+        std::uint64_t                observer_writer      = 0;
+        int                          phase                = 0;
         std::array<std::uint64_t, 2> output_offsets{};
         std::array<bool, 2>          output_offset_seen{};
         std::string                  stdout_pending;
@@ -2244,6 +2404,15 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
         std::uint64_t                terminal_last_event          = 0;
         std::uint64_t                terminal_last_cont           = 0;
         std::uint64_t                terminal_record_sequence     = 0;
+        std::uint64_t                post_detach_event_count          = 0;
+        std::uint64_t                post_detach_cont_count           = 0;
+        std::uint64_t                post_detach_last_event           = 0;
+        std::uint64_t                post_detach_last_cont            = 0;
+        std::uint64_t                post_detach_tail_record_sequence = 0;
+        std::uint64_t                second_hold_tail_sequence        = 0;
+        std::uint64_t                second_hold_epoch                = 0;
+        std::uint64_t                second_hold_event_identity       = 0;
+        std::uint64_t                second_hold_lease_identity       = 0;
         std::uint64_t                last_continuation_index_seen = 0;
         std::uint64_t                continuation_records         = 0;
         std::uint64_t                options_record_sequence      = 0;
@@ -2609,7 +2778,9 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
             }
             else if (kind == "event")
             {
-                if (!observer_record() || !resumed || phase < 6 || phase > 6 ||
+                const bool raw_tail_event = detach_intent && !post_detach_raw_tail &&
+                                            (phase == 8 || phase == 9);
+                if (!observer_record() || !resumed || !(phase == 6 || raw_tail_event) ||
                     !state_event_schema(fields))
                 {
                     return false;
@@ -2752,7 +2923,10 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
             }
             else if (kind == "binding")
             {
-                if (!observer_record() || !resumed || phase != 6 || !state_binding_schema(fields) ||
+                const bool raw_tail_binding = detach_intent && !post_detach_raw_tail &&
+                                              (phase == 8 || phase == 9);
+                if (!observer_record() || !resumed || !(phase == 6 || raw_tail_binding) ||
+                    !state_binding_schema(fields) ||
                     events.empty())
                 {
                     return false;
@@ -2894,7 +3068,9 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
             }
             else if (kind == "continuation")
             {
-                if (!observer_record() || !resumed || phase < 6 || phase > 6 ||
+                const bool raw_tail_continuation = detach_intent && !post_detach_raw_tail &&
+                                                   (phase == 8 || phase == 9);
+                if (!observer_record() || !resumed || !(phase == 6 || raw_tail_continuation) ||
                     !state_continuation_schema(fields))
                 {
                     return false;
@@ -3123,28 +3299,122 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                 terminal_record_sequence = expected_sequence;
                 terminal                 = true;
             }
-            else if (kind == "raw-restore-boundary")
+            else if (kind == "raw-second-hold-evidence")
             {
-                if (!controller_record() || !terminal || raw_boundary || phase != 7 ||
+                if (!controller_record() || !terminal || !post_detach_raw_tail ||
+                    second_hold_evidence || phase != 9 ||
                     !state_schema(fields,
-                                  { "sequence", "session", "writer", "kind", "terminal-sequence", "under-hold" }))
+                                  { "sequence", "session", "writer", "kind", "ack-tail-sequence", "event-count", "continuation-count", "binding-count", "last-event-index", "last-continuation-index", "terminal-event-count", "terminal-continuation-count", "terminal-last-event-index", "terminal-last-continuation-index", "pending", "coverage", "persistence", "hold-request-epoch", "event-identity", "lease-identity", "under-hold" }))
                 {
                     return false;
                 }
-                std::uint64_t terminal_sequence = 0;
+                std::uint64_t acknowledged_tail  = 0;
+                std::uint64_t event_count        = 0;
+                std::uint64_t continuation_count = 0;
+                std::uint64_t binding_count      = 0;
+                std::uint64_t last_event_index   = 0;
+                std::uint64_t last_cont_index    = 0;
+                std::uint64_t terminal_events    = 0;
+                std::uint64_t terminal_cont      = 0;
+                std::uint64_t terminal_last_evt  = 0;
+                std::uint64_t terminal_last_ctn  = 0;
+                std::uint64_t hold_epoch         = 0;
+                std::uint64_t event_identity     = 0;
+                std::uint64_t lease_identity     = 0;
+                bool          pending            = true;
+                bool          coverage           = false;
+                bool          persistence        = false;
+                bool          under_hold         = false;
+                if (!state_u64(fields, "ack-tail-sequence", &acknowledged_tail) ||
+                    !state_u64(fields, "event-count", &event_count) ||
+                    !state_u64(fields, "continuation-count", &continuation_count) ||
+                    !state_u64(fields, "binding-count", &binding_count) ||
+                    !state_u64(fields, "last-event-index", &last_event_index) ||
+                    !state_u64(fields, "last-continuation-index", &last_cont_index) ||
+                    !state_u64(fields, "terminal-event-count", &terminal_events) ||
+                    !state_u64(fields, "terminal-continuation-count", &terminal_cont) ||
+                    !state_u64(fields, "terminal-last-event-index", &terminal_last_evt) ||
+                    !state_u64(fields, "terminal-last-continuation-index", &terminal_last_ctn) ||
+                    !state_bool(fields, "pending", &pending) ||
+                    !state_bool(fields, "coverage", &coverage) ||
+                    !state_bool(fields, "persistence", &persistence) ||
+                    !state_u64(fields, "hold-request-epoch", &hold_epoch) ||
+                    !state_u64(fields, "event-identity", &event_identity) ||
+                    !state_u64(fields, "lease-identity", &lease_identity) ||
+                    !state_bool(fields, "under-hold", &under_hold) || !under_hold || pending ||
+                    !coverage || !persistence || acknowledged_tail == 0 ||
+                    acknowledged_tail != post_detach_tail_record_sequence ||
+                    event_count != events.size() || continuation_count != continuation_records ||
+                    binding_count != events.size() || terminal_events != terminal_event_count ||
+                    terminal_cont != terminal_cont_count || terminal_last_evt != terminal_last_event ||
+                    terminal_last_ctn != terminal_last_cont || hold_epoch == 0 ||
+                    event_identity == 0 || lease_identity == 0 ||
+                    (!test_ignore_post_activity_ &&
+                     event_count <= terminal_events && continuation_count <= terminal_cont))
+                {
+                    return false;
+                }
+                for (const ReplayEvent& event : events)
+                {
+                    if (!event.bound || !event.closed)
+                    {
+                        return false;
+                    }
+                }
+                std::uint64_t max_event_index = 0;
+                for (const ReplayEvent& event : events)
+                {
+                    std::uint64_t event_index = 0;
+                    if (!state_u64(event.fields, "raw-event-index", &event_index))
+                    {
+                        return false;
+                    }
+                    max_event_index = std::max(max_event_index, event_index);
+                }
+                if (last_event_index != max_event_index ||
+                    last_cont_index != last_continuation_index_seen)
+                {
+                    return false;
+                }
+                second_hold_evidence       = true;
+                second_hold_tail_sequence  = acknowledged_tail;
+                second_hold_epoch          = hold_epoch;
+                second_hold_event_identity = event_identity;
+                second_hold_lease_identity = lease_identity;
+            }
+            else if (kind == "raw-restore-boundary")
+            {
+                if (!controller_record() || !terminal || !post_detach_raw_tail ||
+                    !second_hold_evidence || raw_boundary || phase != 9 ||
+                    !state_schema(fields,
+                                  { "sequence", "session", "writer", "kind", "ack-tail-sequence", "hold-request-epoch", "event-identity", "lease-identity", "under-hold" }))
+                {
+                    return false;
+                }
+                std::uint64_t acknowledged_tail = 0;
+                std::uint64_t hold_epoch        = 0;
+                std::uint64_t event_identity    = 0;
+                std::uint64_t lease_identity    = 0;
                 bool          under_hold        = false;
-                if (!state_u64(fields, "terminal-sequence", &terminal_sequence) ||
+                if (!state_u64(fields, "ack-tail-sequence", &acknowledged_tail) ||
+                    !state_u64(fields, "hold-request-epoch", &hold_epoch) ||
+                    !state_u64(fields, "event-identity", &event_identity) ||
+                    !state_u64(fields, "lease-identity", &lease_identity) ||
                     !state_bool(fields, "under-hold", &under_hold) || !under_hold ||
-                    terminal_sequence == 0 || terminal_sequence != terminal_record_sequence)
+                    acknowledged_tail == 0 || acknowledged_tail != post_detach_tail_record_sequence ||
+                    acknowledged_tail != second_hold_tail_sequence || hold_epoch == 0 ||
+                    event_identity == 0 || lease_identity == 0 || hold_epoch != second_hold_epoch ||
+                    event_identity != second_hold_event_identity ||
+                    lease_identity != second_hold_lease_identity)
                 {
                     return false;
                 }
                 raw_boundary = true;
-                phase        = 8;
+                phase        = 10;
             }
             else if (kind == "live-at-release")
             {
-                if (!observer_record() || phase != 8 || !raw_boundary || live_at_release ||
+                if (!observer_record() || phase != 7 || live_at_release ||
                     !state_schema(fields, { "sequence", "session", "writer", "kind", "live" }))
                 {
                     return false;
@@ -3155,11 +3425,11 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                     return false;
                 }
                 live_at_release = true;
-                phase           = 9;
+                phase           = 8;
             }
             else if (kind == "session-release")
             {
-                if (!observer_record() || phase != 9 || release ||
+                if (!observer_record() || phase != 8 || !detach_intent || release ||
                     !state_schema(fields,
                                   { "sequence", "session", "writer", "kind", "hr", "flags", "outstanding-event" }))
                 {
@@ -3175,7 +3445,79 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                     return false;
                 }
                 release = true;
-                phase   = 10;
+                phase   = 9;
+            }
+            else if (kind == "detach-intent")
+            {
+                if (!observer_record() || phase != 8 || detach_intent ||
+                    !state_schema(fields,
+                                  { "sequence", "session", "writer", "kind", "flags" }))
+                {
+                    return false;
+                }
+                std::uint64_t flags = 0;
+                if (!state_u64(fields, "flags", &flags) || flags != DEBUG_END_ACTIVE_DETACH)
+                {
+                    return false;
+                }
+                detach_intent = true;
+            }
+            else if (kind == "post-detach-raw-tail")
+            {
+                if (!observer_record() || !terminal || !release || post_detach_raw_tail || phase != 9 ||
+                    !state_schema(fields,
+                                  { "sequence", "session", "writer", "kind", "event-count", "continuation-count", "last-event-index", "last-continuation-index", "pending", "coverage" }))
+                {
+                    return false;
+                }
+                bool pending  = true;
+                bool coverage = false;
+                if (!state_u64(fields, "event-count", &post_detach_event_count) ||
+                    !state_u64(fields, "continuation-count", &post_detach_cont_count) ||
+                    !state_u64(fields, "last-event-index", &post_detach_last_event) ||
+                    !state_u64(fields, "last-continuation-index", &post_detach_last_cont) ||
+                    !state_bool(fields, "pending", &pending) ||
+                    !state_bool(fields, "coverage", &coverage) || pending || !coverage ||
+                    post_detach_event_count < terminal_event_count ||
+                    post_detach_cont_count < terminal_cont_count ||
+                    post_detach_event_count == 0 || post_detach_cont_count == 0 ||
+                    post_detach_last_event < terminal_last_event ||
+                    post_detach_last_cont < terminal_last_cont ||
+                    (!test_ignore_post_activity_ &&
+                     post_detach_event_count <= terminal_event_count &&
+                     post_detach_cont_count <= terminal_cont_count))
+                {
+                    return false;
+                }
+                for (const ReplayEvent& event : events)
+                {
+                    if (!event.bound || !event.closed)
+                    {
+                        return false;
+                    }
+                }
+                if (post_detach_event_count != events.size() ||
+                    post_detach_cont_count != continuation_records)
+                {
+                    return false;
+                }
+                std::uint64_t max_post_event_index = 0;
+                for (const ReplayEvent& event : events)
+                {
+                    std::uint64_t event_index = 0;
+                    if (!state_u64(event.fields, "raw-event-index", &event_index))
+                    {
+                        return false;
+                    }
+                    max_post_event_index = std::max(max_post_event_index, event_index);
+                }
+                if (post_detach_last_event != max_post_event_index ||
+                    post_detach_last_cont != last_continuation_index_seen)
+                {
+                    return false;
+                }
+                post_detach_raw_tail             = true;
+                post_detach_tail_record_sequence = expected_sequence;
             }
             else if (kind == "output")
             {
@@ -3198,7 +3540,8 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
                     !state_u64(fields, "bytes", &bytes) || !state_bool(fields, "read", &read_value) ||
                     !state_bool(fields, "post-release", &post_value) || !state_string(fields, "marker", &marker) ||
                     (channel != "stdout" && channel != "stderr") || source != channel || !read_value ||
-                    (post_value && !release) || (!post_value && phase != 7) ||
+                    (post_value && (!release || !raw_boundary || phase != 10)) ||
+                    (!post_value && phase != 7) ||
                     bytes != marker.size())
                 {
                     return false;
@@ -3276,7 +3619,7 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
             line_start = line_end + 1;
         }
         return created && handles && storage_attached && options && attached && attach_completed && resumed &&
-               collection && terminal && raw_boundary && live_at_release && release &&
+               collection && terminal && live_at_release && detach_intent && release && post_detach_raw_tail && raw_boundary &&
                output_stdout_pre && output_stderr_pre &&
                output_stdout_post && output_stderr_post && exit && phase == 11 && stdout_pending.empty() &&
                post_marker && post_thread_count > 0 && post_cycles_seen && post_cycles == post_thread_count;
@@ -3401,6 +3744,7 @@ bool ObserverFixtureEvidence::valid_for_success() const noexcept
     return options_recorded_ && attachment_recorded_ && attachment_completed_ &&
            resume_recorded_ && resume_succeeded_ && event_tail_ && continuation_tail_ &&
            collection_stopped_ && collection_complete_ && binding_tail_ && terminal_raw_tail_ &&
+           post_detach_raw_tail_ && detach_intent_ && raw_second_hold_evidence_ &&
            raw_restore_boundary_ && session_release_succeeded() &&
            live_at_release_recorded_ && live_at_release_ && post_release_marker_ &&
            exit_signaled_ && exit_code_known_ &&
@@ -3454,6 +3798,7 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
     const auto make_event = [identity]
     {
         observer_diagnostic::BridgeEventEvidence value;
+        value.raw_event_index                  = 0;
         value.identity.complete                = true;
         value.identity.process_id              = identity.process_id;
         value.identity.thread_id               = 7;
@@ -3560,7 +3905,7 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
         value.complete                                 = true;
         return value;
     };
-    const auto baseline = [identity, &make_event, &make_continuation, &make_binding]
+    const auto baseline = [identity, &make_event, &make_continuation, &make_binding, &check]
     {
         ObserverFixtureEvidence value;
         value.enable_in_memory_test_sink();
@@ -3577,27 +3922,67 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
         const bool          cont              = value.record_continuation(make_continuation());
         const bool          stop              = value.record_collection_stop(10, 1, true);
         const bool          terminal          = value.record_terminal_raw_tail(1, 1, 0, 0, false, true);
-        const std::uint64_t terminal_sequence = value.record_sequence();
-        const std::string   pre_marker        = "alive 1\n";
-        const bool          pre_out           = value.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
-                                                                             "stdout",
-                                                                             19,
-                                                                             0,
-                                                                             pre_marker.size(),
-                                                                             true,
-                                                                             false,
-                                                                             pre_marker) &&
-                                                value.record_output_snapshot(ObserverFixtureChannel::stderr_bytes,
-                                                                             "stderr",
-                                                                             19,
-                                                                             0,
-                                                                             0,
-                                                                             true,
-                                                                             false,
-                                                                             "");
-        const bool          boundary          = value.record_raw_restore_boundary(terminal_sequence);
+        check(options && created && attach && resume, "normal_setup");
+        check(event && binding && complete && cont, "normal_initial_tail");
+        check(stop, "normal_collection_stop");
+        check(terminal, "normal_terminal_tail");
+        const std::string   pre_marker              = "alive 1\n";
+        const bool          pre_out                 = value.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
+                                                                                   "stdout",
+                                                                                   19,
+                                                                                   0,
+                                                                                   pre_marker.size(),
+                                                                                   true,
+                                                                                   false,
+                                                                                   pre_marker) &&
+                                                      value.record_output_snapshot(ObserverFixtureChannel::stderr_bytes,
+                                                                                   "stderr",
+                                                                                   19,
+                                                                                   0,
+                                                                                   0,
+                                                                                   true,
+                                                                                   false,
+                                                                                   "");
         const bool          live              = value.record_live_at_release(true);
+        const bool          intent                  = value.record_detach_intent(DEBUG_END_ACTIVE_DETACH);
         const bool          rel               = value.record_session_release(S_OK, DEBUG_END_ACTIVE_DETACH, false);
+        auto                post_event              = make_event();
+        post_event.raw_event_index                  = 1;
+        post_event.identity.event_index             = 1;
+        post_event.raw_identity.event_index         = 1;
+        post_event.event.attempt_id                 = 2;
+        post_event.event.raw[0]                     = 3;
+        post_event.wait_return.attempt_id           = 2;
+        post_event.wait_return.event_index          = 1;
+        auto post_binding                           = make_binding();
+        post_binding.attempt_id                     = 2;
+        post_binding.raw_identity.event_index       = 1;
+        post_binding.qualified_identity.event_index = 1;
+        auto post_cont                              = make_continuation();
+        post_cont.attempt_id                        = 2;
+        post_cont.matched_event_index               = 1;
+        post_cont.matched_identity.event_index      = 1;
+        post_cont.entry.attempt_id                  = 2;
+        post_cont.result.attempt_id                 = 2;
+        post_cont.result.matched_event              = 1;
+        post_cont.matched_event                     = post_event.event;
+        const bool          post_event_ok           = value.record_event(post_event);
+        const bool          post_binding_ok         = value.record_binding_receipt(post_binding);
+        const bool          post_cont_ok            = value.record_continuation(post_cont);
+        const bool          post_tail               = value.record_post_detach_raw_tail(2, 2, 1, 1, false, true);
+        const std::uint64_t tail_sequence           = value.record_sequence();
+        const bool          second_hold             = value.record_raw_second_hold_evidence(
+            tail_sequence, 2, 2, 2, 1, 1, 1, 1, 0, 0, false, true, true, 11, 22, 33);
+        const bool boundary = value.record_raw_restore_boundary(tail_sequence, 11, 22, 33);
+        check(live, "normal_live");
+        check(intent, "normal_intent");
+        check(rel, "normal_release");
+        check(post_event_ok, "normal_post_event");
+        check(post_binding_ok, "normal_post_binding");
+        check(post_cont_ok, "normal_post_continuation");
+        check(post_tail, "normal_post_tail");
+        check(second_hold, "normal_second_hold_evidence");
+        check(boundary, "normal_restore_boundary");
         const std::string   post_marker =
             "post-detach-thread worker0 123 setmap constructor lookup result\npost-detach-cycles 1\n";
         const bool out  = value.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
@@ -3617,8 +4002,11 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                                                        true,
                                                        "");
         const bool exit = value.record_exit(ObserverFixtureWaitDisposition::signaled, true, ERROR_SUCCESS);
+        check(out && exit && value.valid_for_success(), "normal_final_state");
         return created && options && attach && resume && event && binding && complete && cont && stop &&
-               terminal && pre_out && boundary && live && rel && out && exit && value.valid_for_success();
+               terminal && pre_out && live && intent && rel && post_event_ok && post_binding_ok &&
+               post_cont_ok && post_tail && boundary && out && exit &&
+               value.valid_for_success();
     }();
     check(baseline, "normal");
 
@@ -3900,6 +4288,9 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                 {
                     ObserverFixtureEvidence observer;
                     bool                    observer_records = false;
+                    auto                    persisted_event        = make_event();
+                    auto                    persisted_continuation = make_continuation();
+                    auto                    persisted_binding      = make_binding();
                     HANDLE                  observer_process = duplicate_handle(retained_process);
                     HANDLE                  observer_thread  = duplicate_handle(retained_thread);
                     HANDLE                  observer_stdout  = duplicate_handle(controller.controller_storage().stdout_handle);
@@ -3920,7 +4311,6 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                         observer_stdout                                     = nullptr;
                         observer_stderr                                     = nullptr;
                         observer_state                                      = nullptr;
-                        auto persisted_event                                = make_event();
                         persisted_event.identity.process_id                 = persisted_identity.process_id;
                         persisted_event.raw_identity.process_id             = persisted_identity.process_id;
                         persisted_event.event.process_id                    = persisted_identity.process_id;
@@ -3933,7 +4323,6 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                         persisted_event.awaiting_binding                    = true;
                         persisted_event.complete                            = false;
                         persisted_event.owner_sink_succeeded                = false;
-                        auto persisted_continuation                         = make_continuation();
                         persisted_continuation.entry.attempt_id             = persisted_continuation.attempt_id;
                         persisted_continuation.result.attempt_id            = persisted_continuation.attempt_id;
                         persisted_continuation.result.result                = 0;
@@ -3941,7 +4330,6 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                         persisted_continuation.matched_identity.process_id  = persisted_identity.process_id;
                         persisted_continuation.entry.process_id             = persisted_identity.process_id;
                         persisted_continuation.matched_event.process_id     = persisted_identity.process_id;
-                        auto persisted_binding                              = make_binding();
                         persisted_binding.raw_identity.process_id           = persisted_identity.process_id;
                         persisted_binding.qualified_identity.process_id     = persisted_identity.process_id;
                         persisted_binding.observation.current_process_id    = persisted_identity.process_id;
@@ -3965,7 +4353,8 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                     {
                         CloseHandle(observer_thread);
                     }
-                    const bool controller_records =
+                    const bool controller_pre_records =
+                        observer_records &&
                         controller.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
                                                           "stdout",
                                                           20,
@@ -3981,10 +4370,53 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                                                           0,
                                                           true,
                                                           false,
-                                                          "") &&
-                        controller.record_raw_restore_boundary(observer.record_sequence()) &&
-                        observer.record_live_at_release(true) &&
+                                                          "");
+                    auto post_event                                         = persisted_event;
+                    post_event.raw_event_index                              = 1;
+                    post_event.identity.event_index                         = 1;
+                    post_event.raw_identity.event_index                     = 1;
+                    post_event.identity.engine_generation_known             = true;
+                    post_event.identity.engine_generation                   = 0x9001;
+                    post_event.engine_binding_known                         = true;
+                    post_event.awaiting_binding                             = false;
+                    post_event.complete                                     = true;
+                    post_event.owner_sink_attempted                         = true;
+                    post_event.owner_sink_succeeded                         = true;
+                    post_event.event.attempt_id                             = 2;
+                    post_event.event.generation_known                       = true;
+                    post_event.wait_return.attempt_id                       = 2;
+                    post_event.wait_return.event_index                      = 1;
+                    auto post_binding                                       = persisted_binding;
+                    post_binding.attempt_id                                 = 2;
+                    post_binding.raw_identity.event_index                   = 1;
+                    post_binding.qualified_identity.event_index             = 1;
+                    post_binding.qualified_identity.complete                = true;
+                    post_binding.qualified_identity.engine_generation_known = true;
+                    post_binding.qualified_identity.engine_generation       = 0x9001;
+                    auto post_cont                                          = persisted_continuation;
+                    post_cont.attempt_id                                    = 2;
+                    post_cont.matched_event_index                           = 1;
+                    post_cont.matched_identity.event_index                  = 1;
+                    post_cont.matched_identity.engine_generation_known      = true;
+                    post_cont.matched_identity.engine_generation            = 0x9001;
+                    post_cont.entry.attempt_id                              = 2;
+                    post_cont.result.attempt_id                             = 2;
+                    post_cont.result.matched_event                          = 1;
+                    post_cont.matched_event                                 = post_event.event;
+                    const bool observer_detach_records =
+                        controller_pre_records && observer.record_live_at_release(true) &&
+                        observer.record_detach_intent(DEBUG_END_ACTIVE_DETACH) &&
                         observer.record_session_release(S_OK, DEBUG_END_ACTIVE_DETACH, false) &&
+                        observer.record_event(post_event) &&
+                        observer.record_binding_receipt(post_binding) &&
+                        observer.record_continuation(post_cont) &&
+                        observer.record_post_detach_raw_tail(2, 2, 1, 1, false, true);
+                    const std::uint64_t acknowledged_tail = observer.record_sequence();
+                    const bool          controller_records =
+                        observer_detach_records &&
+                        controller.record_raw_second_hold_evidence(
+                            acknowledged_tail, 2, 2, 2, 1, 1, 1, 1, 0, 0, false, true, true, 11, 22, 33) &&
+                        controller.record_raw_restore_boundary(acknowledged_tail, 11, 22, 33) &&
                         controller.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
                                                           "stdout",
                                                           21,
@@ -4139,6 +4571,195 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                         state_file.close();
                         result = mutated && !controller.valid_for_success();
                     }
+                    else if (case_name == "terminal-only" || case_name == "old-epoch" ||
+                             case_name == "mismatched-event" || case_name == "mismatched-lease" ||
+                             case_name == "missing-held-evidence")
+                    {
+                        std::fstream state_file(controller.controller_storage().state_path,
+                                                std::ios::in | std::ios::out | std::ios::binary);
+                        std::string  state((std::istreambuf_iterator<char>(state_file)),
+                                           std::istreambuf_iterator<char>());
+                        bool         mutated                   = false;
+                        bool         physical_rewrite_verified = false;
+                        if (case_name == "terminal-only")
+                        {
+                            std::vector<std::string> lines;
+                            std::size_t              cursor = 0;
+                            while (cursor < state.size())
+                            {
+                                const std::size_t end  = state.find('\n', cursor);
+                                const std::size_t stop = end == std::string::npos ? state.size() : end;
+                                if (stop > cursor)
+                                {
+                                    lines.emplace_back(state.substr(cursor, stop - cursor));
+                                }
+                                cursor = end == std::string::npos ? state.size() : end + 1;
+                            }
+                            std::vector<std::string> kept_lines;
+                            kept_lines.reserve(lines.size());
+                            for (const std::string& line : lines)
+                            {
+                                const bool second_event   = line.find("\"kind\":\"event\"") != std::string::npos &&
+                                                            line.find("\"raw-event-index\":1") != std::string::npos;
+                                const bool second_binding = line.find("\"kind\":\"binding\"") != std::string::npos &&
+                                                            line.find("\"raw-identity-event-index\":1") != std::string::npos;
+                                const bool second_continuation =
+                                    line.find("\"kind\":\"continuation\"") != std::string::npos &&
+                                    line.find("\"matched-event-index\":1") != std::string::npos;
+                                if (!second_event && !second_binding && !second_continuation)
+                                {
+                                    kept_lines.push_back(line);
+                                }
+                            }
+                            std::uint64_t post_tail_sequence = 0;
+                            std::uint64_t sequence           = 1;
+                            const auto    replace_value      = [](std::string*  line,
+                                                                  const char*   key,
+                                                                  std::uint64_t value) -> bool
+                            {
+                                if (line == nullptr || key == nullptr)
+                                {
+                                    return false;
+                                }
+                                const std::string marker = std::string("\"") + key + "\":";
+                                const std::size_t begin  = line->find(marker);
+                                if (begin == std::string::npos)
+                                {
+                                    return false;
+                                }
+                                const std::size_t value_begin = begin + marker.size();
+                                const std::size_t value_end   = line->find(',', value_begin);
+                                const std::size_t end         = value_end == std::string::npos
+                                                                    ? line->find('}', value_begin)
+                                                                    : value_end;
+                                if (end == std::string::npos)
+                                {
+                                    return false;
+                                }
+                                line->replace(value_begin, end - value_begin, std::to_string(value));
+                                return true;
+                            };
+                            for (std::string& line : kept_lines)
+                            {
+                                if (!replace_value(&line, "sequence", sequence))
+                                {
+                                    kept_lines.clear();
+                                    break;
+                                }
+                                if (line.find("\"kind\":\"post-detach-raw-tail\"") != std::string::npos)
+                                {
+                                    post_tail_sequence = sequence;
+                                    (void)replace_value(&line, "event-count", 1);
+                                    (void)replace_value(&line, "continuation-count", 1);
+                                    (void)replace_value(&line, "last-event-index", 0);
+                                    (void)replace_value(&line, "last-continuation-index", 0);
+                                }
+                                if (line.find("\"kind\":\"raw-second-hold-evidence\"") != std::string::npos)
+                                {
+                                    (void)replace_value(&line, "ack-tail-sequence", post_tail_sequence);
+                                    (void)replace_value(&line, "event-count", 1);
+                                    (void)replace_value(&line, "continuation-count", 1);
+                                    (void)replace_value(&line, "binding-count", 1);
+                                    (void)replace_value(&line, "last-event-index", 0);
+                                    (void)replace_value(&line, "last-continuation-index", 0);
+                                }
+                                ++sequence;
+                            }
+                            if (post_tail_sequence != 0 && !kept_lines.empty())
+                            {
+                                for (std::string& line : kept_lines)
+                                {
+                                    if (line.find("\"kind\":\"raw-second-hold-evidence\"") != std::string::npos ||
+                                        line.find("\"kind\":\"raw-restore-boundary\"") != std::string::npos)
+                                    {
+                                        (void)replace_value(&line, "ack-tail-sequence", post_tail_sequence);
+                                    }
+                                }
+                                std::ostringstream rebuilt;
+                                for (const std::string& line : kept_lines)
+                                {
+                                    rebuilt << line << '\n';
+                                }
+                                state = rebuilt.str();
+                                state_file.close();
+                                std::ofstream replacement(controller.controller_storage().state_path,
+                                                          std::ios::binary | std::ios::trunc);
+                                replacement.write(state.data(), static_cast<std::streamsize>(state.size()));
+                                replacement.flush();
+                                const bool write_ok = replacement.good();
+                                replacement.close();
+                                const bool        close_ok = !replacement.fail();
+                                std::ifstream     physical_file(controller.controller_storage().state_path,
+                                                                std::ios::binary);
+                                const bool        physical_open = physical_file.is_open();
+                                const std::string physical((std::istreambuf_iterator<char>(physical_file)),
+                                                           std::istreambuf_iterator<char>());
+                                physical_file.close();
+                                std::error_code size_error;
+                                const auto      physical_size =
+                                    std::filesystem::file_size(controller.controller_storage().state_path, size_error);
+                                physical_rewrite_verified = write_ok && close_ok && physical_open &&
+                                                            !size_error && physical_size == state.size() &&
+                                                            physical == state;
+                                mutated                   = physical_rewrite_verified;
+                            }
+                        }
+                        else if (case_name == "missing-held-evidence")
+                        {
+                            const std::size_t key = state.find("\"kind\":\"raw-second-hold-evidence\"");
+                            if (key != std::string::npos)
+                            {
+                                state.replace(key,
+                                              std::string("\"kind\":\"raw-second-hold-evidence\"").size(),
+                                              "\"kind\":\"raw-second-hold-evidence-missing\"");
+                                mutated = true;
+                            }
+                        }
+                        else
+                        {
+                            const std::size_t boundary = state.find("\"kind\":\"raw-restore-boundary\"");
+                            const std::string field    = case_name == "old-epoch"
+                                                             ? "\"hold-request-epoch\":11"
+                                                         : case_name == "mismatched-event"
+                                                             ? "\"event-identity\":22"
+                                                             : "\"lease-identity\":33";
+                            const std::size_t key      = boundary == std::string::npos
+                                                             ? std::string::npos
+                                                             : state.find(field, boundary);
+                            if (key != std::string::npos)
+                            {
+                                const std::size_t value = key + field.rfind(':') + 1;
+                                state.replace(value, 2, case_name == "old-epoch" ? "10" : case_name == "mismatched-event" ? "24"
+                                                                                                                          : "34");
+                                mutated = true;
+                            }
+                        }
+                        if (mutated && case_name != "terminal-only")
+                        {
+                            state_file.clear();
+                            state_file.seekp(0, std::ios::beg);
+                            state_file.write(state.data(), static_cast<std::streamsize>(state.size()));
+                            state_file.flush();
+                        }
+                        state_file.close();
+                        if (case_name == "terminal-only")
+                        {
+                            bool relaxed_success = false;
+                            bool strict_success  = true;
+                            if (mutated && physical_rewrite_verified)
+                            {
+                                controller.test_ignore_post_activity_ = true;
+                                relaxed_success                       = controller.valid_for_success();
+                                controller.test_ignore_post_activity_ = false;
+                                strict_success                        = controller.valid_for_success();
+                            }
+                            result = mutated && physical_rewrite_verified && relaxed_success && !strict_success;
+                        }
+                        else
+                        {
+                            result = mutated && !controller.valid_for_success();
+                        }
+                    }
                     else if (case_name == "event-thread")
                     {
                         std::fstream      state_file(controller.controller_storage().state_path,
@@ -4231,6 +4852,11 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
         check(identity_ready && persisted_case("binding-known"), "persisted_binding_known_rejected");
         check(identity_ready && persisted_case("binding-id"), "persisted_binding_id_rejected");
         check(identity_ready && persisted_case("event-thread"), "persisted_event_thread_rejected");
+        check(identity_ready && persisted_case("terminal-only"), "persisted_terminal_only_rejected");
+        check(identity_ready && persisted_case("old-epoch"), "persisted_old_epoch_rejected");
+        check(identity_ready && persisted_case("mismatched-event"), "persisted_mismatched_event_rejected");
+        check(identity_ready && persisted_case("mismatched-lease"), "persisted_mismatched_lease_rejected");
+        check(identity_ready && persisted_case("missing-held-evidence"), "persisted_missing_held_evidence_rejected");
         if (thread_source != nullptr)
         {
             CloseHandle(thread_source);

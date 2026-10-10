@@ -54,6 +54,8 @@ inline constexpr char kObserverLiveRequestInitialHoldExport[] =
     "xivl_observer_request_initial_hold_v1";
 inline constexpr char kObserverLiveRequestCleanupHoldExport[] =
     "xivl_observer_request_cleanup_hold_v1";
+inline constexpr char kObserverLiveRequestRawCleanupHoldExport[] =
+    "xivl_observer_request_raw_cleanup_hold_v1";
 
 constexpr std::uint32_t kObserverLiveBootstrapVersion    = 1;
 constexpr std::uint32_t kObserverLiveOwnerControlVersion = 1;
@@ -87,6 +89,11 @@ struct ObserverLiveBootstrapV1
     // These addresses are the target-owned WaitThunk, ContinueThunk and
     // converter replacement consumed by the external raw-slot transport.
     std::array<std::uint32_t, observer_diagnostic::kHookEntryCount> raw_wrappers{};
+    // Compiler-owned WaitThunk and ContinueThunk spans, plus a zero extent
+    // for the external ntdll converter.  The counter is target-local storage
+    // incremented only by the active raw wrappers.
+    std::array<std::uint32_t, observer_diagnostic::kHookEntryCount> raw_wrapper_extents{};
+    std::uint32_t                                                   raw_forwarding_counter_address = 0;
     std::uint32_t                                                   child_control_address = 0;
     std::uint32_t                                                   child_start_control   = 0;
     std::uint32_t                                                   child_release_control = 0;
@@ -109,7 +116,7 @@ struct ObserverLiveBootstrapV1
 
 static_assert(std::is_standard_layout_v<ObserverLiveBootstrapV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveBootstrapV1>);
-static_assert(sizeof(ObserverLiveBootstrapV1) == 288);
+static_assert(sizeof(ObserverLiveBootstrapV1) == 304);
 
 enum class ObserverLiveChildState : std::uint32_t
 {
@@ -120,6 +127,7 @@ enum class ObserverLiveChildState : std::uint32_t
     Complete      = 4,
     Failed        = 5,
     Released      = 6,
+    Detached      = 7,
 };
 
 enum class ObserverLiveFailureOutcome : std::uint32_t
@@ -132,6 +140,11 @@ enum class ObserverLiveFailureOutcome : std::uint32_t
     OutputWrite        = 5,
     Lifecycle          = 6,
 };
+
+// A raw lifecycle failure is sticky in the externally readable child
+// witness.  The value remains nonzero (therefore pending) and prevents a
+// later bridge publication from healing the failed observer lifetime.
+inline constexpr std::uint32_t kObserverLiveRawPendingInvalid = 2;
 
 struct alignas(8) ObserverLiveChildControlV1
 {
@@ -175,11 +188,73 @@ struct alignas(8) ObserverLiveChildControlV1
     std::uint64_t collection_operation_failures  = 0;
     std::uint64_t collection_admitted_intervals  = 0;
     std::uint64_t collection_active_intervals    = 0;
+    // The controller reads this raw-tail witness from the child while the
+    // fresh typed raw hold is active.  The sequence is advanced by the child
+    // after every persisted raw event, binding and continuation, so a value
+    // copied at detach cannot stand in for a current witness.
+    std::uint64_t raw_event_count                      = 0;
+    std::uint64_t raw_continuation_count               = 0;
+    std::uint64_t raw_binding_count                    = 0;
+    std::uint64_t raw_last_event_index                 = 0;
+    std::uint64_t raw_last_continuation_index          = 0;
+    std::uint64_t raw_terminal_event_count             = 0;
+    std::uint64_t raw_terminal_continuation_count      = 0;
+    std::uint64_t raw_terminal_last_event_index        = 0;
+    std::uint64_t raw_terminal_last_continuation_index = 0;
+    std::uint64_t raw_terminal_sequence                = 0;
+    std::uint64_t raw_tail_sequence                    = 0;
+    std::uint32_t raw_pending                          = 0;
+    std::uint32_t raw_coverage                         = 0;
+    std::uint32_t raw_persistence                      = 0;
+    std::uint32_t raw_post_activity                    = 0;
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveChildControlV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveChildControlV1>);
-static_assert(sizeof(ObserverLiveChildControlV1) == 232);
+static_assert(sizeof(ObserverLiveChildControlV1) == 336);
+
+// Shared production publication and decision helpers.  The bootstrap wrapper
+// calls the publication helper for its real g_child_control; CPU tests pass a
+// local control record through the same code path.
+bool observer_live_publish_raw_tail_to_control(
+    ObserverLiveChildControlV1* control,
+    std::uint64_t               event_count,
+    std::uint64_t               continuation_count,
+    std::uint64_t               binding_count,
+    std::uint64_t               last_event_index,
+    std::uint64_t               last_continuation_index,
+    std::uint64_t               sequence,
+    bool                        terminal_boundary,
+    bool                        pending,
+    bool                        coverage,
+    bool                        persistence) noexcept;
+
+void observer_live_invalidate_raw_tail_to_control(
+    ObserverLiveChildControlV1* control) noexcept;
+
+bool observer_live_publish_acknowledged_tail_to_control(
+    ObserverLiveChildControlV1* control,
+    std::uint64_t               acknowledged_sequence) noexcept;
+
+bool observer_live_validate_raw_detach_tail(
+    const ObserverLiveChildControlV1& acknowledged,
+    const ObserverLiveChildControlV1& current,
+    std::uint64_t                     acknowledged_sequence,
+    std::string*                      refusal) noexcept;
+
+bool observer_live_publish_raw_tail(std::uint64_t event_count,
+                                    std::uint64_t continuation_count,
+                                    std::uint64_t binding_count,
+                                    std::uint64_t last_event_index,
+                                    std::uint64_t last_continuation_index,
+                                    std::uint64_t sequence,
+                                    bool          terminal_boundary,
+                                    bool          pending,
+                                    bool          coverage,
+                                    bool          persistence) noexcept;
+
+void observer_live_invalidate_raw_tail() noexcept;
+bool observer_live_publish_acknowledged_tail(std::uint64_t sequence) noexcept;
 
 struct ObserverLiveOwnerControlRequestV1
 {
@@ -219,6 +294,7 @@ enum class ObserverLiveHoldRequestKind : std::uint32_t
 {
     Initial = 1,
     Cleanup = 2,
+    RawCleanup = 3,
 };
 
 // ERROR_IO_PENDING is the externally committed request.  The target changes
@@ -404,6 +480,7 @@ struct ObserverLiveResult
     std::uint64_t publication_generation      = 0;
     std::uint64_t initial_hold_request_epoch  = 0;
     std::uint64_t cleanup_hold_request_epoch  = 0;
+    std::uint64_t raw_cleanup_hold_request_epoch = 0;
     bool          intent_recorded             = false;
     bool          actual_result_recorded      = false;
     bool          effects_uncertain           = false;
@@ -654,6 +731,8 @@ public:
     bool   write(std::uintptr_t address, const void* source, std::size_t size) const noexcept;
     bool   establish_mutation_attestation(const ObserverLiveAuthority& authority,
                                           std::string*                 refusal) noexcept;
+    bool   establish_raw_mutation_attestation(const ObserverLiveAuthority& authority,
+                                              std::string*                 refusal) noexcept;
     bool   change_protection(std::uintptr_t address,
                              std::size_t    size,
                              DWORD          requested,
@@ -695,6 +774,7 @@ public:
     bool          complete_module_release() noexcept;
     bool          request_initial_hold(std::string* refusal) noexcept;
     bool          request_cleanup_hold(std::string* refusal) noexcept;
+    bool          request_raw_cleanup_hold(std::string* refusal) noexcept;
     bool          begin_cleanup(std::uint64_t cleanup_start_tick,
                                 std::uint32_t cleanup_ticks,
                                 std::uint64_t lifecycle_start_tick,
@@ -702,6 +782,7 @@ public:
                                 std::string*  refusal) noexcept;
     std::uint64_t initial_hold_request_epoch() const noexcept;
     std::uint64_t cleanup_hold_request_epoch() const noexcept;
+    std::uint64_t raw_cleanup_hold_request_epoch() const noexcept;
     bool          start_child(HANDLE                         fixture_process,
                               HANDLE                         fixture_thread,
                               HANDLE                         fixture_stdout,
@@ -865,6 +946,8 @@ public:
     bool wait_for_fixture_event(const ObserverLiveAuthority& authority,
                                 std::uint32_t                timeout_ticks,
                                 std::string*                 refusal) noexcept;
+    bool begin_active_detach(const ObserverLiveAuthority& authority,
+                             std::string*                 refusal) noexcept;
     bool release(const ObserverLiveAuthority& authority,
                  std::string*                 refusal) noexcept;
 

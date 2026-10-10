@@ -593,6 +593,68 @@ void exercise_event_and_continuation(TestState& tests)
     g_fake_state   = nullptr;
 }
 
+void exercise_raw_lifecycle_after_collection(TestState& tests)
+{
+    std::unique_ptr<raw_recorder::RawRecorder> raw =
+        std::make_unique<raw_recorder::RawRecorder>();
+    Recorder                        diagnostic;
+    std::unique_ptr<RawEventBridge> bridge =
+        std::make_unique<RawEventBridge>(diagnostic, nullptr, nullptr, RawEventBindingMode::deferred);
+    FakeState state;
+    g_fake_state = &state;
+    std::array<std::uint8_t, 0x60> create{};
+    std::array<std::uint8_t, 0x60> exception{};
+    make_lifecycle(&create, 3);
+    make_exception(&exception);
+    tests.check(bridge->attach(*raw), "raw lifecycle bridge attach");
+    tests.check(raw->activate(&fake_wait, &fake_continue), "raw lifecycle bridge activate");
+    tests.check(raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, create.data()) == 0,
+                "raw lifecycle baseline event");
+    ClientId client{ 100, 200 };
+    state.continue_result = 0;
+    tests.check(raw_recorder::RawRecorder::ContinueThunk(
+                    0x1111U, &client, 0x40010000U) == 0,
+                "raw lifecycle baseline continuation");
+    const std::size_t frozen_rows = diagnostic.rows().size();
+    tests.check(!diagnostic.pending_event().has_value() && bridge->begin_raw_lifecycle(),
+                "raw lifecycle opens after diagnostic collection");
+
+    tests.check(raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, exception.data()) == 0,
+                "raw lifecycle event forwards after collection");
+    const std::size_t        raw_event_index = bridge->event_count() - 1;
+    const RawIdentityBinding binding         = bridge->event(raw_event_index).raw_identity;
+    tests.check(diagnostic.rows().size() == frozen_rows,
+                "raw lifecycle keeps diagnostic rows frozen");
+    tests.check(!diagnostic.pending_event().has_value(),
+                "raw lifecycle keeps diagnostic pending empty");
+    tests.check(bridge->event(raw_event_index).identity.complete,
+                "raw lifecycle event identity complete");
+    tests.check(bridge->event(raw_event_index).pending_status == PendingEventStatus::Admitted,
+                "raw lifecycle event admitted independently");
+    const EngineBindingStatus raw_binding_status = bridge->bind_engine_event(
+        binding, complete_deferred_observation(binding), 0x31U);
+    tests.check(raw_binding_status == EngineBindingStatus::Bound,
+                "raw lifecycle binds the worker identity independently");
+    tests.check(raw_recorder::RawRecorder::ContinueThunk(
+                    0x1111U, &client, 0x40010000U) == 0,
+                "raw lifecycle continuation forwards after collection");
+    tests.check(bridge->continuation_count() >= 2,
+                "raw lifecycle continuation recorded independently");
+    if (bridge->continuation_count() >= 2)
+    {
+        tests.check(bridge->continuation(bridge->continuation_count() - 1).close_status ==
+                        PendingEventStatus::Closed,
+                    "raw lifecycle closes its independent pending key");
+    }
+    tests.check(diagnostic.rows().size() == frozen_rows &&
+                    !diagnostic.pending_event().has_value(),
+                "raw lifecycle continuation keeps diagnostic rows frozen");
+    tests.check(bridge->end_raw_lifecycle(), "raw lifecycle closes after continuation");
+    raw->deactivate();
+    tests.check(raw->clear_observer_sink(), "raw lifecycle bridge sink clear");
+    g_fake_state = nullptr;
+}
+
 void exercise_owner_sink_contract(TestState& tests)
 {
     {
@@ -1078,6 +1140,7 @@ SelfTestReport run_event_bridge_self_tests()
     TestState tests;
     exercise_reentrant_and_error_restore(tests);
     exercise_event_and_continuation(tests);
+    exercise_raw_lifecycle_after_collection(tests);
     exercise_owner_sink_contract(tests);
     exercise_unknown_mismatch_throw_and_overflow(tests);
     exercise_deferred_binding(tests);

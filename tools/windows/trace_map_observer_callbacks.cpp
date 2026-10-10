@@ -86,6 +86,8 @@ struct TraceMapObserverCallbacks::State
     };
 
     TraceMapObserverCallbacksConfig           config;
+    RawTailPublicationFunction                raw_tail_publication      = nullptr;
+    void*                                     raw_tail_publication_user = nullptr;
     Events                                    events;
     Recorder                                  recorder;
     raw_recorder::RawRecorder                 raw;
@@ -103,6 +105,8 @@ struct TraceMapObserverCallbacks::State
 
     State(const TraceMapObserverCallbacksConfig& input, bool input_error_known)
     : config(input)
+    , raw_tail_publication(config.raw_tail_publication)
+    , raw_tail_publication_user(config.raw_tail_publication_user)
     , recorder(config.recorder)
     , raw()
     , session(&recorder, config.client, config.creator_thread_id)
@@ -181,7 +185,9 @@ struct TraceMapObserverCallbacks::State
             RawLifecycleOwnerSink{ &State::observe_event,
                                    &State::observe_continuation,
                                    this,
-                                   &State::observe_binding });
+                                   &State::observe_binding },
+            config.raw_tail_invalidation,
+            config.raw_tail_invalidation_user);
         CallbackDispatchConfig configured    = dispatch_config;
         configured.raw_bridge                = bridge.get();
         configured.instrumentation_thread_id = config.creator_thread_id;
@@ -221,6 +227,12 @@ struct TraceMapObserverCallbacks::State
             state->admission.event_number_before   = state->events.event_number;
             state->admission.expected_event_number = state->events.event_number + 1;
             state->admission.present               = true;
+            if (state->raw_tail_publication != nullptr &&
+                !state->raw_tail_publication(state->raw_tail_publication_user,
+                                             state->bridge.get()))
+            {
+                return false;
+            }
             return true;
         }
         catch (...)
@@ -238,8 +250,15 @@ struct TraceMapObserverCallbacks::State
         }
         try
         {
-            return state->config.fixture_evidence == nullptr ||
-                   state->config.fixture_evidence->record_binding_receipt(receipt);
+            const bool recorded = state->config.fixture_evidence == nullptr ||
+                                  state->config.fixture_evidence->record_binding_receipt(receipt);
+            if (!recorded)
+            {
+                return false;
+            }
+            return state->raw_tail_publication == nullptr ||
+                   state->raw_tail_publication(state->raw_tail_publication_user,
+                                               state->bridge.get());
         }
         catch (...)
         {
@@ -272,6 +291,12 @@ struct TraceMapObserverCallbacks::State
                 same_raw_key(state->admission.identity, evidence.matched_identity))
             {
                 state->admission = {};
+            }
+            if (state->raw_tail_publication != nullptr &&
+                !state->raw_tail_publication(state->raw_tail_publication_user,
+                                             state->bridge.get()))
+            {
+                return false;
             }
             return true;
         }
@@ -536,6 +561,59 @@ bool TraceMapObserverCallbacks::deactivate_raw() noexcept
     return true;
 }
 
+bool TraceMapObserverCallbacks::begin_raw_detach() noexcept
+{
+    if (state_ == nullptr || state_->released || !state_->activated ||
+        state_->config.creator_thread_id == 0 ||
+        GetCurrentThreadId() != state_->config.creator_thread_id ||
+        state_->bridge == nullptr || !state_->raw.active())
+    {
+        status_ = TraceMapObserverCallbacksStatus::InvalidCreatorThread;
+        return false;
+    }
+    if (state_->bridge->raw_lifecycle_open())
+    {
+        return false;
+    }
+    if (!state_->bridge->begin_raw_lifecycle())
+    {
+        return false;
+    }
+    if (!state_->raw.begin_detach_forward_only())
+    {
+        (void)state_->bridge->end_raw_lifecycle();
+        return false;
+    }
+    return true;
+}
+
+bool TraceMapObserverCallbacks::end_raw_detach() noexcept
+{
+    if (state_ == nullptr || state_->released || state_->config.creator_thread_id == 0 ||
+        GetCurrentThreadId() != state_->config.creator_thread_id || state_->bridge == nullptr)
+    {
+        status_ = TraceMapObserverCallbacksStatus::InvalidCreatorThread;
+        return false;
+    }
+    if (state_->raw.active())
+    {
+        state_->raw.deactivate();
+    }
+    if (state_->sink_attached && !state_->raw.clear_observer_sink())
+    {
+        status_ = TraceMapObserverCallbacksStatus::SinkDetachRefused;
+        return false;
+    }
+    if (state_->bridge->raw_lifecycle_open() && !state_->bridge->end_raw_lifecycle())
+    {
+        return false;
+    }
+    state_->sink_attached        = false;
+    state_->activated            = false;
+    state_->events.watch_threads = false;
+    return true;
+}
+
 bool TraceMapObserverCallbacks::has_pending_raw() const noexcept
 {
     if (state_ == nullptr)
@@ -544,12 +622,18 @@ bool TraceMapObserverCallbacks::has_pending_raw() const noexcept
     }
     try
     {
-        return state_->recorder.pending_event().has_value();
+        return state_->recorder.pending_lifecycle_event().has_value();
     }
     catch (...)
     {
         return true;
     }
+}
+
+bool TraceMapObserverCallbacks::raw_detach_forwarding() const noexcept
+{
+    return state_ != nullptr && state_->initialized && !state_->released &&
+           state_->raw.detach_forwarding();
 }
 
 bool TraceMapObserverCallbacks::teardown() noexcept

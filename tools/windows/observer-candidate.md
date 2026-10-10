@@ -54,7 +54,7 @@ separate ordinary fixture. There is no retail or arbitrary-PID profile.
 | Observer child | [observer_live_bootstrap.cpp](observer_live_bootstrap.cpp) | Publish target-local control records and connect the retained child session to DbgEng and the ordinary fixture. |
 | Fixture evidence retention | [observer_fixture_evidence.cpp](observer_fixture_evidence.cpp) | Retain creation-bound handles, raw event and continuation receipts, separate stdout/stderr/state channels, release results and post-detach exit evidence. |
 | Collection boundary | [observer_collection.cpp](observer_collection.cpp) | Close Recorder admission at one immutable monotonic deadline, independently of child completion and cleanup. |
-| Production callback owner | [trace_map_observer_callbacks.cpp](trace_map_observer_callbacks.cpp) | Connect raw admission, Events, retained lifecycle acquisition and the shared Recorder. |
+| Production callback owner | [trace_map_observer_callbacks.cpp](trace_map_observer_callbacks.cpp) | Connect raw admission, Events, retained lifecycle acquisition and the shared Recorder. Active detach keeps the raw recorder and cached originals resident until the final release boundary. |
 | CPU qualification | [observer_controller.cpp](observer_controller.cpp) and [observer_native_backend.cpp](observer_native_backend.cpp) | Exercise that callback and forwarding composition with injected authority, memory and results. |
 | Receipt acceptance | [validate_observer_candidate.py](validate_observer_candidate.py) | Check the positive trace and persisted causal failure artifacts. |
 
@@ -171,19 +171,30 @@ successful `AttachProcess` HRESULT alone is insufficient. Collection stops at
 the immutable collection deadline. The controller starts one absolute cleanup
 deadline before reading pre-release output from the retained channels, publishes
 that same deadline and obtains a cleanup hold. While that hold is active it
-restores the hook and raw
-slots, records the terminal raw-tail boundary, and continues the hold. The
-restoration latch is set before publication ownership is released outside the
-hold; the child then releases its workers, deactivates raw delivery, clears
-callbacks and performs `DEBUG_END_ACTIVE_DETACH`. The terminal raw-tail record
-covers the observed boundary before raw restoration and does not claim unseen
-bytes from the child's later detach path. The controller keeps polling the
-retained output channels and creation-bound fixture handle within the same
-finite cleanup bound, records the final output after release, requires a
-source-conditioned post-detach marker, and reads the process exit code only
-from the retained creation handle. An `alive 0` line alone is not a
-post-detach marker. Missing output, continuation, release, marker, wait or
-code evidence remains unknown.
+restores the diagnostic hooks and records the terminal raw-tail boundary. The
+raw slots, raw originals, callback state and retained module stay resident for
+active detach. The child records the active-detach intent and
+`DEBUG_END_ACTIVE_DETACH` result, then records the actual post-detach event,
+binding and continuation tail. Before publishing `Detached`, the child copies
+that persisted post-detach sequence into its shared control record. Each raw
+event, binding and continuation republishes the live counts, last indices,
+pending state, coverage and persistence witness. The controller reads that
+live witness again under a second fresh typed hold and refuses before any raw
+slot write when the acknowledgement is stale, changed, pending, incomplete or
+unpersisted. Every raw gap, overflow, owner or evidence sink refusal,
+exception, and publication failure also publishes a sticky invalid witness
+through the unheld child route; later successful raw activity cannot heal that
+witness. It joins the exact unchanged tail to the raw wrapper extents, the raw
+forwarding counter and current held identities, persists the accepted
+second-hold evidence and restoration boundary, then restores raw slots. It
+sets the restoration latch and only then releases the child, callbacks and
+retained resources. The
+controller keeps polling the retained output channels and creation-bound
+fixture handle within the same finite cleanup bound, records the final output
+after release, requires a source-conditioned post-detach marker, and reads the
+process exit code only from the retained creation handle. An `alive 0` line
+alone is not a post-detach marker. Missing output, continuation, release,
+marker, wait or code evidence remains unknown.
 
 Native activation still requires a reviewed fixture failure contract covering
 creation-bound external retention, actual event/continuation tail, session

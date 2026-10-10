@@ -145,22 +145,78 @@ void synthetic_exception(std::array<std::uint8_t, 0x60>* bytes)
 
 } // namespace
 
-RawEventBridge::RawEventBridge(Recorder&                recorder,
-                               EngineGenerationProvider provider,
-                               void*                    provider_user,
-                               RawEventBindingMode      mode,
-                               RawLifecycleOwnerSink    owner_sink) noexcept
+RawEventBridge::RawEventBridge(Recorder&                   recorder,
+                               EngineGenerationProvider    provider,
+                               void*                       provider_user,
+                               RawEventBindingMode         mode,
+                               RawLifecycleOwnerSink       owner_sink,
+                               RawLifecycleFailureFunction failure_sink,
+                               void*                       failure_sink_user) noexcept
 : recorder_(recorder)
 , provider_(provider)
 , provider_user_(provider_user)
 , mode_(mode)
 , owner_sink_(owner_sink)
+, failure_sink_(failure_sink)
+, failure_sink_user_(failure_sink_user)
 {
+}
+
+void RawEventBridge::invalidate_coverage() noexcept
+{
+    coverage_.store(false, std::memory_order_release);
+    if (failure_sink_ != nullptr)
+    {
+        failure_sink_(failure_sink_user_);
+    }
 }
 
 bool RawEventBridge::attach(raw_recorder::RawRecorder& recorder) noexcept
 {
     return recorder.set_observer_sink(sink());
+}
+
+bool RawEventBridge::begin_raw_lifecycle() noexcept
+{
+    if (raw_lifecycle_open_)
+    {
+        return false;
+    }
+    try
+    {
+        raw_lifecycle_open_ = recorder_.open_raw_lifecycle();
+    }
+    catch (...)
+    {
+        raw_lifecycle_open_ = false;
+    }
+    return raw_lifecycle_open_;
+}
+
+bool RawEventBridge::end_raw_lifecycle() noexcept
+{
+    if (!raw_lifecycle_open_)
+    {
+        return false;
+    }
+    try
+    {
+        if (!recorder_.close_raw_lifecycle())
+        {
+            return false;
+        }
+    }
+    catch (...)
+    {
+        return false;
+    }
+    raw_lifecycle_open_ = false;
+    return true;
+}
+
+bool RawEventBridge::raw_lifecycle_open() const noexcept
+{
+    return raw_lifecycle_open_;
 }
 
 raw_recorder::RawObserverSink RawEventBridge::sink() noexcept
@@ -315,7 +371,7 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
 {
     if (binding_count_ >= bindings_.size())
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         mark_gap(attempt_id, raw_recorder::CoverageGapReason::event_record_overflow);
         return EngineBindingStatus::Overflow;
     }
@@ -356,13 +412,17 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
     {
         try
         {
-            status = recorder_.bind_pending_event(
-                events_[event_slot_index].identity,
-                observation,
-                engine_generation,
-                callback_operation_id,
-                callback_acquisition_operation_id,
-                receipt.attempt_id);
+            status = raw_lifecycle_open_
+                         ? recorder_.bind_raw_pending_event(events_[event_slot_index].identity,
+                                                            observation,
+                                                            engine_generation)
+                         : recorder_.bind_pending_event(
+                               events_[event_slot_index].identity,
+                               observation,
+                               engine_generation,
+                               callback_operation_id,
+                               callback_acquisition_operation_id,
+                               receipt.attempt_id);
         }
         catch (...)
         {
@@ -394,12 +454,12 @@ EngineBindingStatus RawEventBridge::bind_engine_event(
         }
         if (!retained)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
         }
     }
     if (status != EngineBindingStatus::Bound)
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
     }
     return status;
 }
@@ -435,7 +495,7 @@ void RawEventBridge::observe(
     }
     catch (...)
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         mark_gap(notification.attempt_id,
                  raw_recorder::CoverageGapReason::observer_sink_exception);
     }
@@ -468,7 +528,7 @@ bool RawEventBridge::raw_identity(std::size_t                   event_index,
                                  binding->thread_id != 0;
     if (!identity->complete)
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         return false;
     }
 
@@ -478,7 +538,7 @@ bool RawEventBridge::raw_identity(std::size_t                   event_index,
     }
     if (provider_ == nullptr)
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         return true;
     }
     std::uint64_t engine_generation = 0;
@@ -489,7 +549,7 @@ bool RawEventBridge::raw_identity(std::size_t                   event_index,
     }
     catch (...)
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         return false;
     }
     if (bound && engine_generation != 0)
@@ -499,7 +559,7 @@ bool RawEventBridge::raw_identity(std::size_t                   event_index,
     }
     else
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
     }
     return true;
 }
@@ -511,7 +571,7 @@ void RawEventBridge::observe_event(
         notification.raw_event_index >= raw_recorder::kMaxRawEvents ||
         event_count_ >= events_.size())
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         mark_gap(notification.attempt_id,
                  event_count_ >= events_.size()
                      ? raw_recorder::CoverageGapReason::event_record_overflow
@@ -550,19 +610,21 @@ void RawEventBridge::observe_event(
 
     try
     {
-        output.pending_status = recorder_.admit_pending_event(output.identity);
+        output.pending_status = raw_lifecycle_open_
+                                    ? recorder_.admit_raw_pending_event(output.identity)
+                                    : recorder_.admit_pending_event(output.identity);
     }
     catch (...)
     {
         output.pending_status = PendingEventStatus::Unknown;
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         mark_gap(notification.attempt_id,
                  raw_recorder::CoverageGapReason::observer_sink_exception);
         return;
     }
     if (output.pending_status != PendingEventStatus::Admitted)
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         mark_gap(notification.attempt_id,
                  output.pending_status == PendingEventStatus::Unknown
                      ? raw_recorder::CoverageGapReason::unknown_generation
@@ -572,7 +634,7 @@ void RawEventBridge::observe_event(
     {
         if (!output.awaiting_binding)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
         }
     }
     if (owner_sink_.observe_event && output.pending_status == PendingEventStatus::Admitted)
@@ -585,14 +647,14 @@ void RawEventBridge::observe_event(
         }
         catch (...)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
             mark_gap(notification.attempt_id,
                      raw_recorder::CoverageGapReason::observer_sink_exception);
         }
         output.owner_sink_succeeded = owner_retained;
         if (!owner_retained)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
         }
     }
 }
@@ -603,7 +665,7 @@ void RawEventBridge::observe_continuation(
     if (notification.continue_result == nullptr ||
         continuation_count_ >= continuations_.size())
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         mark_gap(notification.attempt_id,
                  raw_recorder::CoverageGapReason::continue_result_overflow);
         return;
@@ -632,7 +694,7 @@ void RawEventBridge::observe_continuation(
         output.close_attempted = true;
         if (matched >= raw_recorder::kMaxRawEvents || !identity_present_[matched])
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
             mark_gap(notification.attempt_id,
                      raw_recorder::CoverageGapReason::pending_mismatch);
         }
@@ -643,7 +705,9 @@ void RawEventBridge::observe_continuation(
                                           : identities_[matched];
             try
             {
-                output.close_status = recorder_.close_pending_event(output.matched_identity);
+                output.close_status = raw_lifecycle_open_
+                                          ? recorder_.close_raw_pending_event(output.matched_identity)
+                                          : recorder_.close_pending_event(output.matched_identity);
             }
             catch (...)
             {
@@ -651,7 +715,7 @@ void RawEventBridge::observe_continuation(
             }
             if (output.close_status != PendingEventStatus::Closed)
             {
-                coverage_.store(false, std::memory_order_release);
+                invalidate_coverage();
                 mark_gap(notification.attempt_id,
                          raw_recorder::CoverageGapReason::pending_mismatch);
             }
@@ -671,12 +735,12 @@ void RawEventBridge::observe_continuation(
                                   output.matched_identity.engine_generation != 0;
         if (!output.result.match_unique)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
         }
     }
     else
     {
-        coverage_.store(false, std::memory_order_release);
+        invalidate_coverage();
         if (output.result.client_id_valid)
         {
             mark_gap(notification.attempt_id,
@@ -690,7 +754,7 @@ void RawEventBridge::observe_continuation(
                           output.matched_identity.engine_generation_known;
         if (!output.complete)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
         }
     }
     if (owner_sink_.observe_continuation)
@@ -703,14 +767,14 @@ void RawEventBridge::observe_continuation(
         }
         catch (...)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
             mark_gap(notification.attempt_id,
                      raw_recorder::CoverageGapReason::observer_sink_exception);
         }
         output.owner_sink_succeeded = owner_retained;
         if (!owner_retained)
         {
-            coverage_.store(false, std::memory_order_release);
+            invalidate_coverage();
         }
     }
 }
@@ -718,7 +782,7 @@ void RawEventBridge::observe_continuation(
 void RawEventBridge::observe_gap(
     const raw_recorder::RawObserverNotification& notification) noexcept
 {
-    coverage_.store(false, std::memory_order_release);
+    invalidate_coverage();
     if (gap_count_ >= gaps_.size())
     {
         return;
@@ -733,22 +797,25 @@ void RawEventBridge::observe_gap(
         output.has_raw_gap = true;
         output.attempt_id  = output.gap.attempt_id;
     }
-    try
+    if (!raw_lifecycle_open_)
     {
-        // Keep a diagnostic row that makes a raw admission gap visible even
-        // when no pending event was available to supply its identity.
-        recorder_.admit_pending_event(EventIdentity{});
-    }
-    catch (...)
-    {
-        coverage_.store(false, std::memory_order_release);
+        try
+        {
+            // Keep a diagnostic row that makes a raw admission gap visible
+            // while the collection boundary is still open.
+            recorder_.admit_pending_event(EventIdentity{});
+        }
+        catch (...)
+        {
+            invalidate_coverage();
+        }
     }
 }
 
 void RawEventBridge::mark_gap(std::uint64_t                   attempt_id,
                               raw_recorder::CoverageGapReason reason) noexcept
 {
-    coverage_.store(false, std::memory_order_release);
+    invalidate_coverage();
     if (gap_count_ < gaps_.size())
     {
         BridgeGapEvidence& output = gaps_[gap_count_++];
@@ -756,13 +823,16 @@ void RawEventBridge::mark_gap(std::uint64_t                   attempt_id,
         output.attempt_id         = attempt_id;
         output.reason             = reason;
     }
-    try
+    if (!raw_lifecycle_open_)
     {
-        recorder_.admit_pending_event(EventIdentity{});
-    }
-    catch (...)
-    {
-        coverage_.store(false, std::memory_order_release);
+        try
+        {
+            recorder_.admit_pending_event(EventIdentity{});
+        }
+        catch (...)
+        {
+            invalidate_coverage();
+        }
     }
 }
 

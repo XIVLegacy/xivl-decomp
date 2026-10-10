@@ -282,16 +282,72 @@ bool resident_bridge_sections(ObserverLiveBootstrapInput* input, std::string* re
         }
         return false;
     }
+    const std::array<std::uintptr_t, 2> raw_code_wrappers = {
+        reinterpret_cast<std::uintptr_t>(&raw_recorder::RawRecorder::WaitThunk),
+        reinterpret_cast<std::uintptr_t>(&raw_recorder::RawRecorder::ContinueThunk),
+    };
+    constexpr std::array<std::array<char, IMAGE_SIZEOF_SHORT_NAME>, 2> raw_code_names = {
+        { { { '.', 'x', 'v', 'r', 'w', 'a', 'i', 't' } },
+          { { '.', 'x', 'v', 'r', 'c', 'o', 'n', 't' } } }
+    };
+    std::array<std::size_t, 2> raw_section_indices{};
+    for (std::size_t wrapper_index = 0; wrapper_index != raw_code_wrappers.size(); ++wrapper_index)
+    {
+        bool found = false;
+        for (std::size_t section_index = 0;
+             section_index != headers.FileHeader.NumberOfSections;
+             ++section_index)
+        {
+            const IMAGE_SECTION_HEADER& section = sections[section_index];
+            if (std::memcmp(section.Name,
+                            raw_code_names[wrapper_index].data(),
+                            IMAGE_SIZEOF_SHORT_NAME) != 0)
+            {
+                continue;
+            }
+            std::size_t extent      = 0;
+            std::size_t found_index = 0;
+            if (found || !resident_bridge_section(section,
+                                                  module_base,
+                                                  image_info.SizeOfImage,
+                                                  raw_code_wrappers[wrapper_index],
+                                                  &extent,
+                                                  &found_index,
+                                                  section_index))
+            {
+                continue;
+            }
+            input->raw_wrappers[wrapper_index]        = raw_code_wrappers[wrapper_index];
+            input->raw_wrapper_extents[wrapper_index] = extent;
+            raw_section_indices[wrapper_index]        = found_index;
+            found                                     = true;
+        }
+        if (!found)
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "production raw recorder lacks a distinct compiler-owned code section";
+            }
+            return false;
+        }
+    }
+    if (raw_section_indices[0] == raw_section_indices[1])
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "production raw recorder code sections are not distinct";
+        }
+        return false;
+    }
     HMODULE ntdll          = GetModuleHandleW(L"ntdll.dll");
-    input->raw_wrappers[0] = reinterpret_cast<std::uintptr_t>(&raw_recorder::RawRecorder::WaitThunk);
-    input->raw_wrappers[1] = reinterpret_cast<std::uintptr_t>(&raw_recorder::RawRecorder::ContinueThunk);
     input->raw_wrappers[2] = ntdll == nullptr
                                  ? 0
                                  : reinterpret_cast<std::uintptr_t>(
                                        GetProcAddress(ntdll, "DbgUiConvertStateChangeStructure"));
-    for (const std::uintptr_t wrapper : input->raw_wrappers)
+    for (std::size_t index = 0; index != input->raw_wrappers.size(); ++index)
     {
-        if (!valid_pointer32(wrapper, 1))
+        if (!valid_pointer32(input->raw_wrappers[index], 1) ||
+            (index < 2 && input->raw_wrapper_extents[index] == 0))
         {
             if (refusal != nullptr)
             {
@@ -642,7 +698,9 @@ bool hold_request_valid(const ObserverLiveHoldRequestV1& request,
                                                         : bootstrap.cleanup_hold_worker_start;
     const ObserverLiveChildState   expected_state = expected_kind == ObserverLiveHoldRequestKind::Initial
                                                         ? ObserverLiveChildState::Prepared
-                                                        : ObserverLiveChildState::Complete;
+                                                    : expected_kind == ObserverLiveHoldRequestKind::Cleanup
+                                                        ? ObserverLiveChildState::Complete
+                                                        : ObserverLiveChildState::Detached;
     return g_bootstrap_ready.load(std::memory_order_acquire) &&
            request.size_bytes == sizeof(request) &&
            request.version == kObserverLiveHoldRequestVersion &&
@@ -908,7 +966,14 @@ DWORD release_child(ObserverLiveOwnerControlRequestV1* request) noexcept
         }
         const ObserverPublicationRecordV1* record =
             observer_diagnostic::passthrough_publication_record();
-        if (record == nullptr || record->controller_owner_id != 0 ||
+        const ObserverLiveChildState session_state =
+            g_active_child_session == nullptr ? ObserverLiveChildState::Uninitialized
+                                              : g_active_child_session->state();
+        const bool owner_ready = (session_state == ObserverLiveChildState::Complete ||
+                                  session_state == ObserverLiveChildState::Detached) &&
+                                 record != nullptr &&
+                                 record->controller_owner_id == request->owner_id;
+        if (record == nullptr || !owner_ready ||
             (record->flags & kObserverPublicationPublishedFlag) != 0 ||
             g_active_child_session == nullptr || !g_module_pin_active ||
             g_module_pin_owner != request->owner_id ||
@@ -988,6 +1053,40 @@ DWORD request_cleanup_hold(ObserverLiveOwnerControlRequestV1* request) noexcept
     }
     std::string refusal;
     if (!session->request_cleanup_hold(&refusal))
+    {
+        return finish_request(request, ERROR_BUSY, 0);
+    }
+    return finish_request(request, ERROR_SUCCESS, request->owner_id);
+}
+
+DWORD request_raw_cleanup_hold(ObserverLiveOwnerControlRequestV1* request) noexcept
+{
+    if (request == nullptr || !readable_local(request, sizeof(*request)))
+    {
+        return ERROR_INVALID_PARAMETER;
+    }
+    ObserverLiveChildSession* session = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_bootstrap_mutex);
+        if (!bootstrap_request_valid(*request, false))
+        {
+            return finish_request(request, ERROR_INVALID_DATA, 0);
+        }
+        const ObserverPublicationRecordV1* record =
+            observer_diagnostic::passthrough_publication_record();
+        if (record == nullptr || record->controller_owner_id != request->owner_id ||
+            (record->flags & kObserverPublicationPublishedFlag) == 0 ||
+            g_active_child_session == nullptr || !g_module_pin_active ||
+            g_module_pin_owner != request->owner_id ||
+            g_module_pin_witness != xivl_observer_bootstrap_v1.module_pin_identity ||
+            g_active_child_session->state() != ObserverLiveChildState::Detached)
+        {
+            return finish_request(request, ERROR_BUSY, 0);
+        }
+        session = g_active_child_session;
+    }
+    std::string refusal;
+    if (!session->request_raw_cleanup_hold(&refusal))
     {
         return finish_request(request, ERROR_BUSY, 0);
     }
@@ -1145,6 +1244,13 @@ extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_request_cleanup_hold
     return request_cleanup_hold(request);
 }
 
+extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_request_raw_cleanup_hold_v1(
+    ObserverLiveOwnerControlRequestV1* request)
+{
+    ensure_core();
+    return request_raw_cleanup_hold(request);
+}
+
 bool observer_live_bootstrap_initialize(const ObserverLiveBootstrapInput& input,
                                         std::string*                      refusal) noexcept
 {
@@ -1255,11 +1361,15 @@ bool observer_live_bootstrap_initialize(const ObserverLiveBootstrapInput& input,
         reinterpret_cast<std::uintptr_t>(GetProcAddress(ntdll, "DbgUiConvertStateChangeStructure")),
     };
     std::array<std::uintptr_t, observer_diagnostic::kHookEntryCount> raw_wrappers{};
+    std::array<std::size_t, observer_diagnostic::kHookEntryCount>    raw_extents{};
     for (std::size_t index = 0; index != raw_wrappers.size(); ++index)
     {
         raw_wrappers[index] = input.raw_wrappers[index] == 0 ? raw_defaults[index]
                                                              : input.raw_wrappers[index];
-        if (!valid_pointer32(raw_wrappers[index], 1))
+        raw_extents[index]  = input.raw_wrapper_extents[index];
+        if (!valid_pointer32(raw_wrappers[index], 1) ||
+            (index < 2 && (raw_extents[index] == 0 ||
+                           raw_extents[index] > std::numeric_limits<std::uint32_t>::max())))
         {
             if (refusal != nullptr)
             {
@@ -1267,6 +1377,14 @@ bool observer_live_bootstrap_initialize(const ObserverLiveBootstrapInput& input,
             }
             return false;
         }
+    }
+    if (!valid_pointer32(input.raw_forwarding_counter_address, sizeof(std::uint64_t)))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "target bootstrap raw forwarding counter is unavailable";
+        }
+        return false;
     }
     const std::uint64_t pin_identity = make_pin_identity(
         xivl_observer_bootstrap_v1.process_id,
@@ -1290,8 +1408,11 @@ bool observer_live_bootstrap_initialize(const ObserverLiveBootstrapInput& input,
         {
             same = xivl_observer_bootstrap_v1.wrappers[index] == pointer32(hook_wrappers[index]) &&
                    xivl_observer_bootstrap_v1.wrapper_extents[index] == hook_extents[index] &&
-                   xivl_observer_bootstrap_v1.raw_wrappers[index] == pointer32(raw_wrappers[index]);
+                   xivl_observer_bootstrap_v1.raw_wrappers[index] == pointer32(raw_wrappers[index]) &&
+                   xivl_observer_bootstrap_v1.raw_wrapper_extents[index] == raw_extents[index];
         }
+        same = same && xivl_observer_bootstrap_v1.raw_forwarding_counter_address ==
+                           pointer32(input.raw_forwarding_counter_address);
         if (!same)
         {
             if (refusal != nullptr)
@@ -1327,7 +1448,10 @@ bool observer_live_bootstrap_initialize(const ObserverLiveBootstrapInput& input,
         xivl_observer_bootstrap_v1.wrapper_extents[index] =
             static_cast<std::uint32_t>(hook_extents[index]);
         xivl_observer_bootstrap_v1.raw_wrappers[index] = pointer32(raw_wrappers[index]);
+        xivl_observer_bootstrap_v1.raw_wrapper_extents[index] = static_cast<std::uint32_t>(raw_extents[index]);
     }
+    xivl_observer_bootstrap_v1.raw_forwarding_counter_address =
+        pointer32(input.raw_forwarding_counter_address);
     ObserverPublicationRecordV1* record = observer_diagnostic::passthrough_publication_record();
     if (record == nullptr || xivl_observer_bootstrap_v1.publication_address == 0 ||
         xivl_observer_bootstrap_v1.hold_evidence_address == 0 ||
@@ -1386,6 +1510,44 @@ ObserverLiveChildControlV1* observer_live_child_control() noexcept
     return g_core_ready.load(std::memory_order_acquire) ? &g_child_control : nullptr;
 }
 
+bool observer_live_publish_raw_tail(std::uint64_t event_count,
+                                    std::uint64_t continuation_count,
+                                    std::uint64_t binding_count,
+                                    std::uint64_t last_event_index,
+                                    std::uint64_t last_continuation_index,
+                                    std::uint64_t sequence,
+                                    bool          terminal_boundary,
+                                    bool          pending,
+                                    bool          coverage,
+                                    bool          persistence) noexcept
+{
+    ensure_core();
+    return g_core_ready.load(std::memory_order_acquire) &&
+           observer_live_publish_raw_tail_to_control(&g_child_control,
+                                                     event_count,
+                                                     continuation_count,
+                                                     binding_count,
+                                                     last_event_index,
+                                                     last_continuation_index,
+                                                     sequence,
+                                                     terminal_boundary,
+                                                     pending,
+                                                     coverage,
+                                                     persistence);
+}
+
+void observer_live_invalidate_raw_tail() noexcept
+{
+    observer_live_invalidate_raw_tail_to_control(&g_child_control);
+}
+
+bool observer_live_publish_acknowledged_tail(std::uint64_t sequence) noexcept
+{
+    ensure_core();
+    return g_core_ready.load(std::memory_order_acquire) &&
+           observer_live_publish_acknowledged_tail_to_control(&g_child_control, sequence);
+}
+
 struct ObserverLiveChildSession::State
 {
     ObserverChildComposition                                         composition{};
@@ -1408,6 +1570,7 @@ struct ObserverLiveChildSession::State
     bool                                                             cleanup_thread_suspended = false;
     std::atomic<bool>                                                start_requested{ false };
     std::atomic<bool>                                                release_requested{ false };
+    std::atomic<bool>                                                finalize_requested{ false };
     bool                                                             trace_persist_attempted = false;
 };
 
@@ -1546,6 +1709,19 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
     ObserverLiveBootstrapInput bootstrap_input = request.bootstrap;
     bootstrap_input.engine_module              = state_->composition.engine_module();
     bootstrap_input.engine_base                = state_->composition.engine_base();
+    map_selection::TraceMapObserverCallbacks* callbacks = state_->composition.callbacks();
+    if (callbacks == nullptr || callbacks->raw_recorder() == nullptr)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "target raw recorder is unavailable for forwarding attestation";
+        }
+        (void)state_->composition.release(authority, nullptr);
+        set_child_state(ObserverLiveChildState::Failed, ERROR_INVALID_DATA);
+        return false;
+    }
+    bootstrap_input.raw_forwarding_counter_address =
+        callbacks->raw_recorder()->raw_forwarding_counter_address();
     if (!observer_live_bootstrap_initialize(bootstrap_input, refusal))
     {
         (void)state_->composition.release(authority, nullptr);
@@ -1598,6 +1774,7 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
     state_->cleanup_thread_suspended = false;
     state_->start_requested.store(false, std::memory_order_release);
     state_->release_requested.store(false, std::memory_order_release);
+    state_->finalize_requested.store(false, std::memory_order_release);
     state_->trace_persist_attempted = false;
     {
         std::lock_guard<std::mutex> lock(g_bootstrap_mutex);
@@ -1632,6 +1809,21 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
     g_child_control.cleanup_thread_id              = 0;
     g_child_control.trace_size_bytes               = 0;
     g_child_control.event_tail_sequence            = 0;
+    g_child_control.raw_event_count                      = 0;
+    g_child_control.raw_continuation_count               = 0;
+    g_child_control.raw_binding_count                    = 0;
+    g_child_control.raw_last_event_index                 = 0;
+    g_child_control.raw_last_continuation_index          = 0;
+    g_child_control.raw_terminal_event_count             = 0;
+    g_child_control.raw_terminal_continuation_count      = 0;
+    g_child_control.raw_terminal_last_event_index        = 0;
+    g_child_control.raw_terminal_last_continuation_index = 0;
+    g_child_control.raw_terminal_sequence                = 0;
+    g_child_control.raw_tail_sequence                    = 0;
+    g_child_control.raw_pending                          = 0;
+    g_child_control.raw_coverage                         = 0;
+    g_child_control.raw_persistence                      = 0;
+    g_child_control.raw_post_activity                    = 0;
     g_child_control.raw_trace_persisted            = 0;
     g_child_control.raw_trace_incomplete           = 0;
     g_child_control.failure_outcome                = 0;
@@ -1818,7 +2010,6 @@ bool ObserverLiveChildSession::persist_trace_artifact(bool                      
     g_child_control.initial_hold_thread_id        = state_->initial_thread_id;
     g_child_control.cleanup_thread_id             = state_->cleanup_thread_id;
     g_child_control.trace_size_bytes              = static_cast<std::uint64_t>(trace.size());
-    g_child_control.event_tail_sequence           = state_->event_tail_sequence;
     g_child_control.raw_trace_persisted           = persisted ? 1U : 0U;
     g_child_control.raw_trace_incomplete          = incomplete || pending_raw || collection_incomplete ? 1U : 0U;
     g_child_control.failure_outcome               = static_cast<std::uint32_t>(stored_outcome);
@@ -1927,8 +2118,17 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
         if (terminal_raw_tail)
         {
             state_->event_tail_sequence         = fixture_evidence->record_sequence();
-            g_child_control.event_tail_sequence = state_->event_tail_sequence;
-            std::atomic_thread_fence(std::memory_order_release);
+            terminal_raw_tail                   = observer_live_publish_raw_tail(
+                raw_bridge->event_count(),
+                raw_bridge->continuation_count(),
+                raw_bridge->binding_receipt_count(),
+                static_cast<std::uint64_t>(last_event.raw_event_index),
+                static_cast<std::uint64_t>(last_continuation.matched_event_index),
+                state_->event_tail_sequence,
+                true,
+                pending_raw,
+                raw_bridge->coverage(),
+                fixture_evidence->persistence_available());
         }
     }
     if (state_->qualified_rows == 0 || state_->event_tail_sequence == 0 || pending_raw ||
@@ -2072,6 +2272,13 @@ bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
     {
         return false;
     }
+    // The first cleanup worker has completed before active detach.  Clear its
+    // published identity so the detached phase can publish a fresh worker
+    // CREATE_THREAD witness for the raw restoration hold.
+    state_->initial_thread_id                 = 0;
+    state_->cleanup_thread_id                 = 0;
+    g_child_control.initial_hold_thread_id    = 0;
+    g_child_control.cleanup_thread_id         = 0;
     const std::uint32_t composition_remaining = remaining_cleanup(state_->request.cleanup_ticks);
     if (!finite_tick_bound(composition_remaining))
     {
@@ -2082,6 +2289,19 @@ bool ObserverLiveChildSession::release(const ObserverLiveAuthority& authority,
         }
         set_child_state(ObserverLiveChildState::Failed, ERROR_TIMEOUT);
         return false;
+    }
+    const bool was_detached = state_->state.load(std::memory_order_acquire) ==
+                              ObserverLiveChildState::Detached;
+    if (!was_detached)
+    {
+        const bool detached = state_->composition.begin_active_detach(authority, refusal);
+        if (!detached)
+        {
+            return false;
+        }
+        state_->state.store(ObserverLiveChildState::Detached, std::memory_order_release);
+        set_child_state(ObserverLiveChildState::Detached);
+        return true;
     }
     const bool composition_released = state_->composition.release(authority, refusal);
     const bool lifecycle_overrun    = remaining_lifecycle() == 0;
@@ -2243,6 +2463,23 @@ bool ObserverLiveChildSession::service_control_requests(std::string* refusal) no
         }
         std::atomic_thread_fence(std::memory_order_release);
     }
+    if (current == ObserverLiveChildState::Detached)
+    {
+        if (!create_worker(&g_cleanup_hold_request,
+                           ObserverLiveHoldRequestKind::RawCleanup,
+                           &state_->cleanup_release_event,
+                           &state_->cleanup_thread,
+                           &state_->cleanup_thread_id,
+                           &g_child_control.cleanup_thread_id,
+                           &state_->cleanup_thread_suspended,
+                           "target child raw cleanup"))
+        {
+            state_->state.store(ObserverLiveChildState::Failed, std::memory_order_release);
+            set_child_state(ObserverLiveChildState::Failed, ERROR_NOT_ENOUGH_MEMORY);
+            return false;
+        }
+        std::atomic_thread_fence(std::memory_order_release);
+    }
     return true;
 }
 
@@ -2262,6 +2499,16 @@ bool ObserverLiveChildSession::request_cleanup_hold(std::string* refusal) noexce
     if (refusal != nullptr)
     {
         *refusal = "cleanup hold requires the external committed epoch request record";
+    }
+    return false;
+}
+
+bool ObserverLiveChildSession::request_raw_cleanup_hold(std::string* refusal) noexcept
+{
+    (void)state_;
+    if (refusal != nullptr)
+    {
+        *refusal = "raw cleanup hold requires the external committed epoch request record";
     }
     return false;
 }
@@ -2312,16 +2559,30 @@ bool ObserverLiveChildSession::request_start(std::string* refusal) noexcept
 
 bool ObserverLiveChildSession::request_release(std::string* refusal) noexcept
 {
-    if (state_ == nullptr ||
-        state_->state.load(std::memory_order_acquire) != ObserverLiveChildState::Complete)
+    if (state_ == nullptr)
     {
         if (refusal != nullptr)
         {
-            *refusal = "target child release request requires complete state";
+            *refusal = "target child release request requires complete or detached state";
         }
         return false;
     }
-    state_->release_requested.store(true, std::memory_order_release);
+    if (state_->state.load(std::memory_order_acquire) == ObserverLiveChildState::Complete)
+    {
+        state_->release_requested.store(true, std::memory_order_release);
+    }
+    else if (state_->state.load(std::memory_order_acquire) == ObserverLiveChildState::Detached)
+    {
+        state_->finalize_requested.store(true, std::memory_order_release);
+    }
+    else
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "target child release request requires complete or detached state";
+        }
+        return false;
+    }
     return true;
 }
 
@@ -2333,6 +2594,11 @@ bool ObserverLiveChildSession::start_requested() const noexcept
 bool ObserverLiveChildSession::release_requested() const noexcept
 {
     return state_ != nullptr && state_->release_requested.load(std::memory_order_acquire);
+}
+
+bool ObserverLiveChildSession::finalize_requested() const noexcept
+{
+    return state_ != nullptr && state_->finalize_requested.load(std::memory_order_acquire);
 }
 
 std::uint32_t ObserverLiveChildSession::qualified_row_count() const noexcept
@@ -2430,6 +2696,25 @@ bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
                 return fail_lifecycle_overrun(
                     "target child entry exceeded its finite lifecycle bound before release");
             }
+            const bool detached = session.release(authority, lifecycle_started, completion_ticks, refusal);
+            if (!detached)
+            {
+                return false;
+            }
+            if (remaining_lifecycle() == 0)
+            {
+                return fail_lifecycle_overrun(
+                    "target child active detach exceeded its finite lifecycle bound");
+            }
+            continue;
+        }
+        if (session.state() == ObserverLiveChildState::Detached && session.finalize_requested())
+        {
+            if (remaining_lifecycle() == 0)
+            {
+                return fail_lifecycle_overrun(
+                    "target child entry exceeded its finite lifecycle bound before final release");
+            }
             const bool released = session.release(authority, lifecycle_started, completion_ticks, refusal);
             if (!released)
             {
@@ -2438,7 +2723,7 @@ bool observer_live_child_entry(const ObserverLiveAuthority&    authority,
             if (remaining_lifecycle() == 0)
             {
                 return fail_lifecycle_overrun(
-                    "target child release exceeded its finite lifecycle bound");
+                    "target child final release exceeded its finite lifecycle bound");
             }
             return true;
         }

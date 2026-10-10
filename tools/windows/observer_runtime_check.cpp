@@ -35,6 +35,7 @@ int wmain(int argc, wchar_t** argv)
         const auto recovery             = run_recovery_self_tests();
         const auto actions              = run_recovery_action_adapter_self_tests();
         const auto fixture_evidence     = xivl::observer_candidate::ObserverFixtureEvidence::run_self_tests();
+        const auto raw                  = xivl::raw_recorder::run_self_tests();
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
                   << "collection: " << collection.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
@@ -52,8 +53,10 @@ int wmain(int argc, wchar_t** argv)
         std::cout << "fixture_evidence: checks=" << fixture_evidence.checks
                   << ",failures=" << fixture_evidence.failures << ','
                   << fixture_evidence.summary << '\n';
+        std::cout << "raw: checks=" << raw.checks << ",failures="
+                  << raw.failures << '\n';
         return diagnostic.passed && collection.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && callback_composition.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
-                       recovery.passed && actions.passed && fixture_evidence.passed
+                       recovery.passed && actions.passed && fixture_evidence.passed && raw.failures == 0
                    ? 0
                    : 1;
     }

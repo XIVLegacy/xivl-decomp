@@ -955,30 +955,49 @@ void finish_raw(std::unique_ptr<raw_recorder::RawRecorder>* raw)
     }
 }
 
+bool continue_raw_event_for(std::unique_ptr<raw_recorder::RawRecorder>* raw,
+                            ULONG                                       process_id,
+                            ULONG                                       thread_id);
+
 bool continue_raw_event(std::unique_ptr<raw_recorder::RawRecorder>* raw)
+{
+    return continue_raw_event_for(raw, 100, 200);
+}
+
+bool continue_raw_event_for(std::unique_ptr<raw_recorder::RawRecorder>* raw,
+                            ULONG                                       process_id,
+                            ULONG                                       thread_id)
 {
     struct ClientId
     {
-        ULONG process_id = 100;
-        ULONG thread_id  = 200;
+        ULONG process_id = 0;
+        ULONG thread_id  = 0;
     } client;
+
+    client.process_id = process_id;
+    client.thread_id  = thread_id;
 
     return raw != nullptr && raw->get() != nullptr &&
            raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0x40010000U) == 0;
 }
 
-bool admit_next_lifecycle_event(ULONG state_type)
+bool admit_next_lifecycle_event(ULONG state_type, ULONG process_id = 100, ULONG thread_id = 200)
 {
     std::array<std::uint8_t, 0x60> event{};
     *reinterpret_cast<ULONG*>(event.data())     = state_type;
-    *reinterpret_cast<ULONG*>(event.data() + 4) = 100;
-    *reinterpret_cast<ULONG*>(event.data() + 8) = 200;
+    *reinterpret_cast<ULONG*>(event.data() + 4) = process_id;
+    *reinterpret_cast<ULONG*>(event.data() + 8) = thread_id;
     return raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data()) == 0;
 }
 
 bool admit_next_create_event()
 {
     return admit_next_lifecycle_event(3);
+}
+
+bool admit_next_create_event_for(ULONG process_id, ULONG thread_id)
+{
+    return admit_next_lifecycle_event(3, process_id, thread_id);
 }
 
 bool admit_next_exit_event()
@@ -1210,6 +1229,100 @@ void run_session_dispatch_paths(TestState* tests)
     run_session_create_thread_case(tests, false, true, false, false);
     run_session_create_thread_case(tests, false, false, true, false);
     run_session_create_thread_case(tests, false, false, false, true);
+}
+
+void run_raw_dispatch_after_collection(TestState* tests)
+{
+    DispatchState state;
+    state.callback_thread = GetCurrentThreadId();
+    state.readable_memory = true;
+    Recorder recorder(recorder_config(&state));
+    state.recorder = &recorder;
+    FakeDelegate delegate(&state);
+    delegate.systems.values = { 42, 42, 2, 2, 201, 101 };
+    FakeClient              client(&delegate.systems);
+    ObserverCallbackSession session(&recorder, &client, state.callback_thread);
+    auto                    bridge = std::make_unique<RawEventBridge>(
+        recorder, nullptr, nullptr, RawEventBindingMode::deferred, session.owner_sink());
+    std::unique_ptr<raw_recorder::RawRecorder> raw;
+
+    const bool        admitted                       = admit_raw(&recorder, &raw, bridge.get());
+    const bool        closed                         = admitted && continue_raw_event(&raw);
+    const std::size_t diagnostic_rows_before         = recorder.rows().size();
+    const std::size_t diagnostic_callbacks_before    = recorder.callback_entry_rows().size();
+    const std::size_t diagnostic_acquisitions_before = recorder.callback_acquisition_rows().size();
+    tests->check(admitted && closed && !session.raw_open(),
+                 "raw production route closes its diagnostic event before freeze");
+    tests->check(bridge->begin_raw_lifecycle(),
+                 "raw production route opens its independent lifecycle after freeze");
+
+    const bool              raw_event = admit_next_create_event_for(101, 201);
+    const EventIdentity     planned   = raw_event ? bridge->event(1).identity : EventIdentity{};
+    SessionObservationState provider_state{ false,
+                                            false,
+                                            0,
+                                            source_identity_for(planned),
+                                            42,
+                                            68,
+                                            1 };
+    CallbackIdentityReader  reader({ &state, read_error, write_error });
+    auto                    config        = dispatch_config(&state, &recorder, &reader, bridge.get(), &delegate, &client);
+    config.callback_session               = &session;
+    config.owner_provider                 = nullptr;
+    config.owner_provider_user            = nullptr;
+    config.lifecycle_observation_provider = &session_observation_provider;
+    config.lifecycle_observation_user     = &provider_state;
+    ObserverCallbackDispatch wrapper(config);
+
+    state.error                    = ErrorPair{ 0x41, -41 };
+    const HRESULT callback_result  = raw_event ? wrapper.CreateThread(1, 2, 3) : E_FAIL;
+    const auto    raw_entries      = recorder.raw_callback_entry_rows();
+    const auto    raw_acquisitions = recorder.raw_callback_acquisition_rows();
+    tests->check(raw_event, "raw production callback admits an independent event");
+    tests->check(bridge->raw_lifecycle_open(), "raw production callback keeps bridge lifecycle open");
+    tests->check(recorder.raw_lifecycle_open(),
+                 "raw production callback opens the recorder lifecycle");
+    tests->check(bridge->event_count() == 2,
+                 "raw production callback publishes its independent bridge event");
+    tests->check(bridge->event_count() < 2 ||
+                     bridge->event(1).pending_status == PendingEventStatus::Admitted,
+                 "raw production callback admits its bridge event key");
+    tests->check(recorder.pending_lifecycle_event().has_value(),
+                 "raw production callback exposes an independent pending key");
+    tests->check(provider_state.calls == 1, "raw production callback provider is called once");
+    tests->check(raw_event && callback_result == S_OK && provider_state.calls == 1,
+                 "raw production callback dispatch invokes the typed provider");
+    tests->check(callback_result == S_OK, "raw production callback preserves delegate result");
+    tests->check(raw_entries.size() == 1, "raw production callback records one raw entry");
+    tests->check(raw_acquisitions.size() == 1,
+                 "raw production callback records one raw acquisition");
+    tests->check(recorder.rows().size() == diagnostic_rows_before &&
+                     recorder.callback_entry_rows().size() == diagnostic_callbacks_before &&
+                     recorder.callback_acquisition_rows().size() == diagnostic_acquisitions_before,
+                 "raw callback dispatch leaves frozen diagnostic rows unchanged");
+    tests->check(raw_entries.size() == 1 && !raw_entries.front().header.incomplete &&
+                     raw_entries.front().provider_succeeded && raw_entries.front().capture_completed &&
+                     raw_entries.front().binding_succeeded,
+                 "raw callback dispatch retains a complete independent entry");
+    tests->check(raw_acquisitions.size() == 1 &&
+                     raw_acquisitions.front().binding_status == EngineBindingStatus::Bound &&
+                     raw_acquisitions.front().outcome == CallbackAcquisitionOutcome::Accepted,
+                 "raw callback dispatch binds its exact pending identity");
+    tests->check(!recorder.pending_event().has_value() && recorder.pending_lifecycle_event().has_value() &&
+                     session.raw_open(),
+                 "raw callback dispatch retains only the independent pending key");
+
+    g_dispatch_continue_result = 0;
+    const bool continuation    = raw_event && continue_raw_event_for(&raw, 101, 201);
+    tests->check(continuation && !session.raw_open() && bridge->end_raw_lifecycle(),
+                 "raw production continuation closes the exact callback lifecycle");
+    if (raw != nullptr)
+    {
+        raw->deactivate();
+        (void)raw->clear_observer_sink();
+    }
+    tests->check(session.teardown() && session.released(),
+                 "raw production callback session releases only after explicit teardown");
 }
 
 void run_source_dispatch_gate_case(TestState* tests,
@@ -3643,6 +3756,7 @@ SelfTestReport run_callback_dispatch_self_tests()
     run_breakpoint_success(&tests);
     run_create_thread_order(&tests);
     run_session_dispatch_paths(&tests);
+    run_raw_dispatch_after_collection(&tests);
     run_source_dispatch_gates(&tests);
     run_source_access_mutation_boundary(&tests);
     run_source_dispatch_null_identity_reader(&tests);

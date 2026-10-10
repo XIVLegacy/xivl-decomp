@@ -550,6 +550,7 @@ bool initialize_failure_ledger(const std::filesystem::path& path,
          << " created_observer_process_id=0 observer_instance_id=0 controller_thread_id=0"
          << " owner_id=0 event_identity=0 lease_identity=0 module_pin_identity=0"
          << " publication_generation=0 initial_hold_request_epoch=0 cleanup_hold_request_epoch=0"
+         << " raw_cleanup_hold_request_epoch=0"
          << " dispatch_intent=prepare_native_observer intent_recorded=1 actual_result_recorded=0"
          << " effects_uncertain=0 resources_uncertain=0 last_verified_hold=0"
          << " termination_request_recorded=0 termination_request_succeeded=0"
@@ -621,6 +622,8 @@ bool append_failure_ledger(const std::filesystem::path& path,
          << " publication_generation=" << result.publication_generation
          << " initial_hold_request_epoch=" << result.initial_hold_request_epoch
          << " cleanup_hold_request_epoch=" << result.cleanup_hold_request_epoch
+         << " raw_cleanup_hold_request_epoch="
+         << result.raw_cleanup_hold_request_epoch
          << " dispatch_intent=prepare_native_observer"
          << " intent_recorded=" << (result.intent_recorded ? 1 : 0)
          << " actual_result_recorded=" << (result.actual_result_recorded ? 1 : 0)
@@ -697,6 +700,8 @@ bool append_operation_ledger(const std::filesystem::path&  path,
          << " publication_generation=" << result.publication_generation
          << " initial_hold_request_epoch=" << result.initial_hold_request_epoch
          << " cleanup_hold_request_epoch=" << result.cleanup_hold_request_epoch
+         << " raw_cleanup_hold_request_epoch="
+         << result.raw_cleanup_hold_request_epoch
          << " ledger_incomplete=" << (result.ledger_incomplete ? 1 : 0)
          << " effects_uncertain=" << (result.effects_uncertain ? 1 : 0)
          << " resources_uncertain=" << (result.resources_uncertain ? 1 : 0)
@@ -3633,6 +3638,11 @@ struct ObserverRemoteTransport::State
     std::uintptr_t                               cleanup_hold_request_address  = 0;
     std::uintptr_t                               initial_hold_worker_start     = 0;
     std::uintptr_t                               cleanup_hold_worker_start     = 0;
+    std::array<HookWrapperSpec, kHookEntryCount> raw_layout{};
+    std::uintptr_t                               raw_forwarding_counter_address = 0;
+    ObserverDebugEventKey                        raw_attested_hold_key{};
+    std::uint64_t                                raw_attested_lease_identity   = 0;
+    std::uint32_t                                raw_attested_instance_id      = 0;
     std::uintptr_t                               child_control_address         = 0;
     DWORD                                        initial_hold_thread_id        = 0;
     DWORD                                        cleanup_hold_thread_id        = 0;
@@ -3649,6 +3659,7 @@ struct ObserverRemoteTransport::State
     std::uint64_t                                lease_token                  = 0;
     std::uint64_t                                initial_hold_request_epoch   = 0;
     std::uint64_t                                cleanup_hold_request_epoch   = 0;
+    std::uint64_t                                raw_cleanup_hold_request_epoch = 0;
     std::uint64_t                                cleanup_start_tick           = 0;
     std::uint32_t                                cleanup_ticks                = 0;
     std::uint64_t                                cleanup_lifecycle_start_tick = 0;
@@ -4205,6 +4216,9 @@ bool ObserverRemoteTransport::set_held_event(const ObserverLiveAuthority&  autho
     state_->held     = true;
     state_->held_key = held.key;
     state_->attested = false;
+    state_->raw_attested_hold_key       = {};
+    state_->raw_attested_lease_identity = 0;
+    state_->raw_attested_instance_id    = 0;
     return true;
 }
 
@@ -4235,6 +4249,9 @@ bool ObserverRemoteTransport::clear_held_event(const ObserverLiveAuthority& auth
     state_->held     = false;
     state_->attested = false;
     state_->held_key = {};
+    state_->raw_attested_hold_key       = {};
+    state_->raw_attested_lease_identity = 0;
+    state_->raw_attested_instance_id    = 0;
     return true;
 }
 
@@ -4288,6 +4305,93 @@ bool ObserverRemoteTransport::write(std::uintptr_t address,
 namespace
 {
 
+struct RawMutationProof
+{
+    ObserverDebugEventKey                          held_key{};
+    ObserverDebugEventKey                          raw_attested_hold_key{};
+    std::uintptr_t                                 raw_forwarding_counter_address = 0;
+    std::array<HookWrapperSpec, kHookEntryCount>   raw_layout{};
+    std::uint64_t                                  raw_attested_lease_identity = 0;
+    std::uint64_t                                  lease_identity              = 0;
+    std::uint32_t                                  raw_attested_instance_id    = 0;
+    std::uint32_t                                  observer_instance_id        = 0;
+    std::uint64_t                                  forwarding_calls            = 0;
+    const std::vector<ObserverThreadInventoryRow>* inventory                   = nullptr;
+    ObserverPublicationHoldExpectationV1           expected_hold{};
+};
+
+bool validate_raw_mutation_proof(const RawMutationProof& proof, std::string* refusal) noexcept
+{
+    const bool complete_raw_layout =
+        valid_x86_range(proof.raw_layout[0].address, proof.raw_layout[0].extent) &&
+        valid_x86_range(proof.raw_layout[1].address, proof.raw_layout[1].extent) &&
+        proof.raw_layout[2].address != 0 && proof.raw_layout[2].extent == 0;
+    if (!proof.held_key.complete() || proof.held_key.event_code != CREATE_THREAD_DEBUG_EVENT ||
+        proof.raw_forwarding_counter_address == 0 || !complete_raw_layout ||
+        (proof.raw_attested_lease_identity != 0 &&
+         proof.raw_attested_lease_identity != proof.lease_identity) ||
+        (proof.raw_attested_instance_id != 0 &&
+         proof.raw_attested_instance_id != proof.observer_instance_id) ||
+        (proof.raw_attested_hold_key.complete() &&
+         !same_key(proof.raw_attested_hold_key, proof.held_key)))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw hold proof is not bound to the current create-thread lease";
+        }
+        return false;
+    }
+    if (proof.expected_hold.event_identity == 0 || proof.expected_hold.session_identity == 0 ||
+        proof.expected_hold.owner_thread_id == 0 || proof.lease_identity == 0 ||
+        proof.observer_instance_id == 0)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw hold proof identity is missing or stale";
+        }
+        return false;
+    }
+    if (proof.forwarding_calls != 0)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw forwarding wrapper is still active";
+        }
+        return false;
+    }
+    if (proof.inventory == nullptr || proof.inventory->empty())
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw held thread context proof is missing";
+        }
+        return false;
+    }
+    for (const ObserverThreadInventoryRow& row : *proof.inventory)
+    {
+        if (!row.opened || !row.identity_read || !row.context_read || !row.held_context)
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "raw held thread context proof is incomplete";
+            }
+            return false;
+        }
+        for (const HookWrapperSpec& wrapper : proof.raw_layout)
+        {
+            if (wrapper.extent != 0 && context_in_range(row.eip, wrapper.address, wrapper.extent))
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "held thread instruction context is inside a raw wrapper";
+                }
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool              attest_remote_hold(ObserverRemoteTransport::State* state,
                                      HookQuiescenceAttestation*      attestation) noexcept;
 bool              write_remote_hold_evidence(ObserverRemoteTransport::State*  state,
@@ -4323,6 +4427,48 @@ bool ObserverRemoteTransport::establish_mutation_attestation(
         }
         return false;
     }
+    return true;
+}
+
+bool ObserverRemoteTransport::establish_raw_mutation_attestation(
+    const ObserverLiveAuthority& authority,
+    std::string*                 refusal) noexcept
+{
+    if (!establish_mutation_attestation(authority, refusal) || state_ == nullptr)
+    {
+        return false;
+    }
+    std::uint64_t forwarding_calls = 0;
+    if (!read(state_->raw_forwarding_counter_address,
+              &forwarding_calls,
+              sizeof(forwarding_calls)))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw forwarding counter could not be read";
+        }
+        return false;
+    }
+    const RawMutationProof proof = {
+        state_->held_key,
+        state_->raw_attested_hold_key,
+        state_->raw_forwarding_counter_address,
+        state_->raw_layout,
+        state_->raw_attested_lease_identity,
+        state_->lease_identity,
+        state_->raw_attested_instance_id,
+        state_->observer_instance_id,
+        forwarding_calls,
+        &state_->last_inventory,
+        state_->publication_controller.expected_hold,
+    };
+    if (!validate_raw_mutation_proof(proof, refusal))
+    {
+        return false;
+    }
+    state_->raw_attested_hold_key       = state_->held_key;
+    state_->raw_attested_lease_identity = state_->lease_identity;
+    state_->raw_attested_instance_id    = state_->observer_instance_id;
     return true;
 }
 
@@ -4378,6 +4524,7 @@ bool ObserverRemoteTransport::discover_bootstrap(
     std::uintptr_t child_release_address = 0;
     std::uintptr_t initial_hold_address  = 0;
     std::uintptr_t cleanup_hold_address  = 0;
+    std::uintptr_t raw_cleanup_hold_address = 0;
     if (!read_remote_export(state_->process,
                             module_base,
                             kObserverLiveBootstrapExport,
@@ -4414,6 +4561,10 @@ bool ObserverRemoteTransport::discover_bootstrap(
                             module_base,
                             kObserverLiveRequestCleanupHoldExport,
                             &cleanup_hold_address) ||
+        !read_remote_export(state_->process,
+                            module_base,
+                            kObserverLiveRequestRawCleanupHoldExport,
+                            &raw_cleanup_hold_address) ||
         !read_block(state_->process, bootstrap_address, bootstrap, sizeof(*bootstrap)))
     {
         if (refusal != nullptr)
@@ -4434,6 +4585,7 @@ bool ObserverRemoteTransport::discover_bootstrap(
         bootstrap->module_pin_witness_address != 0 && bootstrap->child_control_address != 0 &&
         bootstrap->child_start_control != 0 && bootstrap->child_release_control != 0 &&
         bootstrap->initial_hold_control != 0 && bootstrap->cleanup_hold_control != 0 &&
+        raw_cleanup_hold_address != 0 &&
         bootstrap->owner_claim_control == claim_address &&
         bootstrap->owner_release_control == release_address &&
         bootstrap->module_pin_control == pin_address &&
@@ -4464,6 +4616,7 @@ bool ObserverRemoteTransport::discover_bootstrap(
         return false;
     }
     if (bootstrap->engine_base == 0 || bootstrap->ntdll_base == 0 ||
+        bootstrap->raw_forwarding_counter_address == 0 ||
         std::any_of(bootstrap->wrappers.begin(),
                     bootstrap->wrappers.end(),
                     [](std::uint32_t value)
@@ -4520,7 +4673,9 @@ bool ObserverRemoteTransport::discover_bootstrap(
         !valid_x86_range(bootstrap->cleanup_hold_request_address,
                          sizeof(ObserverLiveHoldRequestV1)) ||
         !valid_x86_range(bootstrap->initial_hold_worker_start, 1) ||
-        !valid_x86_range(bootstrap->cleanup_hold_worker_start, 1))
+        !valid_x86_range(bootstrap->cleanup_hold_worker_start, 1) ||
+        !valid_x86_range(bootstrap->raw_forwarding_counter_address,
+                         sizeof(std::uint64_t)))
     {
         if (refusal != nullptr)
         {
@@ -4544,6 +4699,15 @@ bool ObserverRemoteTransport::discover_bootstrap(
             if (refusal != nullptr)
             {
                 *refusal = "resident bootstrap raw wrapper address is invalid";
+            }
+            return false;
+        }
+        if (index < 2 && !valid_x86_range(bootstrap->raw_wrappers[index],
+                                          bootstrap->raw_wrapper_extents[index]))
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "resident bootstrap raw wrapper range is invalid";
             }
             return false;
         }
@@ -4579,7 +4743,8 @@ bool ObserverRemoteTransport::bind_bootstrap(
         bootstrap.initial_hold_control == 0 || bootstrap.cleanup_hold_control == 0 ||
         bootstrap.initial_hold_request_address == 0 || bootstrap.cleanup_hold_request_address == 0 ||
         bootstrap.initial_hold_worker_start == 0 || bootstrap.cleanup_hold_worker_start == 0 ||
-        bootstrap.engine_base == 0 || bootstrap.ntdll_base == 0 ||
+        bootstrap.raw_forwarding_counter_address == 0 || bootstrap.engine_base == 0 ||
+        bootstrap.ntdll_base == 0 ||
         bootstrap.engine_base == bootstrap.ntdll_base ||
         bootstrap.engine_base == bootstrap.loaded_image_base ||
         bootstrap.ntdll_base == bootstrap.loaded_image_base ||
@@ -4640,6 +4805,24 @@ bool ObserverRemoteTransport::bind_bootstrap(
             }
             return false;
         }
+        if (index < 2 && !valid_x86_range(bootstrap.raw_wrappers[index],
+                                          bootstrap.raw_wrapper_extents[index]))
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "resident bootstrap raw wrapper range is invalid";
+            }
+            return false;
+        }
+    }
+    if (!valid_x86_range(bootstrap.raw_forwarding_counter_address,
+                         sizeof(std::uint64_t)))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "resident bootstrap raw forwarding counter is invalid";
+        }
+        return false;
     }
     state_->observer_image_base          = module_base;
     state_->observer_instance_id         = bootstrap.instance_id;
@@ -4656,6 +4839,12 @@ bool ObserverRemoteTransport::bind_bootstrap(
     state_->cleanup_hold_worker_start    = bootstrap.cleanup_hold_worker_start;
     state_->initial_hold_control         = bootstrap.initial_hold_control;
     state_->cleanup_hold_control         = bootstrap.cleanup_hold_control;
+    for (std::size_t index = 0; index != state_->raw_layout.size(); ++index)
+    {
+        state_->raw_layout[index].address = bootstrap.raw_wrappers[index];
+        state_->raw_layout[index].extent  = bootstrap.raw_wrapper_extents[index];
+    }
+    state_->raw_forwarding_counter_address = bootstrap.raw_forwarding_counter_address;
     state_->child_control_address        = bootstrap.child_control_address;
     state_->module_pin_control           = bootstrap.module_pin_control;
     state_->module_unpin_control         = bootstrap.module_unpin_control;
@@ -5226,9 +5415,13 @@ bool submit_hold_request(ObserverRemoteTransport::State* state,
     {
         state->initial_hold_request_epoch = request.request_epoch;
     }
-    else
+    else if (kind == ObserverLiveHoldRequestKind::Cleanup)
     {
         state->cleanup_hold_request_epoch = request.request_epoch;
+    }
+    else
+    {
+        state->raw_cleanup_hold_request_epoch = request.request_epoch;
     }
     if (published_epoch != nullptr)
     {
@@ -5555,6 +5748,27 @@ bool ObserverRemoteTransport::request_cleanup_hold(std::string* refusal) noexcep
                                refusal);
 }
 
+bool ObserverRemoteTransport::request_raw_cleanup_hold(std::string* refusal) noexcept
+{
+    if (state_ == nullptr || !state_->publication_atomic_witness || state_->held ||
+        state_->lease_held || state_->cleanup_hold_request_address == 0 ||
+        state_->cleanup_hold_worker_start == 0)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw cleanup hold requires an unheld detached child and target request record";
+        }
+        return false;
+    }
+    state_->cleanup_hold_thread_id = 0;
+    return submit_hold_request(state_.get(),
+                               ObserverLiveHoldRequestKind::RawCleanup,
+                               state_->cleanup_hold_request_address,
+                               state_->cleanup_hold_worker_start,
+                               &state_->raw_cleanup_hold_request_epoch,
+                               refusal);
+}
+
 bool ObserverRemoteTransport::begin_cleanup(std::uint64_t cleanup_start_tick,
                                             std::uint32_t cleanup_ticks,
                                             std::uint64_t lifecycle_start_tick,
@@ -5608,6 +5822,11 @@ std::uint64_t ObserverRemoteTransport::initial_hold_request_epoch() const noexce
 std::uint64_t ObserverRemoteTransport::cleanup_hold_request_epoch() const noexcept
 {
     return state_ == nullptr ? 0 : state_->cleanup_hold_request_epoch;
+}
+
+std::uint64_t ObserverRemoteTransport::raw_cleanup_hold_request_epoch() const noexcept
+{
+    return state_ == nullptr ? 0 : state_->raw_cleanup_hold_request_epoch;
 }
 
 bool ObserverRemoteTransport::read_child_control(ObserverLiveChildControlV1* control,
@@ -5678,7 +5897,8 @@ bool ObserverRemoteTransport::release_child(std::string* refusal) noexcept
         if (read_child_control(&control, refusal))
         {
             const auto child_state = static_cast<ObserverLiveChildState>(control.state);
-            if (child_state == ObserverLiveChildState::Released)
+            if (child_state == ObserverLiveChildState::Detached ||
+                child_state == ObserverLiveChildState::Released)
             {
                 return true;
             }
@@ -7841,7 +8061,7 @@ bool patch_slot_word(ObserverRemoteTransport*     remote,
     const std::uintptr_t page     = address & ~static_cast<std::uintptr_t>(0xfff);
     DWORD                previous = 0;
     std::string          refusal;
-    if (!remote->establish_mutation_attestation(authority, &refusal))
+    if (!remote->establish_raw_mutation_attestation(authority, &refusal))
     {
         if (error != nullptr)
         {
@@ -7857,7 +8077,7 @@ bool patch_slot_word(ObserverRemoteTransport*     remote,
         }
         return false;
     }
-    if (!remote->establish_mutation_attestation(authority, &refusal))
+    if (!remote->establish_raw_mutation_attestation(authority, &refusal))
     {
         if (error != nullptr)
         {
@@ -7868,7 +8088,7 @@ bool patch_slot_word(ObserverRemoteTransport*     remote,
     const std::uint32_t value    = static_cast<std::uint32_t>(replacement);
     const bool          wrote    = remote->write(address, &value, sizeof(value));
     const bool          verified = wrote && slot_word(remote, address, replacement);
-    if (!remote->establish_mutation_attestation(authority, &refusal))
+    if (!remote->establish_raw_mutation_attestation(authority, &refusal))
     {
         if (error != nullptr)
         {
@@ -7878,7 +8098,7 @@ bool patch_slot_word(ObserverRemoteTransport*     remote,
     }
     DWORD      ignored  = 0;
     const bool restored = remote->change_protection(page, 0x1000u, previous, &ignored);
-    if (!remote->establish_mutation_attestation(authority, &refusal))
+    if (!remote->establish_raw_mutation_attestation(authority, &refusal))
     {
         if (error != nullptr)
         {
@@ -8054,6 +8274,137 @@ bool ObserverRawSlotTransport::installed() const noexcept
 using RtlGetLastNtStatusFunction = LONG(NTAPI*)();
 using RtlSetLastNtStatusFunction = VOID(NTAPI*)(LONG);
 
+bool observer_live_publish_raw_tail_to_control(
+    ObserverLiveChildControlV1* control,
+    std::uint64_t               event_count,
+    std::uint64_t               continuation_count,
+    std::uint64_t               binding_count,
+    std::uint64_t               last_event_index,
+    std::uint64_t               last_continuation_index,
+    std::uint64_t               sequence,
+    bool                        terminal_boundary,
+    bool                        pending,
+    bool                        coverage,
+    bool                        persistence) noexcept
+{
+    if (control == nullptr || control->raw_pending == kObserverLiveRawPendingInvalid ||
+        sequence == 0 || event_count == 0 || binding_count > event_count ||
+        (continuation_count != 0 && last_continuation_index == 0 && continuation_count > 1))
+    {
+        return false;
+    }
+    control->raw_event_count             = event_count;
+    control->raw_continuation_count      = continuation_count;
+    control->raw_binding_count           = binding_count;
+    control->raw_last_event_index        = last_event_index;
+    control->raw_last_continuation_index = last_continuation_index;
+    control->raw_tail_sequence           = sequence;
+    control->raw_pending                 = pending ? 1U : 0U;
+    control->raw_coverage                = coverage ? 1U : 0U;
+    control->raw_persistence             = persistence ? 1U : 0U;
+    if (terminal_boundary)
+    {
+        control->raw_terminal_event_count             = event_count;
+        control->raw_terminal_continuation_count      = continuation_count;
+        control->raw_terminal_last_event_index        = last_event_index;
+        control->raw_terminal_last_continuation_index = last_continuation_index;
+        control->raw_terminal_sequence                = sequence;
+        control->raw_post_activity                    = 0;
+    }
+    else
+    {
+        control->raw_post_activity =
+            control->raw_terminal_sequence != 0 &&
+                    (event_count > control->raw_terminal_event_count ||
+                     continuation_count > control->raw_terminal_continuation_count)
+                ? 1U
+                : 0U;
+    }
+    std::atomic_thread_fence(std::memory_order_release);
+    return true;
+}
+
+void observer_live_invalidate_raw_tail_to_control(ObserverLiveChildControlV1* control) noexcept
+{
+    if (control == nullptr)
+    {
+        return;
+    }
+    control->event_tail_sequence = 0;
+    control->raw_tail_sequence   = 0;
+    control->raw_pending         = kObserverLiveRawPendingInvalid;
+    control->raw_coverage        = 0U;
+    control->raw_persistence     = 0U;
+    control->raw_post_activity   = 0U;
+    std::atomic_thread_fence(std::memory_order_release);
+}
+
+bool observer_live_publish_acknowledged_tail_to_control(
+    ObserverLiveChildControlV1* control,
+    std::uint64_t               acknowledged_sequence) noexcept
+{
+    if (control == nullptr || acknowledged_sequence == 0 ||
+        control->raw_terminal_sequence == 0 ||
+        control->raw_terminal_sequence >= acknowledged_sequence ||
+        control->raw_tail_sequence != acknowledged_sequence ||
+        control->raw_post_activity == 0 || control->raw_pending != 0 ||
+        control->raw_coverage == 0 || control->raw_persistence == 0)
+    {
+        return false;
+    }
+    control->event_tail_sequence = acknowledged_sequence;
+    std::atomic_thread_fence(std::memory_order_release);
+    return true;
+}
+
+bool observer_live_validate_raw_detach_tail(
+    const ObserverLiveChildControlV1& acknowledged,
+    const ObserverLiveChildControlV1& current,
+    std::uint64_t                     acknowledged_sequence,
+    std::string*                      refusal) noexcept
+{
+    const auto reject = [refusal](const char* reason) noexcept
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = reason;
+        }
+        return false;
+    };
+    if (acknowledged_sequence == 0 || acknowledged.state != static_cast<std::uint32_t>(ObserverLiveChildState::Detached) ||
+        current.state != static_cast<std::uint32_t>(ObserverLiveChildState::Detached))
+    {
+        return reject("raw detach witness did not remain detached");
+    }
+    if (acknowledged.event_tail_sequence != acknowledged_sequence ||
+        acknowledged.raw_tail_sequence != acknowledged_sequence ||
+        acknowledged.raw_terminal_sequence == 0 ||
+        acknowledged.raw_terminal_sequence >= acknowledged_sequence)
+    {
+        return reject("raw detach witness has no acknowledged post-detach boundary");
+    }
+    if (current.event_tail_sequence != acknowledged_sequence ||
+        current.raw_tail_sequence != acknowledged_sequence ||
+        current.raw_terminal_sequence != acknowledged.raw_terminal_sequence ||
+        current.raw_event_count != acknowledged.raw_event_count ||
+        current.raw_continuation_count != acknowledged.raw_continuation_count ||
+        current.raw_binding_count != acknowledged.raw_binding_count ||
+        current.raw_last_event_index != acknowledged.raw_last_event_index ||
+        current.raw_last_continuation_index != acknowledged.raw_last_continuation_index)
+    {
+        return reject("raw activity changed the acknowledged tail before the second hold");
+    }
+    if (current.raw_event_count == 0 || current.raw_continuation_count == 0 ||
+        current.raw_binding_count != current.raw_event_count || current.raw_post_activity == 0 ||
+        current.raw_pending != 0 || current.raw_coverage == 0 || current.raw_persistence == 0 ||
+        (current.raw_event_count <= current.raw_terminal_event_count &&
+         current.raw_continuation_count <= current.raw_terminal_continuation_count))
+    {
+        return reject("raw detach witness is incomplete, pending, or not post-terminal");
+    }
+    return true;
+}
+
 struct ObserverChildComposition::State
 {
     ObserverChildRequest                        request{};
@@ -8089,6 +8440,7 @@ struct ObserverChildComposition::State
     bool                                     fixture_bound                  = false;
     bool                                     prepared                       = false;
     bool                                     fixture_started                = false;
+    bool                                     detached                       = false;
     bool                                     released                       = false;
     std::unique_ptr<ObserverFixtureEvidence> fixture_evidence;
     RtlGetLastNtStatusFunction               get_last_nt_status = nullptr;
@@ -8097,6 +8449,39 @@ struct ObserverChildComposition::State
 
 namespace
 {
+
+bool publish_child_raw_tail(void* user, observer_diagnostic::RawEventBridge* bridge) noexcept
+{
+    auto* state = static_cast<ObserverChildComposition::State*>(user);
+    if (state == nullptr || bridge == nullptr || state->fixture_evidence == nullptr ||
+        bridge->event_count() == 0)
+    {
+        return false;
+    }
+    const bool pending = state->composition != nullptr && state->composition->has_pending_raw();
+    return observer_live_publish_raw_tail(
+        bridge->event_count(),
+        bridge->continuation_count(),
+        bridge->binding_receipt_count(),
+        static_cast<std::uint64_t>(bridge->event(bridge->event_count() - 1).raw_event_index),
+        bridge->continuation_count() == 0
+            ? 0
+            : static_cast<std::uint64_t>(bridge->continuation(bridge->continuation_count() - 1)
+                                             .matched_event_index),
+        state->fixture_evidence->record_sequence(),
+        false,
+        pending,
+        bridge->coverage(),
+        state->fixture_evidence->persistence_available());
+}
+
+void invalidate_child_raw_tail(void* user) noexcept
+{
+    if (user != nullptr)
+    {
+        observer_live_invalidate_raw_tail();
+    }
+}
 
 ObserverChildComposition::State* child_state(void* user) noexcept
 {
@@ -8433,6 +8818,10 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
     composition_config.wait              = wait;
     composition_config.continue_call     = continue_call;
     composition_config.fixture_evidence  = state_->fixture_evidence.get();
+    composition_config.raw_tail_publication       = &publish_child_raw_tail;
+    composition_config.raw_tail_publication_user  = state_.get();
+    composition_config.raw_tail_invalidation      = &invalidate_child_raw_tail;
+    composition_config.raw_tail_invalidation_user = state_.get();
     state_->composition                  = std::make_unique<TraceMapObserverCallbacks>(composition_config);
     if (state_->composition == nullptr || !state_->composition->ready())
     {
@@ -8795,6 +9184,135 @@ bool ObserverChildComposition::wait_for_fixture_event(const ObserverLiveAuthorit
     return true;
 }
 
+bool ObserverChildComposition::begin_active_detach(const ObserverLiveAuthority& authority,
+                                                   std::string*                 refusal) noexcept
+{
+    if (state_ == nullptr || state_->released || state_->detached ||
+        !state_->fixture_started || state_->composition == nullptr ||
+        !child_authority(authority, refusal))
+    {
+        if (refusal != nullptr && refusal->empty())
+        {
+            *refusal = "active detach requires a prepared live child composition";
+        }
+        return false;
+    }
+    if (state_->composition->has_pending_raw())
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw pending event remains before active detach";
+        }
+        return false;
+    }
+    // Keep raw forwarding, its originals, callback storage and the retained
+    // client alive across EndSession. Raw lifecycle admission is independent
+    // of the already stopped diagnostic collection.
+    if (!state_->composition->begin_raw_detach())
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw detach forwarding admission refused";
+        }
+        return false;
+    }
+    if (!state_->composition->raw_detach_forwarding())
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw detach forwarding proof was not retained through active detach";
+        }
+        return false;
+    }
+    DWORD      fixture_state = 0;
+    const bool fixture_live  = state_->fixture_process_handle != nullptr &&
+                               WaitForSingleObject(state_->fixture_process_handle, 0) == WAIT_TIMEOUT &&
+                               GetExitCodeProcess(state_->fixture_process_handle, &fixture_state) != FALSE &&
+                               fixture_state == STILL_ACTIVE;
+    if (state_->fixture_evidence == nullptr ||
+        !state_->fixture_evidence->record_live_at_release(fixture_live))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "creation-bound fixture was not externally observed live at active detach";
+        }
+        return false;
+    }
+    if (!state_->fixture_evidence->record_detach_intent(DEBUG_END_ACTIVE_DETACH))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "active detach intent could not be durably recorded";
+        }
+        return false;
+    }
+    const HRESULT release_result   = state_->client == nullptr
+                                         ? E_POINTER
+                                         : state_->client->EndSession(DEBUG_END_ACTIVE_DETACH);
+    const bool    release_recorded = state_->fixture_evidence->record_session_release(
+        release_result, DEBUG_END_ACTIVE_DETACH, false);
+    if (FAILED(release_result) || !release_recorded)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "DbgEng active detach or external release evidence was refused";
+        }
+        return false;
+    }
+    if (!state_->composition->raw_detach_forwarding())
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "raw detach forwarding proof was lost during active detach";
+        }
+        return false;
+    }
+    RawEventBridge* raw_bridge = state_->composition->raw_bridge();
+    if (raw_bridge == nullptr || state_->fixture_evidence == nullptr ||
+        raw_bridge->event_count() == 0 || raw_bridge->continuation_count() == 0 ||
+        !state_->fixture_evidence->record_post_detach_raw_tail(
+            raw_bridge->event_count(),
+            raw_bridge->continuation_count(),
+            static_cast<std::uint64_t>(raw_bridge->event(raw_bridge->event_count() - 1).raw_event_index),
+            static_cast<std::uint64_t>(raw_bridge->continuation(
+                                                     raw_bridge->continuation_count() - 1)
+                                           .matched_event_index),
+            state_->composition->has_pending_raw(),
+            raw_bridge->coverage()))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "post-detach raw tail was not acknowledged before the second hold";
+        }
+        return false;
+    }
+    state_->event_tail_sequence = state_->fixture_evidence->record_sequence();
+    const auto& post_event      = raw_bridge->event(raw_bridge->event_count() - 1);
+    const auto& post_continuation =
+        raw_bridge->continuation(raw_bridge->continuation_count() - 1);
+    if (!observer_live_publish_raw_tail(
+            raw_bridge->event_count(),
+            raw_bridge->continuation_count(),
+            raw_bridge->binding_receipt_count(),
+            static_cast<std::uint64_t>(post_event.raw_event_index),
+            static_cast<std::uint64_t>(post_continuation.matched_event_index),
+            state_->event_tail_sequence,
+            false,
+            state_->composition->has_pending_raw(),
+            raw_bridge->coverage(),
+            state_->fixture_evidence->persistence_available()) ||
+        !observer_live_publish_acknowledged_tail(state_->event_tail_sequence))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "post-detach raw tail could not be published before Detached";
+        }
+        return false;
+    }
+    state_->detached = true;
+    return true;
+}
+
 bool ObserverChildComposition::release(const ObserverLiveAuthority& authority,
                                        std::string*                 refusal) noexcept
 {
@@ -8806,6 +9324,14 @@ bool ObserverChildComposition::release(const ObserverLiveAuthority& authority,
         }
         return false;
     }
+    if (state_->fixture_started && !state_->detached)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "active detach must complete before child release";
+        }
+        return false;
+    }
     if (state_->composition != nullptr && state_->composition->has_pending_raw())
     {
         if (refusal != nullptr)
@@ -8814,7 +9340,18 @@ bool ObserverChildComposition::release(const ObserverLiveAuthority& authority,
         }
         return false;
     }
-    if (state_->composition != nullptr && !state_->composition->deactivate_raw())
+    if (state_->detached)
+    {
+        if (state_->composition != nullptr && !state_->composition->end_raw_detach())
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "raw detach forwarding shutdown refused";
+            }
+            return false;
+        }
+    }
+    else if (state_->composition != nullptr && !state_->composition->deactivate_raw())
     {
         if (refusal != nullptr)
         {
@@ -8841,8 +9378,12 @@ bool ObserverChildComposition::release(const ObserverLiveAuthority& authority,
         }
         return false;
     }
+    // The resident raw thunks remain reachable through the observer's final
+    // lifetime.  Keep their cached originals until the process exits; clearing
+    // them here would turn a late nonresident call into an uninitialized
+    // resident fallback while a caller can still hold the thunk.
     state_->bridge_scope.reset();
-    if (state_->fixture_started)
+    if (state_->fixture_started && !state_->detached)
     {
         DWORD      fixture_state = 0;
         const bool fixture_live  = state_->fixture_process_handle != nullptr &&
@@ -8855,6 +9396,15 @@ bool ObserverChildComposition::release(const ObserverLiveAuthority& authority,
             if (refusal != nullptr)
             {
                 *refusal = "creation-bound fixture was not externally observed live at active release";
+            }
+            return false;
+        }
+        if (state_->fixture_evidence == nullptr ||
+            !state_->fixture_evidence->record_detach_intent(DEBUG_END_ACTIVE_DETACH))
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "active detach intent could not be durably recorded";
             }
             return false;
         }
@@ -10697,6 +11247,201 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         return fail_child_completion_overrun(
             "target child completion bound expired during hook restoration");
     }
+    // Keep the raw slots, originals, callback state and retained module alive
+    // through active detach. Raw restoration is performed only under the
+    // second fresh typed hold after the detached raw tail is acknowledged.
+    if (cleanup_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during raw-slot restoration");
+    }
+    if (!continue_held(&restore_event))
+    {
+        abort_created();
+        return fail("restore_continue", "cleanup hold continuation failed");
+    }
+    if (cleanup_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during cleanup continuation");
+    }
+    result.last_verified_hold = false;
+    if (cleanup_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during publication release");
+    }
+    if (!record_intent("active_detach_child"))
+    {
+        abort_created();
+        return fail("failure_ledger", "active detach intent could not be persisted");
+    }
+    std::uint64_t              detached_tail_sequence = 0;
+    ObserverLiveChildControlV1 detached_control{};
+    const bool                 child_detached = remote.release_child(&refusal);
+    if (child_detached)
+    {
+        if (!remote.read_child_control(&detached_control, &refusal) ||
+            static_cast<ObserverLiveChildState>(detached_control.state) !=
+                ObserverLiveChildState::Detached ||
+            detached_control.cleanup_start_tick != cleanup_started)
+        {
+            abort_created();
+            return fail("active_detach", "target child did not publish the detached state and cleanup deadline");
+        }
+        if (detached_control.event_tail_sequence == 0)
+        {
+            abort_created();
+            return fail("active_detach", "target child did not publish the acknowledged post-detach raw tail");
+        }
+        detached_tail_sequence = detached_control.event_tail_sequence;
+        if (!observer_live_validate_raw_detach_tail(
+                detached_control, detached_control, detached_tail_sequence, &refusal))
+        {
+            abort_created();
+            return fail("active_detach", refusal);
+        }
+    }
+    if (!record_result(child_detached, child_detached ? "detached" : "failed"))
+    {
+        abort_created();
+        return fail("failure_ledger", "active detach result could not be persisted");
+    }
+    if (!child_detached)
+    {
+        abort_created();
+        return fail("active_detach", refusal);
+    }
+    if (cleanup_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during active detach");
+    }
+
+    if (!record_intent("request_raw_cleanup_hold"))
+    {
+        abort_created();
+        return fail("failure_ledger", "raw cleanup hold request intent could not be persisted");
+    }
+    const bool raw_cleanup_hold_requested = remote.request_raw_cleanup_hold(&refusal) &&
+                                            remote.raw_cleanup_hold_request_epoch() != 0;
+    result.raw_cleanup_hold_request_epoch = remote.raw_cleanup_hold_request_epoch();
+    if (!record_result(raw_cleanup_hold_requested,
+                       raw_cleanup_hold_requested ? "requested" : "failed"))
+    {
+        abort_created();
+        return fail("failure_ledger", "raw cleanup hold request result could not be persisted");
+    }
+    if (!raw_cleanup_hold_requested)
+    {
+        abort_created();
+        return fail("raw_cleanup_request", refusal.empty() ? "target raw cleanup hold did not publish its exact thread identity" : refusal);
+    }
+    ObserverHeldDebugEvent raw_restore_event;
+    const std::uint32_t    raw_cleanup_hold_ticks = std::min(request.limits.hold_ticks,
+                                                             cleanup_remaining());
+    if (raw_cleanup_hold_ticks == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired before raw cleanup hold acquisition");
+    }
+    const bool raw_cleanup_hold_observed = wait_for_create_thread(
+        raw_cleanup_hold_ticks,
+        bootstrap.cleanup_hold_request_address,
+        ObserverLiveHoldRequestKind::RawCleanup,
+        bootstrap.cleanup_hold_worker_start,
+        remote.raw_cleanup_hold_request_epoch(),
+        &raw_restore_event);
+    if (!raw_cleanup_hold_observed)
+    {
+        abort_created();
+        return fail("raw_restore_hold", refusal.empty() ? "no raw cleanup CREATE_THREAD_DEBUG_EVENT reached" : refusal);
+    }
+    if (!record_intent("set_raw_cleanup_hold_event"))
+    {
+        abort_created();
+        return fail("failure_ledger", "raw cleanup hold admission intent could not be persisted");
+    }
+    const bool raw_cleanup_hold_admitted = remote.set_held_event(request.authority,
+                                                                 raw_restore_event,
+                                                                 &refusal);
+    if (raw_cleanup_hold_admitted)
+    {
+        observer_held                = true;
+        active_held_event            = &raw_restore_event;
+        expected_hold.event_identity = event_identity(raw_restore_event);
+        result.event_identity        = expected_hold.event_identity;
+    }
+    if (!record_result(raw_cleanup_hold_admitted,
+                       raw_cleanup_hold_admitted ? "held" : "failed"))
+    {
+        abort_created();
+        return fail("failure_ledger", "raw cleanup hold admission result could not be persisted");
+    }
+    if (!raw_cleanup_hold_admitted)
+    {
+        abort_created();
+        return fail("raw_restore_hold", refusal);
+    }
+    if (!record_intent("attest_raw_cleanup_hold"))
+    {
+        abort_created();
+        return fail("failure_ledger", "raw cleanup hold attestation intent could not be persisted");
+    }
+    const bool raw_cleanup_hold_attested =
+        remote.set_publication_hold_expectation(expected_hold, &refusal) &&
+        remote.check_publication_owner_witness(&refusal) &&
+        remote.establish_raw_mutation_attestation(request.authority, &refusal);
+    result.last_verified_hold = raw_cleanup_hold_attested;
+    if (!record_result(raw_cleanup_hold_attested,
+                       raw_cleanup_hold_attested ? "attested" : "failed"))
+    {
+        abort_created();
+        return fail("failure_ledger", "raw cleanup hold attestation result could not be persisted");
+    }
+    if (!raw_cleanup_hold_attested)
+    {
+        abort_created();
+        return fail("raw_restore_hold", refusal);
+    }
+    ObserverLiveChildControlV1 raw_detached_control{};
+    if (!remote.read_child_control(&raw_detached_control, &refusal) ||
+        !observer_live_validate_raw_detach_tail(
+            detached_control, raw_detached_control, detached_tail_sequence, &refusal))
+    {
+        abort_created();
+        return fail("raw_restore_hold", refusal.empty() ? "raw cleanup hold did not revalidate the exact acknowledged detach tail" : refusal);
+    }
+    if (fixture_retention == nullptr || raw_detached_control.event_tail_sequence == 0 ||
+        !fixture_retention->record_raw_second_hold_evidence(
+            raw_detached_control.event_tail_sequence,
+            raw_detached_control.raw_event_count,
+            raw_detached_control.raw_continuation_count,
+            raw_detached_control.raw_binding_count,
+            raw_detached_control.raw_last_event_index,
+            raw_detached_control.raw_last_continuation_index,
+            raw_detached_control.raw_terminal_event_count,
+            raw_detached_control.raw_terminal_continuation_count,
+            raw_detached_control.raw_terminal_last_event_index,
+            raw_detached_control.raw_terminal_last_continuation_index,
+            raw_detached_control.raw_pending != 0,
+            raw_detached_control.raw_coverage != 0,
+            raw_detached_control.raw_persistence != 0,
+            remote.raw_cleanup_hold_request_epoch(),
+            expected_hold.event_identity,
+            expected_hold.lease_identity))
+    {
+        abort_created();
+        return fail("raw_restore_hold", "fresh raw hold evidence was not persisted before raw-slot mutation");
+    }
+    if (!fixture_retention->record_raw_restore_boundary(raw_detached_control.event_tail_sequence,
+                                                        remote.raw_cleanup_hold_request_epoch(),
+                                                        expected_hold.event_identity,
+                                                        expected_hold.lease_identity))
+    {
+        abort_created();
+        return fail("raw_restore_hold", "controller raw-slot restore boundary was not retained before raw-slot mutation");
+    }
     if (raw_installed && !record_intent("restore_raw_slots"))
     {
         abort_created();
@@ -10722,33 +11467,51 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("raw_restore", "external raw-slot restoration refused");
     }
-    if (fixture_retention == nullptr || completed_child_control.event_tail_sequence == 0 ||
-        !fixture_retention->record_raw_restore_boundary(completed_child_control.event_tail_sequence))
-    {
-        abort_created();
-        return fail("raw_restore", "controller raw-slot restore boundary was not retained under hold");
-    }
-    // Hook and raw code restoration are proven while the cleanup hold is still
-    // owned.  Latch that fact before any deadline check, hold continuation or
-    // outside publication-owner release so later failures preserve the
-    // restoration result independently.
     result.restoration_confirmed = true;
-    if (cleanup_remaining() == 0)
-    {
-        return fail_child_completion_overrun(
-            "target child completion bound expired during raw-slot restoration");
-    }
-    if (!continue_held(&restore_event))
+    if (!continue_held(&raw_restore_event))
     {
         abort_created();
-        return fail("restore_continue", "cleanup hold continuation failed");
+        return fail("raw_restore_continue", "raw cleanup hold continuation failed");
     }
     if (cleanup_remaining() == 0)
     {
         return fail_child_completion_overrun(
-            "target child completion bound expired during cleanup continuation");
+            "target child completion bound expired after raw restoration");
     }
-    result.last_verified_hold = false;
+    if (!record_intent("final_release_child"))
+    {
+        abort_created();
+        return fail("failure_ledger", "final child release intent could not be persisted");
+    }
+    const bool child_released = remote.release_child(&refusal);
+    if (child_released)
+    {
+        child_started = false;
+        ObserverLiveChildControlV1 cleanup_control{};
+        if (!remote.read_child_control(&cleanup_control, &refusal) ||
+            static_cast<ObserverLiveChildState>(cleanup_control.state) !=
+                ObserverLiveChildState::Released ||
+            cleanup_control.cleanup_start_tick != cleanup_started)
+        {
+            abort_created();
+            return fail("child_release", "target child did not retain the final Released state and cleanup deadline");
+        }
+    }
+    if (!record_result(child_released, child_released ? "released" : "failed"))
+    {
+        abort_created();
+        return fail("failure_ledger", "final child release result could not be persisted");
+    }
+    if (!child_released)
+    {
+        abort_created();
+        return fail("child_release", refusal);
+    }
+    if (cleanup_remaining() == 0)
+    {
+        return fail_child_completion_overrun(
+            "target child completion bound expired during final child release");
+    }
     if (!record_intent("release_publication_ownership"))
     {
         abort_created();
@@ -10774,38 +11537,6 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         return fail_child_completion_overrun(
             "target child completion bound expired during publication release");
-    }
-    if (!record_intent("release_child"))
-    {
-        abort_created();
-        return fail("failure_ledger", "child release intent could not be persisted");
-    }
-    const bool child_released = remote.release_child(&refusal);
-    if (child_released)
-    {
-        child_started = false;
-        ObserverLiveChildControlV1 cleanup_control{};
-        if (!remote.read_child_control(&cleanup_control, &refusal) ||
-            cleanup_control.cleanup_start_tick != cleanup_started)
-        {
-            abort_created();
-            return fail("child_release", "target child did not retain the controller cleanup deadline");
-        }
-    }
-    if (!record_result(child_released, child_released ? "released" : "failed"))
-    {
-        abort_created();
-        return fail("failure_ledger", "child release result could not be persisted");
-    }
-    if (!child_released)
-    {
-        abort_created();
-        return fail("child_release", refusal);
-    }
-    if (cleanup_remaining() == 0)
-    {
-        return fail_child_completion_overrun(
-            "target child completion bound expired during child release");
     }
     if (!record_intent("release_bound_module"))
     {
@@ -11059,6 +11790,269 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     return result;
 }
 
+namespace
+{
+
+enum class RawWitnessFailureRoute : std::uint8_t
+{
+    gap,
+    overflow,
+    event_persistence,
+    event_publication,
+    event_exception,
+    binding_persistence,
+    binding_publication,
+    continuation_persistence,
+    continuation_publication,
+};
+
+struct RawWitnessFailureState
+{
+    ObserverLiveChildControlV1* control       = nullptr;
+    RawWitnessFailureRoute      route         = RawWitnessFailureRoute::gap;
+    std::uint32_t               invalidations = 0;
+};
+
+void raw_witness_invalidate(void* user) noexcept
+{
+    auto* state = static_cast<RawWitnessFailureState*>(user);
+    if (state == nullptr || state->control == nullptr)
+    {
+        return;
+    }
+    ++state->invalidations;
+    observer_live_invalidate_raw_tail_to_control(state->control);
+}
+
+struct RawWitnessFakeState
+{
+    LONG continue_result = 0;
+};
+
+RawWitnessFakeState* g_raw_witness_fake_state = nullptr;
+
+LONG __stdcall raw_witness_wait(ULONG, ULONG, PVOID, PVOID) noexcept
+{
+    return 0;
+}
+
+LONG __stdcall raw_witness_continue(ULONG, PVOID, ULONG) noexcept
+{
+    return g_raw_witness_fake_state == nullptr ? 0 : g_raw_witness_fake_state->continue_result;
+}
+
+void raw_witness_lifecycle(std::array<std::uint8_t, 0x60>* bytes) noexcept
+{
+    if (bytes == nullptr)
+    {
+        return;
+    }
+    bytes->fill(0);
+    *reinterpret_cast<ULONG*>(bytes->data())     = 3;
+    *reinterpret_cast<ULONG*>(bytes->data() + 4) = 100;
+    *reinterpret_cast<ULONG*>(bytes->data() + 8) = 200;
+}
+
+struct RawWitnessOwnerState
+{
+    RawWitnessFailureState* failure = nullptr;
+};
+
+struct RawWitnessClientId
+{
+    ULONG process_id = 100;
+    ULONG thread_id  = 200;
+};
+
+bool raw_witness_publication_failure(RawWitnessFailureState* failure,
+                                     RawEventBridge*         bridge) noexcept
+{
+    return failure == nullptr || bridge == nullptr ||
+           observer_live_publish_raw_tail_to_control(
+               failure->control,
+               bridge->event_count(),
+               bridge->continuation_count(),
+               bridge->binding_receipt_count(),
+               bridge->event_count() == 0
+                   ? 0
+                   : static_cast<std::uint64_t>(bridge->event(bridge->event_count() - 1)
+                                                    .raw_event_index),
+               bridge->continuation_count() == 0
+                   ? 0
+                   : static_cast<std::uint64_t>(bridge->continuation(
+                                                          bridge->continuation_count() - 1)
+                                                    .matched_event_index),
+               0,
+               false,
+               false,
+               bridge->coverage(),
+               true);
+}
+
+bool raw_witness_event(void* user, const BridgeEventEvidence& evidence)
+{
+    auto* state = static_cast<RawWitnessOwnerState*>(user);
+    if (state == nullptr || state->failure == nullptr)
+    {
+        return false;
+    }
+    switch (state->failure->route)
+    {
+        case RawWitnessFailureRoute::event_persistence:
+            return false;
+        case RawWitnessFailureRoute::event_publication:
+            return raw_witness_publication_failure(state->failure,
+                                                   const_cast<RawEventBridge*>(evidence.bridge));
+        case RawWitnessFailureRoute::event_exception:
+            throw 1;
+        default:
+            return evidence.pending_status == PendingEventStatus::Admitted;
+    }
+}
+
+bool raw_witness_binding(void* user, const EngineBindingReceipt& receipt) noexcept
+{
+    auto* state = static_cast<RawWitnessOwnerState*>(user);
+    if (state == nullptr || state->failure == nullptr)
+    {
+        return false;
+    }
+    if (state->failure->route == RawWitnessFailureRoute::binding_persistence)
+    {
+        return false;
+    }
+    if (state->failure->route == RawWitnessFailureRoute::binding_publication)
+    {
+        (void)receipt;
+        return false;
+    }
+    return receipt.status == EngineBindingStatus::Bound;
+}
+
+bool raw_witness_continuation(void*                             user,
+                              const BridgeContinuationEvidence& evidence) noexcept
+{
+    auto* state = static_cast<RawWitnessOwnerState*>(user);
+    if (state == nullptr || state->failure == nullptr)
+    {
+        return false;
+    }
+    if (state->failure->route == RawWitnessFailureRoute::continuation_persistence ||
+        state->failure->route == RawWitnessFailureRoute::continuation_publication)
+    {
+        return false;
+    }
+    return evidence.matched_event_index != static_cast<std::size_t>(-1);
+}
+
+EngineIdentityObservation raw_witness_observation(const RawIdentityBinding& raw) noexcept
+{
+    EngineIdentityObservation observation;
+    observation.current_thread_known     = true;
+    observation.current_thread_id        = 0;
+    observation.event_thread_known       = true;
+    observation.event_thread_id          = 0;
+    observation.cached_thread_known      = true;
+    observation.cached_thread_id         = 0;
+    observation.current_process_known    = true;
+    observation.current_process_id       = 1;
+    observation.event_process_known      = true;
+    observation.event_process_id         = 1;
+    observation.current_system_pid_known = true;
+    observation.current_system_pid       = raw.process_id;
+    observation.current_system_tid_known = true;
+    observation.current_system_tid       = raw.thread_id;
+    return observation;
+}
+
+bool run_raw_witness_failure_route(RawWitnessFailureRoute      route,
+                                   ObserverLiveChildControlV1* control,
+                                   std::uint32_t*              invalidations) noexcept
+{
+    if (control == nullptr)
+    {
+        return false;
+    }
+    RawWitnessFailureState failure{ control, route, 0 };
+    RawWitnessOwnerState   owner{ &failure };
+    auto                   diagnostic = std::make_unique<Recorder>();
+    auto                   bridge     = std::make_unique<RawEventBridge>(
+        *diagnostic,
+        nullptr,
+        nullptr,
+        RawEventBindingMode::deferred,
+        RawLifecycleOwnerSink{ &raw_witness_event,
+                               &raw_witness_continuation,
+                               &owner,
+                               &raw_witness_binding },
+        &raw_witness_invalidate,
+        &failure);
+    auto                raw = std::make_unique<raw_recorder::RawRecorder>();
+    RawWitnessFakeState fake;
+    g_raw_witness_fake_state = &fake;
+    std::array<std::uint8_t, 0x60> event{};
+    raw_witness_lifecycle(&event);
+    bool route_started = bridge->attach(*raw) &&
+                         raw->activate(&raw_witness_wait, &raw_witness_continue) &&
+                         bridge->begin_raw_lifecycle();
+    if (route_started)
+    {
+        RawWitnessClientId client{ 100, 200 };
+        if (route == RawWitnessFailureRoute::gap)
+        {
+            (void)raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data());
+            (void)raw_recorder::RawRecorder::WaitThunk(0x2222U, 0, nullptr, event.data());
+        }
+        else if (route == RawWitnessFailureRoute::overflow)
+        {
+            for (std::uint32_t index = 0; index != raw_recorder::kMaxRawEvents + 1; ++index)
+            {
+                (void)raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data());
+                (void)raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0);
+            }
+        }
+        else if (route == RawWitnessFailureRoute::binding_persistence ||
+                 route == RawWitnessFailureRoute::binding_publication)
+        {
+            (void)raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data());
+            if (bridge->event_count() != 0)
+            {
+                (void)bridge->bind_engine_event(
+                    bridge->event(0).raw_identity,
+                    raw_witness_observation(bridge->event(0).raw_identity),
+                    0x31U);
+            }
+        }
+        else
+        {
+            (void)raw_recorder::RawRecorder::WaitThunk(0x1111U, 0, nullptr, event.data());
+            if (route == RawWitnessFailureRoute::continuation_persistence ||
+                route == RawWitnessFailureRoute::continuation_publication)
+            {
+                if (bridge->event_count() != 0)
+                {
+                    const RawIdentityBinding binding = bridge->event(0).raw_identity;
+                    (void)bridge->bind_engine_event(binding,
+                                                    raw_witness_observation(binding),
+                                                    0x31U);
+                }
+                (void)raw_recorder::RawRecorder::ContinueThunk(0x1111U, &client, 0);
+            }
+        }
+        (void)bridge->end_raw_lifecycle();
+    }
+    raw->deactivate();
+    (void)raw->clear_observer_sink();
+    g_raw_witness_fake_state = nullptr;
+    if (invalidations != nullptr)
+    {
+        *invalidations = failure.invalidations;
+    }
+    return route_started && failure.invalidations != 0;
+}
+
+} // namespace
+
 ObserverLiveRuntimeSelfTestReport run_observer_live_runtime_self_tests() noexcept
 {
     ObserverLiveRuntimeSelfTestReport report;
@@ -11251,6 +12245,158 @@ ObserverLiveRuntimeSelfTestReport run_observer_live_runtime_self_tests() noexcep
                                 &transfer_state);
         check(transfer_state.closes == originals.size() && transfer_state.aborts == 0 &&
               transfer_state.resumes == 0 && unchanged(controller_originals, originals));
+    }
+    {
+        ObserverLiveChildControlV1 terminal_and_post{};
+        terminal_and_post.state       = static_cast<std::uint32_t>(ObserverLiveChildState::Detached);
+        const bool terminal_published = observer_live_publish_raw_tail_to_control(
+            &terminal_and_post, 1, 1, 1, 0, 0, 10, true, false, true, true);
+        const bool post_published = observer_live_publish_raw_tail_to_control(
+            &terminal_and_post, 2, 2, 2, 1, 1, 20, false, false, true, true);
+        const bool acknowledged = observer_live_publish_acknowledged_tail_to_control(
+            &terminal_and_post, 20);
+        check(terminal_published && post_published && acknowledged &&
+              terminal_and_post.raw_terminal_sequence == 10 &&
+              terminal_and_post.event_tail_sequence == 20 &&
+              terminal_and_post.raw_post_activity != 0);
+
+        const auto decision = [&check](const ObserverLiveChildControlV1& acknowledged_control,
+                                       ObserverLiveChildControlV1        current,
+                                       bool                              expected) noexcept
+        {
+            std::string   refusal;
+            std::uint32_t raw_slot_writes = 0;
+            const bool    accepted        = observer_live_validate_raw_detach_tail(
+                acknowledged_control,
+                current,
+                acknowledged_control.event_tail_sequence,
+                &refusal);
+            if (accepted)
+            {
+                ++raw_slot_writes;
+            }
+            check(accepted == expected && (expected || raw_slot_writes == 0));
+        };
+        decision(terminal_and_post, terminal_and_post, true);
+
+        ObserverLiveChildControlV1 stale = terminal_and_post;
+        stale.raw_tail_sequence          = 0;
+        decision(stale, stale, false);
+
+        ObserverLiveChildControlV1 lost = terminal_and_post;
+        lost.event_tail_sequence        = 0;
+        decision(lost, lost, false);
+
+        ObserverLiveChildControlV1 changed = terminal_and_post;
+        changed.raw_tail_sequence          = 21;
+        changed.raw_event_count            = 3;
+        changed.raw_binding_count          = 3;
+        changed.raw_last_event_index       = 2;
+        decision(terminal_and_post, changed, false);
+
+        ObserverLiveChildControlV1 pending = terminal_and_post;
+        pending.raw_pending                = 1;
+        decision(terminal_and_post, pending, false);
+
+        ObserverLiveChildControlV1 terminal_only = terminal_and_post;
+        terminal_only.raw_event_count            = terminal_only.raw_terminal_event_count;
+        terminal_only.raw_continuation_count     = terminal_only.raw_terminal_continuation_count;
+        terminal_only.raw_post_activity          = 0;
+        decision(terminal_and_post, terminal_only, false);
+    }
+    {
+        const std::array<RawWitnessFailureRoute, 9> failure_routes = {
+            RawWitnessFailureRoute::gap,
+            RawWitnessFailureRoute::overflow,
+            RawWitnessFailureRoute::event_persistence,
+            RawWitnessFailureRoute::event_publication,
+            RawWitnessFailureRoute::event_exception,
+            RawWitnessFailureRoute::binding_persistence,
+            RawWitnessFailureRoute::binding_publication,
+            RawWitnessFailureRoute::continuation_persistence,
+            RawWitnessFailureRoute::continuation_publication,
+        };
+        for (const RawWitnessFailureRoute route : failure_routes)
+        {
+            ObserverLiveChildControlV1 valid_witness{};
+            valid_witness.state = static_cast<std::uint32_t>(ObserverLiveChildState::Detached);
+            check(observer_live_publish_raw_tail_to_control(
+                      &valid_witness, 1, 1, 1, 0, 0, 10, true, false, true, true) &&
+                  observer_live_publish_raw_tail_to_control(
+                      &valid_witness, 2, 2, 2, 1, 1, 20, false, false, true, true) &&
+                  observer_live_publish_acknowledged_tail_to_control(&valid_witness, 20));
+            const ObserverLiveChildControlV1 acknowledged  = valid_witness;
+            std::uint32_t                    invalidations = 0;
+            check(run_raw_witness_failure_route(route, &valid_witness, &invalidations) &&
+                  invalidations != 0 && valid_witness.raw_coverage == 0 &&
+                  valid_witness.raw_persistence == 0);
+            const bool healed = observer_live_publish_raw_tail_to_control(
+                &valid_witness, 3, 3, 3, 2, 2, 30, false, false, true, true);
+            check(!healed &&
+                  valid_witness.raw_pending == kObserverLiveRawPendingInvalid &&
+                  valid_witness.raw_tail_sequence == 0 && valid_witness.raw_coverage == 0 &&
+                  valid_witness.raw_persistence == 0);
+            std::string refusal;
+            const bool  accepted = observer_live_validate_raw_detach_tail(
+                acknowledged, valid_witness, 20, &refusal);
+            const std::uint32_t raw_slot_writes = accepted ? 1U : 0U;
+            check(!accepted && raw_slot_writes == 0);
+        }
+    }
+    {
+        RawMutationProof proof;
+        proof.held_key                       = { 101, 201, CREATE_THREAD_DEBUG_EVENT, 7, 3 };
+        proof.raw_forwarding_counter_address = 0x3000;
+        proof.raw_layout[0]                  = { 0x5000, 0x20 };
+        proof.raw_layout[1]                  = { 0x6000, 0x24 };
+        proof.raw_layout[2]                  = { 0x7000, 0 };
+        proof.lease_identity                 = 88;
+        proof.observer_instance_id           = 77;
+        proof.expected_hold.event_identity   = 11;
+        proof.expected_hold.session_identity = 12;
+        proof.expected_hold.owner_thread_id  = 201;
+        ObserverThreadInventoryRow row;
+        row.thread_id                                     = 201;
+        row.process_id                                    = 101;
+        row.eip                                           = 0x4000;
+        row.opened                                        = true;
+        row.identity_read                                 = true;
+        row.context_read                                  = true;
+        row.held_context                                  = true;
+        std::vector<ObserverThreadInventoryRow> inventory = { row };
+        proof.inventory                                   = &inventory;
+        std::string refusal;
+        check(validate_raw_mutation_proof(proof, &refusal));
+        proof.forwarding_calls = 1;
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal) &&
+              refusal == "raw forwarding wrapper is still active");
+        proof.forwarding_calls     = 0;
+        proof.raw_layout[1].extent = 0;
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal));
+        proof.raw_layout[1].extent = 0x24;
+        inventory.front().eip      = proof.raw_layout[0].address + 1;
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal) &&
+              refusal == "held thread instruction context is inside a raw wrapper");
+        inventory.front().eip          = 0x4000;
+        inventory.front().held_context = false;
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal));
+        inventory.front().held_context    = true;
+        proof.raw_attested_lease_identity = proof.lease_identity + 1;
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal));
+        proof.raw_attested_lease_identity = 0;
+        proof.raw_attested_hold_key       = proof.held_key;
+        proof.raw_attested_hold_key.event_index++;
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal));
+        proof.raw_attested_hold_key = {};
+        proof.expected_hold         = {};
+        refusal.clear();
+        check(!validate_raw_mutation_proof(proof, &refusal));
     }
     report.passed  = report.failures == 0;
     report.summary = report.passed ? "production options-first seam checks passed"

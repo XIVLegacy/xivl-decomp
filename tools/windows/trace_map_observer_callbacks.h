@@ -25,6 +25,10 @@ using observer_diagnostic::RawEventBridge;
 using observer_diagnostic::Recorder;
 using observer_diagnostic::SelfTestReport;
 
+using RawTailPublicationFunction  = bool (*)(void*                                user,
+                                             observer_diagnostic::RawEventBridge* bridge) noexcept;
+using RawTailInvalidationFunction = observer_diagnostic::RawLifecycleFailureFunction;
+
 // The RecorderConfig callbacks, including callbacks.user, are borrowed. The
 // caller keeps them alive through explicit teardown; if teardown is refused or
 // omitted, the owner may retain its whole state and these inputs must remain
@@ -44,6 +48,16 @@ struct TraceMapObserverCallbacksConfig
     // writes actual raw event and continuation evidence as it is delivered;
     // the channel remains valid until explicit teardown.
     ObserverFixtureEvidence* fixture_evidence = nullptr;
+    // Production child sessions publish the current raw witness through this
+    // sink after each persisted raw event, binding or continuation.  Tests
+    // leave it null and retain the existing in-memory bridge behavior.
+    RawTailPublicationFunction raw_tail_publication      = nullptr;
+    void*                      raw_tail_publication_user = nullptr;
+    // Production child sessions publish a sticky invalid witness whenever a
+    // raw gap, sink refusal, persistence failure or publication failure is
+    // observed. The external controller reads this route under its hold.
+    RawTailInvalidationFunction raw_tail_invalidation      = nullptr;
+    void*                       raw_tail_invalidation_user = nullptr;
 };
 
 enum class TraceMapObserverCallbacksStatus : std::uint8_t
@@ -100,6 +114,12 @@ public:
     // teardown refuse; call it outside raw delivery.
     bool deactivate_raw() noexcept;
 
+    // Keep the raw recorder and callback storage active while the owning debug
+    // session receives active detach. Late events use independent raw
+    // admission after diagnostic collection has stopped.
+    bool begin_raw_detach() noexcept;
+    bool end_raw_detach() noexcept;
+
     // Teardown requires the owner thread, no active raw recorder, no pending
     // raw key, no active source access, no in-flight dispatch callback and no
     // retained COM callback alias. It is explicit: destruction does not retry
@@ -119,6 +139,7 @@ public:
     ObserverCallbackDispatch*  callback_dispatch() const noexcept;
 
     bool has_pending_raw() const noexcept;
+    bool raw_detach_forwarding() const noexcept;
 
 private:
     struct State;

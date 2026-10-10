@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_callback_session.h"
 
+#include "observer_event_bridge.h"
+
 #include <unknwn.h>
 #include <windows.h>
 
@@ -203,7 +205,7 @@ bool ObserverCallbackSession::pending_raw_matches(const EventIdentity& identity)
     }
     try
     {
-        const std::optional<EventIdentity> pending = recorder_->pending_event();
+        const std::optional<EventIdentity> pending = recorder_->pending_lifecycle_event();
         return pending.has_value() && same_raw_key(identity, *pending);
     }
     catch (...)
@@ -593,8 +595,13 @@ bool ObserverCallbackSession::retain_event(const BridgeEventEvidence& evidence) 
 {
     // These are non-mutating refusals. In particular, a foreign, reentrant or
     // changed source may not clear an outer access nonce or poison it.
-    if (!on_owner_thread() || released_ || raw_open_ || access_scope_active_ || evidence.bridge == nullptr ||
+    if (!on_owner_thread() || released_ || access_scope_active_ || evidence.bridge == nullptr ||
         !source_bridge_matches(evidence.bridge))
+    {
+        return false;
+    }
+    const bool independent_raw_phase = evidence.bridge->raw_lifecycle_open();
+    if (raw_open_)
     {
         return false;
     }
@@ -604,7 +611,7 @@ bool ObserverCallbackSession::retain_event(const BridgeEventEvidence& evidence) 
         evidence.raw_identity.thread_id != evidence.identity.thread_id ||
         evidence.raw_identity.raw_generation != evidence.identity.raw_generation ||
         evidence.raw_identity.event_index != static_cast<std::size_t>(evidence.identity.event_index) ||
-        !pending_raw_matches(evidence.identity))
+        (!independent_raw_phase && !pending_raw_matches(evidence.identity)))
     {
         return false;
     }

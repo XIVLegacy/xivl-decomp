@@ -9,6 +9,14 @@
 #include <cstddef>
 #include <cstdint>
 
+#if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
+#define XIVL_OBSERVER_RAW_WAIT_CODE_SEG __declspec(code_seg(".xvrwait"))
+#define XIVL_OBSERVER_RAW_CONT_CODE_SEG __declspec(code_seg(".xvrcont"))
+#else
+#define XIVL_OBSERVER_RAW_WAIT_CODE_SEG
+#define XIVL_OBSERVER_RAW_CONT_CODE_SEG
+#endif
+
 namespace xivl::raw_recorder
 {
 
@@ -336,7 +344,16 @@ public:
 
     bool activate(WaitFunction wait, ContinueFunction continue_call) noexcept;
     void deactivate() noexcept;
+    // Mark the recorder terminal for observation while retaining the active
+    // dispatch pointer. The owner uses this around active detach so cached
+    // raw calls still forward through this recorder's originals.
+    bool begin_detach_forward_only() noexcept;
+    // Clear cached originals only after the owner has released the recorder
+    // and waited for any late wrapper call that already loaded one.
+    static void clear_late_forwarding() noexcept;
     bool active() const noexcept;
+    bool        detach_forwarding() const noexcept;
+    bool        originals_available() const noexcept;
 
     // Configuration is accepted only while the recorder is inactive and no
     // wrapper admission is in flight. The sink user must outlive the active
@@ -358,8 +375,21 @@ public:
     bool                    slots_installed() const noexcept;
     const RawInstallReport& install_report() const noexcept;
 
-    static LONG __stdcall WaitThunk(ULONG debug_object, ULONG alertable, PVOID timeout, PVOID state) noexcept;
-    static LONG __stdcall ContinueThunk(ULONG debug_object, PVOID client_id, ULONG status) noexcept;
+    static XIVL_OBSERVER_RAW_WAIT_CODE_SEG LONG __stdcall WaitThunk(
+        ULONG debug_object,
+        ULONG alertable,
+        PVOID timeout,
+        PVOID state) noexcept;
+    static XIVL_OBSERVER_RAW_CONT_CODE_SEG LONG __stdcall ContinueThunk(
+        ULONG debug_object,
+        PVOID client_id,
+        ULONG status) noexcept;
+
+    // The controller reads this target-local counter while the exact raw
+    // cleanup hold is active.  It counts only calls through the live recorder
+    // wrappers and is independent of diagnostic publication counters.
+    std::uintptr_t raw_forwarding_counter_address() const noexcept;
+    std::uint64_t  raw_forwarding_calls() const noexcept;
 
     void set_context_api(const ContextApi& api) noexcept;
     bool capture_context(const RawEvent& event, const ContextApi& api, ContextSnapshot* output) noexcept;
@@ -407,10 +437,15 @@ private:
                              const ContinueResultRecord* continue_result,
                              std::size_t                 matched_event) noexcept;
     void mark_coverage_lost() noexcept;
+    bool forwarding_only() const noexcept;
     bool enter() noexcept;
     void leave() noexcept;
 
     static std::atomic<RawRecorder*>                      active_recorder_;
+    static std::atomic<WaitFunction>                      late_wait_;
+    static std::atomic<ContinueFunction>                  late_continue_;
+    static std::atomic<std::size_t>                       late_inflight_;
+    static std::atomic<bool>                              late_draining_;
     std::atomic<WaitFunction>                             original_wait_             = nullptr;
     std::atomic<ContinueFunction>                         original_continue_         = nullptr;
     std::atomic<LONG>                                     admission_                 = 0;
@@ -418,9 +453,11 @@ private:
     bool                                                  debug_object_known_        = false;
     std::atomic<bool>                                     coverage_                  = true;
     std::atomic<bool>                                     terminal_forward_only_     = false;
+    std::atomic<bool>                                     raw_detach_forwarding_     = false;
     std::atomic_flag                                      gap_write_                 = ATOMIC_FLAG_INIT;
     std::atomic_flag                                      observer_write_            = ATOMIC_FLAG_INIT;
     std::atomic<std::size_t>                              observer_inflight_         = 0;
+    std::atomic<std::uint64_t>                            raw_forwarding_calls_      = 0;
     std::atomic<bool>                                     observer_deferred_         = false;
     std::atomic<std::uint64_t>                            observer_deferred_attempt_ = 0;
     std::atomic<std::uint32_t>                            observer_deferred_reason_  = 0;

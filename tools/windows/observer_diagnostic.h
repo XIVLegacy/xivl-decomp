@@ -786,6 +786,20 @@ public:
                                                     std::uint64_t                    binding_attempt_id                = 0);
     std::optional<EventIdentity> pending_event() const;
 
+    // Raw lifecycle admission remains available after collection has stopped.
+    // These methods retain the exact raw key and binding proof without adding
+    // rows to the frozen diagnostic collection.
+    bool                open_raw_lifecycle() noexcept;
+    bool                close_raw_lifecycle() noexcept;
+    bool                raw_lifecycle_open() const noexcept;
+    PendingEventStatus  admit_raw_pending_event(const EventIdentity& identity) noexcept;
+    PendingEventStatus  close_raw_pending_event(const EventIdentity& identity) noexcept;
+    EngineBindingStatus bind_raw_pending_event(
+        const EventIdentity&             raw_identity,
+        const EngineIdentityObservation& observation,
+        std::uint64_t                    engine_generation) noexcept;
+    std::optional<EventIdentity> pending_lifecycle_event() const;
+
     CallbackBeginResult begin_callback(const std::string& callback_kind);
     bool                record_callback_dispatch_entry(
         std::uint64_t                callback_operation_id,
@@ -817,6 +831,11 @@ public:
     std::vector<EngineBindingRow>       engine_binding_rows() const;
     std::vector<CallbackEntryRow>       callback_entry_rows() const;
     std::vector<CallbackAcquisitionRow> callback_acquisition_rows() const;
+    // Raw lifecycle callback evidence is retained independently after the
+    // diagnostic collection freezes.  It never enters rows_ or changes the
+    // collection admission counters.
+    std::vector<CallbackEntryRow>       raw_callback_entry_rows() const;
+    std::vector<CallbackAcquisitionRow> raw_callback_acquisition_rows() const;
     std::size_t                         overflow_count() const;
     std::string                         serialize() const;
     void                                freeze_collection_evidence() noexcept;
@@ -865,8 +884,15 @@ private:
     std::array<EventIdentity, kMaxBindingHistory>       bound_history_identities_{};
     std::array<std::uint64_t, kMaxBindingHistory>       bound_history_generations_{};
     std::size_t                                         bound_history_count_ = 0;
+    bool                                                raw_lifecycle_open_  = false;
+    std::optional<EventIdentity>                        raw_pending_event_;
+    std::optional<EventIdentity>                        raw_last_closed_event_;
+    std::array<EventIdentity, kMaxBindingHistory>       raw_bound_history_identities_{};
+    std::array<std::uint64_t, kMaxBindingHistory>       raw_bound_history_generations_{};
+    std::size_t                                         raw_bound_history_count_ = 0;
     std::atomic<std::uint64_t>                          next_sequence_{ 1 };
     std::atomic<std::uint64_t>                          next_operation_{ 1 };
+    std::atomic<std::uint64_t>                          next_raw_operation_{ 1 };
 
     struct ActiveCallback
     {
@@ -875,6 +901,9 @@ private:
     };
 
     std::vector<ActiveCallback> active_callbacks_;
+    std::vector<CallbackEntryRow>       raw_callback_entries_;
+    std::vector<CallbackAcquisitionRow> raw_callback_acquisitions_;
+    std::vector<ActiveCallback>         raw_active_callbacks_;
 
     struct PendingCallbackAcquisition
     {
@@ -889,6 +918,7 @@ private:
     };
 
     std::vector<PendingCallbackAcquisition> pending_callback_acquisitions_;
+    std::vector<PendingCallbackAcquisition> raw_pending_callback_acquisitions_;
 };
 
 XIVL_OBSERVER_LOOKUP_CODE_SEG void* XIVL_OBSERVER_FASTCALL lookup_bridge(

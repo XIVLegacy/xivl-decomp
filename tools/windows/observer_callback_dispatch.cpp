@@ -1045,7 +1045,17 @@ HRESULT STDMETHODCALLTYPE ObserverCallbackDispatch::CreateThread(ULONG64 handle,
             entry.invalid_configuration_refused = true;
             allow_instrumentation               = false;
         }
-        (void)record_capture(begin.callback_operation_id, entry);
+        // A raw create callback obtains its typed lifecycle observation only
+        // after the delegate returns. Defer owner acquisition until that
+        // observation is published; the dispatch row and error pair are still
+        // established before entering the delegate.
+        const bool defer_raw_create_capture =
+            raw_bridge_ != nullptr && raw_bridge_->raw_lifecycle_open() && callback_session_ != nullptr &&
+            (lifecycle_observation_provider_ != nullptr || lifecycle_source_provider_ != nullptr);
+        if (!defer_raw_create_capture)
+        {
+            (void)record_capture(begin.callback_operation_id, entry);
+        }
     }
     else
     {

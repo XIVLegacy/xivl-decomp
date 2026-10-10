@@ -560,6 +560,10 @@ bool write_json_file(const wchar_t* path, const std::string& text) noexcept
 } // namespace
 
 std::atomic<RawRecorder*> RawRecorder::active_recorder_ = nullptr;
+std::atomic<WaitFunction>     RawRecorder::late_wait_       = nullptr;
+std::atomic<ContinueFunction> RawRecorder::late_continue_   = nullptr;
+std::atomic<std::size_t>      RawRecorder::late_inflight_   = 0;
+std::atomic<bool>             RawRecorder::late_draining_   = false;
 
 namespace
 {
@@ -1744,7 +1748,10 @@ bool RawRecorder::activate(WaitFunction     wait,
     debug_object_known_ = false;
     original_wait_.store(wait, std::memory_order_release);
     original_continue_.store(continue_call, std::memory_order_release);
+    late_draining_.store(false, std::memory_order_release);
     terminal_forward_only_.store(false, std::memory_order_release);
+    raw_detach_forwarding_.store(false, std::memory_order_release);
+    raw_forwarding_calls_.store(0, std::memory_order_release);
     RawRecorder* expected = nullptr;
     if (!active_recorder_.compare_exchange_strong(expected, this, std::memory_order_acq_rel))
     {
@@ -1757,7 +1764,10 @@ bool RawRecorder::activate(WaitFunction     wait,
 
 void RawRecorder::deactivate() noexcept
 {
+    raw_detach_forwarding_.store(false, std::memory_order_release);
     terminal_forward_only_.store(true, std::memory_order_release);
+    late_wait_.store(original_wait_.load(std::memory_order_acquire), std::memory_order_release);
+    late_continue_.store(original_continue_.load(std::memory_order_acquire), std::memory_order_release);
     RawRecorder* expected = this;
     active_recorder_.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel);
     for (;;)
@@ -1773,6 +1783,10 @@ void RawRecorder::deactivate() noexcept
     // still be completing its native call.  Wait for that one nonblocking
     // admission reservation before callers snapshot the bounded arrays.
     while (admission_.load(std::memory_order_acquire) != 0)
+    {
+        SwitchToThread();
+    }
+    while (raw_forwarding_calls_.load(std::memory_order_acquire) != 0)
     {
         SwitchToThread();
     }
@@ -1801,6 +1815,48 @@ void RawRecorder::deactivate() noexcept
         }
         SwitchToThread();
     }
+}
+
+bool RawRecorder::begin_detach_forward_only() noexcept
+{
+    if (active_recorder_.load(std::memory_order_acquire) != this ||
+        original_wait_.load(std::memory_order_acquire) == nullptr ||
+        original_continue_.load(std::memory_order_acquire) == nullptr)
+    {
+        return false;
+    }
+    raw_detach_forwarding_.store(true, std::memory_order_release);
+    terminal_forward_only_.store(false, std::memory_order_release);
+    return true;
+}
+
+void RawRecorder::clear_late_forwarding() noexcept
+{
+    late_draining_.store(true, std::memory_order_release);
+    late_wait_.store(nullptr, std::memory_order_release);
+    late_continue_.store(nullptr, std::memory_order_release);
+    while (late_inflight_.load(std::memory_order_acquire) != 0)
+    {
+        SwitchToThread();
+    }
+}
+
+bool RawRecorder::forwarding_only() const noexcept
+{
+    return terminal_forward_only_.load(std::memory_order_acquire) &&
+           !raw_detach_forwarding_.load(std::memory_order_acquire);
+}
+
+bool RawRecorder::detach_forwarding() const noexcept
+{
+    return raw_detach_forwarding_.load(std::memory_order_acquire) && active() &&
+           originals_available();
+}
+
+bool RawRecorder::originals_available() const noexcept
+{
+    return original_wait_.load(std::memory_order_acquire) != nullptr &&
+           original_continue_.load(std::memory_order_acquire) != nullptr;
 }
 
 bool RawRecorder::set_observer_sink(const RawObserverSink& sink) noexcept
@@ -1832,15 +1888,66 @@ bool RawRecorder::active() const noexcept
     return active_recorder_.load(std::memory_order_acquire) == this;
 }
 
-LONG __stdcall RawRecorder::WaitThunk(ULONG debug_object, ULONG alertable, PVOID timeout, PVOID state) noexcept
+std::uintptr_t RawRecorder::raw_forwarding_counter_address() const noexcept
+{
+    return reinterpret_cast<std::uintptr_t>(&raw_forwarding_calls_);
+}
+
+std::uint64_t RawRecorder::raw_forwarding_calls() const noexcept
+{
+    return raw_forwarding_calls_.load(std::memory_order_acquire);
+}
+
+XIVL_OBSERVER_RAW_WAIT_CODE_SEG LONG __stdcall RawRecorder::WaitThunk(
+    ULONG debug_object,
+    ULONG alertable,
+    PVOID timeout,
+    PVOID state) noexcept
 {
     const ULONG_PTR caller_return_address =
         reinterpret_cast<ULONG_PTR>(_ReturnAddress());
     const ULONG_PTR argument_stack_base =
         reinterpret_cast<ULONG_PTR>(_AddressOfReturnAddress()) + sizeof(void*);
     RawRecorder* recorder = active_recorder_.load(std::memory_order_acquire);
+
+    struct ForwardingGuard
+    {
+        RawRecorder* recorder = nullptr;
+
+        ~ForwardingGuard()
+        {
+            if (recorder != nullptr)
+            {
+                recorder->raw_forwarding_calls_.fetch_sub(1, std::memory_order_release);
+            }
+        }
+    } forwarding_guard{ recorder };
+
+    if (recorder != nullptr)
+    {
+        recorder->raw_forwarding_calls_.fetch_add(1, std::memory_order_acq_rel);
+    }
     if (recorder == nullptr)
     {
+        if (!late_draining_.load(std::memory_order_acquire))
+        {
+            const WaitFunction late = late_wait_.load(std::memory_order_acquire);
+            if (late != nullptr)
+            {
+                late_inflight_.fetch_add(1, std::memory_order_acq_rel);
+                if (!late_draining_.load(std::memory_order_acquire))
+                {
+                    const ErrorPair incoming = read_errors();
+                    write_errors(incoming);
+                    const LONG      result   = late(debug_object, alertable, timeout, state);
+                    const ErrorPair returned = read_errors();
+                    write_errors(returned);
+                    late_inflight_.fetch_sub(1, std::memory_order_release);
+                    return result;
+                }
+                late_inflight_.fetch_sub(1, std::memory_order_release);
+            }
+        }
         recorder = &resident();
         return recorder->forward_wait(
             debug_object, alertable, timeout, state, recorder->next_attempt_.fetch_add(1, std::memory_order_relaxed), false, caller_return_address, argument_stack_base, false);
@@ -1848,15 +1955,55 @@ LONG __stdcall RawRecorder::WaitThunk(ULONG debug_object, ULONG alertable, PVOID
     return recorder->on_wait(debug_object, alertable, timeout, state, caller_return_address, argument_stack_base);
 }
 
-LONG __stdcall RawRecorder::ContinueThunk(ULONG debug_object, PVOID client_id, ULONG status) noexcept
+XIVL_OBSERVER_RAW_CONT_CODE_SEG LONG __stdcall RawRecorder::ContinueThunk(
+    ULONG debug_object,
+    PVOID client_id,
+    ULONG status) noexcept
 {
     const ULONG_PTR caller_return_address =
         reinterpret_cast<ULONG_PTR>(_ReturnAddress());
     const ULONG_PTR argument_stack_base =
         reinterpret_cast<ULONG_PTR>(_AddressOfReturnAddress()) + sizeof(void*);
     RawRecorder* recorder = active_recorder_.load(std::memory_order_acquire);
+
+    struct ForwardingGuard
+    {
+        RawRecorder* recorder = nullptr;
+
+        ~ForwardingGuard()
+        {
+            if (recorder != nullptr)
+            {
+                recorder->raw_forwarding_calls_.fetch_sub(1, std::memory_order_release);
+            }
+        }
+    } forwarding_guard{ recorder };
+
+    if (recorder != nullptr)
+    {
+        recorder->raw_forwarding_calls_.fetch_add(1, std::memory_order_acq_rel);
+    }
     if (recorder == nullptr)
     {
+        if (!late_draining_.load(std::memory_order_acquire))
+        {
+            const ContinueFunction late = late_continue_.load(std::memory_order_acquire);
+            if (late != nullptr)
+            {
+                late_inflight_.fetch_add(1, std::memory_order_acq_rel);
+                if (!late_draining_.load(std::memory_order_acquire))
+                {
+                    const ErrorPair incoming = read_errors();
+                    write_errors(incoming);
+                    const LONG      result   = late(debug_object, client_id, status);
+                    const ErrorPair returned = read_errors();
+                    write_errors(returned);
+                    late_inflight_.fetch_sub(1, std::memory_order_release);
+                    return result;
+                }
+                late_inflight_.fetch_sub(1, std::memory_order_release);
+            }
+        }
         recorder = &resident();
         return recorder->forward_continue(
             debug_object, client_id, status, recorder->next_continue_.fetch_add(1, std::memory_order_relaxed), false, caller_return_address, argument_stack_base, false);
@@ -1866,7 +2013,7 @@ LONG __stdcall RawRecorder::ContinueThunk(ULONG debug_object, PVOID client_id, U
 
 bool RawRecorder::enter() noexcept
 {
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         return false;
     }
@@ -1874,13 +2021,13 @@ bool RawRecorder::enter() noexcept
     if (!admission_.compare_exchange_strong(
             expected, 1, std::memory_order_acquire, std::memory_order_relaxed))
     {
-        if (!terminal_forward_only_.load(std::memory_order_acquire))
+        if (!forwarding_only())
         {
             mark_coverage_lost();
         }
         return false;
     }
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         admission_.store(0, std::memory_order_release);
         return false;
@@ -2014,7 +2161,7 @@ void RawRecorder::leave_admission_for_test() noexcept
 void RawRecorder::record_gap(std::uint64_t     attempt_id,
                              CoverageGapReason reason) noexcept
 {
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         return;
     }
@@ -2023,7 +2170,7 @@ void RawRecorder::record_gap(std::uint64_t     attempt_id,
         coverage_.store(false, std::memory_order_release);
         return;
     }
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         gap_write_.clear(std::memory_order_release);
         return;
@@ -2250,10 +2397,10 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
     }
     if (!enter())
     {
-        const bool emit_gap = !terminal_forward_only_.load(std::memory_order_acquire);
+        const bool emit_gap = !forwarding_only();
         return forward_wait(debug_object, alertable, timeout, state, attempt_id, false, caller_return_address, argument_stack_base, emit_gap);
     }
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         leave();
         return forward_wait(debug_object, alertable, timeout, state, attempt_id, true, caller_return_address, argument_stack_base, false);
@@ -2288,7 +2435,7 @@ LONG RawRecorder::on_wait(ULONG debug_object, ULONG alertable, PVOID timeout, PV
     write_errors(incoming);
     const LONG      result   = original(debug_object, alertable, timeout, state);
     const ErrorPair returned = read_errors();
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         write_errors(returned);
         leave();
@@ -2383,10 +2530,10 @@ LONG RawRecorder::on_continue(ULONG debug_object, PVOID client_id, ULONG status,
     }
     if (!enter())
     {
-        const bool emit_gap = !terminal_forward_only_.load(std::memory_order_acquire);
+        const bool emit_gap = !forwarding_only();
         return forward_continue(debug_object, client_id, status, attempt_id, false, caller_return_address, argument_stack_base, emit_gap);
     }
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         leave();
         return forward_continue(debug_object, client_id, status, attempt_id, true, caller_return_address, argument_stack_base, false);
@@ -2462,7 +2609,7 @@ LONG RawRecorder::on_continue(ULONG debug_object, PVOID client_id, ULONG status,
     write_errors(incoming);
     const LONG      result   = original(debug_object, client_id, status);
     const ErrorPair returned = read_errors();
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         write_errors(returned);
         leave();
@@ -2834,19 +2981,19 @@ bool RawRecorder::capture_context(const RawEvent& event, const ContextApi& api, 
 
 bool RawRecorder::record_callback(const CallbackRecord& input) noexcept
 {
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         return false;
     }
     if (!enter())
     {
-        if (!terminal_forward_only_.load(std::memory_order_acquire))
+        if (!forwarding_only())
         {
             record_gap(input.callback_id, CoverageGapReason::admission_busy);
         }
         return false;
     }
-    if (terminal_forward_only_.load(std::memory_order_acquire))
+    if (forwarding_only())
     {
         leave();
         return false;
@@ -3415,7 +3562,39 @@ SelfTestSummary run_self_tests() noexcept
     fake_context.close = true;
 
     recorder.deactivate();
-    g_harness      = nullptr;
+    g_harness                   = &harness;
+    const ULONG late_wait_calls = harness.calls_wait;
+    write_errors({ 0xEE01U, 0xEE02U });
+    harness.wait_result = static_cast<LONG>(0x00000123U);
+    check(&summary,
+          RawRecorder::WaitThunk(0x1111U, 0, nullptr, nullptr) ==
+                  static_cast<LONG>(0x00000123U) &&
+              harness.calls_wait == late_wait_calls + 1 &&
+              harness.wait_seen_errors.last_error == 0xEE01U &&
+              harness.wait_seen_errors.last_status == 0xEE02U,
+          "deactivated wrapper forwards through the cached original with incoming errors");
+    const ErrorPair late_return_errors = read_errors();
+    check(&summary,
+          late_return_errors.last_error == harness.wait_return_errors.last_error &&
+              late_return_errors.last_status == harness.wait_return_errors.last_status,
+          "deactivated wrapper preserves cached original return errors");
+    const ULONG late_continue_calls = harness.calls_continue;
+    write_errors({ 0xEE03U, 0xEE04U });
+    harness.continue_result = static_cast<LONG>(0x00000456U);
+    check(&summary,
+          RawRecorder::ContinueThunk(0x1111U, nullptr, 0x40010000U) ==
+                  static_cast<LONG>(0x00000456U) &&
+              harness.calls_continue == late_continue_calls + 1 &&
+              harness.continue_seen_errors.last_error == 0xEE03U &&
+              harness.continue_seen_errors.last_status == 0xEE04U,
+          "deactivated continuation forwards through the cached original with incoming errors");
+    const ErrorPair late_continue_return_errors = read_errors();
+    check(&summary,
+          late_continue_return_errors.last_error == harness.continue_return_errors.last_error &&
+              late_continue_return_errors.last_status == harness.continue_return_errors.last_status,
+          "deactivated continuation preserves cached original return errors");
+    g_harness = nullptr;
+    RawRecorder::clear_late_forwarding();
     g_fake_context = nullptr;
 
     static RawRecorder admission;

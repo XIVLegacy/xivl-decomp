@@ -26,6 +26,8 @@ struct ObserverLiveBootstrapInput
     std::array<std::uintptr_t, observer_diagnostic::kHookEntryCount> hook_wrappers{};
     std::array<std::size_t, observer_diagnostic::kHookEntryCount>    hook_wrapper_extents{};
     std::array<std::uintptr_t, observer_diagnostic::kHookEntryCount> raw_wrappers{};
+    std::array<std::size_t, observer_diagnostic::kHookEntryCount>    raw_wrapper_extents{};
+    std::uintptr_t                                                   raw_forwarding_counter_address = 0;
 };
 
 // Resolve the real production bridge entry addresses and full compiler-owned
@@ -79,10 +81,12 @@ public:
     bool                  request_start(std::string* refusal) noexcept;
     bool                  request_initial_hold(std::string* refusal) noexcept;
     bool                  request_cleanup_hold(std::string* refusal) noexcept;
+    bool                  request_raw_cleanup_hold(std::string* refusal) noexcept;
     bool                  service_control_requests(std::string* refusal) noexcept;
     bool                  request_release(std::string* refusal) noexcept;
     bool                  start_requested() const noexcept;
     bool                  release_requested() const noexcept;
+    bool                  finalize_requested() const noexcept;
     static std::uintptr_t hold_worker_start_address() noexcept;
 
     std::uint32_t          qualified_row_count() const noexcept;
@@ -110,6 +114,21 @@ bool                           observer_live_bootstrap_ready() noexcept;
 const ObserverLiveBootstrapV1* observer_live_bootstrap_record() noexcept;
 ObserverLiveChildControlV1*    observer_live_child_control() noexcept;
 
+// Target-local raw lifecycle publication.  The callback bridge invokes this
+// after each independently persisted raw record; detach publishes the final
+// acknowledged sequence before the child state becomes Detached.
+bool observer_live_publish_raw_tail(std::uint64_t event_count,
+                                    std::uint64_t continuation_count,
+                                    std::uint64_t binding_count,
+                                    std::uint64_t last_event_index,
+                                    std::uint64_t last_continuation_index,
+                                    std::uint64_t sequence,
+                                    bool          terminal_boundary,
+                                    bool          pending,
+                                    bool          coverage,
+                                    bool          persistence) noexcept;
+bool observer_live_publish_acknowledged_tail(std::uint64_t sequence) noexcept;
+
 // These controls are target-local operations.  They are invoked by the
 // external owner only outside a held observer event and validate the complete
 // request against this process's immutable bootstrap record.
@@ -128,6 +147,8 @@ extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_release_child_v1(
 extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_request_initial_hold_v1(
     ObserverLiveOwnerControlRequestV1* request);
 extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_request_cleanup_hold_v1(
+    ObserverLiveOwnerControlRequestV1* request);
+extern "C" __declspec(dllexport) DWORD WINAPI xivl_observer_request_raw_cleanup_hold_v1(
     ObserverLiveOwnerControlRequestV1* request);
 
 // Candidate main can use this guarded entry after parsing its native child

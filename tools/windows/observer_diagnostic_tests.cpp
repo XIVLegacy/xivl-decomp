@@ -773,6 +773,28 @@ void exercise_pending_and_overflow(TestState& tests)
     EventIdentity unknown;
     tests.check(recorder.admit_pending_event(unknown) == PendingEventStatus::Unknown, "pending unknown");
 
+    Recorder      raw_lifecycle(fake_config(&state));
+    EventIdentity raw_identity           = event_identity();
+    raw_identity.engine_generation_known = false;
+    raw_identity.engine_generation       = 0;
+    tests.check(raw_lifecycle.open_raw_lifecycle(), "raw lifecycle opens after collection");
+    tests.check(raw_lifecycle.admit_pending_event(raw_identity) == PendingEventStatus::Unknown &&
+                    raw_lifecycle.pending_event_rows().empty(),
+                "diagnostic admission stays frozen during raw lifecycle");
+    tests.check(raw_lifecycle.admit_raw_pending_event(raw_identity) == PendingEventStatus::Admitted,
+                "raw lifecycle admits exact identity independently");
+    tests.check(raw_lifecycle.bind_raw_pending_event(
+                    raw_identity, complete_binding_observation(raw_identity), 17) ==
+                    EngineBindingStatus::Bound,
+                "raw lifecycle binds exact worker identity without a diagnostic row");
+    tests.check(raw_lifecycle.close_raw_pending_event(raw_identity) == PendingEventStatus::Closed,
+                "raw lifecycle closes the exact continuation identity");
+    tests.check(raw_lifecycle.close_pending_event(raw_identity) == PendingEventStatus::Unknown &&
+                    raw_lifecycle.pending_event_rows().empty(),
+                "diagnostic close stays frozen during raw lifecycle");
+    tests.check(raw_lifecycle.close_raw_lifecycle() && !raw_lifecycle.raw_lifecycle_open(),
+                "raw lifecycle closes only after its pending key is cleared");
+
     RecorderConfig small_config = fake_config(&state);
     small_config.max_rows       = 1;
     Recorder small(small_config);

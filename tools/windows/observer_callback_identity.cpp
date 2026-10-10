@@ -461,7 +461,10 @@ CallbackCaptureResult CallbackIdentityReader::capture(
         result.reader = read(borrowed);
     }
     result.reader.input.owner                    = owner;
-    const std::optional<EventIdentity> pending   = recorder.pending_event();
+    // Raw callbacks use the independent pending lifecycle key.  Reading the
+    // diagnostic-only key here would make a frozen collection look stale and
+    // refuse the otherwise valid raw binding.
+    const std::optional<EventIdentity> pending   = recorder.pending_lifecycle_event();
     const EventIdentity                rechecked = pending.has_value() ? raw_only(*pending) : EventIdentity{};
     result.reader.input.binding_observation      = make_binding_observation(result.reader.input);
     result.reader.input.binding_eligible         = eligible_witness(

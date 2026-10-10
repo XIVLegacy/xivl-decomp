@@ -177,7 +177,34 @@ public:
                                   std::uint64_t last_continuation_index,
                                   bool          pending_raw,
                                   bool          bridge_coverage) noexcept;
-    bool record_raw_restore_boundary(std::uint64_t terminal_sequence) noexcept;
+    bool record_post_detach_raw_tail(std::uint64_t event_count,
+                                     std::uint64_t continuation_count,
+                                     std::uint64_t last_event_index,
+                                     std::uint64_t last_continuation_index,
+                                     bool          pending_raw,
+                                     bool          bridge_coverage) noexcept;
+    bool record_detach_intent(std::uint32_t flags) noexcept;
+    bool record_raw_second_hold_evidence(
+        std::uint64_t acknowledged_tail_sequence,
+        std::uint64_t event_count,
+        std::uint64_t continuation_count,
+        std::uint64_t binding_count,
+        std::uint64_t last_event_index,
+        std::uint64_t last_continuation_index,
+        std::uint64_t terminal_event_count,
+        std::uint64_t terminal_continuation_count,
+        std::uint64_t terminal_last_event_index,
+        std::uint64_t terminal_last_continuation_index,
+        bool          pending_raw,
+        bool          bridge_coverage,
+        bool          persistence,
+        std::uint64_t hold_request_epoch,
+        std::uint64_t event_identity,
+        std::uint64_t lease_identity) noexcept;
+    bool record_raw_restore_boundary(std::uint64_t acknowledged_tail_sequence,
+                                     std::uint64_t hold_request_epoch,
+                                     std::uint64_t event_identity,
+                                     std::uint64_t lease_identity) noexcept;
     bool record_gap(std::uint64_t attempt_id, std::uint32_t reason) noexcept;
     bool record_collection_stop(std::uint64_t tick,
                                 std::uint32_t reason,
@@ -253,6 +280,9 @@ private:
     bool                                                   in_memory_test_sink_          = false;
     bool                                                   persistence_injected_failure_ = false;
     bool                                                   mixed_writer_injected_        = false;
+    // The CPU self-test toggles this only to prove terminal-only replay is
+    // rejected by the post-terminal activity predicate itself.
+    bool                                                   test_ignore_post_activity_    = false;
     bool                                                   unknown_                      = false;
     bool                                                   options_recorded_             = false;
     DWORD                                                  options_observer_process_id_  = 0;
@@ -270,15 +300,35 @@ private:
     bool                                                   binding_tail_                 = false;
     bool                                                   terminal_raw_tail_            = false;
     bool                                                   raw_restore_boundary_         = false;
+    bool                                                   raw_second_hold_evidence_     = false;
+    bool                                                   post_detach_raw_tail_         = false;
+    bool                                                   detach_intent_                = false;
     std::uint64_t                                          binding_count_                = 0;
     std::vector<observer_diagnostic::EngineBindingReceipt> binding_receipts_;
     std::uint64_t                                          event_record_count_               = 0;
     std::uint64_t                                          continuation_record_count_        = 0;
+    std::uint64_t                                          last_event_index_seen_                  = 0;
+    std::uint64_t                                          last_continuation_index_seen_           = 0;
+    bool                                                   event_index_seen_                       = false;
+    bool                                                   continuation_index_seen_                = false;
     std::uint64_t                                          terminal_event_count_             = 0;
     std::uint64_t                                          terminal_continuation_count_      = 0;
     std::uint64_t                                          terminal_last_event_index_        = 0;
     std::uint64_t                                          terminal_last_continuation_index_ = 0;
     std::uint64_t                                          terminal_raw_tail_sequence_       = 0;
+    std::uint64_t                                          post_detach_tail_sequence_              = 0;
+    std::uint64_t                                          raw_restore_hold_epoch_                 = 0;
+    std::uint64_t                                          raw_restore_event_identity_             = 0;
+    std::uint64_t                                          raw_restore_lease_identity_             = 0;
+    std::uint64_t                                          raw_second_hold_tail_sequence_          = 0;
+    std::uint64_t                                          raw_second_hold_event_count_            = 0;
+    std::uint64_t                                          raw_second_hold_continuation_count_     = 0;
+    std::uint64_t                                          raw_second_hold_binding_count_          = 0;
+    std::uint64_t                                          raw_second_hold_last_event_index        = 0;
+    std::uint64_t                                          raw_second_hold_last_continuation_index = 0;
+    std::uint64_t                                          raw_second_hold_epoch_                  = 0;
+    std::uint64_t                                          raw_second_hold_event_identity_         = 0;
+    std::uint64_t                                          raw_second_hold_lease_identity_         = 0;
     bool                                                   collection_stopped_               = false;
     bool                                                   collection_complete_              = false;
     bool                                                   release_attempted_                = false;

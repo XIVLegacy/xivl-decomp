@@ -113,6 +113,11 @@ using RawLifecycleOwnerContinuationFunction = bool (*)(
 using RawLifecycleOwnerBindingFunction = bool (*)(void*                       user,
                                                   const EngineBindingReceipt& receipt);
 
+// A production owner supplies this unheld failure route so a bridge-local
+// coverage loss becomes visible to the external cleanup decision. The route
+// is sticky at the owner and must not attempt observer callbacks.
+using RawLifecycleFailureFunction = void (*)(void* user) noexcept;
+
 // This is a borrowed, immutable owner view. The event callback runs only
 // after Recorder admits the exact raw key; the continuation callback runs
 // after the bridge records the exact close or retention result. A sink must
@@ -132,11 +137,13 @@ struct RawLifecycleOwnerSink
 class RawEventBridge final
 {
 public:
-    explicit RawEventBridge(Recorder&                recorder,
-                            EngineGenerationProvider provider      = nullptr,
-                            void*                    provider_user = nullptr,
-                            RawEventBindingMode      mode          = RawEventBindingMode::synchronous,
-                            RawLifecycleOwnerSink    owner_sink    = RawLifecycleOwnerSink{}) noexcept;
+    explicit RawEventBridge(Recorder&                   recorder,
+                            EngineGenerationProvider    provider          = nullptr,
+                            void*                       provider_user     = nullptr,
+                            RawEventBindingMode         mode              = RawEventBindingMode::synchronous,
+                            RawLifecycleOwnerSink       owner_sink        = RawLifecycleOwnerSink{},
+                            RawLifecycleFailureFunction failure_sink      = nullptr,
+                            void*                       failure_sink_user = nullptr) noexcept;
 
     // The recorder enforces inactive/quiescent configuration. A failed attach
     // leaves the previously configured sink unchanged. The bridge must outlive
@@ -146,6 +153,13 @@ public:
     // competing or reentrant notification is retained as a coverage gap.
     bool                          attach(raw_recorder::RawRecorder& recorder) noexcept;
     raw_recorder::RawObserverSink sink() noexcept;
+
+    // Opens an independent raw admission lifetime after diagnostic collection
+    // has been frozen. Raw events and continuations remain bound to the same
+    // bridge and owner sink, while no diagnostic row is appended.
+    bool begin_raw_lifecycle() noexcept;
+    bool end_raw_lifecycle() noexcept;
+    bool raw_lifecycle_open() const noexcept;
 
     // Counts and evidence are bounded snapshots; read them after recorder
     // deactivation and sink detachment have established quiescence.
@@ -178,6 +192,7 @@ private:
     void        observe_event(const raw_recorder::RawObserverNotification& notification) noexcept;
     void        observe_continuation(const raw_recorder::RawObserverNotification& notification) noexcept;
     void        observe_gap(const raw_recorder::RawObserverNotification& notification) noexcept;
+    void        invalidate_coverage() noexcept;
     void        mark_gap(std::uint64_t                   attempt_id,
                          raw_recorder::CoverageGapReason reason) noexcept;
     bool        raw_identity(std::size_t                   event_index,
@@ -194,6 +209,9 @@ private:
     void*                                                                     provider_user_ = nullptr;
     RawEventBindingMode                                                       mode_          = RawEventBindingMode::synchronous;
     RawLifecycleOwnerSink                                                     owner_sink_{};
+    RawLifecycleFailureFunction                                               failure_sink_       = nullptr;
+    void*                                                                     failure_sink_user_  = nullptr;
+    bool                                                                      raw_lifecycle_open_ = false;
     std::atomic<bool>                                                         coverage_{ true };
     std::array<EventIdentity, raw_recorder::kMaxRawEvents>                    identities_{};
     std::array<EventIdentity, raw_recorder::kMaxRawEvents>                    bound_identities_{};
