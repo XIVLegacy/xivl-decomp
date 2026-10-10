@@ -514,8 +514,8 @@ collection receiver. CharaActor construction
 provider at `C+0x114`, and conditionally writes `u32(provider.slot5())` to
 `C+0x110`. That provider is CharaActor constructor argument 4, forwarded as
 Rapture constructor argument 5. The separate CharaActor argument 2 is stored
-at `C+0x118`. Identifying the `+0x114` provider is required to equate `R`
-with the RaptureWorld collection above.
+at `C+0x118`. The world-owned factory route below identifies the provider
+and equates `R` with the RaptureWorld collection on that route.
 
 CharaActor slot 115, `0x007CD630`, obtains the slot-76 result through
 `0x007CD4E0`, which reads `C+0x18`. When that object exists, it tail-calls
@@ -544,9 +544,50 @@ The optional pointer is the address `q+0x60`, where `q` is the earlier
 `0x007D3A80` result; the descriptor copies its two dwords when nonzero.
 Wrapper flag and constant writes follow the descriptor table above.
 
-The provider's slot 5, the index object's slot 25 and the selected table word
-remain identity/input boundaries. These inputs do not prove an accepted
+The selected actor's owner identity, the index object's slot 25 and the
+selected table word remain identity/input boundaries. These inputs do not prove an accepted
 triangle hit, standing or walking.
+
+## Character factory and world provider
+
+`0x007A0450` registers factory `0x0079FAE0` at callback-table `+0x18`.
+For type `0x11`, `0x007A02D0` selects index `0x11-0x0B = 6` and calls
+that factory with `(model,T,j,provider)`. On the `0x0061A3D0` request,
+`j` starts as `0xC0000000`; `0x007C9110` can replace it through the
+`0x00D359C0` result and word at `0x00FA1240` before dispatch. The factory
+forwards these four arguments to CharaActor construction.
+
+The concrete container is RaptureActorContainer, primary vtable
+`0x00FE8ABC`. Its slot 1, `0x007C9200`, reaches the factory-dispatch method
+`0x007C9110`; slot 6, `0x007C8FF0`, returns `u32(T+0xA0)`. The constructor
+`0x007C9850` stores its first argument at `T+0xA0` at `0x007C98AB`.
+RaptureWorld construction supplies `W` as that argument at `0x0060CAE6`
+and stores the returned container at `W+0x10` at `0x0060CB0B`.
+`0x007C9110` reads `T+0xA0` at `0x007C9173` and passes it as dispatch
+argument 5. The selected callback receives it as CharaActor argument 4,
+which becomes `C+0x114`. For a character created through this world-owned
+container, the constructor and query equations therefore join:
+
+```
+T = u32(W+0x10)
+provider = u32(T+0xA0) = W
+O = W.slot5() = u32(W+0x14)
+P = u32(O) = X
+R = u32(P+0x04) = Q
+```
+
+Allocation, initialization and a nonzero slot-5 result remain conditions.
+This joins the character query receiver to the same conditional collection
+used by Attribute body construction and the native solver.
+
+The selected RaptureActorBindClip slot-1 path at `0x0082E160` reaches
+`0x0061BD90/0x0061B380/0x0061A3D0` with an actor pointer `A` obtained
+through its callback input. `0x0061A3D0` reads `T = u32(A+0x118)` and
+requests type `0x11` through `0x007C9110`. The retained getter chain does
+not establish that this particular `T` equals `u32(W+0x10)`. Qualifying
+that selected actor owner and the indexed group mask is separate from the
+world-owned factory proof; neither path establishes local-player identity,
+loaded authored bytes or contact.
 
 ## Placed setup flags and group byte
 
