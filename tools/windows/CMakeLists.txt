@@ -61,7 +61,8 @@ add_executable(observer_runtime_check observer_runtime_check.cpp
                observer_publication_protocol.cpp observer_publication_protocol_tests.cpp
                observer_recovery_snapshot.cpp observer_recovery_snapshot_tests.cpp
                observer_recovery.cpp observer_recovery_tests.cpp
-               observer_recovery_actions.cpp observer_recovery_actions_tests.cpp)
+               observer_recovery_actions.cpp observer_recovery_actions_tests.cpp
+               observer_supporting_identity.cpp)
 set_target_properties(observer_runtime_check PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(observer_runtime_check PRIVATE /guard:cf /sdl)
 target_link_options(observer_runtime_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
@@ -77,7 +78,8 @@ add_executable(observer_candidate observer_candidate.cpp observer_controller.cpp
                observer_callback_dispatch.cpp trace_map_observer_callbacks.cpp
                observer_dispatch_gate.cpp observer_hook_install.cpp
                observer_publication_protocol.cpp observer_recovery_snapshot.cpp
-               observer_recovery.cpp observer_recovery_actions.cpp)
+               observer_recovery.cpp observer_recovery_actions.cpp
+               observer_supporting_identity.cpp)
 set_target_properties(observer_candidate PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_definitions(observer_candidate PRIVATE _WIN32_WINNT=0x0A00
                             XIVL_OBSERVER_BRIDGE_EXTENTS)

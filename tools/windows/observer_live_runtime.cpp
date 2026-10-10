@@ -379,6 +379,258 @@ bool write_ledger_line(const std::filesystem::path& path,
     return ok;
 }
 
+void sync_supporting_identity_result(ObserverLiveResult*                   result,
+                                     const ObserverSupportingIdentityGate& gate) noexcept
+{
+    if (result == nullptr)
+    {
+        return;
+    }
+    result->supporting_events_observed      = gate.observed_count();
+    result->supporting_events_accepted      = gate.accepted_count();
+    result->supporting_events_refused       = gate.refused_count();
+    result->supporting_last_event_index     = gate.last_event_index();
+    result->supporting_inventory_reconciled = gate.inventory_reconciled();
+    result->supporting_identity_failed      = result->supporting_identity_failed || gate.failed();
+}
+
+struct SupportingRuntimeContinuationContext
+{
+    ObserverDebugOwner*           owner                      = nullptr;
+    const ObserverLiveAuthority*  authority                  = nullptr;
+    const ObserverHeldDebugEvent* event                      = nullptr;
+    ObserverRemoteTransport*      remote                     = nullptr;
+    DWORD                         status                     = DBG_CONTINUE;
+    bool                          clear_remote_hold          = false;
+    bool                          continuation_attempted     = false;
+    bool                          continuation_succeeded     = false;
+    bool                          continuation_api_succeeded = false;
+    std::string                   continuation_refusal;
+    ObserverLiveResult*           result      = nullptr;
+    const std::filesystem::path*  ledger_path = nullptr;
+};
+
+bool persist_supporting_identity_record(
+    void*                                        raw_context,
+    const ObserverSupportingIdentityObservation& observation,
+    const ObserverSupportingIdentityDecision&    decision) noexcept
+{
+    auto* context = static_cast<SupportingRuntimeContinuationContext*>(raw_context);
+    if (context == nullptr || context->ledger_path == nullptr || context->result == nullptr)
+    {
+        return false;
+    }
+    const std::string record = observer_supporting_format_ledger_line(observation, decision);
+    if (record.empty() || !write_ledger_line(*context->ledger_path, record, false))
+    {
+        context->result->supporting_ledger_write_failed = true;
+        context->result->supporting_identity_failed     = true;
+        context->result->ledger_incomplete              = true;
+        context->result->collection_complete            = false;
+        context->result->collection_incomplete          = true;
+        return false;
+    }
+    return true;
+}
+
+const char* continuation_result_label(bool admitted,
+                                      bool continued,
+                                      bool api_succeeded) noexcept
+{
+    if (continued)
+    {
+        return "continued";
+    }
+    if (api_succeeded)
+    {
+        return "continued_then_aborted";
+    }
+    return admitted ? "failed_after_continuation" : "failed";
+}
+
+bool continue_supporting_owner_event(void* raw_context, std::string* refusal) noexcept
+{
+    auto* context = static_cast<SupportingRuntimeContinuationContext*>(raw_context);
+    if (context == nullptr || context->owner == nullptr || context->authority == nullptr ||
+        context->event == nullptr)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "supporting continuation owner binding was lost";
+        }
+        return false;
+    }
+    if (context->clear_remote_hold)
+    {
+        if (context->remote == nullptr || !context->remote->clear_held_event(*context->authority, refusal))
+        {
+            return false;
+        }
+    }
+    context->continuation_attempted = true;
+    context->continuation_succeeded = context->owner->continue_event(*context->authority,
+                                                                     *context->event,
+                                                                     context->status,
+                                                                     &context->continuation_refusal,
+                                                                     &context->continuation_api_succeeded);
+    if (context->continuation_api_succeeded && context->owner->abort_requested())
+    {
+        context->continuation_succeeded = false;
+        context->continuation_refusal =
+            "abort requested after ordinary continuation dispatch; API result retained as failed admission";
+    }
+    if (!context->continuation_succeeded && refusal != nullptr)
+    {
+        *refusal = context->continuation_refusal;
+    }
+    return context->continuation_succeeded;
+}
+
+bool acknowledge_supporting_exit_event(void*, std::string*) noexcept
+{
+    // Exit acknowledgement is owned by ObserverDebugOwner's separate cleanup
+    // method.  This callback exists only for the CPU seam's explicit EXIT
+    // exception; ordinary identity refusal never reaches it.
+    return true;
+}
+
+bool record_supporting_inventory(
+    const std::filesystem::path&                     ledger_path,
+    const ObserverSupportingModuleInventorySnapshot& snapshot,
+    bool                                             allowed,
+    std::string_view                                 refusal,
+    ObserverSupportingIdentityGate*                  gate,
+    ObserverLiveResult*                              result) noexcept
+{
+    if (result == nullptr)
+    {
+        return false;
+    }
+    const std::string record =
+        observer_supporting_format_inventory_ledger_line(snapshot, allowed, refusal);
+    if (record.empty() || !write_ledger_line(ledger_path, record, false))
+    {
+        if (gate != nullptr)
+        {
+            gate->record_failure("supporting resident inventory ledger persistence failed");
+        }
+        result->supporting_ledger_write_failed = true;
+        result->supporting_identity_failed     = true;
+        result->ledger_incomplete              = true;
+        result->collection_complete            = false;
+        result->collection_incomplete          = true;
+        return false;
+    }
+    return true;
+}
+
+void record_supporting_inventory_failure(
+    const std::filesystem::path&                     ledger_path,
+    const ObserverSupportingModuleInventorySnapshot& snapshot,
+    std::string_view                                 refusal,
+    ObserverSupportingIdentityGate*                  gate,
+    ObserverLiveResult*                              result) noexcept
+{
+    if (result == nullptr)
+    {
+        return;
+    }
+    if (gate != nullptr)
+    {
+        gate->record_failure(refusal.empty() ? "supporting resident inventory was refused" : refusal);
+    }
+    (void)record_supporting_inventory(ledger_path, snapshot, false, refusal, gate, result);
+    result->supporting_identity_failed = true;
+    result->collection_complete        = false;
+    result->collection_incomplete      = true;
+}
+
+bool enforce_supporting_identity_before_continuation(
+    ObserverSupportingIdentityGate*                gate,
+    HANDLE                                         creation_bound_process,
+    DWORD                                          expected_process_id,
+    const ObserverHeldDebugEvent&                  event,
+    const std::filesystem::path&                   ledger_path,
+    ObserverLiveResult*                            result,
+    const ObserverSupportingContinuationCallbacks& callbacks,
+    std::string*                                   refusal) noexcept
+{
+    (void)ledger_path;
+    if (gate == nullptr || creation_bound_process == nullptr || expected_process_id == 0 ||
+        result == nullptr)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "supporting identity gate was not bound before module continuation";
+        }
+        if (gate != nullptr)
+        {
+            gate->record_failure(refusal == nullptr ? "supporting identity gate was not bound before module continuation"
+                                                    : *refusal);
+        }
+        if (result != nullptr)
+        {
+            result->supporting_identity_failed = true;
+            result->collection_complete        = false;
+            result->collection_incomplete      = true;
+        }
+        return false;
+    }
+
+    ObserverSupportingIdentityObservation observation{};
+    bool                                  captured = true;
+    if (event.event.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT ||
+        event.event.dwDebugEventCode == LOAD_DLL_DEBUG_EVENT)
+    {
+        captured = observer_supporting_capture_debug_event(event.event,
+                                                           creation_bound_process,
+                                                           expected_process_id,
+                                                           event.key.raw_generation,
+                                                           event.key.event_index,
+                                                           gate->boundary(),
+                                                           &observation);
+        if (!captured)
+        {
+            observation.boundary       = gate->boundary();
+            observation.event_code     = event.event.dwDebugEventCode;
+            observation.process_id     = event.event.dwProcessId;
+            observation.thread_id      = event.event.dwThreadId;
+            observation.raw_generation = event.key.raw_generation;
+            observation.event_index    = event.key.event_index;
+        }
+    }
+    else
+    {
+        observation.boundary       = gate->boundary();
+        observation.event_code     = event.event.dwDebugEventCode;
+        observation.process_id     = event.event.dwProcessId;
+        observation.thread_id      = event.event.dwThreadId;
+        observation.raw_generation = event.key.raw_generation;
+        observation.event_index    = event.key.event_index;
+        observation.process_bound  = event.event.dwProcessId == expected_process_id &&
+                                     GetProcessId(creation_bound_process) == expected_process_id;
+        if (event.event.dwDebugEventCode == UNLOAD_DLL_DEBUG_EVENT)
+        {
+            observation.module_base   = reinterpret_cast<std::uintptr_t>(event.event.u.UnloadDll.lpBaseOfDll);
+            observation.address_bound = observation.module_base != 0;
+        }
+    }
+    const bool admitted = observer_supporting_admit_continuation(gate,
+                                                                 observation,
+                                                                 captured,
+                                                                 callbacks,
+                                                                 refusal);
+    sync_supporting_identity_result(result, *gate);
+    if (!admitted)
+    {
+        result->supporting_identity_failed = true;
+        result->collection_complete        = false;
+        result->collection_incomplete      = true;
+        return false;
+    }
+    return true;
+}
+
 struct SupervisorLedgerWrite
 {
     HANDLE      file  = INVALID_HANDLE_VALUE;
@@ -537,6 +789,13 @@ bool initialize_failure_ledger(const std::filesystem::path& path,
          << " dbgeng_pin_sha256=" << ledger_hex_digest(request.dbgeng_file_pin.sha256)
          << " fixture_pin_size=" << request.fixture_file_pin.size_bytes
          << " fixture_pin_sha256=" << ledger_hex_digest(request.fixture_file_pin.sha256)
+         << " supporting_file_set_count=" << request.supporting_file_set.pins.size()
+         << " supporting_file_set_size=" << request.supporting_file_set_size_bytes
+         << " supporting_file_set_sha256=" << ledger_hex_digest(request.supporting_file_set_sha256)
+         << " supporting_scope=x86_process_address_space"
+         << " supporting_wow64_coverage=unqualified"
+         << " supporting_resident_coherence=unobserved"
+         << " supporting_native_evidence=debug_event_hfile"
          << " session_id=" << request.session_id
          << " collection_ticks=" << request.limits.collection_ticks
          << " child_completion_ticks=" << request.limits.child_completion_ticks
@@ -578,6 +837,13 @@ bool append_failure_ledger(const std::filesystem::path& path,
          << " dbgeng_pin_sha256=" << ledger_hex_digest(request.dbgeng_file_pin.sha256)
          << " fixture_pin_size=" << request.fixture_file_pin.size_bytes
          << " fixture_pin_sha256=" << ledger_hex_digest(request.fixture_file_pin.sha256)
+         << " supporting_file_set_count=" << request.supporting_file_set.pins.size()
+         << " supporting_file_set_size=" << request.supporting_file_set_size_bytes
+         << " supporting_file_set_sha256=" << ledger_hex_digest(request.supporting_file_set_sha256)
+         << " supporting_scope=x86_process_address_space"
+         << " supporting_wow64_coverage=unqualified"
+         << " supporting_resident_coherence=unobserved"
+         << " supporting_native_evidence=debug_event_hfile"
          << " session_id=" << request.session_id
          << " native_effects_started=" << (result.native_effects_started ? 1 : 0)
          << " restoration_confirmed=" << (result.restoration_confirmed ? 1 : 0)
@@ -632,6 +898,15 @@ bool append_failure_ledger(const std::filesystem::path& path,
          << " ledger_post_result_write_failed="
          << (result.ledger_post_result_write_failed ? 1 : 0)
          << " ledger_incomplete=" << (result.ledger_incomplete ? 1 : 0)
+         << " supporting_events_observed=" << result.supporting_events_observed
+         << " supporting_events_accepted=" << result.supporting_events_accepted
+         << " supporting_events_refused=" << result.supporting_events_refused
+         << " supporting_last_event_index=" << result.supporting_last_event_index
+         << " supporting_identity_ready=" << (result.supporting_identity_ready ? 1 : 0)
+         << " supporting_inventory_reconciled="
+         << (result.supporting_inventory_reconciled ? 1 : 0)
+         << " supporting_identity_failed=" << (result.supporting_identity_failed ? 1 : 0)
+         << " supporting_ledger_write_failed=" << (result.supporting_ledger_write_failed ? 1 : 0)
          << " effects_uncertain=" << (result.effects_uncertain ? 1 : 0)
          << " resources_uncertain=" << (result.resources_uncertain ? 1 : 0)
          << " last_verified_hold=" << (result.last_verified_hold ? 1 : 0)
@@ -689,6 +964,13 @@ bool append_operation_ledger(const std::filesystem::path&  path,
          << " dbgeng_pin_sha256=" << ledger_hex_digest(request.dbgeng_file_pin.sha256)
          << " fixture_pin_size=" << request.fixture_file_pin.size_bytes
          << " fixture_pin_sha256=" << ledger_hex_digest(request.fixture_file_pin.sha256)
+         << " supporting_file_set_count=" << request.supporting_file_set.pins.size()
+         << " supporting_file_set_size=" << request.supporting_file_set_size_bytes
+         << " supporting_file_set_sha256=" << ledger_hex_digest(request.supporting_file_set_sha256)
+         << " supporting_scope=x86_process_address_space"
+         << " supporting_wow64_coverage=unqualified"
+         << " supporting_resident_coherence=unobserved"
+         << " supporting_native_evidence=debug_event_hfile"
          << " observer_process_id=" << result.observer_process_id
          << " observer_instance_id=" << result.observer_instance_id
          << " controller_thread_id=" << result.controller_thread_id
@@ -703,6 +985,15 @@ bool append_operation_ledger(const std::filesystem::path&  path,
          << " raw_cleanup_hold_request_epoch="
          << result.raw_cleanup_hold_request_epoch
          << " ledger_incomplete=" << (result.ledger_incomplete ? 1 : 0)
+         << " supporting_events_observed=" << result.supporting_events_observed
+         << " supporting_events_accepted=" << result.supporting_events_accepted
+         << " supporting_events_refused=" << result.supporting_events_refused
+         << " supporting_last_event_index=" << result.supporting_last_event_index
+         << " supporting_identity_ready=" << (result.supporting_identity_ready ? 1 : 0)
+         << " supporting_inventory_reconciled="
+         << (result.supporting_inventory_reconciled ? 1 : 0)
+         << " supporting_identity_failed=" << (result.supporting_identity_failed ? 1 : 0)
+         << " supporting_ledger_write_failed=" << (result.supporting_ledger_write_failed ? 1 : 0)
          << " effects_uncertain=" << (result.effects_uncertain ? 1 : 0)
          << " resources_uncertain=" << (result.resources_uncertain ? 1 : 0)
          << " last_verified_hold=" << (result.last_verified_hold ? 1 : 0)
@@ -2872,6 +3163,14 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         }
         return false;
     }
+    if (abort_requested_.load(std::memory_order_acquire))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "observer owner was permanently aborted and cannot be reused";
+        }
+        return false;
+    }
     if (has_created_observer() || request.profile != kObserverLiveProfile ||
         !absolute_path(request.observer_executable) || request.observer_command_line.empty() ||
         !request.limits.valid() ||
@@ -3149,11 +3448,15 @@ bool ObserverDebugOwner::exact_owner_event(const ObserverHeldDebugEvent& held) c
 bool ObserverDebugOwner::continue_event(const ObserverLiveAuthority&  authority,
                                         const ObserverHeldDebugEvent& held,
                                         DWORD                         status,
-                                        std::string*                  refusal) noexcept
+                                        std::string*                  refusal,
+                                        bool*                         api_dispatched) noexcept
 {
-    if ((!authority_allows(authority, refusal) &&
-         !(abort_requested_.load(std::memory_order_acquire) &&
-           authority_allows_debug_cleanup(authority, nullptr))) ||
+    if (api_dispatched != nullptr)
+    {
+        *api_dispatched = false;
+    }
+    if (abort_requested_.load(std::memory_order_acquire) ||
+        !authority_allows(authority, refusal) ||
         !exact_owner_event(held))
     {
         if (refusal != nullptr && refusal->empty())
@@ -3170,10 +3473,15 @@ bool ObserverDebugOwner::continue_event(const ObserverLiveAuthority&  authority,
         }
         return false;
     }
+    if (api_dispatched != nullptr)
+    {
+        *api_dispatched = true;
+    }
     if (held.event.dwDebugEventCode == EXIT_PROCESS_DEBUG_EVENT)
     {
         handles_.exit_event_delivered = true;
     }
+    observer_supporting_close_debug_event_file(&held_.event);
     controller_progress_tick_.store(GetTickCount64(), std::memory_order_release);
     held_ = {};
     return true;
@@ -3207,6 +3515,7 @@ bool ObserverDebugOwner::acknowledge_exit_event(const ObserverLiveAuthority&  au
     }
     handles_.exit_event_delivered    = true;
     handles_.exit_event_acknowledged = SetEvent(handles_.exit_event) != FALSE;
+    observer_supporting_close_debug_event_file(&held_.event);
     controller_progress_tick_.store(GetTickCount64(), std::memory_order_release);
     held_ = {};
     if (!handles_.exit_event_acknowledged && refusal != nullptr)
@@ -3567,18 +3876,12 @@ bool ObserverDebugOwner::close() noexcept
     {
         CloseHandle(handles_.process_info_process);
     }
+    observer_supporting_close_debug_event_file(&held_.event);
+    // These atoms are copied into the terminal result after supervisor join.
+    // Keep them sticky for this owner lifetime so a late abort or ledger
+    // failure cannot be erased by resource cleanup.
     handles_ = {};
     held_    = {};
-    abort_requested_.store(false, std::memory_order_release);
-    termination_started_.store(false, std::memory_order_release);
-    termination_succeeded_.store(false, std::memory_order_release);
-    termination_request_recorded_.store(false, std::memory_order_release);
-    termination_request_succeeded_.store(false, std::memory_order_release);
-    termination_request_error_.store(ERROR_SUCCESS, std::memory_order_release);
-    supervisor_ledger_intent_write_failed_.store(false, std::memory_order_release);
-    supervisor_ledger_post_result_write_failed_.store(false, std::memory_order_release);
-    supervisor_ledger_incomplete_.store(false, std::memory_order_release);
-    responsive_abort_.store(false, std::memory_order_release);
     controller_progress_tick_.store(0, std::memory_order_release);
     supervisor_ledger_.reset();
     remote_control_store_.reset();
@@ -3700,6 +4003,7 @@ struct ObserverRemoteTransport::State
     bool*                                  ledger_hook_installed            = nullptr;
     bool*                                  ledger_child_started             = nullptr;
     bool*                                  ledger_exit_event_acknowledged   = nullptr;
+    ObserverSupportingIdentityGate*        supporting_gate                  = nullptr;
     ObserverHeldDebugEvent                 ledger_event{};
 };
 
@@ -3894,7 +4198,7 @@ bool continue_transport_owner_event(ObserverRemoteTransport::State* state,
                                     std::string*                    refusal) noexcept
 {
     if (state == nullptr || state->owner == nullptr || operation == nullptr ||
-        !state->ledger_event.held)
+        !state->ledger_event.held || state->ledger_path == nullptr || state->ledger_result == nullptr)
     {
         if (refusal != nullptr)
         {
@@ -3917,12 +4221,35 @@ bool continue_transport_owner_event(ObserverRemoteTransport::State* state,
         }
         return false;
     }
-    std::string continue_refusal;
-    const bool  continued = state->owner->continue_event(state->authority,
-                                                         state->ledger_event,
-                                                         DBG_CONTINUE,
-                                                         &continue_refusal);
-    if (continued)
+    SupportingRuntimeContinuationContext continuation_context;
+    continuation_context.owner                              = state->owner;
+    continuation_context.authority                          = &state->authority;
+    continuation_context.event                              = &state->ledger_event;
+    continuation_context.result                             = state->ledger_result;
+    continuation_context.ledger_path                        = state->ledger_path;
+    const ObserverSupportingContinuationCallbacks callbacks = {
+        &continuation_context,
+        persist_supporting_identity_record,
+        continue_supporting_owner_event,
+        acknowledge_supporting_exit_event,
+    };
+    const bool admitted = enforce_supporting_identity_before_continuation(
+        state->supporting_gate,
+        state->process,
+        state->process_id,
+        state->ledger_event,
+        *state->ledger_path,
+        state->ledger_result,
+        callbacks,
+        refusal);
+    if (!admitted && !continuation_context.continuation_attempted)
+    {
+        return false;
+    }
+    std::string continue_refusal = continuation_context.continuation_refusal;
+    const bool  continued        = admitted && continuation_context.continuation_succeeded;
+    const bool  event_released   = continuation_context.continuation_api_succeeded;
+    if (continued || event_released)
     {
         state->ledger_event.held = false;
         if (state->ledger_observer_held != nullptr)
@@ -3958,7 +4285,9 @@ bool continue_transport_owner_event(ObserverRemoteTransport::State* state,
                                                      operation_id,
                                                      operation,
                                                      false,
-                                                     continued ? "continued" : "failed",
+                                                     continuation_result_label(admitted,
+                                                                               continued,
+                                                                               event_released),
                                                      &state->ledger_event);
     if (!recorded)
     {
@@ -4909,6 +5238,15 @@ void ObserverRemoteTransport::set_operation_ledger(
     state_->ledger_hook_installed            = hook_installed;
     state_->ledger_child_started             = child_started;
     state_->ledger_exit_event_acknowledged   = exit_event_acknowledged;
+}
+
+void ObserverRemoteTransport::set_supporting_identity_gate(
+    ObserverSupportingIdentityGate* gate) noexcept
+{
+    if (state_ != nullptr)
+    {
+        state_->supporting_gate = gate;
+    }
 }
 
 bool ObserverRemoteTransport::set_publication_hold_expectation(
@@ -9540,6 +9878,344 @@ void ObserverChildComposition::set_provenance_hook_layout(const HookInstallReque
     }
 }
 
+namespace
+{
+
+std::uintptr_t supporting_held_address(const ObserverHeldDebugEvent& held) noexcept
+{
+    // Win32 debug events expose a creation/start/load/exception address, not a
+    // fabricated post-dispatch instruction pointer.  The gate only treats this
+    // event-carried address as the current held boundary.
+    if (!held.held)
+    {
+        return 0;
+    }
+    switch (held.event.dwDebugEventCode)
+    {
+        case CREATE_PROCESS_DEBUG_EVENT:
+            return reinterpret_cast<std::uintptr_t>(held.event.u.CreateProcessInfo.lpBaseOfImage);
+        case CREATE_THREAD_DEBUG_EVENT:
+            return reinterpret_cast<std::uintptr_t>(held.event.u.CreateThread.lpStartAddress);
+        case LOAD_DLL_DEBUG_EVENT:
+            return reinterpret_cast<std::uintptr_t>(held.event.u.LoadDll.lpBaseOfDll);
+        case EXCEPTION_DEBUG_EVENT:
+            return reinterpret_cast<std::uintptr_t>(held.event.u.Exception.ExceptionRecord.ExceptionAddress);
+        default:
+            return 0;
+    }
+}
+
+bool capture_supporting_held_inventory(
+    HANDLE                                     process,
+    HANDLE                                     creation_bound_process,
+    const ObserverDebugOwner&                  owner,
+    const ObserverHeldDebugEvent&              held,
+    const ObserverSupportingIdentityGate&      gate,
+    ObserverSupportingModuleInventorySnapshot* snapshot,
+    std::string*                               refusal) noexcept
+{
+    if (snapshot == nullptr)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "supporting resident inventory output was not supplied";
+        }
+        return false;
+    }
+    *snapshot            = {};
+    snapshot->process_id = process == nullptr ? 0 : GetProcessId(process);
+    snapshot->creation_bound_process_id =
+        creation_bound_process == nullptr ? 0 : GetProcessId(creation_bound_process);
+    snapshot->creation_bound_handle_verified =
+        snapshot->process_id != 0 && snapshot->process_id == snapshot->creation_bound_process_id;
+    const ObserverHeldDebugEvent& current_owner_event = owner.held_event();
+    snapshot->held_event_process_id                   = current_owner_event.key.process_id;
+    snapshot->held_event_thread_id                    = current_owner_event.key.thread_id;
+    snapshot->held_event_code                         = current_owner_event.key.event_code;
+    snapshot->held_event_raw_generation               = current_owner_event.key.raw_generation;
+    snapshot->held_event_index                        = current_owner_event.key.event_index;
+    snapshot->held_event_key_verified =
+        current_owner_event.held && held.held && current_owner_event.key.complete() && held.key.complete() &&
+        same_key(current_owner_event.key, held.key);
+    snapshot->x86_address_space    = sizeof(void*) == sizeof(std::uint32_t);
+    snapshot->current_hold_address = supporting_held_address(held);
+    snapshot->current_hold_address_bound =
+        snapshot->process_id != 0 && held.held && held.key.complete() &&
+        held.key.process_id == snapshot->process_id &&
+        held.key.event_code == held.event.dwDebugEventCode && snapshot->current_hold_address != 0;
+    if (process == nullptr || creation_bound_process == nullptr || snapshot->process_id == 0 ||
+        !snapshot->held_event_key_verified ||
+        !snapshot->creation_bound_handle_verified || !snapshot->x86_address_space ||
+        !snapshot->current_hold_address_bound)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "supporting resident inventory lacks the exact x86 creation-bound held process evidence";
+        }
+        return false;
+    }
+
+    try
+    {
+        const std::size_t supported_module_cap =
+            gate.pin_count() == std::numeric_limits<std::size_t>::max() ? gate.pin_count()
+                                                                        : gate.pin_count() + 1;
+        std::vector<HMODULE> modules(64);
+        DWORD                needed = 0;
+        for (;;)
+        {
+            const std::size_t capacity_bytes = modules.size() * sizeof(HMODULE);
+            if (capacity_bytes > std::numeric_limits<DWORD>::max())
+            {
+                snapshot->truncated = true;
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting resident module enumeration exceeded the Win32 buffer bound";
+                }
+                return false;
+            }
+            if (!K32EnumProcessModulesEx(process,
+                                         modules.data(),
+                                         static_cast<DWORD>(capacity_bytes),
+                                         &needed,
+                                         LIST_MODULES_ALL))
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting resident module enumeration failed";
+                }
+                return false;
+            }
+            if (needed <= capacity_bytes)
+            {
+                break;
+            }
+            const std::size_t required_count =
+                (static_cast<std::size_t>(needed) + sizeof(HMODULE) - 1) / sizeof(HMODULE);
+            if (required_count > supported_module_cap)
+            {
+                snapshot->truncated = true;
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting resident module enumeration exceeded the explicit supplied-pin bound";
+                }
+                return false;
+            }
+            modules.resize(required_count);
+        }
+        const std::size_t module_count = static_cast<std::size_t>(needed) / sizeof(HMODULE);
+        if (needed % sizeof(HMODULE) != 0 || module_count == 0 ||
+            module_count > supported_module_cap)
+        {
+            snapshot->truncated = true;
+            if (refusal != nullptr)
+            {
+                *refusal = "supporting resident module enumeration returned no complete bounded set";
+            }
+            return false;
+        }
+        snapshot->modules.reserve(module_count);
+        for (std::size_t index = 0; index != module_count; ++index)
+        {
+            MODULEINFO info{};
+            if (!K32GetModuleInformation(process, modules[index], &info, sizeof(info)) ||
+                info.lpBaseOfDll == nullptr || info.SizeOfImage == 0)
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting resident module metadata was unavailable";
+                }
+                return false;
+            }
+            MEMORY_BASIC_INFORMATION memory{};
+            if (VirtualQueryEx(process,
+                               info.lpBaseOfDll,
+                               &memory,
+                               sizeof(memory)) != sizeof(memory) ||
+                memory.State != MEM_COMMIT || memory.Type != MEM_IMAGE ||
+                memory.AllocationBase != info.lpBaseOfDll)
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting resident module was not a committed MEM_IMAGE allocation";
+                }
+                return false;
+            }
+            std::array<wchar_t, 32768> module_path{};
+            const DWORD                path_length = K32GetModuleFileNameExW(process,
+                                                                             modules[index],
+                                                                             module_path.data(),
+                                                                             static_cast<DWORD>(module_path.size()));
+            if (path_length == 0 || path_length >= static_cast<DWORD>(module_path.size()))
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting resident module path was unavailable or truncated";
+                }
+                return false;
+            }
+            ObserverSupportingResidentModule module;
+            module.module_name = observer_supporting_module_name_from_path(
+                std::wstring_view(module_path.data(), path_length));
+            module.image_base    = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
+            module.image_size    = info.SizeOfImage;
+            module.mem_image     = true;
+            module.address_bound = valid_x86_range(module.image_base,
+                                                   static_cast<std::size_t>(module.image_size));
+            module.process_bound = module.address_bound;
+            if (module.module_name.empty() || !module.address_bound || !gate.bind_resident_identity(&module))
+            {
+                // Keep the resident row for the external refusal record.  The
+                // shared gate rejects the row because no exact debug-event
+                // hFile identity was observed for it.
+                module.file_handle_bound = false;
+                module.hash_verified     = false;
+            }
+            snapshot->modules.push_back(std::move(module));
+        }
+
+        // K32EnumProcessModulesEx is retained as a metadata cross-check.  Its
+        // loader-list view can omit DATAFILE images or be incomplete, so walk
+        // the complete supported x86 address space and account for every
+        // MEM_IMAGE allocation returned by VirtualQueryEx.  The endpoint is
+        // the actual process maximum; probing beyond it makes VirtualQueryEx
+        // fail with ERROR_INVALID_PARAMETER on some systems.
+        SYSTEM_INFO system_info{};
+        GetSystemInfo(&system_info);
+        std::uint64_t address_space_limit = 0;
+        if (!observer_supporting_x86_scope_endpoint(
+                reinterpret_cast<std::uintptr_t>(system_info.lpMaximumApplicationAddress),
+                &address_space_limit,
+                refusal))
+        {
+            return false;
+        }
+        snapshot->address_space_limit_exclusive = address_space_limit;
+        snapshot->address_space_limit_verified  = true;
+        const std::uint64_t page_size           = static_cast<std::uint64_t>(system_info.dwPageSize);
+        if (page_size == 0)
+        {
+            if (refusal != nullptr)
+            {
+                *refusal = "supporting x86 address-space page size was unavailable";
+            }
+            return false;
+        }
+        const std::uint64_t page_count =
+            (address_space_limit + page_size - 1) / page_size;
+        std::uint64_t cursor       = 0;
+        std::uint64_t region_count = 0;
+        while (cursor < address_space_limit)
+        {
+            if (region_count >= page_count)
+            {
+                snapshot->truncated = true;
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting x86 address-space inventory exceeded its page-derived bound";
+                }
+                return false;
+            }
+            MEMORY_BASIC_INFORMATION memory{};
+            const SIZE_T             queried = VirtualQueryEx(
+                process,
+                reinterpret_cast<LPCVOID>(static_cast<std::uintptr_t>(cursor)),
+                &memory,
+                sizeof(memory));
+            if (queried != sizeof(memory))
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting x86 address-space inventory query failed or was truncated";
+                }
+                return false;
+            }
+            const std::uint64_t region_base =
+                static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(memory.BaseAddress));
+            const std::uint64_t region_size = static_cast<std::uint64_t>(memory.RegionSize);
+            if (region_base != cursor || region_size == 0 || region_base >= address_space_limit ||
+                region_size > std::numeric_limits<std::uint64_t>::max() - region_base)
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting x86 address-space inventory contained a non-progressing region";
+                }
+                return false;
+            }
+            const std::uint64_t region_end         = region_base + region_size;
+            const std::uint64_t bounded_region_end = std::min(region_end, address_space_limit);
+            if (bounded_region_end <= cursor)
+            {
+                if (refusal != nullptr)
+                {
+                    *refusal = "supporting x86 address-space inventory reached a non-progressing final region";
+                }
+                return false;
+            }
+            ++region_count;
+            if (snapshot->current_hold_address >= region_base &&
+                snapshot->current_hold_address < bounded_region_end && memory.Type == MEM_IMAGE)
+            {
+                snapshot->current_hold_address_mem_image = true;
+            }
+            if (memory.Type == MEM_IMAGE)
+            {
+                const std::uint64_t allocation_base = static_cast<std::uint64_t>(
+                    reinterpret_cast<std::uintptr_t>(memory.AllocationBase));
+                if (allocation_base == 0 || allocation_base > region_base ||
+                    allocation_base >= address_space_limit || allocation_base >= bounded_region_end)
+                {
+                    if (refusal != nullptr)
+                    {
+                        *refusal = "supporting MEM_IMAGE region lacked a valid allocation base";
+                    }
+                    return false;
+                }
+                ObserverSupportingImageAllocation* allocation = nullptr;
+                for (ObserverSupportingImageAllocation& candidate : snapshot->image_allocations)
+                {
+                    if (candidate.allocation_base == static_cast<std::uintptr_t>(allocation_base))
+                    {
+                        allocation = &candidate;
+                        break;
+                    }
+                }
+                if (allocation == nullptr)
+                {
+                    ObserverSupportingImageAllocation candidate;
+                    candidate.allocation_base = static_cast<std::uintptr_t>(allocation_base);
+                    candidate.image_extent    = bounded_region_end - allocation_base;
+                    candidate.region_count    = 1;
+                    snapshot->image_allocations.push_back(candidate);
+                }
+                else
+                {
+                    allocation->image_extent =
+                        std::max(allocation->image_extent, bounded_region_end - allocation_base);
+                    ++allocation->region_count;
+                }
+            }
+            cursor = bounded_region_end;
+        }
+        snapshot->address_space_region_count  = region_count;
+        snapshot->address_space_walk_complete = true;
+        snapshot->query_succeeded             = true;
+        snapshot->complete                    = true;
+        snapshot->truncated                   = false;
+        return true;
+    }
+    catch (...)
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "supporting resident module inventory allocation failed";
+        }
+        return false;
+    }
+}
+
+} // namespace
+
 ObserverLiveResult ObserverLiveRuntime::refuse_current_policy(
     const ObserverLiveRequest& request,
     std::string_view           reason) noexcept
@@ -9569,7 +10245,25 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         result.reason      = "profile, source revision, absolute inputs, fresh output and nine positive finite limits are required";
         return result;
     }
-    std::string refusal;
+    std::string       refusal;
+    const std::string root_module_name = observer_supporting_module_name_from_path(
+        std::wstring_view(request.observer_executable.native()));
+    if (!observer_supporting_request_valid(request.supporting_file_set,
+                                           request.supporting_file_set_sha256,
+                                           request.supporting_file_set_size_bytes,
+                                           root_module_name,
+                                           request.observer_executable_pin.size_bytes,
+                                           request.observer_executable_pin.sha256,
+                                           &refusal))
+    {
+        ObserverLiveResult result;
+        result.disposition                = ObserverLiveDisposition::RefusedInput;
+        result.stage                      = "supporting_identity_request";
+        result.reason                     = refusal.empty() ? "explicit supporting file identity set is invalid" : refusal;
+        result.supporting_identity_failed = true;
+        result.collection_incomplete      = true;
+        return result;
+    }
     if (!request.authority.allows_native(&refusal))
     {
         return refuse_current_policy(request, refusal);
@@ -9621,6 +10315,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     result.native_effects_started = false;
     result.intent_recorded        = true;
     result.session_identity       = request.session_id;
+    ObserverSupportingIdentityGate supporting_gate(request.supporting_file_set, root_module_name);
     // Start the immutable lifecycle clock before observer preparation.  Every
     // readiness and fixture-creation permit remains inside this original
     // finite phase; no later child-start clock may extend it.
@@ -9629,6 +10324,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     result.owner_id                            = owner_id;
     std::unique_ptr<ObserverDebugOwner>       owner_holder(new (std::nothrow) ObserverDebugOwner());
     bool                                      abort_exit_pending = false;
+    bool                                      owner_closed       = false;
     ObserverDebugOwner*                       owner_ptr          = owner_holder.get();
     ObserverRemoteTransport                   remote;
     ObserverHeldDebugEvent                    held_event;
@@ -9754,12 +10450,14 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
                                 &hook_installed,
                                 &child_started,
                                 &result.exit_event_acknowledged);
+    remote.set_supporting_identity_gate(&supporting_gate);
 
     const auto fail = [&result,
                        &request,
                        &ledger_path,
                        &owner_holder,
                        &abort_exit_pending,
+                       &owner_closed,
                        &fixture_retention,
                        owner_ptr](const char*        stage,
                                   const std::string& reason)
@@ -9768,7 +10466,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         result.stage                  = stage == nullptr ? "native_activation" : stage;
         result.reason                 = reason;
         result.actual_result_recorded = true;
-        if (owner_ptr != nullptr)
+        if (owner_ptr != nullptr && !owner_closed)
         {
             result.termination_request_recorded  = owner_ptr->termination_request_recorded();
             result.termination_request_succeeded = owner_ptr->termination_request_succeeded();
@@ -9814,9 +10512,10 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             result.resources_uncertain         = true;
         }
         bool owner_close_confirmed = true;
-        if (owner_ptr != nullptr && !abort_exit_pending)
+        if (owner_ptr != nullptr && !abort_exit_pending && !owner_closed)
         {
             owner_close_confirmed = owner_ptr->close();
+            owner_closed          = owner_close_confirmed;
             if (!owner_close_confirmed)
             {
                 result.owner_intervention_required = true;
@@ -9853,6 +10552,38 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         value ^= static_cast<std::uint64_t>(event.key.thread_id) << 32;
         value ^= static_cast<std::uint64_t>(event.key.event_code);
         return value == 0 ? 1 : value;
+    };
+    const auto enforce_supporting = [&](const ObserverHeldDebugEvent&         event,
+                                        SupportingRuntimeContinuationContext* context,
+                                        std::string*                          event_refusal)
+    {
+        if (context == nullptr)
+        {
+            if (event_refusal != nullptr)
+            {
+                *event_refusal = "supporting continuation context was not supplied";
+            }
+            return false;
+        }
+        context->owner                                          = &owner;
+        context->authority                                      = &request.authority;
+        context->event                                          = &event;
+        context->result                                         = &result;
+        context->ledger_path                                    = &ledger_path;
+        const ObserverSupportingContinuationCallbacks callbacks = {
+            context,
+            persist_supporting_identity_record,
+            continue_supporting_owner_event,
+            acknowledge_supporting_exit_event,
+        };
+        return enforce_supporting_identity_before_continuation(&supporting_gate,
+                                                               owner.handles().process_info_process,
+                                                               owner.handles().process_id,
+                                                               event,
+                                                               ledger_path,
+                                                               &result,
+                                                               callbacks,
+                                                               event_refusal);
     };
     const auto wait_for_create_thread = [&](std::uint32_t               timeout,
                                             std::uint32_t               request_address,
@@ -9973,11 +10704,15 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             {
                 return false;
             }
-            const bool continued = owner.continue_event(request.authority,
-                                                        *output,
-                                                        DBG_CONTINUE,
-                                                        &refusal);
-            if (continued)
+            SupportingRuntimeContinuationContext continuation_context;
+            const bool                           admitted = enforce_supporting(*output, &continuation_context, &refusal);
+            if (!admitted && !continuation_context.continuation_attempted)
+            {
+                return false;
+            }
+            const bool continued      = admitted && continuation_context.continuation_succeeded;
+            const bool event_released = continuation_context.continuation_api_succeeded;
+            if (continued || event_released)
             {
                 output->held              = false;
                 observer_held             = false;
@@ -9991,7 +10726,8 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
                 active_held_event         = output;
                 result.last_verified_hold = false;
             }
-            if (!record_result(continued, continued ? "continued" : "failed"))
+            if (!record_result(continued,
+                               continuation_result_label(admitted, continued, event_released)))
             {
                 return false;
             }
@@ -10008,19 +10744,23 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         {
             return false;
         }
+        std::string refusal;
         if (!record_intent("continue_held_event"))
         {
             return false;
         }
-        std::string refusal;
-        const bool  cleared   = remote.clear_held_event(request.authority, &refusal);
-        bool        continued = false;
-        if (cleared)
+        SupportingRuntimeContinuationContext continuation_context;
+        continuation_context.remote            = &remote;
+        continuation_context.clear_remote_hold = true;
+        const bool admitted                    = enforce_supporting(*event, &continuation_context, &refusal);
+        if (!admitted && !continuation_context.continuation_attempted)
         {
-            continued = owner.continue_event(request.authority, *event, DBG_CONTINUE, &refusal);
+            return false;
         }
-        const bool operation_succeeded = cleared && continued;
-        if (continued)
+        const bool continued           = admitted && continuation_context.continuation_succeeded;
+        const bool event_released      = continuation_context.continuation_api_succeeded;
+        const bool operation_succeeded = continued;
+        if (continued || event_released)
         {
             event->held               = false;
             observer_held             = false;
@@ -10034,7 +10774,9 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             result.last_verified_hold = false;
         }
         if (!record_result(operation_succeeded,
-                           operation_succeeded ? "continued" : "failed"))
+                           continuation_result_label(admitted,
+                                                     operation_succeeded,
+                                                     continuation_context.continuation_api_succeeded)))
         {
             return false;
         }
@@ -10110,11 +10852,17 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         {
             return false;
         }
-        const bool continued = owner.continue_event(request.authority,
-                                                    stream_event,
-                                                    DBG_CONTINUE,
-                                                    &event_refusal);
-        if (continued)
+        SupportingRuntimeContinuationContext continuation_context;
+        const bool                           admitted = enforce_supporting(stream_event,
+                                                                           &continuation_context,
+                                                                           &event_refusal);
+        if (!admitted && !continuation_context.continuation_attempted)
+        {
+            return false;
+        }
+        const bool continued      = admitted && continuation_context.continuation_succeeded;
+        const bool event_released = continuation_context.continuation_api_succeeded;
+        if (continued || event_released)
         {
             stream_event.held         = false;
             observer_held             = false;
@@ -10128,7 +10876,8 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             active_held_event         = &stream_event;
             result.last_verified_hold = false;
         }
-        if (!record_result(continued, continued ? "continued" : "failed"))
+        if (!record_result(continued,
+                           continuation_result_label(admitted, continued, event_released)))
         {
             return false;
         }
@@ -10212,6 +10961,12 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     result.native_effects_started = true;
     result.observer_process_id    = owner.handles().process_id;
     result.controller_thread_id   = owner.controller_thread_id();
+    if (!supporting_gate.bind_process(owner.handles().process_id, &refusal))
+    {
+        result.supporting_identity_failed = true;
+        abort_created();
+        return fail("supporting_identity", refusal);
+    }
     if (!record_intent("establish_kill_on_exit"))
     {
         abort_created();
@@ -10330,11 +11085,18 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             abort_created();
             return fail("failure_ledger", "startup-event continuation intent could not be persisted");
         }
-        const bool continued_startup = owner.continue_event(request.authority,
-                                                            creation_event,
-                                                            DBG_CONTINUE,
-                                                            &refusal);
-        if (continued_startup)
+        SupportingRuntimeContinuationContext continuation_context;
+        const bool                           admitted = enforce_supporting(creation_event,
+                                                                           &continuation_context,
+                                                                           &refusal);
+        if (!admitted && !continuation_context.continuation_attempted)
+        {
+            abort_created();
+            return fail("supporting_identity", refusal);
+        }
+        const bool continued_startup      = admitted && continuation_context.continuation_succeeded;
+        const bool startup_event_released = continuation_context.continuation_api_succeeded;
+        if (continued_startup || startup_event_released)
         {
             creation_event.held       = false;
             observer_held             = false;
@@ -10349,7 +11111,9 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             result.last_verified_hold = false;
         }
         if (!record_result(continued_startup,
-                           continued_startup ? "continued" : "failed"))
+                           continuation_result_label(admitted,
+                                                     continued_startup,
+                                                     continuation_context.continuation_api_succeeded)))
         {
             abort_created();
             return fail("failure_ledger", "startup-event continuation result could not be persisted");
@@ -10367,11 +11131,19 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("failure_ledger", "create-process continuation intent could not be persisted");
     }
-    const bool continued_creation = owner.continue_event(request.authority,
-                                                         creation_event,
-                                                         DBG_CONTINUE,
-                                                         &refusal);
-    if (continued_creation)
+    SupportingRuntimeContinuationContext creation_continuation_context;
+    const bool                           creation_admitted = enforce_supporting(creation_event,
+                                                                                &creation_continuation_context,
+                                                                                &refusal);
+    if (!creation_admitted && !creation_continuation_context.continuation_attempted)
+    {
+        abort_created();
+        return fail("supporting_identity", refusal);
+    }
+    const bool continued_creation      = creation_admitted &&
+                                         creation_continuation_context.continuation_succeeded;
+    const bool creation_event_released = creation_continuation_context.continuation_api_succeeded;
+    if (continued_creation || creation_event_released)
     {
         creation_event.held       = false;
         observer_held             = false;
@@ -10386,7 +11158,9 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         result.last_verified_hold = false;
     }
     if (!record_result(continued_creation,
-                       continued_creation ? "continued" : "failed"))
+                       continuation_result_label(creation_admitted,
+                                                 continued_creation,
+                                                 creation_continuation_context.continuation_api_succeeded)))
     {
         abort_created();
         return fail("failure_ledger", "create-process continuation result could not be persisted");
@@ -10396,6 +11170,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("observer_create_event", refusal);
     }
+    supporting_gate.set_boundary(ObserverSupportingBoundary::AlreadyLoaded);
     bool            bootstrap_ready   = false;
     const ULONGLONG bootstrap_started = GetTickCount64();
     while (within_tick_bound(bootstrap_started, request.limits.hold_ticks))
@@ -10481,11 +11256,18 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             abort_created();
             return fail("failure_ledger", "bootstrap-event continuation intent could not be persisted");
         }
-        const bool continued_bootstrap = owner.continue_event(request.authority,
-                                                              bootstrap_event,
-                                                              DBG_CONTINUE,
-                                                              &refusal);
-        if (continued_bootstrap)
+        SupportingRuntimeContinuationContext continuation_context;
+        const bool                           admitted = enforce_supporting(bootstrap_event,
+                                                                           &continuation_context,
+                                                                           &refusal);
+        if (!admitted && !continuation_context.continuation_attempted)
+        {
+            abort_created();
+            return fail("supporting_identity", refusal);
+        }
+        const bool continued_bootstrap = admitted && continuation_context.continuation_succeeded;
+        const bool event_released      = continuation_context.continuation_api_succeeded;
+        if (continued_bootstrap || event_released)
         {
             bootstrap_event.held      = false;
             observer_held             = false;
@@ -10500,7 +11282,9 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             result.last_verified_hold = false;
         }
         if (!record_result(continued_bootstrap,
-                           continued_bootstrap ? "continued" : "failed"))
+                           continuation_result_label(admitted,
+                                                     continued_bootstrap,
+                                                     continuation_context.continuation_api_succeeded)))
         {
             abort_created();
             return fail("failure_ledger", "bootstrap-event continuation result could not be persisted");
@@ -10776,6 +11560,48 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("hold_attestation", refusal);
     }
+    ObserverSupportingModuleInventorySnapshot supporting_inventory;
+    std::string                               initial_hold_inventory_refusal;
+    const bool                                inventory_captured = capture_supporting_held_inventory(
+        remote.process_handle(),
+        owner.handles().process_info_process,
+        owner,
+        held_event,
+        supporting_gate,
+        &supporting_inventory,
+        &initial_hold_inventory_refusal);
+    const bool inventory_reconciled =
+        inventory_captured && supporting_gate.reconcile_inventory(
+                                  supporting_inventory,
+                                  owner.handles().process_info_process,
+                                  &initial_hold_inventory_refusal);
+    if (!inventory_reconciled || !supporting_gate.ready_for_activation(&refusal))
+    {
+        if (!inventory_reconciled && !initial_hold_inventory_refusal.empty())
+        {
+            refusal = initial_hold_inventory_refusal;
+        }
+        record_supporting_inventory_failure(ledger_path,
+                                            supporting_inventory,
+                                            refusal,
+                                            &supporting_gate,
+                                            &result);
+        sync_supporting_identity_result(&result, supporting_gate);
+        abort_created();
+        return fail("supporting_identity", refusal);
+    }
+    if (!record_supporting_inventory(ledger_path,
+                                     supporting_inventory,
+                                     true,
+                                     std::string_view{},
+                                     &supporting_gate,
+                                     &result))
+    {
+        sync_supporting_identity_result(&result, supporting_gate);
+        abort_created();
+        return fail("failure_ledger", "successful supporting inventory record could not be persisted");
+    }
+    supporting_gate.set_boundary(ObserverSupportingBoundary::LaterLoad);
     if (!record_intent("install_raw_slots"))
     {
         abort_created();
@@ -10822,12 +11648,6 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("hook_install", "external hook transaction refused");
     }
-    if (!continue_held(&held_event))
-    {
-        abort_created();
-        return fail("observer_continue", "mutation hold continuation failed");
-    }
-
     // The same retained child IDebugClient has already acquired and read back
     // its process options during fixture-free preparation.  Persist that
     // receipt in controller-owned storage and verify its observer/session
@@ -10876,6 +11696,22 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         abort_created();
         return fail("options_ready", refusal.empty() ? "controller option readiness receipt was not durably acknowledged" : refusal);
     }
+    if (!supporting_gate.ready_for_activation(&refusal))
+    {
+        ObserverSupportingModuleInventorySnapshot inventory;
+        inventory.process_id                = owner.handles().process_id;
+        inventory.creation_bound_process_id = owner.handles().process_id;
+        record_supporting_inventory_failure(ledger_path,
+                                            inventory,
+                                            refusal,
+                                            &supporting_gate,
+                                            &result);
+        sync_supporting_identity_result(&result, supporting_gate);
+        abort_created();
+        return fail("supporting_identity", refusal);
+    }
+    result.supporting_identity_ready = true;
+    sync_supporting_identity_result(&result, supporting_gate);
     if (!record_intent("create_fixture"))
     {
         abort_created();
@@ -10904,6 +11740,15 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         abort_created();
         return fail("fixture_create", refusal.empty() ? "controller fixture creation did not retain its creation-bound evidence" : refusal);
+    }
+
+    // Keep the typed mutation hold through fixture creation.  The initial
+    // inventory was reconciled while this exact event was pending; release it
+    // only after the last pre-child mutation has returned its durable result.
+    if (!continue_held(&held_event))
+    {
+        abort_created();
+        return fail("observer_continue", "mutation hold continuation failed");
     }
 
     if (!record_intent("start_child"))
@@ -10991,11 +11836,15 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             // only after active detach and the causal post-release output
             // marker. Child-published exit fields are retained as diagnostics,
             // never as the independent natural-exit proof.
+            const bool supporting_incomplete     = result.supporting_identity_failed ||
+                                                   result.supporting_ledger_write_failed;
             result.fixture_exit_confirmed        = false;
             result.fixture_exit_code_known       = false;
             result.fixture_exit_code             = 0;
-            result.collection_complete           = child_control.collection_complete != 0;
-            result.collection_incomplete         = child_control.raw_trace_incomplete != 0 ||
+            result.collection_complete           = !supporting_incomplete &&
+                                                   child_control.collection_complete != 0;
+            result.collection_incomplete         = supporting_incomplete ||
+                                                   child_control.raw_trace_incomplete != 0 ||
                                                    child_control.failure_outcome !=
                                                        static_cast<std::uint32_t>(ObserverLiveFailureOutcome::None);
             result.collection_stop_reason        = child_control.collection_stop_reason;
@@ -11703,11 +12552,18 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             abort_created();
             return fail("failure_ledger", "exit-stream continuation intent could not be persisted");
         }
-        const bool continued_exit_stream = owner.continue_event(request.authority,
-                                                                exit_event,
-                                                                DBG_CONTINUE,
-                                                                &refusal);
-        if (continued_exit_stream)
+        SupportingRuntimeContinuationContext continuation_context;
+        const bool                           admitted = enforce_supporting(exit_event,
+                                                                           &continuation_context,
+                                                                           &refusal);
+        if (!admitted && !continuation_context.continuation_attempted)
+        {
+            abort_created();
+            return fail("supporting_identity", refusal);
+        }
+        const bool continued_exit_stream = admitted && continuation_context.continuation_succeeded;
+        const bool event_released        = continuation_context.continuation_api_succeeded;
+        if (continued_exit_stream || event_released)
         {
             exit_event.held           = false;
             observer_held             = false;
@@ -11722,7 +12578,9 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
             result.last_verified_hold = false;
         }
         if (!record_result(continued_exit_stream,
-                           continued_exit_stream ? "continued" : "failed"))
+                           continuation_result_label(admitted,
+                                                     continued_exit_stream,
+                                                     continuation_context.continuation_api_succeeded)))
         {
             abort_created();
             return fail("failure_ledger", "exit-stream continuation result could not be persisted");
@@ -11773,9 +12631,46 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     {
         return fail("fixture_evidence", "externally retained fixture lifecycle evidence was incomplete");
     }
+    // Preserve the owner receipts before close clears its handle graph.  A
+    // supervisor abort may arrive while close joins the supervisor; the
+    // terminal result must retain that causal state.
+    result.termination_request_recorded  = owner.termination_request_recorded();
+    result.termination_request_succeeded = owner.termination_request_succeeded();
+    result.termination_request_error     = owner.termination_request_error();
+    result.termination_handle_signaled   = owner.termination_succeeded();
+    result.shutdown_waited               = owner.handles().shutdown_waited;
+    result.ledger_intent_write_failed =
+        result.ledger_intent_write_failed || owner.supervisor_ledger_intent_write_failed();
+    result.ledger_post_result_write_failed =
+        result.ledger_post_result_write_failed || owner.supervisor_ledger_post_result_write_failed();
+    result.ledger_incomplete = result.ledger_incomplete || owner.supervisor_ledger_incomplete();
     if (!owner.close())
     {
         return fail("observer_supervisor", "independent supervisor shutdown was not confirmed within the supplied bound");
+    }
+    owner_closed = true;
+    // The supervisor may publish its final ledger failure while close joins
+    // it.  Read the sticky atoms again after that join; the pre-close receipt
+    // above preserved the fields whose handles are now gone.
+    result.termination_request_recorded  = owner.termination_request_recorded();
+    result.termination_request_succeeded = owner.termination_request_succeeded();
+    result.termination_request_error     = owner.termination_request_error();
+    result.termination_handle_signaled   = owner.termination_succeeded();
+    result.ledger_intent_write_failed =
+        result.ledger_intent_write_failed || owner.supervisor_ledger_intent_write_failed();
+    result.ledger_post_result_write_failed =
+        result.ledger_post_result_write_failed || owner.supervisor_ledger_post_result_write_failed();
+    result.ledger_incomplete = result.ledger_incomplete || owner.supervisor_ledger_incomplete();
+    if (owner.abort_requested())
+    {
+        result.collection_complete   = false;
+        result.collection_incomplete = true;
+        return fail("observer_abort", "permanent abort was requested before native completion was published");
+    }
+    if (result.ledger_intent_write_failed || result.ledger_post_result_write_failed ||
+        result.ledger_incomplete)
+    {
+        return fail("failure_ledger", "supervisor ledger completion was incomplete");
     }
     result.disposition = ObserverLiveDisposition::Prepared;
     result.stage       = "native_complete";

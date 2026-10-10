@@ -34,6 +34,7 @@ struct ParsedArguments
 {
     QualificationRequest                          request{};
     xivl::observer_candidate::ObserverLiveRequest native_request{};
+    std::filesystem::path                         supporting_file_set_path;
     bool                                          offline            = false;
     bool                                          native             = false;
     bool                                          native_option_seen = false;
@@ -541,7 +542,8 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
         }
 
         if (option == "--observer" || option == "--dbgeng" || option == "--fixture" ||
-            option == "--observer-command-line" || option == "--fixture-command-line")
+            option == "--observer-command-line" || option == "--fixture-command-line" ||
+            option == "--supporting-file-set")
         {
             parsed->native_option_seen = true;
             if (!take_value(&index, argc, argv, option, &value, error))
@@ -559,6 +561,10 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             else if (option == "--fixture")
             {
                 parsed->native_request.fixture_executable = value;
+            }
+            else if (option == "--supporting-file-set")
+            {
+                parsed->supporting_file_set_path = value;
             }
             else if (option == "--observer-command-line")
             {
@@ -624,6 +630,14 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             }
             continue;
         }
+        if (option == "--supporting-file-set-size")
+        {
+            if (!parse_native_pin_size(&parsed->native_request.supporting_file_set_size_bytes))
+            {
+                return false;
+            }
+            continue;
+        }
         if (option == "--dbgeng-size")
         {
             if (!parse_native_pin_size(&parsed->native_request.dbgeng_file_pin.size_bytes))
@@ -641,7 +655,7 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             continue;
         }
         if (option == "--observer-sha256" || option == "--dbgeng-sha256" ||
-            option == "--fixture-sha256")
+            option == "--fixture-sha256" || option == "--supporting-file-set-sha256")
         {
             parsed->native_option_seen = true;
             if (!take_value(&index, argc, argv, option, &value, error))
@@ -657,9 +671,13 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             {
                 destination = &parsed->native_request.dbgeng_file_pin.sha256;
             }
-            else
+            else if (option == "--fixture-sha256")
             {
                 destination = &parsed->native_request.fixture_file_pin.sha256;
+            }
+            else
+            {
+                destination = &parsed->native_request.supporting_file_set_sha256;
             }
             if (!parse_sha256(value, destination))
             {
@@ -804,11 +822,19 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
                                    return byte != 0;
                                });
         };
+        const auto digest_complete = [](const std::array<std::uint8_t, 32>& digest)
+        {
+            return std::any_of(digest.begin(), digest.end(), [](std::uint8_t byte)
+                               {
+                                   return byte != 0;
+                               });
+        };
         if (parsed->native_request.profile != "query-output-identity-v1" ||
             parsed->native_request.source_revision.size() != 40 ||
             !absolute(parsed->native_request.observer_executable) ||
             !absolute(parsed->native_request.dbgeng_image) ||
             !absolute(parsed->native_request.fixture_executable) ||
+            !absolute(parsed->supporting_file_set_path) ||
             !absolute(parsed->native_request.output) ||
             parsed->native_request.observer_command_line.empty() ||
             parsed->native_request.fixture_command_line.empty() ||
@@ -816,9 +842,38 @@ bool parse_arguments(int argc, char* argv[], ParsedArguments* parsed, std::strin
             !parsed->native_request.limits.valid() ||
             !pin_complete(parsed->native_request.observer_executable_pin) ||
             !pin_complete(parsed->native_request.dbgeng_file_pin) ||
-            !pin_complete(parsed->native_request.fixture_file_pin))
+            !pin_complete(parsed->native_request.fixture_file_pin) ||
+            !digest_complete(parsed->native_request.supporting_file_set_sha256) ||
+            parsed->native_request.supporting_file_set_size_bytes == 0)
         {
-            *error = "--native requires absolute observer, DbgEng, fixture and fresh output paths, commands, hash cap, nine limits and three byte pins";
+            *error = "--native requires absolute observer, DbgEng, fixture, supporting set and fresh output paths, commands, hash cap, nine limits and explicit pins";
+            return false;
+        }
+        std::string supporting_refusal;
+        if (!xivl::observer_candidate::observer_supporting_load_file_set(
+                parsed->supporting_file_set_path,
+                parsed->native_request.supporting_file_set_sha256,
+                parsed->native_request.supporting_file_set_size_bytes,
+                &parsed->native_request.supporting_file_set,
+                &supporting_refusal))
+        {
+            *error = supporting_refusal.empty() ? "--supporting-file-set could not be validated"
+                                                : supporting_refusal;
+            return false;
+        }
+        const auto root_module_name = xivl::observer_candidate::observer_supporting_module_name_from_path(
+            std::wstring_view(parsed->native_request.observer_executable.native()));
+        if (!xivl::observer_candidate::observer_supporting_request_valid(
+                parsed->native_request.supporting_file_set,
+                parsed->native_request.supporting_file_set_sha256,
+                parsed->native_request.supporting_file_set_size_bytes,
+                root_module_name,
+                parsed->native_request.observer_executable_pin.size_bytes,
+                parsed->native_request.observer_executable_pin.sha256,
+                &supporting_refusal))
+        {
+            *error = supporting_refusal.empty() ? "--supporting-file-set does not pin the observer executable"
+                                                : supporting_refusal;
             return false;
         }
         std::error_code output_error;
@@ -841,6 +896,7 @@ void print_usage()
                  "--exit-confirmation-ticks N\n"
               << "       observer_candidate --native --observer PATH --observer-command-line TEXT "
                  "--dbgeng PATH --fixture PATH --fixture-command-line TEXT --output PATH "
+                 "--supporting-file-set PATH --supporting-file-set-size N --supporting-file-set-sha256 HEX64 "
                  "--profile query-output-identity-v1 --source-revision HEX40 --session N --row-cap N "
                  "--provenance-hash-cap N --observer-size N --observer-sha256 HEX64 "
                  "--dbgeng-size N --dbgeng-sha256 HEX64 --fixture-size N --fixture-sha256 HEX64 "
@@ -903,6 +959,19 @@ int observer_candidate_main(int argc, char* argv[])
                   << "fixture_exit_code=" << result.fixture_exit_code << '\n'
                   << "collection_complete=" << (result.collection_complete ? 1 : 0) << '\n'
                   << "collection_incomplete=" << (result.collection_incomplete ? 1 : 0) << '\n'
+                  << "supporting_events_observed=" << result.supporting_events_observed << '\n'
+                  << "supporting_events_accepted=" << result.supporting_events_accepted << '\n'
+                  << "supporting_events_refused=" << result.supporting_events_refused << '\n'
+                  << "supporting_identity_ready=" << (result.supporting_identity_ready ? 1 : 0) << '\n'
+                  << "supporting_inventory_reconciled="
+                  << (result.supporting_inventory_reconciled ? 1 : 0) << '\n'
+                  << "supporting_identity_failed=" << (result.supporting_identity_failed ? 1 : 0) << '\n'
+                  << "supporting_ledger_write_failed="
+                  << (result.supporting_ledger_write_failed ? 1 : 0) << '\n'
+                  << "supporting_scope=x86_process_address_space\n"
+                  << "supporting_wow64_coverage=unqualified\n"
+                  << "supporting_resident_coherence=unobserved\n"
+                  << "supporting_native_evidence=debug_event_hfile\n"
                   << "collection_stop_reason=" << result.collection_stop_reason << '\n'
                   << "collection_start_tick=" << result.collection_start_tick << '\n'
                   << "collection_deadline_tick=" << result.collection_deadline_tick << '\n'

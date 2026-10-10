@@ -56,12 +56,50 @@ delay/dynamic loads. Those bindings require separate evidence and review before
 activation. A supporting-file mismatch or unknown binding cannot qualify an
 observation; changing directory flags supplies no resident identity proof.
 
+## Supporting-file identity
+
+The controller requires an absolute `--supporting-file-set` path, its exact
+`--supporting-file-set-size` and `--supporting-file-set-sha256`. The set pins
+the current observer executable, the selected engine and supporting file
+candidates by lowercase module name, byte size and SHA-256. Its format is
+ASCII with LF line endings and a final newline:
+
+```text
+schema=xivl-observer-supporting-file-set-v1
+profile=query-output-identity-v1
+count=N
+lowercase_module_name|decimal_size|64_lowercase_hex_sha256
+```
+
+Entries must be sorted and unique. The byte pin covers the exact file,
+including its headers, decimal spelling and line endings. Missing, changed,
+unlisted or unreadable identities cannot be added from an observed load.
+The file set and its command-line pin supply no native authority.
+
+For a newly created observer, delivered process-creation and DLL-load events
+supply the process, event sequence, module base and actual debug-event file
+handle. The controller retains each file identity decision outside the
+observer before ordinary continuation. Native qualification also requires a
+complete held inventory of the supported x86 image mappings, reconciled with
+those accepted load identities before code-bearing installation and fixture
+creation. Unknown mappings, failed or truncated acquisition, stale membership
+and failed persistence must refuse progress. Unload/reload changes must not
+reuse an old accepted base or readiness result.
+
+A refusal stops diagnostic admission as incomplete, retains the failed event
+and uses the existing permanent-abort recovery path. An exit event has its
+separate acknowledgment path. File identity acceptance does not establish
+resident byte coherence, active API-set or side-by-side selection, dynamic
+closure, or coverage outside the supported x86 image inventory. Those native
+facts require observed evidence; file pins and CPU checks cannot supply it.
+
 ## Source composition
 
 | Component | Source | Responsibility |
 |---|---|---|
 | Entry and input contract | [observer_candidate.cpp](observer_candidate.cpp) | Parse the explicit request and apply the current authority gate. |
 | External controller and transport | [observer_live_runtime.cpp](observer_live_runtime.cpp) | Own observer creation, debug-event holds, supervisor deadlines, resident inspection, remote installation and cleanup. |
+| Supporting-file checks | [observer_supporting_identity.cpp](observer_supporting_identity.cpp) | Validate the explicit file set, reconcile held module membership and gate persisted identity decisions before continuation. |
 | Observer child | [observer_live_bootstrap.cpp](observer_live_bootstrap.cpp) | Publish target-local control records and connect the retained child session to DbgEng and the ordinary fixture. |
 | Fixture evidence retention | [observer_fixture_evidence.cpp](observer_fixture_evidence.cpp) | Retain creation-bound handles, raw event and continuation receipts, separate stdout/stderr/state channels, release results and post-detach exit evidence. |
 | Collection boundary | [observer_collection.cpp](observer_collection.cpp) | Close Recorder admission at one immutable monotonic deadline, independently of child completion and cleanup. |
@@ -118,8 +156,9 @@ permits collection of unresolved identities; it cannot mark them qualified.
 
 The native command accepts the same profile and seven controller limits, plus
 explicit `--collection-ticks` and `--child-completion-ticks`, absolute
-observer, engine and fixture paths, explicit command lines, three file sizes
-and SHA-256 digests, the full 40-hex source revision, and a positive provenance
+observer, engine, fixture and supporting-file-set paths, explicit command
+lines, four file sizes and SHA-256 digests, the full 40-hex source revision, and
+a positive provenance
 hash byte cap. The external build manifest binds that declared revision to the
 executable bytes. The observer
 executable digest is supplied externally after building; it is not embedded
@@ -140,6 +179,8 @@ the command:
   --dbgeng $dbgeng --fixture $fixture --fixture-command-line $fixtureCommandLine `
   --output $nativeTrace --session $session --row-cap $rowCap `
   --provenance-hash-cap $hashCap `
+  --supporting-file-set $supportingSet --supporting-file-set-size $supportingSetSize `
+  --supporting-file-set-sha256 $supportingSetSha256 `
   --observer-size $observerSize --observer-sha256 $observerSha256 `
   --dbgeng-size 6097408 --dbgeng-sha256 d032b53cd7478c58bc2b63c5c27d0ae1bb7108652c48ab6de3817ab9843ac631 `
   --fixture-size 17920 --fixture-sha256 254a9916e383fbaed00b433132250a4b5b1c8bd9f7243d0caf4169ae66019379 `

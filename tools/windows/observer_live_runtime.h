@@ -10,6 +10,7 @@
 #include "observer_fixture_evidence.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
+#include "observer_supporting_identity.h"
 #include "raw_event_recorder.h"
 #include "trace_map_observer_callbacks.h"
 
@@ -94,11 +95,11 @@ struct ObserverLiveBootstrapV1
     // incremented only by the active raw wrappers.
     std::array<std::uint32_t, observer_diagnostic::kHookEntryCount> raw_wrapper_extents{};
     std::uint32_t                                                   raw_forwarding_counter_address = 0;
-    std::uint32_t                                                   child_control_address = 0;
-    std::uint32_t                                                   child_start_control   = 0;
-    std::uint32_t                                                   child_release_control = 0;
-    std::uint32_t                                                   initial_hold_control  = 0;
-    std::uint32_t                                                   cleanup_hold_control  = 0;
+    std::uint32_t                                                   child_control_address          = 0;
+    std::uint32_t                                                   child_start_control            = 0;
+    std::uint32_t                                                   child_release_control          = 0;
+    std::uint32_t                                                   initial_hold_control           = 0;
+    std::uint32_t                                                   cleanup_hold_control           = 0;
     // Target-local hold records carry the request epoch and exact worker
     // start address before CreateThread is called.  The controller matches
     // the debug event itself and never relies on a later target TID publish.
@@ -292,8 +293,8 @@ static_assert(sizeof(ObserverLiveOwnerControlRequestV1) == 96);
 
 enum class ObserverLiveHoldRequestKind : std::uint32_t
 {
-    Initial = 1,
-    Cleanup = 2,
+    Initial    = 1,
+    Cleanup    = 2,
     RawCleanup = 3,
 };
 
@@ -411,6 +412,9 @@ struct ObserverLiveRequest
     ObserverLiveFilePin               observer_executable_pin{};
     ObserverLiveFilePin               dbgeng_file_pin{};
     ObserverLiveFilePin               fixture_file_pin{};
+    ObserverSupportingFileSet         supporting_file_set{};
+    std::array<std::uint8_t, 32>      supporting_file_set_sha256{};
+    std::uint64_t                     supporting_file_set_size_bytes = 0;
     std::filesystem::path             output;
     std::string                       observer_command_line;
     std::string                       fixture_command_line;
@@ -469,31 +473,39 @@ struct ObserverLiveResult
     // The failure ledger keeps these identities from the same causal run. A
     // nonzero value is evidence copied from the observer publication/event;
     // zero remains an explicit unknown rather than a synthesized identity.
-    std::uint32_t observer_process_id         = 0;
-    std::uint32_t observer_instance_id        = 0;
-    std::uint32_t controller_thread_id        = 0;
-    std::uint64_t owner_id                    = 0;
-    std::uint64_t event_identity              = 0;
-    std::uint64_t session_identity            = 0;
-    std::uint64_t lease_identity              = 0;
-    std::uint64_t module_pin_identity         = 0;
-    std::uint64_t publication_generation      = 0;
-    std::uint64_t initial_hold_request_epoch  = 0;
-    std::uint64_t cleanup_hold_request_epoch  = 0;
+    std::uint32_t observer_process_id            = 0;
+    std::uint32_t observer_instance_id           = 0;
+    std::uint32_t controller_thread_id           = 0;
+    std::uint64_t owner_id                       = 0;
+    std::uint64_t event_identity                 = 0;
+    std::uint64_t session_identity               = 0;
+    std::uint64_t lease_identity                 = 0;
+    std::uint64_t module_pin_identity            = 0;
+    std::uint64_t publication_generation         = 0;
+    std::uint64_t initial_hold_request_epoch     = 0;
+    std::uint64_t cleanup_hold_request_epoch     = 0;
     std::uint64_t raw_cleanup_hold_request_epoch = 0;
-    bool          intent_recorded             = false;
-    bool          actual_result_recorded      = false;
-    bool          effects_uncertain           = false;
-    bool          resources_uncertain         = false;
-    bool          last_verified_hold          = false;
-    bool          termination_handle_signaled = false;
-    bool          shutdown_waited             = false;
+    bool          intent_recorded                = false;
+    bool          actual_result_recorded         = false;
+    bool          effects_uncertain              = false;
+    bool          resources_uncertain            = false;
+    bool          last_verified_hold             = false;
+    bool          termination_handle_signaled    = false;
+    bool          shutdown_waited                = false;
     // Operation records are durable before dispatch and after the native call.
     // A failed ledger write makes the corresponding native outcome unknown.
     std::uint64_t last_operation_id               = 0;
     bool          ledger_intent_write_failed      = false;
     bool          ledger_post_result_write_failed = false;
     bool          ledger_incomplete               = false;
+    std::uint64_t supporting_events_observed      = 0;
+    std::uint64_t supporting_events_accepted      = 0;
+    std::uint64_t supporting_events_refused       = 0;
+    std::uint64_t supporting_last_event_index     = 0;
+    bool          supporting_identity_ready       = false;
+    bool          supporting_inventory_reconciled = false;
+    bool          supporting_identity_failed      = false;
+    bool          supporting_ledger_write_failed  = false;
     // Retain controller-owned fixture handles and state when observer loss or
     // an interrupted release leaves the fixture outcome unknown. The caller's
     // quarantine context owns this shared state until finite owner intervention
@@ -577,7 +589,8 @@ public:
     bool continue_event(const ObserverLiveAuthority&  authority,
                         const ObserverHeldDebugEvent& held,
                         DWORD                         status,
-                        std::string*                  refusal) noexcept;
+                        std::string*                  refusal,
+                        bool*                         api_dispatched = nullptr) noexcept;
     bool acknowledge_exit_event(const ObserverLiveAuthority&  authority,
                                 const ObserverHeldDebugEvent& held,
                                 std::string*                  refusal) noexcept;
@@ -766,6 +779,7 @@ public:
                               bool*                                  hook_installed,
                               bool*                                  child_started,
                               bool*                                  exit_event_acknowledged) noexcept;
+    void set_supporting_identity_gate(ObserverSupportingIdentityGate* gate) noexcept;
     bool set_publication_hold_expectation(
         const observer_diagnostic::ObserverPublicationHoldExpectationV1& expected,
         std::string*                                                     refusal) noexcept;
