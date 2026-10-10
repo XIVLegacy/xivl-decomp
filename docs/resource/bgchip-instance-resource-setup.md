@@ -279,6 +279,10 @@ slot 26. The result is attached through property slot 29. Property state,
 admission, manager availability, resource retention and allocation success
 remain conditions; these instructions do not demonstrate player walking.
 
+The [Attribute registration trace](attribute-resource-and-scene-binding.md)
+follows selected instance admission, native body/shape registration and the
+exact placed-setup flag and group writes.
+
 ## Model collision consumer
 
 The cataloged `RaptureModelObject` main vtable `0x010653A4` maps slot 1

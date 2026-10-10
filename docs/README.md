@@ -152,6 +152,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
 - [BGChip model resource binding](resource/bgchip-model-binding.md)
 - [BGChip resource setup and Attribute physics](resource/bgchip-instance-resource-setup.md)
+- [Attribute resource and native physics registration](resource/attribute-resource-and-scene-binding.md)
 - [DivideMap block activation](resource/layout-block-activation.md)
 - [Class metadata](resource/class-metadata.md)
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
