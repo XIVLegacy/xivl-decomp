@@ -45,6 +45,17 @@ described as this same binary control.
 Native operation is limited to a newly created isolated observer and its
 separate ordinary fixture. There is no retail or arbitrary-PID profile.
 
+The child loads the absolute DbgEng path with
+`LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32`, restricting
+the directory search for that load's dependencies to the engine directory and
+system directory under the
+[LoadLibraryExW contract](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw).
+This does not enforce a supporting-file allowlist or control executable startup
+imports, already loaded modules, API-set or side-by-side selection, or later
+delay/dynamic loads. Those bindings require separate evidence and review before
+activation. A supporting-file mismatch or unknown binding cannot qualify an
+observation; changing directory flags supplies no resident identity proof.
+
 ## Source composition
 
 | Component | Source | Responsibility |

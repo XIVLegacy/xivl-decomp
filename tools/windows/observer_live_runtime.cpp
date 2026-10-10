@@ -3641,36 +3641,36 @@ struct ObserverRemoteTransport::State
     std::array<HookWrapperSpec, kHookEntryCount> raw_layout{};
     std::uintptr_t                               raw_forwarding_counter_address = 0;
     ObserverDebugEventKey                        raw_attested_hold_key{};
-    std::uint64_t                                raw_attested_lease_identity   = 0;
-    std::uint32_t                                raw_attested_instance_id      = 0;
-    std::uintptr_t                               child_control_address         = 0;
-    DWORD                                        initial_hold_thread_id        = 0;
-    DWORD                                        cleanup_hold_thread_id        = 0;
-    std::uintptr_t                               module_pin_control            = 0;
-    std::uintptr_t                               module_unpin_control          = 0;
-    std::uintptr_t                               module_pin_witness_address    = 0;
-    std::uint64_t                                owner_id                      = 0;
-    std::uint64_t                                session_id                    = 0;
+    std::uint64_t                                raw_attested_lease_identity = 0;
+    std::uint32_t                                raw_attested_instance_id    = 0;
+    std::uintptr_t                               child_control_address       = 0;
+    DWORD                                        initial_hold_thread_id      = 0;
+    DWORD                                        cleanup_hold_thread_id      = 0;
+    std::uintptr_t                               module_pin_control          = 0;
+    std::uintptr_t                               module_unpin_control        = 0;
+    std::uintptr_t                               module_pin_witness_address  = 0;
+    std::uint64_t                                owner_id                    = 0;
+    std::uint64_t                                session_id                  = 0;
     ObserverLiveAuthority                        authority{};
-    std::uint32_t                                control_timeout_ticks        = 0;
-    std::uint64_t                                module_pin_identity          = 0;
-    std::uint32_t                                observer_instance_id         = 0;
-    std::uint64_t                                lease_identity               = 0;
-    std::uint64_t                                lease_token                  = 0;
-    std::uint64_t                                initial_hold_request_epoch   = 0;
-    std::uint64_t                                cleanup_hold_request_epoch   = 0;
+    std::uint32_t                                control_timeout_ticks          = 0;
+    std::uint64_t                                module_pin_identity            = 0;
+    std::uint32_t                                observer_instance_id           = 0;
+    std::uint64_t                                lease_identity                 = 0;
+    std::uint64_t                                lease_token                    = 0;
+    std::uint64_t                                initial_hold_request_epoch     = 0;
+    std::uint64_t                                cleanup_hold_request_epoch     = 0;
     std::uint64_t                                raw_cleanup_hold_request_epoch = 0;
-    std::uint64_t                                cleanup_start_tick           = 0;
-    std::uint32_t                                cleanup_ticks                = 0;
-    std::uint64_t                                cleanup_lifecycle_start_tick = 0;
-    std::uint32_t                                cleanup_lifecycle_ticks      = 0;
-    std::uint64_t                                next_hold_request_epoch      = 1;
-    std::uint64_t                                module_pin_token             = 0;
-    bool                                         module_pin_retained          = false;
-    bool                                         module_pin_release_pending   = false;
-    std::uintptr_t                               observer_image_base          = 0;
-    std::uintptr_t                               module_base                  = 0;
-    std::uint32_t                                module_size                  = 0;
+    std::uint64_t                                cleanup_start_tick             = 0;
+    std::uint32_t                                cleanup_ticks                  = 0;
+    std::uint64_t                                cleanup_lifecycle_start_tick   = 0;
+    std::uint32_t                                cleanup_lifecycle_ticks        = 0;
+    std::uint64_t                                next_hold_request_epoch        = 1;
+    std::uint64_t                                module_pin_token               = 0;
+    bool                                         module_pin_retained            = false;
+    bool                                         module_pin_release_pending     = false;
+    std::uintptr_t                               observer_image_base            = 0;
+    std::uintptr_t                               module_base                    = 0;
+    std::uint32_t                                module_size                    = 0;
     HookInstallRequest                           hook_layout{};
     ObserverPublicationController                publication_controller{};
     std::array<Allocation, kHookEntryCount>      allocations{};
@@ -4213,9 +4213,9 @@ bool ObserverRemoteTransport::set_held_event(const ObserverLiveAuthority&  autho
         }
         return false;
     }
-    state_->held     = true;
-    state_->held_key = held.key;
-    state_->attested = false;
+    state_->held                        = true;
+    state_->held_key                    = held.key;
+    state_->attested                    = false;
     state_->raw_attested_hold_key       = {};
     state_->raw_attested_lease_identity = 0;
     state_->raw_attested_instance_id    = 0;
@@ -4246,9 +4246,9 @@ bool ObserverRemoteTransport::clear_held_event(const ObserverLiveAuthority& auth
     {
         return false;
     }
-    state_->held     = false;
-    state_->attested = false;
-    state_->held_key = {};
+    state_->held                        = false;
+    state_->attested                    = false;
+    state_->held_key                    = {};
     state_->raw_attested_hold_key       = {};
     state_->raw_attested_lease_identity = 0;
     state_->raw_attested_instance_id    = 0;
@@ -4515,15 +4515,15 @@ bool ObserverRemoteTransport::discover_bootstrap(
         }
         return false;
     }
-    std::uintptr_t bootstrap_address     = 0;
-    std::uintptr_t claim_address         = 0;
-    std::uintptr_t release_address       = 0;
-    std::uintptr_t pin_address           = 0;
-    std::uintptr_t unpin_address         = 0;
-    std::uintptr_t start_address         = 0;
-    std::uintptr_t child_release_address = 0;
-    std::uintptr_t initial_hold_address  = 0;
-    std::uintptr_t cleanup_hold_address  = 0;
+    std::uintptr_t bootstrap_address        = 0;
+    std::uintptr_t claim_address            = 0;
+    std::uintptr_t release_address          = 0;
+    std::uintptr_t pin_address              = 0;
+    std::uintptr_t unpin_address            = 0;
+    std::uintptr_t start_address            = 0;
+    std::uintptr_t child_release_address    = 0;
+    std::uintptr_t initial_hold_address     = 0;
+    std::uintptr_t cleanup_hold_address     = 0;
     std::uintptr_t raw_cleanup_hold_address = 0;
     if (!read_remote_export(state_->process,
                             module_base,
@@ -4845,14 +4845,14 @@ bool ObserverRemoteTransport::bind_bootstrap(
         state_->raw_layout[index].extent  = bootstrap.raw_wrapper_extents[index];
     }
     state_->raw_forwarding_counter_address = bootstrap.raw_forwarding_counter_address;
-    state_->child_control_address        = bootstrap.child_control_address;
-    state_->module_pin_control           = bootstrap.module_pin_control;
-    state_->module_unpin_control         = bootstrap.module_unpin_control;
-    state_->module_pin_witness_address   = bootstrap.module_pin_witness_address;
-    state_->module_pin_identity          = bootstrap.module_pin_identity;
-    state_->owner_id                     = owner_id;
-    state_->session_id                   = session_id;
-    state_->next_hold_request_epoch      = owner_id ^ (session_id << 1) ^ 0x484F4C44ULL;
+    state_->child_control_address          = bootstrap.child_control_address;
+    state_->module_pin_control             = bootstrap.module_pin_control;
+    state_->module_unpin_control           = bootstrap.module_unpin_control;
+    state_->module_pin_witness_address     = bootstrap.module_pin_witness_address;
+    state_->module_pin_identity            = bootstrap.module_pin_identity;
+    state_->owner_id                       = owner_id;
+    state_->session_id                     = session_id;
+    state_->next_hold_request_epoch        = owner_id ^ (session_id << 1) ^ 0x484F4C44ULL;
     if (state_->next_hold_request_epoch == 0)
     {
         state_->next_hold_request_epoch = 1;
@@ -8652,7 +8652,7 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
     }
     state_->engine = LoadLibraryExW(request.dbgeng_image.c_str(),
                                     nullptr,
-                                    LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+                                    LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (state_->engine == nullptr)
     {
         if (refusal != nullptr)
@@ -8811,18 +8811,18 @@ bool ObserverChildComposition::prepare(const ObserverLiveAuthority& authority,
     recorder_config.originals.context_write = reinterpret_cast<ContextWriteOriginal>(
         engine_base + kContextWriteWrapperRva);
     TraceMapObserverCallbacksConfig composition_config;
-    composition_config.recorder          = recorder_config;
-    composition_config.client            = state_->client.Get();
-    composition_config.creator_thread_id = GetCurrentThreadId();
-    composition_config.context_api       = raw_recorder::ContextApi::Windows();
-    composition_config.wait              = wait;
-    composition_config.continue_call     = continue_call;
-    composition_config.fixture_evidence  = state_->fixture_evidence.get();
+    composition_config.recorder                   = recorder_config;
+    composition_config.client                     = state_->client.Get();
+    composition_config.creator_thread_id          = GetCurrentThreadId();
+    composition_config.context_api                = raw_recorder::ContextApi::Windows();
+    composition_config.wait                       = wait;
+    composition_config.continue_call              = continue_call;
+    composition_config.fixture_evidence           = state_->fixture_evidence.get();
     composition_config.raw_tail_publication       = &publish_child_raw_tail;
     composition_config.raw_tail_publication_user  = state_.get();
     composition_config.raw_tail_invalidation      = &invalidate_child_raw_tail;
     composition_config.raw_tail_invalidation_user = state_.get();
-    state_->composition                  = std::make_unique<TraceMapObserverCallbacks>(composition_config);
+    state_->composition                           = std::make_unique<TraceMapObserverCallbacks>(composition_config);
     if (state_->composition == nullptr || !state_->composition->ready())
     {
         if (refusal != nullptr)
