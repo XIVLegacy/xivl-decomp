@@ -187,6 +187,15 @@ the pointer stored at interface `+0x2C`. Slot 1, `0x00A92260`, stores a
 supplied three-pointer setup input at interface `+0x2C/+0x30/+0x34`. This identifies the context
 getter, without identifying the concrete runtime object supplied there.
 
+LayoutSystem slot 1, `0x00A887D0`, supplies the three-pointer tuple. It takes
+its first argument as tuple member 1, calls that object's slot 2 for member 2
+at `0x00A887DF`, and takes its second argument as member 3. At
+`0x00A887FC`, it calls the global LayoutWorld interface's slot 1 with the
+tuple. RaptureLayoutSystem vtable `0x00FBF964` and engine LayoutSystem
+vtable `0x010A1E24` both select this producer at slot 1. This identifies the
+setter input route; it does not join the first argument's concrete provider
+or slot-5 result to the query collection identified below.
+
 `0x00A73650` allocates 0x48 bytes and calls `0x00AFA070`, which installs
 RigidDynamics::RigidBody vtable `0x010A9878`. `0x00A79680` retains the
 native pointer at manipulator interface `+0x04`. The body constructor stores
@@ -413,6 +422,17 @@ that subobject as ParentSolveInstance, vtable `0x010AA16C`.
 and calls `0x00B00900` at `0x00B229BC`. The supplied pointer's runtime
 identity remains a condition.
 
+The constructor route supplies that collection pointer concretely.
+RaptureWorld construction `0x0060C2C0` stores the `0x0060DD70` result
+at world `+0x14` at `0x0060C89D`. `0x0060DD70` calls `0x00AC8E40` at
+`0x0060DE0E` with that owned object as receiver. `0x00AC8E40` constructs
+an outer object through `0x00AF8CE0`, stores it at owned object `+0x00`
+at `0x00AC8E87`, and calls `0x00AF92D0`. The latter's collection pointer
+is passed through `0x00AFF0E0` to ParentThread construction `0x00B072E0`
+at `0x00AFF2D4`, then to ParentSolveInstance `+0x2E4`.
+This establishes a RaptureWorld-owned query collection. It does not equate
+the LayoutWorld provider's slot-5 result with that owned outer object.
+
 ChildSolveInstance vtable `0x010AA274`, slot 16, selects thunk `0x00B249D0`,
 which jumps to `0x00B28D70`. That method calls `0x00B28930` with its
 `+0xC0` subobject. At `0x00B28B0A`, the latter calls `0x00B0CC80` with
@@ -425,6 +445,32 @@ player movement request or join the query collection to the Attribute's
 LayoutWorld-supplied context. A player/contact interpretation requires that
 application association and the actual query descriptor, in addition to the
 shape/group and triangle predicates.
+
+## Query descriptor construction
+
+Wrappers `0x00B016E0` and `0x00B017A0` construct a local descriptor `D`
+and forward it to `0x00B006B0` / `0x00B00900`, respectively. They zero
+`0x40` bytes through `0x009D2110`. The initializer returns without popping
+its three arguments; the caller's later `ADD ESP,0x0C` changes the stack
+offset basis. The single-result path's `OR [ESP+0x4C],2` at `0x00B01706`
+and optional `OR [ESP+0x40],1` at `0x00B01743` both address `D+0x30`.
+The multiple-result path repeats those writes at `0x00B017C5/0x00B01802`.
+
+| Descriptor field | Single-result wrapper source | Multiple-result wrapper source |
+|---|---|---|
+| `+0x00/+0x10` | Two vectors at pointer `[EBP+0x0C]` | Two vectors at pointer `[EBP+0x10]` |
+| `+0x20` | Scalar `[EBP+0x14]` | Scalar `[EBP+0x18]` |
+| `+0x24/+0x28` | Optional two dwords at pointer `[EBP+0x1C]` | Optional two dwords at pointer `[EBP+0x20]` |
+| `+0x2C` | Group mask `[EBP+0x10]` | Group mask `[EBP+0x14]` |
+| `+0x30` | Bit 1, plus bit 0 when the optional pointer is supplied | Same flag writes |
+| `+0x34` | Float from PE `0x00FB7AB4` | Same constant |
+
+Single-result construction and forwarding occur at
+`0x00B016ED..0x00B0175F`; multiple-result construction and forwarding
+occur at `0x00B017AC..0x00B01829`. The caller supplies the group mask,
+separately from the flags at `D+0x30`. The required group-1 mask bit
+`0x2` therefore remains a caller input rather than a wrapper default.
+The wrappers' native inputs do not identify a player movement request.
 
 ## Placed setup flags and group byte
 
