@@ -1,10 +1,11 @@
 # Attribute resource and native physics registration
 
-The Attribute's separate PHB consumer reaches native rigid-body and shape
-list registration. Its placed setup also writes specific native record flags
+The Attribute's `bhp` acquisition reaches the registered raw PHB factory,
+whose node supplies data to the separate PHB consumer and native rigid-body
+and shape registration. Placed setup also writes specific native record flags
 and a shape group byte. These static operations establish conditional
-construction and registration; they do not establish an active player scene
-or contact with an authored floor.
+construction and registration; they do not establish successful loading,
+an active player scene or contact with an authored floor.
 
 The [preceding resource setup trace](bgchip-instance-resource-setup.md#separate-attribute-physics-path)
 owns the Attribute creator, retained-resource setter, default manager route
@@ -24,6 +25,10 @@ The listed instruction inventory is not a claim of a contiguous function
 extent. File offsets below refer to the selected installed template
 `data/7F/1F/00/00.DAT`, 9,816 bytes, SHA-256
 `c0a0e6128d36946ba32f8980ad80d39fd3aec990f3fc8a18742bbd8851a76b48`.
+Its selected `bhp` row names ID `0x7F200000`. The corresponding installed
+`data/7F/20/00/00.DAT` has 78,928 bytes, SHA-256
+`7d8696f2bf5ccbe715b609ab576705aa473a4db57e50655cc4238a0656cdf3b1`,
+with `SEDBPHB\0` at file `+0x00` and `PHB.GBD\0` at file `+0xC0`.
 
 ## Resource request and bind-entry segments
 
@@ -37,8 +42,8 @@ shared key and `bhp` row ID `0x7F200000`.
 `0x0064FB30` obtains those count/name/type inputs and calls `0x0064EDC0`.
 That function conditionally looks up an existing generic request by name
 and type through `0x0079A490` and selects a service through `0x00642B80`.
-The selector's `bhp` comparison returns a pointer stored at service-owner
-`+0x20`.
+The selector's `bhp` comparison returns the resource root stored at scene-graph
+owner `+0x20`, constructed as described below.
 It then attempts graph lookup through `0x00A3DF70` or creates a bind entry
 through `0x0064D790`, subject to the existing-resource and request guards.
 
@@ -47,22 +52,93 @@ That constructor installs ResourceSceneGraph vtable `0x0109D174` and
 PhysicsResourceNodeFactory vtable `0x0109D08C`, and registers the factory
 with type `bhp`. Factory slot 1, `0x00A64ED0`, conditionally calls
 `0x00A64B60`, which constructs PhysicsResourceNode vtable `0x0109D2A4`.
-This identifies the registered type-specific producer. It does not join the
-selector's returned service pointer to an invocation of that factory.
+This identifies the registered type-specific producer. The selected resource
+root and the registered factory are separate objects.
+
+## Selected physics resource root
+
+The selector `0x00642B80` obtains global `0x0133DEF4` through `0x00623C60`,
+reads returned object `+0x114` and calls `0x0060B370`, which returns its
+receiver's `+0x08` pointer. The baseline constructor `0x0060C2C0` installs
+RaptureWorld vtable `0x00FB6F44`, calls `0x007CBE90` at `0x0060C3A0`
+and stores that result in world `+0x08` at `0x0060C3D0`.
+
+`0x007CBE90` calls `0x00A63D10` and installs RaptureResourceSceneGraph
+vtable `0x00FE96FC`. Its call at `0x007CC1BB` constructs the root through
+`0x00632F20`, with name `Res.BgPhysics` from PE `0x00FE9590`, then stores
+the full returned pointer at owner `+0x20`. `0x00632F20` installs
+ResourceRoot vtables `0x00FBC32C` at full `+0x00` and `0x00FBC31C` at
+full `+0x0C`, writes node type `trsr` at `+0x30` and copies the supplied
+name through `0x00A3DB40` to node `+0x20/+0x24/+0x28/+0x2C`.
+Its return at `0x00632FB9` has no receiver adjustment.
+
+This joins the selector's `bhp` field to the named root in the baseline
+world/scene-graph construction route. It does not establish concrete runtime
+initialization of global object `+0x114`. Root lookup `0x00A3DF70`, with
+its third argument true, starts at root `+0x18`, follows sibling `+0x1C`
+links and compares name/type through `0x00A3DD80`.
+
+## Acquired resource binding
 
 In the later acquisition loop, `0x0064D370` calls `0x00649160`.
-The latter supplies its candidate to `0x00648C40` at `0x00649686`;
+The latter repeats the global/world getter route above and saves the
+scene-graph owner in local stack `+0x14` at `0x006491AD`. If root lookup
+misses and the request guards allow creation, owner slot 6 at `0x006494A3`
+reaches `0x00A63590 -> 0x00A438E0`. Its result is a scalar token, saved
+through `0x00648D60` at indexed request entry `+0x08`.
+
+The later call at `0x006495A8` uses the original scene-graph owner.
+After four argument pushes, the load at `0x00649583` from stack `+0x24`
+addresses the original local `+0x14`; after six pushes, `0x00649596`
+reloads that same owner from stack `+0x2C` into ECX. Thus the call uses
+RaptureResourceSceneGraph vtable `0x00FE96FC` slot 2, `0x00A642F0`,
+rather than the slot-6 token as a receiver. The raw factory path below
+produces the reader's candidate, retained in ESI at `0x006495AA`.
+
+The acquisition loop supplies its candidate to `0x00648C40` at `0x00649686`;
 that direct helper writes entry `+0x28`. Bind-info vtable `0x00FBFA9C`
 slot 5, `0x00648C00`, reads the indexed entry's resource. Attribute
 `0x00AA8030` reads index zero through this getter and supplies the result
 to its slot-39 retained-resource setter, `0x00AA7520`.
 
-These request, factory-registration and bind-write segments are distinct
-static findings. The selected-service request/lookup path through
-`0x0079D330` includes indirect dispatch whose connection to the registered
-factory and successful selected-file decode was not established here.
-Accordingly, the slot-5 result is not qualified as the installed PHB's bytes
-by this trace. Resource completion remains a condition on the consumer below.
+Request lookup `0x00654420` returns a request record from tree node `+0x10`.
+Metadata helper `0x00652480` dereferences request-record `+0x08` and writes
+the candidate at metadata `+0x18`, with additional values at `+0x2C/+0x34`.
+That operation is separate from ResourceRoot child/sibling links.
+
+## Raw PHB factory dispatch and data storage
+
+ResourceSceneGraph slot 2, `0x00A642F0`, reads data through its third
+argument's slot 1. After checking `SEDB`, it distinguishes the packed
+`RES/res` branch from a raw header branch at `0x00A646D8`. For the selected
+`SEDBPHB\0` header, folding data bytes `+0x04..+0x07` produces type value
+`0x00706862`, whose in-memory bytes are `bhp\0`. Lookup
+`0x00A3C800 -> 0x00A44340` returns the registered factory from map node
+`+0x10`. The packed `SEDBRES` route is a separate branch.
+
+The reader tests its final context argument's byte `+0x14` at `0x00A6471B`.
+A nonzero byte selects factory slot 1 at `0x00A647BD`. A null context or
+zero byte first tests factory slot 5 at `0x00A6474D`; true selects slot 3
+at `0x00A6477D`, false selects slot 1. PhysicsResourceNodeFactory vtable
+`0x0109D08C` resolves slot 1 to `0x00A64ED0 -> 0x00A64B60`, slot 3 to
+`0x00A64FE0 -> 0x00A64E10`, and slot 5 to `0x00B73290`, which returns
+true. Allocation and registration remain conditions on node creation.
+
+Both constructors install PhysicsResourceNode primary vtable `0x0109D2A4`
+and embedded interface vtable `0x0109D278` at node `+0x44`; the latter's
+PE RTTI locator has subobject offset `0x44`. Node `+0x48` holds data and
+`+0x58` holds an optional backing object. Although `0x00A64B60` initially
+clears `+0x58`, its positive-size/global-flag/backing-allocation branch
+writes that pointer at `0x00A64C07`, calls backing slot 1 and stores the
+returned data at `+0x48`. The alternate constructor also retains a backing
+object. Getter `0x00A6CC90` calls backing slot 1 when `+0x58` is nonzero
+and returns `+0x48` otherwise. The preceding type-9 consumer passes this
+data and the node's embedded `+0x44` interface to `0x00AC0350`.
+
+This closes the conditional acquisition-to-factory-to-consumer route for
+an input with the selected PHB header. It does not identify runtime acquired
+bytes with that installed file or establish a runtime factory branch outcome.
+Resource completion remains a condition below.
 
 ## Selected instance admission
 
