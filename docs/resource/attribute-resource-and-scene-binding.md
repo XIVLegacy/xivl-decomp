@@ -499,6 +499,55 @@ separately from the flags at `D+0x30`. The required group-1 mask bit
 `0x2` therefore remains a caller input rather than a wrapper default.
 The wrappers' native inputs do not identify a player movement request.
 
+## Character query inputs
+
+CharaActor vtable `0x00FC0D34`, slot 167, selects `0x006610D0`.
+Its guarded path calls `0x00AF94D0` at `0x00661241`, then reaches the
+single-result descriptor wrapper and `0x00B0CA00`. This identifies a
+generic character query caller. It does not identify a local-player instance
+or a movement request.
+
+With character receiver `C`, the caller loads `P = u32(C+0x110)` and
+requires it to be nonzero. The adapter uses `R = u32(P+0x04)` as its query
+collection receiver. CharaActor construction
+`0x0065F180/0x006329C0/0x007CEF80` clears `C+0x110`, stores the query
+provider at `C+0x114`, and conditionally writes `u32(provider.slot5())` to
+`C+0x110`. That provider is CharaActor constructor argument 4, forwarded as
+Rapture constructor argument 5. The separate CharaActor argument 2 is stored
+at `C+0x118`. Identifying the `+0x114` provider is required to equate `R`
+with the RaptureWorld collection above.
+
+CharaActor slot 115, `0x007CD630`, obtains the slot-76 result through
+`0x007CD4E0`, which reads `C+0x18`. When that object exists, it tail-calls
+its slot 25; otherwise it returns zero. The query caller passes the low byte
+of the slot-115 return to `0x00AF90C0`, which reads the indexed collection
+table word and returns its local output pointer. The caller reads that output
+once and clears bit `0x4`:
+
+```
+i = low8(C.slot115())
+g = u32(R+0x250+4*i) & 0xFFFFFFFB
+D+0x2C = g
+```
+
+The adapter's immediate `3` is a separate wrapper argument forwarded to
+`0x00B006B0`; it is not the group mask. Clearing bit `0x4` preserves bit
+`0x2`, but does not establish that the table word contains it. Admission of
+the Attribute's group 1 therefore still depends on the selected table word.
+
+The caller builds the two descriptor vectors from its first formal argument
+`V`: `vec4(V)+(0,2,0,0)` and `(0,-1,0,0)`. Its scalar uses character float
+`C+0x11E0`, substituting 5 when that float equals zero and
+`u32(u32(C+0x118)+0xD0) == C`, or 10 when it equals zero and the comparison differs.
+It adds 2, then `0x00AF94D0` clamps the result against float `1.0e10`.
+The optional pointer is the address `q+0x60`, where `q` is the earlier
+`0x007D3A80` result; the descriptor copies its two dwords when nonzero.
+Wrapper flag and constant writes follow the descriptor table above.
+
+The provider's slot 5, the index object's slot 25 and the selected table word
+remain identity/input boundaries. These inputs do not prove an accepted
+triangle hit, standing or walking.
+
 ## Placed setup flags and group byte
 
 Attribute slot 52, `0x00AA8480`, supplies true to manipulator slots 18 and
