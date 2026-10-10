@@ -182,6 +182,103 @@ setup data. This supports another setup attempt after a notified change.
 The category-1 state-4 path above passes false, so it does not itself
 take this notification route.
 
+## Packed resource child construction
+
+`PackedResourceNodeFactory` vtable `0x00FB6E68` slots 1, 2 and 3 point to
+`0x00A3D700`, `0x00A3D880` and `0x00A3D7D0`. These construct a
+`ResourceLoader::ResourceData` reader through `0x00E0D450` or `0x00E0D4C0`
+and pass it to `0x00A3BF10`. The reader installs vtable `0x0113BA20`.
+Its initializer `0x00E0D120` points reader `+0x18` at resource buffer
+`+0x30` and reader `+0x1C` at buffer `+0x40`. Instructions
+`0x00E0D274` through `0x00E0D27F` set the content base after the count's
+16-byte directory entries. Reader slot 1 returns the count less reserved
+entries; slots 3 and 6 obtain an entry's content pointer and size.
+
+`0x00A3BF10` enumerates that reader's entries and calls `0x00A44660` or
+`0x00A44730` with the constructed root as parent. Both routes call
+`0x00A443A0`. After a creator returns a child, the call at `0x00A4461F`
+passes it and the parent to `0x00A440F0`, which calls `0x00A3B950`.
+That append helper detaches an already-parented child through `0x00A3B820`,
+writes child `+0x14` to the new parent, and either fills parent `+0x18`
+or follows sibling `+0x1C` links and appends there. This supplies the
+same child/sibling structure searched by the collision consumer below.
+The route is conditional on reader entries, creator results and allocations.
+It establishes the packed factory's construction mechanism, without an
+observed tree for the selected resource.
+
+The relevant exported listings are under `asm/ffxivgame/`, including
+`0063bf10_FUN_00a3bf10.s`, `006443a0_FUN_00a443a0.s`,
+`0063b950_FUN_00a3b950.s` and `00a0d120_FUN_00e0d120.s`.
+Their instruction bytes and both cataloged vtables were compared with the
+original PE identified above.
+
+## Separate Attribute physics path
+
+The selected installed template `data/7F/1F/00/00.DAT`, 9,816 bytes,
+SHA-256 `c0a0e6128d36946ba32f8980ad80d39fd3aec990f3fc8a18742bbd8851a76b48`,
+declares the floor BGChip at file `0x1E60` and an Attribute at `0x1DCC`.
+Their resource-name rows at file `0x120` and `0x140` declare `brt`/`bhp`
+with IDs `0x7F1C0000`/`0x7F200000`. The Attribute's name pointer at file
+`0x1DF0` contains payload-relative `0xA15`, selecting key
+`22hJhCc0_00_p_h` at file `0xBA5`. That key's `bhp` row declares the
+second ID. These are separate serialized bindings.
+The selected Attribute file `data/7F/20/00/00.DAT`, 78,928 bytes,
+SHA-256 `7d8696f2bf5ccbe715b609ab576705aa473a4db57e50655cc4238a0656cdf3b1`,
+starts with `SEDBPHB\0` and has `PHB.GBD\0` at file `0xC0`.
+
+The Attribute creator vtable `0x0103C288` slot 1, `0x00837D80`, constructs
+the base object through `0x008D3D00`. Its main interface vtable
+`0x0106118C` identifies `RaptureAttributeBaseObject`. In the block's binding
+phase, its slot 27, `0x00AA7560`, tests the retained resource at interface
+`+0x48`; slot 22, `0x00AA8030`, obtains resource index zero from the bind
+entry and passes it to slot 39, `0x00AA7520`. This slot retains that
+resource at `+0x48`. Slot numbers have receiver-specific meanings: Attribute
+slot 39 is a setter, unlike the BGChip's resource-name getter.
+
+`0x00AA8030` then passes the resource through `0x00AA7C70`. This helper
+gets global `0x01365B08` slot 7, obtains a manipulator through the returned
+manager's slot 1, builds a type-9 descriptor containing the resource at
+descriptor `+0x0C`, and calls manipulator slot 14. If slot 34 reports a
+result, it obtains it through slot 35, then releases the temporary through
+slot 43. Back in `0x00AA8030`, the returned manager's slot 3 receives that
+result and supplies Attribute interface `+0x4C`. This is a separate resource
+consumer path from the model initializer's descendant search below.
+
+The default manager's concrete identity follows from its construction:
+
+| Interface | Construction and dispatch |
+|---|---|
+| `LayExternalObjectManager`, `0x010A8AC0`, full `+0x04` | `0x00AB70F0` constructs it through `0x00ABB9E0` and stores the interface in `0x01365B08`; slot 7 is `0x00ABB960` |
+| `LayExternalManagerConnector`, `0x010A026C`, full `+0x04` | `0x00A77A30` constructs it through `0x00A841D0` and installs it through wrapper slot 1, `0x00ABB900`; wrapper slot 7 forwards connector slot 4, `0x00A841B0` |
+| `LayPhysicsManager`, `0x0109EA3C`, full `+0x04` | `0x00A77A30` constructs it through `0x00A73850` and stores the full object through `0x00A73390`; connector slot 4 returns that global `0x0136568C` plus four through `0x00A733C0` |
+| `LayRigidBodyManipulator`, `0x0109F984`, full `+0x04` | Physics-manager slot 1, `0x00A73650`, obtains an object through `0x00A73500` / `0x00A79550`; its slot 14 is `0x00A78FE0` |
+
+The identities and adjustments were checked through PE RTTI locators and
+cataloged slots. They qualify the default construction route; external
+manager replacement or allocation failure can change the receiver.
+
+The manipulator's jump table at `0x00A792B0` sends type 9 to
+`0x00A79228`. That branch takes the descriptor's resource and prepares
+resource `+0x44` plus a vector. It calls `0x00A6CC90`, which returns resource
+`+0x48` when resource `+0x58` is null, or delegates to the latter object's
+slot 1. The direct `+0x48` branch consumes no stack arguments. The two
+prepared pushes remain for `0x00AC0350`, called at `0x00A79283` with the
+backing physics pointer, returned PHB data, vector and resource `+0x44`.
+That routine examines PHB structures and conditionally tail-calls
+`0x00AC0B00`. The caller returns success only for a non-null result.
+This establishes a conditional PHB physics construction consumer, without
+requiring the Attribute to become a child of the primary render resource.
+
+For placed-instance setup, Attribute slot 18, `0x008D3DB0`, first checks
+instance slot 50 and then calls `0x00AA81D0`. That routine obtains the
+instance property, checks category `0x0B`, and uses Attribute slot 52,
+`0x00AA8480`, to build another type-9 descriptor from retained resource
+`+0x48`. It applies the supplied transform, dispatches manipulator slots
+18 and 24 with true arguments, and forwards the base-object flag byte through
+slot 26. The result is attached through property slot 29. Property state,
+admission, manager availability, resource retention and allocation success
+remain conditions; these instructions do not demonstrate player walking.
+
 ## Model collision consumer
 
 The cataloged `RaptureModelObject` main vtable `0x010653A4` maps slot 1
@@ -209,8 +306,8 @@ the cataloged MeshProxy and JointProxy identities.
 The connected fallback path supplies the primary resource to this consumer,
 subject to the intervening guards and successful allocations. The selected
 floor's primary key resolves to `brt7F1C0000`; its separately declared
-Attribute is `bhp7F200000`, as recorded in the
-[BGChip finding](bgchip-model-binding.md). A direct Python byte/field check
+Attribute is `bhp7F200000`, as recorded in the selected-file fields above.
+A direct Python byte/field check
 of installed `data/7F/1C/00/00.DAT`, 41,088 bytes, SHA-256
 `1af91b0e1e5e34f676f1af2884f82eddb63062e62bee058b0260e9646dfb7d0f`, found
 a `SEDBRES ` container with type `brt` and five directory entries. The
@@ -219,5 +316,6 @@ at `0x90`, `0x221C`, `0x9E90`, `0x9FB4` and `0x9FD0`. None declares `bhp`,
 and the complete file contains no ASCII `bhp` literal. This file-level
 observation does not rule out a loader attaching a PHB child to the resource
 tree. The selected Attribute-to-primary-resource child relation therefore
-remains unestablished; its separate declaration cannot replace that join.
+was not established by this trace. The Attribute has the separate physics
+consumer described above.
 These instructions do not establish successful rendering or player walking.

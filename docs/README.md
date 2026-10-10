@@ -151,7 +151,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Application scheduling observations](resource/application-hierarchy.md)
 - [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
 - [BGChip model resource binding](resource/bgchip-model-binding.md)
-- [BGChip instance resource setup](resource/bgchip-instance-resource-setup.md)
+- [BGChip resource setup and Attribute physics](resource/bgchip-instance-resource-setup.md)
 - [DivideMap block activation](resource/layout-block-activation.md)
 - [Class metadata](resource/class-metadata.md)
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
