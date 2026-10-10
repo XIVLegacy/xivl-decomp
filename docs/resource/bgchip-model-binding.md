@@ -194,3 +194,5 @@ application also calls `0x007FD710` between the flag copy and setup.
 These calls distinguish definition loading from placed child setup and identify
 the serialized source of its initial admission bit. They do not establish
 resource completion, later flag values, visibility or a rendered result.
+The [DivideMap activation finding](layout-block-activation.md) connects deferred
+folder registration to the parent Instance creation callback.
