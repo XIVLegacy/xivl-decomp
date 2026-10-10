@@ -363,9 +363,68 @@ owns the node encoding and helper details.
 This establishes a conditional native node/reference-to-triangle query route,
 separate from renderer enumeration. The offline authored file supplies the
 same descriptor and two triangle references; the trace does not execute its
-query predicates or establish accepted contacts. The first unqualified input
-is above `0x00B0C970`, whose direct callers are `0x00B0CA00` and `0x00B0CC80`.
-Their world, player and query identities remain unresolved.
+query predicates or establish accepted contacts. The native callers and their
+shape/group admission checks are classified below. Runtime world/player input
+and selected loaded bytes remain unqualified.
+
+## Query shape flags and groups
+
+The callers `0x00B0CA00/0x00B0CC80` select a signed candidate index `i`
+and recover a native shape record from their query aggregate `Q`:
+
+```text
+W = u32(Q+0x04)
+R = u32(W+0x14) + i*0x90
+```
+
+At `0x00B0CAF3..0x00B0CB16`, the single-result path rejects a shape when
+its byte `+0x4B` overlaps the caller's filter byte, requires that shape byte's
+bit 4, and tests the descriptor dword `+0x2C` against the bit selected by
+shape group byte `+0x4C`. The multiple-result path repeats these guards at
+`0x00B0CD7B..0x00B0CDA8` before its `0x00B0C970` dispatch.
+
+The selected Attribute setup supplies group 1, so that query descriptor must
+include group bit `0x00000002`. The retained floor's triangle surface words
+are both zero; these participate in the separate per-triangle filter described
+above. Shape flag admission, group admission and triangle surface comparison
+are distinct conditions. Their file and instruction values do not supply a
+runtime query descriptor or establish accepted authored contacts.
+
+On the mesh construction route, `0x00AFDC90` calls `0x00AFC9E0`, which writes
+shape byte `+0x4B = 0x18` at `0x00AFCA2C`. This supplies the query's required
+bit 4. The subsequent Attribute flag and group setup described below applies
+to the same conditional native shape route.
+
+## Native solver query callers
+
+`0x00B006B0` calls the single-result query at `0x00B007C5`.
+`0x00B00900` calls the multiple-result query at `0x00B00A2E`.
+Both build local query aggregates and map result indices back through separate
+body and shape record arrays in their native collection receiver. The
+construction route `0x00AF92D0/0x00B001F0` allocates that collection and
+retains it at the outer object's `+0x04`. These fields do not by themselves
+identify the collection with the LayoutWorld input used by the Attribute.
+
+There is a concrete native solver caller of `0x00B00900`. ParentThread
+vtable `0x010A9A70`, slot 1, selects `0x00B07190`. It calls `0x00B22940`
+with its `+0x40` subobject. Construction `0x00B072E0/0x00B22A50` identifies
+that subobject as ParentSolveInstance, vtable `0x010AA16C`.
+`0x00B22940` loads the query collection receiver from its `+0x2E4` field
+and calls `0x00B00900` at `0x00B229BC`. The supplied pointer's runtime
+identity remains a condition.
+
+ChildSolveInstance vtable `0x010AA274`, slot 16, selects thunk `0x00B249D0`,
+which jumps to `0x00B28D70`. That method calls `0x00B28930` with its
+`+0xC0` subobject. At `0x00B28B0A`, the latter calls `0x00B0CC80` with
+capacity `0x10`, a selected query descriptor and filter byte `0x02`.
+The three solver classes have RTTI names under
+`SQEX::CDev::Engine::Phieg::RigidDynamics::Detail`.
+
+These are native rigid-dynamics query associations. They do not identify a
+player movement request or join the query collection to the Attribute's
+LayoutWorld-supplied context. A player/contact interpretation requires that
+application association and the actual query descriptor, in addition to the
+shape/group and triangle predicates.
 
 ## Placed setup flags and group byte
 
