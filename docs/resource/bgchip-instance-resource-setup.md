@@ -104,9 +104,68 @@ property interface minus four. Property slots 48 and 49, `0x00CB1C80`,
 return the stored display object.
 
 `0x00A97550` returns true even if the display factory returns null and does
-not test the created object's initializer result. The concrete display
-factory registration and successful display-object initialization remain
-outside this trace.
+not test the created object's initializer result.
+
+## Display factory and background actor
+
+Application setup `0x004EA360` first calls `0x00A49480`, which constructs
+`LayDefaultDisplayManager` with `0x00A77200` and writes its full `+0x04`
+interface to global `0x01365B04`. It then constructs the application
+`Application::Scene::Actor::Map::LayDefaultModelObjectFactory` through
+`0x004EBAF0`, returning its full `+0x04` interface, vtable `0x00F9327C`,
+to display-manager slot 2 at `0x004EA53A`. That slot, `0x00A77120`, uses
+factory slot 1 as the registry key and replaces the prior factory for that
+key. Application factory slot 1, `0x00AB7340`, returns zero.
+
+Display-manager slot 1, `0x00A76FC0`, finds the requested key through
+`0x00A77700` and calls the registered factory's slot 2. For key zero,
+the application factory's `0x0062C430` allocates `0x6C` bytes, constructs
+`Application::Scene::Actor::Map::LayDefaultModelObject` with `0x0062BE80`
+and returns full `+0x04`. That wrapper's main vtable `0x00FBAD6C` maps
+slot 1 to `0x00628B80`, consuming the property's three setup arguments.
+This registration path establishes the concrete receiver without proving
+that application initialization or later allocations succeeded in a run.
+
+The wrapper has an early reuse path through `0x0064DA20`. On its fallback
+path, `0x00628CEF` reads the owning instance's base-object category. Category
+1 selects actor type `0x15`. The actor factory call at `0x00628D2C` goes
+through `0x007C9110` and `0x007A02D0`. The latter selects creator index
+`type - 0x0B`. Factory construction `0x007C9850` initializes that vector
+through `0x007A0450`, whose index 10 entry is `0x0079FCE0`. That creator
+constructs `BgPlateActor` with `0x006235D0`, then `0x006232F0` and
+`0x007CEF80`. Its main vtable is `0x00FBA97C`.
+
+`0x007CEF80` passes the model factory returned by `0x007CFAC0` to actor
+base construction `0x00A60B80`. This is the singleton at `0x0134DC04`,
+initialized by `0x007CFA60` with `RaptureModelObjectFactory` vtable
+`0x00FEA500`. Factory slot 1, `0x008C7F70`, constructs the model through
+`0x008DD0A0`, which installs `RaptureModelObject` vtable `0x010653A4`.
+The actor retains this model at `+0x0C`.
+
+## Primary resource to model candidate array
+
+The wrapper saves its incoming primary resource at stack-local `S+0x30`.
+At `0x00628DEB/0x00628DF4`, it pushes a parameter-object pointer and a flag.
+The following lookup `0x006259E0` consumes only its own one argument with
+`RET 0x04`, leaving those two pushes live. Thus `0x00628DFD` reads
+`[ESP+0x38] = [S+0x30]`, the saved resource. Actor slot 15 at `0x00628E0D`
+receives four arguments: `(resource, lookup result, flag, parameter object)`.
+Its `0x00A602B0` returns with `RET 0x10`; the two earlier pushes are part of
+this call, not discarded arguments.
+
+After its resource-interface guard succeeds, `0x00A602B0` invokes retained
+model slot 2 at `0x00A603BF` with the resource as argument 1 and zero as
+argument 2. Model slot 2, `0x00A630E0`, takes the non-null-resource branch:
+at `0x00A63134` it pushes count 1, at `0x00A63136` it takes the address of
+its incoming resource argument, and at `0x00A63140` it calls model slot 1.
+The other four arguments are forwarded. This bridges the wrapper's
+three-argument interface to the six-argument model initializer and supplies
+a one-element candidate array containing the primary resource.
+
+The alternate null-resource branch at `0x00A63200` enumerates resources
+through model `+0xD0` slots 2 and 3. It does not produce the array for the
+non-null primary-resource branch above. The BGChip property's later
+`0x00A97420` additional-resource setup likewise is not that array producer.
 
 ## Conditional resource-change notification
 
@@ -123,7 +182,7 @@ setup data. This supports another setup attempt after a notified change.
 The category-1 state-4 path above passes false, so it does not itself
 take this notification route.
 
-## Related model collision consumer
+## Model collision consumer
 
 The cataloged `RaptureModelObject` main vtable `0x010653A4` maps slot 1
 to `0x00A61DF0` and slot 79 to `0x00A612E0`. Its initializer's loop at
@@ -147,12 +206,18 @@ resource-side information through `0x00A6C400`, creates proxies through
 the child chain. Proxy constructors `0x00A6CDD0` and `0x00A6D880` install
 the cataloged MeshProxy and JointProxy identities.
 
-This identifies a native PHB collision consumer. The BGChip property's
-display-factory result has not been connected to the concrete
-`RaptureModelObject` interface used here. The property's slot-1 invocation
-passes three arguments, whereas `0x00A61DF0` returns with `RET 0x18`, consuming
-six arguments. A direct call correspondence is therefore unsupported.
-The candidate-array producer and its exact resource identity also remain
-unqualified. Consequently this
-trace does not establish that a selected BGChip's Attribute resource
-reaches this controller, or that the collision supports player walking.
+The connected fallback path supplies the primary resource to this consumer,
+subject to the intervening guards and successful allocations. The selected
+floor's primary key resolves to `brt7F1C0000`; its separately declared
+Attribute is `bhp7F200000`, as recorded in the
+[BGChip finding](bgchip-model-binding.md). A direct Python byte/field check
+of installed `data/7F/1C/00/00.DAT`, 41,088 bytes, SHA-256
+`1af91b0e1e5e34f676f1af2884f82eddb63062e62bee058b0260e9646dfb7d0f`, found
+a `SEDBRES ` container with type `brt` and five directory entries. The
+directory starts at file `0x40`, with content base `0x90`; the entries begin
+at `0x90`, `0x221C`, `0x9E90`, `0x9FB4` and `0x9FD0`. None declares `bhp`,
+and the complete file contains no ASCII `bhp` literal. This file-level
+observation does not rule out a loader attaching a PHB child to the resource
+tree. The selected Attribute-to-primary-resource child relation therefore
+remains unestablished; its separate declaration cannot replace that join.
+These instructions do not establish successful rendering or player walking.
