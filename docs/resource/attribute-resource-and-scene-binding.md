@@ -184,17 +184,27 @@ The baseline `0x00AB70F0` / `0x00A92880` construction and `0x00A88720`
 setter identify that global as a LayoutWorld interface, vtable
 `0x010A3044`, full object `+0x04`. Its slot 23, `0x00657330`, returns
 the pointer stored at interface `+0x2C`. Slot 1, `0x00A92260`, stores a
-supplied three-pointer setup input at interface `+0x2C/+0x30/+0x34`. This identifies the context
-getter, without identifying the concrete runtime object supplied there.
+supplied three-pointer setup input at interface `+0x2C/+0x30/+0x34`.
 
 LayoutSystem slot 1, `0x00A887D0`, supplies the three-pointer tuple. It takes
 its first argument as tuple member 1, calls that object's slot 2 for member 2
 at `0x00A887DF`, and takes its second argument as member 3. At
 `0x00A887FC`, it calls the global LayoutWorld interface's slot 1 with the
 tuple. RaptureLayoutSystem vtable `0x00FBF964` and engine LayoutSystem
-vtable `0x010A1E24` both select this producer at slot 1. This identifies the
-setter input route; it does not join the first argument's concrete provider
-or slot-5 result to the query collection identified below.
+vtable `0x010A1E24` both select this producer at slot 1.
+
+The selected startup route `0x004EA360` supplies RaptureWorld as that first
+argument. At `0x004EA4B2`, it calls SceneThreadImpl slot 6 with its original
+receiver `S`, then pushes the return at `0x004EA4B6` before dispatching
+LayoutSystem slot 1 at `0x004EA4B9`. SceneThreadImpl vtable `0x00F931D4`
+selects `0x004E8A90` at slot 6; this getter returns `W = u32(S+0x428)`.
+Slot 10, `0x004E8560`, constructs that field through `0x0060C2C0` and stores
+the result at `0x004E85DF`. The constructor installs RaptureWorld vtable
+`0x00FB6F44`. Both SceneThreadImpl and RaptureWorld use primary receivers
+at full object `+0x00`; the LayoutSystem interface is full object `+0x04`.
+RaptureWorld slot 2, `0x007143E0`, returns `u32(W+0x08)`, and slot 5,
+`0x00C4BAE0`, returns `O = u32(W+0x14)`. These are stored-pointer reads.
+After tuple publication, LayoutWorld slot 23 returns the same `W`.
 
 `0x00A73650` allocates 0x48 bytes and calls `0x00AFA070`, which installs
 RigidDynamics::RigidBody vtable `0x010A9878`. `0x00A79680` retains the
@@ -411,8 +421,7 @@ to the same conditional native shape route.
 Both build local query aggregates and map result indices back through separate
 body and shape record arrays in their native collection receiver. The
 construction route `0x00AF92D0/0x00B001F0` allocates that collection and
-retains it at the outer object's `+0x04`. These fields do not by themselves
-identify the collection with the LayoutWorld input used by the Attribute.
+retains it at the outer object's `+0x04`.
 
 There is a concrete native solver caller of `0x00B00900`. ParentThread
 vtable `0x010A9A70`, slot 1, selects `0x00B07190`. It calls `0x00B22940`
@@ -430,8 +439,27 @@ an outer object through `0x00AF8CE0`, stores it at owned object `+0x00`
 at `0x00AC8E87`, and calls `0x00AF92D0`. The latter's collection pointer
 is passed through `0x00AFF0E0` to ParentThread construction `0x00B072E0`
 at `0x00AFF2D4`, then to ParentSolveInstance `+0x2E4`.
-This establishes a RaptureWorld-owned query collection. It does not equate
-the LayoutWorld provider's slot-5 result with that owned outer object.
+This establishes a RaptureWorld-owned query collection. Define `O` as the
+owned object, `X = u32(O+0x00)` as the outer object, and
+`Q = u32(X+0x04)` as the collection. The provider route above closes the
+conditional static connection to native body construction:
+
+```
+LayoutWorld slot23() = W
+W.slot5() = O = u32(W+0x14)
+A73650 context = X = u32(O+0x00)
+AFA070 body+0x08 = X
+AFA070 body+0x0C = Q = u32(X+0x04)
+ParentSolveInstance+0x2E4 = Q
+```
+
+`0x00A73687` performs the `O` dereference; `0x00AFA0AE/0x00AFA0B1`
+read `X+0x04` and store `Q`. The body's native world pointer and the solver's
+query receiver therefore share the constructor-produced collection.
+RaptureWorld `+0x0C` holds a separate `0x28`-byte allocation constructed
+by `0x00A5F090`; it is not `O`, the `0xC4`-byte `0x0060DD70` receiver.
+Successful allocation, initialization and global publication remain conditions
+for this static connection to exist at runtime.
 
 ChildSolveInstance vtable `0x010AA274`, slot 16, selects thunk `0x00B249D0`,
 which jumps to `0x00B28D70`. That method calls `0x00B28930` with its
@@ -440,10 +468,9 @@ capacity `0x10`, a selected query descriptor and filter byte `0x02`.
 The three solver classes have RTTI names under
 `SQEX::CDev::Engine::Phieg::RigidDynamics::Detail`.
 
-These are native rigid-dynamics query associations. They do not identify a
-player movement request or join the query collection to the Attribute's
-LayoutWorld-supplied context. A player/contact interpretation requires that
-application association and the actual query descriptor, in addition to the
+These are native rigid-dynamics query associations sharing the Attribute's
+conditional native collection. A player/contact interpretation requires a
+concrete player movement request and its actual query descriptor, in addition to the
 shape/group and triangle predicates.
 
 ## Query descriptor construction
