@@ -281,6 +281,92 @@ the triangle/vertex arrays. Those bytes remain part of the retained data for
 the later geometry consumer, rather than a leaf-acceptance result from shape
 construction. No native execution or target-process observation was used.
 
+## Triangle enumeration and renderer output
+
+TriangleMeshShape vtable `0x010A98D8`, slot 2, selects `0x00AFD630`.
+This consumer first requires a non-null global at `0x01328050`. It recovers
+the native record's `+0x80` wrapper and calls its retained handler's slot 1
+to recover the raw GBD pointer `G`. Its table addressing is:
+
+```text
+TBC_j = G + u32(G+0x2C) + u32(G + u32(G+0x24) + j*16)
+TBD_jk = TBC_j + u32(TBC_j + u32(TBC_j+0x34) + k*4)
+refs = TBD_jk + u32(TBD_jk+0x18)
+```
+
+The outer count is GBD `+0x34`. Each TBC's `+0x30` supplies its TBD count,
+and each TBD's `+0x14` supplies its reference count. Non-positive counts
+skip their respective loops. For the authored floor, the TBC entry at file
+`0x240` selects TBC `0x2C0`, whose entry at `0x310` selects TBD `0x330`.
+The two references at `0x3A0` select triangle records at `0x3C0/+0x08`.
+
+At `0x00AFDA36`, `0x00A7CB20` receives a reference pointer, output buffer,
+GBD-relative vertex and triangle bases, a vertex stride of three floats,
+and an orientation byte. It selects an eight-byte triangle record, reads
+its three `u16` indices, and copies three XYZ positions with homogeneous
+lane 1. The orientation byte reverses the first and third output positions
+when one. `0x00AFD630` derives that byte from the sign parity of the native
+record's XYZ scale lanes at `+0x70`.
+
+The array path appends three positions and three sequential indices per
+reference. It caps initial triangle capacity at `0x1000`, flushes at a TBC
+boundary when the index count reaches `0x3000`, and flushes a nonempty
+remainder after the outer loop. The authored file replay yields six positions
+and six indices; its identity-transform, orientation-zero positions match
+the retained authored tile OBJ.
+
+Global construction through `0x00A55660/0x00A55570` supplies a PhysicsRenderer
+object with vtable `0x0109BE04`. Its slot 13, `0x00A55520`, receives the
+descriptor and expanded arrays and forwards them to `0x00427640`. This is
+renderer output, separate from the node-overlap and collision-query consumers.
+The array path does not traverse the quantized node or terminal records at
+file `0x380..0x3A0`, or apply triangle surface query masks. Correct array
+addressing does not establish leaf traversal, actual drawing, loading or contact.
+
+## Collision query leaf and triangle reads
+
+The separate caller `0x00B0C970` clears a byte output and calls
+`0x00B0BE90`, which clears its separate output count. That consumer requires
+native record byte `+0x4A == 8` and
+recovers `G` through the same record `+0x80` wrapper and handler slot 1.
+At `0x00B0C40E`, the recovered pointer becomes the first field of a local
+object through `0x00A7C5E0`. `0x00A7D940` retains that object and a selected
+TBC cursor. `0x00B0C607..0x00B0C623` reloads `G` and uses the TBC equation
+above, requiring a positive TBC `+0x30` count.
+
+For each TBD, `0x00B0C634..0x00B0C681` constructs the descriptor's node
+start, end and reference base:
+
+```text
+nodes = TBD + u32(TBD+0x10)
+node_end = nodes + u32(TBD+0x0C)*16
+refs = TBD + u32(TBD+0x18)
+```
+
+For the authored file these are `0x380`, `0x390` and `0x3A0` respectively.
+The optional aggregate surface predicate and `0x00A7D530` query initialization
+precede the reference loop. An iterator cursor equal to `node_end` skips it.
+At `0x00B0C6E0..0x00B0C707`, the current packed reference index selects a
+`u16` triangle reference. When a filter is supplied, triangle word `+6`
+also participates in the selected mask comparison before vertex expansion.
+
+At `0x00B0C77E`, the query calls `0x00A7CB20` with that reference, the GBD
+triangle and vertex bases, stride three and the local orientation byte.
+It then applies `0x00A7B3C0/0x00B0EF50` and a floating-point rejection gate.
+The accepted path stores the triangle reference at output record `+0x10`,
+writes a vector through `0x00B0E730`, and increments the output count.
+`0x00A7C550` at `0x00B0C8F6` advances the packed reference or invokes
+`0x00A7C180` to advance the quantized node cursor. The
+[PHB format contract](https://github.com/XIVLegacy/xivl-tools/blob/main/docs/formats/phb-collision.md)
+owns the node encoding and helper details.
+
+This establishes a conditional native node/reference-to-triangle query route,
+separate from renderer enumeration. The offline authored file supplies the
+same descriptor and two triangle references; the trace does not execute its
+query predicates or establish accepted contacts. The first unqualified input
+is above `0x00B0C970`, whose direct callers are `0x00B0CA00` and `0x00B0CC80`.
+Their world, player and query identities remain unresolved.
+
 ## Placed setup flags and group byte
 
 Attribute slot 52, `0x00AA8480`, supplies true to manipulator slots 18 and
