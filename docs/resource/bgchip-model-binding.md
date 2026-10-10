@@ -196,3 +196,6 @@ the serialized source of its initial admission bit. They do not establish
 resource completion, later flag values, visibility or a rendered result.
 The [DivideMap activation finding](layout-block-activation.md) connects deferred
 folder registration to the parent Instance creation callback.
+The [resource setup finding](bgchip-instance-resource-setup.md) follows the
+block's later binding and child setup phases into the concrete BGChip property,
+and identifies a related PHB model consumer with its remaining identity joins.
