@@ -25,6 +25,9 @@ The [observer forwarding diagnostic](windows/observer-diagnostic.md) tests
 x86 service-query and context-write adapters with fake originals and supplies
 an offline entry-byte planner for one pinned DbgEng image.
 
+The [observer candidate contract](windows/observer-candidate.md) defines the
+query-output identity profile, CPU qualification and native execution gates.
+
 ## Ghidra tools
 
 ### Import and catalog export

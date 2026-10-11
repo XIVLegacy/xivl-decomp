@@ -153,6 +153,9 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
+- [Model Pixel shadow parameters](model-pixel-shadow.md)
+- [Model vertex Bool submission](model-vertex-bool.md)
+- [Vertex declaration descriptor lanes](vertex-declarations.md)
 - [Large coffer action families](resource/coffer-action-families.md)
 - [Bowl of Embers fire-ring layout](resource/ifrit-bowl-ring.md)
 - [Thornmarch ring layout controls](resource/thornmarch-ring-layout.md)
@@ -206,6 +209,8 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Lua and UI
 
+- [Controller configuration](input/controller-configuration.md)
+- [Game controller startup](input/game-controller-startup.md)
 - [Widget command admission and completion](script/widget-command-completion.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)

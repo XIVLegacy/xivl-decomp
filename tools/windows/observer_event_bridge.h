@@ -14,6 +14,8 @@
 namespace xivl::observer_diagnostic
 {
 
+class RawEventBridge;
+
 struct RawIdentityBinding
 {
     std::uintptr_t raw_debug_object = 0;
@@ -28,6 +30,12 @@ struct RawIdentityBinding
 using EngineGenerationProvider = bool (*)(void*                     user,
                                           const RawIdentityBinding& binding,
                                           std::uint64_t*            generation);
+
+enum class RawEventBindingMode : std::uint8_t
+{
+    synchronous,
+    deferred,
+};
 
 enum class BridgeEvidenceKind : std::uint8_t
 {
@@ -49,7 +57,24 @@ struct BridgeEventEvidence
     bool                           has_wait_return      = false;
     bool                           has_context_snapshot = false;
     bool                           engine_binding_known = false;
+    bool                           awaiting_binding     = false;
     bool                           complete             = false;
+    bool                           owner_sink_attempted = false;
+    bool                           owner_sink_succeeded = false;
+    const RawEventBridge*          bridge               = nullptr;
+};
+
+struct EngineBindingReceipt
+{
+    std::uint64_t             attempt_id = 0;
+    RawIdentityBinding        raw_identity{};
+    EngineIdentityObservation observation{};
+    std::uint64_t             engine_generation = 0;
+    EventIdentity             qualified_identity{};
+    EngineBindingStatus       status                            = EngineBindingStatus::Refused;
+    bool                      qualified                         = false;
+    std::uint64_t             callback_operation_id             = 0;
+    std::uint64_t             callback_acquisition_operation_id = 0;
 };
 
 struct BridgeContinuationEvidence
@@ -61,11 +86,14 @@ struct BridgeContinuationEvidence
     raw_recorder::ContinueResultRecord result{};
     raw_recorder::RawEvent             matched_event{};
     EventIdentity                      matched_identity{};
-    PendingEventStatus                 close_status      = PendingEventStatus::Unknown;
-    bool                               has_entry         = false;
-    bool                               has_matched_event = false;
-    bool                               close_attempted   = false;
-    bool                               complete          = false;
+    PendingEventStatus                 close_status         = PendingEventStatus::Unknown;
+    bool                               has_entry            = false;
+    bool                               has_matched_event    = false;
+    bool                               close_attempted      = false;
+    bool                               complete             = false;
+    bool                               owner_sink_attempted = false;
+    bool                               owner_sink_succeeded = false;
+    const RawEventBridge*              bridge               = nullptr;
 };
 
 struct BridgeGapEvidence
@@ -77,12 +105,32 @@ struct BridgeGapEvidence
     bool                            has_raw_gap = false;
 };
 
+using RawLifecycleOwnerEventFunction        = bool (*)(void*                      user,
+                                                       const BridgeEventEvidence& evidence);
+using RawLifecycleOwnerContinuationFunction = bool (*)(
+    void*                             user,
+    const BridgeContinuationEvidence& evidence);
+
+// This is a borrowed, immutable owner view. The event callback runs only
+// after Recorder admits the exact raw key; the continuation callback runs
+// after the bridge records the exact close or retention result. A sink must
+// retain caller-owned lifecycle evidence and return false when it cannot do
+// so. It must not allocate a token or query the engine.
+struct RawLifecycleOwnerSink
+{
+    RawLifecycleOwnerEventFunction        observe_event        = nullptr;
+    RawLifecycleOwnerContinuationFunction observe_continuation = nullptr;
+    void*                                 user                 = nullptr;
+};
+
 class RawEventBridge final
 {
 public:
     explicit RawEventBridge(Recorder&                recorder,
                             EngineGenerationProvider provider      = nullptr,
-                            void*                    provider_user = nullptr) noexcept;
+                            void*                    provider_user = nullptr,
+                            RawEventBindingMode      mode          = RawEventBindingMode::synchronous,
+                            RawLifecycleOwnerSink    owner_sink    = RawLifecycleOwnerSink{}) noexcept;
 
     // The recorder enforces inactive/quiescent configuration. A failed attach
     // leaves the previously configured sink unchanged. The bridge must outlive
@@ -98,10 +146,24 @@ public:
     bool                              coverage() const noexcept;
     std::size_t                       event_count() const noexcept;
     std::size_t                       continuation_count() const noexcept;
+    std::size_t                       binding_receipt_count() const noexcept;
     std::size_t                       gap_count() const noexcept;
     const BridgeEventEvidence&        event(std::size_t index) const noexcept;
     const BridgeContinuationEvidence& continuation(std::size_t index) const noexcept;
+    const EngineBindingReceipt&       binding_receipt(std::size_t index) const noexcept;
     const BridgeGapEvidence&          gap(std::size_t index) const noexcept;
+
+    // Deferred mode accepts a complete raw tuple while its engine lifecycle
+    // token is not yet available. The caller must serialize this operation
+    // with raw notifications and continuation; the bridge supplies no
+    // synchronization framework or native identity lookup.
+    EngineBindingStatus bind_engine_event(const RawIdentityBinding&        raw_identity,
+                                          const EngineIdentityObservation& observation,
+                                          std::uint64_t                    engine_generation,
+                                          std::uint64_t                    attempt_id                        = 0,
+                                          std::uint64_t                    callback_operation_id             = 0,
+                                          std::uint64_t                    callback_acquisition_operation_id = 0) noexcept;
+    RawEventBindingMode binding_mode() const noexcept;
 
 private:
     static void observe_sink(void*                                        user,
@@ -116,18 +178,28 @@ private:
                              const raw_recorder::RawEvent& event,
                              EventIdentity*                identity,
                              RawIdentityBinding*           binding) noexcept;
+    bool        same_raw_identity(const RawIdentityBinding& left,
+                                  const RawIdentityBinding& right) const noexcept;
+    bool        owner_notification_complete(const RawIdentityBinding& raw_identity) const noexcept;
+    std::size_t event_slot(std::size_t raw_event_index) const noexcept;
 
     Recorder&                                                                 recorder_;
     EngineGenerationProvider                                                  provider_      = nullptr;
     void*                                                                     provider_user_ = nullptr;
+    RawEventBindingMode                                                       mode_          = RawEventBindingMode::synchronous;
+    RawLifecycleOwnerSink                                                     owner_sink_{};
     std::atomic<bool>                                                         coverage_{ true };
     std::array<EventIdentity, raw_recorder::kMaxRawEvents>                    identities_{};
+    std::array<EventIdentity, raw_recorder::kMaxRawEvents>                    bound_identities_{};
     std::array<bool, raw_recorder::kMaxRawEvents>                             identity_present_{};
+    std::array<bool, raw_recorder::kMaxRawEvents>                             bound_identity_present_{};
     std::array<BridgeEventEvidence, raw_recorder::kMaxRawEvents>              events_{};
+    std::array<EngineBindingReceipt, raw_recorder::kMaxRawEvents>             bindings_{};
     std::array<BridgeContinuationEvidence, raw_recorder::kMaxContinueRecords> continuations_{};
     std::array<BridgeGapEvidence, raw_recorder::kMaxCoverageGaps>             gaps_{};
     std::size_t                                                               event_count_        = 0;
     std::size_t                                                               continuation_count_ = 0;
+    std::size_t                                                               binding_count_      = 0;
     std::size_t                                                               gap_count_          = 0;
 };
 

@@ -134,6 +134,532 @@ def sample_trace() -> dict:
     )
 
 
+def sample_provenance_trace() -> dict:
+    trace = sample_trace()
+    query = next(row for row in trace["rows"] if row["kind"] == "query")
+    lookup = next(row for row in trace["rows"] if row["kind"] == "lookup")
+    query["service_guid"] = validator.TRANSLATION_SERVICE_GUID
+    query["iid"] = validator.TRANSLATION_IID
+    lookup["service_guid"] = validator.TRANSLATION_SERVICE_GUID
+    query["exit_sequence"] = 8
+    next(row for row in trace["rows"] if row["kind"] == "context_write")["sequence"] = 9
+    next(row for row in trace["rows"] if row["kind"] == "context_write")[
+        "exit_sequence"
+    ] = 10
+    next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )["sequence"] = 11
+    next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )["exit_sequence"] = 12
+    unknown_mapping = dict(
+        status="not_attempted",
+        kind="unknown",
+        base="0x0",
+        extent=0,
+        executable=False,
+        module=dict(
+            mapping_status="not_attempted",
+            resident_base="0x0",
+            resident_extent=0,
+            resident_path="",
+            architecture="",
+            backing_file_size=0,
+            backing_sha256="0" * 64,
+            binding_resident_base="0x0",
+            binding_resident_extent=0,
+            binding_file_size=0,
+            binding_file_sha256="0" * 64,
+            binding_lifetime_id=0,
+            binding_authority_id="",
+            binding_mechanism="",
+            binding_status="unknown",
+            binding_evidence=False,
+        ),
+    )
+    target_mapping = copy.deepcopy(unknown_mapping)
+    target_mapping.update(
+        status="read", kind="image", base="0x300", extent=0x1000, executable=True
+    )
+    target_mapping["module"].update(
+        mapping_status="read",
+        resident_base="0x300",
+        resident_extent=0x1000,
+        resident_path="C:\\synthetic\\provider.dll",
+        architecture="PE32",
+        backing_file_size=0x1000,
+        backing_sha256="5a" * 32,
+        binding_resident_base="0x300",
+        binding_resident_extent=0x1000,
+        binding_file_size=0x1000,
+        binding_file_sha256="5a" * 32,
+        binding_lifetime_id=0xA1,
+        binding_authority_id='synthetic"witness\n1',
+        binding_mechanism="injected-witness",
+        binding_status="bound",
+        binding_evidence=True,
+    )
+    query["provenance"] = dict(
+        status="accepted",
+        acquisition_begin_sequence=6,
+        acquisition_end_sequence=7,
+        lifetime_id=0xA1,
+        lifetime="retained",
+        coherence="coherent",
+        output_complete=True,
+        session_id=query["session_id"],
+        operation_id=query["operation_id"],
+        event_complete=query["event_complete"],
+        raw_debug_object=query["raw_debug_object"],
+        event_pid=query["event_pid"],
+        event_tid=query["event_tid"],
+        raw_generation=query["raw_generation"],
+        event_index=query["event_index"],
+        engine_generation_known=query["engine_generation_known"],
+        engine_generation=query["engine_generation"],
+        returned_interface=query["returned_interface"],
+        vtable=query["vtable"],
+        slot_plus_10_address=query["slot_plus_10_address"],
+        slot_plus_10_target=query["slot_plus_10_target"],
+        interface_mapping=unknown_mapping,
+        vtable_mapping=copy.deepcopy(unknown_mapping),
+        target_mapping=target_mapping,
+    )
+    return trace
+
+
+def sample_deferred_trace() -> dict:
+    trace = sample_trace()
+    raw_rows = trace["rows"]
+    for row in raw_rows:
+        row["engine_generation_known"] = False
+        row["engine_generation"] = 0
+        row["incomplete"] = True
+    admitted = next(
+        row
+        for row in raw_rows
+        if row["kind"] == "pending_event" and row["pending_status"] == "admitted"
+    )
+    admitted["pending_engine_generation_known"] = False
+    admitted["pending_engine_generation"] = 0
+    lookup = next(row for row in raw_rows if row["kind"] == "lookup")
+    context = next(row for row in raw_rows if row["kind"] == "context_write")
+    query = next(row for row in raw_rows if row["kind"] == "query")
+    query["sequence"], query["exit_sequence"] = 3, 6
+    lookup["sequence"], lookup["exit_sequence"] = 4, 5
+    context["sequence"], context["exit_sequence"] = 9, 10
+    closed = next(
+        row
+        for row in raw_rows
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+    qualified = dict(
+        event_complete=True,
+        raw_debug_object="0x20",
+        event_pid=10,
+        event_tid=11,
+        raw_generation=1,
+        event_index=1,
+        engine_generation_known=True,
+        engine_generation=2,
+    )
+    binding = dict(
+        identity=qualified,
+        kind="engine_binding",
+        session_id=1,
+        operation_id=6,
+        parent_operation_id=0,
+        sequence=7,
+        exit_sequence=8,
+        observer_thread_id=12,
+        incomplete=False,
+        pre_log_failed=False,
+        post_log_failed=False,
+        rethrown=False,
+        binding_status="bound",
+        binding_qualified=True,
+        binding_engine_generation=2,
+        binding_raw_event_complete=True,
+        binding_raw_debug_object="0x20",
+        binding_event_pid=10,
+        binding_event_tid=11,
+        binding_raw_generation=1,
+        binding_event_index=1,
+        binding_qualified_event_complete=True,
+        binding_qualified_engine_generation_known=True,
+        binding_qualified_engine_generation=2,
+    )
+    witness = dict(
+        binding_current_thread_known=True,
+        binding_current_thread_id=0,
+        binding_event_thread_known=True,
+        binding_event_thread_id=0,
+        binding_cached_thread_known=True,
+        binding_cached_thread_id=0,
+        binding_current_process_known=True,
+        binding_current_process_id=1,
+        binding_event_process_known=True,
+        binding_event_process_id=1,
+        binding_current_system_pid_known=True,
+        binding_current_system_pid=10,
+        binding_current_system_tid_known=True,
+        binding_current_system_tid=11,
+    )
+    binding.update(witness)
+    for key, value in qualified.items():
+        binding[key] = value
+    for key, value in qualified.items():
+        closed[key] = value
+        closed["pending_" + key] = value
+    closed["sequence"], closed["exit_sequence"] = 11, 12
+    context.update(qualified)
+    context["incomplete"] = False
+    trace["rows"] = [admitted, query, lookup, binding, context, closed]
+    return trace
+
+
+def sample_callback_trace() -> dict:
+    trace = sample_deferred_trace()
+    admitted = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "admitted"
+    )
+    query = next(row for row in trace["rows"] if row["kind"] == "query")
+    lookup = next(row for row in trace["rows"] if row["kind"] == "lookup")
+    binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+    closed = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+
+    raw = dict(
+        event_complete=True,
+        raw_debug_object="0x20",
+        event_pid=10,
+        event_tid=11,
+        raw_generation=1,
+        event_index=1,
+    )
+    qualified = dict(raw, engine_generation_known=True, engine_generation=0x44)
+
+    def header(
+        kind: str, operation: int, parent: int, sequence: int, exit_sequence: int
+    ) -> dict:
+        return dict(
+            kind=kind,
+            session_id=1,
+            operation_id=operation,
+            parent_operation_id=parent,
+            sequence=sequence,
+            exit_sequence=exit_sequence,
+            observer_thread_id=12,
+            incomplete=True,
+            pre_log_failed=False,
+            post_log_failed=False,
+            rethrown=False,
+            incoming_error_known=False,
+            returned_error_known=False,
+            incoming_last_error=0,
+            returned_last_error=0,
+            incoming_last_status=0,
+            returned_last_status=0,
+            engine_generation_known=False,
+            engine_generation=0,
+            **raw,
+        )
+
+    entry = header("callback_entry", 7, 0, 3, 18)
+    entry.update(
+        callback_operation_id=7,
+        callback_kind="breakpoint",
+        entry_raw_identity_known=True,
+        callback_raw_event_complete=True,
+        callback_raw_raw_debug_object="0x20",
+        callback_raw_event_pid=10,
+        callback_raw_event_tid=11,
+        callback_raw_raw_generation=1,
+        callback_raw_event_index=1,
+        callback_raw_engine_generation_known=False,
+        callback_raw_engine_generation=0,
+        exit_outcome="completed",
+        exit_observed=True,
+    )
+
+    acquisition = header("callback_acquisition", 8, 7, 4, 5)
+    acquisition.update(
+        incoming_error_known=True,
+        returned_error_known=True,
+        callback_operation_id=7,
+        acquisition_operation_id=8,
+        callback_kind="breakpoint",
+        acquisition_begin_sequence=4,
+        acquisition_end_sequence=5,
+        acquisition_raw_event_complete=True,
+        acquisition_raw_raw_debug_object="0x20",
+        acquisition_raw_event_pid=10,
+        acquisition_raw_event_tid=11,
+        acquisition_raw_raw_generation=1,
+        acquisition_raw_event_index=1,
+        acquisition_raw_engine_generation_known=False,
+        acquisition_raw_engine_generation=0,
+        acquisition_rechecked_event_complete=True,
+        acquisition_rechecked_raw_debug_object="0x20",
+        acquisition_rechecked_event_pid=10,
+        acquisition_rechecked_event_tid=11,
+        acquisition_rechecked_raw_generation=1,
+        acquisition_rechecked_event_index=1,
+        acquisition_rechecked_engine_generation_known=False,
+        acquisition_rechecked_engine_generation=0,
+        query_interface=dict(
+            hresult=0,
+            output="0x200",
+            output_known=True,
+            status="succeeded",
+            release_attempted=True,
+            release_succeeded=True,
+            release_threw=False,
+            release_result=1,
+        ),
+        sdk_reads=[
+            dict(
+                method=method,
+                hresult=0,
+                output=output,
+                output_known=True,
+                status="succeeded",
+            )
+            for method, output in (
+                ("GetCurrentThreadId", 7),
+                ("GetEventThread", 7),
+                ("GetCurrentProcessId", 2),
+                ("GetEventProcess", 2),
+                ("GetCurrentThreadSystemId", 11),
+                ("GetCurrentProcessSystemId", 10),
+            )
+        ],
+        owner=dict(
+            serialized_selected_state_access=True,
+            retained_source_lifetime=True,
+            authority_id=0xA1,
+            lifetime_id=0xB2,
+            cached_raw_lifecycle_associated=True,
+            cached_raw_debug_object="0x20",
+            cached_raw_process_id=10,
+            cached_raw_thread_id=11,
+            cached_raw_generation=1,
+            cached_engine_id_known=True,
+            cached_engine_id=7,
+            lifecycle_token_known=True,
+            lifecycle_token=0x44,
+        ),
+        outcome="accepted",
+        binding_eligible=True,
+        binding_status="bound",
+        binding_attempt_id=9,
+        error_restore_attempted=True,
+        error_restore_succeeded=True,
+        binding_current_thread_known=True,
+        binding_current_thread_id=7,
+        binding_event_thread_known=True,
+        binding_event_thread_id=7,
+        binding_cached_thread_known=True,
+        binding_cached_thread_id=7,
+        binding_current_process_known=True,
+        binding_current_process_id=2,
+        binding_event_process_known=True,
+        binding_event_process_id=2,
+        binding_current_system_pid_known=True,
+        binding_current_system_pid=10,
+        binding_current_system_tid_known=True,
+        binding_current_system_tid=11,
+    )
+
+    for row in (query, lookup):
+        row.update(
+            engine_generation_known=True, engine_generation=0x44, incomplete=False
+        )
+    query["sequence"], query["exit_sequence"] = 8, 11
+    lookup["sequence"], lookup["exit_sequence"] = 9, 10
+    binding["sequence"], binding["exit_sequence"] = 6, 7
+    binding.update(
+        callback_operation_id=7,
+        callback_acquisition_operation_id=8,
+        binding_attempt_id=9,
+        engine_generation=0x44,
+        binding_engine_generation=0x44,
+        binding_qualified_engine_generation=0x44,
+        binding_current_thread_id=7,
+        binding_event_thread_id=7,
+        binding_cached_thread_id=7,
+        binding_current_process_id=2,
+        binding_event_process_id=2,
+        binding_current_system_pid=10,
+        binding_current_system_tid=11,
+    )
+    closed.update(
+        engine_generation_known=True, engine_generation=0x44, incomplete=False
+    )
+    closed["pending_engine_generation_known"] = True
+    closed["pending_engine_generation"] = 0x44
+    closed["sequence"], closed["exit_sequence"] = 19, 20
+    context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+    context.update(qualified)
+    context["incomplete"] = False
+    context["sequence"], context["exit_sequence"] = 13, 14
+    trace["rows"] = [
+        admitted,
+        entry,
+        acquisition,
+        binding,
+        query,
+        lookup,
+        context,
+        closed,
+    ]
+    return trace
+
+
+def sample_dispatch_trace(phase: str = "before_delegate") -> dict:
+    trace = sample_callback_trace()
+    entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+    acquisition = next(
+        row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+    )
+    binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+    query = next(row for row in trace["rows"] if row["kind"] == "query")
+    lookup = next(row for row in trace["rows"] if row["kind"] == "lookup")
+    context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+    closed = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+    entry.update(
+        incomplete=False,
+        incoming_error_known=True,
+        returned_error_known=True,
+        incoming_last_error=0x41,
+        incoming_last_status=-41,
+        returned_last_error=0xB1,
+        returned_last_status=-177,
+        dispatch_marker=True,
+        dispatch_phase=phase,
+        delegate_identity=(
+            "IDebugEventCallbacks::Breakpoint"
+            if phase == "before_delegate"
+            else "IDebugEventCallbacks::CreateThread"
+        ),
+        delegate_completion_known=True,
+        delegate_hresult_known=True,
+        delegate_hresult=-2147467259,
+        delegate_threw=False,
+        delegate_begin_sequence=12,
+        delegate_end_sequence=13,
+        dispatch_acquisition_operation_id=8,
+        dispatch_binding_attempt_id=9,
+        provider_attempted=True,
+        provider_succeeded=True,
+        provider_threw=False,
+        owner_evidence_complete=True,
+        capture_attempted=True,
+        capture_completed=True,
+        binding_attempted=True,
+        binding_succeeded=True,
+        foreign_thread_refused=False,
+        reentry_refused=False,
+        invalid_configuration_refused=False,
+        capacity_refused=False,
+        error_restore_attempted=True,
+        error_restore_succeeded=True,
+        error_restore_prerequisite_attempted=True,
+        error_restore_prerequisite_succeeded=True,
+        error_restore_late_failure=False,
+        dispatch_incoming_error_known=True,
+        dispatch_returned_error_known=True,
+        dispatch_incoming_last_error=0x41,
+        dispatch_incoming_last_status=-41,
+        dispatch_returned_last_error=0xB1,
+        dispatch_returned_last_status=-177,
+        breakpoint_pointer="0x1234",
+        create_thread_handle=0,
+        create_thread_data_offset=0,
+        create_thread_start_offset=0,
+        callback_arguments_known=True,
+    )
+    if phase == "after_delegate":
+        entry["callback_kind"] = "create_thread"
+        acquisition["callback_kind"] = "create_thread"
+        entry["breakpoint_pointer"] = "0x0"
+        entry["create_thread_handle"] = 0x2000
+        entry["create_thread_data_offset"] = 0x3000
+        entry["create_thread_start_offset"] = 0x4000
+        entry["delegate_begin_sequence"], entry["delegate_end_sequence"] = 8, 13
+        entry["sequence"], entry["exit_sequence"] = 3, 26
+        acquisition["sequence"], acquisition["exit_sequence"] = 14, 15
+        acquisition["acquisition_begin_sequence"] = 14
+        acquisition["acquisition_end_sequence"] = 15
+        binding["sequence"], binding["exit_sequence"] = 16, 17
+        query["sequence"], query["exit_sequence"] = 18, 21
+        lookup["sequence"], lookup["exit_sequence"] = 19, 20
+        context["sequence"], context["exit_sequence"] = 22, 23
+        closed["sequence"], closed["exit_sequence"] = 27, 28
+    else:
+        context["sequence"], context["exit_sequence"] = 14, 15
+    return trace
+
+
+def sample_dispatch_unbound_trace(phase: str = "before_delegate") -> dict:
+    trace = sample_dispatch_trace(phase)
+    entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+    acquisition = next(
+        row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+    )
+    binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+    entry.update(
+        incomplete=True,
+        binding_attempted=False,
+        binding_succeeded=False,
+        dispatch_binding_attempt_id=0,
+    )
+    acquisition.update(binding_status="refused", binding_attempt_id=0)
+    binding.update(
+        callback_operation_id=0,
+        callback_acquisition_operation_id=0,
+        binding_attempt_id=0,
+        binding_status="refused",
+        binding_qualified=False,
+        binding_engine_generation=0,
+        binding_qualified_event_complete=False,
+        binding_qualified_engine_generation_known=False,
+        binding_qualified_engine_generation=0,
+        incomplete=True,
+    )
+    for row in trace["rows"]:
+        if row["kind"] in {"query", "lookup", "context_write"}:
+            row.update(
+                engine_generation_known=False, engine_generation=0, incomplete=True
+            )
+    closed = next(
+        row
+        for row in trace["rows"]
+        if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+    )
+    closed.update(
+        engine_generation_known=False,
+        engine_generation=0,
+        pending_engine_generation_known=False,
+        pending_engine_generation=0,
+        incomplete=True,
+    )
+    return trace
+
+
 class TraceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.trace = (
@@ -154,6 +680,544 @@ class TraceTests(unittest.TestCase):
 
     def test_complete_synthetic_trace(self) -> None:
         self.assertEqual(validator.validate_trace(self.trace), len(self.trace["rows"]))
+
+    def test_deferred_binding_keeps_early_query_unqualified(self) -> None:
+        trace = sample_deferred_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+        early = next(row for row in trace["rows"] if row["kind"] == "query")
+        self.assertTrue(early["incomplete"])
+        self.assertFalse(early["engine_generation_known"])
+
+    def test_callback_trace_accepts_shared_clock_and_full_sdk_evidence(self) -> None:
+        trace = sample_callback_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+    def test_callback_dispatch_accepts_completed_negative_hresult(self) -> None:
+        trace = sample_dispatch_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        self.assertEqual(entry["delegate_hresult"], -2147467259)
+
+    def test_callback_dispatch_accepts_create_thread_after_delegate_order(self) -> None:
+        trace = sample_dispatch_trace("after_delegate")
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+    def test_callback_dispatch_accepts_reader_capture_without_raw_bridge(self) -> None:
+        trace = sample_dispatch_unbound_trace()
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        self.assertTrue(entry["incomplete"])
+        self.assertFalse(entry["binding_attempted"])
+        self.assertFalse(entry["binding_succeeded"])
+        self.assertEqual(acquisition["outcome"], "accepted")
+        self.assertEqual(acquisition["binding_status"], "refused")
+        self.assertEqual(acquisition["binding_attempt_id"], 0)
+
+        forged = sample_dispatch_unbound_trace()
+        forged_entry = next(
+            row for row in forged["rows"] if row["kind"] == "callback_entry"
+        )
+        forged_entry["binding_attempted"] = True
+        with self.assertRaisesRegex(ValueError, "binding evidence"):
+            validator.validate_trace(forged)
+
+    def test_callback_dispatch_accepts_bound_late_restore_failure(self) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["incomplete"] = True
+        entry["error_restore_succeeded"] = False
+        entry["error_restore_late_failure"] = True
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["incomplete"] = True
+        entry["error_restore_succeeded"] = False
+        entry["error_restore_late_failure"] = True
+        entry["dispatch_binding_attempt_id"] = 0
+        with self.assertRaisesRegex(ValueError, "binding link"):
+            validator.validate_trace(trace)
+
+    def test_callback_dispatch_rejects_forged_complete_success(self) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["binding_succeeded"] = False
+        with self.assertRaisesRegex(ValueError, "complete callback dispatch"):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["dispatch_acquisition_operation_id"] = 0
+        entry["binding_attempted"] = False
+        entry["binding_succeeded"] = False
+        with self.assertRaisesRegex(ValueError, "capture lacks acquisition link"):
+            validator.validate_trace(trace)
+
+    def test_callback_dispatch_rejects_accepted_contradictory_wrapper_evidence(
+        self,
+    ) -> None:
+        for field in (
+            "foreign_thread_refused",
+            "reentry_refused",
+            "invalid_configuration_refused",
+            "error_restore_succeeded",
+            "error_restore_prerequisite_succeeded",
+            "provider_succeeded",
+            "owner_evidence_complete",
+            "capture_completed",
+            "dispatch_returned_error_known",
+        ):
+            trace = sample_dispatch_trace()
+            entry = next(
+                row for row in trace["rows"] if row["kind"] == "callback_entry"
+            )
+            entry["incomplete"] = True
+            if field == "provider_succeeded":
+                entry["provider_attempted"] = False
+                entry["provider_succeeded"] = False
+                entry["owner_evidence_complete"] = False
+            elif field in {
+                "foreign_thread_refused",
+                "reentry_refused",
+                "invalid_configuration_refused",
+            }:
+                entry[field] = True
+            elif field == "owner_evidence_complete":
+                entry[field] = False
+            elif field == "capture_completed":
+                entry[field] = False
+            elif field == "dispatch_returned_error_known":
+                entry[field] = False
+            else:
+                entry[field] = False
+            try:
+                validator.validate_trace(trace)
+            except ValueError:
+                pass
+            else:
+                self.fail(f"accepted contradictory dispatch field: {field}")
+
+    def test_callback_dispatch_exit_outcome_must_match_delegate_exception(self) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["exit_outcome"] = "exception"
+        with self.assertRaisesRegex(ValueError, "exception callback exit"):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["delegate_threw"] = True
+        entry["delegate_completion_known"] = False
+        entry["delegate_hresult_known"] = False
+        entry["delegate_hresult"] = -2147467259
+        with self.assertRaisesRegex(ValueError, "completed callback exit"):
+            validator.validate_trace(trace)
+
+    def test_callback_dispatch_rejects_delegate_order_or_binding_link_mutation(
+        self,
+    ) -> None:
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["delegate_begin_sequence"] = 3
+        with self.assertRaises(ValueError):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace()
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        entry["dispatch_binding_attempt_id"] = 10
+        with self.assertRaisesRegex(ValueError, "binding link"):
+            validator.validate_trace(trace)
+
+        trace = sample_dispatch_trace("after_delegate")
+        entry = next(row for row in trace["rows"] if row["kind"] == "callback_entry")
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sequence"], acquisition["exit_sequence"] = 11, 12
+        acquisition["acquisition_begin_sequence"] = 11
+        acquisition["acquisition_end_sequence"] = 12
+        with self.assertRaisesRegex(ValueError, "create-thread delegate"):
+            validator.validate_trace(trace)
+
+    def test_callback_sdk_method_type_is_rejected(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sdk_reads"][0]["method"] = "GetEventProcess"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_successful_id_cannot_use_invalid_sentinel(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sdk_reads"][5]["output"] = 0
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_successful_sdk_read_cannot_have_failure_hresult(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["sdk_reads"][0]["hresult"] = -1
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["query_interface"]["hresult"] = -1
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_witness_must_match_all_sdk_outputs(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["binding_event_process_id"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_owner_lifecycle_tuple_must_match_raw_key(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["owner"]["cached_raw_generation"] = 2
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_kind_and_binding_generation_links_are_strict(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["callback_kind"] = "create_thread"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+        trace = sample_callback_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding.update(
+            binding_engine_generation=0x45,
+            binding_qualified_engine_generation=0x45,
+            engine_generation=0x45,
+        )
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_bound_acquisition_requires_one_reciprocal_binding_link(
+        self,
+    ) -> None:
+        trace = sample_callback_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding.update(
+            callback_operation_id=0,
+            callback_acquisition_operation_id=0,
+            binding_attempt_id=999,
+        )
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_refused_acquisition_cannot_link_to_bound_row(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["outcome"] = "query_interface_refused"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_accepted_acquisition_cannot_use_foreign_observer_thread(
+        self,
+    ) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["observer_thread_id"] = 99
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_trace_keeps_context_write_boundary(self) -> None:
+        trace = sample_callback_trace()
+        trace["rows"] = [row for row in trace["rows"] if row["kind"] != "context_write"]
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_owner_token_must_be_nonzero(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["owner"]["lifecycle_token"] = 0
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_error_pair_restoration_is_required(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["error_restore_succeeded"] = False
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_qi_cleanup_must_release_owned_reference(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["query_interface"]["release_succeeded"] = False
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_callback_refusal_preserves_unqualified_rows(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["outcome"] = "query_interface_refused"
+        acquisition["binding_eligible"] = False
+        acquisition["binding_status"] = "refused"
+        acquisition["query_interface"].update(
+            hresult=-2147467262,
+            output="0x0",
+            output_known=False,
+            status="failed",
+            release_attempted=False,
+            release_succeeded=False,
+            release_result=0,
+        )
+        for read in acquisition["sdk_reads"]:
+            read.update(
+                output=(
+                    0xFFFFFFFF
+                    if read["method"]
+                    in {
+                        "GetCurrentThreadId",
+                        "GetEventThread",
+                        "GetCurrentProcessId",
+                        "GetEventProcess",
+                    }
+                    else 0
+                ),
+                hresult=-2147467259,
+                output_known=False,
+                status="not_attempted",
+            )
+        for key in (
+            "serialized_selected_state_access",
+            "retained_source_lifetime",
+            "cached_raw_lifecycle_associated",
+            "cached_engine_id_known",
+            "lifecycle_token_known",
+        ):
+            acquisition["owner"][key] = False
+        acquisition["owner"].update(
+            authority_id=0,
+            lifetime_id=0,
+            cached_engine_id=0xFFFFFFFF,
+            lifecycle_token=0,
+        )
+        for key in (
+            "binding_current_thread_known",
+            "binding_event_thread_known",
+            "binding_cached_thread_known",
+            "binding_current_process_known",
+            "binding_event_process_known",
+            "binding_current_system_pid_known",
+            "binding_current_system_tid_known",
+        ):
+            acquisition[key] = False
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding.update(
+            binding_status="refused",
+            binding_qualified=False,
+            binding_engine_generation=0,
+            incomplete=True,
+        )
+        for row in trace["rows"]:
+            if row["kind"] in {"query", "lookup", "context_write", "pending_event"}:
+                row["engine_generation_known"] = False
+                row["engine_generation"] = 0
+                row["incomplete"] = True
+                if row["kind"] == "pending_event":
+                    row["pending_engine_generation_known"] = False
+                    row["pending_engine_generation"] = 0
+        self.assertEqual(validator.validate_trace(trace), len(trace["rows"]))
+
+        foreign_refusal = copy.deepcopy(trace)
+        foreign_refusal["rows"][2]["observer_thread_id"] = 99
+        self.assertEqual(
+            validator.validate_trace(foreign_refusal), len(foreign_refusal["rows"])
+        )
+
+        malformed = copy.deepcopy(trace)
+        malformed_read = malformed["rows"][2]["sdk_reads"][0]
+        malformed_read.update(status="failed", hresult=0)
+        self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+        malformed = copy.deepcopy(trace)
+        malformed_read = malformed["rows"][2]["sdk_reads"][0]
+        malformed_read.update(status="invalid_output", hresult=-1)
+        self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+        malformed = copy.deepcopy(trace)
+        malformed_read = malformed["rows"][2]["sdk_reads"][0]
+        malformed_read.update(status="not_attempted", hresult=0)
+        self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+        for prefix in ("acquisition_raw", "acquisition_rechecked", ""):
+            malformed = copy.deepcopy(trace)
+            malformed_acquisition = malformed["rows"][2]
+            complete_key = f"{prefix}_event_complete" if prefix else "event_complete"
+            known_key = (
+                f"{prefix}_engine_generation_known"
+                if prefix
+                else "engine_generation_known"
+            )
+            generation_key = (
+                f"{prefix}_engine_generation" if prefix else "engine_generation"
+            )
+            malformed_acquisition[complete_key] = False
+            malformed_acquisition[known_key] = True
+            malformed_acquisition[generation_key] = 999
+            self.assertRaises(ValueError, validator.validate_trace, malformed)
+
+    def test_callback_acquisition_interval_must_match_shared_clock(self) -> None:
+        trace = sample_callback_trace()
+        acquisition = next(
+            row for row in trace["rows"] if row["kind"] == "callback_acquisition"
+        )
+        acquisition["acquisition_end_sequence"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_query_crossing_binding_is_rejected(self) -> None:
+        trace = sample_deferred_trace()
+        early = next(row for row in trace["rows"] if row["kind"] == "query")
+        context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        early["exit_sequence"] = 9
+        context["sequence"], context["exit_sequence"] = 10, 11
+        closed["sequence"], closed["exit_sequence"] = 12, 13
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_must_match_raw_tuple(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_event_index"] = 2
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_rejects_inconsistent_witness(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_event_process_id"] = 2
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_generation_must_match_qualified_identity(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_qualified_engine_generation"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_close_must_match_bound_identity(self) -> None:
+        trace = sample_deferred_trace()
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        closed["pending_engine_generation"] = 3
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_forwarding_keeps_strict_query_fields(self) -> None:
+        trace = sample_deferred_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["service_guid_status"] = "null"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_complete_forwarding_rejects_logging_failure(self) -> None:
+        for key in ("pre_log_failed", "post_log_failed", "rethrown"):
+            with self.subTest(key=key):
+                trace = sample_deferred_trace()
+                context = next(
+                    row for row in trace["rows"] if row["kind"] == "context_write"
+                )
+                context[key] = True
+                self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_binding_exit_overlap_is_rejected(self) -> None:
+        trace = sample_deferred_trace()
+        early = next(row for row in trace["rows"] if row["kind"] == "query")
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        binding["exit_sequence"] = 9
+        early["exit_sequence"] = 10
+        context["sequence"], context["exit_sequence"] = 11, 12
+        closed["sequence"], closed["exit_sequence"] = 13, 14
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_raw_only_identity_fields_are_typed(self) -> None:
+        for key, value in (
+            ("engine_generation_known", "bogus"),
+            ("engine_generation", "invalid"),
+        ):
+            with self.subTest(key=key):
+                trace = sample_deferred_trace()
+                early = next(row for row in trace["rows"] if row["kind"] == "query")
+                early[key] = value
+                self.assertRaises(ValueError, validator.validate_trace, trace)
+        trace = sample_deferred_trace()
+        admitted = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "admitted"
+        )
+        admitted["pending_engine_generation"] = "invalid"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_bound_qualification_flag_is_boolean(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        binding["binding_qualified"] = "yes"
+        self.assertRaises(ValueError, validator.validate_trace, trace)
+
+    def test_deferred_nonbound_binding_cannot_claim_qualification(self) -> None:
+        trace = sample_deferred_trace()
+        binding = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        context = next(row for row in trace["rows"] if row["kind"] == "context_write")
+        closed = next(
+            row
+            for row in trace["rows"]
+            if row["kind"] == "pending_event" and row["pending_status"] == "closed"
+        )
+        binding["binding_status"] = "duplicate"
+        binding["binding_qualified"] = True
+        binding["incomplete"] = True
+        binding["sequence"], binding["exit_sequence"] = 9, 10
+        context["sequence"], context["exit_sequence"] = 11, 12
+        closed["sequence"], closed["exit_sequence"] = 13, 14
+        with self.assertRaisesRegex(
+            ValueError, "non-bound binding claims qualification"
+        ):
+            validator.validate_trace(trace)
+
+        trace = sample_deferred_trace()
+        bound = next(row for row in trace["rows"] if row["kind"] == "engine_binding")
+        stale = bound.copy()
+        stale["binding_status"] = "stale"
+        stale["binding_qualified"] = True
+        stale["incomplete"] = True
+        stale["operation_id"] = 7
+        stale["sequence"], stale["exit_sequence"] = 15, 16
+        trace["rows"].append(stale)
+        with self.assertRaisesRegex(
+            ValueError, "non-bound binding claims qualification"
+        ):
+            validator.validate_trace(trace)
 
     def test_zero_based_raw_event_index_is_preserved(self) -> None:
         for row in self.trace["rows"]:
@@ -262,6 +1326,119 @@ class TraceTests(unittest.TestCase):
             )
         ]
         self.reject()
+
+    def test_strict_provenance_requires_selected_query(self) -> None:
+        with self.assertRaisesRegex(ValueError, "no qualified translation query"):
+            validator.validate_provenance(sample_trace())
+
+    def test_strict_provenance_accepts_synthetic_output(self) -> None:
+        trace = self.trace if TRACE_PATH is not None else sample_provenance_trace()
+        self.assertGreaterEqual(validator.validate_provenance(trace), 1)
+
+    def test_strict_provenance_rejects_target_binding_mutation(self) -> None:
+        trace = self.trace if TRACE_PATH is not None else sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["module"]["binding_status"] = "unbound"
+        with self.assertRaisesRegex(ValueError, "backing file"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_association_mutation(self) -> None:
+        trace = self.trace if TRACE_PATH is not None else sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["provenance"]["operation_id"] += 1
+        with self.assertRaisesRegex(ValueError, "operation mismatch"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_address_and_session_mutations(self) -> None:
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["provenance"]["slot_plus_10_target"] = "0x401"
+        with self.assertRaisesRegex(ValueError, "address mismatch"):
+            validator.validate_provenance(trace)
+
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["session_id"] += 1
+        with self.assertRaisesRegex(ValueError, "mixed sessions"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_unknown_or_unread_target(self) -> None:
+        for field, value, message in [
+            ("status", "not_attempted", "unread provenance mapping"),
+            ("kind", "unknown", "unknown claimed provenance mapping"),
+        ]:
+            with self.subTest(field=field):
+                trace = sample_provenance_trace()
+                target = next(row for row in trace["rows"] if row["kind"] == "query")[
+                    "provenance"
+                ]["target_mapping"]
+                target[field] = value
+                with self.assertRaisesRegex(ValueError, message):
+                    validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_changed_or_incomplete_evidence(self) -> None:
+        for field, value, message in [
+            ("coherence", "changed", "not coherent"),
+            ("output_complete", False, "incomplete query output"),
+            ("event_complete", False, "unknown event identity"),
+        ]:
+            with self.subTest(field=field):
+                trace = sample_provenance_trace()
+                query = next(row for row in trace["rows"] if row["kind"] == "query")
+                if field == "event_complete":
+                    query["provenance"][field] = value
+                else:
+                    query["provenance"][field] = value
+                with self.assertRaisesRegex(ValueError, message):
+                    validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_matching_incomplete_events(self) -> None:
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["event_complete"] = False
+        query["provenance"]["event_complete"] = False
+        query["incomplete"] = False
+        with self.assertRaisesRegex(ValueError, "unknown event identity"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_hash_only_or_zero_hash_binding(self) -> None:
+        trace = sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["module"]["binding_status"] = "unknown"
+        target["module"]["binding_evidence"] = False
+        with self.assertRaisesRegex(ValueError, "backing file"):
+            validator.validate_provenance(trace)
+
+        trace = sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["module"]["backing_sha256"] = "0" * 64
+        target["module"]["binding_file_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "invalid resident backing hash"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_non_x86_target_extent(self) -> None:
+        trace = sample_provenance_trace()
+        target = next(row for row in trace["rows"] if row["kind"] == "query")[
+            "provenance"
+        ]["target_mapping"]
+        target["extent"] = 0xFFFFFFFFFFFFFFFF
+        target["module"]["resident_extent"] = 0xFFFFFFFFFFFFFFFF
+        target["module"]["binding_resident_extent"] = 0xFFFFFFFFFFFFFFFF
+        with self.assertRaisesRegex(ValueError, "non x86"):
+            validator.validate_provenance(trace)
+
+    def test_strict_provenance_rejects_duplicate_acquisition_sequence(self) -> None:
+        trace = sample_provenance_trace()
+        query = next(row for row in trace["rows"] if row["kind"] == "query")
+        query["provenance"]["acquisition_begin_sequence"] = query["sequence"]
+        with self.assertRaisesRegex(ValueError, "duplicate provenance acquisition"):
+            validator.validate_provenance(trace)
 
 
 if __name__ == "__main__":

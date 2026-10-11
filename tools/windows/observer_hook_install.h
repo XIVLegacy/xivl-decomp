@@ -3,6 +3,7 @@
 #define XIVL_OBSERVER_HOOK_INSTALL_H
 
 #include "observer_diagnostic.h"
+#include "observer_dispatch_gate.h"
 
 #include <array>
 #include <cstddef>
@@ -100,18 +101,17 @@ struct HookProtectionChange
     HookProtection  requested = HookProtection::None;
 };
 
-// Backend attestations. The transaction requires every field at each revalidation
-// and verifies none of them. The thread conditions cover every thread of the
-// process that hosts the module from acquire_quiescence to release_quiescence,
-// not a snapshot of the threads present at acquisition.
-struct HookQuiescenceProof
+struct HookQuiescenceAttestation
 {
-    bool zero_active_calls                   = false;
-    bool other_threads_held                  = false;
-    bool thread_creation_barred              = false;
-    bool no_context_in_span_interiors        = false;
-    bool no_context_in_wrapper_or_trampoline = false;
+    bool no_active_forwarding_calls     = false;
+    bool all_other_process_threads_held = false;
+    // Creation may proceed; new threads must not execute user-mode code while the lease is held.
+    bool new_threads_prevented_from_executing                = false;
+    bool no_held_instruction_context_in_entry_span_interiors = false;
+    bool no_context_in_wrappers_or_trampolines               = false;
 };
+
+struct HookInstallState;
 
 using HookRetainModule = HookBackendResult (*)(
     void*            user,
@@ -131,9 +131,9 @@ using HookAcquireQuiescence = HookBackendResult (*)(
     HookOpaqueToken  pin,
     HookOpaqueToken* lease);
 using HookRevalidateQuiescence = HookBackendResult (*)(
-    void*                user,
-    HookOpaqueToken      lease,
-    HookQuiescenceProof* proof);
+    void*                      user,
+    HookOpaqueToken            lease,
+    HookQuiescenceAttestation* attestation);
 using HookReleaseQuiescence = HookBackendResult (*)(
     void*           user,
     HookOpaqueToken lease);
@@ -159,7 +159,6 @@ using HookWriteBytes = HookBackendResult (*)(
     std::uintptr_t      address,
     const std::uint8_t* source,
     std::size_t         size);
-// Success only when the bytes equal expected, Refused when they differ.
 using HookVerifyBytes = HookBackendResult (*)(
     void*               user,
     std::uintptr_t      address,
@@ -190,10 +189,13 @@ using HookPublishOriginal = HookBackendResult (*)(
     void*          user,
     HookEntryId    entry,
     std::uintptr_t trampoline);
+// The state is the live transaction state before this entry's publication flag
+// is cleared, so a publication adapter can reject reachable redirects.
 using HookClearOriginal = HookBackendResult (*)(
-    void*          user,
-    HookEntryId    entry,
-    std::uintptr_t trampoline);
+    void*                   user,
+    HookEntryId             entry,
+    std::uintptr_t          trampoline,
+    const HookInstallState* state);
 
 struct HookInstallBackend
 {
@@ -217,6 +219,9 @@ struct HookInstallBackend
     HookRevokeCfg             revoke_cfg              = nullptr;
     HookPublishOriginal       publish_original        = nullptr;
     HookClearOriginal         clear_original          = nullptr;
+    // A null gate retains legacy fake behavior. A configured gate is the
+    // authoritative attempt boundary for every mutating callback above.
+    ObserverDispatchGate* dispatch_gate = nullptr;
 };
 
 struct HookWrapperSpec
@@ -227,7 +232,6 @@ struct HookWrapperSpec
 
 struct HookInstallRequest
 {
-    // The loaded base address of the module, which is its HMODULE value.
     void*                                        module = nullptr;
     std::array<HookWrapperSpec, kHookEntryCount> wrappers{};
 };
@@ -264,10 +268,6 @@ enum class HookTransactionState : std::uint8_t
     Retained,
 };
 
-// Retained with unknown_side_effects false means the recorded state is accurate
-// and restore may retry. protection_unverified means a write window may still
-// lack its inspected protection. Both reports copy the two flags from the state
-// when they retain it.
 struct HookInstallState
 {
     HookInstallBackend                          backend{};
@@ -278,9 +278,9 @@ struct HookInstallState
     HookTransactionState                        state                 = HookTransactionState::Empty;
     bool                                        module_pin_held       = false;
     bool                                        quiescence_lease_held = false;
-    bool                                        installed             = false;
     bool                                        unknown_side_effects  = false;
     bool                                        protection_unverified = false;
+    bool                                        installed_history     = false;
 };
 
 enum class HookInstallDisposition : std::uint8_t
@@ -299,6 +299,7 @@ enum class HookFailure : std::uint8_t
     MissingBackend,
     ModulePin,
     ModuleInspection,
+    ModuleHandle,
     UnsupportedProfile,
     Quiescence,
     RangeOwnership,
@@ -323,8 +324,8 @@ struct HookInstallReport
     std::uint32_t          prepared_entries      = 0;
     std::uint32_t          redirected_entries    = 0;
     bool                   resources_retained    = false;
-    bool                   protection_unverified = false;
     bool                   unknown_side_effects  = false;
+    bool                   protection_unverified = false;
 };
 
 struct HookRestoreReport
@@ -333,8 +334,8 @@ struct HookRestoreReport
     HookFailure            failure               = HookFailure::None;
     std::uint32_t          restored_entries      = 0;
     bool                   resources_retained    = false;
-    bool                   protection_unverified = false;
     bool                   unknown_side_effects  = false;
+    bool                   protection_unverified = false;
 };
 
 // Callers serialize transaction calls and state inspection for each state.

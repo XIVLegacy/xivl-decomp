@@ -1,12 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "observer_diagnostic.h"
 
+#include "observer_collection.h"
+
+#if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
+#include <intrin.h>
+#pragma intrinsic(_InterlockedCompareExchange64)
+#define XIVL_OBSERVER_BRIDGE_FORCEINLINE __forceinline
+#else
+#define XIVL_OBSERVER_BRIDGE_FORCEINLINE
+#endif
+
 #include <algorithm>
 #include <exception>
 #include <iomanip>
 #include <limits>
 #include <sstream>
 #include <type_traits>
+#include <utility>
 
 namespace xivl::observer_diagnostic
 {
@@ -16,26 +27,63 @@ namespace
 
 thread_local Recorder* g_bridge_recorder = nullptr;
 
-std::mutex                        g_passthrough_mutex;
-std::atomic<LookupOriginal>       g_passthrough_lookup{ nullptr };
-std::atomic<QueryOriginal>        g_passthrough_query{ nullptr };
-std::atomic<ContextWriteOriginal> g_passthrough_context{ nullptr };
-std::atomic<bool>                 g_passthrough_published{ false };
-std::atomic<std::uint64_t>        g_bridge_calls{ 0 };
-std::atomic<std::uint64_t>        g_unlogged_calls{ 0 };
-std::uint64_t                     g_passthrough_generation = 0;
+std::mutex                  g_passthrough_mutex;
+ObserverPublicationRecordV1 g_passthrough_record{};
+std::uint64_t               g_controller_owner_id = 0;
 
 struct BridgeCall
 {
+#if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
+    XIVL_OBSERVER_BRIDGE_FORCEINLINE BridgeCall()
+    {
+        volatile __int64* counter =
+            reinterpret_cast<volatile __int64*>(&g_passthrough_record.active_forwarding_calls);
+        for (;;)
+        {
+            const __int64 observed = _InterlockedCompareExchange64(counter, 0, 0);
+            const __int64 desired  = observed + 1;
+            if (_InterlockedCompareExchange64(counter, desired, observed) == observed)
+            {
+                break;
+            }
+        }
+    }
+
+    XIVL_OBSERVER_BRIDGE_FORCEINLINE void finish() noexcept
+    {
+        volatile __int64* counter =
+            reinterpret_cast<volatile __int64*>(&g_passthrough_record.active_forwarding_calls);
+        for (;;)
+        {
+            const __int64 observed = _InterlockedCompareExchange64(counter, 0, 0);
+            const __int64 desired  = observed - 1;
+            if (_InterlockedCompareExchange64(counter, desired, observed) == observed)
+            {
+                break;
+            }
+        }
+    }
+
+    // Exceptional bridge unwinds retain the admission count so publication
+    // and qualification refuse the unknown cleanup state.
+    ~BridgeCall() = default;
+#else
     BridgeCall()
     {
-        g_bridge_calls.fetch_add(1, std::memory_order_acq_rel);
+        std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
+            .fetch_add(1, std::memory_order_acq_rel);
     }
 
     ~BridgeCall()
     {
-        g_bridge_calls.fetch_sub(1, std::memory_order_release);
+        std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
+            .fetch_sub(1, std::memory_order_release);
     }
+
+    void finish() noexcept
+    {
+    }
+#endif
 
     BridgeCall(const BridgeCall&)            = delete;
     BridgeCall& operator=(const BridgeCall&) = delete;
@@ -63,6 +111,54 @@ std::uintptr_t function_address(QueryOriginal value)
 std::uintptr_t function_address(ContextWriteOriginal value)
 {
     return reinterpret_cast<std::uintptr_t>(value);
+}
+
+std::uint32_t target_value(LookupOriginal value)
+{
+    return static_cast<std::uint32_t>(function_address(value));
+}
+
+std::uint32_t target_value(QueryOriginal value)
+{
+    return static_cast<std::uint32_t>(function_address(value));
+}
+
+std::uint32_t target_value(ContextWriteOriginal value)
+{
+    return static_cast<std::uint32_t>(function_address(value));
+}
+
+LookupOriginal lookup_target(std::uint32_t value)
+{
+    return reinterpret_cast<LookupOriginal>(static_cast<std::uintptr_t>(value));
+}
+
+QueryOriginal query_target(std::uint32_t value)
+{
+    return reinterpret_cast<QueryOriginal>(static_cast<std::uintptr_t>(value));
+}
+
+ContextWriteOriginal context_target(std::uint32_t value)
+{
+    return reinterpret_cast<ContextWriteOriginal>(static_cast<std::uintptr_t>(value));
+}
+
+bool publication_is_published()
+{
+    return (std::atomic_ref<std::uint32_t>(g_passthrough_record.flags).load(std::memory_order_acquire) &
+            kObserverPublicationPublishedFlag) != 0;
+}
+
+std::uint64_t active_forwarding_calls()
+{
+    return std::atomic_ref<std::uint64_t>(g_passthrough_record.active_forwarding_calls)
+        .load(std::memory_order_acquire);
+}
+
+std::uint64_t unlogged_calls()
+{
+    return std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+        .load(std::memory_order_relaxed);
 }
 
 std::uintptr_t pointer_address(const void* value)
@@ -93,6 +189,84 @@ const RowHeader& row_header(const TraceRow& row)
 bool same_identity(const EventIdentity& left, const EventIdentity& right)
 {
     return left.complete == right.complete && left.raw_debug_object == right.raw_debug_object && left.process_id == right.process_id && left.thread_id == right.thread_id && left.raw_generation == right.raw_generation && left.event_index == right.event_index && left.engine_generation_known == right.engine_generation_known && left.engine_generation == right.engine_generation;
+}
+
+bool raw_identity_complete(const EventIdentity& identity);
+
+bool same_raw_identity(const EventIdentity& left, const EventIdentity& right)
+{
+    return left.complete && right.complete && left.raw_debug_object == right.raw_debug_object &&
+           left.process_id == right.process_id && left.thread_id == right.thread_id &&
+           left.raw_generation == right.raw_generation && left.event_index == right.event_index;
+}
+
+EventIdentity raw_only_identity(const EventIdentity& identity)
+{
+    EventIdentity raw           = identity;
+    raw.engine_generation_known = false;
+    raw.engine_generation       = 0;
+    return raw;
+}
+
+bool raw_key_available(const EventIdentity& identity)
+{
+    return raw_identity_complete(identity);
+}
+
+bool callback_owner_evidence_complete(const CallbackOwnerEvidence& owner)
+{
+    return owner.serialized_selected_state_access && owner.retained_source_lifetime &&
+           owner.authority_id != 0 && owner.lifetime_id != 0 &&
+           owner.cached_raw_lifecycle_associated && owner.cached_raw_debug_object != 0 &&
+           owner.cached_raw_process_id != 0 && owner.cached_raw_thread_id != 0 &&
+           owner.cached_raw_generation != 0 && owner.cached_engine_id_known &&
+           owner.cached_engine_id != kDebugAnyEngineId && owner.lifecycle_token_known &&
+           owner.lifecycle_token != 0;
+}
+
+bool same_lifecycle_identity(const EventIdentity& left, const EventIdentity& right)
+{
+    return left.complete && right.complete && left.raw_debug_object == right.raw_debug_object &&
+           left.process_id == right.process_id && left.thread_id == right.thread_id &&
+           left.raw_generation == right.raw_generation;
+}
+
+bool owner_lifecycle_matches(const CallbackOwnerEvidence& owner, const EventIdentity& identity)
+{
+    return owner.cached_raw_lifecycle_associated && identity.complete && identity.raw_debug_object != 0 &&
+           identity.process_id != 0 && identity.thread_id != 0 && identity.raw_generation != 0 &&
+           owner.cached_raw_debug_object == identity.raw_debug_object &&
+           owner.cached_raw_process_id == identity.process_id &&
+           owner.cached_raw_thread_id == identity.thread_id &&
+           owner.cached_raw_generation == identity.raw_generation;
+}
+
+bool binding_evidence_complete(const EventIdentity&             raw,
+                               const EngineIdentityObservation& observation,
+                               std::uint64_t                    engine_generation)
+{
+    if (!raw.complete || raw.raw_debug_object == 0 || raw.process_id == 0 ||
+        raw.thread_id == 0 || raw.raw_generation == 0 || engine_generation == 0 ||
+        !observation.current_thread_known || !observation.event_thread_known ||
+        !observation.cached_thread_known || !observation.current_process_known ||
+        !observation.event_process_known || !observation.current_system_pid_known ||
+        !observation.current_system_tid_known)
+    {
+        return false;
+    }
+    if (observation.current_thread_id == kDebugAnyEngineId ||
+        observation.event_thread_id == kDebugAnyEngineId ||
+        observation.cached_thread_id == kDebugAnyEngineId ||
+        observation.current_process_id == kDebugAnyEngineId ||
+        observation.event_process_id == kDebugAnyEngineId)
+    {
+        return false;
+    }
+    return observation.current_thread_id == observation.event_thread_id &&
+           observation.current_thread_id == observation.cached_thread_id &&
+           observation.current_process_id == observation.event_process_id &&
+           observation.current_system_pid == raw.process_id &&
+           observation.current_system_tid == raw.thread_id;
 }
 
 bool raw_identity_complete(const EventIdentity& identity)
@@ -143,6 +317,204 @@ const char* pending_name(PendingEventStatus status)
     return "unknown";
 }
 
+const char* binding_name(EngineBindingStatus status)
+{
+    switch (status)
+    {
+        case EngineBindingStatus::Bound:
+            return "bound";
+        case EngineBindingStatus::Missing:
+            return "missing";
+        case EngineBindingStatus::Changed:
+            return "changed";
+        case EngineBindingStatus::Stale:
+            return "stale";
+        case EngineBindingStatus::AlreadyBound:
+            return "already_bound";
+        case EngineBindingStatus::Conflict:
+            return "conflict";
+        case EngineBindingStatus::Duplicate:
+            return "duplicate";
+        case EngineBindingStatus::IncompleteEvidence:
+            return "incomplete_evidence";
+        case EngineBindingStatus::ContinuationClosed:
+            return "continuation_closed";
+        case EngineBindingStatus::Refused:
+            return "refused";
+        case EngineBindingStatus::Overflow:
+            return "overflow";
+    }
+    return "refused";
+}
+
+const char* callback_sdk_method_name(CallbackSdkMethod method)
+{
+    switch (method)
+    {
+        case CallbackSdkMethod::CurrentThreadId:
+            return "GetCurrentThreadId";
+        case CallbackSdkMethod::EventThread:
+            return "GetEventThread";
+        case CallbackSdkMethod::CurrentProcessId:
+            return "GetCurrentProcessId";
+        case CallbackSdkMethod::EventProcess:
+            return "GetEventProcess";
+        case CallbackSdkMethod::CurrentThreadSystemId:
+            return "GetCurrentThreadSystemId";
+        case CallbackSdkMethod::CurrentProcessSystemId:
+            return "GetCurrentProcessSystemId";
+    }
+    return "unknown";
+}
+
+const char* callback_sdk_status_name(CallbackSdkReadStatus status)
+{
+    switch (status)
+    {
+        case CallbackSdkReadStatus::NotAttempted:
+            return "not_attempted";
+        case CallbackSdkReadStatus::Succeeded:
+            return "succeeded";
+        case CallbackSdkReadStatus::Failed:
+            return "failed";
+        case CallbackSdkReadStatus::InvalidOutput:
+            return "invalid_output";
+        case CallbackSdkReadStatus::Exception:
+            return "exception";
+    }
+    return "unknown";
+}
+
+const char* callback_outcome_name(CallbackAcquisitionOutcome outcome)
+{
+    switch (outcome)
+    {
+        case CallbackAcquisitionOutcome::NotAttempted:
+            return "not_attempted";
+        case CallbackAcquisitionOutcome::Accepted:
+            return "accepted";
+        case CallbackAcquisitionOutcome::MissingCallback:
+            return "missing_callback";
+        case CallbackAcquisitionOutcome::MissingRawKey:
+            return "missing_raw_key";
+        case CallbackAcquisitionOutcome::ChangedRawKey:
+            return "changed_raw_key";
+        case CallbackAcquisitionOutcome::MissingOwnerEvidence:
+            return "missing_owner_evidence";
+        case CallbackAcquisitionOutcome::ChangedOwnerEvidence:
+            return "changed_owner_evidence";
+        case CallbackAcquisitionOutcome::QueryInterfaceRefused:
+            return "query_interface_refused";
+        case CallbackAcquisitionOutcome::GetterRefused:
+            return "getter_refused";
+        case CallbackAcquisitionOutcome::InvalidOutput:
+            return "invalid_output";
+        case CallbackAcquisitionOutcome::Exception:
+            return "exception";
+        case CallbackAcquisitionOutcome::ReferenceCleanupFailed:
+            return "reference_cleanup_failed";
+        case CallbackAcquisitionOutcome::BindingRefused:
+            return "binding_refused";
+        case CallbackAcquisitionOutcome::Overflow:
+            return "overflow";
+    }
+    return "not_attempted";
+}
+
+const char* callback_exit_name(CallbackExitOutcome outcome)
+{
+    switch (outcome)
+    {
+        case CallbackExitOutcome::NotAttempted:
+            return "not_attempted";
+        case CallbackExitOutcome::Completed:
+            return "completed";
+        case CallbackExitOutcome::Incomplete:
+            return "incomplete";
+        case CallbackExitOutcome::Exception:
+            return "exception";
+    }
+    return "not_attempted";
+}
+
+const char* provenance_status_name(QueryProvenanceStatus status)
+{
+    switch (status)
+    {
+        case QueryProvenanceStatus::NotAttempted:
+            return "not_attempted";
+        case QueryProvenanceStatus::Accepted:
+            return "accepted";
+        case QueryProvenanceStatus::Refused:
+            return "refused";
+        case QueryProvenanceStatus::Exception:
+            return "exception";
+    }
+    return "unknown";
+}
+
+const char* provenance_mapping_kind_name(QueryProvenanceMappingKind kind)
+{
+    switch (kind)
+    {
+        case QueryProvenanceMappingKind::Unknown:
+            return "unknown";
+        case QueryProvenanceMappingKind::Allocation:
+            return "allocation";
+        case QueryProvenanceMappingKind::Image:
+            return "image";
+    }
+    return "unknown";
+}
+
+const char* provenance_coherence_name(QueryProvenanceCoherence coherence)
+{
+    switch (coherence)
+    {
+        case QueryProvenanceCoherence::Unknown:
+            return "unknown";
+        case QueryProvenanceCoherence::Coherent:
+            return "coherent";
+        case QueryProvenanceCoherence::Changed:
+            return "changed";
+        case QueryProvenanceCoherence::ReadRefused:
+            return "read_refused";
+    }
+    return "unknown";
+}
+
+const char* provenance_lifetime_name(QueryProvenanceLifetime lifetime)
+{
+    switch (lifetime)
+    {
+        case QueryProvenanceLifetime::Unknown:
+            return "unknown";
+        case QueryProvenanceLifetime::Retained:
+            return "retained";
+        case QueryProvenanceLifetime::Ended:
+            return "ended";
+        case QueryProvenanceLifetime::Changed:
+            return "changed";
+    }
+    return "unknown";
+}
+
+const char* provenance_binding_name(QueryProvenanceBindingStatus status)
+{
+    switch (status)
+    {
+        case QueryProvenanceBindingStatus::Unknown:
+            return "unknown";
+        case QueryProvenanceBindingStatus::Bound:
+            return "bound";
+        case QueryProvenanceBindingStatus::Unbound:
+            return "unbound";
+        case QueryProvenanceBindingStatus::Mismatch:
+            return "mismatch";
+    }
+    return "unknown";
+}
+
 std::string hex_value(std::uintptr_t value)
 {
     std::ostringstream stream;
@@ -159,6 +531,117 @@ std::string guid_value(const GuidBytes& guid)
         stream << std::setw(2) << static_cast<unsigned int>(byte);
     }
     return stream.str();
+}
+
+std::string bytes_value(const std::array<std::uint8_t, 32>& bytes)
+{
+    std::ostringstream stream;
+    stream << '"' << std::hex << std::setfill('0');
+    for (const std::uint8_t byte : bytes)
+    {
+        stream << std::setw(2) << static_cast<unsigned int>(byte);
+    }
+    stream << '"';
+    return stream.str();
+}
+
+std::string json_string(const std::string& value)
+{
+    std::ostringstream stream;
+    stream << std::setfill('0') << '"';
+    for (const unsigned char character : value)
+    {
+        switch (character)
+        {
+            case '"':
+                stream << "\\\"";
+                break;
+            case '\\':
+                stream << "\\\\";
+                break;
+            case '\b':
+                stream << "\\b";
+                break;
+            case '\f':
+                stream << "\\f";
+                break;
+            case '\n':
+                stream << "\\n";
+                break;
+            case '\r':
+                stream << "\\r";
+                break;
+            case '\t':
+                stream << "\\t";
+                break;
+            default:
+                if (character < 0x20)
+                {
+                    stream << "\\u00" << std::hex << std::setw(2) << static_cast<unsigned int>(character);
+                }
+                else
+                {
+                    stream << character;
+                }
+                break;
+        }
+    }
+    stream << '"';
+    return stream.str();
+}
+
+constexpr std::uint64_t kX86AddressLimit = std::uint64_t{ 1 } << 32;
+
+bool mapping_extent_is_valid(std::uintptr_t base, std::uint64_t extent)
+{
+    return base != 0 && base <= std::numeric_limits<std::uint32_t>::max() && extent != 0 &&
+           extent <= kX86AddressLimit - static_cast<std::uint64_t>(base);
+}
+
+bool mapping_contains(const QueryProvenanceMapping& mapping, std::uintptr_t address)
+{
+    return mapping.status == ObservationStatus::Read && mapping.kind != QueryProvenanceMappingKind::Unknown &&
+           mapping_extent_is_valid(mapping.base, mapping.extent) && address >= mapping.base &&
+           address - mapping.base < mapping.extent;
+}
+
+bool mapping_is_explicitly_unknown(const QueryProvenanceMapping& mapping)
+{
+    return mapping.status == ObservationStatus::NotAttempted && mapping.kind == QueryProvenanceMappingKind::Unknown &&
+           mapping.base == 0 && mapping.extent == 0 && !mapping.executable;
+}
+
+bool object_mapping_is_qualified(const QueryProvenanceMapping& mapping, std::uintptr_t address)
+{
+    return mapping_is_explicitly_unknown(mapping) || mapping_contains(mapping, address);
+}
+
+bool nonzero_hash(const std::array<std::uint8_t, 32>& hash)
+{
+    return std::any_of(hash.begin(), hash.end(), [](std::uint8_t byte)
+                       {
+                           return byte != 0;
+                       });
+}
+
+bool same_guid(const GuidBytes& left, const GuidBytes& right)
+{
+    return left.bytes == right.bytes;
+}
+
+bool module_binding_is_qualified(const QueryProvenanceMapping& mapping, std::uintptr_t address, std::uint64_t lifetime_id)
+{
+    const QueryProvenanceModule& module = mapping.module;
+    return mapping_contains(mapping, address) && mapping.kind == QueryProvenanceMappingKind::Image && mapping.executable &&
+           module.mapping_status == ObservationStatus::Read && mapping_extent_is_valid(module.resident_base, module.resident_extent) &&
+           !module.resident_path.empty() && (module.architecture == "PE32" || module.architecture == "I386") &&
+           module.backing_file_size != 0 &&
+           nonzero_hash(module.backing_sha256) && module.binding_status == QueryProvenanceBindingStatus::Bound &&
+           module.binding_evidence && module.binding_lifetime_id == lifetime_id && !module.binding_authority_id.empty() &&
+           !module.binding_mechanism.empty() && module.resident_base == mapping.base && module.resident_extent == mapping.extent &&
+           module.binding_resident_base == module.resident_base && module.binding_resident_extent == module.resident_extent &&
+           module.binding_file_size == module.backing_file_size && nonzero_hash(module.binding_file_sha256) &&
+           module.binding_file_sha256 == module.backing_sha256;
 }
 
 void serialize_header(std::ostringstream& stream, const RowHeader& header)
@@ -190,6 +673,123 @@ void serialize_header(std::ostringstream& stream, const RowHeader& header)
     stream << ",\"engine_generation\":" << header.event.engine_generation;
 }
 
+void serialize_callback_identity(std::ostringstream&  stream,
+                                 const char*          prefix,
+                                 const EventIdentity& identity)
+{
+    stream << ",\"" << prefix << "_event_complete\":" << (identity.complete ? "true" : "false");
+    stream << ",\"" << prefix << "_raw_debug_object\":" << hex_value(identity.raw_debug_object);
+    stream << ",\"" << prefix << "_event_pid\":" << identity.process_id;
+    stream << ",\"" << prefix << "_event_tid\":" << identity.thread_id;
+    stream << ",\"" << prefix << "_raw_generation\":" << identity.raw_generation;
+    stream << ",\"" << prefix << "_event_index\":" << identity.event_index;
+    stream << ",\"" << prefix << "_engine_generation_known\":"
+           << (identity.engine_generation_known ? "true" : "false");
+    stream << ",\"" << prefix << "_engine_generation\":" << identity.engine_generation;
+}
+
+void serialize_callback_sdk_read(std::ostringstream& stream, const CallbackSdkRead& read)
+{
+    stream << "{\"method\":\"" << callback_sdk_method_name(read.method) << '\"';
+    stream << ",\"hresult\":" << read.hresult;
+    stream << ",\"output\":" << read.output;
+    stream << ",\"output_known\":" << (read.output_known ? "true" : "false");
+    stream << ",\"status\":\"" << callback_sdk_status_name(read.status) << "\"}";
+}
+
+void serialize_callback_owner(std::ostringstream& stream, const CallbackOwnerEvidence& owner)
+{
+    stream << "{\"serialized_selected_state_access\":"
+           << (owner.serialized_selected_state_access ? "true" : "false");
+    stream << ",\"retained_source_lifetime\":" << (owner.retained_source_lifetime ? "true" : "false");
+    stream << ",\"authority_id\":" << owner.authority_id;
+    stream << ",\"lifetime_id\":" << owner.lifetime_id;
+    stream << ",\"cached_raw_lifecycle_associated\":"
+           << (owner.cached_raw_lifecycle_associated ? "true" : "false");
+    stream << ",\"cached_raw_debug_object\":" << hex_value(owner.cached_raw_debug_object);
+    stream << ",\"cached_raw_process_id\":" << owner.cached_raw_process_id;
+    stream << ",\"cached_raw_thread_id\":" << owner.cached_raw_thread_id;
+    stream << ",\"cached_raw_generation\":" << owner.cached_raw_generation;
+    stream << ",\"cached_engine_id_known\":" << (owner.cached_engine_id_known ? "true" : "false");
+    stream << ",\"cached_engine_id\":" << owner.cached_engine_id;
+    stream << ",\"lifecycle_token_known\":" << (owner.lifecycle_token_known ? "true" : "false");
+    stream << ",\"lifecycle_token\":" << owner.lifecycle_token << '}';
+}
+
+void serialize_callback_query_interface(std::ostringstream&               stream,
+                                        const CallbackQueryInterfaceRead& query)
+{
+    stream << "{\"hresult\":" << query.hresult;
+    stream << ",\"output\":" << hex_value(query.output);
+    stream << ",\"output_known\":" << (query.output_known ? "true" : "false");
+    stream << ",\"status\":\"" << callback_sdk_status_name(query.status) << "\"";
+    stream << ",\"release_attempted\":" << (query.release_attempted ? "true" : "false");
+    stream << ",\"release_succeeded\":" << (query.release_succeeded ? "true" : "false");
+    stream << ",\"release_threw\":" << (query.release_threw ? "true" : "false");
+    stream << ",\"release_result\":" << query.release_result << '}';
+}
+
+void serialize_provenance_mapping(std::ostringstream& stream, const QueryProvenanceMapping& mapping)
+{
+    stream << "{\"status\":\"" << observation_name(mapping.status) << '\"';
+    stream << ",\"kind\":\"" << provenance_mapping_kind_name(mapping.kind) << '\"';
+    stream << ",\"base\":" << hex_value(mapping.base);
+    stream << ",\"extent\":" << mapping.extent;
+    stream << ",\"executable\":" << (mapping.executable ? "true" : "false");
+    stream << ",\"module\":{";
+    stream << "\"mapping_status\":\"" << observation_name(mapping.module.mapping_status) << '\"';
+    stream << ",\"resident_base\":" << hex_value(mapping.module.resident_base);
+    stream << ",\"resident_extent\":" << mapping.module.resident_extent;
+    stream << ",\"resident_path\":" << json_string(mapping.module.resident_path);
+    stream << ",\"architecture\":" << json_string(mapping.module.architecture);
+    stream << ",\"backing_file_size\":" << mapping.module.backing_file_size;
+    stream << ",\"backing_sha256\":" << bytes_value(mapping.module.backing_sha256);
+    stream << ",\"binding_resident_base\":" << hex_value(mapping.module.binding_resident_base);
+    stream << ",\"binding_resident_extent\":" << mapping.module.binding_resident_extent;
+    stream << ",\"binding_file_size\":" << mapping.module.binding_file_size;
+    stream << ",\"binding_file_sha256\":" << bytes_value(mapping.module.binding_file_sha256);
+    stream << ",\"binding_lifetime_id\":" << mapping.module.binding_lifetime_id;
+    stream << ",\"binding_authority_id\":" << json_string(mapping.module.binding_authority_id);
+    stream << ",\"binding_mechanism\":" << json_string(mapping.module.binding_mechanism);
+    stream << ",\"binding_status\":\"" << provenance_binding_name(mapping.module.binding_status) << '\"';
+    stream << ",\"binding_evidence\":" << (mapping.module.binding_evidence ? "true" : "false");
+    stream << "}";
+    stream << "}";
+}
+
+void serialize_provenance(std::ostringstream& stream, const QueryProvenanceEvidence& evidence)
+{
+    stream << "{\"status\":\"" << provenance_status_name(evidence.status) << '\"';
+    stream << ",\"acquisition_begin_sequence\":" << evidence.acquisition_begin_sequence;
+    stream << ",\"acquisition_end_sequence\":" << evidence.acquisition_end_sequence;
+    stream << ",\"lifetime_id\":" << evidence.lifetime_id;
+    stream << ",\"lifetime\":\"" << provenance_lifetime_name(evidence.lifetime) << '\"';
+    stream << ",\"coherence\":\"" << provenance_coherence_name(evidence.coherence) << '\"';
+    stream << ",\"output_complete\":" << (evidence.output_complete ? "true" : "false");
+    stream << ",\"session_id\":" << evidence.session_id;
+    stream << ",\"operation_id\":" << evidence.operation_id;
+    stream << ",\"event_complete\":" << (evidence.event.complete ? "true" : "false");
+    stream << ",\"raw_debug_object\":" << hex_value(evidence.event.raw_debug_object);
+    stream << ",\"event_pid\":" << evidence.event.process_id;
+    stream << ",\"event_tid\":" << evidence.event.thread_id;
+    stream << ",\"raw_generation\":" << evidence.event.raw_generation;
+    stream << ",\"event_index\":" << evidence.event.event_index;
+    stream << ",\"engine_generation_known\":"
+           << (evidence.event.engine_generation_known ? "true" : "false");
+    stream << ",\"engine_generation\":" << evidence.event.engine_generation;
+    stream << ",\"returned_interface\":" << hex_value(evidence.returned_interface);
+    stream << ",\"vtable\":" << hex_value(evidence.vtable);
+    stream << ",\"slot_plus_10_address\":" << hex_value(evidence.slot_plus_10_address);
+    stream << ",\"slot_plus_10_target\":" << hex_value(evidence.slot_plus_10_target);
+    stream << ",\"interface_mapping\":";
+    serialize_provenance_mapping(stream, evidence.interface_mapping);
+    stream << ",\"vtable_mapping\":";
+    serialize_provenance_mapping(stream, evidence.vtable_mapping);
+    stream << ",\"target_mapping\":";
+    serialize_provenance_mapping(stream, evidence.target_mapping);
+    stream << "}";
+}
+
 } // namespace
 
 Recorder::BridgeScope::BridgeScope(Recorder& recorder)
@@ -206,10 +806,17 @@ Recorder::BridgeScope::~BridgeScope()
 Recorder::Recorder(const RecorderConfig& config)
 : session_id_(config.session_id)
 , max_rows_(config.max_rows)
+, collection_(config.collection)
+, collection_owner_(config.collection_owner)
 , callbacks_(config.callbacks)
 , originals_(config.originals)
 {
     rows_.reserve(max_rows_);
+}
+
+ObserverCollectionBoundary::Admission Recorder::collection_admission() noexcept
+{
+    return collection_ == nullptr ? ObserverCollectionBoundary::Admission{} : collection_->admit_row();
 }
 
 std::uint64_t Recorder::next_operation_id()
@@ -220,7 +827,6 @@ std::uint64_t Recorder::next_operation_id()
 RowHeader Recorder::make_header(std::uint64_t operation_id)
 {
     RowHeader header;
-    header.sequence     = next_sequence_.fetch_add(1, std::memory_order_relaxed);
     header.session_id   = session_id_;
     header.operation_id = operation_id;
     for (ActiveFrame* frame = g_active_frame; frame != nullptr; frame = frame->previous)
@@ -231,19 +837,33 @@ RowHeader Recorder::make_header(std::uint64_t operation_id)
             break;
         }
     }
-    header.observer_thread_id = thread_id();
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        header.event = current_event_locked();
+        header.sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        header.event    = current_event_locked();
     }
-    header.incomplete = header.observer_thread_id == 0 || !qualified_identity(header.event);
+    // Read the injected thread identity after the event snapshot and outside
+    // the Recorder mutex. A delayed reader must not change which event owns
+    // this row or re-enter the boundary while a lock is held.
+    const std::uint32_t observer_thread = thread_id();
+    header.observer_thread_id           = observer_thread;
+    header.incomplete                   = header.observer_thread_id == 0 || !qualified_identity(header.event);
     return header;
 }
 
 bool Recorder::append_row(const TraceRow& row)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
-    if (rows_.size() >= max_rows_)
+    if (!admission.acquire())
+    {
+        return false;
+    }
+    if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
     {
         ++overflow_count_;
         return false;
@@ -254,7 +874,16 @@ bool Recorder::append_row(const TraceRow& row)
 
 void Recorder::update_row(const RowHeader& header, const TraceRow& row)
 {
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return;
+    }
     for (TraceRow& stored : rows_)
     {
         if (row_header(stored).sequence != header.sequence)
@@ -355,10 +984,49 @@ bool Recorder::resolve_target(std::uintptr_t handle, TargetIdentity* identity) c
     }
 }
 
+void Recorder::collect_query_provenance(QueryRow& row)
+{
+    if (callbacks_.collect_query_provenance == nullptr)
+    {
+        return;
+    }
+    if (collection_ != nullptr && !collection_->allow_provenance())
+    {
+        row.header.incomplete = true;
+        return;
+    }
+
+    QueryProvenanceEvidence evidence;
+    const std::uint64_t     acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    try
+    {
+        const bool accepted = callbacks_.collect_query_provenance(callbacks_.user, row, &evidence);
+        evidence.status     = accepted ? QueryProvenanceStatus::Accepted : QueryProvenanceStatus::Refused;
+    }
+    catch (...)
+    {
+        if (collection_ != nullptr)
+        {
+            collection_->operation_failed();
+        }
+        evidence.status = QueryProvenanceStatus::Exception;
+    }
+    const std::uint64_t acquisition_end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    evidence.acquisition_begin_sequence          = acquisition_begin_sequence;
+    evidence.acquisition_end_sequence            = acquisition_end_sequence;
+    row.provenance                               = std::move(evidence);
+    if (row.provenance.status != QueryProvenanceStatus::Accepted)
+    {
+        row.header.incomplete = true;
+    }
+}
+
 void* Recorder::forward_lookup(void* manager, void* ignored_edx, const GuidBytes* service_guid)
 {
     ErrorPair           incoming_error;
     const bool          incoming_error_known = read_error(&incoming_error);
+    const auto          interval             = collection_ == nullptr ? ObserverCollectionBoundary::Interval{}
+                                                                      : collection_->begin_interval();
     const std::uint64_t operation_id         = next_operation_id();
     SelectedRecordRow   row;
     row.header          = make_header(operation_id);
@@ -424,6 +1092,10 @@ void* Recorder::forward_lookup(void* manager, void* ignored_edx, const GuidBytes
 
     ErrorPair  returned_error;
     const bool returned_error_known = read_error(&returned_error);
+    if (exception != nullptr && collection_ != nullptr)
+    {
+        collection_->operation_failed();
+    }
 
     row.returned_record = pointer_address(result);
     if (result == nullptr)
@@ -487,6 +1159,8 @@ Hresult Recorder::forward_query(void* manager, const GuidBytes* service_guid, co
 {
     ErrorPair           incoming_error;
     const bool          incoming_error_known = read_error(&incoming_error);
+    const auto          interval             = collection_ == nullptr ? ObserverCollectionBoundary::Interval{}
+                                                                      : collection_->begin_interval();
     const std::uint64_t operation_id         = next_operation_id();
     QueryRow            row;
     row.header               = make_header(operation_id);
@@ -565,7 +1239,11 @@ Hresult Recorder::forward_query(void* manager, const GuidBytes* service_guid, co
 
     ErrorPair  returned_error;
     const bool returned_error_known = read_error(&returned_error);
-    row.result                      = result;
+    if (exception != nullptr && collection_ != nullptr)
+    {
+        collection_->operation_failed();
+    }
+    row.result = result;
 
     if (exception == nullptr && result >= 0)
     {
@@ -646,6 +1324,10 @@ Hresult Recorder::forward_query(void* manager, const GuidBytes* service_guid, co
     {
         row.header.incomplete = true;
     }
+    if (exception == nullptr && result >= 0 && row.successful_interface_qualified)
+    {
+        collect_query_provenance(row);
+    }
     row.header.incomplete    = row.header.incomplete || exception != nullptr;
     row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
     if (stored)
@@ -672,6 +1354,8 @@ BoolResult Recorder::forward_context_write(void* handle, void* context)
 {
     ErrorPair           incoming_error;
     const bool          incoming_error_known = read_error(&incoming_error);
+    const auto          interval             = collection_ == nullptr ? ObserverCollectionBoundary::Interval{}
+                                                                      : collection_->begin_interval();
     const std::uint64_t operation_id         = next_operation_id();
     ContextWriteRow     row;
     row.header          = make_header(operation_id);
@@ -772,6 +1456,10 @@ BoolResult Recorder::forward_context_write(void* handle, void* context)
     g_active_frame = frame.previous;
     ErrorPair  returned_error;
     const bool returned_error_known = read_error(&returned_error);
+    if (exception != nullptr && collection_ != nullptr)
+    {
+        collection_->operation_failed();
+    }
     row.result                      = result;
     row.header.returned_error_known = returned_error_known;
     if (row.header.returned_error_known)
@@ -809,11 +1497,20 @@ PendingEventStatus Recorder::admit_pending_event(const EventIdentity& identity)
     const std::uint64_t operation_id = next_operation_id();
     PendingEventRow     row;
     // Allocate the entry sequence and snapshot the active event before changing pending_event_.
-    row.header                = make_header(operation_id);
-    row.identity              = identity;
+    row.header     = make_header(operation_id);
+    row.identity   = identity;
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return PendingEventStatus::Unknown;
+    }
     PendingEventStatus status = PendingEventStatus::Unknown;
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (!admission.acquire())
+        {
+            return PendingEventStatus::Unknown;
+        }
         if (!raw_identity_complete(identity))
         {
             status = PendingEventStatus::Unknown;
@@ -821,7 +1518,8 @@ PendingEventStatus Recorder::admit_pending_event(const EventIdentity& identity)
         else if (!pending_event_.has_value())
         {
             pending_event_ = identity;
-            status         = PendingEventStatus::Admitted;
+            pending_event_interval_.emplace(admission.begin_interval());
+            status = PendingEventStatus::Admitted;
         }
         else if (same_identity(*pending_event_, identity))
         {
@@ -831,20 +1529,26 @@ PendingEventStatus Recorder::admit_pending_event(const EventIdentity& identity)
         {
             status = PendingEventStatus::Changed;
         }
+        row.status = status;
+        if (status == PendingEventStatus::Admitted)
+        {
+            row.header.event      = identity;
+            row.header.incomplete = row.header.observer_thread_id == 0 || !qualified_identity(identity);
+        }
+        else
+        {
+            // A failed admission keeps the active event in the row header; identity is the attempted event.
+            row.header.incomplete = row.header.incomplete || status != PendingEventStatus::Admitted ||
+                                    !qualified_identity(identity);
+        }
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            return PendingEventStatus::Unknown;
+        }
+        rows_.push_back(row);
     }
-    row.status = status;
-    if (status == PendingEventStatus::Admitted)
-    {
-        row.header.event      = identity;
-        row.header.incomplete = row.header.observer_thread_id == 0 || !qualified_identity(identity);
-    }
-    else
-    {
-        // A failed admission keeps the active event in the row header; identity is the attempted event.
-        row.header.incomplete = row.header.incomplete || status != PendingEventStatus::Admitted || !qualified_identity(identity);
-    }
-    row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
-    append_row(row);
     return status;
 }
 
@@ -853,11 +1557,17 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
     const std::uint64_t operation_id = next_operation_id();
     PendingEventRow     row;
     // Capture the closing attempt before clearing the active pending event.
-    row.header                = make_header(operation_id);
-    row.identity              = identity;
-    PendingEventStatus status = PendingEventStatus::Unknown;
+    row.header                                                    = make_header(operation_id);
+    row.identity                                                  = identity;
+    auto                                                admission = collection_admission();
+    PendingEventStatus                                  status    = PendingEventStatus::Unknown;
+    std::optional<ObserverCollectionBoundary::Interval> interval_to_end;
     {
         std::lock_guard<std::mutex> lock(mutex_);
+        if (admission)
+        {
+            (void)admission.acquire();
+        }
         if (!raw_identity_complete(identity))
         {
             status = PendingEventStatus::Unknown;
@@ -872,15 +1582,790 @@ PendingEventStatus Recorder::close_pending_event(const EventIdentity& identity)
         }
         else
         {
+            last_closed_event_ = pending_event_;
             pending_event_.reset();
+            if (pending_event_interval_.has_value())
+            {
+                if (admission)
+                {
+                    admission.end_interval(*pending_event_interval_);
+                }
+                else
+                {
+                    interval_to_end = std::move(pending_event_interval_);
+                }
+                pending_event_interval_.reset();
+            }
             status = PendingEventStatus::Closed;
         }
+        row.status               = status;
+        row.header.incomplete    = row.header.incomplete || status != PendingEventStatus::Closed ||
+                                   !qualified_identity(identity);
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        if (admission)
+        {
+            if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+            {
+                ++overflow_count_;
+            }
+            else
+            {
+                rows_.push_back(row);
+            }
+        }
     }
-    row.status               = status;
-    row.header.incomplete    = row.header.incomplete || status != PendingEventStatus::Closed || !qualified_identity(identity);
-    row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
-    append_row(row);
+    if (!admission && interval_to_end.has_value())
+    {
+        admission.end_interval(*interval_to_end);
+    }
+    if (!admission && collection_ != nullptr && status == PendingEventStatus::Closed)
+    {
+        collection_->mark_incomplete();
+    }
     return status;
+}
+
+CallbackBeginResult Recorder::begin_callback(const std::string& callback_kind)
+{
+    CallbackBeginResult result;
+    result.callback_operation_id        = next_operation_id();
+    const std::uint32_t observer_thread = thread_id();
+    auto                admission       = collection_admission();
+    if (!admission)
+    {
+        return result;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return result;
+    }
+    if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+    {
+        ++overflow_count_;
+        return result;
+    }
+
+    CallbackEntryRow row;
+    row.header.session_id         = session_id_;
+    row.header.operation_id       = result.callback_operation_id;
+    row.header.sequence           = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    row.header.observer_thread_id = observer_thread;
+    row.callback_operation_id     = result.callback_operation_id;
+    row.callback_kind             = callback_kind.empty() ? "unknown" : callback_kind;
+    row.raw_identity              = raw_only_identity(current_event_locked());
+    row.entry_raw_identity_known  = raw_key_available(row.raw_identity);
+    row.header.event              = row.raw_identity;
+    row.header.incomplete         = true;
+    row.header.incomplete         = row.header.incomplete || observer_thread == 0 || !row.entry_raw_identity_known;
+    rows_.push_back(row);
+    ActiveCallback active;
+    active.callback_operation_id = result.callback_operation_id;
+    active.interval.emplace(admission.begin_interval());
+    active_callbacks_.push_back(std::move(active));
+    result.raw_identity = row.raw_identity;
+    result.recorded     = true;
+    return result;
+}
+
+bool Recorder::record_callback_dispatch_entry(
+    std::uint64_t                callback_operation_id,
+    const CallbackDispatchEntry& entry)
+{
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed)
+        {
+            continue;
+        }
+        row->dispatch_marker                      = true;
+        row->dispatch_phase                       = entry.phase;
+        row->delegate_identity                    = entry.delegate_identity;
+        row->breakpoint_pointer                   = entry.breakpoint_pointer;
+        row->create_thread_handle                 = entry.create_thread_handle;
+        row->create_thread_data_offset            = entry.create_thread_data_offset;
+        row->create_thread_start_offset           = entry.create_thread_start_offset;
+        row->callback_arguments_known             = entry.callback_arguments_known;
+        row->provider_attempted                   = entry.provider_attempted;
+        row->provider_succeeded                   = entry.provider_succeeded;
+        row->provider_threw                       = entry.provider_threw;
+        row->owner_evidence_complete              = entry.owner_evidence_complete;
+        row->capture_attempted                    = entry.capture_attempted;
+        row->capture_completed                    = entry.capture_completed;
+        row->binding_attempted                    = entry.binding_attempted;
+        row->binding_succeeded                    = entry.binding_succeeded;
+        row->dispatch_binding_attempt_id          = entry.binding_attempt_id;
+        row->foreign_thread_refused               = entry.foreign_thread_refused;
+        row->reentry_refused                      = entry.reentry_refused;
+        row->invalid_configuration_refused        = entry.invalid_configuration_refused;
+        row->capacity_refused                     = entry.capacity_refused;
+        row->error_restore_attempted              = entry.error_restore_attempted;
+        row->error_restore_succeeded              = entry.error_restore_succeeded;
+        row->error_restore_prerequisite_attempted = entry.error_restore_prerequisite_attempted;
+        row->error_restore_prerequisite_succeeded = entry.error_restore_prerequisite_succeeded;
+        row->error_restore_late_failure           = entry.error_restore_late_failure;
+        row->dispatch_incoming_error_known        = entry.incoming_error_known;
+        row->dispatch_incoming_error              = entry.incoming_error;
+        row->dispatch_acquisition_operation_id    = entry.acquisition_operation_id;
+        row->header.incoming_error_known          = entry.incoming_error_known;
+        row->header.incoming_error                = entry.incoming_error;
+        row->header.incomplete                    = true;
+        return true;
+    }
+    return false;
+}
+
+bool Recorder::record_callback_dispatch_capture(
+    std::uint64_t                callback_operation_id,
+    const CallbackDispatchEntry& entry)
+{
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || !row->dispatch_marker)
+        {
+            continue;
+        }
+        row->provider_attempted                   = entry.provider_attempted;
+        row->provider_succeeded                   = entry.provider_succeeded;
+        row->provider_threw                       = entry.provider_threw;
+        row->owner_evidence_complete              = entry.owner_evidence_complete;
+        row->capture_attempted                    = entry.capture_attempted;
+        row->capture_completed                    = entry.capture_completed;
+        row->binding_attempted                    = entry.binding_attempted;
+        row->binding_succeeded                    = entry.binding_succeeded;
+        row->dispatch_binding_attempt_id          = entry.binding_attempt_id;
+        row->foreign_thread_refused               = entry.foreign_thread_refused;
+        row->reentry_refused                      = entry.reentry_refused;
+        row->invalid_configuration_refused        = entry.invalid_configuration_refused;
+        row->capacity_refused                     = entry.capacity_refused;
+        row->error_restore_attempted              = entry.error_restore_attempted;
+        row->error_restore_succeeded              = entry.error_restore_succeeded;
+        row->error_restore_prerequisite_attempted = entry.error_restore_prerequisite_attempted;
+        row->error_restore_prerequisite_succeeded = entry.error_restore_prerequisite_succeeded;
+        row->error_restore_late_failure           = entry.error_restore_late_failure;
+        row->dispatch_acquisition_operation_id    = entry.acquisition_operation_id;
+        return true;
+    }
+    return false;
+}
+
+std::uint64_t Recorder::begin_callback_delegate(std::uint64_t callback_operation_id)
+{
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return 0;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return 0;
+    }
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed ||
+            !row->dispatch_marker || row->delegate_begin_sequence != 0)
+        {
+            continue;
+        }
+        row->delegate_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        return row->delegate_begin_sequence;
+    }
+    return 0;
+}
+
+bool Recorder::finish_callback_delegate(
+    std::uint64_t               callback_operation_id,
+    const CallbackDispatchExit& exit)
+{
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackEntryRow>(&stored);
+        if (row == nullptr || row->callback_operation_id != callback_operation_id || !row->dispatch_marker ||
+            row->delegate_begin_sequence == 0 || row->delegate_end_sequence != 0)
+        {
+            continue;
+        }
+        row->delegate_end_sequence         = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        row->delegate_completion_known     = exit.delegate_completion_known;
+        row->delegate_hresult_known        = exit.delegate_hresult_known;
+        row->delegate_hresult              = exit.delegate_hresult;
+        row->delegate_threw                = exit.delegate_threw;
+        row->dispatch_returned_error_known = exit.returned_error_known;
+        row->dispatch_returned_error       = exit.returned_error;
+        row->header.returned_error_known   = exit.returned_error_known;
+        row->header.returned_error         = exit.returned_error;
+        return true;
+    }
+    return false;
+}
+
+CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t callback_operation_id)
+{
+    CallbackAcquisitionStart result;
+    result.callback_operation_id        = callback_operation_id;
+    result.acquisition_operation_id     = next_operation_id();
+    const std::uint32_t observer_thread = thread_id();
+    auto                admission       = collection_admission();
+    if (!admission)
+    {
+        result.outcome = CallbackAcquisitionOutcome::BindingRefused;
+        return result;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        result.outcome = CallbackAcquisitionOutcome::BindingRefused;
+        return result;
+    }
+
+    const auto entry = std::find_if(
+        rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
+        {
+            const auto* row = std::get_if<CallbackEntryRow>(&stored);
+            return row != nullptr && row->callback_operation_id == callback_operation_id;
+        });
+    const EventIdentity current = raw_only_identity(current_event_locked());
+    if (entry == rows_.end())
+    {
+        result.outcome = CallbackAcquisitionOutcome::MissingCallback;
+        return result;
+    }
+    const CallbackEntryRow& entry_row = std::get<CallbackEntryRow>(*entry);
+    result.raw_identity               = entry_row.raw_identity;
+    result.rechecked_identity         = current;
+
+    const auto pending_for_callback = [&]()
+    {
+        return std::any_of(pending_callback_acquisitions_.begin(),
+                           pending_callback_acquisitions_.end(),
+                           [callback_operation_id](const PendingCallbackAcquisition& pending)
+                           {
+                               return pending.callback_operation_id == callback_operation_id;
+                           });
+    };
+    const auto retain_refusal = [&](CallbackAcquisitionOutcome outcome)
+    {
+        result.outcome = outcome;
+        if (pending_for_callback())
+        {
+            result.outcome = CallbackAcquisitionOutcome::MissingCallback;
+            return;
+        }
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            result.outcome = CallbackAcquisitionOutcome::Overflow;
+            return;
+        }
+        PendingCallbackAcquisition pending;
+        pending.callback_operation_id      = callback_operation_id;
+        pending.acquisition_operation_id   = result.acquisition_operation_id;
+        pending.acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        pending.callback_kind              = entry_row.callback_kind;
+        pending.raw_identity               = entry_row.raw_identity;
+        pending.preflight_outcome          = outcome;
+        pending.observer_thread_id         = observer_thread;
+        pending.interval.emplace(admission.begin_interval());
+        pending_callback_acquisitions_.push_back(std::move(pending));
+        result.acquisition_begin_sequence = pending.acquisition_begin_sequence;
+        result.accepted                   = false;
+    };
+    if (entry_row.exit_observed)
+    {
+        retain_refusal(CallbackAcquisitionOutcome::MissingCallback);
+        return result;
+    }
+    if (observer_thread == 0 || entry_row.header.observer_thread_id != observer_thread)
+    {
+        retain_refusal(CallbackAcquisitionOutcome::ChangedOwnerEvidence);
+        return result;
+    }
+    if (!raw_key_available(entry_row.raw_identity) || !raw_key_available(current))
+    {
+        retain_refusal(CallbackAcquisitionOutcome::MissingRawKey);
+        return result;
+    }
+    if (!same_raw_identity(entry_row.raw_identity, current))
+    {
+        retain_refusal(CallbackAcquisitionOutcome::ChangedRawKey);
+        return result;
+    }
+    if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+    {
+        ++overflow_count_;
+        result.outcome = CallbackAcquisitionOutcome::Overflow;
+        return result;
+    }
+    if (pending_for_callback())
+    {
+        result.outcome = CallbackAcquisitionOutcome::MissingCallback;
+        return result;
+    }
+
+    PendingCallbackAcquisition pending;
+    pending.callback_operation_id      = callback_operation_id;
+    pending.acquisition_operation_id   = result.acquisition_operation_id;
+    pending.acquisition_begin_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+    pending.callback_kind              = entry_row.callback_kind;
+    pending.raw_identity               = entry_row.raw_identity;
+    pending.preflight_outcome          = CallbackAcquisitionOutcome::NotAttempted;
+    pending.observer_thread_id         = observer_thread;
+    pending.interval.emplace(admission.begin_interval());
+    pending_callback_acquisitions_.push_back(std::move(pending));
+    result.acquisition_begin_sequence = pending.acquisition_begin_sequence;
+    result.raw_identity               = pending.raw_identity;
+    result.rechecked_identity         = current;
+    result.outcome                    = CallbackAcquisitionOutcome::NotAttempted;
+    result.accepted                   = true;
+    return result;
+}
+
+bool Recorder::finish_callback_acquisition(
+    std::uint64_t                   callback_operation_id,
+    const CallbackAcquisitionInput& input,
+    CallbackAcquisitionResult*      result)
+{
+    if (result == nullptr)
+    {
+        return false;
+    }
+    *result                                                             = {};
+    result->callback_operation_id                                       = callback_operation_id;
+    const std::uint32_t                                 observer_thread = thread_id();
+    auto                                                admission       = collection_admission();
+    std::optional<ObserverCollectionBoundary::Interval> interval_to_end;
+    bool                                                recorded = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (admission)
+        {
+            (void)admission.acquire();
+        }
+        const auto pending = std::find_if(
+            pending_callback_acquisitions_.begin(),
+            pending_callback_acquisitions_.end(),
+            [callback_operation_id](const PendingCallbackAcquisition& value)
+            {
+                return value.callback_operation_id == callback_operation_id;
+            });
+        if (pending == pending_callback_acquisitions_.end())
+        {
+            result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+        }
+        else if (!admission)
+        {
+            result->outcome = CallbackAcquisitionOutcome::BindingRefused;
+            interval_to_end = std::move(pending->interval);
+            pending_callback_acquisitions_.erase(pending);
+        }
+        else
+        {
+            PendingCallbackAcquisition start = std::move(*pending);
+            pending_callback_acquisitions_.erase(pending);
+            const EventIdentity current = raw_only_identity(current_event_locked());
+            const auto          entry   = std::find_if(
+                rows_.begin(), rows_.end(), [callback_operation_id](const TraceRow& stored)
+                {
+                    const auto* row = std::get_if<CallbackEntryRow>(&stored);
+                    return row != nullptr && row->callback_operation_id == callback_operation_id;
+                });
+            result->acquisition_operation_id   = start.acquisition_operation_id;
+            result->acquisition_begin_sequence = start.acquisition_begin_sequence;
+            result->raw_identity               = start.raw_identity;
+            result->rechecked_identity         = current;
+            result->binding_eligible           = input.binding_eligible;
+            result->outcome                    = input.reader_outcome;
+            if (start.preflight_outcome != CallbackAcquisitionOutcome::NotAttempted)
+            {
+                result->outcome = start.preflight_outcome;
+            }
+            if (entry == rows_.end())
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+            }
+            else if (std::get<CallbackEntryRow>(*entry).exit_observed)
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingCallback;
+            }
+            else if (observer_thread == 0 || observer_thread != start.observer_thread_id)
+            {
+                result->outcome = CallbackAcquisitionOutcome::ChangedOwnerEvidence;
+            }
+            else if (!raw_key_available(start.raw_identity) || !raw_key_available(current))
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingRawKey;
+            }
+            else if (!same_raw_identity(start.raw_identity, std::get<CallbackEntryRow>(*entry).raw_identity) ||
+                     !same_raw_identity(start.raw_identity, current))
+            {
+                result->outcome = CallbackAcquisitionOutcome::ChangedRawKey;
+            }
+            else if (result->outcome == CallbackAcquisitionOutcome::Accepted &&
+                     !callback_owner_evidence_complete(input.owner))
+            {
+                result->outcome = CallbackAcquisitionOutcome::MissingOwnerEvidence;
+            }
+            else if (result->outcome == CallbackAcquisitionOutcome::NotAttempted)
+            {
+                result->outcome = CallbackAcquisitionOutcome::Exception;
+            }
+            const std::uint64_t end_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+            result->acquisition_end_sequence = end_sequence;
+            if (start.interval.has_value())
+            {
+                admission.end_interval(*start.interval);
+            }
+
+            if (rows_.size() >= max_rows_)
+            {
+                ++overflow_count_;
+                result->outcome = CallbackAcquisitionOutcome::Overflow;
+            }
+            else
+            {
+                CallbackAcquisitionRow row;
+                row.header.session_id           = session_id_;
+                row.header.sequence             = start.acquisition_begin_sequence;
+                row.header.exit_sequence        = end_sequence;
+                row.header.operation_id         = start.acquisition_operation_id;
+                row.header.parent_operation_id  = callback_operation_id;
+                row.header.observer_thread_id   = start.observer_thread_id;
+                row.header.event                = start.raw_identity;
+                row.header.incoming_error_known = input.incoming_error_known;
+                row.header.returned_error_known = input.returned_error_known;
+                row.header.incoming_error       = input.incoming_error;
+                row.header.returned_error       = input.returned_error;
+                row.header.incomplete           = true;
+                row.header.incomplete           = row.header.incomplete ||
+                                                  result->outcome != CallbackAcquisitionOutcome::Accepted ||
+                                                  !input.binding_eligible || !input.error_restore_attempted ||
+                                                  !input.error_restore_succeeded || !input.incoming_error_known ||
+                                                  !input.returned_error_known;
+                row.callback_operation_id       = callback_operation_id;
+                row.acquisition_operation_id    = start.acquisition_operation_id;
+                row.callback_kind               = entry == rows_.end() ? "unknown" : std::get<CallbackEntryRow>(*entry).callback_kind;
+                row.raw_identity                = start.raw_identity;
+                row.rechecked_identity          = current;
+                row.acquisition_begin_sequence  = start.acquisition_begin_sequence;
+                row.acquisition_end_sequence    = end_sequence;
+                row.query_interface             = input.query_interface;
+                row.sdk_reads                   = input.sdk_reads;
+                row.owner                       = input.owner;
+                row.outcome                     = result->outcome;
+                row.binding_observation         = input.binding_observation;
+                row.binding_eligible            = input.binding_eligible &&
+                                                  result->outcome == CallbackAcquisitionOutcome::Accepted;
+                row.binding_status              = EngineBindingStatus::Refused;
+                row.error_restore_attempted     = input.error_restore_attempted;
+                row.error_restore_succeeded     = input.error_restore_succeeded;
+                rows_.push_back(std::move(row));
+                result->recorded = true;
+                recorded         = true;
+            }
+        }
+    }
+    if (!admission && interval_to_end.has_value())
+    {
+        admission.end_interval(*interval_to_end);
+    }
+    if (!admission && collection_ != nullptr)
+    {
+        collection_->mark_incomplete();
+    }
+    return recorded;
+}
+
+bool Recorder::record_callback_binding_result(
+    std::uint64_t       callback_acquisition_operation_id,
+    EngineBindingStatus status,
+    std::uint64_t       binding_attempt_id)
+{
+    auto admission = collection_admission();
+    if (!admission)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!admission.acquire())
+    {
+        return false;
+    }
+    for (TraceRow& stored : rows_)
+    {
+        auto* row = std::get_if<CallbackAcquisitionRow>(&stored);
+        if (row == nullptr || row->acquisition_operation_id != callback_acquisition_operation_id)
+        {
+            continue;
+        }
+        row->binding_status     = status;
+        row->binding_attempt_id = binding_attempt_id;
+        if (status != EngineBindingStatus::Bound)
+        {
+            row->outcome           = CallbackAcquisitionOutcome::BindingRefused;
+            row->header.incomplete = true;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool Recorder::end_callback(std::uint64_t callback_operation_id, CallbackExitOutcome outcome)
+{
+    auto                                                admission = collection_admission();
+    std::optional<ObserverCollectionBoundary::Interval> interval_to_end;
+    bool                                                row_finished = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (admission)
+        {
+            (void)admission.acquire();
+        }
+        const auto active = std::find_if(
+            active_callbacks_.begin(), active_callbacks_.end(), [callback_operation_id](const ActiveCallback& value)
+            {
+                return value.callback_operation_id == callback_operation_id;
+            });
+        if (active != active_callbacks_.end())
+        {
+            if (admission)
+            {
+                if (active->interval.has_value())
+                {
+                    admission.end_interval(*active->interval);
+                }
+            }
+            else
+            {
+                interval_to_end = std::move(active->interval);
+            }
+            active_callbacks_.erase(active);
+        }
+        if (admission)
+        {
+            for (TraceRow& stored : rows_)
+            {
+                auto* row = std::get_if<CallbackEntryRow>(&stored);
+                if (row == nullptr || row->callback_operation_id != callback_operation_id || row->exit_observed)
+                {
+                    continue;
+                }
+                row->header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+                row->exit_outcome         = outcome;
+                row->exit_observed        = true;
+                if (!row->dispatch_marker)
+                {
+                    row->header.incomplete = true;
+                }
+                else
+                {
+                    const bool dispatch_complete = row->delegate_begin_sequence != 0 &&
+                                                   row->delegate_end_sequence != 0 &&
+                                                   row->delegate_completion_known &&
+                                                   row->delegate_hresult_known && !row->delegate_threw &&
+                                                   row->entry_raw_identity_known &&
+                                                   row->header.observer_thread_id != 0 &&
+                                                   raw_identity_complete(row->raw_identity) &&
+                                                   row->provider_attempted && row->provider_succeeded &&
+                                                   row->owner_evidence_complete && row->capture_attempted &&
+                                                   row->capture_completed && row->binding_attempted &&
+                                                   row->binding_succeeded && row->error_restore_attempted &&
+                                                   row->error_restore_succeeded && row->dispatch_incoming_error_known &&
+                                                   row->dispatch_returned_error_known && !row->foreign_thread_refused &&
+                                                   !row->reentry_refused && !row->invalid_configuration_refused &&
+                                                   !row->capacity_refused && outcome == CallbackExitOutcome::Completed;
+                    row->header.incomplete       = !dispatch_complete || row->header.pre_log_failed ||
+                                                   row->header.post_log_failed || row->header.rethrown;
+                }
+                row_finished = true;
+                break;
+            }
+        }
+    }
+    if (!admission && interval_to_end.has_value())
+    {
+        admission.end_interval(*interval_to_end);
+    }
+    if (!admission && collection_ != nullptr)
+    {
+        collection_->mark_incomplete();
+    }
+    return row_finished;
+}
+
+EngineBindingStatus Recorder::bind_pending_event(
+    const EventIdentity&             raw_identity,
+    const EngineIdentityObservation& observation,
+    std::uint64_t                    engine_generation,
+    std::uint64_t                    callback_operation_id,
+    std::uint64_t                    callback_acquisition_operation_id,
+    std::uint64_t                    binding_attempt_id)
+{
+    const std::uint64_t operation_id = next_operation_id();
+    EngineBindingRow    row;
+    row.header                            = make_header(operation_id);
+    row.raw_identity                      = raw_identity;
+    row.observation                       = observation;
+    row.engine_generation                 = engine_generation;
+    row.status                            = EngineBindingStatus::Refused;
+    row.qualified                         = false;
+    row.callback_operation_id             = callback_operation_id;
+    row.callback_acquisition_operation_id = callback_acquisition_operation_id;
+    row.binding_attempt_id                = binding_attempt_id;
+    auto admission                        = collection_admission();
+    if (!admission)
+    {
+        return EngineBindingStatus::ContinuationClosed;
+    }
+
+    if (!binding_evidence_complete(raw_identity, observation, engine_generation))
+    {
+        row.status               = EngineBindingStatus::IncompleteEvidence;
+        row.header.incomplete    = true;
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!admission.acquire())
+        {
+            return EngineBindingStatus::ContinuationClosed;
+        }
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            return EngineBindingStatus::Overflow;
+        }
+        rows_.push_back(row);
+        return row.status;
+    }
+
+    EventIdentity qualified           = raw_identity;
+    qualified.engine_generation_known = true;
+    qualified.engine_generation       = engine_generation;
+    qualified.complete                = true;
+    row.qualified_identity            = qualified;
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!admission.acquire())
+        {
+            return EngineBindingStatus::ContinuationClosed;
+        }
+        if (rows_.size() + pending_callback_acquisitions_.size() >= max_rows_)
+        {
+            ++overflow_count_;
+            return EngineBindingStatus::Overflow;
+        }
+        if (!pending_event_.has_value())
+        {
+            row.status = last_closed_event_.has_value() &&
+                                 same_raw_identity(*last_closed_event_, raw_identity)
+                             ? EngineBindingStatus::Stale
+                             : EngineBindingStatus::Missing;
+        }
+        else if (!same_raw_identity(*pending_event_, raw_identity))
+        {
+            row.status = EngineBindingStatus::Changed;
+        }
+        else if (pending_event_->engine_generation_known)
+        {
+            row.status = pending_event_->engine_generation == engine_generation
+                             ? EngineBindingStatus::Duplicate
+                             : EngineBindingStatus::Conflict;
+        }
+        else if (std::any_of(bound_history_identities_.begin(),
+                             bound_history_identities_.begin() + bound_history_count_,
+                             [&raw_identity](const EventIdentity& prior)
+                             {
+                                 return same_raw_identity(prior, raw_identity);
+                             }))
+        {
+            row.status = EngineBindingStatus::Stale;
+        }
+        else
+        {
+            const auto prior_lifecycle = std::find_if(
+                bound_history_identities_.begin(),
+                bound_history_identities_.begin() + bound_history_count_,
+                [&raw_identity](const EventIdentity& prior)
+                {
+                    return same_lifecycle_identity(prior, raw_identity);
+                });
+            const auto prior_generation = std::find_if(
+                bound_history_generations_.begin(),
+                bound_history_generations_.begin() + bound_history_count_,
+                [engine_generation](std::uint64_t prior)
+                {
+                    return prior == engine_generation;
+                });
+            const auto history_end = bound_history_identities_.begin() + bound_history_count_;
+            if (prior_lifecycle != history_end &&
+                bound_history_generations_[static_cast<std::size_t>(
+                    prior_lifecycle - bound_history_identities_.begin())] != engine_generation)
+            {
+                row.status = EngineBindingStatus::Conflict;
+            }
+            else if (prior_generation != bound_history_generations_.begin() + bound_history_count_ &&
+                     !same_lifecycle_identity(
+                         bound_history_identities_[static_cast<std::size_t>(
+                             prior_generation - bound_history_generations_.begin())],
+                         raw_identity))
+            {
+                row.status = EngineBindingStatus::Conflict;
+            }
+            else if (bound_history_count_ >= bound_history_identities_.size())
+            {
+                row.status = EngineBindingStatus::Overflow;
+            }
+            else
+            {
+                pending_event_                                   = qualified;
+                row.status                                       = EngineBindingStatus::Bound;
+                row.qualified                                    = true;
+                bound_history_identities_[bound_history_count_]  = raw_identity;
+                bound_history_generations_[bound_history_count_] = engine_generation;
+                ++bound_history_count_;
+            }
+        }
+        row.header.event         = pending_event_.has_value() ? *pending_event_ : raw_identity;
+        row.header.incomplete    = row.header.observer_thread_id == 0 ||
+                                   row.status != EngineBindingStatus::Bound ||
+                                   !qualified_identity(row.header.event);
+        row.header.exit_sequence = next_sequence_.fetch_add(1, std::memory_order_relaxed);
+        rows_.push_back(row);
+    }
+    return row.status;
 }
 
 std::optional<EventIdentity> Recorder::pending_event() const
@@ -952,6 +2437,45 @@ std::vector<PendingEventRow> Recorder::pending_event_rows() const
     return result;
 }
 
+std::vector<EngineBindingRow> Recorder::engine_binding_rows() const
+{
+    std::vector<EngineBindingRow> result;
+    for (const TraceRow& row : rows())
+    {
+        if (const auto* value = std::get_if<EngineBindingRow>(&row))
+        {
+            result.push_back(*value);
+        }
+    }
+    return result;
+}
+
+std::vector<CallbackEntryRow> Recorder::callback_entry_rows() const
+{
+    std::vector<CallbackEntryRow> result;
+    for (const TraceRow& row : rows())
+    {
+        if (const auto* value = std::get_if<CallbackEntryRow>(&row))
+        {
+            result.push_back(*value);
+        }
+    }
+    return result;
+}
+
+std::vector<CallbackAcquisitionRow> Recorder::callback_acquisition_rows() const
+{
+    std::vector<CallbackAcquisitionRow> result;
+    for (const TraceRow& row : rows())
+    {
+        if (const auto* value = std::get_if<CallbackAcquisitionRow>(&row))
+        {
+            result.push_back(*value);
+        }
+    }
+    return result;
+}
+
 std::size_t Recorder::overflow_count() const
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -962,10 +2486,16 @@ std::string Recorder::serialize() const
 {
     std::vector<TraceRow> snapshot;
     std::size_t           snapshot_overflow_count = 0;
+    bool                  pending_event           = false;
+    std::size_t           pending_acquisitions    = 0;
+    std::size_t           active_callbacks        = 0;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         snapshot                = rows_;
         snapshot_overflow_count = overflow_count_;
+        pending_event           = pending_event_.has_value() || pending_event_interval_.has_value();
+        pending_acquisitions    = pending_callback_acquisitions_.size();
+        active_callbacks        = active_callbacks_.size();
     }
     std::sort(snapshot.begin(), snapshot.end(), [](const TraceRow& left, const TraceRow& right)
               {
@@ -977,7 +2507,30 @@ std::string Recorder::serialize() const
     stream << ",\"overflow_count\":" << snapshot_overflow_count;
     stream << ",\"passthrough_generation\":" << passthrough.generation;
     stream << ",\"passthrough_published\":" << (passthrough.published ? "true" : "false");
+    stream << ",\"active_calls\":" << passthrough.active_calls;
     stream << ",\"unlogged_calls\":" << passthrough.unlogged_calls;
+    if (collection_ != nullptr)
+    {
+        const ObserverCollectionSnapshot collection          = collection_->snapshot();
+        const bool                       collection_complete = collection_->complete();
+        stream << ",\"collection_schema\":\"observer-collection-v1\"";
+        stream << ",\"collection_state\":" << static_cast<unsigned>(collection.state);
+        stream << ",\"collection_stop_reason\":" << static_cast<unsigned>(collection.stop_reason);
+        stream << ",\"collection_complete\":" << (collection_complete ? "true" : "false");
+        stream << ",\"collection_incomplete\":" << (collection.incomplete ? "true" : "false");
+        stream << ",\"collection_start_tick\":" << collection.start_tick;
+        stream << ",\"collection_deadline_tick\":" << collection.deadline_tick;
+        stream << ",\"collection_stop_tick\":" << collection.stop_tick;
+        stream << ",\"collection_admitted_rows\":" << collection.admitted_rows;
+        stream << ",\"collection_rejected_rows\":" << collection.rejected_rows;
+        stream << ",\"collection_clock_failures\":" << collection.clock_failures;
+        stream << ",\"collection_operation_failures\":" << collection.operation_failures;
+        stream << ",\"collection_admitted_intervals\":" << collection.admitted_intervals;
+        stream << ",\"collection_active_intervals\":" << collection.active_intervals;
+        stream << ",\"collection_pending_event\":" << (pending_event ? "true" : "false");
+        stream << ",\"collection_pending_acquisitions\":" << pending_acquisitions;
+        stream << ",\"collection_active_callbacks\":" << active_callbacks;
+    }
     stream << ",\"rows\":[";
     bool first = true;
     for (const TraceRow& trace_row : snapshot)
@@ -1036,6 +2589,8 @@ std::string Recorder::serialize() const
                            << (row.successful_interface_qualified ? "true" : "false");
                     stream << ",\"original_target\":" << hex_value(row.original_target);
                     stream << ",\"call_completed\":" << (row.call_completed ? "true" : "false");
+                    stream << ",\"provenance\":";
+                    serialize_provenance(stream, row.provenance);
                 }
                 else if constexpr (std::is_same_v<RowType, ContextWriteRow>)
                 {
@@ -1061,7 +2616,7 @@ std::string Recorder::serialize() const
                     stream << ",\"original_target\":" << hex_value(row.original_target);
                     stream << ",\"call_completed\":" << (row.call_completed ? "true" : "false");
                 }
-                else
+                else if constexpr (std::is_same_v<RowType, PendingEventRow>)
                 {
                     stream << ",\"kind\":\"pending_event\"";
                     stream << ",\"pending_status\":\"" << pending_name(row.status) << '"';
@@ -1075,6 +2630,178 @@ std::string Recorder::serialize() const
                            << (row.identity.engine_generation_known ? "true" : "false");
                     stream << ",\"pending_engine_generation\":" << row.identity.engine_generation;
                 }
+                else if constexpr (std::is_same_v<RowType, EngineBindingRow>)
+                {
+                    stream << ",\"kind\":\"engine_binding\"";
+                    stream << ",\"binding_status\":\"" << binding_name(row.status) << '"';
+                    stream << ",\"binding_qualified\":"
+                           << (row.qualified ? "true" : "false");
+                    stream << ",\"binding_engine_generation\":" << row.engine_generation;
+                    stream << ",\"binding_raw_event_complete\":"
+                           << (row.raw_identity.complete ? "true" : "false");
+                    stream << ",\"binding_raw_debug_object\":"
+                           << hex_value(row.raw_identity.raw_debug_object);
+                    stream << ",\"binding_event_pid\":" << row.raw_identity.process_id;
+                    stream << ",\"binding_event_tid\":" << row.raw_identity.thread_id;
+                    stream << ",\"binding_raw_generation\":" << row.raw_identity.raw_generation;
+                    stream << ",\"binding_event_index\":" << row.raw_identity.event_index;
+                    stream << ",\"binding_current_thread_known\":"
+                           << (row.observation.current_thread_known ? "true" : "false");
+                    stream << ",\"binding_current_thread_id\":"
+                           << row.observation.current_thread_id;
+                    stream << ",\"binding_event_thread_known\":"
+                           << (row.observation.event_thread_known ? "true" : "false");
+                    stream << ",\"binding_event_thread_id\":"
+                           << row.observation.event_thread_id;
+                    stream << ",\"binding_cached_thread_known\":"
+                           << (row.observation.cached_thread_known ? "true" : "false");
+                    stream << ",\"binding_cached_thread_id\":"
+                           << row.observation.cached_thread_id;
+                    stream << ",\"binding_current_process_known\":"
+                           << (row.observation.current_process_known ? "true" : "false");
+                    stream << ",\"binding_current_process_id\":"
+                           << row.observation.current_process_id;
+                    stream << ",\"binding_event_process_known\":"
+                           << (row.observation.event_process_known ? "true" : "false");
+                    stream << ",\"binding_event_process_id\":"
+                           << row.observation.event_process_id;
+                    stream << ",\"binding_current_system_pid_known\":"
+                           << (row.observation.current_system_pid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_pid\":"
+                           << row.observation.current_system_pid;
+                    stream << ",\"binding_current_system_tid_known\":"
+                           << (row.observation.current_system_tid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_tid\":"
+                           << row.observation.current_system_tid;
+                    stream << ",\"binding_qualified_event_complete\":"
+                           << (row.qualified_identity.complete ? "true" : "false");
+                    stream << ",\"binding_qualified_engine_generation_known\":"
+                           << (row.qualified_identity.engine_generation_known ? "true" : "false");
+                    stream << ",\"binding_qualified_engine_generation\":"
+                           << row.qualified_identity.engine_generation;
+                    stream << ",\"callback_operation_id\":" << row.callback_operation_id;
+                    stream << ",\"callback_acquisition_operation_id\":"
+                           << row.callback_acquisition_operation_id;
+                    stream << ",\"binding_attempt_id\":" << row.binding_attempt_id;
+                }
+                else if constexpr (std::is_same_v<RowType, CallbackEntryRow>)
+                {
+                    stream << ",\"kind\":\"callback_entry\"";
+                    stream << ",\"callback_operation_id\":" << row.callback_operation_id;
+                    stream << ",\"callback_kind\":" << json_string(row.callback_kind);
+                    stream << ",\"entry_raw_identity_known\":"
+                           << (row.entry_raw_identity_known ? "true" : "false");
+                    serialize_callback_identity(stream, "callback_raw", row.raw_identity);
+                    stream << ",\"exit_outcome\":\"" << callback_exit_name(row.exit_outcome) << "\"";
+                    stream << ",\"exit_observed\":" << (row.exit_observed ? "true" : "false");
+                    stream << ",\"dispatch_marker\":" << (row.dispatch_marker ? "true" : "false");
+                    stream << ",\"dispatch_phase\":" << json_string(row.dispatch_phase);
+                    stream << ",\"delegate_identity\":" << json_string(row.delegate_identity);
+                    stream << ",\"delegate_completion_known\":"
+                           << (row.delegate_completion_known ? "true" : "false");
+                    stream << ",\"delegate_hresult_known\":"
+                           << (row.delegate_hresult_known ? "true" : "false");
+                    stream << ",\"delegate_hresult\":" << row.delegate_hresult;
+                    stream << ",\"delegate_threw\":" << (row.delegate_threw ? "true" : "false");
+                    stream << ",\"delegate_begin_sequence\":" << row.delegate_begin_sequence;
+                    stream << ",\"delegate_end_sequence\":" << row.delegate_end_sequence;
+                    stream << ",\"dispatch_acquisition_operation_id\":"
+                           << row.dispatch_acquisition_operation_id;
+                    stream << ",\"dispatch_binding_attempt_id\":" << row.dispatch_binding_attempt_id;
+                    stream << ",\"provider_attempted\":" << (row.provider_attempted ? "true" : "false");
+                    stream << ",\"provider_succeeded\":" << (row.provider_succeeded ? "true" : "false");
+                    stream << ",\"provider_threw\":" << (row.provider_threw ? "true" : "false");
+                    stream << ",\"owner_evidence_complete\":"
+                           << (row.owner_evidence_complete ? "true" : "false");
+                    stream << ",\"capture_attempted\":" << (row.capture_attempted ? "true" : "false");
+                    stream << ",\"capture_completed\":" << (row.capture_completed ? "true" : "false");
+                    stream << ",\"binding_attempted\":" << (row.binding_attempted ? "true" : "false");
+                    stream << ",\"binding_succeeded\":" << (row.binding_succeeded ? "true" : "false");
+                    stream << ",\"foreign_thread_refused\":"
+                           << (row.foreign_thread_refused ? "true" : "false");
+                    stream << ",\"reentry_refused\":" << (row.reentry_refused ? "true" : "false");
+                    stream << ",\"invalid_configuration_refused\":"
+                           << (row.invalid_configuration_refused ? "true" : "false");
+                    stream << ",\"capacity_refused\":" << (row.capacity_refused ? "true" : "false");
+                    stream << ",\"error_restore_attempted\":"
+                           << (row.error_restore_attempted ? "true" : "false");
+                    stream << ",\"error_restore_succeeded\":"
+                           << (row.error_restore_succeeded ? "true" : "false");
+                    stream << ",\"error_restore_prerequisite_attempted\":"
+                           << (row.error_restore_prerequisite_attempted ? "true" : "false");
+                    stream << ",\"error_restore_prerequisite_succeeded\":"
+                           << (row.error_restore_prerequisite_succeeded ? "true" : "false");
+                    stream << ",\"error_restore_late_failure\":"
+                           << (row.error_restore_late_failure ? "true" : "false");
+                    stream << ",\"dispatch_incoming_error_known\":"
+                           << (row.dispatch_incoming_error_known ? "true" : "false");
+                    stream << ",\"dispatch_returned_error_known\":"
+                           << (row.dispatch_returned_error_known ? "true" : "false");
+                    stream << ",\"dispatch_incoming_last_error\":" << row.dispatch_incoming_error.last_error;
+                    stream << ",\"dispatch_incoming_last_status\":" << row.dispatch_incoming_error.last_status;
+                    stream << ",\"dispatch_returned_last_error\":" << row.dispatch_returned_error.last_error;
+                    stream << ",\"dispatch_returned_last_status\":" << row.dispatch_returned_error.last_status;
+                    stream << ",\"breakpoint_pointer\":" << hex_value(row.breakpoint_pointer);
+                    stream << ",\"create_thread_handle\":" << row.create_thread_handle;
+                    stream << ",\"create_thread_data_offset\":" << row.create_thread_data_offset;
+                    stream << ",\"create_thread_start_offset\":" << row.create_thread_start_offset;
+                    stream << ",\"callback_arguments_known\":"
+                           << (row.callback_arguments_known ? "true" : "false");
+                }
+                else if constexpr (std::is_same_v<RowType, CallbackAcquisitionRow>)
+                {
+                    stream << ",\"kind\":\"callback_acquisition\"";
+                    stream << ",\"callback_operation_id\":" << row.callback_operation_id;
+                    stream << ",\"acquisition_operation_id\":" << row.acquisition_operation_id;
+                    stream << ",\"callback_kind\":" << json_string(row.callback_kind);
+                    stream << ",\"acquisition_begin_sequence\":" << row.acquisition_begin_sequence;
+                    stream << ",\"acquisition_end_sequence\":" << row.acquisition_end_sequence;
+                    serialize_callback_identity(stream, "acquisition_raw", row.raw_identity);
+                    serialize_callback_identity(stream, "acquisition_rechecked", row.rechecked_identity);
+                    stream << ",\"query_interface\":";
+                    serialize_callback_query_interface(stream, row.query_interface);
+                    stream << ",\"sdk_reads\":[";
+                    for (std::size_t index = 0; index < row.sdk_reads.size(); ++index)
+                    {
+                        if (index != 0)
+                        {
+                            stream << ',';
+                        }
+                        serialize_callback_sdk_read(stream, row.sdk_reads[index]);
+                    }
+                    stream << "]";
+                    stream << ",\"owner\":";
+                    serialize_callback_owner(stream, row.owner);
+                    stream << ",\"outcome\":\"" << callback_outcome_name(row.outcome) << "\"";
+                    stream << ",\"binding_eligible\":" << (row.binding_eligible ? "true" : "false");
+                    stream << ",\"binding_status\":\"" << binding_name(row.binding_status) << "\"";
+                    stream << ",\"binding_attempt_id\":" << row.binding_attempt_id;
+                    stream << ",\"error_restore_attempted\":"
+                           << (row.error_restore_attempted ? "true" : "false");
+                    stream << ",\"error_restore_succeeded\":"
+                           << (row.error_restore_succeeded ? "true" : "false");
+                    stream << ",\"binding_current_thread_known\":"
+                           << (row.binding_observation.current_thread_known ? "true" : "false");
+                    stream << ",\"binding_current_thread_id\":" << row.binding_observation.current_thread_id;
+                    stream << ",\"binding_event_thread_known\":"
+                           << (row.binding_observation.event_thread_known ? "true" : "false");
+                    stream << ",\"binding_event_thread_id\":" << row.binding_observation.event_thread_id;
+                    stream << ",\"binding_cached_thread_known\":"
+                           << (row.binding_observation.cached_thread_known ? "true" : "false");
+                    stream << ",\"binding_cached_thread_id\":" << row.binding_observation.cached_thread_id;
+                    stream << ",\"binding_current_process_known\":"
+                           << (row.binding_observation.current_process_known ? "true" : "false");
+                    stream << ",\"binding_current_process_id\":" << row.binding_observation.current_process_id;
+                    stream << ",\"binding_event_process_known\":"
+                           << (row.binding_observation.event_process_known ? "true" : "false");
+                    stream << ",\"binding_event_process_id\":" << row.binding_observation.event_process_id;
+                    stream << ",\"binding_current_system_pid_known\":"
+                           << (row.binding_observation.current_system_pid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_pid\":" << row.binding_observation.current_system_pid;
+                    stream << ",\"binding_current_system_tid_known\":"
+                           << (row.binding_observation.current_system_tid_known ? "true" : "false");
+                    stream << ",\"binding_current_system_tid\":" << row.binding_observation.current_system_tid;
+                }
                 stream << '}';
             },
             trace_row);
@@ -1083,9 +2810,75 @@ std::string Recorder::serialize() const
     return stream.str();
 }
 
+void Recorder::freeze_collection_evidence() noexcept
+{
+    if (collection_ == nullptr)
+    {
+        return;
+    }
+    bool incomplete = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        incomplete = pending_event_.has_value() || pending_event_interval_.has_value() ||
+                     !pending_callback_acquisitions_.empty() || !active_callbacks_.empty();
+        if (!incomplete)
+        {
+            for (const TraceRow& stored : rows_)
+            {
+                const RowHeader& header = row_header(stored);
+                if (header.exit_sequence == 0)
+                {
+                    incomplete = true;
+                    break;
+                }
+                const auto* callback = std::get_if<CallbackEntryRow>(&stored);
+                if (callback != nullptr && !callback->exit_observed)
+                {
+                    incomplete = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (incomplete)
+    {
+        collection_->mark_incomplete();
+    }
+}
+
 const Originals& Recorder::originals() const
 {
     return originals_;
+}
+
+bool query_provenance_qualified(const QueryRow& row)
+{
+    const QueryProvenanceEvidence& evidence = row.provenance;
+    if (row.header.incomplete || row.header.pre_log_failed || row.header.post_log_failed || row.header.rethrown ||
+        !row.header.incoming_error_known || !row.header.returned_error_known || !qualified_identity(row.header.event) ||
+        !row.call_completed || row.result < 0 ||
+        row.service_guid_status != ObservationStatus::Read || row.iid_status != ObservationStatus::Read ||
+        !same_guid(row.service_guid, kTranslationServiceGuid) || !same_guid(row.iid, kTranslationIid) ||
+        !row.successful_interface_qualified || row.returned_interface_status != ObservationStatus::Read ||
+        row.vtable_status != ObservationStatus::Read || row.slot_plus_10_status != ObservationStatus::Read ||
+        row.returned_interface == 0 || row.vtable == 0 || row.slot_plus_10_target == 0 ||
+        row.slot_plus_10_address != row.vtable + kInterfaceSlot10Offset || evidence.status != QueryProvenanceStatus::Accepted ||
+        !evidence.output_complete || evidence.session_id != row.header.session_id ||
+        evidence.operation_id != row.header.operation_id || !qualified_identity(evidence.event) ||
+        !same_identity(evidence.event, row.header.event) ||
+        evidence.returned_interface != row.returned_interface || evidence.vtable != row.vtable ||
+        evidence.slot_plus_10_address != row.slot_plus_10_address || evidence.slot_plus_10_target != row.slot_plus_10_target ||
+        evidence.acquisition_begin_sequence <= row.header.sequence ||
+        evidence.acquisition_end_sequence <= evidence.acquisition_begin_sequence ||
+        row.header.exit_sequence <= evidence.acquisition_end_sequence || evidence.lifetime_id == 0 ||
+        evidence.lifetime != QueryProvenanceLifetime::Retained || evidence.coherence != QueryProvenanceCoherence::Coherent ||
+        !object_mapping_is_qualified(evidence.interface_mapping, row.returned_interface) ||
+        !object_mapping_is_qualified(evidence.vtable_mapping, row.vtable) ||
+        !module_binding_is_qualified(evidence.target_mapping, row.slot_plus_10_target, evidence.lifetime_id))
+    {
+        return false;
+    }
+    return true;
 }
 
 bool publish_passthrough(const Originals& originals, std::uint64_t* generation)
@@ -1108,30 +2901,46 @@ bool publish_passthrough(const Originals& originals, std::uint64_t* generation)
         }
     }
     std::lock_guard<std::mutex> lock(g_passthrough_mutex);
-    if (g_passthrough_published.load(std::memory_order_acquire) || g_bridge_calls.load(std::memory_order_acquire) != 0 || g_passthrough_generation == std::numeric_limits<std::uint64_t>::max())
+    if (g_controller_owner_id != 0 || publication_is_published() || active_forwarding_calls() != 0 ||
+        g_passthrough_record.publication_generation == std::numeric_limits<std::uint64_t>::max())
     {
         return false;
     }
-    g_passthrough_lookup.store(originals.lookup, std::memory_order_relaxed);
-    g_passthrough_query.store(originals.query, std::memory_order_relaxed);
-    g_passthrough_context.store(originals.context_write, std::memory_order_relaxed);
-    g_unlogged_calls.store(0, std::memory_order_relaxed);
-    *generation = ++g_passthrough_generation;
-    g_passthrough_published.store(true, std::memory_order_release);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.lookup_original)
+        .store(target_value(originals.lookup), std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.query_original)
+        .store(target_value(originals.query), std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.context_original)
+        .store(target_value(originals.context_write), std::memory_order_relaxed);
+    std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+        .store(0, std::memory_order_relaxed);
+    *generation = ++g_passthrough_record.publication_generation;
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.flags)
+        .fetch_or(kObserverPublicationPublishedFlag, std::memory_order_release);
     return true;
 }
 
 bool clear_passthrough(std::uint64_t generation, const Originals& expected)
 {
     std::lock_guard<std::mutex> lock(g_passthrough_mutex);
-    if (!g_passthrough_published.load(std::memory_order_acquire) || generation != g_passthrough_generation || g_bridge_calls.load(std::memory_order_acquire) != 0 || expected.lookup != g_passthrough_lookup.load(std::memory_order_relaxed) || expected.query != g_passthrough_query.load(std::memory_order_relaxed) || expected.context_write != g_passthrough_context.load(std::memory_order_relaxed))
+    const Originals             actual{ lookup_target(g_passthrough_record.lookup_original),
+                                        query_target(g_passthrough_record.query_original),
+                                        context_target(g_passthrough_record.context_original) };
+    if (g_controller_owner_id != 0 || !publication_is_published() ||
+        generation != g_passthrough_record.publication_generation || active_forwarding_calls() != 0 ||
+        expected.lookup != actual.lookup || expected.query != actual.query ||
+        expected.context_write != actual.context_write)
     {
         return false;
     }
-    g_passthrough_published.store(false, std::memory_order_release);
-    g_passthrough_lookup.store(nullptr, std::memory_order_relaxed);
-    g_passthrough_query.store(nullptr, std::memory_order_relaxed);
-    g_passthrough_context.store(nullptr, std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.flags)
+        .fetch_and(~kObserverPublicationPublishedFlag, std::memory_order_release);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.lookup_original)
+        .store(0, std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.query_original)
+        .store(0, std::memory_order_relaxed);
+    std::atomic_ref<std::uint32_t>(g_passthrough_record.context_original)
+        .store(0, std::memory_order_relaxed);
     return true;
 }
 
@@ -1139,75 +2948,156 @@ PassthroughSnapshot passthrough_snapshot()
 {
     std::lock_guard<std::mutex> lock(g_passthrough_mutex);
     PassthroughSnapshot         snapshot;
-    snapshot.published      = g_passthrough_published.load(std::memory_order_acquire);
-    snapshot.originals      = { g_passthrough_lookup.load(std::memory_order_relaxed),
-                                g_passthrough_query.load(std::memory_order_relaxed),
-                                g_passthrough_context.load(std::memory_order_relaxed) };
-    snapshot.generation     = g_passthrough_generation;
-    snapshot.active_calls   = g_bridge_calls.load(std::memory_order_acquire);
-    snapshot.unlogged_calls = g_unlogged_calls.load(std::memory_order_relaxed);
+    snapshot.published           = publication_is_published();
+    snapshot.originals           = { lookup_target(g_passthrough_record.lookup_original),
+                                     query_target(g_passthrough_record.query_original),
+                                     context_target(g_passthrough_record.context_original) };
+    snapshot.generation          = g_passthrough_record.publication_generation;
+    snapshot.active_calls        = active_forwarding_calls();
+    snapshot.unlogged_calls      = unlogged_calls();
+    snapshot.controller_owner_id = g_controller_owner_id;
     return snapshot;
 }
 
-void* XIVL_OBSERVER_FASTCALL lookup_bridge(void* manager, void* ignored_edx, const GuidBytes* service_guid)
+ObserverPublicationRecordV1* passthrough_publication_record()
+{
+    return &g_passthrough_record;
+}
+
+std::uintptr_t passthrough_publication_address()
+{
+    return reinterpret_cast<std::uintptr_t>(&g_passthrough_record);
+}
+
+bool claim_passthrough_controller_ownership(std::uint64_t owner_id)
+{
+    if (owner_id == 0)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_passthrough_mutex);
+    if (g_controller_owner_id != 0 || publication_is_published() || active_forwarding_calls() != 0 ||
+        (g_passthrough_record.controller_owner_id != 0 &&
+         g_passthrough_record.controller_owner_id != owner_id) ||
+        g_passthrough_record.lookup_original != 0 || g_passthrough_record.query_original != 0 ||
+        g_passthrough_record.context_original != 0)
+    {
+        return false;
+    }
+    g_controller_owner_id = owner_id;
+    std::atomic_ref<std::uint64_t>(g_passthrough_record.controller_owner_id)
+        .store(owner_id, std::memory_order_relaxed);
+    return true;
+}
+
+bool release_passthrough_controller_ownership(std::uint64_t owner_id)
+{
+    if (owner_id == 0)
+    {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(g_passthrough_mutex);
+    if (g_controller_owner_id != owner_id || g_passthrough_record.controller_owner_id != owner_id ||
+        publication_is_published() || active_forwarding_calls() != 0 ||
+        g_passthrough_record.lookup_original != 0 || g_passthrough_record.query_original != 0 ||
+        g_passthrough_record.context_original != 0)
+    {
+        return false;
+    }
+    g_controller_owner_id = 0;
+    std::atomic_ref<std::uint64_t>(g_passthrough_record.controller_owner_id)
+        .store(0, std::memory_order_relaxed);
+    return true;
+}
+
+XIVL_OBSERVER_LOOKUP_CODE_SEG void* XIVL_OBSERVER_FASTCALL lookup_bridge(
+    void*            manager,
+    void*            ignored_edx,
+    const GuidBytes* service_guid)
 {
     BridgeCall call;
-    if (g_passthrough_published.load(std::memory_order_acquire))
+    if (publication_is_published())
     {
-        const auto original = g_passthrough_lookup.load(std::memory_order_relaxed);
+        const auto original = lookup_target(
+            std::atomic_ref<std::uint32_t>(g_passthrough_record.lookup_original)
+                .load(std::memory_order_relaxed));
         if (g_bridge_recorder == nullptr || g_bridge_recorder->originals().lookup != original)
         {
-            g_unlogged_calls.fetch_add(1, std::memory_order_relaxed);
-            return original(manager, ignored_edx, service_guid);
+            std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+                .fetch_add(1, std::memory_order_relaxed);
+            const auto result = original(manager, ignored_edx, service_guid);
+            call.finish();
+            return result;
         }
     }
     if (g_bridge_recorder == nullptr)
     {
+        call.finish();
         return nullptr;
     }
-    return g_bridge_recorder->forward_lookup(manager, ignored_edx, service_guid);
+    const auto result = g_bridge_recorder->forward_lookup(manager, ignored_edx, service_guid);
+    call.finish();
+    return result;
 }
 
-Hresult XIVL_OBSERVER_STDCALL query_bridge(
+XIVL_OBSERVER_QUERY_CODE_SEG Hresult XIVL_OBSERVER_STDCALL query_bridge(
     void*            manager,
     const GuidBytes* service_guid,
     const GuidBytes* iid,
     void**           output_slot)
 {
     BridgeCall call;
-    if (g_passthrough_published.load(std::memory_order_acquire))
+    if (publication_is_published())
     {
-        const auto original = g_passthrough_query.load(std::memory_order_relaxed);
+        const auto original = query_target(
+            std::atomic_ref<std::uint32_t>(g_passthrough_record.query_original)
+                .load(std::memory_order_relaxed));
         if (g_bridge_recorder == nullptr || g_bridge_recorder->originals().query != original)
         {
-            g_unlogged_calls.fetch_add(1, std::memory_order_relaxed);
-            return original(manager, service_guid, iid, output_slot);
+            std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+                .fetch_add(1, std::memory_order_relaxed);
+            const auto result = original(manager, service_guid, iid, output_slot);
+            call.finish();
+            return result;
         }
     }
     if (g_bridge_recorder == nullptr)
     {
+        call.finish();
         return kBridgeUnavailableHresult;
     }
-    return g_bridge_recorder->forward_query(manager, service_guid, iid, output_slot);
+    const auto result = g_bridge_recorder->forward_query(manager, service_guid, iid, output_slot);
+    call.finish();
+    return result;
 }
 
-BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(void* handle, void* context)
+XIVL_OBSERVER_CONTEXT_CODE_SEG BoolResult XIVL_OBSERVER_FASTCALL context_write_bridge(
+    void* handle,
+    void* context)
 {
     BridgeCall call;
-    if (g_passthrough_published.load(std::memory_order_acquire))
+    if (publication_is_published())
     {
-        const auto original = g_passthrough_context.load(std::memory_order_relaxed);
+        const auto original = context_target(
+            std::atomic_ref<std::uint32_t>(g_passthrough_record.context_original)
+                .load(std::memory_order_relaxed));
         if (g_bridge_recorder == nullptr || g_bridge_recorder->originals().context_write != original)
         {
-            g_unlogged_calls.fetch_add(1, std::memory_order_relaxed);
-            return original(handle, context);
+            std::atomic_ref<std::uint64_t>(g_passthrough_record.unlogged_calls)
+                .fetch_add(1, std::memory_order_relaxed);
+            const auto result = original(handle, context);
+            call.finish();
+            return result;
         }
     }
     if (g_bridge_recorder == nullptr)
     {
+        call.finish();
         return 0;
     }
-    return g_bridge_recorder->forward_context_write(handle, context);
+    const auto result = g_bridge_recorder->forward_context_write(handle, context);
+    call.finish();
+    return result;
 }
 
 } // namespace xivl::observer_diagnostic

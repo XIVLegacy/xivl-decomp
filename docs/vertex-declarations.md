@@ -1,0 +1,369 @@
+# Vertex declaration descriptor lanes
+
+The retail client maps compact vertex usage `4` to Direct3D usage `10` with
+UsageIndex `1`, conventionally `COLOR1`. The mesh descriptor parser and the
+compact declaration builder expose a linked usage field. This establishes a
+declaration semantic, not a geometric meaning or a particular vertex format.
+
+## Evidence identity
+
+| Field | Value |
+|---|---|
+| Module | `ffxivgame.exe`, retail build `2012.09.19.0001` |
+| Size | `15996808` bytes |
+| SHA-256 | `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9` |
+| Image base | `0x00400000` |
+| Language | `x86:LE:32:default` |
+| Producing tool | `ghidra-cli 0.2.2`, Ghidra read-only disassembly, decompilation and memory queries |
+| Address convention | All locators below are VAs. RVA = VA - `0x00400000`. |
+| Confidence | High for the observed field operations and call edges. API names are interpretations anchored to the cited Direct3D ABI. |
+
+The supplied executable's size and SHA-256 were recomputed. Ghidra's
+`currentProgram.getExecutableSHA256()`, image base and language ID agree with
+that identity. Decompiled types and inferred variable names are not the basis
+for the field claims. The underlying instructions establish the operations.
+
+## Compact descriptor conversion
+
+**Observation.** At VA `0x00419A20`, the converter reads compact descriptors
+at an `8`-byte stride. Its output elements also have an `8`-byte stride. The
+field operations at VAs `0x00419A50` through `0x00419A97` are:
+
+| Output offset | Input or operation | Direct3D field interpretation |
+|---|---|---|
+| `+0`, word | Zero-extend compact byte `+0` | Stream |
+| `+2`, word | Copy compact word `+4` | Offset |
+| `+4`, byte | Lookup at VA `0x00F57D8F`, indexed by `4 * byte(+1) + word(+6)` | Type |
+| `+5`, byte | Zero | Method |
+| `+6`, byte | Lookup at VA `0x00F57DB4`, indexed by `2 * byte(+2)` | Usage |
+| `+7`, byte | Lookup at VA `0x00F57DB5`, indexed by `2 * byte(+2)` | UsageIndex |
+
+The loop tests compact byte `+0` against `0xFF`. After the loop, the converter
+appends an `8`-byte table-sourced end element. At callsite VA `0x00419AD3`,
+it invokes vtable byte offset `0x158` on the object loaded from VA
+`0x01329834`. The arguments are that object, the output element array and the
+converter's output pointer. The function returns at VA `0x00419AE0`.
+
+**Interpretation.** The output layout agrees with Microsoft's
+[D3DVERTEXELEMENT9](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dvertexelement9).
+Counting the `IDirect3DDevice9` methods from `QueryInterface`, including
+`IUnknown`, in the pinned
+[Microsoft header](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L429-L520)
+places `CreateVertexDeclaration` at zero-based slot `86`. In this PE32 client,
+`86 * 4 = 0x158`. The observed argument shape agrees with that method.
+This supports identifying the call as declaration creation. It does not
+establish a successful return or a later draw using the declaration.
+
+## Usage 4 mapping
+
+**Observation.** Compact byte `+2` is doubled at VA `0x00419A75`. For value
+`4`, the usage lookup selects VA `0x00F57DBC`. Reading only that entry gives
+functional Usage `10` and UsageIndex `1`. The converter stores these into
+output `+6` and `+7` at VAs `0x00419A8F` and `0x00419A8B`.
+
+**Interpretation.** Microsoft's
+[D3DDECLUSAGE](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddeclusage)
+defines `D3DDECLUSAGE_COLOR` as `10`, so this entry declares `COLOR1`.
+The usage lookup is independent of the Type lookup. Usage `4` alone does not
+select a packed or normalized format, Stream `4`, Offset `4`, or a component
+count.
+
+## STMS block identity
+
+**Observation.** Getter VA `0x00C8F5A0` passes the literal `STMS` rooted at
+VA `0x01106FD4` and an occurrence argument to selector VA `0x00C698F0`.
+At VAs `0x00C8F5AF` through `0x00C8F5B6`, a successful selection advances
+the returned chunk pointer by `0x10`. Thus the block base `B` used below is
+the selected STMS body after its `16`-byte chunk header.
+
+The selector uses tag reader VA `0x00C2D7D0` to read the chunk's first dword
+into a terminated string. It compares contents through VA `0x0044F9A0` at
+callsite VA `0x00C69970` and requires equal lengths at VAs `0x00C6997C`
+through `0x00C6998E`. Only equal tags increment the occurrence counter.
+A successful occurrence match returns the chunk cursor at VA `0x00C69A0F`.
+This establishes an exact STMS selection rather than a similarity between
+intermediate layouts.
+
+Routine VA `0x00C93770` independently reads BE32 descriptor count at `B+0`,
+item count at `B+4` and stride at `B+8`, at VAs `0x00C93788` through
+`0x00C937C2`. Its descriptor array begins at `B+0x10` with a `16`-byte
+stride. The inline-data branch at VAs `0x00C9380B` through `0x00C9383B`
+positions data after the header and descriptor array, then adds the
+descriptor's byte offset. External-data handling is outside this finding.
+
+**Interpretation.** The original parser's descriptor block is an STMS body.
+This does not recover an original `STR` source type name or establish an
+equivalence to a downstream decoder's storage.
+
+## Mesh descriptor and builder connection
+
+**Observation.** The following local field and call relationships are visible
+in the original instructions:
+
+| Locator | Bounded observation |
+|---|---|
+| VA `0x00C8E0A8` in function VA `0x00C8DC10` | Calls function VA `0x00C8F5A0` and retains its returned pointer as the descriptor block base `B`. |
+| VAs `0x00C8E381` through `0x00C8E3A7` | The general element loop obtains its count from the big-endian dword at `B+0`. Its cursor begins at `B+0x1C`, the usage field of the first `16`-byte element at `B+0x10`. |
+| VAs `0x00C8E49B` through `0x00C8E4C0` | Reads the word at the cursor, swaps its bytes, zero-extends it and stores it at `+0x14` of the intermediate record. Thus the element usage is BE16 at element `+0x0C`. |
+| VAs `0x00C8E563` through `0x00C8E572` | Passes the intermediate record base to function VA `0x00C37C70`. The record base and usage store differ by `0x14`. |
+| VAs `0x00C8E5A2` through `0x00C8E5AA` | Advances the element cursor by `0x10` and loops over the count. |
+| VAs `0x00C37CD1` and `0x00C37645` through `0x00C3766E` | The available-capacity append calls a copier that copies the complete `0x24`-byte record, including usage `+0x14`. |
+| VAs `0x00C3773B` through `0x00C37746` | Function VA `0x00C376B0` returns an intermediate record at `base + index * 0x24`. |
+| VA `0x00C8E608` | The parser passes the record-owning object to function VA `0x00C6AB90`. |
+| VAs `0x00C6AC4B` through `0x00C6AC77`, and `0x00C6ACCF` | Function VA `0x00C6AB90` appends that object to its stored set and calls builder VA `0x00C6A9D0`. |
+| VAs `0x00C6AA43` through `0x00C6AA57` | The builder reads the stored objects and calls record getter VA `0x00C376B0`. |
+| VAs `0x00C6AA5C` through `0x00C6AA88` | Copies record byte `+0` to compact byte `+0`, record word `+4` to compact word `+4`, and record byte `+0x14` to compact byte `+2`. |
+| VAs `0x00C6AB20` through `0x00C6AB26`, and `0x00418915` through `0x0041891D` | The builder passes its compact descriptor array to factory VA `0x004188B0`, which passes it to converter VA `0x00419A20`. |
+
+The parser stores usage as a zero-extended word. The builder uses only its low
+byte. Value `4` survives this narrowing. The separately observed record and
+compact copy helpers copy complete records. These helpers supply no semantic
+usage mapping.
+
+**Interpretation.** The descriptor usage field is linked to the compact usage
+field used by the declaration converter. In the reviewed field path, usage
+`4` supplies `COLOR1` at declaration creation. The separate Stream and Offset
+fields retain their own input lanes. This evidence does not assign a model's
+actual Stream, Offset or vertex data.
+
+## Conditional Type for format 3 and component count 4
+
+**Observation.** The general STMS element parser at VAs `0x00C8E46D`
+through `0x00C8E4FC` and compact builder at VAs `0x00C6AA5C` through
+`0x00C6AA99` preserve distinct descriptor lanes:
+
+| STMS element field | Intermediate record field | Compact descriptor field |
+|---|---|---|
+| BE32 `+0`, local byte offset | Dword `+4` | Word `+4` |
+| BE32 `+4`, format selector | Dword `+0x10` | Byte `+1` |
+| BE32 `+8`, component count | Dword `+0x0C` | Word `+6` |
+| BE16 `+0x0C`, usage | Dword `+0x14` | Byte `+2` |
+| BE16 `+0x0E`, additional flag | Word `+0x18` | Its high bit becomes byte `+3` |
+
+The builder narrows format to `8` bits, component count to `16` bits and
+usage to `8` bits. The additional flag's original name and meaning are
+unknown.
+
+The converter's Type lookup at VAs `0x00419A53` through `0x00419A77` uses
+only compact byte `+1` and word `+6`. It does not use usage byte `+2` or
+additional flag byte `+3`. For format selector `3` and component count `4`,
+the lookup selects VA `0x00F57D9F`, whose functional value is Type `8`.
+
+For format selector `3`, component count `4` and usage other than `0xFF`,
+size helper VA `0x00C93C80` obtains unit size `1` from the format-3 entry
+at VA `0x00F64280` and multiplies it by component count at VAs
+`0x00C93CE4` through `0x00C93CF1`, giving size `4` for this tuple.
+Usage `0xFF` instead takes a fixed-size override after the test at VA
+`0x00C93C96`. Format selector `5` takes a separate branch at VAs
+`0x00C93CCD` through `0x00C93CE3`. These special branches are outside the
+format-3 size observation. The preliminary routine VA `0x00C93770` has
+observed swap branches for widths `2` and `4`. No general usage-independent
+payload or endian contract follows.
+
+**Interpretation.** Microsoft's
+[D3DDECLTYPE](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddecltype)
+defines Type `8` as `D3DDECLTYPE_UBYTE4N`, four unsigned byte components
+normalized by dividing each by `255`. The original format-3 size entry
+independently corroborates four byte components for the bounded ordinary
+usage tuple. Normalization at declaration creation follows from Type `8`,
+not from semantic usage or the unknown additional flag.
+
+This is a conditional declaration format. Actual model metadata must
+independently establish format `3` and component count `4` before applying
+it. `COLOR1` alone establishes neither value and must not select a packed
+decoder. Signed normal or tangent reconstruction is unproved.
+
+## Conditional STMS byte order
+
+**Observation.** Read-only `ghidra-cli 0.2.2` instruction inspection at
+VA `0x00C93770` follows the exact format-`3`, component-count-`4`,
+usage-other-than-`0xFF` tuple above. The size-helper call at VA `0x00C937F3`
+and division at VA `0x00C937FD` give width `1` per component. The tests at
+VAs `0x00C9383E` through `0x00C93848` bypass both payload swap loops and
+advance to VA `0x00C938D2`. This descriptor's branch writes no payload.
+The initial state test at VA `0x00C93776` can skip processing altogether.
+
+For inline data, STMS body byte `+0x0E` equals zero. The parser calls the
+preliminary routine with requested state `1` at VA `0x00C8E0B3`. VAs
+`0x00C8E0BF` through `0x00C8E129` derive the inline data pointer and
+item-count-times-stride byte count, then call factory VA `0x00419640`.
+For a nonzero source pointer, its staging consumer copies that byte range
+through VA `0x0041A59A` using helper VA `0x009D4600`.
+
+The helper's valid nonoverlapping forward copies preserve matching byte
+positions. Bounded inspection covers alignment prefixes at VAs
+`0x009D4698` through `0x009D4705`, bulk copies at VA `0x009D465A`, tails
+at VAs `0x009D478C` through `0x009D47B9`, and the accelerated path at
+VA `0x009E46D9` with SIMD copies at VAs `0x009E4672` through `0x009E46CD`.
+The alignment prefix was decoded with Ghidra's read-only
+`PseudoDisassembler.disassemble(Address)` without changing program state.
+
+The observed direct upload helper VA `0x00435F50` calls resource virtual
+offsets `0x2C` and `0x30` at VAs `0x00435F6E` and `0x00435F92`.
+Only a zero result from the first call reaches the copy at VA `0x00435F81`,
+which uses the same byte-copy helper. These slots match `Lock` and `Unlock`
+in Microsoft's
+[IDirect3DVertexBuffer9 ABI](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L1478-L1507),
+counting inherited methods at four bytes per slot for PE32.
+
+**Interpretation, high confidence within these conditions.** This ordinary
+descriptor's preliminary branch and the observed copies preserve the current
+order of its four byte lanes. They neither reverse that group as a dword nor
+normalize its components on the CPU. Type `8` normalization remains a
+separate declaration property.
+
+Other descriptors can overlap the same payload and enter their swap loops.
+External data, prior state and producer history, later mutable-buffer writes,
+invalid ranges, allocation failures and source/destination aliasing are
+outside this observation. Backend selection, skip flags and alternate queued
+upload paths remain unresolved. Reproduce this finding by following the
+exact size/count division, width tests, inline source pointer and copy calls
+at the cited locators. No actual model payload, downstream decoder binding,
+live upload success or runtime rendering behavior follows.
+
+## Conditional additional declarations and stream binding
+
+**Observation.** Read-only `ghidra-cli 0.2.2` instruction inspection finds
+conditional additional record producers in the mesh parser VA `0x00C8DC10`.
+The later walk obtains existing records at VA `0x00C8EF87`. A record with
+usage field `+0x14` equal to zero reaches a copy whose usage becomes `0x0B`
+at VA `0x00C8F005`, then an append call at VA `0x00C8F018`. A separate
+branch requires a nonzero local control byte and source usage `3` at VAs
+`0x00C8F01D` through `0x00C8F02C`. Its copy receives usage `0x0A` at
+VA `0x00C8F09A` and is appended at VA `0x00C8F0B3`. The copies inherit
+format and component count from their existing source records. Their stream
+fields are also adjusted. The control byte's meaning is unknown.
+
+Append helper VA `0x00C37C70` copies a `0x24`-byte record through
+VA `0x00C37630` and advances the collection end at VA `0x00C37CDC`.
+The builder call at VA `0x00C8F0E7` uses the collection containing these
+records. The converter operations at VAs `0x00419A69` through `0x00419A8F`
+and selected entries at VAs `0x00F57DC8` and `0x00F57DCA` give compact
+usage `0x0A` the Direct3D usage/index pair `5/2`, and `0x0B` the pair `5/3`.
+These are declaration metadata. No component values follow.
+
+Mesh routine VA `0x00C6A440` calls binder VA `0x00C6D290`, which populates
+indexed stream records rooted at VA `0x01328DC8` from existing record
+references and strides. Routine VA `0x0041D240` submits their resource,
+offset and stride through VA `0x004231E0`. In the observed direct backend,
+VA `0x00438850` passes those arguments to VA `0x00435840`. Its device call
+at VA `0x0043585E` uses virtual offset `0x190`, matching `SetStreamSource`
+slot `100` in Microsoft's
+[IDirect3DDevice9 ABI](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L429-L588).
+When a record has no reference and its corresponding manager mask bit is
+set, VAs `0x0041D28B` through `0x0041D298` instead submit a null buffer,
+zero offset and zero stride. This branch does not populate a constant buffer.
+
+**Interpretation, high confidence within these conditions.** The original
+client can generate additional declaration records from existing records and
+has a concrete stream-binding producer. This does not establish a fallback
+for an active shader input absent from STMS. Neither a stride-zero default
+buffer nor its contents are proved. Reproduce the observation by tracing the
+record copy, usage change, append, builder and indexed stream arguments at
+the cited locators. Active-model input matching, dynamic buffer provenance,
+control flags, other producers, backend selection, queued dispatch, missing
+blend inputs, TEXCOORD6/7 defaults and runtime results remain unresolved.
+
+## Conditional TEXCOORD6 and TEXCOORD7 metadata
+
+**Observation.** Read-only `ghidra-cli 0.2.2` inspection of converter VAs
+`0x00419A69` through `0x00419A8F` and selected lookup entries at VAs
+`0x00F57DD0` and `0x00F57DD2` gives compact usage `0x0E` the Direct3D
+usage/index pair `5/6`, and `0x0F` the pair `5/7`. Microsoft's
+[D3DDECLUSAGE](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddeclusage)
+identifies usage `5` as `TEXCOORD`. These selector entries establish
+`TEXCOORD6` and `TEXCOORD7` semantics independently of storage or stream
+number.
+
+A separate generic producer at VA `0x0041ED70` receives a caller-supplied
+descriptor mask. On its construction path, VAs `0x0041EEA6` through
+`0x0041EEB3` obtain a loop count from mask bits `8` through `11`. VAs
+`0x0041EEE7` through `0x0041EEFB` generate compact usage `8` plus the
+zero-based ordinal. For bounded counts `7` or `8`, ordinal `6` generates
+selector `0x0E`. Count `8` also generates selector `0x0F` at ordinal `7`.
+These conditions do not establish any actual caller mask.
+
+This producer writes Stream `0` at VA `0x0041EEF1` and format selector `1`
+at VA `0x0041EEF6`. VAs `0x0041EEC0` through `0x0041EEE4` select a separate
+two-bit mask field per ordinal, beginning at bit `16`. Codes `0`, `1`, `2`
+and `3` give component counts `2`, `3`, `4` and `1`, respectively. The
+running Offset is written at VA `0x0041EEEC` and advanced by four bytes per
+component at VA `0x0041EF14`. The selected format-`1`, count-`1` through
+count-`4` lookup entries at VAs `0x00F57D94` through `0x00F57D97` give
+Types `0` through `3`, which Microsoft's
+[D3DDECLTYPE](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddecltype)
+identifies as `FLOAT1` through `FLOAT4`. No actual Offset, Stride or float
+value is established.
+
+The producer passes its list to factory VA `0x004188B0` at VA `0x0041EF28`
+and binds the resulting declaration through VA `0x0041D240` at
+VA `0x0041EF78`. Caller VA `0x0041EFC0` supplies its third argument as the
+mask at VA `0x0041EFE6`. VAs `0x0041EFEB` through `0x0041F000` pass its
+fourth argument as stride and fifth argument as a data pointer through
+VA `0x004232E0`. In the observed direct backend, adapter VA `0x00438AB0`
+passes those arguments to command VA `0x00435CF0`. Its device call at
+VA `0x00435D0E` uses virtual offset `0x14C`, matching `DrawPrimitiveUP`
+slot `83` in Microsoft's
+[IDirect3DDevice9 ABI](https://github.com/microsoft/win32metadata/blob/76c04c2021ef4a831a6f1e06d9566002d746139b/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L429-L588).
+The official
+[DrawPrimitiveUP contract](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3ddevice9-drawprimitiveup)
+identifies this pointer and stride as stream-`0` data.
+
+**Interpretation, high confidence within these conditions.** The selector
+lookup establishes semantics. The mask-driven producer can declare them
+conditionally on Stream `0`. The draw call consumes a caller-provided data
+pointer and stride. This identifies a consumer and argument provenance,
+without identifying the routine that populated the data.
+
+No active STMS model or selected shader is linked to this generic path.
+Actual masks, payloads, data producers, dynamic buffer ownership, backend
+selection, queued dispatch and API success remain unresolved. Neither
+semantic index establishes a stream ordinal, default component value,
+stride-zero fallback, matrix meaning or runtime rendering result. Reproduce
+the finding by following the selected lookup entries, bounded count-`7`/`8`
+construction, component-count and offset operations, then caller arguments
+through the direct draw adapter at the cited locators.
+
+## Bounded reproduction
+
+1. Verify the module size, SHA-256, image base and Ghidra program identity.
+2. Use `ghidra disasm` at the mesh and container locators above. Follow the
+   returned block pointer, general loop cursor, byte swap, record base passed
+   to the append call and record-owning object passed to the builder.
+3. Inspect record copier VA `0x00C37630`, record getter VA `0x00C376B0`,
+   builder VA `0x00C6A9D0` and factory VA `0x004188B0`. Confirm each cited
+   field operation against instructions, rather than inferred source types.
+4. Inspect converter VA `0x00419A20` through its return at VA `0x00419AE0`.
+   Check output offsets, separate lookup indexes and vtable arguments.
+   Read only the `2`-byte usage entry at VA `0x00F57DBC` with
+   `ghidra memory read` to reproduce the functional pair.
+5. Compare the observed layout and call with the cited Microsoft ABI. Count
+   interface methods from its exact `IDirect3DDevice9` declaration.
+6. Inspect getter VA `0x00C8F5A0`, selector VA `0x00C698F0`, tag reader
+   VA `0x00C2D7D0` and comparison VA `0x0044F9A0`. Read only the literal
+   at VA `0x01106FD4` to reproduce STMS selection and the header skip.
+7. Inspect the STMS count and inline-data calculations in VA `0x00C93770`.
+   Check the separate parser and compact builder lanes above. Read only the
+   selected Type entry at VA `0x00F57D9F` for format `3` and count `4`.
+8. Inspect size helper VA `0x00C93C80` and only the format-3 unit-size entry
+   at VA `0x00F64280`. Keep its usage-`0xFF` override and format-`5` branch
+   separate from the ordinary format-3 observation.
+
+## Unresolved boundaries
+
+An original geometric meaning or source enum name for mesh usage `4` is
+unknown. Neither `COLOR1` shader consumption nor this declaration mapping
+establishes a binormal interpretation.
+
+The STMS descriptor linkage and conditional format-3/count-4 Type are
+established. Original `STR` naming, equivalence to a downstream decoder and
+the additional flag's meaning remain unknown. Actual model format, component
+count, Stream, Offset and payload values require separate evidence.
+The format lookup is distinct from the usage lookup. Vertex bytes, signed
+normal or tangent reconstruction, fallback streams, missing blend inputs,
+TEXCOORD6/7 defaults and dynamic skinning data remain unproved.
+
+The complete ordering routine, every allocation or insertion path, malformed
+or out-of-range descriptors and alternate parser branches are outside this
+finding. No retail session, live GPU acceptance, selected model shader or
+runtime rendering result was validated.
