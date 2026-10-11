@@ -658,8 +658,48 @@ character, group 6 or 7 therefore needs:
 - a later admitted slot-142 call with a live controller.
 
 Routes into the activation routine `0x00664890` are CharaActor slot 132,
-`0x00666550`, and `0x006BE3D0`. Whether cut-created characters reach either
-was not established.
+`0x00666550`, and CharaVisual slot 16, `0x006BE3D0`. The slot-132 wrapper
+`0x0061B350` that follows a cut character request has no static caller.
+Activation itself happens when the character's model finishes loading:
+
+1. CharaVisual slot 13 calls slot 16 when the counter at `V+0x35` reaches
+   the batch mask at `V+0x34`.
+2. Slot 16 walks a state machine with states 0 to 3, storing each state
+   before starting the next batch.
+3. At state 3 it casts `u32(V+0x08)` to CharaActor and calls `0x00664890`
+   at `0x006BE4D6`.
+
+The load starts at CharaVisual slot 25. Its only caller, `0x00665E40`,
+first deactivates the character. It is reached only from `0x00666720`, which
+slot 142 calls at `0x006680C6` after the admission gates. `0x00666720` starts
+a load from an appearance-store entry. Otherwise it starts one when the low
+nibble of `u32(C+0x2B70)` counts down to zero (`0x0066679B`).
+
+Both cut requests call `0x0065DA00`, which removes the character's
+appearance-store registration. A cut character therefore loads only after an
+appearance setter arms that nibble through `0x0065D730`. Examples are
+RaptureCharaVisualClip slot 1, `0x00825D70`, through `0x00662CE0`, and slot
+157 commands 8 and 9. Neither request shows such a setter.
+
+Slot-142 admission differs by request. `0x0061A3D0` stores
+`C+0xE0 = 0x7FFFFFFF`, so slot 142 also needs bit 7 of `u32(C+0x2B70)`. On
+the BindClip route, RaptureActorBindClip slot 1 creates the character
+through `0x0061BD90` at `0x0082E3BA`. It later sets that bit through slot
+155 at `0x0082E44B`, provided the actor lookup and RaptureActor cast succeed.
+`0x0061C0B0` calls slot 155 with 1 itself.
+
+Re-evaluation runs on every admitted slot-142 call. Deactivation clears only
+bit 0, and only the constructor clears bit 3. A collision-clip byte therefore
+gives a cut character group 6 or 7 only when all of these hold:
+
+- an appearance setter targets it;
+- all model batches complete and activation succeeds, including the
+  controller allocations;
+- bit 4 is still set;
+- a later slot-142 call is admitted, or the bit was already set at
+  activation.
+
+The examined requests do not by themselves establish that sequence.
 
 Container `+0xD0` holds the actor most recently selected by internal
 command 15 (`0x007C9676`), which also sets the new actor's `+0xD8` and clears
