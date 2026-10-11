@@ -532,8 +532,8 @@ D+0x2C = g
 
 The adapter's immediate `3` is a separate wrapper argument forwarded to
 `0x00B006B0`; it is not the group mask. Clearing bit `0x4` preserves bit
-`0x2`, but does not establish that the table word contains it. Admission of
-the Attribute's group 1 therefore still depends on the selected table word.
+`0x2`, but does not establish that the table word contains it. The next
+section identifies the index and the table rows.
 
 The caller builds the two descriptor vectors from its first formal argument
 `V`: `vec4(V)+(0,2,0,0)` and `(0,-1,0,0)`. Its scalar uses character float
@@ -544,9 +544,77 @@ The optional pointer is the address `q+0x60`, where `q` is the earlier
 `0x007D3A80` result; the descriptor copies its two dwords when nonzero.
 Wrapper flag and constant writes follow the descriptor table above.
 
-The selected actor's owner identity, the index object's slot 25 and the
-selected table word remain identity/input boundaries. These inputs do not prove an accepted
-triangle hit, standing or walking.
+## Character group index and collision matrix
+
+The slot-76 result is the character controller held at `C+0x18`. Slot 67,
+`0x00A5FB90`, installs a CharacterController, vtable `0x0109D924`, when the
+field is empty. Slot 68, `0x007CD360`, destroys any existing controller. It
+then constructs a RaptureCharacterProxy and a RaptureCharacterController,
+vtable `0x00FEE17C`. If the proxy allocation fails, slot 68 skips the store
+and leaves the destroyed pointer in `C+0x18`. Both controller classes use
+slot 25, `0x00A68650`, which returns the group byte of the controller body's
+first native shape record:
+
+```
+B = u32(C+0x18)            controller
+H = u32(u32(B+0x04)+0x2C)  native rigid body
+S = u32(H+0x18)            first shape
+i = 0                                     when B, H or S is zero
+i = u8(u32(u32(S+0x10)) + 0x90*u32(S+0x0C) + 0x4C)   otherwise
+```
+
+The index is therefore the character body's own collision group. New shape
+records start at group 0. Body group setters reduce values of at least
+`0x20` to five bits. Base controller slot 2, reached from base slot 3,
+writes group 6. The RaptureCharacterController slot 3, `0x007D5B00`, calls
+base slot 1 directly and writes group 31.
+
+CharaActor routine `0x00664890` runs slot 68 and the new controller's slot 3.
+It then calls `0x00857030`, which continues at `0x00856EC0`. That routine
+reads flag byte `F = u8(C+0x2AF0)`. It sets bit 2 to bit 3 AND bit 4, and
+forces a write through character slot 114, `0x007CD610`, to controller slot
+24:
+
+| Condition | Group written |
+|---|---|
+| Bit 2 clear | 31 |
+| Bit 2 set | 7 |
+| Group 7 and `u32(u32(C+0x118)+0xD0) == C` | 6 |
+| Group 6 and that comparison fails | 7 |
+
+The CharaActor constructor calls `0x00857010`, which sets bit 4 and clears
+bit 3. Slots 110 and 164, `0x0065BA40` and `0x0065BA60`, set bits 3 and 4
+from byte arguments. Slot 142, `0x006679C0`, re-runs the flag evaluation
+through `0x00857070`.
+
+The table word is the collision matrix row for that group. `0x00AF92D0`
+fills the matrix from reset `0x00AFF0E0`. `0x00AC8E40` applies 16 pair
+updates through setter `0x00AF8F60`, which sets or clears both `(i,j)` and
+`(j,i)`. RaptureWorld construction `0x0060C2C0` then clears all 32x32 pairs
+and sets 13. The resulting nonzero rows are:
+
+| Rows | Mask |
+|---|---|
+| 1, 16 | `0x600000C0` |
+| 2 | `0x200000C0` |
+| 5 | `0x000000C0` |
+| 6, 7 | `0x00010026` |
+| 29 | `0x00010006` |
+| 30 | `0x00010002` |
+
+All other rows, including 31, are zero. Bit `0x2` occurs only in rows 6, 7,
+29 and 30. The pair setter's callers are confined to these two initializers.
+The whole-row setter `0x00AF8FD0` has no direct caller or literal reference.
+
+On this construction route the slot-167 query admits the Attribute's group 1
+only when the character's group is 6 or 7, giving `g = 0x00010022`. With the
+constructor flags and no earlier slot 110 with a true argument, the group is
+31, `g = 0`, and group 1 is not admitted. Later group writes remain possible:
+slot 142, copier `0x00A73BE0` from a source byte at `+0x532`, LayoutWorld slot
+4 `0x00A92380` broadcasting a byte to its elements, and the slot-110 and
+slot-164 inputs. The comparison with the container's `+0xD0` character is
+not established as local-player identity. These inputs do not prove an
+accepted triangle hit, standing or walking.
 
 ## Character factory and world provider
 
