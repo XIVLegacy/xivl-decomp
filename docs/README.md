@@ -139,6 +139,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Resources and file formats
 
+- [Ordinary format-6 STMS payload lanes](resource/stms-ubyte4-payload.md)
 - [Ambient Garlean fleet visibility boundary](resource/ambient-garlean-fleet.md)
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
 - [Bitmap font text bytes and glyph keys](resource/bitmap-font-text-key-consumers.md)
