@@ -582,11 +582,53 @@ used by Attribute body construction and the native solver.
 
 The selected RaptureActorBindClip slot-1 path at `0x0082E160` reaches
 `0x0061BD90/0x0061B380/0x0061A3D0` with an actor pointer `A` obtained
-through its callback input. `0x0061A3D0` reads `T = u32(A+0x118)` and
-requests type `0x11` through `0x007C9110`. The retained getter chain does
-not establish that this particular `T` equals `u32(W+0x10)`. Qualifying
-that selected actor owner and the indexed group mask is separate from the
-world-owned factory proof; neither path establishes local-player identity,
+through its callback input `F`. `0x0061A3D0` reads `T = u32(A+0x118)` and
+requests type `0x11` through `0x007C9110`. The getters `0x00A20030` and
+`0x0060B360` give this typed chain:
+
+```
+S0 = u32(F+0x0C)    Scheduler
+S1 = u32(S0+0x74)   ResourceReference
+S2 = u32(S1+0x04)   SchedulerParameter
+S3 = u32(S2+0x04)   parameter world
+K  = u32(S3+0x10)   RaptureActorContainer
+A  = u32(K+0x68)    cached CutManagerActor
+```
+
+`K+0x68` is the container's type-`0x0D` cache slot. The dispatch table lives
+at `K+0x54`, and `0x007A02D0` stores the type-`0x0D` result at its `+0x14` at
+`0x007A0354`. The registered factory `0x0079F860` constructs CutManagerActor,
+primary vtable `0x00FB8DA4`, through `0x006191B0`, `0x006329C0` and
+`0x007CEF80`. The RaptureActor constructor stores its third formal, the
+dispatching container, at `A+0x118` at `0x007CF096`. No other `+0x118`
+store occurs in these constructors or in the primary vtable slot functions
+of CutManagerActor, CDevActor and RaptureActor, including resolved thunk
+targets. On this cached-actor route, after nonzero allocation and getter
+results:
+
+```
+T = u32(A+0x118) = K = u32(S3+0x10)
+```
+
+Removal clears the cache slot at `0x007A01E9` only when actor ID
+`u32(A+0xDC)` equals `0xC0000005`.
+
+When `S3` is a constructed RaptureWorld whose `+0x10` still holds its own
+container, the world-owned equations above apply with `W = S3`. The
+remaining identity is therefore the parameter world. Three SchedulerParameter
+producers store a world at `+0x04`:
+
+| Producer | Parameter store | World source |
+|---|---|---|
+| `0x00A656D0`, installed as global `0x01365608` at `0x00A65780` | `0x00A65742` | SceneThreadImpl slot 6 through CDevSchedulerManager slots 1 and 5 |
+| `0x00A01A50`, stored at its receiver `+0x74` | `0x00A01B45` | SceneThreadImpl slot 18, `0x004E95F0`, through `0x00A49290` |
+| `0x00A031A0`, called by LaySchedulerManager slot 9 `0x00A72D10` | `0x00A031AA` | Untraced |
+
+The root Acc/Mcc scheduler builders sample the global, and copied builders
+retain their parent's parameter. The global is written only at `0x00A65780`
+and cleared at `0x00A657ED`. Which producer built the selected callback's
+scheduler, and whether its world is the current SceneThreadImpl world,
+remain unqualified. None of these paths establishes local-player identity,
 loaded authored bytes or contact.
 
 ## Placed setup flags and group byte
