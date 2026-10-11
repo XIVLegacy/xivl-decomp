@@ -351,7 +351,7 @@ public:
     // Clear cached originals only after the owner has released the recorder
     // and waited for any late wrapper call that already loaded one.
     static void clear_late_forwarding() noexcept;
-    bool active() const noexcept;
+    bool        active() const noexcept;
     bool        detach_forwarding() const noexcept;
     bool        originals_available() const noexcept;
 

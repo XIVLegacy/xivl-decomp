@@ -559,7 +559,7 @@ bool write_json_file(const wchar_t* path, const std::string& text) noexcept
 
 } // namespace
 
-std::atomic<RawRecorder*> RawRecorder::active_recorder_ = nullptr;
+std::atomic<RawRecorder*>     RawRecorder::active_recorder_ = nullptr;
 std::atomic<WaitFunction>     RawRecorder::late_wait_       = nullptr;
 std::atomic<ContinueFunction> RawRecorder::late_continue_   = nullptr;
 std::atomic<std::size_t>      RawRecorder::late_inflight_   = 0;

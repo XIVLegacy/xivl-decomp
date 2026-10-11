@@ -1986,7 +1986,7 @@ bool Recorder::finish_callback_delegate(
 CallbackAcquisitionStart Recorder::begin_callback_acquisition(std::uint64_t callback_operation_id)
 {
     CallbackAcquisitionStart result;
-    result.callback_operation_id        = callback_operation_id;
+    result.callback_operation_id = callback_operation_id;
     if (raw_lifecycle_open())
     {
         result.acquisition_operation_id             = next_raw_operation_.fetch_add(1, std::memory_order_relaxed);
@@ -2205,8 +2205,8 @@ bool Recorder::finish_callback_acquisition(
     {
         return false;
     }
-    *result                                                             = {};
-    result->callback_operation_id                                       = callback_operation_id;
+    *result                       = {};
+    result->callback_operation_id = callback_operation_id;
     if (raw_lifecycle_open())
     {
         const std::uint32_t         observer_thread = thread_id();
@@ -3054,19 +3054,19 @@ std::size_t Recorder::overflow_count() const
 std::string Recorder::serialize() const
 {
     std::vector<TraceRow> snapshot;
-    std::size_t           snapshot_overflow_count = 0;
-    bool                  pending_event           = false;
-    std::size_t           pending_acquisitions    = 0;
-    std::size_t           active_callbacks        = 0;
+    std::size_t           snapshot_overflow_count   = 0;
+    bool                  pending_event             = false;
+    std::size_t           pending_acquisitions      = 0;
+    std::size_t           active_callbacks          = 0;
     std::size_t           raw_callback_entries      = 0;
     std::size_t           raw_callback_acquisitions = 0;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        snapshot                = rows_;
-        snapshot_overflow_count = overflow_count_;
-        pending_event           = pending_event_.has_value() || pending_event_interval_.has_value();
-        pending_acquisitions    = pending_callback_acquisitions_.size();
-        active_callbacks        = active_callbacks_.size();
+        snapshot                  = rows_;
+        snapshot_overflow_count   = overflow_count_;
+        pending_event             = pending_event_.has_value() || pending_event_interval_.has_value();
+        pending_acquisitions      = pending_callback_acquisitions_.size();
+        active_callbacks          = active_callbacks_.size();
         raw_callback_entries      = raw_callback_entries_.size();
         raw_callback_acquisitions = raw_callback_acquisitions_.size();
     }

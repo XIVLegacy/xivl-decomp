@@ -1447,7 +1447,7 @@ bool observer_live_bootstrap_initialize(const ObserverLiveBootstrapInput& input,
         xivl_observer_bootstrap_v1.wrappers[index] = pointer32(hook_wrappers[index]);
         xivl_observer_bootstrap_v1.wrapper_extents[index] =
             static_cast<std::uint32_t>(hook_extents[index]);
-        xivl_observer_bootstrap_v1.raw_wrappers[index] = pointer32(raw_wrappers[index]);
+        xivl_observer_bootstrap_v1.raw_wrappers[index]        = pointer32(raw_wrappers[index]);
         xivl_observer_bootstrap_v1.raw_wrapper_extents[index] = static_cast<std::uint32_t>(raw_extents[index]);
     }
     xivl_observer_bootstrap_v1.raw_forwarding_counter_address =
@@ -1706,9 +1706,9 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
         set_child_state(ObserverLiveChildState::Failed, ERROR_DLL_INIT_FAILED);
         return false;
     }
-    ObserverLiveBootstrapInput bootstrap_input = request.bootstrap;
-    bootstrap_input.engine_module              = state_->composition.engine_module();
-    bootstrap_input.engine_base                = state_->composition.engine_base();
+    ObserverLiveBootstrapInput bootstrap_input          = request.bootstrap;
+    bootstrap_input.engine_module                       = state_->composition.engine_module();
+    bootstrap_input.engine_base                         = state_->composition.engine_base();
     map_selection::TraceMapObserverCallbacks* callbacks = state_->composition.callbacks();
     if (callbacks == nullptr || callbacks->raw_recorder() == nullptr)
     {
@@ -1791,24 +1791,24 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
         }
         g_active_child_session = this;
     }
-    g_child_control.session_id                     = request.composition.session_id;
-    g_child_control.row_count                      = 0;
-    g_child_control.qualified_row_count            = 0;
-    g_child_control.fixture_exit_code              = 0;
-    g_child_control.fixture_exit_code_known        = 0;
-    g_child_control.fixture_exit_confirmed         = 0;
-    g_child_control.engine_options_readback        = 0;
-    g_child_control.engine_options_requested       = 0;
-    g_child_control.engine_options_add_result      = E_FAIL;
-    g_child_control.engine_options_get_result      = E_FAIL;
-    g_child_control.engine_options_returned        = 0;
-    g_child_control.options_readiness_sequence     = 0;
-    g_child_control.engine_options_client_identity = 0;
-    g_child_control.engine_options_module_identity = 0;
-    g_child_control.initial_hold_thread_id         = 0;
-    g_child_control.cleanup_thread_id              = 0;
-    g_child_control.trace_size_bytes               = 0;
-    g_child_control.event_tail_sequence            = 0;
+    g_child_control.session_id                           = request.composition.session_id;
+    g_child_control.row_count                            = 0;
+    g_child_control.qualified_row_count                  = 0;
+    g_child_control.fixture_exit_code                    = 0;
+    g_child_control.fixture_exit_code_known              = 0;
+    g_child_control.fixture_exit_confirmed               = 0;
+    g_child_control.engine_options_readback              = 0;
+    g_child_control.engine_options_requested             = 0;
+    g_child_control.engine_options_add_result            = E_FAIL;
+    g_child_control.engine_options_get_result            = E_FAIL;
+    g_child_control.engine_options_returned              = 0;
+    g_child_control.options_readiness_sequence           = 0;
+    g_child_control.engine_options_client_identity       = 0;
+    g_child_control.engine_options_module_identity       = 0;
+    g_child_control.initial_hold_thread_id               = 0;
+    g_child_control.cleanup_thread_id                    = 0;
+    g_child_control.trace_size_bytes                     = 0;
+    g_child_control.event_tail_sequence                  = 0;
     g_child_control.raw_event_count                      = 0;
     g_child_control.raw_continuation_count               = 0;
     g_child_control.raw_binding_count                    = 0;
@@ -1824,26 +1824,26 @@ bool ObserverLiveChildSession::prepare(const ObserverLiveAuthority&    authority
     g_child_control.raw_coverage                         = 0;
     g_child_control.raw_persistence                      = 0;
     g_child_control.raw_post_activity                    = 0;
-    g_child_control.raw_trace_persisted            = 0;
-    g_child_control.raw_trace_incomplete           = 0;
-    g_child_control.failure_outcome                = 0;
-    g_child_control.collection_complete            = 0;
-    g_child_control.collection_stop_reason         = 0;
-    g_child_control.cleanup_start_tick             = 0;
-    g_child_control.collection_start_tick          = 0;
-    g_child_control.collection_deadline_tick       = 0;
-    g_child_control.collection_stop_tick           = 0;
-    g_child_control.collection_admitted_rows       = 0;
-    g_child_control.collection_rejected_rows       = 0;
-    g_child_control.collection_clock_failures      = 0;
-    g_child_control.collection_operation_failures  = 0;
-    g_child_control.collection_admitted_intervals  = 0;
-    g_child_control.collection_active_intervals    = 0;
-    g_child_control.engine_options_requested       = state_->composition.engine_options_requested();
-    g_child_control.engine_options_add_result      = state_->composition.engine_options_add_result();
-    g_child_control.engine_options_get_result      = state_->composition.engine_options_get_result();
-    g_child_control.engine_options_returned        = state_->composition.engine_options_returned();
-    g_child_control.engine_options_readback        = state_->composition.engine_options_readback() ? 1U : 0U;
+    g_child_control.raw_trace_persisted                  = 0;
+    g_child_control.raw_trace_incomplete                 = 0;
+    g_child_control.failure_outcome                      = 0;
+    g_child_control.collection_complete                  = 0;
+    g_child_control.collection_stop_reason               = 0;
+    g_child_control.cleanup_start_tick                   = 0;
+    g_child_control.collection_start_tick                = 0;
+    g_child_control.collection_deadline_tick             = 0;
+    g_child_control.collection_stop_tick                 = 0;
+    g_child_control.collection_admitted_rows             = 0;
+    g_child_control.collection_rejected_rows             = 0;
+    g_child_control.collection_clock_failures            = 0;
+    g_child_control.collection_operation_failures        = 0;
+    g_child_control.collection_admitted_intervals        = 0;
+    g_child_control.collection_active_intervals          = 0;
+    g_child_control.engine_options_requested             = state_->composition.engine_options_requested();
+    g_child_control.engine_options_add_result            = state_->composition.engine_options_add_result();
+    g_child_control.engine_options_get_result            = state_->composition.engine_options_get_result();
+    g_child_control.engine_options_returned              = state_->composition.engine_options_returned();
+    g_child_control.engine_options_readback              = state_->composition.engine_options_readback() ? 1U : 0U;
     g_child_control.engine_options_client_identity =
         state_->composition.engine_options_client_identity();
     g_child_control.engine_options_module_identity = initialized->module_pin_identity;
@@ -2117,8 +2117,8 @@ bool ObserverLiveChildSession::wait_for_fixture_event(const ObserverLiveAuthorit
             raw_bridge->coverage());
         if (terminal_raw_tail)
         {
-            state_->event_tail_sequence         = fixture_evidence->record_sequence();
-            terminal_raw_tail                   = observer_live_publish_raw_tail(
+            state_->event_tail_sequence = fixture_evidence->record_sequence();
+            terminal_raw_tail           = observer_live_publish_raw_tail(
                 raw_bridge->event_count(),
                 raw_bridge->continuation_count(),
                 raw_bridge->binding_receipt_count(),

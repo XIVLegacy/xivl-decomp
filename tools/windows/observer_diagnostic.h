@@ -900,7 +900,7 @@ private:
         std::optional<ObserverCollectionBoundary::Interval> interval;
     };
 
-    std::vector<ActiveCallback> active_callbacks_;
+    std::vector<ActiveCallback>         active_callbacks_;
     std::vector<CallbackEntryRow>       raw_callback_entries_;
     std::vector<CallbackAcquisitionRow> raw_callback_acquisitions_;
     std::vector<ActiveCallback>         raw_active_callbacks_;

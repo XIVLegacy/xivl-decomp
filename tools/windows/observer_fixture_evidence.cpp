@@ -1596,8 +1596,8 @@ bool ObserverFixtureEvidence::record_event(
     const bool raw_admitted = evidence.identity.complete &&
                               evidence.pending_status == observer_diagnostic::PendingEventStatus::Admitted &&
                               evidence.event.pending && evidence.owner_sink_attempted;
-    const bool actual = retained && raw_index_valid && identity_matches && raw_admitted &&
-                        (evidence.complete || evidence.awaiting_binding);
+    const bool actual       = retained && raw_index_valid && identity_matches && raw_admitted &&
+                              (evidence.complete || evidence.awaiting_binding);
     if (actual)
     {
         event_tail_ = true;
@@ -2366,13 +2366,13 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
     try
     {
         std::vector<ReplayEvent>     events;
-        bool                         created             = false;
-        bool                         handles             = false;
-        bool                         storage_attached    = false;
-        bool                         options             = false;
-        bool                         attached            = false;
-        bool                         attach_completed    = false;
-        bool                         resumed             = false;
+        bool                         created              = false;
+        bool                         handles              = false;
+        bool                         storage_attached     = false;
+        bool                         options              = false;
+        bool                         attached             = false;
+        bool                         attach_completed     = false;
+        bool                         resumed              = false;
         bool                         collection           = false;
         bool                         terminal             = false;
         bool                         post_detach_raw_tail = false;
@@ -2394,16 +2394,16 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
         std::array<std::uint64_t, 2> output_offsets{};
         std::array<bool, 2>          output_offset_seen{};
         std::string                  stdout_pending;
-        std::uint64_t                post_thread_count            = 0;
-        std::uint64_t                post_cycles                  = 0;
-        bool                         post_cycles_seen             = false;
-        bool                         post_cycles_post_release     = false;
-        bool                         post_marker                  = false;
-        std::uint64_t                terminal_event_count         = 0;
-        std::uint64_t                terminal_cont_count          = 0;
-        std::uint64_t                terminal_last_event          = 0;
-        std::uint64_t                terminal_last_cont           = 0;
-        std::uint64_t                terminal_record_sequence     = 0;
+        std::uint64_t                post_thread_count                = 0;
+        std::uint64_t                post_cycles                      = 0;
+        bool                         post_cycles_seen                 = false;
+        bool                         post_cycles_post_release         = false;
+        bool                         post_marker                      = false;
+        std::uint64_t                terminal_event_count             = 0;
+        std::uint64_t                terminal_cont_count              = 0;
+        std::uint64_t                terminal_last_event              = 0;
+        std::uint64_t                terminal_last_cont               = 0;
+        std::uint64_t                terminal_record_sequence         = 0;
         std::uint64_t                post_detach_event_count          = 0;
         std::uint64_t                post_detach_cont_count           = 0;
         std::uint64_t                post_detach_last_event           = 0;
@@ -2413,14 +2413,14 @@ bool ObserverFixtureEvidence::persisted_state_complete() const noexcept
         std::uint64_t                second_hold_epoch                = 0;
         std::uint64_t                second_hold_event_identity       = 0;
         std::uint64_t                second_hold_lease_identity       = 0;
-        std::uint64_t                last_continuation_index_seen = 0;
-        std::uint64_t                continuation_records         = 0;
-        std::uint64_t                options_record_sequence      = 0;
-        std::uint64_t                options_observer_pid         = 0;
-        std::uint64_t                options_observer_instance    = 0;
-        std::uint64_t                options_readiness_sequence   = 0;
-        std::uint64_t                options_client_identity      = 0;
-        std::uint64_t                options_module_identity      = 0;
+        std::uint64_t                last_continuation_index_seen     = 0;
+        std::uint64_t                continuation_records             = 0;
+        std::uint64_t                options_record_sequence          = 0;
+        std::uint64_t                options_observer_pid             = 0;
+        std::uint64_t                options_observer_instance        = 0;
+        std::uint64_t                options_readiness_sequence       = 0;
+        std::uint64_t                options_client_identity          = 0;
+        std::uint64_t                options_module_identity          = 0;
 
         const auto state_group_u64 = [](const StateFields& fields,
                                         std::string_view   prefix,
@@ -3909,25 +3909,25 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
     {
         ObserverFixtureEvidence value;
         value.enable_in_memory_test_sink();
-        const bool          options           = value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
-                                                                             S_OK,
-                                                                             S_OK,
-                                                                             DEBUG_PROCESS_DETACH_ON_EXIT);
-        const bool          created           = options && value.bind_created_fixture(identity, nullptr);
-        const bool          attach            = value.record_attachment(S_OK, DEBUG_ATTACH_DEFAULT, false);
-        const bool          resume            = value.record_resume(1);
-        const bool          event             = value.record_event(make_event());
-        const bool          binding           = value.record_binding_receipt(make_binding());
-        const bool          complete          = value.record_attachment_completion(true);
-        const bool          cont              = value.record_continuation(make_continuation());
-        const bool          stop              = value.record_collection_stop(10, 1, true);
-        const bool          terminal          = value.record_terminal_raw_tail(1, 1, 0, 0, false, true);
+        const bool options  = value.record_process_options(DEBUG_PROCESS_DETACH_ON_EXIT,
+                                                           S_OK,
+                                                           S_OK,
+                                                           DEBUG_PROCESS_DETACH_ON_EXIT);
+        const bool created  = options && value.bind_created_fixture(identity, nullptr);
+        const bool attach   = value.record_attachment(S_OK, DEBUG_ATTACH_DEFAULT, false);
+        const bool resume   = value.record_resume(1);
+        const bool event    = value.record_event(make_event());
+        const bool binding  = value.record_binding_receipt(make_binding());
+        const bool complete = value.record_attachment_completion(true);
+        const bool cont     = value.record_continuation(make_continuation());
+        const bool stop     = value.record_collection_stop(10, 1, true);
+        const bool terminal = value.record_terminal_raw_tail(1, 1, 0, 0, false, true);
         check(options && created && attach && resume, "normal_setup");
         check(event && binding && complete && cont, "normal_initial_tail");
         check(stop, "normal_collection_stop");
         check(terminal, "normal_terminal_tail");
-        const std::string   pre_marker              = "alive 1\n";
-        const bool          pre_out                 = value.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
+        const std::string pre_marker                = "alive 1\n";
+        const bool        pre_out                   = value.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
                                                                                    "stdout",
                                                                                    19,
                                                                                    0,
@@ -3943,10 +3943,10 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                                                                                    true,
                                                                                    false,
                                                                                    "");
-        const bool          live              = value.record_live_at_release(true);
-        const bool          intent                  = value.record_detach_intent(DEBUG_END_ACTIVE_DETACH);
-        const bool          rel               = value.record_session_release(S_OK, DEBUG_END_ACTIVE_DETACH, false);
-        auto                post_event              = make_event();
+        const bool        live                      = value.record_live_at_release(true);
+        const bool        intent                    = value.record_detach_intent(DEBUG_END_ACTIVE_DETACH);
+        const bool        rel                       = value.record_session_release(S_OK, DEBUG_END_ACTIVE_DETACH, false);
+        auto              post_event                = make_event();
         post_event.raw_event_index                  = 1;
         post_event.identity.event_index             = 1;
         post_event.raw_identity.event_index         = 1;
@@ -3983,7 +3983,7 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
         check(post_tail, "normal_post_tail");
         check(second_hold, "normal_second_hold_evidence");
         check(boundary, "normal_restore_boundary");
-        const std::string   post_marker =
+        const std::string post_marker =
             "post-detach-thread worker0 123 setmap constructor lookup result\npost-detach-cycles 1\n";
         const bool out  = value.record_output_snapshot(ObserverFixtureChannel::stdout_bytes,
                                                        "stdout",
@@ -4287,16 +4287,16 @@ ObserverFixtureEvidenceSelfTestReport ObserverFixtureEvidence::run_self_tests()
                 if (retained)
                 {
                     ObserverFixtureEvidence observer;
-                    bool                    observer_records = false;
+                    bool                    observer_records       = false;
                     auto                    persisted_event        = make_event();
                     auto                    persisted_continuation = make_continuation();
                     auto                    persisted_binding      = make_binding();
-                    HANDLE                  observer_process = duplicate_handle(retained_process);
-                    HANDLE                  observer_thread  = duplicate_handle(retained_thread);
-                    HANDLE                  observer_stdout  = duplicate_handle(controller.controller_storage().stdout_handle);
-                    HANDLE                  observer_stderr  = duplicate_handle(controller.controller_storage().stderr_handle);
-                    HANDLE                  observer_state   = duplicate_handle(controller.controller_storage().state_handle);
-                    const bool              attached         = observer.attach_observer_storage(
+                    HANDLE                  observer_process       = duplicate_handle(retained_process);
+                    HANDLE                  observer_thread        = duplicate_handle(retained_thread);
+                    HANDLE                  observer_stdout        = duplicate_handle(controller.controller_storage().stdout_handle);
+                    HANDLE                  observer_stderr        = duplicate_handle(controller.controller_storage().stderr_handle);
+                    HANDLE                  observer_state         = duplicate_handle(controller.controller_storage().state_handle);
+                    const bool              attached               = observer.attach_observer_storage(
                         observer_process,
                         observer_thread,
                         observer_stdout,

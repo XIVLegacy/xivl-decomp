@@ -460,7 +460,7 @@ CallbackCaptureResult CallbackIdentityReader::capture(
     {
         result.reader = read(borrowed);
     }
-    result.reader.input.owner                    = owner;
+    result.reader.input.owner = owner;
     // Raw callbacks use the independent pending lifecycle key.  Reading the
     // diagnostic-only key here would make a frozen collection look stale and
     // refuse the otherwise valid raw binding.
