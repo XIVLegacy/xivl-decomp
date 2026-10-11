@@ -609,12 +609,68 @@ The whole-row setter `0x00AF8FD0` has no direct caller or literal reference.
 On this construction route the slot-167 query admits the Attribute's group 1
 only when the character's group is 6 or 7, giving `g = 0x00010022`. With the
 constructor flags and no earlier slot 110 with a true argument, the group is
-31, `g = 0`, and group 1 is not admitted. Later group writes remain possible:
-slot 142, copier `0x00A73BE0` from a source byte at `+0x532`, LayoutWorld slot
-4 `0x00A92380` broadcasting a byte to its elements, and the slot-110 and
-slot-164 inputs. The comparison with the container's `+0xD0` character is
-not established as local-player identity. These inputs do not prove an
-accepted triangle hit, standing or walking.
+31, `g = 0`, and group 1 is not admitted. Other group writers remain open:
+copier `0x00A73BE0` from a source byte at `+0x532`, and LayoutWorld slot 4
+`0x00A92380` broadcasting a byte to its elements. These inputs do not prove
+an accepted triangle hit, standing or walking.
+
+## Group flag setters
+
+Slot 110 is referenced only by its vtable cell `0x00FC0EEC`, and slot 164
+only by `0x00FC0FC4`. No class derives from CharaActor. The setters change
+only their bit and do not apply the group. The new group takes effect at the
+next activation or slot-142 re-evaluation.
+
+| Setter route | Byte supplied |
+|---|---|
+| Slot 157 command 18, `0x006635E2`, after slot 154 returns zero | `n == 1` for data dword `n >= 0`; for `n < 0`, the inverse of slot 111 |
+| RaptureMapCollisionOnOffClip slot 1, `0x00819AD0` | `u8(D+0x14) != 0` with `D = u32(clip+0x14)` |
+| Companion transition, `0x007BE6AC`, on `u32(C+0x2B94)` | Constant 1 to slot 110 |
+| State helper at `C+0x590`, `0x007BAC0B`, when its state is not `0x0B` | Constant 1 to slot 164 |
+| `0x008C0020` | Constant 0 to slot 164 |
+
+The container forwards internal commands 21 to 277 to slot 157 as command
+minus 21, so container command 39 reaches command 18. Slot 154,
+`0x00669650`, returns bit 6 of `u32(C+0x2B70)`.
+
+The collision clip selects its targets by `u32(D+0x18)`. When it equals 1,
+the clip calls slot 110 on the actor of the record selected by `u8(D+3)`,
+after a record-token check. Otherwise `0x006163B0` broadcasts the byte
+through `0x00614410` to every element of CutManagerActor's actor vector
+`+0x204..+0x208`. Three sites push into that vector at `+0x200`.
+`0x0061A3D0` and `0x0061C0B0` push type-`0x11` characters, and
+`0x0061A440` pushes type-`0x1B` LightActors. LightActor slot 110 is the
+`RET 4` no-op `0x00776340`. `0x0061A3D0` is the BindClip character request
+described below. The clip itself performs no evaluation.
+
+Slot 142, `0x006679C0`, re-evaluates the flags through `0x00857070` at
+`0x00667ABA` when slot 154 returns zero. When `C+0xE0` equals
+`0x7FFFFFFF`, slot 156 must also be nonzero. The frame update reaches slot
+142 through world update `0x0060C170`, the container's `+0xA4` actor list
+walked by `0x007D25D0`, and `0x007CDE40`; actors with nonzero `+0xEC` are
+skipped. The `C+0x590` helper update runs later in the same slot-142 call,
+so its setters apply at the following evaluation. For a cut-created
+character, group 6 or 7 therefore needs:
+
+- the clip byte nonzero;
+- bit 4 still set;
+- bit 0 set by an earlier activation; and
+- a later admitted slot-142 call with a live controller.
+
+Routes into the activation routine `0x00664890` are CharaActor slot 132,
+`0x00666550`, and `0x006BE3D0`. Whether cut-created characters reach either
+was not established.
+
+Container `+0xD0` holds the actor most recently selected by internal
+command 15 (`0x007C9676`), which also sets the new actor's `+0xD8` and clears
+the old one's. Removal of that actor clears the field. When slot 142's
+receiver is the selected actor, it also queues a MainPacket carrying
+`u16(C+0x15C)`. No examined byte ties the selection to input, camera or
+network identity, so it is not established as the local player.
+
+The Lua `_getAchievementSheetDataTitle` binding's vcall thunk `0x0071E5E0`
+also reads `+0x1B8`. It targets the Lua `PlayerBase` control class, vtable
+`0x00FD5E04`, and its `MyPlayer` derivative, not CharaActor.
 
 ## Character factory and world provider
 
