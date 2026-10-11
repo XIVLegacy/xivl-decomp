@@ -155,6 +155,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Bitmap font flag-bit-0x02 shader consumers](resource/bitmap-font-edge-shader-consumers.md)
+- [Bitmap font text dispatch and edge parameters](resource/bitmap-font-edge-text-dispatch.md)
 - [Model Pixel shadow parameters](model-pixel-shadow.md)
 - [Model vertex Bool submission](model-vertex-bool.md)
 - [Vertex declaration descriptor lanes](vertex-declarations.md)
