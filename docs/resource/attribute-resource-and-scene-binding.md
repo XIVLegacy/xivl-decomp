@@ -665,11 +665,28 @@ Slot 8 teardown, `0x004EA1B0`, deletes the parameter through `0x00A023F0`
 from manager slot 2 and again from Framework slot 8, `0x00A495C0`. Slot 11
 then deletes the world and clears `T+0x428`. `0x00A01340` then deletes the
 CutScenePlayer. On this initialization and teardown order, the world exists
-before the sample and is deleted only after the parameter. Other virtual
-callers of slots 10, 11 or 18 were not excluded. Equality to the current
-SceneThreadImpl world at callback time therefore remains conditional on no
-world replacement outside this order. None of these paths establishes
-local-player identity, loaded authored bytes or contact.
+before the sample and is deleted only after the parameter.
+
+The thread procedure `0x00D355B0` drives this order once per run. It calls
+SceneThread slot 1, `0x004E8460`, once, then slot 2 in a loop. It reaches
+slot 3 at `0x00D3567C` on every path after slot 1 succeeds. SceneThread slots
+1 and 3 call SceneThreadImpl slots 1 and 2 on the instance stored at
+SceneThread `+0x38`. Those reach slots 7 and 8 through Framework slots 1 and
+2 and the vcall thunks `0x00B24240` and `0x00B241D0`.
+
+SceneThreadImpl slots 7, 8, 10, 11 and 18 have no direct call or jump. Their
+only literal references are their vtable cells. A no-argument `+0x2C` call
+at `0x00410A0F` is not slot 11. Its receiver is always a SeparateHeapSpace,
+vtable `0x00F56834`, whose slot 11 `0x00410790` enters a critical section.
+The two-argument `+0x2C` calls at `0x004E917C` and `0x004E9303` need a
+`RET 8` callee, which slot 11 is not.
+
+Other indirect `+0x2C` calls and vcall thunk bindings were not excluded.
+These include thunk `0x00570840` (`+0x2C`) and thunk `0x008F70B0` (`+0x48`).
+Equality to the current SceneThreadImpl world at callback time therefore
+remains conditional on no world replacement outside this order. None of
+these paths establishes local-player identity, loaded authored bytes or
+contact.
 
 ## Placed setup flags and group byte
 
