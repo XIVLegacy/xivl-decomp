@@ -1011,7 +1011,7 @@ Virtual calls load the code and TOC words at descriptor `+0/+4`.
 
 The manager declarations, inheritance and allocation-backed retail layout are
 recorded in
-`xivl-client-structs:structs/ffxiv/client/network/zone-channel-manager.md`.
+`xivl-client-structs:structs/network/zone-channel-manager.md`.
 
 Retail identity is independent of ARR spelling: vtable VA `0x01129094`
 has 25 slots and its complete-object locator `0x011A2570` points to type
@@ -1120,15 +1120,15 @@ at ARR `0x6E12DC` uses a different namespace and template arguments from
 the retail stream RTTI. Neither supplies a demonstrated function pair.
 
 The manager layout and bounded receive-side state/option comparison are in
-`xivl-client-structs:structs/ffxiv/client/network/zone-channel-manager.md`.
+`xivl-client-structs:structs/network/zone-channel-manager.md`.
 They support a partial retail layout, with an option-transfer contradiction.
 The embedded Up/Down NetBufferFactoryTmpl_LF storage comparison is in
-`xivl-client-structs:structs/ffxiv/client/network/buffer-factory.md`.
+`xivl-client-structs:structs/network/buffer-factory.md`.
 It promotes retail partial layouts and records the interface/vtable differences.
 The Up NetBufferTmpl allocation-backed layout is in
-`xivl-client-structs:structs/ffxiv/client/network/net-buffer-up.md`.
+`xivl-client-structs:structs/network/net-buffer-up.md`.
 The Down NetBufferTmpl allocation-backed layout is in
-`xivl-client-structs:structs/ffxiv/client/network/net-buffer-down.md`.
+`xivl-client-structs:structs/network/net-buffer-down.md`.
 It independently verifies construction and receive-copy storage accesses.
 The next struct target is the receive-result record passed to `0x00DAF5B0`,
 with caller `0x00DAFA30`.
