@@ -618,18 +618,58 @@ container, the world-owned equations above apply with `W = S3`. The
 remaining identity is therefore the parameter world. Three SchedulerParameter
 producers store a world at `+0x04`:
 
-| Producer | Parameter store | World source |
-|---|---|---|
-| `0x00A656D0`, installed as global `0x01365608` at `0x00A65780` | `0x00A65742` | SceneThreadImpl slot 6 through CDevSchedulerManager slots 1 and 5 |
-| `0x00A01A50`, stored at its receiver `+0x74` | `0x00A01B45` | SceneThreadImpl slot 18, `0x004E95F0`, through `0x00A49290` |
-| `0x00A031A0`, called by LaySchedulerManager slot 9 `0x00A72D10` | `0x00A031AA` | Untraced |
+| Producer | Parameter store | World source | Clip registry |
+|---|---|---|---|
+| `0x00A656D0`, installed as global `0x01365608` at `0x00A65780` | `0x00A65742` | SceneThreadImpl slot 6 through CDevSchedulerManager slots 1 and 5 | Global `0x01365604` |
+| `0x00A01A50`, stored at CutScenePlayer `+0x74` | `0x00A01B45` | SceneThreadImpl slot 6 world sampled in slot 18, `0x004E95F0`, through `0x00A49290` | CutScenePlayer `+0x6C`, replaced at `0x00A01BF3` |
+| `0x00A031A0`, called by LaySchedulerManager slot 9 `0x00A72D10` | `0x00A031AA` | Interface global `0x0136578C` slot 23, `0x00657330`, returning its `+0x2C`, read on a manager `+0x14` cache miss | Lay manager `+0x08` |
 
 The root Acc/Mcc scheduler builders sample the global, and copied builders
 retain their parent's parameter. The global is written only at `0x00A65780`
-and cleared at `0x00A657ED`. Which producer built the selected callback's
-scheduler, and whether its world is the current SceneThreadImpl world,
-remain unqualified. None of these paths establishes local-player identity,
-loaded authored bytes or contact.
+and cleared at `0x00A657ED`.
+
+Only the `0x00A01A50` family carries the selected factory. The three
+"BindActorClip" string references all target CutScenePlayer's registry
+`u32(C+0x6C)`. CDevSchedulerManager slot 3, `0x00635760`, first runs the base
+SchedulerManager slot 3, `0x00A4C2A0`, which inserts factory `0x00A4E360`
+under that key. The override erases the key through `0x0063F920`, then
+inserts factory `0x0063BFD0` at `0x00636BE8`. The insert `0x0063F710` leaves
+an existing key unchanged, so the erase is required. `0x0063BFD0` has no
+other reference and constructs RaptureActorBindClip through `0x0082DF90`,
+whose vtable `0x01031E14` has slot 1 `0x0082E160`.
+
+CutScenePlayer `0x00A025C0` passes its `+0x74` parameter and `+0x6C` registry
+to the SchedulerFactory constructor `0x00A25E40` in all three allocation
+branches. That constructor stores them at `B+0x08` and `B+0x14`. The
+Scheduler constructor stores `B+0x14` at `S+0x7C` for clip lookup. The
+ResourceReference stores `u32(B+0x08)` at `+0x04` and is installed at
+`S+0x74` at `0x00A26561`. Copy builders through `0x00A25E80` retain the
+parent's parameter and registry. Producer 1 and the Lay producer allocate
+their own registries, which no BindActorClip registration targets. After
+allocation, lookup and nonzero guards:
+
+```
+u32(P+0x04) = u32(T+0x428) when slot 18 runs   T = SceneThreadImpl
+S2 = P
+```
+
+`P+0x04` is a pointer snapshot, not a getter. SceneThreadImpl slot 7,
+`0x004E9E60`, runs Framework slot 7, `0x00A49810`. It calls slot 10, which
+creates the world only when `T+0x428` is zero, then slots 12 to 17, then
+slot 18. Slot 7 then constructs CDevSchedulerManager with `T+0x428`. It runs
+manager slot 1, which reaches the slot-3 registration. Producer 2 replaces the
+registry with an empty one, so a later producer run needs slot 3 again before
+a BindActorClip lookup succeeds.
+
+Slot 8 teardown, `0x004EA1B0`, deletes the parameter through `0x00A023F0`
+from manager slot 2 and again from Framework slot 8, `0x00A495C0`. Slot 11
+then deletes the world and clears `T+0x428`. `0x00A01340` then deletes the
+CutScenePlayer. On this initialization and teardown order, the world exists
+before the sample and is deleted only after the parameter. Other virtual
+callers of slots 10, 11 or 18 were not excluded. Equality to the current
+SceneThreadImpl world at callback time therefore remains conditional on no
+world replacement outside this order. None of these paths establishes
+local-player identity, loaded authored bytes or contact.
 
 ## Placed setup flags and group byte
 
