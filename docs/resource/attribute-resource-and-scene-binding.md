@@ -935,7 +935,7 @@ the pinned PE with Capstone and LLVM x86 disassembly.
 Binding through `0x00CDCBA0` selects an accepted script-instance type at
 `S+8` through `0x00CE1660` and sets pending byte `S+0x7E` through
 `0x00CE2440` (`0x00CE246C`). After `0x00CC7800` returns, `0x0078BBB0`
-creates an initialization thread through `0x00CC7AD0` (`0x0078BC17`),
+requests an initialization thread through `0x00CC7AD0` (`0x0078BC17`),
 with kind pointer `0x01377ED8`, and invokes `_onInit` through
 `0x00CD0910` (`0x0078BC50`; string `0x00FE04F0`). The static initializer
 `0x00F2CFE0` copies kind word `0xFFFE` from `0x0130CED8` to `0x01377ED8`.
@@ -943,8 +943,9 @@ with kind pointer `0x01377ED8`, and invokes `_onInit` through
 On the new-thread branch of `0x00CF1060`, constructor `0x00CCE2D0` stores
 the instance at thread `X+0x10` (`0x00CCE316`) and kind at `X+0x14`
 (`0x00CCE322`). The instance value comes from `0x00CD7A30`, which reads
-handle `Q+4`. Its equality to bound instance `S` is inferred from that
-handle convention; the producing store has not been traced.
+handle `Q+4`. The [handle producer and reuse path](#script-instance-handle-and-thread-reuse)
+below establish its association with bound instance `S` on the successful
+cloned-control branch.
 
 Scheduler `0x00CF1B50` calls `0x00CCE1C0` at `0x00CF1D16` when thread
 status equals `u32(0x0130CED0)`, value 2. The completion method requires a
@@ -970,9 +971,87 @@ Enable call `0x0077418B` is a re-enable reached after the first slot-11
 call, through work built by `0x00775890`; it does not supply that first
 activation. Call `0x006E1E12` belongs to DesktopWidget control, not Chara
 control. The completion route remains conditional on allocation, the
-new-thread branch, `u32(Q+4) == S`, thread completion and no intervening
-reset of `S+8`. The reuse branch through `0x00CF0AA0` and the `_onInit`
-body are not decoded here.
+live instance and thread association, admitted request preparation, qualifying
+completion and no intervening reset of `S+8`. Ordinary native reuse preserves
+the same receiver and kind. The `_onInit` body is not decoded here.
+
+### Script-instance handle and thread reuse
+
+The instance record has two distinct pointer fields: `Q = u32(S+0)` is its
+virtual control object and returned handle; `H = u32(S+4)` is its instance
+userdata payload address. Constructor `0x00CE2BC0` stores Q at `S+0`
+(`0x00CE2BF7`) and H at `S+4` (`0x00CE2BFD`). It then writes S through
+H at `0x00CE2C8C` and writes S at `Q+4` at `0x00CE2C90`.
+
+On the successful packet-binding clone branch, `0x00CDCBA0` calls
+`0x00CE2D50` at `0x00CDCE4B`. The clone method invokes control slot 1
+at `0x00CE2D9E`, allocates the new instance, and calls `0x00CE2BC0` at
+`0x00CE2DE5`. Binding uses that S for its SID, accepted type and pending
+state. `0x00CC7800` returns Q at `0x00CC781D`. The later
+`0x00CC7AD0` call resolves Q at `0x00CC7AF1` and passes the result to
+`0x00CF1060` at `0x00CC7AF9`, with force 0 (`0x00CC7ADB`).
+The non-sentinel arm of `0x00CD7A30` reads `Q+4` at `0x00CD7A47`, so
+that result is the bound S by the constructor store. Its null and engine
+sentinel arms are separate cases. Destruction clears H's S and Q's
+back-pointer at `0x00CE29A8` and `0x00CE29BB`; the association requires
+live objects.
+
+`0x00CF1060` selects a Lua cache by H and the unsigned kind word k.
+Its registry keys are `u32(0x0130D508) = 0x1000B` and
+`u32(0x0130D4E8) = 0x10002`. With R as the selected registry table, T
+as the instance table and V as the per-kind table, the native stack
+operations give:
+
+```text
+R = LuaRegistry[lightuserdata(0x1000B)]
+T = R[lightuserdata(H)]
+V = T[number(zero_extend(k))]
+L = V[lightuserdata(0x10002)]       when its Lua value tag is 8
+```
+
+The instance key comes through `0x00CE1740` at `0x00CF10C1`, and the
+kind is zero-extended at `0x00CF1139` before conversion to a Lua number
+at `0x00CF1159`. For the initialization descriptor, the numeric key is
+65534. Missing tables are created. The tag test `0x00CF3800` at
+`0x00CF120E` recognizes a Lua thread, not the separate 4-byte userdata
+created on the fresh-thread branch.
+
+If the cached value is a Lua thread and force is zero, `0x00CF121F`
+skips creation. `0x00CF12D7` obtains L, and `0x00CF12FB` looks up its
+native thread object X through `0x00CF0AA0`. A nonzero result jumps
+to the common tail at `0x00CF1538`. A miss calls `0x00CF1060` again
+at `0x00CF1314` with the same S and kind and force 1, recreating the
+thread. Thus ordinary reuse requires the cached Lua thread, force 0
+and a nonzero native lookup.
+
+On creation, the native constructor receives S and k at `0x00CF1469`
+and stores them at `X+0x10` and `X+0x14`. Map insertion `0x00CF2F10`
+at `0x00CF14A4` registers X under L in manager `M+0x14`; node builder
+`0x00CF20B0` copies the key and object through `0x00CF211D` and
+`0x00CF2128`. Reuse of that native-produced cache/map association
+therefore recovers the same receiver and kind. The shared tail writes
+metadata bytes `X+0x138..X+0x13B`, returns X at `0x00CF15BE` and
+executes `RET 0x0C` at `0x00CF15E7`. It does not rewrite the receiver
+or kind.
+
+The generic lookup does not compare X with the requested S or k. It
+returns `M+0x2C` for the manager's main Lua state (`0x00CF0AD4`), a
+map object at `0x00CF0B37`, or `M+0x30` for its default state after a
+map miss (`0x00CF0B63`). The main/default constructors supply receiver
+zero and kinds `0xFFFC`/`0xFFFF` at `0x00CF1AC8/0x00CF1ACD` and
+`0x00CF1B06/0x00CF1B0B`; those objects fail the initialization completion
+gate. A foreign cache entry is not qualified by lookup success alone.
+
+For ordinary new or reused objects, `0x0078BBB0` submits `_onInit`
+through the same `0x00CD0910` call. That wrapper resolves S at
+`0x00CD0925` and passes it to request preparer `0x00CCF9B0` at
+`0x00CD092D`. Its engine, `S+0x7F` and method-lookup guards still apply.
+The subsequent scheduler and kind-qualified completion gate have no
+new-versus-reused distinction: a retained live association with S and
+`0xFFFE` reaches the same conditional forced activation and slot-11 call.
+Actual cache contents, request admission, completion, lifetime and
+control `+0xE1` remain runtime conditions; these instructions establish
+the native producer association and both static routes.
 
 ### Appearance admission before binding
 
