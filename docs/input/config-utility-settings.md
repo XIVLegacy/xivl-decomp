@@ -36,7 +36,9 @@ fails on an unconsumed payload tail. It rejects an output path that aliases
 the input binary before opening the image for extraction. The catalog was
 reproduced from the pinned image with 36 resource leaves, 17 `RT_DIALOG`
 templates and 143 controls. All RT_DIALOG leaves use language 0. Zero-control
-templates 122, 123, 124 and 125 remain in the catalog. Standard Win32 classes
+templates 122, 123, 124 and 125 remain in the catalog. Their factories also
+create four dynamic list views, accounted for separately from template controls.
+Standard Win32 classes
 (`BUTTON`,
 `EDIT`, `STATIC`, `COMBOBOX` and `SysTabControl32`) are retained as framework
 controls; no setting join is inferred from a class name.
@@ -120,23 +122,39 @@ names, other runtime text and unknown or static template text.
 
 ## Dialog handlers and non-controller settings
 
+Startup routine `FUN_00433660` requests `CoInitialize(NULL)` at VA
+`0x00433684` and `timeBeginPeriod(1)` at VA `0x00433692`, then prepares
+language data. Its `CreateMutexW` call at `0x004338b1` uses the UTF-16 name
+at VA `0x0044d840`. After `GetLastError` at `0x004338b9`, equality with
+`0xb7` opens duplicate-instance prompt resource 118 at call `0x00433934`;
+otherwise call `0x004339d5` opens main dialog 103. Dialog completion requests
+`timeEndPeriod(1)`/`CoUninitialize` at VAs `0x00433953`/`0x00433959` and
+closes a nonnull mutex handle. An earlier module-name lookup failure bypasses
+that dialog/cleanup branch. API success and CRT startup internals are unobserved.
+
 Resource 103 is the top-level utility dialog. Its callback is
 `FUN_004335a0` (VA `0x004335a0`), initialization is `FUN_004331e0`
 (`0x004331e0`) and command dispatch is `FUN_004334d0` (`0x004334d0`). The
 command handler opens resource 101 for controller settings, resource 111 for
 `config.sys`, and resource 110 for system information. The language combo is
-control `0x40f`; `FUN_004332a0` writes the eight-byte `config.lng` record when
-the selected index changes. The OK and cancel paths use prompt resources 117,
-118 and 119 as shown by the direct resource calls in the catalog runtime
-metadata.
+control `0x40f`. Its selection notification at VAs `0x0043355c..0x00433595`
+(exclusive end) stores the index byte and calls `FUN_00433020` to reload PEX
+strings, rewrite captions and refill the four language choices. This is an
+in-memory change. `FUN_004332a0` separately compares the original and current
+eight-byte records and owns confirmation and the `WriteFile` request. The
+four offered choices are Japanese, English, German and French; the decoded
+Chinese resource is not inserted into this dropdown.
 
 Resource 110 is the system-information dialog. Its callback pointer is
 `0x00441ea0` and its initializer is `FUN_00441d40`; control `0x441` (1089)
 is the copy-to-clipboard command. Resource 111 is the `config.sys` dialog;
 its callback label is `LAB_00442570`, initializer `FUN_00442450`, and save
-handler `FUN_004420b0`. The callback label is retained as unknown because the
-pointer is a label inside the focused handler region, while the init and
-child capture calls are direct.
+handler `FUN_004420b0`. The callback's function-start classification is
+unresolved in Ghidra, but its instruction entry and message branches are
+verified. At VAs `0x00442893..0x004428a2` its `WM_COMMAND` branch passes the
+full `wParam` to `FUN_004420b0`. Its tab selection branch bounds the index
+to `0..4` at VA `0x004425ca`; table VA `0x004428b0` selects Display (126),
+Network (112), Graphics (127), Sound (128), then Font (132).
 
 The `config.sys` reader builds a 0x2ac-byte current block at VA
 `0x0045c600`, copies it to the snapshot at `0x0045c8b0`, and reads the file
@@ -191,25 +209,24 @@ the handler has no range check; control 1100 selects two dwords from one
 0x48-byte `FUN_00408e40` entry; boolean joins record the `0` or `1` conversion;
 the network and graphics edits record their `GetWindowTextW` capacities; and
 the font list records its count check and `_wcscpy_s` capacity. These facts do
-not identify the user-facing meaning of unresolved options. The meanings of
-the paired display fields remain unresolved, and the final
-four bytes `0x2a8..0x2ab` of the `0x2ac` block have no focused child consumer;
-that tail remains an explicit unknown.
+identify storage mechanics independently of the captions and option meanings
+below. The final four bytes `0x2a8..0x2ab` of the `0x2ac` block have no
+focused child consumer; that tail remains an explicit unknown.
 
 The child pages are created by `FUN_004353e0`, `FUN_00435000`,
 `FUN_00435cb0`, `FUN_00433b20` and `FUN_00436770`. Their direct page caption
 keys are `0x70`, `0x9a`, `0xf6`, `0xf7` and `0x10a`, respectively. Table
 lookups in the display handler use VA `0x00408d20`, `0x00408e40` and
-`0x00408f40`; a lookup table does not by itself prove a user-facing field
-meaning, so those meanings remain qualified in the catalog.
+`0x00408f40`. Direct initializer calls and option construction identify the
+UI meanings below; the game-side effects remain qualified separately.
 
 `FUN_004420b0` compares the current block against the snapshot and opens a
 prompt before save or cancel completion. On the confirmed save branch it
 calls `FUN_00441910` with the 0x2ac-byte snapshot. The wrapper reaches
 `WriteFile`, but this static evidence does not establish the OS write result
-or a later game effect. The catalog marks shell tab controls, static labels,
-dynamic device values and every child control without a direct handler read as
-unknown rather than joining them by position.
+or a later game effect. Static captions, tab commands and directory commands
+are classified separately from persisted fields. A direct caption on a static
+label does not make it a persisted setting or prove a binding to a nearby combo.
 
 The OK path (`FUN_004420b0(1)`) captures network, display, graphics, sound and
 font pages, then rejects snapshot offset `0x08` outside unsigned
@@ -227,6 +244,179 @@ in [game startup](game-controller-startup.md#startup-readers). Concrete
 normalized-field joins and their unresolved downstream edges are recorded in
 [system configuration consumers](system-configuration-consumers.md). A stored
 utility field is not a proved game effect until its consumer is joined.
+
+## Remaining settings: captions, options and timing
+
+The following producer meanings are high-confidence instruction/data joins in
+the pinned Config image, checked against raw x86 branches and API argument
+order. Every VA in this document has RVA `VA - 0x00400000`. The catalog keeps
+the five decoded translations; the tables here use English. A separate label
+is stated separately when no caption call targets the editable control.
+
+| Page / control | Stored offset | Offered values or direct caption | Initializer / capture |
+|---|---|---|---|
+| Network 1042 | `0x04` | 0 Automatic, 1 Use, 2 Do not use; keys `0x72..0x74`; static 1048 is UPnP Port Mapping (`0x71`) | `0x00435190` / `0x00435320` |
+| Network 1044 | `0x08` | Decimal `%u` edit; separate static 1049 is Port (55296 - 55551), key `0x75` | `0x00435190` / `0x00435320` |
+| Display 1043 | `0x0c` | D3D9 adapter-name list; separate static 1098 is Devices (`0x9b`) | `0x004346b0` / `0x00434210` |
+| Display 1099 | `0x10` | 0 Windowed, 1 Full Screen; keys `0x9d/0x9e`; static 1097 is Display Mode (`0x9c`) | `0x004346b0` / `0x00434210` |
+| Display 1100 | `0x14`, `0x18` | Width/height rows displayed as `%ux%u`; static 1101 is Window Size (`0x9f`) | `0x00433e20` / `0x00434210` |
+| Display 1104 | `0x1c` | Indexes 0..9 display 1..10; 1 (Lowest), 8 (Standard), 10 (Highest); static 1105 is General Drawing Quality (`0x102`) | `0x004346b0` / `0x00434210` |
+| Display 1108 | `0x20` | Indexes 0..4 display 1..5; 1 (Low), 3 (Standard), 5 (High); static 1109 is Background Drawing Quality (`0x103`) | `0x004346b0` / `0x00434210` |
+| Display 1102 | `0x24`, `0x28` | Capability rows from `FUN_00408e40`; row `+8` is text; static 1103 is Multisampling (`0xa0`) | `0x00434430` / `0x00434210` |
+| Display 1106 | `0x2c` | 0 Lowest, 1 Low, 2 Standard, 3 High, 4 Highest; keys `0xa8..0xac`; static 1107 is Shadow Detail (`0xa7`) | `0x004346b0` / `0x00434210` |
+| Graphics 1102 | `0x30` | Ambient Occlusion, checkbox key `0xf1` | `0x004358d0` / `0x004354b0` |
+| Graphics 1103 | `0x34` | Depth of Field, checkbox key `0xf2` | `0x004358d0` / `0x004354b0` |
+| Graphics 1108 | `0x38` | Disable cutscene effects, checkbox key `0x100` | `0x004358d0` / `0x004354b0` |
+| Graphics 1104 | `0x3c` | 0 High, 1 Standard, 2 Low; keys `0xab/0xaa/0xa9`; static 1105 is Texture Quality (`0xfe`) | `0x004358d0` / `0x004354b0` |
+| Graphics 1106 | `0x40` | 0 Highest, 1 High, 2 Standard, 3 Low; keys `0xac..0xa9`; static 1107 is Texture Filtering (`0xff`) | `0x004358d0` / `0x004354b0` |
+| Graphics 1109 | `0x44` | Indexes 0..4 offer 60, 30, 20, 15, 10; literal strings at VAs `0x0044db38..0x0044db58`; static 1110 is Frame Rate Limit (`0x104`) | `0x004358d0` / `0x004354b0` |
+| Sound 1110 | `0x48` | Disable Sound Device, checkbox key `0xf5` | `0x00433a00` / `0x00433ab0` |
+| Sound 1111 | `0x4c` | Play sound when application is in background, checkbox key `0xfc` | `0x00433a00` / `0x00433ab0` |
+| Graphics 1115 | `0x50` | Enable hardware mouse cursor, checkbox key `0x101` | `0x004358d0` / `0x004354b0` |
+| Font 1106 | `0x54` | Use Windows system font, checkbox key `0x105` | `0x00435fc0` / `0x00435e20` |
+| Font 1117 | `0x58` | 0 Highest, 1 High, 2 Standard, 3 Low, 4 Lowest; keys `0xac..0xa8`; static 1107 is Quality (`0x107`) | `0x00435fc0` / `0x00435e20` |
+| Font 1118 | `0x5c` | 0 Fine, 1 Normal, 2 Thick, 3 Thickest; keys `0x10b..0x10e`; static 1099 is Thickness (`0x108`) | `0x00435fc0` / `0x00435e20` |
+| Font 1116 | UTF-16 `0x60` | Enumerated Windows font face names; static 1108 is Font (`0x106`) | `0x00435fc0` / `0x00435e20` |
+| Graphics 1141 | UTF-16 `0xa0` | Captionless directory edit inside group box 1143, Screenshot Directory (`0x120`) | `0x004358d0` / `0x004354b0` |
+
+The option order is the stored index, not a quality number. For example, the
+current defaults `0x1c=7`, `0x20=4`, `0x3c=1`, `0x40=2`, `0x44=0`,
+`0x58=2` and `0x5c=1` correspond to General Drawing Quality 8 (Standard),
+Background Drawing Quality 5 (High), Texture Quality Standard, Texture
+Filtering Standard, Frame Rate Limit 60, font quality Standard and thickness
+Normal. These are utility fallback defaults; they are not a recommended
+SteamOS preset or evidence of a successful game effect.
+
+Network callback VA `0x004352d0` handles actual `WM_INITDIALOG=0x110` and
+`WM_COMMAND=0x111`. A command with `HIWORD(wParam)==1` reaches
+`FUN_00435140`, which enables edit 1044 iff combo 1042's selection is nonzero.
+The initializer uses the same condition from stored `+0x04`. Capture uses
+`GetWindowTextW(...,0x80)` and decimal `_wcstol`; no edit-notification range
+check occurs in that helper. The independent root OK gate uses the unsigned
+`0xd800..0xd8ff` range. Neither the caption nor that gate proves UPnP or a
+network API effect in the game.
+
+Display initialization loads `d3d9.dll`, resolves `Direct3DCreate9` and obtains
+adapter identifiers and multisampling capabilities. `FUN_004340e0` adds unique
+adapter modes with width at least 1024 and height at least 720. The width/height
+table uses 8-byte rows; multisampling uses `0x48`-byte rows. Exact names, modes
+and capability texts depend on runtime adapters. `FUN_00434610` handles
+selection notifications for 1043, 1099, 1100 and 1102 through
+`FUN_00434430`, `FUN_00433e20`, `FUN_00433ff0` and `FUN_00433c20`,
+respectively. The other three combos are captured by the root save path.
+Drawing-quality display strings use formats at VAs `0x0044dab8..0x0044db20`
+and direct localization keys for their named extremes/standard entries.
+
+Graphics command helper `FUN_004357e0` has only directory commands 1140 and
+1142. Button 1140 retains template `...`, requests `SHBrowseForFolderW`,
+converts its returned PIDL with `SHGetPathFromIDListW`, then updates edit 1141.
+Button 1142 has direct caption Restore default (`0x121`) and calls
+`FUN_00435760` to replace that edit. Group box 1143 has no command branch.
+These edit updates precede capture and save; API success and actual directory
+availability are not established by static calls.
+
+The successful default-directory construction is
+`<Personal>\My Games\FINAL FANTASY XIV[ LATEST]\screenshots`.
+`FUN_00435760` calls path helper `FUN_0043fa40`, which uses root helper
+`FUN_0043f950` and appends `\screenshots`. For an empty destination,
+`FUN_00415a80` requests `SHGetSpecialFolderLocation(NULL,5,&pidl)` and
+`SHGetPathFromIDListW`: folder 5 is Personal (My Documents). The root helper
+appends `\My Games\` and the selected directory literal. Startup
+`FUN_00433660` removes the final component of the module path and assigns its
+directory to string object VA `0x0045cb60`; the root helper requires its first
+character to be nonzero.
+
+`FUN_0043f7c0` constructs `<module-directory>\latest.txt` and caches the
+result of `FUN_0040e7e0`'s `GetFileAttributesW` test: attributes must differ
+from `0xffffffff` and have directory bit `0x10` clear. True selects literal
+`FINAL FANTASY XIV LATEST`; false selects `FINAL FANTASY XIV`. This proves an
+attribute-based branch, not the contents or validity of that file.
+
+`FUN_00435640` requests `MultiByteToWideChar` twice with code page 0, flags 0
+and NUL-terminated input length -1 at VAs `0x004356af`/`0x004356ea` before
+the caller updates edit 1141. The caller calls `FUN_0043fa40` at
+`0x0043577a`, then conversion at `0x00435785`, without checking the first
+result. When `FUN_0043f950` returns false, `FUN_0043fa40` does not copy its
+output; the caller still converts its buffer. The displayed failure value is
+unresolved; an empty or safe fallback is not established. `FUN_00415a80`
+does not test `SHGetPathFromIDListW`'s BOOL at VA `0x00415b18` before its
+true return path, so that helper's success does not prove the API succeeded.
+Shell-folder redirection, module location, marker attributes, conversion success
+and the eventual game directory-setting use remain separate runtime/downstream
+questions.
+
+Sound callback VA `0x00433a80` calls the caption/check initializer only for
+`WM_INITDIALOG`. The raw `JE` at VA `0x00433a89` targets `0x00433a95`,
+which reaches call `0x00433a9a` to `FUN_00433a00`. For `WM_COMMAND`,
+the `JE` at `0x00433a8e` targets `0x00433aa0`: return 1 without calling the
+initializer or capture. Thus a click does not reapply saved check states in
+this callback. `FUN_00433ab0` reads current checks during root capture and
+stores 0 or 1. The bounded initializer/callback/capture slices contain no
+audio preview call.
+
+Font callback VA `0x00436720` sends command ID 1106 to `FUN_00435d80`,
+which enables all three combos iff the checkbox result equals 1. Initialization
+disables those combos when `+0x54==0`. `FUN_00435fc0` enumerates faces via
+`EnumFontFamiliesExW` callback `FUN_00435f10`, omits vertical aliases beginning
+`@`, and removes records whose temporary 24-pixel, weight-400 font returns
+`0xffffffff` from `GetGlyphOutlineW('A',5)`. This is an enumeration filter;
+it does not prove a displayed font preview. Literal `MS UI Gothic` is a
+fallback selection, overridden by a matching saved face name; neither match
+leaves selection -1. Capture count-checks the `0x1c`-stride face records before
+copying with a 32-WCHAR destination. Its error helper and malformed
+selections remain unresolved. Quality/thickness captures have no equivalent
+range check. Static 1100 receives the Windows-font warning at key `0x109`.
+
+## Confirmation and system-information controls
+
+Resources 117, 118 and 119 share callback VA `0x00432e10` and initializer
+`FUN_00432cc0`. Static control 1087 receives a caller-supplied message string;
+the title and message objects at VAs `0x004579a4`/`0x004579c0` select inline
+or heap UTF-16 storage by capacity. Actual buttons 1, 2, 6 and 7 receive
+OK, Cancel, Yes and No (keys `0x6c`, `0x97`, `0x95`, `0x96`). Command
+helper `FUN_00432c70` and table VA `0x00432ca0` return those same result
+codes through `EndDialog`. `WM_CLOSE` returns 2 at call VA `0x00432e62`.
+The prompt does not write configuration itself; its caller interprets the result.
+
+Resource 110 has only three template controls: OK 1, clipboard 1089 and tabs
+1040. `FUN_00441d40` calls factories in resource order 123, 124, 125, 122;
+each inserts a tab at index 0, producing this final tab order:
+
+| Index | Resource / report | Factory VA | Dynamic list-view creation call VA |
+|---:|---|---|---|
+| 0 | 122 / System Information | `0x00439c90` | `0x0043a088` |
+| 1 | 125 / Applications | `0x0043f160` | `0x0043f2fc` |
+| 2 | 124 / Processes | `0x004368b0` | `0x00436a5a` |
+| 3 | 123 / Installation | `0x00436fb0` | `0x0043715b` |
+
+The zero-control templates are containers. Each factory requests a dynamic
+`SysListView32` with style `0x50000001` and control/menu ID 0. The class-string
+VAs are `0x0044ddd4`, `0x0044eed0`, `0x0044dbf8` and `0x0044dca8` for
+System Information, Applications, Processes and Installation, respectively.
+Callback VA `0x00441ea0` bounds `TCM_GETCURSEL` to `0..3`
+and uses table VA `0x00442078` to show the selected child and hide the others.
+Its Ghidra function-start label is unresolved; the raw callback instructions
+establish these branches independently. Command 1 closes with result 1; window
+close returns 2.
+
+Clipboard command 1089 calls `FUN_00441b10`, which appends the report helpers
+at VAs `0x00437b90`, `0x0043ef90`, `0x00436f80` and `0x00436880`.
+Encoding helper `FUN_004419f0` requests `WideCharToMultiByte` with code page
+0 and flags 0 at VAs `0x00441a61`/`0x00441a9e`. The allocation uses flags
+`0x42`; nonnull allocation/lock lead to OpenClipboard, EmptyClipboard,
+`SetClipboardData(1,handle)` at VA `0x00441ca3`, then CloseClipboard.
+This requests `CF_TEXT`, not a Unicode clipboard format; the calls do not
+establish conversion or clipboard success.
+
+Process collection includes EnumProcesses, OpenProcess and module-name queries;
+installation collection includes registry enumeration and `RegCreateKeyExW`
+requests under the uninstall-key path. The complete OS/provider internals and
+result values remain outside the recovered control behavior. The large System
+Information factory was verified through its raw initialization slice; a
+Ghidra decompile of that requested function timed out. Framework controls,
+Windows/D3D/GDI collection implementations and general C++ string/container
+internals are excluded from application reconstruction unless they determine a
+setting or command result described here.
 
 ## Controller joins retained here
 

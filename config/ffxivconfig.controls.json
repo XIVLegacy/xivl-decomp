@@ -16,6 +16,7 @@
     "resource_leaf_count": 36,
     "dialog_count": 17,
     "control_count": 143,
+    "observed_dynamic_list_view_factories": 4,
     "dialog_languages": [
       0
     ],
@@ -6506,6 +6507,245 @@
       }
     }
   },
+  "application_behavior": {
+    "startup": {
+      "routine_va": "0x00433660",
+      "routine_rva": "0x00033660",
+      "initialization_calls": "VA 0x00433684 requests CoInitialize(NULL); VA 0x00433692 requests timeBeginPeriod(1); language setup precedes the dialog calls",
+      "mutex_name": "9886CF73-9024-494e-831C-6EC221E8A8DB",
+      "mutex_name_va": "0x0044d840",
+      "mutex_name_rva": "0x0004d840",
+      "dialog_selection": "CreateMutexW call VA 0x004338b1 and GetLastError call VA 0x004338b9 precede comparison with 0xb7; equality opens prompt resource 118 at VA 0x00433934, otherwise VA 0x004339d5 opens main resource 103 with callback FUN_004335a0",
+      "dialog_completion": "VA 0x00433953 requests timeEndPeriod(1), VA 0x00433959 requests CoUninitialize, and nonnull mutex handles are closed; this cleanup branch is not reached when GetModuleFileNameW fails earlier",
+      "limit": "These are application startup call/branch observations, not API success or a recovered CRT entry implementation"
+    },
+    "confirmation_dialogs": {
+      "resources": [
+        117,
+        118,
+        119
+      ],
+      "callback_pointer_va": "0x00432e10",
+      "callback_pointer_rva": "0x00032e10",
+      "initializer_va": "0x00432cc0",
+      "initializer_rva": "0x00032cc0",
+      "message_control_id": 1087,
+      "message_source": "Caller-supplied UTF-16 string objects at DAT_004579c0 (message) and DAT_004579a4 (title); FUN_00432cc0 selects inline or heap storage by each object's capacity",
+      "result_commands": {
+        "1": 1,
+        "2": 2,
+        "6": 6,
+        "7": 7
+      },
+      "command_slice": "VA 0x00432e2a..0x00432e40 range-checks the low command word; jump table VA 0x00432ca0 selects EndDialog result code",
+      "window_close_result": 2,
+      "window_close_call_va": "0x00432e62",
+      "window_close_call_rva": "0x00032e62",
+      "limit": "Prompt results do not independently write any configuration file; the caller owns save/discard behavior"
+    },
+    "language_change": {
+      "dialog_resource": 103,
+      "control_id": 1039,
+      "offered_indexes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "option_caption_keys": [
+        102,
+        103,
+        104,
+        105
+      ],
+      "refresh_va": "0x00433020",
+      "refresh_rva": "0x00033020",
+      "notification_slice": "VA 0x0043355c..0x00433595, exclusive end; HIWORD(WPARAM)==1 reads combo 0x40f, stores AL at VA 0x00459130 and calls FUN_00433020",
+      "live_effect": "Reloads the selected PEX strings and repopulates dialog captions and the four combo items in memory",
+      "persistence": "FUN_004332a0 handles current/original comparison, confirmation and the eight-byte WriteFile separately; a selection notification is not a file write",
+      "chinese_resource_limit": "The fifth decoded language resource is not inserted into this four-item dropdown"
+    },
+    "settings_page_behavior": {
+      "general_tab_resources_by_index": [
+        126,
+        112,
+        127,
+        128,
+        132
+      ],
+      "general_tab_dispatch": "Callback VA 0x00442570 bounds TCM_GETCURSEL to 0..4 and dispatches ShowWindow through table VA 0x004428b0",
+      "network": {
+        "dialog_resource": 112,
+        "caption_and_options_helper_va": "0x00435190",
+        "caption_and_options_helper_rva": "0x00035190",
+        "command": "Callback VA 0x004352d0 handles WM_COMMAND 0x111 only when HIWORD(wParam)==1; FUN_00435140 enables edit 1044 iff combo 1042 selection != 0",
+        "initial_edit": "FUN_00435190 formats field +0x08 as %u and enables edit 1044 iff +0x04 != 0"
+      },
+      "display": {
+        "dialog_resource": 126,
+        "caption_and_options_helper_va": "0x004346b0",
+        "caption_and_options_helper_rva": "0x000346b0",
+        "command": "WM_COMMAND with HIWORD(wParam)==1 calls FUN_00434610; IDs 1043,1099,1100,1102 dispatch to FUN_00434430,FUN_00433e20,FUN_00433ff0,FUN_00433c20 respectively",
+        "runtime_lists": "FUN_004346b0 loads d3d9.dll and Direct3DCreate9 for adapter names/capabilities; FUN_004340e0 adds unique adapter modes with width >=1024 and height >=720; exact adapter/resolution/multisampling lists require runtime enumeration"
+      },
+      "graphics": {
+        "dialog_resource": 127,
+        "caption_and_options_helper_va": "0x004358d0",
+        "caption_and_options_helper_rva": "0x000358d0",
+        "command": "Callback FUN_00435c60 sends WM_COMMAND to FUN_004357e0; only browse 1140 and default 1142 have command cases",
+        "directory": "FUN_004358d0 writes the saved directory or calls FUN_00435760 when empty; browse/default update edit 1141 before FUN_004354b0 captures it",
+        "default_directory": {
+          "success_path": "<Personal>\\My Games\\FINAL FANTASY XIV[ LATEST]\\screenshots",
+          "caller_va": "0x00435760",
+          "caller_rva": "0x00035760",
+          "path_helper_va": "0x0043fa40",
+          "path_helper_rva": "0x0003fa40",
+          "root_helper_va": "0x0043f950",
+          "root_helper_rva": "0x0003f950",
+          "folder_provider": "FUN_00415a80 uses SHGetSpecialFolderLocation(NULL,5,&pidl), then SHGetPathFromIDListW when its destination is empty; 5 is the Personal folder",
+          "variant": "FUN_0043f7c0 constructs module-directory\\latest.txt; FUN_0040e7e0 tests GetFileAttributesW != 0xffffffff and absence of directory bit 0x10; the cached result selects FINAL FANTASY XIV LATEST or FINAL FANTASY XIV",
+          "module_directory": "Startup FUN_00433660 removes the final path component from GetModuleFileNameW and assigns the directory to the string object at VA 0x0045cb60; FUN_0043f950 requires its nonempty first character",
+          "conversion": "FUN_00435640 calls MultiByteToWideChar with code page 0, flags 0 and input length -1 at VAs 0x004356af and 0x004356ea",
+          "failure_limit": "When FUN_0043f950 returns false, FUN_0043fa40 does not copy its output; FUN_00435760 calls FUN_0043fa40 at VA 0x0043577a then converts the caller buffer through FUN_00435640 at VA 0x00435785 without checking that result; an empty/safe failure fallback is not established",
+          "folder_api_limit": "FUN_00415a80 does not test SHGetPathFromIDListW's BOOL at VA 0x00415b18 before reaching its true return path; a true helper result does not establish that API's success",
+          "runtime_dependencies": "Personal-folder redirection, module location, cached marker-file attributes, conversion/API outcomes and failed-lookup output are unobserved"
+        }
+      },
+      "sound": {
+        "dialog_resource": 128,
+        "caption_and_options_helper_va": "0x00433a00",
+        "caption_and_options_helper_rva": "0x00033a00",
+        "callback_dispatch": "VA 0x00433a89 JE targets 0x00433a95 for WM_INITDIALOG 0x110, reaching call 0x00433a9a to FUN_00433a00; VA 0x00433a8e JE targets 0x00433aa0 for WM_COMMAND 0x111, returning 1 without calling init or capture",
+        "capture": "FUN_00433ab0 reads current checkbox states only through the root capture orchestration; command notifications do not rewrite the config block"
+      },
+      "font": {
+        "dialog_resource": 132,
+        "caption_and_options_helper_va": "0x00435fc0",
+        "caption_and_options_helper_rva": "0x00035fc0",
+        "command": "Callback VA 0x00436720 sends WM_COMMAND low ID 1106 to FUN_00435d80, which enables combos 1116,1117,1118 iff IsDlgButtonChecked(1106)==1; init disables the three combos when +0x54==0",
+        "enumeration": "FUN_00435fc0 uses EnumFontFamiliesExW callback FUN_00435f10, omits names beginning @, and removes records when GetGlyphOutlineW('A',format=5) returns 0xffffffff for a temporary 24-pixel weight-400 font",
+        "selection": "The MS UI Gothic literal provides a fallback selection; saved +0x60 can replace it; CB_SETCURSEL receives -1 if neither matches",
+        "limit": "Enumeration/probe calls do not establish a displayed preview or game renderer behavior; the count-check error helper and malformed selections remain unexpanded"
+      }
+    },
+    "system_information": {
+      "dialog_resource": 110,
+      "tab_control_id": 1040,
+      "report_pages": [
+        {
+          "tab_index": 0,
+          "child_dialog_resource": 122,
+          "tab_caption_key": 179,
+          "factory_va": "0x00439c90",
+          "factory_rva": "0x00039c90",
+          "callback_pointer_va": "0x00437680",
+          "callback_pointer_rva": "0x00037680",
+          "child_hwnd_global_va": "0x00458cb0",
+          "child_hwnd_global_rva": "0x00058cb0",
+          "list_view_hwnd_global_va": "0x00458c9c",
+          "list_view_hwnd_global_rva": "0x00058c9c",
+          "list_view_create_call_va": "0x0043a088",
+          "list_view_create_call_rva": "0x0003a088",
+          "class_name": "SysListView32",
+          "class_name_va": "0x0044ddd4",
+          "class_name_rva": "0x0004ddd4",
+          "style": "0x50000001",
+          "menu_or_control_id": 0,
+          "evidence": "Parent factories create modeless child dialogs and list views; callback selection maps the stored child HWNDs to the final tab index"
+        },
+        {
+          "tab_index": 1,
+          "child_dialog_resource": 125,
+          "tab_caption_key": 238,
+          "factory_va": "0x0043f160",
+          "factory_rva": "0x0003f160",
+          "callback_pointer_va": "0x0043ef60",
+          "callback_pointer_rva": "0x0003ef60",
+          "child_hwnd_global_va": "0x00458c98",
+          "child_hwnd_global_rva": "0x00058c98",
+          "list_view_hwnd_global_va": "0x00458c84",
+          "list_view_hwnd_global_rva": "0x00058c84",
+          "list_view_create_call_va": "0x0043f2fc",
+          "list_view_create_call_rva": "0x0003f2fc",
+          "class_name": "SysListView32",
+          "class_name_va": "0x0044eed0",
+          "class_name_rva": "0x0004eed0",
+          "style": "0x50000001",
+          "menu_or_control_id": 0,
+          "evidence": "Parent factories create modeless child dialogs and list views; callback selection maps the stored child HWNDs to the final tab index"
+        },
+        {
+          "tab_index": 2,
+          "child_dialog_resource": 124,
+          "tab_caption_key": 233,
+          "factory_va": "0x004368b0",
+          "factory_rva": "0x000368b0",
+          "callback_pointer_va": "0x00436850",
+          "callback_pointer_rva": "0x00036850",
+          "child_hwnd_global_va": "0x00458ce0",
+          "child_hwnd_global_rva": "0x00058ce0",
+          "list_view_hwnd_global_va": "0x00458ccc",
+          "list_view_hwnd_global_rva": "0x00058ccc",
+          "list_view_create_call_va": "0x00436a5a",
+          "list_view_create_call_rva": "0x00036a5a",
+          "class_name": "SysListView32",
+          "class_name_va": "0x0044dbf8",
+          "class_name_rva": "0x0004dbf8",
+          "style": "0x50000001",
+          "menu_or_control_id": 0,
+          "evidence": "Parent factories create modeless child dialogs and list views; callback selection maps the stored child HWNDs to the final tab index"
+        },
+        {
+          "tab_index": 3,
+          "child_dialog_resource": 123,
+          "tab_caption_key": 236,
+          "factory_va": "0x00436fb0",
+          "factory_rva": "0x00036fb0",
+          "callback_pointer_va": "0x00436f50",
+          "callback_pointer_rva": "0x00036f50",
+          "child_hwnd_global_va": "0x00458cc8",
+          "child_hwnd_global_rva": "0x00058cc8",
+          "list_view_hwnd_global_va": "0x00458cb4",
+          "list_view_hwnd_global_rva": "0x00058cb4",
+          "list_view_create_call_va": "0x0043715b",
+          "list_view_create_call_rva": "0x0003715b",
+          "class_name": "SysListView32",
+          "class_name_va": "0x0044dca8",
+          "class_name_rva": "0x0004dca8",
+          "style": "0x50000001",
+          "menu_or_control_id": 0,
+          "evidence": "Parent factories create modeless child dialogs and list views; callback selection maps the stored child HWNDs to the final tab index"
+        }
+      ],
+      "factory_call_order": [
+        123,
+        124,
+        125,
+        122
+      ],
+      "tab_order_reason": "Each factory inserts its tab at index 0, so the last inserted System Information tab becomes index 0",
+      "selection_slice": "VA 0x00441ec8..0x00441fed checks TCN_SELCHANGE (-551), reads TCM_GETCURSEL, bounds the result to 0..3 and selects ShowWindow calls using the table at VA 0x00442078",
+      "clipboard": {
+        "control_id": 1089,
+        "helper_va": "0x00441b10",
+        "helper_rva": "0x00041b10",
+        "report_append_calls": [
+          "0x00437b90",
+          "0x0043ef90",
+          "0x00436f80",
+          "0x00436880"
+        ],
+        "encoding_helper_va": "0x004419f0",
+        "encoding_helper_rva": "0x000419f0",
+        "encoding": "WideCharToMultiByte with code page 0 and flags 0 at VAs 0x00441a61 and 0x00441a9e",
+        "allocation_flags": "0x42",
+        "clipboard_format": 1,
+        "evidence": "VA 0x00441c4e calls GlobalAlloc; nonnull allocation/lock reach OpenClipboard, EmptyClipboard, SetClipboardData(1,handle) at VA 0x00441ca3, and CloseClipboard",
+        "limit": "The static calls do not establish conversion or clipboard API success"
+      },
+      "provider_limit": "Report values come from registry/process/application/system collection paths; OS API results and complete platform/library internals were not observed"
+    }
+  },
   "config_sys": {
     "file": "config.sys",
     "suffix_va": "0x0044d0e8",
@@ -6647,8 +6887,8 @@
               "control_id": 1042,
               "current_offset": "0x04",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Network page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_unresolved",
+              "meaning": "UPnP option indexes 0=Automatic, 1=Use, 2=Do not use; direct option keys 0x72..0x74 in FUN_00435190",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00435320",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6656,13 +6896,13 @@
               "control_id": 1044,
               "current_offset": "0x08",
               "kind": "numeric_edit_text",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Network page numeric value; user-facing meaning is unresolved",
-              "bounds": "GetWindowTextW cchTextMax=0x80 and thunk_FUN_0041db3d numeric conversion; numeric range is not checked here",
+              "meaning_status": "producer_value_and_separate_label_observed",
+              "meaning": "Network numeric edit; separate static 1049 has Port (55296 - 55551), key 0x75; the save gate independently uses that range, but there is no direct caption call to this edit",
+              "bounds": "GetWindowTextW cchTextMax=0x80 and decimal _wcstol conversion through thunk_FUN_0041db3d; capture has no range check, while the root OK path requires unsigned 0xd800..0xd8ff",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             }
           ],
-          "unjoined_control_ids": [
+          "non_field_control_ids": [
             1048,
             1049
           ]
@@ -6677,8 +6917,8 @@
               "control_id": 1043,
               "current_offset": "0x0c",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display page option index; option identity is unresolved",
+              "meaning_status": "producer_dynamic_options_observed",
+              "meaning": "D3D9 adapter index; FUN_004346b0 obtains runtime adapter identifier names; separate label 1098 is Devices",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00434210",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6686,8 +6926,8 @@
               "control_id": 1099,
               "current_offset": "0x10",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_qualified",
+              "meaning": "Display Mode indexes 0=Windowed, 1=Full Screen; direct option keys 0x9d/0x9e",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00434210",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6698,8 +6938,8 @@
                 "0x18"
               ],
               "kind": "table_selected_pair",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display table selection supplies current offsets 0x14 and 0x18; field identity is unresolved",
+              "meaning_status": "producer_dynamic_pair_observed",
+              "meaning": "Window Size selection supplies width/height at offsets 0x14/0x18; FUN_00433e20 formats each FUN_00408f40 row as %ux%u",
               "bounds": "CB_GETCURSEL index is checked against the FUN_00408f40 table count; one selected 8-byte entry supplies both dwords and the exact count is data-dependent",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6710,8 +6950,8 @@
                 "0x28"
               ],
               "kind": "table_selected_pair",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display table selection supplies current offsets 0x24 and 0x28; field identity is unresolved",
+              "meaning_status": "producer_dynamic_pair_observed_game_effect_unresolved",
+              "meaning": "Multisampling selection supplies the first two dwords of a FUN_00408e40 row to offsets 0x24/0x28; row +8 supplies the option text; capability rows are data-dependent",
               "bounds": "CB_GETCURSEL index is checked against the FUN_00408e40 table count; one selected 0x48-byte entry supplies both dwords and the exact count is data-dependent",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6719,8 +6959,8 @@
               "control_id": 1104,
               "current_offset": "0x1c",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_qualified",
+              "meaning": "General Drawing Quality indexes 0..9 display 1..10; localized qualifiers are Lowest at 0, Standard at 7, Highest at 9",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00434210",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6728,8 +6968,8 @@
               "control_id": 1108,
               "current_offset": "0x20",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_qualified",
+              "meaning": "Background Drawing Quality indexes 0..4 display 1..5; localized qualifiers are Low at 0, Standard at 2, High at 4",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00434210",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6737,8 +6977,8 @@
               "control_id": 1106,
               "current_offset": "0x2c",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Display page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_qualified",
+              "meaning": "Shadow Detail indexes 0..4 are Lowest, Low, Standard, High, Highest; direct keys 0xa8..0xac",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00434210",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             }
@@ -6748,7 +6988,7 @@
             "0x00408e40",
             "0x00408f40"
           ],
-          "unjoined_control_ids": [
+          "non_field_control_ids": [
             1097,
             1098,
             1101,
@@ -6768,8 +7008,8 @@
               "control_id": 1102,
               "current_offset": "0x30",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Ambient Occlusion; direct caption key 0xf1",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6777,8 +7017,8 @@
               "control_id": 1103,
               "current_offset": "0x34",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Depth of Field; direct caption key 0xf2",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6786,8 +7026,8 @@
               "control_id": 1108,
               "current_offset": "0x38",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Disable cutscene effects; direct caption key 0x100",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6795,8 +7035,8 @@
               "control_id": 1104,
               "current_offset": "0x3c",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_unresolved",
+              "meaning": "Texture Quality indexes 0=High, 1=Standard, 2=Low; direct keys 0xab,0xaa,0xa9",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_004354b0",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6804,8 +7044,8 @@
               "control_id": 1106,
               "current_offset": "0x40",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_unresolved",
+              "meaning": "Texture Filtering indexes 0=Highest, 1=High, 2=Standard, 3=Low; direct keys 0xac..0xa9",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_004354b0",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6813,8 +7053,8 @@
               "control_id": 1109,
               "current_offset": "0x44",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_unresolved",
+              "meaning": "Frame Rate Limit indexes 0..4 offer literal strings 60,30,20,15,10 at VAs 0x0044db38..0x0044db58",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_004354b0",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6822,8 +7062,8 @@
               "control_id": 1115,
               "current_offset": "0x50",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Enable hardware mouse cursor; direct caption key 0x101",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6831,14 +7071,16 @@
               "control_id": 1141,
               "current_offset": "0xa0",
               "kind": "utf16_edit_text",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Graphics page UTF-16 edit text; setting identity is unresolved",
+              "meaning_status": "producer_group_and_command_join_observed_game_effect_unresolved",
+              "meaning": "Directory edit inside group box 1143, caption key 0x120 Screenshot Directory; browse/default commands target this edit, whose own caption remains absent",
               "bounds": "GetWindowTextW cchTextMax=0x104 copies at most 0x103 UTF-16 code units before NUL to current offset 0xa0",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             }
           ],
-          "unjoined_control_ids": [
+          "non_field_control_ids": [
             1110,
+            1105,
+            1107,
             1140,
             1142,
             1143
@@ -6854,8 +7096,8 @@
               "control_id": 1110,
               "current_offset": "0x48",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Sound page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Disable Sound Device; direct caption key 0xf5 in FUN_00433a00",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6863,8 +7105,8 @@
               "control_id": 1111,
               "current_offset": "0x4c",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Sound page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Play sound when application is in background; direct caption key 0xfc in FUN_00433a00",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             }
@@ -6880,8 +7122,8 @@
               "control_id": 1106,
               "current_offset": "0x54",
               "kind": "checked_boolean",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Font page boolean; feature identity is unresolved",
+              "meaning_status": "producer_caption_observed_game_effect_unresolved",
+              "meaning": "Use Windows system font; direct caption key 0x105 in FUN_00435fc0",
               "bounds": "IsDlgButtonChecked result is reduced to the stored value 0 or 1",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6889,8 +7131,8 @@
               "control_id": 1117,
               "current_offset": "0x58",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Font page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_unresolved",
+              "meaning": "Font quality option indexes 0=Highest, 1=High, 2=Standard, 3=Low, 4=Lowest; direct option keys 0xac..0xa8 in FUN_00435fc0",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00435e20",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6898,8 +7140,8 @@
               "control_id": 1118,
               "current_offset": "0x5c",
               "kind": "combo_selection",
-              "meaning_status": "value_shape_observed_semantic_unknown",
-              "meaning": "Font page option index; option identity is unresolved",
+              "meaning_status": "producer_options_observed_game_effect_unresolved",
+              "meaning": "Font thickness option indexes 0=Fine, 1=Normal, 2=Thick, 3=Thickest; direct option keys 0x10b..0x10e in FUN_00435fc0",
               "bounds": "CB_GETCURSEL result; no explicit range check in the page handler in FUN_00435e20",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             },
@@ -6913,7 +7155,7 @@
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             }
           ],
-          "unjoined_control_ids": [
+          "non_field_control_ids": [
             1099,
             1100,
             1107,
@@ -6933,7 +7175,7 @@
           "current_offset": "0xa0",
           "capacity_wchars": 260,
           "producer": "FUN_004354b0",
-          "meaning": "graphics page edit text; semantic identity unresolved"
+          "meaning": "directory edit within the Screenshot Directory group; downstream game setting name/effect unresolved"
         }
       ],
       "unobserved_current_ranges": [
@@ -7478,7 +7720,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 120,
           "caption_key_hex": "0x0078",
@@ -7519,7 +7761,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 121,
           "caption_key_hex": "0x0079",
@@ -7560,7 +7802,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 122,
           "caption_key_hex": "0x007a",
@@ -7601,7 +7843,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 123,
           "caption_key_hex": "0x007b",
@@ -7639,7 +7881,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7668,7 +7910,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7697,7 +7939,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7726,7 +7968,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7758,7 +8000,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 126,
           "caption_key_hex": "0x007e",
@@ -7799,7 +8041,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 127,
           "caption_key_hex": "0x007f",
@@ -7840,7 +8082,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 128,
           "caption_key_hex": "0x0080",
@@ -7881,7 +8123,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 129,
           "caption_key_hex": "0x0081",
@@ -7922,7 +8164,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 131,
           "caption_key_hex": "0x0083",
@@ -7963,7 +8205,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 130,
           "caption_key_hex": "0x0082",
@@ -8004,7 +8246,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 132,
           "caption_key_hex": "0x0084",
@@ -8045,7 +8287,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 133,
           "caption_key_hex": "0x0085",
@@ -8086,7 +8328,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 134,
           "caption_key_hex": "0x0086",
@@ -8127,7 +8369,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 135,
           "caption_key_hex": "0x0087",
@@ -8168,7 +8410,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 136,
           "caption_key_hex": "0x0088",
@@ -8209,7 +8451,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 137,
           "caption_key_hex": "0x0089",
@@ -8250,7 +8492,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 119,
           "caption_key_hex": "0x0077",
@@ -8291,7 +8533,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 124,
           "caption_key_hex": "0x007c",
@@ -8359,7 +8601,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_source": "other_runtime_text",
           "caption_source_evidence": "focused initializer or visual update path writes runtime text; no direct caption key is assigned"
@@ -9306,7 +9548,7 @@
             "file": "config.pad",
             "file_offset": "0x44",
             "width": 4,
-            "meaning": "user-facing caption unresolved",
+            "meaning": "Activate gamepad vibration; direct caption key 0xf0",
             "evidence": "FUN_00430e70 reads IsDlgButtonChecked(0x40e)"
           },
           "caption_key": 240,
@@ -9349,7 +9591,7 @@
             "file": "config.pad",
             "file_offset": "0x24",
             "width": 4,
-            "meaning": "user-facing caption unresolved",
+            "meaning": "Enable gamepad when application is in background; direct caption key 0x7d",
             "evidence": "FUN_00430e70 reads IsDlgButtonChecked(0x40d)"
           },
           "caption_key": 125,
@@ -9512,7 +9754,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 286,
           "caption_key_hex": "0x011e",
@@ -9553,7 +9795,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 131,
           "caption_key_hex": "0x0083",
@@ -9594,7 +9836,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 130,
           "caption_key_hex": "0x0082",
@@ -9635,7 +9877,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 137,
           "caption_key_hex": "0x0089",
@@ -9676,7 +9918,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 134,
           "caption_key_hex": "0x0086",
@@ -9717,7 +9959,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 133,
           "caption_key_hex": "0x0085",
@@ -9758,7 +10000,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 136,
           "caption_key_hex": "0x0088",
@@ -9799,7 +10041,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 126,
           "caption_key_hex": "0x007e",
@@ -9840,7 +10082,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 127,
           "caption_key_hex": "0x007f",
@@ -9881,7 +10123,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 128,
           "caption_key_hex": "0x0080",
@@ -9922,7 +10164,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 129,
           "caption_key_hex": "0x0081",
@@ -9963,7 +10205,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 120,
           "caption_key_hex": "0x0078",
@@ -10004,7 +10246,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 121,
           "caption_key_hex": "0x0079",
@@ -10045,7 +10287,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 122,
           "caption_key_hex": "0x007a",
@@ -10086,7 +10328,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 132,
           "caption_key_hex": "0x0084",
@@ -10127,7 +10369,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 135,
           "caption_key_hex": "0x0087",
@@ -10168,7 +10410,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 287,
           "caption_key_hex": "0x011f",
@@ -10206,7 +10448,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -10375,7 +10617,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 141,
           "caption_key_hex": "0x008d",
@@ -10445,7 +10687,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 142,
           "caption_key_hex": "0x008e",
@@ -10515,7 +10757,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 143,
           "caption_key_hex": "0x008f",
@@ -10610,7 +10852,7 @@
           "extra_hex": "",
           "join": {
             "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
           },
           "caption_key": 101,
           "caption_key_hex": "0x0065",
@@ -10692,6 +10934,7 @@
               "Fran\u00e7ais"
             ]
           },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "other_runtime_text",
           "caption_source_evidence": "focused initializer or visual update path writes runtime text; no direct caption key is assigned"
         },
@@ -10946,8 +11189,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "close_command",
+            "backing_status": "none",
+            "evidence": "Callback VA 0x00441ea0 command-1 branch at VA 0x0044205f..0x00442066 calls EndDialog with result 1"
           },
           "caption_key": 108,
           "caption_key_hex": "0x006c",
@@ -10984,8 +11229,12 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "clipboard_report_command",
+            "backing_status": "none",
+            "helper_va": "0x00441b10",
+            "helper_rva": "0x00041b10",
+            "evidence": "Callback VA 0x00441ea0 dispatch at VA 0x00442025..0x0044203b selects control 0x441 and calls FUN_00441b10"
           },
           "caption_key": 248,
           "caption_key_hex": "0x00f8",
@@ -11022,8 +11271,16 @@
           "extended_style_hex": "0x00000200",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "system_information_tabs",
+            "backing_status": "none",
+            "child_resources_by_tab_index": [
+              122,
+              125,
+              124,
+              123
+            ],
+            "evidence": "Callback VA 0x00441ea0 handles TCN_SELCHANGE at VA 0x00441ec8..0x00441fed; jump table VA 0x00442078 selects which child HWND is shown"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -11046,6 +11303,11 @@
           "name": "LAB_00441ea0",
           "va": null,
           "rva": null
+        },
+        "callback_pointer": {
+          "va": "0x00441ea0",
+          "rva": "0x00041ea0",
+          "function_start_unresolved": true
         },
         "init_proc": {
           "name": "FUN_00441d40",
@@ -11112,8 +11374,11 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "config_sys_save_or_cancel_command",
+            "file": "config.sys",
+            "handler_parameter": 1,
+            "evidence": "Callback VA 0x00442570 command branch at VA 0x00442893..0x004428a2 passes the full wParam to FUN_004420b0; its command-1/2 paths own capture, comparison and confirmation"
           },
           "caption_key": 108,
           "caption_key_hex": "0x006c",
@@ -11150,8 +11415,11 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "config_sys_save_or_cancel_command",
+            "file": "config.sys",
+            "handler_parameter": 2,
+            "evidence": "Callback VA 0x00442570 command branch at VA 0x00442893..0x004428a2 passes the full wParam to FUN_004420b0; its command-1/2 paths own capture, comparison and confirmation"
           },
           "caption_key": 151,
           "caption_key_hex": "0x0097",
@@ -11188,8 +11456,17 @@
           "extended_style_hex": "0x00000200",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "config_sys_page_tabs",
+            "backing_status": "none",
+            "child_resources_by_tab_index": [
+              126,
+              112,
+              127,
+              128,
+              132
+            ],
+            "evidence": "Callback VA 0x00442570 TCN_SELCHANGE branch reads TCM_GETCURSEL at VA 0x004425c4, bounds it to 0..4 at VA 0x004425ca, and selects ShowWindow calls through table VA 0x004428b0"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -11212,6 +11489,11 @@
           "name": "LAB_00442570",
           "va": null,
           "rva": null
+        },
+        "callback_pointer": {
+          "va": "0x00442570",
+          "rva": "0x00042570",
+          "function_start_unresolved": true
         },
         "init_proc": {
           "name": "FUN_00442450",
@@ -11285,6 +11567,39 @@
             "file_offset": "0x04",
             "width": 4
           },
+          "option_caption_keys": [
+            114,
+            115,
+            116
+          ],
+          "localized_options": {
+            "0": [
+              "\u81ea\u52d5",
+              "\u4f7f\u7528\u3059\u308b",
+              "\u4f7f\u7528\u3057\u306a\u3044"
+            ],
+            "1": [
+              "Automatic",
+              "Use",
+              "Do not use"
+            ],
+            "2": [
+              "Automatisch",
+              "Benutzen",
+              "Nicht benutzen"
+            ],
+            "3": [
+              "Automatique",
+              "Activer",
+              "D\u00e9sactiver"
+            ],
+            "4": [
+              "\u81ea\u52a8",
+              "\u4f7f\u7528",
+              "\u4e0d\u4f7f\u7528"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -11311,11 +11626,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 113,
+          "caption_key_hex": "0x0071",
+          "localized_captions": {
+            "0": "UPnP\u30dd\u30fc\u30c8\u30de\u30c3\u30d7",
+            "1": "UPnP Port Mapping",
+            "2": "UPnP-Portmapper",
+            "3": "Attribution du port UPnP",
+            "4": "UPnP\u7aef\u53e3\u6620\u5c04"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0071"
         },
         {
           "index": 2,
@@ -11340,11 +11666,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 117,
+          "caption_key_hex": "0x0075",
+          "localized_captions": {
+            "0": "\u30dd\u30fc\u30c8\u756a\u53f7(55296-55551)",
+            "1": "Port (55296 - 55551)",
+            "2": "Port (55296 - 55551)",
+            "3": "Port (entre 55296 et 55551)",
+            "4": "\u7aef\u53e3(55296-55551)"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0075"
         },
         {
           "index": 3,
@@ -11471,11 +11808,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "prompt_result_command",
+            "backing_status": "none",
+            "dialog_result": 6,
+            "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 149,
+          "caption_key_hex": "0x0095",
+          "localized_captions": {
+            "0": "\u306f\u3044",
+            "1": "Yes",
+            "2": "Ja",
+            "3": "Oui",
+            "4": "\u662f"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0095"
         },
         {
           "index": 1,
@@ -11500,11 +11849,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "prompt_result_command",
+            "backing_status": "none",
+            "dialog_result": 7,
+            "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 150,
+          "caption_key_hex": "0x0096",
+          "localized_captions": {
+            "0": "\u3044\u3044\u3048",
+            "1": "No",
+            "2": "Nein",
+            "3": "Non",
+            "4": "\u5426"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0096"
         },
         {
           "index": 2,
@@ -11529,11 +11890,13 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "caller_supplied_prompt_message",
+            "backing_status": "none",
+            "evidence": "FUN_00432cc0 VA 0x00432d31..0x00432d53 selects the message string at DAT_004579c0 and writes it to control 0x43f"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_source": "caller_supplied_prompt_message",
+          "caption_source_evidence": "FUN_00432cc0 writes the caller-supplied message string to control 0x43f; no single localization key represents every caller"
         }
       ],
       "resource_id": 117,
@@ -11608,11 +11971,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "prompt_result_command",
+            "backing_status": "none",
+            "dialog_result": 1,
+            "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 108,
+          "caption_key_hex": "0x006c",
+          "localized_captions": {
+            "0": "OK",
+            "1": "OK",
+            "2": "OK",
+            "3": "OK",
+            "4": "\u786e\u5b9a"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x006c"
         },
         {
           "index": 1,
@@ -11637,11 +12012,13 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "caller_supplied_prompt_message",
+            "backing_status": "none",
+            "evidence": "FUN_00432cc0 VA 0x00432d31..0x00432d53 selects the message string at DAT_004579c0 and writes it to control 0x43f"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_source": "caller_supplied_prompt_message",
+          "caption_source_evidence": "FUN_00432cc0 writes the caller-supplied message string to control 0x43f; no single localization key represents every caller"
         }
       ],
       "resource_id": 118,
@@ -11716,11 +12093,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "prompt_result_command",
+            "backing_status": "none",
+            "dialog_result": 7,
+            "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 150,
+          "caption_key_hex": "0x0096",
+          "localized_captions": {
+            "0": "\u3044\u3044\u3048",
+            "1": "No",
+            "2": "Nein",
+            "3": "Non",
+            "4": "\u5426"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0096"
         },
         {
           "index": 1,
@@ -11745,11 +12134,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "prompt_result_command",
+            "backing_status": "none",
+            "dialog_result": 2,
+            "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 151,
+          "caption_key_hex": "0x0097",
+          "localized_captions": {
+            "0": "\u30ad\u30e3\u30f3\u30bb\u30eb",
+            "1": "Cancel",
+            "2": "Abbrechen",
+            "3": "Annuler",
+            "4": "\u53d6\u6d88"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0097"
         },
         {
           "index": 2,
@@ -11774,11 +12175,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "prompt_result_command",
+            "backing_status": "none",
+            "dialog_result": 6,
+            "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 149,
+          "caption_key_hex": "0x0095",
+          "localized_captions": {
+            "0": "\u306f\u3044",
+            "1": "Yes",
+            "2": "Ja",
+            "3": "Oui",
+            "4": "\u662f"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0095"
         },
         {
           "index": 3,
@@ -11803,11 +12216,13 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "caller_supplied_prompt_message",
+            "backing_status": "none",
+            "evidence": "FUN_00432cc0 VA 0x00432d31..0x00432d53 selects the message string at DAT_004579c0 and writes it to control 0x43f"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_source": "caller_supplied_prompt_message",
+          "caption_source_evidence": "FUN_00432cc0 writes the caller-supplied message string to control 0x43f; no single localization key represents every caller"
         }
       ],
       "resource_id": 119,
@@ -11869,8 +12284,10 @@
       },
       "payload_sha256": "729e481256f0bf186e75852569d39996f941018178aa2e927469ec5ef9481511",
       "runtime": {
-        "dialog_proc": null,
-        "caption_source": "resource_template_only_unknown_runtime_join"
+        "role": "system_information_report_container",
+        "parent_dialog_resource": 110,
+        "dynamic_controls_reference": "application_behavior.system_information.report_pages",
+        "evidence": "Resource 110 factories create these modeless containers and populate dynamic list views; their templates contain no controls"
       }
     },
     {
@@ -11912,8 +12329,10 @@
       },
       "payload_sha256": "729e481256f0bf186e75852569d39996f941018178aa2e927469ec5ef9481511",
       "runtime": {
-        "dialog_proc": null,
-        "caption_source": "resource_template_only_unknown_runtime_join"
+        "role": "system_information_report_container",
+        "parent_dialog_resource": 110,
+        "dynamic_controls_reference": "application_behavior.system_information.report_pages",
+        "evidence": "Resource 110 factories create these modeless containers and populate dynamic list views; their templates contain no controls"
       }
     },
     {
@@ -11955,8 +12374,10 @@
       },
       "payload_sha256": "729e481256f0bf186e75852569d39996f941018178aa2e927469ec5ef9481511",
       "runtime": {
-        "dialog_proc": null,
-        "caption_source": "resource_template_only_unknown_runtime_join"
+        "role": "system_information_report_container",
+        "parent_dialog_resource": 110,
+        "dynamic_controls_reference": "application_behavior.system_information.report_pages",
+        "evidence": "Resource 110 factories create these modeless containers and populate dynamic list views; their templates contain no controls"
       }
     },
     {
@@ -11998,8 +12419,10 @@
       },
       "payload_sha256": "729e481256f0bf186e75852569d39996f941018178aa2e927469ec5ef9481511",
       "runtime": {
-        "dialog_proc": null,
-        "caption_source": "resource_template_only_unknown_runtime_join"
+        "role": "system_information_report_container",
+        "parent_dialog_resource": 110,
+        "dynamic_controls_reference": "application_behavior.system_information.report_pages",
+        "evidence": "Resource 110 factories create these modeless containers and populate dynamic list views; their templates contain no controls"
       }
     },
     {
@@ -12084,11 +12507,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 155,
+          "caption_key_hex": "0x009b",
+          "localized_captions": {
+            "0": "\u30c7\u30d0\u30a4\u30b9",
+            "1": "Devices",
+            "2": "Peripherieger\u00e4te",
+            "3": "P\u00e9riph\u00e9rique",
+            "4": "\u8bbe\u5907"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x009b"
         },
         {
           "index": 2,
@@ -12120,6 +12554,33 @@
             "file_offset": "0x10",
             "width": 4
           },
+          "option_caption_keys": [
+            157,
+            158
+          ],
+          "localized_options": {
+            "0": [
+              " \u30a6\u30a3\u30f3\u30c9\u30a6\u30e2\u30fc\u30c9",
+              " \u30d5\u30eb\u30b9\u30af\u30ea\u30fc\u30f3\u30e2\u30fc\u30c9"
+            ],
+            "1": [
+              "Windowed",
+              "Full Screen"
+            ],
+            "2": [
+              "Fenster",
+              "Vollbild"
+            ],
+            "3": [
+              "Fen\u00eatr\u00e9",
+              "Plein \u00e9cran"
+            ],
+            "4": [
+              "\u7a97\u53e3",
+              "\u5168\u5c4f"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -12146,11 +12607,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 156,
+          "caption_key_hex": "0x009c",
+          "localized_captions": {
+            "0": "\u753b\u9762\u30e2\u30fc\u30c9",
+            "1": "Display Mode",
+            "2": "Bildmodus",
+            "3": "Mode d'affichage",
+            "4": "\u753b\u9762\u6a21\u5f0f"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x009c"
         },
         {
           "index": 4,
@@ -12212,11 +12684,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 159,
+          "caption_key_hex": "0x009f",
+          "localized_captions": {
+            "0": "\u753b\u9762\u89e3\u50cf\u5ea6",
+            "1": "Window Size",
+            "2": "Fenstergr\u00f6\u00dfe",
+            "3": "R\u00e9solution",
+            "4": "\u5206\u8fa8\u7387"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x009f"
         },
         {
           "index": 6,
@@ -12278,11 +12761,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 160,
+          "caption_key_hex": "0x00a0",
+          "localized_captions": {
+            "0": "\u30de\u30eb\u30c1\u30b5\u30f3\u30d7\u30ea\u30f3\u30b0",
+            "1": "Multisampling",
+            "2": "Multisampling",
+            "3": "Multisampling",
+            "4": "\u591a\u91cd\u91c7\u6837"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00a0"
         },
         {
           "index": 8,
@@ -12340,11 +12834,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 258,
+          "caption_key_hex": "0x0102",
+          "localized_captions": {
+            "0": "\u5168\u4f53\u306e\u63cf\u753b\u54c1\u8cea",
+            "1": "General Drawing Quality",
+            "2": "Grafikqualit\u00e4t - Insgesamt",
+            "3": "Qualit\u00e9 graphique (g\u00e9n\u00e9rale)",
+            "4": "\u5168\u4f53\u6e32\u67d3\u8d28\u91cf"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0102"
         },
         {
           "index": 10,
@@ -12376,6 +12881,51 @@
             "file_offset": "0x2c",
             "width": 4
           },
+          "option_caption_keys": [
+            168,
+            169,
+            170,
+            171,
+            172
+          ],
+          "localized_options": {
+            "0": [
+              " \u6700\u4f4e\u54c1\u8cea",
+              " \u4f4e\u54c1\u8cea",
+              " \u6a19\u6e96\u54c1\u8cea",
+              " \u9ad8\u54c1\u8cea",
+              " \u6700\u9ad8\u54c1\u8cea"
+            ],
+            "1": [
+              "Lowest",
+              "Low",
+              "Standard",
+              "High",
+              "Highest"
+            ],
+            "2": [
+              "Minimum",
+              "Niedrig",
+              "Normal",
+              "Hoch",
+              "Maximum"
+            ],
+            "3": [
+              "Minimale",
+              "Basse",
+              "Moyenne",
+              "Haute",
+              "Maximale"
+            ],
+            "4": [
+              "\u6700\u4f4e",
+              "\u8f83\u4f4e",
+              "\u6807\u51c6",
+              "\u8f83\u9ad8",
+              "\u6700\u9ad8"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -12402,11 +12952,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 167,
+          "caption_key_hex": "0x00a7",
+          "localized_captions": {
+            "0": "\u30b7\u30e3\u30c9\u30a6\u30de\u30c3\u30d7\u54c1\u8cea",
+            "1": "Shadow Detail",
+            "2": "Shadow Mapping",
+            "3": "Qualit\u00e9 d'affichage des ombres",
+            "4": "\u9634\u5f71\u7ec6\u8282\u8d28\u91cf"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00a7"
         },
         {
           "index": 12,
@@ -12464,11 +13025,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 259,
+          "caption_key_hex": "0x0103",
+          "localized_captions": {
+            "0": "\u80cc\u666f\u306e\u63cf\u753b\u54c1\u8cea",
+            "1": "Background Drawing Quality",
+            "2": "Grafikqualit\u00e4t - Hintergrund",
+            "3": "Qualit\u00e9 graphique (arri\u00e8re-plan)",
+            "4": "\u80cc\u666f\u6e32\u67d3\u8d28\u91cf"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0103"
         }
       ],
       "resource_id": 126,
@@ -12561,8 +13133,17 @@
             "file_offset": "0x30",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 241,
+          "caption_key_hex": "0x00f1",
+          "localized_captions": {
+            "0": "\u30a2\u30f3\u30d3\u30a8\u30f3\u30c8\u30aa\u30af\u30ea\u30e5\u30fc\u30b8\u30e7\u30f3",
+            "1": "Ambient Occlusion",
+            "2": "Ambient Occlusion",
+            "3": "Occlusion ambiante",
+            "4": "\u73af\u5883\u5149\u906e\u853d"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00f1"
         },
         {
           "index": 1,
@@ -12594,8 +13175,17 @@
             "file_offset": "0x34",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 242,
+          "caption_key_hex": "0x00f2",
+          "localized_captions": {
+            "0": "\u88ab\u5199\u754c\u6df1\u5ea6",
+            "1": "Depth of Field",
+            "2": "Tiefenunsch\u00e4rfe",
+            "3": "Profondeur de champ",
+            "4": "\u666f\u6df1"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00f2"
         },
         {
           "index": 2,
@@ -12627,6 +13217,39 @@
             "file_offset": "0x3c",
             "width": 4
           },
+          "option_caption_keys": [
+            171,
+            170,
+            169
+          ],
+          "localized_options": {
+            "0": [
+              " \u9ad8\u54c1\u8cea",
+              " \u6a19\u6e96\u54c1\u8cea",
+              " \u4f4e\u54c1\u8cea"
+            ],
+            "1": [
+              "High",
+              "Standard",
+              "Low"
+            ],
+            "2": [
+              "Hoch",
+              "Normal",
+              "Niedrig"
+            ],
+            "3": [
+              "Haute",
+              "Moyenne",
+              "Basse"
+            ],
+            "4": [
+              "\u8f83\u9ad8",
+              "\u6807\u51c6",
+              "\u8f83\u4f4e"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -12653,11 +13276,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 254,
+          "caption_key_hex": "0x00fe",
+          "localized_captions": {
+            "0": "\u30c6\u30af\u30b9\u30c1\u30e3\u54c1\u8cea",
+            "1": "Texture Quality",
+            "2": "Qualit\u00e4t der Texturen",
+            "3": "Qualit\u00e9 des textures",
+            "4": "\u7eb9\u7406\u8d28\u91cf"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00fe"
         },
         {
           "index": 4,
@@ -12689,6 +13323,45 @@
             "file_offset": "0x40",
             "width": 4
           },
+          "option_caption_keys": [
+            172,
+            171,
+            170,
+            169
+          ],
+          "localized_options": {
+            "0": [
+              " \u6700\u9ad8\u54c1\u8cea",
+              " \u9ad8\u54c1\u8cea",
+              " \u6a19\u6e96\u54c1\u8cea",
+              " \u4f4e\u54c1\u8cea"
+            ],
+            "1": [
+              "Highest",
+              "High",
+              "Standard",
+              "Low"
+            ],
+            "2": [
+              "Maximum",
+              "Hoch",
+              "Normal",
+              "Niedrig"
+            ],
+            "3": [
+              "Maximale",
+              "Haute",
+              "Moyenne",
+              "Basse"
+            ],
+            "4": [
+              "\u6700\u9ad8",
+              "\u8f83\u9ad8",
+              "\u6807\u51c6",
+              "\u8f83\u4f4e"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -12715,11 +13388,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 255,
+          "caption_key_hex": "0x00ff",
+          "localized_captions": {
+            "0": "\u30c6\u30af\u30b9\u30c1\u30e3\u30d5\u30a3\u30eb\u30bf\u30fc\u54c1\u8cea",
+            "1": "Texture Filtering",
+            "2": "Texturfilter",
+            "3": "Qualit\u00e9 de filtrage des textures",
+            "4": "\u7eb9\u7406\u8fc7\u6ee4"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00ff"
         },
         {
           "index": 6,
@@ -12751,8 +13435,17 @@
             "file_offset": "0x38",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 256,
+          "caption_key_hex": "0x0100",
+          "localized_captions": {
+            "0": "\u30a4\u30d9\u30f3\u30c8\u30b7\u30fc\u30f3\u306e\u753b\u9762\u30a8\u30d5\u30a7\u30af\u30c8\u3092\u7121\u52b9\u306b\u3059\u308b",
+            "1": "Disable cutscene effects",
+            "2": "Bildschirmeffekte in Zwischensequenzen deaktivieren",
+            "3": "D\u00e9sactiver les effets lors des sc\u00e8nes cin\u00e9matiques",
+            "4": "\u7981\u7528\u5267\u60c5\u52a8\u753b\u4e2d\u7684\u753b\u9762\u7279\u6548"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0100"
         },
         {
           "index": 7,
@@ -12784,8 +13477,17 @@
             "file_offset": "0x50",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 257,
+          "caption_key_hex": "0x0101",
+          "localized_captions": {
+            "0": "\u30cf\u30fc\u30c9\u30a6\u30a7\u30a2\u30de\u30a6\u30b9\u30ab\u30fc\u30bd\u30eb\u3092\u4f7f\u7528\u3059\u308b",
+            "1": "Enable hardware mouse cursor",
+            "2": "Hardware-Mauscursor aktivieren",
+            "3": "Activer la souris mat\u00e9rielle",
+            "4": "\u4f7f\u7528\u786c\u4ef6\u9f20\u6807\u6307\u9488"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0101"
         },
         {
           "index": 8,
@@ -12817,6 +13519,39 @@
             "file_offset": "0x44",
             "width": 4
           },
+          "literal_options": [
+            {
+              "index": 0,
+              "text": "60",
+              "va": "0x0044db38",
+              "rva": "0x0004db38"
+            },
+            {
+              "index": 1,
+              "text": "30",
+              "va": "0x0044db40",
+              "rva": "0x0004db40"
+            },
+            {
+              "index": 2,
+              "text": "20",
+              "va": "0x0044db48",
+              "rva": "0x0004db48"
+            },
+            {
+              "index": 3,
+              "text": "15",
+              "va": "0x0044db50",
+              "rva": "0x0004db50"
+            },
+            {
+              "index": 4,
+              "text": "10",
+              "va": "0x0044db58",
+              "rva": "0x0004db58"
+            }
+          ],
+          "option_source_evidence": "FUN_004358d0 adds these literal strings to combo 0x455 in this order",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -12843,11 +13578,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 260,
+          "caption_key_hex": "0x0104",
+          "localized_captions": {
+            "0": "\u30d5\u30ec\u30fc\u30e0\u30ec\u30fc\u30c8\u5236\u9650",
+            "1": "Frame Rate Limit",
+            "2": "Bildwiederholungsrate limitieren",
+            "3": "Nombre maximum d'images par seconde",
+            "4": "\u5e27\u6570\u9650\u5236"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0104"
         },
         {
           "index": 10,
@@ -12875,8 +13621,11 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "directory_browse_command",
+            "backing_status": "updates_edit_before_capture",
+            "target_edit_control_id": 1141,
+            "evidence": "FUN_004357e0 compares low command IDs 0x474/0x476; 0x474 requests SHBrowseForFolderW/SHGetPathFromIDListW and writes edit 0x475, while 0x476 calls FUN_00435760 to set the default edit text"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -12940,11 +13689,23 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "directory_default_command",
+            "backing_status": "updates_edit_before_capture",
+            "target_edit_control_id": 1141,
+            "evidence": "FUN_004357e0 compares low command IDs 0x474/0x476; 0x474 requests SHBrowseForFolderW/SHGetPathFromIDListW and writes edit 0x475, while 0x476 calls FUN_00435760 to set the default edit text"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 289,
+          "caption_key_hex": "0x0121",
+          "localized_captions": {
+            "0": "\u6700\u521d\u306e\u8a2d\u5b9a\u306b\u623b\u3059",
+            "1": "Restore default",
+            "2": "Auf Voreinstellung zur\u00fccksetzen",
+            "3": "Par d\u00e9faut",
+            "4": "\u8fd4\u56de\u521d\u59cb\u8bbe\u5b9a"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0121"
         },
         {
           "index": 13,
@@ -12972,11 +13733,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_group_box",
+            "backing_status": "none",
+            "evidence": "FUN_004358d0 writes caption key 0x120 to group box 0x477; FUN_004357e0 has no command case for this ID"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 288,
+          "caption_key_hex": "0x0120",
+          "localized_captions": {
+            "0": "\u30b9\u30af\u30ea\u30fc\u30f3\u30b7\u30e7\u30c3\u30c8\u306e\u4fdd\u5b58\u5148\u30d5\u30a9\u30eb\u30c0",
+            "1": "Screenshot Directory",
+            "2": "Screenshots speichern unter",
+            "3": "Dossier de sauvegarde des captures d'\u00e9cran",
+            "4": "\u8bbe\u7f6e\u4fdd\u5b58\u6e38\u620f\u622a\u56fe\u7684\u6587\u4ef6\u5939"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0120"
         }
       ],
       "resource_id": 127,
@@ -13069,8 +13841,17 @@
             "file_offset": "0x48",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 245,
+          "caption_key_hex": "0x00f5",
+          "localized_captions": {
+            "0": "\u30b5\u30a6\u30f3\u30c9\u30c7\u30d0\u30a4\u30b9\u3092\u7121\u52b9\u306b\u3059\u308b",
+            "1": "Disable Sound Device",
+            "2": "Soundkarte deaktivieren",
+            "3": "D\u00e9sactiver le son du jeu",
+            "4": "\u7981\u7528\u58f0\u97f3\u8bbe\u5907"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00f5"
         },
         {
           "index": 1,
@@ -13102,8 +13883,17 @@
             "file_offset": "0x4c",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 252,
+          "caption_key_hex": "0x00fc",
+          "localized_captions": {
+            "0": "\u30a6\u30a3\u30f3\u30c9\u30a6\u304c\u975e\u30a2\u30af\u30c6\u30a3\u30d6\u3067\u3082\u30b5\u30a6\u30f3\u30c9\u3092\u518d\u751f\u3059\u308b",
+            "1": "Play sound when application is in background",
+            "2": "Kl\u00e4nge auch bei nicht aktivem Fenster abspielen",
+            "3": "Activer m\u00eame si la fen\u00eatre de jeu est en arri\u00e8re-plan",
+            "4": "\u58f0\u97f3\u5728\u6e38\u620f\u7a97\u53e3\u5904\u4e8e\u975e\u6fc0\u6d3b\u72b6\u6001\u4e0b\u65f6\u4ecd\u7136\u6709\u6548"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x00fc"
         }
       ],
       "resource_id": 128,
@@ -13201,8 +13991,8 @@
             "file_offset": "0x60",
             "width": "UTF-16LE string"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_source": "enumerated_windows_font_face_names",
+          "caption_source_evidence": "FUN_00435fc0 enumerates face names, filters vertical aliases and GetGlyphOutlineW failures, and populates control 0x45c"
         },
         {
           "index": 1,
@@ -13230,11 +14020,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 262,
+          "caption_key_hex": "0x0106",
+          "localized_captions": {
+            "0": "\u30d5\u30a9\u30f3\u30c8\u540d",
+            "1": "Font",
+            "2": "Name des Fonts",
+            "3": "Police",
+            "4": "\u5b57\u4f53\u540d"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0106"
         },
         {
           "index": 2,
@@ -13266,6 +14067,51 @@
             "file_offset": "0x58",
             "width": 4
           },
+          "option_caption_keys": [
+            172,
+            171,
+            170,
+            169,
+            168
+          ],
+          "localized_options": {
+            "0": [
+              " \u6700\u9ad8\u54c1\u8cea",
+              " \u9ad8\u54c1\u8cea",
+              " \u6a19\u6e96\u54c1\u8cea",
+              " \u4f4e\u54c1\u8cea",
+              " \u6700\u4f4e\u54c1\u8cea"
+            ],
+            "1": [
+              "Highest",
+              "High",
+              "Standard",
+              "Low",
+              "Lowest"
+            ],
+            "2": [
+              "Maximum",
+              "Hoch",
+              "Normal",
+              "Niedrig",
+              "Minimum"
+            ],
+            "3": [
+              "Maximale",
+              "Haute",
+              "Moyenne",
+              "Basse",
+              "Minimale"
+            ],
+            "4": [
+              "\u6700\u9ad8",
+              "\u8f83\u9ad8",
+              "\u6807\u51c6",
+              "\u8f83\u4f4e",
+              "\u6700\u4f4e"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -13295,11 +14141,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 263,
+          "caption_key_hex": "0x0107",
+          "localized_captions": {
+            "0": "\u54c1\u8cea",
+            "1": "Quality",
+            "2": "Qualit\u00e4t",
+            "3": "Qualit\u00e9",
+            "4": "\u8d28\u91cf"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0107"
         },
         {
           "index": 4,
@@ -13334,8 +14191,17 @@
             "file_offset": "0x54",
             "width": 4
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 261,
+          "caption_key_hex": "0x0105",
+          "localized_captions": {
+            "0": "Windows\u306e\u30b7\u30b9\u30c6\u30e0\u30d5\u30a9\u30f3\u30c8\u3092\u4f7f\u7528\u3059\u308b",
+            "1": "Use Windows system font",
+            "2": "Windows-Systemfonts benutzen",
+            "3": "Utiliser une police de Windows",
+            "4": "\u4f7f\u7528\u7cfb\u7edf\u5b57\u4f53"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0105"
         },
         {
           "index": 5,
@@ -13367,6 +14233,45 @@
             "file_offset": "0x5c",
             "width": 4
           },
+          "option_caption_keys": [
+            267,
+            268,
+            269,
+            270
+          ],
+          "localized_options": {
+            "0": [
+              "\u7d30\u3044",
+              "\u6a19\u6e96",
+              "\u592a\u3044",
+              "\u3088\u308a\u592a\u3044"
+            ],
+            "1": [
+              "Fine",
+              "Normal",
+              "Thick",
+              "Thickest"
+            ],
+            "2": [
+              "Fein",
+              "Normal",
+              "Fett",
+              "Extrafett"
+            ],
+            "3": [
+              "Fin",
+              "Normal",
+              "Epais",
+              "Tr\u00e8s \u00e9pais"
+            ],
+            "4": [
+              "\u7ec6",
+              "\u6807\u51c6",
+              "\u8f83\u7c97",
+              "\u7c97"
+            ]
+          },
+          "option_source_evidence": "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved",
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
         },
@@ -13396,11 +14301,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 264,
+          "caption_key_hex": "0x0108",
+          "localized_captions": {
+            "0": "\u592a\u3055",
+            "1": "Thickness",
+            "2": "Schriftst\u00e4rke",
+            "3": "Aspect",
+            "4": "\u7c97\u7ec6"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0108"
         },
         {
           "index": 7,
@@ -13425,11 +14341,22 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "The resource template has no backing-field or handler reference."
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label"
           },
-          "caption_source": "unknown_or_static_template",
-          "caption_source_evidence": "No focused runtime caption write or direct localization key join"
+          "caption_key": 265,
+          "caption_key_hex": "0x0109",
+          "localized_captions": {
+            "0": "\u3054\u6ce8\u610f\uff1a Windows\u306e\u30b7\u30b9\u30c6\u30e0\u30d5\u30a9\u30f3\u30c8\u3092\u4f7f\u7528\u3059\u308b\u5834\u5408\u3001\u30b2\u30fc\u30e0\u5185\u306e\u6587\u5b57\u8868\u793a\u306e\u4e0d\u5177\u5408\u3084\u52d5\u4f5c\u306f\u4fdd\u8a3c\u5bfe\u8c61\u5916\u3068\u306a\u308a\u307e\u3059\u3002\u554f\u984c\u304c\u767a\u751f\u3059\u308b\u5834\u5408\u306b\u306f\u6a19\u6e96\u306e\u8a2d\u5b9a\u3092\u3054\u5229\u7528\u304f\u3060\u3055\u3044\u3002",
+            "1": "Warning! Using Windows system fonts may cause in-game text to be displayed incorrectly. Restore default font settings should you encounter difficulties.",
+            "2": "Achtung: Bei Verwendung von Windows-Systemfonts kann es zu Fehlern bei der Textdarstellung im Spiel kommen. Falls Probleme auftreten sollten, stellen Sie bitte auf die Standard-Einstellungen um.",
+            "3": "Attention :\r\nSi vous utilisez une police de Windows, il est possible que les caract\u00e8res ne soient pas affich\u00e9s correctement dans le jeu. En cas de probl\u00e8me, veuillez r\u00e9tablir la police par d\u00e9faut.",
+            "4": "\u6ce8\u610f\uff1a \u4f7f\u7528\u7cfb\u7edf\u5b57\u4f53\uff0c\u4e0d\u80fd\u4fdd\u8bc1\u6e38\u620f\u5185\u7684\u6587\u5b57\u663e\u793a\u7684\u6b63\u786e\u6027\u3002\u5982\u6709\u95ee\u9898\u8bf7\u4f7f\u7528\u6807\u51c6\u8bbe\u5b9a\u3002"
+          },
+          "caption_source": "runtime_localized_lookup_FUN_0040d350",
+          "caption_source_evidence": "FUN_0040d350 direct key 0x0109"
         }
       ],
       "resource_id": 132,

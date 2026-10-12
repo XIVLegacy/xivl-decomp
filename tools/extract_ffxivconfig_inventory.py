@@ -41,8 +41,8 @@ LANGUAGE_NAMES = {
     4: "Chinese",
 }
 
-# These are direct FUN_0040D350 call arguments paired with SetDlgItemTextW
-# arguments in the focused init routines.  A missing entry remains unknown.
+# These are direct FUN_0040D350 call arguments paired with control-caption
+# writes in the focused init routines. A missing entry remains unknown.
 DIALOG_CAPTION_KEYS = {
     101: 0x76,
     102: 0x8C,
@@ -103,6 +103,43 @@ CONTROL_CAPTION_KEYS = {
     103: {1: 0x6C, 1018: 0x6B, 1019: 0x6A, 1020: 0xB3, 1038: 0x65},
     110: {1: 0x6C, 2: 0x97, 1089: 0xF8},
     111: {1: 0x6C, 2: 0x97},
+    117: {6: 0x95, 7: 0x96},
+    118: {1: 0x6C},
+    119: {6: 0x95, 7: 0x96, 2: 0x97},
+    112: {1048: 0x71, 1049: 0x75},
+    128: {1110: 0xF5, 1111: 0xFC},
+    132: {1106: 0x105, 1108: 0x106, 1107: 0x107, 1099: 0x108, 1100: 0x109},
+    126: {
+        1098: 0x9B,
+        1097: 0x9C,
+        1101: 0x9F,
+        1103: 0xA0,
+        1105: 0x102,
+        1107: 0xA7,
+        1109: 0x103,
+    },
+    127: {
+        1102: 0xF1,
+        1103: 0xF2,
+        1108: 0x100,
+        1115: 0x101,
+        1110: 0x104,
+        1105: 0xFE,
+        1107: 0xFF,
+        1142: 0x121,
+        1143: 0x120,
+    },
+}
+
+CONTROL_OPTION_KEYS = {
+    (103, 1039): (0x66, 0x67, 0x68, 0x69),
+    (112, 1042): (0x72, 0x73, 0x74),
+    (132, 1117): (0xAC, 0xAB, 0xAA, 0xA9, 0xA8),
+    (132, 1118): (0x10B, 0x10C, 0x10D, 0x10E),
+    (126, 1099): (0x9D, 0x9E),
+    (126, 1106): (0xA8, 0xA9, 0xAA, 0xAB, 0xAC),
+    (127, 1104): (0xAB, 0xAA, 0xA9),
+    (127, 1106): (0xAC, 0xAB, 0xAA, 0xA9),
 }
 
 
@@ -618,6 +655,11 @@ def _known_runtime(dialog_id: int) -> dict[str, Any]:
         },
         110: {
             "dialog_proc": {"name": "LAB_00441ea0", "va": None, "rva": None},
+            "callback_pointer": {
+                "va": _hex(0x00441EA0),
+                "rva": _rva(0x00441EA0),
+                "function_start_unresolved": True,
+            },
             "init_proc": {
                 "name": "FUN_00441d40",
                 "va": _hex(0x00441D40),
@@ -626,6 +668,11 @@ def _known_runtime(dialog_id: int) -> dict[str, Any]:
         },
         111: {
             "dialog_proc": {"name": "LAB_00442570", "va": None, "rva": None},
+            "callback_pointer": {
+                "va": _hex(0x00442570),
+                "rva": _rva(0x00442570),
+                "function_start_unresolved": True,
+            },
             "init_proc": {
                 "name": "FUN_00442450",
                 "va": _hex(0x00442450),
@@ -699,6 +746,13 @@ def _known_runtime(dialog_id: int) -> dict[str, Any]:
         118: {"dialog_proc": {"name": "LAB_00432e10", "va": None, "rva": None}},
         119: {"dialog_proc": {"name": "LAB_00432e10", "va": None, "rva": None}},
     }
+    if dialog_id in (122, 123, 124, 125):
+        return {
+            "role": "system_information_report_container",
+            "parent_dialog_resource": 110,
+            "dynamic_controls_reference": "application_behavior.system_information.report_pages",
+            "evidence": "Resource 110 factories create these modeless containers and populate dynamic list views; their templates contain no controls",
+        }
     return runtime.get(
         dialog_id,
         {
@@ -713,7 +767,7 @@ def _control_join(
 ) -> dict[str, Any]:
     unknown = {
         "status": "unknown",
-        "reason": "The resource template has no backing-field or handler reference.",
+        "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately.",
     }
     if dialog_id == 101:
         for map_index, (mapped_id, next_index) in enumerate(map_pairs):
@@ -762,7 +816,7 @@ def _control_join(
                 "file": "config.pad",
                 "file_offset": _hex(0x24, 2),
                 "width": 4,
-                "meaning": "user-facing caption unresolved",
+                "meaning": "Enable gamepad when application is in background; direct caption key 0x7d",
                 "evidence": "FUN_00430e70 reads IsDlgButtonChecked(0x40d)",
             },
             1038: {
@@ -771,7 +825,7 @@ def _control_join(
                 "file": "config.pad",
                 "file_offset": _hex(0x44, 2),
                 "width": 4,
-                "meaning": "user-facing caption unresolved",
+                "meaning": "Activate gamepad vibration; direct caption key 0xf0",
                 "evidence": "FUN_00430e70 reads IsDlgButtonChecked(0x40e)",
             },
             1110: {
@@ -894,6 +948,93 @@ def _control_join(
                 "meaning": "used by the input-test poll/display-only path; backing field is unresolved",
                 "evidence": "FUN_00430FE0 polls and displays resource 102 visual control IDs 0x3fd..0x3ff; no saved-state write is observed",
             }
+    if dialog_id == 110:
+        if control_id == 1:
+            return {
+                "status": "observed",
+                "kind": "close_command",
+                "backing_status": "none",
+                "evidence": "Callback VA 0x00441ea0 command-1 branch at VA 0x0044205f..0x00442066 calls EndDialog with result 1",
+            }
+        if control_id == 1089:
+            return {
+                "status": "observed",
+                "kind": "clipboard_report_command",
+                "backing_status": "none",
+                "helper_va": _hex(0x00441B10),
+                "helper_rva": _rva(0x00441B10),
+                "evidence": "Callback VA 0x00441ea0 dispatch at VA 0x00442025..0x0044203b selects control 0x441 and calls FUN_00441b10",
+            }
+        if control_id == 1040:
+            return {
+                "status": "observed",
+                "kind": "system_information_tabs",
+                "backing_status": "none",
+                "child_resources_by_tab_index": [122, 125, 124, 123],
+                "evidence": "Callback VA 0x00441ea0 handles TCN_SELCHANGE at VA 0x00441ec8..0x00441fed; jump table VA 0x00442078 selects which child HWND is shown",
+            }
+    if dialog_id == 111:
+        if control_id in (1, 2):
+            return {
+                "status": "observed",
+                "kind": "config_sys_save_or_cancel_command",
+                "file": "config.sys",
+                "handler_parameter": control_id,
+                "evidence": "Callback VA 0x00442570 command branch at VA 0x00442893..0x004428a2 passes the full wParam to FUN_004420b0; its command-1/2 paths own capture, comparison and confirmation",
+            }
+        if control_id == 1040:
+            return {
+                "status": "observed",
+                "kind": "config_sys_page_tabs",
+                "backing_status": "none",
+                "child_resources_by_tab_index": [126, 112, 127, 128, 132],
+                "evidence": "Callback VA 0x00442570 TCN_SELCHANGE branch reads TCM_GETCURSEL at VA 0x004425c4, bounds it to 0..4 at VA 0x004425ca, and selects ShowWindow calls through table VA 0x004428b0",
+            }
+    if dialog_id in (117, 118, 119):
+        if control_id in (1, 2, 6, 7):
+            return {
+                "status": "observed",
+                "kind": "prompt_result_command",
+                "backing_status": "none",
+                "dialog_result": control_id,
+                "evidence": "Callback VA 0x00432e10 checks command IDs 1..7 and dispatches through FUN_00432c70; table VA 0x00432ca0 maps these four IDs to EndDialog with the same result",
+            }
+        if control_id == 1087:
+            return {
+                "status": "observed",
+                "kind": "caller_supplied_prompt_message",
+                "backing_status": "none",
+                "evidence": "FUN_00432cc0 VA 0x00432d31..0x00432d53 selects the message string at DAT_004579c0 and writes it to control 0x43f",
+            }
+    if dialog_id == 127 and control_id in (1140, 1142):
+        return {
+            "status": "observed",
+            "kind": "directory_browse_command"
+            if control_id == 1140
+            else "directory_default_command",
+            "backing_status": "updates_edit_before_capture",
+            "target_edit_control_id": 1141,
+            "evidence": "FUN_004357e0 compares low command IDs 0x474/0x476; 0x474 requests SHBrowseForFolderW/SHGetPathFromIDListW and writes edit 0x475, while 0x476 calls FUN_00435760 to set the default edit text",
+        }
+    if dialog_id == 127 and control_id == 1143:
+        return {
+            "status": "observed",
+            "kind": "localized_group_box",
+            "backing_status": "none",
+            "evidence": "FUN_004358d0 writes caption key 0x120 to group box 0x477; FUN_004357e0 has no command case for this ID",
+        }
+    if control_id in CONTROL_CAPTION_KEYS.get(dialog_id, {}) and dialog_id in (
+        112,
+        126,
+        127,
+        132,
+    ):
+        return {
+            "status": "observed",
+            "kind": "localized_static_caption",
+            "backing_status": "none",
+            "evidence": "Direct initializer caption-key/control-ID pair; no persisted-field capture for this static label",
+        }
     return unknown
 
 
@@ -917,6 +1058,215 @@ _CONFIG_SYS_SAVE_CONSUMER = (
     "before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; "
     "confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
 )
+
+
+def _application_behavior(image: Image) -> dict[str, Any]:
+    pages = []
+    for (
+        tab_index,
+        resource,
+        key,
+        factory,
+        create_call,
+        callback,
+        child,
+        view,
+        class_va,
+    ) in (
+        (
+            0,
+            122,
+            0xB3,
+            0x00439C90,
+            0x0043A088,
+            0x00437680,
+            0x00458CB0,
+            0x00458C9C,
+            0x0044DDD4,
+        ),
+        (
+            1,
+            125,
+            0xEE,
+            0x0043F160,
+            0x0043F2FC,
+            0x0043EF60,
+            0x00458C98,
+            0x00458C84,
+            0x0044EED0,
+        ),
+        (
+            2,
+            124,
+            0xE9,
+            0x004368B0,
+            0x00436A5A,
+            0x00436850,
+            0x00458CE0,
+            0x00458CCC,
+            0x0044DBF8,
+        ),
+        (
+            3,
+            123,
+            0xEC,
+            0x00436FB0,
+            0x0043715B,
+            0x00436F50,
+            0x00458CC8,
+            0x00458CB4,
+            0x0044DCA8,
+        ),
+    ):
+        pages.append(
+            {
+                "tab_index": tab_index,
+                "child_dialog_resource": resource,
+                "tab_caption_key": key,
+                "factory_va": _hex(factory),
+                "factory_rva": _rva(factory),
+                "callback_pointer_va": _hex(callback),
+                "callback_pointer_rva": _rva(callback),
+                "child_hwnd_global_va": _hex(child),
+                "child_hwnd_global_rva": _rva(child),
+                "list_view_hwnd_global_va": _hex(view),
+                "list_view_hwnd_global_rva": _rva(view),
+                "list_view_create_call_va": _hex(create_call),
+                "list_view_create_call_rva": _rva(create_call),
+                "class_name": image.read_rva(class_va - IMAGE_BASE, 28)
+                .decode("utf-16le")
+                .rstrip("\0"),
+                "class_name_va": _hex(class_va),
+                "class_name_rva": _rva(class_va),
+                "style": _hex(0x50000001),
+                "menu_or_control_id": 0,
+                "evidence": "Parent factories create modeless child dialogs and list views; callback selection maps the stored child HWNDs to the final tab index",
+            }
+        )
+    return {
+        "startup": {
+            "routine_va": _hex(0x00433660),
+            "routine_rva": _rva(0x00433660),
+            "initialization_calls": "VA 0x00433684 requests CoInitialize(NULL); VA 0x00433692 requests timeBeginPeriod(1); language setup precedes the dialog calls",
+            "mutex_name": image.read_rva(0x4D840, 74).decode("utf-16le").rstrip("\0"),
+            "mutex_name_va": _hex(0x0044D840),
+            "mutex_name_rva": _rva(0x0044D840),
+            "dialog_selection": "CreateMutexW call VA 0x004338b1 and GetLastError call VA 0x004338b9 precede comparison with 0xb7; equality opens prompt resource 118 at VA 0x00433934, otherwise VA 0x004339d5 opens main resource 103 with callback FUN_004335a0",
+            "dialog_completion": "VA 0x00433953 requests timeEndPeriod(1), VA 0x00433959 requests CoUninitialize, and nonnull mutex handles are closed; this cleanup branch is not reached when GetModuleFileNameW fails earlier",
+            "limit": "These are application startup call/branch observations, not API success or a recovered CRT entry implementation",
+        },
+        "confirmation_dialogs": {
+            "resources": [117, 118, 119],
+            "callback_pointer_va": _hex(0x00432E10),
+            "callback_pointer_rva": _rva(0x00432E10),
+            "initializer_va": _hex(0x00432CC0),
+            "initializer_rva": _rva(0x00432CC0),
+            "message_control_id": 1087,
+            "message_source": "Caller-supplied UTF-16 string objects at DAT_004579c0 (message) and DAT_004579a4 (title); FUN_00432cc0 selects inline or heap storage by each object's capacity",
+            "result_commands": {"1": 1, "2": 2, "6": 6, "7": 7},
+            "command_slice": "VA 0x00432e2a..0x00432e40 range-checks the low command word; jump table VA 0x00432ca0 selects EndDialog result code",
+            "window_close_result": 2,
+            "window_close_call_va": _hex(0x00432E62),
+            "window_close_call_rva": _rva(0x00432E62),
+            "limit": "Prompt results do not independently write any configuration file; the caller owns save/discard behavior",
+        },
+        "language_change": {
+            "dialog_resource": 103,
+            "control_id": 1039,
+            "offered_indexes": [0, 1, 2, 3],
+            "option_caption_keys": [0x66, 0x67, 0x68, 0x69],
+            "refresh_va": _hex(0x00433020),
+            "refresh_rva": _rva(0x00433020),
+            "notification_slice": "VA 0x0043355c..0x00433595, exclusive end; HIWORD(WPARAM)==1 reads combo 0x40f, stores AL at VA 0x00459130 and calls FUN_00433020",
+            "live_effect": "Reloads the selected PEX strings and repopulates dialog captions and the four combo items in memory",
+            "persistence": "FUN_004332a0 handles current/original comparison, confirmation and the eight-byte WriteFile separately; a selection notification is not a file write",
+            "chinese_resource_limit": "The fifth decoded language resource is not inserted into this four-item dropdown",
+        },
+        "settings_page_behavior": {
+            "general_tab_resources_by_index": [126, 112, 127, 128, 132],
+            "general_tab_dispatch": "Callback VA 0x00442570 bounds TCM_GETCURSEL to 0..4 and dispatches ShowWindow through table VA 0x004428b0",
+            "network": {
+                "dialog_resource": 112,
+                "caption_and_options_helper_va": _hex(0x00435190),
+                "caption_and_options_helper_rva": _rva(0x00435190),
+                "command": "Callback VA 0x004352d0 handles WM_COMMAND 0x111 only when HIWORD(wParam)==1; FUN_00435140 enables edit 1044 iff combo 1042 selection != 0",
+                "initial_edit": "FUN_00435190 formats field +0x08 as %u and enables edit 1044 iff +0x04 != 0",
+            },
+            "display": {
+                "dialog_resource": 126,
+                "caption_and_options_helper_va": _hex(0x004346B0),
+                "caption_and_options_helper_rva": _rva(0x004346B0),
+                "command": "WM_COMMAND with HIWORD(wParam)==1 calls FUN_00434610; IDs 1043,1099,1100,1102 dispatch to FUN_00434430,FUN_00433e20,FUN_00433ff0,FUN_00433c20 respectively",
+                "runtime_lists": "FUN_004346b0 loads d3d9.dll and Direct3DCreate9 for adapter names/capabilities; FUN_004340e0 adds unique adapter modes with width >=1024 and height >=720; exact adapter/resolution/multisampling lists require runtime enumeration",
+            },
+            "graphics": {
+                "dialog_resource": 127,
+                "caption_and_options_helper_va": _hex(0x004358D0),
+                "caption_and_options_helper_rva": _rva(0x004358D0),
+                "command": "Callback FUN_00435c60 sends WM_COMMAND to FUN_004357e0; only browse 1140 and default 1142 have command cases",
+                "directory": "FUN_004358d0 writes the saved directory or calls FUN_00435760 when empty; browse/default update edit 1141 before FUN_004354b0 captures it",
+                "default_directory": {
+                    "success_path": "<Personal>\\My Games\\FINAL FANTASY XIV[ LATEST]\\screenshots",
+                    "caller_va": _hex(0x00435760),
+                    "caller_rva": _rva(0x00435760),
+                    "path_helper_va": _hex(0x0043FA40),
+                    "path_helper_rva": _rva(0x0043FA40),
+                    "root_helper_va": _hex(0x0043F950),
+                    "root_helper_rva": _rva(0x0043F950),
+                    "folder_provider": "FUN_00415a80 uses SHGetSpecialFolderLocation(NULL,5,&pidl), then SHGetPathFromIDListW when its destination is empty; 5 is the Personal folder",
+                    "variant": "FUN_0043f7c0 constructs module-directory\\latest.txt; FUN_0040e7e0 tests GetFileAttributesW != 0xffffffff and absence of directory bit 0x10; the cached result selects FINAL FANTASY XIV LATEST or FINAL FANTASY XIV",
+                    "module_directory": "Startup FUN_00433660 removes the final path component from GetModuleFileNameW and assigns the directory to the string object at VA 0x0045cb60; FUN_0043f950 requires its nonempty first character",
+                    "conversion": "FUN_00435640 calls MultiByteToWideChar with code page 0, flags 0 and input length -1 at VAs 0x004356af and 0x004356ea",
+                    "failure_limit": "When FUN_0043f950 returns false, FUN_0043fa40 does not copy its output; FUN_00435760 calls FUN_0043fa40 at VA 0x0043577a then converts the caller buffer through FUN_00435640 at VA 0x00435785 without checking that result; an empty/safe failure fallback is not established",
+                    "folder_api_limit": "FUN_00415a80 does not test SHGetPathFromIDListW's BOOL at VA 0x00415b18 before reaching its true return path; a true helper result does not establish that API's success",
+                    "runtime_dependencies": "Personal-folder redirection, module location, cached marker-file attributes, conversion/API outcomes and failed-lookup output are unobserved",
+                },
+            },
+            "sound": {
+                "dialog_resource": 128,
+                "caption_and_options_helper_va": _hex(0x00433A00),
+                "caption_and_options_helper_rva": _rva(0x00433A00),
+                "callback_dispatch": "VA 0x00433a89 JE targets 0x00433a95 for WM_INITDIALOG 0x110, reaching call 0x00433a9a to FUN_00433a00; VA 0x00433a8e JE targets 0x00433aa0 for WM_COMMAND 0x111, returning 1 without calling init or capture",
+                "capture": "FUN_00433ab0 reads current checkbox states only through the root capture orchestration; command notifications do not rewrite the config block",
+            },
+            "font": {
+                "dialog_resource": 132,
+                "caption_and_options_helper_va": _hex(0x00435FC0),
+                "caption_and_options_helper_rva": _rva(0x00435FC0),
+                "command": "Callback VA 0x00436720 sends WM_COMMAND low ID 1106 to FUN_00435d80, which enables combos 1116,1117,1118 iff IsDlgButtonChecked(1106)==1; init disables the three combos when +0x54==0",
+                "enumeration": "FUN_00435fc0 uses EnumFontFamiliesExW callback FUN_00435f10, omits names beginning @, and removes records when GetGlyphOutlineW('A',format=5) returns 0xffffffff for a temporary 24-pixel weight-400 font",
+                "selection": "The MS UI Gothic literal provides a fallback selection; saved +0x60 can replace it; CB_SETCURSEL receives -1 if neither matches",
+                "limit": "Enumeration/probe calls do not establish a displayed preview or game renderer behavior; the count-check error helper and malformed selections remain unexpanded",
+            },
+        },
+        "system_information": {
+            "dialog_resource": 110,
+            "tab_control_id": 1040,
+            "report_pages": pages,
+            "factory_call_order": [123, 124, 125, 122],
+            "tab_order_reason": "Each factory inserts its tab at index 0, so the last inserted System Information tab becomes index 0",
+            "selection_slice": "VA 0x00441ec8..0x00441fed checks TCN_SELCHANGE (-551), reads TCM_GETCURSEL, bounds the result to 0..3 and selects ShowWindow calls using the table at VA 0x00442078",
+            "clipboard": {
+                "control_id": 1089,
+                "helper_va": _hex(0x00441B10),
+                "helper_rva": _rva(0x00441B10),
+                "report_append_calls": [
+                    "0x00437b90",
+                    "0x0043ef90",
+                    "0x00436f80",
+                    "0x00436880",
+                ],
+                "encoding_helper_va": _hex(0x004419F0),
+                "encoding_helper_rva": _rva(0x004419F0),
+                "encoding": "WideCharToMultiByte with code page 0 and flags 0 at VAs 0x00441a61 and 0x00441a9e",
+                "allocation_flags": _hex(0x42, 2),
+                "clipboard_format": 1,
+                "evidence": "VA 0x00441c4e calls GlobalAlloc; nonnull allocation/lock reach OpenClipboard, EmptyClipboard, SetClipboardData(1,handle) at VA 0x00441ca3, and CloseClipboard",
+                "limit": "The static calls do not establish conversion or clipboard API success",
+            },
+            "provider_limit": "Report values come from registry/process/application/system collection paths; OS API results and complete platform/library internals were not observed",
+        },
+    }
 
 
 def _config_sys_field_notes() -> dict[tuple[int, int], dict[str, str]]:
@@ -945,78 +1295,151 @@ def _config_sys_field_notes() -> dict[tuple[int, int], dict[str, str]]:
         112,
         [1042],
         "combo_selection",
-        "Network page option index; option identity is unresolved",
+        "UPnP option indexes 0=Automatic, 1=Use, 2=Do not use; direct option keys 0x72..0x74 in FUN_00435190",
         f"{cb_no_range} in FUN_00435320",
+        status="producer_options_observed_game_effect_unresolved",
     )
     add(
         112,
         [1044],
         "numeric_edit_text",
-        "Network page numeric value; user-facing meaning is unresolved",
-        "GetWindowTextW cchTextMax=0x80 and thunk_FUN_0041db3d numeric conversion; numeric range is not checked here",
+        "Network numeric edit; separate static 1049 has Port (55296 - 55551), key 0x75; the save gate independently uses that range, but there is no direct caption call to this edit",
+        "GetWindowTextW cchTextMax=0x80 and decimal _wcstol conversion through thunk_FUN_0041db3d; capture has no range check, while the root OK path requires unsigned 0xd800..0xd8ff",
+        status="producer_value_and_separate_label_observed",
     )
     add(
         126,
-        [1043, 1099, 1104, 1108, 1106],
+        [1043],
         "combo_selection",
-        "Display page option index; option identity is unresolved",
+        "D3D9 adapter index; FUN_004346b0 obtains runtime adapter identifier names; separate label 1098 is Devices",
         f"{cb_no_range} in FUN_00434210",
+        status="producer_dynamic_options_observed",
     )
+    for control_id, meaning in (
+        (
+            1099,
+            "Display Mode indexes 0=Windowed, 1=Full Screen; direct option keys 0x9d/0x9e",
+        ),
+        (
+            1104,
+            "General Drawing Quality indexes 0..9 display 1..10; localized qualifiers are Lowest at 0, Standard at 7, Highest at 9",
+        ),
+        (
+            1108,
+            "Background Drawing Quality indexes 0..4 display 1..5; localized qualifiers are Low at 0, Standard at 2, High at 4",
+        ),
+        (
+            1106,
+            "Shadow Detail indexes 0..4 are Lowest, Low, Standard, High, Highest; direct keys 0xa8..0xac",
+        ),
+    ):
+        add(
+            126,
+            [control_id],
+            "combo_selection",
+            meaning,
+            f"{cb_no_range} in FUN_00434210",
+            status="producer_options_observed_game_effect_qualified",
+        )
     add(
         126,
         [1100],
         "table_selected_pair",
-        "Display table selection supplies current offsets 0x14 and 0x18; field identity is unresolved",
+        "Window Size selection supplies width/height at offsets 0x14/0x18; FUN_00433e20 formats each FUN_00408f40 row as %ux%u",
         "CB_GETCURSEL index is checked against the FUN_00408f40 table count; one selected 8-byte entry supplies both dwords and the exact count is data-dependent",
+        status="producer_dynamic_pair_observed",
     )
     add(
         126,
         [1102],
         "table_selected_pair",
-        "Display table selection supplies current offsets 0x24 and 0x28; field identity is unresolved",
+        "Multisampling selection supplies the first two dwords of a FUN_00408e40 row to offsets 0x24/0x28; row +8 supplies the option text; capability rows are data-dependent",
         "CB_GETCURSEL index is checked against the FUN_00408e40 table count; one selected 0x48-byte entry supplies both dwords and the exact count is data-dependent",
+        status="producer_dynamic_pair_observed_game_effect_unresolved",
     )
-    add(
-        127,
-        [1102, 1103, 1108, 1115],
-        "checked_boolean",
-        "Graphics page boolean; feature identity is unresolved",
-        checked,
-    )
-    add(
-        127,
-        [1104, 1106, 1109],
-        "combo_selection",
-        "Graphics page option index; option identity is unresolved",
-        f"{cb_no_range} in FUN_004354b0",
-    )
+    for control_id, meaning in (
+        (1102, "Ambient Occlusion; direct caption key 0xf1"),
+        (1103, "Depth of Field; direct caption key 0xf2"),
+        (1108, "Disable cutscene effects; direct caption key 0x100"),
+        (1115, "Enable hardware mouse cursor; direct caption key 0x101"),
+    ):
+        add(
+            127,
+            [control_id],
+            "checked_boolean",
+            meaning,
+            checked,
+            status="producer_caption_observed_game_effect_unresolved",
+        )
+    for control_id, meaning in (
+        (
+            1104,
+            "Texture Quality indexes 0=High, 1=Standard, 2=Low; direct keys 0xab,0xaa,0xa9",
+        ),
+        (
+            1106,
+            "Texture Filtering indexes 0=Highest, 1=High, 2=Standard, 3=Low; direct keys 0xac..0xa9",
+        ),
+        (
+            1109,
+            "Frame Rate Limit indexes 0..4 offer literal strings 60,30,20,15,10 at VAs 0x0044db38..0x0044db58",
+        ),
+    ):
+        add(
+            127,
+            [control_id],
+            "combo_selection",
+            meaning,
+            f"{cb_no_range} in FUN_004354b0",
+            status="producer_options_observed_game_effect_unresolved",
+        )
     add(
         127,
         [1141],
         "utf16_edit_text",
-        "Graphics page UTF-16 edit text; setting identity is unresolved",
+        "Directory edit inside group box 1143, caption key 0x120 Screenshot Directory; browse/default commands target this edit, whose own caption remains absent",
         "GetWindowTextW cchTextMax=0x104 copies at most 0x103 UTF-16 code units before NUL to current offset 0xa0",
+        status="producer_group_and_command_join_observed_game_effect_unresolved",
     )
     add(
         128,
-        [1110, 1111],
+        [1110],
         "checked_boolean",
-        "Sound page boolean; feature identity is unresolved",
+        "Disable Sound Device; direct caption key 0xf5 in FUN_00433a00",
         checked,
+        status="producer_caption_observed_game_effect_unresolved",
+    )
+    add(
+        128,
+        [1111],
+        "checked_boolean",
+        "Play sound when application is in background; direct caption key 0xfc in FUN_00433a00",
+        checked,
+        status="producer_caption_observed_game_effect_unresolved",
     )
     add(
         132,
         [1106],
         "checked_boolean",
-        "Font page boolean; feature identity is unresolved",
+        "Use Windows system font; direct caption key 0x105 in FUN_00435fc0",
         checked,
+        status="producer_caption_observed_game_effect_unresolved",
     )
     add(
         132,
-        [1117, 1118],
+        [1117],
         "combo_selection",
-        "Font page option index; option identity is unresolved",
+        "Font quality option indexes 0=Highest, 1=High, 2=Standard, 3=Low, 4=Lowest; direct option keys 0xac..0xa8 in FUN_00435fc0",
         f"{cb_no_range} in FUN_00435e20",
+        status="producer_options_observed_game_effect_unresolved",
+    )
+    add(
+        132,
+        [1118],
+        "combo_selection",
+        "Font thickness option indexes 0=Fine, 1=Normal, 2=Thick, 3=Thickest; direct option keys 0x10b..0x10e in FUN_00435fc0",
+        f"{cb_no_range} in FUN_00435e20",
+        status="producer_options_observed_game_effect_unresolved",
     )
     add(
         132,
@@ -1073,7 +1496,7 @@ def _config_sys_metadata() -> dict[str, Any]:
                     "kind": "numeric_edit_text",
                 },
             ],
-            "unjoined_control_ids": [1048, 1049],
+            "non_field_control_ids": [1048, 1049],
         },
         {
             "dialog_resource": 126,
@@ -1100,7 +1523,7 @@ def _config_sys_metadata() -> dict[str, Any]:
                 _hex(0x00408E40),
                 _hex(0x00408F40),
             ],
-            "unjoined_control_ids": [1097, 1098, 1101, 1103, 1105, 1107, 1109],
+            "non_field_control_ids": [1097, 1098, 1101, 1103, 1105, 1107, 1109],
         },
         {
             "dialog_resource": 127,
@@ -1121,7 +1544,7 @@ def _config_sys_metadata() -> dict[str, Any]:
                     "kind": "utf16_edit_text",
                 },
             ],
-            "unjoined_control_ids": [1110, 1140, 1142, 1143],
+            "non_field_control_ids": [1110, 1105, 1107, 1140, 1142, 1143],
         },
         {
             "dialog_resource": 128,
@@ -1148,7 +1571,7 @@ def _config_sys_metadata() -> dict[str, Any]:
                     "kind": "selected_utf16_font",
                 },
             ],
-            "unjoined_control_ids": [1099, 1100, 1107, 1108],
+            "non_field_control_ids": [1099, 1100, 1107, 1108],
         },
     ]
     field_notes = _config_sys_field_notes()
@@ -1174,7 +1597,7 @@ def _config_sys_metadata() -> dict[str, Any]:
                 "current_offset": _hex(0xA0, 2),
                 "capacity_wchars": 0x104,
                 "producer": "FUN_004354b0",
-                "meaning": "graphics page edit text; semantic identity unresolved",
+                "meaning": "directory edit within the Screenshot Directory group; downstream game setting name/effect unresolved",
             },
         ],
         "unobserved_current_ranges": [
@@ -1348,17 +1771,34 @@ def _dialog_record(
             control["localized_captions"] = _localized_texts(
                 caption_key, localized_strings
             )
-        if dialog_id == 103 and control["id"] == 1039:
-            language_keys = [0x66, 0x67, 0x68, 0x69]
-            control["option_caption_keys"] = language_keys
+        option_keys = CONTROL_OPTION_KEYS.get((dialog_id, control["id"]))
+        if option_keys is not None:
+            control["option_caption_keys"] = list(option_keys)
             control["localized_options"] = {
                 str(language_index): [
-                    localized_strings[language_index][key]
-                    for key in language_keys
-                    if key in localized_strings[language_index]
+                    localized_strings[language_index][key] for key in option_keys
                 ]
                 for language_index in sorted(localized_strings)
             }
+            control["option_source_evidence"] = (
+                "Focused page helper pairs these localization keys with CB_INSERTSTRING (0x14a) and explicit indexes on this control; insertion order is preserved"
+            )
+        if dialog_id == 127 and control["id"] == 1109:
+            addresses = (0x0044DB38, 0x0044DB40, 0x0044DB48, 0x0044DB50, 0x0044DB58)
+            control["literal_options"] = [
+                {
+                    "index": index,
+                    "text": image.read_rva(va - IMAGE_BASE, 6)
+                    .decode("utf-16le")
+                    .rstrip("\0"),
+                    "va": _hex(va),
+                    "rva": _rva(va),
+                }
+                for index, va in enumerate(addresses)
+            ]
+            control["option_source_evidence"] = (
+                "FUN_004358d0 adds these literal strings to combo 0x455 in this order"
+            )
         if caption_key is not None:
             control["caption_source"] = "runtime_localized_lookup_FUN_0040d350"
             control["caption_source_evidence"] = (
@@ -1376,6 +1816,16 @@ def _dialog_record(
             control["caption_source"] = "device_record_name"
             control["caption_source_evidence"] = (
                 "FUN_00431f10 copies the selected device record name from record +0x3cc"
+            )
+        elif dialog_id == 132 and control["id"] == 1116:
+            control["caption_source"] = "enumerated_windows_font_face_names"
+            control["caption_source_evidence"] = (
+                "FUN_00435fc0 enumerates face names, filters vertical aliases and GetGlyphOutlineW failures, and populates control 0x45c"
+            )
+        elif dialog_id in (117, 118, 119) and control["id"] == 1087:
+            control["caption_source"] = "caller_supplied_prompt_message"
+            control["caption_source_evidence"] = (
+                "FUN_00432cc0 writes the caller-supplied message string to control 0x43f; no single localization key represents every caller"
             )
         elif (
             (dialog_id == 101 and control["id"] in {1001, 1019})
@@ -1438,6 +1888,7 @@ def extract(path: Path) -> dict[str, Any]:
             "resource_leaf_count": len(rows),
             "dialog_count": len(parsed_dialogs),
             "control_count": control_count,
+            "observed_dynamic_list_view_factories": 4,
             "dialog_languages": sorted(
                 {item["resource_language"] for item in parsed_dialogs}
             ),
@@ -1487,6 +1938,7 @@ def extract(path: Path) -> dict[str, Any]:
                 "decoded_tables": localization_tables,
             },
         },
+        "application_behavior": _application_behavior(image),
         "config_sys": {
             "file": "config.sys",
             "suffix_va": _hex(0x0044D0E8),
