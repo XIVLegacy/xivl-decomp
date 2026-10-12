@@ -699,7 +699,9 @@ gives a cut character group 6 or 7 only when all of these hold:
 - a later slot-142 call is admitted, or the bit was already set at
   activation.
 
-The examined requests do not by themselves establish that sequence.
+The examined requests do not by themselves establish that sequence. The
+[cut scheduler clip layout](cut-scheduler-clip-layout.md) gives the authored
+record fields for these clips.
 
 Container `+0xD0` holds the actor most recently selected by internal
 command 15 (`0x007C9676`), which also sets the new actor's `+0xD8` and clears
