@@ -1,0 +1,272 @@
+{
+  "format": "xivl-controller-mapping-v1",
+  "inputs": {
+    "ffxivconfig.exe": {
+      "bytes": 3471240,
+      "sha256": "e7646811abe7430471e8be2105b1a9da9c7596a62d43dc0f382eb3cb3ee2c977",
+      "image_base": "0x00400000"
+    },
+    "ffxivgame.exe": {
+      "bytes": 15996808,
+      "sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+      "image_base": "0x00400000"
+    }
+  },
+  "producer": "tools/extract_controller_mapping.py",
+  "control_table_va": "0x0044d6c0",
+  "controls": [
+    {
+      "map_index": 0,
+      "control_id": 1044,
+      "next_index": 1
+    },
+    {
+      "map_index": 1,
+      "control_id": 1046,
+      "next_index": 2
+    },
+    {
+      "map_index": 2,
+      "control_id": 1047,
+      "next_index": 3
+    },
+    {
+      "map_index": 3,
+      "control_id": 1048,
+      "next_index": 4
+    },
+    {
+      "map_index": 4,
+      "control_id": 1049,
+      "next_index": 5
+    },
+    {
+      "map_index": 5,
+      "control_id": 1050,
+      "next_index": 6
+    },
+    {
+      "map_index": 6,
+      "control_id": 1051,
+      "next_index": 7
+    },
+    {
+      "map_index": 7,
+      "control_id": 1052,
+      "next_index": 8
+    },
+    {
+      "map_index": 8,
+      "control_id": 1053,
+      "next_index": 9
+    },
+    {
+      "map_index": 9,
+      "control_id": 1054,
+      "next_index": 10
+    },
+    {
+      "map_index": 10,
+      "control_id": 1055,
+      "next_index": 11
+    },
+    {
+      "map_index": 11,
+      "control_id": 1056,
+      "next_index": 12
+    },
+    {
+      "map_index": 12,
+      "control_id": 1057,
+      "next_index": 13
+    },
+    {
+      "map_index": 13,
+      "control_id": 1058,
+      "next_index": 14
+    },
+    {
+      "map_index": 14,
+      "control_id": 1059,
+      "next_index": 15
+    },
+    {
+      "map_index": 15,
+      "control_id": 1060,
+      "next_index": 16
+    },
+    {
+      "map_index": 16,
+      "control_id": 1061,
+      "next_index": 19
+    },
+    {
+      "map_index": 17,
+      "control_id": 1062,
+      "next_index": 20
+    },
+    {
+      "map_index": 18,
+      "control_id": 1063,
+      "next_index": 21
+    },
+    {
+      "map_index": 19,
+      "control_id": 1064,
+      "next_index": 17
+    },
+    {
+      "map_index": 20,
+      "control_id": 1065,
+      "next_index": 18
+    },
+    {
+      "map_index": 21,
+      "control_id": 1066,
+      "next_index": 23
+    },
+    {
+      "map_index": 22,
+      "control_id": 1067,
+      "next_index": 0
+    },
+    {
+      "map_index": 23,
+      "control_id": 1068,
+      "next_index": 22
+    }
+  ],
+  "preset_label_table_va": "0x00457450",
+  "presets": [
+    {
+      "index": 0,
+      "label_id": 277,
+      "va": "0x00457408",
+      "sources": [
+        34,
+        35,
+        32,
+        33,
+        38,
+        39,
+        36,
+        37,
+        42,
+        43,
+        40,
+        41,
+        9,
+        7,
+        6,
+        8,
+        4,
+        45,
+        2,
+        5,
+        47,
+        3,
+        0,
+        1
+      ]
+    },
+    {
+      "index": 1,
+      "label_id": 275,
+      "va": "0x00457420",
+      "sources": [
+        90,
+        91,
+        88,
+        89,
+        40,
+        41,
+        32,
+        33,
+        72,
+        73,
+        48,
+        49,
+        1,
+        3,
+        2,
+        0,
+        4,
+        6,
+        10,
+        5,
+        7,
+        11,
+        9,
+        8
+      ]
+    },
+    {
+      "index": 2,
+      "label_id": 276,
+      "va": "0x00457438",
+      "sources": [
+        90,
+        91,
+        88,
+        89,
+        40,
+        41,
+        32,
+        33,
+        72,
+        73,
+        48,
+        49,
+        3,
+        2,
+        1,
+        0,
+        4,
+        6,
+        10,
+        5,
+        7,
+        11,
+        9,
+        8
+      ]
+    }
+  ],
+  "game_logical_masks": [
+    1,
+    2,
+    4,
+    8,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    16,
+    128,
+    32,
+    64,
+    256,
+    512,
+    1024,
+    2048,
+    4096,
+    8192,
+    32768,
+    16384
+  ],
+  "constants": {
+    "config_assignment_threshold": 0.5,
+    "config_selector_step": 0.10000000149011612,
+    "game_selector_step": 0.10000000149011612,
+    "game_button_threshold": 0.4000000059604645,
+    "game_axis_denominator_margin": 0.20000000298023224,
+    "game_axis_output_scale": 100.0,
+    "game_xinput_trigger_divisor": 255.0,
+    "game_xinput_stick_divisor": 32767.0
+  },
+  "limits": "Static tables and checked instructions only. No runtime result, device identity, availability or hardware qualification."
+}

@@ -208,8 +208,9 @@ For a nonzero selection it copies the two 16-byte record values into
 stores the checked-state results of controls `0x40d` and `0x40e` as boolean
 DWORDs. For zero selection it copies only the fallback 16-byte value at
 `0x0045c3e4..0x0045c3f0` into the first current identity and returns. The
-meaning of the two checkbox values is unresolved; this evidence does not
-establish an enable policy or Gamepad availability test.
+[mapping finding](controller-mapping.md#file-fields) joins the checkbox values
+to background input and vibration. Neither establishes an enable policy or
+Gamepad availability test.
 
 ## config.pad
 
@@ -222,17 +223,8 @@ when the read count is at least `0x148` and the first DWORD is
 The accepted or default block is copied to the current block at
 `0x0045c290`.
 
-The proven current-block fields, relative to the start of the 0x148-byte
-`config.pad` image at `0x0045c290`, are:
-
-| Offset | Width | Source or use |
-|---|---:|---|
-| `0x00` | 4 | Magic `0x20100211` |
-| `0x04..0x13` | 16 | `DIDEVICEINSTANCEW.guidInstance` |
-| `0x14..0x23` | 16 | `DIDEVICEINSTANCEW.guidProduct` |
-| `0x24` | 4 | Checked-state boolean from control `0x40d` |
-| `0x28` | 4 | Combo value from control `0x3fb` |
-| `0x44` | 4 | Checked-state boolean from control `0x40e` |
+The [field table](controller-mapping.md#file-fields) records the proven offsets,
+widths, defaults, encodings and game consumers relative to the current image.
 
 The two GUID fields are copied from the callback's `GetDeviceInfo` scratch
 through the temporary record into the current 0x148-byte block. Because the
@@ -268,5 +260,6 @@ the controller identity or checkbox fields proven in `config.pad`.
 These claims are static observations from the identified binary and the stated
 toolchain. They do not establish live DirectInput rows, WMI provider behavior,
 XInput device availability, Gamepad support, Wine or Proton compatibility, or
-successful file persistence. The checkbox values are saved checked-state
-booleans whose user-facing meaning remains unresolved.
+successful file persistence. The [mapping finding](controller-mapping.md)
+records checkbox consumers, presets, source encoding, reset and cancellation.
+The actual Gamepad control's availability remains unresolved.
