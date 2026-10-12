@@ -818,8 +818,106 @@ hold:
 
 For a server-keyed character, the CharaElement constructor clears bit 3.
 `_setGroundOn` with a true value, or the slot-11 resend, is the examined
-route that sets it. Nothing examined identifies which key a script control
-addresses, or the local player's native CharaActor.
+route that sets it. The
+[script binding](#packet-characters-script-binding-and-appearance) gives the
+key the resend addresses.
+
+## Packet characters, script binding and appearance
+
+Two packet dispatcher cases create CharaElements:
+
+- Case `0xCA` creates an element of type `u32(P+0x10)` for an absent key at
+  `0x004DCCD8`; type 8 is CharaElement. It then sets `+0x92` to 1 on the new
+  or existing element (`0x004DCCDD`).
+- Case 2 creates a type-8 element at `0x004DCC34`. Through `0x004D9980` it
+  stores the packet id at world `+0x1783C` (`0x004D9B11`). Through
+  `0x004D7660` it stores the element in the single container slot `+0x17834`
+  (`0x004D76BB`) and queues internal command 15 keyed by that element
+  (`0x004D76DE`).
+
+Command 15 selects the container `+0xD0` actor, so the case-2 character is
+the `+0xD0`-selected actor. Neither case passes the spawn payload to an
+appearance setter.
+
+### Script binding
+
+CharaElement slot 9 passes packet `0x00CC` to the base receiver
+`0x004D8860`. Its `0xCC` arm clears `+0x92` (`0x004D88EA`). When `+0x80` is
+nonzero, it calls `0x00574780` with the element key `u32(E+0x88)` at
+`0x004D8902`. When `+0x80` is not a LuaActorImpl, binding continues through:
+
+1. `0x00774AD0`;
+2. `0x00774530`;
+3. `0x007687F0`;
+4. `0x0078BBB0`;
+5. `0x00CC7800`;
+6. `0x00CDCBA0`, which stores the key as the script instance's SID at
+   `S+0x70` through `0x00CE1CC0` (`0x00CDCE88`).
+
+The immediate binding requires container state `+0x16C == 10`, a flag and
+`0x00CC71D0 > 0`. Otherwise `0x00773960` queues the request, and its
+completion was not traced. `0x00774AD0` also compares the key with world
+`+0x1783C`. On a match it creates element `0xC0000024` (type `0x1A`) if it
+is missing and passes the key to that element's helper. The script instance
+still takes the packet key.
+
+Lua control slot 11 runs only from script-instance activation `0x00CE1DD0`,
+through the thunk `0x00CCCA30` at `0x00CE1E6F`. It fires when activation is
+enabled while the pending flag `S+0x7E` is set. Activation is called on
+fresh class setup (`0x00CD988F`), explicit enable (`0x00CC72D9`) and forced
+reinitialization (`0x00CE26D4`). Fresh class setup allocates an engine SID
+with top bits `10` (`0x00D038C0`), not an actor key. Slot 11 reads `S+0x70`
+and passes it through `0x00775890` to the element lookup.
+
+`0x00775890` returns client-local SIDs unchanged. For any other SID it
+requires a record in a script-side map: a missing record reaches the runtime
+invalid-parameter handler (`0x009D22B4`), and an active record disables the
+instance. The `+0xE0` branch, `0x0075C3C0`, queues internal command 16 or
+17, which changes bit 1 of actor `+0xE8`.
+
+For a packet character, the resend's key is therefore the CharaElement key
+once a `0x00CC` packet binds the script instance. Which enable call fires
+slot 11 after that binding was not established.
+
+### Appearance commands
+
+Packets `0xD6` and `0xD7` reach CharaElement slot 9 through `0x004DCFFF`,
+which looks the element up and requires it to be nonzero. The admission
+predicate `0x004D8830` rejects them when `+0x92`, `+0x80` and
+`0x00574AA0(E+0x80)` are all nonzero. A `0xCA` character is therefore
+admitted only after a `0x00CC` packet clears `+0x92`, or while one of the
+other two values is zero. The arm `0x0058D0C6` writes appearance rows into
+the bank at `E+0xAAC`, then sets the dirty byte `+0xB20` (`0x0058D125`):
+
+```text
+R = P + 0x10
+count = u8(R+0x80) for 0xD7, u8(R+0x100) for 0xD6
+E.bank[u8(R+8*i+4)] = u32(R+8*i)    for fields 0..27
+```
+
+CharaElement slot 6, `0x0058DF90`, calls the publisher `0x00585D70`. When
+the dirty byte is set, the publisher queues source 8 with the 29-dword bank
+`E+0xAAC`, size `0x74` (`0x00585DEE`), and clears the byte. Source 8 is
+container command 29 and slot 157 command 8. That command copies the bank to
+`C+0x13C8` and arms the nibble. `0x004DA680` calls slot 6 on every element
+in the container's element map (`0x004DA817`). It skips the walk only on
+container-wide state.
+
+Two Lua bindings send source 9, container command 30:
+
+| Binding | Data |
+|---|---|
+| `_transformIntoChocobo`, `0x006EC5E0`, through `0x00589D30` | Sign-extended byte selector |
+| `_cancelTransformIntoChocobo`, `0x006ECA20`, through `0x00589D90` | -1, which restores the first bank |
+
+Slot 157 command 9 arms the nibble when the selector is -1 or passes the
+`(class, index)` check. CutManagerElement also builds four command-29
+records directly for request keys, and other appearance writers can set the
+same dirty byte.
+
+For a packet character, model loading therefore follows an admitted
+`0xD6` or `0xD7` packet, or one of these script or cut requests. Creation
+alone does not queue command 29 or 30.
 
 ## Character factory and world provider
 
