@@ -755,8 +755,9 @@ constructor sends `n = 0`, which clears bit 3.
 The Lua control slot belongs to the CharaBase, PlayerBase, NpcBase and
 MyPlayer control classes. The CharaBase control constructor sets `+0xE1` to 1
 at `0x006ECDFB`. `_setGroundOn` clears it after forwarding (`0x006E42CD`), so
-an explicit script value stops the slot-11 resend. The key that slot 11
-addresses was not decoded. The other examined source-18 callers target camera
+an explicit script value stops the slot-11 resend. The
+[script binding](#script-binding) joins its SID to the element key.
+The other examined source-18 callers target camera
 and game-manager elements. Two remain untied to a CharaActor: `0x0059D1A0`,
 which lies among MapLayoutElement methods, and `0x0054EE09`, a
 DrawingToolContext caller of the parallel producer `0x0054B0D0`.
@@ -876,8 +877,9 @@ instance. The `+0xE0` branch, `0x0075C3C0`, queues internal command 16 or
 17, which changes bit 1 of actor `+0xE8`.
 
 For a packet character, the resend's key is therefore the CharaElement key
-once a `0x00CC` packet binds the script instance. Which enable call fires
-slot 11 after that binding was not established.
+once a `0x00CC` packet binds the script instance. The
+[activation route](#packet-character-activation-and-player-role) below joins
+that binding to the slot-11 call under the stated thread conditions.
 
 ### Appearance commands
 
@@ -918,6 +920,125 @@ same dirty byte.
 For a packet character, model loading therefore follows an admitted
 `0xD6` or `0xD7` packet, or one of these script or cut requests. Creation
 alone does not queue command 29 or 30.
+
+## Packet character activation and player role
+
+The packet binding has a conditional native route to Lua control slot 11.
+The case-2 character also has the static local-player reporting role: its
+element key admits outbound position reports, and command 15 selects its
+actor as the default camera subject. These roles do not establish input,
+runtime movement or contact. The instructions below were checked against
+the pinned PE with Capstone and LLVM x86 disassembly.
+
+### Initialization completion and record insertion
+
+Binding through `0x00CDCBA0` selects an accepted script-instance type at
+`S+8` through `0x00CE1660` and sets pending byte `S+0x7E` through
+`0x00CE2440` (`0x00CE246C`). After `0x00CC7800` returns, `0x0078BBB0`
+creates an initialization thread through `0x00CC7AD0` (`0x0078BC17`),
+with kind pointer `0x01377ED8`, and invokes `_onInit` through
+`0x00CD0910` (`0x0078BC50`; string `0x00FE04F0`). The static initializer
+`0x00F2CFE0` copies kind word `0xFFFE` from `0x0130CED8` to `0x01377ED8`.
+
+On the new-thread branch of `0x00CF1060`, constructor `0x00CCE2D0` stores
+the instance at thread `X+0x10` (`0x00CCE316`) and kind at `X+0x14`
+(`0x00CCE322`). The instance value comes from `0x00CD7A30`, which reads
+handle `Q+4`. Its equality to bound instance `S` is inferred from that
+handle convention; the producing store has not been traced.
+
+Scheduler `0x00CF1B50` calls `0x00CCE1C0` at `0x00CF1D16` when thread
+status equals `u32(0x0130CED0)`, value 2. The completion method requires a
+nonzero `X+0x10` and kind `0xFFFE` (`0x00CCE22E`), then calls
+`0x00CE26C0` at `0x00CCE23E`. That function sets pending and `S+0x80`,
+then calls activation `0x00CE1DD0` at `0x00CE26D4`. With an accepted
+`S+8`, activation fires Lua control slot 11. While control byte `+0xE1`
+remains set, its resend sends `_setGroundOn(1)` for the bound element key.
+`0x00CCE8E0` contains the same kind-qualified call at `0x00CCE9AC`.
+
+The script-side record needed by `0x00775890` is inserted synchronously
+during binding. Control slot 3 reaches slot 36 at `0x006E03E7`.
+Ordinary slot 36, `0x006E1940`, calls `0x0076DCE0`; MyPlayer's
+`0x006E3500` calls `0x0076DDC0`. They insert an ActorWorkSync record
+(vtable `0x00FE044C`) under the SID in the map obtained from `B+0xEC`.
+The ordinary insertion skips client-local SIDs with both top bits set;
+its record store is `0x0076DDA0`. After successful allocation and insertion,
+the packet SID lookup therefore has a record before initialization completes.
+Record stage `R+0x24` is written as 2 at `0x007758EB` or 1 at
+`0x0077593F`; `0x0077533C` performs the guarded 1-to-2 transition.
+
+Enable call `0x0077418B` is a re-enable reached after the first slot-11
+call, through work built by `0x00775890`; it does not supply that first
+activation. Call `0x006E1E12` belongs to DesktopWidget control, not Chara
+control. The completion route remains conditional on allocation, the
+new-thread branch, `u32(Q+4) == S`, thread completion and no intervening
+reset of `S+8`. The reuse branch through `0x00CF0AA0` and the `_onInit`
+body are not decoded here.
+
+### Appearance admission before binding
+
+`0x00574AA0` dispatches slot 2 of `*(E+0x80)`, returning false if that
+pointer is null. A fresh NullActorImpl, vtable `0x00FE02AC`, has slot 2
+`0x0075AB60`, which tests its byte `+0x50`. Construction zeroes that byte
+at `0x0076A05D`, so the predicate is false. LuaActorImpl slot 2,
+`0x007595F0`, returns true.
+
+A fresh `0xCA` character therefore admits `0xD6`/`0xD7` before `0x00CC`
+even with element `+0x92` set. This establishes admission, not packet arrival
+order for the case-2 player. The appearance publisher and model activation
+still require their own calls and guards.
+
+### Position reporting and default camera subject
+
+Here `C` is CharaActor, `E` is CharaElement, `T` is RaptureActorContainer,
+and `W` is the RaptureElementContainer receiver carrying `+0x1783C`.
+CharaActor slot 142, `0x006679C0`, compares `C` with `T+0xD0` at
+`0x00667BE2`. Both arms queue a `0x1C`-byte position record with command
+`0x51`: selected calls `0x00667CB4` and `0x00667D62`, and non-selected
+call `0x00667EE2`, all through `0x007CE7B0`. Selection chooses the
+formula; it does not restrict reporting to the selected actor. The
+`C+0x1954` accumulator is compared with 1.0f at `0x00667BEE` and
+`0x00667E32`; for ordered values the selected arm admits equality while
+the non-selected arm requires a greater value. Other slot-142 guards apply.
+
+Record constructor `0x00669090` writes a 16-byte position at `+0`,
+direction at `+0x10`, zero-extended state byte at `+0x14`, and flag byte
+at `+0x18`. The queue uses key `C+0xDC` (`0x007CE806`). Actor map
+`T+0xC4` is keyed by that id (`0x007C974C`); element map `W+0x17804`
+uses `E+0x88` (`0x004DAC84`). The element consumer `0x004DAA10` looks up
+the queue key through `0x004D9910` and calls element slot 8, so these
+keys share the id space for actors found in `T+0xC4`. Actor lookup's
+fallback map `T+0x84` (`0x007C9444`) has not been joined to `C+0xDC`.
+
+CharaElement slot 8, `0x0058E0C0`, handles command `0x51` at
+`0x0058E157`. It copies position for any addressed element before testing
+whether `E+0x88` equals `W+0x1783C` (`0x0058E1BF`); a mismatch exits
+at `0x0058E1F4`. With equality and the remaining admission checks, it
+builds a payload containing x, y, z, direction and state. Builder
+`0x004DD620` writes outbound opcode `0xCA` at `0x004DD62D` and length
+field `0x30` at `0x004DD633`. The send through
+`0x004D6D10/0x004E0240/0x00DAE010` constructs the packet at
+`0x00DAE07D` and submits it at `0x00DAE0C9`. RTTI for vtables
+`0x01129AE8` and `0x01129ACC` identifies ClientPacketBuilder and
+PacketBufferTmpl<ZoneProtoUp>, establishing the outbound channel.
+
+Of the 11 direct callers of id setter `0x004D9980`, only case 2 supplies
+the packet id (`0x004DCC3E`); the other ten supply sentinel `0xC0000000`.
+Thus the case-2 id selects the local position reporter. After command 15
+resolves its actor, the same actor is the `+0xD0` default camera subject:
+`0x00616380` resolves explicit camera key `K+0x440`, falling back to
+`u32(u32(K+0x118)+0xD0)` at `0x006163A0` when that key is absent or
+unresolved. The four other direct callers of element selector `0x004D7660`
+are `0x006AAB60`, `0x006AAC0F`, `0x006ACB36` and `0x006AEAB7`, in
+`0x006AA990`, `0x006AC9F0` and `0x006AE910`.
+BootupManager slot 2, `0x006B0220`, directly calls `0x006AA990` and
+`0x006AE910`. The `0x006AC9F0` method has direct callers in
+`0x006ACBE0`, `0x006ACC10` and `0x006AD530`. Their gameplay invocation is
+not established; changing `+0xD0` does not change the reporting id test.
+
+This is a static role, conditional on successful allocation, keyed lookup,
+command delivery, element admission and existing network objects. No
+keyboard or pad input origin, server receipt, active authored-resource bytes,
+player collision group, rendered result or contact is established.
 
 ## Character factory and world provider
 
