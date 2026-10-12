@@ -46,11 +46,11 @@ count at record `+0x0C`, read the key at `+0x08` and token at `+0x10`, then
 scan and hash the five corresponding DATs. A key `0xAABBCCDD` resolves to
 `data/AA/BB/CC/DD.DAT`. No asset bytes are retained in this finding.
 
-AuroraFlare's prior lead is
-`AuroraFlare/xiv-decomp:docs/airship_ferry_decomp_open_questions_2026-06-21.md:331-358,664-686`,
-previously inspected at `d5fb880e17f07f31ea7f8380ff813e5d71b6b678`.
-The inspected newer source revision is
-`dca944d3e0cfadd4495b45f2c41d8aba9cd49390`, including
+A prior external lead is
+`docs/airship_ferry_decomp_open_questions_2026-06-21.md:331-358,664-686`,
+inspected at revision `d5fb880e17f07f31ea7f8380ff813e5d71b6b678`.
+The same source's earlier revision
+`dca944d3e0cfadd4495b45f2c41d8aba9cd49390` was also inspected, including
 `tools/build_citystate_scheduler_decomp_atlas.py:170-213`.
 Its `art_s0/art_r0/art_f0/art_w0` airship-over result remains a bounded
 transport-resource lead, not a fleet-control finding. The resource rows and
@@ -127,9 +127,9 @@ table, the UnitTree array/count at node `+0x30/+0x34`, each `0x30`-byte
 member's alias/target at `+0x14/+0x18`, and the timeline's SCB pointer/size
 at `+0x14/+0x18`. Pointers are LYB-relative. The SCB decoder checked version
 2, ABI `0x00300000`, size, String/CATT/CCPT/CACT/CBLK/CCNT envelopes and
-record bounds. The method follows AuroraFlare's
+record bounds. The method follows the same external source's
 `docs/ifrit-animation-decomp-2026-08-02/EXHAUSTIVE_BATTLEFIELD_RESOURCE_COVERAGE.md:51-56`
-at the newer revision above, with direct retail byte verification.
+at revision `dca944d` above, with direct retail byte verification.
 
 ## Binary evidence
 
