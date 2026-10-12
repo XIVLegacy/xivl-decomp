@@ -127,3 +127,5 @@ cut character when it contains:
 The scan cannot establish the create branch at runtime, allocation and lookup
 success, block execution order, or the activation and flag conditions in
 [Attribute resource and native physics registration](attribute-resource-and-scene-binding.md).
+The [cut collision clip corpus](cut-collision-clip-corpus.md) applies this
+predicate to the 1.23b `client/cut` tree.

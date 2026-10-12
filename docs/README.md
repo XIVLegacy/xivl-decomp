@@ -180,6 +180,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
 - [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
+- [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
 - [DrawEnv texture-binding boundary](resource/draw-env-texture-binding-boundary.md)
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
 - [Dungeon layout timeline corpus](resource/dungeon-layout-timeline-corpus.md)
