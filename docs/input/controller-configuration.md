@@ -251,9 +251,10 @@ resulting block to `0x0045c8b0` as `0xab` DWORDs (`0x2ac` bytes).
 `FUN_004420b0` (VA `0x004420b0`, RVA `0x420b0`) compares the current and
 snapshot blocks before saving. Its config.sys save branch opens the path with
 `GENERIC_WRITE=0x40000000`, share mode `1`, and `CREATE_ALWAYS=2`, then writes
-`0x2ac` bytes from `0x0045c8b0` after the dialog confirmation. The traced
-config.sys reader and writer assign only this opaque block; they do not assign
-the controller identity or checkbox fields proven in `config.pad`.
+`0x2ac` bytes from `0x0045c8b0` after the dialog confirmation. The
+[utility inventory](config-utility-settings.md) records system fields, defaults,
+version conversions and control joins. These `config.sys` paths are separate
+from the controller identity and checkbox fields in `config.pad`.
 
 ## Limits
 
