@@ -714,6 +714,113 @@ The Lua `_getAchievementSheetDataTitle` binding's vcall thunk `0x0071E5E0`
 also reads `+0x1B8`. It targets the Lua `PlayerBase` control class, vtable
 `0x00FD5E04`, and its `MyPlayer` derivative, not CharaActor.
 
+## Container command 39 and non-cut activation
+
+Container commands reach CharaActors from element records queued to the
+scene thread. The element producer `0x004D7980` builds a record with command
+`source + 21`, keyed by the element's `+0x88`. It submits the record through
+slot 3 of the SceneModule at the element's `+0x84` (vtable `0x00F91DE8`,
+`0x004E8390`). The SceneThreadImpl at the module's `+0x3C` holds the ring at
+`+0x370`. Records are `0xA0` bytes:
+
+| Offset | Field |
+|---|---|
+| `+0x10` | Data, inline when the size is at most `0x78`, otherwise a pointer |
+| `+0x90` | Actor key |
+| `+0x94` | Command, u16 |
+| `+0x96` | Size, u16 |
+
+The event pump `0x004E9700` pops each record and passes command, key, data
+and size through `0x0060C140` to the container dispatcher `0x007C93C0`. The
+dispatcher looks the key up in container `+0xC4`, then `+0x84`. Source 18
+therefore becomes internal command 39 and slot 157 command 18. Three
+examined producers reach a CharaActor:
+
+| Producer | Data dword `n` |
+|---|---|
+| CharaElement constructor `0x0058B4E0`, at `0x0058BACE` | 1 when `(key & 0xE0000000) == 0xC0000000`, otherwise 0 |
+| Lua binding `_setGroundOn`, `0x006E4260`, through `0x0075C3E0` and `0x00586750` | The Lua Boolean |
+| Lua control slot 11, `0x006E17E0`, at `0x006E1877` | 1 while control byte `+0xE1` is set |
+
+The CharaElement constructor first queues command 13 through `0x005876D0`
+with type `0x11`. For an absent key, the dispatcher then creates a CharaActor
+through `0x007C9110`. Command 16 or 17 follows from `0x004D7890` with the same
+Boolean, then command 39, then command 20 from `0x004D77B0`. Keys with top
+bits `0xC0000000` form the client-local id space. `0x007C9110` assigns
+`0xC2000000` plus a pool index to requests made with `0xC0000000`. Packet
+dispatcher `0x004DC690` case 2 creates a type-8 element keyed by the packet's
+actor id at `0x004DCC34`. For a key outside the client-local class the
+constructor sends `n = 0`, which clears bit 3.
+
+The Lua control slot belongs to the CharaBase, PlayerBase, NpcBase and
+MyPlayer control classes. The CharaBase control constructor sets `+0xE1` to 1
+at `0x006ECDFB`. `_setGroundOn` clears it after forwarding (`0x006E42CD`), so
+an explicit script value stops the slot-11 resend. The key that slot 11
+addresses was not decoded. The other examined source-18 callers target camera
+and game-manager elements. Two remain untied to a CharaActor: `0x0059D1A0`,
+which lies among MapLayoutElement methods, and `0x0054EE09`, a
+DrawingToolContext caller of the parallel producer `0x0054B0D0`.
+
+At the target, `n == 1` sets bit 3 and any other non-negative `n` clears it.
+A negative `n` sets bit 3 to the inverse of slot 111, the applied bit 2. The
+three producers above send only 0 or 1.
+
+The gates for a non-cut CharaActor are as follows:
+
+- Slot 154: the constructor stores `u32(C+0x2B70) = 0` at `0x0065F7F1`. The
+  only writer of bit 6 is slot 153, `0x00669630`. Its only caller is teardown
+  `0x007CEF20`, which passes 1 and then removes the actor from the container
+  maps and update list through `0x007C9740`. A live actor therefore keeps bit
+  6 clear, and slot 154 blocks neither command 18 nor slot 142.
+- Bit 4: it is cleared only in helper state 11 (`u8(C+0x590+0x5A8)`). The
+  dispatcher `0x007AC5A0` sends that state to `0x007AC618`, which calls
+  `0x008C0020` and slot 164 with 0. The setter at `0x007BAC0B` passes 1 in
+  every other state. Both run in the helper update inside slot 142.
+- Admission: the constructor leaves `C+0xE0` and `C+0xEC` zero (`0x007CF068`,
+  `0x007CF076`). Slot 142 is admitted by default, and re-evaluation runs on
+  every admitted call.
+
+Activation needs an appearance load. Every CharaActor constructor registers
+the actor in the appearance store at container `+0xD8` with entry state 1
+(`0x007D1C20`). Only the store scheduler `0x007D1D10` sets the ready bit
+`0x40000000`. It is called once, at `0x007C901C`, after the actor walk, and it
+skips entries in states 0 and 1. An entry leaves state 1 only through the
+offer `0x007D1C80` at `0x0066678F`, when the low nibble of `u32(C+0x2B70)`
+counts down in `0x00666720`. A registered character therefore loads in this
+order:
+
+1. A caller of `0x0065D730` arms the nibble.
+2. An admitted slot-142 call offers the appearance.
+3. The scheduler marks the entry ready.
+4. A later admitted slot-142 call takes the ready branch at `0x006667AA` and
+   starts the load through `0x00665E40`.
+5. CharaVisual state 3 calls `0x00664890`.
+
+The loader also requires the helper predicate `0x007A71E0` to return zero,
+as it does initially. The nibble is armed through `0x0065D730` by:
+
+- the RaptureCharaVisualClip path, `0x00662100`;
+- slot 157 command 8, `0x006623F0`, which is container command 29;
+- slot 157 command 9, `0x006629B0`, which is container command 30;
+- `0x006667F0`, reached from `0x007BC44E` and `0x007BE11A`.
+
+The unlisted `0x00662420` also calls it but has no caller or literal
+reference.
+
+A non-cut CharaActor therefore reaches group 6 or 7 only when all of these
+hold:
+
+- a nibble arm is followed by two admitted slot-142 calls with a scheduler
+  pass between;
+- all model batches complete and activation allocates a controller;
+- command 39 with `n = 1` arrives before or after activation;
+- the helper is not in state 11 at its last update.
+
+For a server-keyed character, the CharaElement constructor clears bit 3.
+`_setGroundOn` with a true value, or the slot-11 resend, is the examined
+route that sets it. Nothing examined identifies which key a script control
+addresses, or the local player's native CharaActor.
+
 ## Character factory and world provider
 
 `0x007A0450` registers factory `0x0079FAE0` at callback-table `+0x18`.
