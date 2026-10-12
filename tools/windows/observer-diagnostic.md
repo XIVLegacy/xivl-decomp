@@ -439,6 +439,53 @@ return to the original resume address. It neither allocates nor validates
 resident mappings and never writes executable memory. Receipts state
 `installed: false` and `live_coverage: false`.
 
+## Pinned hook-site audit
+
+For the pinned engine above, the copied spans decode to complete instructions
+and resume at RVAs `0x467F18`, `0x468B17` and `0x3D04A3`. The QueryService
+HIGHLOW operand is the only relocation overlapping these spans. Its later
+CALL remains in the original body at `0x468B17`, returning to `0x468B1C`.
+The helper at `0x4D22ED` installs the x86 FS:[0] registration with handler
+`0x4E5EEF`; that handler is a member of the image's SafeSEH table. An empty
+PE exception directory does not establish x86 exception transparency.
+The forwarding wrappers insert their own return addresses and bookkeeping.
+Their normal argument, nonvolatile-register, return-value and stack-cleanup
+contract does not establish exception/unwind equivalence.
+
+The bounded file methods check direct-relative encodings, all 163,047 HIGHLOW
+operands, preferred-VA/RVA literal patterns and declared PE target tables.
+They supply no confirmed entrant into a strict copied-span interior. The
+QueryService first byte is present in the manager table and Guard-CF table.
+Nine interior-VA byte-pattern matches cross instruction boundaries under the
+selected decodes; they remain encoding observations. Dynamic object tables,
+computed/register targets, other modules, saved contexts, stacks and runtime
+modifications require their own declared exclusion boundary and evidence.
+Absent references do not establish absence of those mechanisms.
+
+The 16 bytes before the entries are, in the same order,
+`240033c05f5e5dc20800cccccccccccc`,
+`c20c00cccccccccccccccccccccccccc` and
+`1584305a1033c05f5ec3cccccccccccc`. Each has five immediately preceding
+`CC` bytes. These bytes do not select or qualify an alternative patch.
+
+The three 4,096-byte entry pages map uniquely to file-backed `.text`:
+
+| Page RVA | File offset | SHA-256 |
+|---|---|---|
+| `0x467000` | `0x466400` | `0ab73fd6048ba27f1b788f026d059001a9d667d1d0199597a4bae59537bec7a6` |
+| `0x468000` | `0x467400` | `b75ccd9813d2501c3ccccce67bfb9073074d4580978ede0d15179272f7e61778` |
+| `0x3D0000` | `0x3CF400` | `e9716a4ea76feec9f6da2c5f69b4261b034704825b9e91eb8d5196f91b7d2dc4` |
+
+Ghidra 12.1.3 with JDK 21 supplies a separate analyzed-program listing,
+function-body and reference classification. A fresh read-only import with
+library loading, existing-project linking and ordinal lookup disabled keeps
+that classification bound to this input. Instruction, defined-data/alignment
+and undefined bytes are retained separately; candidate decodes do not fill
+unknown coverage. Listing units and recovered references do not establish
+complete native reachability or alternate overlapping instruction streams.
+File-page identity supplies no resident coherence, continuous hold, actual
+NX/protection/write/cache/CFG effect or exception/unwind qualification.
+
 ## Injected installation transaction
 
 [The transaction API](observer_hook_install.h) admits the same fixed three
@@ -617,12 +664,12 @@ lease or qualify live installation.
 | Exclude instruction contexts from overwritten interiors | Copied spans are 5, 7 and 6 bytes at those entry RVAs. | Native context checks under the same hold, including the mutator's placement. |
 | Exclude wrapper and trampoline contexts | Wrapper extents are request values; trampoline addresses are backend allocation results. No fixed engine locator exists. | Demonstrated context exclusion and lifetime through publication, forwarding, restoration and release. |
 | Bind the retained resident image to the pinned file | The three copied spans and QueryService HIGHLOW relocation at span `+3`; handle/base equality is enforced. | A retained native mapping and reproducible file-to-resident binding beyond the 18 compared bytes. |
-| Own protection, cache and CFG transitions | Redirect and trampoline ranges come from the entry plan; no native callback implementation exists. | Native ownership, transition receipts, cache effects and valid indirect-call targets. |
-| Preserve copied-entry exception and unwind behavior | QueryService begins at `0x468B10`; copied spans and resume addresses are in the entry plan. | A supported exception/unwind contract for relocated prologues and the actual wrappers. |
-| Exclude branches into span interiors | No scan exists, and the planner checks only relocations that overlap a span. From the pinned file: relative branch targets and HIGHLOW operands equal to the interior RVAs of the copied spans. | A scan of the pinned image for branch targets and relocated operands inside the 5, 7 and 6 byte spans. |
-| Record the hot-patch alternative | The 16 bytes before each entry, RVA `0x467F03` to `0x467F12`, `0x468B00` to `0x468B0F` and `0x3D048D` to `0x3D049C`, are not recorded. They are located with the section mapping in `observer_hook_plan.py`. | Recorded pre-entry bytes showing whether a hot-patch pad exists at each entry. |
+| Own protection, cache and CFG transitions | Redirect and trampoline ranges come from the entry plan; `ObserverRemoteTransport` in [observer_live_runtime.cpp](observer_live_runtime.cpp) implements held protection/cache/CFG callbacks. | Observed native ownership, transition receipts, cache effects and valid indirect-call targets. |
+| Preserve copied-entry exception and unwind behavior | The [pinned hook-site audit](#pinned-hook-site-audit) records the QueryService helper, FS:[0] registration and SafeSEH handler; normal span/ABI checks are bounded. | Exception/unwind behavior through the copied prologues and actual forwarding wrappers. |
+| Exclude branches into span interiors | The [pinned hook-site audit](#pinned-hook-site-audit) records bounded direct-relative, HIGHLOW, literal-pattern and PE-table methods with no confirmed interior entrant. | A declared indirect/computed exclusion boundary and evidence for its dynamic, other-module, context and return sources. |
+| Record the hot-patch alternative | The [pinned hook-site audit](#pinned-hook-site-audit) records all three pre-entry windows and their final five `CC` bytes. | A separately selected and qualified alternative mechanism, if one is requested. |
 | Recheck the pinned module while installed | `check_quiescence` calls `revalidate_module` before mutation and code-bearing cleanup. It compares the live retained-reference witness, allocation/image base and PE extent with the accepted module while preserving exact owned-redirect checks. | Observed native retention and the same held module witnesses across installation and restoration. |
-| Bound write exposure | Write width and order and NX enforcement in the hosting process have no recorded locator, because they depend on the host. The other code on the entry pages, RVA `0x467000` to `0x467FFF`, `0x468000` to `0x468FFF` and `0x3D0000` to `0x3D0FFF`, is not recorded. | Recorded write width and order, protection transitions and the other code sharing each entry page. |
+| Bound write exposure | The [pinned hook-site audit](#pinned-hook-site-audit) binds every file byte of the three entry pages and preserves analyzed instruction/data/undefined membership. | Native write width/order, partial writes, actual NX/protection/cache/CFG effects and restoration; complete relevant neighboring-byte coverage. |
 | Recover after refusal or a latched failure | The [offline recovery model](observer-recovery.md) supplies injected failure decisions; no native recovery backend exists. | Native hold, retained-handle ownership, dispatch synchronization and independently confirmed shutdown under the same recovery policy. |
 
 ## Raw-event bridge and delayed binding
