@@ -460,7 +460,8 @@ bool continue_supporting_owner_event(void* raw_context, std::string* refusal) no
         }
         return false;
     }
-    if (context->clear_remote_hold)
+    if (context->clear_remote_hold &&
+        context->owner->held_event().event.dwDebugEventCode != EXCEPTION_DEBUG_EVENT)
     {
         if (context->remote == nullptr || !context->remote->clear_held_event(*context->authority, refusal))
         {
@@ -2301,6 +2302,16 @@ bool reap_pending_supervisor_ledger_write(SupervisorLedgerWrite* write,
     return false;
 }
 
+DWORD WINAPI exception_ledger_reaper_proc(LPVOID raw_write) noexcept
+{
+    auto* write = static_cast<SupervisorLedgerWrite*>(raw_write);
+    while (!reap_pending_supervisor_ledger_write(write, write->poll_ticks))
+    {
+    }
+    delete write;
+    return 0;
+}
+
 void close_supervisor_ledger_writer(SupervisorLedgerWriter* writer) noexcept
 {
     if (writer == nullptr)
@@ -3221,7 +3232,24 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         close();
         return false;
     }
-    std::wstring command = widen_ascii(observer_activation_effective_child_command(request));
+    if (!DuplicateHandle(GetCurrentProcess(),
+                         supervisor_ledger_->file,
+                         GetCurrentProcess(),
+                         &exception_ledger_file_,
+                         0,
+                         FALSE,
+                         DUPLICATE_SAME_ACCESS))
+    {
+        if (refusal != nullptr)
+        {
+            *refusal = "observer exception ledger handle could not be retained";
+        }
+        close();
+        return false;
+    }
+    exception_ledger_ticks_      = request.limits.responsiveness_ticks;
+    exception_ledger_session_id_ = request.session_id;
+    std::wstring command         = widen_ascii(observer_activation_effective_child_command(request));
     if (command.empty())
     {
         if (refusal != nullptr)
@@ -3399,7 +3427,36 @@ bool ObserverDebugOwner::exact_owner_event(const ObserverHeldDebugEvent& held) c
     return creator_thread_bound_ && GetCurrentThreadId() == handles_.controller_thread_id &&
            held.held && held_.held && same_key(held.key, held_.key) &&
            held.event.dwProcessId == handles_.process_id &&
-           held.event.dwThreadId == held.key.thread_id;
+           held.event.dwThreadId == held.key.thread_id &&
+           held.event.dwDebugEventCode == held.key.event_code &&
+           held_.event.dwDebugEventCode == held_.key.event_code;
+}
+
+bool ObserverDebugOwner::persist_exception_refusal(const ObserverExceptionRefusal& evidence) noexcept
+{
+    const std::string      line      = observer_exception_refusal_line(evidence);
+    SupervisorLedgerWrite* pending   = nullptr;
+    const bool             persisted = !line.empty() && write_supervisor_ledger_line(exception_ledger_file_,
+                                                                                     line,
+                                                                                     exception_ledger_ticks_,
+                                                                                     &pending);
+    if (pending != nullptr)
+    {
+        // Cancellation completion owns the buffer lifetime; the debug owner
+        // must reach abort without waiting indefinitely for file I/O.
+        HANDLE reaper = CreateThread(nullptr, 0, &exception_ledger_reaper_proc, pending, 0, nullptr);
+        if (reaper != nullptr)
+        {
+            CloseHandle(reaper);
+        }
+        // Failed reaper creation retains the pending buffer and handle.
+    }
+    if (!persisted)
+    {
+        supervisor_ledger_post_result_write_failed_.store(true, std::memory_order_release);
+        supervisor_ledger_incomplete_.store(true, std::memory_order_release);
+    }
+    return persisted;
 }
 
 bool ObserverDebugOwner::continue_event(const ObserverLiveAuthority&  authority,
@@ -3419,6 +3476,28 @@ bool ObserverDebugOwner::continue_event(const ObserverLiveAuthority&  authority,
         if (refusal != nullptr && refusal->empty())
         {
             *refusal = "continuation is not bound to the creator's exact pending event";
+        }
+        return false;
+    }
+    const auto evidence         = observer_exception_evidence(held_.event,
+                                                              handles_.process_id,
+                                                              handles_.controller_thread_id,
+                                                              exception_ledger_session_id_,
+                                                              held_.key.raw_generation,
+                                                              held_.key.event_index);
+    const auto record_exception = [](void* user, const ObserverExceptionRefusal& value) noexcept
+    {
+        return static_cast<ObserverDebugOwner*>(user)->persist_exception_refusal(value);
+    };
+    const auto disposition = observer_exception_disposition(evidence, record_exception, this);
+    if (disposition != ObserverExceptionDisposition::NotException)
+    {
+        (void)request_permanent_abort(authority, nullptr);
+        if (refusal != nullptr)
+        {
+            *refusal = disposition == ObserverExceptionDisposition::RefusedRecorded
+                           ? "unclassified observer exception retained for permanent abort"
+                           : "unclassified observer exception retained; refusal evidence write failed";
         }
         return false;
     }
@@ -3841,6 +3920,13 @@ bool ObserverDebugOwner::close() noexcept
     held_    = {};
     controller_progress_tick_.store(0, std::memory_order_release);
     supervisor_ledger_.reset();
+    if (exception_ledger_file_ != INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(exception_ledger_file_);
+        exception_ledger_file_ = INVALID_HANDLE_VALUE;
+    }
+    exception_ledger_ticks_      = 0;
+    exception_ledger_session_id_ = 0;
     remote_control_store_.reset();
     creator_thread_bound_ = false;
     return true;

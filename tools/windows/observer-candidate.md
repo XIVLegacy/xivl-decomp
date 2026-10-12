@@ -152,6 +152,30 @@ execution exclusion or fixture survival. Native activation requires separate
 owner authorization and a reviewed run contract. An identity-gathering exception
 permits collection of unresolved identities; it cannot mark them qualified.
 
+## Observer exception profile
+
+The `fail-stop-unclassified-v1` profile refuses every held observer
+`EXCEPTION_DEBUG_EVENT` before `ContinueDebugEvent`. The debug owner uses its
+authoritative pending event after checking creation identity and continuation
+authority. It retains the event, leaves the continuation-dispatched result false
+and requests permanent observer abort whether refusal evidence is written or
+the bounded write fails. The controller records creation-bound process/thread
+identity, session, raw generation/event index, exception code, flags, first
+chance and address. Failed evidence storage also marks the ledger incomplete.
+
+This profile can reject a first-chance C++ exception that the unhooked program
+would handle internally. It supplies fail-stop behavior, rather than exception
+transparency through the inserted forwarding frames. Recorder's C++ restoration,
+the forwarding counters and the `/EHsc` model retain their separate contracts;
+see the [forwarding exception boundary](observer-diagnostic.md#forwarding-exception-boundary).
+
+There is no startup-breakpoint allowance. Such an allowance requires separate
+proof of the exception's origin, module, creation-bound thread, pre-hook phase
+and single use. Code, first chance or event order alone cannot classify it.
+The default descriptor continues to refuse native activation. A source change
+requires a new reviewed source/build/product binding before selecting an
+operating descriptor; an earlier executable pin does not identify this code.
+
 ## Conditional native qualification
 
 The default source policy refuses both native entries. A separately reviewed

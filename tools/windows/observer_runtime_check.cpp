@@ -5,6 +5,7 @@
 #include "observer_dispatch_gate.h"
 #include "observer_event_bridge.h"
 #include "observer_event_lifecycle.h"
+#include "observer_exception_policy_tests.h"
 #include "observer_fixture_evidence.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
@@ -40,6 +41,7 @@ int wmain(int argc, wchar_t** argv)
         const auto raw                  = xivl::raw_recorder::run_self_tests();
         const auto supporting           = xivl::observer_candidate::run_observer_supporting_identity_self_tests();
         const auto activation           = xivl::observer_candidate::run_observer_activation_binding_self_tests();
+        const auto exception_policy     = xivl::observer_candidate::run_observer_exception_policy_self_tests();
         std::cout << "diagnostic: " << diagnostic.summary << '\n'
                   << "collection: " << collection.summary << '\n'
                   << "bridge: " << bridge.summary << '\n'
@@ -63,9 +65,11 @@ int wmain(int argc, wchar_t** argv)
                   << ",failures=" << supporting.failures << ',' << supporting.summary << '\n';
         std::cout << "activation_binding: checks=" << activation.checks
                   << ",failures=" << activation.failures << ',' << activation.summary << '\n';
+        std::cout << "exception_policy: checks=" << exception_policy.checks
+                  << ",failures=" << exception_policy.failures << ',' << exception_policy.summary << '\n';
         return diagnostic.passed && collection.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && callback_composition.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
                        recovery.passed && actions.passed && fixture_evidence.passed && raw.failures == 0 &&
-                       supporting.passed && activation.passed
+                       supporting.passed && activation.passed && exception_policy.passed
                    ? 0
                    : 1;
     }

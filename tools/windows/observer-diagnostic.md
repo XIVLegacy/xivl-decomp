@@ -486,6 +486,51 @@ complete native reachability or alternate overlapping instruction streams.
 File-page identity supplies no resident coherence, continuous hold, actual
 NX/protection/write/cache/CFG effect or exception/unwind qualification.
 
+## Forwarding exception boundary
+
+For the pinned engine, the QueryService registration helper writes state -1
+at RVA `0x4D230F`. The body writes state 1 at `0x468B66`, before its explicit
+release path. These complete helper/body ranges contain no state-0 write.
+The two entries at `0x500464` use zero-based state indices: state 0 has no
+action, and state 1 selects the second entry, targeting `0x483AE0`.
+
+The handler dispatcher `0x483824 -> 0x4850A9 -> 0x484F9F` specializes the
+metadata at `0x500440`. With normally returning preludes and the applicable
+runtime thread state, its initial search path has no local catch destination.
+Its numeric return 1 is `ExceptionContinueSearch` in the x86
+`EXCEPTION_DISPOSITION` enum, corroborated by MSVC 14.44.35207 `excpt.h`,
+SHA-256 `191ab83e320a5e9712fe483257fecae14cb0c158a4517b620f3fddb1aa6ef23b`.
+This is the handler ABI, distinct from an `__except` filter's numeric constants.
+
+An admitted unwind with exception flags matching mask `0x66` calls
+`0x485326 -> 0x485346`. The state reader at `0x4857CF` sign-extends the byte
+at registration+8. State -1 skips the map. State 1 selects its second entry,
+writes next state -1 before action invocation and transfers through
+`0x483AE0 -> 0x4D2091` to the import named `terminate`. The earlier service
+calls at `0x468B46` and `0x468B62` occur in state -1; the release target at
+`0x468B86` occurs in state 1. A release exception reaching that admitted
+unwind is a conditional termination path. The bytes do not establish that
+every exception terminates, escapes or resumes.
+
+These are bounded Capstone 5.0.7/pefile 2024.8.26 file observations joined to
+the previously recorded QueryService body. Runtime thread data, the registration
+chain and outer handler destinations remain inputs. VA `0x105A380C` is the
+load-config GuardCFCheckFunctionPointer slot, whose file value targets RET 0
+at RVA `0x179180`; it is not an IAT import or proof of the loaded guard target.
+
+The production bridges retain their admission count if an exception bypasses
+normal `finish()`. That prevents successful publication cleanup, but the
+count is not an immediate exception interception or a later bridge-entry veto.
+Recorder restores its ActiveFrame chain for a caught C++ exception before
+rethrow. The declared `/EHsc` model supplies no equivalent SEH cleanup.
+An outer SEH unwind followed by continuation can therefore leave the explicit
+thread-local frame restoration unexecuted. The copied instructions and inserted
+caller frames also preclude an unconditional fault-EIP or stack-trace identity
+claim. The [observer exception profile](observer-candidate.md#observer-exception-profile)
+refuses unclassified exceptions before continuation; it requires separate startup
+classification and native outcome evidence. Normal ABI checks do not supply
+exception transparency.
+
 ## Injected installation transaction
 
 [The transaction API](observer_hook_install.h) admits the same fixed three
@@ -665,7 +710,7 @@ lease or qualify live installation.
 | Exclude wrapper and trampoline contexts | Wrapper extents are request values; trampoline addresses are backend allocation results. No fixed engine locator exists. | Demonstrated context exclusion and lifetime through publication, forwarding, restoration and release. |
 | Bind the retained resident image to the pinned file | The three copied spans and QueryService HIGHLOW relocation at span `+3`; handle/base equality is enforced. | A retained native mapping and reproducible file-to-resident binding beyond the 18 compared bytes. |
 | Own protection, cache and CFG transitions | Redirect and trampoline ranges come from the entry plan; `ObserverRemoteTransport` in [observer_live_runtime.cpp](observer_live_runtime.cpp) implements held protection/cache/CFG callbacks. | Observed native ownership, transition receipts, cache effects and valid indirect-call targets. |
-| Preserve copied-entry exception and unwind behavior | The [pinned hook-site audit](#pinned-hook-site-audit) records the QueryService helper, FS:[0] registration and SafeSEH handler; normal span/ABI checks are bounded. | Exception/unwind behavior through the copied prologues and actual forwarding wrappers. |
+| Qualify the selected exception profile | The [forwarding exception boundary](#forwarding-exception-boundary) bounds the engine state/unwind path; the [observer exception profile](observer-candidate.md#observer-exception-profile) refuses unclassified continuation. | Separate startup origin/phase/single-use proof and native fail-stop outcomes; exception transparency through forwarding remains unproved. |
 | Exclude branches into span interiors | The [pinned hook-site audit](#pinned-hook-site-audit) records bounded direct-relative, HIGHLOW, literal-pattern and PE-table methods with no confirmed interior entrant. | A declared indirect/computed exclusion boundary and evidence for its dynamic, other-module, context and return sources. |
 | Record the hot-patch alternative | The [pinned hook-site audit](#pinned-hook-site-audit) records all three pre-entry windows and their final five `CC` bytes. | A separately selected and qualified alternative mechanism, if one is requested. |
 | Recheck the pinned module while installed | `check_quiescence` calls `revalidate_module` before mutation and code-bearing cleanup. It compares the live retained-reference witness, allocation/image base and PE extent with the accepted module while preserving exact owned-redirect checks. | Observed native retention and the same held module witnesses across installation and restoration. |

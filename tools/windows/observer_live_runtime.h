@@ -8,6 +8,7 @@
 #include "observer_activation_binding.h"
 #include "observer_collection.h"
 #include "observer_diagnostic.h"
+#include "observer_exception_policy.h"
 #include "observer_fixture_evidence.h"
 #include "observer_hook_install.h"
 #include "observer_publication_protocol.h"
@@ -650,6 +651,7 @@ private:
     bool                authority_allows_debug_cleanup(const ObserverLiveAuthority& authority,
                                                        std::string*                 refusal) const noexcept;
     bool                exact_owner_event(const ObserverHeldDebugEvent& held) const noexcept;
+    bool                persist_exception_refusal(const ObserverExceptionRefusal& evidence) noexcept;
     bool                duplicate_supervisor_handles(std::string* refusal) noexcept;
     bool                start_supervisor(std::uint32_t termination_ticks,
                                          std::uint32_t responsiveness_ticks,
@@ -672,6 +674,9 @@ private:
     std::atomic<bool>                                    responsive_abort_                           = false;
     std::atomic<std::uint64_t>                           controller_progress_tick_{ 0 };
     std::unique_ptr<ObserverSupervisorLedger>            supervisor_ledger_;
+    HANDLE                                               exception_ledger_file_       = INVALID_HANDLE_VALUE;
+    DWORD                                                exception_ledger_ticks_      = 0;
+    std::uint64_t                                        exception_ledger_session_id_ = 0;
     std::shared_ptr<ObserverRemoteControlRetentionStore> remote_control_store_;
     bool                                                 creator_thread_bound_ = false;
 };
