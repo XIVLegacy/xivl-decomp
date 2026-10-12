@@ -159,9 +159,10 @@ The `fail-stop-unclassified-v1` profile refuses every held observer
 authoritative pending event after checking creation identity and continuation
 authority. It retains the event, leaves the continuation-dispatched result false
 and requests permanent observer abort whether refusal evidence is written or
-the bounded write fails. The controller records creation-bound process/thread
-identity, session, raw generation/event index, exception code, flags, first
-chance and address. Failed evidence storage also marks the ledger incomplete.
+the bounded write fails. The controller records the created process ID,
+controller and event thread IDs, session, raw generation/event index,
+exception code, flags, first chance and address. Failed evidence storage also
+marks the ledger incomplete.
 
 This profile can reject a first-chance C++ exception that the unhooked program
 would handle internally. It supplies fail-stop behavior, rather than exception
@@ -172,6 +173,9 @@ see the [forwarding exception boundary](observer-diagnostic.md#forwarding-except
 There is no startup-breakpoint allowance. Such an allowance requires separate
 proof of the exception's origin, module, creation-bound thread, pre-hook phase
 and single use. Code, first chance or event order alone cannot classify it.
+The [startup classification](observer-startup-exception.md) distinguishes the
+retained x86 loader and remote-break candidates and the required
+original-child-thread, resident-module, producer, phase and single-use joins.
 The default descriptor continues to refuse native activation. A source change
 requires a new reviewed source/build/product binding before selecting an
 operating descriptor; an earlier executable pin does not identify this code.
