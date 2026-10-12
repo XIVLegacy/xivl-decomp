@@ -1061,10 +1061,69 @@ pointer is null. A fresh NullActorImpl, vtable `0x00FE02AC`, has slot 2
 at `0x0076A05D`, so the predicate is false. LuaActorImpl slot 2,
 `0x007595F0`, returns true.
 
-A fresh `0xCA` character therefore admits `0xD6`/`0xD7` before `0x00CC`
-even with element `+0x92` set. This establishes admission, not packet arrival
-order for the case-2 player. The appearance publisher and model activation
-still require their own calls and guards.
+With its fresh NullActorImpl state retained, a `0xCA` character therefore
+admits `0xD6`/`0xD7` before `0x00CC` even with element `+0x92` set.
+Request preparation can set NullActorImpl `+0x50` at `0x0075AB74`, through
+`0x00574658`. With `+0x92` set and readiness true, the conjunction rejects
+appearance. Admission and packet order therefore require separate evidence.
+The appearance publisher and model activation still require their own calls
+and guards.
+
+### Case-2 appearance ordering
+
+The selected login stream carries the appearance packet before the
+script-binding packet for the case-2 key. The native key is derived from the
+wrapped source, rather than the destination or a coincidentally equal payload
+field. Parser
+`0x00DAF5B0` copies wrapped sub-event header dword `+4` into staging at
+`0x00DAF612/0x00DAF619`, then into receive record `A+0x14` at
+`0x00DAF789/0x00DAF78C`. The world caller reads that field at
+`0x004E21E8` and passes it to `0x004DC690` at `0x004E221D`. Before
+dispatch it remaps values whose `source & 0x5FF80000` equals `0x5FF80000`.
+The captured source `0x029B2941` gives `0x02980000`, so it passes unchanged
+as the case-2 factory key and world reporting id.
+
+Case 2 constructs type 8 through `0x004D90C0/0x00537620/0x00533540`
+and CharaElement `0x0058B4E0`. Its inherited constructor `0x004DAB50`
+stores the key at `E+0x88` (`0x004DABCE`), stores the wrapper at `E+0x80`
+(`0x004DABB1`), and clears `+0x92` at `0x004DABE0`. The wrapper's
+`0x00574700` constructs NullActorImpl through `0x00769FD0`. Thus fresh
+case-2 construction defeats the appearance-rejection conjunction through
+both its clear flag and false readiness; `0x00CC` is not an initial
+admission prerequisite. The subsequent same-key `0xCA` arm sets `+0x92`
+without replacing the existing wrapper. If its fresh Null state is retained,
+appearance remains admitted before `0x00CC`.
+
+The numeric observation is owned by
+[the login packet-order study](https://github.com/XIVLegacy/xivl-captures/blob/2971aaadc989c7997bebc6c1df93ac71256e9c9c/studies/login-0002-appearance-order/README.md),
+especially `derived/events.csv` lines 2-5 and `derived/accounting.json`.
+Its input `login.pcapng` is 856,236 bytes, SHA-256
+`28e06b54fe559870031f077f8549b9244caafa7e5177dbca08a7feae6c2b1b62`.
+On connection 0, main lane, s2c, wrapped source `0x029B2941` has:
+
+| Inner opcode | Frame | Frame stream offset | Sub-event | Decoded body offset | Complete-frame capture packet |
+|---|---:|---:|---:|---:|---:|
+| `0x0002` | 3 | 167 | 0 | 0 | 951 |
+| `0x00CA` | 9 | 962 | 0 | 0 | 961 |
+| `0x00D6` | 9 | 962 | 11 | 856 | 961 |
+| `0x00CC` | 17 | 5457 | 19 | 2232 | 970 |
+
+Connection, frame and sub-event indexes are zero-based; capture packet
+indexes are one-based. Stream offsets count wire bytes, while body offsets
+count decoded bytes. The same-frame `0x00CA` and `0x00D6` are ordered by
+body position. Frame completion witnesses identify captured bytes and do
+not replace stream/body order. There is one selected `0x00D6`, one selected
+`0x00CC`, and no admitted s2c `0x00D7` in this capture. Filtering by the
+shared destination would also admit another source's `0x00CC`, so it would
+not establish the case-2 character's binding order.
+
+This joins the captured source to the static case-2 role and establishes
+`0x00D6` before that key's captured `0x00CC`. It does not establish the
+element's actual admission state at those instants, handler execution,
+queued bind completion or rendered appearance. Native appearance
+publication and initialization's ground-on resend remain distinct
+conditional routes. Other logins, transfers, cross-direction timing,
+authored-resource identity and contact are not qualified by this one stream.
 
 ### Position reporting and default camera subject
 
