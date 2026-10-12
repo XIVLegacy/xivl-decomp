@@ -281,7 +281,8 @@ class FfxivconfigInventoryTests(unittest.TestCase):
             )
         for control_id in (1045, 1046, 1047):
             self.assertEqual(
-                input_test_controls[control_id]["join"]["status"], "unknown"
+                input_test_controls[control_id]["join"]["kind"],
+                "localized_caption_only",
             )
         self.assertEqual(document["localization"]["language_file"]["size"], 8)
         self.assertEqual(len(document["controller_mapping_helper"]["pairs"]), 24)
@@ -350,7 +351,8 @@ class FfxivconfigInventoryTests(unittest.TestCase):
             "0xa0",
         )
         self.assertEqual(
-            document["dialogs"][0]["controls"][0]["join"]["status"], "unknown"
+            document["dialogs"][0]["controls"][0]["join"]["kind"],
+            "localized_caption_only",
         )
 
 

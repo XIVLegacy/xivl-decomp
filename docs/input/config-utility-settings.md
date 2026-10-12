@@ -82,8 +82,11 @@ control count:
 
 `FUN_00433660` reads the eight-byte `config.lng` file. Its suffix pointer is
 VA `0x0044d81c`; the reader accepts magic `0x20100706` and uses byte offset
-`0x04` as a language index. `FUN_0043fb30` supplies registry and LANGID
-fallbacks. `FUN_0040cc20` installs the five resource IDs at VA `0x00457f04`:
+`0x04` as a language index. `FUN_0043fb30` computes file/registry/LANGID
+candidates, but startup discards its return; the exact data flow and unchecked
+resource-table index are traced in
+[Config error handling](config-file-error-handling.md#language-fallback-result-and-resource-table-bound).
+`FUN_0040cc20` installs the five resource IDs at VA `0x00457f04`:
 
 | Language index | Resource ID | Name |
 |---:|---:|---|
@@ -166,13 +169,10 @@ offset: 00 04 08 0c 10 14 18 1c 20 24 28 2c 30 34 38 3c 40 44 48 4c 50 54 58 5c
 value:  20120419 0 d800 0 0 500 2d0 7 4 0 0 2 0 0 0 1 2 0 0 0 1 0 2 1
 ```
 
-The reader passes the `GetFileSize` result directly to `ReadFile` with the
-destination buffer at VA `0x0045cc78`; no focused BOOL or returned-byte-count
-check precedes magic inspection. The legacy selector lookup has no focused
-index bound, and the current and legacy string copies use NUL-terminated loops
-without a focused source-length bound. Malformed, short and oversize input
-behavior is therefore unresolved; the defaults and conversion observations do
-not define a safe-file validation contract.
+The reader's file-size request, unchecked read result, legacy selector bound,
+string-copy loops and opaque-byte preservation are traced in
+[Config error handling](config-file-error-handling.md#file-admission-differs-between-readers).
+The defaults and conversions do not define a safe-file validation contract.
 
 These are exact little-endian dwords at offsets relative to VA `0x0045c600`.
 The conversion maps are preserved structurally in the catalog. For legacy
@@ -364,8 +364,13 @@ it does not prove a displayed font preview. Literal `MS UI Gothic` is a
 fallback selection, overridden by a matching saved face name; neither match
 leaves selection -1. Capture count-checks the `0x1c`-stride face records before
 copying with a 32-WCHAR destination. Its error helper and malformed
-selections remain unresolved. Quality/thickness captures have no equivalent
-range check. Static 1100 receives the Windows-font warning at key `0x109`.
+selection continuation are traced in
+[Config error handling](config-file-error-handling.md#font-selection-is-captured-while-disabled).
+Capture still reads the face when the Windows-font checkbox is unchecked.
+An invalid selection invokes the error dispatcher, and a returning dispatcher
+allows list indexing without a second check. Quality/thickness captures have
+no equivalent range check. Static 1100 receives the Windows-font warning at
+key `0x109`.
 
 ## Confirmation and system-information controls
 
@@ -408,15 +413,14 @@ Encoding helper `FUN_004419f0` requests `WideCharToMultiByte` with code page
 This requests `CF_TEXT`, not a Unicode clipboard format; the calls do not
 establish conversion or clipboard success.
 
-Process collection includes EnumProcesses, OpenProcess and module-name queries;
-installation collection includes registry enumeration and `RegCreateKeyExW`
-requests under the uninstall-key path. The complete OS/provider internals and
-result values remain outside the recovered control behavior. The large System
-Information factory was verified through its raw initialization slice; a
-Ghidra decompile of that requested function timed out. Framework controls,
-Windows/D3D/GDI collection implementations and general C++ string/container
-internals are excluded from application reconstruction unless they determine a
-setting or command result described here.
+[System Information collection](config-system-information.md) owns all 13
+System dispatch categories, data providers, Applications/Processes/Installation
+filters and material result-check/handle/registry paths. The large System
+factory has no complete decompiled body; its finite dispatch and provider calls
+are verified from instructions. Complete OS/provider implementations and actual
+values remain outside the recovered application behavior. Framework controls
+and general C++ string/container internals are excluded unless they determine
+a setting or command result described here.
 
 ## Controller joins retained here
 
@@ -427,13 +431,21 @@ catalog retains their IDs, next indexes and evidence. Controls `0x3fb`,
 `0x40d` and `0x40e` join to `config.pad` offsets `0x28`, `0x24` and `0x44`.
 Controls `0x456` and `0x45f` are preset and clear commands. The helper
 functions loop through 48 entries even though only 24 valid pairs precede
-the `config.pad` suffix; entries after pair 23 are explicitly unknown.
+the `config.pad` suffix. The adjacent bytes and conditional accesses are
+classified in [controller mapping](controller-mapping.md#helper-loop-bounds-differ-from-the-meaningful-table).
+Combo `0x3e9` selects the preset row consumed by command `0x456`; it has no
+independent file field. The direct localized STATIC labels are classified as
+caption-only. BUTTON controls 1111, 1112, 1113, 1114 and 1137 have template
+style `0x50000007` (`BS_GROUPBOX`); no focused field/command join is recorded
+for these containers. These classifications account for presentation controls
+without treating their class or nearby coordinates as setting semantics.
 
 Resource 102 is the input-test dialog, caption key `0x8c` (`Test Gamepad`).
-Control `1` is the close command, and the poll/display-only path
-`FUN_00430fe0` uses controls `0x3fd..0x3ff`; the other input-test template
-controls retain unknown backing joins. No saved-state write is inferred from
-these visual or close paths.
+Control `1` is the close command; the three labels are caption-only and the
+three custom GDI visuals read mapped polling values. The catalog classifies
+all seven controls. [Controller mapping](controller-mapping.md#input-test-drawing-and-controls)
+owns their timer, source and coordinate joins. No saved-state write is inferred
+from these visual or close paths.
 
 ## Remaining limits
 

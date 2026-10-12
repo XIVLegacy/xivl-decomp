@@ -585,7 +585,9 @@
         "language_index_offset": 4,
         "language_index_width": 1
       },
-      "accepted_index_range": "0..5 in FUN_0043fb30; five BINARY resource IDs are supplied by FUN_00433660",
+      "accepted_index_range": "Primary 8-byte record index is not bounded; fallback 5-byte candidate accepts 0..5, but startup discards fallback EAX; only five BINARY resource IDs are installed",
+      "fallback_result": "Call VA 0x0043383c is followed by loads/stores copying primary globals 0x00459124/0x00459128 to 0x0045912c/0x00459130; candidate outputs stay local to FUN_0043fb30",
+      "error_finding": "docs/input/config-file-error-handling.md",
       "save_va": "0x004332a0",
       "save_rva": "0x000332a0"
     },
@@ -606,6 +608,7 @@
         114,
         133
       ],
+      "index_bound": "VA 0x0040e401 loads ushort from table+index*4 without an index guard; index 5 is beyond the five-ID table; later resource/PEX checks do not bound this read",
       "payload_header": "PEX",
       "decode_pipeline": "FUN_0040e350 calls FUN_0040ccc0; FUN_0040ccc0 calls FUN_0040cb20 internally; FUN_0040e350 then calls FUN_0040dd00",
       "dialog_caption_join": "FUN_0040d350 returns a decoded localized string; RT_DIALOG template literals are placeholders where runtime SetWindowTextW is observed",
@@ -6625,10 +6628,16 @@
         "command": "Callback VA 0x00436720 sends WM_COMMAND low ID 1106 to FUN_00435d80, which enables combos 1116,1117,1118 iff IsDlgButtonChecked(1106)==1; init disables the three combos when +0x54==0",
         "enumeration": "FUN_00435fc0 uses EnumFontFamiliesExW callback FUN_00435f10, omits names beginning @, and removes records when GetGlyphOutlineW('A',format=5) returns 0xffffffff for a temporary 24-pixel weight-400 font",
         "selection": "The MS UI Gothic literal provides a fallback selection; saved +0x60 can replace it; CB_SETCURSEL receives -1 if neither matches",
-        "limit": "Enumeration/probe calls do not establish a displayed preview or game renderer behavior; the count-check error helper and malformed selections remain unexpanded"
+        "capture_when_disabled": "FUN_00435e20 stores checkbox +0x54 and then unconditionally captures all three combos; disabled controls are still read",
+        "invalid_selection": "VA 0x00435ece calls FUN_0041d2db for a null list base or selected unsigned index not below the record count; if it returns, VA 0x00435ed3 reloads the base and VA 0x00435ee2 reads record+0x18 without another bounds/null check",
+        "error_dispatch": "FUN_0041d2b7 decodes global VA 0x004581b4; nonnull result reaches tail JMP EAX at VA 0x0041d2cb, while the null branch reaches FUN_0041d1bb and a TerminateProcess(GetCurrentProcess(),0xc000000d) request at VA 0x0041d29b; callback state and API results are unobserved",
+        "face_copy": "Caller VA 0x00435f03 invokes FUN_0041dad1 with destination +0x60 and count 0x20, then ignores its result; invalid arguments and exhausted count dispatch errors 0x16/0x22, conditionally returning those codes if the dispatcher returns",
+        "error_finding": "docs/input/config-file-error-handling.md",
+        "limit": "Enumeration/probe calls do not establish a displayed preview or game renderer behavior; malformed source accessibility, error callback/decoder state and actual process/display outcomes remain unobserved"
       }
     },
     "system_information": {
+      "collection_finding": "docs/input/config-system-information.md",
       "dialog_resource": 110,
       "tab_control_id": 1040,
       "report_pages": [
@@ -6771,10 +6780,11 @@
       "0x20120419"
     ],
     "reader_limits": {
+      "error_finding": "docs/input/config-file-error-handling.md",
       "file_read": "FUN_004428D0 passes the GetFileSize result directly to ReadFile with destination VA 0x0045cc78; no focused BOOL or returned-byte-count check precedes magic inspection",
-      "short_or_oversize_input": "malformed, short and oversize file behavior is unresolved because no focused size guard was recovered",
+      "short_or_oversize_input": "short or failed reads still reach magic inspection; the file-size read request has no capacity guard and the global object's exact capacity is unresolved; actual API bytes and overwrite outcomes are unobserved",
       "legacy_selector": "FUN_004428D0 instruction sites VA 0x00442A56..0x00442A7A index the selector table by the legacy dword value without a focused bounds check",
-      "string_copy": "current and legacy string copies use NUL-terminated loops without a focused source-length bound",
+      "string_copy": "formats 0x20101020 and 0x20120419 use NUL-terminated UTF-16 loops without source-size or destination-capacity comparisons; 0x20100706 copies no strings",
       "validation_scope": "defaults and conversion observations are not a safe-file validation contract"
     },
     "default_dwords": [
@@ -7151,7 +7161,7 @@
               "kind": "selected_utf16_font",
               "meaning_status": "observed",
               "meaning": "Selected font name copied from the font list",
-              "bounds": "CB_GETCURSEL is checked against (DAT_0045cbfc-DAT_0045cbf8)/0x1c; _wcscpy_s destination count is 0x20 and the exact list count is data-dependent",
+              "bounds": "A null base or selected unsigned index not below (DAT_0045cbfc-DAT_0045cbf8)/0x1c calls the error dispatcher; a returning dispatcher allows indexing without another check. FUN_0041dad1 destination count is 0x20; the caller ignores its result. The list count is data-dependent",
               "consumer": "FUN_004420b0(1) captures network, display, graphics, sound and font; its global unsigned gate requires snapshot offset 0x08 in 0xd800..0xd8ff before comparing current VA 0x0045c600 with snapshot VA 0x0045c8b0; confirmed save passes the 0x2ac-byte snapshot to FUN_00441910"
             }
           ],
@@ -7719,8 +7729,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 120,
           "caption_key_hex": "0x0078",
@@ -7760,8 +7772,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 121,
           "caption_key_hex": "0x0079",
@@ -7801,8 +7815,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 122,
           "caption_key_hex": "0x007a",
@@ -7842,8 +7858,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 123,
           "caption_key_hex": "0x007b",
@@ -7880,8 +7898,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "template_group_box",
+            "backing_status": "none_recorded",
+            "evidence": "Resource 101 declares these BUTTON controls with style 0x50000007 (BS_GROUPBOX); no focused field or command join is recorded"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7909,8 +7929,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "template_group_box",
+            "backing_status": "none_recorded",
+            "evidence": "Resource 101 declares these BUTTON controls with style 0x50000007 (BS_GROUPBOX); no focused field or command join is recorded"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7938,8 +7960,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "template_group_box",
+            "backing_status": "none_recorded",
+            "evidence": "Resource 101 declares these BUTTON controls with style 0x50000007 (BS_GROUPBOX); no focused field or command join is recorded"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7967,8 +7991,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "template_group_box",
+            "backing_status": "none_recorded",
+            "evidence": "Resource 101 declares these BUTTON controls with style 0x50000007 (BS_GROUPBOX); no focused field or command join is recorded"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -7999,8 +8025,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 126,
           "caption_key_hex": "0x007e",
@@ -8040,8 +8068,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 127,
           "caption_key_hex": "0x007f",
@@ -8081,8 +8111,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 128,
           "caption_key_hex": "0x0080",
@@ -8122,8 +8154,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 129,
           "caption_key_hex": "0x0081",
@@ -8163,8 +8197,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 131,
           "caption_key_hex": "0x0083",
@@ -8204,8 +8240,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 130,
           "caption_key_hex": "0x0082",
@@ -8245,8 +8283,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 132,
           "caption_key_hex": "0x0084",
@@ -8286,8 +8326,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 133,
           "caption_key_hex": "0x0085",
@@ -8327,8 +8369,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 134,
           "caption_key_hex": "0x0086",
@@ -8368,8 +8412,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 135,
           "caption_key_hex": "0x0087",
@@ -8409,8 +8455,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 136,
           "caption_key_hex": "0x0088",
@@ -8450,8 +8498,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 137,
           "caption_key_hex": "0x0089",
@@ -8491,8 +8541,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 119,
           "caption_key_hex": "0x0077",
@@ -8532,8 +8584,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 124,
           "caption_key_hex": "0x007c",
@@ -8600,8 +8654,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "preset_row_selector",
+            "backing_status": "choice_consumed_by_preset_command",
+            "evidence": "FUN_00431f10 inserts three labels from table VA 0x00457450; command 0x456 in FUN_004318b0 reads combo 0x3e9 and copies the selected 24-byte row from VA 0x00457408"
           },
           "caption_source": "other_runtime_text",
           "caption_source_evidence": "focused initializer or visual update path writes runtime text; no direct caption key is assigned"
@@ -9753,8 +9809,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 286,
           "caption_key_hex": "0x011e",
@@ -9794,8 +9852,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 131,
           "caption_key_hex": "0x0083",
@@ -9835,8 +9895,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 130,
           "caption_key_hex": "0x0082",
@@ -9876,8 +9938,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 137,
           "caption_key_hex": "0x0089",
@@ -9917,8 +9981,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 134,
           "caption_key_hex": "0x0086",
@@ -9958,8 +10024,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 133,
           "caption_key_hex": "0x0085",
@@ -9999,8 +10067,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 136,
           "caption_key_hex": "0x0088",
@@ -10040,8 +10110,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 126,
           "caption_key_hex": "0x007e",
@@ -10081,8 +10153,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 127,
           "caption_key_hex": "0x007f",
@@ -10122,8 +10196,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 128,
           "caption_key_hex": "0x0080",
@@ -10163,8 +10239,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 129,
           "caption_key_hex": "0x0081",
@@ -10204,8 +10282,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 120,
           "caption_key_hex": "0x0078",
@@ -10245,8 +10325,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 121,
           "caption_key_hex": "0x0079",
@@ -10286,8 +10368,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 122,
           "caption_key_hex": "0x007a",
@@ -10327,8 +10411,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 132,
           "caption_key_hex": "0x0084",
@@ -10368,8 +10454,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 135,
           "caption_key_hex": "0x0087",
@@ -10409,8 +10497,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes"
           },
           "caption_key": 287,
           "caption_key_hex": "0x011f",
@@ -10447,8 +10537,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "template_group_box",
+            "backing_status": "none_recorded",
+            "evidence": "Resource 101 declares these BUTTON controls with style 0x50000007 (BS_GROUPBOX); no focused field or command join is recorded"
           },
           "caption_source": "unknown_or_static_template",
           "caption_source_evidence": "No focused runtime caption write or direct localization key join"
@@ -10586,12 +10678,18 @@
           "join": {
             "status": "observed",
             "kind": "input_test_visual_control",
-            "backing_status": "unknown",
-            "meaning": "used by the input-test poll/display-only path; backing field is unresolved",
-            "evidence": "FUN_00430FE0 polls and displays resource 102 visual control IDs 0x3fd..0x3ff; no saved-state write is observed"
+            "backing_status": "read_only_runtime_values",
+            "mapping_indexes": [
+              2,
+              3,
+              0,
+              1
+            ],
+            "meaning": "signed config.pad mapping bytes select floats at polled record+0x20+source*4 for custom GDI drawing; no persisted visual field or write",
+            "evidence": "FUN_00430fe0 initializes visual IDs and twelve source indexes, calls FUN_004405f0, then draws each control; expanded in docs/input/controller-mapping.md"
           },
-          "caption_source": "other_runtime_text",
-          "caption_source_evidence": "focused initializer or visual update path writes runtime text; no direct caption key is assigned"
+          "caption_source": "custom_gdi_drawing",
+          "caption_source_evidence": "FUN_00430fe0 draws a frame, crosshair and mapped-state point; no runtime text or localized caption write is established for this visual"
         },
         {
           "index": 2,
@@ -10616,8 +10714,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431510 sets keys 0x8d..0x8f on IDs 0x415..0x417; resource geometry associates these labels with the three visuals"
           },
           "caption_key": 141,
           "caption_key_hex": "0x008d",
@@ -10656,12 +10756,18 @@
           "join": {
             "status": "observed",
             "kind": "input_test_visual_control",
-            "backing_status": "unknown",
-            "meaning": "used by the input-test poll/display-only path; backing field is unresolved",
-            "evidence": "FUN_00430FE0 polls and displays resource 102 visual control IDs 0x3fd..0x3ff; no saved-state write is observed"
+            "backing_status": "read_only_runtime_values",
+            "mapping_indexes": [
+              6,
+              7,
+              4,
+              5
+            ],
+            "meaning": "signed config.pad mapping bytes select floats at polled record+0x20+source*4 for custom GDI drawing; no persisted visual field or write",
+            "evidence": "FUN_00430fe0 initializes visual IDs and twelve source indexes, calls FUN_004405f0, then draws each control; expanded in docs/input/controller-mapping.md"
           },
-          "caption_source": "other_runtime_text",
-          "caption_source_evidence": "focused initializer or visual update path writes runtime text; no direct caption key is assigned"
+          "caption_source": "custom_gdi_drawing",
+          "caption_source_evidence": "FUN_00430fe0 draws a frame, crosshair and mapped-state point; no runtime text or localized caption write is established for this visual"
         },
         {
           "index": 4,
@@ -10686,8 +10792,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431510 sets keys 0x8d..0x8f on IDs 0x415..0x417; resource geometry associates these labels with the three visuals"
           },
           "caption_key": 142,
           "caption_key_hex": "0x008e",
@@ -10726,12 +10834,18 @@
           "join": {
             "status": "observed",
             "kind": "input_test_visual_control",
-            "backing_status": "unknown",
-            "meaning": "used by the input-test poll/display-only path; backing field is unresolved",
-            "evidence": "FUN_00430FE0 polls and displays resource 102 visual control IDs 0x3fd..0x3ff; no saved-state write is observed"
+            "backing_status": "read_only_runtime_values",
+            "mapping_indexes": [
+              10,
+              11,
+              8,
+              9
+            ],
+            "meaning": "signed config.pad mapping bytes select floats at polled record+0x20+source*4 for custom GDI drawing; no persisted visual field or write",
+            "evidence": "FUN_00430fe0 initializes visual IDs and twelve source indexes, calls FUN_004405f0, then draws each control; expanded in docs/input/controller-mapping.md"
           },
-          "caption_source": "other_runtime_text",
-          "caption_source_evidence": "focused initializer or visual update path writes runtime text; no direct caption key is assigned"
+          "caption_source": "custom_gdi_drawing",
+          "caption_source_evidence": "FUN_00430fe0 draws a frame, crosshair and mapped-state point; no runtime text or localized caption write is established for this visual"
         },
         {
           "index": 6,
@@ -10756,8 +10870,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_00431510 sets keys 0x8d..0x8f on IDs 0x415..0x417; resource geometry associates these labels with the three visuals"
           },
           "caption_key": 143,
           "caption_key_hex": "0x008f",
@@ -10851,8 +10967,10 @@
           "extended_style_hex": "0x00000000",
           "extra_hex": "",
           "join": {
-            "status": "unknown",
-            "reason": "No focused persisted-field or command-handler join is recorded; caption evidence is recorded separately."
+            "status": "observed",
+            "kind": "localized_caption_only",
+            "backing_status": "none",
+            "evidence": "FUN_004331e0 writes Language key 0x65 to static control 0x40e; combo 0x40f owns selection"
           },
           "caption_key": 101,
           "caption_key_hex": "0x0065",

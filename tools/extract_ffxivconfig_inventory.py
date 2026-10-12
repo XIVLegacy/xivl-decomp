@@ -783,6 +783,12 @@ def _control_join(
                     "evidence": "FUN_00430e20/FUN_004318b0 and table VA 0x0044d6c0",
                 }
         direct = {
+            1001: {
+                "status": "observed",
+                "kind": "preset_row_selector",
+                "backing_status": "choice_consumed_by_preset_command",
+                "evidence": "FUN_00431f10 inserts three labels from table VA 0x00457450; command 0x456 in FUN_004318b0 reads combo 0x3e9 and copies the selected 24-byte row from VA 0x00457408",
+            },
             1: {
                 "status": "observed",
                 "kind": "save_cancel_command",
@@ -843,7 +849,28 @@ def _control_join(
         }
         if control_id in direct:
             return direct[control_id]
+        if control_id in (1111, 1112, 1113, 1114, 1137):
+            return {
+                "status": "observed",
+                "kind": "template_group_box",
+                "backing_status": "none_recorded",
+                "evidence": "Resource 101 declares these BUTTON controls with style 0x50000007 (BS_GROUPBOX); no focused field or command join is recorded",
+            }
+        if control_id in CONTROL_CAPTION_KEYS[101]:
+            return {
+                "status": "observed",
+                "kind": "localized_caption_only",
+                "backing_status": "none",
+                "evidence": "FUN_00431f10 directly writes this control's localized caption; labels are separate from the assignment controls and stored bytes",
+            }
     if dialog_id == 103:
+        if control_id == 1038:
+            return {
+                "status": "observed",
+                "kind": "localized_caption_only",
+                "backing_status": "none",
+                "evidence": "FUN_004331e0 writes Language key 0x65 to static control 0x40e; combo 0x40f owns selection",
+            }
         direct = {
             1018: {
                 "status": "observed",
@@ -941,12 +968,21 @@ def _control_join(
                 "evidence": "FUN_00431510 handles resource 102 control ID 1 as the close command",
             }
         if control_id in (0x3FD, 0x3FE, 0x3FF):
+            base = (control_id - 0x3FD) * 4
             return {
                 "status": "observed",
                 "kind": "input_test_visual_control",
-                "backing_status": "unknown",
-                "meaning": "used by the input-test poll/display-only path; backing field is unresolved",
-                "evidence": "FUN_00430FE0 polls and displays resource 102 visual control IDs 0x3fd..0x3ff; no saved-state write is observed",
+                "backing_status": "read_only_runtime_values",
+                "mapping_indexes": [base + 2, base + 3, base, base + 1],
+                "meaning": "signed config.pad mapping bytes select floats at polled record+0x20+source*4 for custom GDI drawing; no persisted visual field or write",
+                "evidence": "FUN_00430fe0 initializes visual IDs and twelve source indexes, calls FUN_004405f0, then draws each control; expanded in docs/input/controller-mapping.md",
+            }
+        if control_id in (0x415, 0x416, 0x417):
+            return {
+                "status": "observed",
+                "kind": "localized_caption_only",
+                "backing_status": "none",
+                "evidence": "FUN_00431510 sets keys 0x8d..0x8f on IDs 0x415..0x417; resource geometry associates these labels with the three visuals",
             }
     if dialog_id == 110:
         if control_id == 1:
@@ -1236,10 +1272,16 @@ def _application_behavior(image: Image) -> dict[str, Any]:
                 "command": "Callback VA 0x00436720 sends WM_COMMAND low ID 1106 to FUN_00435d80, which enables combos 1116,1117,1118 iff IsDlgButtonChecked(1106)==1; init disables the three combos when +0x54==0",
                 "enumeration": "FUN_00435fc0 uses EnumFontFamiliesExW callback FUN_00435f10, omits names beginning @, and removes records when GetGlyphOutlineW('A',format=5) returns 0xffffffff for a temporary 24-pixel weight-400 font",
                 "selection": "The MS UI Gothic literal provides a fallback selection; saved +0x60 can replace it; CB_SETCURSEL receives -1 if neither matches",
-                "limit": "Enumeration/probe calls do not establish a displayed preview or game renderer behavior; the count-check error helper and malformed selections remain unexpanded",
+                "capture_when_disabled": "FUN_00435e20 stores checkbox +0x54 and then unconditionally captures all three combos; disabled controls are still read",
+                "invalid_selection": "VA 0x00435ece calls FUN_0041d2db for a null list base or selected unsigned index not below the record count; if it returns, VA 0x00435ed3 reloads the base and VA 0x00435ee2 reads record+0x18 without another bounds/null check",
+                "error_dispatch": "FUN_0041d2b7 decodes global VA 0x004581b4; nonnull result reaches tail JMP EAX at VA 0x0041d2cb, while the null branch reaches FUN_0041d1bb and a TerminateProcess(GetCurrentProcess(),0xc000000d) request at VA 0x0041d29b; callback state and API results are unobserved",
+                "face_copy": "Caller VA 0x00435f03 invokes FUN_0041dad1 with destination +0x60 and count 0x20, then ignores its result; invalid arguments and exhausted count dispatch errors 0x16/0x22, conditionally returning those codes if the dispatcher returns",
+                "error_finding": "docs/input/config-file-error-handling.md",
+                "limit": "Enumeration/probe calls do not establish a displayed preview or game renderer behavior; malformed source accessibility, error callback/decoder state and actual process/display outcomes remain unobserved",
             },
         },
         "system_information": {
+            "collection_finding": "docs/input/config-system-information.md",
             "dialog_resource": 110,
             "tab_control_id": 1040,
             "report_pages": pages,
@@ -1446,7 +1488,7 @@ def _config_sys_field_notes() -> dict[tuple[int, int], dict[str, str]]:
         [1116],
         "selected_utf16_font",
         "Selected font name copied from the font list",
-        "CB_GETCURSEL is checked against (DAT_0045cbfc-DAT_0045cbf8)/0x1c; _wcscpy_s destination count is 0x20 and the exact list count is data-dependent",
+        "A null base or selected unsigned index not below (DAT_0045cbfc-DAT_0045cbf8)/0x1c calls the error dispatcher; a returning dispatcher allows indexing without another check. FUN_0041dad1 destination count is 0x20; the caller ignores its result. The list count is data-dependent",
         status="observed",
     )
     return notes
@@ -1827,10 +1869,14 @@ def _dialog_record(
             control["caption_source_evidence"] = (
                 "FUN_00432cc0 writes the caller-supplied message string to control 0x43f; no single localization key represents every caller"
             )
-        elif (
-            (dialog_id == 101 and control["id"] in {1001, 1019})
-            or (dialog_id == 102 and control["id"] in (0x3FD, 0x3FE, 0x3FF))
-            or (dialog_id == 103 and control["id"] == 1039)
+        elif dialog_id == 102 and control["id"] in (0x3FD, 0x3FE, 0x3FF):
+            control["caption_source"] = "custom_gdi_drawing"
+            control["caption_source_evidence"] = (
+                "FUN_00430fe0 draws a frame, crosshair and mapped-state point; "
+                "no runtime text or localized caption write is established for this visual"
+            )
+        elif (dialog_id == 101 and control["id"] in {1001, 1019}) or (
+            dialog_id == 103 and control["id"] == 1039
         ):
             control["caption_source"] = "other_runtime_text"
             control["caption_source_evidence"] = (
@@ -1916,7 +1962,9 @@ def extract(path: Path) -> dict[str, Any]:
                     "language_index_offset": 4,
                     "language_index_width": 1,
                 },
-                "accepted_index_range": "0..5 in FUN_0043fb30; five BINARY resource IDs are supplied by FUN_00433660",
+                "accepted_index_range": "Primary 8-byte record index is not bounded; fallback 5-byte candidate accepts 0..5, but startup discards fallback EAX; only five BINARY resource IDs are installed",
+                "fallback_result": "Call VA 0x0043383c is followed by loads/stores copying primary globals 0x00459124/0x00459128 to 0x0045912c/0x00459130; candidate outputs stay local to FUN_0043fb30",
+                "error_finding": "docs/input/config-file-error-handling.md",
                 "save_va": _hex(0x004332A0),
                 "save_rva": _hex(0x332A0),
             },
@@ -1931,6 +1979,7 @@ def extract(path: Path) -> dict[str, Any]:
                 "resource_id_table_va": _hex(0x00457F04),
                 "resource_id_table_rva": _hex(0x57F04),
                 "resource_ids_by_index": list(LANGUAGE_RESOURCE_IDS),
+                "index_bound": "VA 0x0040e401 loads ushort from table+index*4 without an index guard; index 5 is beyond the five-ID table; later resource/PEX checks do not bound this read",
                 "payload_header": "PEX",
                 "decode_pipeline": "FUN_0040e350 calls FUN_0040ccc0; FUN_0040ccc0 calls FUN_0040cb20 internally; FUN_0040e350 then calls FUN_0040dd00",
                 "dialog_caption_join": "FUN_0040d350 returns a decoded localized string; RT_DIALOG template literals are placeholders where runtime SetWindowTextW is observed",
@@ -1960,10 +2009,11 @@ def extract(path: Path) -> dict[str, Any]:
             "write_wrapper_rva": _hex(0x41910),
             "accepted_magics": [_hex(0x20100706), _hex(0x20101020), _hex(0x20120419)],
             "reader_limits": {
+                "error_finding": "docs/input/config-file-error-handling.md",
                 "file_read": "FUN_004428D0 passes the GetFileSize result directly to ReadFile with destination VA 0x0045cc78; no focused BOOL or returned-byte-count check precedes magic inspection",
-                "short_or_oversize_input": "malformed, short and oversize file behavior is unresolved because no focused size guard was recovered",
+                "short_or_oversize_input": "short or failed reads still reach magic inspection; the file-size read request has no capacity guard and the global object's exact capacity is unresolved; actual API bytes and overwrite outcomes are unobserved",
                 "legacy_selector": "FUN_004428D0 instruction sites VA 0x00442A56..0x00442A7A index the selector table by the legacy dword value without a focused bounds check",
-                "string_copy": "current and legacy string copies use NUL-terminated loops without a focused source-length bound",
+                "string_copy": "formats 0x20101020 and 0x20120419 use NUL-terminated UTF-16 loops without source-size or destination-capacity comparisons; 0x20100706 copies no strings",
                 "validation_scope": "defaults and conversion observations are not a safe-file validation contract",
             },
             "default_dwords": [

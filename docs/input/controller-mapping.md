@@ -110,6 +110,71 @@ meaningful persisted mappings. Whether invalid-control API calls affect a
 live dialog is unobserved. A writer must preserve the opaque tail rather than
 interpret these helper bounds as a second mapping bank.
 
+More precisely, the 48 text iterations read `config.pad+0x2c..0x5b`:
+the 24 assignments, vibration DWORD and 20 opaque bytes. The enable/text
+loops use the first DWORDs of the 24 adjacent 8-byte chunks at
+`0x0044d780..0x0044d838` as control IDs. Those bytes contain strings and
+other data. The unrecognized-command scan at `0x00431e7f..0x00431eee`
+also visits 48 first DWORDs after masking the command to its low word.
+Adjacent rows 38, 43 and 46 have values `0x2d`, `0x306a` and `0x67`,
+respectively, that fit that word. A matching command could set the focused
+index to `24..47`; the selected-index helper then permits reads, assignment
+writes and clears at `+0x44..0x5b`, plus adjacent-table focus calls. The byte
+assignment at `0x00431844` is not bounded by its preceding 24-entry duplicate
+removal. No ordinary user command or
+successful HWND operation on those rows is established.
+
+Whole-block load, comparison and save include `+0x48..0x147`; the clear
+helper zeroes it. Direct text-loop accesses reach only `+0x48..0x5b`.
+These distinct access ranges do not assign meanings to opaque bytes.
+
+## Input-test drawing and controls
+
+Resource 102 has seven controls. Button 1 uses localized key `0x90`
+(English Accept) and closes through `EndDialog(dialog,1)`. The three STATIC
+labels `0x415..0x417` use keys `0x8d..0x8f` (Menus, Movement, Camera).
+Resource coordinates associate them with visuals `0x3fd..0x3ff`; there is
+no direct code pairing a label ID with a visual ID.
+
+`FUN_00431510` sets timer 2 to 30 ms and routes both WM_PAINT and WM_TIMER
+to `FUN_00430fe0`, without testing the timer message's ID. WM_CLOSE kills
+timer 2 and returns dialog result 2. The button path has no separate
+KillTimer call. The parent's Test command kills timer 1, opens resource 102,
+invalidates the parent and restarts its 30 ms timer; it neither checks the
+dialog result nor writes `config.pad`.
+
+The draw helper calls `FUN_004405f0` before BeginPaint, then draws a frame,
+crosshair and red point using the selected cached record. Let `M[i]` be the
+signed byte at `config.pad+0x2c+i`, and `R(s)` its source float at record
+`+0x20+4*s`. A negative mapping or absent/out-of-range selected record supplies
+zero on the initial guard paths. No upper source-index validation is present
+in the inspected draw lookup. The visual groups are:
+
+| Visual | Group base `b` | Horizontal source indexes | Vertical source indexes |
+|---|---:|---|---|
+| `0x3fd` | 0 | 2, 3 | 0, 1 |
+| `0x3fe` | 4 | 6, 7 | 4, 5 |
+| `0x3ff` | 8 | 10, 11 | 8, 9 |
+
+The differences are `dx = R(M[b+3])-R(M[b+2])` and
+`dy = R(M[b+1])-R(M[b])`. With integer rectangle centers `Xc,Yc`, the
+point offsets use `C*Xc*dx` and `C*Yc*dy`, converted by `FUN_004430b0`.
+The double at VA `0x0044f380` is exactly `-0.800000011920929`.
+Raw x87 instructions at `0x00431441..0x00431470` establish both products:
+the x conversion consumes ST(0), leaving `C` for the y `FMULP` at
+`0x0043146e`. The conversion branches on global `0x00465cc0`: its nonzero
+path uses `CVTTSD2SI`, while the x87 path uses `FISTP` and sign correction.
+The FPU control word can affect the latter arithmetic; its explicit test
+belongs to the separate entry at `0x004430cc`. The ellipse uses center minus each converted offset
+with bounds +/-2. These equations describe drawing, not calibration.
+
+When selected-device global `0x0045913c` is zero, the branch at
+`0x004311ae` skips the ReleaseDC call at `0x004314c4` even though GetDC
+already occurred. This is a static missing-release path, not a measured GDI
+leak. A nonzero selected index beyond the record count supplies zero source
+values and still reaches the point-drawing path. Actual polling, timer,
+rendering, HWND, API and FPU outcomes remain runtime questions.
+
 ## Source values before logical mapping
 
 Config's accessor `0x00440580` returns `record+0x20 + source_index*4`.
