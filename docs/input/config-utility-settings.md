@@ -223,8 +223,10 @@ at VAs `0x0044285B..0x00442862`. These instruction facts are recovered even
 though the Ghidra callback label `LAB_00442570` has no separate function body.
 
 The game's `config.sys` reader and startup dimension checks are documented
-in [game startup](game-controller-startup.md#startup-readers). A stored utility
-field is not a proved game effect until its consumer is joined.
+in [game startup](game-controller-startup.md#startup-readers). Concrete
+normalized-field joins and their unresolved downstream edges are recorded in
+[system configuration consumers](system-configuration-consumers.md). A stored
+utility field is not a proved game effect until its consumer is joined.
 
 ## Controller joins retained here
 
