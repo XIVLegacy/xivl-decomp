@@ -53,12 +53,14 @@ which opaque `config.sys` field, if any, becomes `input_mode`.
 `FUN_00D34410` (VA `0x00D34410`, RVA `0x00934410`) consumes the prepared
 Pad block. If the first dword is not `0x20100211`, the fallback clears
 `0x148` bytes at `Pad+0x80`, writes the magic, sets `Pad+0xA8=2`,
-`Pad+0xA4=0`, `Pad+0xC4=0`, and initializes six runtime fields to `-1`; these
+`Pad+0xA4=0`, `Pad+0xC4=0`, and uses six `-1` dword stores to initialize the
+24 source-assignment bytes at `Pad+0xAC..Pad+0xC3` to `0xFF`; these
 writes are at VAs `0x00D34430..0x00D34484` (RVAs
 `0x00934430..0x00934484`). It then calls `FUN_00D33630` (VA `0x00D33630`,
 RVA `0x00933630`) at VA `0x00D344AC` (RVA `0x009344AC`) and unconditionally
 returns `AL=1` at VA `0x00D344B3` (RVA `0x009344B3`). The return value does not
-prove that a controller record was enumerated.
+prove that a controller record was enumerated. The byte-level interpretation
+is documented in [controller mapping](controller-mapping.md).
 
 ## Controller initialization and selection
 
