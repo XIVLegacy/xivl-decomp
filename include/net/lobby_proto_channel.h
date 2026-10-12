@@ -64,6 +64,13 @@ namespace xivl_decomp::net::lobby_proto_channel
 // The Chat channel's slot-2 (`FUN_00e409e0`, 39 bytes) writes byte 8
 // as the literal constant `0x0A` instead of calling _time64. So
 // chat-channel headers carry `timestamp = 0x0A` always.
+//
+// The pcap-correlated wire layout of this header is owned by the structure
+// catalog: xivl-client-structs:manifests/structs.json entry BCS-S-0001
+// (BasePacketHeader). Field offsets and sizes agree. Two observations
+// remain unreconciled: that entry reports byte 0 as 0x01 in chat/world
+// captures where BuildHeader writes 0x14, and reports bytes 12..15 as a
+// nonzero session-epoch value where this header expects zero.
 struct ClientPacketBuilderHeader
 {
     // The binary unconditionally writes `0x14`, a constant marker with

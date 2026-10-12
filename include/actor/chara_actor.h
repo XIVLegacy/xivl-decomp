@@ -41,6 +41,9 @@
 //   Effect::EffectActor (164), Window::WindowActor (160).
 //
 // vtable: RVA 0xbc0d34 (= VA 0xfc0d34), 188 slots
+//         Vtable identity is owned by the structure catalog:
+//         xivl-client-structs:manifests/symbols.json entry BCS-Y-1846
+//         (Application_Scene_Actor_Chara_CharaActor_vftable, VA 0x00FC0D34).
 // ctor:   FUN_0065f180 (1942 B at file 0x25f180)
 // dtor:   FUN_00666130 (968 B at file 0x266130) - wrapped by slot 0
 //         (FUN_00669e20, 34 B scalar deleting destructor)
