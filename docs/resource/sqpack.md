@@ -21,6 +21,18 @@ uppercase hex. Confirmed by:
 - The path-format string `"%cdata%c%02X%c%02X%c%02X%c%02X.DAT"` at
   RVA `0x00b672bc` (abs `0x00f672bc`).
 
+The 1.23b install's `data/` tree holds 140,180 `.DAT` files under 75
+first-level, 1,344 second-level, and 1,627 third-level directories. No file
+sits directly in a first- or second-level directory. Every second-level
+directory contains a `00` third-level directory; 42 distinct third-level names
+occur, so `b1` is not always zero. The install root also holds a loose
+`client/` tree, addressed by path rather than resource ID, with `chara/`,
+`cut/` (690 directories: 689 scenes and the shared `mot` set), `script/`, `sqwt/`, and `vfx/`
+(16 bank directories). These counts are a directory listing of the retail
+install. A prior external lead, `docs/install_inventory_2026-09-27.md` at
+revision `d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, reported the same
+first-level and second-level counts.
+
 This byte-group mapping is conditional on the formatter's mode byte being
 nonzero. When it is zero, the same function uses a high-16 group and low-16
 index catalog path instead. See [Resource path producer](resource-path-producer.md)

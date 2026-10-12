@@ -9,7 +9,7 @@ establish playback order, runtime binding, or contact.
 
 ## Coverage
 
-The scan read all 9,593 files in the 690 scene directories and found 86,405
+The scan read all 9,593 files in the 690 `cut` directories and found 86,405
 `SEDB` headers, of which 689 fold to `scb`. Every scene except `mot` has
 exactly one scheduler, in its primary `<scene>/<scene>` file. All 689 parse
 under the published layout. The two
@@ -17,6 +17,17 @@ under the published layout. The two
 their pinned offsets, lengths and digests. All 57 pinned
 [raid actor records](raid-cutscene-actor-records.md) resolve to ProxyActor
 records under the `@CACT` walk.
+
+Of the 689 primary scene files, 683 begin with `PWIB` and 6 begin with
+`SEDB`; 665 scene directories also hold a `DataSet/` subdirectory. The `mot`
+directory is not a scene: it holds 3,843 files in 15 `c`-prefixed sets
+(`c001` through `c010`, `c021` through `c025`) and 16 `m`-prefixed sets
+(`m041` through `m912`). These counts come from a read-only listing and
+four-byte magic read of the same tree. A prior external lead,
+`docs/container_internals_4_2026-09-27.md` at revision
+`d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, reported the `mot` set names and
+file count; its statement that every scene blob is PWIB came from 20 samples
+and does not hold for the six `SEDB` files.
 
 | Clip key | Records |
 | --- | ---: |
