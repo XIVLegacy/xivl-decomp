@@ -303,6 +303,7 @@ HookInstallBackend ObserverNativeBackend::cpu_hook_backend() noexcept
     backend.retain_module           = &retain_module;
     backend.release_module          = &release_module;
     backend.inspect_module          = &inspect_module;
+    backend.revalidate_module       = &revalidate_module;
     backend.acquire_quiescence      = &acquire_quiescence;
     backend.revalidate_quiescence   = &revalidate_quiescence;
     backend.release_quiescence      = &release_quiescence;
@@ -502,6 +503,17 @@ HookBackendResult ObserverNativeBackend::inspect_module(void*                 us
     inspection->relocations[0] = { true, false, 0 };
     inspection->relocations[1] = { true, true, 3 };
     inspection->relocations[2] = { true, false, 0 };
+    return HookBackendResult::Success;
+}
+
+HookBackendResult ObserverNativeBackend::revalidate_module(void*                     user,
+                                                           const HookInstallState*   transaction,
+                                                           HookHeldModuleInspection* inspection) noexcept
+{
+    CpuState* state = cpu_state(user);
+    if (state == nullptr || transaction == nullptr || inspection == nullptr || !state->module_pin_held)
+        return HookBackendResult::Refused;
+    *inspection = { { kPinId }, kPinId, kLoadedBase, kLoadedBase, kPinnedHookImageSize, true, true };
     return HookBackendResult::Success;
 }
 

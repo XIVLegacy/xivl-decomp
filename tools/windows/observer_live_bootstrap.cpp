@@ -17,6 +17,9 @@
 extern "C" __declspec(dllexport) xivl::observer_candidate::ObserverLiveBootstrapV1
                                  xivl_observer_bootstrap_v1{};
 
+#pragma section(".xivlact", read, write)
+extern "C" __declspec(dllexport) __declspec(allocate(".xivlact")) constinit xivl::observer_candidate::ObserverActivationProvisionV1 xivl_observer_activation_binding_v1{};
+
 namespace xivl::observer_candidate
 {
 
@@ -639,10 +642,12 @@ void initialize_core() noexcept
         reinterpret_cast<std::uintptr_t>(&g_cleanup_hold_request));
     copy_profile(&xivl_observer_bootstrap_v1.profile_id);
     xivl_observer_bootstrap_v1.executable_sha256 = executable_hash;
+    xivl_observer_bootstrap_v1.activation        = xivl_observer_activation_binding_v1.stamp;
     g_hold_evidence                              = ObserverPublicationHoldEvidenceV1{};
     g_hold_evidence.observer_process_id          = process_id;
     g_hold_evidence.observer_instance_id         = instance_id;
     g_child_control                              = ObserverLiveChildControlV1{};
+    g_child_control.activation                   = xivl_observer_activation_binding_v1.stamp;
     g_child_control.observer_process_id          = process_id;
     g_child_control.observer_instance_id         = instance_id;
     g_child_control.state                        = static_cast<std::uint32_t>(ObserverLiveChildState::Uninitialized);
@@ -666,7 +671,8 @@ bool bootstrap_request_valid(const ObserverLiveOwnerControlRequestV1& request,
         request.observer_instance_id != bootstrap.instance_id ||
         request.publication_address != bootstrap.publication_address ||
         request.owner_witness_address != bootstrap.owner_witness_address ||
-        request.owner_id == 0 || request.module_pin_identity != bootstrap.module_pin_identity)
+        request.owner_id == 0 || request.module_pin_identity != bootstrap.module_pin_identity ||
+        !observer_activation_stamp_equal(request.activation, bootstrap.activation))
     {
         return false;
     }
@@ -702,8 +708,7 @@ bool hold_request_valid(const ObserverLiveHoldRequestV1& request,
                                                         ? ObserverLiveChildState::Complete
                                                         : ObserverLiveChildState::Detached;
     return g_bootstrap_ready.load(std::memory_order_acquire) &&
-           request.size_bytes == sizeof(request) &&
-           request.version == kObserverLiveHoldRequestVersion &&
+           observer_live_hold_activation_matches(request, bootstrap.activation) &&
            request.observer_process_id == bootstrap.process_id &&
            request.observer_instance_id == bootstrap.instance_id &&
            request.kind == static_cast<std::uint32_t>(expected_kind) &&
@@ -2932,8 +2937,10 @@ int observer_live_child_main(int                          argc,
     request.collection_ticks                         = collection_ticks;
     request.completion_ticks                         = completion_ticks;
     request.cleanup_ticks                            = cleanup_ticks;
-    std::string refusal;
-    if (!authority.allows_native(&refusal))
+    std::string           refusal;
+    ObserverLiveAuthority bound_authority;
+    (void)authority;
+    if (!observer_activation_validate_child(xivl_observer_activation_binding_v1, argc, argv, request, &bound_authority, &refusal))
     {
         return 3;
     }
@@ -2941,7 +2948,7 @@ int observer_live_child_main(int                          argc,
     {
         return 2;
     }
-    return observer_live_child_entry(authority, request, completion_ticks, &refusal) ? 0 : 1;
+    return observer_live_child_entry(bound_authority, request, completion_ticks, &refusal) ? 0 : 1;
 }
 
 } // namespace xivl::observer_candidate

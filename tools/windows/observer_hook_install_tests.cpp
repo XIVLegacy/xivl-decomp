@@ -147,23 +147,27 @@ struct FakeBackend
     bool                                                                     restore_phase                                       = false;
     std::size_t                                                              mutation_target                                     = 0;
     std::array<std::size_t, kHookEntryCount>                                 site_reads{};
-    std::uint32_t                                                            site_writes               = 0;
-    std::uint32_t                                                            protection_restore_calls  = 0;
-    HookInstallState*                                                        reentry_state             = nullptr;
-    bool                                                                     reentry_attempted         = false;
-    HookInstallDisposition                                                   reentry_disposition       = HookInstallDisposition::Rejected;
-    HookFailure                                                              reentry_failure           = HookFailure::None;
-    bool                                                                     threw                     = false;
-    std::uint32_t                                                            revalidate_calls          = 0;
-    std::uint32_t                                                            redirect_quiescence_polls = 0;
-    std::uint32_t                                                            writes                    = 0;
-    std::uint32_t                                                            publish_calls             = 0;
-    std::uint32_t                                                            cache_flushes             = 0;
-    std::uint32_t                                                            frees                     = 0;
-    bool                                                                     pin_held                  = false;
-    bool                                                                     lease_held                = false;
-    bool                                                                     publication_enabled       = false;
-    bool                                                                     publication_owner         = false;
+    std::uint32_t                                                            site_writes                 = 0;
+    std::uint32_t                                                            protection_restore_calls    = 0;
+    HookInstallState*                                                        reentry_state               = nullptr;
+    bool                                                                     reentry_attempted           = false;
+    HookInstallDisposition                                                   reentry_disposition         = HookInstallDisposition::Rejected;
+    HookFailure                                                              reentry_failure             = HookFailure::None;
+    bool                                                                     threw                       = false;
+    std::uint32_t                                                            revalidate_calls            = 0;
+    std::uint32_t                                                            redirect_quiescence_polls   = 0;
+    std::uint32_t                                                            writes                      = 0;
+    std::uint32_t                                                            publish_calls               = 0;
+    std::uint32_t                                                            cache_flushes               = 0;
+    std::uint32_t                                                            frees                       = 0;
+    bool                                                                     pin_held                    = false;
+    bool                                                                     lease_held                  = false;
+    std::uint64_t                                                            module_witness              = kPinToken;
+    std::uintptr_t                                                           allocation_base             = 0;
+    bool                                                                     module_readable             = true;
+    bool                                                                     module_change_inside_window = false;
+    bool                                                                     publication_enabled         = false;
+    bool                                                                     publication_owner           = false;
     ObserverPublicationRecordV1                                              publication_record{};
     ObserverPublicationBindingV1                                             publication_binding{};
     ObserverPublicationHoldEvidenceV1                                        publication_hold{};
@@ -482,6 +486,25 @@ HookBackendResult fake_inspect_module(void* user, void*, HookOpaqueToken, HookMo
         return HookBackendResult::Refused;
     }
     *inspection = backend->inspection;
+    return HookBackendResult::Success;
+}
+
+HookBackendResult fake_revalidate_module(void* user, const HookInstallState*, HookHeldModuleInspection* inspection)
+{
+    auto* backend = fake(user);
+    if (inspection == nullptr || !backend->pin_held)
+        return HookBackendResult::Refused;
+    if (backend->module_change_inside_window)
+    {
+        bool writable = false;
+        for (const auto protection : backend->site_protection)
+            writable = writable || hook_has_protection(protection, HookProtection::Write);
+        for (const auto& block : backend->blocks)
+            writable = writable || (block.alive && hook_has_protection(block.protection, HookProtection::Write));
+        if (writable)
+            ++backend->module_witness;
+    }
+    *inspection = { { kPinToken }, backend->module_witness, backend->inspection.loaded_base, backend->allocation_base == 0 ? backend->inspection.loaded_base : backend->allocation_base, backend->inspection.image_size, backend->inspection.pe32_i386, backend->module_readable };
     return HookBackendResult::Success;
 }
 
@@ -970,6 +993,7 @@ HookInstallBackend fake_backend(FakeBackend* backend)
     result.retain_module           = fake_retain;
     result.release_module          = fake_release;
     result.inspect_module          = fake_inspect_module;
+    result.revalidate_module       = fake_revalidate_module;
     result.acquire_quiescence      = fake_acquire;
     result.revalidate_quiescence   = fake_revalidate;
     result.release_quiescence      = fake_release_quiescence;
@@ -1793,6 +1817,48 @@ void test_dispatch_gate(TestState* tests)
 
 } // namespace
 
+void test_held_module_changes(TestState* tests)
+{
+    for (int changed = 0; changed < 5; ++changed)
+    {
+        FakeBackend      backend;
+        HookInstallState state;
+        const auto       installed = install(&backend, &state);
+        tests->check(installed.disposition == HookInstallDisposition::Installed, "module pin test installs owned redirects");
+        const auto writes = backend.writes;
+        if (changed == 0)
+            ++backend.module_witness;
+        if (changed == 1)
+            backend.allocation_base += 0x1000;
+        if (changed == 2)
+            backend.inspection.loaded_base += 0x1000;
+        if (changed == 3)
+            ++backend.inspection.image_size;
+        if (changed == 4)
+            backend.module_readable = false;
+        const auto refused = restore_hook_transaction(&state);
+        tests->check(refused.disposition == HookInstallDisposition::Retained && backend.writes == writes,
+                     "changed held reference/base/extent refuses restoration before write");
+        tests->check(!refused.unknown_side_effects, "pre-write module refusal retains known state");
+        backend.module_witness         = kPinToken;
+        backend.allocation_base        = kLoadedBase;
+        backend.inspection.loaded_base = kLoadedBase;
+        backend.inspection.image_size  = kPinnedHookImageSize;
+        backend.module_readable        = true;
+        const auto restored            = restore_hook_transaction(&state);
+        tests->check(restored.disposition == HookInstallDisposition::Restored,
+                     "exact owned redirect spans restore under the unchanged module pin");
+    }
+    FakeBackend      writable;
+    HookInstallState state;
+    writable.module_change_inside_window = true;
+    const auto failed                    = install(&writable, &state);
+    tests->check(failed.disposition == HookInstallDisposition::Retained && failed.unknown_side_effects,
+                 "module reference change inside writable window retains uncertainty");
+    tests->check(writable.protection_restore_calls == 1 && !failed.protection_unverified,
+                 "module reference refusal repairs the one known writable protection once");
+}
+
 SelfTestReport run_hook_install_self_tests()
 {
     TestState tests;
@@ -1808,6 +1874,7 @@ SelfTestReport run_hook_install_self_tests()
     test_mutation_failures(&tests);
     test_restore_ownership_and_rollback_failures(&tests);
     test_dispatch_gate(&tests);
+    test_held_module_changes(&tests);
     tests.report.passed  = tests.report.failures == 0;
     tests.report.summary = tests.report.passed ? "hook install fake backend checks passed"
                                                : tests.failures.str();

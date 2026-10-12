@@ -154,6 +154,43 @@ permits collection of unresolved identities; it cannot mark them qualified.
 
 ## Conditional native qualification
 
+The default source policy refuses both native entries. A separately reviewed
+private policy header may be supplied as the explicit CMake build input
+`XIVL_OBSERVER_POLICY_HEADER`. It supplies purpose, grant, profile, finite
+limits and canonical absolute review-record/reservation locators. It contains
+no credential and belongs to the pinned source snapshot. A command-line value
+or external record cannot enable that policy.
+
+`observer_activation_binding` separates `GatherQueryOutputIdentities`
+permission from runtime identity qualification. Preparation conveys no native
+permission. It compares the complete bounded ASCII run record, source/build
+file associations, actual controller/observer/engine/fixture/supporting-set
+bytes, exact command lines and argv, limits, fresh outputs and cleanup contract.
+The record uses sorted unique `key=value` rows, LF endings and a final newline.
+Unknown, duplicate, missing or changed fields refuse admission.
+
+Immediately before the first controller worker dispatch, the factory reserves
+the policy's one canonical file with `CREATE_NEW` and flushes the immutable
+grant/attempt/session, request/record digests and controller creation identity.
+Existing or partial markers and uncertain creation/write/flush results prevent
+dispatch and automatic retry. Reservation intent and actual dispatch results
+remain separate evidence. The capability permits one observer creation and
+same-attempt cleanup under the existing resource and exclusion checks.
+
+Under the exact outstanding `CREATE_PROCESS` event, the controller fills the
+exported data-only `xivl_observer_activation_binding_v1` record and duplicates
+only a read-only reservation handle and a controller identity/synchronization
+handle into the created observer. It persists the complete provision readback
+before continuation. The child independently validates the same record, file
+pins, effective inputs and creation identities before loading DbgEng. Versioned
+attempt/digest acknowledgments bind bootstrap, options readiness, holds and
+fixture transfer. Direct child invocation supplies no such provision.
+
+The `.activation-record`, `.activation-attempt` and `.activation-provision`
+sidecars retain exact reviewed bytes, dispatch/creation outcomes and the
+provision readback. Reservation reads use explicit file offsets. These source
+checks and CPU receipts do not establish observed native effects.
+
 The native command accepts the same profile and seven controller limits, plus
 explicit `--collection-ticks` and `--child-completion-ticks`, absolute
 observer, engine, fixture and supporting-file-set paths, explicit command

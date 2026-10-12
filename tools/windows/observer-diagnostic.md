@@ -493,6 +493,17 @@ file and stays valid for every reachable original, wrapper and trampoline.
 A file digest, reported path or equal handle/base alone does not establish
 resident-image identity.
 
+Each fresh mutation or code-bearing cleanup attestation also calls
+`revalidate_module`. It compares the retained reference witness, pin token,
+allocation/image base, readable PE32/I386 header and image extent with the
+accepted module. A changed or unreadable witness refuses progress. The native
+transport performs the same check for raw-slot operations. This check preserves
+the initial file/resident binding without rerunning the original full-image
+comparison over transaction-owned redirects. Exact current site bytes still
+have their separate original/owned-redirect checks before writes. Refusal
+inside a known writable window retains uncertainty and attempts the existing
+single protection repair.
+
 Successful installation releases the lease. Restoration acquires a new lease
 when code-bearing state remains and no lease is held. A native implementation
 must establish all five conditions for both phases, rather than assuming that
@@ -610,7 +621,7 @@ lease or qualify live installation.
 | Preserve copied-entry exception and unwind behavior | QueryService begins at `0x468B10`; copied spans and resume addresses are in the entry plan. | A supported exception/unwind contract for relocated prologues and the actual wrappers. |
 | Exclude branches into span interiors | No scan exists, and the planner checks only relocations that overlap a span. From the pinned file: relative branch targets and HIGHLOW operands equal to the interior RVAs of the copied spans. | A scan of the pinned image for branch targets and relocated operands inside the 5, 7 and 6 byte spans. |
 | Record the hot-patch alternative | The 16 bytes before each entry, RVA `0x467F03` to `0x467F12`, `0x468B00` to `0x468B0F` and `0x3D048D` to `0x3D049C`, are not recorded. They are located with the section mapping in `observer_hook_plan.py`. | Recorded pre-entry bytes showing whether a hot-patch pad exists at each entry. |
-| Recheck the pinned module while installed | No static locator exists, because pin semantics belong to the backend. `install_hook_transaction` calls `inspect_module` once and `restore_entries_and_resources` never, so module identity, base and size are not rechecked while installed or during restoration. Restoration rechecks only each site range, protection and bytes. | A backend pin that holds module identity, base and size across the installed interval. |
+| Recheck the pinned module while installed | `check_quiescence` calls `revalidate_module` before mutation and code-bearing cleanup. It compares the live retained-reference witness, allocation/image base and PE extent with the accepted module while preserving exact owned-redirect checks. | Observed native retention and the same held module witnesses across installation and restoration. |
 | Bound write exposure | Write width and order and NX enforcement in the hosting process have no recorded locator, because they depend on the host. The other code on the entry pages, RVA `0x467000` to `0x467FFF`, `0x468000` to `0x468FFF` and `0x3D0000` to `0x3D0FFF`, is not recorded. | Recorded write width and order, protection transitions and the other code sharing each entry page. |
 | Recover after refusal or a latched failure | The [offline recovery model](observer-recovery.md) supplies injected failure decisions; no native recovery backend exists. | Native hold, retained-handle ownership, dispatch synchronization and independently confirmed shutdown under the same recovery policy. |
 

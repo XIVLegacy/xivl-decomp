@@ -68,6 +68,8 @@ target_compile_options(observer_runtime_check PRIVATE /guard:cf /sdl)
 target_link_options(observer_runtime_check PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                     "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_runtime_check.map")
 target_link_libraries(observer_runtime_check PRIVATE bcrypt)
+target_sources(observer_runtime_check PRIVATE observer_activation_binding.cpp)
+target_link_libraries(observer_runtime_check PRIVATE shell32)
 
 add_executable(observer_candidate observer_candidate.cpp observer_controller.cpp
                observer_native_backend.cpp observer_live_runtime.cpp observer_live_bootstrap.cpp
@@ -87,3 +89,16 @@ target_compile_options(observer_candidate PRIVATE /guard:cf /sdl)
 target_link_options(observer_candidate PRIVATE /guard:cf /DYNAMICBASE /NXCOMPAT /OPT:NOICF
                      "/MAP:${CMAKE_CURRENT_BINARY_DIR}/observer_candidate.map")
 target_link_libraries(observer_candidate PRIVATE bcrypt OneCore)
+target_sources(observer_candidate PRIVATE observer_activation_binding.cpp)
+target_link_libraries(observer_candidate PRIVATE shell32)
+
+set(XIVL_OBSERVER_POLICY_HEADER "" CACHE FILEPATH "Optional immutable private observer policy source")
+if(XIVL_OBSERVER_POLICY_HEADER)
+    if(NOT IS_ABSOLUTE "${XIVL_OBSERVER_POLICY_HEADER}" OR NOT EXISTS "${XIVL_OBSERVER_POLICY_HEADER}")
+        message(FATAL_ERROR "Observer policy header must be an existing absolute build input")
+    endif()
+    foreach(target observer_runtime_check observer_candidate)
+        target_sources(${target} PRIVATE "${XIVL_OBSERVER_POLICY_HEADER}")
+        target_compile_definitions(${target} PRIVATE "XIVL_OBSERVER_POLICY_HEADER=\"${XIVL_OBSERVER_POLICY_HEADER}\"")
+    endforeach()
+endif()

@@ -135,6 +135,15 @@ struct FakeAggregateFlow
         return HookBackendResult::Success;
     }
 
+    static HookBackendResult revalidate_module(void* user, const HookInstallState*, HookHeldModuleInspection* inspection)
+    {
+        const auto* flow = from(user);
+        if (flow == nullptr || inspection == nullptr || !flow->module_pin_held)
+            return HookBackendResult::Refused;
+        *inspection = { { 0x11 }, 0x11, flow->inspection.loaded_base, flow->inspection.loaded_base, flow->inspection.image_size, flow->inspection.pe32_i386, true };
+        return HookBackendResult::Success;
+    }
+
     static HookBackendResult acquire_quiescence(void* user,
                                                 void*,
                                                 HookOpaqueToken,
@@ -1064,6 +1073,7 @@ void configure_actual_aggregate_restore(FakeRecovery* fake, const RecoveryReques
     flow.hook.backend.retain_module           = &FakeAggregateFlow::retain_module;
     flow.hook.backend.release_module          = &FakeAggregateFlow::release_module;
     flow.hook.backend.inspect_module          = &FakeAggregateFlow::inspect_module;
+    flow.hook.backend.revalidate_module       = &FakeAggregateFlow::revalidate_module;
     flow.hook.backend.acquire_quiescence      = &FakeAggregateFlow::acquire_quiescence;
     flow.hook.backend.revalidate_quiescence   = &FakeAggregateFlow::revalidate_quiescence;
     flow.hook.backend.release_quiescence      = &FakeAggregateFlow::release_quiescence;

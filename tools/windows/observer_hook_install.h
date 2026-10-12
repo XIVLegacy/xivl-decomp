@@ -76,6 +76,17 @@ struct HookModuleInspection
     std::array<HookRelocationEvidence, kHookEntryCount> relocations{};
 };
 
+struct HookHeldModuleInspection
+{
+    HookOpaqueToken pin{};
+    std::uint64_t   reference_witness = 0;
+    std::uintptr_t  loaded_base       = 0;
+    std::uintptr_t  allocation_base   = 0;
+    std::uint32_t   image_size        = 0;
+    bool            pe32_i386         = false;
+    bool            readable          = false;
+};
+
 struct HookRangeInspection
 {
     std::uintptr_t range_begin = 0;
@@ -130,6 +141,9 @@ using HookAcquireQuiescence = HookBackendResult (*)(
     void*            module,
     HookOpaqueToken  pin,
     HookOpaqueToken* lease);
+using HookRevalidateModule     = HookBackendResult (*)(void*                     user,
+                                                       const HookInstallState*   state,
+                                                       HookHeldModuleInspection* inspection);
 using HookRevalidateQuiescence = HookBackendResult (*)(
     void*                      user,
     HookOpaqueToken            lease,
@@ -203,6 +217,7 @@ struct HookInstallBackend
     HookRetainModule          retain_module           = nullptr;
     HookReleaseModule         release_module          = nullptr;
     HookInspectModule         inspect_module          = nullptr;
+    HookRevalidateModule      revalidate_module       = nullptr;
     HookAcquireQuiescence     acquire_quiescence      = nullptr;
     HookRevalidateQuiescence  revalidate_quiescence   = nullptr;
     HookReleaseQuiescence     release_quiescence      = nullptr;
@@ -281,6 +296,8 @@ struct HookInstallState
     bool                                        unknown_side_effects  = false;
     bool                                        protection_unverified = false;
     bool                                        installed_history     = false;
+    HookModuleInspection                        accepted_module{};
+    std::uint64_t                               accepted_reference_witness = 0;
 };
 
 enum class HookInstallDisposition : std::uint8_t

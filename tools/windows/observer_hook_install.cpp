@@ -201,7 +201,7 @@ MutatingBackendCall call_mutating_backend(const HookInstallBackend& backend,
 bool required_backend(const HookInstallBackend& backend)
 {
     return backend.retain_module != nullptr && backend.release_module != nullptr &&
-           backend.inspect_module != nullptr && backend.acquire_quiescence != nullptr &&
+           backend.inspect_module != nullptr && backend.revalidate_module != nullptr && backend.acquire_quiescence != nullptr &&
            backend.revalidate_quiescence != nullptr && backend.release_quiescence != nullptr &&
            backend.inspect_range != nullptr && backend.reserve_executable != nullptr &&
            backend.free_executable != nullptr && backend.read_bytes != nullptr &&
@@ -755,6 +755,18 @@ HookInstallReport reject_before_mutation(HookInstallState* state,
 
 HookBackendResult check_quiescence(const HookInstallState& state)
 {
+    HookHeldModuleInspection module;
+    const HookBackendResult  module_result = call_backend(state.backend.revalidate_module,
+                                                          state.backend.user,
+                                                          &state,
+                                                          &module);
+    if (module_result != HookBackendResult::Success)
+        return module_result;
+    if (!module.readable || !module.pe32_i386 || module.pin.value != state.module_pin.value ||
+        module.reference_witness == 0 || module.reference_witness != state.accepted_reference_witness ||
+        module.loaded_base != state.accepted_module.loaded_base || module.allocation_base != module.loaded_base ||
+        module.image_size != state.accepted_module.image_size)
+        return HookBackendResult::Refused;
     HookQuiescenceAttestation attestation;
     const HookBackendResult   result = call_backend(state.backend.revalidate_quiescence,
                                                     state.backend.user,
@@ -1031,6 +1043,18 @@ HookInstallReport install_hook_transaction(const HookInstallRequest& request,
     {
         return reject_before_mutation(state, HookFailure::AddressRange, 0);
     }
+    state->accepted_module = inspection;
+    HookHeldModuleInspection held_module;
+    result = call_backend(backend.revalidate_module, backend.user, state, &held_module);
+    if (result != HookBackendResult::Success || !held_module.readable || !held_module.pe32_i386 ||
+        held_module.pin.value != state->module_pin.value || held_module.reference_witness == 0 ||
+        held_module.loaded_base != inspection.loaded_base || held_module.allocation_base != inspection.loaded_base ||
+        held_module.image_size != inspection.image_size)
+    {
+        return result == HookBackendResult::Ambiguous ? retained_install(state, HookFailure::ModuleInspection, 0, 0)
+                                                      : reject_before_mutation(state, HookFailure::ModuleInspection, 0);
+    }
+    state->accepted_reference_witness = held_module.reference_witness;
     for (std::size_t index = 0; index < kEntries.size(); ++index)
     {
         const FixedEntry& fixed   = kEntries[index];

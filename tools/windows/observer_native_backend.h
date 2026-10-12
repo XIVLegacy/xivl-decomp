@@ -71,6 +71,7 @@ private:
     static observer_diagnostic::HookBackendResult retain_module(void*, void*, observer_diagnostic::HookOpaqueToken*) noexcept;
     static observer_diagnostic::HookBackendResult release_module(void*, observer_diagnostic::HookOpaqueToken) noexcept;
     static observer_diagnostic::HookBackendResult inspect_module(void*, void*, observer_diagnostic::HookOpaqueToken, observer_diagnostic::HookModuleInspection*) noexcept;
+    static observer_diagnostic::HookBackendResult revalidate_module(void*, const observer_diagnostic::HookInstallState*, observer_diagnostic::HookHeldModuleInspection*) noexcept;
     static observer_diagnostic::HookBackendResult acquire_quiescence(void*, void*, observer_diagnostic::HookOpaqueToken, observer_diagnostic::HookOpaqueToken*) noexcept;
     static observer_diagnostic::HookBackendResult revalidate_quiescence(void*, observer_diagnostic::HookOpaqueToken, observer_diagnostic::HookQuiescenceAttestation*) noexcept;
     static observer_diagnostic::HookBackendResult release_quiescence(void*, observer_diagnostic::HookOpaqueToken) noexcept;

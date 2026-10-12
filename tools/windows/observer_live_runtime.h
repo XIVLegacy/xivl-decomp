@@ -5,6 +5,7 @@
 #define _WIN32_WINNT 0x0A00
 #include <windows.h>
 
+#include "observer_activation_binding.h"
 #include "observer_collection.h"
 #include "observer_diagnostic.h"
 #include "observer_fixture_evidence.h"
@@ -58,9 +59,9 @@ inline constexpr char kObserverLiveRequestCleanupHoldExport[] =
 inline constexpr char kObserverLiveRequestRawCleanupHoldExport[] =
     "xivl_observer_request_raw_cleanup_hold_v1";
 
-constexpr std::uint32_t kObserverLiveBootstrapVersion    = 1;
-constexpr std::uint32_t kObserverLiveOwnerControlVersion = 1;
-constexpr std::uint32_t kObserverLiveHoldRequestVersion  = 1;
+constexpr std::uint32_t kObserverLiveBootstrapVersion    = 2;
+constexpr std::uint32_t kObserverLiveOwnerControlVersion = 2;
+constexpr std::uint32_t kObserverLiveHoldRequestVersion  = 2;
 
 struct ObserverLiveBootstrapV1
 {
@@ -113,11 +114,12 @@ struct ObserverLiveBootstrapV1
     std::array<std::uint8_t, 32> engine_file_sha256{};
     std::uint64_t                ntdll_file_size = 0;
     std::array<std::uint8_t, 32> ntdll_file_sha256{};
+    ObserverActivationStampV1    activation{};
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveBootstrapV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveBootstrapV1>);
-static_assert(sizeof(ObserverLiveBootstrapV1) == 304);
+static_assert(sizeof(ObserverLiveBootstrapV1) == 424);
 
 enum class ObserverLiveChildState : std::uint32_t
 {
@@ -193,26 +195,27 @@ struct alignas(8) ObserverLiveChildControlV1
     // fresh typed raw hold is active.  The sequence is advanced by the child
     // after every persisted raw event, binding and continuation, so a value
     // copied at detach cannot stand in for a current witness.
-    std::uint64_t raw_event_count                      = 0;
-    std::uint64_t raw_continuation_count               = 0;
-    std::uint64_t raw_binding_count                    = 0;
-    std::uint64_t raw_last_event_index                 = 0;
-    std::uint64_t raw_last_continuation_index          = 0;
-    std::uint64_t raw_terminal_event_count             = 0;
-    std::uint64_t raw_terminal_continuation_count      = 0;
-    std::uint64_t raw_terminal_last_event_index        = 0;
-    std::uint64_t raw_terminal_last_continuation_index = 0;
-    std::uint64_t raw_terminal_sequence                = 0;
-    std::uint64_t raw_tail_sequence                    = 0;
-    std::uint32_t raw_pending                          = 0;
-    std::uint32_t raw_coverage                         = 0;
-    std::uint32_t raw_persistence                      = 0;
-    std::uint32_t raw_post_activity                    = 0;
+    std::uint64_t             raw_event_count                      = 0;
+    std::uint64_t             raw_continuation_count               = 0;
+    std::uint64_t             raw_binding_count                    = 0;
+    std::uint64_t             raw_last_event_index                 = 0;
+    std::uint64_t             raw_last_continuation_index          = 0;
+    std::uint64_t             raw_terminal_event_count             = 0;
+    std::uint64_t             raw_terminal_continuation_count      = 0;
+    std::uint64_t             raw_terminal_last_event_index        = 0;
+    std::uint64_t             raw_terminal_last_continuation_index = 0;
+    std::uint64_t             raw_terminal_sequence                = 0;
+    std::uint64_t             raw_tail_sequence                    = 0;
+    std::uint32_t             raw_pending                          = 0;
+    std::uint32_t             raw_coverage                         = 0;
+    std::uint32_t             raw_persistence                      = 0;
+    std::uint32_t             raw_post_activity                    = 0;
+    ObserverActivationStampV1 activation{};
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveChildControlV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveChildControlV1>);
-static_assert(sizeof(ObserverLiveChildControlV1) == 336);
+static_assert(sizeof(ObserverLiveChildControlV1) == 456);
 
 // Shared production publication and decision helpers.  The bootstrap wrapper
 // calls the publication helper for its real g_child_control; CPU tests pass a
@@ -276,20 +279,21 @@ struct ObserverLiveOwnerControlRequestV1
     // process and the target validates the same process/thread identity before
     // allowing the child request to start.  Zero keeps the existing owner
     // control requests unchanged.
-    std::uint32_t fixture_process_handle = 0;
-    std::uint32_t fixture_thread_handle  = 0;
-    std::uint32_t fixture_stdout_handle  = 0;
-    std::uint32_t fixture_stderr_handle  = 0;
-    std::uint32_t fixture_state_handle   = 0;
-    std::uint32_t fixture_process_id     = 0;
-    std::uint32_t fixture_creation_low   = 0;
-    std::uint32_t fixture_creation_high  = 0;
-    std::uint64_t fixture_state_sequence = 0;
+    std::uint32_t             fixture_process_handle = 0;
+    std::uint32_t             fixture_thread_handle  = 0;
+    std::uint32_t             fixture_stdout_handle  = 0;
+    std::uint32_t             fixture_stderr_handle  = 0;
+    std::uint32_t             fixture_state_handle   = 0;
+    std::uint32_t             fixture_process_id     = 0;
+    std::uint32_t             fixture_creation_low   = 0;
+    std::uint32_t             fixture_creation_high  = 0;
+    std::uint64_t             fixture_state_sequence = 0;
+    ObserverActivationStampV1 activation{};
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveOwnerControlRequestV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveOwnerControlRequestV1>);
-static_assert(sizeof(ObserverLiveOwnerControlRequestV1) == 96);
+static_assert(sizeof(ObserverLiveOwnerControlRequestV1) == 216);
 
 enum class ObserverLiveHoldRequestKind : std::uint32_t
 {
@@ -305,27 +309,31 @@ enum class ObserverLiveHoldRequestKind : std::uint32_t
 // the event TID used by the controller.
 struct ObserverLiveHoldRequestV1
 {
-    std::uint32_t size_bytes            = sizeof(ObserverLiveHoldRequestV1);
-    std::uint32_t version               = kObserverLiveHoldRequestVersion;
-    std::uint32_t observer_process_id   = 0;
-    std::uint32_t observer_instance_id  = 0;
-    std::uint32_t kind                  = 0;
-    std::uint32_t result                = ERROR_INVALID_DATA;
-    std::uint32_t publication_address   = 0;
-    std::uint32_t owner_witness_address = 0;
-    std::uint64_t owner_id              = 0;
-    std::uint64_t module_pin_identity   = 0;
-    std::uint64_t session_identity      = 0;
-    std::uint64_t request_epoch         = 0;
-    std::uint32_t worker_start_address  = 0;
-    std::uint32_t worker_thread_id      = 0;
-    std::uint32_t reserved0             = 0;
-    std::uint32_t reserved1             = 0;
+    std::uint32_t             size_bytes            = sizeof(ObserverLiveHoldRequestV1);
+    std::uint32_t             version               = kObserverLiveHoldRequestVersion;
+    std::uint32_t             observer_process_id   = 0;
+    std::uint32_t             observer_instance_id  = 0;
+    std::uint32_t             kind                  = 0;
+    std::uint32_t             result                = ERROR_INVALID_DATA;
+    std::uint32_t             publication_address   = 0;
+    std::uint32_t             owner_witness_address = 0;
+    std::uint64_t             owner_id              = 0;
+    std::uint64_t             module_pin_identity   = 0;
+    std::uint64_t             session_identity      = 0;
+    std::uint64_t             request_epoch         = 0;
+    std::uint32_t             worker_start_address  = 0;
+    std::uint32_t             worker_thread_id      = 0;
+    std::uint32_t             reserved0             = 0;
+    std::uint32_t             reserved1             = 0;
+    ObserverActivationStampV1 activation{};
 };
 
 static_assert(std::is_standard_layout_v<ObserverLiveHoldRequestV1>);
 static_assert(std::is_trivially_copyable_v<ObserverLiveHoldRequestV1>);
-static_assert(sizeof(ObserverLiveHoldRequestV1) == 80);
+static_assert(sizeof(ObserverLiveHoldRequestV1) == 200);
+
+bool observer_live_hold_activation_matches(const ObserverLiveHoldRequestV1& request,
+                                           const ObserverActivationStampV1& expected) noexcept;
 
 using ObserverLiveOwnerControl = DWORD(WINAPI*)(ObserverLiveOwnerControlRequestV1*);
 
@@ -374,10 +382,11 @@ struct ObserverLiveFilePin
 struct ObserverLiveAuthority
 {
     // The current owner state intentionally refuses the native entry path.
-    bool capture_allowance_exhausted = true;
-    bool runtime_identity_qualified  = false;
-    bool explicit_live_authority     = false;
-    bool native_execution_forbidden  = true;
+    bool                                                       capture_allowance_exhausted = true;
+    bool                                                       runtime_identity_qualified  = false;
+    bool                                                       explicit_live_authority     = false;
+    bool                                                       native_execution_forbidden  = true;
+    std::shared_ptr<const ObserverIdentityGatheringPermission> identity_gathering_permission;
 
     bool allows_native(std::string* reason = nullptr) const noexcept;
 };
@@ -838,6 +847,7 @@ private:
     static observer_diagnostic::HookBackendResult retain_module(void*, void*, observer_diagnostic::HookOpaqueToken*) noexcept;
     static observer_diagnostic::HookBackendResult release_module(void*, observer_diagnostic::HookOpaqueToken) noexcept;
     static observer_diagnostic::HookBackendResult inspect_module(void*, void*, observer_diagnostic::HookOpaqueToken, observer_diagnostic::HookModuleInspection*) noexcept;
+    static observer_diagnostic::HookBackendResult revalidate_module(void*, const observer_diagnostic::HookInstallState*, observer_diagnostic::HookHeldModuleInspection*) noexcept;
     static observer_diagnostic::HookBackendResult acquire_quiescence(void*, void*, observer_diagnostic::HookOpaqueToken, observer_diagnostic::HookOpaqueToken*) noexcept;
     static observer_diagnostic::HookBackendResult revalidate_quiescence(void*, observer_diagnostic::HookOpaqueToken, observer_diagnostic::HookQuiescenceAttestation*) noexcept;
     static observer_diagnostic::HookBackendResult release_quiescence(void*, observer_diagnostic::HookOpaqueToken) noexcept;

@@ -2613,38 +2613,6 @@ bool ObserverLiveLimits::valid() const noexcept
            finite_positive(exit_confirmation_ticks);
 }
 
-bool ObserverLiveAuthority::allows_native(std::string* reason) const noexcept
-{
-    const char* value = "";
-    if (capture_allowance_exhausted)
-    {
-        value = "capture allowance exhausted";
-    }
-    else if (!runtime_identity_qualified)
-    {
-        value = "runtime identity prerequisite is unqualified";
-    }
-    else if (!explicit_live_authority)
-    {
-        value = "native authority was not explicitly granted";
-    }
-    else if (native_execution_forbidden)
-    {
-        value = "native execution remains forbidden by current policy";
-    }
-    if (reason != nullptr)
-    {
-        *reason = value;
-    }
-    return value[0] == '\0';
-}
-
-bool ObserverDebugEventKey::complete() const noexcept
-{
-    return process_id != 0 && thread_id != 0 && event_code != 0 && raw_generation != 0 &&
-           event_index != static_cast<std::uint64_t>(-1);
-}
-
 ObserverDebugOwner::ObserverDebugOwner() noexcept = default;
 
 ObserverDebugOwner::~ObserverDebugOwner() noexcept
@@ -3207,6 +3175,11 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         }
         return false;
     }
+    if (!authority.identity_gathering_permission->matches_request(request) ||
+        !authority.identity_gathering_permission->begin_observer_creation(refusal))
+    {
+        return false;
+    }
     handles_.controller_thread_id = GetCurrentThreadId();
     handles_.controller_thread    = OpenThread(THREAD_QUERY_LIMITED_INFORMATION | SYNCHRONIZE,
                                                FALSE,
@@ -3248,7 +3221,7 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         close();
         return false;
     }
-    std::wstring command = widen_ascii(request.observer_command_line);
+    std::wstring command = widen_ascii(observer_activation_effective_child_command(request));
     if (command.empty())
     {
         if (refusal != nullptr)
@@ -3258,23 +3231,6 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
         close();
         return false;
     }
-    const auto append_decimal = [&command](const wchar_t* name, std::uint64_t value)
-    {
-        command += L" ";
-        command += name;
-        command += L" ";
-        command += std::to_wstring(static_cast<unsigned long long>(value));
-    };
-    // The caller supplies the executable command, while these values remain
-    // controller authority.  Append them last so the child parser's final
-    // occurrence is the exact retained request, even if the supplied command
-    // contains stale copies.
-    append_decimal(L"--session", request.session_id);
-    append_decimal(L"--row-cap", request.row_cap);
-    append_decimal(L"--provenance-hash-cap", request.provenance_hash_cap);
-    append_decimal(L"--collection-ticks", request.limits.collection_ticks);
-    append_decimal(L"--child-completion-ticks", request.limits.child_completion_ticks);
-    append_decimal(L"--cleanup-ticks", request.limits.known_cleanup_ticks);
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
     PROCESS_INFORMATION process_info{};
@@ -3316,7 +3272,8 @@ bool ObserverDebugOwner::create(const ObserverLiveAuthority& authority,
     responsive_abort_.store(false, std::memory_order_release);
     controller_progress_tick_.store(GetTickCount64(), std::memory_order_release);
     creator_thread_bound_ = true;
-    if (handles_.exit_event == nullptr || handles_.abort_event == nullptr ||
+    if (!authority.identity_gathering_permission->bind_observer(process_info.hProcess, refusal) ||
+        handles_.exit_event == nullptr || handles_.abort_event == nullptr ||
         handles_.supervisor_stop_event == nullptr || handles_.supervisor_termination_event == nullptr ||
         !duplicate_supervisor_handles(refusal) ||
         !start_supervisor(request.limits.termination_ticks,
@@ -4903,8 +4860,10 @@ bool ObserverRemoteTransport::discover_bootstrap(
         return false;
     }
     const bool resident_core_identity =
-        bootstrap->size_bytes >= sizeof(*bootstrap) &&
+        bootstrap->size_bytes == sizeof(*bootstrap) &&
         bootstrap->version == kObserverLiveBootstrapVersion &&
+        state_->authority.identity_gathering_permission != nullptr &&
+        observer_activation_stamp_equal(bootstrap->activation, state_->authority.identity_gathering_permission->stamp()) &&
         bootstrap->process_id == state_->process_id && bootstrap->instance_id != 0 &&
         bootstrap->loaded_image_base == module_base &&
         bootstrap->module_handle == bootstrap->loaded_image_base &&
@@ -5056,8 +5015,10 @@ bool ObserverRemoteTransport::bind_bootstrap(
                 kObserverLiveProfile,
                 std::min(expected_profile.size(), std::strlen(kObserverLiveProfile)));
     if (!ready() || state_ == nullptr || owner_id == 0 || session_id == 0 ||
-        bootstrap.size_bytes < sizeof(bootstrap) ||
+        bootstrap.size_bytes != sizeof(bootstrap) ||
         bootstrap.version != kObserverLiveBootstrapVersion ||
+        state_->authority.identity_gathering_permission == nullptr ||
+        !observer_activation_stamp_equal(bootstrap.activation, state_->authority.identity_gathering_permission->stamp()) ||
         bootstrap.process_id != state_->process_id ||
         bootstrap.instance_id == 0 ||
         bootstrap.loaded_image_base != module_base ||
@@ -5222,8 +5183,10 @@ void ObserverRemoteTransport::set_operation_ledger(
     {
         return;
     }
-    state_->ledger_path                      = ledger_path;
-    state_->ledger_request                   = request;
+    state_->ledger_path    = ledger_path;
+    state_->ledger_request = request;
+    if (request != nullptr)
+        state_->authority = request->authority;
     state_->ledger_result                    = result;
     state_->ledger_next_operation_id         = next_operation_id;
     state_->ledger_remote                    = this;
@@ -5498,6 +5461,7 @@ HookBackendResult invoke_owner_control(ObserverRemoteTransport::State*          
     request.module_handle                     = module_control ? static_cast<std::uint32_t>(state->module_base) : 0;
     request.owner_id                          = owner_id;
     request.module_pin_identity               = state->module_pin_identity;
+    request.activation                        = state->authority.identity_gathering_permission->stamp();
     const bool request_written                = write_block(state->process,
                                                             reinterpret_cast<std::uintptr_t>(remote_request),
                                                             &request,
@@ -5665,6 +5629,7 @@ HookBackendResult invoke_owner_control(ObserverRemoteTransport::State*          
     }
     if (!response_read || response.size_bytes != sizeof(response) ||
         response.version != kObserverLiveOwnerControlVersion ||
+        !observer_activation_stamp_equal(response.activation, request.activation) ||
         response.observer_process_id != state->process_id ||
         response.observer_instance_id != state->observer_instance_id ||
         response.publication_address != state->publication_address ||
@@ -5719,6 +5684,7 @@ bool submit_hold_request(ObserverRemoteTransport::State* state,
     request.observer_process_id   = state->process_id;
     request.observer_instance_id  = state->observer_instance_id;
     request.kind                  = static_cast<std::uint32_t>(kind);
+    request.activation            = state->authority.identity_gathering_permission->stamp();
     request.publication_address   = static_cast<std::uint32_t>(state->publication_address);
     request.owner_witness_address = static_cast<std::uint32_t>(state->owner_witness_address);
     request.owner_id              = state->owner_id;
@@ -6178,7 +6144,9 @@ bool ObserverRemoteTransport::read_child_control(ObserverLiveChildControlV1* con
         control->size_bytes != sizeof(*control) ||
         control->version != kObserverLiveBootstrapVersion ||
         control->observer_process_id != state_->process_id ||
-        control->observer_instance_id != state_->observer_instance_id)
+        control->observer_instance_id != state_->observer_instance_id ||
+        state_->authority.identity_gathering_permission == nullptr ||
+        !observer_activation_stamp_equal(control->activation, state_->authority.identity_gathering_permission->stamp()))
     {
         if (refusal != nullptr)
         {
@@ -7428,6 +7396,50 @@ bool attest_remote_hold(ObserverRemoteTransport::State* state,
     return true;
 }
 
+bool held_module_pin(ObserverRemoteTransport::State* state,
+                     HookHeldModuleInspection*       inspection) noexcept
+{
+    if (state == nullptr || inspection == nullptr || !state->held || !state->module_pin_retained ||
+        state->module_pin_token == 0 || state->module_pin_identity == 0 || state->module_base == 0 ||
+        state->module_pin_witness_address == 0 || state->module_size != kObserverImageSize)
+    {
+        return false;
+    }
+    *inspection                      = {};
+    std::uint64_t            witness = 0;
+    MEMORY_BASIC_INFORMATION allocation{};
+    IMAGE_DOS_HEADER         dos{};
+    IMAGE_NT_HEADERS32       headers{};
+    HMODULE                  module = nullptr;
+    MODULEINFO               info{};
+    std::wstring             path;
+    if (!read_block(state->process, state->module_pin_witness_address, &witness, sizeof(witness)) ||
+        witness != state->module_pin_identity ||
+        VirtualQueryEx(state->process, reinterpret_cast<LPCVOID>(state->module_base), &allocation, sizeof(allocation)) != sizeof(allocation) ||
+        allocation.Type != MEM_IMAGE || allocation.State != MEM_COMMIT ||
+        reinterpret_cast<std::uintptr_t>(allocation.AllocationBase) != state->module_base ||
+        !read_block(state->process, state->module_base, &dos, sizeof(dos)) || dos.e_magic != IMAGE_DOS_SIGNATURE ||
+        dos.e_lfanew <= 0 || dos.e_lfanew > 0x100000 ||
+        !read_block(state->process, state->module_base + static_cast<std::uintptr_t>(dos.e_lfanew), &headers, sizeof(headers)) ||
+        headers.Signature != IMAGE_NT_SIGNATURE || headers.FileHeader.Machine != IMAGE_FILE_MACHINE_I386 ||
+        headers.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC || headers.OptionalHeader.SizeOfImage != state->module_size ||
+        headers.OptionalHeader.ImageBase != kObserverPreferredBase ||
+        !find_remote_module(state->process, state->module_base, &module, &info, &path) ||
+        reinterpret_cast<std::uintptr_t>(module) != state->module_base ||
+        reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll) != state->module_base || info.SizeOfImage != state->module_size)
+    {
+        return false;
+    }
+    inspection->pin.value         = static_cast<std::uintptr_t>(state->module_pin_token);
+    inspection->reference_witness = witness;
+    inspection->loaded_base       = state->module_base;
+    inspection->allocation_base   = reinterpret_cast<std::uintptr_t>(allocation.AllocationBase);
+    inspection->image_size        = state->module_size;
+    inspection->pe32_i386         = true;
+    inspection->readable          = true;
+    return true;
+}
+
 bool require_mutation_attestation(ObserverRemoteTransport::State* state) noexcept
 {
     if (state == nullptr || !state->held || remote_abort_requested(state))
@@ -7435,7 +7447,8 @@ bool require_mutation_attestation(ObserverRemoteTransport::State* state) noexcep
         return false;
     }
     HookQuiescenceAttestation attestation;
-    const bool                valid = attest_remote_hold(state, &attestation) &&
+    HookHeldModuleInspection  module;
+    const bool                valid = held_module_pin(state, &module) && attest_remote_hold(state, &attestation) &&
                                       attestation.no_active_forwarding_calls &&
                                       attestation.all_other_process_threads_held &&
                                       attestation.new_threads_prevented_from_executing &&
@@ -7636,6 +7649,17 @@ HookBackendResult ObserverRemoteTransport::inspect_module(void*                 
         }
     }
     state->module_size = inspection->image_size;
+    return HookBackendResult::Success;
+}
+
+HookBackendResult ObserverRemoteTransport::revalidate_module(void*                     user,
+                                                             const HookInstallState*   transaction,
+                                                             HookHeldModuleInspection* inspection) noexcept
+{
+    State* state = ObserverRemoteTransport::state(user);
+    if (transaction == nullptr || state == nullptr || remote_abort_requested(state) ||
+        transaction->module_pin.value != state->module_pin_token || !held_module_pin(state, inspection))
+        return HookBackendResult::Refused;
     return HookBackendResult::Success;
 }
 
@@ -8321,6 +8345,7 @@ HookInstallBackend ObserverRemoteTransport::hook_backend() noexcept
     backend.retain_module           = &ObserverRemoteTransport::retain_module;
     backend.release_module          = &ObserverRemoteTransport::release_module;
     backend.inspect_module          = &ObserverRemoteTransport::inspect_module;
+    backend.revalidate_module       = &ObserverRemoteTransport::revalidate_module;
     backend.acquire_quiescence      = &ObserverRemoteTransport::acquire_quiescence;
     backend.revalidate_quiescence   = &ObserverRemoteTransport::revalidate_quiescence;
     backend.release_quiescence      = &ObserverRemoteTransport::release_quiescence;
@@ -10264,7 +10289,8 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
         result.collection_incomplete      = true;
         return result;
     }
-    if (!request.authority.allows_native(&refusal))
+    if (!request.authority.allows_native(&refusal) ||
+        !request.authority.identity_gathering_permission->matches_request(request))
     {
         return refuse_current_policy(request, refusal);
     }
@@ -10654,8 +10680,7 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
                                 static_cast<std::uintptr_t>(request_address),
                                 &request_record,
                                 sizeof(request_record)) ||
-                    request_record.size_bytes != sizeof(request_record) ||
-                    request_record.version != kObserverLiveHoldRequestVersion ||
+                    !observer_live_hold_activation_matches(request_record, request.authority.identity_gathering_permission->stamp()) ||
                     request_record.observer_process_id != owner.handles().process_id ||
                     request_record.observer_instance_id != bootstrap.instance_id ||
                     request_record.kind != static_cast<std::uint32_t>(expected_kind) ||
@@ -11126,6 +11151,11 @@ ObserverLiveResult ObserverLiveRuntime::run(const ObserverLiveRequest& request) 
     }
     const std::uintptr_t observer_image_base = reinterpret_cast<std::uintptr_t>(
         creation_event.event.u.CreateProcessInfo.lpBaseOfImage);
+    if (!observer_activation_provision_child(request.authority, owner.handles().process_info_process, creation_event, &refusal))
+    {
+        abort_created();
+        return fail("activation_provision", refusal);
+    }
     if (!record_intent("continue_create_process_event"))
     {
         abort_created();

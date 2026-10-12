@@ -61,7 +61,8 @@ DWORD WINAPI native_run_thread(LPVOID raw_context) noexcept
     try
     {
         const ObserverLiveRuntime runtime;
-        context->result = runtime.run(context->request);
+        context->result                        = runtime.run(context->request);
+        context->result.native_effects_started = true;
     }
     catch (...)
     {
@@ -69,6 +70,11 @@ DWORD WINAPI native_run_thread(LPVOID raw_context) noexcept
         context->result.stage                       = "native_controller";
         context->result.reason                      = "native runtime raised an unexpected exception";
         context->result.native_effects_started      = true;
+        context->result.owner_intervention_required = true;
+    }
+    if (!context->request.authority.identity_gathering_permission->finish_attempt(!context->result.owner_intervention_required))
+    {
+        context->result.effects_uncertain           = true;
         context->result.owner_intervention_required = true;
     }
     context->retention.worker_completed.store(true, std::memory_order_release);
@@ -97,8 +103,9 @@ std::uint64_t native_observation_budget(
 }
 
 xivl::observer_candidate::ObserverLiveResult run_native_isolated(
-    const xivl::observer_candidate::ObserverLiveRequest& request,
-    bool*                                                retained) noexcept
+    const xivl::observer_candidate::ObserverLiveRequest&       request,
+    const xivl::observer_candidate::PreparedActivationBinding& prepared,
+    bool*                                                      retained) noexcept
 {
     using xivl::observer_candidate::ObserverLiveDisposition;
     using xivl::observer_candidate::ObserverLiveResult;
@@ -128,16 +135,26 @@ xivl::observer_candidate::ObserverLiveResult run_native_isolated(
         return refused;
     }
     context->request                            = request;
+    context->request.authority                  = ObserverLiveAuthority{};
     context->request.retention_publication      = &context->retention;
     context->result.disposition                 = ObserverLiveDisposition::Failed;
     context->result.stage                       = "native_controller";
     context->result.reason                      = "native creator thread exited before returning its outcome";
-    context->result.native_effects_started      = true;
+    context->result.native_effects_started      = false;
     context->result.owner_intervention_required = true;
-    HANDLE thread                               = CreateThread(nullptr, 0, &native_run_thread, context.get(), 0, nullptr);
+    if (!xivl::observer_candidate::observer_activation_reserve(prepared, &context->request.authority, &refused.reason))
+    {
+        refused.disposition = ObserverLiveDisposition::RefusedPolicy;
+        return refused;
+    }
+    HANDLE      thread             = CreateThread(nullptr, 0, &native_run_thread, context.get(), 0, nullptr);
+    const DWORD dispatch_error     = thread == nullptr ? GetLastError() : ERROR_SUCCESS;
+    const bool  dispatch_persisted = context->request.authority.identity_gathering_permission->record_dispatch_result(thread != nullptr, dispatch_error);
     if (thread == nullptr)
     {
-        refused.reason = "native controller thread creation failed";
+        refused.reason            = dispatch_persisted ? "native controller thread creation failed; reservation remains spent"
+                                                       : "native controller thread creation result persistence is unknown";
+        refused.effects_uncertain = !dispatch_persisted;
         return refused;
     }
 
@@ -171,6 +188,12 @@ xivl::observer_candidate::ObserverLiveResult run_native_isolated(
         unknown.native_effects_started      = true;
         unknown.owner_intervention_required = true;
         return unknown;
+    }
+    if (!dispatch_persisted)
+    {
+        context->result.effects_uncertain           = true;
+        context->result.owner_intervention_required = true;
+        context->result.reason                      = "native worker dispatch result persistence is unknown";
     }
     if (context->result.owner_intervention_required)
     {
@@ -935,12 +958,13 @@ int observer_candidate_main(int argc, char* argv[])
 
     if (parsed.native)
     {
-        std::string authority_reason;
-        bool        retained = false;
-        const auto  result   = parsed.native_request.authority.allows_native(&authority_reason)
-                                   ? run_native_isolated(parsed.native_request, &retained)
-                                   : ObserverLiveRuntime::refuse_current_policy(parsed.native_request,
-                                                                                authority_reason);
+        std::string                                         authority_reason;
+        bool                                                retained = false;
+        xivl::observer_candidate::PreparedActivationBinding prepared;
+        const auto                                          result = xivl::observer_candidate::observer_activation_prepare_controller(parsed.native_request, argc, argv, &prepared, &authority_reason)
+                                                                         ? run_native_isolated(parsed.native_request, prepared, &retained)
+                                                                         : ObserverLiveRuntime::refuse_current_policy(parsed.native_request,
+                                                                                                                      authority_reason);
         std::cout << "status="
                   << (result.owner_intervention_required || retained
                           ? "native_unknown"
