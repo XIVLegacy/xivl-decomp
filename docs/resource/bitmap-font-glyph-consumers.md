@@ -80,7 +80,9 @@ FontData vtable at `F+8`.
 
 Interpretation: `C+0x20` and `F+0x28` identify the same storage under the
 observed 8-byte adjustment. The chunk-size path includes an endian-conversion
-branch. This does not establish a format-wide endian rule.
+branch. The [container finding](bitmap-font-container.md#chunk-cursor) shows
+that both observed readers clear its flag, so their chunk lengths are
+little-endian.
 
 ## VERS and FSIZ scalars
 

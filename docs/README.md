@@ -142,6 +142,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Ordinary format-6 STMS payload lanes](resource/stms-ubyte4-payload.md)
 - [PRAM packed render-state consumers](resource/pram-packed-render-state.md)
 - [Ambient Garlean fleet visibility boundary](resource/ambient-garlean-fleet.md)
+- [Bitmap font container](resource/bitmap-font-container.md)
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
 - [Bitmap font text bytes and glyph keys](resource/bitmap-font-text-key-consumers.md)
 - [Bitmap font multibyte numeric key handoff](resource/bitmap-font-multibyte-key-consumers.md)
