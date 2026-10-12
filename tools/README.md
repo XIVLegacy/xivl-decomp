@@ -211,6 +211,8 @@ another repository, a retail binary, or a Ghidra project.
 | Tool | Purpose | Required inputs |
 |---|---|---|
 | `extract_pe.py` | Parses each local PE32 executable and writes section metadata plus optional raw section dumps. | One or more retail executables under `orig/`, or an alternate `--orig-dir`. |
+| `extract_controller_mapping.py` | Checks exact-build controller instruction anchors and extracts mapping tables into `config/ffxivconfig.controller_map.json`. | Explicit pinned `ffxivconfig.exe` and `ffxivgame.exe` paths; `--output` or `--check`. |
+| `extract_ffxivconfig_inventory.py` | Decodes Config resources, dialogs and PEX strings and regenerates the curated settings inventory. | An explicit pinned `ffxivconfig.exe` path; `--output` or `--check`. Curated joins need independent instruction verification. |
 | `extract_up_opcodes.py` | Recovers direct ClientPacketBuilder constructor callsites and literal outbound opcodes for ffxivgame. | `orig/ffxivgame.exe`, `build/pe-layout/ffxivgame.json`, and `config/<binary>.symbols.json`. |
 | `extract_opcode_dispatch.py` | Walks the fixed ffxivgame inbound dispatcher tables and writes per-channel opcode-to-vtable-slot rows. | `orig/ffxivgame.exe`, `build/pe-layout/ffxivgame.json`, and the `asm/ffxivgame/` dispatcher exports. |
 | `extract_paramnames_dispatch.py` | Recovers GAM property names from fixed metadata-provider dispatchers and enriches the GAM catalog. | `orig/ffxivgame.exe`, `asm/ffxivgame/`, and `config/<binary>.gam_params.json`. |
