@@ -256,6 +256,43 @@ focused binary caller scan did not recover how the form resource styles are
 applied. The exact disabled predicate for the Gamepad option, and its link to
 enumeration success, remain unproved.
 
+### Bounded enable-reference coverage
+
+A full immediate-reference pass over the exact image with `llvm-objdump` 22.1.4
+found three direct `SqwtIsEnableInput` descriptor-use sites at VAs
+`0x009245CB`, `0x009245FB` and `0x009259D3` (RVAs `0x005245CB`,
+`0x005245FB` and `0x005259D3`). Each targets object offset `+0x3E0` and
+calls a generic helper: `FUN_0099C780` (VA `0x0099C780`, RVA `0x0059C780`),
+`FUN_0097F4B0` (VA `0x0097F4B0`, RVA `0x0057F4B0`) or `FUN_009321D0` (VA
+`0x009321D0`, RVA `0x005321D0`). The focused instruction slices update
+generic object state or dispatch callbacks; they contain no direct read of
+Pad count or saved-selection active state.
+
+The same pass found alternate base `IsEnabled` descriptor-use sites at VAs
+`0x0093C48B`, `0x0093C4BB` and `0x0093D180` (RVAs `0x0053C48B`,
+`0x0053C4BB` and `0x0053D180`). Each targets `+0x134` through a generic
+transition, with calls to `FUN_0093E120` (VA `0x0093E120`, RVA `0x0053E120`),
+`FUN_0093E600` (VA `0x0093E600`, RVA `0x0053E600`) or `FUN_0093E350` (VA
+`0x0093E350`, RVA `0x0053E350`). The constructor pushes value 1 at VA
+`0x0093C7E2` (RVA `0x0053C7E2`), pushes the descriptor at VA `0x0093C7E4`
+(RVA `0x0053C7E4`) and calls its initializer at VA `0x0093C7F9`
+(RVA `0x0053C7F9`). These focused descriptor slices contain no direct Pad
+count or active-getter call. The additional instruction slices
+`0x00515B40..0x00515C4B`, `0x00508780..0x00508868` and
+`0x0052DD90..0x0052DDC7` (exclusive ends, RVAs obtained by subtracting the
+image base) contain no direct call to the listed descriptor-use sites or
+Pad count and active getters. These are bounded slices, not whole-function
+coverage. Indirect resource and generic dispatch remain outside this pass,
+so these references do not recover the availability predicate.
+
+The exact-image PowerShell byte scan for metadata address `0x0135A7B4` (RVA
+`0x00F5A7B4`) found only the two immediate reads at VAs `0x0095D695` and
+`0x0095D6B2` (RVAs `0x0055D695` and `0x0055D6B2`), both in
+`FUN_0095D620`. It found no store embedding that exact address. Writes through
+a neighboring base plus an offset, overlapping wider stores, indirect pointers
+and runtime resource dispatch remain unexcluded. The scan does not prove the
+metadata immutable.
+
 ### Form and template checks
 
 The installed `client/sqwt/widget_c/ConfigWidget.form` is 17,035 bytes, SHA-256
@@ -276,6 +313,11 @@ The form element named `ToggleButton_Controler` has `IsChecked=True`,
 true sets `Button_KeyBoard.IsEnabled=False`, and false sets it true. Those
 setters target the keyboard button, not the controller toggle. This named
 template therefore does not supply the missing controller-availability gate.
+`Button_KeyBoard` is the only named inner-part enable target recovered here;
+the base `IsEnabled` property and inherited disabled style remain alternate
+candidates without a proven controller join. The tester control identity is
+unobserved.
+
 The form's window references `common/default.style`, whose installed SQEX image
 is 353,783 bytes, SHA-256
 `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0`.
@@ -412,6 +454,29 @@ one byte smaller than the source count. The decoder requires `0xFF` at VA
 from its adjusted receiver to recover `G`. It does not test the decoder's
 return before that parser call. This proves the response-to-record handoff,
 without proving a file open or a successful runtime parse.
+
+### Concrete missing observation
+
+The decisive missing observation is whether the instantiated Gamepad control,
+or one of its inner parts, receives an `IsEnabled` write when the Pad record
+set changes. Hold `GameConfig[0,9]` fixed while comparing two environments:
+(A) no record, with `FUN_00D32440` reporting count zero; and (B) a positive
+count with the actual candidate record captured. In each case record
+`Pad+0x1C8`'s selected index, the two 16-byte comparisons
+(`record+0x3A8` against `Pad+0x84` and `record+0x3B8` against `Pad+0x94`),
+and the `FUN_005483D0` saved-selection active result separately. Record Pad
+polling success separately, then record the control's `IsChecked`,
+`IsEnabled` and click or keyboard acceptance in both cases.
+
+An enable-state difference between A and B while checked state stays equal is
+only a lead until the actual enabled-property writer or caller is observed.
+Proof of a count or selection join requires that writer's branch or data
+dependency to read the count, selected index or explicit two-GUID match. A
+checked-state-only change requires tracing its writer against the held
+`input_mode` value; equal enable state leaves
+generic resource or style dispatch unresolved. A successful runtime poll
+without a recorded selection match remains a separate runtime result and is
+not availability evidence by itself.
 
 ## Result
 
