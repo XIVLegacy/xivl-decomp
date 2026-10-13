@@ -1287,9 +1287,10 @@ authored resource loading, accepted contact or rendering. Concrete upstream
 calls include `0x004D6570` to `0x00548210` at `0x004D65B3` and
 `0x00552DF0` at `0x004D65C9`. The
 [input-binding trace](../input/player-movement-command-origin.md)
-identifies the provider, named row candidates and the separate axis-binding
-argument writes. The installed source rows, profile, configuration processing
-and selected route recipient remain conditions.
+identifies the provider, both startup master choices, their movement rows and
+the separate axis-binding argument writes. Runtime source delivery, selected
+profile and column, configuration processing and route recipient remain
+conditions.
 
 ## Character factory and world provider
 

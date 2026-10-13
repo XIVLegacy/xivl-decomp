@@ -4,8 +4,10 @@ The retained retail code joins normalized pad records to routed pad-change
 events, identifies the event root's binding provider, and supplies a separate
 axis-binding path that writes command arguments directly from pad state.
 Retained table rows pair `MoveCharacter` and `ShiftMoveCharacter` with
-`AxisL` binding text. Native result selection, configuration substitutions and
-the routed recipient remain conditions. The command event dispatcher can reach
+`AxisL` binding text. The ExcelModule name lookup and retained source blocks
+identify the profile tables under the two startup masters. Runtime master
+selection, successful result delivery, profile and column selection,
+configuration substitutions and the routed recipient remain conditions. The command event dispatcher can reach
 the CharaElement movement handler when that element is a route recipient;
 that conditional dispatch contract does not establish a physical action reaching it.
 
@@ -152,10 +154,15 @@ the generic binding loop runs. Construction alone does not identify its rows.
 Their source keys are `key_config`, `key_config2` and `key_config3`, at
 `0x00FA1E18`, `0x00FA1E0C` and `0x00FA1E00`. Loader `0x00553AD0`
 obtains the service at `W + 0x174F8` through `0x004D74C0`, then asks its
-slot 1 for the profile's key at `0x00553B34`. A nonnull result and its
-slot-1 readiness test permit `0x00553340` to consume rows through result
-slot 6 and row slot 2. `0x00553BE0` calls `0x0054CC50` only after all
-three profile completion bytes are set.
+slot 1 for the profile's key at `0x00553B34`. A null result skips processing.
+For a nonnull result, result slot 1 is called at `0x00553B5C`; nonzero `AL`
+also skips processing at `0x00553B60`. Service slot 6 returns the language
+value at `0x00553B77`. Table `0x00FA19F4` maps indices 0 through 4 to column
+selectors 3, 12, 13, 14 and 15. Result slot 17 bounds the selected column at
+`0x00553B8D`; a selector greater than or equal to that bound falls back to 3.
+`0x00553340` then consumes rows through result slot 6 and row slot 2.
+`0x00553BE0` calls `0x0054CC50` only after all three profile completion
+bytes are set.
 
 `0x0054CC50` selects the indexed profile and reaches `0x0054CB90`.
 That helper calls `0x00682A20` to produce configuration text, then supplies
@@ -184,6 +191,108 @@ strings at `0x00FA22D8` and `0x00FA22F8` feed the same name resolver in
 from `0x0052D3A0`. Neither string use selects the axis fields of an input
 binding. These command collections and explicit executions do not identify
 a movement configuration row.
+
+## Named source result and row blocks
+
+The startup receiver join identifies this service as ExcelModule, using
+interface vtable `0x01108C00` and its PE RTTI identity
+`Component::Excel::ExcelModule`. Startup `0x004B2DF0` calls constructor
+`0x00C98C30` at `0x004B33EC` and saves its result at startup receiver `+0x58`
+at `0x004B33FC`. That pointer is forwarded through `0x004B368B..0x004B3697`
+and `0x004DC3A0` to `0x004DBF40`, whose store at `0x004DC187` assigns it
+to `W + 0x174F8`. The constructor installs `0x01108C00` at `0x00C98C6B`.
+Its slot 1 is `0x00C981D0`, and slot 6 is the language-field address getter
+`0x00C98150`.
+
+`0x00C981D0` looks up the supplied name in the module's map at `+0x2C`
+through `0x00800EC0`. For a found node, it calls sheet slot 14 and requires
+a nonempty dword vector before returning node `+0x60` at `0x00C9823E`.
+The map producer `0x00C98580` reads the sheet's `name` attribute through
+string wrapper `0x01376258`, constructs the sheet with `0x00CB04B0` at
+`0x00C98765` or `0x00C987BB`, and stores the pointer under that name.
+Initializer `0x00F2C730` joins this wrapper to `name` at `0x01108B98`.
+The producer filters `mode` against `server` or `client` according to module
+`+0x38` and checks a nonempty `lang` against module `+0x14`
+(`0x00C98630..0x00C986A1`). These are sheet-definition conditions.
+
+The startup master selection is explicit. `0x004B3197..0x004B31AA` reads
+configuration selector `[2,8]` through `0x00443E40`, subtracts 4 and performs
+an unsigned comparison with 2. Values 4 through 6 choose `0x27950000` at
+`0x004B31C5`; the other branch chooses `0x01030000` at `0x004B3264`.
+The selected key is passed to ExcelModule initialization `0x00C97FC0` at
+`0x004B358F`. It requests that key through ResourceModule slot 1 at
+`0x00C97FFD`, using ExcelModule `+4` as the response callback. Constructor
+`0x00C98C30` installs callback vtable `0x01108BF0`, whose slot 1 is
+`0x00C98A90`.
+
+On a successful response, `0x00C98A90` obtains the resource bytes, parses XML,
+finds `sheet` elements through `0x00DC36F0` at `0x00C98B4A` and calls
+`0x00C98580` at `0x00C98B97`. A nonempty `infofile` attribute takes the
+additional definition-request branch before sheet construction. On this
+startup route module `+0x10` is null, so `0x00C98625` requests the decimal
+`infofile` key through ResourceModule slot 1 with the same callback.
+Initializer `0x00F2C760` connects `infofile` at `0x01108BA0` to wrapper
+`0x013762B0`. The concrete ResourceModule receiver was constructed by
+`0x00C99090` and stored at startup receiver `+0x50`; its vtable
+`0x01108C3C` supplies slot 1 `0x00C99130`. The
+[resource path producer](../resource/resource-path-producer.md) owns its
+conditional numeric-key-to-file route. The master branch and definition
+requests identify the static source alternatives. They do not establish which
+selector, resource responses or populated name map existed in a runtime.
+
+The result is an ExcelSheet, whose constructor installs vtable `0x0110C6D4`
+at `0x00CB04F3`; PE RTTI identifies `Component::Excel::ExcelSheet`.
+Slot 14 (`0x00CAF350`) returns the enabled-row range vector at sheet `+0x44`.
+Slot 1 (`0x00CAF650`) returns nonzero if any subsheet's outstanding-request
+counter at `+0x20` is nonzero (`0x00CC26B0`). Slot 17 (`0x00CAF380`)
+returns the `column_max` byte at sheet `+9`. Thus nonzero slot-1 `AL` is the
+wait condition, and the loader consumes rows only when it is zero.
+
+Sheet slot 6 (`0x00CAF760`) obtains a cache-data wrapper through cache slot 6
+and returns it only when the enclosed ExcelEntry's byte `+4` equals 1.
+The `all` cache constructor `0x00CB16D0` installs `0x0110C670`; its
+slot 6 (`0x00CB1AD0`) returns an eight-byte cache cell. Cell constructor
+`0x00CB0A70` installs vtable `0x0110C628`, identified by PE RTTI as
+`Sqex::Data::CacheAll<Component::Excel::ExcelEntry*>::CacheData`.
+Its slot 2 (`0x008D5570`) returns the ExcelEntry pointer at cell `+4`.
+The loader's row slot-2 calls therefore unwrap an entry before calling
+`0x00C9A480`. That getter maps the requested column through sheet `+0x14`
+and returns the corresponding four-byte cell in entry `+8`.
+
+ExcelSubSheet constructor `0x00CC3330`, vtable `0x0110DC94`, reads each
+`block/file` element's decimal text into resource key `+0x0C`, `begin` into
+`+0x14`, and `count` into `+0x1C`. It retains the optional `offset` key text
+at `+0x54` and requests the `enable` resource at `0x00CC3542/0x00CC354F`.
+The enable response parser `0x00CC3590` appends row-range dwords to sheet
+`+0x44`. The lazy row request at `0x00CC3730` uses the block's data key,
+offset and byte count. The offset request is `0x00CC2640`; `0x00CC2790`
+uses the resulting offsets to bound the row bytes. Response `0x00CC3240`
+constructs ExcelEntry through `0x00C9A810` and stores it in the sheet cache.
+That constructor installs `0x01108D24`, identified by PE RTTI as
+`Component::Excel::ExcelEntry`. Decoder `0x00C9A6A0` uses the sheet's
+column types and sets entry byte `+4` to 1 at `0x00C9A7D8`.
+
+The retained masters and their named definitions establish the following
+conditional source identities. The linked client-data finding owns the
+resource hashes, decoded definitions, enabled row ranges and exact cell
+comparison with the CSV products.
+
+| Master | Source key | Definition | Data / enable / offset resources | Movement rows |
+|---|---|---|---|---|
+| `0x01030000` | `key_config` | `0x01030169` | `0x0103016A / 0x0103016B / 0x0103016C` | 4, 5 |
+| `0x01030000` | `key_config2` | `0x010301D4` | `0x010302FE / 0x010302FF / 0x01030300` | 12, 13 |
+| `0x01030000` | `key_config3` | `0x01030559` | `0x0103055A / 0x0103055B / 0x0103055C` | 4, 5 |
+| `0x27950000` | `key_config` | `0x2795008E` | `0x2795008F / 0x27950090 / 0x27950091` | 1, 2 |
+
+Each named definition has one `client` sheet with cache type `all` and identity
+column indices. The definitions omit `lang`, so the nonempty-lang filter does
+not distinguish these sheets. The game master's definitions have 16 columns
+and their decoded backing cells match `key_config.csv`, `key_config2.csv` and
+`key_config3.csv`, respectively. The alternate master's 15-column definition
+matches `key_config(2).csv`. These are separate source results under the same
+lookup key. The retained alternate master supplies no `key_config2` or
+`key_config3` reference; completion of all three profiles is therefore not
+established by that master alone.
 
 ## Axis binding input arguments
 
@@ -229,7 +338,7 @@ The generic matcher path and this binding slot-2 path must remain distinct.
 ## Named row association
 
 The retained rows and their extraction identities are recorded in
-[xivl-client-data:docs/movement-binding-rows.md](https://github.com/XIVLegacy/xivl-client-data/blob/ad2d4656665c4a163d7802946c2dec87401ee433/docs/movement-binding-rows.md).
+[xivl-client-data:docs/movement-binding-rows.md](https://github.com/XIVLegacy/xivl-client-data/blob/9fcaa07539572faa1c63d00bd13faea0214e6d25/docs/movement-binding-rows.md).
 That finding owns row IDs,
 column labels, variants and the distinction between `key_config.csv` and
 `key_config(2).csv`.
@@ -252,7 +361,7 @@ templates at `0x00FA1B24/0x00FA1B3C/0x00FA1B4C`, or
 `0x00FA1BAC/0x00FA1BC4/0x00FA1BD4` for the longer binding-string form.
 Its comma-separated `AxisL` and optional shift token therefore feed the
 axis parser and gesture constructor described above, conditional on those
-rows being the native source result and surviving configuration processing.
+rows surviving the selected profile's configuration processing.
 
 The generator emits each command name from its command entry at
 `0x00551C7E..0x00551C92`, using `Command="` at `0x00FA1D60`.
@@ -268,16 +377,17 @@ markup constructor `0x00556D20` initially clears `M + 0x144`.
 
 ## Remaining physical-input edge
 
-The provider, table-column consumption, named row candidates, axis argument
-writes and direct command execution path are identified statically. The first
-unjoined edge is the source-key result actually returned at `0x00553B34`:
-which retained table variant and row blocks it exposes, and which profile and
-substitutions produce the parsed binding. The required evidence is that
-result's retained source/block identity, or the exact resulting configuration
-bytes supplied to `0x0054CAF0` and parsed at `0x0054CB3F`, with their source
-identity and selected profile. `CommandTarget` and the eventual CharaElement
-recipient must then be joined for the constructed binding. No runtime device,
-command delivery or recipient is established by these static associations.
+The provider, named ExcelSheet results, retained source blocks, table-column
+consumption, axis argument writes and direct command execution path are
+identified statically. The first unjoined edge is the selected startup master
+and successfully delivered source-key result at `0x00553B34`. Within that
+result, the active profile, language column and replacements must then be
+joined to the parsed binding. The decisive remaining evidence is the exact
+configuration bytes supplied to
+`0x0054CAF0` and parsed at `0x0054CB3F`, with their source identity, profile
+and selected column. `CommandTarget` and the eventual CharaElement recipient
+must then be joined for the constructed binding. No runtime device, command
+delivery or recipient is established by these static associations.
 
 Keyboard handling in `0x00552DF0` separately emits descriptor `0x01356E28`
 through root slot 13. Initializer `0x00F207B0` assigns direct ID `0x55`;
