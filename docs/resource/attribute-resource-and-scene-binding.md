@@ -1282,13 +1282,14 @@ accepted hit, and query modes can run with zero movement bytes.
 The named command, selected-element publication, keyed actor store and
 conditional query dispatch are joined. The complete arithmetic from every
 camera/helper state to a displacement is not established here. Neither are
-physical-key/pad command production, runtime selection, active group/matrix,
+runtime physical-input delivery, selection, active group/matrix,
 authored resource loading, accepted contact or rendering. Concrete upstream
 calls include `0x004D6570` to `0x00548210` at `0x004D65B3` and
 `0x00552DF0` at `0x004D65C9`. The
-[pad-event and command-transport trace](../input/player-movement-command-origin.md)
-joins their generic event path. The concrete movement binding, matcher
-argument writes and selected route recipient remain unjoined.
+[input-binding trace](../input/player-movement-command-origin.md)
+identifies the provider, named row candidates and the separate axis-binding
+argument writes. The installed source rows, profile, configuration processing
+and selected route recipient remain conditions.
 
 ## Character factory and world provider
 

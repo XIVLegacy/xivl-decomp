@@ -1,11 +1,13 @@
 # Player movement command origin
 
 The retained retail code joins normalized pad records to routed pad-change
-events, and joins a generic input binding to command execution. It does not yet
-identify the binding record that selects `MoveCharacter` or
-`ShiftMoveCharacter`. The command event dispatcher can reach the CharaElement
-movement handler when that element is a route recipient; that conditional
-dispatch contract does not establish a physical action reaching it.
+events, identifies the event root's binding provider, and supplies a separate
+axis-binding path that writes command arguments directly from pad state.
+Retained table rows pair `MoveCharacter` and `ShiftMoveCharacter` with
+`AxisL` binding text. Native result selection, configuration substitutions and
+the routed recipient remain conditions. The command event dispatcher can reach
+the CharaElement movement handler when that element is a route recipient;
+that conditional dispatch contract does not establish a physical action reaching it.
 
 ## Evidence identity
 
@@ -88,7 +90,8 @@ nonnull and event byte `+0x17` is zero. It then calls `0x0091FFB0`, which
 walks command-associated input matchers, and calls `0x00920340` for a
 provider collection, if present, and the root's own collection at `+0x28`.
 These callbacks and collections are concrete points where input policy can
-intervene. Their runtime contents are not identified here.
+intervene. The provider's static construction is identified below; its selected
+configuration rows and runtime contents remain separate.
 
 For a record `B` consumed by `0x00920340`, the explicit binding path is:
 
@@ -129,15 +132,152 @@ movement handler. The named descriptors are `0x013390D8` for
 The linked selected-character finding specifies the handled-state and
 selection guards after this dispatch.
 
+## Provider and configuration boundary
+
+The container constructor calls `0x00553280` at `0x004DC1D6` for
+`C = W + 0x175AC`. That constructor installs vtable `0x00FA2FA8`, identified
+by PE RTTI as
+`Application::Main::SqwtInterface::RaptureInputBindingCollection`.
+`0x004D7A88..0x004D7A95` passes `C` to `0x0091CDA0`, which stores it at
+event root `U + 0x6C`. Its slot 1 is `0x005472E0`, the provider call used
+by `0x0091F200`.
+
+For provider receiver `C` and requested root `U`, `0x005472E0` returns
+`C + 0x8C * [0x01336BC4] + 0x18 + 0x24 * j`, where `j` is zero when
+`U` equals the TLS container from `0x0091A1B0` plus `0xB4`, and one otherwise.
+The profile index and root identity therefore select a collection before
+the generic binding loop runs. Construction alone does not identify its rows.
+
+`0x00553280` creates three `0x8C`-byte profile records through `0x005531D0`.
+Their source keys are `key_config`, `key_config2` and `key_config3`, at
+`0x00FA1E18`, `0x00FA1E0C` and `0x00FA1E00`. Loader `0x00553AD0`
+obtains the service at `W + 0x174F8` through `0x004D74C0`, then asks its
+slot 1 for the profile's key at `0x00553B34`. A nonnull result and its
+slot-1 readiness test permit `0x00553340` to consume rows through result
+slot 6 and row slot 2. `0x00553BE0` calls `0x0054CC50` only after all
+three profile completion bytes are set.
+
+`0x0054CC50` selects the indexed profile and reaches `0x0054CB90`.
+That helper calls `0x00682A20` to produce configuration text, then supplies
+its address and length to `0x0054CAF0`. The latter parses those explicit
+bytes through `0x0096B220`. Generator `0x0054F340`, called by
+`0x00682930`, emits the `RaptureKeyConfig` and
+`RaptureKeyConfig.InputBindings` strings at `0x00FA1A40` and closes them
+using `0x00FA1DC4`. This is a table-to-markup construction route; the
+executable strings are not the table rows or the resulting markup.
+
+The `AxisBinding` markup class has vtable `0x00FA2D44`, slot 8
+`0x00552160`. It resolves its `Command` string at markup record `M + 0x78`
+through `0x009466B0` and `0x0096E850`. Property handler `0x00948350`
+stores the parsed `Command`, `CommandParameter` and `CommandTarget` in
+`M + 0x78`, `M + 0xCC` and `M + 0x144`, respectively. `0x00552160`
+passes that command, argument record, target and parsed axis fields into
+constructors `0x0055A660` and `0x00555F30`. Base constructor
+`0x00982300` saves command `B + 0x18`, target `B + 0x94` and gesture
+`B + 0x98`, and copies the argument record into `B + 0x1C`.
+
+The additional movement strings at `0x00FA2054` and `0x00FA2074` feed
+`0x0054CD60` from `0x0054E440`. That helper resolves names through
+`0x00928F90` and inserts command pointers into a collection. The duplicate
+strings at `0x00FA22D8` and `0x00FA22F8` feed the same name resolver in
+`0x0054B440`, which explicitly executes both commands with a zero pair
+from `0x0052D3A0`. Neither string use selects the axis fields of an input
+binding. These command collections and explicit executions do not identify
+a movement configuration row.
+
+## Axis binding input arguments
+
+`RaptureAxisBinding`, vtable `0x00FA2CBC`, uses slot 2 `0x00547730`.
+Its constructor's enabled registration bit reaches the `0x00982300`
+branch at `0x0098243E`, which appends `B` to the TLS context's collection
+at `+0x2170`. The keyboard/mouse/pad update calls `0x0091A1C0` at
+`0x005530E5`. It delegates to `0x00981F50`, whose collection loop invokes
+binding slot 2 with those three input interfaces at `0x00981FDF`.
+This path precedes the mouse and pad event dispatch calls.
+
+`0x00547730` requires a clear `0x00680CE0` guard (global
+`0x013406F8 == 0`), matching profile byte `B + 0xE8 == [0x01336BC4]`,
+and a nonnull gesture. It tries keyboard helper `0x00547570`, then mouse
+helper `0x00547460` when the keyboard result is zero, then pad helper
+`0x00547380` when both are zero. It then executes command slot 2 at
+`0x0054779A` with `B + 0x1C`, target `B + 0x94` and a null source event,
+including when the pad helper returns zero. Each helper writes the argument
+pair; a zero pair is therefore a possible command argument.
+
+For gesture `G = [B + 0x98]`, the pad helper checks its mask
+conditions at `0x00547397..0x005473CC`. Selector `G + 0x18 == 0x10000`
+reads pad interface slots 2 and 3. Selector `0x20000` reads slots 4 and 5.
+Vtable `0x00FA2B28` maps these slots to getters `0x00548330` through
+`0x00548360`, reading `P + 0x48/+0x4C` and `P + 0x50/+0x54`.
+The helper writes the selected dwords to `B + 0x74/+0x78` at
+`0x00547418/0x0054741B`, and writes argument kind 2 at `B + 0x1C`.
+Since the argument record starts at `B + 0x1C`, these are its
+`+0x58/+0x5C`, transported to event `+0x7C/+0x80` as described above.
+
+The `PadAxis` property parser at `0x0054A960` maps `AxisL` and `AxisR`
+to selectors `0x10000` and `0x20000`, using strings `0x00FA1F34`,
+`0x00FA1F44` and `0x00FA1F3C`. Constructor `0x0055A660` stores the
+parsed selector at `G + 0x18` and mask at `G + 0x1C`. This establishes
+how an axis-binding row would produce the argument pair, without assigning
+either selector to a named movement command.
+
+This execution path does not depend on the generic `B + 0x98` slot-3
+matcher accepting a `PadChange` event. `RaptureAxisGesture` vtable
+`0x00FA2EEC` uses the false-return stub `0x00846210` in that slot.
+The generic matcher path and this binding slot-2 path must remain distinct.
+
+## Named row association
+
+The retained rows and their extraction identities are recorded in
+[xivl-client-data:docs/movement-binding-rows.md](https://github.com/XIVLegacy/xivl-client-data/blob/ad2d4656665c4a163d7802946c2dec87401ee433/docs/movement-binding-rows.md).
+That finding owns row IDs,
+column labels, variants and the distinction between `key_config.csv` and
+`key_config(2).csv`.
+
+The native row consumer uses row slot 2 with zero-based column selectors.
+In `0x00553340`, selector 2 at `0x0055370E..0x00553715` supplies the
+binding type, selector 3 at `0x0055354C..0x00553550` supplies the binding
+string, and selector 8 at `0x005539B8..0x005539BC` supplies the command
+name. These correspond to the CSV's labeled columns 2, 3 and 8, after
+excluding its leading row ID. `0x00553340` can replace the column-3 text
+with another selected column through profile field `+0x74` and falls back
+when that selected string is empty. Thus the literal primary CSV text is
+not an unconditional active binding value.
+
+The retained movement rows have binding type 2. Generator `0x0054F340`
+loads the entry type at `0x0054F49D`; map byte `0x00551EFA == 2` and
+table cell `0x00551EE4 == 0x0054FC07` select the axis-binding arm.
+That arm emits `AxisBinding`, `PadAxis` and `PadShift` attributes using
+templates at `0x00FA1B24/0x00FA1B3C/0x00FA1B4C`, or
+`0x00FA1BAC/0x00FA1BC4/0x00FA1BD4` for the longer binding-string form.
+Its comma-separated `AxisL` and optional shift token therefore feed the
+axis parser and gesture constructor described above, conditional on those
+rows being the native source result and surviving configuration processing.
+
+The generator emits each command name from its command entry at
+`0x00551C7E..0x00551C92`, using `Command="` at `0x00FA1D60`.
+The parser stores that string at `M + 0x78`, and the constructor resolves
+it through the command registry. `0x00928280` compares the requested name
+with command `+0x24` using byte-and-length equality helper `0x00445D20`.
+The movement descriptors' `0x00F0D350/0x00F0D450` constructors assign those
+same names to `0x013390D8/0x01339218` through `0x00928C90`.
+This supplies the conditional named-command association, beyond a string
+reference alone. It does not observe an installed `B`, registry contents or
+a selected route recipient. `CommandTarget` is a separate parsed field;
+markup constructor `0x00556D20` initially clears `M + 0x144`.
+
 ## Remaining physical-input edge
 
-The pad producer and generic command transport are answered. The physical
-movement origin remains partial: no identified `B` links a concrete matcher
-implementation and its argument writes to either named movement descriptor,
-nor establishes the target or routed CharaElement for that binding. The next
-static evidence is the initializer or provider that installs that record,
-followed by its matcher slot 3 implementation and writes to argument record
-`+0x58/+0x5C`.
+The provider, table-column consumption, named row candidates, axis argument
+writes and direct command execution path are identified statically. The first
+unjoined edge is the source-key result actually returned at `0x00553B34`:
+which retained table variant and row blocks it exposes, and which profile and
+substitutions produce the parsed binding. The required evidence is that
+result's retained source/block identity, or the exact resulting configuration
+bytes supplied to `0x0054CAF0` and parsed at `0x0054CB3F`, with their source
+identity and selected profile. `CommandTarget` and the eventual CharaElement
+recipient must then be joined for the constructed binding. No runtime device,
+command delivery or recipient is established by these static associations.
 
 Keyboard handling in `0x00552DF0` separately emits descriptor `0x01356E28`
 through root slot 13. Initializer `0x00F207B0` assigns direct ID `0x55`;
