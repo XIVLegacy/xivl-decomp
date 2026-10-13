@@ -497,15 +497,17 @@ Single-result construction and forwarding occur at
 occur at `0x00B017AC..0x00B01829`. The caller supplies the group mask,
 separately from the flags at `D+0x30`. The required group-1 mask bit
 `0x2` therefore remains a caller input rather than a wrapper default.
-The wrappers' native inputs do not identify a player movement request.
+The wrappers' native inputs alone do not identify a player movement request.
+The [selected-character command route](#selected-character-movement-commands)
+below joins a named movement handler to this query dispatch conditionally.
 
 ## Character query inputs
 
 CharaActor vtable `0x00FC0D34`, slot 167, selects `0x006610D0`.
 Its guarded path calls `0x00AF94D0` at `0x00661241`, then reaches the
 single-result descriptor wrapper and `0x00B0CA00`. This identifies a
-generic character query caller. It does not identify a local-player instance
-or a movement request.
+generic character query caller. The selected-character command route below
+identifies one conditional application path into it.
 
 With character receiver `C`, the caller loads `P = u32(C+0x110)` and
 requires it to be nonzero. The adapter uses `R = u32(P+0x04)` as its query
@@ -707,8 +709,8 @@ Container `+0xD0` holds the actor most recently selected by internal
 command 15 (`0x007C9676`), which also sets the new actor's `+0xD8` and clears
 the old one's. Removal of that actor clears the field. When slot 142's
 receiver is the selected actor, it also queues a MainPacket carrying
-`u16(C+0x15C)`. No examined byte ties the selection to input, camera or
-network identity, so it is not established as the local player.
+`u16(C+0x15C)`. The packet-character sections below join this selection to
+the case-2 reporting, default-camera and named movement-command roles.
 
 The Lua `_getAchievementSheetDataTitle` binding's vcall thunk `0x0071E5E0`
 also reads `+0x1B8`. It targets the Lua `PlayerBase` control class, vtable
@@ -926,8 +928,9 @@ alone does not queue command 29 or 30.
 The packet binding has a conditional native route to Lua control slot 11.
 The case-2 character also has the static local-player reporting role: its
 element key admits outbound position reports, and command 15 selects its
-actor as the default camera subject. These roles do not establish input,
-runtime movement or contact. The instructions below were checked against
+actor as the default camera subject. Its named movement-command route is
+described below; physical input, runtime movement and contact remain
+unqualified. The instructions below were checked against
 the pinned PE with Capstone and LLVM x86 disassembly.
 
 ### Initialization completion and record insertion
@@ -1178,6 +1181,115 @@ command delivery, element admission and existing network objects. No
 keyboard or pad input origin, server receipt, active authored-resource bytes,
 player collision group, rendered result or contact is established.
 
+### Selected-character movement commands
+
+Named movement commands have a conditional static route through the case-2
+element and selected actor into slots 165/166 and the slot-167 query above.
+The physical keyboard/pad producer of those commands remains unresolved.
+This trace used pefile 2024.8.26 for file-backed PE ranges and Capstone 5.0.7
+in x86-32 mode for the pinned executable. LLVM 22.1.4 independently matched
+the selected instruction boundaries and bytes. The following locators identify
+the selected instruction ranges, vtable cells and switch entries.
+
+Here `E`, `W`, `C` and `T` retain the roles defined above. Case-2 id setter
+`0x004D9980` looks up E by the requested key at `0x004D9A67` and stores it
+at `W+0x17838` at `0x004D9A6C`. Its sentinel arm clears that pointer at
+`0x004D9A52`; equality with the existing reporting id returns without a
+new lookup. Getter `0x004D86B0` returns this pointer when nonzero and
+otherwise returns `W+0x17834`. Successful case-2 construction, lookup and
+retained selection therefore associate this getter with the actor selected
+by command 15. Replacing either selection can break that association.
+
+CharaElement construction installs vtable `0x00FA7B2C` at `E+8`
+(`0x0058B542`). Slot 65 is `0x00589490`, whose receiver is that adjusted
+pointer. The handler first requires the byte through event `+0x10` to be
+zero (`0x0058949C`). Its descriptor comparisons have these string-backed
+identities:
+
+| Command | String VA | Initializer | Descriptor |
+|---|---|---|---|
+| `RaptureCommands.MoveCharacter` | `0x00FA7E14` | `0x00F0D350` | `0x013390D8` |
+| `RaptureCommands.MoveCharacter2` | `0x00FA7E34` | `0x00F0D3D0` | `0x01339178` |
+| `RaptureCommands.ShiftMoveCharacter` | `0x00FA7E54` | `0x00F0D450` | `0x01339218` |
+
+MoveCharacter compares E with the getter at `0x00589520`. On equality it
+copies the low bytes of event dwords `+0x7C/+0x80` to `E+0x264/+0x265`
+at `0x00589565/0x00589571` and sets dirty byte `E+0x280` at `0x005895AB`.
+Nonzero words `E+0x27C/+0x27E` override the corresponding bytes and are
+then cleared (`0x00589579..0x005895A1`). MoveCharacter2 writes those words
+at `0x005895E2/0x005895F1` without a selected-element comparison in that
+arm. ShiftMoveCharacter performs its own comparison at `0x005894BC`,
+writes `E+0x266/+0x267` and sets dirty at `0x005894D8`. On a selection
+mismatch, MoveCharacter clears only `E+0x265`; ShiftMoveCharacter clears
+both `E+0x266/+0x267`. These arms are not interchangeable.
+
+CharaElement's E-base vtable `0x00FA7C50` has slot 6 `0x0058DF90`.
+At `0x0058E01D..0x0058E056` it loads the four packed bytes, retains them
+only when E equals the getter and dirty is nonzero, and otherwise
+substitutes zero. It sends a four-byte source-`0x1E` record through
+`0x004D7980` and clears dirty. The publisher therefore sends zero even
+when no new selected movement bytes qualify.
+
+The record uses key `E+0x88` and adds `0x15` to its source at
+`0x004D79D2`: source 30 becomes container command `0x33` (51 decimal).
+Container dispatch subtracts `0x15` at `0x007C95D3..0x007C95F2` before
+calling actor slot 157. In `0x00662D30`, after slot-154 admission, byte
+table `0x00663C08[30]` selects entry 27 of table `0x00663AE8`, targeting
+`0x00662D78`. The arm stores the supplied dword at `C+0x11B8`
+(`0x00662D7A`). This is actor command 30, distinct from appearance actor
+command 9/container command 30 and position-report command `0x51`.
+Queue delivery and the primary actor-map key association remain conditions.
+
+In admitted CharaActor slot 142, the `C == T+0xD0` arm calls
+`0x00665220` at `0x00667D76`; the nonselected arm clears `C+0x11B8` at
+`0x00667E24`. The helper reads its four bytes signed and divides them by
+the double 100.0 at `0x00F55AD0` (`0x006652CF..0x00665335`). Its
+nonzero-input path requires camera `T+0x64` and branches on its `+0x434`
+mode. A zero-byte path also exists when `0x007A4610` returns false.
+These are conditional input processing paths, not proof of a nonzero move.
+
+The vector path calls `0x007AA690` at `0x00665A96`, then `0x007AFD90`
+at `0x00665A9D`, both with `H = C+0xBF0`. Construction passes C to
+`0x007B82B0` at `0x0065F301`, which stores it at `H+0` at `0x007B82E1`.
+`0x007AA690` writes the vector to `H+0x190` only when nonzero
+`H+0x2D4` supplies a true output byte through its slot 1. The writer's
+`0x0065BA90` predicate can also zero the vector's y component.
+`0x007AFD90` conditionally reads `H+0x190` at `0x007AFF9D` and derives
+direction/state; helper state predicates can bypass this read.
+
+Later in the same admitted slot-142 call, `0x00667F80` selects H.
+The conditional time-step loop calls `0x007B6C20` at `0x0066801E`, and
+the common continuation calls `0x007A78E0` at `0x00668048`. Both can
+pass the helper's position vector at `H+0x10` toward `0x0065B7F0`:
+
+| Caller route | Mode and query boundary |
+|---|---|
+| `0x007A78E0`, call `0x007A79FA` | Mode 0 reaches `0x007CE080`, without slots 165/166 |
+| `0x007A78E0`, call `0x007A7A34` | Mode 1 requires `C+0x2B70` bit `0x200`, then calls slot 165 |
+| `0x007A78E0` through `0x007A77B0` at `0x007A7A59` | Mode 2 reaches slot 166 if the helper's early-return predicate is not taken |
+| `0x007B6C20` through `0x007A77B0` at `0x007B717B` | Supplies mode 1 or 2 according to `0x0065A500`, with the same dispatch guards |
+
+`0x007A78E0` also has an early route when `0x0065E020` returns nonzero,
+and state checks can skip its mode dispatch. Its mode 0/1/2 choice
+uses `C+0x1104`, `C+0x1109` and `0x0065A500`. Slot 165 is
+`0x00660D80`; slot 166 is `0x00660F70`. Both require nonzero `C+0x110`
+and a nonzero slot-76 controller before calling slot 167 at
+`0x00660E2E/0x00660FF0`. They copy the supplied position vector into the
+query argument, setting its fourth component to 1. Slot 167 then builds
+the downward query described above. Query invocation does not imply an
+accepted hit, and query modes can run with zero movement bytes.
+
+The named command, selected-element publication, keyed actor store and
+conditional query dispatch are joined. The complete arithmetic from every
+camera/helper state to a displacement is not established here. Neither are
+physical-key/pad command production, runtime selection, active group/matrix,
+authored resource loading, accepted contact or rendering. Concrete upstream
+calls include `0x004D6570` to `0x00548210` at `0x004D65B3` and
+`0x00552DF0` at `0x004D65C9`. The
+[pad-event and command-transport trace](../input/player-movement-command-origin.md)
+joins their generic event path. The concrete movement binding, matcher
+argument writes and selected route recipient remain unjoined.
+
 ## Character factory and world provider
 
 `0x007A0450` registers factory `0x0079FAE0` at callback-table `+0x18`.
@@ -1317,6 +1429,10 @@ Equality to the current SceneThreadImpl world at callback time therefore
 remains conditional on no world replacement outside this order. None of
 these paths establishes local-player identity, loaded authored bytes or
 contact.
+
+The [SceneThread world-lifetime trace](scene-thread-world-lifetime.md)
+narrows the named thunk receivers and the normal start/restart order.
+Other indirect calls, world aliases and concurrent starts remain unqualified.
 
 ## Placed setup flags and group byte
 

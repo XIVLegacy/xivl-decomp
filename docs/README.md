@@ -174,6 +174,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [BGChip model resource binding](resource/bgchip-model-binding.md)
 - [BGChip resource setup and Attribute physics](resource/bgchip-instance-resource-setup.md)
 - [Attribute resource and native physics registration](resource/attribute-resource-and-scene-binding.md)
+- [SceneThreadImpl world lifetime](resource/scene-thread-world-lifetime.md)
 - [DivideMap block activation](resource/layout-block-activation.md)
 - [Class metadata](resource/class-metadata.md)
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
@@ -225,6 +226,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 - [Controller configuration](input/controller-configuration.md)
 - [Controller mapping and game consumers](input/controller-mapping.md)
+- [Player movement command origin](input/player-movement-command-origin.md)
 - [Config utility settings and controls](input/config-utility-settings.md)
 - [Config file and selection error handling](input/config-file-error-handling.md)
 - [Config System Information collection](input/config-system-information.md)
