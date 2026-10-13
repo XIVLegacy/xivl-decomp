@@ -128,6 +128,19 @@ Whole-block load, comparison and save include `+0x48..0x147`; the clear
 helper zeroes it. Direct text-loop accesses reach only `+0x48..0x5b`.
 These distinct access ranges do not assign meanings to opaque bytes.
 
+A full Config `.text` literal-address scan with LLVM 22.1.4 and an unaligned
+little-endian address-value scan of the pinned file found no fixed operands or
+little-endian address values into loaded tail `0x0045c190..0x0045c28f` or current
+tail `0x0045c2d8..0x0045c3d7`. The helper accesses above use base-plus-register
+addressing, so that negative result is not proof of no tail use. Nine such
+sites were inspected: four test reads at `0x004311bb`, `0x0043125b`,
+`0x00431308`, `0x004313b1`, text read `0x00430e36`, and selected-index
+sites `0x004317e8`, `0x004317f0`, `0x00431844`, `0x0043188f`.
+Their focused branch bounds retain the same mapping/tail distinction.
+The scan's code and indirect-pointer limits are stated in
+[the buffer audit](config-file-error-handling.md#read-buffer-boundary-audit).
+No additional field meaning was established for `+0x48..0x147`.
+
 ## Input-test drawing and controls
 
 Resource 102 has seven controls. Button 1 uses localized key `0x90`

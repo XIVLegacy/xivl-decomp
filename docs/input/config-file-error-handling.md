@@ -42,6 +42,36 @@ dword left at `0x0045cc78`, which may be stale or partially produced. An
 unrecognized magic or failed open retains the explicitly initialized scalar
 defaults. Actual API bytes and any overwrite or process outcome are unobserved.
 
+### Read-buffer boundary audit
+
+The closest independently used state before the read destination begins at
+VA `0x0045cc64`. `FUN_00437a70` checks its guard at `0x0045cc74`,
+initializes pointer/end state at `0x0045cc68..0x0045cc70`, registers cleanup
+`0x00449d70`, and passes base `0x0045cc64` to `FUN_004070a0`. That helper
+uses pointer/end fields at base `+4/+8` to manage the neighbor's allocation.
+These accesses identify state before the sys destination. They do
+not give the object at `0x0045cc78` a declared size or a safe read limit.
+
+LLVM 22.1.4 linear decoding of `.text`, VA
+`[0x00401000,0x0044a16e)`, and a Python unaligned little-endian DWORD search
+over the entire pinned file found the sys reader's fixed DWORD sources at
+`0x0045cc78..0x0045ccd4` and UTF-16 starts `0x0045ccd8/0x0045cd18`.
+The advancing string loops can pass those starts until a NUL. Section
+envelopes, neighboring state and literal-reference ranges establish measured
+accesses, not the allocation extent of the source object. The current-block
+size `0x2ac` cannot be adopted as that extent from this evidence.
+
+The linear decode contains unknown chunks at VAs `0x0041e64e`,
+`0x0041e7ea`, `0x0041fdee` and `0x00423daf`. Register-derived pointers are
+outside a literal-address search. Neither that search nor the absence of
+base-relocation records proves that all indirect consumers were found.
+The relevant reader and neighbor helper paths were inspected separately with
+Ghidra 12.1.3 and original-byte instruction checks. Exact capacity remains
+unresolved rather than inferred from global spacing. The pefile metadata
+inspection found zero COFF symbols, a zero symbol-table pointer and an empty
+debug directory, so it
+supplies no size-bearing symbol or matching PDB reference for that object.
+
 ## Sys conversion and opaque bytes
 
 The legacy `0x20100706` selector uses the six-DWORD table `[7,9,2,0,4,1]`.
@@ -63,6 +93,21 @@ and save, although no individual field decode or child consumer is established.
 Malformed terminators and unknown bytes must not be treated as validated
 settings. The normal conversion map remains in
 [utility settings](config-utility-settings.md#dialog-handlers-and-non-controller-settings).
+
+The same full-text literal search found no fixed absolute operand into current
+tail `0x0045c8a8..0x0045c8ab` or snapshot tail
+`0x0045cb58..0x0045cb5b`. Focused copy/compare/save paths account for their
+bulk accesses. Advancing UTF-16 destination loops can reach the tail if the
+source continues that far. No application-level meaning was established for
+these four bytes. The bounded search does not rule out every derived pointer
+or malformed-copy write, and does not justify naming the bytes as padding or
+a settings field.
+
+The reader's whole-block copy moves current memory to the snapshot. Recognized
+file conversions copy their scalar/string values instead of the whole read
+buffer; they do not decode the file's final DWORD into this tail. Thus bulk
+serialization of current tail bytes does not prove preservation of the disk
+file's tail through a utility load/save cycle.
 
 ## Language fallback result and resource-table bound
 
@@ -140,8 +185,8 @@ The available names, selected index and error callback are runtime inputs.
 cleans the 20-byte argument list at `0x0041d2e7` and returns at
 `0x0041d2ea`. The callee reads global `0x004581b4`, passes it through
 pointer decoder `FUN_004217d0`, and tests the result. A nonnull result reaches
-the tail `JMP EAX` at `0x0041d2cb`. Its callback installation and return
-behavior were not observed.
+the tail `JMP EAX` at `0x0041d2cb`. Runtime callback state and return behavior
+were not observed. The static initialization path is traced below.
 
 The null-decoded-pointer branch calls `FUN_004216e5`, which clears dword
 `0x00465df4`, then jumps to `FUN_0041d1bb`. That routine builds an exception
@@ -159,6 +204,38 @@ It invokes a resolved decoder when available and otherwise returns its
 original argument. The observed complete range is
 `0x004217d0..0x0042183e`, exclusive end. Actual decoder/callback state
 remains unverified.
+
+### Callback initialization
+
+The PE entry at VA `0x0041dec0` branches to CRT startup
+`0x0041dce0`, which calls `__mtinit` at `0x0041ddc3`. The TLS allocation
+and installation success path calls `__init_pointers` at `0x00421be9`.
+That initializer calls `__encoded_null` at `0x004221a5`, retains EAX in
+ESI and passes the result to setter `FUN_0041d1b1` at `0x004221b9`.
+The setter loads `[ESP+4]` and stores it to callback global `0x004581b4`
+at `0x0041d1b5`. The error dispatcher's load at `0x0041d2ba` is the other
+direct reference. Ghidra's reference set and a whole-file little-endian
+address search found those two explicit operands. The callback slot is in
+the PE `.data` zero-fill region and has no original-file byte offset.
+
+`__encoded_null` at `0x004217c7` pushes 0, calls encoder
+`FUN_00421759`, then pops ECX and returns without changing EAX. The raw
+instructions establish its returned value despite an inferred void library
+signature. The encoder has cached and module/export paths. The file-backed
+cache-selection global at `0x004564f0` starts at -1; the startup write at
+`0x00421c50` follows the initializer call. On this static initialization
+path, its fallback requests `GetModuleHandleA("KERNEL32.DLL")` and resolves
+`EncodePointer` using the ASCII string at `0x0044b744`. Successful lookup
+and platform checks lead to `EncodePointer(0)`; failed prerequisites return
+the original zero argument. This supplies an encoded-null request or plain
+zero to the setter, without establishing the actual runtime stored/decoded
+value or a concrete callable target.
+
+LLVM 22.1.4 and fresh Ghidra 12.1.3 `FindCallers.java` /
+`DecompileToText.java` runs verified the setter, initialization helpers and
+CRT call chain. The observed initialization does not rule out an indirect
+write, later override or runtime patch. Platform/API success, cached decoder
+state, the resulting branch and process termination remain unobserved.
 
 ## Selected-face copy capacity and result
 

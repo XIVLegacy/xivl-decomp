@@ -97,9 +97,26 @@ callback `FUN_0043efc0`. Its filter requires visible, enabled, parentless
 windows, then applies internal class predicates `0x00402c70/0x00402c40`
 and skips empty captions. Class/caption reads allow `0x104` WCHARs.
 The factory inserts header key `0xef` (Image Name) at `0x0043f341`.
-Record-derived strings feed row insertion `0x0043f3e9` and subitem-1 update
-`0x0043f44d`. No second header is inserted in the recovered slice; that
-subitem's user-facing meaning remains unassigned.
+Its data is the window caption. GetWindowTextW at
+`0x0043f0d7` fills a separate buffer from the class-name filter. Call
+`0x0043f0ed` converts the caption through `FUN_004031c0`, then
+`0x0043f106` passes it to tree insertion `FUN_00401ff0`. The insertion
+chain through `FUN_00402120` and `FUN_00402620` copies the string into a
+`0x2c`-byte node. The node's string starts at `+0x0c`, with inline data or
+a heap pointer at `+0x10`; the factory tests capacity at `+0x24` and selects
+the text at `0x0043f420..0x0043f43c`.
+
+Each row is initially inserted with empty UTF-16 text at VA `0x0044eeec`
+through message `0x104d` at call `0x0043f3f8`. The update structure starts
+at the pre-push stack offset `0xac`. After four argument pushes, the store
+at `0x0043f45c` writes zero from EBX to `[ESP+0xc4]`, which is that
+structure's `+8` (`iSubItem`). Call `0x0043f463` sends `0x104c` with the
+node caption and `iSubItem=0`. There is one header and no second-column write
+in the recovered factory. Actual captions and rendering remain runtime values.
+
+LLVM 22.1.4 verified these instruction/data locations. A fresh read-only
+Ghidra helper run with `DECOMP_VAS=0x00401ff0,0x00402120,0x00402620,
+0x00402f00,0x00402fe0,0x004031c0` reproduced the caption-copy chain.
 
 Processes factory `FUN_004368b0` requests EnumProcesses with a `0x1000`-byte
 buffer at `0x00436b5e` and loops over returned byte count divided by four.
@@ -138,6 +155,6 @@ bounded claim.
 Confidence is high for image identity, addresses, key/data bytes, imported
 requests and visible checks; row-value meanings that pass through shared
 containers are instruction-supported interpretations. Full OS/GDI/D3D/COM
-implementation, actual hardware/process/registry values, Applications subitem
-meaning, clipboard success and native/Wine output remain unresolved. These
-report paths supply neither a settings write nor proof of a game effect.
+implementation, actual hardware/process/registry values, clipboard success
+and native/Wine output remain unresolved. These report paths supply neither
+a settings write nor proof of a game effect.
