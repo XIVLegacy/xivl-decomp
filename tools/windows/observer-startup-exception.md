@@ -76,6 +76,35 @@ Exception code, chance, address, first-seen order or a familiar export name
 cannot supply the missing joins. The current source has no startup classifier
 or startup-consumption state; all held observer exceptions remain refused.
 
+## Acquisition boundary
+
+The [supporting identity capture](observer_supporting_identity.cpp) records
+the creation-bound `CREATE_PROCESS_DEBUG_EVENT` and `LOAD_DLL_DEBUG_EVENT`
+file handle, module base, path, size and hash. Its accepted load records do not
+contain an image extent or resident instruction bytes. The
+[held inventory helper](observer_live_runtime.cpp) can take an exception
+address from a held event and reconcile module and allocation ranges, but
+its production call occurs after bootstrap binding and the initial hold
+worker. That later acquisition does not classify an earlier startup exception.
+
+The [exception refusal record](observer_exception_policy.h) contains the
+held exception's code, flags, chance and address with creation PID,
+controller/event TIDs, session and event generation/index. Context, stack,
+original child TID, activation attempt, module identity and phase are not
+fields of that record. Creation handles, the original child TID and activation
+identity are retained separately. A startup classification would need an
+explicit join to those sources while the authoritative event remains held.
+
+A conservative classifier would require one event-bound record joining that
+creation instance, thread lifetime, architecture-specific context, resident
+mapping and producer/phase witness before candidate continuation. The two
+encoded helper callers share the same inline breakpoint, so the loaded RVA
+alone cannot distinguish their routes. Missing or contradictory joins must
+refuse. Any reviewed one-use state would have to consume the exact
+attempt/process/thread/phase admission before continuation dispatch and remain
+consumed after a failed or unknown result. These acquisition requirements
+establish neither an allowance nor a current source defect.
+
 ## Qualification boundary
 
 The file trace and source audit supply an offline classification proposal.
