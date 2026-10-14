@@ -152,7 +152,7 @@ def verify(document: dict | None = None) -> list[str]:
     if authority != {
         "clientPredictionOnly": True,
         "serverAuthorityEstablished": False,
-        "bahamutGrowFormulaReady": False,
+        "serverGrowFormulaReady": False,
     }:
         errors.append("authority boundary changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
