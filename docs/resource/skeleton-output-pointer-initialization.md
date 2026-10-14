@@ -27,6 +27,52 @@ The committed
 owns the name-lookup pointer-table transfer. Neither basis establishes
 output-content consumption by this routine.
 
+## Supplied count and lookup-name positions
+
+Let M denote the first explicit stack argument to `0x00c6c1f0` and C
+its second explicit stack argument. The loads at `0x00c6c204` and
+`0x00c6c20d` retain these separately. The committed owner's `+0x334`
+route uses C. M supplies the count and lookup-name table below.
+Let load16 denote an untyped native 16-bit value read and swap16 the
+exchange of a word's two bytes. The existing ptr32 notation denotes a
+native 32-bit address read.
+
+At `0x00c6c230`, the initializer reads and zero-extends the word at
+`M+0xfe`. It retains that value in EDI and a dword local. On the path
+past the initial comparisons with locally zeroed EBX, `0x00c6c250`
+stores that value at `R+0x0c`. The subsequent request expressions scale
+it by four and two for the two retained tables. Their allocation callees
+remain uninspected.
+
+Let n denote that zero-extended word and j the locally zeroed EBP used
+by the name loop. Instructions `0x00c6c2f4..0x00c6c31b` select the
+supplied lookup-name address as:
+
+```text
+T = ptr32(M+0x104)
+B_j = ptr32(T+4*j)
+name_j = B_j + swap16(load16(B_j))
+```
+
+The table uses four-byte spacing. The leading word at B_j is rotated
+by eight in AX at `0x00c6c30d`, zero-extended at `0x00c6c316`, and
+added to B_j at `0x00c6c31b`. The offset is relative to the selected
+entry itself. There is no additional two-byte adjustment. At
+`0x00c6c320`, name_j is pushed to the direct `0x00a3f7e0` call at
+`0x00c6c321`. No actual name bytes or complete serialized record format
+is established by this address expression.
+
+On the committed successful lookup path, `0x00c6c34e` saves the
+associated output pointer at `ptr32(R+0x10)+4*j`. The separate word
+store at `0x00c6c354` saves low word AX at `ptr32(R+0x14)+2*j`.
+All three table positions use the same EBP. The source-name position j
+and returned lookup ordinal remain distinct quantities. The loop
+advances EBP at `0x00c6c3cb` and compares it with retained n at
+`0x00c6c3ce`. This establishes same-position association on that
+successful path, without assuming ordinal equality or mesh palette meaning.
+Comparisons and exceptional paths retain the existing EBX and outgoing-callee
+limits.
+
 ## Retained pointers
 
 At `0x00c6c2b7..0x00c6c2c3`, the routine follows the supplied owner's
@@ -78,6 +124,23 @@ lifetime and palette meaning are unresolved. The combined listing stops
 at `0x00c343ce` before the remaining epilogue. Its outgoing target at
 callsite `0x00c343ba` remains uninspected.
 
+
+The `0x00c341d0` prefix separately derives the initializer inputs.
+Let P denote its locally retained entry receiver and
+H the supplied first input retained at `P+0x7c`. For its current EBP
+value q, `0x00c34307..0x00c3432c` selects
+`M=ptr32(ptr32(H+0x30)+4*q)`. The original second input is reloaded
+at `0x00c34328`, pushed at `0x00c34333`, and followed by M at
+`0x00c3433a` before the `0x00c3433f` call. This caller's record-table
+position q and receiver byte offset are separate from the initializer's
+inner name position j. No resource selection or instance identity follows.
+
+In the `0x00c6c650` prefix, `0x00c6c689` and `0x00c6c691` load its
+original first and second explicit arguments. The second is pushed at
+`0x00c6c695`, then the first at `0x00c6c696`. With its retained entry
+receiver as ECX, the call at `0x00c6c699` forwards those two inputs
+unchanged. Its complete return and object lifetime remain outside the prefix.
+
 ## Reproduction and limits
 
 Use the existing analyzed `ffxivgame.exe` program and `ghidra` JSON output.
@@ -109,6 +172,22 @@ original executable through its PE mapping. The union has `343` unique
 instructions and `1111` unique instruction bytes. No referenced literal
 data was read. Executable size and SHA-256 matched before and after.
 No decompiler-inferred signature supplies a field contract.
+
+
+For the count/name input contract, bounded Intel-syntax `llvm-objdump`
+windows are `[0x00c6c1f0,0x00c6c2e9)`,
+`[0x00c6c2f0,0x00c6c3f3)`, and `[0x00c6c650,0x00c6c6ad)`.
+They contain 178 instructions and 601 instruction bytes. The caller
+prefix `[0x00c341d0,0x00c34349)` adds 129 instructions and 377 bytes.
+Every encoded instruction byte matched the identified executable through
+its parsed PE mapping. Each window is contiguous, while the seven-byte
+initializer gap remains opaque. The two caller windows remain incomplete
+prefixes. Relative-call displacements at `0x00c3433f` and `0x00c6c699`
+confirm target `0x00c6c1f0`, and `0x00c6c321` confirms `0x00a3f7e0`.
+The producing `llvm-objdump` executable has SHA-256
+`bb7793802ccffe8e0613ce326f6fe8caacbd626e5318bbcf73e820a5c027aca4`.
+No referenced literal, actual lookup name, resource payload, helper body,
+or upstream caller was read for this observation.
 
 The inspected initialization body establishes no output-content read or
 matrix copy. The separate
