@@ -201,10 +201,37 @@ The earlier callee `[0x00a39c00,0x00a39d23)` has no outgoing call or in-body bra
 
 The callee restores ESP from EBP at `0x00a39d1d`, reloads EBP from the saved word at `0x00a39d1f`, and returns with the three-byte `RET 8` at `0x00a39d20`. A normal return leaves ESP at `T+12`. Entry EBP identity requires the destination writes to leave its saved word unchanged. This does not establish destination isolation from the parent state, the saved return address, or the local scratch used by the second destination store.
 
+The complete earlier callee `[0x00a41ca0,0x00a41eae)` contains 112
+instructions. It saves entry EBP at entry ESP minus four, aligns its local
+frame, then saves entry ESI. Let T denote this callee's entry ESP, C its
+entry ECX and P the local stack base `((T-4)&0xfffffff0)-0x100` after that
+ESI save. The saved ESI word is at P. The six-byte JNE at `0x00a41cb6`
+selects the call-free path at `0x00a41e86` when the byte read from
+`C+0xf2` compares unequal to zero.
+
+That path loads O from the first stack argument at `T+4` at
+`0x00a41e89`. It loads four consecutive 16-byte blocks from C and stores
+them at `O+0`, `O+0x10`, `O+0x20` and `O+0x30` at `0x00a41e8c`,
+`0x00a41e93`, `0x00a41e9b` and `0x00a41ea3`. EDI is untouched and no
+outgoing call appears on this path. Its epilogue reloads ESI from P,
+restores ESP from EBP, reloads EBP from `T-4` and returns with the
+three-byte RET 4 at `0x00a41eab`. A normal return leaves ESP at `T+8`.
+Entry ESI and EBP identity require the output stores to leave their saved
+words unchanged. The output can also alias the receiver rows or caller
+return and argument words, so later source loads need not retain their
+entry contents.
+
+The other two paths include six distinct direct callsites in the complete
+body. Their callee effects remain outside this own-body proof. No own
+instruction assigns EDI, but outgoing calls can prevent its entry
+identity. Subsequent ESP-relative stores and the epilogue also depend on
+post-call registers, so this path analysis supplies no unconditional
+frame or stack-preservation result for the call-bearing routes.
+
 The parent reads Q through its locally held frame pointer at `+0x0c`.
-Its earlier calls to `0x00a41ca0`, `0x00a419a0` and
-`0x0042ffa0` have no independent physical register or stack-preservation
-proof here. The full parent body therefore supplies no unconditional
+The call-bearing routes through `0x00a41ca0` and the earlier calls to
+`0x00a419a0` and `0x0042ffa0` have no complete physical register or
+stack-preservation proof here. The full parent body therefore supplies no unconditional
 entry-to-tail identity for D or that frame pointer. B names the rows
 actually read at the tail, without proving an entry pose identity.
 Pointer validity and interfering aliases remain unresolved. The published
@@ -316,6 +343,16 @@ For the earlier callee `[0x00a39c00,0x00a39d23)`, the 72 decoded
 instructions cover 291 bytes. Apple `llvm-objdump` disassembly and a
 PE-mapped comparison verified every encoded instruction byte for the
 identified `ffxivgame.exe`. No pointed-to memory or target execution was
+observed.
+
+For the earlier callee `[0x00a41ca0,0x00a41eae)`, 112 decoded
+instructions cover 526 bytes. Every encoded instruction byte matched the
+identified executable through its PE mapping. Verify the two six-byte
+conditional branches and the two-byte jump against their in-body targets,
+and both three-byte RET instructions with cleanup immediate 4. Record the
+six outgoing relative call targets without following them. Keep post-call
+register and memory effects explicit before assigning entry-frame offsets
+to later direct stores. No pointed-to memory or target execution was
 observed.
 
 These are static executable observations. They do not establish current
