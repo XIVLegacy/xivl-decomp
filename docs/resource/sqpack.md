@@ -33,6 +33,22 @@ install. A prior external lead, `docs/install_inventory_2026-09-27.md` at
 revision `d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, reported the same
 first-level and second-level counts.
 
+`client/vfx` holds 828 files totalling 146,857,660 bytes. All begin with
+`PWIB` except two files in `etc` and two in `sys`, which begin with `SEDB`.
+Embedded authoring paths of the form `d:\gra_rapture\vfx\<family>\` give
+each file's authoring family. In `wsc`, 136 of 137 files name `weapon` and
+one names `ability`. In `abl`, 177 of 178 name `ability`. In `mgc`, 178 of
+181 name `magic`. In `itm`, 58 of 63 name `item`. In `lib`, 51 of 118 name
+`lib`, 17 name `quest`, `resident`, `pop`, or `nq_event`, and 50 have no such
+path. The ASCII string `hanabi` occurs only in `itm/0042`-`0050`, `itm/0060`,
+`lib/0012`, and `lib/0016`; `lib/0042` names `job_stn42_whm`. Authoring paths
+do not establish runtime routing; see
+[Animation bank routing](../actor/animation-bank-routing.md). A prior external
+lead, `docs/vfx_bgobj_catalog_2026-09-27.md` at revision
+`d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, calls `wsc` a weather and sky
+bank and `lib` a fireworks bank; the authoring paths do not support either
+label.
+
 This byte-group mapping is conditional on the formatter's mode byte being
 nonzero. When it is zero, the same function uses a high-16 group and low-16
 index catalog path instead. See [Resource path producer](resource-path-producer.md)

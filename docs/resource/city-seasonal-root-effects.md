@@ -10,8 +10,10 @@ alone do not identify a retail actor owner or an activation schedule.
 | Limsa Lominsa | `0x29D90000` | 5 / 15 | 9 / 10 | 5 |
 | Ul'dah | `0x615A0000` | 5 / 15 | 9 / 10 | 3 |
 
-Each root has `vfx_egg_001..005` and the fifteen
-`time_vfx_egg_v_[lcr][1-5]` names. The three roots also have
+Each root has `vfx_egg_001..005` and fifteen egg timeline names. Gridania
+and Ul'dah use `time_vfx_egg_v_[lcr][1-5]`; Limsa Lominsa uses
+`time_vfx_egg_[lcr][1-5]_v_[lcr][1-5]`, for example `time_vfx_egg_c1_v_c1`
+at `0xB56D` in `0x29D90000`. The three roots also have
 `vfx_hanabi1..9`. Limsa and Ul'dah additionally have two five-member
 `time_vfx_hanabi*_vtp1..5` name families. Gridania lacks those expanded
 hanabi timeline names in the 1.23b DAT scan; this does not mean its
@@ -41,6 +43,23 @@ Suffix agreement makes the egg family a plausible target but is not a
 verified name-resolution, actor-owner, or retail invocation join. It cannot
 be used to classify this script as a proven Hatching-tide controller or a
 Moonfire controller.
+
+`MapObjFireworks.initForEvent` calls `_setGroundOn(false)` and
+`_setLoopInterval(10)` (`mapobjfireworks.lua:11-54`). `_onLoop` acts only
+while work field `fire` is false. It computes a seed of
+`floor(serverTime / 86400) * 5`. When `worldMaster:isHydaelynNight` is true,
+it runs the five scheduler requests with `_wait` arguments 2, 2, 3, and 2
+between them, then sets `fire`; any later loop with `fire` set clears it
+(`:57-142`). `getFireworksSchedulor` uses side `l` for indexes 1 and 4, `c`
+for 2, and `r` otherwise, and draws the number with
+`math._randomIntegerWithSeed(1, 5, seed + index)` (`:145-171`).
+`isHydaelynNight` is false for Hydaelyn hours 5 through 18 and true otherwise
+(`worldmaster_event.lua:4-24`; [World master](../actor/world-master.md)). The
+units of `_wait` and `_setLoopInterval` are not established. A prior external
+lead, `docs/meteor_decor_lineage_2026-09-27.md` at revision
+`d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, gives a 20:00-06:00 window, which
+this script does not contain. Evidence: `xivl-client-scripts:lua/scripts/chara/npc/mapobj/mapobjfireworks.lua`
+(SHA-256 `2FAB8FBB537CC537987D80636471ABDEA4D1FBE87F4ABDC460C6407B1610A3DB`).
 
 The recovered Lua and compiled Lua inventories each contain 2,517 files,
 with no `vtp1..5` caller found by the examined literal scan. Native BG
