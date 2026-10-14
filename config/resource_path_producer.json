@@ -152,7 +152,7 @@
     "missingFileFallthrough": "NOT TESTED",
     "originalPathIdentityForwarding": "NOT TESTED"
   },
-  "bahamutAdoption": {
+  "serverAdoption": {
     "safeNow": [
       "Gate the hook on the exact executable hash and unique pre-open signature.",
       "Treat Resource+0x04 as a borrowed narrow path wrapper at the pre-open boundary.",

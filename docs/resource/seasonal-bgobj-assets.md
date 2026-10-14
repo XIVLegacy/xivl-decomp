@@ -42,6 +42,20 @@ activation owner, or weather relationship is recovered for these portable
 families. The examined inventory has no positive Foundation Day portable
 model candidate; that is not a claim that Foundation Day had no decorations.
 
+BG-object family `b939` has two model variants, `equ/e001/top_mdl/0001`
+(134,144 bytes) and `equ/e002/top_mdl/0001` (88,224 bytes); both name shader
+stem `0o_v11_hsy01_1h`. In `xivl-client-data:csv/actorclass_graphic.csv`,
+`base` 20939 occurs only on actor classes 1001676-1001679, with `body` 1024
+on the first three and 2048 on 1001679. In the decoded Lua, only
+`PopulaceSumFes.initForEvent` names one of these classes
+(`chara/npc/populace/populacesumfes.lua:11-29`): it loads text sheet 7216
+and calls `_setGroundOn(false)` when the actor class is 1001679. Neither the
+sheet rows nor that script name `MapObjFireworks`, and the model names no
+launcher. A prior external lead, `docs/vfx_bgobj_catalog_2026-09-27.md` at
+revision `d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, calls `b939/e001` the
+summer-festival fireworks launcher; no retail join here establishes that
+identity.
+
 Gridania's town layout DAT `0x29B00001` (SHA-256
 `abc13bd6f096b0fe9703b2092ca4a7f819ff2b88e4d08ae222a9db447f618312`)
 contains 30 `gcflag` string occurrences, 27 distinct: six `sgrp` names and

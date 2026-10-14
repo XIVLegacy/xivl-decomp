@@ -65,6 +65,18 @@ The 8029/`wtr_smmr` rows are at `0x280`/`0x29D9001E` under `sea_s0`,
 `0xD60`/`0x29B0001D` under `fst_f0`, and `0x1420`/`0x615A0022` under
 `wil_w0`. These are resource-row bindings, not proof of a runtime weather
 selection or event interpretation.
+The 21 8028/`wtr_smmn` rows bind four DAT keys, first at `0x760`, `0xD90`,
+`0x13C0`, and `0x2B90`. Their payloads carry different markers:
+
+| First row | DAT key | Bytes | SHA-256 | Markers |
+| --- | --- | ---: | --- | --- |
+| `0x760` | `0x28D90015` | 87,024 | `db13649451a75054235319e93bc9bfd3c236eb776bdd45c6df12e96e49e2a383` | `sdef_garuda_loop` at `0x1047`, `sdef_garuda_spot` at `0x1058` |
+| `0xD90` | `0x29B0001E` | - | - | See [Thornmarch ring layout](thornmarch-ring-layout.md) |
+| `0x13C0` | `0x615A0020` | 103,920 | `f5be8e1a2cd596bda078735e66e96c7f342de71238fbdc1c871c142539ce0397` | `cbind_fire` at `0x3E6E`, `vfx_cam_fire` at `0x220` and `0x3E10`, `time_smmn_se` at `0x1061`, `w0f_ifu_batle` at `0x38C3` |
+| `0x2B90` | `0xABF40003` | 85,008 | `1e3f35b6a5a57391c2125b7235bebf7d74250b8e33ba230dbcf8432c0ece1636` | `sdef_meteor_sound` at `0x165E` |
+
+These markers identify authored atmosphere resources, not an arena or
+encounter binding.
 These are file offsets and resource bindings. The differing payloads and
 historical layout selectors are in [City seasonal weather selectors](city-seasonal-weather-selectors.md).
 

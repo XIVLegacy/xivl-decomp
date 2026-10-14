@@ -210,7 +210,7 @@ def verify(document: dict | None = None) -> list[str]:
         "originalPathIdentityForwarding": "NOT TESTED",
     }:
         errors.append("hook insufficiency boundary changed")
-    adoption = document.get("bahamutAdoption", {})
+    adoption = document.get("serverAdoption", {})
     if adoption != {
         "safeNow": [
             "Gate the hook on the exact executable hash and unique pre-open signature.",
@@ -225,7 +225,7 @@ def verify(document: dict | None = None) -> list[str]:
         ],
         "nextRuntimeDiscriminator": "On the pinned build, pass one independently owned substitute wrapper through the original LocalFile open call, observe the replacement FILE* complete the read and close at 0x00c962f5, then repeat a miss while proving the original Resource+0x04 bytes are forwarded unchanged.",
     }:
-        errors.append("Bahamut adoption boundary changed")
+        errors.append("server adoption boundary changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
     forbidden = (
         r"[A-Za-z]" + r":\\\\",
@@ -253,7 +253,7 @@ def mutation_test() -> list[str]:
         (("preOpenSignature", "exactBuildMatchCount"), 2),
         (("preOpenSignature", "callPatternOffset"), 14),
         (("hookGate", "missingFileFallthrough"), "SUPPORTED"),
-        (("bahamutAdoption", "safeNow"), []),
+        (("serverAdoption", "safeNow"), []),
         (("source", "binarySha256"), "0" * 64),
     ]
     mutations: list[dict] = []

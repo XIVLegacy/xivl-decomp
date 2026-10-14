@@ -127,6 +127,33 @@ server event schedule. In particular, historical Starlight 8032 is not a
 safe Starlight command for the final client, and 8027 does not denote one
 uniform atmosphere across the three cities.
 
+String scans of the final 1.23b payloads at the other city keys give the
+marker presence below. Offsets are file offsets in each DAT.
+
+| Weather / city / DAT key | Bytes | SHA-256 | Markers |
+| --- | ---: | --- | --- |
+| 8027 / Limsa Lominsa / `0x29D9001F` | 120,912 | `13e4c6b12da2b0cd34063e13e8910bb3473c185a5843f02fa5fb9954f83e0add` | `sdef_hallo_imp` at `0x10C9`, `0xA5E4`; no `cbind_xmas` or `vfx_cam_xmas` |
+| 8027 / Ul'dah / `0x615A0023` | 123,232 | `aae0a9f6d5506c6468192c90b8fb1c0b6c8d4dbf4ab628cc13594a4cba759ef9` | `sdef_hallo_imp` at `0x10C3`, `0x8C34`; no `cbind_xmas` or `vfx_cam_xmas` |
+| 8029 / Gridania / `0x29B0001D` | 129,856 | `9190ad8e9ece696b97c33d435e3dea2e1c540cc8f4dd8fac6abd17fe26c54779` | `wtr_smmr_syuusei110707_01` at `0x2D07`, `0x2D21` |
+| 8029 / Limsa Lominsa / `0x29D9001E` | 117,120 | `5f71a353d2b68bae3b6d9702fb134729f4146e8102e7fb5328263a8cd7416d41` | `wtr_smmr_syuusei110706_01` at `0x2717`, `0x2731` |
+| 8029 / Ul'dah / `0x615A0022` | 123,776 | `133079ef16b01a346355049188fe7a6e71c9ee0d4745952b28446f00a28202a6` | `wtr_smmr_syuusei110706_01` at `0x2147`, `0x2161` |
+| 8031 / Gridania / `0x29B0001B` | 131,072 | `145e6a0c2c9b642220d99841a070de6dab7681e5009a36e34ebdaeaf73075443` | `vfx_aurora01` at `0x3C0`, `0x37B7` |
+| 8031 / Limsa Lominsa / `0x29D9001B` | 119,232 | `19489425010306cfe247c8e33bb6cc5ac88e51853a5b01c9a8f382b1816a8f30` | `vfx_aurora01` at `0x480`, `0x32F7`; `sdef_hanabi_a`, `_b`, `_c` at `0x32CD`, `0x32DB`, `0x32E9` |
+| 8031 / Ul'dah / `0x615A001E` | 125,008 | `53d8713f0fad556b127608bde7086f21543b70380f24352b9b0408ec585e3edd` | `vfx_aurora01` at `0x3E0`, `0x2B94` |
+
+The final Limsa Lominsa and Ul'dah 8027 payloads keep the `sdef_hallo_imp`
+marker that the December 2011 Gridania 8027 payload carried, while the final
+Gridania payload carries Xmas markers. No 8029 payload contains `hanabi` or
+`firework`, no 8031 payload contains `cbind_chry` or `vfx_cam_chry`, and only
+Limsa Lominsa's 8031 payload names hanabi sound definitions. A prior external
+lead, `docs/per_city_seasonal_weather_decor_matrix_2026-09-27.md` at revision
+`d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, assigns event names to these
+payloads; the bytes encode marker names, not event names. Another lead at the
+same revision, `docs/meteor_weather_sweep_2026-09-27.md`, describes 8027 as
+snow in the Black Shroud only; 8027 binds a payload in all three city
+regions.
+These are marker-presence results, not rendered appearance or event timing.
+
 ## Starlight component residue
 
 The direct-dependency graph of the 287 layouts identifies 55
@@ -212,6 +239,22 @@ no weather; three select only 8028; two select 8014 and 8028; one selects only
 8014; and one selects 8001 and 8002. None selects 8029. The trial-area
 8014/8028 masks show that this is a general weather-conditioned layout
 mechanism, not a seasonal-only byte pattern.
+
+Each validated vector is 23 eight-byte entries for weather IDs 8001-8017 and
+then 8027-8032. The low half of an entry's first `uint32` is
+`0x1F40 + (ID - 8000)`. A selected entry has high half `0xFFFF` and a second
+`uint32` of `0xFFFFFFFF`; an unselected entry has zero in both. The non-city
+masks are in two layouts. `0x615A0008`
+([Bowl of Embers fire-ring layout](ifrit-bowl-ring.md); SHA-256
+`56b24e6aca53911810848baf7be254a2c20038d8c127bcc0c8603ba6b0614e7c`) has
+8028 alone at `0x1223B0`, 8014 and 8028 at `0x122520` and `0x1225D8`, and
+8014 alone at `0x122690`. `0xABF40000` (SHA-256
+`8dbf9335b4f357421a6dab2dc349bcd5009d2760c7f421d9b52ffaf6c57fb830`) has 8028
+alone at `0xA46C` and `0xA5DC`, and 8001 and 8002 at `0xA524`. Offsets are the
+first entry of each vector. A prior external lead,
+`docs/meteor_weather_decor_lineage_2026-09-27.md` at revision
+`d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, limits layout-conditioned
+decoration to IDs 8027 and above; these masks select lower IDs.
 
 The final 2012.09.19.0001 installation counts come from the typed selector
 and scheduler parser that produced `city-seasonal-weather-selector-atlas`

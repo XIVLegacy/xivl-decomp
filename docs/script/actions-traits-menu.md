@@ -60,6 +60,33 @@ must validate the soul-key item, learned actions, additional-action limits,
 and class/job gating before committing a change. Widget lists and button
 availability do not supply that authority.
 
+The Equipment window's `itemUICommandSelection` starts a job change from
+list box 2 (`xivl-client-scripts:lua/scripts/widget/equipwidget.lua:1464-1665`).
+`EquipWidget.checkJobChange` (`:8275-8379`) reads the item in package 101 and
+accepts it only when its catalog ID matches the actor's base class from
+`getStateMainSkill`: 2000201 with class 3, 2000202 with 2, 2000203 with 4,
+2000204 with 8, 2000205 with 7, 2000206 with 23, and 2000207 with 22. A match
+runs `executePlayerCommand(12017, 1)` when the base class equals
+`getMainClassOrJob`, and `executePlayerCommand(12017, 2)` otherwise. A
+mismatch scans job IDs 15 through 27 with `getJobItemId` and shows
+`worldMaster` text row 30748 or 30749. The decoded
+`command/changejobcommand.lua` defines only `isUseActionGauge` (`:11-17`).
+`CharaBaseClass.convertSkillId`
+(`chara/charabaseclass_ffxivbattle.lua:240-314`) pairs jobs and base classes
+in both directions: 15 and 2, 16 and 3, 17 and 4, 18 and 7, 19 and 8, 26 and
+22, 27 and 23; other IDs return 0. `getJobItemId` (`:398-444`) pairs jobs with
+soul items: 15 with 2000202, 16 with 2000201, 17 with 2000203, 18 with
+2000205, 19 with 2000204, 26 with 2000207, and 27 with 2000206. Script pins
+are in `xivl-client-scripts:manifests/scripts.json`: `equipwidget.lua`
+SHA-256 `A6EC61E6C7348BC72BE4638B832E4C630A93E9480D9C97CB0E5F4D4847A88FE2`,
+`changejobcommand.lua`
+`BB69D42E966DA13CBB358778DD638B34DF44EA6EAC77C6083F9D30FB28A7299F`, and
+`charabaseclass_ffxivbattle.lua`
+`D1DB23D11F911EA3205CA72868CC9FCA22CEFE0D3F88A6706CBB035D92130BDA`. A prior
+external lead, `docs/job_system_soulstone_actionbar_battle_regimen_2026-09-27.md`
+at revision `d5fb880e17f07f31ea7f8380ff813e5d71b6b678`, named the class-to-job
+pairs and left three soul IDs open.
+
 Client text rows identify Actions and Traits, Ability, Trait, and Job Change
 surfaces, but labels and icons are not execution contracts. In particular, an
 unreleased action with a valid name, icon, or custom server row remains a

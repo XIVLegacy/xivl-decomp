@@ -82,6 +82,6 @@
   "authority": {
     "clientPredictionOnly": true,
     "serverAuthorityEstablished": false,
-    "bahamutGrowFormulaReady": false
+    "serverGrowFormulaReady": false
   }
 }

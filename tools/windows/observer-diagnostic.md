@@ -483,6 +483,50 @@ that classification bound to this input. Instruction, defined-data/alignment
 and undefined bytes are retained separately; candidate decodes do not fill
 unknown coverage. Listing units and recovered references do not establish
 complete native reachability or alternate overlapping instruction streams.
+
+Capstone 5.0.7, in x86-32 mode, corroborates the complete file spans of the
+4,173 listed instructions intersecting these pages. Selecting CALL/JUMP-group
+instructions with a non-immediate operand yields 173 calls and four jumps:
+87 register, 84 absolute-memory and six based-memory operands. This is a
+census of this Ghidra listing, not every possible instruction stream or source
+of an entry into the copied spans.
+
+The four listed computed jumps are `JMP EAX`. Each selected branch first calls
+resolver RVA `0x3D2007` with the indicated descriptor. Its slot load and jump
+are guarded by a zero resolver result and a nonzero cached slot:
+
+| JMP RVA | Slot RVA | Descriptor RVA | Target-table index |
+|---|---|---|---:|
+| `0x3D060C` | `0x5A81C0` | `0x5A9AE8` | 1 |
+| `0x3D0629` | `0x5A8398` | `0x5A9B74` | 34 |
+| `0x3D0F0B` | `0x5A8130` | `0x5A9A40` | 3 |
+| `0x3D0F28` | `0x5A831C` | `0x5A9B74` | 3 |
+
+The three distinct descriptor `+0x0C` target arrays are RVA `0x5A81BC` with
+three entries, `0x5A8310` with 94 and `0x5A8124` with five. All 102 four-byte
+file values are zero. Resolver `0x3D20C5..0x3D20F2` loads that array,
+writes the resolved EAX through ECX at `0x3D20E1`, then advances ECX by four.
+These file initializers do not establish the resolved destinations or exclude
+an interior target. Register and based-memory transfers require their actual
+values; the absolute-memory census does not qualify loaded slot values.
+
+The listing's 849 undefined bytes form 100 contiguous repeated-`CC` runs.
+This establishes their bytes, without classifying them as native padding,
+alignment or unreachable code. Three full instruction spans cross a selected
+page boundary; exact file bytes and Capstone decode agree:
+
+| Instruction RVA | Full bytes | Decode |
+|---|---|---|
+| `0x468FFB` | `8b8df0feffff` | `MOV ECX,[EBP-0x110]` |
+| `0x3CFFFF` | `85c0` | `TEST EAX,EAX` |
+| `0x3D0FFF` | `ffd0` | `CALL EAX` |
+
+These full spans bind the adjacent one-byte extensions needed by this listing.
+The neighboring-byte boundary remains the three pages plus these full crossing
+instructions. Dynamic tables, synthesized offsets, other-module
+sources, contexts, stacks, returns, runtime modifications and overlapping
+streams remain outside this bounded census and still require exclusion evidence.
+
 File-page identity supplies no resident coherence, continuous hold, actual
 NX/protection/write/cache/CFG effect or exception/unwind qualification.
 

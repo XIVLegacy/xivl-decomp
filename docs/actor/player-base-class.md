@@ -209,7 +209,7 @@ into higher-level operations:
 | `_onCommandRequest(self, ...)` / `_onCommandEvent(self, ...)` / `_onCommandCancel(self, ...)` / `_onCommandRejected(self, ...)` | Server-RPC pairs |
 | `_onPreCommand(self, ...)` / `_onPostCommand(self, ...)` | Pre/post hooks |
 | `getCastCommand(self)` / `getCastEndTime(self)` | Active cast info |
-| `getComboInformation(self)` | Battle Regimen state |
+| `getComboInformation(self)` | Returns `playerWork.comboNextCommandId[1]`, `[2]`, and `comboCostBonusRate` (combo state, not Battle Regimen) |
 | `getOtherClassAbilityCountInformation(self)` | Cross-class ability counts |
 | `setEmoteSitCommandVariation(self, ...)` | Emote-sit variation |
 
