@@ -83,6 +83,65 @@ saved-output route. This is local returned-call order. It does not
 establish a skeleton update, frame scheduling, selected shader or
 successful device operation.
 
+## MeshDrawTag table and owner-field route
+
+The tracked
+[RTTI catalog](https://github.com/XIVLegacy/xivl-decomp/blob/650640c4e9fe22c23c5cb7a8cf4b9d26ae006803/config/ffxivgame.rtti.json)
+and
+[slot catalog](https://github.com/XIVLegacy/xivl-decomp/blob/650640c4e9fe22c23c5cb7a8cf4b9d26ae006803/config/ffxivgame.vtable_slots.jsonl)
+locate the MeshDrawTag table at VA `0x010d7a04`, with 12 slots. Original
+table bytes match those targets in order. Slot 1, byte offset `+4`,
+selects `0x00c439c0`. Slot 2, byte offset `+8`, selects `0x00c43fd0`.
+
+The Original dword at `0x010d7a00` points to CompleteObjectLocator
+`0x01199fbc`. Its offset is zero and its TypeDescriptor pointer is
+`0x01309684`. The NUL-terminated name at `0x0130968c` is
+`.?AVMeshDrawTag@Renderer@Dw@Engine@CDev@SQEX@@`. This anchors the scoped
+table association without observing a runtime vtable installation.
+
+Both scoped caller bodies retain entry ECX in ESI and their first explicit
+stack argument in EDI. Let D denote that locally retained receiver and C
+the supplied stack owner. Their producer and handoff sites are:
+
+| Caller | Producer call | Owner-field store | Handoff to `0x00c421f0` |
+|---|---|---|---|
+| `0x00c439c0` | `0x00c43b46` | `0x00c43b4b..0x00c43b4d` transfers returned EAX through EBX into `C+0x1ac` | `0x00c43d69..0x00c43d6c` pushes EDI and supplies ESI as ECX |
+| `0x00c43fd0` | `0x00c44123` | `0x00c4412a` writes returned EAX into `C+0x1ac` | `0x00c4432e..0x00c44331` pushes EDI and supplies ESI as ECX |
+
+Both producer calls target `0x00c44f80` with ECX equal to
+`ptr32(D+0x118)` and one stack argument equal to `load32(D+0x11c)`.
+Here `load32(address)` denotes an untyped 32-bit value read.
+The register associations are own-body observations. Outgoing callees
+supply no independent interprocedural preservation or ownership contract.
+The stack owner's class remains unresolved.
+
+The complete producer body is `[0x00c44f80,0x00c45036)`. Let P denote its
+entry receiver and i its explicit index argument. Its address-return route
+reads `ptr32(P+0x90)` at `0x00c4500e` and calculates
+`ptr32(P+0x90)+0x38*i+4` at `0x00c45014..0x00c4501f`, then returns
+with `RET 4`. A flag-clear early path returns zero. Diagnostic and error
+callees remain uninspected, so this is not a complete index, pointer or
+failure-admission contract.
+
+The published [pointer-initialization finding](skeleton-output-pointer-initialization.md)
+owns the receiver recipe `ptr32(P+0x90)+byte_offset+4` at callsite
+`0x00c3433f`, targeting `0x00c6c1f0`, with byte_offset advanced by
+`0x38`. The contiguous prefix `[0x00c341d0,0x00c34349)` independently
+confirms entry ECX retained in ESI, that base read and address calculation,
+the direct initializer call target, and the stride increment. It omits the
+remaining initializer paths and epilogue.
+
+For a shared parent and matching ordinal, the producer address and the
+published initializer receiver address agree. This is a conditional
+structural match. It does not establish current initialization or pointer
+population for any returned instance. The
+[Joint output-access finding](skeleton-joint-output-access.md) owns the
+conditional saved-pointer-table transfer, without broader block semantics.
+Intervening callees could change `C+0x1ac`, including the preceding call
+inside `0x00c421f0`. The later field read is not proved to retain the
+producer's earlier stored value. No shader, palette, pose, lifetime,
+update-timing or rendered-result contract follows from this route.
+
 ## Forwarding and direct device interpretation
 
 The complete body `[0x0041bfc0,0x0041bfdb)` receives `(start,data,count)`
@@ -143,7 +202,20 @@ call targets at `0x00c421f6`, `0x00c42206`, `0x00c42210` and
 `0x00c44f07`, then account for the count push before the local data-pointer
 calculation. The producing `llvm-objdump` executable has SHA-256
 `bb7793802ccffe8e0613ce326f6fe8caacbd626e5318bbcf73e820a5c027aca4`.
-No catalog-derived name establishes the concrete receiver identity here.
+The supplied stack owner's concrete class remains unresolved.
+
+
+For the MeshDrawTag routes, the complete bodies
+`[0x00c439c0,0x00c43fca)` and `[0x00c43fd0,0x00c444d3)` contain
+389 and 321 instructions covering 1546 and 1283 bytes. The complete
+producer contains 56 instructions covering 182 bytes. The incomplete
+initializer prefix contains 129 instructions covering 377 bytes.
+All four ranges decode contiguously and every encoded instruction byte
+matched the Original PE mapping. Read only the table's preceding dword
+and 12 targets, the 20-byte CompleteObjectLocator, and the TypeDescriptor
+header and NUL-terminated name. Follow the producer return arithmetic,
+then compare its receiver expression with the initializer callsite and
+stride. These static anchors do not establish current receiver contents.
 
 These are static executable observations. They do not establish current
 receiver contents, resource selection, native execution, a live client
