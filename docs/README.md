@@ -227,6 +227,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Controller configuration](input/controller-configuration.md)
 - [Controller mapping and game consumers](input/controller-mapping.md)
 - [Player movement command origin](input/player-movement-command-origin.md)
+- [CharaElement interface attachment](input/chara-interface-attachment.md)
+- [Keyboard movement bindings](input/keyboard-movement-bindings.md)
 - [Config utility settings and controls](input/config-utility-settings.md)
 - [Config file and selection error handling](input/config-file-error-handling.md)
 - [Config System Information collection](input/config-system-information.md)

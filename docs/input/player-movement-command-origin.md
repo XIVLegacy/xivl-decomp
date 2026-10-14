@@ -778,6 +778,9 @@ setter `0x0091C3E0` (`0x0058BA08..0x0058BA46`). Construction therefore does
 not itself satisfy slot-14's bit-0 admission. Enrollment, reporting selection,
 global selection and a later movement-command recipient remain separate facts.
 
+The [constructor attachment](chara-interface-attachment.md) follows the concrete
+parent assignment and construction-time vtable ordering before enrollment.
+
 For a null explicit command target, `0x0091EE90` constructs a temporary
 snapshot with byte `+0x10 == 1` through `0x00921450` and copies the live
 vector through `0x0091ED80` (`0x0091EED6..0x0091EEEF`). The latter reserves
@@ -823,6 +826,8 @@ delivery or recipient is established by these static associations.
 Keyboard handling in `0x00552DF0` separately emits descriptor `0x01356E28`
 through root slot 13. Initializer `0x00F207B0` assigns direct ID `0x55`;
 the `0x0091AC80` switch selects `0x0091AD2E`, which distinguishes key-down
-and key-up routed events. Its movement binding was not joined. Neither
-branch identifies an actual device state, selected runtime actor, world,
+and key-up routed events. The [keyboard event matcher](keyboard-movement-bindings.md)
+joins those events to the separate `KeyAxisBinding` path. Its parsed movement
+configuration association remains unjoined. These branches do not identify
+an actual device state, selected runtime actor, world,
 collision group, resource or contact.
