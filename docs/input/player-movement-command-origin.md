@@ -601,8 +601,8 @@ global route; it does not directly select the player.
 
 `0x0091EE90` copies the eight-byte route entries from `0x01357060` through
 `0x0091ED80`, with desktop-interface handling and conditional list adjustment.
-It finds the top ancestor returned by `0x0091C370`, which follows interface
-`+0x60`, and requires a matching route entry
+It uses the conditional root key returned by `0x0091C370`, as
+qualified below, and requires a matching route entry
 (`0x0091F0A0..0x0091F0D0`). For each admitted nonnull route interface, it
 calls `0x0091E1C0` at `0x0091F199`; event byte `+0x17 == 1` stops further
 entries. The explicit route helper requires a nonnull event descriptor and
@@ -620,6 +620,189 @@ supplies slot 13 `0x0091D320` and slot 65 `0x00589490`. The established
 movement handler is reached only if that CharaElement interface is an admitted
 recipient before dispatch stops. Installing an axis binding, resolving an
 explicit target and selecting the runtime CharaElement remain distinct facts.
+
+## Route-entry construction and lifetime
+
+The same pinned `ffxivgame.exe`, decoded with Capstone 5.0.7 in x86-32 mode
+and mapped with pefile 2024.8.26, supplies the route vector's construction
+and mutation conditions. `V = 0x01357060` has begin, end and capacity-end
+pointers at `V + 4`, `V + 8` and `V + 0xC`. The entries are eight-byte
+pairs `(K, R)`: a root key and its current recipient interface. The first
+word of the container is not identified as an entry or a recipient.
+The vector and global root are separate storage.
+
+`V..V + 0xF` lies in the virtual zero-fill tail of PE section `.data`,
+beyond that section's file-backed raw extent. The PE declares storage expected
+to be zero-filled on load. No initial or later runtime vector contents were
+observed.
+The instructions at `0x00F20A50..0x00F20A5B` pass destructor
+`0x00F35720` to `0x009D25C2`. That destructor frees a nonnull begin pointer
+and zeros begin, end and capacity-end (`0x00F35720..0x00F35750`). It does
+not destroy or free the interfaces stored in the pairs.
+
+The root key depends on desktop availability. `0x0091C370` uses desktop
+object `[0x01356E10] + 0xB4` when that object is nonnull, otherwise a zero
+sentinel, and follows interface `+0x60`. With a nonnull desktop it returns the
+supplied desktop interface, or the interface whose parent is desktop. A chain
+ending at null then returns null. With desktop absent, a null parent matches
+the zero sentinel at `0x0091C39C..0x0091C3A3`, so the helper returns the current
+parentless interface. A null supplied interface returns null in either case.
+These branches are visible at `0x0091C377..0x0091C3A9`. The key is thus not an
+actor identifier. `0x0091CF70` searches entries by this key and returns
+true only when the matching pair's `R` equals the supplied interface
+(`0x0091CFD0..0x0091D015`).
+
+The selected container helpers preserve both words. Erase `0x00A76BE0`
+shifts later pairs left and subtracts eight from end
+(`0x00A76BF4..0x00A76C0D`). Insertion `0x00CB1120` passes one pair and the
+requested position to `0x00CB0EC0`. Its allocation branch copies the prefix,
+inserts the pair, copies the suffix, frees the old storage and updates the
+three pointers (`0x00CB0FBB..0x00CB1023`). Its capacity-sufficient branches
+shift or copy the suffix in the existing allocation
+(`0x00CB104F..0x00CB1115`). Append wrapper
+`0x00CB1530` uses the current end and advances it by eight, or invokes that
+insertion helper when capacity is exhausted. Pair copy `0x00965AD0` copies
+exactly the two dwords (`0x00965AE5..0x00965AEC`). These are storage changes,
+without ownership transfer or reference-count writes to either interface.
+
+| Direct vector operation | Arguments and observed effect |
+|---|---|
+| `0x0091DDC0` | Uses receiver `K` directly. An existing key gets the supplied `R` at `0x0091DE6D`; otherwise `(K, R)` is inserted at begin at `0x0091DEA5`. It accepts a null `R`. |
+| `0x0091DEC0` | Uses receiver `K` directly. A matching pair is erased and the saved `(K, R)` is inserted at begin (`0x0091DF5D/0x0091DF91`). A missing key returns false. |
+| `0x0091DFB0` | Computes `K` through `0x0091C370` from receiver `R`. It refuses a null `K`, erases an existing matching key if found, and inserts `(K, R)` at begin (`0x0091E041/0x0091E07C`). |
+| `0x0091D930` | Erases the first pair whose key equals its supplied argument (`0x0091D983..0x0091D9BA`). It does not derive the key from its receiver. |
+
+These insertions at begin establish ordering, rather than append-only
+registration. Replacing `R` through `0x0091DDC0` leaves the key and position
+unchanged. None of these four helpers assigns global root `0x01357020`.
+
+Selection helper `0x0091E3E0`, installed as CharaElement interface slot 14
+in vtable `0x00FA7B2C`, first requires slot 1 and slot 23 to return nonzero
+(`0x0091E415..0x0091E42F`). CharaElement's inherited slot 1 `0x0091C3D0`
+reads bit 0 of interface byte `+0x70`, and slot 23 `0x0091CDC0` returns 1.
+If the receiver already equals global root, selection only searches its key,
+updates a found pair's `R`, and returns true (`0x0091E435..0x0091E4E3`).
+That branch does not add a missing pair.
+
+For a different receiver, selection requires nonnull `K`. It finds the
+existing pair by key and can consult that pair's old recipient. When the
+receiver itself is `K`, a different old recipient passes slot-23 and slot-3
+checks before its slot 26 is consulted. A returned alternate interface can
+replace `R` and return through its slot 14 (`0x0091E574..0x0091E5F9`). The
+receiver's slot 26 can likewise redirect selection
+(`0x0091E60B..0x0091E62F`). A routed event through `0x0091E1C0` can stop the
+later mutation when its result byte is 1 (`0x0091E688..0x0091E697`).
+
+If that processing reaches `0x0091E6A4`, key byte `K + 0x70` bit 3 chooses
+the ordering behavior. With the bit clear, a found pair is erased and
+`(K, receiver)` is appended at end (`0x0091E6E2/0x0091E6FD`). With the bit
+set, a missing pair is inserted at begin (`0x0091E748`), while a found pair
+gets its `R` replaced in place (`0x0091E758`). Only after this branch does
+`0x0091E75C` store the receiver into global root `0x01357020`. The receiver,
+its key and the vector's first entry therefore need not be equal. Subsequent
+notifications and virtual calls can also affect state; this trace does not
+claim the stored value is unchanged after every call returns.
+
+Reverse selection `0x0091D030` starts at the last pair, but skips it when
+there are at least two pairs and its `R` equals global root
+(`0x0091D08C..0x0091D0C9`). For each reverse candidate it requires key slots
+1, 23 and 3, then tries recipient slot 14 and key slot 14, accepting return
+value 1. If none qualifies it invokes desktop slot 14
+(`0x0091D11C..0x0091D19A`). This can re-enter selection helper `0x0091E3E0`;
+it is not a direct copy of the previous vector's first recipient to global root.
+The inherited CharaElement slot 26 is null-return stub `0x0091CD90`, while
+its slot 3 reads bit 2 through `0x0091C3F0`. Other key/interface vtables can
+supply different admission and redirection behavior.
+
+Parent-interface changes affect those keys and recipients. Attachment slot
+20 `0x0091E180` refuses a null child or self and returns when the child already
+has this parent. Otherwise it invokes the old parent's slot 21 when present,
+appends the child to the new parent's `+0x50` collection, stores the new parent
+at child `+0x60` and sets child byte `+0x70` bit 2
+(`0x0091E190..0x0091E1B5`). It does not directly enroll a new route pair.
+
+Detachment slot 21 `0x0091D9D0` requires a nonnull child whose `+0x60` equals
+its receiver. It clears child bit 2. With nonzero TLS context `+0x10`, a
+desktop parent causes the child's key pair to be erased; another parent
+searches the child's old key and, if the stored `R` is inside the child's
+subtree according to `0x0091C3B0`, replaces `R` with that old key
+(`0x0091DA02..0x0091DABF`). The replacement is not the new parent.
+Before clearing child `+0x60`, it can repair global selection when the current
+root lies inside the detached subtree, using reverse selection
+`0x0091D030` and desktop fallback (`0x0091DB18..0x0091DB4A`). It then removes
+the child from the parent's collection and zeros child `+0x60` when found
+(`0x0091DB52..0x0091DB96`). A later key lookup can consequently return a
+different key, or null when a nonnull desktop boundary is no longer reached. TLS admission and actual parent relationships remain
+conditions of this mutation.
+
+Interface destructor `0x0091DBD0` detaches from a nonnull parent through its
+slot 21, or erases its own key when parentless. It detaches its children,
+clears global root when it still equals this interface, and passes the dying
+interface to `0x0091CE90` (`0x0091DC32..0x0091DCA0`). It also finds the first
+live pair whose `R` equals the dying interface and sets only `R` to zero
+(`0x0091DCF1..0x0091DD2E`). This last operation retains the pair and key.
+
+`0x0091CE90` walks active route snapshots registered at TLS context `+0x1C`
+and invokes `0x0091F8D0`. A matching snapshot key is zeroed with its `R`
+(`0x0091F904..0x0091F94C`). If only snapshot `R` matches and snapshot byte
+`+0x10 == 1`, the helper searches the live vector by the saved key. A live
+recipient different from the dying interface can replace the snapshot pair;
+otherwise it writes a null recipient, with a null key when no live key was
+found (`0x0091F959..0x0091FA9A`). This is a specific destruction repair,
+not continuous synchronization of every vector mutation into a snapshot.
+
+## Application enrollment and snapshot recipients
+
+The existing [case-2 construction finding](../resource/attribute-resource-and-scene-binding.md#selected-character-movement-commands)
+owns the type-8 CharaElement and reporting-selection association. Its native
+caller at `0x004DCC2C` requests type 8 through `0x004D90C0`, saves the returned
+`E`, calls the reporting id setter and, only for nonnull `E`, calls
+`0x004D7660` (`0x004DCC30..0x004DCC5B`). That helper separately updates
+container `W + 0x17834` and invokes old/new element slot 10 with 0/1 when
+selection changes (`0x004D76A1..0x004D76CA`). For CharaElement, E-base
+vtable cell `0x00FA7C78` supplies slot 10 `0x00585190`, exactly
+`RET 4` (`C2 04 00`). This selected toggle call makes no field or flag
+assignment. It then calls `0x0091DFB0`
+with interface `E + 8` at `0x004D76CC/0x004D76CF`, even when the container
+selection already equals `E`.
+
+This supplies a concrete application-facing enrollment route: if the factory
+returns the CharaElement and its interface produces a nonnull key under the
+desktop conditions above,
+`(K, E + 8)` is inserted at begin, replacing an earlier pair of that key.
+The independent `W + 0x17834` selection update can succeed even when
+`0x0091DFB0` refuses a null key. It does not assign global root.
+CharaElement's constructor installs interface
+vtable `0x00FA7B2C` at `E + 8` (`0x0058B542`) and later passes zero to bit-0
+setter `0x0091C3E0` (`0x0058BA08..0x0058BA46`). Construction therefore does
+not itself satisfy slot-14's bit-0 admission. Enrollment, reporting selection,
+global selection and a later movement-command recipient remain separate facts.
+
+For a null explicit command target, `0x0091EE90` constructs a temporary
+snapshot with byte `+0x10 == 1` through `0x00921450` and copies the live
+vector through `0x0091ED80` (`0x0091EED6..0x0091EEEF`). The latter reserves
+pair capacity, can prepend a desktop pair and copies the source pairs, excluding
+desktop-key pairs in that prepend branch (`0x0091EDA5..0x0091EE77`). These
+are pointer-value copies, not a retained iterator into live vector storage.
+A subsequent live erase, reallocation or reordering does not itself rewrite
+that temporary pair sequence. Destruction repair above is a separate mechanism.
+
+The command route searches this snapshot by the supplied interface's
+`0x0091C370` key, obtains event source fields from the matching pair's `R`,
+and walks snapshot recipients in order (`0x0091F0A0..0x0091F1B8`). Null
+recipients are skipped in that walk, and handled byte `event + 0x17 == 1`
+stops further entries. The matching pair is dereferenced earlier for source
+fields (`0x0091F0F0..0x0091F115`), so a retained null-recipient pair does not
+establish a safe or successful route by itself. A CharaElement pair is a
+candidate for the established movement handler only when the consumer's
+matching, nonnull-field, dispatch and stop conditions admit that interface.
+
+The inspected retained listing references to `V` and its pointer fields,
+the named pair helpers, parent slots, destruction repair and the selected
+application caller bound this trace. It is not an exhaustive search of computed
+aliases, indirect writers, all virtual callers or every framework attachment.
+It does not observe a live parent chain, vector, snapshot, global root,
+configuration, device state or executed command recipient.
 
 ## Remaining physical-input edge
 

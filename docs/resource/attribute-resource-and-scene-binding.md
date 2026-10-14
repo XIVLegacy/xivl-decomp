@@ -1299,6 +1299,15 @@ recipient traversal. A null binding target selects a global route. The
 movement handler requires the CharaElement
 interface to be an admitted recipient before dispatch stops.
 
+The [route-entry producer trace](../input/player-movement-command-origin.md#route-entry-construction-and-lifetime)
+joins pair storage, ordering, selection and destruction to the case-2
+application enrollment call. With a nonnull desktop global, enrollment of
+`E+8` requires its parent chain to reach the desktop boundary; an absent
+desktop instead permits the helper's parentless-key sentinel case.
+Its concrete application-facing parent producer
+remains unjoined; current vector, snapshot, global-root and recipient state
+remain runtime conditions.
+
 ## Character factory and world provider
 
 `0x007A0450` registers factory `0x0079FAE0` at callback-table `+0x18`.
