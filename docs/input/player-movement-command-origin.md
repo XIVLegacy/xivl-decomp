@@ -335,6 +335,71 @@ matcher accepting a `PadChange` event. `RaptureAxisGesture` vtable
 `0x00FA2EEC` uses the false-return stub `0x00846210` in that slot.
 The generic matcher path and this binding slot-2 path must remain distinct.
 
+### Keyboard polling helper own body
+
+The keyboard helper's complete own body is
+`[0x00547570,0x00547728)`. Before its first outgoing call, let B be entry
+ECX, G the first stack argument and K the second. The code copies these
+values to EDI, EBP and ESI, and retains `G+0x20` in EBX. An eight-iteration
+loop reads configured dwords at `G+0x20+4*i`, then flag dwords at
+`K+0x10+4*key`, for i from 0 through 7 (`0x00547590..0x005475c0`).
+When flag bit 0 is clear, it writes zero to byte `B+0xe0+i`. When bits 0
+and 1 are both set, it writes one. When bit 0 is set and bit 1 is clear,
+there is no own store to that latch. These are retained flag reads and
+conditional stores, not observed physical key state or a Kernel key API.
+
+The own code clears two stack dwords at `0x005475c2/0x005475c6`, then
+calls `0x0091b590` at `0x005475ca`. A nonzero returned AL takes an early
+path that clears AL and executes RET 8 at `0x005475da`. That own path has
+no final argument-pair field stores. The direct callee's meaning and
+memory effects are uninspected, so this gate has no assigned modifier or
+Kernel semantics here. A zero helper result alone does not establish that
+its own pair stores ran.
+
+With that gate's returned AL zero, the own code has eight indirect calls
+through the vtable cell at offset 4 of the current ESI receiver. Each site
+pushes a configured key value, then a pointer equal to its pre-query ESP
+plus `0x18`, sets ECX to current ESI and calls the loaded method. After a
+normal return it compares the byte pointed to by returned EAX with one.
+A zero primary latch or a returned byte unequal to one permits the
+secondary latch/query path. A returned byte equal to one takes the local
+operation and bypasses the secondary site for that group.
+
+| Pair-field operation | Primary key operand | Secondary key operand | Local instruction effect |
+|---|---|---|---|
+| Second negative | `[EBX]`, initially the cached `G+0x20` | `[EBP+0x30]` | Assign -100 to dword `[ESP+0x1c]` at `0x0054761c` |
+| Second positive | `[EBP+0x24]` | `[EBP+0x34]` | Add 100 to dword `[ESP+0x1c]` at `0x00547664` |
+| First negative | `[EBP+0x28]` | `[EBP+0x38]` | Assign EBX=-100 at `0x005476a9` |
+| First positive | `[EBP+0x2c]` | `[EBP+0x3c]` | Add 100 to EBX at `0x005476f4` |
+
+The final own stores use current EDI: `+0x74` receives EBX, `+0x78`
+receives the dword loaded from current `ESP+0x1c`, `+0x7c/+0x90` receive
+zero, and `+0x1c` receives kind 2 (`0x005476ff..0x00547715`). The own
+return sequence produces EAX zero when both tested pair registers are
+zero, otherwise one, then executes RET 8 at `0x00547725`.
+
+The table records local instructions and branch grouping, not an
+unconditional entry-to-output pair formula. No outgoing call was
+inspected or assumed to preserve registers, stack depth or scratch memory.
+The post-call EBP, EBX, ESI, EDI and ESP values are therefore not proved to
+retain their entry associations. Pointer validity and interfering aliases
+also remain unresolved. No configured key value, default W/S/A/D choice,
+Kernel key-call result, admitted recipient or rendered movement is
+established by this own-body trace.
+
+Apple `llvm-objdump` statically decoded 160 instructions covering the
+440-byte complete helper range. Two alignment instructions at
+`0x00547588/0x0054758f` are skipped by its entry jump. The 448-byte scoped
+window also contains eight trailing INT3 padding bytes, ending at
+`0x00547730`, for 168 decoded instructions in total. Every encoded byte
+matched the identified Original PE mapping with no stop crossing. All 25
+relative branch targets remain inside the body and both RET instructions
+are three bytes with cleanup immediate 8. The producing executable is
+33914912 bytes with SHA-256
+`bb7793802ccffe8e0613ce326f6fe8caacbd626e5318bbcf73e820a5c027aca4`.
+No pointed-to data or literal was read. No nested callee was inspected
+and no target execution occurred.
+
 ## Named row association
 
 The retained rows and their extraction identities are recorded in
