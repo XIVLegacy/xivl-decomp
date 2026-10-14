@@ -53,10 +53,35 @@ for continuation. No entries are compacted. A skipped entry supplies no
 zero or identity payload. Pointer validity and count admission beyond these
 instructions remain unresolved.
 
-The caller at `[0x00c421f0,0x00c42219)` reads a pointer at supplied
-owner `+0x1ac` at `0x00c421fb`. Its nonzero path passes that pointer as
-ECX to `0x00c6c160` at `0x00c42206`. The preceding callee and the concrete
-owner's identity are outside this observation.
+## Local caller order
+
+The complete caller at `[0x00c421f0,0x00c42219)` first pushes its supplied
+stack owner and calls `0x00c44c50` at `0x00c421f6`. Its entry ECX reaches
+that call unchanged. Only after the preceding call returns does
+`0x00c421fb` read `ptr32(owner+0x1ac)`. The nonzero path passes that
+pointer as ECX to `0x00c6c160` at `0x00c42206`. The zero path instead
+pushes zero and calls `0x00c6c0f0` at `0x00c42210`. Both paths return
+with `RET 4`.
+
+The complete preceding body is `[0x00c44c50,0x00c44f25)`. It preserves
+its entry ECX in ESI at `0x00c44c6f` and reads `ptr32(ESI+0x118)` at
+`0x00c44c71`. The stack owner is separately preserved in EDI at
+`0x00c44c6c`. These observations do not establish different runtime
+addresses or concrete class identities for the two inputs.
+
+Let P denote the aligned local stack base after the preceding callee's
+two register pushes. Instructions `0x00c44ee3..0x00c44f07` pass
+`(start,data,count)=(0,P+0x110,16)` to the same Float4 forwarder
+`0x0041bfc0` used below. The function returns with `RET 4` at
+`0x00c44f22`. Its scoped body contains no read at `owner+0x1ac`.
+Its outgoing helpers and the submitted blocks' semantic meaning remain
+unresolved.
+
+The observed request order is therefore the preceding sixteen-block
+request at start zero, then the caller's pointer read and conditional
+saved-output route. This is local returned-call order. It does not
+establish a skeleton update, frame scheduling, selected shader or
+successful device operation.
 
 ## Forwarding and direct device interpretation
 
@@ -107,6 +132,18 @@ above, the caller body, and the incomplete constructor prefix. Read the
 single dword at `0x00f660f8` and the NUL-terminated diagnostic at
 `0x00f65ce0`. Follow the stack offsets across all three argument orders,
 then compare the device slot with the pinned header.
+
+For the local caller order, the caller's 14 instructions cover 41 bytes.
+The preceding body's 156 instructions cover 725 bytes. Both scoped bodies
+were decoded contiguously and every encoded instruction byte matched the
+identified executable through its PE mapping. The verified preceding body
+uses two contiguous portions, `[0x00c44c50,0x00c44d53)` and
+`[0x00c44d53,0x00c44f25)`, with its return included. Confirm the relative
+call targets at `0x00c421f6`, `0x00c42206`, `0x00c42210` and
+`0x00c44f07`, then account for the count push before the local data-pointer
+calculation. The producing `llvm-objdump` executable has SHA-256
+`bb7793802ccffe8e0613ce326f6fe8caacbd626e5318bbcf73e820a5c027aca4`.
+No catalog-derived name establishes the concrete receiver identity here.
 
 These are static executable observations. They do not establish current
 receiver contents, resource selection, native execution, a live client
