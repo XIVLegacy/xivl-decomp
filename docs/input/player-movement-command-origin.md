@@ -375,14 +375,126 @@ reference alone. It does not observe an installed `B`, registry contents or
 a selected route recipient. `CommandTarget` is a separate parsed field;
 markup constructor `0x00556D20` initially clears `M + 0x144`.
 
+## Configuration text and substitutions
+
+The retained instructions and PE bytes in `ffxivgame.exe` establish the
+following construction, using Capstone 5.0.7 and pefile 2024.8.26. The input
+is 15996808 bytes, image base `0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The examples below reconstruct individual rows under stated configuration
+assumptions. They are not observed parser input or a complete configuration
+document.
+
+For profile receiver `P`, `0x00553340` uses `P + 0x78` as the enabled-range
+index and stores its group list at `P + 0x5C + 12 * j`
+(`0x00553397..0x005533A5`). It advances the range index by one and the range
+vector position by two at `0x00553A8C/0x00553A90`. The named movement rows
+belong to the first enabled range in each retained definition, so their group
+index is zero. A column-0 value other than `**` creates a group. A selected
+binding string other than `**` creates an entry in that group, while `**`
+retains the previous entry and appends another command. Comparison helper
+`0x00445E00` returns nonzero for unequal strings, as shown by its `SETNZ`
+at `0x00445E28/0x00445E39`.
+
+The entry pointer saved at `P + 0x88` receives column 1 at entry `+0`,
+type column 2 at `+4`, and the selected binding text at `+8`
+(`0x005536E7..0x0055372B`). Column 4 supplies its separate modifiers string,
+with `**` converted to an empty string at `0x00553744..0x00553784`.
+Columns 5, 6 and 7 supply entry `+0xB0/+0xB4/+0xB5`.
+Columns 8 through 11 supply each appended command's name, parameter kind,
+parameter text and anchor flag (`0x005537FC..0x00553A33`). The named rows
+have parameter kind 0 and anchor flag true, so their reconstructed markup
+omits `CommandParameter` and emits `SqwtShowAnchor="True"`.
+
+`0x0054CC50` selects `P` with global `0x01336BC4`. `0x0054CB90` iterates
+the two group contexts, passing `j = 0/1` to `0x00682A20`, then passes each
+produced string's pointer and length to `0x0054CAF0`
+(`0x0054CBEC..0x0054CC27`). `0x00682930` obtains the selected source profile
+through `0x004D7550/0x00547320` and calls `0x0054F340` with that profile,
+`j` and the output string. The generator selects the same group list at
+`0x0054F38D/0x0054F390`. Its type-2 arm splits the binding string on commas
+through `0x0054F240`. Seven tokens select the shorter form at `0x0054FC8B`;
+eleven select the longer form at `0x00550592`. The named movement rows
+contain eleven tokens, including the final empty token.
+
+| Token index | Attribute when the token is nonempty |
+|---|---|
+| 0, 1 | `PadAxis`, `PadShift` |
+| 2, 3, 4, 5 | `UpKey1`, `DownKey1`, `LeftKey1`, `RightKey1` |
+| 6, 7, 8, 9 | `UpKey2`, `DownKey2`, `LeftKey2`, `RightKey2` |
+| 10 | `MouseButton` |
+
+The longer-form templates are at `0x00FA1BAC..0x00FA1C64`. The generator
+emits nonempty token text verbatim inside quoted attributes. A token such as
+`[@MoveCharaForward1$=W]` therefore remains a placeholder at this stage.
+The CSV products escape `[` as `\[` after decoding the client string. That
+display escape is removed when reconstructing native text.
+
+`0x00682930` manages a substitution map at `0x01340FC8 + 12 * j` separately
+from source-profile selection. For selected source profile other than 1,
+it clears the map and gathers generated defaults at
+`0x006829A2..0x006829E4`. Profile 1 gathers defaults only when that map's
+count is zero (`0x006829F0..0x00682A06`). A reused nonempty map can therefore
+retain earlier values or lack a generated key.
+
+`0x006822E0` searches quoted `"[@name=default]"` tokens using strings at
+`0x00FC3A48/0x00FC3A4C/0x00FC3A50`. For the retained names ending in `$`,
+it removes that final character before map lookup
+(`0x006824A0..0x006824EC`). This is a marker removal, with no decimal
+profile suffix appended on this route. It takes the text after `=` as the
+map value. The initial gather permits absent keys; the later configuration
+pass updates keys already in the map (`0x00682564..0x006827CE`).
+
+`0x00682A20` obtains a configuration string through `0x00443E70` with
+indices `[2,8]`, using receiver `W + 0x17430` from `0x004D73C0`
+(`0x00682A81..0x00682AB9`). The accessor returns the selected configuration
+record's string at `+0x68`. This differs from startup's integer accessor
+`0x00443E40`, which reads record `+0x60` from the caller-supplied receiver
+stored at startup `+0x34` (`0x004B2E2B..0x004B2E4C`). The equal numeric
+indices do not establish equal receiver storage or values.
+
+For `j = 0`, the configuration string starts at offset zero. For `j = 1`,
+the generator uses the substring after the first `"[@@]"` marker at
+`0x00FC3944`, or an empty suffix if that marker is absent
+(`0x00682B14..0x00682BCF`). `0x006822E0` stops at the next such marker
+because the character after `"[@` is another `@` at `0x006823F8`.
+After this update, the replacement flag passed by `0x0054CB90` selects
+`0x006814B0` at `0x00682BF2`. That helper removes the retained trailing `$`
+for lookup, substitutes a found map value through `0x00447EA0` at
+`0x00681710`, and leaves a token unchanged when its key is absent
+(`0x006816C3..0x00681726`).
+
+With a map gathered from the row defaults, no conflicting defaults and no
+incoming configuration overrides, standard `key_config` row 4, column 3,
+reconstructs this line, followed by LF:
+
+```xml
+    <AxisBinding PadAxis="AxisL" UpKey1="W" DownKey1="S" LeftKey1="A" RightKey1="D" UpKey2="NumPad8" DownKey2="NumPad2" LeftKey2="NumPad4" RightKey2="NumPad6" Command="RaptureCommands.MoveCharacter" SqwtShowAnchor="True" />
+```
+
+Column 14 changes `UpKey1` to `Z` and `LeftKey1` to `Q`; its
+ShiftMoveCharacter row changes `LeftKey1` from `Q` to `A`. The alternate
+table's names omit `$`, but use the same lookup route. Its language selector
+15 falls back to column 3 because the sheet has only 15 columns. Empty
+default values can produce empty quoted key attributes after substitution,
+even though an originally empty comma token emits no attribute.
+
+The document wrapper strings at `0x00FA1A40/0x00FA1DC4` enclose the generated
+group. `0x0054CAF0` constructs parser context `0x0054C7D0` with the selected
+profile and group, then calls `0x0096B220` at `0x0054CB3F` with the explicit
+pointer and length. These static joins identify how conditional row text
+reaches parsing. They do not establish the runtime configuration map or the
+bytes of an actual complete parser input.
+
 ## Remaining physical-input edge
 
 The provider, named ExcelSheet results, retained source blocks, table-column
 consumption, axis argument writes and direct command execution path are
 identified statically. The first unjoined edge is the selected startup master
 and successfully delivered source-key result at `0x00553B34`. Within that
-result, the active profile, language column and replacements must then be
-joined to the parsed binding. The decisive remaining evidence is the exact
+result, the active profile, language column and substitution map must then be
+joined to the parsed binding. The static construction above narrows those
+conditions. The decisive remaining runtime evidence is the exact
 configuration bytes supplied to
 `0x0054CAF0` and parsed at `0x0054CB3F`, with their source identity, profile
 and selected column. `CommandTarget` and the eventual CharaElement recipient
