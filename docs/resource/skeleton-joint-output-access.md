@@ -170,6 +170,8 @@ owns the selected output interpretation. The
 [affine inverse finding](https://github.com/XIVLegacy/xivl-decomp/blob/3881ac6b137c11a878c0e568ba10f662c08d0192/docs/resource/skeleton-constructor-affine-inverse.md#L151-L155)
 owns the constructor transfer into pose `[+0x40,+0x80)`. Neither supplies
 runtime getter timing, contents or a general output-range copy contract.
+The separate [Float4 submission finding](skeleton-output-float4-submission.md)
+owns conditional submission from saved associated pointers.
 Hierarchy-output `[+0x40,+0x80)` remains opaque. Native float parity
 retains the
 [recovery finding's limits](https://github.com/XIVLegacy/xivl-decomp/blob/3881ac6b137c11a878c0e568ba10f662c08d0192/docs/resource/skeleton-quaternion-recovery.md#L174-L185).

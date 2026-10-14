@@ -3,8 +3,9 @@
 The routine at VA `0x00c6c1f0` retains the skeleton output base and a
 Joint-associated output pointer in its receiver. Its observed name-lookup
 path also saves associated output pointers beside word ordinals. These are
-pointer transfers. Output-content reads, matrix copies and palette meaning
-remain unresolved.
+pointer transfers. The separate
+[Float4 submission finding](skeleton-output-float4-submission.md) owns a
+conditional output-block consumer. Palette meaning remains unresolved.
 
 ## Identity and basis
 
@@ -109,12 +110,14 @@ instructions and `1111` unique instruction bytes. No referenced literal
 data was read. Executable size and SHA-256 matched before and after.
 No decompiler-inferred signature supplies a field contract.
 
-No inspected body establishes a saved output pointer's first-matrix read
-or a matrix copy into a destination, register or constant stream. The
-pointer table at receiver `+0x10` remains beside a word ordinal table,
-without mesh-palette meaning. Standalone indexed-Joint access, runtime
+The inspected initialization body establishes no output-content read or
+matrix copy. The separate
+[Float4 submission finding](skeleton-output-float4-submission.md) owns
+conditional submission from saved output pointers at receiver `+0x10`.
+Their blocks remain opaque, without mesh-palette meaning.
+Standalone indexed-Joint access, runtime
 final-output getter behavior, mesh mapping, weights, bind and inverse-bind
-meaning, axes, channels, shader constants, update timing, resource selection,
+meaning, axes, channels, shader identity, update timing, resource selection,
 allocation failure, ownership, native float parity and visual behavior
 remain unresolved. These are static executable observations. No resource
 input, native execution, live client session or rendered result is included.

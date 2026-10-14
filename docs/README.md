@@ -196,6 +196,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Bounded skeleton constructor affine inverse](resource/skeleton-constructor-affine-inverse.md)
 - [Bounded skeleton Joint and output access](resource/skeleton-joint-output-access.md)
 - [Bounded skeleton output-pointer initialization](resource/skeleton-output-pointer-initialization.md)
+- [Bounded skeleton output Float4 submission](resource/skeleton-output-float4-submission.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Launcher startup patch addresses](resource/launcher-startup-patch-addresses.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
