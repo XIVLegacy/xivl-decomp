@@ -486,6 +486,141 @@ pointer and length. These static joins identify how conditional row text
 reaches parsing. They do not establish the runtime configuration map or the
 bytes of an actual complete parser input.
 
+## Parsed targets and installed groups
+
+The same pinned `ffxivgame.exe` bytes, decoded with Capstone 5.0.7 and
+pefile 2024.8.26, join parsing to binding construction and conditional
+recipient selection. These are static branches, not observed parser results.
+
+Parser context constructor `0x0054C7D0` stores destination receiver `P` at
+context `+0x10`, group index `j` at `+0x14` and the supplied profile byte at
+`+0x18`. For `j <= 1`, it increments `P + 0x34 + 0x24 * j` and clears the
+list at `P + 0x18 + 0x24 * j` (`0x0054C865..0x0054C871`). Its vtable
+`0x00FA2A98` supplies callback `0x0054A760`. That callback passes
+`P + 0x14 + 0x24 * j` and the profile byte to `0x00547830`, then walks the
+parsed node through `0x00947040`. The source profile selected while generating
+text is a separate condition from this destination receiver and profile byte.
+
+The `RaptureKeyConfig.InputBindings` callback at `0x0054C8A0` constructs
+context `0x00547970` with that group. Its vtable `0x00FA2ACC` supplies the
+element callback `0x0054BE00`. The `AxisBinding` branch at
+`0x0054BF09..0x0054BF52` constructs markup object `M` through `0x0054BCC0`,
+parses its node and invokes the enclosing context's slot 8. Constructor
+`0x0054BCC0` calls `0x00556D20` and installs vtable `0x00FA2D44`, whose
+property slot 3 is `0x0054A960` and construction slot 8 is `0x00552160`.
+The axis property parser delegates other properties to `0x00948350` at
+`0x0054AED1`. The node walker invokes inherited slot 1 `0x00946940` at
+`0x00947210`. Its attribute-node arm calls property slot 3 at `0x009469DF`
+before the walker processes children and completes the node.
+
+`CommandTarget` is distinct from the command-name string. Constructor
+`0x00556D20` clears `M + 0x144` and byte `M + 0x148` at
+`0x00556D87/0x00556D8D`. The property branch compares the name with
+`CommandTarget` at `0x0106D0D0` and passes its value to `0x00947940` with
+the prefix `{Binding` at `0x0106D0E0` (`0x0094852A..0x0094857E`). A value
+outside that supported markup-expression form makes no target assignment
+on this branch. For a successful expression parse, a nonnull resolved
+object becomes its interface at object `+0xB4`, stored at `M + 0x144`
+(`0x00948587..0x0094859E`). A null result sets byte `M + 0x148` to 1 and
+retains the `ElementName` text at `M + 0x14C`. The expression helper includes
+`ElementName` and `RelativeSource` arms, including `Self`, `TemplatedParent`
+and `Desktop` (`0x00947B12..0x00947C8F`). These alternatives do not identify
+an actual runtime object.
+
+`0x00552160` obtains the command through `0x009466B0`, which resolves
+`M + 0x78` through `0x0096E850` and caches the result at `M + 0x170`.
+If it is null, construction returns null. Otherwise, subject to allocation
+success, the axis constructor passes `M + 0x144` to `0x00555F30` at
+`0x00552264..0x00552277`. Its base constructor `0x00982300` stores this
+target at binding `B + 0x94` at `0x009823A0`. Command lookup, parsed target,
+constructed binding and installed collection are therefore separate joins.
+
+The enclosing InputBindings slot 8 is thunk `0x00547A30` to `0x0094AC10`.
+It invokes markup slot 8, requires a nonnull `B`, increments the destination
+group's `+0x20` and appends `B` to its list at `+4`
+(`0x0094AC3C..0x0094AC5A`). For unresolved ElementName targets it separately
+requires `M + 0x148 == 1` and nonempty retained name, then records that name
+with the address `B + 0x94` in TLS context `+0x20F8`
+(`0x0094AC5F..0x0094ACCD`). Enabled axis
+bindings also enter the update collection at TLS context `+0x2170`, as
+described above. That collection is not a route-recipient list.
+
+Fixup consumer `0x00947D90` scans these `0x20`-byte records. It searches
+the supplied root's name map at `+4` (`0x00947E52..0x00947F01`). A miss
+can use nonnull root `+0x30` with `0x00910980` at `0x00947FB3`. For a
+nonnull result it forms object `+0xB4` at `0x00947FC2`, loads the recorded
+destination pointer at record `+0x1C`, and writes that interface through it
+at `0x00947FD9`. For the axis-binding record above, that destination is
+`B + 0x94`. It removes each successful record; a failed lookup advances
+without assigning the target (`0x0094805E..0x0094806F`). With finalization
+flag zero, it clears the remaining records at `0x00948074..0x009480B6`.
+
+The root-wrapper finalizer `0x00949180` calls this consumer with flag zero
+at `0x009491C8` when wrapper byte `+0x70` is clear and parent `+0x0C` is
+null. `0x0096B220` passes zero as the fourth argument to `0x0096A580` at
+`0x0096B2DC`. That helper forwards it as the third argument to `0x0096A4C0`
+at `0x0096A5D4/0x0096A5DC..0x0096A5E1`, separately from the callback context
+constructed by `0x0054CAF0`. When its third argument is null, `0x0096A4C0`
+constructs that parentless wrapper, walks the parsed node, then calls its
+finalizer at `0x0096A541`.
+Thus the retained parser path includes a conditional post-parse write to the
+installed binding target. Exact name-map contents and successful lookup are
+still required to establish a nonnull target. Immediate property resolution
+and this later fixup must not be collapsed into one unconditional result.
+
+Provider `0x005472E0` selects the installed group using current profile
+`[0x01336BC4]` and whether its supplied interface differs from the root
+interface returned through `0x0091A1B0`. It returns
+`C + 0x8C * profile + 0x18 + 0x24 * j`, with `j = 0` for equality and
+`j = 1` otherwise (`0x005472F7..0x00547310`). This agrees with the two
+destination lists, without proving which context was selected in a runtime.
+
+The reconstructed row examples omit `CommandTarget`. That supports a null
+initial target only when those exact attributes are parsed without another
+target property. It cannot establish null targets for every substituted
+document. Replacement `0x006814B0` passes the found map value to
+`0x00447EA0` at `0x00681710`. That wrapper removes the selected span and
+inserts the supplied string through `0x00447DE0`; the insertion appends the
+value through `0x00447C80`, copying its bytes at `0x00447CAF`. There is no
+XML attribute escaping on this replacement path. Because the placeholders
+occur inside quoted attributes, quotation marks or markup in a replacement
+can change syntax or make parsing fail. Exact parser bytes remain necessary
+to establish the properties of a constructed binding.
+
+## Conditional command recipients
+
+The axis update transports `B + 0x94` to command slot 2, as described above.
+Generic command `0x00927FA0` preserves that target argument and passes it
+to `0x0091F590` for both the initial command event and the subsequent event
+when the initial event was not handled (`0x00928059/0x00928124`).
+`0x0091F590` tests the pointer at `0x0091F594`. A nonnull target calls
+`0x0091E1C0` with that interface and three flags set to 1. A null target
+reads global root interface `0x01357020` and, only when it is nonnull,
+calls `0x0091EE90` (`0x0091F5AD..0x0091F5BC`). Null therefore selects a
+global route; it does not directly select the player.
+
+`0x0091EE90` copies the eight-byte route entries from `0x01357060` through
+`0x0091ED80`, with desktop-interface handling and conditional list adjustment.
+It finds the top ancestor returned by `0x0091C370`, which follows interface
+`+0x60`, and requires a matching route entry
+(`0x0091F0A0..0x0091F0D0`). For each admitted nonnull route interface, it
+calls `0x0091E1C0` at `0x0091F199`; event byte `+0x17 == 1` stops further
+entries. The explicit route helper requires a nonnull event descriptor and
+target interface field `+0x64`. For routed events it builds an interface
+list, following `+0x60` with flag and slot-3 admission conditions, and may
+add the desktop interface (`0x0091E267..0x0091E2EB`). It reverses the list
+through `0x00932760` and dispatches through `0x0091D210` at `0x0091E32C`.
+
+`0x0091D210` chooses iteration direction from descriptor byte `+4`, invokes
+each nonnull interface's slot 13 and stops when event byte `+0x17` is set
+(`0x0091D29C..0x0091D2B0`, `0x0091D2F2..0x0091D302`). On the existing
+Executed switch arm, generic dispatcher `0x0091D320` invokes slot 65 at
+`0x0091D6BE/0x0091D6C7`. CharaElement interface vtable `0x00FA7B2C`
+supplies slot 13 `0x0091D320` and slot 65 `0x00589490`. The established
+movement handler is reached only if that CharaElement interface is an admitted
+recipient before dispatch stops. Installing an axis binding, resolving an
+explicit target and selecting the runtime CharaElement remain distinct facts.
+
 ## Remaining physical-input edge
 
 The provider, named ExcelSheet results, retained source blocks, table-column
@@ -497,8 +632,9 @@ joined to the parsed binding. The static construction above narrows those
 conditions. The decisive remaining runtime evidence is the exact
 configuration bytes supplied to
 `0x0054CAF0` and parsed at `0x0054CB3F`, with their source identity, profile
-and selected column. `CommandTarget` and the eventual CharaElement recipient
-must then be joined for the constructed binding. No runtime device, command
+and selected column. The parsed target or deferred fixup, installed destination
+group, current root and route entries must then be joined to the CharaElement
+recipient for that constructed binding. No runtime device, command
 delivery or recipient is established by these static associations.
 
 Keyboard handling in `0x00552DF0` separately emits descriptor `0x01356E28`

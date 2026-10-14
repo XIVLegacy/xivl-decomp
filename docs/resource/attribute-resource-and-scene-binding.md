@@ -1293,6 +1293,11 @@ argument writes. Its [configuration construction](../input/player-movement-comma
 joins the generated string's pointer and length to parsing. Runtime source
 delivery, selected profile and column, substitution map and route recipient
 remain conditions.
+The [parsed-target and route trace](../input/player-movement-command-origin.md#parsed-targets-and-installed-groups)
+joins parsed target handling to installed binding groups and conditional
+recipient traversal. A null binding target selects a global route. The
+movement handler requires the CharaElement
+interface to be an admitted recipient before dispatch stops.
 
 ## Character factory and world provider
 
