@@ -142,6 +142,73 @@ inside `0x00c421f0`. The later field read is not proved to retain the
 producer's earlier stored value. No shader, palette, pose, lifetime,
 update-timing or rendered-result contract follows from this route.
 
+## Local output matrix production
+
+The complete parent `[0x00a3f960,0x00a3ff62)` contains a local matrix
+pipeline following the published
+[first associated output calculation](https://github.com/XIVLegacy/xivl-decomp/blob/7d8b75d06b717627b673248a3ad0b9b8201ff01e/docs/resource/skeleton-constructor-pose.md#selected-hierarchy-calculation).
+Let Q denote the pointer loaded into ESI at `0x00a3fd07`, D denote the
+then-current EDI, and G the four rows stored into `Q+[0,0x40)` at
+`0x00a3feb6`, `0x00a3feb9`, `0x00a3feda` and `0x00a3fee7`.
+Let B denote the four rows read from `D+[0x40,0x80)` by the call at
+`0x00a3fef6`. With valid separate record and local stack storage, the
+following tail produces:
+
+```text
+Q[+0x40,+0x80) = transpose(B * G)
+```
+
+Here multiplication uses four consecutive stored rows. For row r and
+column j, the intermediate scalar result is
+`(((G[0,j]*B[r,0]+G[1,j]*B[r,1])+G[2,j]*B[r,2])+G[3,j]*B[r,3])`.
+The transpose places that result at destination row j, column r.
+This describes the scalar relation and observed addition order. It does
+not establish native float parity for a replacement implementation.
+
+Let S denote ESP after the parent's local cleanup at `0x00a3fafe`.
+The four rows G also occupy `S+[0x70,0xb0)` when the tail begins.
+The helper argument routes are:
+
+| Callsite | Target | Local route |
+|---|---|---|
+| `0x00a3fef6` | `0x0061f0f0` | Copies B from current `D+0x40` to `S+0xc0` |
+| `0x00a3ff17` | `0x0042edb0` | Uses entry ECX `S+0x70` as right operand G, first stack argument `S+0x150` as destination, and second stack argument `S+0xc0` as left operand B |
+| `0x00a3ff1e` | `0x00a41650` | Transposes the returned product into the remaining stack argument `S+0x110` |
+| `0x00a3ff28` | `0x00545670` | Copies the returned transpose to `S+0x70` |
+
+The matrix wrapper calls `0x0042ec50` for B rows in order 3, 2, 1, 0,
+then uses `0x004201a0` to copy the returned row pointers into increasing
+destination order. The row helper reads sixteen scalar float32 values
+from entry ECX and four scalar float32 coefficients from its second stack
+argument. It broadcasts coefficients with SIMD shuffle immediates
+`0x00`, `0x55`, `0xaa` and `0xff`, multiplies rows and adds them in
+order 0, 1, 2, 3. Its first stack argument is the destination row.
+The transpose helper's completed lane route maps `A[r,j]` to `A[j,r]`.
+These helpers supply no wider matrix meaning.
+
+The helper bodies and returns preserve ESI, EDI and EBP physically along
+this tail. Their explicit stack cleanup leaves the transpose's destination
+argument in place after the matrix call, then restores S before the final
+copy and stores. The tail loads four consecutive Float4 blocks from
+`S+0x70`, `S+0x80`, `S+0x90` and `S+0xa0` and writes them to
+`Q+0x40`, `Q+0x50`, `Q+0x60` and `Q+0x70` at
+`0x00a3ff32`, `0x00a3ff3e`, `0x00a3ff4a` and `0x00a3ff57`.
+No call or ESI assignment separates these stores. For the published
+associated-output arrangement, the submission consumes the first three
+of these transposed product rows in memory order.
+
+The parent reads Q through its locally held frame pointer at `+0x0c`.
+Its earlier calls to `0x00a41ca0`, `0x00a419a0`, `0x00a39c00` and
+`0x0042ffa0` have no independent physical register or stack-preservation
+proof here. The full parent body therefore supplies no unconditional
+entry-to-tail identity for D or that frame pointer. B names the rows
+actually read at the tail, without proving an entry pose identity.
+Pointer validity and interfering aliases remain unresolved. The published
+[pose affine-inverse transfer](https://github.com/XIVLegacy/xivl-decomp/blob/7d8b75d06b717627b673248a3ad0b9b8201ff01e/docs/resource/skeleton-constructor-affine-inverse.md#associated-constructor-transfer)
+into `P_i+[0x40,0x80)` is distinct from these stores into output
+`Q+[0x40,0x80)`. No palette, bind, animation, scheduling, selected shader,
+resource/default selection or rendered-result contract follows.
+
 ## Forwarding and direct device interpretation
 
 The complete body `[0x0041bfc0,0x0041bfdb)` receives `(start,data,count)`
@@ -217,10 +284,34 @@ header and NUL-terminated name. Follow the producer return arithmetic,
 then compare its receiver expression with the initializer callsite and
 stride. These static anchors do not establish current receiver contents.
 
+For the local output production, verify the complete parent
+`[0x00a3f960,0x00a3ff62)` and complete helpers
+`[0x0061f0f0,0x0061f201)`, `[0x00a41650,0x00a41878)` and
+`[0x0042ec50,0x0042edaa)`. They contain 276, 52, 108 and 77
+instructions covering 1538, 273, 552 and 346 bytes. The bounded helper
+windows also include 9, 8 and 6 padding bytes respectively. Their
+stop addresses are `0x0061f20a`, `0x00a41880` and `0x0042edb0`.
+The copy windows `[0x004201a0,0x004201fd)` and
+`[0x00545670,0x0054574b)` contain 21 and 48 instructions covering
+93 and 219 bytes. Independently map only the three-byte RET instructions
+at `0x004201fd` and `0x0054574b`, with cleanup immediates 16 and 4.
+The completed copy bodies therefore cover 96 and 222 bytes in 22 and
+49 instructions. Recheck the complete matrix wrapper
+`[0x0042edb0,0x0042ee11)`, with 40 instructions covering 97 bytes.
+All encoded instruction bytes, including padding, matched the Original
+PE mapping. Six disassembly windows request 3044 bytes and contain 605
+decoded instructions. The return reads add six bytes. There are no stop
+crossings or referenced literal reads. All scoped bodies are linear,
+with no branch instruction. Verify every direct relative call and every
+RET width and immediate. Check scalar loads as 32-bit, packed row loads
+as 128-bit and flat-copy chunks as 64-bit, then derive shuffle lane order
+from the encoded immediates. Follow each callee's own saved registers and
+stack frame through its return before normalizing the parent arguments.
+
 These are static executable observations. They do not establish current
 receiver contents, resource selection, native execution, a live client
-session or a rendered result. The associated hierarchy-output blocks remain
-opaque. `jointMatrices` linkage, TEXCOORD6/7 and BLEND meanings, mesh indices,
+session or a rendered result. The associated hierarchy-output blocks' broader meanings remain
+unresolved. `jointMatrices` linkage, TEXCOORD6/7 and BLEND meanings, mesh indices,
 weights, palette ordering, bind and inverse-bind meaning, axes, units,
 handedness, MTB channels, animation, update timing, count and pointer safety,
 cache/device agreement, native float parity and visual behavior remain
