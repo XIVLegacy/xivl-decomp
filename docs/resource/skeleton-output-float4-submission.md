@@ -197,8 +197,12 @@ No call or ESI assignment separates these stores. For the published
 associated-output arrangement, the submission consumes the first three
 of these transposed product rows in memory order.
 
+The earlier callee `[0x00a39c00,0x00a39d23)` has no outgoing call or in-body branch. Its 72 instructions leave EDI untouched. Let T denote its entry ESP and P its aligned local base `((T-4)&0xfffffff0)-0x20`. It saves entry EBP at `T-4`, holds `T-4` in EBP, and writes its 32-byte scratch region at `P+[0,0x20)`. It loads the first stack argument from `T+4` into EAX at `0x00a39c86`, then writes eight bytes at that destination and eight bytes at destination `+8` at `0x00a39d0e` and `0x00a39d18`.
+
+The callee restores ESP from EBP at `0x00a39d1d`, reloads EBP from the saved word at `0x00a39d1f`, and returns with the three-byte `RET 8` at `0x00a39d20`. A normal return leaves ESP at `T+12`. Entry EBP identity requires the destination writes to leave its saved word unchanged. This does not establish destination isolation from the parent state, the saved return address, or the local scratch used by the second destination store.
+
 The parent reads Q through its locally held frame pointer at `+0x0c`.
-Its earlier calls to `0x00a41ca0`, `0x00a419a0`, `0x00a39c00` and
+Its earlier calls to `0x00a41ca0`, `0x00a419a0` and
 `0x0042ffa0` have no independent physical register or stack-preservation
 proof here. The full parent body therefore supplies no unconditional
 entry-to-tail identity for D or that frame pointer. B names the rows
@@ -307,6 +311,12 @@ RET width and immediate. Check scalar loads as 32-bit, packed row loads
 as 128-bit and flat-copy chunks as 64-bit, then derive shuffle lane order
 from the encoded immediates. Follow each callee's own saved registers and
 stack frame through its return before normalizing the parent arguments.
+
+For the earlier callee `[0x00a39c00,0x00a39d23)`, the 72 decoded
+instructions cover 291 bytes. Apple `llvm-objdump` disassembly and a
+PE-mapped comparison verified every encoded instruction byte for the
+identified `ffxivgame.exe`. No pointed-to memory or target execution was
+observed.
 
 These are static executable observations. They do not establish current
 receiver contents, resource selection, native execution, a live client
