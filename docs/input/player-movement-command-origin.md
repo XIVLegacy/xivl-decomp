@@ -780,6 +780,10 @@ global selection and a later movement-command recipient remain separate facts.
 
 The [constructor attachment](chara-interface-attachment.md) follows the concrete
 parent assignment and construction-time vtable ordering before enrollment.
+The [desktop and selection producers](chara-selection-producers.md) join that
+container's construction receiver to the desktop-global store and separate its
+teardown from interface eligibility and selected-root replacement. The positive
+bit-0 writer on the selected CharaElement interface remains unjoined.
 
 For a null explicit command target, `0x0091EE90` constructs a temporary
 snapshot with byte `+0x10 == 1` through `0x00921450` and copies the live
