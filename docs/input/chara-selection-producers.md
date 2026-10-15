@@ -411,12 +411,60 @@ links a command entry into G+`0x10` before calling `0x008963F0`. This
 conditional manager-list insertion does not establish selected-I registration.
 
 The bounded trace supplies no positive selected I+`0x70` bit0 assignment or
-ordering before admitted I.slot14. The next edge is N's concrete table and
-slot7 target at `0x0089848F`, then its selected manager effect toward I.
-Actual S/function/parent resolution, global contexts, P=A, C and the derived
-command name remain separate conditions. These findings use retained Ghidra
+ordering before admitted I.slot14. The construction and manager trace below
+bounds two conditional N table targets. Actual S/function/parent resolution,
+global contexts, P=A, C and the derived command name remain separate
+conditions. These findings use retained Ghidra
 listings, raw-backed PE reads and Capstone 5.0.7 decoding; explicit listing
 gaps were retained without claiming continuous instruction coverage.
+
+## Native command construction and policy dispatch
+
+Native producer 0x006F1C20 constructs a command object from a supplied name
+and two byte pointers, then forwards it to the vector at P+0xFC through
+0x00725ED0. Equality of its supplied type byte with [0x0134C3FE] selects
+0x00892080, whose final table is 0x01056CC4, CommandBlock. Inequality
+selects 0x008921A0, whose final table is 0x01056CF8, CommandNonBlock.
+Raw complete-object locators 0x01171EEC/0x01171F40 authenticate those
+zero-offset types. The type-selector global is outside the retained PE's
+raw-backed extents.
+Both constructors copy the supplied name to N+4 through 0x00891FB0.
+
+0x00762CA0 supplies name/type records to that producer in 0x58-byte steps,
+passing (record,record+0x54,record+0x55). 0x006F3420 calls this walk with
+its receiver P. A separate dynamic producer at 0x0089D4F0 supplies another
+record to the same helper. The inspected available-capacity append arm
+writes at the vector end. These are conditional registration producers,
+without actual matching-record, uniqueness, complete alias-writer,
+lifetime or table-persistence evidence. 0x0071CA50 still returns the first
+equal name in existing vector order without a table test.
+
+While those constructed tables remain installed, their slot7 cells select
+0x00B73290, exactly MOV AL,1; RET, or 0x005C5C80, exactly XOR AL,AL;
+RET. Neither body writes memory. At 0x0089848F the first selects manager
+0x00897310 and the second 0x00896510. The latter links a command entry
+into G+0x10 before calling N.slot1. The former applies priority/state
+tests and can replace G+8 and call N.slot3 then slot1, stage through
+G+0x0C, or reject. Its priority and existing-entry conditions remain
+separate from command-table construction.
+
+Both tables' slot1 target 0x00897910 adds N's name to its argument object
+and calls N.slot10. The concrete slot10 targets 0x008920F0/0x00892200
+call 0x00CD0940 with P and the raw method names _onCommandEvent (CommandBlock) or
+_onCommandRequest (CommandNonBlock). That helper forwards P to
+0x00CD7A30 at 0x00CD0961, then forwards its result to 0x00CCF9B0 at
+0x00CD0969. The actual loaded handler and its selected-I effects remain
+unobserved.
+
+These bounded manager and script-dispatch effects do not establish a
+positive selected I+0x70 bit0 assignment, input registration, or ordering
+before admitted I.slot14. The next edge is the creation-record, name,
+ordering, lifetime and table join for the first matching P+0xFC entry.
+This finding uses the retained 15996808-byte retail 1.23b ffxivgame.exe,
+SHA-256 9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9,
+image base 0x00400000, retained Ghidra listings and fresh Capstone 5.0.7
+row/byte checks. Listing gaps were retained without claiming continuous
+instruction coverage.
 
 ## Container selection getters and command arguments
 
