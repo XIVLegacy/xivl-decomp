@@ -499,9 +499,9 @@ Helper 0x0078BBB0 obtains P_init through 0x00CC7800 and calls F.slot1,
 0x00781850. That callback clears F+8 and passes O to 0x006E0150.
 The latter calls P_init.slot30 at 0x006E01AB with O as its second argument.
 MyPlayer table 0x00FD785C supplies 0x006F3420, conditional on P_init's
-actual table. No table test occurs at that call. The message receiver's
-implementation D_message is not identified with this handoff implementation
-D_handoff, and P_init is not identified with the later re-fetched lookup P.
+actual table. No table test occurs at that call. These call sites alone do
+not establish D_message=D_handoff or P_init=later P. The same-holder and
+publication paths below supply conditional static joins.
 
 Owner construction at 0x00767730 zeros the record-vector endpoints. Cleanup
 0x00765E30 -> 0x0077C9B0 destroys the records and clears those endpoints.
@@ -533,6 +533,54 @@ These observations use the retained retail 1.23b ffxivgame.exe,
 image base 0x00400000, retained Ghidra listings, raw PE data and fresh
 Capstone 5.0.7 row/byte checks. Listed instruction gaps were retained;
 no continuous body extent was inferred from listing headers.
+
+## Conditional holder and current-player publication joins
+
+The retained static callers join the pending-owner message paths
+conditionally. Ordinary word 0x00CC dispatch at 0x004D88E2 uses the same
+[U+0x80] holder as word 0x0132. Helper 0x00574780 rejects a successful
+LuaActorImpl cast, casts the retained implementation to NullActorImpl and
+calls 0x00774AD0. An earlier record producer and later admitted ordinary
+0x00CC call therefore use the same implementation when U, its holder,
+implementation and lifetime persist. The preliminary U+0x92 guard can select
+a separate 0x00CC path. Actual selected-U identity and message order remain
+conditions.
+
+The deferred creation path 0x00772C80 compares its descriptor's first word
+with [W+0x1783C], distinct from reporting selection [W+0x17834]. Its equality
+arm appends "MyPlayer", constructs a MyPlayer prototype through 0x006F9140
+and supplies it to 0x00CC8010. Registration and subsequent class/name lookup
+must succeed. On the MyPlayer prototype arm, 0x00CDCBA0 -> 0x00CE2D50 ->
+0x00CCC9B0 calls prototype.slot1, whose target 0x00749180 constructs a
+separate MyPlayer. Its final table is 0x00FD785C.
+
+Before returning that created actor, 0x00CDCBA0 calls 0x00CE2440 at
+0x00CDCEB0. That helper forwards the same actor and context through
+0x00CCC9C0 to actor.slot3. With the MyPlayer table installed, target
+0x006E3440 calls 0x00758E40, storing its receiver at CoreWork+0x0C.
+The returned instance wrapper R is dereferenced by 0x00CC7800. With [R]
+retaining its created-actor pointer across the intervening calls, 0x0078BBB0
+supplies that same actor to the initializer callback. Under that condition,
+this successful path publishes P_init before applying the pending owner.
+
+Setup caller 0x0057A3C0 stores the result of 0x00773270 at R_setup+4
+and passes it as argument2 to 0x007634B0 at 0x0057AAB1. Setup wraps
+K_setup in a holder at Q+4 and retains it at X_setup+0x220. This fixes the
+argument producer without proving X_setup=X_lookup or K_setup=K_publish.
+
+The later _getMyPlayer callback 0x00707970 reads its actual context's
++0x220 holder, the holder's +4 CoreWork pointer and CoreWork+0x0C.
+P_lookup=P_init therefore requires K_lookup=K_publish, the retained
+publication and the relevant lifetimes. Actual payload/name, class selection,
+table persistence, insertion order, competing registrations and the first
+equal P+0xFC entry remain unobserved. These static joins do not establish a
+selected-I bit0 assignment, registration or order before admitted I.slot14.
+
+These observations use retained Ghidra listings and individually checked
+raw-backed PE instructions/data from retail 1.23b ffxivgame.exe, 15996808
+bytes, image base 0x00400000, SHA-256
+9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9,
+with pefile 2024.8.26 and Capstone 5.0.7. Listing gaps remain explicit.
 
 ## Container selection getters and command arguments
 
