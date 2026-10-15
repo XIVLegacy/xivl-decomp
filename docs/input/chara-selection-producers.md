@@ -151,6 +151,49 @@ table and any forwarding from that callback to selected I remain unjoined.
 Dispatcher allocation alone does not establish a registered listener or
 a positive bit0 assignment.
 
+## Listener registration and stored callback owners
+
+The final Chara interface table supplies these registration methods:
+
+| Interface cell | Target | Observed operation |
+| --- | --- | --- |
+| `0x00FA7B50`, slot9 | `0x0091F6F0` | Set R+`0x18`, then call `0x00571BB0` on B+8 with `(R,0)` |
+| `0x00FA7B54`, slot10 | `0x0091F6D0` | Set R+`0x18`, then call `0x00571D10` on B with R |
+| `0x00FA7B5C`, slot12 | `0x0091F710` | Pass R to (B+8).slot1 |
+
+At `0x0091F6DD`, slot10 stores its first argument, the event descriptor,
+at R+`0x18`. Helper `0x00571D10` passes the address of R to vector helper
+`0x00813050` on B+`0x0C` at `0x00571D2C`. It sets R+`0x16` bit0 at
+`0x00571D31` and records B+8 through the reciprocal vector at R+4
+(`0x00571D41`). The vector helper's capacity-available arm writes the
+supplied pointer at its end and advances that end by four
+(`0x00813080..0x00813087`). Its growth arm delegates to `0x008CFC80`;
+the deeper allocation behavior is outside this observation. Slot9's
+`0x00571BB0` path clears R+`0x16` bit0 at `0x00571BD7/0x00571BDA`.
+These listener-flag operations are distinct from I+`0x70` admission bit0.
+
+The retained literal-call search found eight calls to `0x0091F6D0` in
+`0x0069D140`, `0x0086BE80`, `0x0088A750` and `0x008DA6A0`.
+Their receiver setup uses a UI owner or loaded child pointer plus `0xB4`.
+On their allocation-success branches, listener constructors install tables
+`0x00FCB6B4`, `0x00FCB6C4`, `0x00FCB6D4`, `0x0104C8D0`,
+`0x01055338` or `0x01064AD4`. Their RTTI identifies Sqwt UI event
+handlers; these calls do not identify a listener registered on selected I.
+
+Those tables' callback targets are `0x0088AB00`, `0x00966990` and
+`0x0066FCC0`. The first loads ECX from `[R+0x20]+[R+0x2C]` and
+tail-jumps through `[R+0x28]`. The second adds an optional event-field
+filter before the same forwarding. The third loads ECX from `[R+0x20]`
+and tail-jumps through `[R+0x24]`. The inspected constructors store the
+supplied callback owner and target in those fields, with zero adjustment
+for the first two forms. Sender and event remain stack arguments.
+
+These thunks distinguish the stored callback owner from the sender.
+They do not establish owner=selected I or transform sender E into E+8.
+The downstream callback bodies, other virtual registration paths and
+possible aliases remain separate joins. The bounded registration trace
+supplies no positive selected I.slot2 argument or ordering before slot14.
+
 ## Container selection getters and command arguments
 
 The container exposes reporting selection and a separate override pointer.
