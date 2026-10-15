@@ -256,10 +256,72 @@ indirect effects remain separate from the inspected direct writes.
 When the movement bytes change and I+`0xE8` is `0x0B` or `0x0D`,
 `0x00589556` first calls `0x00574D70` with ECX=[I+`0x78`]. The thunk
 loads D from that pointer and tail-jumps at `0x00574D77` through
-D's table+`0x5C`, slot23, adding no stack arguments. D=[[I+`0x78`]];
-its field producer, concrete table and relationship to I remain unjoined.
-The bounded service trace establishes neither a positive selected I.slot2
-argument nor its ordering before admitted slot14.
+D's table+`0x5C`, slot23, adding no stack arguments. The field holds an
+actor-implementation handle L=[I+`0x78`]=[E+`0x80`], with D=[L]. Its
+construction and conditional replacement select the targets below.
+
+## Selected actor-implementation handle and slot23
+
+The CharaElement constructor calls `0x00534090` at `0x0058B528`, which
+reaches RaptureElement constructor `0x004DAB50`. Its `0x005752D0` call
+at `0x004DABAC` returns L, stored at E+`0x80` at `0x004DABB1`.
+With a nonnull supplied context and successful allocations, L is a
+four-byte holder whose pointee is constructed through
+`0x00574700 -> 0x00769FD0`. The latter installs table `0x00FE02AC`.
+The [fresh case-2 finding](../resource/attribute-resource-and-scene-binding.md#case-2-appearance-ordering)
+owns its separate appearance-admission effects.
+
+Raw PE complete-object locators identify these zero-offset actor
+implementation tables. Their receivers are D, separate from the selected
+Chara interface I on these construction paths.
+
+| D table and RTTI | Slot23 cell | Target and bounded operation |
+| --- | --- | --- |
+| `0x00FE02AC`, `.?AVNullActorImpl@Client@Script@Lua@Application@@` | `0x00FE0308` | `0x0075AC50`, exactly `RET` |
+| `0x00FDFB2C`, `.?AVLuaActorImpl@Client@Script@Lua@Application@@` | `0x00FDFB88` | `0x00759920`, conditional movement script callback below |
+
+L's pointee can change. The packet binding arm at `0x004D8902` passes
+L=[E+`0x80`] to `0x00574780`. When its current pointee is not LuaActorImpl,
+the NullActorImpl branch forwards L to `0x00774AD0`. Request constructor
+`0x005745F0` stores L at request+8 (`0x0057462D`). The inspected immediate
+submission arm requires owner state 10 and further flag/result tests; it
+retains the request with its key in the owner's callback list. Other requests
+are deferred. Processing at `0x00766F00` requires successful script-object
+lookup and readiness before calling completion `0x00574830` at `0x0076703A`.
+Submission alone does not establish completion.
+
+For the preserved request, completion recovers L from request+8 and calls
+`0x0076C8D0` with that script control object. Its successful allocation calls
+`0x00759510`, which installs the LuaActorImpl table at `0x00759549` and
+stores the control pointer at D+8. Completion transfers the returned D
+to *L at `0x005748CE`, without replacing E/I. The inspected reset route
+`0x00574970` can also replace *L through current D.slot4; both named tables'
+slot4 targets construct NullActorImpl. These are concrete conditional
+producers, not a census of every alias or replacement writer. The target
+used at `0x00574D77` depends on successful construction or replacement
+and persistence. With the fresh NullActorImpl table retained, it returns
+immediately without an admission write or registration.
+
+LuaActorImpl slot23 passes `(D+4, [D+8])` through `0x008A3E60`. That
+helper casts the second pointer from ActorBase to MyPlayer, then calls
+`0x006F8200` with the cast result A as ECX and D+4 as its argument.
+It has no null-cast guard before this call. For a valid A with A+`0x167`
+nonzero, `0x006F82C0` submits A, the literal `_onMoveAtSit` at
+`0x00FD4B4C`, and a result vector through `0x00CC7A90`. That wrapper
+resolves a script instance through `0x00CD7A30` and forwards the
+instance/name/result tuple to `0x00CCF7D0` at `0x00CC7ABC`. The latter's
+script-state and name-resolution guards precede its execution-helper call.
+Exactly one type-2 result whose extracted byte is one allows `0x006F8310`
+to clear A+`0x167`.
+
+This direct flag clear belongs to the MyPlayer control object. The inspected
+native path supplies no positive selected I+`0x70` bit0 assignment or
+registration involving I. The movement guard's I+`0xE8` is E+`0xF0`;
+the inspected writers `0x00588BA0` and `0x005870B0` copy supplied values
+there without choosing D's table. Values `0x0B`/`0x0D` alone do not
+establish a successful binding or script identity. The selected
+`_onMoveAtSit` script instance/handler and its effects toward I remain
+unjoined, as does ordering before admitted I.slot14.
 
 ## Container selection getters and command arguments
 
