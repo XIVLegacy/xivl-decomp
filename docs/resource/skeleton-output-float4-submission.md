@@ -235,16 +235,196 @@ owns the conditional result for `0x00a419a0`. The
 owns the conditional result for the earlier `0x0042ffa0` call. The
 [first converter physical contract](skeleton-quaternion-recovery.md#first-converter-physical-register-and-stack-contract)
 owns only the own-body result for `0x007d8fe0`. It adds no parent
-callsite relation. The call-bearing routes through `0x00a41ca0` still have no complete
-physical register or stack-preservation proof here. The full parent body
-therefore supplies no unconditional entry-to-tail identity for D or that
-frame pointer. B names the rows actually read at the tail, without proving
-an entry pose identity.
+callsite relation. The [conditional pose-helper preservation](#conditional-pose-helper-preservation)
+composes the call-bearing routes through `0x00a41ca0` under explicit storage
+and normal-execution conditions. Those conditions do not establish an
+unconditional entry-to-tail identity for arbitrary callers. B names the
+rows actually read at the tail. The conditional result identifies their
+parent-entry pointer and contents without assigning pose meaning.
 Pointer validity and interfering aliases remain unresolved. The published
 [pose affine-inverse transfer](https://github.com/XIVLegacy/xivl-decomp/blob/7d8b75d06b717627b673248a3ad0b9b8201ff01e/docs/resource/skeleton-constructor-affine-inverse.md#associated-constructor-transfer)
 into `P_i+[0x40,0x80)` is distinct from these stores into output
 `Q+[0x40,0x80)`. No palette, bind, animation, scheduling, selected shader,
 resource/default selection or rendered-result contract follows.
+
+## Conditional pose-helper preservation
+
+Under the explicit conditions below, the call-bearing routes of
+`0x00a41ca0` preserve physical EDI, ESI and EBP and remove their four-byte
+stack argument. Combined with the established parent-helper contracts,
+the parent reads B through its original first input pointer. This is a
+physical pointer-identity finding, without bind or inverse-bind meaning.
+
+### Explicit conditions
+
+Assume ordinary flat nonwrapping 32-bit addressing, valid aligned accesses,
+stable instructions, uninterrupted normal execution, and no asynchronous
+register or memory interference. Assume the caller's arguments and return
+words remain stable except for intended stack operations. Input records and
+output records must not alias active local stack frames, saved registers,
+return words, argument cells, instruction storage or fixed writable globals.
+For the parent join, its input record and output record are mutually disjoint.
+
+Known local-to-local argument routes below are allowed. They do not constitute
+an assumption that all pointed-to storage is mutually disjoint. Their exact
+local destinations are proved separate from the applicable saved words.
+The fixed initialization globals [0x0133ef80,0x0133efb4), security cookie at
+0x012ea8b0 and FS:[0] state are separate from active stack and record storage.
+The cookie word remains stable. Exceptional unwind and cookie failure are not
+normal returns covered by this conditional finding.
+
+### Complete direct closure
+
+The complete 112-instruction [0x00a41ca0,0x00a41eae) body has these six
+and only these six direct callsites. There are no indirect calls.
+
+| Callsite | Complete target range | Return cleanup |
+|---|---|---|
+| 0x00a41d20 | [0x00a39c00,0x00a39d23) | 8 |
+| 0x00a41d7e | [0x007d8fe0,0x007d90c8) | 0 |
+| 0x00a41d94 | [0x00652200,0x006522cc) | 0 |
+| 0x00a41da3 | [0x0061f0f0,0x0061f201) | 4 |
+| 0x00a41e6d | [0x004201a0,0x00420200) | 16 |
+| 0x00a41e78 | [0x00545670,0x0054574e) | 4 |
+
+Five targets have no outgoing calls. The complete 61-instruction 0x00652200
+body has exactly two direct calls: 0x00652242 to 0x0063fc70 and 0x006522c3
+to 0x009d20f4. No indirect call occurs. The complete nested helper
+[0x0063fc70,0x0063ff27) has 176 instructions and no outgoing call.
+The four-instruction wrapper [0x009d20f4,0x009d2103) compares ECX with the
+cookie, returns on equality at 0x009d20fc and tail-jumps to uninspected
+0x009df74c on inequality. This is a complete normal-return closure under the
+proved equality condition below, not an unconditional full failure callgraph.
+
+### Helper-local routes
+
+Let T be entry ESP of 0x00a41ca0, C its entry ECX, O its first stack argument,
+and P=((T-4)&0xfffffff0)-0x100. Entry EBP is saved at T-4 and held frame EBP
+is T-4. Entry ESI is saved at P. The own body never assigns EDI.
+
+On its C+0xf2 equal-zero and C+0xf3 bit-0 set route, 0x00a41d20 supplies
+output P+0xb0 and an input P+0x10 to 0x00a39c00. That call-free body leaves
+EDI and ESI untouched, writes 16 bytes at its supplied output, restores its
+frame and removes eight argument bytes. The output is within the outer
+local frame, away from both helpers' saved words. At 0x00a41d7e, the first
+converter receives output P+0x30 and input P+0x10. Its complete call-free
+body leaves EDI and ESI untouched, writes [P+0x30,P+0x70), restores EBP and
+returns without argument cleanup. The outer add at 0x00a41d99 removes eight
+bytes, restoring ESP=P.
+
+On the alternate C+0xf3 bit-0 clear route, 0x00a41d94 supplies output
+P+0xc0 and input C+0xa0 to 0x00652200. That helper restores EDI and ESI
+from its own save words and restores its held frame EBP before RET 0.
+The same outer add at 0x00a41d99 restores ESP=P.
+
+For this latter helper, let U=((T2-4)&0xfffffff0)-0x48, where T2 is its
+entry ESP. Its saved ESI and EDI cells are U-4 and U-8. At 0x00652242,
+entry ESP of the nested helper is U-16, its stack output argument is U+8,
+and physical EDI points to U+0x18. The nested helper's only output-pointer
+stores are 16 bytes at each of those addresses (0x0063ff10 and 0x0063ff13).
+These cover [U+8,U+0x28), inside the outer local allocation. The nested body
+does not assign EDI or ESI. Its own local stores, save/pop, FS:[0] save and
+restore, and RET 0 preserve the held outer frame under the stated conditions.
+Its fixed initialization stores target only the stated global range.
+
+0x00652200 saves cookie XOR U at U+0x44 (0x00652209..0x00652210).
+After the nested return it reloads that word at 0x0065225f, while ESP=U-12.
+It removes the argument and pops EDI then ESI, bringing ESP to U, then XORs
+the saved word with U at 0x006522c1. ECX therefore equals the stable cookie
+at the checker call 0x006522c3. The checker's equality return preserves the
+registers and stack. Its failure tail is unreachable under these conditions.
+The four output rows of 0x00652200 target [P+0xc0,P+0x100), separate from
+its saved registers and nested frames.
+
+The shared outer route next copies a local matrix to [P+0x70,P+0xb0) through
+0x0061f0f0, whose own body touches neither EDI, ESI nor EBP. Its RET 4 restores
+ESP=P. Own stores transfer that matrix to [P+0x30,P+0x70). The call at
+0x00a41e6d supplies destination P+0xc0 to 0x004201a0 and four source rows
+P+0x30, P+0x40, P+0x50 and P+0x10. Its RET 16 restores ESP=P and its
+call-free body leaves EDI, ESI and EBP untouched. Its returned destination
+is passed to 0x00545670 at 0x00a41e78 with O as receiver. That call-free
+body writes [O,O+0x40), restores its saved EBP and returns with four-byte
+cleanup. Under O/frame separation it cannot corrupt the outer saved words.
+
+Both call-bearing routes therefore reach their epilogue at ESP=P with
+EDI equal to entry EDI and held EBP=T-4. The pop at 0x00a41e7f restores
+entry ESI, ESP is restored from EBP, the pop at 0x00a41e82 restores entry
+EBP and RET 4 at 0x00a41e83 leaves ESP=T+8. The call-free route has the
+same conditional return relation through 0x00a41eab. Entry return-target
+identity separately depends on its stable return word, as assumed.
+
+### Parent entry-to-tail join
+
+The complete parent [0x00a3f960,0x00a3ff62) has 276 instructions. At
+0x00a3f96e, EDI captures its first explicit input D0. No later own assignment
+to EDI occurs before its final pop at 0x00a3ff56. Its held frame EBP supplies
+the output pointer at 0x00a3fd07 and its first input argument above.
+
+Let S be the parent's ESP after saving ESI and EDI at 0x00a3f96d. It is
+aligned to 16 bytes. Before the call at 0x00a3f980, the parent pushes S+0x70
+and then S+0xc0. The callee enters at T=S-12 and has O=S+0xc0. Its own
+P=S-0x110. This verifies the separation of the supplied output
+[S+0xc0,S+0x100) from its own local frame, saved registers, return address
+and arguments. Its RET 4 leaves ESP=S-4. The pending S+0x70 argument then
+serves the parent copier at 0x00a3f987, whose RET 4 restores ESP=S.
+
+The tracked skeleton-quaternion-recovery.md physical contracts own the other
+earlier recovery/converter calls, while skeleton-output-float4-submission.md
+Local output matrix production owns the complete parent and tail helpers.
+Their established EDI/EBP preservation composes with the new 0x00a41ca0
+closure under the same storage and stable-execution conditions. The parent
+reloads output pointer Q through preserved EBP at 0x00a3fd07. Its own
+non-stack writes target Q+[0,0xa0), including intermediate fields +0x80,
++0x90 and +0x98 as well as both matrix ranges. They do not write D0 under
+record separation. Thus, at 0x00a3fef3..0x00a3fef6, current EDI=D0 and
+B is read specifically from D0+[0x40,0x80). Under stable nonalias D0
+storage those rows also retain their parent-entry memory contents.
+
+Consequently the existing conditional tail relation can name its actual input:
+Q[+0x40,+0x80)=transpose(B0*G), with B0 the four stored rows at the parent's
+entry pointer D0+[0x40,0x80). This is conditional normal-return composition,
+not proof that arbitrary callers satisfy the conditions. It does not select a
+constructor instance or establish constructor-to-runtime lifetime stability.
+
+### Remaining boundary
+
+The uninspected cookie failure tail, exceptional unwinds, asynchronous state,
+invalid pointers, aliases and instruction modification remain outside scope.
+No original asset, native execution or rendered output was used. This finding
+supplies no resource selection, palette, Joint index, shader mapping, bind,
+inverse-bind, animation, scheduling, numerical parity or visual claim.
+
+
+### Preservation audit
+
+The identity in this page applies. Python 3.14.7 mapped the original PE.
+The direct LLVM 21.0.0 decoder has SHA-256
+`47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f`.
+Ten unique contiguous windows contain 894 instructions and 4092 instruction
+bytes. Every encoded byte matched the original PE mapping. An independent
+audit repeated these windows and inspected the two repeated parent/nested
+windows without adding unique coverage. Its twelve children each had a
+20-second deadline and an 8388608-byte combined output cap. All exited 0
+and were reaped. Raw listings and executable bytes remain outside the public
+tree. No asset input or native execution was part of this observation.
+
+Run `llvm-objdump -d --x86-asm-syntax=intel --start-address=START --stop-address=STOP ffxivgame.exe`. Stop addresses are exclusive.
+
+| Start VA | Stop VA | Instructions | Instruction bytes |
+|---|---|---:|---:|
+| `0x00a41ca0` | `0x00a41eae` | 112 | 526 |
+| `0x00a39c00` | `0x00a39d23` | 72 | 291 |
+| `0x007d8fe0` | `0x007d90c8` | 70 | 232 |
+| `0x00652200` | `0x006522cc` | 61 | 204 |
+| `0x0061f0f0` | `0x0061f201` | 52 | 273 |
+| `0x004201a0` | `0x00420200` | 22 | 96 |
+| `0x00545670` | `0x0054574e` | 49 | 222 |
+| `0x0063fc70` | `0x0063ff27` | 176 | 695 |
+| `0x009d20f4` | `0x009d2103` | 4 | 15 |
+| `0x00a3f960` | `0x00a3ff62` | 276 | 1538 |
+
+The `0x009d20f4` window covers the cookie-check wrapper. Its inequality
+tail remains uninspected and is excluded by the proved equality condition.
 
 ## Forwarding and direct device interpretation
 
