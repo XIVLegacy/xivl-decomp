@@ -869,6 +869,18 @@ establish a safe or successful route by itself. A CharaElement pair is a
 candidate for the established movement handler only when the consumer's
 matching, nonnull-field, dispatch and stop conditions admit that interface.
 
+The snapshot walk passes each recipient to `0x0091E1C0` with the first
+flag indicating the matching pair, middle flag zero and last flag one
+(`0x0091F18D..0x0091F199`). In that helper's routed branch, the first
+flag can bypass the I+`0x70` bit1 test at `0x0091E26E`; the last flag can
+bypass the slot3 test (`0x0091E267..0x0091E286`). These shown forwarding
+controls differ from the bit0 and slot23 conditions in
+[slot14 global selection](chara-selection-producers.md#enrollment-and-global-selection).
+The unjoined positive bit0 writer therefore leaves selection eligibility
+open; it does not by itself prove that this snapshot route rejects a
+CharaElement recipient. Opaque callbacks and later recipient conditions
+still require their own joins.
+
 The inspected retained listing references to `V` and its pointer fields,
 the named pair helpers, parent slots, destruction repair and the selected
 application caller bound this trace. It is not an exhaustive search of computed

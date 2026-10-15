@@ -87,6 +87,33 @@ edge is the E+8 receiver at `0x00FA7B34` -> `0x0091C3E0`, with argument
 bit0 equal to one. Desktop construction and a nonnull desktop global do
 not supply that interface argument.
 
+## Returned interface aliases
+
+The constructor installs final E-base table `0x00FA7C50` at
+`0x0058B53C`, immediately before the E+8 table store. Its complete-object
+locator `0x01148980` identifies the same CharaElement at offset zero.
+The following slots operate on E, rather than on I.
+
+| E-base cell | Target | Observed operation |
+| --- | --- | --- |
+| `0x00FA7C7C`, slot11 | `0x004D67B0` | Return E+8 for nonnull E, otherwise null |
+| `0x00FA7C80`, slot12 | `0x004D67C0` | Exact `XOR AL,AL; RET 4` |
+| `0x00FA7C84`, slot13 | `0x004D67D0` | Call slot12 with the supplied argument; return E+8 only for nonzero AL |
+
+With this final table, slot13 takes its null-result arm
+(`0x004D67D9..0x004D67EF`). Slot11 provides a returned E+8 alias that a
+search limited to literal caller-side `LEA ECX,[E+8]` would miss. Neither
+getter assigns the interface's admission bit. These conclusions depend on
+dispatch through the selected final table; they do not fix another table's
+slot12 result or establish a later setter call.
+
+The attachment helper `0x004DA9A0` demonstrates a slot11 result consumer:
+`0x004DA9CE..0x004DA9D9` calls E-base slot11, passes its returned pointer
+to `0x0091C490`, and tests the interface's parent field at I+`0x60`.
+Its following parent-attachment arm obtains the interface again through
+slot11 (`0x004DA9E2..0x004DA9FE`). That use supplies an alias-tracing
+pattern, without supplying a positive bit0 assignment.
+
 ## Enrollment and global selection
 
 The application enrollment helper `0x004D7660` calls base-element slot10
