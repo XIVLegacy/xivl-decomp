@@ -114,6 +114,67 @@ Its following parent-attachment arm obtains the interface again through
 slot11 (`0x004DA9E2..0x004DA9FE`). That use supplies an alias-tracing
 pattern, without supplying a positive bit0 assignment.
 
+## Selected interface requests and event listeners
+
+Final CharaElement interface table `0x00FA7B2C` supplies slot25
+`0x0091CD60` and slot26 `0x0091CD90`. Slot25 calls slot26 at
+`0x0091CD72` and tests its result at `0x0091CD74`. The selected slot26
+body is exactly `XOR EAX,EAX; RET 8`, so this dispatch takes the false
+arm at `0x0091CD84`. Its subsequent slot14 call at `0x0091CD7F` is not
+reached under this table. This request route does not assign admission bit0.
+
+Interface slot13 `0x0091D320` dispatches events using descriptor byte5
+minus one, bounded to `0..0x52`. The byte map at `0x0091D818` selects
+targets from the table at `0x0091D760`. The switch tail
+`0x0091D514..0x0091D75E` (exclusive end) was decoded directly from
+raw-backed PE bytes with Capstone 5.0.7. Those rows are absent from the
+primary retained listing. The map and jump table were read as data.
+
+Its fallback at `0x0091D73A` requires nonnull sender [I+`0x64`], unhandled
+event byte `+0x17 == 0`, and nonnull dispatcher [I+`0x4C`]. It then calls
+the dispatcher's slot1 with `(sender, event)`. Construction through
+`0x004DAB50 -> 0x0091E090` clears I+`0x4C` at `0x0091E0F7` and
+stores E at I+`0x64`/`0x68` at `0x0091E11A/0x0091E11D`. Sender is E
+if that construction store persists.
+
+Helper `0x0091F620` lazily supplies dispatcher B at I+`0x4C`. On successful
+allocation of `0x24` bytes, it installs table `0x00FA6788` at B and stores
+B at I+`0x4C` (`0x0091F680/0x0091F686`). That table's slot1 cell
+`0x00FA678C` points to `0x00571520`. This dispatcher obtains listener R
+from its registration vector at `0x005715FD`, then calls R's vtable cell
+`+8` at `0x0057160A` with two arguments `(sender, event)`.
+
+The listener call and I.slot2's one-argument admission setter have different
+call tuples. A shared numerical vtable offset does not establish the same
+receiver or operation. The registration producing R, its concrete callback
+table and any forwarding from that callback to selected I remain unjoined.
+Dispatcher allocation alone does not establish a registered listener or
+a positive bit0 assignment.
+
+## Container selection getters and command arguments
+
+The container exposes reporting selection and a separate override pointer.
+
+| Getter | Returned value |
+| --- | --- |
+| `0x004D72E0` | `[W+0x17834]`, reporting selection |
+| `0x004D86B0`, `0x004D86D0` | Nonnull `[W+0x17838]` override, otherwise `[W+0x17834]` |
+| `0x004D72F0` | `[W+0x17838]`, override only |
+
+`0x004D9980` can clear the override for a sentinel ID or store the result
+of `0x004D9910`, whose lookup returns null or the pointer stored at node+`0x10`. This does not
+establish equality with the reporting-selected CharaElement.
+
+Wrapper `0x0075C770` uses the override-only getter and passes its result Q
+and value one to `0x00587020`. It supplies no reporting-selection equality
+or type test. The latter method forms payload `{u32 0, u32 value}` and
+calls `0x004D7980` with command `0x47` and length 8. That helper uses
+Q+`0x88` as ID, adds `0x15` to form event code `0x5C` at `0x004D79D2`,
+and dispatches through [Q+`0x84`] slot3 at `0x004D79F6`.
+The literal one is command payload data; these instructions do not supply
+it to I.slot2. Q=reporting E, Q's provider and later event-recipient effects
+require their own joins.
+
 ## UIElement property callback receiver
 
 Property callback `0x0093B700` contains a slot2 call at `0x0093B8C7`.
