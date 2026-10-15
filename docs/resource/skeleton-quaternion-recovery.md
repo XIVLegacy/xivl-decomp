@@ -108,6 +108,72 @@ aliasing can change the second output half. Balanced save and pop do not
 prove alias independence. No input/output/caller alias relationship or
 whole-caller register preservation follows from this own-body contract.
 
+## Converter physical register and stack contract
+
+The separate physical observation for converter `0x0042ffa0` covers the
+complete `[0x0042ffa0,0x00430342)` body: `930` bytes and `188`
+instructions. The producing instrument is LLVM `llvm-objdump` from the
+Swift `6.3.3` toolchain, SHA-256
+`47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f`,
+with `--disassemble --start-address=0x0042ffa0 --stop-address=0x00430342`.
+Python `3.14.7` PE mapping and instruction-byte comparison independently
+matched the complete contiguous body to the identified executable. The
+code span has SHA-256
+`1ddfe7b3ad50f3a69337acd7b2df0bd05b2b0cff2faf816990d9d5d592be5977`.
+The only control transfer is the final normal near `RET` at
+`0x00430341`, with zero immediate cleanup.
+
+These deductions assume ordinary flat nonwrapping 32-bit addressing,
+uninterrupted execution of the verified stable body, valid accesses, and
+no fault or asynchronous register or memory interference. Let `T` be
+entry ESP, `A` be `T-4` rounded down to a multiple of `16`, and
+`F=A-0x60`. Let `I` and `O` be the input and output pointers retained
+in physical ECX and EAX after their respective captures. All ranges below
+are half-open byte ranges. Entry-memory equality additionally assumes the
+relevant bytes remain stable.
+
+The complete body has no explicit, partial or implicit EDI/DI reference
+or effect. Physical EDI retains its entry value within this body under
+those assumptions. This establishes no ABI-wide or caller save-slot result.
+
+The save at `0x0042ffa0` writes entry EBP to `[T-4,T)`.
+At `0x0042ffa1`, physical EBP becomes `T-4` and holds that value
+until the pop at `0x00430340`. Alignment at `0x0042ffa3` and
+allocation at `0x0042ffa6` set ESP to `F`, held until
+`0x0043033e` restores `T-4` from live frame EBP. The pop loads the
+actual current saved bytes into EBP and advances ESP to `T`. The final
+normal near return consumes the actual target at `[T,T+4)` and leaves
+`ESP=T+4`. This differs from the recovery helper's `T+8` and does not
+require popped EBP to equal entry EBP.
+
+All `70` write instructions comprise the initial four-byte save,
+`61` fixed local stores within `[F,F+0x60)`, and eight eight-byte
+output stores covering consecutive `[O,O+0x40)`. The local frame lies
+below the saved EBP slot and does not overlap the save, return or argument
+words under the assumptions. Output can overlap the saved EBP or return
+word. Output disjoint from those two slots, together with external memory
+stability, is sufficient but not necessary for entry EBP and return-target
+equality.
+
+The input pointer is captured at `0x0042ffa9` from `[T+8,T+12)`.
+The output pointer is captured later at `0x004300c4` from `[T+4,T+8)`.
+Fixed local stores cannot overwrite those argument words. All output stores
+follow both captures, so they cannot redirect the retained physical
+pointers. Fourteen eight-byte input reads repeatedly cover `I+[0,16)`
+and finish at `0x00430144`, before the first output store at
+`0x004302e8`. The initial save and local stores can alias future input
+reads. Outputs can still modify caller memory.
+
+Output stores continue through `0x00430339` and are interleaved with
+still-unread local sources. The first output store precedes a four-byte
+rewrite of `F+[0x38,0x3c)` at `0x004302ec` and later output-source
+reads. That rewrite can overwrite already emitted output if aliased.
+Earlier output stores can corrupt still-live local sources. Disjoint
+output `[O,O+0x40)` and local frame `[F,F+0x60)` suffice to avoid
+these output/local own-write hazards. No blanket in-place or output/frame
+alias independence, caller alias relationship or whole-parent preservation
+follows.
+
 ## Ordered radicands and refinement
 
 Retain the flat notation `M[i,j] = flat[4*i+j]`. It does not assign axes,

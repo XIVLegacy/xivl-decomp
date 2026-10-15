@@ -230,12 +230,14 @@ frame or stack-preservation result for the call-bearing routes.
 
 The parent reads Q through its locally held frame pointer at `+0x0c`.
 The [recovery helper physical contract](skeleton-quaternion-recovery.md#own-body-physical-register-and-stack-contract)
-owns the conditional result for `0x00a419a0`. The call-bearing routes
-through `0x00a41ca0` and the earlier call to `0x0042ffa0` still have no
-complete physical register or stack-preservation proof here. The full
-parent body therefore supplies no unconditional entry-to-tail identity
-for D or that frame pointer. B names the rows
-actually read at the tail, without proving an entry pose identity.
+owns the conditional result for `0x00a419a0`. The
+[converter physical contract](skeleton-quaternion-recovery.md#converter-physical-register-and-stack-contract)
+owns the conditional result for the earlier `0x0042ffa0` call.
+The call-bearing routes through `0x00a41ca0` still have no complete
+physical register or stack-preservation proof here. The full parent body
+therefore supplies no unconditional entry-to-tail identity for D or that
+frame pointer. B names the rows actually read at the tail, without proving
+an entry pose identity.
 Pointer validity and interfering aliases remain unresolved. The published
 [pose affine-inverse transfer](https://github.com/XIVLegacy/xivl-decomp/blob/7d8b75d06b717627b673248a3ad0b9b8201ff01e/docs/resource/skeleton-constructor-affine-inverse.md#associated-constructor-transfer)
 into `P_i+[0x40,0x80)` is distinct from these stores into output
