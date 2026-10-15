@@ -194,6 +194,73 @@ The downstream callback bodies, other virtual registration paths and
 possible aliases remain separate joins. The bounded registration trace
 supplies no positive selected I.slot2 argument or ordering before slot14.
 
+## MoveCharacter service and selected interface
+
+Caller `0x0054B440` obtains reporting selection through `0x004D72E0`,
+casts it to CharaElement and rejects a null result. It forms I=E+8 at
+`0x0054B507`. The call at `0x0054B521` uses service S as ECX and passes
+`(temporary, I, 0)` to S.slot2. S is the return from `0x00928F90` with
+argument `0x013370B0`, a string-key object initialized from
+`RaptureCommands.MoveCharacter` at `0x0054B4CD..0x0054B4D7`.
+The raw string is at `0x00FA22D8`.
+
+The lookup searches stored objects by their key at S+`0x24` through
+`0x00928280`. Its successful existing-object arm returns the match without
+checking its table. On a miss and successful allocation, `0x00928C90`
+constructs S and installs table `0x0106A78C` at `0x00928CFC`.
+Its complete-object locator `0x01179454` identifies
+`.?AVRoutedCommand@Input@Sqwt@@` at offset zero. Slot2 cell `0x0106A794`
+points to `0x00927FA0`. The following dispatch describes this constructed
+table; lookup success alone does not establish an existing object's table
+or later table persistence.
+
+That method preserves argument2 I and calls `0x0091F590` with an event
+and I at `0x00928059`, then conditionally at `0x00928124`. The event
+constructor `0x00929100` stores S at event+`0x1C`/`0x20`. Initializers
+`0x00F21C80` and `0x00F21CB0` populate the event keys as follows:
+
+| Key | Route byte | ID byte | Name |
+| --- | --- | --- | --- |
+| `0x0135872C` | 2 | `0x29` | `PreviewExecuted` |
+| `0x01358738` | 0 | `0x2A` | `Executed` |
+
+These initializer windows were decoded from raw PE bytes; no retained owner
+listing covers them. Their called constructor `0x0097F6C0` stores the route
+at key+4, ID at key+5 and name pointer at key+8. Event identity depends on
+those initialization stores persisting. The second event is skipped when
+the first event's handled byte becomes one.
+
+`0x0091F590` forwards `(event, I, 1, 1, 1)` to `0x0091E1C0`.
+After its event-key and sender checks, that helper adds I and its parent
+chain to a local route list. `0x0091D210` dispatches the stored recipients
+through slot13. For selected I's table, `0x0091D320` maps these event IDs
+to slot64 `0x0091CC10` and slot65 `0x00589490`, through the raw-backed
+branches at `0x0091D6AA` and `0x0091D6BC`. This route list is separate
+from the persistent listener registration described above.
+
+The Executed handler's MoveCharacter arm requires event S to equal
+`0x013390D8` at `0x0058950A`, and the effective-selection getter on
+[I+`0x74`] to return I-8 at `0x0058951B..0x00589520`. Constructor
+`0x00F0D350` initializes that global command object with the same string
+key. Key equality does not prove that a lookup returned that exact object.
+
+On this guarded arm, event+`0x7C`/`0x80` supplies the new movement bytes
+at I+`0x25C`/`0x25D`. The original caller's temporary supplies zero for
+both. Nonzero override words at I+`0x274`/`0x276` replace those values
+and are cleared. The handler sets I+`0x278` and event handled state.
+Its delegated `0x0091D870` helper uses I+`0x70` bit4 to qualify a
+command-membership test for `(I, S)`. Those visible stores and the membership
+test do not assign admission bit0. Conditional listener calls and other
+indirect effects remain separate from the inspected direct writes.
+
+When the movement bytes change and I+`0xE8` is `0x0B` or `0x0D`,
+`0x00589556` first calls `0x00574D70` with ECX=[I+`0x78`]. The thunk
+loads D from that pointer and tail-jumps at `0x00574D77` through
+D's table+`0x5C`, slot23, adding no stack arguments. D=[[I+`0x78`]];
+its field producer, concrete table and relationship to I remain unjoined.
+The bounded service trace establishes neither a positive selected I.slot2
+argument nor its ordering before admitted slot14.
+
 ## Container selection getters and command arguments
 
 The container exposes reporting selection and a separate override pointer.
