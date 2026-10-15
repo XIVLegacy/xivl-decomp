@@ -232,8 +232,10 @@ The parent reads Q through its locally held frame pointer at `+0x0c`.
 The [recovery helper physical contract](skeleton-quaternion-recovery.md#own-body-physical-register-and-stack-contract)
 owns the conditional result for `0x00a419a0`. The
 [converter physical contract](skeleton-quaternion-recovery.md#converter-physical-register-and-stack-contract)
-owns the conditional result for the earlier `0x0042ffa0` call.
-The call-bearing routes through `0x00a41ca0` still have no complete
+owns the conditional result for the earlier `0x0042ffa0` call. The
+[first converter physical contract](skeleton-quaternion-recovery.md#first-converter-physical-register-and-stack-contract)
+owns only the own-body result for `0x007d8fe0`. It adds no parent
+callsite relation. The call-bearing routes through `0x00a41ca0` still have no complete
 physical register or stack-preservation proof here. The full parent body
 therefore supplies no unconditional entry-to-tail identity for D or that
 frame pointer. B names the rows actually read at the tail, without proving

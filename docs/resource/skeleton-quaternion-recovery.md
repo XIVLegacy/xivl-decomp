@@ -108,6 +108,67 @@ aliasing can change the second output half. Balanced save and pop do not
 prove alias independence. No input/output/caller alias relationship or
 whole-caller register preservation follows from this own-body contract.
 
+## First converter physical register and stack contract
+
+The separate physical observation for converter `0x007d8fe0` covers
+`[0x007d8fe0,0x007d90c8)`: `232` bytes and `70` contiguous
+instructions. The code span has SHA-256
+`94285ecc3b924222a9d2e16c0385dc83c7dca0a778e577c7829450d4b28b50a9`.
+The producing instrument is `llvm-objdump`, SHA-256
+`47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f`,
+with `--disassemble --start-address=0x007d8fe0 --stop-address=0x007d90c8`.
+Independent PE32 mapping matched every instruction byte to the identified
+executable's `.text` section at file offset `4034528`. Inspection of
+all instructions establishes the following physical effects. No data
+target was followed for this observation.
+
+The only physical general-purpose register destinations are full-width
+EAX, ECX, EBP and ESP. There are no partial general-purpose register
+references, encoded or implicit EBX, EDX, ESI or EDI references or writes,
+outgoing calls or in-body branches. EBX, EDX, ESI and EDI retain their
+entry values under stable uninterrupted normal execution. This is an
+own-instruction result, without an ABI or caller-preservation claim.
+
+Let `T` be entry ESP and `F=T-4`. Under ordinary 32-bit stack-address
+semantics, the initial save writes four bytes of entry EBP to
+`SS:[T-4,T)`, then EBP holds `F`. ESP is aligned down to a multiple
+of `16` without a memory write. The initial save is the only implicit
+SS stack-write instruction. At `0x007d8fe6`, ECX captures the dword
+at `SS:[F+0xc,F+0x10)`, equivalent to entry stack `T+8`.
+At `0x007d901e`, EAX captures the dword at
+`SS:[F+8,F+0xc)`, equivalent to entry stack `T+4`.
+Let `I` and `O` denote these captured values respectively. These
+captures establish no caller ABI, argument role or pointee meaning.
+
+The sole 16-byte read through `I` occurs at `0x007d8fe9`.
+All explicit source reads, including the two encoded absolute data reads,
+precede the first output store. Four aligned 16-byte DS stores at
+`0x007d90ab`, `0x007d90b1`, `0x007d90bc` and `0x007d90c0`
+use retained `O` with offsets `0`, `0x10`, `0x20` and
+`0x30`. They cover 64 bytes. Together with the initial four-byte
+save, they are all memory writes in the complete body.
+
+At `0x007d90c4`, ESP is restored from the held frame EBP.
+The pop at `0x007d90c6` reloads the actual dword in the save cell.
+The sole normal near return at `0x007d90c7` has zero encoded
+stack-argument cleanup and reads a four-byte return word from
+`SS:[T,T+4)`. Stable instructions and normal 32-bit completion leave
+`ESP=T+4`, even if the popped EBP differs from entry EBP. Entry EBP
+equality and the entry return target separately require their saved words
+to remain unchanged.
+
+Scalar intervals above assume no address wrap. SS and DS need not map
+the same linear addresses. With ordinary flat segments, output can alias
+the saved EBP, return state, input slots, source data, instruction bytes
+or caller memory. The initial save precedes source reads and can alias
+them, so source equality with entry memory is not established. Conditional
+normal completion requires valid aligned accesses, stable instruction
+fetch and no fault or asynchronous interference. No blanket in-place or
+output/frame independence follows. Fault handling, runtime segment
+relations and native numerical execution were not tested. This contract
+adds no direct parent callsite relation, whole-parent preservation, B
+identity, resource association or floating-point parity.
+
 ## Converter physical register and stack contract
 
 The separate physical observation for converter `0x0042ffa0` covers the
