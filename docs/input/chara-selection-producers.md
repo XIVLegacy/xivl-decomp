@@ -458,13 +458,81 @@ unobserved.
 
 These bounded manager and script-dispatch effects do not establish a
 positive selected I+0x70 bit0 assignment, input registration, or ordering
-before admitted I.slot14. The next edge is the creation-record, name,
-ordering, lifetime and table join for the first matching P+0xFC entry.
+before admitted I.slot14. The input and initialization trace below bounds
+conditional record construction and ownership transfer. The selected payload
+and first-match instance history remain unobserved.
 This finding uses the retained 15996808-byte retail 1.23b ffxivgame.exe,
 SHA-256 9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9,
 image base 0x00400000, retained Ghidra listings and fresh Capstone 5.0.7
 row/byte checks. Listing gaps were retained without claiming continuous
 instruction coverage.
+
+## Pending native command record input
+
+The incoming message-word dispatch at 0x004D8860 maps word 0x0132 to
+0x004D899B: raw map byte 0x004D8C8A is 6 and target cell 0x004D8BD8
+is 0x004D899B. That arm forwards incoming object+0x10 through holder
+[U+0x80] to 0x00574FC0, where U is the function's receiver. The helper
+jumps through its implementation's slot49. U is not an observed selected E.
+This finding does not identify an outer wire route or translated opcode.
+
+NullActorImpl table 0x00FE02AC supplies slot49 0x0076CA90. With that
+target selected, payload+2 supplies the name constructor, payload byte0
+supplies B and payload byte1 supplies T. Helper 0x0075AEE0 replaces zero
+B with byte[0x01355296], which is not raw-backed in the retained PE.
+Helper 0x0076A3F0 reuses or conditionally constructs owner O at
+implementation+0x48. Producer 0x00767B40 constructs a record containing
+the name and B/T at +0x54/+0x55, then forwards it to O+0x14.
+The available-capacity arm of 0x007836D0 constructs at the vector end
+and advances that end by 0x58. Other growth-path ordering is not established
+by this bounded trace.
+
+The 0x00762CA0 walk consumes records of this layout, and 0x006F3420
+supplies its second argument as owner and receiver P to that walk.
+A conditional static handoff is concrete. 0x00774AD0 moves its incoming
+implementation's +0x48 owner through 0x00774530. Its admitted immediate
+arm forwards O to 0x007687F0; its deferred arm retains O at descriptor+0x134
+until consumption by 0x00772C80. Successful initializer construction
+0x00781750 stores O at F+8 and installs table 0x00FE029C.
+
+Helper 0x0078BBB0 obtains P_init through 0x00CC7800 and calls F.slot1,
+0x00781850. That callback clears F+8 and passes O to 0x006E0150.
+The latter calls P_init.slot30 at 0x006E01AB with O as its second argument.
+MyPlayer table 0x00FD785C supplies 0x006F3420, conditional on P_init's
+actual table. No table test occurs at that call. The message receiver's
+implementation D_message is not identified with this handoff implementation
+D_handoff, and P_init is not identified with the later re-fetched lookup P.
+
+Owner construction at 0x00767730 zeros the record-vector endpoints. Cleanup
+0x00765E30 -> 0x0077C9B0 destroys the records and clears those endpoints.
+These paths establish conditional creation and teardown, without an actual
+payload, complete invocation order or selected lifetime.
+
+LuaActorImpl table 0x00FDFB2C has a different slot49 target,
+0x00759DE0, exactly RET 4. It makes no write and does not execute this
+NullActorImpl producer while that table remains installed. The earlier
+conditional implementation replacement does not authenticate the table
+used for any particular incoming message.
+
+The initializer cleanup 0x007817D0 destroys only a nonnull owner still
+retained in F+8. The MyPlayer slot30 path later reaches pending-owner
+cleanup through 0x006F0220 -> 0x006EECD0 at 0x006EED6B/0x006EED71.
+N+4 is a separately constructed string object through 0x00447200. These
+operations do not establish N lifetime or retained table at the later lookup.
+
+The first equal name in P+0xFC still depends on actual payload/name,
+D_message-to-D_handoff and P_init-to-P identity, successful phase completion,
+insertion history, lifetime and installed-table persistence.
+The inspected PE/listings do not supply that selected instance history.
+No positive selected I+0x70 bit0 assignment, input registration or order
+before admitted I.slot14 was established.
+
+These observations use the retained retail 1.23b ffxivgame.exe,
+15996808 bytes, SHA-256
+9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9,
+image base 0x00400000, retained Ghidra listings, raw PE data and fresh
+Capstone 5.0.7 row/byte checks. Listed instruction gaps were retained;
+no continuous body extent was inferred from listing headers.
 
 ## Container selection getters and command arguments
 
