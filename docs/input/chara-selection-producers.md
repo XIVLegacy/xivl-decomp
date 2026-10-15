@@ -323,6 +323,101 @@ establish a successful binding or script identity. The selected
 `_onMoveAtSit` script instance/handler and its effects toward I remain
 unjoined, as does ordering before admitted I.slot14.
 
+## _onMoveAtSit lookup and conditional command request
+
+At `0x00CC7ABC`, the wrapper forwards resolved instance S, the name and
+results to `0x00CCF7D0`. Its guarded path calls `0x00CCCD80` for name
+resolution before `0x00CCECB0` for execution. Table recovery through
+`0x00CD7A50` uses S's reference keys and can fall back to the context's
+`+0x1BC` object. Lookup `0x00CD7B00` performs raw table lookup and follows
+the native `+0x0C` parent only for nil. A non-nil value stops that search;
+the subsequent type-6 test rejects a non-function. A successful parent
+lookup preserves the supplied receiver table rather than substituting the
+parent as self. These instructions do not identify the actual loaded table,
+override, function or receiver-table recovery result.
+
+The extracted PlayerBaseClass `_onMoveAtSit` candidate returns the result
+of global `desktopWidget:executePlayerSystemCommand(24312, nil, 1)`.
+Its supplied self is unused. This route is conditional on the lookup choosing
+that function and the globals/methods resolving to the inspected bodies.
+The connector obtains M through `worldMaster:_getMyPlayer()`, then looks up
+static command C for 24312 through `getSystemCommand` and checks it with
+`checkActor`. It repeats that lookup and check. The inspected branches keep
+variation nil, secondary value 1 and target nil. Exact false from its
+`canCommand` check reports an error and returns false; otherwise it calls
+M's `command`. That method repeats `canCommand` and requires exactly true
+before calling `_executeCommand`.
+
+These script observations use extraction `2012.09.19.0001`,
+`xivl-client-scripts:manifests/scripts.json` at
+`7da433d547b2b91064e1f8a534a92d7236394ea7`. Complete script bytes, hashes
+and line counts were matched to their manifest rows:
+
+- `lua/scripts/chara/player/playerbaseclass.lua`, lines 1802-1817,
+  1911-2024 and 2987-3000, SHA-256
+  `6226B3FA15DFDBAD279B7DBA453F8A3B76FCB8B68BAD6E14F5403D52987F76E4`.
+- `lua/scripts/widget/desktopwidget_connector.lua`, lines 857-871 and
+  13790-13980, SHA-256
+  `9C33F21C1F70A0056147E716D53300634EFABE5B744EF6E8690114DB21613A01`.
+- `lua/scripts/command/commandbaseclass.lua`, lines 4-26 and 117-125,
+  SHA-256 `BF7DD5FA7A6530C0C3B683BE16A252B7FFD62492BDC268F36322977DEE4D3E31`.
+- `lua/scripts/chara/charabaseclass.lua`, lines 399-496, SHA-256
+  `F17B3E62A137D8F524BA88D55296E1FB064512DC803F7A85DC980DD4BCBC9625`.
+
+The static-actor extraction maps 24312 to `/Command/System/EmoteSitCommand`:
+`xivl-client-data:manifests/staticactor_class_paths.json`, row `id=24312`,
+at `30d90aa0d78dce17aa2378fe244ebc9c40b8e344`, manifest SHA-256
+`d612438827e5997422ab6f64a807e567ddf1b953c532e8a319d67b93c53c9db0`.
+This mapping does not authenticate the actual C, loaded class or overrides.
+`getCommandName` depends on C's `getPriority`, whose base implementation
+requests `commandSheet:_getData(C:getCommandId(), 29)`. For a system command,
+priority -1 selects `commandRequest` and priority 4 selects `commandContent`;
+other values can leave the name nil. The actual sheet value and method/global
+selection remain conditions; the numeric ID alone does not choose the name.
+
+The native current-player producer is concrete. Registration `0x00752750`
+associates `_getMyPlayer` with callback `0x00707970`. In its actual context X',
+that callback recovers Q=[X'+`0x220`], K=[Q+4], P=[K+`0x0C`] and returns
+P as an actor value. Setup `0x007634B0` wraps its second argument K through
+`0x00779B50/0x00778D80` and retains the holder through
+`0x00CC9820/0x00CD78E0`. The slot catalog identifies table `0x00FDFFD0`
+as `Holder<CoreWork*>`. Thus the getter supplies the CoreWork's `+0x0C`
+pointee; it does not prove equality of X' with [H], P with A, or M with the
+original handler receiver. The globals and their contexts were not observed.
+
+After `_executeCommand` returns, PlayerBaseClass `command` assigns
+`M.playerWork.commandBurstBlocker=1`, even when the returned value is false,
+and propagates that value. This is a script work-field assignment, without
+an authenticated native alias to I+`0x70`. The outer native result check and
+A+`0x167` clear remain the separate operation described above.
+
+Registration `0x0073F080` installs `_executeCommand` thunk `0x006DE650`,
+which loads the receiver table's `+0xA8` target. MyPlayer table `0x00FD785C`
+slot42 supplies `0x0070A010`, conditional on P's actual table. That method
+resolves native command object N by name through `0x0071CA50` on P+`0xFC`.
+The lookup returns the first equal entry without checking its table. N and
+static command actor C are distinct representations. The second argument's
+type-4 actor pointer passes through `0x0071BB80` and
+`0x00CC73B0/0x00CD7A30`; `0x00CC7030` copies its script instance's `+0x70`
+reference R_C. These pointers and references are not identified with I.
+
+After target/event and argument guards, `0x0070A2C1` calls `0x00898480`
+on G=[P+`0xF8`] with stack arguments `(P, N, &R_C, &decoded-parameters)`. At
+`0x0089848F`, exact bytes `FF D2`, ECX=N and the target is
+[[N]+`0x1C`], slot7. Returned AL==1 selects `0x00897310`; other AL values
+select `0x00896510`, both on G with reordered stack arguments
+`(N, P, &R_C, &decoded-parameters)`. The latter generic route
+links a command entry into G+`0x10` before calling `0x008963F0`. This
+conditional manager-list insertion does not establish selected-I registration.
+
+The bounded trace supplies no positive selected I+`0x70` bit0 assignment or
+ordering before admitted I.slot14. The next edge is N's concrete table and
+slot7 target at `0x0089848F`, then its selected manager effect toward I.
+Actual S/function/parent resolution, global contexts, P=A, C and the derived
+command name remain separate conditions. These findings use retained Ghidra
+listings, raw-backed PE reads and Capstone 5.0.7 decoding; explicit listing
+gaps were retained without claiming continuous instruction coverage.
+
 ## Container selection getters and command arguments
 
 The container exposes reporting selection and a separate override pointer.
