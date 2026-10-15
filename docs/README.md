@@ -23,6 +23,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [CharaActor camera object inputs](actor/camera-object-inputs.md)
 - [RaptureModelObject camera input getters](actor/rapture-camera-inputs.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
+- [Appearance resource literals](actor/appearance-resource-literals.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
 - [Battle Regimen combination and target modes](actor/battle-regimen-combination.md)
