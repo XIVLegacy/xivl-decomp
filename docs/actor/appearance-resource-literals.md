@@ -15,11 +15,20 @@ All addresses here are VAs at image base `0x00400000`.
 
 The instruction observations used LLVM21 `llvm-objdump`, instrument SHA-256
 `47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f`.
-Contiguous known instructions and their encodings were checked against
+For the literal callsites and helpers `0x00630660` and `0x006306a0`,
+contiguous known instructions and their encodings were checked against
 independent bounded file slices mapped through the PE header. Relative call
-targets and caller ESP arithmetic were independently checked. Helper semantic
-spans stop at the first return. Literal reads were independent, unbuffered,
-and one byte at a time, stopping immediately at the first NUL.
+targets and caller ESP arithmetic were independently checked. Those helper
+semantic spans stop at the first return. Literal reads were independent,
+unbuffered, and one byte at a time, stopping immediately at the first NUL.
+
+The `0x006320c0` prefix used the same instrument. Its unique file-backed
+executable `.text` mapping from a 4096-byte PE header and agreement with an
+independently read 64-byte slice are run-receipt observations. Independent
+review corroborated those observations at receipt level because the raw
+header and full slice were not retained. Relative-call encoding continuity
+was independently checked. Semantic interpretation stops at the first
+unresolved call. No live execution was performed.
 
 ## Literal observations
 
@@ -86,6 +95,25 @@ scalar push at `0x006b7ff4` immediately precedes the literal pointer push at
 `0x006b7ff5` of `0x00fd2da0`, before the call at `0x006b8007` to
 `0x009d4f83`.
 
+## Symbolic address and forwarding prefix
+
+At entry to `0x006320c0`, let `S` be ESP, `C` be ECX,
+`W1 = DWORD[S+4]`, and `W2 = DWORD[S+8]`. The loads at `0x006320c1`
+and `0x006320c6` recover those words after the EBX and EBP saves.
+The moves and arithmetic at `0x006320cb`, `0x006320cd`, `0x006320d1`,
+and `0x006320d3` form
+`A = (DWORD[C+0x18] + 0x6c*W1) modulo 2^32`.
+
+At `0x006320d6`, `W2` is pushed as the next call's first explicit stack
+word. At `0x006320d7`, ECX is set to `A+4` modulo `2^32`. The relative
+call at `0x006320da` targets `0x00445db0`. This prefix contains no earlier
+control transfer, non-stack store, or read of a third entry stack word.
+
+These are symbolic machine operands only. They do not establish index meaning,
+signedness, types, object or field identity, parameter count, calling
+convention, ownership, allocation, bounds, runtime validity, callee effects,
+or pointer contents. The prefix is not joined to `0x006b811a` or its arguments.
+
 ## Interpretation and limits
 
 The text identifies resource-path literals in the local instruction neighborhood. The
@@ -127,3 +155,11 @@ Join its contiguous continuation before checking the caller ESP arithmetic,
 actual four-byte destinations, reloads, and scalar and literal pointer pushes.
 Stop semantic interpretation at each first plain return. These observations
 do not establish whole-function extents or general calling conventions.
+
+For the symbolic address and forwarding prefix, read the 64-byte window
+`[0x006320c0,0x00632100)` through the unique file-backed executable `.text`
+mapping and repeat the independent slice and encoding checks. The decoder
+guard stops at `0x006320f2`, and the final raw instruction may end at
+`0x006320f6` within the window. Stop semantic interpretation at the call
+`0x006320da` -> `0x00445db0`. All callee effects and later instructions
+beginning at `0x006320df` remain uninterpreted.
