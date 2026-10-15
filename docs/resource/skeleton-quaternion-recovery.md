@@ -55,6 +55,59 @@ to the established quaternion composition at `0x00a3fa2a..0x00a3fa39`.
 The prior finding owns that composition's operand order and constructor
 scope.
 
+## Own-body physical register and stack contract
+
+The physical observation covers the complete helper
+`[0x00a419a0,0x00a41c45)`: `677` bytes and `166` instructions.
+The producing instrument is LLVM `llvm-objdump` from the Swift `6.3.3`
+toolchain, SHA-256
+`47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f`,
+with `--disassemble --start-address=0x00a419a0 --stop-address=0x00a41c45`.
+Python `3.14.7` PE mapping and instruction-byte comparison independently
+matched the complete body to the identified executable. The body has no
+calls, branches, string instructions or exceptional transfers. Its only
+control transfer is the final normal near `RET` at `0x00a41c42`, with
+four-byte immediate cleanup.
+
+The following deductions assume ordinary flat 32-bit addressing without
+wrap, uninterrupted execution of the verified stable body, valid accesses,
+and no fault or asynchronous register or memory interference. Let `T` be
+entry ESP, `A` be `T-4` rounded down to a multiple of `16`,
+`F=A-0x60`, and `O` be entry ECX retained in physical EAX. All memory
+ranges below are half-open byte ranges.
+
+The complete body has no explicit reference, assignment, partial register
+write or implicit effect on EDI. Physical EDI retains its entry value
+within this body under those assumptions. This is not an ABI or caller
+save-slot inference.
+
+The initial save at `0x00a419a0` writes entry EBP to `[T-4,T)`.
+At `0x00a419a1`, physical EBP becomes `T-4` and retains that value
+until `0x00a41c41` reloads the actual current bytes of that saved slot.
+Entry EBP is recovered if the saved bytes are preserved. Disjoint
+output `[O,O+16)` and saved slot `[T-4,T)`, together with external
+memory stability, suffice but are not necessary for that equality.
+
+ESP becomes `T-4` after the save, `A` after alignment at
+`0x00a419a3`, and `F` after allocation at `0x00a419a6`. It stays
+at `F` until `0x00a41c3f` restores `T-4` from the still-held
+frame EBP. The pop at `0x00a41c41` advances ESP to `T`. The normal
+near return reads its actual target from `[T,T+4)`, advances ESP by
+four and adds the immediate four, leaving `ESP=T+8`. This final ESP
+relation holds even if the popped EBP bytes changed, provided the verified
+epilogue executes normally. Return to the entry return target separately
+requires stability of `[T,T+4)`.
+
+All `29` explicit local stores lie within `[F,F+0x60)`, below and
+separate from the saved EBP slot under nonwrapping arithmetic. The two
+eight-byte output writes at `0x00a41c30` and `0x00a41c3a` target
+`[O,O+8)` and `[O+8,O+16)`. Output can overlap the saved EBP slot
+or the return target. The first output write also precedes the second
+source read from `[F+8,F+16)` at `0x00a41c34`, so output/local
+aliasing can change the second output half. Balanced save and pop do not
+prove alias independence. No input/output/caller alias relationship or
+whole-caller register preservation follows from this own-body contract.
+
 ## Ordered radicands and refinement
 
 Retain the flat notation `M[i,j] = flat[4*i+j]`. It does not assign axes,
