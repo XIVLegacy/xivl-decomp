@@ -114,6 +114,56 @@ Its following parent-attachment arm obtains the interface again through
 slot11 (`0x004DA9E2..0x004DA9FE`). That use supplies an alias-tracing
 pattern, without supplying a positive bit0 assignment.
 
+## UIElement property callback receiver
+
+Property callback `0x0093B700` contains a slot2 call at `0x0093B8C7`.
+Its arm at `0x0093B8A5` supplies `(byte[O+0x15C] >> 5) & 1` and uses
+O+`0xB4` as the interface receiver. The following construction and callback
+path identifies O without an adjusting thunk.
+
+UIElement constructor `0x0093C750` preserves its incoming O and constructs
+InputElement at O+`0xB4` through `0x0091E090`
+(`0x0093C791..0x0093C7A2`). It then installs base table `0x0106C3CC`
+at O and interface table `0x0106C2A4` at O+`0xB4`
+(`0x0093C7D1/0x0093C7D7`). That interface table's locator `0x01179BA4`
+identifies `.?AVUIElement@Sqwt@@`, complete-object offset `0xB4`.
+Its hierarchy gives InputElement and IInputElement the same fixed offset.
+
+Control constructor `0x00938C80` reaches this base constructor through
+`0x0092F640`, retaining O. It installs Control tables `0x0106BB54` at O
+and `0x0106BA2C` at O+`0xB4` (`0x00938CE4/0x00938CEA`). The latter
+table identifies `.?AVControl@Controls@Sqwt@@` at offset `0xB4`.
+It then calls property setter `0x0093C3C0` with the same O and value one
+(`0x0093905C..0x00939063`).
+
+The setter passes O, callback `0x0093B700` and explicit adjustment zero
+to `0x0099C780` (`0x0093C3C0..0x0093C3ED`). If the helper's admission,
+changed-value and notification conditions reach its callback path,
+`0x0099C7F5..0x0099C806` forwards that tuple to `0x0099C680`.
+The dispatcher adds the adjustment to O at `0x0099C707` before the callback
+call at `0x0099C714`. This concrete tuple therefore supplies ECX=O,
+without a `-0xAC` adjustment. The
+[packed property transition](../resource/sqwt-font-edge-property-bridge.md)
+describes the generic helper separately.
+
+The callback's switch arm also requires descriptor index 4. The concrete
+setter's descriptor `0x0135975C` is outside the PE section's raw-backed
+extent, so its live index is not established by retained file bytes.
+The receiver trace does not establish that this constructor call reaches
+the arm or that intervening virtual calls preserve its interface table.
+
+For the constructed UIElement and Control interface tables, slot2 points
+to `0x0091C3E0`, as it does for final CharaElement table `0x00FA7B2C`.
+The shared setter target does not join the receivers. CharaElement's
+interface has complete-object offset 8 and a different final table and
+type. Numerical equality O+`0xB4` = E+8 would require O=E-`0xAC`.
+One interface address cannot simultaneously contain these distinct table
+pointers while the respective constructed tables remain installed. Thus
+the authenticated path supplies a UIElement-family receiver, without
+authenticating a positive write on selected Chara E+8. Other receiver
+producers, table changes and overlapping or reused allocations remain
+outside this construction-path conclusion.
+
 ## Enrollment and global selection
 
 The application enrollment helper `0x004D7660` calls base-element slot10
