@@ -20,6 +20,11 @@ raw-file map; Capstone 5.0.7 decoded each authenticated range completely.
 Discontiguous ranges in `FUN_00DA76B0` and `FUN_00DA79D0` were checked
 separately. Listing header sizes were not treated as contiguous extents.
 PE table and mask values below were read directly from the same binary.
+The allocator trace also decodes original PE continuations at
+0x008A8A70-0x008A8AA7, 0x009D5CE7-0x009D5D16 and
+0x009D5BBC-0x009D5BC5, with exclusive ends, where retained listings stop
+early. Import names below come from the PE import descriptors and matching
+lookup/IAT thunk arrays, not from an observed loaded module.
 
 This is static client evidence. Runtime callback identity, server mutations,
 retainer creation or rename acceptance, and transaction settlement do not
@@ -199,15 +204,92 @@ FUN_004E5F80's slot +4/+8 calls at 0x004E5FA9/0x004E5FCF also resolve
 to FUN_006CE2E0 through PE entries 0x01128590/0x01128594. For size
 0xA0 plus zero extra size, the comparison with 0x1E0 at 0x004E5F90 takes
 the direct call 0x004E5FDB -> FUN_004E5DF0. The larger-size branch calls
-FUN_004E46C0 at 0x004E5F9B. These allocator continuations are outside
-this bounded binding trace, not unresolved direct-call targets. The byte
-contract below still requires a usable carrier and does not prove allocation
-success or exhaustively cover allocator branches.
+FUN_004E46C0 at 0x004E5F9B. The selected small-carrier path follows.
+
+### Carrier reuse and allocation
+
+Let U=G+0x48 be the allocator subobject, N the carrier and P=[N+0x24].
+U is separate from the working snapshot Q. U's table 0x0112858C binds
+slot +4/+8 to the single RET at 0x006CE2E0. This resolves the calls at
+0x004E5DFE/0x004E5E65 and 0x004E46EA/0x004E46FA on the constructed
+path. These calls perform no synchronization.
+
+| Path or step | Observed behavior | Instruction locators |
+| --- | --- | --- |
+| Cached carrier | Reads the U+8 tree's head at U+0x0C and its leftmost node, saves N=[node+0x10], then erases the node. | 0x004E5E00-0x004E5E2D |
+| Empty or null cached value | The sentinel or a null saved N selects FUN_004E46C0(U,0). A nonnull cached N is reused without a payload-size check in this body. | 0x004E5E13-0x004E5E3A |
+| Cached-node removal | FUN_008A87F0 unlinks/rebalances the tree and calls the free wrapper with the removed node, separately from saved N. The PE continuation decrements the tree count. | 0x008A8A66-0x008A8A7D |
+| Fresh carrier | Increments U+4, requests 0x28 bytes through FUN_009D1B35, and calls FUN_004E44B0 with receiver N and arguments (U,0,newCounter) when allocation is nonzero. | 0x004E46EE-0x004E471F |
+| Active insertion | Forms {[N+4],N} and inserts into U+0x14 through FUN_004E5CA0. The caller ignores the insertion result and returns N. | 0x004E5E41-0x004E5E6A |
+
+FUN_004E5CA0 has a duplicate-key branch returning an existing iterator and
+inserted=false. Its new-node path reaches FUN_004E4DD0 -> FUN_004E4620,
+which requests a 0x18-byte tree node through FUN_009D1B35 at
+0x004E464B-0x004E464D. FUN_0061EEC0 stores the key and N at node+0x0C
+and node+0x10 (0x0061EEDC, 0x0061EEE6). Thus cached reuse can still require
+another allocation. Insertion success, key uniqueness and cached-object
+origin/lifetime are not inferred from the caller's return.
+
+FUN_004E44B0 constructs the fresh carrier as follows. All listed fields are
+dwords. The selected constructor argument is zero, so its <=0x1E0 branch
+requests a separate 0x1E0-byte payload through FUN_009D5BC5 at
+0x004E4539-0x004E453E. On nonzero return it zeroes that capacity at
+0x004E454C-0x004E4553. A null payload skips this zero-fill but still returns N.
+
+| Carrier field | Initial value | Instruction locator |
+| --- | --- | --- |
+| +0x00 | Final table 0x00F91B40 | 0x004E44F8 |
+| +0x04 | Incremented U counter | 0x004E44FE |
+| +0x08 | U | 0x004E4501 |
+| +0x0C / +0x10 | Zero | 0x004E4504 / 0x004E4507 |
+| +0x14 / +0x18 | Not written by this constructor; supplied later from dispatcher state | 0x004E77A3 / 0x004E77B5 |
+| +0x1C | Capacity 0x1E0 | 0x004E455F |
+| +0x20 | Zero, later replaced by application size 0xA0 | 0x004E4569; 0x004E77C4 |
+| +0x24 | Separate payload pointer P, possibly zero | 0x004E4566 |
+
+### Allocator evidence boundary
+
+FUN_009D1B35 calls retained malloc at FUN_009D5BC5 (0x009D1B4D).
+The ordinary paths below assume the CRT heap handle [0x01364330] is
+initialized. Heap mode is read from [0x0137B7D8] at 0x009D5C00.
+The first external dependency depends on that mode and whether N is cached.
+
+| Path | First external call | Proven import and unresolved state |
+| --- | --- | --- |
+| Fresh carrier, mode other than 3; also mode 3 when the request exceeds its small-block threshold | 0x009D5C3D CALL EBX, with EBX=[0x00F3E308] | KERNEL32.dll HeapAlloc. Heap handle [0x01364330], API return and usable storage are not established. Mode 1 submits the 0x28 request unchanged; the generic branch rounds it to 0x30. |
+| Cached-node removal, mode other than 3 | 0x008A8A6B -> FUN_009D1B17 -> FUN_009D5C88; 0x009D5CF0 CALL [0x00F3E30C] | KERNEL32.dll HeapFree, with the CRT heap handle, flags 0 and the removed tree-node address. Its execution/result is not established. This precedes active insertion and any null-value fallback. |
+| Mode 3 cached free, or fresh request <=[0x0137C930], with lock 4 already initialized | FUN_009E264C at 0x009E2674 CALL [0x00F3E16C], reached from 0x009D5CA6 or 0x009D5B93 | KERNEL32.dll EnterCriticalSection with lock pointer [0x012EB6B8]. Lock state, ownership and return are not established. |
+
+The import identities are bound by the original executable. Their external
+implementations, loader-resolved addresses and results are outside this
+retained-client trace. An absent lock follows an initialization allocation
+through FUN_009E2589 -> FUN_009DDF7A -> FUN_009D5BC5. No runtime heap
+mode or initialization outcome is asserted. This trace stops at the external
+allocator/synchronization boundary, before extending transport behavior.
+
+Failure is not a proven cancellation path. If malloc returns zero,
+FUN_009D1B35 can retry through FUN_009DE438, whose decoded runtime
+new-handler call at 0x009DE44C is unbound. The exception path reaches
+FUN_009D1B9F, with a call to the PE's KERNEL32.dll RaiseException import
+at 0x009D1BDF through IAT 0x00F3E2F0. No normal return or exception
+delivery is inferred through these calls.
+
+Two caller-side null cases remain distinct. FUN_004E46C0 has an explicit
+zero return at 0x004E4726 if its carrier allocation returns zero, but
+FUN_004E5DF0 then dereferences [N+4] at 0x004E5E41 without a null check.
+The outer test at 0x004E7782 occurs only after that helper returns. This
+does not establish that the throwing allocation wrapper normally returns zero.
+Separately, a nonzero N can retain P=0 after payload-allocation failure.
+If active insertion returns, FUN_004E7750 loads P at 0x004E77D3 and calls
+memset(P,0,0xA0) at 0x004E77DA without checking P. A usable payload and
+valid cached lifetime remain prerequisites for the conditional encoding.
 
 ### Constructed application bytes
 
-FUN_004E7750 assigns N+0x20 from T's u16 size and zeroes the entire P buffer
-at 0x004E77B8-0x004E77DA, then invokes T slot +8 for the header.
+FUN_004E7750 assigns N+0x20 from T's u16 size and zeroes the 0xA0-byte
+application extent at P (0x004E77B8-0x004E77DA), then invokes T slot +8
+for the header. Fresh allocation capacity is 0x1E0; it does not enlarge this
+encoded extent. This allocation does not change the byte contract below.
 FUN_00DAA190 also explicitly zeroes the 0x90-byte A region before its writes.
 
 | Destination | Width and source | Instruction locators |
@@ -264,10 +346,10 @@ through this unresolved edge.
 Thus the buffer layout is a conditional static contract. The constructor path
 binds the paired M calls and carrier getter. The independently unresolved
 transport binding remains `0x004E48E4 -> [[R]+0x10]`; no route implementation
-is assigned beyond it. Allocation success, complete allocator branch coverage,
-actual socket submission, captured outgoing bytes, server receipt and
-acceptance remain unestablished. The UI callback gap below is independent of
-this snapshot encoder.
+is assigned beyond it. The allocator's external heap/synchronization results,
+failure-handler identity, actual socket submission, captured outgoing bytes,
+server receipt and acceptance remain unestablished. The UI callback gap below
+is independent of this snapshot encoder.
 
 ## Callback-owner boundary
 
