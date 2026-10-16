@@ -193,6 +193,10 @@ This supplies a conditional join from the serialized ENVD payload's leading
 word to the runtime envelope word. Allocator alignment and actual path state
 remain unresolved.
 
+The [allocation descriptor and conditional alignment route](#envd-allocation-descriptor-and-conditional-alignment-route)
+identifies the request and a restricted default-backend invariant. It does
+not establish the actual producer return.
+
 ### Identity and method
 
 Original: retail FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
@@ -370,3 +374,224 @@ The quotient table `[0x009d4708,0x009d4728)` occupies `32` bytes at
 file offset `6113032`. The remainder table `[0x009d4774,0x009d4784)`
 occupies `16` bytes at file offset `6113140`. All twelve targets are covered
 by the instruction windows. Do not treat these table ranges as instructions.
+
+## ENVD allocation descriptor and conditional alignment route
+
+The ENVD producer explicitly supplies a request descriptor whose first dword
+is 0x10. The default backend consumes that word as a rounding and alignment
+parameter and reaches a helper with an explicit low-four-bit mask. This
+establishes a small conditional alignment invariant. It does not yet prove
+that the pointer actually returned to the producer is four-byte aligned.
+The existing mover's alignment premise must remain explicit.
+
+### Identity and method
+
+Original: retail FINAL FANTASY XIV 1.23b ffxivgame.exe, build
+2012.09.19.0001, size 15996808 bytes, SHA-256
+9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9.
+PE32 machine is 0x014c, optional-header magic is 0x010b and image base is
+0x00400000. All addresses below are VA. Subtract the base for RVA and map
+through the original PE section table.
+
+The producing instruments were Python 3.14.7 standard-library PE mapping
+and direct LLVM llvm-objdump 21.0.0 from the Swift 6.3.3 toolchain, in COFF
+i386 mode with Intel syntax. The actual decoder executable has SHA-256
+47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f.
+Original and decoder identities matched before and after. The final bounded
+audit decoded 454 instructions covering 1354 instruction bytes in 15
+contiguous windows. Every encoded instruction byte matched the original PE
+mapping. Each decoder child had a 20-second timeout and combined 8388608-byte
+output cap, exited 0 and was reaped. The observation is static. It includes no client execution or selected
+resource input.
+
+### Producer request and virtual allocation route
+
+The tracked mesh-envelope-producer.md owns L=BE32(E_j+8), the allocation
+call at 0x00c8e7d3 and its return store T[j] at 0x00c8e7de. The bounded
+producer window rechecks the descriptor and receiver route.
+
+At 0x00c8e7b7..0x00c8e7c6, the producer supplies string pointer 0x01106c24
+and integer 0x10 to 0x0040e2d0, with a local descriptor address as ECX.
+The complete six-instruction descriptor writer stores its first stack
+argument at descriptor+0, its second at descriptor+4, returns the descriptor
+address and removes eight argument bytes. Thus descriptor[0]=0x10 is an
+original-confirmed producer value, rather than an inferred allocator default.
+
+At 0x00c8e7cf..0x00c8e7d3, that descriptor and L are supplied to
+0x0040e110 with the cached manager pointer as ECX. The manager pointer is
+read from 0x01327b10. The preceding conditional initialization at
+0x00c8e76a..0x00c8e790 obtains a value from 0x0040e500 and writes it to
+that cache. No current cache value or runtime object state is observed.
+
+On the route where EnterCriticalSection at 0x0040e120 preserves live ESI
+as the supplied manager, live EBP as manager+0x24, and the expected stack
+and return-control state, the complete wrapper 0x0040e110 obtains
+H=ptr32(manager+0), then reads ptr32(ptr32(H)+4) as its allocation target.
+This pre-allocation imported-call preservation is an explicit condition,
+not an observation of the imported implementation. Complete helpers 0x0040e350
+and 0x0040e360 return the supplied descriptor address and descriptor+4
+value respectively. At 0x0040e154 the wrapper supplies H as ECX and four
+stack arguments: manager, L, descriptor and descriptor[1]. It retains the
+returned EAX in EDI at 0x0040e15a. The later return at 0x0040e1fb..0x0040e207
+copies then-current EDI into EAX and removes eight argument bytes.
+
+That is a virtual dispatch and register-transfer observation. The wrapper
+does not mask or test its result for alignment. A successful nonzero
+backend return is not by itself a complete proof of the wrapper's return
+because the intervening calls can affect its live register state.
+
+### Default construction route, conditional on selection
+
+The complete factory 0x0040e500 constructs on its observed initialization
+path through 0x0040e430 with selector 0, size 0 and supplied storage
+0x01327fd0, then retains its returned manager pointer at 0x01327fc4.
+The initialized path reloads that pointer. This supplied storage is not
+file-backed, so a PE raw read cannot establish its current object state.
+
+The complete manager builder 0x0040e430 selects the two-dword factory row
+at 0x00f564e0 for selector 0. The original row contains creator
+0x0040e370 and size 0x24. With nonzero supplied storage, it reaches
+constructor 0x0040dee0 on that storage. The constructor initializes its
+own callback fields at +0x18, +0x1c and +0x20 to zero. Its subsequent
+selected-creator dispatch and backend store at manager+0 are conditional on
+InitializeCriticalSection at 0x0040df42 preserving live ESI as the manager,
+live EDI as the selected factory-row pointer, live EBX as zero and the
+expected stack and return-control state. The imported implementation was
+not inspected, so this pre-creator preservation remains a premise.
+The complete creator 0x0040e370 supplies manager+0x3c to constructor
+0x0040ed90 on its nonzero path.
+
+The complete default backend constructor 0x0040ed90 installs table
+0x00f56600. Its original slot at 0x00f56604 targets 0x0040eb10.
+The constructor stores raw allocation callback 0x0040ee10 at backend+0x18.
+The complete setter 0x0040edd0 can replace that callback with a supplied
+nonzero pointer, and uses 0x0040ee10 for a supplied zero pointer.
+These construction and setter paths establish possible concrete identities.
+They do not establish that the producer's current manager and dispatch
+state still have those identities.
+
+The original import table identifies wrapper calls through 0x00f3e16c
+and 0x00f3e168 as KERNEL32.dll EnterCriticalSection and LeaveCriticalSection.
+The manager constructor also uses InitializeCriticalSection at 0x00f3e174.
+Only the import identities were read. No imported implementation or physical
+register-preservation contract was inspected.
+
+### Small conditional alignment invariant
+
+Let a be descriptor[0]. In the complete backend allocation body at
+0x0040eb10, 0x0040eb1c loads a into EDI. Instructions
+0x0040eb24..0x0040eb32 compute:
+
+```text
+mask = ~(a-1)
+R = (L+a-1) & mask
+K = (a+15) & mask
+```
+
+For the producer's a=16, this gives R=(L+15)&0xfffffff0 and K=16.
+The call at 0x0040eb4f supplies the selected backend+0x18 callback with
+stack arguments R+K+16 and a. For 2<=L<=255, R is one of
+16,32,...,256, and this callback request is R+32. These expressions
+precede the raw callback. Its physical register and stack effects remain
+a separate obligation.
+
+The complete default thunk 0x0040ee10 jumps to 0x009d5712. That wrapper
+supplies the same two arguments plus explicit offset zero to 0x009d5664.
+For alignment 16 and offset zero, the latter's own validation branches
+select its raw allocation route. It establishes live EDI=15, EBX=0 and
+ESI=0 before the call to 0x009d5bc5 at 0x009d56d7.
+
+The narrow bit invariant is pointwise and does not infer preservation from
+an ABI: if that raw call returns normally with the live mask EDI still 15
+and offset EBX still zero, the AND at 0x009d56ee clears EAX's low four
+bits, and the subtract at 0x009d56f0 leaves that aligned value unchanged.
+The preceding additions and the allocator's raw return address do not need
+to be aligned for this mask to clear those bits. Under stable instructions,
+valid metadata writes, separated live stack/control storage and normal
+return state, the helper returns that value unchanged in EAX. This is a
+conditional modulo-16 result, not a preservation proof for 0x009d5bc5.
+Its body and outgoing call graph were not closed by this audit.
+
+Back in 0x0040eb10, if its retained K in physical EBP is still 16 and
+its raw callback returns p, 0x0040eb5c computes metadata base p+K-16.
+The own successful-return sequence at 0x0040eb96 returns that base+16,
+equivalently p+K. With p modulo 16 zero and K=16, that return is also
+modulo 16 zero, hence modulo 4 zero. This conditional calculation assumes
+valid separated metadata/list/object/control storage and the held register
+and stack values. The failure paths instead return zero at 0x0040eba0.
+No successful allocation or region ownership follows from this arithmetic.
+
+### Exact surviving producer gap
+
+Removing the mover's alignment premise requires all of these unresolved
+links, rather than an assumption that an alignment request is honored:
+
+- EnterCriticalSection at 0x0040e120 must preserve the live manager and
+  synchronization pointer in ESI/EBP and the expected stack/control route.
+  InitializeCriticalSection at 0x0040df42 must preserve the live manager,
+  factory-row pointer and zero in ESI/EDI/EBX and the expected stack/control
+  route. Neither imported preservation contract is proved by its IAT name.
+- The producer's cached manager must actually dispatch through the stated
+  backend slot and the default raw callback chain, with stable descriptor,
+  object, vtable, factory and callback data.
+- The raw 0x009d5bc5 return must preserve the live mask/offset and stack
+  state used by 0x009d5664. Backend calls must preserve the K value used
+  in its return calculation. Their full preservation closure is absent.
+- The wrapper can invoke two further virtual metadata calls and a callback
+  when manager+0x18 is nonzero, at 0x0040e16c, 0x0040e177 and
+  0x0040e17d. LeaveCriticalSection is called after backend return at
+  0x0040e183. The then-current EDI after these calls supplies the wrapper's
+  final result. Their physical preservation is not proved here.
+- Valid metadata and list writes must leave stack/control, descriptors,
+  live objects and indirect target data stable. Current runtime aliases,
+  allocation success, placement, ownership and lifetime are unobserved.
+
+The selected default construction path zeros the wrapper hook, but it does
+not establish the producer's current hook state or exempt the imported
+post-allocation call. No ABI-wide nonvolatile-register promise is substituted
+for those missing physical observations.
+
+For 2<=L<=255 the published mover's fast path is bypassed without a global
+flag assumption. The alignment result above could supply its four-byte
+prerequisite only after these producer-return links are established. All
+other mover premises remain necessary, including valid separated spans,
+stable dispatch tables and destination separation from both tables.
+The producer still requests and supplies unadjusted L with E_j+0x10, while
+its optional-size accessor reports L-0x10. This finding does not validate
+that source extent, a leading word, a name offset, a terminator or name
+bounds for any actual resource. No selected allocation, asset, skeleton,
+palette, shader, animation, bind or inverse-bind meaning is established.
+
+### Reproduction and coverage
+
+Use the identified direct decoder and original executable, with exclusive
+stop addresses:
+
+```text
+llvm-objdump -d --x86-asm-syntax=intel --start-address=START --stop-address=STOP ffxivgame.exe
+```
+
+| Start VA | Exclusive stop VA | Instructions | Instruction bytes |
+|---|---|---:|---:|
+| `0x00c8e762` | `0x00c8e7e1` | 31 | 127 |
+| `0x0040e2d0` | `0x0040e2e2` | 6 | 18 |
+| `0x0040e350` | `0x0040e353` | 2 | 3 |
+| `0x0040e360` | `0x0040e364` | 2 | 4 |
+| `0x0040e110` | `0x0040e20a` | 86 | 250 |
+| `0x0040e500` | `0x0040e56c` | 26 | 108 |
+| `0x0040e430` | `0x0040e4f1` | 66 | 193 |
+| `0x0040dee0` | `0x0040df6c` | 50 | 140 |
+| `0x0040e370` | `0x0040e3c2` | 23 | 82 |
+| `0x0040ed90` | `0x0040edc3` | 13 | 51 |
+| `0x0040edd0` | `0x0040ee03` | 16 | 51 |
+| `0x0040eb10` | `0x0040eba6` | 60 | 150 |
+| `0x0040ee10` | `0x0040ee15` | 1 | 5 |
+| `0x009d5712` | `0x009d5725` | 6 | 19 |
+| `0x009d5664` | `0x009d56fd` | 66 | 153 |
+
+Read only the factory row [0x00f564e0,0x00f564e8), eight bytes at file
+offset 11887840, and backend slot [0x00f56604,0x00f56608), four bytes at
+file offset 11888132, as little-endian data. Resolve the three stated IAT
+entries through the original import directory. Keep non-file-backed manager
+storage unresolved. The final audit proves the stated own-body observations
+and conditional equations, not an actual client allocation result.
