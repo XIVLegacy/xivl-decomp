@@ -3,8 +3,10 @@
 The retail lobby `0x0017` parser's 48-byte records feed character-slot
 vectors and an independently copied working snapshot. Authenticated consumers
 use dword `+0x04` and byte `+0x08` as keys and word `+0x0A` as flags.
-The working snapshot builds a local grouped result; the trace does not
-establish its subsequent wire encoding or server behavior.
+The working snapshot feeds a conditional native encoder for a 0xA0-byte
+application buffer with command word 0x000F. Its byte construction is
+established conditionally; dispatcher acquisition, runtime allocation,
+transport-route identity and server behavior remain unproved.
 
 ## Source and method
 
@@ -99,13 +101,119 @@ FUN_006AD1D0 submits Q at 0x006AD3D3-0x006AD3E4 to FUN_004E0030 with
 L=[B+0x50] and K=[B+0x1BDC]. FUN_004E0030 checks Q==[L+0x244], calls
 FUN_00DADA30 with Q to build the 0x90-byte result at 0x004E0088-0x004E008F,
 and passes it to FUN_00DA4A20 with C=[L+0x240] at 0x004E0094-0x004E009F.
-FUN_00DA4A20 embeds/copies that 0x90-byte result at 0x00DA4A65-0x00DA4A7E;
-this trace stops at its virtual copy/clone call at `0x00DA4AA6` through
-temporary table `0x01128010` slot `+0x04`. The PE slot contains
-`0x00DA8780`; that callee and its downstream serialization are unresolved
-in this trace. This branch establishes local snapshot normalization and
-grouped output staging. The callback-owner identity gap
-below independently bounds an unconditional connection to UI consumers.
+FUN_00DA4A20 embeds/copies that 0x90-byte result at 0x00DA4A65-0x00DA4A7E,
+then invokes the clone described below. The separate callback-owner identity
+gap still bounds an unconditional connection to the UI consumers.
+
+## Snapshot clone and command construction
+
+Let S be the grouped 0x90-byte result, X its heap clone, J the operation,
+D the application dispatcher, T a local packet descriptor, N a buffer carrier,
+P=[N+0x24], and A=P+0x10. All claims below concern the successful-return path
+of the authenticated code, not observed allocation, dispatch or transmission.
+
+| Step | Pointer or value flow | Instruction locators |
+| --- | --- | --- |
+| Clone | FUN_00DA4A20 calls table 0x01128010 slot +4 and stores returned X in C+0x10. PE slot 0x01128014 contains 0x00DA8780. | 0x00DA4AA6-0x00DA4AA8 |
+| Local object | FUN_00DA8780 allocates 0x98 bytes, writes table 0x01128010 and u32 discriminant 1 at X+0/X+4, then copies all 0x90 S bytes to X+8. It returns zero on allocation failure. | 0x00DA8781-0x00DA87B5 |
+| Operation admission | FUN_004E0030 calls FUN_00DA60C0(C,K). With [C+8] present and its +0x8C state in 3/4/5, that helper calls FUN_00DA5FD0. The prerequisite-object path can reach the same helper via FUN_00DA70D0. | 0x004E00A4-0x004E00AB; 0x00DA62FC-0x00DA6304; 0x00DA70D0-0x00DA70E6 |
+| Operation creation | FUN_00DA5FD0 repeats the state gate and requires a false FUN_00DA5300 result. It increments C+0x18, constructs J with J+8=C, J+0x0C=counter, J+0x10=1 and J+0x34=K, then installs table 0x01127FD4. | 0x00DA6025-0x00DA605D; FUN_00DAD770 |
+| Pending operation | The pair {counter,J} enters C+0x1A8; node+0x0C holds the key and node+0x10 holds J. FUN_00DA6690 walks that tree and calls FUN_00DA9230(J,D,C+0x1B4). | 0x00DA6087; 0x00CA2A16-0x00CA2A22; 0x00DA6941-0x00DA69AB |
+| Encoder selection | J+0x10==1 selects J's first virtual slot. PE [0x01127FD4]=0x00DAA190. That encoder reads X=[[J+8]+0x10]; X+4==1 selects its 0x000F branch. | 0x00DA9236-0x00DA925A; 0x00DAA190-0x00DAA211 |
+| Construction | FUN_00DA2BE0 builds T with arguments (0x000F,0xA0,0). FUN_004E7750 obtains N and initializes P. FUN_00DA4430 checks P+2 and returns A; the encoder writes A and hands T to FUN_004E80B0. | 0x00DAA211-0x00DAA294 |
+
+The prerequisite path constructs an object in C+0x44 with local +0x0C=1
+and vtable slot +0x58=0x00DA70D0 (constructor FUN_00DA8B70, PE slot
+0x011281FC, 0x00DA62AA-0x00DA62D2). FUN_00DA6690 advances the list after
+prior objects mark +0x0D and dispatches slot +0x58
+(0x00DA6726-0x00DA6764). This establishes a conditional path, not eventual
+completion. Dispatcher acquisition uses G=[C+8] and the key [G+0x88]
+at 0x00DA6907-0x00DA6937. FUN_004E4B40 searches G+0x1C and returns
+M=[matchedNode+0x10]. FUN_004E4BA0 invokes `0x004E4BAE -> [[M]+0x04]`,
+searches M+0x14 for the key, saves D=[matchedNode+0x10], then invokes
+`0x004E4C01 -> [[M]+0x08]` before returning D.
+
+The first unbound coordination call in this dispatcher-acquisition path is
+`0x004E4BAE`, slot `+0x04` on M; the slot `+0x08` call is also unbound.
+Their concrete targets are not established here. Subsequent D selection and
+encoding are conditional on these calls returning normally. The earlier
+replacement cleanup in FUN_00DA4A20 can also call slot 0 on the previous
+[C+0x10] object at 0x00DA4A96; that prior object's concrete type is not
+established. None of these caller-side observations proves actual execution.
+
+T is a descriptor, not the application buffer. FUN_00DC1EA0 initializes
+T+0x10 with u16 size 0xA0, a zero u16, and two zero dwords.
+FUN_00DA2BE0 stores command 0x000F separately at T+0x1C and installs table
+0x01127754. That table's slots +4/+8/+0x0C contain
+0x00DA2AC0/0x00DA2AD0/0x00DA2B00 in the original PE.
+
+The earliest unresolved carrier-allocation call in this encoder is
+`0x004E7779`, virtual slot `+0x38` on `[D+0x10]`. Its concrete target is
+not joined to a constructor/table here. The following byte contract is
+conditional on that call returning a usable carrier; it does not resolve
+or claim execution of the allocator.
+
+### Constructed application bytes
+
+FUN_004E7750 assigns N+0x20 from T's u16 size and zeroes the entire P buffer
+at 0x004E77B8-0x004E77DA, then invokes T slot +8 for the header.
+FUN_00DAA190 also explicitly zeroes the 0x90-byte A region before its writes.
+
+| Destination | Width and source | Instruction locators |
+| --- | --- | --- |
+| P+0 | u8 0x14, after zeroing and AND/OR | 0x00DA2AD5-0x00DA2ADF |
+| P+1 | u8 zero | 0x00DA2AEB |
+| P+2 | u16 0x000F from T+0x1C | 0x00DA2AE1-0x00DA2AE7 |
+| P+4..+7 | four zero bytes | 0x004E77C7-0x004E77DA |
+| P+8 | u32 result of FUN_009D5725(0) | 0x00DA2AE5; 0x00DA2AEF; 0x00DA2AF7 |
+| P+0x0C..+0x0F | four zero bytes | 0x004E77C7-0x004E77DA |
+| A+0 | u32 J+0x0C, the incremented operation counter | 0x00DAA263-0x00DAA269 |
+| A+4..+0x0F | twelve zero bytes | 0x00DAA254-0x00DAA25E |
+| A+0x10..+0x2F | 0x20 bytes from X+0x18, equal to S+0x10 | 0x00DAA266-0x00DAA273 |
+| A+0x30..+0x8F | 0x60 bytes from X+0x38, equal to S+0x30 | 0x00DAA275-0x00DAA28D |
+
+The two copies use REP MOVSD with ECX=8 and 0x18. S+0..+0x0F and X's
+eight-byte local envelope are omitted. The header and body account for all
+0xA0 initialized bytes. Zero spans are observed values, without an inferred
+reserved-field meaning. The native word/dword stores are little endian;
+copies preserve S's bytes. FUN_00DA2B00 calls FUN_00DA40B0 and
+FUN_00DA4130 at 0x00DA2B18/0x00DA2B22; these helpers return the supplied
+lengths without swapping, compression or encryption.
+
+0xA0 is the requested buffer extent, not a size word written at P+0.
+0x000F is proven independently at P+2. This is the client-side lobby
+application construction; no outer transport framing or zone opcode is
+assigned from these values. The template name does not establish a rename
+payload, reserve operation or server-side policy.
+
+### Conditional carrier dispatch
+
+FUN_004E80B0 detaches N from T+0x0C via FUN_004E42C0(T+4,0), copies
+T+0x14..+0x1B to N+0x0C..+0x13, invokes T slot +0x0C with
+(P,[N+0x20]) at 0x004E80F4, then calls FUN_004E7820 with
+O=[D+0x20] and argument N at 0x004E80F6-0x004E80FA.
+
+| Condition or step | Observed behavior | Instruction locators |
+| --- | --- | --- |
+| [O+0x20] is zero | Passes N to FUN_004E5D60 using its stored owner. That helper recycles small carriers or destroys oversized carriers. | 0x004E7823-0x004E783D |
+| q=[O+0x20] exists | FUN_004E6470 appends N to the doubly linked list at q+4. FUN_00777800 stores N at node+8; the caller splices the node into the list. | 0x004E655E-0x004E6586; FUN_0067D610 |
+| Select pending candidate | Removes the head candidate, which can precede the newly appended N. | 0x004E6588-0x004E65CA |
+| H exists | H=([O+0x10]!=0 ? [[O+0x10]+8] : 0). Calls FUN_004E4840(H,&[O+8],candidate,0). | 0x004E7842-0x004E7852; 0x004E7874-0x004E787D |
+| H absent or route result false | Requeues the candidate through FUN_004E65E0. A successful candidate is recycled and selection continues. | 0x004E78AF-0x004E78B3 |
+
+Inside FUN_004E4840, FUN_0071D420 looks up the key [O+8] in the tree
+at H+0x0C (0x004E4886-0x004E4895). The key is compared with node+0x0C
+at 0x0071D435-0x0071D45F; the selected route is R=[node+0x10], loaded
+at 0x004E48D8. The first unresolved transport-route binding is
+`0x004E48E4 -> [[R]+0x10]`. Its runtime tree entry has no established
+constructor/vtable join in this trace. The later direct FUN_004E4320 call
+at 0x004E491A depends on that virtual result; its framing is not promoted
+through this unresolved edge.
+
+Thus the buffer layout is a conditional static contract. Coordination targets,
+allocator identity, route selection, actual socket submission, captured
+outgoing bytes, server receipt and acceptance remain unestablished. The UI callback gap below is
+independent of this snapshot encoder.
 
 ## Callback-owner boundary
 
