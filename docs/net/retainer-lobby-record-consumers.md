@@ -6,8 +6,9 @@ use dword `+0x04` and byte `+0x08` as keys and word `+0x0A` as flags.
 The working snapshot feeds a conditional native encoder for a 0xA0-byte
 application buffer with command word 0x000F. Its byte construction is
 established conditionally. A concrete constructor and registration path binds
-the dispatcher lookup's paired calls to a no-op. Runtime entry selection,
-allocation success, transport-route identity and server behavior remain unproved.
+the dispatcher lookup's paired calls to a no-op and its transport-route gate
+to a constant true return. Runtime entry selection, allocation and synchronization
+results, transmission and server behavior remain unproved.
 
 ## Source and method
 
@@ -334,22 +335,82 @@ O=[D+0x20] and argument N at 0x004E80F6-0x004E80FA.
 | H exists | H=([O+0x10]!=0 ? [[O+0x10]+8] : 0). Calls FUN_004E4840(H,&[O+8],candidate,0). | 0x004E7842-0x004E7852; 0x004E7874-0x004E787D |
 | H absent or route result false | Requeues the candidate through FUN_004E65E0. A successful candidate is recycled and selection continues. | 0x004E78AF-0x004E78B3 |
 
+### Transport-route construction and registration
+
 Inside FUN_004E4840, FUN_0071D420 looks up the key [O+8] in the tree
 at H+0x0C (0x004E4886-0x004E4895). The key is compared with node+0x0C
 at 0x0071D435-0x0071D45F; the selected route is R=[node+0x10], loaded
-at 0x004E48D8. The first unresolved transport-route binding is
-`0x004E48E4 -> [[R]+0x10]`. Its runtime tree entry has no established
-constructor/vtable join in this trace. The later direct FUN_004E4320 call
-at 0x004E491A depends on that virtual result; its framing is not promoted
-through this unresolved edge.
+at 0x004E48D8. The following default-constructor path joins that lookup to
+a concrete R. It remains conditional on successful registration, matching
+keys, live objects and unchanged entries.
+
+The default target factory FUN_00DAB600 stores its third argument M at
+D+0x20 (0x00DAB68C), as well as G at D+0x10. Thus O=[D+0x20]=M,
+[O+0x10]=G and the send lookup key [O+8] is M's key. FUN_00DAB290
+allocates 0x138 bytes, calls FUN_00DA1960(G,originalArgument) and stores
+returned H at G+8 (0x00DAB2EE-0x00DAB31F). H's base constructor
+FUN_00DA28C0 stores G at H+8 and initializes the empty H+0x0C tree
+(0x00DA28EA-0x00DA291B). H's final table is 0x01127714
+(0x00DA199F).
+
+| Step | Pointer or key flow | Instruction locators |
+| --- | --- | --- |
+| R construction | H allocates 0x10F0 bytes, calls FUN_00DA1060(H+0xB8,H), then stores the returned pointer at H+0x110. R is a separately allocated object. | 0x00DA1A22-0x00DA1A65 |
+| R table | FUN_00DA1060 installs final table 0x011276E8 after its base constructor. FUN_00DA12A0 can replace [H+0x110] with another object made by the same constructor. | 0x00DA1090-0x00DA10AB; 0x00DA133A-0x00DA1347 |
+| Record processing | H slot +4 is FUN_00DA1AB0. It loads R=[H+0x110] and calls FUN_00DA25D0(H,&localOutput,0,R). | PE 0x01127718; 0x00DA1B3D; 0x00DA1B6C-0x00DA1B7E |
+| Registration selection | FUN_00DA25D0 reads a local record's word+2. Selector 2 calls FUN_00DB34A0(H,0,R,&record). FUN_00DA2330's matching parser case copies fourteen dwords for the expected 0x38 record size. | 0x00DA2691; 0x00DA2730-0x00DA273C; 0x00DA2437-0x00DA2449; PE switch tables 0x00DA27F0/0x00DA25A4 |
+| Route key | With R+4 zero and K=[record+0x10] nonzero, FUN_00DB34A0 stores K at R+4 and calls FUN_00DA21B0(H,K,R). The supplied zero original key skips removal. | 0x00DB34CD-0x00DB34EA; 0x00DB3585-0x00DB3593 |
+| Route insertion | FUN_00DA21B0 inserts {K,R} into H+0x0C through FUN_00994A90 -> FUN_00913860 -> FUN_00CA29F0. The node stores K at +0x0C and R at +0x10. | 0x00DA21E8-0x00DA220D; 0x00994AEE; 0x009138EF; 0x00CA2A18/0x00CA2A22 |
+| Application key | FUN_00DB34A0 invokes H slot +0x0C, FUN_00DA1430, then G=[H+8] slot +0x0C with the same K. The latter selects FUN_00DAD540 -> FUN_00DAD320 -> FUN_00DB0430. | 0x00DB35A3-0x00DB35B9; PE 0x01127720/0x011286A8; 0x00DAD549-0x00DAD557; 0x00DAD34F |
+
+K is a runtime dword from the parsed local record. Its server-side meaning
+and observed value are not established here. FUN_00994A90 returns an
+existing node without replacing its value on a key collision
+(0x00994B19-0x00994B46). A fresh H+0x0C insertion is therefore required
+to assign this R to the later lookup. FUN_00DA1430 writes K to
+[H+0x110]+4 at 0x00DA1465-0x00DA146D; this is a stored-pointer access.
+
+FUN_00DAD540 records K at G+0x88 only when that field is zero. With the
+default factories, G+0x44 still zero, K outside the eight special values
+n*0x20000000 (n=0..7), and the fresh-M branch taken, FUN_00DB0430
+constructs and inserts {K,M}. The construction and insertion locators are
+given above. These conditions join K to O=M's key at O+8. A later key,
+collision, replacement or arbitrary preexisting M is not covered by that join.
+
+The other observed direct caller of FUN_00DA21B0 is FUN_00DAF430
+(0x00DAF524). On the same default G table its slot +8 call at 0x00DAF474
+selects FUN_00DAB150 through PE 0x011286A4. That target returns EAX=0
+at 0x00DAB175-0x00DAB178, so 0x00DAF476-0x00DAF478 exits before
+insertion. This is not an exhaustive census of runtime writers or other G types.
+
+### Transport gate and next boundary
+
+Under the registration and lifetime conditions above, R has table
+0x011276E8 and PE [0x011276F8]=0x00DA0C70. Thus
+`0x004E48E4 -> [[R]+0x10]` calls FUN_00DA0C70, whose complete body
+at 0x00DA0C70-0x00DA0C72 sets AL=1 and returns. It makes no calls,
+reads no object state and writes no memory. This gate does not check packet
+contents or establish a ready connection.
+
+The caller's 0x004E48E6-0x004E48E8 test takes the true branch. Its next
+call is `0x004E48F9 -> KERNEL32.dll!EnterCriticalSection(H+0x44)`:
+0x004E48EE-0x004E48F4 computes/pushes H+0x44, and the original PE
+binds IAT 0x00F3E16C to that import. The import identity is resolved;
+external implementation, lock state and return remain the stopping boundary.
+The earlier H+0x60 synchronization at 0x004E4878 is also conditional
+context. The subsequent direct call 0x004E491A -> FUN_004E4320 is an
+identified target beyond this boundary; no framing is promoted through it.
+
+For an arbitrary existing H+0x0C entry, the unresolved identity join remains
+`[node(K)+0x10] == the live FUN_00DA1060-produced R`. Sharing a slot
+layout does not prove that join. No loaded entry or successful send was observed.
 
 Thus the buffer layout is a conditional static contract. The constructor path
-binds the paired M calls and carrier getter. The independently unresolved
-transport binding remains `0x004E48E4 -> [[R]+0x10]`; no route implementation
-is assigned beyond it. The allocator's external heap/synchronization results,
-failure-handler identity, actual socket submission, captured outgoing bytes,
-server receipt and acceptance remain unestablished. The UI callback gap below
-is independent of this snapshot encoder.
+binds the paired M calls, carrier getter and R gate. The allocator's and route
+caller's external synchronization/heap results, failure-handler identity,
+actual socket submission, captured outgoing bytes, server receipt and acceptance
+remain unestablished. The UI callback gap below is independent of this snapshot
+encoder.
 
 ## Callback-owner boundary
 
