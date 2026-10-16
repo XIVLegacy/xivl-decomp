@@ -5,8 +5,9 @@ vectors and an independently copied working snapshot. Authenticated consumers
 use dword `+0x04` and byte `+0x08` as keys and word `+0x0A` as flags.
 The working snapshot feeds a conditional native encoder for a 0xA0-byte
 application buffer with command word 0x000F. Its byte construction is
-established conditionally; dispatcher acquisition, runtime allocation,
-transport-route identity and server behavior remain unproved.
+established conditionally. A concrete constructor and registration path binds
+the dispatcher lookup's paired calls to a no-op. Runtime entry selection,
+allocation success, transport-route identity and server behavior remain unproved.
 
 ## Source and method
 
@@ -127,19 +128,52 @@ and vtable slot +0x58=0x00DA70D0 (constructor FUN_00DA8B70, PE slot
 0x011281FC, 0x00DA62AA-0x00DA62D2). FUN_00DA6690 advances the list after
 prior objects mark +0x0D and dispatches slot +0x58
 (0x00DA6726-0x00DA6764). This establishes a conditional path, not eventual
-completion. Dispatcher acquisition uses G=[C+8] and the key [G+0x88]
+completion.
+
+### Dispatcher construction and lookup
+
+Dispatcher acquisition uses G=[C+8] and the key k=[G+0x88]
 at 0x00DA6907-0x00DA6937. FUN_004E4B40 searches G+0x1C and returns
 M=[matchedNode+0x10]. FUN_004E4BA0 invokes `0x004E4BAE -> [[M]+0x04]`,
 searches M+0x14 for the key, saves D=[matchedNode+0x10], then invokes
 `0x004E4C01 -> [[M]+0x08]` before returning D.
 
-The first unbound coordination call in this dispatcher-acquisition path is
-`0x004E4BAE`, slot `+0x04` on M; the slot `+0x08` call is also unbound.
-Their concrete targets are not established here. Subsequent D selection and
-encoding are conditional on these calls returning normally. The earlier
-replacement cleanup in FUN_00DA4A20 can also call slot 0 on the previous
-[C+0x10] object at 0x00DA4A96; that prior object's concrete type is not
-established. None of these caller-side observations proves actual execution.
+The following construction path joins M to a concrete table. It establishes
+the binding when the lookup selects this factory-produced entry, rather than
+the type of every possible preexisting entry or object lifetime state.
+
+| Step | Observed construction or registration | Instruction locators |
+| --- | --- | --- |
+| G owner | Allocates 0xA8 bytes, calls FUN_00DAB290 and stores G at C+8. | FUN_00DA45B0, 0x00DA4602-0x00DA4633; FUN_00DA4860, 0x00DA48FE-0x00DA492A |
+| G constructor | FUN_00DAB290 calls FUN_00DAD410(0,0,1), then installs G table 0x0112869C. FUN_00DAD410 supplies the default primary factory with table 0x011284D0 to FUN_00DAB8D0, which stores it at G+0x30. | 0x00DAB2BC-0x00DAB2D3; 0x00DAD44F-0x00DAD466; 0x00DAB970 |
+| Initial state | G+0x1C starts empty, G+0x44 is zero, and the default target factory at G+0x34 has table 0x011284B0. | 0x00DAB917-0x00DAB93E; 0x00DAB989-0x00DAB9A9 |
+| Key registration | G slot +0x0C is FUN_00DAD540. When G+0x88 is zero, it stores the input key there and tail-calls FUN_00DAD320, which calls FUN_00DB0430(G,key). | PE 0x011286A8; 0x00DAD549-0x00DAD557; 0x00DAD34F |
+| M factory | FUN_00DB0430 calls [G+0x30] slot +4 with (G,key), saving M. PE slot 0x011284D4 selects FUN_00DAD6D0, which allocates 0x30 bytes and calls FUN_00DAD5C0(G,key,1). | 0x00DB05CF-0x00DB05DE; 0x00DAD6F1-0x00DAD719 |
+| M constructor | FUN_00DAD5C0 calls FUN_00DABB40, then installs final table 0x01128714. The base constructor initializes key M+8 through FUN_00DC1EE0, stores G at M+0x10 and initializes M+0x14. | 0x00DAD646-0x00DAD657; 0x00DABB6E-0x00DABBAA; 0x00DC1EE2-0x00DC1EE6 |
+| M insertion | After FUN_00DAC100(M), the producer inserts {key,M} into G+0x1C through FUN_00994A90 -> FUN_00913860 -> FUN_00CA29F0. The node stores key at +0x0C and M at +0x10. | 0x00DB05E2; 0x00DB0661-0x00DB0679; 0x00994AEE; 0x009138EF; 0x00CA2A16-0x00CA2A22 |
+
+On the default G+0x44==0 branch, keys other than n*0x20000000 for
+n=0..7 reach the exact-key lookup at 0x00DB057B-0x00DB05AA. Existing
+entries return at 0x00DB05AC-0x00DB05BD; missing entries take the factory
+path. FUN_00944D70 compares iterator nodes at 0x00944D87-0x00944D93.
+The reserved-key branches can generate a different key, so they do not
+establish insertion under the original k. G+0x28 is a separate object
+constructed with key zero and is not substituted for M.
+
+| Lookup call | Operand and original PE table entry | Target behavior |
+| --- | --- | --- |
+| 0x004E4BAE | ECX=M, target [[M]+4]; [0x01128718]=0x006CE2E0 | Single RET at 0x006CE2E0. |
+| 0x004E4C01 | ECX=M, target [[M]+8]; [0x0112871C]=0x006CE2E0 | The same single RET. |
+
+Neither target changes state or performs locking on this construction path.
+Between the calls, FUN_004E4BA0 looks up k in M+0x14 and returns
+D=[node+0x10] (0x004E4BBF, 0x004E4BF7, 0x004E4C03), or zero for the
+sentinel at 0x004E4BE0. Selection of a preexisting entry of unproven origin
+remains conditional. The earlier replacement cleanup in FUN_00DA4A20 can
+also call slot 0 on the previous [C+0x10] object at 0x00DA4A96; that prior
+object's concrete type is not established. Actual execution is not observed.
+
+### Descriptor and carrier getter
 
 T is a descriptor, not the application buffer. FUN_00DC1EA0 initializes
 T+0x10 with u16 size 0xA0, a zero u16, and two zero dwords.
@@ -147,11 +181,28 @@ FUN_00DA2BE0 stores command 0x000F separately at T+0x1C and installs table
 0x01127754. That table's slots +4/+8/+0x0C contain
 0x00DA2AC0/0x00DA2AD0/0x00DA2B00 in the original PE.
 
-The earliest unresolved carrier-allocation call in this encoder is
-`0x004E7779`, virtual slot `+0x38` on `[D+0x10]`. Its concrete target is
-not joined to a constructor/table here. The following byte contract is
-conditional on that call returning a usable carrier; it does not resolve
-or claim execution of the allocator.
+The registration path also constructs a D entry for M's own key.
+FUN_00DAC100 loads G=[M+0x10], calls [G+0x34] slot +8 with (G,M,M)
+at 0x00DAC10E-0x00DAC119, then inserts {[M+8],D} into M+0x14 at
+0x00DAC12A-0x00DAC142. PE [0x011284B8]=0x00DAB600. That factory
+allocates 0x24 bytes, initializes its key through FUN_00DC1EE0, installs
+table 0x011284DC, and stores G at D+0x10 (0x00DAB66A-0x00DAB67D).
+
+For this selected D, 0x004E7779 invokes slot +0x38 on [D+0x10]=G.
+PE [0x011286D4]=0x00DB5A00, whose 0x00DB5A00-0x00DB5A03 returns
+G+0x48. This call is a getter, not the carrier allocation. The following
+direct call at 0x004E777D invokes FUN_004E5F80 with that result in ECX.
+FUN_00DAD410 constructs the G+0x48 subobject through FUN_00DABAA0 and
+installs its table 0x0112858C at 0x00DAD46B-0x00DAD483.
+
+FUN_004E5F80's slot +4/+8 calls at 0x004E5FA9/0x004E5FCF also resolve
+to FUN_006CE2E0 through PE entries 0x01128590/0x01128594. For size
+0xA0 plus zero extra size, the comparison with 0x1E0 at 0x004E5F90 takes
+the direct call 0x004E5FDB -> FUN_004E5DF0. The larger-size branch calls
+FUN_004E46C0 at 0x004E5F9B. These allocator continuations are outside
+this bounded binding trace, not unresolved direct-call targets. The byte
+contract below still requires a usable carrier and does not prove allocation
+success or exhaustively cover allocator branches.
 
 ### Constructed application bytes
 
@@ -210,10 +261,13 @@ constructor/vtable join in this trace. The later direct FUN_004E4320 call
 at 0x004E491A depends on that virtual result; its framing is not promoted
 through this unresolved edge.
 
-Thus the buffer layout is a conditional static contract. Coordination targets,
-allocator identity, route selection, actual socket submission, captured
-outgoing bytes, server receipt and acceptance remain unestablished. The UI callback gap below is
-independent of this snapshot encoder.
+Thus the buffer layout is a conditional static contract. The constructor path
+binds the paired M calls and carrier getter. The independently unresolved
+transport binding remains `0x004E48E4 -> [[R]+0x10]`; no route implementation
+is assigned beyond it. Allocation success, complete allocator branch coverage,
+actual socket submission, captured outgoing bytes, server receipt and
+acceptance remain unestablished. The UI callback gap below is independent of
+this snapshot encoder.
 
 ## Callback-owner boundary
 
