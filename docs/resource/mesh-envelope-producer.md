@@ -20,7 +20,7 @@ COFF i386, Intel syntax. The direct LLVM decoder executable SHA-256 is
 47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f.
 The Swiftly dispatcher used by the initial analysis has SHA-256
 dc2ea9979c3f938387f06f4c6a99195c1334dd00ebd67451f55b24a47aef071a.
-The expanded independent audit decoded 1290 instructions covering 4380
+The expanded independent producer audit decoded 1290 instructions covering 4380
 instruction bytes in eleven windows. Every encoded instruction byte matched the original PE mapping.
 Each audit child had a finite 20-second timeout and combined 8388608-byte output
 cap. All eleven returned exit 0 and were reaped. No client execution or asset
@@ -138,6 +138,9 @@ occurrence ordering. A prospective serialized name interpretation is therefore
 BE16 at ENVD payload offset 0 followed by self-relative name position. The
 actual transfer is mediated by 0x009d4600. This is a static derivation, not an
 observation of any actual ENVD name or a full resource decoder contract.
+The [conditional leading-word transfer](#conditional-envd-leading-word-transfer)
+establishes equality of the leading word on its explicitly bounded mover
+paths. It does not establish that a selected allocation takes those paths.
 
 No payload name bytes, NUL terminator, minimum record length, name termination
 bound, offset admission, containing file extent, or safe span bound was read.
@@ -179,3 +182,191 @@ The MESH, HEAD and ENVD literals are at `0x01107024`, `0x01106f88`,
 `0x01106b70`, `0x01106b84` and `0x01106c10` anchors the MeshFactory
 context and envelope-array assertions. These names do not supply a
 complete source-level type or failure contract.
+
+## Conditional ENVD leading-word transfer
+
+A complete normal-return path closure in `0x009d4600` proves byte transfer
+from its supplied source to its supplied destination under explicit conditions.
+For `L>=2`, four-byte destination alignment and bypass of the external fast
+path, the first two destination bytes equal the first two source bytes.
+This supplies a conditional join from the serialized ENVD payload's leading
+word to the runtime envelope word. Allocator alignment and actual path state
+remain unresolved.
+
+### Identity and method
+
+Original: retail FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
+`2012.09.19.0001`, size `15996808` bytes, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+PE32 machine is `0x014c`, optional-header magic is `0x010b` and image base
+is `0x00400000`. All addresses below are VA. Subtract the image base for RVA
+and map through the original PE section table.
+
+The producing tools were Python `3.14.7` standard-library PE section mapping
+and direct LLVM `llvm-objdump` `21.0.0` from the Swift `6.3.3` toolchain,
+COFF i386, Intel syntax. The direct decoder executable has SHA-256
+`47ceb4e3477a2dd569ca032dd9f5c3af05ccc01e7ac302de2727b362ba49c94f`.
+Seven instruction windows contain `90` instructions and `239` instruction
+bytes. Every encoded instruction byte matched the original PE mapping.
+Two bounded little-endian VA dispatch tables contribute `48` data bytes,
+interpreted as pointers rather than disassembled as instructions. Original
+identity matched before and after. Each decoder child had a finite
+`20`-second timeout and combined `8388608`-byte output cap, returned exit
+`0` and was reaped. These are static executable observations. No resource
+input, client execution or live result is included.
+
+### Proved path conditions
+
+Let `U` be the helper's entry ESP, `D` its first explicit stack argument,
+`A` its second explicit stack argument and `L` its third. These names identify
+argument positions without relying on a library name or calling convention.
+The following are sufficient conditions:
+
+- Ordinary flat 32-bit DS, ES and SS addressing, `DF=0`, valid accesses,
+  stable instructions and no fault or asynchronous register or memory
+  interference.
+- `L>=2`, with both `A+L` and `D+L` strictly below `2^32`. The full
+  half-open ranges `[A,A+L)` and `[D,D+L)` are readable and writable
+  respectively and do not overlap.
+- Both ranges are separate from the helper's active stack/control interval
+  `[U-20,U+16)` and from executing instruction storage. Source bytes remain
+  stable except for allowed reads. Stack arguments and the return word remain
+  stable except for intended stack operations.
+- Both full dispatch-table data ranges, `[0x009d4708,0x009d4728)` and
+  `[0x009d4774,0x009d4784)`, remain immutable with the audited target values
+  throughout the call. The destination span `[D,D+L)` is disjoint from
+  both ranges. Instruction stability alone does not supply this condition.
+- `D` modulo `4` is zero.
+- At least one fast-path bypass holds: `L<256`, the dword at
+  `0x0137b8e8` is zero when compared, or `D` modulo `16` differs from
+  `A` modulo `16`.
+
+The finite domain `2<=L<=255` therefore needs no assumption about the global
+fast-path flag. No actual flag value or allocation address was observed.
+The active stack interval includes temporary saves for the modulo comparison
+on the `L>=256`, flag-nonzero, differing-modulo route. No runtime memory
+protection or allocator placement is inferred to satisfy table immutability
+or destination separation.
+
+### Entry and forward dispatch
+
+The entry saves EBP at `U-4`, holds `EBP=U-4`, then saves EDI and ESI
+at `U-8` and `U-12`. At `0x009d4605..0x009d460b` it captures `A`
+in ESI, `L` in ECX and `D` in EDI. EDX also retains `L` at
+`0x009d4610`. The nonwrapping `A+L` calculation at `0x009d4612` and
+comparisons at `0x009d4614..0x009d461a` select the forward path for the
+disjoint ranges. The excluded overlapping backward route begins at
+`0x009d47c4`.
+
+At `0x009d4620..0x009d4642`, the stated bypass alternatives select
+`0x009d4647` instead of the uninspected external tail `0x009e46d9`.
+Temporary ESI and EDI saves in the modulo comparison are popped before
+either exit. At `0x009d4647`, four-byte destination alignment selects
+`0x009d464f` instead of the uninspected unaligned route at `0x009d4664`.
+
+The aligned route sets `q=floor(L/4)` in ECX at `0x009d464f` and
+`r=L modulo 4` in EDX at `0x009d4652`. For `q>=8`, the forward
+REP MOVSD at `0x009d465a` copies `q` consecutive dwords under `DF=0`,
+advances ESI and EDI by `4*q` and leaves ECX zero. It then dispatches on
+`r` through the immutable table at `0x009d4774`. The first dword transfer
+includes source bytes `0` and `1` without swapping.
+
+For `q<8`, the jump at `0x009d4684` indexes the immutable eight-dword
+table at `0x009d4708`. Its targets in `q=0` through `q=7` order are:
+
+```text
+0x009d476b, 0x009d4758, 0x009d4750, 0x009d4748,
+0x009d4740, 0x009d4738, 0x009d4730, 0x009d4728
+```
+
+For each positive `q`, the selected entry starts with a dword read at
+`A+0` and same-value store at `D+0`. Fallthrough copies consecutive
+dwords through index `q-1`. The base expressions use source or destination
+plus `4*q` minus `0x04`, `0x08`, `0x0c`, `0x10`, `0x14`, `0x18`
+or `0x1c` as applicable. The common `0x009d4760..0x009d4769` sequence
+advances both pointers by `4*q`. For `q=0`, the selected target skips
+those transfers and pointer changes. All eight targets reach the remainder
+dispatch at `0x009d476b` without calls.
+
+### Complete remainder and normal return closure
+
+The immutable four-dword table at `0x009d4774` has these targets in
+`r=0` through `r=3` order:
+
+```text
+0x009d4784, 0x009d478c, 0x009d4798, 0x009d47ac
+```
+
+Those paths copy exactly `r` consecutive bytes from the advanced source to
+the advanced destination, with no transformation. Their scoped code ends at
+exclusive bounds `0x009d478b`, `0x009d4797`, `0x009d47a9` and
+`0x009d47c3`. Each then reloads original `D` from held EBP+8 into EAX,
+pops saved ESI and EDI, restores ESP/EBP through LEAVE and executes a
+normal near return with zero argument cleanup. Stable audited table targets
+keep the indirect jumps within this closure. There are no calls or further
+transfers outside it on the selected routes. Under all stated conditions,
+normal return preserves entry ESI, EDI and EBP, returns `EAX=D` and leaves
+`ESP=U+4`.
+
+The combined `q` and `r` paths copy each byte at offset `k`, `0<=k<L`,
+from `A+k` to `D+k`. For `q=0` with `L>=2`, `r` is `2` or `3`
+and the remainder path transfers the leading pair directly. For positive
+`q`, the first dword transfers it. No later write targets that pair or
+either protected dispatch table. Thus `BE16(D)=BE16(A)` on every selected
+path under the conditions above. The all-`L` statement is a conditional
+transfer relation, not evidence that an ENVD supplies `L` readable payload
+bytes.
+
+### ENVD join and limits
+
+The [producer's size-call finding](mesh-envelope-producer.md#size-call-discrepancy-preserved-literally)
+owns the call at `0x00c8e859`: `D=T[j]`, `A=E_j+0x10` and
+`L=BE32(E_j+8)`. The
+[skeleton name-loop finding](skeleton-output-pointer-initialization.md#supplied-count-and-lookup-name-positions)
+owns the runtime expression `B_j+BE16(B_j)`, where `B_j=T[j]`.
+With all transfer conditions above and an allocation separate from its
+pointer table, runtime mesh/count state and parsed input, `BE16(B_j)`
+equals BE16 at serialized ENVD payload offset zero. This conditional physical
+transfer join does not establish that an actual allocation or selected retail
+resource satisfies those conditions.
+
+The producer's `L` remains unadjusted. The optional-size accessor reports
+`L-0x10`. Nothing here validates `[E_j+0x10,E_j+0x10+L)`, changes the
+producer argument or replaces it with `L-0x10`. A selected resource's valid
+payload extent, actual name bytes, name offset admission, NUL termination
+and bounds remain unmeasured. The verified mover path is not a safe serialized
+decoder.
+
+The unaligned destination route, backward overlap route and external fast
+tail remain outside this proof. In particular, `L>=256` with a nonzero
+flag and matching source/destination modulo `16` takes the uninspected fast
+tail. Allocator alignment, successful allocation, lifetime and ownership
+remain separate gaps. No source names, palettes, shader mapping, B meaning,
+bind, inverse-bind or live retail behavior are inferred.
+
+### Reproduction
+
+Verify the identified executable, direct decoder version and decoder hash.
+For each range below, run the following command with its exclusive stop.
+Map every encoded instruction through the original PE section table and
+compare it with the executable. Read the two data tables separately as
+little-endian uint32 VAs and verify the listed targets.
+
+```text
+llvm-objdump -d --x86-asm-syntax=intel --start-address=START --stop-address=STOP ffxivgame.exe
+```
+
+| Start VA | Exclusive stop VA | Instructions | Instruction bytes |
+|---|---|---:|---:|
+| `0x009d4600` | `0x009d4664` | 39 | 100 |
+| `0x009d4684` | `0x009d468b` | 1 | 7 |
+| `0x009d4728` | `0x009d4772` | 18 | 74 |
+| `0x009d4784` | `0x009d478b` | 5 | 7 |
+| `0x009d478c` | `0x009d4797` | 7 | 11 |
+| `0x009d4798` | `0x009d47a9` | 9 | 17 |
+| `0x009d47ac` | `0x009d47c3` | 11 | 23 |
+
+The quotient table `[0x009d4708,0x009d4728)` occupies `32` bytes at
+file offset `6113032`. The remainder table `[0x009d4774,0x009d4784)`
+occupies `16` bytes at file offset `6113140`. All twelve targets are covered
+by the instruction windows. Do not treat these table ranges as instructions.
