@@ -15,7 +15,9 @@ Addresses are VA with PE image base `0x00400000`; RVA is VA minus that base.
 Retained Ghidra assembly guided this trace. A Python PE-section reader with
 pefile `2024.8.26` compared the cited listing bytes, vtables and literals with
 the original executable. Capstone `5.0.7`, x86-32 mode, decoded the initializer's
-omitted blocks directly from those original bytes.
+omitted blocks and material-header preprocessing directly from those original
+bytes. Python `struct` inspection decoded the selected RES directory, material
+and component fields in both pinned model files.
 
 The selected model resource `brt7F1C0000` is `41088` bytes with SHA-256
 `1af91b0e1e5e34f676f1af2884f82eddb63062e62bee058b0260e9646dfb7d0f`.
@@ -61,8 +63,13 @@ distinct values; no fixed ordinal is assumed here.
 metadata `+0x04` links and compares each record's first dword with the ordinal
 stored at `0x01323870`. After earlier class tests, `0x00C525CE` compares the
 current record's first dword with the ordinal at `0x01323818`. The matching
-ModelResourceNode branch appends the resource to finder vector `+0x3C` at
-`0x00C525DA`. These are ordinal comparisons, not metadata-pointer equality.
+ModelResourceNode branch appends the resource to the complete finder's vector
+object at `+0x3C` at `0x00C525DA`; its begin/end pointers are at
+`+0x40/+0x44`. Main vtable `0x010F5734` slot 1 is `0x00C52B20`, whose
+`0x00C52C00..0x00C52C02` forwards the same receiver to `0x00C52560`.
+Append helper `0x00858140` reads vector-relative begin/end at `+0x04/+0x08`,
+at `0x00858146/0x00858151`. These are ordinal comparisons, not
+metadata-pointer equality.
 
 The WRB factory supplies that concrete class. `0x00C4ABF3..0x00C4AC15`
 registers ModelResourceNodeFactory vtable `0x010F2BC8` under numeric type
@@ -153,8 +160,104 @@ that list. Both require tag `+0x1A` bit 0 set; slot 9 additionally requires
 bit 1 set, while slot 10 requires it clear. They dispatch tag slot 1 at
 `0x00C395FF` or `0x00C396CF`. For MeshDrawTag, this resolves to
 `0x00C439C0`. Its opening guards require non-null tag `+0x118` and `+0xB0`
-and nonzero bytes `+0x131/+0x132`. These include retained material and pass
-state whose production is outside this geometry trace.
+and nonzero bytes `+0x131/+0x132` at `0x00C439E0..0x00C43A0E`.
+
+## Draw-admission producers
+
+The tag constructor writes `0x51` to tag `+0x1A` at `0x00C44883`, setting
+bit 0 and clearing bit 1. Its call to `0x00C417D0` clears tag `+0xB0/+0x118`
+at `0x00C4185A/0x00C41860` and initializes `+0x131/+0x132` to one at
+`0x00C418FA/0x00C41900`. Mesh attachment calls that reset again at
+`0x00C448F2`. In the construction loop, `0x00C33645` then calls
+`0x00C42500` with the owning component record and mesh ordinal.
+`0x00C42524` sets tag `+0x118` to that record, whose `+0x78/+0x7C` retain
+the DrawableObject and selected MeshContainer. Thus `+0x118` is an ownership
+link, rather than the material pointer.
+
+### Selected material binding
+
+The single-entry builder creates the drawable's material array through
+`0x00C519A0` at `0x00C4FA53`, before constructing component records.
+It calls binder `0x00C34700` at `0x00C5015A` when drawable `+0x360` is
+nonzero. The binder walks `+0x364` slots with stride `0x54`. Nonzero mesh
+`+0x30..+0x3F` selects identifier matching, also comparing mesh `+0x50`.
+Otherwise `0x00C34847..0x00C348C9` compares the mesh name at `+0x58` with
+each material slot's virtual name getter. A match calls `0x00C41440` at
+`0x00C348CE`; exhausting the array leaves the current binding unchanged.
+
+Both pinned models have an all-zero MESH RSID body at file
+`0x23AC..0x23BB` and STR body `c0_00_ptn00` at `0x238C`. Helpers
+`0x00C8F990/0x00C8F520`, called at `0x00C8DDB5/0x00C8DD22`, supply those
+mesh fields. This selects name matching. RES slot zero has
+`RESOURCE_TYPE` value `0x73647262` (`brds`) at file `0x9FB4` and path
+`F00\c0_00_ptn00.win32` at `0xA020`. `0x00C4AD4B..0x00C4AD77` registers
+MaterialResourceNodeFactory vtable `0x010F2C64` under that type. Its slot 3,
+`0x00C4A060`, constructs MaterialResourceNode through `0x00C79770`.
+
+The [packed child construction](bgchip-instance-resource-setup.md#packed-resource-child-construction)
+supplies the resource name and payload. Reader `0x00E0CCD0` returns the
+directory-selected string, forwarded through `0x00A3BF10` and
+`0x00A44660/0x00A44730`. `0x00A44530..0x00A44548` selects the suffix
+after the last folder separator. `0x00C79590` retains the filename at
+material-resource `+0x54`; `0x00C79310` selects its prefix before the first
+`.`. At `0x00C79689`, node slot 2 saves `c0_00_ptn00` as the node name.
+Node vtable `0x010FAEFC` slots 1/2 are `0x00A3DA40/0x00A3DC20`.
+
+Material metadata getter `0x00C79940` returns `0x01323800`.
+`0x00C52583/0x00C5258B` compares its ordinal and collects matching
+resources in the complete finder's vector object at `+0x14`, whose begin/end
+pointers are `+0x18/+0x1C`. Instructions `0x00C519A5/0x00C519B6` read them
+before creating material slots through `0x00C3E4E0`, which retains the
+resource at slot `+0x38` at `0x00C3E512`.
+`0x00C51A7D..0x00C51A82` copies its node name through
+`0x00C3DBC0`. Material-slot vtable `0x010D646C` slot 1, `0x00C3DBD0`,
+returns that name. This joins the selected resource name to the mesh-name
+comparison, conditionally on resource construction and collection succeeding.
+
+`0x00C4145C` stores the matching material slot at tag `+0xB0`.
+`0x00C3DB90` follows slot `+0x38` to resource `+0x44`, the constructed
+material. If that pointer is null, the binder leaves the tag flags unchanged.
+Otherwise `0x00C41479..0x00C4148D` sets tag `+0x1A` bit 1 from
+`0x00C3CDD0`. That helper calls `0x0041BAC0`, whose complete body returns
+one, and consequently returns bit 0 of PRAM byte zero.
+`0x00C414FF..0x00C41505` copies PRAM byte `+0x03` to tag `+0x133`.
+
+The selected `SEDBshd` at file `0x90` has version `29` and endian byte zero.
+Its PRAM chunk starts at `0x2070`, with body bytes `19 08 FF 00` at `0x2080`.
+These material bytes are identical in the original and authored files.
+Preprocessor `0x00C902A0` returns without conversion for endian byte zero;
+version `29` bypasses the older-version word update at `0x00C90018`.
+The [PRAM handoff](pram-packed-render-state.md#payload-handoff) retains the
+body at material `+0x30`. Successful binding therefore sets tag `+0x1A`
+bit 1 to one and tag `+0x133` to zero, selecting slot 9 among the two stated
+dispatch branches subject to the other guards. This does not establish a
+material construction or binding result in a running client.
+
+### Mask updates and remaining static edge
+
+`0x00C32EB0` iterates component `+0x80/+0x84` tags and writes `+0x131`
+at `0x00C32EF1` as `(mask & (1 << tag[+0x133])) != 0`.
+`0x00C32F10` writes every tag's `+0x132` at `0x00C32F3D` as
+`(mask & (1 << component[+0x28])) != 0`. These x86 shifts use the low
+five selector bits. `0x00C3A200/0x00C3A310` apply the respective setters
+to the DrawableObject's component records with stride `0xB0`.
+`0x00C5017E..0x00C50181` copies MINS HEAD byte `+0x0A` into component
+`+0x28`; `0x00C88560/0x00C88530` select that MINS and HEAD. The selected
+byte at file `0x9E46` is zero in both models. Both mask tests therefore use
+bit 0 on the successfully bound selected branch.
+
+RaptureModelObject vtable `0x010653A4` slots 30/32 point to
+`0x008DE260/0x008DE2D0`. They obtain model `+0xD8` through slot 82,
+`0x006576B0`, and forward their mask argument to
+`0x00C3A200/0x00C3A310` at `0x008DE287/0x008DE2FE` when the drawable
+exists. Slot 32 also saves its mask at model `+0x294` before that guard.
+These are synchronous update paths when called. The selected floor's
+callers of model slots 30/32, their mask arguments and their ordering
+relative to tag construction and draw dispatch remain untraced static edges.
+Constructor defaults alone do not establish active `+0x131/+0x132` values,
+or that tag `+0x1A` bit 0 survives subsequent caller updates.
+
+## Indexed submission
 
 The ordinary branch calls `0x00C423B0` at `0x00C43F2D`. It selects a tag
 override index buffer or mesh `+0xF4`, binds it through `0x0041D210`, and

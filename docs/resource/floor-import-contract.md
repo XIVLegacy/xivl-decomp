@@ -73,6 +73,15 @@ translations `(16,0,-16)`, `(16,0,16)`, `(-16,0,16)`, `(-16,0,-16)`.
 The [visibility finding](floor-model-visibility.md) checks their expanded
 native block bounds rather than requiring a change to hand-authored values.
 
+The selected BGChip distance predicate consumes its owning BlockAABB.
+Expanded folder containment is therefore the relevant offline culling-box
+check for this profile. Preserve the placement and component transforms,
+MINS node/mesh selectors, skeleton records, component mask inputs, material
+names and resource paths, and PRAM bytes.
+The [draw-tag trace](floor-model-render-path.md) connects these retained
+material inputs to admission-state producers. Those runtime tag fields do
+not add serialized fields to the importer's edit ownership.
+
 ## Offline acceptance
 
 1. Authenticate the exact input bytes and validate the supported structure.
@@ -104,10 +113,15 @@ These are artifact checks, not a rerun of either writer or a client test.
 
 Record successful resolution of the selected authored resource, the live
 model/drawable/mesh identity, active buffer sizes and draw counts, placement
-transform, visibility result and final draw admission in one attributable
-load. Device success and visible pixels remain separate from a non-null
-resource or a true setup return. The precise static edges and live inputs
-still unqualified are listed in the two native findings.
+transform, component Joint output matrix, selected BGChip visibility
+inputs/result and final draw admission in one attributable load. Correlate
+the owning BlockAABB, transformed comparison point and effective distance
+with that same placement. Record
+tag `+0x118/+0xB0`, bytes `+0x131/+0x132` and `+0x1A` bits at dispatch,
+then the final draw arguments and result. Device success and visible pixels
+remain separate from a non-null resource or a true setup return. The two
+native findings distinguish the remaining static caller edges from values
+that need an attributable load.
 
 Preserving material and shader bytes does not establish their live variant,
 bound textures, accepted vertex inputs or output appearance. A runtime check
