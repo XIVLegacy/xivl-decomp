@@ -396,19 +396,56 @@ The caller's 0x004E48E6-0x004E48E8 test takes the true branch. Its next
 call is `0x004E48F9 -> KERNEL32.dll!EnterCriticalSection(H+0x44)`:
 0x004E48EE-0x004E48F4 computes/pushes H+0x44, and the original PE
 binds IAT 0x00F3E16C to that import. The import identity is resolved;
-external implementation, lock state and return remain the stopping boundary.
+external implementation, lock state and return remain unproved.
 The earlier H+0x60 synchronization at 0x004E4878 is also conditional
-context. The subsequent direct call 0x004E491A -> FUN_004E4320 is an
-identified target beyond this boundary; no framing is promoted through it.
+context. The following continuation assumes that both calls returned.
 
 For an arbitrary existing H+0x0C entry, the unresolved identity join remains
 `[node(K)+0x10] == the live FUN_00DA1060-produced R`. Sharing a slot
 layout does not prove that join. No loaded entry or successful send was observed.
 
+### Framing-helper entry boundary
+
+At 0x004E4904-0x004E491A, FUN_004E4840 calls FUN_004E4320 with
+ECX=R+8, first stack argument the selected carrier N, and second stack
+argument [H+0x78]. N is the queue candidate, which need not be the newly
+encoded snapshot carrier. H's base constructor initializes H+0x78 to zero
+at 0x00DA2959; that does not prove its value at this later call.
+
+Let W=R+8 be the embedded buffer subobject. FUN_00DA1060 calls its base
+constructor FUN_00DA1EA0 at 0x00DA1090. That base passes W to
+FUN_00DB8030 at 0x00DA1ECE-0x00DA1ED7. If construction returns, its
+stores at 0x00DB806F/0x00DB8075 initialize W+0x0C and W+0x0E to
+zero. These are separate u16 fields: the caller tests R+0x14=W+0x0C
+at 0x004E490B, while the helper's initial guard tests R+0x16=W+0x0E.
+Neither constructor value is assumed unchanged at dispatch.
+
+| Initial helper path | Proven operation | Instruction locators |
+| --- | --- | --- |
+| u16 [W+0x0E] is nonzero | The unsigned-above branch returns AL=0 without calling another function or reading N. It writes no route state or packet bytes. | 0x004E432D-0x004E4333 -> 0x004E4381-0x004E4389 |
+| u16 [W+0x0E] is zero | Pushes 0, then 2, then the address W+0x10=R+0x18, and calls IAT 0x00F3E1A0. No packet construction precedes this call. | 0x004E4335-0x004E4341 |
+
+The original PE binds IAT 0x00F3E1A0 through lookup thunk 0x012620AC
+to KERNEL32.dll!InterlockedCompareExchange. For the zero-field path, the
+exact next external boundary is
+`0x004E4341 -> InterlockedCompareExchange(R+0x18,2,0)`.
+R+0x18 is the submitted address, not a pointer loaded from that field.
+The three values are native call operands, not encoded wire fields.
+The imported implementation, loader-resolved address, runtime value at
+R+0x18, memory effect and return remain unproved. No result is assumed to
+continue into the helper's later packet writes.
+
+Conditional return from EnterCriticalSection therefore establishes this
+helper entry and its initial rejection/import paths. It adds no outer wire
+encoding, socket submission or server acceptance to the 0xA0 application
+construction above. The immediate AL=0 return is a local helper result,
+not evidence of a server rejection or a user cancellation.
+
 Thus the buffer layout is a conditional static contract. The constructor path
 binds the paired M calls, carrier getter and R gate. The allocator's and route
-caller's external synchronization/heap results, failure-handler identity,
-actual socket submission, captured outgoing bytes, server receipt and acceptance
+caller's external synchronization/heap results, the helper's atomic call
+result, failure-handler identity, actual socket submission, captured outgoing
+bytes, server receipt and acceptance
 remain unestablished. The UI callback gap below is independent of this snapshot
 encoder.
 
