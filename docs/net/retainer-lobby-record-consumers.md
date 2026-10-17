@@ -8,9 +8,10 @@ application buffer with command word 0x000F. Its byte construction is
 established conditionally. A concrete constructor and registration path binds
 the dispatcher lookup's paired calls to a no-op and its transport-route gate
 to a constant true return. A conditional continuation constructs transport-buffer
-headers and copies the selected carrier's payload. Runtime entry selection, allocation,
-synchronization and later call results, transmission and server behavior remain
-unproved.
+headers and copies the selected carrier's payload. With J==0 and returning
+timing imports, it also stores a symbolic timestamp and pads where required.
+Runtime entry selection, allocation, synchronization and later call results,
+transmission and server behavior remain unproved.
 
 ## Source and method
 
@@ -451,12 +452,12 @@ K=(L+0x13)&0x0000FFFC and admits the unsigned comparison C+K+0x10<=D
 only through L=0xFFEC, and wraps to zero at L=0xFFED. No such large
 runtime carrier is asserted. Cursor stores below also retain their u16 width.
 
-| Path | Local outcome or first unresolved boundary | Instruction locators |
+| Path | Local outcome or external dependency | Instruction locators |
 | --- | --- | --- |
 | a==1 | Returns AL=0 without another call, reading N or writing packet bytes. | 0x004E4347-0x004E434A -> 0x004E4381-0x004E4389 |
 | a!=1, capacity comparison fails | Calls KERNEL32.dll!InterlockedCompareExchange(R+0x18,0,2) through IAT 0x00F3E1A0 before frame or payload writes. This reset call's return and effects are unproved. | 0x004E4372-0x004E437B |
 | a!=1, admitted, J!=0 | After the stores and payload copy below, calls [[J]+0x18] with ECX=J and arguments (saved [N+0x14],payload destination,L). J's target identity, implementation, effects and return are unresolved. | 0x004E4425-0x004E443C |
-| a!=1, admitted, J==0 | After the additional cursor/header updates below, calls FUN_004E36A0. Its first external call is KERNEL32.dll!GetSystemTime with a local output address, through IAT 0x00F3E2DC. Its implementation, output and return are unproved. | 0x004E4455 -> 0x004E36A7-0x004E36AC |
+| a!=1, admitted, J==0 | After the additional cursor/header updates below, calls FUN_004E36A0. Its first external call is KERNEL32.dll!GetSystemTime through IAT 0x00F3E2DC. The symbolic continuation below assumes the timing imports return; it does not establish their outputs or implementation. | 0x004E4455 -> 0x004E36A7-0x004E36AC |
 
 For the admitted paths, let B=[W+8] and T=(C==0 ? 0x10 : C).
 The equations assume usable memory, stable nonaliased object fields and the
@@ -511,12 +512,89 @@ At the J==0 clock boundary these values are 0xC0, 0xC0 and 1,
 respectively. B+8..+0x0F still hold their initial zeros. This specialization
 does not apply to an arbitrary earlier queue candidate.
 
-The later timestamp stores at 0x004E445D/0x004E4463, padding loop at
-0x004E4466-0x004E448A, reset atomic at 0x004E4495 and success return
-at 0x004E449D are beyond the admitted paths' boundaries. No timestamp,
-zero padding, completed frame or successful helper return is promoted through
-them. These are conditional transport-buffer writes, not observed wire bytes
-or proof of socket submission or server acceptance.
+The J!=0 callback remains an unresolved boundary. The following J==0
+continuation assumes only that GetSystemTime and SystemTimeToFileTime return
+according to the ordinary ABI. Their output memory remains symbolic, including
+when a conversion reports failure.
+
+### Symbolic clock and padding continuation
+
+Let Z be ESP in FUN_004E36A0 after its four saved-register pushes at
+0x004E36A3-0x004E36A6. The original PE binds GetSystemTime through
+IAT 0x00F3E2DC/lookup 0x012621E8 and SystemTimeToFileTime through
+IAT 0x00F3E2D8/lookup 0x012621E4, both from KERNEL32.dll.
+
+| Callsite | Submitted pointers | Return handling |
+| --- | --- | --- |
+| 0x004E36AC, GetSystemTime | Output Z+0x30 | No return-value check. The structure is passed to the first conversion. |
+| 0x004E36C2, SystemTimeToFileTime | Input Z+0x30, output Z+0x18 | EAX is overwritten by MOV EAX,1 at 0x004E36C4 without testing the conversion result. |
+| 0x004E36FF, SystemTimeToFileTime | Input Z+0x20, output Z+0x10 | No conversion-result check; EAX is overwritten at 0x004E3705. |
+
+The second conversion's input is locally constructed as eight u16 words
+`[0x07B2,1,0,1,0,0,0,0]` at 0x004E36C9-0x004E36FA. These encode
+year 1970, month 1, day-of-week 0, day 1 and zero time fields in the
+named API's input layout. The instructions prove the submitted values,
+without proving conversion success. In particular, return alone does not
+establish that either output qword was initialized.
+
+Let F=u64[Z+0x18] and E=u64[Z+0x10] be the qwords actually read after
+both conversions return. SUB at 0x004E3722 and SBB at 0x004E3729
+compute X=(F-E) modulo 2^64. The intervening PUSH preserves the borrow.
+There is no signed comparison or negative clamp. Calls at 0x004E372D
+and 0x004E3737 pass X and then the first quotient to FUN_009D5880,
+with unsigned divisors 0:1000 and 0:10, respectively.
+
+Both calls take that helper's divisor-high-zero branch at 0x009D5888.
+It divides the numerator's high dword by the nonzero low divisor, then
+divides the first remainder concatenated with the low dword
+(0x009D5894/0x009D589C). It returns the combined quotient in EDX:EAX
+through 0x009D589E-0x009D58A0 and 0x009D58E3-0x009D58E5.
+The first remainder is smaller than the divisor, so the second quotient
+fits u32. These reached DIV operations cannot divide by zero or overflow.
+Their instructions establish unsigned division without relying on a helper
+name or the unneeded divisor-high-nonzero branch.
+
+The returned 64-bit value is therefore
+`Y=floor(floor(((F-E) mod 2^64)/1000)/10)`
+`=floor(((F-E) mod 2^64)/10000)`.
+This is a relation between symbolic output-memory values. It does not prove
+a concrete timestamp, wall-clock units or a successful conversion.
+
+The caller reloads B at 0x004E445A and writes Y.low to B+8..+0x0B
+at 0x004E445D, then Y.high to B+0x0C..+0x0F at 0x004E4463. These
+are little-endian outer-header stores, made even when C was nonzero.
+They precede all padding writes.
+
+For padding, 0x004E4466-0x004E446F compares unsigned L+0x10 with saved
+K and skips the loop if L+0x10>=K. Otherwise 0x004E4471-0x004E448A
+stores one zero byte at B+u16[W+0x0C], increments that u16 cursor, then
+increments the local length and repeats while its zero-extended low word
+plus 0x10 remains below K. The exact count is
+`p=max(K-(L+0x10),0)`: zero to three bytes for L<=0xFFEC, and zero
+for all L>=0xFFED where the masked K has wrapped. The local length cannot
+wrap on an entered loop; the cursor independently retains its u16 wrap.
+
+With C2=u16(C1+L), padding writes B+u16(C2+j) for 0<=j<p and leaves
+u16[W+0x0C]=u16(C2+p). These are stores in instruction order. Under
+the general cursor equations, later padding can overlap earlier header bytes,
+so a timestamp store is not an unconditional final-buffer value. No such
+runtime overlap is asserted.
+
+For the selected L=0xA0 carrier, K=0xB0 and p=0 for every C. With C==0,
+the cursor and outer length remain 0xC0, the count remains 1, and B+8..+0x0F
+hold Y through entry to the next call. The separate frame dword at
+B+0x1C..+0x1F remains unestablished. No padding byte is written on this
+specialized path.
+
+The first remaining unresolved boundary is
+`0x004E4495 -> KERNEL32.dll!InterlockedCompareExchange(R+0x18,0,2)`
+through IAT 0x00F3E1A0, lookup 0x012620AC. At 0x004E448C the caller
+reloads the previously saved address W+0x10=R+0x18, then pushes 2,
+0 and that address at 0x004E4490-0x004E4494. Its implementation,
+memory effect and return remain unproved. The AL=BL instruction at
+0x004E449D is beyond this boundary. No successful helper return, observed
+wire bytes, socket submission or server acceptance follows from the
+conditional timestamp and padding writes.
 
 Thus the buffer layout is a conditional static contract. The constructor path
 binds the paired M calls, carrier getter and R gate. The allocator's and route
