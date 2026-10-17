@@ -102,6 +102,70 @@ the request's command actor and encoded arguments with a callback receiver,
 method name and positional argument input. The generic decoder is a candidate
 only until such an edge is established.
 
+The [reflective call alias](lua-call-function-bridge.md) conditionally installs
+the existing `_callFunction_lua` function as `_callFunction`. Its descriptor
+does not invoke a CraftJudge callback. The actual aliased function and the
+callback frame remain separate missing identities.
+
+## Minimum missing invocation record
+
+The minimum proof joins an executed command ID and variation to the actual
+callback entry and its complete arguments through a proved causal edge.
+These are logical observations; one complete source record can satisfy several
+rows. Ready-state and serialization records are required only for the
+additional origin or request-construction claims they establish.
+
+| Observation | Minimum values and useful boundary |
+| --- | --- |
+| Native command use | Retain the executed command ID, actual variation operand, MyPlayer, name, command actor/control binding and complete ordered typed operands. For its native path, retain the executed `0x0071CA50` lookup result, descriptor/table and dispatched target. `_executeCommand` uses `0x0070A010` and policy callsite `0x0089848F`; direct fallback performs another lookup in `0x006E8B30/0x006E8C90`. Record each lookup actually used, without assuming equal names identify the same object. |
+| Ready selection, if origin is claimed | Record ready index `15` or `17`, the actual `work.commandIndex[readyIndex]`, both `getReadyCommand` results, and the nil-to-category substitution into operand 3 in the same invocation. Identify the command actor separately from its sheet ID. Source: the script contract's "Ready variation and command-name selection" section, getter prototype `0.14` PCs `36-42` and ready helper `0.279` PCs `25,28,30,39`. |
+| Request construction, if claimed | At `0x006E2FB0`, retain the actual argument vector from index `2`, resolved item/control bindings and serializer result, then the descriptor slot-5 use at `0x006E30CA`. Encoded values alone can lose original argument distinctions. Construction of `0x012D` does not prove transmission or server consumption. |
+| Producer and selector | Supply a proved causal link from the command invocation, and any request actually used, to the callback producer and entry. If generic incoming decoder fields carry that proof, retain the required trigger/owner/event/function fields, parameter bytes at `0x0076C220`, receiver and pending-item identity through `0x0089EB20/0x0089E8E0`, with exact consumed bounds. Unused fields or the full 64-byte input can be omitted when the causal edge and callback frame are independently established. Follow the executed delegate or other selector; generic `0x0130` remains a candidate until that relation is proved. |
+| Callback entry | Retain actual receiver and full typed argument count/vector at entry to the resolved callback closure/prototype. If the alias was used, identify the invoked `_callFunction` value and its causal edge, including any selector consumption or argument changes. The normal VM boundary calls a C target at `0x00DCFBFB` or enters the Lua interpreter through `0x00DCFC6E`; these sites require the actual closure and call frame. A requested method-name string alone is insufficient. |
+
+Retain artifact/code identity, loaded module base and RVA or loaded Lua chunk
+digest/prototype, session epoch, ordered event identity, Lua state and relevant
+object lifetimes. Values preserve type, position, exact count, nil versus
+absent, false versus zero, string bytes and reference identity domains.
+Capture supplied arguments before formal-frame adaptation, as specified in
+the [invocation boundary](lua-call-function-bridge.md#invocation-boundary).
+The actual variation operand at command execution suffices for its value;
+proving its ready origin additionally requires the executed getter and
+substitution, rather than a later memory snapshot. Property slots `19/16`
+cannot replace that ready-slot/category observation.
+The [native command dispatch](../input/chara-selection-producers.md#native-command-construction-and-policy-dispatch)
+and `xivl-client-structs:manifests/player_command_wire_contract.json`,
+`luaBridge` and `serializer`, qualify the native and encoded argument domains.
+
+Observed synchronous nesting can establish a local call edge. Yielding,
+queueing, thread handoff or a server round trip needs its own proved
+producer/consumer identity transfer. Timing, equal actor/item values, a CRC
+or a collector-assigned label cannot supply that edge. A propagated token is
+useful only if its producer, uniqueness scope and association with the request
+and callback selector are established. A client-only trace without such a
+cross-boundary relation cannot prove the server selected the callback for
+that request.
+
+Direct observation of the invoked callable with its code identity can replace
+alias-registration history. An observed lookup result and its actual use can
+replace reconstructing every earlier descriptor publication. Callback return
+capture is optional for mapping, arguments and variation; it is required for
+a completion or returned-value claim. Record a separate correlated occurrence
+for every callback/command pairing claimed. Two command IDs do not imply that
+two invocations cover all four callbacks, and no pairing is assumed in advance.
+The script contract owns their distinct result counts and argument consumers.
+
+Unknown lifetime, dropped events, truncated names/vectors or undecoded values
+invalidate the affected join or value claim. Preserve complete local facts
+and mark the missing fields unknown. A mapping observation covers that
+invocation, without establishing a universal binding, rate formula or server
+settlement.
+
+This specifies missing historical evidence. The preserved retail wire corpus
+is finite and new connected-retail captures are unavailable. A local test with
+a supplied callback or payload can establish behavior for that setup; it
+cannot recover the historical retail selector or server policy.
+
 ## Reproduction
 
 Retained Ghidra listing inspection, read-only PE reads with pefile 2024.8.26
