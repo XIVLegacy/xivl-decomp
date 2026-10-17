@@ -27,12 +27,18 @@ near floor. `0x007FD2E0` passes those ranges to `0x007FB370`, which compares
 them with position and distance inputs for a boolean range result. Separately,
 the `BgModelActor`, `BgObjActor`, and `BgPlateActor` vtables install
 `0x0062A330` and `0x0062A740` at slots 161 and 162. Those routines read the
-range getters and write model fields `+0x2C8` and `+0x2CC`; their embedded
-assertion names identify the fields as `SetZPixelClipNear` and
-`SetZPixelClipFar` inputs. The structural slot identities are recorded in
+range getters and reach the DrawableObject through ModelObject `+0xD8`.
+Both write DrawableObject `+0x2CC` for far and `+0x2C8` for near; their
+embedded assertion names identify `SetZPixelClipFar` and
+`SetZPixelClipNear` inputs.
+The structural slot identities are recorded in
 `config/ffxivgame.vtable_slots.jsonl`.
 
 This establishes range culling and pixel clipping, not which model or LOD
 resource is selected. The optional scenery LOD multiplier requires a separate
 getter-to-selection trace and supported range, initialization, and restore
 behavior before a runtime control can be justified.
+
+The [selected floor visibility trace](../resource/floor-model-visibility.md)
+distinguishes retained layout/block bounds, updated model bounds, transformed
+draw-record bounds, distance admission and these pixel-clip inputs.

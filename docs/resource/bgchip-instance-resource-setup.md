@@ -167,6 +167,11 @@ through model `+0xD0` slots 2 and 3. It does not produce the array for the
 non-null primary-resource branch above. The BGChip property's later
 `0x00A97420` additional-resource setup likewise is not that array producer.
 
+The [selected floor model trace](floor-model-render-path.md) follows this
+initializer into drawable construction, mesh buffers and guarded submission.
+The [floor import contract](floor-import-contract.md) separates its offline
+write/preservation checks from native rendering qualification.
+
 ## Conditional resource-change notification
 
 There is also a listener route. Instance binding `0x00A9A730` registers

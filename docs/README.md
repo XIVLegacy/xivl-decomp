@@ -175,6 +175,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [BG-object embedded schedulers](resource/bgobj-embedded-schedulers.md)
 - [BGChip model resource binding](resource/bgchip-model-binding.md)
 - [BGChip resource setup and Attribute physics](resource/bgchip-instance-resource-setup.md)
+- [Selected floor import and native rendering contract](resource/floor-import-contract.md)
 - [Attribute resource and native physics registration](resource/attribute-resource-and-scene-binding.md)
 - [SceneThreadImpl world lifetime](resource/scene-thread-world-lifetime.md)
 - [DivideMap block activation](resource/layout-block-activation.md)
