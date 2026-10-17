@@ -43,8 +43,15 @@ for `22014` and `22015`. The five `commandJudgeMode` rows at CSV lines
 `12005,22003,22007,22007,22001`. The CSV SHA-256 is
 `3cc5f6aecf452418e24cc9e024e2f949b94501085e2f6f79c0377a42c23e0b7f`.
 This bounds the retained owner field, not arbitrary typed arguments or
-delegated callback methods. The retained decoded products do not provide a
-complete nested callback-method/argument census.
+delegated callback execution. The complete physical prefix-string census is
+recorded in
+`xivl-captures:studies/local-guildleve-dialogue/derived/accounting.json`,
+`corpus.all_admitted_0x0130_delegate_prefix_string_counts`, with scope and
+reproduction in that study's "Delegated prefix-string census" section.
+Its outer function-name census and delegated prefix strings contain none of
+the four CraftJudge materia callback names. Prefix-string coverage does not
+establish the native delegate target, decode every argument tail or supply a
+materia request-to-callback correlation.
 
 ## Generic command request bridge
 
