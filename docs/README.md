@@ -210,6 +210,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Selected mesh ENVD producer](resource/mesh-envelope-producer.md)
 - [Bounded skeleton output-pointer initialization](resource/skeleton-output-pointer-initialization.md)
 - [Bounded skeleton output Float4 submission](resource/skeleton-output-float4-submission.md)
+- [Model draw-context matrix registers](resource/model-draw-context-matrix-registers.md)
 - [InstallUnpacker](resource/install-unpacker.md)
 - [Launcher startup patch addresses](resource/launcher-startup-patch-addresses.md)
 - [Magitek circle geometry](resource/magitek-circle-geometry.md)
