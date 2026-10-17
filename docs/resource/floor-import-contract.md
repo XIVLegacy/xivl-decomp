@@ -123,6 +123,13 @@ remain separate from a non-null resource or a true setup return. The two
 native findings distinguish the remaining static caller edges from values
 that need an attributable load.
 
+Record model slot-30/32 calls from construction through dispatch with their
+mask argument and drawable presence. Keep saved model `+0x294` separate
+from applied tag `+0x131/+0x132`: saving a mask before a drawable exists
+does not establish that it reached the later tags. The
+[mask setup trace](floor-model-render-path.md#construction-and-setup-ordering)
+owns the constructor, setter and initializer observations.
+
 Preserving material and shader bytes does not establish their live variant,
 bound textures, accepted vertex inputs or output appearance. A runtime check
 must distinguish rejection before submission from a submitted draw producing

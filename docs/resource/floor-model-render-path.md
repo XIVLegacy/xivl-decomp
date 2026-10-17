@@ -233,7 +233,7 @@ bit 1 to one and tag `+0x133` to zero, selecting slot 9 among the two stated
 dispatch branches subject to the other guards. This does not establish a
 material construction or binding result in a running client.
 
-### Mask updates and remaining static edge
+### Mask updates and caller boundary
 
 `0x00C32EB0` iterates component `+0x80/+0x84` tags and writes `+0x131`
 at `0x00C32EF1` as `(mask & (1 << tag[+0x133])) != 0`.
@@ -251,11 +251,71 @@ RaptureModelObject vtable `0x010653A4` slots 30/32 point to
 `0x006576B0`, and forward their mask argument to
 `0x00C3A200/0x00C3A310` at `0x008DE287/0x008DE2FE` when the drawable
 exists. Slot 32 also saves its mask at model `+0x294` before that guard.
-These are synchronous update paths when called. The selected floor's
-callers of model slots 30/32, their mask arguments and their ordering
-relative to tag construction and draw dispatch remain untraced static edges.
-Constructor defaults alone do not establish active `+0x131/+0x132` values,
-or that tag `+0x1A` bit 0 survives subsequent caller updates.
+These are synchronous update paths when called.
+
+The selected BgPlateActor vtable `0x00FBA97C` has a forwarding entry at
+slot 85, `0x00A5FA30`. Its complete ten-byte body loads actor `+0x0C`,
+then model slot 30 at table `+0x78`, and tail-jumps with the incoming stack
+argument unchanged. This closes the actor-to-model receiver and argument
+forwarding edge; it does not identify a caller of that actor entry.
+
+### Construction and setup ordering
+
+Model construction `0x008DD0A0` calls base constructor `0x00A62CA0`
+at `0x008DD0D4` before installing `0x010653A4` at `0x008DD0E1`.
+The base constructor clears model `+0xD8` at `0x00A62D5C` and writes
+`0xFFFFFFFF` to saved mask `+0x294` at `0x00A62DBA`. That saved field
+is distinct from the tags created later and from slot 32's successful
+application of a supplied mask to an existing drawable.
+
+On the successful initializer path, `0x00A6203B` retains the constructed
+drawable at model `+0xD8` before `0x00A62222/0x00A62234` invoke model
+slot 27 with zero conditionally and then one. Slot 27 is `0x008DE860`:
+it saves argument bit 0 as model `+0x29C` bit 3 and, when model bit 2 and
+the drawable guards permit, updates drawable `+0xA0` bit 0. The conditional
+zero call is followed by clearing model bit 2 before the one call.
+These calls therefore do not unconditionally enable the drawable.
+At `0x00A622B1..0x00A622C2`, the initializer passes drawable `+0xF4`
+to model slot 37, `0x008DD510`, which saves it at model `+0x288` and
+copies it back to an existing drawable. Neither entry is a tag-mask setter.
+
+The complete original-byte decode `0x00A61DF0..0x00A6247E`, including
+the omitted success blocks, contains no direct access with displacement
+`+0x294` or direct call to either mask setter. Thus this initializer body
+does not directly replay the saved mask. This bounded finding does not
+exclude a mask effect through an indirect call or a later update.
+
+A concrete model-slot-32 caller, `0x008A5430`, obtains the model through
+actor slot 71 and supplies `(model_slot_31_result & 0xFFFFFFF0) | argument`.
+Its caller at `0x00847FC8` passes bits 22..25 of a record state word,
+after testing and clearing dirty bit 26. The receiver belongs to
+`CharaWeaponController`, vtable `0x0103EE4C` slot 2. Its nine records
+start at controller `+0x50`, stride `0xD0`; `0x008469C0` writes the
+four-bit input and sets that dirty bit. Record creation `0x00846320`
+requests actor type `0x12`, factory index 7, constructing `WeaponActor`
+through `0x0079FB60/0x008A5C80`. This producer supplies a different actor
+type from the selected floor's type `0x15`, index 10, BgPlateActor path;
+it does not establish a selected-floor mask update.
+
+Another model-slot-32 helper, `0x0065C020`, uses model slot 31's result
+as its starting mask and selects a bit with argument 1's low five bits;
+it sets that bit for argument 2 zero and clears it otherwise. Its caller chain
+`0x00825B97 -> 0x0065E5B0 -> 0x0065C020` passes through the
+`IActor`-to-`CharaActor` cast at `0x00825B52..0x00825B65`, using type
+descriptors `0x012B7C48/0x012B7810`. The selected BgPlateActor's original
+RTTI hierarchy at vtable `0x00FBA97C` has no `CharaActor` base, excluding
+that selected receiver from this caller's successful-cast branch.
+
+The remaining selected static edges are the caller and mask argument of
+BgPlateActor slot 85, any selected caller of model slot 32, and their order
+relative to construction and draw dispatch. The initial and resource-change
+[BGChip setup routes](bgchip-instance-resource-setup.md) supply resources;
+the inspected setup bodies do not establish either mask invocation.
+Continuing the static trace requires joining an update caller to the selected
+actor/model receiver, including indirect helpers or callbacks outside the
+initializer body. Actual supplied masks and active tag `+0x131/+0x132`
+values remain unobserved. Constructor defaults alone also do not establish
+that tag `+0x1A` bit 0 survives subsequent caller updates.
 
 ## Indexed submission
 
