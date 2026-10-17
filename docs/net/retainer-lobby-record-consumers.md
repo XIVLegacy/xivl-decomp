@@ -7,8 +7,10 @@ The working snapshot feeds a conditional native encoder for a 0xA0-byte
 application buffer with command word 0x000F. Its byte construction is
 established conditionally. A concrete constructor and registration path binds
 the dispatcher lookup's paired calls to a no-op and its transport-route gate
-to a constant true return. Runtime entry selection, allocation and synchronization
-results, transmission and server behavior remain unproved.
+to a constant true return. A conditional continuation constructs transport-buffer
+headers and copies the selected carrier's payload. Runtime entry selection, allocation,
+synchronization and later call results, transmission and server behavior remain
+unproved.
 
 ## Source and method
 
@@ -18,8 +20,9 @@ Retail 1.23b `ffxivgame.exe`, build `2012.09.19.0001`, PE32 x86, image base
 All native locators below are absolute virtual addresses. Retained Ghidra
 instruction rows were matched against original PE bytes using the section
 raw-file map; Capstone 5.0.7 decoded each authenticated range completely.
-Discontiguous ranges in `FUN_00DA76B0` and `FUN_00DA79D0` were checked
-separately. Listing header sizes were not treated as contiguous extents.
+Discontiguous ranges in `FUN_00DA76B0`, `FUN_00DA79D0`, `FUN_009D4600`
+and `FUN_009E4652` were checked separately. Listing header sizes were not
+treated as contiguous extents.
 PE table and mask values below were read directly from the same binary.
 The allocator trace also decodes original PE continuations at
 0x008A8A70-0x008A8AA7, 0x009D5CE7-0x009D5D16 and
@@ -432,14 +435,88 @@ exact next external boundary is
 R+0x18 is the submitted address, not a pointer loaded from that field.
 The three values are native call operands, not encoded wire fields.
 The imported implementation, loader-resolved address, runtime value at
-R+0x18, memory effect and return remain unproved. No result is assumed to
-continue into the helper's later packet writes.
+R+0x18, memory effect and return remain unproved. The continuation below
+assumes that this call returns and keeps its EAX result symbolic.
 
-Conditional return from EnterCriticalSection therefore establishes this
-helper entry and its initial rejection/import paths. It adds no outer wire
-encoding, socket submission or server acceptance to the 0xA0 application
-construction above. The immediate AL=0 return is a local helper result,
+The immediate AL=0 return is a local helper result,
 not evidence of a server rejection or a user cancellation.
+
+### Conditional transport-buffer construction
+
+Let a be EAX returned at 0x004E4341 and J be the second helper argument,
+[H+0x78]. For a!=1 the helper loads L=u16[N+0x20], C=u16[W+0x0C]
+and D=u32[W]. These are post-call loads. It computes
+K=(L+0x13)&0x0000FFFC and admits the unsigned comparison C+K+0x10<=D
+(0x004E434F-0x004E4370). The mask is exact: K equals align4(L+0x10)
+only through L=0xFFEC, and wraps to zero at L=0xFFED. No such large
+runtime carrier is asserted. Cursor stores below also retain their u16 width.
+
+| Path | Local outcome or first unresolved boundary | Instruction locators |
+| --- | --- | --- |
+| a==1 | Returns AL=0 without another call, reading N or writing packet bytes. | 0x004E4347-0x004E434A -> 0x004E4381-0x004E4389 |
+| a!=1, capacity comparison fails | Calls KERNEL32.dll!InterlockedCompareExchange(R+0x18,0,2) through IAT 0x00F3E1A0 before frame or payload writes. This reset call's return and effects are unproved. | 0x004E4372-0x004E437B |
+| a!=1, admitted, J!=0 | After the stores and payload copy below, calls [[J]+0x18] with ECX=J and arguments (saved [N+0x14],payload destination,L). J's target identity, implementation, effects and return are unresolved. | 0x004E4425-0x004E443C |
+| a!=1, admitted, J==0 | After the additional cursor/header updates below, calls FUN_004E36A0. Its first external call is KERNEL32.dll!GetSystemTime with a local output address, through IAT 0x00F3E2DC. Its implementation, output and return are unproved. | 0x004E4455 -> 0x004E36A7-0x004E36AC |
+
+For the admitted paths, let B=[W+8] and T=(C==0 ? 0x10 : C).
+The equations assume usable memory, stable nonaliased object fields and the
+ordinary ABI. Instructions reload B rather than retaining one pointer across
+every access. If C==0, two qword zero stores initialize B+0..+0x0F, then
+the helper writes u8 1 at B+0, u16 0x0010 at B+4, explicit u16 zeros at
+B+2/B+6, and u16 0x0010 at W+0x0C
+(0x004E439A-0x004E43C9). A nonzero C skips this initialization.
+
+It writes a 16-byte frame header at B+T using two qword copies from its
+stack. Let Q be ESP just after the prologue PUSH EDI, also the stack level
+after argument cleanup. The native scalar fields are little endian.
+
+| Frame-relative offset | Width and source | Instruction locators |
+| --- | --- | --- |
+| +0 | u16 K | Stack store 0x004E43E2; copy 0x004E43EE-0x004E43F4 |
+| +2 | u16 3 | Stack store 0x004E43E7; same first qword copy |
+| +4 | u32 [N+0x14] | Stack store 0x004E43CD-0x004E43D0; same first qword copy |
+| +8 | u32 [N+0x18] | Stack store 0x004E43D4-0x004E43D7; copy 0x004E43F8-0x004E43FE |
+| +0x0C | Four bytes from Q+0x24..+0x27 | The second qword copy reads them without any preceding initialization by this function. Their values and meaning are unestablished. |
+
+The unknown final dword is not made zero by the earlier buffer initialization.
+Its stack source is copied over the frame destination. No reserved-field
+meaning is inferred for these bytes or for the known zero spans.
+
+The helper advances u16[W+0x0C] to C1=u16(T+0x10) at 0x004E4403,
+then copies L bytes from P=[N+0x24] to B+C1 through FUN_009D4600
+(0x004E4407-0x004E441A). This copies L bytes, not K. The copy's retained
+implementation handles forward and backward paths, with byte/dword tails
+(0x009D4614-0x009D4964). Original PE tables at 0x009D468C, 0x009D4708,
+0x009D4774, 0x009D4818, 0x009D48A4 and 0x009D4910 bind the reached
+indexed branches. The forward count>=0x100 path can select FUN_009E46D9
+at 0x009D4642, depending on [0x0137B8E8] and address alignment. Its
+local copy paths, recursion and FUN_009E4652 dependency contain no unresolved
+external calls (0x009E4726, 0x009E476E-0x009E47AC,
+0x009E4672-0x009E46CD). Copy completion still requires valid addresses
+and the ordinary clear direction flag on entry.
+
+The J!=0 boundary receives the payload address B+C1, not the frame address.
+The first callback argument comes from Q+0x1C, saved before the copy
+(0x004E4437). With J==0, the helper instead updates u16[W+0x0C] to
+u16(C1+L), adds K to u16[B+4], and adds 1 to u16[B+6]
+(0x004E4441-0x004E4451), then reaches GetSystemTime. The clock import
+is bound by original lookup thunk 0x012621E8 and IAT 0x00F3E2DC;
+no loaded module or initialized clock output was observed.
+
+If the selected candidate is the 0xA0 application carrier and C==0,
+L=0xA0, K=0xB0 and capacity must be at least 0xC0. The frame lies at
+B+0x10..+0x1F and the application copy at B+0x20..+0xBF. At the J!=0
+boundary the cursor is 0x20, u16[B+4] is 0x10 and u16[B+6] is zero.
+At the J==0 clock boundary these values are 0xC0, 0xC0 and 1,
+respectively. B+8..+0x0F still hold their initial zeros. This specialization
+does not apply to an arbitrary earlier queue candidate.
+
+The later timestamp stores at 0x004E445D/0x004E4463, padding loop at
+0x004E4466-0x004E448A, reset atomic at 0x004E4495 and success return
+at 0x004E449D are beyond the admitted paths' boundaries. No timestamp,
+zero padding, completed frame or successful helper return is promoted through
+them. These are conditional transport-buffer writes, not observed wire bytes
+or proof of socket submission or server acceptance.
 
 Thus the buffer layout is a conditional static contract. The constructor path
 binds the paired M calls, carrier getter and R gate. The allocator's and route
