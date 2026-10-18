@@ -106,6 +106,34 @@ for both inputs, sets the fraction to zero and queries readiness again.
 These are resource guards and local update order, rather than selected
 actor/model readiness.
 
+### Mode-one ID and wrapper ordering
+
+The retained mode-one callers supply different ID inputs.
+`0x007E8DF0` saves its weather selector at O+`0x64` and resolves it
+through the parent's `+0x154` manager using `0x0079B380`. That lookup
+matches an entry's `+0xB0`. `0x0079B220` then returns the first child
+`+0x60` whose child `+0x5C` equals 1. A nonzero result reaches
+`0x007E87F0` with mode one at `0x007E8E7B`.
+The other caller, `0x006242B0`, requires actor `+0x1B8`, saves its
+supplied argument at actor `+0x1A8`, and forwards it with mode one at
+`0x006242E8`. These paths do not supply a fixed selected-layout ID.
+
+On the constructed Sky path, setup `0x00642F20` saves that ID at
+complete object `+0x158`, mode at `+0x150`, and state 1 at `+0x140`.
+Its registration through `0x0062C550` precedes the provider's return
+and `0x007E80F0`'s O+`0x7C` store in the inspected direct flow.
+The actor's update `0x0062B220`, under its `+0x1B8` guard, calls the
+owner at actor `+0x158` through `0x007E91D0`. That body dispatches the
+complete pointer at O+`0x7C` through primary slot 6, Sky `0x0083B500`,
+which calls the state dispatcher `0x00648950`.
+
+This connects the stored replacement object to the
+[request, completion and loaded-wrapper path](../resource/map-layout-request-boundary.md#registered-states-and-typed-view).
+O+`0x7C` retention does not establish file completion, an accepted wrapper
+or readiness. The actual ID/name, acquired typed node and active source/Sky
+records remain inputs; the retained selected DAT alone does not identify
+this request.
+
 The concrete MapLayoutWeatherSky `+4` table `0x0103CC3C` has slot 24
 `0x00A8AC40`. It forwards name lookup to its manager's slot 16,
 `0x00A898B0`, through interface `+0x1C`, complete object `+0x20`.

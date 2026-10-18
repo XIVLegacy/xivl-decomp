@@ -22,6 +22,9 @@ The ResourceModule vtable identity and slot are recorded in
 `Component::Resource::ResourceModule`, vtable RVA `0x00D08C3C`, slot 1,
 function RVA `0x00899130`.
 
+The completion and loaded-view instructions were also checked against the
+original PE with pefile `2024.8.26` and Capstone `5.0.7` in x86-32 mode.
+
 ## Conditional manager request
 
 `0x00643020` reads the manager's numeric key at `+0x158`. It obtains a name
@@ -71,6 +74,83 @@ owned path wrapper at `+0x04` to LocalFile `0x00453C00`. Numeric byte-group
 paths apply only when formatter mode byte `0x01266B64` is nonzero; the zero
 mode uses a different table-based path. Request caching, pending work and
 already loaded objects can all prevent a fresh open for a repeated selector.
+
+## Registered states and typed view
+
+The constructed Sky update reaches `0x00648950`, which dispatches
+complete object state `+0x140` through table `0x00648A00`. The relevant
+states select these primary-interface methods:
+
+| State | Method | Conditional work |
+| --- | --- | --- |
+| 1 | Slot 9, `0x00643020` | Resolves the key at `+0x158`, then follows the named/reuse or numeric request branches above. |
+| 2 | Slot 10, `0x00648310` | Processes the request record and its completion result for the same key. |
+| 3 | Slot 11, `0x00648460` | Supplies the address of object `+0x144` to typed-resource acquisition; pending, successful and failed returns take separate branches. |
+| 4 | Slot 12, `0x00645490` | Checks the typed node at `+0x144` before calling the loaded-wrapper interface. |
+
+The raw Resource returned by ResourceModule and the later typed layout node
+are distinct objects. `0x0079C890` supplies a ResourceNodeManager as
+ResourceModule argument 7. `0x00CAE5E0` retains it at raw Resource `+0x8C`.
+The ordinary FileThread branch in `0x00C961F0` calls that manager's slot 1
+at `0x00C96272`. Its table `0x00FE544C` selects `0x0079BE20`, which
+reaches `0x0079B9A0`.
+
+That reader checks the outer `MapLayoutResourceData` header/version,
+obtains the view offset from outer `+0x20`, and reads the prefix and
+remaining view separately. The checked factory path through
+`0x00A93540/0x00A933E0` constructs a LayResourceNode with the view
+buffer at node `+0x40`, through borrowed-buffer or allocation/copy branches.
+On the checked numeric state-3 path, `0x00648460` sets factory option
+`+0x15` to 1. `0x00A63A80` supplies a CopyLessHandle, so `0x00A933E0`
+borrows the callback's suffix pointer and marks node `+0x48` as 1.
+`0x00A642F0` packs the header's `lyb` characters into `0x006C7962`,
+the typed tag compared through global `0x010A2034` by
+`0x006434F0/0x00642E10`.
+
+Completion flags and diagnostics remain separate from return values.
+An outer-header/version mismatch in `0x0079B9A0` clears handler `+0x13`
+while returning AL equal to 1. `0x00A933E0` calls endian handling
+`0x00A931A0` and header diagnostics `0x00A93340`, then stores its data
+pointer at `+0x40` without branching on the diagnostic call's return.
+Neither return alone proves that a valid selected layout was loaded.
+
+## Loaded wrapper argument
+
+`0x00645490` supplies complete manager `+0x144` and literal zero to
+the manager's `+4` interface slot 13. On the constructed Sky table
+`0x0103CC3C`, that slot is `0x00642E10`. After its resource ancestry
+and type checks, this method obtains the typed node's buffer through
+`0x00A930A0`, which reads node `+0x40`, and adds `0x30`.
+It calls `0x00C1F110`, then dispatches `+4` interface slot 12,
+`0x0064F430`, with that payload and its unchanged second argument.
+The inspected caller therefore supplies zero in the second slot.
+`0x0064F430` forwards that slot through its branch-specific helpers.
+Instructions `0x0064F443/0x0064F446` follow the pointer stored at payload
+`+0x14`, then its first inventory entry, into the
+[established wrapper walk](bgchip-model-binding.md#lyb-relocation-and-attachment).
+
+The stack join was checked through the complete callee cleanup bodies.
+At `0x00642E8C`, `[ESP+0x18]` is the entry's second argument at
+entry ESP `+8`. The temporary byte context initialized by `0x00C1EDD0`
+reuses the former first-argument slot and is separate from that value.
+
+## Selected retained layout view
+
+Python `struct` and `hashlib` inspection of the
+[selected floor layout](floor-import-contract.md#selected-inputs-and-method)
+identified an outer `MapLayoutResourceData` header with version `1.1.0`.
+The little-endian dwords at file `+0x20/+0x24` give offset `0x160`
+and count 9. Those dependency rows occupy `0x20` bytes each, beginning
+at file `+0x40`.
+
+The embedded `SEDBlyb` view begins at file `0x160`, with version 8,
+endian byte zero, header size `0x30` and declared length `0x24F8`.
+Its payload therefore begins at file `0x190`, and the view ends at EOF.
+A native buffer pointing to this LYB header would reach the payload by
+adding `0x30`. Adding `0x30` to the complete DAT base would select
+different bytes. These file relationships do not by themselves identify
+an acquired native buffer or
+an active Sky resource.
 
 ## Observation ABI and causal join
 
