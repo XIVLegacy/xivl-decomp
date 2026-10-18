@@ -26,6 +26,11 @@ weather packet path is described in
 separate player work packet is in
 [Seasonal event work control plane](../event/seasonal-control-plane.md).
 
+The [Limsa public-layout pointer join](limsa-seasonal-weather-extension.md#halloween-selector-and-resident-group)
+identifies the property/vector references for its eight pairs and the first
+pair's resident group and resource keys. That closes those serialized joins
+without extending the result to the other layouts or native condition playback.
+
 Five interior Starlight-named pairs instead reconcile with empty sparse show
 masks in this final snapshot: one in Gridania, two in Limsa Lominsa, and two
 in Ul'dah. The [historical layout delta](#historical-layout-delta) identifies

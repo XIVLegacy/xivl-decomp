@@ -183,6 +183,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [DivideMap block activation](resource/layout-block-activation.md)
 - [Class metadata](resource/class-metadata.md)
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
+- [Limsa seasonal weather extension boundary](resource/limsa-seasonal-weather-extension.md)
 - [Region weather resource rows](resource/region-weather-resource-rows.md)
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
 - [Limsa fireworks scheduler bindings](resource/limsa-fireworks-scheduler-bindings.md)
