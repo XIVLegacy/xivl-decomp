@@ -6,6 +6,8 @@ The checked native paths blend name-matched DrawEnv work and submit two VFX
 aliases through an initialization descriptor. These are conditional static
 contracts. The checked application Weather load supplies a null descriptor
 receiver and skips that submission; it does not establish a rendered effect.
+The checked later placement paths also supply no nonnull receiver. Instance
+VFX setup requires the resource pointers to have been populated separately.
 
 The [weather transition finding](../net/weather-transition-runtime.md#limsa-rain-selection)
 owns the packet, region lookup and queue route to resource `0x29D90013`.
@@ -223,6 +225,63 @@ The remaining function observations used the byte-checked retained listings
 and tools identified above. The query interface's concrete implementation,
 its alias resolution and the actual pointer results remain unjoined.
 
+### Later Weather placement and VFX setup
+
+The selected rain placement has a deferred folder route. In the pinned DAT,
+`cbind_rain`'s serialized byte `+0x14` is `0x05`. Bit 1 is clear, so
+the initial inventory branch at `0x0064F4E8..0x0064F4EC` skips its automatic
+instance creation. The same wrapper's definition inventory contains its
+`vfx_cam_rain` definition separately; skipping the Instance is distinct from
+the base object's guarded creation and null initialization above.
+
+Folder `blk_0000` is at LYB `0x8630`, file `0x8C40`. Its `+0x10`
+points to the entry array at LYB `0x770C`; zero-based entry 35 points to wrapper
+`0x872C`, file `0x8D3C`, whose first dword is Instance `0x5D80`,
+`cbind_rain`. Folder byte `+0x62` is zero. The
+[DivideMap registration and state-1 placement contract](layout-block-activation.md)
+therefore supplies a conditional later creation route for this record.
+The DAT does not establish that a block was selected or reached state 1.
+
+For a block owned by the constructed Weather resource, primary slot 2
+in table `0x0103D0BC` is `0x00640870`. Its missing-instance branch at
+`0x00640908..0x00640913` calls `0x00A8D0B0` with the block interface,
+Instance pointer, context zero and mode zero. It does not repeat the
+automatic-instance bit test. `0x00A8D0F5..0x00A8D106` either reuses an
+existing base object without calling its slot 9, or passes that zero context
+to `0x00A8B350` when a base object must be created. This later route does
+not supply a nonnull receiver or retry an existing VFX's initializer.
+
+The additional checked Weather `+4` interface slot 53, cell `0x0103CF98`,
+is `0x00A8E6E0`. Its admitted folder branch at
+`0x00A8E725..0x00A8E734` supplies context zero to `0x00A8E120`.
+The latter forwards that context to the missing-instance helper at
+`0x00A8E1CD..0x00A8E1DD`. It supplies no default listener substitution.
+
+The subsequent instance setup consumes existing VFX resource pointers:
+
+| Locator | Checked setup behavior |
+| --- | --- |
+| `0x007FE9D7..0x007FE9EF` | Copies serialized Instance `+0x14` bit 2 through instance slot 51. On the constructed RaptureLayoutInstanceObject table `0x00FF279C`, this is `0x00800430`, which writes interface byte `+0x2A` bit 2. The selected byte `0x05` supplies a set bit. |
+| `0x007FE9F8..0x007FEA27` | With base-object kind different from `0x12` and setup descriptor `+0x48` zero, calls that base object's slot 18 with the instance interface and descriptor `+0x40`. RaptureVfx kind getter `0x005F0660` returns `0x0F`; table `0x010622B4` slot 18 is `0x008D4FA0`. |
+| `0x008D4FA5..0x008D4FCB` | Requires instance slot 50 true, then calls `0x00AB5010` with the instance and unchanged second setup argument. Slot 50, `0x00800420`, reads the bit written above. A false helper result skips the remaining VFX-specific setup in this body. |
+| `0x00AB5019..0x00AB5027` | Requires both interface `+0x48/+0x4C`, complete VFX `+0x4C/+0x50`, nonnull. Either missing pointer returns false at `0x00AB50D5` before property setup. |
+| `0x00AB502D..0x00AB5086` | Obtains the instance's property through slot 47 and expects property kind `0x0F`. If its slot 37 is false, calls property slot 34 with the two retained pointers and the second setup argument. This call's concrete implementation remains unjoined. |
+
+Neither `0x008D4FA0` nor `0x00AB5010` contains a direct call to initializer
+`0x00AB5150` or constructs its two-pointer context. Within these bodies,
+the second setup argument is forwarded to property slot 34. The caller at
+`0x007FEA27` proceeds without testing the setup result, so its successful
+instance creation does
+not establish VFX resource binding or activation.
+
+Fresh VFX construction `0x008D4EF0 -> 0x00AB4FA0` zeros complete
+`+0x4C/+0x50` at `0x00AB4FEF/0x00AB4FF6`. With the initial null-receiver
+path and no intervening pointer writer, these checked later setup bodies
+cannot fill those fields and take the missing-pointer exit. This conditional
+result does not establish historical pointer values or permanently disabled
+rain. A later binding writer or another initializer invocation remains a
+separate evidence requirement.
+
 ## Remaining boundary
 
 The preserved artifacts establish the selected resource's typed rain
@@ -234,9 +293,10 @@ resource-query receiver. They leave these specific joins unresolved:
   manager returned from complete resource `+0xD0`.
 - A nonnull context producer actually used for the selected Weather VFX,
   followed by its concrete query interface, alias resolution and retained
-  pointer results. The generic default listener is not joined to that load.
-- The `cbind_rain` instance's attachment/activation and the selected timeline
-  or spatial lane, followed by any emitter or renderer submission.
+  pointer results, or another writer supplying complete VFX `+0x4C/+0x50`.
+  The generic default listener is not joined to the checked Weather paths.
+- Actual selection/completion of the rain folder and instance, its property
+  setup, the active timeline or spatial lane, and emitter/renderer submission.
 
 Neither authored names nor the arithmetic above establish visible rain,
 camera following, particle density, opacity, a common fade duration, or GPU
