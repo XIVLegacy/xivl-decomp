@@ -87,6 +87,9 @@ at `0xCA90` / `0x29BF0008`, and `wtr_fine_wil` at `0xCAC0` /
 Likewise, a positive resource-row ID alone does not establish a command
 alias, rendered appearance, retail event schedule, or active selector.
 The packet-side boundary is in [Weather transition runtime](../net/weather-transition-runtime.md).
+Its [Limsa rain selection](../net/weather-transition-runtime.md#limsa-rain-selection)
+joins supplied region key `101` and weather `8007` to the selected resource
+and weather queue under the documented native guards.
 
 ## Native loader boundary
 

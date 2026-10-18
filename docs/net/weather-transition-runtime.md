@@ -58,6 +58,108 @@ sets the target to 20 seconds. Conversely, 10 seconds elapsed against a
 These values are deterministic applications of the native formula, not a
 claim about a particular captured crossing.
 
+## Limsa rain selection
+
+For supplied region key `101` (`sea_s0`) and weather ID `8007`, the checked
+static path selects numeric resource key `0x29D90013`, the `wtr_rain` child.
+The region key, actor state and retained objects are invocation inputs. This
+does not identify an executed retail session or establish visible rain.
+
+### Packet publication and scene dispatch
+
+The nonzero packet ID is staged at element `+0xB0` by `0x0059CFAB`.
+With the update's pending byte `+0xBB` set and `+0x94` nonzero,
+`0x0059EC7D..0x0059EC9F` supplies that ID to `0x0059E4D0`.
+After the duration publication, `0x0059E4FE` calls `0x004D7980` with
+selector `0x0C`, a pointer to the unchanged dword ID and length 4.
+
+The [element-to-scene transport](../actor/item-appearance-boundary.md#native-consumption-chain)
+adds `0x15` to the selector, so the queued kind is `0x21`. Its actor key
+comes from element `+0x88`. The event pump `0x004E9700` passes the copied
+record through `0x0060C140` to `0x007C93C0`; the latter resolves the keyed
+actor, subtracts `0x15`, and calls its primary slot 157 at `0x007C95F2`.
+On MapLayoutActor table `0x00FBAE3C`, cell `0x00FBB0B0` selects
+`0x0062CDA0`. This receiver binding is a condition of the following path.
+
+For selector `0x0C`, byte cell `0x0062D0E8` is 1 and jump-table cell
+`0x0062D07C` selects `0x0062CDDE`. That arm reads the supplied ID and
+calls `0x0062C4D0`, which appends `(0x0C,8007)` to actor `+0x33C`.
+When `0x0062AA70`'s table and region guards permit queue processing,
+`0x0062AAF4..0x0062AB00` passes the stored operation/value pair to
+`0x00629410`. Table cell `0x006294AC` selects `0x0062942A` for `0x0C`.
+Actor state `+0x1F0 == 3` stores the ID at `+0x1A0` and returns.
+Other states call `0x00624180(8007,0)` at `0x0062944A`.
+Packet opcode `0x000D` is separate from scene selector `0x0D`, whose
+branch accepts a resource key through `0x00624240`.
+
+### Region lookup and resource key
+
+`0x00624180` requires actor byte `+0x1B8` and skips an already-current
+nonzero ID. Its zero second argument selects actor `+0x190` as the region
+key; zero there exits. With supplied value `101`, `0x0079B380` matches
+RegionInfo `+0xB0`. `0x0079B190` then considers only children whose type
+at `+0x5C` is zero. An exact child-key match at `+0x58` returns `8007`.
+On a miss its fallback retains the first nonzero type-zero child key,
+or zero if none is found.
+The helper repeats the current-ID comparison after this normalization.
+
+The [pinned RegionResourceData](../resource/region-weather-resource-rows.md)
+has root `101`, token `sea_s0`, at file `0x40`. Its rain child at `0x130`
+has these little-endian dwords:
+
+| Raw field | Value | Constructed LayoutInfo field |
+| --- | --- | --- |
+| `+0x00` | `8007` | Child key `+0x58` |
+| `+0x04` | `0` | Type `+0x5C` |
+| `+0x08` | `0x29D90013` | Resource key `+0x60` |
+| `+0x0C` | `2` | Stored dword `+0x64` |
+
+Its name is `wtr_rain` at file `0x140`. Loader `0x0079D900` passes
+these fields to child constructor `0x0079A280` at `0x0079DB30`.
+`0x0079B050` selects the exact type-zero child key and returns its
+`+0x60`, establishing `8007 -> 0x29D90013` within this root.
+
+`0x00624180` stores normalized ID `8007` at actor `+0x19C` and the
+resource key at `+0x1A4`. With actor `+0x17C` nonnull it calls
+`0x007E8DB0(101,8007)`; otherwise it calls `0x007E8DF0(101,8007)`.
+Both store region key `101` at the weather owner's `+0x64`, repeat the
+root/type-zero-child lookup and call `0x007E87F0(0x29D90013,0)`.
+The latter helper can also submit a separate type-one Sky resource through
+the [mode-one path](#mode-one-id-and-wrapper-ordering).
+
+### Queue handoff and file identity
+
+If the resource key already occurs in the weather queue, `0x007E87F0`
+returns before provider construction or insertion. Otherwise its inspected
+LayoutWorld slot-4 call supplies the key, mode zero and the root-associated
+value returned by `0x0079B6C0`. That last lookup returns RegionInfo
+`+0xB8` for the first root containing the resource key; root `101` is
+first here and its raw `+0x20` is zero. The constructed provider path
+selects MapLayoutWeather. A nonnull returned `+4` interface is adjusted
+to the complete object before `0x007E80F0` receives it with the key and
+mode zero. Construction and the current provider bindings remain conditions.
+
+The append branch prepares the key at record `+0`, the ID returned by
+`0x0079B540` at `+4`, and the object at `+8`. With region key `101`,
+the preferred-root resource-key lookup `0x0079ADF0` returns `8007` for
+that middle field. `0x007E81DC` passes this 12-byte record to the queue
+append helper; `0x007E81FA` clears elapsed time. This joins the selected
+row to the existing resource-queue behavior, subject to its guards.
+
+In the [numeric formatter mode](../resource/resource-path-producer.md#formatting-contract),
+key `0x29D90013` names `data/29/D9/00/13.DAT`. The preserved file is
+113,024 bytes, SHA-256
+`11b2735ee161d302ad212a27041c84060a5b4f61da438c15c9f4bec982d83012`.
+File presence and this static selection do not establish an actual open,
+load completion, active provider state or rendered result.
+
+The instruction and table checks used retained Ghidra listings, pefile
+`2024.8.26` and Capstone `5.0.7` in x86-32 mode against the executable
+identified above. Python `struct` and `hashlib` reproduced the root/child
+grouping and exact DAT fields. Reproduction needs the supplied region key
+and the stated actor/receiver conditions; the text token alone does not
+identify a current region instance.
+
 ## Layout providers and environment receivers
 
 Retained Ghidra listings and original PE bytes were checked with pefile
@@ -109,7 +211,7 @@ actor/model readiness.
 ### Mode-one ID and wrapper ordering
 
 The retained mode-one callers supply different ID inputs.
-`0x007E8DF0` saves its weather selector at O+`0x64` and resolves it
+`0x007E8DF0` saves its supplied region key at O+`0x64` and resolves it
 through the parent's `+0x154` manager using `0x0079B380`. That lookup
 matches an entry's `+0xB0`. `0x0079B220` then returns the first child
 `+0x60` whose child `+0x5C` equals 1. A nonzero result reaches
