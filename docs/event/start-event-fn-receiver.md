@@ -1,410 +1,122 @@
 # StartServerOrderEventFunction receiver
 
-This page maps `StartServerOrderEventFunctionReceiver`, the
-RunEventFunction half of the cinematic dispatch pair. KickEvent starts a
-director, and RunEventFunction runs the noticeEvent or talk script inside that
-director session.
+`StartServerOrderEventFunctionReceiver` carries an incoming named Lua function
+request. Its slot 2 checks parameter-reference dependencies; slot 3 hands the
+record to local execution preparation. The
+[native delegate producer](../script/delegate-command-producer.md) owns the
+complete payload-to-Lua-frame contract, artifact identity and reproduction.
+The generic path can serve dialogue, commands and other supplied functions.
 
-## TL;DR
+## Vtable and receiver storage
 
-`StartServerOrderEventFunctionReceiver::Receive` (slot 2) is a
-**28-byte trampoline** that advances `this` by `+0xCC` (delegates
-to a sub-object inside the receiver) and tail-calls the inner
-handler `FUN_0089e8e0` (344 bytes).
+The pinned receiver vtable is VA `0x010574C8`, RVA `0x00C574C8`.
+Function addresses below are VAs in the pinned Windows 1.23b `ffxivgame.exe`.
+Original PE table cells and retained Ghidra instructions were checked through
+pefile 2024.8.26 and focused Capstone 5.0.7 decoding.
 
-The inner handler iterates through a **vector of 8-byte items**
-inside the receiver's sub-object (`this[+0x4]..this[+0x8]`,
-stride 8). For each item it tries up to 3 different registry
-lookups - `ActorRegistry_lookup_actor` plus two unnamed siblings -
-to find a target actor. If all three miss,
-the function enters a phase-3 dequeue path that processes items
-backwards and shrinks the array.
+| Slot | Cell VA | Target VA | Established role |
+| --- | --- | --- | --- |
+| 0 | `0x010574C8` | `0x008A1BB0` | Scalar deleting destructor. |
+| 1 | `0x010574CC` | `0x0089F430` | Allocates and copy-constructs a heap receiver. |
+| 2 | `0x010574D0` | `0x0089EB20` | Advances `this` by `0xCC` and calls dependency gate `0x0089E8E0`. |
+| 3 | `0x010574D4` | `0x0089E260` | Resolves the trigger and hands stored function/input data to `0x006E1140`. |
+| 4 | `0x010574D8` | `0x0089E060` | Compares the trigger key with the separate sentinel value. |
 
-**The same kick-gate principle applies:** RunEventFunction packets
-that target an actor not yet on the client (e.g. post-warp before
-spawn re-broadcast) will fall through all 3 lookups and silently
-no-op, just like KickEvent does.
+`0x0089EDB0` constructs the receiver. The stored function string is at
+`+0x10`, event string at `+0x64`, trigger/owner keys at `+0x08/+0x0C`,
+and event-type byte at `+0xB8`. The copied parameter vector has bounds
+`+0xC0/+0xC4`; the separate dependency vector has bounds `+0xD0/+0xD4`
+inside the subobject at `+0xCC`. Their purposes and strides differ.
 
-## Vtable map (5 slots)
+The key wrappers copy u32 values through `0x00CC9320`; they are not native
+object pointers. The string constructor uses NUL-terminated input, with
+`dword[0x00F67298]=0xFFFFFFFF`; it does not enforce the two 32-byte payload
+field widths. Successful construction, allocation and input termination
+remain conditions.
 
-| Slot | rva (xivl-decomp) | absolute (Ghidra) | Size | Role |
-|---|---|---|---|---|
-| 0 | `0x004a1bb0` | `0x008a1bb0` | (small) | Scalar deleting destructor |
-| 1 | `0x0049f430` | `0x0089f430` | (small) | `New()` factory |
-| 2 | `0x0049eb20` | `0x0089eb20` | **28 B** | **`Receive()` - trampoline; advances `this+0xCC`, tail-calls `FUN_0089e8e0`** |
-| 3 | `0x0049e260` | `0x0089e260` | (small) | Auxiliary |
-| 4 | `0x0049e060` | `0x0089e060` | (small) | Auxiliary |
+## Parameter-reference dependency gate
 
-## Slot 2 (`Receive`) - annotated
+The dependency collector `0x0089E3F0 -> 0x0089E320` runs the typed parser
+through visitor table `0x01057438`. Its slot 5, `0x008A2710`, handles the
+relevant actor-key references. It applies the `0x00CC7190` classifier,
+performs registration bookkeeping, and attempts key resolution. When that
+lookup remains zero, it appends an eight-byte dependency item: u32 key at
+`+0`, zero byte at `+4`. The other bytes in that second word have no
+established semantic role. The item is not a trigger/function pair.
 
-```asm
-0x0089eb20:
-    MOV EAX, [ESP+0x8]              ; arg0 (out-result byte ptr?)
-    PUSH ESI
-    MOV ESI, [ESP+0x8]              ; arg1 (registry / context)
-    PUSH EAX                         ; push arg0
-    PUSH ESI                         ; push arg1
-    ADD ECX, 0xCC                    ; this += 0xCC (advance to sub-object)
-    CALL 0x0089e8e0                 ; the actual handler
-    MOV EAX, ESI                     ; return arg1
-    POP ESI
-    RET 8
-```
+`0x0089E8E0` operates on that dependency vector:
 
-That's it for slot 2. The receiver's outer object holds some
-header fields at `[0..0xCC]`; the actual processable state lives
-at `+0xCC` and is what gets passed into the inner handler. This
-is the canonical "delegate to inner" composition pattern - the
-receiver is a thin wrapper around an inner state machine.
+1. An empty or unallocated range returns admission byte 1.
+2. The forward pass resolves each key through `0x00CC7A50`. On a miss it
+   tests membership through `0x00CC7180`; if absent there too, it invokes
+   `0x00CC78C0`.
+3. The reverse pass resolves trailing keys and reads the registry-entry flag
+   through `0x00CC72A0`. A null resolution or zero flag stops removal.
+   Passing entries are destroyed and removed from the back at eight-byte stride.
+4. Admission is 1 only when the remaining range is empty; otherwise it is 0.
 
-## Inner handler `FUN_0089e8e0` (rva `0x0049e8e0`, 344 B)
+This is LIFO removal within one dependency vector. The receiver pointer queue
+is FIFO and has four-byte elements. `0x008A1370` tests dependency-range
+emptiness. Removal helper `0x0077A210` destroys an eight-byte range through
+`0x00CC9330`, whose body is `RET`. None of these operations invokes the
+requested Lua callback.
 
-Processes a vector of pending event-actor items. Decomp shape:
+## Native helper entry points
 
-```c
-char *RunEventFunction_inner(SubObject *this,    // ECX = receiver+0xCC
-                              ResultByte *out,   // arg0
-                              ActorRegistry *reg /* or game ctx */) {
-  // this[+0x4] = vector::_First (start)
-  // this[+0x8] = vector::_Last  (end)
-  // each item is 8 bytes
+| Helper VA | Byte-backed observation |
+| --- | --- |
+| `0x00CC70B0` | A separate predicate used by typed actor conversion; its broader classification is not established here. |
+| `0x00CC7180` | Navigates through LuaControl `+0x1C8` via `0x00CD80E0` to circular-list membership `0x00D132B0`, comparing the u32 key at node `+8`. |
+| `0x00CC7190` | Navigates through LuaControl `+0x1C4` via `0x00CD80F0` to `0x00D035D0`, which compares the first returned metadata byte with `byte[0x0130D426]=0x0F`. |
+| `0x00CC72A0` | Resolves a Lua registry entry through `0x00CD7A30` and reads entry byte `+0x7D`. This is not an actor-owned byte or callback dispatch. |
+| `0x00CC78C0` | Calls `0x00CDDE20(key,0)` and returns `*entry` when nonnull. |
+| `0x00CC7A50` | Resolves a u32 binding key through the LuaControl wrapper and its partitioned lookup. Reached resolver branches reject sentinel `0xE0000000`. |
 
-  uint8_t *first = this->_First;
-  if (first == NULL) goto early_success;
-  uint8_t *last = this->_Last;
-  size_t count = (last - first) / 8;
-  if (count == 0) {
-early_success:
-    *out = 0x01;                            // success default (from
-                                            //  CommandUpdaterBase RTTI
-                                            //  string + 0x3f, same as
-                                            //  KickReceiver's pattern)
-    return out;
-  }
+The `+0x1C4` metadata lookup and `+0x1C8` membership list are distinct.
+Their observations do not establish a universal actor-spawn state machine.
+`0x00CDDE20` resolves class registration/name metadata and can prepare an
+initialization request through `0x00CF1060 -> 0x00CCF9B0`; it is not an
+insertion into this receiver's pointer queue. Its retained RVA gap
+`[0x008DE182,0x008DE185)` remains unfilled, so the enclosing size is not
+continuous decoded coverage or a complete initialization/lifecycle proof.
+The metadata classifier's byte `0x0F`, wire END `0x0F`, and resolver sentinel
+`0xE0000000` belong to separate domains.
 
-  // PHASE 1: forward iteration - try to satisfy each item via
-  //          three different registry-lookup paths
-  EBP = reg;
-  for (uint8_t *cur = first; cur != last; cur += 8) {
-    if (cur >= this->_Last) crash();        // bounds check
+## Submission, retry and execution
 
-    // Try lookup A: ActorRegistry_lookup_actor (FUN_00cc7a50)
-    Actor *a = ActorRegistry_lookup_actor(reg, cur);
-    if (a != NULL) continue;                // satisfied -> next item
+`0x007859B0` checks the receiver pointer queue count. If empty, it runs the
+dependency collector and may attempt common dispatcher `0x00794250`
+immediately. The dispatcher calls slot 2 at `0x00794265`; admission byte 1
+allows slot 3 at `0x00794279`. Other admission leaves the record for queueing.
+The image byte cells determining these outcomes and their later mutable state
+are part of the conditional scheduler contract in the native producer page.
 
-    // Try lookup B: FUN_00cc7180 (sibling lookup - role unresolved
-    //               "lookup by name" or "lookup in alternate
-    //               namespace")
-    if (FUN_00cc7180(reg, cur) != 0) continue;
+A nonempty pointer queue skips collection and the immediate attempt. The
+heap clone preserves the current strings, keys, parameter bytes and dependency
+vector, including an initially empty dependency vector on this skipped path.
+The traced deferred consumer does not compensate with another collection
+step or preparation-flag test. That path does not prove the parameter
+references were dependency-checked; typed conversion later has its own gates.
 
-    // Try lookup C: FUN_00cc78c0 (third sibling - possibly the
-    //               "register placeholder" / "queue for later"
-    //               path)
-    FUN_00cc78c0(reg, cur);
-    // (no early-continue; falls through)
-  }
+Deferred consumer `0x005836D0` reads the front pointer and calls the same
+dispatcher at `0x00583770`. Result 1 retains the front receiver for retry;
+result 2 has a separate reinsertion branch. Other results destroy and remove
+the receiver. The ordinary dispatcher does not test slot 3's return value.
+Queue removal therefore does not prove that a Lua callable ran or completed.
 
-  // PHASE 2: post-loop completion check
-  if (FUN_008a1370(this) != 0) goto done_success;
-
-  // PHASE 3: backwards iteration / dequeue
-  for (uint8_t *cur = this->_Last; this->_First <= cur; ) {
-    cur -= 8;
-    Actor *a = ActorRegistry_lookup_actor(reg, cur);
-    if (a == NULL) goto done_success;       // can't find - give up
-
-    // Try lookup D: FUN_00cc72a0 (fourth sibling - candidate for the
-    //               actual "dispatch" call that runs the event
-    //               function on the actor)
-    if (FUN_00cc72a0(reg, a) == 0) goto done_success;
-
-    // Dequeue: pop the item from the back of the vector
-    if (this->_First != NULL) {
-      uint8_t *end = this->_Last;
-      size_t left = (end - this->_First) / 8;
-      if (left != 0) {
-        FUN_0077a210(end - 8, end, this, ebx);  // shift / move
-        this->_Last -= 8;
-      }
-    }
-    if (FUN_008a1370(this) != 0) break;
-  }
-
-done_success:
-  if (this->_First == NULL || (this->_Last - this->_First)/8 == 0)
-    goto early_success;                     // queue empty -> success
-
-  // queue still has items but not all were processed -> failure
-  *out = 0x00;                               // FAILURE_BYTE (DAT_0134c560)
-  return out;
-}
-```
-
-## Actor-registry method roster
-
-The `0x00cc7` cluster on the actor registry has **6 confirmed methods**
-(4 surfaced via this decomp):
-
-| RVA | Confirmed role | Source | Body shape |
-|---|---|---|---|
-| `0x00cc70b0` | (xref-only - candidate add/remove sibling) | Inferred from `id_partition_predicate_thunk` xref list | Role not established |
-| `0x00cc7180` | Some lookup variant - returns bool | RunEventFunction forward lookup | Thunk -> FUN_00cd80e0 -> FUN_00d132b0 |
-| `0x00cc7190` | (xref-only - candidate add/remove sibling) | Inferred from `id_partition_predicate_thunk` xref list | Role not established |
-| `0x00cc72a0` | Some dispatch call - returns bool | RunEventFunction reverse dispatch | Wrapper around FUN_00cd7a30 class-registry entry resolver |
-| `0x00cc78c0` | Some "register / enqueue" call - returns void | RunEventFunction forward enqueue | Wrapper around 1187-byte FUN_00cdde20 |
-| `0x00cc7a50` | `ActorRegistry::lookup_actor` (Actor* or NULL) | KickReceiver decomp + this one | Partitions by `[+0x1c4]`, then dispatches to A or B |
-
-The three lookup calls in the forward pass of RunEventFunction's inner
-handler suggest the registry has **multiple lookup namespaces**
-that are tried in sequence - candidate interpretation:
-1. Direct actor lookup (by id)
-2. Alternate identifier lookup (by name? by stable id?)
-3. Lazy-creation lookup ("if not found, queue for later
-   resolution")
-
-If lookup A returns the actor -> use it (early continue).
-If A misses and B succeeds -> also continue.
-If both miss -> call C (candidate enqueue / placeholder path) and fall
-through.
-
-This is consistent with the "type-tag-based partition" finding
-from the kick receiver decomp - the registry's API is rich enough
-to serve different actor flavours (regular actors / directors /
-synthetic / lazy) via different access paths.
-
-## Implications for client
-
-Same diagnosis as for KickEvent: **RunEventFunction packets that
-target an actor not yet spawned on the client will fall through
-all 3 lookups and silently no-op**. The `*out = FAILURE_BYTE`
-result isn't surfaced to the user - the caller can't distinguish
-"event function ran successfully" from "actor wasn't found".
-
-Beyond that, the **8-byte item stride** in the receiver's vector is informative for the
-wire format: each pending event item is 8 bytes (candidate layout `[u32 actor_id, u32
-function_id]` or similar).
+Slot 3 resolves the stored trigger to native object `T`, then passes the
+stored function name, event name, owner key, event type and parameter span to
+`0x006E1140`. That thunk selects manager `[T+0xF8]` and reaches `0x00896F70`.
+Normal execution requires that trigger resolution be usable; the slot-3 body
+itself has no null test before the thunk dereferences `T`.
+The [typed frame and call consumers](../script/delegate-command-producer.md#function-binding-value-and-supplied-frame)
+then determine whether local invocation occurs. Dependency readiness alone
+proves neither invocation nor an unconditional silent no-op for a missing actor.
 
 ## Cross-references
 
 - `docs/event/kick-order-event-receiver.md` - the companion KickEvent
   receiver decomp; `+0x5c` actor flag finding is shared.
-
-## Sibling-method decomp results
-
-The three sibling methods are small wrappers around inner bodies. Together they
-establish two additional architectural findings beyond the method labels.
-
-### FUN_00cc7180 (7-byte navigation thunk)
-
-```asm
-MOV ECX, [ECX + 0x1c8]         ; navigate: this = (*this)[+0x1c8]
-JMP FUN_00cd80e0               ; tail-call (whose body is itself
-                               ;  a thunk to FUN_00d132b0)
-```
-
-The inner FUN_00cd80e0 (11 bytes) IS the body - but it's another
-thunk: `MOV ECX, [ECX+0x1c8]; JMP FUN_00d132b0`. So the chain is
-two thunks deep before reaching the real predicate at
-`FUN_00d132b0`.
-
-**Architectural finding #1 - sibling classifier sub-objects.**
-This thunk is **structurally parallel** to the
-`id_partition_predicate_thunk` (FUN_00cd80f0) previously cataloged:
-
-| Thunk | Nav offset | Tail-call target | Role (inferred) |
-|---|---|---|---|
-| `FUN_00cd80f0` | `[+0x1c4]` | `FUN_00d035d0` | **Type-tag predicate** (collection A vs B; tag == `0x0F`) |
-| `FUN_00cd80e0` | `[+0x1c8]` | `FUN_00d132b0` | **Sibling predicate** (used by FUN_00cc7180; semantic not established) |
-
-The registry has **multiple classifier sub-objects at adjacent
-offsets** - staged classifier pattern. Each classifier (+0x1c4,
-+0x1c8, possibly more) is its own object with its own predicate +
-lookup table. The parent registry navigates to the right one
-based on which lookup method was called.
-
-### FUN_00cc78c0 (26-byte lookup wrapper)
-
-```asm
-MOV EAX, [ESP+0x4]             ; arg0 = lookup key
-MOV ECX, [ECX]                 ; this = *this
-PUSH 0                         ; push 0 (candidate "create if missing" flag)
-PUSH EAX                       ; push key
-CALL FUN_00cdde20              ; call the heavyweight lookup body
-TEST EAX, EAX
-JNZ +3
-RET 4                          ; null -> return 0
-MOV EAX, [EAX]                 ; deref entry -> actor pointer
-RET 4
-```
-
-The inner FUN_00cdde20 is **1187 bytes** and operates on the
-`[+0x1c8]` classifier (the SAME one FUN_00cc7180's thunk
-navigates to). The leading `PUSH 0` is the second arg, a candidate
-"create if missing" or "lazy resolution" boolean flag.
-
-RunEventFunction's Phase 1 calls this after both `lookup_actor` and
-`FUN_00cc7180`'s predicate fail. It is the **fallback "find or register
-placeholder"** path that keeps the queue making progress when the actor is
-not yet known.
-
-### FUN_00cc72a0 (18-byte flag-read wrapper)
-
-```asm
-MOV EAX, [ESP+0x4]             ; arg0 = registry lookup value
-MOV ECX, [ECX]                 ; this = *this
-PUSH EAX
-CALL FUN_00cd7a30              ; class-registry entry resolver
-MOV AL, [EAX + 0x7d]           ; READ byte at +0x7d of result
-RET 4
-```
-
-The inner FUN_00cd7a30 (29 bytes) resolves a **Lua class-registry entry**:
-
-```c
-void *FUN_00cd7a30(this, EDX /* registry lookup value */) {
-  if (EDX == NULL) return NULL;
-  EAX = this[+0x1bc];                       // LuaControl class registry
-  if (EDX == *EAX) return EAX;              // lookup matches first member
-                                            //  -> return registry entry
-  return EDX[+0x4];                         // else use lookup value +0x4
-                                            //  as the registry entry
-}
-```
-
-The function dereferences the LuaControl class-registry field at `this + 0x1bc`
-and conditionally substitutes `*(EDX + 4)` when `EDX` differs from the pointed-to
-entry's first member. That conditional substitution is registry-entry behavior.
-A vbtable would not be conditionally replaced this way, so `+0x1bc` is a
-class-registry pointer, not a vbtable pointer.
-
-So FUN_00cc72a0 resolves the Lua class-registry entry and returns its byte flag
-at offset `+0x7d`.
-
-**Architectural finding #2 - Lua class-registry entry flag at `+0x7d`.**
-The byte is not the second actor flag previously inferred here. It belongs to a
-non-polymorphic Lua class-registry entry reached from a
-`Component::Lua::GameEngine::LuaControl` instance through `+0x1bc`.
-
-The entry has no vftable, so it has no MSVC RTTI record. Its concrete type cannot
-be named through RTTI by construction, not because of a tooling limit.
-
-## Helper findings
-
-1. **FUN_00d132b0.** It's a
-   **circular-linked-list set-membership test** (not a tag check
-   like FUN_00d035d0):
-
-   ```c
-   bool FUN_00d132b0(this, ulong *key_ptr) {
-       void *root = this[+0x100];                // container root
-       Node *cur = *root;                        // first node
-       while (cur != root) {                     // until cycle back
-           if (cur->key /* +0x8 */ == *key_ptr) return true;
-           cur = cur->next /* +0x0 */;
-       }
-       return false;
-   }
-   ```
-
-   **The two classifiers use DIFFERENT backing data structures** -
-   not just different predicates on the same shape:
-
-   | Classifier | Sub-obj offset | Predicate body | Backing structure | Returns |
-   |---|---|---|---|---|
-   | **Type-tag** | `[+0x1c4]` | `FUN_00d035d0` | hashmap w/ metadata bytes | `meta[0] == 0x0F` |
-   | **Set membership** | `[+0x1c8]` | `FUN_00d132b0` | circular linked-list set, key at +0x8 | `key in set?` |
-
-   Strong inference: `[+0x1c4]` is the **main actor registry**
-   (hashmap-backed for O(1) lookup), and `[+0x1c8]` is a
-   **pending / placeholder set** (linked-list for cheap
-   insert/remove of transient queue entries).
-
-   RunEventFunction Phase 1 uses three lookups:
-     1. `lookup_actor` (uses `[+0x1c4]`) - find in main registry
-     2. `FUN_00cc7180` predicate (uses `[+0x1c8]`) - check pending set
-     3. `FUN_00cc78c0` (uses `[+0x1c8]` with create-flag) - register
-        a placeholder in the pending set
-
-   So an actor queued for spawn but not yet fully spawned can
-   still receive RunEventFunction packets - the engine queues
-   them against a placeholder until the real actor arrives.
-
-2. **FUN_00cc70b0 + FUN_00cc7190 remain unclassified.** They are referenced
-   by the `id_partition_predicate_thunk`'s xref list, but their bodies remain
-   undecompiled; they are likely add/remove siblings.
-3. **FUN_008a1370.** Trivial
-   37-byte predicate; it's `is_queue_empty()`:
-
-   ```c
-   bool FUN_008a1370(this) {
-       void *first = this->_First;        // [+4]
-       if (first == NULL) return true;    // unallocated -> empty
-       void *last = this->_Last;          // [+8]
-       return ((last - first) / 8) == 0;  // empty range
-   }
-   ```
-
-   The `is_queue_empty()` implementation supports the Phase 1/2/3
-   interpretation of the inner handler, which is a drain-the-queue pattern:
-   Phase 2's check (`if (queue_empty) goto done_success`) and
-   Phase 3's loop-tail check (`if (queue_empty) break`) both gate
-   on the same simple emptiness predicate.
-4. **FUN_0077a210.** It's
-   `std::_Destroy_range` (the MSVC stdlib helper that runs
-   destructors over `[begin, end)`):
-
-   ```c
-   void destroy_range_8b(void *begin, void *end, ... /* unused */) {
-       // SEH frame for exception-safe destruction
-       while (begin != end) {
-           FUN_00cc9330(begin);    // per-item destructor
-           begin += 8;             // 8-byte stride
-       }
-   }
-   ```
-
-   `FUN_00cc9330` is the per-item destructor for the 8-byte
-   event-actor item type.
-
-   **Phase 3 is LIFO, not FIFO.** The call
-   pattern in Phase 3 is `FUN_0077a210(end-8, end, ...)` followed
-   by `this->_Last -= 8` - this destroys exactly ONE element
-   (the back of the vector) per loop iteration. That's
-   `std::vector::pop_back` semantics, not `pop_front`.
-
-   So the inner handler's Phase 3 processes pending items in
-   REVERSE order of arrival, popping from the back. Candidate interpretation:
-   for performance (pop_back is O(1); pop_front on a contiguous
-   vector would shift everything O(n)).
-
-   The inner-handler model is:
-   - Phase 1 (forward): look up resolution candidates for ALL
-     items (doesn't pop)
-   - Phase 3 (backward, LIFO): pop + dispatch from the back;
-     stop on first failure
-   - Items that fail Phase 3's gates remain in the queue for the
-     next Receive() call
-
-   So a single Receive call dispatches as many TRAILING items as
-   it can; items "behind" a failed one (= older items) wait for
-   the next call.
-5. **The actor `+0x7d` setter remains unidentified.**
-
-6. **FUN_00cc9330.** The
-   destructor is a **single `RET` byte** - a no-op. The 8-byte
-   event-queue item is **trivially destructible**.
-
-   The single `RET` destructor does not indicate smart-pointer ownership.
-   The SEH frame in FUN_0077a210 is a generic `std::_Destroy_range<T>`
-   template instantiation that emits SEH machinery even when `T` has a
-   trivial destructor.
-
-   **The 8-byte event-queue item is plain old data** - most
-   candidate layout `(u32 actor_id, u32 function_id_or_callback_index)`
-   pair. No reference counting, no smart pointers, no virtual
-   cleanup needed.
-
-The compiler's pessimistic SEH wrapping doesn't change the semantic - the data is plain.
 
 ## Trade routing through generic RunEventFunction
 

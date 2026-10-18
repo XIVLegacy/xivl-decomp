@@ -85,11 +85,13 @@ binding for either materia command.
 
 ## Unresolved callback selector
 
-No traced edge selects `askJoinMateria`, `cancelTarget`, `askJoinResult`
-or `displayRate`, or produces their rate/result arguments. The
-[generic incoming function decoder](../event/start-event-fn-receiver.md#trade-routing-through-generic-runeventfunction)
-accepts a function-name field and 64-byte Lua parameter input, but no
-correlated payload or producer connects it to either materia request.
+No correlated edge selects `askJoinMateria`, `cancelTarget`, `askJoinResult`
+or `displayRate` for either materia command, or establishes their actual
+rate/result values. The [native delegate producer](delegate-command-producer.md)
+traces generic incoming `0x0130` from copied fields through receiver admission,
+typed conversion, function lookup and actual protected-call/resume consumers.
+It can request `delegateCommand` from the outer function-name field, but no
+correlated preserved input connects that request to either materia invocation.
 Resolving the boundary requires the selected `commandJudgeMode` descriptor
 and a correlated callback selector with its argument vector. That decoder's
 existence does not establish a materia opcode, callback pairing or server
@@ -110,6 +112,15 @@ installation and forwarding conditions are recorded on that page.
 Its descriptor does not invoke a CraftJudge callback. The actual historical
 receiver, selected function and supplied values remain unobserved for either
 materia command.
+
+The producer's supplied frame is `(F,O,D0,D1,D2,...)`, where `O` is a selected
+binding's Lua value and `D` contains the materialized typed parameters.
+When the outer callable and helper are the recovered functions and the inner
+lookup selects a CraftJudge callback, its supplied values are
+`(A0=D0,A1=O,A2=D2,A3=D3,...)`; `D1` was consumed as the method key.
+`O` is conditionally selected through the trigger/owner binding logic, not
+merely a copy of either raw key. This recovers argument sources, without
+supplying an unobserved method name, actor binding, rate or result.
 
 ## Minimum missing invocation record
 
