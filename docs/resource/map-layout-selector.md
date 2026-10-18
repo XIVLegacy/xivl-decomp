@@ -167,7 +167,8 @@ Setup `0x00642F20` retains key `0x7F1F0000` at
 rather than the mode-zero/one collection at `+0x144`.
 `0x00648570` also retains the returned `+4` interface in the LayoutWorld
 collection at `+0x20`. These stores establish registration; they do not
-establish a later update or open.
+alone establish a later update or open. The separate region-owner
+[update path](#ordinary-manager-update) retains the same complete manager.
 The manager's `+4` slots 12/13 remain `0x0064F430/0x00642E10`, joining
 this receiver to the conditional
 [request and loaded-wrapper contracts](map-layout-request-boundary.md#registered-states-and-typed-view).
@@ -179,6 +180,42 @@ The separate supplied-key mode-one path is described in the
 [weather finding](../net/weather-transition-runtime.md#mode-one-id-and-wrapper-ordering).
 The retained key/name and ordinary manager do not prove a current open,
 cached-resource identity, successful load or selected actor/model setter.
+
+## Ordinary manager update
+
+The actor `+0x134` vector retains complete manager pointers. Setup
+`0x00642F20` passes the manager to `0x0062C550`; append helper
+`0x0079EE80` copies the pointer value from the supplied reference.
+`0x0062B4B0/0x0071CC50` erase this vector's range rather than dispatch
+manager updates. Registration uses the current actor returned by
+`0x00623C60`.
+
+The update receiver is retained separately during region construction.
+After the world call at `0x0064EA26`, `0x0064E830` subtracts four from
+the returned manager interface and passes the complete pointer to
+`0x00653380` at `0x0064EA4F`. That insertion, through `0x00777800`,
+copies it into linked-list node `+8` under region owner `+0x30`.
+`0x00626DF0` constructs this region owner through `0x0064F900` and
+stores it at its constructing actor's `+0x17C`, at `0x00626E57`.
+The region owner's table `0x00FBFA88` has RTTI
+`.?AVRaptureRegionManager@Layout@Map@Actor@Scene@Application@@`.
+The current-actor getter and constructing actor are distinct inputs;
+this pointer flow does not require assuming they are identical.
+
+The inspected callers `0x0062AB70/0x00629FA0` read their actor's
+`+0x17C` and, when nonnull, call `0x00645DA0` at
+`0x0062AB83/0x00629FB2`. That method walks region `+0x30` and loads
+each node's complete manager pointer at `0x00645DD4`. It invokes the
+pointer's primary slot 6 at `0x00645DDC`. On the constructed
+RaptureLayoutManager table `0x00FBFEE4`, this is `0x00648950`.
+
+For a successfully constructed, nonnull selected manager still retained
+by that bound region owner, this connects registration to a later call on
+the same complete object. If its initial state `+0x140` remains 1, the
+first such dispatch invokes primary slot 9, `0x00643020`, beginning the
+[conditional acquisition path](map-layout-request-boundary.md#registered-states-and-typed-view).
+This establishes call/dataflow order, not globally earliest scheduling,
+an active file open, completed loading or selected actor/model readiness.
 
 ## Evidence boundary
 

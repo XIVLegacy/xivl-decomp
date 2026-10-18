@@ -77,9 +77,11 @@ already loaded objects can all prevent a fresh open for a repeated selector.
 
 ## Registered states and typed view
 
-The constructed Sky update reaches `0x00648950`, which dispatches
-complete object state `+0x140` through table `0x00648A00`. The relevant
-states select these primary-interface methods:
+The constructed Sky update and the ordinary manager's
+[region-owner update](map-layout-selector.md#ordinary-manager-update)
+reach the shared dispatcher `0x00648950`. It dispatches complete object
+state `+0x140` through table `0x00648A00`. The relevant states select
+these primary-interface methods:
 
 | State | Method | Conditional work |
 | --- | --- | --- |
