@@ -30,6 +30,8 @@ using pefile `2024.8.26` and Capstone `5.0.7`, x86-32 mode. Python `struct`
 and `hashlib` checked the resource framing, typed records, pointers, strings
 and dependency rows. These observations used preserved files without client
 execution.
+The vector-insertion tail at `0x0079EC05..0x0079ECD2` was decoded directly
+from the same PE.
 
 The DAT's outer header dword at file `0x20` selects the `SEDBlyb` at
 `0x5E0`; its header length at `0x5EE` is `0x30`. Embedded LYB offsets
@@ -67,15 +69,21 @@ class descriptor at LYB `0x449C`, file `0x4AAC`, has class ID `0x0A5D`
 and path `BaseObjects/VFX/VFXBaseObject`. This is an explicit typed
 reference, beyond a rain-related string occurrence.
 
-The definition's alias pointers match outer dependency rows. Each outer row
-is `0x20` bytes: alias at `+0`, raw four-byte tag at `+0x10`, numeric key at
-`+0x14`. These tags are recorded as stored ASCII bytes.
+The definition's alias pointers match outer dependency rows. Group header
+`vfx_cam_rain` is at file `0x3C0`; the next group, `vfx_cloud`, is at
+`0x480`. Each intervening dependency row is `0x20` bytes: alias at `+0`,
+raw four-byte tag at `+0x10`, numeric key at `+0x14`. Tags below are stored
+ASCII bytes. The fresh-bind index is conditional on the complete, fresh
+enumeration described in [the acquisition path](#rain-collection-and-bind-entry-acquisition).
+A dash identifies a group dependency without a checked definition field.
 
-| Definition field | Alias | Dependency row file offset | Raw tag | Resource key |
-| --- | --- | --- | --- | --- |
-| `+0x18` | `1ipGk6vleafinst` | `0x460` | `sniv` | `0x898C0011` |
-| `+0x1C` | `2Dn7c7cam_rain` | `0x440` | `fael` | `0x898B0002` |
-| `+0x20` | `2UXnSGrain0001s` | `0x420` | `ffev` | `0x898D0054` |
+| Fresh bind index | Definition field | Alias | Dependency row file offset | Raw tag | Resource key |
+| --- | --- | --- | --- | --- | --- |
+| 0 | `+0x18` | `1ipGk6vleafinst` | `0x460` | `sniv` | `0x898C0011` |
+| 1 | `+0x1C` | `2Dn7c7cam_rain` | `0x440` | `fael` | `0x898B0002` |
+| 2 | `+0x20` | `2UXnSGrain0001s` | `0x420` | `ffev` | `0x898D0054` |
+| 3 | - | `36uZ6Yrain0001s` | `0x400` | `ldmv` | `0x898A0085` |
+| 4 | - | `032sPXrain0001s` | `0x3E0` | `xetv` | `0x89890052` |
 
 The first alias/key also occurs at outer row `0x5C0` in the cloud group.
 The resource separately contains `vfx_cloud` at LYB `0x83C8`, file `0x89D8`.
@@ -283,6 +291,75 @@ result does not establish historical pointer values or permanently disabled
 rain. A later binding writer or another initializer invocation remains a
 separate evidence requirement.
 
+### Rain collection and bind-entry acquisition
+
+The selected rain placement can use the block's direct-placement collection.
+After successful creation, `0x0064091E..0x00640926` calls block interface
+slot 5, cell `0x00FBFBA8`, `0x00A941F0`, with the instance. Subject to
+its interface `+0x60` bit-0, duplicate and allocation guards, this registers
+the instance in block full-object `+0x20` storage. State 1 then calls `0x006480F0` at
+`0x00648783`.
+
+When the collection's low 24-bit count at block `+0xB8` is zero,
+`0x0064813D..0x006481AC` obtains each direct instance's base interface
+through slot 19. On table `0x00FF279C`, cell `0x00FF27E8` selects
+`0x00A29AA0`, which reads instance interface `+0x10`. A nonnull base
+whose slot 24 returns a nonzero count is appended once to the collection
+at block `+0xAC`, with pointer storage at `+0xB4`, after successful growth.
+The VFX count is two. This direct branch does not call the nested-child
+predicate `0x007FBFF0`. `0x0064878F..0x006487A4` selects state 2 when
+the resulting collection is nonempty, otherwise state 5.
+
+State 2 has a VFX-specific enumeration branch. After the admission call
+`0x00624C70` at `0x0064FD74` succeeds, kind `0x0F` selects
+`0x0064FBB0` at `0x0064FD8E`, rather than the generic `0x0064FB30`.
+It uses the owner's `+0x14C` dependency helper and base-object slot 2.
+For this VFX, `0x008D5430 -> 0x00AA89B0` reads the attached definition's
+name, `vfx_cam_rain`.
+
+The checked load branch `0x006483F4 -> 0x00640A40` constructs that helper
+at owner `+0x14C` and visits the outer rows from file `+0x40` in ascending
+`0x20`-byte steps. `0x0079D110` converts each row into a `0x24`-byte
+record. Zero-key rows establish group names; dependency records retain
+the alias at `+4`, numeric key at `+0x18` and type word at `+0x1C`.
+`0x0079D190` compares the requested group name and appends that group's
+dependency records to its output vector until the next group header.
+For the selected DAT, this supplies the five rows at `0x3E0..0x460`
+in file order, including dependencies beyond the two alias getters.
+
+`0x0064FC5E..0x0064FC71` passes each row's alias, type and numeric key to
+`0x0064EDC0`. Its typed cache lookup is at `0x0064EE7F`; a cache miss
+can submit the numeric key through `0x0079C890` at `0x0064EEB9`.
+The [numeric request finding](map-layout-request-boundary.md#bridge-to-resourcemodule)
+owns the subsequent request/open contract. Pending-node and block-flag
+guards can defer or omit entry creation; submission does not prove a load.
+
+The admitted paths call `0x0064D790`, which creates or reuses a bind object
+for the base interface and calls `0x0064C900` to create its entry.
+For kind `0x0F`, `0x0064C980..0x0064C99E` inserts the new pointer at
+the vector's beginning through `0x0079ED90 -> 0x0079EA70`.
+Thus, when all five selected group rows create one entry each in a fresh
+bind object, their order is reversed: the table above gives indices 0/1
+as `sniv/leafinst` and `fael/cam_rain`. This does not establish the contents
+of a partially populated, reused or historically observed bind vector.
+
+Entry constructor `0x00652E20` stores type at entry `+0x0C`, numeric key
+at `+0x10`, alias at `+0x18` and an initial cached resource pointer, or zero,
+at `+0x28`. State 3 calls acquisition helper `0x00649160` at
+`0x0064D3F2` unless its preceding status and pointer checks bypass it:
+
+| Locator | Checked pointer acquisition |
+| --- | --- |
+| `0x006491C1..0x006491E1` | Starts at bind count minus one and skips entries whose slot-5 resource pointer is already nonnull. |
+| `0x00649479..0x00649501` | On the admitted typed-cache-hit branch, retains the returned pointer and supplies it with the current index to `0x00648C40`. |
+| `0x006495A8`; `0x00649618..0x00649686` | The request/factory branch calls virtual slot 2 on the interface returned by `0x0060B370`, scene `+0x114` object's `+8` field. A nonnull returned EAX reaches `0x00648C40` with the current index. The concrete receiver and decoder remain unjoined here. |
+| `0x00648C40..0x00648C57` | Resolves the indexed entry and stores the supplied pointer at `+0x28`, which bind slot 5 later returns to the VFX binder. |
+
+The generic state-3 pointer-presence check still governs advancement to
+state 4. These instructions identify the selected dependency keys and a
+conditional route into entries 0/1; they do not observe successful acquisition,
+the selected block's historical bind vector, or actual nonnull pointer values.
+
 ### Deferred VFX resource binding and clearing
 
 The RaptureVfx primary table `0x0106236C` and generic VfxBaseObject
@@ -298,8 +375,9 @@ further write routes:
 
 Slot 22 supplies a conditional binding route separate from initializer
 slot 9. The [deferred block resource-binding contract](bgchip-instance-resource-setup.md#block-phases-and-resource-binding)
-owns collection, enumeration, acquisition and state-4 dispatch. For this
-VFX type, slot 24 `0x00AB4E50` reports two resources; slot 25
+owns the common phases and state-4 dispatch. The selected VFX enumeration
+uses the five-row group above. Its alias getters expose two resources:
+slot 24 `0x00AB4E50` reports that count; slot 25
 `0x00AB4E60` selects the same two aliases through slots 42/43, and slot 26
 `0x00AB4E90` supplies their type words as described above.
 
@@ -359,8 +437,9 @@ They leave these specific joins unresolved:
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
 - Actual acquisition and delivery of nonnull bind-entry pointers to the
-  selected rain object's slot 22. The deferred binding contract supplies a
-  conditional writer; the selected entries and pointer results remain unobserved.
+  selected rain object's slot 22. The dependency rows and complete fresh-bind
+  ordering are established; historical bind vectors and pointer results remain
+  unobserved.
   A separate nonnull initializer receiver and its concrete query interface
   remain unjoined to Weather; the generic default listener does not prove that join.
 - Actual selection/completion of the rain folder and instance, its property
