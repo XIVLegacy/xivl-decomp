@@ -7,7 +7,9 @@ or one big-endian motion blob in a `SpuBinary` section. This page owns the
 framing, the Header payload fields, the Curve record header and the property
 record sizes. The [native memory selection](mtb-native-memory-selection.md)
 and [FixedCurve sampling](mtb-fixed-curve.md) findings own the narrower
-routes inside the Curve path.
+routes inside the Curve path. The
+[motion blob finding](mtb-fixed-motion-calculator.md) owns the `SpuBinary`
+blob.
 
 ## Identity and method
 
@@ -122,7 +124,7 @@ copied down to a 16-byte aligned address when it is not aligned
 (`0x00a31383..0x00a313c8`). Everything in the blob is converted from big-endian
 in place by `0x00a38c10`, so a reader of the file sees big-endian multi-byte
 fields in the blob and little-endian fields everywhere else in the container.
-The blob layout is outside this page.
+The [motion blob finding](mtb-fixed-motion-calculator.md) owns the blob layout.
 
 ## Curve record header
 
