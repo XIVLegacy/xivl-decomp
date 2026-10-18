@@ -4,7 +4,8 @@ The resource selected for supplied Limsa region key `101` and weather `8007`
 contains typed DrawEnv definitions and a referenced `vfx_cam_rain` definition.
 The checked native paths blend name-matched DrawEnv work and submit two VFX
 aliases through an initialization descriptor. These are conditional static
-contracts: they do not establish a rendered retail rain effect.
+contracts. The checked application Weather load supplies a null descriptor
+receiver and skips that submission; it does not establish a rendered effect.
 
 The [weather transition finding](../net/weather-transition-runtime.md#limsa-rain-selection)
 owns the packet, region lookup and queue route to resource `0x29D90013`.
@@ -147,23 +148,93 @@ The slot-26 calls at `0x00AB51E6/0x00AB51F9` use selectors 0 and 1;
 the descriptor's input storage and passes the descriptor's address to
 context `+4`'s virtual slot 1 at `0x00AB5273`.
 
-This joins two selected serialized alias fields to a concrete native
-descriptor-submission call. It does not resolve that context interface's
-implementation or the resulting effect. The definition's `+0x20` alias is
-an authored dependency here; this initializer's two getters do not consume
-that field. No inspected path joined these VFX inputs to the DrawEnv blend
-fraction.
+The definition's `+0x20` alias is an authored dependency here; this
+initializer's two getters do not consume that field. No inspected path
+joined these VFX inputs to the DrawEnv blend fraction.
+
+### Context producer and application null path
+
+`0x00A8B350` receives a definition and a second pointer argument. After
+attachment and registration, `0x00A8B3C1..0x00A8B3D9` builds a temporary
+two-pointer context and passes its address to the created object's slot 9:
+
+| Context field | Producer value | VFX initializer use |
+| --- | --- | --- |
+| `+0` | Current complete layout manager `+4` interface | Calls its slots 113 and 89 at `0x00AB520D/0x00AB521B` to supply descriptor inputs. |
+| `+4` | Unchanged second argument of `0x00A8B350` | Null check at `0x00AB516E`; otherwise slot-1 receiver at `0x00AB5273`. |
+
+The constructed MapLayoutWeather `+4` table `0x0103CEC4` has slot 13
+`0x00642E10` and slot 12 `0x0064F430`. On the checked state-4 load path,
+`0x006454D3..0x006454D8` supplies literal zero as slot 13's second
+argument. `0x00642E8C..0x00642E99` forwards it unchanged to slot 12.
+The admitted base-object branch `0x0064F56D..0x0064F576` passes it to
+`0x00A8B350`; the instance helper `0x00A8D0B0` also forwards its supplied
+third argument when it needs to create a missing base object, at
+`0x00A8D0F9..0x00A8D106`.
+
+Thus a VFX object initialized by this load receives context `+4 == 0` and
+returns through `0x00AB52A9` before alias getters or descriptor submission.
+This is a conditional native control-flow result for that load path, not
+a claim that Weather can never bind or activate VFX through another path.
+
+### Generic default receiver
+
+The generic LayoutManager `+4` table `0x010A22A4` instead has slot 13
+`0x00A8B7D0` and slot 12 `0x00A8E290`. The complete original-byte range
+`0x00A8B7D0..0x00A8B8F1` constructs a local listener through
+`0x00AB73F0` at `0x00A8B805`. When its second argument is null,
+`0x00A8B81A..0x00A8B81E` substitutes that listener's `+4` interface.
+It retains a supplied nonnull argument unchanged. After its resource checks,
+the wrapper forwards the selected pointer to slot 12 at `0x00A8B8B6`.
+The admitted generic base-object branch forwards it to `0x00A8B350` at
+`0x00A8E400..0x00A8E40C`. Both bodies return with `RET 8`.
+
+Constructor `0x00AB73F0` installs interface table `0x010A86A0` at
+complete listener `+4`. The table's locator at `0x0118E8F4` records
+offset four and RTTI name
+`.?AVDefaultSetupListenerWithReferenceResource@Layout@Stella@Lay@Engine@CDev@SQEX@@`.
+Its slot 1, cell `0x010A86A4`, selects `0x00AB74B0`. This identifies a
+concrete receiver for the generic wrapper's substituted context. The
+application Weather override above does not perform that substitution.
+
+`0x00AB74B0` queries descriptor inputs and writes output pointers:
+
+| Locator | Checked receiver behavior |
+| --- | --- |
+| `0x00AB74BB..0x00AB74CF` | Requires nonzero count at descriptor `+0`, pair pointer at `+4` and query interface at `+0x14`. The failing branch clears the result vector's low 24-bit count at `+0x24`. |
+| `0x00AB74D1..0x00AB74D7` | Sizes output storage at descriptor `+0x1C` through `0x00AA4C10`. |
+| `0x00AB74E2..0x00AB74F5` | Calls global `0x0136578C`'s slot 17 with descriptor `+0x10`; a null result skips that pair's lookup. |
+| `0x00AB74F7..0x00AB7508` | Takes the current pair's alias at `+4` and calls `0x0062E2D0` with literal `0x10` to prepare local lookup input. |
+| `0x00AB750D..0x00AB7531` | Takes the pair's type word at `+0`, calls descriptor `+0x14`'s slot 4 with the type and prepared alias input, and stores returned EAX at output-pointer `+0x20` indexed by pair number. |
+
+For a VFX initialization that reaches this receiver and its successful
+lookup branch, the pairs are the `sniv/leafinst` and `fael/cam_rain` inputs
+above. `0x00AB5275..0x00AB527B` reads the two output pointers. The calls
+at `0x00AB529B/0x00AB52A5` dispatch complete VFX slots 3/6, whose cells
+`0x01062378/0x01062384` select `0x00AB4F20/0x00AB4F70`. Those setters
+store the values at complete VFX `+0x4C/+0x50`, with guarded calls to
+`0x00A3E680/0x00A3E670` around pointer replacement. This closes the
+conditional alias-query-to-retained-pointer contract. Effect creation remains
+unresolved.
+
+The wrapper and generic slot-12 bodies were decoded directly from the pinned
+PE at `0x00A8B7D0..0x00A8B8F1` and `0x00A8E290..0x00A8E5FC`.
+The remaining function observations used the byte-checked retained listings
+and tools identified above. The query interface's concrete implementation,
+its alias resolution and the actual pointer results remain unjoined.
 
 ## Remaining boundary
 
 The preserved artifacts establish the selected resource's typed rain
-reference, the conditional DrawEnv interpolation contract, and the VFX alias
-descriptor handoff. They leave these specific joins unresolved:
+reference, the conditional DrawEnv interpolation contract, the VFX context
+producer, the application load's null receiver and the generic default
+resource-query receiver. They leave these specific joins unresolved:
 
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
-- The concrete context `+4` receiver at `0x00AB5273`, including its resource
-  resolution and effect-creation behavior.
+- A nonnull context producer actually used for the selected Weather VFX,
+  followed by its concrete query interface, alias resolution and retained
+  pointer results. The generic default listener is not joined to that load.
 - The `cbind_rain` instance's attachment/activation and the selected timeline
   or spatial lane, followed by any emitter or renderer submission.
 
