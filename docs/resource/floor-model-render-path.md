@@ -259,6 +259,17 @@ then model slot 30 at table `+0x78`, and tail-jumps with the incoming stack
 argument unchanged. This closes the actor-to-model receiver and argument
 forwarding edge; it does not identify a caller of that actor entry.
 
+Actor slots 65/74 use the model's separate SoundController pointer.
+Slot 74, `0x00A5FDA0`, returns zero for a null model and otherwise forwards
+to model slot 85, `0x008DDA20`, which reads model `+0xF4`.
+Slot 65, `0x00A5FB00`, returns zero when slot 74 is already nonzero or
+the model is absent. Otherwise it invokes model slot 81, `0x00A61450`,
+then the same model-slot-85 getter. Slot 81 conditionally allocates
+`0x1C` bytes and calls `0x00A70910`, which installs SoundController
+vtable `0x0109E6A0` and retains the model at controller `+0x04`.
+The result is saved at model `+0xF4`. These calls supply no mask argument;
+their model-slot-85 transfers do not identify an actor-slot-85 invocation.
+
 ### Construction and setup ordering
 
 Model construction `0x008DD0A0` calls base constructor `0x00A62CA0`
@@ -278,6 +289,16 @@ These calls therefore do not unconditionally enable the drawable.
 At `0x00A622B1..0x00A622C2`, the initializer passes drawable `+0xF4`
 to model slot 37, `0x008DD510`, which saves it at model `+0x288` and
 copies it back to an existing drawable. Neither entry is a tag-mask setter.
+
+Slot 37 then queries the model owner through slot 6, `0x00657690`,
+which reads model `+0xD0`, and queries that owner's slot 72. The actor
+construction call at `0x00A60C60/0x00A60C61` passes the actor through
+factory `0x008C7F70` and model constructor `0x008DD0A0` to
+`0x00A62CA0`, which retains it at `+0xD0` at `0x00A62D50`.
+With that constructor-retained BgPlateActor owner, slot 72 is
+`0x00AB7340`, a complete zero-return body. The guard at
+`0x008DD557..0x008DD559` therefore skips the downstream slot-16
+context callback on this owner path.
 
 The complete original-byte decode `0x00A61DF0..0x00A6247E`, including
 the omitted success blocks, contains no direct access with displacement
