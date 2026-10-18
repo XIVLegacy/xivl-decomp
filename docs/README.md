@@ -176,6 +176,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [BGChip model resource binding](resource/bgchip-model-binding.md)
 - [BGChip resource setup and Attribute physics](resource/bgchip-instance-resource-setup.md)
 - [Selected floor import and native rendering contract](resource/floor-import-contract.md)
+- [Selected floor material alpha and clipping](resource/floor-material-alpha.md)
 - [Attribute resource and native physics registration](resource/attribute-resource-and-scene-binding.md)
 - [SceneThreadImpl world lifetime](resource/scene-thread-world-lifetime.md)
 - [DivideMap block activation](resource/layout-block-activation.md)

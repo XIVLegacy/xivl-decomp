@@ -233,6 +233,12 @@ bit 1 to one and tag `+0x133` to zero, selecting slot 9 among the two stated
 dispatch branches subject to the other guards. This does not establish a
 material construction or binding result in a running client.
 
+The [selected material profile](floor-material-alpha.md) identifies zero
+serialized diffuse alpha and a conditional source-alpha blend path. A
+successfully bound material and submitted geometry can therefore produce no
+visible floor color when its shadow-dependent alpha term is zero. This
+condition is separate from the draw-admission guards above.
+
 ### Mask updates and caller boundary
 
 `0x00C32EB0` iterates component `+0x80/+0x84` tags and writes `+0x131`

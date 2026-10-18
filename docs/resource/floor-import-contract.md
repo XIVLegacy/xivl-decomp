@@ -134,3 +134,9 @@ Preserving material and shader bytes does not establish their live variant,
 bound textures, accepted vertex inputs or output appearance. A runtime check
 must distinguish rejection before submission from a submitted draw producing
 no visible floor. Collision standing and walking require their own evidence.
+
+The [selected material alpha profile](floor-material-alpha.md) makes that
+distinction concrete: the retained material's diffuse alpha is zero, blending
+is enabled, and its shader adds a shadow-dependent alpha term. This profile
+is not an opaque-floor control. The current import contract still preserves
+those material bytes; the finding does not authorize a new material edit.
