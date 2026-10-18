@@ -279,6 +279,12 @@ separate receiver contracts from BgPlateActor slot 85 and model slot 30.
 The packet field and conditional binding order do not establish a call
 to the selected floor's mask setter.
 
+The [weather environment receivers](../net/weather-transition-runtime.md#layout-providers-and-environment-receivers)
+also use slot 85 for a different contract. The inspected environment
+interfaces return a float through `0x00AB0010`; their callers consume
+x87 results without pushing a mask in the call windows. These table and
+argument contracts do not establish a selected actor/model mask call.
+
 ### Construction and setup ordering
 
 Model construction `0x008DD0A0` calls base constructor `0x00A62CA0`

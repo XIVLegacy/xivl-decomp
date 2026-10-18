@@ -45,8 +45,8 @@ immediately. `0x007e91d0` and `0x007ea090` convert engine delta time to the
 
 The weather resource queue contains 12-byte entries. `0x007e87f0` searches
 the complete queue by resource ID. If the requested resource is already
-present, it returns without inserting or reordering an entry. Adding a new
-resource through `0x007e80f0` resets the elapsed counter at `0x007e81fa`.
+present, it returns without inserting or reordering an entry. Appending a new
+queue resource through `0x007e80f0` resets the elapsed counter at `0x007e81fa`.
 `0x007e78d0` blends the oldest and newest DrawEnv resources and retires the
 oldest after the weather fraction reaches 1.
 
@@ -57,6 +57,102 @@ sets the target to 20 seconds. Conversely, 10 seconds elapsed against a
 20-second target moves from 0.5 to about 0.056 if the target becomes 180.
 These values are deterministic applications of the native formula, not a
 claim about a particular captured crossing.
+
+## Layout providers and environment receivers
+
+Retained Ghidra listings and original PE bytes were checked with pefile
+`2024.8.26` and Capstone `5.0.7` in x86-32 mode. The addresses below are
+VAs in the executable identified above.
+
+Let O be the weather object constructed by `0x007E8AE0`, with its supplied
+parent retained at O+`0x48`. On the inspected RaptureActorContainer
+construction path, the container's retained world pointer reaches that
+parent's `+0x114`. Helper `0x00623C70` queries the world's slot 8, then
+the returned controller's slot 1 and the returned layout-system interface's
+slot 3. The concrete RaptureWorld slot 8, `0x00410780`, reads the pointer
+stored at world `+0x18`. The controller route through
+`0x00A5E8D0/0x00A886E0` returns the layout-system `+4` interface, whose
+slot 3, `0x00A88820`, reads the layout-world interface pointer stored at
+`0x0136578C`. `0x00623C70` subtracts four from its nonnull result to
+obtain the complete RaptureLayoutWorld object.
+
+That object's primary table `0x00FBFB50` has slot 4 `0x00648570` and
+slot 3 `0x00648600`, used by `0x007E87F0/0x007E88B0` respectively.
+Their factory path reaches `0x006520B0`: its mode-zero branch constructs
+MapLayoutWeather through `0x0083C970`; mode one constructs
+MapLayoutWeatherSky through `0x0083C390`. The helpers recover the complete
+object from the returned `+4` interface before passing it to
+`0x007E80F0`. These are conditional construction paths. The finite direct
+relative-transfer and literal-pointer searches found no incoming reference
+to `0x007E88B0`; that result does not exclude other indirect forms.
+
+The resulting pointer has two destinations and a shared name-source path:
+
+| Native path | Pointer and use |
+| --- | --- |
+| `0x007E80F0`, argument 3 equals 1 | Stores its object argument at O+`0x7C` for replacement lookup. |
+| `0x007E80F0`, other mode branch | Appends a 12-byte O+`0x6C` queue record with the object at record `+8`. |
+| `0x007E78D0 -> 0x007E6690` | The blend branch passes the last/newest record's `+8` as argument 1 and the first/oldest record's `+8` as argument 2. On the continuing branch, `0x0083A750` supplies the `+0x3DC` trees for the pair after readiness checks and substitution. |
+| `0x007E90F0 -> 0x007E7D90` | Uses the O+`0x68` object's `+0x3DC` tree as the name source and O+`0x7C` as the replacement object. |
+| `0x007E9400` fallback | Clears O+`0x7C`. Its nonempty-queue branch recovers O+`0x68` from the first record's `+8` and enters `0x007E9160`, whose name rebuild requires nonnull O+`0x68` and a true slot-18 result. |
+
+The mode-one branch returns before queue insertion and elapsed-counter
+reset. On the blend branch, `0x007E78D0` retires the oldest record before
+selecting the next pair when the fraction reaches one with multiple entries.
+`0x007E6690` tests the resources' primary slot-18 results. An initially
+false result for argument 2, the oldest resource, exits without tree work.
+A false result for argument 1 enters a fallback that uses the oldest resource
+for both inputs, sets the fraction to zero and queries readiness again.
+These are resource guards and local update order, rather than selected
+actor/model readiness.
+
+The concrete MapLayoutWeatherSky `+4` table `0x0103CC3C` has slot 24
+`0x00A8AC40`. It forwards name lookup to its manager's slot 16,
+`0x00A898B0`, through interface `+0x1C`, complete object `+0x20`.
+The complete finder hashes the supplied name, compares candidates' slot-2
+names and returns the first matching candidate pointer unchanged at
+`0x00A89995`. This finder does not test kind `0x0D`.
+With nonnull O+`0x7C`, `0x007E7DFE` calls this `+4` interface slot 24.
+The subsequent guarded minus-four/plus-four adjustments preserve a
+successful interface result.
+`0x007E7E29` saves it in the working tree's node `+0x64`.
+
+Name admission is separate from the kind map. Sky interface slot 12,
+`0x0064F430`, reaches `0x00A8B350` after resource type-chain checks and
+a zero result from resource-interface slot 23 on the record.
+That helper resolves a matching creator and its kind, then calls manager
+slot 1 to construct an object. This creation path, `0x00640270`, requires
+the kind policy `0x00624D10` to accept the kind before construction.
+Its decision depends on singleton `0x0133DEF4`, kind-collection and
+resource/actor state inputs. A successfully created object receives the
+record through slot 7 before forwarding the record/object pair through
+resource-interface slot 17, `0x00A8ABE0`, to manager slot 8,
+`0x00A8A190`. The latter inserts the hash and supplied pointer into the
+name buckets consumed by `0x00A898B0`. The eligible record, matched creator,
+kind-policy result, admitted pointer and matching name remain inputs.
+The name registration and lookup bodies do not establish a universal
+kind-0D or RTTI whitelist.
+
+Raw complete-object locators
+identify environment tables `0x01061BAC/0x010A6E8C` as interfaces at
+complete-object offset four, with these RTTI names respectively:
+
+- `.?AVRaptureScreenEnvBaseObject@Layout@Map@Actor@Scene@Application@@`
+- `.?AVScreenEnvBaseObject@Layout@Stella@Lay@Engine@CDev@SQEX@@`
+
+Both tables' slot 85 is `0x00AB0010`. Its complete body calls the
+receiver's slot 8, loads a pointer from the result's `+0x1C` and returns
+the float at that pointer's `+0x18` in x87 ST0.
+`0x007E2FED/0x007E2FFD` call slot 85 on their two incoming environment
+interfaces and consume float results. `0x00A73DF4` makes the same slot
+call and stores its float result at destination `+0x148`. The inspected
+call windows do not push a mask argument.
+
+These concrete getter contracts are distinct from the selected
+[BgPlateActor mask forwarding](../resource/floor-model-render-path.md#mask-updates-and-caller-boundary).
+The shared slot number does not join these interfaces to that actor or
+model setter. Other receivers, aliases and callback effects remain
+separate static questions.
 
 ## Independent spatial fade
 
