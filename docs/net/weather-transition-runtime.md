@@ -133,6 +133,114 @@ kind-policy result, admitted pointer and matching name remain inputs.
 The name registration and lookup bodies do not establish a universal
 kind-0D or RTTI whitelist.
 
+### Record and lookup-name inputs
+
+Python `struct` and `hashlib` inspection of the
+[selected layout](../resource/floor-import-contract.md#selected-inputs-and-method)
+checked these definition records. Offsets in this table are file offsets;
+their stored pointers are relative to the LYB payload at file `0x190`.
+
+| Record | Definition / descriptor | Class ID | Object name / stored hash |
+| --- | --- | --- | --- |
+| Selected floor BGChip | `0x1E60 / 0x16DC` | `0x0B0B` | `c0_00_plt00_h / 0x0428` |
+| ScreenEnv | `0x219C / 0x1790` | `0x0F87` | `scev_0000 / 0x02D0` |
+
+Both descriptor chains include `BaseObjects/BaseObject`. Each record's
+stored hash equals the signed-byte sum of its name. These are distinct
+object names. The BGChip's
+[primary resource key](../resource/bgchip-model-binding.md#creator-and-attached-key)
+at record `+0x20` is a separate input from the object name at `+8`.
+These retained definitions do not identify the resource currently loaded
+by Sky or the name supplied by an active source tree.
+
+The constructed factory's initial registry resolves these class IDs
+uniquely. `0x00A90FD0` supplies default registrations; `0x00643800`
+removes and replaces the application categories. Registration
+`0x00A90F50` keys creators by slot 5's kind. Every surviving creator's
+complete slot-6 ID comparison was checked against the original PE.
+No other initial matcher accepts either selected class ID.
+
+| Class ID | Registered creator and kind | Created interface |
+| --- | --- | --- |
+| `0x0F87` | Table `0x0103C498`, matcher `0x00AA6760`, kind `0x0D` | `0x008394F0 -> 0x008D49F0` returns complete object `+4`, with table `0x01061BAC`. |
+| `0x0B0B` | Table `0x0103C2B4`, matcher `0x00AA5180`, kind 1 | `0x00837FB0 -> 0x008D3E00` returns complete object `+4`, with table `0x0106126C`. |
+
+This result requires successful construction/registration and unchanged
+factory/core aliases, registry and ID cells. Creator matching by class ID
+and the later creator lookup by kind are separate operations.
+For both created interfaces, slot 7 attaches the record before name
+registration. Slots 2/3 obtain its name from record `+8` and hash from
+record `+0`. `0x00A8B350` registers that pointer before calling its later
+slot-36 and slot-9 initialization methods. Registration alone does not
+establish readiness.
+
+`0x0083C110` requests kind `0x0D`, then obtains each admitted object's
+slot-2 name for the `+0x3DC` tree keys. The ordinary kind-1 BGChip does
+not enter that collection through these getters. If the checked ScreenEnv
+record supplies a source key, its name is `scev_0000`; the checked floor
+BGChip's different name cannot satisfy that comparison. A matching
+ordinary ScreenEnv object has the float-getter interface above.
+Other same-name objects, replaced creators and changed records remain
+separate inputs because the replacement finder itself has no kind test.
+
+### Creation policy inputs
+
+Let S be the constructed MapLayoutActor loaded from global `0x0133DEF4`, R the
+complete resource and K the creator's kind. The complete body of
+`0x00624D10` selects these conditions in order:
+
+| Condition | Creation policy result |
+| --- | --- |
+| S+`0x1F0` equals 3 | Calls `0x00801A70` on S+`0x350`. It rejects K when a collection entry's `+0x100` equals K, and accepts it when no entry matches. |
+| Other scene state, K differs from `0x0F` | Accepts. |
+| Other scene state, K equals `0x0F`, R is null | Accepts. |
+| Other scene state, K equals `0x0F`, R+`0x150` differs from both 0 and 1 | Accepts. |
+| Remaining kind-`0x0F` case | Accepts exactly when S+`0x335` is nonzero. |
+
+The resource mode and creator kind are separate inputs. A kind of `0x0D`
+therefore uses the collection predicate in scene state 3 and passes this
+policy in other scene states. A passing policy still precedes the manager's
+own creation guard and the actual creator call.
+
+Constructor `0x0062D520` initializes S+`0x1F0/+0x1F4` to 1 and
+S+`0x335` to 1. It publishes S in `0x0133DEF4` before constructing
+the control object retained at S+`0x350`; teardown `0x0062DA70` clears
+the control pointer and singleton. Publication does not establish safe
+use before construction completes.
+`0x006274A0` writes its incoming mode to S+`0x1F0`, with saved-mode
+handling at `+0x1F4`; `0x0062D1C0` supplies argument 3 to that writer.
+`0x0062B660` restores the saved mode. The inspected state-2 writers
+`0x00624240/0x006242B0/0x00626E80` require the old mode to differ
+from 3, alongside their other local guards. Incoming request selectors,
+controller receivers and request IDs remain inputs.
+
+The control object's denied-kind vector has begin/end at `+0x28/+0x2C`.
+`0x00624D70` consumes nine mask bits using table `0x012B8170`:
+bit 8 selects kind `0x0D`, while bit 0 selects kind 1. A set bit removes
+the corresponding denial through `0x00802F30`; a clear bit adds a missing
+kind through `0x00805330`. Its inspected calls in `0x00815F00` take a
+zero-extended word from record `+0x22`. The control object's tuple and
+name collections, edited by `0x00624CD0/0x00624DD0`, are separate.
+These kind-admission bits do not identify a selected model mask call.
+
+Setter `0x0062C710` writes the incoming low byte to actor `+0x335`.
+The inspected call at `0x00613FC4`, selector `0x15` of `0x00613B10`,
+uses the first byte of argument 2 and loads its actor through
+`[[caller+0x118]+0x78]`. That receiver must alias S for this call to
+change S's policy byte. Resource setup methods `0x00642F20/0x00642F60`
+write their argument-2 mode to complete resource `+0x150`; the ordinary
+mode-one Sky provider supplies 1 there, independently of S+`0x1F0`.
+
+The manager guard is interface `+0x11C`, complete object `+0x120`,
+bit 0. Constructor helper `0x00A8A370` initializes it clear.
+Bulk teardown `0x00A89C60` sets it before traversing managed objects
+and clears it on normal completion. Interface slot 3, `0x00A89DF0`,
+adjusts the receiver by minus four before reaching that helper.
+These inspected writers explain conditional creation admission without
+supplying current policy values, selected actor identity or setter order.
+
+### Environment slot-85 contract
+
 Raw complete-object locators
 identify environment tables `0x01061BAC/0x010A6E8C` as interfaces at
 complete-object offset four, with these RTTI names respectively:
