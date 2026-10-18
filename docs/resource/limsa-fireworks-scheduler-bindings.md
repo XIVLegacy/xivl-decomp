@@ -211,23 +211,84 @@ registration and property creation.
 
 ### Construction-context boundary
 
-The inspected instructions join child context inheritance, numeric
-registration, clip context capture and the lookup implementation. They do
-not complete the composition from these two SCB resources through the clip
-factory while that specific context is published. The conditional local
-receiver relation is stronger than raw field equality, but the factory
-composition remains separate from an authenticated instantiated wrapper.
-
-The TimeLine initialization lead is base slot 18, `0x008D51B0`, through
+The TimeLine initialization path is base slot 18, `0x008D51B0`, through
 `0x00AB35C0` to base slot 42, `0x00AB3730`. That helper obtains resource
-`R` through `0x00AB38B0` and calls the manager at global `0x01365B08`,
-slot 4. The manager interface's vtable `0x010A8AC0` identifies
-`LayExternalObjectManager`; slot 4, `0x00ABB930`, tail-calls an installed
-delegate's slot 1. The returned object receives resource `R` through its
-slot 1 at `0x00AB3759`. The last unresolved binding is that delegate at
-`u32(u32(0x01365B08)+4)`, the returned object's dynamic implementation,
-and its route to the SCB clip builder `0x00A28510` and factory
-`0x00837220` under the owning context.
+`R` through `0x00AB38B0` and calls the `LayExternalObjectManager` at global
+`0x01365B08`, slot 4. The returned object receives resource `R` through
+its slot 1 at `0x00AB3759`.
+
+Initialization `0x00A77A30` constructs a `LayExternalManagerConnector`
+through `0x00A841D0`. At `0x00A77C4F..0x00A77C64`, it supplies the
+connector's complete object `+4` and ownership argument 1 to manager slot 1,
+`0x00ABB900`. That setter retains the interface at manager-interface `+4`
+and sets its ownership bit. Manager slot 4, `0x00ABB930`, loads this
+delegate and calls its slot 1, `0x00A84180`.
+
+The connector calls `0x00A72AF0` and returns complete object `+4` from
+global `0x01365688` when nonnull. The same initialization path constructs
+that `LaySchedulerManager` through `0x00A72F50` and installs it through
+`0x00A72AC0` at `0x00A77AF1`. Its interface vtable `0x0109E850` selects
+`0x00A72B00` for the resource-R slot-1 call. These are conditional
+initialization and allocation paths, not an observed installation.
+
+`0x00A72B00` rejects zero `R`, constructs `LaySchedulerManipulator`
+through `0x00A78180`, and calls its interface slot 1, `0x00A78420`, with
+`R` and the complete manager. It returns the manipulator interface without
+checking that initialization's Boolean result. The TimeLine path
+`0x00AB3600..0x00AB3616` stores that result through property slot 31,
+`0x00AA26D0`, at property-interface `+0x0C`. Getter `0x00CB1C80` returns
+the same field. On this creation path, the clip's scheduler receiver is
+`LaySchedulerManipulator`. A nonnull interface alone does not prove
+successful construction of its underlying scheduler.
+
+The original RTTI anchors for these objects are:
+
+| Vtable | Type descriptor | Mangled type name |
+| --- | --- | --- |
+| `0x010A8AC0` | `0x012F8978` | `.?AVLayExternalObjectManager@External@Stella@Lay@Engine@CDev@SQEX@@` |
+| `0x010A026C` | `0x012F29F8` | `.?AVLayExternalManagerConnector@External@Default@Lay@Engine@CDev@SQEX@@` |
+| `0x0109E850` | `0x012F0C98` | `.?AVLaySchedulerManager@Scheduler@Cut@External@Default@Lay@Engine@CDev@SQEX@@` |
+| `0x0109F484` | `0x012D0CF0` | `.?AVLaySchedulerManipulator@Scheduler@Cut@External@Default@Lay@Engine@CDev@SQEX@@` |
+| `0x0109F814` | `0x012F20D8` | `.?AVLaySchedulerFactory@Scheduler@Cut@External@Default@Lay@Engine@CDev@SQEX@@` |
+
+The factory has a complete-object vtable. The other listed interfaces are
+at complete object `+4`.
+
+### Resource-to-builder boundary
+
+Manipulator initialization `0x00A78420` retains `R` at interface `+0x0C`
+and calls complete manager slot 9, `0x00A72D10`. That method constructs
+`LaySchedulerFactory` through `0x00A78D30/0x00A25E40`, retaining `R` at
+factory `+0x0C`. On a nonnull factory result, the manipulator invokes
+`0x00A02F20`, whose factory slot-1 call at `0x00A02FFB` selects
+`0x00A78D80`.
+
+That method constructs an object through `0x00A84EE0` and passes it to
+`0x00A26380` at `0x00A78E27`. The implementations of `0x00A242F0`,
+`0x00A26080` and the constructor remain opaque at this boundary.
+After its resource, allocation and size guards, `0x00A26380` calls
+`0x00A25DC0` at `0x00A2655A` and `0x00A25B90` at `0x00A2657D`.
+
+The first advances the supplied arena cursor by `0x14`, calls
+`0x00A27450` at `0x00A25E0D`, and returns the object retained by its
+caller at new-object `+0x74`. The second has serialized `@CACT` and
+`@CTRK` branches. Their original comparison strings are at `0x010984D4`
+and `0x0109821C`. Its `@CACT` branch calls `0x00A298D0` at
+`0x00A25C5A`, with the parsed record pointer, the object at `+0x74` and
+arena `new-object+0x60`. Its `@CTRK` branch calls `0x00A26850` at
+`0x00A25CA0` with a parsed pointer and the same arena. Those helper
+implementations are not joined here to clip builder `0x00A28510` or
+registered clip factory `0x00837220`.
+
+The established child-context inheritance, numeric registration and clip
+constructor's global capture do not complete that composition. Constructor
+`0x008102B0` also retains global `0x013657B8` at complete-object `+0xFC`
+at `0x00810319..0x0081032D`; no read of that retained field is connected
+to the selected builder path. Uninspected intervening calls can defer work
+or change context. The owning `U` at either wrapper's actual clip creation
+therefore remains an input condition, not a result inferred from call-stack
+proximity. The missing evidence is the selected actor/track helpers' route
+to clip construction, with `U` preserved or explicitly published there.
 
 Instance helper `0x007FBAB0` also publishes slot-61 context around property
 slot 24, `0x00AA2A80`. That method submits transform data and does not
@@ -240,8 +301,7 @@ bank-local aliases, timeline bodies and conditional native invocation path.
 It supplies no authenticated actor ID/class or spawn row, historical sender,
 event calendar, bank-selection policy or visible effect. Those inputs cannot
 be inferred from the aliases or the asset names. The full `LaySystemActor`
-state and final scheduler interface's concrete dynamic class were not
-reconstructed by the receiver lookup.
+state was not reconstructed by the receiver lookup.
 
 Weather `8029` and the recovered `MapObjFireworks` script do not supply this
 missing retail activation record. Their separate evidence and limits remain
