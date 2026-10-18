@@ -248,6 +248,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Game controller startup](input/game-controller-startup.md)
 - [System configuration game consumers](input/system-configuration-consumers.md)
 - [Widget command admission and completion](script/widget-command-completion.md)
+- [Widget native property entry](script/widget-property-entry.md)
 - [Materia command callback boundary](script/materia-command-dispatch.md)
 - [Lua reflective call alias](script/lua-call-function-bridge.md)
 - [DesktopWidget](script/desktop-widget.md)
