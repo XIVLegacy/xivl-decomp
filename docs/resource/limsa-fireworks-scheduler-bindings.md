@@ -81,9 +81,10 @@ owner 200 has `6,6,7,8,9`, matching aliases `vtp1,vtp1,vtp2,vtp3,vtp4`;
 owner 223 has `2,4,3,4,2,4,3,5`, matching
 `vtp2,vtp4,vtp3,vtp4,vtp2,vtp4,vtp3,vtp5`.
 The first clip records are at `0x77B20` and `0x7C9F0`, with stride `0x2C`.
-This is a structural field match. The `LaySystemActor` context and native
-receiver scope remain unresolved, so these sequences are not asserted as
-executed calls between the local aliases.
+The [native receiver lookup](#wrapper-receiver-selection) gives these values
+numeric child-table semantics, conditional on the clip retaining the
+respective tree's context. The sequences describe serialized clip records,
+not an observed order of executed calls.
 
 ## Native binding and request path
 
@@ -145,18 +146,108 @@ the jump table selects `0x00802502`, reaching the interface's slot 3 at
 scheduler invocation. It does not establish that either Limsa owner was
 bound, ready or invoked in retail.
 
+## Wrapper receiver selection
+
+`LayRaptureCallSchedulerClip` factory `0x00837220` constructs a `0x40`-byte
+object through `0x00836B80/0x00836660`. Its primary vtable is `0x0103B54C`.
+The original RTTI type descriptor at `0x012CFA78` names
+`.?AVLayRaptureCallSchedulerClip@Clip@Cut@Scene@Application@@`.
+Primary slot 1 is `0x00836730`, the receiver-selection method below.
+
+Base constructor `0x00A21260` retains serialized record `D` at clip `+0x14`.
+`0x008366AE..0x008366BC` copies globals `0x013657B4/B8` into clip
+`+0x38/3C`. Use `U` for the layout-unit interface captured at `+0x3C`.
+This is construction context, separate from the serialized `LaySystemActor`
+records.
+
+### UnitTree child-key table
+
+The kind-`0x12` branch of `0x007FE900` initializes a UnitTree's layout-unit
+context. At `0x007FEA78..0x007FEAA9`, it obtains instance slot 61, publishes
+that pointer as `0x013657B8`, calls its slot 1 and clears the global.
+On `RaptureLayoutUnitInfo` interface vtable `0x00FF298C`, slot 1 is
+`0x007FBF50`. It forwards to complete-object vtable `0x00FF2A90`, slot 1
+`0x007FD830`. The layout-unit interface is at complete object `+4`.
+
+`0x007FD872..0x007FD88A` obtains the incoming instance's slot-61 context.
+The child loop passes it to each created child's slot 59 at
+`0x007FDA52..0x007FDA61`. That setter, `0x008004B0`, stores it at child
+interface `+0x1C`; getter slot 61, `0x0060DE70`, returns it.
+At `0x007FDB48..0x007FDB5D`, the loop registers the original child record's
+`+0x1C` dword and the created child interface with that context's slot 39.
+The original records have stride `0x30`.
+
+Slot 39, `0x00A9D230`, inserts through `0x00A9ED60` into the context's
+`UnitTreeInstanceObjectTable`. Its original vtable is `0x010A4790`, with
+RTTI type descriptor `0x012F6F88` named
+`.?AVUnitTreeInstanceObjectTable@Layout@Stella@Lay@Engine@CDev@SQEX@@`.
+The numeric key is stored in tree-node `+0x0C` and the interface in `+0x10`.
+Thus the declared child IDs have a native registration path within the
+containing tree's context.
+
+### Clip lookup and scheduler interface
+
+At `0x00836740..0x00836756`, clip slot 1 reads `u32(D+0x14)` and calls
+captured `U` slot 50 with `(key,1)`. The inspected implementation,
+`0x00A9D330`, ignores the second argument and calls table slot 5,
+`0x00A9E8F0`. It uses `0x00A8A730` to find the exact unsigned key and
+returns its stored interface, or zero on a miss.
+
+The clip calls the selected instance's slots 10 and 47. Slot 47,
+`0x00C4BAE0`, returns the property interface at instance-interface
+`+0x14`. The timeline property vtable `0x00FF2D2C` has RTTI name
+`.?AVRaptureTimeLineInstanceObjectProperty@Layout@Map@Actor@Scene@Application@@`.
+Its slot 30, `0x00CB1C80`, returns the retained scheduler interface from
+property-interface `+0x0C`. The clip then invokes that scheduler's slot 3
+at `0x0083682F..0x0083683B`.
+
+This method does not read actor ordinal `D+3`, the `LaySystemActor` name,
+or its other serialized fields to select the receiver. With `U` equal to
+the corresponding hanabi tree's context, the thirteen numeric requests
+therefore select the local aliases listed above. A missing numeric instance
+is dereferenced at `0x00836758`; the later scheduler-null result is guarded
+at `0x00836783..0x00836791`. The path requires successful construction,
+registration and property creation.
+
+### Construction-context boundary
+
+The inspected instructions join child context inheritance, numeric
+registration, clip context capture and the lookup implementation. They do
+not complete the composition from these two SCB resources through the clip
+factory while that specific context is published. The conditional local
+receiver relation is stronger than raw field equality, but the factory
+composition remains separate from an authenticated instantiated wrapper.
+
+The TimeLine initialization lead is base slot 18, `0x008D51B0`, through
+`0x00AB35C0` to base slot 42, `0x00AB3730`. That helper obtains resource
+`R` through `0x00AB38B0` and calls the manager at global `0x01365B08`,
+slot 4. The manager interface's vtable `0x010A8AC0` identifies
+`LayExternalObjectManager`; slot 4, `0x00ABB930`, tail-calls an installed
+delegate's slot 1. The returned object receives resource `R` through its
+slot 1 at `0x00AB3759`. The last unresolved binding is that delegate at
+`u32(u32(0x01365B08)+4)`, the returned object's dynamic implementation,
+and its route to the SCB clip builder `0x00A28510` and factory
+`0x00837220` under the owning context.
+
+Instance helper `0x007FBAB0` also publishes slot-61 context around property
+slot 24, `0x00AA2A80`. That method submits transform data and does not
+establish the missing clip-construction call chain.
+
 ## Remaining activation boundary
 
 The static result identifies the layout row, instance-name namespace,
 bank-local aliases, timeline bodies and conditional native invocation path.
 It supplies no authenticated actor ID/class or spawn row, historical sender,
-event calendar, bank-selection policy, wrapper receiver context or visible
-effect. Those inputs cannot be inferred from the aliases or the asset names.
+event calendar, bank-selection policy or visible effect. Those inputs cannot
+be inferred from the aliases or the asset names. The full `LaySystemActor`
+state and final scheduler interface's concrete dynamic class were not
+reconstructed by the receiver lookup.
 
 Weather `8029` and the recovered `MapObjFireworks` script do not supply this
 missing retail activation record. Their separate evidence and limits remain
 in [City seasonal root effects](city-seasonal-root-effects.md#script-and-activation-boundary).
-The specific remaining static question is how the two `LaySystemActor`
-wrapper contexts select their scheduler receivers. Historical orchestration
-requires an authenticated dispatch or observation that identifies the actor,
-binding and submitted names together.
+The remaining static join is the SCB-to-clip factory composition under the
+owning tree's published context. Historical orchestration requires an
+authenticated dispatch or observation that identifies the actor, binding and
+submitted names together. A calendar and settings controller is a separate
+[server policy choice](../event/seasonal-control-plane.md#server-orchestration-boundary).

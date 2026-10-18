@@ -45,6 +45,34 @@ the emote gate does not establish a weather trigger. The static sources
 used here do not establish which combinations, timing, or initial
 states the historical retail server sent to a particular player and area.
 
+## Server orchestration boundary
+
+The recovered inputs are compatible with a server-owned event controller.
+A calendar window and a settings override that forces an event on or off
+would select server policy, then supply the applicable client inputs:
+
+| Client input | Established control | Remaining content boundary |
+| --- | --- | --- |
+| Player event work, `0x0196` | Supplies the flags and words consumed by recovered Lua. | A mode does not select area weather or prove a complete event state. |
+| Area weather, `0x000D` | Selects a region weather resource and transition duration. | Decoration conditions and atmosphere depend on the installed DAT version. |
+| Map-object binding and BG scheduler requests, `0x00D8/0x00D9` | Address a layout instance and request a short scheduler name through the [native binding path](../resource/limsa-fireworks-scheduler-bindings.md#native-binding-and-request-path). | Limsa's static path does not identify a historical retail controller or activation policy. |
+
+Organizing that policy in one event-named server Lua module is a server
+design choice. The client paths do not prescribe a script directory,
+calendar dates or settings format. They provide separate controls that the
+server would coordinate; there is no recovered universal event switch.
+
+Invoking a control already authored in the installed resources does not
+require replacing its DAT. This does not establish complete seasonal events
+from server scripts alone. In the final client, the resident Halloween
+layout conditions select weather 8027, while historical Starlight payloads
+and selectors changed across patches. Scheduling those inputs does not
+restore an overwritten atmosphere or recover missing placements and retail
+activation records. Those remain event-specific evidence or content gaps.
+The resource-specific evidence and limits are in
+[City seasonal weather selectors](../resource/city-seasonal-weather-selectors.md)
+and [Seasonal BG-object assets](../resource/seasonal-bgobj-assets.md).
+
 ## Evidence and limits
 
 The packet and getter claims come from `ffxivgame.exe` (image base
