@@ -210,6 +210,8 @@ also multiplies alpha by context `+0x660`. A zero map count is therefore
 not a zero-color predicate. Even with nonzero shadow color, the shader's
 `T = 4`, `F = 1` or zero fade-strength cases can remove its shadow term.
 Current color, fade, samples and scene-policy inputs remain unobserved.
+The [draw-context trace](floor-shadow-context.md) connects the inline context,
+policy receiver and explicit writer order before the selected callback.
 
 ## Blend-state consequence
 
