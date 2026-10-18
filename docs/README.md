@@ -183,6 +183,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
 - [Region weather resource rows](resource/region-weather-resource-rows.md)
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
+- [Limsa fireworks scheduler bindings](resource/limsa-fireworks-scheduler-bindings.md)
 - [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)

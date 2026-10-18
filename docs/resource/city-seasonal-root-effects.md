@@ -86,15 +86,20 @@ one and `7 | 7 | 8 | 7` for bank two, with each sequence matching across the
 three city DATs. These encoded values do not establish visible effect counts,
 elapsed seconds, or retail activation.
 
-The bank markers immediately follow serialized `isgrp` names in six root
-layout neighborhoods. Their candidate instance IDs are 41 and 62 in
-Gridania, 199 and 222 in Limsa, and 251 and 265 in Ul'dah. Strict 0x20-byte
-transform records encode the four Limsa/Ul'dah IDs in their final word as
-`(instance_id << 8) | slot`; 82 such records decode. Gridania uses a
-different transform representation here, so neither of its candidate IDs
-has that second join. These are structural owner candidates, not verified
-retail map-object spawn rows. No actor-class-to-owner or activation join
-follows from the neighborhoods or transforms.
+That eight-body inventory does not enumerate every scheduler reachable from
+the public aliases. Limsa's declared reference graph also contains two wrapper
+SCBs, completing its ten aliases. The exact instance, alias and native lookup
+joins are documented in
+[Limsa fireworks scheduler bindings](limsa-fireworks-scheduler-bindings.md).
+
+String neighborhoods supply candidate labels 41 and 62 in Gridania and 251
+and 265 in Ul'dah. In the strict 0x20-byte transform scan, 82 records have
+final words of the form `(value << 8) | slot` for values 199, 222, 251 and
+265. These raw values do not establish a serialized-name or hanabi-owner
+join. Limsa's named 199/222 instances reference balloon UnitTrees.
+Gridania uses a different transform representation here. No retail
+actor-class-to-owner or activation join follows from these neighborhoods
+or transforms.
 
 ### Serialized hanabi component references
 
