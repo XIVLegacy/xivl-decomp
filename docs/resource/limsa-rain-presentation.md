@@ -8,6 +8,8 @@ contracts. The checked application Weather load supplies a null descriptor
 receiver and skips that submission; it does not establish a rendered effect.
 The checked later placement paths also supply no nonnull receiver. Instance
 VFX setup requires the resource pointers to have been populated separately.
+Deferred block binding supplies a conditional route to those fields through
+VFX slot 22. Its completion for the selected rain object remains unproved.
 
 The [weather transition finding](../net/weather-transition-runtime.md#limsa-rain-selection)
 owns the packet, region lookup and queue route to resource `0x29D90013`.
@@ -271,8 +273,7 @@ Neither `0x008D4FA0` nor `0x00AB5010` contains a direct call to initializer
 `0x00AB5150` or constructs its two-pointer context. Within these bodies,
 the second setup argument is forwarded to property slot 34. The caller at
 `0x007FEA27` proceeds without testing the setup result, so its successful
-instance creation does
-not establish VFX resource binding or activation.
+instance creation does not establish VFX resource binding or activation.
 
 Fresh VFX construction `0x008D4EF0 -> 0x00AB4FA0` zeros complete
 `+0x4C/+0x50` at `0x00AB4FEF/0x00AB4FF6`. With the initial null-receiver
@@ -282,19 +283,86 @@ result does not establish historical pointer values or permanently disabled
 rain. A later binding writer or another initializer invocation remains a
 separate evidence requirement.
 
+### Deferred VFX resource binding and clearing
+
+The RaptureVfx primary table `0x0106236C` and generic VfxBaseObject
+primary table `0x010A824C` share the two pointer setters described above.
+The generic table's slot-3/slot-6 cells are `0x010A8258/0x010A8264`.
+Their paired `+4` interface tables, `0x010622B4/0x010A8194`, share two
+further write routes:
+
+| Interface slot | Rapture cell | Generic cell | Target |
+| --- | --- | --- | --- |
+| 22 | `0x0106230C` | `0x010A81EC` | `0x00AB4DC0` |
+| 23 | `0x01062310` | `0x010A81F0` | `0x00AB52C0` |
+
+Slot 22 supplies a conditional binding route separate from initializer
+slot 9. The [deferred block resource-binding contract](bgchip-instance-resource-setup.md#block-phases-and-resource-binding)
+owns collection, enumeration, acquisition and state-4 dispatch. For this
+VFX type, slot 24 `0x00AB4E50` reports two resources; slot 25
+`0x00AB4E60` selects the same two aliases through slots 42/43, and slot 26
+`0x00AB4E90` supplies their type words as described above.
+
+The state-4 helper `0x0064B060` obtains the base-object interface from
+bind object `+0x20`. When base-object slot 27 is false, its call at
+`0x0064B0C2` supplies that bind object and a false notification argument
+to slot 22. VFX slot 27, `0x00AB4EB0`, requires both retained pointers
+nonnull, so an initially unbound VFX takes the binding branch.
+
+On the constructed `BaseObjectResourceBindInfo` table `0x00FBFA9C`,
+slot 3 is count getter `0x005CDCC0`, slot 5 is `0x00648C00` and slot 7
+is `0x00B73290`, which returns true. Slot 5 returns the selected entry's
+`+0x28` resource pointer. The VFX binder consumes this interface:
+
+| Locator | Checked binding behavior |
+| --- | --- |
+| `0x00AB4DC2..0x00AB4DD9` | Takes the first argument as the bind interface and returns false when its slot-3 count is zero. |
+| `0x00AB4DDC..0x00AB4DFC` | Tests complete VFX slot 2, the `+0x4C` getter. A null value admits replacement directly; a nonnull value requires bind slot 7 true. The concrete bind table above satisfies that second guard. |
+| `0x00AB4DFE..0x00AB4E11` | Calls bind slot 5 with index zero and passes returned EAX to complete VFX slot 3, storing it at `+0x4C`. |
+| `0x00AB4E13..0x00AB4E26` | Calls bind slot 5 with index one and passes returned EAX to complete VFX slot 6, storing it at `+0x50`. |
+
+This connects acquired bind-entry pointers to the VFX fields, conditional on
+the selected object entering the block's collection and reaching this stage.
+It does not require initializer context `+4` to be nonnull. The binder does
+not itself reject null slot-5 results. As in the generic binding contract,
+the block's completion byte does not establish successful VFX setup or rendering.
+
+Slot 23 instead supplies zero as each setter argument:
+
+| Locator | Checked behavior |
+| --- | --- |
+| `0x00AB52D4..0x00AB52F4` | Reads interface `+0x48`, complete VFX `+0x4C`, and conditionally appends that value to caller-supplied vector storage. A false resize result at `0x00AB52E6` skips the append. |
+| `0x00AB52F8..0x00AB5305` | Both append branches join here. Adjusts interface `this` by minus four, then calls complete-object slot 3 with literal zero, clearing `+0x4C` through `0x00AB4F20`. |
+| `0x00AB5307..0x00AB5310` | Calls complete-object slot 6 with literal zero, clearing `+0x50` through `0x00AB4F70`. |
+
+This operation clears bindings; it does not supply nonnull rain resources.
+Its actual invocation for the selected Weather object remains unjoined.
+
+The bounded writer search checked the original PE cells and retained entry
+bodies in these four tables, plus constructors `0x008D4EF0/0x00AB4FA0`
+and destructor bodies `0x008D4F50/0x00AB4CE0`, then followed the existing
+block-binding caller and its concrete bind interface. A byte scan of
+executable PE sections found no `E8 rel32` call candidate to either setter.
+Literal setter-address occurrences were the four primary-table cells above.
+These checks did not enumerate arbitrary virtual callers, writes through
+untyped aliases or bulk copies, or observe the selected rain object's bind
+entries and pointer values.
+
 ## Remaining boundary
 
 The preserved artifacts establish the selected resource's typed rain
 reference, the conditional DrawEnv interpolation contract, the VFX context
 producer, the application load's null receiver and the generic default
-resource-query receiver. They leave these specific joins unresolved:
+resource-query receiver, plus deferred binding into the retained VFX fields.
+They leave these specific joins unresolved:
 
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
-- A nonnull context producer actually used for the selected Weather VFX,
-  followed by its concrete query interface, alias resolution and retained
-  pointer results, or another writer supplying complete VFX `+0x4C/+0x50`.
-  The generic default listener is not joined to the checked Weather paths.
+- Actual acquisition and delivery of nonnull bind-entry pointers to the
+  selected rain object's slot 22. The deferred binding contract supplies a
+  conditional writer; the selected entries and pointer results remain unobserved.
+  A separate nonnull initializer receiver and its concrete query interface
+  remain unjoined to Weather; the generic default listener does not prove that join.
 - Actual selection/completion of the rain folder and instance, its property
   setup, the active timeline or spatial lane, and emitter/renderer submission.
 
