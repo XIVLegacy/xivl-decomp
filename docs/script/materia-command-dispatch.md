@@ -53,6 +53,24 @@ the four CraftJudge materia callback names. Prefix-string coverage does not
 establish the native delegate target, decode every argument tail or supply a
 materia request-to-callback correlation.
 
+The complete encoded vectors of the five outgoing `commandJudgeMode`
+requests are recorded in
+`xivl-captures:studies/director-wire-identity/README.md`, "Selected
+commandJudgeMode request vectors". Their owners identify other commands.
+Two requests with different owners share their complete parameter block and
+CRC, so neither supplies a unique transfer identity. Those wire vectors do
+not recover the original Lua argument count or assign a variation role.
+
+The retained slot context in
+`xivl-client-structs:manifests/command_slot_context.json`, `rows`,
+SHA-256 `6d6141b254a6c33cb1a0ca7c7cfc6a1d4017f64693868a6fb4ade4db6ca02e81`,
+records one `22014` assignment at slot 19 and twelve `22015` assignments at
+slot 16, with no category observations for either command. These are
+property writes, not executed ready selections or variation operands.
+`xivl-client-data:docs/materia.md`, "Command selector text boundary", owns
+the exact CSV literal-search scope. No cited wire record or static sheet
+joins either materia execution to a selected callback and full supplied frame.
+
 ## Generic command request bridge
 
 Input: retail Windows 1.23b `ffxivgame.exe`, x86 image base `0x00400000`,
