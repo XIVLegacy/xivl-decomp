@@ -1,5 +1,11 @@
 # Materia command callback boundary
 
+The mapping from commands `22014` and `22015` to the four CraftJudge materia
+callbacks is unresolved at the evidence ceiling of the authenticated preserved
+artifacts examined. No command-specific causal record establishes a callback
+pairing, its full supplied argument vector or the executed variation. The
+conditional Lua and native bridges below do not close that gap.
+
 The Lua selection of `commandJudgeMode` is recorded in
 `xivl-client-scripts:docs/materia-meld-client-contract.md`, section
 "Ready variation and command-name selection". That name does not identify
@@ -115,12 +121,12 @@ and a correlated callback selector with its argument vector. That decoder's
 existence does not establish a materia opcode, callback pairing or server
 settlement.
 
-For a particular invocation, retain the actual MyPlayer identity, first
-matching descriptor name/table and converted registration bytes, or the
-corresponding admitted record input and publication history. Then correlate
-the request's command actor and encoded arguments with a callback receiver,
-method name and positional argument input. The generic decoder is a candidate
-only until such an edge is established.
+A proof for a particular invocation would need the actual MyPlayer identity,
+first matching descriptor name/table and converted registration bytes, or the
+corresponding admitted record input and publication history. It would also
+need a causal relation between the request's command actor and encoded
+arguments and a callback receiver, method name and positional argument input.
+The generic decoder is a candidate only until such an edge is established.
 
 The [reflective call alias](lua-call-function-bridge.md) conditionally installs
 the existing `_callFunction_lua` closure as `_callFunction`. The embedded Lua
@@ -141,6 +147,10 @@ merely a copy of either raw key. This recovers argument sources, without
 supplying an unobserved method name, actor binding, rate or result.
 
 ## Minimum missing invocation record
+
+These are proof criteria, not an active collection or recovery plan. Reopening
+the mapping requires newly available command-specific producer evidence or a
+causally correlated invocation record satisfying these criteria.
 
 The minimum proof joins an executed command ID and variation to the actual
 callback entry and its complete arguments through a proved causal edge.

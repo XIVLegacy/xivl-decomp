@@ -232,13 +232,14 @@ prefix-string census", and its pinned accounting. It contains none of
 physical string positions. No correlated preserved input identifies their
 target, method and argument values for `22014` or `22015`.
 
-The next required evidence is a preserved producer or causally correlated
-dispatch record joining one of those command invocations to the actual
-selected callable/bindings and complete argument vector. The command's
-executed variation remains separate evidence. The
-[materia boundary](materia-command-dispatch.md#minimum-missing-invocation-record)
-specifies that minimum relation; a generic decoder or an unrelated delegate
-witness cannot supply it.
+The mapping remains unresolved at the evidence ceiling recorded in the
+[materia boundary](materia-command-dispatch.md). A proof would require a
+command-specific producer or causally correlated dispatch record joining one
+of those invocations to the actual selected callable/bindings and complete
+argument vector. The command's executed variation remains separate evidence.
+The [minimum proof criteria](materia-command-dispatch.md#minimum-missing-invocation-record)
+specify that relation; a generic decoder or an unrelated delegate witness
+cannot supply it.
 
 ## Reproduction
 
