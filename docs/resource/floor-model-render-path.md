@@ -15,9 +15,9 @@ Addresses are VA with PE image base `0x00400000`; RVA is VA minus that base.
 Retained Ghidra assembly guided this trace. A Python PE-section reader with
 pefile `2024.8.26` compared the cited listing bytes, vtables and literals with
 the original executable. Capstone `5.0.7`, x86-32 mode, decoded the initializer's
-omitted blocks and material-header preprocessing directly from those original
-bytes. Python `struct` inspection decoded the selected RES directory, material
-and component fields in both pinned model files.
+omitted blocks, material-header preprocessing and enable/list-admission paths
+directly from those original bytes. Python `struct` inspection decoded the
+selected RES directory, material and component fields in both pinned model files.
 
 The selected model resource `brt7F1C0000` is `41088` bytes with SHA-256
 `1af91b0e1e5e34f676f1af2884f82eddb63062e62bee058b0260e9646dfb7d0f`.
@@ -295,12 +295,9 @@ is distinct from the tags created later and from slot 32's successful
 application of a supplied mask to an existing drawable.
 
 On the successful initializer path, `0x00A6203B` retains the constructed
-drawable at model `+0xD8` before `0x00A62222/0x00A62234` invoke model
-slot 27 with zero conditionally and then one. Slot 27 is `0x008DE860`:
-it saves argument bit 0 as model `+0x29C` bit 3 and, when model bit 2 and
-the drawable guards permit, updates drawable `+0xA0` bit 0. The conditional
-zero call is followed by clearing model bit 2 before the one call.
-These calls therefore do not unconditionally enable the drawable.
+drawable at model `+0xD8` before invoking model slot 27. The
+[enable and list-admission contract](#drawable-enable-and-render-list-admission)
+below distinguishes its saved request from the applied drawable flag.
 At `0x00A622B1..0x00A622C2`, the initializer passes drawable `+0xF4`
 to model slot 37, `0x008DD510`, which saves it at model `+0x288` and
 copies it back to an existing drawable. Neither entry is a tag-mask setter.
@@ -352,6 +349,46 @@ actor/model receiver, including indirect helpers or callbacks outside the
 initializer body. Actual supplied masks and active tag `+0x131/+0x132`
 values remain unobserved. Constructor defaults alone also do not establish
 that tag `+0x1A` bit 0 survives subsequent caller updates.
+
+### Drawable enable and render-list admission
+
+The model base constructor writes byte `0x22` to `+0x29C` at
+`0x00A62DCA`, leaving bits 2/3 clear. Drawable construction writes flags
+`0x3D` to `+0xA0` at `0x00C2EBE4` and adds mask `0x80` at
+`0x00C3C174`; bit 0 is initially set. For a nonpositive component count,
+`0x00A6209E..0x00A620B8` sets drawable bit 8 and clears bit 0.
+The selected one-component construction avoids that count branch when it
+succeeds.
+
+Model slot 27, `0x008DE860`, saves argument bit 0 in model `+0x29C`
+bit 3. For Boolean arguments, it assigns drawable `+0xA0` bit 0 only
+when model bit 2 is set and slot 82 returns a drawable. Argument one
+also requires drawable bit 8 clear. Saving bit 3 alone does not apply it.
+
+The initializer sets model bit 2 at `0x00A62207`. Its tested stack
+argument is argument 5 at `0x00A62211`, forwarded from application byte
+`+0x1FC` through `0x00628DD4`, actor `0x00A6039C` and model
+`0x00A630E0`. With a drawable present and normal returns:
+
+| Argument 5 | Result of the slot-27 sequence |
+| --- | --- |
+| Zero | Calls zero at `0x00A62222`, clearing drawable bit 0; clears model bit 2 at `0x00A62224`; then calls one, saving bit 3 without reapplying drawable bit 0. |
+| Nonzero | Skips the zero call and bit-2 clear; the one call at `0x00A62234` sets saved bit 3 and sets drawable bit 0 if drawable bit 8 is clear. |
+
+A concrete renderer path supplies literal mask `1` to `0x00C38920`
+or fallback `0x00C38AD0` at `0x00C29395/0x00C293A3`. In the fallback,
+`0x00C38B6D..0x00C38B88` reads each complete drawable pointer, requires
+`(drawable[+0xA0] & mask) == mask`, and appends that pointer on equality.
+A clear bit 0 therefore excludes a visited drawable from this mask-1 list.
+The returned list is retained at `0x0136EBE4` and passed to
+`0x00C57FD0` at `0x00C2954F`. Its bucketed drawable pointers reach
+`0x00C57DD0`, which dispatches main slot 11 and conditional slots 15/17.
+These bodies do not establish a direct call to main slots 9/10 above.
+
+The application flag, collection membership and later effective flags for
+the selected floor remain unobserved. The selected file inputs establish
+no forced exclusion through this enable/list-admission path. A conditional
+list filter does not establish an actual selected draw or its absence.
 
 ## Indexed submission
 
