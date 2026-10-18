@@ -65,6 +65,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City airship scene sequence](event/airship-scene-sequence.md)
 - [Company-warp after-warp loading boundary](event/company-warp-loading-boundary.md)
 - [Context-root priming](event/context-root-priming.md)
+- [NPC emote conditions and callback selection](event/npc-emote-event-dispatch.md)
 - [DirectorBase hooks](event/director-base-hooks.md)
 - [Director and quest framework](event/director-quest-framework.md)
 - [Director and quest hierarchy](event/director-quest-hierarchy.md)

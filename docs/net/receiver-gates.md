@@ -108,7 +108,7 @@ caller has already validated.
 | Receiver | Size | Handler | Args |
 |---|---:|---|---|
 | `ChangeShadowActorFlagReceiver` | 32 B | `FUN_006dbe50` | 2 args (packed byte + receiver ptr) |
-| `SetEmoteEventConditionReceiver` | 32 B | `FUN_006f2a90` | 3 args (word at +0x5a, +0x59, +0x58) |
+| `SetEmoteEventConditionReceiver` | 32 B | `FUN_006f2a90` | [4 args](../event/npc-emote-event-dispatch.md#condition-construction-and-generic-entry-points): receiver+4, byte pointers +0x58/+0x59, u16 at +0x5a |
 | `SetPushEventConditionWithCircleReceiver` | 80 B | `FUN_006f2b70` | 9 args (geometry: floats + bytes at +0x60..+0x68) |
 | `SetPushEventConditionWithFanReceiver` | 96 B | `FUN_006f2c30` | 11 args (geometry: floats at +0x60/+0x6c/+0x70 + bytes) |
 | `SetPushEventConditionWithTriggerBoxReceiver` | 80 B | `FUN_006f2d00` | 9 args (geometry: short at +0x6c + bytes + 4-byte at +0x5c) |
