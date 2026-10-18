@@ -1,8 +1,8 @@
 # Receiver dispatch through LuaActorImpl and NullActorImpl
 
 This page maps inbound receiver classes to dispatch slots on `LuaActorImpl` and
-`NullActorImpl`, establishing the per-receiver fanout and the unresolved
-opcode-registration gap.
+`NullActorImpl`, including the native extra-stat packet route and the
+remaining per-opcode mapping boundary.
 
 ## TL;DR
 
@@ -134,6 +134,97 @@ slots, in order. KickReceiver (slot 56) kicks the event off,
 StartServerOrderEventFunctionReceiver (slot 57) advances it,
 EndClientOrderEventReceiver (slot 58) closes it.
 
+## Native extra-stat dispatch and mutable holder
+
+The following trace uses retail 1.23b `ffxivgame.exe`, size `15996808`,
+SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+Addresses are VAs with image base `0x00400000`. Retained Ghidra listings
+were checked against original PE bytes with pefile `2024.8.26` and
+Capstone `5.0.7` in x86-32 mode, including the cited vtable and RTTI data.
+
+The caller `0x004E20A0` obtains holder H through `0x00DAE520`.
+With nonnull H, it supplies P=[H+`0x24`] and the key from H+`0x14` to `0x004DC690`
+at `0x004E221D`. Keys satisfying `(K & 0x5FF80000)==0x5FF80000`
+become `0x5FF80002-(K&1)`. The production of H inside `0x00DAE520`
+and the native-view-to-wire relationship remain untraced.
+
+After its entry checks, the [receive dispatcher](receive-dispatch-ranges.md)
+selects `0x004DCFFF` for opcode `0x0145`. Lookup through `0x004D9910`
+uses its incoming key. For a nonnull result E, it calls E's slot 9 with
+the native packet view P.
+CharaElement table `0x00FA7C50` has `0x0058CCA0` at slot 9, with a
+zero-offset complete-object locator. The Element constructor's
+`0x004DA9A0` path inserts the pair `([E+0x88], E)` in the owning registry.
+An equivalent key retains the existing entry. Registration precedes the
+final CharaElement table store at `0x0058B53C`; these instructions do not
+establish dispatch during construction. Using that E requires the lookup
+to select its registered key and entry with that final table installed.
+
+`0x0058CCA0` calls `0x004D8830` before reading the opcode word P+2.
+For a zero AL result, `0x0145-0x0137` selects byte zero at `0x0058D8D2`
+and target `0x0058CD21` through table `0x0058D8BC`. Nonzero AL branches
+directly to that same target. The subsequent `0x0145-0x0135` calculation
+selects byte six at `0x0058D9A4` and target `0x0058D4C0` through
+`0x0058D948`. Thus both AL results admit this opcode on the inspected
+path; neither result proves successful script binding.
+
+At `0x0058D4C0..0x0058D4C6`, `0x0058CCA0` passes its packet view plus
+`0x10` to `0x00588E30`, retaining its Element receiver E in ECX.
+`0x00588E36..0x00588E41` reads a dword from that argument, loads holder
+L=[E+`0x80`] and calls `0x00575270` with the scalar. The complete thunk
+loads D=[L] and tail-jumps through D's vtable `+0x154`, slot 85, preserving
+the incoming stack argument. The holder and its implementation are separate
+pointers. The thunk checks neither pointer for null.
+
+The [holder construction and binding trace](../input/chara-selection-producers.md#selected-actor-implementation-handle-and-slot23)
+owns the conditional NullActorImpl construction and replacement with
+LuaActorImpl through the captured L. The current implementation determines
+the slot-85 target:
+
+| D table | Slot-85 cell | Target |
+| --- | --- | --- |
+| NullActorImpl `0x00FE02AC` | `0x00FE0400` | `0x0076D2B0` |
+| LuaActorImpl `0x00FDFB2C` | `0x00FDFC80` | `0x0075A920` |
+
+The inspected teardown `0x004DB6A0` cleans up through L, releases the
+holder and clears E+`0x80` at `0x004DB71A`. The binding and reset writes
+change [L] instead. Conditional reset `0x00574AB0` can clear [L] at
+`0x00574B07` or install its factory result at `0x00574B4D`.
+The argument-zero/current-Null arm of `0x00574970` returns without
+replacement, so reset does not always discard the pending record.
+These concrete paths do not establish every alias writer or the lifetime
+of an object returned by a later lookup.
+
+`0x0076D2B0` ignores a zero scalar. For nonzero input, its implementation
+`+0x50` flag selects construction of `ChangeActorExtraStatReceiver` through
+`0x0089C8E0` and queuing through `0x007945A0`, or a store into the pending
+record's `+0x50` obtained through `0x0076A3F0`.
+`0x0075A920` constructs that receiver on the stack and calls `0x0089C990`
+with `(D+4, [D+8])`; it has no equivalent zero-input filter.
+The receiver's ActorBase-to-CharaBase cast precedes `0x006FA980`, which
+compares the supplied scalar with the record returned by `0x006EEC00`
+at `+0x10`. A changed value is stored at `0x006FA9DA`; equality skips
+the store and notifications. Later state-change notifications have
+separate bit-change conditions.
+
+The pending record and command queue have different handoffs. Binding
+`0x00774AD0` moves the pending record from NullActorImpl `+0x48` into
+initialization. On the inspected MyPlayer initialization branch,
+`0x006F3420 -> 0x006F0220 -> 0x006EECD0` copies that record's `+0x50`
+to current character state `+0x10` at `0x006EED0B`. This direct copy does
+not call `0x006FA980`. Separately, `0x0076C8D0` drains the NullActorImpl
+command queues through `0x00794480` before constructing LuaActorImpl at
+`0x0076CA33`. A queued extra-stat receiver is therefore processed against
+the supplied control object before that replacement is published, when
+this binding path succeeds. Submission, deferred processing and a later
+packet are separate events.
+
+After the slot-85 call, `0x00588E46` rereads the packet dword. That second
+load supplies E+`0x128` and property `0x41` through `0x004D7980`.
+The publication therefore does not use a saved copy of the pre-call value.
+The scalar's native packet-field provenance alone does not establish a
+selected BgPlateActor render-mask invocation.
+
 ## Slot validation walkthrough - SetEventStatus
 
 The simplest case to read top-to-bottom is slot 48
@@ -230,79 +321,16 @@ EndEvent packets reaching their Receivers. The dispatch path is:
 The **gate fault is in the Receiver**, not in the wire path. The dispatch layer
 works; the actor-state flag layer is the remaining dependency.
 
-## Unresolved opcode-to-slot mapping
+## Remaining opcode-to-slot mapping
 
-**The opcode -> LuaActorImpl-slot mapping itself remains unresolved.** Slot 56
-is Kick, but the per-opcode dispatcher (the function that
-loads the actor and CALLs the right slot index) isn't yet recovered.
-Direct vtable-disp searches (`FF 90 c0 00 00 00` for slot 48 = disp
-0xc0, etc.) all return zero hits, suggesting the dispatch goes
-through a Lua-VM closure or a computed-index call (`CALL [EAX +
-ECX*4]`) where the slot index is loaded at runtime from a packet
-header field or a per-opcode constant.
-
-**Outer router - `docs/net/packet-dispatch-router.md`:**
-`FUN_004e20a0` is a 4-case channel-control router
-(opcodes 1/2/0xe/0x11 inline; everything else forwards to
-`FUN_004e5ff0`). `FUN_004e5ff0` does channel-bound dispatch via
-`channel->vtable[2]` after a tree-walk lookup (`FUN_004e5ca0`) keyed
-on a packet header field. The dispatch genuinely is NOT a static
-C++ vtable call - the tree-lookup result is most likely a Lua-VM
-closure, and the per-opcode binding lives in script-load
-registration code (sibling to `FUN_0078e3a0` per
-`docs/script/lua-class-registry.md`).
-
-**Opcode translation - `docs/net/opcode-translation-table.md`:**
-Hunted `FUN_0078fc90`'s siblings (the parent of `FUN_0078e3a0`) and
-followed an opcode-immediate-pattern grep that surfaced
-`FUN_0070ab40` as a 740-case jump table containing the SEQ_005
-opcodes as `MOV imm32` operands. **Ruled out** as the per-opcode ->
-receiver dispatcher: `FUN_0070ab40` is an opcode-translation table
-(input opcode -> translated/canonicalized opcode), and the 5 SEQ_005
-event opcodes (`0x012F..0x016B`) are NOT in its input set - they fall
-through to its default `XOR EAX,EAX; RET 0`. The MOVs of `0x12F` etc.
-listed here are case-body OUTPUTS (input `0x25B..0x25D` -> output Kick/
-Start/End), suggesting a protocol-version alias map rather than a
-dispatcher. Also ruled out: `FUN_0078fad0` (Lua-module alias init for
-`global/math/string/table`).
-
-**Definitive negative on
-static-analysis dispatch.** Every LuaActorImpl/NullActorImpl slot fn
-(checked: slots 48, 56, 57, 58, 59, 60, 78, 88 - the 5/6-slot
-dispatchers AND the SetEventStatus stack-temp dispatcher) has
-**EXACTLY ONE reference in the binary - its own vtable slot at
-RVA `0xbdfb2c+slot*4`** (or `0xbe02ac+slot*4` for NullActorImpl).
-**Zero external references in `.text`, `.rdata`, or `.data`.** This
-definitively rules out:
-
-- A static `(opcode, fn_ptr)` table - none exists.
-- A vtable copy / shim - none exists.
-- A function-pointer table indexed by opcode - none exists.
-- Direct CALL-rel32 invocation of any slot fn from anywhere - none exists.
-
-The dispatch **must** go through the Lua VM. The 90 LuaActorImpl
-slots are exposed as Lua-callable methods on the actor object via
-the standard `Component::Lua::GameEngine` closure-registration
-mechanism. When a packet arrives:
-
-1. C++ dispatcher (`FUN_004e5ca0` tree walk per
-   `docs/net/packet-dispatch-router.md`) looks up opcode in
-   `channel[+8]`'s tree - returns a **Lua function** (closure registered
-   at script load).
-2. C++ invokes the Lua closure via the standard `Component::Lua::
-   GameEngine` machinery.
-3. Lua bytecode in the closure does `actor:methodName(args)` -
-   resolved via Lua metatable lookup to one of the 90
-   LuaActorImpl slots.
-4. C++ slot runs, builds/dispatches the Receiver (Pattern A/B/C
-   per the table above).
-
-The unresolved mapping splits in two:
-
-| Side | Unknown | Evidence boundary |
-|---|---|---|
-| C++: opcode -> Lua closure | Writer to the `channel[+8]` tree | Likely in a channel-class ctor or script-load registration sibling |
-| Lua: Lua function -> actor method | `bindOpcode(...)` and `actor:method` mapping | Present in the decoded `.le.lpb` scripts |
+The native extra-stat route above reaches an actor-implementation virtual
+slot through a C++ wrapper. Absence of direct references to a slot target
+does not exclude such a virtual caller or identify a Lua closure.
+The complete per-opcode mapping remains outside this bounded trace.
+The [outer channel router](packet-dispatch-router.md) and
+[opcode translation table](opcode-translation-table.md) describe separate
+layers; their lookup and translation results do not by themselves identify
+the implementation used by a particular actor packet.
 
 ## Regenerating
 

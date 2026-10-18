@@ -270,6 +270,15 @@ vtable `0x0109E6A0` and retains the model at controller `+0x04`.
 The result is saved at model `+0xF4`. These calls supply no mask argument;
 their model-slot-85 transfers do not identify an actor-slot-85 invocation.
 
+The [native extra-stat route](../net/actorimpl-receiver-dispatch.md#native-extra-stat-dispatch-and-mutable-holder)
+joins another generic slot-85 forwarder, `0x00575270`, to an Element's
+mutable actor-implementation holder at `+0x80`. Its concrete NullActorImpl
+and LuaActorImpl targets consume a packet scalar through
+`ChangeActorExtraStatReceiver` or pending character state. These are
+separate receiver contracts from BgPlateActor slot 85 and model slot 30.
+The packet field and conditional binding order do not establish a call
+to the selected floor's mask setter.
+
 ### Construction and setup ordering
 
 Model construction `0x008DD0A0` calls base constructor `0x00A62CA0`
