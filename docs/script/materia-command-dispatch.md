@@ -103,9 +103,13 @@ method name and positional argument input. The generic decoder is a candidate
 only until such an edge is established.
 
 The [reflective call alias](lua-call-function-bridge.md) conditionally installs
-the existing `_callFunction_lua` function as `_callFunction`. Its descriptor
-does not invoke a CraftJudge callback. The actual aliased function and the
-callback frame remain separate missing identities.
+the existing `_callFunction_lua` closure as `_callFunction`. The embedded Lua
+implementation consumes the supplied key by indexing its receiver, then
+calls the value with that receiver and all trailing arguments. The native
+installation and forwarding conditions are recorded on that page.
+Its descriptor does not invoke a CraftJudge callback. The actual historical
+receiver, selected function and supplied values remain unobserved for either
+materia command.
 
 ## Minimum missing invocation record
 
@@ -121,7 +125,7 @@ additional origin or request-construction claims they establish.
 | Ready selection, if origin is claimed | Record ready index `15` or `17`, the actual `work.commandIndex[readyIndex]`, both `getReadyCommand` results, and the nil-to-category substitution into operand 3 in the same invocation. Identify the command actor separately from its sheet ID. Source: the script contract's "Ready variation and command-name selection" section, getter prototype `0.14` PCs `36-42` and ready helper `0.279` PCs `25,28,30,39`. |
 | Request construction, if claimed | At `0x006E2FB0`, retain the actual argument vector from index `2`, resolved item/control bindings and serializer result, then the descriptor slot-5 use at `0x006E30CA`. Encoded values alone can lose original argument distinctions. Construction of `0x012D` does not prove transmission or server consumption. |
 | Producer and selector | Supply a proved causal link from the command invocation, and any request actually used, to the callback producer and entry. If generic incoming decoder fields carry that proof, retain the required trigger/owner/event/function fields, parameter bytes at `0x0076C220`, receiver and pending-item identity through `0x0089EB20/0x0089E8E0`, with exact consumed bounds. Unused fields or the full 64-byte input can be omitted when the causal edge and callback frame are independently established. Follow the executed delegate or other selector; generic `0x0130` remains a candidate until that relation is proved. |
-| Callback entry | Retain actual receiver and full typed argument count/vector at entry to the resolved callback closure/prototype. If the alias was used, identify the invoked `_callFunction` value and its causal edge, including any selector consumption or argument changes. The normal VM boundary calls a C target at `0x00DCFBFB` or enters the Lua interpreter through `0x00DCFC6E`; these sites require the actual closure and call frame. A requested method-name string alone is insufficient. |
+| Callback entry | Retain actual receiver and full typed argument count/vector at entry to the resolved callback closure/prototype. If the alias was used, identify the invoked `_callFunction` value and its causal edge. When it is the recovered forwarding closure and embedded delegate, the delegate consumes the key and supplies `receiver,...` to the lookup result; that static rule does not supply the actual values or callback identity. The normal VM boundary calls a C target at `0x00DCFBFB` or enters the Lua interpreter through `0x00DCFC6E`; these sites require the actual closure and call frame. A requested method-name string alone is insufficient. |
 
 Retain artifact/code identity, loaded module base and RVA or loaded Lua chunk
 digest/prototype, session epoch, ordered event identity, Lua state and relevant
