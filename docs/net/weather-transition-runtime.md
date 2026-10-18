@@ -153,6 +153,10 @@ key `0x29D90013` names `data/29/D9/00/13.DAT`. The preserved file is
 File presence and this static selection do not establish an actual open,
 load completion, active provider state or rendered result.
 
+The selected DAT's typed DrawEnv definitions, rain-instance reference and
+conditional native consumers are documented in
+[Limsa rain DrawEnv and VFX inputs](../resource/limsa-rain-presentation.md).
+
 The instruction and table checks used retained Ghidra listings, pefile
 `2024.8.26` and Capstone `5.0.7` in x86-32 mode against the executable
 identified above. Python `struct` and `hashlib` reproduced the root/child

@@ -187,6 +187,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
 - [DrawEnv texture-binding boundary](resource/draw-env-texture-binding-boundary.md)
+- [Limsa rain DrawEnv and VFX inputs](resource/limsa-rain-presentation.md)
 - [Dynamic-cast class hierarchies](resource/dynamic-cast-hierarchies.md)
 - [Dungeon layout timeline corpus](resource/dungeon-layout-timeline-corpus.md)
 - [Ferry door schedulers](resource/ferry-door-schedulers.md)
