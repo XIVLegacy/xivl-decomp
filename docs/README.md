@@ -135,6 +135,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [s2c 0x0193 native state](net/s2c-0193-native-state.md)
 - [SyncWriter wire format](net/sync-writer.md)
 - [Weather transition runtime](net/weather-transition-runtime.md)
+- [Music packet control](net/music-control-runtime.md)
 - [FFXIV 1.x wire evidence](net/wire-protocol.md)
 - [Work-field evidence index](net/work-field-evidence-index.md)
 - [Work-field inventory](net/work-field-inventory.md)
