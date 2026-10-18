@@ -118,6 +118,25 @@ The other caller, `0x006242B0`, requires actor `+0x1B8`, saves its
 supplied argument at actor `+0x1A8`, and forwards it with mode one at
 `0x006242E8`. These paths do not supply a fixed selected-layout ID.
 
+For the retained root 206, `0x0079B220` returns zero: its only child
+has type `0x3000`. `0x007E8DF0` therefore skips the mode-one call on
+that table result. The selected layout's concrete key/name and ordinary
+manager branch are in
+[Selected floor key and name](../resource/map-layout-selector.md#selected-floor-key-and-name).
+
+The alternate `0x006242B0` input remains separate. Its inspected direct
+caller is `0x00629492` in dispatcher `0x00629410`'s operation `0x0E`
+branch, which forwards the dispatcher's second argument. At `0x0062AB00`,
+the queued-command path supplies the pair stored at entry `+0/+4` as
+operation and value. The pair's value is not derived from the first
+type-1 child by these bodies.
+
+One checked producer is message handler `0x0062CDA0`: operation `0x0E`
+reaches `0x0062CDDE`, reads the dword pointed to by its second argument
+at `0x0062CDE2`, and passes the original operation and that value to
+`0x0062C4D0`. That method appends the pair to actor `+0x33C`.
+The upstream producer of the message's pointed-to dword remains unjoined.
+
 On the constructed Sky path, setup `0x00642F20` saves that ID at
 complete object `+0x158`, mode at `+0x150`, and state 1 at `+0x140`.
 Its registration through `0x0062C550` precedes the provider's return

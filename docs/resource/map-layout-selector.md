@@ -15,6 +15,8 @@ The function inventory in `config/ffxivgame.symbols.json` and assembly from
 Reproduce the instruction checks with exact-address x86-32 disassembly of
 the pinned executable. The underlying DAT identity and loader header checks
 are in [Region weather resource rows](region-weather-resource-rows.md).
+The selected key/name instructions were checked with pefile `2024.8.26`
+and Capstone `5.0.7` in x86-32 mode.
 
 ## Root and child construction
 
@@ -124,6 +126,59 @@ key alone does not isolate names or resources. New keys and the effective
 The separate operation `0x12` at `0x00629410` calls `0x00626E80` to submit
 one named layout. It is not the normal initial SetMap region path;
 `0x00626DF0`, called by `0x0062AA70`, constructs a region manager instead.
+
+## Selected floor key and name
+
+The [selected floor layout](floor-import-contract.md#selected-inputs-and-method)
+at `data/7F/1F/00/00.DAT` corresponds to key `0x7F1F0000` under the
+[numeric formatter](resource-path-producer.md#formatting-contract).
+Python `struct` and `hashlib` inspection of the pinned RegionResourceData
+found one child row whose raw `+0x08` equals that key:
+
+| Field | Retained value |
+| --- | --- |
+| Root | Key 206, token `000_00`, file `0x8F20`. |
+| Root's first four dwords | `206, 0, 0x7F1F0000, 1`. |
+| Root raw `+0x20` | Zero, copied to RegionInfo `+0xB8`. |
+| Only child | File `0x8F50`, child key 11, type `0x3000`, resource key `0x7F1F0000`, kind dword 2. |
+| Child name | `000_00_chr01`, within the constructor's 15-byte copy. |
+
+The root's raw `+0x08`, stored at RegionInfo `+0xB4`, also equals this
+key. That field is separate from the child's resource key at LayoutInfo
+`+0x60`. These are occupied retail values, not allocation candidates.
+The zero root `+0xB8` makes the derived-resource branch above compute
+auxiliary key `0x7F1F0001`; its request remains conditional on that branch's
+predicate and state.
+
+For this key, `0x0079B420/0x0079B890` resolve the effective child name
+`000_00_chr01`. The preferred-region lookup can find it under root 206;
+the all-region fallback finds the same sole matching child when the
+preferred region has no match. The retained child name is also unique.
+This is a lookup in the checked table, not an active-request observation.
+
+On normal root-206 construction, `0x0064E830` submits the child's
+`0x3000` type to `0x00648570`. The constructed factory path through
+`0x00641560` and `0x006520B0` takes constructor `0x00651CD0`, which
+installs RaptureLayoutManager tables `0x00FBFEE4/0x00FBFCEC` at complete
+object `+0/+4`. Their RTTI is
+`.?AVRaptureLayoutManager@Layout@Map@Actor@Scene@Application@@`.
+Setup `0x00642F20` retains key `0x7F1F0000` at
+`+0x158` and mode `0x3000` at `+0x150`; registration uses actor `+0x134`
+rather than the mode-zero/one collection at `+0x144`.
+`0x00648570` also retains the returned `+4` interface in the LayoutWorld
+collection at `+0x20`. These stores establish registration; they do not
+establish a later update or open.
+The manager's `+4` slots 12/13 remain `0x0064F430/0x00642E10`, joining
+this receiver to the conditional
+[request and loaded-wrapper contracts](map-layout-request-boundary.md#registered-states-and-typed-view).
+
+The weather helper `0x0079B220` instead searches for the first child whose
+full type equals 1. Root 206 has no such child, so this helper returns zero
+and `0x007E8DF0` skips its mode-one call at `0x007E8E7B`.
+The separate supplied-key mode-one path is described in the
+[weather finding](../net/weather-transition-runtime.md#mode-one-id-and-wrapper-ordering).
+The retained key/name and ordinary manager do not prove a current open,
+cached-resource identity, successful load or selected actor/model setter.
 
 ## Evidence boundary
 
