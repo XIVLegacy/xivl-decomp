@@ -22,8 +22,9 @@ The ResourceModule vtable identity and slot are recorded in
 `Component::Resource::ResourceModule`, vtable RVA `0x00D08C3C`, slot 1,
 function RVA `0x00899130`.
 
-The completion and loaded-view instructions were also checked against the
-original PE with pefile `2024.8.26` and Capstone `5.0.7` in x86-32 mode.
+The selected admission, completion and loaded-view instructions were also
+checked against the original PE with pefile `2024.8.26` and Capstone `5.0.7`
+in x86-32 mode.
 
 ## Conditional manager request
 
@@ -46,6 +47,35 @@ An additive resource must consequently have a distinct resource key and a
 non-aliasing name. A new selector value with an existing resource set, or a
 new numeric key that reuses a retail manager's name, is insufficient evidence
 of an independent scene. Observe the actual branch and requested resources.
+
+## Selected mode-0x3000 admission
+
+For the [selected ordinary layout](map-layout-selector.md#selected-floor-key-and-name),
+the known inputs are mode `0x3000`, key `0x7F1F0000` and name
+`000_00_chr01`. The original instructions in `0x00643020` select these
+outcomes; those input values alone do not force rejection:
+
+| Condition | Outcome |
+| --- | --- |
+| Current actor `+0x1F0` is zero | Sets manager state 10 at `0x006430C3`, without acquisition. |
+| Actor state is 3 and control `+0x38/+0x3C` is nonempty | Calls `0x00801AE0`; failure sets state 10. |
+| Other nonzero actor state, or empty control range | Bypasses that name predicate. |
+| Typed-root cache miss | Requests the numeric key at `0x0064328E`, then sets state 2. Mode `0x3000` supplies low-byte flag 1 because it differs from `0x1000`. |
+| Typed-root hit | Attempts reuse through the named lookup or a distinct equal-name manager's retained resource. A null named result with no such peer sets state 11 rather than issuing the numeric request. |
+
+The control predicate accepts a successful name comparison. `0x00801AE0`
+tries its entries through `0x00652660`, which returns true when
+`0x00446250/0x00445B70` return a zero bounded byte comparison against
+the entry's string at `+4`. An equal ordinary `000_00_chr01` name passes;
+there is no special rejection for that spelling. The peer-manager comparison
+at `0x006431F5..0x00643220` compares NUL-terminated names and excludes self.
+Reuse completes only with a valid returned or transferred resource pointer;
+the peer's `+0x14C` pointer is dereferenced without a null guard at
+`0x00643257`. This path does not establish resource readiness.
+
+These branches can suppress acquisition under particular actor, control or
+cache conditions. The inspected selected inputs do not establish those
+conditions or identify the branch used by a live floor instance.
 
 ## Bridge to ResourceModule
 
