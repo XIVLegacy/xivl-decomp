@@ -2,8 +2,10 @@
 
 The native TimeLine property path contains a conditional evaluator with a
 data-derived count, a queue-recovered ID operand and first-match bitmap
-selection. Its concrete record-view binding, attachment callback's root
-identity and downstream consumer effects remain unresolved. The static behavior below
+selection. The instance setter/getter chain conditionally joins its record
+view to an attached TimeLine record. The helper's retained-base/category-input
+join, attachment callback's root identity and downstream consumer effects
+remain unresolved. The static behavior below
 narrows the condition boundary without establishing automatic activation by
 an added weather ID.
 
@@ -18,8 +20,9 @@ These are static observations. No client execution or playback was observed.
 
 RaptureTimeLineBaseObject's slot 7 cell at `0x01062098` points to
 `0x008D5440`. It adjusts ECX by four and tails to `0x00AA89A0`, which retains
-the supplied raw record pointer at object `+4` and returns true. This
-attachment endpoint does not establish the later record-view binding.
+the supplied raw record pointer at interface `+4` and returns true. The
+[instance binding](timeline-weather-record-view.md#category-based-instance-binding)
+conditionally joins that cell to the evaluator's later record view.
 
 The RTTI-named RaptureTimeLineInstanceObjectProperty table `0x00FF2D2C`
 has slot 9 cell `0x00FF2D50` targeting `0x007FDCA0`. Let P be its incoming
@@ -38,10 +41,14 @@ state. The intermediate pointers have no null checks in this body.
 P slot 4 cell `0x00FF2D3C` targets `0x008006E0`. This reads the vtable at
 incoming ECX+4, advances ECX by four, and tail-dispatches through that table's
 slot 3. The [property construction contract](timeline-weather-record-view.md)
-resolves that embedded adjusted interface and its stored first return. The
-caller-supplied receiver's slot 19 and subsequent record view remain unjoined
-to the attached serialized TimeLine record. Matching serialized field offsets
-alone does not close this requirement.
+resolves that embedded adjusted interface and its stored first return. With
+an explicitly supplied TimeLine property, retained instance/base/property
+tables and field values, and normal ABI-conforming calls, that receiver is
+the owning instance R.
+Its slot 19 returns the retained TimeLine base interface B, whose slot 8
+returns the supplied record at B+4. Actual layout selection and record delivery
+remain conditions. The matching category-7 getters do not join this retained
+base B to the helper's property-factory category input.
 
 ## Queue ID and first matching entry
 
