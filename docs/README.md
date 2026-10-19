@@ -208,6 +208,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Zone lighting source and time of day](resource/zone-lighting-source-and-time-of-day.md)
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
 - [Limsa fireworks scheduler bindings](resource/limsa-fireworks-scheduler-bindings.md)
+- [SCB parsing and clip construction](resource/scb-clip-factory-composition.md)
 - [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
