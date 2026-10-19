@@ -25,13 +25,13 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
-view-construction, string-key, initializer-context, channel-producer,
+view-construction, string-key, initializer-context, context-producer, channel-producer,
 resource-callback, initialization-handoff, sample-input and active-receiver
 observations use Python 3.12.0 to decode original PE instructions.
 Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
-Retained listings supplied locators, and every listed byte, instruction
-boundary and full contiguous span in the listed reproduction ranges was
+Retained listings supplied locators, and every listed instruction byte,
+boundary and actual instruction union in the reproduction ranges was
 checked against that PE.
 
 ## Class and conditional construction
@@ -189,7 +189,54 @@ The earlier [post-builder owner assignment](scb-clip-factory-composition.md#post
 stores scheduler S at each nonnull built clip's `+0x34`. If that entry is M,
 the base initializer's later store uses the same field. The two stores do
 not identify `C_init` with S or establish `u32(C_init+0x0C)=S`; retention
-between them and the supplied context's construction remain separate edges.
+between them remains a separate edge. The concrete producer below supplies
+a context on one secondary-collection dispatch path.
+
+### Stack context producer and initialization dispatch
+
+Method `0x00A1D330` constructs a local context C from its incoming
+receiver S. It retains S in ESI at `0x00A1D34E`, pushes S at
+`0x00A1D35F`, and calls `0x00A1FF70` at `0x00A1D368` with its local
+context address in ECX. After that call removes the argument, C is ESP
+`+0x34`. The complete constructor stores table `0x01097B00` at C `+0`,
+zero at C `+8/+0x10` and the supplied S at C `+0x0C`, then returns C
+with `RET 4`. No class identity is assigned to that table. The caller
+subsequently stores `u32(S+0x5C)` at C `+8` at `0x00A1D379`.
+
+At `0x00A1D3D7..0x00A1D3E8`, the method supplies a current index to
+the published `0x00A21430` accessor on `u32(S+0x30)` and retains its
+returned entry M in EBP. This is the
+[secondary collection](scb-clip-factory-composition.md#post-builder-owner-and-auxiliary-state),
+separate from the builder's collection at S `+0x34`. A zero returned
+entry takes the diagnostic branch. The nonzero branch applies further
+virtual-call and state conditions before the initialization call below.
+Those conditions do not establish selected material membership or execution.
+
+On the branch reaching `0x00A1D6D0..0x00A1D6FA`, the caller subtracts
+M's primary virtual `+0x1C` return from its incoming first stack argument
+with 32-bit arithmetic. It supplies that dword and receiver C to
+`0x00A200F0` at `0x00A1D6E8`. That complete ten-byte helper stores its
+argument at C `+0x10` and returns with `RET 4`. The caller then reloads
+M's primary vtable, reads its slot 1 at byte offset `+4`, pushes C and
+calls that target with ECX=M at `0x00A1D6FA`. Thus this is a concrete
+context producer and initialization dispatch for a secondary-collection
+entry. If M retains either published material table, that slot selects
+the inherited initializer `0x00835250`, with `C_init=C`.
+
+The constructor-to-dispatch relation requires valid local, receiver,
+collection and table storage, the expected argument cleanup and register
+preservation, and preservation of C `+0x0C` and S through the intervening
+calls. C is also supplied to other virtual calls in this method, so its
+initial field store alone proves no later field retention. Under those
+conditions the descriptor accessor's R is S and its P is `u32(S+0x50)`.
+For the same S constructed by the published
+[SCB factory path](scb-clip-factory-composition.md#parsed-clip-key-table),
+that stored P is the parser's Q. This composes a concrete conditional
+`C_init+0x0C -> S -> Q` relation without inferring identity from matching
+field layouts. It still requires the selected material to be delivered to
+this secondary collection and this dispatch to run with that same S and
+retained Q. The selected hide SCB, registry choice, later application
+context and loaded curve payload remain separate bindings.
 
 ### Initializer operation result
 
@@ -740,14 +787,18 @@ proving that the following candidate payload is consumed.
 
 ## Exact remaining edge
 
-The material accessor's actual context-to-Q binding remains unjoined.
-[Base initialization](#initializer-context) consumes a supplied context.
+The [stack-context dispatch](#stack-context-producer-and-initialization-dispatch)
+supplies a concrete conditional context-to-Q path for a secondary-collection
+entry on the same constructed S. Delivery of the selected material into
+that collection, invocation with that S and retention through the accessor
+remain unjoined. [Base initialization](#initializer-context) consumes the
+context supplied at the actual call.
 Its [operation result](#initializer-operation-result) still requires the
 actual L instance, valid lookup/query storage and an identified payload
 consumer. The separate
 [SCB factory path](scb-clip-factory-composition.md#parsed-clip-key-table)
-joins P to Q for its fireworks scheduler construction; that separate path
-does not identify this material context. The selected directory and
+joins P to Q for its fireworks scheduler construction. Composing it with
+the stack-context producer requires that same S. The selected directory and
 indirection bytes do not establish that the material accessor reaches this
 constructed Q, the downstream payload parser, or FCurve scalar consumption.
 No serialized Attr values are assigned.
@@ -957,7 +1008,25 @@ actual union `[0x00A30D10,0x00A30D38)`, 40 bytes. Its last six-byte
 append, runtime name getter, material selection and application contracts;
 no other property or type branch is required.
 
-These selected bodies are contiguous. The exporter's `# size` generally
+The bodies in the preceding reproduction ranges are contiguous.
+The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
 span without gaps. The named input and native checks establish static
 data and conditional own-body behavior, with no client execution.
+
+For the stack-context producer and initialization dispatch, independently
+decode and compare every retained instruction to the original PE. The
+complete `0x00A1D330` body has the actual instruction union
+`[0x00A1D330,0x00A1D387)`, `[0x00A1D390,0x00A1D7AD)`,
+`[0x00A1D7B0,0x00A1D93D)` and `[0x00A1D940,0x00A1D9AF)`, totaling
+1648 instruction bytes. Its three intervening gaps are not instruction
+coverage. Every direct jump into this body targets a listed instruction,
+and the listed instruction before each gap is an unconditional jump.
+The full context constructor is `[0x00A1FF70,0x00A1FF8A)`, 26 bytes,
+and the full context-dword setter is `[0x00A200F0,0x00A200FA)`, ten
+bytes. Track ESP across the argument pushes and `RET 4` cleanup to
+identify the same C at `0x00A1D360`, `0x00A1D6E4` and
+`0x00A1D6F3`. Reuse the published secondary-collection accessor,
+material slot-1, descriptor-accessor and same-S parser-field contracts;
+no original data-table read or selected asset input is needed for this
+producer/dispatch observation.
