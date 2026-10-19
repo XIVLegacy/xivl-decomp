@@ -26,6 +26,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Appearance resource literals](actor/appearance-resource-literals.md)
 - [Actor appearance path decoder](actor/appearance-path-decoder.md)
 - [Actor appearance resource slots](actor/appearance-resource-slots.md)
+- [Appearance colour rows and material parameter apply](actor/appearance-color-rows.md)
 - [Idle animation bank selection](actor/idle-bank-selection.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
@@ -148,6 +149,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 - [Ordinary format-6 STMS payload lanes](resource/stms-ubyte4-payload.md)
 - [PRAM packed render-state consumers](resource/pram-packed-render-state.md)
+- [Character material pixel shaders and colour flow](resource/chara-material-shader-colour-flow.md)
 - [Ambient Garlean fleet visibility boundary](resource/ambient-garlean-fleet.md)
 - [Bitmap font container](resource/bitmap-font-container.md)
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)
