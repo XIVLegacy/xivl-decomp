@@ -26,9 +26,9 @@ Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
 view-construction, string-key, initializer-context, channel-producer,
-resource-callback, sample-input and active-receiver observations use
-Python 3.12.0 to decode
-original PE instructions. Selected SCB structure metadata
+resource-callback, initialization-handoff, sample-input and active-receiver
+observations use Python 3.12.0 to decode original PE instructions.
+Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
 boundary and full contiguous span in the listed reproduction ranges was
@@ -255,6 +255,8 @@ has no later explicit O `+0x54` store; this is not a claim that the field
 remains zero across those calls.
 The [callback methods](#resource-callback-dispatch) qualify that interface's
 own dispatch without establishing its initial container population.
+The separate [initialization handoff](#resource-initialization-handoff)
+supplies a conditional dispatch to the published container producer.
 
 At `0x00835358..0x0083535D`, the initializer reads O `+0x54` and
 stores it at M `+0x38`. The following selection requires that value T
@@ -336,8 +338,9 @@ just read from global `0x012EE6F4`, and current EBP to the retained
 `u32(O+0x40)` interface's virtual `+0x2C`, then stores its return at
 O `+0x50`. This call does not identify the retained interface's concrete
 type or show whether or when it invokes C. Current EBP is not assigned a
-constant here, and the preceding call to `0x00A42C90` has unqualified
-effects. Composition requires the live O, C, fields, registers and stack
+constant here. The preceding `0x00A42C90` handoff is described below;
+its outgoing callee effects remain conditional. Composition requires the
+live O, C, fields, registers and stack
 to retain the values used by the quoted later instructions.
 
 Slot 0, `0x00A31C30`, subtracts `0x48` from ECX and tail-jumps to
@@ -381,6 +384,56 @@ and initial O `+0x54` population remain unjoined. The previously described
 conditional parsed-group and FixedCurve consumer relation still requires
 that populated container; the callback table alone supplies no selected
 curve, scalar result or material effect.
+
+## Resource initialization handoff
+
+The constructor separately installs table `0x01099448` at O `+0x0C`
+with the seven-byte store at `0x00A316BA`. Its COL at `0x011871E8`
+has offset `0x0C` and the same TypeDescriptor `0x012EE7A8`. Slot 0,
+`0x00A31C40`, subtracts `0x0C` from ECX and tail-jumps to the
+published `0x00A31C80` body on O, retaining that body's argument,
+return and unknown-callee conditions. Slot 1, `0x00A31C50`, returns
+literal address `0x01323868` without reading its contents or using ECX.
+That return alone does not identify an initialization manager or prove an
+invocation of either O `+0x0C` method.
+
+The immediate handoff at `0x00A317A9..0x00A317AF` pushes the live O,
+calls `0x00A42C90` and removes its four-byte argument. The latter reads
+this first argument into ESI and calls its primary virtual `+0x18`
+repeatedly, reloading the vtable each iteration, until AL equals exactly 1.
+For the same O retaining primary table `0x01099454`, original cell
+`0x0109946C` selects the published `UpdateRestInitialize` target
+`0x00A315C0`. This is a concrete constructor-to-resource-initializer
+dispatch, conditional on the live resource, table and call state remaining
+valid. The loop supplies no timeout, completion or scheduling guarantee.
+
+Before that loop, `0x00A42C90` reads global `0x013654E4` and writes
+byte `+0x5C` to 1 when the returned pointer is nonzero. After observing
+AL equal to 1, it reloads the global and writes byte `+0x5C` to zero
+when that later pointer is nonzero. The two reads need not identify the
+same object across the virtual calls. The body returns the final global
+pointer in EAX, rather than retaining the virtual call's result as its
+return. These explicit writes do not establish a lock, manager type,
+cross-call state preservation or a parsed-container postcondition.
+The global null checks guard those byte writes; the supplied resource
+argument has no null guard before its primary-vtable read.
+
+Under the published [MTB initialization route](mtb-container-framing.md#routes-in-parsemtb_),
+`0x00A315C0` calls `ParseMTB_` at `0x00A31658` when the
+`SpuBinary` lookup returned null and its current O `+0x54` field is
+empty. The published [single-clip parsed-group construction](mtb-joint-translation-write.md#parsed-curve-group-and-descriptor-transfer)
+stores its successfully constructed container at the same loader receiver
+O `+0x54` at `0x00A30BE5`. Thus the handoff can reach that known
+producer on the same O under the parser's existing input, construction,
+helper-effect and storage conditions. AL equal to 1 alone does not prove
+that this route ran or that O `+0x54` is nonzero.
+
+To connect that conditional store to M `+0x38`, its value must remain
+valid through the later retained-interface call at `0x00A317C5`, the
+resource return and the material read at `0x00835358`. The selected
+loaded input, current field values, actual call returns and that retention
+remain unjoined. This dispatch does not establish material context P=Q,
+the selected property's type, scalar samples or a visible effect.
 
 ## Update state and sample input
 
@@ -643,6 +696,9 @@ container and selected property type remain unjoined. Registry lookup
 remains conditional.
 The [resource callback dispatch](#resource-callback-dispatch) qualifies
 the O `+0x48` methods without identifying an initial-population callback.
+The separate [initialization handoff](#resource-initialization-handoff)
+reaches the known producer conditionally; actual parser inputs, completion
+and retention through the material read remain unjoined.
 The [active parameter receiver chain](#active-parameter-receivers) still
 requires the actual virtual results and valid retained container storage.
 Base construction captures current global
@@ -733,6 +789,9 @@ calls and cited operands for these exclusive ranges:
 | Callback slot 2 field clear | `0x00A25600` | `0x00A25610` |
 | Adjusted callback slot 0 target | `0x00A31C80` | `0x00A31CA2` |
 | OnMemoryMove_ own body | `0x00A314D0` | `0x00A315AC` |
+| O+0x0C slot 0 adjustor | `0x00A31C40` | `0x00A31C48` |
+| O+0x0C slot 1 address return | `0x00A31C50` | `0x00A31C56` |
+| Resource initialization handoff | `0x00A42C90` | `0x00A42CBE` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -812,6 +871,15 @@ Verify the callback COL and exactly three slot cells through
 Reuse the published constructor, MTB setup/predicate and parser/container
 store contracts. No parser, scalar evaluator or neighboring-interface
 method is required to reproduce the stated callback dispatch boundary.
+
+For the separate initialization interface and immediate handoff, check
+the three listed ranges and only prior constructor unions
+`[0x00A316BA,0x00A316C1)` and `[0x00A317A9,0x00A317B2)`, totaling
+16 bytes. They establish the O `+0x0C` table store and the resource
+argument supplied to `0x00A42C90`. Verify its COL, the two interface
+slots and original primary slot cell `0x0109946C`. Reuse the published
+`0x00A31C80`, `UpdateRestInitialize` and parser/container-store contracts
+without reopening their native bodies.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
