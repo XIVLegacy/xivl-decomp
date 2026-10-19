@@ -28,8 +28,11 @@ separate player work packet is in
 
 The [Limsa public-layout pointer join](limsa-seasonal-weather-extension.md#halloween-selector-and-resident-group)
 identifies the property/vector references for its eight pairs and the first
-pair's resident group and resource keys. That closes those serialized joins
-without extending the result to the other layouts or native condition playback.
+pair's resident group and resource keys. The
+[Gridania and Ul'dah public joins](city-halloween-owner-joins.md) identify
+their 21 property/vector and direct resident-owner joins, with one resource
+example per city. The interior counts above remain layout-level
+reconciliations; these serialized joins do not establish native playback.
 
 Five interior Starlight-named pairs instead reconcile with empty sparse show
 masks in this final snapshot: one in Gridania, two in Limsa Lominsa, and two
