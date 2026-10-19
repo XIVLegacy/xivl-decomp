@@ -4,8 +4,10 @@ The selected-memory consumer at 0x00a30910 has a type-2 curve branch that
 loads four float32 lanes per key into a FixedCurve. Its scalar evaluator
 clamps to endpoint values and, for two finite ordered keys, invokes a cubic
 Hermite interpolation helper. This establishes one small native curve codec
-and scalar sample relation. A translation, rotation or scale assignment to
-the state consumed by hierarchy routine 0x00a3f960 remains unconnected.
+and scalar sample relation. The
+[Joint translation finding](mtb-joint-translation-write.md) owns its
+conditional application to the first current-translation component.
+Complete translation, rotation and scale playback remains unproved.
 
 ## Identity and method
 
@@ -186,16 +188,16 @@ Ambient MXCSR and x87 precision, rounding, exception and denormal state remain
 unobserved. Those premises do not promise finite native intermediates or output. The actual code has additional
 paths, but they supply no broader contract here.
 
-No actual MTB payload, selected key, property name or runtime sample call
-was observed. Scalar x's units, its clock/frame conversion, duration, repeat
-policy and update scheduling remain unknown. No caller-to-sampling-slot join,
-vector assembly, rotation representation, property setter or write into the
-pose fields used by hierarchy routine 0x00a3f960 is established.
-The Joint+0x18 delegation and 0x00a41ca0 paths were not expanded because
-no inspected caller connects them to this codec. This finding therefore
-supports a future selected scalar-curve decoder, not replacing static pose
-or claiming translation/rotation/scale playback yet. No 30-fps default,
-root-motion behavior, axis convention, palette or shader claim follows.
+No actual MTB payload, selected key or resource property name was observed.
+The [Joint translation finding](mtb-joint-translation-write.md) establishes
+a conditional parsed-group, scalar-caller and first-component pose-field
+write under its identity, call-effect and storage premises. Scalar x's units,
+its clock/frame conversion, duration, repeat policy and update scheduling
+remain unknown. Vector assembly, rotation representation and complete TRS
+playback remain unproved. Joint+0x18 delegation is outside this finding.
+The conditional assignment does not establish selected clip execution.
+No 30-fps default, root-motion behavior, axis convention, palette or shader
+claim follows.
 
 ## Reproduction and coverage
 

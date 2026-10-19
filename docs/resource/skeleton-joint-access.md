@@ -156,7 +156,9 @@ uninspected. Slots `6..8` at `0x00a46310`, `0x00a462b0` and
 paths. Slot `5` at `0x00a46340` has a distinct fixed comparison path.
 Some unmatched paths return success without establishing a destination
 write. These observations do not provide a safe generic property-query
-contract or a final-output getter. Fixed property strings are not published.
+contract or a final-output getter. The
+[MTB translation write finding](mtb-joint-translation-write.md#joint-target-row-construction)
+owns the matching slot 6 and 7 property literals and their target-row consumer.
 
 ## Hierarchy output and remaining access gaps
 
@@ -236,6 +238,6 @@ floating-point parity retains the
 [quaternion-recovery finding's](skeleton-quaternion-recovery.md) unresolved
 CPU-estimate and environment constraints. Mesh palettes, mesh-index mapping,
 weights, bind or inverse-bind meaning, axes, handedness, units, shader
-conventions, animation input, runtime selection and visual parity remain
+conventions, selected animation input, runtime selection and visual parity remain
 unresolved. Constructor association and saved-pose pointers do not close
 those gaps.
