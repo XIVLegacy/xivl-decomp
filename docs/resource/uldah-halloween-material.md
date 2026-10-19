@@ -25,8 +25,8 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
-view-construction, string-key, initializer-context and active-receiver
-observations below use Python 3.12.0 with those same libraries to decode
+view-construction, string-key, initializer-context, sample-input and
+active-receiver observations below use Python 3.12.0 with those libraries to decode
 original PE instructions. Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
@@ -236,6 +236,76 @@ its slot at byte offset `0x10`, and resolves class text. The comparison
 with `LaySystemActor` at `0x0083540C..0x0083541C` sets runtime byte
 `+0x50` to 1 on equality. This identifies an explicit system-actor branch
 without proving the active native receiver or container.
+
+## Update state and sample input
+
+Application receives M in ECX and a separately supplied context `C_app`
+as its first stack argument. At `0x0083548E..0x00835491`, it calls base
+update `0x00A20F90` with those arguments. It then checks M `+0x51`
+to decide whether to call the active-container helper; it does not test the
+base update's return or the container helper's return before sampling.
+Neither this pointer flow nor matching context offsets identifies `C_app`
+with `C_init` or constructs the context-to-Q relation.
+
+The base update first compares M `+0x1C` with 1 and explicitly clears
+M `+0x2C`. For state 1, it stores 2 at M `+0x1C` and skips the delta
+calculation. Otherwise, it obtains `R_app = u32(C_app+0x0C)` through
+the published `0x00A20070` getter. Forwarder `0x00A1B830` adds
+`0xD0` to that receiver and tail-jumps to `0x00A203B0`. The latter
+returns the float at `R_app+0xE4` when byte `R_app+0xE8` is nonzero,
+or x87 value 1 otherwise. The update stores this factor as a double.
+
+Provider `0x00A1FFC0` reads `u32(C_app+0x0C)` and tail-jumps through
+`0x00A1B840` to `0x00A20470`. That getter returns the dword at mutable
+global `0x012ED240`; it does not read a further receiver field. The
+[celestial aggregate](sky-celestial-layout-census.md) also uses this
+provider. The [light-clip contract](weather-light-curve-container-shape.md#light-clip-colour-and-intensity-v)
+identifies a writer and its frame-rate formula. This does not bind that
+writer's invocation, the applicable units or the actual material context
+on this path.
+
+For the update's provider result, `CVTSI2SS` interprets EAX as signed
+i32 and converts it to float32. `CVTSS2SD` promotes that rounded value
+to double, `MULSD` multiplies by the stored factor, and `CVTTSD2SI`
+truncates the double result to signed i32 on its finite, in-range path.
+The resulting dword is stored at M `+0x2C`. At the join, the update adds
+the current dwords at M `+0x28` and `+0x2C`, with 32-bit wrapping,
+and explicitly stores the sum at M `+0x28` only when the unsigned sum
+is below `0x7FFFFFFF`. This is a guarded store, without a saturation
+store on the other branch. These instructions do not establish runtime
+floating-point control state or qualify conversion exceptions and aliases.
+
+The application then calls `0x00A1FFC0` independently at `0x008354A6`
+and converts that EAX to float32 as signed i32. This is a separate read
+of the mutable global from the update's call. Let A be
+`u32(M+0x54)-4` when that field is nonzero, or zero otherwise. If
+`u32(D+0x1C)` is nonzero, the denominator is replaced by the float at
+`0x00FA5124`, whose original PE bytes encode `10000.0`. If `D+0x1C`
+is zero, the code reads `u32(A+0x150)` and makes the same replacement
+when that word is 0 or 1; other words retain the converted provider
+result. There is no null guard before that A-field read. The selected
+serialized D has `D+0x1C=0`, but the actual A and mode word remain
+conditions. The constant supplies no seconds or calendar interpretation.
+
+The primary-vtable cell at `0x01039F9C+0x24 = 0x01039FC0` selects
+`0x00A210A0`, which returns `u32(M+0x28)`. This virtual byte offset
+is separate from data field M `+0x24`; no consumer of that initializer
+result is established here. At `0x008354F3..0x00835513`, application
+loads the numerator with signed-i32 `FILD`, divides it by the float32
+denominator with x87 `FDIV`, and stores the ratio as float32. The first
+`FSTP` after the argument-space push aliases the former denominator
+cell. The other three calls load that same stored ratio, rather than
+dividing again. No finite, nonzero-denominator or bounded-ratio guarantee
+follows from these instructions.
+
+Thus, with valid channel pointers, expected argument cleanup and valid
+unchanged local storage across the calls, each retained receiver at
+M `+0x68/+0x6C/+0x70/+0x74` receives the same float32 ratio through
+its virtual offset `+0x0C`, at `0x00835513/29/3F/55`. This prefix has
+no channel-pointer null checks. The later container/count guards govern
+parameter application, not these sampler calls. The input contract does
+not identify the sampler implementations, consumed curve payload, returned
+channel values or visible material effect.
 
 ## Active parameter receivers
 
@@ -494,6 +564,13 @@ calls and cited operands for these exclusive ranges:
 | Initializer result and fallback | `0x00A21680` | `0x00A216A5` |
 | String-key payload result | `0x00A21610` | `0x00A21677` |
 | Lookup output-pair ABI | `0x00A1FC00` | `0x00A1FC85` |
+| Base update state | `0x00A20F90` | `0x00A20FF7` |
+| Application provider forwarding | `0x00A1FFC0` | `0x00A1FFC8` |
+| Update factor forwarding | `0x00A1B830` | `0x00A1B83B` |
+| Provider thunk | `0x00A1B840` | `0x00A1B845` |
+| Update factor getter | `0x00A203B0` | `0x00A203BD` |
+| Mutable provider getter | `0x00A20470` | `0x00A20476` |
+| Sample numerator getter | `0x00A210A0` | `0x00A210A4` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -541,6 +618,18 @@ is the three-byte `RET 8` at `0x00A1FC82`. The two listed operation
 ranges establish the payload adjustment, post-call fallback read and
 return branches. No additional material caller range is needed for its
 published M `+0x24` store.
+
+For update state and sampler inputs, reuse the material application's
+precise prefix `[0x00835470,0x00835557)`, totaling 231 bytes. The
+instruction-start filter ending at `0x008354B0` includes the instruction
+at `0x008354AF` through exclusive end `0x008354B2`; the sample-input
+filter `[0x008354AB,0x00835557)` ends exactly after the fourth call.
+Check the listed seven update/provider/getter ranges, original vtable cell
+`0x01039FC0` and float constant `0x00FA5124`. Reuse the published
+context getter contract. Track ESP at `0x00835507..0x00835510` to
+verify replacement of the denominator cell by the stored ratio and its
+reuse by the following three calls. No sampler body is needed for this
+argument contract.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
