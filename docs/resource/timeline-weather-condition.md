@@ -2,9 +2,10 @@
 
 The native TimeLine property path contains a conditional evaluator with a
 data-derived count, a queue-recovered ID operand and first-match bitmap
-selection. Its concrete record-view and backend construction bindings remain
-unresolved. The static behavior below therefore narrows the condition boundary
-without establishing automatic activation by an added weather ID.
+selection. Its concrete record-view binding and the manipulator's consumer
+and initialization contracts remain unresolved. The static behavior below
+narrows the condition boundary without establishing automatic activation by
+an added weather ID.
 
 Addresses are VAs in retail 1.23b `ffxivgame.exe`, PE32 x86, image base
 `0x00400000`, 15,996,808 bytes, SHA-256
@@ -142,6 +143,11 @@ slot 18, then returned receiver slot 8 at `0x007FCD38..0x007FCD52`.
 Bit 0 of the final view's `+0x24` suppresses reset at `0x007FCD57`.
 This veto applies to a matched zero bit, while the absent-ID path above has
 no such test.
+
+The [backend attachment contract](timeline-weather-record-view.md#backend-pointer-and-guarded-consumers)
+identifies the slot-30 pointer cell and its attachment/clear methods. It links
+the published conditional `LaySchedulerManipulator` producer; that backend's
+concrete consumer methods and underlying initialization remain separate edges.
 
 `0x007FCA30` gets a receiver through P slot 30, returns false for null,
 calls that receiver's slot 4, then slot 9 with 1 at `0x007FCA53/0x007FCA5E`.

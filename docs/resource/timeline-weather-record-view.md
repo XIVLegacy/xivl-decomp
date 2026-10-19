@@ -8,6 +8,8 @@ the same creator interface. The concrete object supplied to the property and
 that object's slot-19 return remain unresolved. This closes the first receiver adjustment in the
 [weather-condition evaluator](timeline-weather-condition.md#entry-and-record-view-boundary)
 without identifying its final view with a serialized TimeLine record.
+The evaluator's backend comes from a separate pointer cell, initialized null
+and written by a setter that accepts a caller-supplied receiver.
 
 Addresses below are VAs in retail 1.23b `ffxivgame.exe`, PE32 x86, image base
 `0x00400000`, 15,996,808 bytes, SHA-256
@@ -75,6 +77,52 @@ initialized. The exact missing construction edge is a creator slot-3 caller
 that retains P and supplies R through P slot 2. A slot-1 product from the same
 creator is a concrete candidate for a separate binding, not proof of that edge.
 
+## Backend pointer and guarded consumers
+
+Property table `0x00FF2D2C` slot 30, cell `0x00FF2DA4`, targets
+`0x00CB1C80`. This getter returns the dword at its incoming receiver+`0x0C`.
+For P=C+4, call that value H: the backend cell is P+`0x0C`=C+`0x10`.
+R above comes from C+`0x0C`, a different cell. Their runtime pointer values
+and dynamic types are not determined by these storage locations.
+
+The helper callsites establish the property interface explicitly. Both enter
+with C, load the table from C+4, load its `+0x78` cell, and set ECX=C+4 before
+calling it. Thus they dispatch P slot 30, not slot 30 of the table at C.
+The checked ranges below are half-open unions of complete instructions.
+
+| Observation | Locators | Original-PE observation |
+| --- | --- | --- |
+| WB-G | `0x00FF2DA4`, `[0x00CB1C80,0x00CB1C84)` | P slot 30 returns H directly, without constructing or validating a backend. |
+| WB-C | `[0x007FC728,0x007FC740)`, `[0x00AA29FA,0x00AA2A01)` | The property constructor's base call initializes C+`0x10` to zero before installing the concrete property table at C+4. |
+| WB-S | `0x00FF2DA8`, `[0x00AA26D0,0x00AA2707)` | P slot 31 targets `0x00AA26D0`. After an optional call to P slot 32 for an existing nonnull H, it stores the supplied stack argument at P+`0x0C`. A null argument returns without another dispatch. For a normal constructed nonnull C and nonnull new H, it tail-dispatches H slot 25 with P as its stack argument. |
+| WB-CLEAR | `0x00FF2DAC`, `[0x00AA2710,0x00AA2742)` | P slot 32 targets `0x00AA2710`. With nonnull H it obtains R through P slot 4, obtains B through R slot 19, calls B slot 43 with H, then zeros P+`0x0C` after that call returns. It does not guard R or B. |
+| WB-ON | `[0x007FCA30,0x007FCA60)` | The activation helper calls P slot 30 at `0x007FCA3D`. Null H follows `0x007FCA43` to the AL=0 return at `0x007FCA46..0x007FCA49`. Nonnull H receives slot 4 and then slot 9 with 1 at `0x007FCA53/0x007FCA5E`. |
+| WB-OFF | `[0x007FCAD0,0x007FCAFE)` | The reset helper calls P slot 30 at `0x007FCADD`. It rejects H=0 and H-4=0, returning AL=0 at `0x007FCAE8..0x007FCAEC`. Otherwise it reconstructs H as the adjusted receiver and calls H slot 9 with 0 at `0x007FCAFC`. |
+
+The setter stores a supplied pointer. It does not allocate or identify a
+concrete backend. Its optional prior clear and the clear method's indirect
+calls must return normally for the subsequent store or zeroing to occur.
+For the factory-constructed property with no later writer to C+`0x10`,
+slot 30 returns null and both evaluator helpers take their false-return
+branches before their backend calls or child iterations. A later successful
+slot-31 attachment can change that state. This is a contract for the
+constructed table above, not every possible runtime property type.
+
+The [TimeLine construction path](limsa-fireworks-scheduler-bindings.md#construction-context-boundary)
+already supplies a concrete conditional producer. Its `0x00AB3600..0x00AB3616`
+path stores the returned `LaySchedulerManipulator` interface through P slot
+31. That finding owns the manager/delegate construction, interface table
+`0x0109F484` and resource initialization path. It also records that the
+manager returns the interface without checking initialization's Boolean
+result. On that construction path H therefore has this manipulator type;
+the generic setter alone does not establish it for every caller.
+
+The remaining consumer edge is the manipulator's slot-4/slot-9 behavior and
+slot-25 attachment contract, including any dependency on its underlying
+scheduler's successful initialization. The conditional producer does not
+prove actual installation, helper success, scheduler playback or visible
+activation. R's separate slot-19/view binding remains unresolved.
+
 ## Conditional record-view contract
 
 The published evaluator follows the second P slot-4 result R through R slot 19,
@@ -125,3 +173,12 @@ adjustment separate from each factory product's receiver+4 adjustment.
 Decode `0x00A90E00` to distinguish creator lookup from factory invocation.
 Neither the creator's shared table nor its sibling factories substitute for
 the missing P slot-2 argument and R slot-19 call target.
+
+For the backend boundary, read property cells `0x00FF2DA4..0x00FF2DAC`
+as three separate dwords and decode the complete instruction unions for
+`0x00CB1C80`, `0x00AA26D0` and `0x00AA2710` listed above. Check only the
+cited activation/reset helper ranges to retain the C-to-P adjustment,
+slot-30 call, null branches and first backend calls. Keep the backend cell
+C+`0x10` separate from R's cell C+`0x0C`. Consume the linked TimeLine
+construction path for the conditional manipulator producer before following
+its concrete consumer slots; the generic setter does not identify all callers.
