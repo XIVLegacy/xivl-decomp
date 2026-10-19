@@ -151,6 +151,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Resources and file formats
 
+- [TimeLine weather-condition evaluator](resource/timeline-weather-condition.md)
 - [Ordinary format-6 STMS payload lanes](resource/stms-ubyte4-payload.md)
 - [PRAM packed render-state consumers](resource/pram-packed-render-state.md)
 - [Character material pixel shaders and colour flow](resource/chara-material-shader-colour-flow.md)

@@ -2,9 +2,10 @@
 
 Limsa's final 1.23b public layout directly connects Halloween weather 8027
 selectors to resident decoration scheduler pairs. A new weather ID can pass
-the inspected region registry, but its decoration-condition evaluation is
-unresolved. Sharing an existing weather resource key also aliases the native
-queue's recovered ID. These are separate requirements for an additive event.
+the inspected region registry, but its constructed condition-view and backend
+bindings remain unresolved. Sharing an existing weather resource key also
+aliases the native queue's recovered ID. These are separate requirements for
+an additive event.
 
 ## Original resources and method
 
@@ -110,24 +111,18 @@ reverse mappings and is not a neutral preservation strategy.
 
 ## Decoration-condition boundary
 
-RaptureTimeLineBaseObject's slot 7 cell at `0x01062098` points to
-`0x008D5440`. It adjusts ECX by four and tails to `0x00AA89A0`, which retains
-the supplied raw record pointer at object `+4` and returns true. This is an
-attachment endpoint, not a weather-mask evaluator.
+The [TimeLine weather-condition evaluator](timeline-weather-condition.md)
+owns the native attachment, queue-ID operand, data-derived count, first-match
+rule, absent-ID reset and state-dependent dispatch. It distinguishes the
+property-interface gate from evaluator state and preserves the separate
+getter chain used by the matched-zero-bit reset veto.
 
-RaptureTimeLineInstanceObjectProperty's slot 9 cell at `0x00FF2D50` points to
-`0x007FDCA0`. It calls `0x007FC7C0`, forwards its argument to `0x00AA2930`,
-and tests instance byte `+0x40` before optionally calling `0x007FCBF0`.
-Those callees' bodies are outside this finding. These attachment/forwarding
-bodies contain no weather-vector iteration or ID comparison.
-
-The remaining join is retained TimeLine record -> constructed condition
-object -> matching routine and its ID operand -> scheduler invocation.
-It is unresolved whether that operand uses the actor's normalized ID, the
-queue's recovered ID, or another value. Absent-ID behavior and whether the
-matcher honors a data-derived entry count are also unresolved. Consequently
-neither automatic activation by N nor sufficiency of appending N to a vector
-is established. The serialized 8027 owner join does not prove live playback.
+The remaining join is retained TimeLine record -> constructed record view ->
+valid condition inputs and backend receivers -> concrete scheduler/clip
+invocation. These construction and receiver bindings remain unresolved.
+Consequently neither automatic activation by N nor sufficiency of appending
+N to a vector is established. The serialized 8027 owner join does not prove
+live playback.
 
 ## Minimum additive resource requirements
 
@@ -160,4 +155,5 @@ Starlight show masks are empty. The historical marker and selector evidence
 does not enumerate the old wrapper's full dependencies or recover every city
 placement. A ready additive Starlight package therefore remains unestablished:
 it needs the exact pinned historical payload's typed dependency closure and
-the condition-consumer join, while retaining the final 8032 behavior.
+the constructed condition-view/backend bindings, while retaining the final
+8032 behavior.
