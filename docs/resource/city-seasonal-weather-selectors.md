@@ -18,8 +18,8 @@ six DATs, 60 Halloween-named scheduler pairs reconcile by layout count with
 | Ul'dah | 421 / `0x615A0001` | 10 / 10 | 431 / `0x615A0003` | 7 / 7 |
 
 The layout counts support weather 8027 as a client-side condition for these
-resident Halloween groups. They do not prove that each named pair has a uniquely
-identified mask without a structural pointer join, nor does it prove the
+resident Halloween groups. The structural joins below identify selected
+per-pair masks and owners; counts alone do not supply those joins or prove the
 historical server's event timing or a visible result in every scene. The
 weather packet path is described in
 [Weather transition runtime](../net/weather-transition-runtime.md); the
@@ -31,8 +31,11 @@ identifies the property/vector references for its eight pairs and the first
 pair's resident group and resource keys. The
 [Gridania and Ul'dah public joins](city-halloween-owner-joins.md) identify
 their 21 property/vector and direct resident-owner joins, with one resource
-example per city. The interior counts above remain layout-level
-reconciliations; these serialized joins do not establish native playback.
+example per city. The [three-city interior joins](city-interior-halloween-owner-joins.md)
+identify all 31 interior pairs' property/vector, owner, resident-membership
+and resource-table joins. Ul'dah's `hwa1` hide scheduler contains a material
+clip and a second actor; the 31 named pairs are not all symmetric
+`ShowHideClip` bodies. These serialized joins do not establish native playback.
 
 Five interior Starlight-named pairs instead reconcile with empty sparse show
 masks in this final snapshot: one in Gridania, two in Limsa Lominsa, and two
