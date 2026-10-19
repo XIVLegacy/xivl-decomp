@@ -101,6 +101,11 @@ The paths in the table identify the retained numeric-mode files. Static
 presence does not establish the formatter mode or a successful resource open
 in a historical session.
 
+The [initialization predicate](resource-path-producer.md#initialization-predicate)
+identifies the indexed-record getter and conditional caller stores that
+select numeric versus table mode. Its early-failure path reaches neither
+caller store. The actual record value and request-time mode remain unproved.
+
 If that pointer and ResourceModule vptr remain in force when the wrappers
 load sound `+0x04`, their slot-1 target is `0x00C99130`. This is conditional
 static dispatch reasoning, rather than an observed call or successful open.

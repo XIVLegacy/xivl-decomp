@@ -49,9 +49,9 @@ machine-local root is retained here.
 When the mode byte is zero, the same function follows a different table path
 using the high 16 bits as a group and the low 16 bits as an index. The numeric
 mapping is therefore conditional, not an unconditional decoder for every
-call. Function `0x004b2df0` owns the observed writes to the gate, including a
-constant-one write at `0x004b2eca` and a conditional byte write at
-`0x004b3191`.
+call. The [initialization predicate](#initialization-predicate) below owns
+the conditional caller stores and early-exit boundary; it does not
+establish a historical or request-time mode.
 
 The Resource constructor also has five direct callers at `0x00c98e40`,
 `0x00c98f80`, `0x00c992d0`, `0x00c99480`, and `0x00c99670`. They accept or
@@ -60,6 +60,59 @@ only the slot-1 producer also calls the numeric formatter. Four additional
 direct formatter callers are outside this Resource-constructor set, so
 formatter reachability alone does not identify a Resource producer and not
 every Resource path has numeric-producer provenance.
+
+## Initialization predicate
+
+Initializer `0x004B2DF0` supplies a conditional source for the mode byte
+`0x01266B64` (RVA `0x00E66B64`). At `0x004B2E69`, it calls getter
+`0x00443E40` with receiver ESI, the initializer's second argument, and
+arguments `(2,0,0)`. The full EAX test at `0x004B2E6E` selects the branch;
+a nonzero return reaches the constant-one mode store at `0x004B2ECA`, then
+jumps to `0x004B3197`. Intervening calls must return to reach that store.
+
+The getter computes a wrapping u32 address
+`S = [receiver+8] + 0xBC * ((arg1 << 5) + (arg2 & 31))`. It returns the
+u32 at S+`0x60` when S is nonzero, or argument 3 when S is zero
+(`0x00443E56/59/5B/61`). For `(2,0,0)`, the normal read is the table base
+plus `0x2F60`, with fallback zero. The guard tests the computed address,
+rather than the table-base pointer alone. The record's semantic key name
+and actual retail value were not established.
+
+When that getter returns zero, the initializer calls table initializer
+`0x0044B690` at `0x004B3141`. TEST AL and SETZ BL at
+`0x004B3149/4B` preserve the inverse of the callee's byte result. After
+cleanup, `0x004B3189/8B` branches on nonzero BL to the false-return path at
+`0x004B35B8`, before the mode store. Zero BL falls through to
+`0x004B3191`, writing mode zero, then reaches `0x004B3197`. This uses the
+x86 callee-saved EBX convention across the cleanup calls. The callee's full
+EAX is not the predicate: a nonzero EAX with AL zero takes the failure case.
+
+The table initializer receives four inputs: a path-wrapper result built from
+root wrapper `0x0132CB98` and getter `0x00443E70(ESI;2,3,empty-wrapper)`,
+integer getter `0x00443E40(ESI;2,18,0)`, integer getter
+`0x00443E40(ESI;3,0,0)`, and getter
+`0x00443E70(ESI;2,30,empty-wrapper)`. The string-like getter shares the
+same index formula but returns S+`0x68` or its third-argument fallback.
+These are exact input tuples, not authenticated configuration names.
+At `0x0044B733`, the table initializer passes its first argument, literal
+`rt` at `0x00F672F4`, and retry zero to LocalFile open `0x00453C00`.
+Zero AL at `0x0044B738` reaches cleanup `0x0044BF7B` and clears AL at
+`0x0044BF92`. No actual open outcome was observed.
+
+The two named mode stores are direct stores in the retained initializer;
+this coverage does not exclude indirect, aliased, transitive or later
+mutation. A mode store also precedes later initialization that can fail.
+These instructions do not establish the actual mode at a resource request
+or in a historical session.
+
+The observation used retained Ghidra instruction listings checked against
+the original `ffxivgame.exe`, 15,996,808 bytes, image base `0x00400000`,
+SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+pefile `2024.8.26` and Capstone `5.0.7` independently checked source bytes,
+listed ranges and instruction boundaries without executing the client.
+The retained `0x0044B690` body has discontinuous AddressSet coverage;
+unlisted bytes are not treated as retained function code or used here to
+claim a reachable successful return.
 
 ## Path ownership
 
