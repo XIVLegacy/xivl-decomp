@@ -82,22 +82,16 @@ In particular, an exact row and an available DAT do not bypass these guards.
 
 ## Retained payload identities
 
-In the [numeric formatter mode](../resource/resource-path-producer.md#formatting-contract),
-the keys produce the relative paths below. Every selected file begins with
-`MapLayoutResourceData` at `+0`, version `1.1.0` at `+0x18`. Header and file
-identity checks do not establish dependency closure, actual opens or readiness.
-The [direct resource-table inventory](../resource/city-weather-direct-inputs.md)
-records those six payloads' typed nonzero targets and retained file identities,
+The [authored weather catalog](../resource/city-weather-catalog.md) owns the
+numeric paths, sizes and SHA-256 identities for all 47 selected type-zero
+payloads, including the six clear/rain controls above. All six selected files
+had `MapLayoutResourceData` at `+0` and version `1.1.0` at `+0x18`.
+The [numeric formatter contract](../resource/resource-path-producer.md#formatting-contract)
+remains conditional on the client's mode. Header and identity checks do not
+establish dependency closure, actual opens or readiness.
+The [six-payload direct resource-table inventory](../resource/city-weather-direct-inputs.md)
+records those examples' typed nonzero targets and retained file identities,
 with empty-tag zero rows, aliases and transitive/runtime limits kept separate.
-
-| Resource key / relative path | Bytes | SHA-256 |
-| --- | ---: | --- |
-| `0x29D9000F` / `data/29/D9/00/0F.DAT` | 117,952 | `6fbd4ce9183fcb9ced230c3edba489b9b5803a939f0f85ceb9653c4eaec7942e` |
-| `0x29D90013` / `data/29/D9/00/13.DAT` | 113,024 | `11b2735ee161d302ad212a27041c84060a5b4f61da438c15c9f4bec982d83012` |
-| `0x29B0000F` / `data/29/B0/00/0F.DAT` | 129,856 | `4c2627bd34f53d445d0834677e5064fcecaffd0d13b07dae8fbb698b323a98a6` |
-| `0x29B00013` / `data/29/B0/00/13.DAT` | 118,240 | `a12f5341bbe4b64da8251fe9f8452b19cb12a13437b0f62b394698601a2d48bb` |
-| `0x615A0010` / `data/61/5A/00/10.DAT` | 124,160 | `f46543a5f6e8d4002c96b1585faea4c26b064bf23b491674e19f068e9b412477` |
-| `0x615A0014` / `data/61/5A/00/14.DAT` | 139,392 | `83feba5a16b649fb3acfb66168107085f61c336e4c66c7ab4701cfdda44d928a` |
 
 ## Reproduction and boundary
 

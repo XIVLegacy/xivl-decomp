@@ -9,10 +9,11 @@ direct table inventory and retained file-identity check.
 ## Sources and table framing
 
 The [three-city selection finding](../net/city-weather-selection.md#retained-payload-identities)
-owns the supplied region/weather selections and source payload pins. Weather
+owns the supplied region/weather selections and native guards. Weather
 8001 has token `wtr_fine`; weather 8007 has token `wtr_rain`.
 
-The source paths, lengths and SHA-256 pins remain in that owning record.
+The [authored weather catalog](city-weather-catalog.md) owns the source
+payload paths, lengths and SHA-256 pins, including these six controls.
 
 Extraction followed `XIVLegacy/xivl-tools:tools/research/census_layout.py`,
 revision `75fe7414bf3f1ecd779825083d477adc4ed5f319`, SHA-256
