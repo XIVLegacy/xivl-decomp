@@ -37,9 +37,12 @@ and resource-table joins. Ul'dah's `hwa1` hide scheduler contains a material
 clip and a second actor; the 31 named pairs are not all symmetric
 `ShowHideClip` bodies. These serialized joins do not establish native playback.
 
-Five interior Starlight-named pairs instead reconcile with empty sparse show
-masks in this final snapshot: one in Gridania, two in Limsa Lominsa, and two
-in Ul'dah. The [historical layout delta](#historical-layout-delta) identifies
+The [five interior winter-family joins](city-winter-owner-joins.md) establish
+exact empty show selectors and full hide selectors in this final snapshot:
+one pair in Gridania, two in Limsa Lominsa, and two in Ul'dah. Each vector
+still has 23 declared entries. The finding follows all five owners/residents
+to three resource-table IDs, preserving the target shared across all cities.
+The [historical layout delta](#historical-layout-delta) identifies
 their earlier 8032 selectors. That historical binding does not make weather
 8032 a Starlight switch in the final 1.23b layout. No sparse city mask
 contains weather 8029, so the final city's named scheduler layer does not

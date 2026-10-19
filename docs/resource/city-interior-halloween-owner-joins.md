@@ -187,8 +187,8 @@ remains separate from these selected masks. No runtime condition
 construction, backend sender, clock, calendar, historical server policy,
 8071 adoption or appended-ID activation follows. The five retained
 interior Starlight pairs and their existing classification are outside
-this selection; the existing empty-mask and historical-binding findings
-are unchanged.
+this selection. Their [final-client owner joins](city-winter-owner-joins.md)
+retain empty show masks and separate historical-binding limits.
 
 Reproduce by checking the three input identities and parser pin, then
 following the named timelines through their declared reference fields.
