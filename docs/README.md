@@ -31,6 +31,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Locomotion animation selection](actor/locomotion-selection.md)
 - [Locomotion motion bank census](actor/locomotion-bank-census.md)
 - [Locomotion wire move states](actor/locomotion-wire-move-states.md)
+- [Non-player appearance census](actor/non-pc-appearance-census.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
 - [Battle Regimen combination and target modes](actor/battle-regimen-combination.md)
