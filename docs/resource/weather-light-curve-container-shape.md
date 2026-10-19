@@ -190,6 +190,7 @@ entries 4 and 5.
 * The scheduler frame rate in effect for the weather timelines, which sets the
   curve argument scale (10010 or 10000).
 * Whether clip local time tracks the timeline seek position one to one.
-* The fog record field roles against the Fog and Color sections.
+* The fog record field roles against the Fog and Color sections are in
+  [Weather fog parameters and fog mix](weather-fog-parameters.md).
 * The meaning of Extra ty tz sx sy sz for point lights beyond the node offsets
   above. Weather lights do not apply them.
