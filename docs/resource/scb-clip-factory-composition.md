@@ -223,6 +223,103 @@ The selection contract below identifies the matching registered key. A
 registered pointer and a nonnull construction result do not establish a
 fully initialized scheduler wrapper.
 
+## Post-builder owner and auxiliary state
+
+Let `C = u32(S+0x34)` be the built clip collection and `A = S+0x60`
+the arena. Getter `0x00A21460` returns `u32(C+0x10)`. Accessor
+`0x00A21430` takes a dword index i and returns zero when that count is
+zero, i is negative or i is greater than or equal to the count using signed
+comparisons. Otherwise it returns `u32(u32(C+8)+4*i)` and removes its argument
+with `RET 4`.
+
+The caller snapshots that count at `0x00A1C802..0x00A1C809`. If the
+snapshot is positive under a signed comparison, it calls the accessor in a
+loop for indices starting at zero.
+For each nonzero returned clip M, `0x00A1C81D` stores S at M `+0x34`.
+With valid collection storage and the count, array and loop state preserved
+across the calls, this assigns an owner back-pointer to each nonnull built
+entry. The store itself does not supply a clip-initialization context.
+
+At `0x00A1C82A..0x00A1C83A`, the caller obtains the count again and
+calls `0x00A281A0` with `(count,A)`, then retains its return at `S+0x30`.
+The helper advances `u32(A+8)` by `0x1C`. A nonzero old cursor becomes
+the receiver of `0x00A213B0` with the same arguments; a zero old cursor
+returns zero. The constructor installs vtable `0x01097F58`, stores A at
+receiver `+0x18` and byte one at `+0x14`, then reserves `4*count` bytes
+from the arena. It stores that old cursor at receiver `+8`, the supplied
+count at `+0x0C` and zero at `+0x10`. Its own instructions do not populate
+or clear the pointer slots. Thus the normal result is a secondary collection
+with capacity count and append count zero, conditional on valid storage and
+32-bit allocation arithmetic.
+
+The next caller interval advances the arena by `0x14`. On a nonzero old
+cursor H, `0x00A1C85F` calls `0x00A1C0D0` with receiver H and
+`(u32(u32(S+0x50)+0x3C),A)`. A zero old cursor selects zero instead.
+The result is retained at `S+0xBC` at `0x00A1C86C`.
+
+Let L be that constructor's first argument. It stores L at `H+4` and
+zero at `H+0x0C/+0x10`. Getter `0x00A26980` returns `u32(L+0x14)`.
+For a returned count n that is positive under a signed comparison, the
+constructor loops from zero to n-1. Accessor `0x00A26990` returns zero when
+`u32(L+0x14)` is zero;
+otherwise it reads `u32(u32(L+0x0C)+4*i)` without an index bounds check.
+At `0x00A1C0FA..0x00A1C103`, the constructor directly dereferences
+each result, calls its primary vtable `+0x10` without pushing a context
+argument, then adds EAX to `u32(H+0x10)` with 32-bit arithmetic. Valid
+entry storage and the relevant collection and loop state remain conditions.
+The indirect method's meaning and effects are unqualified.
+
+After that loop, a signed comparison selects H `+8` as the buffer when
+`u32(H+0x10)` is less than or equal to four. The greater-than-four
+branch selects the old arena cursor and advances it by
+`(u32(H+0x10)+3)&0xFFFFFFFC`, using 32-bit arithmetic. At
+`0x00A1C12A..0x00A1C139`, the body stores the selected buffer at
+`H+0x0C` and calls `0x009D2110` with
+`(buffer,0,u32(H+0x10))`. This records the supplied arguments, without
+qualifying that callee's writes or preservation effects. The inline storage
+interpretation requires a nonnegative length no larger than four. External
+storage requires a valid arena region and an adequate nonwrapping reservation.
+The checked body does not establish those input conditions.
+
+The normal constructor return is H. The local builder's final call to
+`0x00A28190` at `0x00A1C87A` only writes vtable `0x01098650` at
+its receiver and returns. None of these selected direct calls passes the
+published material initializer's explicit `C_init` argument. Indirect calls
+and unqualified helper or alias effects prevent a whole-path absence claim.
+The earlier owner store also does not identify S with `C_init` or `C_app`.
+The published [base initializer](uldah-halloween-material.md#initializer-context)
+later writes `u32(C_init+0x0C)` to M `+0x34`, so the two writes alone do
+not establish the context's identity. Complete wrapper initialization and
+the owning UnitTree at clip capture remain separate bindings.
+
+### Post-builder reproduction
+
+Use the original PE identity and Python, pefile and Capstone versions in
+[Evidence identity](#evidence-identity). Compare every retained Ghidra
+instruction against original PE bytes, independently decode its boundary
+in x86-32 mode, and compare actual instruction-address unions. The complete
+bodies cover these half-open ranges without gaps:
+
+| Purpose | Instruction union | Instruction bytes |
+| --- | --- | --- |
+| Built-collection count | `[0x00A21460,0x00A21464)` | `0x04` |
+| Built-collection accessor | `[0x00A21430,0x00A21451)` | `0x21` |
+| Secondary collection allocation | `[0x00A281A0,0x00A28201)` | `0x61` |
+| Secondary collection constructor | `[0x00A213B0,0x00A213ED)` | `0x3D` |
+| Auxiliary state construction | `[0x00A1C0D0,0x00A1C145)` | `0x75` |
+| Parsed collection count | `[0x00A26980,0x00A26984)` | `0x04` |
+| Parsed collection accessor | `[0x00A26990,0x00A269A8)` | `0x18` |
+| Local builder cleanup | `[0x00A28190,0x00A28197)` | `0x07` |
+
+The reused caller unions are `[0x00A1C7CB,0x00A1C7CD)`,
+`[0x00A1C7E9,0x00A1C7EC)`, `[0x00A1C7ED,0x00A1C7EF)` and
+`[0x00A1C7F8,0x00A1C892)`. The first three bind S to ESI, A to
+`S+0x60` in EBX and the initial index to zero in EDI. The tail's final
+instruction starts at `0x00A1C891`; include its complete end
+`0x00A1C892`. Track stack changes and distinguish the built collection
+at `S+0x34` from L at `u32(u32(S+0x50)+0x3C)`. These checks consumed
+no asset input and observed no execution.
+
 ## Parsed clip-key table
 
 Let F be the selected `LaySchedulerFactory`. The parsed object P is the Q

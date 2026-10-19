@@ -185,6 +185,12 @@ memory preservation across `0x00A21680` or qualify pointer aliasing.
 The checked field reads have no context/state null guards. The application
 context in the receiver chain below is supplied separately.
 
+The earlier [post-builder owner assignment](scb-clip-factory-composition.md#post-builder-owner-and-auxiliary-state)
+stores scheduler S at each nonnull built clip's `+0x34`. If that entry is M,
+the base initializer's later store uses the same field. The two stores do
+not identify `C_init` with S or establish `u32(C_init+0x0C)=S`; retention
+between them and the supplied context's construction remain separate edges.
+
 ### Initializer operation result
 
 `0x00A21680` first calls `0x00A21610` with the supplied receiver L
