@@ -91,9 +91,12 @@ spatial object and active exact suffix remain unobserved historically.
 The native `RaptureMaterial2Clip` implementation gives an independent ABI for
 weather material overrides. Initialization at `0x00835250` resolves an
 `Attr` FCurve and four channels. Application at `0x00835470` appends `R`,
-`G`, `B`, and `A` to the controlled actor name and sends each sampled value to
+`G`, `B`, and `A` to its stored name and sends each sampled value to
 every material entry in the active container. `Attr` is therefore a four-
 channel RGBA material-parameter broadcast, not a Tower point-light control.
+The [Lay subclass finding](uldah-halloween-material.md#selected-record-and-inherited-consumption)
+locates the stored-name input path and distinguishes the channel-selector
+names from those output suffixes; its selected serialized values remain unjoined.
 
 A non-retail weather payload previously compared during reconstruction,
 resource 8076 with SHA-256

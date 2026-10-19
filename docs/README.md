@@ -198,6 +198,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
 - [Gridania and Ul'dah Halloween owners](resource/city-halloween-owner-joins.md)
 - [Three-city interior Halloween owners](resource/city-interior-halloween-owner-joins.md)
+- [Ul'dah Halloween material dispatch](resource/uldah-halloween-material.md)
 - [Limsa seasonal weather extension boundary](resource/limsa-seasonal-weather-extension.md)
 - [Region weather resource rows](resource/region-weather-resource-rows.md)
 - [Region 103 layout census](resource/region-103-layout-census.md)

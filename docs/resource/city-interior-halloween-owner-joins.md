@@ -169,6 +169,11 @@ The hide SCB SHA-256 is
 the show SCB SHA-256 is
 `877ac5be7a0a0e922c94aaf89d2d9b20bd32697b4a184ac04c5cee3233337ec2`.
 
+The [material dispatch finding](uldah-halloween-material.md) establishes this
+native subclass's inherited dispatch and conditional factory/parameter path.
+Its descriptor selection, retained record pointer and active effects remain
+separate from the serialized joins here.
+
 ## Evidence boundary and reproduction
 
 This closes the selected serialized property, vector, scheduler, direct
