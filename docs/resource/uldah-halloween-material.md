@@ -25,8 +25,9 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
-view-construction, string-key and active-receiver observations below use
-Python 3.12.0 with those same libraries to decode original PE instructions. Selected SCB structure metadata
+view-construction, string-key, initializer-context and active-receiver
+observations below use Python 3.12.0 with those same libraries to decode
+original PE instructions. Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
 boundary and full contiguous span in the listed reproduction ranges was
@@ -152,6 +153,36 @@ are `modulateColorR`, `modulateColorG`, `modulateColorB` and
 `modulateColorA`. Each occupies 15 bytes including its NUL and fits the
 copy buffer. These conditional key bytes do not establish sampled channel
 values, the selected active material entry or a visible effect.
+
+### Initializer context
+
+Initializer `0x00835250` receives the clip M in ECX and a caller-supplied
+context `C_init` as its first stack argument. The prologue reserves
+`0x28` bytes before `0x00835279` reads that argument from ESP `+0x2C`
+into EBP. It calls `0x00A20F30` with receiver M and explicit argument
+`C_init`. At `0x00835283..0x0083528C`, it then loads D from M `+0x14`,
+pushes `u32(D+0x14)` and uses EBP as the receiver for descriptor accessor
+`0x00A20090`. Under the normal callee-preserved-register convention, the
+accessor therefore receives the supplied `C_init`; the base initializer's
+EAX return is not used as that context pointer.
+
+Base initializer `0x00A20F30` first reads key word
+`u32(u32(M+0x18))` and supplies it to `0x00A20110` with receiver
+`C_init`. That forwarding body reads `R0 = u32(C_init+0x0C)` and
+`L = u32(R0+0x84)`, then tail-jumps to `0x00A21680` with receiver L
+and the same explicit key word. The uninspected tail target's EAX return
+is stored at M `+0x24` by `0x00A20F4E`. Its state effects and operation
+meaning remain unqualified.
+
+Later calls to `0x00A20100` and `0x00A20070` read `u32(C_init+0x10)`
+and `u32(C_init+0x0C)`, respectively. The base initializer explicitly
+stores those returned values at M `+0x28` and `+0x34`, in that order,
+after the forwarded call. Its direct object stores use M as their base. These
+instructions consume the supplied context fields rather than constructing
+an authenticated context-to-Q relation. They do not establish context
+memory preservation across `0x00A21680` or qualify pointer aliasing.
+The checked field reads have no context/state null guards. The application
+context in the receiver chain below is supplied separately.
 
 The inherited initializer reads `u32(D+0x14)` and calls descriptor
 accessor `0x00A20090`. It later requests literal `frc` at `0x010397CC`
@@ -342,7 +373,9 @@ proving that the following candidate payload is consumed.
 
 ## Exact remaining edge
 
-The material accessor's actual context-to-Q binding remains unjoined. The
+The material accessor's actual context-to-Q binding remains unjoined.
+[Base initialization](#initializer-context) consumes a supplied context and
+leaves `0x00A21680` as an uninspected call/state-effect boundary. The
 [SCB factory path](scb-clip-factory-composition.md#parsed-clip-key-table)
 joins P to Q for its fireworks scheduler construction; that separate path
 does not identify this material context. The selected directory and
@@ -415,6 +448,10 @@ calls and cited operands for these exclusive ranges:
 | Adjusted receiver field selection | `0x00623C20` | `0x00623C58` |
 | Context forwarding | `0x00A1FFA0` | `0x00A1FFA8` |
 | Actor collection forwarding | `0x00A1B730` | `0x00A1B738` |
+| Base clip initialization | `0x00A20F30` | `0x00A20F84` |
+| Context/state operation forwarding | `0x00A20110` | `0x00A2011E` |
+| Context +0x10 getter | `0x00A20100` | `0x00A20104` |
+| Context +0x0C getter | `0x00A20070` | `0x00A20074` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -449,6 +486,13 @@ contract at `0x00A21C80`. The precise material application operands are
 They establish the cached-success gate, container/count checks,
 dereferenced entry base, parameter receiver and stride. No concrete
 virtual table is assigned to the returned receivers.
+
+For initializer context flow, check only the material prefix
+`[0x00835250,0x00835291)` in addition to the four listed base/forwarding
+ranges. The prefix establishes the `0x28`-byte stack setup, incoming
+context argument, base-call receiver and descriptor-call receiver. Reuse
+the descriptor accessor and SCB view-producer contracts. The body of
+`0x00A21680` is not part of the established context contract.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
