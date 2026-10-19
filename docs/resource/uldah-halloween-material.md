@@ -170,9 +170,9 @@ Base initializer `0x00A20F30` first reads key word
 `u32(u32(M+0x18))` and supplies it to `0x00A20110` with receiver
 `C_init`. That forwarding body reads `R0 = u32(C_init+0x0C)` and
 `L = u32(R0+0x84)`, then tail-jumps to `0x00A21680` with receiver L
-and the same explicit key word. The uninspected tail target's EAX return
-is stored at M `+0x24` by `0x00A20F4E`. Its state effects and operation
-meaning remain unqualified.
+and the same explicit key word. Its EAX return is stored at M `+0x24`
+by `0x00A20F4E`; the byte-string operation and fallback contract below
+qualifies that returned value.
 
 Later calls to `0x00A20100` and `0x00A20070` read `u32(C_init+0x10)`
 and `u32(C_init+0x0C)`, respectively. The base initializer explicitly
@@ -183,6 +183,43 @@ an authenticated context-to-Q relation. They do not establish context
 memory preservation across `0x00A21680` or qualify pointer aliasing.
 The checked field reads have no context/state null guards. The application
 context in the receiver chain below is supplied separately.
+
+### Initializer operation result
+
+`0x00A21680` first calls `0x00A21610` with the supplied receiver L
+and key word. The latter uses `L+8` as receiver for the published
+[byte-string lookup](scb-clip-factory-composition.md#class-key-and-registry-selection)
+at `0x00A1FC00`. Its two explicit arguments are a local output-pair
+address and the address of the key-word stack slot. Lookup writes an
+owner/node pair to that output and interprets the first dword at its second
+argument as a NUL-terminated byte-string pointer. Thus the raw key word is
+used as the query pointer, rather than as an integer key or pointer-identity
+test. Valid terminated query text and valid tree storage remain conditions.
+When M `+0x18` retains the supplied
+[class-key entry](cut-scheduler-clip-layout.md#registration), that query
+word is the entry's class-name pointer.
+
+On a normal valid-owner result with node N different from the lookup end
+node, `0x00A21610` reads `V = u32(N+0x10)`. A nonzero V produces return
+`V+8`; the ordinary end-node and zero-payload paths return zero. The owner
+and sentinel checks have diagnostic calls to `0x009D22B4`, whose behavior
+and state effects are unqualified. They do not prove a safe return for
+invalid owner/node storage.
+
+If the first result is nonzero, `0x00A21680` returns it directly.
+Otherwise, after that call, it reads `F = u32(L+4)` and returns `F+8`
+when F is nonzero, or zero when F is zero. The fallback is therefore used
+for a zero first result, including the normal null-payload path, not only
+for an absent key. Both results are dword address adjustments. These bodies'
+own instructions do not dereference the adjusted return or authenticate its type.
+The published base store puts this result at M `+0x24`.
+
+The actual object supplied as L, its fallback field, the node payload type
+and the later consumer of M `+0x24` remain unjoined. Use of the same lookup
+helper and `+8` adjustment does not identify L with the separate SCB factory
+registry object, or establish inequality between their values. This return
+contract does not construct the material context-to-Q binding or qualify
+all callee and alias state effects.
 
 The inherited initializer reads `u32(D+0x14)` and calls descriptor
 accessor `0x00A20090`. It later requests literal `frc` at `0x010397CC`
@@ -374,8 +411,10 @@ proving that the following candidate payload is consumed.
 ## Exact remaining edge
 
 The material accessor's actual context-to-Q binding remains unjoined.
-[Base initialization](#initializer-context) consumes a supplied context and
-leaves `0x00A21680` as an uninspected call/state-effect boundary. The
+[Base initialization](#initializer-context) consumes a supplied context.
+Its [operation result](#initializer-operation-result) still requires the
+actual L instance, valid lookup/query storage and an identified payload
+consumer. The separate
 [SCB factory path](scb-clip-factory-composition.md#parsed-clip-key-table)
 joins P to Q for its fireworks scheduler construction; that separate path
 does not identify this material context. The selected directory and
@@ -452,6 +491,9 @@ calls and cited operands for these exclusive ranges:
 | Context/state operation forwarding | `0x00A20110` | `0x00A2011E` |
 | Context +0x10 getter | `0x00A20100` | `0x00A20104` |
 | Context +0x0C getter | `0x00A20070` | `0x00A20074` |
+| Initializer result and fallback | `0x00A21680` | `0x00A216A5` |
+| String-key payload result | `0x00A21610` | `0x00A21677` |
+| Lookup output-pair ABI | `0x00A1FC00` | `0x00A1FC85` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -491,8 +533,14 @@ For initializer context flow, check only the material prefix
 `[0x00835250,0x00835291)` in addition to the four listed base/forwarding
 ranges. The prefix establishes the `0x28`-byte stack setup, incoming
 context argument, base-call receiver and descriptor-call receiver. Reuse
-the descriptor accessor and SCB view-producer contracts. The body of
-`0x00A21680` is not part of the established context contract.
+the descriptor accessor and SCB view-producer contracts.
+For the operation result, reuse the SCB byte-string lookup semantics and
+check its output-pair/key-pointer ABI over the actual listed instruction
+union `[0x00A1FC00,0x00A1FC85)`, totaling 133 bytes. The last instruction
+is the three-byte `RET 8` at `0x00A1FC82`. The two listed operation
+ranges establish the payload adjustment, post-call fallback read and
+return branches. No additional material caller range is needed for its
+published M `+0x24` store.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
