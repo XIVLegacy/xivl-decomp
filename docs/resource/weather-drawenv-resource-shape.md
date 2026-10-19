@@ -133,6 +133,8 @@ Zone DrawEnv names reuse the weather bucket names (`dwev_00`, `10`, `01`,
 the [environment path](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name).
 The zone light shapes are in
 [Zone lighting source and time of day](zone-lighting-source-and-time-of-day.md#zone-layout-lights).
+The cube names in `0F.DAT` and the slot readers are in
+[Chara engine samplers and light inputs](chara-engine-samplers-and-light-inputs.md#where-the-cube-comes-from-v-unless-marked).
 
 ## Not established
 
