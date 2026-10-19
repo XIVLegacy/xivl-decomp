@@ -3,10 +3,10 @@
 Ul'dah interior `hwa1` has a `LayRaptureMaterial2Clip` on its named hide
 side. Original PE RTTI and vtable cells establish that this class inherits
 the published `RaptureMaterial2Clip` initializer and application methods.
-The selected record contains ASCII `modulateColor` at the offset used by the
-base constructor's string helper, conditional on retention of that record
-pointer. Its selected serialized FCurve values and active material effect
-remain unjoined.
+On the selected factory's nonnull construction branch, the supplied record
+pointer reaches runtime object `+0x14` unchanged and supplies ASCII
+`modulateColor` to the base constructor's string helper. Its selected
+serialized FCurve values and active material effect remain unjoined.
 
 ## Evidence identity
 
@@ -24,8 +24,9 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
-The descriptor-selection and view-construction observations below use
-Python 3.12.0 with those same libraries to decode original PE instructions.
+The intermediate-constructor, descriptor-selection and view-construction
+observations below use Python 3.12.0 with those same libraries to decode
+original PE instructions.
 Retained listings supplied locators, and every listed byte, instruction
 boundary and full contiguous span in the listed reproduction ranges was
 checked against that PE.
@@ -67,6 +68,22 @@ supplies `(D,keyEntry,arena,0)` to a selected factory. Its actual selected
 registry node and lookup are separate conditions; the wrapper's presence
 does not prove selection of `0x00835B90` for this SCB.
 
+The construction argument chain retains the supplied D. The Lay constructor
+forwards its first two stack arguments to the same receiver at
+`0x008350F8..0x00835104`, and the base constructor forwards them to
+`0x00835950` at `0x00834998..0x008349A4`. In that intermediate
+constructor, `0x00835972` preserves the incoming ECX in ESI. After its
+`0x18` bytes of stack setup, `0x00835978..0x00835984` push the incoming
+second and first arguments, then call `0x00A21260` with ECX restored to
+that receiver. Generic construction loads the first argument at
+`0x00A21260` and stores it unchanged at receiver `+0x14` at
+`0x00A21275`. On return, the intermediate writes only receiver `+0` and
+`+8`, returns the same receiver, and removes both arguments with `RET 8`
+at `0x008359B8`. Its complete body has no other call or branch. Thus
+normal construction through this intermediate preserves D for the base
+constructor's subsequent read. This does not establish factory selection,
+successful initialization or later object state.
+
 ## Selected record and inherited consumption
 
 The bounded SCB directory, child extents and linked records identify actor 0
@@ -82,9 +99,10 @@ use remains unknown. `D+0x68` contains `modulateColor`.
 At `0x008349EA..0x008349F8`, the base constructor obtains the pointer at
 runtime object `+0x14`, adds `0x68`, passes the result to `0x0064E6F0`,
 and stores that helper's return at runtime object `+0x5C`. The selected
-record thus supplies the `modulateColor` input text if that runtime pointer
-is D. The uninspected helper's input/output string relationship remains a
-condition on the final generated material parameter names.
+record thus supplies the `modulateColor` input text on the stated
+construction branch. The uninspected helper's input/output string
+relationship remains a condition on the final generated material parameter
+names.
 
 The inherited initializer reads `u32(D+0x14)` and calls descriptor
 accessor `0x00A20090`. It later requests literal `frc` at `0x010397CC`
@@ -124,9 +142,10 @@ u32(V+4) + 16 * u16(u32(V) + 2 + 2*i)
 ```
 
 The instructions at `0x00A220A0..0x00A220B3` contain no ordinal bound,
-null-pointer check or descriptor-content test. Conditional on D retention
-and valid view storage, `u32(D+0x14)=0` therefore selects the descriptor
-indexed by the first u16 indirection entry, not necessarily descriptor zero.
+null-pointer check or descriptor-content test. Conditional on this
+construction and valid view storage, `u32(D+0x14)=0` therefore selects
+the descriptor indexed by the first u16 indirection entry, not necessarily
+descriptor zero.
 When P is zero, `0x00A1CA20` instead returns global view `0x0136510C`,
 lazily initialized through `0x00A22010` to three zero dwords. That empty
 view does not itself supply valid descriptor storage to `0x00A220A0`.
@@ -163,9 +182,9 @@ alone do not establish these joins. Construction-path calls to uninspected
 are the retained directory-construction discriminators. No serialized Attr
 values are assigned.
 
-The intermediate constructor `0x00835950`, string helper `0x0064E6F0`,
-FCurve scalar construction helpers, registry lookup and active-container helper
-`0x00834A80` remain conditions. Base construction captures current global
+String helper `0x0064E6F0`, FCurve scalar construction helpers, registry
+lookup and active-container helper `0x00834A80` remain conditions.
+Base construction captures current global
 `0x013657B4` into runtime `+0x54`; that does not identify owning UnitTree U
 or prove context preservation. Static class and parameter evidence does
 not establish historical execution, a native hide operation, a visible
@@ -187,6 +206,7 @@ calls and cited operands for these exclusive ranges:
 | Base initializer | `0x00835250` | `0x00835464` |
 | Base application | `0x00835470` | `0x00835733` |
 | Registration wrapper | `0x008358F0` | `0x0083591D` |
+| Intermediate constructor | `0x00835950` | `0x008359BB` |
 | Lay factory | `0x00835B90` | `0x00835C18` |
 | Descriptor accessor | `0x00A20090` | `0x00A200A7` |
 | Generic D retention | `0x00A21260` | `0x00A212A8` |
@@ -200,6 +220,13 @@ calls and cited operands for these exclusive ranges:
 | View owner constructor | `0x00A230B0` | `0x00A2311A` |
 | View population | `0x00A27080` | `0x00A271A1` |
 | View construction path | `0x00A24E70` | `0x00A25168` |
+
+For the D-retention edge, check the full intermediate-constructor range and
+reuse the prior Lay/base forwarding and generic-store observations. The
+precise supporting snippets are `[0x008350D0,0x00835109)`,
+`[0x00834970,0x008349A9)`, `[0x00A21260,0x00A21278)` and
+`[0x00A212A5,0x00A212A8)`. These include the forwarding prologues,
+D store and generic stack cleanup.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
