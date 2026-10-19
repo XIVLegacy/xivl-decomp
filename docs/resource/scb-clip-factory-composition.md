@@ -96,16 +96,92 @@ null results. The next record adds the sign-extended word at record `+0`.
 returns with plain `RET`; its caller removes eight bytes at `0x00A25CA8`.
 It reserves `0x18` arena bytes for a collection, then `0x00A26CA0`
 reserves its pointer array and allocates `0x14` bytes per entry through
-the uninspected constructor `0x00A2A720`. The count is the track table's
+constructor `0x00A2A720`. The count is the track table's
 first dword, tested as signed for the positive-count loops.
 
 Each track record begins after that dword. Word `+0` equal to `0xFFFF`
 skips `0x00A2A780`; otherwise that word is sign-extended for indexing the
-collection and the helper is called with the current entry. Its semantics
-remain uninspected. `0x00A2A7D0` retains the serialized record pointer at
-current-entry `+0x10`. Record advance is
+collection. The selected entry is the link receiver, and the current entry
+is its dword stack argument. The helper supplies the directed parent and
+child-list stores described below. `0x00A2A7D0` then retains the serialized
+record pointer at current-entry `+0x10`. Record advance is
 `(2*(u8(record+3)&0x1F)+7)&~3`. These selected track bodies do not call
 the clip builder.
+
+### Track entry construction and parent links
+
+`0x00A2A720` takes the allocated entry address in ECX, copies it to EAX,
+and writes the following initial state before its plain `RET`:
+
+| Entry offset | Explicit constructor store | Link interpretation |
+| --- | --- | --- |
+| `+0` | Dword zero | Parent pointer |
+| `+4` | Dword zero | Head of child list |
+| `+8` | Dword zero | Next sibling in that list |
+| `+0x0C` | Byte one | Meaning unestablished |
+| `+0x10` | Dword zero | Serialized record pointer subsequently retained by `0x00A2A7D0` |
+
+The constructor does not write bytes `+0x0D..+0x0F`, install a vtable or
+call another function. Its returned EAX is the original entry address.
+The allocation excerpt at `0x00A26CF0..0x00A26D26` advances the arena
+cursor by `0x14`, compares the old cursor with EBP, and calls the
+constructor on the unequal branch. It then appends either that constructor
+return or the skipped branch's zero to the collection pointer array and
+increments the append count. The constructor itself has no null guard.
+
+Let P be the referenced entry supplied as ECX to `0x00A2A780`, and C the
+current entry supplied at `[ESP+4]`. Its complete body performs these stores
+in order, then returns with `RET 4` and C still in EAX:
+
+```text
+u32(C+0) = P
+previousHead = u32(P+4)
+u32(C+8) = previousHead
+u32(P+4) = C
+```
+
+For valid, distinct entries with disjoint storage, this inserts C at the
+head of P's child list and records P as C's parent. C's `+8` points to the
+previous head. The helper's only stores are the three shown above, and it
+calls no other function. With that storage condition, it leaves C's own
+child-list head, byte `+0x0C` and record-pointer field unchanged. The
+initialized pointer fields and these stores establish a structural
+parent/child representation, without assigning execution or scheduling order
+to that representation.
+
+At `0x00A268B7..0x00A268CA`, the caller skips only word `0xFFFF` and
+otherwise uses the sign-extended word directly as a pointer-array index.
+The selected caller excerpt has no bounds check before that indexed load,
+and the link body directly dereferences the supplied entries. Valid storage
+and parent indices remain input conditions. The subsequent record-pointer
+store does not establish that later code preserves or consumes these links.
+This construction and link contract supplies no complete scheduler-wrapper
+initialization, owning UnitTree context at clip capture or observed playback.
+
+### Track construction reproduction
+
+The track checks used the original PE identity and Python `3.12.0`, pefile
+`2024.8.26` and Capstone `5.0.7`, x86-32 mode, described above. Retained
+Ghidra instructions served as locators. Each selected instruction's bytes
+were compared with the original PE and independently decoded, with matching
+instruction boundaries. The actual instruction-address unions were contiguous
+and exactly covered these half-open VA ranges:
+
+| Evidence | Instruction union and complete final end | Instruction bytes |
+| --- | --- | --- |
+| Entry constructor, complete body | `[0x00A2A720,0x00A2A734)` | `0x14` |
+| Parent link, complete body | `[0x00A2A780,0x00A2A792)` | `0x12` |
+| Reused entry allocation and append operand | `[0x00A26CF0,0x00A26D26)` | `0x36` |
+| Reused parent-index, receiver and record operand | `[0x00A268B0,0x00A268E2)` | `0x32` |
+
+The final instruction starts at `0x00A26D1E` in the allocation excerpt
+and at `0x00A268DE` in the link excerpt. Include their complete ends
+`0x00A26D26` and `0x00A268E2` when reproducing the checks. Map each VA
+with `pefile.PE.get_offset_from_rva(VA-0x00400000)` and decode the full
+stated range with `capstone.Cs(CS_ARCH_X86,CS_MODE_32)`. Compare the union
+of instruction byte addresses, rather than treating an enclosing span or
+exported `# size` as body coverage. The checks read no DAT input and
+observed no client execution.
 
 ## Synchronous builder invocation
 
