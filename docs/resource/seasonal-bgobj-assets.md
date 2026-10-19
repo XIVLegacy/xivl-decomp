@@ -17,10 +17,14 @@ The parsed model payloads expose these family, variant, and shader joins:
 
 The `b981` variants are three near-identical arch copies with identical
 texture payloads. `b982` has three brazier geometries, each in a three-way
-variant group (`e001..e003`, `e004..e006`, `e007..e009`). Matching their slot
-order to the event script's city-type convention (1 Limsa Lominsa, 2 Gridania,
-3 Ul'dah) suggests a city assignment, but this is a structural inference,
-not a placement row or a verified per-city retail use.
+variant group (`e001..e003`, `e004..e006`, `e007..e009`). A proposed city
+assignment matches their slot order against the separate
+[Heavensturn convention](../event/winter-valentione-actor-protocol.md#heavensturn-handoff)
+(1 Limsa Lominsa, 2 Gridania, 3 Ul'dah). That cross-event analogy does not
+authenticate Valentione's numeric town groups, an asset-to-city binding,
+a placement row or per-city retail use. The
+[Valentione actor groups](../event/winter-valentione-actor-protocol.md#valentione-numeric-actor-groups)
+retain their own unjoined city and script-registration boundaries.
 
 Hatching-tide `b984/e001..e015` similarly comprises three consecutive blocks
 of five egg-pedestal shapes. The repeated shape positions are `1/6/11`,
