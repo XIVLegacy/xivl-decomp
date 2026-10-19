@@ -90,9 +90,11 @@ layout.
   scheduler `+0x10` pointer when that is null) differs from the cached one,
   it stores it at C `+0xC38`, stores the result of `0x00C1F3E0` at C `+0x788`
   and calls `0x00C20050`. That function blends the fog entries through
-  `0x00C1F6A0` and stores the result at C `+0x32C..0x358`. The fog colour
-  (C `+0x32C..0x338`) goes to C `+0x30C` through `0x00C48A10`, and the fog
-  vector (C `+0x33C..0x344`) to C `+0x31C` through `0x00C48390`. The enable byte
+  `0x00C1F6A0` and stores the result at DrawEnv `+0x32C..0x35C`. The fog colour
+  (DrawEnv `+0x32C..0x338`) goes to C `+0x30C` through `0x00C48A10`, and the fog
+  vector (DrawEnv `+0x33C..0x344`) to C `+0x31C` through `0x00C48390`. The
+  entry fields, the layer blend and the shader side are in
+  [Weather fog parameters and fog mix](weather-fog-parameters.md). The enable byte
   C `+0x4E4` is a separate store (`0x00C483C0`).
 - PixelLightShaderDriver Init `0x00C21120` resolves `latitudeParam`, `fogColor`,
   `ambientLightColor`, `lightCount`, the `light<N>bit<M>` masks,
@@ -159,7 +161,8 @@ So the lane is chosen by exact name equality between the zone layout object
 that contains the position and a DrawEnv of the weather layout. The prefixes
 `dwev_0`, `dwev_1`, `dwev_2` only classify transitions (`0x007E7480`), the
 outdoor flag of `0x007E6460` and a fog parameter pass over the `dwev_1` and
-`dwev_2` entries in `0x007E49E0` (I for its purpose). No default lane name is
+`dwev_2` entries in `0x007E49E0` (I for its purpose, call structure in
+[Weather fog parameters and fog mix](weather-fog-parameters.md#weather-blend-v-call-structure-i-fraction)). No default lane name is
 read anywhere. When the query returns nothing, `+0x1C` keeps its previous value
 (U for the state before the first hit). The literal `dwev_21` in `0x007E4690`
 feeds a compare whose result is unused (U). What the replaced DrawEnv does to
@@ -168,8 +171,9 @@ the zone's own lights is in
 
 ## Unknowns
 
-- Field meaning inside the 12-dword fog record and the 0x50 light node beyond
-  the shapes in the resource page, and which values the time clips override.
+- Field meaning inside the 0x50 light node beyond the shapes in the resource
+  page, and which values the time clips override. The fog entry fields are in
+  [Weather fog parameters and fog mix](weather-fog-parameters.md).
 - The clear colour producer and default.
 - The default state of the holder's current DrawEnv before the first query hit.
 - The sky gradient producer (FCurve payload) and how SunMoon clips place the
