@@ -171,6 +171,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Bitmap font flag-bit-0x02 shader consumers](resource/bitmap-font-edge-shader-consumers.md)
 - [Bitmap font text dispatch and edge parameters](resource/bitmap-font-edge-text-dispatch.md)
+- [Bitmap font census and text sources](resource/bitmap-font-census-and-text-sources.md)
 - [Model Pixel shadow parameters](model-pixel-shadow.md)
 - [Model vertex Bool submission](model-vertex-bool.md)
 - [Vertex declaration descriptor lanes](vertex-declarations.md)
@@ -281,6 +282,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [LuaActorImpl slot map](script/lua-actor-impl.md)
 - [Lua bytecode format](script/lua-bytecode-format.md)
 - [Lua class registry](script/lua-class-registry.md)
+- [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
 
 ## Type notes
 
