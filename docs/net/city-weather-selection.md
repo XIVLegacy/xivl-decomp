@@ -86,6 +86,9 @@ In the [numeric formatter mode](../resource/resource-path-producer.md#formatting
 the keys produce the relative paths below. Every selected file begins with
 `MapLayoutResourceData` at `+0`, version `1.1.0` at `+0x18`. Header and file
 identity checks do not establish dependency closure, actual opens or readiness.
+The [direct resource-table inventory](../resource/city-weather-direct-inputs.md)
+records those six payloads' typed nonzero targets and retained file identities,
+with empty-tag zero rows, aliases and transitive/runtime limits kept separate.
 
 | Resource key / relative path | Bytes | SHA-256 |
 | --- | ---: | --- |
