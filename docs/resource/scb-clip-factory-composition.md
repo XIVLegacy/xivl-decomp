@@ -232,11 +232,8 @@ stack address and the input pair address to `0x00A1FC90` at `0x00A1FADE`.
 This establishes the supplied value pair for the same M `+0x0C` registry
 role. Its `LayUnitMemberActor` key remains conditional on the cell and
 literal preservation above. The insertion behavior of `0x00A1FC90` is
-unresolved here:
-the checked caller does not itself write a tree node. Whether this pair
-is inserted, replaces an equal key, or remains available to the later actor
-lookup is the exact remaining registration edge. Reaching the call alone
-does not establish a node's stored function pointer.
+described below. Reaching the call alone does not establish a node's stored
+function pointer.
 
 Registration inputs and actor lookup address the same V `+8` only when
 their complete manager and retained object values agree and remain
@@ -245,6 +242,57 @@ uses M `+8`, F `+0x14` and S `+0x7C`. The sixth factory argument retained
 at F `+0x1C` and H `+0x0C` remains a separate role. These field relations
 do not establish pointer equality or inequality, owning context, scheduling,
 or actor and clip initialization effects.
+
+#### Actor-registry insertion and equal keys
+
+Helper `0x00A1FC90` receives the tree at V `+8` in ECX, an output
+address as argument 1 and the supplied two-dword pair's address as
+argument 2. At `0x00A1FCAD..0x00A1FCB3`, it reads the pair's first
+dword and node `+0x0C` as string pointers. Its comparisons use unsigned
+NUL-terminated byte ordering, as does the published actor lookup. The
+walk follows node `+0` for a lesser input key and node `+8` otherwise,
+stopping at a node whose byte `+0x15` is nonzero. On the normal path in
+a valid ordered tree, it checks the candidate or its predecessor, obtained
+through `0x004E4020`, before selecting insertion or an existing equal key.
+
+On the absent-key branch, `0x00A1FD14..0x00A1FD23` or
+`0x00A1FD89..0x00A1FD90` supplies the original pair to `0x00A43D10`.
+That helper calls `0x00C514D0` at `0x00A43D94` with five arguments:
+`(endNode,parent,endNode,pair,0)`. The node producer calls `0x0040E110`
+with explicit size `0x18`. On its nonzero return N, the producer copies
+`u32(pair)` to N `+0x0C` at `0x00C5151B..0x00C5151D` and
+`u32(pair+4)` to N `+0x10` at `0x00C51520..0x00C51527`. It copies
+the supplied links to N `+0/+4/+8`, sets byte N `+0x14` to zero and
+byte N `+0x15` to zero. The key and factory pointer values are copied;
+these instructions do not copy the pointed-to string bytes.
+
+On normal return with valid node storage, `0x00A43D10` increments the
+tree count at tree `+8`, links N as the root or the selected parent's
+left/right child, and updates the end node's extremal links when needed.
+Its rebalance code and direct rotation helpers `0x006CEEF0` and
+`0x00B9F240` write node links and colour fields without replacing the
+stored key/factory pair. The insertion helper's successful output contains
+the tree receiver at output `+0`, N at `+4` and byte one at `+8`.
+
+For an equal key, `0x00A1FD85..0x00A1FDA4` instead returns the existing
+node with the same tree receiver and byte zero at output `+8`. This branch
+does not call the node producer or link helper and does not replace node
+`+0x10`. Thus duplicate registration preserves the earlier factory pointer,
+even if the supplied factory differs. The existing predecessor helper
+changes the output candidate's node address, not its stored pair.
+
+This closes the insertion-to-lookup storage relation: with the supplied pair
+preserved across the allocation-related calls, an absent-key normal insertion
+retains the supplied name pointer and `0x00A73090` at the exact node offsets
+read by the published lookup. With the name-cell and literal
+preservation conditions above, the key is `LayUnitMemberActor`. A later
+equal lookup can select that factory only if this insertion supplied the
+matching node, or an earlier equal node already held the same factory,
+and the manager, registry and node values remain preserved. The checked
+instructions do not establish those live conditions. Allocation-related
+callees, exceptional paths and storage validity remain unqualified. In
+particular, the producer's zero-return branch does not prove usable node
+storage for the caller's following writes.
 
 #### Actor-registry reproduction
 
@@ -277,6 +325,26 @@ actor-name pointer cell and the complete NUL-terminated literal directly
 from the same PE. Reuse the published factory forwarding, stack-local
 construction and string-query/output-pair lookup contracts without reopening
 their complete bodies.
+
+The insertion trace uses the same retained-listing/original-PE static method.
+Its complete instruction unions are contiguous through these exclusive ends:
+
+| Purpose | Instruction union | Instruction bytes |
+| --- | --- | --- |
+| Actor-registry insertion | `[0x00A1FC90,0x00A1FDAD)` | `0x11D` |
+| New-node link and rebalance | `[0x00A43D10,0x00A43EFC)` | `0x1EC` |
+| Candidate predecessor | `[0x004E4020,0x004E40A9)` | `0x89` |
+| New-node producer and pair stores | `[0x00C514D0,0x00C51537)` | `0x67` |
+| Left rotation | `[0x006CEEF0,0x006CEF3E)` | `0x4E` |
+| Right rotation | `[0x00B9F240,0x00B9F292)` | `0x52` |
+
+Follow stack adjustments across both calls to distinguish the output address,
+insertion side, parent and original pair. Verify the pair loads/stores, both
+output flags and the complete rotation write sets against independently
+decoded original bytes. Reuse the published input-pair forwarding and lookup
+contracts above. No additional literal, vtable or asset read is needed for
+this insertion relation. These static checks do not observe a registration
+or lookup executing.
 
 #### Retained-input reproduction
 
