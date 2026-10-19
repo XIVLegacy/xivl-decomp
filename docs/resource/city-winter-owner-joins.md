@@ -18,7 +18,8 @@ The exact three layout source pins, sizes, hashes and payload bases are in
 [Original resources and method](city-interior-halloween-owner-joins.md#original-resources-and-method):
 Gridania layout 331 / `0x29B00002`, Limsa Lominsa layout 131 /
 `0x29D90002`, and Ul'dah layout 431 / `0x615A0003`. Only those three
-original DATs were read. No resident resource leaf was opened.
+original DATs supplied the typed joins. The separate retained-input check
+below selected the three direct resident target files.
 
 The producing parser was `xivl-tools:tools/research/census_layout.py`,
 `parse_layout`, revision `75fe7414bf3f1ecd779825083d477adc4ed5f319`,
@@ -114,8 +115,41 @@ distinct resource IDs; the shared key and ID are preserved below.
 
 These IDs map to `data/89/7A/01/3C.DAT`,
 `data/89/7A/01/41.DAT` and `data/89/7A/01/40.DAT`. They identify
-table targets only. Their availability, bytes, appearance, dependencies
-and portable model variants were not inspected.
+table targets. The identity and header check below establishes their retained
+availability; appearance, dependencies and portable model variants remain
+unjoined.
+
+## Retained resident inputs
+
+The three direct target files were present in the retained installation:
+
+| Resource ID | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `0x897A013C` | 20246 | `70601def698153949ae653274819820cad6bcc36a2252bf0c991bdf37fcbe69b` |
+| `0x897A0140` | 20550 | `d050e27332f48c504c51ec1eb6a7cfad4a7083292022bbec31279a4d4fc9f829` |
+| `0x897A0141` | 20486 | `c39500f524b34da935f1bcf4d09a9b009ff9cea67d73efb14ec426c3cb3fc96b` |
+
+A read-only Python check used `pathlib.Path.read_bytes`,
+`hashlib.sha256` and `struct.unpack_from` to check each complete file and
+the bounded little-endian header fields below.
+
+Each starts with `SEDBRES ` at file `+0`, has `unknownA=0xFA0` at
+`+0x08`, flags `0x0400` at `+0x0C`, header size `0x40` at `+0x0E`,
+and type name `brt` at `+0x3C`. Its u32 at `+0x10` equals its complete
+file size above. The fields follow `xivl-tools:docs/formats/sedb-res.md`,
+SEDB container header and RES layout; no meaning is assigned to unknownA
+or the flags. This header/type observation does not establish complete
+typed compatibility.
+
+Numeric paths follow the
+[conditional formatter contract](resource-path-producer.md#formatting-contract).
+The file check establishes retained bytes at those offline paths, not actual
+request-time mode, root or open success. It reads these three targets only:
+dependencies and embedded model/media payloads were not decoded or followed.
+Neither the shared target nor these distinct hashes authenticate historical
+patch identity, visual content, a portable `b###` variant, active clip effects
+or rendered decoration.
+
 
 ## Evidence boundary and reproduction
 
@@ -136,3 +170,10 @@ generic class/actor/clip framing. Enumerate all direct UnitTree child
 matches, then the separate Limsa group runs, BGParts key strings and
 all matching outer resource rows. Count only after retaining those
 matches and aliases.
+
+For the retained-input check, select only the three explicit numeric paths
+under the supplied installation root. Compare each complete file's length and
+SHA-256 with the retained-input table. Check the signature and type-name bytes,
+then unpack `<IHHI` at file `+0x08` for unknownA, flags, header size and
+declared size; compare the last value with the complete file length. Stop
+without following references or decoding embedded payloads.
