@@ -6,9 +6,12 @@ actor/track parser-result path. The selected call path is
 collections before that invocation. They are not themselves the clip builder.
 The local builder selects a clip factory by its class-name key. The selected
 Limsa `vtp5` wrapper supplies `LayRaptureCallSchedulerClip`, and a registration
-path supplies factory `0x00837220` for that exact key. Their registry-object
-identity, complete wrapper initialization and owning UnitTree context at clip
-creation remain separate conditions.
+path supplies factory `0x00837220` for that exact key. The scheduler's
+constructor derives its registry object from the complete manager's retained
+registry pointer. Factory selection still requires the same retained object
+value, the parsed key mapping and matching node state. Complete wrapper
+initialization and owning UnitTree context at clip creation remain separate
+conditions.
 
 ## Evidence identity
 
@@ -37,6 +40,25 @@ original PE bytes and independently decoded. The reused builder excerpt was
 limited to `0x00A28610..0x00A28641`. Literal pointers and vtable cells were
 read directly from the PE. This was static original-byte verification, not
 runtime observation or a new Ghidra import.
+
+The registry-source trace checked the complete base-constructor body
+`[0x00A1EBE0,0x00A1EE17)`, whose instructions cover all `0x237` bytes
+without gaps. Reused constructor/argument excerpts were limited to
+`[0x00A78DAB,0x00A78DAD)`, `[0x00A78DDF,0x00A78E0E)`,
+`[0x00A84EE0,0x00A84F37)`, `[0x00A78D30,0x00A78D58)`,
+`[0x00A25E40,0x00A25E62)`, `[0x00A72D2E,0x00A72D30)` and
+`[0x00A72E01,0x00A72E2E)`. Each half-open range was compared in full
+against original PE bytes and independently decoded with the same Python,
+pefile and Capstone versions. Instruction-byte unions exactly covered these
+ranges. The reused excerpts cover only the selected field/argument dataflow
+below.
+
+To reproduce the byte checks, verify the PE identity above, map each VA with
+`pefile.PE.get_offset_from_rva(VA-0x00400000)`, and decode its complete
+range using `capstone.Cs(CS_ARCH_X86,CS_MODE_32)`. Compare each retained
+instruction's bytes and length with the original and compare the union of
+instruction addresses with the stated ranges. Follow the stack adjustments
+through each selected call to establish the argument positions below.
 
 ## Actor and track preparation
 
@@ -151,6 +173,40 @@ the object retained at manager `+8`. That returned object is supplied to
 obtains its registry object, conditional on the initialization path reaching
 these calls.
 
+### Registry-object source
+
+Let `M` be the complete manager passed to `0x00A72D10` and `F` its
+constructed `LaySchedulerFactory`. Dword argument numbers below exclude
+the ECX object pointer.
+
+| Native locator | Registry-pointer dataflow |
+| --- | --- |
+| `0x00A72E0D..0x00A72E29` | Loads `u32(M+8)` into EDI and pushes it as argument 4 to `0x00A78D30`. |
+| `0x00A78D34..0x00A78D53` | Forwards argument 4 unchanged to base factory constructor `0x00A25E40`. |
+| `0x00A25E54..0x00A25E5F` | Loads argument 4 and stores it at `F+0x14`. |
+| `0x00A78DF6..0x00A78E09` | Loads `u32(F+0x14)` and pushes it as argument 3 to scheduler constructor `0x00A84EE0`. |
+| `0x00A84EFC..0x00A84F32` | Forwards argument 3 unchanged to base scheduler constructor `0x00A1EBE0`. |
+| `0x00A1EC8D..0x00A1EC9F` | Loads argument 3 and stores it at `S+0x7C`. |
+
+The base constructor saves EBX before setting `EBX=ESP` at
+`0x00A1EBE0..0x00A1EBE1`, so its `[EBX+0x10]` load is the third
+argument. ESI holds its incoming ECX object pointer from `0x00A1EC10`.
+The derived constructor's SEH saves and pushes are included in the verified
+forwarding range. Their stack adjustments preserve the third argument's
+position. The selected factory method's other field loads and moved `+0x20`
+value do not supply `S+0x7C`.
+
+Thus this construction path initializes `G` from the registry-object value
+retained at `M+8`, through `F+0x14`. It does not use the address `M+8`
+as `G`. Registration's complete-manager slot 4 also returns the value at
+`M+8`. When registration and factory creation use the same complete manager
+and retained registry-object value, they therefore address the same registry:
+both registration and builder lookup apply the `+8` adjustment to that
+object. This closes the missing constructor-field source, not the runtime
+conditions that the initialization calls execute or that the retained value
+remains the same between them. The observed loads and stores do not establish
+the live values at either call or rule out later field replacement.
+
 ### Selected Limsa wrapper
 
 The selected owner-200 `vtp5` span is file
@@ -164,17 +220,18 @@ entry: ordinal 0 at file `0x77980`, string token 1, resolving to
 `LayRaptureCallSchedulerClip` at file `0x77CE3`. The first clip at
 `D = 0x77B20` has `u8(D+2) = 0` and stride `0x2C`.
 
-For that clip, the valid parsed key table selects entry `K`. If `G` is the
-object supplied by the registration path and its exact matching node holds
-`0x00837220`, the builder selects that factory and supplies construction
-flag zero. This is lookup eligibility and conditional factory selection.
-The input-to-runtime mapping of `P+0x58` and registry-object identity at
-`S+0x7C` remain conditions. Constructor `0x00A84EE0` forwards its
-arguments to base `0x00A1EBE0` and does not itself write `S+0x7C`.
-The next discriminator is that base constructor's field initialization
-together with the selected constructor argument from `0x00A78D80`.
-Their inspection is required to join this registration object to the
-builder's actual `G`; matching names alone do not establish that identity.
+For that clip, the valid parsed key table selects entry `K`. Under the
+manager/registry value identity contract above, if its exact matching node
+holds `0x00837220`, the builder selects that factory and supplies
+construction flag zero. This is lookup eligibility and conditional factory
+selection. The input-to-runtime mapping of `P+0x58`, the actual retained
+manager/registry values and the matching node's stored pointer remain
+conditions. The remaining discriminator for registry identity is evidence
+that registration's returned object value equals the value preserved through
+the selected factory/scheduler fields to builder creation. The same complete
+manager with an unchanged retained registry pointer is sufficient for the two
+manager reads to agree. The constructor dataflow alone does not establish
+actual activation.
 
 ## Owning-context limit
 
@@ -187,8 +244,8 @@ The synchronous call chain does not prove those globals retained their
 values from UnitTree publication. Actor constructors, intervening virtual
 calls and `0x00836EF0` before the final capture remain uninspected context
 edges. No selected read joins the instance's retained `+0xFC` field to this
-capture. Establishing the registry-object identity above would still leave
-context preservation across the selected constructor chain separate.
+capture. The registry-source constructor dataflow leaves context preservation
+across the selected constructor chain separate.
 
 This composition establishes conditional construction calls. It does not
 establish allocation success, complete initialization, child registration,

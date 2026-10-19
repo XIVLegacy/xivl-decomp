@@ -280,9 +280,10 @@ arena `new-object+0x60`. Its `@CTRK` branch calls `0x00A26850` at
 [SCB composition finding](scb-clip-factory-composition.md) owns their actor
 collection/track preparation and the guarded synchronous
 `0x00A26380 -> 0x00A1C7B0 -> 0x00A28510` call path. The local builder's
-constructor, exact class-key lookup and matching `0x00837220` registration
-are established there. The selected parsed key table and actual registry-object
-identity remain conditions on factory selection.
+constructor, exact class-key lookup, matching `0x00837220` registration and
+manager-to-scheduler registry-pointer dataflow are established there. The
+selected parsed key table and equal retained registry-object values at the
+registration and factory-creation reads remain conditions on factory selection.
 
 The established child-context inheritance, numeric registration and clip
 constructor's global capture do not establish the owning context at that
