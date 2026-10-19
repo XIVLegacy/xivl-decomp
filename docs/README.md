@@ -200,6 +200,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Region 103 layout children census](resource/region-103-field-children-census.md)
 - [Weather layout resource shape](resource/weather-drawenv-resource-shape.md)
 - [Weather, sky and fog environment path](resource/weather-sky-fog-environment-path.md)
+- [Sky layout census and celestial sphere constants](resource/sky-celestial-layout-census.md)
 - [Weather light curve container shape](resource/weather-light-curve-container-shape.md)
 - [Zone lighting source and time of day](resource/zone-lighting-source-and-time-of-day.md)
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
