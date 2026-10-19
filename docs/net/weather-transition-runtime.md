@@ -60,6 +60,9 @@ claim about a particular captured crossing.
 
 ## Limsa rain selection
 
+The [three-city comparison](city-weather-selection.md) applies this guarded
+path to selected retained Limsa, Gridania and Ul'dah region rows and payloads.
+
 For supplied region key `101` (`sea_s0`) and weather ID `8007`, the checked
 static path selects numeric resource key `0x29D90013`, the `wtr_rain` child.
 The region key, actor state and retained objects are invocation inputs. This
