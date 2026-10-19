@@ -25,8 +25,8 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
-view-construction and string-key observations below use Python 3.12.0 with
-those same libraries to decode original PE instructions. Selected SCB structure metadata
+view-construction, string-key and active-receiver observations below use
+Python 3.12.0 with those same libraries to decode original PE instructions. Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
 boundary and full contiguous span in the listed reproduction ranges was
@@ -169,6 +169,72 @@ with `LaySystemActor` at `0x0083540C..0x0083541C` sets runtime byte
 `+0x50` to 1 on equality. This identifies an explicit system-actor branch
 without proving the active native receiver or container.
 
+## Active parameter receivers
+
+Application calls `0x00834A80` while runtime byte `+0x51` is zero
+(`0x00835496..0x0083549F`). The caller makes its next call without
+testing this helper's return. Let M be the material clip, C the helper's
+explicit context argument and D the pointer at M `+0x14`. The helper
+passes `u8(D+3)` through `0x00A1FFA0` and `0x00A1B730` to the
+[indexed-pointer contract](timeline-weather-record-view.md#synchronous-scheduler-callback).
+Its collection is `u32(u32(C+0x0C)+0x70)`. The indexed helper returns
+zero for an out-of-range index; `0x00834A80` assumes a valid nonzero
+entry before its first virtual call. For the selected record, the supplied
+ordinal is 1. This does not establish the entry's concrete native class.
+
+The helper calls that entry's virtual offsets `+0x0C` and `+0x64` in
+sequence, ignoring the first return. Let B be the second return. A zero B
+exits. For nonzero B, virtual `+0x4C` returns another receiver, whose
+virtual `+4` return supplies a mode. That intermediate receiver is not
+null-checked. Mode 1 stores B's virtual `+0xBC` return at M `+0x60`.
+Mode 2 stores the same virtual call's return at M `+0x64`. Other modes
+perform no explicit store to either field.
+These mode values come from a virtual return,
+separate from initialization's parsed-class flag at M `+0x50`.
+
+The helper then uses those retained candidate fields. If M `+0x60` is
+nonzero, its virtual `+0xC4` return contributes a receiver adjusted by
+`-4`, or zero when that return is zero. A nonzero M `+0x64` then takes
+precedence: its virtual `+0xC4` return replaces the first result after the
+same `-4` adjustment. On a zero second return, this body's instructions exit
+without falling back to the first candidate or clearing
+M `+0x3C`. It also exits if the final adjusted receiver is zero. No explicit
+entry store clears either candidate field. Their values at later reads also
+depend on the uninspected virtual callees.
+
+For adjusted receiver A, direct helper `0x00623C20` is called with
+argument 1. It selects `u32(A+0x0C)` when nonzero, otherwise
+`u32(A+0x34)` when nonzero, and calls that selected receiver's virtual
+`+0x11C`. With neither field selected, the helper returns zero. A zero
+virtual result also
+returns zero without trying the other field. A nonzero result J supplies
+one further virtual call at `+0x148` in `0x00834A80`. Its return T is
+stored at M `+0x3C`. This body's only explicit M `+0x51` store writes 1
+for nonzero T. Earlier exits perform no explicit store to M `+0x3C` or
+`+0x51`. A zero final T is stored at M `+0x3C` without an explicit
+`+0x51` write. A mode-dependent candidate store may already have occurred
+before an earlier exit. The helper's explicit instruction sequence
+neither rolls back that write nor clears the success byte on failure.
+These own-instruction facts do not qualify the unknown callees' state effects.
+
+The application checks `T = u32(M+0x3C)` and skips its parameter loop
+when T is zero or `s32(T+0x360)` is nonpositive. It reloads M `+0x3C`
+inside the loop. With valid unchanged container storage and signed count
+N, the receiver for iteration i is:
+
+```text
+E_i = u32(T+0x364) + 0x54*i,  0 <= i < N = s32(T+0x360)
+```
+
+Thus `+0x364` is dereferenced to obtain the entry base. The parameter
+call uses E_i as ECX and its virtual offset `+0x10`, supplying the
+conditional generated key pointer and sampled float. The other three
+channel calls use the same entry receiver under the published Material2
+ABI. This identifies a conditional receiver expression, not its concrete
+type, owning UnitTree, material-context binding, sampled values or visible
+effect. The selected `LaySystemActor` class text and captured global
+`0x013657B4` do not establish those native joins.
+
 ## Directory construction and descriptor selection
 
 The selected directory includes an `@FCURVE` entry at `0x7C630` with
@@ -284,8 +350,9 @@ indirection bytes do not establish that the material accessor reaches this
 constructed Q, the downstream payload parser, or FCurve scalar consumption.
 No serialized Attr values are assigned.
 
-FCurve scalar construction helpers, registry lookup and active-container
-helper `0x00834A80` remain conditions.
+FCurve scalar construction helpers and registry lookup remain conditions.
+The [active parameter receiver chain](#active-parameter-receivers) still
+requires the actual virtual results and valid retained container storage.
 Base construction captures current global
 `0x013657B4` into runtime `+0x54`; that does not identify owning UnitTree U
 or prove context preservation. Static class and parameter evidence does
@@ -344,6 +411,10 @@ calls and cited operands for these exclusive ranges:
 | Name node construction | `0x007EAE70` | `0x007EAEE6` |
 | Node key/value copy | `0x00669F90` | `0x00669FF5` |
 | Bounded application copy | `0x009D29FB` | `0x009D2A60` |
+| Active-container selection | `0x00834A80` | `0x00834B52` |
+| Adjusted receiver field selection | `0x00623C20` | `0x00623C58` |
+| Context forwarding | `0x00A1FFA0` | `0x00A1FFA8` |
+| Actor collection forwarding | `0x00A1B730` | `0x00A1B738` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -369,6 +440,15 @@ record text, returned pointer, bounded copies and suffix stores. Reuse the
 published byte-wrapper construction/copy/destruction and bounded-comparison
 contracts. Check pointer accessor `[0x00445210,0x00445213)`, the original
 length cell and the four suffix words directly in the PE.
+
+For active parameter receivers, reuse the published indexed-pointer
+contract at `0x00A21C80`. The precise material application operands are
+`[0x00835496,0x008354AB)`, `[0x00835557,0x0083557C)`,
+`[0x00835580,0x0083558B)`, `[0x008355B3,0x008355BD)`,
+`[0x008355EF,0x00835601)` and `[0x008356DA,0x008356EC)`.
+They establish the cached-success gate, container/count checks,
+dereferenced entry base, parameter receiver and stride. No concrete
+virtual table is assigned to the returned receivers.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
