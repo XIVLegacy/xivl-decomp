@@ -8,10 +8,11 @@ The local builder selects a clip factory by its class-name key. The selected
 Limsa `vtp5` wrapper supplies `LayRaptureCallSchedulerClip`, and a registration
 path supplies factory `0x00837220` for that exact key. The scheduler's
 constructor derives its registry object from the complete manager's retained
-registry pointer. Factory selection still requires the same retained object
-value, the parsed key mapping and matching node state. Complete wrapper
-initialization and owning UnitTree context at clip creation remain separate
-conditions.
+registry pointer. On the checked SCB parsing path, the parsed clip-key table
+resolves the selected wrapper's class token to that exact name. Factory
+selection still requires equal retained registry-object values and matching
+node state. Complete wrapper initialization and owning UnitTree context at
+clip creation remain separate conditions.
 
 ## Evidence identity
 
@@ -59,6 +60,16 @@ range using `capstone.Cs(CS_ARCH_X86,CS_MODE_32)`. Compare each retained
 instruction's bytes and length with the original and compare the union of
 instruction addresses with the stated ranges. Follow the stack adjustments
 through each selected call to establish the argument positions below.
+
+The class-key producer observations used the same original PE and tool
+versions. The [material directory finding](uldah-halloween-material.md#directory-construction-and-descriptor-selection)
+supplies the generic directory construction and lookup contracts.
+The class-key trace reused only the caller, constructor-field and getter
+excerpts listed in [reproduction](#class-key-reproduction). Every selected
+instruction and complete stated range was checked against original PE bytes.
+The promoted bodies' instruction unions cover their stated ranges without
+gaps. Selected Limsa SCB structure metadata was read directly with Python
+`struct`; no client execution was observed.
 
 ## Actor and track preparation
 
@@ -135,6 +146,70 @@ and installs primary vtable `0x0103B54C`. Its slot-1 cell at
 The selection contract below identifies the matching registered key. A
 registered pointer and a nonnull construction result do not establish a
 fully initialized scheduler wrapper.
+
+## Parsed clip-key table
+
+Let F be the selected `LaySchedulerFactory`. The parsed object P is the Q
+constructed by `0x00A24E70` on this fireworks factory path. At
+`0x00A78DDF..0x00A78DE7`, the factory loads its resource pointer from
+`F+0x0C`, calls `0x00A24E70` and pushes the
+returned value as argument 6 to scheduler constructor `0x00A84EE0`.
+The latter loads incoming argument 6 at `0x00A84EF8` and pushes it as
+base argument 6 at `0x00A84F02`. Base constructor `0x00A1EBE0` reads
+that argument from `[EBX+0x1C]` at `0x00A1EC25` and stores it at
+`S+0x50` at `0x00A1EC6F`. Its saved-EBX stack frame makes that address
+the sixth argument. Thus the builder's P follows the parser's returned Q
+through an explicit field store. This does not identify P for a separate
+material initializer context.
+
+On its accepted construction branch, `0x00A24E70` retains Q in ESI at
+`0x00A24F60` and returns it at `0x00A2514D`. It constructs the
+published directory at `Q+8`, calls `0x00A27080` on Q at
+`0x00A2509C`, then supplies `(Q,J[0],arena)` to `0x00A24400` at
+`0x00A250A5..0x00A250B3`. Here J[0] is the first serialized directory
+entry. Getter `0x00A21F60` computes entry j as
+`u32(u32(E+8)+4*j)+u32(E+0x0C)` for directory receiver `E=Q+8`.
+The caller supplies ordinal zero at `0x00A250A6`.
+
+The selected part of `0x00A27080` constructs the string-table reference.
+At `0x00A2713E..0x00A27146`, it reads key pointer `0x00FAB6E8` from
+cell `0x01097FAC` and calls the published directory lookup on `Q+8`.
+The original eight key bytes are `String\0\0`. On a nonzero return T and
+nonnull arena cursor, `0x00A2714F..0x00A27169` reserves eight arena
+bytes, stores T in their first dword and zero in their second, and retains
+their address at `Q+0x5C`. T is the matched directory entry plus `0x20`,
+the string-offset table described in the SCB layout.
+
+`0x00A24400` reads child count `s8(J[0]+0x1C)` and iterates children
+beginning at `J[0]+16*u16(J[0]+6)`. Getter `0x00A272A0` returns the
+current pointer only for a positive remaining count; `0x00A272C0` returns
+it unconditionally. Advancer `0x00A27320` adds `16*u16(child+6)` to
+that pointer and decrements the count. `0x00A27340` tests whether the
+remaining count is positive. At `0x00A244C1..0x00A244DA`, the parser
+compares six bytes of the child header with `@CCPT\0` at original PE literal
+`0x01098234`. Equality reaches `0x00A244DC..0x00A244F2`, which
+supplies `(s16(child+0x0A), child+0x10, arena)` to `0x00A27210` with
+ECX=Q. The caller explicitly sign-extends the count at `0x00A244EC`.
+
+`0x00A27210` stores the count at `P+0x54`, reserves `8*count` arena
+bytes and stores the old cursor as K at `P+0x58`. For each positive-count
+entry i, its instructions at `0x00A27234..0x00A27258` implement:
+
+```text
+serializedEntry = child + 0x10 + 4*i
+token = u16(serializedEntry)
+T = u32(u32(P+0x5C))
+u32(K+8*i) = T + s16(T+2*token)
+u8(K+8*i+4) = u8(serializedEntry+2)
+```
+
+The name pointer is therefore resolved from the `@CCPT` entry's token,
+rather than copied from the serialized entry. The runtime key entry has
+eight-byte stride; the serialized class entry has four-byte stride.
+This mapping requires the selected SCB to reach the checked parser branch,
+valid counts and token offsets, nonnull arena storage and preservation of
+the constructed fields until the builder reads them. It does not establish
+successful wrapper initialization.
 
 ## Class key and registry selection
 
@@ -220,15 +295,24 @@ entry: ordinal 0 at file `0x77980`, string token 1, resolving to
 `LayRaptureCallSchedulerClip` at file `0x77CE3`. The first clip at
 `D = 0x77B20` has `u8(D+2) = 0` and stride `0x2C`.
 
-For that clip, the valid parsed key table selects entry `K`. Under the
-manager/registry value identity contract above, if its exact matching node
-holds `0x00837220`, the builder selects that factory and supplies
+For this selected span, the `@CRST` chunk C is file `0x77900` and J[0]
+is file `0x77930`. The `String` directory entry at file `0x77CB0`
+supplies `T = 0x77CD0`. The `@CCPT` child header is file `0x77970`,
+with signed count 1. Its first serialized entry's token 1 selects the
+signed word `0x13` at T+2. With W denoting the loaded span's start, T is
+`W+0x400`, and the native population formula stores `W+0x413` at K.
+That pointer addresses the class text at file `0x77CE3`. Conditional on
+this input and the parsed storage above, the first clip's class byte zero
+therefore selects runtime entry K for `LayRaptureCallSchedulerClip`.
+
+Under the manager/registry value identity contract above, if its exact
+matching node holds `0x00837220`, the builder selects that factory and supplies
 construction flag zero. This is lookup eligibility and conditional factory
-selection. The input-to-runtime mapping of `P+0x58`, the actual retained
-manager/registry values and the matching node's stored pointer remain
-conditions. The remaining discriminator for registry identity is evidence
-that registration's returned object value equals the value preserved through
-the selected factory/scheduler fields to builder creation. The same complete
+selection. The actual retained manager/registry values and the matching
+node's stored pointer remain conditions. The remaining discriminator for
+registry identity is evidence that registration's returned object value
+equals the value preserved through the selected factory/scheduler fields
+to builder creation. The same complete
 manager with an unchanged retained registry pointer is sufficient for the two
 manager reads to agree. The constructor dataflow alone does not establish
 actual activation.
@@ -251,3 +335,38 @@ This composition establishes conditional construction calls. It does not
 establish allocation success, complete initialization, child registration,
 rendering, an authenticated controller actor, a binding or scheduler request
 observed in retail, a historical sender, a calendar, or effect placements.
+
+## Class-key reproduction
+
+Check the PE identity above and the selected DAT and SCB identities in
+[Selected Limsa wrapper](#selected-limsa-wrapper). Follow the linked SCB
+directory and child framing, then read only the selected span's String
+entry, offset table, `@CCPT` count/entry and first clip class byte. Apply the
+native population formula above before the builder's eight-byte indexing.
+
+Check the complete original-PE ranges below with the same byte, instruction
+boundary and union-coverage procedure described in Evidence identity. Ends
+are exclusive.
+
+| Purpose | Start VA | Stop VA |
+| --- | --- | --- |
+| Directory entry getter | `0x00A21F60` | `0x00A21F70` |
+| Root child parser | `0x00A24400` | `0x00A2461D` |
+| Clip class-key population | `0x00A27210` | `0x00A27262` |
+| Current child or null | `0x00A272A0` | `0x00A272AD` |
+| Current child | `0x00A272C0` | `0x00A272C4` |
+| Child advance | `0x00A27320` | `0x00A2733F` |
+| Positive child count | `0x00A27340` | `0x00A27348` |
+
+The reused field/caller excerpts are `[0x00A1EBE0,0x00A1EBE3)`,
+`[0x00A1EC10,0x00A1EC13)`, `[0x00A1EC25,0x00A1EC72)`,
+`[0x00A24E85,0x00A24E99)`, `[0x00A24F33,0x00A24F7C)`,
+`[0x00A24FCB,0x00A25053)`, `[0x00A25091,0x00A250BC)`,
+`[0x00A25139,0x00A2514F)`, `[0x00A27080,0x00A270AD)`,
+`[0x00A27124,0x00A27128)`, `[0x00A2713E,0x00A2716C)`,
+`[0x00A27270,0x00A27286)`, `[0x00A272B0,0x00A272C0)` and
+`[0x00A272F0,0x00A272F8)`, together with the previously listed
+`0x00A78D80/0x00A84EE0` forwarding excerpts. These cover only the
+selected object/argument, String-reference and child-field reads. Reuse the
+published generic directory construction and lookup contracts without
+assuming that every consumer's P is this Q.

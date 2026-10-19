@@ -228,7 +228,10 @@ proving that the following candidate payload is consumed.
 
 ## Exact remaining edge
 
-The actual Q-to-P storage edge remains unjoined. The selected directory and
+The material accessor's actual context-to-Q binding remains unjoined. The
+[SCB factory path](scb-clip-factory-composition.md#parsed-clip-key-table)
+joins P to Q for its fireworks scheduler construction; that separate path
+does not identify this material context. The selected directory and
 indirection bytes do not establish that the material accessor reaches this
 constructed Q, the downstream payload parser, or FCurve scalar consumption.
 No serialized Attr values are assigned.
