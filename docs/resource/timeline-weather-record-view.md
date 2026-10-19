@@ -125,7 +125,7 @@ remains unresolved.
 ### Manipulator flag and attachment consumers
 
 For the published producer's table `0x0109F484`, H is the manipulator
-interface and D=H-4 is its complete object. The underlying scheduler cell is
+interface and D=H-4 is its complete object. The scheduler-wrapper cell is
 H+8=D+`0x0C`, distinct from the property back-reference at H+`0x10`=D+`0x14`.
 The initializer's `0x00A784CA` call to the published scheduler-creation helper
 `0x00A02F20` stores its EAX result at H+8 at `0x00A784D5`.
@@ -162,7 +162,7 @@ are different conditions on separate calls. Equal returned values are not
 established. Neither comparison authenticates a semantic mode name.
 
 `0x00A780E0` independently guards D+`0x0C` at `0x00A780E7`.
-For a nonnull scheduler, it calls that scheduler's slot 61 at `0x00A78104`
+For a nonnull wrapper W, it calls W slot 61 at `0x00A78104`
 with callback address `0x00A84F70` and a pointer to a local copy of P.
 It then calls P slot 33. A zero result exits at `0x00A78115`; a nonzero
 result calls `0x00A77FD0(D,0)`. That predicate obtains a root through
@@ -174,9 +174,9 @@ D+`0x1C` is null, or that receiver's slot-14 result otherwise, and second
 argument -1. The linked fleet finding owns this slot-3 phase-dispatch
 contract. No return from the scheduler slot-61 call is tested here.
 
-The callback's complete effects, the concrete scheduler slot-61 target and
-the P-slot-4 receiver's slot-61 root remain separate typed requirements.
-They are not established by P's storage or by the conditional call alone.
+The concrete wrapper call and callback's conditional stores and calls are
+established below.
+The P-slot-4 receiver's slot-61 root remains a separate typed requirement.
 These slots do not resolve R slot 19 or identify a concrete weather record
 view. The predicate's result is a native branch condition, not observed
 readiness or completed playback.
@@ -189,6 +189,83 @@ overwriting EAX. Their normal completion writes AL=1 at
 normal return means the helper reached its completion path. It does not
 authenticate a nonnull underlying scheduler, successful attachment or
 visible activation. The already-published null-H false paths still apply.
+
+### Synchronous scheduler callback
+
+On the published construction path, H+8 retains a `CutSceneObject` wrapper W
+whose W+8 cell holds complete `LayScheduler` S constructed by `0x00A84EE0`.
+Factory `0x00A78D80` writes its constructed S to the supplied output cell at
+`0x00A78E16` and returns that cell at `0x00A78E30`. Creation helper
+`0x00A02F20` extracts S at `0x00A02FFD..0x00A03007`, supplies it to
+constructor `0x00A05000` at `0x00A03095..0x00A03098`, and retains the
+returned W at local `+0x10` at `0x00A0309F`. Its normal return loads that
+local at `0x00A03189`. The null-allocation branch writes zero to the local
+at `0x00A030A5`. Thus the manipulator initializer's existing H+8 store
+retains W on this nonnull construction branch.
+
+Constructor `0x00A05000` stores its S argument at W+8 and installs table
+`0x010942E4` at W. That table's complete-object locator `0x011845C4`
+has offset zero and type descriptor `0x012EC510`, named
+`.?AVCutSceneObject@CutScenePlayer@Cut@Engine@CDev@SQEX@@`.
+Its slot-61 cell `0x010943D8` targets `0x00A03C50`.
+Slot 14, cell `0x0109431C`, targets `0x00A03600`, which returns whether
+W+8 is nonnull. Slot 61 first calls that guard and exits if its AL is zero.
+Otherwise it passes `0x00A02360()`'s return plus eight to imported
+`EnterCriticalSection`, directly calls a nonnull supplied callback with
+`(u32(W+8), opaqueArgument)`, then passes a fresh `0x00A02360()` return
+plus eight to imported `LeaveCriticalSection`. The imports are cells
+`0x00F3E16C/0x00F3E168`, respectively. No callback result is tested,
+and this method stores neither the callback nor the opaque argument.
+The two helper returns' identity is not established here.
+
+Consequently `0x00A780E0` supplies `(S,&localP)` to `0x00A84F70`
+synchronously on the normal guarded path. The pointer to the local P copy
+is used during that call. This establishes direct invocation, without
+establishing a later callback registration or a success result.
+
+The callback first rejects null S, a null second argument, null P obtained
+by dereferencing that argument, or null `u32(S+0x70)`. With these guards
+passed, it invokes S slot 21 with P at `0x00A84FBB`. Constructor
+`0x00A84EE0` installs complete-object table `0x010A0464`; its slot-21
+cell `0x010A04B8` targets `0x00A85170`, which stores P at S+`0x1D0`.
+This table's locator `0x0118AF18` has offset zero and type descriptor
+`0x012F2C28`, named
+`.?AVLayScheduler@Scheduler@Cut@External@Default@Lay@Engine@CDev@SQEX@@`.
+
+It then calls P slot 4 and the returned receiver's slot 61 at
+`0x00A84FBD..0x00A84FD0`. Call the latter return U. P was checked earlier,
+but its slot-4 return is not guarded before slot 61, and U is not guarded
+before the matching-entry lookups below. U is the callback's lookup receiver; its
+concrete table and relation to a containing UnitTree are unresolved.
+The callback iterates collection `u32(S+0x70)`. Helper `0x00A21D00`
+returns the dword at collection+`0x10` as the count. Helper `0x00A21C80`
+returns the indexed pointer from the vector at collection+8 for a nonnegative index
+below that signed count, or zero otherwise. Null entries are skipped.
+
+For each nonnull entry E, its slot-4 result indexes helper `0x00A1B6D0`.
+That helper reads parsed object `u32(S+0x50)`, then the vector at parsed
+object+`0x50`, and returns the first dword of the eight-byte indexed entry.
+It returns a literal pointer if S+`0x50` is null and does not bounds-check
+the index. The callback compares the resulting string with names returned
+by `0x00A78650/0x00A78A40`. Their static pointer cells
+`0x012F1EC0/0x012F1F98` point to `LayUnitMemberActor` at `0x0109F644`
+and `LayUnitActor` at `0x0109F6E0`. These are parsed class-name comparisons,
+not RTTI authentication of E.
+
+| Matching class name | Conditional callback effect |
+| --- | --- |
+| `LayUnitMemberActor` | Calls E slot 26 for key K, then U slot 37 with K. A nonnull result T is passed to `0x00A78960(E,T)` at `0x00A8506E`. That helper calls the old nonnull E+`0x64` receiver's slot 66 with E+`0x60`, stores T at E+`0x64`, then calls nonnull T's slot 65 with E+`0x60`. |
+| `LayUnitActor` | Calls E slot 26 for K, then U slot 42 with K. A nonnull result T is passed to `0x00A78A50(E,T)` at `0x00A850FD`, which stores T at E+`0x64`. |
+
+A null lookup result follows the respective alternate call branch without
+calling these setters. Those branches call E slot 3 at
+`0x00A85084/0x00A85110`, direct target `0x009D4F9F` at
+`0x00A8509C/0x00A85128`, then the indirect target held at `0x012651B4`
+at `0x00A85134`. Their effects remain uninspected. Other class names are
+skipped. The U lookups and retained receivers' slots 65/66 also remain
+unjoined concrete consumers.
+These conditional pointer stores and calls do not establish activation,
+weather eligibility, schedule evaluation or rendering.
 
 ## Conditional record-view contract
 
@@ -256,10 +333,37 @@ For the manipulator consumers, read table `0x0109F484` cells for slots
 `[0x00A780E0,0x00A7814C)`, `[0x00A77E20,0x00A77E2F)` and
 `[0x00A77FD0,0x00A780C3)`. Read the latter's two jump targets at
 `0x00A780C4` and its 15 selector bytes at `0x00A780CC` separately as data.
-The callback lead was decoded only in `[0x00A84F70,0x00A84FF0)`;
-its branches leave that range, so it supplies no complete callback contract.
 Consume the linked slot-4/slot-3 contracts rather than inferring new semantics
 from their names.
+
+For the wrapper binding, check the original instructions in
+`[0x00A05000,0x00A05077)`, `[0x00A03C50,0x00A03C96)` and
+`[0x00A03600,0x00A03609)`. Read the original wrapper table's slots 14/61,
+its RTTI and the two named import cells. The reused factory/output excerpts
+are `[0x00A78E09,0x00A78E18)`, `[0x00A78E30,0x00A78E32)`,
+`[0x00A78E3F,0x00A78E42)`, `[0x00A02FF2,0x00A0300B)`,
+`[0x00A03067,0x00A030A5)`, `[0x00A030A5,0x00A030A9)` and
+`[0x00A03185,0x00A0319E)`. The additional exact local-`+0x10` read is
+`[0x00A03131,0x00A03135)`. Preserve the distinction between the factory's
+returned output-cell address, its S value and the separately constructed W.
+The reused S table-write excerpt is `[0x00A84F3B,0x00A84F48)`.
+The helper callsite used `[0x00A780E0,0x00A78106)` and the existing
+initializer excerpt `[0x00A784C3,0x00A784D8)`.
+
+For callback `0x00A84F70`, follow only CFG-reachable instruction starts
+within `[0x00A84F70,0x00A85200)`. Its complete instruction union is
+`[0x00A84F70,0x00A84FED)` and `[0x00A84FF0,0x00A85164)`.
+Every direct branch stays in that union and there is no indirect jump.
+The three-byte gap is not part of this CFG. Read S table slot 21 and the
+two original class-name pointer cells separately. The direct helpers'
+complete instruction unions are `[0x00A85170,0x00A8517D)`,
+`[0x00A21D00,0x00A21D04)`, `[0x00A21C80,0x00A21CA1)`,
+`[0x00A1B6D0,0x00A1B6EC)`, `[0x00A78650,0x00A78656)`,
+`[0x00A78A40,0x00A78A46)`, `[0x00A78960,0x00A78995)` and
+`[0x00A78A50,0x00A78A5A)`. Preserve the parsed class-name comparison
+and stop at U's unresolved slot-37/42 and retained-receiver slot-65/66
+implementations. These checks do not bind U to R slot 19 or to the
+recursive predicate's root.
 
 The initializer output-cell relation used only the existing excerpts
 `[0x00A78443,0x00A78445)`, `[0x00A784C3,0x00A784D8)` and
