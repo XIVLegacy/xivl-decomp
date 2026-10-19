@@ -303,25 +303,81 @@ values for this to be the `tx` query.
 
 The published [parsed-group construction](mtb-joint-translation-write.md#parsed-curve-group-and-descriptor-transfer)
 stores each constructed curve pointer in G's array and appends `(V,G)`
-to the container's clip-zero table. If the same selected group and matching
-property were produced by its type-2 route, K is the same successfully
-constructed [FixedCurve](mtb-fixed-curve.md#type-2-key-record-and-runtime-layout),
-with its supplied name pointer at K `+4`. Original table cell
-`0x01098C8C` selects the published
-[receiver +4 getter](timeline-weather-record-view.md#construction-and-pointer-attachment)
-at `0x008D5570` for the name query, while cell `0x01098C94` selects
-scalar evaluator `0x00A320B0` for virtual `+0x0C`. Under those same
-object, table, name and storage conditions, retaining K at M `+0x68`
-therefore joins the first material sampler call to the published FixedCurve
-runtime construction and restricted evaluator contract. No parser or
-evaluator body is needed again for that conditional join.
+to the container's clip-zero table. The
+[selected record](#selected-attr-tx-type-and-consumer) supplies a type-0
+construction/consumer contract under that same parsed-group identity and
+successful construction.
 
-The selectors themselves construct no curve and impose no FixedCurve
-type test. The actual O `+0x54` population, selected group's property
-type and identity, selected scalar payload and context-to-Q binding remain
-unjoined. The nearby serialized `Attr` text supplies none of those runtime
+The selectors themselves construct no curve or impose a curve-class test.
+The actual O `+0x54` population, selected runtime property identity,
+consumed scalar payload and context-to-Q binding remain unjoined. The
+nearby serialized `Attr` text supplies none of those runtime
 identities. An absent `tx` can store zero at M `+0x68`; the published
 application prefix has no channel-pointer null guard before sampling.
+
+## Selected Attr tx type and consumer
+
+Within the selected descriptor candidate `[0x7C680,0x7C787)`, the
+[MTB framing](mtb-container-framing.md) gives version `0x43` and header
+size `0x40`. The three table counts are 3, 2 and 2, at file offsets
+`0x7C6C0/0x7C6D0/0x7C6DC`. Header payload `0x7C700` declares two
+Curve sections and a zero group count, selecting the single-clip route;
+its wide-header bit is clear. The Attr payload at `0x7C740` has
+group-name index 1, resolving to `Attr` at `0x7C782`, property count 4
+and mask `0x0017`.
+
+The first selected mask bit is `0x0001`. Under the published
+[initialized property-name map](weather-light-curve-container-shape.md#section-roles-and-property-names-v),
+this supplies `tx` without consuming explicit name-index bytes. Its type
+byte at `0x7C748` is zero; the type-0 record is
+`[0x7C748,0x7C750)`. Its scalar lane `[0x7C74C,0x7C750)` is kept
+opaque. This identifies candidate serialization and still requires the
+stated runtime name initialization and storage conditions.
+
+Original type-0 dispatch cell `0x00A313EC` selects `0x00A30D10`.
+That caller passes an output-cell address, cursor-cell address and supplied
+property-name pointer to `0x00A2DEA0` at `0x00A30D1F`. On the
+caller stack, with S = ESP at `0x00A30D10`, those first two argument
+addresses are S `+0x2C` and S `+0x18`. On the published type-byte-reader
+route, let R be the cursor after the type byte,
+corresponding to file `0x7C749` under this input condition. The loader
+advances the cursor cell to R `+7`. After calls to unqualified `0x00A2FA90` and
+`0x00A2EB80`, its normal nonnull K route stores table `0x01098D34`
+at K `+0`, the supplied name pointer at K `+4`, and the float32 lane
+from R `+3` at K `+8` using `MOVSS`. Valid writable K storage, stable
+source bytes and preserved live pointer/stack state across those helpers
+remain conditions. No allocator or pool closure is inferred. A normal null
+helper result writes zero through the output cell.
+K storage must be separate from the source, local/output and control spans.
+
+The loader returns the output-cell address in EAX and removes twelve
+argument bytes. The caller loads K from that cell into EDI, clears the
+cell and tests the same local at `0x00A30D2C..0x00A30D32`. Under
+the verified stack/output alias relation, the zero test branches directly
+to the published common curve-pointer append at `0x00A30EB3`. Thus a
+successfully constructed K can reach the same G array used by the name
+selector; no neighboring type branch is required for this join.
+
+Original RTTI identifies table `0x01098D34` as `ConstantCurve`, with
+COL `0x01186F48` and TypeDescriptor `0x012EE5B0`. Its name slot at
+`0x01098D38` targets the published
+[receiver +4 getter](timeline-weather-record-view.md#construction-and-pointer-attachment)
+`0x008D5570`. Its scalar slot at `0x01098D40` targets
+`0x00A2E8E0`: that complete body loads the current float at K `+8`
+into x87 ST0 and returns with four-byte argument cleanup. It does not read
+the supplied coordinate. The application's coordinate calculation and its
+execution prerequisites still apply before this call.
+
+If this exact selected memory reaches the successful parser/group path,
+the runtime `tx` name matches, and the same valid K, name, field, table and
+storage persist through selection and application, M `+0x68` therefore
+supplies that ConstantCurve receiver to the first sampler call. Relating
+the initial K `+8` store to the later current-field read specifically
+requires its value to remain unchanged; the class label proves no
+immutability. Normal nontrapping floating-point execution and sufficient
+x87 stack space are also conditions. These observations assign no numeric
+scalar value or visible material effect. Actual buffer identity, C_init/P=Q
+and retention through the later `0x00A317C5` call remain unjoined.
 
 ## Resource callback dispatch
 
@@ -381,7 +437,7 @@ These slots therefore supply no established initial-population dispatch
 to the published `UpdateRestInitialize`/`ParseMTB_` container producer.
 The actual provider invocation, callback completion, parsed object identity
 and initial O `+0x54` population remain unjoined. The previously described
-conditional parsed-group and FixedCurve consumer relation still requires
+conditional parsed-group and selected-channel consumer relation still requires
 that populated container; the callback table alone supplies no selected
 curve, scalar result or material effect.
 
@@ -433,7 +489,7 @@ valid through the later retained-interface call at `0x00A317C5`, the
 resource return and the material read at `0x00835358`. The selected
 loaded input, current field values, actual call returns and that retention
 remain unjoined. This dispatch does not establish material context P=Q,
-the selected property's type, scalar samples or a visible effect.
+the actual loaded property's identity, scalar samples or a visible effect.
 
 ## Update state and sample input
 
@@ -690,10 +746,10 @@ indirection bytes do not establish that the material accessor reaches this
 constructed Q, the downstream payload parser, or FCurve scalar consumption.
 No serialized Attr values are assigned.
 
-The [retained tx channel](#retained-tx-channel-producer) has a conditional
-parsed-group and FixedCurve consumer join, but its actual populated
-container and selected property type remain unjoined. Registry lookup
-remains conditional.
+The [selected Attr/tx record](#selected-attr-tx-type-and-consumer) has a
+type-0 ConstantCurve construction/consumer contract. Its actual loaded
+property identity, populated container and current-field retention remain
+unjoined. Registry lookup remains conditional.
 The [resource callback dispatch](#resource-callback-dispatch) qualifies
 the O `+0x48` methods without identifying an initial-population callback.
 The separate [initialization handoff](#resource-initialization-handoff)
@@ -792,6 +848,8 @@ calls and cited operands for these exclusive ranges:
 | O+0x0C slot 0 adjustor | `0x00A31C40` | `0x00A31C48` |
 | O+0x0C slot 1 address return | `0x00A31C50` | `0x00A31C56` |
 | Resource initialization handoff | `0x00A42C90` | `0x00A42CBE` |
+| Type-0 curve loader | `0x00A2DEA0` | `0x00A2DF0E` |
+| ConstantCurve current-field scalar read | `0x00A2E8E0` | `0x00A2E8E6` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -858,8 +916,8 @@ For the first channel producer, reuse only initializer operand unions
 instruction at `0x00835344` through exclusive end `0x00835349`.
 Check the seven listed selection/resource ranges and the cited original
 RTTI, table cells, selector pointer and terminated literals. Reuse the
-published parsed-group pointer append, FixedCurve construction, name getter
-and scalar slot contracts without reopening those bodies. This reproduces
+published parsed-group pointer append and name-selector contracts without
+reopening those bodies. This reproduces
 the conditional first-channel join without reading a selected curve payload.
 
 For callback dispatch, check the five listed callback/forwarding ranges
@@ -880,6 +938,18 @@ argument supplied to `0x00A42C90`. Verify its COL, the two interface
 slots and original primary slot cell `0x0109946C`. Reuse the published
 `0x00A31C80`, `UpdateRestInitialize` and parser/container-store contracts
 without reopening their native bodies.
+
+For the selected first Attr property, structurally interpret only
+`[0x7C680,0x7C787)` after checking the pinned DAT and SCB identities.
+Use the three MTB tables, Header payload, Attr group-name index, narrow
+record header and first selected mask bit. Read only the type byte and
+record width; keep the scalar lane opaque. Check the two listed type-0
+native ranges and original switch/name/scalar cells and RTTI. The reused
+parser operand block admits starts `[0x00A30D10,0x00A30D35)` and has
+actual union `[0x00A30D10,0x00A30D38)`, 40 bytes. Its last six-byte
+`JZ` begins `0x00A30D32` and targets `0x00A30EB3`. Reuse the common
+append, runtime name getter, material selection and application contracts;
+no other property or type branch is required.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
