@@ -77,14 +77,56 @@ the earlier direct exit and does not request this reset.
 ## Selected bit and conditional dispatch
 
 For a matching entry, `0x007E0430` returns owner+`0x108` when owner+`0xF4`
-is zero and owner+`0x120` otherwise. `0x007FCC87..0x007FCCB0` reads two
-dwords there and calls helpers `0x009D5880`, `0x009D9970` and `0x009D9AB0`
-with 64-bit divisor words `(60,0)`, `(60,0)` and `(24,0)`. The following
-instructions derive a byte address from entry+2 and test one bit at
-`0x007FCCE1..0x007FCCE5`. The serialized entry's remaining six bytes,
-`+2..+7`, are its bitmap. Helper return conventions and clock-domain bounds
-were not established here, so this does not assign Eorzea calendar or
-half-hour units or prove in-range byte selection for arbitrary clock inputs.
+is zero and owner+`0x120` otherwise. The
+[time-of-day finding](zone-lighting-source-and-time-of-day.md#time-of-day)
+owns those clocks' seconds interpretation, producer scaling and unknown
+alternate-mode meaning. Here T is the selected low/high dword pair treated
+as an unsigned 64-bit integer. The calls at `0x007FCC92`, `0x007FCC9D` and
+`0x007FCCB0` use divisors `(60,0)`, `(60,0)` and `(24,0)` respectively.
+
+The following helper contracts come from their zero-high-divisor branches,
+which all three calls select. Their `DIV` instructions are unsigned. The
+first division consumes the dividend's high dword with EDX zero, then divides
+the carried remainder and low dword, so it does not truncate T to 32 bits.
+Each helper removes its 16 argument bytes with `RET 0x10`.
+Ranges below are half-open complete instruction ranges checked against the PE.
+
+| Helper range | Relevant instructions | Return for these calls |
+| --- | --- | --- |
+| `[0x009D5880,0x009D58E8)` | `[0x009D588A,0x009D58A2)` | EDX:EAX = floor(T / 60) |
+| `[0x009D9970,0x009D9A05)` | `[0x009D9979,0x009D99A1)`, `[0x009D99E8,0x009D9A05)` | EDX:EAX = floor(floor(T / 60) / 60); EBX:ECX = floor(T / 60) mod 60 |
+| `[0x009D9AB0,0x009D9B25)` | `[0x009D9AB9,0x009D9AD1)` | EDX:EAX = floor(T / 3600) mod 24 |
+
+Let m = floor(T / 60) mod 60 and h = floor(T / 3600) mod 24.
+The evaluator saves the second helper's ECX/EBX remainder pair at
+`0x007FCCA8/0x007FCCAC`. After the third helper returns, the comparison at
+`0x007FCCB7` and `SETGE` at `0x007FCCBE` compute m >= 30. Although that
+comparison is signed, m is bounded to 0..59 and its saved high dword is zero.
+The instructions at `0x007FCCC1..0x007FCCDE` compute:
+
+```text
+byte_index = floor(h / 4)
+bit_index  = 2 * (h mod 4) + (m >= 30 ? 1 : 0)
+selected   = (entry[2 + byte_index] & (1 << bit_index)) != 0
+```
+
+The `JNS` at `0x007FCCC7` skips the negative-remainder correction for h in
+0..23, and `CDQ` at `0x007FCCD1` produces zero before the arithmetic shift.
+Thus byte_index is 0..5 and bit_index is 0..7 for every T in
+0..18446744073709551615. The read at `0x007FCCE1` stays within the serialized
+entry's six bitmap bytes `+2..+7`, assuming the matched entry is valid.
+No narrower numeric clock bound is required by this arithmetic.
+
+Equivalently, slot = floor((T mod 86400) / 1800), byte_index = floor(slot / 8),
+and bit_index = slot mod 8. Bits run from least to most significant within
+each byte. With the cited seconds interpretation, the mask covers 48
+half-hour intervals per day: T=0 selects byte 0 bit 0, T=1800 selects byte 0
+bit 1, T=14400 selects byte 1 bit 0, T=86399 selects byte 5 bit 7, and
+T=86400 wraps to byte 0 bit 0. This assigns relative time-of-day intervals,
+not a calendar epoch, timezone or historical event schedule. Arbitrary
+bit patterns are arithmetically bounded, but their interpretation as valid
+clock values is not established. A negative signed value supplied as bits
+would be divided as its unsigned representation, not as a negative time.
 
 Let b be the selected bit as Boolean, L be byte C+`0x46`, and F be byte
 C+`0x45`. At `0x007FCCEA..0x007FCCF7`, a change from L to b stores L=b
@@ -137,3 +179,13 @@ check the property-interface cells and reset-switch tables. Follow the valid
 12-byte queue interpretation against the separately published append path.
 Preserve the two distinct getter chains and the unresolved adjusted receiver
 instead of substituting a class table based on its name.
+For the clock arithmetic, decode the reused operand/index range
+`[0x007FCC87,0x007FCCE7)` and the three complete helper ranges above.
+The separate existing clock-selection context is
+`[0x007FCC80,0x007FCC87)` and `[0x007E0430,0x007E0446)`.
+Check the two unsigned divisions and remainder return registers before
+substituting into the formula. A pure mathematical check can compare the
+stepwise and slot formulas for every residue 0..86399, including all
+half-hour boundaries, then repeat at whole-day offsets and the unsigned
+64-bit maximum. Those checks verify the arithmetic interpretation, not native
+execution, conditional dispatch or visible activation.
