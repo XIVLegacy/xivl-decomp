@@ -325,11 +325,40 @@ the actual global values at those instructions. The latter is the `U`
 used by the existing wrapper receiver-selection finding.
 
 The synchronous call chain does not prove those globals retained their
-values from UnitTree publication. Actor constructors, intervening virtual
-calls and `0x00836EF0` before the final capture remain uninspected context
-edges. No selected read joins the instance's retained `+0xFC` field to this
-capture. The registry-source constructor dataflow leaves context preservation
-across the selected constructor chain separate.
+values from UnitTree publication. The immediate pre-capture helper has the
+narrow preservation contract below. Earlier actor constructors and
+intervening virtual calls remain uninspected context edges. No selected read
+joins the instance's retained `+0xFC` field to this capture. The registry-source
+constructor dataflow leaves those earlier context conditions separate.
+
+### Immediate pre-capture helper
+
+At `0x00836682..0x00836694`, the constructor retains its incoming receiver
+in ESI and forwards its two incoming stack arguments to `0x00836EF0`
+with the same receiver. The helper's `0x18` bytes of stack setup place
+incoming argument 1 at `[ESP+0x1C]` and argument 2 at `[ESP+0x20]`.
+At `0x00836F18..0x00836F24`, it pushes those arguments in reverse order
+and calls `0x00A21260` with the original receiver. This preserves the
+existing `(D,keyEntry)` construction arguments.
+
+The generic constructor has no call or jump. Its memory writes are confined
+to receiver-relative dwords through `+0x34`, including the published D and
+key-entry stores at `+0x14/+0x18`. The helper's only call is this constructor.
+Its remaining writes install vtables `0x0103B0FC/0x0103B0F4` at receiver
+`+0/+8` and maintain stack and FS exception state. It returns the same
+receiver and removes the two arguments with `RET 8` at `0x00836F58`.
+Neither body accesses global `0x013657B4` or `0x013657B8` directly.
+
+The checked caller interval after the helper returns has no further call
+before the captures. It writes stack exception state and receiver vtables
+at `0x00836699..0x008366A7`, then performs the two global loads and
+receiver stores at `0x008366AE..0x008366BC`. For normal construction with
+valid receiver, stack and exception storage distinct from the global cells,
+these instructions do not change either global. If no external writer intervenes,
+the captures therefore retain the values present on entry to `0x00836EF0`.
+This establishes preservation across this local interval, without identifying
+those values as the owning UnitTree's context or proving preservation from
+its earlier publication.
 
 This composition establishes conditional construction calls. It does not
 establish allocation success, complete initialization, child registration,
@@ -370,3 +399,26 @@ The reused field/caller excerpts are `[0x00A1EBE0,0x00A1EBE3)`,
 selected object/argument, String-reference and child-field reads. Reuse the
 published generic directory construction and lookup contracts without
 assuming that every consumer's P is this Q.
+
+## Pre-capture helper reproduction
+
+Use the PE identity and Python, pefile and Capstone versions in
+[Evidence identity](#evidence-identity). Check every retained Ghidra
+instruction against the original PE bytes and decode each instruction in
+x86-32 mode. The instruction unions cover the following exclusive ranges
+without gaps:
+
+| Purpose | Start VA | Stop VA | Instruction bytes |
+| --- | --- | --- | --- |
+| Pre-capture helper | `0x00836EF0` | `0x00836F5B` | `0x6B` |
+| Generic constructor | `0x00A21260` | `0x00A212A8` | `0x48` |
+| Caller forwarding through global capture | `0x00836682` | `0x008366BF` | `0x3D` |
+
+The generic constructor's full range is the existing
+[generic D-retention evidence](uldah-halloween-material.md#reproduction).
+Its complete write and call set supports the additional preservation relation
+above. The caller range is limited to receiver/argument forwarding, the helper
+call and the immediate interval through both capture stores. Follow the stack
+adjustments at each call and distinguish receiver-relative stores from the
+absolute global operands. These static checks establish the normal local
+instruction path, not live global values or exceptional execution.
