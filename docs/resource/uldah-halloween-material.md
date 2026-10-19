@@ -24,9 +24,10 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
-The intermediate-constructor, descriptor-selection and view-construction
-observations below use Python 3.12.0 with those same libraries to decode
-original PE instructions.
+The intermediate-constructor, directory-construction, descriptor-selection
+and view-construction observations below use Python 3.12.0 with those same
+libraries to decode original PE instructions. Selected SCB structure metadata
+was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
 boundary and full contiguous span in the listed reproduction ranges was
 checked against that PE.
@@ -120,14 +121,14 @@ with `LaySystemActor` at `0x0083540C..0x0083541C` sets runtime byte
 `+0x50` to 1 on equality. This identifies an explicit system-actor branch
 without proving the active native receiver or container.
 
-## Exact remaining edge
+## Directory construction and descriptor selection
 
 The selected directory includes an `@FCURVE` entry at `0x7C630` with
 descriptor text `FCurve0000.fcr` at `0x7C660`. The adjacent word at
 descriptor `+0x10` is `0x107`; the candidate span
 `[0x7C680,0x7C787)` fits the entry, begins `SEDBmtb`, and contains
-literal `Attr` at `0x7C782`. These facts do not join that span to native
-selection or give its scalar words consumed channel meanings.
+literal `Attr` at `0x7C782`. These following bytes do not establish the
+payload parser or give scalar words consumed channel meanings.
 
 Accessor `0x00A20090` reads its context `+0x0C`, calls `0x00A1CA20`
 at `0x00A20098`, then calls `0x00A220A0` with that result as ECX at
@@ -172,15 +173,65 @@ by the selected material context.
 For directory receiver E, `0x00A21F90` uses `s32(E+4)` as the entry
 count and visits entries from j=0 while j is below that count. Candidate j is
 `u32(u32(E+8)+4*j) + u32(E+0x0C) + u32(E+0x10)`.
-It calls uninspected `0x009D5475` with `(candidate,key,8)` and returns
+It calls `0x009D5475` with `(candidate,key,8)` and returns
 `candidate+0x10` on the first zero result, or zero if the loop finishes.
-The precise remaining construction boundary is the producer of those
-directory fields, the actual Q-to-P storage edge, and the indirection
-word at T+2. The selected SCB entry and visible `FCurve0000.fcr` text
-alone do not establish these joins. Construction-path calls to uninspected
-`0x00A26D70` at `0x00A2500D` and `0x00A26DE0` at `0x00A2507B`
-are the retained directory-construction discriminators. No serialized Attr
-values are assigned.
+The checked comparator performs a case-sensitive comparison of at most the
+supplied count of bytes. It returns the unsigned-byte difference on a
+mismatch, or zero at matching NUL bytes or count exhaustion. The complete
+original body has no further call.
+
+The directory fields are constructed by `0x00A26D70`. In the caller's
+accepted-version branch, let Z be its incoming receiver,
+`W = u32(Z+0x50)` and `C = W+u16(W+0x0E)`. At
+`0x00A24FCB..0x00A24FD8`, the caller supplies `(C,1)` to local view
+constructor `0x00A27270`, which stores C at local `+4` and 1 at `+8`.
+Getters `0x00A272B0`, `0x00A272F0` and `0x00A27310` then provide
+`B = C+0x10`, the low word at C+`0x0A`, and `L = 16*u16(C+6)-0x10`.
+The caller sign-extends that word at `0x00A25007`, producing
+`N = s16(C+0x0A)`. It pushes `(N,B,L,0x10)`
+and calls `0x00A26D70` on Q at `0x00A2500D`.
+
+At `0x00A26D88..0x00A26DB7`, that helper uses `0x00A21ED0` to
+construct a temporary directory and `0x00A21F30` to copy its four data
+fields to `E = Q+8`. Cleanup `0x00A21F00` writes only the temporary's
+vtable cell. The retained directory fields are:
+
+```text
+s32(E+4)    = N
+u32(E+8)    = B
+u32(E+0x0C) = B+L = C+16*u16(C+6)
+u32(E+0x10) = 0x10
+```
+
+Thus candidate j is `J[j]+0x10`, with
+`J[j] = C+16*u16(C+6)+u32(C+0x10+4*j)`. J denotes a serialized
+SCB directory entry here, separate from a factory class-key table.
+The adjacent `0x00A26DE0` call at `0x00A2507B` stores a distinct result
+at Q `+0x38` in its checked body. It is not the directory field producer.
+The subsequent view-population call remains `0x00A27080` on Q at
+`0x00A2509C`.
+
+For the selected hide SCB, C is file `0x7C340`, `u16(C+6)=3`, N is 6,
+B is `0x7C350` and B+L is `0x7C370`. Directory entry j=2 has relative
+offset `0x2C0`, so `J[2]=0x7C630` and its candidate key is at
+`0x7C640`. The first two entries' keys are `schedul` and `RIDTBL`.
+Entry 2 is the first eight-byte `@FCURVE\0` match and returns
+`T = 0x7C650`. At T, the u16 descriptor count is 1 and the u16 ordinal-zero
+indirection at T+2 is 0. The aligned descriptor base is therefore
+`T+0x10 = 0x7C660`.
+
+Conditional on this selected SCB being supplied to the checked construction
+path and the material accessor's P being Q, ordinal zero returns descriptor
+`0x7C660`, whose text is `FCurve0000.fcr`. This establishes descriptor
+selection under those conditions, without identifying scalar values or
+proving that the following candidate payload is consumed.
+
+## Exact remaining edge
+
+The actual Q-to-P storage edge remains unjoined. The selected directory and
+indirection bytes do not establish that the material accessor reaches this
+constructed Q, the downstream payload parser, or FCurve scalar consumption.
+No serialized Attr values are assigned.
 
 String helper `0x0064E6F0`, FCurve scalar construction helpers, registry
 lookup and active-container helper `0x00834A80` remain conditions.
@@ -220,6 +271,16 @@ calls and cited operands for these exclusive ranges:
 | View owner constructor | `0x00A230B0` | `0x00A2311A` |
 | View population | `0x00A27080` | `0x00A271A1` |
 | View construction path | `0x00A24E70` | `0x00A25168` |
+| Directory construction | `0x00A26D70` | `0x00A26DDF` |
+| Separate Q+0x38 construction | `0x00A26DE0` | `0x00A26E4D` |
+| Directory field constructor | `0x00A21ED0` | `0x00A21EF7` |
+| Directory field assignment | `0x00A21F30` | `0x00A21F51` |
+| Temporary directory cleanup | `0x00A21F00` | `0x00A21F07` |
+| Bounded byte comparison | `0x009D5475` | `0x009D5533` |
+| Chunk view constructor | `0x00A27270` | `0x00A27289` |
+| Chunk table pointer | `0x00A272B0` | `0x00A272C0` |
+| Chunk count | `0x00A272F0` | `0x00A272F8` |
+| Chunk extent minus prefix | `0x00A27310` | `0x00A2731E` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -227,6 +288,15 @@ precise supporting snippets are `[0x008350D0,0x00835109)`,
 `[0x00834970,0x008349A9)`, `[0x00A21260,0x00A21278)` and
 `[0x00A212A5,0x00A212A8)`. These include the forwarding prologues,
 D store and generic stack cleanup.
+
+For directory construction, the reused caller snippets are
+`[0x00A24F66,0x00A24F7C)`, `[0x00A24FCB,0x00A25012)`,
+`[0x00A2505F,0x00A25080)` and `[0x00A25095,0x00A250A1)`.
+They identify the source span, directory arguments, separate Q+0x38 call
+and view-population receiver. Reuse the published directory selection and
+view-alignment observations, then read only the selected SCB's header,
+directory entries, count, first indirection word and descriptor text to
+reproduce the file-offset result.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
