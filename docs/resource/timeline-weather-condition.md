@@ -188,8 +188,9 @@ To reproduce, verify the executable identity, map the cited VAs through its PE
 sections, decode x86-32 instructions at the stated entry/branch locators, and
 check the property-interface cells and reset-switch tables. Follow the valid
 12-byte queue interpretation against the separately published append path.
-Preserve the two distinct getter chains and the unresolved adjusted receiver
-instead of substituting a class table based on its name.
+Preserve the two distinct getter chains and the supplied R receiver's
+unresolved producer and slot-19 binding instead of substituting a class
+table based on its name.
 For the clock arithmetic, decode the reused operand/index range
 `[0x007FCC87,0x007FCCE7)` and the three complete helper ranges above.
 The separate existing clock-selection context is
