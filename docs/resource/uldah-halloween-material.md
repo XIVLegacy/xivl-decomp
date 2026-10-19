@@ -26,7 +26,8 @@ Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
 view-construction, string-key, initializer-context, channel-producer,
-sample-input and active-receiver observations below use Python 3.12.0 to decode
+resource-callback, sample-input and active-receiver observations use
+Python 3.12.0 to decode
 original PE instructions. Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
@@ -252,6 +253,8 @@ at `0x00A317C5` through the retained buffer/interface's virtual `+0x2C`.
 Those callees' effects and completion are unqualified here. The constructor
 has no later explicit O `+0x54` store; this is not a claim that the field
 remains zero across those calls.
+The [callback methods](#resource-callback-dispatch) qualify that interface's
+own dispatch without establishing its initial container population.
 
 At `0x00835358..0x0083535D`, the initializer reads O `+0x54` and
 stores it at M `+0x38`. The following selection requires that value T
@@ -317,6 +320,67 @@ type and identity, selected scalar payload and context-to-Q binding remain
 unjoined. The nearby serialized `Attr` text supplies none of those runtime
 identities. An absent `tx` can store zero at M `+0x68`; the published
 application prefix has no channel-pointer null guard before sampling.
+
+## Resource callback dispatch
+
+The constructed callback receiver is C = O `+0x48`, with original table
+`0x01099438`. Its preceding cell `0x01099434` points to COL
+`0x011871FC`, whose offset is `0x48` and TypeDescriptor is
+`0x012EE7A8`, the same `AnimationResourceNode` identity. Its three
+original slots are `0x00A31C30`, `0x00A31C60` and `0x00A25600`.
+The neighboring table `0x01099448` belongs to O `+0x0C`, a separate
+interface; it supplies none of these callback slots.
+
+The constructor's precise call at `0x00A317C5` passes C, the dword
+just read from global `0x012EE6F4`, and current EBP to the retained
+`u32(O+0x40)` interface's virtual `+0x2C`, then stores its return at
+O `+0x50`. This call does not identify the retained interface's concrete
+type or show whether or when it invokes C. Current EBP is not assigned a
+constant here, and the preceding call to `0x00A42C90` has unqualified
+effects. Composition requires the live O, C, fields, registers and stack
+to retain the values used by the quoted later instructions.
+
+Slot 0, `0x00A31C30`, subtracts `0x48` from ECX and tail-jumps to
+`0x00A31C80` on O. That body calls uninspected `0x00A30830`. After a
+normal return preserving its live state, it tests bit 0 of its first stack
+argument. If that bit is set and O is nonzero, it calls uninspected
+`0x0040DF70` with receiver `u32(O-4)` and argument O. Its own final
+instructions return the retained O value and remove four argument bytes.
+Neither callee's state or allocation effects are assigned here.
+
+Slot 1, `0x00A31C60`, reads `u32(C-8) = u32(O+0x40)` and calls that
+receiver's virtual `+4`, with no receiver null check. Let B be that return.
+It then calls `0x00A314D0` with receiver `C-0x48 = O` and argument B,
+and removes twelve incoming argument bytes. Its own instructions do not
+forward those three incoming words to `0x00A314D0`. B is not thereby
+authenticated as the selected SCB or an original file base.
+
+The published `OnMemoryMove_` role of `0x00A314D0` is recorded in the
+[MTB framing finding](mtb-container-framing.md). Its own body proceeds only
+when byte O `+0x58` has a bit in mask `0x0C` set. On that route it
+stores B at O `+0x4C`, invokes the published MTB setup/type predicates
+on B, and uses the nonzero AL return from `0x00A2D700` to gate further
+processing. The diagnostic branch and setup/predicate effects retain their
+existing qualifications. For a current nonzero `T = u32(O+0x54)`, it
+calls uninspected `0x00A30550` with receiver O and arguments
+`(B,&localSetup,T)`. It also calls that helper for pointers in the retained
+range from `u32(O+0x64)` to `u32(O+0x68)`, under valid stable range and live-state
+conditions. No relocation or parsing behavior is assigned to that helper.
+
+Slot 2, `0x00A25600`, tests `u32(C-8)` and explicitly writes zero there
+when nonzero, then removes eight argument bytes. Thus this slot can clear
+O `+0x40`; it is not a direct O `+0x54` store. The checked callback and
+forwarding bodies contain no explicit O `+0x54` store or direct call to
+`0x00A315C0` or `0x00A30910`. This own-instruction fact does not
+establish O `+0x54` preservation across their uninspected callees.
+
+These slots therefore supply no established initial-population dispatch
+to the published `UpdateRestInitialize`/`ParseMTB_` container producer.
+The actual provider invocation, callback completion, parsed object identity
+and initial O `+0x54` population remain unjoined. The previously described
+conditional parsed-group and FixedCurve consumer relation still requires
+that populated container; the callback table alone supplies no selected
+curve, scalar result or material effect.
 
 ## Update state and sample input
 
@@ -577,6 +641,8 @@ The [retained tx channel](#retained-tx-channel-producer) has a conditional
 parsed-group and FixedCurve consumer join, but its actual populated
 container and selected property type remain unjoined. Registry lookup
 remains conditional.
+The [resource callback dispatch](#resource-callback-dispatch) qualifies
+the O `+0x48` methods without identifying an initial-population callback.
 The [active parameter receiver chain](#active-parameter-receivers) still
 requires the actual virtual results and valid retained container storage.
 Base construction captures current global
@@ -662,6 +728,11 @@ calls and cited operands for these exclusive ranges:
 | Group-name selection | `0x00A2B720` | `0x00A2B79F` |
 | Group-name index read | `0x00A2D930` | `0x00A2D935` |
 | Indexed byte-string pointer | `0x00A2D470` | `0x00A2D484` |
+| Callback slot 0 adjustor | `0x00A31C30` | `0x00A31C38` |
+| Callback slot 1 forwarding | `0x00A31C60` | `0x00A31C7A` |
+| Callback slot 2 field clear | `0x00A25600` | `0x00A25610` |
+| Adjusted callback slot 0 target | `0x00A31C80` | `0x00A31CA2` |
+| OnMemoryMove_ own body | `0x00A314D0` | `0x00A315AC` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -731,6 +802,16 @@ RTTI, table cells, selector pointer and terminated literals. Reuse the
 published parsed-group pointer append, FixedCurve construction, name getter
 and scalar slot contracts without reopening those bodies. This reproduces
 the conditional first-channel join without reading a selected curve payload.
+
+For callback dispatch, check the five listed callback/forwarding ranges
+and only the prior constructor operand union
+`[0x00A317A9,0x00A317CE)`, totaling 37 bytes. An instruction-start
+filter beginning at `0x00A317A8` first displays `0x00A317A9`.
+Verify the callback COL and exactly three slot cells through
+`0x01099440`; the following COL and O `+0x0C` table are separate data.
+Reuse the published constructor, MTB setup/predicate and parser/container
+store contracts. No parser, scalar evaluator or neighboring-interface
+method is required to reproduce the stated callback dispatch boundary.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
