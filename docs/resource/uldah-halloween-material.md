@@ -24,9 +24,9 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
-The intermediate-constructor, directory-construction, descriptor-selection
-and view-construction observations below use Python 3.12.0 with those same
-libraries to decode original PE instructions. Selected SCB structure metadata
+The intermediate-constructor, directory-construction, descriptor-selection,
+view-construction and string-key observations below use Python 3.12.0 with
+those same libraries to decode original PE instructions. Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
 boundary and full contiguous span in the listed reproduction ranges was
@@ -101,9 +101,57 @@ At `0x008349EA..0x008349F8`, the base constructor obtains the pointer at
 runtime object `+0x14`, adds `0x68`, passes the result to `0x0064E6F0`,
 and stores that helper's return at runtime object `+0x5C`. The selected
 record thus supplies the `modulateColor` input text on the stated
-construction branch. The uninspected helper's input/output string
-relationship remains a condition on the final generated material parameter
-names.
+construction branch.
+
+### Stored name and generated keys
+
+Helper `0x0064E6F0` uses a string-key tree at its receiver `+0x5C`.
+That receiver is separate from the material clip. It constructs temporary
+byte wrappers from the supplied pointer with `0x00447260`, passing the
+length read from global `0x00F67298`. The original cell is `0xFFFFFFFF`,
+which selects the published
+[NUL-terminated byte-copy contract](map-layout-selector.md). The text
+preservation claim requires that value at these calls, terminated input
+and successful byte-wrapper construction and copies. Finite-length prefix
+cases are outside this full-name contract.
+
+Lookup `0x007EB2F0` uses `0x006534E0` and wrapper comparison
+`0x00446EF0` to return a tree/node pair or its end sentinel. Comparison
+passes the two wrapper byte pointers and the minimum of their `+8` count
+dwords to `0x00445B70`, interpreting a negative result as less-than.
+On a miss,
+`0x00656C10` constructs a key/value temporary through `0x007E9850`
+and supplies it to `0x00656460`. The new-node path uses `0x006553A0`,
+`0x00653900` and `0x007EAE70`. The latter constructs the key/value
+storage at node `+0x0C` through `0x00669F90`. Both key-copy constructors
+call `0x00447200`, whose
+[byte-wrapper copy contract](sqwt-markup-font-numeric-properties.md)
+retains its allocation and alternate-copy conditions.
+
+At `0x0064E7DF..0x0064E810`, the helper obtains the lookup node again,
+checks its owner/end state and passes node `+0x0C` to `0x00445210`.
+That accessor returns the dword at wrapper `+0`, its byte pointer. The
+returned pointer therefore refers to the retained node's key, rather than
+the mapped pair at node `+0x60`. For a newly inserted key successfully
+copied from the supplied wrapper, or an existing key with byte-equal
+spelling, this preserves the input text. Bounded-comparison equivalence
+alone is not promoted to full byte equality of an arbitrary existing key.
+No distinct byte allocation or pointer inequality is inferred. Manager and
+node lifetime through later application remain conditions.
+
+For application, the precise copy/suffix instructions reload runtime
+`+0x5C` independently for each channel. Helper `0x009D29FB` receives
+that pointer and a local destination with capacity `0x100`. Its successful
+path copies bytes through the first NUL. Each following scan finds that
+NUL and replaces it with a two-byte suffix word. Original PE words at
+`0x01039928/2C/30/34` are `R`/NUL, `G`/NUL, `B`/NUL and `A`/NUL.
+
+Consequently, if the stated name-storage conditions hold and that pointer's
+key storage remains valid and unchanged at application, the generated keys
+are `modulateColorR`, `modulateColorG`, `modulateColorB` and
+`modulateColorA`. Each occupies 15 bytes including its NUL and fits the
+copy buffer. These conditional key bytes do not establish sampled channel
+values, the selected active material entry or a visible effect.
 
 The inherited initializer reads `u32(D+0x14)` and calls descriptor
 accessor `0x00A20090`. It later requests literal `frc` at `0x010397CC`
@@ -236,8 +284,8 @@ indirection bytes do not establish that the material accessor reaches this
 constructed Q, the downstream payload parser, or FCurve scalar consumption.
 No serialized Attr values are assigned.
 
-String helper `0x0064E6F0`, FCurve scalar construction helpers, registry
-lookup and active-container helper `0x00834A80` remain conditions.
+FCurve scalar construction helpers, registry lookup and active-container
+helper `0x00834A80` remain conditions.
 Base construction captures current global
 `0x013657B4` into runtime `+0x54`; that does not identify owning UnitTree U
 or prove context preservation. Static class and parameter evidence does
@@ -284,6 +332,18 @@ calls and cited operands for these exclusive ranges:
 | Chunk table pointer | `0x00A272B0` | `0x00A272C0` |
 | Chunk count | `0x00A272F0` | `0x00A272F8` |
 | Chunk extent minus prefix | `0x00A27310` | `0x00A2731E` |
+| Stored-name tree helper | `0x0064E6F0` | `0x0064E82B` |
+| Name lookup result | `0x007EB2F0` | `0x007EB355` |
+| Mapped-value access and insertion | `0x00656C10` | `0x00656CDB` |
+| Name lower-bound search | `0x006534E0` | `0x00653519` |
+| Wrapper ordering | `0x00446EF0` | `0x00446F1D` |
+| Temporary key/value construction | `0x007E9850` | `0x007E98B6` |
+| Hinted name insertion | `0x00656460` | `0x00656650` |
+| Name node insertion | `0x006553A0` | `0x0065558D` |
+| Name node allocation forwarding | `0x00653900` | `0x0065398F` |
+| Name node construction | `0x007EAE70` | `0x007EAEE6` |
+| Node key/value copy | `0x00669F90` | `0x00669FF5` |
+| Bounded application copy | `0x009D29FB` | `0x009D2A60` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -300,6 +360,15 @@ and view-population receiver. Reuse the published directory selection and
 view-alignment observations, then read only the selected SCB's header,
 directory entries, count, first indirection word and descriptor text to
 reproduce the file-offset result.
+
+For stored-name construction and application, the reused material snippets
+are `[0x008349DD,0x008349FB)`, `[0x008355B0,0x008355EF)`,
+`[0x00835601,0x00835639)`, `[0x0083564A,0x00835680)` and
+`[0x00835691,0x008356C9)`. They connect the helper receiver, supplied
+record text, returned pointer, bounded copies and suffix stores. Reuse the
+published byte-wrapper construction/copy/destruction and bounded-comparison
+contracts. Check pointer accessor `[0x00445210,0x00445213)`, the original
+length cell and the four suffix words directly in the PE.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
