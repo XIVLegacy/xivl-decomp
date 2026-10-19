@@ -17,7 +17,9 @@ file `0x99D0 + P`. Offsets below are file offsets unless marked otherwise.
 
 Python `struct` followed the declared node extents and reference descriptors,
 using `xivl-tools:tools/research/census_layout.py`, `parse_layout`, at revision
-`75fe7414bf3f1ecd779825083d477adc4ed5f319`. The field interpretation is
+`75fe7414bf3f1ecd779825083d477adc4ed5f319`, script SHA-256
+`5afccbd58e7faa491f860ce51e59a8c65a4a9d1850931e38f577d2fc3390e5e3`.
+The field interpretation is
 documented in `xivl-tools:docs/formats/world-layout.md`, Node declarations,
 Declared shapes and Fields consumed by the zone reader. This is a typed
 reference join, rather than a join by adjacent names or matching counts.
@@ -76,7 +78,64 @@ and `ee1edb4052bba8773216cbd18a4e1aa32112d894a5f50d16e5793ebdbc33bb9c`.
 This establishes resident BGParts membership and available resource inputs.
 It does not identify a portable `b###` appearance variant, prove a mesh's
 visual identity, or join every rendered descendant to the clip receiver.
-The other seven groups' model membership was not traced here.
+
+All eight scheduler pairs have concrete resident membership in this layout.
+Each pair shares one declared `RefObjects/UnitTree/UnitTreeObject`, size
+`0x50`. UnitTree `+0x30/+0x34` gives two `0x30`-byte child records;
+their `+0x18` references lead to the show and hide timelines above.
+UnitTree `+0x24/+0x28` gives one `0x30`-byte group. Each group's
+`+0x14/+0x18` sub-group reference/count is zero, and its `+0x20/+0x24`
+gives two resident child records. These resident runs are disjoint from
+their owner's timeline-child run.
+
+Names below were read after the reference joins. The UnitTree names are
+`sgrp_bg_hw_obj1_h` through `sgrp_bg_hw_obj8_h`, in the listed order.
+
+| Pair in `time_bg_hw_` | UnitTree | Timeline children show / hide | Group / name | Resident children |
+| --- | --- | --- | --- | --- |
+| `obj1_h` | `0x496D0` | `0x59380` / `0x593B0` | `0xC25E0` / `grp_0274` | `0x59320` / `0x59350` |
+| `obj2_h` | `0x49720` | `0x59440` / `0x59470` | `0xC2610` / `grp_0275` | `0x593E0` / `0x59410` |
+| `obj3_h` | `0x49770` | `0x59500` / `0x59530` | `0xC2640` / `grp_0281` | `0x594A0` / `0x594D0` |
+| `obj4_h` | `0x497C0` | `0x595C0` / `0x595F0` | `0xC2670` / `grp_0280` | `0x59560` / `0x59590` |
+| `obj5_h` | `0x49810` | `0x59680` / `0x596B0` | `0xC26A0` / `grp_0279` | `0x59620` / `0x59650` |
+| `obj6_h` | `0x49860` | `0x59740` / `0x59770` | `0xC26D0` / `grp_0278` | `0x596E0` / `0x59710` |
+| `obj7_h` | `0x498B0` | `0x59800` / `0x59830` | `0xC2700` / `grp_0277` | `0x597A0` / `0x597D0` |
+| `obj8_h` | `0x49900` | `0x598C0` / `0x598F0` | `0xC2730` / `grp_0276` | `0x59860` / `0x59890` |
+
+Every resident child's `+0x18` references a declared `0x54`-byte
+`BaseObjects/BG/BGPartsBaseObject`. BGParts `+0x20` references the exact
+key string in the resource-table column below. Each string matches exactly
+one outer `brt` row; row `+0x14` supplies the resource ID. All 16 child
+records are distinct. Their base references reach 11 distinct BGParts
+nodes and 11 distinct resource rows/IDs. The repeated `0xDAF70` base is
+shared by six children, in `obj1_h` through `obj5_h` and `obj8_h`.
+
+| Pair | Resident child / name | BGParts / name | Resource-table row / name | Resource ID |
+| --- | --- | --- | --- | --- |
+| `obj1_h` | `0x59320` / `s0t0_hw_obj1_h_001` | `0xDC41C` / `s0t0_hw_obj1_h` | `0x20E0` / `18KWcss0t0_hw_h` | `0x899404E0` |
+| `obj1_h` | `0x59350` / `s0t0_a0_tal1_s_004` | `0xDAF70` / `s0t0_a0_tal1_s` | `0x17C0` / `0bgOLQs0t0_a0_t` | `0x89940598` |
+| `obj2_h` | `0x593E0` / `s0t0_hw_obj2_h_001` | `0xDC470` / `s0t0_hw_obj2_h` | `0x17E0` / `18KWcbs0t0_hw_h` | `0x899404E1` |
+| `obj2_h` | `0x59410` / `s0t0_a0_tal1_s_002` | `0xDAF70` / `s0t0_a0_tal1_s` | `0x17C0` / `0bgOLQs0t0_a0_t` | `0x89940598` |
+| `obj3_h` | `0x594A0` / `s0t0_hw_obj3_h_001` | `0xDC4C4` / `s0t0_hw_obj3_h` | `0x1A00` / `18KWbEs0t0_hw_h` | `0x899404E2` |
+| `obj3_h` | `0x594D0` / `s0t0_a0_tal1_s_004` | `0xDAF70` / `s0t0_a0_tal1_s` | `0x17C0` / `0bgOLQs0t0_a0_t` | `0x89940598` |
+| `obj4_h` | `0x59560` / `s0t0_hw_obj4_h_001` | `0xDC518` / `s0t0_hw_obj4_h` | `0x2EE0` / `18KWffs0t0_hw_h` | `0x899404E3` |
+| `obj4_h` | `0x59590` / `s0t0_a0_tal1_s_004` | `0xDAF70` / `s0t0_a0_tal1_s` | `0x17C0` / `0bgOLQs0t0_a0_t` | `0x89940598` |
+| `obj5_h` | `0x59620` / `s0t0_hw_obj5_h_001` | `0xDC56C` / `s0t0_hw_obj5_h` | `0x17A0` / `18KWeIs0t0_hw_h` | `0x899404E4` |
+| `obj5_h` | `0x59650` / `s0t0_a0_tal1_s_004` | `0xDAF70` / `s0t0_a0_tal1_s` | `0x17C0` / `0bgOLQs0t0_a0_t` | `0x89940598` |
+| `obj6_h` | `0x596E0` / `s0t0_hw_obj6_h_001` | `0xDC5C0` / `s0t0_hw_obj6_h` | `0x1760` / `18KWebs0t0_hw_h` | `0x899404E5` |
+| `obj6_h` | `0x59710` / `s0t0_hw_obj6_s_004` | `0xDC614` / `s0t0_hw_obj6_s` | `0x1780` / `45caGls0t0_hw_o` | `0x899404E6` |
+| `obj7_h` | `0x597A0` / `s0t0_hw_obj7_h_001` | `0xDC668` / `s0t0_hw_obj7_h` | `0x2FA0` / `18KWdEs0t0_hw_h` | `0x899404E7` |
+| `obj7_h` | `0x597D0` / `s0t0_hw_obj7_s_004` | `0xDC6BC` / `s0t0_hw_obj7_s` | `0x2FC0` / `45caFOs0t0_hw_o` | `0x899404E8` |
+| `obj8_h` | `0x59860` / `s0t0_hw_obj8_h_001` | `0xDC710` / `s0t0_hw_obj8_h` | `0x29C0` / `18KWhfs0t0_hw_h` | `0x899404E9` |
+| `obj8_h` | `0x59890` / `s0t0_a0_tal1_s_004` | `0xDAF70` / `s0t0_a0_tal1_s` | `0x17C0` / `0bgOLQs0t0_a0_t` | `0x89940598` |
+
+These are serialized membership and typed resource-table mappings. The
+resource-ID-to-path convention does not prove that every target file exists.
+This membership check read the layout only; it did not inspect additional
+resident resources or their dependencies. It does not identify portable
+`b###` appearance variants, establish visual identity, or identify the native
+clip receiver for every descendant. The separate decoration-condition
+boundary below remains unresolved.
 
 ## Additional IDs and resource-key aliases
 

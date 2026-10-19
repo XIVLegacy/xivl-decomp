@@ -27,8 +27,8 @@ separate player work packet is in
 [Seasonal event work control plane](../event/seasonal-control-plane.md).
 
 The [Limsa public-layout pointer join](limsa-seasonal-weather-extension.md#halloween-selector-and-resident-group)
-identifies the property/vector references for its eight pairs and the first
-pair's resident group and resource keys. The
+identifies the property/vector references and all eight pairs' separate
+resident groups and resource-table joins, preserving shared BGParts aliases. The
 [Gridania and Ul'dah public joins](city-halloween-owner-joins.md) identify
 their 21 property/vector and direct resident-owner joins, with one resource
 example per city. The [three-city interior joins](city-interior-halloween-owner-joins.md)
