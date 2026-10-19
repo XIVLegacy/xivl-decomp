@@ -4,8 +4,11 @@ The resource parser calls the clip builder synchronously on the nonzero
 actor/track parser-result path. The selected call path is
 `0x00A26380 -> 0x00A1C7B0 -> 0x00A28510`. Actor and track parsing prepare
 collections before that invocation. They are not themselves the clip builder.
-The actual clip class still depends on the selected registry entry, and the
-owning UnitTree context at clip creation remains a condition.
+The local builder selects a clip factory by its class-name key. The selected
+Limsa `vtp5` wrapper supplies `LayRaptureCallSchedulerClip`, and a registration
+path supplies factory `0x00837220` for that exact key. Their registry-object
+identity, complete wrapper initialization and owning UnitTree context at clip
+creation remain separate conditions.
 
 ## Evidence identity
 
@@ -27,6 +30,14 @@ The existing [Limsa scheduler binding](limsa-fireworks-scheduler-bindings.md)
 and [SCB layout](cut-scheduler-clip-layout.md) findings supply the resource
 entry path, serialized records and wrapper receiver contract.
 
+The constructor, string lookup and registration observations below used
+Python `3.12.0`, pefile `2024.8.26` and Capstone `5.0.7` in x86-32 mode.
+Each retained Ghidra instruction in the selected bodies was compared with its
+original PE bytes and independently decoded. The reused builder excerpt was
+limited to `0x00A28610..0x00A28641`. Literal pointers and vtable cells were
+read directly from the PE. This was static original-byte verification, not
+runtime observation or a new Ghidra import.
+
 ## Actor and track preparation
 
 `0x00A298D0` takes `(chunk, factory, arena)` as three dword stack arguments
@@ -43,7 +54,8 @@ and selects an eight-byte key entry. At `0x00A2993B..0x00A29945`, it calls
 a selected node's function pointer from node `+0x10` and calls it at
 `0x00A1FA1F` with five dwords `(record, factory, keyEntry, arena, 0)`.
 It restores those 20 bytes itself. Its registry lookup `0x00A1FC00`
-remains uninspected; a node equal to the retained end node returns zero.
+uses the exact string comparison described below. A node equal to the
+retained end node returns zero.
 The result is appended unconditionally through `0x00A21D10`, including
 null results. The next record adds the sign-extended word at record `+0`.
 
@@ -73,14 +85,16 @@ calls the actor/track parser `0x00A25B90`. The instructions at
 before the factory compares used arena bytes with its planned size at
 `0x00A26593..0x00A2659B`.
 
-`0x00A1C7B0` constructs a local builder through `0x00A28170` at
-`0x00A1C7DE`, with `(u32(S+0x7C), u32(P+0x58), P)`. That constructor's
-field mapping and its expected 12-byte callee cleanup remain uninspected.
+`0x00A1C7B0` constructs local builder `B` through `0x00A28170` at
+`0x00A1C7DE`, with `(u32(S+0x7C), u32(P+0x58), P)`. The constructor
+stores these arguments at `B+8`, `B+0x0C` and `B+0x10`, respectively,
+installs vtable `0x01098650` and returns with `RET 0x0C` at
+`0x00A2818D`.
 At `0x00A1C7E3..0x00A1C7F8`, it calls `0x00A28510` with two dwords
 `(u32(P+0x3C), S+0x60)`. The builder removes eight argument bytes with
 `RET 8`. Its ECX is the caller's stack pointer after those pushes plus
-`0x20`; this is the constructor's local region if its expected cleanup
-holds. The returned collection is retained at `S+0x34`.
+`0x20`, the same local region initialized by the constructor. The returned
+collection is retained at `S+0x34`.
 
 As established by the SCB layout finding, `0x00A28510` selects an eight-byte
 clip key entry using `u8(D+2)` and calls a selected registry node's
@@ -96,9 +110,71 @@ construction branch rather than its size-query branch. The factory reserves
 `0x00836B80` with `(D,keyEntry)`. That constructor calls `0x00836660`
 and installs primary vtable `0x0103B54C`. Its slot-1 cell at
 `0x0103B550` contains receiver-selection method `0x00836730`.
-The selected local builder's registry setup and `0x00A1FC00` lookup are
-not joined here to the `0x00837220` pointer. That remains the exact
-factory-selection condition.
+The selection contract below identifies the matching registered key. A
+registered pointer and a nonnull construction result do not establish a
+fully initialized scheduler wrapper.
+
+## Class key and registry selection
+
+Let `G = u32(B+8) = u32(S+0x7C)` and
+`K = u32(B+0x0C) = u32(P+0x58)`. At `0x00A28617..0x00A28620`, the
+builder computes `keyEntry = K + 8*u8(D+2)`. At
+`0x00A2862A..0x00A2863C`, it calls `0x00A1FC00` with registry `G+8`
+as ECX and that entry as its lookup key. The entry's first dword is the
+class-name pointer.
+
+`0x00A1FBA0` walks the registry's binary tree using unsigned bytewise
+NUL-terminated string ordering. `0x00A1FC00` checks the resulting candidate
+against `u32(keyEntry)` with the same string ordering at
+`0x00A1FC2D..0x00A1FC59`. Equality returns that node. A miss returns the
+registry's end node from registry `+4`. Node `+0x0C` holds the class-name
+pointer and node `+0x10` the factory pointer. Selection therefore depends
+on exact class-name bytes, not pointer identity or the serialized actor
+ordinal.
+
+Registration helper `0x00836E60` reads `0x012CF81C`, whose original PE
+value points to `LayRaptureCallSchedulerClip` at `0x0103A5DC`. It pairs
+that key with `0x00837220` at `0x00836E7C` and calls `0x0063F710` on
+the supplied object `+8` at `0x00836E84`. The insertion path
+`0x0063F710 -> 0x0063F240 -> 0x0063E800 -> 0x0061EEC0` compares the
+same bytewise keys, allocates and links a node when absent, and stores
+the pair at node `+0x0C/+0x10`. An existing equal key returns its node
+without replacing its stored factory. Thus reaching this registration call
+alone does not prove that an earlier equal entry held the same pointer.
+
+At `0x00637707..0x00637715`, `0x006375A0` obtains the complete
+`LaySchedulerManager` and calls its slot 4. The original complete-object
+vtable `0x0109E860` selects `0x00A732C0`, whose nonnull branch returns
+the object retained at manager `+8`. That returned object is supplied to
+`0x00836E60` at
+`0x00637735..0x00637736`. This establishes where the registration path
+obtains its registry object, conditional on the initialization path reaching
+these calls.
+
+### Selected Limsa wrapper
+
+The selected owner-200 `vtp5` span is file
+`[0x778D0,0x77D40)` in `data/29/D9/00/00.DAT`, size 1,136 bytes,
+SHA-256
+`a675e4aa2f1f43da508b91add20ababa093783ec6995ef756e293abaa75a7afc`.
+The containing DAT is 529,376 bytes, SHA-256
+`b61cf798a02fc1bf72f1445a01b6a94a2e58793e7dd82d0d654f1d422bbceff3`.
+Python `struct` parsing using the linked SCB layout found one `@CCPT`
+entry: ordinal 0 at file `0x77980`, string token 1, resolving to
+`LayRaptureCallSchedulerClip` at file `0x77CE3`. The first clip at
+`D = 0x77B20` has `u8(D+2) = 0` and stride `0x2C`.
+
+For that clip, the valid parsed key table selects entry `K`. If `G` is the
+object supplied by the registration path and its exact matching node holds
+`0x00837220`, the builder selects that factory and supplies construction
+flag zero. This is lookup eligibility and conditional factory selection.
+The input-to-runtime mapping of `P+0x58` and registry-object identity at
+`S+0x7C` remain conditions. Constructor `0x00A84EE0` forwards its
+arguments to base `0x00A1EBE0` and does not itself write `S+0x7C`.
+The next discriminator is that base constructor's field initialization
+together with the selected constructor argument from `0x00A78D80`.
+Their inspection is required to join this registration object to the
+builder's actual `G`; matching names alone do not establish that identity.
 
 ## Owning-context limit
 
@@ -108,13 +184,11 @@ the actual global values at those instructions. The latter is the `U`
 used by the existing wrapper receiver-selection finding.
 
 The synchronous call chain does not prove those globals retained their
-values from UnitTree publication. The uninspected builder constructor,
-registry lookup, actor constructors, intervening virtual calls and
-`0x00836EF0` before the final capture can affect context. No selected
-read joins the instance's retained `+0xFC` field to this capture. The next
-bounded static edges are `0x00A28170` at the local-builder construction
-and `0x00A1FC00` at its registry lookup, followed by context preservation
-across the selected constructor chain.
+values from UnitTree publication. Actor constructors, intervening virtual
+calls and `0x00836EF0` before the final capture remain uninspected context
+edges. No selected read joins the instance's retained `+0xFC` field to this
+capture. Establishing the registry-object identity above would still leave
+context preservation across the selected constructor chain separate.
 
 This composition establishes conditional construction calls. It does not
 establish allocation success, complete initialization, child registration,

@@ -264,8 +264,8 @@ factory `+0x0C`. On a nonnull factory result, the manipulator invokes
 `0x00A78D80`.
 
 That method constructs an object through `0x00A84EE0` and passes it to
-`0x00A26380` at `0x00A78E27`. The implementations of `0x00A242F0`,
-`0x00A26080` and the constructor remain opaque at this boundary.
+`0x00A26380` at `0x00A78E27`. Helpers `0x00A242F0` and `0x00A26080`
+remain opaque. The composition finding below narrows the constructor edge.
 After its resource, allocation and size guards, `0x00A26380` calls
 `0x00A25DC0` at `0x00A2655A` and `0x00A25B90` at `0x00A2657D`.
 
@@ -280,7 +280,9 @@ arena `new-object+0x60`. Its `@CTRK` branch calls `0x00A26850` at
 [SCB composition finding](scb-clip-factory-composition.md) owns their actor
 collection/track preparation and the guarded synchronous
 `0x00A26380 -> 0x00A1C7B0 -> 0x00A28510` call path. The local builder's
-registry setup and lookup remain unjoined to registered factory `0x00837220`.
+constructor, exact class-key lookup and matching `0x00837220` registration
+are established there. The selected parsed key table and actual registry-object
+identity remain conditions on factory selection.
 
 The established child-context inheritance, numeric registration and clip
 constructor's global capture do not establish the owning context at that
@@ -290,8 +292,8 @@ at `0x00810319..0x0081032D`; no read of that retained field is connected
 to the selected builder path. Uninspected intervening calls can change
 context. The owning `U` at either wrapper's actual clip creation
 therefore remains an input condition, not a result inferred from call-stack
-proximity. The linked composition finding owns the exact remaining builder
-setup, registry-selection and pre-capture context edges.
+proximity. The linked composition finding owns the exact remaining parsed-key,
+registry-object identity and pre-capture context edges.
 
 Instance helper `0x007FBAB0` also publishes slot-61 context around property
 slot 24, `0x00AA2A80`. That method submits transform data and does not
@@ -309,8 +311,9 @@ state was not reconstructed by the receiver lookup.
 Weather `8029` and the recovered `MapObjFireworks` script do not supply this
 missing retail activation record. Their separate evidence and limits remain
 in [City seasonal root effects](city-seasonal-root-effects.md#script-and-activation-boundary).
-The remaining static joins are the local builder's selected factory and the
-owning tree's context at actual clip capture. The
+The remaining static joins are the builder's parsed key table and registry
+object, complete wrapper initialization and the owning tree's context at
+actual clip capture. The
 [parser-to-builder call path](scb-clip-factory-composition.md#synchronous-builder-invocation)
 is synchronous under its stated guards. Historical orchestration requires an
 authenticated dispatch or observation that identifies the actor, binding and
