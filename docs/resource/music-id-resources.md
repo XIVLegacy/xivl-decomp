@@ -1,10 +1,12 @@
 # Music IDs 13 and 57 resource mapping
 
 Music IDs 13 and 57 produce request keys whose numeric-mode paths exist as
-distinct resources in the retained 1.23b installation. The sound request's
-concrete resource-interface binding remains unresolved, so the pathname join
-is conditional. File presence does not authenticate reported titles, audible
-playback or historical zone usage.
+distinct resources in the retained 1.23b installation. The retained
+construction path binds the sound object's resource interface to
+`Component::Resource::ResourceModule`. The pathname join remains conditional
+on that binding remaining in force at the request and on numeric formatter
+mode. File presence does not authenticate reported titles, audible playback
+or historical zone usage.
 
 ## Retained identities
 
@@ -51,19 +53,45 @@ from helper `0x00441BF0`. Allocation-failure handling and the backend were
 not characterized. These branches do not guarantee that each music request
 creates a resource open.
 
-Constructor `0x004DD790` forwards its first argument to `0x00442580` and
-installs table `0x00F90F9C` at `0x004DD7CE`. The base constructor stores that
-argument at sound-object `+0x04` at `0x004425CF`. Dispatcher constructor
-`0x004DBF40` loads its own first argument at `0x004DC0C1` and passes it to
-that sound constructor at `0x004DC0CD`, constructing member `+0x928`.
-Thus the resource interface comes from the dispatcher's caller. Its dynamic
-type was not resolved.
+Constructor `0x00C99090` installs table `0x01108C3C` at `0x00C990C3` and
+returns its original object pointer at `0x00C9910E`. Initializer
+`0x004B2DF0` calls it at `0x004B33B6`, stores its result at owner `+0x50`
+at `0x004B33C8`, and reloads that pointer at `0x004B368F` for argument 2
+of outer constructor `0x004DC3A0`, called at `0x004B3697`. The first outer
+argument is the separately supplied value held in ESI. A zero ResourceModule
+allocation skips its constructor and stores zero through the same field.
+A separate zero outer-object allocation skips the outer constructor. The
+binding below describes the normal constructor path, rather than construction
+observed at runtime.
 
-The retained `Component::Resource::ResourceModule` table at `0x01108C3C`
-has slot 1 target `0x00C99130`, independently checked at table entry
-`0x01108C40` and identified by `config/ffxivgame.rtti.json` and
-`config/ffxivgame.vtable_slots.jsonl`. This supplies a concrete candidate,
-conditional on the caller-supplied interface having that binding.
+At `0x004DC3F6`, outer constructor `0x004DC3A0` loads `[ESP+0x88]` after
+two pushes. Accounting for its prologue and those pushes identifies outer
+argument 2. It forwards that pointer unchanged as argument 1 of dispatcher
+constructor `0x004DBF40` at `0x004DC414`. The dispatcher receiver is outer
+`+0x10`. The dispatcher loads its argument at `0x004DC0C1` and passes it
+to sound constructor `0x004DD790` at `0x004DC0CD`, constructing member
+`+0x928`. `0x004DD790` forwards the argument to `0x00442580`, which stores
+it at sound-object `+0x04` at `0x004425CF`. These receiver adjustments
+place the sound member at outer `+0x938`; they do not adjust the resource
+pointer. `0x004DD7CE` installs sound table `0x00F90F9C`.
+
+The original ResourceModule table entry at `0x01108C40` is slot 1 target
+`0x00C99130`. Its complete-object locator at `0x0119C364` has offset zero
+and points to TypeDescriptor `0x0130B648`, whose mangled name is
+`.?AVResourceModule@Resource@Component@@`. This agrees with
+`config/ffxivgame.rtti.json` and `config/ffxivgame.vtable_slots.jsonl`.
+The normal construction path supplies a concrete ResourceModule binding.
+
+The inspected initializer has no direct overwrite of owner `+0x50` between
+the store and reload. The inspected outer and dispatcher constructors have
+no direct overwrite of the corresponding sound `+0x04` field, and
+`0x004DD790` does not overwrite that field after its base call. The later
+explicit sound-member call at `0x004DC2C4` targets `0x004419D0`, whose
+complete body only returns AL=1. ResourceModule's later member constructor
+`0x00C96C10`, called with object `+0x28`, writes its member's own table
+and fields, with no direct write to the parent vptr. These checks cover the
+named bodies' direct stores. Transitive callees and later code remain outside
+that write coverage.
 
 The [resource path producer](resource-path-producer.md#formatting-contract)
 owns the conditional numeric formatter. When byte `0x01266B64` is nonzero,
@@ -73,10 +101,12 @@ The paths in the table identify the retained numeric-mode files. Static
 presence does not establish the formatter mode or a successful resource open
 in a historical session.
 
-The remaining static discriminator is the first argument at callers of
-`0x004DBF40`: establish the concrete interface and any object adjustment, then
-account for intervening writes to sound-object `+0x04`. The matching numeric
-files do not close that binding by themselves.
+If that pointer and ResourceModule vptr remain in force when the wrappers
+load sound `+0x04`, their slot-1 target is `0x00C99130`. This is conditional
+static dispatch reasoning, rather than an observed call or successful open.
+The remaining boundary is call-time pointer/vtable state, request admission
+and resource creation, numeric formatter mode, and open outcome. The matching
+files supply no additional title or historical selection proof.
 
 ## Bounded metadata check
 
@@ -120,6 +150,12 @@ a newly acquired soundtrack or a file selected by a reported title.
 
 1. Read `game.ver`, then check the executable and the two DAT sizes/SHA-256
    values with `Get-Item` and `Get-FileHash -Algorithm SHA256`.
+   Check the selected constructor/call instructions against that PE. Follow
+   the original pointer through owner `+0x50`, outer argument 2 and dispatcher
+   argument 1 to sound `+0x04`, accounting for moving ESP at `0x004DC3F6`.
+   Read ResourceModule table slot 1 at `0x01108C40`, its complete-object
+   locator and TypeDescriptor. Keep constructor-time binding distinct from
+   call-time state, formatter mode and resource-open success.
 2. Compute `0x07FE0000 + songID` for 13 and 57. Render its four bytes as
    uppercase hexadecimal in most-significant-first order for numeric mode.
 3. Read only the selected headers and metadata. Check `SEDBSSCF`, the u32

@@ -31,7 +31,8 @@ This does not establish the packet's complete framing length.
 
 The operation derives resource ID `0x07FE0000 + songID` when it requests a
 new song. The [selected 13/57 resource check](../resource/music-id-resources.md)
-records retained numeric-path files and the remaining interface-binding limit.
+records retained numeric-path files, their constructor-time ResourceModule
+binding and the remaining call-time/formatter-mode limits.
 There is no song-ID-zero or song-ID-`0xFFFF` branch in this control
 body. They produce `0x07FE0000` and `0x07FEFFFF`, respectively. Resource
 existence and the downstream effect of either ID remain unresolved.
