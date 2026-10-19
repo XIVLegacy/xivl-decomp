@@ -170,9 +170,113 @@ Thus the lookup receiver derives from `u32(F+0x10)`, copied through R
 The sixth input follows the separate F `+0x1C` to H `+0x0C` retention
 path above. This identifies the fields and argument roles, without proving
 equality or inequality between their stored values. Their producers before
-these constructor arguments, preservation until the later field reads,
-actual manager/registry identity and owning
-UnitTree or clip-initialization context remain separate bindings.
+these constructor arguments are distinct questions. The third input's
+manager source is traced below. Preservation until the later field reads,
+actual manager/registry identity and owning UnitTree or clip-initialization
+context remain separate bindings.
+
+#### Actor-registry producer and registration inputs
+
+Let M be the complete manager and V its retained actor-registry object.
+In manager construction, `0x00A72F6B` binds ESI to M. On the selected
+construction branch, `0x00A72FCD..0x00A72FD6` supplies the current EAX
+value as ECX to `0x00A1FB50` and retains its return in EDI. The alternate
+branch selects zero. After conditional cleanup of the old field value,
+`0x00A72FF2` stores EDI at M `+0x0C`. The cleanup's indirect effects
+remain unqualified. Normal register preservation and valid object storage
+are conditions on this retention relation.
+
+Constructor `0x00A1FB50` returns its incoming receiver V. It installs
+vtable `0x01097AF8` and calls `0x00A3CAA0` for a pointer E. It stores
+E at V `+0x0C`, sets byte E `+0x15` to one, links E `+0/+4/+8` to E
+itself, and zeros V `+0x10`. These stores establish the empty-tree shape
+at V `+8` used by the published string lookup. They require a valid E
+and preservation across the called helper. `0x00A3CAA0` supplies E through
+the return of its call to `0x0040E110`, made with the explicit size operand
+`0x18`, then initializes node fields. Its allocator-related callees remain
+unqualified. The constructor does not establish successful allocation or
+complete manager initialization.
+
+At factory creation, `0x00A72D2E` binds ESI to the complete M.
+`0x00A72E10` reads `u32(M+0x0C)` into EBX before the virtual call at
+`0x00A72E19`. Under normal EBX preservation across that call, the push
+at `0x00A72E24` supplies this value as argument 3 to `0x00A78D30`.
+Using the published derived/base forwarding contract, that argument becomes
+F `+0x10`, then R `+4`, and finally the actor lookup's receiver V `+8`.
+This identifies the producer and registry field role. It does not prove
+that the retained value survives unchanged until each later read.
+
+The complete manager vtable `0x0109E860` has slot 3 cell `0x0109E86C`
+pointing to `0x00A72BB0`. That thunk tail-dispatches the same receiver's
+slot 11. With that vtable retained, cell `0x0109E88C` selects
+`0x00A72E50`. For a nonzero M `+0x0C` value, the first sequence at
+`0x00A72E54..0x00A72E6D`
+supplies that value as ECX and these two dword arguments to `0x00A1FAC0`:
+
+```text
+(u32(0x012F1EC0) at the getter load, 0x00A73090)
+```
+
+Getter `0x00A78650` reads the mutable data cell `0x012F1EC0`, whose
+original PE value points to `LayUnitMemberActor\0` at `0x0109F644`, as
+also documented in
+the [parsed class-name comparison](timeline-weather-record-view.md#synchronous-scheduler-callback).
+If the cell retains that original value and the pointed-to bytes are
+preserved, the supplied key is `LayUnitMemberActor`. The getter returns
+the cell's value at its load; the static PE value alone does not establish
+that runtime key.
+The already-pushed `0x00A73090` remains the second argument because the
+getter returns with plain `RET`. Helper `0x00A1FAC0` copies the two
+arguments to a local pair, adjusts ECX by eight, and supplies a second local
+stack address and the input pair address to `0x00A1FC90` at `0x00A1FADE`.
+This establishes the supplied value pair for the same M `+0x0C` registry
+role. Its `LayUnitMemberActor` key remains conditional on the cell and
+literal preservation above. The insertion behavior of `0x00A1FC90` is
+unresolved here:
+the checked caller does not itself write a tree node. Whether this pair
+is inserted, replaces an equal key, or remains available to the later actor
+lookup is the exact remaining registration edge. Reaching the call alone
+does not establish a node's stored function pointer.
+
+Registration inputs and actor lookup address the same V `+8` only when
+their complete manager and retained object values agree and remain
+preserved through F `+0x10` and R `+4`. The separate clip-factory registry
+uses M `+8`, F `+0x14` and S `+0x7C`. The sixth factory argument retained
+at F `+0x1C` and H `+0x0C` remains a separate role. These field relations
+do not establish pointer equality or inequality, owning context, scheduling,
+or actor and clip initialization effects.
+
+#### Actor-registry reproduction
+
+Use the original PE identity and Python, pefile and Capstone versions in
+[Evidence identity](#evidence-identity). This trace used retained Ghidra
+listings with original-PE pefile mapping and independent Capstone x86-32
+decoding. It did not use a new native-provider analysis or observe execution.
+Compare every retained instruction with the original bytes and verify its
+complete boundary. The actual instruction-address unions are:
+
+| Purpose | Instruction union | Instruction bytes |
+| --- | --- | --- |
+| Actor-registry constructor | `[0x00A1FB50,0x00A1FB88)` | `0x38` |
+| End-node producer | `[0x00A3CAA0,0x00A3CAFF)` | `0x5F` |
+| Complete-manager slot-3 thunk | `[0x00A72BB0,0x00A72BB7)` | `0x07` |
+| Registration input sequences | `[0x00A72E50,0x00A72E9A)` | `0x4A` |
+| Registration pair forwarding | `[0x00A1FAC0,0x00A1FAE9)` | `0x29` |
+| Published actor-name getter | `[0x00A78650,0x00A78656)` | `0x06` |
+
+The reused old operands are `[0x00A72E01,0x00A72E2E)`,
+`[0x00A72FC0,0x00A72FF5)`, `[0x00A72D2E,0x00A72D30)`,
+`[0x00A72F6B,0x00A72F6D)` and `[0x00A72F8F,0x00A72F92)`.
+Each union above is contiguous and was checked through its exclusive end.
+Additional complete method checks covered manager setters
+`[0x00A72CE0,0x00A72D03)` and `[0x00A73220,0x00A73243)`, each `0x23`
+instruction bytes. They write M `+8` and M `+0x10`, respectively, and
+do not supply the actor-registry producer. The checks do not qualify their
+indirect cleanup callees. Read the two selected manager vtable cells, the
+actor-name pointer cell and the complete NUL-terminated literal directly
+from the same PE. Reuse the published factory forwarding, stack-local
+construction and string-query/output-pair lookup contracts without reopening
+their complete bodies.
 
 #### Retained-input reproduction
 
