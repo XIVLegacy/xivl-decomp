@@ -24,6 +24,11 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
+The descriptor-selection and view-construction observations below use
+Python 3.12.0 with those same libraries to decode original PE instructions.
+Retained listings supplied locators, and every listed byte, instruction
+boundary and full contiguous span in the listed reproduction ranges was
+checked against that PE.
 
 ## Class and conditional construction
 
@@ -106,14 +111,60 @@ descriptor `+0x10` is `0x107`; the candidate span
 literal `Attr` at `0x7C782`. These facts do not join that span to native
 selection or give its scalar words consumed channel meanings.
 
-Accessor `0x00A20090` reads its context `+0x0C`, forwards the supplied
-word to `0x00A1CA20` at `0x00A20098`, then calls `0x00A220A0` with
-that result as ECX at `0x00A2009F`. Those uninspected helpers are the
-missing D+0x14-to-descriptor edge. Zero does not independently prove that
-the visible descriptor is selected. No serialized Attr values are assigned.
+Accessor `0x00A20090` reads its context `+0x0C`, calls `0x00A1CA20`
+at `0x00A20098`, then calls `0x00A220A0` with that result as ECX at
+`0x00A2009F`. Let `R = u32(context+0x0C)` and `P = u32(R+0x50)`.
+At `0x00A1CA35..0x00A1CA3A` and `0x00A1CA81..0x00A1CA91`, the
+first helper returns view `V = P+0x1C` when P is nonzero. It neither
+reads nor removes a stack argument. The second helper reads the supplied
+ordinal i and returns:
+
+```text
+u32(V+4) + 16 * u16(u32(V) + 2 + 2*i)
+```
+
+The instructions at `0x00A220A0..0x00A220B3` contain no ordinal bound,
+null-pointer check or descriptor-content test. Conditional on D retention
+and valid view storage, `u32(D+0x14)=0` therefore selects the descriptor
+indexed by the first u16 indirection entry, not necessarily descriptor zero.
+When P is zero, `0x00A1CA20` instead returns global view `0x0136510C`,
+lazily initialized through `0x00A22010` to three zero dwords. That empty
+view does not itself supply valid descriptor storage to `0x00A220A0`.
+
+A checked producer of this view layout is `0x00A27080`. At
+`0x00A27095..0x00A270CA`, it loads key pointer `0x01097F94` from
+cell `0x01097F9C`. The original eight bytes at `0x01097F94` are
+`@FCURVE\0`. It calls `0x00A21F90` with receiver `Q+8`, where Q is its incoming ECX. For a
+nonzero return T, it constructs a temporary view with `0x00A22020`
+and copies its first two dwords to `Q+0x1C` through `0x00A22080`.
+The resulting storage contract is:
+
+```text
+u32(Q+0x1C) = T
+u32(Q+0x20) = T + ((2*u16(T) + 0x11) & ~0x0F)
+```
+
+Constructor `0x00A230B0` initializes the view at `Q+0x1C` with
+`0x00A22010`. `0x00A24E70` constructs Q at `0x00A24F5B`, calls
+`0x00A27080` on Q at `0x00A2509C`, and can return Q at `0x00A2514D`.
+This is a concrete construction path, not proof that Q becomes the P read
+by the selected material context.
+
+For directory receiver E, `0x00A21F90` uses `s32(E+4)` as the entry
+count and visits entries from j=0 while j is below that count. Candidate j is
+`u32(u32(E+8)+4*j) + u32(E+0x0C) + u32(E+0x10)`.
+It calls uninspected `0x009D5475` with `(candidate,key,8)` and returns
+`candidate+0x10` on the first zero result, or zero if the loop finishes.
+The precise remaining construction boundary is the producer of those
+directory fields, the actual Q-to-P storage edge, and the indirection
+word at T+2. The selected SCB entry and visible `FCurve0000.fcr` text
+alone do not establish these joins. Construction-path calls to uninspected
+`0x00A26D70` at `0x00A2500D` and `0x00A26DE0` at `0x00A2507B`
+are the retained directory-construction discriminators. No serialized Attr
+values are assigned.
 
 The intermediate constructor `0x00835950`, string helper `0x0064E6F0`,
-FCurve construction helpers, registry lookup and active-container helper
+FCurve scalar construction helpers, registry lookup and active-container helper
 `0x00834A80` remain conditions. Base construction captures current global
 `0x013657B4` into runtime `+0x54`; that does not identify owning UnitTree U
 or prove context preservation. Static class and parameter evidence does
@@ -139,6 +190,16 @@ calls and cited operands for these exclusive ranges:
 | Lay factory | `0x00835B90` | `0x00835C18` |
 | Descriptor accessor | `0x00A20090` | `0x00A200A7` |
 | Generic D retention | `0x00A21260` | `0x00A212A8` |
+| Descriptor view selection | `0x00A1CA20` | `0x00A1CA92` |
+| Ordinal descriptor lookup | `0x00A220A0` | `0x00A220B4` |
+| Empty view constructor | `0x00A22010` | `0x00A2201D` |
+| Serialized view constructor | `0x00A22020` | `0x00A22041` |
+| View pointer assignment | `0x00A22080` | `0x00A22093` |
+| Temporary view cleanup | `0x00A22070` | `0x00A22071` |
+| Directory selection | `0x00A21F90` | `0x00A21FD8` |
+| View owner constructor | `0x00A230B0` | `0x00A2311A` |
+| View population | `0x00A27080` | `0x00A271A1` |
+| View construction path | `0x00A24E70` | `0x00A25168` |
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
