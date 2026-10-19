@@ -117,11 +117,78 @@ manager returns the interface without checking initialization's Boolean
 result. On that construction path H therefore has this manipulator type;
 the generic setter alone does not establish it for every caller.
 
-The remaining consumer edge is the manipulator's slot-4/slot-9 behavior and
-slot-25 attachment contract, including any dependency on its underlying
-scheduler's successful initialization. The conditional producer does not
-prove actual installation, helper success, scheduler playback or visible
-activation. R's separate slot-19/view binding remains unresolved.
+The manipulator's conditional consumer behavior is described below. The
+producer does not prove actual installation, successful initialization,
+scheduler playback or visible activation. R's separate slot-19/view binding
+remains unresolved.
+
+### Manipulator flag and attachment consumers
+
+For the published producer's table `0x0109F484`, H is the manipulator
+interface and D=H-4 is its complete object. The underlying scheduler cell is
+H+8=D+`0x0C`, distinct from the property back-reference at H+`0x10`=D+`0x14`.
+The initializer's `0x00A784CA` call to the published scheduler-creation helper
+`0x00A02F20` stores its EAX result at H+8 at `0x00A784D5`.
+Its later null test is at `0x00A78501..0x00A78503`. The manager's unchecked
+initializer Boolean therefore matters: nonnull H does not prove nonnull
+underlying scheduler or completion of its initialization.
+
+| H slot / original cell | Target and supported behavior |
+| --- | --- |
+| 4 / `0x0109F494` | `0x00A77D60`: the published [fleet consumer](ambient-garlean-fleet.md#direct-fleet-clock-consumer) owns its flag mask `0xF9` and child-cleanup contract. |
+| 9 / `0x0109F4A8` | `0x00A77DE0`: writes bit 1 of byte H+`0x20`=D+`0x24` from bit 0 of its argument's low byte, preserving every other bit. It makes no call and does not read the underlying scheduler. |
+| 25 / `0x0109F4E8` | `0x00A783A0`: exits at `0x00A783A7` when H+8 is zero. Otherwise it stores the supplied property P at H+`0x10`, calls `0x00A780E0(D)`, then calls P slot 33 and H slot 13 with its argument's low byte set to `(return == 1)`. |
+| 13 / `0x0109F4B8` | `0x00A77E20`: copies argument bit 0 into bit 0 of H+`0x20`, preserving all other bits. |
+
+In particular, the evaluator's slot-9 arguments 1 and 0 set and clear bit 1.
+This establishes a flag operation, not an enable, loop or playback meaning.
+Slot 9 leaves AL equal to its masked XOR delta, either 0 or 2, rather than a
+Boolean success indicator. Slot 13 similarly leaves its bit-change delta in
+AL. Slot 25 does not normalize a success return and does not inspect
+`0x00A780E0`'s return. Its null-scheduler branch neither retains P nor makes
+the later calls. The generic property setter still retains H on that branch.
+The separately checked slot-4 guard at `0x00A77D64..0x00A77D69` returns
+at `0x00A77D72` when H+8 is null, after the published flag mask.
+Thus slot 4 can clear flags and skip child cleanup, while slot 9 can change
+its flag even with no underlying scheduler.
+
+For this property table, P slot 33 is cell `0x00FF2DB0`, targeting
+`0x00AA2750`. Its existing checked contract follows P slot 3, then that
+receiver's slot 15. If the latter return or its dereferenced pointer is
+null, it returns zero. Otherwise it zero-extends the pointed-to first byte.
+The intermediate receiver from P slot 3 is not null-guarded. Consequently
+the nonzero test inside `0x00A780E0` and the exact-one comparison in slot 25
+are different conditions on separate calls. Equal returned values are not
+established. Neither comparison authenticates a semantic mode name.
+
+`0x00A780E0` independently guards D+`0x0C` at `0x00A780E7`.
+For a nonnull scheduler, it calls that scheduler's slot 61 at `0x00A78104`
+with callback address `0x00A84F70` and a pointer to a local copy of P.
+It then calls P slot 33. A zero result exits at `0x00A78115`; a nonzero
+result calls `0x00A77FD0(D,0)`. That predicate obtains a root through
+P slot 4 and the returned receiver's slot 61 at `0x00A77FE1..0x00A77FF7`.
+It checks selected node results and recurses through child slots 25/26.
+Its false result sets bit 1 of D+`0x24` at `0x00A78145`.
+Its true result instead calls H slot 3 at `0x00A78140` with phase 0 when
+D+`0x1C` is null, or that receiver's slot-14 result otherwise, and second
+argument -1. The linked fleet finding owns this slot-3 phase-dispatch
+contract. No return from the scheduler slot-61 call is tested here.
+
+The callback's complete effects, the concrete scheduler slot-61 target and
+the P-slot-4 receiver's slot-61 root remain separate typed requirements.
+They are not established by P's storage or by the conditional call alone.
+These slots do not resolve R slot 19 or identify a concrete weather record
+view. The predicate's result is a native branch condition, not observed
+readiness or completed playback.
+
+The evaluator helpers do not propagate the backend methods' returns.
+After H slot 9, `0x007FCA60/0x007FCA63` and
+`0x007FCAFE/0x007FCB01` immediately start their separate child iterations,
+overwriting EAX. Their normal completion writes AL=1 at
+`0x007FCABE` and `0x007FCBC6`, respectively. Thus their true result after
+normal return means the helper reached its completion path. It does not
+authenticate a nonnull underlying scheduler, successful attachment or
+visible activation. The already-published null-H false paths still apply.
 
 ## Conditional record-view contract
 
@@ -182,3 +249,27 @@ slot-30 call, null branches and first backend calls. Keep the backend cell
 C+`0x10` separate from R's cell C+`0x0C`. Consume the linked TimeLine
 construction path for the conditional manipulator producer before following
 its concrete consumer slots; the generic setter does not identify all callers.
+
+For the manipulator consumers, read table `0x0109F484` cells for slots
+4, 9, 13 and 25 directly. The newly checked complete instruction unions are
+`[0x00A77DE0,0x00A77DF1)`, `[0x00A783A0,0x00A783E2)`,
+`[0x00A780E0,0x00A7814C)`, `[0x00A77E20,0x00A77E2F)` and
+`[0x00A77FD0,0x00A780C3)`. Read the latter's two jump targets at
+`0x00A780C4` and its 15 selector bytes at `0x00A780CC` separately as data.
+The callback lead was decoded only in `[0x00A84F70,0x00A84FF0)`;
+its branches leave that range, so it supplies no complete callback contract.
+Consume the linked slot-4/slot-3 contracts rather than inferring new semantics
+from their names.
+
+The initializer output-cell relation used only the existing excerpts
+`[0x00A78443,0x00A78445)`, `[0x00A784C3,0x00A784D8)` and
+`[0x00A784FE,0x00A78509)`. The evaluator return handling used only
+`[0x007FCA5E,0x007FCA68)`, `[0x007FCABB,0x007FCAC2)`,
+`[0x007FCAFC,0x007FCB06)` and `[0x007FCBC4,0x007FCBCB)`.
+Each half-open excerpt was byte-checked and decoded independently.
+The distinct slot-4 null-guard check used only
+`[0x00A77D64,0x00A77D6B)` and `[0x00A77D72,0x00A77D73)`.
+P slot 33 reused its prior original-byte-checked contract at
+`[0x00AA2750,0x00AA2771)` for the typed slot-25 relation.
+Preserve D-to-H and C-to-P adjustments, and keep the retained P distinct
+from the unknown R receiver and from parsed-record variables in other findings.

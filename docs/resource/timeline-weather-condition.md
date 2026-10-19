@@ -2,8 +2,8 @@
 
 The native TimeLine property path contains a conditional evaluator with a
 data-derived count, a queue-recovered ID operand and first-match bitmap
-selection. Its concrete record-view binding and the manipulator's consumer
-and initialization contracts remain unresolved. The static behavior below
+selection. Its concrete record-view binding and downstream manipulator
+callback/scheduler requirements remain unresolved. The static behavior below
 narrows the condition boundary without establishing automatic activation by
 an added weather ID.
 
@@ -146,8 +146,11 @@ no such test.
 
 The [backend attachment contract](timeline-weather-record-view.md#backend-pointer-and-guarded-consumers)
 identifies the slot-30 pointer cell and its attachment/clear methods. It links
-the published conditional `LaySchedulerManipulator` producer; that backend's
-concrete consumer methods and underlying initialization remain separate edges.
+the published conditional `LaySchedulerManipulator` producer and its concrete
+flag/attachment consumers. The helpers do not propagate backend returns;
+normal helper completion can return true with a nonnull manipulator and null
+underlying scheduler. Their other state, view and child-iteration conditions
+still apply. Callback effects and downstream scheduler dispatch remain separate.
 
 `0x007FCA30` gets a receiver through P slot 30, returns false for null,
 calls that receiver's slot 4, then slot 9 with 1 at `0x007FCA53/0x007FCA5E`.
