@@ -267,6 +267,36 @@ unjoined concrete consumers.
 These conditional pointer stores and calls do not establish activation,
 weather eligibility, schedule evaluation or rendering.
 
+### Retained child phase and state dispatch
+
+The [fleet phase-dispatch contract](ambient-garlean-fleet.md#direct-fleet-clock-consumer)
+forwards the phase to the retained child's table byte offset `+0x84`,
+then calls its `+0x2C` entry. For the constructed W above, the original
+table cells resolve these entries and the following dispatch:
+
+| W table byte offset / cell | Target | Original-PE observation |
+| --- | --- | --- |
+| `+0x84` / `0x01094368` | `0x00A03880` | Calls the published W `+0x38` guard. On nonzero AL, calls `0x00A1B8B0` at `0x00A03896` with S from W+8 and the supplied full dword phase argument. The linked fleet contract owns that setter's stores. |
+| `+0x2C` / `0x01094310` | `0x00A035D0` | Calls W table `+0x40` at `0x00A035D9` with stack arguments `(2,0)`, then returns. |
+| `+0x40` / `0x01094324` | `0x00A03610` | Calls the same W guard. On nonzero AL, calls `0x00A1B7D0(S,firstArgument)` at `0x00A03627`. |
+
+`0x00A1B7D0` loads its full dword argument and stores it unchanged at
+S+`0x88` at `0x00A1B7D4`. It makes no call. Thus the selected `(2,0)`
+dispatch stores dword 2 at S+`0x88` after the guard succeeds.
+`0x00A03610` has an additional call to `0x00A1F1A0` at `0x00A0363C`,
+but only when its first argument equals 4 and bit 0 of its second
+argument's low byte is set. The selected `(2,0)` dispatch bypasses that
+call. The alternate callee's effects remain uninspected.
+
+These selected concrete calls and their own instructions construct and pass
+no clip-init or update context. This contract assumes the constructed W/S
+binding and table remain valid and the published guard and other callees
+return normally. It establishes phase forwarding followed by a conditional
+dword store, without assigning a semantic name to state 2. It does not
+establish later consumption of S+`0x88`, activation, schedule evaluation or
+visible effects, or bind either operation to a typed clip context. The
+separate record-view and context requirements remain unresolved.
+
 ## Conditional record-view contract
 
 The published evaluator follows the second P slot-4 result R through R slot 19,
@@ -377,3 +407,14 @@ P slot 33 reused its prior original-byte-checked contract at
 `[0x00AA2750,0x00AA2771)` for the typed slot-25 relation.
 Preserve D-to-H and C-to-P adjustments, and keep the retained P distinct
 from the unknown R receiver and from parsed-record variables in other findings.
+
+For the retained child phase/state dispatch, read the three separate original
+table cells `0x01094368`, `0x01094310` and `0x01094324`. Decode the complete
+instruction unions `[0x00A03880,0x00A0389F)`,
+`[0x00A035D0,0x00A035DC)`, `[0x00A03610,0x00A03645)` and
+`[0x00A1B7D0,0x00A1B7DD)`. These unions contain only CFG-reachable
+complete instructions, with every direct jump targeting a checked
+instruction and no indirect jump. Use the published W `+0x38` guard and
+phase-setter contracts above. Keep the full dword phase argument separate
+from the later literal state 2, and retain the `(2,0)` condition when
+excluding the alternate `0x00A1F1A0` call.
