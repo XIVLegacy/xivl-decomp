@@ -30,7 +30,9 @@ stores a 16-bit mode at payload `+2` has only its low byte consumed here.
 This does not establish the packet's complete framing length.
 
 The operation derives resource ID `0x07FE0000 + songID` when it requests a
-new song. There is no song-ID-zero or song-ID-`0xFFFF` branch in this control
+new song. The [selected 13/57 resource check](../resource/music-id-resources.md)
+records retained numeric-path files and the remaining interface-binding limit.
+There is no song-ID-zero or song-ID-`0xFFFF` branch in this control
 body. They produce `0x07FE0000` and `0x07FEFFFF`, respectively. Resource
 existence and the downstream effect of either ID remain unresolved.
 
@@ -169,7 +171,7 @@ The following inputs remain needed for a historically accurate policy:
   combat start/end, death, events, and competing transitions.
 - The priority and restoration rules between those causes, including whether
   a normal-song change during combat should update a retained slot or wait.
-- Which resource IDs are available and what IDs zero or `0xFFFF` produce
+- Which other resource IDs are available and what IDs zero or `0xFFFF` produce
   downstream. The selected body does not establish a packet stop sentinel.
 - Which reset/enabling paths occur for the intended session lifecycle, and
   whether retained playback survives each transition.
