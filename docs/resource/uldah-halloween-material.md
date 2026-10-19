@@ -26,7 +26,7 @@ Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
 view-construction, string-key, initializer-context, context-producer, channel-producer,
-resource-callback, initialization-handoff, sample-input and active-receiver
+resource-callback, initialization-handoff, retained-interface, sample-input and active-receiver
 observations use Python 3.12.0 to decode original PE instructions.
 Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
@@ -303,7 +303,9 @@ constructor installs table `0x01099454`; original RTTI identifies
 It explicitly clears O `+0x54` at `0x00A316C8`. Later calls receive
 the resource and its callback interface at O `+0x48`, including the call
 at `0x00A317C5` through the retained buffer/interface's virtual `+0x2C`.
-Those callees' effects and completion are unqualified here. The constructor
+The [SystemHeapSpace branch](#retained-interface-and-field-retention)
+binds that later call to a concrete method under its construction conditions.
+The constructor
 has no later explicit O `+0x54` store; this is not a claim that the field
 remains zero across those calls.
 The [callback methods](#resource-callback-dispatch) qualify that interface's
@@ -445,8 +447,10 @@ interface; it supplies none of these callback slots.
 The constructor's precise call at `0x00A317C5` passes C, the dword
 just read from global `0x012EE6F4`, and current EBP to the retained
 `u32(O+0x40)` interface's virtual `+0x2C`, then stores its return at
-O `+0x50`. This call does not identify the retained interface's concrete
-type or show whether or when it invokes C. Current EBP is not assigned a
+O `+0x50`. Its operands alone do not identify the retained interface's concrete
+type or show whether or when it invokes C. The
+[SystemHeapSpace branch](#retained-interface-and-field-retention) below
+binds one producer to a method that ignores C. Current EBP is not assigned a
 constant here. The preceding `0x00A42C90` handoff is described below;
 its outgoing callee effects remain conditional. Composition requires the
 live O, C, fields, registers and stack
@@ -488,7 +492,7 @@ establish O `+0x54` preservation across their uninspected callees.
 
 These slots therefore supply no established initial-population dispatch
 to the published `UpdateRestInitialize`/`ParseMTB_` container producer.
-The actual provider invocation, callback completion, parsed object identity
+An actual invocation of these callbacks, callback completion, parsed object identity
 and initial O `+0x54` population remain unjoined. The previously described
 conditional parsed-group and selected-channel consumer relation still requires
 that populated container; the callback table alone supplies no selected
@@ -539,10 +543,76 @@ that this route ran or that O `+0x54` is nonzero.
 
 To connect that conditional store to M `+0x38`, its value must remain
 valid through the later retained-interface call at `0x00A317C5`, the
-resource return and the material read at `0x00835358`. The selected
+resource return and the material read at `0x00835358`. The
+[SystemHeapSpace branch](#retained-interface-and-field-retention) qualifies
+the first of these edges. The selected
 loaded input, current field values, actual call returns and that retention
 remain unjoined. This dispatch does not establish material context P=Q,
 the actual loaded property's identity, scalar samples or a visible effect.
+
+## Retained interface and field retention
+
+One later O `+0x40` producer is the call at `0x00A31764` and store at
+`0x00A31766`. It reads receiver global `0x01327BEC`, then calls its
+virtual `+0x0C` with the dword read at current stack `+0x30`, literal
+`0x10` and pointer `0x01099698`. The latter's terminated text is
+`CDev.Engine.Dw.AnimationResourceNode`. This is a supplied argument,
+not an RTTI identity or an established registry key. This branch follows
+the nonzero low-nibble test on the return from the earlier retained
+interface's virtual `+4` at `0x00A31740`. It is separate from the earlier
+O `+0x40` producer store at `0x00A31709`.
+
+At `0x0040943A..0x00409478`, `0x00409350` reads
+`u32(0x01327A30)` and, when nonzero, copies it to `0x01327BEC`
+at `0x00409473`. A concrete source branch is in `0x00407260`:
+when globals `0x01327A30`, `0x01327A34` and `0x01327A38` are zero
+at their respective tests, `0x00407587` calls thunk `0x0040E670`.
+It tail-jumps to the published
+[factory `0x00414790`](../types/ffxivgame/0x00014790.md), whose successful
+allocation calls the published
+[SystemHeapSpace constructor](../types/ffxivgame/0x00014640.md).
+`0x00407598` stores the factory result at `0x01327A30`.
+The subsequent startup calls and mutable globals do not guarantee that
+the later copy or resource request retains that particular object.
+Globals `0x01327A30` and `0x01327BEC` lie beyond their section's
+file-backed raw extent, so no original-file pointer value is assigned to them.
+
+For that constructed SystemHeapSpace retaining primary table
+`0x00F5701C`, original cell `0x00F57028` selects `0x00414690`
+at virtual `+0x0C`. COL `0x0113FA18` has offset zero and
+TypeDescriptor `0x01265E18`, naming
+`.?AVSystemHeapSpace@Alternative@Memory@Engine@CDev@SQEX@@`.
+This producer raises unsigned alignment values below `0x10` to `0x10`
+and calls the published
+[SystemHeapBlock factory](../types/ffxivgame/0x00014580.md)
+at `0x004146C7` with its supplied size, adjusted alignment and third
+argument. For its nonzero returned block H, it links H `+8` into the
+space's list and returns H `+4` at `0x00414769..0x00414776`.
+Its null-result route returns zero. Its virtual calls before and after
+allocation, diagnostic calls on failure, allocation results and live-state
+preservation retain their own conditions.
+
+The published block construction installs secondary table `0x00F56FC0`
+at H `+4`. Its COL `0x0113FA04` has offset 4 and TypeDescriptor
+`0x01265DD0`, naming
+`.?AVSystemHeapBlock@Alternative@Memory@Engine@CDev@SQEX@@`.
+Original cell `0x00F56FEC`, virtual `+0x2C` of the returned interface,
+selects `0x004148E0`. Its complete five-byte body is
+`XOR EAX,EAX; RET 0x0C`. It makes no call and has no explicit memory operand.
+Thus, if this returned interface reaches O `+0x40` and retains that table
+through `0x00A317C5`, the later call returns zero and ignores C, the
+global-derived word and EBP. The caller then stores zero at O `+0x50`.
+This method neither registers nor invokes a callback and supplies no
+completion notification.
+
+Under valid call/return storage and no external mutation, this concrete
+five-byte dispatch preserves the current O `+0x54` value. This closes
+retention across that call for the selected producer branch, without
+proving that initialization populated the field. It does not establish
+retention for another O `+0x40` producer, across the constructor's other
+calls, through the resource return or at the later material read.
+The selected resource bytes, parsed container and property identity,
+scalar consumption and material effect remain conditional.
 
 ## Update state and sample input
 
@@ -811,7 +881,10 @@ The [resource callback dispatch](#resource-callback-dispatch) qualifies
 the O `+0x48` methods without identifying an initial-population callback.
 The separate [initialization handoff](#resource-initialization-handoff)
 reaches the known producer conditionally; actual parser inputs, completion
-and retention through the material read remain unjoined.
+and retention through the material read remain unjoined. The
+[SystemHeapSpace producer branch](#retained-interface-and-field-retention)
+preserves the current O `+0x54` across its concrete later virtual `+0x2C`
+call, without proving field population or callback execution.
 The [active parameter receiver chain](#active-parameter-receivers) still
 requires the actual virtual results and valid retained container storage.
 Base construction captures current global
@@ -905,6 +978,12 @@ calls and cited operands for these exclusive ranges:
 | O+0x0C slot 0 adjustor | `0x00A31C40` | `0x00A31C48` |
 | O+0x0C slot 1 address return | `0x00A31C50` | `0x00A31C56` |
 | Resource initialization handoff | `0x00A42C90` | `0x00A42CBE` |
+| Retained-interface global installation | `0x00409350` | `0x0040950B` |
+| Retained-interface startup construction | `0x00407260` | `0x00407D79` |
+| Default space factory thunk | `0x0040E670` | `0x0040E675` |
+| Alternate space factory thunk | `0x0040E5F0` | `0x0040E5F5` |
+| SystemHeapSpace interface producer | `0x00414690` | `0x00414788` |
+| Returned interface virtual +0x2C | `0x004148E0` | `0x004148E5` |
 | Type-0 curve loader | `0x00A2DEA0` | `0x00A2DF0E` |
 | ConstantCurve current-field scalar read | `0x00A2E8E0` | `0x00A2E8E6` |
 
@@ -995,6 +1074,26 @@ argument supplied to `0x00A42C90`. Verify its COL, the two interface
 slots and original primary slot cell `0x0109946C`. Reuse the published
 `0x00A31C80`, `UpdateRestInitialize` and parser/container-store contracts
 without reopening their native bodies.
+
+For the retained-interface branch, check the six listed installation,
+startup, thunk, producer and consumer ranges against the original PE.
+They are complete contiguous instruction unions, totaling 3547 bytes.
+Check their direct branch targets against instruction starts. Reuse the
+published default factory, space constructor and block factory contracts.
+The alternate thunk identifies its target `0x00410330`, but that target's
+construction and returned interface are not assigned here. Verify the
+original COL and TypeDescriptor for tables `0x00F5701C` and `0x00F56FC0`,
+and the selected cells `0x00F57028` and `0x00F56FEC`.
+The reused constructor operands are exactly
+`[0x00A316A6,0x00A316A9)`, `[0x00A31709,0x00A3170C)`,
+`[0x00A3171B,0x00A3171E)`, `[0x00A31729,0x00A31769)` and
+`[0x00A317B7,0x00A317BA)`, totaling 76 bytes. Reuse the published
+`0x00A317C5` call contract. Read the terminated argument at `0x01099698`
+directly. Before reading a typed PE datum, require that its complete range
+lies within its section's raw size. Globals `0x01327A30` and
+`0x01327BEC` are in the `.data` virtual tail, beyond raw size `0xBF000`
+from section RVA `0xE65000`; a VA-to-file-offset conversion alone cannot
+read their original values.
 
 For the selected first Attr property, structurally interpret only
 `[0x7C680,0x7C787)` after checking the pinned DAT and SCB identities.
