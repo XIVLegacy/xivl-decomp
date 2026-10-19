@@ -25,8 +25,8 @@ Native locators are VAs in retail 1.23b `ffxivgame.exe`, image base
 Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
-view-construction, string-key, initializer-context, sample-input and
-active-receiver observations below use Python 3.12.0 with those libraries to decode
+view-construction, string-key, initializer-context, channel-producer,
+sample-input and active-receiver observations below use Python 3.12.0 to decode
 original PE instructions. Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
 Retained listings supplied locators, and every listed byte, instruction
@@ -236,6 +236,87 @@ its slot at byte offset `0x10`, and resolves class text. The comparison
 with `LaySystemActor` at `0x0083540C..0x0083541C` sets runtime byte
 `+0x50` to 1 on equality. This identifies an explicit system-actor branch
 without proving the active native receiver or container.
+
+## Retained tx channel producer
+
+The initializer's first channel store is conditional on a parsed runtime
+container, rather than directly on serialized `Attr` bytes. At
+`0x0083532B`, `0x00A2D1B0` receives the literal `frc`, a supplied
+buffer/interface and descriptor-derived size. On its nonnull allocation
+path, that helper calls `0x00A31680` and returns its result O. This
+constructor installs table `0x01099454`; original RTTI identifies
+`AnimationResourceNode` (COL `0x011870F0`, TypeDescriptor `0x012EE7A8`).
+It explicitly clears O `+0x54` at `0x00A316C8`. Later calls receive
+the resource and its callback interface at O `+0x48`, including the call
+at `0x00A317C5` through the retained buffer/interface's virtual `+0x2C`.
+Those callees' effects and completion are unqualified here. The constructor
+has no later explicit O `+0x54` store; this is not a claim that the field
+remains zero across those calls.
+
+At `0x00835358..0x0083535D`, the initializer reads O `+0x54` and
+stores it at M `+0x38`. The following selection requires that value T
+to be a valid retained container. A diagnostic call on a zero value does
+not establish safe continuation. For a T retaining the published
+`MotionCurveContainer` table `0x01098B7C` (COL `0x01186B04`,
+TypeDescriptor `0x012EE168`), its original virtual `+0x28` cell at
+`0x01098BA4` selects `0x00A2B720`. The initializer calls that slot
+with `(0,Attr)` at `0x00835393`, then supplies its return and clip
+ordinal zero to `0x00A2B6F0` at `0x0083539B`.
+
+For clip zero, let `H = u32(T+0x0C)`, `P = u32(H)` and
+`N = u32(H+4)`. With stable valid storage and `0 < N <= 0xFFFF`,
+`0x00A2B720` visits entries `P+8*j` in order. Helper `0x00A2D930`
+reads `u32(u32(P+8*j))`, the first dword of the entry's source V.
+Helper `0x00A2D470`, with receiver T `+0x10`, masks that index by
+`0x7FFFFFFF` and returns:
+
+```text
+u32(T+0x10) + u32(u32(T+0x2C) + 4*(u32(V) & 0x7FFFFFFF))
+```
+
+The selector compares the resulting terminated bytes with `Attr` exactly
+and case-sensitively. Its low-u16 return is the first matching j, or
+`0xFFFF` after an ordinary miss. It does not check clip zero against a
+clip count. `0x00A2B6F0` separately requires its unsigned clip ordinal
+to be below byte T `+0x3C`, then compares the low-u16 group index with
+the selected clip's signed dword count. Its accepted route returns
+`G = u32(P+8*j+4)`; rejected indices return zero. The following
+property selector assumes G is valid, so a missing group is not promoted
+to a safe null-channel path.
+
+At `0x008353A0..0x008353B0`, original selector cell `0x01097E24`
+supplies pointer `0x01096320`, whose terminated text is `tx`.
+The initializer calls `0x00810FE0` with G and that pointer, then stores
+its return K at M `+0x68`. The selector visits the property pointers
+at `u32(G)+4*i` for `i < u8(G+5)`. It calls each property's virtual
+`+4` name getter and compares its terminated return bytes exactly with
+the query. The first byte-equal match returns that property's pointer;
+an ordinary miss returns zero. Valid names, unchanged arrays/counts and
+preservation of the live lookup state across those virtual calls remain
+conditions. The original selector cell and text must also retain their
+values for this to be the `tx` query.
+
+The published [parsed-group construction](mtb-joint-translation-write.md#parsed-curve-group-and-descriptor-transfer)
+stores each constructed curve pointer in G's array and appends `(V,G)`
+to the container's clip-zero table. If the same selected group and matching
+property were produced by its type-2 route, K is the same successfully
+constructed [FixedCurve](mtb-fixed-curve.md#type-2-key-record-and-runtime-layout),
+with its supplied name pointer at K `+4`. Original table cell
+`0x01098C8C` selects the published
+[receiver +4 getter](timeline-weather-record-view.md#construction-and-pointer-attachment)
+at `0x008D5570` for the name query, while cell `0x01098C94` selects
+scalar evaluator `0x00A320B0` for virtual `+0x0C`. Under those same
+object, table, name and storage conditions, retaining K at M `+0x68`
+therefore joins the first material sampler call to the published FixedCurve
+runtime construction and restricted evaluator contract. No parser or
+evaluator body is needed again for that conditional join.
+
+The selectors themselves construct no curve and impose no FixedCurve
+type test. The actual O `+0x54` population, selected group's property
+type and identity, selected scalar payload and context-to-Q binding remain
+unjoined. The nearby serialized `Attr` text supplies none of those runtime
+identities. An absent `tx` can store zero at M `+0x68`; the published
+application prefix has no channel-pointer null guard before sampling.
 
 ## Update state and sample input
 
@@ -492,7 +573,10 @@ indirection bytes do not establish that the material accessor reaches this
 constructed Q, the downstream payload parser, or FCurve scalar consumption.
 No serialized Attr values are assigned.
 
-FCurve scalar construction helpers and registry lookup remain conditions.
+The [retained tx channel](#retained-tx-channel-producer) has a conditional
+parsed-group and FixedCurve consumer join, but its actual populated
+container and selected property type remain unjoined. Registry lookup
+remains conditional.
 The [active parameter receiver chain](#active-parameter-receivers) still
 requires the actual virtual results and valid retained container storage.
 Base construction captures current global
@@ -571,6 +655,13 @@ calls and cited operands for these exclusive ranges:
 | Update factor getter | `0x00A203B0` | `0x00A203BD` |
 | Mutable provider getter | `0x00A20470` | `0x00A20476` |
 | Sample numerator getter | `0x00A210A0` | `0x00A210A4` |
+| Group pointer selection | `0x00A2B6F0` | `0x00A2B71A` |
+| Property-name selection | `0x00810FE0` | `0x00811049` |
+| Resource allocation forwarding | `0x00A2D1B0` | `0x00A2D278` |
+| Animation resource construction | `0x00A31680` | `0x00A317E0` |
+| Group-name selection | `0x00A2B720` | `0x00A2B79F` |
+| Group-name index read | `0x00A2D930` | `0x00A2D935` |
+| Indexed byte-string pointer | `0x00A2D470` | `0x00A2D484` |
 
 For the D-retention edge, check the full intermediate-constructor range and
 reuse the prior Lay/base forwarding and generic-store observations. The
@@ -630,6 +721,16 @@ context getter contract. Track ESP at `0x00835507..0x00835510` to
 verify replacement of the denominator cell by the stored ratio and its
 reuse by the following three calls. No sampler body is needed for this
 argument contract.
+
+For the first channel producer, reuse only initializer operand unions
+`[0x00835291,0x00835349)` and `[0x00835358,0x008353CC)`, totaling
+300 bytes. A start filter ending `0x00835345` includes the five-byte
+instruction at `0x00835344` through exclusive end `0x00835349`.
+Check the seven listed selection/resource ranges and the cited original
+RTTI, table cells, selector pointer and terminated literals. Reuse the
+published parsed-group pointer append, FixedCurve construction, name getter
+and scalar slot contracts without reopening those bodies. This reproduces
+the conditional first-channel join without reading a selected curve payload.
 
 These selected bodies are contiguous. The exporter's `# size` generally
 sums function-body AddressSet ranges; it does not promise an enclosing
