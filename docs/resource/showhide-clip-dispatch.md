@@ -78,6 +78,60 @@ Slot 2, cell `0x010A174C`, targets the already published base update
 `0x00A20F90`. Neither table identity nor factory construction supplies an
 active Halloween clip receiver.
 
+## Operation-provider source
+
+On the selected scheduler construction path, the provider value L comes from
+complete manager M's `+0x10` field, through factory F's `+0x18` and
+scheduler S's `+0x84`. This is separate from the clip-registry field chain
+at M+8, F+`0x14` and S+`0x7C`, and from the actor-registry role at M+`0x0C`.
+These different field roles establish no inequality between live pointer values.
+
+Original manager table slot 7, cell `0x0109E87C`, targets `0x00A29AA0`.
+The published [getter contract](limsa-rain-presentation.md#rain-collection-and-bind-entry-acquisition)
+returns its receiver's dword `+0x10`. Applying that getter to M does not
+import the rain receiver's type or semantic role. The checked constructor
+excerpt installs complete-manager table `0x0109E860`, zeroes EBX at
+`0x00A72F72` and stores it at M+`0x10` at `0x00A72F92`, without an
+intervening call or jump. It establishes initial zero on that path.
+
+The following original-byte excerpts bind the supplied value. Dword argument
+numbers exclude the ECX receiver.
+
+| Selected edge | Half-open instruction excerpts | Supported dataflow |
+| --- | --- | --- |
+| Manager factory call | `[0x00A72E01,0x00A72E2E)` | Calls M slot 7 at `0x00A72E19` and pushes its EAX return as argument 5 to `0x00A78D30`. |
+| Derived factory | `[0x00A78D30,0x00A78D58)` | Incoming argument 5 reaches base-factory argument 5 at the call to `0x00A25E40`. |
+| Base factory | `[0x00A25E44,0x00A25E46)`, `[0x00A25E5B,0x00A25E6F)` | EAX aliases the receiver F. The load from unadjusted ESP+`0x14` supplies argument 5, stored at F+`0x18`. |
+| Scheduler factory method | `[0x00A78DDF,0x00A78E0E)` | Loads F+`0x18` at `0x00A78DF3` and pushes that value as argument 4 to `0x00A84EE0`. |
+| Derived scheduler | `[0x00A84EFC,0x00A84F37)` | Incoming argument 4 reaches base-scheduler argument 4. |
+| Base scheduler | `[0x00A1EC9F,0x00A1ECBB)` | Loads argument 4 from EBX+`0x14` and stores it at S+`0x84`. |
+| Manager initialization | `[0x00A72F72,0x00A72F95)` | Installs the complete table and stores zero at M+`0x10`. |
+
+The [published frame and receiver anchors](scb-clip-factory-composition.md#registry-object-source)
+remain part of this composition. In the derived scheduler excerpt, let T be
+ESP at `0x00A84EFC`. The published incoming argument-3 load is `[T+0x1C]`.
+After three dword pushes, the argument-4 load at `0x00A84F0C` is
+`[ESP+0x2C]=[T+0x20]`, four bytes after that anchor. In the base scheduler,
+the published saved-EBX frame places argument 4 at EBX+`0x14`. The
+[base-factory frame](scb-clip-factory-composition.md#retained-input-source-and-actor-lookup)
+has no ESP adjustment before the selected argument-5 load. These bindings
+use checked stack arithmetic rather than neighboring object-field names.
+
+This source relation requires the same constructed manager/factory/scheduler,
+valid storage, retained tables and field values, expected argument cleanup,
+callee-saved registers and no intervening alias effect that replaces a
+copied value. The excerpts do not qualify all intervening calls or writers.
+The manager caller's conditional jump targets the first excluded byte
+`0x00A72E2E`; that alternate destination is outside these checks.
+
+Original slot 8, cell `0x0109E880`, targets the published M+`0x10` setter
+`0x00A73220`. Its [existing setter observation](scb-clip-factory-composition.md#actor-registry-reproduction)
+does not qualify its indirect cleanup. A concrete caller supplying an
+identifiable nonzero provider, or another established writer to M+`0x10`,
+remains unbound. Initial zero does not exclude later writes. The source
+chain does not authenticate L's class, its node payload/fallback, or the O/Q
+tables consumed below.
+
 ## Selected value dispatch
 
 Let J be the incoming clip and C its explicit context argument. The checked

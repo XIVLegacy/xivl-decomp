@@ -268,6 +268,8 @@ for an absent key. Both results are dword address adjustments. These bodies'
 own instructions do not dereference the adjusted return or authenticate its type.
 The published base store puts this result at M `+0x24`.
 
+The [operation-provider source](showhide-clip-dispatch.md#operation-provider-source)
+owns the conditional manager/factory/scheduler field relation for L.
 The actual object supplied as L, its fallback field, the node payload type
 and the later consumer of M `+0x24` remain unjoined. Use of the same lookup
 helper and `+8` adjustment does not identify L with the separate SCB factory
