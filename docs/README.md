@@ -158,6 +158,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Ordinary format-6 STMS payload lanes](resource/stms-ubyte4-payload.md)
 - [PRAM packed render-state consumers](resource/pram-packed-render-state.md)
 - [Character material pixel shaders and colour flow](resource/chara-material-shader-colour-flow.md)
+- [Chara engine samplers and light inputs](resource/chara-engine-samplers-and-light-inputs.md)
 - [Ambient Garlean fleet visibility boundary](resource/ambient-garlean-fleet.md)
 - [Bitmap font container](resource/bitmap-font-container.md)
 - [Bitmap font glyph consumers](resource/bitmap-font-glyph-consumers.md)

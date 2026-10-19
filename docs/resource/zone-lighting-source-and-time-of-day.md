@@ -158,7 +158,9 @@ at C+0x308 (up to its count byte at `+0x150`, enable bytes at `+0x148+i`):
   therefore stable.
 - Ambient result: when N > 0 it is (first 16 bytes of the C+0x308 block +
   running sum / N) * 0.5 (`0x00F62F60`). When N is 0 it is the block's 16 bytes
-  unchanged. The source of those 16 bytes is U.
+  unchanged. Those 16 bytes are the per-node block at node `+0x134`, seeded
+  to (0, 0, 0, 1.0) and summed with the node's type 4 lights, see
+  [Chara engine samplers and light inputs](chara-engine-samplers-and-light-inputs.md#per-node-light-list-and-ambient-seed-v).
 - `0x00C222A0` walks the list in order. Type 1 lights take DirLight slot 0,
   then slot 1 and on up to slot 3 where the shader declares the handles, each
   as colour*intensity on all four lanes (`0x00C20B80`), w zeroed, times 1.0
@@ -212,6 +214,10 @@ cubes are filled by the layout initializer `0x00A82020` from CubeMapBaseObject
 `LeapEnvMapTexture` (D3DPERF label) through `DrawEnvCubeBlendShaderDriver`
 (inputs `drawEnvCubeMap`, `drawEnvBlendRatio`).
 
+The sampler side of the cube bind, with slot 0 read by every `chara`
+material record, is in
+[Chara engine samplers and light inputs](chara-engine-samplers-and-light-inputs.md#sampler-records-and-the-engine-bind-v).
+
 Cube shapes from the installed weather bundles (counts): 128x128 RGBA8 cube,
 8 mips, 524820 bytes (9 per layout, names `f0f_<weather>_`, `f0d_`, `f0i_`),
 64x64 one-mip cube, 98464 bytes (`env_00_de`, `env_01_de`, keys
@@ -219,10 +225,10 @@ Cube shapes from the installed weather bundles (counts): 128x128 RGBA8 cube,
 
 ## Unknown
 
-- Which cube index is slot 0 for models and how day/night picks between cube
-  keys (blend ratio source).
+- How day/night picks between cube keys (blend ratio source), and which
+  element is `CubeMapBaseObject` index 0 per layout. Slot 0 is the slot every
+  character material record reads.
 - Layout property byte offsets of Fog and DrawEnv objects.
 - Default state before the first weather packet, the `0x0136E908` source, the
-  16 byte base of the C+0x308 block that seeds the ambient colour, and the
   euler order of layout instance rotations on lights.
 - Meaning of clock mode message 98.

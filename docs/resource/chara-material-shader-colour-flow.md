@@ -108,11 +108,14 @@ nothing new. Vertex stage: `worldMatrix`, `worldITMatrix`, `worldViewMatrix`,
 `ModelBBoxScale`, `ModelBBoxOffSet`, `PointLight*[2]`, bool `isSkining`, int
 loop `i0`.
 
-PRAM candidate strings for the engine samplers are placeholders:
+PRAM candidate strings for the engine samplers are placeholders that the
+binder does not read, see
+[Chara engine samplers and light inputs](chara-engine-samplers-and-light-inputs.md#sampler-records-and-the-engine-bind-v):
 `reflectMap` and `lightDiffuseMap` both name `DrawEnv00Texture_0`,
 `lightToneMap` names `c001f000f_t.dds` or `c001e000t_t.dds` with
 `Global00Texture_0` or `Global02Texture_*`, iris `reflectMap` names
-`c001f000f_y.dds` with `Global01Texture_1`. Binding is by sampler name (I).
+`c001f000f_y.dds` with `Global01Texture_1`. Binding of the two cube samplers is
+by record flag bit and slot byte, not by name (V, same page).
 
 ## Client side drivers for the non-PRAM constants (V locators)
 

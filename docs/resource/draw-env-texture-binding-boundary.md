@@ -117,3 +117,6 @@ confirmed type or semantic identity from this observation. The incoming
 32-bit value's representation, ownership, and lifetime remain unresolved.
 The store establishes no FILE resource selection, texture default or format,
 shader alias, sampler name, downstream renderer result, or live client behavior.
+The reader side of the slots and the material sampler records that select slot
+0 are in
+[Chara engine samplers and light inputs](chara-engine-samplers-and-light-inputs.md).
