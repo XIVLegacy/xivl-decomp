@@ -202,6 +202,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
 - [Gridania and Ul'dah Halloween owners](resource/city-halloween-owner-joins.md)
 - [Three-city interior Halloween owners](resource/city-interior-halloween-owner-joins.md)
+- [ShowHideClip registration and value dispatch](resource/showhide-clip-dispatch.md)
 - [Three-city interior winter-family owners](resource/city-winter-owner-joins.md)
 - [Ul'dah Halloween material dispatch](resource/uldah-halloween-material.md)
 - [Limsa seasonal weather extension boundary](resource/limsa-seasonal-weather-extension.md)
