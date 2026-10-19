@@ -36,9 +36,11 @@ state. The intermediate pointers have no null checks in this body.
 
 P slot 4 cell `0x00FF2D3C` targets `0x008006E0`. This reads the vtable at
 incoming ECX+4, advances ECX by four, and tail-dispatches through that table's
-slot 3. The concrete adjusted receiver and subsequent getter returns have not
-been joined to the attached serialized TimeLine record. Matching the serialized
-field offsets alone does not close this construction requirement.
+slot 3. The [property construction contract](timeline-weather-record-view.md)
+resolves that embedded adjusted interface and its stored first return. The
+caller-supplied receiver's slot 19 and subsequent record view remain unjoined
+to the attached serialized TimeLine record. Matching serialized field offsets
+alone does not close this requirement.
 
 ## Queue ID and first matching entry
 
