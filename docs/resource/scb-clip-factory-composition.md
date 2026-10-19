@@ -118,6 +118,93 @@ One of the supplied values could already refer to such state, but these
 stores do not authenticate that identity. Later actor lookup, wrapper
 construction and context preservation remain separate contracts.
 
+### Retained-input source and actor lookup
+
+Base factory constructor `0x00A25E40` stores its sixth dword argument
+at F `+0x1C`. The prefix through `0x00A25E5B` does not adjust ESP.
+Its load from ESP `+0x18` at `0x00A25E62` therefore reads entry
+argument 6, which it stores at `0x00A25E6F`. On the published derived
+factory forwarding path, `0x00A78D30` loads its own entry argument 6
+from ESP `+0x18` and pushes that value at `0x00A78D39` for the base
+constructor. If F `+0x1C` retains that constructed value until H's
+construction, the sixth input is copied onward to H `+0x0C` under the
+relation above. Its semantic type remains unqualified.
+
+The actor lookup uses a separately constructed stack-local object R.
+At `0x00A26558` and `0x00A2657B`, the caller supplies the retained
+EBX value as ECX to `0x00A25DC0` and `0x00A25B90`, respectively.
+Under normal register preservation across the intervening calls, both
+therefore receive the same F. The resource parser saves its incoming F
+in EBX at `0x00A25BB0`.
+
+On the selected actor branch, `0x00A25C32` loads `u32(F+0x10)`
+as argument 1 to `0x00A298A0`. Argument 2 is the value loaded at
+`0x00A25C2B..0x00A25C2E`, `u32(u32(EBP+0x50)+0x50)`.
+The constructor installs vtable `0x010989A0`, copies argument 1 to R
+`+4` and argument 2 to R `+8`, and returns R with `RET 8`.
+Its complete body has no call or jump. Its own stores are receiver-relative.
+Valid receiver and argument storage that do not overlap remain conditions.
+
+The constructor's receiver is ESP `+0x30` after two argument pushes.
+After its `RET 8`, the actor-parser call's receiver at `0x00A25C56`
+is ESP `+0x34` after three argument pushes. With normal stack cleanup,
+these expressions address the same local R. The value read from
+`u32(EBP+0x74)` at `0x00A25C3F` is supplied as an explicit stack
+argument, separately from ECX. The instruction at
+`0x00A298EC` copies R to EBX. At `0x00A29930..0x00A29944`,
+the actor loop reads its key-table base from `R+8`, selects an eight-byte
+entry using the record's byte `+2`, and loads `u32(R+4)` into ECX for
+`0x00A1F9C0`. With the relevant storage and register state preserved,
+the selected operands implement:
+
+```text
+keyEntry = u32(R+8) + 8*u8(record+2)
+lookupReceiver = u32(R+4) + 8
+```
+
+The helper prefix computes that receiver at `0x00A1F9CB`, forwards
+keyEntry as the query argument and calls the published
+[string-key lookup](#class-key-and-registry-selection) at `0x00A1F9D6`.
+Thus the lookup receiver derives from `u32(F+0x10)`, copied through R
+`+4`. The checked base constructor stores its third argument at F `+0x10`.
+The sixth input follows the separate F `+0x1C` to H `+0x0C` retention
+path above. This identifies the fields and argument roles, without proving
+equality or inequality between their stored values. Their producers before
+these constructor arguments, preservation until the later field reads,
+actual manager/registry identity and owning
+UnitTree or clip-initialization context remain separate bindings.
+
+#### Retained-input reproduction
+
+The following reused operands were checked with the original PE identity,
+Python, pefile and Capstone versions in [Evidence identity](#evidence-identity).
+Every selected retained instruction matched original bytes and independently
+decoded to its complete boundary. The actual instruction-address unions
+covered these half-open ranges without gaps:
+
+| Purpose | Instruction union | Instruction bytes |
+| --- | --- | --- |
+| Base argument ABI prefix | `[0x00A25E40,0x00A25E5F)` | `0x1F` |
+| Base retained-input tail | `[0x00A25E5F,0x00A25E79)` | `0x1A` |
+| Derived sixth-argument forwarding prefix | `[0x00A78D30,0x00A78D4E)` | `0x1E` |
+| Derived final pushes and base call | `[0x00A78D4E,0x00A78D58)` | `0x0A` |
+| Resource parser F binding | `[0x00A25BB0,0x00A25BB2)` | `0x02` |
+| Stack-local constructor inputs | `[0x00A25C20,0x00A25C42)` | `0x22` |
+| Actor parser call receiver | `[0x00A25C42,0x00A25C5F)` | `0x1D` |
+| Actor helper incoming receiver binding | `[0x00A298EC,0x00A298EE)` | `0x02` |
+| Actor-loop lookup operands | `[0x00A29930,0x00A29945)` | `0x15` |
+| Generic actor lookup prefix | `[0x00A1F9C0,0x00A1F9E1)` | `0x21` |
+| Outer factory calls and H retention | `[0x00A26556,0x00A26582)` | `0x2C` |
+| Complete stack-local constructor | `[0x00A298A0,0x00A298B9)` | `0x19` |
+
+The final base-tail instruction starts at `0x00A25E72` and ends at
+`0x00A25E79`. The derived prefix's final instruction starts at
+`0x00A78D4A` and ends at `0x00A78D4E`. The generic helper's final
+instruction starts at `0x00A1F9DF` and ends at `0x00A1F9E1`.
+Include those complete ends when deriving the instruction unions. Reuse
+the constructor and lookup contracts already published here. These checks
+do not extend to later callers or unqualified callee and alias effects.
+
 ### Actor-factory reproduction
 
 Use the original PE identity and Python, pefile and Capstone versions in
