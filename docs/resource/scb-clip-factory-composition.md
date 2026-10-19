@@ -71,6 +71,74 @@ The promoted bodies' instruction unions cover their stated ranges without
 gaps. Selected Limsa SCB structure metadata was read directly with Python
 `struct`; no client execution was observed.
 
+## Actor-factory construction
+
+The actor-factory constructor `0x00A27450` retains four supplied dwords
+without making a call. Its caller `0x00A25DC0` receives F in ECX and
+two stack arguments `(A,X)`. The checked caller prefix reads A from entry
+ESP `+4` after `0x10` bytes of stack setup, at `0x00A25DD6`.
+After an additional saved-ESI push, it reads X from entry ESP `+8`, then
+current ESP `+0x1C`, at `0x00A25DF7`. F remains in ECX until
+`0x00A25E06` loads its `+0x1C` value for the first constructor
+argument. `0x00A25E0B` then selects the constructor receiver.
+
+The caller reserves `0x14` bytes by advancing `u32(A+8)`. On a nonzero
+old cursor H, its call at `0x00A25E0D` supplies H as ECX and four
+dword arguments in this order:
+
+```text
+(u32(F+0x1C), u32(F+8), u32(u32(X+0x50)+0x38), u32(F+0x0C))
+```
+
+These are the values loaded for the selected call. This relation does not
+identify X with the scheduler S used elsewhere in this finding. The prefix
+ends at the constructor call's complete return address, before any subsequent
+caller stores or return handling.
+
+With valid receiver and argument storage that do not overlap, the constructor
+copies ECX to EAX and performs the following stores:
+
+| Object offset | Stored value | Input relation |
+| --- | --- | --- |
+| `+0` | `0x01098604` | Installed vtable |
+| `+4` | Argument 2 | `u32(F+8)` |
+| `+8` | Argument 4 | `u32(F+0x0C)` |
+| `+0x0C` | Argument 1 | `u32(F+0x1C)` |
+| `+0x10` | Argument 3 | `u32(u32(X+0x50)+0x38)` |
+
+It returns the original receiver in EAX with `RET 0x10`. Its complete body
+reads only the four stack arguments and writes the receiver's five dwords.
+It has no `CALL` or `JMP` and no absolute global-memory operand. Its own
+stores are receiver-relative. The body performs no explicit registry lookup
+or node insertion. These instructions establish retained factory inputs and
+a vtable installation. They do not establish the semantic types or registry
+roles of the retained values, or identify the constructed object as an owning
+UnitTree or clip-initialization context.
+One of the supplied values could already refer to such state, but these
+stores do not authenticate that identity. Later actor lookup, wrapper
+construction and context preservation remain separate contracts.
+
+### Actor-factory reproduction
+
+Use the original PE identity and Python, pefile and Capstone versions in
+[Evidence identity](#evidence-identity). The retained Ghidra instruction
+rows were compared with original PE bytes and independently decoded in
+x86-32 mode, including each complete final instruction. The actual
+instruction-address unions were contiguous and covered exactly:
+
+| Evidence | Instruction union | Instruction bytes |
+| --- | --- | --- |
+| Complete constructor | `[0x00A27450,0x00A27477)` | `0x27` |
+| Caller input and allocation prefix | `[0x00A25DC0,0x00A25E12)` | `0x52` |
+
+Derive the unions from instruction byte addresses rather than adding an
+exported body size to its start. The constructor's final `RET 0x10`
+starts at `0x00A27474` and ends at `0x00A27477`. The caller range
+includes only its prefix through the call at `0x00A25E0D`, whose complete
+end is `0x00A25E12`. Follow its stack changes to distinguish entry
+argument positions from current ESP offsets. No asset input or client
+execution was used.
+
 ## Actor and track preparation
 
 `0x00A298D0` takes `(chunk, factory, arena)` as three dword stack arguments
