@@ -4,9 +4,10 @@ The ordinary native `0x00CC` path performs a prefix read and five Boolean
 control reads before constructing the Lua initializer's value vector. The
 prefix helper consumes the retained string through its NUL; the ordinary
 non-current-player arm leaves `(20005,12487,6,0,0,0)` and its first false
-control selects deferred initialization. Descriptor transfer and lifetime
-conditions below prevent treating this static route
-as proof of a completed historical call.
+control selects deferred initialization. The append, descriptor-copy and
+argument-order proofs below preserve all six values on this static route.
+Allocation, request and lifetime conditions still prevent treating it as
+proof of a completed historical call.
 
 The captured record and complete tagged values belong to
 `xivl-captures:studies/regional-guildleve-publisher-contract/README.md`,
@@ -16,6 +17,149 @@ and a 264-byte application with SHA-256
 `6d8094109a3c70cbf8252ef6dba9c457ccb67b112e189b6c6681c7055e933491`.
 The Lua formal consumers belong to
 `xivl-client-scripts:docs/guildleve-initializer-arguments.md`.
+
+## Six initializer arguments
+
+Positions below exclude `self`. The native path and five Boolean controls
+precede the values on the wire but are not arguments to `_onInit`.
+
+| Position | 12487 value | Client consumer | Source established here |
+| ---: | ---: | --- | --- |
+| 1 | 20005 | `DirectorBaseClass._onInit` stores `directorWork.directorId`, then forwards the remaining arguments to `self:init(...)` | First integer in the received initializer. No inspected client producer derives it from the leve ID. |
+| 2 | 12487 | `GuildleveBaseClass.init` stores `guildleveWork.guildleveId` and uses it as the `guildleveSheet` key | Second received integer, the Guildleve row ID. |
+| 3 | 6 | The same method stores `guildleveWork.aetheryteLocation` | Third received integer, an aetheryte location selector. It is neither the aetheryte row ID nor the Guildleve sheet's separate `location` field. |
+| 4 | 0 | The same method stores `guildleveWork.exMarkerX` | Received extra-marker X coordinate. |
+| 5 | 0 | The same method stores `guildleveWork.exMarkerY` | Received extra-marker Y coordinate. |
+| 6 | 0 | The same method stores `guildleveWork.exMarkerZ` | Received extra-marker Z coordinate. |
+
+The first value is therefore the client field named `directorId`, distinct
+from the transport actor ID `0x45100D44` and the Guildleve ID 12487.
+The name alone does not prove a battle-area identifier or a rule for choosing
+the value for another leve.
+
+### Director ID and the sheet's border field
+
+The static field named `borderId` is position 8 in
+`xivl-client-data:tools/mappings/guildleve.py`. Here and below CSV positions
+exclude the row ID and are zero-based. For 12487 this field is 20005, equal
+to the first captured integer. It also equals `guildleve_UI.csv` position
+77 for every one of the 624 Guildleve rows. This is a sheet relationship,
+not proof that the network producer copies that field into `directorId`.
+
+There is a concrete presentation consumer for this sheet value.
+`GuildleveExecutionWidget.init` reads `guildleve_UI` position 77 for the
+Guildleve ID and passes it as `setCard`'s second value. `setCard` supplies
+that value to `setIcon("IconControl_Plate", value)`. This establishes a
+card/plate icon use. The inspected route supplies no battle-area use.
+
+| Guildleve row | `guildleve[8]` / `guildleve_UI[77]` | `guildleve[6]` aetheryte row | That aetheryte's field 2 |
+| ---: | ---: | ---: | ---: |
+| 12487 | 20005 | 1280067 | 6 |
+| 10824 | 20004 | 1280002 | 6 |
+
+The second row checks a different border value against the same client UI
+consumer. It does not supply a second observed initializer. In particular,
+`D = guildleve[G][8]` remains an unproved network-producer rule. The joined
+value `aetheryte[guildleve[G][6]][2]` likewise matches L=6 for 12487, but
+the initializer does not perform that lookup. Its L is supplied on the wire.
+Do not substitute either table join for an observed producer when deriving
+another leve's initializer.
+
+The sheet identities and column conventions are in
+`xivl-client-data:docs/guildleve-selected-row-values.md`, Source identity,
+and `xivl-client-data:manifests/tables.json`. Direct Python CSV reads matched
+those complete-file pins: `guildleve.csv` SHA-256
+`74ee8061449bf538d504443017c776f994c06fd1bcd2fd008bbee18284d93b2d`,
+`guildleve_UI.csv` SHA-256
+`956267ede9d4e488ee8b29e78e200a83536d3f9056e51e98090f2b1313e47af2`,
+and `aetheryte.csv` SHA-256
+`7f0cdeecf05f10bdcf4b917238b0c3a5495dca61de3c4d491886e9d123bf6692`.
+
+### Extra-marker use
+
+`getPosByMapMarkerExtra` returns the stored X/Y/Z in order. The base
+`processMapOpenMessage` and `setMiniMapMarkerForGL` read `signal` and,
+when it is positive, submit these coordinates to
+`desktopWidget:setMapNavigationWidgetMarkerData` or
+`desktopWidget:setMiniMapWidgetMarkerData`. They obtain the extra marker's
+size with marker selector 4. These branches do not test the extra
+coordinates for zero. Three zeroes alone therefore do not disable the
+extra-marker call.
+
+The base size selector calls `getAetheryteLocation`: 6 returns `normal`,
+other values return `small`. This confirms a concrete use of the third
+argument without assigning a geographic name to 6.
+`PrivateGLFreeGatherTown` also supplies the extra position to its map and
+minimap achievement hooks. The getter's complete result tail reaches the
+widget call in both hooks.
+
+The last three values are coordinate inputs, not difficulty or party-state
+inputs in these consumers. They are nonzero when the packet producer supplies
+nonzero coordinates. The client initialization examined here neither computes
+them nor selects the producer's reason for doing so. Nonzero retail examples,
+coordinate units and a leve-to-position generation rule require separate
+evidence. The positive-signal base branch and achievement overrides establish
+uses, not that the captured all-zero vector rendered a marker.
+
+### Retained-capture cross-check
+
+All 54 restored members matched the sizes and SHA-256 pins in
+`xivl-captures:sources/pcap-1.23b/manifest.yaml` at revision
+`526954241b592aefec1d57f3697796114466753c`. Iterating `_decode_capture` from
+`tools/extractors/extract_00da_00e1_comparison.py` at that revision and
+selecting complete s2c `0x00CC` applications with a
+`/Director/Guildleve/` path found only the 12487 record above. The other 25
+applications containing `Guildleve` were Chara object paths. There was no
+second regional Director initializer, alternate D, or nonzero XYZ example
+in the admitted corpus. The different-border row 10824 above is therefore
+a static-data/UI cross-check, not a captured argument substitution.
+A search of the 2,671 manifest-authenticated recovered Lua texts found no
+literal 10824, and no literal 20004 in Director scripts. It supplies no
+alternate initializer for that row either. This is a text-search boundary,
+not a claim about every native caller or omitted decompiler behavior.
+
+The canonical decoder reported zero admitted unparsed bytes, subevent
+truncations, short wrapped headers and inflation failures. It discarded 228
+reconstructed s2c trailing bytes outside complete frames. The selected
+initializer was complete. `tools/validate_framing.py` also reported zero
+compression-flag mismatches for all 54 objects. This absence covers the
+decoder's complete clear game frames, not uncaptured sessions or the
+discarded tails.
+
+### Lua binary consumers
+
+These are decoded Lua 5.1 payload offsets, not executable VAs. Children are
+zero-based beneath each root and PCs are one-based. A direct Python operand
+parser checked the original retail LPBs after XOR-0x73 decoding from byte
+13, authenticated payloads against
+`xivl-client-scripts:manifests/retail_lua_coverage.json`, and authenticated
+the corresponding recovered text against
+`xivl-client-scripts:manifests/scripts.json`. The observation is the encoded
+register/constant transfer, not a decompiler-assigned parameter name.
+
+| Retail class / method | Child, PC and payload offset | Observation |
+| --- | --- | --- |
+| `DirectorBaseClass._onInit` | 5, PC56 `0x5B6`; PCs57-59 `0x5BA..0x5C2` | `SETTABLE` writes parameter R1 to `directorId`; open `VARARG` and `CALL` forward its tail. |
+| `GuildleveBaseClass.init` | 17, PCs112/114/120/122/124 `0x112C/0x1134/0x114C/0x1154/0x115C` | Stores its R1/R2/R3/R4/R5 as G/L/X/Y/Z. PCs106-110 `0x1114..0x1124` read sheet column 21 with G as key. |
+| `GuildleveBaseClass.getPosByMapMarkerExtra` | 16, PCs1-7 `0xEE8..0xF00` | Reads X/Y/Z and returns all three. |
+| `GuildleveBaseClass.processMapOpenMessage` | 48, PCs55-73 `0x2D0F..0x2D57` | Tests `0 < signal`, then passes extra X/Y/Z to the map widget. |
+| `GuildleveBaseClass.setMiniMapMarkerForGL` | 50, PCs60-78 `0x30CE..0x3116` | Same positive-signal test and XYZ transfer to the minimap widget. |
+| `GuildleveBaseClass.getAetheryteLocation` / `processSetMapMarkerSize` | 19, PCs1-3 `0x14B2..0x14BA`; 53, PCs2-10 `0x3477..0x3497` | Returns L, compares it to 6, returns `normal` or `small`. |
+| `GuildleveExecutionWidget.init` / `setCard` | 0, PCs75-91 `0x32C..0x36C`; 6, PCs26-29 `0x902..0x90E` | Reads sheet column 77, forwards it as the second card value, and sets `IconControl_Plate`. |
+| `PrivateGLFreeGatherTown` achievement map / minimap hooks | 5, PCs6-8 `0x742..0x74A`; 6, PCs6-8 `0x806..0x80E` | Calls the extra-position getter with open results, then the widget with open arguments. |
+
+Director and Guildleve LPB identities are pinned in the cited initializer
+argument finding. The widget resource is
+`client/script/n1635q/3p1y6y5o55m57pq1vwn1635q.le.lpb`, original SHA-256
+`8eed436e9058cba2bc7ea92603a1a493cf10be7ace8b676ea66b5f384326c8cd`,
+payload SHA-256
+`58812bfccc48e5d651569f55382de88c55a365ec91d0a9171ffe93e751efce13`.
+The achievement override resource is
+`client/script/61s57qvs/3p1y6y5o5/us1o9q53y4s5539q25sqvnw.le.lpb`,
+original SHA-256
+`ac3790a105226867ab29edbae997af6388ab2a84f0a660b9932cae41250e4292`,
+payload SHA-256
+`79f4a253dd051c94d7e739c5da164467cfba92b57e9876df275362f8ad301208`.
 
 ## Native body and prefix
 
@@ -68,6 +212,24 @@ not to be selected. The historical key comparison was not observed.
 
 ## Vector, deferred descriptor and request
 
+The caller initializes V through `0x00747E20` at `0x00774F8B`.
+Taking S as caller ESP before `0x00774F82`, the post-push
+`LEA ECX,[ESP+0x64]` at `0x00774F87` passes `V = S+0x60`.
+The initializer returns with `RET 4`. The later `LEA ECX,[ESP+0x60]`
+at `0x00774FDA` and push at `0x00774FDE` supply that same V as the
+visitor's third argument.
+
+The initializer zeroes outer begin/end/capacity at
+`0x00747E55..0x00747E5B` and middle begin/end/capacity at
+`0x00747E74..0x00747E7A`. It reserves `0x80` entries through
+`0x00582AA0` at `0x00747E9B` and `0x00584C50` at `0x00747EA7`.
+On successful allocation, outer stores at `0x00582B84/0x00582B8A/0x00582B8D`
+set capacity/end/begin using the old logical count zero. Middle stores at
+`0x00584D41/0x00584D49/0x00584D4C` do the same with 16-byte records.
+Both ranges therefore remain empty, with capacity for `0x80` entries.
+The six integer appends fit their spare-capacity arms on this successful
+initialization path. The growth proof below also covers their fallback arms.
+
 `0x00774FE9` calls `0x00790AA0` with the remaining reader and output vector V.
 The reused [typed-value contract](../script/delegate-command-producer.md#typed-values-and-bounds)
 supplies one Lua value per covered token and
@@ -99,13 +261,20 @@ address. Valid nonoverlapping allocation returns give the containers separate
 buffers; allocation and construction must return normally.
 
 The middle-record copy preserves physical slot order and type-0 scalar
-payloads as detailed below. Complete vector preservation still depends on
-producer growth and the outer ordering container. Iterator helpers
+payloads as detailed below. Iterator helpers
 `0x0071CB30/0x006CFBB0` supply source end/begin, guarded by begin <= end.
 The outer containers use `0x0058F650 -> 0x009D186E`; the latter checks
 pointer/capacity preconditions for nonzero count and forwards
-`(destination,source,count)` to uninspected `0x009D5110` at `0x009D18BB`.
-Its catalog name `_memmove_s` alone does not establish byte movement here.
+`(destination,source,byte-count)` to `0x009D5110` at `0x009D18BB`.
+The original byte-copy instructions and jump-table words establish movement
+for the aligned, nonoverlapping outer ranges used here. For DWORD counts
+0..6, the table at `0x009D5218` selects, respectively,
+`0x009D527B/0x009D5268/0x009D5260/0x009D5258/0x009D5250/0x009D5248/0x009D5240`.
+Those bodies copy matching source/destination offsets. The tail table at
+`0x009D5284` selects `0x009D5294/0x009D529C/0x009D52A8/0x009D52BC`
+for 0..3 remaining bytes. Thus zero through six outer entries retain their
+bit values and order through both descriptor copies. This proof does not
+cover the large/SIMD or reverse-overlap branches of the general byte copier.
 
 Consumer `0x00772C80` passes `D+0x100` as argument 4 to `0x007687F0` at
 `0x00772DF4`. Its selected class normally comes from `D+0x58`; a separate
@@ -124,11 +293,11 @@ or controls and remove no numeric value. The existing
 [request and completion contract](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion)
 owns engine, instance, method-lookup, request, callback and lifetime conditions.
 
-If the deferred transfer preserves V and the selected request succeeds, the
-Lua input is `_onInit(self,20005,12487,6,0,0,0)`. The script finding maps those
-values to the client Director ID, Guildleve ID, location and extra-marker XYZ.
-This route does not prove complete producer retention, outer ordering transfer
-or historical execution.
+With valid vector ranges and normal allocation/copy returns, the deferred
+transfer preserves V. The ordered scalar consumer below supplies
+`_onInit(self,20005,12487,6,0,0,0)` if the selected request succeeds.
+The values reach the client fields in the six-argument table above.
+Historical execution remains unobserved.
 
 ## Scalar record copy and cleanup
 
@@ -184,18 +353,89 @@ suffix to `0x0078AA00` at `0x00584AA8`. After those calls return normally,
 a nonnull old begin selects cleanup through `0x00584370` and the call to
 `0x0044D350`. It then updates the three container pointers at `0x00584AFB`,
 `0x00584B03` and `0x00584B06`.
-The prefix/suffix helper `0x0078AA00` and record-construction helper
-`0x00584930` have not been inspected here. These call operands establish the
-growth structure, not preservation through those helpers. The spare-capacity
-proof therefore does not establish all six appends from an initially empty
-container, allocation success, exception behavior or complete retention.
+`0x0078AA00` reaches the ordered record-copy loop `0x0078A790` at
+`0x0078AA1E`. `0x00584930` reaches the one-record constructor loop
+`0x00584840` at `0x00584952`. The same type-0 placement/assignment helpers
+therefore preserve the old prefix, new scalar and old suffix, including
+rebasing each inline payload pointer. Both the spare and growth arms append
+one retained scalar. Induction from empty containers covers all six successful
+integer appends without assuming spare capacity.
 
-`0x00748E00` also operates the outer DWORD container through uninspected
-`0x0078DD00` at `0x00748E34`, using a value supplied through `0x00CCA210`.
-Together with `0x009D5110` and the two growth helpers above, these are the
-remaining producer/order edges. The scalar and spare-capacity proofs do not
-establish complete six-argument storage or remove the earlier request and
-runtime conditions.
+The matching outer entry comes from `0x00748E00`. Its call to singleton
+accessor `0x00CCA210` is at `0x00748E07`; `0x00748E24..0x00748E27`
+load the singleton's vector begin and its first entry pointer. The constructor
+`0x00CC9D60` initializes the vector, supplies entry zero's callback object
+with vtable `0x0110DF38` at `0x00CC9DC9`, stores the callback object at
+entry `+4` at `0x00CC9DCF`, and appends the entry at `0x00CC9DEC`.
+Original PE vtable data binds slot `+0x08` to `0x00CF9940` and selector
+`+0x18` to `0x00CF8880`. This binds an actual callback identity, not just
+an uninterpreted DWORD or an inferred type name.
+
+At `0x00748E34`, `0x0078DD00` appends that entry pointer to the outer
+container. Its spare arm stores the DWORD at the current end at
+`0x0078DD32`. Its growth call at `0x0078DD5C` reaches `0x0078DC70`,
+which computes the old DWORD count and calls `0x0078DA00` with one insertion
+at `0x0078DCC0`. The latter allocates capacity times four through
+`0x0044D500` at `0x0078DADB`, copies prefix and suffix through
+`0x00DA8EA0` at `0x0078DAFA/0x0078DB17`, inserts the pointer through
+`0x0080F500` at `0x0078DB0A`, releases the old buffer, and updates
+begin/end/capacity at `0x0078DB5C..0x0078DB68`. The relocation helper
+reaches the byte copier proved above. With valid aligned ranges and normal
+returns, six integer visits produce six ordered scalar records and six
+copies of the same entry-zero pointer. The two `0x0078ADB0` descriptor
+constructions preserve both ranges.
+
+### Ordered scalar consumption
+
+The existing [supplied-frame contract](../script/delegate-command-producer.md#function-binding-value-and-supplied-frame)
+owns binding/function lookup, one-value conversion and the Lua call boundary.
+The initializer uses its same input path:
+
+```text
+0x00CD0910 -> 0x00CCF9B0 -> 0x00CCEE30
+             -> 0x00CCFFE0 -> 0x00CCFA70 -> 0x00CCFF60 -> 0x00CF9630
+```
+
+The direct calls to `0x00CCEE30` and `0x00CCFFE0` are at
+`0x00CCF9F4` and `0x00CCF042`. `0x00CD003D` supplies callback literal
+`0x00CCFF60`, and `0x00CD004D` calls iterator `0x00CCFA70`.
+The iterator derives the outer count from `(end-begin)>>2`, initializes
+one shared middle cursor to zero at `0x00CCFA8D`, forms
+`begin + index*4` at `0x00CCFAAF..0x00CCFAB2`, and passes the cursor's
+address from `0x00CCFAB9` through the callback call at `0x00CCFAC0`.
+Its outer index increments at `0x00CCFAC4`.
+
+Callback `0x00CCFF60` passes the entry's callback object, the middle
+context and that same cursor pointer to `0x00CF9630` at `0x00CCFF7C`.
+For `cursor < (middle_end-middle_begin)>>4`, `0x00CF9630` reaches vtable
+slot `+0x08` at `0x00CF97A0/0x00CF97A8`. Entry zero binds this to
+`0x00CF9940`. Its type-0 selector is `0x00CF8880:0x00CF8886`.
+The converter reads the shared cursor at `0x00CF9983`, addresses
+`middle_begin + cursor*0x10` at `0x00CF9999..0x00CF999C`, and inspects
+the copied scalar record. For type 0 it loads the payload pointer at
+`0x00CF99F6`, executes `FILD dword ptr [ECX]` at `0x00CF99FA`, hands
+the number to `0x00CF3300` at `0x00CF9A07`, and increments the cursor
+at `0x00CF9A0C`.
+
+Consequently the six integer entries consume middle slots 0..5 as
+`D,G,L,X,Y,Z`. The supplied-frame contract places each materialized value
+after the binding value `self`, so the physical-copy and logical-order
+proofs join without assuming that an ordered callback list alone implies
+ordered scalar selection. Producer append and outer ordering are closed
+for this six-integer route under the stated normal-return conditions.
+
+## Remaining unknowns
+
+The client evidence does not establish a general producer rule equating D
+with the sheet's border value, the producer of L, or which leves receive
+nonzero extra-marker coordinates and how those coordinates are generated.
+The static row joins above remain correlations. Coordinate units and an
+alternate captured regional initializer are also unestablished.
+
+Historical branch/endian state, reader validation, allocation success,
+request admission, binding lookup, callback completion and object lifetime
+remain runtime conditions. Non-integer vectors, malformed ranges and
+exception paths are outside this scalar proof.
 
 ## Binary evidence
 
@@ -238,6 +478,33 @@ same original-byte decoder versions. It checked complete entries
 `[0x00584BBF,0x00584C4C)`. All 410 instruction starts matched the original
 decoder across 1,046 instruction bytes. Eleven call targets and eight focused
 operands matched. The 74 bytes between those last ranges were not inspected;
-their enclosing span is not continuous instruction coverage. No typed data
-or body of either remaining helper (`0x0078AA00`, `0x00584930`) was read
-for this append finding.
+their enclosing span is not continuous instruction coverage.
+
+The storage/order verification additionally authenticated 43 retained
+Ghidra listings against original PE bytes using the same pefile and Capstone
+versions: 3,366 listed instruction starts covering 10,145 distinct bytes,
+including revisits of earlier helpers. It checked 65 focused instruction
+sites, their expected direct targets or callback literals, and rejected
+controlled one-byte mutations. A separate 42-byte original slice at
+`0x00CCFF60` covered the 40-byte callback body and two padding bytes.
+Original data reads covered 40 bytes at `0x0110DF38`, 32 bytes at
+`0x009D5218`, and 16 bytes at `0x009D5284`; their callback and small-copy
+dispatch words matched, and controlled table mutations were rejected.
+
+The additional retained listings for `0x00CCA210`, `0x009D5110`,
+`0x00CCF290` and `0x00CCFFE0` contain gaps. The instruction counts above
+are listed-byte coverage, not continuous enclosing-span coverage. The
+`0x00CCF290` sibling prepass is not needed for the initializer proof.
+The relevant small-copy table words and actual input callback path were
+checked separately as described above. The observations establish the
+static storage and consumption route, not runtime execution.
+
+The base-case check separately decoded 38 focused original instruction sites
+for `0x00747E20`, outer reserve `0x00582AA0`, middle reserve `0x00584C50`,
+and the caller/visitor argument transfers. Direct targets, reserve immediates
+and the stack-relative V identity matched; controlled instruction mutations
+were rejected. The helper extents are `[0x00747E20,0x00747ECA)`,
+`[0x00582AA0,0x00582BA4)` and `[0x00584C50,0x00584D63)`.
+Those extents identify the entries, not an assertion that all their bytes
+belong to the 38 focused checks. The empty-state postcondition requires
+successful nonnull allocations and normal helper returns.
