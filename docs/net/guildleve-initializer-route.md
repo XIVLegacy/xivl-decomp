@@ -1,11 +1,11 @@
 # Guildleve actor initialization route
 
 The ordinary native `0x00CC` path performs a prefix read and five Boolean
-control reads before constructing the Lua initializer's value vector. If the
-prefix helper consumes the retained string through its NUL, the ordinary
+control reads before constructing the Lua initializer's value vector. The
+prefix helper consumes the retained string through its NUL; the ordinary
 non-current-player arm leaves `(20005,12487,6,0,0,0)` and its first false
-control selects deferred initialization. Prefix consumption, descriptor
-transfer and lifetime conditions below prevent treating this static route
+control selects deferred initialization. Descriptor transfer and lifetime
+conditions below prevent treating this static route
 as proof of a completed historical call.
 
 The captured record and complete tagged values belong to
@@ -37,12 +37,17 @@ native stream at application `+0x104` exclusive. The four application bytes
 at `+0x104..+0x107` are outside it. The reader must pass the separate
 `0x0078FA80` guard, whose validation behavior is not established here.
 
-The application positions in this table assume prefix helper `0x00791CA0`
-consumes the tag, path and NUL through `0x71`. Wrapper `0x0078F8D0` delegates
-to it and stores its returned EAX as the reader cursor; the helper's consumed
-extent was not established by the selected bodies.
+Wrapper `0x0078F8D0` delegates to prefix helper `0x00791CA0` and stores its
+returned EAX as the reader cursor. The helper skips one tag byte, calls string
+assignment `0x004489C0`, then explicitly scans to NUL at
+`0x00791CC0..0x00791CC9`. It advances past NUL and subtracts the counted
+length plus two from remaining at `0x00791CCF..0x00791CDF`. For this record,
+44 path bytes therefore consume 46 stream bytes: cursor `+0x44 -> +0x72`,
+remaining `0xC0 -> 0x92`. This assumes string assignment returns normally.
+The helper checks neither the skipped tag nor the scan against remaining;
+the retained input supplies tag `0x02` and an in-bound NUL at `+0x71`.
 
-| Conditional application offset | Retained input | Consumer and branch |
+| Application offset | Retained input | Consumer and branch |
 | --- | --- | --- |
 | `0x44..0x71` | String tag, full Director path, NUL | `0x00774CC7 -> 0x0078F8D0 -> 0x00791CA0`; returned output/cursor |
 | `0x72` | False | `0x00774CCE -> 0x0078F840`; passed as argument 8 to request submission |
@@ -53,10 +58,8 @@ extent was not established by the selected bodies.
 
 `0x0078F840` reads one byte, writes true only for tag `0x03`, advances the
 cursor by one and decrements remaining length. It does not append a Lua
-value. Under the prefix-consumption condition, the five retained `0x04`
-bytes are therefore controls. The capture establishes the serialized string
-extent; the general visitor's typed-string grammar does not by itself prove
-this prefix helper's extent.
+value. The five retained `0x04` bytes are therefore controls, leaving cursor
+`+0x77` and remaining `0x8D` for the typed remainder.
 
 At `0x00774B52`, equality with the key returned by `0x004D7490` selects a
 separate current-player path. That arm consumes sixteen plus four integers
@@ -84,9 +87,26 @@ through argument 5. At `0x007739DC` it passes that argument to
 
 The constructor also constructs name/class/path strings at `D+4`, `D+0x58`
 and `D+0xAC`, and stores callback/owner/flag at `D+0x130/0x134/0x138`.
-The vector helper's copy/reference, element-order and lifetime behavior
-remains unproved. Insertion `0x0078B190` and temporary cleanup `0x007724D0`
-also leave actual retained-descriptor storage and lifetime conditional.
+Helper `0x0078ADB0` constructs three containers at vector offsets
+`+0/+0x10/+0x20`. The outer two use `0x005831A0`, which requests a buffer
+for DWORD elements; the middle uses `0x0078AC70 -> 0x0078AA30`, which
+requests a buffer for 16-byte records. Insertion `0x0078B190` requests a
+`0x144`-byte node and passes node+8 to `0x0078B080 -> 0x0078AEA0`.
+The latter constructs matching key/string fields, calls `0x0078ADB0` again
+for the retained descriptor's `+0x100`, and copies callback/owner/flag.
+It constructs a second descriptor rather than retaining the temporary's
+address. Valid nonoverlapping allocation returns give the containers separate
+buffers; allocation and construction must return normally.
+
+Ordered value preservation remains conditional on the inner helpers.
+`0x0078AAE5` calls `0x0078A9D0` to populate the middle records. The other
+containers use iterator helpers `0x0071CB30/0x006CFBB0`, then
+`0x0058F650 -> 0x009D186E`; the latter receives
+`(destination,byte-count,source,byte-count)`, without an established copy
+contract here. Temporary cleanup `0x007724D0 -> 0x00744270` releases the
+temporary's outer buffers and calls `0x005843E0` for its middle container.
+That calls `0x00584370` before releasing the middle buffer. Uninspected
+record copy/release behavior prevents a pointee-lifetime or deep-copy claim.
 
 Consumer `0x00772C80` passes `D+0x100` as argument 4 to `0x007687F0` at
 `0x00772DF4`. Its selected class normally comes from `D+0x58`; a separate
@@ -105,11 +125,10 @@ or controls and remove no numeric value. The existing
 [request and completion contract](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion)
 owns engine, instance, method-lookup, request, callback and lifetime conditions.
 
-If the prefix helper consumes the recorded string, the deferred transfer
-preserves V and the selected request succeeds, the
+If the deferred transfer preserves V and the selected request succeeds, the
 Lua input is `_onInit(self,20005,12487,6,0,0,0)`. The script finding maps those
 values to the client Director ID, Guildleve ID, location and extra-marker XYZ.
-This route does not prove the uninspected vector helper or historical execution.
+This route does not prove the inner record-copy helpers or historical execution.
 
 ## Binary evidence
 
@@ -128,3 +147,11 @@ Checked entries were `0x004D8860`, `0x00574780`, `0x00774AD0`,
 enclosing function spans are not continuous decoded coverage.
 The separate eight-byte `_onInit` string at `0x00FE04F0` matched original
 bytes. A controlled call-byte mutation at `0x005747FB` failed authentication.
+
+Prefix and retention evidence additionally checked `0x00791CA0`,
+`0x0078ADB0`, `0x0078B190`, `0x007724D0`, `0x005831A0`,
+`0x0078AC70`, `0x0078B080`, `0x00744270`, `0x0078AA30`,
+`0x0078AEA0`, `0x0058F650` and `0x005843E0`: 1,570 instruction bytes,
+with no typed-data reads. The six-byte listing gap
+`[0x00791CBA,0x00791CC0)` remains unfilled. Forty-eight focused operands
+matched, and six controlled instruction mutations failed authentication.
