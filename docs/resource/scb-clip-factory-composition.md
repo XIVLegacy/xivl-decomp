@@ -296,6 +296,11 @@ storage for the caller's following writes.
 
 #### Actor-registry reproduction
 
+The [registered actor product](../actor/lay-scheduler-member-construction.md)
+binds factory `0x00A73090` to its constructor chain, concrete primary and
+secondary interfaces and initial binding field. Actual parsed selection and
+publication into a city's scheduler collection remain separate conditions.
+
 Use the original PE identity and Python, pefile and Capstone versions in
 [Evidence identity](#evidence-identity). This trace used retained Ghidra
 listings with original-PE pefile mapping and independent Capstone x86-32
