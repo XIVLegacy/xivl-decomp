@@ -52,7 +52,7 @@ For size `0x28`, that means a 24-byte copied region:
 
 The final four bytes are outside this builder's write set. Their prior
 initialization and values depend on the caller; they are not proved
-uninitialized, zero, padding or a meaningful selector. Other header bytes
+uninitialized, padding or a meaningful selector. Other header bytes
 are outside this copy region.
 
 ## Selected caller arguments and result
@@ -101,6 +101,25 @@ not an accepted server response. The selected path has no direct store to
 the final application u32 at R+`0x2C`; its initialization remains unknown.
 No accessor, builder, forwarding, tick, string-content or writer body was
 reread for this caller check.
+
+## Retained login observation
+
+The existing 54-capture products at `xivl-captures` revision
+`526954241b592aefec1d57f3697796114466753c` contain one Map/main-lane
+serverbound `0x0002` record in `login.pcapng`. The
+`derived/lane_observations.json#lanes.main.c2s.0x0002` entry establishes its
+lane and cohort; `derived/payload_layouts.json#layouts.c2s.0x0002` establishes
+one 56-byte subpacket and its 40-byte game message. Its first sixteen bytes
+are the game header, leaving the 24-byte application described above.
+
+In this specimen, the first twenty application bytes are zero and the closing
+u32 is nonzero. The layout producer checks `body_length = sub_size - 16`;
+its body offsets `+16..+35` cover that zero prefix and `+36..+39` the closing
+word. These facts reuse promoted JSON products without another raw-capture
+read. They do not identify which native producer supplied the specimen,
+initialize the selected caller's stack record, or establish a required tail
+value, selector domain or response policy. In particular, a zero prefix does
+not make the closing word universally zero.
 
 ## Wire identity and semantic boundary
 

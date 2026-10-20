@@ -102,8 +102,10 @@ not written by that builder. With the 16-byte game-message header and the
 separate 16-byte actor wrapper, this implies a 56-byte subpacket. This is
 static geometry, not a newly observed capture witness.
 
-The caller's source values and initialization of the final application u32
-remain unresolved. The wire binding does not authenticate a login/handshake
+The [selected caller and retained observation](zone-value-two-record.md#retained-login-observation)
+narrow the input boundary. Source-string population and initialization of
+the final application u32 remain unresolved. The wire binding does not authenticate a login/handshake
 name, a final-u32 selector meaning, a server response, admission policy,
-successful transmission or client acceptance. A different channel's value 2
-requires its own binding; the ARR enum is not a retail semantic authority.
+successful transmission or client acceptance. The separate
+[Chat contract](chat-outbound-header.md) owns that channel's value 2; the
+ARR enum is not a retail semantic authority.
