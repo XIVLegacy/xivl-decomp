@@ -482,6 +482,89 @@ reported retail event. The authored names alone do not identify an attack,
 incapacitation, or death animation. The reason the server sent `0xF0`
 remains unproven; a set part bit and chant 15 can coexist independently.
 
+### Selected chant motions versus ordinary idle
+
+**Answer:** all five sampled `0xF0` selections contain different animation
+data from both ordinary idle motions. They have shorter keyed frame ranges
+and different starting translation and rotation values. The client installs
+them as replacements for the idle names; the resource data does not establish
+a universal attack, stun, death, or incapacitation pose.
+
+Original-PE Capstone reads and byte-checked Ghidra listings establish the
+idle substitution. The non-battle state-name builder `0x008AA100` supplies
+`cbnm_id0` for state 1, string `0x01059B7C`, and calls `0x007B1960` at
+`0x008AA54D`. The battle builder `0x008A8DD0` supplies `cbbm_id0`, string
+`0x01059748`, and calls the same reader at `0x008A9498`.
+`0x007B1960:0x007B198D-0x007B1A30` searches two override maps starting
+at its component `+0x320`, with stride `0x0C`. A match copies the mapped
+name at `0x007B1A60-0x007B1A99`; otherwise
+`0x007B1A36-0x007B1A42` copies the original name. The chant branch's
+`0x007B9420` calls above populate map 0 for both idle keys. Normal idle-state
+selection can therefore resolve to the selected `sp_*_2lp` resource. The
+[locomotion finding](locomotion-selection.md#motion-state-tables) owns the
+other state names and playback path; the refresh and cache guards above
+still apply.
+
+Python `struct` readers followed the outer RES physical-name and
+`RESOURCE_TYPE` joins into the following payloads. The MTB type is
+`0x006D7462`; its same-name MCB partner has type `0x006D6362`. Every offset
+below is a **file offset** within that model's
+`client/chara/mon/mNNN/act/emp_emp/bid/base/0000`, with the full-file
+identities given above. Cells contain `offset / byte count`. The selected
+name is the prior table's `cbbm_sp_b_2lp` for m021/m013 and
+`cbbm_sp_a_2lp` for m035/m039/m043.
+
+| Model | Selected MTB | Selected MCB | Ordinary `cbnm_id0` MTB | Ordinary `cbbm_id0` MTB |
+| --- | --- | --- | --- | --- |
+| `m021` salamander | `0x64DE8 / 22169` | `0x6A484 / 624` | `0x8C894 / 19481` | `0x41434 / 21881` |
+| `m013` crab | `0x2B2EC / 7783` | `0x2D154 / 856` | `0x3A810 / 22535` | `0x2022C / 21943` |
+| `m035` aldgoat | `0x375D4 / 22087` | `0x3CC1C / 688` | `0x56598 / 18791` | `0x28BB0 / 23207` |
+| `m039` flytrap | `0x4BA88 / 17936` | `0x50098 / 608` | `0x5EF24 / 16416` | `0x3F230 / 21632` |
+| `m043` antling | `0x2D8C0 / 8759` | `0x2FAF8 / 592` | `0x47CA0 / 9207` | `0x231A8 / 22967` |
+
+All 15 comparison MTBs are version `0x43`. Their
+[container Header](../resource/mtb-container-framing.md#header-payload)
+`+0x04` values equal their maximum decoded key frames; every range starts
+at zero. The [SpuBinary decoder contract](../resource/mtb-fixed-motion-calculator.md)
+establishes the channel framing, scalar kinds and packed-quaternion equations.
+Independent bounded walks checked descriptor/channel bounds, track lengths
+and key order. The values below are clip-frame lengths, not observed wall-clock
+durations. Translation values are decoded local components, not world heights.
+
+| Model | F0 / passive idle / battle idle frame lengths | Frame-0 local T.y: F0 / passive / battle | F0 minus battle T.y |
+| --- | --- | --- | ---: |
+| `m021` | `70 / 130 / 110` | `0.63916 / 0.63091 / 1.04127` | `-0.40211` |
+| `m013` | `40 / 150 / 150` | `1.24568 / 1.11950 / 1.49798` | `-0.25230` |
+| `m035` | `90 / 120 / 100` | `1.35189 / 1.40574 / 1.40835` | `-0.05646` |
+| `m039` | `50 / 100 / 100` | `0.68683 / 0.71179 / 0.67006` | `+0.01676` |
+| `m043` | `32 / 60 / 100` | `0.32217 / 0.57217 / 0.81416` | `-0.49199` |
+
+Each translation witness is pair 1, scalar descriptor 0, joint key 1, T.y,
+under group label `005_n_hara`. Its selected/battle channel headers are at
+`0x64FC8 / 0x41664` for m021, `0x2B450 / 0x20504` for m013,
+`0x3779C / 0x28D8C` for m035, `0x4BC10 / 0x3F480` for m039 and
+`0x2D9CC / 0x23384` for m043. These channels use kind 5. The passive
+comparators use kind 5 too, except m039's constant kind 12. Both kinds
+target T.y; comparing only equal kind numbers would miss that witness.
+
+The starting quaternion channels also differ. For example, m039 pair 1,
+quaternion descriptor 1, joint key 22 has channel headers at `0x4D6DE`
+in the selected motion and `0x41BCA` in battle idle. Decoding their first
+keys and taking the absolute normalized dot product gives about `0.7871`,
+rather than 1. The absolute value accounts for opposite quaternion signs
+representing the same rotation. This establishes different encoded rotation
+as well as a different clip length.
+
+The group label and joint key have not been joined to a constructed skeleton
+and actual row list; the [row-index contract](../resource/mtb-fixed-motion-calculator.md#row-index-list)
+still prevents naming the affected anatomical bone or interpreting T.y as
+actor height. No skeleton pose, blend, motion clock, MCB command execution,
+or rendered client frame was evaluated. The MCB rows above establish paired
+resource presence, not executed footsteps or physics changes. The evidence
+therefore establishes distinct authored idle replacements and their encoded
+differences, while the visible posture and the server's reason for selecting
+each motion remain unproven.
+
 ### The four flags exposed by mode border 4
 
 **Answer:** the booleans expose bits 7, 6, 5 and 4 of application byte
@@ -744,6 +827,10 @@ mode getter/callback edges. These are distinct from the numbered-part
 scheduler selection. The byte-1 continuation also checks the `cibc` query,
 name normalization, slot lookup and motion-refresh calls. The mode-flag
 continuation checks the type-3 drain and indexed on/off name formatter.
+The motion comparison checks both idle-name builders and the override-map
+reader, then authenticates the selected and ordinary idle payloads through
+their RES type/name joins. Bounded SpuBinary reads compare keyed frame ranges
+and local translation/rotation values rather than names or byte inequality alone.
 This authenticates the selected evidence, not the whole
 imported analysis database. Python's `hashlib`, `zipfile`, `csv` and exact-identifier searches
 checked the cited Lua and CSV bytes; every searched Lua input matched its
