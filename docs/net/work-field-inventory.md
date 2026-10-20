@@ -146,6 +146,10 @@ set in inn / content instance / combat tutorial / etc.).
   `requestBurstBlocker`, `commandBurstBlocker`,
   `widgetCommandBurstBlocker`
 
+The client uses `restBonusExpRate` to derive the rested EXP gauge segment;
+the getter-to-display contract is in
+`xivl-client-scripts:docs/rested-experience-client-contract.md`.
+
 **Cast state** (2):
 - `castCommandClient`, `castEndClient`
 

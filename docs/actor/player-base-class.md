@@ -230,7 +230,7 @@ into higher-level operations:
 |---|---|
 | `recordRequestInformation(self, ...)` / `canRequestInformation(self)` | Record + gate info-request actions |
 | `getGiftCountInformation(self)` | Gift-count display |
-| `getRestBonusExpRate(self)` | Rest-bonus xp multiplier |
+| `getRestBonusExpRate(self)` | Rested gauge ratio; see `xivl-client-scripts:docs/rested-experience-client-contract.md` |
 
 ### Achievements / bonus (2)
 
