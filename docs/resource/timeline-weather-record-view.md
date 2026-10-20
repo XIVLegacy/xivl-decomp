@@ -183,8 +183,8 @@ not equal its separately created UnitInfo. A nested UnitTree can own a context
 for its children; its current value is not established as an outer ancestor's
 context. The actual selected city's parent/context-owner initializer invocation
 and preserved U0 reaching its TimeLine child remain unobserved. This type and
-store chain does not establish U's slot-37/42 results, recursive-root membership,
-clip activation or visible effects.
+store chain alone does not establish the [slot-37/42 lookup results](#unitinfo-callback-lookup-boundary),
+recursive-root membership, clip activation or visible effects.
 
 ## Backend pointer and guarded consumers
 
@@ -375,10 +375,55 @@ calling these setters. Those branches call E slot 3 at
 `0x00A85084/0x00A85110`, direct target `0x009D4F9F` at
 `0x00A8509C/0x00A85128`, then the indirect target held at `0x012651B4`
 at `0x00A85134`. Their effects remain uninspected. Other class names are
-skipped. The U lookups and retained receivers' slots 65/66 also remain
-unjoined concrete consumers.
+skipped. The typed U lookup boundary is below; the retained receivers' slots
+65/66 remain unjoined concrete consumers.
 These conditional pointer stores and calls do not establish activation,
 weather eligibility, schedule evaluation or rendering.
+
+### UnitInfo callback lookup boundary
+
+On the constructed inherited-UnitInfo path, main table `0x00FF298C` slot 37
+at `0x00FF2A20` selects `0x00A9D1D0`, and slot 42 at `0x00FF2A34` selects
+`0x00A9D270`. These original method cells and the instruction unions below
+give partial concrete contracts for the callback's two parsed-class branches.
+
+Slot 37's full union `[0x00A9D1D0,0x00A9D1EB)` reads L=`u32(U+0x84)`.
+If L is zero, it returns EAX=0 with `RET 4`. Otherwise it loads L's table,
+loads slot 5 at table+`0x14`, and tail-jumps to it with ECX=L. The one stack
+argument K and return address are unchanged. This proves forwarding to a
+separate receiver; its table, target, return and actor-membership meaning
+remain unbound. Its relation to the ShowHideClip operation provider remains
+unestablished.
+
+Slot 42 first saves EBX/ESI, retains U in ESI and calls U slot 3 without an
+explicit pushed argument at `0x00A9D279`. Original cell `0x00FF2998` selects
+`0x00A9D190`. That method's full union `[0x00A9D190,0x00A9D19F)` returns
+`0xFFFFFFFF` if `u32(U+0x3C)` is zero; otherwise it returns
+`u32(u32(U+0x3C)+0x28)`. It uses `RET` and authenticates no type or actor-ID
+meaning for that pointee or scalar.
+
+After that call, slot 42 loads K from `[ESP+0x0C]`: the two saved registers
+place the original first argument there. It compares K with the returned
+scalar. On equality, `0x00A9D283..0x00A9D28B` computes
+`U & -(U-4 != 0)` in 32-bit arithmetic, then restores ESI/EBX and uses
+`RET 4`. For a valid constructed complete+4 interface this returns the same
+U; an actor type for that pointer remains unestablished. The literal
+machine result is zero for U=4. Null U+`0x3C` with K=`0xFFFFFFFF` also
+matches; no validity meaning is established for that sentinel.
+
+On inequality, the checked union reaches a call of U slot 25, table byte
+offset `+0x64`, at `0x00A9D29A`, with ECX=U and no explicit pushed
+argument. The union ends at return address `0x00A9D29C`. That target, its
+return, later enumeration or recursion, and the mismatch-path T remain
+uninspected. The next conditional cell is `0x00FF29F0`; it was not read.
+Slot 42 coverage is exactly `[0x00A9D270,0x00A9D29C)`, not its whole body.
+
+These paths require the selected table, valid storage, preserved fields and
+ABI-conforming normal returns. On the callback's parsed `LayUnitActor`
+branch, a valid matching U can therefore be the nonnull T stored at E+`0x64`.
+The selected city's actual U/K, dynamic L slot 5, mismatch path and retained
+receiver effects remain open. No recursive-root equality, initialization,
+playback or visible city effect follows from this partial lookup contract.
 
 ### Retained child phase and state dispatch
 
@@ -484,6 +529,18 @@ Reuse the linked creator, getter/setter and child-loop contracts without
 opening their bodies. Preserve the selected parent/context-owner, nested-
 context and live-value conditions when composing U.
 
+For the callback lookup boundary, read the three original cells
+`0x00FF2A20`, `0x00FF2A34` and `0x00FF2998` as four-byte little-endian
+values in `.rdata`. Decode complete original instruction unions
+`[0x00A9D1D0,0x00A9D1EB)`, `[0x00A9D270,0x00A9D27B)`,
+`[0x00A9D190,0x00A9D19F)` and `[0x00A9D27B,0x00A9D29C)` in `.text`.
+They cover 86 unique bytes; the last continuation does not reread the first
+11 slot-42 bytes. Python 3.12.0 and Capstone 5.0.7 in x86-32 mode checked
+the pinned identity, raw backing, instruction boundaries and candidate-byte
+equality. Count three new entries plus one partial continuation as four
+candidates. Stop at L slot 5 and U slot 25; do not infer their behavior from
+the callback's parsed class names or from the unchecked slot-42 remainder.
+
 For the backend boundary, read property cells `0x00FF2DA4..0x00FF2DAC`
 as three separate dwords and decode the complete instruction unions for
 `0x00CB1C80`, `0x00AA26D0` and `0x00AA2710` listed above. Check only the
@@ -527,8 +584,9 @@ complete instruction unions are `[0x00A85170,0x00A8517D)`,
 `[0x00A1B6D0,0x00A1B6EC)`, `[0x00A78650,0x00A78656)`,
 `[0x00A78A40,0x00A78A46)`, `[0x00A78960,0x00A78995)` and
 `[0x00A78A50,0x00A78A5A)`. Preserve the parsed class-name comparison
-and stop at U's unresolved slot-37/42 and retained-receiver slot-65/66
-implementations. Keep U's propagated context separate from R slot 19's base B.
+and keep their implementation reads separate from the bounded U lookup
+unions above. Stop at L slot 5, U slot 25 and retained-receiver slots 65/66.
+Keep U's propagated context separate from R slot 19's base B.
 Equal roots across separate callback/predicate invocations require retained
 owner and context values; the constructed type alone does not establish them.
 
