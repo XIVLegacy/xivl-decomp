@@ -146,7 +146,9 @@ byte at `C +0x776` is set (`0x00C47AC0`). For each record with flag bit `0x80`:
 Records without flag bit `0x80` take the other branch. When the flag byte
 shares a bit with the byte at `0x01374D78`, the record binds global textures
 through `0x00C3F630` for flag bits `0x01`, `0x02`, `0x04` and `0x08`.
-Otherwise it binds the per-record texture the caller supplies. The executable holds the strings `Global00Texture`, `Global01Texture`
+Otherwise it binds the per-record texture the caller supplies, resolved by
+name per material instance, see
+[Chara global texture names](chara-global-texture-names.md). The executable holds the strings `Global00Texture`, `Global01Texture`
 and `Global02Texture` at `0x010D7384`, `0x010D73A0` and `0x010D73BC`. No
 `DrawEnv0...` string exists, and no routine compares a record's candidate
 strings with anything on the environment branch.
