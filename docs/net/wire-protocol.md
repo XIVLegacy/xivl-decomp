@@ -332,7 +332,7 @@ callers.
 
 | Local kind/opcode | Written size | Direct field observation |
 |---|---:|---|
-| Chat `0xc9` | `0x218` internal record; `0x228` wire subpacket | Writes the selected Group entry token at record `+0x18` and the bounded `0x200`-byte message at `+0x1c`. In the normalized application that retains the final eight game-header bytes, these are `+0x08` and `+0x0c` after selector `10` and reserved zero. |
+| Chat `0xc9` | `0x218` internal record; `0x228` wire subpacket | Writes the selected Group entry token at record `+0x18` and the bounded `0x200`-byte message at `+0x1c`. In the legacy normalized body at subpacket `+0x18`, these are `+0x08` and `+0x0c` after header word `10` and reserved zero. |
 | Zone `0x134` | `0x28` | Writes a supplied u32 at application offset `0`, a helper result at offset `4`, and fifteen generated ASCII letters plus NUL at offsets `8..0x17`. |
 | Zone `0x135` | `0x18` | Writes one supplied u32 at application offset `0`. |
 
@@ -343,6 +343,37 @@ Source: observations `WorldChat_selected_group_0x00c9_route`,
 
 ### World Chat selected-group route
 
+The [Chat header](chat-outbound-header.md) writes literal u32 10 at
+game-message `+0x08`, inside its 16-byte header. The retained capture
+matrix's `application_offset` column uses a legacy base at subpacket
+`+0x18`; that normalized body retains the last eight header bytes. With the
+complete game header excluded, the application begins at subpacket
+`+0x20`. These are different offset bases for the same bytes.
+
+| Direction | Subpacket bytes | Legacy body bytes | Application bytes | Application fields |
+| --- | ---: | ---: | ---: | --- |
+| c2s | 552 | 528 | 520 | Token u32 `+0x00`, message[512] `+0x04`, opaque tail[4] `+0x204` |
+| s2c | 584 | 560 | 552 | Token u32 `+0x00`, name[32] `+0x04`, message[512] `+0x24`, zero tail[4] `+0x224` |
+
+The subpacket offsets and widths come from
+`xivl-captures:studies/world-party-chat-00c9-contract/derived/field-matrix.csv`
+at revision `526954241b592aefec1d57f3697796114466753c`. The legacy
+column names do not change the 16-byte game-header boundary or establish a
+semantic noun for the token or tail.
+The [receive contract](payload-c8-cb-consumer.md) independently locates the
+`0x00c9` token at game-message `+0x10`, name at `+0x14` and text at
+`+0x34`, agreeing with the application offsets above.
+
+The same [Chat forwarder copy](stream-pump-and-state.md#additional-state-and-object-paths)
+takes source record `+0x18` to game-message `+0x10` for declared size minus
+`0x10`. Applied to the published tell builder's size `0x230`, target at
+record `+0x18` and message at `+0x38`, this yields a static 544-byte
+application: target[32] `+0x00`, message[512] `+0x20`. Its game message is
+560 bytes and wrapped subpacket 576; no retained tell capture is established.
+The inbound tell branch likewise starts its strings at game-message
+`+0x10/+0x30`, but its `-1` copy mode supplies no fixed 32/512 read bound
+or complete packet extent.
+
 The MyPlayer chat ingress at `0x006e91f0` recognizes the literal `group`
 branch at `0x006e9395`. Its ExecuteParameters selectors 2 and 3 provide a
 Group context and a one-based selection index. After decrementing the index,
@@ -351,8 +382,9 @@ Group context and a one-based selection index. After decrementing the index,
 while a nonzero u16 result is forwarded as a presentation argument along with
 the token and text to the `0x00c9` emitter.
 
-The receive case at `0x004d8e7b` applies the normalized application `+0x08`
-token through `0x005754e0` and the same Group resolver. A zero result drops the
+The receive case at `0x004d8e7b` applies the legacy body `+0x08` token
+(subpacket `+0x20`, application `+0x00`) through `0x005754e0` and the
+same Group resolver. A zero result drops the
 message. On a match, `0x006c13d0` has found the full token in a Group-record u32
 vector at `+0x74`, and the match index selects a u16 from a secondary tree
 node's range at `+0x28`. The client therefore establishes a selected Group
