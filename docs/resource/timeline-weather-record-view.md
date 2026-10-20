@@ -402,21 +402,19 @@ explicit pushed argument at `0x00A9D279`. Original cell `0x00FF2998` selects
 `u32(u32(U+0x3C)+0x28)`. It uses `RET` and authenticates no type or actor-ID
 meaning for that pointee or scalar.
 
-After that call, slot 42 loads K from `[ESP+0x0C]`: the two saved registers
-place the original first argument there. It compares K with the returned
-scalar. On equality, `0x00A9D283..0x00A9D28B` computes
+After that call, slot 42 loads K into EBX from `[ESP+0x0C]`: the two saved
+registers place the original first argument there. It compares K with the
+returned scalar. On equality, `0x00A9D283..0x00A9D28B` computes
 `U & -(U-4 != 0)` in 32-bit arithmetic, then restores ESI/EBX and uses
 `RET 4`. For a valid constructed complete+4 interface this returns the same
 U; an actor type for that pointer remains unestablished. The literal
 machine result is zero for U=4. Null U+`0x3C` with K=`0xFFFFFFFF` also
 matches; no validity meaning is established for that sentinel.
 
-On inequality, the checked union reaches a call of U slot 25, table byte
-offset `+0x64`, at `0x00A9D29A`, with ECX=U and no explicit pushed
-argument. The union ends at return address `0x00A9D29C`. That target, its
-return, later enumeration or recursion, and the mismatch-path T remain
-uninspected. The next conditional cell is `0x00FF29F0`; it was not read.
-Slot 42 coverage is exactly `[0x00A9D270,0x00A9D29C)`, not its whole body.
+On inequality, it calls U slot 25, table byte offset `+0x64`, at
+`0x00A9D29A`, with ECX=U and no explicit pushed argument. The
+[indexed continuation](#mismatch-indexed-receiver) reaches an untyped
+receiver's slot 42. Its result and the final mismatch-path T remain open.
 
 These paths require the selected table, valid storage, preserved fields and
 ABI-conforming normal returns. On the callback's parsed `LayUnitActor`
@@ -424,6 +422,40 @@ branch, a valid matching U can therefore be the nonnull T stored at E+`0x64`.
 The selected city's actual U/K, dynamic L slot 5, mismatch path and retained
 receiver effects remain open. No recursive-root equality, initialization,
 playback or visible city effect follows from this partial lookup contract.
+
+#### Mismatch indexed receiver
+
+Under the retained main table, original slot-25 cell `0x00FF29F0` selects
+`0x00800E60`. Its complete union `[0x00800E60,0x00800E69)` returns
+N=`u32(U+0x50) & 0x00FFFFFF` with `RET`. The scalar is unsigned; this
+getter alone does not authenticate a child count.
+
+The continuation `[0x00A9D29C,0x00A9D2AE)` saves N in EBP, clears EDI,
+and uses `TEST EBP,EBP` followed by `JBE 0x00A9D2C6`. Since TEST clears
+CF, the branch is exactly N=0. That destination remains operand/original
+closed. For N!=0 it pushes EDI=0, sets ECX=U and calls U slot 27, table
+byte offset `+0x6C`, at `0x00A9D2AC`.
+
+Original slot-27 cell `0x00FF29F8` selects `0x00800C00`. Its complete union
+`[0x00800C00,0x00800C0D)` loads VEC=`u32(U+0x4C)`, reads the first
+stack argument i, returns `u32(VEC+4*i)` and uses `RET 4`. It performs no
+null or bounds check and authenticates no type for the indexed pointer.
+For this admitted caller's i=0, call the result J=`u32(VEC)`.
+
+The continuation `[0x00A9D2AE,0x00A9D2BB)` immediately dereferences J's
+table, sets ECX=J, loads table+`0xA8`, pushes the retained EBX=K, and
+calls that slot 42 at `0x00A9D2B9`. There is no local null test for J.
+Valid readable U fields, VEC, J/table storage, retained values and normal
+ABI-conforming returns are requirements. The same slot number does not
+authenticate J as UnitInfo or establish recursive lookup.
+
+The first missing receiver is J: its type/table, selected target and result
+remain unbound. The original union stops at return address `0x00A9D2BB`;
+the remaining return path and zero-branch destination remain uninspected.
+N controls whether this first indexed use is attempted. It does not by this
+evidence establish an array length, completed enumeration, recursion, selected
+city U/K, actor identity or visible effect. Slot-42 original coverage is
+`[0x00A9D270,0x00A9D2BB)`, with its remaining body closed.
 
 ### Retained child phase and state dispatch
 
@@ -538,8 +570,21 @@ They cover 86 unique bytes; the last continuation does not reread the first
 11 slot-42 bytes. Python 3.12.0 and Capstone 5.0.7 in x86-32 mode checked
 the pinned identity, raw backing, instruction boundaries and candidate-byte
 equality. Count three new entries plus one partial continuation as four
-candidates. Stop at L slot 5 and U slot 25; do not infer their behavior from
-the callback's parsed class names or from the unchecked slot-42 remainder.
+candidates. Preserve the boundary at L slot 5. The separate mismatch check
+below stops at J's untyped slot 42; parsed class names and slot-number equality
+do not supply those dynamic targets.
+
+For the mismatch continuation, read cells `0x00FF29F0/0x00FF29F8` as two
+four-byte values in `.rdata`, then decode complete `.text` unions
+`[0x00800E60,0x00800E69)`, `[0x00A9D29C,0x00A9D2AE)`,
+`[0x00800C00,0x00800C0D)` and `[0x00A9D2AE,0x00A9D2BB)`.
+They cover 53 unique bytes, separate from the slot-42 prefix above.
+Python 3.12.0 and Capstone 5.0.7 x86-32 checked identity, raw backing,
+complete decoding and disjoint unions. Count two new bodies and two old
+partial continuations as four candidates. Preserve N's mask and TEST flags,
+the explicit index zero, slot-27 `RET 4`, EBX=K from the prefix, and the
+unguarded J dereference. Do not read the zero-branch destination or later
+tail to infer behavior past this first untyped receiver.
 
 For the backend boundary, read property cells `0x00FF2DA4..0x00FF2DAC`
 as three separate dwords and decode the complete instruction unions for
@@ -585,7 +630,7 @@ complete instruction unions are `[0x00A85170,0x00A8517D)`,
 `[0x00A78A40,0x00A78A46)`, `[0x00A78960,0x00A78995)` and
 `[0x00A78A50,0x00A78A5A)`. Preserve the parsed class-name comparison
 and keep their implementation reads separate from the bounded U lookup
-unions above. Stop at L slot 5, U slot 25 and retained-receiver slots 65/66.
+unions above. Stop at L slot 5, J slot 42 and retained-receiver slots 65/66.
 Keep U's propagated context separate from R slot 19's base B.
 Equal roots across separate callback/predicate invocations require retained
 owner and context values; the constructed type alone does not establish them.
