@@ -154,8 +154,10 @@ whole output. This is an inference from the program text, not an observed draw.
 
 * Which pass (`_000` or `_001`) the client selects per draw.
 * The cell values of the `var_equip` colour rows (retail data, not recorded).
-* Where the context fields `C+0x1B4..0x1C0` and `C+0xBE4..0xC00` get their
-  runtime values for a character draw.
+* Where the context fields `C+0xBE4..0xC00` get their runtime values for a
+  character draw. The sources of `C+0x1B4..0x1BC` are in
+  [ScreenEnv Glare clip and the pixel tail tone constants](screen-env-glare-latitude.md),
+  which leaves the writer of `C+0x1C0` unknown.
 
 ## Row to material matching (V)
 
