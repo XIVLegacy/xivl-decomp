@@ -106,6 +106,8 @@ layout.
     and the constant at `0x00FB7A60`. The sources of C `+0x1B4..+0x1C0` and the
     clamp on C byte `+0x77C` are in
     [ScreenEnv Glare clip and the pixel tail tone constants](screen-env-glare-latitude.md).
+    The 0.75 in z is divided out by the Glare composite, see the
+    [post-effect composite section](screen-env-glare-latitude.md#post-effect-composite).
   - `fogColor` = C `+0x30C` rgb, alpha plus C `+0x4F8` clamped to 1 (`0x00C48A30`),
     only when C byte `+0x4E4` or `+0x4E5` is set. The `+0x4E4` setter is
     `0x00C483C0`, called per pass from `0x00C3D5D0`, `0x00C3D340`, `0x00C439C0`,

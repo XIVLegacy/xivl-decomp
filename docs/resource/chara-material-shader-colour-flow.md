@@ -157,7 +157,9 @@ whole output. This is an inference from the program text, not an observed draw.
 * Where the context fields `C+0xBE4..0xC00` get their runtime values for a
   character draw. The sources of `C+0x1B4..0x1BC` are in
   [ScreenEnv Glare clip and the pixel tail tone constants](screen-env-glare-latitude.md),
-  which leaves the writer of `C+0x1C0` unknown.
+  which leaves the writer of `C+0x1C0` unknown. The 0.75 in z is divided out by
+  the Glare composite, see the
+  [post-effect composite section](screen-env-glare-latitude.md#post-effect-composite).
 
 ## Row to material matching (V)
 
