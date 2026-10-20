@@ -165,7 +165,10 @@ For a zero AL result, `0x0145-0x0137` selects byte zero at `0x0058D8D2`
 and target `0x0058CD21` through table `0x0058D8BC`. Nonzero AL branches
 directly to that same target. The subsequent `0x0145-0x0135` calculation
 selects byte six at `0x0058D9A4` and target `0x0058D4C0` through
-`0x0058D948`. Thus both AL results admit this opcode on the inspected
+cell `0x0058D948` in the dword table based at `0x0058D930`. The selected
+byte belongs to the byte table based at `0x0058D994`.
+The [snapshot input trace](status-snapshot-input.md#input-and-selected-route)
+authenticates both table bases. Thus both AL results admit this opcode on the inspected
 path; neither result proves successful script binding.
 
 At `0x0058D4C0..0x0058D4C6`, `0x0058CCA0` passes its packet view plus

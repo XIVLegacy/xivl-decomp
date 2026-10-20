@@ -4,6 +4,10 @@ This page maps the five-slot `ChangeActorSubStatStatusReceiver`, the System
 namespace receiver that updates actor substat state alongside
 KickClientOrderEvent, StartServerOrderEventFunction, and EndClientOrderEvent.
 
+The [Map 0x0179 snapshot input](../net/status-snapshot-input.md) is a separate
+40-byte array of twenty u16 values. Offsets such as receiver `+0x14` below
+describe the constructed System receiver, not offsets in that application.
+
 ## TL;DR
 
 `ChangeActorSubStatStatusReceiver` is the **most thoroughly-gated

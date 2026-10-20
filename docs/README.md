@@ -113,6 +113,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Map 0x00E3 state index](net/e3-state-index.md)
 - [Map 0x00E5 field staging](net/e5-field-staging.md)
 - [Map 0x017B shadow flag state](net/shadow-flag-state.md)
+- [Map 0x0179 snapshot input](net/status-snapshot-input.md)
 - [Chocobo rental state and widget callback](net/chocobo-rental-state.md)
 - [Aetheryte achievement index boundary](net/aetheryte-achievement-index.md)
 - [Opcode translation table](net/opcode-translation-table.md)
