@@ -69,6 +69,7 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Events and quests
 
+- [Cutscene replay completion state](event/cutscene-replay-state.md)
 - [Counted Lua item references](event/counted-lua-item-references.md)
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
 - [City airship scene sequence](event/airship-scene-sequence.md)
