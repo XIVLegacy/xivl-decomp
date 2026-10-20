@@ -108,6 +108,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lobby clear types 0x0007 and 0x0008](net/lobby-clear-0007-0008-consumers.md)
 - [Network dispatch paths](net/network-dispatch-paths.md)
 - [Receive dispatcher ranges](net/receive-dispatch-ranges.md)
+- [Map low-opcode pair staging](net/low-opcode-pair-staging.md)
 - [Chocobo rental state and widget callback](net/chocobo-rental-state.md)
 - [Aetheryte achievement index boundary](net/aetheryte-achievement-index.md)
 - [Opcode translation table](net/opcode-translation-table.md)
