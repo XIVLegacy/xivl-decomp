@@ -391,8 +391,13 @@ Slot 37's full union `[0x00A9D1D0,0x00A9D1EB)` reads L=`u32(U+0x84)`.
 If L is zero, it returns EAX=0 with `RET 4`. Otherwise it loads L's table,
 loads slot 5 at table+`0x14`, and tail-jumps to it with ECX=L. The one stack
 argument K and return address are unchanged. This proves forwarding to a
-separate receiver; its table, target, return and actor-membership meaning
-remain unbound. Its relation to the ShowHideClip operation provider remains
+separate receiver. The [shared UnitInfo key receiver](limsa-fireworks-scheduler-bindings.md#shared-unitinfo-key-receiver)
+binds this same U+`0x84` field to slots 39/50. If L retains the published
+`UnitTreeInstanceObjectTable` table, slot 5 is the unsigned numeric-key
+lookup `0x00A9E8F0`, returning its stored interface or zero on an ordinary
+miss. The actual selected U/L/table/key/entry state and result's actor type
+remain unbound. Equal pointers across different calls require retained U and
+field values. Its relation to the ShowHideClip operation provider remains
 unestablished.
 
 Slot 42 first saves EBX/ESI, retains U in ESI and calls U slot 3 without an
@@ -570,9 +575,10 @@ They cover 86 unique bytes; the last continuation does not reread the first
 11 slot-42 bytes. Python 3.12.0 and Capstone 5.0.7 in x86-32 mode checked
 the pinned identity, raw backing, instruction boundaries and candidate-byte
 equality. Count three new entries plus one partial continuation as four
-candidates. Preserve the boundary at L slot 5. The separate mismatch check
-below stops at J's untyped slot 42; parsed class names and slot-number equality
-do not supply those dynamic targets.
+candidates. The linked shared-receiver finding separately authenticates the
+conditional default-table slot-5 target; actual L state remains a requirement.
+The mismatch check below stops at J's untyped slot 42. Parsed class names and
+slot-number equality do not supply a dynamic target.
 
 For the mismatch continuation, read cells `0x00FF29F0/0x00FF29F8` as two
 four-byte values in `.rdata`, then decode complete `.text` unions
@@ -630,7 +636,8 @@ complete instruction unions are `[0x00A85170,0x00A8517D)`,
 `[0x00A78A40,0x00A78A46)`, `[0x00A78960,0x00A78995)` and
 `[0x00A78A50,0x00A78A5A)`. Preserve the parsed class-name comparison
 and keep their implementation reads separate from the bounded U lookup
-unions above. Stop at L slot 5, J slot 42 and retained-receiver slots 65/66.
+unions above. Preserve actual L/table state as a condition and stop at J slot
+42 and retained-receiver slots 65/66.
 Keep U's propagated context separate from R slot 19's base B.
 Equal roots across separate callback/predicate invocations require retained
 owner and context values; the constructed type alone does not establish them.

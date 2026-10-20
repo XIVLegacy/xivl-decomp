@@ -185,6 +185,43 @@ The numeric key is stored in tree-node `+0x0C` and the interface in `+0x10`.
 Thus the declared child IDs have a native registration path within the
 containing tree's context.
 
+### Shared UnitInfo key receiver
+
+For UnitInfo main interface U retaining table `0x00FF298C`, original cells
+`0x00FF2A28/0x00FF2A54` select slots 39/50 at
+`0x00A9D230/0x00A9D330`. Both begin by comparing `u32(U+0x84)` with
+zero. Their checked nonzero fallthrough preserves incoming ECX=U, then
+loads L=`u32(U+0x84)`. Slot 39 tail-jumps to L slot 2 with the argument
+stack unchanged. Slot 50 calls L slot 5 with its original first stack
+argument. Their zero-branch destinations and return tails are not covered
+by this receiver check.
+
+For L retaining the `UnitTreeInstanceObjectTable` table `0x010A4790`,
+original cells `0x010A4798/0x010A47A4` select insertion `0x00A9ED60`
+at slot 2 and unsigned numeric-key lookup `0x00A9E8F0` at slot 5.
+The [TimeLine actor callback's slot 37](timeline-weather-record-view.md#unitinfo-callback-lookup-boundary)
+also loads L from U+`0x84` and tail-forwards its key to L slot 5. Thus it
+reaches this same numeric-key lookup under the constructed-table condition.
+The lookup returns the stored interface or zero on an ordinary miss under
+its existing valid-tree conditions.
+
+This is a shared field relation. Equality across different invocations needs
+the same U and retained field/table values, including retention between each
+comparison and load. The actual selected city's U, L/table, key and entry
+state remain unestablished. No duplicate-key rule, actor RTTI or visible
+activation is added. L is not identified with the separate ShowHideClip
+manager's operation-provider field.
+
+The original receiver unions are `[0x00A9D239,0x00A9D246)` and
+`[0x00A9D339,0x00A9D34B)`; the separately checked prefixes are
+`[0x00A9D230,0x00A9D239)` and `[0x00A9D330,0x00A9D339)`.
+They cover 49 unique instruction bytes across four old excerpt candidates.
+Read the four listed method cells as separate four-byte values, 16 bytes
+total. Python 3.12.0 and Capstone 5.0.7 x86-32 checked the pinned executable,
+PE raw backing, exact values and complete instruction boundaries. Reuse the
+insertion, lookup, RTTI and slot-37 contracts without rereading their bodies
+or data. Preserve the uninspected null/tail and actual-state boundaries.
+
 ### Clip lookup and scheduler interface
 
 At `0x00836740..0x00836756`, clip slot 1 reads `u32(D+0x14)` and calls
