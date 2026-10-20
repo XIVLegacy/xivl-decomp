@@ -106,6 +106,52 @@ scalar. In particular, neither the getter's `ID` suffix nor custom names
 in `xtx_text_partsName` proves that the init scalar is a row ID or a name
 group. That interpretation remains unproven.
 
+### Monster and part-index lookup boundary
+
+**Answer:** no client table or script mapping a monster's actor class,
+model or race plus part index to a part-name row was found in the inspected
+CSV and Lua sources. No such derivation occurs on the traced result-log
+edge: the server supplies the localized row selector directly. A complete
+client mapping therefore cannot be given for hippogryph, opo-opo, gnat,
+cactuar, giant crab, salamander, wolf, boar, ahriman, wight, dodo, coblyn,
+aldgoat, imp, flytrap or antling.
+
+This is a bounded negative result. PowerShell `Get-FileHash` authenticated
+the decoded archives against
+`xivl-client-data:manifests/private_csv_corpus.json` and
+`xivl-client-scripts:manifests/private_lua_corpus.json`.
+Read-only `System.IO.Compression.ZipFile` searches inspected all 803 CSV
+headers and all 2,671 Lua files, with focused inspection of the positive
+table and identifier hits. Python `zipfile`, `csv` and `hashlib` separately
+checked the relevant table fields and message templates against
+`xivl-client-data:manifests/tables.json`.
+
+| Input and locator | Observation | Mapping limit |
+| --- | --- | --- |
+| `xtx_text_partsName.csv`, header/type rows 1-2 and row IDs 1-93 with gaps | The row key is followed by eight string fields. English fields 1 and 2 contain the phrase and short name, including rows 45 `maw`, 42 `horns`, and 46 `mandibles`. | These are localized labels, without an actor-class, model, race or part-index foreign key. The row order does not identify a monster. |
+| `xtx_monsterRace.csv`, header/type rows 1-2 | Five localized string fields follow the key. | This is a race-name list, without a part-name row reference. |
+| `actorclass.csv` field 5; matching `actorclass_graphic.csv` row, field 6; `xtx_displayName.csv` field 1 | The inspected joins supply an actor's display name and model base, as in the model-identity table below. | No bridge from those identity joins to `xtx_text_partsName` was recovered. |
+| `chara/npc/npcbaseclass.lua:217-237,265-271`; `npcbaseclass_battle.lua:19-31,43-93` | Stores actor-class ID separately, then accepts one `partsName` scalar and eight existence booleans from initializer arguments. | The inspected initializer does not derive the scalar or a per-part row from actor identity. |
+| `chara/npc/debug/populacemonstergrandma.lua:17-45,72-99` | Enumerates `xtx/monsterRace` and resolves its labels through `debug._getLocalizedXtx`. | This is a debug localized-name list, not a monster/part resolver. |
+
+The Lua search covered the identifier families `partsName`, `partsExists`,
+`getPartsName`, `getPartsNameID`, `text_partsName`, `monsterRace`,
+`raceName`, `getMonsterRaceName`, `actorClassId`, `actorclass`, `model`
+and `graphic`, including case-insensitive matches. No Lua file contained
+`text_partsName`; the scalar/getter hits remained the storage path above.
+No inspected actor/model/race use supplied a part-name row. This does not
+exclude an unidentified numeric native table, computed or hashed lookup,
+or opaque resource metadata. It establishes server selection on the
+result-log path, not the absence of every possible unused client mapping.
+
+The result byte and text lookup are the positive evidence. The native
+`0x005873E0 -> 0x0058C220 -> 0x005759A0 -> 0x007705A0` path below
+forwards the supplied byte; neither actor identity nor a part index is
+used to derive it on the inspected edge. `worldMaster.csv` rows 30112,
+30113 and 30303 reference `xtx/text_partsName`. The retained 30112
+results establish row values 45, 42 and 46. They do not supply the missing
+16-monster mapping or establish how the server chose those values.
+
 ## Part indices and Lodestone categories
 
 The native getter proves the index-to-mask column independently of the
@@ -287,10 +333,91 @@ head: part 5 -> bit 3 -> 0x08
 
 This is a direct packed actor-state read. It does not require interpreting
 the separate `0x0179` twenty-status-ID array as the source of these bits.
-The mode-only `ChangeActorSubStatModeBorderReceiver` route remains distinct:
-its existing evidence in
+The Lua mode callback remains distinct from the breakage getter. Its
+existing evidence in
 `xivl-client-structs:manifests/s2c_payload_decoding_lua_bound.json#payloadStructs.s2c_0x0144`
-describes the Lua mode callback, not the complete native presentation path.
+does not describe the complete native presentation path. The packed word
+also sets the callback's mode border, as traced below.
+
+### Bytes +0x01 and +0x02
+
+**Answer:** these bytes belong to other fields in the packed word, not
+additional part masks. Byte `+0x01` has context-dependent chant and object
+selectors. Byte `+0x02` value `0x40` sets the mode border to 4: the client
+then exposes payload byte `+0x04` as a low-nibble number and four high-bit
+booleans. It does not establish a death flag.
+
+Let `W` be the little-endian application dword at `+0x00`. Original-PE
+Capstone decoding and byte-checked Ghidra listings establish these readers:
+
+| Reader and binding | Native locator | Observation |
+| --- | --- | --- |
+| `_getSubStatObject`, name `0x00FD7BB0`, registration `0x0074AF40` | `0x006F9F70:0x006F9F94-0x006FA00C` | Reads the same packed word as the part getter. Returns `(W >> 14) & 3`, `(W >> 12) & 3`, then `(W >> 8) & 15`; the third result is nil when zero. |
+| `_getSubStatChant`, name `0x00FD7B9C`, registration `0x0074ADF0` | `0x006F9EC0:0x006F9F13-0x006F9F5D` | Hand 1 reads `(W >> 12) & 15`; hand 2 reads `(W >> 8) & 15`. Zero returns nil. This is another interpretation of byte 1 on the chant path. |
+| Mode-border publication | `0x00588C80-0x00588C92 -> 0x00575280` | Shifts `W` right by 20, masks with `0xFFFFFF0F`, and calls ActorImpl virtual `+0x158`. The receiver constructor retains its low byte, leaving border `(W >> 20) & 15`. |
+
+Thus byte 1 `0xF0` gives object results `(3, 3, nil)` and chant results
+`(15, nil)` for hands 1 and 2. Adding or removing byte-0 head mask `0x08`
+does not change any of those results. Value 15 is returned as a number on
+the chant path, not normalized to nil. These observations do not establish
+why the server chose `0xF0` for a particular monster.
+
+The native presentation path also uses byte 1. After a changed packed word,
+`0x007BB740:0x007BB7BB-0x007BB7FF` applies the numbered part schedulers
+and dispatches on actor byte `+0xB39`. Its byte table at `0x007BB818`
+and target table at `0x007BB80C` select `0x007B95D0` for values
+`0,2,15,91`, and `0x0065FFB0` for `30,31,32`. Other values in the
+inspected table select neither of these two consumers. This is a native
+selector condition, not a species-to-selector mapping.
+
+`0x007B95D0:0x007B9608-0x007B9628` reads the two chant nibbles and
+guard bits 16/17. If it selects a nonzero chant, its branches at
+`0x007B975D-0x007B97DA` look up the corresponding zero-based entry through
+`0x0065CF80 -> 0x00851350` and use that model-supplied name for motion
+selection. A missing model pointer can reject the lookup. Thus byte 1 can
+select motion independently of a part break; a particular `0xF0` packet
+is not proof that such a motion played.
+
+`0x0065FFB0:0x0065FFBA-0x0065FFF0` instead splits byte 1 as 2/2/4
+bits and passes effect IDs to `0x0065AC70`. For `0xF0`, the three IDs are
+905, 908 and 900. The IDs, actor dirty fields and subsequent persistent
+effect requests are owned by
+[crafting presentation](crafting-presentation.md#persistent-material-and-element-state).
+The special apply branch at `0x007BB74D-0x007BB7B3` can also update those
+groups when their masks change. These are context-dependent consumers;
+they do not make every monster's `0xF0` a crafting effect.
+
+For byte 2 `0x40`, the border path is more specific than a correlation
+with a kill shot:
+
+1. LuaActorImpl vtable `0x00FDFB2C`, slot `+0x158`, points to
+   `0x0075A9A0`, which constructs the receiver at
+   `0x008A3210` with border 4. Vtable `0x010575E0` and its RTTI type name
+   at `0x012D8D78`,
+   `.?AVChangeActorSubStatModeBorderReceiver@System@Command@Client@Script@Lua@Application@@`,
+   identify the receiver. `0x008A32C0` dispatches to `0x006EECB0`.
+2. `0x006EECB0:0x006EECBF-0x006EECC3` stores that byte at the mode
+   helper's `+0x18`; `0x006EEC00` manages its pointer at CharaBase `+0xDC`.
+   This edge stores a border, rather than launching a death scheduler.
+3. `_getSubStatMode`, registered at `0x00754E90` under string
+   `0x00FD8384`, calls `0x00707FB0`. It reads the separate mode byte
+   through `0x0075C1F0 -> 0x00585420`, then supplies it and the border to
+   `0x006F1100`. For border 4, mask byte `0x00FD6170` is `0x0F`.
+   The helper returns `mode & 0x0F` and appends booleans for masks
+   `0x80,0x40,0x20,0x10`, in that order.
+4. The packet receiver subsequently sends application byte `+0x04` and
+   its previous value through `0x00575290`. ActorImpl slot `+0x15C`,
+   `0x0075AA20`, reaches `0x008A3310 -> 0x007084E0`.
+   `0x007084E0` returns when the mode bytes are equal; otherwise it uses
+   the same border helper and prepares `_onChangeSubStatMode` at string
+   `0x00FD458C`. A border change alone does not pass that comparison.
+
+The captured `0800400000000000` application below therefore contains
+head mask `0x08` and mode border 4, with mode byte zero. The border is
+independent of the head bit and does not itself request death or recovery.
+The reason for publishing that border on the reported kill shot, the
+meanings of that actor's four mode flags, and the exact visible effect of
+its `0xF0` value remain unproven. No live client was run for these traces.
 
 ## Break and recovery presentation
 
@@ -331,6 +458,8 @@ Combat text is independently specified by `worldMaster.csv`, English field
 `1`: row 30112 formats the actor possessive and a `xtx/text_partsName` phrase
 followed by `incapacitated.`; row 30113 uses the same inputs followed by
 `no longer incapacitated.`. These are the break and recovery messages.
+Row 30303 is a damage-result template that names the hit part through the
+same sheet family.
 `xtx_status.csv` rows 223021-223028 also carry `Incapacitation` status text
 and corresponding break/recovery templates. The presence of those templates
 does not prove that `0x0144` alone creates a status icon, chat message, popup,
@@ -338,9 +467,9 @@ or part-selection UI. The captured break text below comes from a combat result.
 
 ### Result consumers and the part-name parameter
 
-**Answer:** 30112 and 30113 take the generic combat-log path. Their message
-IDs and part-name parameter do not set or clear the breakage word. A result
-can also cause ordinary action processing to consume already queued state;
+**Answer:** 30112, 30113 and 30303 take the generic combat-log path. Their
+message IDs and part-name parameter do not set or clear the breakage word.
+A result can also cause ordinary action processing to consume queued state;
 that is distinct from interpreting 30113 as a restore command.
 
 Ghidra assembly listings, authenticated against the original executable
@@ -352,7 +481,7 @@ as specified, and `i` is a zero-based target row.
 | --- | --- |
 | `0x0058CCA0` tables `0x0058D994` / `0x0058D930`, case `0x0058D565-0x0058D56D` | Opcode `0x013A` calls `0x0058C930`, which calls `0x005873E0` and enqueues the staged record at CharaElement `+0xA80`. |
 | `0x005873E0:0x00587430-0x0058745B` | Transposes message ID at application `+0x64+2*i` to record `+0x44+0x14*i`, and the part-name byte at application `+0xA0+i` to record `+0x46+0x14*i`. Application `+0xAA+i` is a separate ordinal/filter byte. |
-| `0x0058DA10 -> 0x0058CA80 -> 0x0058C220` | Drains the staged result through generic action/result processing. `0x0058C220:0x0058C3A2-0x0058C3D5` sends both 30112 and 30113 to the default branch at `0x0058C5A8`; neither selects a special state-changing case. |
+| `0x0058DA10 -> 0x0058CA80 -> 0x0058C220` | Drains the staged result through generic action/result processing. `0x0058C220:0x0058C3A2-0x0058C3D5` sends 30112, 30113 and 30303 to the default branch at `0x0058C5A8`; none selects a special state-changing case. |
 | `0x0058C5A8-0x0058C60B -> 0x005759A0` | Passes the message ID and zero-extended part-name byte to the logging helper. The init `partsName` scalar is not an argument on this inspected edge. |
 | `0x005759A0:0x00575B7B-0x00575BED`; `0x007705A0:0x007709C5-0x007709EC` | Forwards the part-name byte as the final integer in the message-argument context. No part-index conversion occurs on this edge. |
 | `0x00575BF7-0x00575C1C -> 0x00771F50`; `0x00789CD0`, vtable `0x00FE046C` | Starts the generic logger's source-display-name resolver. Its callback `0x00789F40` continues through `0x007722A0 -> 0x00771C20` for text preparation and delivery. |
@@ -360,11 +489,15 @@ as specified, and `i` is a zero-based target row.
 The listener's RTTI type-name string at `0x012C3E28` is
 `.?AVSourceDisplayNameResolverListener@BehaviorLogger@Client@Script@Lua@Application@@`.
 
-Both CSV templates contain the same `xtx/text_partsName` sheet expression
-ending in `e80d0203`. The supplied byte selects the localized phrase row:
-the captured values 45, 42 and 46 resolve to maw, horns and mandibles.
-It is a text-table row selector, not index 1-8 and not the initializer's
-per-actor scalar. The native parameter flow and the captured joins agree.
+`worldMaster.csv` physical lines 504, 505 and 538 contain rows 30112,
+30113 and 30303. The first two English templates contain the same
+`xtx/text_partsName` sheet expression ending in `e80d0203`; 30303 places
+its expression, ending in `e80d0303`, between the hit target and damage
+amount. All three take the same supplied-byte parameter through the
+default logger. The captured 30112 values 45, 42 and 46 resolve to maw,
+horns and mandibles. The byte is a text-table row selector, not index 1-8
+and not the initializer's per-actor scalar. The native parameter flow and
+the captured joins agree.
 
 This establishes the selected combat-log route, not every use of those
 numbers elsewhere. Other fields in a result can request action presentation.
@@ -480,8 +613,11 @@ Check all eight entries at `0x006FA0D4` and their shifts; checking only the
 head case cannot establish bit order. Original-file comparisons authenticated
 the selected reader, presentation, result-logging and serial-drain
 instructions, dispatch tables and all numbered on/off scheduler strings.
-This authenticates the selected evidence, not the whole imported analysis
-database. Python's `hashlib`, `zipfile`, `csv` and exact-identifier searches
+The byte-1 and byte-2 checks also cover their getter registrations,
+bitfield instructions, mode-border RTTI/vtable, border mask table and
+mode getter/callback edges. These are distinct from the numbered-part
+scheduler selection. This authenticates the selected evidence, not the whole
+imported analysis database. Python's `hashlib`, `zipfile`, `csv` and exact-identifier searches
 checked the cited Lua and CSV bytes; every searched Lua input matched its
 manifest size and SHA-256.
 
@@ -497,6 +633,7 @@ For the capture join, use `xivl-captures:tools/extractors/extract_streams.py`
 | `chara/npc/npcbaseclass_battle.lua` | `e277df19d98ce7abf062e9345fa5b73e051fe8085d15b07780d26d5e0470fbf0` |
 | `chara/charabaseclass_battle.lua` | `ca7d9bd52320e8aa62ecd853a0ce8d9e2e0ddc76fc504729b501b14b9bfcd959` |
 | `item/itembaseclass_common.lua` | `7620492917230c3e060ed84d3197bf164c234a3ab73e48a0939bc65107f6b7fa` |
+| `chara/npc/debug/populacemonstergrandma.lua` | `33f4dae66e1d4411677ba356283afab51edc34d95f0b39c445f5f69d2dbd9967` |
 
 | Inspected CSV input | SHA-256 |
 | --- | --- |
@@ -506,11 +643,15 @@ For the capture join, use `xivl-captures:tools/extractors/extract_streams.py`
 | `actorclass_graphic.csv` | `7da8241400530885e0a28ded04a03acf2771b0580a79c1f49f46ee0861010611` |
 | `actorclass.csv` | `3ac9f8d1812d49101f367e2a41356be96b5d64b1fc5ca29949195f50ebe1d984` |
 | `xtx_displayName.csv` | `36c5dfba312695d9f4ee090dba123dfd7792feba55d88b0062c070d98abc0505` |
+| `xtx_monsterRace.csv` | `6ba4b4b8a3e0236dc4eaf04d3e78fcd9953abdd5362a5c9b6d2458424527c4fe` |
 
 Unknowns remain the native index-to-name lookup for the generic labels,
 conclusive `Other (Right/Left/Outer)` index assignments, an active rendered
 parts-selection UI consumer, a table/group interpretation or active lookup
-of the init scalar, model-specific visible break/recovery effects, and an
-observed recovery. Neither the initial flags nor a broken bit proves
-server damage thresholds, incapacitation duration, loot rules, or action
+of the init scalar, a monster/part-to-text-row mapping outside the inspected
+CSV/Lua and result-log edges, model-specific visible break/recovery effects,
+and an observed recovery. The server's choice of byte-1 selectors, and the
+actor-specific meanings of the separate mode flags, also remain unresolved.
+Neither the initial flags nor a broken bit proves server damage thresholds,
+incapacitation duration, loot rules, or action
 selection. No server implementation is part of this evidence.
