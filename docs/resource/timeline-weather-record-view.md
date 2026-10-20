@@ -3,15 +3,14 @@
 The TimeLine property's adjusted receiver is an embedded
 `LayoutInstanceObjectPropertyBase`, whose getter returns a supplied pointer
 stored at complete-object offset `+0x0C`. Construction initializes that pointer
-to null. The complete-instance setter can retain a supplied property
-interface and supply its owning instance. With a supplied TimeLine property,
-the concrete instance and TimeLine base tables retained, and valid retained
-pointer cells, the owner's slot 19 returns the base interface, and that
-interface's slot 8 returns its attached record. This conditionally
+to null. The instance binding helper uses its retained base's category to
+request a property, then supplies that returned interface to the same
+complete-instance setter. On the successful nonnull TimeLine property path,
+with the concrete instance/base tables, category-7 creator mapping and valid
+retained pointer cells, the owner's slot 19 returns the base interface.
+That interface's slot 8 returns its attached record. This conditionally
 joins the [weather-condition evaluator](timeline-weather-condition.md#entry-and-record-view-boundary)
 to the supplied TimeLine record, without establishing the selected active layout.
-The base/creator category match is known, but the helper's retained base has
-not been joined to its property-factory category input.
 The evaluator's backend comes from a separate pointer cell, initialized null
 and written by a setter that accepts a caller-supplied receiver.
 
@@ -23,6 +22,8 @@ with Capstone configured for x86-32. Retained Ghidra listings supplied function
 leads. Every instruction promoted here was checked against the original PE and
 decoded with Capstone. RTTI and table cells were read from that PE. These are
 static observations, with no client execution or playback evidence.
+The category/handoff ranges below were mapped with Python's `struct` module
+from the PE section raw bounds and decoded in the same Capstone mode.
 
 ## Construction and pointer attachment
 
@@ -63,8 +64,8 @@ The property factory is creator slot 3 at cell `0x0103C4FC` in table
 contains
 `.?AVRaptureTimeLineBaseObjectCreator@Layout@Map@Actor@Scene@Application@@`.
 The table's other product factory is slot 1, cell `0x0103C4F4`, targeting
-`0x00839950`. The category getters below match, while the instance setter
-and getter provide separate concrete owner/base relations.
+`0x00839950`. The category getters and instance handoff below join their
+products under the retained creator-mapping and successful-factory conditions.
 
 | Observation | Locators | Original-PE observation |
 | --- | --- | --- |
@@ -74,10 +75,10 @@ and getter provide separate concrete owner/base relations.
 | WRV-BF | `0x00839988..0x008399BF`, `0x008D4C18..0x008D4C2B` | Slot-1 factory `0x00839950` allocates `0x54` bytes, constructs the nonnull allocation through `0x008D4BF0`, and returns complete receiver+4. That constructor installs table `0x0106207C` at complete receiver+4. |
 | WRV-LOOK | `0x00FBF934`, `0x00A90E43..0x00A90E73` | The manager interface table `0x00FBF8CC` has slot 26 targeting `0x00A90E00`. Its search invokes each candidate creator's slot 6 and returns that creator pointer when AL is nonzero. This is a creator lookup, not a call to the property factory. |
 
-For a supplied property product P and retained base product B, B is separate
-from the owning instance interface R. R's slot 19 returns B under the
-retained-field and table conditions below. The matching creator alone does
-not establish the property-factory input for that same B.
+The retained base B is separate from the owning instance interface R. The
+binding helper obtains the property category from that B and supplies the
+factory's P return to the same instance. R's slot 19 returns B under the
+retained-field and table conditions below.
 
 ## Category-based instance binding
 
@@ -88,8 +89,8 @@ which uses category lookup `0x00A90E90` and calls the selected creator's
 slot 3. This differs from the slot-26 predicate lookup above. Both the
 TimeLine base and its creator report category 7. A category-7 lookup that
 selects this registered creator reaches property factory `0x00839A10` and
-can obtain P on the successful allocation/construction path. The retained
-field's relation to that category input remains the boundary described below.
+can obtain P on the successful allocation/construction path. The helper's
+concrete retained-base input and returned-property handoff are established below.
 
 Let I be the complete instance and R=I+4 its main instance interface.
 The retained Rapture instance tables are `0x00FF28D8` at I and
@@ -106,27 +107,36 @@ they do not prove that a particular live instance retains these tables.
 | CP-OWN | Complete-instance slot-1 cell `0x00FF28DC` -> `0x00A99EB0`; `[0x00A99EC8,0x00A99EE2)` | Stores supplied P at I+`0x18`. For nonnull P, calls P slot 2 with ECX=P and the pushed owner I+4=R. The excerpt ends in `RET 4`. |
 | CP-BIND | R slot-20 cell `0x00FF27EC` -> `0x00A9A730`; `[0x00A9A730,0x00A9A733)` and `[0x00A9A75E,0x00A9A767)` | Entry copies ECX into ESI. The later excerpt loads ECX from `[ESP+0x0C]`, tests it, and stores it at ESI+`0x10`. No stack-argument ordinal is inferred from the omitted instructions. |
 | CP-PRES | `[0x00A9A733,0x00A9A75E)` | No instruction writes ESI. Direct branches remain within this span or join `0x00A9A75E`; two optional indirect cleanup calls precede the join. ESI therefore retains R on normal ABI-conforming callee returns. |
-| CP-USE | `[0x00A9A781,0x00A9A78C)` | Loads ECX from current ESI+`0x10`, loads its table, pushes EAX, and invokes its slot 11 through table offset `0x2C`. The pushed EAX producer and ESI-to-R relation at this later excerpt are outside this check. It does not show the published slot-1 category dispatch. |
+| CP-USE | `[0x00A9A781,0x00A9A78C)` | Loads ECX from ESI+`0x10`, loads its table, pushes EAX, and invokes its slot 11 through table offset `0x2C`. CB-LISTENER below establishes ESI=R and the pushed listener argument. This call is separate from the slot-1 category dispatch. |
 | CP-19 | R slot-19 cell `0x00FF27E8` and engine instance cell `0x010A4070` -> `0x00A29AA0` | Reuses the published [instance getter](limsa-rain-presentation.md#rain-collection-and-bind-entry-acquisition): returns the receiver's dword `+0x10`. Its body was not reopened. |
+| CB-LISTENER | `[0x00A9A767,0x00A9A781)` | On the nonnull branch, calls the retained B's slot 35, preserves ESI=R under ABI-conforming returns, and forms the argument used by CP-USE: R+4=I+8 for nonnull I, or zero otherwise. Null B branches to CB-PREP, skipping these slot-35/11 calls. |
+| CB-PREP | `[0x00A9A78C,0x00A9A7A3)` | Retains B from R+`0x10` in EDI, loads the global factory interface from `0x01365788`, and calls its slot 4 with the pointer from R+`0x14`. It deliberately changes ESI from R to I before this call. No slot-4 semantic meaning is assigned here. |
+| CB-CATEGORY | `[0x00A9A7A3,0x00A9A7C7)` | Tests EDI and zeros I+`0x18`; the null-EDI branch leaves this checked path. For nonnull B, captures the factory table and I's complete-object table, then calls B slot 1 with ECX=EDI. |
+| CB-PROPERTY | `[0x00A9A7C7,0x00A9A7DB)` | Recovers the saved factory table from `[ESP+0x14]`, pushes the category return, and calls factory slot 3 with that factory interface. It then pushes the factory's EAX return P and calls the captured I table's slot 1 with ECX=I. |
 
 CP-BIND and CP-PRES establish the supplied-pointer store at R+`0x10`.
-Call the retained value B. CP-OWN retains a supplied P and gives it R through
-P slot 2. For the constructed TimeLine P, its existing setter stores R at
-C+`0x0C`, and its slot-4 forwarding/getter path returns R. Prior cleanup and
+Call the retained value B. The contiguous listener and factory excerpts use
+that retained field for B's category call, then hand the property factory's
+return to I slot 1. CP-OWN retains that P and gives it R through P slot 2
+when P is nonnull. For the constructed TimeLine P, its existing setter stores
+R at C+`0x0C`, and its slot-4 forwarding/getter path returns R. Prior cleanup and
 other intervening calls must return normally and conform to the ABI, and the
 selected tables and pointer cells must remain valid and retain these values. The
 checked excerpts do not establish additional lifetime or reference-count
 guarantees, exclude later replacement, or authenticate an observed TimeLine
 instance. The backend H at C+`0x10` is a separate field.
 
-CP-USE establishes a local field load and slot-11 call. The omitted span
-between CP-BIND and CP-USE leaves its ESI-to-R/B relation unestablished;
-it does not show B supplying the category used by the published
-property-factory path. The exact missing construction
-edge is that retained-field-to-category-input relation. The category-7 getters
-and generic factory contract do not establish it by themselves. Thus the
-owner/view composition below requires a supplied TimeLine P and retained
-TimeLine B; it does not establish automatic property selection from this B.
+The category return in EAX is pushed before EAX is reused to hold factory
+slot 3's target. The factory table saved at `[ESP+0x10]` in CB-CATEGORY is read
+at `[ESP+0x14]` after the saved-EBP push. The factory's EAX return reaches the
+I-slot-1 push directly. The calls must preserve the x86 callee-saved registers
+EBX, EDI, EBP and ESI under their normal ABI. The slot-4 call and
+base-object slots 35/11 have no additional side-effect or success contract
+here. The retained field, tables and factory mapping must still hold when
+their values are consumed. With 7 still mapped to the published TimeLine
+creator, this chain reaches its property factory; a successful nonnull P is
+bound to this same I and R. A null factory return still reaches I slot 1,
+whose null-P branch skips P slot 2.
 
 ## Backend pointer and guarded consumers
 
@@ -370,8 +380,7 @@ supplies the relocated TimeLine node to this B through slot 7, V is that
 attached node pointer. This composition uses the same concrete endpoints and
 the owner field store, rather than matching serialized offsets alone.
 
-The helper's category-input join, actual delivery of a city's TimeLine node,
-active context, valid storage across
+Actual delivery of a city's TimeLine node, active context, valid storage across
 the evaluator's unguarded dereferences, weather/clock inputs, evaluator gate
 and state, backend success and visible effects remain separate requirements.
 The callback's R slot-61 root and its lookup receivers are not established by
@@ -397,17 +406,19 @@ For the creator boundary, read `0x0103C4F0` slots 1 and 3 directly and decode
 adjustment separate from each factory product's receiver+4 adjustment.
 Decode `0x00A90E00` to distinguish predicate lookup from category lookup and
 factory invocation. For the category and instance boundaries, check only the
-CP-CAT, CP-BASE, CP-OWN, CP-BIND, CP-PRES and CP-USE instruction unions
-above, totaling 104 bytes.
+CP-CAT, CP-BASE, CP-OWN, CP-BIND, CP-PRES, CP-USE and four CB instruction
+unions above, totaling 209 bytes.
 Read their four named method cells, the two slot-19 cells, the two preceding
 COL pointers and their offset fields separately. The additional checked main
 slot-1 cell `0x00FF27A0` is `0x007FE900`. Eleven four-byte original checks
 covered 44 typed-data bytes. Verify raw section backing for every requested
 range; a virtual tail is not original file data. Reuse the linked generic
 binding, instance getter and record attachment contracts without reopening
-their bodies. Preserve the category-input gap, ABI-conforming cleanup and
-omitted stack effects; do not infer an argument ordinal from `[ESP+0x0C]`
-alone or identify CP-USE slot 11 with the published slot-1 category dispatch.
+their bodies. Preserve the ABI-conforming call, retained-value and category-
+mapping conditions. Derive the saved-table stack adjustment from the explicit
+pushes rather than assigning an argument ordinal to `[ESP+0x0C]` alone.
+Keep CP-USE slot 11 separate from CB-CATEGORY's slot-1 dispatch, and keep
+the uninspected epilogue outside these instruction unions.
 
 For the backend boundary, read property cells `0x00FF2DA4..0x00FF2DAC`
 as three separate dwords and decode the complete instruction unions for

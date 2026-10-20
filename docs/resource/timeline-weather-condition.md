@@ -2,10 +2,10 @@
 
 The native TimeLine property path contains a conditional evaluator with a
 data-derived count, a queue-recovered ID operand and first-match bitmap
-selection. The instance setter/getter chain conditionally joins its record
-view to an attached TimeLine record. The helper's retained-base/category-input
-join, attachment callback's root identity and downstream consumer effects
-remain unresolved. The static behavior below
+selection. The category-based construction and instance setter/getter chain
+conditionally join its record view to an attached TimeLine record. The
+attachment callback's root identity and downstream consumer effects remain
+unresolved. The static behavior below
 narrows the condition boundary without establishing automatic activation by
 an added weather ID.
 
@@ -42,13 +42,14 @@ P slot 4 cell `0x00FF2D3C` targets `0x008006E0`. This reads the vtable at
 incoming ECX+4, advances ECX by four, and tail-dispatches through that table's
 slot 3. The [property construction contract](timeline-weather-record-view.md)
 resolves that embedded adjusted interface and its stored first return. With
-an explicitly supplied TimeLine property, retained instance/base/property
-tables and field values, and normal ABI-conforming calls, that receiver is
+the retained-base category path selecting the TimeLine creator, a successful
+nonnull property return, retained instance/base/property tables and field
+values, and normal ABI-conforming calls, that receiver is
 the owning instance R.
 Its slot 19 returns the retained TimeLine base interface B, whose slot 8
 returns the supplied record at B+4. Actual layout selection and record delivery
-remain conditions. The matching category-7 getters do not join this retained
-base B to the helper's property-factory category input.
+remain conditions. The same helper calls that retained B's category getter,
+uses its return for property creation and supplies P to this same instance.
 
 ## Queue ID and first matching entry
 
