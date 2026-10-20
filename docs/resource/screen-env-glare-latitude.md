@@ -7,10 +7,13 @@ Static read of `ffxivgame.exe` (SHA-256
 15,996,808 bytes, image base `0x00400000`) and of the install. Instruction and
 data evidence comes from read-only `ghidra-cli 0.2.2` disassembly, decompilation
 and cross-reference queries on that binary. File evidence comes from a
-throwaway scan of the weather DATs outside this repository. All addresses are
-VAs unless marked RVA. No retail values are recorded, only addresses, offsets,
-counts, shapes and code immediates. Tiers: V = verified from cited
-instructions, data or file bytes, I = inferred, U = unknown.
+throwaway scan of the weather DATs outside this repository. Pixel program
+statements come from decoding the Direct3D 9 shader token streams embedded in
+the image: the version token, constant table names, register indices and
+operations. All addresses are VAs unless marked RVA. No retail values are
+recorded, only addresses, offsets, counts, shapes and code immediates, and no
+shader bytecode. Tiers: V = verified from cited instructions, data or file
+bytes, I = inferred, U = unknown.
 
 Owners of the neighboring facts:
 
@@ -42,6 +45,9 @@ Owners of the neighboring facts:
 | Render state fields `R+0x1E4`, `R+0x1E8`, `R+0x1EC` | `0x00A57AF0`, `0x00A57D70`, `0x00A5AF60` | V |
 | Context fields `C+0x1B4`, `C+0x1B8`, `C+0x1BC` to `latitudeParam` | `PixelLightShaderDriver` Apply `0x00C22DD0` | V |
 | Context field `C+0x1C0` to `glareLdrScale` | `0x00C22DD0` | V |
+| Post-effect `+0x0C` stored to `R+0x1E4`, then the filter chain runs | `PostEffect::Draw` `0x00A57D70`, store `0x00A57F8F`, call `0x00C4D070` at `0x00A57FEF` | V |
+| Glare settings written into `GlareFilter` | `0x00A58170`, `0x00A58220`, `0x00A581C0`, `0x00A58190`, `0x00A581F0` | V |
+| Glare composite divides `C+0x1B4` back out | `0x00C880A0`, pixel program `0x011057A8` | V |
 
 ## Glare clip
 
@@ -217,24 +223,29 @@ and `C+0x1BC`.
   nonzero).
 - Flag 2 uses the post-effect object in the global `0x01365554`. It calls
   `0x00A57AF0(P+0x120)` and then pushes the Glare values into the
-  post-effect settings struct at post-effect `+0x08`: type to `+0x0C`
-  (`0x00A58170`), brightness `P[0x4B]` to `+0x10` (`0x00A58220`), threshold
-  `P[0x4A]` to `+0x14` (`0x00A581C0`), saturation `P[0x4C]` to `+0x1C`
-  (`0x00A58190`) and `P[0x4E]` to `+0x24` (`0x00A581F0`). `P[0x4D]` has no
-  push in this function.
+  `GlareFilter` object reached through the filter chain at post-effect `+0x08`,
+  see [the filter chain](#filter-chain-v): type to `+0x0C` (`0x00A58170`),
+  brightness `P[0x4B]` to `+0x10` (`0x00A58220`), threshold `P[0x4A]` to `+0x14`
+  (`0x00A581C0`), saturation `P[0x4C]` to `+0x1C` (`0x00A58190`) and `P[0x4E]`
+  to `+0x24` (`0x00A581F0`). `P[0x4D]` has no push in this function.
 
-`0x00A57AF0` stores the enable byte at settings `+0x2D` and sets the
+`0x00A57AF0` stores the enable byte at filter chain `+0x2D` and sets the
 post-effect field `+0x0C` to the float 0.75 (`0x00F5988C`) when enabled or
 1.0 (`0x00FB7A60`) when disabled. When disabled it also writes that 1.0 to
-`R+0x1E4` at once. When enabled it does not write `R+0x1E4`.
+`R+0x1E4` at once. When enabled it does not write `R+0x1E4`. It does not read
+the post-effect byte `+0x01`.
 
-`PostEffect::Draw` (`0x00A57D70`, the string `"PostEffect::Draw"`) writes the
-post-effect `+0x0C` field to `R+0x1E4` inside its effect-active branch, before
-it calls `0x00C4D070`. So `C+0x1B4` is 0.75 for draws made while the Glare
-effect is enabled and 1.0 otherwise, once the draw path has run (V for the
-stores, I for the timing). The context constructor `0x00C48C40` (called at
-`0x00C282A4` while building R) sets `C+0x1B4 = 1.0`, `C+0x1B8 = 0.0`,
-`C+0x1BC = 1.0` and `C+0x1C0 = 1.0`.
+`PostEffect::Draw` (`0x00A57D70`, the string `"PostEffect::Draw"`) returns
+early at `0x00A57DA7` when the post-effect byte `+0x01` is clear, without a
+store to `R+0x1E4` and without the chain call. Otherwise it writes the
+post-effect `+0x0C` field to `R+0x1E4` inside its effect-active branch
+(`FLD` of `+0x0C` at `0x00A57F87`, `FSTP` to `C+0x1B4` at `0x00A57F8F`), before
+it calls the filter chain process `0x00C4D070` at `0x00A57FEF`. So `C+0x1B4` is
+0.75 for draws made while the Glare effect is enabled and 1.0 otherwise, once
+the draw path has run (V for the stores, I for the timing). The Glare composite
+divides the 0.75 out, see [the composite](#post-effect-composite). The context
+constructor `0x00C48C40` (called at `0x00C282A4` while building R) sets
+`C+0x1B4 = 1.0`, `C+0x1B8 = 0.0`, `C+0x1BC = 1.0` and `C+0x1C0 = 1.0`.
 
 ## Pixel driver constants (V)
 
@@ -256,7 +267,9 @@ cross-reference in the image.
 The four lanes are stored at driver `+0xC0..0xCF` and sent through the handle.
 The tail therefore computes `(rgb * x + y) * z`, which with `y = -min * x` maps
 `[min, max]` to `[0, 1]` before the scale by `z`. No guard runs before the
-divide, so `max == min` gives an infinite `x`.
+divide, so `max == min` gives an infinite `x`. With Glare enabled the 0.75 in
+`z` is divided out again by the
+[Glare composite](#post-effect-composite).
 
 The context byte at `C+0x77C` (getter `0x00C47F80`, setter `0x00C47F70`) is
 tested right after `x` and `y` are built. When it is nonzero and `x > 1.0`, the
@@ -310,6 +323,160 @@ Which draw kinds attach that driver to the sky programs is U, and two further
 `latitudeParam` string uses at `0x010D26BC` (`0x00C11230`, `0x00C195D0`,
 `0x00C1A100`) were not traced.
 
+## Post-effect composite
+
+What happens to the scene colour after the pixel tail, in the post-effect
+filter chain. The pixel programs below are Direct3D 9 `ps_3_0` token streams
+embedded in `ffxivgame.exe`. Their version token, size and constant table
+names were read from the image bytes, and their operations were decoded from
+the token stream.
+
+### Filter chain (V)
+
+The post-effect object (global `0x01365554`) holds the filter chain at `+0x08`.
+`0x00A57870` allocates it with size `0xA8` and runs the constructor
+`0x00C4BF70`. The constructor builds these members, whose RTTI names are in
+`config/ffxivgame.rtti.json`.
+
+| Chain offset | Class in `SQEX::CDev::Engine::Dw::Renderer` | Constructor | Size | Vftable |
+|---|---|---|---|---|
+| `+0x00` | `GlareFilter` | `0x00C86A90` | `0x13C` | `0x01106568` |
+| `+0x04` | `DepthOfFieldFilter` | `0x00C4DDD0` | `0xB4` | `0x010F406C` |
+| `+0x08` | `AmbientOcclusionFilter` | `0x00C84F00` | `0x60` | `0x011045A8` |
+| `+0x10` | `VolumetricLightFilter` | `0x00C82CF0` | `0x148` | `0x01103258` |
+| `+0x14` | `ColorCorrectionFilter` | `0x00C81D70` | `0xA4` | `0x01102360` |
+
+The members at `+0x18..+0x28` are not identified here. The chain byte `+0x2D`
+is the Glare enable written by `0x00A57AF0`. The `GlareFilter` vftable has
+three slots: `0x00C884F0`, `0x00776340` and `0x00C88420`.
+
+### GlareFilter settings (V)
+
+Each push setter loads the chain from post-effect `+0x08`, then the
+`GlareFilter` pointer from chain `+0x00`, then stores the field. The
+`GlareFilter` constructor `0x00C86A90` sets the type to 2 and sets `+0x10`,
+`+0x14`, `+0x18` and `+0x1C` to the float at `0x00F54F70`.
+
+| Field | Setter | Source in P | Role |
+|---|---|---|---|
+| `+0x0C` | `0x00A58170` | `P[0x49]` | type, dword |
+| `+0x10` | `0x00A58220` | `P[0x4B]` | brightness |
+| `+0x14` | `0x00A581C0` | `P[0x4A]` | threshold |
+| `+0x1C` | `0x00A58190` | `P[0x4C]` | saturation |
+| `+0x24` | `0x00A581F0` | `P[0x4E]` | U |
+
+### Glare passes (V)
+
+`0x00C4D070` tests the chain byte `+0x2D` at `0x00C4D5A1`. When it is set, the
+function calls `0x00C85F30` on the `GlareFilter`, then calls `GlareFilter`
+slot 2 (`0x00C88420`).
+
+- `0x00C85F30` requests scratch render targets at 1/8, 1/16, 1/32, 1/64 and
+  1/128 of the size given by the virtual calls at `+4` and `+8` of its input
+  object, two per scale and ten in all. Every request carries the constant 4 in
+  its last field, read as the format enum (I). The results are cached in the
+  globals `0x01375F40..0x01375F64`.
+- Slot 2 calls `0x00C87F60`, then `0x00C88320` when the `GlareFilter` byte
+  `+0x44` is nonzero, then `0x00C880A0`. The constructor clears `+0x44` and its
+  writer is U.
+- `0x00C87F60` loads the float `C+0x1B4`, calls the bright pass setter
+  `0x00C870A0`, and then calls `0x00C866C0`, six times `0x00C86930` and six
+  times `0x00C87990`. The roles of those three are U.
+- `0x00C880A0` is the composite setter.
+
+The `GlareFilter` constructor registers six program pairs through
+`0x004194E0` (vertex, token version `vs_3_0`) and `0x00419590` (pixel, version
+`ps_3_0`), and resolves the constant handles by name from the strings at
+`0x01105B88..0x01105D30`.
+
+### Programs and constants (V)
+
+| Pixel program | Size | Constants (register) | Samplers |
+|---|---|---|---|
+| `0x01104688` | `0x2C0` | `s_threshold` c0, `s_saturation` c1, `s_latitudeRCP` c2, `s_ldrScale` c3 | `s_colorSampler` s0 |
+| `0x01104A18` | `0x354` | `s_threshold` c0, `s_saturation` c1, `s_latitudeRCP` c2, `s_depthScale` c3, `s_thresholdFactor` c4 | `s_colorSampler` s0, `s_depthSampler` s1 |
+| `0x01104E48` | `0x3A0` | `s_threshold` c0, `s_saturation` c1, `s_latitudeRCP` c2, `s_depthParams` c3, `s_depthNearFar` c4, `s_thresholdLowHigh` c5 | `s_colorSampler` s0, `s_depthSampler` s1 |
+| `0x011057A8` | `0x3E0` | `s_colorScaleRCP` c0, `s_blendFactor` c1, `s_ldrScale` c2 | `sourceSampler` s0, `glareSampler0..5` s1 to s6 |
+
+The three bright pass programs end with the main result times
+`s_latitudeRCP.x`. The strings `s_ldrScale`, `s_colorScaleRCP` and
+`s_latitudeRCP` occur only in these programs and in the name table at
+`0x01105B88..0x01105D30`, all within `0x01104xxx..0x01105dxx`.
+
+Bright pass setter `0x00C870A0`, with `C` the draw context and `G` the
+`GlareFilter`, writes through the handles at `G+0xB8`, `+0xBC`, `+0xC0` and
+`+0xCC`:
+
+| Constant | Value |
+|---|---|
+| `s_threshold` | `float(double(G+0x14) * double(C+0x1B4))` |
+| `s_saturation` | `G+0x1C` |
+| `s_latitudeRCP` | `float(1.0 / double(C+0x1B4))`, the 1.0 being the double at `0x00F598A0` |
+| `s_ldrScale` | `C+0x1C0` |
+
+The first bright pass program compares `s_ldrScale` with 1.0 (a `ge` test
+against a defined constant). At 1.0 or more the main path runs. Below 1.0 a
+second path writes `scene * s_ldrScale - s_threshold` with alpha 1.0. The
+other two programs have no `s_ldrScale`. Which of the three programs a draw
+uses is U.
+
+Composite setter `0x00C880A0` writes through the handles at `G+0x120`,
+`+0x124` and `+0x128`:
+
+| Constant | Value |
+|---|---|
+| `s_blendFactor` | `float(double(G+0x10) * double(0x00FB8650))`, the double being the float 0.15 widened |
+| `s_colorScaleRCP` | `float(1.0 / double(C+0x1B4))` |
+| `s_ldrScale` | `C+0x1C0` |
+
+The composite program `0x011057A8` computes, with `sat` the clamp to `[0, 1]`:
+
+    g = sat(s_blendFactor.x * (glareSampler0 + ... + glareSampler5))
+    s = sat(sourceSampler * s_colorScaleRCP.x * s_ldrScale.x)
+    oC0 = sat(g + s - g * s)
+
+The first multiply of `s` is not clamped. The six glare levels share the one
+`s_blendFactor`. Which target is bound to `sourceSampler` is U.
+
+### The 0.75 cancels (V from the constants, I for the target format)
+
+Let `z = C+0x1B4`, `L = C+0x1C0` and `T = rgb * x + y` from the pixel tail.
+The tail writes `T * z * (1 / L)` to the scene target, so an 8-bit target holds
+`stored = clamp01(T * z / L)` (I for the clamp). The composite reads `s = sat(stored * (1 / z) * L)`. Where
+`T * z / L` is in `[0, 1]` the product is `T`, and above it `s = min(1, L / z)`.
+The scene term is therefore `min(max(T, 0), 1, L / z)`, which equals
+`clamp01(T)` whenever `L >= z`. With the constructor value `L = 1.0` and
+`z = 0.75` the 0.75 has no effect on the displayed scene colour. It changes
+the 8-bit quantisation of the stored value and lets `T` up to `L / z` reach
+the bright pass before the clamp (I). The bright pass sees the stored value, so
+its threshold is multiplied by `z` and its result is multiplied by `1 / z`.
+
+With Glare disabled `z` is 1.0 and the composite does not run, so the output
+is `clamp01(T / L)`. `L` is not derived from the 0.75: the tail multiplies by
+`1 / L`, the bright pass receives `L` and the composite multiplies by `L`.
+
+If a draw ran with `C+0x1B4` at 0.75 and no composite followed, the output
+would be `0.75 * T / L`, 25 percent dark at `L = 1.0` (U whether that sequence
+occurs). The instructions allow it, since `0x00A57AF0` does not read the
+post-effect byte `+0x01` and `PostEffect::Draw` returns on that byte without
+touching `R+0x1E4`.
+
+### Render target formats (V, I)
+
+The table at `0x00F637B8` maps the format enum to a Direct3D 9 format number.
+The creation helpers `0x00431080` and `0x004312D0` index it. Enum 4 gives 21
+(`A8R8G8B8`), enum 7 gives 113 (`A16B16G16R16F`), enum 8 gives 116 and enum 9
+gives 114.
+
+- All ten Glare scratch targets carry enum 4, so the Glare levels are 8-bit (I
+  for the field meaning).
+- The post-effect target setup `0x00A578F0` passes the global `0x012EFCEC` as
+  the format of its requests to `0x00A5CB70`. The global holds the dword 4 in
+  the image and has 11 read cross-references and no write cross-reference (V).
+- No request for enum 7 was found among the requests read, so the scene colour
+  target is taken to be 8-bit (I). The owner of the scene target slots
+  post-effect `+0x54` and `+0x58` is not pinned.
+
 ## Worked arithmetic
 
 These follow from the formulas above and are not retail values.
@@ -320,6 +487,9 @@ These follow from the formulas above and are not retail values.
 - A Glare section with min 0.0, max 0.5 and the effect enabled gives
   `x = 2.0`, `y = -0.0` and `z = 0.75`, unless the `C+0x77C` clamp applies, in
   which case it gives `x = 1.0`, `y = 0.0` and `z = 0.75`.
+- With Glare enabled, `z = 0.75` and `L = 1.0`, a pixel with `T = 0.8` is stored
+  as 0.6 and the composite scene term is `0.6 * (1 / 0.75) * 1.0 = 0.8`. A pixel
+  with `T = 1.2` is stored as 0.9 and returns 1.0 after the composite clamp.
 
 ## Weather dependence (V)
 
@@ -349,9 +519,19 @@ four curves is U.
 
 - The setter of bit 2 of DrawableObject byte `+0x2B0`, and so which pass kinds
   run with `C+0x77C` set. Slot 2 of the tag vftable does not set it.
-- The writer of `C+0x1C0` after the context constructor.
-- Whether the post-effect composite reached through `0x00C4D070` brings the
-  0.75 of `C+0x1B4` back to 1.0 for the displayed frame.
+- The writer of `C+0x1C0` after the context constructor. Two byte stores with
+  displacement `0x1C0` at `0x00A5B97C` and `0x00A74423` were not traced.
+- Which of the three bright pass programs a draw uses, and the values the
+  `GlareFilter` type at `+0x0C` takes. The floats that follow the `GlareFilter`
+  vftable from `0x01106574` have no direct cross-reference at `0x01106580`, so
+  their consumers are untraced. The composite applies the one `s_blendFactor`
+  to all six levels.
+- Which target the scene colour is drawn into and which target is bound to
+  `sourceSampler`, the owner of the post-effect target slots `+0x54` and
+  `+0x58`, and whether a cleared post-effect byte `+0x01` can leave `R+0x1E4`
+  at 0.75 with no composite.
+- The roles of `0x00C866C0`, `0x00C86930`, `0x00C87990` and `0x00C88320`, and
+  the writer of the `GlareFilter` byte `+0x44`.
 - The unit of `elapsed` in controller slot 7 and so the duration of the lane
   fade, the roles of controller `+0x28`, `+0x2C`, `+0x30` and `+0x86`, and the
   source of the objects at `+0x18` and `+0x1C`.
