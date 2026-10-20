@@ -34,6 +34,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Non-player appearance census](actor/non-pc-appearance-census.md)
 - [Atomos and Deepvoid presentation](actor/atomos-deepvoid-presentation.md)
 - [Actor battle regimen](actor/battle-regimen.md)
+- [Battle NPC body-part state](actor/battle-npc-body-parts.md)
 - [Battle Regimen combination and target modes](actor/battle-regimen-combination.md)
 - [Cast timing clock and force override](actor/cast-timing-clock.md)
 - [Crafting presentation routing](actor/crafting-presentation.md)
