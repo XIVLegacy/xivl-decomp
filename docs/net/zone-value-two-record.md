@@ -6,7 +6,9 @@ record. After its internal 24-byte header, it writes one caller u32 and
 published forwarding copy extent but are not written by this builder.
 The separate [header binding](zone-outbound-header.md) establishes serialized
 Map serverbound opcode `0x0002` on the forwarding path. A login/handshake
-identity remains unresolved.
+identity remains unresolved. The selected `FUN_004E30A0` caller supplies a
+zero first word and sixteen bytes from the data pointer of its `+0x254`
+string object; that object's contents and the final copied u32 remain open.
 
 ## Input and complete builder
 
@@ -51,23 +53,62 @@ For size `0x28`, that means a 24-byte copied region:
 The final four bytes are outside this builder's write set. Their prior
 initialization and values depend on the caller; they are not proved
 uninitialized, zero, padding or a meaningful selector. Other header bytes
-are outside this copy region. No caller or helper body was reopened.
+are outside this copy region.
+
+## Selected caller arguments and result
 
 `xivl-client-structs:manifests/c2s_emit_sites.json`,
 `thunk_emit_sites_table`, supplies the retained candidate call at
 `0x004E3348` in `FUN_004E30A0`, through `0x004DD660` and `0x004E0240`.
-That is a published route locator, not an independent reproduction of the
-caller arguments or full record initialization. The published
+The caller's complete analyzed body is `[0x004E30A0,0x004E33E5)`, 837 bytes
+and 223 decoded instructions, checked against the same original PE. Three
+non-overlapping reads cover it:
+
+| VA range | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `[004E30A0,004E3304)` | 612 | `cc10c54a6dc9461a656837b1fa83a7b580622cc91fb3aa3ebd3f588c0cf3eb66` |
+| `[004E3304,004E335D)` | 89 | `88bddd54072b8f438e888eccdfbfc6ddeb2be9b211aacf62075f382164007776` |
+| `[004E335D,004E33E5)` | 136 | `10f0d6d78cf67688737649463267c75e0f69e23c5878cef9b6507c2638710e5e` |
+
+`0x004E30E6` saves the incoming ECX owner in ESI. Both prelude paths set EBX
+to zero (`0x004E310F`, `0x004E3146`); the caller does not change it again
+before the epilogue restore. The selected block is the published case-4
+destination at `0x004E32FD`; the switch table itself was not reread.
+
+After calling `0x004E20A0`, the block requires owner `+0x234` nonzero. If
+owner `+0x238` is nonzero, it also requires `0x004E11F0` to return nonzero
+(`0x004E3309`-`0x004E3328`). The separate `0x46` comparison at `0x004E3172`
+does not directly guard this emission block. It does not prove a 70-second
+send cadence.
+
+At `0x004E332C`, ECX receives owner+`0x254`; `0x004E3332` calls
+`0x00445210`. The published
 `xivl-client-structs:manifests/symbols.json#BCS-Y-2281` contract identifies
-`0x00445210` as a string data-pointer accessor; a decompiler's apparent
-`(0,0)` arguments do not authenticate an actual argument vector or the
-selected string contents.
+that leaf as a string data-pointer accessor. Its result is pushed as P at
+`0x004E3337`, followed by zero at `0x004E3338`. ECX then receives a stack
+record pointer, and `0x004E3340` calls the builder. Thus this caller supplies
+application u32 zero and the first sixteen bytes at that string data pointer.
+The caller performs no source-length check here. This does not establish the
+string's population, length, readable capacity, contents, encoding or identity
+meaning. Apparent accessor `(0,0)` arguments in a decompiler are not its
+actual argument vector.
+
+The builder's returned record pointer is passed to the forwarding thunk at
+`0x004E3348`, with ECX restored to the owner and the two zero flags already
+on the stack. A nonzero AL return writes owner `+0x250 = 5`
+(`0x004E334D`-`0x004E3351`). That is a local return-dependent transition,
+not an accepted server response. The selected path has no direct store to
+the final application u32 at R+`0x2C`; its initialization remains unknown.
+No accessor, builder, forwarding, tick, string-content or writer body was
+reread for this caller check.
 
 ## Wire identity and semantic boundary
 
 The [header binding](zone-outbound-header.md) owns the constructor-to-header
 join and its finalization checks. The record's physical layout may therefore
-inform the Map serverbound `0x0002` application comparison. Caller values,
-the unwritten final u32, a login/handshake identity, reply, admission policy
-and client acceptance remain unresolved. A different channel's record value
-2 is a separate candidate.
+inform the Map serverbound `0x0002` application comparison. The selected
+caller's zero first word is not a universal constraint on every producer.
+The source string's population and contents, the unwritten final u32, a
+login/handshake identity, reply, admission policy, cadence, delivery and client
+acceptance remain unresolved. The separate
+[Chat header contract](chat-outbound-header.md) owns World value 2.
