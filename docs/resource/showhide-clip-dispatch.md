@@ -160,8 +160,31 @@ Both paths then push i for `0x00A1FFA0(C,i)`. They push that call's EAX
 result A followed by J before the dynamic operation call. The published
 [indexed actor path](uldah-halloween-material.md#active-parameter-receivers)
 owns the forwarding through `0x00A1B730` and the selected collection lookup.
-These observations describe push order and register sources. They do not
-independently verify the old indexed-helper chain's argument cleanup.
+The helper-chain stack contract below establishes the resulting argument
+positions.
+
+### Operation argument vectors
+
+The checked `0x00A1FFA0` and `0x00A1B730` thunks each load ECX and
+tail-jump, without changing ESP or stack memory. Their final target,
+`0x00A21C80`, reads i from `[ESP+4]` on its nonzero-count path, makes no
+explicit stack-memory write, and uses `RET 4` on both return paths. Thus the
+indexed lookup removes i while preserving the deeper pending value and,
+on the bit-1-set path, the
+collection pointer. Its zero/out-of-range result still follows this cleanup.
+
+With the published callsite path and valid retained storage, these are the
+dwords after the return address at the dynamic operation's entry, in
+increasing address order. ECX is Q and is separate from the explicit vector.
+
+| f bit 1 | Q table byte offset | Explicit dword vector |
+| --- | --- | --- |
+| Set | `+0x24` | `(J, A, u32(u32(C+0x0C)+0x70), f & 1)` |
+| Clear | `+0x20` | `(J, A, (Q & 0xFFFFFF00) \| (f & 1))` |
+
+This establishes incoming positions, without assigning a native signature,
+parameter meaning or cleanup contract to either dynamic operation. A may be
+zero; the vector alone does not establish a successful actor lookup.
 
 Q is the operation receiver. A is a separately looked-up explicit argument.
 The callsites do not identify either as a particular Halloween resident,
@@ -192,6 +215,13 @@ The inherited entry's selected original-byte operand excerpts are
 `[0x00DE8196,0x00DE81BB)`. Each range contains complete instructions.
 Preserve callee-saved register flow and the distinction between `MOVZX` and
 `MOV AL`. Do not substitute the actor lookup result A for Q.
+
+For the operation argument vectors, check the complete helper-chain unions
+`[0x00A1FFA0,0x00A1FFA8)`, `[0x00A1B730,0x00A1B738)` and
+`[0x00A21C80,0x00A21CA1)`, totaling 49 instruction bytes. These unions cover
+the stack write set and cleanup. Preserve both `RET 4` paths and the tail-jump
+chain, then compose them with the published callsite pushes above. No other
+dispatch operand is needed for that check.
 
 REA's exact table-reference observation was
 `ev_7298ef41e6d1efd485c8294b602c5619974c4da8e293fb000e9193e4c546f7e5`.
