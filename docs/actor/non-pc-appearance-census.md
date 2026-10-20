@@ -106,10 +106,22 @@ reading for any monster clip.
 
 ## Map objects
 
-All 586 `bgobj` rows over 93 distinct bases plan 6 category textures each and
-the planner reports the category builder verdict for each. Zero parts bind
-because the planner forms no model path for the category. The category 3
-model call near `0x006B5E40` is not shown to be gated by category.
+The 586 `bgobj` rows cover 93 distinct bases. The planner plans 6 category
+textures for each row and reports the category builder verdict for each. Zero
+parts bind because the planner forms no model path for the category. The
+client does form one. Its model pass calls `0x006B5E40` for the face, the hair
+and the six gear words with no category branch, so a `bgobj` base takes the
+same model path formatting as a player gear word
+(see [model paths](appearance-path-decoder.md#face-hair-and-gear-model-paths)).
+
+The install holds 93 `bNNN` directories under `client/chara/bgobj`, plus `cmn`
+(`installed-file-existence`). The 586 rows carry 611 nonzero gear words. Read
+as the client reads them, with `E` from bits 19:10 and the part from the gear
+slot order, they plan 227 distinct model paths of the shape
+`client/chara/bgobj/b<NNN>/equ/e<EEE>/<part>_mdl/0001`. 226 of those files
+exist. The one that does not lies under a `bNNN` directory that the install
+lacks. A directory entry shows that a file exists and does not show that the
+retail client draws it.
 
 ## Unknowns
 
@@ -117,6 +129,7 @@ model call near `0x006B5E40` is not shown to be gated by category.
 - Which monster words a retail server sent, since the rows are server
   authored.
 - The idle and movement banks of a monster directory.
-- The model path of a `bgobj` appearance and whether the builder takes it.
+- What the engine does with a registered `bgobj` model, and what happens when
+  its texture directory is missing.
 - The causes of the 141 unmatched textures, the 28 refused models and the 9
   unreadable models, which were counted by label only.

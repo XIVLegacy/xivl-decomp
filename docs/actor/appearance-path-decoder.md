@@ -132,6 +132,22 @@ for index 0 with helper `+0x68`, index 1 with helper `+0x6C`, and indices 2
 through 7 with helper `+0x98 + 4*(index - 2)` (`direct-xref-set`, call sites
 `0x006B8AC2`, `0x006B8ACF`, `0x006B8AE9`).
 
+The model pass has no category gate (`decompile-and-instruction-derived`).
+The conditional jumps in `0x006B8680` before the call at `0x006B8B1E` are the
+two `emp` string comparisons at `0x006B88B5` and `0x006B8A0D` and the two loop
+tests at `0x006B8AF7` and `0x006B8B15`. None reads helper `+0x54`. The
+conditional jumps in `0x006B5E40` test only the word (`0x006B5E88`), the index
+(`0x006B5EAD`), the `0x00D39290` lookup results (`0x006B5FEF`, `0x006B60C4`,
+`0x006B6184`, `0x006B6223`), the bank table value (`0x006B6042`,
+`0x006B61A1`) and helper `+0x40` bit `0x4000` (`0x006B60E0`). The category
+reaches the function only as the arguments helper `+0x54` and `+0x58` of the
+slot 22 call at `0x006B5EE6`. The six gear calls therefore take the same path for every base-model
+category. A category 2 (`wep`) or category 3 (`bgobj`) base uses the same
+`%s%s%03d/%s` and `0001` formatting as a player, with the slot 22 prefix for
+its own category. The file lookup `0x00D39290` must succeed before
+`0x006320C0` registers the model, with flag 2 and bank `2 + index`
+(`0x006B6013`, bank table `0x00FD3E60`).
+
 | Index | Entry prefix (table `0x012BF2A8`) | Entry name (table `0x012BF2C8`) |
 |---:|---|---|
 | 0 | `kao/f` (`0x00FD2C04`) | `fac_mdl/` (`0x00FD2C60`) |
@@ -149,6 +165,16 @@ Both tables are `direct-pe-byte-read`. The resulting shapes are:
 /client/chara/pc/c003/kao/f001/fac_mdl/0001
 /client/chara/pc/c003/kao/h001/hir_mdl/0001
 /client/chara/pc/c003/equ/e009/dwn_mdl/0001
+```
+
+The gear shape for the other categories keeps the same tail. The part order is
+`met`, `top`, `dwn`, `glv`, `sho`, `pch` for indices 2 through 7, and `E` is
+bits 19:10 of the gear word (`local-bitfield-data-flow` for the lane,
+`decompile-and-instruction-derived` for the shape):
+
+```text
+/client/chara/bgobj/b<NNN>/equ/e<EEE>/<part>_mdl/0001
+/client/chara/wep/w<NNN>/equ/e<EEE>/<part>_mdl/0001
 ```
 
 The function formats `%s9999` (`0x00FD2C88`) from the same directory for every
@@ -407,6 +433,9 @@ non-null (`0x006B64C2..0x006B64D3`). `E2` is output 3 of `0x006306F0` on helper
 `0xCB` of that row (`0x006B6511..0x006B6523`). The part pointer at `0x012BF300`
 reads `top` (`0x00FD2E10`).
 
+Category 3 sets only the texture directories here. Its model paths come from
+`0x006B5E40` as shown above.
+
 Category 3 loops over gear slots `s` in 0..5 on helper `+0x98 + 4*s`. It takes
 `E` as the lane `(w >> 10) & 0x3FF` through `0x006306A0` output 2 without a zero
 test, and prints a literal `0000` in place of a number. Table `0x012BF2E8` lists
@@ -421,7 +450,17 @@ is 0. `A` is output 2 of `0x006306D0`, `(w >> 10) & 0x3FF`, and output 1 is
 `wrr_mdl/`, `wrl_mdl/`, `idr_mdl/`, `idl_mdl/`, `rir_mdl/`, `ril_mdl/`
 (`direct-pe-byte-read`).
 
-Install cross-check (`installed-file-existence`). A contributor-supplied tree
+Install cross-check (`installed-file-existence`). In a contributor-supplied
+tree, `client/chara/bgobj` holds 93 `bNNN` directories and `cmn`. A set of 586
+server-authored `bgobj` appearance rows, those with base model dword 0 from
+20000 to 39999 in a server table, carries 611 nonzero gear words. They plan
+227 distinct paths of the shape `client/chara/bgobj/b<NNN>/equ/e<EEE>/<part>_mdl/0001`
+with `E` from bits 19:10 and the part from the gear slot order above. 226 of
+those paths exist. The one that does not lies under a `bNNN` directory the
+install lacks. This corroborates the `bgobj` model shape. The set is a lead
+for which words exist and is not a record of what a retail server sent.
+
+The same tree
 holds `chara/wep/w002/equ/e036/top_tex1/0000`,
 `chara/bgobj/b001/equ/e001/top_tex1/0000` and
 `chara/pc/c001/acc/a001/nek_mdl/0001`, and the `acc/a001` directory also holds
@@ -440,6 +479,12 @@ number. The bank numbers are in
   data and are not published here.
 - What happens when no row is found for a requested key is `UNKNOWN`. Whether
   a gear kind with `E = 0` keeps an earlier row in its slot is not traced.
+- What the engine does with a registered `bgobj` or `wep` model, and what
+  happens when its texture directory is missing, is `UNKNOWN`.
+- Whether `.bin` (`0x00FD2C80` and the literals after it) is a file-name suffix.
+- What the engine does with the loaded bank 0 and bank 1 `cmn` and `skl`
+  resources for a `bgobj` or `wep` base. The model pass does not gate them by
+  category, but their own functions are not traced for it.
 - The `_snd` sibling path branch for the `top` slot in `0x006B7A40` is not
   recorded here. Its format strings are at `0x00FD2D1C` and `0x00FD2D38`.
 - The role of the companion `9999` and `9998` files is `UNKNOWN`. This page
