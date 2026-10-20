@@ -1057,8 +1057,10 @@ ARR `0xC18`; that branch is outside the compared zero-adjustment calls.
 ARR enum `ZoneProtoUp_protoNo`, DIE `0x72D0B77`, declares
 `ZONEPROTOUP_SYSTEM_Login = 0x66` at enumerator DIE `0x72D0B93`.
 The special-value role alone does not establish that retail value 2 has
-that name or is a wire opcode. Retail layouts, serialized fields and packet
-meanings must be derived from retail constructors, serialization and callers.
+that name or is a wire opcode. The independent retail
+[header binding](net/zone-outbound-header.md) establishes the serialized
+opcode field; it does not promote the ARR login name. Retail packet meanings
+must be derived from retail callers and consumers.
 The complete reference export contains five direct call sites in four
 functions: `0x004E026E` in `0x004E0240`, `0x004E02EC` in `0x004E0290`,
 `0x004E048B` in `0x004E0320`, and `0x004E230A / 0x004E235E` in

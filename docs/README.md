@@ -111,6 +111,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Map low-opcode pair staging](net/low-opcode-pair-staging.md)
 - [Map serverbound 0x0001 application producer](net/periodic-map-0001.md)
 - [Zone value-2 record construction](net/zone-value-two-record.md)
+- [Zone outbound opcode header binding](net/zone-outbound-header.md)
 - [Map 0x00E2 selector and state writes](net/e2-selector-state.md)
 - [Map 0x00E3 state index](net/e3-state-index.md)
 - [Map 0x00E5 field staging](net/e5-field-staging.md)

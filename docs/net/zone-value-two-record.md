@@ -4,8 +4,9 @@
 record. After its internal 24-byte header, it writes one caller u32 and
 16 bytes from a second caller pointer. Four more bytes fall inside the
 published forwarding copy extent but are not written by this builder.
-This record construction does not independently establish serialized wire
-opcode 2 or a login/handshake identity.
+The separate [header binding](zone-outbound-header.md) establishes serialized
+Map serverbound opcode `0x0002` on the forwarding path. A login/handshake
+identity remains unresolved.
 
 ## Input and complete builder
 
@@ -62,17 +63,11 @@ caller arguments or full record initialization. The published
 `(0,0)` arguments do not authenticate an actual argument vector or the
 selected string contents.
 
-## Wire identity boundary
+## Wire identity and semantic boundary
 
-The forwarding contract distinguishes state-dependent constructors
-`0x00DC1CF0` and `0x00DC1C60`. Its state-1/2 branch requires record
-value 2, while state 3 permits other values. The comparison explicitly does
-not promote that special value to a wire opcode or the ARR login name.
-Neither constructor nor the later header finalization was inspected here.
-
-The precise missing join is the builder's value field through finalization
-to the serialized header. Matching the candidate record's value and length
-to a catalog label does not supply that join. The physical copy map may
-therefore inform a conditional layout comparison, but it does not confirm
-the Map serverbound `0x0002` identity, a reply, admission policy or client
-acceptance. A different channel's record value 2 is a separate candidate.
+The [header binding](zone-outbound-header.md) owns the constructor-to-header
+join and its finalization checks. The record's physical layout may therefore
+inform the Map serverbound `0x0002` application comparison. Caller values,
+the unwritten final u32, a login/handshake identity, reply, admission policy
+and client acceptance remain unresolved. A different channel's record value
+2 is a separate candidate.
