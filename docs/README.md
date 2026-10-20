@@ -110,6 +110,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Receive dispatcher ranges](net/receive-dispatch-ranges.md)
 - [Map low-opcode pair staging](net/low-opcode-pair-staging.md)
 - [Map 0x00E2 selector and state writes](net/e2-selector-state.md)
+- [Map 0x00E3 state index](net/e3-state-index.md)
 - [Chocobo rental state and widget callback](net/chocobo-rental-state.md)
 - [Aetheryte achievement index boundary](net/aetheryte-achievement-index.md)
 - [Opcode translation table](net/opcode-translation-table.md)
