@@ -98,15 +98,14 @@ It constructs a second descriptor rather than retaining the temporary's
 address. Valid nonoverlapping allocation returns give the containers separate
 buffers; allocation and construction must return normally.
 
-Ordered value preservation remains conditional on the inner helpers.
-`0x0078AAE5` calls `0x0078A9D0` to populate the middle records. The other
-containers use iterator helpers `0x0071CB30/0x006CFBB0`, then
-`0x0058F650 -> 0x009D186E`; the latter receives
-`(destination,byte-count,source,byte-count)`, without an established copy
-contract here. Temporary cleanup `0x007724D0 -> 0x00744270` releases the
-temporary's outer buffers and calls `0x005843E0` for its middle container.
-That calls `0x00584370` before releasing the middle buffer. Uninspected
-record copy/release behavior prevents a pointee-lifetime or deep-copy claim.
+The middle-record copy preserves physical slot order and type-0 scalar
+payloads as detailed below. Complete vector preservation still depends on
+the producer append and the outer ordering container. Iterator helpers
+`0x0071CB30/0x006CFBB0` supply source end/begin, guarded by begin <= end.
+The outer containers use `0x0058F650 -> 0x009D186E`; the latter checks
+pointer/capacity preconditions for nonzero count and forwards
+`(destination,source,count)` to uninspected `0x009D5110` at `0x009D18BB`.
+Its catalog name `_memmove_s` alone does not establish byte movement here.
 
 Consumer `0x00772C80` passes `D+0x100` as argument 4 to `0x007687F0` at
 `0x00772DF4`. Its selected class normally comes from `D+0x58`; a separate
@@ -128,7 +127,46 @@ owns engine, instance, method-lookup, request, callback and lifetime conditions.
 If the deferred transfer preserves V and the selected request succeeds, the
 Lua input is `_onInit(self,20005,12487,6,0,0,0)`. The script finding maps those
 values to the client Director ID, Guildleve ID, location and extra-marker XYZ.
-This route does not prove the inner record-copy helpers or historical execution.
+This route does not prove the producer append, outer ordering transfer or
+historical execution.
+
+## Scalar record copy and cleanup
+
+`0x0078AAE5 -> 0x0078A9D0 -> 0x0078A790` populates the middle buffer.
+The loop compares source to end at `0x0078A7D0`, constructs a destination
+record through `0x005847D0` at `0x0078A7D9`, then advances both pointers by
+`0x10`. For valid aligned endpoints and normal returns, source slot i goes
+to destination slot i. This proves physical middle-slot order, separately
+from logical Lua argument order.
+
+Placement constructor `0x005847D0` initializes a record and calls
+`0x00584670`. For source type byte `+0xC == 0`, assignment takes the
+payload address from source `+8` and calls `0x00583D90` at `0x0058469B`.
+That helper reads a DWORD through the address at `0x00583DFA`, writes it
+at destination `+0`, stores destination `+8 = destination` at `0x00583E06`,
+and sets type `+0xC = 0` at `0x00583E09`. Thus a valid type-0 record's
+inline numeric cell is copied and its payload pointer rebased to the new
+record. Two successful middle-buffer constructions preserve these cells
+without retaining pointers into the source records.
+
+Temporary descriptor cleanup `0x007724D0 -> 0x00744270` releases its outer
+buffers and invokes `0x005843E0 -> 0x00584370` for the middle range.
+Only type 3 with a nonnull payload reaches release call `0x004D1670` at
+`0x005843A0`. Type 0 skips that call and clears its own pointer/type fields.
+Destroying the temporary's type-0 records therefore does not release the
+retained copy's separate inline cells. Other value types and exception paths
+are outside this scalar contract.
+
+The integer visitor `0x00793430 -> 0x00748E00` passes the integer address
+to `0x00584F70` through a stack proxy whose `+4` points to vector `+0x10`.
+At `0x00584FB6`, it constructs a local type-0 record through `0x00583D90`,
+then submits it to uninspected `0x00584EE0` at `0x00584FCB` before local
+cleanup. Append/growth/retention remains conditional on that callee.
+`0x00748E00` also operates the outer DWORD container through uninspected
+`0x0078DD00` at `0x00748E34`, using a value supplied through `0x00CCA210`.
+Together with `0x009D5110`, these are the precise remaining producer/order
+edges. The scalar proof does not establish complete six-argument storage or
+remove the earlier request and runtime conditions.
 
 ## Binary evidence
 
@@ -155,3 +193,10 @@ Prefix and retention evidence additionally checked `0x00791CA0`,
 with no typed-data reads. The six-byte listing gap
 `[0x00791CBA,0x00791CC0)` remains unfilled. Forty-eight focused operands
 matched, and six controlled instruction mutations failed authentication.
+
+Scalar copy and cleanup evidence checked `0x0078A9D0`, `0x00584370`,
+`0x0071CB30`, `0x006CFBB0`, `0x009D186E`, `0x0078A790`,
+`0x005847D0`, `0x00584670`, `0x00583D90`, `0x00793430`,
+`0x00748E00` and `0x00584F70`: 1,040 instruction bytes, no typed data.
+This includes the 16-byte integer-builder revisit. Forty-five focused operands
+matched, and ten controlled instruction mutations failed authentication.
