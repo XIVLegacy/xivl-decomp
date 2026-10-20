@@ -138,6 +138,54 @@ creator, this chain reaches its property factory; a successful nonnull P is
 bound to this same I and R. A null factory return still reaches I slot 1,
 whose null-P branch skips P slot 2.
 
+## Owner UnitInfo context
+
+R slot 61 reads the propagated context at R+`0x1C`. This field is separate
+from property P at R+`0x14`=I+`0x18` and the separately created UnitInfo at
+R+`0x18`=I+`0x1C`. The following original cells select the published methods;
+their bodies were reused without another instruction read.
+
+| Interface / slot | Original cell -> target | Published contract |
+| --- | --- | --- |
+| R / 56 | `0x00FF287C` -> `0x00A99F30` | Creates UnitInfo through global factory slot 5 and retains it at R+`0x18`. |
+| R / 58 | `0x00FF2884` -> `0x00410780` | Returns the pointer at R+`0x18`. |
+| R / 59 | `0x00FF2888` -> `0x008004B0` | Stores the supplied context at R+`0x1C`. |
+| R / 61 | `0x00FF2890` -> `0x0060DE70` | Returns the pointer at R+`0x1C`. |
+| UnitInfo main / 1 | `0x00FF2990` -> `0x007FBF50` | Forwards to the complete-object initializer. |
+| UnitInfo complete / 1 | `0x00FF2A94` -> `0x007FD830` | Published UnitTree child-creation path. |
+
+The [UnitInfo creation path](bgchip-model-binding.md#unittree-child-creation-and-admission-source)
+calls global slot 5 `0x00641630`, core slot 5 `0x00641160`, and constructor
+`0x007FBE70`. Slots 58/59 carry its product to the parent's context field.
+The main table is `0x00FF298C` and the complete-object table is
+`0x00FF2A90`. Their preceding cells `0x00FF2988/0x00FF2A8C` point to
+COLs `0x01163A68/0x01163988`. Offset fields `0x01163A6C/0x0116398C`
+are 4/0. Type-pointer fields `0x01163A74/0x01163994` both contain
+`0x012C76E8`; its name at `0x012C76F0` is
+`.?AVRaptureLayoutUnitInfo@Layout@Map@Actor@Scene@Application@@`.
+These original RTTI/table bytes authenticate the complete+4 UnitInfo interface
+independently of the instance field offsets.
+
+The [UnitTree child-context path](limsa-fireworks-scheduler-bindings.md#unittree-child-key-table)
+in `0x007FD830` obtains incoming parent A's slot-61 context U0 at
+`0x007FD872..0x007FD88A`, then passes U0 to each created child's slot 59 at
+`0x007FDA52..0x007FDA61`. For a child retaining the checked R table and
+context cell, R slot 61 returns that supplied U0. If U0 came from the
+successful constructed UnitInfo path and retains its table/type, it is the
+`RaptureLayoutUnitInfo` interface above. When this child also follows the
+TimeLine category/property binding, P slot 4 returns its R and the scheduler
+callback's subsequent R slot-61 result U is that inherited context.
+
+This is a conditional context lineage. Factory/allocation results, branch
+selection, normal ABI-conforming calls, valid storage and retained tables,
+mappings and field values remain requirements. The child's inherited U need
+not equal its separately created UnitInfo. A nested UnitTree can own a context
+for its children; its current value is not established as an outer ancestor's
+context. The actual selected city's parent/context-owner initializer invocation
+and preserved U0 reaching its TimeLine child remain unobserved. This type and
+store chain does not establish U's slot-37/42 results, recursive-root membership,
+clip activation or visible effects.
+
 ## Backend pointer and guarded consumers
 
 Property table `0x00FF2D2C` slot 30, cell `0x00FF2DA4`, targets
@@ -237,9 +285,10 @@ contract. No return from the scheduler slot-61 call is tested here.
 
 The concrete wrapper call and callback's conditional stores and calls are
 established below.
-The P-slot-4 receiver's slot-61 root remains a separate typed requirement.
-These slots do not establish the category-based record-view preconditions
-below. The predicate's result is a native branch condition, not observed
+The [owner's UnitInfo context](#owner-unitinfo-context) supplies a conditional
+typed lineage for the P-slot-4 receiver's slot-61 result. Actual selected
+context and category-based record-view preconditions remain requirements.
+The predicate's result is a native branch condition, not observed
 readiness or completed playback.
 
 The evaluator helpers do not propagate the backend methods' returns.
@@ -296,8 +345,11 @@ This table's locator `0x0118AF18` has offset zero and type descriptor
 It then calls P slot 4 and the returned receiver's slot 61 at
 `0x00A84FBD..0x00A84FD0`. Call the latter return U. P was checked earlier,
 but its slot-4 return is not guarded before slot 61, and U is not guarded
-before the matching-entry lookups below. U is the callback's lookup receiver; its
-concrete table and relation to a containing UnitTree are unresolved.
+before the matching-entry lookups below. U is the callback's lookup receiver.
+On the [constructed child-context path](#owner-unitinfo-context), it is the
+inherited `RaptureLayoutUnitInfo` interface from the containing UnitTree's
+selected parent invocation. That invocation and its live preserved U value
+are not established for a particular city node.
 The callback iterates collection `u32(S+0x70)`. Helper `0x00A21D00`
 returns the dword at collection+`0x10` as the count. Helper `0x00A21C80`
 returns the indexed pointer from the vector at collection+8 for a nonnegative index
@@ -383,8 +435,9 @@ the owner field store, rather than matching serialized offsets alone.
 Actual delivery of a city's TimeLine node, active context, valid storage across
 the evaluator's unguarded dereferences, weather/clock inputs, evaluator gate
 and state, backend success and visible effects remain separate requirements.
-The callback's R slot-61 root and its lookup receivers are not established by
-R's slot-19 base-object relation.
+R slot 19's base B and slot 61's UnitInfo context U have separate fields and
+construction paths. Their conditional bindings do not identify a selected
+city root or establish the lookup results.
 
 ## Reproduction
 
@@ -419,6 +472,17 @@ mapping conditions. Derive the saved-table stack adjustment from the explicit
 pushes rather than assigning an argument ordinal to `[ESP+0x0C]` alone.
 Keep CP-USE slot 11 separate from CB-CATEGORY's slot-1 dispatch, and keep
 the uninspected epilogue outside these instruction unions.
+
+For the owner context, read the six listed method cells, the UnitInfo tables'
+two preceding COL pointers and each COL's offset/type-pointer fields. Read
+one 96-byte window at the common descriptor+8 and require the cited NUL-
+terminated name. These 13 original data requests cover 144 bytes: twelve
+dwords and the name window. Python 3.12.0 `hashlib`/`struct` verified input
+identity, PE32 x86 metadata, little-endian values and raw section backing.
+The twelve dwords are in `.rdata`; the name window is in `.data`.
+Reuse the linked creator, getter/setter and child-loop contracts without
+opening their bodies. Preserve the selected parent/context-owner, nested-
+context and live-value conditions when composing U.
 
 For the backend boundary, read property cells `0x00FF2DA4..0x00FF2DAC`
 as three separate dwords and decode the complete instruction unions for
@@ -464,8 +528,9 @@ complete instruction unions are `[0x00A85170,0x00A8517D)`,
 `[0x00A78A40,0x00A78A46)`, `[0x00A78960,0x00A78995)` and
 `[0x00A78A50,0x00A78A5A)`. Preserve the parsed class-name comparison
 and stop at U's unresolved slot-37/42 and retained-receiver slot-65/66
-implementations. These checks do not bind U to R slot 19 or to the
-recursive predicate's root.
+implementations. Keep U's propagated context separate from R slot 19's base B.
+Equal roots across separate callback/predicate invocations require retained
+owner and context values; the constructed type alone does not establish them.
 
 The initializer output-cell relation used only the existing excerpts
 `[0x00A78443,0x00A78445)`, `[0x00A784C3,0x00A784D8)` and

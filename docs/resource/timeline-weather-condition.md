@@ -4,7 +4,7 @@ The native TimeLine property path contains a conditional evaluator with a
 data-derived count, a queue-recovered ID operand and first-match bitmap
 selection. The category-based construction and instance setter/getter chain
 conditionally join its record view to an attached TimeLine record. The
-attachment callback's root identity and downstream consumer effects remain
+attachment callback's actual selected root and downstream consumer effects remain
 unresolved. The static behavior below
 narrows the condition boundary without establishing automatic activation by
 an added weather ID.
@@ -160,7 +160,9 @@ normal helper completion can return true with a nonnull manipulator and null
 underlying scheduler. Their other state, view and child-iteration conditions
 still apply. The linked wrapper/callback contract binds a synchronous
 attachment call, parsed actor-class branches and retained lookup results.
-The actual root and downstream consumer effects remain separate.
+The [owner's UnitInfo context](timeline-weather-record-view.md#owner-unitinfo-context)
+has a conditional type and propagation path. The actual selected root and
+downstream consumer effects remain separate.
 
 `0x007FCA30` gets a receiver through P slot 30, returns false for null,
 calls that receiver's slot 4, then slot 9 with 1 at `0x007FCA53/0x007FCA5E`.
