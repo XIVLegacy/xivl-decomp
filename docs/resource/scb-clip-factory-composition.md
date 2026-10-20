@@ -435,6 +435,67 @@ record pointer at current-entry `+0x10`. Record advance is
 `(2*(u8(record+3)&0x1F)+7)&~3`. These selected track bodies do not call
 the clip builder.
 
+### Actor collection field handoff
+
+On the actor-parser return path, the instructions at
+`0x00A25C5F..0x00A25C66` push EAX, copy the current EBP to ECX and call
+`0x00A1BB30`. The immediately preceding call at `0x00A25C5A` targets
+`0x00A298D0`, whose actor-collection result and `RET 0x0C` are established
+above. No instruction between that return and the setter call replaces EAX
+or the pushed value.
+
+The complete ten-byte helper `[0x00A1BB30,0x00A1BB3A)` loads its first
+stack argument into EAX, writes EAX to receiver `+0x70`, and returns with
+`RET 4`. It performs no null check, allocation or additional call. Let
+`W` be the current EBP at `0x00A25C60` and `P` the parser's returned value.
+With valid writable receiver storage, the resulting explicit store is:
+
+```text
+u32(W+0x70) = P
+```
+
+The helper also stores a supplied zero without checking it. It does not
+check the collection's count, entries or later lifetime. The published parser
+contract independently permits null actor entries within a constructed
+collection; those entries are distinct from a zero collection pointer.
+
+The prefix supplies a narrower receiver observation. At `0x00A25C0A` the
+parser saves EBP; `0x00A25C0B` then loads EBP from current `[ESP+0x40]`.
+That is a raw stack-slot locator, without an assigned entry-argument ordinal.
+The intervening helper cleanup and the omitted instruction span
+`[0x00A25C2B,0x00A25C3F)` were not qualified by this observation. Equating
+that loaded value with W requires preservation through those instructions
+and calls. It is not an authenticated scheduler identity.
+
+The caller excerpt at `0x00A26579..0x00A26581` pushes EAX and EDI, places
+EBX in ECX and calls `0x00A25B90`. It identifies those supplied values,
+without proving that the later stack-slot load yields the caller's EDI or
+the scheduler S from the builder contract. No argument ordinal is inferred
+from the stack displacement alone.
+
+If W equals the scheduler retained at context `+0x0C`, and its field retains
+P, this store supplies the collection consumed by the
+[indexed actor path](uldah-halloween-material.md#active-parameter-receivers)
+and [ShowHideClip operation vector](showhide-clip-dispatch.md#operation-argument-vectors).
+Those consumers use `u32(u32(C+0x0C)+0x70)`. The setter and matching field
+offset alone do not establish that pointer equality, actual city delivery,
+an indexed actor's identity or the operation receiver Q.
+
+The following half-open instruction unions were compared against the original
+PE and independently decoded with the pefile/Capstone method and versions
+specified under [evidence identity](#evidence-identity). Their complete
+instruction coverage totals 221 bytes; no table or string payload is needed
+for the field-store claim.
+
+| Role | Instruction union |
+| --- | --- |
+| Parser entry and initial stack setup | `[0x00A25B90,0x00A25BB7)` |
+| Iterator calls and local setup | `[0x00A25BB7,0x00A25BEF)` |
+| Receiver load and actor-branch comparison | `[0x00A25BEF,0x00A25C2B)` |
+| Actor parser return and setter call | `[0x00A25C3F,0x00A25C67)` |
+| Caller argument pushes | `[0x00A26572,0x00A26582)` |
+| Complete field setter | `[0x00A1BB30,0x00A1BB3A)` |
+
 ### Track entry construction and parent links
 
 `0x00A2A720` takes the allocated entry address in ECX, copies it to EAX,
