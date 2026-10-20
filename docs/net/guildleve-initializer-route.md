@@ -100,7 +100,7 @@ buffers; allocation and construction must return normally.
 
 The middle-record copy preserves physical slot order and type-0 scalar
 payloads as detailed below. Complete vector preservation still depends on
-the producer append and the outer ordering container. Iterator helpers
+producer growth and the outer ordering container. Iterator helpers
 `0x0071CB30/0x006CFBB0` supply source end/begin, guarded by begin <= end.
 The outer containers use `0x0058F650 -> 0x009D186E`; the latter checks
 pointer/capacity preconditions for nonzero count and forwards
@@ -127,8 +127,8 @@ owns engine, instance, method-lookup, request, callback and lifetime conditions.
 If the deferred transfer preserves V and the selected request succeeds, the
 Lua input is `_onInit(self,20005,12487,6,0,0,0)`. The script finding maps those
 values to the client Director ID, Guildleve ID, location and extra-marker XYZ.
-This route does not prove the producer append, outer ordering transfer or
-historical execution.
+This route does not prove complete producer retention, outer ordering transfer
+or historical execution.
 
 ## Scalar record copy and cleanup
 
@@ -157,16 +157,45 @@ Destroying the temporary's type-0 records therefore does not release the
 retained copy's separate inline cells. Other value types and exception paths
 are outside this scalar contract.
 
+## Producer append boundary
+
 The integer visitor `0x00793430 -> 0x00748E00` passes the integer address
 to `0x00584F70` through a stack proxy whose `+4` points to vector `+0x10`.
 At `0x00584FB6`, it constructs a local type-0 record through `0x00583D90`,
-then submits it to uninspected `0x00584EE0` at `0x00584FCB` before local
-cleanup. Append/growth/retention remains conditional on that callee.
+then submits it to `0x00584EE0` at `0x00584FCB` before local cleanup.
+That callee reads the middle container's begin, end and capacity-end pointers
+at `+4/+8/+0xC`. With valid aligned pointers, a nonnull begin and spare
+capacity select the call to `0x00584840` at `0x00584F25`. It supplies the
+current end, count 1 and the source record. `0x00584840` invokes the
+already-established placement constructor `0x005847D0` at `0x0058488B`
+and advances its destination by `0x10`. After normal return,
+`0x00584EE0:0x00584F2D..0x00584F30` advances the container end by `0x10`.
+This arm appends a copied type-0 scalar whose inline pointer is rebased,
+rather than retaining a pointer into the temporary source record.
+
+A null begin or exhausted capacity takes the other arm. `0x00584D80`, called at
+`0x00584F55`, derives the insertion index from the old end, supplies count 1
+and the source to `0x00584970` at `0x00584DD0`, then reconstructs an iterator
+against the updated begin. Within `0x00584970`, the capacity-growth branch
+calls `0x0044D500` with `(chosen-capacity * 0x10,0,0x15)` at `0x00584A66`.
+It passes the old prefix to `0x0078AA00` at `0x00584A85`, the copied local
+record and insertion count to `0x00584930` at `0x00584A95`, then the old
+suffix to `0x0078AA00` at `0x00584AA8`. After those calls return normally,
+a nonnull old begin selects cleanup through `0x00584370` and the call to
+`0x0044D350`. It then updates the three container pointers at `0x00584AFB`,
+`0x00584B03` and `0x00584B06`.
+The prefix/suffix helper `0x0078AA00` and record-construction helper
+`0x00584930` have not been inspected here. These call operands establish the
+growth structure, not preservation through those helpers. The spare-capacity
+proof therefore does not establish all six appends from an initially empty
+container, allocation success, exception behavior or complete retention.
+
 `0x00748E00` also operates the outer DWORD container through uninspected
 `0x0078DD00` at `0x00748E34`, using a value supplied through `0x00CCA210`.
-Together with `0x009D5110`, these are the precise remaining producer/order
-edges. The scalar proof does not establish complete six-argument storage or
-remove the earlier request and runtime conditions.
+Together with `0x009D5110` and the two growth helpers above, these are the
+remaining producer/order edges. The scalar and spare-capacity proofs do not
+establish complete six-argument storage or remove the earlier request and
+runtime conditions.
 
 ## Binary evidence
 
@@ -200,3 +229,15 @@ Scalar copy and cleanup evidence checked `0x0078A9D0`, `0x00584370`,
 `0x00748E00` and `0x00584F70`: 1,040 instruction bytes, no typed data.
 This includes the 16-byte integer-builder revisit. Forty-five focused operands
 matched, and ten controlled instruction mutations failed authentication.
+
+Producer append evidence used Ghidra `12.1.3` through REA `6.4.0` and the
+same original-byte decoder versions. It checked complete entries
+`0x00584EE0` (130 bytes), `0x00584840` (119 bytes) and `0x00584D80`
+(139 bytes), plus these noncontiguous `0x00584970` body ranges:
+`[0x00584970,0x00584B0E)`, `[0x00584B35,0x00584B9C)` and
+`[0x00584BBF,0x00584C4C)`. All 410 instruction starts matched the original
+decoder across 1,046 instruction bytes. Eleven call targets and eight focused
+operands matched. The 74 bytes between those last ranges were not inspected;
+their enclosing span is not continuous instruction coverage. No typed data
+or body of either remaining helper (`0x0078AA00`, `0x00584930`) was read
+for this append finding.
