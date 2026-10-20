@@ -301,6 +301,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Widget native property entry](script/widget-property-entry.md)
 - [Materia command callback boundary](script/materia-command-dispatch.md)
 - [Lua reflective call alias](script/lua-call-function-bridge.md)
+- [Widget work members](script/widget-work-members.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)
 - [Virtual-item creation completion](script/virtual-item-creation.md)
