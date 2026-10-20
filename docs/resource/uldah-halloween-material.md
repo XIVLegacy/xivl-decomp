@@ -26,7 +26,7 @@ Ghidra 12.1 retained function listings and RTTI were checked against the
 original PE using pefile 2024.8.26 and Capstone 5.0.7, x86-32 mode.
 The intermediate-constructor, directory-construction, descriptor-selection,
 view-construction, string-key, initializer-context, context-producer, channel-producer,
-resource-callback, initialization-handoff, retained-interface, sample-input and active-receiver
+resource-callback, initialization-handoff, retained-interface, resource-return, sample-input and active-receiver
 observations use Python 3.12.0 to decode original PE instructions.
 Selected SCB structure metadata
 was read directly with Python `struct`, without writing asset bytes.
@@ -433,8 +433,10 @@ the initial K `+8` store to the later current-field read specifically
 requires its value to remain unchanged; the class label proves no
 immutability. Normal nontrapping floating-point execution and sufficient
 x87 stack space are also conditions. These observations assign no numeric
-scalar value or visible material effect. Actual buffer identity, C_init/P=Q
-and retention through the later `0x00A317C5` call remain unjoined.
+scalar value or visible material effect. Actual buffer identity, selected
+context and property/value lifetime remain unjoined. The resource-field
+[return path](#resource-return-and-material-read) has a separate conditional
+retention contract.
 
 ## Resource callback dispatch
 
@@ -547,9 +549,10 @@ To connect that conditional store to M `+0x38`, its value must remain
 valid through the later retained-interface call at `0x00A317C5`, the
 resource return and the material read at `0x00835358`. The
 [SystemHeapSpace branch](#retained-interface-and-field-retention) qualifies
-the first of these edges. The selected
-loaded input, current field values, actual call returns and that retention
-remain unjoined. This dispatch does not establish material context P=Q,
+the first edge, and the [return path](#resource-return-and-material-read)
+conditionally transports that current field value to M+`0x38`. Selected
+loaded input, actual field population and observed call returns remain
+unestablished. This dispatch does not establish material context P=Q,
 the actual loaded property's identity, scalar samples or a visible effect.
 
 ## Retained interface and field retention
@@ -611,10 +614,44 @@ Under valid call/return storage and no external mutation, this concrete
 five-byte dispatch preserves the current O `+0x54` value. This closes
 retention across that call for the selected producer branch, without
 proving that initialization populated the field. It does not establish
-retention for another O `+0x40` producer, across the constructor's other
-calls, through the resource return or at the later material read.
+retention for another O `+0x40` producer or across earlier constructor calls.
+The [return path](#resource-return-and-material-read) separately connects this
+current value to the later material read under its stated conditions.
 The selected resource bytes, parsed container and property identity,
 scalar consumption and material effect remain conditional.
+
+## Resource return and material read
+
+For the qualified SystemHeapBlock branch above, the published post-call
+O+`0x50` store uses current ESI as the resource base. Original instructions
+`[0x00A317C7,0x00A317CE)` load ECX from stack `+0x10` and store EAX
+at `[ESI+0x50]`, without changing ESI. This identifies the current O at that
+call's postcondition; it does not prove entry-ECX retention through the earlier
+constructor.
+
+The adjoining constructor tail `[0x00A317CE,0x00A317E0)` makes no call.
+At `0x00A317CF` it copies that ESI to EAX before restoring caller ESI.
+It restores `FS:[0]`, removes local stack storage and uses `RET 0x10`.
+Thus its returned pointer is this same current O under valid normal-return
+and register conditions.
+
+The forwarding helper calls `0x00A31680` at `0x00A2D24F`. Its success
+continuation through exclusive end `0x00A2D265` restores its handler/stack
+state and uses `RET 0x14`, with no further call or EAX write. The material
+initializer captures EAX in ESI at `0x00835330`, tests it, and its nonzero
+`JNE` at `0x00835334` targets `0x00835358` directly. That instruction
+reads `u32(ESI+0x54)` for the published M+`0x38` store. The selected branch
+skips the diagnostic calls and the `ADD ESP,0x14` at `0x00835355`.
+
+This conditionally joins the preserved current O+`0x54` at the qualified
+interface call to M+`0x38`: constructor EAX=O, forwarding-helper EAX=O,
+material ESI=O, then the field read. It requires the published interface/table
+branch, the live resource and preserved-register conditions at that call,
+nonnull O, normal calls/returns, valid resource/stack/exception-handler storage
+that does not alias O+`0x54`, and no external mutation. No omitted null or
+diagnostic path is qualified. The transport does not prove population,
+selected input/container/property identity, property lifetime, scalar values,
+actual city execution or a visible material effect.
 
 ## Update state and sample input
 
@@ -883,10 +920,12 @@ The [resource callback dispatch](#resource-callback-dispatch) qualifies
 the O `+0x48` methods without identifying an initial-population callback.
 The separate [initialization handoff](#resource-initialization-handoff)
 reaches the known producer conditionally; actual parser inputs, completion
-and retention through the material read remain unjoined. The
+and field population remain unjoined. The
 [SystemHeapSpace producer branch](#retained-interface-and-field-retention)
 preserves the current O `+0x54` across its concrete later virtual `+0x2C`
-call, without proving field population or callback execution.
+call, and the [return path](#resource-return-and-material-read) conditionally
+transports that current value to M+`0x38`. Neither proves field population,
+property lifetime or callback execution.
 The [active parameter receiver chain](#active-parameter-receivers) still
 requires the actual virtual results and valid retained container storage.
 Base construction captures current global
@@ -1096,6 +1135,19 @@ lies within its section's raw size. Globals `0x01327A30` and
 `0x01327BEC` are in the `.data` virtual tail, beyond raw size `0xBF000`
 from section RVA `0xE65000`; a VA-to-file-offset conversion alone cannot
 read their original values.
+
+For resource-return retention, decode only complete original unions
+`[0x00A317C7,0x00A317CE)`, `[0x00A317CE,0x00A317E0)`,
+`[0x00A2D24F,0x00A2D265)`, `[0x00835330,0x00835336)` and
+`[0x00835355,0x0083535B)`. They cover 59 unique instruction bytes across
+four old excerpt candidates; the two material ranges are one candidate.
+Python 3.12.0 and Capstone 5.0.7 x86-32 checked exact input identity, PE raw
+backing, complete decoding, the local O/ESI store alias, return-register flow
+and the branch to `0x00835358`. No typed data or earlier consumer/prologue
+read is needed. Reuse the published O+`0x50` post-call store and M+`0x38`
+consumer. The included stack cleanup at `0x00835355` belongs to the skipped
+diagnostic path; do not place it on the nonzero path. Preserve storage/alias
+conditions and distinguish field transport from population or property lifetime.
 
 For the selected first Attr property, structurally interpret only
 `[0x7C680,0x7C787)` after checking the pinned DAT and SCB identities.
