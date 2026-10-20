@@ -24,9 +24,11 @@ Its decoded chunk is SHA-256
 the pinned readable `chara/npc/populace/populacecompanyofficer.lua` member is
 SHA-256 `8d27e9aa2ab9fa98041275110134abc21d320d8c846e22c8d9172504f7fb4b4f`
 in `xivl-client-scripts:manifests/scripts.json`.
-Its confirmation path reads current seals, accepts a server-supplied
-affordability boolean, and returns the user's choice. It never changes currency
-or rank state.
+Its confirmation path reads current seals and requires macro answer 1 plus
+supplied boolean `a3 == true`. The boolean's producer and policy meaning remain
+unbound. It never changes currency or rank state. The
+[approval and state contract](gc-approval-wire-contract.md) owns the conditional
+typed delivery path and the native allegiance/rank fields.
 
 The canonical `xivl-client-data:manifests/tables.json` entry for `gcRank.csv`
 pins 22 rows at SHA-256
@@ -96,13 +98,10 @@ character satisfies its prerequisite.
 
 ## Rank publication
 
-Opcode `0x0194` serializes Grand Company allegiance and all three company rank
-bytes. Its client receiver is `FUN_0089CD60` through dispatcher
-`FUN_004DC690` (`xivl-opcodes:data/client_receivers.json`,
-`SetGrandCompanyPacket`); the capture layout is in
-`xivl-opcodes:data/vendor/captures/payload_layouts.json:25499`. The packet
-is available in player-state publication and login replay,
-but no recovered promotion path commits a rank and then sends it.
+The [native state publication contract](gc-approval-wire-contract.md#allegiance-and-rank-publication)
+owns s2c `0x0194`'s four-byte layout, receiver and getter bindings. The packet
+can publish existing state as well as changed state; no recovered promotion
+path commits a rank and then sends it.
 
 Presentation must follow durable server mutation. Sending `0x0194`, playing a
 rank effect, or opening the status widget cannot substitute for an atomic seal

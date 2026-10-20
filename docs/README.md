@@ -82,6 +82,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [EndClientOrderEvent receiver](event/end-order-event-receiver.md)
 - [Group and SharedWork system](event/group-shared-work-system.md)
 - [Grand Company promotion presentation](event/grand-company-promotion.md)
+- [Grand Company approval and state delivery](event/gc-approval-wire-contract.md)
 - [Grand Company mission bytecode branches](event/grand-company-mission-bytecode.md)
 - [Grand Company and exchange catalogs](event/grand-company-exchanges.md)
 - [Instance-raid widget lifecycle](event/instance-raid-widget-lifecycle.md)
