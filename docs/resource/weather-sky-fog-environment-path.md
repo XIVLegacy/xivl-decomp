@@ -103,7 +103,9 @@ layout.
   `exAlphaParam`. The Apply at `0x00C22DD0` writes:
   - `latitudeParam` = 4 floats: scale = 1 / (C `+0x1BC` - C `+0x1B8`), an offset
     from the constant at `0x00F62FA0` minus C `+0x1B8` times scale, C `+0x1B4`,
-    and the constant at `0x00FB7A60`.
+    and the constant at `0x00FB7A60`. The sources of C `+0x1B4..+0x1C0` and the
+    clamp on C byte `+0x77C` are in
+    [ScreenEnv Glare clip and the pixel tail tone constants](screen-env-glare-latitude.md).
   - `fogColor` = C `+0x30C` rgb, alpha plus C `+0x4F8` clamped to 1 (`0x00C48A30`),
     only when C byte `+0x4E4` or `+0x4E5` is set. The `+0x4E4` setter is
     `0x00C483C0`, called per pass from `0x00C3D5D0`, `0x00C3D340`, `0x00C439C0`,
