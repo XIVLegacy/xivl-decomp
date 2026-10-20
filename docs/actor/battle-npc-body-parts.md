@@ -222,6 +222,9 @@ map these bases to the listed `mNNN` resources.
 | `m013` | 10013 | 2107615 | 3107613 | crab |
 | `m029` | 10029 | 2101705 | 3101705 | ahriman |
 | `m033` | 10033 | 2102125 | 3102125 | coblyn |
+| `m035` | 10035 | 2102301 | 3102301 | aldgoat billy |
+| `m039` | 10039 | 2102709 | 3102709 | flytrap |
+| `m043` | 10043 | 2103006 | 3103005 | antling |
 
 The preserved manual's monster-parts table names salamander's Other Right
 and Left parts as wart clusters, and the Other Outer parts as crab shell,
@@ -371,12 +374,9 @@ inspected table select neither of these two consumers. This is a native
 selector condition, not a species-to-selector mapping.
 
 `0x007B95D0:0x007B9608-0x007B9628` reads the two chant nibbles and
-guard bits 16/17. If it selects a nonzero chant, its branches at
-`0x007B975D-0x007B97DA` look up the corresponding zero-based entry through
-`0x0065CF80 -> 0x00851350` and use that model-supplied name for motion
-selection. A missing model pointer can reject the lookup. Thus byte 1 can
-select motion independently of a part break; a particular `0xF0` packet
-is not proof that such a motion played.
+guard bits 16/17. On this path, `0xF0` selects hand-1 chant 15, whose
+zero-based model-table entry is 14. The model-name lookup and its limits
+are traced below.
 
 `0x0065FFB0:0x0065FFBA-0x0065FFF0` instead splits byte 1 as 2/2/4
 bits and passes effect IDs to `0x0065AC70`. For `0xF0`, the three IDs are
@@ -415,9 +415,134 @@ with a kill shot:
 The captured `0800400000000000` application below therefore contains
 head mask `0x08` and mode border 4, with mode byte zero. The border is
 independent of the head bit and does not itself request death or recovery.
-The reason for publishing that border on the reported kill shot, the
-meanings of that actor's four mode flags, and the exact visible effect of
-its `0xF0` value remain unproven. No live client was run for these traces.
+The reason for publishing that border on the reported kill shot and the
+exact visible effect of the reported byte-1 `0xF0` values remain unproven.
+The four native model-state names are identified below. No live client was run for
+these traces.
+
+### Battle-NPC byte 1 `0xF0`: model-supplied chant motion
+
+**Answer:** the native chant consumer treats 15 as a valid selector, not
+an absent-value sentinel. It requests the hand-1 name from entry 14 of the
+loaded `cibc` resource. Sample monster BID resources contain a
+`cbbm_sp_*_2lp` motion name there. Repeating `0xF0` with only a changed
+part bit does not itself repeat that chant request.
+
+Original-PE Capstone reads and byte-checked Ghidra listings establish the
+following continuation of `0x007BB740 -> 0x007B95D0`:
+
+| Native locator | Observation |
+| --- | --- |
+| `0x007B95E1-0x007B95F8` | Returns unless actor bytes `+0xB39` and `+0xB3A` agree. The dispatch values listed above alone do not bypass this guard. |
+| `0x007B962B-0x007B96C1` | Compares both chant nibbles and both guard bits with cached values. Unchanged fields return. The later guard comparisons can override a changed chant's branch; the fallback priority is guard 1, guard 2, chant 1, chant 2. |
+| `0x007B975D-0x007B976E`, case 4 in table `0x007B9814` | The hand-1 branch subtracts one from the nonzero chant and calls `0x0065CF80` with hand index 0. For `0xF0`, the arguments are entry 14 and hand 0. |
+| `0x0065CF80 -> 0x00851350:0x00851360-0x00851382` | Reads the helper at actor `+0x2B14`; a null helper/resource returns false. Otherwise copies a NUL-terminated name from payload `P + 4 + 16 * (2 * entry + hand)`, hence `P + 0x1C4` for `0xF0`. |
+| `0x007B976E-0x007B97E9` | On success, passes that name to `0x007B9420` for slot 0 keys `cbnm_id0` and `cbbm_id0`, strings `0x00FE758C` and `0x00FE7598`, then calls the guarded motion refresh `0x007A4130(0)`. A failed lookup skips these calls. |
+| `0x007B97F2-0x007B97FB` | Caches the new chant/guard values even after a failed lookup. A subsequent part-bit-only change therefore does not retry the same chant here. |
+
+The resource type is established by `0x0065B530:0x0065B557-0x0065B5A5`:
+it queries actor virtual `+0x188` for type `0x63696263` (`cibc`), constructs
+`0x008522A0` with the result and stores the helper at `+0x2B14`.
+For CharaActor, vtable slot `0x00FC0EBC` points to `0x007CE9F0`;
+`0x007CE9F0 -> 0x00857AB0 -> 0x00A3D970` searches loaded resource
+graphs for the type. This is not a hard-coded species-to-motion switch.
+The helper initializer `0x008512E0:0x008512F3-0x00851341` checks for at
+least `0x1E4` bytes, replaces spaces with NULs in 15 pairs of 16-byte
+names after a four-byte header, then marks header byte 3 bit `0x80`.
+That explains how the space-padded retail names become C strings.
+
+Python `struct` reads of the retail SEDBRES outer directory and its
+`RESOURCE_TYPE` array located the following `cibc` payloads. All locators
+in this table are **file offsets** in
+`client/chara/mon/mNNN/act/emp_emp/bid/base/0000`. Each payload is
+`0x1E4` bytes; its name is `cib\cibc\mon\bid\info_mNNN`.
+The listed names omit the trailing spaces normalized by the native helper.
+
+| Model | Outer entry / directory offset | `cibc` payload | Entry 14, hand 0 offset | Selected name |
+| --- | --- | --- | --- | --- |
+| `m021` salamander | 107 / `0x700` | `0x97D30` | `0x97EF4` | `cbbm_sp_b_2lp` |
+| `m013` crab | 79 / `0x540` | `0x45CB4` | `0x45E78` | `cbbm_sp_b_2lp` |
+| `m039` flytrap | 75 / `0x500` | `0x67490` | `0x67654` | `cbbm_sp_a_2lp` |
+| `m035` aldgoat | 76 / `0x510` | `0x5F0FC` | `0x5F2C0` | `cbbm_sp_a_2lp` |
+| `m043` antling | 78 / `0x530` | `0x4D3F4` | `0x4D5B8` | `cbbm_sp_a_2lp` |
+
+The m021/m013 file identities are in the model-resource table above.
+The additional BID inputs were checked with Python `hashlib`:
+
+| Model | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `m039` | 444,800 | `6c0db0c0992706967d51e00e46bbac062299fa50ecd49b37213ebd4b1825395c` |
+| `m035` | 407,664 | `3040a5c1009abd279c9e88f7abf33ef0775394ae1bce79b18ecbad0486739b9a` |
+| `m043` | 338,464 | `4d0335ed42255d1212d626662af99c28780c290b02c2501a8aef1629c6131f1a` |
+
+These witnesses prove a model-authored name selection. They do not prove
+that the sampled BID was first in a particular actor's loaded graph, that
+the motion refresh passed its state guards, or what pose appeared in the
+reported retail event. The authored names alone do not identify an attack,
+incapacitation, or death animation. The reason the server sent `0xF0`
+remains unproven; a set part bit and chant 15 can coexist independently.
+
+### The four flags exposed by mode border 4
+
+**Answer:** the booleans expose bits 7, 6, 5 and 4 of application byte
+`+0x04`. The corresponding native model-state scheduler families are
+`init_msb7`, `init_msb6`, `init_msb5` and `init_msb4`. The inspected
+readers do not establish four universal gameplay names. A model supplies
+the supported bits and the schedulers' effects. Byte-1 `0xF0` does not
+set any of these flags.
+
+| Boolean order after the low-nibble number | Byte `+0x04` mask | On scheduler | Clear scheduler |
+| ---: | --- | --- | --- |
+| 1 | `0x80` | `init_msb7_1` | `init_msb7_0` |
+| 2 | `0x40` | `init_msb6_1` | `init_msb6_0` |
+| 3 | `0x20` | `init_msb5_1` | `init_msb5_0` |
+| 4 | `0x10` | `init_msb4_1` | `init_msb4_0` |
+
+The getter/callback order comes from `0x006F1100` and the border mask
+table described above. The native names come from a separate presentation
+consumer, established by original-PE Capstone reads and byte-checked Ghidra
+listings:
+
+- The type-3 drain at `0x007BF3C1-0x007BF3E2` takes the queued mode
+  word and calls `0x007A82F0` on actor `+0xB80`.
+- `0x007A8332-0x007A8347` compares the prior/new mode words and retains
+  their XOR as the changed-bit mask. `0x007A834D-0x007A839E` gets the
+  model's numeric-bit count through `0x0065BE50`, masks out those low
+  numeric bits for the bit-state value, and gets the supported-bit mask
+  through `0x0065C550`. This model metadata is independent of the Lua
+  border's partition.
+- `0x007A83BD-0x007A83C5` requires an active resource root.
+  `0x007A83E1-0x007A8418` tests the changed/supported bit, checks its
+  new bit-state value, and formats `init_msb%u_1` using the bit index and
+  string `0x00FE75BC`. The clear branch at
+  `0x007A8549-0x007A857F` releases a stored on handle and formats
+  `init_msb%u_0`, string `0x00FE75CC`; a null on handle skips that work.
+  `0x007A869E-0x007A86B1` increments the index and repeats through bit 7.
+
+This proves positional lane names, with resource and metadata conditions.
+The model-specific resource evidence is owned by
+[model-state transitions](model-state-color-transitions.md): for example,
+its m037 bit-7 limb effect, m054 bit-4 weapon effect and m049 bit-4/5/6
+power-up effects have different authored roles. The flag's number alone
+does not identify death, recovery, element, or incapacitation. The `_0`
+suffix describes that model lane's clear scheduler, not body-part recovery.
+
+An exact-identifier search of the authenticated 2,671-script Lua corpus
+for `_getSubStatMode`, `_setSubStatMode` and `_onChangeSubStatMode` found
+the generic wrapper, empty callback and command-debugger uses. In
+`chara/charabaseclass_u.lua:323-336`, the setter body is empty and the
+getter wrapper returns `_getSubStatMode_cpp`; the base callback at
+`chara/charabaseclass.lua:1396-1399` is empty. The debugger at
+`commanddebugger/commanddebuggerdev.lua:11481-11560` prints the numeric
+result and booleans as `1`/`0`, without naming individual flags. Those
+readers provide no further semantic enum. This search does not exclude
+computed Lua access or another native consumer.
+
+For a specific actor, the loaded model's numeric split, supported mask,
+matching `init_msb` resources, mode byte and actual queue drain are still
+needed to establish the visible effect. A border-only publication exposes
+the API partition; it does not establish that any of the four flags was
+set or that a model scheduler ran.
 
 ## Break and recovery presentation
 
@@ -616,7 +741,10 @@ instructions, dispatch tables and all numbered on/off scheduler strings.
 The byte-1 and byte-2 checks also cover their getter registrations,
 bitfield instructions, mode-border RTTI/vtable, border mask table and
 mode getter/callback edges. These are distinct from the numbered-part
-scheduler selection. This authenticates the selected evidence, not the whole
+scheduler selection. The byte-1 continuation also checks the `cibc` query,
+name normalization, slot lookup and motion-refresh calls. The mode-flag
+continuation checks the type-3 drain and indexed on/off name formatter.
+This authenticates the selected evidence, not the whole
 imported analysis database. Python's `hashlib`, `zipfile`, `csv` and exact-identifier searches
 checked the cited Lua and CSV bytes; every searched Lua input matched its
 manifest size and SHA-256.
@@ -634,6 +762,9 @@ For the capture join, use `xivl-captures:tools/extractors/extract_streams.py`
 | `chara/charabaseclass_battle.lua` | `ca7d9bd52320e8aa62ecd853a0ce8d9e2e0ddc76fc504729b501b14b9bfcd959` |
 | `item/itembaseclass_common.lua` | `7620492917230c3e060ed84d3197bf164c234a3ab73e48a0939bc65107f6b7fa` |
 | `chara/npc/debug/populacemonstergrandma.lua` | `33f4dae66e1d4411677ba356283afab51edc34d95f0b39c445f5f69d2dbd9967` |
+| `chara/charabaseclass_u.lua` | `a60649dce0b051d781a0a041d738e1bc24e94987bfb8d7c682aa330439ff77c1` |
+| `chara/charabaseclass.lua` | `f17b3e62a137d8f524ba88d55296e1fb064512dc803f7a85dc980dd4bcbc9625` |
+| `commanddebugger/commanddebuggerdev.lua` | `9ce79f78f841c964222ec7a72f1a557406d1efa1ad75bc03685a55af8b5ba34a` |
 
 | Inspected CSV input | SHA-256 |
 | --- | --- |

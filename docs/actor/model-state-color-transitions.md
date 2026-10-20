@@ -27,8 +27,9 @@ interface's virtual `+0x04` getter. They return zero unless metadata flag
 `0x0065c550` returns byte `+0x3b`. At `0x007a834d..0x007a839e`, the selector
 converts count 0 through 8 to lower-bit masks `0x00, 0x01, 0x03, 0x07,
 0x0f, 0x1f, 0x3f, 0x7f, 0xff` and reads the supported-bit byte. It can
-process lower bit N only when that bit changed, N is within the count mask,
-and the supported mask includes it. The active resource root at
+test a bit only when it changed and the supported mask includes it; its
+on/off value comes from the new byte with the numeric count mask removed.
+The active resource root at
 `actor+0x12f0` must also be nonnull (`0x007a83bd..0x007a83c5`). The
 formatted `init_msb%u_1` and `init_msb%u_0` scheduler names are rooted in
 the executable strings at `0x00fe75bc` and `0x00fe75cc`. These are static
