@@ -296,6 +296,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [LPB format and filename cipher](script/lpb-format.md)
 - [Lua actor class construction](script/lua-actor-class-construction.md)
 - [LuaActorImpl slot map](script/lua-actor-impl.md)
+- [Guildleve actor initialization route](net/guildleve-initializer-route.md)
 - [Lua bytecode format](script/lua-bytecode-format.md)
 - [Lua class registry](script/lua-class-registry.md)
 - [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
