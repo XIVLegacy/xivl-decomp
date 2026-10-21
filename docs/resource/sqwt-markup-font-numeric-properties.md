@@ -137,8 +137,9 @@ conversion. Other returned wrappers are supplied to `FUN_00988A30`.
 One concrete unchanged-wrapper branch occurs when the thread-local object's
 `+0x1C` is zero at `0x00916346..0x0091636B`. With nonzero `+0x1C`,
 a zero result from `FUN_00974220` also selects that return. Other
-preprocessing branches, effective `@N` resolution, and deferred results
-remain unresolved.
+preprocessing branches remain outside this finding. The conditional
+[deferred completion](sqwt-plain-text-reference-lookup.md#deferred-numeric-font-properties)
+records the plain-reference numeric parser and store join.
 
 `FUN_00988A30` obtains the wrapper's string pointer through
 `FUN_00445210`, whose bounded accessor returns wrapper dword `+0`.
