@@ -108,13 +108,11 @@ the selected parser call. Callees must preserve EDI and return with their
 expected cleanup. At `0x00A26579/0x00A2657A` the caller pushes the current
 EAX and EDI, then places retained `F` in ECX at `0x00A2657B` and calls
 `0x00A25B90` at `0x00A2657D`. These are parser arguments `(S,D)`, where
-`D` is the return of `0x00A21F60` at `0x00A26574`. The existing
-[directory-entry contract](../resource/scb-clip-factory-composition.md#parsed-clip-key-table)
-gives that getter's address formula for a supplied directory receiver and
-ordinal. Its receiver here is the return of `0x00A1C9A0` at `0x00A2656D`.
-That producer and its cleanup remain untraced. The earlier push of zero at
-`0x00A26569` alone does not authenticate the getter's ordinal or a selected
-directory/chunk. The preceding `0x00A1C990` call's effects are also uninspected.
+`D` is the return of `0x00A21F60` at `0x00A26574`. The
+[directory-input contract](../resource/scheduler-parser-directory-input.md#selected-parser-input)
+binds its receiver and surviving zero argument to entry 0 of retained parsed
+object Q on the nonnull path. It also owns the global-fallback boundary and
+preceding Effect setup's own-instruction and callee-effect limits.
 
 The same EDI also supplies the earlier actor-helper constructor input at
 `0x00A26556`; that call's other explicit input is `S+0x60` in ESI.
@@ -168,6 +166,7 @@ contracts or the explicit ordinary-call conditions above.
 Track entry ESP separately from current ESP and account for pushes that remain
 across a getter call. Keep argument 2's reused stack slot separate from the
 saved EBP/EDI slots. Check the complete normal paths for EBP/EDI assignments
-and preserve the call/alias conditions. Exception-handler bodies, caller
-execution, new allocator bodies, directory-receiver helper `0x00A1C9A0`, city
-resource payloads and runtime state are outside these observations.
+and preserve the call/alias conditions. The linked directory-input contract
+owns the additional producer/getter/precursor ranges. Exception-handler bodies,
+caller execution, new allocator bodies, city resource payloads and runtime
+state are outside these observations.
