@@ -26,7 +26,8 @@ resource delivery or rendered text.
 
 All addresses are VA. Subtract `0x00400000` for RVA. `I` is the selected
 RaptureSqwtInterface receiver, `S=I+0x3C`, and `U` is complete MainModule
-plus `0x10`. Placeholder names and offsets are not original source signatures.
+plus `0x10`. `C` denotes a complete Control receiver. Placeholder names and
+offsets are not original source signatures.
 
 ## Conditional reference admission
 
@@ -149,10 +150,10 @@ mapped field, and invokes TextModule virtual `+8` with its string wrapper,
 argument vector and output. The selected continuation is
 `FUN_00CA1D60 -> FUN_00CA1D40 -> FUN_00CB2760`.
 
-The actual `xtx/_text_ui` definition's index/type vectors and selected
-string field are not established by this finding. A plain-reference
-consumer must obtain that loaded schema and validate the mapped field as
-`str`/type `10` before treating its bytes as the string path. A fixed type
+The code paths alone do not establish a selected backing field. The static
+English definition below identifies one schema's map and string type. A
+plain-reference consumer must obtain its loaded schema and validate the mapped
+field as `str`/type `10` before treating its bytes as the string path. A fixed type
 vector, replacement dictionary or default locale is not supplied here.
 
 ## Plain and empty output
@@ -208,6 +209,63 @@ success, property admission, callbacks and rendering remain conditions.
 These paths do not prove an external HUD markup occurrence or a particular
 binding result.
 
+## Deferred numeric font properties
+
+An admitted deferred FontSize or FontType reference can complete through the
+ordinary numeric property path. The pending record preserves the first five
+dwords of the original name descriptor, including its qualification and lookup
+key. Nonzero-owner completion supplies that saved descriptor and the resolved
+wrapper to `FUN_00912850` with mode zero. It re-resolves the registered
+property instead of reusing a saved parser index. If the same Control info
+object and canonical named descriptor are selected, the returned nonempty
+value bypasses the first-byte `{` binding branch, and owner virtual `+0x34`
+returns false, FontSize and FontType reach `FUN_0095CB50` at
+`C+0x2E0` and `C+0x2D8`. For a returned plain non-`@` wrapper classified
+as zero, the constructor-selected preprocessing path can return that wrapper
+even while property bit `0x10` is set, provided its post-helper tests still
+see the plain input. It then reaches the existing signed converter.
+`FUN_00926E80` performs deferred cleanup and clears bit `0x10` before its
+state gates. With mode zero, a clear post-cleanup bit `0x02` admits the
+ordinary value comparison. An admitted changed value stores the complete
+converter dword at `0x00926EE4`. Equal values skip the store. Lookup success
+therefore does not guarantee a changed property. Loaded source, name lookup,
+helper completion, selected tables, property admission and later callback/font
+resource conditions remain required.
+
+The converter remains described by
+[signed numeric conversion](sqwt-markup-font-numeric-properties.md#fm-03-preprocessing-and-signed-numeric-conversion).
+The later [FontSize bridge](sqwt-font-size-property-bridge.md) retains its
+callback, copy, cache, allocation and bitmap-branch conditions.
+
+## Static English definition
+
+For the identified retail build, master resource `0x01030000` names
+`xtx/_text_ui` through definition resource `0x0B450082`. The latter has one
+explicit `lang="en"`, `mode="client"` definition, at zero-based sheet ordinal
+`1`. Its sole physical column is `str`, and its source index sequence is
+`[1]`. The native index construction therefore maps logical field `1` to
+physical ordinal `0`. Together with the named-language mapping and `str`
+conversion above, the explicitly selected English field reaches native string
+type `10`. This establishes a concrete static schema input. It does not select a
+runtime locale or mode, prove that a running instance loaded these resources,
+or establish the contents or rendering of a selected row.
+
+The original master is 7044 bytes, SHA-256
+`860023878f9ad1e98fd1baa3e3380f971f86bf1f7747043cf0c3c7459cee2eb4`.
+The definition is 3099 bytes, SHA-256
+`27e50caf3d258e8eed2d9e70bc8355e2ab67f54f2dc8bf54e6cfcdf604e5e492`.
+Decoded master span `[1706,1755)` selects the reference at ordinal 32.
+Decoded definition span `[670,1272)` selects the English sheet at ordinal 1.
+
+Python 3.14.7 and `xivl-tools:tools/research/census_sheet_stack.py`,
+`decode_document`, recovered the two XML documents in memory. Independent
+byte-position decoding, exact re-encoding and Expat span checks agreed.
+The decoded master SHA-256 is
+`508ae64ce9d60c18241dba3200ba317157f086e201fe0b0fce3aeb807c9ec113`.
+The decoded definition SHA-256 is
+`2763f4ae79453b368b74f844f9a53647c6788e1c37a327258fd297327f799bac`.
+No string row content was decoded for this schema observation.
+
 ## Reproduction bounds
 
 Verify the executable identity, PE32 base and section raw-file bounds.
@@ -225,11 +283,13 @@ function bodies outside published artifacts.
 | Lookup and completion | `0x004CEE4C..0x004CEEC7`, `0x004CEF48..0x004CF006`, `0x00C981D0`, `0x00CAF330..0x00CAF345`, `0x00CAF760..0x00CAF7AE`, `0x00CA0930..0x00CA0A25`, `0x00CA0D79..0x00CA0DF6`, `0x00CA1D40..0x00CA1D86` |
 | Schema type mapping and field map | `0x00CB06FF..0x00CB078C`, `0x00CB078C..0x00CB0824`, `0x00CAF390`, especially `0x00CAF4D2..0x00CAF540`. Type-name base `0x01376E98`, stride `0x54`, `str` wrapper `0x013771E0`, literal `0x0110C56C` plus 4 bytes |
 | Plain/empty formatting | `0x00CB2760..0x00CB27B5`, `0x00CB27CC..0x00CB27D5`, `0x00CB2951..0x00CB2AB4`, `0x00447CF0..0x00447D38`, `0x00445530..0x00445548`, `0x004CEDDA..0x004CEDE8` |
+| Saved name and numeric re-selection | `0x00910750..0x00910775`, `0x004CE9EB..0x004CE9F8`, `0x004CECA7..0x004CECCC`, `0x004CEF5D..0x004CEF7F`, `0x0091293E..0x0091297D`, `0x00912A2B..0x00912A57`, `0x0091B440..0x0091B460`, `0x009382F8..0x0093836E` |
+| Deferred numeric preprocessing and store | `0x0095CB50..0x0095CBC7`, `0x00916374..0x0091640C`, `0x00916420..0x00916461`, `0x004CF6C7..0x004CF6ED`, `0x00988A30..0x00988A8A`, `0x00926E80..0x00926F06` |
 | Byte-buffer growth | `0x008CFB00..0x008CFB82`, `0x00444E80..0x00444F9C`, `0x006D1920..0x006D194E` |
 | Text/Content consumers | `0x00F23800..0x00F23824`, `0x009556D0..0x00955764`, `0x009BA4E0..0x009BA531`, `0x00F221E0..0x00F221FA`, `0x00936320..0x00936352`, `0x0093648C..0x009364B2`, `0x0096CEC6..0x0096CF06`, `0x009742C4..0x009742F8` |
 | Exact tables and literals | `0x00F8D75C` plus 24 bytes, `0x00F8D774` plus 13 bytes, `0x01108C00` plus 28 bytes, `0x0110C6D4` plus 28 bytes, `0x01108F70` plus 40 bytes, `0x01110654` plus 24 bytes, `0x00CA0DF8` plus 40 bytes |
 
-The surviving gaps are actual selected backing-schema/string-field identity,
+The surviving gaps are actual runtime-selected schema and row content,
 resource delivery, encoded formatting and full argument substitution,
 malformed-reference behavior, returned-reference recursion, native pickup
 route equivalence, callback activation and final rendered output. Passing
