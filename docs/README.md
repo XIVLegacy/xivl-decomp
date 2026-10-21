@@ -103,6 +103,8 @@ Each finding records its evidence and the limits of what it establishes.
 
 ## Networking
 
+- [Package-5 item presentation boundary](net/loot-item-presentation.md)
+
 - [Armoire stored-item state](net/armoire-storage-state.md)
 - [Network u32 tree and RTTI census](net/channel-dispatch-tree.md)
 - [MyPlayer PlayerManager replacement](net/dispatcher-subscriber-swap.md)
