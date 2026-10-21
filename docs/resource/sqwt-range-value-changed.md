@@ -68,6 +68,57 @@ Constructor helper `0x009C1FD0..0x009C2047` writes initial scalar and
 flag state. It does not retain or invoke its supplied callback arguments.
 The native setter supplies the callback on the observed change path.
 
+## Conditional property-info write entry
+
+The [vtable catalog](../../config/ffxivgame.vtable_slots.jsonl) identifies
+`Sqwt::DependencyPropertyInfo<Sqwt::Controls::Primitives::RangeBase<float>_>`
+table `0x01070304`, slot 3, as `0x0091B440`. Initializer
+`0x00F24090..0x00F240E6` installs that table for info object
+`0x0135AE40`, retains callback `0x009675C0` at info+0x28 and writes zero
+at info+0x2C, at `0x00F240CE..0x00F240D4`.
+
+The adapter at `0x0091B440..0x0091B45D` adds info+0x2C to its first
+stack argument and uses the result as the callback receiver. It forwards
+its second, third and fourth stack arguments in order. It supplies no
+fixed flag. With the checked initializer, the callback receiver is the
+unadjusted first argument.
+
+Callback `0x009675C0..0x009676A4` rejects unsigned indices above four and
+otherwise dispatches through the five-dword table at `0x009676A8`.
+A read-only PE32 section mapping recovered index-4 slot `0x009676B8` as
+`0x0096767D`. The table's 20-byte span maps to file offset `5666472` in
+the file-backed executable section. This joins descriptor index 4 to the
+branch at `0x0096767D..0x009676A4`, independently of branch layout.
+
+That branch calls `0x0098A8B0` with scalar receiver `B+0x35C`, owner
+`B`, callback `0x00966FF0`, zero receiver adjustment and descriptor
+`0x0135ADF4`. Its value input is the callback's second stack argument.
+The penultimate argument is the callback's third stack argument, forwarded
+from the adapter's fourth argument. The final argument is literal one.
+
+The helper at `0x0098A8B0..0x0098A92F` first calls `0x00916310`.
+If that call returns `0x01356DA8`, the branch at
+`0x0098A8E6..0x0098A8F6` sets wrapper mask `0x10` and returns without
+calling the delegated float setter. Otherwise it obtains a scalar through
+`0x00988CD0`, stores that result as a float, and calls `0x009B9320` at
+`0x0098A927`. The owner, callback, adjustment, descriptor and both flag
+arguments retain the roles above. This reaches the same delegated setter
+used by the native Value entry, with the final byte fixed to one and the
+penultimate byte supplied by the adapter caller. It does not establish
+that the delegated setter admits the write or that its float comparison
+selects notification.
+
+The observed caller route remains separate. On the tracked
+[WidgetBase property-access path](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/widget-native-call-contract.md#property-access),
+the Nil-leading-name entry `0x0075B810..0x0075B834` reaches
+`0x005355A0..0x005355B9`, which calls `0x005354D0` with a fixed first
+argument `0x01266B10` and its three forwarded inputs. The latter entry
+constructs a local argument through `0x0053BC30` and invokes the incoming
+object's virtual offset 4 at `0x0053555F`. That indirect target and the
+local argument's subsequent use are not joined to the property-info
+adapter here. This route therefore does not establish a concrete caller's
+penultimate flag, selected RangeBase receiver or Value assignment.
+
 ## Bounded candidate and emission order
 
 The complete producer is `0x00966CF0..0x00966FE3`. It loads a candidate
@@ -104,15 +155,20 @@ The producer's other bound-snapshot callbacks occur later.
 Verify the canonical executable size/hash and image base. Inspect the
 initializer, native setter, delegated setter, notification bridge, argument
 constructor, callback and producer at the cited addresses. Track every
-argument slot and receiver adjustment. Recover the exact name and 20-byte
-callback table through a file-backed PE32 section mapping. Exclude adjacent
-functions returned beyond each cited entry's return instructions.
+argument slot and receiver adjustment. Recover the exact name and both
+20-byte callback tables through a file-backed PE32 section mapping. Inspect
+the property-info initializer, slot-3 adapter, indexed callback and scalar
+helper at their cited addresses. Follow the helper's early return separately
+from its delegated setter call. Exclude adjacent functions returned beyond
+each cited entry's return instructions.
 
 The comparison predicates above are instruction facts. This does not
 establish all NaN, exception, precision or floating-point environment rules.
-Setter admission, notification flags and the producer's additional flag
-paths remain conditions. Calls outside the checked chain and reentrant
-effects are not generalized here.
+Setter admission, the adapter caller's penultimate flag and the producer's
+additional flag paths remain conditions. Input representation, conversion
+grammar and the helper's selected-input semantics are outside this finding.
+Calls outside the checked chain and reentrant effects are not generalized
+here.
 
 This finding does not establish resource loading, native source-name
 resolution, selected live instances, successful listener delivery, automatic
