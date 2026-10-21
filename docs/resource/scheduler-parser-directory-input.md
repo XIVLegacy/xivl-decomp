@@ -127,6 +127,11 @@ operation provider, indexed resident, lookup result's type/lifetime and
 Ul'dah's material path are separate bindings. No historical activation,
 calendar, server input or visible effect follows from this static input join.
 
+The [selected city member/context qualification](city-halloween-member-context-joins.md)
+matches concrete serialized member keys to resident-child IDs and separates
+the direct-child and Limsa group-context conditions. It retains the missing
+selected resource and invocation witness.
+
 ## Reproduction
 
 Authenticate the binary and map each VA through the PE section table. Decode
