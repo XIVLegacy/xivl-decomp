@@ -89,6 +89,19 @@ The descriptor parser returns `0xFFFFFFFF` for an unrecognized spelling.
 The six-entry reference table provides no corresponding entry or default.
 This mapping does not select a language for an unobserved instance.
 
+On the constructor-selected DOM_Element path, a missing attribute makes
+`FUN_0099ADB0` return empty wrapper `0x0137B248` instead of an attribute
+value wrapper. The `lang` gate in `FUN_00C98580` compares the returned
+wrapper with that empty wrapper through `FUN_00445DB0`. An absent or empty
+`lang` therefore takes `0x00C98692 -> 0x00C986A7` without language parsing.
+A nonempty value must pass `FUN_00D34D20` and equal ExcelModule `+0x14`.
+The separate mode gate at `0x00C9863E..0x00C98674` rejects exact `server`
+when module `+0x38` is zero, and exact `client` when it is one. Absent or
+empty `mode` passes either gate. These conditions do not require invented
+language tags or select a default locale. They also establish no preference
+between two admitted definitions. Selected DOM tables, static wrapper
+initialization, name lookup, loading and schema conditions remain required.
+
 `xivl-client-data:manifests/sheet_inventory.csv`, `xtx/_text_ui` row,
 identifies definition resource `0x0B450082`.
 `xivl-client-data:manifests/local_guildleve_names.json`, source
