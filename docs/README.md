@@ -220,6 +220,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City seasonal weather selectors](resource/city-seasonal-weather-selectors.md)
 - [Gridania and Ul'dah Halloween owners](resource/city-halloween-owner-joins.md)
 - [City Halloween member keys and context qualification](resource/city-halloween-member-context-joins.md)
+- [TimeLine SCB resource source and result](resource/timeline-scb-resource-binding.md)
 - [Three-city interior Halloween owners](resource/city-interior-halloween-owner-joins.md)
 - [ShowHideClip registration and value dispatch](resource/showhide-clip-dispatch.md)
 - [Three-city interior winter-family owners](resource/city-winter-owner-joins.md)

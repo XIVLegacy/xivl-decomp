@@ -82,7 +82,7 @@ by those findings.
 
 | Edge | Published contract | Required identity |
 | --- | --- | --- |
-| TimeLine to resource R | [Construction context](limsa-fireworks-scheduler-bindings.md#construction-context-boundary), `0x00AB3730` through `0x00AB38B0` | The selected TimeLine's acquired resource must supply the selected SCB span above. |
+| TimeLine to resource R | [Source/result binding](timeline-scb-resource-binding.md#attached-source-and-cache-lookup), `0x00AB3730` through `0x00AB38B0` | The loaded attached record must supply the selected SCB source/length; cache coherence or the checked miss-path construction and retained payload fields must hold. |
 | R to parsed Q and S | [Parsed-object construction](scb-clip-factory-composition.md#parsed-clip-key-table) and [directory input](scheduler-parser-directory-input.md#selected-parser-input) | Q must derive from that R and remain at this S's `+0x50`; its directory entry 0 supplies parser input D. |
 | D to member entry and key | [Member publication](../actor/lay-scheduler-member-publication.md#outer-factory-input-and-scheduler-handoff) and [serialized key](../actor/lay-scheduler-member-publication.md#serialized-lookup-key) | The selected row must construct the same retained member E in this S's collection; slot 26 then supplies the listed key. |
 | TimeLine instance to U | [Owner UnitInfo context](timeline-weather-record-view.md#owner-unitinfo-context), `0x007FD830` child setup | The created TimeLine child must retain the inherited context U from the selected parent invocation. This is distinct from its separately created UnitInfo. |
@@ -121,11 +121,13 @@ A selected-state join needs evidence for all of these identities:
 3. The TimeLine callback's inherited U and its lookup table retain the resident
    registration for the listed K. Limsa also requires the group-member join.
 
-The current resource-acquisition locator is `0x00AB38B0` in the published
-TimeLine path; that resource result has not been byte-bound to one of these
-selected SCBs by this qualification. The group-field reader/registration edge
-above is separately missing. Neither gap is resolved by matching a name, a
-class label, a small numeric key or a file offset to an object address.
+The [resource-source trace](timeline-scb-resource-binding.md#selected-city-binding-and-confidence)
+joins `0x00AB38B0`'s attached fields to the copying/view constructors and
+parser payload under explicit conditions. Selected loaded-record delivery,
+resolved source-pointer identity and cache-hit payload identity still need
+evidence. The group-field reader/registration edge above is separately
+missing. A name, class label, small key or file offset does not authenticate
+those native identities.
 
 The [three-city activation limits](../actor/lay-scheduler-member-construction.md#three-city-activation-boundary)
 retain the separate ShowHideClip operation-provider/indexed-resident and

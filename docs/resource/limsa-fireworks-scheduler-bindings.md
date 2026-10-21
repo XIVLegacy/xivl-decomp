@@ -254,6 +254,10 @@ The TimeLine initialization path is base slot 18, `0x008D51B0`, through
 `0x01365B08`, slot 4. The returned object receives resource `R` through
 its slot 1 at `0x00AB3759`.
 
+The [TimeLine source/result contract](timeline-scb-resource-binding.md)
+qualifies R's attached-record inputs, cache-hit boundary, copy/view branches
+and SCB payload handoff to the parser.
+
 Initialization `0x00A77A30` constructs a `LayExternalManagerConnector`
 through `0x00A841D0`. At `0x00A77C4F..0x00A77C64`, it supplies the
 connector's complete object `+4` and ownership argument 1 to manager slot 1,
