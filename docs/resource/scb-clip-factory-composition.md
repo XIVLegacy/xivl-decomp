@@ -90,10 +90,11 @@ dword arguments in this order:
 (u32(F+0x1C), u32(F+8), u32(u32(X+0x50)+0x38), u32(F+0x0C))
 ```
 
-These are the values loaded for the selected call. This relation does not
-identify X with the scheduler S used elsewhere in this finding. The prefix
-ends at the constructor call's complete return address, before any subsequent
-caller stores or return handling.
+These are the values loaded for the selected call. The
+[outer-factory input relation](../actor/lay-scheduler-member-publication.md#outer-factory-input-and-scheduler-handoff)
+identifies X with S on the selected outer path, subject to its ABI and field
+conditions. This prefix ends at the constructor call's complete return address,
+before any subsequent caller stores or return handling.
 
 With valid receiver and argument storage that do not overlap, the constructor
 copies ECX to EAX and performs the following stores:
@@ -464,26 +465,18 @@ check the collection's count, entries or later lifetime. The published parser
 contract independently permits null actor entries within a constructed
 collection; those entries are distinct from a zero collection pointer.
 
-The prefix supplies a narrower receiver observation. At `0x00A25C0A` the
-parser saves EBP; `0x00A25C0B` then loads EBP from current `[ESP+0x40]`.
-That is a raw stack-slot locator, without an assigned entry-argument ordinal.
-The intervening helper cleanup and the omitted instruction span
-`[0x00A25C2B,0x00A25C3F)` were not qualified by this observation. Equating
-that loaded value with W requires preservation through those instructions
-and calls. It is not an authenticated scheduler identity.
+The [member-publication contract](../actor/lay-scheduler-member-publication.md#parser-receiver-abi)
+assigns that EBP load to parser argument 1 using the complete normal parser
+body and iterator cleanup. Its outer-factory input proof joins the supplied
+EDI to constructed scheduler S on the selected path, under normal-call and
+register-preservation conditions. Thus this branch stores P at S `+0x70`.
 
-The caller excerpt at `0x00A26579..0x00A26581` pushes EAX and EDI, places
-EBX in ECX and calls `0x00A25B90`. It identifies those supplied values,
-without proving that the later stack-slot load yields the caller's EDI or
-the scheduler S from the builder contract. No argument ordinal is inferred
-from the stack displacement alone.
-
-If W equals the scheduler retained at context `+0x0C`, and its field retains
-P, this store supplies the collection consumed by the
+If this S equals the scheduler retained at context `+0x0C`, and its field
+retains P, this store supplies the collection consumed by the
 [indexed actor path](uldah-halloween-material.md#active-parameter-receivers)
 and [ShowHideClip operation vector](showhide-clip-dispatch.md#operation-argument-vectors).
-Those consumers use `u32(u32(C+0x0C)+0x70)`. The setter and matching field
-offset alone do not establish that pointer equality, actual city delivery,
+Those consumers use `u32(u32(C+0x0C)+0x70)`. The parser's argument identity
+does not establish that separate context pointer equality, actual city delivery,
 an indexed actor's identity or the operation receiver Q.
 
 The following half-open instruction unions were compared against the original

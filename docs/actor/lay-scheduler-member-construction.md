@@ -90,8 +90,9 @@ This agrees with
 following primary-table row. Selected original table cells agree with the
 [slot catalog](../../config/ffxivgame.vtable_slots.jsonl): primary slot 14
 targets `0x00A786A0`, primary slot 26 targets `0x00A78950`, and secondary
-slots 0/1 target `0x00A789E0/0x00A789A0`. The secondary callback bodies and
-primary slot-26 body are not interpreted by this construction finding.
+slots 0/1 target `0x00A789E0/0x00A789A0`. The secondary callback bodies are
+not interpreted here. The [member key and publication contract](lay-scheduler-member-publication.md)
+owns primary slot 26 and the conditional collection handoff.
 
 ## Conditional callback composition
 
@@ -115,9 +116,9 @@ target's slot 23. Its existing evidence limits remain unchanged.
 The [ShowHideClip operation vector](../resource/showhide-clip-dispatch.md#operation-argument-vectors)
 has a separate indexed actor `A` and dynamic operation receiver `Q`.
 Construction does not establish `A=E`, `A=T`, `Q=T`, or a selected city's
-UnitInfo/instance-table entry. The constructor's zero fields do not recover
-later parsed-record initialization, slot-26 key production or publication
-into the selected collection.
+UnitInfo/instance-table entry. The linked key/publication contract joins the
+retained record to the lookup key and the parser output to scheduler `+0x70`.
+Actual selected city membership and later field preservation remain conditions.
 
 ## Three-city activation boundary
 
