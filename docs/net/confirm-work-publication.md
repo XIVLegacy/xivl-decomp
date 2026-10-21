@@ -11,6 +11,9 @@ The prompt, answer tuple and outgoing command representation remain canonical
 in `xivl-client-scripts:docs/confirm-prompt-client-contracts.md`. This finding
 does not add a timeout, server invitation policy or recipient travel cost.
 
+[Offer timeout evidence](confirm-offer-timeout-evidence.md) owns the complete
+retained-capture query, static open-question teardown and timer boundary.
+
 ## Declared fields and derived property identifiers
 
 The original `chara/player/playerbaseclass.lua` initializer assigns these
@@ -80,9 +83,10 @@ The Integer32 body is not an input-width validator. A four-byte zero value
 remains zero on both its swap and non-swap branches. Together with the Lua
 sentinel test, this supports a conditional client-compatible way to clear the
 pending variation: apply zero to its correctly registered field and deliver
-its work notification. It does not establish a historical clear
-packet, expire an offer, close an already-open question, or clear the other
-sender/place fields. Omission of a record is not shown to clear stored work.
+its work notification. This composition alone does not establish a historical
+clear packet, expiry, already-open question closure, or clearing the other
+sender/place fields. The linked offer-timeout finding owns the additional
+widget-close trace. Omission of a record is not shown to clear stored work.
 
 ## Update target and consumer boundary
 
