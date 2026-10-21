@@ -127,15 +127,36 @@ literal text or Name value is reproduced here.
 
 Zero-based preorder XML node ordinals `22`, `28` and `34` in the Player
 form and `28` and `30` in the Party template carry inline bindings on
-`TextBlock.Text` with parameter token `%.f`. ItemHelp ordinals `353`,
-`368` and `373` carry Binding elements under Label, with parameters
-`%.0f`, `%.f` and `%.f`. Each has `Path="Value"`, no explicit `Converter`
-key, and an `ElementName` matching exactly one same-document `ProgressBar`
-Name value. These are XML equality and token-syntax observations only.
+`TextBlock.Text` with the parameter spelling `ConverterParameter=%.f`.
+In the XML-parsed attribute values, `%.f` has no single or double quote
+delimiter. There is no whitespace around its equals sign or within the
+parameter token. The parameter argument follows a space-only separator and
+ends immediately before the closing binding brace. These five bindings have
+`Path=Value`, `Mode=OneWay` and no explicit `Converter` key.
+
+Each of these five complete `ElementName` values has two colon-separated
+segments, both matching `[A-Za-z_][A-Za-z0-9_]*`. The complete value matches
+zero same-document Name values. Its first segment matches exactly one
+same-document Name value, on a `ProgressBar`. The prefix match does not
+establish full-value equality or the native meaning of the colon or second
+segment.
+
+ItemHelp ordinals `353`, `368` and `373` carry Binding elements under Label,
+with parameters `%.0f`, `%.f` and `%.f`. Each has `Path="Value"`, no explicit
+`Converter` key, and an `ElementName` matching exactly one same-document
+`ProgressBar` Name value. The inline spelling and colon-segment observations
+above are bounded to the identified Player and Party files.
+
+These are XML string-equality and token-syntax observations only. XML parsing
+resolves entity references and normalizes attribute whitespace before the
+inline syntax classification. The quotation observation concerns delimiters
+inside the parsed attribute value, not the XML attribute's outer delimiter.
 
 They do not prove native Name resolution, `ProgressBar` class activation,
 selection of the conditional float-info path, the exact `Value` descriptor,
 resource loading, event delivery, computed numeric output or live rendering.
+They do not establish native quotation handling or acceptance of quoted
+parameter alternatives.
 
 ## Reproduction and limits
 
@@ -148,9 +169,14 @@ decompiler signature, carries that observation.
 
 For the XML observation, decode only the explicitly identified files with
 their exact base names, parse the decoded bytes in memory, enumerate nodes in
-preorder and compare ElementName strings with Name strings. Retain identities,
-ordinals, tags and syntax classes. Keep client bytes, XML bodies, executable
-listings and decompiled bodies outside the public repository.
+preorder and compare complete ElementName strings with Name strings. For the
+five inline carriers, identify named key=value boundaries separated by
+whitespace or commas outside balanced quotes and nested braces. Retain the
+parameter's quote delimiter and whitespace classes. Compare complete
+ElementName tokens and their first colon-separated segments separately.
+A simple-identifier prefix match cannot establish complete-token equality.
+Retain identities, ordinals, tags and syntax classes. Keep client bytes, XML
+bodies, executable listings and decompiled bodies outside the public repository.
 
 The surviving gaps are runtime object and table selection, native source
 property resolution, the exact `Value` index, successful downstream property
