@@ -170,7 +170,7 @@ Verified by disassembly and a PE byte scan of the retail image above.
   load-all. The setter has several callers (`0x00612D55`, `0x00612E5F`,
   `0x00612ED4` and later ones) whose conditions were not read.
 * Scene `+0x1D0` is initialized by `0x0062D520` from the float at
-  `0x00FA2B8C`, which is 16.0. The load is at `0x0062D6C1` and the store at
+  `0x00FA2B8C`, which is 16.0. The load is at `0x0062D6C0` and the store at
   `0x0062D6C8`. Scene `+0x1CC` falls back to the float at `0x00FB6E84`, which
   is 128.0. The
   [floor model visibility](floor-model-visibility.md) page records the same
@@ -179,16 +179,26 @@ Verified by disassembly and a PE byte scan of the retail image above.
   manager float written at `0x0064F66F` in the manager build function
   `0x0064F430`. It is the float at offset `+0x3C` of the layout root object
   held at manager `+0x7C`, or 128.0 when that object is absent, multiplied by
-  scene float `+0x338`. The default of `+0x338` and the layout-side value were
-  not read.
-* The radius query is therefore 16.0 plus the manager radius times `+0x338`.
-  It equals 144 yalms only when the layout root object is absent and `+0x338`
-  is 1. Otherwise the layout-side float replaces 128.0.
+  scene float `+0x338`. The layout-side value was not read.
+* In constructor `0x0062D520`, scalar load `0x0062D7B3` reads literal
+  `0x00F54F70`, whose binary32 bits `0x3F800000` encode 1.0. Scalar store
+  `0x0062D7DC` writes it to scene `+0x338`. `0x0062D564` copies incoming ECX
+  to the ESI object base used by that store. ghidra-cli instruction
+  listings and the referenced literal were compared with the original PE.
+  Later object calls to `0x0062AEB0` and `0x00629C40`, and subsequent helper
+  and setter effects, remain untraced. This is a direct initializer store,
+  not a guaranteed retained value at constructor return or runtime use.
+* The query adds scene `+0x1D0` to the already-scaled manager radius above.
+  With the layout root object absent and the multiplier equal to 1 at the
+  manager-radius computation, the published terms give 16.0 + 128.0 = 144
+  yalms. When the layout root is present, its float replaces 128.0. The
+  direct initializer does not establish either runtime condition.
 
 ## Unknowns
 
-* The default of scene float `+0x338` and the `+0x3C` value in each region 103
-  layout root, so no region 103 yalm radius is established.
+* The retained scene `+0x338` value at constructor return or runtime use,
+  and the `+0x3C` value in each region 103 layout root, so no region 103
+  yalm radius is established.
 * Which condition selects each mode (1 to 6) in `0x00629890`, and what scene
   `+0x1F0 == 3` and bytes `+0x1E8/+0x1E9/+0x1F9/+0x1FB` mean at runtime. The
   ambient fleet page records the same unresolved state 3.
