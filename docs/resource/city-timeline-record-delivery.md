@@ -207,7 +207,7 @@ Halloween investigation. It does not recover a server opcode, calendar
 trigger or successful seasonal activation. The
 [member/context qualification](city-halloween-member-context-joins.md#conditional-native-composition)
 retains the selected parent/TimeLine context, same-U lookup, Limsa group
-registration and separate operation-provider/indexed-actor/material limits.
+registration ordering and separate operation-provider/indexed-actor/material limits.
 Cache-hit payload identity and resource readiness remain separate evidence.
 
 ## Reproduction

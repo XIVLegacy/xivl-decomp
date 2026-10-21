@@ -7,9 +7,10 @@ Gridania and Ul'dah each use key 1. These are typed serialized matches,
 without an observed city S/Q/context or successful native lookup.
 
 The native direct-child contracts support a conditional context join for the
-Gridania and Ul'dah examples. Limsa's matched residents occupy a separate
-group run, whose registration into the callback's context table is a distinct
-missing edge.
+Gridania and Ul'dah examples. The
+[recursive group path](timeline-activation-context.md#parent-context-and-the-group-join)
+also supplies Limsa's separate resident run with that inherited context.
+Registration must precede the callback's matching lookup.
 
 ## Original inputs and method
 
@@ -99,16 +100,19 @@ successful child admission/construction and retained table entries.
 
 Limsa's resident children instead occur in group `0xC25E0`, reached from
 UnitTree `+0x24/+0x28`. Group `+0x20/+0x24` supplies the two-resident run;
-the owner's direct child run contains the timelines. The cited direct-child
-loop alone does not establish registration of these group members into the
-same U table. A group reader/registration path or a concrete selected-state
-observation is needed before the numeric matches identify native targets.
+the owner's direct child run contains the timelines. The
+[application group recursion](timeline-activation-context.md#parent-context-and-the-group-join)
+passes the same parent instance into group initialization, so successfully
+created residents register through its same inherited U. The
+[callback ordering boundary](timeline-activation-context.md#selected-halloween-examples-and-ordering)
+remains: initial TimeLine setup can call the binding callback before this
+later group loop supplies the resident registrations.
 
 ## Qualification result and missing witness
 
 The raw record classes, keys, TimeLine spans and selected child IDs have
 direct retail-byte support. The S/Q/U composition is conditional, with an
-additional group-context edge for Limsa. This qualification's three DAT inputs
+additional registration-order requirement for Limsa. This qualification's three DAT inputs
 and reused native contracts supply no observed S/Q/U invocation.
 
 A selected-state join needs evidence for all of these identities:
@@ -119,7 +123,8 @@ A selected-state join needs evidence for all of these identities:
    retained S and member record derive from that same resource invocation.
    Serialized SCB `+0x60` is not native `Q+0x60`.
 3. The TimeLine callback's inherited U and its lookup table retain the resident
-   registration for the listed K. Limsa also requires the group-member join.
+   registration for the listed K when that callback runs. Limsa's group
+   registrations follow the direct-child setup loop on the traced initializer.
 
 The [resource-source trace](timeline-scb-resource-binding.md#selected-city-binding-and-confidence)
 joins `0x00AB38B0`'s attached fields to the copying/view constructors and
@@ -127,7 +132,7 @@ parser payload under explicit conditions. The
 [selected delivery/relocation contract](city-timeline-record-delivery.md)
 qualifies the structural root-list, creator and source-pointer joins. An
 actual selected load and cache-hit payload identity remain unobserved. The
-group-field reader/registration edge above is separately missing. A name,
+group path's selected registration/callback ordering remains unauthenticated. A name,
 class label, small key or file offset does not authenticate those native
 identities.
 

@@ -222,6 +222,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City Halloween member keys and context qualification](resource/city-halloween-member-context-joins.md)
 - [TimeLine SCB resource source and result](resource/timeline-scb-resource-binding.md)
 - [City TimeLine record delivery and SCB relocation](resource/city-timeline-record-delivery.md)
+- [TimeLine activation caller and inherited context](resource/timeline-activation-context.md)
 - [Three-city interior Halloween owners](resource/city-interior-halloween-owner-joins.md)
 - [ShowHideClip registration and value dispatch](resource/showhide-clip-dispatch.md)
 - [Three-city interior winter-family owners](resource/city-winter-owner-joins.md)

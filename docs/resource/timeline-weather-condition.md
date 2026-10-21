@@ -32,6 +32,11 @@ property interface and C=P-4 its complete receiver. The method calls
 The forwarding body uses P+`0x0C` and passes the dereferenced input dword
 to that retained receiver's slot 24 when the receiver is nonnull.
 
+The [activation caller/context contract](timeline-activation-context.md#caller-into-the-evaluator)
+joins instance slot 72 and UnitInfo child traversal to this property slot 9.
+It also establishes the constructor's zero C+`0x44` gate; a positive selected
+gate writer remains required before that update invokes the evaluator.
+
 `0x007FCBF0` calls P slot 4 twice, discards the first return, then calls
 the second return's slot 19 and the next return's slot 8 at
 `0x007FCC03..0x007FCC1F`. Call the last returned view V. It reads property

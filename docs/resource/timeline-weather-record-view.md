@@ -186,6 +186,11 @@ and preserved U0 reaching its TimeLine child remain unobserved. This type and
 store chain alone does not establish the [slot-37/42 lookup results](#unitinfo-callback-lookup-boundary),
 recursive-root membership, clip activation or visible effects.
 
+The [activation caller/context contract](timeline-activation-context.md)
+qualifies the slot-72-to-property update path, its child/group publication
+arrays and application group recursion with the same supplied parent.
+It retains the separate evaluator-gate and registration-order requirements.
+
 ## Backend pointer and guarded consumers
 
 Property table `0x00FF2D2C` slot 30, cell `0x00FF2DA4`, targets
