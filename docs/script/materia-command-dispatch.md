@@ -6,6 +6,10 @@ artifacts examined. No command-specific causal record establishes a callback
 pairing, its full supplied argument vector or the executed variation. The
 conditional Lua and native bridges below do not close that gap.
 
+The distinct [22016 target route](#target-materia-command-22016) establishes
+its local operands and conditional package publication dependency, while
+leaving its incoming callback/result join unbound.
+
 The Lua selection of `commandJudgeMode` is recorded in
 `xivl-client-scripts:docs/materia-meld-client-contract.md`, section
 "Ready variation and command-name selection". That name does not identify
@@ -208,6 +212,120 @@ This specifies missing historical evidence. The preserved retail wire corpus
 is finite and new connected-retail captures are unavailable. A local test with
 a supplied callback or payload can establish behavior for that setup; it
 cannot recover the historical retail selector or server policy.
+
+## Target-materia command 22016
+
+The distinct target route establishes a stock local issuer and a conditional
+package publication dependency. It does not establish a command-specific
+CraftJudge continuation or authoritative meld result. The existing
+`22014`/`22015` callback evidence ceiling above remains separate.
+
+`xivl-client-scripts:docs/materia-meld-client-contract.md`, "Crafter and
+local-meld routes", owns the four-item target-package requirement, owner
+Bazaar mode-40 request and UI entry tuples. The following checks used the
+original connector, ask-widget, CraftJudge and CraftCommand LPBs, plus the
+previously authenticated CharaBase original. Their original/payload/source
+identities matched the script manifests; the script contract's identity
+table pins all five decoded payloads. PCs here are zero-based.
+
+### Exact target operands
+
+The connector's `executeTargetMateriaJoinCommand(target)` scans target Lua
+package 6 for equipment `E`, enchant materia `M`, catalog `1000001`, and an
+item matching `M:getItemRepairItem()`. The existing requirement does not
+make the currency or catalyst a separately transmitted operand. Its actual
+TAILCALL is `executePlayerReadyCommand(22016,E,M,nil,target,nil)`
+(`root/proto426`, PCs 58-65, TAILCALL 65; source 18777-18787).
+
+`getReadyCommandIndex` maps 22016 to desktop index 18
+(`root/proto246`, PCs 77-83; source 12487-12494). The ready helper reads
+the selected slot's command and category, substitutes the category for the
+nil third operand, inserts a nil fourth operand, then calls
+`executePlayerCommand` (`root/proto279`, CALL 25, substitution PC 30,
+TAILCALL 39; source 13765-13794). The selected command object and category
+are runtime values, not a proven fixed variation.
+
+`executePlayerCommand` keeps a supplied target unless it is nil or its
+`_isAlive()` result is exactly false; that branch substitutes the current
+target (`root/proto278`, PCs 24-33). At CALL 43 it invokes the local
+player's `command` with the selected command and these nine operands:
+
+```text
+(E, M, selectedCategory, nil, resolvedTarget, nil, nil, nil, nil)
+```
+
+This follows the target helper's supplied trailing nil. It is a Lua call
+shape, subject to the existing command guards and descriptor selection;
+it is not a witnessed send. `CraftCommand.canAimForRelation` returns exactly
+`true,true,false` for command 22016 (`root/proto1`, PCs 4-11;
+source 25-36). That local aim tuple does not select a server callback.
+
+### Package refresh and publication
+
+Mode 3 asks its stored actor to `updateItemPackage(6)` and later accepts only
+that actor/package. `CharaBaseClass.updateItemPackage` first checks the
+local player's `canRequestInformation()`; only then does it call the
+receiver's `_updateItemPackage(package)` and record the request
+(`root/proto27`, CALL PCs 4,9,14; source 1278-1306). The widget's init does
+not prove that this gate passed or that a response arrived.
+
+The existing native package contract is canonical at
+`xivl-client-structs:docs/bazaar-native-wire-contract.md`, "Package and slot
+numbering" and "Incoming package operations and publication". Composing its
+package-minus-one conversion with this Lua input yields wire package code
+5 in the conditional c2s `0x0131` refresh, for the target actor reference.
+It does not make command 22016 a package-response opcode.
+
+For a compatible incoming publication through that generic item route,
+PackageStart must select the target/code-5 destination before full item
+records, and UpdateEnd must integrate or defer the staged data before a
+nonempty changed-slot set can notify `_onUpdateItemPackage`. The published
+dependency is `0x016D -> 0x0146 -> item records -> 0x016E`, with the update
+mode governing fresh versus cloned staging. The ask widget then requires
+exactly four items and initializes its presentation from slots 1,2,3. The
+role scan for command operands is separate from those positional display
+inputs. No inspected 22016 transaction authenticates a particular item
+record variant, update mode, quantities, or ordering beyond these generic
+client dependencies.
+
+When its stored actor is present on mode-3 Install, the ask widget discards
+the target command helper's
+return (`root/proto10`, CALL PC 125, `C=1`) and closes directly at CALL 129.
+Its Back handlers only close (`root/proto9`, CALL 19; `root/proto10`, CALL
+135). These paths do not issue the separate owner-side Bazaar undeal helper.
+The close handler sets base ask result `-1`; `getAskResult` translates that
+to one nil (`root/proto11`, CALL 2; `root/proto12`, PCs 1-7; source
+921-946). Closing after Install therefore does not report successful
+command admission or meld completion.
+
+### Native continuation and missing result join
+
+The original PE checks covered all instructions in
+`[0x0070A010,0x0070A34D)` (SHA-256
+`0e19b2df88a1ad229ceb2be6c08ea4dfc9cbbd06b668225c2287757626a1fd3e`)
+and `[0x00898480,0x008984BB)` (SHA-256
+`a72981731cc3f8bdb4ea83d167fed021ed49ad54aafa138e1790d9096a72ba5a`).
+The first decodes the selected name/command object and remaining parameters,
+checks actor-valued parameters, and reaches policy dispatch at `0x0070A2C1`.
+The second calls the selected descriptor's slot 7 at `0x0089848F` and
+chooses the existing manager route from returned AL. Neither body compares
+22016, tests package 6, or selects a CraftJudge materia method. The
+[generic construction/policy contract](../input/chara-selection-producers.md#native-command-construction-and-policy-dispatch)
+and request bridge above own the downstream conditional paths.
+
+The inspected original chunks contain no literal 22016-specific
+CraftJudge callback selector. The complete authenticated 2,671-member
+source query for numeric token `22016` and
+`executeTargetMateriaJoinCommand` found only the CraftCommand aim branch,
+ask-widget issuer, connector mapping/helper and main-menu presentation
+references. The actual selector and incoming argument vector remain the
+missing discriminator, together with a causal link to this target request.
+No package arrival or supplied result display alone proves settlement.
+
+This is a bounded result for 22016. It adds no success rate, loss rule,
+currency debit or historical response sequence. The shared CraftJudge
+presentation/cancellation bodies and their exact return arities remain owned
+by the script contract; their existence does not bind them to 22016.
 
 ## Reproduction
 
