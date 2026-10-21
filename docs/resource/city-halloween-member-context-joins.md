@@ -123,11 +123,13 @@ A selected-state join needs evidence for all of these identities:
 
 The [resource-source trace](timeline-scb-resource-binding.md#selected-city-binding-and-confidence)
 joins `0x00AB38B0`'s attached fields to the copying/view constructors and
-parser payload under explicit conditions. Selected loaded-record delivery,
-resolved source-pointer identity and cache-hit payload identity still need
-evidence. The group-field reader/registration edge above is separately
-missing. A name, class label, small key or file offset does not authenticate
-those native identities.
+parser payload under explicit conditions. The
+[selected delivery/relocation contract](city-timeline-record-delivery.md)
+qualifies the structural root-list, creator and source-pointer joins. An
+actual selected load and cache-hit payload identity remain unobserved. The
+group-field reader/registration edge above is separately missing. A name,
+class label, small key or file offset does not authenticate those native
+identities.
 
 The [three-city activation limits](../actor/lay-scheduler-member-construction.md#three-city-activation-boundary)
 retain the separate ShowHideClip operation-provider/indexed-resident and

@@ -160,12 +160,12 @@ C is the supplied P while the checked fields remain unchanged. The
 [selected member matches](city-halloween-member-context-joins.md#serialized-member-matches)
 then apply to those bytes under their existing construction conditions.
 
-The unresolved discriminator is an authenticated selected loaded-record
-delivery: B+4 must identify that TimeLine's D, and D+`0x14` must be the
-valid resolved pointer to its pinned SCB rather than the raw serialized
-offset. A cache hit additionally needs the returned node's payload identity.
-This trace does not establish that relocation/delivery, observe a live cache
-or prove selected resource readiness. The
+The [selected city delivery/relocation contract](city-timeline-record-delivery.md)
+qualifies the root definition entries, declared pointer fixups and TimeLine
+creator/attachment path for these examples. It supplies the structural
+D-to-B and resolved D+`0x14` source relation under its load/admission
+conditions. An actual selected city load, cache-hit payload identity and
+resource readiness remain unobserved. The
 [city context conditions](city-halloween-member-context-joins.md#conditional-native-composition)
 retain the parent/TimeLine invocation, same-U registration/lookup and Limsa
 group edge. Clip operation-provider, indexed-actor and material requirements

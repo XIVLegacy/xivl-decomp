@@ -514,7 +514,9 @@ supplies the relocated TimeLine node to this B through slot 7, V is that
 attached node pointer. This composition uses the same concrete endpoints and
 the owner field store, rather than matching serialized offsets alone.
 
-Actual delivery of a city's TimeLine node, active context, valid storage across
+The [selected city delivery/relocation contract](city-timeline-record-delivery.md)
+qualifies the structural root-list and creator path for three city show
+examples. An actual selected city load, active context, valid storage across
 the evaluator's unguarded dereferences, weather/clock inputs, evaluator gate
 and state, backend success and visible effects remain separate requirements.
 R slot 19's base B and slot 61's UnitInfo context U have separate fields and
