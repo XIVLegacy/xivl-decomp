@@ -192,6 +192,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt markup numeric font properties](resource/sqwt-markup-font-numeric-properties.md)
 - [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Sqwt plain text reference lookup](resource/sqwt-plain-text-reference-lookup.md)
+- [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Bitmap font flag-bit-0x02 shader consumers](resource/bitmap-font-edge-shader-consumers.md)
