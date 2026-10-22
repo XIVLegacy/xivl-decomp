@@ -20,6 +20,7 @@ import verify_resource_path_producer as resource_path_verifier
 import verify_s2c_018d_client_consumer as s2c_018d_consumer_verifier
 import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
+import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
 PERMITTED_TOP_LEVEL_GROUPS = {
@@ -399,6 +400,12 @@ def main() -> int:
     if s2c_0193_errors:
         errors.extend(
             f"s2c 0x0193 native-state contract: {error}" for error in s2c_0193_errors
+        )
+    skeleton_composition_errors = skeleton_composition_verifier.verify()
+    if skeleton_composition_errors:
+        errors.extend(
+            f"skeleton hierarchy composition contract: {error}"
+            for error in skeleton_composition_errors
         )
     try:
         attestation_schema = _schema_check.load_schema(

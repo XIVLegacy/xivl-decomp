@@ -264,6 +264,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [WRB vertex declaration boundary](resource/wrb-vertex-declaration.md)
 - [Bounded SKL record and hierarchy framing](resource/skeleton-bone-framing.md)
 - [Bounded SKL constructor-pose transforms](resource/skeleton-constructor-pose.md)
+- [Skeleton hierarchy composition paths](resource/skeleton-hierarchy-composition.md)
 - [Bounded SKL constructor quaternion recovery](resource/skeleton-quaternion-recovery.md)
 - [Bounded skeleton Joint association and name lookup](resource/skeleton-joint-access.md)
 - [Skeleton container parent indices](resource/skeleton-embedded-container-parents.md)
