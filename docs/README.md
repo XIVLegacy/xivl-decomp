@@ -67,6 +67,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lay scheduler member actor construction](actor/lay-scheduler-member-construction.md)
 - [Lay scheduler member key and publication](actor/lay-scheduler-member-publication.md)
 - [Status-related UI RTTI search](actor/status-effects.md)
+- [Status wire translation](actor/status-wire-translation.md)
 - [WindowActor nameplate anchor producer](actor/window-actor-anchor-producer.md)
 - [WorldMaster](actor/world-master.md)
 

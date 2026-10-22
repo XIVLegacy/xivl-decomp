@@ -1,0 +1,610 @@
+{
+  "format": "xivl-status-wire-translation-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 decompilation as a lead"
+  },
+  "translation": {
+    "functionVa": "0x008a3350",
+    "convention": "thiscall, four stack arguments, ret 0x10",
+    "arguments": [
+      {
+        "name": "this",
+        "register": "ecx",
+        "use": "receiver storage"
+      },
+      {
+        "name": "handleTable",
+        "stack": "0x2c",
+        "use": "key lookup context"
+      },
+      {
+        "name": "ownerHandle",
+        "stack": "0x30",
+        "use": "pointer, dword copied to +0x08"
+      },
+      {
+        "name": "slot",
+        "stack": "0x34",
+        "use": "byte stored at +0x14"
+      },
+      {
+        "name": "wire",
+        "stack": "0x38",
+        "use": "u16 held in bp"
+      }
+    ],
+    "zeroWire": {
+      "testVa": "0x008a33a5",
+      "handleSourceVa": "0x0130c778",
+      "sentinel": "0xe0000000",
+      "lookupCalled": false,
+      "doneFlag": 1
+    },
+    "nonzero": {
+      "base": 200000,
+      "highFloor": "0x8000",
+      "compare": "cmp dx,bp sets carry when 0x8000 < wire, unsigned",
+      "mask": "sbb eax,eax gives 0xffffffff on carry, and eax,0x4350 keeps 0x4350",
+      "adjustment": "0x4350",
+      "adjustmentDecimal": 17232,
+      "adjustmentSign": "added",
+      "form": "key = 200000 + wire + (0x4350 if wire > 0x8000 else 0)",
+      "wireWidth": "zero-extended from 16 bits",
+      "keyRangeTest": "none",
+      "lookupCallVa": "0x008a33d3",
+      "lookupVa": "0x00cc70e0",
+      "handleCallVa": "0x00cc7160"
+    },
+    "images": {
+      "low": {
+        "wires": [
+          1,
+          32768
+        ],
+        "keys": [
+          200001,
+          232768
+        ]
+      },
+      "high": {
+        "wires": [
+          32769,
+          65535
+        ],
+        "keys": [
+          250001,
+          282767
+        ]
+      },
+      "unreachableKeys": [
+        232769,
+        250000
+      ],
+      "overlap": false
+    },
+    "edges": [
+      {
+        "wire": "0x0000",
+        "key": null
+      },
+      {
+        "wire": "0x0001",
+        "key": 200001
+      },
+      {
+        "wire": "0x5a59",
+        "key": 223129
+      },
+      {
+        "wire": "0x5adf",
+        "key": 223263
+      },
+      {
+        "wire": "0x5dbf",
+        "key": 223999
+      },
+      {
+        "wire": "0x8000",
+        "key": 232768
+      },
+      {
+        "wire": "0x8001",
+        "key": 250001
+      },
+      {
+        "wire": "0x83e9",
+        "key": 251001
+      },
+      {
+        "wire": "0x8bb9",
+        "key": 253001
+      },
+      {
+        "wire": "0x8bba",
+        "key": 253002
+      },
+      {
+        "wire": "0x8bbb",
+        "key": 253003
+      },
+      {
+        "wire": "0xffff",
+        "key": 282767
+      }
+    ],
+    "tier": "STATIC"
+  },
+  "receiver": {
+    "class": "Application::Lua::Script::Client::Command::System::ChangeActorSubStatStatusReceiver",
+    "vtableVa": "0x010575c8",
+    "slots": [
+      "0x008a4f40",
+      "0x008a34d0",
+      "0x008a3550",
+      "0x008a3630",
+      "0x008a36a0"
+    ],
+    "size": "0x18",
+    "fields": {
+      "0x08": "owner actor handle",
+      "0x0c": "status handle from the key",
+      "0x10": "cached status object, zero after construction",
+      "0x14": "slot byte",
+      "0x15": "done flag, preset to wire == 0"
+    },
+    "slot2": {
+      "doneShortCircuitVa": "0x008a3553",
+      "registryMissesVa": "0x008a3584",
+      "doneClearExitVa": "0x008a3603",
+      "successExitVa": "0x008a3615",
+      "statusMissOutcome": "done-clear exit, done flag stays clear",
+      "statusCastType": "0x012c31f8",
+      "ownerCastType": "0x012709a4",
+      "sourceCastType": "0x01270b4c",
+      "ownerGateOffset": "0x5c",
+      "statusReadyOffset": "0x7d",
+      "successByteVa": "0x012c41af",
+      "exitByteVa": "0x0134c560"
+    },
+    "slot3": {
+      "va": "0x008a3630",
+      "callVa": "0x008a3687",
+      "targetVa": "0x007084b0",
+      "arguments": "manager, slot byte, cached status object, 1",
+      "ownerMissOutcome": "passes the status handle to 0x00cc7170 unless it is the sentinel"
+    },
+    "tier": "STATIC"
+  },
+  "producers": {
+    "callSites": [
+      {
+        "va": "0x0076c7b1",
+        "function": "0x0076c720",
+        "branch": "stack temporary"
+      },
+      {
+        "va": "0x0076c83c",
+        "function": "0x0076c720",
+        "branch": "heap"
+      },
+      {
+        "va": "0x0076d4d4",
+        "function": "0x0076d450",
+        "branch": "heap"
+      }
+    ],
+    "slot88": [
+      {
+        "class": "Application::Lua::Script::Client::LuaActorImpl",
+        "vtableVa": "0x00fdfb2c",
+        "slotVa": "0x00fdfc8c",
+        "function": "0x0076c720"
+      },
+      {
+        "class": "Application::Lua::Script::Client::NullActorImpl",
+        "vtableVa": "0x00fe02ac",
+        "slotVa": "0x00fe040c",
+        "function": "0x0076d450"
+      }
+    ],
+    "slot88Thunk": {
+      "va": "0x005752a0",
+      "vtableOffset": "0x160",
+      "callerVa": "0x00588d80"
+    },
+    "arguments": "slot index, wire id, unchanged from the packet",
+    "apply": {
+      "va": "0x00588d20",
+      "loop": 20,
+      "dirtyShift": 3,
+      "recordOffset": "0x100",
+      "appliesZeroWire": true
+    },
+    "stage": {
+      "va": "0x0058eab0",
+      "wordOffset": "0x18",
+      "maskOffset": "0x08",
+      "maskKeeps": "0x007ffff8"
+    },
+    "dispatcher": {
+      "highBlockVa": "0x0058d330",
+      "opcodeBase": "0x135",
+      "byteTableVa": "0x0058d994",
+      "dwordTableVa": "0x0058d930",
+      "opcodes": [
+        {
+          "opcode": "0x0177",
+          "byteEntryVa": "0x0058d9d6",
+          "caseVa": "0x0058d45b",
+          "indexOffset": "0x10",
+          "indexWidth": 1,
+          "wireOffset": "0x12"
+        },
+        {
+          "opcode": "0x0179",
+          "byteEntryVa": "0x0058d9d8",
+          "caseVa": "0x0058d488",
+          "arrayOffset": "0x10",
+          "count": 20
+        }
+      ]
+    },
+    "tier": "STATIC"
+  },
+  "sheet": {
+    "table": "xivl-client-data:derived/status_names.csv",
+    "commit": "68990f1f3f4f2c4018f351ff21497e2305a16c43",
+    "rowCount": 399,
+    "lowRows": {
+      "count": 394,
+      "min": 221000,
+      "max": 232015
+    },
+    "rowsBetween": {
+      "from": 232769,
+      "to": 250000,
+      "count": 0
+    },
+    "highRows": [
+      {
+        "row": 251001,
+        "wire": "0x83e9"
+      },
+      {
+        "row": 253001,
+        "wire": "0x8bb9"
+      },
+      {
+        "row": 253002,
+        "wire": "0x8bba"
+      },
+      {
+        "row": 253003,
+        "wire": "0x8bbb"
+      }
+    ],
+    "tier": "INFERRED",
+    "assumption": "the sheet row ids are the keys the client resolves"
+  },
+  "corrections": [
+    {
+      "repository": "xivl-captures",
+      "path": "studies/status-wire-projection-census/README.md",
+      "section": "Source material",
+      "replace": "The native translation is `row = 200000 + wire - adjustment`, where adjustment is `0x4350` only when `wire > 0x8000`. A row can therefore have overlapping low and high reverse encodings.",
+      "with": "The native translation is `row = 200000 + wire + adjustment`, where adjustment is `0x4350` only when `wire > 0x8000`. The low branch reaches rows 200001 to 232768 and the high branch rows 250001 to 282767, so a row has at most one wire id."
+    },
+    {
+      "repository": "xivl-captures",
+      "path": "studies/status-wire-projection-census/derived/verdicts.md",
+      "section": "Projection witnesses and Remaining boundary",
+      "replace": "Each observed row has both a low and high reverse wire encoding under the native transform.",
+      "with": "Each observed row has one wire encoding, the low one. The high branch cannot reach rows 223129, 223263 or 223999."
+    },
+    {
+      "repository": "xivl-captures",
+      "path": "studies/status-wire-projection-census/derived/status-projections.csv",
+      "section": "all_wire_ids_for_row_hex",
+      "replace": "0x5a59 0x9da9, 0x5adf 0x9e2f, 0x5dbf 0xa10f",
+      "with": "0x5a59, 0x5adf, 0x5dbf"
+    },
+    {
+      "repository": "xivl-captures",
+      "path": "tools/extractors/extract_status_wire_census.py",
+      "section": "decode_wire_id",
+      "replace": "200000 + wire_id - (0x4350 if wire_id > 0x8000 else 0)",
+      "with": "200000 + wire_id + (0x4350 if wire_id > 0x8000 else 0)"
+    },
+    {
+      "repository": "xivl-client-data",
+      "path": "docs/substat-status-join.md",
+      "section": "Lookup chain",
+      "replace": "wire >  0x8000: 200000 + wire - 0x4350",
+      "with": "wire >  0x8000: 200000 + wire + 0x4350"
+    },
+    {
+      "repository": "xivl-client-data",
+      "path": "derived/substat_status_crosswalk.csv",
+      "section": "high_wire_id_hex",
+      "replace": "a high wire id for every row from 221000 to 232015",
+      "with": "no high wire id for those rows, and 0x83E9, 0x8BB9, 0x8BBA and 0x8BBB for rows 251001, 253001, 253002 and 253003"
+    },
+    {
+      "repository": "xivl-client-structs",
+      "path": "manifests/lua_bridge_verification.json and manifests/symbols.json",
+      "section": "ChangeActorSubStatStatusReceiver constructor notes",
+      "replace": "+200000 for status_value < 0x8000, +217232 for status_value >= 0x8000",
+      "with": "+200000 for status_value <= 0x8000, +217232 for status_value > 0x8000"
+    }
+  ],
+  "unresolved": [
+    "the handle registry's treatment of a key with no status object beyond the receiver's done-clear exit: the bodies behind 0x00CD80F0, 0x00CD8160, 0x00CD81D0 and 0x00DDDE20 and whether a failed receiver is retried or dropped",
+    "how 0x00D03A50 builds the handle from the key, and the table at handle table +0x1C4 that it extends",
+    "the value of the byte at 0x0134C560, which has no file backing, and whether it separates a failed receiver from a ready one",
+    "whether any retail server emitted a wire id above 0x8000, since no retained capture carries one",
+    "which status rows the retail 1.23b server sent as rows 251001 and 253001 to 253003",
+    "the single-slot opcode 0x0177 beyond its dispatcher case: the retained samples are not decoded here",
+    "whether another site reaches slot 88 of an actor implementation than the thunk at 0x005752A0"
+  ],
+  "staticChecks": [
+    {
+      "name": "wire load and zero test",
+      "kind": "signature",
+      "va": "0x008a33a0",
+      "pattern": "66 8b 6c 24 38 66 3b eb 75 07 b8 78 c7 30 01 eb 35",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The wire id is loaded into bp and compared with zero. Zero selects the handle at 0x0130C778 and skips the lookup."
+    },
+    {
+      "name": "translation sequence",
+      "kind": "signature",
+      "va": "0x008a33b1",
+      "pattern": "66 ba 00 80 66 3b d5 1b c0 25 50 43 00 00 0f b7 cd 05 40 0d 03 00 03 c1",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "mov dx,0x8000; cmp dx,bp; sbb eax,eax; and eax,0x4350; movzx ecx,bp; add eax,200000; add eax,ecx. The adjustment is added."
+    },
+    {
+      "name": "key lookup call",
+      "kind": "signature",
+      "va": "0x008a33c9",
+      "pattern": "8b 4c 24 2c 50 8d 54 24 3c 52 e8 08 3d 42 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The key is pushed with an output slot and passed to the lookup thunk 0x00CC70E0 on the handle table argument."
+    },
+    {
+      "name": "owner handle copy and vtable store",
+      "kind": "signature",
+      "va": "0x008a338c",
+      "pattern": "8b 44 24 30 c7 06 c8 75 05 01 8b 08 89 4e 08",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The receiver vtable 0x010575C8 is stored and the dword behind the owner handle argument is copied to +0x08."
+    },
+    {
+      "name": "slot byte and done flag stores",
+      "kind": "signature",
+      "va": "0x008a340a",
+      "pattern": "8a 4c 24 34 8b 07 66 85 ed 0f 94 c2 c7 46 10 00 00 00 00 88 4e 14 88 56 15",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The slot byte goes to +0x14, the cached status object at +0x10 is zeroed and +0x15 receives wire == 0."
+    },
+    {
+      "name": "handle store",
+      "kind": "signature",
+      "va": "0x008a33e6",
+      "pattern": "8b 00 8d 7e 0c 89 07",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "The first dword of the lookup result, or of the sentinel cell, is stored at +0x0C."
+    },
+    {
+      "name": "sentinel compare and register",
+      "kind": "signature",
+      "va": "0x008a3423",
+      "pattern": "3b 05 78 c7 30 01 74 0a 8b 4c 24 2c 57 e8 2b 3d 42 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "A handle other than the sentinel is passed to 0x00CC7160 on the handle table."
+    },
+    {
+      "name": "sentinel handle value",
+      "kind": "dwords",
+      "va": "0x0130c778",
+      "values": [
+        "0xe0000000"
+      ],
+      "note": "The empty handle cell used for the zero wire id."
+    },
+    {
+      "name": "receiver vtable",
+      "kind": "dwords",
+      "va": "0x010575c8",
+      "values": [
+        "0x008a4f40",
+        "0x008a34d0",
+        "0x008a3550",
+        "0x008a3630",
+        "0x008a36a0"
+      ],
+      "note": "Slots 0 to 4 of the receiver class."
+    },
+    {
+      "name": "call site LuaActorImpl stack temporary",
+      "kind": "signature",
+      "va": "0x0076c7a1",
+      "pattern": "8b 4c 24 50 8b 54 24 4c 51 8b 4c 24 20 52 50 56 e8 9a 6b 13 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x0076C720 passes the slot and wire arguments to the constructor with a stack-allocated receiver branch."
+    },
+    {
+      "name": "call site LuaActorImpl heap",
+      "kind": "signature",
+      "va": "0x0076c82c",
+      "pattern": "8b 54 24 50 8b 4c 24 4c 52 51 50 56 8d 4c 24 34 e8 0f 6b 13 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x0076C720 passes the same two arguments on its second branch."
+    },
+    {
+      "name": "call site NullActorImpl",
+      "kind": "signature",
+      "va": "0x0076d4c0",
+      "pattern": "8b 54 24 24 8b 4c 24 20 52 51 8d 56 4c 52 83 c6 04 56 8b c8 e8 77 5e 13 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x0076D450 passes its two stack arguments to the constructor."
+    },
+    {
+      "name": "LuaActorImpl slot 88",
+      "kind": "dwords",
+      "va": "0x00fdfc8c",
+      "values": [
+        "0x0076c720"
+      ],
+      "note": "Slot 88 of the LuaActorImpl vtable at 0x00FDFB2C."
+    },
+    {
+      "name": "NullActorImpl slot 88",
+      "kind": "dwords",
+      "va": "0x00fe040c",
+      "values": [
+        "0x0076d450"
+      ],
+      "note": "Slot 88 of the NullActorImpl vtable at 0x00FE02AC."
+    },
+    {
+      "name": "slot 88 thunk",
+      "kind": "signature",
+      "va": "0x005752a0",
+      "pattern": "8b 09 8b 01 8b 80 60 01 00 00 ff e0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Tail-jumps through vtable offset 0x160 of the object behind this, with the caller's two stack arguments."
+    },
+    {
+      "name": "stage helper",
+      "kind": "signature",
+      "va": "0x0058eab0",
+      "pattern": "66 8b 54 24 08 56 8b c1 8b 4c 24 08 be 01 00 00 00 d3 e6 66 89 54 48 18 8b 50 08 03 f6 03 f6 03 f6 0b f2 33 f2 81 e6 f8 ff 7f 00 33 f2 89 70 08 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores the word at record +0x18+2*index and sets bit index+3 of the mask at +0x08 within 0x007FFFF8. The shift masks cl to five bits, so an index of 20 or more is outside the twenty-slot array and is not modelled."
+    },
+    {
+      "name": "apply loop",
+      "kind": "signature",
+      "va": "0x00588d50",
+      "pattern": "8b 44 24 48 8b 50 08 b8 01 00 00 00 8b ce d3 e0 c1 ea 03 23 d0 f7 c2 ff ff 0f 00 74 18 0f b7 03 8b 4c 24 10 50 66 89 45 00 8b 89 80 00 00 00 56 e8 1b c5 fe ff 83 c6 01 83 c3 02 83 c5 02 83 fe 14 7c bd",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "For each of twenty indexes whose dirty bit is set, the word is stored at +0x100+2*index and passed with the index to the slot 88 thunk."
+    },
+    {
+      "name": "dispatcher high block",
+      "kind": "signature",
+      "va": "0x0058d330",
+      "pattern": "2d 35 01 00 00 83 f8 72 0f 87 37 03 00 00 0f b6 80 94 d9 58 00 ff 24 85 30 d9 58 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Opcodes above 0x134 subtract 0x135, admit 0x72, read the byte table at 0x0058D994 and jump through the dword table at 0x0058D930."
+    },
+    {
+      "name": "dispatcher byte entry 0x0177",
+      "kind": "dwords",
+      "va": "0x0058d9d6",
+      "width": 1,
+      "values": [
+        "0x07"
+      ],
+      "note": "Byte table entry for opcode 0x0177 (index 0x42)."
+    },
+    {
+      "name": "dispatcher byte entry 0x0179",
+      "kind": "dwords",
+      "va": "0x0058d9d8",
+      "width": 1,
+      "values": [
+        "0x08"
+      ],
+      "note": "Byte table entry for opcode 0x0179 (index 0x44)."
+    },
+    {
+      "name": "dispatcher dword entry 0x0177",
+      "kind": "dwords",
+      "va": "0x0058d94c",
+      "values": [
+        "0x0058d45b"
+      ],
+      "note": "Case address for byte entry 7."
+    },
+    {
+      "name": "dispatcher dword entry 0x0179",
+      "kind": "dwords",
+      "va": "0x0058d950",
+      "values": [
+        "0x0058d488"
+      ],
+      "note": "Case address for byte entry 8."
+    },
+    {
+      "name": "case 0x0177",
+      "kind": "signature",
+      "va": "0x0058d45b",
+      "pattern": "8d 4c 24 34 e8 8c 16 00 00 0f b7 46 12 0f b6 4e 10 50 51 8d 4c 24 3c e8 39 16 00 00 8d 54 24 34 52 8b cf e8 9d b8 ff ff e9 f5 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads the index byte at message +0x10 and the u16 at +0x12, stages one entry and applies."
+    },
+    {
+      "name": "case 0x0179",
+      "kind": "signature",
+      "va": "0x0058d488",
+      "pattern": "8d 4c 24 34 e8 5f 16 00 00 33 db 83 c6 10 0f b7 06 50 53 8d 4c 24 3c e8 0c 16 00 00 83 c3 01 83 c6 02 83 fb 14 72 e7 8d 4c 24 34 51 8b cf e8 65 b8 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stages twenty u16 values from message +0x10 and applies the record."
+    },
+    {
+      "name": "slot 2 done short circuit",
+      "kind": "signature",
+      "va": "0x008a3553",
+      "pattern": "80 7e 15 00 74 10 8b 44 24 08 8a 0d af 41 2c 01 88 08 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "A set done flag returns the success byte without any lookup."
+    },
+    {
+      "name": "slot 2 registry misses",
+      "kind": "signature",
+      "va": "0x008a3584",
+      "pattern": "57 8b cb e8 f4 3b 42 00 84 c0 75 73 57 8b cb e8 28 43 42 00 85 c0 74 67",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "A status handle the registry cannot resolve, or one the predicate accepts, branches to the done-clear exit."
+    },
+    {
+      "name": "slot 2 done-clear exit",
+      "kind": "signature",
+      "va": "0x008a3603",
+      "pattern": "8b 44 24 10 8a 15 60 c5 34 01 5f 5b 88 10 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Writes the byte at 0x0134C560 and returns without setting the done flag."
+    },
+    {
+      "name": "slot 2 success exit",
+      "kind": "signature",
+      "va": "0x008a3615",
+      "pattern": "8b 44 24 10 5f c6 46 15 01 8a 0d af 41 2c 01 5b 88 08 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Sets the done flag and writes the success byte from 0x012C41AF."
+    },
+    {
+      "name": "slot 3 apply",
+      "kind": "signature",
+      "va": "0x008a3630",
+      "pattern": "56 8b f1 57 8b 7c 24 0c 8d 46 08 50 8b cf e8 0d 44 42 00 85 c0 75 1b 8b 4e 0c 3b 0d 78 c7 30 01 8d 46 0c 74 37 50 8b cf e8 13 3b 42 00 5f 5e c2 04 00 6a 00 68 a4 09 27 01 68 4c 0b 27 01 6a 00 50 e8 56 70 13 00 0f b6 4e 14 8b 56 10 83 c4 14 6a 01 52 51 57 8b c8 e8 24 4e e6 ff 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Resolves the owner handle, casts it and calls 0x007084B0 with the slot byte and the cached status object."
+    },
+    {
+      "name": "success byte",
+      "kind": "signature",
+      "va": "0x012c41af",
+      "pattern": "01",
+      "mask": "ff",
+      "note": "The success result byte shared by the receiver slot 2 exits."
+    }
+  ]
+}
