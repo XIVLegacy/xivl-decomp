@@ -75,9 +75,11 @@ The existing NamePlate construction and actor offset are owned by
 consumer, and `docs/client-architecture.md`, Player model and NamePlate
 render boundary. Constructor `0x006A3C00` installs `0x00FCF98C` at
 `0x006A3C47`. Under that retained vtable, slot 7 selects `0x006A2E10`
-(`config/ffxivgame.vtable_slots.jsonl`, NamePlate slot 7). This method was
-not read. The values `0x204/0x215` are forwarded arguments; this proof
-does not identify their resource meaning or establish visible icons.
+(`config/ffxivgame.vtable_slots.jsonl`, NamePlate slot 7). The
+[player nameplate icon contract](../actor/player-nameplate-icons.md#other-controls-and-native-state-icons)
+binds this method to secondary-right IconDatas IDs 516 and 533 and their
+original exclamation-marker resources. The index's server meaning and
+runtime display remain separate evidence boundaries.
 
 ## Retained framing and limits
 

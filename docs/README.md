@@ -57,6 +57,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
 - [PlayerBaseClass](actor/player-base-class.md)
+- [Player nameplate icons](actor/player-nameplate-icons.md)
 - [Retainer presentation contract](actor/retainer-presentation.md)
 - [Rivenroad command and presentation contract](actor/rivenroad-presentation.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
