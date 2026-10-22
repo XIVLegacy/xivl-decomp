@@ -57,7 +57,39 @@ REQUIRED_CHECKS = {
     "root command special case",
     "unnamed event 0x59 initializer",
     "Executed event initializer",
+    "route traversal strategy branches",
+    "bubble traversal from the list end",
+    "ExecuteCommandAction target selection",
+    "event id to virtual switch",
+    "Executed arm calls virtual slot 65",
+    "virtual slot 65 base dispatch",
+    "handler store dispatcher match",
+    "handler store dispatcher handled filter and invoke",
+    "handler invoke thunk",
+    "handler event and handled-events fields",
+    "remove before add",
+    "gate dispatch before the lookup",
+    "gate creation",
+    "gate class selector name slice",
+    "NumberInputBox command handler",
+    "one integer record builder zeroes the rest",
+    "routed event Executed",
+    "routed event unnamed 0x59",
 }
+EXPECTED_ROUTED = {
+    "Executed": (0x2A, 0, 0x01358738),
+    "PreviewExecuted": (0x29, 2, 0x0135872C),
+    "LocationChanged": (0x48, 0, 0x013573BC),
+    "RenderSizeChanged": (0x4B, 0, 0x013594B4),
+}
+# Event descriptor initializer: push the name (or push 0), then stores of the
+# id and the routing strategy into the stack arguments of the constructor call.
+ROUTED_NAMED = re.compile(
+    rb"\x68(....)\x51\x8b\xc4\x51\xc6\x00(.)\x8b\xc4\xb9(....)\xc6\x00(.)\xe8", re.S
+)
+ROUTED_UNNAMED = re.compile(
+    rb"\x6a\x00\x51\x8b\xc4\x51\xc6\x00(.)\x8b\xc4\xb9(....)\xc6\x00(.)\xe8", re.S
+)
 
 
 def parse_hex(text: str) -> int:
@@ -86,6 +118,7 @@ def doc_errors(document: dict) -> list[str]:
         iface.get("eventSelector", {}).get("functionVa"),
         *[row.get("va") for row in switch.get("thunks", [])],
         *iface.get("slotTable", {}).get("functionVas", []),
+        *routing_addresses(document),
     ]
     errors = [
         f"page does not cite {address}"
@@ -93,8 +126,184 @@ def doc_errors(document: dict) -> list[str]:
         if address and address.lower() not in text
     ]
     lead = text.split("## input and method")[0]
-    if "inferred" not in lead or "0x59" not in text:
-        errors.append("page lead does not label the Executed join as inferred")
+    if "0x59" not in lead or "wildcard" not in lead:
+        errors.append("page lead does not state the 0x59 wildcard join")
+    return errors
+
+
+def routing_addresses(document: dict) -> list[str]:
+    """Addresses of the routing, gate and selector findings that the page must cite."""
+    routing = document.get("routing", {})
+    dispatch = routing.get("dispatch", {})
+    registration = routing.get("registration", {})
+    return [
+        routing.get("wildcard", {}).get("matchVa"),
+        routing.get("command", {}).get("executeVa"),
+        routing.get("target", {}).get("invokeSiteVa"),
+        routing.get("route", {}).get("routeVa"),
+        routing.get("route", {}).get("traversalVa"),
+        routing.get("interface", {}).get("constructorVa"),
+        dispatch.get("genericSwitchVa"),
+        dispatch.get("executedArm", {}).get("va"),
+        dispatch.get("fallbackArmVa"),
+        dispatch.get("slot65", {}).get("base"),
+        dispatch.get("slot65", {}).get("frameworkElement"),
+        dispatch.get("storeDispatcherVa"),
+        routing.get("handlerObject", {}).get("invokeThunkVa"),
+        registration.get("addVa"),
+        registration.get("removeVa"),
+        registration.get("removeThunkVa"),
+        document.get("formGate", {}).get("factoryVa"),
+        document.get("formGate", {}).get("classSelectorVa"),
+        document.get("popupHelp", {}).get("positionVa"),
+        document.get("popupHelp", {}).get("commandStaticVa"),
+        document.get("selectorGates", {}).get("nullIdGlobalVa"),
+        document.get("entryFlag", {}).get("flagVa"),
+        document.get("numberInputBox", {}).get("handlerVa"),
+        document.get("numberInputBox", {}).get("commandStaticVa"),
+        *[row.get("va") for row in document.get("selectorGates", {}).get("gates", [])],
+        *[row.get("va") for row in registration.get("sites", [])],
+    ]
+
+
+def routing_errors(document: dict) -> list[str]:
+    """Check the routing, registration, gate and selector findings."""
+    errors: list[str] = []
+    routing = document.get("routing", {})
+    descriptor = routing.get("descriptor", {})
+    wildcard = routing.get("wildcard", {})
+    command = routing.get("command", {})
+    target = routing.get("target", {})
+    route = routing.get("route", {})
+    iface = routing.get("interface", {})
+    dispatch = routing.get("dispatch", {})
+    handler = routing.get("handlerObject", {})
+    registration = routing.get("registration", {})
+    if (
+        descriptor.get("constructorVa") != "0x0097f6c0"
+        or descriptor.get("strategyOffset") != "+0x4"
+        or descriptor.get("idOffset") != "+0x5"
+        or descriptor.get("strategies") != {"0": "bubble", "1": "direct", "2": "tunnel"}
+    ):
+        errors.append("event descriptor layout or strategy names changed")
+    if (
+        wildcard.get("eventId") != "0x59"
+        or wildcard.get("matchVa") != "0x005715d7"
+        or wildcard.get("statics") != ["0x01336a84", "0x0133f8f4", "0x01341904"]
+    ):
+        errors.append("wildcard event contract changed")
+    if (
+        command.get("executeVa") != "0x00927fa0"
+        or command.get("preview", {}).get("id") != "0x29"
+        or command.get("preview", {}).get("strategy") != 2
+        or command.get("executed", {}).get("id") != "0x2a"
+        or command.get("executed", {}).get("strategy") != 0
+        or command.get("executed", {}).get("staticVa") != "0x01358738"
+        or command.get("executedRaisedOnlyIfPreviewUnhandled") is not True
+        or command.get("argumentLayout", {}).get("handledByte") != "+0x19"
+        or command.get("argumentLayout", {}).get("stopByte") != "+0x17"
+    ):
+        errors.append("command raise contract changed")
+    if (
+        target.get("invokeSiteVa") != "0x009b2b40"
+        or target.get("commandTargetOffset") != "+0x4c"
+        or target.get("castTypeDescriptorVa") != "0x01269e8c"
+        or target.get("interfaceAdjust") != "+0xb4"
+    ):
+        errors.append("command target selection changed")
+    if (
+        route.get("routeVa") != "0x0091e1c0"
+        or route.get("traversalVa") != "0x0091d210"
+        or route.get("parentOffset") != "+0x60"
+        or route.get("recipientSlot") != 13
+        or "list end" not in route.get("bubble", "")
+        or "list start" not in route.get("tunnel", "")
+    ):
+        errors.append("route construction or traversal changed")
+    if (
+        iface.get("offset") != "+0xb4"
+        or iface.get("senderOffset") != "+0x64"
+        or iface.get("handlerStoreOffset") != "+0x4c"
+        or iface.get("baseVtableVa") != "0x0106c2a4"
+    ):
+        errors.append("interface layout changed")
+    if (
+        dispatch.get("genericSwitchVa") != "0x0091d320"
+        or dispatch.get("executedArm", {}).get("slot") != 65
+        or dispatch.get("previewExecutedArm", {}).get("slot") != 64
+        or dispatch.get("fallbackArmVa") != "0x0091d73a"
+        or dispatch.get("slot65", {}).get("base") != "0x0091d8f0"
+        or dispatch.get("slot65", {}).get("frameworkElement") != "0x0092d1f0"
+        or dispatch.get("storeDispatcherVa") != "0x00571520"
+    ):
+        errors.append("dispatch chain changed")
+    if (
+        handler.get("vtableVa") != "0x00fa106c"
+        or handler.get("slots") != ["0x00543b40", "0x0094c3a0", "0x0088ab00"]
+        or handler.get("eventOffset") != "+0x18"
+        or handler.get("handledEventsTooOffset") != "+0x1c"
+        or handler.get("handledEventsTooInitial") != 0
+        or handler.get("functionOffset") != "+0x28"
+    ):
+        errors.append("handler object layout changed")
+    if (
+        registration.get("addSlot") != 9
+        or registration.get("removeSlot") != 12
+        or registration.get("removeThunkSlot") != 11
+        or len(registration.get("sites", [])) != 5
+    ):
+        errors.append("handler registration contract changed")
+    gate = document.get("formGate", {})
+    if (
+        gate.get("offset") != "+0x27c"
+        or gate.get("rootNameSliceStart") != 7
+        or gate.get("executedSlot") != 42
+        or gate.get("otherEventSlot") != 43
+        or len(gate.get("names", [])) != 8
+        or gate.get("names", ["", ""])[1:3] != ["Test", "PcSearchWidget"]
+    ):
+        errors.append("form gate contract changed")
+    popup = document.get("popupHelp", {})
+    if (
+        popup.get("commandName") != "PopupShowHelp"
+        or popup.get("commandStaticVa") != "0x0133bd38"
+        or popup.get("positionVa") != "0x00535d00"
+        or popup.get("windowName") != "Window_PopupHelpWidget"
+    ):
+        errors.append("popup help contract changed")
+    selector = document.get("selectorGates", {})
+    if (
+        selector.get("nullIdValue") != "0xe0000000"
+        or selector.get("nullIdGlobalVa") != "0x0130c778"
+        or [row.get("va") for row in selector.get("gates", [])]
+        != ["0x006f5654", "0x006f5675", "0x006f567d", "0x006f568e"]
+    ):
+        errors.append("selector gates changed")
+    entry = document.get("entryFlag", {})
+    if entry.get("flagVa") != "0x01356e14" or len(entry.get("writeVas", [])) != 2:
+        errors.append("entry flag contract changed")
+    box = document.get("numberInputBox", {})
+    if (
+        box.get("handlerVa") != "0x0069c1f0"
+        or box.get("commandStaticVa") != "0x013609b0"
+        or box.get("commandName") != "Slider.AddCommandParameter"
+        or box.get("valueChangedCommandVa") != "0x01344ca8"
+        or box.get("valueChangedReferencedByCode") is not False
+    ):
+        errors.append("NumberInputBox contract changed")
+    routed = {
+        row.get("eventName"): row
+        for row in document.get("staticChecks", [])
+        if row.get("kind") == "routedEvent" and row.get("eventName")
+    }
+    for name, (event_id, strategy, static) in EXPECTED_ROUTED.items():
+        row = routed.get(name, {})
+        if (
+            row.get("id") != f"{event_id:#04x}"
+            or row.get("strategy") != strategy
+            or row.get("static") != f"{static:#010x}"
+        ):
+            errors.append(f"routed event {name} changed")
     return errors
 
 
@@ -124,7 +333,7 @@ def verify(document: dict | None = None) -> list[str]:
         or handler.get("handlerObjectVtableVa") != "0x00fa106c"
         or handler.get("subscriptionAddSite", {}).get("eventId") != "0x59"
         or handler.get("subscriptionAddSite", {}).get("namePushed") is not False
-        or handler.get("executedJoin") != "inferred"
+        or handler.get("executedJoin") != "static"
         or event.get("branchVa") != "0x0053641c"
         or event.get("name") != "Executed"
         or event.get("id") != "0x2a"
@@ -264,6 +473,13 @@ def verify(document: dict | None = None) -> list[str]:
         elif kind == "string":
             if not check.get("text"):
                 errors.append(f"{label} has no text")
+        elif kind == "routedEvent":
+            if not (
+                HEX_RE.match(check.get("static", ""))
+                and re.match(r"^0x[0-9a-f]{2}$", check.get("id", ""))
+                and check.get("strategy") in (0, 1, 2)
+            ):
+                errors.append(f"{label} routed event fields invalid")
         else:
             errors.append(f"{label} has unknown kind")
     if len(document.get("staticChecks", [])) < 50:
@@ -272,6 +488,14 @@ def verify(document: dict | None = None) -> list[str]:
     missing = REQUIRED_CHECKS - names
     if missing:
         errors.append(f"static checks missing: {sorted(missing)}")
+    event_ids = sorted(
+        int(check["id"], 16)
+        for check in document.get("staticChecks", [])
+        if check.get("kind") == "routedEvent" and HEX_RE.match(check.get("va", ""))
+    )
+    if event_ids != [i for i in range(1, 0x5B) if i != 0x21]:
+        errors.append("routed event rows are not ids 0x01..0x5a without 0x21")
+    errors.extend(routing_errors(document))
     errors.extend(doc_errors(document))
 
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
@@ -294,7 +518,7 @@ def mutation_test() -> list[str]:
         (("handler", "handlerObjectVtableVa"), "0x00fa10dc"),
         (("handler", "subscriptionAddSite", "eventId"), "0x2a"),
         (("handler", "subscriptionAddSite", "namePushed"), True),
-        (("handler", "executedJoin"), "static"),
+        (("handler", "executedJoin"), "inferred"),
         (("handler", "thunkArguments", "child"), "control, subscription"),
         (("handler", "routedEvent", "initializerVa"), "0x00f21cb1"),
         (("handler", "argumentLayout", "recordInt1"), "+0x84"),
@@ -318,6 +542,28 @@ def mutation_test() -> list[str]:
         (("parameterObjects", "pushOrder"), "string0, string1, string2"),
         (("commandSource", "cases", 2, "textAt"), "+0x54"),
         (("source", "binarySha256"), "0" * 64),
+        (("routing", "wildcard", "eventId"), "0x58"),
+        (("routing", "wildcard", "matchVa"), "0x005715d8"),
+        (
+            ("routing", "descriptor", "strategies"),
+            {"0": "tunnel", "1": "direct", "2": "bubble"},
+        ),
+        (("routing", "command", "executed", "strategy"), 2),
+        (("routing", "command", "executedRaisedOnlyIfPreviewUnhandled"), False),
+        (("routing", "target", "commandTargetOffset"), "+0x44"),
+        (("routing", "route", "bubble"), "traversed from the list start"),
+        (("routing", "interface", "senderOffset"), "+0x68"),
+        (("routing", "dispatch", "executedArm", "slot"), 64),
+        (("routing", "dispatch", "slot65", "base"), "0x0091cc10"),
+        (("routing", "handlerObject", "handledEventsTooInitial"), 1),
+        (("routing", "registration", "addSlot"), 10),
+        (("formGate", "rootNameSliceStart"), 6),
+        (("formGate", "executedSlot"), 43),
+        (("popupHelp", "commandStaticVa"), "0x0133bd98"),
+        (("selectorGates", "nullIdValue"), "0xffffffff"),
+        (("entryFlag", "flagVa"), "0x01356e18"),
+        (("numberInputBox", "commandStaticVa"), "0x01344ca8"),
+        (("numberInputBox", "valueChangedReferencedByCode"), True),
     ]
     mutations: list[dict] = []
     for path, value in cases:
@@ -330,7 +576,23 @@ def mutation_test() -> list[str]:
     shrunk = copy.deepcopy(document)
     shrunk["staticChecks"] = shrunk["staticChecks"][:5]
     mutations.append(shrunk)
-    for dropped in ("request depth limit", "thunk slot 8 child none"):
+    for event_name, field, value in (
+        ("Executed", "strategy", 2),
+        ("PreviewExecuted", "id", "0x2a"),
+        ("LocationChanged", "static", "0x013573b0"),
+    ):
+        changed = copy.deepcopy(document)
+        for row in changed["staticChecks"]:
+            if row.get("eventName") == event_name:
+                row[field] = value
+        mutations.append(changed)
+    for dropped in (
+        "request depth limit",
+        "thunk slot 8 child none",
+        "handler store dispatcher match",
+        "routed event Executed",
+        "routed event PreviewKeyDown",
+    ):
         trimmed = copy.deepcopy(document)
         trimmed["staticChecks"] = [
             check for check in trimmed["staticChecks"] if check.get("name") != dropped
@@ -382,6 +644,59 @@ def read_va(
     return None
 
 
+def read_cstring(
+    data: bytes, sections: list[tuple[int, int, int, int]], va: int
+) -> str | None:
+    out = bytearray()
+    while len(out) < 128:
+        byte = read_va(data, sections, va + len(out), 1)
+        if byte is None:
+            return None
+        if byte == b"\0":
+            return out.decode("latin-1")
+        out += byte
+    return None
+
+
+def run_routed_event_check(
+    data: bytes, sections: list[tuple[int, int, int, int]], check: dict
+) -> str | None:
+    """Parse an event descriptor initializer and compare id, strategy, static and name."""
+    va = parse_hex(check["va"])
+    raw = read_va(data, sections, va, 23)
+    if raw is None:
+        return f"{check['va']} is outside the image"
+    named = ROUTED_NAMED.fullmatch(raw)
+    unnamed = ROUTED_UNNAMED.fullmatch(raw[:20])
+    if named:
+        name_va = struct.unpack("<I", named.group(1))[0]
+        event_id, static, strategy = (
+            named.group(2)[0],
+            named.group(3),
+            named.group(4)[0],
+        )
+        found_name = read_cstring(data, sections, name_va)
+    elif unnamed:
+        event_id, static, strategy = (
+            unnamed.group(1)[0],
+            unnamed.group(2),
+            unnamed.group(3)[0],
+        )
+        found_name = None
+    else:
+        return f"{check['va']} is not an event descriptor initializer"
+    found = (event_id, strategy, struct.unpack("<I", static)[0], found_name)
+    wanted = (
+        parse_hex(check["id"]),
+        check["strategy"],
+        parse_hex(check["static"]),
+        check.get("eventName"),
+    )
+    if found != wanted:
+        return f"routed event at {check['va']} is {found}, expected {wanted}"
+    return None
+
+
 def run_static_check(
     data: bytes, sections: list[tuple[int, int, int, int]], check: dict
 ) -> str | None:
@@ -412,6 +727,8 @@ def run_static_check(
                 f"table {check['name']!r} at {check['va']} is {[hex(v) for v in found]}"
             )
         return None
+    if kind == "routedEvent":
+        return run_routed_event_check(data, sections, check)
     expected_text = check["text"].encode("ascii") + b"\0"
     actual = read_va(data, sections, va, len(expected_text))
     if actual != expected_text:

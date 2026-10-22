@@ -49,8 +49,14 @@ def build_image(text: bytes, data: bytes, data_virtual_size: int) -> bytes:
 
 def fixture() -> tuple[bytes, dict]:
     text = bytes.fromhex("8B 47 24 83 F8 08 0F 87 E0 00 00 00")
+    text += bytes.fromhex(
+        "68 1F 20 40 00 51 8B C4 51 C6 00 2A 8B C4 B9 38 87 35 01 C6 00 00 E8 00 00 00 00"
+    )
+    text += bytes.fromhex(
+        "6A 00 51 8B C4 51 C6 00 59 8B C4 B9 84 6A 33 01 C6 00 00 E8 00 00 00 00 90"
+    )
     table = struct.pack("<3I", 0x401000, 0x401004, 0x401008)
-    data = table + b"_onUICommandEvent\0" + b"\x01"
+    data = table + b"_onUICommandEvent\0" + b"\x01" + b"Executed\0"
     image = build_image(text, data, len(data) + 0x20)
     document = {
         "staticChecks": [
@@ -68,6 +74,24 @@ def fixture() -> tuple[bytes, dict]:
                 "values": ["0x00401000", "0x00401004", "0x00401008"],
             },
             {"kind": "string", "va": "0x0040200c", "text": "_onUICommandEvent"},
+            {
+                "kind": "routedEvent",
+                "name": "named",
+                "va": "0x0040100c",
+                "id": "0x2a",
+                "strategy": 0,
+                "static": "0x01358738",
+                "eventName": "Executed",
+            },
+            {
+                "kind": "routedEvent",
+                "name": "unnamed",
+                "va": "0x00401027",
+                "id": "0x59",
+                "strategy": 0,
+                "static": "0x01336a84",
+                "eventName": None,
+            },
             {
                 "kind": "dwords",
                 "name": "flag byte",
@@ -121,8 +145,41 @@ def main() -> int:
 
     check("virtual-only bytes read as zero", run(image, document) == [])
 
+    text_base = 0x200
+    wrong_id = bytearray(image)
+    wrong_id[text_base + 12 + 11] = 0x2B
+    check("named initializer id is enforced", len(run(bytes(wrong_id), document)) == 1)
+
+    wrong_strategy = bytearray(image)
+    wrong_strategy[text_base + 12 + 21] = 0x02
+    check(
+        "named initializer strategy is enforced",
+        len(run(bytes(wrong_strategy), document)) == 1,
+    )
+
+    wrong_static = bytearray(image)
+    wrong_static[text_base + 12 + 15] = 0x39
+    check(
+        "named initializer static is enforced",
+        len(run(bytes(wrong_static), document)) == 1,
+    )
+
+    renamed = bytearray(image)
+    renamed[text_base + 12 + 27 + 25 + 31] = ord("X")
+    check("initializer name is enforced", len(run(bytes(renamed), document)) == 1)
+
+    unnamed_id = bytearray(image)
+    unnamed_id[text_base + 12 + 27 + 8] = 0x58
+    check(
+        "unnamed initializer id is enforced", len(run(bytes(unnamed_id), document)) == 1
+    )
+
+    broken = bytearray(image)
+    broken[text_base + 12 + 27] = 0x90
+    check("non initializer bytes are reported", len(run(bytes(broken), document)) == 1)
+
     nonzero = copy.deepcopy(document)
-    nonzero["staticChecks"][4]["values"] = ["0x02"]
+    nonzero["staticChecks"][-1]["values"] = ["0x02"]
     check("virtual-only byte value is enforced", len(run(image, nonzero)) == 1)
 
     check("identity is enforced", len(verifier.verify_image(image, document)) >= 2)
@@ -134,7 +191,8 @@ def main() -> int:
     real = json.loads(verifier.MANIFEST.read_text(encoding="ascii"))
     kinds = {item["kind"] for item in real["staticChecks"]}
     check(
-        "manifest carries all check kinds", kinds == {"signature", "dwords", "string"}
+        "manifest carries all check kinds",
+        kinds == {"signature", "dwords", "string", "routedEvent"},
     )
 
     if FAILED:
