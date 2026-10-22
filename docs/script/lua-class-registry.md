@@ -75,6 +75,12 @@ scripts subclass.
 | `GroupBaseClass` | `/Group/GroupBaseClass.prog` | `0xbd53ac` | 7 |
 | `Player` (instance) | `/Chara/Player/Player` | (player instance, not a base) | - |
 
+### Script-side definition
+
+`_defineClass` and `_defineBaseClass` declare the remaining classes by short
+name. See [Script class definition and repeat definition](define-class-repeat-definition.md)
+for the link step, the repeat case and the census.
+
 ### Embedded Lua bootstrap
 
 A small Lua script literal is embedded directly in `.rdata` at
