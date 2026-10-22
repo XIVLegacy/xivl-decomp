@@ -276,8 +276,10 @@ The linked page names the first seven dwords. The eighth integer goes to
 `+0x98`. The form-level handler that reads the kind, string and integers of an
 `Executed` event and calls the script is traced in
 [Sqwt CommandParameter consumer](sqwt-command-parameter-consumer.md).
-The `Button` property consumer and the recipients of `Executed` events other
-than the movement handler and that handler are UNKNOWN.
+The known recipients of `Executed` events are the movement handler, the form
+handler and the `NumberInputBox` step handler
+([consumers of the record](sqwt-command-parameter-consumer.md#other-consumers-of-the-record)).
+The `Button` property consumer and every other recipient are UNKNOWN.
 
 ## Retail markup census
 
