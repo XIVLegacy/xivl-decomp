@@ -35,6 +35,8 @@ REQUIRED_CHECKS = {
     "second pass state dispatch",
     "second pass read service call",
     "namespace class test",
+    "request slot module call",
+    "receiver slot 4 cell",
 }
 EXPECTED_IMMEDIATE_SITES = [
     0x004BBB82,

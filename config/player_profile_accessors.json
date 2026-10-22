@@ -1,0 +1,461 @@
+{
+  "format": "xivl-player-profile-accessors-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 listings as leads"
+  },
+  "dispatch": {
+    "gate": {
+      "byteFlagOffset": "0x54b",
+      "predicateVa": "0x00575740",
+      "passedOpcode": "0x0004",
+      "exitVa": "0x004dd3a9"
+    },
+    "routeStateOffset": "0x510",
+    "stateArms": [
+      {
+        "opcode": "0x0193",
+        "armVa": "0x004dd36f",
+        "handlerVa": "0x00578c90",
+        "tableIndex": 42
+      },
+      {
+        "opcode": "0x0196",
+        "armVa": "0x004dd384",
+        "handlerVa": "0x00576050",
+        "tableIndex": 43
+      },
+      {
+        "opcode": "0x01a3",
+        "armVa": "0x004dd391",
+        "handlerVa": "0x00576140",
+        "tableIndex": 45
+      }
+    ],
+    "actorIdPassed": false,
+    "actorLookupArm": {
+      "armVa": "0x004dcfff",
+      "tableIndex": 1,
+      "lookupVa": "0x004d9910",
+      "objectSlotOffset": "0x24",
+      "opcodes": [
+        "0x0194",
+        "0x019d",
+        "0x01a4"
+      ]
+    }
+  },
+  "ownerChain": {
+    "stateOffset": "0x10c",
+    "producer": "[[routeState+0x4]+0x10c]",
+    "reader": "[[[context+0x4] dereferenced]+0x4]+0x10c",
+    "ownerSetup": {
+      "constructorCallVa": "0x0057a9e9",
+      "storeVa": "0x0057aa1a",
+      "storeOffset": "0x4",
+      "handoffCallVa": "0x0057aab1",
+      "handoffVa": "0x007634b0"
+    },
+    "currentPlayer": {
+      "getterVa": "0x00707970",
+      "playerOffset": "0x0c",
+      "storeVa": "0x00758e40"
+    },
+    "tiers": {
+      "producerAndHolderShareSetupOwner": "STATIC",
+      "setupContextEqualsCallbackContext": "INFERRED",
+      "playerOffsetStore": "STATIC"
+    }
+  },
+  "specialEventWork": {
+    "writerVa": "0x00576050",
+    "setterVa": "0x0075d2d0",
+    "getterVa": "0x00707cc0",
+    "flagByteSource": "payload+0x01",
+    "bitOrder": "bit k to index k+1",
+    "wordSources": [
+      "payload+0x02",
+      "payload+0x04",
+      "payload+0x06",
+      "payload+0x08",
+      "payload+0x0a",
+      "payload+0x0c",
+      "payload+0x0e",
+      "payload+0x10"
+    ],
+    "wordIndices": "9..16",
+    "byteStorageOffset": "0x84",
+    "wordStorageOffset": "0x8c",
+    "routeStateCopy": {
+      "offset": "0x38",
+      "width": 2,
+      "source": "payload+0x02"
+    },
+    "getter": {
+      "booleanIndices": "1..8",
+      "wordIndices": "every other index",
+      "rangeCheck": false,
+      "byteHelperVa": "0x0075d390",
+      "wordHelperVa": "0x0075d3a0",
+      "booleanWrapperVa": "0x00748870",
+      "booleanConstructorVa": "0x00583e30",
+      "booleanTag": 2,
+      "wordWrapperVa": "0x00584f70",
+      "wordConstructorVa": "0x00583d90",
+      "wordTag": 0,
+      "indexReaderVa": "0x005819a0"
+    },
+    "outOfRange": [
+      {
+        "index": 0,
+        "address": "state+0x7a"
+      },
+      {
+        "index": 17,
+        "address": "state+0x9c"
+      }
+    ]
+  },
+  "titleAndJob": {
+    "title": {
+      "opcode": "0x019d",
+      "receiverVa": "0x0089c5f0",
+      "field": "PlayerBase+0xe8",
+      "width": 4,
+      "readerVa": "0x00706d70",
+      "registrationVa": "0x0074f620",
+      "luaApi": "_getAchievementTitle",
+      "valueTag": 0,
+      "nullTestOnCast": false
+    },
+    "job": {
+      "opcode": "0x01a4",
+      "receiverVa": "0x0089cb60",
+      "setterVa": "0x00706dc0",
+      "field": "PlayerBase+0xf1",
+      "width": 1,
+      "readerVa": "0x00706d90",
+      "vtableSlot": 39,
+      "vtableCellVas": [
+        "0x00fd5ea0",
+        "0x00fd78f8"
+      ],
+      "luaApi": "_getJob",
+      "luaBindingClass": "CharaBaseClass",
+      "thunkVa": "0x0071e020",
+      "signed": true,
+      "valueTag": 0,
+      "storesOnlyWhenChanged": true,
+      "nonPlayerStubVa": "0x00776340",
+      "nonPlayerStubCellVas": [
+        "0x00fd5d48",
+        "0x00fd6518"
+      ],
+      "nonPlayerReturnsValue": false
+    }
+  },
+  "unresolved": [
+    "whether the setup context and the runtime callback context are the same object",
+    "the class name and constructor defaults of the owner aggregate and its +0x10C state",
+    "the purpose of the route state word copy at +0x38",
+    "what the job setter does after it stores a changed byte",
+    "whether the title reader behaves the same way on non-player actors",
+    "what the dispatcher gate at byte +0x54B does to opcodes other than 0x0004"
+  ],
+  "staticChecks": [
+    {
+      "name": "dispatcher gate, byte flag",
+      "kind": "signature",
+      "va": "0x004dc6d5",
+      "pattern": "8a 87 4b 05 00 00 84 c0 74 0b 66 83 7e 02 04 0f 85 bf 0c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "When byte +0x54B of the receiver is nonzero, every opcode except 0x0004 jumps to the common exit."
+    },
+    {
+      "name": "dispatcher gate, route state predicate",
+      "kind": "signature",
+      "va": "0x004dc6f0",
+      "pattern": "8b cb e8 49 90 09 00 84 c0 74 0b 66 83 7e 02 04 0f 85 a3 0c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "When the predicate 0x00575740 on the route state returns true, every opcode except 0x0004 jumps to the common exit."
+    },
+    {
+      "name": "route state receiver base",
+      "kind": "signature",
+      "va": "0x004dc6ea",
+      "pattern": "8d 9f 10 05 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The dispatcher forms the route state address as the container receiver plus 0x510."
+    },
+    {
+      "name": "dispatcher arm 0x0196",
+      "kind": "signature",
+      "va": "0x004dd384",
+      "pattern": "83 c6 10 56 8b cb e8 c1 8c 09 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Passes the payload address and the route state to the special event work handler. The message actor id is not an argument."
+    },
+    {
+      "name": "dispatcher arm 0x01A3",
+      "kind": "signature",
+      "va": "0x004dd391",
+      "pattern": "83 c6 10 56 8b cb e8 a4 8d 09 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Passes the payload address and the route state to the cutscene book wrapper. The message actor id is not an argument."
+    },
+    {
+      "name": "high opcode index bytes 0x0193..0x01A4",
+      "kind": "signature",
+      "va": "0x004dd604",
+      "pattern": "2a 01 01 2b 01 2c 01 01 01 01 01 01 01 01 01 01 2d 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Table indexes for opcodes 0x0193 through 0x01A4."
+    },
+    {
+      "name": "high target address entries 42..46",
+      "kind": "dwords",
+      "va": "0x004dd5a0",
+      "values": [
+        "0x004dd36f",
+        "0x004dd384",
+        "0x004dd39e",
+        "0x004dd391",
+        "0x004dd3a9"
+      ],
+      "note": "Targets for table indexes 42 through 46."
+    },
+    {
+      "name": "high target address entry 1",
+      "kind": "dwords",
+      "va": "0x004dd4fc",
+      "values": [
+        "0x004dcfff"
+      ],
+      "note": "Shared actor-lookup target."
+    },
+    {
+      "name": "actor-lookup arm",
+      "kind": "signature",
+      "va": "0x004dcfff",
+      "pattern": "8b 55 08 52 8b cf e8 06 c9 ff ff 85 c0 0f 84 97 03 00 00 8b 10 8b c8 8b 42 24 56 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Looks up an object by the message actor id through 0x004D9910 and calls its virtual slot +0x24 with the payload."
+    },
+    {
+      "name": "special event work writer",
+      "kind": "signature",
+      "va": "0x00576050",
+      "pattern": "83 ec 28 8b 54 24 2c 53 55 56 8b f1 8b 46 04 57 8b b8 0c 01 00 00 8a 42 01 0f b7 6a 08 8a c8 80 e1 01 88 4c 24 34 8a c8 d0 e9 80 e1 01 88 4c 24 30 8a c8 c0 e9 02 80 e1 01 88 4c 24 2c 0f b7 5a 06 8a c8 c0 e9 03 80 e1 01 88 4c 24 28 8a c8 c0 e9 04 80 e1 01 88 4c 24 24 8a c8 c0 e9 05 80 e1 01 88 4c 24 20 8a c8 89 6c 24 14 0f b7 6a 0a c0 e9 06 80 e1 01 c0 e8 07 89 6c 24 10 0f b7 6a 0c 88 4c 24 1c 0f b7 4a 04 88 44 24 18 0f b7 42 02 89 6c 24 3c 0f b7 6a 0e 0f b7 52 10 52 8b 54 24 40 55 52 8b 54 24 1c 52 8b 54 24 24 52 8b 54 24 34 53 51 8b 4c 24 38 50 66 89 46 38 8b 44 24 38 50 8b 44 24 48 51 8b 4c 24 50 52 8b 54 24 58 50 8b 44 24 60 51 8b 4c 24 68 52 50 51 8b cf e8 9d 71 1e 00 5f 5e 5d 5b 83 c4 28 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Expands payload byte +1 into eight Boolean arguments, passes eight payload words, copies the first word to route state +0x38 and calls the setter."
+    },
+    {
+      "name": "special event work setter",
+      "kind": "signature",
+      "va": "0x0075d2d0",
+      "pattern": "8a 44 24 04 8a 54 24 08 88 81 84 00 00 00 8a 44 24 0c 88 91 85 00 00 00 8a 54 24 10 88 81 86 00 00 00 8a 44 24 14 88 91 87 00 00 00 8a 54 24 18 88 81 88 00 00 00 8a 44 24 1c 88 91 89 00 00 00 8a 54 24 20 88 81 8a 00 00 00 66 8b 44 24 24 88 91 8b 00 00 00 66 8b 54 24 28 66 89 81 8c 00 00 00 66 8b 44 24 2c 66 89 91 8e 00 00 00 66 8b 54 24 30 66 89 81 90 00 00 00 66 8b 44 24 34 66 89 91 92 00 00 00 66 8b 54 24 38 66 89 81 94 00 00 00 66 8b 44 24 3c 66 89 91 96 00 00 00 66 8b 54 24 40 66 89 81 98 00 00 00 66 89 91 9a 00 00 00 c2 40 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores eight bytes at +0x84 through +0x8b and eight words at +0x8c through +0x9a of the state."
+    },
+    {
+      "name": "cutscene book wrapper",
+      "kind": "signature",
+      "va": "0x00576140",
+      "pattern": "8b 49 04 8b 89 0c 01 00 00 e9 22 12 1f 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Loads the state at owner +0x10C and tail-jumps to the key set producer."
+    },
+    {
+      "name": "special event work getter",
+      "kind": "signature",
+      "va": "0x00707cc0",
+      "pattern": "53 56 57 8b 7c 24 10 8b 5f 10 8b 73 04 8b 46 04 85 c0 74 0a 8b 4e 08 2b c8 c1 f9 04 75 05 e8 d1 a5 2c 00 8b 76 04 8d 54 24 10 52 6a 00 56 8b cb e8 ab 9c e7 ff 8b 4f 04 8b 30 e8 11 f8 5b 00 8b 00 8b 48 04 8b 89 0c 01 00 00 8d 56 ff 83 fa 07 77 25 83 c6 ff 56 e8 75 56 05 00 88 44 24 10 8d 44 24 10 50 8d 4c 24 14 51 8b 4f 1c e8 3f 0b 04 00 5f 5e 5b c2 04 00 83 c6 f7 56 e8 60 56 05 00 0f b7 d0 8d 44 24 10 50 8d 4c 24 14 51 8b 4f 1c 89 54 24 18 e8 17 d2 e7 ff 5f 5e 5b c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads the index argument, loads the state through the context owner and selects the byte or word helper without a range check."
+    },
+    {
+      "name": "work byte helper",
+      "kind": "signature",
+      "va": "0x0075d390",
+      "pattern": "8b 44 24 04 8a 84 08 84 00 00 00 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the byte at state +0x84 plus the index."
+    },
+    {
+      "name": "work word helper",
+      "kind": "signature",
+      "va": "0x0075d3a0",
+      "pattern": "8b 44 24 04 66 8b 84 41 8c 00 00 00 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the word at state +0x8c plus twice the index."
+    },
+    {
+      "name": "Boolean value constructor tail",
+      "kind": "signature",
+      "va": "0x00583ea6",
+      "pattern": "89 76 08 c6 46 0c 02 8b c6",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Stores type tag 2 in the value cell."
+    },
+    {
+      "name": "numeric value constructor tail",
+      "kind": "signature",
+      "va": "0x00583e06",
+      "pattern": "89 76 08 c6 46 0c 00 8b c6",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Stores type tag 0 in the value cell."
+    },
+    {
+      "name": "Boolean wrapper call",
+      "kind": "signature",
+      "va": "0x007488b6",
+      "pattern": "e8 75 b5 e3 ff",
+      "mask": "ff ff ff ff ff",
+      "note": "The wrapper at 0x00748870 builds its value through 0x00583E30."
+    },
+    {
+      "name": "numeric wrapper call",
+      "kind": "signature",
+      "va": "0x00584fb6",
+      "pattern": "e8 d5 ed ff ff",
+      "mask": "ff ff ff ff ff",
+      "note": "The wrapper at 0x00584F70 builds its value through 0x00583D90."
+    },
+    {
+      "name": "route state owner setup",
+      "kind": "signature",
+      "va": "0x0057a9e9",
+      "pattern": "e8 82 88 1f 00 8b f8 eb 02 33 ff c7 84 24 a0 00 00 00 1c 00 00 00 8b 5e 04 3b fb 74 14 85 db 74 10 8b cb e8 ef 62 1f 00 53 e8 00 71 45 00 83 c4 04 89 7e 04",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Constructs the owner aggregate through 0x00773270 and stores it at route state +4."
+    },
+    {
+      "name": "route state owner handoff",
+      "kind": "signature",
+      "va": "0x0057aa9b",
+      "pattern": "8b 46 08 8b 4e 04 8b 16 50 51 52 88 9c 24 b8 00 00 00 8d 4c 24 33 e8 fa 89 1e 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Passes route state words +0, +4 and +8 to 0x007634B0, which retains the owner in the holder."
+    },
+    {
+      "name": "current player getter",
+      "kind": "signature",
+      "va": "0x00707970",
+      "pattern": "56 8b 74 24 08 8b 4e 04 e8 93 fb 5b 00 8b 00 8b 48 04 8b 51 0c 8d 44 24 08 50 8d 4c 24 0c 51 8b 4e 1c 89 54 24 10 e8 95 11 04 00 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads the owner through the context holder and returns its word at +0x0C."
+    },
+    {
+      "name": "owner player store",
+      "kind": "signature",
+      "va": "0x00758e40",
+      "pattern": "8b 44 24 04 85 c0 75 0e 89 41 0c a1 78 c7 30 01 89 41 10 c2 08 00 8b 54 24 08 89 41 0c 8b 02 89 41 10 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores its first argument at +0x0C and a second word at +0x10 of its receiver."
+    },
+    {
+      "name": "title reader",
+      "kind": "signature",
+      "va": "0x00706d70",
+      "pattern": "8d 44 24 04 81 c1 e8 00 00 00 50 51 8b 4c 24 0c 8b 49 1c e8 e8 e1 e7 ff c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the dword at PlayerBase +0xE8 through the numeric wrapper."
+    },
+    {
+      "name": "job reader",
+      "kind": "signature",
+      "va": "0x00706d90",
+      "pattern": "51 0f be 81 f1 00 00 00 8d 4c 24 08 89 04 24 8b 44 24 08 51 8b 48 1c 8d 54 24 04 52 e8 bf e1 e7 ff 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the sign-extended byte at PlayerBase +0xF1 through the numeric wrapper."
+    },
+    {
+      "name": "job reader vtable cells",
+      "kind": "dwords",
+      "va": "0x00fd5ea0",
+      "values": [
+        "0x00706d90"
+      ],
+      "note": "PlayerBase vtable slot 39."
+    },
+    {
+      "name": "job reader vtable cell, MyPlayer",
+      "kind": "dwords",
+      "va": "0x00fd78f8",
+      "values": [
+        "0x00706d90"
+      ],
+      "note": "MyPlayer vtable slot 39."
+    },
+    {
+      "name": "job reader vtable cell, CharaBase",
+      "kind": "dwords",
+      "va": "0x00fd5d48",
+      "values": [
+        "0x00776340"
+      ],
+      "note": "CharaBase vtable slot 39 (vtable 0x00FD5CAC)."
+    },
+    {
+      "name": "job reader vtable cell, NpcBase",
+      "kind": "dwords",
+      "va": "0x00fd6518",
+      "values": [
+        "0x00776340"
+      ],
+      "note": "NpcBase vtable slot 39 (vtable 0x00FD647C)."
+    },
+    {
+      "name": "job reader non-player stub",
+      "kind": "signature",
+      "va": "0x00776340",
+      "pattern": "c2 04 00",
+      "mask": "ff ff ff",
+      "note": "Bare ret 4 that writes no result, so _getJob on a CharaBase or NpcBase actor returns nothing."
+    },
+    {
+      "name": "_getJob thunk",
+      "kind": "signature",
+      "va": "0x0071e020",
+      "pattern": "8b 01 8b 80 9c 00 00 00 ff e0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "Jumps through vtable slot +0x9C."
+    },
+    {
+      "name": "_getAchievementTitle registration",
+      "kind": "signature",
+      "va": "0x0074f657",
+      "pattern": "be 70 6d 70 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Loads the reader address for the registration."
+    },
+    {
+      "name": "title receiver",
+      "kind": "signature",
+      "va": "0x0089c5f0",
+      "pattern": "8b 44 24 08 56 6a 00 68 48 fa 2b 01 68 64 09 27 01 6a 00 50 8b f1 e8 c1 e0 13 00 8b 4e 04 83 c4 14 89 88 e8 00 00 00 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Casts the target to PlayerBase and stores the payload dword at +0xE8 with no null test."
+    },
+    {
+      "name": "job receiver",
+      "kind": "signature",
+      "va": "0x0089cb60",
+      "pattern": "8b 44 24 08 56 6a 00 68 48 fa 2b 01 68 64 09 27 01 6a 00 50 8b f1 e8 51 db 13 00 0f b6 4e 04 83 c4 14 5e 89 4c 24 08 8b c8 e9 32 a2 e6 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Casts the target to PlayerBase and passes the payload byte to the job setter 0x00706DC0."
+    },
+    {
+      "name": "job setter changed-value gate",
+      "kind": "signature",
+      "va": "0x00706dee",
+      "pattern": "8a 9e f1 00 00 00 8a 84 24 d0 00 00 00 3a c3 0f 84 f7 00 00 00 88 86 f1 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Compares the new byte with the byte at +0xF1 and stores it only when they differ."
+    }
+  ]
+}

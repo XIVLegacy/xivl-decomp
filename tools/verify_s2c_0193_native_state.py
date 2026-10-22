@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+import argparse
 import copy
 import json
 import re
 from pathlib import Path
+
+import verify_sqwt_command_parameter_consumer as image_checks
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -44,6 +47,97 @@ EXPECTED_GROUP_METHODS = [
     ("0x30", "0x40", "0x0054b650", "0x0054b660", "0x0054b670"),
     ("0x44", "0x54", "0x0054b680", "0x0054b8c0", "0x0054b8d0"),
 ]
+REQUIRED_CHECKS = {
+    "dispatcher call site arguments",
+    "value sentinel and clock sum",
+    "occupancy vector store",
+    "extended subopcode switch",
+    "extended subopcode jump table",
+    "store arm 0x10",
+    "store arm 0x11",
+    "store arm 0x12",
+    "store arm 0x16",
+    "word writer +0x10",
+    "word writer +0x14",
+    "word writer +0x18",
+    "word writer +0x1c",
+    "occupancy vector writer",
+    "ActionCheck sentinel branch",
+    "ActionCheck raw store",
+    "subopcode 0x14 arm",
+    "subopcode 0x15 arm",
+    "subopcode 0x15 guard",
+}
+EXPECTED_JUMP_TABLE = [
+    "0x00578d0a",
+    "0x00578d1e",
+    "0x00578d32",
+    "0x00578d5a",
+    "0x00578f93",
+    "0x00578fb8",
+    "0x00578d46",
+]
+EXPECTED_HANDLER = {
+    "handlerVa": "0x00578c90",
+    "callSiteVa": "0x004dd37d",
+    "arguments": [
+        {"index": 0, "name": "subopcode", "source": "message+0x10"},
+        {"index": 1, "name": "value", "source": "message+0x14"},
+        {"index": 2, "name": "clock", "source": "message+0x08"},
+    ],
+    "sentinel": "0xffffffff",
+    "wordRule": "sentinel stores zero, any other value stores clock plus value modulo 2^32",
+    "storeSubopcodes": ["0x00..0x0f", "0x10", "0x11", "0x12", "0x16"],
+    "ignoredAbove": "0x16",
+    "actionCheckStore": {
+        "sentinel": "query, no store",
+        "otherValues": "raw value argument stored at terminal+0x38, clock not added",
+    },
+    "userControl": {
+        "flagOffset": "0x3a",
+        "excludedValues": ["0x00", "0x15", "0x16"],
+        "setup": {
+            "subopcode": "0x14",
+            "requiresFlag": 0,
+            "callVa": "0x0075b300",
+            "flagAfter": 1,
+        },
+        "teardown": {
+            "subopcode": "0x15",
+            "requiresFlag": 1,
+            "guardVa": "0x00576020",
+            "callVa": "0x0075b360",
+            "flagAfter": 0,
+        },
+    },
+}
+SENTINEL = 0xFFFFFFFF
+USER_CONTROL_EXCLUDED = (0x00, 0x15, 0x16)
+
+
+def stored_word(subopcode: int, value: int, clock: int) -> int | None:
+    """Word the handler stores for a timer store subopcode, None when it stores none."""
+    if subopcode > 0x16 or subopcode in (0x13, 0x14, 0x15):
+        return None
+    return 0 if value == SENTINEL else (clock + value) & 0xFFFFFFFF
+
+
+def action_check_store(value: int) -> int | None:
+    """Raw word stored at terminal+0x38 for subopcode 0x13, None for the query."""
+    return None if value == SENTINEL else value
+
+
+def user_control_effect(subopcode: int, value: int, flag: int) -> int | None:
+    """New value of the flag byte at +0x3a, None when the handler leaves it alone."""
+    if value in USER_CONTROL_EXCLUDED:
+        return None
+    if subopcode == 0x14 and flag == 0:
+        return 1
+    if subopcode == 0x15 and flag != 0:
+        return 0
+    return None
+
+
 EXPECTED_ACTION_CONSUMERS = [
     (
         "0x00578390",
@@ -187,6 +281,39 @@ def verify(document: dict | None = None) -> list[str]:
         "high-level nouns" in item for item in unresolved
     ):
         errors.append("unresolved semantic boundary changed")
+    if document.get("timerHandler") != EXPECTED_HANDLER:
+        errors.append("timer handler store rules changed")
+    checks = document.get("staticChecks")
+    if not isinstance(checks, list):
+        errors.append("staticChecks is not a list")
+        checks = []
+    names = [item.get("name") for item in checks if isinstance(item, dict)]
+    if len(names) != len(set(names)):
+        errors.append("staticChecks names are not unique")
+    if REQUIRED_CHECKS - set(names):
+        errors.append(f"staticChecks lacks {sorted(REQUIRED_CHECKS - set(names))}")
+    for item in checks:
+        if not isinstance(item, dict) or item.get("kind") not in {
+            "signature",
+            "dwords",
+        }:
+            errors.append("staticChecks entry has an unknown kind")
+        elif not re.fullmatch(r"0x[0-9a-f]{8}", str(item.get("va", ""))):
+            errors.append(f"staticChecks {item.get('name')!r} has a malformed va")
+        elif item["kind"] == "signature":
+            try:
+                same = len(bytes.fromhex(item["pattern"])) == len(
+                    bytes.fromhex(item["mask"])
+                )
+            except (KeyError, ValueError):
+                same = False
+            if not same:
+                errors.append(f"staticChecks {item['name']!r} pattern or mask invalid")
+    tables = [
+        item for item in checks if item.get("name") == "extended subopcode jump table"
+    ]
+    if [item.get("values") for item in tables] != [EXPECTED_JUMP_TABLE]:
+        errors.append("extended subopcode jump table changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
     forbidden = (
         r"[A-Za-z]:\\\\",
@@ -239,6 +366,35 @@ def mutation_test() -> list[str]:
     leaked = copy.deepcopy(document)
     leaked["source"]["path"] = "agent-islands/private-evidence"
     mutations.append(leaked)
+    for path, value in [
+        (("timerHandler", "sentinel"), "0x00000000"),
+        (("timerHandler", "wordRule"), "sentinel leaves the slot unchanged"),
+        (("timerHandler", "ignoredAbove"), "0x17"),
+    ]:
+        changed = copy.deepcopy(document)
+        changed[path[0]][path[1]] = value
+        mutations.append(changed)
+    raw_clock = copy.deepcopy(document)
+    raw_clock["timerHandler"]["actionCheckStore"]["otherValues"] = "clock sum stored"
+    mutations.append(raw_clock)
+    guard = copy.deepcopy(document)
+    guard["timerHandler"]["userControl"]["excludedValues"] = ["0x00"]
+    mutations.append(guard)
+    inverted = copy.deepcopy(document)
+    inverted["timerHandler"]["userControl"]["teardown"]["requiresFlag"] = 0
+    mutations.append(inverted)
+    table = copy.deepcopy(document)
+    for item in table["staticChecks"]:
+        if item["name"] == "extended subopcode jump table":
+            item["values"][3] = "0x00578d5b"
+    mutations.append(table)
+    dropped_check = copy.deepcopy(document)
+    dropped_check["staticChecks"] = [
+        item
+        for item in dropped_check["staticChecks"]
+        if item["name"] != "ActionCheck raw store"
+    ]
+    mutations.append(dropped_check)
     return [
         f"mutation {index} was accepted"
         for index, item in enumerate(mutations, 1)
@@ -246,14 +402,27 @@ def mutation_test() -> list[str]:
     ]
 
 
+def verify_executable(path: Path) -> list[str]:
+    document = json.loads(MANIFEST.read_text(encoding="ascii"))
+    return image_checks.verify_image(path.read_bytes(), document)
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--exe", type=Path, help="pinned retail executable for byte checks"
+    )
+    args = parser.parse_args()
     errors = verify() + mutation_test()
+    if args.exe:
+        errors += verify_executable(args.exe)
     if errors:
         print(f"FAIL: {len(errors)} s2c 0x0193 native-state error(s)")
         for error in errors:
             print(f"- {error}")
         return 1
-    print("PASS: s2c 0x0193 native-state manifest and 13 mutations")
+    suffix = " plus executable checks" if args.exe else ""
+    print(f"PASS: s2c 0x0193 native-state manifest and mutations{suffix}")
     return 0
 
 

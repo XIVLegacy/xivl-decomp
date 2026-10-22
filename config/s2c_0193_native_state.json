@@ -175,11 +175,229 @@
     "surroundingOperationsBoundary": "Lua-bound CharaBase calls and UI or actor-state operations in the drain callers are outside the ActionCheck branch and are not gated by this field",
     "negativeBoundary": "the complete Ghidra reference export and generated-assembly direct-call sweep found only the recorded call sites; computed or dynamic indirect access remains unresolved"
   },
+  "timerHandler": {
+    "handlerVa": "0x00578c90",
+    "callSiteVa": "0x004dd37d",
+    "arguments": [
+      {
+        "index": 0,
+        "name": "subopcode",
+        "source": "message+0x10"
+      },
+      {
+        "index": 1,
+        "name": "value",
+        "source": "message+0x14"
+      },
+      {
+        "index": 2,
+        "name": "clock",
+        "source": "message+0x08"
+      }
+    ],
+    "sentinel": "0xffffffff",
+    "wordRule": "sentinel stores zero, any other value stores clock plus value modulo 2^32",
+    "storeSubopcodes": [
+      "0x00..0x0f",
+      "0x10",
+      "0x11",
+      "0x12",
+      "0x16"
+    ],
+    "ignoredAbove": "0x16",
+    "actionCheckStore": {
+      "sentinel": "query, no store",
+      "otherValues": "raw value argument stored at terminal+0x38, clock not added"
+    },
+    "userControl": {
+      "flagOffset": "0x3a",
+      "excludedValues": [
+        "0x00",
+        "0x15",
+        "0x16"
+      ],
+      "setup": {
+        "subopcode": "0x14",
+        "requiresFlag": 0,
+        "callVa": "0x0075b300",
+        "flagAfter": 1
+      },
+      "teardown": {
+        "subopcode": "0x15",
+        "requiresFlag": 1,
+        "guardVa": "0x00576020",
+        "callVa": "0x0075b360",
+        "flagAfter": 0
+      }
+    }
+  },
+  "staticChecks": [
+    {
+      "name": "dispatcher call site arguments",
+      "kind": "signature",
+      "va": "0x004dd36f",
+      "pattern": "8b 56 08 8b 46 14 8b 4e 10 52 50 51 8b cb e8 0e b9 09 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes message +0x08, +0x14 and +0x10, then calls 0x00578c90 with the route state as receiver."
+    },
+    {
+      "name": "value sentinel and clock sum",
+      "kind": "signature",
+      "va": "0x00578cbd",
+      "pattern": "8b 8c 24 bc 03 00 00 83 f9 ff 75 04 33 c0 eb 09 8b 84 24 c0 03 00 00 03 c1",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "ECX is the value argument. 0xFFFFFFFF selects zero, any other value selects the third argument plus the value."
+    },
+    {
+      "name": "occupancy vector store",
+      "kind": "signature",
+      "va": "0x00578cd6",
+      "pattern": "8b 94 24 b8 03 00 00 83 fa 10 73 15 8b 4e 04 8b 89 0c 01 00 00 50 52 e8 ee 66 1e 00 e9 c9 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Subopcodes below 0x10 call the vector writer 0x0075F3E0 with the index and the selected word."
+    },
+    {
+      "name": "extended subopcode switch",
+      "kind": "signature",
+      "va": "0x00578cf7",
+      "pattern": "83 c2 f0 83 fa 06 0f 87 bd 02 00 00 ff 24 95 dc 8f 57 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Subopcodes 0x10..0x16 index the seven-entry jump table at 0x00578FDC. Larger values exit."
+    },
+    {
+      "name": "extended subopcode jump table",
+      "kind": "dwords",
+      "va": "0x00578fdc",
+      "values": [
+        "0x00578d0a",
+        "0x00578d1e",
+        "0x00578d32",
+        "0x00578d5a",
+        "0x00578f93",
+        "0x00578fb8",
+        "0x00578d46"
+      ],
+      "note": "Targets for subopcodes 0x10..0x16."
+    },
+    {
+      "name": "store arm 0x10",
+      "kind": "signature",
+      "va": "0x00578d0a",
+      "pattern": "8b 56 04 8b 8a 0c 01 00 00 50 e8 f7 44 1e 00 e9 a2 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the selected word and calls the +0x10 writer."
+    },
+    {
+      "name": "store arm 0x11",
+      "kind": "signature",
+      "va": "0x00578d1e",
+      "pattern": "50 8b 46 04 8b 88 0c 01 00 00 e8 03 45 1e 00 e9 8e 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the selected word and calls the +0x14 writer."
+    },
+    {
+      "name": "store arm 0x12",
+      "kind": "signature",
+      "va": "0x00578d32",
+      "pattern": "8b 4e 04 8b 89 0c 01 00 00 50 e8 0f 45 1e 00 e9 7a 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the selected word and calls the +0x18 writer."
+    },
+    {
+      "name": "store arm 0x16",
+      "kind": "signature",
+      "va": "0x00578d46",
+      "pattern": "8b 56 04 8b 8a 0c 01 00 00 50 e8 1b 45 1e 00 e9 66 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the selected word and calls the +0x1c writer."
+    },
+    {
+      "name": "word writer +0x10",
+      "kind": "signature",
+      "va": "0x0075d210",
+      "pattern": "8b 44 24 04 89 41 10",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Stores its stack argument at +0x10."
+    },
+    {
+      "name": "word writer +0x14",
+      "kind": "signature",
+      "va": "0x0075d230",
+      "pattern": "8b 44 24 04 89 41 14",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Stores its stack argument at +0x14."
+    },
+    {
+      "name": "word writer +0x18",
+      "kind": "signature",
+      "va": "0x0075d250",
+      "pattern": "8b 44 24 04 89 41 18",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Stores its stack argument at +0x18."
+    },
+    {
+      "name": "word writer +0x1c",
+      "kind": "signature",
+      "va": "0x0075d270",
+      "pattern": "8b 44 24 04 89 41 1c",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Stores its stack argument at +0x1c."
+    },
+    {
+      "name": "occupancy vector writer",
+      "kind": "signature",
+      "va": "0x0075f3e0",
+      "pattern": "56 8b f1 8b 4e 04 85 c9 57 8b 7c 24 0c 74 0c 8b 46 08 2b c1 c1 f8 02 3b f8 72 14 e8 b4 2e 27 00 8b 46 04 8b 4c 24 10 89 0c b8 5f 5e c2 08 00 8b 44 24 10 8b d1 89 04 ba 5f 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores the value at vector index times four. An index at or past the vector size first calls 0x009D22B4."
+    },
+    {
+      "name": "ActionCheck sentinel branch",
+      "kind": "signature",
+      "va": "0x00578d5a",
+      "pattern": "83 f9 ff 8b 46 04 8b 80 ec 00 00 00 0f 85 28 01 00 00 8b 78 38",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Value 0xFFFFFFFF reads the word at terminal object +0x38 and takes the query path. Any other value branches to 0x00578E94."
+    },
+    {
+      "name": "ActionCheck raw store",
+      "kind": "signature",
+      "va": "0x00578e94",
+      "pattern": "89 48 38",
+      "mask": "ff ff ff",
+      "note": "Stores ECX, the raw value argument, at terminal object +0x38."
+    },
+    {
+      "name": "subopcode 0x14 arm",
+      "kind": "signature",
+      "va": "0x00578f93",
+      "pattern": "80 7e 3a 00 75 27 85 c9 74 23 83 f9 15 74 1e 83 f9 16 74 19 8b 46 04 8b 48 08 e8 4e 23 1e 00 c6 46 3a 01 eb 08",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Acts while byte +0x3a is clear and the value is not 0, 0x15 or 0x16. Calls the setup-all method 0x0075B300 and sets the byte."
+    },
+    {
+      "name": "subopcode 0x15 arm",
+      "kind": "signature",
+      "va": "0x00578fb8",
+      "pattern": "51 8b ce e8 60 d0 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Passes the value to the guard method 0x00576020."
+    },
+    {
+      "name": "subopcode 0x15 guard",
+      "kind": "signature",
+      "va": "0x00576020",
+      "pattern": "8b 44 24 04 85 c0 56 8b f1 74 1f 83 f8 15 74 1a 83 f8 16 74 15 80 7e 3a 00 74 0f 8b 46 04 8b 48 08 e8 1a 53 1e 00 c6 46 3a 00 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Rejects 0, 0x15 and 0x16 and a clear byte +0x3a. Otherwise calls teardown-all 0x0075B360 and clears the byte."
+    }
+  ],
   "unresolved": [
     "the class name of the +0x510 state member and its terminal +0x10c state",
     "individual meanings for low-vector indices 0x00 through 0x0f",
     "high-level nouns for the four RaptureUserControl groups",
     "timer units",
+    "constructor initial values of the timer words and the ActionCheck word",
     "computed or dynamic indirect ActionCheck consumers",
     "the high-level purpose of the ActionCheck ordered container"
   ]

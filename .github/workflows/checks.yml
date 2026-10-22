@@ -78,6 +78,8 @@ jobs:
         run: python tools/test_define_class_paths.py
       - name: Test command-parameter consumer verifier
         run: python tools/test_sqwt_command_parameter_consumer.py
+      - name: Test promoted static check verifiers
+        run: python tools/test_promoted_static_checks.py
       - name: Test public evidence links
         run: python tools/test_repository_links.py
       - name: Test region snapshot contract

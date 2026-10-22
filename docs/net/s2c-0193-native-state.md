@@ -37,6 +37,65 @@ low-vector wrapper decrements its callback input before indexing. That closes
 the vector's public callback but does not establish individual meanings for
 indices 0x00 through 0x0f or any timer unit.
 
+## Handler arguments and stored words
+
+The dispatcher arm at `0x004DD36F` pushes three message words and calls
+`0x00578C90` with the route state as receiver: the subopcode from message
+`+0x10`, the value from `+0x14` and a clock word from `+0x08`. Message `+0x08`
+is inside the 16-byte game-message header
+([wire protocol](wire-protocol.md#world-chat-selected-group-route) records the
+same header offset base). Every claim in this section is STATIC, read from the
+instructions in the `staticChecks` rows of the manifest.
+
+| Subopcode | Stored word | Destination |
+|---|---|---|
+| 0x00..0x0f | sentinel: 0, otherwise clock + value (mod 2^32) | vector entry at the subopcode, writer `0x0075F3E0` |
+| 0x10, 0x11, 0x12, 0x16 | sentinel: 0, otherwise clock + value (mod 2^32) | state `+0x10`, `+0x14`, `+0x18`, `+0x1c` |
+| 0x13 | sentinel: nothing, otherwise the raw value | terminal object `+0x38` |
+| 0x14, 0x15 | nothing | user-control flag, see below |
+| above 0x16 | nothing | the handler returns |
+
+The sentinel is `0xFFFFFFFF`. The word is selected once at `0x00578CBD`: when
+the value equals the sentinel the selected word is zero, otherwise it is the
+clock plus the value with 32-bit wraparound. Every store arm passes that
+selected word to its writer, so a sentinel on a store subopcode stores zero and
+does not leave the slot unchanged. The four scalar readers in the previous section
+return the stored word unchanged.
+
+Subopcode 0x13 uses the value directly. The sentinel arm at `0x00578D5A` reads
+the word at terminal object `+0x38` and runs the diagnostic path through
+`0x0075BC90` without a store. Any other value takes the branch to
+`0x00578E94`, which stores the raw value argument at terminal object `+0x38`
+and then runs the same diagnostic call. The clock is not part of that store. The
+ActionCheck consumers below read that word as signed.
+
+Subopcodes 0x14 and 0x15 share one value exclusion set, 0, 0x15 and 0x16, and
+one flag byte at route state `+0x3a`. Subopcode 0x14 acts when the byte is
+clear: it calls the setup-all method `0x0075B300` and sets the byte. Subopcode
+0x15 forwards the value to `0x00576020`, which returns when the value is
+excluded or the byte is clear, and otherwise calls teardown-all `0x0075B360`
+and clears the byte. The two arms therefore alternate setup and teardown, and a
+repeated 0x14 or 0x15 changes nothing. The four scalar word writers are plain
+stores. The vector writer calls `0x009D22B4` when the index is at or past the
+vector size and then stores anyway. Whether any subopcode below 0x10 can reach
+that call depends on the vector size, which these bodies do not show.
+
+Not established: the initial values the constructors give the timer words and
+the ActionCheck word, the vector size, and the meaning of any stored word.
+
+### Consumer implications
+
+A client model of this handler may rely on the following.
+
+- A store subopcode with value `0xFFFFFFFF` stores zero. Readers return the
+  stored word unchanged, and what zero means is not established.
+- A non-sentinel store is `(clock + value) mod 2^32`, taking the clock from the
+  game-message header word at `+0x08`.
+- Subopcode 0x13 stores the raw value and ignores the clock. The sentinel is a
+  query that stores nothing.
+- Apply the 0x14 and 0x15 value exclusions and the flag byte as above. The
+  0x15 value set equals the 0x14 value set.
+
 ## RaptureUserControl groups
 
 `0x0054e440` fills four adjacent 0x14-byte command records. The setup-all
@@ -98,7 +157,10 @@ negative result, as does the high-level purpose of the ordered container.
 The machine-readable finding is
 [`config/s2c_0193_native_state.json`](../../config/s2c_0193_native_state.json).
 It is checked by `tools/verify_s2c_0193_native_state.py` and the repository
-gate. RTTI and vtable identities come from
+gate. Run `python tools/verify_s2c_0193_native_state.py --exe orig/ffxivgame.exe`
+to compare each `staticChecks` row with the pinned executable bytes. That form is
+a local retail-input gate, and CI runs the manifest, mutation and model tests
+only. RTTI and vtable identities come from
 [`config/ffxivgame.rtti.json`](../../config/ffxivgame.rtti.json) and
 [`config/ffxivgame.vtable_slots.jsonl`](../../config/ffxivgame.vtable_slots.jsonl).
 This finding does not name opcode 0x0193, assign server behavior, import a

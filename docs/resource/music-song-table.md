@@ -149,10 +149,22 @@ service also stores 3 for a request rejected before the read, at `0x00C96360`,
 and for a failed buffer allocation, at `0x00C962C4`, so the state does not name
 the missing file as its cause.
 
+The request itself does not read the load state. Receiver slot 4 is
+`0x00441DC0` (table cell `0x00F90FAC`). It builds a 0x28-byte request object,
+calls the sound module's virtual slot `+4` with the resource ID at
+`0x00441EDD` and stores the returned handle at request `+4`. The
+function's own instructions contain no state read, retry or fallback song ID.
+The helpers it calls, the sound module and the handle code that consumes the
+resource state were not traced.
+
 The sound object that asked for the resource was not traced past the request.
 Whether a state 3 music resource leaves the slot silent, is retried by a
 later request, or raises an error is UNPROVED. A song ID 0 request opens a file
 of zero bytes, whose read outcome is also untraced.
+
+The open item is the outcome for song IDs 7, 30, 31 and 32 and for IDs above
+109. Settling it needs the sound module virtual slot `+4` traced to the Sd
+handle states that a state 3 resource reaches.
 
 ## Zone and area policy
 
