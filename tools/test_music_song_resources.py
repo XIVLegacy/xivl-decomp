@@ -56,6 +56,10 @@ def fixture() -> tuple[bytes, dict]:
     return build_image(text), document
 
 
+def real_manifest() -> dict:
+    return json.loads(verifier.MANIFEST.read_text(encoding="ascii"))
+
+
 def run(image: bytes, document: dict) -> list[str]:
     return verifier.verify_image(image, document, require_identity=False)
 
@@ -66,10 +70,13 @@ def put(root: Path, song_id: int, data: bytes) -> None:
     path.write_bytes(data)
 
 
-def sscf(streams: int) -> bytes:
+def sscf(streams: int, tracks: int | None = None) -> bytes:
     body = bytearray(0x60)
     body[0:8] = b"SEDBSSCF"
-    struct.pack_into("<H", body, 0x34, streams)
+    struct.pack_into("<H", body, 0x0E, 0x30)
+    struct.pack_into(
+        "<HHH", body, 0x30, 1, streams if tracks is None else tracks, streams
+    )
     return bytes(body)
 
 
@@ -82,6 +89,13 @@ def install_document(root: Path) -> dict:
                 for row in rows
             ],
             "dataTree": verifier.tree_counts(root),
+            "noStreamTable": {
+                "songIds": [
+                    row["songId"] for row in rows if row["size"] and not row["streams"]
+                ],
+                "words": [1, 0, 0],
+                "otherWords": [1, 1, 1],
+            },
         }
     }
 
@@ -89,6 +103,11 @@ def install_document(root: Path) -> dict:
 def main() -> int:
     check("manifest verifies", verifier.verify() == [])
     check("mutations are rejected", verifier.mutation_test() == [])
+    check(
+        "outcome tiers are pinned",
+        {o["id"]: o["tier"] for o in real_manifest()["downstream"]["outcomes"]}
+        == verifier.EXPECTED_OUTCOMES,
+    )
     check(
         "song path formatting",
         verifier.song_path(13) == "data/07/FE/00/0D.DAT"
@@ -156,6 +175,17 @@ def main() -> int:
         check(
             "a stream count difference is reported",
             len(verifier.verify_install(root, wrong)) == 1,
+        )
+        words = copy.deepcopy(document)
+        words["install"]["noStreamTable"]["otherWords"] = [1, 1, 0]
+        check(
+            "a table word difference alone is reported",
+            len(verifier.verify_install(root, words)) == 1,
+        )
+        check(
+            "the stream-less table words come from the header offset",
+            [row["words"] for row in verifier.census_install(root)["songs"]]
+            == [[], [1, 1, 1], [1, 0, 0]],
         )
         digest = hashlib.sha256(sscf(0)).hexdigest()
         check(

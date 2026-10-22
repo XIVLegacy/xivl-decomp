@@ -7,6 +7,12 @@ the retained installation, and IDs 1 through 109 hold SSCF containers. Every ID
 from 110 through 65535 names no file. The client has no native zone or area
 default music. Which song a zone plays is decided by whatever sends the packet.
 
+A request whose load fails or yields no sound leaves the slot silent. The
+client keeps the requested ID in the slot, has already released the previous
+song, never retries a failed or empty load and raises nothing in the traced
+code. Song IDs 7, 30, 31 and 32 pass bank creation and its loader like any
+other container, and whether their playback is audible is not established.
+
 The numeric path form depends on a formatter mode byte whose request-time
 value remains unproved. The table below states which claims are static, which
 come from the installation, and which stay open.
@@ -22,26 +28,36 @@ come from the installation, and which stay open.
 | Song IDs 0 through 109 have a file, 110 through 65535 have none | OBSERVED | [Installation table](#installation-table) |
 | Song ID 0 is an empty file, and song IDs 7, 30, 31 and 32 are SSCF files with no stream | OBSERVED | [Installation table](#installation-table) |
 | A missing file ends in Resource state 3 and not state 2, with no retry | STATIC plus one bounded live open observation | [Missing resource](#missing-resource) |
-| What the sound object does with a state 3 music resource | UNPROVED | [Missing resource](#missing-resource) |
+| A state 3 resource calls the sound request back with failure, no sound is created and the slot stays silent | STATIC | [Failed load](#failed-load) |
+| The request stores the resource ID in the slot before the load and the previous song was released first | STATIC | [Control state after a failed load](#control-state-after-a-failed-load) |
+| A failed or empty load is never retried, for the life of the module map (no clear path traced) | STATIC | [Control state after a failed load](#control-state-after-a-failed-load) |
+| The traced request, callback and state bodies log and raise nothing | NOT FOUND | [Failed load](#failed-load) |
+| Song ID 0 and an empty resource create no sound | STATIC | [Empty file](#empty-file) |
+| Song IDs 7, 30, 31 and 32 get a bank object and a sound ID, because neither bank construction nor the loader that the creator calls rejects a zero stream count | STATIC | [Stream-less containers](#stream-less-containers) |
+| Whether a stream-less bank plays audibly | UNPROVED | [Stream-less containers](#stream-less-containers) |
+| Lua songs of 32768 and above name resource IDs below `0x07FE0000` and Lua song 65535 is the no-pending sentinel | STATIC | [Song values from Lua](#song-values-from-lua) |
+| Request slot 4 is the one the music module uses | INFERRED | [Request path](#request-path) |
 | The client holds no zone, area, combat or time music policy | STATIC for the receiver, NOT FOUND elsewhere | [Zone and area policy](#zone-and-area-policy) |
 
 STATIC means read from instructions or data in the pinned executable.
 OBSERVED means measured on the retained installation. INFERRED means the
 evidence is consistent with the claim and does not close it. UNPROVED means no
-evidence addresses it.
+evidence addresses it. NOT FOUND means the named bodies or sources were read
+and hold no such behavior.
 
 ## Binary and method
 
 The executable is `ffxivgame.exe`, 15,996,808 bytes, image base `0x00400000`,
 SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 All executable addresses are VAs. Disassembly listings from ghidra-cli 12.1.4
-were treated as leads. The sequences cited here are the `staticChecks` rows of
+and Capstone 5.0.7 over the pinned bytes were treated as leads. The sequences
+cited here are the `staticChecks` rows of
 [`config/music_song_resources.json`](../../config/music_song_resources.json),
 and `tools/verify_music_song_resources.py --exe` compares each one with the
 pinned bytes. The installation figures come from
 `tools/verify_music_song_resources.py --install`, which reads existence, size,
-SHA-256, the first eight bytes and the stream-count word of each music file and
-records no audio.
+SHA-256, the first eight bytes and the first three table words of each music
+file and records no audio.
 
 ## Request derivation
 
@@ -121,6 +137,11 @@ definition and no audio. What the client does with such a definition is not
 established, and the use of ID 7 by client Lua before a cutscene replay is
 compatible with a silent track without proving one.
 
+The header u16 at `+0x0E` is `0x30` in every file. The three u16 words at that
+table offset are 1, 1, 1 in the 105 streamed files and 1, 0, 0 in the four
+stream-less ones. The stream count of the table above is the third word. The
+[bank loader](#stream-less-containers) stores all three.
+
 The SHA-256 values for IDs 13 and 57 equal those of
 [Music IDs 13 and 57 resource mapping](music-id-resources.md#retained-identities).
 Neither the file names nor the table assign a title to any ID.
@@ -149,22 +170,176 @@ service also stores 3 for a request rejected before the read, at `0x00C96360`,
 and for a failed buffer allocation, at `0x00C962C4`, so the state does not name
 the missing file as its cause.
 
-The request itself does not read the load state. Receiver slot 4 is
-`0x00441DC0` (table cell `0x00F90FAC`). It builds a 0x28-byte request object,
-calls the sound module's virtual slot `+4` with the resource ID at
-`0x00441EDD` and stores the returned handle at request `+4`. The
-function's own instructions contain no state read, retry or fallback song ID.
-The helpers it calls, the sound module and the handle code that consumes the
-resource state were not traced.
+## Request path
 
-The sound object that asked for the resource was not traced past the request.
-Whether a state 3 music resource leaves the slot silent, is retried by a
-later request, or raises an error is UNPROVED. A song ID 0 request opens a file
-of zero bytes, whose read outcome is also untraced.
+The path from the control to the loader has five steps, all read from the
+pinned executable.
 
-The open item is the outcome for song IDs 7, 30, 31 and 32 and for IDs above
-109. Settling it needs the sound module virtual slot `+4` traced to the Sd
-handle states that a state 3 resource reaches.
+1. The `request(ID, duration)` operation `0x004B7650` takes the true return at
+   `0x004B7681` when the selected slot's requested resource ID (slot `+0x10`)
+   equals the new one. Otherwise it releases the selected slot through
+   receiver slot 6 with the request's own duration at `0x004B769A..0x004B76AD`,
+   and then calls receiver slot 4 or slot 5 according to byte `+0x24` of the
+   music module. The module is the RaptureSoundModule of table `0x00F90F9C`,
+   built by `0x004DD790`.
+2. Constructor `0x004DD790` stores its second argument in that byte at
+   `0x004DD7D4`. The dispatcher constructor passes a zero register at
+   `0x004DC0C5` that it cleared at `0x004DBF72`. A zero byte selects slot 4,
+   `0x00441DC0`. No later store to the byte was searched, so the choice is
+   INFERRED.
+3. Slot 4 calls `0x00B8E7B0` at `0x00441DE8`, which returns the sound driver
+   global `0x01367D74`, and returns false at once when it is null. Otherwise
+   it stores the resource ID at slot `+0x10` at `0x00441E32`, looks the ID up
+   in the module map with `0x00441BF0` at `0x00441E6E` and returns true on a
+   hit. On a miss it builds a 0x28-byte SoundCacheSound (table `0x00F67124`),
+   inserts it into the map under the resource ID, calls ResourceModule slot 1
+   through module `+0x04` at `0x00441EDD` with the object as callback, keeps the
+   returned Resource at object `+0x04` and returns true.
+4. ResourceModule slot 1 takes nine arguments. Here they are the resource ID,
+   0, 0, 1, the SoundCacheSound and four zeros, the same shape as the
+   [bitmap font request](bitmap-font-source-request.md#fr-03-request-resource-buffer-and-registered-callback).
+5. When the file read finishes, the ResourceModule update dispatches on
+   Resource `+0xB0` through the jump table at `0x00C999EC`. State 2 publishes
+   state 7 and calls `0x00CAE9E0(Resource, 1)` at `0x00C99992`. State 3
+   publishes state 8 and calls `0x00CAE9E0(Resource, 0)` at `0x00C999A2`.
+   `0x00CAE9E0` dispatches virtual offset 4 of each registered callback at
+   `0x00CAEA47` with the success flag, the Resource and the associated value.
+   For the SoundCacheSound that is table slot 1, `0x00443390`.
+
+A request that returns false in step 3 because the driver is absent stores
+nothing, so the slot holds the zero that the release in step 1 wrote.
+
+## Failed load
+
+The callback `0x00443390` branches on the success flag at its first
+instruction. With flag 0 it jumps to `0x0044347E`, which clears AL and
+returns. It creates no sound, sets no ready byte and runs none of the commands
+the request queued. The queue is a deque at request `+0x08`: `0x004429D0`
+appends a command there while request `+0x1C` holds no sound ID, and replays
+it only after the callback creates one.
+
+The failed request stays in the module map. The idle reaper `0x00441D00`,
+called from the control update at `0x004BBDB8`, skips every request whose time
+stamp at `+0x20` is zero, and only the live-command path stores a time stamp
+(`0x00442A7C`). A failed request therefore keeps its map entry and is neither
+removed nor retried. No code that clears the map, such as a module reset or
+teardown, was searched, so the entry's lifetime is that of the map as far as
+the traced code shows. The stamp and reap rule applies to a failed or empty
+load only. The four stream-less banks get a sound ID and follow the normal
+stamp and reap path, and the traced code does not exclude a reload after a
+reap.
+
+The callback returns false on every path, success included (`xor al,al` at
+`0x00443478`, `0x0044347E` and `0x00443484`), so its return value carries no
+outcome. It stores the ready byte at request `+0x24` as 1 at `0x004433C4`
+only past the length gate and before the bank result is checked. Flag 0 and a
+zero length leave the byte clear, and a bank rejected after the ten retries
+leaves it set.
+
+The traced bodies, which are slot 4, the callback, the state dispatch and the
+read service, contain no log, message or error-raise call beyond the LocalFile
+error helper recorded under [Missing resource](#missing-resource). The output
+sink of that helper was not traced, and no live run covers a failed load, so
+this page makes no claim that a failed load cannot crash.
+
+Each outcome has a row in the manifest's `downstream.outcomes` list, which the
+verifier pins by tier.
+
+## Empty file
+
+Song ID 0 opens a file of zero bytes. The read service calls the buffer
+request `0x009D04AC` with length 0 at `0x00C962B2` and then reads length 0.
+Whether that publishes state 2 or state 3 was not run, and it does not matter.
+The success callback tests Resource `+0x28`, the length that `0x00CAE660`
+returns from Resource `+0x5C`, and returns false at `0x00443484` when it is
+zero, before it fetches any buffer. The failure callback returns false too.
+Song ID 0 therefore ends like a missing file with no sound.
+
+## Stream-less containers
+
+The success callback fetches the Resource buffer through Resource virtual
+offset `+0x18`, which returns it only in state 7, and passes it to
+`0x00B8EEF0`. That wrapper calls slot 4 of the SoundDriver
+(`.?AVSoundDriver@Driver@Sd@Engine@CDev@SQEX@@`, table `0x0113D854`), which
+reaches `0x00B5EB70`. The creator returns zero unless the buffer opens with
+`SEDB` at `0x010AD58C`, then `SSCF` at `0x010AD594`, and the dword at `+8` is
+3 or less (`0x00B5ECCF`). Every music file on the installation passes: the
+dword is 3.
+
+A buffer that passes gets an ActualBank from constructor `0x00B77E10`. The
+constructor and its base `0x00B78480` store the buffer pointer and the version
+dword and read no count. The creator then calls the loader itself. At
+`0x00B5EDD1..0x00B5EDD8` it loads the new bank's vtable slot 2, which holds
+`0x00B77EE0` (cell `0x010B26B4`), and calls it. Nothing reads EAX afterwards,
+and the creator returns the ID, so the loader runs inside creation and its
+result is discarded. The loader reads the table offset from header `+0x0E` and
+stores the first three u16 words of the table at bank `+0x5C`, `+0x5E` and
+`+0x60`. When bank flag byte `+0x48` has bit 3 clear, which the base
+constructor's initial `0x82` gives, it then walks the entries that word 0
+counts through the entry accessor `0x00B77FA0` and stores `0xFF` into byte
+`+0xF` of each (`0x00B77F45..0x00B77F60`). The accessor clamps an
+out-of-range index to entry 0 and does not fail. Song IDs 7, 30, 31 and 32
+hold the words 1, 0, 0, so the loader walks one entry. The loader does not
+reject them, and the creator would ignore a rejection. The callback receives a
+valid sound ID and replays the queued start commands. Where the entry offset
+that the accessor reads lands inside the buffer was not traced.
+
+What a started instance of such a bank does was not traced. The driver's
+instance creation `0x00E39460` and the voice code behind it are outside the
+checked bodies. Whether the instance makes any sound and whether the slot's
+handle stays live (`0x00B52B70`) is UNPROVED. A consumer that must choose
+treats these four IDs as producing no sound, which the empty table words make
+likely but do not prove.
+
+A buffer the driver rejects yields sound ID 0. The callback then sleeps 100 ms
+and retries creation up to ten times (`0x004433E4`) before it gives up, so a
+corrupt music file blocks the calling thread for about a second and then stays
+silent. No file on the installation fails the magic and version gates.
+
+## Control state after a failed load
+
+The following holds for any request whose load fails, ends in an empty file or
+creates no audible sound. The slot is whichever slot the control selected.
+
+- The slot records the new resource ID. Slot 4 stores it before the load, so a
+  failed ID is what `requested` reports afterwards.
+- The previous song is already gone. `request` released the slot with the
+  request's duration before slot 4 ran. The duration is 0 for modes 1 and 5
+  through 14, which stops at once, and 2000 for the deferred request, mode 2
+  and the mode 3 fallback. A queued start for a slot that was still loading is
+  cancelled by the same release: `0x00441CDF` calls `0x004428A0`, which removes
+  the commands whose slot pointer matches, and the requested ID is cleared in
+  both release branches.
+- A repeat request for the same ID takes the true return at `0x004B7681` with no call. A
+  repeat after a release finds the failed map entry at `0x00441E6E` and only
+  appends a command to it. No path calls ResourceModule again, so a failed ID is
+  not retried even when the file later appears.
+- The control's other state is unchanged. The pending-song cell, the timer, the
+  slot selection and the enable gate do not depend on the load.
+- A slot with no live handle makes `control(duration, value)` return false, as
+  its handle predicate `0x00B52B70` fails. Mode 3 then falls back to requesting
+  its own song. Mode 2 ignores the result.
+
+Mode 2 with an ID that fails therefore suspends the current song, swaps slots
+and plays nothing. A following mode 3 swaps back and resumes the suspended
+song. Mode 4 releases the current song with duration 2000, and its request more
+than 2000 ms later fails silently, so mode 4 with a missing ID is a release
+that records the ID.
+
+## Song values from Lua
+
+The packet receiver zero-extends the u16 (`0x004DCC12..0x004DCC1A`). The Lua
+wrapper `0x0075C930` sign-extends it instead, with `MOVSX` on a 16-bit song and
+an 8-bit mode. A Lua song of 32768 through 65535 becomes a negative value, and
+the receiver adds `0x07FE0000` to it, giving `0x07FD8000` through `0x07FDFFFF`.
+Those resource IDs name `data/07/FD/xx/xx.DAT` paths that do not exist on the
+installation, so the request ends as any missing file.
+
+The deferred-song cell `0x0132F3D4` holds -1 for no pending song, and the
+control update ends at once on -1 (`0x004BBDCE`). Mode 4 stores the value it was
+given at `0x004BBC93`. A Lua song of 65535 stores -1, so that call releases the
+current song and schedules nothing. The packet value 65535 is stored as 65535
+and schedules a request for a missing resource.
 
 ## Zone and area policy
 
@@ -195,14 +370,35 @@ combat and in events stays open, and only a sender-side policy can answer it.
 
 ## Consumer implications
 
-A consumer that resolves a song ID may rely on the following.
+A reimplementation of the music control may rely on the following.
 
-- Compute the resource ID as `0x07FE0000 + songID` and format the path as in
-  [Request derivation](#request-derivation), treating numeric mode as inferred.
-- Treat an ID above 109 as a request whose file read fails. Retail does not
-  reject it in the control body.
-- Treat ID 0 as an empty file and IDs 7, 30, 31 and 32 as containers with no
-  stream.
+- Compute the resource ID as `0x07FE0000 + songID`, with the packet value
+  zero-extended and a Lua value sign-extended from 16 bits, and format the path
+  as in [Request derivation](#request-derivation), treating numeric mode as
+  inferred. Apply no range check.
+- Make `request` return at once when the selected slot already records the
+  resource ID. Otherwise release the selected slot with the request's own
+  duration, record the new ID in the slot, and only then try to load. The
+  release duration is 0 for modes 1 and 5 through 14 and 2000 for mode 2, the
+  mode 3 fallback and the deferred request.
+- Keep the recorded ID when the load fails. Start no voice, fall back to no
+  other song, keep the previous song released, and leave the pending cell, the
+  timer, the slot selection and the enable gate untouched.
+- Never retry a resource ID whose load failed or was empty, for the life of the
+  module map (no clear path was traced), whether the repeat comes from the same
+  slot or after a release. Song IDs 7, 30, 31 and 32 get a sound ID and follow
+  the normal cache path, so a reload after a reap is not excluded.
+- Surface nothing to the caller or the user. No log or raise was found in the
+  traced bodies. The client's behavior on a failed load beyond that was not
+  run.
+- Treat song IDs 110 through 65535, Lua songs of 32768 and above, and song ID 0
+  as silent requests of this kind. Treat song IDs 7, 30, 31 and 32 as silent too.
+  Their audibility is UNPROVED, and a modeled voice for them would change only
+  whether `control` reports success in mode 3.
+- Let `control(duration, value)` report false for a slot with no voice, so mode
+  3 requests its own song. Mode 2 ignores the result. Mode 3 resumes a
+  suspended song that has a voice.
+- Treat mode 4 with Lua song 65535 as a release that schedules nothing.
 - Do not infer a zone default from the client. Do not assign titles from the
   table.
 
@@ -220,7 +416,8 @@ python tools/validate_repo.py
 ```
 
 The first form checks the manifest and its mutations. `--exe` checks the pinned
-size and SHA-256, the 13 instruction and string sequences, and the immediate
-site list. `--install` compares the file table and the `data` tree counts.
+size and SHA-256, the 75 instruction, table and string checks, and the immediate
+site list. `--install` compares the file table, the table words and the `data`
+tree counts.
 `--print-install <game-root>` prints the table rows that regenerate the
 manifest.

@@ -36,8 +36,9 @@ binding and the remaining call-time/formatter-mode limits.
 There is no song-ID-zero or song-ID-`0xFFFF` branch in this control
 body. They produce `0x07FE0000` and `0x07FEFFFF`, respectively. The
 [song-ID resource table](../resource/music-song-table.md) records which
-resource IDs name installed files. The effect of a missing file on the sound
-object remains unproved.
+resource IDs name installed files and what a failed load does: the slot keeps
+the requested ID, the previous song is already released and nothing retries a
+failed load.
 
 ## Selected slots and operations
 
@@ -151,8 +152,11 @@ not publicly tracked Lua bodies. The manifest records the LPB decoder and
 unluac decompiler pipeline. Generated N-API metadata is a
 navigation aid, not proof of native semantics. Native wrapper `0x0075C930`
 sign-extends a 16-bit song and an 8-bit mode before reaching the same
-controller. Registration `0x00733600` binds `_setMusic` to virtual-dispatch
-thunk `0x0071E400`, whose target is receiver virtual slot 80. The selected
+controller. A Lua song of 32768 or more therefore differs from the packet's
+zero-extended value, as the
+[song-ID table](../resource/music-song-table.md#song-values-from-lua) records.
+Registration `0x00733600` binds `_setMusic` to virtual-dispatch thunk
+`0x0071E400`, whose target is receiver virtual slot 80. The selected
 receiver slot's concrete binding to `0x0075C930` was not closed in this
 bounded investigation. The Lua caller observations consequently stand on
 their own, without claiming that incomplete native join.
@@ -174,8 +178,10 @@ The following inputs remain needed for a historically accurate policy:
   combat start/end, death, events, and competing transitions.
 - The priority and restoration rules between those causes, including whether
   a normal-song change during combat should update a retained slot or wait.
-- Which other resource IDs are available and what IDs zero or `0xFFFF` produce
-  downstream. The selected body does not establish a packet stop sentinel.
+- Which other resource IDs are available. The
+  [song-ID table](../resource/music-song-table.md#failed-load) records that IDs
+  zero, above 109 and `0xFFFF` end silent, and the selected body does not
+  establish a packet stop sentinel.
 - Which reset/enabling paths occur for the intended session lifecycle, and
   whether retained playback survives each transition.
 - Backend guarantees for pause, resume, stop, playhead restoration, fade
