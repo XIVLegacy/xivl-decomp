@@ -242,12 +242,11 @@ as a `printf` format into a `0x400` byte buffer through `0x0097FD10`. The
 arguments are the first substitution string and then the second
 (`0x009B2AB5..0x009B2AEF`). The formatted text is parsed by
 `FUN_0099DDF0` into the stack record (`0x009B2B1F`), which replaces the
-template for this invocation. That the `+0x78` string is the raw
-`CommandParameter` attribute text is INFERRED, because every brace value on
-`ExecuteCommandAction` in the census below carries the `%s` directives that
-this call needs. That does not exclude a separate format property, which stays
-open under the surviving gaps. On the inferred reading, `%s` is a C format
-directive resolved before the grammar above runs. If neither member is set,
+template for this invocation. The `+0x78` string is the `CommandParameter`
+attribute text as the property setter received it
+([setter `0x00955050`](sqwt-command-parameter-consumer.md#command-objects)),
+so `%s` is a C format directive resolved before the grammar above runs. If
+neither member is set,
 the template record parsed at load time is used as is, and a `%s` there parsed
 as a token with no digits and so as `0`. INFERRED for the load-time parse,
 which follows from the property path above.
@@ -274,10 +273,11 @@ Event constructor `0x00929100` copies the record as follows. STATIC.
 | fourth argument | `+0x9C` |
 
 The linked page names the first seven dwords. The eighth integer goes to
-`+0x98`. Whatever reads the kind, string or integers from an event is a
-per-command consumer and is not traced here. The `Button` property consumer
-and the recipients of `Executed` events other than the movement handler are
-UNKNOWN.
+`+0x98`. The form-level handler that reads the kind, string and integers of an
+`Executed` event and calls the script is traced in
+[Sqwt CommandParameter consumer](sqwt-command-parameter-consumer.md).
+The `Button` property consumer and the recipients of `Executed` events other
+than the movement handler and that handler are UNKNOWN.
 
 ## Retail markup census
 
@@ -365,8 +365,9 @@ at run time.
 
 - How a `{Binding ...}` expression is evaluated into the text `T` that the
   property paths parse.
-- Which command consumers read the kind, string or integers from an `Executed`
-  event, and the consumer of the `Button` property record.
+- Which command consumers other than the movement handler and the form-level
+  script handler read the kind, string or integers from an `Executed` event,
+  and the consumer of the `Button` property record.
 - The role of the call at `0x009CEC34`.
 - Behaviour of `_isdigit` for bytes at or above `0x80`.
 - Whether the type name `Sqwt::Input::CommandParameter`, present as the type

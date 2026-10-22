@@ -1,0 +1,253 @@
+{
+  "format": "xivl-sqwt-command-parameter-consumer-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "instrument": "Capstone 5.0.7 x86 32-bit disassembly over a read-only PE32 section mapping; ghidra CLI xrefs as leads"
+  },
+  "scope": "Consumer of the 0x78-byte Sqwt command-parameter record: the form-level Executed handler, the kind-to-variant switch, the Lua entry points and the subscription gate. Command semantics of individual UILuaCommands are Lua behavior and are not established here.",
+  "handler": {
+    "class": "Application::Main::Element::FormElement",
+    "handlerVa": "0x00536280",
+    "registrationVa": "0x0053afaf",
+    "handlerObjectOffset": "+0xa0",
+    "handlerObjectConstructorVa": "0x00543ad0",
+    "handlerObjectClass": "Sqwt::RoutedEventHandler<Application::Main::Element::FormElement>",
+    "handlerObjectVtableVa": "0x00fa106c",
+    "executedJoin": "inferred",
+    "subscriptionAddSite": {
+      "va": "0x0053abc9",
+      "namePushed": false,
+      "eventStaticVa": "0x01336a84",
+      "eventId": "0x59",
+      "initializerVa": "0x00f0bee0"
+    },
+    "thunkArguments": {"child": "template, control, subscription", "root": "control, subscription", "scriptObject": "form +0x80 holds a pointer to a holder, the thunk loads it before the vtable", "subscription": "map value from 0x00535b70, the command string with +0x54 and +0x55"},
+    "routedEvent": {
+      "name": "Executed",
+      "id": "0x2a",
+      "staticVa": "0x01358738",
+      "initializerVa": "0x00f21cb0",
+      "branchVa": "0x0053641c",
+      "otherBranches": {"0x48": "0x00536454", "0x4b": "0x00536433"}
+    },
+    "argumentLayout": {
+      "eventIdByte": "[args+4]+5",
+      "command": "+0x20",
+      "recordKind": "+0x24",
+      "recordString": "+0x28",
+      "recordInt0": "+0x7c",
+      "recordInt1": "+0x80",
+      "handledByte": "+0x19"
+    },
+    "entryGates": [
+      "0x005362cc: call 0x0091a1b0 then 0x00919d30, return when the boolean is 1",
+      "0x005362de, 0x005362e9: return when args+4 or args+8 is null",
+      "0x00536535: return when form element +0x100 is zero",
+      "0x00536601..0x00536659: the six generic UILuaCommands share one per-frame flag at +0x1ec"
+    ],
+    "frameDebounce": {
+      "frameCounterReadVa": "0x00536601",
+      "frameCounterOffset": "+0x46c",
+      "storedFrameOffset": "+0x1e8",
+      "sharedFlagOffset": "+0x1ec",
+      "commands": [
+        {"name": "UILuaCommands.Operate", "objectVa": "0x0133b798"},
+        {"name": "UILuaCommands.Cancel", "objectVa": "0x0133b838"},
+        {"name": "UILuaCommands.WidgetClose", "objectVa": "0x0133b8d8"},
+        {"name": "UILuaCommands.Selection", "objectVa": "0x0133b978"},
+        {"name": "UILuaCommands.SelectionChanged", "objectVa": "0x0133ba18"},
+        {"name": "UILuaCommands.SelectionChangedOnce", "objectVa": "0x0133bab8"}
+      ]
+    }
+  },
+  "subscriptionGate": {
+    "lookupVa": "0x00535b70",
+    "mapOffset": "+0xf8",
+    "keys": ["template name", "control name", "command name"],
+    "unmatched": "return without a Lua call",
+    "templateNameHelpers": ["0x005357d0", "0x00535450"],
+    "rootNameCacheVa": "0x00535890",
+    "rootNameOffset": "+0x164",
+    "rootNameLiteral": {"text": "_widget", "stringVa": "0x00fa0650", "staticStringVa": "0x01336a30", "initializerVa": "0x00f0bebb"},
+    "registration": {
+      "plainControlVa": "0x0053ab80",
+      "plainTemplateKey": "form root name at +0x164, passed at 0x0053abf7",
+      "templateMapOffset": "+0x104",
+      "templateEntryVa": "0x0053aa00",
+      "mapInsertVa": "0x0053a720"
+    },
+    "controlNameRule": "control name equal to the form root name is replaced by _widget at 0x005365b1",
+    "templateNameRule": "template name equal to the form root name selects the variant that passes an empty first string (0x005365e2..0x005365f7)",
+    "luaBindings": [
+      {"name": "_setUICommandCondition", "stringVa": "0x00fd74d4", "arguments": "control, command, optional number"},
+      {"name": "_setUICommandTemplateCondition", "stringVa": "0x00fd7574", "arguments": "template, control, command, optional number"}
+    ],
+    "conditionBytes": {
+      "storeVa": "0x007172a0",
+      "storeOffsets": ["+0x54", "+0x55"],
+      "numberGiven": {"+0x54": "byte at 0x0134c3fe", "+0x55": "number"},
+      "numberAbsent": {"+0x54": "byte at 0x012c3f78", "+0x55": "0"},
+      "byteAt0x0134c3fe": 0,
+      "byteAt0x012c3f78": 1
+    }
+  },
+  "kindSwitch": {
+    "jumpTableVa": "0x005367a0",
+    "targets": [
+      "0x00536676",
+      "0x005366aa",
+      "0x005366da",
+      "0x005366da",
+      "0x0053674f",
+      "0x0053674f",
+      "0x0053674f",
+      "0x0053674f",
+      "0x0053671f"
+    ],
+    "defaultTarget": "0x0053674f",
+    "variants": [
+      {"kinds": [0], "variant": "UICommandEventParameter", "values": [], "rootSlot": 9, "childSlot": 8},
+      {"kinds": [1], "variant": "UICommandEventParameterWithInt", "values": ["+0x7c"], "rootSlot": 11, "childSlot": 10},
+      {"kinds": [2, 3], "variant": "UICommandEventParameterWithTwoInt", "values": ["+0x7c", "+0x80"], "rootSlot": 15, "childSlot": 14},
+      {"kinds": [8], "variant": "UICommandEventParameterWithString", "values": ["&+0x28"], "rootSlot": 13, "childSlot": 12}
+    ],
+    "noEventKinds": [4, 5, 6, 7],
+    "thunks": [
+      {"va": "0x00574ba0", "vtableOffset": "+0x24", "slot": 9},
+      {"va": "0x00574bb0", "vtableOffset": "+0x20", "slot": 8},
+      {"va": "0x00574bc0", "vtableOffset": "+0x2c", "slot": 11},
+      {"va": "0x00574bd0", "vtableOffset": "+0x28", "slot": 10},
+      {"va": "0x00574be0", "vtableOffset": "+0x34", "slot": 13},
+      {"va": "0x00574bf0", "vtableOffset": "+0x30", "slot": 12},
+      {"va": "0x00574c00", "vtableOffset": "+0x3c", "slot": 15},
+      {"va": "0x00574c10", "vtableOffset": "+0x38", "slot": 14}
+    ],
+    "scriptObjectOffset": "+0x80"
+  },
+  "scriptInterface": {
+    "catalogClass": "Application::Lua::Script::Client::LuaActorImpl",
+    "vtableVa": "0x00fdfb2c",
+    "slotTable": {
+      "firstSlotVa": "0x00fdfb4c",
+      "firstSlot": 8,
+      "functionVas": [
+        "0x0075d510",
+        "0x0075d4e0",
+        "0x0075d590",
+        "0x0075d550",
+        "0x0075d610",
+        "0x0075d5d0",
+        "0x0075d690",
+        "0x0075d650"
+      ]
+    },
+    "eventSelector": {
+      "functionVa": "0x006f5640",
+      "comparisonVa": "0x006f569d",
+      "equalPath": {"name": "_onUICommandEvent", "functionVa": "0x00896af0", "stringVa": "0x01056b88"},
+      "unequalPath": {"name": "_onUICommandRequest", "functionVa": "0x00896d00", "stringVa": "0x01056b9c"}
+    },
+    "eventQueue": {
+      "rejectsNotAbovePendingPriority": "0x00896b2a..0x00896b42",
+      "priorityByte": "parameter +0x100",
+      "flushVa": "0x00896ed0"
+    },
+    "requestDepthLimit": "0x00896d33: reject when the nesting count at +0x14 is 8 or more"
+  },
+  "parameterObjects": {
+    "layout": {
+      "string0": "+0x04",
+      "string1": "+0x58",
+      "string2": "+0xac",
+      "priorityByte": "+0x100",
+      "wordAt0x102": "+0x102",
+      "int0": "+0x104",
+      "int1": "+0x108",
+      "stringValue": "+0x104"
+    },
+    "classes": [
+      {"name": "UICommandEventParameter", "vtableVa": "0x00fd5300", "pushVa": "0x00749220"},
+      {"name": "UICommandEventParameterWithInt", "vtableVa": "0x00fd5310", "pushVa": "0x00749270"},
+      {"name": "UICommandEventParameterWithTwoInt", "vtableVa": "0x00fd5320", "pushVa": "0x007492d0"},
+      {"name": "UICommandEventParameterWithString", "vtableVa": "0x00fd5330", "pushVa": "0x00749340"}
+    ],
+    "pushOrder": "string0 (nil when empty), string1, string2, then the variant values",
+    "valueTypes": {"integer": "0x00748e00", "string": "0x00748da0", "nil": "0x00748ec0"}
+  },
+  "commandSource": {
+    "propertyClass": "Sqwt::DependencyPropertyInfo<Sqwt::Input::ICommandSource<Sqwt::TriggerAction>>",
+    "setterVa": "0x00955010",
+    "cases": [
+      {"case": 0, "property": "Command", "descriptorVa": "0x0135a1fc", "storedAt": "+0x44"},
+      {"case": 1, "property": "CommandTarget", "descriptorVa": "0x0135a220", "storedAt": "+0x4c"},
+      {"case": 2, "property": "CommandParameter", "descriptorVa": "0x0135a244", "textAt": "+0x78", "recordHolderAt": "+0x54"}
+    ],
+    "unknownCommandName": {"lookupVa": "0x00928280", "findOrCreateVa": "0x00928f90", "constructorVa": "0x00928c90", "objectSize": "0x9c"}
+  },
+  "staticChecks": [
+    {"kind": "signature", "name": "kind switch guard and jump", "va": "0x00536663", "pattern": "8B 47 24 83 F8 08 0F 87 E0 00 00 00", "mask": "FF FF FF FF FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "event id branches", "va": "0x00536415", "pattern": "8B 47 04 0F B6 40 05 83 F8 2A 0F 84 CF 00 00 00 83 F8 48 74 2A 83 F8 4B 0F 85 44 03 00 00", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 FF FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "subscription add site", "va": "0x0053abc1", "pattern": "FF D2 8B 06 8B 50 24 53 68 84 6A 33 01 8B CE FF D2 8B 44 24 18 50 55", "mask": "FF 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "handler registration", "va": "0x0053afaf", "pattern": "B8 80 62 53 00 50 56 8D 8E A0 00 00 00", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "one integer delivery", "va": "0x005366aa", "pattern": "80 7C 24 17 00 8B 57 7C 8B 8E 80 00 00 00 52", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "two integer delivery", "va": "0x005366e7", "pattern": "8B 87 80 00 00 00 8B 57 7C 50 52 53", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "string delivery", "va": "0x0053671f", "pattern": "8B 8E 80 00 00 00 83 C7 28", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "frame debounce chain", "va": "0x0053661f", "pattern": "8B 47 20 3D 98 B7 33 01 74 23 3D 38 B8 33 01 74 1C 3D D8 B8 33 01 74 15 3D 78 B9 33 01 74 0E 3D 18 BA 33 01 74 07 3D B8 BA 33 01 75 17 83 BE EC 01 00 00 00 0F 85 F6 00 00 00 C7 86 EC 01 00 00 01 00 00 00 8B 47 24 83 F8 08 0F 87 E0 00 00 00", "mask": "FF FF FF FF FF FF FF FF FF 00 FF FF FF FF FF FF 00 FF FF FF FF FF FF 00 FF FF FF FF FF FF 00 FF FF FF FF FF FF 00 FF FF FF FF FF FF 00 FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "root name replacement", "va": "0x005365b1", "pattern": "68 30 6A 33 01 8D 4C 24 38 E8 91 0E F1 FF 53", "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF"},
+    {"kind": "signature", "name": "template name equals root name", "va": "0x005365e2", "pattern": "8D 86 64 01 00 00 50 8D 8C 24 90 00 00 00 E8 2B F7 F0 FF 84 C0 0F 95 44 24 17", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "entry gate", "va": "0x005362cc", "pattern": "E8 DF 3E 3E 00 E8 5A 3A 3E 00 3C 01 0F 84 99 04 00 00", "mask": "FF 00 00 00 00 FF 00 00 00 00 FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "event or request selector", "va": "0x006f569d", "pattern": "8A 0D FE C3 34 01 3A 08 75 17", "mask": "FF FF FF FF FF FF FF FF FF 00"},
+    {"kind": "signature", "name": "first string nil when empty", "va": "0x00749220", "pattern": "56 8B 74 24 08 57 8B F9 8B 4F 04 80 39 00 8D 47 04 8B CE", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "command parameter text store", "va": "0x00955050", "pattern": "8B 7C 24 24 57 8D 4C 24 28 E8 32 58 04 00 8D 44 24 24 50 8D 4E 78", "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 9 root none", "va": "0x00574ba0", "pattern": "8B 09 8B 01 8B 40 24 FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 8 child none", "va": "0x00574bb0", "pattern": "8B 09 8B 01 8B 40 20 FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 11 root int", "va": "0x00574bc0", "pattern": "8B 09 8B 01 8B 40 2C FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 10 child int", "va": "0x00574bd0", "pattern": "8B 09 8B 01 8B 40 28 FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 13 root string", "va": "0x00574be0", "pattern": "8B 09 8B 01 8B 40 34 FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 12 child string", "va": "0x00574bf0", "pattern": "8B 09 8B 01 8B 40 30 FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 15 root two ints", "va": "0x00574c00", "pattern": "8B 09 8B 01 8B 40 3C FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "thunk slot 14 child two ints", "va": "0x00574c10", "pattern": "8B 09 8B 01 8B 40 38 FF E0", "mask": "FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "condition object byte stores", "va": "0x007172da", "pattern": "8A 4C 24 20 8A 54 24 24 88 4E 54 88 56 55", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "parameter base layout", "va": "0x0071330d", "pattern": "8D 4E 04 C7 06 00 53 FD 00 E8 E5 3E D3 FF C7 44 24 14 00 00 00 00 8B 4C 24 20 51 8D 4E 58 E8 D0 3E D3 FF C6 44 24 14 01 8B 54 24 24 52 8D 8E AC 00 00 00 E8 BB 3E D3 FF C6 44 24 14 02 8B 44 24 28 8A 08 88 8E 00 01 00 00", "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"},
+    {"kind": "signature", "name": "event priority compare", "va": "0x00896b2a", "pattern": "3B FB 0F 84 81 00 00 00 8A 81 00 01 00 00 3A 87 00 01 00 00 77 07 32 C0", "mask": "FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF 00 FF FF"},
+    {"kind": "signature", "name": "request depth limit", "va": "0x00896d33", "pattern": "83 7E 14 08 72 07 32 C0", "mask": "FF FF FF FF FF 00 FF FF"},
+    {"kind": "signature", "name": "selector drop gates", "va": "0x006f5651", "pattern": "8B 77 0C 85 F6 74 79 8D 4C 24 08 51 8B CE C7 44 24 0C 00 00 00 00 E8 34 FB FF FF 8B C8 E8 2D 05 FF FF 85 C0 74 5A 8B 96 28 01 00 00 3B 15 78 C7 30 01 75 4C 8B CF E8 A4 D9 06 00 84 C0 74 09 80 BE 61 01 00 00 00 75 38", "mask": "FF FF FF FF FF FF 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF 00 FF FF FF FF FF FF FF FF FF FF FF FF FF 00 FF FF FF 00 00 00 00 FF FF FF 00 FF FF FF FF FF FF FF FF 00"},
+    {"kind": "signature", "name": "pad one shot gate", "va": "0x0053632d", "pattern": "83 78 78 00 8B 8F 9C 00 00 00 89 44 24 28 89 4C 24 30 0F 84 BF 00 00 00", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "root command special case", "va": "0x0053651d", "pattern": "39 35 4C 66 33 01 75 10 81 7F 20 38 BD 33 01 75 07 8B CE E8 CB F7 FF FF", "mask": "FF FF FF FF FF FF FF 00 FF FF FF FF FF FF FF FF 00 FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "subscription object feeds the root selector call", "va": "0x006f5737", "pattern": "8A 4E 55 56 50 88 4C 24 23 68 10 6B 26 01 8D 4C 24 28 E8 92 DB 01 00", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "unnamed event 0x59 initializer", "va": "0x00f0bee0", "pattern": "6A 00 51 8B C4 51 C6 00 59 8B C4 B9 84 6A 33 01 C6 00 00 E8 C8 37 A7 FF", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"},
+    {"kind": "signature", "name": "Executed event initializer", "va": "0x00f21cb0", "pattern": "68 EC A6 06 01 51 8B C4 51 C6 00 2A 8B C4 B9 38 87 35 01 C6 00 00 E8 F5 D9 A5 FF", "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"},
+    {"kind": "dwords", "name": "kind jump table", "va": "0x005367a0", "values": ["0x00536676", "0x005366aa", "0x005366da", "0x005366da", "0x0053674f", "0x0053674f", "0x0053674f", "0x0053674f", "0x0053671f"]},
+    {"kind": "dwords", "name": "script interface slots 8 to 15", "va": "0x00fdfb4c", "values": ["0x0075d510", "0x0075d4e0", "0x0075d590", "0x0075d550", "0x0075d610", "0x0075d5d0", "0x0075d690", "0x0075d650"]},
+    {"kind": "dwords", "name": "parameter push slot", "va": "0x00fd5308", "values": ["0x00749220"]},
+    {"kind": "dwords", "name": "parameter push slot with int", "va": "0x00fd5318", "values": ["0x00749270"]},
+    {"kind": "dwords", "name": "parameter push slot with two ints", "va": "0x00fd5328", "values": ["0x007492d0"]},
+    {"kind": "dwords", "name": "parameter push slot with string", "va": "0x00fd5338", "values": ["0x00749340"]},
+    {"kind": "dwords", "name": "condition byte without a number", "va": "0x012c3f78", "width": 1, "values": ["0x01"]},
+    {"kind": "dwords", "name": "condition byte with a number", "va": "0x0134c3fe", "width": 1, "values": ["0x00"]},
+    {"kind": "string", "va": "0x01056b88", "text": "_onUICommandEvent"},
+    {"kind": "string", "va": "0x01056b9c", "text": "_onUICommandRequest"},
+    {"kind": "string", "va": "0x00fd74d4", "text": "_setUICommandCondition"},
+    {"kind": "string", "va": "0x00fd7574", "text": "_setUICommandTemplateCondition"},
+    {"kind": "string", "va": "0x00fa0650", "text": "_widget"},
+    {"kind": "string", "va": "0x0106a6ec", "text": "Executed"},
+    {"kind": "string", "va": "0x00fa8674", "text": "UILuaCommands.Operate"},
+    {"kind": "string", "va": "0x00fa868c", "text": "UILuaCommands.Cancel"},
+    {"kind": "string", "va": "0x00fa86a4", "text": "UILuaCommands.WidgetClose"},
+    {"kind": "string", "va": "0x00fa86c0", "text": "UILuaCommands.Selection"},
+    {"kind": "string", "va": "0x00fa86d8", "text": "UILuaCommands.SelectionChanged"},
+    {"kind": "string", "va": "0x00fa86f8", "text": "UILuaCommands.SelectionChangedOnce"}
+  ],
+  "unknowns": [
+    "The release point of the first stored event at queue +4 and the caller cadence of 0x00896ed0.",
+    "The role of the gate object at form element +0x27c that sees the record before the subscription lookup.",
+    "The Button, KeyBinding and PadBinding command invocation sites that put a record into an Executed event.",
+    "BLOCKING: how an event with the Executed id 0x2a reaches the handler when the subscription call adds it for the unnamed event at 0x01336a84 (id 0x59), and the event matching rule of RoutedEventHandler.",
+    "The role of the call at 0x00535d00 for command object 0x0133bd38, and of the selector gates at 0x006f5654, 0x006f5677 and 0x006f568e.",
+    "The meaning of the number argument of the subscription calls beyond the event priority byte."
+  ]
+}

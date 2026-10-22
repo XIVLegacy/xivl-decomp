@@ -20,6 +20,7 @@ import verify_resource_path_producer as resource_path_verifier
 import verify_s2c_018d_client_consumer as s2c_018d_consumer_verifier
 import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
+import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
 PERMITTED_TOP_LEVEL_GROUPS = {
@@ -386,6 +387,16 @@ def main() -> int:
     if s2c_018d_errors:
         errors.extend(
             f"s2c 0x018D client-consumer manifest: {error}" for error in s2c_018d_errors
+        )
+
+    sqwt_command_errors = (
+        sqwt_command_consumer_verifier.verify()
+        + sqwt_command_consumer_verifier.mutation_test()
+    )
+    if sqwt_command_errors:
+        errors.extend(
+            f"sqwt command-parameter consumer contract: {error}"
+            for error in sqwt_command_errors
         )
 
     s2c_0190_errors = s2c_0190_consumer_verifier.verify()
