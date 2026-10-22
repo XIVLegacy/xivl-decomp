@@ -17,6 +17,7 @@ after resource identity, with its separate admission conditions.
 | Examined contract | Verdict | Boundary |
 | --- | --- | --- |
 | Captured local ID to WindowActor key | PROVEN for the pinned capture | The registry result and its type were not recorded |
+| Older retained key data to actual Scene result/type | INCOMPLETE | Raw v3 key positions are verified; its full producer/schema remains unqualified |
 | Requested appearance/path identifies the active root | REJECTED within native finite cases | Requested, applied, pending and loaded domains can differ |
 | Concrete factory to pinned PWIB input | PROVEN for supplied `0x00FE96FC` receiver and pinned bytes | Root return, copy and first-span selection replayed; descendant factories joined statically |
 | Actual intended actor to pinned SHD/WRB | INCOMPLETE | Actual Scene result/type, applied appearance, receiver and completed root/byte identity |
@@ -90,6 +91,78 @@ captured Main actor ID 1000476 == WindowActor primary key
 The [lookup finding](window-actor-anchor-producer.md#target-production) owns
 the +0x54 wrapper versus +0x84 tree distinction. Neither is an offset into
 the captured Main actor.
+
+## Retained key coverage and result type
+
+The older `primary-label-context-probe-stationary-no-draw.bin` is 30527624
+bytes, SHA-256
+`48B2DDAC9520A3C1F723914BFCFF3AE58A3D4BB53B79F28A74175E8C1FC81377`.
+Its raw header has magic `0x434C5050`, version 3, record size 824,
+capacity 131072 and equal record counters 37048. The complete file fits
+72 + 37048 * 824 bytes. Every record has raw +0 equal to 1 and +8 equal
+to its zero-based index. These are framing checks, not a complete v3 decoder.
+
+An exhaustive byte search finds all 37047 little-endian u32 occurrences of
+1000476 at record +0x20. The raw tuple at +0x20/+0x24/+0x28 is
+`(1000476, 0x2D780048, 155)` in those records. Record 11304 instead has
+`(0,0,0)` there; its raw +4 word is 3. There are no occurrences at other
+offsets, including unaligned positions or the header. No cause is assigned
+to the zero tuple, and raw event numbers are not given v4/v5 event names.
+
+The stream's retained status identifies PID 20104, actor_id 1000476,
+actor `0x2D780048`, zone 155 and accepted_draws 0 (`.status:1..25`,
+SHA-256 `1BC134E228A1591D41EDAE30EFEA51DC7A42664DFCC6485B7A873D5C6E241D0C`).
+This corroborates the raw tuple at status level. It does not type the
+address as the Scene lookup return. The status nameplate `0x2D780BE8`
+equals actor+0xBA0; that arithmetic does not turn a Main object into a
+Scene actor. This older instance is separate from the accepted v5
+PID 23884/Main `0x2EE90048`/WindowActor `0x29800340` instance.
+
+Within the retained 369-entry evidence inventory (`manifest.json`, SHA-256
+`3FAF6C8448D9A414E8FF0C9F8051045B11A3568853D44BD79E403D2D59E8385A`),
+333 text files supplied no explicit 824-byte/version-3 producer or parser
+declaration. The complete TPI streams of its five PDBs contained no type
+of size 824 or CaptureHeader of size 72. The eight retained ProbeRecord
+source copies were later layouts. This finite search does not qualify
+the remaining v3 body words. Four unique probe DLLs matched retained PDBs
+by GUID/age and held gHeader initializers for version 4 or 5 with 1180-byte
+records. LLVM llvm-pdbutil 22.1.4 supplied complete `dump --types` TPI
+streams and `dump --globals` gHeader locators; pefile 2024.8.26 translated
+the matched section/offset symbols to PE initializer bytes.
+Two other unique retained DLLs lacked matching PDBs and remain unqualified
+native producer candidates. No whole-DLL absence claim follows from this
+search. An opaque record word could still contain useful data; similar
+offsets in later layouts are insufficient to name it as a Scene pointer
+or vptr.
+
+Four other retained raw inputs contain no literal little-endian u32
+1000476 under an exhaustive byte search:
+
+| Exact input | Bytes | SHA-256 |
+| --- | --- | --- |
+| `camera-cadence.bin` | 960024 | `88AD2E82A96E567386C7E37F8623F9ECAEED3674CAE77FF7927A9712BCD1424A` |
+| `player-render-adjustment-probe.bin` | 1696264 | `6BED727FE0F74230013EF4939251766D410EA59827158EFDACE6664344BD26A7` |
+| `nameplate-ui-identity.bin` | 64 | `20776FCDC349314EEB0424D7455668118B10C2FE34C7956ED0F26942931D3984` |
+| `player-render-probe.bin` | 128 | `7EA4366A6482695900DF7AB34CC17ACBE43A1B7DB6BFD85CC7E9E1E292D158AA` |
+
+Literal absence is not semantic absence of an indirect or encoded identity.
+The 128-byte header-only file is not the older full render capture merely
+because their basenames agree. Derived local-model reports reuse the v5
+key/position evidence; they add no observed Scene result/type. No heap
+address from a separate run is joined into the accepted instance.
+
+Native lookup itself supplies no type qualification. WindowActor
+`0x007F8D38..0x007F8D49` passes +0x1AC and [WindowActor+0x118]+0x54 to
+`0x007A0150`. The latter adds +0x30, searches the tree through
+`0x0071D420`, then returns node+0x10 unchanged at `0x007A0199`, or zero
+on a miss. It does not read the returned object's vptr. The verifier
+executes both native functions with a one-node synthetic map: a different
+key returns zero; two equal-key cases with distinct first-word tags return
+the same supplied value with no reads of the pointed object's first 256
+bytes. Code stays within these two native functions. These are lookup
+controls, not constructed actors or evidence that either tagged binding is
+legal for this key in a real registry. Actual type still requires an
+observed result plus its independently qualified vptr/RTTI.
 
 ## Requested, applied, pending and loaded state
 
@@ -212,6 +285,12 @@ Run with pefile, Capstone and Unicorn 2.1.4, supplying the three pinned inputs:
 python tools/verify_body_resource_identity.py --exe <ffxivgame.exe> --asset <body-0001> --capture <accepted-v5-capture.bin> --output <new-result.json>
 ```
 
+Add `--retained-capture <file>` once per older pinned input to reproduce
+the raw v3 framing/key-offset checks or the four literal-only scans above.
+Unknown digests are rejected. The v3 check deliberately leaves the rest of
+each record untyped. Registry lookup controls run with or without these
+optional inputs.
+
 The tool rejects optimized Python and existing output files. Three native
 stage/apply cases execute `0x006623F0/0x0065D730`, then separately supplied
 ready records enter `0x00665EF0 -> 0x006B7840` and stop at `0x006B79D1`.
@@ -230,6 +309,10 @@ descendant factories and full resource parsing are not executed by these cases.
 No client process is launched; no live actor, native scene load or graphics
 submission is exercised.
 
-The smallest remaining offline identity edge is a retained record joining the
-captured key to its actual Scene result/type. Applied appearance and successful
-request/root-to-byte identity must follow that edge before profile admission.
+The smallest remaining offline identity edge is a qualified v3 producer/layout,
+or separate retained evidence explicitly joining the captured key and lookup
+context to its actual Scene result/type. This search recovered neither and
+does not exclude data inside the unqualified v3 remainder. Applied appearance
+and successful request/root-to-byte identity must follow that edge before
+profile admission. Admission of the intended body/pass before submission
+remains INCOMPLETE.

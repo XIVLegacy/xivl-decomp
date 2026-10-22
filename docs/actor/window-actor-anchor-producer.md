@@ -121,6 +121,11 @@ The wrappers are `0x007CCAF0` for `U` and `0x007CCBC0` for `V`. The calls are
 virtual: the registry can hold scene-actor subtypes, so the selected runtime
 vtable remains significant.
 
+The [retained key/type finding](body-resource-identity.md#retained-key-coverage-and-result-type)
+bounds the available key 1000476 data and replays the native lookup without
+a pointed-object type read. It does not recover the actual Scene result/type
+or admit the intended body/pass before submission.
+
 For `CharaActor`, slot 91 is the shared actor implementation `0x007CCFC0`.
 It calls CharaActor slot 21 at `0x0065D420` to resolve the bounded attachment
 name from `WindowActor+0x140`, then passes the returned index to slot 92 at

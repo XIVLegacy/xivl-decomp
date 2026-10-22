@@ -14,7 +14,7 @@ import struct
 
 import capstone
 import pefile
-from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_32, UC_HOOK_CODE, UC_HOOK_MEM_READ
 from unicorn.x86_const import (
     UC_X86_REG_EAX,
     UC_X86_REG_EBX,
@@ -33,11 +33,41 @@ CAPTURE_SHA256 = "5A24B2E2FD1A85CB6615588A8322A56323EB9A99BC7680E606B4A0DB07BDD3
 HEADER = struct.Struct("<23I")
 CORE = struct.Struct("<295I")
 PLACEMENT = struct.Struct("<125I")
+KEY = 1000476
+RETAINED_INPUTS = {
+    "48B2DDAC9520A3C1F723914BFCFF3AE58A3D4BB53B79F28A74175E8C1FC81377": (
+        "primary-label-context-probe-stationary-no-draw.bin",
+        30527624,
+    ),
+    "88AD2E82A96E567386C7E37F8623F9ECAEED3674CAE77FF7927A9712BCD1424A": (
+        "camera-cadence.bin",
+        960024,
+    ),
+    "6BED727FE0F74230013EF4939251766D410EA59827158EFDACE6664344BD26A7": (
+        "player-render-adjustment-probe.bin",
+        1696264,
+    ),
+    "20776FCDC349314EEB0424D7455668118B10C2FE34C7956ED0F26942931D3984": (
+        "nameplate-ui-identity.bin",
+        64,
+    ),
+    "7EA4366A6482695900DF7AB34CC17ACBE43A1B7DB6BFD85CC7E9E1E292D158AA": (
+        "player-render-probe.bin",
+        128,
+    ),
+}
 
 
 def native_anchors(pe):
     decoder = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
     anchors = [
+        (0x7F8D38, "mov", "eax, dword ptr [esi + 0x1ac]"),
+        (0x7F8D3E, "mov", "ecx, dword ptr [esi + 0x118]"),
+        (0x7F8D46, "add", "ecx, 0x54"),
+        (0x7F8D49, "call", "0x7a0150"),
+        (0x7A0156, "lea", "esi, [ecx + 0x30]"),
+        (0x7A0165, "call", "0x71d420"),
+        (0x7A0199, "mov", "eax, dword ptr [esi + 0x10]"),
         (0x6623F8, "lea", "edi, [eax + 0x13c8]"),
         (0x6623FE, "mov", "ecx, 0x1d"),
         (0x662403, "rep movsd", "dword ptr es:[edi], dword ptr [esi]"),
@@ -123,6 +153,118 @@ def machine(image):
     uc.mem_map(0x2000000, 0x10000)
     uc.mem_map(0x3000000, 0x10000)
     return uc
+
+
+def registry_replay(image):
+    results = []
+    for node_key, tag in ((KEY - 1, 0xFC0D34), (KEY, 0xFC0D34), (KEY, 0x1057EE4)):
+        uc = machine(image)
+        scene, head, node, value, stop, stack = (
+            0x2000000,
+            0x2001000,
+            0x2001100,
+            0x2002000,
+            0x200F000,
+            0x3008000,
+        )
+
+        def put(address, *values):
+            uc.mem_write(address, struct.pack("<" + "I" * len(values), *values))
+
+        # Minimal one-node tree; first-word tags are not constructed actors.
+        put(scene + 0x84 + 4, head)
+        put(head, node, node, node)
+        uc.mem_write(head + 0x15, b"\1")
+        put(node, head, head, head, node_key, value)
+        put(value, tag)
+        put(stack, stop, KEY)
+        uc.reg_write(UC_X86_REG_ECX, scene + 0x54)
+        uc.reg_write(UC_X86_REG_ESP, stack)
+        visited, object_reads = set(), []
+
+        def code(_uc, address, _size, _user):
+            visited.add(address)
+            assert (
+                address == stop
+                or 0x7A0150 <= address < 0x7A01B0
+                or 0x71D420 <= address < 0x71D489
+            ), hex(address)
+            if address == stop:
+                uc.emu_stop()
+
+        def read(_uc, _access, address, size, _value, _user):
+            if address < value + 0x100 and address + size > value:
+                object_reads.append((address, size))
+
+        uc.hook_add(UC_HOOK_CODE, code)
+        uc.hook_add(UC_HOOK_MEM_READ, read)
+        uc.emu_start(0x7A0150, 0, count=1000)
+        expected = value if node_key == KEY else 0
+        assert uc.reg_read(UC_X86_REG_EIP) == stop
+        assert uc.reg_read(UC_X86_REG_ESP) == stack + 8
+        assert uc.reg_read(UC_X86_REG_EAX) == expected
+        assert {0x7A0150, 0x71D420} <= visited and not object_reads
+        results.append(
+            dict(
+                query=KEY,
+                node_key=node_key,
+                returned_value=hex(expected),
+                synthetic_first_word=hex(tag),
+                pointed_object_reads=0,
+                boundary="Native wrapper/tree search, no stubs. Minimal synthetic map and first-word tags; no actor constructor or legal real-registry binding is established.",
+            )
+        )
+    return results
+
+
+def inspect_retained_capture(data):
+    if not __debug__:
+        raise ValueError("optimized Python is unsupported")
+    digest = hashlib.sha256(data).hexdigest().upper()
+    if digest not in RETAINED_INPUTS:
+        raise ValueError("retained capture SHA-256 mismatch")
+    name, size = RETAINED_INPUTS[digest]
+    assert len(data) == size
+    needle, hits, start = struct.pack("<I", KEY), [], 0
+    while (offset := data.find(needle, start)) != -1:
+        hits.append(offset)
+        start = offset + 1
+    result = dict(name=name, sha256=digest, bytes=size, literal_key_hits=len(hits))
+    if name != "primary-label-context-probe-stationary-no-draw.bin":
+        assert not hits
+        result["boundary"] = (
+            "Exhaustive literal little-endian u32 key scan only; no semantic schema or absence of an indirect/encoded identity is proved."
+        )
+        return result
+    header = struct.unpack_from("<18I", data)
+    assert header[:3] == (0x434C5050, 3, 824)
+    assert header[3] == 131072 and header[4] == header[5] == 37048
+    assert header[6] == header[7] == 0 and header[17] == 20104
+    assert len(data) == 72 + header[5] * 824
+    tuples, zero_indices, raw_events = Counter(), [], Counter()
+    for i in range(header[5]):
+        base = 72 + i * 824
+        prefix = struct.unpack_from("<3I", data, base)
+        assert prefix[0] == 1 and prefix[2] == i
+        raw_events[prefix[1]] += 1
+        triple = struct.unpack_from("<3I", data, base + 0x20)
+        tuples[triple] += 1
+        if triple == (0, 0, 0):
+            zero_indices.append(i)
+    assert tuples == {(KEY, 0x2D780048, 155): 37047, (0, 0, 0): 1}
+    assert zero_indices == [11304]
+    assert hits == [72 + i * 824 + 0x20 for i in range(37048) if i != 11304]
+    result.update(
+        header_words=header,
+        record_bytes=824,
+        records=37048,
+        raw_word4_counts=dict(raw_events),
+        key_record_offset="0x20",
+        raw_tuple_at_20=[dict(words=words, count=n) for words, n in tuples.items()],
+        zero_tuple_indices=zero_indices,
+        boundary="Pinned framing and raw offsets only. Full v3 producer/schema is unqualified; no opaque word is labeled as a Scene result/type. Other record bytes may contain unqualified data. This is a different instance from the accepted v5 capture.",
+    )
+    return result
 
 
 def appearance_replay(image):
@@ -601,6 +743,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("exe", "asset", "capture", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--retained-capture", type=Path, action="append", default=[])
     args = parser.parse_args()
     if not __debug__:
         parser.error("run without Python optimization")
@@ -621,6 +764,11 @@ def main():
         selected_body=selected_asset(asset),
         framing=body_frames(asset),
         capture=inspect_accepted_v5(args.capture.read_bytes()),
+        retained=[
+            inspect_retained_capture(path.read_bytes())
+            for path in args.retained_capture
+        ],
+        registry=registry_replay(image),
         factory=[
             factory_replay(image, asset, mode)
             for mode in ("wrapper_return", "first_span")
@@ -632,7 +780,7 @@ def main():
     with args.output.open("x", encoding="ascii") as stream:
         stream.write(json.dumps(result, indent=2) + "\n")
     print(
-        "PASS: body pins, capture key coverage, native appearance/request controls and conditional factory/PWIB copy"
+        "PASS: body pins, capture key coverage, native registry/appearance/request controls and conditional factory/PWIB copy"
     )
 
 
