@@ -59,8 +59,8 @@
       "observation": "When LocalFile+4 is null the service skips the read and stores state 3 in Resource+0xb0. A successful read stores state 2 instead.",
       "stateMeaning": "2 follows a successful read, 3 follows a cancelled, rejected, unallocated, unopened or short read. These readings are interpretation of the stores."
     },
-    "musicSoundObjectReaction": "UNPROVED",
-    "boundary": "The sound object that requested the resource was not traced past the request, so what a state 3 music resource does to the playing slot is open. No retry of the original path was observed within the bounded window."
+    "musicSoundObjectReaction": "STATIC",
+    "boundary": "The reaction is read from instructions in the pinned executable and from the owner installation's file contents. It was not run. The audible result of a bank with no stream and the formatter mode stay open."
   },
   "policy": {
     "nativeZonePolicy": "none found",
@@ -765,7 +765,28 @@
         "streams": 1,
         "sha256": "c168dd2453b2158d7872e81092d469ce3baed658cc40baad1d5d40790dabec21"
       }
-    ]
+    ],
+    "noStreamTable": {
+      "songIds": [
+        7,
+        30,
+        31,
+        32
+      ],
+      "tableOffsetWord": "0x0e",
+      "tableOffset": "0x30",
+      "words": [
+        1,
+        0,
+        0
+      ],
+      "note": "Header u16 at +0x0e names the table. The bank loader 0x00b77ee0 stores its first three u16 words at bank +0x5c, +0x5e and +0x60. Every other non-empty file holds otherWords.",
+      "otherWords": [
+        1,
+        1,
+        1
+      ]
+    }
   },
   "staticChecks": [
     {
@@ -886,6 +907,593 @@
         "0x00441dc0"
       ],
       "note": "Slot 4 of the concrete receiver table 0x00F90F9C."
+    },
+    {
+      "name": "receiver packet read",
+      "kind": "signature",
+      "va": "0x004dcc12",
+      "pattern": "0f b6 46 12 0f b7 4e 10 50 51 8d 8f 28 09 00 00 e8 09 ef fd ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Opcode 0x000C body: zero-extended u16 song id at packet +0x10 and u8 mode at +0x12, then CALL 0x004bbb30 on dispatcher member +0x928, with no compare."
+    },
+    {
+      "name": "lua wrapper sign extension",
+      "kind": "signature",
+      "va": "0x0075c930",
+      "pattern": "0f be 44 24 08 0f bf 54 24 04 8b 09 50 52 e8 bd ab d7 ff 8b c8 e8 e6 f1 d5 ff c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "MOVSX on a 16-bit song and an 8-bit mode before CALL 0x004bbb30."
+    },
+    {
+      "name": "request same-id early return",
+      "kind": "signature",
+      "va": "0x004b7672",
+      "pattern": "8b cf e8 17 c2 f8 ff 8b 6c 24 24 3b c5 75 0c 5f 5e 5d b0 01 5b 83 c4 10 c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Compares the selected slot's requested resource id (slot +0x10) with the new id and returns AL=1 without a call when equal."
+    },
+    {
+      "name": "request releases with its duration",
+      "kind": "signature",
+      "va": "0x004b7696",
+      "pattern": "8b 5c 24 2c 8b 16 8b 52 18 8d 04 40 8d 0c c5 84 f3 32 01 53 51 8b ce ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Loads the duration argument into EBX, then calls receiver slot 6 (vtable +0x18) with the selected slot and that duration before any new request."
+    },
+    {
+      "name": "request module mode byte test",
+      "kind": "signature",
+      "va": "0x004b76b1",
+      "pattern": "80 7e 24 00",
+      "mask": "ff ff ff ff",
+      "note": "CMP byte [receiver+0x24],0 selects between receiver slot 4 and slot 5."
+    },
+    {
+      "name": "request slot 4 or 5 call",
+      "kind": "signature",
+      "va": "0x004b76f1",
+      "pattern": "57 74 0f 8b 50 14 ff d2 5f 5e 5d 5b 83 c4 10 c2 0c 00 8b 50 10 ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Zero mode byte calls receiver slot 4 (vtable +0x10), nonzero calls slot 5 (vtable +0x14)."
+    },
+    {
+      "name": "module mode byte constructor store",
+      "kind": "signature",
+      "va": "0x004dd7ca",
+      "pattern": "8a 4c 24 20 c7 06 9c 0f f9 00 88 4e 24",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "RaptureSoundModule constructor 0x004dd790 stores its second argument byte at +0x24 and installs table 0x00f90f9c."
+    },
+    {
+      "name": "dispatcher zeroes ebx",
+      "kind": "signature",
+      "va": "0x004dbf72",
+      "pattern": "33 db",
+      "mask": "ff ff",
+      "note": "XOR EBX,EBX in dispatcher constructor 0x004dbf40."
+    },
+    {
+      "name": "dispatcher passes ebx as mode byte",
+      "kind": "signature",
+      "va": "0x004dc0c5",
+      "pattern": "53 8d 8e 28 09 00 00 55 e8 be 16 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "PUSH EBX (zero), PUSH EBP, CALL 0x004dd790 for member +0x928. No store to EBX lies between 0x004dbf74 and 0x004dc0c5."
+    },
+    {
+      "name": "sound driver null gate",
+      "kind": "signature",
+      "va": "0x00441de8",
+      "pattern": "e8 c3 c9 74 00 85 c0 75 17 32 c0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Receiver slot 4 calls 0x00b8e7b0 and returns AL=0 at once when the result is zero."
+    },
+    {
+      "name": "sound driver global getter",
+      "kind": "signature",
+      "va": "0x00b8e7b0",
+      "pattern": "a1 74 7d 36 01 c3",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Returns the global at 0x01367d74."
+    },
+    {
+      "name": "requested id stored before the load",
+      "kind": "signature",
+      "va": "0x00441e12",
+      "pattern": "8b 44 24 58 8b 7c 24 5c 8b 54 24 70 f3 0f 11 44 24 24 f3 0f 10 44 24 6c 89 4c 24 2c 8b 4c 24 68 89 78 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 4 loads the slot argument and the resource id, then stores the id at slot +0x10 (0x00441e32) ahead of the existing-entry lookup and the module call."
+    },
+    {
+      "name": "existing entry skips the load",
+      "kind": "signature",
+      "va": "0x00441e6e",
+      "pattern": "e8 7d fd ff ff 84 c0 75 6b",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "CALL 0x00441bf0 (map lookup by resource id, then a queued or immediate command on the hit) and JNE to the AL=1 return at 0x00441ee2."
+    },
+    {
+      "name": "new request object and map insert",
+      "kind": "signature",
+      "va": "0x00441e77",
+      "pattern": "6a 28 e8 b7 fc 58 00 83 c4 04 89 44 24 5c 85 c0 c7 44 24 50 00 00 00 00 74 10 8d 4c 24 24 51 8b c8 e8 d3 14 00 00 8b f0 eb 02 33 f6 8d 54 24 10 52 8d 44 24 1c 50 8d 4b 18 c7 44 24 58 ff ff ff ff 89 7c 24 18 89 74 24 1c e8 cb 2b 55 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Allocates the 0x28-byte SoundCacheSound, constructs it and inserts it under the resource id in the map at receiver +0x18."
+    },
+    {
+      "name": "request returns true",
+      "kind": "signature",
+      "va": "0x00441ee2",
+      "pattern": "b0 01",
+      "mask": "ff ff",
+      "note": "MOV AL,1 reached after the module call and on an existing-entry hit."
+    },
+    {
+      "name": "resource module callback state table",
+      "kind": "dwords",
+      "va": "0x00c999ec",
+      "values": [
+        "0x00c99992",
+        "0x00c999a2",
+        "0x00c999cd",
+        "0x00c999b2",
+        "0x00c999bb"
+      ],
+      "note": "Jump table for Resource +0xb0 minus 2: state 2 to 0x00c99992, state 3 to 0x00c999a2, state 4 to 0x00c999cd, states 5 and 6 to 0x00c999b2 and 0x00c999bb."
+    },
+    {
+      "name": "state 2 publishes 7 and calls back with success",
+      "kind": "signature",
+      "va": "0x00c99992",
+      "pattern": "6a 07 56 ff d3 6a 01 8b cf e8 40 50 01 00 eb 27",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "InterlockedExchange(Resource+0xb0,7) then 0x00cae9e0(Resource,1)."
+    },
+    {
+      "name": "state 3 publishes 8 and calls back with failure",
+      "kind": "signature",
+      "va": "0x00c999a2",
+      "pattern": "6a 08 56 ff d3 6a 00 8b cf e8 30 50 01 00 eb 17",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "InterlockedExchange(Resource+0xb0,8) then 0x00cae9e0(Resource,0)."
+    },
+    {
+      "name": "callback dispatch virtual offset 4",
+      "kind": "signature",
+      "va": "0x00caea32",
+      "pattern": "8b 47 0c 8b 4f 08 8b 11 8b 52 04 83 c7 08 50 8b 44 24 30 53 50 ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads each registered pair, loads the callback receiver's vtable +4 and calls it with the success flag, the Resource and the associated value."
+    },
+    {
+      "name": "SoundCacheSound table slot 1",
+      "kind": "dwords",
+      "va": "0x00f67128",
+      "values": [
+        "0x00443390"
+      ],
+      "note": "Callback slot 1 of the SoundCacheSound table 0x00f67124 is 0x00443390."
+    },
+    {
+      "name": "callback failure branch",
+      "kind": "signature",
+      "va": "0x00443390",
+      "pattern": "80 7c 24 04 00 56 8b f1 0f 84 e0 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "A zero success flag jumps to 0x0044347e."
+    },
+    {
+      "name": "callback failure return",
+      "kind": "signature",
+      "va": "0x0044347e",
+      "pattern": "32 c0 5e c2 0c 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "XOR AL,AL and RET 0xc with no other effect."
+    },
+    {
+      "name": "callback length gate",
+      "kind": "signature",
+      "va": "0x004433a3",
+      "pattern": "8b 07 8b 50 28 8b cf ff d2 85 c0 0f 84 d0 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls Resource vtable +0x28 and returns false at 0x00443484 when it is zero."
+    },
+    {
+      "name": "callback empty return",
+      "kind": "signature",
+      "va": "0x00443484",
+      "pattern": "5f 32 c0 5e c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "POP EDI, XOR AL,AL, POP ESI, RET 0xc."
+    },
+    {
+      "name": "Resource length slot",
+      "kind": "dwords",
+      "va": "0x0110c4e8",
+      "values": [
+        "0x00cae660"
+      ],
+      "note": "Slot 10 of the Resource table 0x0110c4c0 is 0x00cae660."
+    },
+    {
+      "name": "Resource length getter",
+      "kind": "signature",
+      "va": "0x00cae660",
+      "pattern": "8b 41 5c c3",
+      "mask": "ff ff ff ff",
+      "note": "Returns Resource +0x5c."
+    },
+    {
+      "name": "callback bank creation",
+      "kind": "signature",
+      "va": "0x004433b4",
+      "pattern": "8b 07 8b 50 18 55 8b cf ff d2 33 ed 8b f8 55 57 c6 46 24 01 e8 23 bb 74 00 89 46 1c 8b 0d e4 49 0b 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Gets the buffer through Resource vtable +0x18, sets the SoundCacheSound ready byte at +0x24, calls 0x00b8eef0(buffer,0) and stores the id at +0x1c."
+    },
+    {
+      "name": "callback invalid-id retry",
+      "kind": "signature",
+      "va": "0x004433e4",
+      "pattern": "8b c5 83 c5 01 83 f8 0a 7d 1c 6a 64 ff d3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "While the creation result stays zero it sleeps 100 ms and retries, at most ten times."
+    },
+    {
+      "name": "callback no bank id return",
+      "kind": "signature",
+      "va": "0x0044340d",
+      "pattern": "39 4e 1c 74 64 39 6e 18 76 5f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "A zero id or an empty command deque returns false without replay."
+    },
+    {
+      "name": "callback no-id tail",
+      "kind": "signature",
+      "va": "0x00443476",
+      "pattern": "5d 5f 32 c0 5e c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "POP EBP, POP EDI, XOR AL,AL, POP ESI, RET 0xc."
+    },
+    {
+      "name": "invalid bank id constant",
+      "kind": "dwords",
+      "va": "0x010b49e4",
+      "values": [
+        "0x00000000"
+      ],
+      "note": "The invalid id compared at 0x004433d9 is zero."
+    },
+    {
+      "name": "driver wrapper dispatch",
+      "kind": "signature",
+      "va": "0x00b8ef25",
+      "pattern": "8b 0d 74 7d 36 01 85 c9 c7 44 24 14 00 00 00 00 74 31 8b 54 24 20 8b 01 8b 40 10 52 8b 54 24 20 52 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x00b8eef0 calls vtable +0x10 of the driver at 0x01367d74 with the buffer and flag."
+    },
+    {
+      "name": "SoundDriver slot 4 cell",
+      "kind": "dwords",
+      "va": "0x0113d864",
+      "values": [
+        "0x00e37c70"
+      ],
+      "note": "Slot 4 of the SoundDriver table 0x0113d854 is 0x00e37c70, a thunk to 0x00b5eb70."
+    },
+    {
+      "name": "SoundDriver RTTI name",
+      "kind": "string",
+      "va": "0x01321fd4",
+      "text": ".?AVSoundDriver@Driver@Sd@Engine@CDev@SQEX@@",
+      "note": "TypeDescriptor 0x01321fcc behind the locator before table 0x0113d854."
+    },
+    {
+      "name": "driver global construction",
+      "kind": "signature",
+      "va": "0x00b91942",
+      "pattern": "56 8b c8 e8 76 78 2a 00 eb 02 33 c0 89 6c 24 48 a3 74 7d 36 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Constructs the 0x50-byte driver with 0x00e391c0 and stores it at 0x01367d74."
+    },
+    {
+      "name": "bank magic SEDB compare",
+      "kind": "signature",
+      "va": "0x00b5ec3d",
+      "pattern": "b8 04 00 00 00 b9 8c d5 0a 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "Compares the buffer's first dword with the constant at 0x010ad58c."
+    },
+    {
+      "name": "bank magic SSCF compare",
+      "kind": "signature",
+      "va": "0x00b5ed00",
+      "pattern": "b8 04 00 00 00 b9 94 d5 0a 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "Compares the buffer's second dword with the constant at 0x010ad594."
+    },
+    {
+      "name": "bank magic bytes",
+      "kind": "signature",
+      "va": "0x010ad58c",
+      "pattern": "53 45 44 42",
+      "mask": "ff ff ff ff",
+      "note": "ASCII SEDB."
+    },
+    {
+      "name": "bank magic bytes, second dword",
+      "kind": "signature",
+      "va": "0x010ad594",
+      "pattern": "53 53 43 46",
+      "mask": "ff ff ff ff",
+      "note": "ASCII SSCF."
+    },
+    {
+      "name": "bank version gate",
+      "kind": "signature",
+      "va": "0x00b5eccf",
+      "pattern": "83 7b 08 03 0f 87 15 ff ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "CMP dword [buffer+8],3 with JA to the zero return."
+    },
+    {
+      "name": "bank creation",
+      "kind": "signature",
+      "va": "0x00b5edaa",
+      "pattern": "e8 61 90 01 00",
+      "mask": "ff ff ff ff ff",
+      "note": "CALL 0x00b77e10 builds the bank object for a buffer that passed the gates."
+    },
+    {
+      "name": "bank constructor",
+      "kind": "signature",
+      "va": "0x00b77e10",
+      "pattern": "8b 44 24 08 56 8b f1 8b 4c 24 08 50 51 8b ce e8 5c 06 00 00 33 c0 89 46 4c 89 46 50 89 46 54 89 46 58 66 89 46 5c 66 89 46 5e 66 89 46 60 c7 06 ac 26 0b 01 8b c6 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "ActualBank constructor body: base constructor 0x00b78480 and zeroed fields, with no read of the header counts."
+    },
+    {
+      "name": "bank base constructor",
+      "kind": "signature",
+      "va": "0x00b78480",
+      "pattern": "8b 54 24 04 8b c1 33 c9 89 50 04 c7 00 9c 27 0b 01 89 48 08 8b 52 08 89 50 0c 8b 54 24 08 c7 40 10 ff ff ff ff 89 50 14 89 48 1c 66 89 48 20 89 48 24 89 48 28 89 48 2c 89 48 30 89 48 34 89 48 38 89 48 3c 89 48 40 89 48 44 c6 40 48 82 89 48 18 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores the buffer pointer at +4 and the dword at buffer +8 at +0xc, then zero-fills the rest."
+    },
+    {
+      "name": "ActualBank table head",
+      "kind": "dwords",
+      "va": "0x010b26ac",
+      "values": [
+        "0x00b78450",
+        "0x007254a0",
+        "0x00b77ee0",
+        "0x00b77fa0"
+      ],
+      "note": "ActualBank table 0x010b26ac: slot 2 0x00b77ee0 is the loader, slot 3 0x00b77fa0 an entry accessor."
+    },
+    {
+      "name": "bank loader count words",
+      "kind": "signature",
+      "va": "0x00b77ee0",
+      "pattern": "53 56 8b f1 57 8b 7e 04 0f b7 5f 0e 66 8b 04 1f 66 89 46 5c 66 8b 4c 1f 02 66 89 4e 5e 66 8b 54 1f 04 8b ce 66 89 56 60",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads the table offset at header +0xe and stores three u16 words from the table into bank +0x5c, +0x5e and +0x60."
+    },
+    {
+      "name": "bank entry accessor clamps",
+      "kind": "signature",
+      "va": "0x00b77fa0",
+      "pattern": "56 8b f1 0f b7 46 5c 57 8b 7c 24 0c 3b f8 7c 02 33 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "An index at or above the word at +0x5c is clamped to entry 0, so an empty table does not fail here."
+    },
+    {
+      "name": "bank creator calls the loader",
+      "kind": "signature",
+      "va": "0x00b5edd1",
+      "pattern": "8b 16 8b 42 08 8b ce ff d0 83 05 40 71 36 01 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The creator calls vtable +8 of the bank it just built and never reads EAX afterwards: the next instruction is an add to a counter."
+    },
+    {
+      "name": "ActualBank loader slot cell",
+      "kind": "dwords",
+      "va": "0x010b26b4",
+      "values": [
+        "0x00b77ee0"
+      ],
+      "note": "ActualBank table slot 2 is the loader 0x00b77ee0, the target of the creator's vtable +8 call."
+    },
+    {
+      "name": "bank loader entry flag loop",
+      "kind": "signature",
+      "va": "0x00b77f45",
+      "pattern": "f6 46 48 08 75 23 33 ff 66 39 7e 5c 76 1b 80 cb ff 8b 16 8b 42 0c 57 8b ce ff d0 88 58 0f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "When bank flag byte +0x48 has bit 3 clear, the loader walks the entries the word at +0x5c counts through accessor slot 3 and stores 0xff into byte +0xf of each."
+    },
+    {
+      "name": "reaper skips unstamped entries",
+      "kind": "signature",
+      "va": "0x00441d47",
+      "pattern": "8b 73 10 83 7e 20 00 74 2e",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Update 0x00441d00 skips a request whose +0x20 time stamp is zero."
+    },
+    {
+      "name": "time stamp store",
+      "kind": "signature",
+      "va": "0x00442a7c",
+      "pattern": "6a 00 e8 a2 2c 59 00 83 c4 04 89 47 20",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The live-command path stores time(0) at request +0x20."
+    },
+    {
+      "name": "command queue when no sound id",
+      "kind": "signature",
+      "va": "0x004429f5",
+      "pattern": "8b f9 8b 4f 1c 85 c9 75 21 8b 44 24 2c 50 8d 4f 08 e8 b5 08 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x004429d0 appends the command to the request's deque when request +0x1c holds no sound id."
+    },
+    {
+      "name": "release live handle",
+      "kind": "signature",
+      "va": "0x00441c6b",
+      "pattern": "8b cd e8 fe 0e 71 00 84 c0 74 1b 8b 44 24 20 50 8b cd e8 be 0f 71 00 5e c7 45 10 00 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 6 with a live handle calls 0x00b52c40 with the duration and clears slot +0x10."
+    },
+    {
+      "name": "release pending request",
+      "kind": "signature",
+      "va": "0x00441cdb",
+      "pattern": "8b 4e 10 55 e8 bc 0b 00 00 84 c0 75 05 83 3f 00 74 06 c7 07 00 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 6 without a live handle cancels the slot's queued commands with 0x004428a0 and clears slot +0x10 either way."
+    },
+    {
+      "name": "pending cancel match",
+      "kind": "signature",
+      "va": "0x00442932",
+      "pattern": "8b 4c 24 44 39 48 20 74 18",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "0x004428a0 matches queued commands by the slot pointer stored at command +0x20."
+    },
+    {
+      "name": "deferred cell sentinel",
+      "kind": "signature",
+      "va": "0x004bbdc5",
+      "pattern": "68 d4 f3 32 01 ff d3 8b f0 83 fe ff 74 7e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The update reads cell 0x0132f3d4 and ends at once when it is -1."
+    },
+    {
+      "name": "mode 4 deferred store",
+      "kind": "signature",
+      "va": "0x004bbc8d",
+      "pattern": "57 68 d4 f3 32 01 ff 15 48 e1 f3 00 b9 d8 f3 32 01 e8 bd 4a 01 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Exchanges the song value into 0x0132f3d4 and restarts the timer."
+    },
+    {
+      "name": "Sleep import name",
+      "kind": "string",
+      "va": "0x01262630",
+      "text": "Sleep",
+      "note": "Import hint/name of IAT slot 0x00f3e1c8."
+    },
+    {
+      "name": "InterlockedExchange import name",
+      "kind": "string",
+      "va": "0x01262882",
+      "text": "InterlockedExchange",
+      "note": "Import hint/name of IAT slot 0x00f3e148."
+    },
+    {
+      "name": "InterlockedExchangeAdd import name",
+      "kind": "string",
+      "va": "0x012626ae",
+      "text": "InterlockedExchangeAdd",
+      "note": "Import hint/name of IAT slot 0x00f3e1a4."
     }
-  ]
+  ],
+  "downstream": {
+    "owner": {
+      "class": "Application::Misc::RaptureSoundModule",
+      "table": "0x00f90f9c",
+      "request": "receiver slot 4 at 0x00441dc0 when module byte +0x24 is zero, slot 5 at 0x00441f00 otherwise",
+      "loadInterface": "ResourceModule slot 1 through module +0x04 with nine arguments: the resource id, 0, 0, 1, the SoundCacheSound as callback, then four zeros",
+      "callbackTable": "Component::Sound::SoundCacheSound table 0x00f67124, callback slot 1 at 0x00443390",
+      "driver": "CDev::Sd::Engine::Driver::SoundDriver, global 0x01367d74, slot 4 creates an ActualBank from a memory buffer"
+    },
+    "outcomes": [
+      {
+        "id": "driver-absent",
+        "tier": "STATIC",
+        "claim": "Slot 4 returns false before it stores anything while the driver global is null."
+      },
+      {
+        "id": "requested-id-before-load",
+        "tier": "STATIC",
+        "claim": "Slot 4 stores the resource id at slot +0x10 before it looks up or issues the load, so a failed or empty load leaves the id recorded."
+      },
+      {
+        "id": "previous-song-released-first",
+        "tier": "STATIC",
+        "claim": "The request path releases the selected slot with the request duration before slot 4, so the previous song fades out or stops even when the new load fails."
+      },
+      {
+        "id": "same-id-no-retry",
+        "tier": "STATIC",
+        "claim": "A request for the id the selected slot already records returns at once, and an id with a map entry only appends a command to that entry, so a failed id is never loaded again."
+      },
+      {
+        "id": "failed-load-callback",
+        "tier": "STATIC",
+        "claim": "Resource state 3 publishes state 8 and calls the SoundCacheSound back with success flag 0."
+      },
+      {
+        "id": "failed-load-silent",
+        "tier": "STATIC",
+        "claim": "The callback with flag 0 returns false at once, so no sound id is created and the queued start command never runs."
+      },
+      {
+        "id": "failed-entry-persists",
+        "tier": "STATIC",
+        "claim": "A failed or empty load leaves its entry in the module map with time stamp 0, which the idle reaper skips, so it is not removed or retried. No clear of the map was traced. Song ids 7, 30, 31 and 32 get a sound id and follow the normal stamp and reap path."
+      },
+      {
+        "id": "no-log-in-traced-path",
+        "tier": "NOT FOUND",
+        "claim": "The traced slot 4, callback and state dispatch bodies hold no log, message or error-raise call beyond the LocalFile error helper."
+      },
+      {
+        "id": "empty-file",
+        "tier": "STATIC",
+        "claim": "A Resource of length 0 makes the callback return false before any buffer is read, in either read outcome, so song id 0 is silent like a missing file."
+      },
+      {
+        "id": "bank-created-for-streamless",
+        "tier": "STATIC",
+        "claim": "A buffer that opens with SEDB and SSCF and carries version 3 or less gets a bank object, and bank construction reads no stream count, so song ids 7, 30, 31 and 32 are not rejected at construction."
+      },
+      {
+        "id": "streamless-audible",
+        "tier": "UNPROVED",
+        "claim": "Whether a started instance of a bank whose table words are 1, 0 and 0 produces any audio, and whether the slot handle stays live, was not traced."
+      },
+      {
+        "id": "invalid-bank-retry",
+        "tier": "STATIC",
+        "claim": "A buffer the driver rejects gives an invalid id, and the callback retries creation up to ten times with a 100 ms sleep each before it gives up silently."
+      },
+      {
+        "id": "module-byte-zero",
+        "tier": "INFERRED",
+        "claim": "The module byte +0x24 is zero from construction, which selects slot 4. A later store to the byte was not searched."
+      },
+      {
+        "id": "lua-sign-extension",
+        "tier": "STATIC",
+        "claim": "The Lua wrapper sign-extends a 16-bit song, so a Lua song of 32768 or more gives a resource id below 0x07FE0000 and a path with no file."
+      },
+      {
+        "id": "mode-4-sentinel",
+        "tier": "STATIC",
+        "claim": "The deferred cell holds -1 for no pending song, so mode 4 with Lua song 65535 releases the current song and schedules nothing, while a packet value 65535 is zero-extended and schedules a request."
+      },
+      {
+        "id": "bank-loader-at-creation",
+        "tier": "STATIC",
+        "claim": "The bank creator calls the new bank's loader (vtable slot 2) itself before it returns the id and never reads the loader's result, so the loader cannot reject a bank. For song ids 7, 30, 31 and 32 it reads the words 1, 0, 0, walks the one entry word 0 counts and stores 0xff in byte +0xf of entry 0. Where the entry offset lands in the buffer was not traced."
+      },
+      {
+        "id": "callback-ready-byte-and-return",
+        "tier": "STATIC",
+        "claim": "The SoundCacheSound callback returns false on every path including success. It stores ready byte +0x24 as 1 at 0x004433c4 on every path past the length gate, before the bank result is checked, so a bank rejected after the ten retries still sets the byte. Flag 0 and a zero length set no byte."
+      }
+    ]
+  }
 }

@@ -37,6 +37,66 @@ REQUIRED_CHECKS = {
     "namespace class test",
     "request slot module call",
     "receiver slot 4 cell",
+    "receiver packet read",
+    "lua wrapper sign extension",
+    "request same-id early return",
+    "request releases with its duration",
+    "request module mode byte test",
+    "request slot 4 or 5 call",
+    "module mode byte constructor store",
+    "dispatcher zeroes ebx",
+    "dispatcher passes ebx as mode byte",
+    "sound driver null gate",
+    "sound driver global getter",
+    "requested id stored before the load",
+    "existing entry skips the load",
+    "new request object and map insert",
+    "request returns true",
+    "resource module callback state table",
+    "state 2 publishes 7 and calls back with success",
+    "state 3 publishes 8 and calls back with failure",
+    "callback dispatch virtual offset 4",
+    "SoundCacheSound table slot 1",
+    "callback failure branch",
+    "callback failure return",
+    "callback length gate",
+    "callback empty return",
+    "Resource length slot",
+    "Resource length getter",
+    "callback bank creation",
+    "callback invalid-id retry",
+    "callback no bank id return",
+    "callback no-id tail",
+    "invalid bank id constant",
+    "driver wrapper dispatch",
+    "SoundDriver slot 4 cell",
+    "SoundDriver RTTI name",
+    "driver global construction",
+    "bank magic SEDB compare",
+    "bank magic SSCF compare",
+    "bank magic bytes",
+    "bank magic bytes, second dword",
+    "bank version gate",
+    "bank creation",
+    "bank constructor",
+    "bank base constructor",
+    "ActualBank table head",
+    "bank loader count words",
+    "bank entry accessor clamps",
+    "bank creator calls the loader",
+    "ActualBank loader slot cell",
+    "bank loader entry flag loop",
+    "reaper skips unstamped entries",
+    "time stamp store",
+    "command queue when no sound id",
+    "release live handle",
+    "release pending request",
+    "pending cancel match",
+    "deferred cell sentinel",
+    "mode 4 deferred store",
+    "Sleep import name",
+    "InterlockedExchange import name",
+    "InterlockedExchangeAdd import name",
 }
 EXPECTED_IMMEDIATE_SITES = [
     0x004BBB82,
@@ -53,13 +113,35 @@ EXPECTED_IMMEDIATE_SITES = [
 ]
 FIXED_TEXT = {
     ("formatter", "modeByteStatus"): "INFERRED",
-    ("missingFile", "musicSoundObjectReaction"): "UNPROVED",
+    ("missingFile", "musicSoundObjectReaction"): "STATIC",
     ("policy", "nativeZonePolicy"): "none found",
     (
         "install",
         "scope",
     ): "owner installation of build 2012.09.19.0001, existence and size and SHA-256 only",
 }
+
+
+EXPECTED_OUTCOMES = {
+    "driver-absent": "STATIC",
+    "requested-id-before-load": "STATIC",
+    "previous-song-released-first": "STATIC",
+    "same-id-no-retry": "STATIC",
+    "failed-load-callback": "STATIC",
+    "failed-load-silent": "STATIC",
+    "failed-entry-persists": "STATIC",
+    "no-log-in-traced-path": "NOT FOUND",
+    "empty-file": "STATIC",
+    "bank-created-for-streamless": "STATIC",
+    "streamless-audible": "UNPROVED",
+    "invalid-bank-retry": "STATIC",
+    "module-byte-zero": "INFERRED",
+    "lua-sign-extension": "STATIC",
+    "mode-4-sentinel": "STATIC",
+    "bank-loader-at-creation": "STATIC",
+    "callback-ready-byte-and-return": "STATIC",
+}
+TABLE_OFFSET_WORD = 0x0E
 
 
 def song_path(song_id: int) -> str:
@@ -172,6 +254,24 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("install.noStreamSongIds disagrees with the table")
     if install.get("totalBytes") != total:
         errors.append("install.totalBytes disagrees with the table")
+    outcomes = document.get("downstream", {}).get("outcomes")
+    if not isinstance(outcomes, list):
+        errors.append("downstream.outcomes is not a list")
+    else:
+        found = {item.get("id"): item.get("tier") for item in outcomes}
+        if len(found) != len(outcomes) or found != EXPECTED_OUTCOMES:
+            errors.append("downstream outcome ids or tiers changed")
+        if any(not str(item.get("claim", "")).strip() for item in outcomes):
+            errors.append("a downstream outcome has no claim")
+    table = install.get("noStreamTable", {})
+    if (
+        table.get("songIds") != streamless
+        or table.get("tableOffsetWord") != "0x0e"
+        or table.get("tableOffset") != "0x30"
+        or table.get("words") != [1, 0, 0]
+        or table.get("otherWords") != [1, 1, 1]
+    ):
+        errors.append("install.noStreamTable changed")
     text = json.dumps(document, sort_keys=True, ensure_ascii=True)
     forbidden = (r"[A-Za-z]" + r":\\\\", "/" + "Users/", "/" + "home/")
     if any(re.search(pattern, text, re.I) for pattern in forbidden):
@@ -188,6 +288,13 @@ def mutation_test() -> list[str]:
         (("request", "immediateSites", 3), "0x004bbc55"),
         (("formatter", "modeByteStatus"), "STATIC"),
         (("missingFile", "musicSoundObjectReaction"), "silence"),
+        (("missingFile", "musicSoundObjectReaction"), "UNPROVED"),
+        (("downstream", "outcomes", 0, "tier"), "UNPROVED"),
+        (("downstream", "outcomes", 10, "tier"), "STATIC"),
+        (("downstream", "outcomes", 5, "id"), "failed-load-audible"),
+        (("downstream", "outcomes", 8, "claim"), " "),
+        (("install", "noStreamTable", "words"), [1, 1, 1]),
+        (("install", "noStreamTable", "songIds"), [7, 30, 31]),
         (("policy", "nativeZonePolicy"), "per zone"),
         (("install", "lastSongId"), 108),
         (("install", "absentCount"), 1),
@@ -210,13 +317,23 @@ def mutation_test() -> list[str]:
             node = node[key]
         node[path[-1]] = value
         mutations.append(changed)
-    dropped = copy.deepcopy(document)
-    dropped["staticChecks"] = [
-        item
-        for item in dropped["staticChecks"]
-        if item["name"] != "read service publishes state 3"
-    ]
-    mutations.append(dropped)
+    for name in (
+        "read service publishes state 3",
+        "requested id stored before the load",
+        "state 3 publishes 8 and calls back with failure",
+        "callback failure return",
+        "bank constructor",
+        "bank creator calls the loader",
+        "ActualBank loader slot cell",
+    ):
+        dropped = copy.deepcopy(document)
+        dropped["staticChecks"] = [
+            item for item in dropped["staticChecks"] if item["name"] != name
+        ]
+        mutations.append(dropped)
+    short = copy.deepcopy(document)
+    short["downstream"]["outcomes"].pop()
+    mutations.append(short)
     shorter = copy.deepcopy(document)
     shorter["install"]["songs"].pop()
     mutations.append(shorter)
@@ -263,6 +380,15 @@ def verify_executable(path: Path) -> list[str]:
     return verify_image(path.read_bytes(), document)
 
 
+def table_words(data: bytes) -> list[int]:
+    """The first three u16 words of the table that header u16 +0x0e names."""
+    start = int.from_bytes(data[TABLE_OFFSET_WORD : TABLE_OFFSET_WORD + 2], "little")
+    return [
+        int.from_bytes(data[start + 2 * i : start + 2 * i + 2], "little")
+        for i in range(3)
+    ]
+
+
 def census_install(root: Path) -> dict:
     """Existence, size and SHA-256 of every music resource the install holds."""
     songs = []
@@ -279,6 +405,7 @@ def census_install(root: Path) -> dict:
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "sscf": sscf,
                 "streams": int.from_bytes(data[0x34:0x36], "little") if sscf else 0,
+                "words": table_words(data) if sscf else [],
             }
         )
     return {"songs": songs}
@@ -326,6 +453,16 @@ def verify_install(root: Path, document: dict | None = None) -> list[str]:
             errors.append(f"song {want['songId']} stream count differs")
         if have["sscf"] != (want["size"] != 0):
             errors.append(f"song {want['songId']} SSCF magic differs from the table")
+    table = document["install"].get("noStreamTable")
+    if table:
+        for have, want in zip(found, expected):
+            if not have["sscf"]:
+                continue
+            words = table[
+                "words" if want["songId"] in table["songIds"] else "otherWords"
+            ]
+            if have["words"] != words:
+                errors.append(f"song {want['songId']} table words are {have['words']}")
     return errors
 
 
