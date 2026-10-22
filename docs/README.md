@@ -197,6 +197,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Sqwt plain text reference lookup](resource/sqwt-plain-text-reference-lookup.md)
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
+- [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
 - [Sqwt RangeBase float ValueChanged production](resource/sqwt-range-value-changed.md)
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
