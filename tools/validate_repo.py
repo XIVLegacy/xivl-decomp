@@ -24,6 +24,7 @@ import verify_s2c_018d_client_consumer as s2c_018d_consumer_verifier
 import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
 import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
+import verify_status_wire_translation as status_wire_verifier
 import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
 import verify_sun_moon_orientation as sun_moon_verifier
 
@@ -444,6 +445,13 @@ def main() -> int:
     if camera_input_errors:
         errors.extend(
             f"camera input chain contract: {error}" for error in camera_input_errors
+        )
+    status_wire_errors = (
+        status_wire_verifier.verify() + status_wire_verifier.mutation_test()
+    )
+    if status_wire_errors:
+        errors.extend(
+            f"status wire translation contract: {error}" for error in status_wire_errors
         )
     skeleton_composition_errors = skeleton_composition_verifier.verify()
     if skeleton_composition_errors:

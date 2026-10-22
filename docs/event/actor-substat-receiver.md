@@ -7,6 +7,9 @@ KickClientOrderEvent, StartServerOrderEventFunction, and EndClientOrderEvent.
 The [Map 0x0179 snapshot input](../net/status-snapshot-input.md) is a separate
 40-byte array of twenty u16 values. Offsets such as receiver `+0x14` below
 describe the constructed System receiver, not offsets in that application.
+The [status wire translation](../actor/status-wire-translation.md) page records
+how the constructor `0x008A3350` turns the wire id into the key stored at
+`+0x0C`.
 
 ## TL;DR
 
@@ -96,12 +99,17 @@ char *Receive(this, char *out_result_byte, void *lookup_ctx) {
     if (primary == NULL) {
       // path A miss - try path B (predicate)
       if (FUN_00cc7180(lookup_ctx, &this->[+0xc]) != 0) {
-        // path B hit -> SUCCESS_SET_FLAG
-        goto success_set_flag;
+        // path B hit -> failure exit 0x008a3603, done flag stays clear
+        *out_result_byte = FAILURE_BYTE;
+        return out_result_byte;
       }
       // path A + B miss - try path C (find-or-queue placeholder)
       primary = FUN_00cc78c0(lookup_ctx, &this->[+0xc]);
-      if (primary == NULL) goto success_set_flag;
+      if (primary == NULL) {
+        // failure exit 0x008a3603
+        *out_result_byte = FAILURE_BYTE;
+        return out_result_byte;
+      }
     }
     // Cast primary to StatusBase
     StatusBase *status = __RTDynamicCast(
