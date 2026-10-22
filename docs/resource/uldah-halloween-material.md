@@ -269,13 +269,14 @@ own instructions do not dereference the adjusted return or authenticate its type
 The published base store puts this result at M `+0x24`.
 
 The [operation-provider source](showhide-clip-dispatch.md#operation-provider-source)
-owns the conditional manager/factory/scheduler field relation for L.
-The actual object supplied as L, its fallback field, the node payload type
-and the later consumer of M `+0x24` remain unjoined. Use of the same lookup
-helper and `+8` adjustment does not identify L with the separate SCB factory
-registry object, or establish inequality between their values. This return
-contract does not construct the material context-to-Q binding or qualify
-all callee and alias state effects.
+owns the conditional manager/factory/scheduler field relation for L and a
+concrete container/holder producer. Its
+[fallback listener join](showhide-clip-dispatch.md#concrete-provider-and-fallback-listener)
+also binds the ShowHideClip operation path. The nonzero node payload type
+and this material context-to-Q binding remain unjoined. Use of the same
+lookup helper and `+8` adjustment does not identify L with the separate SCB
+factory registry object, or establish inequality between their values.
+The return contract does not qualify all callee and alias state effects.
 
 The inherited initializer reads `u32(D+0x14)` and calls descriptor
 accessor `0x00A20090`. It later requests literal `frc` at `0x010397CC`

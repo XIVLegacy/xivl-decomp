@@ -354,7 +354,10 @@ element's `+0x98`; this is vector fanout, not proof of recursive group effects.
 The inspected engine `ShowHideClip` entry at `0x00DE8130`, slot 1 of
 vtable `0x01134304`, resolves a dynamic receiver at `0x00DE8147` and calls
 its `+0x24` at `0x00DE818D` or `+0x20` at `0x00DE81B9`.
-It does not directly call instance `+0x98`; the dynamic calls remain unresolved.
+It does not directly call instance `+0x98`. The
+[fallback listener path](showhide-clip-dispatch.md#fallback-operations-and-indexed-actor-branches)
+conditionally joins those calls through a member actor to the same setter;
+the selected fleet receiver and rendered effect remain unbound.
 Application `LayVFXClip` (`0x010380E4`, entry `0x00833400`) and
 `LaySEClip` (`0x01038EAC`, entry `0x00833E90`) each call a resolved
 target's `+0x98` with literal 1 at `0x008334E7/0x00833F5A`.

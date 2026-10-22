@@ -573,8 +573,10 @@ no clip-init or update context. This contract assumes the constructed W/S
 binding and table remain valid and the published guard and other callees
 return normally. It establishes phase forwarding followed by a conditional
 dword store, without assigning a semantic name to state 2. It does not
-establish later consumption of S+`0x88`, activation, schedule evaluation or
-visible effects, or bind either operation to a typed clip context. The
+establish activation, schedule evaluation or visible effects, or bind either
+operation to a typed clip context. The
+[scheduler-command consumer](seasonal-decoration-update-order.md#consumption-of-the-scheduler-command)
+binds the separate conditional consumption of S+`0x88=2`. The
 category-based record-view preconditions and active context remain separate
 requirements.
 

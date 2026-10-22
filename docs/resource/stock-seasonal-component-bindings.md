@@ -82,10 +82,46 @@ Thus useful October environment content survived inside the final wrapper,
 in addition to its external leaves. Of the final wrapper's 12 nonzero SCB
 bodies, these three matched the original whole bodies. Differences in the
 other bodies did not by themselves prove different animated colours: clip
-metadata, targets and curves require separate interpretation. Light-set
-membership and pointed environment-map semantics were also unresolved.
-This comparison establishes partial content retention, without claiming
-either complete Halloween equivalence or its impossibility.
+metadata, targets and curves require separate interpretation. The typed
+LightSet and environment-map joins below distinguish relocated pointers
+from different resource inputs. This comparison establishes partial content
+retention, without claiming complete Halloween equivalence or impossibility.
+
+### LightSet members and environment-map references
+
+The declared LightSet `+0x10/+0x14` pointer/count pairs led to member
+records, their InstanceObject inputs and ordinal-selected UnitTree children.
+Resolving those children to typed LightBase names produced identical ordered
+members in all ten October/final LightSets. The nine cloud/weather lists
+contained `main_lght_*`, `sub_lght_*`, `amb_lght_*` in that order; the sky
+list contained `main_lght_sky`, `sub_lght_sky`. Different serialized addresses
+did not represent different membership.
+
+| LightSet | October node / pointer-array file offset | Final node / pointer-array file offset | Resolved members |
+| --- | --- | --- | --- |
+| `ltst_00` | `0x78C8` / `0x79BC` | `0x7C68` / `0x7D5C` | `main_lght_00`, `sub_lght_00`, `amb_lght_00` |
+| `ltst_01` | `0x798C` / `0x7A10` | `0x7D2C` / `0x7DB0` | `main_lght_01`, `sub_lght_01`, `amb_lght_01` |
+| `ltst_sky` | `0x7890` / `0x79A8` | `0x7C30` / `0x7D48` | `main_lght_sky`, `sub_lght_sky` |
+
+EnvironmentMapDrawEnvObject `+0x14` instead pointed to a declared eight-byte
+record holding two string pointers. Resolving the leaf string against the
+outer resource rows gave these examples, with all offsets relative to files:
+
+| Role | October node / nested record / outer row -> leaf | Final node / nested record / outer row -> leaf |
+| --- | --- | --- |
+| Common `envmap_00` | `0x6D5C` / `0x6F00` / `0xE0` -> `39Vlyxenv_00_de`, `0x615F0000` | `0x7120` / `0x72A8` / `0xE0` -> the same string and key |
+| Seasonal 000 | `f0f_fine_000`, `0x6E20` / `0x6F38` / `0x1A0` -> `2TiVnFf0f_hall_`, `0x72E8006F` | `f0f_mist_000`, `0x71E4` / `0x72E0` / `0x1A0` -> `34BjQMf0f_rain_`, `0x72E80331` |
+| Seasonal 120 | `f0f_fine_120`, `0x6E74` / `0x6F50` / `0x200` -> `2cFxalf0f_fine_`, `0x72E80312` | `f0f_mist_120`, `0x7238` / `0x72F8` / `0x200` -> `2mKcmxf0f_mist_`, `0x72E8031B` |
+
+The remaining shared `envmap_01/10/11/12/20/21/22` roles also resolved
+to identical leaf strings and keys. The seasonal leaves differed, including
+the 050/060/180/190 roles and October-only `f0f_h074`. The names above
+identify resource inputs; they do not authenticate the rendered colours.
+Python `struct`, the pinned typed parser and original file hashes established
+these joins. Together with the matched Fog/LightBase data, they locate
+specific remaining differences in seasonal environment-map inputs and
+nonmatching SCB bodies. Their native activation/use remains a separate
+compatibility requirement; this is not an exhaustive equivalence check.
 
 ### Cross-city and Starlight compositions
 
@@ -101,10 +137,28 @@ and a Halloween SE reference:
 | Ul'dah `0x615A0023` | SE `sdef_0013` at `0x6CD0`, field `+0x14` | `2mWb4qwildshall`; outer row `0x400` selected `0x89820090`. |
 
 Reusing either layout in Gridania is a stock-file candidate. Their local
-DrawEnv, instance, sound and texture bindings differed; neither matching
-lane names nor different node counts establish cross-city compatibility or
-incompatibility. Native selection and a correctly resolved/rendered result
-remain unproven.
+DrawEnv, instance, sound and texture bindings differed. Native key selection
+is established below; a correctly resolved/rendered result remains unproven.
+
+The [exact-name DrawEnv consumer](weather-sky-fog-environment-path.md#lane-selection-by-spatial-drawenv-name)
+replaced a selected zone DrawEnv only when its name existed in the weather
+work set. Otherwise the selected zone object remained. Both cross-city
+8027 wrappers contained the common named weather lanes but no `dwev_01`.
+The Gridania public town and field layouts did contain that lane:
+
+| Original Gridania DAT | Bytes / SHA-256 | Typed `dwev_01` file locator |
+| --- | --- | --- |
+| `data/29/B0/00/01.DAT`, town | 1,300,928 / `abc13bd6f096b0fe9703b2092ca4a7f819ff2b88e4d08ae222a9db447f618312` | `0xE9CB4`, referencing `fog_0001` and `ltst_0001` |
+| `data/29/B0/00/03.DAT`, field | 1,869,728 / `77d15ce02d595a56ddea8ee2103e2a9ac075b7574fa302e81d9087f2742b67ba` | `0x14D1C4`, referencing `fog_0003` and `ltst_0003` |
+
+Python's typed parse of these complete files therefore joined a concrete
+missing weather-name case: if a position selected either zone `dwev_01`,
+neither cross-city wrapper could replace it by that name. The
+[zone-lighting interpretation](zone-lighting-source-and-time-of-day.md#zone-layout-lights)
+keeps the subsequent rendered LightSet use qualified. Gridania interior
+`0x29B00002` had five named DrawEnv objects and no `dwev_01`; the same
+missing-lane claim does not apply there. Cross-city key admission alone
+therefore did not establish a complete Gridania atmosphere replacement.
 
 The [Starlight residue graph](city-seasonal-weather-selectors.md#weather-payload-reuse)
 already identifies surviving components, including leaves without a current
@@ -227,6 +281,13 @@ property object. No durable seasonal override was established for the manual
 request. Actual opposing clip order and visible persistence remain
 unwitnessed. Ul'dah interior's `hwa1` hide also used a material clip, so
 the named pairs did not all imply the same visible operation.
+
+The [retained-request reset contract](seasonal-decoration-update-order.md)
+binds a separate replay mechanism: reset saved completed requests' phase,
+cleared their completion bytes and requested scheduler cleanup. A
+surviving request could be attempted again after binding. That contract
+separates the local manual-dispatch and weather-condition phases from
+unproved total scene order and actual object survival through a reload.
 
 ### Binding a weather layout itself
 

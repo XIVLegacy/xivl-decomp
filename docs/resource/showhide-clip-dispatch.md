@@ -4,8 +4,10 @@ The LaySchedulerManager registration path supplies class key `ShowHideClip`
 with a factory that constructs `LayShowHideClip`. Its primary entry method
 reads the retained record's byte `+0x10`: bit 1 selects one of two virtual
 operations, and bit 0 supplies the low byte of a pushed value. The operation
-receiver and the separately indexed actor remain concrete binding requirements.
-This does not establish visible decoration or successful playback.
+receiver has a concrete fallback path through LayCutCharacterListener to
+the separately indexed actor's slot 21. The member-actor branch can reach
+the instance flag setter under the receiver conditions below. This does
+not establish actual seasonal playback, rendered polarity or persistence.
 
 The authored Halloween records and resident membership belong to:
 
@@ -126,11 +128,56 @@ The manager caller's conditional jump targets the first excluded byte
 
 Original slot 8, cell `0x0109E880`, targets the published M+`0x10` setter
 `0x00A73220`. Its [existing setter observation](scb-clip-factory-composition.md#actor-registry-reproduction)
-does not qualify its indirect cleanup. A concrete caller supplying an
-identifiable nonzero provider, or another established writer to M+`0x10`,
-remains unbound. Initial zero does not exclude later writes. The source
-chain does not authenticate L's class, its node payload/fallback, or the O/Q
-tables consumed below.
+does not qualify its indirect cleanup. A concrete producer and conditional
+fallback receiver are established below; later writers and the node-hit
+payload remain separate conditions.
+
+### Concrete provider and fallback listener
+
+CDevSchedulerManager table `0x00FBEAF0` slot 4 selected `0x006375A0`.
+On its enabled branch, guarded by `0x00A4D430`, it constructed a
+RaptureClipListenerHolder F through `0x0063E6E0`, then a
+ClipListenerHolderContainer L through `0x0063FB10`. It obtained the
+complete LaySchedulerManager through `0x00A72AF0` and passed L to M
+slot 8 at `0x00637705`. With the retained complete-manager table, this
+called `0x00A73220` and stored L at M+`0x10`.
+
+The container constructor installed table `0x00FBEBAC`, initialized its
+tree at L+8 and called `0x0063F0D0` at `0x0063FB6A` with receiver L+4
+and argument F. The helper stored F there at `0x0063F111`, between its
+conditional incoming- and old-pointer calls. The holder constructor installed tables
+`0x00FBEAE8` at F and `0x00FBEAAC` at F+8. At
+`0x0063768E..0x00637691`, the producer copied CDevSchedulerManager
+dword `+0x14` to F+`0x30`. These original table/constructor observations
+identify the objects supplied to the earlier provider field chain.
+
+The producer's later call to M slot 4 at `0x00637713` obtained the
+separate clip registry. Its subsequent direct light/fog factory registrations
+therefore did not enumerate L's listener tree or establish its selected key.
+
+The [initializer return contract](uldah-halloween-material.md#initializer-operation-result)
+returned O=`V+8` on a nonzero node payload. Only its zero-result path
+read F=`u32(L+4)` and returned O=`F+8` for nonzero F. This included a
+null-payload lookup result as well as an absent key. For the constructed
+holder interface, slot 9 cell `0x00FBEAD0` selected `0x00B36630`, which
+returned `u32(this+0x28)`. Therefore that fallback joined exactly to:
+
+`O=F+8`, `Q=u32(F+0x30)=u32(CDevSchedulerManager+0x14)`.
+
+The manager's constructor `0x00634EC0` called `0x00634E00` with
+ECX=`manager+0x14` at `0x00634F20..0x00634F23`. The helper allocated
+eight bytes, constructed them through `0x00A72A00`, added four to a
+nonzero return, and stored that adjusted pointer in the supplied field at
+`0x00634E81`. The listener constructor wrote primary table `0x0109E82C`
+and interface table `0x0109E774` at offsets 0/4. Original RTTI named both
+LayCutCharacterListener. Thus fallback Q was that concrete adjusted
+interface pointer, rather than an inline object or a vtable value.
+
+This composition requires the same retained manager, factory, scheduler,
+provider and holder, successful construction and the zero-result fallback.
+The nonzero node-payload path's O table and its slot-9 result Q remain
+unbound. The separately registered ShowHideClip factory is not proof of an
+operation-provider node with the same key.
 
 ## Selected value dispatch
 
@@ -140,7 +187,8 @@ O=`u32(J+0x24)` and invokes O's vtable byte offset `+0x24` at
 `0x00DE8147`. Call that EAX return Q. The published
 [initializer context](uldah-halloween-material.md#initializer-context)
 owns the base initializer's key-derived J+`0x24` store. O and Q are separate
-receivers, and their concrete types remain unresolved here.
+receivers. The fallback above identifies their types conditionally; it does
+not identify the nonzero node-payload branch.
 
 With valid receivers and the selected dispatch path reached, let
 D=`u32(J+0x14)`, f=`u8(D+0x10)` and i=`u8(D+3)`. The record framing
@@ -182,16 +230,45 @@ increasing address order. ECX is Q and is separate from the explicit vector.
 | Set | `+0x24` | `(J, A, u32(u32(C+0x0C)+0x70), f & 1)` |
 | Clear | `+0x20` | `(J, A, (Q & 0xFFFFFF00) \| (f & 1))` |
 
-This establishes incoming positions, without assigning a native signature,
-parameter meaning or cleanup contract to either dynamic operation. A may be
-zero; the vector alone does not establish a successful actor lookup.
+These positions apply independently of a particular Q type. A may be zero;
+the vector alone does not establish a successful actor lookup.
 
-Q is the operation receiver. A is a separately looked-up explicit argument.
-The callsites do not identify either as a particular Halloween resident,
-BGParts instance or the published instance flag setter `0x00A99DB0`.
-No concrete consumer meaning, show/hide polarity, rendered coverage or event
-schedule follows. The omitted entry null-test branch and epilogues were not
-reopened for this operand check.
+### Fallback operations and indexed actor branches
+
+On the constructed Q table `0x0109E774`, slot 8 cell `0x0109E794`
+selected `0x00A72750`, and slot 9 cell `0x0109E798` selected
+`0x00A72770`. The complete original methods established their argument
+handling:
+
+| Q operation | Original-byte observation |
+| --- | --- |
+| Slot 8, `0x00A72750` | Received `(J,A,value)`, ignored J, invoked A slot 21 (`+0x54`) with value, then returned `RET 0xC`. It did not guard a null A. |
+| Slot 9, `0x00A72770` | Received `(J,A,collection,value)`, omitted collection and called Q slot 8 with `(J,A,value)`, then returned `RET 0x10`. |
+
+For the indexed actor, original tables `0x0109F674` and `0x0109F714`
+identified LaySchedulerUnitMemberActor and LaySchedulerUnitActor. Their
+slot-21 methods differed:
+
+| A branch | Direct forwarding |
+| --- | --- |
+| Member, `0x00A78810` | Nonzero T=`u32(A+0x64)` received the value through T slot 38 (`+0x98`). Null T returned `RET 4`. |
+| Unit, `0x00A78BD0` | Nonzero T=`u32(A+0x64)` received the value through T slot 20 (`+0x50`). Null T returned `RET 4`. |
+| System/base tables `0x0109F79C` / `0x010A1984` | Slot 21 selected `0x00776340`, a `RET 4` no-op. |
+
+For member T with the retained RaptureLayoutInstanceObject table
+`0x00FF279C` or engine LayoutInstanceObject table `0x010A4024`, slot 38
+selected `0x00A99DB0`. That method compared the input low byte with
+bit 1 at T+`0x2A`. On a change, it rewrote only that bit from the input's
+low bit, then notified nonnull T+`0x44` through `+0x1D0` at
+`0x00A99DDF`, followed by nonnull T+`0x48` through `+0x9C` at
+`0x00A99DF0`. Thus the ShowHideClip value's low byte, `f & 1`, could
+reach this exact bit setter through the fallback/member path. The
+[instance flag contract](ambient-garlean-fleet.md#instance-flag-consumer)
+keeps its rendered polarity and notification consumers unqualified.
+
+This does not bind a selected Halloween resident's live A/T, the unit
+branch's T table, or the nonzero node-payload Q. It does not prove recursive
+group coverage, a visible show/hide effect or the active clip order.
 
 ## Reproduction
 
@@ -200,7 +277,7 @@ For every read, require the full RVA interval to lie within one section's
 `SizeOfRawData` and within the original file. Read table, locator, descriptor
 and key cells separately from code, checking each string through its NUL.
 
-The complete newly checked instruction unions are:
+The registration checks used these complete instruction unions:
 
 | Role | Half-open instruction union |
 | --- | --- |
@@ -223,6 +300,16 @@ the stack write set and cleanup. Preserve both `RET 4` paths and the tail-jump
 chain, then compose them with the published callsite pushes above. No other
 dispatch operand is needed for that check.
 
+For the concrete fallback, additionally decode the complete retained methods
+at `0x006375A0`, `0x0063FB10`, `0x0063F0D0`, `0x0063E6E0`, `0x00634EC0`,
+`0x00634E00`, `0x00A72A00`, `0x00B36630`, `0x00A72750`,
+`0x00A72770`, `0x00A78810`, `0x00A78BD0` and `0x00A99DB0`.
+Read each cited table cell separately. RTTI identity follows the dword
+before each table to its complete-object locator, then locator+`0x0C`
+to the type descriptor and its NUL-terminated name at descriptor+8.
+Preserve the +4 listener and +8 holder-interface adjustments, the distinction
+between M+8 and M+`0x10`, and the unresolved node-hit/selected-actor edges.
+
 REA's exact table-reference observation was
 `ev_7298ef41e6d1efd485c8294b602c5619974c4da8e293fb000e9193e4c546f7e5`.
 The registrar dossier was
@@ -230,4 +317,4 @@ The registrar dossier was
 The factory label was absent as a Ghidra function entry, so its body was
 followed from original instructions rather than an exported size. The
 [engine dispatch finding](ambient-garlean-fleet.md#instance-flag-consumer)
-owns the earlier entry summary and its unresolved dynamic targets.
+owns the instance-flag notification and selected fleet/render boundary.
