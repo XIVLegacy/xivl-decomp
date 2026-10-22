@@ -170,7 +170,7 @@ def scan_file(path: Path) -> tuple[dict, dict, set]:
             dest, src, ident = m.group(1), m.group(2), m.group(3)
             if src in local_to_table:
                 table = local_to_table[src]
-                # Peek next line for call pattern
+                # A following call through the loaded value makes this a method candidate.
                 next_line = lines[i + 1] if i + 1 < len(lines) else ""
                 next_call = CALL_RE.match(next_line)
                 is_method = looks_like_method_name(ident) or (
@@ -184,12 +184,11 @@ def scan_file(path: Path) -> tuple[dict, dict, set]:
             local_to_table.pop(dest, None)
             continue
 
-        # Then check load
         m = LOAD_RE.match(line)
         if m:
             lvar, source, ident = m.group(1), m.group(2), m.group(3)
             if source.startswith("L") and source in local_to_table:
-                # This is actually a field-access we already missed
+                # A known table source is a field access, not a new table binding.
                 continue
             if ident in KNOWN_WORK_TABLES:
                 local_to_table[lvar] = ident

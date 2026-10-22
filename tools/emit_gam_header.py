@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CONFIG = REPO_ROOT / "config"
 INCLUDE = REPO_ROOT / "include" / "net"
 
-# Map our friendly type strings to (C++ type, TypeKind enum, element size in bytes).
+# Map catalog type labels to (C++ type, TypeKind enum, element size in bytes).
 PRIMITIVE_TYPES: dict[str, tuple[str, str, int]] = {
     "signed char": ("std::int8_t", "I8", 1),
     "char": ("char", "I8", 1),

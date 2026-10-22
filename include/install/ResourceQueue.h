@@ -19,9 +19,9 @@
 //   0 = free   - producer may claim
 //   1 = filled - consumer has not yet drained
 //
-// The consumer-side dequeue lives elsewhere (likely in
-// `InstallUnpacker::Unpack`'s post-`Sleep` re-check path). Once that
-// is matched the names here may need a second pass.
+// The consumer-side dequeue is not established here.
+// `InstallUnpacker::Unpack`'s post-`Sleep` re-check path is a candidate,
+// so the consumer-side names remain provisional.
 
 #ifndef XIVL_DECOMP_INSTALL_RESOURCEQUEUE_H
 #define XIVL_DECOMP_INSTALL_RESOURCEQUEUE_H

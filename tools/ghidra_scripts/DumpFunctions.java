@@ -47,7 +47,7 @@ public class DumpFunctions extends GhidraScript {
 
         String repoRoot = System.getenv("XIVL_DECOMP_ROOT");
         if (repoRoot == null) {
-            // Fall back to script's parent's parent (tools/ghidra_scripts/.. == tools/ ; tools/.. == repo)
+            // Use the first script argument, or the current working directory if absent.
             repoRoot = new File(getScriptArgs().length > 0 ? getScriptArgs()[0] : ".").getAbsolutePath();
         }
 
@@ -70,9 +70,8 @@ public class DumpFunctions extends GhidraScript {
 
         while (iter.hasNext() && !monitor.isCancelled()) {
             Function fn = iter.next();
-            // Thunks come back labelled as their target; we still emit them
-            // because the call site needs an .obj to link against, but we
-            // skip externals (they're imports from other DLLs).
+            // Export thunks even when they are named after their targets.
+            // Exclude external imports from other DLLs.
             if (fn.isExternal()) continue;
 
             Address entry = fn.getEntryPoint();

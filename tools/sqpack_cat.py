@@ -7,11 +7,10 @@
 #
 # Provides the resource-resolution and chunk-reading operations described in
 # `docs/resource/sqpack.md`:
-#   1. PASS Resolve resource_id -> DAT path  (via tools/sqpack_path.py)
-#   2. PASS Open the DAT file               (this tool)
-#   3. PASS Walk the chunked PackRead format if applicable, else
-#         dump raw bytes / detect known magics
-#   4. PASS Optionally inflate raw-deflate payloads with --inflate
+#   - Resolve resource_id -> DAT path via tools/sqpack_path.py.
+#   - Open the DAT file and walk PackRead chunks when applicable.
+#     Otherwise, dump raw bytes and detect known magic values.
+#   - Optionally inflate raw-deflate payloads with --inflate.
 #
 # Chunk format (recovered from ChunkReadUInt::ReadNextChunkHeader at
 # RVA 0x004ebd40 + PackRead::ProcessChunk at RVA 0x00942740):
@@ -34,7 +33,6 @@ import struct
 import sys
 import zlib
 
-# Import the path resolver from the sibling tool.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 from sqpack_path import build_path  # noqa: E402
