@@ -49,7 +49,7 @@ scripts subclass.
 
 | Lua class name | Source path | C++ vtable | Slots |
 |---|---|---|---:|
-| `SystemBaseClass` | `/System/SystemBaseClass` | (parent of all) | - |
+| `SystemBaseClass` | `/System/SystemBaseClass` | child of `ActorBaseClass`, see [native class registration parents](native-class-registration-parents.md) | - |
 | `ProgDebugBaseClass` | `/prog/ProgDebugBaseClass` | (debug build only) | - |
 | `WorldBaseClass` | `/World/WorldBaseClass.prog` | - | - |
 | `AreaBaseClass` | `/Area/AreaBaseClass.prog` | `0xbd63d4` | 35 |

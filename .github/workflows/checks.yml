@@ -70,6 +70,8 @@ jobs:
         run: python tools/validate_murmur2.py
       - name: Test retail evidence contract
         run: python tools/test_retail_protocol_caller.py
+      - name: Test class registration extractor
+        run: python tools/test_class_registrations.py
       - name: Test public evidence links
         run: python tools/test_repository_links.py
       - name: Test region snapshot contract

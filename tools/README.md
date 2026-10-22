@@ -224,6 +224,7 @@ another repository, a retail binary, or a Ghidra project.
 | `emit_gam_header.py` | Renders the tracked C++ GAM registry using RTTI-corrected types when available. | `config/<binary>.gam_params.json` after the parameter-name and RTTI enrichment steps. |
 | `decode_lpb.py` | Decodes shipped LPB wrappers and the filename cipher to Lua 5.1 bytecode. | A retail install root containing `client/script/`, or that root plus one decoded source name. |
 | `extract_cpp_bindings.py` | Enumerates C++-implemented Lua methods from decoded script bytecode. | `build/lpb/` or `--lpb-dir` populated by `decode_lpb.py`. |
+| `extract_class_registrations.py` | Recovers the native Lua class registrations, their parent names and constructed native objects from the registrar and the `Player` site. | A pinned `orig/ffxivgame.exe` and Capstone. `--json` emits literal addresses and `--callers` lists the direct callers of the two entries; `tools/test_class_registrations.py` covers it. |
 | `extract_work_fields.py` | Extracts repeated work-field access patterns from decompiled Lua source. | Decompiled `.lua` files under `build/lua/` or an explicit `--lua-dir`. |
 | `sweep_dynamic_cast.py` | Recovers source and target RTTI pairs from `__RTDynamicCast` callsites. | `orig/ffxivgame.exe` and `asm/ffxivgame/`; writes `build/dynamic_cast_callsites.json`. |
 | `sweep_class_metadata.py` | Expands the dynamic-cast RTTI set into vtable and constructor or destructor candidates. | `orig/ffxivgame.exe`, `asm/ffxivgame/`, and `build/dynamic_cast_callsites.json`. |
