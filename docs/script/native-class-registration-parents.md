@@ -205,8 +205,10 @@ different parents.
   established.
 - Whether an empty parent name leaves child `+0x0C` null is INFERRED, as above.
 - The three dwords per class built by `0x0075D9E0` are not decoded.
-- The table records registration order and parents at boot. It does not show
-  whether later script code changes a parent.
+- The table records registration order and parents at boot. A later script
+  definition of a registered name would take the repeat path recorded in
+  [Script class definition and repeat definition](define-class-repeat-definition.md),
+  which rewrites the parent link. No shipped script defines a registered name.
 
 ## Reproduction
 
