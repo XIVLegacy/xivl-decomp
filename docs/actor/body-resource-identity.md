@@ -205,12 +205,71 @@ selected this comparison; it is not assigned as either DLL's exact source.
 
 Generic stream/file writers, serializer callbacks, CRT/TLS initialization
 and indirect addon/plugin paths remain outside a whole-program exclusion.
-For the second DLL, hook installer `0x10037360` positively selects callback
+
+### Callback text publication
+
+For the second DLL above, hook installer `0x10037360` positively selects callback
 `0x100379A0`. Ghidra did not define that procedure; Capstone decoded the
 513-byte span through RET at `0x10037B9E..0x10037BA0`, including an indirect
-text sink at `0x10037B0B` and original call at `0x10037B62`. The sink's
-transitive pipeline remains unqualified. No exact v3 producer, full 824-byte
-schema, or capture-to-loaded-DLL association follows from these path bounds.
+text sink at `0x10037B0B` and original call at `0x10037B62`. Under the examined
+initializer's installed binding, the sink is wrapper `0x10040BB0`, then thunk
+`0x10001127` and concrete host routine `0x10010AD0`. These are preferred probe
+DLL VAs at base `0x10000000`, under the same exact DLL digest above.
+
+That binding requires a fresh successful installation and no intervening
+clear or replacement. The installer stores the context/target pair at
+`0x10248A28/0x10248A2C` before hook enable. Its already-installed path does
+not replace the pair, and teardown clears it. No historical installation
+or concurrent lifecycle guarantee is inferred.
+
+The callback takes two text descriptor pointers in its second and third
+stack arguments. Decoder `0x100375E0` reads a buffer pointer at descriptor+0
+and byte count at descriptor+8. For a nonnull descriptor, the decoder requires
+a nonzero buffer pointer and count, with count at most `0x2001` including a
+final NUL, then copies count-1 bytes. A null descriptor becomes empty text. Validator
+`0x10037900` rejects embedded NULs and requires successful UTF-8 validation
+for nonempty text. These offsets do not establish a retail descriptor type.
+RTC metadata at `0x10037BA4` names the 28-byte owned locals `sourceText`
+and `messageText`, and an 8-byte `sink` pair. The native positional dataflow
+also establishes their widths independently of those labels.
+
+The sink receives two 8-byte pointer/length values: source and message text.
+It rejects an empty message or total formatted length greater than `0x2000`,
+including the separator. It combines source, an optional `: ` separator and
+message into an owned string, then appends it to the vector at host+0x94
+under mutex host+0x64.
+The vector holds 28-byte string objects. At exactly 256 entries, the sink
+erases the first entry before appending the new one. This queue is owned by
+the probe host; these offsets are not fields of a captured Scene actor.
+
+Consumer `0x10010CD0` swaps the vector into a local batch under the same
+mutex, then iterates its 28-byte entries. Eligible addon states have
+a zero byte at addon+0x94 and a nonnull VM at addon+0x7C. Dispatch
+`0x10013770` resolves global `chat` and requires VM type code 6. It then
+pushes exactly one length-delimited text argument through `0x10163DC0`,
+followed by protected call `0x10164BE0` with arguments `(1,0,0)` for argument
+count, result count and error handler. A missing or ineligible handler does
+not satisfy this dispatch condition.
+
+```text
+callback100379A0 -> stored sink -> 10040BB0 -> 10001127 -> 10010AD0
+  source/message text -> host string queue -> 10010CD0 local batch
+    eligible addon VM -> 10013770 -> global chat(combined text)
+```
+
+The original retail call at `0x10037B62` follows the sink and receives the
+original text descriptors plus the zero-extended 16-bit first argument.
+Its EAX/EDX returns are saved around epilogue checks and restored for the
+caller. No later sink call forwards them to the queue or `chat` argument.
+
+This closes the selected native sink component as text publication. It does
+not supply a native 72/824 record serializer, a Scene registry lookup return
+or that return's type. The dynamically selected Lua `chat` closure can have
+its own effects; its identity, eligibility and execution were not recorded
+for the v3 instance. Other native/plugin paths remain outside this component.
+No exact v3 producer, full 824-byte schema, or capture-to-loaded-DLL association
+follows from this trace. Key 1000476 still has no qualified actual Scene
+result/type join, and admission before submission remains INCOMPLETE.
 
 ### Other retained inputs and lookup
 
@@ -374,6 +433,14 @@ Add `--probe-dll <file>` once per pinned DLL above to check the four direct
 writer argument setups or execute the two built-in F10 predicate controls.
 Unknown DLL digests are rejected. The v3 literal-table scan also uses the
 repository's pinned RTTI catalog; it does not assign a producer schema.
+
+For the second unmatched DLL, this option also checks selected sink/queue/VM
+anchors and RTC local descriptors, then replays two native argument paths
+from `0x10037AA3` through the real callback packing, wrapper and thunk to
+sink entry `0x10010AD0`. It assumes successful earlier text decoding and
+supplies synthetic pointer/length views through an explicit constructor
+stub. It stops before the sink body. Queue mutation, VM execution, Lua
+effects and original retail execution are not part of this replay.
 
 The tool rejects optimized Python and existing output files. Three native
 stage/apply cases execute `0x006623F0/0x0065D730`, then separately supplied

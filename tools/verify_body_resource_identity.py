@@ -369,7 +369,10 @@ def inspect_probe_dll(data):
         raise ValueError("probe DLL SHA-256 mismatch")
     pe = pefile.PE(data=data, fast_load=True)
     if digest in PROBE_KEYS:
-        return probe_key_replay(pe, digest)
+        result = probe_key_replay(pe, digest)
+        if digest == "1A40DF663FD3C82E0E4EDCD2FF4E28A51942EC6F8C20827B89A8C7FFB4FBBB1D":
+            result["callback_sink"] = probe_sink_replay(pe)
+        return result
     version, flush, flush_size, multiply, push_size, call, publish, publish_size = (
         PROBE_WRITERS[digest]
     )
@@ -411,6 +414,133 @@ def inspect_probe_dll(data):
         serialized_header_bytes=header_size,
         native_record_byte_multiplier=1180,
         boundary="Pinned native direct-writer argument setup and contiguous PDB-sized body decoding only. Its header/record sizes differ from v3 72/824. Validation, OS file I/O and alternate or dormant writer paths are not executed or exhaustively excluded; no capture-to-loaded-DLL attribution or v3 schema is established.",
+    )
+
+
+def probe_sink_replay(pe):
+    base = pe.OPTIONAL_HEADER.ImageBase
+    decoder = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    anchors = (
+        (0x1004086A, "mov", "dword ptr [ebp - 0x44], 0x10040bb0"),
+        (0x10037432, "mov", "dword ptr [0x10248a28], edx"),
+        (0x10037438, "mov", "dword ptr [0x10248a2c], eax"),
+        (0x10037459, "call", "0x100031fc"),
+        (0x10037A28, "mov", "edx, dword ptr [0x10248a28]"),
+        (0x10037A2E, "mov", "eax, dword ptr [0x10248a2c]"),
+        (0x10037B0B, "call", "dword ptr [ebp - 0x9c]"),
+        (0x10037B62, "call", "dword ptr [ebp - 0xa0]"),
+        (0x10037B70, "push", "edx"),
+        (0x10037B73, "push", "eax"),
+        (0x10037B7F, "pop", "eax"),
+        (0x10037B80, "pop", "edx"),
+        (0x10001127, "jmp", "0x10010ad0"),
+        (0x10040BDA, "call", "0x10001127"),
+        (0x1003764F, "mov", "edx, dword ptr [ecx]"),
+        (0x10037657, "mov", "ecx, dword ptr [eax + 8]"),
+        (0x10037669, "cmp", "dword ptr [ebp - 0x24], 0x2001"),
+        (0x10010B59, "cmp", "esi, 0x2000"),
+        (0x10010BCC, "cmp", "eax, 0x100"),
+        (0x10010BD1, "jne", "0x10010c2d"),
+        (0x10035AFC, "mov", "ecx, 0x1c"),
+        (0x10010D78, "add", "eax, 0x1c"),
+        (0x10010DCD, "movzx", "ecx, byte ptr [eax + 0x94]"),
+        (0x10010DD6, "jne", "0x10010e1c"),
+        (0x10010DE0, "cmp", "dword ptr [eax + 0x7c], 0"),
+        (0x10010E14, "call", "0x10005bb4"),
+        (0x10005BB4, "jmp", "0x10013770"),
+        (0x1001378B, "push", "0x101e9be8"),
+        (0x100137B5, "cmp", "eax, 6"),
+        (0x10013802, "push", "0"),
+        (0x10013804, "push", "0"),
+        (0x10013806, "push", "1"),
+        (0x1001380F, "call", "0x10001ec9"),
+        (0x10001EC9, "jmp", "0x10164be0"),
+    )
+    for va, mnemonic, operands in anchors:
+        instruction = next(decoder.disasm(pe.get_data(va - base, 15), va))
+        assert (instruction.mnemonic, instruction.op_str) == (mnemonic, operands)
+    assert pe.get_data(0x101E9A9C - base, 3) == b": \0"
+    assert pe.get_data(0x101E9BE8 - base, 5) == b"chat\0"
+    count, table = struct.unpack("<2I", pe.get_data(0x10037BA4 - base, 8))
+    assert count == 3
+    locals_seen = set()
+    for i in range(count):
+        offset, size, name = struct.unpack(
+            "<iII", pe.get_data(table + 12 * i - base, 12)
+        )
+        label = pe.get_data(name - base, 32).split(b"\0", 1)[0].decode("ascii")
+        locals_seen.add((offset, size, label))
+    assert locals_seen == {
+        (-40, 8, "sink"),
+        (-76, 28, "sourceText"),
+        (-112, 28, "messageText"),
+    }
+    results = []
+    for context, source_size, message_size in (
+        (0x20004000, 5, 7),
+        (0x20005000, 0, 8192),
+    ):
+        uc = Uc(UC_ARCH_X86, UC_MODE_32)
+        for page in (0x10001000, 0x10002000, 0x10010000, 0x10037000, 0x10040000):
+            uc.mem_map(page, 0x1000)
+            uc.mem_write(page, pe.get_data(page - base, 0x1000))
+        uc.mem_map(0x20000000, 0x10000)
+        frame, stack, stop = 0x20001000, 0x20000F00, 0x10010AD0
+        source, message = (0x20006000, source_size), (0x20007000, message_size)
+
+        def put(address, *words):
+            uc.mem_write(address, struct.pack("<" + "I" * len(words), *words))
+
+        def get(address):
+            return struct.unpack("<I", uc.mem_read(address, 4))[0]
+
+        put(frame - 0x28, context, 0x10040BB0)
+        views = {frame - 0x4C: source, frame - 0x70: message}
+        uc.reg_write(UC_X86_REG_EBP, frame)
+        uc.reg_write(UC_X86_REG_ESP, stack)
+        receipts = []
+
+        def hook(_uc, at, _size, _user):
+            esp = uc.reg_read(UC_X86_REG_ESP)
+            if at == 0x10002CF2:
+                view = views[uc.reg_read(UC_X86_REG_ECX)]
+                out = get(esp + 4)
+                put(out, *view)
+                uc.reg_write(UC_X86_REG_EAX, out)
+                uc.reg_write(UC_X86_REG_ESP, esp + 8)
+                uc.reg_write(UC_X86_REG_EIP, get(esp))
+            elif at == 0x10040BB0:
+                receipt = [get(esp + 4 * i) for i in range(1, 6)]
+                assert receipt == [context, *source, *message]
+                receipts.append(receipt)
+            else:
+                assert (
+                    0x10037AA3 <= at <= 0x10037B0B
+                    or 0x10040BB0 <= at <= 0x10040BDA
+                    or at in (0x10001127, stop)
+                ), hex(at)
+
+        uc.hook_add(UC_HOOK_CODE, hook)
+        uc.emu_start(0x10037AA3, stop, count=500)
+        assert uc.reg_read(UC_X86_REG_EIP) == stop and len(receipts) == 1
+        assert uc.reg_read(UC_X86_REG_ECX) == context
+        esp = uc.reg_read(UC_X86_REG_ESP)
+        assert [get(esp + 4 * i) for i in range(1, 5)] == [*source, *message]
+        results.append(
+            dict(
+                source_bytes=source_size,
+                message_bytes=message_size,
+                forwarded_text_dwords=4,
+            )
+        )
+    return dict(
+        callback_va="0x100379A0",
+        sink_va="0x10010AD0",
+        consumer_va="0x10010CD0",
+        vm_dispatch_va="0x10013770",
+        instruction_anchors=len(anchors),
+        replays=results,
+        boundary="Exact pinned probe and selected binding anchors. Native replay assumes successful earlier text decoding, supplies two synthetic pointer/length views through an explicit constructor stub, follows actual argument packing/wrapper/thunk, and stops at sink entry. Queue and VM observations use static anchors, not execution. Fresh successful binding installation and no intervening clear/replacement are conditions; no historical capture/module binding, Lua chat closure, v3 schema or actual Scene result/type is established.",
     )
 
 
