@@ -62,7 +62,7 @@ not additional independent retail evidence.
 All offsets in this table are physical offsets within the hash-matched DAT
 above. Each placed `RefObjects/InstanceObject` targets the named
 `RefObjects/UnitTree/UnitTreeObject` `sgrp_bg_emp` (serialized GID 1157).
-That tree has one member, alias `emp_stt0`, targeting the timeline
+That tree has one direct child, alias `emp_stt0`, targeting the timeline
 `time_bg_emp_stt0` (GID 1634). The GIDs are serialized node identifiers,
 not authenticated server actor IDs.
 
@@ -130,6 +130,172 @@ at `+0x14/+0x18`. Pointers are LYB-relative. The SCB decoder checked version
 record bounds. The method follows the same external source's
 `docs/ifrit-animation-decomp-2026-08-02/EXHAUSTIVE_BATTLEFIELD_RESOURCE_COVERAGE.md:51-56`
 at revision `dca944d` above, with direct retail byte verification.
+
+### Numeric actor keys and declared child targets
+
+An independent Python 3.12.0 read of the five hash-pinned DATs above joined
+all 35 serialized `LayUnitMemberActor` keys to unique children within the
+exact selected placement's declared UnitTree/group closure. There were no
+missing or ambiguous member keys. The member
+[key contract](../actor/lay-scheduler-member-publication.md#serialized-lookup-key)
+reads K at actor record+0x20; the
+[child registration contract](limsa-fireworks-scheduler-bindings.md#unittree-child-key-table)
+uses child+0x1C in the containing UnitInfo context. These are conditional
+native contracts composed with original static resource fields. The CATT
+labels do not themselves authenticate a runtime factory or bind the serialized
+actor to `LaySchedulerUnitMemberActor`; the numeric equality is a static join.
+
+Each closure includes one direct timeline child and four group records:
+the outer group holds the sound child and three subgroups each hold one body
+and one VFX child. The body aliases reference the same BGParts base node
+through three distinct children. Offsets below are physical DAT offsets.
+Each CACT record is 0x24 bytes; ordinal equals raw actor index. Raw CATT kind
+0 is `LayUnitActor` and kind 1 is `LayUnitMemberActor`, each with descriptor
+0. The ordinal-0 raw +0x20 value is recorded separately because the member
+key getter does not type that group's field.
+
+| Layout | Ordinal | CACT physical | Raw kind/index | K | Child alias / status | Child / parent | Target declaration / offset / GID |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| sea_s0_air01 | 0 | 0xA310 | 0 / 0 | 10 raw | separate | - | - |
+| sea_s0_air01 | 1 | 0xA334 | 1 / 1 | 4 | w_air_fuji_l_body1 | 0x3470 / 0x2F60 | B 0x40D4 / 1258 |
+| sea_s0_air01 | 2 | 0xA358 | 1 / 2 | 5 | w_air_fuji_l_body2 | 0x34D0 / 0x2F90 | B 0x40D4 / 1258 |
+| sea_s0_air01 | 3 | 0xA37C | 1 / 3 | 6 | w_air_fuji_l_body3 | 0x3530 / 0x2FC0 | B 0x40D4 / 1258 |
+| sea_s0_air01 | 4 | 0xA3A0 | 1 / 4 | 7 | vfx_hiku002_007 | 0x34A0 / 0x2F60 | V 0x45D8 / 1014 |
+| sea_s0_air01 | 5 | 0xA3C4 | 1 / 5 | 8 | vfx_hiku002_008 | 0x3500 / 0x2F90 | V 0x45D8 / 1014 |
+| sea_s0_air01 | 6 | 0xA3E8 | 1 / 6 | 9 | vfx_hiku002_009 | 0x3560 / 0x2FC0 | V 0x45D8 / 1014 |
+| sea_s0_air01 | 7 | 0xA40C | 1 / 7 | 21 | sdef_teikoku_hikutei | 0x3590 / 0x2F30 | S 0x4564 / 707 |
+| roc_r0_air01 | 0 | 0x3F60 | 0 / 0 | 11 raw | separate | - | - |
+| roc_r0_air01 | 1 | 0x3F84 | 1 / 1 | 4 | w_air_fuji_l_body1 | 0x1D60 / 0x1BE0 | B 0x2294 / 1258 |
+| roc_r0_air01 | 2 | 0x3FA8 | 1 / 2 | 5 | w_air_fuji_l_body2 | 0x1DC0 / 0x1C10 | B 0x2294 / 1258 |
+| roc_r0_air01 | 3 | 0x3FCC | 1 / 3 | 6 | w_air_fuji_l_body3 | 0x1E20 / 0x1C40 | B 0x2294 / 1258 |
+| roc_r0_air01 | 4 | 0x3FF0 | 1 / 4 | 8 | vfx_hiku002_008 | 0x1D90 / 0x1BE0 | V 0x2580 / 1014 |
+| roc_r0_air01 | 5 | 0x4014 | 1 / 5 | 9 | vfx_hiku002_009 | 0x1DF0 / 0x1C10 | V 0x2580 / 1014 |
+| roc_r0_air01 | 6 | 0x4038 | 1 / 6 | 22 | sdef_teikoku_hikutei | 0x1E80 / 0x1BB0 | S 0x2534 / 707 |
+| roc_r0_air01 | 7 | 0x405C | 1 / 7 | 10 | vfx_hiku002_010 | 0x1E50 / 0x1C40 | V 0x2580 / 1014 |
+| fst_f0_air01 | 0 | 0x9A40 | 0 / 0 | 10 raw | separate | - | - |
+| fst_f0_air01 | 1 | 0x9A64 | 1 / 1 | 4 | w_air_fuji_l_body1 | 0x3460 / 0x2F50 | B 0x4094 / 1258 |
+| fst_f0_air01 | 2 | 0x9A88 | 1 / 2 | 5 | w_air_fuji_l_body2 | 0x34C0 / 0x2F80 | B 0x4094 / 1258 |
+| fst_f0_air01 | 3 | 0x9AAC | 1 / 3 | 6 | w_air_fuji_l_body3 | 0x3520 / 0x2FB0 | B 0x4094 / 1258 |
+| fst_f0_air01 | 4 | 0x9AD0 | 1 / 4 | 7 | vfx_hiku002_007 | 0x3490 / 0x2F50 | V 0x4598 / 1014 |
+| fst_f0_air01 | 5 | 0x9AF4 | 1 / 5 | 8 | vfx_hiku002_008 | 0x34F0 / 0x2F80 | V 0x4598 / 1014 |
+| fst_f0_air01 | 6 | 0x9B18 | 1 / 6 | 9 | vfx_hiku002_009 | 0x3550 / 0x2FB0 | V 0x4598 / 1014 |
+| fst_f0_air01 | 7 | 0x9B3C | 1 / 7 | 21 | sdef_teikoku_hikutei | 0x3580 / 0x2F20 | S 0x4524 / 706 |
+| wil_w0_air01 | 0 | 0xA2D0 | 0 / 0 | 15 raw | separate | - | - |
+| wil_w0_air01 | 1 | 0xA2F4 | 1 / 1 | 2 | w_air_fuji_l_body1 | 0x3490 / 0x2F80 | B 0x40F4 / 1258 |
+| wil_w0_air01 | 2 | 0xA318 | 1 / 2 | 6 | w_air_fuji_l_body2 | 0x34F0 / 0x2FB0 | B 0x40F4 / 1258 |
+| wil_w0_air01 | 3 | 0xA33C | 1 / 3 | 5 | w_air_fuji_l_body3 | 0x3550 / 0x2FE0 | B 0x40F4 / 1258 |
+| wil_w0_air01 | 4 | 0xA360 | 1 / 4 | 11 | vfx_hiku002_011 | 0x34C0 / 0x2F80 | V 0x45D4 / 1014 |
+| wil_w0_air01 | 5 | 0xA384 | 1 / 5 | 12 | vfx_hiku002_012 | 0x3520 / 0x2FB0 | V 0x45D4 / 1014 |
+| wil_w0_air01 | 6 | 0xA3A8 | 1 / 6 | 13 | vfx_hiku002_013 | 0x3580 / 0x2FE0 | V 0x45D4 / 1014 |
+| wil_w0_air01 | 7 | 0xA3CC | 1 / 7 | 28 | sdef_teikoku_hikutei | 0x35B0 / 0x2F50 | S 0x4560 / 706 |
+| lak_l0_air01 | 0 | 0x2140 | 0 / 0 | 14 raw | separate | - | - |
+| lak_l0_air01 | 1 | 0x2164 | 1 / 1 | 4 | w_air_fuji_l_body1 | 0x17B0 / 0x1720 | B 0x1C88 / 1258 |
+| lak_l0_air01 | 2 | 0x2188 | 1 / 2 | 5 | w_air_fuji_l_body2 | 0x1810 / 0x1750 | B 0x1C88 / 1258 |
+| lak_l0_air01 | 3 | 0x21AC | 1 / 3 | 6 | w_air_fuji_l_body3 | 0x1870 / 0x1780 | B 0x1C88 / 1258 |
+| lak_l0_air01 | 4 | 0x21D0 | 1 / 4 | 10 | vfx_hiku002_010 | 0x17E0 / 0x1720 | V 0x1F08 / 1014 |
+| lak_l0_air01 | 5 | 0x21F4 | 1 / 5 | 11 | vfx_hiku002_011 | 0x1840 / 0x1750 | V 0x1F08 / 1014 |
+| lak_l0_air01 | 6 | 0x2218 | 1 / 6 | 12 | vfx_hiku002_012 | 0x18A0 / 0x1780 | V 0x1F08 / 1014 |
+| lak_l0_air01 | 7 | 0x223C | 1 / 7 | 24 | sdef_teikoku_hikutei | 0x18D0 / 0x16F0 | S 0x1EE4 / 707 |
+
+B means declared `BaseObjects/BG/BGPartsBaseObject` (record size 0x54), V means
+`BaseObjects/VFX/VFXBaseObject` (record size 0x28), and S means
+`BaseObjects/SE/SEBaseObject` (record size 0x24). In Coerthas, ordinal 6 is the sound
+member and ordinal 7 is the third VFX member. Ul'dah's body keys are 2, 6, 5.
+Neither actor order nor the truncated body label establishes those joins.
+
+The decoder checked all five complete file sizes/hashes before interpreting
+any payload, authenticated the five embedded SCBs, and followed the exact
+placement pointer through original declared reference shapes, counts and
+extents with EOF and cycle guards. It read 40 bounded CACT records across
+12,256 SCB bytes and reused the existing clip classification. Declaration
+framing follows `xivl-tools:docs/formats/world-layout.md`, Node declarations,
+Declared shapes and Fields consumed by the zone reader. The local version-1
+decoder SHA-256 is `8bee37afa37578312b2efe9e4ce53bb626959a0c83586aa2a2b72b3197419a21`.
+Focused positive and negative checks covered context, bounds, cycles,
+missing keys and duplicate preservation.
+
+Confidence is high for these static identities. An actual retained U/L table,
+successful callback lookup and result T remain unobserved. The declarations
+do not bind A to E/T, identify the concrete +0x44/+0x48 receivers, establish
+polarity or recursive body/VFX/sound effects, or close the server selector and
+lifecycle edges. No additional receiver construction/table/caller identity
+follows from a declared BGParts, VFX or SE class alone.
+
+### Exact folder and conditional creation context
+
+Each of the five exact fleet placements has one direct pointer membership
+in `blk_0000`, serialized GID 600. The folder's declared class chain is
+`RefObjects/SharedFolder/DivideMap/DivideMapFolderObject` ->
+`RefObjects/SharedFolder/SharedFolderObject` -> `Root/RootObject`.
+This is a folder-list pointer join, independent of names or spatial proximity.
+All offsets below are physical DAT offsets. Indices are zero-based.
+
+| Layout | LYB base | Fleet placement / GID | Direct folder | Folder array / count / selected index | Selected array slot -> wrapper -> placement |
+| --- | --- | --- | --- | --- | --- |
+| `sea_s0_air01` | `0x830` | `0x3A50` / 935 | `0x47E0` | `0x3D04` / 5 / 1 | `0x3D08` -> `0x4854` -> `0x3A50` |
+| `roc_r0_air01` | `0x3F0` | `0x20A0` / 934 | `0x2650` | `0x21F0` / 3 / 0 | `0x21F0` -> `0x26C0` -> `0x20A0` |
+| `fst_f0_air01` | `0x830` | `0x3A10` / 937 | `0x47A0` | `0x3CC4` / 5 / 1 | `0x3CC8` -> `0x4814` -> `0x3A10` |
+| `wil_w0_air01` | `0x830` | `0x3A70` / 935 | `0x47E0` | `0x3D24` / 5 / 1 | `0x3D28` -> `0x4854` -> `0x3A70` |
+| `lak_l0_air01` | `0x270` | `0x1AA0` / 934 | `0x1F60` | `0x1BF0` / 3 / 0 | `0x1BF0` -> `0x1FD0` -> `0x1AA0` |
+
+Each selected Instance byte `+0x14` is `0x05`, so its automatic creation
+bit 1 is clear. Each owning DivideMap folder byte `+0x62` is `0x00`, so its
+resident bit 0 is clear. The four binary32 lanes at each folder's `+0x30`
+and `+0x40` are all exactly `0x00000000` (positive zero). The first three
+lanes supply each serialized low/high corner; the fourth lane is preserved
+without assigning it a coordinate meaning. The low/high field starts are
+respectively `0x4810/0x4820`, `0x2680/0x2690`, `0x47D0/0x47E0`,
+`0x4810/0x4820`, and `0x1F90/0x1FA0` in table order.
+
+Under the published [folder registration](layout-block-activation.md#folder-registration)
+contract, all five therefore take deferred AABB registration. The separate
+[automatic Instance path](bgchip-model-binding.md#unittree-child-creation-and-admission-source)
+does not create these placements from their clear bit 1. If selection,
+allocation and state guards let the block reach its
+[state-1 callback](layout-block-activation.md#state-1-placement-callback),
+that callback can create the missing exact Instance without testing bit 1.
+This establishes conditional deferred creation for every row. It does not
+establish immediate creation or that any block actually reached that state.
+
+The existing resource-parent rows above remain candidate region-submission
+contexts. [Region construction](map-layout-selector.md#normal-construction-and-name-resolution)
+submits eligible child rows without reading a zone value. Classification
+`0x4000..0x4002` then uses the
+[radius query](layout-block-streaming.md#per-frame-entry), subject to that
+page's manager and scene guards. These serialized zero corners do not prove
+universal coverage: the loader derives an expanded AABB, and the query uses
+scene `+0x1D0` plus the manager radius. The latter uses manager-root
+`+0x3C` or the published absence fallback, then retained scene multiplier
+`+0x338`. Neither the selected
+manager-root identity nor a retained multiplier was established here, so no
+numeric runtime radius follows. Submitted resources, folder registration
+and constructor eligibility establish neither ready instances nor resource
+completion, playback, body/VFX/sound effects or authenticated server zones.
+
+The producing method was Python 3.12.0 standard-library `struct` and
+SHA-256 on Windows 11. Every complete input passed the size/hash pins above
+before any field interpretation. Declaration framing followed
+`xivl-tools:docs/formats/world-layout.md`, sections "Node declarations",
+"Objects and classes" and "Graph cross-checks", at revision
+`e33378e5f2b429f49ff21a9450e787664227adca`, document SHA-256
+`3bdb36c1592b4f30e54658e22e931927844280003c520fbb196c34c2a608ab85`.
+The parse checked each class-node parent chain, the exact `0x40` Instance
+and `0x70` DivideMap descriptor sets, and `0x04` list/slot nodes with
+descriptor `(0,0)`. Each list stayed inside its declared extent and the
+same input file. All inventory SharedFolder-derived lists were checked for
+the exact five pointers, preserving duplicate matches; only the direct
+owning contexts are reported.
+
+The focused decoder `parse_load_context.py` had SHA-256
+`3ec0dffbff59a05f6f1b9054a0e18184ad6b43bd5f63f36cc7aaf01d17901b0f`.
+The verifier `verify_load_context.py` had SHA-256
+`0a7fec94bacbcb55758621855a243a8d657ca073bbc9d0f26023340da1c9dcd7`.
+A separate direct-byte declaration/membership replay agreed for all five
+inputs. In-memory controls rejected malformed size/hash, count, wrapper and
+declaration framing, excluded null and nearby nonidentical target pointers,
+and preserved duplicate membership. Confidence is high for these static
+bytes and pointer joins; the loading interpretation consumes the published
+native contracts without new native analysis or client execution.
 
 ## Binary evidence
 
@@ -394,6 +560,36 @@ above. Neither action satisfies an isolated fleet switch. The available
 evidence supports the fleet group as a candidate boundary, but does not yet
 establish a server-only switch or prove that a client change is necessary.
 
+### Conditional constructed member and property
+
+The [constructed member-target finding](showhide-clip-dispatch.md#constructed-member-target-and-bgparts-property)
+at revision `7ab9456ffe4b15d2de474630d8c203af393826be` narrows the
+conditional target types. Its child factory
+`0x006410A0 -> 0x007FB770` returns complete+4 with table `0x00FF279C`.
+When that original creation/registration path supplies the retained key
+table and lookup result, it therefore supplies the Rapture instance table
+used above. The static fleet key matches do not demonstrate those runtime
+conditions or authenticate the CATT factory path.
+
+For a selected BGParts category-2 base, the published property factory
+`0x008382A0 -> 0x007FD210` returns complete+`0x4C` with table
+`0x00FF2534`, stored as T+`0x14`. Property slot 12,
+`0x00A97C40`, forwards through nonnull property+`0x0C` to that receiver's
+slot 37. The constructor clears that optional pointer; its later concrete
+writer and receiver remain unbound. This is a conditional property path,
+separate from the flag-change notifications at T+`0x44/+0x48`.
+The constructed Rapture binding override does not directly store those notification
+fields, and the base constructor initially clears them. Substituting the
+engine binding method that does write them would join the wrong table.
+
+The [matching unit-target branch](showhide-clip-dispatch.md#unit-actor-with-a-matching-unitinfo-key)
+also identifies conditional UnitInfo flag/fanout operations and member
+slot-73 forwarding through the optional property. It does not identify the
+fleet's actual unit key, member/child vector entries or their retained
+tables. The ordinal-0 CACT raw value is not a proven UnitInfo scalar join.
+Neither conditional path supplies rendered polarity, complete descendant
+or audio effects, or an independent server producer.
+
 ## Live Ul'dah observation
 
 On 2026-10-01 UTC, a test session using the hash-matched executable above
@@ -452,19 +648,76 @@ fully replayed from that snapshot.
 
 ## Unresolved control edges
 
-| Edge | Status |
-| --- | --- |
-| Fleet resource to layout group | Static placed chain and live Ul'dah aliases/target established; exact rendered-object attribution remains unobserved |
-| Visibility consumer to initialization and producer | Direct `emp_stt0` clock phase and scheduler reset/start/seek established above |
-| Wire opcode/field, scene operation, actor work, or authored condition | Shared clock writers and operations `0x64/0x66` established; no dedicated fleet switch established |
-| Exact enable and disable values | Authored body words 1/0 and generic instance bit clear/set inputs 0/1 established above; producer switch values unresolved |
-| Player, area, layout, or global scope | Direct consumer targets one classification `0x4000` layout and matching placement; server policy scope unresolved |
-| Login reset and reapplication | Constructor cursor reset established; actual login order unresolved |
-| Ordinary zone-transfer reset and reapplication | Resource-transition cursor reset established; ordinary transfer binding and suppression replay unresolved |
-| Seamless-crossing reset and reapplication | Unresolved separately from the resource-transition reset |
-| Ordering relative to layout readiness or another update | Caller readiness and clock-window retry established; suppression ordering unresolved |
-| Independent server-only switch and coupled content | Unresolved |
-| Need for a client change | Unresolved |
+The following chain separates the client mechanisms from the missing
+independent control. An operation number, resource name or flag value is
+usable only after its producer, object domain and effect are joined.
+
+| Causal link | Established evidence | Missing evidence |
+| --- | --- | --- |
+| Server input to operation or authored selection | Scene operation `0x15` supplies a scheduler request; operations `0x64/0x66` reach shared clock writers | An attributable packet/script producer selecting a fleet-only target and independent value. The shared clock is not such a value. |
+| Authored record to named target | The application clip reads names, kinds, selectors and a normalized Boolean from its current resource record | A selected fleet-only application record, its actual selection path and retained target context. The engine fleet SCB and application clip are distinct. |
+| Exact fleet resource to constructed instance | The five placed chains, declaration-backed member-key joins and qualified live Ul'dah bindings identify the resources and static child candidates | Actual selected runtime instance, operation receiver and retained construction/lookup identity for an independent control |
+| Value to state change | The generic instance method changes bit 1 and notifies its two stored receivers; the fleet clock path resets/starts/seeks its timeline | A fleet-bound disable/enable interpretation. Bit clear/set is not render or audio polarity. |
+| State change to presentation | The fleet SCBs contain body, VFX and sound actors; a conditional BGParts property forwarder is identified separately from flag notifications | Actual fleet notification receivers and the property's later receiver producer, rendered polarity, descendant effects, independently scheduled VFX/sound and interaction with playback |
+| Presentation state across arrival and reset | The direct clock consumer has the initialization, resource reset, scene reset, readiness and retry conditions listed above | An independent suppression state, its lifetime and its ordered reapplication for each actual arrival/reset owner |
+
+No authenticated operation/target/value tuple can yet be supplied as an
+independent server contract. The first unbound edge on the traced application
+path is server-reachable selection of a fleet-only authored record. The first
+unbound downstream effect is the concrete fleet instance's notification
+receiver and its render/audio consequence. Establishing one does not close
+the other. Failure to establish the server path does not prove that a client
+change is required.
+
+### Suppression and restoration are separate requirements
+
+For a caller that needs an independent enable/disable control, these are
+requirements to prove, rather than recovered operation semantics:
+
+| Requested result | Required control evidence | Current boundary |
+| --- | --- | --- |
+| Suppress an initially visible or already playing fleet | Fleet-only target, proven hide/mute polarity, complete body/VFX/sound coverage and handling of independently active effects | Neither omission of an enable operation nor input 0 to the generic setter proves this result. Stopping a scheduler alone does not prove cleanup or hiding of its current outputs. |
+| Permit authored playback after suppression | Proven release or restoration operation, with the appropriate current scheduler state and no permanent forced-visible override | Input 1 to the generic setter is not a proven restore command. Reset/start/seek is established playback behavior, but its release relationship to an independent suppression is unbound. |
+| Preserve the selected result after later playback | Identified competing writers or a proven precedence rule and reapplication boundary | The application VFX/sound literal-1 calls are not authenticated to the selected fleet targets. They establish neither an overwrite nor protection from one. |
+| Preserve unrelated presentation | Fleet-only receiver/instance scope with transport scenes, other airship trees, unrelated members, weather, seasonal content and meteor controls excluded | The whole air layout and shared clock are broader than the fleet. Neither is an isolated suppression boundary. |
+
+The evidence therefore does not establish whether suppressing an already
+playing fleet and restoring a previously suppressed fleet use the same
+operation, opposite values, different operations or different ordering.
+The authored body words and generic bit inputs cannot decide that question.
+
+### Arrival, readiness and reapplication
+
+| Lifecycle case | Available static or retained fact | Required evidence before a suppression guarantee |
+| --- | --- | --- |
+| First login | Constructor initializes the fleet cursor and clock; the caller checks a selected layout's readiness | Join actual login/layout creation to the selected fleet instance and control readiness, then prove suppression of an initially visible fleet. |
+| Ordinary transfer | Resource-transition reset can clear the cursor, subject to the documented bypass paths | Bind the actual transfer owner, retained/recreated fleet state and ordered suppression application. |
+| Seamless crossing | Resource submission and per-frame block residency are separate; the generic resource reset is not a seamless-specific trace | Bind the crossing's layout/instance reuse or replacement and its own readiness/reapplication boundary. |
+| Re-entry with retained state | Loaded resource identity and the historical Ul'dah member join are available; instance pointers are session-local | Identify retained suppression/playback state and prove both false-after-true and true-after-false transitions. |
+| Layout reconstruction | The static creation contracts constrain when a placement can be constructed | Bind replacement instance/context identity and any loss of the independent state. Reacquire targets after unload. |
+| Later clock or scheduler reset | Direct fleet clock dispatch and the documented cursor reset paths can request playback | Join the independent control to those actual writers and establish precedence or an ordered reapplication point. |
+
+No numeric delay, resend interval or packet ordering follows from these
+facts. The selected clock consumer's readiness check does not prove readiness
+of every fleet target, nor does resource submission prove construction or
+visible residency.
+
+### Verification cases for a future control
+
+These cases are unexecuted acceptance requirements, not observed behavior:
+
+1. Exercise each authenticated operation/value against all five fleet
+   resource/placement mappings, with an unaffected-layout control.
+2. Suppress an initially visible fleet and an already playing fleet, checking
+   all bodies, VFX and sound rather than body visibility alone.
+3. Release prior suppression and permit the current authored playback,
+   including authored hiding at its normal phase.
+4. Repeat both transitions through first login, ordinary arrival, seamless
+   crossing, retained-state re-entry, reconstruction and each proven later
+   reset owner, using its authenticated readiness boundary.
+5. Verify that the shared clock, sibling airship trees, transport/cutscene
+   actors, unrelated layout members, weather, seasonal content and Dalamud
+   retain their original behavior.
 
 No historical retail activation schedule follows from these static sources.
 The live observation above does not establish which activation occurred in
