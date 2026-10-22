@@ -114,6 +114,10 @@ October-to-December delta (key is the eight-hex-digit DAT filename):
 
 ## Weather payload reuse
 
+The [original Gridania Halloween resource](gridania-halloween-weather-restoration.md)
+records the independently recovered October patch bytes, retained target
+identities and the bounded restoration candidate.
+
 The supplied `D2012.07.21.0000.patch` payloads replace the marker families
 at existing weather-resource keys without changing their legacy `wtr_xmas`
 or `wtr_hall` tokens. The decoded December 2011 payloads at the same keys
