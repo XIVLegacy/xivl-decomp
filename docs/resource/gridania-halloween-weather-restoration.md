@@ -27,9 +27,9 @@ Each selected `ETRY` began with a big-endian u32 path length and that many
 path bytes, without a NUL terminator in these selected paths. The remaining
 data decoded as
 `>I4s20s20s4sIII` followed by the compressed bytes: operation count, operation,
-old SHA1, new SHA1, compression, compressed length, destination offset and raw
-length. The selected entries each contained one `A` operation, zero old SHA1,
-`Z` compression and zero destination offset. Zlib output matched the declared
+old SHA1, new SHA1, compression, compressed length and two length dwords.
+The selected entries each contained one `A` operation, zero old SHA1,
+`Z` compression and a zero penultimate dword. Zlib output matched the declared
 length and new SHA1, with no unused compressed tail. No earlier installation
 or binary-delta application was needed for these complete added files.
 

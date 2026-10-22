@@ -117,6 +117,9 @@ October-to-December delta (key is the eight-hex-digit DAT filename):
 The [original Gridania Halloween resource](gridania-halloween-weather-restoration.md)
 records the independently recovered October patch bytes, retained target
 identities and the bounded restoration candidate.
+The [historical Starlight inputs](historical-starlight-weather-inputs.md)
+pin the recovered December wrappers and ten changed dependencies separately
+from any modified coexistence package.
 
 The supplied `D2012.07.21.0000.patch` payloads replace the marker families
 at existing weather-resource keys without changing their legacy `wtr_xmas`
