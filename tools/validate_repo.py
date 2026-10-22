@@ -12,6 +12,7 @@ from urllib.parse import unquote
 
 import _schema_check
 import verify_camera_input_chain as camera_input_verifier
+import verify_chara_lighting_model as chara_lighting_verifier
 import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_music_song_resources as music_song_verifier
@@ -444,6 +445,14 @@ def main() -> int:
     if camera_input_errors:
         errors.extend(
             f"camera input chain contract: {error}" for error in camera_input_errors
+        )
+    chara_lighting_errors = (
+        chara_lighting_verifier.verify() + chara_lighting_verifier.mutation_test()
+    )
+    if chara_lighting_errors:
+        errors.extend(
+            f"character lighting model contract: {error}"
+            for error in chara_lighting_errors
         )
     skeleton_composition_errors = skeleton_composition_verifier.verify()
     if skeleton_composition_errors:

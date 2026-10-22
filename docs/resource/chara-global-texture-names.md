@@ -211,10 +211,11 @@ light):
 
 The body program has six `lightToneMap` fetches, one per directional light
 (two) and one per point light (four). The coordinate of directional light 0
-and of point light 0 pass through a `mad_sat` with the x and y lanes of
-`EnableShadowFlag` (`c192`), so a zero lane forces `t = 1` and the fetch reads
-the end of the ramp. The coordinates of directional light 1 and of the other
-point lights are not gated.
+and of point light 0 pass through a `mad_sat` that multiplies by
+`max(1, lane)` of the x and y lanes of `EnableShadowFlag` (`c192`). The program
+loads the 1 from the `def` constant `-1` negated, so the factor is 1 for every
+lane value up to 1 and the lanes do not change `t`. The coordinates of
+directional light 1 and of the other point lights are not gated.
 
 The previous reading `u = (N.L * 0.5 + 0.5) * 0.96775 + 0.015625` has the
 opposite polarity. The decoded sequence gives `t = 0.5 - 0.5 * d`.

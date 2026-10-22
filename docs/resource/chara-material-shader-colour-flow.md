@@ -19,9 +19,10 @@ I = inferred.
   counts, then data and name offset tables. Parameter record: stage byte,
   component count, four floats at record `+0x10`. Sampler record: magic
   `0x0102`, candidate strings.
-* Pixel programs decoded as ps_3_0 with the embedded CTAB. 39 distinct pixel
-  programs, in `_000` and `_001` pairs. The `_001` sibling has the same colour
-  logic with a shorter body (I: lighter pass, selection rule not traced).
+* Pixel programs decoded as ps_3_0 with the embedded CTAB. 40 distinct pixel
+  programs, in `_000` and `_001` pairs. The `_001` sibling drops the shadow
+  term and uses two point lights instead of four, see
+  [Character lighting model](chara-lighting-model.md#the-two-passes).
 
 ## Material families
 
@@ -152,7 +153,8 @@ whole output. This is an inference from the program text, not an observed draw.
 
 ## Not established
 
-* Which pass (`_000` or `_001`) the client selects per draw.
+* Which pass (`_000` or `_001`) the client selects per draw, see
+  [Character lighting model](chara-lighting-model.md#the-two-passes).
 * The cell values of the `var_equip` colour rows (retail data, not recorded).
 * Where the context fields `C+0xBE4..0xC00` get their runtime values for a
   character draw. The sources of `C+0x1B4..0x1BC` are in

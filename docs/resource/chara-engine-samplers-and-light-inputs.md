@@ -337,7 +337,9 @@ slot for a block built here, because `0x00C69D20` adds type 4 lights into the
   what default DrawEnv a character draw gets before that.
 - Which render pass runs `DrawEnvCubeBlendShaderDriver`, and the writer of
   `C +0xC44`.
-- The pass choice between `_000` and `_001`, and the decoded math of `_001`.
+- The pass choice between `_000` and `_001` and which bit value selects
+  `_000`. The decoded math of `_001` is in
+  [Character lighting model](chara-lighting-model.md#the-two-passes).
 - The identity of the default object bound for an empty slot, and the
   sampler state bytes at record `+0x10`.
 - Cube pixel values. No cube texel was read.
