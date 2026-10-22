@@ -61,6 +61,35 @@ direct formatter callers are outside this Resource-constructor set, so
 formatter reachability alone does not identify a Resource producer and not
 every Resource path has numeric-producer provenance.
 
+## Catalog mode
+
+When mode byte `0x01266B64` is zero, `0x0044B469..0x0044B48F`
+passes the resource key's upper 16 bits to `0x0044B2A0`, then checks the
+lower 16 bits against the returned record's unsigned count at `+0x0A`.
+`0x0044B2A0` binary-searches the group collection at `0x0132CB88`, using
+record `+0x08` as the group key and `0x0132CB94` as its count.
+
+For a valid group/index, `0x0044B495..0x0044B4B9` reads the record's
+prefix pointer at `+0x00`, adds the low index to its base at `+0x04`, and
+looks up the resulting string entry through `0x0132CB8C`. The subsequent
+joins build the root wrapper, prefix, slash literal at `0x00F672E4`, and
+entry string into the result. Missing groups or out-of-range indices jump
+to `0x0044B5EF` before that result copy. They do not fall through to numeric
+path formatting.
+
+The formatter receives a resource key and reads initialized global catalog
+state. This branch does not read a weather ID, event ID, season or a second
+bank selector. Changing the global path mechanism does not itself add a
+weather registration or recover historical resource contents. The catalog's
+configuration key names and its actual retail initialization remain unbound.
+
+These observations used the retained Ghidra listings for `0x0044B3A0`,
+`0x0044B2A0` and `0x0044B690`. Python pefile `2024.8.26` mapped each listed
+instruction to the pinned original PE, checked its bytes, and Capstone
+`5.0.7` independently decoded the selected x86-32 ranges. No client ran.
+The [seasonal selection boundary](native-seasonal-resource-selection.md)
+separates native lookup from installing the resource files it consumes.
+
 ## Initialization predicate
 
 Initializer `0x004B2DF0` supplies a conditional source for the mode byte
