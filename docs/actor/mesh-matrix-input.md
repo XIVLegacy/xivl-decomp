@@ -13,6 +13,7 @@ a residual correction was established by this bounded analysis.
 | One outer block change covering the instance loop | REJECTED by native replacement | `0x00C4396B` rebuilds c0..c15 before each `0x00C4398E` draw |
 | Changing only projected c8..c11 | REJECTED within the sampled matrix stage | Decoded world/depth consumers retain their native inputs in the finite CPU replay |
 | Substitution in every eligible builder invocation | INCOMPLETE | Selected late writers/program, successor consumers, lifetime and complete admission |
+| One conditional body profile's bbox/material/accepted drivers | PROVEN within pinned static analysis and finite replay | [Exact selected-state join](body-shader-constant-join.md); scene-owned mesh/pass admission remains open |
 | Replacement before the named successor direct mesh draws | PROVEN within a bounded CFG | Four entries, seven direct dispatch sites, ordinary call returns |
 | Replacement before every unrelated or nested draw | INCOMPLETE | Next caller/pass after the walkers and pre-builder descendant calls |
 | Actor-owned terminal draw payload | INCOMPLETE | Recovered constant copies and draw tasks have no complete actor ownership contract |
@@ -134,6 +135,7 @@ bounded instruction-stage result, not complete shader coverage.
 | `0x00C421F0 -> 0x00C6C160/0x00C6C0F0` | c20 and palette ranges starting at c21 | Separate bool b0 setup |
 | `0x00C43340` | c169/c170, or metadata-selected one-vector bbox writes | Names `ModelBBoxScale` / `ModelBBoxOffSet` |
 | `0x00C3EA90 -> 0x0041A7D0` | [r,r], r from selected table | No exclusion of c0..c15 |
+| Default material `0x00C3E8B0` | [r,r], r from associated table/retained handle | Requires initialized stable index/handle pairs |
 | Material `0x00C56F30`, node `0x00C56ED0` | Selected [r,r] and [r,r+3] | Distinct accepted driver vectors |
 | `0x00C65D26/0x00C65D4A/0x00C65D72` | Four vectors [r,r+3] each | Selected metadata supplies each r |
 | `0x00C44C00 -> 0x0041BF10 -> 0x00423050` | No vertex float write | Vertex bool b1 is separate from c1 |
@@ -170,11 +172,19 @@ definition+0x2C. Selector `0x00C66F50` compares variant masks/ranks.
 `0x00C419D2` reads context+0xBA4 and can override the selected vertex
 container before publication at `0x00C41A6F`. Constructor zeroing does not
 prove absence of an override at a draw. Final `0x00C41AA0` binding also has
-cached and alternate-mode branches. The samples' high-register non-matrix
-CTAB entries do not supply the actual named values, accepted drivers,
-request masks, override or final program of the intended actor/pass.
+cached and alternate-mode branches.
 
-Survival is therefore INCOMPLETE at these concrete selected-state joins.
+The [selected body profile](body-shader-constant-join.md) joins one installed
+PRAM, native name resolution, accepted driver membership, the default
+records' association and ordinary final binding. Under its explicit valid,
+stable-object and zero-override conditions, bbox writes c169/c170, material
+writes c177..c179 and accepted VertexLight writes c171..c176 or c179.
+Those examined families leave c0..c15 untouched. A one-entry selector still
+returns entry zero for unmatched masks and cannot establish pass admission.
+
+Whole intended-draw survival remains INCOMPLETE: a scene-owned mesh/pass has
+not been admitted into that profile, and other reached callees remain bounded
+by the scope of their separate inspections.
 The `0x00C444E0` alternate material route also reaches
 `0x00C3EFD0 -> 0x00C3D5D0/0x00C3EA90` and needs its own selected inputs.
 

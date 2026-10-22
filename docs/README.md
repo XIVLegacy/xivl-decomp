@@ -16,6 +16,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Actor architecture](actor/architecture.md)
 - [Character movement displacement branch](actor/character-movement-displacement.md)
 - [Mesh matrix input and shared renderer state](actor/mesh-matrix-input.md)
+- [Selected body shader constant join](actor/body-shader-constant-join.md)
 - [Background visibility ranges](actor/background-visibility.md)
 - [Indexed float storage and clamp](actor/indexed-float-clamp.md)
 - [Camera context registration and selection](actor/camera-context-selection.md)
