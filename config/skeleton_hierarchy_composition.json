@@ -1,0 +1,307 @@
+{
+  "format": "xivl-skeleton-hierarchy-composition-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "ghidraCli": "0.2.2",
+    "ghidraVersion": "12.1.4",
+    "runId": "skeleton-hierarchy-composition"
+  },
+  "flag": {
+    "skeletonByte": "0x52",
+    "mask": "0x02",
+    "clearVa": "0x00a40b01",
+    "setVa": "0x00a40dde",
+    "selectorBit4GetterSlot": "0x68",
+    "selectorBit4GetterVa": "0x00e11d40",
+    "selectorBit1GetterSlot": "0x70",
+    "selectorBit1GetterVa": "0x00e11d60",
+    "rule": "Set when any record of any merged container has selector bit 4."
+  },
+  "routines": {
+    "separateScaleVa": "0x00a3f960",
+    "matrixCompositionVa": "0x00a3ff70",
+    "initialHierarchyVa": "0x00a40990",
+    "perJointVa": "0x00a404c0",
+    "perJointCallers": [
+      "0x007cd17f",
+      "0x00a6d5a6",
+      "0x00a6d5e1",
+      "0x00a6d680",
+      "0x00a6db28",
+      "0x00a6db66"
+    ],
+    "dispatch": [
+      {
+        "routineVa": "0x00a40990",
+        "testVa": "0x00a409ab",
+        "separateCallVa": "0x00a40a2a",
+        "matrixCallVa": "0x00a40aba"
+      },
+      {
+        "routineVa": "0x00a404c0",
+        "testVa": "0x00a40535",
+        "separateCallVa": "0x00a4053e",
+        "matrixCallVa": "0x00a4054b"
+      }
+    ]
+  },
+  "matrixComposition": {
+    "stackArguments": {
+      "pose": "[EBP+0x08]",
+      "output": "[EBP+0x0c]",
+      "parentOutput": "[EBP+0x10]"
+    },
+    "poseScaleOffsets": [
+      "0xc0",
+      "0xc4",
+      "0xc8",
+      "0xcc"
+    ],
+    "rowScaleMulVas": [
+      "0x00a4007f",
+      "0x00a400fd",
+      "0x00a40186"
+    ],
+    "rowScaleShuffleVas": [
+      "0x00a40012",
+      "0x00a4008a",
+      "0x00a4010b"
+    ],
+    "rowScaleShuffleImmediates": [
+      "0xaa",
+      "0x55",
+      "0x00"
+    ],
+    "localMatrixHelperVa": "0x00a41ca0",
+    "copyHelperVa": "0x0061f0f0",
+    "multiplyVa": "0x0061d050",
+    "multiplyCallVa": "0x00a402ba",
+    "outputMatrixOffset": "0x00",
+    "inheritedScaleOffset": "0x80",
+    "tailOutputOffset": "0x40",
+    "equation": "G_child = L * G_parent with L rows 0..2 = R(q) rows scaled by s_i and L row 3 = (tx, ty, tz, 1)",
+    "writesOutputQuaternion": false
+  },
+  "parentless": {
+    "parentGetterSlot": "0x54",
+    "parentGetterVa": "0x00e11cf0",
+    "compareVa": "0x00a40deb",
+    "runtimeParentOffset": "0xf0",
+    "outputStride": "0xa0",
+    "linkBuilderVa": "0x00e0e1b0",
+    "firstJointCheckVa": "0x00a412d5",
+    "comparesRootCount": false
+  },
+  "ranges": [
+    {
+      "name": "matrix composition routine",
+      "startVa": "0x00a3ff70",
+      "endVa": "0x00a404b4",
+      "sha256": "7b4aa5a7b734f31ba8a5cfe1287e6b14281846b389050e94e7f724909fc82e5c"
+    },
+    {
+      "name": "hierarchy routine for one joint",
+      "startVa": "0x00a404c0",
+      "endVa": "0x00a40558",
+      "sha256": "6296cc07ff5ea1d2777cadec239961388cf177eb4a818222b38fd2ac7597c70f"
+    },
+    {
+      "name": "hierarchy routine over every joint",
+      "startVa": "0x00a40990",
+      "endVa": "0x00a40ae7",
+      "sha256": "2bb58161bb8f9ddf6bb6b3ad45a508f75d2d4b1e5baffced2644e3fa0709af26"
+    },
+    {
+      "name": "matrix multiply",
+      "startVa": "0x0061d050",
+      "endVa": "0x0061d169",
+      "sha256": "f2940dc805e0f64de149d60eb202d943bc510643d0d66301e344018c8ce73681"
+    },
+    {
+      "name": "selector bit 4 getter",
+      "startVa": "0x00e11d40",
+      "endVa": "0x00e11d4c",
+      "sha256": "202e2ae07cf2fd0308f34dddc28c614548a93b5160ac3b22c55c0f8cf422ba92"
+    },
+    {
+      "name": "selector bit 1 getter",
+      "startVa": "0x00e11d60",
+      "endVa": "0x00e11d6c",
+      "sha256": "5cddc158b3226283c82a721587dd5ed4238de47b345ec50efee67f9be968f22c"
+    }
+  ],
+  "bytes": [
+    {
+      "va": "0x00a40b01",
+      "hex": "806752f9"
+    },
+    {
+      "va": "0x00a40dcf",
+      "hex": "8b4268"
+    },
+    {
+      "va": "0x00a40dd6",
+      "hex": "84c07408"
+    },
+    {
+      "va": "0x00a40dde",
+      "hex": "80485202"
+    },
+    {
+      "va": "0x00a40deb",
+      "hex": "83f8ff"
+    },
+    {
+      "va": "0x00a409ab",
+      "hex": "f6475202"
+    },
+    {
+      "va": "0x00a409b9",
+      "hex": "0f8498000000"
+    },
+    {
+      "va": "0x00a40535",
+      "hex": "f6415202"
+    },
+    {
+      "va": "0x00a4053c",
+      "hex": "740d"
+    },
+    {
+      "va": "0x00a412d5",
+      "hex": "6683baf000000000"
+    },
+    {
+      "va": "0x00a412dd",
+      "hex": "7d09"
+    }
+  ],
+  "calls": [
+    {
+      "va": "0x00a40a2a",
+      "target": "0x00a3f960"
+    },
+    {
+      "va": "0x00a40aba",
+      "target": "0x00a3ff70"
+    },
+    {
+      "va": "0x00a4053e",
+      "target": "0x00a3f960"
+    },
+    {
+      "va": "0x00a4054b",
+      "target": "0x00a3ff70"
+    },
+    {
+      "va": "0x00a412e3",
+      "target": "0x00a40990"
+    },
+    {
+      "va": "0x00a3ffc8",
+      "target": "0x00a41ca0"
+    },
+    {
+      "va": "0x00a3ffcf",
+      "target": "0x0061f0f0"
+    },
+    {
+      "va": "0x00a402ba",
+      "target": "0x0061d050"
+    },
+    {
+      "va": "0x00a40442",
+      "target": "0x0061f0f0"
+    },
+    {
+      "va": "0x00a40463",
+      "target": "0x0042edb0"
+    },
+    {
+      "va": "0x00a4046a",
+      "target": "0x00a41650"
+    },
+    {
+      "va": "0x00a40477",
+      "target": "0x00545670"
+    }
+  ],
+  "measured": {
+    "skeletonFiles": 316,
+    "selectorFiles": {
+      "0x00000012": 113,
+      "0x00000002": 203
+    },
+    "groups": {
+      "bgobj": {
+        "files": 93,
+        "0x00000012": 8,
+        "0x00000002": 85
+      },
+      "mon": {
+        "files": 96,
+        "0x00000012": 86,
+        "0x00000002": 10
+      },
+      "pc": {
+        "files": 16,
+        "0x00000012": 16,
+        "0x00000002": 0
+      },
+      "wep": {
+        "files": 111,
+        "0x00000012": 3,
+        "0x00000002": 108
+      }
+    },
+    "filesWithOneRoot": 315,
+    "filesWithTwoRoots": [
+      "mon/m039"
+    ],
+    "selector2Monsters": [
+      "m091",
+      "m509",
+      "m515",
+      "m524",
+      "m525",
+      "m526",
+      "m527",
+      "m980",
+      "m998",
+      "m999"
+    ],
+    "identities": {
+      "mon/m509/skl/0001": {
+        "size": 13344,
+        "sha256": "ad4e96a86df2ce112a04dd00c9a4ac0827473b245ecf7992a4ccf8e584f7cae2"
+      },
+      "mon/m039/skl/0001": {
+        "size": 25120,
+        "sha256": "0b0d4a890facaff187eade45174651a197a827991e3338a5a77a835756549756"
+      }
+    }
+  },
+  "emulation": {
+    "emulator": "unicorn 2.1.4",
+    "trials": {
+      "matrixComposition": 200,
+      "tail": 100,
+      "chains": 5
+    },
+    "seeds": {
+      "matrixComposition": 7,
+      "tail": 3,
+      "chains": 11
+    },
+    "bounds": {
+      "matrixCompositionAbs": 5e-06,
+      "tailAbs": 5e-06,
+      "unitAndUniformChainAbs": 5e-06,
+      "nonuniformChainMin": 0.5
+    }
+  }
+}

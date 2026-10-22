@@ -109,8 +109,10 @@ constructor pose. They do not establish animation or bind semantics.
 All `95` selected records set rotation bit `1` and composition bit `4`.
 If any record sets bit `4`, the constructor sets skeleton byte `+0x52`
 bit `1`. VA `0x00a409ab..0x00a409b9` then selects the whole skeleton's
-`0x00a3f960` calculation. The other rotation branch and the dispatcher
-alternative at `0x00a3ff70` are outside this finding's input coverage.
+`0x00a3f960` calculation. The other rotation branch is outside this
+finding's input coverage. The
+[composition paths finding](skeleton-hierarchy-composition.md) covers the
+dispatcher alternative at `0x00a3ff70`.
 No general mixed-flag contract is established.
 
 ## Matrix notation and local construction
