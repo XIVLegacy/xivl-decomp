@@ -1,0 +1,1545 @@
+{
+  "format": "xivl-chara-lighting-model-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "install": "retail 1.23b install, client/chara/pc/c001 equ, kao and acc model files, read only",
+    "tools": "Capstone 5.0.7 and Ghidra 12.1.4 listings as leads, tools/d3d9_shader_decode.py for shader token streams"
+  },
+  "constants": {
+    "specularCurve": {
+      "gain": 1.2,
+      "offset": 2.0
+    },
+    "shininessDivisor": {
+      "bias": 0.26
+    },
+    "normalMap": {
+      "center": 0.5,
+      "zSquaredBase": 0.25
+    },
+    "specularFalloff": {
+      "power": 8
+    },
+    "pointLight": {
+      "attenuationFloor": 0.001,
+      "farScale": 1000.0,
+      "count": {
+        "000": 4,
+        "001": 2
+      }
+    },
+    "directionalLightCount": 2,
+    "shadowTapCount": 4,
+    "luminanceLengthKind": "euclidean"
+  },
+  "lightDrivers": {
+    "ambientFinalize": "(block16 + running / N) * 0.5 when N > 0, else block16",
+    "directionalScale": 1.0,
+    "pointScale": 1.0,
+    "modulateColor": "node colour rgb (w forced 1.0) * mesh colour rgba",
+    "enableShadowFlagEffect": "none: shader floor max(1, flag) is 1 for flag <= 1"
+  },
+  "gammaBlit": {
+    "presentCallVa": [
+      "0x00a52f5d",
+      "0x00a53136"
+    ],
+    "blitVa": "0x0041f020",
+    "mode": 3,
+    "gammaFieldOffset": "0x17c",
+    "gammaDefault": 1.0,
+    "gammaSetterVa": "0x0041bae0",
+    "gammaGetterVa": "0x0041bb10",
+    "formula": "out = (floor(255 * |c|^gamma) + (frac >= T(x, y))) / 255",
+    "ditherRows": [
+      [
+        25,
+        17,
+        29,
+        21
+      ],
+      [
+        9,
+        1,
+        13,
+        5
+      ],
+      [
+        31,
+        23,
+        27,
+        19
+      ],
+      [
+        15,
+        7,
+        11,
+        3
+      ]
+    ],
+    "ditherDenominator": 32,
+    "ditherIndex": "T = rows[y & 3][x & 3] / 32 with x, y the pixel position"
+  },
+  "stateIds": {
+    "srgbWriteState": 194,
+    "srgbTextureSampler": 11,
+    "renderStateManagerVa": "0x004236e0",
+    "samplerStateManagerVa": "0x004236a0",
+    "renderStateImmediates": [
+      7,
+      8,
+      14,
+      15,
+      19,
+      20,
+      22,
+      23,
+      24,
+      25,
+      27,
+      52,
+      57,
+      58,
+      59,
+      154,
+      156,
+      168,
+      171,
+      174,
+      175,
+      181,
+      185,
+      190,
+      191,
+      192,
+      193,
+      195,
+      206,
+      207,
+      208,
+      209
+    ],
+    "samplerStateImmediates": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "registerFedCallSites": {
+      "renderState": 12,
+      "samplerState": 5
+    }
+  },
+  "shaders": {
+    "decoder": "tools/d3d9_shader_decode.py",
+    "textFormat": "one canonical line per instruction, def and dcl lines included, CTAB excluded",
+    "install": [
+      {
+        "role": "clothVertex",
+        "path": "client/chara/pc/c001/equ/e216/pch_mdl/0001",
+        "fileSize": 35280,
+        "offset": 464,
+        "version": "vs_3_0",
+        "lines": 136,
+        "decodedSha256": "511577889b120f873b0c9c8ce7fce630f04b75d0425968f229fe14306827f9cb",
+        "constantTableSha256": "1e62b4c9795ca75292ac2e88980d8fef7cf771389a88c93176b39ad4404d5c51",
+        "immediates": [
+          "def c7, 2, -1, 3, -0",
+          "def c20, 0.5, 0.001, 0, 0",
+          "defi i0, 2, 0, 1, 0"
+        ],
+        "constants": [
+          "isSkining b0 x1",
+          "worldMatrix c0 x4",
+          "worldITMatrix c4 x3",
+          "worldViewProjMatrix c8 x4",
+          "worldViewMatrix c12 x4",
+          "viewITMatrix c16 x4",
+          "jointMatrices c21 x144",
+          "ModelBBoxScale c169 x1",
+          "ModelBBoxOffSet c170 x1",
+          "PointLightPositions c171 x2",
+          "PointLightColors c173 x2",
+          "PointLightParams c175 x2",
+          "EnableShadowFlag c177 x1",
+          "uvofs0 c178 x1",
+          "fogParam c179 x1"
+        ]
+      },
+      {
+        "role": "clothPixel000",
+        "path": "client/chara/pc/c001/equ/e216/pch_mdl/0001",
+        "fileSize": 35280,
+        "offset": 3520,
+        "version": "ps_3_0",
+        "lines": 216,
+        "decodedSha256": "587dd3b49e7ea1bcc85a4337156f5d147c09e78b3dcc85cfa463b84fa3a7843a",
+        "constantTableSha256": "4ceab28a9bb259012c2e1601eb253b56827ea43c3a8ab498987f437489be34ce",
+        "immediates": [
+          "def c0, 1.2, 2, 0.26, -1",
+          "def c1, -0.5, 0.25, 0, 0",
+          "def c2, -0, -1, -2, -3",
+          "def c3, 0.001, -0.001, 1000, 0",
+          "def c4, 0.25, 1, 0, 0",
+          "defi i0, 2, 0, 0, 0",
+          "defi i1, 4, 0, 0, 0"
+        ],
+        "constants": [
+          "PointLightPositions c171 x4",
+          "PointLightColors c175 x4",
+          "PointLightParams c179 x4",
+          "shadowOffset0 c183 x4",
+          "DirLightDirections c187 x2",
+          "DirLightColors c189 x2",
+          "ambientLightColor c191 x1",
+          "EnableShadowFlag c192 x1",
+          "shadowColor c193 x1",
+          "shadowProjMatrix0 c194 x1",
+          "shadowProjMatrix1 c195 x1",
+          "shadowProjMatrix2 c196 x1",
+          "shadowProjMatrix3 c197 x1",
+          "shadowFadeParam c198 x1",
+          "latitudeParam c199 x1",
+          "ambientColor c200 x1",
+          "diffuseColor c201 x1",
+          "specularColor c202 x1",
+          "shininess c203 x1",
+          "specularInfluence c204 x1",
+          "normalPower c205 x1",
+          "fogColor c206 x1",
+          "reflectMapLod c207 x1",
+          "reflectivity c208 x1",
+          "reflectMapInfluence c209 x1",
+          "multiReflectivity c210 x1",
+          "refAlphaRestrain c211 x1",
+          "lightDiffuseMapLod c212 x1",
+          "lightDiffusePower c213 x1",
+          "lightDiffuseInfluence c214 x1",
+          "fresnelExp c215 x1",
+          "fresnelLightDiffBias c216 x1",
+          "multiDiffuseColor c217 x1",
+          "multiSpecularColor c218 x1",
+          "multiShininess c219 x1",
+          "modulateColor c220 x1",
+          "glareLdrScale c221 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1",
+          "_sampler_02 s4 x1",
+          "shadowMap0 s10 x1"
+        ]
+      },
+      {
+        "role": "clothPixel001",
+        "path": "client/chara/pc/c001/equ/e216/pch_mdl/0001",
+        "fileSize": 35280,
+        "offset": 9312,
+        "version": "ps_3_0",
+        "lines": 163,
+        "decodedSha256": "9b2d4c31e37c46fc970b3124bff928a46d4a5ea609fef1675bae2e91444c543f",
+        "constantTableSha256": "4fa9811d62690dfc319db67a5db1dd19b30e08d776f1fab88a486e945c4eb80d",
+        "immediates": [
+          "def c0, 1.2, 2, 0.26, -1",
+          "def c1, -0.5, 0.25, 0, 0.001",
+          "def c2, 1000, 0, 0, 0",
+          "defi i0, 2, 0, 0, 0"
+        ],
+        "constants": [
+          "DirLightDirections c171 x2",
+          "DirLightColors c173 x2",
+          "PointLightPositions c175 x2",
+          "PointLightColors c177 x2",
+          "PointLightParams c179 x2",
+          "ambientLightColor c181 x1",
+          "EnableShadowFlag c182 x1",
+          "latitudeParam c183 x1",
+          "ambientColor c184 x1",
+          "diffuseColor c185 x1",
+          "specularColor c186 x1",
+          "shininess c187 x1",
+          "specularInfluence c188 x1",
+          "normalPower c189 x1",
+          "fogColor c190 x1",
+          "reflectMapLod c191 x1",
+          "reflectivity c192 x1",
+          "reflectMapInfluence c193 x1",
+          "multiReflectivity c194 x1",
+          "refAlphaRestrain c195 x1",
+          "lightDiffuseMapLod c196 x1",
+          "lightDiffusePower c197 x1",
+          "lightDiffuseInfluence c198 x1",
+          "fresnelExp c199 x1",
+          "fresnelLightDiffBias c200 x1",
+          "multiDiffuseColor c201 x1",
+          "multiSpecularColor c202 x1",
+          "multiShininess c203 x1",
+          "modulateColor c204 x1",
+          "glareLdrScale c205 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1",
+          "_sampler_02 s4 x1"
+        ]
+      },
+      {
+        "role": "clothCubeAlphaPixel000",
+        "path": "client/chara/pc/c001/equ/e001/top_mdl/0001",
+        "fileSize": 71042,
+        "offset": 3536,
+        "version": "ps_3_0",
+        "lines": 218,
+        "decodedSha256": "6fcea3b529d7c066c0b77088d9fdbed9c2dd6fc861781ce5aa95ef568987b3da",
+        "constantTableSha256": "4ceab28a9bb259012c2e1601eb253b56827ea43c3a8ab498987f437489be34ce",
+        "immediates": [
+          "def c0, 1.2, 2, 0.26, -1",
+          "def c1, -0.5, 0.25, 0, 0",
+          "def c2, -0, -1, -2, -3",
+          "def c3, 0.001, -0.001, 1000, 0",
+          "def c4, 0.25, 1, 0, 0",
+          "defi i0, 2, 0, 0, 0",
+          "defi i1, 4, 0, 0, 0"
+        ],
+        "constants": [
+          "PointLightPositions c171 x4",
+          "PointLightColors c175 x4",
+          "PointLightParams c179 x4",
+          "shadowOffset0 c183 x4",
+          "DirLightDirections c187 x2",
+          "DirLightColors c189 x2",
+          "ambientLightColor c191 x1",
+          "EnableShadowFlag c192 x1",
+          "shadowColor c193 x1",
+          "shadowProjMatrix0 c194 x1",
+          "shadowProjMatrix1 c195 x1",
+          "shadowProjMatrix2 c196 x1",
+          "shadowProjMatrix3 c197 x1",
+          "shadowFadeParam c198 x1",
+          "latitudeParam c199 x1",
+          "ambientColor c200 x1",
+          "diffuseColor c201 x1",
+          "specularColor c202 x1",
+          "shininess c203 x1",
+          "specularInfluence c204 x1",
+          "normalPower c205 x1",
+          "fogColor c206 x1",
+          "reflectMapLod c207 x1",
+          "reflectivity c208 x1",
+          "reflectMapInfluence c209 x1",
+          "multiReflectivity c210 x1",
+          "refAlphaRestrain c211 x1",
+          "lightDiffuseMapLod c212 x1",
+          "lightDiffusePower c213 x1",
+          "lightDiffuseInfluence c214 x1",
+          "fresnelExp c215 x1",
+          "fresnelLightDiffBias c216 x1",
+          "multiDiffuseColor c217 x1",
+          "multiSpecularColor c218 x1",
+          "multiShininess c219 x1",
+          "modulateColor c220 x1",
+          "glareLdrScale c221 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1",
+          "_sampler_02 s4 x1",
+          "shadowMap0 s10 x1"
+        ]
+      },
+      {
+        "role": "clothCubeAlphaPixel001",
+        "path": "client/chara/pc/c001/equ/e001/top_mdl/0001",
+        "fileSize": 71042,
+        "offset": 9360,
+        "version": "ps_3_0",
+        "lines": 165,
+        "decodedSha256": "ff5c6a16fdf86fc74a3f4920a620226583eb373766fe7b48329dd0fe859888e0",
+        "constantTableSha256": "4fa9811d62690dfc319db67a5db1dd19b30e08d776f1fab88a486e945c4eb80d",
+        "immediates": [
+          "def c0, 1.2, 2, 0.26, -1",
+          "def c1, -0.5, 0.25, 0, 0.001",
+          "def c2, 1000, 0, 0, 0",
+          "defi i0, 2, 0, 0, 0"
+        ],
+        "constants": [
+          "DirLightDirections c171 x2",
+          "DirLightColors c173 x2",
+          "PointLightPositions c175 x2",
+          "PointLightColors c177 x2",
+          "PointLightParams c179 x2",
+          "ambientLightColor c181 x1",
+          "EnableShadowFlag c182 x1",
+          "latitudeParam c183 x1",
+          "ambientColor c184 x1",
+          "diffuseColor c185 x1",
+          "specularColor c186 x1",
+          "shininess c187 x1",
+          "specularInfluence c188 x1",
+          "normalPower c189 x1",
+          "fogColor c190 x1",
+          "reflectMapLod c191 x1",
+          "reflectivity c192 x1",
+          "reflectMapInfluence c193 x1",
+          "multiReflectivity c194 x1",
+          "refAlphaRestrain c195 x1",
+          "lightDiffuseMapLod c196 x1",
+          "lightDiffusePower c197 x1",
+          "lightDiffuseInfluence c198 x1",
+          "fresnelExp c199 x1",
+          "fresnelLightDiffBias c200 x1",
+          "multiDiffuseColor c201 x1",
+          "multiSpecularColor c202 x1",
+          "multiShininess c203 x1",
+          "modulateColor c204 x1",
+          "glareLdrScale c205 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1",
+          "_sampler_02 s4 x1"
+        ]
+      },
+      {
+        "role": "skinPixel000",
+        "path": "client/chara/pc/c001/equ/e001/top_mdl/0001",
+        "fileSize": 71042,
+        "offset": 19276,
+        "version": "ps_3_0",
+        "lines": 314,
+        "decodedSha256": "551cf91208c9688a000df313449a9aff0a56d37a42f22606a6e7deff7c1379cf",
+        "constantTableSha256": "b981d5991b21b2e8c96633b6a95fc59d32b67e4db1fc9113269519e55e191b94",
+        "immediates": [
+          "def c0, 2.6, 1.2, 0.26, 2",
+          "def c1, -0.5, 0.5, 0.96775, 0.015625",
+          "def c2, 0.001, -0.001, 1000, 0",
+          "def c3, 2, -1, -0.5, 0.25",
+          "def c4, 1, 0, 0, 0"
+        ],
+        "constants": [
+          "PointLightPositions c171 x4",
+          "PointLightColors c175 x4",
+          "PointLightParams c179 x4",
+          "shadowOffset0 c183 x4",
+          "DirLightDirections c187 x2",
+          "DirLightColors c189 x2",
+          "ambientLightColor c191 x1",
+          "EnableShadowFlag c192 x1",
+          "shadowColor c193 x1",
+          "shadowProjMatrix0 c194 x1",
+          "shadowProjMatrix1 c195 x1",
+          "shadowProjMatrix2 c196 x1",
+          "shadowProjMatrix3 c197 x1",
+          "shadowFadeParam c198 x1",
+          "latitudeParam c199 x1",
+          "ambientColor c200 x1",
+          "diffuseColor c201 x1",
+          "specularColor c202 x1",
+          "shininess c203 x1",
+          "specularInfluence c204 x1",
+          "normalPower c205 x1",
+          "fogColor c206 x1",
+          "reflectMapLod c207 x1",
+          "reflectivity c208 x1",
+          "reflectMapInfluence c209 x1",
+          "multiReflectivity c210 x1",
+          "refAlphaRestrain c211 x1",
+          "lightDiffuseMapLod c212 x1",
+          "lightDiffusePower c213 x1",
+          "lightDiffuseInfluence c214 x1",
+          "fresnelExp c215 x1",
+          "fresnelLightDiffBias c216 x1",
+          "multiDiffuseColor c217 x1",
+          "multiSpecularColor c218 x1",
+          "multiShininess c219 x1",
+          "modulateColor c220 x1",
+          "glareLdrScale c221 x1",
+          "lightToneMap s0 x1",
+          "reflectMap s1 x1",
+          "lightDiffuseMap s2 x1",
+          "_sampler_00 s3 x1",
+          "_sampler_01 s4 x1",
+          "_sampler_02 s5 x1",
+          "shadowMap0 s10 x1"
+        ]
+      },
+      {
+        "role": "skinPixel001",
+        "path": "client/chara/pc/c001/equ/e001/top_mdl/0001",
+        "fileSize": 71042,
+        "offset": 26716,
+        "version": "ps_3_0",
+        "lines": 210,
+        "decodedSha256": "6ed757ea039d8580a9a358076de3e7bd6a3da6d334594578f157c0e21048887a",
+        "constantTableSha256": "9d8d368ad9e508b7dfd50a413e394f921c88902d246e6d7d39a41ceb6f1da631",
+        "immediates": [
+          "def c0, 2.6, 1.2, 0.26, 2",
+          "def c1, 2, -1, -0.5, 0.25",
+          "def c2, -0.5, 0.5, 0.96775, 0.015625",
+          "def c3, 0.001, -0.001, 1000, 0"
+        ],
+        "constants": [
+          "DirLightDirections c171 x2",
+          "DirLightColors c173 x2",
+          "PointLightPositions c175 x2",
+          "PointLightColors c177 x2",
+          "PointLightParams c179 x2",
+          "ambientLightColor c181 x1",
+          "EnableShadowFlag c182 x1",
+          "latitudeParam c183 x1",
+          "ambientColor c184 x1",
+          "diffuseColor c185 x1",
+          "specularColor c186 x1",
+          "shininess c187 x1",
+          "specularInfluence c188 x1",
+          "normalPower c189 x1",
+          "fogColor c190 x1",
+          "reflectMapLod c191 x1",
+          "reflectivity c192 x1",
+          "reflectMapInfluence c193 x1",
+          "multiReflectivity c194 x1",
+          "refAlphaRestrain c195 x1",
+          "lightDiffuseMapLod c196 x1",
+          "lightDiffusePower c197 x1",
+          "lightDiffuseInfluence c198 x1",
+          "fresnelExp c199 x1",
+          "fresnelLightDiffBias c200 x1",
+          "multiDiffuseColor c201 x1",
+          "multiSpecularColor c202 x1",
+          "multiShininess c203 x1",
+          "modulateColor c204 x1",
+          "glareLdrScale c205 x1",
+          "lightToneMap s0 x1",
+          "reflectMap s1 x1",
+          "lightDiffuseMap s2 x1",
+          "_sampler_00 s3 x1",
+          "_sampler_01 s4 x1",
+          "_sampler_02 s5 x1"
+        ]
+      },
+      {
+        "role": "faceHairVertex",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 512,
+        "version": "vs_3_0",
+        "lines": 139,
+        "decodedSha256": "a223e42399fb319048c5eaecb4219a9b3ef63840f7927b2bb0a1a800b2e5908d",
+        "constantTableSha256": "951b04fbaf51e23b4df494ae26b10fda6b60659e51d58cc520bf50383c8cfd6b",
+        "immediates": [
+          "def c7, 2, -1, 3, -0",
+          "def c20, 0.5, 0.001, 0, 0",
+          "defi i0, 2, 0, 1, 0"
+        ],
+        "constants": [
+          "isSkining b0 x1",
+          "worldMatrix c0 x4",
+          "worldITMatrix c4 x3",
+          "worldViewProjMatrix c8 x4",
+          "worldViewMatrix c12 x4",
+          "viewITMatrix c16 x4",
+          "jointMatrices c21 x144",
+          "ModelBBoxScale c169 x1",
+          "ModelBBoxOffSet c170 x1",
+          "PointLightPositions c171 x2",
+          "PointLightColors c173 x2",
+          "PointLightParams c175 x2",
+          "EnableShadowFlag c177 x1",
+          "exLightParam c178 x1",
+          "uvofs0 c179 x1",
+          "fogParam c180 x1"
+        ]
+      },
+      {
+        "role": "hairPixel000",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 3664,
+        "version": "ps_3_0",
+        "lines": 230,
+        "decodedSha256": "cb4f097f39cb89db21426e7cb64d21f7a8a192aea11af85b0a0f20b251cc9d31",
+        "constantTableSha256": "e9fdc022a8ec47ea9a6076109cc68642dc88fb07c627fc0798061d061f7e55be",
+        "immediates": [
+          "def c0, 3, 1.5, 2, -1",
+          "def c1, -0.5, 0.25, 0, 0",
+          "def c2, -0, -1, -2, -3",
+          "def c3, 0.001, -0.001, 1000, 0",
+          "def c4, 0.25, 1, 0, 0",
+          "defi i0, 2, 0, 0, 0",
+          "defi i1, 4, 0, 0, 0"
+        ],
+        "constants": [
+          "PointLightPositions c171 x4",
+          "PointLightColors c175 x4",
+          "PointLightParams c179 x4",
+          "shadowOffset0 c183 x4",
+          "DirLightDirections c187 x2",
+          "DirLightColors c189 x2",
+          "ambientLightColor c191 x1",
+          "EnableShadowFlag c192 x1",
+          "exLightParam c193 x1",
+          "velvetParam c194 x1",
+          "shadowColor c195 x1",
+          "shadowProjMatrix0 c196 x1",
+          "shadowProjMatrix1 c197 x1",
+          "shadowProjMatrix2 c198 x1",
+          "shadowProjMatrix3 c199 x1",
+          "shadowFadeParam c200 x1",
+          "latitudeParam c201 x1",
+          "ambientColor c202 x1",
+          "diffuseColor c203 x1",
+          "specularColor c204 x1",
+          "shininess c205 x1",
+          "specularInfluence c206 x1",
+          "normalPower c207 x1",
+          "fogColor c208 x1",
+          "reflectMapLod c209 x1",
+          "reflectivity c210 x1",
+          "reflectMapInfluence c211 x1",
+          "refAlphaRestrain c212 x1",
+          "lightDiffuseMapLod c213 x1",
+          "lightDiffusePower c214 x1",
+          "lightDiffuseInfluence c215 x1",
+          "fresnelExp c216 x1",
+          "fresnelLightDiffBias c217 x1",
+          "multiDiffuseColor c218 x1",
+          "multiSpecularColor c219 x1",
+          "multiShininess c220 x1",
+          "modulateColor c221 x1",
+          "glareLdrScale c222 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1",
+          "shadowMap0 s10 x1"
+        ]
+      },
+      {
+        "role": "hairPixel001",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 9712,
+        "version": "ps_3_0",
+        "lines": 177,
+        "decodedSha256": "49995906d05e0881344e8b4130767e7b897f404d5c1a7a8ea31efcfc35e28cd6",
+        "constantTableSha256": "1cfa1194118993189964d265ba62b40046dfe3fa2219d2a5de4a154e73ab187c",
+        "immediates": [
+          "def c0, 3, 1.5, 2, -1",
+          "def c1, -0.5, 0.25, 0, 0.001",
+          "def c2, 1000, 0, 0, 0",
+          "defi i0, 2, 0, 0, 0"
+        ],
+        "constants": [
+          "DirLightDirections c171 x2",
+          "DirLightColors c173 x2",
+          "PointLightPositions c175 x2",
+          "PointLightColors c177 x2",
+          "PointLightParams c179 x2",
+          "ambientLightColor c181 x1",
+          "EnableShadowFlag c182 x1",
+          "exLightParam c183 x1",
+          "velvetParam c184 x1",
+          "latitudeParam c185 x1",
+          "ambientColor c186 x1",
+          "diffuseColor c187 x1",
+          "specularColor c188 x1",
+          "shininess c189 x1",
+          "specularInfluence c190 x1",
+          "normalPower c191 x1",
+          "fogColor c192 x1",
+          "reflectMapLod c193 x1",
+          "reflectivity c194 x1",
+          "reflectMapInfluence c195 x1",
+          "refAlphaRestrain c196 x1",
+          "lightDiffuseMapLod c197 x1",
+          "lightDiffusePower c198 x1",
+          "lightDiffuseInfluence c199 x1",
+          "fresnelExp c200 x1",
+          "fresnelLightDiffBias c201 x1",
+          "multiDiffuseColor c202 x1",
+          "multiSpecularColor c203 x1",
+          "multiShininess c204 x1",
+          "modulateColor c205 x1",
+          "glareLdrScale c206 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1"
+        ]
+      },
+      {
+        "role": "irisPixel000",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 19820,
+        "version": "ps_3_0",
+        "lines": 202,
+        "decodedSha256": "1b12a628ca9b934643c929a40317e0e9e2ee960ca05c2c29d251939a4148d40d",
+        "constantTableSha256": "5c0213d976493eca046d798204c3d8f2e63b9f6650be8879a8c8c84b85ee9712",
+        "immediates": [
+          "def c0, 2, -1, -0.5, 0.25",
+          "def c1, -0, -1, -2, -3",
+          "def c2, 0, 0, 0.001, -0.001",
+          "def c3, 1000, 0, 0, 0",
+          "defi i0, 2, 0, 0, 0",
+          "defi i1, 4, 0, 0, 0"
+        ],
+        "constants": [
+          "PointLightPositions c171 x4",
+          "PointLightColors c175 x4",
+          "PointLightParams c179 x4",
+          "shadowOffset0 c183 x4",
+          "DirLightDirections c187 x2",
+          "DirLightColors c189 x2",
+          "ambientLightColor c191 x1",
+          "EnableShadowFlag c192 x1",
+          "shadowColor c193 x1",
+          "shadowProjMatrix0 c194 x1",
+          "shadowProjMatrix1 c195 x1",
+          "shadowProjMatrix2 c196 x1",
+          "shadowProjMatrix3 c197 x1",
+          "shadowFadeParam c198 x1",
+          "latitudeParam c199 x1",
+          "ambientColor c200 x1",
+          "diffuseColor c201 x1",
+          "specularColor c202 x1",
+          "shininess c203 x1",
+          "specularInfluence c204 x1",
+          "normalPower c205 x1",
+          "fogColor c206 x1",
+          "reflectMapLod c207 x1",
+          "reflectivity c208 x1",
+          "reflectMapInfluence c209 x1",
+          "refAlphaRestrain c210 x1",
+          "lightDiffuseMapLod c211 x1",
+          "lightDiffusePower c212 x1",
+          "lightDiffuseInfluence c213 x1",
+          "fresnelExp c214 x1",
+          "fresnelSpecularBias c215 x1",
+          "fresnelReflectivityBias c216 x1",
+          "fresnelLightDiffBias c217 x1",
+          "multiDiffuseColor c218 x1",
+          "modulateColor c219 x1",
+          "glareLdrScale c220 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1",
+          "shadowMap0 s10 x1"
+        ]
+      },
+      {
+        "role": "irisPixel001",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 25292,
+        "version": "ps_3_0",
+        "lines": 149,
+        "decodedSha256": "0150765eb75ca15af5ab256a2bc3b7e63ba8f515d794893d3bddd82284135346",
+        "constantTableSha256": "06145131fb5e4c31223041016050d59d4eb5f43e72d5df98502536e66acfd07b",
+        "immediates": [
+          "def c0, 2, -1, -0.5, 0.25",
+          "def c1, 0, 0.001, -0.001, 1000",
+          "defi i0, 2, 0, 0, 0"
+        ],
+        "constants": [
+          "DirLightDirections c171 x2",
+          "DirLightColors c173 x2",
+          "PointLightPositions c175 x2",
+          "PointLightColors c177 x2",
+          "PointLightParams c179 x2",
+          "ambientLightColor c181 x1",
+          "EnableShadowFlag c182 x1",
+          "latitudeParam c183 x1",
+          "ambientColor c184 x1",
+          "diffuseColor c185 x1",
+          "specularColor c186 x1",
+          "shininess c187 x1",
+          "specularInfluence c188 x1",
+          "normalPower c189 x1",
+          "fogColor c190 x1",
+          "reflectMapLod c191 x1",
+          "reflectivity c192 x1",
+          "reflectMapInfluence c193 x1",
+          "refAlphaRestrain c194 x1",
+          "lightDiffuseMapLod c195 x1",
+          "lightDiffusePower c196 x1",
+          "lightDiffuseInfluence c197 x1",
+          "fresnelExp c198 x1",
+          "fresnelSpecularBias c199 x1",
+          "fresnelReflectivityBias c200 x1",
+          "fresnelLightDiffBias c201 x1",
+          "multiDiffuseColor c202 x1",
+          "modulateColor c203 x1",
+          "glareLdrScale c204 x1",
+          "reflectMap s0 x1",
+          "lightDiffuseMap s1 x1",
+          "_sampler_00 s2 x1",
+          "_sampler_01 s3 x1"
+        ]
+      },
+      {
+        "role": "faceSkinPixel000",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 34676,
+        "version": "ps_3_0",
+        "lines": 302,
+        "decodedSha256": "e496d448dd9b11f02d8d7263c4ec6aabad785a07f4a839a4f0c8a090a1812569",
+        "constantTableSha256": "d7846415d9c2cc153f4772d0303c8d119c6f8da72cdb01c908144825f5b42cc9",
+        "immediates": [
+          "def c0, 2.6, 0.26, 2, -1",
+          "def c1, -0.5, 0.25, 0.5, 0.001",
+          "def c2, 0.96775, 0.015625, 1000, 0",
+          "def c3, 1, 0, 0.25, 0"
+        ],
+        "constants": [
+          "PointLightPositions c171 x4",
+          "PointLightColors c175 x4",
+          "PointLightParams c179 x4",
+          "shadowOffset0 c183 x4",
+          "DirLightDirections c187 x2",
+          "DirLightColors c189 x2",
+          "ambientLightColor c191 x1",
+          "EnableShadowFlag c192 x1",
+          "shadowColor c193 x1",
+          "shadowProjMatrix0 c194 x1",
+          "shadowProjMatrix1 c195 x1",
+          "shadowProjMatrix2 c196 x1",
+          "shadowProjMatrix3 c197 x1",
+          "shadowFadeParam c198 x1",
+          "latitudeParam c199 x1",
+          "ambientColor c200 x1",
+          "diffuseColor c201 x1",
+          "specularColor c202 x1",
+          "shininess c203 x1",
+          "specularInfluence c204 x1",
+          "normalPower c205 x1",
+          "fogColor c206 x1",
+          "reflectMapLod c207 x1",
+          "reflectivity c208 x1",
+          "reflectMapInfluence c209 x1",
+          "refAlphaRestrain c210 x1",
+          "lightDiffuseMapLod c211 x1",
+          "lightDiffusePower c212 x1",
+          "lightDiffuseInfluence c213 x1",
+          "fresnelExp c214 x1",
+          "fresnelLightDiffBias c215 x1",
+          "multiDiffuseColor c216 x1",
+          "modulateColor c217 x1",
+          "glareLdrScale c218 x1",
+          "lightToneMap s0 x1",
+          "reflectMap s1 x1",
+          "lightDiffuseMap s2 x1",
+          "_sampler_00 s3 x1",
+          "_sampler_01 s4 x1",
+          "_sampler_02 s5 x1",
+          "shadowMap0 s10 x1"
+        ]
+      },
+      {
+        "role": "faceSkinPixel001",
+        "path": "client/chara/pc/c001/kao/f001/fac_mdl/0001",
+        "fileSize": 150256,
+        "offset": 41780,
+        "version": "ps_3_0",
+        "lines": 197,
+        "decodedSha256": "1e07191fee1e10f03d8f888eb3d9d06f9cf5e90bdde01a925f5bd69b7c650e59",
+        "constantTableSha256": "1761ca88653959e348ab5a159c4e24c76c990a5df79e726f74a05165f1e7508c",
+        "immediates": [
+          "def c0, 2.6, 0.26, 2, -1",
+          "def c1, -0.5, 0.25, 0.5, 0.001",
+          "def c2, 0.96775, 0.015625, 1000, 0"
+        ],
+        "constants": [
+          "DirLightDirections c171 x2",
+          "DirLightColors c173 x2",
+          "PointLightPositions c175 x2",
+          "PointLightColors c177 x2",
+          "PointLightParams c179 x2",
+          "ambientLightColor c181 x1",
+          "EnableShadowFlag c182 x1",
+          "latitudeParam c183 x1",
+          "ambientColor c184 x1",
+          "diffuseColor c185 x1",
+          "specularColor c186 x1",
+          "shininess c187 x1",
+          "specularInfluence c188 x1",
+          "normalPower c189 x1",
+          "fogColor c190 x1",
+          "reflectMapLod c191 x1",
+          "reflectivity c192 x1",
+          "reflectMapInfluence c193 x1",
+          "refAlphaRestrain c194 x1",
+          "lightDiffuseMapLod c195 x1",
+          "lightDiffusePower c196 x1",
+          "lightDiffuseInfluence c197 x1",
+          "fresnelExp c198 x1",
+          "fresnelLightDiffBias c199 x1",
+          "multiDiffuseColor c200 x1",
+          "modulateColor c201 x1",
+          "glareLdrScale c202 x1",
+          "lightToneMap s0 x1",
+          "reflectMap s1 x1",
+          "lightDiffuseMap s2 x1",
+          "_sampler_00 s3 x1",
+          "_sampler_01 s4 x1",
+          "_sampler_02 s5 x1"
+        ]
+      }
+    ],
+    "exe": [
+      {
+        "role": "gammaBlitVertex",
+        "va": "0x00f58528",
+        "size": 320,
+        "version": "vs_3_0",
+        "lines": 13,
+        "decodedSha256": "fe940ffba7f0ccf2d7d299d6f3421f0555abf5f92dc91d37f220f7c90d7251ef",
+        "constantTableSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "immediates": [
+          "def c0, 1, 0, 2, -1",
+          "def c1, 0, -2, 1, 0",
+          "def c2, 0, -0.25, 0.75, 0"
+        ],
+        "constants": [
+          ""
+        ]
+      },
+      {
+        "role": "gammaBlitPixel",
+        "va": "0x00f58668",
+        "size": 912,
+        "version": "ps_3_0",
+        "lines": 42,
+        "decodedSha256": "1a347d4fad42d2e9dc5ac005146ece5fbd405afc4fe64ad296d4fca3cb3e91d4",
+        "constantTableSha256": "3c6d7e55b212541eb2d64c98bfe8f92b521ec0146d4161ab2cd89b1f629b3eaa",
+        "immediates": [
+          "def c1, 1, 255, 0.25, 4",
+          "def c2, -0, -1, -2, -3",
+          "def c3, 0.003921569, 0, 0, 0",
+          "def c4, 0.78125, 0.53125, 0.90625, 0.65625",
+          "def c5, 0.28125, 0.03125, 0.40625, 0.15625",
+          "def c6, 0.96875, 0.71875, 0.84375, 0.59375",
+          "def c7, 0.46875, 0.21875, 0.34375, 0.09375"
+        ],
+        "constants": [
+          "$s_gammaCalibration c0 x1",
+          "$s_colorSampler s0 x1"
+        ]
+      }
+    ]
+  },
+  "pramCensus": {
+    "blocks": 871,
+    "lightRows": 805,
+    "uniform": {
+      "lightDiffusePower": {
+        "value": [
+          2.5,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 805
+      },
+      "lightDiffuseInfluence": {
+        "value": [
+          0.58,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 805
+      },
+      "lightDiffuseMapLod": {
+        "value": [
+          6.3,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 805
+      },
+      "reflectMapInfluence": {
+        "value": [
+          0.58,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 805
+      },
+      "fresnelLightDiffBias": {
+        "value": [
+          0.6,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 805
+      },
+      "refAlphaRestrain": {
+        "value": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 805
+      },
+      "modulateColor": {
+        "value": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "blocks": 871
+      },
+      "glareLdrScale": {
+        "value": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 871
+      },
+      "fogColor": {
+        "value": [
+          1.0,
+          1.0,
+          1.0,
+          0.0
+        ],
+        "blocks": 871
+      },
+      "ambientLightColor": {
+        "value": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 871
+      },
+      "EnableShadowFlag": {
+        "value": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "blocks": 806
+      },
+      "exLightParam": {
+        "value": [
+          0.5,
+          0.5,
+          3.0,
+          0.0
+        ],
+        "blocks": 16
+      },
+      "velvetParam": {
+        "value": [
+          0.0,
+          0.5,
+          0.0,
+          0.0
+        ],
+        "blocks": 16
+      }
+    },
+    "ranges": {
+      "shininess": {
+        "lanes": 1,
+        "min": 0.02,
+        "max": 160.0,
+        "blocks": 871
+      },
+      "multiShininess": {
+        "lanes": 1,
+        "min": 0.02,
+        "max": 4.0,
+        "blocks": 791
+      },
+      "reflectivity": {
+        "lanes": 3,
+        "min": 0.097,
+        "max": 3.0,
+        "blocks": 805
+      },
+      "multiReflectivity": {
+        "lanes": 3,
+        "min": 0.23,
+        "max": 4.0,
+        "blocks": 775
+      },
+      "specularColor": {
+        "lanes": 3,
+        "min": 0.097,
+        "max": 2.0,
+        "blocks": 871
+      },
+      "multiSpecularColor": {
+        "lanes": 3,
+        "min": 0.23,
+        "max": 4.0,
+        "blocks": 791
+      },
+      "diffuseColor": {
+        "lanes": 3,
+        "min": 0.0,
+        "max": 1.1,
+        "blocks": 871
+      },
+      "multiDiffuseColor": {
+        "lanes": 3,
+        "min": 0.05,
+        "max": 1.3,
+        "blocks": 805
+      }
+    },
+    "enumerated": {
+      "specularInfluence": [
+        [
+          [
+            0.58,
+            0.0,
+            0.0,
+            0.0
+          ],
+          789
+        ],
+        [
+          [
+            0.26,
+            0.0,
+            0.0,
+            0.0
+          ],
+          16
+        ]
+      ],
+      "fresnelExp": [
+        [
+          [
+            2.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          789
+        ],
+        [
+          [
+            2.5,
+            0.0,
+            0.0,
+            0.0
+          ],
+          16
+        ]
+      ],
+      "normalPower": [
+        [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          789
+        ],
+        [
+          [
+            0.5,
+            0.0,
+            0.0,
+            0.0
+          ],
+          16
+        ]
+      ],
+      "reflectMapLod": [
+        [
+          [
+            4.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          797
+        ],
+        [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          7
+        ],
+        [
+          [
+            2.5,
+            0.0,
+            0.0,
+            0.0
+          ],
+          1
+        ]
+      ],
+      "ambientColor": [
+        [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          801
+        ],
+        [
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          65
+        ],
+        [
+          [
+            60.0,
+            20.0,
+            0.0,
+            0.0
+          ],
+          1
+        ],
+        [
+          [
+            2.2,
+            2.2,
+            2.2,
+            0.0
+          ],
+          1
+        ],
+        [
+          [
+            2.4,
+            0.3,
+            0.3,
+            0.0
+          ],
+          1
+        ],
+        [
+          [
+            3.5,
+            1.896,
+            1.575,
+            0.0
+          ],
+          1
+        ],
+        [
+          [
+            0.34,
+            0.0,
+            0.0,
+            0.0
+          ],
+          1
+        ]
+      ]
+    }
+  },
+  "shaderCensus": {
+    "scope": "distinct decoded programs with at least one instruction found by version token in the c001 _mdl/0001 files of equ, kao and acc",
+    "vertex": 4,
+    "pixel": 40,
+    "defFloats": [
+      -17.0,
+      -16.0,
+      -15.0,
+      -14.0,
+      -13.0,
+      -12.0,
+      -11.0,
+      -10.0,
+      -9.0,
+      -8.0,
+      -7.0,
+      -6.0,
+      -5.0,
+      -4.0,
+      -3.0,
+      -2.0,
+      -1.0,
+      -0.5,
+      -0.001,
+      0.0,
+      0.001,
+      0.015625,
+      0.25,
+      0.26,
+      0.5,
+      0.96775,
+      1.0,
+      1.2,
+      1.5,
+      2.0,
+      2.6,
+      3.0,
+      255.0,
+      1000.0
+    ],
+    "gammaCandidates": [
+      2.2,
+      0.45454545,
+      2.4,
+      0.41666667,
+      12.92,
+      1.055,
+      0.055
+    ],
+    "gammaCandidateTolerance": 0.005
+  },
+  "unresolved": [
+    "Which pass kind selects the 000 or 001 pixel program: pixel permutation bit 0 is draw context byte +0x770 and the mapping of bit value to program ordinal is not read.",
+    "The value of the draw context node colour and tint (node +0xB0 and +0xD0 through ModelObject slots 51 and 57) for a character model: the default and the callers are not traced.",
+    "The source of the gamma exponent after device creation: GraphicsManager field +0x44 reaches renderer +0x17C, the user-facing setter is not found.",
+    "The runtime values of the shadow constants (shadowColor, shadowFadeParam, shadowOffset0, shadowProjMatrix0..3) for a character draw.",
+    "The lightToneMap ramp texels and the lightDiffuseMap and reflectMap cube texels bound to a character draw.",
+    "Per-pass, per-zone and per-weather runtime values of the light colours, intensities and tints."
+  ],
+  "staticChecks": [
+    {
+      "name": "present blit mode 3 first call",
+      "va": "0x00a52f51",
+      "kind": "signature",
+      "pattern": "8bd453515350c70203000000e8",
+      "mask": "ffffffffffffffffff00000000"
+    },
+    {
+      "name": "present blit mode 3 second call",
+      "va": "0x00a53124",
+      "kind": "signature",
+      "pattern": "c70203000000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "blit reads gamma and copies it to four lanes",
+      "va": "0x0041f58b",
+      "kind": "signature",
+      "pattern": "a128943201f30f10807c01000083c41cf30f11442440f30f11442444f30f11442448f30f1144244c",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "blit submits the gamma constant",
+      "va": "0x0041f5b3",
+      "kind": "signature",
+      "pattern": "8b88980100008d54244052518b8894010000e826170000",
+      "mask": "ffffffffffffffffffffffffffffffffffffff00000000"
+    },
+    {
+      "name": "gamma setter",
+      "va": "0x0041bae0",
+      "kind": "signature",
+      "pattern": "8b0d28943201f30f10817c0100000f5ac8f30f104424040f5ad0660f2eca9ff6c4447b08f30f11817c010000c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "gamma getter",
+      "va": "0x0041bb10",
+      "kind": "signature",
+      "pattern": "a128943201d9807c010000c3",
+      "mask": "ffffffffffffffffffffffff"
+    },
+    {
+      "name": "device create resets gamma to one",
+      "va": "0x0041ea02",
+      "kind": "signature",
+      "pattern": "f30f10897c010000f30f1005704ff500",
+      "mask": "ffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "device create resets gamma store",
+      "va": "0x0041ea23",
+      "kind": "signature",
+      "pattern": "f30f11817c010000",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "gamma constant name",
+      "va": "0x00f5937c",
+      "kind": "string",
+      "text": "s_gammaCalibration"
+    },
+    {
+      "name": "gamma sampler constant name",
+      "va": "0x00f586d8",
+      "kind": "string",
+      "text": "$s_gammaCalibration"
+    },
+    {
+      "name": "constant 1.0 float",
+      "va": "0x00f54f70",
+      "kind": "dwords",
+      "width": 4,
+      "values": [
+        "0x3f800000"
+      ]
+    },
+    {
+      "name": "constant 0.5 float",
+      "va": "0x00f62f60",
+      "kind": "dwords",
+      "width": 4,
+      "values": [
+        "0x3f000000"
+      ]
+    },
+    {
+      "name": "directional light scale 1.0",
+      "va": "0x01308d2c",
+      "kind": "dwords",
+      "width": 4,
+      "values": [
+        "0x3f800000"
+      ]
+    },
+    {
+      "name": "point light scale 1.0",
+      "va": "0x01308d30",
+      "kind": "dwords",
+      "width": 4,
+      "values": [
+        "0x3f800000"
+      ]
+    },
+    {
+      "name": "ambient block seed copy",
+      "va": "0x00c236d4",
+      "kind": "signature",
+      "pattern": "f30f7e01660fd6461cf30f7e4108660fd64624",
+      "mask": "ffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "ambient divide by light count",
+      "va": "0x00c23722",
+      "kind": "signature",
+      "pattern": "f30f2a44241c0fc6c0000f5ec8",
+      "mask": "ffffffffffffffffffffffffff"
+    },
+    {
+      "name": "ambient scale by one half",
+      "va": "0x00c23819",
+      "kind": "signature",
+      "pattern": "f30f1005602ff6000fc6c0000f59c8",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "modulateColor reads node colour",
+      "va": "0x00c22f2b",
+      "kind": "signature",
+      "pattern": "f30f7e83e40b0000660fd6442450f30f7e83ec0b0000f30f104c2450660f",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "modulateColor reads mesh colour",
+      "va": "0x00c22f4d",
+      "kind": "signature",
+      "pattern": "f30f1083f40b0000f30f11442430f30f1083f80b0000f30f11442434f30f1083fc0b0000f30f11442438f30f1083000c0000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "glareLdrScale reads the context scale",
+      "va": "0x00c23010",
+      "kind": "signature",
+      "pattern": "d983c0010000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "context stores node colour",
+      "va": "0x00c58671",
+      "kind": "signature",
+      "pattern": "660fd680e40b0000",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "context stores node colour tail",
+      "va": "0x00c58687",
+      "kind": "signature",
+      "pattern": "660fd680ec0b0000",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "context stores node tint",
+      "va": "0x00c586df",
+      "kind": "signature",
+      "pattern": "660fd680040c0000",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "context stores mesh colour",
+      "va": "0x00c43a60",
+      "kind": "signature",
+      "pattern": "f30f7e86a0000000660fd687f40b0000f30f7e86a8000000660fd687fc0b0000e88b847dff0fbf4e",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "pixel permutation flag setter",
+      "va": "0x00c479e0",
+      "kind": "signature",
+      "pattern": "8a442404888170070000c20400",
+      "mask": "ffffffffffffffffffffffffff"
+    },
+    {
+      "name": "pixel permutation flag getter",
+      "va": "0x00c47a70",
+      "kind": "signature",
+      "pattern": "8a8170070000c3",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "constant 1.0 float second",
+      "va": "0x00fb7a60",
+      "kind": "dwords",
+      "width": 4,
+      "values": [
+        "0x3f800000"
+      ]
+    },
+    {
+      "name": "blend state id table",
+      "va": "0x00f597d4",
+      "kind": "dwords",
+      "width": 4,
+      "values": [
+        "0x000000bd",
+        "0x00000038",
+        "0x000000ba",
+        "0x00000035",
+        "0x000000bb",
+        "0x00000036",
+        "0x000000bc",
+        "0x00000037"
+      ]
+    }
+  ]
+}

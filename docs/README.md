@@ -183,6 +183,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [PRAM packed render-state consumers](resource/pram-packed-render-state.md)
 - [Character material pixel shaders and colour flow](resource/chara-material-shader-colour-flow.md)
 - [Chara engine samplers and light inputs](resource/chara-engine-samplers-and-light-inputs.md)
+- [Character lighting model](resource/chara-lighting-model.md)
+- [Present blit gamma and dither](resource/present-gamma-blit.md)
 - [Chara global texture names](resource/chara-global-texture-names.md)
 - [Ambient Garlean fleet visibility boundary](resource/ambient-garlean-fleet.md)
 - [Bitmap font container](resource/bitmap-font-container.md)
