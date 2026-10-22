@@ -294,6 +294,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [PE layout](resource/pe-layout.md)
 - [Resource path producer](resource/resource-path-producer.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
+- [Music song-id resource table](resource/music-song-table.md)
 - [MapLayout numeric request boundary](resource/map-layout-request-boundary.md)
 - [Region auxiliary resource completion](resource/region-auxiliary-resource.md)
 - [RegionInfo and LayoutInfo selection](resource/map-layout-selector.md)

@@ -1,0 +1,874 @@
+{
+  "format": "xivl-music-song-resources-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "method": "Disassembly listings from ghidra-cli 12.1.4 were treated as leads. Every instruction sequence below is confirmed against the pinned bytes by tools/verify_music_song_resources.py --exe.",
+    "companionEvidence": [
+      "xivl-decomp:docs/net/music-control-runtime.md",
+      "xivl-decomp:docs/resource/music-id-resources.md",
+      "xivl-decomp:docs/resource/resource-path-producer.md",
+      "xivl-decomp:config/resource_path_producer.json",
+      "https://github.com/XIVLegacy/xivl-client-structs/blob/ce829cf0f1c44e95f3c7446d0a7ae13c525aa303/manifests/resource_dat_open.json"
+    ]
+  },
+  "request": {
+    "receiverVa": "0x004bbb30",
+    "songIdWidth": 16,
+    "resourceBase": "0x07fe0000",
+    "derivation": "resource id = 0x07FE0000 + the zero-extended u16 song id, so every u16 value maps into 0x07FE0000..0x07FEFFFF and no id is rejected before the request.",
+    "immediateSites": [
+      "0x004bbb82",
+      "0x004bbbb7",
+      "0x004bbc18",
+      "0x004bbc54",
+      "0x004bbc75",
+      "0x004bbcb3",
+      "0x004bbcea",
+      "0x004bbd25",
+      "0x004bbd58",
+      "0x004bbe3b",
+      "0x007cf362"
+    ],
+    "siteRoles": {
+      "0x004bbb82..0x004bbd58": "nine mode branches of the SetMusic control 0x004bbb30",
+      "0x004bbe3b": "deferred-song update 0x004bbdb0",
+      "0x007cf362": "class test in a resource request path that compares the high 16 bits of an id with 0x07FE"
+    },
+    "boundary": "The scan counts the little-endian immediate inside .text. A resource id built another way is not covered."
+  },
+  "formatter": {
+    "functionVa": "0x0044b3a0",
+    "numericModeFlagVa": "0x01266b64",
+    "pathForm": "data/%02X/%02X/%02X/%02X.DAT from the id bytes, most significant first",
+    "modeByteStatus": "INFERRED",
+    "modeEvidence": [
+      "The tracked producer page leaves the request-time value of byte 0x01266b64 unproved.",
+      "A zero byte selects a table path that needs a table file opened with mode rt, and the installation holds no file outside the numeric data/XX/XX/XX/XX.DAT form.",
+      "The one retained live open used the numeric form data\\2A\\08\\00\\17.DAT, correlated to a resource id by inference only."
+    ],
+    "boundary": "The retail launcher or command line may set the byte. Only a live capture of the formatter call can promote the status."
+  },
+  "missingFile": {
+    "openFailure": "For one missing path the open returned errno 2, left a null FILE*, called the error helper once and returned false with no retry and no fallback path (xivl-client-structs manifests/resource_dat_open.json, missingDatExperiment, a bounded live observation).",
+    "readService": {
+      "functionVa": "0x00c961f0",
+      "observation": "When LocalFile+4 is null the service skips the read and stores state 3 in Resource+0xb0. A successful read stores state 2 instead.",
+      "stateMeaning": "2 follows a successful read, 3 follows a cancelled, rejected, unallocated, unopened or short read. These readings are interpretation of the stores."
+    },
+    "musicSoundObjectReaction": "UNPROVED",
+    "boundary": "The sound object that requested the resource was not traced past the request, so what a state 3 music resource does to the playing slot is open. No retry of the original path was observed within the bounded window."
+  },
+  "policy": {
+    "nativeZonePolicy": "none found",
+    "receiverInputs": "The receiver takes the song id and the mode byte from the packet. No zone, region, combat or time input reaches the derivation (xivl-decomp:docs/net/music-control-runtime.md).",
+    "luaSetMusicCallsites": {
+      "count": 3,
+      "locators": [
+        "chara/npc/populace/populacecutsceneplayer:221",
+        "chara/npc/populace/populacecutsceneplayer:316",
+        "quest/questbaseclass_common:667"
+      ],
+      "source": "xivl-client-scripts:lua/napi_index.json, apis._setMusic",
+      "songIdsInTrackedPages": [
+        7,
+        13,
+        25,
+        57,
+        61
+      ]
+    },
+    "zoneDataColumns": "No tracked xivl-client-data mapping carries a music column. The dayMusic, nightMusic and battleMusic columns of xivl-client-data:tools/mappings/zones.py are constant zero server-side columns.",
+    "retailSenderSamples": "Two combat captures show song 13 mode 1 then song 57 mode 4 (xivl-captures:studies/music-000c-wire). The active zone of those samples is unresolved.",
+    "openQuestion": "Which song and mode retail sent at zone entry, sub-area boundaries, combat and events."
+  },
+  "install": {
+    "scope": "owner installation of build 2012.09.19.0001, existence and size and SHA-256 only",
+    "firstSongId": 0,
+    "lastSongId": 109,
+    "absentSongIds": "110..65535",
+    "absentCount": 65426,
+    "nonEmptyCount": 109,
+    "noStreamSongIds": [
+      7,
+      30,
+      31,
+      32
+    ],
+    "totalBytes": 262855584,
+    "dataTree": {
+      "datFiles": 140179,
+      "otherFiles": 0,
+      "numericPathFiles": 140179
+    },
+    "songs": [
+      {
+        "songId": 0,
+        "size": 0,
+        "streams": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "songId": 1,
+        "size": 774072,
+        "streams": 1,
+        "sha256": "babd9da71543aeb2a2eb4cd537757b69f23860854ca16559e92c4c16156abce9"
+      },
+      {
+        "songId": 2,
+        "size": 3531218,
+        "streams": 1,
+        "sha256": "6050721f65a26859935090ff0fce926a6bbce29d8220009ee9c60a878088e1b7"
+      },
+      {
+        "songId": 3,
+        "size": 3237424,
+        "streams": 1,
+        "sha256": "9474de9978c2e516107407596f887fb01874d08b1bf65deddd88006b6b622786"
+      },
+      {
+        "songId": 4,
+        "size": 3198381,
+        "streams": 1,
+        "sha256": "8a3fc10808a74d42a2a3b49d11b3e62be5d3412ce1fee4a02e9ee3eee90f413a"
+      },
+      {
+        "songId": 5,
+        "size": 6219269,
+        "streams": 1,
+        "sha256": "1701c69b2fee38a4a5ceb7e8301abf7bdf4b1151200df391b239f497b20cdb26"
+      },
+      {
+        "songId": 6,
+        "size": 1728330,
+        "streams": 1,
+        "sha256": "cd3451b15aaaf8b088d4a3b5de0db8b371b2d949b7904e7d6ca2b373d4cc1f26"
+      },
+      {
+        "songId": 7,
+        "size": 400,
+        "streams": 0,
+        "sha256": "b673e724a9bba24588030eb122c06638e7a0bcc4cdfa7ad57a250661559c737d"
+      },
+      {
+        "songId": 8,
+        "size": 2422372,
+        "streams": 1,
+        "sha256": "cdc24a280b1235cc9978b2ed079a0a4afdd869636e073f59a81b2a6acc5f1df2"
+      },
+      {
+        "songId": 9,
+        "size": 3402912,
+        "streams": 1,
+        "sha256": "7f3e7140cb3f608615e72d2fee2da0c72420e6df4c5e3dee55acacf4692856ea"
+      },
+      {
+        "songId": 10,
+        "size": 3280464,
+        "streams": 1,
+        "sha256": "aab5293f9a0983fdce6ba3a55df1fc4af50675d3cfdc235fd911064112c5e568"
+      },
+      {
+        "songId": 11,
+        "size": 3118914,
+        "streams": 1,
+        "sha256": "05ef5de694c743b6f5e4f30f12e238be77f581c5046291591c1217c72a2bc3ae"
+      },
+      {
+        "songId": 12,
+        "size": 3131688,
+        "streams": 1,
+        "sha256": "fb53f6f078a884383c729d4be546bef67ab8a7894226872f25fd04b64c7e7586"
+      },
+      {
+        "songId": 13,
+        "size": 3244271,
+        "streams": 1,
+        "sha256": "1bfec9b74401244af9c1a3cd32b3f0a72729643b1695d0181916550a582ca4b6"
+      },
+      {
+        "songId": 14,
+        "size": 2147064,
+        "streams": 1,
+        "sha256": "11ccbb6f522647935574746c7730d43bbfa72127254ea3eb9b15e8fa0b9f1da0"
+      },
+      {
+        "songId": 15,
+        "size": 3913089,
+        "streams": 1,
+        "sha256": "6c172d7904de4770d962c866b58fac3623ad4b979f8c65141d558a13a99e0917"
+      },
+      {
+        "songId": 16,
+        "size": 1996971,
+        "streams": 1,
+        "sha256": "826905b9f310afcb8c4e0989cae95236ed7ab95ed17f90a9c800623723b04f6b"
+      },
+      {
+        "songId": 17,
+        "size": 8093293,
+        "streams": 1,
+        "sha256": "4ed9be1fa151c69c6be44e34422ffd88a45f57ff951f956736f53d90c9944a36"
+      },
+      {
+        "songId": 18,
+        "size": 2899003,
+        "streams": 1,
+        "sha256": "c1a18ec401a1a7fcd313d22024113d584e9afb898233cc4da4de8700c76d1188"
+      },
+      {
+        "songId": 19,
+        "size": 2383789,
+        "streams": 1,
+        "sha256": "ff87aa4441537d9ca8964044d5b2b3fbdea2dea57f973843d50e15e34308a016"
+      },
+      {
+        "songId": 20,
+        "size": 1830156,
+        "streams": 1,
+        "sha256": "1ec42f8e4a7f24a78df5018bfb30c03d9ab7df8b48c2a43c3f9739dcbfb31461"
+      },
+      {
+        "songId": 21,
+        "size": 1890348,
+        "streams": 1,
+        "sha256": "4cb8d3475d396dd288f40757a57bd1fa6863bcac6e1a3a3778026d53b5534c32"
+      },
+      {
+        "songId": 22,
+        "size": 1859838,
+        "streams": 1,
+        "sha256": "9c09d74563fca3f7e1868964a0ac6f8fd8b87de063f780acb47ef60d2a6fabeb"
+      },
+      {
+        "songId": 23,
+        "size": 3402995,
+        "streams": 1,
+        "sha256": "03654e3d3259b4afab597caf79c58257469f9baae97d5652b05532cf76c4f8ce"
+      },
+      {
+        "songId": 24,
+        "size": 2615259,
+        "streams": 1,
+        "sha256": "7c37a98a2eff7478179ab20dbafba51ee1565deba9d8fa7a57531696007a7f9c"
+      },
+      {
+        "songId": 25,
+        "size": 2824189,
+        "streams": 1,
+        "sha256": "e14e196523c7a3987b786fa83a807bbd92f229c4771a52f15c8f1030344fbf25"
+      },
+      {
+        "songId": 26,
+        "size": 2073307,
+        "streams": 1,
+        "sha256": "23893d5e29f5b13ac7d55d008b611150c0fe8b3f021f330f35366965c1f6bdd0"
+      },
+      {
+        "songId": 27,
+        "size": 2160838,
+        "streams": 1,
+        "sha256": "21f2002232f409e3b8759c3f7c83c8873ae3dd66183bd369613c352c31d0a6a5"
+      },
+      {
+        "songId": 28,
+        "size": 3809042,
+        "streams": 1,
+        "sha256": "c9b11c16e71424b8de14f49eac9aac331bfff11e08def6f8b5ddb4f79d9d54c2"
+      },
+      {
+        "songId": 29,
+        "size": 8087188,
+        "streams": 1,
+        "sha256": "4b2ce719bd40a1a21f1bde4894be04537c2694a0d458e442f1937c3b4c8557c9"
+      },
+      {
+        "songId": 30,
+        "size": 400,
+        "streams": 0,
+        "sha256": "5e7b461cd395687c7d97857e13b2a5e2a732e984f398bb08a64490f5f8826180"
+      },
+      {
+        "songId": 31,
+        "size": 400,
+        "streams": 0,
+        "sha256": "5c66ce1f0b8563c4660809a3c54a14e7ab652b68a4595cabacd05fb1d78a96fa"
+      },
+      {
+        "songId": 32,
+        "size": 400,
+        "streams": 0,
+        "sha256": "f863d83c067f2afa1188a5f688bd4150dd43e9b091699ffee60fa9aa13667f24"
+      },
+      {
+        "songId": 33,
+        "size": 3019159,
+        "streams": 1,
+        "sha256": "b369c9cf34a141d0924ed022033e98c948cfadfec08e4f1a417d6fbc527ab45f"
+      },
+      {
+        "songId": 34,
+        "size": 2185311,
+        "streams": 1,
+        "sha256": "978406a17f6d5eb3d900fb6dc0f8485216ddb3693bdaed866dc8aa9985ad0b40"
+      },
+      {
+        "songId": 35,
+        "size": 2894892,
+        "streams": 1,
+        "sha256": "d9372d9d1a0549a0f6eec4a1e0ec91f682e63932b6861686842fe2888a653ac2"
+      },
+      {
+        "songId": 36,
+        "size": 2029293,
+        "streams": 1,
+        "sha256": "ebf5f3f118c3138c875795c2d27374cb4281aa416e52be289ca44a2f849e0fd3"
+      },
+      {
+        "songId": 37,
+        "size": 1937236,
+        "streams": 1,
+        "sha256": "a30487df7b9d75ff30ce89a533a12d51d47bb5d0885f7fc629df39eb406241e7"
+      },
+      {
+        "songId": 38,
+        "size": 2914312,
+        "streams": 1,
+        "sha256": "be4aa6d576dbc9c553b98f66b7e0002530c4851cbd8c3ad64bcbaa64d931e38c"
+      },
+      {
+        "songId": 39,
+        "size": 4329139,
+        "streams": 1,
+        "sha256": "c99de9b35db2be34156d2a7816107181385fcca991c104c836d58a12b6031c8f"
+      },
+      {
+        "songId": 40,
+        "size": 1167252,
+        "streams": 1,
+        "sha256": "cd1b14c35baa071809a0c8b6a2d6f295a22b09fc88e43ec85533b0758492191d"
+      },
+      {
+        "songId": 41,
+        "size": 2395469,
+        "streams": 1,
+        "sha256": "47a2355a7529d187eba835037bd15b0b1d0d9bcc8f904d8bf8fed8386e208328"
+      },
+      {
+        "songId": 42,
+        "size": 1556440,
+        "streams": 1,
+        "sha256": "c98f8cc866c79df38ba96d4c72b28b8875567bf749dc7099969f0d075caac776"
+      },
+      {
+        "songId": 43,
+        "size": 2259082,
+        "streams": 1,
+        "sha256": "fa2613b750e59daa91b21215518e0b642527c7f3b87b03f2d18dfe50b561f6ed"
+      },
+      {
+        "songId": 44,
+        "size": 3225958,
+        "streams": 1,
+        "sha256": "ea8ec05b44b549760dfeac1eecc10cffd4f5631c411dc539af6cd3756d06a995"
+      },
+      {
+        "songId": 45,
+        "size": 2533574,
+        "streams": 1,
+        "sha256": "aaff85e5575261f4bc76dfc963af93d627296d584d4a04939eeb5a558ecafaab"
+      },
+      {
+        "songId": 46,
+        "size": 3583943,
+        "streams": 1,
+        "sha256": "ae2816bab133c2bac570c304857d3e1a8e7fb257437e8f2ae5f78b07dea63973"
+      },
+      {
+        "songId": 47,
+        "size": 2868115,
+        "streams": 1,
+        "sha256": "581b39f1d2759a8bed988861e6f5415cfd3f6c1cded2b7726a5bad93971842fd"
+      },
+      {
+        "songId": 48,
+        "size": 1882481,
+        "streams": 1,
+        "sha256": "2c860e566026813f4e7311de9f786360a0868423309f62fa7eca5c56fba67699"
+      },
+      {
+        "songId": 49,
+        "size": 3794806,
+        "streams": 1,
+        "sha256": "f4a342d23aa05a1435cc3e951d461917d91a2f92181b8d5d72d925b202b0ec51"
+      },
+      {
+        "songId": 50,
+        "size": 1775212,
+        "streams": 1,
+        "sha256": "de8662a5a0b36951959754e30bf766b3c926b2857ad57db5807ad05ada9686d7"
+      },
+      {
+        "songId": 51,
+        "size": 3078999,
+        "streams": 1,
+        "sha256": "24a3c13a7ba1f3e06f86fd6fc93106294cd9b23770856c56b7b081631bfe0413"
+      },
+      {
+        "songId": 52,
+        "size": 2241811,
+        "streams": 1,
+        "sha256": "6cb11dc3899d902edad47342f1d4e15039debccbda6e8396506f940361f98e89"
+      },
+      {
+        "songId": 53,
+        "size": 3395774,
+        "streams": 1,
+        "sha256": "dbd90a157f612bfe3f103fa0f074bdd7ccc222cef8d8582bd1053ad656cde63a"
+      },
+      {
+        "songId": 54,
+        "size": 2530551,
+        "streams": 1,
+        "sha256": "daa242470a53563e773d1e8e9748bc3c65dc2bf338c46670884f0d76f214b8ec"
+      },
+      {
+        "songId": 55,
+        "size": 1833717,
+        "streams": 1,
+        "sha256": "f53cef112567bd1af7c06dd89cde6236939276cee2f0158345a20f6df0caf302"
+      },
+      {
+        "songId": 56,
+        "size": 2342355,
+        "streams": 1,
+        "sha256": "e9dfddbc3108ac9b0fa85fa53a0c67fb1fed80640d7652dde7a7d88f84676fce"
+      },
+      {
+        "songId": 57,
+        "size": 2803090,
+        "streams": 1,
+        "sha256": "3d36a533f009c5c4ad8dc3bb2ae8aab2414fb9ffc4da11c68abfcc21c72ca817"
+      },
+      {
+        "songId": 58,
+        "size": 1975919,
+        "streams": 1,
+        "sha256": "ce235e60211d48c68b2fdfeaf2b8b050de1b45104a11cc2985941481e286d30b"
+      },
+      {
+        "songId": 59,
+        "size": 3206610,
+        "streams": 1,
+        "sha256": "3aba44ea118e7b4943b4084c8935999162da4a5df9d796a42d562085b96767fe"
+      },
+      {
+        "songId": 60,
+        "size": 2887112,
+        "streams": 1,
+        "sha256": "677577129ace1b89c27898e3d266dbaf52888e240023a6fecbb3c6bd81009cde"
+      },
+      {
+        "songId": 61,
+        "size": 1744073,
+        "streams": 1,
+        "sha256": "55cf740e68eaa183c82ba4ea66198d75bb8a6a2ce321fcf85ed36a79a4c28a71"
+      },
+      {
+        "songId": 62,
+        "size": 1808130,
+        "streams": 1,
+        "sha256": "0332dd27c19517befb304698283e46e42a71becb679d3240f09f7bbe714dbb0e"
+      },
+      {
+        "songId": 63,
+        "size": 7075535,
+        "streams": 1,
+        "sha256": "622a09af80ef250002fc4b6073f6442e71656c0cb00e2b847becbda8dc3df700"
+      },
+      {
+        "songId": 64,
+        "size": 1920222,
+        "streams": 1,
+        "sha256": "98387bb8d3f815776a861723b9bb627d73151e83d315d0e82bcd321fc4f263e2"
+      },
+      {
+        "songId": 65,
+        "size": 2627043,
+        "streams": 1,
+        "sha256": "11b4b07b66a6afe434948600c6b1a7e1295848e2269afb62b36f0502d567dce8"
+      },
+      {
+        "songId": 66,
+        "size": 2880375,
+        "streams": 1,
+        "sha256": "418486581afbc339b0120738a6bf2cc4ad8ece8d84c3ea15b16dfff23db4575c"
+      },
+      {
+        "songId": 67,
+        "size": 2126459,
+        "streams": 1,
+        "sha256": "59702d00d5fbd1cd8475ff828a2c8e8e1b16d81877dd9b1257b1c38e0a6e473f"
+      },
+      {
+        "songId": 68,
+        "size": 2905659,
+        "streams": 1,
+        "sha256": "04724780ee5f58a415dd07e98de8abdccec3df4d0c2fe4c8c70ac0a13ef2d9ad"
+      },
+      {
+        "songId": 69,
+        "size": 2181569,
+        "streams": 1,
+        "sha256": "a8294f0985d844b004a9ecf4ee201b2e81e9d18ebf751d2f05a1c78aa02d7657"
+      },
+      {
+        "songId": 70,
+        "size": 3636459,
+        "streams": 1,
+        "sha256": "3c39d92a4616f991fa952e17c73b033f73f49228206ac09c5b0b1f84bd49a5c3"
+      },
+      {
+        "songId": 71,
+        "size": 2708410,
+        "streams": 1,
+        "sha256": "253f2abfb76ba12abfbecad1cacfdb0071556b0c403199d3f08c8f2e1fd96d90"
+      },
+      {
+        "songId": 72,
+        "size": 2541543,
+        "streams": 1,
+        "sha256": "10aad64d989d86f8fbe7d63756a289c88b21f650660046260f85a338e6175c13"
+      },
+      {
+        "songId": 73,
+        "size": 2357252,
+        "streams": 1,
+        "sha256": "15e99554c78e1ab204f663b642824d25fb37eebce7fc4fba643a6d6943e3f720"
+      },
+      {
+        "songId": 74,
+        "size": 3093330,
+        "streams": 1,
+        "sha256": "858b505463a9d99987d8ce779f8429938b3b6faa8a0893146606b066e138c467"
+      },
+      {
+        "songId": 75,
+        "size": 1654410,
+        "streams": 1,
+        "sha256": "c7d2cc1b6ee9b32600074e702edb529ef0f5abc050eefe6fd583cfa0c3aec8fe"
+      },
+      {
+        "songId": 76,
+        "size": 2499256,
+        "streams": 1,
+        "sha256": "862b52357497eea6537f91b75506a3e28ae22dd98213fb63f994daefb6683837"
+      },
+      {
+        "songId": 77,
+        "size": 1751169,
+        "streams": 1,
+        "sha256": "c1548145d0c7e4fe54fa3b4e7f4c0205dd31956b9638cfd91cf8d467ed7a9af6"
+      },
+      {
+        "songId": 78,
+        "size": 2757011,
+        "streams": 1,
+        "sha256": "4737441b83e0b38cba709011fbab8f2f49d3ab87295bf52d8480e95b5f0e6efe"
+      },
+      {
+        "songId": 79,
+        "size": 143843,
+        "streams": 1,
+        "sha256": "9dfe1b1c948db2e900b5d3ae78b80f86ecb6adcad0eba22e6876b13986f25ccd"
+      },
+      {
+        "songId": 80,
+        "size": 3431036,
+        "streams": 1,
+        "sha256": "c4a58f0c9a8c836ce8e727da1a6e3c662463afa900d0f0d18bbdae301fec42ff"
+      },
+      {
+        "songId": 81,
+        "size": 521788,
+        "streams": 1,
+        "sha256": "b29af860bb07b0d5a904c2d4ea28fbf618e69407bbeba871abc517cec384ed1d"
+      },
+      {
+        "songId": 82,
+        "size": 126441,
+        "streams": 1,
+        "sha256": "e0b65ece3303b33a14569cd14972dbd6f15f4515d6ffb5c0a4aa30d09f544206"
+      },
+      {
+        "songId": 83,
+        "size": 2277016,
+        "streams": 1,
+        "sha256": "638401f5602f57ced286228b04068af379ccfd5f4be5c224d32bc4e193bd72e4"
+      },
+      {
+        "songId": 84,
+        "size": 438146,
+        "streams": 1,
+        "sha256": "bcfea6303dde0f6a7638b3b98a8ec28109afcd4a978d322a383558bf54cf92bc"
+      },
+      {
+        "songId": 85,
+        "size": 1487531,
+        "streams": 1,
+        "sha256": "3e50804d9adfade76c94759de31ddfb023d78603b376e14c5da7f9233f01f28f"
+      },
+      {
+        "songId": 86,
+        "size": 1057264,
+        "streams": 1,
+        "sha256": "e15789356022357e6681958eb54ef9f8ea4f28cc85853a0f08197f2f7c79d85a"
+      },
+      {
+        "songId": 87,
+        "size": 1036087,
+        "streams": 1,
+        "sha256": "14b145ec8ec6fd3b2f9acb225b7e0523a8559e1d16a11211670516f2c4bbe793"
+      },
+      {
+        "songId": 88,
+        "size": 1364523,
+        "streams": 1,
+        "sha256": "3e9d3f20ff41dc240f1dd037c6af023cfb6f1d24e1e44298b714b47150593777"
+      },
+      {
+        "songId": 89,
+        "size": 1112982,
+        "streams": 1,
+        "sha256": "f3ba1373a4ec53ac95ffb22ccbde2ece2bc3546952f4a18eff0f5d80da9d1259"
+      },
+      {
+        "songId": 90,
+        "size": 3529880,
+        "streams": 1,
+        "sha256": "1d05fa18fd86638c02f8d15fd485ca5e9942bef78aa4041433c66fc1a1a754de"
+      },
+      {
+        "songId": 91,
+        "size": 939823,
+        "streams": 1,
+        "sha256": "61e038b910f944971d93928595a6c199e2a36e18e13d5a7de2d4ee4c14acbda1"
+      },
+      {
+        "songId": 92,
+        "size": 1138718,
+        "streams": 1,
+        "sha256": "efc7ddfa4028f60f6d5e4f6d967691dbf3ce45e1935083d085472a7a78208986"
+      },
+      {
+        "songId": 93,
+        "size": 101612,
+        "streams": 1,
+        "sha256": "7695e140fcb4bcead88962a523aa953f4182355204aaf0342857648aa895f21d"
+      },
+      {
+        "songId": 94,
+        "size": 1613357,
+        "streams": 1,
+        "sha256": "575605ab58bfb8c5526ca5e8a93b1a6509ad991810626f2682c5c9048c292966"
+      },
+      {
+        "songId": 95,
+        "size": 1858346,
+        "streams": 1,
+        "sha256": "801a95a82ca1cf49b3529a31ff8df187742e3a3916747585189a1e52c6394377"
+      },
+      {
+        "songId": 96,
+        "size": 1677448,
+        "streams": 1,
+        "sha256": "663fab6dac70d371f65b4b216516cde16db58e3710825950a46b14937da0033c"
+      },
+      {
+        "songId": 97,
+        "size": 2946802,
+        "streams": 1,
+        "sha256": "8287fb7d3224ae0e4f0c50e70a7aa9aeedd05978a03dc6cbc557cc9d7fc997fe"
+      },
+      {
+        "songId": 98,
+        "size": 3371817,
+        "streams": 1,
+        "sha256": "b5ce18e0b768cf34448219419f82749408c12e5a41843d06a1baf15e3c789d83"
+      },
+      {
+        "songId": 99,
+        "size": 2720624,
+        "streams": 1,
+        "sha256": "c18321c27a995ca0640acb2167ad909eaf4d43e5b9c9232bceed1182212fbde1"
+      },
+      {
+        "songId": 100,
+        "size": 1942301,
+        "streams": 1,
+        "sha256": "8e31e6a87a58fd118950126c3632d8539b5523af39657b8167f96ca6b985da6f"
+      },
+      {
+        "songId": 101,
+        "size": 68085,
+        "streams": 1,
+        "sha256": "e452d8bb6effc0dd5754894e6ac83df2d3a82dcc697e4de476c069a8ab8c5972"
+      },
+      {
+        "songId": 102,
+        "size": 1777192,
+        "streams": 1,
+        "sha256": "6e2dd37b1a2a505fad16eb04ac11acd669f594b8b64eb354a0f661e25c33268e"
+      },
+      {
+        "songId": 103,
+        "size": 1663119,
+        "streams": 1,
+        "sha256": "51ab3ccf21f6b5c648eae2fe8709850c327d0858744d7bdc36e08638f831c62f"
+      },
+      {
+        "songId": 104,
+        "size": 3865983,
+        "streams": 1,
+        "sha256": "a2664502ba0da878a622435b04dfda10ae0a699dd6a0f081018b9c91e6b8410d"
+      },
+      {
+        "songId": 105,
+        "size": 3546408,
+        "streams": 1,
+        "sha256": "1e43b707eed70e967e6118d5cb62fa0aad4619003ef3d74167b2251c850e9818"
+      },
+      {
+        "songId": 106,
+        "size": 2211381,
+        "streams": 1,
+        "sha256": "d01241128b6b51a2876d63cd1274c6b6202fc9fff5dbd30b136fae01a4479131"
+      },
+      {
+        "songId": 107,
+        "size": 103434,
+        "streams": 1,
+        "sha256": "727557fb8c09a9f0de2433be14895ef3911cdc70e01ed658f907e2f9dacc55be"
+      },
+      {
+        "songId": 108,
+        "size": 3197090,
+        "streams": 1,
+        "sha256": "14b28ffed86976c6fe9952ae3bf29c85d6934568d7f2ccb562a2c0bf55553400"
+      },
+      {
+        "songId": 109,
+        "size": 1392706,
+        "streams": 1,
+        "sha256": "c168dd2453b2158d7872e81092d469ce3baed658cc40baad1d5d40790dabec21"
+      }
+    ]
+  },
+  "staticChecks": [
+    {
+      "name": "receiver add site, mode 1",
+      "kind": "signature",
+      "va": "0x004bbbb6",
+      "pattern": "05 00 00 fe 07",
+      "mask": "ff ff ff ff ff",
+      "note": "ADD EAX,0x07FE0000 on the zero-extended song id in the mode 1 branch of 0x004bbb30."
+    },
+    {
+      "name": "receiver add site, deferred internal mode",
+      "kind": "signature",
+      "va": "0x004bbb80",
+      "pattern": "81 c2 00 00 fe 07",
+      "mask": "ff ff ff ff ff ff",
+      "note": "ADD EDX,0x07FE0000 in the internal mode -10000 branch."
+    },
+    {
+      "name": "numeric mode compare",
+      "kind": "signature",
+      "va": "0x0044b3cb",
+      "pattern": "80 3d 64 6b 26 01 00 0f 84 91 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "CMP byte [0x01266b64],0 then JZ to the table branch at 0x0044b469."
+    },
+    {
+      "name": "numeric mode byte-group push order",
+      "kind": "signature",
+      "va": "0x0044b3d8",
+      "pattern": "8b 84 24 c0 02 00 00 0f b6 c8 51 6a 5c 0f b6 d4 52 6a 5c 8b c8 c1 e9 10 81 e1 ff 00 00 00 51 6a 5c c1 e8 18 50 6a 5c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes id bits 7..0, 15..8, 23..16 and 31..24 as the %02X arguments, so the first group is the most significant byte."
+    },
+    {
+      "name": "numeric format string",
+      "kind": "string",
+      "va": "0x00f672bc",
+      "text": "%cdata%c%02X%c%02X%c%02X%c%02X.DAT"
+    },
+    {
+      "name": "read service null stream test",
+      "kind": "signature",
+      "va": "0x00c96225",
+      "pattern": "83 7f 04 00 53 0f 84 e3 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "CMP dword [LocalFile+4],0 with JZ to 0x00c96313 when the open left no FILE*."
+    },
+    {
+      "name": "read service no-stream branch",
+      "kind": "signature",
+      "va": "0x00c96313",
+      "pattern": "83 be 8c 00 00 00 00 74 09",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "No-stream branch of 0x00c961f0: tests Resource+0x8c and falls to the state store."
+    },
+    {
+      "name": "read service publishes state 3",
+      "kind": "signature",
+      "va": "0x00c9634b",
+      "pattern": "6a 03 81 c6 b0 00 00 00 56 ff 15 48 e1 f3 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "InterlockedExchange(Resource+0xb0, 3)."
+    },
+    {
+      "name": "read service publishes state 2",
+      "kind": "signature",
+      "va": "0x00c962fe",
+      "pattern": "6a 02 81 c6 b0 00 00 00 56 ff 15 48 e1 f3 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "InterlockedExchange(Resource+0xb0, 2), reached only after a successful read."
+    },
+    {
+      "name": "first pass state read",
+      "kind": "signature",
+      "va": "0x00c968ff",
+      "pattern": "6a 00 8d 8e b0 00 00 00 51 ff d5 83 e8 01 74 38 83 e8 03 75 70",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "InterlockedExchangeAdd(Resource+0xb0, 0) as an atomic read, then branches on 1 and on 4."
+    },
+    {
+      "name": "second pass state dispatch",
+      "kind": "signature",
+      "va": "0x00c96a35",
+      "pattern": "6a 00 8d 8e b0 00 00 00 51 89 74 24 28 ff 15 a4 e1 f3 00 83 e8 01 74 1c 83 e8 03 75 2c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Same atomic read in the service pass, branching on 1 and on 4."
+    },
+    {
+      "name": "second pass read service call",
+      "kind": "signature",
+      "va": "0x00c96a79",
+      "pattern": "e8 72 f7 ff ff",
+      "mask": "ff ff ff ff ff",
+      "note": "CALL 0x00c961f0 for state 1."
+    },
+    {
+      "name": "namespace class test",
+      "kind": "signature",
+      "va": "0x007cf35c",
+      "pattern": "25 00 00 ff ff 3d 00 00 fe 07 75",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "AND EAX,0xffff0000 then CMP EAX,0x07FE0000 in a resource request path at 0x007cf320."
+    }
+  ]
+}

@@ -13,6 +13,7 @@ from urllib.parse import unquote
 import _schema_check
 import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
+import verify_music_song_resources as music_song_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
@@ -383,6 +384,13 @@ def main() -> int:
         errors.extend(
             f"resource-path producer contract: {error}"
             for error in resource_path_errors
+        )
+    music_song_errors = (
+        music_song_verifier.verify() + music_song_verifier.mutation_test()
+    )
+    if music_song_errors:
+        errors.extend(
+            f"music song-id resource contract: {error}" for error in music_song_errors
         )
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:
