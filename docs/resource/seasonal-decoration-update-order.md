@@ -129,6 +129,18 @@ cleared request-completion bytes through `0x008022E0` at `0x0080692D`.
 Deferred branches and already-bound cases remain separate paths. These
 stores and calls do not prove that a selected reloaded owner was rebound.
 
+There are concrete callers for later binding. Construction called the
+name matcher `0x00806B30` at `0x00642944`; ordinary update called it at
+`0x0064A5C6`. The matcher skipped B with nonzero `+0x78`, compared B's
+name with inline bytes at the supplied object's `+0x17C`, and called `0x00806870` at
+`0x00806BCA` on a match. The ready construction path separately called
+that binder at `0x00806A8E` when its manager state was at least 5.
+After the completion clear at `0x0080692D`, the binder tested B+`0x78`
+at `0x00806938..0x0080693C`. That result established instance binding,
+not actor or region readiness for weather replay.
+This supplied object and its inline name are distinct from dereferencing
+MapLayoutActor A+`0x17C`; the shared offset does not identify their types.
+
 The region-release helper `0x0062C760` also had a distinct boundary. With
 nonnull A+`0x17C`, it could queue operation `0x0B` when its `+0x1FD` guard
 was false. On the admitted release branch it cleared cached manager fields,
@@ -139,11 +151,90 @@ retains its pending-only-ID exception. This release body did not by itself
 delete A+`0x160`'s manager or authenticate B/X survival across external
 destruction and callback processing.
 
+### Pending region and owner construction
+
+SetMap's result arms called release at `0x0062D379` or `0x0062D3D9`.
+The latter path then stored the pending pair at A+`0x188/+0x18C` at
+`0x0062D3DE/0x0062D3E4`. SceneThreadImpl table `0x00F931D4` slot 32
+selected `0x004EAB20`, whose call at `0x004EAC53` reached
+`0x0062AA70`. With the pending region present, that callback called
+`0x00626DF0` at `0x0062AB29`, then cleared both pending fields.
+
+`0x00626DF0` called `0x00624180`, allocated `0x70` bytes and constructed
+RaptureRegionManager through `0x0064F900` at `0x00626E46`. It stored
+that return at A+`0x17C` at `0x00626E57`. The constructor installed table
+`0x00FBFA88` and registered its `+0x3C` member. Thus the pending-operation
+callback supplied a concrete new owner; the SetMap helper calls alone did
+not establish this allocation. Returning from slot 32 established this
+construction path, without proving complete resource or actor readiness.
+
+### Owner release and map-object destruction
+
+The release call through owner slot 0 selected `0x006545A0`, which called
+`0x00647F40` before its optional free. That cleanup called `0x00645BF0`
+at `0x00647F76` to drain the owner's `+0x30` listener list, passing each
+entry's adjusted payload as an argument to a separate receiver's slot 12.
+Specifically, `0x00623C60 -> 0x00623C70` supplied G; at
+`0x00645C45..0x00645C4F`, ECX was G+4 and the argument was nonnull
+list-payload+4 or zero. This did not call the payload's own vtable.
+It then released `+0x3C` through `0x00611420` and
+cleared the list storage through `0x0062F4B0`. These bodies did not
+directly clear B+`0x78` or the retained X fields; effects of that separate
+receiver's indirect operation remain unbound.
+
+MapLayoutActor destruction had a different boundary. `0x0062DA70`
+called A+`0x160`'s slot 0 at `0x0062DAFC` and cleared that field at
+`0x0062DAFE`. The constructed manager's deleting destructor
+`0x00807150` called `0x008046A0`. Its call to `0x00803DA0` at
+`0x008046D6` walked the B vector and invoked each B's slot 0 with 1.
+B's `0x00807130` called `0x00804410`, which ran its three cleanup
+helpers and drained the vector storage at `+0x9C/+0x8C/+0x7C`.
+After the B-vector cleanup, the manager called `0x008C8060` at
+`0x008046F2` to unregister. Its `0x0062B000` callback walked the
+registration listener list and invoked each listener's slot 39.
+
+This joined the owner destructor and map-object destructor paths separately.
+It did not make surviving B/X pointers valid after MapLayoutActor teardown,
+or order every listener callback against a pending update. An extension
+must invalidate old registrations at destruction and admit fresh objects.
+
+## Scene launch and remaining phase order
+
+Scene constructor `0x004EA870` bound job entry `0x004E9700` through
+`0x004EC000` at `0x004EAA15`, with the job at Scene+`0x490`.
+The job called `0x0060C170` at `0x004E99DC`, then
+`0x007C9000 -> 0x007D25D0 -> 0x007CDE40`, the actor-slot-142 chain.
+SceneThreadImpl slot 30 instead selected `0x004E89E0`, then
+`0x0060C1B0 -> 0x007C9030 -> 0x007D2640 -> 0x007CDEA0`, the
+actor-slot-143 chain. These are distinct authenticated callers.
+
+The outer `0x004B2DF0` path constructed its wrapper through
+`0x004E81A0` at `0x004B356E` and called wrapper slot 1 at
+`0x004B370B`. That slot's `0x004E8220` called `0x00D35050`, which
+started `0x00D356A0` with `0x00D355B0` as the OS thread entry.
+The entry called the worker's slot 1 once at `0x00D35603`, repeated
+slot 2 at `0x00D35637/0x00D3566B`, then called slot 3 at `0x00D35683`.
+This proved worker launch/loop/shutdown order, not an ordering of every
+SceneThreadImpl phase.
+
+In particular, the retained SceneThreadImpl table selected
+`0x00A49360`, `0x00A496C0` and `0x004E89E0` for slots 28/29/30.
+The inspected worker trio did not directly call these phase wrappers;
+a retained-listing search found no direct calls to the three entry VAs.
+The unjoined edge is the outer framework's virtual dispatch into those
+phase slots and the separate job's synchronization. No total order was
+authenticated between those phases, owner construction/release and the
+construction/update binding callbacks above. A binding-success return is
+therefore insufficient as a safe weather-reissue gate by itself.
+
 ## Remaining ordering discriminator
 
-The direct stores establish retained replay state and the order within each
+The direct stores establish retained replay state, concrete new-owner and
+binding callbacks, separate destructor boundaries and the order within each
 native entry. A complete visible persistence claim still needs the selected
 owner/context and operation receiver, the active show/hide clip order, and
-the relevant scene-phase and reload-callback order. Retaining a request is
-not equivalent to retaining its old child pointers or guaranteeing the
-same visible result after re-admission.
+the unjoined phase dispatch/synchronization above. Retaining a request does
+not preserve its old child pointers or guarantee the same visible result
+after re-admission. The
+[stock-file profile](native-stock-seasonal-switch.md#reload-and-implementation-boundary)
+also requires an actor-ready gate before resubmitting a retained raw key.

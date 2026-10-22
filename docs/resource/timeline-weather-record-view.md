@@ -480,10 +480,13 @@ separate receiver. The [shared UnitInfo key receiver](limsa-fireworks-scheduler-
 binds this same U+`0x84` field to slots 39/50. If L retains the published
 `UnitTreeInstanceObjectTable` table, slot 5 is the unsigned numeric-key
 lookup `0x00A9E8F0`, returning its stored interface or zero on an ordinary
-miss. The actual selected U/L/table/key/entry state and result's actor type
-remain unbound. Equal pointers across different calls require retained U and
-field values. Its relation to the ShowHideClip operation provider remains
-unestablished.
+miss. The
+[constructed member-target path](showhide-clip-dispatch.md#constructed-member-target-and-bgparts-property)
+binds the inserted child interface to the original Rapture instance table
+when that factory path is selected. The actual selected U/L/table/key/entry
+state remains unbound. Equal pointers across different calls require
+retained U and field values. This does not identify the separate nonzero
+node-payload ShowHideClip operation provider.
 
 Slot 42 first saves EBX/ESI, retains U in ESI and calls U slot 3 without an
 explicit pushed argument at `0x00A9D279`. Original cell `0x00FF2998` selects
@@ -497,7 +500,9 @@ registers place the original first argument there. It compares K with the
 returned scalar. On equality, `0x00A9D283..0x00A9D28B` computes
 `U & -(U-4 != 0)` in 32-bit arithmetic, then restores ESI/EBX and uses
 `RET 4`. For a valid constructed complete+4 interface this returns the same
-U; an actor type for that pointer remains unestablished. The literal
+U. The [unit-operation binding](showhide-clip-dispatch.md#unit-actor-with-a-matching-unitinfo-key)
+follows that same interface's concrete table after the callback stores it
+as the unit actor's target. The literal
 machine result is zero for U=4. Null U+`0x3C` with K=`0xFFFFFFFF` also
 matches; no validity meaning is established for that sentinel.
 
@@ -509,8 +514,8 @@ receiver's slot 42. Its result and the final mismatch-path T remain open.
 These paths require the selected table, valid storage, preserved fields and
 ABI-conforming normal returns. On the callback's parsed `LayUnitActor`
 branch, a valid matching U can therefore be the nonnull T stored at E+`0x64`.
-The selected city's actual U/K, dynamic L slot 5, mismatch path and retained
-receiver effects remain open. No recursive-root equality, initialization,
+The selected city's actual U/K/L, mismatch path and retained receiver effects
+remain open. No recursive-root equality, initialization,
 playback or visible city effect follows from this partial lookup contract.
 
 #### Mismatch indexed receiver
@@ -522,8 +527,8 @@ getter alone does not authenticate a child count.
 
 The continuation `[0x00A9D29C,0x00A9D2AE)` saves N in EBP, clears EDI,
 and uses `TEST EBP,EBP` followed by `JBE 0x00A9D2C6`. Since TEST clears
-CF, the branch is exactly N=0. That destination remains operand/original
-closed. For N!=0 it pushes EDI=0, sets ECX=U and calls U slot 27, table
+CF, the branch is exactly N=0 and reaches the zero-return tail below.
+For N!=0 it pushes EDI=0, sets ECX=U and calls U slot 27, table
 byte offset `+0x6C`, at `0x00A9D2AC`.
 
 Original slot-27 cell `0x00FF29F8` selects `0x00800C00`. Its complete union
@@ -539,13 +544,18 @@ Valid readable U fields, VEC, J/table storage, retained values and normal
 ABI-conforming returns are requirements. The same slot number does not
 authenticate J as UnitInfo or establish recursive lookup.
 
-The first missing receiver is J: its type/table, selected target and result
-remain unbound. The original union stops at return address `0x00A9D2BB`;
-the remaining return path and zero-branch destination remain uninspected.
-N controls whether this first indexed use is attempted. It does not by this
-evidence establish an array length, completed enumeration, recursion, selected
-city U/K, actor identity or visible effect. Slot-42 original coverage is
-`[0x00A9D270,0x00A9D2BB)`, with its remaining body closed.
+The continuation `0x00A9D2BB..0x00A9D2C4` tested the child call's return.
+A nonzero result exited the loop and was returned unchanged. Otherwise it
+incremented the index and repeated while the index was unsigned-below N.
+N=0 or exhaustion selected EAX=0 at `0x00A9D2C6`. All paths restored
+the saved registers and used `RET 4` at `0x00A9D2CC`.
+The complete original union is `[0x00A9D270,0x00A9D2CF)`.
+
+The first missing receiver remains J: its type/table, selected target and
+returned actor identity remain unbound. Completing the loop's own return
+paths establishes its first-nonzero selection, without authenticating the
+indexed receiver as UnitInfo, recursive lookup, selected city U/K or a
+visible effect.
 
 ### Retained child phase and state dispatch
 
@@ -678,8 +688,9 @@ Python 3.12.0 and Capstone 5.0.7 x86-32 checked identity, raw backing,
 complete decoding and disjoint unions. Count two new bodies and two old
 partial continuations as four candidates. Preserve N's mask and TEST flags,
 the explicit index zero, slot-27 `RET 4`, EBX=K from the prefix, and the
-unguarded J dereference. Do not read the zero-branch destination or later
-tail to infer behavior past this first untyped receiver.
+unguarded J dereference. The additional union
+`[0x00A9D2BB,0x00A9D2CF)`, 20 bytes, closes the function's first-nonzero
+loop and zero/return paths. It does not identify J or its slot-42 target.
 
 For the backend boundary, read property cells `0x00FF2DA4..0x00FF2DAC`
 as three separate dwords and decode the complete instruction unions for

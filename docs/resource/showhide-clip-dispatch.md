@@ -266,9 +266,123 @@ reach this exact bit setter through the fallback/member path. The
 [instance flag contract](ambient-garlean-fleet.md#instance-flag-consumer)
 keeps its rendered polarity and notification consumers unqualified.
 
-This does not bind a selected Halloween resident's live A/T, the unit
-branch's T table, or the nonzero node-payload Q. It does not prove recursive
-group coverage, a visible show/hide effect or the active clip order.
+The constructed member target and its property are bound below. This does
+not bind a selected Halloween resident's live A/T, a unit mismatch result's
+T table, or the nonzero node-payload Q. It does not prove recursive group
+coverage, a visible show/hide effect or the active clip order.
+
+### Constructed member target and BGParts property
+
+The original child loop `0x007FD830` joined creation and numeric-key
+registration. It saved the parent slot-61 return as inherited context at
+`0x007FD88A`, separately from the parent instance stored at complete+`0x84`
+at `0x007FD884`. After advancing its receiver by four at `0x007FD922`,
+the loop called global factory `0x01365788` slot 1 at `0x007FDA0A`.
+For an admitted new child, it passed the saved context to child slot 59,
+read K from the original child record's `+0x1C`, and called U slot 39
+with K and that child. U+`0x84` on this adjusted interface was the separate
+numeric-key table L, not the saved context. The
+[UnitInfo key-table contract](limsa-fireworks-scheduler-bindings.md#shared-unitinfo-key-receiver)
+owns insertion and lookup through that same L.
+
+The global factory had a concrete producer: `0x004EA360` called
+`0x00643800`, adjusted its return by four and stored it at `0x01365788`.
+The constructor installed interface table `0x00FBF8CC`. Its slot 1
+selected `0x006415D0`, which forwarded to core `0x006410A0`.
+That method allocated `0x54` bytes and called `0x007FB770`, which
+constructed the base then installed `0x00FF279C` at complete+4 and
+`0x00FF277C` at complete+8. The returned complete+4 child therefore
+supplied the Rapture T table used by the flag setter above. The
+[selected Halloween member keys](city-halloween-member-context-joins.md#serialized-member-matches)
+match these child-record K fields for the retained Limsa, Gridania and
+Ul'dah examples. Those serialized joins do not identify a live city U/T.
+
+T's property had a separate category-based producer. The
+[generic instance binding](bgchip-instance-resource-setup.md#later-child-setup-and-concrete-property)
+called the base's category getter, selected a registered creator and stored
+the returned property through complete-instance slot 1, `0x00A99EB0`.
+Its complete+`0x18` store was interface T+`0x14`. For BGParts, creator
+table `0x0103C2E0` slot 5 selected `0x00AA5350`, returning category 2;
+the constructed base interface table `0x0106137C` slot 1 also returned 2.
+This was distinct from BGChip category 1.
+
+The original registration at `0x0064393D` constructed that category-2
+creator and `0x00A90F50` keyed it by its slot-5 return. Global factory
+slot 3, `0x00641690 -> 0x00641220`, used `0x00A90E90` to obtain the
+creator, then its slot 3, `0x008382A0`, constructed the property through
+`0x007FD210`. The returned complete+`0x4C` property interface P carried
+table `0x00FF2534`. These original factory, constructor and method-cell
+joins authenticated the optional T+`0x14` receiver, conditional on that
+base/category binding path being selected.
+
+P slot 12 selected `0x00A97C40`. It forwarded its argument through
+nonnull P+`0x0C` to that receiver's slot 37, or returned `RET 4` when
+null. Thus T slot 73, `0x00A9A040`, could deliver zero or T slot 37's
+current flag through a concrete BGParts property. The final receiver's
+meaning remains a separate join; the call alone is not rendered polarity.
+
+The selected property constructor also bounded one tempting producer path.
+`0x00A98100 -> 0x00ABA680` installed secondary table `0x010A899C`
+at P+4; `0x00A9814E` cleared P+`0x0C`. Secondary slot 4 selected
+`0x00ABA640`, a `RET 0xC` stub. The `0x00A97BD0` forwarding call
+reached this secondary slot, which supplied no backend assignment. The
+remaining property edge is the later producer of P+`0x0C`, followed by
+that target's slot 37. A receiver name or rendered polarity is not
+authenticated by the property's optional-pointer test.
+
+Rapture T slot 3 selected `0x007FB850`. It obtained P through T slot 47
+and forwarded T plus its two original stack operands to P slot 20,
+`0x007FF0A0`, then delegated through T's slot-58 UnitInfo to its slot 63.
+The latter `0x008004C0` stored UnitInfo+`0x20`. T slot 56,
+`0x00A99F30`, constructed that UnitInfo through global factory slot 5,
+`0x00641630 -> 0x00641160 -> 0x007FBE70`, and stored its adjusted return
+at T+`0x18`.
+
+This Rapture binding wrapper did not store the flag setter's notification
+receivers at T+`0x44/+0x48`. Engine table slot 3's `0x00A99C00` did,
+but substituting that engine method for the constructed Rapture override
+would be incorrect. Base constructor `0x00A9B4B0` initially zeroed both
+fields. Their later concrete writers and receiver tables remain unjoined.
+The optional property/UnitInfo fanout is therefore authenticated separately
+from those two flag-change notifications.
+
+### Unit actor with a matching UnitInfo key
+
+The [callback lookup contract](timeline-weather-record-view.md#unitinfo-callback-lookup-boundary)
+has one concrete unit-target branch. For the constructed inherited
+RaptureLayoutUnitInfo interface U with table `0x00FF298C`, its slot-42
+method `0x00A9D270` compared K with U slot 3's scalar. On equality and
+valid complete+4 U, it returned that same U. The callback then stored this
+nonnull result as the unit actor's T through `0x00A78A50`. Consequently
+this branch identified T's table, rather than selecting an unrelated table
+with the same slot number.
+
+Original constructor `0x007FBE70` installed the main table at complete+4
+at `0x007FBEAB`. Its slot-20 cell `0x00FF29DC` selected `0x007FC060`.
+That method wrote input bit 0 into bit 1 of U+`0x3A`, then invoked U
+slot 61 with a pointer to the input's low byte and the full input dword.
+Slot-21 cell `0x00FF29E0` selected `0x00A9F080`, which returned that bit.
+This unit path was a flag operation, not LayoutInstanceObject's unrelated
+slot-20 pointer attachment method.
+
+Slot-61 cell `0x00FF2A80` selected `0x00A9E300`. It obtained U slot 21's
+low byte and forced that byte to zero when the second argument's low byte
+was zero. It then enumerated U+`0x60` with low-24-bit count U+`0x64`,
+calling each member's slot 73 with that effective low byte. A second loop enumerated
+U+`0x4C`, low-24-bit count U+`0x50`, and called each child's slot 61 with
+the incoming pointer and effective low byte. The fanout loaded and pushed
+whole dwords without zero-extending its local byte, so these calls do not
+establish full-width Boolean arguments. Actual vector entries and their
+tables remain requirements.
+
+For member interfaces retaining either published LayoutInstanceObject table,
+slot 73 selected `0x00A9A040`. A false incoming byte called nonnull
+property R+`0x14` slot 12 with zero. A true byte instead supplied the
+instance's own slot-37 result. The method also propagated zero or that
+result through a nonnull slot-58 child's slot 61. These are concrete
+conditional flag/fanout operations, without proving the property receiver's
+render consumer, every descendant table or an actual selected seasonal unit
+actor. The member-actor seasonal records remain a separate path.
 
 ## Reproduction
 
@@ -309,6 +423,23 @@ before each table to its complete-object locator, then locator+`0x0C`
 to the type descriptor and its NUL-terminated name at descriptor+8.
 Preserve the +4 listener and +8 holder-interface adjustments, the distinction
 between M+8 and M+`0x10`, and the unresolved node-hit/selected-actor edges.
+
+For the matching unit-target branch, check `0x007FBE70`, complete
+`0x00A9D270`, `0x00A9D190`, `0x00A78A50`, `0x007FC060`,
+`0x00A9F080`, `0x00A9E300` and `0x00A9A040`, with the cited table
+cells. Preserve the low-byte test in the fanout and the distinct UnitInfo
+and LayoutInstanceObject receiver adjustments.
+
+For the constructed member branch, additionally check complete bodies
+`0x007FD830`, `0x004EA360`, `0x00643800`, `0x006415D0`,
+`0x006410A0`, `0x007FB770`, `0x00A9B4B0`, `0x007FB850`,
+`0x00A99C00`, `0x00A99EB0`, `0x00A9A730`, `0x00A90F50`,
+`0x00641690`, `0x00641220`, `0x00838130`, `0x008D3F20`,
+`0x008381E0`, `0x00AA5350`, `0x008382A0`, `0x007FD210`,
+`0x00A97C40`, `0x007FF0A0`, `0x00A97BD0`, `0x00A98100`,
+`0x00ABA680`, `0x00ABA640`, `0x00A99F30`, `0x00641630` and
+`0x00641160`, with their cited method cells. Keep complete-object and
+interface offsets distinct, including complete+`0x18` = T+`0x14`.
 
 REA's exact table-reference observation was
 `ev_7298ef41e6d1efd485c8294b602c5619974c4da8e293fb000e9193e4c546f7e5`.

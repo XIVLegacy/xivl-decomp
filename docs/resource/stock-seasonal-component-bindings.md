@@ -87,6 +87,52 @@ LightSet and environment-map joins below distinguish relocated pointers
 from different resource inputs. This comparison establishes partial content
 retention, without claiming complete Halloween equivalence or impossibility.
 
+### Clear-weather timeline and curve reuse
+
+Stock Gridania clear weather `0x29B0000F` was 129,856 bytes, SHA-256
+`4c2627bd34f53d445d0834677e5064fcecaffd0d13b07dae8fbb698b323a98a6`.
+Its declared TimeLine spans contained seven of the twelve complete October
+SCB bodies byte-for-byte: the three `11/12/22` bodies above and these four:
+
+| TimeLine | October / stock clear SCB file offset | Bytes / shared SHA-256 |
+| --- | --- | --- |
+| `time_dwev_cld` | `0xEEC0` / `0xE5F0` | 3,296 / `d3950c04505ed07805cadd605524c2c75bf82e30137b43b9fb8e507d5a30b2a4` |
+| `time_dwev_10` | `0x14050` / `0x136F0` | 5,968 / `4087f335158428bc23650f425a0d0cd511c0f696ca5dbc785096f3de53da1c33` |
+| `time_dwev_20` | `0x157A0` / `0x14E40` | 7,344 / `35f3f4c5920feaa5ce76743153ffc8816034b319d1c0565c31526ca9f92bffc3` |
+| `time_dwev_21` | `0x18530` / `0x17BD0` | 5,152 / `561012c4686e4e7ec68b6150997936d37f7b2df97bb9fb30620bb95b6d03ced9` |
+
+Python `struct` also followed each declared SCB root directory to its
+`@FCURVE` resource chunk. Its count/16-byte-unit entry offsets bounded each
+descriptor; descriptor `+0x10` supplied a length, and the MTB body began at
+descriptor `+0x20`. Every compared body fitted its entry and began with
+`SEDBmtb`. This length was separate from the MTB header's zero size word.
+All 47 present weather files in the catalog matched their recorded lengths
+and SHA-256 digests before this comparison.
+
+Of the 63 October MTB entries, 46 had exact body matches among those files.
+The other 17 belonged to `time_dwev_sky`, `time_dwev_00`, `time_dwev_01`
+and `time_sqnc_24`. For example, October `time_dwev_00` entry 1 at file
+`0x10BA0` had 2,404 bytes and SHA-256
+`f7e0a77d52384e9f30a68987935b045c2dfbef142ec8743dade26c188da1c206`;
+no compared city-weather MTB body matched it. This finite byte-identity
+comparison does not exclude differently encoded equivalent curves or
+establish rendered colour differences. Reusing clear weather therefore
+recovers identified whole timelines, without establishing a complete
+October Halloween atmosphere.
+
+A broader Python `os.scandir`/`hashlib` scan read 140,180 regular files,
+7,444,438,570 bytes, under the original `data` tree without following
+reparse points; no entries were skipped. It examined 10,998 raw
+`SEDBmtb\0` positions, selected candidates by the targets' first 128 bytes,
+then compared each complete declared target body by length and SHA-256.
+None of the 17 remaining October bodies matched. SHA-256 over sorted
+ASCII `relative/path`, NUL, decimal byte length, NUL, file SHA-256 and LF
+was `76771ffe86e4f76a05d214131324936829119e6ee37724c19188f86a568ae2bb`.
+This identifies the finite bytes read; it does not exclude equivalent or
+compressed encodings and is not a client playback result. A stock-file
+substitution alone therefore has no authenticated exact source for those
+17 October curve bodies.
+
 ### LightSet members and environment-map references
 
 The declared LightSet `+0x10/+0x14` pointer/count pairs led to member
@@ -352,6 +398,11 @@ therefore did not select a new seasonal resource. The
 owns normalization, resource-key lookup and ordinary DAT file loading.
 
 ## Composition candidates and remaining discriminator
+
+The [native stock-DAT profile](native-stock-seasonal-switch.md) specifies
+existing weather keys, a conditional spatial-name alias and an independent
+resident-condition interception point. These are concrete extension choices,
+with their receiver, reload and cross-city admission requirements preserved.
 
 Selecting ordinary weather and manually showing retained Halloween owners
 would test decoration control independently of weather. It would not by
