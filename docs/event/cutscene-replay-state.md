@@ -76,6 +76,9 @@ opcode branch. Published [route-state construction](../net/s2c-0193-native-state
 and [engine setup](../input/chara-selection-producers.md#conditional-holder-and-current-player-publication-joins)
 both use the aggregate constructed by `0x00773270`; that common construction
 pattern does not establish equality of the actual retained instances.
+The [owner join](player-profile-work-accessors.md#owner-join) records the setup
+store at `routeState+4` that feeds both and leaves only the context equality
+open.
 
 At `0x007673AB`-`0x007673E0`, the producer calls `0x00719D30` with the old
 root, resets the root and both sentinel links to the sentinel itself, and

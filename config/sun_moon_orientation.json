@@ -1,0 +1,336 @@
+{
+  "format": "xivl-sun-moon-orientation-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 listings as leads"
+  },
+  "orientation": {
+    "functionVa": "0x008d3400",
+    "updateVa": "0x008d3990",
+    "callSiteVa": "0x008d3a09",
+    "skipWhen": [
+      "clip +0x40 equals 4",
+      "record +0x28 equals zero",
+      "container lookup returns null",
+      "container +0x64 is null"
+    ],
+    "modeOffset": "0x40",
+    "recordFlagOffset": "0x28",
+    "cameraSlot": {
+      "containerOffset": "0x64",
+      "cacheType": "0x0c",
+      "factoryVa": "0x0079f7e0",
+      "constructorVa": "0x0061b5a0",
+      "positionVtableOffset": "0x88"
+    },
+    "lookAt": {
+      "builderVa": "0x008d2c90",
+      "fourthArgument": "normalized camera minus node vector",
+      "fifthArgument": "zero vector",
+      "sixthArgument": "0,1,0,0",
+      "tier": "INFERRED"
+    },
+    "rotationSetVtableOffset": "0x3c"
+  },
+  "moonPhase": {
+    "clockSelectorVa": "0x007e0430",
+    "managerGlobal": "0x0133def4",
+    "managerOffset": "0x158",
+    "clockOffsets": [
+      "0x108",
+      "0x120"
+    ],
+    "clockModeOffset": "0xf4",
+    "clockUnit": "Eorzea seconds",
+    "offsetSeconds": 43200,
+    "divisors": [
+      60,
+      60,
+      24
+    ],
+    "shift": 2,
+    "mask": 7,
+    "formula": "(((T + 43200) / 86400) >> 2) & 7",
+    "override": {
+      "offset": "0x130",
+      "default": "0xffffffff",
+      "setterVa": "0x007e06d0",
+      "getterVa": "0x007e06e0",
+      "message": 116,
+      "receiverVa": "0x0062cda0",
+      "usedWhen": "signed value is nonnegative",
+      "masked": false
+    }
+  },
+  "roll": {
+    "builderVa": "0x0042fdc0",
+    "axis": "Y",
+    "angle": "index * 45 * pi / 180 radians",
+    "matrix": "(cos 0 -sin 0)(0 1 0 0)(sin 0 cos 0)(0 0 0 1)",
+    "composeVa": "0x0061d050",
+    "quaternionVa": "0x007dd840"
+  },
+  "unresolved": [
+    "axis roles of the three look-at outputs and the multiplication order with the roll matrix",
+    "handedness of the resulting node rotation",
+    "whether any other writer selects a moon texture region",
+    "meaning of clip mode 4 and the source of the mode word at +0x40",
+    "the sender of scene message 116 and the value range it uses"
+  ],
+  "staticChecks": [
+    {
+      "name": "update calls orientation",
+      "kind": "signature",
+      "va": "0x008d39ea",
+      "pattern": "53 57 8b ce 89 44 24 20 e8 a9 fd ff ff 53 57 8b ce e8 70 f7 ff ff 8b 4c 24 1c 53 57 51 8b ce e8 f2 f9 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The SunMoon update runs Move at 0x008D37A0, 0x008D3170 and then the orientation function 0x008D3400."
+    },
+    {
+      "name": "orientation entry gates",
+      "kind": "signature",
+      "va": "0x008d3425",
+      "pattern": "83 7f 40 04 8b 4d 08 89 44 24 0c 0f 84 88 02 00 00 8b 57 14 83 7a 28 00 0f 84 7b 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Skips when the clip mode word at +0x40 equals 4 or when the record word at +0x28 is zero."
+    },
+    {
+      "name": "camera object lookup",
+      "kind": "signature",
+      "va": "0x008d3443",
+      "pattern": "e8 e8 cb 14 00 85 c0 0f 84 6e 02 00 00 8b c8 e8 09 7f d3 ff 85 c0 0f 84 5f 02 00 00 8b 70 64 85 f6 0f 84 54 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Resolves the actor container from the callback input and reads its word at +0x64. A null result skips."
+    },
+    {
+      "name": "node position",
+      "kind": "signature",
+      "va": "0x008d346a",
+      "pattern": "8b 4c 24 0c 8b 03 8b 40 30 51 57 8d 54 24 78 52 8b cb ff d0 50 8d 4c 24 54 e8 98 21 c7 ff 83 7f 3c 00 74 2f 8b 4f 3c 8b 11 8b 82 f4 00 00 00 ff d0 85 c0 74 1e 8b 10 8b 52 10 8d 4c 24 70 51 8b c8 ff d2 0f 28 4c 24 50 0f 28 00 0f 58 c1 0f 29 44 24 50",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads the node position through the target vtable +0x30 and adds the parent offset from the object at clip +0x3C when present."
+    },
+    {
+      "name": "camera delta",
+      "kind": "signature",
+      "va": "0x008d34bd",
+      "pattern": "8b 06 8b 90 88 00 00 00 8d 8c 24 80 00 00 00 51 8b ce ff d2 0f 28 84 24 80 00 00 00 0f 5c 44 24 50 8d 44 24 60 50 8d 4c 24 54 0f 29 44 24 54 e8 cf 58 f0 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads a vector from camera vtable +0x88, subtracts the node position and passes the result to 0x007D8DC0."
+    },
+    {
+      "name": "moon phase index",
+      "kind": "signature",
+      "va": "0x008d34f1",
+      "pattern": "e8 fa cd f0 ff 8b c8 e8 e3 d1 f0 ff 85 c0 7d 41 e8 ea cd f0 ff 8b c8 e8 23 cf f0 ff 8b 08 8b 50 04 6a 00 81 c1 c0 a8 00 00 6a 3c 83 d2 00 52 51 e8 5a 23 10 00 6a 00 6a 3c 52 50 e8 4f 23 10 00 6a 00 6a 18 52 50 e8 44 23 10 00 c1 f8 02 83 e0 07",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Uses the weather manager override when it is nonnegative. Otherwise divides the clock plus 0xA8C0 by 60, 60 and 24 and takes (quotient >> 2) & 7."
+    },
+    {
+      "name": "roll angle",
+      "kind": "signature",
+      "va": "0x008d3542",
+      "pattern": "f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 05 b8 88 f8 00 f2 0f 5a c0 f3 0f 5a c0 f2 0f 59 05 48 2f f6 00 f2 0f 5e 05 40 2f f6 00 51 f2 0f 5a c0 8d 84 24 94 00 00 00 f3 0f 11 04 24 50 e8 3f c8 b5 ff 83 c4 08",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Converts the index to float, multiplies by 45.0, pi and 1/180.0 and passes it to the Y rotation builder 0x0042FDC0."
+    },
+    {
+      "name": "look-at arguments",
+      "kind": "signature",
+      "va": "0x008d3584",
+      "pattern": "50 8d 8c 24 d4 00 00 00 e8 df 20 c7 ff f3 0f 10 44 24 60 f3 0f 10 0d 70 4f f5 00 8d 4c 24 60 51 f3 0f 11 44 24 54 f3 0f 10 44 24 68 8d 54 24 14 52 8d 44 24 58 50 f3 0f 11 44 24 60 f3 0f 10 44 24 74 8d 4c 24 2c 51 f3 0f 11 44 24 68 f3 0f 10 44 24 7c 8d 54 24 50 52 8d 84 24 84 00 00 00 f3 0f 11 44 24 70 0f 57 c0 50 8b cf f3 0f 11 44 24 78 f3 0f 11 4c 24 7c f3 0f 11 84 24 80 00 00 00 f3 0f 11 84 24 84 00 00 00 f3 0f 11 44 24 28 f3 0f 11 44 24 2c f3 0f 11 44 24 30 f3 0f 11 44 24 34 e8 66 f6 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls 0x008D2C90 with the normalized delta as eye, zero as target and (0, 1, 0, 0) as up."
+    },
+    {
+      "name": "rotation composition",
+      "kind": "signature",
+      "va": "0x008d362a",
+      "pattern": "8d 8c 24 10 01 00 00 51 8d 74 24 24 8d 54 24 44 8d 4c 24 74 e8 5d fa ff ff 83 c4 04 8d 94 24 d0 00 00 00 52 8d 84 24 94 00 00 00 50 8d 8c 24 18 01 00 00 e8 ee 99 d4 ff 8d 4c 24 70 51 8d 8c 24 94 00 00 00 e8 cd a1 f0 ff f3 0f 10 00 8b 4c 24 0c 8b 13 f3 0f 11 44 24 50 f3 0f 10 40 04 f3 0f 11 44 24 54 f3 0f 10 40 08 f3 0f 11 44 24 58 f3 0f 10 40 0c 8d 44 24 30 f3 0f 11 44 24 5c 66 0f 6f 44 24 50 50 66 0f 7f 44 24 34 51 8b 52 3c 57 8b cb ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Packs the three basis vectors with 0x008D30A0, multiplies with the roll matrix through 0x0061D050, converts through 0x007DD840 and sets the rotation through target vtable +0x3C."
+    },
+    {
+      "name": "constant 45.0",
+      "kind": "signature",
+      "va": "0x00f888b8",
+      "pattern": "00 00 00 00 00 80 46 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 45.0."
+    },
+    {
+      "name": "constant pi",
+      "kind": "signature",
+      "va": "0x00f62f48",
+      "pattern": "00 00 00 60 fb 21 09 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 3.14159274101257."
+    },
+    {
+      "name": "constant 180.0",
+      "kind": "signature",
+      "va": "0x00f62f40",
+      "pattern": "00 00 00 00 00 80 66 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 180.0."
+    },
+    {
+      "name": "constant 1.0",
+      "kind": "signature",
+      "va": "0x00f54f70",
+      "pattern": "00 00 80 3f",
+      "mask": "ff ff ff ff",
+      "note": "Float 1.0, the Y component of up and the matrix diagonal."
+    },
+    {
+      "name": "Y rotation builder",
+      "kind": "signature",
+      "va": "0x0042fdc0",
+      "pattern": "83 ec 44 d9 44 24 4c e8 b4 64 5a 00 d9 1c 24 d9 04 24 0f 57 c0 d9 5c 24 04 f3 0f 11 44 24 08 d9 44 24 4c e8 c8 65 5a 00 d9 5c 24 4c 0f 57 c0 d9 44 24 4c 8b 44 24 48 d9 c0 f3 0f 10 0d 70 4f f5 00 d9 e0 f3 0f 11 44 24 10 d9 5c 24 0c f3 0f 11 44 24 28 f3 0f 11 44 24 30 d9 5c 24 24 d9 04 24 f3 0f 11 44 24 34 f3 0f 11 44 24 38 d9 5c 24 2c f3 0f 11 44 24 3c f3 0f 11 44 24 14 f3 0f 11 44 24 1c f3 0f 11 44 24 20 f3 0f 7e 44 24 04 66 0f d6 00 f3 0f 7e 44 24 0c 66 0f d6 40 08 f3 0f 11 4c 24 18 f3 0f 7e 44 24 14 66 0f d6 40 10 f3 0f 7e 44 24 1c 66 0f d6 40 18 f3 0f 7e 44 24 24 66 0f d6 40 20 f3 0f 7e 44 24 2c 66 0f d6 40 28 f3 0f 7e 44 24 34 66 0f d6 40 30 f3 0f 11 4c 24 40 f3 0f 7e 44 24 3c 66 0f d6 40 38 83 c4 44 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Writes the row-major matrix (cos 0 -sin 0)(0 1 0 0)(sin 0 cos 0)(0 0 0 1) for its angle argument."
+    },
+    {
+      "name": "cosine routine",
+      "kind": "signature",
+      "va": "0x009d62ed",
+      "pattern": "d9 ff",
+      "mask": "ff ff",
+      "note": "FCOS inside the routine called for the first matrix entry."
+    },
+    {
+      "name": "sine routine",
+      "kind": "signature",
+      "va": "0x009d641d",
+      "pattern": "d9 fe",
+      "mask": "ff ff",
+      "note": "FSIN inside the routine called for the second matrix entry."
+    },
+    {
+      "name": "clock selector",
+      "kind": "signature",
+      "va": "0x007e0430",
+      "pattern": "83 b9 f4 00 00 00 00 8d 81 08 01 00 00 74 06 8d 81 20 01 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns manager +0x108, or +0x120 when manager +0xF4 is nonzero."
+    },
+    {
+      "name": "manager global getter",
+      "kind": "signature",
+      "va": "0x00623c60",
+      "pattern": "a1 f4 de 33 01 c3",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Returns the global at 0x0133DEF4."
+    },
+    {
+      "name": "manager accessor",
+      "kind": "signature",
+      "va": "0x007e02f0",
+      "pattern": "e8 6b 39 e4 ff 85 c0 75 01 c3 8b 80 58 01 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the weather manager at the global's +0x158."
+    },
+    {
+      "name": "override getter",
+      "kind": "signature",
+      "va": "0x007e06e0",
+      "pattern": "8b 81 30 01 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Returns manager +0x130."
+    },
+    {
+      "name": "override setter",
+      "kind": "signature",
+      "va": "0x007e06d0",
+      "pattern": "8b 44 24 04 89 81 30 01 00 00 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores its argument at manager +0x130."
+    },
+    {
+      "name": "override default",
+      "kind": "signature",
+      "va": "0x007e8c7e",
+      "pattern": "c7 86 34 01 00 00 01 00 00 00 83 c8 ff 89 86 30 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The constructor stores 0xFFFFFFFF at manager +0x130."
+    },
+    {
+      "name": "scene message switch",
+      "kind": "signature",
+      "va": "0x0062cdaa",
+      "pattern": "8d 48 fc 83 f9 7a 0f 87 bb 02 00 00 0f b6 89 e0 d0 62 00 ff 24 8d 78 d0 62 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Message numbers 4 through 126 select a jump table entry through a byte table."
+    },
+    {
+      "name": "scene message 116 index",
+      "kind": "signature",
+      "va": "0x0062d150",
+      "pattern": "14",
+      "mask": "ff",
+      "note": "Byte table entry for message 116."
+    },
+    {
+      "name": "scene message 116 target",
+      "kind": "dwords",
+      "va": "0x0062d0c8",
+      "values": [
+        "0x0062cf56"
+      ],
+      "note": "Jump table entry 20."
+    },
+    {
+      "name": "scene message 116 arm",
+      "kind": "signature",
+      "va": "0x0062cf56",
+      "pattern": "8b 4c 24 1c 8b 11 8b 8e 58 01 00 00 52 e8 68 37 1b 00 5e 83 c4 10 c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Passes the payload dword to the override setter."
+    },
+    {
+      "name": "container cache store",
+      "kind": "signature",
+      "va": "0x007a0345",
+      "pattern": "89 7e 10",
+      "mask": "ff ff ff",
+      "note": "Stores the type 0x0C actor at dispatcher +0x10, which is container +0x64."
+    },
+    {
+      "name": "container cache type index",
+      "kind": "signature",
+      "va": "0x007a043d",
+      "pattern": "01",
+      "mask": "ff",
+      "note": "Cache type 0x0C selects jump table entry 1."
+    },
+    {
+      "name": "container cache jump entry 1",
+      "kind": "dwords",
+      "va": "0x007a0410",
+      "values": [
+        "0x007a0345"
+      ],
+      "note": "Jump table entry 1 targets the store above."
+    },
+    {
+      "name": "camera factory registration",
+      "kind": "signature",
+      "va": "0x007a0501",
+      "pattern": "c7 40 04 e0 f7 79 00",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Registers factory 0x0079F7E0 at callback index 1."
+    },
+    {
+      "name": "camera factory construction",
+      "kind": "signature",
+      "va": "0x0079f834",
+      "pattern": "e8 67 bd e7 ff",
+      "mask": "ff ff ff ff ff",
+      "note": "The factory calls the CameraActor constructor 0x0061B5A0."
+    }
+  ]
+}

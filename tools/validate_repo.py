@@ -14,6 +14,7 @@ import _schema_check
 import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_music_song_resources as music_song_verifier
+import verify_player_profile_accessors as player_profile_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
@@ -23,6 +24,7 @@ import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
 import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
+import verify_sun_moon_orientation as sun_moon_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
 PERMITTED_TOP_LEVEL_GROUPS = {
@@ -415,10 +417,25 @@ def main() -> int:
             for error in s2c_0190_errors
         )
 
-    s2c_0193_errors = s2c_0193_state_verifier.verify()
+    s2c_0193_errors = (
+        s2c_0193_state_verifier.verify() + s2c_0193_state_verifier.mutation_test()
+    )
     if s2c_0193_errors:
         errors.extend(
             f"s2c 0x0193 native-state contract: {error}" for error in s2c_0193_errors
+        )
+    player_profile_errors = (
+        player_profile_verifier.verify() + player_profile_verifier.mutation_test()
+    )
+    if player_profile_errors:
+        errors.extend(
+            f"player profile accessor contract: {error}"
+            for error in player_profile_errors
+        )
+    sun_moon_errors = sun_moon_verifier.verify() + sun_moon_verifier.mutation_test()
+    if sun_moon_errors:
+        errors.extend(
+            f"sun and moon orientation contract: {error}" for error in sun_moon_errors
         )
     skeleton_composition_errors = skeleton_composition_verifier.verify()
     if skeleton_composition_errors:

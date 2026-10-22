@@ -869,6 +869,23 @@
       "pattern": "25 00 00 ff ff 3d 00 00 fe 07 75",
       "mask": "ff ff ff ff ff ff ff ff ff ff ff",
       "note": "AND EAX,0xffff0000 then CMP EAX,0x07FE0000 in a resource request path at 0x007cf320."
+    },
+    {
+      "name": "request slot module call",
+      "kind": "signature",
+      "va": "0x00441ec5",
+      "pattern": "8b 4b 04 8b 11 8b 42 04 6a 00 6a 00 6a 00 6a 00 56 6a 01 6a 00 6a 00 57 ff d0 89 46 04",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Receiver slot 4 passes the resource id to the sound module's virtual slot +4 and stores the returned handle at request +4."
+    },
+    {
+      "name": "receiver slot 4 cell",
+      "kind": "dwords",
+      "va": "0x00f90fac",
+      "values": [
+        "0x00441dc0"
+      ],
+      "note": "Slot 4 of the concrete receiver table 0x00F90F9C."
     }
   ]
 }

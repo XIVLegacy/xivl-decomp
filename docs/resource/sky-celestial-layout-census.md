@@ -221,7 +221,9 @@ length in all sky records).
 
 Orientation: the non-mode-4 path `0x008D3400` also sets a node rotation from the
 camera object, the node position and an integer `0..7` moon phase index computed
-from the ET clock. The node rotation of the sun and moon discs is U.
+from the ET clock. The [sun and moon orientation](sun-moon-orientation.md) page
+records the gates, the phase index and the roll. The facing basis of the moon
+node is partly decoded there and the sun disc is not rotated by this path.
 
 The same clip class drives the directional lights `main_lght_sky` and
 `sub_lght_sky` (a small radius and an offset of 0 or 180) and `sky0_meteor120`.
@@ -336,8 +338,11 @@ the 10010 frame length) and at 120.0 gives the same result:
 * The mechanism that follows the camera, if any, and the sky draw order and depth
   range.
 * Far clip behaviour and the `common_clip_range` setting.
-* The rotation of the sun and moon discs (mode 4 and `0x008D3400`) and the
-  handedness of the +X and +Z axes against the compass.
+* The axis roles, multiplication order and handedness of the moon facing
+  rotation in `0x008D3400`, the meaning of clip mode 4, and the handedness of
+  the +X and +Z axes against the compass. The gates, the moon phase index and
+  the roll are decoded in the [sun and moon orientation](sun-moon-orientation.md)
+  page.
 * The writer of the eight-stop block and the star `mtb` (`SpuBinary`).
 * The default state of the meteor masks.
 * Whether the weather scheduler changes the 10010 frame length.

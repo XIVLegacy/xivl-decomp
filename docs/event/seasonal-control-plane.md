@@ -13,7 +13,9 @@ then reads eight little-endian `uint16` fields at payload `+0x02..+0x10`
 `0x00707CC0` dispatches to byte helper `0x0075D390` for object offsets
 `+0x84..+0x8B` and word helper `0x0075D3A0` for offsets `+0x8C..+0x9A`.
 Thus `SpecialEventWork[9]` is the first server-supplied word, not a local
-event detector.
+event detector. The
+[player profile work accessors](player-profile-work-accessors.md) page records
+the flag bit order, the getter value tags and its missing range check.
 
 The recovered Lua consumers use index 9; no recovered consumer requests
 another index. Their explicit comparisons and effects are:
