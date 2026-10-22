@@ -268,8 +268,79 @@ or that return's type. The dynamically selected Lua `chat` closure can have
 its own effects; its identity, eligibility and execution were not recorded
 for the v3 instance. Other native/plugin paths remain outside this component.
 No exact v3 producer, full 824-byte schema, or capture-to-loaded-DLL association
-follows from this trace. Key 1000476 still has no qualified actual Scene
-result/type join, and admission before submission remains INCOMPLETE.
+follows from this trace.
+
+### Addon closure and producer association
+
+In the same pinned DLL, Ghidra 12.1.3 and original-byte Capstone decoding
+trace loader `0x10012870` through manifest parser `0x100140F0`. The parser
+recognizes `id`, `entry` and a `.lua` extension. The loader joins the supplied
+manifest's parent path with the parsed entry, then reads that selected file
+into an owned buffer through `0x10014B40`. This is a Windows path-selection
+rule, not an observed historical root or a containment guarantee.
+
+The loader creates a VM through `0x10167180` and stores it at addon+0x7C
+at `0x10012E6E`. It registers native API fields, then supplies the owned
+buffer's pointer/length to `0x101670D0` at `0x1001321E`. The parsed entry
+provides the chunk name. Successful loading is followed by protected
+call `(0,0,0)` at `0x10013237`, then the script's optional `load` callback.
+A load or execution error sets addon+0x94 to one. The entry name does not
+identify the buffer's bytes or the resulting global functions.
+
+When the id at addon+0x54 equals `chatlogs`, the loader registers
+`chatlog_write` at `0x1001314C..0x1001315C`. Helper `0x100152E0` pushes
+the addon pointer as light userdata, creates a C closure with exactly one
+upvalue, and assigns that API field. The target is thunk `0x100035AD`,
+then `0x10011E30`. This API registration does not bind global `chat`,
+which is looked up anew by `0x10013770` for each eligible dispatch.
+The selected script executes before dispatch and can populate its globals;
+this loader does not statically select a particular `chat` closure.
+
+The native `chatlog_write` target reads its first closure upvalue at VM
+index -10003 and converts argument 1 to pointer/length text. Selected
+fragments check the `chatlogs` id and text length at most `0x2000`.
+Its two examined output calls at `0x10012428/0x10012569` reach thunk
+`0x10006109` and writer `0x10015770`. That writer appends
+`[time] message` plus newline through an output stream with mode `0x28`.
+These are text-log output edges, without a checked v3 header/record
+serializer or typed Scene result. Ghidra did not define `0x10011E30` as
+a procedure. Only the cited original-byte fragments and selected writer
+are qualified, not its whole body or every possible Lua/native writer.
+
+Reload caller `0x100104D0` closes the previous VM through `0x10013510`
+before calling the loader again at `0x10010642`. For a nonnull VM, close
+invokes `unload` only for a nonfaulted addon, closes the VM and clears
+addon+0x7C/+0x80. A successful traced reload rereads the script into a
+replacement VM.
+A filename, addon id or current source cannot establish which script bytes,
+global `chat` function or upvalues were selected at an earlier dispatch.
+
+```text
+supplied manifest -> parsed entry + manifest parent -> owned file buffer
+  -> new addon VM + native API closures -> load/execute script
+    -> later global chat lookup -> selected dynamic handler
+         optional chatlog_write call -> native addon upvalue -> text log
+```
+
+The retained 369-entry inventory under the manifest digest above contains no
+path ending in `.lua` or named `addon.toml`. A search of its 334 verified text
+files for `function chat`, `chat =`, `chat(`, addon/Lua names and script-loading
+names supplied no handler definition or loaded-addon inventory. The recovery
+carrier, SHA-256
+`BE8792C20E757D881F6D5ED7E404A5C50E75668D506AAE99AAD9E380E2CEEC02`,
+has 121 members and no `.lua` or addon-directory member names. These are finite
+file-name and text searches. They do not exclude scripts or VM state inside
+opaque payloads, differently named inputs, or files outside these inventories.
+
+The v3 status records PID 20104 and the raw key/address/zone tuple above, but
+supplies no addon manifest, script digest, VM identity, selected `chat` closure
+or loaded-module digest. Its tuple therefore does not join either a dynamic
+handler or its producer to an actual Scene lookup result/type. A source file
+that defines `chat`, a currently installed addon, or a matching DLL basename
+would not supply the missing historical association.
+
+Key 1000476 still has no qualified actual Scene result/type join, and admission
+before submission remains INCOMPLETE.
 
 ### Other retained inputs and lookup
 
@@ -442,6 +513,13 @@ supplies synthetic pointer/length views through an explicit constructor
 stub. It stops before the sink body. Queue mutation, VM execution, Lua
 effects and original retail execution are not part of this replay.
 
+The same option statically checks manifest/path calls, VM assignment,
+one-upvalue native registration, chunk load/execute, reload/close and selected
+text-log output anchors. Its `addon_loader` result separates native API
+registration from the dynamic `chat` lookup. This check reads the
+pinned PE only. It executes no loader, Lua buffer, VM or file writer and
+does not validate a historical script/module association.
+
 The tool rejects optimized Python and existing output files. Three native
 stage/apply cases execute `0x006623F0/0x0065D730`, then separately supplied
 ready records enter `0x00665EF0 -> 0x006B7840` and stop at `0x006B79D1`.
@@ -462,8 +540,11 @@ submission is exercised.
 
 The smallest remaining offline identity edge is a qualified v3 producer/layout,
 or separate retained evidence explicitly joining the captured key and lookup
-context to its actual Scene result/type. This search recovered neither and
-does not exclude data inside the unqualified v3 remainder. Applied appearance
+context to its actual Scene result/type. Following the addon route instead
+requires retained evidence binding the capture's module and addon VM to the
+selected script bytes and `chat` closure at dispatch. The retained inventory
+and status do not supply that association, and the unqualified v3 remainder
+is not excluded as a possible source. Applied appearance
 and successful request/root-to-byte identity must follow that edge before
 profile admission. Admission of the intended body/pass before submission
 remains INCOMPLETE.

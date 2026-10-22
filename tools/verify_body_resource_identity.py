@@ -372,6 +372,7 @@ def inspect_probe_dll(data):
         result = probe_key_replay(pe, digest)
         if digest == "1A40DF663FD3C82E0E4EDCD2FF4E28A51942EC6F8C20827B89A8C7FFB4FBBB1D":
             result["callback_sink"] = probe_sink_replay(pe)
+            result["addon_loader"] = probe_addon_loader(pe)
         return result
     version, flush, flush_size, multiply, push_size, call, publish, publish_size = (
         PROBE_WRITERS[digest]
@@ -414,6 +415,79 @@ def inspect_probe_dll(data):
         serialized_header_bytes=header_size,
         native_record_byte_multiplier=1180,
         boundary="Pinned native direct-writer argument setup and contiguous PDB-sized body decoding only. Its header/record sizes differ from v3 72/824. Validation, OS file I/O and alternate or dormant writer paths are not executed or exhaustively excluded; no capture-to-loaded-DLL attribution or v3 schema is established.",
+    )
+
+
+def probe_addon_loader(pe):
+    base = pe.OPTIONAL_HEADER.ImageBase
+    decoder = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    anchors = (
+        (0x100128C1, "call", "0x100140f0"),
+        (0x1001293D, "call", "0x10003b52"),
+        (0x10003B52, "jmp", "0x100344e0"),
+        (0x10012966, "call", "0x10002667"),
+        (0x10002667, "jmp", "0x10028ac0"),
+        (0x1001298F, "call", "0x10014b40"),
+        (0x10012E52, "call", "0x10005132"),
+        (0x10005132, "jmp", "0x10167180"),
+        (0x10012E6E, "mov", "dword ptr [eax + 0x7c], ecx"),
+        (0x10013129, "push", "0x101e9b70"),
+        (0x10013139, "add", "eax, 0x54"),
+        (0x1001314A, "je", "0x10013162"),
+        (0x1001314C, "push", "0x100035ad"),
+        (0x10013151, "push", "0x101e9b7c"),
+        (0x1001315C, "call", "0x100152e0"),
+        (0x100035AD, "jmp", "0x10011e30"),
+        (0x1001531E, "call", "0x100029af"),
+        (0x100029AF, "jmp", "0x101640b0"),
+        (0x10015326, "push", "1"),
+        (0x10015334, "call", "0x10002f86"),
+        (0x10002F86, "jmp", "0x10163f50"),
+        (0x1001321E, "call", "0x10001f96"),
+        (0x10001F96, "jmp", "0x101670d0"),
+        (0x1001322A, "push", "0"),
+        (0x1001322C, "push", "0"),
+        (0x1001322E, "push", "0"),
+        (0x10013237, "call", "0x10001ec9"),
+        (0x10013263, "mov", "byte ptr [eax + 0x94], 1"),
+        (0x10010608, "call", "0x10005e7f"),
+        (0x10005E7F, "jmp", "0x10013510"),
+        (0x10010642, "call", "0x10002a81"),
+        (0x10002A81, "jmp", "0x10012870"),
+        (0x10013551, "mov", "dword ptr [eax + 0x7c], 0"),
+        (0x1001355B, "mov", "dword ptr [ecx + 0x80], 0"),
+        (0x10011E83, "push", "0xffffd8ed"),
+        (0x10011EA2, "push", "1"),
+        (0x10011EE0, "cmp", "dword ptr [ebp - 0x20], 0x2000"),
+        (0x10012428, "call", "0x10006109"),
+        (0x10012569, "call", "0x10006109"),
+        (0x10006109, "jmp", "0x10015770"),
+        (0x100157B0, "push", "0x28"),
+        (0x10015812, "push", "0x5b"),
+        (0x10015834, "push", "0x101e9be4"),
+        (0x10015853, "push", "0xa"),
+    )
+    for va, mnemonic, operands in anchors:
+        instruction = next(decoder.disasm(pe.get_data(va - base, 15), va))
+        assert (instruction.mnemonic, instruction.op_str) == (mnemonic, operands)
+    literals = (
+        (0x101EA30C, b"id\0"),
+        (0x101EA310, b"entry\0"),
+        (0x101EA318, ".lua\0".encode("utf-16le")),
+        (0x101E9B70, b"chatlogs\0"),
+        (0x101E9B7C, b"chatlog_write\0"),
+        (0x101E9BE4, b"] \0"),
+    )
+    for va, expected in literals:
+        assert pe.get_data(va - base, len(expected)) == expected
+    return dict(
+        loader_va="0x10012870",
+        registration_va="0x100152E0",
+        chatlog_native_target_va="0x10011E30",
+        append_text_va="0x10015770",
+        instruction_anchors=len(anchors),
+        literal_anchors=len(literals),
+        boundary="Static pinned manifest/entry, VM creation, C closure with one addon upvalue, chunk execution, reload and selected text-log writer anchors only. No script bytes, VM state or Lua effects are executed. Registering optional chatlog_write does not bind dynamically resolved global chat. No historical module/manifest/script/closure association, v3 schema, actual Scene result/type or admission is established; other writer paths are not excluded.",
     )
 
 
