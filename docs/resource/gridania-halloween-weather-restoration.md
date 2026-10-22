@@ -126,6 +126,14 @@ the final region table, resident city layouts, Limsa/Ul'dah weather resources
 and current 8032 payloads. The candidate contains one replacement DAT. The
 two Halloween-specific targets above already exist with identical bytes.
 
+This file replacement is unconditional while enabled. Every selection of the
+same resource key consumes the October bytes, including any use intended to
+show the final Xmas-marked atmosphere. It is a Halloween-only preview, not an
+event-aware coexistence mechanism. Separate seasonal selections need distinct
+resource keys and weather bindings with matching decoration conditions, or a
+separately qualified event-aware resource resolver. A new server ID alone
+supplies neither the client binding nor the condition entries.
+
 A fresh client session must witness ID 8027 selecting the replacement in both
 Gridania public/interior zones, with the intended atmosphere and resident
 Halloween decorations together. Check arrival, activation while resident,
