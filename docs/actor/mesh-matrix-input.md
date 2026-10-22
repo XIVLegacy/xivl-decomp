@@ -318,9 +318,11 @@ sharing proved.
 
 The [body mesh/pass admission trace](body-mesh-pass-admission.md) establishes
 normal loaded ownership before registration, an exact installed mesh/material
-match and a conditional DrawManager collection/dispatch route. The intended
-scene actor's visual-selected resource list/count, effective active membership,
-layer inputs and stable zero override remain required. The examined native
+match and a conditional DrawManager collection/dispatch route. The
+[resource input trace](body-resource-inputs.md) joins the packed visual roots/
+count to Model slot 1, with zero initial enable. Actual scene resource byte
+identity, consistent count, later enable, effective active membership, layer
+inputs and stable zero override remain required. The examined native
 prefix reaches the first matrix request before the later material/bind work
 and direct-versus-instance test; it supplies no complete profile preflight.
 
@@ -328,7 +330,7 @@ and direct-versus-instance test; it supplies no complete profile preflight.
 
 | Independent obligation | Smallest next offline edge |
 | --- | --- |
-| Intended-draw survival | Join the intended scene actor's visual-selected resource list to the [body mesh/pass profile](body-mesh-pass-admission.md), qualify its selected state before submission, and cover other reached callees |
+| Intended-draw survival | Join the intended scene actor's actual appearance/resolved root bytes to the [body input/profile](body-resource-inputs.md), qualify count, later enable and selected state before submission, and cover other reached callees |
 | Successor isolation | Expand the next actual caller/pass after the selected walker and the named pre-builder descendants; show each changed vector's required native write before its next read, including any nested original draw |
 | Lifetime | Identify the enclosing native owner/thread contract or pre-submission barrier that excludes the documented reset/discard/destruction operations through source copy and original draw submission |
 | Complete admission | Join root Drawable, all populated controller entries and ordinary resource-backed meshes to every reached pass before the first substituted submission |

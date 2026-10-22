@@ -7,11 +7,13 @@ layer route connects collected tags to the same mesh method. These joins are
 PROVEN within the static and synthetic scope below. Admission of an actual
 scene-owned body/pass before submission remains INCOMPLETE.
 
-The first missing producer is the visual-selected resource list/count entering
-ModelObject slot 1 for the intended scene actor. Even with that selection,
-active mesh membership, the reached layer/bucket, stable zero override and all
-profile objects still need qualification before the first changed request.
-The native mesh prefix does not supply those checks on its own.
+The [resource input trace](body-resource-inputs.md) joins the pinned visual's
+packed roots and maintained count to ModelObject slot 1 as
+`list, count, 1, layer, 0, 0`. The first missing identity edge is the intended
+scene actor's actual appearance/resolved root association with these bytes.
+Count consistency, subsequent enable, active mesh membership, reached layer/
+bucket and stable zero override still need qualification before the first
+changed request. The native mesh prefix does not supply those checks.
 
 | Examined contract | Verdict | Exact boundary |
 | --- | --- | --- |
@@ -19,7 +21,7 @@ The native mesh prefix does not supply those checks on its own.
 | Selected body MESH to first SHD material | PROVEN for the pinned file and normal name binder | Actual loaded material slot and its full resource identity remain conditions |
 | DrawManager layer/bucket to mesh dispatch | PROVEN as a conditional static route | Current scene actor, layer, bucket mode and enabled flags are not observed |
 | Native prefix enforces zero override/direct-route admission | REJECTED within the finite native fragment | Nonzero override and an unread instance sentinel reach the first c0..c15 request |
-| Actual body/pass and complete actor-group admission | INCOMPLETE | Resource selection, active members, context stability and lifetime before submission |
+| Actual body/pass and complete actor-group admission | INCOMPLETE | Actual resource identity/count, subsequent enable, active members, context stability and lifetime before submission |
 
 ## Identity and method
 
@@ -51,8 +53,8 @@ S; the [scene lookup](window-actor-anchor-producer.md#target-production)
 remains a separate identity input.
 
 ```text
-Scene CharaActor S                         selected visual resource list unjoined
-  S+0C -> ModelObject M <----------------- Model slot 1: list, count, flag, ...
+Scene CharaActor S                         visual packed roots/count
+  S+0C -> ModelObject M <----------------- Model slot 1: list, count, 1, layer, 0, 0
   S+2B5C -> visual; visual+8 = S              A61DF0
   M+D0 = S                                   C50FE0 / C510F0
     M+D8 = D <------------------------------ C4F8E0 / C502B0
@@ -102,9 +104,10 @@ initializer argument 4's low seven bits into D+0x2AC.
 index. For a valid nonnegative index below the layer count,
 `0x00C27A88` selects renderer+0x18[index]; the signed comparison at
 `0x00C27A68` falls back to zero when index is at least the count.
-This is not a safe negative-index admission rule. The layer value remains
-caller-supplied; wrapper `0x00A630E0` maps its argument 3 to initializer
-argument 4, without establishing a fixed layer for the intended body.
+This is not a safe negative-index admission rule. On the
+[body visual bridge](body-resource-inputs.md#packing-count-and-exact-model-call),
+actor slot 104 supplies the layer lookup result, mapping -1 to zero. No fixed
+layer for the intended body is established.
 
 `0x00C27A93 -> 0x00C38D80` appends D to the selected layer+0x1C
 vector. Separately, `0x00C27B20 -> 0x00C38BB0` uses layer+0x30.
@@ -225,8 +228,9 @@ Other bucket modes and phases require separate joins.
 
 The [enable/list producers](../resource/floor-model-render-path.md#drawable-enable-and-render-list-admission)
 establish initial D+0xA0 bit 0 and its initializer/model-slot updates.
-The initializer's argument 5 can clear that bit before registration. Its
-actual body argument and subsequent updates remain conditions; actor ownership
+The [body initializer argument](body-resource-inputs.md#enable-and-pre-submission-admission)
+is zero on the pinned state-3 route and clears that bit before registration.
+A subsequent enable transition/current flags remain conditions; actor ownership
 and a successful resource bind do not imply mask-1 membership.
 
 Renderer construction `0x00C2829C/0x00C282A4 -> 0x00C48C40`
@@ -267,7 +271,8 @@ profile predicates before requesting constants. It does not reject the
 conditional profile or establish a faulty retail draw.
 
 Before any correction, an admission boundary still needs the selected scene
-actor's input list and loaded objects, current active flags and pass selection,
+actor's actual input/root identity and consistent count, loaded objects,
+subsequent enable, current active flags and pass selection,
 the exact first matching material and default/driver associations, valid
 mutable indices, stable zero override, and the renderer/lifetime qualifications
 from the [matrix finding](mesh-matrix-input.md). The inspected load and draw
@@ -299,7 +304,8 @@ stops at `0x0041BFC0` before its body, cache, later material/bind work,
 instance dispatch or draw. No native actor load, complete pass, queue, GPU,
 client process, capture or live instrumentation is executed.
 
-The smallest next producer edge is the CharaVisual call supplying the intended
-scene actor's ModelObject slot-1 resource list/count. Joining that list to this
-loaded mesh and the reached layer record would narrow admission further;
-context stability and complete-group qualification would still be separate.
+The [resource input trace](body-resource-inputs.md) owns the visual-to-Model
+producer join and remaining actual appearance/request/root identity edge.
+Joining that root to this loaded mesh and the later enable/reached layer record
+would narrow admission further; context stability and complete-group
+qualification remain separate.

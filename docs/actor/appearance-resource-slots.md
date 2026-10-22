@@ -22,7 +22,8 @@ chain is in [Appearance-dirty model apply path](appearance-dirty-apply.md).
 arguments and `RET 0xC` (`local-data-flow`, `0x006320C0..0x006321D4`). It
 addresses the record at `[this + 0x18] + 0x6C * bank` and:
 
-1. Does nothing when the path string object is empty (`0x00445DB0`).
+1. Does nothing when the stored and incoming paths compare equal. Helper
+   `0x00445DB0` returns string inequality; `0x006320E1` skips on equality.
 2. Stores `-1` at record `+0x00` and copies the path string into the record at
    `+0x04`.
 3. Releases a handle already held at record `+0x58`, then clears it.
@@ -38,6 +39,17 @@ addresses the record at `[this + 0x18] + 0x6C * bank` and:
 Appearance call sites pass `flag` 2 for the model files (`0001`, `9999`,
 `9998` and accessories) and 0 for textures and the `cmn` and `skl` files
 (`local-data-flow`, the pushes before each call below).
+
+The pinned CharaVisual constructor supplies 57 records at
+`0x006B7636 -> 0x00631EF0`. Record `+0x58` is the pending request
+handle; `+0x5C` is the published resource root; `+0x60/+0x64` is a
+separate callback pair stored by `0x00631440`. Completion slot 3
+(`0x00631370`) clears `+0x58`, and slot 6 (`0x00632440`) publishes
+`+0x5C`. Changing the request path does not clear the old root in that
+prefix. The [body input trace](body-resource-inputs.md) joins the ordinary
+factory result, packed roots/count and Model slot 1, with its count and
+actual-resource identity limits. Fresh PE corroboration and native string/
+publication checks there support these field and equality observations.
 
 ## Bank numbers
 
@@ -84,8 +96,6 @@ The `top` slot in `0x006B7A40` has an extra `_snd` request that calls
   `0x0085605D`, `0x00856373`, `0x008DAF50`, `0x008DB0F8`, `0x008DB1A9`,
   `0x008DB35C`, `0x008DB9D0`), pass bank numbers that this page does not
   decode. Whether they share the same record array is `UNKNOWN`.
-- The total record count of the array and the fields of the record beyond
-  `+0x00`, `+0x04`, `+0x58` and `+0x68` are not decoded here.
 - No live retail session was observed. Every bank number above is derived from
   static evidence.
 
