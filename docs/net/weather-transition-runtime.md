@@ -22,6 +22,50 @@ whole-seconds counter with a zero fractional part. `0x0059e4d0` publishes the
 duration before publishing the weather ID. The duration travels through world
 message 114 (`0x0059e1f0` sender and `0x0062d004` receiver).
 
+## Lua weather-ID setter
+
+The Lua `_setWeather` path also supplies a weather ID, rather than a u32
+resource key or a list of effect/lighting components. Registration helper
+`0x00733750` associates string `_setWeather` at `0x00FD6AD4` with thunk
+`0x0071E410`. The thunk dispatches through receiver slot 81 (`+0x144`).
+The RTTI-named `Application::Lua::Script::Client::Control::PlayerBase`
+table has a no-op target at cell `0x00FD5F48`; the corresponding `MyPlayer`
+cell `0x00FD79A0` targets `0x006E6070`.
+
+That MyPlayer method obtains argument 0 through `0x005819A0`, reads its
+low word at `0x006E60AC`, obtains argument 1 and reads its low byte at
+`0x006E60DD`, then calls `0x0075C910` at `0x006E60F8`. The adapter
+sign-extends that word and byte at `0x0075C91C` and `0x0075C917`, and
+tails to `0x0059E700`. The latter constructs the duration counter and
+calls `0x0059E4D0` at `0x0059E71D`. The existing publication path sends
+scene selector `0x0C`, which reaches region-based weather-ID selection.
+The Lua adapter's signed extensions differ from the packet receiver's
+unsigned extensions. Seasonal IDs 8027 and 8032 fit the positive word range.
+
+Passing resource key `0x29B00020` through this Lua argument therefore
+supplies ID 32 after truncation, not that resource key. Scene selector
+`0x0D`, whose separate native consumer accepts a resource key, is not
+selected by this bridge.
+
+The recovered `director/weatherdirector.lua:58-69,92-103` calls this API
+with its synchronized `weatherId` and durations 1 or 15.
+`director/weather/weatherdirectorbaseclass.lua:64-77` also supplies its
+`weatherId` and duration 15. These are decoded retail Lua observations,
+not proof of a server activation. Source: `xivl-client-scripts`,
+`manifests/private_lua_corpus.json`, archive SHA-256
+`0e8f902f7a2f592fc1220d41b89a3f35ec395cfb261806d4bd590a530099ae31`;
+decoded member SHA-256 respectively
+`c270c0632b5399a70298bad9e063caecc95a825300e813c4a2525ed71c1f8e22`
+and `842bd1c6271152772edbbcec13c8a18b8230f7b0d76b865ee0011df62022f62e`.
+The corpus's producing pipeline used `decode_lpb.py`, `lpb_pipeline.py`,
+unluac and `lua_corpus.py publish`; `xivl-client-scripts:lua/README.md`
+owns that extraction and canonicalization contract.
+
+The native observations used retained Ghidra listings, original-PE table
+reads with pefile `2024.8.26`, and independent Capstone `5.0.7` x86-32
+decoding. All listed instruction bytes and virtual targets matched the
+pinned executable. No client or Lua method was executed.
+
 ## Elapsed and target counters
 
 The duration receiver at `0x007e0370` stores the new target counter at

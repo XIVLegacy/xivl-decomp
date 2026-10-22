@@ -308,6 +308,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [PE layout](resource/pe-layout.md)
 - [Resource path producer](resource/resource-path-producer.md)
 - [Native seasonal resource selection](resource/native-seasonal-resource-selection.md)
+- [Stock seasonal component bindings](resource/stock-seasonal-component-bindings.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)
 - [MapLayout numeric request boundary](resource/map-layout-request-boundary.md)

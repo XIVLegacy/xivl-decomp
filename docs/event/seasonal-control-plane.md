@@ -37,7 +37,8 @@ script effects, not evidence that a particular mode selected area weather.
 
 Opcode `0x000D` controls area weather. Its native receiver and transition
 fields are documented in [Weather transition runtime](../net/weather-transition-runtime.md).
-The Lua `_setWeather` virtual thunk is at `0x0071E410`. Unlike player event
+The [Lua `_setWeather` bridge](../net/weather-transition-runtime.md#lua-weather-id-setter)
+dispatches through thunk `0x0071E410` to MyPlayer's ID setter. Unlike player event
 work, area weather can select DAT-authored decoration masks; see
 [City seasonal weather selectors](../resource/city-seasonal-weather-selectors.md).
 
@@ -74,6 +75,9 @@ activation records. Those remain event-specific evidence or content gaps.
 The resource-specific evidence and limits are in
 [City seasonal weather selectors](../resource/city-seasonal-weather-selectors.md)
 and [Seasonal BG-object assets](../resource/seasonal-bgobj-assets.md).
+The [stock component bindings](../resource/stock-seasonal-component-bindings.md)
+separately qualify manual decoration controls and possible reuse of existing
+weather layouts; missing historical whole files do not prove missing leaves.
 
 ## Evidence and limits
 

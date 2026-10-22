@@ -13,6 +13,12 @@ another file name. It also lacked weather 8033 registrations. Selecting an
 unregistered server ID did not supply those files or the missing decoration
 conditions.
 
+Exact whole-file absence did not establish that the component assets were
+absent or that no different stock composition could produce a seasonal
+presentation. The [stock component and binding trace](stock-seasonal-component-bindings.md)
+owns the retained leaves, composed layouts, manual scheduler candidates and
+remaining selector/persistence boundaries.
+
 ## Binary, data and producing tools
 
 Native addresses below are VAs in retail `ffxivgame.exe`, build
