@@ -174,7 +174,7 @@ joins are in the [interior finding](city-interior-halloween-owner-joins.md).
 | `0x00794690`, `0x0059D590` | Routed a name with an alphanumeric fourth byte, including `show`/`hide`, through scene selector `0x28`. |
 | `0x008064A0`, `0x00806320`, `0x00802020` | Resolved the bound map object and matched its registered child alias byte-for-byte. |
 | `0x008012F0`, `0x008024C0` | Required a kind-7 resource interface and its slot-11 result, then dispatched action `0x7F` through interface slot 3 at `0x0080256B`. |
-| `0x00836730` | Obtained the numeric instance through UnitInfo slot 50, the timeline scheduler through property slot 30, and conditionally invoked scheduler slot 3 at `0x0083683B`. |
+| `0x0080256B`, admitted TimeLine manipulator | Action `0x7F` called the same slot-30 manipulator H's slot 3, conditionally bound to `0x00A77D10`. The separate clip callback `0x00836730` was not this action's direct target. |
 
 The Lua exports did not bypass the short-name limit. Registration wrappers
 `0x00737E30` / `0x00737F80` associated `_runBgScheduler` /
@@ -185,18 +185,48 @@ Their literals were at `0x00FD6F1C` / `0x00FD6F2C`. Calls at
 a three- or four-byte name path. Thus neither export supplied the complete
 long Gridania interior aliases above.
 
-This path did not itself read the weather vector or queue ID. It therefore
-provided a candidate manual invocation of a short-alias control when the
-weather mask was unselected, subject to every bind, readiness, property and
-scheduler guard. It did not prove successful registration or visible output.
-In particular, slot 11's successful result must not be assumed.
+The later native message had more capacity. Builder `0x0059F460` copied
+up to 31 name bytes into a 32-byte field and forced its final byte to zero.
+The `0x34`-byte record had the packed binding handle at `+0`, action at
+`+4`, zero at `+8`, name at `+0x0C`, and two optional copied dwords at
+`+0x2C/+0x30`. Scene selector `0x28` reached arm `0x0062D041`, then
+`0x008064A0` / `0x00806320`; `0x00805080` copied the full 13-dword record
+into its retained request before exact child-key lookup.
+Thus `time_bg_hww3_show_003` and `time_bg_hww3_hide_004`, both 21 bytes,
+fit that native record. A qualified native producer could avoid the earlier
+short-name restriction; this did not establish a stock packet/Lua bypass or
+successful instance/scheduler admission. Those remain separate conditions.
 
-The callback did not write a durable weather-override field. The separate
-[weather-condition evaluator](timeline-weather-condition.md) could later
-apply the authored show/hide condition again. The relative execution order
-and persistence of a manual request were not witnessed. Ul'dah interior's
-`hwa1` hide also used a material clip, so the named pairs did not all imply
-the same visible operation.
+This path did not itself read the weather vector or queue ID. It therefore
+provided a candidate manual invocation when the weather mask was unselected,
+subject to every bind, readiness, property and scheduler guard. The
+[concrete manual admission and phase stores](timeline-weather-record-view.md#manual-action-and-phase-stores)
+bind slot 11 to a context/child predicate and slot 3 to the wrapper's phase
+and reset stores. A false predicate could skip the action while the request
+consumer still returned AL=1. Successful registration and visible output
+therefore remain separate from apparent request success.
+
+### Persistence through updates
+
+The reviewed manual action `0x7F` bodies had no direct stores to the weather
+evaluator's G/F/L bytes or H+`0x20` flags. Downstream calls, including the
+phase setter's S slot 11, remain separate possible side effects. The
+[ordinary H-slot-24 update](timeline-weather-record-view.md#ordinary-update-and-pending-phase-branches)
+ran before the evaluator gate and could re-enter the same phase/reset
+method: a pending bit-1 branch required its predicate; separate baseline
+and bit-2 branches had their own guards. A false bit-1 predicate retained
+that pending flag and returned before the phase call. Stable weather alone
+therefore proved neither persistence nor automatic overwrite.
+
+The [weather-condition state machine](timeline-weather-condition.md#manual-controls-and-update-persistence)
+separately retained the last selected bit and helper state. An unchanged
+bit could still request a helper when that state required one; a settled
+state did not unconditionally restart it. Clear/re-admission reset the
+gate and helper state, retaining the last bit only in the same surviving
+property object. No durable seasonal override was established for the manual
+request. Actual opposing clip order and visible persistence remain
+unwitnessed. Ul'dah interior's `hwa1` hide also used a material clip, so
+the named pairs did not all imply the same visible operation.
 
 ### Binding a weather layout itself
 
@@ -236,6 +266,24 @@ Scene selector `0x0D` was a separate native operation. Its consumer
 packet or recovered Lua bridge producing that selector was established.
 It remains a possible native interception target, not a proven server-only
 control. It also did not manufacture resident decoration conditions.
+The [direct-key state contract](../net/weather-transition-runtime.md#direct-resource-key-requests-and-retained-state)
+binds the operation's native entry, retained fields, same-ID early exit,
+ID-only state-3 deferral and explicit clear behavior.
+
+The original registry made the seasonal key/ID distinction concrete:
+
+| Stock resource | Root / original row | Reverse ID with Gridania root 103 preferred |
+| --- | --- | ---: |
+| Gridania Xmas-marked `0x29B00020` | 103 / `0xDF0` | 8027 |
+| Limsa Halloween `0x29D9001F` | 101 / `0x2B0` | 8027, through all-root fallback |
+| Ul'dah Halloween `0x615A0023` | 104 / `0x1450` | 8027, through all-root fallback |
+
+Python `struct` followed the original registry's complete declared root and
+child runs; the native preferred/all-root helpers were checked against the
+pinned PE. Selecting different existing atmosphere keys therefore did not
+separate the recovered decoration ID: all three still supplied 8027 to the
+condition evaluator. Cross-city atmosphere resolution and rendering remain
+unqualified, while the native key-selection input itself is established.
 
 The original region registry had no 8033 row. Sending that ID alone
 therefore did not select a new seasonal resource. The

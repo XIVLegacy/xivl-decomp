@@ -139,6 +139,53 @@ Other states call `0x00624180(8007,0)` at `0x0062944A`.
 Packet opcode `0x000D` is separate from scene selector `0x0D`, whose
 branch accepts a resource key through `0x00624240`.
 
+### Direct resource-key requests and retained state
+
+The original MapLayoutActor table `0x00FBAE3C` has RTTI
+`.?AVMapLayoutActor@Map@Actor@Scene@Application@@`; its slot-157 cell
+`0x00FBB0B0` targets `0x0062CDA0`. That receiver accepts an operation,
+payload pointer and payload length, with `RET 0x0C`. For operation `0x0D`,
+byte cell `0x0062D0E9` selects the same `0x0062CDDE` arm as operation
+`0x0C`: it dereferences the payload's first dword and queues the unchanged
+operation/value pair through `0x0062C4D0` at `0x0062CDE8`.
+The existing guarded operation pump then reaches `0x00629410`.
+Table cell `0x006294B0` selects `0x00629453` for operation `0x0D`.
+
+| Native locator | Direct-key observation |
+| --- | --- |
+| `0x00629453..0x00629489` | State `actor+0x1F0 == 3` reverse-resolves the requested key and stores only that ID at `+0x1A0`. Other states call `0x00624240(key)`. This state-3 branch does not retain the requested key at `+0x1A4`. |
+| `0x00624243..0x0062429A` | Requires actor byte `+0x1B8`; stores the full key at `+0x1A4`, reverse-resolves it using preferred region `+0x190`, stores the result at `+0x19C`, and calls `0x007E87F0(key,0)`. |
+| `0x0079B540`, `0x0079ADF0` | Tries the preferred region, then all roots. The child helper compares resource key `+0x60` and returns ID `+0x58` without a type filter. |
+| `0x007E87F0`, `0x007E80F0` | An already-queued identical key can suppress insertion. New queue records retain the supplied key and separately recovered ID; they do not create a new seasonal ID. |
+| `0x00624190..0x006241A1` | A later ordinary ID request equal to the current nonzero `+0x19C` exits before region lookup. It does not necessarily replace a directly selected alternate key. A different admitted ID follows normal region selection and stores its key at `+0x1A4`. |
+| `0x006242F0` | When current ID `+0x19C`, weather key `+0x1A4` or sky key `+0x1A8` is nonzero, calls `0x007E94A0`, then zeros those fields and pending ID `+0x1A0`. If all three tested fields are zero, returns without clearing even a nonzero pending ID. The manager clear iterates weather removals through `0x007E82E0` before clearing its sky state. |
+
+Helper `0x0062C710` also contains a concrete replay of a retained key:
+when its input byte changes actor `+0x335`, state is not 3, region owner
+`+0x17C` exists, and current ID or key is nonzero, it queues
+`(0x0D, actor+0x1A4)` at `0x0062C74C..0x0062C74F`.
+This does not establish an initial key source or a caller for that helper.
+The state-3 ID-only branch and the explicit clear are separate boundaries
+for any design that relies on retaining an alternate key.
+
+A selector value alone does not authenticate a weather producer. For
+example, `0x005624D0` sent selector `0x0D` with a float payload at
+`0x005626E4`, but original table `0x00FA47A0`, slot 6, identified its
+receiver as `.?AVCameraElement@System@Element@Main@Application@@`.
+It did not supply a MapLayoutActor weather-key binding. No initial server
+packet or recovered Lua producer of the MapLayoutActor direct-key operation
+was established by this trace.
+
+The native cutscene weather route did not provide that producer either:
+`RaptureBgWeatherClip` update `0x00818150` called the ordinary ID helper
+`0x00624180` at `0x008182FC`. Its full dword parameter did not become a
+resource key through that call.
+
+These table, field and branch observations used retained Ghidra 12.1.3
+listings and original-PE checks with pefile `2024.8.26` and Capstone
+`5.0.7`. They establish native entry points and state effects, not a live
+hook, cross-region rendering compatibility or persistence after teardown.
+
 ### Region lookup and resource key
 
 `0x00624180` requires actor byte `+0x1B8` and skips an already-current

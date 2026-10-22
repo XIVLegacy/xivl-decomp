@@ -34,8 +34,9 @@ to that retained receiver's slot 24 when the receiver is nonnull.
 
 The [activation caller/context contract](timeline-activation-context.md#caller-into-the-evaluator)
 joins instance slot 72 and UnitInfo child traversal to this property slot 9.
-It also establishes the constructor's zero C+`0x44` gate; a positive selected
-gate writer remains required before that update invokes the evaluator.
+It also establishes the constructor's zero C+`0x44` gate. The positive
+writer below binds admission to that gate; the selected root still has to
+reach the admitted path with its retained objects intact.
 
 `0x007FCBF0` calls P slot 4 twice, discards the first return, then calls
 the second return's slot 19 and the next return's slot 8 at
@@ -55,6 +56,35 @@ Its slot 19 returns the retained TimeLine base interface B, whose slot 8
 returns the supplied record at B+4. Actual layout selection and record delivery
 remain conditions. The same helper calls that retained B's category getter,
 uses its return for property creation and supplies P to this same instance.
+
+## Admission, clear and retained condition state
+
+Let G=C+`0x44`, F=C+`0x45` and L=C+`0x46`, all bytes. Constructor
+`0x007FC700` initialized all three to zero. Positive writer `0x007FDD20`
+stored G=1 and F=0 at `0x007FDD2F..0x007FDD33`, leaving L unchanged.
+It obtained the slot-30 backend through P, derived C+`0x48`, and
+conditionally retained C+`0x4C` before tailing to `0x007FC7C0`.
+These are fields and calls, not proof of a successful selected attachment.
+
+Caller `0x008D4CA0` obtained P through the supplied instance's slot 47,
+adjusted it to C and called that writer at `0x008D4CDD`.
+`0x008D51B0` reached this caller at `0x008D5237` after its slot-50,
+slot-47 and slot-29 checks. The safe path requires the retained slot-6 and
+slot-47 results to be nonnull: the corresponding null branches do not make
+the later unguarded dereferences safe. This establishes a conditional
+positive writer, rather than assuming the constructor's gate became true.
+
+Clear helper `0x007FC950` set G=0, F=0 and C+`0x48/+0x4C` to zero.
+It did not write L. `0x008D4CF0` called it on the adjusted slot-47 result;
+`0x008D5300` reached that caller at `0x008D5341` after its own checks.
+If the same property survives and is re-admitted, L remains retained while
+G/F restart. This does not prove object survival or reuse after destruction.
+
+Every admitted slot-9 update called `0x007FC7C0` before forwarding the
+update to H and testing G. With C+`0x4C` nonnull, that helper inspected H
+slots 30 and 29, followed the region/context lookup and conditionally
+performed attachment calls. An unchanged weather bit therefore did not
+exclude other backend work earlier in the same update.
 
 ## Queue ID and first matching entry
 
@@ -184,6 +214,36 @@ with 2000. Kind `0x0F` calls the child slot-4 result's slot 39 with 0,
 then child slot 41 with 2. Other kinds are skipped. It returns true after
 the iteration. These arguments identify native dispatch behavior without
 authenticating a concrete `ShowHideClip` receiver or a rendered result.
+
+## Manual controls and update persistence
+
+The [concrete manipulator update](timeline-weather-record-view.md#ordinary-update-and-pending-phase-branches)
+precedes this evaluator's G test. It conditionally consumes H+`0x20`
+bit 1 and re-enters the same phase/reset method used by manual action
+`0x7F`; baseline and bit-2 branches can also re-enter it. These H flags
+are distinct from G/F/L. The reviewed manual-action and predicate bodies
+have no direct G/F/L stores. The wrapper's phase setter invokes S slot 11
+and the predicate invokes children; their downstream side effects are not
+excluded, and no durable weather override is established.
+
+A same-weather update still re-evaluates the current queue record and bit
+when G is nonzero. Equality of b and L skips the L/F change stores, but
+the following F test can still request the corresponding helper. A settled
+F suppresses that helper; there is no unconditional per-update restart.
+Changing weather can select a different bit or the absent-ID reset path,
+subject to the same record, backend, veto and helper-return conditions.
+Clear/re-admission resets G/F while retaining L only if the same C survives.
+
+At the direct writer level, manual phase/state can remain until another
+admitted writer changes it. The ordinary update supplies concrete conditional
+writers, including while G is zero. The separate
+[ShowHideClip dispatch](showhide-clip-dispatch.md) can also reapply a visible
+operation if its clip and receiver are admitted. Neither unchanged G/F/L
+nor the phase stores establish the selected visible receiver or ordering
+between opposing clips. A complete persistence proof still requires the
+selected owner/context, actual clip operations and order through ordinary
+updates, weather changes and teardown/re-admission. These static paths do
+not establish universal visual persistence or universal visual overwrite.
 
 ## Remaining additive-ID requirements
 

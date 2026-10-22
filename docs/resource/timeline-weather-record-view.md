@@ -255,7 +255,8 @@ underlying scheduler or completion of its initialization.
 | 13 / `0x0109F4B8` | `0x00A77E20`: copies argument bit 0 into bit 0 of H+`0x20`, preserving all other bits. |
 
 In particular, the evaluator's slot-9 arguments 1 and 0 set and clear bit 1.
-This establishes a flag operation, not an enable, loop or playback meaning.
+The ordinary update below consumes it as a pending predicate/phase branch;
+this is separate from property admission and does not prove playback.
 Slot 9 leaves AL equal to its masked XOR delta, either 0 or 2, rather than a
 Boolean success indicator. Slot 13 similarly leaves its bit-change delta in
 AL. Slot 25 does not normalize a success return and does not inspect
@@ -304,6 +305,85 @@ overwriting EAX. Their normal completion writes AL=1 at
 normal return means the helper reached its completion path. It does not
 authenticate a nonnull underlying scheduler, successful attachment or
 visible activation. The already-published null-H false paths still apply.
+
+### Manual action and phase stores
+
+The [seasonal request route](stock-seasonal-component-bindings.md#native-binding-and-manual-dispatch)
+reaches `0x00806320`. Helper `0x008012F0` requires a resource's `+0x28`
+instance, obtains its property through slot 47, checks property slot 1 for
+kind 7, and returns property slot 30's H. The caller invokes H slot 11
+at `0x008063C9..0x008063D1`. Cell `0x0109F4B0` targets `0x00A782D0`,
+which adjusts H to D and calls `0x00A77FD0(D,0)`. This is the predicate
+described above, with its context, selected-child and recursion conditions.
+Slot 10's bit-1 getter `0x00A77E00` is a different method. A false slot-11
+result skips the action dispatcher but still allows `0x00806320` to return
+AL=1; that return alone does not prove action execution.
+
+For the admitted call at `0x008063E3`, the argument order preserves this
+same H as `0x008024C0`'s EDI receiver. Its action `0x7F` case is jump-table
+cell `0x00802654` -> `0x00802502`. The call at `0x0080256B` uses H slot 3,
+cell `0x0109F490` -> `0x00A77D10`. The separate
+`LayRaptureCallSchedulerClip` callback `0x00836730` is not this action's
+direct target. All concrete H/W/S calls here require the published
+constructor/attachment path and retained tables and fields.
+Here W is the wrapper retained at H+8 and S is the complete `LayScheduler`
+retained at W+8, following the construction described below.
+
+| Native locator | Original-PE observation on that path |
+| --- | --- |
+| `0x00A77D10`, H slot 3 | Requires a nonnull wrapper W stored at H+8, forwards the first argument to W slot 33, calls W slot 11, then H slot 8. If the second argument is positive, calls H slot 7 with it. |
+| `0x01094368` -> `0x00A03880`, W slot 33 | Guards through W slot 14; the accepted path calls `0x00A1B8B0(S,phase)`. That setter writes S+`0x1CC`, zeros S+`0x98/+0xA8/+0xAC`, then invokes S slot 11 at `0x00A1B8D3`. |
+| `0x01094310` -> `0x00A035D0`, W slot 11 | Calls W slot 16 with `(2,0)`. Cell `0x01094324` -> `0x00A03610` guards and reaches `0x00A1B7D0`, which writes S+`0x88=2`. |
+| `0x0109F4A4` -> `0x00A77DD0`, H slot 8 | Writes H+`0x14`=D+`0x18`=-1. |
+| `0x0109F4A0` -> `0x00A77DC0`, H slot 7 | Stores its argument at H+`0x14`=D+`0x18`. |
+
+In the action case, the first argument is its computed phase/timing local
+and the second is retained request dword `+0x34`. These calls apply phase
+and reset state conditionally. The reviewed bodies have no direct stores
+to property C+`0x44/+0x45/+0x46` or H+`0x20`. This is not a transitive
+side-effect exclusion: S slot 11 and the predicate's child calls have
+separate downstream calls. Neither the admitted action nor these stores
+alone establish visible playback or a durable weather override.
+
+### Ordinary update and pending phase branches
+
+Property slot 9 `0x007FDCA0` calls `0x00AA2930(P)` before testing C+`0x44`.
+For nonnull H stored at P+`0x0C`, the forwarder dereferences its supplied update
+pointer once and tail-dispatches that dword to H slot 24. The original
+cell `0x0109F4E4` selects `0x00A782E0`, closing this same-object update
+join on the constructed manipulator path. The call can occur with the
+weather evaluator's C+`0x44` gate still zero.
+
+Slot 24 obtains a baseline through H+`0x18`'s slot 14, or zero when that
+source is null. It then requires the wrapper W stored at H+8. Its branches are:
+
+| H state / native locator | Conditional update |
+| --- | --- |
+| H+`0x20` bit 1 set, `0x00A78300..0x00A78326` | Calls `0x00A77FD0(D,0)`. False returns without H slot 3 and retains bit 1. True calls H slot 3 with `(baseline,-1)`, then clears bit 1 and returns. |
+| Bit 1 clear, `0x00A78329..0x00A78356` | With H+`0x18` nonnull, applies the 32-bit `SUB/CDQ/XOR/SUB` absolute-value idiom to H slot 14's value minus baseline. A signed result greater than `0x2710` calls H slot 3 with `(baseline+update,-1)`. The threshold's units are not bound here. |
+| Subsequent bit-2 branch, `0x00A78358..0x00A7836D` | Loads H+`0x14`, pushes that value, then pushes zero. H slot 3 therefore receives `(0,retainedValue)`, then bit 2 is cleared. |
+| Final positive H+`0x14` branch in `0x00A782E0` | When positive H+`0x14` is at most the current wrapper value, calls W slot 21, cell `0x01094338` -> `0x00A03C10`. |
+
+H slot 14 is cell `0x0109F4BC` -> `0x00A77E50`. It uses W slot 36,
+cell `0x01094374` -> `0x00A038C0`; the guarded constructed path reads
+S+`0xD8/+0xDC` through `0x00A1B8E0` / `0x00A20350`.
+The pending-bit-1 and baseline calls pass -1 as their second argument;
+H slot 8 therefore leaves H+`0x14=-1`. The bit-2 call instead passes the
+previous H+`0x14` as its second argument. If that value is positive,
+H slot 7 restores it after slot 8's -1 store, allowing the final positive
+branch to run when the wrapper-value comparison also passes. If the earlier
+baseline branch already called slot 3 in the same update, the bit-2 branch
+instead reads its resulting -1 and does not restore a positive value.
+
+Thus bit 1 is a latched pending branch: evaluator slot 9 can set it,
+and an ordinary slot-24 update consumes it after the predicate passes and
+the phase call returns. With a false predicate, this branch has no direct
+phase/reset store and keeps the flag for a later update; the predicate's indirect calls
+are not excluded. With bit 1 clear, the baseline and bit-2 branches can
+still reach the phase/reset stores. Stable weather therefore does not by
+itself establish manual phase persistence or a guaranteed overwrite.
+The [condition-state contract](timeline-weather-condition.md#manual-controls-and-update-persistence)
+keeps these H flags separate from the property's weather-evaluator bytes.
 
 ### Synchronous scheduler callback
 

@@ -12,9 +12,9 @@ parent's UnitInfo context and register their numeric keys there. This supplies
 a conditional same-context path for Limsa's selected Halloween group, alongside
 the previously qualified direct-child paths for Gridania and Ul'dah.
 
-These are static caller, publication and context joins. A positive evaluator
-gate, selected root invocation, retained registrations and callback ordering
-still require evidence. No seasonal activation or playback was observed.
+These are static caller, publication and context joins. Selected root
+admission, retained registrations and callback ordering remain conditions.
+No seasonal activation or playback was observed.
 
 ## Evidence identity and interfaces
 
@@ -71,9 +71,11 @@ the [record-view finding](timeline-weather-record-view.md#backend-pointer-and-gu
 
 Constructor `0x007FC700` zeros C+`0x44`, C+`0x45` and C+`0x46` at
 `0x007FC740..0x007FC749`. With that initial gate byte retained, the slot-9
-call skips the evaluator. The positive writer of the selected C+`0x44`
-gate is not established here. An authored weather selector or a slot-72
-call does not by itself authenticate a nonzero gate.
+call skips the evaluator. The
+[admission and clear contract](timeline-weather-condition.md#admission-clear-and-retained-condition-state)
+binds positive writer `0x007FDD20` and its callers, plus the G/F clear that
+retains L. An authored selector or slot-72 call alone still does not prove
+that the selected instance reached the admission path.
 
 ## Publication into the update traversal
 
@@ -170,7 +172,7 @@ A selected successful binding needs the matching registration to exist when
 U0 slot 37 runs, or an authenticated later binding invocation after insertion,
 with the matching entry still retained. The present trace does not establish
 that ordering, a retry policy, duplicate resolution or a historical failure.
-It also leaves the evaluator's positive gate, selected root update invocation,
+It also leaves selected root admission and update invocation,
 resource/cache readiness and operation-provider/indexed-actor/material
 requirements separate. No server opcode or calendar trigger was recovered.
 
