@@ -330,7 +330,7 @@ and direct-versus-instance test; it supplies no complete profile preflight.
 
 | Independent obligation | Smallest next offline edge |
 | --- | --- |
-| Intended-draw survival | Join the intended scene actor's actual appearance/resolved root bytes to the [body input/profile](body-resource-inputs.md), qualify count, later enable and selected state before submission, and cover other reached callees |
+| Intended-draw survival | Join the captured key's actual Scene result, applied appearance and resolved root bytes to the [body profile](body-resource-identity.md), qualify count, later enable and selected state before submission, and cover other reached callees |
 | Successor isolation | Expand the next actual caller/pass after the selected walker and the named pre-builder descendants; show each changed vector's required native write before its next read, including any nested original draw |
 | Lifetime | Identify the enclosing native owner/thread contract or pre-submission barrier that excludes the documented reset/discard/destruction operations through source copy and original draw submission |
 | Complete admission | Join root Drawable, all populated controller entries and ordinary resource-backed meshes to every reached pass before the first substituted submission |

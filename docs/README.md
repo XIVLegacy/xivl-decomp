@@ -19,6 +19,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Selected body shader constant join](actor/body-shader-constant-join.md)
 - [Scene body mesh and pass admission](actor/body-mesh-pass-admission.md)
 - [Scene body resource inputs to ModelObject](actor/body-resource-inputs.md)
+- [Scene actor and body resource identity](actor/body-resource-identity.md)
 - [Background visibility ranges](actor/background-visibility.md)
 - [Indexed float storage and clamp](actor/indexed-float-clamp.md)
 - [Camera context registration and selection](actor/camera-context-selection.md)

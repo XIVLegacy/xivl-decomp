@@ -10,7 +10,8 @@ scene-owned body/pass before submission remains INCOMPLETE.
 The [resource input trace](body-resource-inputs.md) joins the pinned visual's
 packed roots and maintained count to ModelObject slot 1 as
 `list, count, 1, layer, 0, 0`. The first missing identity edge is the intended
-scene actor's actual appearance/resolved root association with these bytes.
+scene result/type and its actual appearance/resolved root association with
+these bytes, as bounded by the [identity finding](body-resource-identity.md).
 Count consistency, subsequent enable, active mesh membership, reached layer/
 bucket and stable zero override still need qualification before the first
 changed request. The native mesh prefix does not supply those checks.
@@ -305,7 +306,8 @@ instance dispatch or draw. No native actor load, complete pass, queue, GPU,
 client process, capture or live instrumentation is executed.
 
 The [resource input trace](body-resource-inputs.md) owns the visual-to-Model
-producer join and remaining actual appearance/request/root identity edge.
+producer join; the [identity finding](body-resource-identity.md) owns the
+remaining actual Scene/appearance/request/root identity edge.
 Joining that root to this loaded mesh and the later enable/reached layer record
 would narrow admission further; context stability and complete-group
 qualification remain separate.

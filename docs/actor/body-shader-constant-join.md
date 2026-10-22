@@ -283,6 +283,7 @@ replacement, nesting, renderer lifetime and complete actor/pass-group
 admission retain the separate INCOMPLETE verdicts in the matrix finding.
 The [admission trace](body-mesh-pass-admission.md) joins loaded ownership and
 pass dispatch. The [resource input trace](body-resource-inputs.md) joins packed
-roots/count to ModelObject slot 1; actual scene appearance/request/root byte
-identity, count consistency and later enable remain conditions. All profile
+roots/count to ModelObject slot 1. The [identity finding](body-resource-identity.md)
+bounds the actual Scene/appearance/request/root byte join; count consistency
+and later enable remain conditions. All profile
 conditions still require qualification before any corrected submission.

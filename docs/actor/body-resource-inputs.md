@@ -9,8 +9,9 @@ PROVEN within the static and synthetic scope below. Admission of the intended
 scene actor into the [zero-override body profile](body-shader-constant-join.md)
 remains INCOMPLETE.
 
-The first missing identity edge is the intended scene actor's actual appearance
-and resolved request/root association with the pinned body bytes. The list's
+The [identity finding](body-resource-identity.md) places the first unrecorded
+edge at the captured key's actual Scene result/type, before appearance and
+resolved request/root association with the pinned body bytes. The list's
 count consistency, successful loading, subsequent draw enable, active mesh/pass
 and stable zero override also remain conditions before submission. A formatted
 path and a completed request list do not establish those conditions.
@@ -93,8 +94,10 @@ slot 6=`0x00632440` at `0x00631DFE`.
 
 For a nonnull result, `0x00632471` retains through the owner, and
 `0x00632489` releases a prior root when present. `0x0063249B` publishes
-the result unchanged. The module's concrete factory and actual returned
-resource bytes remain unjoined. Downstream `0x00C52532..0x00C52539`
+the result unchanged. The [identity finding](body-resource-identity.md#conditional-request-data-and-factory-root)
+joins a concrete factory and descendant byte framing for an explicit receiver;
+the actual actor's receiver and returned resource bytes remain unobserved.
+Downstream `0x00C52532..0x00C52539`
 supplies each root to `0x00C52260`, then `0x00A44BF0` traverses its
 child/sibling links. The published root is not itself proved to be the WRB
 ModelResourceNode or a Drawable, and one root can contain multiple models.
@@ -251,7 +254,7 @@ The fragments do not compose a native scene load. No resolver, concrete
 resource factory, asset-byte association, whole pass, submission cache/queue,
 draw, GPU, client process or live instrumentation executes.
 
-The smallest remaining identity edge is intended S -> actual appearance ->
-resolved bank-5 request -> published root's loaded bytes containing the pinned
-SHD and WRB mesh. Count consistency, successful construction and the later
-enable/pass/override qualifications remain independent admission obligations.
+The [identity finding](body-resource-identity.md) owns the remaining actual
+Scene result/type, applied appearance and resolved bank-5 root/byte association.
+Count consistency, successful construction and the later enable/pass/override
+qualifications remain independent admission obligations.
