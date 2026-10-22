@@ -333,6 +333,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Guildleve actor initialization route](net/guildleve-initializer-route.md)
 - [Lua bytecode format](script/lua-bytecode-format.md)
 - [Lua class registry](script/lua-class-registry.md)
+- [Native class registration parents](script/native-class-registration-parents.md)
 - [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
 
 ## Type notes
