@@ -316,11 +316,19 @@ fallback. The six-field terminal task cannot recover the missing group identity.
 No examined payload has all actor-owned producers, consumers, lifetime and
 sharing proved.
 
+The [body mesh/pass admission trace](body-mesh-pass-admission.md) establishes
+normal loaded ownership before registration, an exact installed mesh/material
+match and a conditional DrawManager collection/dispatch route. The intended
+scene actor's visual-selected resource list/count, effective active membership,
+layer inputs and stable zero override remain required. The examined native
+prefix reaches the first matrix request before the later material/bind work
+and direct-versus-instance test; it supplies no complete profile preflight.
+
 ## Evidence that would change the remaining verdicts
 
 | Independent obligation | Smallest next offline edge |
 | --- | --- |
-| Intended-draw survival | Join the reached bbox/material names and accepted driver handles to the final post-override container's register records and program for one explicitly admitted body/pass route |
+| Intended-draw survival | Join the intended scene actor's visual-selected resource list to the [body mesh/pass profile](body-mesh-pass-admission.md), qualify its selected state before submission, and cover other reached callees |
 | Successor isolation | Expand the next actual caller/pass after the selected walker and the named pre-builder descendants; show each changed vector's required native write before its next read, including any nested original draw |
 | Lifetime | Identify the enclosing native owner/thread contract or pre-submission barrier that excludes the documented reset/discard/destruction operations through source copy and original draw submission |
 | Complete admission | Join root Drawable, all populated controller entries and ordinary resource-backed meshes to every reached pass before the first substituted submission |

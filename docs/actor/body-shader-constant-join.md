@@ -5,7 +5,9 @@ vertex-driver writes leave c0..c15 untouched. The final post-override vertex
 candidate is the same candidate whose names and driver handles were joined.
 This is PROVEN within pinned static analysis and finite native CPU replay.
 Admission of a scene-owned body/pass into this profile remains INCOMPLETE:
-no observed actor, outfit or pass is identified by the installed asset alone.
+the [body mesh/pass trace](body-mesh-pass-admission.md) joins the selected mesh,
+normal ownership and a conditional DrawManager route, while visual-selected
+resource inputs, effective membership and context stability remain unjoined.
 
 This closes the selected-state join for these writer families, not the
 [private matrix route's](mesh-matrix-input.md) complete intended-draw,
@@ -279,6 +281,7 @@ No c0..c15 overlap was established for these joined families. Whole-draw
 survival still requires other reached callees to be covered. Unrelated-draw
 replacement, nesting, renderer lifetime and complete actor/pass-group
 admission retain the separate INCOMPLETE verdicts in the matrix finding.
-The smallest evidence-changing step is to join a scene-owned mesh/pass to
-all profile conditions before any corrected submission; neither the one-entry
-selector nor this synthetic fixture supplies that admission edge.
+The [admission trace](body-mesh-pass-admission.md) owns the remaining concrete
+producer edge: the intended scene actor's visual-selected resource list/count
+entering ModelObject slot 1. All profile conditions still require qualification
+before any corrected submission.
