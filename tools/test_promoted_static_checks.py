@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import json
+import math
 import struct
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import verify_camera_input_chain as camera  # noqa: E402
 import verify_player_profile_accessors as profile  # noqa: E402
 import verify_s2c_0193_native_state as timer  # noqa: E402
 import verify_sun_moon_orientation as moon  # noqa: E402
@@ -26,6 +28,8 @@ def check(name: str, condition: bool) -> None:
 
 def check_bytes(item: dict) -> bytes:
     """The bytes a manifest row expects at its address."""
+    if item["kind"] == "string":
+        return item["text"].encode("ascii") + b"\0"
     if item["kind"] == "dwords":
         width = item.get("width", 4)
         return b"".join(int(v, 16).to_bytes(width, "little") for v in item["values"])
@@ -35,14 +39,14 @@ def check_bytes(item: dict) -> bytes:
 
 def build_image(rows: list[tuple[int, bytes]]) -> bytes:
     """A PE32 image with one section per row, each placed at its own VA."""
-    first_raw = 0x1000
+    table = 0x80 + 24 + 0xE0
+    first_raw = (table + 40 * len(rows) + 0xFFF) & ~0xFFF
     header = bytearray(first_raw)
     header[0:2] = b"MZ"
     struct.pack_into("<I", header, 0x3C, 0x80)
     header[0x80:0x84] = b"PE\0\0"
     struct.pack_into("<H", header, 0x80 + 6, len(rows))
     struct.pack_into("<H", header, 0x80 + 20, 0xE0)
-    table = 0x80 + 24 + 0xE0
     body = bytearray()
     for index, (va, data) in enumerate(rows):
         raw_offset = first_raw + len(body)
@@ -53,6 +57,10 @@ def build_image(rows: list[tuple[int, bytes]]) -> bytes:
         )
         body += data
     return bytes(header) + bytes(body)
+
+
+def first_raw(count: int) -> int:
+    return (0x80 + 24 + 0xE0 + 40 * count + 0xFFF) & ~0xFFF
 
 
 def rows_of(document: dict) -> list[tuple[int, bytes]]:
@@ -71,7 +79,7 @@ def exercise(label: str, module, manifest: Path) -> None:
     )
     missed = []
     for index, (_, data) in enumerate(rows):
-        start = 0x1000 + sum(len(d) for _, d in rows[:index])
+        start = first_raw(len(rows)) + sum(len(d) for _, d in rows[:index])
         flipped = bytearray(image)
         flipped[start] ^= 0x01
         if not module.image_checks.verify_image(
@@ -91,10 +99,208 @@ def exercise(label: str, module, manifest: Path) -> None:
     )
 
 
+def row_float(document: dict, name: str, fmt: str, index: int = 0) -> float:
+    """Decode a constant from a manifest row by name."""
+    item = next(i for i in document["staticChecks"] if i["name"] == name)
+    raw = check_bytes(item)
+    width = struct.calcsize(fmt)
+    return struct.unpack_from(fmt, raw, index * width)[0]
+
+
+def camera_checks() -> None:
+    document = json.loads(camera.MANIFEST.read_text(encoding="ascii"))
+
+    def near(a: float, b: float, tol: float = 1e-5) -> bool:
+        return abs(a - b) <= tol
+
+    check(
+        "camera model constants equal the manifest rows",
+        row_float(document, "radius default 4.5", "<f") == camera.RADIUS_DEFAULT
+        and row_float(document, "radius clamp bounds", "<f", 0) == camera.RADIUS_MAX
+        and row_float(document, "radius clamp bounds", "<f", 1) == camera.RADIUS_MIN
+        and row_float(document, "constant 500.0", "<d") == camera.THIRD_PERSON_DIVISOR
+        and row_float(document, "constant 1000.0", "<d") == camera.FIRST_PERSON_DIVISOR
+        and near(row_float(document, "constant 0.2", "<d"), 0.2)
+        and near(row_float(document, "constant 0.15", "<d"), 0.15)
+        and near(row_float(document, "constant 0.1", "<d"), 0.1)
+        and row_float(document, "constant 100.0", "<d") == 100.0
+        and row_float(document, "pitch limit floats", "<f", 1)
+        == camera.PITCH_LIMIT_THIRD
+        and row_float(document, "first-person pitch limits", "<f", 1)
+        == camera.PITCH_LIMIT_FIRST
+        and row_float(document, "sensor constant", "<d") == camera.SENSOR
+        and row_float(document, "focal lower double", "<d") == camera.FOCAL_MIN
+        and row_float(document, "focal upper double", "<d") == camera.FOCAL_MAX
+        and row_float(document, "first-person fov base", "<d")
+        == camera.FIRST_PERSON_FOV_BASE
+        and row_float(document, "first-person fov coefficients", "<d")
+        == camera.FIRST_PERSON_FOV_SCALE
+        and row_float(document, "constant 30.0 float", "<f") == camera.BLEND_START
+        and row_float(document, "constant 30.0 double", "<d") == camera.DT_NUMERATOR
+        and row_float(document, "constant 300000.0 double", "<d")
+        == camera.DT_DENOMINATOR
+        and row_float(document, "projection near", "<f") == 0.25
+        and row_float(document, "projection far", "<f") == 10000.0,
+    )
+
+    check("one notch is 200", camera.wheel_payload(1) == 200)
+    check("a notch away is -200", camera.wheel_payload(-1) == -200)
+    check("the payload truncates to 16 bits", camera.wheel_payload(165) == -32536)
+    radius, flag = camera.third_person_zoom(4.5, camera.wheel_payload(1))
+    check("one notch moves the radius by 0.4", near(radius, 4.1) and not flag)
+    radius = camera.RADIUS_DEFAULT
+    flags = []
+    for _ in range(9):
+        radius, flag = camera.third_person_zoom(radius, camera.wheel_payload(1))
+        flags.append(flag)
+    check(
+        "the eighth notch reaches 1.5 and the ninth raises the flag",
+        near(radius, 1.5) and flags == [False] * 8 + [True],
+    )
+    check(
+        "zooming out stops at 10.0 without the flag",
+        camera.third_person_zoom(9.9, camera.wheel_payload(-1)) == (10.0, False),
+    )
+    check(
+        "a negative notch at the floor does not raise the flag",
+        camera.third_person_zoom(1.5, camera.wheel_payload(-1))[1] is False,
+    )
+    zoom, flag = camera.first_person_zoom(0.75, camera.wheel_payload(-1))
+    check("first person moves by 0.2 per notch", near(zoom, 0.95) and not flag)
+    check(
+        "first person flips back at 1.0 on a negative notch",
+        camera.first_person_zoom(1.0, camera.wheel_payload(-1)) == (1.0, True),
+    )
+    check(
+        "first person clamps at 0",
+        camera.first_person_zoom(0.1, camera.wheel_payload(1))[0] == 0.0,
+    )
+
+    pitch, yaw = camera.third_person_drag(0.0, 0.0, 100, 100)
+    check("100 cursor units give 0.2 radians", near(pitch, 0.2) and near(yaw, 0.2))
+    pitch, yaw = camera.third_person_drag(0.0, 0.0, 1, 1)
+    check(
+        "one cursor unit gives 0.002 radians", near(pitch, 0.002) and near(yaw, 0.002)
+    )
+    check(
+        "pitch stops at 45 degrees",
+        camera.third_person_drag(0.7, 0.0, 0, 1000)[0] == camera.PITCH_LIMIT_THIRD
+        and camera.third_person_drag(-0.7, 0.0, 0, -1000)[0]
+        == -camera.PITCH_LIMIT_THIRD,
+    )
+    check(
+        "yaw wraps into -pi to pi",
+        near(camera.third_person_drag(0.0, 3.0, 100, 0)[1], 3.2 - 2 * math.pi)
+        and near(camera.third_person_drag(0.0, -3.0, -100, 0)[1], -3.2 + 2 * math.pi),
+    )
+    check(
+        "invert bit 8 flips dx and bit 4 flips dy",
+        camera.third_person_drag(0.0, 0.0, 100, 100, 1.0, 8)[1] < 0
+        and camera.third_person_drag(0.0, 0.0, 100, 100, 1.0, 8)[0] > 0
+        and camera.third_person_drag(0.0, 0.0, 100, 100, 1.0, 4)[0] < 0
+        and camera.third_person_drag(0.0, 0.0, 100, 100, 1.0, 4)[1] > 0,
+    )
+    check(
+        "the turn flag blocks the yaw orbit and keeps the pitch",
+        camera.third_person_drag(0.0, 1.0, 100, 100, 1.0, 0, True)
+        == (camera.third_person_drag(0.0, 1.0, 0, 100)[0], 1.0)
+        and near(camera.third_person_drag(0.0, 1.0, 100, 0, 1.0, 0, False)[1], 1.2),
+    )
+    check(
+        "sensitivity scales the rate",
+        near(camera.third_person_drag(0.0, 0.0, 100, 0, 2.0)[1], 0.4),
+    )
+
+    check(
+        "focal 18 and 28 field of view",
+        near(camera.lens_fov(18), 0.7937254) and near(camera.lens_fov(28), 0.5263450),
+    )
+    check(
+        "the focal byte is limited to 18..28",
+        camera.lens_fov(10) == camera.lens_fov(18)
+        and camera.lens_fov(40) == camera.lens_fov(28),
+    )
+    check(
+        "first person field of view spans 60 to 85 degrees in the projection",
+        near(camera.projection_fov(camera.first_person_fov(0.0)), math.pi / 3)
+        and near(
+            math.degrees(camera.projection_fov(camera.first_person_fov(1.0))),
+            85.0,
+            1e-4,
+        ),
+    )
+    check(
+        "default third-person projection field of view",
+        near(camera.projection_fov(camera.lens_fov(18)), 1.3173242),
+    )
+    check("dt from elapsed", camera.dt_from_elapsed(300000) == 30.0)
+    check(
+        "blend weight falls linearly and floors at zero",
+        camera.blend_step(30.0, 15.0) == (15.0, 0.5)
+        and camera.blend_step(10.0, 40.0) == (0.0, 0.0)
+        and camera.blend_step(0.0, 1.0) == (0.0, 0.0),
+    )
+
+    check(
+        "lock polarity maps keys both ways",
+        [camera.normalize_key(k, True) for k in (4, 5, 6, 7, 0, 3)]
+        == [0, 1, 2, 3, 0, 3]
+        and [camera.normalize_key(k, False) for k in (0, 1, 2, 3, 4)]
+        == [4, 5, 6, 7, 4],
+    )
+    check(
+        "the remap predicate removes first person",
+        [camera.normalize_key(k, True, remap=True) for k in range(8)]
+        == [0, 0, 2, 2, 0, 0, 2, 2],
+    )
+    check(
+        "the fps-forbidden bit blocks keys 1, 3, 5, 7 only",
+        all(
+            camera.normalize_key(k, True, fps_forbidden=True) is None
+            for k in (1, 3, 5, 7)
+        )
+        and camera.normalize_key(2, True, fps_forbidden=True) == 2,
+    )
+    check(
+        "family toggle",
+        [camera.family_toggle(k, True) for k in range(4)] == [1, 0, 3, 2]
+        and [camera.family_toggle(k, False) for k in range(4)] == [5, 4, 7, 6]
+        and camera.family_toggle(9, True) is None,
+    )
+    check(
+        "a pointer push requests key 2 or 3",
+        [camera.pointer_request_key(k) for k in range(9)]
+        == [2, 3, 2, 3, 2, 3, 2, 3, None],
+    )
+    check(
+        "a move payload requests key 0 or 1",
+        [camera.move_request_key(k) for k in range(8)] == [0, 1, 0, 1, 0, 1, 0, 1],
+    )
+    check(
+        "a fresh session starts on key 0 or 4",
+        camera.initial_key(True) == 0 and camera.initial_key(False) == 4,
+    )
+    check(
+        "update arms by key",
+        [camera.update_arm(k) for k in range(12)]
+        == ["single", "single", "tick", "tick", "single", "single", "tick", "tick"]
+        + ["single", "single", "tick", "single"],
+    )
+    check(
+        "wheel step equals payload scale over divisor",
+        near(
+            camera.WHEEL_SCALE / camera.THIRD_PERSON_DIVISOR,
+            document["zoom"]["thirdPerson"]["stepPerNotch"],
+            1e-12,
+        ),
+    )
+
+
 def main() -> int:
     exercise("timer handler", timer, timer.MANIFEST)
     exercise("player profile", profile, profile.MANIFEST)
     exercise("sun and moon", moon, moon.MANIFEST)
+    exercise("camera input chain", camera, camera.MANIFEST)
 
     sentinel = 0xFFFFFFFF
     check(
@@ -177,6 +383,8 @@ def main() -> int:
         "moon phase repeats every 32 Eorzea days",
         moon.moon_phase_index(12345) == moon.moon_phase_index(12345 + 32 * 86400),
     )
+
+    camera_checks()
 
     if FAILED:
         print(f"FAIL: {len(FAILED)} of {len(FAILED) + len(PASSED)}")

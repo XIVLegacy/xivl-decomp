@@ -26,7 +26,9 @@ alone do not name its owner, assign meanings to indices, or establish which
 camera mode reads each entry. The `CameraActor` RTTI vtable is cataloged in
 `config/ffxivgame.rtti.json` at RVA `0x00BB906C`; the getter and setter
 instructions here alone do not prove that `ecx` is a `CameraActor`.
-No runtime range or visual effect is inferred from the static clamp.
+No runtime range or visual effect is inferred from the static clamp. The
+[camera input chain](camera-input-chain.md) records which handlers call the
+setter, with slot 0 for key 2 and slot 1 for key 6.
 
 At FF14-Launcher commit
 `a291186d197892dd2c1cb2a4ea310037b156e4d1`,

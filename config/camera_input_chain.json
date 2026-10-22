@@ -1,0 +1,1969 @@
+{
+  "format": "xivl-camera-input-chain-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 decompilation as a lead"
+  },
+  "contexts": {
+    "constructorVa": "0x0061b5a0",
+    "registryInsertVa": "0x00621be0",
+    "selectedKeyOffset": "0x434",
+    "previousKeyOffset": "0x438",
+    "noneKey": 11,
+    "keys": [
+      {
+        "key": 0,
+        "class": "CameraActorContextTPS",
+        "constructorVa": "0x007f3ad0",
+        "vtableVa": "0x00ff10bc"
+      },
+      {
+        "key": 1,
+        "class": "CameraActorContextFPS",
+        "constructorVa": "0x007f1730",
+        "vtableVa": "0x00ff101c"
+      },
+      {
+        "key": 2,
+        "class": "CameraActorContextWowTPS",
+        "constructorVa": "0x007f1fc0",
+        "vtableVa": "0x00ff1204"
+      },
+      {
+        "key": 3,
+        "class": "CameraActorContextWowFPS",
+        "constructorVa": "0x007f1dc0",
+        "vtableVa": "0x00ff1164"
+      },
+      {
+        "key": 4,
+        "class": "CameraActorContextTPS_Lock",
+        "constructorVa": "0x007f4a40",
+        "vtableVa": "0x00ff110c"
+      },
+      {
+        "key": 5,
+        "class": "CameraActorContextFPS_Lock",
+        "constructorVa": "0x007f1840",
+        "vtableVa": "0x00ff106c"
+      },
+      {
+        "key": 6,
+        "class": "CameraActorContextWowTPS_Lock",
+        "constructorVa": "0x007f5c10",
+        "vtableVa": "0x00ff125c"
+      },
+      {
+        "key": 7,
+        "class": "CameraActorContextWowFPS_Lock",
+        "constructorVa": "0x007f1ec0",
+        "vtableVa": "0x00ff11b4"
+      },
+      {
+        "key": 8,
+        "class": "CameraActorContextCharaSelect",
+        "constructorVa": "0x007f2400",
+        "vtableVa": "0x00ff0f24"
+      },
+      {
+        "key": 9,
+        "class": "CameraActorContextCharaCreate",
+        "constructorVa": "0x007f26d0",
+        "vtableVa": "0x00ff0f74"
+      },
+      {
+        "key": 10,
+        "class": "CameraActorContextCharaFocus",
+        "constructorVa": "0x007f2c70",
+        "vtableVa": "0x00ff0fcc"
+      }
+    ],
+    "familyIndex": "key & 3 for keys below 8: 0 TPS, 1 FPS, 2 WowTPS, 3 WowFPS",
+    "lockOffset": 4,
+    "freePredicateVa": "0x00616f90",
+    "freePredicateNonzero": {
+      "4": 0,
+      "5": 1,
+      "6": 2,
+      "7": 3
+    },
+    "freePredicateZero": {
+      "0": 4,
+      "1": 5,
+      "2": 6,
+      "3": 7
+    },
+    "remapPredicateVa": "0x007a3a60",
+    "remapWhenTrue": {
+      "0": 0,
+      "1": 0,
+      "2": 2,
+      "3": 2,
+      "4": 0,
+      "5": 0,
+      "6": 2,
+      "7": 2
+    },
+    "setKeyVa": "0x00618650",
+    "fpsForbidden": {
+      "offset": "0x448",
+      "mask": "0x10",
+      "keys": [
+        1,
+        3,
+        5,
+        7
+      ]
+    },
+    "familyToggleVa": "0x006187f0",
+    "familyToggle": {
+      "0": [
+        1,
+        5
+      ],
+      "1": [
+        0,
+        4
+      ],
+      "2": [
+        3,
+        7
+      ],
+      "3": [
+        2,
+        6
+      ]
+    },
+    "initial": {
+      "constructorWrite": 1,
+      "predicateNonzero": 0,
+      "predicateZero": 4,
+      "remapKeepsThirdPerson": true,
+      "tier": "STATIC"
+    }
+  },
+  "defaults": {
+    "radiusSlotOffsets": [
+      "0x3f4",
+      "0x3f8",
+      "0x3fc",
+      "0x400"
+    ],
+    "radiusMirrorOffset": "0x3f0",
+    "radiusDefault": 4.5,
+    "radiusDefaultVa": "0x00fb70b8",
+    "getterVa": "0x0060e970",
+    "setterVa": "0x00611350",
+    "radiusMin": 1.5,
+    "radiusMax": 10.0,
+    "resetVa": "0x006179b0",
+    "resetCommand": 3,
+    "firstPersonZoom": {
+      "offset": "0x428",
+      "initial": 0.75,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "sensitivity": {
+      "offset": "0x1d8",
+      "initial": 1.0,
+      "command": 5
+    },
+    "focalByte": {
+      "offset": "0x1c4",
+      "initial": 18
+    },
+    "offsetByte": {
+      "offset": "0x1c5"
+    },
+    "invertByte": {
+      "offset": "0x1c6",
+      "initial": 0,
+      "thirdPerson": {
+        "x": 8,
+        "y": 4
+      },
+      "firstPerson": {
+        "x": 2,
+        "y": 1
+      }
+    }
+  },
+  "pipeline": {
+    "updateVa": "0x006195d0",
+    "dt": "elapsed * 30.0 / 300000.0",
+    "elapsedSource": "first dword of the update argument",
+    "elapsedUnit": "unresolved",
+    "tickQueuesEndpointKeys": [
+      2,
+      3,
+      6,
+      7,
+      10
+    ],
+    "singleUpdateKeys": [
+      0,
+      1,
+      4,
+      5,
+      8,
+      9
+    ],
+    "singleUpdateOtherwise": true,
+    "contextSlots": {
+      "singleUpdate": 1,
+      "tick": 7,
+      "queueA": 8,
+      "queueB": 9,
+      "endpoint": 10
+    },
+    "queueA": {
+      "containerOffset": "0x1dc",
+      "pushVa": "0x00618bf0",
+      "frontVa": "0x007f89f0",
+      "item": "pointer to the command payload"
+    },
+    "queueB": {
+      "containerOffset": "0x1f4",
+      "pushVa": "0x00618c50",
+      "frontVa": "0x007f8a50",
+      "item": "first 16-bit word of the command payload"
+    },
+    "pushRequestsKey": {
+      "0": 2,
+      "1": 3,
+      "2": 2,
+      "3": 3
+    },
+    "firstPersonFlag": {
+      "offset": "0x448",
+      "mask": "0x02",
+      "consumerVa": "0x006187f0"
+    }
+  },
+  "commands": {
+    "receiverVa": "0x0061a6c0",
+    "vtableSlot": 157,
+    "maxId": 48,
+    "tableVa": "0x0061ae48",
+    "rows": [
+      {
+        "id": 1,
+        "effect": "stores 12 payload bytes at +0x1BC, then requests key 0 or 1"
+      },
+      {
+        "id": 3,
+        "effect": "reset: radius slots 4.5, first-person zoom 0.75"
+      },
+      {
+        "id": 4,
+        "effect": "float to +0x40C"
+      },
+      {
+        "id": 5,
+        "effect": "float to +0x1D8"
+      },
+      {
+        "id": 6,
+        "effect": "float to +0x42C"
+      },
+      {
+        "id": 7,
+        "effect": "float to +0x430"
+      },
+      {
+        "id": 16,
+        "effect": "set context key"
+      },
+      {
+        "id": 17,
+        "effect": "toggle TPS and FPS family"
+      },
+      {
+        "id": 20,
+        "effect": "float to +0x404"
+      },
+      {
+        "id": 23,
+        "effect": "float to +0x424"
+      },
+      {
+        "id": 40,
+        "effect": "queue A push"
+      },
+      {
+        "id": 41,
+        "effect": "key request, payload not traced"
+      },
+      {
+        "id": 42,
+        "effect": "queue B push"
+      },
+      {
+        "id": 43,
+        "effect": "+0x448 bit 0x04"
+      },
+      {
+        "id": 44,
+        "effect": "calls 0x00618B40"
+      },
+      {
+        "id": 45,
+        "effect": "+0x448 bit 0x10"
+      },
+      {
+        "id": 47,
+        "effect": "slot 0 to payload float 0, then 0x00619F80 with float 1"
+      },
+      {
+        "id": 48,
+        "effect": "calls 0x00619FE0 with two floats"
+      }
+    ],
+    "dragGate": "commands 40, 41, 42 return while +0x1BC or +0x1BE is nonzero"
+  },
+  "pointer": {
+    "elementClass": "Application::Main::Element::System::CameraElement",
+    "elementConstructorVa": "0x00566380",
+    "subscriptions": [
+      {
+        "event": "PreviewMouseMove",
+        "eventId": "0x11",
+        "strategy": 2,
+        "handlerVa": "0x0055c9b0"
+      },
+      {
+        "event": "PreviewMouseUp",
+        "eventId": "0x17",
+        "strategy": 2,
+        "handlerVa": "0x0055cb60"
+      },
+      {
+        "event": "PreviewMouseDown",
+        "eventId": "0x07",
+        "strategy": 2,
+        "handlerVa": "0x0055cc90"
+      },
+      {
+        "event": "MouseWheel",
+        "eventId": "0x1e",
+        "strategy": 0,
+        "handlerVa": "0x0055cdb0"
+      }
+    ],
+    "windowsMessages": {
+      "0x201": 1,
+      "0x204": 4,
+      "0x207": 2
+    },
+    "buttonStateBytes": {
+      "left": "0x8",
+      "middle": "0x9",
+      "right": "0xa"
+    },
+    "rightButton": {
+      "command": "0x28",
+      "payloadBytes": 10
+    },
+    "middleButton": {
+      "command": "0x29",
+      "payloadBytes": 4
+    },
+    "leftButton": "unused by the element",
+    "dragPayloadWords": [
+      "pressed",
+      "dx",
+      "dy",
+      "x",
+      "y"
+    ],
+    "wheel": {
+      "message": "0x20a",
+      "notchDivisor": 120,
+      "payloadScale": 200,
+      "payloadBytes": 2,
+      "command": "0x2a"
+    },
+    "commandHandlerVa": "0x00566d10",
+    "moveEventId": 1,
+    "axisEventId": "0x17",
+    "forwardOn": -1.0,
+    "backwardOn": 1.0,
+    "zoomScale": 0.015625,
+    "defaultPositionRadius": 4.5
+  },
+  "zoom": {
+    "thirdPerson": {
+      "handlerVa": "0x007f7ef0",
+      "lockHandlerVa": "0x007f8200",
+      "slot": 0,
+      "lockSlot": 1,
+      "divisor": 500.0,
+      "stepPerNotch": 0.4,
+      "min": 1.5,
+      "max": 10.0,
+      "firstPersonAtOrBelow": 1.5
+    },
+    "firstPerson": {
+      "handlerVa": "0x007f7af0",
+      "offset": "0x428",
+      "divisor": 1000.0,
+      "stepPerNotch": 0.2,
+      "min": 0.0,
+      "max": 1.0,
+      "thirdPersonAtOrAbove": 1.0
+    },
+    "axis": {
+      "command": 23,
+      "offset": "0x424",
+      "rule": "slot 0 += value * dt / 10.0",
+      "tickVa": "0x007f5450"
+    }
+  },
+  "rotation": {
+    "wowThirdPerson": {
+      "handlerVa": "0x007f7d40",
+      "pitchOffset": "0x8",
+      "yawOffset": "0xc",
+      "rate": "delta / 100.0 * 0.2 * sensitivity",
+      "pitchLimit": 0.7853981852531433,
+      "yawRange": "-pi to pi",
+      "yawGateVa": "0x007f7e17",
+      "yawGateFlagOffset": "0x10",
+      "yawUpdatedWhileFlagSet": false
+    },
+    "wowFirstPerson": {
+      "handlerVa": "0x007f7940",
+      "pitchOffset": "0x4",
+      "yawOffset": "0x8",
+      "rate": "delta / 100.0 * 0.15 * sensitivity",
+      "pitchLimit": 1.3962634801864624,
+      "yawRange": "-pi to pi"
+    },
+    "axes": {
+      "pitchBuilderVa": "0x0061f250",
+      "yawBuilderVa": "0x0060d290",
+      "pitchAxis": "X",
+      "yawAxis": "Y"
+    },
+    "tier": "STATIC"
+  },
+  "follow": {
+    "tickVa": "0x007f5450",
+    "predicateVa": "0x007a4610",
+    "predicate": "bit 3 of the dword at helper +4",
+    "blendWeight": "min(1.0, 0.2 * dt)",
+    "targetYaw": "actor heading lane minus pi, wrapped",
+    "flagOffset": "0x10",
+    "flagSetVa": "0x007f5653",
+    "flagClearVa": "0x007f565c",
+    "flagRule": "1 while the predicate holds, else 0, rewritten every tick",
+    "tier": "INFERRED"
+  },
+  "lens": {
+    "contextOffset": "0x40c",
+    "formula": "2 * atan(15.0876 / (2 * f))",
+    "focalMin": 18,
+    "focalMax": 28,
+    "firstPerson": "0.5235988 + 0.4363323 * zoom",
+    "armByKey": [
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      2,
+      2,
+      0
+    ],
+    "projection": {
+      "setupVa": "0x0060e860",
+      "callerVa": "0x00619904",
+      "argument": 0,
+      "fovOffset": "0x15c",
+      "fovRule": "+0x40c + 0.5235988",
+      "nearOffset": "0x154",
+      "farOffset": "0x158",
+      "near": 0.25,
+      "far": 10000.0,
+      "aspectOffset": "0x150",
+      "builderVa": "0x00a5adb0",
+      "flagBranch": {
+        "near": 0.01,
+        "far": 1000.0
+      }
+    },
+    "tier": "STATIC"
+  },
+  "smoothing": {
+    "timerOffset": "0x43c",
+    "start": 30.0,
+    "interpolatorVa": "0x0060e4c0",
+    "weight": "timer / 30.0",
+    "decrement": "dt",
+    "tier": "STATIC"
+  },
+  "unresolved": [
+    "unit of the elapsed integer in the update argument, so the seconds per dt unit and the blend duration in seconds",
+    "look-at point: the object vector from 0x00664100 through the actor vtable slots +0x88, +0x94 and +0x9C",
+    "key 0 and key 4 follow logic in 0x007F3BA0 and 0x007F7260, including the radius changes through the setter calls at 0x007F40CE and 0x007F727F",
+    "payload and effect of command 0x29, the middle-button drag",
+    "collision margin: the query helpers 0x00613880 and 0x006141E0 depend on runtime geometry through 0x00AF94D0",
+    "producers of the focal byte +0x1C4, the offset byte +0x1C5 and the invert byte +0x1C6",
+    "meaning of the predicates 0x00616F90 and 0x007A3A60 in user terms, and of the pointer-handler gate 0x004D7580 with its vtable +0x0C and +0x30 methods",
+    "camera effect of the script natives _lockCameraControl, _unlockCameraControl, _isCameraControlEnabled and _forceCameraTPSMode, resolved only to registration stubs",
+    "keyboard and pad rotation: argument values of RaptureCommands.MoveCamera and the key 0 rates",
+    "whether the 0x007A4610 predicate holds during ordinary walking",
+    "consumers of command 0x2E, 0x30 and 0x2F payload floats beyond the stores listed"
+  ],
+  "staticChecks": [
+    {
+      "name": "key 0 constructor call",
+      "kind": "signature",
+      "va": "0x0061b956",
+      "pattern": "e8 75 81 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the TPS context constructor."
+    },
+    {
+      "name": "key 0 store and insert",
+      "kind": "signature",
+      "va": "0x0061b97a",
+      "pattern": "89 5c 24 18 e8 5d 62 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 0 and inserts the TPS context through 0x00621BE0."
+    },
+    {
+      "name": "TPS vtable store",
+      "kind": "signature",
+      "va": "0x007f3b16",
+      "pattern": "c7 00 bc 10 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The TPS constructor stores its derived vtable."
+    },
+    {
+      "name": "key 1 constructor call",
+      "kind": "signature",
+      "va": "0x0061b99c",
+      "pattern": "e8 8f 5d 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the FPS context constructor."
+    },
+    {
+      "name": "key 1 store and insert",
+      "kind": "signature",
+      "va": "0x0061b9ba",
+      "pattern": "c7 44 24 18 01 00 00 00 e8 19 62 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 1 and inserts the FPS context through 0x00621BE0."
+    },
+    {
+      "name": "FPS vtable store",
+      "kind": "signature",
+      "va": "0x007f17c5",
+      "pattern": "c7 01 1c 10 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The FPS constructor stores its derived vtable."
+    },
+    {
+      "name": "key 2 constructor call",
+      "kind": "signature",
+      "va": "0x0061ba6b",
+      "pattern": "e8 50 65 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the WowTPS context constructor."
+    },
+    {
+      "name": "key 2 store and insert",
+      "kind": "signature",
+      "va": "0x0061ba89",
+      "pattern": "c7 44 24 18 02 00 00 00 e8 4a 61 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 2 and inserts the WowTPS context through 0x00621BE0."
+    },
+    {
+      "name": "WowTPS vtable store",
+      "kind": "signature",
+      "va": "0x007f2055",
+      "pattern": "c7 01 04 12 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The WowTPS constructor stores its derived vtable."
+    },
+    {
+      "name": "key 3 constructor call",
+      "kind": "signature",
+      "va": "0x0061baaf",
+      "pattern": "e8 0c 63 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the WowFPS context constructor."
+    },
+    {
+      "name": "key 3 store and insert",
+      "kind": "signature",
+      "va": "0x0061bac9",
+      "pattern": "c7 44 24 18 03 00 00 00 89 44 24 1c e8 06 61 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 3 and inserts the WowFPS context through 0x00621BE0."
+    },
+    {
+      "name": "WowFPS vtable store",
+      "kind": "signature",
+      "va": "0x007f1e45",
+      "pattern": "c7 01 64 11 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The WowFPS constructor stores its derived vtable."
+    },
+    {
+      "name": "key 4 constructor call",
+      "kind": "signature",
+      "va": "0x0061b9e3",
+      "pattern": "e8 58 90 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the TPS_Lock context constructor."
+    },
+    {
+      "name": "key 4 store and insert",
+      "kind": "signature",
+      "va": "0x0061b9fd",
+      "pattern": "c7 44 24 18 04 00 00 00 89 44 24 1c e8 d2 61 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 4 and inserts the TPS_Lock context through 0x00621BE0."
+    },
+    {
+      "name": "TPS_Lock vtable store",
+      "kind": "signature",
+      "va": "0x007f4ab3",
+      "pattern": "c7 00 0c 11 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The TPS_Lock constructor stores its derived vtable."
+    },
+    {
+      "name": "key 5 constructor call",
+      "kind": "signature",
+      "va": "0x0061ba27",
+      "pattern": "e8 14 5e 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the FPS_Lock context constructor."
+    },
+    {
+      "name": "key 5 store and insert",
+      "kind": "signature",
+      "va": "0x0061ba45",
+      "pattern": "c7 44 24 18 05 00 00 00 e8 8e 61 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 5 and inserts the FPS_Lock context through 0x00621BE0."
+    },
+    {
+      "name": "FPS_Lock vtable store",
+      "kind": "signature",
+      "va": "0x007f18c5",
+      "pattern": "c7 01 6c 10 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The FPS_Lock constructor stores its derived vtable."
+    },
+    {
+      "name": "key 6 constructor call",
+      "kind": "signature",
+      "va": "0x0061baf6",
+      "pattern": "e8 15 a1 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the WowTPS_Lock context constructor."
+    },
+    {
+      "name": "key 6 store and insert",
+      "kind": "signature",
+      "va": "0x0061bb14",
+      "pattern": "c7 44 24 18 06 00 00 00 e8 bf 60 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 6 and inserts the WowTPS_Lock context through 0x00621BE0."
+    },
+    {
+      "name": "WowTPS_Lock vtable store",
+      "kind": "signature",
+      "va": "0x007f5c83",
+      "pattern": "c7 00 5c 12 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The WowTPS_Lock constructor stores its derived vtable."
+    },
+    {
+      "name": "key 7 constructor call",
+      "kind": "signature",
+      "va": "0x0061bb3a",
+      "pattern": "e8 81 63 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the WowFPS_Lock context constructor."
+    },
+    {
+      "name": "key 7 store and insert",
+      "kind": "signature",
+      "va": "0x0061bb58",
+      "pattern": "c7 44 24 18 07 00 00 00 e8 7b 60 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 7 and inserts the WowFPS_Lock context through 0x00621BE0."
+    },
+    {
+      "name": "WowFPS_Lock vtable store",
+      "kind": "signature",
+      "va": "0x007f1f45",
+      "pattern": "c7 01 b4 11 ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The WowFPS_Lock constructor stores its derived vtable."
+    },
+    {
+      "name": "key 8 constructor call",
+      "kind": "signature",
+      "va": "0x0061bb7e",
+      "pattern": "e8 7d 68 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the CharaSelect context constructor."
+    },
+    {
+      "name": "key 8 store and insert",
+      "kind": "signature",
+      "va": "0x0061bb98",
+      "pattern": "c7 44 24 18 08 00 00 00 89 44 24 1c e8 37 60 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 8 and inserts the CharaSelect context through 0x00621BE0."
+    },
+    {
+      "name": "CharaSelect vtable store",
+      "kind": "signature",
+      "va": "0x007f2440",
+      "pattern": "c7 00 24 0f ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The CharaSelect constructor stores its derived vtable."
+    },
+    {
+      "name": "key 9 constructor call",
+      "kind": "signature",
+      "va": "0x0061bbc2",
+      "pattern": "e8 09 6b 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the CharaCreate context constructor."
+    },
+    {
+      "name": "key 9 store and insert",
+      "kind": "signature",
+      "va": "0x0061bbe0",
+      "pattern": "c7 44 24 18 09 00 00 00 e8 f3 5f 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 9 and inserts the CharaCreate context through 0x00621BE0."
+    },
+    {
+      "name": "CharaCreate vtable store",
+      "kind": "signature",
+      "va": "0x007f2747",
+      "pattern": "c7 00 74 0f ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The CharaCreate constructor stores its derived vtable."
+    },
+    {
+      "name": "key 10 constructor call",
+      "kind": "signature",
+      "va": "0x0061bc06",
+      "pattern": "e8 65 70 1d 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The camera constructor calls the CharaFocus context constructor."
+    },
+    {
+      "name": "key 10 store and insert",
+      "kind": "signature",
+      "va": "0x0061bc24",
+      "pattern": "c7 44 24 18 0a 00 00 00 e8 af 5f 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores key 10 and inserts the CharaFocus context through 0x00621BE0."
+    },
+    {
+      "name": "CharaFocus vtable store",
+      "kind": "signature",
+      "va": "0x007f2cda",
+      "pattern": "c7 00 cc 0f ff 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The CharaFocus constructor stores its derived vtable."
+    },
+    {
+      "name": "radius default 4.5",
+      "kind": "signature",
+      "va": "0x00fb70b8",
+      "pattern": "00 00 90 40",
+      "mask": "ff ff ff ff",
+      "note": "Float 4.5, the default radius."
+    },
+    {
+      "name": "radius clamp bounds",
+      "kind": "signature",
+      "va": "0x00fb70bc",
+      "pattern": "00 00 20 41 00 00 c0 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Floats 10.0 and 1.5, the setter upper and lower bounds."
+    },
+    {
+      "name": "constant 0.75",
+      "kind": "signature",
+      "va": "0x00f5988c",
+      "pattern": "00 00 40 3f",
+      "mask": "ff ff ff ff",
+      "note": "Float 0.75, the default first-person zoom."
+    },
+    {
+      "name": "constant 30.0 float",
+      "kind": "signature",
+      "va": "0x00f932e4",
+      "pattern": "00 00 f0 41",
+      "mask": "ff ff ff ff",
+      "note": "Float 30.0, stored to +0x43C on a context change."
+    },
+    {
+      "name": "constant 30.0 double",
+      "kind": "signature",
+      "va": "0x00fa7b18",
+      "pattern": "00 00 00 00 00 00 3e 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 30.0, the update elapsed multiplier."
+    },
+    {
+      "name": "constant 300000.0 double",
+      "kind": "signature",
+      "va": "0x00f67020",
+      "pattern": "00 00 00 00 80 4f 12 41",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 300000.0, the update elapsed divisor."
+    },
+    {
+      "name": "constructor radius stores",
+      "kind": "signature",
+      "va": "0x0061bc32",
+      "pattern": "0f 10 05 b8 70 fb 00 f3 0f 11 86 f4 03 00 00 f3 0f 11 86 f8 03 00 00 f3 0f 11 86 fc 03 00 00 f3 0f 11 86 00 04 00 00 8b ce f3 0f 11 86 f0 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores 4.5 to +0x3F4, +0x3F8, +0x3FC, +0x400 and +0x3F0."
+    },
+    {
+      "name": "constructor initial selection",
+      "kind": "signature",
+      "va": "0x0061bc63",
+      "pattern": "89 5c 24 18 e8 24 b3 ff ff 84 c0 75 08 c7 44 24 18 04 00 00 00 8b 86 40 04 00 00 3d 00 00 00 c0 74 0c 50 8b ce e8 83 a6 ff ff 3b c3 75 10 8b 8e 18 01 00 00 8b 81 d0 00 00 00 3b c3 74 36 8d 88 90 05 00 00 e8 b4 7d 18 00 84 c0 74 27 83 7c 24 18 07 77 20 8b 54 24 18 0f b6 82 88 bd 61 00 ff 24 85 80 bd 61 00 89 5c 24 18 eb 08 c7 44 24 18 02 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Candidate key 0, or 4 when 0x00616F90 returns zero, then the 0x007A3A60 remap."
+    },
+    {
+      "name": "initial selection remap arms",
+      "kind": "dwords",
+      "va": "0x0061bd80",
+      "values": [
+        "0x0061bcc9",
+        "0x0061bccf"
+      ],
+      "note": "Arm 0 stores key 0 and arm 1 stores key 2."
+    },
+    {
+      "name": "initial selection remap index",
+      "kind": "signature",
+      "va": "0x0061bd88",
+      "pattern": "00 00 01 01 00 00 01 01",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Candidates 0 to 7 select arms 0,0,1,1,0,0,1,1."
+    },
+    {
+      "name": "constructor selection literals",
+      "kind": "signature",
+      "va": "0x0061b7a9",
+      "pattern": "c7 86 34 04 00 00 01 00 00 00 c7 86 38 04 00 00 0b 00 00 00 f3 0f 11 86 3c 04 00 00 c7 86 40 04 00 00 00 00 00 c0 c7 86 44 04 00 00 ff ff ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Writes selected key 1, previous key 0x0B, blend timer, +0x440 and +0x444 sentinels."
+    },
+    {
+      "name": "constructor pose defaults",
+      "kind": "signature",
+      "va": "0x0061b73c",
+      "pattern": "f3 0f 11 86 08 04 00 00 f3 0f 11 86 0c 04 00 00 f3 0f 10 0d 8c 98 f5 00 80 a6 48 04 00 00 e0 8d 86 74 04 00 00 f3 0f 11 86 10 04 00 00 f3 0f 11 86 14 04 00 00 f3 0f 11 86 18 04 00 00 f3 0f 11 86 1c 04 00 00 f3 0f 11 86 20 04 00 00 f3 0f 11 86 24 04 00 00 f3 0f 11 8e 28 04 00 00 f3 0f 11 86 2c 04 00 00 f3 0f 11 86 30 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Zeroes +0x408 to +0x430 and stores 0.75 to +0x428."
+    },
+    {
+      "name": "constructor input defaults",
+      "kind": "signature",
+      "va": "0x0061b635",
+      "pattern": "80 a6 c6 01 00 00 f0 0f 57 c0 f3 0f 10 0d 70 4f f5 00 66 89 9e bc 01 00 00 66 89 9e be 01 00 00 66 89 9e c0 01 00 00 66 89 9e c2 01 00 00 c6 86 c4 01 00 00 12 8d 86 dc 01 00 00 89 9e cc 01 00 00 89 9e d0 01 00 00 f3 0f 11 86 d4 01 00 00 f3 0f 11 8e d8 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Clears the invert bits at +0x1C6, stores 0x12 at +0x1C4, 0 at +0x1D4 and 1.0 at +0x1D8."
+    },
+    {
+      "name": "reset function",
+      "kind": "signature",
+      "va": "0x006179b0",
+      "pattern": "51 53 55 56 8b f1 57 8d 44 24 10 8d be b0 01 00 00 50 8b cf c7 44 24 14 09 00 00 00 e8 df a8 00 00 8b 08 8b 5c 24 18 8b 11 8b 42 10 53 56 ff d0 8d 4c 24 18 51 8b cf c7 44 24 1c 08 00 00 00 e8 bc a8 00 00 8b 08 8b 11 8b 42 10 53 56 ff d0 83 be 34 04 00 00 04 8d ae 34 04 00 00 7d 13 55 8b cf e8 9a a8 00 00 8b 08 8b 11 8b 42 10 53 56 ff d0 84 db 74 28 f3 0f 10 05 b8 70 fb 00 f3 0f 11 86 f4 03 00 00 f3 0f 11 86 f8 03 00 00 f3 0f 11 86 fc 03 00 00 f3 0f 11 86 00 04 00 00 8b 6d 00 83 ed 01 74 05 83 ed 04 75 10 f3 0f 10 05 8c 98 f5 00 f3 0f 11 86 28 04 00 00 5f 5e 5d 5b 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Command 3 body: resets contexts, stores 4.5 to the radius slots and 0.75 to +0x428 for keys 1 and 5."
+    },
+    {
+      "name": "update elapsed to dt",
+      "kind": "signature",
+      "va": "0x006195f1",
+      "pattern": "f3 0f 2a 03 f3 0f 5a c0 f2 0f 59 05 18 7b fa 00 f2 0f 5e 05 20 70 f6 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "dt = (float)elapsed * 30.0 / 300000.0 from the first dword of the argument."
+    },
+    {
+      "name": "update key dispatch",
+      "kind": "signature",
+      "va": "0x006197a9",
+      "pattern": "8b 07 83 c0 fe 83 f8 08 0f 87 20 01 00 00 0f b6 80 64 9e 61 00 ff 24 85 5c 9e 61 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Keys 2 to 10 index a byte table, other keys take the default arm."
+    },
+    {
+      "name": "update arm table",
+      "kind": "dwords",
+      "va": "0x00619e5c",
+      "values": [
+        "0x006197d5",
+        "0x006198d7"
+      ],
+      "note": "Arm 0 is the tick, queue and endpoint arm. Arm 1 is the single update arm."
+    },
+    {
+      "name": "update arm index",
+      "kind": "signature",
+      "va": "0x00619e64",
+      "pattern": "00 00 01 01 00 00 01 01 00",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Keys 2 to 10 select arms 0,0,1,1,0,0,1,1,0."
+    },
+    {
+      "name": "update tick queues endpoint arm",
+      "kind": "signature",
+      "va": "0x006197d5",
+      "pattern": "8d 9e b0 01 00 00 57 8b cb e8 cd 8a 00 00 d9 44 24 18 8b 08 8b 11 8b 42 1c 51 d9 1c 24 56 ff d0 83 be ec 01 00 00 00 74 5b 8b ff 57 8b cb e8 a8 8a 00 00 8b 08 8b 11 8b 42 20 56 ff d0 8b 86 ec 01 00 00 85 c0 74 34 83 86 e8 01 00 00 01 8b 8e e8 01 00 00 39 8e e4 01 00 00 77 0a c7 86 e8 01 00 00 00 00 00 00 83 c0 ff 89 86 ec 01 00 00 75 0a c7 86 e8 01 00 00 00 00 00 00 83 be ec 01 00 00 00 75 a7 83 be 04 02 00 00 00 74 61 57 8b cb e8 46 8a 00 00 8b 08 8b 11 8b 42 24 56 ff d0 8b 86 04 02 00 00 85 c0 74 3c 8b 96 fc 01 00 00 83 86 00 02 00 00 01 8b 8e 00 02 00 00 03 d2 03 d2 03 d2 3b d1 77 0a c7 86 00 02 00 00 00 00 00 00 83 c0 ff 89 86 04 02 00 00 75 0a c7 86 00 02 00 00 00 00 00 00 83 be 04 02 00 00 00 75 9f 57 8b cb e8 e5 89 00 00 8b 08 8b 01 8b 50 28 56 ff d2 eb 29",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls context +0x1C with dt, +0x20 per queue A item, +0x24 per queue B item, then +0x28."
+    },
+    {
+      "name": "update single update arm",
+      "kind": "signature",
+      "va": "0x006198d7",
+      "pattern": "57 8d 8e b0 01 00 00 e8 cd 89 00 00 d9 44 24 18 8b 08 8b 01 8b 50 04 51 d9 1c 24 56 ff d2 8d 8e f4 01 00 00 e8 f0 75 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls context +0x04 with dt, then 0x00620EF0 on the container at +0x1F4."
+    },
+    {
+      "name": "interpolator",
+      "kind": "signature",
+      "va": "0x0060e4c0",
+      "pattern": "55 8b ec 83 e4 f0 0f 57 c9 8b c1 f3 0f 10 80 3c 04 00 00 0f 2f c1 0f 86 89 00 00 00 f3 0f 10 55 08 0f 5a c0 0f 5a d2 f2 0f 5c c2 66 0f 5a c0 0f 2f c8 f3 0f 11 80 3c 04 00 00 76 08 f3 0f 11 88 3c 04 00 00 f3 0f 10 80 3c 04 00 00 0f 28 88 40 03 00 00 0f 28 90 20 03 00 00 0f 5a c0 f2 0f 5e 05 18 7b fa 00 0f 5c d1 66 0f 5a c0 f3 0f 10 c0 0f c6 c0 00 0f 59 d0 0f 58 d1 0f 29 90 20 03 00 00 0f 28 88 30 03 00 00 0f 28 90 10 03 00 00 0f 5c d1 0f 59 d0 0f 58 d1 0f 29 90 10 03 00 00 8b e5 5d c2 04 00 0f 28 80 40 03 00 00 0f 29 80 20 03 00 00 0f 28 80 30 03 00 00 0f 29 80 10 03 00 00 8b e5 5d c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Decrements +0x43C by dt, blends the working endpoints by +0x43C / 30.0."
+    },
+    {
+      "name": "set context key",
+      "kind": "signature",
+      "va": "0x00618650",
+      "pattern": "56 8b f1 f6 86 48 04 00 00 10 57 8b 7c 24 0c 74 24 83 ff 01 0f 84 4a 01 00 00 83 ff 05 0f 84 41 01 00 00 83 ff 03 0f 84 38 01 00 00 83 ff 07 0f 84 2f 01 00 00 e8 06 e9 ff ff 84 c0 74 28 8d 47 fc 83 f8 03 77 4a ff 24 85 bc 87 61 00 33 ff eb 3b bf 02 00 00 00 eb 34 bf 01 00 00 00 eb 2d bf 03 00 00 00 eb 26 83 ff 03 77 25 ff 24 bd cc 87 61 00 bf 04 00 00 00 eb 13 bf 06 00 00 00 eb 0c bf 05 00 00 00 eb 05 bf 07 00 00 00 89 7c 24 0c 8b 86 40 04 00 00 3d 00 00 00 c0 74 0c 50 8b ce e8 1b dc ff ff 85 c0 75 10 8b 86 18 01 00 00 8b 80 d0 00 00 00 85 c0 74 2f 8d 88 90 05 00 00 e8 4c b3 18 00 84 c0 74 20 83 ff 07 77 1b 0f b6 8f e4 87 61 00 ff 24 8d dc 87 61 00 33 ff eb 05 bf 02 00 00 00 89 7c 24 0c 39 be 34 04 00 00 53 8d 9e 34 04 00 00 74 6c 0f 57 c0 80 a6 48 04 00 00 fd 55 f3 0f 11 86 d4 01 00 00 f3 0f 10 05 e4 32 f9 00 8d ae b0 01 00 00 53 8b cd f3 0f 11 86 3c 04 00 00 e8 38 9b 00 00 8b 08 8b 11 8b 42 0c 57 56 ff d0 8d 4c 24 14 51 8b cd e8 21 9b 00 00 8b 08 8b 03 8b 11 8b 52 08 50 56 ff d2 6a 04 8d 44 24 18 50 6a 13 8b ce 89 3b 89 7c 24 20 e8 fe 5f 1b 00 5d 5b 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Normalizes the key, then on a change zeroes +0x1D4, stores 30.0 to +0x43C and moves contexts."
+    },
+    {
+      "name": "set key unlock table",
+      "kind": "dwords",
+      "va": "0x006187bc",
+      "values": [
+        "0x0061869d",
+        "0x006186a8",
+        "0x006186a1",
+        "0x006186af"
+      ],
+      "note": "Lock keys 4 to 7 map to 0, 1, 2, 3."
+    },
+    {
+      "name": "set key lock table",
+      "kind": "dwords",
+      "va": "0x006187cc",
+      "values": [
+        "0x006186c2",
+        "0x006186d0",
+        "0x006186c9",
+        "0x006186d7"
+      ],
+      "note": "Keys 0 to 3 map to 4, 5, 6, 7."
+    },
+    {
+      "name": "set key remap arms",
+      "kind": "dwords",
+      "va": "0x006187dc",
+      "values": [
+        "0x0061872b",
+        "0x0061872f"
+      ],
+      "note": "Arm 0 stores key 0 and arm 1 stores key 2."
+    },
+    {
+      "name": "set key remap index",
+      "kind": "signature",
+      "va": "0x006187e4",
+      "pattern": "00 00 01 01 00 00 01 01",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Keys 0 to 7 select arms 0,0,1,1,0,0,1,1."
+    },
+    {
+      "name": "family toggle dispatch",
+      "kind": "signature",
+      "va": "0x006187f0",
+      "pattern": "51 56 8b f1 8b 86 34 04 00 00 83 f8 08 57 8d be 34 04 00 00 0f 8d bb 02 00 00 25 03 00 00 80 79 05 48 83 c8 fc 40 83 f8 03 0f 87 a6 02 00 00 53 55 ff 24 85 cc 8a 61 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Selects an arm by key & 3 for keys below 8."
+    },
+    {
+      "name": "family toggle arms",
+      "kind": "dwords",
+      "va": "0x00618acc",
+      "values": [
+        "0x00618828",
+        "0x006188f5",
+        "0x0061896b",
+        "0x006189e6"
+      ],
+      "note": "Arm entries for key & 3 equal to 0, 1, 2, 3."
+    },
+    {
+      "name": "family toggle arm 0",
+      "kind": "signature",
+      "va": "0x00618828",
+      "pattern": "f6 86 48 04 00 00 10 bb 01 00 00 00 89 5c 24 10 0f 85 85 02 00 00 e8 4d e7 ff ff 84 c0 75 09 bb 05 00 00 00 89 5c 24 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Key family 0 requests key 1, or 5 when 0x00616F90 returns zero."
+    },
+    {
+      "name": "family toggle arm 1",
+      "kind": "signature",
+      "va": "0x006188f5",
+      "pattern": "33 db 89 5c 24 10 e8 90 e6 ff ff 84 c0 75 09 bb 04 00 00 00 89 5c 24 10 8b 86 40",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Key family 1 requests key 0, or 4 when 0x00616F90 returns zero."
+    },
+    {
+      "name": "family toggle arm 2",
+      "kind": "signature",
+      "va": "0x0061896b",
+      "pattern": "f6 86 48 04 00 00 10 bb 03 00 00 00 89 5c 24 10 0f 85 42 01 00 00 e8 0a e6 ff ff 84 c0 75 09 bb 07 00 00 00 89",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Key family 2 requests key 3, or 7 when 0x00616F90 returns zero."
+    },
+    {
+      "name": "family toggle arm 3",
+      "kind": "signature",
+      "va": "0x006189e6",
+      "pattern": "bb 02 00 00 00 89 5c 24 10 e8 9c e5 ff ff 84 c0 75 09 bb 06 00 00 00 89",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Key family 3 requests key 2, or 6 when 0x00616F90 returns zero."
+    },
+    {
+      "name": "camera command slot",
+      "kind": "dwords",
+      "va": "0x00fb92e0",
+      "values": [
+        "0x0061a6c0"
+      ],
+      "note": "CameraActor vtable slot 157 is the command receiver."
+    },
+    {
+      "name": "command dispatch",
+      "kind": "signature",
+      "va": "0x0061a6d7",
+      "pattern": "83 f8 30 53 56 57 8b 7d 0c 8b f1 0f 87 4a 07 00 00 ff 24 85 48 ae 61 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Command ids above 0x30 return, others jump through the table."
+    },
+    {
+      "name": "command table",
+      "kind": "dwords",
+      "va": "0x0061ae48",
+      "values": [
+        "0x0061a6ef",
+        "0x0061a7b5",
+        "0x0061ae32",
+        "0x0061a77e",
+        "0x0061a89b",
+        "0x0061a8b7",
+        "0x0061a863",
+        "0x0061a87f",
+        "0x0061a8d3",
+        "0x0061a938",
+        "0x0061ae32",
+        "0x0061a727",
+        "0x0061abcb",
+        "0x0061abf9",
+        "0x0061ac27",
+        "0x0061ac55",
+        "0x0061ab78",
+        "0x0061ab94",
+        "0x0061abad",
+        "0x0061ae32",
+        "0x0061a799",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061a847",
+        "0x0061a9c3",
+        "0x0061aa27",
+        "0x0061aa6a",
+        "0x0061aaa3",
+        "0x0061aadc",
+        "0x0061ab10",
+        "0x0061ab44",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ae32",
+        "0x0061ac83",
+        "0x0061acef",
+        "0x0061acb9",
+        "0x0061ad25",
+        "0x0061ad52",
+        "0x0061ad72",
+        "0x0061ae32",
+        "0x0061ad9d",
+        "0x0061ae1e"
+      ],
+      "note": "One entry per command id 0 to 0x30."
+    },
+    {
+      "name": "command 1 move payload",
+      "kind": "signature",
+      "va": "0x0061a7b5",
+      "pattern": "f3 0f 7e 07 66 0f d6 86 bc 01 00 00 8b 4f 08 89 8e c4 01 00 00 66 83 be bc 01 00 00 00 75 0e 66 83 be be 01 00 00 00 0f 84 50 06 00 00 8b 86 34 04 00 00 83 f8 08 0f 8d 41 06 00 00 25 03 00 00 80 79 05 48 83 c8 fc 40 83 f8 03 0f 87 2c 06 00 00 ff 24 85 0c af 61 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Copies 12 payload bytes to +0x1BC and +0x1C4, then requests a key by key & 3."
+    },
+    {
+      "name": "command 1 key table",
+      "kind": "dwords",
+      "va": "0x0061af0c",
+      "values": [
+        "0x0061a80d",
+        "0x0061a82a",
+        "0x0061a80d",
+        "0x0061a82a"
+      ],
+      "note": "Key families 0 and 2 request key 0, families 1 and 3 request key 1."
+    },
+    {
+      "name": "command 20 store",
+      "kind": "signature",
+      "va": "0x0061a799",
+      "pattern": "d9 07 d9 9e 04 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the float payload to +0x404."
+    },
+    {
+      "name": "command 23 store",
+      "kind": "signature",
+      "va": "0x0061a847",
+      "pattern": "d9 07 d9 9e 24 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the float payload to +0x424."
+    },
+    {
+      "name": "command 6 store",
+      "kind": "signature",
+      "va": "0x0061a863",
+      "pattern": "d9 07 d9 9e 2c 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the float payload to +0x42C."
+    },
+    {
+      "name": "command 7 store",
+      "kind": "signature",
+      "va": "0x0061a87f",
+      "pattern": "d9 07 d9 9e 30 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the float payload to +0x430."
+    },
+    {
+      "name": "command 4 store",
+      "kind": "signature",
+      "va": "0x0061a89b",
+      "pattern": "d9 07 d9 9e 0c 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the float payload to +0x40C."
+    },
+    {
+      "name": "command 5 store",
+      "kind": "signature",
+      "va": "0x0061a8b7",
+      "pattern": "d9 07 d9 9e d8 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the float payload to +0x1D8."
+    },
+    {
+      "name": "commands 16 17 18",
+      "kind": "signature",
+      "va": "0x0061ab78",
+      "pattern": "8b 07 50 e8 d0 da ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 66 75 3b 00 8b e5 5d c2 0c 00 e8 57 dc ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 4d 75 3b 00 8b e5 5d c2 0c 00 8b 0f 51 8b ce e8 39 f3 ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 2f 75 3b 00 8b e5 5d c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Command 16 sets the key, command 17 toggles the family, command 18 calls 0x00619EF0."
+    },
+    {
+      "name": "commands 40 42 41",
+      "kind": "signature",
+      "va": "0x0061ac83",
+      "pattern": "66 83 be bc 01 00 00 00 0f 85 a1 01 00 00 66 83 be be 01 00 00 00 0f 85 93 01 00 00 57 e8 4b df ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 41 74 3b 00 8b e5 5d c2 0c 00 66 83 be bc 01 00 00 00 0f 85 6b 01 00 00 66 83 be be 01 00 00 00 0f 85 5d 01 00 00 57 e8 75 df ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 0b 74 3b 00 8b e5 5d c2 0c 00 66 83 be bc 01 00 00 00 0f 85 35 01 00 00 66 83 be be 01 00 00 00 0f 85 27 01 00 00 57 e8 9f df ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 d5 73 3b 00 8b e5 5d c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Commands 0x28, 0x2A and 0x29 push their payload when +0x1BC and +0x1BE are zero."
+    },
+    {
+      "name": "commands 43 44 45",
+      "kind": "signature",
+      "va": "0x0061ad25",
+      "pattern": "83 3f 00 0f 95 c1 02 c9 02 c9 32 8e 48 04 00 00 80 e1 04 30 8e 48 04 00 00 5f 5e 5b 8b 4c 24 50 33 cc e8 a8 73 3b 00 8b e5 5d c2 0c 00 83 3f 00 0f 95 c2 52 e8 e2 dd ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 88 73 3b 00 8b e5 5d c2 0c 00 83 3f 00 0f 95 c0 c0 e0 04 32 86 48 04 00 00 24 10 30 86 48 04 00 00 5f 5e 5b 8b 4c 24 50 33 cc e8 5d 73 3b 00 8b e5 5d c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Commands 0x2B and 0x2D set +0x448 bits 0x04 and 0x10, command 0x2C calls 0x00618B40."
+    },
+    {
+      "name": "commands 47 48",
+      "kind": "signature",
+      "va": "0x0061ad9d",
+      "pattern": "e8 1e 4c 00 00 84 c0 74 49 8d 9e 34 04 00 00 53 8d 8e b0 01 00 00 e8 f8 74 00 00 8b 08 8b 11 8b 42 28 56 ff d0 8b 1b 83 fb 08 7d 26 81 e3 03 00 00 80 79 05 4b 83 cb fc 43 83 fb 03 77 14 ff 24 9d 1c af 61 00 6a 00 eb 02 6a 01 8b ce e8 61 d8 ff ff d9 07 51 d9 1c 24 6a 00 8b ce e8 52 65 ff ff d9 47 04 51 d9 1c 24 e8 76 f1 ff ff 5f 5e 5b 8b 4c 24 50 33 cc e8 dc 72 3b 00 8b e5 5d c2 0c 00 d9 47 04 83 ec 08 d9 5c 24 04 d9 07 d9 1c 24 e8 ae f1 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Command 0x2F stores slot 0 and calls 0x00619F80, command 0x30 calls 0x00619FE0."
+    },
+    {
+      "name": "queue A push",
+      "kind": "signature",
+      "va": "0x00618bf0",
+      "pattern": "56 8b f1 8b 86 34 04 00 00 83 f8 08 7d 23 25 03 00 00 80 79 05 48 83 c8 fc 40 83 f8 03 77 12 ff 24 85 38 8c 61 00 6a 02 eb 02 6a 03 e8 2f fa ff ff 8b 44 24 08 50 8d 8e dc 01 00 00 e8 ff 96 00 00 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Requests key 2 or 3 by key & 3, then pushes into the container at +0x1DC."
+    },
+    {
+      "name": "queue A key table",
+      "kind": "dwords",
+      "va": "0x00618c38",
+      "values": [
+        "0x00618c16",
+        "0x00618c1a",
+        "0x00618c16",
+        "0x00618c1a"
+      ],
+      "note": "Key families 0 and 2 request key 2, families 1 and 3 request key 3."
+    },
+    {
+      "name": "queue B push",
+      "kind": "signature",
+      "va": "0x00618c50",
+      "pattern": "56 8b f1 8b 86 34 04 00 00 83 f8 08 7d 23 25 03 00 00 80 79 05 48 83 c8 fc 40 83 f8 03 77 12 ff 24 85 98 8c 61 00 6a 02 eb 02 6a 03 e8 cf f9 ff ff 8b 44 24 08 50 8d 8e f4 01 00 00 e8 2f 97 00 00 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Requests key 2 or 3 by key & 3, then pushes into the container at +0x1F4."
+    },
+    {
+      "name": "queue B key table",
+      "kind": "dwords",
+      "va": "0x00618c98",
+      "values": [
+        "0x00618c76",
+        "0x00618c7a",
+        "0x00618c76",
+        "0x00618c7a"
+      ],
+      "note": "Key families 0 and 2 request key 2, families 1 and 3 request key 3."
+    },
+    {
+      "name": "command 41 key request",
+      "kind": "signature",
+      "va": "0x00618cb0",
+      "pattern": "55 8b ec 83 e4 f0 81 ec 94 00 00 00 a1 b0 a8 2e 01 33 c4 89 84 24 90 00 00 00 53 8b 5d 08 56 57 8b f9 8b 87 34 04 00 00 83 f8 08 89 5c 24 0c 7d 23 25 03 00 00 80 79 05 48 83 c8 fc 40 83 f8 03 77 12 ff 24 85 fc 8f 61 00 6a 02 eb 02 6a 03 e8 4c f9 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Requests key 2 or 3 by key & 3."
+    },
+    {
+      "name": "command 41 key table",
+      "kind": "dwords",
+      "va": "0x00618ffc",
+      "values": [
+        "0x00618cf9",
+        "0x00618cfd",
+        "0x00618cf9",
+        "0x00618cfd"
+      ],
+      "note": "Key families 0 and 2 request key 2, families 1 and 3 request key 3."
+    },
+    {
+      "name": "front reader B",
+      "kind": "signature",
+      "va": "0x007f8a50",
+      "pattern": "53 55 56 57 8b f9 8b 9f 00 02 00 00 8b 87 04 02 00 00 03 c3 3b d8 76 05 e8 47 98 1d 00 8b 8f 04 02 00 00 03 8f 00 02 00 00 8b f3 8b eb c1 ee 03 83 e5 07 3b d9 72 05 e8 28 98 1d 00 8b 87 fc 01 00 00 3b c6 77 02 2b f0 8b 97 f8 01 00 00 8b 04 b2 66 8b 04 68 5f 5e 5d 5b c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the 16-bit front item of queue B."
+    },
+    {
+      "name": "front reader A",
+      "kind": "signature",
+      "va": "0x007f89f0",
+      "pattern": "56 57 8b f9 8b b7 e8 01 00 00 8b 87 ec 01 00 00 03 c6 3b f0 76 05 e8 a9 98 1d 00 8b 8f ec 01 00 00 03 8f e8 01 00 00 3b f1 72 05 e8 94 98 1d 00 8b 87 e4 01 00 00 3b c6 77 0e 8b 97 e0 01 00 00 2b f0 8b 04 b2 5f 5e c3 8b 87 e0 01 00 00 8b 04 b0 5f 5e c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns the front item pointer of queue A."
+    },
+    {
+      "name": "WowTPS wheel",
+      "kind": "signature",
+      "va": "0x007f7ef0",
+      "pattern": "56 8b 74 24 08 57 8b ce e8 53 0b 00 00 0f b7 f8 66 85 ff 7e 1c 6a 00 8b ce e8 62 6a e1 ff d9 05 0c 07 ff 00 df f1 dd d8 72 07 80 8e 48 04 00 00 02 6a 00 8b ce e8 46 6a e1 ff 0f bf c7 89 44 24 0c 51 8b ce db 44 24 10 dc 35 18 13 ff 00 de e9 d9 5c 24 10 d9 44 24 10 d9 1c 24 6a 00 e8 fe 93 e1 ff 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 9: zoom-in flag at radius <= 1.5, slot 0 -= delta / 500.0 through the clamp setter."
+    },
+    {
+      "name": "WowTPS_Lock wheel",
+      "kind": "signature",
+      "va": "0x007f8200",
+      "pattern": "56 8b 74 24 08 57 8b ce e8 43 08 00 00 0f b7 f8 66 85 ff 7e 1c 6a 01 8b ce e8 52 67 e1 ff d9 05 0c 07 ff 00 df f1 dd d8 72 07 80 8e 48 04 00 00 02 6a 01 8b ce e8 36 67 e1 ff 0f bf c7 89 44 24 0c 51 8b ce db 44 24 10 dc 35 18 13 ff 00 de e9 d9 5c 24 10 d9 44 24 10 d9 1c 24 6a 01 e8 ee 90 e1 ff 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 9: the same rule on slot index 1."
+    },
+    {
+      "name": "WowFPS wheel",
+      "kind": "signature",
+      "va": "0x007f7af0",
+      "pattern": "51 56 8b 74 24 0c 8b ce e8 53 0f 00 00 f3 0f 10 15 70 4f f5 00 0f b7 c0 66 85 c0 7d 14 f3 0f 10 86 28 04 00 00 0f 2f c2 72 07 80 8e 48 04 00 00 02 f3 0f 10 86 28 04 00 00 0f bf c0 f2 0f 2a c8 f2 0f 5e 0d 48 1c f9 00 0f 5a c0 f2 0f 5c c1 0f 57 c9 66 0f 5a c0 0f 2f c8 f3 0f 11 44 24 0c f3 0f 11 4c 24 04 8d 44 24 04 77 04 8d 44 24 0c f3 0f 10 00 f3 0f 11 44 24 0c 0f 5a c0 66 0f 2f 05 a0 98 f5 00 f3 0f 11 54 24 04 8d 44 24 04 77 04 8d 44 24 0c d9 00 d9 9e 28 04 00 00 5e 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 9: +0x428 -= delta / 1000.0 clamped to 0..1, zoom-out flag at 1.0."
+    },
+    {
+      "name": "WowTPS drag",
+      "kind": "signature",
+      "va": "0x007f7d40",
+      "pattern": "51 56 57 8b 7c 24 10 8b f1 8b cf e8 a0 0c 00 00 0f bf 48 02 0f bf 50 04 8a 87 c6 01 00 00 a8 08 74 02 f7 d9 a8 04 f3 0f 2a c1 f3 0f 5a c0 f2 0f 5e 05 d0 5a f5 00 f2 0f 5a c0 53 f3 0f 11 44 24 14 74 02 f7 da 8b cf 8b da e8 d2 6b e1 ff d9 5c 24 0c f2 0f 10 0d 68 33 fc 00 f3 0f 10 54 24 0c f3 0f 2a c3 f3 0f 5a c0 f2 0f 5e 05 d0 5a f5 00 f2 0f 5a c0 f3 0f 5a c0 f2 0f 59 c1 0f 5a da f2 0f 59 c3 f3 0f 10 5e 08 0f 5a db f2 0f 58 c3 f2 0f 5a c0 f3 0f 11 46 08 f3 0f 5a c0 66 0f 2f 05 a8 81 fe 00 5b 76 0d f3 0f 10 05 2c 13 ff 00 f3 0f 11 46 08 f3 0f 10 46 08 f2 0f 10 1d b0 81 fe 00 0f 5a c0 66 0f 2f d8 76 0d f3 0f 10 05 28 13 ff 00 f3 0f 11 46 08 8a 46 10 84 c0 0f 85 a0 00 00 00 f3 0f 5a 44 24 10 f2 0f 59 c1 0f 5a ca f2 0f 59 c1 f3 0f 10 4e 0c 0f 5a c9 f2 0f 58 c1 66 0f 5a c0 f3 0f 5a c8 f3 0f 11 46 0c f2 0f 10 05 d0 7e fe 00 66 0f 2f c1 f2 0f 10 0d e0 2f f6 00 76 1e f3 0f 10 56 0c 0f 5a d2 f2 0f 58 d1 66 0f 5a d2 f3 0f 11 56 0c 0f 5a d2 66 0f 2f c2 77 e2 f3 0f 10 46 0c 0f 5a d0 f2 0f 10 05 48 2f f6 00 66 0f 2f d0 76 28 eb 08 8d a4 24 00 00 00 00 90 f3 0f 10 56 0c 0f 5a d2 f2 0f 5c d1 66 0f 5a d2 f3 0f 11 56 0c 0f 5a d2 66 0f 2f d0 77 e2 84 c0 74 26 f3 0f 5a 44 24 10 f2 0f 59 05 50 ad fb 00 51 8b 4e 04 f2 0f 5a c0 81 c1 f0 0b 00 00 f3 0f 11 04 24 e8 c8 26 fb ff 5f 5e 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 8: pitch += dy / 100 * 0.2 * sensitivity within +-pi/4, yaw += dx / 100 * 0.2 * sensitivity wrapped to +-pi."
+    },
+    {
+      "name": "WowFPS drag",
+      "kind": "signature",
+      "va": "0x007f7940",
+      "pattern": "83 ec 08 53 56 8b 74 24 14 8b d9 57 8b ce e8 2d ea e1 ff 8b f8 85 ff 0f 84 82 01 00 00 8b 07 8b 90 58 02 00 00 8b cf ff d2 85 c0 0f 84 6e 01 00 00 8b ce e8 78 10 00 00 8a 96 c6 01 00 00 f6 c2 02 0f bf 48 02 0f bf 40 04 74 02 f7 d9 f6 c2 01 f3 0f 2a c1 f3 0f 5a c8 f2 0f 10 05 d0 5a f5 00 f2 0f 5e c8 f2 0f 5a c9 f3 0f 11 4c 24 0c 74 02 f7 d8 f3 0f 2a c8 f3 0f 5a c9 f2 0f 5e c8 f2 0f 5a c1 8b ce f3 0f 11 44 24 10 e8 91 6f e1 ff d9 5c 24 18 8d b7 f0 0b 00 00 8b ce e8 30 cc fa ff 84 c0 f3 0f 5a 44 24 0c f3 0f 5a 4c 24 18 74 1f f2 0f 59 05 50 ad fb 00 51 f2 0f 59 c1 f2 0f 5a c0 8b ce f3 0f 11 04 24 e8 a3 2b fb ff eb 76 f2 0f 59 05 50 86 fb 00 f2 0f 10 15 d0 7e fe 00 f2 0f 59 c1 f3 0f 10 4b 08 f2 0f 5a c0 0f 5a c9 f3 0f 5a c0 f2 0f 58 c1 f2 0f 5a c0 f3 0f 5a c8 66 0f 2f d1 f2 0f 10 0d e0 2f f6 00 f3 0f 11 43 08 76 11 f3 0f 5a c0 f2 0f 58 c1 f2 0f 5a c0 f3 0f 11 43 08 f3 0f 10 43 08 0f 5a d0 66 0f 2f 15 48 2f f6 00 76 10 0f 5a c0 f2 0f 5c c1 66 0f 5a c0 f3 0f 11 43 08 f3 0f 5a 4c 24 18 f3 0f 5a 44 24 10 f2 0f 59 05 50 86 fb 00 f2 0f 59 c1 f3 0f 10 4b 04 f2 0f 5a c0 f3 0f 5a c0 0f 5a c9 f2 0f 58 c1 f3 0f 10 0d 24 13 ff 00 f2 0f 5a c0 0f 2f c1 f3 0f 11 43 04 76 05 f3 0f 11 4b 04 f3 0f 10 05 20 13 ff 00 0f 2f 43 04 76 05 f3 0f 11 43 04 5f 5e 5b 83 c4 08 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 8 of the key 3 context."
+    },
+    {
+      "name": "constant 500.0",
+      "kind": "signature",
+      "va": "0x00ff1318",
+      "pattern": "00 00 00 00 00 40 7f 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 500.0."
+    },
+    {
+      "name": "constant 1000.0",
+      "kind": "signature",
+      "va": "0x00f91c48",
+      "pattern": "00 00 00 00 00 40 8f 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 1000.0."
+    },
+    {
+      "name": "constant 100.0",
+      "kind": "signature",
+      "va": "0x00f55ad0",
+      "pattern": "00 00 00 00 00 00 59 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 100.0."
+    },
+    {
+      "name": "constant 0.2",
+      "kind": "signature",
+      "va": "0x00fc3368",
+      "pattern": "00 00 00 a0 99 99 c9 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 0.2 (float rounded)."
+    },
+    {
+      "name": "constant 0.15",
+      "kind": "signature",
+      "va": "0x00fb8650",
+      "pattern": "00 00 00 40 33 33 c3 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 0.15 (float rounded)."
+    },
+    {
+      "name": "constant 0.1",
+      "kind": "signature",
+      "va": "0x00fbad50",
+      "pattern": "00 00 00 a0 99 99 b9 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 0.1 (float rounded)."
+    },
+    {
+      "name": "pitch limit floats",
+      "kind": "signature",
+      "va": "0x00ff1328",
+      "pattern": "db 0f 49 bf db 0f 49 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Floats -pi/4 and +pi/4."
+    },
+    {
+      "name": "pitch limit doubles",
+      "kind": "signature",
+      "va": "0x00fe81a8",
+      "pattern": "00 00 00 60 fb 21 e9 3f 00 00 00 60 fb 21 e9 bf",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Doubles +pi/4 and -pi/4."
+    },
+    {
+      "name": "first-person pitch limits",
+      "kind": "signature",
+      "va": "0x00ff1320",
+      "pattern": "c3 b8 b2 bf c3 b8 b2 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Floats -1.3962634 and +1.3962634."
+    },
+    {
+      "name": "constant 1.5",
+      "kind": "signature",
+      "va": "0x00ff070c",
+      "pattern": "00 00 c0 3f",
+      "mask": "ff ff ff ff",
+      "note": "Float 1.5, the wheel zoom-in threshold."
+    },
+    {
+      "name": "WowTPS tick",
+      "kind": "signature",
+      "va": "0x007f5450",
+      "pattern": "55 8b ec 83 e4 f0 83 ec 58 a1 b0 a8 2e 01 33 c4 89 44 24 54 56 8b f1 8b 46 04 85 c0 57 8b 7d 08 0f 84 e6 01 00 00 8d 88 f0 0b 00 00 e8 8f f1 fa ff 84 c0 0f 84 d3 01 00 00 8b 4e 04 8b 01 8b 80 94 00 00 00 8d 54 24 40 52 ff d0 f3 0f 10 40 04 f2 0f 10 1d 48 2f f6 00 f2 0f 10 15 d0 7e fe 00 0f 5a c0 f2 0f 5c c3 66 0f 5a c0 f3 0f 5a c8 66 0f 2f d1 f2 0f 10 0d e0 2f f6 00 f3 0f 11 44 24 14 76 1c f3 0f 5a c0 f2 0f 58 c1 f2 0f 5a c0 f3 0f 5a e0 66 0f 2f d4 77 ea f3 0f 11 44 24 14 f3 0f 5a d0 66 0f 2f d3 76 23 8d a4 24 00 00 00 00 f3 0f 5a c0 f2 0f 5c c1 f2 0f 5a c0 f3 0f 5a d0 66 0f 2f d3 77 ea f3 0f 11 44 24 14 d9 46 0c d9 5c 24 18 d9 44 24 18 e8 54 0d 1e 00 d9 5c 24 0c d9 44 24 0c d9 5c 24 0c f3 0f 10 44 24 0c d9 44 24 18 f3 0f 11 44 24 20 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 24 e8 55 0e 1e 00 d9 5c 24 0c d9 44 24 0c d9 5c 24 0c f3 0f 10 44 24 0c d9 44 24 14 f3 0f 11 44 24 28 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 2c 0f 28 44 24 20 0f 29 44 24 30 e8 ec 0c 1e 00 d9 5c 24 0c d9 44 24 0c d9 5c 24 0c f3 0f 10 44 24 0c d9 44 24 14 f3 0f 11 44 24 20 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 24 e8 ed 0d 1e 00 d9 5c 24 0c d9 44 24 0c f3 0f 10 4d 0c f3 0f 10 15 70 4f f5 00 d9 5c 24 0c f3 0f 10 44 24 0c f3 0f 11 44 24 28 f3 0f 10 05 50 66 08 01 0f 5a c9 f2 0f 59 0d 68 33 fc 00 66 0f 5a c9 0f 2f d1 f3 0f 11 44 24 2c 0f 28 44 24 20 f3 0f 11 4c 24 1c f3 0f 11 54 24 10 8d 44 24 1c 77 04 8d 44 24 10 0f 28 54 24 30 f3 0f 10 08 0f 5c c2 0f c6 c9 00 0f 59 c1 0f 58 c2 0f 29 44 24 20 d9 44 24 28 d9 44 24 20 e8 6f 58 1e 00 d9 5c 24 10 d9 44 24 10 c6 46 10 01 d9 5e 0c eb 04 c6 46 10 00 d9 87 24 04 00 00 6a 00 8b cf d9 5c 24 14 e8 fd 92 e1 ff d9 44 24 10 d8 4d 0c 51 8b cf dc 35 48 78 f6 00 de c1 d9 5c 24 14 d9 44 24 14 d9 1c 24 6a 00 e8 b9 bc e1 ff 8b 4c 24 5c 5f 5e 33 cc e8 50 ca 1d 00 8b e5 5d c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 7: follow-yaw blend while the 0x007A4610 predicate holds, then slot 0 += +0x424 * dt / 10.0."
+    },
+    {
+      "name": "follow predicate",
+      "kind": "signature",
+      "va": "0x007a4610",
+      "pattern": "8b 41 04 c1 e8 03 83 e0 01 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "Returns bit 3 of the dword at helper +4."
+    },
+    {
+      "name": "constant 10.0 double",
+      "kind": "signature",
+      "va": "0x00f67848",
+      "pattern": "00 00 00 00 00 00 24 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 10.0."
+    },
+    {
+      "name": "constant 2 pi",
+      "kind": "signature",
+      "va": "0x00f62fe0",
+      "pattern": "00 00 00 60 fb 21 19 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 6.2831853."
+    },
+    {
+      "name": "element registrations",
+      "kind": "signature",
+      "va": "0x005665d0",
+      "pattern": "6a 30 e8 5e b5 46 00 83 c4 04 89 44 24 18 c6 84 24 e0 00 00 00 02 3b c3 74 13 33 d2 52 b9 b0 c9 55 00 51 56 8b c8 e8 c5 32 00 00 eb 02 33 c0 88 9c 24 e0 00 00 00 8b 7c 24 1c 8b 97 b4 00 00 00 81 c7 b4 00 00 00 50 8b 42 28 68 fc 95 35 01 8b cf ff d0 6a 30 e8 0b b5 46 00 83 c4 04 89 44 24 18 c6 84 24 e0 00 00 00 03 3b c3 74 13 33 d2 52 b9 60 cb 55 00 51 56 8b c8 e8 72 32 00 00 eb 02 33 c0 88 9c 24 e0 00 00 00 8b 17 50 8b 42 28 68 f0 95 35 01 8b cf ff d0 6a 30 e8 c6 b4 46 00 83 c4 04 89 44 24 18 c6 84 24 e0 00 00 00 04 3b c3 74 13 33 d2 52 b9 90 cc 55 00 51 56 8b c8 e8 2d 32 00 00 eb 02 33 c0 88 9c 24 e0 00 00 00 8b 17 50 8b 42 28 68 ec 96 35 01 8b cf ff d0 6a 30 e8 81 b4 46 00 83 c4 04 89 44 24 18 c6 84 24 e0 00 00 00 05 3b c3 74 13 33 d2 52 b9 b0 cd 55 00 51 56 8b c8 e8 e8 31 00 00 eb 02 33 c0 88 9c 24 e0 00 00 00 8b 17 50 8b 42 28 68 c0 93 35 01 8b cf ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The CameraElement constructor subscribes four handlers to four routed events."
+    },
+    {
+      "name": "PreviewMouseMove event",
+      "kind": "signature",
+      "va": "0x00f22e20",
+      "pattern": "68 ac c0 06 01 51 8b c4 51 c6 00 11 8b c4 b9 fc 95 35 01 c6 00 02 e8 85 c8 a5 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Event 0x11 with strategy 2."
+    },
+    {
+      "name": "PreviewMouseUp event",
+      "kind": "signature",
+      "va": "0x00f22c10",
+      "pattern": "68 c4 bf 06 01 51 8b c4 51 c6 00 17 8b c4 b9 f0 95 35 01 c6 00 02 e8 95 ca a5 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Event 0x17 with strategy 2."
+    },
+    {
+      "name": "PreviewMouseDown event",
+      "kind": "signature",
+      "va": "0x00f22be0",
+      "pattern": "68 b0 bf 06 01 51 8b c4 51 c6 00 07 8b c4 b9 ec 96 35 01 c6 00 02 e8 c5 ca a5 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Event 7 with strategy 2."
+    },
+    {
+      "name": "MouseWheel event",
+      "kind": "signature",
+      "va": "0x00f22eb0",
+      "pattern": "68 e0 c0 06 01 51 8b c4 51 c6 00 1e 8b c4 b9 c0 93 35 01 c6 00 00 e8 f5 c7 a5 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Event 0x1E with strategy 0."
+    },
+    {
+      "name": "name PreviewMouseMove",
+      "kind": "string",
+      "va": "0x0106c0ac",
+      "text": "PreviewMouseMove",
+      "note": "Event name."
+    },
+    {
+      "name": "name PreviewMouseUp",
+      "kind": "string",
+      "va": "0x0106bfc4",
+      "text": "PreviewMouseUp",
+      "note": "Event name."
+    },
+    {
+      "name": "name PreviewMouseDown",
+      "kind": "string",
+      "va": "0x0106bfb0",
+      "text": "PreviewMouseDown",
+      "note": "Event name."
+    },
+    {
+      "name": "name MouseWheel",
+      "kind": "string",
+      "va": "0x0106c0e0",
+      "text": "MouseWheel",
+      "note": "Event name."
+    },
+    {
+      "name": "wheel handler",
+      "kind": "signature",
+      "va": "0x0055cdb0",
+      "pattern": "56 8b f1 8b 4e 7c e8 c5 a7 f7 ff 8b 10 8b c8 8b 42 30 ff d0 85 c0 75 2b 8b 4c 24 0c 8b 49 2c 8b 11 8b 42 08 ff d0 69 c0 c8 00 00 00 0f b7 c8 6a 02 8d 54 24 10 52 89 4c 24 14 6a 2a 8b ce e8 8d ab f7 ff 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Sends command 0x2A with a 2-byte payload of notches * 200."
+    },
+    {
+      "name": "button down handler",
+      "kind": "signature",
+      "va": "0x0055cc90",
+      "pattern": "83 ec 08 56 57 8b 7c 24 18 8b 47 2c 80 78 0a 00 8b f1 0f 84 97 00 00 00 8b 4e 7c e8 d0 a8 f7 ff 8b 10 8b c8 8b 42 30 ff d0 85 c0 0f 85 e2 00 00 00 50 e8 b9 20 3b 00 8b 4f 2c 83 c4 04 e8 be ce 3b 00 8b 08 8b 50 04 8d 86 88 01 00 00 6a 0a 89 4c 24 0c f3 0f 2c 4c 24 0c 50 89 54 24 14 f3 0f 2c 54 24 14 66 89 8e 8e 01 00 00 6a 28 8b ce 66 c7 00 01 00 66 c7 86 8a 01 00 00 00 00 66 c7 86 8c 01 00 00 00 00 66 89 96 90 01 00 00 e8 5e ac f7 ff 6a 01 e8 e7 85 7d 00 8b 46 08 8b 50 3c 8d 4e 08 83 c4 04 ff d2 5f 5e 83 c4 08 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "State byte +0xA starts the 0x28 drag, state byte +9 starts the 0x29 drag."
+    },
+    {
+      "name": "button down second button",
+      "kind": "signature",
+      "va": "0x0055cd3f",
+      "pattern": "80 78 09 00 74 5e 8b 4e 7c e8 33 a8 f7 ff 8b 10 8b c8 8b 42 0c ff d0 85 c0 75 49 50 e8 20 20 3b 00 8b 4f 2c 83 c4 04 e8 25 ce 3b 00 8b 08 8b 50 04 89 4c 24 08 f3 0f 2c 44 24 08 89 54 24 0c f3 0f 2c 4c 24 0c 6a 01 c6 86 6e 01 00 00 01 66 89 86 70 01 00 00 66 89 8e 72 01 00 00 e8 70 85 7d 00 83 c4 04 5f 5e 83 c4 08 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "State byte +9 arms the 0x29 drag."
+    },
+    {
+      "name": "move handler second drag",
+      "kind": "signature",
+      "va": "0x0055ca83",
+      "pattern": "66 83 be 88 01 00 00 00 8d be 88 01 00 00 0f 84 bd 00 00 00 8b 4b 2c e8 f1 d0 3b 00 8b 10 0f bf 8e 8e 01 00 00 8b 40 04 89 54 24 0c f3 0f 10 4c 24 0c 0f 5a d1 89 44 24 10 f2 0f 2a c1 66 0f 2e c2 f3 0f 10 54 24 10 9f f6 c4 44 7a 18 0f bf 96 90 01 00 00 f2 0f 2a da 0f 5a e2 66 0f 2e dc 9f f6 c4 44 7b 50 0f bf 8e 90 01 00 00 0f 5a c9 f2 0f 5c c8 f2 0f 2c c1 f2 0f 2a c9 8b 4e 7c 0f 5a c2 f2 0f 5c c1 f2 0f 2c d0 66 89 86 8a 01 00 00 66 89 96 8c 01 00 00 e8 61 aa f7 ff 8b 10 8b c8 8b 42 30 ff d0 85 c0 75 0c 6a 0a 57 6a 28 8b ce e8 48 ae f7 ff 0f bf 8e 90 01 00 00 0f bf 96 8e 01 00 00 51 52 e8 b3 87 7d 00 83 c4 08 c6 43 19 01 5f 5e 5b 83 c4 08 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Sends command 0x28 with 10 payload bytes from +0x188 on mouse move."
+    },
+    {
+      "name": "win32 message table",
+      "kind": "dwords",
+      "va": "0x00d31d9c",
+      "values": [
+        "0x00d31c6e",
+        "0x00d31ce4",
+        "0x00d31caa",
+        "0x00d31ca3",
+        "0x00d31d0f",
+        "0x00d31cd1",
+        "0x00d31c86",
+        "0x00d31cf9",
+        "0x00d31cbb",
+        "0x00d31d25"
+      ],
+      "note": "WM_LBUTTONDOWN 0x201 to WM_MOUSEWHEEL 0x20A."
+    },
+    {
+      "name": "win32 right button bit",
+      "kind": "signature",
+      "va": "0x00d31ca3",
+      "pattern": "b8 04 00 00 00 eb e1",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "WM_RBUTTONDOWN stores bit 4."
+    },
+    {
+      "name": "win32 middle button bit",
+      "kind": "signature",
+      "va": "0x00d31c86",
+      "pattern": "b8 02 00 00 00 09 05 ac 83 37 01 09",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "WM_MBUTTONDOWN stores bit 2."
+    },
+    {
+      "name": "win32 left button bit",
+      "kind": "signature",
+      "va": "0x00d31c6e",
+      "pattern": "09 1d ac 83 37 01",
+      "mask": "ff ff ff ff ff ff",
+      "note": "WM_LBUTTONDOWN stores bit 1."
+    },
+    {
+      "name": "win32 wheel accumulation",
+      "kind": "signature",
+      "va": "0x00d31d25",
+      "pattern": "8b 0d 98 83 37 01 8b c6 c1 e8 10 0f bf d0 03 ca b8 89 88 88 88 f7 e9 03 d1 c1 fa 06 8b c2 c1 e8 1f 03 c2 a3 a8 83 37 01 6b c0 88 03 c8 89 0d 98 83 37 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Accumulates the high word of wParam and divides by 120, keeping the remainder."
+    },
+    {
+      "name": "button state bytes",
+      "kind": "signature",
+      "va": "0x00547fba",
+      "pattern": "8b 57 0c 83 e2 07 89 56 48 8b 47 1c 83 e0 07 89 46 54 8b 4f 10 8b 46 48 83 e1 07 89 4e 58 8b 57 18 83 e2 07 89 56 5c 8b d0 8a c8 c1 e8 02 d1 ea 24 01 88 46 0a 88 5e 0b 88 5e 0c 80 e1 01 88 4e 08 80 e2 01 88 56 09",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "State bytes +8, +9, +0xA are mask bits 0, 1, 2."
+    },
+    {
+      "name": "element command handler move case",
+      "kind": "signature",
+      "va": "0x00566d43",
+      "pattern": "81 7f 1c 58 93 33 01 75 50 f3 0f 10 86 70 01 00 00 0f 57 d2 66 8b 57 7c 0f 5a c8 66 0f 2e d1 9f f6 c4 44 66 89 96 8c 00 00 00 7b 16 f3 0f 2c c0 66 89 86 8c 00 00 00 0f 57 c0 f3 0f 11 86 70 01 00 00 66 8b 8f 80 00 00 00 66 89 8e 8e 00 00 00 88 5f 19 88 9e 65 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "MoveCamera stores two 16-bit arguments at +0x8C and +0x8E."
+    },
+    {
+      "name": "element command handler axis cases",
+      "kind": "signature",
+      "va": "0x00566dc0",
+      "pattern": "81 7f 1c 78 96 33 01 75 2a f3 0f 10 05 80 2f f6 00 6a 04 8d 54 24 18 52 6a 17 8d 4e f8 f3 0f 11 86 6c 01 00 00 f3 0f 11 44 24 20 e8 90 0b f7 ff 88 5f 19 81 7f 1c 18 97 33 01 75 25 0f 57 c0 6a 04 8d 44 24 18 50 6a 17 8d 4e f8 f3 0f 11 86 6c 01 00 00 f3 0f 11 44 24 20 e8 62 0b f7 ff 88 5f 19 81 7f 1c b8 97 33 01 75 2a f3 0f 10 05 70 4f f5 00 6a 04 8d 4c 24 18 51 6a 17 8d 4e f8 f3 0f 11 86 6c 01 00 00 f3 0f 11 44 24 20 e8 2f 0b f7 ff 88 5f 19 81 7f 1c 58 98 33 01 75 25 0f 57 c0 6a 04 8d 54 24 18 52 6a 17 8d 4e f8 f3 0f 11 86 6c 01 00 00 f3 0f 11 44 24 20 e8 01 0b f7 ff 88 5f 19",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Forward and backward on and off store -1.0, 0, 1.0, 0 and send event 0x17."
+    },
+    {
+      "name": "element command handler zoom case",
+      "kind": "signature",
+      "va": "0x00566e96",
+      "pattern": "81 7f 1c d8 95 33 01 75 57 f3 0f 2a 47 7c 0f 57 c9 f3 0f 11 86 70 01 00 00 f3 0f 10 86 6c 01 00 00 0f 5a c0 66 0f 2e c8 9f f6 c4 44 7a 2f f3 0f 2a 87 80 00 00 00 6a 04 8d 44 24 18 f3 0f 5a c0 f2 0f 59 05 38 51 fa 00 50 66 0f 5a c0 6a 17 8d 4e f8 f3 0f 11 44 24 20 e8 8d 0a f7 ff 88 5f 19",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "ZoomCamera sends event 0x17 with the second argument * 0.015625."
+    },
+    {
+      "name": "element command handler tail",
+      "kind": "signature",
+      "va": "0x0056701a",
+      "pattern": "6a 0c 8d 96 8c 00 00 00 52 53 8d 4e f8 88 86 95 00 00 00 e8 4e 09 f7 ff 57 8b ce e8 b6 68 3b 00 5f 5e 5b c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Every call ends by sending event 1 with 12 bytes from +0x8C."
+    },
+    {
+      "name": "constant 0.015625",
+      "kind": "signature",
+      "va": "0x00fa5138",
+      "pattern": "00 00 00 00 00 00 90 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 0.015625."
+    },
+    {
+      "name": "default camera position",
+      "kind": "signature",
+      "va": "0x00566ca0",
+      "pattern": "83 ec 0c d9 05 3c 32 fa 00 56 51 d9 1c 24 8b f1 e8 4b fe ff ff d9 05 60 44 fa 00 51 8b ce d9 1c 24 e8 da fe ff ff 8b ce e8 93 87 ff ff d9 9e 28 01 00 00 8b ce e8 96 88 ff ff d9 5c 24 04 d9 44 24 04 f3 0f 10 86 28 01 00 00 6a 08 d9 96 38 01 00 00 8d 44 24 0c d9 5c 24 10 50 6a 2f 8b ce f3 0f 11 44 24 14 e8 76 0c f7 ff 5e 83 c4 0c c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores 4.5 and 0.0 through the config writers and sends event 0x2F."
+    },
+    {
+      "name": "element default radius",
+      "kind": "signature",
+      "va": "0x00fa323c",
+      "pattern": "00 00 90 40",
+      "mask": "ff ff ff ff",
+      "note": "Float 4.5."
+    },
+    {
+      "name": "element input defaults",
+      "kind": "signature",
+      "va": "0x0056642a",
+      "pattern": "c6 86 9c 00 00 00 12 f3 0f 11 8e 20 01 00 00 0f 57 c0 8d 7e 08 f3 0f 11 96 3c 01 00 00 f3 0f 10 15 30 51 fa 00 f3 0f 11 96 40 01 00 00 f3 0f 10 15 10 30 f6 00 f3 0f 11 96 44 01 00 00 f3 0f 10 15 2c 51 fa 00 f3 0f 11 96 48 01 00 00 f3 0f 11 86 24 01 00 00 f3 0f 10 15 90 34 fa 00 f3 0f 11 8e 54 01 00 00 f3 0f 10 0d 28 51 fa 00 f3 0f 11 96 4c 01 00 00 f3 0f 10 15 24 51 fa 00 f3 0f 11 8e 5c 01 00 00 f3 0f 11 96 50 01 00 00 f3 0f 11 86 58 01 00 00 f3 0f 11 86 60 01 00 00 c6 86 64 01 00 00 01 c6 86 65 01 00 00 01 c6 86 66 01 00 00 01 c6 86 67 01 00 00 01 c6 86 68 01 00 00 01 c6 86 69 01 00 00 01 c6 86 6a 01 00 00 01 c6 86 6b 01 00 00 01 c6 86 6c 01 00 00 01 88 9e 6d 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores byte 0x12 at +0x9C and the float defaults at +0x120 to +0x160."
+    },
+    {
+      "name": "command name MoveCamera",
+      "kind": "string",
+      "va": "0x00fa7ea0",
+      "text": "RaptureCommands.MoveCamera",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name ChangeCameraMode",
+      "kind": "string",
+      "va": "0x00fa7ee4",
+      "text": "RaptureCommands.ChangeCameraMode",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name ChangeCameraLock",
+      "kind": "string",
+      "va": "0x00fa7f08",
+      "text": "RaptureCommands.ChangeCameraLock",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name ZoomCamera",
+      "kind": "string",
+      "va": "0x00fa7f2c",
+      "text": "RaptureCommands.ZoomCamera",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name ForwardCameraOn",
+      "kind": "string",
+      "va": "0x00fa7f48",
+      "text": "RaptureCommands.ForwardCameraOn",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name ForwardCameraOff",
+      "kind": "string",
+      "va": "0x00fa7f68",
+      "text": "RaptureCommands.ForwardCameraOff",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name BackwardCameraOn",
+      "kind": "string",
+      "va": "0x00fa7f8c",
+      "text": "RaptureCommands.BackwardCameraOn",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name BackwardCameraOff",
+      "kind": "string",
+      "va": "0x00fa7fb0",
+      "text": "RaptureCommands.BackwardCameraOff",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name DefaultCameraPosition",
+      "kind": "string",
+      "va": "0x00fa7fd4",
+      "text": "RaptureCommands.DefaultCameraPosition",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name TPSCameraMemorize",
+      "kind": "string",
+      "va": "0x00fa7ffc",
+      "text": "RaptureCommands.TPSCameraMemorize",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "command name TPSCameraInitialize",
+      "kind": "string",
+      "va": "0x00fa8020",
+      "text": "RaptureCommands.TPSCameraInitialize",
+      "note": "Rapture command name."
+    },
+    {
+      "name": "lens arm key family 0 and 2",
+      "kind": "signature",
+      "va": "0x00619922",
+      "pattern": "0f be 96 c5 01 00 00 0f be 8e c4 01 00 00 83 ea 04 f3 0f 2a ca f3 0f 5a c9 f2 0f 5e 0d f8 0d fa 00 f3 0f 2a c1 f2 0f 5a c9 f3 0f 11 44 24 24 f3 0f 11 4c 24 28 f3 0f 10 0d 64 49 fa 00 f3 0f 5a c0 66 0f 2f 05 60 90 fb 00 f3 0f 11 4c 24 20 8d 44 24 24 77 04 8d 44 24 20 f3 0f 10 00 f3 0f 10 0d 58 90 fb 00 f3 0f 11 44 24 24 f3 0f 11 4c 24 20 f2 0f 10 0d 50 90 fb 00 0f 5a c0 66 0f 2f c8 8d 44 24 24 77 04 8d 44 24 20 d9 00 d9 5c 24 24 d9 44 24 24 dc c0 dc 3d 50 41 fa 00 d9 5c 24 20 d9 44 24 20 e8 b5 12 3c 00 d9 5c 24 20 85 db d9 44 24 20 0f 57 c0 dc c0 f3 0f 11 86 14 04 00 00 f3 0f 10 44 24 28 d9 9e 0c 04 00 00 f3 0f 11 86 1c 04 00 00 74 09 83 fb 02 0f 85 87 00 00 00 53 8b ce e8 07 f6 ff ff d9 5c 24 28 8b 07 50 8b ce e8 c9 f6 ff ff d9 5c 24 2c 6a 08 8d 4c 24 2c 51 6a 2e 8b ce e8 85 4d 1b 00 eb 5b",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Clamps the focal byte to 18..28 and stores 2 * atan(15.0876 / (2 f)) at +0x40C."
+    },
+    {
+      "name": "lens arm first-person",
+      "kind": "signature",
+      "va": "0x00619a2d",
+      "pattern": "f3 0f 10 86 28 04 00 00 0f 5a c0 f2 0f 59 05 48 90 fb 00 f2 0f 58 05 88 7c fb 00 66 0f 5a c0 f3 0f 11 86 0c 04 00 00 0f 57 c0 f3 0f 11 86 14 04 00 00 eb 1f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores +0x428 * 0.4363323 + 0.5235988 at +0x40C."
+    },
+    {
+      "name": "lens arm character",
+      "kind": "signature",
+      "va": "0x00619a61",
+      "pattern": "f3 0f 10 05 40 90 fb 00 d9 86 04 04 00 00 f3 0f 11 86 14 04 00 00 d9 9e 0c 04 00 00 0f 57 c0 f3 0f 11 86 1c 04 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores +0x404 at +0x40C and -0.3 at +0x414."
+    },
+    {
+      "name": "lens arm table",
+      "kind": "dwords",
+      "va": "0x00619e70",
+      "values": [
+        "0x00619922",
+        "0x00619a2d",
+        "0x00619a61"
+      ],
+      "note": "Arm entries 0, 1, 2."
+    },
+    {
+      "name": "lens arm index",
+      "kind": "signature",
+      "va": "0x00619e7c",
+      "pattern": "00 01 00 01 00 01 00 01 02 02 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Keys 0 to 10 select arms 0,1,0,1,0,1,0,1,2,2,0."
+    },
+    {
+      "name": "sensor constant",
+      "kind": "signature",
+      "va": "0x00fa4150",
+      "pattern": "00 00 00 e0 d9 2c 2e 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 15.0876."
+    },
+    {
+      "name": "focal upper double",
+      "kind": "signature",
+      "va": "0x00fb9050",
+      "pattern": "00 00 00 00 00 00 3c 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 28.0."
+    },
+    {
+      "name": "focal lower double",
+      "kind": "signature",
+      "va": "0x00fb9060",
+      "pattern": "00 00 00 00 00 00 32 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 18.0."
+    },
+    {
+      "name": "focal lower float",
+      "kind": "signature",
+      "va": "0x00fa4964",
+      "pattern": "00 00 90 41",
+      "mask": "ff ff ff ff",
+      "note": "Float 18.0."
+    },
+    {
+      "name": "focal upper float",
+      "kind": "signature",
+      "va": "0x00fb9058",
+      "pattern": "00 00 e0 41",
+      "mask": "ff ff ff ff",
+      "note": "Float 28.0."
+    },
+    {
+      "name": "offset divisor",
+      "kind": "signature",
+      "va": "0x00fa0df8",
+      "pattern": "00 00 00 00 00 00 39 40",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 25.0."
+    },
+    {
+      "name": "first-person fov coefficients",
+      "kind": "signature",
+      "va": "0x00fb9048",
+      "pattern": "00 00 00 80 de ec db 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 0.4363323."
+    },
+    {
+      "name": "first-person fov base",
+      "kind": "signature",
+      "va": "0x00fb7c88",
+      "pattern": "00 00 00 40 52 c1 e0 3f",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Double 0.5235988."
+    },
+    {
+      "name": "update projection call",
+      "kind": "signature",
+      "va": "0x00619900",
+      "pattern": "6a 00 8b ce e8 f7 75 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "The update calls 0x00610F00 with argument 0."
+    },
+    {
+      "name": "projection head",
+      "kind": "signature",
+      "va": "0x00610f1e",
+      "pattern": "d9 86 0c 04 00 00 51 d9 1c 24 e8 33 d9 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Passes +0x40C to 0x0060E860."
+    },
+    {
+      "name": "projection fov setup",
+      "kind": "signature",
+      "va": "0x0060e860",
+      "pattern": "55 8b ec 83 e4 f0 83 ec 08 56 57 8b f1 e8 9e d0 e0 ff 8b f8 e8 87 d0 e0 ff 8d 8e 40 01 00 00 f3 0f 2a c0 f3 0f 5a c0 f3 0f 2a cf f3 0f 5a c9 f2 0f 5e c1 f2 0f 5a c0 f3 0f 11 41 10 f3 0f 10 45 08 0f 5a c0 f2 0f 58 05 88 7c fb 00 c7 01 00 00 00 00 c7 41 04 00 00 00 00 89 41 08 89 79 0c 66 0f 5a c0 f3 0f 11 86 5c 01 00 00 f3 0f 10 05 10 30 f6 00 f3 0f 11 86 54 01 00 00 f3 0f 10 05 24 51 fa 00 6a 00 f3 0f 11 86 58 01 00 00 e8 be c4 44 00 0f 28 86 70 01 00 00 0f 29 86 b0 03 00 00 0f 28 86 80 01 00 00 0f 29 86 c0 03 00 00 0f 28 86 90 01 00 00 0f 29 86 d0 03 00 00 0f 28 86 a0 01 00 00 5f 0f 29 86 e0 03 00 00 5e 8b e5 5d c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores +0x15C = argument + 0.5235988, near 0.25 at +0x154 and far 10000.0 at +0x158, then builds the projection."
+    },
+    {
+      "name": "projection near",
+      "kind": "signature",
+      "va": "0x00f63010",
+      "pattern": "00 00 80 3e",
+      "mask": "ff ff ff ff",
+      "note": "Float 0.25."
+    },
+    {
+      "name": "projection far",
+      "kind": "signature",
+      "va": "0x00fa5124",
+      "pattern": "00 40 1c 46",
+      "mask": "ff ff ff ff",
+      "note": "Float 10000.0."
+    },
+    {
+      "name": "projection flag branch",
+      "kind": "signature",
+      "va": "0x00610f2d",
+      "pattern": "80 7d 08 00 0f 84 b3 00 00 00 d9 86 0c 04 00 00 d9 9e 08 04 00 00 e8 c8 a9 e0 ff 8b f8 e8 b1 a9 e0 ff 8d 8e 40 01 00 00 f3 0f 2a c0 f3 0f 5a c0 f3 0f 2a cf f3 0f 5a c9 f2 0f 5e c1 f2 0f 5a c0 f3 0f 11 41 10 f3 0f 10 05 ec 7d fb 00 c7 01 00 00 00 00 c7 41 04 00 00 00 00 89 41 08 89 79 0c d9 86 08 04 00 00 f3 0f 11 86 54 01 00 00 d9 9e 5c 01 00 00 f3 0f 10 05 e8 7d fb 00 6a 00 f3 0f 11 86 58 01 00 00 e8 f8 9d 44 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reached only with a nonzero argument. Copies +0x40C to +0x408 and +0x15C, near 0.01 and far 1000.0."
+    },
+    {
+      "name": "flag branch near",
+      "kind": "signature",
+      "va": "0x00fb7dec",
+      "pattern": "0a d7 23 3c",
+      "mask": "ff ff ff ff",
+      "note": "Float 0.01."
+    },
+    {
+      "name": "flag branch far",
+      "kind": "signature",
+      "va": "0x00fb7de8",
+      "pattern": "00 00 7a 44",
+      "mask": "ff ff ff ff",
+      "note": "Float 1000.0."
+    },
+    {
+      "name": "projection mode 0 arm",
+      "kind": "signature",
+      "va": "0x00a5aee9",
+      "pattern": "d9 46 18 83 ec 10 d9 5c 24 0c 8d 54 24 60 d9 46 14 d9 5c 24 08 d9 46 10 d9 5c 24 04 d9 46 1c d9 1c 24 52 e8 af 49 d8 ff 83 c4 14 8d 44 24 50 50 8d 4c 24 14 e8 4e a7 ae ff 0f 28 44 24 10 0f 29 46 30 0f 28 44 24 20 0f 29 46 40 0f 28 44 24 30 0f 29 46 50 0f 28 44 24 40 0f 29 46 60 5e 8b e5 5d c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Passes +0x1C, +0x10, +0x14 and +0x18 of the projection block to 0x007DF8C0."
+    },
+    {
+      "name": "crt atan name",
+      "kind": "string",
+      "va": "0x012ead50",
+      "text": "atan",
+      "note": "Error name of the routine at 0x009DAC80."
+    },
+    {
+      "name": "pitch builder",
+      "kind": "signature",
+      "va": "0x0061f250",
+      "pattern": "55 8b ec 83 e4 f0 83 ec 2c 0f 28 05 60 f7 fb 00 d9 45 0c 56 8b 75 08 0f 29 44 24 20 0f 28 05 60 7a fb 00 0f 29 06 e8 05 70 3b 00 d9 5c 24 0c d9 45 0c e8 29 71 3b 00 d9 5c 24 08 f3 0f 10 05 50 66 08 01 d9 44 24 08 f3 0f 11 44 24 10 d9 e0 f3 0f 10 44 24 0c f3 0f 11 44 24 14 f3 0f 10 44 24 08 f3 0f 11 44 24 18 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 1c 0f 28 44 24 10 0f 29 46 10 d9 5c 24 08 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 10 f3 0f 10 44 24 08 f3 0f 11 44 24 14 f3 0f 10 44 24 0c f3 0f 11 44 24 18 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 1c 0f 28 44 24 10 0f 29 46 20 0f 28 44 24 20 0f 29 46 30 8b c6 5e 8b e5 5d c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Rotation about X for the context +0x8 angle."
+    },
+    {
+      "name": "yaw builder",
+      "kind": "signature",
+      "va": "0x0060d290",
+      "pattern": "55 8b ec 83 e4 f0 83 ec 4c 0f 28 05 60 f7 fb 00 d9 45 0c 0f 29 44 24 3c 0f 28 05 80 6d fb 00 56 8b 75 08 0f 29 44 24 30 e8 c3 8f 3c 00 d9 5c 24 08 d9 45 0c e8 e7 90 3c 00 d9 5c 24 0c f3 0f 10 44 24 08 d9 44 24 0c f3 0f 11 44 24 10 d9 e0 f3 0f 10 05 50 66 08 01 d9 5c 24 2c f3 0f 11 44 24 14 f3 0f 10 44 24 2c f3 0f 11 44 24 18 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 1c 0f 28 44 24 10 0f 29 06 0f 28 44 24 30 0f 29 46 10 f3 0f 10 44 24 0c f3 0f 11 44 24 10 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 14 f3 0f 10 44 24 08 f3 0f 11 44 24 18 f3 0f 10 05 50 66 08 01 f3 0f 11 44 24 1c 0f 28 44 24 10 0f 29 46 20 0f 28 44 24 40 0f 29 46 30 8b c6 5e 8b e5 5d c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Rotation about Y for the context +0xC angle."
+    }
+  ]
+}

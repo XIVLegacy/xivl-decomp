@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import _schema_check
+import verify_camera_input_chain as camera_input_verifier
 import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_music_song_resources as music_song_verifier
@@ -436,6 +437,13 @@ def main() -> int:
     if sun_moon_errors:
         errors.extend(
             f"sun and moon orientation contract: {error}" for error in sun_moon_errors
+        )
+    camera_input_errors = (
+        camera_input_verifier.verify() + camera_input_verifier.mutation_test()
+    )
+    if camera_input_errors:
+        errors.extend(
+            f"camera input chain contract: {error}" for error in camera_input_errors
         )
     skeleton_composition_errors = skeleton_composition_verifier.verify()
     if skeleton_composition_errors:
