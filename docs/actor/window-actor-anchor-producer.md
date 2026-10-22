@@ -97,8 +97,13 @@ PrimaryLabel instance.
 
 ## Target production
 
-At `0x007F8D20`, both keys are looked up in the scene-actor tree rooted at
-`*(WindowActor+0x118)+0x54` through `0x007A0150`:
+At `0x007F8D20`, both keys are looked up through `0x007A0150`.
+Instruction `0x007F8D46` passes `*(WindowActor+0x118)+0x54` as the wrapper
+receiver. Instruction `0x007A0156` adds another `0x30` before calling tree
+lookup `0x0071D420`, so the final tree receiver is the scene pointer plus
+`0x84`. The `+0x54` wrapper and `+0x84` tree are different native bases.
+The [mesh input finding](mesh-matrix-input.md#delivery-lifetime-and-admission)
+separates this keyed identity path from complete body/equipment admission:
 
 ```text
 pA = registry_lookup(WindowActor+0x1AC)

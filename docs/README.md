@@ -15,6 +15,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Character and effect animation bank routing](actor/animation-bank-routing.md)
 - [Actor architecture](actor/architecture.md)
 - [Character movement displacement branch](actor/character-movement-displacement.md)
+- [Mesh matrix input and shared renderer state](actor/mesh-matrix-input.md)
 - [Background visibility ranges](actor/background-visibility.md)
 - [Indexed float storage and clamp](actor/indexed-float-clamp.md)
 - [Camera context registration and selection](actor/camera-context-selection.md)
