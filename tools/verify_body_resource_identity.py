@@ -34,6 +34,59 @@ HEADER = struct.Struct("<23I")
 CORE = struct.Struct("<295I")
 PLACEMENT = struct.Struct("<125I")
 KEY = 1000476
+RTTI_SHA256 = "DE199A40B0BC723FC9CDC9E9F6FFEC087C91277AB01110A525C8D3376571A5D6"
+PROBE_WRITERS = {
+    "D1EE2C7719686656749CE8F98CCB00B987E919C5107E4744AA164F8637DE3C7B": (
+        5,
+        0x1004EC80,
+        607,
+        0x1004EDF9,
+        0x1004EE05,
+        0x1004EE16,
+        0x10051E00,
+        166,
+    ),
+    "55D0BEE4F8690E589B91CCC0E9B13FF9C56BFFA51D22B5A0F0D44138FBF58B8A": (
+        5,
+        0x10050CE0,
+        607,
+        0x10050E59,
+        0x10050E65,
+        0x10050E76,
+        0x10052AD0,
+        166,
+    ),
+    "964151C767A834D7A4506C4D8D705411B8A78F6828AC2CB5AA05ED1A1C5E85C5": (
+        4,
+        0x100515A0,
+        445,
+        0x100516E7,
+        0x100516F3,
+        0x10051704,
+        0x1004FC60,
+        147,
+    ),
+    "A15C89BC2C169298B88985DDB9C66C962AA6093F01EF30AB8A54241C28E2D07E": (
+        4,
+        0x1004EE20,
+        445,
+        0x1004EF67,
+        0x1004EF73,
+        0x1004EF84,
+        0x1003C6C0,
+        147,
+    ),
+}
+PROBE_KEYS = {
+    "FD0CBDD4E63C3C5E4EF895FF65CA3D95804EC8DF9F92C500D56A2BA7B985259A": (
+        0x10040470,
+        "115197FCFA85BA04D6FBA62A4247027C8D79018C8138605B6EBDCD644C5587F3",
+    ),
+    "1A40DF663FD3C82E0E4EDCD2FF4E28A51942EC6F8C20827B89A8C7FFB4FBBB1D": (
+        0x100490A0,
+        "7E9218D723D418E467A9CAA597D6CD721873DD8E4F3D6373BC4F1303B72F2D65",
+    ),
+}
 RETAINED_INPUTS = {
     "48B2DDAC9520A3C1F723914BFCFF3AE58A3D4BB53B79F28A74175E8C1FC81377": (
         "primary-label-context-probe-stationary-no-draw.bin",
@@ -217,7 +270,151 @@ def registry_replay(image):
     return results
 
 
-def inspect_retained_capture(data):
+def v3_vtable_literals(pe, data):
+    catalog_bytes = (
+        Path(__file__).resolve().parent.parent / "config/ffxivgame.rtti.json"
+    ).read_bytes()
+    if hashlib.sha256(catalog_bytes).hexdigest().upper() != RTTI_SHA256:
+        raise ValueError("RTTI catalog SHA-256 mismatch")
+    catalog = json.loads(catalog_bytes)
+    assert catalog["metadata"]["source_sha256"].upper() == PIN
+    tables = {BASE + row["rva"]: row for row in catalog["classes"]}
+    assert len(tables) == len(catalog["classes"]) == 5719
+    # Validate the cataloged entry -> COL pointers against the pinned PE.
+    for table, row in tables.items():
+        assert struct.unpack("<I", pe.get_data(table - 4 - BASE, 4))[0] == (
+            BASE + row["locator_rva"]
+        )
+    hits = {}
+    for record in struct.iter_unpack("<206I", data[72:]):
+        for word, value in enumerate(record):
+            if value in tables:
+                assert record[1] == 2
+                hits.setdefault(value, Counter())[word * 4] += 1
+    assert hits == {
+        0x106E844: {252: 1196},
+        0x1074554: {284: 1196, 348: 1196, 380: 1196},
+        0x107F304: {316: 1196},
+        0x107A9B4: {412: 1196},
+        0x106A0BC: {444: 1196},
+        0xF912E4: {476: 1196},
+    }
+    matches = []
+    for table, offsets in hits.items():
+        locator = BASE + tables[table]["locator_rva"]
+        descriptor = struct.unpack("<I", pe.get_data(locator + 12 - BASE, 4))[0]
+        name = pe.get_data(descriptor + 8 - BASE, 256).split(b"\0", 1)[0]
+        assert name.startswith(b".?AV") and name.endswith(b"@@")
+        matches.append(
+            dict(
+                table_va=hex(table),
+                col_va=hex(locator),
+                type_descriptor_va=hex(descriptor),
+                original_rtti=name.decode("ascii"),
+                raw_record_offsets=dict(offsets),
+            )
+        )
+    return dict(
+        catalog_sha256=RTTI_SHA256,
+        cataloged_entry_vas=5719,
+        matches=matches,
+        boundary="Aligned words of the exact v3 record bodies only. Literal matches to cataloged fixed-image entry VAs do not type any captured pointee or assign a field schema. No other cataloged entry VA occurs there; encoded, indirect, unaligned, rebased or uncataloged type evidence remains outside this check.",
+    )
+
+
+def probe_key_replay(pe, digest):
+    entry, body_pin = PROBE_KEYS[digest]
+    base = pe.OPTIONAL_HEADER.ImageBase
+    assert pe.FILE_HEADER.Machine == 0x14C and base == 0x10000000
+    code = pe.get_data(entry - base, 62)
+    assert hashlib.sha256(code).hexdigest().upper() == body_pin
+    uc = Uc(UC_ARCH_X86, UC_MODE_32)
+    page = entry & ~0xFFF
+    uc.mem_map(page, 0x1000)
+    uc.mem_write(page, pe.get_data(page - base, 0x1000))
+    uc.mem_map(0x30000000, 0x10000)
+    stack, stop = 0x30008000, 0x3000F000
+    uc.mem_write(stack, struct.pack("<2I", stop, 0x79))
+    uc.reg_write(UC_X86_REG_ESP, stack)
+
+    def code_hook(_uc, address, _size, _user):
+        assert address == stop or entry <= address < entry + 62
+
+    def read_hook(_uc, _access, address, size, _value, _user):
+        assert stack - 0x1000 <= address and address + size <= stack + 8
+
+    uc.hook_add(UC_HOOK_CODE, code_hook)
+    uc.hook_add(UC_HOOK_MEM_READ, read_hook)
+    uc.emu_start(entry, stop, count=1000)
+    assert uc.reg_read(UC_X86_REG_EIP) == stop
+    assert uc.reg_read(UC_X86_REG_ESP) == stack + 4
+    assert uc.reg_read(UC_X86_REG_EAX) == 0
+    return dict(
+        kind="built-in key predicate",
+        sha256=digest,
+        predicate_va=hex(entry),
+        predicate_bytes=62,
+        predicate_sha256=body_pin,
+        key=0x79,
+        result=0,
+        boundary="Native F10 predicate control with no stubs or enable-flag reads. Only predicate code and synthetic stack/stop are mapped. This excludes its built-in F10 arming path; other initialization, indirect/plugin, writer and historical load paths remain unqualified.",
+    )
+
+
+def inspect_probe_dll(data):
+    if not __debug__:
+        raise ValueError("optimized Python is unsupported")
+    digest = hashlib.sha256(data).hexdigest().upper()
+    if digest not in PROBE_WRITERS and digest not in PROBE_KEYS:
+        raise ValueError("probe DLL SHA-256 mismatch")
+    pe = pefile.PE(data=data, fast_load=True)
+    if digest in PROBE_KEYS:
+        return probe_key_replay(pe, digest)
+    version, flush, flush_size, multiply, push_size, call, publish, publish_size = (
+        PROBE_WRITERS[digest]
+    )
+    base = pe.OPTIONAL_HEADER.ImageBase
+    assert pe.FILE_HEADER.Machine == 0x14C and base == 0x10000000
+    header_size, header = (92, 0x1034E0F8) if version == 5 else (76, 0x101570F8)
+    assert struct.unpack("<4I", pe.get_data(header - base, 16)) == (
+        0x434C5050,
+        version,
+        1180,
+        131072,
+    )
+    decoder = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_32)
+    anchors = (
+        (multiply, "imul", "eax, edi, 0x49c" if version == 5 else "eax, esi, 0x49c"),
+        (multiply + 6, "push", "eax"),
+        (push_size, "push", hex(header_size)),
+        (push_size + 2, "push", hex(header)),
+        (call, "call", hex(publish)),
+    )
+    for va, mnemonic, operands in anchors:
+        instruction = next(decoder.disasm(pe.get_data(va - base, 15), va))
+        assert (instruction.mnemonic, instruction.op_str) == (mnemonic, operands)
+    for va, size in ((flush, flush_size), (publish, publish_size)):
+        code = pe.get_data(va - base, size)
+        assert len(code) == size
+        assert sum(i.size for i in decoder.disasm(code, va)) == size
+    return dict(
+        kind="direct-writer argument setup",
+        sha256=digest,
+        version_initializer=version,
+        flush_va=hex(flush),
+        flush_body_bytes=flush_size,
+        record_multiply_va=hex(multiply),
+        header_size_push_va=hex(push_size),
+        publish_call_va=hex(call),
+        publish_va=hex(publish),
+        publish_body_bytes=publish_size,
+        serialized_header_bytes=header_size,
+        native_record_byte_multiplier=1180,
+        boundary="Pinned native direct-writer argument setup and contiguous PDB-sized body decoding only. Its header/record sizes differ from v3 72/824. Validation, OS file I/O and alternate or dormant writer paths are not executed or exhaustively excluded; no capture-to-loaded-DLL attribution or v3 schema is established.",
+    )
+
+
+def inspect_retained_capture(data, pe):
     if not __debug__:
         raise ValueError("optimized Python is unsupported")
     digest = hashlib.sha256(data).hexdigest().upper()
@@ -262,6 +459,7 @@ def inspect_retained_capture(data):
         key_record_offset="0x20",
         raw_tuple_at_20=[dict(words=words, count=n) for words, n in tuples.items()],
         zero_tuple_indices=zero_indices,
+        vtable_literals=v3_vtable_literals(pe, data),
         boundary="Pinned framing and raw offsets only. Full v3 producer/schema is unqualified; no opaque word is labeled as a Scene result/type. Other record bytes may contain unqualified data. This is a different instance from the accepted v5 capture.",
     )
     return result
@@ -744,6 +942,7 @@ def main():
     for name in ("exe", "asset", "capture", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--retained-capture", type=Path, action="append", default=[])
+    parser.add_argument("--probe-dll", type=Path, action="append", default=[])
     args = parser.parse_args()
     if not __debug__:
         parser.error("run without Python optimization")
@@ -765,10 +964,13 @@ def main():
         framing=body_frames(asset),
         capture=inspect_accepted_v5(args.capture.read_bytes()),
         retained=[
-            inspect_retained_capture(path.read_bytes())
+            inspect_retained_capture(path.read_bytes(), pe)
             for path in args.retained_capture
         ],
         registry=registry_replay(image),
+        probe_controls=[
+            inspect_probe_dll(path.read_bytes()) for path in args.probe_dll
+        ],
         factory=[
             factory_replay(image, asset, mode)
             for mode in ("wrapper_return", "first_span")

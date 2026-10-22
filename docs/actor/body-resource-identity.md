@@ -17,7 +17,7 @@ after resource identity, with its separate admission conditions.
 | Examined contract | Verdict | Boundary |
 | --- | --- | --- |
 | Captured local ID to WindowActor key | PROVEN for the pinned capture | The registry result and its type were not recorded |
-| Older retained key data to actual Scene result/type | INCOMPLETE | Raw v3 key positions are verified; its full producer/schema remains unqualified |
+| Older retained key data to actual Scene result/type | INCOMPLETE | Raw v3 key positions and cataloged table literals are verified; examined native paths leave its producer/schema unqualified |
 | Requested appearance/path identifies the active root | REJECTED within native finite cases | Requested, applied, pending and loaded domains can differ |
 | Concrete factory to pinned PWIB input | PROVEN for supplied `0x00FE96FC` receiver and pinned bytes | Root return, copy and first-span selection replayed; descendant factories joined statically |
 | Actual intended actor to pinned SHD/WRB | INCOMPLETE | Actual Scene result/type, applied appearance, receiver and completed root/byte identity |
@@ -118,6 +118,29 @@ equals actor+0xBA0; that arithmetic does not turn a Main object into a
 Scene actor. This older instance is separate from the accepted v5
 PID 23884/Main `0x2EE90048`/WindowActor `0x29800340` instance.
 
+The verifier compares every aligned word of the v3 record bodies with the
+5719 entry VAs in [the RTTI catalog](../../config/ffxivgame.rtti.json),
+SHA-256 `DE199A40B0BC723FC9CDC9E9F6FFEC087C91277AB01110A525C8D3376571A5D6`.
+It checks each table's preceding COL pointer against the pinned retail PE,
+then reads each matching value's original RTTI name through that PE's COL
+and type descriptor. Only these six cataloged values occur:
+
+| Literal table VA | Original RTTI name | Raw record byte offsets |
+| --- | --- | --- |
+| `0x0106E844` | `.?AVTextBlock@Controls@Sqwt@@` | 252 |
+| `0x01074554` | `.?AVGrid@Controls@Sqwt@@` | 284, 348, 380 |
+| `0x0107F304` | `.?AVStackPanel@Controls@Sqwt@@` | 316 |
+| `0x0107A9B4` | `.?AVContentPresenter@Controls@Sqwt@@` | 412 |
+| `0x0106A0BC` | `.?AVWindow@Sqwt@@` | 444 |
+| `0x00F912E4` | `.?AVRaptureElementContainer@Main@Application@@` | 476 |
+
+Each listed offset has 1196 occurrences, all in records whose raw +4 word
+is 2. None of the other cataloged entry VAs occurs in an aligned record word.
+These names identify the matching retail table values, not the types of
+captured pointees or an inferred v3 field layout. They supply no literal
+cataloged Scene actor vptr at an aligned offset. Encoded, indirect, unaligned,
+rebased or uncataloged type evidence remains outside this check.
+
 Within the retained 369-entry evidence inventory (`manifest.json`, SHA-256
 `3FAF6C8448D9A414E8FF0C9F8051045B11A3568853D44BD79E403D2D59E8385A`),
 333 text files supplied no explicit 824-byte/version-3 producer or parser
@@ -129,11 +152,67 @@ by GUID/age and held gHeader initializers for version 4 or 5 with 1180-byte
 records. LLVM llvm-pdbutil 22.1.4 supplied complete `dump --types` TPI
 streams and `dump --globals` gHeader locators; pefile 2024.8.26 translated
 the matched section/offset symbols to PE initializer bytes.
-Two other unique retained DLLs lacked matching PDBs and remain unqualified
-native producer candidates. No whole-DLL absence claim follows from this
-search. An opaque record word could still contain useful data; similar
-offsets in later layouts are insufficient to name it as a Scene pointer
-or vptr.
+The native path checks below narrow these candidates without qualifying the
+v3 producer. An opaque record word could still contain useful data; similar
+offsets in later layouts are insufficient to name it as a Scene pointer or vptr.
+
+### Native producer candidates
+
+The four PDB-matched DLLs' direct writers use incompatible serialized sizes,
+beyond their static header initializers. LLVM `dump --globals` resolves
+FlushCapture/PublishBytes procedure references to module 13's
+`dump --symbols --modi=13` records. The matched PDB records supply the
+procedure extents; Capstone decodes each complete contiguous body and its
+argument setup. All addresses in the following two tables are preferred
+probe-DLL VAs, base `0x10000000`, rather than retail-client or process VAs.
+
+| Exact probe DLL SHA-256 | FlushCapture VA | Record multiply VA | Header-size push VA | PublishBytes call / target VA |
+| --- | --- | --- | --- | --- |
+| `D1EE2C7719686656749CE8F98CCB00B987E919C5107E4744AA164F8637DE3C7B` | `0x1004EC80` | `0x1004EDF9` | `0x1004EE05` | `0x1004EE16` / `0x10051E00` |
+| `55D0BEE4F8690E589B91CCC0E9B13FF9C56BFFA51D22B5A0F0D44138FBF58B8A` | `0x10050CE0` | `0x10050E59` | `0x10050E65` | `0x10050E76` / `0x10052AD0` |
+| `964151C767A834D7A4506C4D8D705411B8A78F6828AC2CB5AA05ED1A1C5E85C5` | `0x100515A0` | `0x100516E7` | `0x100516F3` | `0x10051704` / `0x1004FC60` |
+| `A15C89BC2C169298B88985DDB9C66C962AA6093F01EF30AB8A54241C28E2D07E` | `0x1004EE20` | `0x1004EF67` | `0x1004EF73` | `0x1004EF84` / `0x1003C6C0` |
+
+The first two multiply the supplied core count by `0x49C` (1180), push
+header size `0x5C` (92), and also supply a placement region with stride
+`0x1F4` (500). Their FlushCapture/PublishBytes bodies are 607/166 bytes.
+The last two multiply by the same 1180 and push `0x4C` (76), with body
+extents 445/147 bytes. The examined PublishBytes paths forward the supplied
+header and payload spans to exact-write services before file publication.
+These direct writer paths are REJECTED as serializers of the pinned v3
+72/824 framing. Validation success, OS I/O, historical module loading and
+every alternate or dormant writer path are not established by these checks.
+
+Two other unique retained DLLs lack matching PDBs. REA with Ghidra 12.1.3,
+corroborated by pefile and Capstone, followed their exported initializer,
+render-hook installation, CreateDevice/Present and built-in input paths:
+
+| Exact probe DLL SHA-256 | Runtime initializer VA | Present VA | Complete built-in key predicate VA |
+| --- | --- | --- | --- |
+| `FD0CBDD4E63C3C5E4EF895FF65CA3D95804EC8DF9F92C500D56A2BA7B985259A` | `0x10043AE0` | `0x10038E10` | `0x10040470..0x100404AD` |
+| `1A40DF663FD3C82E0E4EDCD2FF4E28A51942EC6F8C20827B89A8C7FFB4FBBB1D` | `0x1004C580` | `0x10041B70` | `0x100490A0..0x100490DD` |
+
+Their examined initializer and Present paths did not supply the retained
+PrimaryLabel installation/Present route. The complete 62-byte key predicates
+compare only `0x7A`/`0x7B` (F11/F12), subject to enable flags. F10 (`0x79`)
+takes both unequal branches and returns zero without reading those flags.
+The verifier executes that F10 path with only native predicate code and a
+synthetic stack mapped, with no stubs. This REJECTS the built-in F10 arming
+route at those predicates, not either whole DLL as a possible producer.
+The retained input source's gated F10/Arm call at `input.cpp:257..281`,
+SHA-256 `24DECFA55CFF67A811432B6E9EE0D8C1D9AF0E28A51ED99AF95D126E6433801A`,
+selected this comparison; it is not assigned as either DLL's exact source.
+
+Generic stream/file writers, serializer callbacks, CRT/TLS initialization
+and indirect addon/plugin paths remain outside a whole-program exclusion.
+For the second DLL, hook installer `0x10037360` positively selects callback
+`0x100379A0`. Ghidra did not define that procedure; Capstone decoded the
+513-byte span through RET at `0x10037B9E..0x10037BA0`, including an indirect
+text sink at `0x10037B0B` and original call at `0x10037B62`. The sink's
+transitive pipeline remains unqualified. No exact v3 producer, full 824-byte
+schema, or capture-to-loaded-DLL association follows from these path bounds.
+
+### Other retained inputs and lookup
 
 Four other retained raw inputs contain no literal little-endian u32
 1000476 under an exhaustive byte search:
@@ -290,6 +369,11 @@ the raw v3 framing/key-offset checks or the four literal-only scans above.
 Unknown digests are rejected. The v3 check deliberately leaves the rest of
 each record untyped. Registry lookup controls run with or without these
 optional inputs.
+
+Add `--probe-dll <file>` once per pinned DLL above to check the four direct
+writer argument setups or execute the two built-in F10 predicate controls.
+Unknown DLL digests are rejected. The v3 literal-table scan also uses the
+repository's pinned RTTI catalog; it does not assign a producer schema.
 
 The tool rejects optimized Python and existing output files. Three native
 stage/apply cases execute `0x006623F0/0x0065D730`, then separately supplied
