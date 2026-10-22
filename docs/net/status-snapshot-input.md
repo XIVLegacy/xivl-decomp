@@ -55,7 +55,10 @@ contract is already recorded in
 `xivl-opcodes@347e2cfbed8814043dfd38bd18e6af8bfa38ab79:data/client_opcode_semantics.json#s2c-0179`.
 The [System receiver's fields](../event/actor-substat-receiver.md) are offsets
 within a constructed receiver object; its byte at `+0x14` is not a direct
-wire-payload field. This selected case does not establish the meaning of
+wire-payload field. The
+[status wire translation](../actor/status-wire-translation.md) records how a
+wire value becomes the receiver's key and the single-slot opcode `0x0177` that
+feeds the same path. This selected case does not establish the meaning of
 individual identifiers, status causality, server policy or visible effects.
 
 ## Retained observations and reproduction

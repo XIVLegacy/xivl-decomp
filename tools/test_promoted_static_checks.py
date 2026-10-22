@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the timer handler, player profile and sun and moon static checks."""
+"""Tests for the timer handler, player profile, sun and moon, camera and status static checks."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import verify_camera_input_chain as camera  # noqa: E402
 import verify_player_profile_accessors as profile  # noqa: E402
 import verify_s2c_0193_native_state as timer  # noqa: E402
+import verify_status_wire_translation as status  # noqa: E402
 import verify_sun_moon_orientation as moon  # noqa: E402
 
 
@@ -296,11 +297,115 @@ def camera_checks() -> None:
     )
 
 
+def status_checks() -> None:
+    document = json.loads(status.MANIFEST.read_text(encoding="ascii"))
+    row = next(
+        i for i in document["staticChecks"] if i["name"] == "translation sequence"
+    )
+    code = bytes.fromhex(row["pattern"])
+
+    def minus_key(wire: int) -> int:
+        return 200000 + wire - (0x4350 if wire > 0x8000 else 0)
+
+    check(
+        "the manifest translation bytes reproduce the model at every edge",
+        all(
+            status.run_translation(code, wire) == key
+            for wire, key in status.EDGES
+            if wire
+        ),
+    )
+    check(
+        "the add in the translation bytes is load bearing",
+        status.run_translation(code[:-2] + b"\x2b\xc1", 0x8001) != 250001
+        and status.run_translation(code[:-2] + b"\x2b\xc1", 0x0001) != 200001,
+    )
+    check(
+        "the 0x8000 floor in the translation bytes is load bearing",
+        code[:2] == b"\x66\xba"
+        and status.run_translation(b"\x66\xba\xff\x7f" + code[4:], 0x8000)
+        != status.status_key(0x8000),
+    )
+    check(
+        "the strict comparison sends 0x8000 to the low branch",
+        status.status_key(0x8000) == 232768 and status.status_key(0x8001) == 250001,
+    )
+    check(
+        "the zero id has no key and a wider id is rejected",
+        status.status_key(0) is None
+        and all(
+            _raises(lambda value=value: status.status_key(value))
+            for value in (-1, 0x10000)
+        ),
+    )
+    keys = {wire: status.status_key(wire) for wire in range(1, 0x10000)}
+    check(
+        "no two wire ids share a key and every key round trips",
+        len(set(keys.values())) == len(keys)
+        and all(status.wire_for_key(key) == wire for wire, key in keys.items()),
+    )
+    check(
+        "the images are 200001 to 232768 and 250001 to 282767",
+        min(keys.values()) == 200001
+        and max(keys.values()) == 282767
+        and keys[0x8000] == 232768
+        and not any(232768 < key < 250001 for key in keys.values()),
+    )
+    check(
+        "the three observed joins hold under both forms",
+        all(
+            status.status_key(wire) == minus_key(wire) == row_id
+            for wire, row_id in ((0x5A59, 223129), (0x5ADF, 223263), (0x5DBF, 223999))
+        ),
+    )
+    check(
+        "the four high sheet rows have wire ids only under the added form",
+        all(
+            keys[wire] == row_id
+            for row_id, wire in zip(
+                status.SHEET_HIGH_ROWS, (0x83E9, 0x8BB9, 0x8BBA, 0x8BBB), strict=True
+            )
+        )
+        and not {251001, 253001, 253002, 253003}
+        & {minus_key(wire) for wire in range(1, 0x10000)},
+    )
+    check(
+        "the subtracting form puts 0x9DA9 on a different row than the added form",
+        minus_key(0x9DA9) == 223129 and status.status_key(0x9DA9) == 257593,
+    )
+    check(
+        "the sheet low rows lie in the low image",
+        all(
+            status.wire_for_key(key) == key - 200000
+            for key in (
+                status.SHEET_LOW_ROWS["min"],
+                status.SHEET_LOW_ROWS["max"],
+            )
+        ),
+    )
+    check(
+        "keys in the gap have no wire id",
+        status.wire_for_key(232769) is None
+        and status.wire_for_key(250000) is None
+        and status.wire_for_key(200000) is None
+        and status.wire_for_key(282768) is None,
+    )
+
+
+def _raises(call) -> bool:
+    try:
+        call()
+    except ValueError:
+        return True
+    return False
+
+
 def main() -> int:
     exercise("timer handler", timer, timer.MANIFEST)
     exercise("player profile", profile, profile.MANIFEST)
     exercise("sun and moon", moon, moon.MANIFEST)
     exercise("camera input chain", camera, camera.MANIFEST)
+    exercise("status wire translation", status, status.MANIFEST)
 
     sentinel = 0xFFFFFFFF
     check(
@@ -385,6 +490,7 @@ def main() -> int:
     )
 
     camera_checks()
+    status_checks()
 
     if FAILED:
         print(f"FAIL: {len(FAILED)} of {len(FAILED) + len(PASSED)}")
