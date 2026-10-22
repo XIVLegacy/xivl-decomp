@@ -141,6 +141,9 @@ of the Land. Both have `secondary-named` title confidence. The owning study's
 revision and digest. Resource presence and the metadata above do not upgrade
 those labels to authenticated official titles.
 
+The [song-ID resource table](music-song-table.md) covers the full song ID span
+and the missing-file path.
+
 The same rows report normal Black Shroud battles for 13 and Black Shroud
 field use from patch 1.18 onward for 57, with secondary usage confidence.
 `xivl-captures:studies/music-000c-wire/derived/map-context.md` owns the

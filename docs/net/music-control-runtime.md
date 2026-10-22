@@ -34,8 +34,10 @@ new song. The [selected 13/57 resource check](../resource/music-id-resources.md)
 records retained numeric-path files, their constructor-time ResourceModule
 binding and the remaining call-time/formatter-mode limits.
 There is no song-ID-zero or song-ID-`0xFFFF` branch in this control
-body. They produce `0x07FE0000` and `0x07FEFFFF`, respectively. Resource
-existence and the downstream effect of either ID remain unresolved.
+body. They produce `0x07FE0000` and `0x07FEFFFF`, respectively. The
+[song-ID resource table](../resource/music-song-table.md) records which
+resource IDs name installed files. The effect of a missing file on the sound
+object remains unproved.
 
 ## Selected slots and operations
 
