@@ -98,8 +98,9 @@ it a user setting.
 
 The float getter and clamp at `+0x3F4 + index*4` are documented in
 [indexed float storage](indexed-float-clamp.md). An observation of its first
-two slots must retain their values separately from the context key; the
-native meanings of those indices are unresolved.
+two slots must retain their values separately from the context key. The
+[camera input chain](camera-input-chain.md) records keys 1, 3, 5, 8, 9 and 10,
+the key selected by a fresh session and the writers of slots 0 and 1.
 
 ## Observation limits
 

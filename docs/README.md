@@ -20,6 +20,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Camera context registration and selection](actor/camera-context-selection.md)
 - [CameraActor transform input path](actor/camera-transform-inputs.md)
 - [Key-2 camera endpoint calculation](actor/camera-endpoint-calculation.md)
+- [Camera input chain](actor/camera-input-chain.md)
 - [CharaActor camera object inputs](actor/camera-object-inputs.md)
 - [RaptureModelObject camera input getters](actor/rapture-camera-inputs.md)
 - [Appearance-dirty model apply path](actor/appearance-dirty-apply.md)
