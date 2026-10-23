@@ -422,15 +422,19 @@ command 24236.
 `_getExtendedTemporaryGroupCurrent(type)` at lines 357-366 of
 `xivl-client-scripts:lua/scripts/chara/charabaseclass_cliprog.lua`. The native
 binding at `0x0072f460` registers callback thunk `0x0071e000`. That thunk calls
-MyPlayer vtable slot 38 (`0x00706a40`, then `0x00701710`) with the literal
-extended selector 1. `0x00701710` reads the supplied type, reaches the Group
+slot 38 from its incoming receiver Q with the literal extended selector 1.
+The published MyPlayer slot mapping is `0x00706a40`, then `0x00701710`;
+this target applies only if Q selects that vtable entry. Q's actual vtable and
+the producer of its forwarded parameter block B remain unbound.
+`0x00701710` reads the supplied type, reaches the Group
 registry through the same owner-side `+0xe4` field used by chat, and resolves
 the current entry through `0x006c20c0`. The returned object becomes selector 2
 of `_chat`; the script's literal 1 becomes selector 3. At `0x006e93a5`, the
 native group branch retrieves those selectors, subtracts one from the latter,
 and passes the address of the former object's `+0x68` field to `0x006c0590`,
-which dereferences that field. This is a complete static chain from the active
-player-linkshell selection to the token read and subsequent `0x00c9` emission.
+which dereferences that field. The script connects player-linkshell selection
+to chat, and the native call sites establish supplied-Group token lookup and
+`0x00c9` emission. The callback's actual invocation frame remains unbound.
 
 The `+0x70` token vector remains shared rather than linkshell-exclusive. The
 constructor at `0x006cbdd0` copy-constructs it for the ordinary EntryBuilder at
@@ -490,13 +494,30 @@ origins do not prove unequal objects. Actual current type-20002 allocation,
 token allocation, wrapper-source and secondary-u16 writer/display-domain
 identities remain unresolved.
 
+The registrar `0x0072f460` passes callback address `0x0071e000` to
+`0x00726460` at `0x0072f4da`. Through `0x007244c0`, this reaches
+`0x0071e090`, which stores the callback at descriptor K+0x08 and zero at
+K+0x0c at `0x0071e0d3..0x0071e0d6`. The constructor returns K, and the
+registrar passes it to `0x00cccad0`. That thunk forwards K to `0x00ce1750`
+with the registration context's +0x04 pointer as receiver and its first dword
+as the first explicit argument. These are descriptor retention and publication
+inputs, not the callback's eventual invocation frame.
+
+The callback prefix loads vtable slot 38 from its incoming receiver Q,
+forwards its incoming first explicit argument B, and supplies selector 1 before
+the indirect call at `0x0071e00f`. ECX remains Q. This directly establishes
+the slot and argument preparation, but does not identify Q's actual vtable or
+the producer of B. It therefore does not bind the getter's H to the snapshot's
+C or establish the remaining owner equality.
+
 The owner comparison used retail 1.23b `ffxivgame.exe`, 15,996,808 bytes,
 PE32 i386, image base `0x00400000`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Retained `tools/ghidra_scripts/DumpFunctions.java` listings matched the original
 PE bytes through pefile 2024.8.26 mappings. Capstone 5.0.7 independently decoded
 the complete envelopes below; ends are exclusive. They cover the getter and
-snapshot bodies, their caller preparation, and the common accessor.
+snapshot bodies, their caller preparation, the common accessor, and callback
+retention.
 
 | VA envelope | Bytes | Code SHA-256 |
 | --- | ---: | --- |
@@ -509,6 +530,19 @@ snapshot bodies, their caller preparation, and the common accessor.
 | `0x00cd7910..0x00cd7917` | 7 | `58beed9442fa84e2898a6468a1096bece7c950612ede928be4c9c05d280b198e` |
 | `0x004da680..0x004da996` | 790 | `97772f973217f195c99d1869cd947450667b1b9e26ef46ccd5fe4ea5cfa33e93` |
 | `0x00706a40..0x00706a49` | 9 | `99bdbd242a23386fb13d4257be877c663743e915160f9af1c818cccf2ebb2f9e` |
+| `0x0072f460..0x0072f5aa` | 330 | `5eeb538802d2cc06f8828941c13f95f3dc05e6b6e91ebd7436603cb087e5df7d` |
+| `0x00726460..0x0072650c` | 172 | `1c04e2ce41b61f69f189b2f75b18cdc941470d5e716dff4d73533a2bcbc011be` |
+| `0x00cccad0..0x00cccaec` | 28 | `fed7a4bbc1050c0216fb604987cd2f643750d4baec846a6dcfed8012e9594342` |
+| `0x007244c0..0x00724585` | 197 | `bbc886a8496eafd5c0d69ed61e89f383fa769f8fcfacecf4892fc42c2e4b629b` |
+| `0x0071e090..0x0071e0f3` | 99 | `5da10143ac67ee14c87f3bab2c2a081c874014cfbcfde60ab2e70e7ec1b4e15f` |
+
+The callback comparison read only the 128-byte range
+`0x0071e000..0x0071e080`, SHA-256
+`e8e8e682f7bd73af56e26a036fc46d36b8f0caec669b6bf0c3680bbe37bfa708`.
+Capstone decoding stopped at the first indirect call: six instructions,
+17 bytes in `0x0071e000..0x0071e011`, SHA-256
+`19671f67d1114e777222211f020dd0e4823102151239352d9e4cc132afb4d461`.
+This is a decoded prefix, not an established complete callback envelope.
 
 The `group` send path accepts an empty message: the control parser treats an
 initial NUL as success and no later nonempty check precedes `0x004df6d0`.
