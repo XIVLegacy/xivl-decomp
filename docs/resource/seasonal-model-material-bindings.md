@@ -371,6 +371,55 @@ decode, the selected UV set, source normals, handedness, averaging and byte
 quantization. A normal-map consumer alone does not authenticate a particular
 tangent-frame generation algorithm.
 
+### Native display and packing conventions
+
+The original PE also contained a CPU tangent-display consumer and float-to-byte
+packers. Python/pefile/Capstone checked 3,183 retained instruction boundaries
+and bytes in 17 selected functions. Two callback entries lacked retained
+Ghidra function boundaries: original caller-supplied entry pointers and linear
+decodes through their first returns covered another 24 instructions. This did
+not execute the functions or identify the historical model exporter.
+
+| Original PE locator | Observation |
+| --- | --- |
+| `0x00C34A08`, string `0x010D5C78` | Named the enclosing `0x00C34950` consumer `SQEX::CDev::Engine::Dw::Renderer::ModelInstanceNode::DrawTangentSpace`. |
+| `0x00C356B0..0x00C356BD`, `0x00C356EE..0x00C356FB` | Setup selected descriptor usages 2 and 13 into debug-row offsets `+0x0A/+0x0C`. Original WRB table entries `0x00F57DB8/0x00F57DCE` mapped those usages to NORMAL0 and TEXCOORD5. |
+| `0x00C34EB8..0x00C34F08`, `0x00C34FED..0x00C35053` | The display read the normal's three bytes and the basis's four bytes, subtracted 128 and divided by float 128 at `0x00FB6E84`. It used existing vertex bytes to draw the basis. |
+| `0x00C011A8..0x00C01306` | Clamped a finite float4 to `[0,1]`, multiplied by float 255 with `MULPS`, converted each component with x87 truncation and stored four bytes in input-component order. |
+| `0x00D82971..0x00D82A66`, helper `0x0042EBA0` | Supplied the same clamp/multiply/truncation shape to another packed float4 consumer. |
+| `0x00D740E9..0x00D74131`, `0x00D85510..0x00D85530` | A selected `VertexBufferWriter` setup used stride 16 and callback `0x00D91680`; Write called the supplied function pointer and advanced by the configured stride. |
+| `[0x00D91680,0x00D91699)`, `[0x00D91590,0x00D91678)` | The callback passed two source pointers to the second helper, which retained float XYZ and put the packed float4 result into the last four bytes of its 16-byte output. It did not generate a 28-byte cloud vertex or its TEXCOORD5 field. |
+| `0x00D9D6A4..0x00D9D6AA`, `[0x00D8A1A0,0x00D8A1C1)` | Another writer selected stride 32 and callback `0x00D8A1A0`, which called `0x00D89EB0`. |
+| `0x00D89FA8..0x00D8A0C6` within `[0x00D89EB0,0x00D8A19F)` | That helper initialized bias XYZ to 0.5 and W to zero, multiplied a supplied float4 by 0.5 with `MULPS`, added the bias with `ADDPS`, then called the 255-based packer. XYZ therefore followed an explicit signed-vector encoding before packing. This consumed a supplied vector rather than generating one from triangle geometry. |
+
+The VFX VertexBuffer serializer was a separate path. Original RTTI identified
+vtable `0x010D1994` as
+`SQEX::CDev::Engine::Vfx::VfxResourceFormat::VfxResourceModelAttribute::VertexBuffer`.
+Its slot 2, `0x00C0CB30`, emitted the header, component descriptions, offsets,
+padding and supplied vertex data. At `0x00C0CD82..0x00C0CD95` it passed the
+existing interleaved payload to `0x009D4600` with length `vertexCount * stride`.
+The separate-component fallback called `0x00C0B820`, whose format-8 branch
+at `0x00C0B8C0..0x00C0B8DA` interleaved existing component bytes.
+The selected byte-order fixup at `0x00C0A300` skipped format 8 in both layouts.
+These paths serialized existing packed values rather than deriving the cloud
+basis from positions, normals and UVs.
+
+The WRB [usage mapping](wrb-vertex-declaration.md#api-array-conversion)
+identified semantics separately from the debug display's arithmetic.
+The display's `(b-128)/128` differed from the cloud shader's `2*b/255-1`.
+The signed-XYZ writer's exact inputs `-1,0,1` produced bytes `0,127,255`
+under the traced operations, while zero in the display's inverse would be 128.
+A display decoder does not establish its inverse as the asset author's
+quantizer. The two paths must remain distinct when testing reconstruction.
+
+Both packers set x87 control-word bits 10 and 11 before `FISTP` and restored
+the previous word. Intel's [rounding-control specification](https://cdrdv2-public.intel.com/874241/253665-090-sdm-vol-1.pdf),
+Volume 1, section 4.8.4.1 and Table 4-9, defines that setting as truncation.
+It does not set the SSE multiplication's separate MXCSR rounding mode.
+The selected writers supply concrete packed-data producers, but no checked
+call joined them to the historical mxfv VertexBuffer. Their existence does not
+attribute that model's tangent-generation or packing convention.
+
 ## Selected vertex data and reconstruction boundary
 
 Each candidate selected 457 vertices with a 28-byte stride, 12,796 bytes in
@@ -478,6 +527,55 @@ or stock-only rule that reproduces the historical basis, including its
 averaging and byte packing; original unquantized inputs or an authenticated
 exporter would distinguish further hypotheses. The bounded failures do not
 prove such a stock-only rule cannot exist.
+
+### Authoring and packing controls
+
+Python `struct`/`math` evaluated per-corner projection, normalized face
+partials, UV orientation, raw sums/weighted averages, final normalization and
+float32 staging. These were reference-inspired hypotheses, not executions or
+complete reproductions of the following libraries and tools:
+
+- Microsoft's [D3DX tangent-frame contract](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxcomputetangentframeex).
+- Autodesk's [Maya tangent/binormal construction](https://help.autodesk.com/cloudhelp/2015/ENU/MayaLT/files/Appendix_A_Tangent_and_binormal_vectors.htm).
+- The [MikkTSpace implementation](https://raw.githubusercontent.com/mmikk/MikkTSpace/3e895b49d05ea07e4c2133156cfa94369e19e409/mikktspace.c)
+  at commit `3e895b49d05ea07e4c2133156cfa94369e19e409`.
+
+No source tied any of those authoring implementations to this retail model.
+The tests included the native display's 128-centered decode and the staged
+signed-vector encoder above. Predictions used only stock B4 geometry,
+normal/UV fields and topology. Historical values remained the comparison
+target, without per-vertex fitting or a lookup of historical output bytes.
+
+| Tested family | Candidate rows | Highest equal XYZ bytes of 1,371 | Complete vertices of 457 in that row |
+| --- | ---: | ---: | ---: |
+| Per-corner/partial-normalization and packing variants | 32,256 | 419 | 25 |
+| Raw sums/averages without final vector normalization | 10,080 | 402 | 26 |
+| Quad-partial controls | 1,152 | 381 | 21 |
+
+Every reported row also matched the 457 zero alpha bytes. No candidate matched
+all 1,828 target bytes. The quad controls solved least-squares partials from
+stock positions/UVs over four-vertex adjacent-triangle pairs. The 864-triangle
+topology had 1,272 interior edges and 48 boundary edges. All edge pairs and
+two fixed pairing rules supplied candidate quads, without identifying a unique
+original quad partition. Their failure did not exclude other source topology
+or the complete referenced implementations.
+
+Stock B4's deinterleaved TEXCOORD5 control had SHA-256
+`6a3207822195a811e76f31c60f8664450d25f6d57fbc3e64b13385e11f79f3eb`.
+A 96-row decode/repack control compared affine decodes, optional
+renormalization, float32/float64 evaluation and eight packers. Several inverse
+affine pairs reproduced its bytes by construction. No renormalized row did:
+the best retained 1,166 of 1,371 XYZ bytes and 282 complete vertices.
+An inverse that preserves supplied stock bytes is not a derivation of the
+missing historical basis. The native pack order alone did not establish the
+geometry, averaging or normalization that supplied its input vector.
+
+A separate comparison decoded the historical target's XYZ with the cloud
+shader's `2*b/255-1`: vector lengths ranged from about 0.788567 to 1.010053.
+Stock B4's corresponding range was 0.851288 to 1.010053. These were
+measurements of stored bytes, without feeding historical values into a
+prediction. Final normalization remained an authoring hypothesis to test;
+neither the shader decoder nor the traced packer authenticated that step.
 
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
