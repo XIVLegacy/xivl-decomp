@@ -82,6 +82,10 @@ jobs:
         run: python tools/test_promoted_static_checks.py
       - name: Test character lighting model verifier
         run: python tools/test_chara_lighting_model.py
+      - name: Test dungeon layout token index
+        run: python -m unittest -v tools.test_dungeon_layout_token_index
+      - name: Test config inventory parser
+        run: python -m unittest -v tools.test_ffxivconfig_inventory
       - name: Test public evidence links
         run: python tools/test_repository_links.py
       - name: Test region snapshot contract
