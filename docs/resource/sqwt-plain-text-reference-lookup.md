@@ -6,6 +6,8 @@ configured language, and supply successful output to the original named
 property. TextBlock.Text and inherited Label.Content reach this preprocessing
 path through distinct property representations. Admission, loaded schema,
 row readiness, selected tables and property-state conditions remain required.
+The restricted parameterized forms below carry an ordered argument vector
+into selected formatter handlers.
 
 ## Input and method
 
@@ -17,6 +19,7 @@ row readiness, selected tables and property-state conditions remain required.
 | SHA-256 | `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9` |
 | PE32 identity | Machine `0x014C`, image base VA `0x00400000` |
 | Instruments | Ghidra CLI `0.2.2`, Python `3.14.7`, Capstone `5.0.7`, x86 32-bit mode |
+| Parameterized consumer decoding | LLVM objdump `21.0.0`, x86 COFF mode |
 
 The original executable supplied bounded disassembly, decompilation and
 file-backed data. Independent decoding checked PE raw-section bounds and
@@ -50,8 +53,8 @@ zeroes. It does not use the numeric font converter's radix-zero CRT route.
 Its backward scan and malformed/overflow cases do not establish a legal
 reference domain. This finding restricts its plain form to digits-only `@N`.
 
-Other segment forms, encoded formatting and runtime pickup producers retain
-their separate boundaries. In particular,
+The parameterized subset below retains these admission conditions. Other
+forms and full encoded formatting retain separate boundaries. In particular,
 `xivl-client-structs:docs/desktop-native-call-contract.md`, List text,
 records native `@id/i.../s...` serialization. That producer spelling does not
 make every arbitrary authored string beginning with `@` a typed pickup.
@@ -209,6 +212,146 @@ success, property admission, callbacks and rendering remain conditions.
 These paths do not prove an external HUD markup occurrence or a particular
 binding result.
 
+## Parameterized text references
+
+### SQTP-01: Restricted descriptor subset
+
+On the nonliteral branch of `FUN_004CE9C0`, the supported subset here is a
+NUL-terminated `@N` followed by zero or more `/iV` or `/sV` segments. `N`
+contains decimal digits without overflow. An `i` payload is a canonical
+signed decimal value in the signed 32-bit range. An `s` payload contains zero
+or more printable ASCII bytes other than `/`. This is a restricted subset,
+not a complete accepted-input grammar or a legal row-ID domain.
+
+At `0x004CEA90..0x004CEB53`, every `/` flushes the preceding segment through
+`FUN_004CE530`. Lowercase `i` selects kind 1 and lowercase `s` selects kind
+2. Both skip their marker before the next payload. NUL flushes the final
+segment. The scanner has no escape or quoted-string branch, so a `/` inside
+a string payload starts another segment. Other markers, malformed numbers,
+overflow and encoded payloads retain separate boundaries.
+
+The first segment is stored as the row dword at record `+0x00`. Kind 1 uses
+`FUN_004B5850`, then `FUN_004D3390` to construct variant tag 0. Kind 2 copies
+its exact bounded payload through `FUN_00447260`, then `FUN_004D3420` to
+construct tag 1. That branch supports an empty string and does not perform
+an integer conversion or table lookup. Both append through `FUN_004D50D0`
+to the heterogeneous vector at record `+0x18`, preserving segment order.
+Normal allocation, copy and helper completion remain conditions.
+
+### SQTP-02: Pending-node argument identity
+
+The admitted path at `0x004CF7E2..0x004CF845` constructs the record through
+`FUN_004CE9C0`, wraps it through `FUN_004D5E70`, copies the pair through
+`FUN_004D5ED0` and inserts through `FUN_004D6470`. Insertion reaches
+`FUN_004D63F0 -> FUN_004D61D0 -> FUN_004D60D0 -> FUN_004D5F70`.
+The node constructor supplies node `+0x0C` to `FUN_004D5ED0`, which supplies
+destination `+4` to record copy `FUN_004CEC30`. The record therefore begins
+at node `+0x10`, making record `+0x18` exactly node `+0x28`.
+
+`FUN_004CEC30` initializes a fresh vector and calls `FUN_004D5900` with
+source and destination `+0x18`. The nonempty-source path reaches the loop
+at `0x004D5520..0x004D5548`, which dereferences the source iterator, appends
+through `FUN_004D50D0` and advances the iterator by one. Empty source takes
+the clear path. Variant copy preserves tag 0 through `FUN_004D3390` and tag
+1 through `FUN_004D34B0`. The latter retains the same string holder and
+increments its reference count. It does not reparse the argument string.
+The observed normal copy path preserves values, types and order, subject to
+allocation, iterator invariants and helper completion.
+
+At `0x004CEE96..0x004CEEBE`, pending lookup passes node `+0x28` to provider
+virtual `+0x0C` with the selected table, row, field and output. The native
+string-field branch of `FUN_00CA0930` forwards that vector and output to
+virtual `+8`. The constructor-selected route is
+`FUN_00CA1D60 -> FUN_00CA1D40 -> FUN_00CB2760`, with MacroDecoder receiver
+TextModule `+4`. This carries the copied vector into formatting. Loaded
+schema, row readiness, mapped field type `10` and the selected tables remain
+required. Default table and language selection retain the conditions above.
+
+### SQTP-03: Conditional native TextBlock route
+
+`xivl-client-structs:docs/widget-native-call-contract.md`, Property access,
+owns `_setTextProperty` identity and serialization.
+`xivl-client-structs:docs/desktop-native-call-contract.md`, List text,
+owns `_setListTextProperty` serialization. Producer spelling alone does not
+prove that a particular call reaches reference parsing.
+
+At handler level, a non-Nil text identifier and a leading argument cell tagged
+Nil select `FUN_006F4910 -> FUN_006E9AC0 -> FUN_0075B810 -> FUN_005355A0 -> FUN_005354D0`.
+A Nil identifier cell selects static pickup `0x0134BAA8` on a separate branch.
+These branch observations do not establish Nil admission through the declared
+argument marshaller for a particular Lua invocation.
+The string pickup constructed by `FUN_00716AC0` uses table `0x00FD56A4`.
+Its virtual `+4`, `FUN_00716B30`, supplies pickup `+4` to processor virtual
+`+0x0C`. The selected processor table `0x00FA0BAC` dispatches that slot to
+`FUN_00542710 -> FUN_00537DE0`. On successful part lookup and an admitted
+visibility gate, `0x00537F63` calls generic property engine `FUN_00912850`
+with the supplied string wrapper.
+
+For a selected TextBlock.Text property, initializer `FUN_00F23880` installs
+info table `0x0106E960`, callback `FUN_009556D0` at info `+0x28` and zero
+receiver displacement at `+0x2C`. If name lookup returns that info and owner
+virtual `+0x34` returns false, generic processing dispatches info virtual
+`+0x0C` through `FUN_0091B440` to the stored callback. The index-zero Text
+branch supplies the wrapper and descriptor `0x0135A300` to `FUN_009BA4E0`
+with property receiver control `+0x33C`.
+
+A set property bit `0x40` admits its `FUN_00916310` preprocessing call.
+On the constructor-selected interface route, the owner `+0x20` bit `0x01` gate
+and admitted preprocessing path reach virtual `+0x1C` at `0x0091640A`.
+Slot `0x00FA2DA8` selects `FUN_00548400`, which adjusts by `+0x3C` and
+jumps to `FUN_004CF650`. Its admitted `K=0`, `@`, first-digit path reaches
+`FUN_004CE9C0`. This establishes a conditional static join, not a selected
+runtime receiver or an unconditional native-call result.
+
+The TLS, interface, classifier, mutable-table, property-state and preliminary
+`FUN_004CF0A0` helper conditions remain required. In particular, this path
+does not establish preservation of aliased input through those helpers.
+Other context overloads, Label.Content route equivalence, list `ValueType`
+and `Action` pickups, runtime resource delivery and rendering are outside
+this native join.
+
+### SQTP-04: Supplied argument selectors and output handlers
+
+`FUN_00CB2D50` recognizes expression byte `0xE8` and recursively decodes the
+following index with the supplied vector. It subtracts one, compares unsigned
+against vector `+0x10` count, and indexes through `FUN_008A68A0`.
+`FUN_00778D50` requires variant tag 0 and supplies its dword. An out-of-range
+index produces zero. An index decoding to zero underflows and fails the
+unsigned count check.
+
+`FUN_00CB2AE0` recognizes expression byte `0xEA` and decodes its index with
+the supplied vector. It applies the same one-based indexing and count check,
+then `FUN_00779BC0` requires tag 1 and supplies the held string wrapper.
+The decoder copies that wrapper to its output. An out-of-range index assigns
+an empty wrapper. Both typed accessors throw `std::bad_cast` on a mismatched
+tag. These selected branches perform no int/string coercion before the
+check. An outer exception handler is not established here. Other decoder
+paths can perform conversions. Selectors `0xE9` and `0xEB` use the decoder's
+own vector at receiver `+0x14`, not this supplied vector.
+
+For a `0x02` input byte, `FUN_00CB2760` uses the next byte to select a
+handler and supplies decoded content, length, vector and output. TextModule
+construction installs handler `0x20` as thunk `0x00A4B0F0` and handler
+`0x29` as thunk `0x00CA15B0`. These dispatch MacroDecoder virtual `+0x50`
+and `+0x70`. Constructor-selected table `0x01108ECC` resolves them to
+`FUN_00C9F350` and `FUN_00C9FAB0`. Runtime table preservation remains a
+condition.
+
+Handler `0x20` calls `FUN_00CB2D50`, passes the decoded dword and constants
+`10` and `0` to `FUN_00454ED0`, then appends the resulting wrapper through
+`FUN_00447C80`. Handler `0x29` calls `FUN_00CB2AE0` and appends its result
+on a nonzero consumed-length return. That selected string path copies and
+appends the supplied argument without a table lookup or recursive formatter
+call. Later property reprocessing remains separate.
+
+The resulting bounded interpretation is one-based selection across the
+original heterogeneous `/i` and `/s` order: `0xE8` under handler `0x20`
+selects an integer argument, and `0xEA` under handler `0x29` selects a string
+argument. This does not define all expression forms, payload framing,
+termination validity, recursive limits or a complete substitution grammar.
+The exact numeric formatting contract of `FUN_00454ED0`, including negative
+output spelling, remains outside these selected call observations.
+
 ## Deferred numeric font properties
 
 An admitted deferred FontSize or FontType reference can complete through the
@@ -287,10 +430,16 @@ function bodies outside published artifacts.
 | Deferred numeric preprocessing and store | `0x0095CB50..0x0095CBC7`, `0x00916374..0x0091640C`, `0x00916420..0x00916461`, `0x004CF6C7..0x004CF6ED`, `0x00988A30..0x00988A8A`, `0x00926E80..0x00926F06` |
 | Byte-buffer growth | `0x008CFB00..0x008CFB82`, `0x00444E80..0x00444F9C`, `0x006D1920..0x006D194E` |
 | Text/Content consumers | `0x00F23800..0x00F23824`, `0x009556D0..0x00955764`, `0x009BA4E0..0x009BA531`, `0x00F221E0..0x00F221FA`, `0x00936320..0x00936352`, `0x0093648C..0x009364B2`, `0x0096CEC6..0x0096CF06`, `0x009742C4..0x009742F8` |
+| Descriptor arguments and variant construction | `0x004CEA90..0x004CEB53`, `0x004CE582..0x004CE6C9`, `0x004D33EC..0x004D3403`, `0x004D347C..0x004D3497`, `0x004472AD..0x004472C8`, `0x004D50D0..0x004D5128` |
+| Pending-node copy and argument order | `0x004CF7E2..0x004CF845`, `0x004D5E98..0x004D5EA8`, `0x004D5EF8..0x004D5F07`, `0x004D6470..0x004D647D`, `0x004D63F0..0x004D6440`, `0x004D6254`, `0x004D60D0..0x004D613C`, `0x004D5F98..0x004D5FB4`, `0x004CEC65..0x004CECCF`, `0x004D5900..0x004D5A1D`, `0x004D57F0..0x004D5840`, `0x004D5250..0x004D5548`, `0x004B4040..0x004B4068`, `0x004B3EC0..0x004B3EE8`, `0x0058F2E0..0x0058F322`, `0x004D4700..0x004D4748`, `0x004D350C..0x004D3523` |
+| Selected native string-property join | `0x006F4BA5..0x006F4BD8`, `0x006E9AC0..0x006E9B1A`, `0x0075B810..0x0075B82F`, `0x005355A0..0x005355B4`, `0x005354D0..0x0053555F`, `0x0053BC30..0x0053BC87`, `0x00716AC0..0x00716B23`, `0x00716B30..0x00716B42`, `0x00542710..0x00542729`, `0x00537F63`, `0x00F23880..0x00F238C4`, `0x00912A2B..0x00912A55`, `0x0091B440..0x0091B45D`, `0x00955738..0x0095575B`, `0x009BA4E0..0x009BA52E`, `0x009163E4..0x0091640A`, `0x00548400..0x00548403` |
+| Supplied argument selection | `0x00CB2DCE..0x00CB2E81`, `0x00CB2B9F..0x00CB2C86`, `0x008A68A0`, `0x00778D50`, `0x00779BC0..0x00779C08` |
+| Selected formatter handlers | `0x00CA03C0..0x00CA03EB`, `0x00CA0598..0x00CA059B`, `0x00CA06C8..0x00CA06CB`, `0x00A4B0F0..0x00A4B0F2`, `0x00CA15B0..0x00CA15B2`, `0x00CB291B..0x00CB294C`, `0x00C9F389..0x00C9F40E`, `0x00C9FAE2..0x00C9FB5D`, `0x00447C80` |
+| Selected consumer table reads | `0x00FD56A8` plus 4 bytes, `0x00FA0BB8` plus 4 bytes, `0x0106E96C` plus 4 bytes, `0x00FA2DA8` plus 4 bytes, `0x01108F1C` plus 4 bytes, `0x01108F3C` plus 4 bytes |
 | Exact tables and literals | `0x00F8D75C` plus 24 bytes, `0x00F8D774` plus 13 bytes, `0x01108C00` plus 28 bytes, `0x0110C6D4` plus 28 bytes, `0x01108F70` plus 40 bytes, `0x01110654` plus 24 bytes, `0x00CA0DF8` plus 40 bytes |
 
 The surviving gaps are actual runtime-selected schema and row content,
-resource delivery, encoded formatting and full argument substitution,
-malformed-reference behavior, returned-reference recursion, native pickup
-route equivalence, callback activation and final rendered output. Passing
+resource delivery, full encoded formatting and substitution beyond the selected
+handlers, malformed-reference behavior, returned-reference recursion, other
+native pickup routes, callback activation and final rendered output. Passing
 static checks does not settle those separate conditions.
