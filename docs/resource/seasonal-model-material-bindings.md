@@ -915,6 +915,69 @@ interleaved searches. A source behind a bound dictionary or another decoded
 representation with a proved reference join, or an attributed basis producer
 using stock inputs, remained the discriminator.
 
+### Bounded native input audit
+
+A separate static check matched 2,003 original instruction boundaries in 28
+selected resource, construction, reload and upload functions, with 23
+instruction assertions and an original-PE vtable-slot check. Python `struct`
+authenticated the four complete cloud resources against their pinned hashes
+and enumerated their outer pointer relocations. Authored controls checked
+repetition, null pointers, stride changes, truncation and invalid subtable
+offsets. This was a bounded dataflow check, not whole-program pointer analysis.
+
+| Input or path | Native locator | Observation |
+| --- | --- | --- |
+| Source object | `0x00BBCA24..0x00BBCA3B`, `0x00BC4683..0x00BC46A0` | The resource retained the supplied object at `+0x30`, obtained its buffer through virtual byte offset `+0x30`, added the buffer's `u16(+0x0E)` header offset, and selected descriptor zero through `0x00A17350` before calling the model factory. |
+| Copied-memory entry | `0x00BC4C70..0x00BC4C88`, `0x00BBDEE0..0x00BBDEF7`, `0x00BBD3DE..0x00BBD4D4` | This entry copied the supplied file span into a memory handle and applied outer pointer fixups. Constructor `0x00BA1880` installed `Common::Memory::Handle` table `0x010B98CC`; its `+0x30` slot contained `0x008D5570`, which returned the buffer already stored at handle `+4`. |
+| Serialized fixups | `0x00C1F0C5..0x00C1F0E1`, `0x00C1EF90..0x00C1F07E` | The four cloud headers selected fixup encoding 2. Their two relocation groups described descriptor and shader pointers. Each input produced 13 dword relocations plus the separate fixed flag; every dword site ended before the model at file `0x144`. The model and its vertex payload were outside these outer writes. |
+| Optional descriptor input | `0x00BE2801..0x00BE281D`, `0x00BE28CF..0x00BE296A` | The driver gated a separate input on descriptor `+0x38`. Both `+0x38` and `+0x3C` were zero in historical B4 and stock B4/B0/88, so that branch supplied no data for these resources. |
+| Reload | `0x00BC4C77..0x00BC4C88`, `0x00BC4CD7..0x00BC4CE8`, `0x00BC4D30..0x00BC4D48`, `0x00BC4765..0x00BC476D`, `0x00BC4522..0x00BC452D` | The first two entries cleared resource `+0x84`; the third retained its caller's second argument there. They selected the new source's first descriptor and reached `0x00BE2D40`. That wrapper called the same `0x00BE2600` constructor and then `0x00C16560`, a one-instruction `RET`. It did not introduce a separate reload basis generator. |
+
+Resource `+0x84` and the model span were passed onward at
+`0x00BE279A..0x00BE27B0` into the
+[geometry construction and supplied-byte upload](#program-and-geometry-consumers).
+The optional copied CPU span and direct span both came from the fixed model's
+vertex payload. These entries did not connect another stock field or a
+triangle-to-basis calculation to the selected cloud. The concrete memory-handle
+entry did not resolve the dynamic types of every caller-supplied object or
+every possible renderer implementation.
+
+### Bounded indirect-writer audit
+
+The indirect-writer check matched 4,089 original instruction boundaries in
+19 selected functions, the 24 instructions in the two callback ranges, and
+456 instructions in the separate function containing computed call
+`0x00D7A733`. The native name at `0x01124A98` identified
+`VertexBufferWriter::Write`; its body at `0x00D85510..0x00D85530` called the
+supplied callback field and advanced the configured stride. The retained
+direct-call search found 29 callers of the enclosing `0x00D854A0` method.
+Counting those edges did not resolve every computed callback value.
+
+The [typed registrations](#native-display-and-packing-conventions) forwarded
+two source fields to `0x00D91590` at stride `0x10`, or four to
+`0x00D89EB0` at stride `0x20`. Additional setup `0x00D8AB10` installed the
+same latter callback `0x00D8A1A0` at `0x00D8AB6D`; direct callers were
+`0x00D6605B`, `0x00D70862` and `0x00D79553`. These joins attributed the
+supplied-vector encoders, without connecting them to the cloud's 28-byte
+model vertex or to its missing historical basis. Authored pointer controls
+kept unknown callback values and mismatched registration strides unresolved.
+
+One auxiliary packer caller, `0x00D68640`, contained vector arithmetic:
+`SUBPS` at `0x00D68EA5`, `ADDPS` at `0x00D68F9E` and `MULPS` at
+`0x00D69051`. It called `0x00D82910` at `0x00D690BE`, stored the packed
+word at `0x00D690C7`, and stepped its destination by `0x20` at
+`0x00D690D1`. This was an arithmetic candidate rather than an established
+cloud producer. Its reachability and a binding to the selected cloud model
+were not established.
+
+The unsupported computed frontiers were `0x00D8551D` for callback values
+outside the typed registrations, and `0x00D7A733`, which called
+`[ESP+0x38]`. No connected source or producer for the historical cloud's
+TEXCOORD5 was established within this bounded closure. That result did not
+prove that the whole executable lacked one. An attributed stock source or
+a producer with proved stock inputs and a destination joined to this cloud
+remained necessary for an exact stock-only reconstruction.
+
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
 and the stock leaves carrying the historical dependency IDs, with B4's two
