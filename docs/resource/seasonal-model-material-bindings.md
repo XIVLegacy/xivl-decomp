@@ -836,6 +836,85 @@ Raw hits also required their container, native consumer and reference vertex
 correspondence before use. The search did not decode compressed data,
 interleaved padding, arbitrary vertex permutations or an unnamed codec.
 
+### Compressed carriers and interleaved rows
+
+The presence of zlib in the executable did not establish a compressed cloud
+model. Python/pefile/Capstone checked original bytes at 3,972 retained
+instruction boundaries in 19 functions, including the model readers and
+these decompression surfaces:
+
+| Original PE locator | Observation |
+| --- | --- |
+| `0x00D4F51E..0x00D4F521` | The initialization thunk supplied windowBits 15 to `0x00D4F440`. This selected zlib framing, rather than a raw DEFLATE stream. |
+| `0x00D42609`, `0x00D42632..0x00D4264B`, `0x00D426BA..0x00D426BF` | The [PackRead path](sqpack.md#resolver-capabilities) initialized the stream, supplied 1,024-byte output blocks and drove inflate until result 1. |
+| `0x00908F00`, `0x00908F3F`, `0x00909058`, `0x009090E1` | A separate file operation selected `N` or `Z`; its Z branch used initialization `0x00D40E50` and inflate wrapper `0x00D40D60`. This observation did not identify it as a model loader. |
+| `0x00E3FDA2..0x00E3FDFC`, caller `0x00DA1D22` | A third wrapper supplied flush value 4 and returned decompressed length. Its caller belonged to the [stream-record path](../net/stream-record-parser-pair.md#static-evidence). |
+
+The direct relative-call search found no unresolved instruction-boundary
+candidate for those checked entry points. No literal address word for them
+was found in the original PE. That finite reference search did not exclude
+computed indirect calls or another decoder, and established no connection
+from these paths to the cloud model.
+
+The [vertex import path](#exporter-identifiers-and-vertex-import) read
+unsigned 16-bit count and stride at `0x00C0D119/0x00C0D11D`, skipped the
+source padding and copied their product. The older separate-component path
+interleaved supplied arrays. These operations preserved existing values;
+they supplied no decompression or tangent-generation step in the checked
+branches.
+
+The stored-stream search used Python 3.12 `zlib`, `struct` and `hashlib`.
+Its [RFC 1950](https://datatracker.ietf.org/doc/html/rfc1950#section-2.2)
+discriminator required method 8, CINFO 0 through 7 and the CMF/FLG check
+modulo 31. These headers described 256 through 32,768-byte windows. The
+decoder received the header itself, used windowBits 15, and tracked EOF,
+consumed input, unused tail and output hashes through the
+[Python streaming API](https://docs.python.org/3.12/library/zlib.html#zlib.Decompress.eof).
+Each candidate had a 16 MiB input limit and an 8 MiB output limit, with a
+256-byte first feed and 1 MiB later feeds. Decoding was one level only.
+Dictionary, incomplete, error and resource-limit outcomes were accounted
+for separately. A valid header alone did not authenticate a compressed
+asset or supply a preset dictionary.
+
+The authenticated inventory yielded 3,700,992 candidate starts. Reproduction
+on the same hash-checked handles for all 64,194 candidate-bearing files
+matched every recorded header, offset, status and output hash. Outcomes were
+1,713,625 dictionary requests, 1,987,051 errors and 316 incomplete streams.
+None completed or reached either resource limit. No returned output contained
+`SEDBvmdl`, `mxfv`, `vfxm` or the complete historical TEXCOORD5 byte sequence.
+Dictionary requests did not establish valid complete assets, and their
+dictionaries remained unavailable. This result did not cover headerless
+DEFLATE, another codec or a later layer of decoding.
+
+The interleaved alternative search used the 89 complete exact position
+correspondences, with native strides 28 or 32. It considered every fitting
+byte offset, including offsets that overlapped declared fields, for the
+float32, half4, normalized integer and packed-10 layouts listed
+[above](#decoded-attribute-and-raw-array-alternatives), plus a raw four-byte
+control. Multi-byte candidates used both byte orders and the applicable
+native pack profiles. Source rows followed only the proved POSITION0 join.
+Finite scalar seed checks preceded complete 457-row XYZ comparison; only
+an XYZ survivor could proceed to the separate W check. Three-component
+inputs supplied no alpha source. Reinterpreting an overlapping field was
+a search hypothesis, not a native declaration or consumer binding.
+
+Those buffers had no wholly undeclared four- or eight-byte slot: all 8,252
+possible layout slots overlapped declared fields. The separate all-offset
+search evaluated 43,104 codec/offset/profile interpretations. It rejected
+38,513 through decoded scalar seeds and 4,549 through nonfinite seeds.
+The remaining 42 received complete XYZ comparisons; none matched, so no
+candidate proceeded to alpha comparison or full-source promotion. Authored
+457-row positives covered all 24 codec/profile/byte-order combinations,
+including normalized integer inputs, alongside padding, alignment and
+last-row mutation controls. This excluded the tested interpretations in
+the exact-reference buffers, without equating other geometry, partial meshes
+or arbitrary channel/vertex permutations to the reference.
+
+No equivalent historical lane was established by the compressed or
+interleaved searches. A source behind a bound dictionary or another decoded
+representation with a proved reference join, or an attributed basis producer
+using stock inputs, remained the discriminator.
+
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
 and the stock leaves carrying the historical dependency IDs, with B4's two
