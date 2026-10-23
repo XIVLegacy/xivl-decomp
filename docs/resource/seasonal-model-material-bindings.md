@@ -696,15 +696,18 @@ A sequential Python `hashlib`/byte-search pass read all 140,180 regular DATs,
 7,444,438,570 bytes, after enumerating 143,227 entries without reparse points
 or enumeration errors. Every read remained stable by the checked file
 metadata. The retained path set and all 1,682 previously pinned standalone
-carrier hashes matched. The other 138,498 files had no earlier hash pins;
-the pass established their current hashes, without claiming historical byte
-identity for those files.
+carrier hashes matched. A complete repeat inventory also matched all
+140,180 path/size/SHA-256 entries from the retained full-corpus manifest,
+without added, missing or changed files. This established consistency
+between the checked inventories, without claiming the installation's
+historical provenance for every file.
 
 The pass searched every byte offset for `SEDBvmdl`, little-endian `mxfv`,
-the 12,796-byte historical vertex payload and the 1,828-byte deinterleaved
-historical TEXCOORD5 sequence. Both complete target sequences had zero
-contiguous occurrences. This raw-byte result covered the stored bytes,
-without decoding compressed or unrecognized representations.
+reversed `vfxm` (bytes `76 66 78 6D`), the 12,796-byte historical vertex
+payload and the 1,828-byte deinterleaved historical TEXCOORD5 sequence. Both
+complete target sequences had zero contiguous occurrences. This raw-byte
+result covered the stored bytes, without decoding compressed or
+unrecognized representations.
 
 The 1,739 `SEDBvmdl` signatures comprised 1,682 standalone carriers,
 46 version-4 embedded models and 11 older embedded models. All 1,728
@@ -752,8 +755,11 @@ TEXCOORD0/1. No field supplied FLOAT32 geometry or TEXCOORD5. After
 converting SHORT4 component endianness for exact tuple comparison, each
 buffer covered at most one of the 457 reference positions. No complete
 correspondence or connected higher-precision basis source was established.
-This bounded follow-up did not search every DAT for the reversed `vfxm`
-tag or qualify the older renderer's complete construction path.
+The full-corpus search found exactly these 11 reversed-tag occurrences,
+all inside the qualified `SEDBvmdl` descriptor-selected spans. No standalone
+or otherwise unwrapped `vfxm` candidate, new little-endian reversed-tag model,
+or rejected signature remained. This did not qualify the older renderer's
+complete construction path.
 
 Across the 1,852 version-4 buffers, exact position correspondence still
 selected 89 buffers and 449 declared four-byte lanes. Every comparison
@@ -765,6 +771,70 @@ packed formats to the reference, combine partial meshes into a source, or
 authenticate a tangent-generation algorithm. An equivalent decoded source
 with a proved reference correspondence, or an attributed generator using
 stock inputs, remained the discriminator for replacing the historical lane.
+
+### Decoded attribute and raw-array alternatives
+
+Python 3.12 and NumPy 2.5.0 decoded every field in the 89 buffers with
+complete exact B4 position correspondence. The comparison retained reference
+vertex order and each declared type's interpretation:
+
+| Declared type | Fields | Decoding used |
+| --- | ---: | --- |
+| SHORT4 | 89 | Four signed 16-bit values, without normalization. |
+| UBYTE4N | 267 | Four bytes divided by 255. |
+| FLOAT16_2 | 182 | Two half floats, with the D3D expansion Z=0 and W=1. |
+
+Each field was tested with both
+[native pack profiles](#native-display-and-packing-conventions): the unsigned
+clamp/255/truncate path and the signed-vector wrapper with separate XYZ/W
+biases. A third control applied the cloud vertex shader's `2*x-1` to each
+UBYTE4N field's XYZ, preserved its normalized W, then used the signed wrapper.
+All 1,343 comparisons checked the complete 1,371 XYZ bytes and 1,828 total
+bytes. None matched even the complete XYZ sequence. This tested decoded
+alternatives to copying raw field bytes, without fitting vectors or changing
+their geometry correspondence.
+
+The separate stored-array search considered finite vectors in these layouts:
+
+| Candidate storage | Interpretation |
+| --- | --- |
+| FLOAT32 XYZ or XYZW | Consecutive 32-bit scalar components. |
+| FLOAT16 XYZW | Four consecutive half floats. |
+| Signed or unsigned normalized 16-bit XYZW | Signed values divided by 32767, or unsigned values divided by 65535. |
+| Normalized byte XYZW | Bytes divided by 255. |
+| Signed normalized packed 10:10:10 | Three signed fields at bit offsets 0, 10 and 20, divided by 511; the high two bits were ignored. |
+| BGRA or ARGB bytes | Complete four-byte channel permutations of the comparison target. |
+
+The [D3D9 declaration definitions](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3ddecltype)
+and [colour type](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dcolor)
+bound the API interpretations. Their presence in an API did not establish
+that this asset used them. The packed-10 bit placement and raw-array layout
+were explicit candidate interpretations.
+
+The scalar searches used both byte orders and every byte alignment, with
+tightly packed 457-vector arrays. Integer/half lookup tables and exact
+float32 output preimages filtered candidates before a complete forward
+comparison. Both native pack profiles used separate float32 stages and
+truncation. Round-to-nearest was the explicit SSE arithmetic assumption;
+the inspected packers did not set MXCSR's rounding mode. Input values were
+read unchanged from stock bytes; the historical sequence served only as the
+comparison target.
+
+The callback received all 7,444,438,570 stored bytes in 140,258 blocks across
+140,176 nonempty DATs; the four empty files supplied no vector input. It
+carried at most 7,311 bytes across blocks, covered every possible start for
+the largest 7,312-byte candidate, and reset between files. No tested codec
+supplied even a complete matching XYZ sequence; the BGRA/ARGB searches also
+returned zero complete occurrences. Authored positive controls, boundary
+splits, preimage endpoint checks and last-row mutation controls exercised
+the search without generating historical-derived predictions.
+
+A three-component source could supply an XYZ lead, but did not source the
+historical alpha. In particular, D3D's FLOAT3 and packed-10 declarations
+expanded W to one. Such a source required a separate proved W operation.
+Raw hits also required their container, native consumer and reference vertex
+correspondence before use. The search did not decode compressed data,
+interleaved padding, arbitrary vertex permutations or an unnamed codec.
 
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
