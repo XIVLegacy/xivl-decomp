@@ -10,6 +10,10 @@ This finding separates three questions: which components survived, which
 layouts composed them, and which native inputs could select those layouts or
 their controls. It records offline evidence only.
 
+The [in-memory reconstruction finding](seasonal-memory-reconstruction.md)
+owns the decoded historical-curve differences, native numeric input boundaries
+and exact stock texture/shader payload matches.
+
 ## Inputs and producing tools
 
 All native addresses are VAs in retail `ffxivgame.exe`, build

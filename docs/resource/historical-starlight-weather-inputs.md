@@ -77,7 +77,10 @@ direct keys. The retained patch scan yielded applicable historical entries for
 the retained patch search, not proof that those files never changed.
 
 These observations authenticate the selected original outputs and the ten
-specific changed inputs. They do not establish complete transitive dependency
+specific changed inputs. Complete-file differences do not establish changed
+texture pixels; the [in-memory reconstruction comparison](seasonal-memory-reconstruction.md#starlight-snow-and-external-assets)
+owns the surface-level identities and controller/model boundaries.
+These observations do not establish complete transitive dependency
 closure, native acceptance of a modified layout, rendered Christmas scenery,
 historical timing or a complete original installation. The
 [seasonal selector finding](city-seasonal-weather-selectors.md) owns the

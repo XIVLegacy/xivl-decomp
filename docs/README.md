@@ -187,6 +187,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Three-city authored weather catalog](resource/city-weather-catalog.md)
 - [Gridania's original Halloween weather](resource/gridania-halloween-weather-restoration.md)
 - [Historical Starlight weather inputs](resource/historical-starlight-weather-inputs.md)
+- [Seasonal atmosphere reconstruction in native memory](resource/seasonal-memory-reconstruction.md)
 - [Ordinary format-6 STMS payload lanes](resource/stms-ubyte4-payload.md)
 - [PRAM packed render-state consumers](resource/pram-packed-render-state.md)
 - [Character material pixel shaders and colour flow](resource/chara-material-shader-colour-flow.md)
