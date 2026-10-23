@@ -464,24 +464,51 @@ then obtains a separate lookup receiver from its third explicit argument at
 `0x006c22ae` before calling `0x006c1510` at `0x006c22b6`. At that load,
 `[ESP+0x54]` is entry `[ESP+0x0c]`, after the local allocation and four saved
 registers. These two bodies do not equate the dereferenced current-getter
-receiver with the snapshot consumer's third argument, or bind the snapshot
-state to that same owner. Their concrete caller/child identity is the first
-missing equality edge. Actual current type-20002 allocation, token allocation,
-wrapper-source and secondary-u16 writer/display-domain identities remain
-unresolved.
+receiver with the snapshot consumer's third argument.
+
+The callers bind the snapshot state to its supplied lookup owner. Let U be
+the incoming receiver of `0x004da680`. At `0x004da942`, that function passes
+T = U+0x510 to `0x00578970`. The load at `0x005789fd` passes
+C = `[T+0x18]` = `[U+0x528]` to `0x006cdf20`. That function loads `[C+0x10]`
+as the snapshot receiver at `0x006cdffb`. The pushes at
+`0x006ce002..0x006ce004` supply C, the address C+0x20, and C as the first,
+second, and third explicit arguments of `0x006c2200`. Its lookup owner is
+therefore C, and its snapshot state is C's +0x10 child.
+
+The current getter caller `0x00701710` supplies a different unresolved
+expression. It passes the pointer H from its parameter block's +0x04 field
+to `0x00cc7510`. The preceding thunk `0x00706a40` leaves that parameter
+block argument in place while setting ECX to entry ESP+0x08 and tail-calling
+`0x00701710`. The accessor dereferences H and tail-calls `0x00cd7910`,
+which returns the address `[H]+0x220`. The caller reads that address's first
+dword, then its +0x04 pointer to obtain owner A, and passes `[A+0xe4]` to
+`0x006c20c0` at `0x00701790`. The getter thus looks up through
+`[[A+0xe4]]`. The snapshot caller also uses the same accessor, but that shared
+mechanism does not equate its input C with H or prove
+`[[A+0xe4]] == [U+0x528]`. That receiver equality remains unbound; the two
+origins do not prove unequal objects. Actual current type-20002 allocation,
+token allocation, wrapper-source and secondary-u16 writer/display-domain
+identities remain unresolved.
 
 The owner comparison used retail 1.23b `ffxivgame.exe`, 15,996,808 bytes,
 PE32 i386, image base `0x00400000`, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Retained `tools/ghidra_scripts/DumpFunctions.java` listings matched the original
 PE bytes through pefile 2024.8.26 mappings. Capstone 5.0.7 independently decoded
-the complete envelopes below; ends are exclusive. No additional helper or
-caller body was used for this comparison.
+the complete envelopes below; ends are exclusive. They cover the getter and
+snapshot bodies, their caller preparation, and the common accessor.
 
 | VA envelope | Bytes | Code SHA-256 |
 | --- | ---: | --- |
 | `0x006c20c0..0x006c20d8` | 24 | `06010c0cbefaba4dbd32043e5b0190a36864559de987d08cbf586a82c304da2e` |
 | `0x006c2200..0x006c23ad` | 429 | `90e54d7d8599acc437a23288c58d6db638514c9a95cd8588630bd9cedd76be31` |
+| `0x00701710..0x00701814` | 260 | `38b38d1ef91a4c8773f11ebfcb920c009361c8cb42dcfd429efddc9f23c48c47` |
+| `0x006cdf20..0x006ce01d` | 253 | `ab2a08ce71ab99bef070337d3f0736c242c98f0941fc95322c92faced0e0ff35` |
+| `0x00578970..0x00578aa2` | 306 | `5abc10fae17a2f6436798e4932e68070c5ac463f8f60ee84000b9e26bb32b7f8` |
+| `0x00cc7510..0x00cc7517` | 7 | `bf835549585f828effe6221e021c9b96b28ec0f2de3c2139663d6d3bc4132e4c` |
+| `0x00cd7910..0x00cd7917` | 7 | `58beed9442fa84e2898a6468a1096bece7c950612ede928be4c9c05d280b198e` |
+| `0x004da680..0x004da996` | 790 | `97772f973217f195c99d1869cd947450667b1b9e26ef46ccd5fe4ea5cfa33e93` |
+| `0x00706a40..0x00706a49` | 9 | `99bdbd242a23386fb13d4257be877c663743e915160f9af1c818cccf2ebb2f9e` |
 
 The `group` send path accepts an empty message: the control parser treats an
 initial NUL as success and no later nonempty check precedes `0x004df6d0`.
