@@ -7,6 +7,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <mutex>
 #include <sstream>
@@ -34,6 +35,54 @@ struct TestState
             failures << name << ';';
         }
     }
+};
+
+bool wait_for_worker_entry(
+    const std::atomic<bool>&              entered,
+    std::chrono::steady_clock::time_point deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(5))
+{
+    while (!entered.load(std::memory_order_acquire))
+    {
+        if (std::chrono::steady_clock::now() >= deadline)
+        {
+            return false;
+        }
+        std::this_thread::yield();
+    }
+    return true;
+}
+
+class ScopedWorkerRelease
+{
+public:
+    ScopedWorkerRelease(std::thread& worker, std::atomic<bool>& release) noexcept
+    : worker_(worker)
+    , release_(release)
+    {
+    }
+
+    ScopedWorkerRelease(const ScopedWorkerRelease&)            = delete;
+    ScopedWorkerRelease& operator=(const ScopedWorkerRelease&) = delete;
+
+    ~ScopedWorkerRelease()
+    {
+        release_and_join();
+    }
+
+    void release_and_join()
+    {
+        // Keep release latched so a worker entering after timeout cannot block.
+        release_.store(true, std::memory_order_release);
+        if (worker_.joinable())
+        {
+            worker_.join();
+        }
+    }
+
+private:
+    std::thread&       worker_;
+    std::atomic<bool>& release_;
 };
 
 ObserverPublicationBindingV1 aggregate_binding();
@@ -1303,7 +1352,7 @@ void exercise_all_proofs(TestState& tests)
     }
 }
 
-void exercise_concurrent_abort(TestState& tests)
+void exercise_blocked_owner_abort(TestState& tests)
 {
     RecoveryRequest request = base_request();
     make_installed(&request);
@@ -1318,15 +1367,17 @@ void exercise_concurrent_abort(TestState& tests)
                       {
                           coordinator.request_normal_completion();
                       });
-    while (!fake.callback_entered.load(std::memory_order_acquire))
+
+    ScopedWorkerRelease release_owner(owner, fake.release_callback);
+    if (!wait_for_worker_entry(fake.callback_entered))
     {
-        std::this_thread::yield();
+        tests.check(false, "owner callback entry timed out");
+        return;
     }
     tests.check(coordinator.owner_callback_active(), "owner callback is observable");
     tests.check(coordinator.request_abort() && gate.abort_requested(),
                 "concurrent abort wins atomically");
-    fake.release_callback.store(true, std::memory_order_release);
-    owner.join();
+    release_owner.release_and_join();
 
     const RecoveryOutcome outcome = coordinator.outcome();
     tests.check(outcome.abort_won && outcome.terminal == RecoveryTerminal::Aborting,
@@ -1339,6 +1390,11 @@ void exercise_concurrent_abort(TestState& tests)
     finish_abort(&coordinator);
     tests.check(coordinator.outcome().terminal == RecoveryTerminal::Failed,
                 "concurrent abort remains failed");
+}
+
+void exercise_concurrent_abort(TestState& tests)
+{
+    exercise_blocked_owner_abort(tests);
 
     RecoveryRequest      callback_abort_request = base_request();
     ObserverDispatchGate callback_abort_gate;
@@ -1405,9 +1461,12 @@ void exercise_integrated_aggregate_abort(TestState& tests)
                           adapter.bind_owner_thread(std::this_thread::get_id());
                           owner_processed = adapter.pump_owner();
                       });
-    while (!flow.inner_write_entered.load(std::memory_order_acquire))
+
+    ScopedWorkerRelease release_owner(owner, flow.release_inner_write);
+    if (!wait_for_worker_entry(flow.inner_write_entered))
     {
-        std::this_thread::yield();
+        tests.check(false, "aggregate owner inner write entry timed out");
+        return;
     }
     const std::size_t active_before_abort = gate.active_admissions();
     const bool        abort_won           = coordinator.request_abort();
@@ -1429,8 +1488,7 @@ void exercise_integrated_aggregate_abort(TestState& tests)
     tests.check(supervisor_progressed,
                 "supervisor terminates while aggregate owner write remains blocked");
     flow.block_inner_write.store(false, std::memory_order_release);
-    flow.release_inner_write.store(true, std::memory_order_release);
-    owner.join();
+    release_owner.release_and_join();
 
     const RecoveryOutcome    outcome = coordinator.outcome();
     RecoveryActionCompletion restore_completion;
