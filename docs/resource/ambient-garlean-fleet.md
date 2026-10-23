@@ -715,21 +715,110 @@ The nonzero branch's later J calls and optional global `0x01365780`
 callback have separate resource, value and index guards. These operations
 do not establish the concrete J/K tables or their effect meanings.
 
-The exact lower construction boundary is `0x00A87EC0`'s W product and
-`0x00B99E40`'s J product, followed by J slots 42/12. Neither helper body
-nor the K producer was traced in this bounded property study. An
-exact-address query of the published docs at `c913db6` found no contract for
-either helper. This is an actionable next native edge, not an exhausted
-VFX-subsystem search. Setup also requires valid R/H and manager F:
-`0x00AA47A0` adds no null guards for R, F before slot 3, or H before
-`[H+4]`. Default-manager construction does not remove those prerequisites.
+Setup also requires valid R/H and manager F: `0x00AA47A0` adds no null
+guards for R, F before slot 3, or H before `[H+4]`. Default-manager
+construction does not remove those prerequisites.
 
-Suppression/release polarity, lifetime and independently scheduled effect
-handling remain unresolved. This is a conditional VFX
-field-production/current-value join, not complete fleet effect coverage.
-The SE declarations above still lack an authenticated original
-construction/category/setup-to-property handoff; they do not select a sound
-mute implementation.
+#### W construction and resource-selected J production
+
+`0x00A87EC0` calls base constructor `0x00B99D00`, then installs W table
+`0x010A1A70` at `0x00A87EE6`. Its original locator `0x0118C054`
+reports complete-object offset zero and identifies LayEffectManipulatorLeaf.
+The constructor copies the three-DWORD record to W+`0x18/0x1C/0x20`,
+calls `0x00B99D50` with A and stores A at W+`0x14`. The complete base
+and setter chain, through `0x00BC32C0/0x00BC3280`, leaves W+`0x0C`=0,
+W+`0x10`=A and W+8=`[A+0x54]` on normal return. This identifies W;
+it does not identify J or prove preservation through later calls.
+
+`0x00B99E40` prioritizes nonnull W+`0x10`, calling `0x00B97D30` at
+`0x00B99E52`; only a null value there admits W+`0x0C` and
+`0x00B9E980` at `0x00B99E68`. Both pass `(D,W)`, with D the setup
+operand `[H+4]`. Each loads Z from its selected resource receiver+`0x54`;
+null Z returns zero. The first calls `0x00BC0BA0`, the second
+`0x00BCA850`, then both pass their product S through
+`0x00B95C70 -> 0x00B95B60`. The both-null W branch selects zero only
+if its unexamined helper calls return normally.
+
+The selected resource lookups and lower product calls are:
+
+| Branch | Lookup N, with creation argument zero | Nonnull N product call |
+| --- | --- | --- |
+| Primary, `D & 0x000F0000 = 0x00040000` | `0x00BBFE30` at `0x00BC0BF4` | `0x00BDF6A0` at `0x00BC0C35` |
+| Primary, mask value `0x00060000` | `0x00BC0560` at `0x00BC0C74` | `0x00BDF2C0` at `0x00BC0C99` |
+| Fallback | `0x00BC9DA0` at `0x00BCA896` | `0x00BD7920` at `0x00BCA8D7` |
+
+These complete lookups check resource-state bits and use
+`0x00417510 -> 0x00416AE0` on Z's `+0xC4/+0xC8/+0xA0` containers,
+respectively. A found result T supplies N=`[T+4]`. Their selected creation
+argument zero skips the visible on-demand population arms. A loaded layout,
+found T or successful earlier W setup therefore does not establish a valid
+N or an effect product. `0x00416AE0` itself relies on the container's slot-7
+index/found result and configured stride; its body adds no index bound.
+
+For the first and fallback product calls, N slot 2 must return true, and
+N slot 4 returns context X; the dynamic factory is Fd=`[X+0x110]`.
+A resource byte selects mode 0/1, then Fd slot 1 receives `(mode,N,W,0)`
+and returns S. The group product instead requires N+4 bit 0 and treats N+0
+as an owner pointer rather than a vptr, obtains Fd=`[[N]+0x110]`, and calls
+its slot 2 with
+`(2,[N+0x10],[N+0x0C],W,0)`. None of these bodies supplies an Fd null
+guard or authenticates its concrete table.
+
+The adapter returns zero for null S. Otherwise S slot 3 selects the
+interface adjustment: kind 0 returns S+`0x204`, kind 1 S+`0x21C`, and
+kind 2 S+`0xC4`. Other values reach unexamined helpers before the visible
+zero-return instructions. These kind-dependent offsets do not authenticate
+the returned J table. Selecting J slots 42/12 by a class name, a kind value
+or a matching interface offset would bypass the missing factory product.
+
+The conditional population arms supply further producer constraints.
+`0x00BBFB10` and `0x00BC9BB0` allocate N and call
+`0x00BDF810/0x00BD7BC0`, which install tables `0x010CD7CC/0x010C8EE4`.
+Their common `0x00BDF110 -> 0x00BDEEE0` path stores N+8=X, with X
+obtained from a parent resource's slot 4, and N+`0x0C`=that parent.
+The installed slot-4 cells select the
+[shared `0x007143E0` getter](bgchip-model-binding.md#unittree-child-creation-and-admission-source),
+which reads `this+8`. Direct initial stores do not prove preservation
+through unexamined resource initialization and callbacks. Group constructor
+`0x00BDF450` instead stores its owner at N+0 and builds a counted array;
+that field is not a table pointer. The population callers pass `(D,N)` to
+`0x004174B0 -> 0x00416A00 -> 0x00416810`. These bodies establish
+conditional configured key/value copying, but not the actual container
+configuration or selected cache contents.
+
+The root-parent arm is also conditional: `0x00BC9DA0` calls
+`0x00BC8C30` at `0x00BC9E60`, then uses the returned V's `+0x84`
+pointer as the parent supplied to `0x00BC9BB0`. `0x00BC8C30` passes
+a copied sixteen-byte identifier, tag DWORD `0x76656666` and third argument
+1 to `0x00BBD220` at `0x00BC8C71`. The latter calls `0x00E3D890`
+at `0x00BBD23D` on `[Z+0x50]`, then obtains V from its result+`0x14`.
+`0x00E3D890` copies the identifier and tag to a twenty-byte global key and
+calls the same `0x00416AE0` helper, returning T unchanged. The concrete
+container slot-7 behavior remains unbound. A null T reaches unexamined
+helpers before the subsequent dereference if control returns; a safe miss
+return is not established. Argument 1 skips the separate `[Z+0x40]`
+slot-3 path. That separate path obtains Rv from the dynamic receiver and
+passes it to `0x00E3D8D0`, which prepares the same key and calls
+`0x00416BF0` with pointers to the key and Rv. The latter helper's body and
+transitive effects remain untraced. A bounded original `E8 rel32` search
+for `0x00E3D8D0` found only this already checked call at `0x00BBD2EF`;
+it did not enumerate indirect callers. No additional concrete V constructor
+was identified. The concrete V product, V+`0x84` parent and context factory
+Fd remain unbound here.
+
+The remaining bridge needs a concrete A+`0x54` resource receiver Z and its
+cache/parent initialization, or a constructed `[Z+0x40]` slot-3 receiver,
+that binds the V+`0x84` parent, X and Fd. The existing
+[resource acquisition finding](limsa-rain-presentation.md#rain-collection-and-bind-entry-acquisition)
+does not identify that decoder/receiver; copying the acquired pointer into
+the VFX base is insufficient. Fd's constructed S and returned J table must
+then be joined. Only that table can select J slots 42/12 and their
+state/render consumers. The separate K producer, suppression/release
+polarity, already-playing cleanup, lifetime and independently scheduled effect handling remain
+unresolved. This is a ceiling of this resource-selected route, not a claim
+that the wider VFX subsystem was exhausted. The SE declarations above still
+lack an authenticated construction/category/setup-to-property handoff and
+do not select a sound mute implementation.
 
 #### VFX source checks
 
@@ -767,6 +856,77 @@ vectors and low-byte results were checked together. No inheritance-array,
 registration or string census supplied a substitute construction edge.
 Confidence is high for these static instructions and conditional domains;
 no client execution, selected fleet setup or rendered effect was observed.
+
+#### Resource-selected VFX source checks
+
+The same original PE identity and Python 3.12.0, pefile 2024.8.26 and
+Capstone 5.0.7 x86-32 produced the following additional observations.
+These 38 complete normal-flow instruction unions total 5,779 bytes.
+Calls were followed only at the separately listed entries; their inclusion
+does not prove other callees preserve state or return normally. All
+intervals are half-open original VAs in raw-backed sections.
+
+| Entry | Complete instruction union | Bytes |
+| --- | --- | --- |
+| `0x00416810` | `[0x00416810,0x00416875)` | 101 |
+| `0x00416A00` | `[0x00416A00,0x00416AD7)` | 215 |
+| `0x00416AE0` | `[0x00416AE0,0x00416B27)` | 71 |
+| `0x004174B0` | `[0x004174B0,0x004174D4)` | 36 |
+| `0x00417510` | `[0x00417510,0x0041751D)` | 13 |
+| `0x00A87EC0` | `[0x00A87EC0,0x00A87F28)` | 104 |
+| `0x00B95B60` | `[0x00B95B60,0x00B95BDF)` | 127 |
+| `0x00B95C70` | `[0x00B95C70,0x00B95C75)` | 5 |
+| `0x00B97D30` | `[0x00B97D30,0x00B97D57)` | 39 |
+| `0x00B99D00` | `[0x00B99D00,0x00B99D12)` | 18 |
+| `0x00B99D50` | `[0x00B99D50,0x00B99D6A)` | 26 |
+| `0x00B99E40` | `[0x00B99E40,0x00B99EA4)` | 100 |
+| `0x00B9E980` | `[0x00B9E980,0x00B9E9A7)` | 39 |
+| `0x00BBD220` | `[0x00BBD220,0x00BBD2FD)` | 221 |
+| `0x00BBFB10` | `[0x00BBFB10,0x00BBFD4C)` | 572 |
+| `0x00BBFE30` | `[0x00BBFE30,0x00BBFEFC)` | 204 |
+| `0x00BBFF40` | `[0x00BBFF40,0x00BC013D)` + `[0x00BC0140,0x00BC01C5)` | 642 |
+| `0x00BC0560` | `[0x00BC0560,0x00BC0628)` | 200 |
+| `0x00BC0BA0` | `[0x00BC0BA0,0x00BC0CD6)` | 310 |
+| `0x00BC3280` | `[0x00BC3280,0x00BC3291)` | 17 |
+| `0x00BC32C0` | `[0x00BC32C0,0x00BC32D1)` | 17 |
+| `0x00BC8C30` | `[0x00BC8C30,0x00BC8CB4)` | 132 |
+| `0x00BC96D0` | `[0x00BC96D0,0x00BC9740)` | 112 |
+| `0x00BC9BB0` | `[0x00BC9BB0,0x00BC9D99)` | 489 |
+| `0x00BC9DA0` | `[0x00BC9DA0,0x00BC9ECC)` | 300 |
+| `0x00BCA850` | `[0x00BCA850,0x00BCA92B)` | 219 |
+| `0x00BD7920` | `[0x00BD7920,0x00BD79C7)` | 167 |
+| `0x00BD7BC0` | `[0x00BD7BC0,0x00BD7C3B)` | 123 |
+| `0x00BDDD50` | `[0x00BDDD50,0x00BDDD7B)` | 43 |
+| `0x00BDEEE0` | `[0x00BDEEE0,0x00BDEFB2)` | 210 |
+| `0x00BDF110` | `[0x00BDF110,0x00BDF181)` | 113 |
+| `0x00BDF2C0` | `[0x00BDF2C0,0x00BDF322)` | 98 |
+| `0x00BDF450` | `[0x00BDF450,0x00BDF528)` + `[0x00BDF530,0x00BDF54C)` | 244 |
+| `0x00BDF6A0` | `[0x00BDF6A0,0x00BDF74D)` | 173 |
+| `0x00BDF810` | `[0x00BDF810,0x00BDF89C)` | 140 |
+| `0x00BDF8A0` | `[0x00BDF8A0,0x00BDF8AA)` | 10 |
+| `0x00E3D890` | `[0x00E3D890,0x00E3D8CE)` | 62 |
+| `0x00E3D8D0` | `[0x00E3D8D0,0x00E3D913)` | 67 |
+
+The unions preserve the three-byte gap in `0x00BBFF40` and eight-byte
+gap in `0x00BDF450`. The copy helper `0x00416810` has a separate
+four-DWORD jump table at `[0x00416878,0x00416888)`: the preceding
+unsigned `(EDX-1)<=3` bound selects `0x00416824`, `0x0041682A`,
+`0x00416836` and `0x00416848`. Those cases and the generic copy loop are
+included in its complete code union. Data cells are not counted as code.
+
+Original checks also authenticated the three selected W/N
+table/locator/type-name chains and five N-method cells. N tables
+`0x010CD7CC/0x010C8EE4` have zero complete-object offsets and identify
+`Qix::Data::Leafins/Leaf`. Exact cells `0x010CD7D4/0x010CD7DC/0x010CD7E0`
+and `0x010C8EEC/0x010C8EF4` select the checked methods: slot 2 selects
+`0x00BDDD50`, slot 4 selects
+the published `0x007143E0` contract, and the first table slot 5 selects
+`0x00BDF8A0`. The shared slot-4 body was consumed from the linked
+finding rather than reopened. No J table or slot-42/12 cell was selected
+without a construction bridge. Confidence is high for the static
+instructions and conditional pointer domains; actual cache contents,
+selected fleet resources, retained tables and rendered polarity were
+not observed.
 
 ## Live Ul'dah observation
 
@@ -836,7 +996,7 @@ usable only after its producer, object domain and effect are joined.
 | Authored record to named target | The application clip reads names, kinds, selectors and a normalized Boolean from its current resource record | A selected fleet-only application record, its actual selection path and retained target context. The engine fleet SCB and application clip are distinct. |
 | Exact fleet resource to constructed instance | The five placed chains, declaration-backed member-key joins and qualified live Ul'dah bindings identify the resources and static child candidates | Actual selected runtime instance, operation receiver and retained construction/lookup identity for an independent control |
 | Value to state change | The generic instance method changes bit 1 and notifies its two stored receivers; the fleet clock path resets/starts/seeks its timeline | A fleet-bound disable/enable interpretation. Bit clear/set is not render or audio polarity. |
-| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup conditionally produces the backend used by its current-value forwarder | Selected fleet receiver/property admission, VFX backend implementation/polarity, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
+| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup produces W and follows resource-dependent lookup/factory calls toward J | Selected fleet receiver/property admission, actual VFX resource/parent/factory product and J slots 42/12 polarity, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
 | Presentation state across arrival and reset | The direct clock consumer has the initialization, resource reset, scene reset, readiness and retry conditions listed above | An independent suppression state, its lifetime and its ordered reapplication for each actual arrival/reset owner |
 
 No authenticated operation/target/value tuple can yet be supplied as an
