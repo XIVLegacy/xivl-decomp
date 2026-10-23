@@ -932,13 +932,14 @@ resource `+0x64`, comparing `u16(u32(entry+4)+0x14)` with `0xFFFD`.
 Its count source calls `0x00BD13A0/0x00BD2420`; argument two is
 unused on this branch. `0x00BDA530` initializes descriptor DWORD 4 and
 value byte zero, calls `0x00BDA3E0`, then returns the descriptor byte in AL
-regardless of helper status. For record G, the value reader follows
-`A=u32(G+4)`, `B=u32(A+8)`, `T=u32(B+8)` and calls `u32(T+0xA8)` with
-`(u32(G), &descriptor)`. The type-4 value is not converted locally.
+regardless of helper status. For runtime record B, the value reader follows
+`G=u32(B+4)`, `C=u32(G+8)`, `T=u32(C+8)` and calls `u32(T+0xA8)` with
+`(u32(B), &descriptor)`. The type-4 value is not converted locally.
 There is no null-record guard, and a null callback reaches opaque diagnostics
 before reloading and calling the current pointer if they return. A missing
 record or callback therefore does not establish safe false. The callback's
-actual descriptor/context producer remains the next concrete source edge.
+fallback descriptor/context producer and callback are bound below; the
+versioned resource's type-name input remains conditional.
 
 Group slot 42 reaches `0x00BC7A30`, returning true in AL when any current
 nonnull child's primary slot 42 returns nonzero AL, and false AL for no such
@@ -963,6 +964,168 @@ Actual fleet property admission, default H/cache contents, retained context,
 SE construction, already-playing cleanup and arrival/reset behavior remain
 separate unbound edges. No server operation/target/value contract follows.
 
+
+#### J42 resource descriptor and type selection
+
+The single-product base constructors `0x00BC5C80/0x00BC6C00` call
+`0x00BB6D20`. It obtains N slot 7, calls
+`0x00BCDDA0(S,0,N7,0,0)`, and stores the returned resource R at S+`0x14`.
+The actual N slot-7 cells select `0x00BDF7F0/0x007CC7E0`: these return
+current N+`0x24`, with the former falling through current N+`0x0C` slot 7
+when its own field is null. The resource base `0x00BCD8C0` stores R+0=S,
+R+8=N7 and R+`0x64`=the `0x24`-byte record array. Each record has payload DWORD at
+`+0`, header G at `+4` and R at `+8`, installed by `0x00BDB9D0`.
+Allocation, error and later opaque helper paths constrain successful
+construction and retained identity. The zero constructor argument does not
+skip the early `0x00BD1390` header-word diagnostic check; it skips later
+per-record validation and registration through that argument.
+
+The descriptor-pointer array is `u32(u32(N7+0x10)+0x0C)`, through the exact
+getters `0x00BD13A0/0x00BD2430`. G+`0x14` is the signed 16-bit record key.
+`0x00BD20C0` installs G+8=C, and `0x00BE7480` installs C+8=T from
+`u32(M+4)+u16(syntheticRecord+0x1C)*0xE8`. That synthetic type index comes
+from a successful type lookup's `T+0xE4`; it is distinct from G's negative
+record key. Thus the callback at T+`0xA8` belongs to a module type record,
+rather than to the resource's primary vtable.
+
+Parent Q+`0x24` has two producer paths in `0x00BD7A50`. The fallback
+`0x00BDDDB0 -> 0x00BD2F00` supplies three eight-byte input pairs:
+
+| Signed record key | Type-name pointer | Exact NUL-terminated lookup key |
+| --- | --- | --- |
+| -3 | `0x010BA124` | `SQEX/CDev/Engine/Vfx/QixControl/Controls/LeafLife` |
+| -1 | `0x010BA080` | `SQEX/CDev/Engine/Vfx/QixControl/Controls/MatrixLeaf` |
+| -2 | `0x010BA048` | `SQEX/CDev/Engine/Vfx/QixControl/Controls/ColorRGBALeaf` |
+
+The names establish lookup identity. Cache hits and later resource callbacks
+remain conditions on the current object. New construction passes through
+`0x00BD1C20 -> 0x00BD13B0`, then conditionally `0x00BD18B0`; the outer
+constructor returns its allocation independently of the lower AL result.
+
+The versioned alternative `0x00BDDE10 -> 0x00BD3010 -> 0x00BE7580`
+uses the two current resource headers at Q+`0x30/+0x34`. For each positive
+signed count, it reads an eight-byte entry's signed key at `+4` and unsigned
+type index at `+6`, then copies the type-name pointer from the indexed
+`0x18`-byte type record's `+0x10`. `0x00BD1C90` and its three-DWORD table
+map -3/-1/-2 to output slots 0/1/2; other keys use an increasing ordinal
+starting at 3. The original key and resource-provided name pointer survive.
+Key -3 therefore does not force the LeafLife name on this path. No selected
+fleet header payload was read. For positive counts the converter returns
+the count's low byte in AL; nonpositive counts bypass that reload and return
+the original EAX. `0x00BD3010` forwards a DWORD with only AL initialized,
+while `0x00BD2F00` consumes only its low byte. Neither count validation nor
+safe behavior for malformed inputs follows.
+
+#### Fallback callback registry binding
+
+On the constructed-module startup branch, `0x00B94A20` calls
+`0x00BAECB0(M,0x010B9DA8)` at `0x00B94D9C`. Scene startup later calls
+the same wrapper with `0x0111CBB8` at `0x004E888C`. The wrapper calls
+`0x00BADE00` to append `0xE8`-byte type records to M+4, update count M+`0x14`
+and rebuild the registry at M+`0x114`:
+
+| Configuration | Type source / count / half-open extent | Secondary source / count |
+| --- | --- | --- |
+| `0x010B9DA8` | `0x01300178` / 56 / `[0x01300178,0x01303438)` | `0x010B9D30` / 5 |
+| `0x0111CBB8` | `0x0130F4E8` / 162 / `[0x0130F4E8,0x013187B8)` | `0x0111CAF8` / 8 |
+
+The secondary inputs go through `0x00BACCE0` into a distinct `0x18`-byte
+array at M+8. That helper resolves existing type keys; it does not directly
+append types. Their payloads were not read. These two authenticated direct
+wrapper callsites do not enumerate indirect callers or prove all runtime
+registrations. Reuse, allocation, opaque calls, source backing and retained
+fields remain conditions on this construction composition.
+
+`0x00BD7650` constructs registry table `0x010C8848` with hash selector
+`0x01000193` at `+0x18`. Actual `0x00BD7750` therefore calls `0x00E3F9D0`:
+start at `0x01000193`, then multiply by `0x01000193` and XOR each unsigned
+nonzero key byte, with unsigned 32-bit wrap. Registry slot 7 `0x00416CC0`
+uses slot 8 `0x00BD7730` to compare unsigned DWORD hashes, with a separate
+found byte and index result. Equality is hash equality, not pointer or string
+equality. Lookup `0x00BAC8F0 -> 0x00BD7810` uses that constructed registry;
+the published `0x00416AE0/0x00416A00` lookup/insertion bodies were consumed
+without reopening them. Capacity and nullable-construction paths do not
+guarantee successful registration.
+
+All 218 selected type-key pointers and their section-bounded NUL byte
+sequences were checked, with no null, truncated or unbacked key. The sole
+match for LeafLife hash `0x9B11363B` was earlier source index 15, record
+`0x01300F10`, whose key pointer is `0x010BA124`. Its exact callback DWORD
+at `0x01300FB8` is `0x00BA45A0`. The later 162-record append had no equal
+hash. This binds the fallback key to that copied callback under the actual
+registry/index/backing and retention conditions; it does not bind every
+versioned key -3 header or establish the selected fleet's current resource.
+
+The complete callback `0x00BA45A0` selects descriptor DWORD 4 through its
+bounded switch. It writes descriptor byte `+4` as follows, before running
+its common continuation:
+
+| Payload before continuation | Written descriptor byte |
+| --- | --- |
+| Ordered `0.0 < float(payload+0x10) < 1.0` | 1 |
+| Otherwise, byte `payload+0x1C` is 3 or 7 | 1 |
+| Otherwise | 0 |
+
+Unordered comparisons take the state-byte fallback if they complete normally.
+The [published fixed-byte table](../actor/camera-endpoint-calculation.md)
+supplies the exact zero/one operands. This is a value query with a continuation:
+the callback then calls `0x00BA4370(payload,0,0)`. That helper can change
+payload state and overwrites `payload+0x10` from `0x00BA42A0`'s XMM0 result.
+The descriptor records the inputs before that continuation; it is not a
+second query of its final payload state. No descriptor pointer is explicitly
+passed to the continuation. Valid backing, native calls returning normally
+and retained resource/registry identity remain conditions on composition.
+
+The owner helper `0x00E3A460` follows `u32(payload)` to the runtime record,
+then record+8 to R, then `u32(R)` to full S. `0x00BDB9D0` installs the payload
+backlink at `0x00BDBA14`; later helpers must preserve it. `0x00BB3BD0` writes
+DWORD S+`0xC4` into the continuation's original first stack-argument slot,
+which is reloaded into EBP. ESI retains the payload pointer; neither later
+zero argument is that destination. With payload+`0x1D` bit 0 clear,
+states 6/7 call `0x00BB35D0(S,1)`,
+which tests S+`0x28` bit 0. On nonzero AL, state 7 also calls
+`0x00BB35E0(S,1)`, which
+clears that bit when S+`0x1C` bit 0 permits it. Those are different fields
+from S+`0x1B2` mask `0x100`. The
+[published mode-1 LeafLife boundary](../actor/model-state-color-transitions.md)
+was consumed for `0x00BA42A0`; its body and other modes were not reopened.
+State 5 can call actual S primary slot 16 with argument 1 when
+`payload+0x1D` bit 0 is clear and the signed DWORD at `payload+0x14` is
+at most the signed DWORD at S+`0xC4`.
+Both single tables select `0x00BB4290`. Under S+`0x1C` bit 0, it sets
+S+`0x28` bit 0. Only a clear-to-set transition additionally ORs `0x2000`
+into DWORDs S+`0x1C/+0x18` and zeros S+`0xC4`. It has no calls or
+access to S+`0x1B2` mask `0x100`. The continuation then marks its payload
+state before evaluating the float result. Other modes of the consumed
+evaluator and opaque helpers are not assumed to preserve payload state.
+
+The extra setup call J slot 54 has a separate contract. Its actual adjustors
+`0x00B9BE40/0x00B9CF70/0x00B9DD80` reach `0x00BB3D20/0x00BC7B90`.
+The single method searches key -2 and sends descriptor DWORD `0x0C` plus
+the original value through `0x00BD9EE0 -> 0x00BD9C60` to that record's
+T+`0xA8` callback. The group uses only its first child's primary slot 69,
+without an array/count guard; the constructed single tables select the same
+single method. This is a different key/type input from the fallback -3
+predicate and supplies no authenticated consumer of S+`0x1B2` mask `0x100`.
+
+The current-value zero input therefore first evaluates the selected
+resource predicate, which can itself update payload state, and calls J12
+only for zero AL. The proven guarded setter still sets mask `0x100` for
+that zero call and clears it for a nonzero low byte. The fallback callback
+does not make that mask a proven hide/mute or suppression/release command.
+One finite query for exact direct TEST encodings of WORD `+0x1B2` mask
+`0x100`, or its equivalent BYTE test, returned no candidate. Other
+encodings, aggregate and indirect consumers were outside that query; its
+result is not an absence or exhaustion claim.
+
+The precise remaining presentation edge is an authenticated consumer of
+that S field on the selected fleet's admitted resource/property path. The
+versioned predicate also needs its actual header type-name input. The other
+modes of `0x00BA42A0` remain outside the consumed published contract. Current
+cache/registry contents, default H installation, retained fields/tables,
+SE effects, already-playing cleanup, fleet-only server selection and
+arrival/reset precedence remain separate gates. No additional resource
+payload or runtime probe was used to bridge them.
 
 #### VFX source checks
 
@@ -1232,8 +1395,107 @@ through their section-bounded NUL names, without inheritance arrays:
 | `0x010B8C8C` | `0x01195634 / 0x012FFD10` | `0xC4` |
 
 Confidence is high for these byte-level construction, adjustment, guarded
-state-write and AL-predicate contracts. Callback identity, selected fleet
-admission and render/audio polarity were not established by this study.
+state-write and AL-predicate contracts. The descriptor/callback study
+below extends these construction checks.
+
+#### Descriptor and callback source checks
+
+The same original executable identity and Python 3.12.0, pefile 2024.8.26
+and Capstone 5.0.7 x86-32 supplied 53 further complete normal-flow
+methods, totalling 12,493 instruction bytes. These extend the preceding
+106-method construction study to 159 methods / 35,770 bytes. Prior fifteen- and
+38-method bodies were consumed without replay. Original-byte mapping,
+section bounds, complete instruction unions, ABI, typed data and independent
+source review covered these half-open original VA intervals. No runtime
+execution or new asset payload supplied these claims.
+
+| Entry | Complete instruction union | Bytes |
+| --- | --- | --- |
+| `0x00BC5C80` | `[0x00BC5C80,0x00BC5CE1)` | 97 |
+| `0x00BC6C00` | `[0x00BC6C00,0x00BC6D1B)` | 283 |
+| `0x00BB6D20` | `[0x00BB6D20,0x00BB706B)` + `[0x00BB7070,0x00BB7308)` | 1507 |
+| `0x00BCDDA0` | `[0x00BCDDA0,0x00BCE534)` | 1940 |
+| `0x00B9BE40` | `[0x00B9BE40,0x00B9BE57)` | 23 |
+| `0x00B9CF70` | `[0x00B9CF70,0x00B9CF87)` | 23 |
+| `0x00B9DD80` | `[0x00B9DD80,0x00B9DD97)` | 23 |
+| `0x00BB3D20` | `[0x00BB3D20,0x00BB3D41)` | 33 |
+| `0x00BC7B90` | `[0x00BC7B90,0x00BC7BAF)` | 31 |
+| `0x00BDF7F0` | `[0x00BDF7F0,0x00BDF802)` | 18 |
+| `0x007CC7E0` | `[0x007CC7E0,0x007CC7E4)` | 4 |
+| `0x00BCD8C0` | `[0x00BCD8C0,0x00BCDBA6)` | 742 |
+| `0x00BDB9D0` | `[0x00BDB9D0,0x00BDBA68)` + `[0x00BDBA70,0x00BDBC85)` | 685 |
+| `0x00BD13A0` | `[0x00BD13A0,0x00BD13A4)` | 4 |
+| `0x00BD2430` | `[0x00BD2430,0x00BD2434)` | 4 |
+| `0x00BDDDB0` | `[0x00BDDDB0,0x00BDDE06)` | 86 |
+| `0x00BDDE10` | `[0x00BDDE10,0x00BDDE24)` | 20 |
+| `0x00BD9EE0` | `[0x00BD9EE0,0x00BD9F05)` | 37 |
+| `0x00BD2F00` | `[0x00BD2F00,0x00BD3009)` | 265 |
+| `0x00BD3010` | `[0x00BD3010,0x00BD3055)` | 69 |
+| `0x00BD9C60` | `[0x00BD9C60,0x00BD9CED)` | 141 |
+| `0x00BD1C20` | `[0x00BD1C20,0x00BD1C60)` | 64 |
+| `0x00BD13B0` | `[0x00BD13B0,0x00BD17F8)` | 1096 |
+| `0x00BD18B0` | `[0x00BD18B0,0x00BD1A84)` | 468 |
+| `0x00BAC8F0` | `[0x00BAC8F0,0x00BAC90F)` | 31 |
+| `0x00BAC620` | `[0x00BAC620,0x00BAC66E)` | 78 |
+| `0x00BAC670` | `[0x00BAC670,0x00BAC6EF)` | 127 |
+| `0x00BD7810` | `[0x00BD7810,0x00BD7831)` | 33 |
+| `0x00BD20C0` | `[0x00BD20C0,0x00BD20E7)` | 39 |
+| `0x00BD2660` | `[0x00BD2660,0x00BD285A)` + `[0x00BD2860,0x00BD2C0A)` | 1444 |
+| `0x00BE7480` | `[0x00BE7480,0x00BE74A5)` | 37 |
+| `0x00BD7750` | `[0x00BD7750,0x00BD77C2)` | 114 |
+| `0x00BAECB0` | `[0x00BAECB0,0x00BAECDA)` | 42 |
+| `0x00BAECE0` | `[0x00BAECE0,0x00BAED67)` | 135 |
+| `0x00BADE00` | `[0x00BADE00,0x00BAE09A)` | 666 |
+| `0x00BAE0A0` | `[0x00BAE0A0,0x00BAE2F2)` | 594 |
+| `0x00BD7650` | `[0x00BD7650,0x00BD7681)` | 49 |
+| `0x00BD77D0` | `[0x00BD77D0,0x00BD780B)` | 59 |
+| `0x00E3F9D0` | `[0x00E3F9D0,0x00E3F9FF)` | 47 |
+| `0x00BACCE0` | `[0x00BACCE0,0x00BACD9C)` | 188 |
+| `0x00A4B540` | `[0x00A4B540,0x00A4B56B)` | 43 |
+| `0x00BAB0F0` | `[0x00BAB0F0,0x00BAB0FF)` | 15 |
+| `0x00416CC0` | `[0x00416CC0,0x00416D7F)` | 191 |
+| `0x00BE7580` | `[0x00BE7580,0x00BE75FF)` | 127 |
+| `0x00BD7730` | `[0x00BD7730,0x00BD774D)` | 29 |
+| `0x00BD1C90` | `[0x00BD1C90,0x00BD1CAB)` | 27 |
+| `0x00BA45A0` | `[0x00BA45A0,0x00BA473D)` | 413 |
+| `0x00BA4370` | `[0x00BA4370,0x00BA442A)` | 186 |
+| `0x00E3A460` | `[0x00E3A460,0x00E3A46C)` | 12 |
+| `0x00BB3BD0` | `[0x00BB3BD0,0x00BB3BDF)` | 15 |
+| `0x00BB35D0` | `[0x00BB35D0,0x00BB35E0)` | 16 |
+| `0x00BB35E0` | `[0x00BB35E0,0x00BB35F2)` | 18 |
+| `0x00BB4290` | `[0x00BB4290,0x00BB42C7)` | 55 |
+
+Additional gaps `[0x00BB706B,0x00BB7070)`,
+`[0x00BDBA68,0x00BDBA70)` and `[0x00BD285A,0x00BD2860)` are excluded.
+The four-case post-initializer switch reads only DWORDs
+`[0x00BD1A84,0x00BD1A94)`, under its unsigned byte-selector bound <=3.
+The callback's outer unsigned descriptor bound <=5 selects six DWORDs
+`[0x00BA4740,0x00BA4758)`; its subtype bound <=4 selects five DWORDs
+`[0x00BA4758,0x00BA476C)`. All internal successors are included above;
+switch data is excluded from instruction-byte counts.
+
+Eleven additional selected method cells authenticate N slot 7
+`0x010CD7E8/0x010C8F00`, J slot 54
+`0x010B846C/0x010B8914/0x010B8D64`, single-child primary slot 69
+`0x010B8598/0x010B8A40`, single-owner primary slot 16
+`0x010B84C4/0x010B896C`, and constructed registry slots 7/8
+`0x010C8864/0x010C8868`. No further RTTI/inheritance census supplied identity.
+Typed reads also covered the six predefined key-pointer/WORD operands at
+`0x01303E24/28/2C` and `0x010C70B4/B8/BC`, their three exact NUL strings,
+the two four-DWORD configuration blocks, the three reserved-key DWORDs
+`[0x010C70C0,0x010C70CC)`, all 218 selected type-key DWORD fields and their
+NUL strings, and the single selected callback DWORD `0x01300FB8`.
+Each selected type-key string terminated within 256 bytes in one raw-backed
+section; all hash matches were counted. These are finite selected inputs,
+not a type, string or callback census.
+
+The additional binary32 operand `[0x01086650,0x01086654)` contains
+`00000000`, positive zero.
+The original zero/one operands at `0x00F62F70/0x00F54F70` were consumed
+from the [fixed-byte table](../actor/camera-endpoint-calculation.md)
+without rereading them. Confidence is high for the conditional resource,
+registry, callback and state contracts. Actual fleet admission, authored
+versioned type inputs and render/audio polarity remain outside these checks.
 
 ## Live Ul'dah observation
 
@@ -1303,7 +1565,7 @@ usable only after its producer, object domain and effect are joined.
 | Authored record to named target | The application clip reads names, kinds, selectors and a normalized Boolean from its current resource record | A selected fleet-only application record, its actual selection path and retained target context. The engine fleet SCB and application clip are distinct. |
 | Exact fleet resource to constructed instance | The five placed chains, declaration-backed member-key joins and qualified live Ul'dah bindings identify the resources and static child candidates | Actual selected runtime instance, operation receiver and retained construction/lookup identity for an independent control |
 | Value to state change | The generic instance method changes bit 1 and notifies its two stored receivers; the fleet clock path resets/starts/seeks its timeline | A fleet-bound disable/enable interpretation. Bit clear/set is not render or audio polarity. |
-| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup has a conditional constructed resource/parent/factory/J-table bridge and guarded slot-12 mask update | Selected fleet receiver/property admission and retained cache/context, the J42 descriptor callback and a presentation consumer of the slot-12 state bit, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
+| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup has a conditional constructed resource/parent/factory/J-table bridge and guarded slot-12 mask update, with a bound fallback predicate and owner-state continuation | Selected fleet receiver/property admission and retained cache/context, the versioned J42 type-name input, selected fleet payload/owner binding and a presentation consumer of the slot-12 state bit, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
 | Presentation state across arrival and reset | The direct clock consumer has the initialization, resource reset, scene reset, readiness and retry conditions listed above | An independent suppression state, its lifetime and its ordered reapplication for each actual arrival/reset owner |
 
 No authenticated operation/target/value tuple can yet be supplied as an
