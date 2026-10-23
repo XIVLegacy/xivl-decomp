@@ -349,8 +349,93 @@ original heterogeneous `/i` and `/s` order: `0xE8` under handler `0x20`
 selects an integer argument, and `0xEA` under handler `0x29` selects a string
 argument. This does not define all expression forms, payload framing,
 termination validity, recursive limits or a complete substitution grammar.
-The exact numeric formatting contract of `FUN_00454ED0`, including negative
-output spelling, remains outside these selected call observations.
+SQTP-05 bounds a frame/reference subset separately from native rejection
+behavior. SQTP-06 follows the selected numeric call into decimal conversion.
+
+### SQTP-05: Bounded framing and reference encoding
+
+Observed with Ghidra CLI and independent LLVM decoding of the identified
+executable: `FUN_00CB2760` selects the handler after `0x02`, then calls
+`FUN_00CB2D50` for the declared payload length with final mode 1. At
+`0x00CB2933..0x00CB294C`, it advances past the length expression, calls the
+selected nonnull handler, rejects a zero return, and advances by the declared
+payload length. It does not advance by the handler's returned width. The tail
+at `0x00CB2A7E..0x00CB2A86` skips one byte and resumes after it or completes
+on the following NUL, without comparing the skipped byte to `0x03`.
+The selected `0x20` and `0x29` handlers return their decoder widths at
+`0x00C9F40E` and `0x00C9FB3D` without requiring payload exhaustion.
+No explicit source byte count or end pointer bounds this selected walk.
+
+`FUN_00CB2D50` accepts literal leads `0x01..0xD7` as lead minus one,
+consuming one byte at `0x00CB314B..0x00CB3157`. It delegates leads
+`0xF0..0xFE` to `FUN_00CB2020`, whose case table is at `0x00CB21C8`.
+For prefix `p`, let `m=p-0xEF`. For each set mask bit from 3 down to 0,
+consume one byte and place it at bit position `8*bit`. Unselected positions
+are zero. The result is unsigned 32-bit and the width is `1+popcount(m)`.
+These packed cases contain no test rejecting selected zero bytes. Lead `0xFF` and other
+expression kinds are outside this subset. `FUN_00CB2210` uses a separate
+short-producer threshold of `0xCF`, so the wider accepted literal range does
+not establish canonical producer output or rejection of packed aliases.
+
+The following strict subset is an interpretation of these selected paths,
+not a claim that native code rejects every input outside it:
+
+- `E(n)` is a literal or fully present packed number above. Each selected
+  packed byte is nonzero in this subset.
+- An integer reference is `0xE8 E(k)` and a string reference is `0xEA E(k)`,
+  with `1 <= k <= vector count` and the matching heterogeneous variant tag.
+  Index expressions contain no globals, comparisons, nested parameters or
+  fallback conversions. SQTP-04 owns the native out-of-range and type cases.
+- A frame is `0x02`, handler `0x20` for the integer reference or `0x29` for
+  the string reference, one short length byte `L+1`, that reference, and
+  closing `0x03`. `L` is the full reference width, from 2 through 6.
+- Every declared byte and closing byte must be present in the source span.
+  The reference must consume exactly `L`. A full native formatter source
+  string also has a terminal NUL. These span, closing-byte and exhaustion
+  constraints are strict-subset policy, not observed native rejection checks.
+
+On successful macro lookup and argument construction, `FUN_00CB6510`
+appends `0x02`, its selected code byte, encoded length, payload and `0x03`
+at `0x00CB6638`, `0x00CB665B`, `0x00CB67C1`, `0x00CB67CD` and
+`0x00CB67D6`. This supports the normal framing convention. It does not prove
+that a retail row contains either selected handler. The adjacent TextCleaner
+closing-byte checks in
+`xivl-client-structs:docs/autotranslate-selection-contract.md`, Adjacent
+control parser, do not supply a rejection contract for this MacroDecoder.
+
+### SQTP-06: Selected signed decimal conversion
+
+For the selected constants `10` and `0`, `FUN_00454ED0` takes the default
+format branch at `0x00454EF6..0x00454F38` and `0x004552A6..0x004552B4`.
+It passes the unchanged decoded dword and the NUL-terminated `%d` literal
+at `0x00F677E0` to `FUN_009D4F08`. That helper supplies the format and
+vararg address to `FUN_009E51C4` at `0x009D4F5B` and NUL-terminates the
+normal memory-stream result. The conclusion uses instructions, not only
+Ghidra's `_sprintf` identification.
+
+The fixed CRT state cells select `0x009E536D` and `0x009E5548` for this
+literal. The selected path sets signed conversion and radix 10, loads and
+sign-extends one dword at `0x009E58C7..0x009E58D4`, obtains unsigned
+magnitude at `0x009E58D7..0x009E58ED`, and emits decimal digits through
+`FUN_009D9970` at `0x009E5931..0x009E5963`. Default precision is one,
+width is zero, and the negative flag selects a minus at `0x009E59DF`.
+The normal result is copied through `FUN_00447260` at
+`0x0045534F..0x00455361` using the NUL-length sentinel at `0x00F67298`.
+
+Inference under normal CRT, locale initialization, memory and wrapper-helper
+completion: this selected call interprets the dword as signed 32-bit two's
+complement and produces minimal decimal ASCII. Zero is one zero digit,
+nonnegative values have no sign, and negative values have one leading minus.
+There are no grouping separators or leading zeroes. The sign-extension and
+negate path yields unsigned magnitude `2147483648` for `INT32_MIN` before
+decimal division. Other format constants and styles are outside this claim.
+
+Ghidra decompilation supplied the CRT control-flow lead, but its listing API
+had no instruction/code units for several interior conversion blocks and
+`0x009E5C18`. Those instructions were decoded continuously from the original
+PE with LLVM, starting at `0x009E51C4` and the writer entry `0x009E5BC1`,
+and checked against file-backed bytes. They do not have a second Ghidra
+instruction listing. No CRT invocation or rendered-text result is asserted.
 
 ## Deferred numeric font properties
 
@@ -435,6 +520,11 @@ function bodies outside published artifacts.
 | Selected native string-property join | `0x006F4BA5..0x006F4BD8`, `0x006E9AC0..0x006E9B1A`, `0x0075B810..0x0075B82F`, `0x005355A0..0x005355B4`, `0x005354D0..0x0053555F`, `0x0053BC30..0x0053BC87`, `0x00716AC0..0x00716B23`, `0x00716B30..0x00716B42`, `0x00542710..0x00542729`, `0x00537F63`, `0x00F23880..0x00F238C4`, `0x00912A2B..0x00912A55`, `0x0091B440..0x0091B45D`, `0x00955738..0x0095575B`, `0x009BA4E0..0x009BA52E`, `0x009163E4..0x0091640A`, `0x00548400..0x00548403` |
 | Supplied argument selection | `0x00CB2DCE..0x00CB2E81`, `0x00CB2B9F..0x00CB2C86`, `0x008A68A0`, `0x00778D50`, `0x00779BC0..0x00779C08` |
 | Selected formatter handlers | `0x00CA03C0..0x00CA03EB`, `0x00CA0598..0x00CA059B`, `0x00CA06C8..0x00CA06CB`, `0x00A4B0F0..0x00A4B0F2`, `0x00CA15B0..0x00CA15B2`, `0x00CB291B..0x00CB294C`, `0x00C9F389..0x00C9F40E`, `0x00C9FAE2..0x00C9FB5D`, `0x00447C80` |
+| Selected frame walk and number encoding | `0x00CB27CC..0x00CB2813`, `0x00CB291B..0x00CB294C`, `0x00CB2A7E..0x00CB2A86`, `0x00CB2D95..0x00CB2DC9`, `0x00CB30A4`, `0x00CB314B..0x00CB3157`, `0x00CB2020..0x00CB21C2`, case table `0x00CB21C8` plus 60 bytes, `0x00CB2210` |
+| Normal frame producer | `0x00CB6638`, `0x00CB665B`, `0x00CB67C1..0x00CB67D6`, `0x00CB4CD0..0x00CB4CEF` |
+| Selected decimal call and output | `0x00C9F3C0..0x00C9F3D5`, `0x00454EF6..0x00454F38`, `0x004552A6..0x004552B4`, `0x009D4F08..0x009D4F6D`, `0x0045534F..0x00455361`, literal `0x00F677E0` plus 3 bytes, sentinel `0x00F67298` plus 4 bytes |
+| Selected CRT conversion | `0x009E536D`, `0x009E5548`, `0x009E5745..0x009E5749`, `0x009E58C7..0x009E58ED`, `0x009E5908`, `0x009E5931..0x009E5963`, `0x009D9970..0x009D99FD`, `0x009E59DF`, `0x009E5BC1..0x009E5C5F` |
+| Selected CRT state data | One byte each at `0x01087E05`, `0x01087E08`, `0x01087E44`, `0x01087E41`. Four bytes each at `0x009E5B3C`, `0x009E5B54` |
 | Selected consumer table reads | `0x00FD56A8` plus 4 bytes, `0x00FA0BB8` plus 4 bytes, `0x0106E96C` plus 4 bytes, `0x00FA2DA8` plus 4 bytes, `0x01108F1C` plus 4 bytes, `0x01108F3C` plus 4 bytes |
 | Exact tables and literals | `0x00F8D75C` plus 24 bytes, `0x00F8D774` plus 13 bytes, `0x01108C00` plus 28 bytes, `0x0110C6D4` plus 28 bytes, `0x01108F70` plus 40 bytes, `0x01110654` plus 24 bytes, `0x00CA0DF8` plus 40 bytes |
 
