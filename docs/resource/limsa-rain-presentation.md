@@ -275,7 +275,7 @@ The subsequent instance setup consumes existing VFX resource pointers:
 | `0x007FE9F8..0x007FEA27` | With base-object kind different from `0x12` and setup descriptor `+0x48` zero, calls that base object's slot 18 with the instance interface and descriptor `+0x40`. RaptureVfx kind getter `0x005F0660` returns `0x0F`; table `0x010622B4` slot 18 is `0x008D4FA0`. |
 | `0x008D4FA5..0x008D4FCB` | Requires instance slot 50 true, then calls `0x00AB5010` with the instance and unchanged second setup argument. Slot 50, `0x00800420`, reads the bit written above. A false helper result skips the remaining VFX-specific setup in this body. |
 | `0x00AB5019..0x00AB5027` | Requires both interface `+0x48/+0x4C`, complete VFX `+0x4C/+0x50`, nonnull. Either missing pointer returns false at `0x00AB50D5` before property setup. |
-| `0x00AB502D..0x00AB5086` | Obtains the instance's property through slot 47 and expects property kind `0x0F`. If its slot 37 is false, calls property slot 34 with the two retained pointers and the second setup argument. This call's concrete implementation remains unjoined. |
+| `0x00AB502D..0x00AB5086` | Obtains the instance's property through slot 47 and expects property kind `0x0F`. If its slot 37 is false, calls property slot 34 with the two retained pointers and the second setup argument. The [VFX property contract](ambient-garlean-fleet.md#conditional-vfx-property-and-backend-production) binds its concrete wrapper and conditional backend-field producer; the selected rain property's actual setup and effect remain separate. |
 
 Neither `0x008D4FA0` nor `0x00AB5010` contains a direct call to initializer
 `0x00AB5150` or constructs its two-pointer context. Within these bodies,

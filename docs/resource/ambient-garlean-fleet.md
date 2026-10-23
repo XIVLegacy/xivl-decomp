@@ -216,10 +216,10 @@ missing keys and duplicate preservation.
 
 Confidence is high for these static identities. An actual retained U/L table,
 successful callback lookup and result T remain unobserved. The declarations
-do not bind A to E/T, identify the concrete +0x44/+0x48 receivers, establish
-polarity or recursive body/VFX/sound effects, or close the server selector and
-lifecycle edges. No additional receiver construction/table/caller identity
-follows from a declared BGParts, VFX or SE class alone.
+do not bind A to E/T or demonstrate the selected fleet's receiver/property
+admission, recursive body/VFX/sound effects, server selector or lifecycle.
+The constructed notification and BGParts contracts below supply conditional
+native mechanisms; declared BGParts, VFX or SE names alone do not select them.
 
 ### Exact folder and conditional creation context
 
@@ -508,10 +508,10 @@ On a change, it calls the receiver stored at instance `+0x44` through vtable
 `+0x1D0` at `0x00A99DDF`, then the receiver at `+0x48` through `+0x9C`
 at `0x00A99DF0`, without passing the value as an explicit argument.
 The getter at `0x00A99DA0` returns bit 1. The separate setter at `0x00A99D50`
-changes bit 0, not bit 1. The first unresolved downstream edge is the concrete
-fleet receiver of those notifications and its render/audio consumer. The
-inspected setter and getter do not establish hide/show polarity, descendant
-coverage, or a sound mute.
+changes bit 0, not bit 1. The constructed notification contract below binds
+the manager/block receivers and their later current-value propagation.
+Actual fleet receiver/property admission, complete descendant coverage and
+audio effects remain separate from this generic flag operation.
 
 The searched consumer set comprised these instance methods and their vtable
 references, the named resolution/fanout methods, layout lookup and traversal,
@@ -522,8 +522,9 @@ vtable `0x01134304`, resolves a dynamic receiver at `0x00DE8147` and calls
 its `+0x24` at `0x00DE818D` or `+0x20` at `0x00DE81B9`.
 It does not directly call instance `+0x98`. The
 [fallback listener path](showhide-clip-dispatch.md#fallback-operations-and-indexed-actor-branches)
-conditionally joins those calls through a member actor to the same setter;
-the selected fleet receiver and rendered effect remain unbound.
+conditionally joins those calls through a member actor to the same setter.
+The constructed BGParts path below supplies guarded transform polarity;
+the selected fleet's executed path and final rendering remain unobserved.
 Application `LayVFXClip` (`0x010380E4`, entry `0x00833400`) and
 `LaySEClip` (`0x01038EAC`, entry `0x00833E90`) each call a resolved
 target's `+0x98` with literal 1 at `0x008334E7/0x00833F5A`.
@@ -560,7 +561,7 @@ above. Neither action satisfies an isolated fleet switch. The available
 evidence supports the fleet group as a candidate boundary, but does not yet
 establish a server-only switch or prove that a client change is necessary.
 
-### Conditional constructed member and property
+### Conditional constructed member, notifications and BGParts
 
 The [constructed member-target finding](showhide-clip-dispatch.md#constructed-member-target-and-bgparts-property)
 at revision `7ab9456ffe4b15d2de474630d8c203af393826be` narrows the
@@ -571,24 +572,201 @@ table and lookup result, it therefore supplies the Rapture instance table
 used above. The static fleet key matches do not demonstrate those runtime
 conditions or authenticate the CATT factory path.
 
-For a selected BGParts category-2 base, the published property factory
+The [notification and display finding](bgparts-display-flag.md)
+at revision `c913db63dcc854656e4757f31006b7f7d431e0e9` binds the
+remaining constructed notification path. Here T is complete+4. Root descriptor
+initialization `0x00A8D0B0 -> 0x007FE900` supplies manager M at
+T+`0x44` and optional block B at T+`0x48`; child creation `0x007FD830`
+inherits them. Their callbacks `0x00A8B0D0/0x00A937A0` set update
+bits rather than immediately rendering. The manager's constructed SharedFolder
+traversal and the block's state-6 consumer later call T slot 73,
+`0x00A9A040`, with 1. That argument propagates T's current flag to its
+property and child fanout; it is not an unconditional show. Selected fleet
+tables, arrays, state and successful updates still need their own admission.
+
+For a selected BGParts category-2 base, the property factory
 `0x008382A0 -> 0x007FD210` returns complete+`0x4C` with table
-`0x00FF2534`, stored as T+`0x14`. Property slot 12,
-`0x00A97C40`, forwards through nonnull property+`0x0C` to that receiver's
-slot 37. The constructor clears that optional pointer; its later concrete
-writer and receiver remain unbound. This is a conditional property path,
-separate from the flag-change notifications at T+`0x44/+0x48`.
-The constructed Rapture binding override does not directly store those notification
-fields, and the base constructor initially clears them. Substituting the
-engine binding method that does write them would join the wrong table.
+`0x00FF2534`, stored as T+`0x14`. The normal nonbatch setup
+`0x008D3FD0 -> 0x00AAA920 -> 0x00A98460` obtains a key-zero
+display-manager product and stores its model interface at P+`0x0C`.
+The registered factory supplies LayDefaultModelObject table `0x00FBAD6C`.
+P slot 12, `0x00A97C40`, forwards to that model's slot 37,
+`0x00626250`; P slot 47, `0x00A982E0`, releases and clears the pointer.
+These are separate from T's flag-change notification fields.
+
+On the guarded indexed-model branch, normalized 1 preserves the first three
+finite Float4 transform rows, while 0 zeros them; both retain the fourth row.
+The path writes the indexed drawable state and marks it dirty. The nonindexed
+resource branch is separate. Early batch registration does not itself create
+P+`0x0C`; the separately admitted model setup consumes the registration index
+and reused backend only under its documented guards. Zero can be the first
+append index, not registration failure. Successful standalone initialization
+samples the current parent/member flags, but indexed-resource and nonzero
+reuse branches bypass that particular sample. This conditional transform
+polarity does not demonstrate an actual fleet frame, all-branch hiding,
+VFX/sound mute, or persistence across reconstruction and playback.
 
 The [matching unit-target branch](showhide-clip-dispatch.md#unit-actor-with-a-matching-unitinfo-key)
 also identifies conditional UnitInfo flag/fanout operations and member
 slot-73 forwarding through the optional property. It does not identify the
 fleet's actual unit key, member/child vector entries or their retained
 tables. The ordinal-0 CACT raw value is not a proven UnitInfo scalar join.
-Neither conditional path supplies rendered polarity, complete descendant
-or audio effects, or an independent server producer.
+The constructed contracts supply the guarded BGParts transform result above.
+They do not establish complete fleet descendant/audio effects or an independent
+server producer.
+
+### Conditional VFX property and backend production
+
+The [retained VFX setup](limsa-rain-presentation.md#later-weather-placement-and-vfx-setup)
+binds the kind-`0x0F` base path `0x008D4FA0 -> 0x00AB5010` to
+property slot 34, given both retained resource pointers, instance admission
+and the property guard. This is a generic VFX contract; it does not select
+the fleet's actual instance or equate fleet resources with rain.
+
+Creator table `0x0103C574` slot 3, original cell `0x0103C580`,
+selects `0x0083A010`. Its nonnull `0xF0`-byte allocation reaches
+constructor `0x007FDDB0` at `0x0083A06D`. That constructor installs
+property table `0x00FF2E84` at complete+`0x4C` at `0x007FDE1D`;
+the factory returns this adjusted interface P, otherwise null. The preceding
+RTTI locator `0x01164224` independently reports offset `0x4C`.
+Creator slot 7, `0x00AA7190`, performs case-sensitive byte equality
+through NUL against `BaseObjects/VFX/VFXBaseObject`, loaded through
+`0x012F5904 -> 0x010A29E4`, and returns equality in AL with `RET 4`.
+The factory/constructor bridge, rather than a matching name, identifies P.
+
+P slot 34, `0x00AA4170`, takes the two retained resource pointers A/B
+and setup operand C. It adjusts `this` to Q=P-4=complete+`0x48` and
+calls Q slot 1 at `0x00AA4193` with five stack arguments
+`(A,B,0,C,0xFFFFFFFF)`, then returns `RET 0x0C`. The final argument is
+a by-value DWORD. The constructor installs Q table `0x00FF2F48`;
+its slot-1 cell `0x00FF2F4C` is `0x00AA47A0`.
+
+The latter method takes `(A,B,O,C,I)`. With nonnull A/B and selected O=0,
+it calls P slot 35, obtains R through P slot 4 and H through R slot 17.
+Global `0x01365B08` slot 5 returns F; F slot 3 supplies optional E.
+E slot 1 receives a pointer to the three-DWORD record
+`{A,0,R.slot6()}` and must return true in AL. B is otherwise only checked
+for nonnull in this complete method. After E slot 27 receives P, R slot 37
+supplies AL, and `0x00AA486D` stores E at Q+`0x40`=P+`0x3C`=
+complete+`0x88`. E slot 4 then receives a DWORD with that AL as its low
+byte, `[H+4]`, C and I. Its upper three bytes are not established as zero.
+True AL returns success. Null E or failed E slot 1/4 invokes P slot 35
+and returns false; that implementation and post-failure field state
+remain unjoined. The separate O!=0 branch writes through O and calls
+`0x00AA4D30`; the retained three-argument wrapper selects O=0.
+
+P slot 12, `0x00AA4140`, tests the optional backend at P+`0x3C`.
+Null returns `RET 4`; nonnull tail-calls E slot 15 with the original single
+stack argument unchanged. The tested DWORD is a pointer, not that argument.
+This method interprets no flag polarity. The complete constructor does not
+itself initialize complete+`0x88`; base-helper effects and later lifetime
+writers remain separate requirements.
+
+The [default external-manager construction](bgchip-instance-resource-setup.md#separate-attribute-physics-path)
+binds `0x01365B08` to wrapper `0x010A8AC0` and its installed connector
+to `0x010A026C`. Original wrapper slot-5 cell `0x010A8AD4` selects
+`0x00ABB940`, which tail-calls the retained connector's slot 2 without a
+null guard. Connector cell `0x010A0274` selects `0x00A84190`, returning
+`[0x0136576C]+4` when nonnull, otherwise zero. Default installation,
+allocation and replacement conditions remain essential. These getters do
+not themselves construct the returned manager.
+
+The retained startup producer supplies that manager: `0x00A77B8F` calls
+constructor `0x00A83F90` after a `0x0C`-byte allocation and stores its
+result or null in `0x0136576C` at `0x00A77BC0`. The constructor installs
+table `0x010A0214` at complete+4. Its original RTTI locator `0x0118ACA0`
+reports offset 4 and identifies LayEffectManager. F slot-3 cell
+`0x010A0220` selects `0x00A83F70`: null F+4 returns null; otherwise
+it tail-calls that retained secondary interface's slot 1. The constructor
+installs secondary table `0x010A0234` at its allocation+4 and stores the
+adjusted pointer at manager complete+8=F+4. Failure of this secondary
+allocation can therefore leave a nonnull manager that returns no E.
+
+Secondary slot-1 cell `0x010A0238` selects `0x00A84050`, which allocates
+`0x2C` bytes, calls `0x00A87AB0` at `0x00A8409F` and returns a nonnull
+result+4, otherwise zero. That constructor installs E table `0x010A1ABC`
+at complete+4. Original RTTI locator `0x0118C140` reports offset 4 and
+identifies LayEffectManipulator. Its slot-15 cell `0x010A1AF8` selects
+`0x00A87790`, binding the current-value receiver through this default
+construction path.
+
+That method reads J at E+`0x0C`=complete+`0x10`, initially zero in the
+constructor. Null J returns `RET 4` without an effect. With nonnull J,
+a nonzero argument low byte calls J slot 12 with the original DWORD.
+A zero low byte first calls J slot 42: true AL skips slot 12; false AL
+calls it with the same original DWORD. Thus even this concrete forwarding
+has a guard specific to zero; it is not a direct Boolean-to-render operation.
+
+The two E setup calls above have original cells `0x010A1AC0/0x010A1ACC`
+selecting `0x00A87480/0x00A87510`. The first consumes the three-DWORD
+record and, after calling E slot 2 and its allocation path, calls `0x00A87EC0`
+at `0x00A874E5`. It stores the returned W at E+8=complete+`0x0C`
+and returns whether W is nonnull. The second calls E slot 5, requires W,
+and tests its first argument's low byte. Nonzero calls `0x00B99E40`
+at `0x00A87546` with W as `this` and the second setup DWORD (`[H+4]`)
+as its argument, then stores the return as J. A null J returns false.
+
+Zero instead jumps at `0x00A8753F` to `0x00A875C6`, skipping J creation,
+the optional callback and the J slot-33/52/51 block. Both branches call
+K=`u32(E+0x20)` slot 39 with C, without a K null guard. Zero then also
+skips J slot 54 and E slot 6. It can return true without dereferencing J;
+successful setup alone therefore does not establish a nonnull effect J.
+The nonzero branch's later J calls and optional global `0x01365780`
+callback have separate resource, value and index guards. These operations
+do not establish the concrete J/K tables or their effect meanings.
+
+The exact lower construction boundary is `0x00A87EC0`'s W product and
+`0x00B99E40`'s J product, followed by J slots 42/12. Neither helper body
+nor the K producer was traced in this bounded property study. An
+exact-address query of the published docs at `c913db6` found no contract for
+either helper. This is an actionable next native edge, not an exhausted
+VFX-subsystem search. Setup also requires valid R/H and manager F:
+`0x00AA47A0` adds no null guards for R, F before slot 3, or H before
+`[H+4]`. Default-manager construction does not remove those prerequisites.
+
+Suppression/release polarity, lifetime and independently scheduled effect
+handling remain unresolved. This is a conditional VFX
+field-production/current-value join, not complete fleet effect coverage.
+The SE declarations above still lack an authenticated original
+construction/category/setup-to-property handoff; they do not select a sound
+mute implementation.
+
+#### VFX source checks
+
+Python 3.12.0, pefile 2024.8.26 and Capstone 5.0.7 x86-32 produced these
+original-PE observations using the binary/build identity above. The checked
+control-flow instruction unions were complete for these fifteen entries;
+internal branches were followed, with callee bodies checked only at listed entries.
+All intervals below are half-open VAs in raw-backed PE sections.
+
+| Entry | Complete instruction interval | Bytes |
+| --- | --- | --- |
+| `0x0083A010` | `[0x0083A010,0x0083A0A7)` | 151 |
+| `0x00AA7190` | `[0x00AA7190,0x00AA71DB)` | 75 |
+| `0x007FDDB0` | `[0x007FDDB0,0x007FDEC3)` | 275 |
+| `0x00AA4170` | `[0x00AA4170,0x00AA4198)` | 40 |
+| `0x00AA4140` | `[0x00AA4140,0x00AA4153)` | 19 |
+| `0x00AA47A0` | `[0x00AA47A0,0x00AA48D7)` | 311 |
+| `0x00ABB940` | `[0x00ABB940,0x00ABB94A)` | 10 |
+| `0x00A84190` | `[0x00A84190,0x00A841A0)` | 16 |
+| `0x00A83F90` | `[0x00A83F90,0x00A84036)` | 166 |
+| `0x00A83F70` | `[0x00A83F70,0x00A83F83)` | 19 |
+| `0x00A84050` | `[0x00A84050,0x00A840CB)` | 123 |
+| `0x00A87AB0` | `[0x00A87AB0,0x00A87AF4)` | 68 |
+| `0x00A87790` | `[0x00A87790,0x00A877C3)` | 51 |
+| `0x00A87480` | `[0x00A87480,0x00A87509)` | 137 |
+| `0x00A87510` | `[0x00A87510,0x00A87614)` | 260 |
+
+The 1,721 instruction bytes and the separate 89-byte startup producer window
+`[0x00A77B6D,0x00A77BC6)` were checked against the original PE and the
+retained startup listing. The startup result is limited to that window.
+Checks also authenticated eighteen exact method cells, five selected
+table/locator/type-name chains, class-ID cell `0x010A2CD8 = 0x0A5D` and
+the matcher pointer/literal. Table identity, object adjustments, native stack
+vectors and low-byte results were checked together. No inheritance-array,
+registration or string census supplied a substitute construction edge.
+Confidence is high for these static instructions and conditional domains;
+no client execution, selected fleet setup or rendered effect was observed.
 
 ## Live Ul'dah observation
 
@@ -658,16 +836,17 @@ usable only after its producer, object domain and effect are joined.
 | Authored record to named target | The application clip reads names, kinds, selectors and a normalized Boolean from its current resource record | A selected fleet-only application record, its actual selection path and retained target context. The engine fleet SCB and application clip are distinct. |
 | Exact fleet resource to constructed instance | The five placed chains, declaration-backed member-key joins and qualified live Ul'dah bindings identify the resources and static child candidates | Actual selected runtime instance, operation receiver and retained construction/lookup identity for an independent control |
 | Value to state change | The generic instance method changes bit 1 and notifies its two stored receivers; the fleet clock path resets/starts/seeks its timeline | A fleet-bound disable/enable interpretation. Bit clear/set is not render or audio polarity. |
-| State change to presentation | The fleet SCBs contain body, VFX and sound actors; a conditional BGParts property forwarder is identified separately from flag notifications | Actual fleet notification receivers and the property's later receiver producer, rendered polarity, descendant effects, independently scheduled VFX/sound and interaction with playback |
+| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup conditionally produces the backend used by its current-value forwarder | Selected fleet receiver/property admission, VFX backend implementation/polarity, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
 | Presentation state across arrival and reset | The direct clock consumer has the initialization, resource reset, scene reset, readiness and retry conditions listed above | An independent suppression state, its lifetime and its ordered reapplication for each actual arrival/reset owner |
 
 No authenticated operation/target/value tuple can yet be supplied as an
 independent server contract. The first unbound edge on the traced application
 path is server-reachable selection of a fleet-only authored record. The first
-unbound downstream effect is the concrete fleet instance's notification
-receiver and its render/audio consequence. Establishing one does not close
-the other. Failure to establish the server path does not prove that a client
-change is required.
+unbound downstream effect is the selected fleet's admitted property/backend
+path and complete render/audio consequence, after the conditional notification
+and BGParts mechanisms above. Establishing one does not close the other.
+Failure to establish the server path does not prove that a client change is
+required.
 
 ### Suppression and restoration are separate requirements
 
