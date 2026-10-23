@@ -769,7 +769,7 @@ interface adjustment: kind 0 returns S+`0x204`, kind 1 S+`0x21C`, and
 kind 2 S+`0xC4`. Other values reach unexamined helpers before the visible
 zero-return instructions. These kind-dependent offsets do not authenticate
 the returned J table. Selecting J slots 42/12 by a class name, a kind value
-or a matching interface offset would bypass the missing factory product.
+or a matching interface offset would bypass the required construction bridge.
 
 The conditional population arms supply further producer constraints.
 `0x00BBFB10` and `0x00BC9BB0` allocate N and call
@@ -802,23 +802,167 @@ passes it to `0x00E3D8D0`, which prepares the same key and calls
 `0x00416BF0` with pointers to the key and Rv. The latter helper's body and
 transitive effects remain untraced. A bounded original `E8 rel32` search
 for `0x00E3D8D0` found only this already checked call at `0x00BBD2EF`;
-it did not enumerate indirect callers. No additional concrete V constructor
-was identified. The concrete V product, V+`0x84` parent and context factory
-Fd remain unbound here.
+it did not enumerate indirect callers. The constructed-resource path below supplies a conditional concrete V
+product, parent context, factory and J-table bridge. Actual selected cache
+values and their later retention remain unobserved.
 
-The remaining bridge needs a concrete A+`0x54` resource receiver Z and its
-cache/parent initialization, or a constructed `[Z+0x40]` slot-3 receiver,
-that binds the V+`0x84` parent, X and Fd. The existing
-[resource acquisition finding](limsa-rain-presentation.md#rain-collection-and-bind-entry-acquisition)
-does not identify that decoder/receiver; copying the acquired pointer into
-the VFX base is insufficient. Fd's constructed S and returned J table must
-then be joined. Only that table can select J slots 42/12 and their
-state/render consumers. The separate K producer, suppression/release
-polarity, already-playing cleanup, lifetime and independently scheduled effect handling remain
-unresolved. This is a ceiling of this resource-selected route, not a claim
-that the wider VFX subsystem was exhausted. The SE declarations above still
-lack an authenticated construction/category/setup-to-property handoff and
-do not select a sound mute implementation.
+The [constructed-resource bridge](#constructed-resources-parent-context-and-effect-factory)
+binds the callback receiver, conditional V/parent/context factory and actual
+S/J interfaces. The [J operation result](#j-operations-and-conditional-bit-polarity)
+separates the recovered state-bit polarity from the missing presentation
+consumer. Actual fleet selection/cache identity, default query context,
+separate K/SE construction, cleanup and lifecycle still need their own joins.
+
+#### Constructed resources, parent context and effect factory
+
+The baseline graph route `0x007CBE90 -> 0x00A63D10` supplies actual
+factory registrations. The base constructor installs table `0x00FE942C`
+on nonnull helper storage, pairs it with key `0x76656666` and calls the
+[published registration wrapper](gtex-pwib-loader.md#selected-restxb-consumer)
+`0x0060DAC0`. Its original RTTI identifies EffectResourceNodeFactory.
+The same constructor registers tables `0x00FE93CC/0x00FE93AC` with keys
+`0x6C656166/0x76696E73`, corroborated as LeafResourceNodeFactory and
+LeafinsResourceNodeFactory. Actual fleet resource admission and successful
+later lookup remain separate conditions.
+
+The effect factory slots 1/3 construct through `0x00B99950/0x00B99A00`.
+Slot 1 writes the returned node through its output argument and returns
+that output address; slot 3 returns the node directly. Guarded allocator,
+allocation and supplied-context paths do not establish successful parsing.
+The instance factory's products `0x00B981E0/0x00B98280` construct A's
+backend Za through `0x00B97EF0 -> 0x00BC16D0`, storing it at A+`0x54`.
+
+Shared setup `0x00BBC830` stores the supplied A+`0x4C` interface at
+Za+`0x40`. That interface's installed table `0x010B6C10`, complete-object
+offset `0x4C`, selects slot 3 `0x00B932B0`. The method calls slot 4 on
+H=`u32(A+0x74)` with the copied key and identifier. A null node returns
+zero; a nonnull node supplies its `+0x54` without a backend null check.
+The effect node independently selects the same code through its own
+interface table `0x010B73C4`; this does not unify the two node objects.
+
+The effect node constructs Ve through `0x00B99830 -> 0x00BC2B30`.
+Its guarded post-construction slot 14 reaches `0x00BC30D0 -> 0x00BC2EC0`.
+The lower helper `0x00BC2C40` obtains X=`u32(root+0x6C)`, constructs
+Ve+`0x80`, and writes Ve+`0x84` using `0x00BD7B40` or fallback
+`0x00BD7AD0`. These parent constructors install table `0x010C8EE4`;
+the published slot-4 getter reads current `this+8`. Their bases
+`0x00BDF0A0/0x00BDEFC0` initially bind Q+8 to X. Later opaque resource
+helpers and callbacks prevent an unconditional claim that Q+8 survives.
+Allocation, null-resource and global-error branches can leave or clear
+Ve+`0x84`. `0x00BC2EC0` ignores the lower helper's AL before returning
+true, so outer success does not establish successful parent construction.
+Ve's own slots 40/42 belong to `0x010C318C` and are distinct from J's.
+
+The root at global `0x01367F44` is constructed through
+`0x00A4C0B0 -> 0x00A4BAE0`; its base initially zeros root+`0x6C`.
+The selected SceneThreadImpl startup route later reaches
+`0x00A4ADA0 -> 0x00B94A20(root,world)` and root slot 2. The constructed
+root table `0x0109B254` selects `0x00B948C0` for that slot. If root+`0x70`
+is already nonnull, it skips initialization. Otherwise it allocates M,
+calls `0x00B9A600(M,root)`, stores the result at root+`0x70`, then calls
+`0x00BAB7C0(root,M)`. A nonnull M is stored unchanged at root+`0x6C`;
+the null-input branch has opaque diagnostics before using the existing
+field. This does not guarantee safe failure or initialization of reused state.
+
+`0x00B9A600` installs table `0x010B5DAC` on a four-byte allocation and
+stores that pointer, or allocation-failure zero, at M+`0x110`. Its original
+RTTI corroborates EffectFactory with complete-object offset zero. Thus the
+initial parent-context chain reaches a constructed Fd on this module branch,
+subject to valid backing objects and retained fields/tables through later
+opaque calls. The product calls add no Fd null guard.
+
+The actual Fd slot-1 method `0x00B95A60` forwards accepted modes 0/1 to
+`0x00B9C4B0/0x00B9D5E0` with the retained caller vector `(0,0,N,W)`.
+Slot 2 `0x00B95AF0` accepts mode 2 and calls `0x00B9E3C0` with
+`(0,array,count,W)`. Both return the lower EAX unchanged. Invalid modes
+reach opaque diagnostic helpers before their visible zero return.
+
+H can come from a supplied context. The default in
+`0x00B94020/0x00B93B80` uses `u32(M+0x10C)-8` after guarded root/module
+loads. Its actual query receiver remains a separate binding from Fd;
+M's base initially zeros `+0x10C`. No missing-pointer branch is treated as
+safely returning if an unexamined helper precedes a later dereference.
+
+#### J operations and conditional bit polarity
+
+The factory's mode-specific products supply the previously missing interface
+identity. Constructors `0x00B9C420/0x00B9D550/0x00B9E340` install the final
+primary and J tables after their base calls, with no later constructor call.
+The actually selected S slot-3 cells use the published constant bodies
+`0x00AB7340/0x007254A0/0x00B8D680`, returning 0/1/2. The
+[zero-return contract](bitmap-font-source-request.md) and
+[one/two-return contracts](../actor/mesh-matrix-input.md) were consumed
+without reopening those bodies. This authenticates the adapter adjustment:
+
+| Factory mode | S primary table / slot-3 kind | J offset / final table | J slot 12 | J slot 42 |
+| --- | --- | --- | --- | --- |
+| 0 | `0x010B8484` / 0 | `+0x204` / `0x010B8394` | `0x00B9BB20` | `0x00B9C680` |
+| 1 | `0x010B892C` / 1 | `+0x21C` / `0x010B883C` | `0x00B9CC50` | `0x00B9D820` |
+| 2, group | `0x010B8D8C` / 2 | `+0xC4` / `0x010B8C8C` | `0x00B9DA60` | `0x00B9E750` |
+
+The three J locators report exactly those complete-object offsets. Their
+UnconformableEffect/Effect/GroupEffect names corroborate the selected stores;
+the names did not select a product. Each operation is an eleven-byte thunk
+that subtracts its exact J offset from ECX and preserves the stack argument.
+Slot 12 reaches `0x00BB5200` on either single product, or `0x00BC74B0`
+on the group. Slot 42 reaches `0x00B9BDA0/0x00B9CED0/0x00B9DCE0`.
+Later callbacks, child append/setup and global-error cleanup constrain which
+constructed tables and current children remain selected.
+
+Single-product slot 12 requires byte S+`0x1C` mask `0x01` set and DWORD
+S+`0x18` mask `0x04000000` clear. It passes `(inputLowByte==0)` to
+`0x00BB4C10` with mask `0x100`. Only DL is assigned by the caller, but
+the helper consumes only the argument's low byte, so stale upper EDX bits
+do not change the result. It sets WORD S+`0x1B2` mask `0x100` for input
+low byte zero and clears that mask for nonzero. The helper's recomputation
+and callback branch tests `mask & 0x84`; it is skipped for this `0x100`
+call. No immediate render/hide callback follows from this selected helper.
+
+Group slot 12 requires S+8 mask `0x01`. It forwards the original DWORD to
+slot 14 on each current nonnull child in the S+`0x18` array, with WORD count
+at S+`0x0C`. The constructed single-child primary tables select the same
+`0x00BB5200` method at slot 14. Afterwards group S+8 mask `0x10` is set
+for a nonzero input low byte and cleared for zero. Predicate and setter
+calls can observe different current arrays/counts after opaque callbacks.
+
+Single-product slot 42 reaches `0x00BB38E0`. It calls
+`0x00BCD2A0(u32(S+0x14),-3,0)`, then `0x00BDA530` on the returned
+record. The selected signed-negative branch scans `0x24`-byte entries from
+resource `+0x64`, comparing `u16(u32(entry+4)+0x14)` with `0xFFFD`.
+Its count source calls `0x00BD13A0/0x00BD2420`; argument two is
+unused on this branch. `0x00BDA530` initializes descriptor DWORD 4 and
+value byte zero, calls `0x00BDA3E0`, then returns the descriptor byte in AL
+regardless of helper status. For record G, the value reader follows
+`A=u32(G+4)`, `B=u32(A+8)`, `T=u32(B+8)` and calls `u32(T+0xA8)` with
+`(u32(G), &descriptor)`. The type-4 value is not converted locally.
+There is no null-record guard, and a null callback reaches opaque diagnostics
+before reloading and calling the current pointer if they return. A missing
+record or callback therefore does not establish safe false. The callback's
+actual descriptor/context producer remains the next concrete source edge.
+
+Group slot 42 reaches `0x00BC7A30`, returning true in AL when any current
+nonnull child's primary slot 42 returns nonzero AL, and false AL for no such
+child. The constructed single primary tables select `0x00B9BDA0/0x00B9CED0`
+for those calls, joining the same single-product predicate. No group mask
+`0x10` guard is used by this predicate. Upper EAX is not a normalized Boolean.
+
+Thus the current-value path has this conditional, byte-level result:
+
+| Current input | Dispatch condition | Single-product WORD S+`0x1B2` mask `0x100` |
+| --- | --- | --- |
+| Low byte nonzero | J slot 12 is called | Cleared if its state guards pass |
+| Low byte zero | J slot 42 returns zero AL | Set if slot 12's state guards pass |
+| Low byte zero | J slot 42 returns nonzero AL | Slot 12 is skipped; the prior bit remains |
+
+The group additionally has its own guard, child guards and current-array
+conditions. Setup with low byte zero still skips J creation and direct J
+calls; it is not the current-value zero row above. This establishes bit
+polarity, not a hide/mute or suppression/release interpretation. A concrete
+consumer of WORD S+`0x1B2` mask `0x100` must join that state to presentation.
+Actual fleet property admission, default H/cache contents, retained context,
+SE construction, already-playing cleanup and arrival/reset behavior remain
+separate unbound edges. No server operation/target/value contract follows.
+
 
 #### VFX source checks
 
@@ -922,11 +1066,174 @@ and `0x010C8EEC/0x010C8EF4` select the checked methods: slot 2 selects
 `0x00BDDD50`, slot 4 selects
 the published `0x007143E0` contract, and the first table slot 5 selects
 `0x00BDF8A0`. The shared slot-4 body was consumed from the linked
-finding rather than reopened. No J table or slot-42/12 cell was selected
-without a construction bridge. Confidence is high for the static
+finding rather than reopened. The separate construction study below supplies
+the J tables and their slot-42/12 cells. Confidence is high for the static
 instructions and conditional pointer domains; actual cache contents,
 selected fleet resources, retained tables and rendered polarity were
 not observed.
+
+#### Constructed VFX source checks
+
+The same pinned original PE, Python 3.12.0, pefile 2024.8.26 and Capstone
+5.0.7 x86-32 supplied 106 additional complete normal-flow methods, totalling
+23,277 instruction bytes. These are separate from the preceding fifteen- and
+38-method studies, which were consumed without replay. Original-byte,
+section/file-offset, CFG, ABI and independent source checks covered the
+following half-open instruction unions; callees were checked only at listed
+entries. Exception-handler bodies were not expanded. The unchanged REA import
+failure supplied no Ghidra body corroboration. No client execution supported
+these additional construction/operation claims.
+
+| Entry | Complete instruction union | Bytes |
+| --- | --- | --- |
+| `0x007CBE90` | `[0x007CBE90,0x007CC652)` | 1986 |
+| `0x00A63D10` | `[0x00A63D10,0x00A642E3)` | 1491 |
+| `0x00B974A0` | `[0x00B974A0,0x00B9759E)` | 254 |
+| `0x00B973D0` | `[0x00B973D0,0x00B9749B)` | 203 |
+| `0x00B99950` | `[0x00B99950,0x00B999F5)` | 165 |
+| `0x00B99A00` | `[0x00B99A00,0x00B99A9B)` | 155 |
+| `0x00B97880` | `[0x00B97880,0x00B9797E)` | 254 |
+| `0x00B977B0` | `[0x00B977B0,0x00B9787B)` | 203 |
+| `0x00B97690` | `[0x00B97690,0x00B977A4)` | 276 |
+| `0x00B975A0` | `[0x00B975A0,0x00B97681)` | 225 |
+| `0x00B93AF0` | `[0x00B93AF0,0x00B93B78)` | 136 |
+| `0x00B94020` | `[0x00B94020,0x00B9420D)` | 493 |
+| `0x00B93B80` | `[0x00B93B80,0x00B93D10)` | 400 |
+| `0x00B99830` | `[0x00B99830,0x00B99941)` | 273 |
+| `0x00B92CC0` | `[0x00B92CC0,0x00B92CD7)` | 23 |
+| `0x00B9EE60` | `[0x00B9EE60,0x00B9EF46)` | 230 |
+| `0x00B9EF50` | `[0x00B9EF50,0x00B9F02C)` | 220 |
+| `0x00B981E0` | `[0x00B981E0,0x00B9827E)` | 158 |
+| `0x00B98280` | `[0x00B98280,0x00B98314)` | 148 |
+| `0x00BC2B30` | `[0x00BC2B30,0x00BC2C35)` | 261 |
+| `0x00B9EAD0` | `[0x00B9EAD0,0x00B9EBE1)` | 273 |
+| `0x00B97EF0` | `[0x00B97EF0,0x00B98001)` | 273 |
+| `0x00B9F190` | `[0x00B9F190,0x00B9F238)` | 168 |
+| `0x00BC16D0` | `[0x00BC16D0,0x00BC1817)` | 327 |
+| `0x00BC2750` | `[0x00BC2750,0x00BC280C)` | 188 |
+| `0x00BBC1A0` | `[0x00BBC1A0,0x00BBC2A2)` | 258 |
+| `0x00BBC830` | `[0x00BBC830,0x00BBC961)` | 305 |
+| `0x00BCAE80` | `[0x00BCAE80,0x00BCAFCB)` | 331 |
+| `0x00BC9B40` | `[0x00BC9B40,0x00BC9BA6)` | 102 |
+| `0x00BC8E10` | `[0x00BC8E10,0x00BC9199)` | 905 |
+| `0x00BC0B10` | `[0x00BC0B10,0x00BC0B93)` | 131 |
+| `0x00BBBFB0` | `[0x00BBBFB0,0x00BBBFCD)` | 29 |
+| `0x00BAAEA0` | `[0x00BAAEA0,0x00BAAEA6)` | 6 |
+| `0x00BCA3B0` | `[0x00BCA3B0,0x00BCA42C)` | 124 |
+| `0x00B93350` | `[0x00B93350,0x00B9337B)` | 43 |
+| `0x00B932B0` | `[0x00B932B0,0x00B93301)` | 81 |
+| `0x00BBBF00` | `[0x00BBBF00,0x00BBBF07)` | 7 |
+| `0x00BC28C0` | `[0x00BC28C0,0x00BC29B9)` + `[0x00BC29C0,0x00BC2A1B)` | 340 |
+| `0x00B948B0` | `[0x00B948B0,0x00B948B6)` | 6 |
+| `0x00BBBBE0` | `[0x00BBBBE0,0x00BBBC1B)` | 59 |
+| `0x00BBCCD0` | `[0x00BBCCD0,0x00BBCDF8)` | 296 |
+| `0x00BBC7B0` | `[0x00BBC7B0,0x00BBC7C0)` | 16 |
+| `0x00A4C0B0` | `[0x00A4C0B0,0x00A4C16A)` | 186 |
+| `0x00BAB610` | `[0x00BAB610,0x00BAB7B6)` | 422 |
+| `0x00A4BAE0` | `[0x00A4BAE0,0x00A4C0A1)` | 1473 |
+| `0x00BBBC20` | `[0x00BBBC20,0x00BBBC69)` | 73 |
+| `0x00BBC390` | `[0x00BBC390,0x00BBC46C)` | 220 |
+| `0x00B947E0` | `[0x00B947E0,0x00B94838)` | 88 |
+| `0x00BC30D0` | `[0x00BC30D0,0x00BC30ED)` | 29 |
+| `0x00BABE70` | `[0x00BABE70,0x00BABF26)` | 182 |
+| `0x00BBC020` | `[0x00BBC020,0x00BBC049)` | 41 |
+| `0x00BC2EC0` | `[0x00BC2EC0,0x00BC2FC2)` | 258 |
+| `0x00BABC10` | `[0x00BABC10,0x00BABDB1)` | 417 |
+| `0x00BC2C40` | `[0x00BC2C40,0x00BC2EB3)` | 627 |
+| `0x00A4C170` | `[0x00A4C170,0x00A4C1BD)` | 77 |
+| `0x00BC2810` | `[0x00BC2810,0x00BC28B2)` | 162 |
+| `0x00BD7B40` | `[0x00BD7B40,0x00BD7BB5)` | 117 |
+| `0x00BD7AD0` | `[0x00BD7AD0,0x00BD7B35)` | 101 |
+| `0x00A49810` | `[0x00A49810,0x00A49B0F)` | 767 |
+| `0x00BDF0A0` | `[0x00BDF0A0,0x00BDF106)` | 102 |
+| `0x00BDEFC0` | `[0x00BDEFC0,0x00BDF098)` | 216 |
+| `0x00BD7A50` | `[0x00BD7A50,0x00BD7ACB)` | 123 |
+| `0x00A4B630` | `[0x00A4B630,0x00A4B636)` | 6 |
+| `0x004E8670` | `[0x004E8670,0x004E8675)` | 5 |
+| `0x004E8680` | `[0x004E8680,0x004E8852)` | 466 |
+| `0x004E8860` | `[0x004E8860,0x004E886D)` | 13 |
+| `0x00A49460` | `[0x00A49460,0x00A49475)` | 21 |
+| `0x004E8870` | `[0x004E8870,0x004E88F3)` | 131 |
+| `0x00A49430` | `[0x00A49430,0x00A49445)` | 21 |
+| `0x00A49450` | `[0x00A49450,0x00A49458)` | 8 |
+| `0x00A488B0` | `[0x00A488B0,0x00A488D2)` | 34 |
+| `0x00A4ADA0` | `[0x00A4ADA0,0x00A4AEAF)` | 271 |
+| `0x00A48A90` | `[0x00A48A90,0x00A48A95)` | 5 |
+| `0x00B94A20` | `[0x00B94A20,0x00B94DB6)` | 918 |
+| `0x00BAAE60` | `[0x00BAAE60,0x00BAAE74)` | 20 |
+| `0x00B948C0` | `[0x00B948C0,0x00B9493B)` | 123 |
+| `0x00B9A600` | `[0x00B9A600,0x00B9A73C)` | 316 |
+| `0x00BAB7C0` | `[0x00BAB7C0,0x00BAB82F)` | 111 |
+| `0x00BC3AA0` | `[0x00BC3AA0,0x00BC3AF7)` | 87 |
+| `0x00B95A60` | `[0x00B95A60,0x00B95AED)` | 141 |
+| `0x00B95AF0` | `[0x00B95AF0,0x00B95B5F)` | 111 |
+| `0x00BAD5D0` | `[0x00BAD5D0,0x00BAD952)` | 898 |
+| `0x00B9C4B0` | `[0x00B9C4B0,0x00B9C588)` | 216 |
+| `0x00B9D5E0` | `[0x00B9D5E0,0x00B9D6D0)` | 240 |
+| `0x00B9E3C0` | `[0x00B9E3C0,0x00B9E50A)` | 330 |
+| `0x00BC3980` | `[0x00BC3980,0x00BC3A4F)` | 207 |
+| `0x00B9C420` | `[0x00B9C420,0x00B9C4A2)` | 130 |
+| `0x00B9D550` | `[0x00B9D550,0x00B9D5D2)` | 130 |
+| `0x00B9E340` | `[0x00B9E340,0x00B9E3B3)` | 115 |
+| `0x00B9BB20` | `[0x00B9BB20,0x00B9BB2B)` | 11 |
+| `0x00B9CC50` | `[0x00B9CC50,0x00B9CC5B)` | 11 |
+| `0x00B9DA60` | `[0x00B9DA60,0x00B9DA6B)` | 11 |
+| `0x00B9C680` | `[0x00B9C680,0x00B9C68B)` | 11 |
+| `0x00B9D820` | `[0x00B9D820,0x00B9D82B)` | 11 |
+| `0x00B9E750` | `[0x00B9E750,0x00B9E75B)` | 11 |
+| `0x00BB5200` | `[0x00BB5200,0x00BB523E)` | 62 |
+| `0x00BC74B0` | `[0x00BC74B0,0x00BC74FA)` | 74 |
+| `0x00B9BDA0` | `[0x00B9BDA0,0x00B9BDA5)` | 5 |
+| `0x00B9CED0` | `[0x00B9CED0,0x00B9CED5)` | 5 |
+| `0x00B9DCE0` | `[0x00B9DCE0,0x00B9DCE5)` | 5 |
+| `0x00BB4C10` | `[0x00BB4C10,0x00BB4C74)` | 100 |
+| `0x00BB38E0` | `[0x00BB38E0,0x00BB38F6)` | 22 |
+| `0x00BC7A30` | `[0x00BC7A30,0x00BC7A6D)` | 61 |
+| `0x00BCD2A0` | `[0x00BCD2A0,0x00BCD319)` | 121 |
+| `0x00BDA530` | `[0x00BDA530,0x00BDA556)` | 38 |
+| `0x00BDA3E0` | `[0x00BDA3E0,0x00BDA46D)` | 141 |
+
+The seven-byte gap `[0x00BC29B9,0x00BC29C0)` is excluded. No selected
+method had an unresolved internal normal-flow successor. Thirty-seven method cells
+were authenticated independently from the constructor-selected tables:
+
+| Actual table | Selected slots / exact cells |
+| --- | --- |
+| `0x00FE942C` | 1/3/5: `0x00FE9430/0x00FE9438/0x00FE9440` |
+| `0x00FE93CC` | 1/3/5: `0x00FE93D0/0x00FE93D8/0x00FE93E0` |
+| `0x00FE93AC` | 1/3/5: `0x00FE93B0/0x00FE93B8/0x00FE93C0` |
+| `0x010B6C10` | 1/3: `0x010B6C14/0x010B6C1C` |
+| `0x010C318C` | 14/40/42: `0x010C31C4/0x010C322C/0x010C3234` |
+| `0x010B73C4` | 3: `0x010B73D0` |
+| `0x00F931D4` | 12..17: `0x00F93204/0x00F93208/0x00F9320C/0x00F93210/0x00F93214/0x00F93218` |
+| `0x0109B254` | 2: `0x0109B25C` |
+| `0x010B5DAC` | 1/2: `0x010B5DB0/0x010B5DB4` |
+| `0x010B8484` | 3/14/42: `0x010B8490/0x010B84BC/0x010B852C` |
+| `0x010B892C` | 3/14/42: `0x010B8938/0x010B8964/0x010B89D4` |
+| `0x010B8D8C` | 3: `0x010B8D98` |
+| `0x010B8394` | 12/42: `0x010B83C4/0x010B843C` |
+| `0x010B883C` | 12/42: `0x010B886C/0x010B88E4` |
+| `0x010B8C8C` | 12/42: `0x010B8CBC/0x010B8D34` |
+
+The ten selected preceding locator/COL/type-descriptor chains were checked
+through their section-bounded NUL names, without inheritance arrays:
+
+| Table | COL / type descriptor | Complete-object offset |
+| --- | --- | --- |
+| `0x00FE942C` | `0x0116194C / 0x012C58A8` | 0 |
+| `0x00FE93CC` | `0x01161844 / 0x012C57B8` | 0 |
+| `0x00FE93AC` | `0x011617EC / 0x012C5768` | 0 |
+| `0x010B6C10` | `0x01194728 / 0x012FF4A0` | `0x4C` |
+| `0x010C318C` | `0x0119653C / 0x01303C58` | 0 |
+| `0x010B73C4` | `0x01194A1C / 0x012FF610` | `0x4C` |
+| `0x010B5DAC` | `0x01194010 / 0x012FEE40` | 0 |
+| `0x010B8394` | `0x01195430 / 0x012FFB40` | `0x204` |
+| `0x010B883C` | `0x01195528 / 0x012FFCA8` | `0x21C` |
+| `0x010B8C8C` | `0x01195634 / 0x012FFD10` | `0xC4` |
+
+Confidence is high for these byte-level construction, adjustment, guarded
+state-write and AL-predicate contracts. Callback identity, selected fleet
+admission and render/audio polarity were not established by this study.
 
 ## Live Ul'dah observation
 
@@ -996,7 +1303,7 @@ usable only after its producer, object domain and effect are joined.
 | Authored record to named target | The application clip reads names, kinds, selectors and a normalized Boolean from its current resource record | A selected fleet-only application record, its actual selection path and retained target context. The engine fleet SCB and application clip are distinct. |
 | Exact fleet resource to constructed instance | The five placed chains, declaration-backed member-key joins and qualified live Ul'dah bindings identify the resources and static child candidates | Actual selected runtime instance, operation receiver and retained construction/lookup identity for an independent control |
 | Value to state change | The generic instance method changes bit 1 and notifies its two stored receivers; the fleet clock path resets/starts/seeks its timeline | A fleet-bound disable/enable interpretation. Bit clear/set is not render or audio polarity. |
-| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup produces W and follows resource-dependent lookup/factory calls toward J | Selected fleet receiver/property admission, actual VFX resource/parent/factory product and J slots 42/12 polarity, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
+| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup has a conditional constructed resource/parent/factory/J-table bridge and guarded slot-12 mask update | Selected fleet receiver/property admission and retained cache/context, the J42 descriptor callback and a presentation consumer of the slot-12 state bit, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
 | Presentation state across arrival and reset | The direct clock consumer has the initialization, resource reset, scene reset, readiness and retry conditions listed above | An independent suppression state, its lifetime and its ordered reapplication for each actual arrival/reset owner |
 
 No authenticated operation/target/value tuple can yet be supplied as an
