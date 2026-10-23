@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #if defined(_MSC_VER) && defined(XIVL_OBSERVER_BRIDGE_EXTENTS)
 #define XIVL_OBSERVER_RAW_WAIT_CODE_SEG __declspec(code_seg(".xvrwait"))
@@ -498,6 +499,10 @@ private:
 
 struct SelfTestSummary
 {
+    bool        blocked               = false;
+    const char* blocked_reason        = nullptr;
+    const char* expected_ntdll_sha256 = nullptr;
+    std::string actual_ntdll_sha256;
     unsigned    checks                  = 0;
     unsigned    failures                = 0;
     const char* first_failure           = nullptr;
@@ -508,6 +513,7 @@ struct SelfTestSummary
     bool        continue_wrapper_fid    = false;
 };
 
+SelfTestSummary probe_self_test_identity() noexcept;
 SelfTestSummary run_self_tests() noexcept;
 
 struct InstallCheckOptions

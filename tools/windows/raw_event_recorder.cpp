@@ -3382,9 +3382,50 @@ SlotProfile test_profile() noexcept
 
 } // namespace
 
+SelfTestSummary probe_self_test_identity() noexcept
+{
+    SelfTestSummary summary;
+    summary.expected_ntdll_sha256 = kExpectedNtdllSha256;
+    // Direct FS error-field access and fake wrapper calls require this profile.
+    try
+    {
+        const HMODULE resident_ntdll = GetModuleHandleW(L"ntdll.dll");
+        if (resident_ntdll != nullptr)
+        {
+            const std::wstring path = loaded_path(resident_ntdll);
+            if (!path.empty())
+            {
+                summary.actual_ntdll_sha256 = hash_file(path);
+            }
+        }
+    }
+    catch (...)
+    {
+        summary.actual_ntdll_sha256.clear();
+    }
+    if (summary.actual_ntdll_sha256.empty() ||
+        summary.actual_ntdll_sha256 != kExpectedNtdllSha256)
+    {
+        summary.blocked        = true;
+        summary.blocked_reason = summary.actual_ntdll_sha256.empty()
+                                     ? "resident_ntdll_identity_unavailable"
+                                     : "resident_ntdll_identity_mismatch";
+    }
+    return summary;
+}
+
 SelfTestSummary run_self_tests() noexcept
 {
-    SelfTestSummary                summary;
+    SelfTestSummary summary = probe_self_test_identity();
+    if (summary.blocked)
+    {
+        return summary;
+    }
+    check(
+        &summary,
+        summary.actual_ntdll_sha256 == kExpectedNtdllSha256,
+        "self test gates native wrappers on the pinned resident ntdll identity");
+
     std::array<std::uint8_t, 0x60> create_bytes{};
     std::array<std::uint8_t, 0x60> exception_bytes{};
     std::array<std::uint8_t, 0x60> module_bytes{};
@@ -3830,12 +3871,6 @@ SelfTestSummary run_self_tests() noexcept
                   SlotResult::restore_refused,
           "foreign converter refuses restore without decrementing the shared "
           "count");
-    const HMODULE resident_ntdll = GetModuleHandleW(L"ntdll.dll");
-    check(
-        &summary,
-        resident_ntdll != nullptr &&
-            hash_file(loaded_path(resident_ntdll)) == kExpectedNtdllSha256,
-        "self test gates native wrappers on the pinned resident ntdll identity");
     const HMODULE         self        = GetModuleHandleW(nullptr);
     const ProcessCfgProbe process_cfg = query_process_cfg();
     summary.process_cfg_query_ok      = process_cfg.query_ok;

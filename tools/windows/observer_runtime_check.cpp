@@ -13,16 +13,41 @@
 #include "observer_recovery_actions.h"
 #include "observer_recovery_snapshot.h"
 #include "observer_supporting_identity.h"
+#include "raw_event_recorder.h"
 
 #include <filesystem>
 #include <iostream>
 #include <string>
+
+namespace
+{
+
+void print_raw_summary(const xivl::raw_recorder::SelfTestSummary& raw)
+{
+    std::cout << "raw: status="
+              << (raw.blocked ? "blocked" : raw.failures == 0 ? "passed"
+                                                              : "failed")
+              << ",checks=" << raw.checks << ",failures=" << raw.failures
+              << ",blocked_reason=" << (raw.blocked_reason == nullptr ? "none" : raw.blocked_reason)
+              << ",expected_ntdll_sha256=" << raw.expected_ntdll_sha256
+              << ",actual_ntdll_sha256=" << (raw.actual_ntdll_sha256.empty() ? "unavailable" : raw.actual_ntdll_sha256)
+              << ",first_failure=" << (raw.first_failure == nullptr ? "none" : raw.first_failure) << '\n';
+}
+
+} // namespace
 
 int wmain(int argc, wchar_t** argv)
 {
     using namespace xivl::observer_diagnostic;
     if (argc == 2 && std::wstring(argv[1]) == L"--self-test")
     {
+        const auto raw_identity = xivl::raw_recorder::probe_self_test_identity();
+        if (raw_identity.blocked)
+        {
+            print_raw_summary(raw_identity);
+            std::cout << "aggregate: status=blocked,executed_families=0\n";
+            return 2;
+        }
         const auto diagnostic           = run_self_tests();
         const auto collection           = run_observer_collection_self_tests();
         const auto bridge               = run_event_bridge_self_tests();
@@ -59,19 +84,17 @@ int wmain(int argc, wchar_t** argv)
         std::cout << "fixture_evidence: checks=" << fixture_evidence.checks
                   << ",failures=" << fixture_evidence.failures << ','
                   << fixture_evidence.summary << '\n';
-        std::cout << "raw: checks=" << raw.checks << ",failures="
-                  << raw.failures << '\n';
+        print_raw_summary(raw);
         std::cout << "supporting_identity: checks=" << supporting.checks
                   << ",failures=" << supporting.failures << ',' << supporting.summary << '\n';
         std::cout << "activation_binding: checks=" << activation.checks
                   << ",failures=" << activation.failures << ',' << activation.summary << '\n';
         std::cout << "exception_policy: checks=" << exception_policy.checks
                   << ",failures=" << exception_policy.failures << ',' << exception_policy.summary << '\n';
-        return diagnostic.passed && collection.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && callback_composition.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
-                       recovery.passed && actions.passed && fixture_evidence.passed && raw.failures == 0 &&
-                       supporting.passed && activation.passed && exception_policy.passed
-                   ? 0
-                   : 1;
+        const bool passed = diagnostic.passed && collection.passed && bridge.passed && callback.passed && lifecycle.passed && callback_session.passed && callback_dispatch.passed && callback_composition.passed && dispatch.passed && install.passed && publication.passed && snapshot.passed &&
+                            recovery.passed && actions.passed && fixture_evidence.passed && raw.failures == 0 &&
+                            supporting.passed && activation.passed && exception_policy.passed;
+        return passed ? (raw.blocked ? 2 : 0) : 1;
     }
     if (argc != 3 || (std::wstring(argv[1]) != L"--bridge-output" &&
                       std::wstring(argv[1]) != L"--callback-output" &&

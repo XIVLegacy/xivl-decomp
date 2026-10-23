@@ -21,7 +21,31 @@ cmake --build C:\scratch\xivl-decomp-raw-build --config Release
 C:\scratch\xivl-decomp-raw-build\Release\raw_recorder_check.exe --self-test
 ```
 
-The self-test uses synthetic originals and injectable context APIs. It checks
+The self-test first hashes the resident ntdll file against the exact pinned
+identity, before activating a recorder, accessing either profile-specific x86
+error field, or calling a fake wrapper. If the hash differs or cannot be read,
+the raw suite reports `status: blocked`, a distinct
+`resident_ntdll_identity_mismatch` or `resident_ntdll_identity_unavailable`
+reason, and the expected and actual SHA-256 values. An unavailable actual hash
+is JSON `null`. No raw assertions run: `checks` and `failures` remain zero,
+`first_failure` is `null`, and the unmeasured CFG query and wrapper FID fields
+are `null`.
+
+`raw_recorder_check --self-test` returns `0` after a passing suite, `1` for an
+executed assertion failure, and `2` when identity blocks execution.
+`observer_runtime_check --self-test` prints the same raw status, reason and
+hashes, plus the first assertion failure when one exists. It probes the resident
+identity before running any test family because other families also exercise
+raw wrappers. A blocked initial probe reports
+`aggregate: status=blocked,executed_families=0` and returns `2` without running
+any family. On a matching identity, the existing family order and assertions
+remain intact, and the raw suite repeats the probe before its own assertions.
+If that later probe blocks, any executed family failure still takes exit `1`
+precedence. Otherwise the aggregate returns `2` for blocking alone and `0`
+when all families pass.
+
+On the pinned identity, the self-test uses synthetic originals and injectable
+context APIs. It checks
 argument and error-pair forwarding, strict wait admission, timeout and failure
 payload refusal, lifecycle generations, header-only module events, exception
 copying, callback and continuation correlation, fresh context-handle
@@ -64,6 +88,8 @@ C:\scratch\xivl-decomp-raw-build\Release\raw_recorder_check.exe `
 ```
 
 `--install-restore-check` is an equivalent command name.
+This mode does not activate wrappers or access the profile-specific error
+fields and can run independently of the resident ntdll identity.
 
 It verifies that installation returns to read-only/count-zero with owned wait
 and continue wrappers, and that restore returns to read-only/count-zero with

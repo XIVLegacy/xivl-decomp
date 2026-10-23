@@ -125,7 +125,29 @@ int wmain(int argc, wchar_t** argv)
         {
             const xivl::raw_recorder::SelfTestSummary summary =
                 xivl::raw_recorder::run_self_tests();
-            std::cout << "{\"mode\":\"self_test\",\"checks\":" << summary.checks
+            std::cout << "{\"mode\":\"self_test\",\"status\":\""
+                      << (summary.blocked ? "blocked" : summary.failures == 0 ? "passed"
+                                                                              : "failed")
+                      << "\",\"blocked_reason\":";
+            if (summary.blocked_reason == nullptr)
+            {
+                std::cout << "null";
+            }
+            else
+            {
+                std::cout << '"' << summary.blocked_reason << '"';
+            }
+            std::cout << ",\"expected_ntdll_sha256\":\"" << summary.expected_ntdll_sha256
+                      << "\",\"actual_ntdll_sha256\":";
+            if (summary.actual_ntdll_sha256.empty())
+            {
+                std::cout << "null";
+            }
+            else
+            {
+                std::cout << '"' << summary.actual_ntdll_sha256 << '"';
+            }
+            std::cout << ",\"checks\":" << summary.checks
                       << ",\"failures\":" << summary.failures
                       << ",\"first_failure\":";
             if (summary.first_failure == nullptr)
@@ -135,6 +157,15 @@ int wmain(int argc, wchar_t** argv)
             else
             {
                 std::cout << '"' << summary.first_failure << '"';
+            }
+            if (summary.blocked)
+            {
+                std::cout << ",\"process_cfg_query_ok\":null"
+                             ",\"process_cfg_query_error\":null"
+                             ",\"process_cfg_enabled\":null"
+                             ",\"wait_wrapper_fid\":null"
+                             ",\"continue_wrapper_fid\":null}\n";
+                return 2;
             }
             std::cout << ",\"process_cfg_query_ok\":"
                       << (summary.process_cfg_query_ok ? "true" : "false")
