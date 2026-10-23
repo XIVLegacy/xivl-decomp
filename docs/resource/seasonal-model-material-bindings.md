@@ -305,6 +305,72 @@ the same span first. `0x00C1E080` performed the corresponding index-buffer
 submission. No decoded name or texture permutation in these paths generated
 replacement vertex values.
 
+## TEXCOORD5 normal-map basis
+
+The selected shader pair consumed TEXCOORD5 as a signed direction and
+handedness for the normal-map basis. This gives the packed field a functional
+meaning beyond its declaration semantic. It does not identify the tool or
+algorithm that authored those vertex values.
+
+Python `struct` decoded the complete shader-model-3 token streams, including
+instruction lengths, declarations, write masks, source swizzles/modifiers,
+relative-address operands, immediate definitions and CTAB bindings. The
+vertex/pixel streams contained 108 and 66 instructions and ended at their
+declared bounds. The exact stock B0 spans matched the historical streams.
+The token definitions came from Windows SDK `10.0.26100.0`
+`d3d9types.h`, SHA-256
+`ce75dc368d5f37506ada4c32062a96ab4d4894fead5d21ad5844fc9f0a2e62c2`.
+The [program identities](seasonal-memory-reconstruction.md#controllers-and-cloud-program)
+own the complete shader hashes and source spans.
+
+The following locators are file offsets in the historical model and stock
+`0x5D1E00B0`, rather than x86 instruction addresses.
+
+| Shader locator | Observation |
+| --- | --- |
+| Vertex `0x5494` | Declared input `v3` as TEXCOORD5. |
+| Vertex `0x5544` | Decoded `v3.xyz` with multiply two and add minus one. |
+| Vertex `0x58F8..0x591C` | Applied the three-register linear transform named `worldITMatrix` at `c4..c6`. The optional skinning branch preceded this transform. |
+| Vertex `0x5930..0x5950`, output declaration `0x550C` | Repacked the transformed direction to COLOR0.xyz with multiply one half and add one half. Its COLOR0.w retained the input's normalized fourth component. |
+| Pixel `0x5F88..0x5F94`, `0x60D8..0x60F8` | Received the already-signed normal in TEXCOORD3 and normalized it. Decoded the packed COLOR0 basis and normalized its direction. |
+| Pixel `0x6104..0x6128` | Formed `h * (Q cross N)`, where Q was the normalized decoded COLOR0 direction, N the normalized normal, and h the decoded fourth component. |
+| Pixel `0x61D8..0x61FC` | Combined the normal-map components as `x*h*(Q cross N) + y*Q + z*N`. |
+
+The multiplication, addition and source-swizzle interpretation follows
+Microsoft's [MAD instruction](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/mad---ps)
+and [swizzle contract](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx9-graphics-reference-asm-ps-registers-modifiers-source-register-swizzling).
+The [NRM instruction](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/nrm---ps)
+defines the normalization step. These equations describe data dependence and
+basis orientation, not a CPU emulation of device arithmetic or a rendered
+observation. The Q direction supplied the normal map's Y basis; the signed
+cross product supplied its X basis. The shader did not derive Q from the
+ordinary UV coordinates.
+
+The same vertex stream decoded stored positions as
+`storedPosition.xyz * ModelBBoxScale.xyz + ModelBBoxOffSet.xyz` at
+`0x5558..0x5564`. Its CTAB placed those two named constants at `c169/c170`.
+An additional original-byte check covered 1,632 retained instructions in seven
+native functions with the same Python/pefile/Capstone toolchain. Shader setup
+`0x00C113A8..0x00C113E9` looked up the two names and retained their handles
+at shader `+0x78/+0x7C`. For a supplied, valid bounding box, the default branch
+at `0x00C11045..0x00C110DE` built scale as
+`(max-min) * 0.5 * max.w`; `0x00C11111..0x00C11181` built offset as
+`(max+min) * 0.5`. Helpers `0x00C12420`, `0x00BE58D0`, `0x00BE5980`
+and `0x0042E570` supplied the difference, invalid-box check, midpoint and
+scalar multiplication. These branches submitted registers 169 and 170.
+Non-null shader `+0xAC/+0xB0` pointers could replace the computed vectors;
+this static trace did not observe which branch a live model selected.
+
+Model initialization `0x00C175D0` read min/max XYZ from ModelBuffer
+`+0x08..+0x1C`. Its SHORT4 position branch at
+`0x00C17792..0x00C177DA` put the float32 reciprocal of 32767 from
+`0x010D2CBC` in the live maximum's fourth lane. The default scale therefore
+accounted for compressed position coordinates, including nonuniform axis
+extents. Reconstructing a geometric basis must account for that position
+decode, the selected UV set, source normals, handedness, averaging and byte
+quantization. A normal-map consumer alone does not authenticate a particular
+tangent-frame generation algorithm.
+
 ## Selected vertex data and reconstruction boundary
 
 Each candidate selected 457 vertices with a 28-byte stride, 12,796 bytes in
@@ -359,6 +425,59 @@ exact ordered historical TEXCOORD5 channel, SHA-256
 `884fb4d89ab9908ede58e57e5721d5b392d48f6c13f7738a6705be5edfe0607f`.
 The comparison did not reorder vertices, search other component formats or
 establish absence of an equivalent derivation.
+
+### Stock-only basis derivation tests
+
+Python `struct`/`math` evaluated geometric candidates from the pinned B4
+positions, normals, both half-float UV sets, ModelBuffer extents and the
+864 indexed triangles. Historical TEXCOORD5 was the comparison target;
+predictions did not contain a historical per-vertex lookup. All 457 target
+fourth components were zero, giving the shader handedness `h=-1`.
+
+The tested families included triangle `dP/du` and `dP/dv`, cross-product
+orientation, projection against the decoded normal, normalization, face/area/
+corner-angle weights, alternative position/normal decodes, axis permutations
+and floor/nearest/ceiling byte quantizers. Their failure did not identify the
+original exporter's weighting or quantization convention. In particular,
+regenerating a basis from quantized DAT fields need not reproduce values
+authored before those fields were quantized.
+
+For two representative B4-only candidates, accumulated `dP/du` was projected
+against the source normal and normalized, then crossed with the normalized
+source normal to produce Q. The tested normal
+decode was `b/127-1` before normalization, an authoring hypothesis rather than
+the shader's `2*b/255-1` decode. Packing used
+`floor(clamp((Q+1)*127.5,0,255))`, with alpha zero. The table separates
+the direction bytes from the 457 matching alpha bytes.
+
+| B4 UV / accumulation weight | Equal XYZ bytes of 1,371 | Equal complete vertices of 457 |
+| --- | ---: | ---: |
+| UV1 / corner angle measured in UV space | 484 | 43 |
+| UV0 / corner angle measured in decoded position space | 475 | 44 |
+
+Another bounded family transformed B4/B0/88's existing packed frames using
+each triangle's Jacobian between the two ordinary UV parameterizations. It
+tested both frame-axis orders/signs, source-normal decodes, accumulation
+weights and quantizers. Its highest byte-match candidate reproduced 155 of
+1,371 direction bytes and six complete vertices; all 457 alpha bytes matched.
+It did not recover the target from an existing stock basis.
+
+A separate Python pass checked the retained hashes of all 1,682 standalone
+VMDL carriers and found 91 matching-count buffers. Exact unique B4 POSITION0
+byte tuples established a vertex correspondence in 89 buffers. Comparing
+all 449 declared four-byte channels after that correspondence produced no
+exact historical TEXCOORD5 channel. This extended the ordered-channel test
+to attribute-based vertex reordering and raw channels regardless of usage.
+It did not decode another packed format into equivalent vectors or search
+embedded models and different-count geometry.
+
+No tested candidate derived the target lane. Close vector directions or matching
+alpha values do not establish exact normal-map lighting, and these tests did
+not execute a renderer. The remaining discriminator is an attributed source
+or stock-only rule that reproduces the historical basis, including its
+averaging and byte packing; original unquantized inputs or an authenticated
+exporter would distinguish further hypotheses. The bounded failures do not
+prove such a stock-only rule cannot exist.
 
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
