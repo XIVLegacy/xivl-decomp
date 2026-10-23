@@ -224,22 +224,12 @@ historical vertex program in six stock files, including both candidates.
 These are exact stock program sources, rather than a presumed shader
 equivalence from similar strings.
 
-The model/material/effect region at historical file `[0x148,0x4EA8)` remains
-untyped. Comparing this 19,808-byte span with same-key stock found 4,806
-different common-position bytes; names and relocated metadata are not yet
-separated from semantic differences. This does not prove changed geometry,
-nor that either complete alternate model has equivalent material bindings.
-
-The alternate models were also compared directly with the historical model.
-`0x5D1E00B0` had the same file length and directory boundaries, but 6,507
-positional byte differences in `[0x148,0x4EA8)`. Its two raw directory spans
-`[0x4EA8,0x4FBC)` and `[0x4FBC,0x514C)` differed in 23 and 10 bytes;
-their semantics remain untyped. The parsed six `xetv` aliases also differed.
-`0x5D1E0088` shifted the directory spans by 16 bytes and contained three
-`xetv` aliases instead of six. Thus neither complete alternate was proved
-interchangeable merely by finding exact shader code. The unresolved inputs
-are the model/material region, those two pre-shader directory spans and the
-alias bindings, rather than the shader programs themselves.
+The [model and material binding](seasonal-model-material-bindings.md)
+separates the indexed records, native fixups, texture dependency ordinals,
+material parameters and geometry inputs. It establishes a complete historical
+material in stock `0x5D1E00B0`, and exact stock index, node and declaration
+records. A whole alternate model is not an authenticated replacement: the
+selected vertex payload and the resource-ID joins require their own evidence.
 
 Exact texture and shader payloads therefore remove two specific asset gaps,
 while historical model/controller composition still needs reconstruction.
