@@ -420,6 +420,34 @@ The selected writers supply concrete packed-data producers, but no checked
 call joined them to the historical mxfv VertexBuffer. Their existence does not
 attribute that model's tangent-generation or packing convention.
 
+### Exporter identifiers and vertex import
+
+A bounded Python search of the original PE's ASCII and ASCII-subset UTF-16LE
+printable runs checked tangent/binormal, export/author and candidate DCC or
+tangent-library identifiers. It did not authenticate an exporter for this
+model. The relevant Maya names identified point-registration methods, while
+the tangent name identified the display consumer above. A source-file name
+or a reference-inspired algorithm is not an exporter attribution.
+
+Python/pefile/Capstone checked 679 retained original instruction boundaries
+and bytes in six functions, plus the selected strings, RTTI, format table and
+CodeView record:
+
+| Original PE locator | Observation |
+| --- | --- |
+| `0x0109B90C`, `0x0109B928`, `0x0109B9F0`; methods `0x00A50530/0x00A50600` | `.\Graphics\MayaGrid.cpp` and `MayaGrid::Grid::RegistLine/RegistTriangle` named methods that registered two or three supplied XYZ points in 16-byte entries. They did not identify a model-export tangent calculation. |
+| File `[0x00D3E9A0,0x00D3EA20)`, VA `0x0113E9A0` | The PE's CodeView record was `RSDS`, age 1, GUID bytes `38cc927be3fd7c46ab4707332dc8b601`, and a path ending `ffxivgame.pdb`. It named the game executable's PDB, without naming a cloud asset exporter. |
+| Vtable `0x010D1994` slot 3, `0x00C0CDD0`; source-name string `0x010D1ED8` | Identified `VfxResourceModelAttribute::VertexBuffer::Load`. The version-3-or-later branch at `0x00C0CFF5..0x00C0CFF8` selected the interleaved payload copy below. |
+| `0x00C0D119..0x00C0D156` | Loaded the supplied vertex count and stride, advanced past the serialized padding, allocated `count * stride` bytes, and copied that span into object field `+0x2C`. This import path retained the already packed vertex data. |
+| `0x00C0D03C..0x00C0D0C5` | The older planar branch copied each supplied component array, then called `0x00C0B820` to interleave it. It did not recover prequantization values for format 8. |
+| `0x00C0B70B`, `0x010D1B80`; format selector `0x00C0B810+8`, table `0x00C0B800` | Named `VertexBuffer::CreateVertexBuffer`. Format 8 selected `0x00C0B7AA`; `0x00C0B7AA..0x00C0B7C1` copied the supplied component-count bytes into each interleaved vertex. This alternate creation helper also consumed existing component values. |
+
+The loader/interleaver and the supplied-vector packer are different producers:
+one produces a native copy of serialized data, while the other packs a vector
+that its caller already supplied. Neither checked path connected a tangent
+calculation to the historical cloud's TEXCOORD5. The identifier search did
+not exclude unnamed or statically linked authoring code elsewhere.
+
 ## Selected vertex data and reconstruction boundary
 
 Each candidate selected 457 vertices with a 28-byte stride, 12,796 bytes in
@@ -576,6 +604,41 @@ Stock B4's corresponding range was 0.851288 to 1.010053. These were
 measurements of stored bytes, without feeding historical values into a
 prediction. Final normalization remained an authoring hypothesis to test;
 neither the shader decoder nor the traced packer authenticated that step.
+
+### Higher-precision stock inputs
+
+A declaration-aware Python `struct`/`hashlib` audit authenticated the retained
+1,682 standalone stock VMDL files and parsed 1,804 vertex buffers. All checked
+`mxfv` versions were 4. The native payload, component, format and usage
+conversions above selected these declaration types:
+
+| D3D9 type | Declared fields across the checked buffers |
+| --- | ---: |
+| FLOAT16_2 | 2,028 |
+| FLOAT16_4 | 245 |
+| SHORT4 | 2,078 |
+| UBYTE4N | 3,794 |
+
+No field used 32-bit float or normalized 16-bit integer components.
+Every field's type width matched its bounded lane width. The historical,
+B4, B0 and 88 declarations remained the six fields listed above, without
+a separate higher-precision position, normal or basis declaration.
+
+Exact B4 POSITION0 tuple matching covered all 457 reference positions in
+89 buffers. None covered all reference tuples with a different vertex count
+or duplicate reference rows. Their float fields were ordinary FLOAT16_2
+TEXCOORD0/1 and, in a subset, TEXCOORD2. They supplied no connected
+higher-precision POSITION0, NORMAL0, TANGENT0, BINORMAL0 or TEXCOORD5 source.
+The audit did not equate the 100 FLOAT16_2 POSITION0 declarations to the
+four-component reference, or prove correspondence through other transforms.
+
+Printable metadata in the selected four models included resource paths and
+aliases, without an authenticated exporter identity. Native model, node,
+material, VINS and shader extents and the vertex/index record tails were
+bounded separately. Their uninterpreted bytes and models embedded in other
+container types remained outside this declaration-based precision result.
+The checked input/import paths therefore did not close the historical
+tangent-authoring boundary.
 
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
