@@ -186,6 +186,58 @@ listings and original-PE checks with pefile `2024.8.26` and Capstone
 `5.0.7`. They establish native entry points and state effects, not a live
 hook, cross-region rendering compatibility or persistence after teardown.
 
+### Pending weather ID through a region change
+
+Let A be the MapLayoutActor on the retained table described above.
+The native deferred ID path supplied a replay mechanism independent of the
+map-object binding marker. State-3 selector `0x0C` dispatch stored its
+ID at A+`0x1A0`. On SetMap's admitted transition path, `0x0062B660`
+stored its next state into A+`0x1F0` at `0x0062B730` and called
+`0x0062AEB0`. SetMap then captured a nonzero A+`0x1A0` in EDI at
+`0x0062D322` before its release call could clear the field. The result
+arm stored that retained ID at A+`0x18C` at `0x0062D3E4`, paired
+with the pending region at A+`0x188` where the arm supplied one.
+
+Within `0x0062AA70`, one admitted queued operation was dispatched to
+`0x00629410` at `0x0062AB00`, before pending region/ID processing.
+A nonnull existing owner admitted that operation only when
+`0x00644E90` passed: it required every manager retained by that owner to have
+complete+`0x140 >= 5`, accepting an empty list. A null owner also
+reached the operation pump, so this was not a universal region-ready gate.
+
+The later pending branches were concrete:
+
+| Pending state | Native local order |
+| --- | --- |
+| A+`0x188 != 0` | `0x0062AB29` called `0x00626DF0(region,ID)`. Its call at `0x00626E1E` invoked `0x00624180(ID,region)` **before** constructing and storing the new owner at A+`0x17C`. After return, the callback cleared both pending fields. |
+| A+`0x188 == 0`, A+`0x18C != 0` | `0x0062AB54` invoked `0x00624180(ID,0)`, then cleared A+`0x18C`. The ID helper used retained A+`0x190` as its region. |
+
+Thus pending-region processing did not discard the ID before using it:
+the constructor helper submitted it before owner allocation. Both branches
+retained `0x00624180`'s weather-enable, region, normalization and same-ID
+guards. They did not wait for every scene resource to finish rendering.
+
+The same ID selected its weather key in two places. Original calls to
+`0x0079B050` were at `0x006241F2`, followed by A+`0x1A4`'s
+store, and at `0x007E8DD4` or `0x007E8E58`, followed by weather-owner
+queue submission. The latter branches respectively handled an existing
+region owner or its absence. A weather-specific extension that changed
+the chosen key would have to keep all three resolutions consistent.
+
+The ID setter exited before these resolutions when the incoming ID equaled
+the current nonzero ID at `0x006241A1`, or when the normalized ID equaled
+the current ID at `0x006241DD`. Therefore a new logical season mapped
+to the same native ID would not necessarily change the key. The
+[native seasonal profile](../resource/native-stock-seasonal-switch.md#reload-and-implementation-boundary)
+owns its explicit mode-change policy and the remaining implementation limits.
+
+Raw-key replay helper `0x0062C710` also had a concrete caller:
+`0x00613FC4` invoked it on its selected map-control operation. The helper
+required a changed mode byte, state other than 3, a nonnull owner and
+`currentID != 0 || rawKey != 0`. A nonzero current ID could therefore
+queue a zero raw key. This was not an unconditional resource-ready callback
+or a replacement for the native pending-ID path.
+
 ### Region lookup and resource key
 
 `0x00624180` requires actor byte `+0x1B8` and skips an already-current

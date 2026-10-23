@@ -263,13 +263,15 @@ low bit, then notified nonnull T+`0x44` through `+0x1D0` at
 `0x00A99DDF`, followed by nonnull T+`0x48` through `+0x9C` at
 `0x00A99DF0`. Thus the ShowHideClip value's low byte, `f & 1`, could
 reach this exact bit setter through the fallback/member path. The
-[instance flag contract](ambient-garlean-fleet.md#instance-flag-consumer)
-keeps its rendered polarity and notification consumers unqualified.
+[constructed notification consumers](bgparts-display-flag.md#notification-receivers-and-inheritance)
+bind the manager/block targets and later current-value propagation.
 
 The constructed member target and its property are bound below. This does
 not bind a selected Halloween resident's live A/T, a unit mismatch result's
-T table, or the nonzero node-payload Q. It does not prove recursive group
-coverage, a visible show/hide effect or the active clip order.
+T table, or the nonzero node-payload Q. The
+[manager/block consumers](bgparts-display-flag.md#update-flags-and-current-value-propagation)
+bind conditional folder traversal and later property dispatch; selected
+city coverage and active clip order remain separate requirements.
 
 ### Constructed member target and BGParts property
 
@@ -318,17 +320,17 @@ base/category binding path being selected.
 P slot 12 selected `0x00A97C40`. It forwarded its argument through
 nonnull P+`0x0C` to that receiver's slot 37, or returned `RET 4` when
 null. Thus T slot 73, `0x00A9A040`, could deliver zero or T slot 37's
-current flag through a concrete BGParts property. The final receiver's
-meaning remains a separate join; the call alone is not rendered polarity.
+current flag through a concrete BGParts property. The
+[BGParts display path](bgparts-display-flag.md)
+owns the later property producer, model receiver and drawable update.
 
-The selected property constructor also bounded one tempting producer path.
+The selected property constructor initialized the separate backend field.
 `0x00A98100 -> 0x00ABA680` installed secondary table `0x010A899C`
 at P+4; `0x00A9814E` cleared P+`0x0C`. Secondary slot 4 selected
 `0x00ABA640`, a `RET 0xC` stub. The `0x00A97BD0` forwarding call
 reached this secondary slot, which supplied no backend assignment. The
-remaining property edge is the later producer of P+`0x0C`, followed by
-that target's slot 37. A receiver name or rendered polarity is not
-authenticated by the property's optional-pointer test.
+later property slot-46 producer and its concrete model slot-37 consumer
+are separate from that secondary stub and are bound in the display path.
 
 Rapture T slot 3 selected `0x007FB850`. It obtained P through T slot 47
 and forwarded T plus its two original stack operands to P slot 20,
@@ -342,9 +344,10 @@ This Rapture binding wrapper did not store the flag setter's notification
 receivers at T+`0x44/+0x48`. Engine table slot 3's `0x00A99C00` did,
 but substituting that engine method for the constructed Rapture override
 would be incorrect. Base constructor `0x00A9B4B0` initially zeroed both
-fields. Their later concrete writers and receiver tables remain unjoined.
-The optional property/UnitInfo fanout is therefore authenticated separately
-from those two flag-change notifications.
+fields. Root-descriptor initialization and the child inheritance calls,
+rather than this wrapper, supplied the constructed manager/block receivers
+documented in the notification contract. The optional property/UnitInfo
+fanout and those two flag-change notifications remain separate operations.
 
 ### Unit actor with a matching UnitInfo key
 
@@ -380,9 +383,10 @@ slot 73 selected `0x00A9A040`. A false incoming byte called nonnull
 property R+`0x14` slot 12 with zero. A true byte instead supplied the
 instance's own slot-37 result. The method also propagated zero or that
 result through a nonnull slot-58 child's slot 61. These are concrete
-conditional flag/fanout operations, without proving the property receiver's
-render consumer, every descendant table or an actual selected seasonal unit
-actor. The member-actor seasonal records remain a separate path.
+conditional flag/fanout operations. The display contract binds the selected
+BGParts property consumer; it does not identify every descendant table or
+an actual selected seasonal unit actor. The member-actor seasonal records
+remain a separate path.
 
 ## Reproduction
 

@@ -168,6 +168,15 @@ callback supplied a concrete new owner; the SetMap helper calls alone did
 not establish this allocation. Returning from slot 32 established this
 construction path, without proving complete resource or actor readiness.
 
+That constructor helper also submitted the pending weather ID before
+allocating the owner. Its `0x00626E1E` call reached the original ID setter
+with `(ID,region)`; the callback's no-pending-region branch instead reached
+the same setter with `(ID,0)` at `0x0062AB54`. The
+[pending-weather contract](../net/weather-transition-runtime.md#pending-weather-id-through-a-region-change)
+owns both argument vectors, retained-ID fields and key resolutions.
+It supplies a concrete native admission path that does not depend on
+interpreting the later B+`0x78` marker as readiness.
+
 ### Owner release and map-object destruction
 
 The release call through owner slot 0 selected `0x006545A0`, which called
@@ -227,6 +236,13 @@ authenticated between those phases, owner construction/release and the
 construction/update binding callbacks above. A binding-success return is
 therefore insufficient as a safe weather-reissue gate by itself.
 
+The actual worker-slot-2 body was also followed: `0x004E9320` called
+`0x00A49B10` at `0x004E9377`. Its complete retained body did not
+dispatch through Scene phase offsets `+0x70/+0x74/+0x78/+0x80`
+or directly call the four phase entries. This bounded inspection did not
+join the outer phase dispatcher; worker launch order alone still does not
+authenticate a total frame order.
+
 ## Remaining ordering discriminator
 
 The direct stores establish retained replay state, concrete new-owner and
@@ -237,4 +253,9 @@ the unjoined phase dispatch/synchronization above. Retaining a request does
 not preserve its old child pointers or guarantee the same visible result
 after re-admission. The
 [stock-file profile](native-stock-seasonal-switch.md#reload-and-implementation-boundary)
-also requires an actor-ready gate before resubmitting a retained raw key.
+uses native pending-ID admission and consistent weather-key selection.
+An asynchronous raw-key reissue alternative would still require its own
+actor-ready execution context. The
+[display-update contract](bgparts-display-flag.md#update-flags-and-current-value-propagation)
+binds constructed manager/block notification consumers and their later
+property propagation, without supplying the missing global phase order.

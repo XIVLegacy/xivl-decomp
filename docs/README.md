@@ -248,6 +248,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [TimeLine activation caller and inherited context](resource/timeline-activation-context.md)
 - [Three-city interior Halloween owners](resource/city-interior-halloween-owner-joins.md)
 - [ShowHideClip registration and value dispatch](resource/showhide-clip-dispatch.md)
+- [BGParts instance flags and display updates](resource/bgparts-display-flag.md)
 - [Three-city interior winter-family owners](resource/city-winter-owner-joins.md)
 - [Ul'dah Halloween material dispatch](resource/uldah-halloween-material.md)
 - [Limsa seasonal weather extension boundary](resource/limsa-seasonal-weather-extension.md)
