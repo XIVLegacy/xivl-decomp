@@ -1127,6 +1127,170 @@ SE effects, already-playing cleanup, fleet-only server selection and
 arrival/reset precedence remain separate gates. No additional resource
 payload or runtime probe was used to bridge them.
 
+#### Registered effect lists and aggregate notification
+
+The same constructed S has an explicit owner-registration path. In the common
+base `0x00BB6D20`, N slot 4 supplies S+8. Calls at `0x00BB7009` and
+`0x00BB7277` pass `0x00BAEE10(u32(S+8),category,S,0)` with categories
+0 and 1 respectively. Under the retained context conditions above, that
+owner is M. The current S+8 samples and list backing must retain that
+identity across the intervening opaque calls. Both registrations precede
+the final S table stores. Category 0 occurs on the earlier normal fallthrough.
+Category 1 and the following `0x00BAD470` call require the base constructor's
+first native argument to be nonnull: `0x00BB722C/0x00BB7230` bypass them
+when it is null. The factory's opaque argument producer does not prove that
+this branch is taken for the selected fleet.
+
+Module base `0x00BAD5D0` constructs eight `0x0C`-byte list objects starting
+at M+`0x28`. The original array helper `0x009D61D6` and its frame helpers
+authenticate the supplied constructor `0x00BAFB80`, count and stride on the
+normal path. The constructor installs table `0x010BBB74`, initializes head
+`L+4=0` and tail `L+8=&L+4`. Category 0 selects L=M+`0x28` and incoming
+node I=S+`0x2C`; category 1 selects L=M+`0x34` and I=S+`0x34`. The
+constructor explicitly writes S to each node's `+4` payload at
+`0x00BB6FCA/0x00BB6FCD`.
+
+`0x00BAD420` walks the current S+`0xC0` ancestry and searches the corresponding
+owner list for an ancestor node. `0x00BAFD00/0x00BAFD90` insert I at the
+head or after a found node. Their end-insertion path and the resolved list
+slot 0 use `0x00BAFBE0`: set `I.next=0`, write I through the current tail
+pointer and set the tail pointer to I. Node diagnostics and unexamined helper
+effects must return normally, and the backing objects/list links must remain
+valid. The selected calls' final low byte 0 skips the registration body's
+optional paired owner helper calls. These are conditional insertion
+mechanics; they do not prove an extension of S's lifetime.
+
+The immediate owner continuation `0x00BAD470` traverses category 0 from
+the first current head's next link. For each remaining node it reads the
+payload P at node+4 and counts it when DWORD P+`0x18` mask `0x4000`
+is clear and WORD P+`0x1B8` is zero. A null head writes M+`0x98`=0;
+otherwise it writes M+`0x98`=current M+`0x94` plus that count. Thus an
+actual registered S can be counted if its retained node is after the head;
+a head S is skipped. This is an actual-S bookkeeping consumer, using
+different fields from S+`0x1B2` mask `0x100`. It makes no presentation call.
+The later `0x00BAC810` passes `u32(u32(M+0xCC)+0x28)` to the external
+tail `0x00E3AFF0`. That opaque nested-owner helper establishes no S-list
+or mask consumer in the checked body.
+
+The separate aggregate notification in `0x00BB4C10` is also concrete. Its
+`mask & 0x84` branch reads WORD S+`0x1B2`, copies that aggregate to
+S+`0x1B0/+0x1B4`, and can call `0x00BDA5F0` when the aggregate's zero
+status changes. J12's selected mask `0x100` skips that entire branch. Thus
+this is not an immediate notification caused by the selected setter call.
+
+`0x00BDA5F0` builds a local record with DWORD type 2 and the supplied low
+value byte, then calls `0x00BB3BE0(S,&record)`. That method forwards to
+`0x00BCCEB0(u32(S+0x14),&record,1)`. The latter reads the descriptor's
+type byte: type 2 selects mask 4. Its current R+`0x14` mask must permit
+delivery; each current R+`0x6C` list entry additionally needs nonzero
+T+`0x88` and T+`0xD4` mask 4. With mode low byte nonzero, it recursively
+forwards the same descriptor through current R+`0x4C` children. This does
+not establish which records are present or that every child is reached.
+
+`0x00BDB910` calls the selected T+`0x88` callback with three cdecl arguments:
+the runtime record's payload DWORD, the raw DWORD at
+`u32(u32(G+8))+0x18`, and the same descriptor pointer. Getter
+`0x00BD2100` supplies `u32(G+8)`. That second argument is loaded, not
+called as a method pointer. Its meaning depends on the selected callback.
+
+The previously qualified fallback LeafLife record T=`0x01300F10` has exact
+original DWORDs at T+`0x88` (VA `0x01300F98`) and T+`0xD4`
+(VA `0x01300FE4`), both zero.
+While that same copied record/backing and those values remain selected,
+its local callback cannot pass these event guards. This does not describe
+other attached records, authored versioned type inputs or later mutations.
+The fallback J42 value callback at T+`0xA8` is a different callback field.
+
+#### Module owner handoffs and the remaining consumer
+
+The root's manager at `+0x7C`, constructed by `0x00BB2EE0`, receives M
+through `0x00BB03A0` into manager+`0x0C`. `0x00BB0460(manager,1)` sets
+manager byte `+5` mask 2. The constructor's final `0x00BB0550` call zeros
+manager buffers; those fields do not belong to S. These methods identify
+storage and an enable bit, without a walk of the registered M+`0x34` list.
+
+The actual M scene/world handoffs in `0x00B94A20` call
+`0x00BAEA90/0x00B9A740`. The former stores its scene product at M+`0x108`,
+clears M+`0x10C` and obtains M+`0xC0` through `0x00BBA740`. The latter
+stores world at M+`0x13C` and supplies M+`0x10C` from a nonnull
+`0x00B967E0` product plus 8, otherwise zero. This identifies the default
+context's producer without authenticating that product's query table or
+the selected fleet resource/cache contents.
+
+`0x00B9A740` also stores M at M+`0x144` and hands interface I=M+`0x140`
+to `0x00B9AA20` on a current world slot-6 return. I's table `0x010B78C4`
+was installed by the constructed M. The first slot-6 result is only tested;
+a repeated call supplies the actual receiver and need not return the same
+object. I is a pending argument for `0x00B9AA20`, not an inferred argument
+consumed by the intervening getter.
+
+`0x0062F320/0x00DFA530` compare I pointer keys and perform lookup or an
+insertion request through the container helpers. They do not invoke I.
+Actual storage/retention remains conditional on the deeper insertion helper.
+I slots 1/2 resolve through `0x00B9A390/0x00B9A3A0` to
+`0x00BAE300/0x00BAC840` on I+4's M, if nonnull. The former traverses
+the different M+`0x5C` list, nested links and backend query inputs; its
+opaque callees have no authenticated selected-S carrier here. The latter
+resets the M+`0xE8` container through `0x00BD56D0`, with deeper cleanup
+opaque. Neither local route joins the selected mask to presentation.
+
+The constructed scene adapter Fs=`u32(M+0xC0)` has table
+`0x010BEE8C` and Fs+4=M from `0x00BBA740`. The startup call
+`0x00A55E40` receives Fs and scene owner Gs loaded from global
+`0x01365550`, stores Fs at Gs+`0x150`, and invokes Fs slot 1 for each
+index 0/1 whose BYTE Gs+`0x18+8*index` is nonzero. Its target is
+`0x00BBA4A0`; the caller ignores its AL result.
+
+That method conditionally allocates an indexed record Ns through
+`0x00BB9A70(Ns,Fs,index)`, requests insertion of the index/Ns pair in
+the Fs+8 tree, and fills Fs+`0x18` if initially null. Allocation failure
+returns AL 0, while success returns AL 1 with the remaining EAX bits
+unspecified. Ns retains Fs at +0 and index at +4, sets byte fields and
+allocates a buffer through opaque helpers. It installs no vtable or local
+callback. During its 16 iterations the tested byte is the same
+Fs+`0x1C+index`, with that same index passed to the conditional buffer
+helper. This construction does not invoke M's registered S objects.
+
+#### Scene-owner callback boundary
+
+`0x00A56E30` supplies the actual Gs global producer at `0x00A56F94`;
+`0x00A56D00` clears the global and unlinks six embedded nodes. Their
+current global lifetime and startup retention remain conditions. The
+producer stores six code targets in records at Gs+`0x60/0x88/0xB0/0xD8/
+0x100/0x128`: `0x00A55DC0/0x00A56B40/0x00A56860/0x00A55E00/
+0x00A55D50/0x00A56830`, respectively. Each record stores Gs at +`0x0C`
+and wrapper `0x00A51D20` at +8. It initializes neither Gs+`0x150` nor
+the index flags in this body.
+
+The wrapper sets ECX to native argument 1 and tail-jumps to the DWORD
+addressed by argument 2, leaving the incoming stack unchanged. An actual
+invoker supplying Gs and the address of record+`0x10` would select the
+stored target. That invoker and argument pairing are untraced; the wrapper's
+computed-tail control flow remains unresolved.
+
+The six targets and their exact same-owner delegates establish index
+selection, external context calls and conditional per-index construction.
+`0x00A55D80` returns an enabled-and-ready entry pointer at
+Gs+`0x18+8*index`, or full DWORD zero, while updating Gs+`0x28`.
+`0x00A567C0` conditionally calls `0x00A55D00/0x00A56130` to replace
+Gs+`0x30/+0x34/+0x38` context inputs. `0x00A56720` constructs the
+index pointer at Gs+`0x1C+8*index` only under an enabled/null guard.
+Its `0x00A56010` cleanup delegate takes its no-op path while that same
+null field is retained; otherwise its virtual/helper effects are opaque.
+The examined local bodies provide no later Fs=`u32(Gs+0x150)` invocation or
+Ns lookup that reaches S's presentation state. They do not establish
+callback frequency, selected fleet identity or global absence of a consumer.
+
+The precise continuation needed is a retained invocation that consumes Fs
+or Ns and reaches a registered S's mask, or a concrete actual-S presentation
+callback with its supplied receiver and inputs. The opaque constructor
+calls `0x00BB5CC0/0x00BDCB20` and the constructor argument+`0xB4`
+callback receiving &S+`0x54` supply no such selected presentation consumer
+in the retained contracts. Default H context, actual fleet admission,
+versioned J42 input, retained objects/tables, render/audio effects and
+arrival/reset precedence remain separate gates. Bit set/clear remains the
+only established mask polarity.
+
 #### VFX source checks
 
 Python 3.12.0, pefile 2024.8.26 and Capstone 5.0.7 x86-32 produced these
@@ -1497,6 +1661,100 @@ without rereading them. Confidence is high for the conditional resource,
 registry, callback and state contracts. Actual fleet admission, authored
 versioned type inputs and render/audio polarity remain outside these checks.
 
+#### Registered-consumer source checks
+
+The same executable SHA-256/build identity and Python 3.12.0, pefile
+2024.8.26 and Capstone 5.0.7 x86-32 supplied 49 additional complete
+normal-flow own bodies, totalling 7,691 instruction bytes. The separate
+12-byte wrapper `0x00A51D20` ends in an unresolved caller-supplied computed
+tail and is excluded from that completeness count. These checks consumed
+the preceding 159-method study and its earlier scopes without replay.
+Original-byte mapping, executable section/raw bounds, complete local
+instruction unions, ABI, field widths and fresh independent source review
+covered the following half-open intervals. Calls and explicit external tails
+retain the callee boundaries described above; local coverage does not prove
+their effects or the wrapper's downstream control flow.
+
+| Entry | Instruction union | Bytes |
+| --- | --- | --- |
+| `0x00BAEE10` | `[0x00BAEE10,0x00BAEEAE)` | 158 |
+| `0x00BDA5F0` | `[0x00BDA5F0,0x00BDA614)` | 36 |
+| `0x00BAD420` | `[0x00BAD420,0x00BAD46E)` | 78 |
+| `0x00BB3BE0` | `[0x00BB3BE0,0x00BB3BF2)` | 18 |
+| `0x009D61D6` | `[0x009D61D6,0x009D6223)` | 77 |
+| `0x00BAFB80` | `[0x00BAFB80,0x00BAFB95)` | 21 |
+| `0x009DE4F0` | `[0x009DE4F0,0x009DE535)` | 69 |
+| `0x009DE535` | `[0x009DE535,0x009DE549)` | 20 |
+| `0x009D6223` | `[0x009D6223,0x009D623B)` | 24 |
+| `0x00BCCEB0` | `[0x00BCCEB0,0x00BCCF29)` | 121 |
+| `0x00BB2EE0` | `[0x00BB2EE0,0x00BB30C7)` | 487 |
+| `0x00BB03A0` | `[0x00BB03A0,0x00BB03AA)` | 10 |
+| `0x00BB0460` | `[0x00BB0460,0x00BB0475)` | 21 |
+| `0x00BAFBE0` | `[0x00BAFBE0,0x00BAFC5E)` | 126 |
+| `0x00BDB910` | `[0x00BDB910,0x00BDB940)` | 48 |
+| `0x00BB0550` | `[0x00BB0550,0x00BB0661)` | 273 |
+| `0x00BAFD00` | `[0x00BAFD00,0x00BAFD8D)` | 141 |
+| `0x00BAFD90` | `[0x00BAFD90,0x00BAFE82)` | 242 |
+| `0x00BD2100` | `[0x00BD2100,0x00BD2104)` | 4 |
+| `0x00BAEA90` | `[0x00BAEA90,0x00BAEB75)` | 229 |
+| `0x00B9A740` | `[0x00B9A740,0x00B9A919)` | 473 |
+| `0x00B9AA20` | `[0x00B9AA20,0x00B9AA6B)` | 75 |
+| `0x0062F320` | `[0x0062F320,0x0062F389)` | 105 |
+| `0x00DFA530` | `[0x00DFA530,0x00DFA5E9)` | 185 |
+| `0x00B9A390` | `[0x00B9A390,0x00B9A39D)` | 13 |
+| `0x00B9A3A0` | `[0x00B9A3A0,0x00B9A3AD)` | 13 |
+| `0x00BAE300` | `[0x00BAE300,0x00BAE35F)` + `[0x00BAE360,0x00BAE974)` | 1651 |
+| `0x00BAC840` | `[0x00BAC840,0x00BAC84B)` | 11 |
+| `0x00BD56D0` | `[0x00BD56D0,0x00BD575D)` | 141 |
+| `0x00BBA740` | `[0x00BBA740,0x00BBA7CA)` | 138 |
+| `0x00A55E40` | `[0x00A55E40,0x00A55E72)` | 50 |
+| `0x00BBA4A0` | `[0x00BBA4A0,0x00BBA5B5)` | 277 |
+| `0x00BB9A70` | `[0x00BB9A70,0x00BB9B1C)` | 172 |
+| `0x00A56D00` | `[0x00A56D00,0x00A56E2A)` | 298 |
+| `0x00A56E30` | `[0x00A56E30,0x00A56FA9)` | 377 |
+| `0x00A51D20` (opaque computed tail) | `[0x00A51D20,0x00A51D2C)` | 12 |
+| `0x00A55DC0` | `[0x00A55DC0,0x00A55DF6)` | 54 |
+| `0x00A56B40` | `[0x00A56B40,0x00A56CF2)` | 434 |
+| `0x00A56860` | `[0x00A56860,0x00A5691F)` | 191 |
+| `0x00A55E00` | `[0x00A55E00,0x00A55E32)` | 50 |
+| `0x00A55D50` | `[0x00A55D50,0x00A55D77)` | 39 |
+| `0x00A56830` | `[0x00A56830,0x00A5683D)` + `[0x00A56840,0x00A56853)` | 32 |
+| `0x00A55D80` | `[0x00A55D80,0x00A55DB8)` | 56 |
+| `0x00A567C0` | `[0x00A567C0,0x00A56823)` | 99 |
+| `0x00A56720` | `[0x00A56720,0x00A56791)` | 113 |
+| `0x00A56010` | `[0x00A56010,0x00A5605B)` | 75 |
+| `0x00A55D00` | `[0x00A55D00,0x00A55D47)` | 71 |
+| `0x00A56130` | `[0x00A56130,0x00A561F7)` | 199 |
+| `0x00BAD470` | `[0x00BAD470,0x00BAD4C2)` | 82 |
+| `0x00BAC810` | `[0x00BAC810,0x00BAC81E)` | 14 |
+
+The gaps `[0x00BAE35F,0x00BAE360)` and
+`[0x00A5683D,0x00A56840)` are excluded. Explicit external tails are
+`0x00B9A397 -> 0x00BAE300`, `0x00B9A3A7 -> 0x00BAC840`,
+`0x00BAC846 -> 0x00BD56D0`, `0x00A55E2D/0x00A5691A -> 0x009FC750`,
+`0x00A5681B -> 0x00A56130` and `0x00BAC819 -> 0x00E3AFF0`.
+The two unexamined target bodies retain opaque effects. No new switch
+data is counted as instructions. Six exact original DWORDs supplied these
+additional typed data checks:
+
+| Cell | Original file offset | Value / role |
+| --- | --- | --- |
+| `0x010BBB74` | `0x00CBBB74` | `0x00BAFBE0`, category-list slot 0 |
+| `0x01300F98` | `0x00F00F98` | `0x00000000`, fallback LeafLife T+0x88 |
+| `0x01300FE4` | `0x00F00FE4` | `0x00000000`, fallback LeafLife T+0xD4 |
+| `0x010B78C8` | `0x00CB78C8` | `0x00B9A390`, I140 slot 1 |
+| `0x010B78CC` | `0x00CB78CC` | `0x00B9A3A0`, I140 slot 2 |
+| `0x010BEE90` | `0x00CBEE90` | `0x00BBA4A0`, Fs slot 1 |
+
+The code cells are raw-backed `.rdata`; the two zero fields are raw-backed
+`.data`. Their values constrain the selected original backing, not later
+runtime mutations. No broader table, RTTI, resource or global-data census
+supplied identity. The retained constructor's category-0 call, node payload
+and initial state fields were checked against its existing instruction
+ledger and excluded from these new byte totals. Confidence is high for the
+conditional registration, bookkeeping, aggregate-event and scene-adapter
+contracts. A presentation consumer for mask `0x100` remains unbound.
+
 ## Live Ul'dah observation
 
 On 2026-10-01 UTC, a test session using the hash-matched executable above
@@ -1565,7 +1823,7 @@ usable only after its producer, object domain and effect are joined.
 | Authored record to named target | The application clip reads names, kinds, selectors and a normalized Boolean from its current resource record | A selected fleet-only application record, its actual selection path and retained target context. The engine fleet SCB and application clip are distinct. |
 | Exact fleet resource to constructed instance | The five placed chains, declaration-backed member-key joins and qualified live Ul'dah bindings identify the resources and static child candidates | Actual selected runtime instance, operation receiver and retained construction/lookup identity for an independent control |
 | Value to state change | The generic instance method changes bit 1 and notifies its two stored receivers; the fleet clock path resets/starts/seeks its timeline | A fleet-bound disable/enable interpretation. Bit clear/set is not render or audio polarity. |
-| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup has a conditional constructed resource/parent/factory/J-table bridge and guarded slot-12 mask update, with a bound fallback predicate and owner-state continuation | Selected fleet receiver/property admission and retained cache/context, the versioned J42 type-name input, selected fleet payload/owner binding and a presentation consumer of the slot-12 state bit, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
+| State change to presentation | Constructed manager/block notifications cause conditional current-value propagation; BGParts has a model producer and guarded indexed transform/drawable update; VFX setup has a conditional constructed resource/parent/factory/J-table bridge and guarded slot-12 mask update, with a bound fallback predicate, owner-state continuation, registered S lists and guarded aggregate/scene-adapter contracts | Selected fleet receiver/property admission and retained cache/context, the versioned J42 type-name input, selected fleet payload/owner binding and a retained Fs/Ns invocation or actual-S callback joining the slot-12 state bit to presentation, SE construction/setup handoff, other model branches, final rendering, complete descendant effects and interaction with playback |
 | Presentation state across arrival and reset | The direct clock consumer has the initialization, resource reset, scene reset, readiness and retry conditions listed above | An independent suppression state, its lifetime and its ordered reapplication for each actual arrival/reset owner |
 
 No authenticated operation/target/value tuple can yet be supplied as an
