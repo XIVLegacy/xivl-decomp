@@ -527,7 +527,7 @@ def verify(document: dict | None = None) -> list[str]:
         )
         for i in shaders.get("install", [])
     ]
-    if pins != [(f"{INSTALL_TREE}/{p[0]}", *p[1:]) for p in INSTALL_PINS]:
+    if pins != [(f"{INSTALL_TREE.as_posix()}/{p[0]}", *p[1:]) for p in INSTALL_PINS]:
         errors.append("install shader pins changed")
     exe_pins = [
         (i["va"], i["size"], i["version"], i["lines"], i["decodedSha256"][:16])
