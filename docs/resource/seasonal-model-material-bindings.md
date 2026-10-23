@@ -139,40 +139,85 @@ followed by two alignment bytes. Constructor `0x00C0E9D0` installed its
 two-byte representation. Treating it as a 28-byte declaration would consume
 the next block's header.
 
+### Serialized library framing and separate records
+
+The indexed offsets locate record starts. An interval ending at the next
+indexed start can also contain the following library's header, including
+headers for empty libraries. It is not necessarily a record body.
+Python/pefile/Capstone checked 1,995 retained instruction boundaries and
+original bytes in 27 functions for this framing, the selected record
+readers/writers and the older inputs below. Two entries without retained
+function boundaries added 25 instructions: a caller-supplied constructor at
+`[0x00C08380,0x00C0838F)` and the RTTI-bound DataTable reader at
+`[0x00C06860,0x00C068A3)`.
+
+| Original PE locator | Observation |
+| --- | --- |
+| RTTI table `0x010D1024`; `0x00C06A10`, `0x00C06A69..0x00C06A71` | `BaseAttribute::ChunkInfo` had serialized size eight. Its reader consumed a kind byte at `H+0` and a 32-bit payload size at `H+4`; it did not consume the other three bytes as part of the kind. |
+| `0x00C06185..0x00C061E0` in `0x00C06070` | Read ChunkInfo, advanced eight bytes, selected the typed library through `0x00C0B310`, called its Load slot, then advanced by the chunk's payload size. The next header was `H+8+size`. |
+| `0x00C082D0..0x00C08367` | The library reader took its count from the first four payload bytes, called each record's Load/GetSize methods and aligned subsequent records to four bytes for version 3 or later. The first record was at `H+12`. |
+
+Python `struct`/`hashlib` walked all 18 chunks in each pinned historical,
+B4, B0 and 88 input. Every chunk count matched the indexed header, every
+record start matched its relative offset, and the last chunk ended at the
+declared mxfv end. The historical VertexBuffer ended at `0x3A70`, followed
+by kind 12's header `[0x3A70,0x3A7C)`. The IndexBuffer ended at `0x4ED4`,
+followed by empty kind 13's header `[0x4ED4,0x4EE0)` and kind 14's header
+`[0x4EE0,0x4EEC)`. These bytes described libraries, rather than extra
+vertex attributes or tangent inputs.
+
+The selected separate records also had bounded consumers:
+
+| Record / original PE locator | Observation |
+| --- | --- |
+| ModelBuffer; `0x00C0E70D..0x00C0E71A`, `0x00C0D310`, `0x00C0A850`, `0x00C0A900` | The factory installed ModelBuffer table `0x010D19CC` and an embedded Index at object `+0x24`. Load read two 32-bit fields, six float bounds and indices. With the selected group count one, its source indices were at `+0x20/+0x24/+0x26`. Load/Save consumed or wrote through `+0x28`, while GetSize reserved 64 bytes. |
+| Index; table `0x010D14F0`, `0x00C06700/0x00C06770`; constructor supplied at `0x00C0D40A` | The mxfv version-4 index representation was two bytes. The supplied constructor installed that same Index table for the grouped references. |
+| NodeValue; `0x00C0AEC0..0x00C0AFE4`, `0x00C17301..0x00C173DF` | Load copied three flag bytes, advanced past a version-3-or-later alignment byte, then copied a 32-bit field, 18 four-byte scalar slots and three indices. Its selected aligned body was 88 bytes. The separate node consumer selected kind 15 through a Node index and used the first nine scalar slots as float inputs to its matrix setup. |
+| Node; `0x00C0D5A0..0x00C0D749` | Read two 32-bit fields, three indices, a version-3-or-later flag/alignment pair and any child indices. The selected child count was zero and its body was 16 bytes. |
+
+The historical ModelBuffer's `[0x4F14,0x4F2C)` was the genuine 24-byte
+region outside the checked Load/Save accesses. It was zero-filled in all
+four inputs; this did not classify every possible consumer or establish an
+authoring purpose for that region. The complete historical ModelBuffer,
+NodeValue and Node bodies were exact in B4. The checked node scalars and
+indices supplied no additional per-vertex basis table or connected tangent
+producer. These record checks did not exclude an unnamed producer elsewhere.
+
 ### Selected component sources
 
 All four inputs had 51 indexed records with the same 18 library counts.
 Kinds 9 through 12 and 14 through 17 each had one record; kind 13 was empty.
-The table gives historical locators and complete aligned-record comparison.
+The table gives historical locators and complete aligned-body comparison,
+excluding the next library's header.
 Stock B4 and B0 used the same record starts; stock 88 relocated the records.
 
 | Kind / record | Historical file span | Exact stock source |
 | --- | --- | --- |
-| 9 / Shader | `[0x64C,0x674)` | B4, B0 and 88. |
-| 10 / Material | `[0x674,0x818)` | B0. |
-| 11 / VertexBuffer | `[0x818,0x3A7C)` | No complete-record match among B4, B0 and 88. |
-| 12 / IndexBuffer | `[0x3A7C,0x4EEC)` | B4, B0 and 88. |
-| 14 / ModelBuffer | `[0x4EEC,0x4F38)` | B4. |
-| 15 / NodeValue | `[0x4F38,0x4F9C)` | B4, B0 and 88. |
-| 16 / Node | `[0x4F9C,0x4FB8)` | B4, B0 and 88. |
+| 9 / Shader | `[0x64C,0x668)` | B4, B0 and 88. |
+| 10 / Material | `[0x674,0x80C)` | B0. |
+| 11 / VertexBuffer | `[0x818,0x3A70)` | No complete-body match among B4, B0 and 88. |
+| 12 / IndexBuffer | `[0x3A7C,0x4ED4)` | B4, B0 and 88. |
+| 14 / ModelBuffer | `[0x4EEC,0x4F2C)` | B4. |
+| 15 / NodeValue | `[0x4F38,0x4F90)` | B4, B0 and 88. |
+| 16 / Node | `[0x4F9C,0x4FAC)` | B4, B0 and 88. |
 | 17 / VertexDeclaration | `[0x4FB8,0x4FBC)` | B4, B0 and 88, including two alignment bytes. |
 
-The complete 420-byte historical/B0 Material record had SHA-256
-`a6db026ae2f14a05464c7d31b097a2c71c348b8d18bebcfc2141df1f0f39aa03`.
+The complete 408-byte historical/B0 Material body had SHA-256
+`fd42f436af283786a12f6950b66a2e71eb20af7862b827cda377bcaa8c692be5`.
 Its 140-byte parameter payload at `[0x748,0x7D4)` had SHA-256
 `351104392a7d7f624691b80d92f623198b977d621ea6311b0efad8b3e9085bb8`.
 Thus B0 supplied actual historical parameter values, including the three-lane,
 12-byte `exLightParam` slot at ordinal four; matching constant names alone
-was unnecessary. The B4 and 88 complete material records differed by 14 and
-three bytes respectively. Their state bytes and descriptor shapes matched,
+was unnecessary. The B4 and 88 complete material bodies differed by 14 and
+two bytes respectively. Their state bytes and descriptor shapes matched,
 but their parameter values did not have the same payload hash.
 
-The 76-byte historical/B4 ModelBuffer had SHA-256
-`2e1ba1e88f61d077ac96817128892c8e52c6e8a73b34a0cb17edeeece44899f9`.
+The 64-byte historical/B4 ModelBuffer body had SHA-256
+`9a4e5f8c987cc7b2863ad64b98b6f893eb32694d478504d245b37471f3668b16`.
 The shared 5,184-byte index payload at historical `[0x3A94,0x4ED4)` had
 SHA-256 `1a1b9f57160f262fa1a4951909819e5150024c3ff4b538a9b0bbffc0847b8308`.
 Its native source began `0x18` bytes into the IndexBuffer, using the
-record's pad byte 12, and ended 24 bytes before that record's end. Stock
+record's pad byte 12, and ended at the record body's end. Stock
 88's corresponding payload was `[0x3AA4,0x4EE4)`.
 These identities support composing selected records from different stock
 carriers. They do not establish interchangeability of their complete models.
@@ -461,8 +506,9 @@ total. The native-derived payload bounds and complete hashes were:
 | Stock 88 | `[0x884,0x3A80)` | `157549275bd8b6273174b5fe3ad8aa8723c6163b88be844f377d6344acfec8e7` |
 
 The source pad byte was four in historical/B4/B0 and 12 in 88. Each native
-payload ended 12 bytes before the VertexBuffer record's end. Those trailing
-bytes were retained as opaque record data, not counted as uploaded vertices.
+payload ended at its VertexBuffer body's end. The following 12 bytes were
+the IndexBuffer library header, as bound by the
+[chunk reader](#serialized-library-framing-and-separate-records).
 
 All four sources had identical six component descriptors and selector
 offsets. The original jump tables at `0x00C1B9F8`, `0x00C1E230`,
@@ -491,8 +537,9 @@ missing position, normal, colour or ordinary UV source.
 A Python exact-byte search enumerated the same 140,180 regular stock DATs
 but searched the payload only in the 1,682 files beginning `SEDBvmdl`.
 It found no exact historical vertex-payload occurrence in those carriers.
-It did not search embedded models in other container types, decode alternate
-vertex encodings, or prove that no bit-exact derivation from stock exists.
+The broader [raw-DAT and embedded-model search](#embedded-models-and-raw-dat-search)
+also found no exact occurrence. Neither result proved that no bit-exact
+derivation from stock exists.
 
 A declaration-aware pass used the native version-3-or-later pointer formula
 on those 1,682 carriers and checked each source file's recorded hash. It
@@ -546,7 +593,8 @@ all 449 declared four-byte channels after that correspondence produced no
 exact historical TEXCOORD5 channel. This extended the ordered-channel test
 to attribute-based vertex reordering and raw channels regardless of usage.
 It did not decode another packed format into equivalent vectors or search
-embedded models and different-count geometry.
+embedded models. The broader search below also checked different vertex
+counts through exact position-tuple correspondence.
 
 No tested candidate derived the target lane. Close vector directions or matching
 alpha values do not establish exact normal-map lighting, and these tests did
@@ -633,12 +681,90 @@ The audit did not equate the 100 FLOAT16_2 POSITION0 declarations to the
 four-component reference, or prove correspondence through other transforms.
 
 Printable metadata in the selected four models included resource paths and
-aliases, without an authenticated exporter identity. Native model, node,
-material, VINS and shader extents and the vertex/index record tails were
-bounded separately. Their uninterpreted bytes and models embedded in other
-container types remained outside this declaration-based precision result.
-The checked input/import paths therefore did not close the historical
-tangent-authoring boundary.
+aliases, without an authenticated exporter identity. Separate VINS and shader
+extents remained bounded as above. The
+[chunk and record readers](#serialized-library-framing-and-separate-records)
+identified the apparent vertex/index tails as library headers and bounded
+the actual zero-filled ModelBuffer residual. Those selected records supplied
+no connected tangent producer. The declaration inventory alone did not
+cover models embedded in other container types or transformed position
+correspondences.
+
+### Embedded models and raw DAT search
+
+A sequential Python `hashlib`/byte-search pass read all 140,180 regular DATs,
+7,444,438,570 bytes, after enumerating 143,227 entries without reparse points
+or enumeration errors. Every read remained stable by the checked file
+metadata. The retained path set and all 1,682 previously pinned standalone
+carrier hashes matched. The other 138,498 files had no earlier hash pins;
+the pass established their current hashes, without claiming historical byte
+identity for those files.
+
+The pass searched every byte offset for `SEDBvmdl`, little-endian `mxfv`,
+the 12,796-byte historical vertex payload and the 1,828-byte deinterleaved
+historical TEXCOORD5 sequence. Both complete target sequences had zero
+contiguous occurrences. This raw-byte result covered the stored bytes,
+without decoding compressed or unrecognized representations.
+
+The 1,739 `SEDBvmdl` signatures comprised 1,682 standalone carriers,
+46 version-4 embedded models and 11 older embedded models. All 1,728
+little-endian `mxfv` signatures were inside the standalone or version-4
+embedded spans. The parser checked native counts, ordinal bases, offset
+tables, library headers and declared model ends. The 46 embedded models
+supplied 48 vertex buffers in four PWIB files. Their declaration fields were
+SHORT4 positions, UBYTE4N normals/colours and ordinary half-float colour/UV
+fields; none supplied a complete correspondence to the 457 reference
+positions. Fourteen buffers covered only some reference tuples; 34 covered
+none.
+
+One concrete candidate was stock resource `0x15D90000`, 4,973,264 bytes,
+SHA-256 `10b8d7dc501a14a640e8338b0e17d2cc521756583fe4ed68859071d004b453e6`.
+Its embedded `SEDBvmdl` at file `0x28190` selected mxfv
+`[0x282A4,0x2959C)` through its `ldmv` descriptor. The complete candidate
+span `[0x28190,0x2A2B4)` had SHA-256
+`ce1c7c1070168088c9f654fe17ccf92776abd8ceb36ca09a5cd9dd5618bcc24e`
+and supplied 99 vertices. This was a structural model/declaration match to
+the native format, without a proof of the enclosing PWIB model handler's
+admission. The [PWIB split-container boundary](gtex-pwib-loader.md#pwib)
+still applied; a raw nested signature alone was not a reusable engine input.
+
+#### Older big-endian model inputs
+
+The 11 older embedded models were in stock `0x15D90001`,
+1,189,004 bytes, SHA-256
+`9b1fca85933590e6e4d66a1b670408383519ef70b788a5118c3d61cc3c1df891`.
+Their descriptor-selected models had reversed tag `vfxm`, big-endian
+version 2 and variant 2.
+
+| Native locator / Python observation | Binding |
+| --- | --- |
+| `ModelChunkInfo` table `0x010D114C`; `0x00C0BB11`, `0x00C0BBC0` | The below-version-3 self header was 36 bytes, rather than the version-4 indexed header. Starting after FileInfo and that header, Python walked all 17 older library chunks to each descriptor's exact model end. |
+| `DataTable` table `0x010D1C58`; `0x00C067F0`, `[0x00C06860,0x00C068A3)` | The below-version-3 component record was seven bytes: three one-byte fields followed by a 32-bit component length at `+3`. |
+| `0x00C0CE26..0x00C0CE32`, `0x00C0D003..0x00C0D119` | The older VertexBuffer used a one-byte element count. The selected version-2 variant took the interleaved branch, with its pad byte before the count-times-stride source; it did not take the planar import branch. |
+
+Python parsed one buffer in each older model, with vertex counts
+384, 24, 24, 6, 798, 24, 480, 60, 192, 6 and 72. For example, the first
+`SEDBvmdl` at file `0x158F4` selected model `[0x15A08,0x18682)` and a
+384-vertex, stride-24 buffer. Every payload ended at its actual library
+body end. Native format/usage lookups labelled their fields as SHORT4
+POSITION0, UBYTE4N NORMAL0, UBYTE4N or FLOAT16_4 COLOR0 and FLOAT16_2
+TEXCOORD0/1. No field supplied FLOAT32 geometry or TEXCOORD5. After
+converting SHORT4 component endianness for exact tuple comparison, each
+buffer covered at most one of the 457 reference positions. No complete
+correspondence or connected higher-precision basis source was established.
+This bounded follow-up did not search every DAT for the reversed `vfxm`
+tag or qualify the older renderer's complete construction path.
+
+Across the 1,852 version-4 buffers, exact position correspondence still
+selected 89 buffers and 449 declared four-byte lanes. Every comparison
+covered all 1,828 target bytes, with zero exact matches. The 11 older
+buffers added no complete correspondence. Different counts, duplicate
+reference rows and extra positions were recorded rather than silently
+discarded. These results did not equate transformed geometry or other
+packed formats to the reference, combine partial meshes into a source, or
+authenticate a tangent-generation algorithm. An equivalent decoded source
+with a proved reference correspondence, or an attributed generator using
+stock inputs, remained the discriminator for replacing the historical lane.
 
 The concrete composition candidate is the historical/B0 material and shader
 pair, B4's ModelBuffer and VINS, the shared index/node/declaration records,
