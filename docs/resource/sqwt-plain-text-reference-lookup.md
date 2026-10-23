@@ -494,6 +494,74 @@ The decoded definition SHA-256 is
 `2763f4ae79453b368b74f844f9a53647c6788e1c37a327258fd297327f799bac`.
 No string row content was decoded for this schema observation.
 
+### UISTR-01: Selected English backing strings
+
+The identified master and definition above select four English backing blocks.
+Python standard-library decoding of their explicitly named resources finds
+3973 enabled rows. Each row occupies exactly one complete `str` frame, and
+none has a decoded zero-length value. This observation covers this exact
+`lang="en"`, `mode="client"` sheet at ordinal `1`, physical column `0`.
+It does not extend to other definitions or languages.
+
+| Block ordinal | Begin | Slots | Data | Enable | Row offsets | Enabled string frames | Decoded zero-length values |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 0 | 0 | 13020 | `0x0B4502B5` | `0x0B4502B6` | `0x0B4502B7` | 2243 | 0 |
+| 1 | 70000 | 9641 | `0x0B4508B1` | `0x0B4508B2` | `0x0B4508B3` | 1171 | 0 |
+| 2 | 90000 | 162 | `0x0B45095A` | `0x0B45095B` | `0x0B45095C` | 41 | 0 |
+| 3 | 100000 | 1916 | `0x0B4502BB` | `0x0B4502BC` | `0x0B4502BD` | 518 | 0 |
+
+Each enable range agrees with the slots whose row-offset entry advances.
+A repeated offset denotes a sparse slot with no stored row span. It does
+not provide an actual empty string frame. The zero-length count above is
+computed from the decoded contents of enabled frames, excluding their
+marker and terminator. It does not count absent slots as empty values.
+
+The master and definition identities above and these backing identities pin
+the complete input set. A resource ID written as big-endian bytes `AA BB CC DD`
+resolves to `data/AA/BB/CC/DD.DAT` under the supplied install root. All path
+components are uppercase hexadecimal. The definition explicitly supplies
+each resource ID, so adjacent files are not inferred.
+
+| Backing resource ID | Bytes | SHA-256 |
+| --- | --- | --- |
+| `0x0B4502B5` | 71588 | `f99e738cf8762e0831f9675f37ddfea7b6072d475b3d4b0c9edeadb67bb013e0` |
+| `0x0B4502B6` | 1552 | `3f7c0b8461cfd18a336fb9bb72dbcd5439e65106eea8ea85a6ab731894866183` |
+| `0x0B4502B7` | 52080 | `c027d8115b2d9f7a67b0d1f1ec2b6623bdf214defd83f255a00dc96922ff2804` |
+| `0x0B4508B1` | 60684 | `7c5b9ec6886e99c98fef2c0d058ca3937100a2bd8f5a2f0c840ba44a452302fd` |
+| `0x0B4508B2` | 904 | `5f3f54fd919a36fdb43cea534322a5536f296937c848afc69364eacaf09d23f3` |
+| `0x0B4508B3` | 38564 | `7ff2b3f9473199e2c25c79578fbc074a9e0cf4de3e337b8b6b1f4c453cdd914a` |
+| `0x0B45095A` | 318 | `bc574f4411fdd2191e2126e432767a28d0a716b6b979022dcf68c4cbc3741599` |
+| `0x0B45095B` | 56 | `764f180841fc1a05b8062606c45b01ef0ca52565611ef24a085cb3a4d649c6e8` |
+| `0x0B45095C` | 648 | `37e3cd47f01952ef294644601d2d03bf456e9d1d5c53bae156f9e3adb61ff2df` |
+| `0x0B4502BB` | 47069 | `227323bf982c2301c0bb062ec1698f1c226deec5f57c6c7515dd546ff20f1433` |
+| `0x0B4502BC` | 200 | `faf3548c975f603821159b4b20d5e1ad842b68ada0faf0377b14fc170faacc9f` |
+| `0x0B4502BD` | 7664 | `307b518a17271e6515541335285f583a212f5263dbe32c1da9dc85ca9da544dc` |
+
+Reproduce with bounded reads of only the identified master, definition and
+backing triples. Use the document transform described by
+`xivl-tools:tools/research/census_sheet_stack.py`, `decode_document`, and
+confirm both decoded-document hashes above before selecting the sheet.
+The row and string framing contract is
+`xivl-tools:docs/formats/ssd-sheet.md`, The enable file and the row-offset
+array, Rows and columns, and The sheet string and its obfuscation. The public
+readers are `xivl-tools:src/formats/src/sheet.rs`, `parse_enable_file`,
+`parse_row_offsets` and `parse_sheet_string`.
+
+Require monotonic little-endian 32-bit row ends, exactly the declared slot
+count, and a final end equal to the data length. Require the enabled row set
+to equal the slots with nonzero spans. Decode each enabled span as one
+little-endian 16-bit-length string frame and require exact span exhaustion.
+A plain body ends in NUL. A body starting with `0xFF` ends in `0x73` and
+its bytes between marker and terminator decode by XOR with `0x73`. Count
+zero-length values after removing that framing. Independently walk each data
+resource sequentially and require its frame boundaries to reproduce all
+nonempty row-offset spans. Both readings yield the block counts above.
+
+This is a static observation of resource framing. It does not establish a loaded
+locale, lookup result for a sparse slot, native callback activation or
+rendered output. Token validity and payload semantics are outside this
+count of string frames. Reproduction retains counts and resource identities.
+
 ## Reproduction bounds
 
 Verify the executable identity, PE32 base and section raw-file bounds.
