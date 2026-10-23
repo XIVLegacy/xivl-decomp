@@ -448,12 +448,40 @@ The inbound `0x018a` route is separate. `0x00576380` passes its receiver's
 `+0x18` object to `0x006c82a0`. That handler lazily owns a `0x18`-byte state at
 `+0x10`; `0x006c6a70` reads a signed count at payload `+0x60`, pairs keys from
 payload `+0x40` with eight-byte records from payload `+0x00`, and merges them
-through `0x006c58c0`. This path does not select type 20002, call the current
-Group lookup, supply selector 3, or read the `+0x70` token vector. No direct
-traced edge therefore establishes that it selects or changes the active
-player-linkshell selection used by chat. Whether its opaque state aliases or
-indirectly affects the current-state storage reached through `0x006c20c0`
-remains unresolved.
+through `0x006c58c0`. The existing
+`xivl-opcodes:data/client_opcode_semantics.json`, `s2c-018a`, at revision
+`72f541d4d22b11c9596215f63f6ff23da22f9cba` additionally binds its frame
+consumer `0x006c2200` to `_onUpdateGroupCurrent`. A changed snapshot key becomes
+the callback's numeric argument; its paired opaque u64 participates in a
+GroupBase-reference lookup. Neither component has an independently established
+actor, group-type, slot, generation or pointer meaning.
+
+The current getter wrapper `0x006c20c0` loads its lookup receiver from the
+incoming receiver's first dword at `0x006c20c4`, forwards its supplied output
+address and key to `0x006c17f0`, and returns that output address. The snapshot
+consumer `0x006c2200` uses its incoming receiver for the changed-key lookup,
+then obtains a separate lookup receiver from its third explicit argument at
+`0x006c22ae` before calling `0x006c1510` at `0x006c22b6`. At that load,
+`[ESP+0x54]` is entry `[ESP+0x0c]`, after the local allocation and four saved
+registers. These two bodies do not equate the dereferenced current-getter
+receiver with the snapshot consumer's third argument, or bind the snapshot
+state to that same owner. Their concrete caller/child identity is the first
+missing equality edge. Actual current type-20002 allocation, token allocation,
+wrapper-source and secondary-u16 writer/display-domain identities remain
+unresolved.
+
+The owner comparison used retail 1.23b `ffxivgame.exe`, 15,996,808 bytes,
+PE32 i386, image base `0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+Retained `tools/ghidra_scripts/DumpFunctions.java` listings matched the original
+PE bytes through pefile 2024.8.26 mappings. Capstone 5.0.7 independently decoded
+the complete envelopes below; ends are exclusive. No additional helper or
+caller body was used for this comparison.
+
+| VA envelope | Bytes | Code SHA-256 |
+| --- | ---: | --- |
+| `0x006c20c0..0x006c20d8` | 24 | `06010c0cbefaba4dbd32043e5b0190a36864559de987d08cbf586a82c304da2e` |
+| `0x006c2200..0x006c23ad` | 429 | `90e54d7d8599acc437a23288c58d6db638514c9a95cd8588630bd9cedd76be31` |
 
 The `group` send path accepts an empty message: the control parser treats an
 initial NUL as success and no later nonempty check precedes `0x004df6d0`.
