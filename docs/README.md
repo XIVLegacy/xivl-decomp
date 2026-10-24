@@ -358,6 +358,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Virtual-item creation completion](script/virtual-item-creation.md)
 - [Widget string call sites](script/widget-string-call-sites.md)
 - [Actions and Traits menu contract](script/actions-traits-menu.md)
+- [Seven-job actions and acquisition state](script/job-action-acquisition.md)
 - [Equipment soul-crystal controls](script/equipment-soulstones.md)
 - [Examine equipment and profile presentation](script/examine-equipment.md)
 - [Attributes magic values and important items](script/status-attributes-key-items.md)
