@@ -32,6 +32,7 @@ import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 import verify_status_wire_translation as status_wire_verifier
 import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
 import verify_sun_moon_orientation as sun_moon_verifier
+import verify_vfx_qix_resource as vfx_qix_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
 PERMITTED_TOP_LEVEL_GROUPS = {
@@ -454,6 +455,11 @@ def main() -> int:
     if music_song_errors:
         errors.extend(
             f"music song-id resource contract: {error}" for error in music_song_errors
+        )
+    vfx_qix_errors = vfx_qix_verifier.verify() + vfx_qix_verifier.mutation_test()
+    if vfx_qix_errors:
+        errors.extend(
+            f"Qix effect resource contract: {error}" for error in vfx_qix_errors
         )
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:

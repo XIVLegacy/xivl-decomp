@@ -1,0 +1,1314 @@
+{
+  "format": "xivl-vfx-qix-resource-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "method": "Disassembly listings from capstone 5.0.7 over the pinned image and ghidra-cli 0.2.2 queries on Ghidra 12.1.4 were treated as leads. Every instruction sequence and table below is confirmed against the pinned bytes by tools/verify_vfx_qix_resource.py --exe.",
+    "companionEvidence": [
+      "xivl-decomp:docs/resource/gtex-pwib-loader.md",
+      "xivl-decomp:docs/resource/mtb-container-framing.md",
+      "xivl-decomp:config/ffxivgame.rtti.json",
+      "xivl-decomp:config/ffxivgame.vtable_slots.jsonl",
+      "xivl-tools:docs/formats/sedb-res.md"
+    ]
+  },
+  "registry": {
+    "cdevRegistrar": "0x00a63d10",
+    "cdevRegistrarClass": "SQEX::CDev::Engine::Fw::SceneObject::ResourceSceneGraph",
+    "raptureRegistrar": "0x0060c2c0",
+    "raptureRegistrarClass": "Application::Scene::RaptureWorld",
+    "mapInsert": "0x0060dac0",
+    "cdevOrder": [
+      "veff",
+      "leaf",
+      "vins",
+      "vmdl",
+      "vtex"
+    ],
+    "raptureOrder": [
+      "vtex",
+      "vmdl",
+      "veff",
+      "leaf",
+      "vins"
+    ],
+    "boundary": "Only the five Qix tags were followed. The same CDev constructor also registers the physics, sound and cutscene node factories."
+  },
+  "tags": [
+    {
+      "tag": "veff",
+      "dword": "0x76656666",
+      "reversedTag": "ffev",
+      "cdevFactoryClass": "SQEX::CDev::Engine::CDevVfx::Qix::Factory::EffectResourceNodeFactory",
+      "cdevFactoryVtable": "0x00fe942c",
+      "cdevCreateSlot": "0x00b974a0",
+      "raptureFactoryClass": "Application::Scene::Vfx::Qix::Resource::RaptureEffectResourceNodeFactory",
+      "raptureFactoryVtable": "0x00fe944c",
+      "nodeClass": "SQEX::CDev::Engine::CDevVfx::Qix::Sgnode::EffectResourceSgnode",
+      "nodeVtable": "0x010b7434",
+      "nodeSize": 128,
+      "nodeConstructor": "0x00b99950",
+      "resourceClass": "SQEX::CDev::Engine::Vfx::Qix::ExResource::ExEffectResource",
+      "rootNameOffset": 4,
+      "rootTagOffset": 20
+    },
+    {
+      "tag": "vins",
+      "dword": "0x76696e73",
+      "reversedTag": "sniv",
+      "cdevFactoryClass": "SQEX::CDev::Engine::CDevVfx::Qix::Factory::LeafinsResourceNodeFactory",
+      "cdevFactoryVtable": "0x00fe93ac",
+      "cdevCreateSlot": "0x00b97690",
+      "raptureFactoryClass": "Application::Scene::Vfx::Qix::Resource::RaptureLeafinsResourceNodeFactory",
+      "raptureFactoryVtable": "0x00fe946c",
+      "nodeClass": "SQEX::CDev::Engine::CDevVfx::Qix::Sgnode::LeafinsResourceSgnode",
+      "nodeVtable": "0x010b6c84",
+      "nodeSize": 176,
+      "nodeConstructor": "0x00b981e0",
+      "resourceClass": "SQEX::CDev::Engine::Vfx::Qix::ExResource::ExLeafinsResource",
+      "rootNameOffset": 32,
+      "rootTagOffset": 48
+    },
+    {
+      "tag": "leaf",
+      "dword": "0x6c656166",
+      "reversedTag": "fael",
+      "cdevFactoryClass": "SQEX::CDev::Engine::CDevVfx::Qix::Factory::LeafResourceNodeFactory",
+      "cdevFactoryVtable": "0x00fe93cc",
+      "cdevCreateSlot": "0x00b97880",
+      "raptureFactoryClass": "Application::Scene::Vfx::Qix::Resource::RaptureLeafResourceNodeFactory",
+      "raptureFactoryVtable": "0x00fe948c",
+      "nodeClass": "SQEX::CDev::Engine::CDevVfx::Qix::Sgnode::LeafResourceSgnode",
+      "nodeVtable": "0x010b945c",
+      "nodeSize": 176,
+      "nodeConstructor": "0x00b9ee60",
+      "resourceClass": "SQEX::CDev::Engine::Vfx::Qix::ExResource::ExLeafResource",
+      "rootNameOffset": 32,
+      "rootTagOffset": 48
+    },
+    {
+      "tag": "vmdl",
+      "dword": "0x766d646c",
+      "reversedTag": "ldmv",
+      "cdevFactoryClass": "SQEX::CDev::Engine::CDevVfx::Qix::Factory::ModelResourceNodeFactory",
+      "cdevFactoryVtable": "0x00fe93ec",
+      "cdevCreateSlot": "0x00b97a50",
+      "raptureFactoryClass": "Application::Scene::Vfx::Qix::Resource::RaptureModelResourceNodeFactory",
+      "raptureFactoryVtable": "0x00fe94ac",
+      "nodeClass": "SQEX::CDev::Engine::CDevVfx::Qix::Sgnode::ModelResourceSgnode",
+      "nodeVtable": "0x010b7c3c",
+      "nodeSize": 128,
+      "nodeConstructor": "0x00b9ac40",
+      "resourceClass": "SQEX::CDev::Engine::Vfx::Qix::ExResource::ExModelResource",
+      "rootNameOffset": 0,
+      "rootTagOffset": 16
+    },
+    {
+      "tag": "vtex",
+      "dword": "0x76746578",
+      "reversedTag": "xetv",
+      "cdevFactoryClass": "SQEX::CDev::Engine::CDevVfx::Qix::Factory::TextureResourceNodeFactory",
+      "cdevFactoryVtable": "0x00fe940c",
+      "cdevCreateSlot": "0x00b97c20",
+      "raptureFactoryClass": "Application::Scene::Vfx::Qix::Resource::RaptureTextureResourceNodeFactory",
+      "raptureFactoryVtable": "0x00fe94cc",
+      "nodeClass": "SQEX::CDev::Engine::CDevVfx::Qix::Sgnode::TextureResourceSgnode",
+      "nodeVtable": "0x010b7f4c",
+      "nodeSize": 144,
+      "nodeConstructor": "0x00b9b360",
+      "resourceClass": "SQEX::CDev::Engine::Vfx::Qix::ExResource::ExTextureResource",
+      "rootNameOffset": 0,
+      "rootTagOffset": 16
+    }
+  ],
+  "payload": {
+    "headerSizeSource": "blob +0x0e",
+    "relocatedFlag": "payload +0x0d bit 0",
+    "modeSource": "payload +0x0e byte",
+    "groupTable": "0x1c",
+    "rootTable": "0x18",
+    "groupEntryStride": 16,
+    "blockStride": 12,
+    "referenceStride": 24,
+    "modes": {
+      "0": "groups of s32 count, u32 start, u16 stride, u16 slot count, u32 slot list. Slot list entries are u16 at stride 2.",
+      "1": "groups as mode 0. Slot list entries are u16 at stride 4.",
+      "2": "groups of u32 block list, u32 slot list, s32 block count, u16 slot count. Blocks are u32 start, s32 count, u16 stride. Slot list entries are u16 at stride 4."
+    },
+    "boundary": "The installed blobs carry exactly one root and place the group table directly after the root table. The routines accept other counts."
+  },
+  "staticChecks": [
+    {
+      "name": "blob tag word read at blob plus 4 then byte swap",
+      "kind": "signature",
+      "va": "0x00b936c4",
+      "pattern": "8b 42 04 89 44 24 08 8b 44 24 08 0f c8",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "tag dispatch compares vins",
+      "kind": "signature",
+      "va": "0x00b936d9",
+      "pattern": "3d 73 6e 69 76",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "tag dispatch compares leaf",
+      "kind": "signature",
+      "va": "0x00b936e2",
+      "pattern": "3d 66 61 65 6c",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "tag dispatch compares veff",
+      "kind": "signature",
+      "va": "0x00b936e9",
+      "pattern": "3d 66 66 65 76",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "tag dispatch compares vmdl",
+      "kind": "signature",
+      "va": "0x00b936f0",
+      "pattern": "3d 6c 64 6d 76",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "tag dispatch compares vtex",
+      "kind": "signature",
+      "va": "0x00b936f7",
+      "pattern": "3d 78 65 74 76",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "ResourceSceneGraph constructor vtable store",
+      "kind": "signature",
+      "va": "0x00a63d48",
+      "pattern": "c7 07 74 d1 09 01",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "CDev registers veff",
+      "kind": "signature",
+      "va": "0x00a63ec3",
+      "pattern": "c7 00 2c 94 fe 00 eb 02 33 c0 c7 44 24 14 66 66 65 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CDev registers leaf",
+      "kind": "signature",
+      "va": "0x00a63f1e",
+      "pattern": "c7 00 cc 93 fe 00 eb 02 33 c0 c7 44 24 14 66 61 65 6c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CDev registers vins",
+      "kind": "signature",
+      "va": "0x00a63f79",
+      "pattern": "c7 00 ac 93 fe 00 eb 02 33 c0 c7 44 24 14 73 6e 69 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CDev registers vmdl",
+      "kind": "signature",
+      "va": "0x00a63fd4",
+      "pattern": "c7 00 ec 93 fe 00 eb 02 33 c0 c7 44 24 14 6c 64 6d 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CDev registers vtex",
+      "kind": "signature",
+      "va": "0x00a6402f",
+      "pattern": "c7 00 0c 94 fe 00 eb 02 33 c0 c7 44 24 14 78 65 74 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureWorld constructor vtable store",
+      "kind": "signature",
+      "va": "0x0060c308",
+      "pattern": "c7 07 44 6f fb 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture registers vtex",
+      "kind": "signature",
+      "va": "0x0060c3f5",
+      "pattern": "e8 26 e8 1b 00 eb 02 33 c0 c6 44 24 2c 03 c7 44 24 3c 78 65 74 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture registers vmdl",
+      "kind": "signature",
+      "va": "0x0060c47b",
+      "pattern": "e8 10 e7 1b 00 eb 02 33 c0 c6 44 24 2c 03 c7 44 24 3c 6c 64 6d 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture registers veff",
+      "kind": "signature",
+      "va": "0x0060c501",
+      "pattern": "e8 da e4 1b 00 eb 02 33 c0 c6 44 24 2c 03 c7 44 24 3c 66 66 65 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture registers leaf",
+      "kind": "signature",
+      "va": "0x0060c587",
+      "pattern": "e8 74 e5 1b 00 eb 02 33 c0 c6 44 24 2c 03 c7 44 24 3c 66 61 65 6c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture registers vins",
+      "kind": "signature",
+      "va": "0x0060c60d",
+      "pattern": "e8 5e e4 1b 00 eb 02 33 c0 c6 44 24 2c 03 c7 44 24 3c 73 6e 69 76",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor vtable store veff",
+      "kind": "signature",
+      "va": "0x007caa1b",
+      "pattern": "c7 06 4c 94 fe 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor vtable store vins",
+      "kind": "signature",
+      "va": "0x007caaab",
+      "pattern": "c7 06 6c 94 fe 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor vtable store leaf",
+      "kind": "signature",
+      "va": "0x007cab3b",
+      "pattern": "c7 06 8c 94 fe 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor vtable store vmdl",
+      "kind": "signature",
+      "va": "0x007cabcb",
+      "pattern": "c7 06 ac 94 fe 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor vtable store vtex",
+      "kind": "signature",
+      "va": "0x007cac5b",
+      "pattern": "c7 06 cc 94 fe 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node size getter 0x80",
+      "kind": "signature",
+      "va": "0x00bc3680",
+      "pattern": "b8 80 00 00 00 c3",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node size getter 0xb0",
+      "kind": "signature",
+      "va": "0x005b32f0",
+      "pattern": "b8 b0 00 00 00 c3",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node size getter 0x90",
+      "kind": "signature",
+      "va": "0x007caf00",
+      "pattern": "b8 90 00 00 00 c3",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create allocates node veff",
+      "kind": "signature",
+      "va": "0x00b974db",
+      "pattern": "68 80 00 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create allocates node vins",
+      "kind": "signature",
+      "va": "0x00b976e1",
+      "pattern": "68 b0 00 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create allocates node leaf",
+      "kind": "signature",
+      "va": "0x00b978bb",
+      "pattern": "68 b0 00 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create allocates node vmdl",
+      "kind": "signature",
+      "va": "0x00b97a8b",
+      "pattern": "68 80 00 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create allocates node vtex",
+      "kind": "signature",
+      "va": "0x00b97c5b",
+      "pattern": "68 90 00 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create calls node constructor veff",
+      "kind": "signature",
+      "va": "0x00b97502",
+      "pattern": "e8 49 24 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create calls node constructor vins",
+      "kind": "signature",
+      "va": "0x00b97708",
+      "pattern": "e8 d3 0a 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create calls node constructor leaf",
+      "kind": "signature",
+      "va": "0x00b978e2",
+      "pattern": "e8 79 75 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create calls node constructor vmdl",
+      "kind": "signature",
+      "va": "0x00b97ab4",
+      "pattern": "e8 87 31 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "CDev create calls node constructor vtex",
+      "kind": "signature",
+      "va": "0x00b97c83",
+      "pattern": "e8 d8 36 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture create delegates to CDev create veff",
+      "kind": "signature",
+      "va": "0x007ca387",
+      "pattern": "e8 14 d1 3c 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture create delegates to CDev create vins",
+      "kind": "signature",
+      "va": "0x007ca4b7",
+      "pattern": "e8 d4 d1 3c 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture create delegates to CDev create leaf",
+      "kind": "signature",
+      "va": "0x007ca5e7",
+      "pattern": "e8 94 d2 3c 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture create delegates to CDev create vmdl",
+      "kind": "signature",
+      "va": "0x007ca717",
+      "pattern": "e8 34 d3 3c 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture create delegates to CDev create vtex",
+      "kind": "signature",
+      "va": "0x007ca847",
+      "pattern": "e8 d4 d3 3c 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "node constructor vtable store veff",
+      "kind": "signature",
+      "va": "0x00b99990",
+      "pattern": "c7 06 34 74 0b 01",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node constructor vtable store vins",
+      "kind": "signature",
+      "va": "0x00b98220",
+      "pattern": "c7 06 84 6c 0b 01",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node constructor vtable store leaf",
+      "kind": "signature",
+      "va": "0x00b9ee92",
+      "pattern": "c7 06 5c 94 0b 01",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node constructor vtable store vmdl",
+      "kind": "signature",
+      "va": "0x00b9ac80",
+      "pattern": "c7 06 3c 7c 0b 01",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "node constructor vtable store vtex",
+      "kind": "signature",
+      "va": "0x00b9b38f",
+      "pattern": "c7 06 4c 7f 0b 01",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "clone reads header size word and endian byte",
+      "kind": "signature",
+      "va": "0x00b93f3d",
+      "pattern": "0f b7 4b 0e 83 c4 0c 80 7b 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "clone tests relocated flag",
+      "kind": "signature",
+      "va": "0x00b93f97",
+      "pattern": "e8 34 ae 02 00 84 c0",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "clone relocated path rebases",
+      "kind": "signature",
+      "va": "0x00b93fa5",
+      "pattern": "e8 d6 ad 02 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "clone fresh path relocates",
+      "kind": "signature",
+      "va": "0x00b93fb1",
+      "pattern": "e8 2a ae 02 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "relocated flag getter",
+      "kind": "signature",
+      "va": "0x00bbedd0",
+      "pattern": "0f b6 41 0d 83 e0 01 c3",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "relocator tests flag then reads mode byte",
+      "kind": "signature",
+      "va": "0x00c1f0c5",
+      "pattern": "f6 46 0d 01 75 34 0f b6 46 0e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "relocator dispatches on mode",
+      "kind": "signature",
+      "va": "0x00c1f0cf",
+      "pattern": "83 e8 00 56 6a 00 74 1f 83 e8 01 74 0d e8 af fe ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "relocator sets relocated flag",
+      "kind": "signature",
+      "va": "0x00c1f0e1",
+      "pattern": "80 4e 0d 01",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "rebase dispatches on mode",
+      "kind": "signature",
+      "va": "0x00c1f160",
+      "pattern": "8b 54 24 08 0f b6 42 0e 83 e8 00 52 74 23 83 e8 01 74 0f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 2 reads group count and rebases group table",
+      "kind": "signature",
+      "va": "0x00c1ef99",
+      "pattern": "0f b7 4e 08 8b 46 10 8b de 2b 5c 24 20 03 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 2 group entry reads",
+      "kind": "signature",
+      "va": "0x00c1efc0",
+      "pattern": "8b 42 fc 8b 3a 8b 4a 04 0f b7 6a 08",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 2 block entry reads",
+      "kind": "signature",
+      "va": "0x00c1efe4",
+      "pattern": "0f b7 42 04 8b 72 fc 03 74 24 2c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 2 slot loop",
+      "kind": "signature",
+      "va": "0x00c1f006",
+      "pattern": "0f b7 04 97 8b 0c 30 03 c6 85 c9 74 04 03 cb 89 08",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 2 root table loop",
+      "kind": "signature",
+      "va": "0x00c1f057",
+      "pattern": "8b 46 14 0f b7 4e 0a 03 c3 8d 0c 88",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 0 slot loop",
+      "kind": "signature",
+      "va": "0x00c1ee50",
+      "pattern": "0f b7 04 57 8b 0c 30",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 1 slot loop",
+      "kind": "signature",
+      "va": "0x00c1ef20",
+      "pattern": "0f b7 04 97 8b 0c 30",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "mode 0 group entry reads",
+      "kind": "signature",
+      "va": "0x00c1ee20",
+      "pattern": "0f b7 73 fc 8b 3b 0f b7 6b fe 8b 43 f4",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "node initializer stores tag veff",
+      "kind": "signature",
+      "va": "0x00b998d3",
+      "pattern": "c7 46 30 66 66 65 76",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "node initializer stores tag vins",
+      "kind": "signature",
+      "va": "0x00b97f93",
+      "pattern": "c7 46 30 73 6e 69 76",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "node initializer stores tag leaf",
+      "kind": "signature",
+      "va": "0x00b9eb73",
+      "pattern": "c7 46 30 66 61 65 6c",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "node initializer stores tag vmdl",
+      "kind": "signature",
+      "va": "0x00b9abc9",
+      "pattern": "c7 46 30 6c 64 6d 76",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "node initializer stores tag vtex",
+      "kind": "signature",
+      "va": "0x00b9b234",
+      "pattern": "c7 46 30 78 65 74 76",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "veff loader requires nonzero root count",
+      "kind": "signature",
+      "va": "0x00bc2782",
+      "pattern": "66 83 7f 0a 00 77 4a",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "veff loader reads root 0 and name words",
+      "kind": "signature",
+      "va": "0x00bc27d3",
+      "pattern": "8b 47 14 8b 00 c7 46 14 66 66 65 76 8b 48 04 8b 50 08 8b 78 0c 8b 40 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "vtex loader reads root 0 and name words",
+      "kind": "signature",
+      "va": "0x00bc5766",
+      "pattern": "8b 47 14 8b 38 c7 46 14 78 65 74 76 8b 4f 04 8b 07 8b 57 08 8b 5f 0c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "vmdl loader reads root 0 and name words",
+      "kind": "signature",
+      "va": "0x00bc41d5",
+      "pattern": "8b 47 14 8b 00 c7 46 14 6c 64 6d 76 8b 08 8b 50 04 8b 78 08 8b 40 0c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader reads root 0",
+      "kind": "signature",
+      "va": "0x00bc8efa",
+      "pattern": "8b 4b 14 8b 39",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader copies name at root plus 0x20",
+      "kind": "signature",
+      "va": "0x00bc8fa8",
+      "pattern": "f3 0f 7e 47 20",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader copies name at root plus 0x28",
+      "kind": "signature",
+      "va": "0x00bc8fb3",
+      "pattern": "f3 0f 7e 47 28",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader version word gate",
+      "kind": "signature",
+      "va": "0x00bc8fe1",
+      "pattern": "0f b7 47 1c 8d 48 f9 83 f9 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader version gate failure path",
+      "kind": "signature",
+      "va": "0x00bc8feb",
+      "pattern": "0f 87 21 01 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader version error call",
+      "kind": "signature",
+      "va": "0x00bc9112",
+      "pattern": "8b 7c 24 14 6a 08 50 57 68 68 57 0c 01 6a 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "version error format string",
+      "kind": "string",
+      "va": "0x010c5768",
+      "text": "[%s] version error. (your version=%d). (now version=%d)"
+    },
+    {
+      "name": "leaf and vins loader control entry rejection branch",
+      "kind": "signature",
+      "va": "0x00bc9018",
+      "pattern": "84 c0 74 51",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "leaf and vins loader control version error call",
+      "kind": "signature",
+      "va": "0x00bc9094",
+      "pattern": "68 a0 57 0c 01 6a 01",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "binary control version error format string",
+      "kind": "string",
+      "va": "0x010c57a0",
+      "text": "    | %s binary control version error. rid(%s)"
+    },
+    {
+      "name": "leaf and vins loader control table count",
+      "kind": "signature",
+      "va": "0x00bc8ffb",
+      "pattern": "39 5f 04",
+      "mask": "ff ff ff"
+    },
+    {
+      "name": "veff build version word gate",
+      "kind": "signature",
+      "va": "0x00bc2d18",
+      "pattern": "66 83 3f 14 72 5d",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "veff build reads sub-record words",
+      "kind": "signature",
+      "va": "0x00bc2d23",
+      "pattern": "8b 9f cc 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "veff build passes sub-record address",
+      "kind": "signature",
+      "va": "0x00bc2d32",
+      "pattern": "81 c7 94 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "veff build calls the sub-record constructor",
+      "kind": "signature",
+      "va": "0x00bc2d63",
+      "pattern": "e8 d8 4d 01 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "veff reference counts",
+      "kind": "signature",
+      "va": "0x00bc292a",
+      "pattern": "8b 46 14 8b 30 8b 46 2c 03 46 24",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "veff reference array stride",
+      "kind": "signature",
+      "va": "0x00bc2971",
+      "pattern": "8b 46 20 03 44 24 10 8b 4f 48 8b 28 83 44 24 10 18",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "0x00fe93ac factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe93ac",
+      "values": [
+        "0x007caf80",
+        "0x00b97690",
+        "0x0060d980",
+        "0x00b975a0",
+        "0x005b32f0",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe93cc factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe93cc",
+      "values": [
+        "0x007caf80",
+        "0x00b97880",
+        "0x0060d980",
+        "0x00b977b0",
+        "0x005b32f0",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe93ec factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe93ec",
+      "values": [
+        "0x007caf80",
+        "0x00b97a50",
+        "0x0060d980",
+        "0x00b97980",
+        "0x00bc3680",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe940c factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe940c",
+      "values": [
+        "0x007caf80",
+        "0x00b97c20",
+        "0x0060d980",
+        "0x00b97b60",
+        "0x007caf00",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe942c factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe942c",
+      "values": [
+        "0x007caf80",
+        "0x00b974a0",
+        "0x0060d980",
+        "0x00b973d0",
+        "0x00bc3680",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe944c factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe944c",
+      "values": [
+        "0x007caff0",
+        "0x007ca2f0",
+        "0x0060d980",
+        "0x007c9f60",
+        "0x00bc3680",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe946c factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe946c",
+      "values": [
+        "0x007caff0",
+        "0x007ca420",
+        "0x0060d980",
+        "0x007c9ff0",
+        "0x005b32f0",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe948c factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe948c",
+      "values": [
+        "0x007caff0",
+        "0x007ca550",
+        "0x0060d980",
+        "0x007ca080",
+        "0x005b32f0",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe94ac factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe94ac",
+      "values": [
+        "0x007caff0",
+        "0x007ca680",
+        "0x0060d980",
+        "0x007ca110",
+        "0x00bc3680",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "0x00fe94cc factory vtable",
+      "kind": "dwords",
+      "va": "0x00fe94cc",
+      "values": [
+        "0x007caff0",
+        "0x007ca7b0",
+        "0x0060d980",
+        "0x007ca1a0",
+        "0x007caf00",
+        "0x00b73290",
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "Rapture factory constructor asserts the find resource manager veff",
+      "kind": "string",
+      "va": "0x00fe8d94",
+      "text": "m_pQixFindResourceManager"
+    },
+    {
+      "name": "Rapture factory constructor asserts the find resource manager vins",
+      "kind": "string",
+      "va": "0x00fe8eec",
+      "text": "m_pQixFindResourceManager"
+    },
+    {
+      "name": "Rapture factory constructor asserts the find resource manager leaf",
+      "kind": "string",
+      "va": "0x00fe903c",
+      "text": "m_pQixFindResourceManager"
+    },
+    {
+      "name": "Rapture factory constructor asserts the find resource manager vmdl",
+      "kind": "string",
+      "va": "0x00fe9194",
+      "text": "m_pQixFindResourceManager"
+    },
+    {
+      "name": "Rapture factory constructor asserts the find resource manager vtex",
+      "kind": "string",
+      "va": "0x00fe92ec",
+      "text": "m_pQixFindResourceManager"
+    },
+    {
+      "name": "Rapture factory constructor pushes the find resource manager string veff",
+      "kind": "signature",
+      "va": "0x007caa15",
+      "pattern": "8b 44 24 1c 85 c0 c7 06 4c 94 fe 00 89 46 04 75 22 e8 f5 ba c3 ff 8b 00 68 58 8c fe 00 6a 31 68 c8 8c fe 00 68 30 8d fe 00 68 94 8d fe 00 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 ff 00 00 00 00 ff 00 00 00 00 ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor pushes the find resource manager string vins",
+      "kind": "signature",
+      "va": "0x007caaa5",
+      "pattern": "8b 44 24 1c 85 c0 c7 06 6c 94 fe 00 89 46 04 75 22 e8 65 ba c3 ff 8b 00 68 b0 8d fe 00 6a 30 68 20 8e fe 00 68 88 8e fe 00 68 ec 8e fe 00 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 ff 00 00 00 00 ff 00 00 00 00 ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor pushes the find resource manager string leaf",
+      "kind": "signature",
+      "va": "0x007cab35",
+      "pattern": "8b 44 24 1c 85 c0 c7 06 8c 94 fe 00 89 46 04 75 22 e8 d5 b9 c3 ff 8b 00 68 08 8f fe 00 6a 30 68 70 8f fe 00 68 d8 8f fe 00 68 3c 90 fe 00 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 ff 00 00 00 00 ff 00 00 00 00 ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor pushes the find resource manager string vmdl",
+      "kind": "signature",
+      "va": "0x007cabc5",
+      "pattern": "8b 44 24 1c 85 c0 c7 06 ac 94 fe 00 89 46 04 75 22 e8 45 b9 c3 ff 8b 00 68 58 90 fe 00 6a 30 68 c8 90 fe 00 68 30 91 fe 00 68 94 91 fe 00 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 ff 00 00 00 00 ff 00 00 00 00 ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "Rapture factory constructor pushes the find resource manager string vtex",
+      "kind": "signature",
+      "va": "0x007cac55",
+      "pattern": "8b 44 24 1c 85 c0 c7 06 cc 94 fe 00 89 46 04 75 22 e8 b5 b8 c3 ff 8b 00 68 b0 91 fe 00 6a 30 68 20 92 fe 00 68 88 92 fe 00 68 ec 92 fe 00 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 ff 00 00 00 00 ff 00 00 00 00 ff ff ff ff ff ff ff"
+    }
+  ],
+  "install": {
+    "banks": {
+      "bytes": 146857660,
+      "files": 828,
+      "plain": 4,
+      "pwib": 824,
+      "pwibFirst16": 824,
+      "pwibTotalIsLength": 824
+    },
+    "blobs": {
+      "leaf": {
+        "byte0C": {
+          "0x04": 1019
+        },
+        "controlTableEntries": 3062,
+        "count": 1019,
+        "declaredSize": {
+          "above": 0,
+          "below": 452,
+          "equal": 567
+        },
+        "depth1": 998,
+        "depth2": 21,
+        "entryBytes": 1216642,
+        "groupCountMax": 6,
+        "groupCountMin": 6,
+        "headerUniform": 1019,
+        "kind1": 5,
+        "kind4": 1014,
+        "mode0": 6,
+        "mode1": 0,
+        "mode2": 1013,
+        "nameTableLastComponent": {
+          "different": 1,
+          "equal": 1018
+        },
+        "namesSiblingVeff": 1018,
+        "relocationValid": 1019,
+        "rootNameValid": 1019,
+        "rootTagMatches": 1019,
+        "versionWord8": 1019
+      },
+      "veff": {
+        "byte0C": {
+          "0x04": 1081
+        },
+        "count": 1081,
+        "declaredSize": {
+          "above": 0,
+          "below": 0,
+          "equal": 1081
+        },
+        "depth1": 1060,
+        "depth2": 21,
+        "entryBytes": 24527622,
+        "groupCountMax": 65,
+        "groupCountMin": 25,
+        "headerUniform": 1081,
+        "kind1": 5,
+        "kind4": 1076,
+        "mode0": 0,
+        "mode1": 0,
+        "mode2": 1081,
+        "nameTableLastComponent": {
+          "different": 1,
+          "equal": 1080
+        },
+        "relocationValid": 1081,
+        "rootNameValid": 1081,
+        "rootTagMatches": 1081,
+        "versionWord": {
+          "0x001b": 1,
+          "0x001c": 11,
+          "0x001d": 1069
+        }
+      },
+      "vins": {
+        "byte0C": {
+          "0x04": 1052
+        },
+        "controlTableEntries": 3169,
+        "count": 1052,
+        "declaredSize": {
+          "above": 0,
+          "below": 108,
+          "equal": 944
+        },
+        "depth1": 1031,
+        "depth2": 21,
+        "entryBytes": 1232337,
+        "groupCountMax": 6,
+        "groupCountMin": 6,
+        "headerUniform": 1052,
+        "kind1": 5,
+        "kind4": 1047,
+        "mode0": 8,
+        "mode1": 0,
+        "mode2": 1044,
+        "nameTableLastComponent": {
+          "different": 0,
+          "equal": 1052
+        },
+        "namesSiblingLeaf": 1050,
+        "relocationValid": 1052,
+        "rootNameValid": 1052,
+        "rootTagMatches": 1052,
+        "versionWord8": 1052
+      },
+      "vmdl": {
+        "byte0C": {
+          "0x02": 4993
+        },
+        "count": 4993,
+        "declaredSize": {
+          "above": 0,
+          "below": 0,
+          "equal": 4993
+        },
+        "depth1": 4972,
+        "depth2": 21,
+        "entryBytes": 45481832,
+        "groupCountMax": 2,
+        "groupCountMin": 2,
+        "headerUniform": 4993,
+        "kind1": 19,
+        "kind4": 4974,
+        "mode0": 0,
+        "mode1": 0,
+        "mode2": 4993,
+        "nameTableLastComponent": {
+          "different": 6,
+          "equal": 4987
+        },
+        "relocationValid": 4993,
+        "rootNameValid": 4993,
+        "rootTagMatches": 4993
+      },
+      "vtex": {
+        "byte0C": {
+          "0x02": 4642
+        },
+        "count": 4642,
+        "declaredSize": {
+          "above": 4619,
+          "below": 0,
+          "equal": 23
+        },
+        "depth1": 4581,
+        "depth2": 61,
+        "entryBytes": 1538488,
+        "groupCountMax": 1,
+        "groupCountMin": 1,
+        "headerUniform": 4642,
+        "kind1": 23,
+        "kind4": 4619,
+        "mode0": 0,
+        "mode1": 0,
+        "mode2": 4642,
+        "nameTableLastComponent": {
+          "different": 4,
+          "equal": 4638
+        },
+        "relocationValid": 4642,
+        "rootNameValid": 4642,
+        "rootTagMatches": 4642
+      }
+    },
+    "blockOverrun": {
+      "blocks": 45,
+      "maxBytes": 15
+    },
+    "containers": {
+      "depth0": 828,
+      "depth1": 750,
+      "depth2": 21,
+      "header0x30": 11,
+      "header0x40": 1588,
+      "typeNameBin": 1599
+    },
+    "otherSubtypes": {
+      "ACB": {
+        "count": 1044,
+        "depth0": 1,
+        "depth1": 1022,
+        "depth2": 21,
+        "entryBytes": 1080640
+      },
+      "MCB": {
+        "count": 14,
+        "depth0": 1,
+        "depth1": 13,
+        "depth2": 0,
+        "entryBytes": 14752
+      },
+      "SCB": {
+        "count": 1593,
+        "depth0": 1572,
+        "depth1": 21,
+        "depth2": 0,
+        "entryBytes": 1919888
+      },
+      "mtb": {
+        "count": 14,
+        "depth0": 1,
+        "depth1": 13,
+        "depth2": 0,
+        "entryBytes": 565840
+      }
+    },
+    "nonSedb": {
+      "all": {
+        "count": 3198,
+        "depth0": 1656,
+        "depth1": 1500,
+        "depth2": 42,
+        "entryBytes": 1210116,
+        "entryBytesMax": 1984,
+        "entryBytesMin": 12,
+        "extendsPastBank": 206,
+        "kind0": 3176,
+        "kind1": 22,
+        "leadOther": 851,
+        "leadPrintableAscii": 2347
+      },
+      "leadXetv": {
+        "count": 745,
+        "depth0": 0,
+        "depth1": 724,
+        "depth2": 21,
+        "entryBytes": 352956,
+        "entryBytesMax": 1264,
+        "entryBytesMin": 32,
+        "extendsPastBank": 0,
+        "kind0": 740,
+        "kind1": 5,
+        "leadOther": 0,
+        "leadPrintableAscii": 745
+      }
+    },
+    "packs": 749,
+    "scope": "owner installation of build 2012.09.19.0001, client/vfx tree, counts and structure only",
+    "veffPerPack": {
+      "0": 2,
+      "1": 501,
+      "2": 183,
+      "3": 44,
+      "4": 13,
+      "5": 6
+    },
+    "veffReferences": {
+      "arrayAEntries": 5493,
+      "arrayAModelTags": 5493,
+      "arrayBEntries": 5437,
+      "arrayBTextureTags": 5437,
+      "arrays": 2162,
+      "emptyArrays": 7,
+      "entries": 10930,
+      "resolved": 10930,
+      "trailingZero": 10930
+    }
+  },
+  "outcomes": [
+    {
+      "id": "five-tag-registry",
+      "tier": "STATIC",
+      "claim": "The ResourceSceneGraph constructor at 0x00a63d10 and the RaptureWorld constructor at 0x0060c2c0 each store one factory object and one tag dword per Qix tag (veff, leaf, vins, vmdl, vtex for the first, vtex, vmdl, veff, leaf, vins for the second) and call the insert routine at 0x0060dac0. The insert routine was not read, so treating it as a tag-keyed map is INFERRED."
+    },
+    {
+      "id": "factory-to-node-class",
+      "tier": "STATIC",
+      "claim": "Each factory create slot allocates a node of 0x80 bytes (veff, vmdl), 0xb0 bytes (vins, leaf) or 0x90 bytes (vtex) and calls the node constructor in the tag table. Each Rapture create slot calls the matching CDev create slot. Each node constructor stores the node class vtable and each node initializer stores the tag dword at node +0x30."
+    },
+    {
+      "id": "blob-relocation-in-place",
+      "tier": "STATIC",
+      "claim": "CloneResourceData at 0x00b93e60 copies the blob, reads the header size word at blob +0x0e and the endian byte at +0x0c, and tests bit 0 of payload byte +0x0d. A clear bit runs the relocation routine at 0x00c1f0c0 on the clone and sets the bit. A set bit runs the rebase routine at 0x00c1f160. The loaders then follow payload +0x14 and the root table as absolute pointers."
+    },
+    {
+      "id": "relocation-mode-2",
+      "tier": "STATIC",
+      "claim": "Payload byte +0x0e equal to 2 selects the routine at 0x00c1ef90. It adds the payload base to the u32 at payload +0x10, then walks u16 payload +0x08 group entries of 16 bytes: u32 block list, u32 slot list, s32 block count, u16 slot count. Both lists are rebased. Each block is u32 start, s32 count, u16 stride in 12 bytes, and for each of count records every u16 slot offset names a u32 cell that is rebased when nonzero. It finishes by rebasing the u32 at +0x14 and then u16 payload +0x0a root cells."
+    },
+    {
+      "id": "relocation-modes-0-and-1",
+      "tier": "STATIC",
+      "claim": "Mode 0 at 0x00c1edf0 and mode 1 at 0x00c1eec0 read 16-byte group entries of s32 count, u32 start, u16 stride, u16 slot count and u32 slot list. Mode 0 reads u16 slot offsets at stride 2 and mode 1 at stride 4. They rebase the same cells and the same root cells as mode 2."
+    },
+    {
+      "id": "root-name-offsets",
+      "tier": "STATIC",
+      "claim": "The veff loader at 0x00bc2750 copies the four dwords at root +4 to +0x10, the leaf and vins loader at 0x00bc8e10 copies root +0x20 to +0x2f, and the vmdl and vtex loaders copy root +0 to +0xf. The veff, vmdl and vtex loaders store their own tag dword in the resource object and the shared leaf and vins loader stores the tag its caller passes."
+    },
+    {
+      "id": "veff-reference-arrays",
+      "tier": "STATIC",
+      "claim": "The routine at 0x00bc28c0 reads the pointers at root +0x20 and +0x28 with the counts at +0x24 and +0x2c. It steps 0x18 bytes per entry, copies the first 16 bytes and the dword at +0x10 into two arrays and sums the two counts for the allocation."
+    },
+    {
+      "id": "leaf-version-gate",
+      "tier": "STATIC",
+      "claim": "The leaf and vins loader accepts a root u16 at +0x1c of 7 or 8. A value outside that range reaches the call at 0x00bc9112 that formats the version error string at 0x010c5768 with the constant 8 as the current version. Separately, a control entry that the routine at 0x00bac950 rejects reaches the call at 0x00bc9094 that formats the binary control version error string at 0x010c57a0. The loader walks the table at root +0 with the count at +4 in 0x18-byte entries."
+    },
+    {
+      "id": "reference-name-and-tag-meaning",
+      "tier": "INFERRED",
+      "claim": "Each veff reference entry holds a 16-byte name and a reversed tag dword. All 10930 entries in the install name a vmdl or vtex of the same nested container. The loader's use of the name and tag as a lookup key was not read."
+    },
+    {
+      "id": "leaf-to-veff-link",
+      "tier": "INFERRED",
+      "claim": "A leaf blob contains the NUL-terminated root name of a veff of the same nested container in 1018 of 1019 blobs. The offset and the loader use were not traced."
+    },
+    {
+      "id": "vins-to-leaf-link",
+      "tier": "INFERRED",
+      "claim": "A vins blob contains the NUL-terminated root name of a leaf of the same nested container in 1050 of 1052 blobs. The offset and the loader use were not traced."
+    },
+    {
+      "id": "veff-effect-body",
+      "tier": "UNKNOWN",
+      "claim": "The veff root sub-record at +0x94 and +0xcc, the pointer cells of group 0 and the groups after it are consumed by effect construction code that is not traced here."
+    },
+    {
+      "id": "leaf-control-table",
+      "tier": "UNKNOWN",
+      "claim": "The meaning of the 0x18-byte entries at leaf and vins root +0 and of the pointer pairs at root +0xc and +0x14 is not established."
+    },
+    {
+      "id": "payload-words-00-04-0c",
+      "tier": "UNKNOWN",
+      "claim": "No traced loader reads payload +0x00, +0x04, +0x0c or +0x0f. The installed values are 0, the declared size, 4 for veff, vins and leaf or 2 for vmdl and vtex, and 0."
+    },
+    {
+      "id": "mode-1-use",
+      "tier": "UNKNOWN",
+      "claim": "No installed blob selects mode 1, and its routine was read only as far as the slot stride."
+    },
+    {
+      "id": "non-sedb-directory-entries",
+      "tier": "UNKNOWN",
+      "claim": "RES directory entries whose first dword is not SEDB are not parsed. The install holds 3198 of them below client/vfx, 745 of which start with the reversed vtex tag xetv inside effect packs. Their layout, loader and relation to the effect family are not read. For 206 depth 0 entries the directory offset places the entry past the end of its bank, so the offset base for entries of that kind is also not established."
+    }
+  ]
+}
