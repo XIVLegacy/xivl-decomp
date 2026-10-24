@@ -318,6 +318,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Native seasonal switch using existing DATs](resource/native-stock-seasonal-switch.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)
+- [Music song-ID names and evidence](resource/music-song-names.md)
 - [MapLayout numeric request boundary](resource/map-layout-request-boundary.md)
 - [Region auxiliary resource completion](resource/region-auxiliary-resource.md)
 - [RegionInfo and LayoutInfo selection](resource/map-layout-selector.md)

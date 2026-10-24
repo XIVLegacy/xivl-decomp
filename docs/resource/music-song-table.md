@@ -354,9 +354,9 @@ Three other places were checked for a client default, and none was found.
   (`xivl-client-scripts:lua/napi_index.json`, `apis._setMusic`) lists three call
   sites of `_setMusic`. Two are the cutscene replay in
   `chara/npc/populace/populacecutsceneplayer` at lines 221 and 316, and one is
-  the quest forwarder `quest/questbaseclass_common` at line 667. The song IDs
-  those and the quest scripts pass in tracked pages are 7, 25 and 61, and each
-  has a file in the table.
+  the quest forwarder `quest/questbaseclass_common` at line 667. The
+  [song-name catalog](music-song-names.md#lua-callers) records the wider
+  literal caller inventory and keeps script use separate from title confidence.
 - No tracked `xivl-client-data` mapping carries a music column. The
   `dayMusic`, `nightMusic` and `battleMusic` columns in
   `xivl-client-data:tools/mappings/zones.py` are constant zero columns of a
