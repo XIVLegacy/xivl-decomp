@@ -265,6 +265,240 @@ def event_release_tests(real: dict) -> None:
     )
 
 
+def button_source_tests(real: dict) -> None:
+    """Exercise byte gates, pointer ABI and RTTI with independently written literals."""
+    text = bytearray(0xA0)
+    text[0:28] = bytes.fromhex(
+        "8A 9D FA 02 00 00 57 C0 EB 05 8D BD 4C FF FF FF 8D B7 AE 03 00 00 80 E3 01 F6 06 10"
+    )
+    text[0x20:0x2E] = bytes.fromhex("80 BD F8 02 00 00 02 75 11 80 FB 01 75 0C")
+    text[0x40:0x56] = bytes.fromhex(
+        "8B 8F BC 02 00 00 8B 11 8B 52 08 55 50 8B 87 CC 02 00 00 50 FF D2"
+    )
+    text[0x60:0x75] = bytes.fromhex(
+        "8B 46 10 80 38 00 0F 85 88 00 00 00 F6 85 A6 00 00 00 20 74 7F"
+    )
+    text[0x80:0x90] = bytes.fromhex("C7 06 AC 3C 07 01 C7 86 B4 00 00 00 84 3B 07 01")
+    text[0x90:0x9F] = bytes.fromhex("89 8F FC 02 00 00 8B CE C6 44 24 14 00 FF D0")
+    data = (
+        struct.pack(
+            "<7I",
+            0x0117D4D0,
+            0xB4,
+            0x0126D244,
+            0x0097EFF0,
+            0x0097F080,
+            0x0097EDB0,
+            0x00927FA0,
+        )
+        + b".?AVButton@Controls@Sqwt@@\0"
+    )
+    image = build_image(bytes(text), data, len(data))
+    selected = {
+        "button up snapshot before refresh": TEXT_VA,
+        "button up mode and snapshot gates": TEXT_VA + 0x20,
+        "button stored command slot ABI": TEXT_VA + 0x40,
+        "button up handled and eligibility bytes": TEXT_VA + 0x60,
+        "button constructor tables": TEXT_VA + 0x80,
+        "button temporary flag pointer": TEXT_VA + 0x90,
+        "button interface RTTI locator": DATA_VA,
+        "button interface RTTI offset": DATA_VA + 4,
+        "button interface RTTI type": DATA_VA + 8,
+        "button mouse slots": DATA_VA + 0x0C,
+        "button Executed slot": DATA_VA + 0x14,
+        "button RoutedCommand slot": DATA_VA + 0x18,
+        "button RTTI name": DATA_VA + 0x1C,
+    }
+    rows = []
+    for name, va in selected.items():
+        row = copy.deepcopy(
+            next(item for item in real["staticChecks"] if item.get("name") == name)
+        )
+        row["va"] = f"{va:#010x}"
+        rows.append(row)
+    document = {"staticChecks": rows}
+    check("literal Button fixture passes", run(image, document) == [])
+    for label, offset, value, expected_name in (
+        (
+            "snapshot reads the packed byte",
+            2,
+            0xFC,
+            "button up snapshot before refresh",
+        ),
+        ("snapshot uses bit five", 9, 4, "button up snapshot before refresh"),
+        ("release mode is two", 0x26, 1, "button up mode and snapshot gates"),
+        (
+            "release requires the old snapshot",
+            0x2B,
+            0,
+            "button up mode and snapshot gates",
+        ),
+        ("command uses slot two", 0x4A, 0x0C, "button stored command slot ABI"),
+        (
+            "record comes from the pointer holder",
+            0x4F,
+            0xA4,
+            "button stored command slot ABI",
+        ),
+        (
+            "event pointer is the last stack argument",
+            0x4B,
+            0x50,
+            "button stored command slot ABI",
+        ),
+        (
+            "eligibility is byte width",
+            0x6C,
+            0xF7,
+            "button up handled and eligibility bytes",
+        ),
+        ("Button interface is at b4", 0x88, 0xB8, "button constructor tables"),
+        (
+            "temporary field stores a dword pointer",
+            0x90,
+            0x88,
+            "button temporary flag pointer",
+        ),
+    ):
+        changed = bytearray(image)
+        changed[0x200 + offset] = value
+        errors = run(bytes(changed), document)
+        check(label, len(errors) == 1 and expected_name in errors[0])
+    for label, offset, value, expected_name in (
+        ("RTTI locator is preserved", 0, 0x0117D44C, "button interface RTTI locator"),
+        ("RTTI offset is b4", 4, 0, "button interface RTTI offset"),
+        (
+            "RTTI type is the concrete Button",
+            8,
+            0x0126D28C,
+            "button interface RTTI type",
+        ),
+        ("Down and Up slots are ordered", 0x0C, 0x0097F080, "button mouse slots"),
+        ("Executed selects the Button body", 0x14, 0x0091D8F0, "button Executed slot"),
+        (
+            "RoutedCommand slot reaches the join",
+            0x18,
+            0x00928C90,
+            "button RoutedCommand slot",
+        ),
+    ):
+        changed = bytearray(image)
+        struct.pack_into("<I", changed, 0x200 + 0xA0 + offset, value)
+        errors = run(bytes(changed), document)
+        check(label, len(errors) == 1 and expected_name in errors[0])
+    changed = bytearray(image)
+    changed[0x200 + 0xA0 + 0x1C + 4] = ord("X")
+    errors = run(bytes(changed), document)
+    check(
+        "Button RTTI spelling is enforced", len(errors) == 1 and "string" in errors[0]
+    )
+
+    for section, field, value in (
+        ("mouseGates", "snapshotBeforeRefresh", False),
+        ("mouseGates", "snapshotAfterBaseCall", False),
+        ("mouseGates", "handledWidthBits", 32),
+        ("mouseGates", "downValueMustBeSet", True),
+        ("mouseGates", "upAndMask", "0xff"),
+        ("storedCommand", "pointerWidthBits", 64),
+        ("storedCommand", "recordPointerOffset", "+0x3a4"),
+        (
+            "storedCommand",
+            "slotArguments",
+            [
+                "stored record pointer",
+                "selected target interface or None",
+                "Click args pointer",
+            ],
+        ),
+        ("storedCommand", "slotArguments", ["Click args pointer", "target", "record"]),
+        ("click", "temporaryPointerWidthBits", 8),
+        ("click", "defaultCommandBeforeGeneric", False),
+        ("click", "triggerAttachment", "STATIC installed"),
+        ("executedForwarding", "frameworkElementCallVa", "0x0097ee90"),
+    ):
+        changed = copy.deepcopy(real)
+        changed["buttonSource"][section][field] = value
+        errors = verifier.button_errors(changed)
+        check(
+            field + " Button drift is rejected",
+            f"button {section} contract changed" in errors,
+        )
+    changed = copy.deepcopy(real)
+    changed["buttonSource"]["mouseIngress"][1]["routingStrategy"] = 0
+    check(
+        "preview remains strategy two",
+        "button preview ingress changed" in verifier.button_errors(changed),
+    )
+    changed = copy.deepcopy(real)
+    changed["buttonSource"]["storedCommand"]["targetFallback"]["selected"] = (
+        "returned pointer"
+    )
+    check(
+        "fallback uses I instead of returned pointer",
+        "button storedCommand contract changed" in verifier.button_errors(changed),
+    )
+    changed = copy.deepcopy(real)
+    changed["buttonSource"]["storedCommand"]["targetFallback"]["elseTarget"] = "null"
+    check(
+        "null fallback remains a value rather than text",
+        "button storedCommand contract changed" in verifier.button_errors(changed),
+    )
+    changed = copy.deepcopy(real)
+    changed["buttonSource"]["unknowns"].pop()
+    check(
+        "runtime boundary cannot disappear",
+        "button unknown boundaries changed" in verifier.button_errors(changed),
+    )
+    for name in (
+        "button stored command slot ABI",
+        "button interface RTTI type",
+        "button Executed FrameworkElement call",
+    ):
+        changed = copy.deepcopy(real)
+        changed["staticChecks"] = [
+            row for row in changed["staticChecks"] if row.get("name") != name
+        ]
+        check(
+            name + " cannot disappear",
+            f"button static check changed: {name}" in verifier.button_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    row = next(
+        row
+        for row in changed["staticChecks"]
+        if row.get("name") == "button up snapshot before refresh"
+    )
+    row["mask"] = " ".join(["00"] * 28)
+    check(
+        "Button snapshot mask cannot be disabled",
+        "button static check changed: button up snapshot before refresh"
+        in verifier.button_errors(changed),
+    )
+    for name, field, value in (
+        ("PreviewMouseLeftButtonDown", "strategy", 0),
+        ("PreviewMouseLeftButtonUp", "static", "0x01359674"),
+        ("Click", "id", "0x37"),
+    ):
+        changed = copy.deepcopy(real)
+        row = next(
+            row for row in changed["staticChecks"] if row.get("eventName") == name
+        )
+        row[field] = value
+        check(
+            name + " descriptor drift is rejected",
+            f"routed event {name} changed" in verifier.routing_errors(changed),
+        )
+    page = (
+        verifier.DOC.read_text(encoding="utf-8")
+        .lower()
+        .replace("0x013593cc", "0x013593cd")
+    )
+    check(
+        "page retains the Up descriptor",
+        "page does not cite 0x013593cc" in verifier.doc_errors(real, page),
+    )
+
+
 def main() -> int:
     check("manifest verifies", verifier.verify() == [])
     check("mutations are rejected", verifier.mutation_test() == [])
@@ -346,6 +580,7 @@ def main() -> int:
     )
 
     event_release_tests(real)
+    button_source_tests(real)
 
     if FAILED:
         print(f"FAIL: {len(FAILED)} of {len(PASSED) + len(FAILED)} checks")

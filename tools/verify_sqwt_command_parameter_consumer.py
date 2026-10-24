@@ -79,6 +79,9 @@ REQUIRED_CHECKS = {
 EXPECTED_ROUTED = {
     "Executed": (0x2A, 0, 0x01358738),
     "PreviewExecuted": (0x29, 2, 0x0135872C),
+    "PreviewMouseLeftButtonDown": (0x0D, 2, 0x01359674),
+    "PreviewMouseLeftButtonUp": (0x0F, 2, 0x013593CC),
+    "Click": (0x38, 0, 0x0135E624),
     "LocationChanged": (0x48, 0, 0x013573BC),
     "RenderSizeChanged": (0x4B, 0, 0x013594B4),
 }
@@ -350,6 +353,515 @@ EVENT_RELEASE_CHECKS = [
 ]
 
 
+BUTTON_CHECKS = [
+    {
+        "kind": "dwords",
+        "name": "button interface RTTI locator",
+        "va": "0x01073b80",
+        "values": ["0x0117d4d0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button primary RTTI locator",
+        "va": "0x01073ca8",
+        "values": ["0x0117d44c"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button interface RTTI offset",
+        "va": "0x0117d4d4",
+        "values": ["0x000000b4"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button interface RTTI type",
+        "va": "0x0117d4dc",
+        "values": ["0x0126d244"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button primary RTTI offset",
+        "va": "0x0117d450",
+        "values": ["0x00000000"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button primary RTTI type",
+        "va": "0x0117d458",
+        "values": ["0x0126d244"],
+    },
+    {
+        "kind": "string",
+        "name": "button RTTI name",
+        "va": "0x0126d24c",
+        "text": ".?AVButton@Controls@Sqwt@@",
+    },
+    {
+        "kind": "dwords",
+        "name": "button recipient slot",
+        "va": "0x01073bb8",
+        "values": ["0x0097ece0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button mouse slots",
+        "va": "0x01073c30",
+        "values": ["0x0097eff0", "0x0097f080"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button Executed slot",
+        "va": "0x01073c88",
+        "values": ["0x0097edb0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button primary hook slot",
+        "va": "0x01073dc8",
+        "values": ["0x0097eb60"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button base Executed slot",
+        "va": "0x01076140",
+        "values": ["0x0097edb0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button command source RTTI locator",
+        "va": "0x0106e368",
+        "values": ["0x0117ba44"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button command source RTTI type",
+        "va": "0x0117ba50",
+        "values": ["0x012e31a0"],
+    },
+    {
+        "kind": "string",
+        "name": "button command source RTTI name",
+        "va": "0x012e31a8",
+        "text": ".?AV?$ICommandSource@VContentControl@Controls@Sqwt@@@Input@Sqwt@@",
+    },
+    {
+        "kind": "dwords",
+        "name": "button RoutedCommand slot",
+        "va": "0x0106a794",
+        "values": ["0x00927fa0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button RoutedCommand RTTI locator",
+        "va": "0x0106a788",
+        "values": ["0x01179454"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button RoutedCommand RTTI type",
+        "va": "0x01179460",
+        "values": ["0x012e0398"],
+    },
+    {
+        "kind": "string",
+        "name": "button RoutedCommand RTTI name",
+        "va": "0x012e03a0",
+        "text": ".?AVRoutedCommand@Input@Sqwt@@",
+    },
+    {
+        "kind": "dwords",
+        "name": "button EventTrigger slot",
+        "va": "0x0107d55c",
+        "values": ["0x009b1820"],
+    },
+    {
+        "kind": "string",
+        "name": "button ClickMode name",
+        "va": "0x01075fbc",
+        "text": "ClickMode",
+    },
+    {
+        "kind": "string",
+        "name": "button IsPressed name",
+        "va": "0x01075fc8",
+        "text": "IsPressed",
+    },
+    {
+        "kind": "string",
+        "name": "button Click name",
+        "va": "0x01075fd4",
+        "text": "Click",
+    },
+    {
+        "kind": "dwords",
+        "name": "button down event map",
+        "va": "0x0091d824",
+        "values": ["0x0000000c"],
+        "width": 1,
+    },
+    {
+        "kind": "dwords",
+        "name": "button up event map",
+        "va": "0x0091d826",
+        "values": ["0x0000000e"],
+        "width": 1,
+    },
+    {
+        "kind": "dwords",
+        "name": "button down dispatch arm",
+        "va": "0x0091d790",
+        "values": ["0x0091d4be"],
+    },
+    {
+        "kind": "dwords",
+        "name": "button up dispatch arm",
+        "va": "0x0091d798",
+        "values": ["0x0091d4d0"],
+    },
+    {
+        "kind": "signature",
+        "name": "button constructor tables",
+        "va": "0x0097444e",
+        "pattern": "C7 06 AC 3C 07 01 C7 86 B4 00 00 00 84 3B 07 01",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button primary hook return",
+        "va": "0x0097eb60",
+        "pattern": "C3",
+        "mask": "FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button mode default byte",
+        "va": "0x0097f26d",
+        "pattern": "C6 44 24 26 02",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up handled and eligibility bytes",
+        "va": "0x0097f091",
+        "pattern": "8B 46 10 80 38 00 0F 85 88 00 00 00 F6 85 A6 00 00 00 20 74 7F",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up snapshot before refresh",
+        "va": "0x0097f0a7",
+        "pattern": "8A 9D FA 02 00 00 57 C0 EB 05 8D BD 4C FF FF FF 8D B7 AE 03 00 00 80 E3 01 F6 06 10",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button down property predicates",
+        "va": "0x0097f03f",
+        "pattern": "8A 06 A8 03 74 1A A8 20 75 16",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up property predicates",
+        "va": "0x0097f0de",
+        "pattern": "8A 06 A8 03 74 25 A8 20 74 21",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up mode and snapshot gates",
+        "va": "0x0097f109",
+        "pattern": "80 BD F8 02 00 00 02 75 11 80 FB 01 75 0C",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button temporary flag pointer",
+        "va": "0x0097ed13",
+        "pattern": "89 8F FC 02 00 00 8B CE C6 44 24 14 00 FF D0",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stored command slot ABI",
+        "va": "0x0097ed5f",
+        "pattern": "8B 8F BC 02 00 00 8B 11 8B 52 08 55 50 8B 87 CC 02 00 00 50 FF D2",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button base constructor call",
+        "va": "0x0097443a",
+        "pattern": "E8 C1 AD 00 00",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button command source constructor call",
+        "va": "0x0097f22b",
+        "pattern": "E8 80 58 FD FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button down base call",
+        "va": "0x0097effe",
+        "pattern": "E8 8D FB FA FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up base call",
+        "va": "0x0097f08c",
+        "pattern": "E8 FF AD FB FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button down Click call",
+        "va": "0x0097f075",
+        "pattern": "E8 26 FB FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up Click call",
+        "va": "0x0097f11e",
+        "pattern": "E8 7D FA FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button generic Click forwarding",
+        "va": "0x0097ed96",
+        "pattern": "E8 E5 65 FB FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button Executed FrameworkElement call",
+        "va": "0x0097edde",
+        "pattern": "E8 0D E4 FA FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button FrameworkElement base call",
+        "va": "0x0092d235",
+        "pattern": "E8 B6 06 FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button parameter setter call",
+        "va": "0x00954f04",
+        "pattern": "E8 27 F4 FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button parameter parser call",
+        "va": "0x00954405",
+        "pattern": "E8 E6 99 04 00",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button record store call",
+        "va": "0x00954433",
+        "pattern": "E8 18 FA FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button record copy call",
+        "va": "0x00953f0e",
+        "pattern": "E8 6D 18 BF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button local stop flag gate",
+        "va": "0x0097ed77",
+        "pattern": "38 44 24 14 5E 75 0F",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button Click stop byte store",
+        "va": "0x0097ed85",
+        "pattern": "88 45 17",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button down packed value write",
+        "va": "0x0097f053",
+        "pattern": "0C 24 56 8B CE 88 06",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up packed value write",
+        "va": "0x0097f0ee",
+        "pattern": "24 DF 68 30 E6 35 01 0C 04 51 88 06",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button down refresh mask clear",
+        "va": "0x0097f03c",
+        "pattern": "80 26 EF",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button up refresh mask clear",
+        "va": "0x0097f0db",
+        "pattern": "80 26 EF",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button target fallback predicate",
+        "va": "0x0097ed43",
+        "pattern": "85 C0 74 16 F6 80 5D 01 00 00 20 75 0D 8B C6 85 C0 74 07 05 B4 00 00 00 EB 02 33 C0",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+]
+
+BUTTON_FIELDS = {
+    "identity": {
+        "class": "Sqwt::Controls::Button",
+        "typeDescriptorVa": "0x0126d244",
+        "rttiName": ".?AVButton@Controls@Sqwt@@",
+        "constructorVa": "0x00974410",
+        "primaryVtableVa": "0x01073cac",
+        "interfaceVtableVa": "0x01073b84",
+        "interfaceOffset": "+0xb4",
+        "interfaceCompleteObjectLocatorVa": "0x0117d4d0",
+    },
+    "mouseGates": {
+        "handledWidthBits": 8,
+        "eligibilityWidthBits": 8,
+        "stateWidthBits": 8,
+        "clickModeWidthBits": 8,
+        "propertyUpdateMask": "0x03",
+        "downValueMustBeSet": False,
+        "downOrMask": "0x24",
+        "upValueMustBeSet": True,
+        "upAndMask": "0xdf",
+        "upOrMask": "0x04",
+        "snapshotAfterBaseCall": True,
+        "snapshotBeforeRefresh": True,
+        "stateByte": "+0x3ae",
+        "refreshMask": "0x10",
+        "valueMask": "0x20",
+        "clickModeOffset": "+0x3ac",
+        "clickModeDefaultByte": 2,
+        "clickModeDescriptorVa": "0x0135e600",
+        "stateDescriptorVa": "0x0135e630",
+    },
+    "storedCommand": {
+        "offset": "+0x370",
+        "slot": 2,
+        "recordPointerOffset": "+0x380",
+        "recordSize": "0x78",
+        "targetPointerOffset": "+0x378",
+        "targetNameOffset": "+0x3a8",
+        "targetHelperVa": "0x00953cd0",
+        "slotArguments": [
+            "stored record pointer",
+            "selected target interface or null",
+            "Click args pointer",
+        ],
+        "propertySetterVa": "0x00954e70",
+        "parameterSetterCallVa": "0x00954f04",
+        "parserCallVa": "0x00954405",
+        "recordStoreCallVa": "0x00954433",
+        "recordCopyCallVa": "0x00953f0e",
+        "slotByteOffset": "+0x08",
+        "pointerWidthBits": 32,
+        "targetFallback": {
+            "primarySlot": 44,
+            "returnNonNull": True,
+            "returnByteOffset": "+0x15d",
+            "clearMask": "0x20",
+            "selected": "element +0xb4",
+            "elseTarget": None,
+        },
+    },
+    "click": {
+        "helperVa": "0x0097eba0",
+        "descriptorVa": "0x0135e624",
+        "id": "0x38",
+        "routingStrategy": 0,
+        "source": "element",
+        "originalSource": "element",
+        "routeTarget": "element +0xb4",
+        "interfaceRecipientSlot": 13,
+        "recipientVa": "0x0097ece0",
+        "primaryHookSlot": 71,
+        "primaryHookVa": "0x0097eb60",
+        "commandCallVa": "0x0097ed73",
+        "genericForwardCallVa": "0x0097ed96",
+        "temporaryFlagPointerOffset": "+0x2fc",
+        "temporaryPointerWidthBits": 32,
+        "temporaryFlagWidthBits": 8,
+        "skipGenericWhenFlagEquals": 1,
+        "defaultCommandBeforeGeneric": True,
+        "triggerAttachment": "UNKNOWN",
+        "eventTriggerVtableVa": "0x0107d554",
+        "eventTriggerSlot": 2,
+        "eventTriggerFunctionVa": "0x009b1820",
+    },
+    "routedCommandJoin": {
+        "constructorVa": "0x00928c90",
+        "vtableVa": "0x0106a78c",
+        "slot": 2,
+        "functionVa": "0x00927fa0",
+    },
+    "executedForwarding": {
+        "interfaceSlot": 65,
+        "functionVa": "0x0097edb0",
+        "frameworkElementCallVa": "0x0097edde",
+        "frameworkElementFunctionVa": "0x0092d1f0",
+        "baseCallVa": "0x0092d235",
+        "baseFunctionVa": "0x0091d8f0",
+        "baseStoreCallVa": "0x0091d915",
+    },
+}
+
+BUTTON_INGRESS = [
+    {
+        "event": "PreviewMouseLeftButtonDown",
+        "id": "0x0d",
+        "dispatchArmVa": "0x0091d4be",
+        "interfaceSlot": 43,
+        "functionVa": "0x0097eff0",
+        "baseCallVa": "0x0097effe",
+        "clickModeByte": 1,
+        "clickCallVa": "0x0097f075",
+        "descriptorVa": "0x01359674",
+        "initializerVa": "0x00f22ca0",
+        "routingStrategy": 2,
+    },
+    {
+        "event": "PreviewMouseLeftButtonUp",
+        "id": "0x0f",
+        "dispatchArmVa": "0x0091d4d0",
+        "interfaceSlot": 44,
+        "functionVa": "0x0097f080",
+        "baseCallVa": "0x0097f08c",
+        "clickModeByte": 2,
+        "clickCallVa": "0x0097f11e",
+        "descriptorVa": "0x013593cc",
+        "initializerVa": "0x00f22cd0",
+        "routingStrategy": 2,
+    },
+]
+
+
 def parse_hex(text: str) -> int:
     return int(text, 16)
 
@@ -380,6 +892,7 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
         *iface.get("slotTable", {}).get("functionVas", []),
         *routing_addresses(document),
         *event_release_addresses(document),
+        *button_addresses(document),
     ]
     errors = [
         f"page does not cite {address}"
@@ -533,6 +1046,63 @@ def event_release_errors(document: dict) -> list[str]:
         found = [row for row in checks if row.get("name") == expected["name"]]
         if found != [expected]:
             errors.append(f"event release static check changed: {expected['name']}")
+    return errors
+
+
+def button_addresses(document: dict) -> list[str]:
+    """Locators of the concrete Button source and its conditional command join."""
+    button = document.get("buttonSource", {})
+    return [
+        button.get("constructorVa"),
+        button.get("primaryVtableVa"),
+        button.get("interfaceVtableVa"),
+        button.get("typeDescriptorVa"),
+        button.get("interfaceCompleteObjectLocatorVa"),
+        *[row.get("descriptorVa") for row in button.get("mouseIngress", [])],
+        *[row.get("functionVa") for row in button.get("mouseIngress", [])],
+        button.get("click", {}).get("recipientVa"),
+        button.get("click", {}).get("commandCallVa"),
+        button.get("storedCommand", {}).get("propertySetterVa"),
+        button.get("storedCommand", {}).get("targetHelperVa"),
+        button.get("routedCommandJoin", {}).get("functionVa"),
+        button.get("executedForwarding", {}).get("functionVa"),
+        button.get("executedForwarding", {}).get("frameworkElementCallVa"),
+        button.get("executedForwarding", {}).get("baseCallVa"),
+    ]
+
+
+def button_errors(document: dict) -> list[str]:
+    """Preserve the routed-ingress boundary, byte gates, pointer ABI and base call."""
+    errors: list[str] = []
+    button = document.get("buttonSource", {})
+    for section, expected in BUTTON_FIELDS.items():
+        actual = button if section == "identity" else button.get(section, {})
+        if any(actual.get(key) != value for key, value in expected.items()):
+            errors.append(f"button {section} contract changed")
+    ingress = button.get("mouseIngress", [])
+    if len(ingress) != len(BUTTON_INGRESS) or any(
+        any(actual.get(key) != value for key, value in expected.items())
+        for actual, expected in zip(ingress, BUTTON_INGRESS)
+    ):
+        errors.append("button preview ingress changed")
+    if (
+        button.get("confidence")
+        != "STATIC for instructions, pointer/RTTI data and conditions. INFERRED for naming the packed value bit and for Click EventTrigger ordering conditional on attachment."
+    ):
+        errors.append("button confidence boundary changed")
+    if button.get("unknowns") != [
+        "OS input, hit testing and capture before routed preview ingress.",
+        "Writers and semantic name of element +0x15a mask 0x20.",
+        "All packed-state writers, ClickMode binding changes and actual attached Click EventTriggers.",
+        "Other ICommand bodies and other specialised control families.",
+        "Runtime activation, Lua result, frame timing, network and server behavior.",
+    ]:
+        errors.append("button unknown boundaries changed")
+    checks = document.get("staticChecks", [])
+    for expected in BUTTON_CHECKS:
+        found = [row for row in checks if row.get("name") == expected["name"]]
+        if found != [expected]:
+            errors.append(f"button static check changed: {expected['name']}")
     return errors
 
 
@@ -900,6 +1470,7 @@ def verify(document: dict | None = None) -> list[str]:
     )
     if event_ids != [i for i in range(1, 0x5B) if i != 0x21]:
         errors.append("routed event rows are not ids 0x01..0x5a without 0x21")
+    errors.extend(button_errors(document))
     errors.extend(event_release_errors(document))
     errors.extend(routing_errors(document))
     errors.extend(doc_errors(document))
@@ -919,6 +1490,12 @@ def verify(document: dict | None = None) -> list[str]:
 def mutation_test() -> list[str]:
     document = json.loads(MANIFEST.read_text(encoding="ascii"))
     cases = [
+        (("buttonSource", "mouseGates", "snapshotBeforeRefresh"), False),
+        (("buttonSource", "mouseGates", "handledWidthBits"), 32),
+        (("buttonSource", "storedCommand", "recordPointerOffset"), "+0x3a4"),
+        (("buttonSource", "click", "defaultCommandBeforeGeneric"), False),
+        (("buttonSource", "click", "triggerAttachment"), "STATIC installed"),
+        (("buttonSource", "executedForwarding", "interfaceSlot"), 64),
         (("handler", "handlerVa"), "0x00536290"),
         (("handler", "routedEvent", "id"), "0x28"),
         (("handler", "handlerObjectVtableVa"), "0x00fa10dc"),

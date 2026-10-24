@@ -202,7 +202,7 @@ confirmed in instructions.
 | Caller | Source of `T` | Destination `R` | Role |
 |---|---|---|---|
 | `FUN_00948350`, call `0x00948520` | Raw attribute text, no evaluation | Markup object `+0xCC` | Case-insensitive `CommandParameter` attribute of an input binding markup object. The catalog row `Sqwt::Markup::InputBindingMarkupObject` slot 3 in [the vtable slot catalog](../../config/ffxivgame.vtable_slots.jsonl) names this function. STATIC. |
-| `FUN_00954330`, call `0x00954405` | Result of `FUN_00916310` on the attribute value | Stack record, then compared and stored | Property value set path for a property holder at `this + 0x380`. Case 2 of `FUN_00954E70` calls it with descriptor `0x0135A244`, the `CommandParameter` property whose name literal is `0x0106E154`. Initializer `0x00F236D0` installs `FUN_00954E70` as the setter of the property class `Sqwt::DependencyPropertyInfo<Sqwt::Input::ICommandSource<Sqwt::Controls::ContentControl>>`. STATIC for the chain. The `Button` owner is INFERRED from `ContentControl`. |
+| `FUN_00954330`, call `0x00954405` | Result of `FUN_00916310` on the attribute value | Stack record, then compared and stored | Property value set path for a property holder at `this + 0x380`. Case 2 of `FUN_00954E70` calls it with descriptor `0x0135A244`, the `CommandParameter` property whose name literal is `0x0106E154`. Initializer `0x00F236D0` installs `FUN_00954E70` as the setter of the property class `Sqwt::DependencyPropertyInfo<Sqwt::Input::ICommandSource<Sqwt::Controls::ContentControl>>`. STATIC for the chain. The concrete `Button` owner and invocation are STATIC through constructors `0x00974410 -> 0x0097F200 -> 0x00954AB0`, see [Button mouse source](sqwt-command-parameter-consumer.md#button-mouse-source). |
 | `FUN_00954500`, call `0x009545DF` | Same as above | Same, with the receiver offset by `0x18` | Sibling of the previous path for a second holder. Callers `0x00955010`, `0x009551A0` and `0x009B14B0`. Role INFERRED from the identical body. |
 | `FUN_009B28C0`, call `0x009B2B1F` | Formatted text, see below | Stack record | `Sqwt::Input::ExecuteCommandAction` slot 2. Catalog row `vtable_rva_hex` `0xc7d7f4`, slot 2. STATIC. |
 | `FUN_006A4ED0`, call `0x006A4F57` | The two byte literal `1`, stored at `0x006A4F1B` | Stack record | Native helper that builds the plain integer `1`, looks up a command by name through `0x00928280` and executes it. Callers include `0x008844E0` and `0x00883EC0`. STATIC. |
@@ -279,7 +279,10 @@ The linked page names the first seven dwords. The eighth integer goes to
 The known recipients of `Executed` events are the movement handler, the form
 handler and the `NumberInputBox` step handler
 ([consumers of the record](sqwt-command-parameter-consumer.md#other-consumers-of-the-record)).
-The `Button` property consumer and every other recipient are UNKNOWN.
+The concrete Button calls command slot 2 with its stored record pointer at
+`E+0x380`. Its target selection and conditional RoutedCommand join are STATIC
+in [Button mouse source](sqwt-command-parameter-consumer.md#button-mouse-source).
+Other recipients remain UNKNOWN.
 
 ## Retail markup census
 
@@ -368,8 +371,10 @@ at run time.
 - How a `{Binding ...}` expression is evaluated into the text `T` that the
   property paths parse.
 - Which command consumers other than the movement handler and the form-level
-  script handler read the kind, string or integers from an `Executed` event,
-  and the consumer of the `Button` property record.
+  script handler read the kind, string or integers from an `Executed` event.
+- Button OS input, hit testing, capture, eligibility writers and actual
+  installed Click triggers, beyond the delivered preview ingress traced in
+  the consumer page.
 - The role of the call at `0x009CEC34`.
 - Behaviour of `_isdigit` for bytes at or above `0x80`.
 - Whether the type name `Sqwt::Input::CommandParameter`, present as the type
