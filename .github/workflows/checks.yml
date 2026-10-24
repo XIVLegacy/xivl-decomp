@@ -72,6 +72,8 @@ jobs:
         run: python tools/test_retail_protocol_caller.py
       - name: Test music song resource verifier
         run: python tools/test_music_song_resources.py
+      - name: Test sound effect trigger verifier
+        run: python tools/test_sound_effect_triggers.py
       - name: Test achievement title map
         run: python tools/test_achievement_title_map.py
       - name: Test achievement completion ordinals
