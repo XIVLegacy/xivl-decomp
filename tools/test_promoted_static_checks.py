@@ -458,7 +458,7 @@ def map_emitter_checks() -> None:
         == (4, 5, 2, 4)
         and selector["source"] == "low16(W)"
         and selector["fixedValue"] is None
-        and selector["upstreamValueOneInvocationProven"] is False,
+        and "upstreamValueOneInvocationProven" not in selector,
     )
 
     for section, key, value, expected in [
@@ -470,10 +470,10 @@ def map_emitter_checks() -> None:
         ("selector", "source", "float-helper-literal", "selector contract changed"),
         ("selector", "floatHelperCleanupBytes", 0, "selector contract changed"),
         (
-            "selector",
-            "upstreamValueOneInvocationProven",
+            "upstream",
+            "runtimeInvocationObserved",
             True,
-            "selector contract changed",
+            "upstream contract changed",
         ),
         ("localResult", "deliveryProven", True, "localResult contract changed"),
         ("localResult", "serverAcceptanceProven", True, "localResult contract changed"),
@@ -546,6 +546,259 @@ def map_emitter_checks() -> None:
             f"Map rejects {label} for its own reason",
             expected in map_emitter.verify(changed),
         )
+
+    upstream = document["upstream"]
+    check(
+        "Map v2 distinguishes static proof from retained runtime observation",
+        document["format"] == "xivl-map-0003-emitter-v2"
+        and upstream["staticConditionalCallProven"] is True
+        and upstream["runtimeInvocationObserved"] is False
+        and document["selector"]["fixedValue"] is None,
+    )
+    check(
+        "Map upstream W1 call uses the reviewed literal and addresses",
+        (
+            upstream["wrapperVa"],
+            upstream["callSiteVa"],
+            upstream["calleeVa"],
+            upstream["wPushVa"],
+            upstream["wLiteral"],
+        )
+        == ("0x0075bef0", "0x0075bfa0", "0x004d8160", "0x0075bf9b", 1),
+    )
+    gate = upstream["gate"]
+    check(
+        "Map upstream gate tests the fourth argument low byte",
+        (
+            gate["wrapperArgument"],
+            gate["stackOffset"],
+            gate["bytes"],
+            gate["predicate"],
+            gate["testVa"],
+            gate["branchVa"],
+            gate["zeroTargetVa"],
+        )
+        == (4, 132, 1, "low-byte-equal-zero", "0x0075bf21", "0x0075bf3a", "0x0075bf8f")
+        and gate["nonzeroBranchEmissionPolicy"] is None
+        and gate["modeMeaning"] is None,
+    )
+    dispatch = upstream["dispatcher"]
+    check(
+        "Map dispatcher compares the exact terminated literal",
+        (
+            dispatch["functionVa"],
+            dispatch["callSiteVa"],
+            dispatch["comparisonCallVa"],
+            dispatch["equalityBranchVa"],
+            dispatch["comparisonHelperVa"],
+            dispatch["literalVa"],
+            dispatch["literal"],
+            dispatch["comparison"],
+        )
+        == (
+            "0x006e91f0",
+            "0x006e92ed",
+            "0x006e92c4",
+            "0x006e92cb",
+            "0x00445d60",
+            "0x00fd4bf0",
+            "say",
+            "exact-byte-equality",
+        )
+        and dispatch["terminatorRequired"] is True,
+    )
+    control = upstream["control"]
+    check(
+        "Map control return establishes AL only",
+        (
+            control["helperVa"],
+            control["establishedRegister"],
+            control["pushedRegister"],
+            control["consumedBytes"],
+        )
+        == ("0x00763030", "AL", "EAX", 1)
+        and control["upperEaxBitsEstablished"] is False
+        and control["ordinaryZeroCases"] == ["dword[D+0x20]==0", "Z is null"]
+        and control["ordinaryOtherSource"] == "byte[Z+0xba]"
+        and control["ordinaryChain"]
+        == ["H=dword[D+0x1c]", "N=dword[H]", "Z=dword[N+8]"]
+        and control["consistencyHelperVa"] == "0x009d22b4"
+        and all(
+            control[key] is None
+            for key in (
+                "meaning",
+                "population",
+                "lifetime",
+                "consistencyHelperBehavior",
+            )
+        ),
+    )
+    arguments = upstream["arguments"]
+    check(
+        "Map upstream argument and receiver sources stay opaque",
+        arguments["dispatcherArguments"] == ["&K", "&L", "Q0", "EAX"]
+        and arguments["calleeArguments"] == ["R", "&L", "Q0", 1]
+        and (arguments["qHelperVa"], arguments["q0Index"], arguments["q1Index"])
+        == ("0x0071ce70", 0, 1)
+        and arguments["comparisonSource"] == "Q1"
+        and arguments["kSource"] == "dword[P+0x0c]"
+        and arguments["lSource"] == "[C+0x60]+4"
+        and arguments["lConstructorVa"] == "0x00447200"
+        and arguments["vSource"] == "opaque 0x00cc7510([P+4]) return"
+        and arguments["dSource"] == "[[V]+4]"
+        and arguments["wrapperReceiver"] == "U=[D]"
+        and arguments["calleeReceiver"] == "T=[U]"
+        and arguments["rSource"] == "opaque 0x004d9970(T,K) return"
+        and arguments["originalTextUnchangedProven"] is False
+        and all(
+            arguments[key] is None
+            for key in ("qMeaning", "rMeaning", "sourceMeaning", "textPolicy")
+        ),
+    )
+    check(
+        "Map three pending pushes locate the saved key",
+        (
+            arguments["savedKStackOffset"],
+            arguments["keyAddressEspOffset"],
+            arguments["pendingPushBytes"],
+            arguments["keyAddressLeaVa"],
+        )
+        == (24, 36, 12, "0x006e92e6")
+        and 36 - 12 == 24,
+    )
+    check(
+        "Map runtime occurrence and downstream gate success remain unobserved",
+        "runtime occurrence of the conditional selector-one route"
+        in document["unknowns"]
+        and upstream["downstreamGatesProvenSatisfied"] is False
+        and upstream["sourcePopulation"] is None,
+    )
+    legacy = copy.deepcopy(document)
+    legacy["format"] = "xivl-map-0003-emitter-v1"
+    check(
+        "Map rejects legacy v1 without reinterpretation",
+        map_emitter.verify(legacy) == ["format contract changed"],
+    )
+    for value in (False, True):
+        legacy_field = copy.deepcopy(document)
+        legacy_field["selector"]["upstreamValueOneInvocationProven"] = value
+        check(
+            f"Map rejects ambiguous legacy flag {value}",
+            map_emitter.verify(legacy_field) == ["selector contract changed"],
+        )
+    for key, value in [
+        ("staticConditionalCallProven", False),
+        ("wLiteral", 2),
+        ("wPushVa", "0x0075bf9c"),
+        ("callSiteVa", "0x0075bfa1"),
+        ("downstreamGatesProvenSatisfied", True),
+    ]:
+        changed = copy.deepcopy(document)
+        changed["upstream"][key] = value
+        check(
+            f"Map rejects upstream {key}",
+            map_emitter.verify(changed) == ["upstream contract changed"],
+        )
+    for path, value in [
+        (("gate", "predicate"), "nonzero"),
+        (("gate", "bytes"), 4),
+        (("gate", "zeroTargetVa"), "0x0075bf3c"),
+        (("gate", "wrapperArgument"), 3),
+        (("gate", "nonzeroBranchEmissionPolicy"), "suppresses all emission"),
+        (("control", "establishedRegister"), "EAX"),
+        (("control", "consumedBytes"), 4),
+        (("control", "upperEaxBitsEstablished"), True),
+        (("control", "meaning"), "invented mode"),
+        (("dispatcher", "literal"), "sa"),
+        (("dispatcher", "literal"), "Say"),
+        (("dispatcher", "terminatorRequired"), False),
+        (("dispatcher", "comparison"), "prefix-byte-equality"),
+        (("arguments", "comparisonSource"), "Q0"),
+        (("arguments", "dispatcherArguments"), ["&L", "&K", "Q1", "EAX"]),
+        (("arguments", "calleeArguments"), ["R", "Q0", "&L", 1]),
+        (("arguments", "q0Index"), 1),
+        (("arguments", "rMeaning"), "invented identity"),
+        (("arguments", "originalTextUnchangedProven"), True),
+        (("arguments", "dSource"), "V+4"),
+        (("arguments", "calleeReceiver"), "T=U"),
+        (("arguments", "kSource"), "dword[P+0x10]"),
+        (("arguments", "lSource"), "[C+0x60]"),
+        (("arguments", "pendingPushBytes"), 8),
+    ]:
+        changed = copy.deepcopy(document)
+        changed["upstream"][path[0]][path[1]] = value
+        check(
+            f"Map rejects upstream {'.'.join(path)}={value}",
+            map_emitter.verify(changed) == ["upstream contract changed"],
+        )
+    semantic_name = copy.deepcopy(document)
+    semantic_name["upstream"]["semanticFunctionName"] = "invented"
+    check(
+        "Map comparison literal supplies no semantic function identity",
+        map_emitter.verify(semantic_name) == ["upstream contract changed"],
+    )
+    missing_runtime = copy.deepcopy(document)
+    missing_runtime["unknowns"].remove(
+        "runtime occurrence of the conditional selector-one route"
+    )
+    check(
+        "Map retains runtime occurrence uncertainty",
+        map_emitter.verify(missing_runtime) == ["unknowns contract changed"],
+    )
+    expected_new_ranges = [
+        (
+            "upstream-W1",
+            "0x0075bef0",
+            "0x0075bfc5",
+            "210f8d6e7023f20093f96ee332f8966f499441fe68f4ceee7b37e64cad791f69",
+        ),
+        (
+            "upstream-dispatch",
+            "0x006e91f0",
+            "0x006e9427",
+            "c25e9ef201fab33ef27ba7a13defbad5d112c2ffddd34b0e32bd617d0e44d184",
+        ),
+        (
+            "control-byte",
+            "0x00763030",
+            "0x00763058",
+            "e4a7ef572763cf5a91852bdc48ee84543025a6b73a3936469ea21063e8fff29a",
+        ),
+        (
+            "byte-equality",
+            "0x00445d60",
+            "0x00445da1",
+            "a5baafd37b78fa9a166105f1a64516b7c59056c878a300413942c3c932a627c8",
+        ),
+    ]
+    check(
+        "Map eight body ranges retain four literal reviewed upstream extents",
+        len(document["bodyRanges"]) == 8
+        and [
+            (row["name"], row["startVa"], row["endVa"], row["sha256"])
+            for row in document["bodyRanges"][4:]
+        ]
+        == expected_new_ranges,
+    )
+    for name, _, _, _ in expected_new_ranges:
+        index = next(
+            i for i, row in enumerate(document["bodyRanges"]) if row["name"] == name
+        )
+        for operation in ("drop", "duplicate", "boundary", "digest"):
+            changed = copy.deepcopy(document)
+            rows = changed["bodyRanges"]
+            if operation == "drop":
+                rows.pop(index)
+            elif operation == "duplicate":
+                rows.append(copy.deepcopy(rows[index]))
+            elif operation == "boundary":
+                rows[index]["endVa"] = f"0x{int(rows[index]['endVa'], 16) + 1:08x}"
+            else:
+                rows[index]["sha256"] = "0" * 64
+            check(
+                f"Map rejects {name} {operation} for its range assertion",
+                "bodyRanges contract changed" in map_emitter.verify(changed),
+            )
 
     # Authored text fixture and literal SHA256, independent of retail catalog ranges.
     fixture = {

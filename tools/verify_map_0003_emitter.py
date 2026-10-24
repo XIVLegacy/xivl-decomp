@@ -17,7 +17,7 @@ import verify_sqwt_command_parameter_consumer as image_checks
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "config" / "map_0003_emitter.json"
 EXPECTED = {
-    "format": "xivl-map-0003-emitter-v1",
+    "format": "xivl-map-0003-emitter-v2",
     "source": {
         "binary": "ffxivgame.exe",
         "bytes": 15996808,
@@ -192,7 +192,6 @@ EXPECTED = {
             "0x004dd921",
             "0x004dd92b",
         ],
-        "upstreamValueOneInvocationProven": False,
     },
     "caller": {
         "contextSource": "[B+0x98] ? [[B+0x98]+0x88] : 0",
@@ -238,12 +237,14 @@ EXPECTED = {
         "tail byte values",
         "text transformation and optional-helper effects",
         "context population and meaning",
-        "upstream concrete selector-one invocation",
+        "runtime occurrence of the conditional selector-one route",
         "indirect-caller completeness",
         "exception and fault behavior",
         "submission queue lifetime",
         "transport and delivery",
         "server acceptance and tolerance",
+        "upstream control-byte population, meaning and lifetime",
+        "opaque upstream argument and receiver population",
     ],
     "references": {
         "zoneHeader": "docs/net/zone-outbound-header.md",
@@ -274,7 +275,122 @@ EXPECTED = {
             "endVa": "0x00dae1d3",
             "sha256": "d3f7ce4b5b1f3a382c07066a46006b95a5312b1cb06da7b61085e3bba49797a3",
         },
+        {
+            "name": "upstream-W1",
+            "startVa": "0x0075bef0",
+            "endVa": "0x0075bfc5",
+            "sha256": "210f8d6e7023f20093f96ee332f8966f499441fe68f4ceee7b37e64cad791f69",
+        },
+        {
+            "name": "upstream-dispatch",
+            "startVa": "0x006e91f0",
+            "endVa": "0x006e9427",
+            "sha256": "c25e9ef201fab33ef27ba7a13defbad5d112c2ffddd34b0e32bd617d0e44d184",
+        },
+        {
+            "name": "control-byte",
+            "startVa": "0x00763030",
+            "endVa": "0x00763058",
+            "sha256": "e4a7ef572763cf5a91852bdc48ee84543025a6b73a3936469ea21063e8fff29a",
+        },
+        {
+            "name": "byte-equality",
+            "startVa": "0x00445d60",
+            "endVa": "0x00445da1",
+            "sha256": "a5baafd37b78fa9a166105f1a64516b7c59056c878a300413942c3c932a627c8",
+        },
     ],
+    "upstream": {
+        "staticConditionalCallProven": True,
+        "runtimeInvocationObserved": False,
+        "wrapperVa": "0x0075bef0",
+        "callSiteVa": "0x0075bfa0",
+        "calleeVa": "0x004d8160",
+        "wLiteral": 1,
+        "wPushVa": "0x0075bf9b",
+        "gate": {
+            "wrapperArgument": 4,
+            "stackOffset": 132,
+            "testVa": "0x0075bf21",
+            "branchVa": "0x0075bf3a",
+            "zeroTargetVa": "0x0075bf8f",
+            "predicate": "low-byte-equal-zero",
+            "bytes": 1,
+            "nonzeroBranchEmissionPolicy": None,
+            "modeMeaning": None,
+        },
+        "dispatcher": {
+            "functionVa": "0x006e91f0",
+            "callSiteVa": "0x006e92ed",
+            "comparisonCallVa": "0x006e92c4",
+            "equalityBranchVa": "0x006e92cb",
+            "comparisonHelperVa": "0x00445d60",
+            "literalVa": "0x00fd4bf0",
+            "literal": "say",
+            "terminatorRequired": True,
+            "comparison": "exact-byte-equality",
+        },
+        "control": {
+            "helperVa": "0x00763030",
+            "establishedRegister": "AL",
+            "pushedRegister": "EAX",
+            "consumedBytes": 1,
+            "upperEaxBitsEstablished": False,
+            "ordinaryZeroCases": [
+                "dword[D+0x20]==0",
+                "Z is null",
+            ],
+            "ordinaryChain": [
+                "H=dword[D+0x1c]",
+                "N=dword[H]",
+                "Z=dword[N+8]",
+            ],
+            "ordinaryOtherSource": "byte[Z+0xba]",
+            "consistencyHelperVa": "0x009d22b4",
+            "consistencyHelperBehavior": None,
+            "meaning": None,
+            "population": None,
+            "lifetime": None,
+        },
+        "arguments": {
+            "qHelperVa": "0x0071ce70",
+            "q0Index": 0,
+            "q1Index": 1,
+            "qMeaning": None,
+            "comparisonSource": "Q1",
+            "lSource": "[C+0x60]+4",
+            "lConstructorVa": "0x00447200",
+            "kSource": "dword[P+0x0c]",
+            "dispatcherArguments": [
+                "&K",
+                "&L",
+                "Q0",
+                "EAX",
+            ],
+            "wrapperReceiver": "U=[D]",
+            "calleeReceiver": "T=[U]",
+            "calleeArguments": [
+                "R",
+                "&L",
+                "Q0",
+                1,
+            ],
+            "rSource": "opaque 0x004d9970(T,K) return",
+            "rMeaning": None,
+            "vSource": "opaque 0x00cc7510([P+4]) return",
+            "dSource": "[[V]+4]",
+            "sourceMeaning": None,
+            "originalTextUnchangedProven": False,
+            "textPolicy": None,
+            "savedKStackOffset": 24,
+            "keyAddressLeaVa": "0x006e92e6",
+            "keyAddressEspOffset": 36,
+            "pendingPushBytes": 12,
+        },
+        "downstreamGatesProvenSatisfied": False,
+        "outerResultContract": "no explicit test of the selected call result before cleanup and epilogue",
+        "sourcePopulation": None,
+    },
 }
 
 
@@ -369,6 +485,15 @@ def mutation_test() -> list[str]:
     document = json.loads(MANIFEST.read_text(encoding="ascii"))
     errors: list[str] = []
     mutations = [
+        ("upstream", "staticConditionalCallProven", False, "upstream contract changed"),
+        ("upstream", "wLiteral", 2, "upstream contract changed"),
+        ("upstream", "callSiteVa", "0x0075bfa1", "upstream contract changed"),
+        (
+            "upstream",
+            "downstreamGatesProvenSatisfied",
+            True,
+            "upstream contract changed",
+        ),
         ("geometry", "applicationBytes", 552, "geometry contract changed"),
         ("geometry", "recordApplicationOffset", 16, "geometry contract changed"),
         ("geometry", "internalGameMessageBytes", 552, "geometry contract changed"),
@@ -378,10 +503,10 @@ def mutation_test() -> list[str]:
         ("selector", "source", "float-helper-literal", "selector contract changed"),
         ("selector", "floatHelperCleanupBytes", 0, "selector contract changed"),
         (
-            "selector",
-            "upstreamValueOneInvocationProven",
+            "upstream",
+            "runtimeInvocationObserved",
             True,
-            "selector contract changed",
+            "upstream contract changed",
         ),
         ("caller", "contextMeaning", "actor identity", "caller contract changed"),
         ("caller", "textPolicy", "unchanged input", "caller contract changed"),
@@ -403,6 +528,57 @@ def mutation_test() -> list[str]:
         change(changed)
         if "fields contract changed" not in verify(changed):
             errors.append(f"mutation {label} missed its intended assertion")
+    old_format = copy.deepcopy(document)
+    old_format["format"] = "xivl-map-0003-emitter-v1"
+    if "format contract changed" not in verify(old_format):
+        errors.append("legacy format was accepted")
+    for value in (False, True):
+        legacy = copy.deepcopy(document)
+        legacy["selector"]["upstreamValueOneInvocationProven"] = value
+        if "selector contract changed" not in verify(legacy):
+            errors.append("ambiguous legacy selector field was accepted")
+    for path, value in [
+        (("gate", "predicate"), "nonzero"),
+        (("gate", "bytes"), 4),
+        (("gate", "zeroTargetVa"), "0x0075bf3c"),
+        (("gate", "nonzeroBranchEmissionPolicy"), "suppresses all emission"),
+        (("control", "establishedRegister"), "EAX"),
+        (("control", "upperEaxBitsEstablished"), True),
+        (("control", "meaning"), "invented mode"),
+        (("dispatcher", "literal"), "Say"),
+        (("dispatcher", "terminatorRequired"), False),
+        (("arguments", "comparisonSource"), "Q0"),
+        (("arguments", "dispatcherArguments"), ["&L", "&K", "Q1", "EAX"]),
+        (("arguments", "rMeaning"), "invented identity"),
+        (("arguments", "originalTextUnchangedProven"), True),
+    ]:
+        changed = copy.deepcopy(document)
+        changed["upstream"][path[0]][path[1]] = value
+        if "upstream contract changed" not in verify(changed):
+            errors.append(f"upstream mutation {'.'.join(path)} missed its assertion")
+    lost_unknown = copy.deepcopy(document)
+    lost_unknown["unknowns"].remove(
+        "runtime occurrence of the conditional selector-one route"
+    )
+    if "unknowns contract changed" not in verify(lost_unknown):
+        errors.append("runtime occurrence uncertainty was dropped")
+    for name in ("upstream-W1", "upstream-dispatch", "control-byte", "byte-equality"):
+        index = next(
+            i for i, row in enumerate(document["bodyRanges"]) if row["name"] == name
+        )
+        for operation in ("drop", "duplicate", "boundary", "digest"):
+            changed = copy.deepcopy(document)
+            rows = changed["bodyRanges"]
+            if operation == "drop":
+                rows.pop(index)
+            elif operation == "duplicate":
+                rows.append(copy.deepcopy(rows[index]))
+            elif operation == "boundary":
+                rows[index]["endVa"] = f"0x{int(rows[index]['endVa'], 16) + 1:08x}"
+            else:
+                rows[index]["sha256"] = "0" * 64
+            if "bodyRanges contract changed" not in verify(changed):
+                errors.append(f"{name} {operation} missed its range assertion")
     return errors
 
 
