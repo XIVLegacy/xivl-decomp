@@ -85,6 +85,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Counted Lua item references](event/counted-lua-item-references.md)
 - [ChangeActorSubStatStatus receiver](event/actor-substat-receiver.md)
 - [City airship scene sequence](event/airship-scene-sequence.md)
+- [City lift menu and scene contract](event/city-lift-contract.md)
 - [Company-warp after-warp loading boundary](event/company-warp-loading-boundary.md)
 - [Context-root priming](event/context-root-priming.md)
 - [NPC emote conditions and callback selection](event/npc-emote-event-dispatch.md)
