@@ -320,6 +320,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Stock seasonal component bindings](resource/stock-seasonal-component-bindings.md)
 - [Seasonal decoration update and reset](resource/seasonal-decoration-update-order.md)
 - [Native seasonal switch using existing DATs](resource/native-stock-seasonal-switch.md)
+- [Qix effect resource container](resource/vfx-qix-resource-container.md)
+- [VFX effect family](resource/vfx-effect-family.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)
 - [Music song-ID names and evidence](resource/music-song-names.md)
