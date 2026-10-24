@@ -7,11 +7,15 @@ effect banks in the pinned FFXIV 1.23b executable. The image has base
 
 ## Packed selector
 
-The native selector consumed by `0x00798470` is:
+For ordinary categories, the native selector consumed by `0x00798470` is:
 
 ```text
 (category << 24) | (characterBank << 12) | effectBank
 ```
+
+Category `0x0B` instead preserves the low 24 bits as one value and sets the
+middle output to zero. The [ID catalog](emote-animation-ids.md#packed-playback-selectors)
+records the exception-aware representation and native category-table boundary.
 
 The function loads the character bank through vtable slot `+0x54` and the
 effect bank independently through slot `+0x58`. The category table at

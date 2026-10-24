@@ -13,6 +13,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Actor action queue](actor/action-queue.md)
 - [Integer-to-float setter candidate](actor/integer-float-setter.md)
 - [Character and effect animation bank routing](actor/animation-bank-routing.md)
+- [Emote and server animation IDs](actor/emote-animation-ids.md)
 - [Actor architecture](actor/architecture.md)
 - [Character movement displacement branch](actor/character-movement-displacement.md)
 - [Mesh matrix input and shared renderer state](actor/mesh-matrix-input.md)

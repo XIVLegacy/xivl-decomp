@@ -15,6 +15,7 @@ import build_achievement_completion_ordinals as achievement_completion_builder
 import build_achievement_title_map as achievement_title_map_builder
 import verify_camera_input_chain as camera_input_verifier
 import verify_chara_lighting_model as chara_lighting_verifier
+import verify_emote_animation_catalog as emote_animation_verifier
 import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_music_song_resources as music_song_verifier
@@ -432,6 +433,19 @@ def main() -> int:
     errors.extend(
         f"achievement completion map: {error}"
         for error in achievement_completion_errors
+    )
+    try:
+        emote_animation_catalog = json.loads(
+            (ROOT / "config/emote_animation_catalog.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError) as exc:
+        emote_animation_errors = [f"cannot read catalog: {exc}"]
+    else:
+        emote_animation_errors = emote_animation_verifier.validate_artifact(
+            emote_animation_catalog
+        )
+    errors.extend(
+        f"emote and animation catalog: {error}" for error in emote_animation_errors
     )
 
     music_song_errors = (

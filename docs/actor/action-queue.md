@@ -2,8 +2,9 @@
 
 Static analysis establishes the CharaAction queues, their storage in
 `CharaActor`, the virtual calls that populate an entry's action object, and
-the s2c `0x00DA` path to queue insertion. Animation completion and the other
-wire inputs remain unresolved.
+the shared scheduler and s2c `0x00DA` / `0x00E0` / `0x00E1` path through
+concrete visual dispatch to bank routing. Animation completion remains
+unproven.
 
 ## Action subsystem classes
 
@@ -87,12 +88,26 @@ For a concrete `CharaActionQue`, those controller calls resolve to slots 2,
 3, 4, 5, 11, and 12 respectively. The call sites are `0x00845C7E`,
 `0x00845AD8`, `0x0084575E` / `0x00845935`, `0x00845796`, the four slot-11
 sites `0x00845521`, `0x008455FC`, `0x00845B12`, and `0x00845BD9`, and
-`0x00845C0D`. The concrete methods then make indirect calls on the runtime
-object at entry `+0x14`, the resolved action object at entry `+0x10`, or the
-actor-owned object at actor `+0x12F0`. Static evidence does not resolve those
-runtime targets into a completion callback. None of the directly resolved
-concrete entry methods calls `FUN_00798470`; a connection to that visual slot,
-if present at runtime, lies behind one of the indirect calls.
+`0x00845C0D`. The concrete methods then make indirect calls on the object at
+entry `+0x14`, the resolved action object at entry `+0x10`, or the actor-owned
+object at actor `+0x12F0`. These calls do not establish a completion callback.
+
+### Concrete visual dispatch
+
+The slot-2 call at `0x00845C7E` resolves to `FUN_00843DB0`. It loads entry
+`+0x14` and invokes that object's virtual `+0x40` at `0x00843DBF`.
+Construction fixes this particular indirect target: `FUN_00843B50` allocates
+`0x33C` bytes, calls `FUN_00798AA0` at `0x00843BE3`, stores its result at
+entry `+0x14` at `0x00843BF0`, and stores the queue backpointer at visual
+`+0x1CC` at `0x00843BF6`. `FUN_00798AA0` calls `FUN_007983C0` and installs
+concrete primary vtable `0x00FE4544` at `0x00798AE7`. Its `+0x40` cell at
+`0x00FE4584` points to `FUN_00798470`, the packed-selector consumer.
+
+The base constructor copies the staged record to visual `+0x2C`, preserving
+the selector at visual `+0x3C`. This closes the static queue-to-selector
+route. The [bank-routing finding](animation-bank-routing.md) owns the
+concrete character/effect loaders. Compatible resources and successful
+playback still require separate evidence.
 
 ## Staged type and packed-selector domains
 
@@ -123,8 +138,11 @@ type `5`, `FUN_00585800` can return only
 type `5` or types `7..17`. Direct high-byte cases
 `0x7C`, `0x6F`, `0x70`, and `0x71` return types `7`, `8`, `9`, and `10`.
 The other results come from the bounded category table used by
-`FUN_007982D0`; type `13` is the category-1 subcase whose middle 12-bit lane
-is `0x00D..0x013` or `0xFE9`. This route cannot produce type `6`.
+`FUN_007982D0`. The comparison at `0x005858AB` tests route kind `1`,
+which belongs to category `4` (`lib`). Its middle 12-bit lane
+`0x00D..0x013` or `0xFE9` selects type `13`; other banks select type `12`.
+Category `1` (`mgc`) has route kind `9` and keeps fallback type `5` here.
+This route cannot produce type `6`.
 
 That finite set is a producer-domain result, not a global enum. The staged
 drain uses the unsigned predicate `type <= 0x19` at
@@ -138,11 +156,13 @@ at visual-object `+0x3C`. Primary visual vtable slot 16,
 `FUN_00798470`, reads it at `0x00798478` and preserves the same packed split.
 High byte `0x78` reaches the queue back-pointer's virtual slot `+0x24` at
 `0x00798527..0x00798534`. Values below `0x6F` consult the fixed category
-table through `FUN_007982D0` and then stop at visual virtual slots `+0x54` or
-`+0x58`. Other values at or above `0x6F` stop first at visual virtual slot
-`+0x60` at `0x00798564..0x0079857A`. Those indirect targets are the static
-boundary: the calls do not prove an animation resource identity or animation
-completion.
+table through `FUN_007982D0` and reach visual virtual slots `+0x54` and
+`+0x58`. The concrete table resolves these to `FUN_00798BF0` and
+`FUN_00799C90`, whose selected routes are documented in the
+[bank-routing finding](animation-bank-routing.md). Other values at or above
+`0x6F` first use visual virtual `+0x60` at `0x00798564..0x0079857A`;
+that route is outside the selected bank trace. None of these calls alone
+proves resource compatibility or animation completion.
 
 ## Boundary with wire and VFX systems
 
@@ -176,8 +196,9 @@ does not establish animation completion or justify the imported
 The BattleResult VFX processor `FUN_00812B50` remains separate. It constructs
 a VFX parameter and stops at an indirect dispatch through
 `*(object+0x12f0)` vtable slot `+0x08`; no static target from that call has been
-identified. The proven `0x00DA` boundary therefore ends at action-queue
-insertion, not at motion or visual completion.
+identified. The proven `0x00DA` route reaches the concrete visual selector
+and selected bank loaders through the queue path above. Motion and visual
+completion remain unproven.
 
 ### Element-container `+0x4d8` pointer lifecycle
 
