@@ -34,6 +34,7 @@ byte counts. The CSV identities are the matching rows in
 | CSV | SHA-256 |
 |---|---|
 | `achievement.csv` | `3aecdc3005619b76c813318b12ba7e9b38588d0e3007811d43668a307a68243f` |
+| `xtx_achievement.csv` | `149f932d206dfb21dd271bd64c6028ead8ec4d3eb2adcc4258947863b05c85b5` |
 | `xtx_title.csv` | `490c6346ed541f78e50e78f087f8a4b01975bee7648359f6acd25ac5ca94f1e4` |
 | `xtx__text_ui.csv` | `23762a422118d99c4144a48b3495c52511b1b1b865e4fc50fdc61a973e3c6ece` |
 
@@ -238,10 +239,14 @@ the title generator's bounded native evaluator. The forward helper starts
 at VA `0x0070AB40`, with its jump table at `0x0070BCB4`. The inverse starts at
 VA `0x0057ABB0`, with 1024 pointer entries at `0x0057BD28`. The exclusive code
 and lookup bounds are listed in the helper table above. For a proven ordinal,
-the completion bit lies at state byte `ordinal // 8`, mask
-`0x80 >> (ordinal % 8)`, within the first `0x80` bytes pointed to by
-`MyPlayer+0x114`. Neither CSV position, reward points nor title eligibility
-supplies the ordinal.
+the internal state uses the dword at byte offset `4 * (ordinal // 32)`, mask
+`1 << (ordinal % 32)`. The writer at `0x006EDF04-0x006EDF17` and reader at
+`0x006EDEC0-0x006EDECD` use that layout. In this little-endian PE32 process,
+the equivalent state byte is `ordinal // 8`, mask `1 << (ordinal % 8)`,
+within the first `0x80` bytes pointed to by `MyPlayer+0x114`. Incoming
+initializer bytes instead use `0x80 >> (ordinal % 8)`, as shown at
+`0x006EDBC1-0x006EDBCF` and `0x006EDCDD-0x006EDCEB`. Neither CSV position,
+reward points nor title eligibility supplies the ordinal.
 
 The artifact pins the binary and sheet bytes, the sheet source
 `xivl-client-data:csv/achievement.csv` and its manifest at revision
@@ -265,6 +270,83 @@ coverage, unique in-range ordinals, explicit unproven records and title-subset
 agreement. Only recomputation with the pinned retail inputs establishes the
 static native derivation. It does not execute the client or establish server
 award criteria.
+
+### Unmapped rows and native alternatives
+
+INFERRED: rows 1107, 1108, 1109, 1110 and 1221 are unused development
+definitions. Their incomplete text, exclusion from normal lists and receive
+callbacks, and missing native ordinals support that interpretation.
+Historical server use remains unknown.
+
+STATIC: all five definitions have title and item rewards 0 and icon value 1.
+The 1107-1110 definitions are identical apart from their IDs. Row 1221 differs
+only in its point value, 5 rather than 1. The localized rows retain:
+
+| Achievement IDs | English name / description | Other retained text |
+|---|---|---|
+| 1107, 1108, 1109 | `x` / `x` | Japanese fields empty; French fields contain spaces |
+| 1110 | `x` / `x` | Japanese objective names three cities' worker achievements; French objective specifies 500 local levequests |
+| 1221 | empty / empty | Japanese name and description repeat a label translated as `Moonfire Faire spats A` |
+
+Sources: `xivl-client-data:csv/achievement.csv` and
+`xivl-client-data:csv/xtx_achievement.csv`, rows 1107-1110 and 1221, with the
+manifest identities above. The Japanese objective for 1110 does not itself
+state 500. That number comes from its French description. The meaning of
+1221's label is a translation; interpreting it as a development label is an
+inference.
+
+Column 4 is an icon value. Loader `0x0076A9C0` reads it at `0x0076AF67`,
+then passes it to `0x006F0F70`, which stores it in map `0x0134B5A8` at
+`0x006F101E-0x006F1028`. `_getAchievementSheetDataIcon` reaches that map
+through implementation `0x00705D70` and helper `0x006E7430`. Localized names
+and descriptions instead use the achievement ID as their text row key.
+Sources: `xivl-client-scripts:lua/scripts/widget/achievementlistwidget.lua:924`,
+and `xivl-client-data:csv/xtx__text_ui.csv`, rows 12015-12016.
+
+STATIC: the alternative native paths give the following results for every one
+of the five inputs. Capstone 5.0.7 evaluation of file-backed helper instructions
+and lookup tables used the pinned executable above.
+
+| Path | Native evidence | Result |
+|---|---|---|
+| Initialization | `0x006EDBDB` and `0x006EDCFB` call inverse `0x0057ABB0` | None of its 1024 inputs returns a target ID, so later category/master handling cannot recover one |
+| Category parent | `0x0057ED40`, return `0x0057EDA0` | Signed `-1`; no category parent |
+| Title/item parents | `0x0070F910`, return `0x0070FCA4`; `0x007101E0`, return `0x0071033F` | Both 0; no parent bit lookup |
+| Category item lists | Count `0x0070DBB0`, item `0x0070DC60` | All valid indices across the 12 enumerated categories and three selector branches exclude the five IDs |
+| Detail rate lists | Count `0x007107F0`, return `0x007108CE` | Count 0; detail widget hides before listing criteria |
+| Direct completion/rate query | `0x00705AB1` and `0x00705F63` call the same forward mapper | Tests achievement 100's bit 0; no independent target state |
+
+The initializer's master set is
+`{100,200,400,500,600,700,900,1000,1200,1300,1400,1500}`, selected at
+`0x006EDBE3-0x006EDC37`. None is a target ID. Its parent handling starts
+from an inverse result and calls `0x0057ED40` at `0x006EDD72`; it does not
+select a second ID-to-ordinal map. The separate query handler `0x005794C0`
+also uses the same inverse helper at `0x0057977C` and `0x005797F3`.
+The detail widget's zero-count return is at
+`xivl-client-scripts:lua/scripts/widget/achievementdetailwidget.lua:172`.
+
+The notification path has an important ordering constraint. Handler
+`0x00704430` calls writer `0x006EDEE0` at `0x0070446C` before filtering the
+ID. The writer maps each target to zero and sets bit 0 at `0x006EDF17`.
+Subsequent recent/list predicate `0x0057CE20` and master predicate
+`0x0057CD30` both return false in AL for every target. This prevents recent-list
+insertion and branches from `0x00704489` to `0x00704673` before Lua callback
+`_onReceiveAchievementId` at `0x0070451D-0x0070454D`. The recent predicate's
+full EAX is nonzero for these inputs; only AL is the Boolean result.
+
+Lua's generic popup can consume an explicitly supplied ID without a list or
+placeholder-text check, but the normal native receive path above does not
+dispatch these five IDs to it. Sources:
+`xivl-client-scripts:lua/scripts/chara/player/playerbaseclass.lua:2962`,
+`xivl-client-scripts:lua/scripts/widget/desktopwidget_connector.lua:24967`,
+and `xivl-client-scripts:lua/scripts/widget/achievementpopupwidget.lua:52`.
+
+No independent completion ordinal emerged from these initialization,
+notification, query, parent or UI-list paths. This is bounded static coverage;
+arbitrary indirect accesses and other message handlers were not exhaustively
+established. The five artifact records retain null ordinals. Placeholder intent
+and historical awardability do not justify assigning them bit 0 or another
+guessed ordinal.
 
 ### `_hasAchievementTitle` argument boundary
 
