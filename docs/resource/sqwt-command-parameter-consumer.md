@@ -39,6 +39,8 @@ All addresses are VA. Executable size and SHA-256 were checked before the
 observations. The routing and consumer instructions were read from the Capstone
 disassembly. The event release section also uses `ghidra-cli 0.2.2`
 disassembly and xrefs checked against the same read-only PE32 image.
+The Button source section uses `ghidra-cli 0.2.2` disassembly, RTTI and xrefs,
+checked against original file-backed PE32 bytes from the same executable.
 This was static analysis and did not execute the client.
 [sqwt_command_parameter_consumer.json](../../config/sqwt_command_parameter_consumer.json)
 holds the addresses, tables, strings and masked byte signatures that
@@ -82,6 +84,93 @@ static object. The `UILuaCommands` initializers at `0x00F0F29B..0x00F0F51B` and
 `Selection`, `SelectionChanged`, `SelectionChangedOnce`, `PressEnter`,
 `Function1` and `MainMenu`. Names such as `Hover` have no static object and
 exist only through this create-on-demand path. STATIC.
+
+## Button mouse source
+
+For the concrete `Sqwt::Controls::Button`, constructor `0x00974410` installs
+primary vtable `0x01073CAC` and interface vtable `0x01073B84` at element
+`+0xB4` (`0x0097444E..0x00974454`). RTTI type descriptor `0x0126D244`,
+`.?AVButton@Controls@Sqwt@@`, identifies both tables. The interface Complete
+Object Locator `0x0117D4D0` gives offset `0xB4`. Let E be the element and
+I=E+0xB4. STATIC.
+
+Generic dispatcher map `0x0091D818` and jump table `0x0091D760` map
+PreviewMouseLeftButtonDown id `0x0D` to I slot 43 and
+PreviewMouseLeftButtonUp id `0x0F` to I slot 44
+(`0x0091D4BE..0x0091D4DB`). The descriptors are `0x01359674` and
+`0x013593CC`, initialized at `0x00F22CA0` and `0x00F22CD0` with routing
+strategy byte 2. Button selects `0x0097EFF0` and `0x0097F080`.
+Both call their base helper first, then require the byte behind args `+0x10`
+to be zero and byte E `+0x15A` mask `0x20` to be set. The mask's semantic
+name is not established. STATIC.
+
+The down path calls Click helper `0x0097EBA0` when ClickMode byte E `+0x3AC`
+is 1 (`0x0097F063..0x0097F075`). The up path snapshots bit `0x20` of byte
+E `+0x3AE` before refreshing that property, clears that bit on the eligible
+state-update branch, and calls the Click helper only when ClickMode is 2 and
+the earlier snapshot was set (`0x0097F0A7..0x0097F11E`). The property updates
+also require either low bit of E `+0x3AE` to be set. Mask `0x10` requests a
+refresh through `0x009157C0`, after which mask `0x10` is cleared. The down
+update also requires value mask `0x20` clear, then writes `old|0x24`. The up
+update requires that mask set, then writes `(old&0xDF)|0x04`. Both call
+`0x0099C680` after the byte write. The up snapshot follows the base call and
+handled/eligibility gates. Descriptor `0x0135E630` is named `IsPressed`.
+The constructor sets ClickMode to byte 2
+(`0x0097F232..0x0097F272`, `0x0097F340..0x0097F361`). STATIC for these
+operations. Naming bit `0x20` as the IsPressed value is INFERRED from the
+storage and descriptor use.
+
+Click helper `0x0097EBA0` builds descriptor `0x0135E624`, id `0x38`, with
+source and original source E, routes it from I through `0x0091F1E0`, then
+copies set result flags to the original mouse event
+(`0x0097EBC4..0x0097EC53`). STATIC. This source starts at delivered routed
+preview events. OS input, hit testing and capture are not established here.
+
+Button's Click recipient is I slot 13, `0x0097ECE0`. It first calls primary
+E slot 71, which is the bare-return `0x0097EB60` for this Button. When the
+Command pointer at E `+0x370` is nonnull, it then calls that command's slot 2
+with record pointer `[E+0x380]`, the selected target interface and the Click
+args pointer (`0x0097ED20..0x0097ED73`). ECX holds the Command object.
+The slot byte offset is `+0x08`. The arguments are three 32-bit pointers,
+in that callee stack order. The target comes from
+`0x00953CD0`, which first uses `[E+0x378]`, then the name at E `+0x3A8`.
+A nonzero result is adjusted by `+0xB4`. On a zero result the recipient uses
+I only when primary slot 44 returns a nonzero pointer whose byte `+0x15D`
+has mask `0x20` clear. Otherwise it passes null. STATIC for this target logic.
+Its untraced slot and mask are not assigned semantic names.
+
+ButtonBase calls the `ICommandSource<ContentControl>` constructor
+`0x00954AB0`, which owns the Command, CommandTarget and CommandParameter
+holders at E `+0x370`, `+0x378` and `+0x380`
+(`0x00954AE1..0x00954B58`). Setter `0x00954E70` case 2 resolves and parses
+the CommandParameter text through `0x00954330` and `0x0099DDF0`, then stores
+the `0x78` byte record through `0x00953E50` and `0x00545780`
+(`0x00954EC2..0x00954F04`, `0x00954405..0x00954433`,
+`0x00953ED4..0x00953F0E`). This is the exact record used by default Click
+command invocation. The ContentControl-to-Button ownership is STATIC. The resolver and record
+store retain the pending-binding and update gates described in the grammar
+page. There is no per-Click text formatting call in `0x0097ECE0`.
+
+For a RoutedCommand, slot 2 is `0x00927FA0`, so that invocation joins the
+PreviewExecuted/Executed route above. Its event constructor `0x00929100`
+copies the stored record kind, string and integer dwords into the event.
+Other ICommand slot 2 implementations are not covered by that join.
+
+Default Command invocation precedes generic Click forwarding to
+`0x00935380` (`0x0097ED73`, `0x0097ED96`). Forwarding is skipped when the
+local byte pointed to by the temporary dword pointer at I `+0x2FC` becomes
+1, which also sets Click stop byte
+`+0x17` (`0x0097ED75..0x0097ED8A`). The generic path reaches the handler store
+and handler/trigger collection loops. A Click EventTrigger installed in those
+collections therefore runs after default Command. That attachment and
+trigger-order reading is INFERRED. No particular markup trigger is established.
+
+Button I slot 65 is `0x0097EDB0`. It calls FrameworkElement's
+`0x0092D1F0` first at `0x0097EDDE`, which calls base `0x0091D8F0` at
+`0x0092D235`. The base dispatches the registered store under its documented
+owner, stop-byte and store-pointer gates. Thus this concrete Button forwards
+Executed to the base handler store before its specialised logic. STATIC.
+Other specialised control families remain unestablished.
 
 ## Executed event delivery
 
@@ -727,7 +816,7 @@ What a client implementation can build from this page, in order of the path.
    property gives the empty string. Parse the result with the grammar page.
    With neither name set, use the record parsed at load or from the evaluated
    binding.
-3. Pick the target (the command target, else the trigger source as a
+3. For `ExecuteCommandAction`, pick the target (the command target, else the trigger source as a
    `FrameworkElement`). Raise `PreviewExecuted` along its tunnel route. When no
    handler set the handled byte, raise `Executed` along its bubble route from the
    target to the root, and return the handled byte.
@@ -748,6 +837,10 @@ What a client implementation can build from this page, in order of the path.
 8. No text identifier is resolved on this path. The integer converter of the
    grammar page skips a leading `@` and the record carries raw integers and
    strings. Any lookup is script work.
+
+For the Button source, use the distinct target selection and stored-record
+invocation in [Button mouse source](#button-mouse-source). The RoutedCommand
+join is conditional on that command implementation.
 
 Items 1 to 3 and 5 to 6 are STATIC. Item 4 is STATIC except for the template
 map expansion and the lookup of the template name for controls outside a
@@ -804,18 +897,21 @@ Implement as an approximation and label it:
 
 Do not assume:
 
-- That every control class stores events. Only the base interface and
-  `FrameworkElement` slot 65 are traced. A control whose override skips the base
-  would not run the form handler.
-- That `Button`, `KeyBinding` or `PadBinding` raise `Executed` the way the
-  trigger action does. Their raise sites are not traced.
+- That every control class stores events. The base interface,
+  `FrameworkElement` and the concrete Button forward to the handler store.
+  A control whose override skips the base would not run the form handler.
+- That `KeyBinding` or `PadBinding` raise `Executed` the way the trigger action
+  does. Their raise sites are not traced.
+- That a physical mouse event reaches the Button preview ingress, passes its
+  byte gates or invokes an installed Click trigger. Those remain UNKNOWN.
 
 ## Surviving gaps
 
 - Whether every Sqwt control class forwards virtual slot 65 to its handler
   store. The base interface and `FrameworkElement` do. `NumberInputBox`
   (`0x0069C5E0`) calls `0x009970A0`, whose first call is `0x0092D1F0`, and
-  `ToggleButton` (`0x0095D530`) reaches `0x0092D1F0` through `0x0097EDB0`. The
+  `ToggleButton` (`0x0095D530`) reaches `0x0092D1F0` through `0x0097EDB0`.
+  The concrete Button also forwards through `0x0097EDB0`. The
   other overrides were not followed.
 - The widget classes behind the seven gate objects and their slot 42 and 43
   bodies, and the event that runs the form function `0x005387F0`.
@@ -826,7 +922,10 @@ Do not assume:
   relative to Sqwt input routing. Matching callbacks clear the active slot,
   but complete lookup, failure cleanup and resume paths and guaranteed
   eventual release remain UNKNOWN.
-- The sites where `Button`, `KeyBinding` and `PadBinding` put a record into an
+- Button physical-input reachability, hit testing, capture, focus, eligibility
+  writers, all packed-state writers, binding-driven ClickMode changes and
+  installed Click EventTriggers. Arbitrary ICommand bodies remain untraced.
+- The sites where `KeyBinding` and `PadBinding` put a record into an
   `Executed` event. They are INFERRED to use the same command slot 2 route as
   the binding path in the
   [movement command origin page](../input/player-movement-command-origin.md).
@@ -893,3 +992,46 @@ Do not assume:
 13. For the census, follow the reproduction in the grammar page and group each
    value by the `Command` attribute of its owner. Keep client bytes, decoded
    documents and executable listings outside the repository.
+
+### Button source reproduction
+
+1. Read constructor `0x00974410` and ButtonBase constructor `0x0097F200`.
+   Re-read tables `0x01073CAC`, `0x01073B84` and `0x0107603C`, their preceding
+   Complete Object Locator pointers, offsets and RTTI names. Confirm interface
+   slots 13, 43, 44 and 65 and primary slot 71 against the tracked vtable catalog.
+2. Re-read initializers `0x00F22CA0` and `0x00F22CD0`. Confirm their descriptors `0x01359674` and `0x013593CC`, routing strategy
+   byte 2, and map ids `0x0D` and `0x0F` through `0x0091D818` and `0x0091D760` and inspect their dispatcher arms.
+   Read `0x0097EFF0` and `0x0097F080` fully. Preserve their first base calls,
+   post-call handled/eligibility gates, byte-width tests, packed property refresh,
+   old-bit snapshot and ClickMode branches. This starts at routed preview ingress.
+3. Read property initializers `0x00F25E00`, `0x00F25E20` and `0x00F25EB0`.
+   Re-read the literal names at `0x01075FBC`, `0x01075FC8` and `0x01075FD4`.
+   Confirm the constructor's byte 2 argument and initializer store at `0x0097F361`.
+4. Read Click helper `0x0097EBA0`, recipient `0x0097ECE0`, target helper
+   `0x00953CD0` and route helper `0x0091F1E0`. Track complete E versus I=E+0xB4,
+   source fields, argument order, null paths and Click flag propagation. Read
+   primary slot 71's `0x0097EB60` directly.
+5. Read `0x00954AB0`, initializer `0x00F236D0` and setter `0x00954E70`.
+   Follow case 2 through `0x00954330 -> 0x0099DDF0 -> 0x00953E50 -> 0x00545780`.
+   Confirm E+0x380 points to the record passed by the Click recipient. Read
+   case 0's name resolution/create path and confirm RoutedCommand constructor
+   `0x00928C90`, RTTI table `0x0106A78C` and its slot 2 `0x00927FA0`.
+6. Read `0x00927FA0` and `0x00929100` to confirm PreviewExecuted then conditional
+   Executed and record copying. Read generic dispatcher `0x0091D6BC`, Button
+   slot 65 `0x0097EDB0`, FrameworkElement `0x0092D1F0`, base `0x0091D8F0`.
+   Confirm base-store dispatch precedes specialised Button handling.
+7. Check Click's default Command call at `0x0097ED73` precedes generic forwarding
+   at `0x0097ED96`, with its intervening stop-flag branch. Follow the generic
+   wrappers `0x00935380`, `0x00938BA0`, `0x0092D060`, `0x00939800` and
+   `0x0091D320`. Re-read collection slot 2 calls and EventTrigger table/body
+   `0x009B1820`. Preserve the distinction between ordering and actual installed
+   Click trigger attachment.
+
+Re-read the instruction ranges, selected pointer tables, RTTI and names from
+original file-backed PE32 bytes after converting each VA through the image
+base and section raw-file mapping. Compare the Ghidra instruction bytes with
+those original bytes before relying on their interpretation. A mismatch blocks
+the finding. A changed observation must fail the comparison. Preserve the
+exact target identity, locators, expected data and comparison procedure in the
+public evidence contract. These checks establish static-byte agreement, not
+runtime input, Lua, network or server validation.
