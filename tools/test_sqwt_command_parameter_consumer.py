@@ -265,6 +265,146 @@ def event_release_tests(real: dict) -> None:
     )
 
 
+def upstream_slot4_tests(real: dict) -> None:
+    """Corrupt independent literal call, gate, stack and secondary-COL fixtures."""
+    selected = [
+        ("Rapture receiver field and call", 0x00),
+        ("adapter adjusted tail JMP", 0x10),
+        ("record dispatch byte gates", 0x20),
+        ("record dispatch receiver and arguments", 0x30),
+        ("walk lookup not found branch", 0x50),
+        ("walk before helper calls", 0x60),
+        ("numeric conditional join", 0x80),
+        ("numeric literal and dispatch", 0xA0),
+        ("record constructor disabled byte", 0xB0),
+        ("application unsigned range", 0xC0),
+    ]
+    text = bytearray(0xE0)
+    literals = [
+        (0x00, "8B 4E 64 E8 37 6C 02 00"),
+        (0x10, "8D 4F 10 5F 5E 5D 83 C4 08 E9 3A FB FF FF"),
+        (0x20, "80 79 7E 00 75 19 80 B9 80 00 00 00 00 74 10"),
+        (0x30, "8B 54 24 04 8D 41 70 8B 09 50 52 E8 A1 A5 FE FF"),
+        (0x50, "8B 4C 24 28 39 4B 04 75 17"),
+        (0x60, "8B 0E 57 E8 85 0A 01 00 8B F8 8B 06 8B 88 C0 01 00 00 E8 96 82 02 00"),
+        (0x80, "8B 54 24 18 3B 15 D0 CE 30 01 8B CF 75 07 E8 A5 C4 FD FF"),
+        (0xA0, "6A 01 8B CE E8 F1 F6 FF FF"),
+        (0xB0, "88 5E 7E 88 9E 80 00 00 00"),
+        (0xC0, "83 C0 FC 83 F8 02 77 06 88 5C 24 17 EB 55"),
+    ]
+    for offset, literal in literals:
+        raw = bytes.fromhex(literal)
+        text[offset : offset + len(raw)] = raw
+    data = struct.pack("<3I", 4, 0, 0x012695C0)
+    image = build_image(bytes(text), data, len(data))
+    checks = []
+    for name, offset in selected:
+        row = copy.deepcopy(
+            next(
+                item
+                for item in real["staticChecks"]
+                if item.get("name") == "upstream " + name
+            )
+        )
+        row["va"] = f"{TEXT_VA + offset:#010x}"
+        checks.append(row)
+    col = copy.deepcopy(
+        next(
+            item
+            for item in real["staticChecks"]
+            if item.get("name") == "upstream Rapture COL coordinates and type"
+        )
+    )
+    col["va"] = f"{DATA_VA:#010x}"
+    checks.append(col)
+    fixture_document = {"staticChecks": checks}
+    check("literal upstream fixture passes", run(image, fixture_document) == [])
+    for label, offset, value, name in (
+        ("secondary receiver field stays relative to S", 0x02, 0x68, selected[0][0]),
+        ("adapter preserves tail JMP", 0x19, 0xE8, selected[1][0]),
+        ("record first byte gate remains zero", 0x23, 1, selected[2][0]),
+        ("record enable branch remains nonzero", 0x2D, 0x75, selected[2][0]),
+        ("record uses its control receiver", 0x38, 0x08, selected[3][0]),
+        ("wrapper is virtual argument one", 0x39, 0x52, selected[3][0]),
+        ("lookup not found branch is retained", 0x57, 0x74, selected[4][0]),
+        ("walk target precedes later helper", 0x64, 0x96, selected[5][0]),
+        ("numeric join remains conditional", 0x8C, 0x74, selected[6][0]),
+        ("numeric literal remains one", 0xA1, 2, selected[7][0]),
+        ("constructor clears record enable byte", 0xB5, 0x81, selected[8][0]),
+        ("range branch remains unsigned above", 0xC6, 0x7F, selected[9][0]),
+    ):
+        changed = bytearray(image)
+        changed[0x200 + offset] = value
+        errors = run(bytes(changed), fixture_document)
+        check(label, len(errors) == 1 and "upstream " + name in errors[0])
+    changed = bytearray(image)
+    struct.pack_into("<I", changed, 0x200 + len(text), 0)
+    errors = run(bytes(changed), fixture_document)
+    check(
+        "nonzero secondary COL offset is enforced",
+        len(errors) == 1 and "upstream Rapture COL coordinates and type" in errors[0],
+    )
+
+    route_path = ("scriptInterface", "eventQueue", "upstreamSlot4")
+    mutations = [
+        (("raptureReceiver", "fieldOffsetFromCompleteObject"), 100),
+        (("recordWalk", "dispatchPredicate"), "lookup found"),
+        (("recordDispatch", "arguments"), ["record+0x70", "engine-wrapper pointer"]),
+        (("recordDispatch", "constructorEnablesDispatch"), True),
+        (("localOrder", "allNotificationsOrdered"), True),
+        (("numeric1", "everyPass"), True),
+        (("unknowns",), ["fixed cadence is STATIC"]),
+    ]
+    for path, value in mutations:
+        changed = copy.deepcopy(real)
+        target = changed
+        for key in route_path + path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        check(
+            "upstream semantic drift rejected: " + ".".join(path),
+            verifier.upstream_slot4_errors(changed) != [],
+        )
+    changed = copy.deepcopy(real)
+    receiver = changed["scriptInterface"]["eventQueue"]["upstreamSlot4"][
+        "raptureReceiver"
+    ]
+    receiver["completeObjectOffset"] = 0
+    receiver["fieldOffsetFromCompleteObject"] = 100
+    check(
+        "coordinated primary-receiver fiction is rejected",
+        "upstream slot4 raptureReceiver changed"
+        in verifier.upstream_slot4_errors(changed),
+    )
+    for name in (
+        "upstream adapter adjusted tail JMP",
+        "upstream Rapture COL coordinates and type",
+    ):
+        changed = copy.deepcopy(real)
+        row = next(item for item in changed["staticChecks"] if item.get("name") == name)
+        if row["kind"] == "signature":
+            row["mask"] = " ".join(["00"] * len(bytes.fromhex(row["pattern"])))
+        else:
+            changed["staticChecks"].remove(row)
+        check(
+            "upstream fixed anchor cannot be disabled: " + name,
+            f"upstream slot4 static check changed: {name}"
+            in verifier.upstream_slot4_errors(changed),
+        )
+    page = verifier.DOC.read_text(encoding="ascii")
+    changed_page = page.replace("complete Rapture +0x68", "complete Rapture +0x64")
+    check(
+        "page preserves complete Rapture coordinate",
+        "upstream slot4 page boundary missing: complete rapture +0x68"
+        in verifier.doc_errors(real, changed_page),
+    )
+    changed_page = page.replace("0x00CDA437", "0x00CDA438")
+    check(
+        "page cites lookup-not-found comparison anchor",
+        "page does not cite 0x00cda437" in verifier.doc_errors(real, changed_page),
+    )
+
+
 def button_source_tests(real: dict) -> None:
     """Exercise byte gates, pointer ABI and RTTI with independently written literals."""
     text = bytearray(0xA0)
@@ -804,6 +944,7 @@ def main() -> int:
     )
 
     event_release_tests(real)
+    upstream_slot4_tests(real)
     button_source_tests(real)
     eligibility_tests(real)
 
