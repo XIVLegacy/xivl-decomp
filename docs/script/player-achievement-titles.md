@@ -135,12 +135,86 @@ STATIC: the global achievement-to-title map comes from the sheet named
 `0x0134B578`. The column label is zero-based: the row ID precedes column 0 in
 `xivl-client-data:csv/achievement.csv`.
 
-For example, achievement rows 197 and 198 give title IDs 200 and 201.
+### Complete title-linked achievement map
+
+STATIC: [the complete map](../../config/achievement_title_map.json) accounts for
+all 208 `achievement.csv` rows whose logical column 3 is nonzero. The loader's
+nonzero store at `0x006F0F75-0x006F0F88` applies when it visits each such row.
+The native whitelist `0x0070F580` separately admits 105 rows for available-title
+insertion and rejects 103. Those 103 remain nonzero sheet-to-title links. They
+are not rejected by the loader. These are static store and admission rules,
+not an observation that a particular client loaded the rows or awarded titles.
+
+Every one of the 208 rows has its own proven ordinal in the 1024-bit completion
+state. For example, achievement rows 197 and 198 give title IDs 200 and 201.
 Rows 390, 391 and 392 give 400, 401 and 402. Their completion-bit ordinals are
-18, 19, 146, 147 and 148 respectively. The native whitelist admits 105
-title-achievement rows in the inspected sheet; all 105 have nonzero column 3
-and round-trip through the native achievement/bit-index functions.
-These static admission rules do not establish the server's award criteria.
+18, 19, 146, 147 and 148 respectively. Each direct ordinal was recovered from
+`0x0070AB40` and checked by passing that ordinal independently to `0x0057ABB0`,
+which returned the original achievement ID. A native result of zero alone is
+insufficient: ordinal 0 belongs to achievement 100, while the forward helper's
+default path at `0x0070BCB1` also returns zero. No direct ordinal in this map
+remains unresolved.
+
+The separate `_hasAchievementTitle` parent join is retained for every input.
+All 103 non-whitelisted rows map through `0x0070F910` to a whitelisted row with
+the same column-3 title. Their parent ordinals were derived and inverse-checked
+using the parent IDs, independently of the inputs' direct ordinals. For example:
+
+| Input achievement | Own completion ordinal | Predicate parent | Parent completion ordinal |
+|---|---|---|---|
+| 106 | 6 | 197 | 18 |
+| 279 | 129 | 392 | 148 |
+
+The 105 whitelisted inputs return zero from `0x0070F910`. Their parent records
+use `status: no_parent`, `achievement_id: null` and `completion: null`. That
+zero means no predicate parent, not an absent direct completion bit. Direct
+records use `status: proven` only after the inverse join succeeds. The tool
+represents out-of-range results or inverse mismatches explicitly and refuses
+to publish a complete map containing them. The native whitelist does not
+establish server award criteria.
+
+[The generator](../../tools/build_achievement_title_map.py) authenticates the
+executable and CSV against the identities above. It decodes file-backed PE32
+instructions with Capstone 5.0.7 and evaluates only the read-only integer
+operations, branches and lookup-table reads needed by these four helpers:
+
+| Mapping | Entry VA | Code end, exclusive | Lookup area end, exclusive |
+|---|---|---|---|
+| Achievement to own ordinal | `0x0070AB40` | `0x0070BCB4` | `0x0070DBB0` |
+| Ordinal to achievement | `0x0057ABB0` | `0x0057BD28` | `0x0057CD28` |
+| Available-title whitelist | `0x0070F580` | `0x0070F640` | `0x0070F910` |
+| Predicate parent achievement | `0x0070F910` | `0x0070FCA8` | `0x007101E0` |
+
+The coverage is every selected input's decoded path, including table-selected
+blocks outside the entry's generated function listing. In particular, the
+28-byte listing at `0x0070AB40` is only the dispatcher. Its jump table at
+`0x0070BCB4` selects return blocks beyond that listing. The generator follows
+those targets rather than treating the listing's size as the helper's semantic
+boundary. All instruction fetches and table reads must remain within the
+listed helper bounds, and all reads must map to file-backed PE sections.
+Rows are ordered by achievement ID only for deterministic output. Sheet order,
+reward points and iteration position do not supply an ordinal. The artifact
+retains source hashes, helper bounds and result-return VAs, not executable bytes
+or decompiled bodies.
+
+Run the reproduction from the repository root with explicit input paths and
+Capstone 5.0.7 installed:
+
+```powershell
+python tools/build_achievement_title_map.py `
+    --exe "<retail-1.23b-ffxivgame.exe>" `
+    --achievement-csv "<decoded-achievement.csv>" `
+    --check config/achievement_title_map.json
+python tools/test_achievement_title_map.py
+```
+
+Replace `--check` with `--output` to write a regenerated artifact. `--check`
+compares the deterministic ASCII JSON bytes and writes nothing. The focused
+asset-free checks enforce complete coverage, source pins, known ordinals,
+separate direct/parent joins, loader-store qualification, invalid-input
+refusal and output drift detection. They establish the artifact contract.
+Recomputing with the pinned inputs establishes this static derivation, not
+client execution, runtime update timing or server behavior.
 
 ### `_hasAchievementTitle` argument boundary
 
