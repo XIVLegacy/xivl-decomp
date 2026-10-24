@@ -862,6 +862,761 @@ BUTTON_INGRESS = [
 ]
 
 
+ELIGIBILITY_FIELDS = {
+    "functionVa": "0x006f5640",
+    "sentinelGlobalVa": "0x0130c778",
+    "sentinelValue": "0xe0000000",
+    "hostChainVa": "0x00cc7510",
+    "confidence": "STATIC for supplied-argument, field, instruction and publication joins. Runtime instance identity and field meanings remain UNKNOWN.",
+    "context": {
+        "pointerWidthBits": 32,
+        "actorVtableVa": "0x00fdfb2c",
+        "rootSlot": 9,
+        "rootThunkVa": "0x0075d4e0",
+        "actorConstructorVa": "0x00759510",
+        "storedContextOffset": "+0x4",
+        "storedControlOffset": "+0x8",
+        "passedWrapper": "&LuaActorImpl+0x4",
+        "adapterVa": "0x008a3f70",
+        "receiverVa": "0x006f56e0",
+        "wrapperSaveVa": "0x006f5729",
+        "selectorCallVa": "0x006f5774",
+        "engineHolderOffset": "+0x220",
+        "holderValueOffset": "+0x4",
+        "playerOffset": "+0xc",
+        "playerClass": "Application::Lua::Script::Client::Control::MyPlayer",
+        "playerVtableVa": "0x00fd785c",
+        "playerPublicationSlot": 3,
+        "playerPublicationVa": "0x006e3440",
+        "publisherVa": "0x00758e40",
+        "playerStoreVa": "0x00758e5a",
+        "getterVa": "0x00707970",
+        "ordinaryWidgetVtableVa": "0x00fd5a74",
+        "ordinaryWidgetCreationSlot": 27,
+        "ordinaryWidgetCreationVa": "0x006e3920",
+        "readyInstallerVa": "0x00774700",
+        "actorFactoryVa": "0x0076c8d0",
+        "holderSetupVa": "0x007634b0",
+        "holderConstructorVa": "0x00778d80",
+        "holderTableVa": "0x00fdffd0",
+        "holderStoreVa": "0x00cd7902",
+        "runtimeContextIdentity": "UNKNOWN",
+    },
+    "gates": [
+        {"va": "0x006f5654", "condition": "P=[S+0xc] is null", "widthBits": 32},
+        {
+            "va": "0x006f5675",
+            "condition": "main ItemManager map M+0x8 returns no nonzero value for local dword key 0",
+            "keyWidthBits": 32,
+        },
+        {
+            "va": "0x006f567d",
+            "condition": "dword P+0x128 differs from dword [0x0130c778]",
+            "widthBits": 32,
+        },
+        {
+            "va": "0x006f568e",
+            "condition": "the AL returned by 0x00763030(S) is nonzero and byte P+0x161 is nonzero",
+            "widthBits": 8,
+            "playerByteCheckedWhenAreaByteZero": False,
+        },
+    ],
+    "keyPublication": {
+        "managerOffset": "+0xd8",
+        "managerSize": "0x78",
+        "managerGetterVa": "0x006f51a0",
+        "managerConstructorVa": "0x006f5100",
+        "managerVtableVa": "0x00fd7618",
+        "lookupVa": "0x006e5ba0",
+        "mainMapOffset": "+0x8",
+        "stagedMapOffset": "+0x14",
+        "nodeValueOffset": "+0x10",
+        "commandVtableVa": "0x01057130",
+        "commandSlot": 9,
+        "commandVa": "0x0089b3f0",
+        "actorArgument": 2,
+        "descriptorOffset": "+0x4",
+        "writerVa": "0x006f41a0",
+        "descriptorKeyOffset": "+0x6",
+        "descriptorKeyWidthBits": 8,
+        "keyExtension": "zero",
+        "descriptorDwordOffset": "+0x0",
+        "descriptorWordOffset": "+0x4",
+        "descriptorWordWidthBits": 16,
+        "descriptorWordExtension": "zero",
+        "storedAllocationSize": "0x24",
+        "storedConstructorVa": "0x006ef0d0",
+        "descriptorFlagOffset": "+0x7",
+        "storedFlagOffset": "+0x20",
+        "stagedStoreVa": "0x006f42bb",
+        "transferVa": "0x006f7880",
+        "transferCallbackVa": "0x007036e0",
+        "transferCallVa": "0x007036e9",
+        "mainStoreVa": "0x006f79c9",
+        "transferredByteOffset": "+0x21",
+        "callbackByteOffset": "+0x60",
+        "gateTestsTransferredByte": False,
+        "gateTestsCallbackByte": False,
+        "sameRuntimePlayer": "UNKNOWN",
+        "actualKey0Descriptor": "UNKNOWN",
+    },
+    "stateFields": {
+        "dwordOffset": "+0x128",
+        "dwordWidthBits": 32,
+        "byteOffset": "+0x161",
+        "byteWidthBits": 8,
+        "constructorVa": "0x006f9140",
+        "initialDwordCallVa": "0x006f91e8",
+        "initialByteClearVa": "0x006f92b9",
+        "descriptorMethodSlot": 30,
+        "descriptorMethodVa": "0x006f3420",
+        "descriptorDwordOffset": "+0x4c",
+        "descriptorDwordStoreVa": "0x006f3459",
+        "descriptorByteOffset": "+0xc7",
+        "descriptorByteStoreVa": "0x006f349c",
+        "secondByteOffset": "+0x162",
+        "descriptorSecondByteOffset": "+0xc8",
+        "descriptorSecondByteStoreVa": "0x006f34ac",
+        "copySource": "+0x162",
+        "copyExtension": "sign",
+        "copyReadVa": "0x006f354f",
+        "copyWrapperVa": "0x00cc9320",
+        "copyWrapperCallVa": "0x006f355b",
+        "copyLoadVa": "0x006f3565",
+        "copyStoreVa": "0x006f3567",
+        "globalBranchByteValues": [1, 2, 20],
+        "globalBranchVa": "0x0134b78c",
+        "globalBranchStoreVa": "0x006f3592",
+        "clearSlot": 66,
+        "clearVa": "0x006e32f0",
+        "clearStoreVa": "0x006e3326",
+        "loginSlot": 4,
+        "loginVa": "0x0070a350",
+        "loginLiteralVa": "0x00fd4c14",
+        "loginLiteral": "_onLoginEvent",
+        "loginReadVas": ["0x0070a443", "0x0070a45c"],
+        "loginExtension": "sign",
+        "loginCallVa": "0x0070a4ad",
+        "resultHelperVa": "0x0071cd30",
+        "resultTestWidthBits": 8,
+        "clearByteValues": [1, 2, 20],
+        "byteClearVa": "0x0070a4e4",
+        "furtherClearVas": ["0x0070a4eb", "0x0070a4f2"],
+        "meaning": "UNKNOWN",
+    },
+    "areaFlag": {
+        "helperVa": "0x00763030",
+        "listHeadOffset": "+0x1c",
+        "listCountOffset": "+0x20",
+        "nodeValueOffset": "+0x8",
+        "entryByteOffset": "+0xba",
+        "returnWidthBits": 8,
+        "emptyOrNullReturn": 0,
+        "managerOffset": "+0x18",
+        "managerConstructionVa": "0x00773335",
+        "pendingByteOffset": "+0xba",
+        "pendingClearVa": "0x007654b3",
+        "setterVa": "0x00758810",
+        "setterArgument": 6,
+        "setterStoreVa": "0x0075884f",
+        "areaVtableVa": "0x00fd63d4",
+        "areaSlot": 3,
+        "areaMethodVa": "0x006e1670",
+        "registrationVa": "0x00768390",
+        "copyReadVa": "0x00768417",
+        "copyStoreVa": "0x0076841d",
+        "resetVa": "0x00768449",
+        "selectedWidgetByteRead": False,
+        "meaning": "UNKNOWN",
+        "runtimeFirstEntry": "UNKNOWN",
+    },
+    "sourceRefs": [
+        "docs/event/player-profile-work-accessors.md#owner-join",
+        "config/ffxivgame.vtable_slots.jsonl MyPlayer / LuaActorImpl / ItemManager / WidgetBase / AreaBase / ItemPackageUpdateStartCommand",
+        "xivl-client-structs:docs/autotranslate-selection-contract.md AT-ENTER-012 / AT-ENTER-013 / AT-ENTER-024",
+    ],
+    "unknowns": [
+        "The actual matching runtime context, MyPlayer, command descriptor and first area entry at the selected callback.",
+        "Which item command supplies descriptor byte +0x6 equal to zero for that same MyPlayer and the individual main-map key removal policy.",
+        "The meanings of MyPlayer +0x128 / +0x161 / +0x162 and the first-area +0xba byte beyond the observed operations.",
+        "The full ordinary WidgetBase construction-to-close sequence and ordering of finalization, area-list mutation and callback delivery.",
+    ],
+    "exclusions": [
+        "per-widget released-owner predicate",
+        "general alive predicate",
+        "inventory readiness",
+        "target/reference meaning",
+        "process-global singleton",
+        "runtime validation",
+    ],
+}
+
+ELIGIBILITY_CHECKS = [
+    {
+        "kind": "signature",
+        "name": "selector drop gates",
+        "va": "0x006f5651",
+        "pattern": "8B 77 0C 85 F6 74 79 8D 4C 24 08 51 8B CE C7 44 24 0C 00 00 00 00 E8 34 FB FF FF 8B C8 E8 2D 05 FF FF 85 C0 74 5A 8B 96 28 01 00 00 3B 15 78 C7 30 01 75 4C 8B CF E8 A4 D9 06 00 84 C0 74 09 80 BE 61 01 00 00 00 75 38",
+        "mask": "FF FF FF FF FF FF 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF 00 FF FF FF FF FF FF FF FF FF FF FF FF FF 00 FF FF FF 00 00 00 00 FF FF FF 00 FF FF FF FF FF FF FF FF 00",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility actor context and control stores",
+        "va": "0x0075954f",
+        "pattern": "8B 11 89 50 04 C6 44 24 10 01 8B 4C 24 1C 89 48 08",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility root context argument",
+        "va": "0x0075d4f5",
+        "pattern": "8B 56 08 50 51 52 83 C6 04 56 8D 4C 24 17 E8 68 6A 14 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility adapter supplied wrapper",
+        "va": "0x008a3f78",
+        "pattern": "8B 54 24 04 50 51 8B 4C 24 10 52 E8 58 17 E5 FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility receiver wrapper save",
+        "va": "0x006f5729",
+        "pattern": "8B 9C 24 30 01 00 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility selector wrapper argument",
+        "va": "0x006f5771",
+        "pattern": "55 53 57 E8 C7 FE FF FF",
+        "mask": "FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility supplied context player load",
+        "va": "0x006f5641",
+        "pattern": "8B 4C 24 0C 56 57 E8 C4 1E 5D 00 8B 00 8B 78 04 8B 77 0C",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility holder offset",
+        "va": "0x00cd7910",
+        "pattern": "8D 81 20 02 00 00 C3",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility player publication arguments",
+        "va": "0x006e3474",
+        "pattern": "8B CF E8 95 40 5E 00 8B 00 8B 48 04 53 56 E8 B9 59 07 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility player publication stores",
+        "va": "0x00758e56",
+        "pattern": "8B 54 24 08 89 41 0C 8B 02 89 41 10",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility holder publication store",
+        "va": "0x00cd7902",
+        "pattern": "89 86 20 02 00 00",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility factory receiver save",
+        "va": "0x0076c8f7",
+        "pattern": "8B E9 89 6C 24 14",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility factory context wrapper",
+        "va": "0x0076c9fa",
+        "pattern": "8B 7C 24 40 57 8D 75 04 56 8D 4D 08 E8 75 7A 02 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility factory actor constructor call",
+        "va": "0x0076ca2f",
+        "pattern": "57 56 8B C8 E8 D8 CA FE FF",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility conditional player byte",
+        "va": "0x006f568c",
+        "pattern": "84 C0 74 09 80 BE 61 01 00 00 00 75 38",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility main lookup member",
+        "va": "0x006e5baa",
+        "pattern": "8D 71 08",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility command cast type arguments",
+        "va": "0x0089b3f7",
+        "pattern": "68 A4 09 27 01 68 64 09 27 01",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility command actor and descriptor arguments",
+        "va": "0x0089b40e",
+        "pattern": "83 C6 04 56 50 8B C8 E8 86 9D E5 FF 8B C8 E8 7F 8D E5 FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility descriptor key zero extension",
+        "va": "0x006f41d5",
+        "pattern": "0F B6 46 06",
+        "mask": "FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility descriptor unsigned word",
+        "va": "0x006f4255",
+        "pattern": "0F B7 4E 04 50 8B 44 24 54 0F B7 C9 51",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility staged map store",
+        "va": "0x006f42ac",
+        "pattern": "8D 4F 14 89 44 24 54 E8 18 1B 03 00 8B 57 64 89 10",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility main map replace",
+        "va": "0x006f7985",
+        "pattern": "8B 57 04 89 55 10",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility main map insert",
+        "va": "0x006f79ba",
+        "pattern": "8B 5F 04 57 8B CE E8 0B E4 02 00 8B 4C 24 14 89 18",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility transfer object byte",
+        "va": "0x006f79df",
+        "pattern": "C6 42 21 01",
+        "mask": "FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility transfer callback call",
+        "va": "0x007036e9",
+        "pattern": "E8 92 41 FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility initial dword call",
+        "va": "0x006f91e2",
+        "pattern": "8D 8E 28 01 00 00 E8 23 01 5D 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility initial player byte clear",
+        "va": "0x006f92b9",
+        "pattern": "88 9E 61 01 00 00",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility descriptor dword copy",
+        "va": "0x006f3453",
+        "pattern": "8B 47 4C 56 8B CF 89 86 28 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility descriptor player byte copy",
+        "va": "0x006f3494",
+        "pattern": "8A 87 C7 00 00 00 3C 01 88 86 61 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility descriptor second byte copy",
+        "va": "0x006f34a2",
+        "pattern": "8A 8F C8 00 00 00 89 54 24 1C 88 8E 62 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility signed byte to dword copy",
+        "va": "0x006f354f",
+        "pattern": "0F BE 86 62 01 00 00 50 8D 4C 24 34 E8 C0 5D 5D 00 C6 44 24 28 03 8B 08 89 8E 28 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility dword wrapper copy",
+        "va": "0x00cc9320",
+        "pattern": "8B C1 8B 4C 24 04 89 08 C2 04 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility global dword overwrite",
+        "va": "0x006f358c",
+        "pattern": "8B 15 8C B7 34 01 89 96 28 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility paired dword clear",
+        "va": "0x006e3321",
+        "pattern": "A1 78 C7 30 01 89 86 28 01 00 00 8B 0D 78 C7 30 01 89 8E 2C 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility login signed byte read",
+        "va": "0x0070a443",
+        "pattern": "0F BE 96 61 01 00 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility login result AL test",
+        "va": "0x0070a4c3",
+        "pattern": "6A 00 8D 4C 24 30 E8 62 28 01 00 84 C0",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility login player byte clear",
+        "va": "0x0070a4e4",
+        "pattern": "C6 86 61 01 00 00 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility first list entry",
+        "va": "0x00763030",
+        "pattern": "83 79 20 00 56 74 15 8B 41 1C 8B 30 3B F0 75 05",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility first entry byte return",
+        "va": "0x00763050",
+        "pattern": "8A 86 BA 00 00 00",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility pending area byte clear",
+        "va": "0x007654b3",
+        "pattern": "88 9E BA 00 00 00",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility pending area byte argument",
+        "va": "0x0075883f",
+        "pattern": "8A 54 24 1C 88 86 B8 00 00 00 88 8E B9 00 00 00 88 96 BA 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility area registration arguments",
+        "va": "0x006e1684",
+        "pattern": "56 57 83 C1 18 E8 02 6D 08 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility area byte copy",
+        "va": "0x00768417",
+        "pattern": "8A 8E BA 00 00 00 88 8F BA 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility area pending reset",
+        "va": "0x00768449",
+        "pattern": "88 9E BA 00 00 00",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility sentinel dword",
+        "va": "0x0130c778",
+        "values": ["0xe0000000"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility player publication slot",
+        "va": "0x00fd7868",
+        "values": ["0x006e3440"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility player descriptor slot",
+        "va": "0x00fd78d4",
+        "values": ["0x006f3420"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility player clear slot",
+        "va": "0x00fd7964",
+        "values": ["0x006e32f0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility player login slot",
+        "va": "0x00fd786c",
+        "values": ["0x0070a350"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility actor root slot",
+        "va": "0x00fdfb50",
+        "values": ["0x0075d4e0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility ordinary creation slot",
+        "va": "0x00fd5ae0",
+        "values": ["0x006e3920"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility item command slot",
+        "va": "0x01057154",
+        "values": ["0x0089b3f0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility area registration slot",
+        "va": "0x00fd63e0",
+        "values": ["0x006e1670"],
+    },
+    {
+        "kind": "string",
+        "name": "eligibility actor cast RTTI",
+        "va": "0x0127096c",
+        "text": ".?AVActorBase@Control@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility chara cast RTTI",
+        "va": "0x012709ac",
+        "text": ".?AVCharaBase@Control@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility login literal",
+        "va": "0x00fd4c14",
+        "text": "_onLoginEvent",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility myplayer RTTI name",
+        "va": "0x012c19ac",
+        "text": ".?AVMyPlayer@Control@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility itemmanager RTTI name",
+        "va": "0x012c2ea0",
+        "text": ".?AVItemManager@Control@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility luaactorimpl RTTI name",
+        "va": "0x01270b18",
+        "text": ".?AVLuaActorImpl@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility widgetbase RTTI name",
+        "va": "0x012c196c",
+        "text": ".?AVWidgetBase@Control@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility areabase RTTI name",
+        "va": "0x012c2a74",
+        "text": ".?AVAreaBase@Control@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility core holder RTTI name",
+        "va": "0x012c36e0",
+        "text": ".?AV?$Holder@PAVCoreWork@Client@Script@Lua@Application@@@AnyType@Misc@Sqex@@",
+    },
+    {
+        "kind": "string",
+        "name": "eligibility itempackageupdatestartcommand RTTI name",
+        "va": "0x012d7d40",
+        "text": ".?AVItemPackageUpdateStartCommand@Item@Command@Client@Script@Lua@Application@@",
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility myplayer RTTI locator",
+        "va": "0x00fd7858",
+        "values": ["0x0115f6b4"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility myplayer RTTI type",
+        "va": "0x0115f6c0",
+        "values": ["0x012c19a4"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility itemmanager RTTI locator",
+        "va": "0x00fd7614",
+        "values": ["0x0115f4c8"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility itemmanager RTTI type",
+        "va": "0x0115f4d4",
+        "values": ["0x012c2e98"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility luaactorimpl RTTI locator",
+        "va": "0x00fdfb28",
+        "values": ["0x0115fb2c"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility luaactorimpl RTTI type",
+        "va": "0x0115fb38",
+        "values": ["0x01270b10"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility widgetbase RTTI locator",
+        "va": "0x00fd5a70",
+        "values": ["0x0115e6dc"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility widgetbase RTTI type",
+        "va": "0x0115e6e8",
+        "values": ["0x012c1964"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility areabase RTTI locator",
+        "va": "0x00fd63d0",
+        "values": ["0x0115f224"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility areabase RTTI type",
+        "va": "0x0115f230",
+        "values": ["0x012c2a6c"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility core holder RTTI locator",
+        "va": "0x00fdffcc",
+        "values": ["0x0115fee8"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility core holder RTTI type",
+        "va": "0x0115fef4",
+        "values": ["0x012c36d8"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility itempackageupdatestartcommand RTTI locator",
+        "va": "0x0105712c",
+        "values": ["0x0117274c"],
+    },
+    {
+        "kind": "dwords",
+        "name": "eligibility itempackageupdatestartcommand RTTI type",
+        "va": "0x01172758",
+        "values": ["0x012d7d38"],
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility lazy manager load and allocation",
+        "va": "0x006f51c5",
+        "pattern": "8B 86 D8 00 00 00 85 C0 75 4D 6A 78",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility lazy manager pointer store",
+        "va": "0x006f5214",
+        "pattern": "89 BE D8 00 00 00",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility manager table and main map",
+        "va": "0x006f5135",
+        "pattern": "8D 4E 08 C7 06 18 76 FD 00",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility lookup pointer value",
+        "va": "0x006e5be9",
+        "pattern": "8B 46 10",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility callback manager byte",
+        "va": "0x007036f7",
+        "pattern": "C6 46 60 01",
+        "mask": "FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility area manager construction",
+        "va": "0x00773335",
+        "pattern": "8D 4E 18 89 5E 14 E8 10 21 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility holder value copy",
+        "va": "0x00778dbf",
+        "pattern": "8B 11 89 50 04",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "eligibility ready factory arguments",
+        "va": "0x0077473a",
+        "pattern": "38 5F 5C 74 58 57 8D 44 24 18 50 E8 86 81 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+]
+
+
 def parse_hex(text: str) -> int:
     return int(text, 16)
 
@@ -893,6 +1648,7 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
         *routing_addresses(document),
         *event_release_addresses(document),
         *button_addresses(document),
+        *eligibility_addresses(document),
     ]
     errors = [
         f"page does not cite {address}"
@@ -902,6 +1658,21 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
     lead = text.split("## input and method")[0]
     if "0x59" not in lead or "wildcard" not in lead:
         errors.append("page lead does not state the 0x59 wildcard join")
+    script_entry = text.split("## script entry", 1)[-1].split("\n## ", 1)[0]
+    script_entry = re.sub(r"\s+", " ", script_entry)
+    for claim in (
+        "gates read as liveness checks",
+        "a script object whose owner was released",
+        "for widget script objects and not for actor-bound ones",
+    ):
+        if claim in script_entry:
+            errors.append("unsupported widget eligibility inference")
+    if "the script object has an owner and the widget is live" in re.sub(
+        r"\s+", " ", text
+    ):
+        errors.append("unsupported widget eligibility inference")
+    if "unknown" not in script_entry:
+        errors.append("eligibility uncertainty is missing")
     return errors
 
 
@@ -1106,6 +1877,46 @@ def button_errors(document: dict) -> list[str]:
     return errors
 
 
+def eligibility_addresses(document: dict) -> list[str]:
+    """Locators for the supplied-context player, conditional key and raw writers."""
+    selector = document.get("selectorGates", {})
+    context = selector.get("context", {})
+    key = selector.get("keyPublication", {})
+    state = selector.get("stateFields", {})
+    area = selector.get("areaFlag", {})
+    return [
+        context.get("actorConstructorVa"),
+        context.get("rootThunkVa"),
+        context.get("playerPublicationVa"),
+        context.get("publisherVa"),
+        context.get("holderStoreVa"),
+        key.get("commandVa"),
+        key.get("writerVa"),
+        key.get("transferVa"),
+        state.get("copyReadVa"),
+        state.get("copyWrapperVa"),
+        state.get("copyStoreVa"),
+        area.get("copyStoreVa"),
+        area.get("resetVa"),
+    ]
+
+
+def eligibility_errors(document: dict) -> list[str]:
+    """Keep raw supplied-context facts separate from unknown live meanings."""
+    selector = document.get("selectorGates", {})
+    errors = [
+        f"eligibility {key} contract changed"
+        for key, expected in ELIGIBILITY_FIELDS.items()
+        if selector.get(key) != expected
+    ]
+    checks = document.get("staticChecks", [])
+    for expected in ELIGIBILITY_CHECKS:
+        rows = [row for row in checks if row.get("name") == expected["name"]]
+        if rows != [expected]:
+            errors.append(f"eligibility static check changed: {expected['name']}")
+    return errors
+
+
 def routing_addresses(document: dict) -> list[str]:
     """Addresses of the routing, gate and selector findings that the page must cite."""
     routing = document.get("routing", {})
@@ -1132,7 +1943,7 @@ def routing_addresses(document: dict) -> list[str]:
         document.get("formGate", {}).get("classSelectorVa"),
         document.get("popupHelp", {}).get("positionVa"),
         document.get("popupHelp", {}).get("commandStaticVa"),
-        document.get("selectorGates", {}).get("nullIdGlobalVa"),
+        document.get("selectorGates", {}).get("sentinelGlobalVa"),
         document.get("entryFlag", {}).get("flagVa"),
         document.get("numberInputBox", {}).get("handlerVa"),
         document.get("numberInputBox", {}).get("commandStaticVa"),
@@ -1248,8 +2059,8 @@ def routing_errors(document: dict) -> list[str]:
         errors.append("popup help contract changed")
     selector = document.get("selectorGates", {})
     if (
-        selector.get("nullIdValue") != "0xe0000000"
-        or selector.get("nullIdGlobalVa") != "0x0130c778"
+        selector.get("sentinelValue") != "0xe0000000"
+        or selector.get("sentinelGlobalVa") != "0x0130c778"
         or [row.get("va") for row in selector.get("gates", [])]
         != ["0x006f5654", "0x006f5675", "0x006f567d", "0x006f568e"]
     ):
@@ -1471,6 +2282,7 @@ def verify(document: dict | None = None) -> list[str]:
     if event_ids != [i for i in range(1, 0x5B) if i != 0x21]:
         errors.append("routed event rows are not ids 0x01..0x5a without 0x21")
     errors.extend(button_errors(document))
+    errors.extend(eligibility_errors(document))
     errors.extend(event_release_errors(document))
     errors.extend(routing_errors(document))
     errors.extend(doc_errors(document))
@@ -1570,7 +2382,7 @@ def mutation_test() -> list[str]:
         (("formGate", "rootNameSliceStart"), 6),
         (("formGate", "executedSlot"), 43),
         (("popupHelp", "commandStaticVa"), "0x0133bd98"),
-        (("selectorGates", "nullIdValue"), "0xffffffff"),
+        (("selectorGates", "sentinelValue"), "0xffffffff"),
         (("entryFlag", "flagVa"), "0x01356e18"),
         (("numberInputBox", "commandStaticVa"), "0x01344ca8"),
         (("numberInputBox", "valueChangedReferencedByCode"), True),

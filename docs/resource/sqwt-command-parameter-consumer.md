@@ -41,6 +41,9 @@ disassembly. The event release section also uses `ghidra-cli 0.2.2`
 disassembly and xrefs checked against the same read-only PE32 image.
 The Button source section uses `ghidra-cli 0.2.2` disassembly, RTTI and xrefs,
 checked against original file-backed PE32 bytes from the same executable.
+The supplied-context eligibility section uses the same ghidra-cli disassembly
+and PE byte mapping, with independent Apple LLVM objdump 21.0.0 instruction
+boundary and byte checks.
 This was static analysis and did not execute the client.
 [sqwt_command_parameter_consumer.json](../../config/sqwt_command_parameter_consumer.json)
 holds the addresses, tables, strings and masked byte signatures that
@@ -600,32 +603,107 @@ record. The tracked script metadata lists one occurrence of each method name
 and `apis._onUICommandRequest`, both in `widget/widgetbaseclass`). The parameter
 lists of the script definitions are not in tracked artifacts.
 
-The call goes through `0x006F5640`. Its argument is a pointer to a pointer.
-The chain `0x00CC7510`, `0x00CD7910` adds `0x220` to the pointee, the word there
-is a host object `H`, the script object `S` is the word at `H+4`, and its owner
-`O` is the word at `S+0xC`. The function returns without a Lua call when any of
-these hold (`0x006F5651..0x006F5697`). STATIC for the conditions.
+### Supplied-context eligibility
 
-- `O` is null (`0x006F5654`).
-- The map at `+0x8` of the object that `0x006F51A0` creates lazily at `O+0xD8`
-  (a `0x78` byte object built by `0x006F5100`) has no nonzero entry for the key
-  0. The key is a local that `0x006F565F` zeroes and passes by pointer, and
-  `0x006E5BA0` returns the stored value or 0 (`0x006F566E`, `0x006F5675`).
-- The word at `O+0x128` differs from the global at `0x0130C778` (`0x006F567D`).
-  The image holds `0xE0000000` there. The `.text` has 183 instructions that
-  name the global, and the sampled ones return null or branch when an id word
-  equals it, so it reads as the null id. INFERRED. A call therefore proceeds only
-  for an owner whose id word holds the null id, which is INFERRED to be the case
-  for widget script objects and not for actor-bound ones.
-- `0x00763030` returns true and the byte at `O+0x161` is nonzero
-  (`0x006F568E..0x006F5697`). `0x00763030` reads byte `+0xBA` of the first
-  element of the list at `S+0x1C` and gives false for an empty list.
+The selected ordinary WidgetBase root command path is STATIC. On the
+ready-record branch, `0x0077473A` tests `C+0x5C` and
+`0x0077473F..0x00774745` supplies C to `0x0076C8D0`. That factory preserves
+its receiver I at `0x0076C8F7..0x0076C8F9` and supplies `&I+4` and C to
+`0x00759510` at `0x0076C9FA..0x0076CA33`. LuaActorImpl constructor
+`0x0075954F..0x0075955D` stores the supplied engine pointee at `A+4` and
+control `C` at `A+8`. Vtable `0x00FDFB2C` slot9, `0x0075D4E0`, passes
+`C` and `&A+4` at `0x0075D4F5..0x0075D503`. Adapter `0x008A3F70` and
+`0x006F56E0` forward that same wrapper to `0x006F5640` at
+`0x006F5729`, `0x006F5772` and `0x006F5774`. The ordinary WidgetBase
+construction and ready-record installation route is also recorded by
+`xivl-client-structs:docs/autotranslate-selection-contract.md`, entries
+`AT-ENTER-012`, `AT-ENTER-013` and `AT-ENTER-024`.
 
-The meaning of `O+0x128`, `O+0x161` and the `+0xBA` byte beyond these
-conditions is UNKNOWN, and so is what fills the key 0 entry. The first two
-gates read as liveness checks on the script host pair and the last two as state
-filters, all INFERRED. The first gate is the only one whose condition has an
-obvious client equivalent, a script object whose owner was released.
+Use `J` for the engine pointee, `H=[J+0x220]`, `S=[H+4]` and
+`P=[S+0xC]`. The loads at `0x006F5641..0x006F5651` use the supplied
+wrapper. This is the same supplied-context field returned by `_getMyPlayer`
+at `0x00707975..0x00707996`, as recorded in
+[Player profile and work accessors](../event/player-profile-work-accessors.md#owner-join).
+MyPlayer vtable `0x00FD785C` slot3 `0x006E3440` publishes its `this`
+through `0x00758E40` at `0x006E3474..0x006E3482`. The latter stores it to
+`S+0xC` at `0x00758E5A`. These are STATIC argument and publication joins.
+The identity of a later runtime context remains UNKNOWN. They do not
+establish a per-widget owner liveness condition.
+
+Setup `0x00763628..0x00763648` wraps S through `0x00779B50` and
+`0x00778D80`, which stores S at holder `+4` at `0x00778DBF..0x00778DC1`.
+The RTTI chain for table `0x00FDFFD0` identifies
+`Sqex::Misc::AnyType::Holder<Application::Lua::Script::Client::CoreWork*>`.
+`0x00CC9820` reaches `0x00CD78E0`, which retains that holder through
+slot2 `0x00CDE8F0` and stores it at `J+0x220` at `0x00CD7902`. This is
+a STATIC setup join, with no process-global singleton claim.
+
+`0x006F5640` returns before Lua delivery when any of these conditions holds.
+All are STATIC, and the first three field reads are 32-bit:
+
+- `P` is null at `0x006F5654`.
+- The ItemManager map at `M+8` has no nonzero value for local dword key 0,
+  `0x006F565F..0x006F5675`. `0x006F51A0` lazily creates the `0x78` byte
+  ItemManager at `P+0xD8` through `0x006F5100`. Getter `0x006E5BA0`
+  returns node value `+0x10` or zero.
+- Dword `P+0x128` differs from dword `[0x0130C778]` at comparison
+  `0x006F567D`, within `0x006F5677..0x006F5683`. The mapped image holds
+  `0xE0000000` there.
+- `0x00763030(S)` returns nonzero and byte `P+0x161` is nonzero at
+  `0x006F5685..0x006F5697`. The zero-AL branch at `0x006F568E` skips
+  the player-byte test. The helper returns zero for an empty list or null
+  first entry, otherwise byte `+0xBA` of the first list entry. It
+  uses head `S+0x1C` and count `S+0x20`, not the selected widget's byte.
+
+The key source has a concrete conditional path. ItemPackageUpdateStartCommand
+vtable `0x01057130` slot9 `0x0089B3F0` casts its second explicit argument
+from ActorBase to CharaBase, obtains that actor's ItemManager through
+`0x006F51A0`, and supplies descriptor `this+4` to `0x006F41A0` at
+`0x0089B3F0..0x0089B41C`. It does not compare this actor to `P` above.
+`0x006F41A0` zero-extends descriptor byte `+6` as the key. On a missing
+main key it constructs a `0x24` byte stored object through `0x006EF0D0`.
+Its inputs include the cast actor, that key, descriptor dword `+0` and
+unsigned word `+4`. It copies descriptor byte `+7` to stored-object byte
+`+0x20`, then writes the object pointer to staged map
+`M+0x14` at `0x006F4220..0x006F42BB`. Descriptor byte `+6` equal to zero
+therefore supplies key 0. `0x006F7880` subsequently publishes staged values
+to main map `M+8` at `0x006F78D4..0x006F79DF`, replacing existing pointers
+or inserting missing keys, then clears the staged nodes. Callback
+`0x007036E0` calls that transfer at `0x007036E9`. The selected eligibility
+getter only tests its returned pointer, not stored-object byte `+0x21` or
+manager byte `+0x60`. The live key-0 input for the same `P` is UNKNOWN.
+
+MyPlayer constructor `0x006F9140` initializes `P+0x128` from the global
+through `0x00CC9310` at `0x006F91E2..0x006F91E8` and clears `P+0x161`
+at `0x006F92B9`. MyPlayer slot30 `0x006F3420` copies descriptor dword
+`+0x4C` to `P+0x128` at `0x006F3459` and byte `+0xC7` to `P+0x161` at
+`0x006F349C`. Descriptor byte `+0xC8` is copied to `P+0x162` at
+`0x006F34A2..0x006F34AC`. One branch sign-extends byte `P+0x162` at `0x006F354F`,
+passes it through wrapper constructor `0x00CC9320`, and writes that dword
+to `P+0x128` at `0x006F3565..0x006F3567`. The branch for byte
+`+0xC7` values 1, 2 and `0x14` instead writes dword `[0x0134B78C]` at
+`0x006F358C..0x006F3592`. Slot66 `0x006E32F0` restores the global
+value at `0x006E3326`. Slot4 `0x0070A350` uses signed bytes `P+0x161`
+and `P+0x162` as `_onLoginEvent` arguments at
+`0x0070A443..0x0070A4AD`. When the returned AL from `0x0071CD30(container, 0)` is
+nonzero, byte `P+0x161` values 1, 2 and `0x14` clear `P+0x161` at
+`0x0070A4E4`. The same result branch clears `P+0x162` and `P+0x163` at
+`0x0070A4EB..0x0070A4F2`.
+These are STATIC writers and readers, without an enum name or live meaning.
+
+The area-list manager is `T=S+0x18`, constructed at
+`0x00773335..0x0077333B`. Its pending byte `T+0xBA` is cleared at
+`0x007654B3` and written from setter `0x00758810`'s sixth explicit
+argument at `0x0075884F`. AreaBase slot3 `0x006E1670` supplies the area
+entry and same context to `0x00768390` at `0x006E1672..0x006E1689`.
+That function inserts the entry, copies pending `T+0xBA` to entry `+0xBA`
+at `0x0076841D`, then clears `T+0xBA` at `0x00768449`. STATIC. The
+meaning and runtime first-entry selector remain UNKNOWN.
+
+These joins do not establish a live ordinary widget construction-to-close
+sequence or a general alive predicate. The matching context, MyPlayer,
+command descriptor and area-list entry at callback time, individual main-key
+removal and finalization-to-callback ordering remain UNKNOWN.
 
 Otherwise it compares the byte at `0x0134C3FE` (zero) with the condition byte
 `+0x54` of the subscription (`0x006F569D..0x006F56A5`). STATIC.
@@ -888,14 +966,14 @@ Implement as an approximation and label it:
 - The form gate is absent for all forms except the seven named widgets, and
   those widgets need their own pad UI controller to reach retail behavior.
   Without it the handler skips straight to the lookup.
-- The selector gates as: the script object has an owner and the widget is
-  live. The key 0 entry, the null id and the two state filters are not
-  understood.
 - The entry flag as never set.
 - The popup positioning call as a layout side effect of `PopupShowHelp` only,
   and never as a condition of delivery.
 
 Do not assume:
+
+- A complete ordinary widget lifecycle from the
+  [supplied-context eligibility](#supplied-context-eligibility) predicates.
 
 - That every control class stores events. The base interface,
   `FrameworkElement` and the concrete Button forward to the handler store.
@@ -915,8 +993,10 @@ Do not assume:
   other overrides were not followed.
 - The widget classes behind the seven gate objects and their slot 42 and 43
   bodies, and the event that runs the form function `0x005387F0`.
-- The meaning of owner fields `+0x128` and `+0x161` and of byte `+0xBA` read by
-  the selector gates, beyond the conditions stated.
+- The runtime context, MyPlayer, key-0 descriptor and first area entry at the
+  selected callback. The meanings of MyPlayer fields `+0x128`, `+0x161` and
+  `+0x162`, and first-entry byte `+0xBA`, individual main-key removal and the
+  full ordinary widget construction-to-close ordering remain UNKNOWN.
 - The purpose of the flag byte at `0x01356E14`, beyond its stores and reads.
 - The upstream caller and cadence of control slot 4, including its order
   relative to Sqwt input routing. Matching callbacks clear the active slot,
@@ -992,6 +1072,41 @@ Do not assume:
 13. For the census, follow the reproduction in the grammar page and group each
    value by the `Command` attribute of its owner. Keep client bytes, decoded
    documents and executable listings outside the repository.
+
+### Supplied-context eligibility reproduction
+
+1. Use `ghidra disasm <VA> -n <count> --json` in x86 32-bit mode. Read
+   `0x00774700` for 55 instructions and `0x0076C8D0` for 160, then
+   `0x00759510` for 32, `0x0075D4E0` for 24, `0x008A3F70` for 10 and
+   `0x006F56E0` for 65. Trace the actual C and supplied wrapper arguments
+   into `0x006F5640` rather than joining similar dereference patterns.
+2. Read `0x006F5640` for 56 instructions, `0x00CC7510` for 4,
+   `0x00CD7910` for 2 and `_getMyPlayer` at `0x00707970` for 20. Read
+   `0x006E3440` for 40 and `0x00758E40` for 14. Follow setup
+   `0x007634B0` for 160, `0x00779B50` for 38, `0x00778D80` for 32,
+   `0x00CC9820` for 3, `0x00CD78E0` for 20 and `0x00CDE8F0` for 3.
+3. Read `0x006F51A0` for 50, `0x006F5100` for 48 and `0x006E5BA0`
+   for 40. Read `0x0089B3F0` for 24, `0x006F41A0` for 250,
+   `0x006EF0D0` for 65, `0x006F7880` for 155 and `0x007036E0` for 15.
+   Preserve the cast-actor argument and distinguish staged `M+0x14` from
+   main `M+8`. The actor identity and key-0 descriptor remain conditional.
+4. Read `0x006F9140` for 180, `0x00CC9310` for 3, `0x006F3420` for
+   180, `0x00CC9320` for 5, `0x006E32F0` for 27 and `0x0070A350` for
+   135. Confirm operand widths and the signed `P+0x162` copy through
+   `0x00CC9320` to `P+0x128`. Read `0x00763030` for 20, `0x00773270`
+   for 120, `0x00765450` for 44, `0x00758810` for 25, `0x006E1670`
+   for 18 and `0x00768390` for 75 for the first-entry byte and its writers.
+5. Check the selected vtable slots and RTTI named in `selectorGates` and its
+   static checks. Resolve each table[-1] Complete Object Locator, read its
+   `+0xC` TypeDescriptor pointer, then the NUL-terminated name at
+   TypeDescriptor `+8`. Re-read dword `[0x0130C778]` and the
+   `_onLoginEvent` literal. Use the tracked vtable catalog as a locator,
+   not as proof of an unobserved runtime instance.
+6. Compare each instruction window with original file-backed PE32 bytes and
+   independently decode it with LLVM objdump. Run the public optional
+   executable verifier above. Its eligibility checks retain the exact bytes,
+   RTTI and data for the bounded argument, map and raw-field claims. They do
+   not establish runtime reachability, inventory readiness or widget lifetime.
 
 ### Button source reproduction
 
