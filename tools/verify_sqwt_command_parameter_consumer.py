@@ -730,6 +730,311 @@ BUTTON_CHECKS = [
     },
 ]
 
+BUTTON_ELIGIBILITY_PROPERTY = {
+    "name": "IsHitTestVisible",
+    "nameVa": "0x0106bec4",
+    "descriptorVa": "0x01359354",
+    "initializerVa": "0x00f22930",
+    "propertyIndex": 2,
+    "elementOffset": "+0x15a",
+    "interfaceOffset": "+0xa6",
+    "widthBits": 8,
+    "valueMask": "0x20",
+    "getterDispatcherVa": "0x0093a200",
+    "getterCaseVa": "0x0093a246",
+    "getterVa": "0x0093e220",
+    "getterOperation": "(P >> 5) & 1",
+    "constructorChain": [
+        "0x00974410",
+        "0x0097f200",
+        "0x00954ab0",
+        "0x00936190",
+        "0x00938c80",
+        "0x0092f640",
+        "0x0093c750",
+    ],
+    "defaultWriteVa": "0x0093c8bf",
+    "defaultOperation": "(old & 0xe0) | 0x20",
+    "metadataSourceVa": "0x0135936c",
+    "metadataWrites": [
+        {"va": "0x0093c8f4", "destinationBit": 1, "sourceBit": 7},
+        {"va": "0x0093c910", "destinationBit": 0, "sourceBit": 5},
+    ],
+    "setterVa": "0x0093c300",
+    "refreshDispatcherVa": "0x0093d090",
+    "refreshCaseVa": "0x0093d0fb",
+    "refreshHelperVa": "0x009321d0",
+    "resolutionVa": "0x00916310",
+    "deferredSentinelVa": "0x01356da8",
+    "conversionVa": "0x00988f90",
+    "writerVa": "0x0099c780",
+    "writerValueStoreVa": "0x0099c7f1",
+    "writerArguments": [
+        "value byte V",
+        "owner",
+        "callback",
+        "callback argument",
+        "descriptor",
+        "byte M",
+        "byte C",
+    ],
+    "writerRefresh": "If P & 0x10, call 0x009157c0(owner, descriptor), then clear mask 0x10.",
+    "writerReject": [
+        "(P & 2) != 0 and M == 0",
+        "(P & 2) == 0 and M == 1 and (P & 1) == 0",
+    ],
+    "writerLowBitClear": "On accepted M == 0, clear P mask 0x01 before comparing values.",
+    "writerCompare": "Compare (P >> 5) & 1 with the whole byte V.",
+    "writerChangedOperation": "(P & 0xdf) | ((V << 5) & 0x20) | 0x04",
+    "writerCallback": "Call 0x0099c680 only when the whole-byte comparison is unequal and byte C equals 1.",
+    "confidence": "STATIC",
+}
+
+BUTTON_ELIGIBILITY_CHECKS = [
+    {
+        "kind": "string",
+        "name": "button eligibility property name",
+        "va": "0x0106bec4",
+        "text": "IsHitTestVisible",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility descriptor initializer",
+        "va": "0x00f22930",
+        "pattern": "68 C4 BE 06 01 B9 54 93 35 01 E8 A1 DF 9E FF C7 05 68 93 35 01 02 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility descriptor name store",
+        "va": "0x009108e0",
+        "pattern": "56 8B F1 8B 4C 24 08 8B C1 57 89 0E",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "dwords",
+        "name": "button eligibility getter case two",
+        "va": "0x0093a358",
+        "values": ["0x0093a246"],
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility getter case receiver",
+        "va": "0x0093a246",
+        "pattern": "8B 44 24 08 50 81 C1 5A 01 00 00 E8 CA 3F 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility getter packed extraction",
+        "va": "0x0093e221",
+        "pattern": "8A 01 8B 4C 24 08 C0 E8 05 51 8D 54 24 07 24 01",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility Button base call",
+        "va": "0x00974434",
+        "pattern": "8B F1 89 74 24 08 E8 C1 AD 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility first base call",
+        "va": "0x0097f225",
+        "pattern": "8B F1 89 74 24 10 E8 80 58 FD FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility second base call",
+        "va": "0x00954ad4",
+        "pattern": "8B F1 89 74 24 0C E8 B1 16 FE FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility third base call",
+        "va": "0x009361b6",
+        "pattern": "8B F1 89 74 24 14 E8 BF 2A 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility fourth base call",
+        "va": "0x00938ca6",
+        "pattern": "8B F1 89 74 24 18 E8 8F 69 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility fifth base call",
+        "va": "0x0092f667",
+        "pattern": "8B F1 89 74 24 24 E8 DE D0 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility base receiver save",
+        "va": "0x0093c777",
+        "pattern": "8B F1 89 74 24 18",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility constructor value default",
+        "va": "0x0093c8b3",
+        "pattern": "8A 86 5A 01 00 00 24 E0 0C 20 33 ED 88 86 5A 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility constructor metadata mask",
+        "va": "0x0093c853",
+        "pattern": "B3 02",
+        "mask": "FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility constructor metadata bit one",
+        "va": "0x0093c8e1",
+        "pattern": "8B 0D 6C 93 35 01 C1 E9 07 02 C9 32 8E 5A 01 00 00 22 CB 30 8E 5A 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility constructor metadata bit zero",
+        "va": "0x0093c8fa",
+        "pattern": "8B 15 6C 93 35 01 8A 86 5A 01 00 00 C1 EA 05 32 D0 80 E2 01 32 D0 88 96 5A 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility setter descriptor",
+        "va": "0x0093c30b",
+        "pattern": "68 54 93 35 01",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility setter receiver and join",
+        "va": "0x0093c31d",
+        "pattern": "51 50 81 C1 5A 01 00 00 E8 56 04 06 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility refresh case dispatch",
+        "va": "0x0093d0a0",
+        "pattern": "FF 24 85 20 D3 93 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "dwords",
+        "name": "button eligibility refresh case two",
+        "va": "0x0093d328",
+        "values": ["0x0093d0fb"],
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility refresh descriptor",
+        "va": "0x0093d102",
+        "pattern": "68 54 93 35 01",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility refresh receiver and join",
+        "va": "0x0093d116",
+        "pattern": "8D 8E 5A 01 00 00 E8 AF 50 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility resolution call",
+        "va": "0x009321f2",
+        "pattern": "E8 19 41 FE FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility resolution deferred branch",
+        "va": "0x009321fa",
+        "pattern": "3D A8 6D 35 01 75 0B 80 0E 10",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility resolution conversion call",
+        "va": "0x0093221e",
+        "pattern": "E8 6D 6D 05 00",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility resolution writer join",
+        "va": "0x00932245",
+        "pattern": "8B CE E8 34 A5 06 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer refresh gate",
+        "va": "0x0099c788",
+        "pattern": "F6 06 10 57 8B 7C 24 20 74 0D",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer refresh clear",
+        "va": "0x0099c792",
+        "pattern": "57 55 E8 27 90 F7 FF 83 C4 08 80 26 EF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer metadata gates",
+        "va": "0x0099c79f",
+        "pattern": "8A 0E 8A 54 24 24 8A C1 D0 E8 24 01 74 04 84 D2 74 0D 84 C0 75 11 80 FA 01 75 0C 84 CA 75 11",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer low bit clear",
+        "va": "0x0099c7c6",
+        "pattern": "84 D2 75 05 80 E1 FE 88 0E",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer value and callback gate",
+        "va": "0x0099c7cf",
+        "pattern": "8A 0E 8A 44 24 10 8A D1 C0 EA 05 80 E2 01 3A D0 74 2A C0 E0 05 32 C1 24 20 32 C1 0C 04 80 7C 24 28 01 88 06 75 16",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer callback join",
+        "va": "0x0099c806",
+        "pattern": "E8 75 FE FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility getter case dispatch",
+        "va": "0x0093a20d",
+        "pattern": "FF 24 85 50 A3 93 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button eligibility writer receiver and owner",
+        "va": "0x0099c780",
+        "pattern": "55 8B 6C 24 0C 56 8B F1",
+        "mask": "FF FF FF FF FF FF FF FF",
+    },
+]
+
 BUTTON_FIELDS = {
     "identity": {
         "class": "Sqwt::Controls::Button",
@@ -744,6 +1049,7 @@ BUTTON_FIELDS = {
     "mouseGates": {
         "handledWidthBits": 8,
         "eligibilityWidthBits": 8,
+        "eligibility": "element +0x15a byte mask 0x20 is the IsHitTestVisible value and is set.",
         "stateWidthBits": 8,
         "clickModeWidthBits": 8,
         "propertyUpdateMask": "0x03",
@@ -2283,6 +2589,20 @@ def button_addresses(document: dict) -> list[str]:
         button.get("executedForwarding", {}).get("functionVa"),
         button.get("executedForwarding", {}).get("frameworkElementCallVa"),
         button.get("executedForwarding", {}).get("baseCallVa"),
+        *[
+            button.get("eligibilityProperty", {}).get(key)
+            for key in (
+                "descriptorVa",
+                "initializerVa",
+                "getterDispatcherVa",
+                "getterVa",
+                "setterVa",
+                "refreshDispatcherVa",
+                "refreshHelperVa",
+                "writerVa",
+                "writerValueStoreVa",
+            )
+        ],
     ]
 
 
@@ -2302,19 +2622,21 @@ def button_errors(document: dict) -> list[str]:
         errors.append("button preview ingress changed")
     if (
         button.get("confidence")
-        != "STATIC for instructions, pointer/RTTI data and conditions. INFERRED for naming the packed value bit and for Click EventTrigger ordering conditional on attachment."
+        != "STATIC for instructions, pointer/RTTI data and conditions. INFERRED for naming the IsPressed value bit and for Click EventTrigger ordering conditional on attachment."
     ):
         errors.append("button confidence boundary changed")
     if button.get("unknowns") != [
         "OS input, hit testing and capture before routed preview ingress.",
-        "Writers and semantic name of element +0x15a mask 0x20.",
+        "Exhaustive IsHitTestVisible aliases and writers, late property-resolution inputs and dynamic metadata defaults.",
         "All packed-state writers, ClickMode binding changes and actual attached Click EventTriggers.",
         "Other ICommand bodies and other specialised control families.",
         "Runtime activation, Lua result, frame timing, network and server behavior.",
     ]:
         errors.append("button unknown boundaries changed")
     checks = document.get("staticChecks", [])
-    for expected in BUTTON_CHECKS:
+    if button.get("eligibilityProperty") != BUTTON_ELIGIBILITY_PROPERTY:
+        errors.append("button eligibility property contract changed")
+    for expected in BUTTON_CHECKS + BUTTON_ELIGIBILITY_CHECKS:
         found = [row for row in checks if row.get("name") == expected["name"]]
         if found != [expected]:
             errors.append(f"button static check changed: {expected['name']}")
