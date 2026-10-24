@@ -66,6 +66,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Active job and soul-stone state](actor/job-soulstone-state.md)
 - [Player nameplate icons](actor/player-nameplate-icons.md)
 - [Retainer presentation contract](actor/retainer-presentation.md)
+- [Retainer market ward and district selection](actor/retainer-ward-districts.md)
 - [Rivenroad command and presentation contract](actor/rivenroad-presentation.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
 - [Scenario and monster hierarchy](actor/scenario-monster-hierarchy.md)
