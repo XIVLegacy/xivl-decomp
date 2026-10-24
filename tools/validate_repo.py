@@ -17,6 +17,7 @@ import verify_chara_lighting_model as chara_lighting_verifier
 import verify_grow_data_boundary as grow_data_verifier
 import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_music_song_resources as music_song_verifier
+import verify_map_0003_emitter as map_emitter_verifier
 import verify_player_profile_accessors as player_profile_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
@@ -380,6 +381,14 @@ def main() -> int:
         errors.extend(
             f"retail protocol-caller contract: {error}" for error in retail_errors
         )
+    map_emitter_errors = (
+        map_emitter_verifier.verify() + map_emitter_verifier.mutation_test()
+    )
+    if map_emitter_errors:
+        errors.extend(
+            f"Map 0x0003 emitter contract: {error}" for error in map_emitter_errors
+        )
+
     grow_data_errors = grow_data_verifier.verify()
     if grow_data_errors:
         errors.extend(

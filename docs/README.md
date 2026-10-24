@@ -133,6 +133,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Map serverbound 0x0001 application producer](net/periodic-map-0001.md)
 - [Zone value-2 record construction](net/zone-value-two-record.md)
 - [Zone outbound opcode header binding](net/zone-outbound-header.md)
+- [Map serverbound 0x0003 emitter](net/map-0003-emitter.md)
 - [Chat outbound header and fixed value](net/chat-outbound-header.md)
 - [Map 0x01C8 caller inputs](net/recruitment-1c8-caller-inputs.md)
 - [Map 0x00E2 selector and state writes](net/e2-selector-state.md)
