@@ -27,6 +27,10 @@ byte agreement were checked independently. No client was executed.
 | [0x004D8160,0x004D82D1) caller | 369 | 252d230ead1f020eee7741f8838c5107558c7def46afe26698b8d46ee0176a3a |
 | [0x004DD8B0,0x004DD92E) float helper | 126 | 61d5b323e73da453c3d1721823776c87b31ef8237e19e605eb0ab8527000ca56 |
 | [0x00DAE010,0x00DAE1D3) bridge | 451 | d3f7ce4b5b1f3a382c07066a46006b95a5312b1cb06da7b61085e3bba49797a3 |
+| [0x0075BEF0,0x0075BFC5) upstream wrapper | 213 | 210f8d6e7023f20093f96ee332f8966f499441fe68f4ceee7b37e64cad791f69 |
+| [0x006E91F0,0x006E9427) upstream dispatcher | 567 | c25e9ef201fab33ef27ba7a13defbad5d112c2ffddd34b0e32bd617d0e44d184 |
+| [0x00763030,0x00763058) control-byte helper | 40 | e4a7ef572763cf5a91852bdc48ee84543025a6b73a3936469ea21063e8fff29a |
+| [0x00445D60,0x00445DA1) byte comparator | 65 | a5baafd37b78fa9a166105f1a64516b7c59056c878a300413942c3c932a627c8 |
 
 A digest authenticates the bounded body. The instruction/data interpretation
 below supplies the semantic argument.
@@ -124,9 +128,71 @@ the optional call. The text passed onward is the resulting local record.
 Its transformation and optional-helper effects remain unknown.
 
 The selector is low16(W), followed by zero u16. The capture finding labels
-value 1 Say, but this call pair establishes no concrete upstream W=1
-invocation. The float-helper literal does not prove one. The retained direct
-call reference does not establish absence of indirect callers.
+value 1 Say. A separate conditional upstream call below supplies W=1. The
+float-helper literal at 0x004D825A remains a different argument. The retained
+direct-call references do not establish absence of indirect callers.
+
+## Conditional upstream selector-one route
+
+At 0x0075BFA0, wrapper 0x0075BEF0 conditionally calls 0x004D8160 with W=1.
+Let S be its ESP after the prologue and U its incoming ECX. The prologue
+saves 0x74 bytes, placing the fourth argument at S+0x84. The byte comparison
+at 0x0075BF21 and JZ at 0x0075BF3A select 0x0075BF8F when that low byte is
+zero. Intervening MOV instructions preserve the comparison flags.
+
+On that branch the wrapper reads K through its first argument and calls
+0x004D9970 with receiver T=[U] and K. Let R be that opaque return. Pushes at
+0x0075BF9B/+9D/+9E/+9F supply literal 1, wrapper argument3, wrapper argument2
+and R. The resulting 0x004D8160 arguments are R, argument2, argument3 and 1.
+This call edge supports conditional selector-one construction if the existing
+downstream cast/text/emitter/bridge gates pass. It establishes no runtime
+occurrence or successful emission. The nonzero-control branch uses separate
+unexpanded helpers and has no established overall emission policy.
+
+Dispatcher 0x006E91F0 calls this wrapper at 0x006E92ED. Its selected branch
+compares an opaque Q1 through 0x00445D60 at 0x006E92C4 against the literal
+say at 0x00FD4BF0. The helper compares exact bytes through the terminating
+zero and returns nonzero AL on equality. Equality falls through 0x006E92CB.
+The literal identifies comparison bytes, not a gameplay action, UI/OS input
+path or actual message text. No semantic function name follows from it.
+
+Let C be the dispatcher's incoming ECX and P its explicit argument. The
+bounded argument joins are:
+
+| Wrapper argument | Dispatcher source |
+| --- | --- |
+| 1 | &K, with K=dword [P+0x0C] saved at stable S+0x18 |
+| 2 | &L, the local object constructed by 0x00447200 using [C+0x60]+4 |
+| 3 | Q0, an opaque 0x0071CE70 result for index 0 |
+| 4 | EAX from 0x00763030, with only AL established |
+
+Q1 is the same unexpanded helper's result for index 1. The helper's conversion
+policy and all source contents/meanings remain unknown. Three pending pushes
+make LEA [ESP+0x24] at 0x006E92E6 equal the saved K address S+0x18.
+
+The dispatcher obtains opaque V from 0x00CC7510 with receiver [P+4], then
+loads D=[[V]+4] and U=[D]. U is the wrapper receiver, and T=[U] is the
+0x004D8160 receiver. These loads do not establish object types or population.
+The selected 0x004D8160 arguments are R, &L, Q0 and 1. In particular, &L is
+that caller's second argument and is not its producer's serialized context
+u32 directly. R's selection algorithm and identity remain unresolved.
+
+The control helper 0x00763030 receives D. Ordinary non-error paths return
+AL=0 when dword [D+0x20] is zero. Otherwise they form H=dword [D+0x1C],
+N=dword [H] and Z=dword [N+8]. A consistency case N==H calls unexpanded
+0x009D22B4, whose behavior is unknown. With valid ordinary state, a null Z
+returns zero AL and otherwise AL receives byte [Z+0xBA]. The source byte's
+meaning, population and lifetime remain unknown. The dispatcher pushes EAX,
+but the wrapper tests only its low byte. Upper EAX bits are not established.
+Do not assign a semantic mode to either control case.
+
+The v2 catalog separates upstream.staticConditionalCallProven=true from
+upstream.runtimeInvocationObserved=false. The latter records the absence of
+a retained runtime observation, not impossibility of invocation. The global
+selector remains low16(W) with no fixed value. The verifier accepts v2 and
+rejects the ambiguous legacy selector field. The outer wrapper and dispatcher
+do not explicitly test the selected call result before cleanup/epilogue, so
+this finding supplies no stronger return or delivery contract.
 
 ## Local results and verification
 

@@ -1,5 +1,5 @@
 {
-  "format": "xivl-map-0003-emitter-v1",
+  "format": "xivl-map-0003-emitter-v2",
   "source": {
     "binary": "ffxivgame.exe",
     "bytes": 15996808,
@@ -173,8 +173,7 @@
     "floatHelperRetVas": [
       "0x004dd921",
       "0x004dd92b"
-    ],
-    "upstreamValueOneInvocationProven": false
+    ]
   },
   "caller": {
     "contextSource": "[B+0x98] ? [[B+0x98]+0x88] : 0",
@@ -220,12 +219,14 @@
     "tail byte values",
     "text transformation and optional-helper effects",
     "context population and meaning",
-    "upstream concrete selector-one invocation",
+    "runtime occurrence of the conditional selector-one route",
     "indirect-caller completeness",
     "exception and fault behavior",
     "submission queue lifetime",
     "transport and delivery",
-    "server acceptance and tolerance"
+    "server acceptance and tolerance",
+    "upstream control-byte population, meaning and lifetime",
+    "opaque upstream argument and receiver population"
   ],
   "references": {
     "zoneHeader": "docs/net/zone-outbound-header.md",
@@ -255,6 +256,121 @@
       "startVa": "0x00dae010",
       "endVa": "0x00dae1d3",
       "sha256": "d3f7ce4b5b1f3a382c07066a46006b95a5312b1cb06da7b61085e3bba49797a3"
+    },
+    {
+      "name": "upstream-W1",
+      "startVa": "0x0075bef0",
+      "endVa": "0x0075bfc5",
+      "sha256": "210f8d6e7023f20093f96ee332f8966f499441fe68f4ceee7b37e64cad791f69"
+    },
+    {
+      "name": "upstream-dispatch",
+      "startVa": "0x006e91f0",
+      "endVa": "0x006e9427",
+      "sha256": "c25e9ef201fab33ef27ba7a13defbad5d112c2ffddd34b0e32bd617d0e44d184"
+    },
+    {
+      "name": "control-byte",
+      "startVa": "0x00763030",
+      "endVa": "0x00763058",
+      "sha256": "e4a7ef572763cf5a91852bdc48ee84543025a6b73a3936469ea21063e8fff29a"
+    },
+    {
+      "name": "byte-equality",
+      "startVa": "0x00445d60",
+      "endVa": "0x00445da1",
+      "sha256": "a5baafd37b78fa9a166105f1a64516b7c59056c878a300413942c3c932a627c8"
     }
-  ]
+  ],
+  "upstream": {
+    "staticConditionalCallProven": true,
+    "runtimeInvocationObserved": false,
+    "wrapperVa": "0x0075bef0",
+    "callSiteVa": "0x0075bfa0",
+    "calleeVa": "0x004d8160",
+    "wLiteral": 1,
+    "wPushVa": "0x0075bf9b",
+    "gate": {
+      "wrapperArgument": 4,
+      "stackOffset": 132,
+      "testVa": "0x0075bf21",
+      "branchVa": "0x0075bf3a",
+      "zeroTargetVa": "0x0075bf8f",
+      "predicate": "low-byte-equal-zero",
+      "bytes": 1,
+      "nonzeroBranchEmissionPolicy": null,
+      "modeMeaning": null
+    },
+    "dispatcher": {
+      "functionVa": "0x006e91f0",
+      "callSiteVa": "0x006e92ed",
+      "comparisonCallVa": "0x006e92c4",
+      "equalityBranchVa": "0x006e92cb",
+      "comparisonHelperVa": "0x00445d60",
+      "literalVa": "0x00fd4bf0",
+      "literal": "say",
+      "terminatorRequired": true,
+      "comparison": "exact-byte-equality"
+    },
+    "control": {
+      "helperVa": "0x00763030",
+      "establishedRegister": "AL",
+      "pushedRegister": "EAX",
+      "consumedBytes": 1,
+      "upperEaxBitsEstablished": false,
+      "ordinaryZeroCases": [
+        "dword[D+0x20]==0",
+        "Z is null"
+      ],
+      "ordinaryChain": [
+        "H=dword[D+0x1c]",
+        "N=dword[H]",
+        "Z=dword[N+8]"
+      ],
+      "ordinaryOtherSource": "byte[Z+0xba]",
+      "consistencyHelperVa": "0x009d22b4",
+      "consistencyHelperBehavior": null,
+      "meaning": null,
+      "population": null,
+      "lifetime": null
+    },
+    "arguments": {
+      "qHelperVa": "0x0071ce70",
+      "q0Index": 0,
+      "q1Index": 1,
+      "qMeaning": null,
+      "comparisonSource": "Q1",
+      "lSource": "[C+0x60]+4",
+      "lConstructorVa": "0x00447200",
+      "kSource": "dword[P+0x0c]",
+      "dispatcherArguments": [
+        "&K",
+        "&L",
+        "Q0",
+        "EAX"
+      ],
+      "wrapperReceiver": "U=[D]",
+      "calleeReceiver": "T=[U]",
+      "calleeArguments": [
+        "R",
+        "&L",
+        "Q0",
+        1
+      ],
+      "rSource": "opaque 0x004d9970(T,K) return",
+      "rMeaning": null,
+      "vSource": "opaque 0x00cc7510([P+4]) return",
+      "dSource": "[[V]+4]",
+      "sourceMeaning": null,
+      "originalTextUnchangedProven": false,
+      "textPolicy": null,
+      "savedKStackOffset": 24,
+      "keyAddressLeaVa": "0x006e92e6",
+      "keyAddressEspOffset": 36,
+      "pendingPushBytes": 12
+    },
+    "downstreamGatesProvenSatisfied": false,
+    "outerResultContract": "no explicit test of the selected call result before cleanup and epilogue",
+    "sourcePopulation": null
+  }
 }
