@@ -104,8 +104,8 @@ PreviewMouseLeftButtonUp id `0x0F` to I slot 44
 `0x013593CC`, initialized at `0x00F22CA0` and `0x00F22CD0` with routing
 strategy byte 2. Button selects `0x0097EFF0` and `0x0097F080`.
 Both call their base helper first, then require the byte behind args `+0x10`
-to be zero and byte E `+0x15A` mask `0x20` to be set. The mask's semantic
-name is not established. STATIC.
+to be zero and byte E `+0x15A` mask `0x20` to be set. This is the
+`IsHitTestVisible` value bit described below. STATIC.
 
 The down path calls Click helper `0x0097EBA0` when ClickMode byte E `+0x3AC`
 is 1 (`0x0097F063..0x0097F075`). The up path snapshots bit `0x20` of byte
@@ -174,6 +174,46 @@ Button I slot 65 is `0x0097EDB0`. It calls FrameworkElement's
 owner, stop-byte and store-pointer gates. Thus this concrete Button forwards
 Executed to the base handler store before its specialised logic. STATIC.
 Other specialised control families remain unestablished.
+
+### IsHitTestVisible value and writers
+
+Initializer `0x00F22930` constructs descriptor `0x01359354` from ASCII
+`IsHitTestVisible` at `0x0106BEC4` and assigns index 2 at descriptor `+0x14`.
+Constructor `0x009108E0` stores the name pointer at descriptor `+0`.
+Getter dispatcher `0x0093A200` case 2, selected by table `0x0093A350`, adds
+E `+0x15A` and calls `0x0093E220`, which extracts `(byte>>5)&1`.
+This identifies the byte tested at I `+0xA6`, with I=E+0xB4, as the packed
+IsHitTestVisible value. STATIC.
+
+The constructor chain `0x00974410 -> 0x0097F200 -> 0x00954AB0 ->
+0x00936190 -> 0x00938C80 -> 0x0092F640 -> 0x0093C750` preserves the complete
+receiver. At `0x0093C8B3..0x0093C8BF`, it writes E `+0x15A` as
+`(old&0xE0)|0x20`. This sets value bit 5, clears metadata bits 0..4 and
+preserves bits 6..7. Later writes `0x0093C8F4` and `0x0093C910` replace only
+bits 1 and 0 from descriptor `+0x18` at `0x0135936C`, using source bits 7
+and 5. The value bit remains set. Preserved upper-bit values and dynamic
+metadata defaults are not established. STATIC.
+
+Setter `0x0093C300` passes E `+0x15A` and descriptor `0x01359354` to
+`0x0099C780`. Refresh dispatcher `0x0093D090` case 2, selected by table
+`0x0093D320`, passes the same byte and descriptor through `0x009321D0`.
+That helper calls `0x00916310`. If its result is `0x01356DA8`, it sets
+packed mask `0x10` and returns. Otherwise it calls conversion helper
+`0x00988F90` and joins `0x0099C780`. The resolution and conversion helpers'
+semantics are not assigned here. STATIC for these calls and branches.
+
+For byte P at its ECX receiver, writer `0x0099C780` receives stack arguments
+`(V,owner,callback,callbackArgument,descriptor,M,C)`. V, M and C are bytes.
+If P has mask `0x10`, it calls `0x009157C0(owner,descriptor)` and clears that
+mask before the following gates. It rejects when `(P&2)!=0 && M==0`, or
+when `(P&2)==0 && M==1 && (P&1)==0`. On an accepted M=0 path, it clears
+mask `0x01` before comparing `(P>>5)&1` with the whole input byte V.
+If unequal, store `0x0099C7F1` writes
+`(P&0xDF)|((V<<5)&0x20)|0x04`. Only this unequal-comparison path with C
+exactly 1 calls `0x0099C680`. No semantic names are assigned to M, C or metadata
+masks. These inspected writers do not establish exhaustive aliases or writers,
+late resolution inputs, a concrete Button caller, current instance values,
+physical input delivery or control membership. STATIC.
 
 ## Executed event delivery
 
@@ -1063,8 +1103,9 @@ Do not assume:
   to Sqwt input, numeric phases and presentation. Matching callbacks clear the active slot,
   but complete lookup, failure cleanup and resume paths and guaranteed
   eventual release remain UNKNOWN.
-- Button physical-input reachability, hit testing, capture, focus, eligibility
-  writers, all packed-state writers, binding-driven ClickMode changes and
+- Button physical-input reachability, hit testing, capture, focus, exhaustive
+  IsHitTestVisible aliases and writers, late property-resolution inputs, dynamic
+  metadata defaults, all packed-state writers, binding-driven ClickMode changes and
   installed Click EventTriggers. Arbitrary ICommand bodies remain untraced.
 - The sites where `KeyBinding` and `PadBinding` put a record into an
   `Executed` event. They are INFERRED to use the same command slot 2 route as
@@ -1190,6 +1231,14 @@ Do not assume:
    not establish runtime reachability, inventory readiness or widget lifetime.
 
 ### Button source reproduction
+
+For IsHitTestVisible, re-read name `0x0106BEC4`, initializer `0x00F22930`,
+name store `0x009108EA`, getter case `0x0093A246` and helper `0x0093E220`.
+Follow the unchanged-receiver constructor chain above and the default and
+metadata stores. Re-read setter `0x0093C300`, refresh case `0x0093D0FB`,
+helper `0x009321D0` and writer `0x0099C780`. Preserve the byte reads,
+metadata gates, whole-byte V comparison and C=1 condition. The manifest's
+property anchors pin these observations without assigning metadata meanings.
 
 1. Read constructor `0x00974410` and ButtonBase constructor `0x0097F200`.
    Re-read tables `0x01073CAC`, `0x01073B84` and `0x0107603C`, their preceding

@@ -433,6 +433,49 @@ def button_source_tests(real: dict) -> None:
         )
         + b".?AVButton@Controls@Sqwt@@\0"
     )
+    property_fragments = (
+        (
+            "descriptor initializer",
+            "68 C4 BE 06 01 B9 54 93 35 01 E8 A1 DF 9E FF C7 05 68 93 35 01 02 00 00 00",
+        ),
+        (
+            "constructor value default",
+            "8A 86 5A 01 00 00 24 E0 0C 20 33 ED 88 86 5A 01 00 00",
+        ),
+        ("getter packed extraction", "8A 01 8B 4C 24 08 C0 E8 05 51 8D 54 24 07 24 01"),
+        ("setter receiver and join", "51 50 81 C1 5A 01 00 00 E8 56 04 06 00"),
+        ("refresh receiver and join", "8D 8E 5A 01 00 00 E8 AF 50 FF FF"),
+        ("resolution deferred branch", "3D A8 6D 35 01 75 0B 80 0E 10"),
+        (
+            "constructor metadata bit one",
+            "8B 0D 6C 93 35 01 C1 E9 07 02 C9 32 8E 5A 01 00 00 22 CB 30 8E 5A 01 00 00",
+        ),
+        (
+            "constructor metadata bit zero",
+            "8B 15 6C 93 35 01 8A 86 5A 01 00 00 C1 EA 05 32 D0 80 E2 01 32 D0 88 96 5A 01 00 00",
+        ),
+        ("writer refresh gate", "F6 06 10 57 8B 7C 24 20 74 0D"),
+        ("writer refresh clear", "57 55 E8 27 90 F7 FF 83 C4 08 80 26 EF"),
+        (
+            "writer metadata gates",
+            "8A 0E 8A 54 24 24 8A C1 D0 E8 24 01 74 04 84 D2 74 0D 84 C0 75 11 80 FA 01 75 0C 84 CA 75 11",
+        ),
+        ("writer low bit clear", "84 D2 75 05 80 E1 FE 88 0E"),
+        (
+            "writer value and callback gate",
+            "8A 0E 8A 44 24 10 8A D1 C0 EA 05 80 E2 01 3A D0 74 2A C0 E0 05 32 C1 24 20 32 C1 0C 04 80 7C 24 28 01 88 06 75 16",
+        ),
+    )
+    property_selected = {}
+    for name, literal in property_fragments:
+        property_selected["button eligibility " + name] = DATA_VA + len(data)
+        data += bytes.fromhex(literal)
+    property_selected["button eligibility property name"] = DATA_VA + len(data)
+    data += b"IsHitTestVisible\0"
+    property_selected["button eligibility getter case two"] = DATA_VA + len(data)
+    data += struct.pack("<I", 0x0093A246)
+    property_selected["button eligibility refresh case two"] = DATA_VA + len(data)
+    data += struct.pack("<I", 0x0093D0FB)
     image = build_image(bytes(text), data, len(data))
     selected = {
         "button up snapshot before refresh": TEXT_VA,
@@ -449,6 +492,7 @@ def button_source_tests(real: dict) -> None:
         "button RoutedCommand slot": DATA_VA + 0x18,
         "button RTTI name": DATA_VA + 0x1C,
     }
+    selected.update(property_selected)
     rows = []
     for name, va in selected.items():
         row = copy.deepcopy(
@@ -531,6 +575,84 @@ def button_source_tests(real: dict) -> None:
     errors = run(bytes(changed), document)
     check(
         "Button RTTI spelling is enforced", len(errors) == 1 and "string" in errors[0]
+    )
+
+    for name, offset, value in (
+        ("descriptor initializer", 21, 3),
+        ("constructor value default", 7, 0xC0),
+        ("constructor value default", 9, 0x40),
+        ("getter packed extraction", 8, 4),
+        ("getter packed extraction", 15, 3),
+        ("setter receiver and join", 4, 0x5B),
+        ("refresh receiver and join", 2, 0x5B),
+        ("resolution deferred branch", 5, 0x74),
+        ("resolution deferred branch", 9, 0x20),
+        ("constructor metadata bit one", 8, 6),
+        ("constructor metadata bit zero", 14, 6),
+        ("writer refresh gate", 8, 0x75),
+        ("writer refresh clear", 12, 0xFF),
+        ("writer metadata gates", 2, 0x8B),
+        ("writer metadata gates", 5, 0x28),
+        ("writer metadata gates", 16, 0x75),
+        ("writer metadata gates", 24, 2),
+        ("writer low bit clear", 6, 0xFF),
+        ("writer value and callback gate", 5, 0x14),
+        ("writer value and callback gate", 14, 0x38),
+        ("writer value and callback gate", 24, 0x40),
+        ("writer value and callback gate", 28, 0x08),
+        ("writer value and callback gate", 33, 2),
+        ("writer value and callback gate", 36, 0x74),
+        ("property name", 0, ord("X")),
+        ("getter case two", 0, 0x5B),
+        ("refresh case two", 0, 0x25),
+    ):
+        label = "button eligibility " + name
+        changed = bytearray(image)
+        changed[0x200 + len(text) + selected[label] - DATA_VA + offset] = value
+        errors = run(bytes(changed), document)
+        check(label + f" literal byte {offset} is enforced", len(errors) == 1)
+    for field, value in (
+        ("name", "UNKNOWN"),
+        ("propertyIndex", 3),
+        ("elementOffset", "+0x15b"),
+        ("widthBits", 32),
+        ("valueMask", "0x04"),
+        ("defaultOperation", "0x20"),
+        ("writerCompare", "Compare old bit with V & 1."),
+        ("writerReject", []),
+        ("writerCallback", "Always call 0x0099c680."),
+    ):
+        changed = copy.deepcopy(real)
+        changed["buttonSource"]["eligibilityProperty"][field] = value
+        check(
+            field + " eligibility property drift is rejected",
+            "button eligibility property contract changed"
+            in verifier.button_errors(changed),
+        )
+    for name in (
+        "button eligibility descriptor initializer",
+        "button eligibility constructor value default",
+        "button eligibility writer metadata gates",
+    ):
+        changed = copy.deepcopy(real)
+        changed["staticChecks"] = [
+            row for row in changed["staticChecks"] if row.get("name") != name
+        ]
+        check(
+            name + " cannot disappear",
+            f"button static check changed: {name}" in verifier.button_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    row = next(
+        row
+        for row in changed["staticChecks"]
+        if row.get("name") == "button eligibility writer value and callback gate"
+    )
+    row["mask"] = " ".join(["00"] * 38)
+    check(
+        "eligibility writer mask cannot be disabled",
+        "button static check changed: button eligibility writer value and callback gate"
+        in verifier.button_errors(changed),
     )
 
     for section, field, value in (
