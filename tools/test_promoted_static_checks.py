@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import struct
@@ -12,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import verify_camera_input_chain as camera  # noqa: E402
+import verify_map_0003_emitter as map_emitter  # noqa: E402
 import verify_player_profile_accessors as profile  # noqa: E402
 import verify_s2c_0193_native_state as timer  # noqa: E402
 import verify_status_wire_translation as status  # noqa: E402
@@ -400,6 +402,263 @@ def _raises(call) -> bool:
     return False
 
 
+def map_emitter_checks() -> None:
+    document = json.loads(map_emitter.MANIFEST.read_text(encoding="ascii"))
+    check("Map emitter catalog passes", map_emitter.verify(document) == [])
+    geometry = document["geometry"]
+    check(
+        "Map emitter uses actual application geometry",
+        (
+            geometry["internalGameMessageBytes"],
+            geometry["gameHeaderBytes"],
+            geometry["applicationBytes"],
+            geometry["normalizedViewBytes"],
+            geometry["recordApplicationOffset"],
+            geometry["dataApplicationOffset"],
+        )
+        == (560, 16, 544, 552, 24, 16),
+    )
+    check(
+        "Map emitter application partition is literal and complete",
+        [(row["offset"], row["bytes"]) for row in document["fields"]]
+        == [
+            (0, 4),
+            (4, 4),
+            (8, 4),
+            (12, 4),
+            (16, 4),
+            (20, 4),
+            (24, 2),
+            (26, 2),
+            (28, 512),
+            (540, 4),
+        ]
+        and document["fields"][-1]["value"] is None
+        and document["fields"][-1]["writeVas"] == [],
+    )
+    check(
+        "Map normalized offsets retain eight header bytes",
+        (
+            geometry["normalizedViewApplicationOffset"],
+            geometry["normalizedSelectorOffset"],
+            geometry["normalizedTextOffset"],
+            geometry["normalizedTailOffset"],
+        )
+        == (8, 32, 36, 548),
+    )
+    selector = document["selector"]
+    check(
+        "Map selector comes from W while literal one is cleaned by the helper",
+        (
+            selector["callerArgument"],
+            selector["emitterArgument"],
+            selector["bytes"],
+            selector["floatHelperCleanupBytes"],
+        )
+        == (4, 5, 2, 4)
+        and selector["source"] == "low16(W)"
+        and selector["fixedValue"] is None
+        and selector["upstreamValueOneInvocationProven"] is False,
+    )
+
+    for section, key, value, expected in [
+        ("geometry", "applicationBytes", 552, "geometry contract changed"),
+        ("geometry", "recordApplicationOffset", 16, "geometry contract changed"),
+        ("geometry", "internalGameMessageBytes", 559, "geometry contract changed"),
+        ("selector", "fixedValue", 1, "selector contract changed"),
+        ("selector", "callerArgument", 3, "selector contract changed"),
+        ("selector", "source", "float-helper-literal", "selector contract changed"),
+        ("selector", "floatHelperCleanupBytes", 0, "selector contract changed"),
+        (
+            "selector",
+            "upstreamValueOneInvocationProven",
+            True,
+            "selector contract changed",
+        ),
+        ("localResult", "deliveryProven", True, "localResult contract changed"),
+        ("localResult", "serverAcceptanceProven", True, "localResult contract changed"),
+        ("caller", "contextMeaning", "invented identity", "caller contract changed"),
+        ("caller", "textPolicy", "unchanged input", "caller contract changed"),
+    ]:
+        changed = copy.deepcopy(document)
+        changed[section][key] = value
+        check(f"Map rejects {section}.{key}", map_emitter.verify(changed) == [expected])
+    for label, change, expected in [
+        (
+            "tail zero",
+            lambda d: d["fields"][-1].update(value=0),
+            "fields contract changed",
+        ),
+        (
+            "dropped field",
+            lambda d: d["fields"].pop(2),
+            "application fields do not form an ordered partition",
+        ),
+        (
+            "overlap",
+            lambda d: d["fields"][1].update(offset=3),
+            "application fields do not form an ordered partition",
+        ),
+        (
+            "shortened text copy",
+            lambda d: d["fields"][8].update(bytes=511),
+            "application fields do not form an ordered partition",
+        ),
+        (
+            "shifted store anchor",
+            lambda d: d["fields"][0].update(writeVas=["0x004e040a"]),
+            "fields contract changed",
+        ),
+        (
+            "selector width",
+            lambda d: d["fields"][6].update(bytes=4),
+            "fields contract changed",
+        ),
+        (
+            "missing body",
+            lambda d: d["bodyRanges"].pop(),
+            "bodyRanges contract changed",
+        ),
+        (
+            "duplicate body",
+            lambda d: d["bodyRanges"].append(copy.deepcopy(d["bodyRanges"][0])),
+            "body range names must be nonempty and unique",
+        ),
+        (
+            "body boundary",
+            lambda d: d["bodyRanges"][0].update(endVa="0x004e04d5"),
+            "bodyRanges contract changed",
+        ),
+        (
+            "bad digest",
+            lambda d: d["bodyRanges"][0].update(sha256="invalid"),
+            "body range digest is malformed",
+        ),
+        (
+            "extra claim",
+            lambda d: d.update(unprovedFact="invented"),
+            "catalog sections changed",
+        ),
+    ]:
+        changed = copy.deepcopy(document)
+        change(changed)
+        check(
+            f"Map rejects {label} for its own reason",
+            expected in map_emitter.verify(changed),
+        )
+
+    # Authored text fixture and literal SHA256, independent of retail catalog ranges.
+    fixture = {
+        "bodyRanges": [
+            {
+                "name": "authored-text",
+                "startVa": "0x00401000",
+                "endVa": "0x00401003",
+                "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            }
+        ]
+    }
+
+    def fixture_image(rows: list[tuple[int, bytes]]) -> bytes:
+        data = bytearray(build_image(rows))
+        struct.pack_into("<H", data, 0x84, 0x14C)
+        struct.pack_into("<H", data, 0x98, 0x10B)
+        struct.pack_into("<I", data, 0xB4, 0x00400000)
+        return bytes(data)
+
+    image = fixture_image([(0x00401000, b"abc")])
+    check(
+        "Map authored fixture passes range checks",
+        map_emitter.verify_image(image, fixture, require_identity=False) == [],
+    )
+    check(
+        "Map image identity is enforced by default",
+        map_emitter.verify_image(image, fixture)
+        == ["executable size changed", "executable SHA256 changed"],
+    )
+    flipped = bytearray(image)
+    flipped[first_raw(1)] ^= 1
+    check(
+        "Map changed payload fails the digest",
+        map_emitter.verify_image(bytes(flipped), fixture, require_identity=False)
+        == ["range authored-text digest changed"],
+    )
+    shifted = copy.deepcopy(fixture)
+    shifted["bodyRanges"][0].update(startVa="0x00401001", endVa="0x00401004")
+    check(
+        "Map shifted VA fails backing",
+        map_emitter.verify_image(image, shifted, require_identity=False)
+        == ["range authored-text is not uniquely file-backed"],
+    )
+    bad_digest = copy.deepcopy(fixture)
+    bad_digest["bodyRanges"][0]["sha256"] = "0" * 64
+    check(
+        "Map independent bad expected digest fails",
+        map_emitter.verify_image(image, bad_digest, require_identity=False)
+        == ["range authored-text digest changed"],
+    )
+    table = 0x178
+    virtual_tail = bytearray(image)
+    struct.pack_into("<I", virtual_tail, table + 8, 4)
+    tail_range = {
+        "bodyRanges": [
+            {
+                "name": "virtual-zero",
+                "startVa": "0x00401003",
+                "endVa": "0x00401004",
+                "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+            }
+        ]
+    }
+    check(
+        "Map virtual zeros are not file-backed evidence",
+        map_emitter.verify_image(
+            bytes(virtual_tail), tail_range, require_identity=False
+        )
+        == ["range virtual-zero is not uniquely file-backed"],
+    )
+    outside = bytearray(image)
+    struct.pack_into("<I", outside, table + 16, 4)
+    check(
+        "Map raw extent beyond EOF fails",
+        map_emitter.verify_image(bytes(outside), fixture, require_identity=False)
+        == ["image is not a readable PE32: section raw range is outside the file"],
+    )
+    check(
+        "Map truncated section table fails",
+        map_emitter.verify_image(image[:0x190], fixture, require_identity=False)
+        == ["image is not a readable PE32: section table is empty or truncated"],
+    )
+    for label, offset, fmt, value, reason in [
+        ("MZ", 0, "<H", 0, "missing MZ signature"),
+        ("PE signature", 0x80, "<I", 0, "missing or truncated PE signature"),
+        ("machine", 0x84, "<H", 0x8664, "machine is not x86"),
+        ("PE32", 0x98, "<H", 0x20B, "optional header is not PE32"),
+        ("image base", 0xB4, "<I", 0x00500000, "image base changed"),
+        ("optional header", 0x94, "<H", 31, "optional header is truncated"),
+    ]:
+        changed_image = bytearray(image)
+        struct.pack_into(fmt, changed_image, offset, value)
+        check(
+            f"Map rejects wrong {label}",
+            map_emitter.verify_image(
+                bytes(changed_image), fixture, require_identity=False
+            )
+            == [f"image is not a readable PE32: {reason}"],
+        )
+    ambiguous = fixture_image([(0x00401000, b"abc"), (0x00401000, b"abc")])
+    check(
+        "Map ambiguous backing fails",
+        map_emitter.verify_image(ambiguous, fixture, require_identity=False)
+        == ["range authored-text is not uniquely file-backed"],
+    )
+    check(
+        "Map no range list fails explicitly",
+        map_emitter.verify_image(image, {"bodyRanges": []}, require_identity=False)
+        == ["bodyRanges must be a nonempty list"],
+    )
+
+
 def main() -> int:
     exercise("timer handler", timer, timer.MANIFEST)
     exercise("player profile", profile, profile.MANIFEST)
@@ -491,6 +750,7 @@ def main() -> int:
 
     camera_checks()
     status_checks()
+    map_emitter_checks()
 
     if FAILED:
         print(f"FAIL: {len(FAILED)} of {len(FAILED) + len(PASSED)}")
