@@ -1617,6 +1617,389 @@ ELIGIBILITY_CHECKS = [
 ]
 
 
+UPSTREAM_SLOT4 = {
+    "confidence": "STATIC gated invocation and conditional local order",
+    "raptureReceiver": {
+        "vtableVa": "0x00f8cc1c",
+        "slot": 1,
+        "functionVa": "0x004b3c50",
+        "colVa": "0x01140ba4",
+        "typeDescriptorVa": "0x012695c0",
+        "typeName": ".?AVRapture@Application@@",
+        "completeObjectOffset": 4,
+        "fieldOffsetFromSlotReceiver": 100,
+        "fieldOffsetFromCompleteObject": 104,
+        "fieldLoadVa": "0x004b3dd1",
+    },
+    "edges": [
+        {
+            "siteVa": "0x004b3dd4",
+            "targetVa": "0x004daa10",
+            "transfer": "call",
+            "receiver": "u32[S+0x64], S is the Rapture secondary slot-1 receiver",
+        },
+        {
+            "siteVa": "0x004dab41",
+            "targetVa": "0x004da680",
+            "transfer": "tail JMP",
+            "receiver": "adapter incoming ECX +0x10",
+        },
+        {
+            "siteVa": "0x004da948",
+            "targetVa": "0x00578970",
+            "transfer": "call",
+            "receiver": "incoming ECX +0x510",
+        },
+        {
+            "siteVa": "0x005789d3",
+            "targetVa": "0x00cc98a0",
+            "transfer": "call",
+            "receiver": "u32[incoming ECX+0]",
+        },
+        {
+            "siteVa": "0x00cc98a6",
+            "targetVa": "0x00cda330",
+            "transfer": "call",
+            "receiver": "u32[wrapper+0]",
+        },
+        {
+            "siteVa": "0x00cda452",
+            "targetVa": "0x00ce2410",
+            "transfer": "call",
+            "receiver": "u32[node+8]",
+        },
+        {
+            "siteVa": "0x00ce242a",
+            "targetVa": "0x00ccc9d0",
+            "transfer": "call",
+            "receiver": "u32[record+0]",
+        },
+        {
+            "siteVa": "0x00ccc9d5",
+            "target": "receiver vptr +0x10, zero-based slot 4",
+            "transfer": "tail JMP",
+        },
+    ],
+    "outerGates": [
+        "0x004da680 incoming receiver byte +0x504 ==0 and byte +0x54b ==0 and "
+        "0x00575740 AL ==0",
+        "local byte at stack +0x17 ==0, selected by unsigned "
+        "u32(result_of_0x00443e40-4)>2",
+        "0x00578970 incoming receiver byte +0x3b ==0 and 0x00cc9890 AL ==0",
+    ],
+    "recordWalk": {
+        "stopByte": "u8[u32[engine+0x1cc]+8] ==0",
+        "nonzeroCountOffset": "+0x194",
+        "nodeRootOffset": "+0x190",
+        "recordPointerOffset": "+8",
+        "lookupVa": "0x0062f320",
+        "lookupReceiverOffset": "+0x198",
+        "lookupKey": "u32[node+8]",
+        "dispatchPredicate": "lookup-not-found, returned iterator +4 equals "
+        "saved u32[engine+0x19c]",
+        "comparisonVa": "0x00cda43b",
+    },
+    "recordDispatch": {
+        "functionVa": "0x00ce2410",
+        "gates": ["u8[record+0x7e] ==0", "u8[record+0x80] !=0"],
+        "receiver": "u32[record+0]",
+        "arguments": ["engine-wrapper pointer", "record+0x70"],
+        "vtableOffset": "+0x10",
+        "zeroBasedSlot": 4,
+        "constructorVa": "0x00ce2bc0",
+        "controlStoreVa": "0x00ce2bf7",
+        "backlinkStoreVa": "0x00ce2c90",
+        "constructorEnableClearVa": "0x00ce2c86",
+        "constructorEnablesDispatch": False,
+    },
+    "localOrder": {
+        "walkCallVa": "0x00cc98a6",
+        "laterCallVa": "0x00cc98b5",
+        "laterHelperVa": "0x00cf1b50",
+        "relation": "engine walk returns normally before later helper call, "
+        "including skipped walk",
+        "allNotificationsOrdered": False,
+    },
+    "numeric1": {
+        "conditionalCallVa": "0x00cf1d16",
+        "helperVa": "0x00cce1c0",
+        "firstComparisonGlobalVa": "0x0130cecc",
+        "secondComparisonGlobalVa": "0x0130ced0",
+        "selection": "first comparison unequal, second comparison equal, subject "
+        "to intervening gates",
+        "dispatcherCallVa": "0x00cce21a",
+        "dispatcherVa": "0x00ccd910",
+        "literal": 1,
+        "everyPass": False,
+    },
+    "unknowns": [
+        "scheduling above the Rapture secondary vtable and fixed cadence",
+        "every concrete widget record registration, enabling and visitation",
+        "exhaustive input, numeric phase and presentation ordering",
+        "other threads and reentry",
+        "next-pass or eventual replay",
+    ],
+}
+
+UPSTREAM_SLOT4_CHECKS = [
+    {
+        "kind": "signature",
+        "name": "upstream Rapture secondary vptr write",
+        "va": "0x004b3acb",
+        "pattern": "8D 7E 04 C7 06 30 CC F8 00 C7 07 1C CC F8 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream Rapture slot receiver",
+        "va": "0x004b3c92",
+        "pattern": "8B F1",
+        "mask": "FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream Rapture receiver field and call",
+        "va": "0x004b3dd1",
+        "pattern": "8B 4E 64 E8 37 6C 02 00",
+        "mask": "FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream adapter adjusted tail JMP",
+        "va": "0x004dab38",
+        "pattern": "8D 4F 10 5F 5E 5D 83 C4 08 E9 3A FB FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream application initial byte gate",
+        "va": "0x004da6a9",
+        "pattern": "80 BE 04 05 00 00 00 74 16",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream application second byte gate",
+        "va": "0x004da715",
+        "pattern": "80 BE 4B 05 00 00 00 0F 85 5E 02 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream application AL gate",
+        "va": "0x004da728",
+        "pattern": "E8 13 B0 09 00 84 C0 0F 85 4B 02 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream application unsigned range",
+        "va": "0x004da746",
+        "pattern": "83 C0 FC 83 F8 02 77 06 88 5C 24 17 EB 55",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream application local zero store",
+        "va": "0x004da763",
+        "pattern": "C6 44 24 1F 00",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream application local gate and call",
+        "va": "0x004da93b",
+        "pattern": "80 7C 24 17 00 75 0B 8D 8E 10 05 00 00 E8 23 E0 09 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream pass byte gate",
+        "va": "0x00578996",
+        "pattern": "80 7E 3B 00 0F 85 F1 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream pass stop gate",
+        "va": "0x005789a0",
+        "pattern": "8B 0E E8 E9 0E 75 00 84 C0 0F 85 E2 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream pass wrapper call",
+        "va": "0x005789cc",
+        "pattern": "8B 0E 8D 54 24 0C 52 E8 C8 0E 75 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream wrapper stop pointer chain",
+        "va": "0x00cc9890",
+        "pattern": "8B 01 8B 88 CC 01 00 00 8A 41 08 C3",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk before helper calls",
+        "va": "0x00cc98a3",
+        "pattern": "8B 0E 57 E8 85 0A 01 00 8B F8 8B 06 8B 88 C0 01 00 00 E8 96 82 02 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk stop byte gate",
+        "va": "0x00cda37b",
+        "pattern": "8B 83 CC 01 00 00 8A 40 08 84 C0 74 16",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk count gate",
+        "va": "0x00cda39e",
+        "pattern": "83 BB 94 01 00 00 00 0F 84 10 02 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk node root",
+        "va": "0x00cda3bc",
+        "pattern": "8B 83 90 01 00 00 8B 00 8B 8B 90 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk saved lookup sentinel",
+        "va": "0x00cda3f5",
+        "pattern": "8B 93 9C 01 00 00 8D B3 98 01 00 00 89 54 24 28",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk lookup key and call",
+        "va": "0x00cda416",
+        "pattern": "8D 45 08 50 8D 44 24 30 50 8B CE E8 FA 4E 95 FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk lookup not found branch",
+        "va": "0x00cda437",
+        "pattern": "8B 4C 24 28 39 4B 04 75 17",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk record receiver and call",
+        "va": "0x00cda44a",
+        "pattern": "8B 4D 08 8D 54 24 18 52 E8 B9 7F 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream record control constructor argument",
+        "va": "0x00ce2be9",
+        "pattern": "8B 44 24 20 33 DB 89 5C 24 18 89 5C 24 20 89 06",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream record constructor disabled byte",
+        "va": "0x00ce2c83",
+        "pattern": "88 5E 7E 88 9E 80 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream record control backlink",
+        "va": "0x00ce2c8e",
+        "pattern": "8B 06 89 70 04",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream control record resolver",
+        "va": "0x00cd7a3d",
+        "pattern": "8B 81 BC 01 00 00 3B 10 74 03 8B 42 04 C2 04 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream walk engine wrapper construction",
+        "va": "0x00cc77e0",
+        "pattern": "8B C1 8B 4C 24 04 89 08 C2 04 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream record dispatch byte gates",
+        "va": "0x00ce2410",
+        "pattern": "80 79 7E 00 75 19 80 B9 80 00 00 00 00 74 10",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream record dispatch receiver and arguments",
+        "va": "0x00ce241f",
+        "pattern": "8B 54 24 04 8D 41 70 8B 09 50 52 E8 A1 A5 FE FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream slot 4 tail thunk",
+        "va": "0x00ccc9d0",
+        "pattern": "8B 01 8B 40 10 FF E0",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream numeric first comparison",
+        "va": "0x00cf1cdc",
+        "pattern": "8B 44 24 18 3B 05 CC CE 30 01 75 08",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream numeric conditional join",
+        "va": "0x00cf1d08",
+        "pattern": "8B 54 24 18 3B 15 D0 CE 30 01 8B CF 75 07 E8 A5 C4 FD FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "upstream numeric literal and dispatch",
+        "va": "0x00cce216",
+        "pattern": "6A 01 8B CE E8 F1 F6 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "dwords",
+        "name": "upstream Rapture COL pointer",
+        "va": "0x00f8cc18",
+        "values": ["0x01140ba4"],
+    },
+    {
+        "kind": "dwords",
+        "name": "upstream Rapture COL coordinates and type",
+        "va": "0x01140ba8",
+        "values": ["0x00000004", "0x00000000", "0x012695c0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "upstream Rapture slot 1",
+        "va": "0x00f8cc20",
+        "values": ["0x004b3c50"],
+    },
+    {
+        "kind": "string",
+        "name": "upstream Rapture RTTI name",
+        "va": "0x012695c8",
+        "text": ".?AVRapture@Application@@",
+    },
+]
+
+
 def parse_hex(text: str) -> int:
     return int(text, 16)
 
@@ -1647,6 +2030,7 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
         *iface.get("slotTable", {}).get("functionVas", []),
         *routing_addresses(document),
         *event_release_addresses(document),
+        *upstream_slot4_addresses(document),
         *button_addresses(document),
         *eligibility_addresses(document),
     ]
@@ -1673,6 +2057,16 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
         errors.append("unsupported widget eligibility inference")
     if "unknown" not in script_entry:
         errors.append("eligibility uncertainty is missing")
+    upstream = text.split("### upstream control slot 4", 1)
+    section = re.sub(r"\s+", " ", upstream[-1].split("\n## ", 1)[0])
+    for claim in (
+        "complete rapture +0x68",
+        "lookup-not-found",
+        "unknown",
+        "no next-pass or eventual replay guarantee",
+    ):
+        if len(upstream) != 2 or claim not in section:
+            errors.append(f"upstream slot4 page boundary missing: {claim}")
     return errors
 
 
@@ -1817,6 +2211,56 @@ def event_release_errors(document: dict) -> list[str]:
         found = [row for row in checks if row.get("name") == expected["name"]]
         if found != [expected]:
             errors.append(f"event release static check changed: {expected['name']}")
+    return errors
+
+
+def upstream_slot4_addresses(document: dict) -> list[str]:
+    """Locators of the bounded route, secondary receiver and conditional join."""
+    route = (
+        document.get("scriptInterface", {})
+        .get("eventQueue", {})
+        .get("upstreamSlot4", {})
+    )
+    receiver = route.get("raptureReceiver", {})
+    return [
+        receiver.get("vtableVa"),
+        receiver.get("colVa"),
+        receiver.get("typeDescriptorVa"),
+        *[row.get("siteVa") for row in route.get("edges", [])],
+        *[row.get("va") for row in UPSTREAM_SLOT4_CHECKS],
+    ]
+
+
+def upstream_slot4_errors(document: dict) -> list[str]:
+    """Pin the observed route while keeping scheduling and replay unknown."""
+    errors: list[str] = []
+    route = (
+        document.get("scriptInterface", {})
+        .get("eventQueue", {})
+        .get("upstreamSlot4", {})
+    )
+    for key, expected in UPSTREAM_SLOT4.items():
+        if route.get(key) != expected:
+            errors.append(f"upstream slot4 {key} changed")
+    receiver = route.get("raptureReceiver", {})
+    offsets = [
+        receiver.get(key)
+        for key in (
+            "completeObjectOffset",
+            "fieldOffsetFromSlotReceiver",
+            "fieldOffsetFromCompleteObject",
+        )
+    ]
+    if (
+        not all(type(value) is int for value in offsets)
+        or offsets[0] + offsets[1] != offsets[2]
+    ):
+        errors.append("upstream slot4 secondary receiver coordinate changed")
+    checks = document.get("staticChecks", [])
+    for expected in UPSTREAM_SLOT4_CHECKS:
+        found = [row for row in checks if row.get("name") == expected["name"]]
+        if found != [expected]:
+            errors.append(f"upstream slot4 static check changed: {expected['name']}")
     return errors
 
 
@@ -2284,6 +2728,7 @@ def verify(document: dict | None = None) -> list[str]:
     errors.extend(button_errors(document))
     errors.extend(eligibility_errors(document))
     errors.extend(event_release_errors(document))
+    errors.extend(upstream_slot4_errors(document))
     errors.extend(routing_errors(document))
     errors.extend(doc_errors(document))
 

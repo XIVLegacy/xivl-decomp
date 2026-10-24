@@ -799,9 +799,69 @@ and DesktopUtil (`0x00FD5A84`, `0x00FDFCAC`) and DesktopWidget
 nonzero test at control `+0x64` (`0x006E1E18..0x006E1E22`). STATIC.
 Xrefs to the two caller entries returned only those three table entries.
 This is a bounded result from that analysis, not an exhaustive search for
-computed or virtual callers. Their upstream dispatch, cadence and ordering
-relative to Sqwt input remain UNKNOWN. Equal-priority rejection lasts while
+computed or virtual callers. The upstream route below establishes gated invocation and local order.
+Fixed cadence and exhaustive order relative to Sqwt input remain UNKNOWN. Equal-priority rejection lasts while
 the active slot is nonnull at re-entry. No fixed frame interval follows.
+
+### Upstream control slot 4
+
+One gated route to these slot-4 entries is visible in Ghidra disassembly and
+direct PE RTTI data. Rapture secondary vtable `0x00F8CC1C` has its COL pointer
+at `0x00F8CC18`, selecting COL `0x01140BA4`. The fields at `0x01140BA8` give
+complete-object offset 4, zero constructor displacement and type descriptor
+`0x012695C0`. The name at `0x012695C8` is `.?AVRapture@Application@@`.
+The vptr-write instructions at `0x004B3ACB..0x004B3AD4` place this table at
+object `+4`. Its zero-based slot 1 at `0x00F8CC20` is `0x004B3C50`. STATIC.
+
+Let S be that slot's incoming ECX. `0x004B3C92` keeps S unchanged.
+`0x004B3DD1` reads `[S+0x64]`, corresponding to complete Rapture +0x68,
+and `0x004B3DD4` calls `0x004DAA10` with that pointer. At `0x004DAB38`,
+the adapter selects its incoming receiver `+0x10`, restores its frame,
+and tail-jumps at `0x004DAB41` to `0x004DA680`. The latter instruction is
+JMP even though the xref classifies it as a call. STATIC.
+
+| Site | Observed gate or transfer |
+|---|---|
+| `0x004DA6A9`, `0x004DA715`, `0x004DA728` | Receiver bytes `+0x504` and `+0x54B` and the AL result of `0x00575740` must be zero on this route. |
+| `0x004DA746`, `0x004DA763`, `0x004DA93B` | Unsigned `u32(result_of_0x00443E40-4)>2` selects a zero local byte. That byte must be zero before the call at `0x004DA948` to `0x00578970`, using incoming receiver `+0x510`. No semantic state name is assigned. |
+| `0x00578996`, `0x005789A0` | Receiver byte `+0x3B` and the AL result of `0x00CC9890` must be zero. `0x00CC9890` reads byte `[[[wrapper+0]+0x1CC]+8]`. |
+| `0x005789CC`, `0x005789D3` | Call `0x00CC98A0` using the pointer at incoming receiver `+0`. |
+| `0x00CC98A3`, `0x00CC98A6`, `0x00CC98B5` | Call `0x00CDA330` with `[wrapper+0]`, then call `0x00CF1B50` through engine `+0x1C0` after the first call returns normally. |
+| `0x00CDA37B`, `0x00CDA39E` | The object-record walk requires byte `[[engine+0x1CC]+8]==0` and a nonzero count at engine `+0x194`. |
+| `0x00CDA3BC`, `0x00CDA3F5`, `0x00CDA416`, `0x00CDA437` | Walk the nodes rooted at engine `+0x190`. Lookup `0x0062F320` uses engine `+0x198` and the record pointer at node `+8`. At `0x00CDA43B`, its returned iterator field `+4` must equal the saved sentinel at engine `+0x19C`. This is the lookup-not-found branch. |
+| `0x00CDA44A`, `0x00CDA452` | Supply the node's record pointer as ECX to `0x00CE2410`. |
+
+Constructor `0x00CE2BC0` loads the supplied control at `0x00CE2BE9` and stores
+it at record `+0` at `0x00CE2BF7`. `0x00CE2C8E..0x00CE2C90` writes the record
+back to control `+4`. Resolver `0x00CD7A3D..0x00CD7A4A` selects that backlink
+in the non-root case. The stores at `0x00CE2C83` and `0x00CE2C86` clear record
+bytes `+0x7E` and `+0x80`. Construction alone does not enable dispatch. STATIC.
+
+`0x00CE2410` requires record byte `+0x7E==0` and byte `+0x80!=0`.
+At `0x00CE241F..0x00CE242A`, ECX becomes `[record+0]`. It pushes
+`record+0x70` first and the incoming wrapper pointer second. The virtual callee
+therefore receives the engine-wrapper pointer as argument 1 and `record+0x70`
+as argument 2. The walk constructs that local wrapper through `0x00CC77E0`,
+which writes the engine pointer into its `+0`. Thunk `0x00CCC9D0` selects
+vptr `+0x10` and tail-jumps at `0x00CCC9D5`, preserving ECX and the stack.
+The already identified WidgetBase, DesktopUtil and DesktopWidget slot-4 entries
+then reach the pump subject to their own gates. STATIC.
+
+The return from `0x00CDA330` precedes the helper call at `0x00CC98B5`, including
+when the walk is skipped. A conditional later join to numeric phase 1 is visible
+inside `0x00CF1B50`. The comparison at `0x00CF1CDC` first tests the result from
+`0x00CCD4A0` against global `0x0130CECC`. Equality skips this join. After the
+intervening path, `0x00CF1D08` compares against `0x0130CED0` and equality
+selects the call at `0x00CF1D16` to `0x00CCE1C0`. That helper pushes literal 1
+at `0x00CCE216` and calls dispatcher `0x00CCD910` at `0x00CCE21A`, after
+`0x00CCDED0` and `0x00D01130`. This conditional local order does not order all
+numeric notifications or require phase 1 on every pass. STATIC.
+
+Scheduling above the Rapture secondary vtable, fixed cadence, each concrete
+widget's record registration, enabling and visitation, exhaustive order relative
+to Sqwt input, numeric phases and presentation, other threads and reentry remain
+UNKNOWN. A readiness change in the later helper cannot retroactively satisfy an
+earlier pump check. No next-pass or eventual replay guarantee follows.
 
 ## Other consumers of the record
 
@@ -998,8 +1058,9 @@ Do not assume:
   `+0x162`, and first-entry byte `+0xBA`, individual main-key removal and the
   full ordinary widget construction-to-close ordering remain UNKNOWN.
 - The purpose of the flag byte at `0x01356E14`, beyond its stores and reads.
-- The upstream caller and cadence of control slot 4, including its order
-  relative to Sqwt input routing. Matching callbacks clear the active slot,
+- Scheduling above the Rapture secondary vtable, fixed control slot-4 cadence,
+  actual record registration and enabling, reentry and exhaustive order relative
+  to Sqwt input, numeric phases and presentation. Matching callbacks clear the active slot,
   but complete lookup, failure cleanup and resume paths and guaranteed
   eventual release remain UNKNOWN.
 - Button physical-input reachability, hit testing, capture, focus, eligibility
@@ -1061,7 +1122,7 @@ Do not assume:
 11. Read `0x00896ED0` for 63 instructions, `0x006E13F0` for 4 and
     `0x006E1DE0` for 27. Query `ghidra x-ref to 0x00896ed0 --json` and
     both caller entries. Compare the table dwords at `0x00FD5A84`,
-    `0x00FD5B9C` and `0x00FDFCAC`. This does not trace indirect dispatch.
+    `0x00FD5B9C` and `0x00FDFCAC`. The upstream reproduction below follows a gated indirect route.
 12. Compare the observed instruction bytes with the supplied executable by
     mapping each VA through the PE section table. For a file-backed VA,
     subtract the image base and section RVA, then add the section raw-file
@@ -1072,6 +1133,26 @@ Do not assume:
 13. For the census, follow the reproduction in the grammar page and group each
    value by the `Command` attribute of its owner. Keep client bytes, decoded
    documents and executable listings outside the repository.
+
+### Upstream control slot-4 reproduction
+
+1. Use `ghidra disasm <VA> -n <count> --json` on `0x004B3C50` for 145
+   instructions, `0x004DAA10` for 110, `0x004DAB2D` for 9, `0x004DA680`
+   for 210, `0x00578970` for 83 and `0x00CC98A0` for 17. Preserve each
+   incoming ECX coordinate, stack arguments, gate and the adapter's tail JMP.
+2. Read `0x00CDA330` for 220 instructions and `0x00CDA5BB` for 24,
+   `0x0062F320` for 90, `0x00CE2410` for 11, `0x00CCC9D0` for 3,
+   `0x00CE2BC0` for 110, `0x00CD7A30` for 10 and `0x00CC77E0` for 6.
+   Confirm the lookup-not-found sentinel branch, record enable gates, control
+   backlink and the wrapper-first argument order at the virtual callee.
+3. Read `0x00CF1B50` for 195 and `0x00CCE1C0` for 55. Follow both global
+   comparisons and retain the conditional relation to numeric literal 1.
+4. Read the dwords at `0x00F8CC18`, `0x00F8CC20` and `0x01140BA8`, and the
+   name at `0x012695C8`. Compare `0x004B3AA0` for 45 instructions with the
+   nonzero COL offset. S is the secondary slot receiver, not complete Rapture.
+5. Compare the focused bytes with file-backed PE sections and run the optional
+   executable verifier. These checks do not execute the client or establish
+   runtime visitation, fixed cadence or eventual replay.
 
 ### Supplied-context eligibility reproduction
 
