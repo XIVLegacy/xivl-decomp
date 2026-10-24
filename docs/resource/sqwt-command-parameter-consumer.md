@@ -176,6 +176,48 @@ owner, stop-byte and store-pointer gates. Thus this concrete Button forwards
 Executed to the base handler store before its specialised logic. STATIC.
 Other specialised control families remain unestablished.
 
+### Click destruction notification
+
+The Click recipient uses a destruction notification pointer at I `+0x2FC`,
+which is complete E `+0x3B0`. ButtonBase constructor `0x0097F200` stores
+32-bit zero there at `0x0097F2D9`. Its primary and interface tables are
+`0x01076164` and `0x0107603C`. COLs `0x0117DBCC` and `0x0117DBE0`
+give offsets 0 and `0xB4` and type descriptor `0x0126D28C`,
+`.?AVButtonBase@Primitives@Controls@Sqwt@@`. These coordinates and the
+following operations are STATIC.
+
+For Click id `0x38`, recipient `0x0097ECE0` retains args in EBP at
+`0x0097ECE2` and saves the old pointer at `0x0097ECF6`. Four register
+pushes put ESP 16 bytes below its entry value. The address taken at
+`0x0097ED0F` is current ESP+0x14, or entryESP+4. This scratch byte is the
+low byte of the reused incoming argument stack slot, with no separate local
+allocation. The recipient publishes its address at `0x0097ED13` and
+initializes the byte to 0 at `0x0097ED1B`, before primary slot 71 and the
+conditional default Command slot 2 call. Indirect callee effects remain UNKNOWN.
+
+At `0x0097ED75` it loads byte 1 and compares the scratch byte at
+`0x0097ED77`. Only a value of exactly 1 takes the notification exit.
+That exit writes byte 1 through the saved prior pointer when nonnull at
+`0x0097ED82`, sets Click args `+0x17` at `0x0097ED85`, then returns.
+It does not restore or directly access the object field again and does not
+call generic forwarding. Any non1 value instead restores the saved pointer
+at `0x0097ED8D` before calling `0x00935380` at `0x0097ED96`.
+The saved pointer can be null. No universal restored-null state follows.
+
+Button primary slot 0 selects destructor `0x00974540`, which retains the
+complete receiver and calls `0x0097EC70` at `0x0097455D`. That function
+loads E `+0x3B0` and writes byte 1 through it when nonnull at
+`0x0097EC94`. ButtonBase deleting destructor `0x0097F3E0` makes the same
+conditional write at `0x0097F407`. Neither inspected writer clears the
+pointer before writing through it. This joins concrete destruction to the
+recipient's temporary notification byte without identifying a destruction caller.
+
+If same-object Click calls nest, a nested byte1 exit propagates 1 through the
+saved outer pointer when nonnull. A nested non1 exit restores that pointer.
+Actual nesting, destruction caller and timing, indirect aliases and other
+writers, exception unwinding and live delivery remain UNKNOWN. The inspected
+normal branches establish no unconditional surviving-object guarantee.
+
 ### Command name resolution
 
 The ContentControl specialization has its own Command setter contract. Property
@@ -1372,6 +1414,26 @@ the finding. A changed observation must fail the comparison. Preserve the
 exact target identity, locators, expected data and comparison procedure in the
 public evidence contract. These checks establish static-byte agreement, not
 runtime input, Lua, network or server validation.
+
+### Click destruction-notification reproduction
+
+1. Use the identified executable and `ghidra-cli` disassembly from the input
+   method above. Read `0x0097ECE0` through its normal returns. Track all four
+   register pushes and the saved argument pointer before assigning entryESP+4
+   to the scratch byte. Preserve the equality-to-1 comparison and both exits.
+2. Read Button constructor `0x00974410`, ButtonBase constructor
+   `0x0097F200` and the dword zero at `0x0097F2D9`. Resolve the selected
+   Button and ButtonBase table[-1] COLs, offsets and TypeDescriptor names to
+   keep complete E and interface I=E+0xB4 distinct.
+3. Read Button destructor `0x00974540`, its unchanged-receiver call
+   `0x0097455D` and `0x0097EC70`. Read ButtonBase deleting destructor
+   `0x0097F3E0`. Confirm both nonnull pointer tests and byte1 writes before
+   their base-destruction calls. Do not infer who invokes destruction.
+4. Compare the short instruction windows and RTTI data in `clickLifetime`
+   and the static checks with original file-backed PE32 bytes. The public
+   literal, domain and cross-check tests distinguish byte widths, stack
+   coordinates, equality1, prior-pointer propagation and restoration ordering.
+   They do not establish actual nesting, exception paths or live behavior.
 
 ### Command name-resolution reproduction
 

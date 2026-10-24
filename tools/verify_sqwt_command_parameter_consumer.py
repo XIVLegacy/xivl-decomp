@@ -2841,6 +2841,330 @@ BUTTON_COMMAND_CHECKS = [
 ]
 
 
+BUTTON_CLICK_LIFETIME = {
+    "instrument": "ghidra-cli disassembly and direct RTTI/data observations checked against original file-backed PE32 instruction and data bytes.",
+    "confidence": "STATIC for the selected instructions, pointer coordinates and destruction writes. Nested propagation is conditional on same-object reentry.",
+    "coordinates": {
+        "interfaceOffset": 180,
+        "interfacePointerOffset": 764,
+        "completePointerOffset": 944,
+        "pointerWidthBits": 32,
+        "flagWidthBits": 8,
+    },
+    "base": {
+        "class": "Sqwt::Controls::Primitives::ButtonBase",
+        "constructorVa": "0x0097f200",
+        "primaryVtableVa": "0x01076164",
+        "interfaceVtableVa": "0x0107603c",
+        "primaryColVa": "0x0117dbcc",
+        "interfaceColVa": "0x0117dbe0",
+        "primaryColOffset": 0,
+        "interfaceColOffset": 180,
+        "typeDescriptorVa": "0x0126d28c",
+        "rttiName": ".?AVButtonBase@Primitives@Controls@Sqwt@@",
+        "constructorZeroVa": "0x0097f2d9",
+        "constructorValue": 0,
+    },
+    "scratch": {
+        "recipientVa": "0x0097ece0",
+        "argumentSaveVa": "0x0097ece2",
+        "savedPointerVa": "0x0097ecf6",
+        "addressVa": "0x0097ed0f",
+        "publishVa": "0x0097ed13",
+        "initializeVa": "0x0097ed1b",
+        "entryStackOffset": 4,
+        "pushedRegisterBytes": 16,
+        "currentStackOffset": 20,
+        "separateLocalAllocation": False,
+        "initialByte": 0,
+        "storage": "Low byte of the reused incoming argument stack slot. The argument pointer is retained in EBP first.",
+        "callScope": "The recipient publishes the pointer before primary slot71 and the conditional default Command slot2 call. Callee alias effects are not exhaustively established.",
+    },
+    "exits": {
+        "comparisonValueVa": "0x0097ed75",
+        "compareVa": "0x0097ed77",
+        "equalsByte": 1,
+        "propagatePriorVa": "0x0097ed82",
+        "priorMustBeNonNull": True,
+        "clickStopVa": "0x0097ed85",
+        "clickStopOffset": "+0x17",
+        "setByte": 1,
+        "equalRestoresPointer": False,
+        "equalAccessesObjectFieldAgain": False,
+        "equalCallsGeneric": False,
+        "restoreVa": "0x0097ed8d",
+        "genericCallVa": "0x0097ed96",
+        "genericFunctionVa": "0x00935380",
+        "nonEqualRestoresBeforeGeneric": True,
+        "nonEqualRestoresSavedPointer": True,
+    },
+    "destruction": {
+        "buttonPrimarySlot": 0,
+        "buttonDestructorVa": "0x00974540",
+        "buttonDestructorCallVa": "0x0097455d",
+        "baseDestructorVa": "0x0097ec70",
+        "baseWriteVa": "0x0097ec94",
+        "deletingDestructorVa": "0x0097f3e0",
+        "deletingWriteVa": "0x0097f407",
+        "pointerMustBeNonNull": True,
+        "setByte": 1,
+        "clearsPointerBeforeWrite": False,
+    },
+    "nesting": "If same-object Click calls nest, a nested byte1 exit writes1 through the saved outer pointer when nonnull. A nested non1 exit restores that outer pointer. Actual nesting is UNKNOWN.",
+    "unknowns": [
+        "Destruction caller and timing, actual same-object nesting and installed command or handler.",
+        "Indirect aliases and other writers, exception unwinding and object lifetime outside the inspected normal branches.",
+        "Live client delivery and results. No universal pointer cleanup, restored-null state or unconditional surviving-object guarantee is established.",
+    ],
+}
+
+BUTTON_STOP_CHECKS = [
+    {
+        "kind": "signature",
+        "name": "button stop argument retention",
+        "va": "0x0097ece0",
+        "pattern": "53 55 8B 6C 24 0C",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop scratch address",
+        "va": "0x0097ed0f",
+        "pattern": "8D 4C 24 14",
+        "mask": "FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop comparison value",
+        "va": "0x0097ed75",
+        "pattern": "B0 01",
+        "mask": "FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop prior notification gate",
+        "va": "0x0097ed7e",
+        "pattern": "85 DB 74 02 88 03",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop notification exit",
+        "va": "0x0097ed84",
+        "pattern": "5F 88 45 17 5D 5B C2 04 00",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop restore before generic",
+        "va": "0x0097ed8d",
+        "pattern": "89 9F FC 02 00 00 55 8B CF E8 E5 65 FB FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop constructor zero",
+        "va": "0x0097f2d9",
+        "pattern": "C7 86 B0 03 00 00 00 00 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop base constructor tables",
+        "va": "0x0097f253",
+        "pattern": "C7 06 64 61 07 01 C7 86 B4 00 00 00 3C 60 07 01",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop Button destructor receiver",
+        "va": "0x00974540",
+        "pattern": "56 8B F1",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop Button destructor join",
+        "va": "0x0097455d",
+        "pattern": "E8 0E A7 00 00",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop base destructor pointer gate",
+        "va": "0x0097ec70",
+        "pattern": "8B 81 B0 03 00 00 85 C0",
+        "mask": "FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop base destructor notification",
+        "va": "0x0097ec92",
+        "pattern": "74 03 C6 00 01 E9 C4 59 FD FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop deleting destructor pointer gate",
+        "va": "0x0097f3e0",
+        "pattern": "56 8B F1 8B 86 B0 03 00 00 85 C0",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "button stop deleting destructor notification",
+        "va": "0x0097f405",
+        "pattern": "74 03 C6 00 01 E8 51 52 FD FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop Button destructor slot",
+        "va": "0x01073cac",
+        "values": [
+            "0x00974540",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base destructor slot",
+        "va": "0x01076164",
+        "values": [
+            "0x0097f3e0",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base primary RTTI locator",
+        "va": "0x01076160",
+        "values": [
+            "0x0117dbcc",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base interface RTTI locator",
+        "va": "0x01076038",
+        "values": [
+            "0x0117dbe0",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base primary RTTI offset",
+        "va": "0x0117dbd0",
+        "values": [
+            "0x00000000",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base interface RTTI offset",
+        "va": "0x0117dbe4",
+        "values": [
+            "0x000000b4",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base primary RTTI type",
+        "va": "0x0117dbd8",
+        "values": [
+            "0x0126d28c",
+        ],
+    },
+    {
+        "kind": "dwords",
+        "name": "button stop base interface RTTI type",
+        "va": "0x0117dbec",
+        "values": [
+            "0x0126d28c",
+        ],
+    },
+    {
+        "kind": "string",
+        "name": "button stop base RTTI name",
+        "va": "0x0126d294",
+        "text": ".?AVButtonBase@Primitives@Controls@Sqwt@@",
+    },
+]
+
+
+def button_stop_addresses(document: dict) -> list[str]:
+    """Locators of the concrete Click destruction-notification subset."""
+    lifetime = document.get("buttonSource", {}).get("clickLifetime", {})
+    return [
+        value
+        for section in lifetime.values()
+        if isinstance(section, dict)
+        for key, value in section.items()
+        if key.endswith("Va")
+    ]
+
+
+def button_stop_errors(document: dict) -> list[str]:
+    """Keep stack reuse, exact byte1 exits and conditional destruction distinct."""
+    errors: list[str] = []
+    button = document.get("buttonSource", {})
+    lifetime = button.get("clickLifetime", {})
+    for section, expected in BUTTON_CLICK_LIFETIME.items():
+        if json.dumps(lifetime.get(section), sort_keys=True) != json.dumps(
+            expected, sort_keys=True
+        ):
+            errors.append(f"button stop {section} contract changed")
+    coordinates = lifetime.get("coordinates", {})
+    offsets = [
+        coordinates.get(key)
+        for key in (
+            "interfaceOffset",
+            "interfacePointerOffset",
+            "completePointerOffset",
+        )
+    ]
+    if (
+        not all(type(value) is int for value in offsets)
+        or offsets[0] + offsets[1] != offsets[2]
+    ):
+        errors.append("button stop pointer coordinate changed")
+    scratch = lifetime.get("scratch", {})
+    stack = [
+        scratch.get(key)
+        for key in (
+            "entryStackOffset",
+            "pushedRegisterBytes",
+            "currentStackOffset",
+        )
+    ]
+    if (
+        not all(type(value) is int for value in stack)
+        or stack[0] + stack[1] != stack[2]
+    ):
+        errors.append("button stop stack coordinate changed")
+    click = button.get("click", {})
+    exits = lifetime.get("exits", {})
+    layout = document.get("routing", {}).get("command", {}).get("argumentLayout", {})
+    if (
+        button.get("interfaceOffset") != "+0xb4"
+        or click.get("temporaryFlagPointerOffset") != "+0x2fc"
+        or click.get("temporaryPointerWidthBits") != coordinates.get("pointerWidthBits")
+        or click.get("temporaryFlagWidthBits") != coordinates.get("flagWidthBits")
+        or click.get("recipientVa") != scratch.get("recipientVa")
+        or click.get("skipGenericWhenFlagEquals") != exits.get("equalsByte")
+        or click.get("genericForwardCallVa") != exits.get("genericCallVa")
+        or layout.get("stopByte") != exits.get("clickStopOffset")
+    ):
+        errors.append("button stop existing consumer join changed")
+    for expected in BUTTON_STOP_CHECKS:
+        found = [
+            row
+            for row in document.get("staticChecks", [])
+            if row.get("name") == expected["name"]
+        ]
+        if found != [expected]:
+            errors.append(f"button stop static check changed: {expected['name']}")
+    return errors
+
+
 def parse_hex(text: str) -> int:
     return int(text, 16)
 
@@ -2874,6 +3198,7 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
         *upstream_slot4_addresses(document),
         *button_addresses(document),
         *button_command_addresses(document),
+        *button_stop_addresses(document),
         *eligibility_addresses(document),
     ]
     errors = [
@@ -2919,6 +3244,17 @@ def doc_errors(document: dict, text: str | None = None) -> list[str]:
     ):
         if len(resolver) != 2 or claim not in section:
             errors.append(f"button Command page boundary missing: {claim}")
+    notification = text.split("### click destruction notification", 1)
+    section = re.sub(r"\s+", " ", notification[-1].split("\n### ", 1)[0])
+    for claim in (
+        "entryesp+4",
+        "exactly 1",
+        "when nonnull",
+        "exception unwinding",
+        "unknown",
+    ):
+        if len(notification) != 2 or claim not in section:
+            errors.append(f"button stop page boundary missing: {claim}")
     return errors
 
 
@@ -3646,6 +3982,7 @@ def verify(document: dict | None = None) -> list[str]:
         errors.append("routed event rows are not ids 0x01..0x5a without 0x21")
     errors.extend(button_errors(document))
     errors.extend(button_command_errors(document))
+    errors.extend(button_stop_errors(document))
     errors.extend(eligibility_errors(document))
     errors.extend(event_release_errors(document))
     errors.extend(upstream_slot4_errors(document))
