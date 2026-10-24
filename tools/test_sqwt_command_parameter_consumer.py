@@ -499,6 +499,230 @@ def button_source_tests(real: dict) -> None:
     )
 
 
+def eligibility_tests(real: dict) -> None:
+    """Reject changed context, map, operand-width and publication observations."""
+    text = bytearray(0xE0)
+    text[0:17] = bytes.fromhex("8B 11 89 50 04 C6 44 24 10 01 8B 4C 24 1C 89 48 08")
+    text[0x20:0x33] = bytes.fromhex(
+        "8B 56 08 50 51 52 83 C6 04 56 8D 4C 24 17 E8 68 6A 14 00"
+    )
+    text[0x40:0x4D] = bytes.fromhex("84 C0 74 09 80 BE 61 01 00 00 00 75 38")
+    text[0x60:0x64] = bytes.fromhex("0F B6 46 06")
+    text[0x70:0x81] = bytes.fromhex(
+        "8D 4F 14 89 44 24 54 E8 18 1B 03 00 8B 57 64 89 10"
+    )
+    text[0x90:0xAE] = bytes.fromhex(
+        "0F BE 86 62 01 00 00 50 8D 4C 24 34 E8 C0 5D 5D 00 C6 44 24 28 03 8B 08 89 8E 28 01 00 00"
+    )
+    text[0xB0:0xBB] = bytes.fromhex("8B C1 8B 4C 24 04 89 08 C2 04 00")
+    text[0xC0:0xC6] = bytes.fromhex("8A 86 BA 00 00 00")
+    text[0xD0:0xDC] = bytes.fromhex("8A 8E BA 00 00 00 88 8F BA 00 00 00")
+    data = (
+        struct.pack("<4I", 0xE0000000, 0x006E3440, 0x0089B3F0, 0x012C19A4)
+        + b".?AVMyPlayer@Control@Client@Script@Lua@Application@@\0"
+    )
+    image = build_image(bytes(text), data, len(data))
+    selected = {
+        "eligibility actor context and control stores": TEXT_VA,
+        "eligibility root context argument": TEXT_VA + 0x20,
+        "eligibility conditional player byte": TEXT_VA + 0x40,
+        "eligibility descriptor key zero extension": TEXT_VA + 0x60,
+        "eligibility staged map store": TEXT_VA + 0x70,
+        "eligibility signed byte to dword copy": TEXT_VA + 0x90,
+        "eligibility dword wrapper copy": TEXT_VA + 0xB0,
+        "eligibility first entry byte return": TEXT_VA + 0xC0,
+        "eligibility area byte copy": TEXT_VA + 0xD0,
+        "eligibility sentinel dword": DATA_VA,
+        "eligibility player publication slot": DATA_VA + 4,
+        "eligibility item command slot": DATA_VA + 8,
+        "eligibility myplayer RTTI type": DATA_VA + 0x0C,
+        "eligibility myplayer RTTI name": DATA_VA + 0x10,
+    }
+    rows = []
+    for name, va in selected.items():
+        row = copy.deepcopy(
+            next(item for item in real["staticChecks"] if item.get("name") == name)
+        )
+        row["va"] = f"{va:#010x}"
+        rows.append(row)
+    document = {"staticChecks": rows}
+    check("literal eligibility fixture passes", run(image, document) == [])
+    for label, offset, value, expected_name in (
+        (
+            "actor stores context at +4",
+            4,
+            8,
+            "eligibility actor context and control stores",
+        ),
+        (
+            "actor control remains at +8",
+            16,
+            12,
+            "eligibility actor context and control stores",
+        ),
+        (
+            "thunk passes its context wrapper",
+            0x28,
+            8,
+            "eligibility root context argument",
+        ),
+        (
+            "zero area byte skips the player byte",
+            0x42,
+            0x75,
+            "eligibility conditional player byte",
+        ),
+        (
+            "player predicate is byte width",
+            0x44,
+            0x83,
+            "eligibility conditional player byte",
+        ),
+        (
+            "key source is zero extended",
+            0x61,
+            0xBE,
+            "eligibility descriptor key zero extension",
+        ),
+        (
+            "key comes from descriptor +6",
+            0x63,
+            7,
+            "eligibility descriptor key zero extension",
+        ),
+        ("writer uses staged map +14", 0x72, 8, "eligibility staged map store"),
+        (
+            "state copy sign extends",
+            0x91,
+            0xB6,
+            "eligibility signed byte to dword copy",
+        ),
+        ("state copy reads +162", 0x93, 0x61, "eligibility signed byte to dword copy"),
+        ("state copy writes +128", 0xAA, 0x2C, "eligibility signed byte to dword copy"),
+        ("wrapper copies a dword", 0xB6, 0x88, "eligibility dword wrapper copy"),
+        (
+            "predicate reads entry +ba",
+            0xC2,
+            0xB8,
+            "eligibility first entry byte return",
+        ),
+        ("registration copies to area +ba", 0xD8, 0xB9, "eligibility area byte copy"),
+    ):
+        changed = bytearray(image)
+        changed[0x200 + offset] = value
+        errors = run(bytes(changed), document)
+        check(label, len(errors) == 1 and expected_name in errors[0])
+    for offset, value, expected_name in (
+        (0, 0, "eligibility sentinel dword"),
+        (4, 0x006E3920, "eligibility player publication slot"),
+        (8, 0x007036E0, "eligibility item command slot"),
+        (0x0C, 0x012C1964, "eligibility myplayer RTTI type"),
+    ):
+        changed = bytearray(image)
+        struct.pack_into("<I", changed, 0x200 + len(text) + offset, value)
+        errors = run(bytes(changed), document)
+        check(
+            expected_name + " value is enforced",
+            len(errors) == 1 and expected_name in errors[0],
+        )
+    changed = bytearray(image)
+    changed[0x200 + len(text) + 0x10 + 4] = ord("X")
+    errors = run(bytes(changed), document)
+    check(
+        "eligibility MyPlayer RTTI spelling is enforced",
+        len(errors) == 1 and "string" in errors[0],
+    )
+
+    for section, field, value in (
+        ("context", "passedWrapper", "&selectedWidget"),
+        ("context", "playerOffset", "+0x10"),
+        ("context", "runtimeContextIdentity", "STATIC singleton"),
+        ("keyPublication", "mainMapOffset", "+0x14"),
+        ("keyPublication", "stagedMapOffset", "+0x8"),
+        ("keyPublication", "descriptorKeyWidthBits", 32),
+        ("keyPublication", "sameRuntimePlayer", "STATIC"),
+        ("keyPublication", "gateTestsTransferredByte", True),
+        ("stateFields", "copySource", "+0x161"),
+        ("stateFields", "copyExtension", "zero"),
+        ("stateFields", "copyWrapperVa", "0x0075c420"),
+        ("stateFields", "meaning", "target id"),
+        ("areaFlag", "selectedWidgetByteRead", True),
+        ("areaFlag", "runtimeFirstEntry", "STATIC"),
+    ):
+        changed = copy.deepcopy(real)
+        changed["selectorGates"][section][field] = value
+        check(
+            field + " eligibility drift is rejected",
+            f"eligibility {section} contract changed"
+            in verifier.eligibility_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    changed["selectorGates"]["gates"][3]["playerByteCheckedWhenAreaByteZero"] = True
+    check(
+        "conditional player byte cannot become unconditional",
+        "eligibility gates contract changed" in verifier.eligibility_errors(changed),
+    )
+    for field in ("unknowns", "exclusions"):
+        changed = copy.deepcopy(real)
+        changed["selectorGates"][field].pop()
+        check(
+            "eligibility " + field + " cannot disappear",
+            f"eligibility {field} contract changed"
+            in verifier.eligibility_errors(changed),
+        )
+    for name in (
+        "eligibility root context argument",
+        "eligibility staged map store",
+        "eligibility signed byte to dword copy",
+        "eligibility myplayer RTTI type",
+    ):
+        changed = copy.deepcopy(real)
+        changed["staticChecks"] = [
+            row for row in changed["staticChecks"] if row.get("name") != name
+        ]
+        check(
+            name + " cannot disappear",
+            f"eligibility static check changed: {name}"
+            in verifier.eligibility_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    row = next(
+        row
+        for row in changed["staticChecks"]
+        if row.get("name") == "eligibility signed byte to dword copy"
+    )
+    row["mask"] = " ".join(["00"] * 30)
+    check(
+        "signed-copy mask cannot be disabled",
+        "eligibility static check changed: eligibility signed byte to dword copy"
+        in verifier.eligibility_errors(changed),
+    )
+
+    page = verifier.DOC.read_text(encoding="utf-8")
+    for claim in (
+        "The gates read as liveness checks.",
+        "A script object whose owner was released.",
+        "This is for widget script objects and not for actor-bound ones.",
+        "The script object has an owner and the widget is live.",
+    ):
+        changed_page = page.replace("## Script entry", "## Script entry\n\n" + claim, 1)
+        check(
+            "unsupported owner inference is rejected: " + claim,
+            "unsupported widget eligibility inference"
+            in verifier.doc_errors(real, changed_page),
+        )
+    changed_page = page.lower().replace("0x006f354f", "0x006f354e")
+    check(
+        "page cites the signed byte source",
+        "page does not cite 0x006f354f" in verifier.doc_errors(real, changed_page),
+    )
+    changed_page = page.replace("UNKNOWN", "STATIC")
+    check(
+        "page retains eligibility uncertainty",
+        "eligibility uncertainty is missing" in verifier.doc_errors(real, changed_page),
+    )
+
+
 def main() -> int:
     check("manifest verifies", verifier.verify() == [])
     check("mutations are rejected", verifier.mutation_test() == [])
@@ -581,6 +805,7 @@ def main() -> int:
 
     event_release_tests(real)
     button_source_tests(real)
+    eligibility_tests(real)
 
     if FAILED:
         print(f"FAIL: {len(FAILED)} of {len(PASSED) + len(FAILED)} checks")
