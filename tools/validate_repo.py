@@ -31,6 +31,7 @@ import verify_s2c_0193_native_state as s2c_0193_state_verifier
 import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 import verify_status_wire_translation as status_wire_verifier
 import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
+import verify_sound_effect_triggers as sound_effect_verifier
 import verify_sun_moon_orientation as sun_moon_verifier
 import verify_vfx_qix_resource as vfx_qix_verifier
 
@@ -460,6 +461,13 @@ def main() -> int:
     if vfx_qix_errors:
         errors.extend(
             f"Qix effect resource contract: {error}" for error in vfx_qix_errors
+        )
+    sound_effect_errors = (
+        sound_effect_verifier.verify() + sound_effect_verifier.mutation_test()
+    )
+    if sound_effect_errors:
+        errors.extend(
+            f"sound effect trigger contract: {error}" for error in sound_effect_errors
         )
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:

@@ -1,0 +1,3204 @@
+{
+  "format": "xivl-sound-effect-triggers-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "method": "Disassembly listings from ghidra-cli 12.1.4 and Capstone 5.0.7 were treated as leads. Every instruction sequence, table and string under staticChecks is confirmed against the pinned bytes by tools/verify_sound_effect_triggers.py --exe.",
+    "companionEvidence": [
+      "xivl-decomp:docs/resource/music-song-table.md",
+      "xivl-decomp:docs/net/actorimpl-receiver-dispatch.md",
+      "xivl-decomp:docs/actor/battle-npc-body-parts.md",
+      "xivl-client-data:docs/sqwt-player-parameter-structure.md",
+      "xivl-tools:docs/formats/sqex.md"
+    ]
+  },
+  "soundPlayerAction": {
+    "type": "Sqwt::Controls::SoundPlayerAction",
+    "vftableVa": "0x0107d8d0",
+    "runSlot": 2,
+    "runVa": "0x009b3060",
+    "constructorVa": "0x009b33f0",
+    "properties": [
+      {
+        "name": "FileNumber",
+        "nameVa": "0x0107d838",
+        "fieldOffset": "0x44",
+        "type": "dword",
+        "default": "0",
+        "infoVa": "0x01361e80"
+      },
+      {
+        "name": "Index",
+        "nameVa": "0x0107d844",
+        "fieldOffset": "0x4c",
+        "type": "dword",
+        "default": "0",
+        "infoVa": "0x01361ea4"
+      },
+      {
+        "name": "Volume",
+        "nameVa": "0x0107d84c",
+        "fieldOffset": "0x54",
+        "type": "float",
+        "default": "1.0",
+        "infoVa": "0x01361ec8"
+      },
+      {
+        "name": "Priority",
+        "nameVa": "0x0107d854",
+        "fieldOffset": "0x5c",
+        "type": "byte",
+        "default": "0",
+        "infoVa": "0x01361eec"
+      }
+    ],
+    "interfaceGetterVa": "0x00974220",
+    "interfaceGlobalVa": "0x0135c2ac",
+    "interfaceGlobalSites": [
+      "0x009741f9",
+      "0x00974208",
+      "0x00974221",
+      "0x00974260"
+    ],
+    "interfaceSlot": 10,
+    "interfaceSlotOffset": "0x28",
+    "slotArguments": [
+      "FileNumber",
+      "Index",
+      "Volume",
+      "origin vector (0, 0, 0, 1) built by 0x009868b0",
+      "Priority"
+    ],
+    "slot3": 3,
+    "slot3Va": "0x009b30f0",
+    "slot3Target": "interface slot 11 (0x00548560), whose body is a bare ret 4 that pops one stack argument, called with the FileNumber",
+    "boundary": "Slot 3 of the action reaches no sound call. The interface method it calls pops its argument and does nothing else."
+  },
+  "pendingRequest": {
+    "class": "Application::Main::SqwtInterface::RaptureSqwtInterface",
+    "vftableVa": "0x00fa2d8c",
+    "slotCount": 24,
+    "setterSlot": 10,
+    "setterVa": "0x0054b070",
+    "fields": {
+      "fileNumber": "0x30c",
+      "index": "0x310",
+      "volume": "0x314",
+      "vector": "0x31c",
+      "priority": "0x32c",
+      "soundModule": "0x1c"
+    },
+    "initial": {
+      "fileNumber": -1,
+      "index": 0,
+      "volume": 0.0,
+      "vector": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "priority": 0
+    },
+    "rule": "A request replaces the held one when its priority byte is greater than or equal to the held byte (unsigned). An empty cell holds priority 0.",
+    "frameUpdateVa": "0x005527a0",
+    "frameUpdateCallerVa": "0x004daa10",
+    "frameUpdateCallSite": "0x004dab33",
+    "raptureUpdateCallSite": "0x004b3dd4",
+    "frameUpdateReads": [
+      "fileNumber",
+      "volume"
+    ],
+    "frameUpdateEffect": "A pending file number other than -1 is played through 0x004bbb00 with the volume, then the file number is set to -1 and the priority to 0. A pending -1 skips both and keeps the held priority.",
+    "boundary": "Other methods of the class could read the index and the vector. Only the frame update was read."
+  },
+  "playPath": {
+    "numberPlayVa": "0x004bbb00",
+    "categoryPlayVa": "0x004b7470",
+    "divisor": 10000,
+    "divideMagic": "0xd1b71759",
+    "divideShift": 13,
+    "categoryTableVa": "0x00f8d700",
+    "categoryCount": 22,
+    "boundCheck": "none",
+    "afterTableDword": "0x4b189680",
+    "volumeGate": "A volume above zero skips the first module call. A volume at or below zero calls module slot 8 (0x00442050) with the resource id first. The play call follows either way.",
+    "slot8": "Looks the resource id up in the module cache map at module +0x18 and, when it is absent, allocates a 0x28-byte object before continuing. The rest of the method was not read. The call is not a play.",
+    "playCall": {
+      "moduleSlot": 4,
+      "moduleSlotVa": "0x00441dc0",
+      "requestObjectVa": "0x0132f3b4",
+      "arguments": [
+        "request object",
+        "resource id (category base plus index)",
+        "volume",
+        "0",
+        "vector (0, 0, 0, 1)",
+        "1.0",
+        "0"
+      ]
+    },
+    "requestObjects": {
+      "arrayVa": "0x0132f384",
+      "stride": "0x18",
+      "count": 3,
+      "selectorVa": "0x0132f32c",
+      "soundEffectIndex": 2,
+      "soundEffectVa": "0x0132f3b4"
+    },
+    "moduleGetterVa": "0x004d7500",
+    "moduleOffset": "0x928",
+    "categoryRoles": "Categories 3 to 20 hold files the character creation menus play. Category 2 and category 21 have no traced consumer."
+  },
+  "install": {
+    "scope": "owner installation of build 2012.09.19.0001, existence and first eight bytes only",
+    "categories": [
+      {
+        "category": 0,
+        "base": "0x035b0000",
+        "files": 83,
+        "firstIndex": 0,
+        "lastIndex": 82,
+        "sscfFiles": 83,
+        "role": "UI and system effect bank"
+      },
+      {
+        "category": 1,
+        "base": "0x07fe0000",
+        "files": 110,
+        "firstIndex": 0,
+        "lastIndex": 109,
+        "sscfFiles": 109,
+        "role": "music (song table)"
+      },
+      {
+        "category": 2,
+        "base": "0x07fd0000",
+        "files": 425,
+        "firstIndex": 0,
+        "lastIndex": 463,
+        "sscfFiles": 425,
+        "role": "no traced consumer"
+      },
+      {
+        "category": 3,
+        "base": "0x5b2d0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 4,
+        "base": "0x5b2e0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 5,
+        "base": "0x5b2f0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 6,
+        "base": "0x5b300000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 7,
+        "base": "0x5b310000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 8,
+        "base": "0x5b320000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 9,
+        "base": "0x5b330000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 10,
+        "base": "0x5b340000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 11,
+        "base": "0x5b350000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 12,
+        "base": "0x5b360000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 13,
+        "base": "0x5b370000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 14,
+        "base": "0x5b380000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 15,
+        "base": "0x5b390000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 16,
+        "base": "0x5b3a0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 17,
+        "base": "0x5b3b0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 18,
+        "base": "0x5b3c0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 19,
+        "base": "0x5b3d0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 20,
+        "base": "0x5b3e0000",
+        "files": 55,
+        "firstIndex": 0,
+        "lastIndex": 54,
+        "sscfFiles": 55,
+        "role": "voice sample bank, traced from character creation only"
+      },
+      {
+        "category": 21,
+        "base": "0x8a0a0000",
+        "files": 1,
+        "firstIndex": 0,
+        "lastIndex": 0,
+        "sscfFiles": 1,
+        "role": "no traced consumer"
+      }
+    ],
+    "totalFiles": 1609,
+    "directoryFileCounts": {
+      "03/5B": 83,
+      "07/FD": 425,
+      "07/FE": 110,
+      "5B/2D..5B/3E": 990,
+      "8A/0A": 1
+    },
+    "footstepBanks": {
+      "08/07": 770,
+      "1A/46": 45
+    }
+  },
+  "markup": {
+    "tool": "xivl extract-resource --as sqwt (xivl-cli 0.1.0)",
+    "scope": "every client/sqwt file that begins with SQEX",
+    "sqexFiles": 1155,
+    "templateFilesDecoded": 482,
+    "filesWithAction": 200,
+    "actionElements": 1012,
+    "distinctFileNumbers": 61,
+    "minFileNumber": 1,
+    "maxFileNumber": 82,
+    "indexAttributeCount": 0,
+    "volumeAttributeCount": 2,
+    "priorityAttributeCount": 5,
+    "triggerKinds": {
+      "EventTrigger": 616,
+      "CommandTrigger": 395,
+      "none": 1
+    },
+    "luaSoundCommandTriggerElements": 24,
+    "fileNumberCounts": [
+      [
+        1,
+        119
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        262
+      ],
+      [
+        4,
+        95
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        8,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        11,
+        3
+      ],
+      [
+        17,
+        70
+      ],
+      [
+        18,
+        90
+      ],
+      [
+        20,
+        3
+      ],
+      [
+        21,
+        24
+      ],
+      [
+        22,
+        144
+      ],
+      [
+        23,
+        22
+      ],
+      [
+        24,
+        44
+      ],
+      [
+        25,
+        2
+      ],
+      [
+        26,
+        2
+      ],
+      [
+        27,
+        2
+      ],
+      [
+        28,
+        2
+      ],
+      [
+        29,
+        2
+      ],
+      [
+        30,
+        2
+      ],
+      [
+        36,
+        2
+      ],
+      [
+        38,
+        2
+      ],
+      [
+        39,
+        2
+      ],
+      [
+        40,
+        2
+      ],
+      [
+        41,
+        4
+      ],
+      [
+        42,
+        2
+      ],
+      [
+        43,
+        4
+      ],
+      [
+        44,
+        4
+      ],
+      [
+        45,
+        4
+      ],
+      [
+        46,
+        4
+      ],
+      [
+        47,
+        4
+      ],
+      [
+        48,
+        4
+      ],
+      [
+        50,
+        2
+      ],
+      [
+        51,
+        20
+      ],
+      [
+        52,
+        2
+      ],
+      [
+        54,
+        3
+      ],
+      [
+        57,
+        3
+      ],
+      [
+        58,
+        1
+      ],
+      [
+        60,
+        1
+      ],
+      [
+        61,
+        1
+      ],
+      [
+        62,
+        1
+      ],
+      [
+        63,
+        1
+      ],
+      [
+        64,
+        2
+      ],
+      [
+        65,
+        3
+      ],
+      [
+        66,
+        3
+      ],
+      [
+        67,
+        3
+      ],
+      [
+        68,
+        1
+      ],
+      [
+        69,
+        1
+      ],
+      [
+        70,
+        3
+      ],
+      [
+        73,
+        3
+      ],
+      [
+        74,
+        6
+      ],
+      [
+        76,
+        2
+      ],
+      [
+        77,
+        1
+      ],
+      [
+        78,
+        2
+      ],
+      [
+        79,
+        1
+      ],
+      [
+        80,
+        2
+      ],
+      [
+        81,
+        1
+      ],
+      [
+        82,
+        1
+      ]
+    ]
+  },
+  "driverConfig": {
+    "textVas": [
+      "0x00f542a0",
+      "0x00f545c0"
+    ],
+    "textLength": 798,
+    "selectorVa": "0x00403478",
+    "modeConfigGroup": 0,
+    "modeConfigKey": "0x19",
+    "modeAdjust": "A nonzero value is reduced by one. A zero value keeps the result of 0x004055d0, which was not traced.",
+    "selection": "Mode 4 or 5 selects the text at 0x00f542a0 and any other mode the text at 0x00f545c0.",
+    "parserVa": "0x00b67b60",
+    "keywordTableVa": "0x010ae7bc",
+    "maxSound": 128,
+    "maxBus": 11,
+    "maxReverb": 1,
+    "buses": [
+      {
+        "name": "MUSIC",
+        "number": 3,
+        "dimension": "2D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "SE",
+        "number": 20,
+        "dimension": "3D",
+        "rate": 44100,
+        "flag": "ON"
+      },
+      {
+        "name": "VOICE",
+        "number": [
+          0,
+          5
+        ],
+        "dimension": "3D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "System",
+        "number": 8,
+        "dimension": "2D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "BG",
+        "number": 12,
+        "dimension": "3D",
+        "rate": 44100,
+        "flag": "ON"
+      },
+      {
+        "name": "Foot",
+        "number": 15,
+        "dimension": "3D",
+        "rate": 44100,
+        "flag": "ON"
+      },
+      {
+        "name": "PlacedNPC",
+        "number": 8,
+        "dimension": "3D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "StringendoMUSIC",
+        "number": 2,
+        "dimension": "2D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "NULL9",
+        "number": 1,
+        "dimension": "2D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "NULL10",
+        "number": 1,
+        "dimension": "2D",
+        "rate": 44100,
+        "flag": "OFF"
+      },
+      {
+        "name": "HQ",
+        "number": 4,
+        "dimension": "2D",
+        "rate": 44100,
+        "flag": "OFF"
+      }
+    ],
+    "volumeCurve": "OLD",
+    "enableScdPriority": true,
+    "stringendoSetting": [
+      8,
+      4
+    ],
+    "stringendoVolumes": [
+      1.0,
+      1.23,
+      1.56,
+      2.0
+    ],
+    "stringendoFadeTimes": [
+      4500,
+      4500,
+      4500,
+      4500
+    ],
+    "differences": "The two texts differ only in the VOICE bus number.",
+    "boundary": "The meaning of the bus numbers is not established. Whether a sound request reaches the SE bus, the Foot bus or another bus was not traced.",
+    "modeDefaultVa": "0x004055d0"
+  },
+  "entries": [
+    {
+      "id": "play_number",
+      "va": "0x004bbb00",
+      "role": "Split a file number and play the category base plus index.",
+      "sites": [
+        {
+          "site": "0x005527ec",
+          "function": "0x005527a0",
+          "owner": "RaptureSqwtInterface frame update",
+          "kind": "markup action",
+          "note": "Pending SoundPlayerAction request."
+        },
+        {
+          "site": "0x0085e9fc",
+          "function": "0x0085e970",
+          "owner": "AppearancePhase slot 22",
+          "kind": "character creation",
+          "note": "Voice sample number from the table at 0x012d1858 plus a random remainder."
+        },
+        {
+          "site": "0x00566073",
+          "function": "0x00565e10",
+          "owner": "TargetElement slot 65",
+          "kind": "UI event handler",
+          "note": "Fixed file number 59 on one branch of the handler."
+        }
+      ]
+    },
+    {
+      "id": "play_category",
+      "va": "0x004b7470",
+      "role": "Category table lookup and module play.",
+      "sites": [
+        {
+          "site": "0x004bbb23",
+          "function": "0x004bbb00",
+          "owner": "none",
+          "kind": "internal",
+          "note": "Only caller."
+        }
+      ]
+    },
+    {
+      "id": "play_category21",
+      "va": "0x004b7500",
+      "role": "Plays 0x8a0a0000 plus an index.",
+      "sites": []
+    },
+    {
+      "id": "play_footstep_pair",
+      "va": "0x004b7790",
+      "role": "Plays two ids composed from nine arguments.",
+      "sites": [
+        {
+          "site": "0x007d0ea3",
+          "function": "0x007d0d70",
+          "owner": "CharaActor slot 142 and RaptureFootstepTriggerClip slot 1 through 0x006679c0 and 0x0081c650",
+          "kind": "actor and clip",
+          "note": "Footstep path by class name."
+        }
+      ],
+      "gate": {
+        "flagVa": "0x0132f3cc",
+        "test": "0x004b779a calls InterlockedExchangeAdd on the flag with addend 0 and the play continues only when the result is 1. Any other result returns false at 0x004b783d.",
+        "initializerVa": "0x00f07770",
+        "initializerCell": "0x00f3efc0",
+        "initialValue": 1,
+        "writers": "The code section holds two direct references to the flag address, the test and the initializer. 0x004b7340 stores into the request objects directly only up to 0x0132f3c8. Writers that reach the flag through the object pointer or through calls on the request objects were not traced."
+      },
+      "slot4SixthArgument": {
+        "firstPlay": "A9",
+        "secondPlay": "1.0",
+        "otherEntries": "1.0"
+      }
+    },
+    {
+      "id": "play_resource_wrapper",
+      "va": "0x00567070",
+      "role": "Plays one resource id on the shared request object.",
+      "sites": [
+        {
+          "site": "0x00561a0e",
+          "function": "0x005614b0",
+          "owner": "ScreenshotManagerElement slot 6",
+          "kind": "UI element",
+          "note": "Resource 0x035b0031."
+        },
+        {
+          "site": "0x0056ae94",
+          "function": "0x0056ad40",
+          "owner": "SqexLogoMenu slot 1",
+          "kind": "UI menu",
+          "note": "Resource 0x035b000c."
+        }
+      ]
+    },
+    {
+      "id": "play_action_table",
+      "va": "0x0084ff50",
+      "role": "Plays an id read from a per-actor table slot.",
+      "sites": [
+        {
+          "site": "0x0065b271",
+          "function": "0x0065b1e0",
+          "owner": "RaptureCharaActionSoundClip slot 1, CharaActionQue slot 9, RaptureFootstepTriggerClip slot 1, CharaActor slot 142 and RaptureFootstepLoopTriggerClip through direct callers",
+          "kind": "actor and clip",
+          "note": "Id comes from an actor-held table, not a constant."
+        }
+      ]
+    },
+    {
+      "id": "play_resource_clip",
+      "va": "0x007cf100",
+      "role": "Plays a resource id from a sound object with optional position and handle slots.",
+      "sites": [
+        {
+          "site": "0x0081b378",
+          "function": "0x0081b240",
+          "owner": "RaptureSoundClip slot 2",
+          "kind": "scheduler clip",
+          "note": "Sound clip."
+        },
+        {
+          "site": "0x0081b3d9",
+          "function": "0x0081b240",
+          "owner": "RaptureSoundClip slot 2",
+          "kind": "scheduler clip",
+          "note": "Second call in the same method."
+        },
+        {
+          "site": "0x0081b7c3",
+          "function": "0x0081b6c0",
+          "owner": "RaptureSoundLoadClip slot 1",
+          "kind": "scheduler clip",
+          "note": "Sound load clip."
+        },
+        {
+          "site": "0x0081b5bf",
+          "function": "0x0081b560",
+          "owner": "RaptureSoundLoadClip slot 2",
+          "kind": "scheduler clip",
+          "note": "Sound load clip."
+        },
+        {
+          "site": "0x0081afcd",
+          "function": "0x0081af60",
+          "owner": "RaptureSoundClip through slot 2",
+          "kind": "scheduler clip",
+          "note": "Helper called by 0x0081b240."
+        },
+        {
+          "site": "0x0081aff2",
+          "function": "0x0081af60",
+          "owner": "RaptureSoundClip through slot 2",
+          "kind": "scheduler clip",
+          "note": "Helper called by 0x0081b240."
+        },
+        {
+          "site": "0x0081b11c",
+          "function": "0x0081af60",
+          "owner": "RaptureSoundClip through slot 2",
+          "kind": "scheduler clip",
+          "note": "Helper called by 0x0081b240."
+        },
+        {
+          "site": "0x0065ca3e",
+          "function": "0x0065c9d0",
+          "owner": "RaptureActorSoundClip slot 1 through 0x0081c210",
+          "kind": "scheduler clip",
+          "note": "Actor sound clip."
+        },
+        {
+          "site": "0x0065e12a",
+          "function": "0x0065e100",
+          "owner": "CharaActor slot 142 and RaptureFootstepTriggerClip slot 1 through 0x006679c0 at 0x00667f33, 0x007c2b90 at 0x007c2bcd, 0x007c0e10 at 0x007c1a41 and 0x007be450 at 0x007be6bb",
+          "kind": "actor and clip",
+          "note": "Direct caller 0x007be6bb lies in code that the Ghidra export has no function for. The chain 0x007be450, 0x007c0e10, 0x007c2b90 and 0x006679c0 is found by a rel32 scan."
+        },
+        {
+          "site": "0x008d5b35",
+          "function": "0x008d5ae0",
+          "owner": "RaptureCharaActionSoundClip slot 1 and CharaActionQue slot 9 through direct callers",
+          "kind": "actor and clip",
+          "note": "Action sound."
+        },
+        {
+          "site": "0x0060ec97",
+          "function": "0x0060ec70",
+          "owner": "none found",
+          "kind": "unknown",
+          "note": "Five argument wrapper with no direct caller and no dword reference in the image."
+        }
+      ]
+    },
+    {
+      "id": "play_message_sound",
+      "va": "0x005859f0",
+      "role": "Plays 0x035b0037 or 0x035b0038 for two message ids at the target actor position.",
+      "sites": [
+        {
+          "site": "0x0058c395",
+          "function": "0x0058c220",
+          "owner": "CharaElement update path through 0x0058ca80",
+          "kind": "result record drain",
+          "note": "Called for each non-empty entry that passes the selector filter in messageSound.drainFilter."
+        }
+      ]
+    }
+  ],
+  "entryClasses": {
+    "play_footstep_pair": [
+      "Application::Scene::Actor::Chara::CharaActor",
+      "Application::Scene::Cut::Clip::RaptureFootstepTriggerClip"
+    ],
+    "play_action_table": [
+      "Application::Scene::Actor::Chara::CharaActionPreLoadQue",
+      "Application::Scene::Actor::Chara::CharaActionQue",
+      "Application::Scene::Actor::Chara::CharaActor",
+      "Application::Scene::Actor::Chara::CharaVisual",
+      "Application::Scene::Actor::Chara::Status::CharaActionMotionController",
+      "Application::Scene::Cut::Clip::RaptureAutoWaveEndClip",
+      "Application::Scene::Cut::Clip::RaptureCharaActionSoundClip",
+      "Application::Scene::Cut::Clip::RaptureFootstepLoopTriggerClip",
+      "Application::Scene::Cut::Clip::RaptureFootstepTriggerClip",
+      "Application::Scene::Cut::Clip::RaptureMotionClip"
+    ],
+    "play_resource_clip": [
+      "Application::Scene::Actor::Chara::CharaActionPreLoadQue",
+      "Application::Scene::Actor::Chara::CharaActionQue",
+      "Application::Scene::Actor::Chara::CharaActor",
+      "Application::Scene::Actor::Chara::CharaVisual",
+      "Application::Scene::Actor::Chara::Status::CharaActionMotionController",
+      "Application::Scene::Cut::Clip::RaptureActorSoundClip",
+      "Application::Scene::Cut::Clip::RaptureAutoWaveEndClip",
+      "Application::Scene::Cut::Clip::RaptureCharaActionSoundClip",
+      "Application::Scene::Cut::Clip::RaptureFootstepLoopTriggerClip",
+      "Application::Scene::Cut::Clip::RaptureFootstepTriggerClip",
+      "Application::Scene::Cut::Clip::RaptureMotionClip",
+      "Application::Scene::Cut::Clip::RaptureSoundClip",
+      "Application::Scene::Cut::Clip::RaptureSoundLoadClip"
+    ],
+    "method": "Direct-call reverse closure over a call graph built from Ghidra function bounds and Capstone. Each class listed owns a virtual method that reaches the entry through direct calls. Indirect calls are not followed."
+  },
+  "literalIds": [
+    {
+      "resource": "0x035b000c",
+      "category": 0,
+      "index": 12,
+      "site": "0x0056ad94",
+      "owner": "SqexLogoMenu slot 1"
+    },
+    {
+      "resource": "0x035b0031",
+      "category": 0,
+      "index": 49,
+      "site": "0x005619fc",
+      "owner": "ScreenshotManagerElement slot 6"
+    },
+    {
+      "resource": "0x035b0037",
+      "category": 0,
+      "index": 55,
+      "site": "0x00585ace",
+      "owner": "0x005859f0 for message id 0x846e"
+    },
+    {
+      "resource": "0x035b0038",
+      "category": 0,
+      "index": 56,
+      "site": "0x00585a65",
+      "owner": "0x005859f0 for message id 0x8475"
+    },
+    {
+      "resource": "0x035b000f",
+      "category": 0,
+      "index": 15,
+      "site": "0x00865cc2",
+      "owner": "LocationPhase slot 20, selection 0"
+    },
+    {
+      "resource": "0x035b000e",
+      "category": 0,
+      "index": 14,
+      "site": "0x00865cca",
+      "owner": "LocationPhase slot 20, selection 1"
+    },
+    {
+      "resource": "0x035b0010",
+      "category": 0,
+      "index": 16,
+      "site": "0x00865cd2",
+      "owner": "LocationPhase slot 20, selection 2"
+    }
+  ],
+  "literalIdNote": "A scan of the executable sections for the little-endian pattern 0x035b0000 plus a 16-bit value below 10000 finds 25 byte matches. The seven listed ids are the push and add immediates. The other matches are parts of other instructions and addresses. File number 59 reaches category 0 index 59 through 0x004bbb00 and is not an immediate resource id.",
+  "immediateScans": [
+    {
+      "value": "0x0135c2ac",
+      "role": "interface global",
+      "sites": [
+        "0x009741f9",
+        "0x00974208",
+        "0x00974221",
+        "0x00974260"
+      ]
+    },
+    {
+      "value": "0x00f8d700",
+      "role": "category table",
+      "sites": [
+        "0x004b748d",
+        "0x004b74a5"
+      ]
+    },
+    {
+      "value": "0x8a0a0000",
+      "role": "category 21 base",
+      "sites": [
+        "0x004b7524"
+      ]
+    },
+    {
+      "value": "0x035b0000",
+      "role": "category 0 base",
+      "sites": [
+        "0x00865cfb"
+      ]
+    },
+    {
+      "value": "0x07fd0000",
+      "role": "category 2 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b2d0000",
+      "role": "category 3 base",
+      "sites": []
+    },
+    {
+      "value": "0x08070002",
+      "role": "footstep first base",
+      "sites": [
+        "0x004b5820",
+        "0x004b77e3"
+      ]
+    },
+    {
+      "value": "0x1a460000",
+      "role": "footstep second base",
+      "sites": [
+        "0x004b583e",
+        "0x004b781a"
+      ]
+    },
+    {
+      "value": "0x0132f384",
+      "role": "request object array",
+      "sites": [
+        "0x004b56b0",
+        "0x004b56d3",
+        "0x004b5700",
+        "0x004b5730",
+        "0x004b5767",
+        "0x004b5785",
+        "0x004b57c3",
+        "0x004b7582",
+        "0x004b75ba",
+        "0x004b766e",
+        "0x004b76a5",
+        "0x004b7743",
+        "0x004b777d",
+        "0x00f0772f",
+        "0x00f2e63a"
+      ]
+    },
+    {
+      "value": "0x0132f3b4",
+      "role": "shared request object",
+      "sites": [
+        "0x004b73ed",
+        "0x004b74e1",
+        "0x004b7544",
+        "0x004b77ec",
+        "0x004b7820",
+        "0x0056709a",
+        "0x0056ad9a",
+        "0x00585ad9",
+        "0x007cf2ea",
+        "0x0085012b",
+        "0x00e5d081",
+        "0x00f07751",
+        "0x00f2e672",
+        "0x00f2e683"
+      ]
+    },
+    {
+      "value": "0x5b2e0000",
+      "role": "category 4 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b2f0000",
+      "role": "category 5 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b300000",
+      "role": "category 6 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b310000",
+      "role": "category 7 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b320000",
+      "role": "category 8 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b330000",
+      "role": "category 9 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b340000",
+      "role": "category 10 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b350000",
+      "role": "category 11 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b360000",
+      "role": "category 12 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b370000",
+      "role": "category 13 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b380000",
+      "role": "category 14 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b390000",
+      "role": "category 15 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b3a0000",
+      "role": "category 16 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b3b0000",
+      "role": "category 17 base",
+      "sites": []
+    },
+    {
+      "value": "0x5b3c0000",
+      "role": "category 18 base",
+      "sites": [
+        "0x0049f011",
+        "0x00cb637d"
+      ]
+    },
+    {
+      "value": "0x5b3d0000",
+      "role": "category 19 base",
+      "sites": [
+        "0x0043199d"
+      ]
+    },
+    {
+      "value": "0x5b3e0000",
+      "role": "category 20 base",
+      "sites": []
+    },
+    {
+      "value": "0x0060ec70",
+      "role": "clip play wrapper address",
+      "sites": []
+    },
+    {
+      "value": "0x0132f3cc",
+      "role": "footstep gate flag",
+      "sites": [
+        "0x004b7794",
+        "0x00f07773"
+      ]
+    }
+  ],
+  "footstepComposers": {
+    "firstVa": "0x004b5800",
+    "secondVa": "0x004b5830",
+    "note": "Pure id composers with the same arithmetic as the footstep play entry. A rel32 call and jump scan of the code section finds no caller of either."
+  },
+  "messageSound": {
+    "va": "0x005859f0",
+    "callerVa": "0x0058c220",
+    "callSite": "0x0058c395",
+    "exclusionTableVa": "0x01270ba4",
+    "exclusionCount": 30,
+    "ids": [
+      {
+        "messageId": "0x846e",
+        "resource": "0x035b0037"
+      },
+      {
+        "messageId": "0x8475",
+        "resource": "0x035b0038"
+      }
+    ],
+    "position": "The sound is played at the position of the actor that 0x004d9970 returns for the entry target id.",
+    "recordShape": "The entry count is the u16 at record +0x30. Entry k starts at record +0x38 plus 0x14 times k. The target is its first dword and the message id is the u16 at +0x44 plus 0x14 times k.",
+    "drainChain": [
+      "0x0058df90 (CharaElement slot 6)",
+      "0x0058da10",
+      "0x0058ca80",
+      "0x0058c220",
+      "0x005859f0"
+    ],
+    "drainCallSites": {
+      "0x0058df90->0x0058da10": "0x0058dfc8",
+      "0x0058da10 region->0x0058ca80": "0x0058db21",
+      "0x0058ca80->0x0058c220": "0x0058caad",
+      "0x0058c220->0x005859f0": "0x0058c395"
+    },
+    "stagingCitation": "xivl-decomp:docs/actor/battle-npc-body-parts.md (opcode 0x013A stages a record that 0x0058da10 drains)",
+    "boundary": "The record kinds that reach 0x0058ca80, the opcodes that stage them and the capture frequency of message ids 0x846e and 0x8475 were not enumerated.",
+    "drainFilter": {
+      "va": "0x0058c32f",
+      "skipsWhen": "the flag at stack +0x158 is clear, the selector at stack +0x14 is not -1 and the entry byte at +0x47 differs from the selector",
+      "boundary": "The sources of the flag and the selector were not traced."
+    },
+    "prePlayCall": {
+      "va": "0x007969d0",
+      "receiver": "target actor + 0xe0c",
+      "argumentByMessageId": {
+        "0x8475": 0,
+        "0x846e": 1
+      },
+      "boundary": "The effect of the call was not read."
+    },
+    "nullActor": "A null actor from 0x004d9970 skips the play and the function still returns true."
+  },
+  "reachability": {
+    "method": "Walk over direct call and jump targets. The call graph uses the function bounds of the Ghidra export and Capstone 5.0.7 over the pinned bytes.",
+    "dispatcher": {
+      "startVa": "0x004dc690",
+      "regionEndVa": "0x004dd3cf",
+      "nonLocalTargets": 92,
+      "reachedFunctions": 3014,
+      "entriesReached": [],
+      "positiveControl": "0x004bbb30"
+    },
+    "entries": [
+      "0x004bbb00",
+      "0x004b7470",
+      "0x004b7500",
+      "0x004b7790",
+      "0x00567070",
+      "0x0084ff50",
+      "0x007cf100",
+      "0x005859f0"
+    ],
+    "boundary": "Virtual and indirect calls are not followed. The receive dispatcher reaches CharaElement slot 9 through a virtual call (xivl-decomp:docs/actor/action-queue.md)."
+  },
+  "creationVoice": {
+    "appearancePhase": {
+      "slot": 22,
+      "va": "0x0085e970",
+      "tableVa": "0x012d1858",
+      "entryStride": 8,
+      "entryCount": 10,
+      "entries": [
+        [
+          1,
+          30021
+        ],
+        [
+          2,
+          40021
+        ],
+        [
+          11,
+          130021
+        ],
+        [
+          12,
+          140021
+        ],
+        [
+          5,
+          70021
+        ],
+        [
+          6,
+          80021
+        ],
+        [
+          7,
+          90021
+        ],
+        [
+          8,
+          100021
+        ],
+        [
+          17,
+          190021
+        ],
+        [
+          18,
+          200021
+        ]
+      ],
+      "numberRule": "number = table value + (random value mod 12), played through 0x004bbb00.",
+      "defaultEntry": 0,
+      "key": "The key is the u32 at +0x29c of the argument. The store at 0x00862cb9 writes an array index there for an object taken from an array at +0x1c8. Whether that object is the argument of slot 22 was not traced.",
+      "random": "A generator object built by 0x00459dc0 from the result of the import called at 0x0085e99c and read through 0x00459e00."
+    },
+    "listMenu": {
+      "entryVa": "0x006ac310",
+      "callerVa": "0x00863a50",
+      "callerSlot": "AppearanceCommonListMenu slot 14",
+      "rowTableVa": "0x012beaf8",
+      "rowStride": 44,
+      "rowGroupDwords": [
+        1,
+        2,
+        9,
+        3,
+        4,
+        3,
+        4,
+        5,
+        6,
+        5,
+        6,
+        8,
+        8,
+        7,
+        7
+      ],
+      "idTableVa": "0x012bf004",
+      "idRowWidth": 6,
+      "positionCount": 3,
+      "idRule": "resource id = idTable[6 * group + position], where group is the first dword of the selected row and position is the index of the selected id among three row entries.",
+      "groupCategories": {
+        "1": [
+          3,
+          4,
+          15
+        ],
+        "2": [
+          5,
+          6,
+          13
+        ],
+        "3": [
+          11,
+          12,
+          3
+        ],
+        "4": [
+          13,
+          14,
+          5
+        ],
+        "5": [
+          7,
+          8,
+          11
+        ],
+        "6": [
+          9,
+          10,
+          17
+        ],
+        "7": [
+          19,
+          20,
+          15
+        ],
+        "8": [
+          17,
+          18,
+          9
+        ],
+        "9": [
+          15,
+          16,
+          19
+        ]
+      },
+      "sampleIndices": [
+        27,
+        23
+      ],
+      "requestObjects": "Three per-menu request objects at this+0x3f1c with a stride of 0x18.",
+      "boundary": "The row table extent beyond 15 rows, the list the rows belong to and the meaning of position 3 are not established."
+    }
+  },
+  "claims": [
+    {
+      "id": "action-properties",
+      "tier": "STATIC",
+      "claim": "SoundPlayerAction has FileNumber, Index, Volume and Priority with the defaults 0, 0, 1.0 and 0 at this+0x44, +0x4c, +0x54 and +0x5c."
+    },
+    {
+      "id": "action-run",
+      "tier": "STATIC",
+      "claim": "Running the action calls interface vtable slot 10 with FileNumber, Index, Volume, the vector (0, 0, 0, 1) and Priority."
+    },
+    {
+      "id": "interface-global",
+      "tier": "STATIC",
+      "claim": "The interface lives in the global 0x0135c2ac, written by the base constructor and the destructors and read only by the getter 0x00974220."
+    },
+    {
+      "id": "pending-priority-rule",
+      "tier": "STATIC",
+      "claim": "Slot 10 keeps a request when its priority is at least the held priority and stores file number, index, volume, vector and priority."
+    },
+    {
+      "id": "pending-initial-state",
+      "tier": "STATIC",
+      "claim": "The constructor starts the cell at file number -1, index 0, volume 0, vector (0, 0, 0, 1) and priority 0."
+    },
+    {
+      "id": "frame-update-play-clear",
+      "tier": "STATIC",
+      "claim": "The frame update plays a pending file number through 0x004bbb00 with the volume and then stores -1 and priority 0."
+    },
+    {
+      "id": "frame-update-skip",
+      "tier": "STATIC",
+      "claim": "A pending -1 skips the play and both clears."
+    },
+    {
+      "id": "frame-update-cadence",
+      "tier": "STATIC",
+      "claim": "The frame update runs once per Application::Rapture update through 0x004daa10."
+    },
+    {
+      "id": "frame-update-unread-fields",
+      "tier": "STATIC",
+      "claim": "The frame update reads the file number and the volume only."
+    },
+    {
+      "id": "number-split",
+      "tier": "STATIC",
+      "claim": "0x004bbb00 divides the file number as an unsigned value by 10000 and passes the quotient as the category and the remainder as the index."
+    },
+    {
+      "id": "category-table",
+      "tier": "STATIC",
+      "claim": "The category table at 0x00f8d700 holds 22 base ids and 0x004b7470 indexes it with no bound check."
+    },
+    {
+      "id": "volume-gate",
+      "tier": "STATIC",
+      "claim": "A volume at or below zero first calls module slot 8 with the resource id."
+    },
+    {
+      "id": "request-objects",
+      "tier": "STATIC",
+      "claim": "The module keeps three request objects from 0x0132f384 with a stride of 0x18. The music request indexes them with a selector and every sound effect entry uses the third."
+    },
+    {
+      "id": "module-play",
+      "tier": "STATIC",
+      "claim": "The play is module vtable slot 4 on the shared request object 0x0132f3b4 with the resource id, the volume and the vector (0, 0, 0, 1)."
+    },
+    {
+      "id": "install-categories",
+      "tier": "OBSERVED",
+      "claim": "Categories 0, 1 and 2 hold 83, 110 and 425 files, categories 3 to 20 hold 55 files each and category 21 holds 1 file."
+    },
+    {
+      "id": "markup-census",
+      "tier": "OBSERVED",
+      "claim": "Decoded markup holds 1012 SoundPlayerAction elements in 200 template files."
+    },
+    {
+      "id": "markup-file-numbers",
+      "tier": "OBSERVED",
+      "claim": "Every markup FileNumber lies from 1 through 82, inside category 0."
+    },
+    {
+      "id": "config-texts",
+      "tier": "STATIC",
+      "claim": "Two driver configuration texts differ only in the VOICE bus number and carry MAX_SOUND 128, 11 buses and STRINGENDO_FADE_TIMES of 4500."
+    },
+    {
+      "id": "config-selector",
+      "tier": "STATIC",
+      "claim": "A configuration value of 4 or 5 after the decrement selects the text with VOICE 0. A zero key value keeps the result of 0x004055d0 in its place."
+    },
+    {
+      "id": "bus-numbers",
+      "tier": "UNPROVED",
+      "claim": "The meaning of the per-bus numbers."
+    },
+    {
+      "id": "literal-ids",
+      "tier": "STATIC",
+      "claim": "Literal category 0 resource ids are indexes 12, 14, 15, 16, 49, 55 and 56."
+    },
+    {
+      "id": "entry-callers",
+      "tier": "STATIC",
+      "claim": "The call sites of the eight play entry functions are those listed under entries."
+    },
+    {
+      "id": "caller-roles",
+      "tier": "INFERRED",
+      "claim": "The role of each caller follows from its class name and its resource id source."
+    },
+    {
+      "id": "message-sound",
+      "tier": "STATIC",
+      "claim": "The result record drain plays 0x035b0037 for message id 0x846e and 0x035b0038 for 0x8475 at the target actor position for each non-empty entry that passes the selector filter."
+    },
+    {
+      "id": "message-sound-origin",
+      "tier": "INFERRED",
+      "claim": "The drained records come from Map clientbound packets staged by CharaElement slot 9."
+    },
+    {
+      "id": "dispatcher-reach",
+      "tier": "NOT FOUND",
+      "claim": "No direct call path from the receive dispatcher body reaches an SE entry."
+    },
+    {
+      "id": "creation-appearance-table",
+      "tier": "STATIC",
+      "claim": "AppearancePhase slot 22 maps ten keys to numbers 30021 through 200021 and adds a random remainder modulo 12."
+    },
+    {
+      "id": "creation-list-table",
+      "tier": "STATIC",
+      "claim": "The list menu reads resource ids from a table of ten rows of six."
+    },
+    {
+      "id": "creation-key-meaning",
+      "tier": "INFERRED",
+      "claim": "The keys and groups select voice sample banks for creation previews."
+    },
+    {
+      "id": "gameplay-voice",
+      "tier": "UNPROVED",
+      "claim": "No in-world voice trigger or voice id to category rule was traced."
+    },
+    {
+      "id": "unconsumed-categories",
+      "tier": "NOT FOUND",
+      "claim": "No consumer of category 2 or category 21 was found."
+    },
+    {
+      "id": "footstep-arithmetic",
+      "tier": "STATIC",
+      "claim": "0x004b7790 plays 0x08070002 + A6 + 8*A5 + 16*A4 + 32*A3 + 64*A2 and then 0x1a460000 + 9*A7 + A8."
+    },
+    {
+      "id": "footstep-banks",
+      "tier": "OBSERVED",
+      "claim": "The installation holds 770 files below data/08/07 and 45 below data/1A/46."
+    },
+    {
+      "id": "lua-sound-commands",
+      "tier": "INFERRED",
+      "claim": "Command triggers named UILuaCommands.SoundPlay can start actions from script."
+    },
+    {
+      "id": "footstep-gate",
+      "tier": "STATIC",
+      "claim": "0x004b7790 plays only when InterlockedExchangeAdd on 0x0132f3cc with addend 0 returns 1, and A9 is the sixth slot 4 argument of its first play."
+    },
+    {
+      "id": "message-sound-filter",
+      "tier": "STATIC",
+      "claim": "The drain skips an entry when the flag at stack +0x158 is clear, the selector at stack +0x14 is not -1 and the entry byte at +0x47 differs, and 0x005859f0 calls 0x007969d0 on actor +0xe0c before each play."
+    }
+  ],
+  "boundaries": [
+    "Which forms and templates use each FileNumber, and which runtime event fires them, is not mapped beyond the trigger kind counts.",
+    "Volume 100 on two markup actions is passed through as a float and the client unit is not established.",
+    "The module getter 0x004d7500 has 31 call sites. Functions 0x00588f60, 0x006a60e0, 0x006a8e80, 0x006ad410, 0x006b2ac0, 0x0085ffb0, 0x00860050, 0x00865980, 0x00875980, 0x00886610 and 0x008866e0 were not traced to a sound play.",
+    "Module slot 4 callers that hold their own request object were found only through the getter census and an immediate scan.",
+    "Resource id sources of 0x0084ff50 and 0x007cf100 callers were not traced to clip data.",
+    "The composition roles of the footstep arguments are not decoded.",
+    "Bus assignment, 3D placement and the SCD priority switch were not traced into the sound driver.",
+    "The writers of the footstep gate flag 0x0132f3cc, the sources of the drain filter flag and selector, the effect of 0x007969d0 and the default returned by 0x004055d0 were not traced."
+  ],
+  "staticChecks": [
+    {
+      "name": "SoundPlayerAction FileNumber property init",
+      "kind": "signature",
+      "va": "0x009b3424",
+      "pattern": "33 d2 52 52 68 80 1e 36 01 52 b8 50 30 9b 00 50 8d 7e 18 8d 4e 44",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Constructor 0x009b33f0 builds the FileNumber property: info 0x01361e80, getter 0x009b3050 and the field at this+0x44, with default 0."
+    },
+    {
+      "name": "SoundPlayerAction FileNumber property constructor call",
+      "kind": "signature",
+      "va": "0x009b344f",
+      "pattern": "e8 ec 9d 00 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Dword property constructor 0x009bd240 with default 0."
+    },
+    {
+      "name": "SoundPlayerAction Index property init",
+      "kind": "signature",
+      "va": "0x009b3454",
+      "pattern": "33 d2 52 52 68 a4 1e 36 01 52 b8 50 30 9b 00 50 8d 4e 4c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Index property: info 0x01361ea4 and the field at this+0x4c, default 0."
+    },
+    {
+      "name": "SoundPlayerAction Index property constructor call",
+      "kind": "signature",
+      "va": "0x009b3468",
+      "pattern": "e8 d3 9d 00 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Dword property constructor 0x009bd240 with default 0."
+    },
+    {
+      "name": "SoundPlayerAction Volume property init",
+      "kind": "signature",
+      "va": "0x009b346d",
+      "pattern": "d9 e8 33 d2 52 8d 4e 54 51 d9 1c 24 68 c8 1e 36 01 52 b8 50 30 9b 00 50",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Volume property: default 1.0 from fld1, info 0x01361ec8 and the field at this+0x54."
+    },
+    {
+      "name": "SoundPlayerAction Volume property constructor call",
+      "kind": "signature",
+      "va": "0x009b3486",
+      "pattern": "e8 45 eb 00 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Float property constructor 0x009c1fd0."
+    },
+    {
+      "name": "SoundPlayerAction Priority property init",
+      "kind": "signature",
+      "va": "0x009b348b",
+      "pattern": "33 d2 52 52 68 ec 1e 36 01 52 b8 50 30 9b 00 50 8d 4e 5c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Priority property: info 0x01361eec and the byte field at this+0x5c, default 0."
+    },
+    {
+      "name": "SoundPlayerAction Priority property constructor call",
+      "kind": "signature",
+      "va": "0x009b349f",
+      "pattern": "e8 1c 11 cd ff",
+      "mask": "ff ff ff ff ff",
+      "note": "Byte property constructor 0x006845c0."
+    },
+    {
+      "name": "SoundPlayerAction run interface getter call",
+      "kind": "signature",
+      "va": "0x009b3087",
+      "pattern": "e8 94 11 fc ff",
+      "mask": "ff ff ff ff ff",
+      "note": "The run method calls the interface getter 0x00974220."
+    },
+    {
+      "name": "SoundPlayerAction run null interface test",
+      "kind": "signature",
+      "va": "0x009b308e",
+      "pattern": "85 ff 74 40",
+      "mask": "ff ff ff ff",
+      "note": "A null interface skips the call."
+    },
+    {
+      "name": "SoundPlayerAction run origin vector",
+      "kind": "signature",
+      "va": "0x009b3092",
+      "pattern": "8d 4c 24 0c e8 15 38 fd ff",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "The fourth argument is a vector built by 0x009868b0 as (0, 0, 0, 1)."
+    },
+    {
+      "name": "SoundPlayerAction run slot 10 call",
+      "kind": "signature",
+      "va": "0x009b309b",
+      "pattern": "d9 46 54 0f b6 4e 5c 8b 17 8b 52 28 51 50 8b 46 4c 51 8b 4e 44 c7 44 24 34 00 00 00 00 d9 1c 24 50 51 8b cf ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Loads Volume this+0x54, Priority this+0x5c, FileNumber this+0x44 and Index this+0x4c and calls interface vtable +0x28 (slot 10) with five arguments."
+    },
+    {
+      "name": "origin vector constructor",
+      "kind": "signature",
+      "va": "0x009868b0",
+      "pattern": "d9 ee 8b c1 d9 50 04 c7 00 c4 71 07 01 d9 50 08 d9 58 0c d9 e8 d9 58 10 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores vtable 0x010771c4 and the floats 0, 0, 0, 1 at +4, +8, +0xc and +0x10."
+    },
+    {
+      "name": "interface global store",
+      "kind": "signature",
+      "va": "0x009741f8",
+      "pattern": "a3 ac c2 35 01 c3",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Base constructor 0x009741f0 stores the object in the global 0x0135c2ac."
+    },
+    {
+      "name": "interface global clear",
+      "kind": "signature",
+      "va": "0x00974206",
+      "pattern": "c7 05 ac c2 35 01 00 00 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x00974200 clears the global."
+    },
+    {
+      "name": "interface global read",
+      "kind": "signature",
+      "va": "0x00974220",
+      "pattern": "a1 ac c2 35 01 c3",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The only reader of the global, the getter called by SoundPlayerAction."
+    },
+    {
+      "name": "pending request priority compare",
+      "kind": "signature",
+      "va": "0x0054b070",
+      "pattern": "8a 54 24 14 3a 91 2c 03 00 00 72 50",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 10 compares the new priority byte with the held byte at this+0x32c and skips when below (unsigned)."
+    },
+    {
+      "name": "pending request file number store",
+      "kind": "signature",
+      "va": "0x0054b086",
+      "pattern": "89 81 0c 03 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Stores the first argument at this+0x30c."
+    },
+    {
+      "name": "pending request index store",
+      "kind": "signature",
+      "va": "0x0054b090",
+      "pattern": "89 81 10 03 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Stores the second argument at this+0x310."
+    },
+    {
+      "name": "pending request volume store",
+      "kind": "signature",
+      "va": "0x0054b09c",
+      "pattern": "f3 0f 11 81 14 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Stores the third argument at this+0x314."
+    },
+    {
+      "name": "pending request vector null test",
+      "kind": "signature",
+      "va": "0x0054b09a",
+      "pattern": "85 c0",
+      "mask": "ff ff",
+      "note": "A null fourth argument selects address 0."
+    },
+    {
+      "name": "pending request vector copy",
+      "kind": "signature",
+      "va": "0x0054b0ad",
+      "pattern": "f3 0f 7e 00 66 0f d6 81 1c 03 00 00 f3 0f 7e 40 08 66 0f d6 81 24 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Copies 16 bytes from the fourth argument +4 to this+0x31c."
+    },
+    {
+      "name": "pending request priority store",
+      "kind": "signature",
+      "va": "0x0054b0c6",
+      "pattern": "88 91 2c 03 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Stores the priority byte at this+0x32c."
+    },
+    {
+      "name": "pending request slot 10 return",
+      "kind": "signature",
+      "va": "0x0054b0cc",
+      "pattern": "c2 14 00",
+      "mask": "ff ff ff",
+      "note": "Five stack arguments."
+    },
+    {
+      "name": "interface constructor pending file number",
+      "kind": "signature",
+      "va": "0x0054e27b",
+      "pattern": "83 cf ff 89 be 0c 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Initial pending file number -1 at this+0x30c."
+    },
+    {
+      "name": "interface constructor pending index",
+      "kind": "signature",
+      "va": "0x0054e284",
+      "pattern": "89 9e 10 03 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Initial index 0 at this+0x310."
+    },
+    {
+      "name": "interface constructor pending volume",
+      "kind": "signature",
+      "va": "0x0054e28a",
+      "pattern": "0f 57 c0 8d 8e 18 03 00 00 f3 0f 11 86 14 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Initial volume 0 at this+0x314."
+    },
+    {
+      "name": "interface constructor pending vector",
+      "kind": "signature",
+      "va": "0x0054e29b",
+      "pattern": "e8 10 86 43 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Initial vector (0, 0, 0, 1) at this+0x318."
+    },
+    {
+      "name": "interface constructor pending priority",
+      "kind": "signature",
+      "va": "0x0054e2ad",
+      "pattern": "88 9e 2c 03 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Initial priority 0 at this+0x32c."
+    },
+    {
+      "name": "frame update pending file number test",
+      "kind": "signature",
+      "va": "0x005527d3",
+      "pattern": "8b 86 0c 03 00 00 83 f8 ff 74 24",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reads this+0x30c and skips both clears when it is -1."
+    },
+    {
+      "name": "frame update volume load",
+      "kind": "signature",
+      "va": "0x005527de",
+      "pattern": "d9 86 14 03 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Reads the volume at this+0x314 and no other pending field."
+    },
+    {
+      "name": "frame update play call",
+      "kind": "signature",
+      "va": "0x005527e8",
+      "pattern": "d9 1c 24 50 e8 0f 93 f6 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the file number and the volume and calls 0x004bbb00 on the object at this+0x1c."
+    },
+    {
+      "name": "frame update file number clear",
+      "kind": "signature",
+      "va": "0x005527f1",
+      "pattern": "c7 86 0c 03 00 00 ff ff ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores -1 at this+0x30c."
+    },
+    {
+      "name": "frame update priority clear",
+      "kind": "signature",
+      "va": "0x005527fb",
+      "pattern": "c6 86 2c 03 00 00 00",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Stores 0 at this+0x32c."
+    },
+    {
+      "name": "frame update caller interface load",
+      "kind": "signature",
+      "va": "0x004dab2d",
+      "pattern": "8b 8f 54 7d 01 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "0x004daa10 loads the interface at this+0x17d54."
+    },
+    {
+      "name": "frame update caller call",
+      "kind": "signature",
+      "va": "0x004dab33",
+      "pattern": "e8 68 7c 07 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Calls the frame update 0x005527a0."
+    },
+    {
+      "name": "Rapture update calls the per-frame method",
+      "kind": "signature",
+      "va": "0x004b3dd4",
+      "pattern": "e8 37 6c 02 00",
+      "mask": "ff ff ff ff ff",
+      "note": "Application::Rapture slot 1 (0x004b3c50) calls 0x004daa10."
+    },
+    {
+      "name": "number split magic divide",
+      "kind": "signature",
+      "va": "0x004bbb09",
+      "pattern": "b8 59 17 b7 d1 f7 e6 c1 ea 0d 8b c2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Unsigned multiply by 0xd1b71759 and shift by 13, a divide by 10000."
+    },
+    {
+      "name": "number split remainder",
+      "kind": "signature",
+      "va": "0x004bbb15",
+      "pattern": "69 c0 10 27 00 00 51 2b f0",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Multiplies the quotient by 10000 and subtracts it from the number."
+    },
+    {
+      "name": "number split call",
+      "kind": "signature",
+      "va": "0x004bbb1e",
+      "pattern": "d9 1c 24 56 52 e8 48 b9 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the volume, the remainder and the quotient and calls 0x004b7470."
+    },
+    {
+      "name": "category play volume gate",
+      "kind": "signature",
+      "va": "0x004b7476",
+      "pattern": "0f 2f 44 24 1c",
+      "mask": "ff ff ff ff ff",
+      "note": "Compares the volume with zero."
+    },
+    {
+      "name": "category play volume gate branch",
+      "kind": "signature",
+      "va": "0x004b7488",
+      "pattern": "72 16",
+      "mask": "ff ff",
+      "note": "A volume above zero jumps over the first module call."
+    },
+    {
+      "name": "category play first call",
+      "kind": "signature",
+      "va": "0x004b748a",
+      "pattern": "8b 0c 9d 00 d7 f8 00 8b 06 8b 50 20 03 cf 51 8b ce ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Loads the category base, adds the index and calls module vtable +0x20 (slot 8)."
+    },
+    {
+      "name": "category play base load",
+      "kind": "signature",
+      "va": "0x004b74a2",
+      "pattern": "8b 14 9d 00 d7 f8 00 8b 06 8b 40 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Loads the category base from the table at 0x00f8d700 with no bound check."
+    },
+    {
+      "name": "category play request object",
+      "kind": "signature",
+      "va": "0x004b74d8",
+      "pattern": "f3 0f 10 05 70 4f f5 00 68 b4 f3 32 01 8b ce f3 0f 11 44 24 34 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Pushes the shared request object 0x0132f3b4 and calls module vtable +0x10 (slot 4)."
+    },
+    {
+      "name": "category play return",
+      "kind": "signature",
+      "va": "0x004b74f5",
+      "pattern": "c2 0c 00",
+      "mask": "ff ff ff",
+      "note": "Three stack arguments."
+    },
+    {
+      "name": "category 21 play",
+      "kind": "signature",
+      "va": "0x004b7522",
+      "pattern": "81 c2 00 00 0a 8a",
+      "mask": "ff ff ff ff ff ff",
+      "note": "0x004b7500 adds the index to 0x8a0a0000."
+    },
+    {
+      "name": "module getter",
+      "kind": "signature",
+      "va": "0x004d7500",
+      "pattern": "8d 81 28 09 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Adds 0x928 to the application object to give the RaptureSoundModule."
+    },
+    {
+      "name": "footstep first id",
+      "kind": "signature",
+      "va": "0x004b77e0",
+      "pattern": "8d 8c ca 02 00 07 08",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "First id is 0x08070002 plus a weighted sum of five arguments."
+    },
+    {
+      "name": "footstep second id",
+      "kind": "signature",
+      "va": "0x004b7817",
+      "pattern": "8d 84 08 00 00 46 1a",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Second id is 0x1a460000 plus 9 times the seventh argument plus the eighth."
+    },
+    {
+      "name": "footstep request object",
+      "kind": "signature",
+      "va": "0x004b781f",
+      "pattern": "68 b4 f3 32 01",
+      "mask": "ff ff ff ff ff",
+      "note": "Shared request object 0x0132f3b4."
+    },
+    {
+      "name": "shared request object, generic clip play",
+      "kind": "signature",
+      "va": "0x007cf2e9",
+      "pattern": "68 b4 f3 32 01",
+      "mask": "ff ff ff ff ff",
+      "note": "0x007cf100 passes the shared request object."
+    },
+    {
+      "name": "shared request object, wrapper",
+      "kind": "signature",
+      "va": "0x00567099",
+      "pattern": "68 b4 f3 32 01",
+      "mask": "ff ff ff ff ff",
+      "note": "0x00567070 passes the shared request object."
+    },
+    {
+      "name": "shared request object, action table play",
+      "kind": "signature",
+      "va": "0x0085012a",
+      "pattern": "68 b4 f3 32 01",
+      "mask": "ff ff ff ff ff",
+      "note": "0x0084ff50 passes the shared request object."
+    },
+    {
+      "name": "action table index",
+      "kind": "signature",
+      "va": "0x0084ff85",
+      "pattern": "8b 0c 85 00 f9 03 01 03 4d 0c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x0084ff50 reads a per-actor id table through a group table at 0x0103f900."
+    },
+    {
+      "name": "sound clip play call",
+      "kind": "signature",
+      "va": "0x0081b378",
+      "pattern": "e8 83 3d fb ff",
+      "mask": "ff ff ff ff ff",
+      "note": "RaptureSoundClip slot 2 calls 0x007cf100."
+    },
+    {
+      "name": "sound load clip play call, slot 1",
+      "kind": "signature",
+      "va": "0x0081b7c3",
+      "pattern": "e8 38 39 fb ff",
+      "mask": "ff ff ff ff ff",
+      "note": "RaptureSoundLoadClip slot 1 calls 0x007cf100."
+    },
+    {
+      "name": "sound load clip play call, slot 2",
+      "kind": "signature",
+      "va": "0x0081b5bf",
+      "pattern": "e8 3c 3b fb ff",
+      "mask": "ff ff ff ff ff",
+      "note": "RaptureSoundLoadClip slot 2 calls 0x007cf100."
+    },
+    {
+      "name": "target element play number",
+      "kind": "signature",
+      "va": "0x0056606a",
+      "pattern": "6a 3b",
+      "mask": "ff ff",
+      "note": "Pushes file number 59."
+    },
+    {
+      "name": "target element play call",
+      "kind": "signature",
+      "va": "0x00566073",
+      "pattern": "e8 88 5a f5 ff",
+      "mask": "ff ff ff ff ff",
+      "note": "TargetElement slot 65 calls 0x004bbb00."
+    },
+    {
+      "name": "logo menu id, first",
+      "kind": "signature",
+      "va": "0x0056ad94",
+      "pattern": "68 0c 00 5b 03",
+      "mask": "ff ff ff ff ff",
+      "note": "SqexLogoMenu slot 1 plays resource 0x035b000c."
+    },
+    {
+      "name": "logo menu id, second",
+      "kind": "signature",
+      "va": "0x0056ae82",
+      "pattern": "68 0c 00 5b 03",
+      "mask": "ff ff ff ff ff",
+      "note": "SqexLogoMenu slot 1 plays resource 0x035b000c through 0x00567070."
+    },
+    {
+      "name": "screenshot element id",
+      "kind": "signature",
+      "va": "0x005619fc",
+      "pattern": "68 31 00 5b 03",
+      "mask": "ff ff ff ff ff",
+      "note": "ScreenshotManagerElement slot 6 plays resource 0x035b0031 through 0x00567070."
+    },
+    {
+      "name": "location phase base add",
+      "kind": "signature",
+      "va": "0x00865cf9",
+      "pattern": "81 c1 00 00 5b 03",
+      "mask": "ff ff ff ff ff ff",
+      "note": "LocationPhase slot 20 adds the index to 0x035b0000."
+    },
+    {
+      "name": "location phase index 15",
+      "kind": "signature",
+      "va": "0x00865cc2",
+      "pattern": "c7 44 24 0c 0f 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "First local index value 15."
+    },
+    {
+      "name": "location phase index 14",
+      "kind": "signature",
+      "va": "0x00865cca",
+      "pattern": "c7 44 24 10 0e 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Second local index value 14."
+    },
+    {
+      "name": "location phase index 16",
+      "kind": "signature",
+      "va": "0x00865cd2",
+      "pattern": "c7 44 24 14 10 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "Third local index value 16."
+    },
+    {
+      "name": "message sound call",
+      "kind": "signature",
+      "va": "0x0058c395",
+      "pattern": "e8 56 96 ff ff",
+      "mask": "ff ff ff ff ff",
+      "note": "0x0058c220 calls 0x005859f0 with the entry target and the entry message id."
+    },
+    {
+      "name": "message sound id 0x8475 test",
+      "kind": "signature",
+      "va": "0x00585a17",
+      "pattern": "66 81 fd 75 84",
+      "mask": "ff ff ff ff ff",
+      "note": "Message id 0x8475."
+    },
+    {
+      "name": "message sound id 0x846e test",
+      "kind": "signature",
+      "va": "0x00585a84",
+      "pattern": "66 81 fd 6e 84",
+      "mask": "ff ff ff ff ff",
+      "note": "Message id 0x846e."
+    },
+    {
+      "name": "message sound 0x8475 resource",
+      "kind": "signature",
+      "va": "0x00585a65",
+      "pattern": "68 38 00 5b 03",
+      "mask": "ff ff ff ff ff",
+      "note": "Resource 0x035b0038."
+    },
+    {
+      "name": "message sound 0x846e resource",
+      "kind": "signature",
+      "va": "0x00585ace",
+      "pattern": "68 37 00 5b 03",
+      "mask": "ff ff ff ff ff",
+      "note": "Resource 0x035b0037."
+    },
+    {
+      "name": "message sound shared request object",
+      "kind": "signature",
+      "va": "0x00585ad8",
+      "pattern": "68 b4 f3 32 01",
+      "mask": "ff ff ff ff ff",
+      "note": "Shared request object."
+    },
+    {
+      "name": "message sound exclusion table compare",
+      "kind": "signature",
+      "va": "0x00585a02",
+      "pattern": "66 3b a8 a4 0b 27 01",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "The id is compared with 30 u16 values at 0x01270ba4."
+    },
+    {
+      "name": "creation voice key compare",
+      "kind": "signature",
+      "va": "0x0085e9c0",
+      "pattern": "39 34 c5 58 18 2d 01",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "AppearancePhase slot 22 (0x0085e970) searches ten 8-byte entries at 0x012d1858."
+    },
+    {
+      "name": "creation voice random modulus",
+      "kind": "signature",
+      "va": "0x0085e9e7",
+      "pattern": "b9 0c 00 00 00 f7 f1",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Reduces the random value modulo 12."
+    },
+    {
+      "name": "creation voice number add",
+      "kind": "signature",
+      "va": "0x0085e9ee",
+      "pattern": "8b 4f 04 03 56 04",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Adds the table value to the remainder."
+    },
+    {
+      "name": "creation voice play call",
+      "kind": "signature",
+      "va": "0x0085e9fc",
+      "pattern": "e8 ff d0 c5 ff",
+      "mask": "ff ff ff ff ff",
+      "note": "Calls 0x004bbb00 with the number."
+    },
+    {
+      "name": "creation voice default entry",
+      "kind": "signature",
+      "va": "0x0085e9d1",
+      "pattern": "be 58 18 2d 01",
+      "mask": "ff ff ff ff ff",
+      "note": "A key not in the table selects the first entry."
+    },
+    {
+      "name": "config mode read",
+      "kind": "signature",
+      "va": "0x00402d42",
+      "pattern": "53 6a 19 8b f8 53",
+      "mask": "ff ff ff ff ff ff",
+      "note": "Reads the config value for group 0 and key 0x19."
+    },
+    {
+      "name": "config mode decrement",
+      "kind": "signature",
+      "va": "0x00402d57",
+      "pattern": "83 c0 ff",
+      "mask": "ff ff ff",
+      "note": "A nonzero value is reduced by one."
+    },
+    {
+      "name": "number split return",
+      "kind": "signature",
+      "va": "0x004bbb28",
+      "pattern": "5e c2 08 00",
+      "mask": "ff ff ff ff",
+      "note": "Two stack arguments."
+    },
+    {
+      "name": "voice list play entry call",
+      "kind": "signature",
+      "va": "0x00863af4",
+      "pattern": "e8 17 88 e4 ff",
+      "mask": "ff ff ff ff ff",
+      "note": "AppearanceCommonListMenu slot 14 calls 0x006ac310 when the selection changes."
+    },
+    {
+      "name": "voice list position loop",
+      "kind": "signature",
+      "va": "0x006ac3e3",
+      "pattern": "39 2c b9 74 08 83 c7 01 83 ff 03 7c d8",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Compares the selected id with up to three entries of the row list."
+    },
+    {
+      "name": "voice list stop slot 7",
+      "kind": "signature",
+      "va": "0x006ac3f8",
+      "pattern": "8b 10 6a 00 8b c8 8b 42 1c 6a 03 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls module vtable +0x1c (slot 7) with 3 and 0 before the sample."
+    },
+    {
+      "name": "voice list row table read",
+      "kind": "signature",
+      "va": "0x006ac44c",
+      "pattern": "6b c9 2c 8b 89 f8 ea 2b 01",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Reads the first dword of a 0x2c-byte row at 0x012beaf8."
+    },
+    {
+      "name": "voice list id table read",
+      "kind": "signature",
+      "va": "0x006ac45b",
+      "pattern": "8b 0c 8d 04 f0 2b 01",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "Reads the resource id from the table at 0x012bf004."
+    },
+    {
+      "name": "voice list play slot 4",
+      "kind": "signature",
+      "va": "0x006ac48d",
+      "pattern": "8b 10 8b 52 10 51 8b c8 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "Calls module vtable +0x10 (slot 4) with a per-menu request object."
+    },
+    {
+      "name": "message sound exclusion return false",
+      "kind": "signature",
+      "va": "0x00585a78",
+      "pattern": "5f 5e 5d 32 c0 5b",
+      "mask": "ff ff ff ff ff ff",
+      "note": "A table hit whose target is not the local actor returns false."
+    },
+    {
+      "name": "module setup request object loop",
+      "kind": "signature",
+      "va": "0x004b7382",
+      "pattern": "be 98 f3 32 01 bd 02 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x004b7340 builds two request objects at 0x0132f384 and 0x0132f39c in a loop with a stride of 0x18."
+    },
+    {
+      "name": "module setup third request object",
+      "kind": "signature",
+      "va": "0x004b73ec",
+      "pattern": "b9 b4 f3 32 01",
+      "mask": "ff ff ff ff ff",
+      "note": "The third request object is 0x0132f3b4."
+    },
+    {
+      "name": "music request object address",
+      "kind": "signature",
+      "va": "0x004b766b",
+      "pattern": "8d 3c c5 84 f3 32 01",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "The music request selects the object at 0x0132f384 plus 0x18 times the selector."
+    },
+    {
+      "name": "creation key store",
+      "kind": "signature",
+      "va": "0x00862cb2",
+      "pattern": "8b 8c be c8 01 00 00 89 b9 9c 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores a list index at +0x29c of an object taken from an array at +0x1c8."
+    },
+    {
+      "name": "footstep composer first id",
+      "kind": "signature",
+      "va": "0x004b581d",
+      "pattern": "8d 84 c1 02 00 07 08",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "0x004b5800 computes the first footstep id from five arguments."
+    },
+    {
+      "name": "footstep composer second id",
+      "kind": "signature",
+      "va": "0x004b583b",
+      "pattern": "8d 84 10 00 00 46 1a",
+      "mask": "ff ff ff ff ff ff ff",
+      "note": "0x004b5830 computes the second footstep id from two arguments."
+    },
+    {
+      "name": "music control reached from the dispatcher",
+      "kind": "signature",
+      "va": "0x004dcc22",
+      "pattern": "e8 09 ef fd ff",
+      "mask": "ff ff ff ff ff",
+      "note": "Positive control for the reachability walk."
+    },
+    {
+      "name": "SoundPlayerAction property name FileNumber",
+      "kind": "string",
+      "va": "0x0107d838",
+      "text": "FileNumber",
+      "note": "Property name text."
+    },
+    {
+      "name": "SoundPlayerAction property name Index",
+      "kind": "string",
+      "va": "0x0107d844",
+      "text": "Index",
+      "note": "Property name text."
+    },
+    {
+      "name": "SoundPlayerAction property name Volume",
+      "kind": "string",
+      "va": "0x0107d84c",
+      "text": "Volume",
+      "note": "Property name text."
+    },
+    {
+      "name": "SoundPlayerAction property name Priority",
+      "kind": "string",
+      "va": "0x0107d854",
+      "text": "Priority",
+      "note": "Property name text."
+    },
+    {
+      "name": "SoundPlayerAction type name",
+      "kind": "string",
+      "va": "0x0107d860",
+      "text": "SoundPlayerAction",
+      "note": "Type name text."
+    },
+    {
+      "name": "driver keyword MAX_SOUND",
+      "kind": "string",
+      "va": "0x010ae7bc",
+      "text": "MAX_SOUND",
+      "note": "Keyword read by the driver configuration parser 0x00b67b60."
+    },
+    {
+      "name": "driver keyword BUS",
+      "kind": "string",
+      "va": "0x010ae89c",
+      "text": "BUS",
+      "note": "Keyword read by the driver configuration parser."
+    },
+    {
+      "name": "driver keyword ENABLE_SCD_PRIORITY",
+      "kind": "string",
+      "va": "0x010ae980",
+      "text": "ENABLE_SCD_PRIORITY",
+      "note": "Keyword read by the driver configuration parser."
+    },
+    {
+      "name": "driver keyword STRINGENDO_FADE_TIMES",
+      "kind": "string",
+      "va": "0x010ae9bc",
+      "text": "STRINGENDO_FADE_TIMES",
+      "note": "Keyword read by the driver configuration parser."
+    },
+    {
+      "name": "config text one MAX_SOUND",
+      "kind": "signature",
+      "va": "0x00f542a0",
+      "pattern": "4d 41 58 5f 53 4f 55 4e 44 20 20 31 32 38",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "First configuration text."
+    },
+    {
+      "name": "config text one MAX_BUS",
+      "kind": "signature",
+      "va": "0x00f542c6",
+      "pattern": "4d 41 58 5f 42 55 53 20 20 20 20 20 31 31",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Bus count."
+    },
+    {
+      "name": "config text one SE bus",
+      "kind": "signature",
+      "va": "0x00f54338",
+      "pattern": "42 55 53 20 53 45 20 20 20 20 20 20 32 30 20 20 33 44 20 34 34 31 30 30 20 4f 4e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "SE bus line."
+    },
+    {
+      "name": "config text one VOICE bus",
+      "kind": "signature",
+      "va": "0x00f5435e",
+      "pattern": "42 55 53 20 56 4f 49 43 45 20 20 20 20 30 20 20 33 44 20 34 34 31 30 30 20 4f 46 46",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Voice bus line of the first text."
+    },
+    {
+      "name": "config text one HQ bus",
+      "kind": "signature",
+      "va": "0x00f5449c",
+      "pattern": "42 55 53 20 48 51 20 20 20 20 20 20 20 34 20 20 32 44 20 34 34 31 30 30 20 4f 46 46",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Last bus line."
+    },
+    {
+      "name": "config text one ENABLE_SCD_PRIORITY",
+      "kind": "signature",
+      "va": "0x00f544e8",
+      "pattern": "45 4e 41 42 4c 45 5f 53 43 44 5f 50 52 49 4f 52 49 54 59",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Priority switch."
+    },
+    {
+      "name": "config text one STRINGENDO_FADE_TIMES",
+      "kind": "signature",
+      "va": "0x00f54569",
+      "pattern": "53 54 52 49 4e 47 45 4e 44 4f 5f 46 41 44 45 5f 54 49 4d 45 53 20 34 35 30 30 20 34 35 30 30 20 34 35 30 30 20 34 35 30 30",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Fade times."
+    },
+    {
+      "name": "config text two MAX_SOUND",
+      "kind": "signature",
+      "va": "0x00f545c0",
+      "pattern": "4d 41 58 5f 53 4f 55 4e 44 20 20 31 32 38",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Second configuration text."
+    },
+    {
+      "name": "config text two VOICE bus",
+      "kind": "signature",
+      "va": "0x00f5467e",
+      "pattern": "42 55 53 20 56 4f 49 43 45 20 20 20 20 35 20 20 33 44 20 34 34 31 30 30 20 4f 46 46",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Voice bus line of the second text."
+    },
+    {
+      "name": "SoundPlayerAction vftable",
+      "kind": "dwords",
+      "va": "0x0107d8d0",
+      "width": 4,
+      "values": [
+        "0x009b3a80",
+        "0x0094c3a0",
+        "0x009b3060",
+        "0x009b30f0",
+        "0x009b3010",
+        "0x009b3020"
+      ],
+      "note": "Slot 2 is the run method 0x009b3060."
+    },
+    {
+      "name": "RaptureSqwtInterface vftable",
+      "kind": "dwords",
+      "va": "0x00fa2d8c",
+      "width": 4,
+      "values": [
+        "0x00557c30",
+        "0x005522d0",
+        "0x0054c160",
+        "0x0054bbb0",
+        "0x00552420",
+        "0x0054c260",
+        "0x005483f0",
+        "0x00548400",
+        "0x00548420",
+        "0x00548410",
+        "0x0054b070",
+        "0x00548560",
+        "0x00548570",
+        "0x005485b0",
+        "0x00548590",
+        "0x005485d0",
+        "0x00548430",
+        "0x0054aef0",
+        "0x005485e0",
+        "0x00548610",
+        "0x00548630",
+        "0x00548740",
+        "0x00548840",
+        "0x0054b1b0"
+      ],
+      "note": "Slot 10 is 0x0054b070."
+    },
+    {
+      "name": "RaptureSoundModule vftable",
+      "kind": "dwords",
+      "va": "0x00f90f9c",
+      "width": 4,
+      "values": [
+        "0x004ddd70",
+        "0x00441aa0",
+        "0x00441a50",
+        "0x004422f0",
+        "0x00441dc0",
+        "0x00441f00",
+        "0x00441c60",
+        "0x00441b00",
+        "0x00442050"
+      ],
+      "note": "Slot 4 is 0x00441dc0 and slot 8 is 0x00442050."
+    },
+    {
+      "name": "category base table",
+      "kind": "dwords",
+      "va": "0x00f8d700",
+      "width": 4,
+      "values": [
+        "0x035b0000",
+        "0x07fe0000",
+        "0x07fd0000",
+        "0x5b2d0000",
+        "0x5b2e0000",
+        "0x5b2f0000",
+        "0x5b300000",
+        "0x5b310000",
+        "0x5b320000",
+        "0x5b330000",
+        "0x5b340000",
+        "0x5b350000",
+        "0x5b360000",
+        "0x5b370000",
+        "0x5b380000",
+        "0x5b390000",
+        "0x5b3a0000",
+        "0x5b3b0000",
+        "0x5b3c0000",
+        "0x5b3d0000",
+        "0x5b3e0000",
+        "0x8a0a0000"
+      ],
+      "note": "Base resource id of each category."
+    },
+    {
+      "name": "dword after the category table",
+      "kind": "dwords",
+      "va": "0x00f8d758",
+      "width": 4,
+      "values": [
+        "0x4b189680"
+      ],
+      "note": "Not a table entry."
+    },
+    {
+      "name": "creation voice number table",
+      "kind": "dwords",
+      "va": "0x012d1858",
+      "width": 4,
+      "values": [
+        "0x00000001",
+        "0x00007545",
+        "0x00000002",
+        "0x00009c55",
+        "0x0000000b",
+        "0x0001fbe5",
+        "0x0000000c",
+        "0x000222f5",
+        "0x00000005",
+        "0x00011185",
+        "0x00000006",
+        "0x00013895",
+        "0x00000007",
+        "0x00015fa5",
+        "0x00000008",
+        "0x000186b5",
+        "0x00000011",
+        "0x0002e645",
+        "0x00000012",
+        "0x00030d55"
+      ],
+      "note": "Ten key and number pairs."
+    },
+    {
+      "name": "creation voice id table",
+      "kind": "dwords",
+      "va": "0x012bf004",
+      "width": 4,
+      "values": [
+        "0x00000000",
+        "0x00000000",
+        "0x00000000",
+        "0x5b2d0017",
+        "0x5b2e0017",
+        "0x5b390017",
+        "0x5b2d001b",
+        "0x5b2e001b",
+        "0x5b39001b",
+        "0x5b2f0017",
+        "0x5b300017",
+        "0x5b370017",
+        "0x5b2f001b",
+        "0x5b30001b",
+        "0x5b37001b",
+        "0x5b350017",
+        "0x5b360017",
+        "0x5b2d0017",
+        "0x5b35001b",
+        "0x5b36001b",
+        "0x5b2d001b",
+        "0x5b370017",
+        "0x5b380017",
+        "0x5b2f0017",
+        "0x5b37001b",
+        "0x5b38001b",
+        "0x5b2f001b",
+        "0x5b310017",
+        "0x5b320017",
+        "0x5b350017",
+        "0x5b31001b",
+        "0x5b32001b",
+        "0x5b35001b",
+        "0x5b330017",
+        "0x5b340017",
+        "0x5b3b0017",
+        "0x5b33001b",
+        "0x5b34001b",
+        "0x5b3b001b",
+        "0x5b3d0017",
+        "0x5b3e0017",
+        "0x5b390017",
+        "0x5b3d001b",
+        "0x5b3e001b",
+        "0x5b39001b",
+        "0x5b3b0017",
+        "0x5b3c0017",
+        "0x5b330017",
+        "0x5b3b001b",
+        "0x5b3c001b",
+        "0x5b33001b",
+        "0x5b390017",
+        "0x5b3a0017",
+        "0x5b3d0017",
+        "0x5b39001b",
+        "0x5b3a001b",
+        "0x5b3d001b",
+        "0x000189e6",
+        "0x00018c19",
+        "0x000189e7"
+      ],
+      "note": "Ten rows of six resource ids, indexed by 6 times the group plus the position."
+    },
+    {
+      "name": "message sound exclusion table",
+      "kind": "dwords",
+      "va": "0x01270ba4",
+      "width": 2,
+      "values": [
+        "0x846d",
+        "0x8471",
+        "0x8472",
+        "0x8473",
+        "0x8479",
+        "0x847b",
+        "0x8481",
+        "0x8482",
+        "0x84d1",
+        "0x84d2",
+        "0x847f",
+        "0x848e",
+        "0x848f",
+        "0x8490",
+        "0x8491",
+        "0x8492",
+        "0x8493",
+        "0x8494",
+        "0x8495",
+        "0x8499",
+        "0x849a",
+        "0x849b",
+        "0x849c",
+        "0x849d",
+        "0x849e",
+        "0x849f",
+        "0x84a0",
+        "0x84a1",
+        "0x84a2",
+        "0x84a3"
+      ],
+      "note": "Thirty u16 message ids."
+    },
+    {
+      "name": "Application::Rapture slot 1 cell",
+      "kind": "dwords",
+      "va": "0x00f8cc20",
+      "width": 4,
+      "values": [
+        "0x004b3c50"
+      ],
+      "note": "0x004b3c50."
+    },
+    {
+      "name": "CharaElement slot 6 cell",
+      "kind": "dwords",
+      "va": "0x00fa7c68",
+      "width": 4,
+      "values": [
+        "0x0058df90"
+      ],
+      "note": "0x0058df90."
+    },
+    {
+      "name": "CharaElement slot 9 cell",
+      "kind": "dwords",
+      "va": "0x00fa7c74",
+      "width": 4,
+      "values": [
+        "0x0058cca0"
+      ],
+      "note": "0x0058cca0."
+    },
+    {
+      "name": "TargetElement slot 65 cell",
+      "kind": "dwords",
+      "va": "0x00fa50a0",
+      "width": 4,
+      "values": [
+        "0x00565e10"
+      ],
+      "note": "0x00565e10."
+    },
+    {
+      "name": "AppearancePhase slot 22 cell",
+      "kind": "dwords",
+      "va": "0x0104c5c4",
+      "width": 4,
+      "values": [
+        "0x0085e970"
+      ],
+      "note": "0x0085e970."
+    },
+    {
+      "name": "LocationPhase slot 20 cell",
+      "kind": "dwords",
+      "va": "0x0104c23c",
+      "width": 4,
+      "values": [
+        "0x00865c60"
+      ],
+      "note": "0x00865c60."
+    },
+    {
+      "name": "AppearanceCommonListMenu slot 14 cell",
+      "kind": "dwords",
+      "va": "0x0104c54c",
+      "width": 4,
+      "values": [
+        "0x00863a50"
+      ],
+      "note": "0x00863a50."
+    },
+    {
+      "name": "SqexLogoMenu slot 1 cell",
+      "kind": "dwords",
+      "va": "0x00fa58c4",
+      "width": 4,
+      "values": [
+        "0x0056ad40"
+      ],
+      "note": "0x0056ad40."
+    },
+    {
+      "name": "ScreenshotManagerElement slot 6 cell",
+      "kind": "dwords",
+      "va": "0x00fa4c20",
+      "width": 4,
+      "values": [
+        "0x005614b0"
+      ],
+      "note": "0x005614b0."
+    },
+    {
+      "name": "RaptureSoundClip slot 2 cell",
+      "kind": "dwords",
+      "va": "0x0100b2ac",
+      "width": 4,
+      "values": [
+        "0x0081b240"
+      ],
+      "note": "0x0081b240."
+    },
+    {
+      "name": "RaptureSoundLoadClip slots 1 and 2 cells",
+      "kind": "dwords",
+      "va": "0x0100bd00",
+      "width": 4,
+      "values": [
+        "0x0081b6c0",
+        "0x0081b560"
+      ],
+      "note": "0x0081b6c0 and 0x0081b560."
+    },
+    {
+      "name": "RaptureActorSoundClip slot 1 cell",
+      "kind": "dwords",
+      "va": "0x0100df00",
+      "width": 4,
+      "values": [
+        "0x0081c210"
+      ],
+      "note": "0x0081c210."
+    },
+    {
+      "name": "RaptureCharaActionSoundClip slot 1 cell",
+      "kind": "dwords",
+      "va": "0x0102b640",
+      "width": 4,
+      "values": [
+        "0x00829040"
+      ],
+      "note": "0x00829040."
+    },
+    {
+      "name": "RaptureFootstepTriggerClip slot 1 cell",
+      "kind": "dwords",
+      "va": "0x0100ec50",
+      "width": 4,
+      "values": [
+        "0x0081c650"
+      ],
+      "note": "0x0081c650."
+    },
+    {
+      "name": "CharaActor slot 142 cell",
+      "kind": "dwords",
+      "va": "0x00fc0f6c",
+      "width": 4,
+      "values": [
+        "0x006679c0"
+      ],
+      "note": "0x006679c0."
+    },
+    {
+      "name": "CharaActionQue slot 9 cell",
+      "kind": "dwords",
+      "va": "0x0103e44c",
+      "width": 4,
+      "values": [
+        "0x00843de0"
+      ],
+      "note": "0x00843de0."
+    },
+    {
+      "name": "clip play wrapper call",
+      "kind": "signature",
+      "va": "0x0060ec97",
+      "pattern": "e8 64 04 1c 00",
+      "mask": "ff ff ff ff ff",
+      "note": "0x0060ec70 calls the clip play 0x007cf100."
+    },
+    {
+      "name": "clip play wrapper body",
+      "kind": "signature",
+      "va": "0x0060ec70",
+      "pattern": "8b 4c 24 04 85 c9 74 24 d9 e8 8b 44 24 14 8b 54 24 0c 51 d9 1c 24 6a 00 d9 44 24 18 50 8b 44 24 14 51 d9 1c 24 52 50 e8 64 04 1c 00 c2 14 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Five argument wrapper that tests its first argument, pushes 1.0 and calls 0x007cf100, then returns with ret 0x14."
+    },
+    {
+      "name": "footstep gate test",
+      "kind": "signature",
+      "va": "0x004b7791",
+      "pattern": "6a 00 68 cc f3 32 01 8b f1 ff 15 a4 e1 f3 00 83 f8 01 0f 85 94 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "InterlockedExchangeAdd(0x0132f3cc, 0) through the IAT cell 0x00f3e1a4, then a branch to the exit unless the result is 1."
+    },
+    {
+      "name": "footstep gate exit",
+      "kind": "signature",
+      "va": "0x004b783d",
+      "pattern": "32 c0 5e c2 24 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The exit returns false and pops nine arguments."
+    },
+    {
+      "name": "footstep gate initializer",
+      "kind": "signature",
+      "va": "0x00f07770",
+      "pattern": "6a 01 b9 cc f3 32 01 e8 c4 b2 54 ff c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls 0x00452a40 on 0x0132f3cc with argument 1."
+    },
+    {
+      "name": "footstep gate store",
+      "kind": "signature",
+      "va": "0x00452a40",
+      "pattern": "8b c1 8b 4c 24 04 89 08 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Stores its stack argument at the object."
+    },
+    {
+      "name": "footstep first play sixth argument",
+      "kind": "signature",
+      "va": "0x004b77a9",
+      "pattern": "d9 44 24 28",
+      "mask": "ff ff ff ff",
+      "note": "A9 is loaded as a float."
+    },
+    {
+      "name": "footstep first play argument pushes",
+      "kind": "signature",
+      "va": "0x004b77b8",
+      "pattern": "6a 00 51 d9 1c 24 57 d9 e8 6a 00 51 d9 1c 24",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The first play pushes A9 in the sixth slot 4 argument."
+    },
+    {
+      "name": "footstep second play argument pushes",
+      "kind": "signature",
+      "va": "0x004b7803",
+      "pattern": "6a 00 51 d9 14 24 57 6a 00 51",
+      "mask": "ff ff ff ff ff ff ff ff ff ff",
+      "note": "The second play pushes 1.0 in the sixth slot 4 argument."
+    },
+    {
+      "name": "config zero register",
+      "kind": "signature",
+      "va": "0x00402b79",
+      "pattern": "33 db",
+      "mask": "ff ff",
+      "note": "ebx holds zero from here to the key compare."
+    },
+    {
+      "name": "config mode default",
+      "kind": "signature",
+      "va": "0x00402d3d",
+      "pattern": "e8 8e 28 00 00",
+      "mask": "ff ff ff ff ff",
+      "note": "The call to 0x004055d0 supplies the default value."
+    },
+    {
+      "name": "config mode zero test",
+      "kind": "signature",
+      "va": "0x00402d53",
+      "pattern": "3b c3 74 09",
+      "mask": "ff ff ff ff",
+      "note": "A zero key value skips the replacement."
+    },
+    {
+      "name": "config mode store",
+      "kind": "signature",
+      "va": "0x00402d5a",
+      "pattern": "89 44 24 18 8b f8",
+      "mask": "ff ff ff ff ff ff",
+      "note": "A nonzero key value minus one replaces the value."
+    },
+    {
+      "name": "config selector load",
+      "kind": "signature",
+      "va": "0x00403474",
+      "pattern": "8b 44 24 18",
+      "mask": "ff ff ff ff",
+      "note": "Loads the value for the text compare."
+    },
+    {
+      "name": "config selector compare",
+      "kind": "signature",
+      "va": "0x00403478",
+      "pattern": "83 f8 04 c7 47 34 00 02 00 00 74 0e 83 f8 05 74 09 c7 47 48 c0 45 f5 00 eb 07 c7 47 48 a0 42 f5 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Values 4 and 5 select the text at 0x00f542a0 and any other value the text at 0x00f545c0."
+    },
+    {
+      "name": "message sound drain filter",
+      "kind": "signature",
+      "va": "0x0058c320",
+      "pattern": "8b 44 24 14 66 83 7f fe 00 0f 84 07 03 00 00 80 bc 24 58 01 00 00 00 75 11 83 f8 ff 74 0c 0f b6 57 01 3b c2 0f 85 ec 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Skips the play when the flag is clear, the selector is not -1 and the entry byte differs from it."
+    },
+    {
+      "name": "message sound null actor skip",
+      "kind": "signature",
+      "va": "0x00585a29",
+      "pattern": "85 f6 0f 84 b0 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff",
+      "note": "A null actor skips the play."
+    },
+    {
+      "name": "message sound pre-play call, 0x8475",
+      "kind": "signature",
+      "va": "0x00585a31",
+      "pattern": "6a 00 8d 8e 0c 0e 00 00 e8 92 0f 21 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls 0x007969d0 on actor +0xe0c with 0."
+    },
+    {
+      "name": "message sound pre-play call, 0x846e",
+      "kind": "signature",
+      "va": "0x00585a9a",
+      "pattern": "6a 01 8d 8e 0c 0e 00 00 e8 29 0f 21 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Calls 0x007969d0 on actor +0xe0c with 1."
+    },
+    {
+      "name": "interface slot 11 body",
+      "kind": "signature",
+      "va": "0x00548560",
+      "pattern": "c2 04 00",
+      "mask": "ff ff ff",
+      "note": "A bare ret 4."
+    },
+    {
+      "name": "footstep gate import cell",
+      "kind": "dwords",
+      "va": "0x00f3e1a4",
+      "width": 4,
+      "values": [
+        "0x00e626ac"
+      ],
+      "note": "Unbound import cell that holds the hint and name RVA."
+    },
+    {
+      "name": "footstep gate import name",
+      "kind": "string",
+      "va": "0x012626ae",
+      "text": "InterlockedExchangeAdd",
+      "note": "Name at the hint and name RVA of the cell 0x00f3e1a4."
+    },
+    {
+      "name": "footstep gate initializer cell",
+      "kind": "dwords",
+      "va": "0x00f3efc0",
+      "width": 4,
+      "values": [
+        "0x00f07770"
+      ],
+      "note": "Function pointer table cell for the initializer."
+    }
+  ],
+  "directCallScans": [
+    {
+      "target": "0x0060ec70",
+      "role": "clip play wrapper",
+      "sites": []
+    },
+    {
+      "target": "0x0065e100",
+      "role": "clip play caller",
+      "sites": [
+        "0x007be6bb"
+      ]
+    },
+    {
+      "target": "0x007be450",
+      "role": "caller chain of 0x0065e100",
+      "sites": [
+        "0x007c1a41"
+      ]
+    },
+    {
+      "target": "0x007c0e10",
+      "role": "caller chain of 0x0065e100",
+      "sites": [
+        "0x007c2bcd"
+      ]
+    },
+    {
+      "target": "0x007c2b90",
+      "role": "caller chain of 0x0065e100",
+      "sites": [
+        "0x00667f33"
+      ]
+    },
+    {
+      "target": "0x004b5800",
+      "role": "footstep first id composer",
+      "sites": []
+    },
+    {
+      "target": "0x004b5830",
+      "role": "footstep second id composer",
+      "sites": []
+    }
+  ],
+  "immediateScanNote": "The bases of categories 3 through 20 are scanned as 32-bit values in the code section next to 0x07fd0000. Three hits at 0x0049f011, 0x0043199d and 0x00cb637d straddle instruction boundaries: the zero displacement bytes of the branches at 0x0049f00d, 0x00431999 and 0x00cb637a followed by a compare opcode and the byte 0x5b."
+}
