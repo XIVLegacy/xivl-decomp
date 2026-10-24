@@ -162,7 +162,6 @@
     "whether the setup context and the runtime callback context are the same object",
     "the class name and constructor defaults of the owner aggregate and its +0x10C state",
     "the purpose of the route state word copy at +0x38",
-    "what the job setter does after it stores a changed byte",
     "whether the title reader behaves the same way on non-player actors",
     "what the dispatcher gate at byte +0x54B does to opcodes other than 0x0004"
   ],

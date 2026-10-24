@@ -162,7 +162,9 @@ The title receiver casts its target to PlayerBase and stores the payload dword
 at `+0xE8` without testing the cast result. The job receiver casts the same way
 and passes the payload byte to `0x00706DC0`. That setter compares the new byte
 with the byte at `+0xF1` and stores it only when they differ. What it does after
-a changed store was not traced.
+a changed store is documented in
+[Active job and soul-stone state](../actor/job-soulstone-state.md#active-state-and-notification):
+it prepares `_onChangeJob(newJob, oldJob)`.
 
 `0x00706D70` adds `0xE8` to its receiver and passes that address to the numeric
 wrapper `0x00584F70`, so `_getAchievementTitle` returns the stored dword as a
@@ -197,8 +199,8 @@ the other classes.
 Keep a title dword and a job byte per player actor (PlayerBase and MyPlayer)
 and expose them to the two Lua getters. Apply sign extension to the job byte.
 `_getJob` called on a non-player actor returns nothing and a model must not
-return a stored job there. The constructor defaults of both fields are not in
-this evidence.
+return a stored job there. The [job-state finding](../actor/job-soulstone-state.md#active-state-and-notification)
+records the job byte's zero constructor default and direct initializer write.
 
 ## Not established
 
@@ -206,7 +208,6 @@ this evidence.
 - The class name and constructor defaults of the owner aggregate and its
   `+0x10C` state.
 - The purpose of the route state word copy at `+0x38`.
-- What the job setter does after it stores a changed byte.
 - Whether the title reader behaves the same way on non-player actors.
 - What sets the receiver byte `+0x54B` and what the predicate `0x00575740` tests.
 

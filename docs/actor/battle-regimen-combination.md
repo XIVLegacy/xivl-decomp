@@ -1,6 +1,6 @@
 # Battle Regimen combination and target modes
 
-This page records the client-side combination kill switch, soul IDs, and
+This page records the client-side combination kill switch and
 targetMode map. It extends [Battle Regimen chain UI](battle-regimen.md) with the
 client Lua state and target-mode findings.
 
@@ -27,20 +27,10 @@ and `csv/xtx_itemName.csv` (SHA-256
 matching `csv/itemData.csv` catalog is pinned by SHA-256
 `F17193D832B375761CD01A37B25FF7D2C2947967DDC5BA4C2B16C0507D422912`.
 
-## 1. Soul-stone IDs: all seven resolved
+## 1. Soul-stone items
 
-Recovered client records identify the following soul items and icons
-(icon path `Important/ImportantItemStandard` for all):
-
-| Key item | Soul | Icon id |
-|---:|---|---:|
-| 2000201 | Soul of the Paladin | 61680 |
-| 2000202 | Soul of the Monk | 61681 |
-| 2000203 | Soul of the Warrior | 61682 |
-| 2000204 | Soul of the Dragoon | 61683 |
-| 2000205 | Soul of the Bard | 61684 |
-| 2000206 | Soul of the White Mage | 61685 |
-| 2000207 | Soul of the Black Mage | 61686 |
+The [Equipment soul-crystal table](../script/equipment-soulstones.md#important-item-backing)
+records all seven key-item IDs, names, icons and class/job pairs.
 
 ## 2. Regimen = "Combination": full client chain found
 
