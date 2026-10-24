@@ -92,6 +92,264 @@ ROUTED_UNNAMED = re.compile(
 )
 
 
+EVENT_RELEASE_CHECKS = [
+    {
+        "kind": "signature",
+        "name": "event priority compare",
+        "va": "0x00896b2a",
+        "pattern": "3B FB 0F 84 81 00 00 00 8A 81 00 01 00 00 3A 87 00 01 00 00 77 07 32 C0",
+        "mask": "FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF 00 FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event holder constructor call",
+        "va": "0x006e37cb",
+        "pattern": "E8 E0 19 1B 00",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event holder control store",
+        "va": "0x006e37ef",
+        "pattern": "89 5F 60",
+        "mask": "FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event holder vtable store",
+        "va": "0x008951e5",
+        "pattern": "C7 06 E0 6F 05 01",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event saved pending priority compare",
+        "va": "0x00896b47",
+        "pattern": "8B 7E 08 3B FB 74 08 3A 87 00 01 00 00 76 EA",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener registration",
+        "va": "0x00cd0940",
+        "pattern": "8B 44 24 10 56 8B F1 8B 0E 50 E8 51 D4 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener phase branches",
+        "va": "0x00ccd9f0",
+        "pattern": "8B 44 24 40 83 E8 00 74 5A 83 E8 01 74 1C 83 E8 01 75 74",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 1 word compare",
+        "va": "0x00894f6d",
+        "pattern": "66 8B 08 66 3B 0D 40 BC 34 01",
+        "mask": "FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 1 active clear",
+        "va": "0x00894f9e",
+        "pattern": "C7 46 04 00 00 00 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 2 word compare",
+        "va": "0x00895010",
+        "pattern": "8B 44 24 10 56 8B F1 66 8B 08 66 3B 0D 40 BC 34 01 75 26",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 2 replay flag",
+        "va": "0x00895023",
+        "pattern": "B8 01 00 00 00 38 46 1C 75 03 88 46 1D",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 2 active clear",
+        "va": "0x0089503e",
+        "pattern": "C7 46 04 00 00 00 00",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 3 tail dispatch",
+        "va": "0x00892760",
+        "pattern": "8B 01 8B 40 08 FF E0",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 2 word pointer",
+        "va": "0x00ccda29",
+        "pattern": "8B 40 08 8D 55 14 52",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event listener slot 3 word pointer",
+        "va": "0x00ccda12",
+        "pattern": "8B 52 0C 8D 45 14 EB 4F",
+        "mask": "FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event pending flag store",
+        "va": "0x00896baa",
+        "pattern": "C6 46 1C 01",
+        "mask": "FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event replay guards and flag clears",
+        "va": "0x00896ef8",
+        "pattern": "38 5E 1C 74 53 38 5E 1D 74 4E 39 5E 08 88 5E 1C 88 5E 1D 74 43",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event pending detach",
+        "va": "0x00896f0d",
+        "pattern": "8B 7E 08 89 5E 08",
+        "mask": "FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event replay call",
+        "va": "0x00896f35",
+        "pattern": "E8 B6 FB FF FF",
+        "mask": "FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event base pump caller",
+        "va": "0x006e13f0",
+        "pattern": "51 8B 49 60 E8 D7 5A 1B 00",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event desktop byte gate and pump caller",
+        "va": "0x006e1e18",
+        "pattern": "80 7E 64 00 74 09 8B 4E 60 56 E8 A9 50 1B 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event invocation entry gates",
+        "va": "0x00ccf9b3",
+        "pattern": "8B 46 0C 8B 88 CC 01 00 00 80 79 08 00 75 42 53 8B 5C 24 0C 80 7B 7F 00 "
+        "74 36",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF "
+        "FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event invocation admission",
+        "va": "0x00ccf9e3",
+        "pattern": "E8 98 D3 FF FF 84 C0 74 0D 8B 44 24 1C 50 53 8B CE E8 37 F4 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event invocation initial predicate",
+        "va": "0x00ccee91",
+        "pattern": "E8 2A 4B 02 00 84 C0 0F 84 24 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event invocation second predicate",
+        "va": "0x00ccf08e",
+        "pattern": "8B CF E8 2B 49 02 00 84 C0 0F 85 27 01 00 00",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event invocation phase 0 route",
+        "va": "0x00ccf1b9",
+        "pattern": "8B CE E8 20 F7 FF FF",
+        "mask": "FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event invocation phase 2 local gate",
+        "va": "0x00ccf23b",
+        "pattern": "8A 5C 24 16 84 DB 74 16 8B CE E8 76 E9 FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event phase 0 dispatch",
+        "va": "0x00cce9b1",
+        "pattern": "6A 00 8B CE E8 56 EF FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "signature",
+        "name": "event phase 2 dispatch",
+        "va": "0x00ccdbf7",
+        "pattern": "6A 02 8B CE E8 10 FD FF FF",
+        "mask": "FF FF FF FF FF FF FF FF FF",
+    },
+    {
+        "kind": "dwords",
+        "name": "event listener vtable",
+        "va": "0x01056fe0",
+        "values": ["0x0089a2b0", "0x00894f30", "0x00895010", "0x00892760"],
+    },
+    {
+        "kind": "dwords",
+        "name": "event WidgetBase pump slot",
+        "va": "0x00fd5a84",
+        "values": ["0x006e13f0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "event DesktopWidget pump slot",
+        "va": "0x00fd5b9c",
+        "values": ["0x006e1de0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "event DesktopUtil pump slot",
+        "va": "0x00fdfcac",
+        "values": ["0x006e13f0"],
+    },
+    {
+        "kind": "dwords",
+        "name": "event holder RTTI locator",
+        "va": "0x01056fdc",
+        "values": ["0x0117241c"],
+    },
+    {
+        "kind": "dwords",
+        "name": "event holder RTTI type descriptor",
+        "va": "0x01172428",
+        "values": ["0x012d7a24"],
+    },
+    {
+        "kind": "dwords",
+        "name": "event thread static zero fill",
+        "va": "0x0134bc40",
+        "values": ["0x00000000"],
+        "width": 2,
+    },
+    {
+        "kind": "string",
+        "name": "event holder RTTI name",
+        "va": "0x012d7a2c",
+        "text": ".?AVFormManager@Event@Client@Script@Lua@Application@@",
+    },
+]
+
+
 def parse_hex(text: str) -> int:
     return int(text, 16)
 
@@ -100,11 +358,13 @@ def parse_pattern(text: str) -> bytes:
     return bytes.fromhex(text)
 
 
-def doc_errors(document: dict) -> list[str]:
+def doc_errors(document: dict, text: str | None = None) -> list[str]:
     """Tie the manifest to the page: key addresses are cited and the join is labelled."""
-    if not DOC.is_file():
-        return ["consumer page is missing"]
-    text = DOC.read_text(encoding="utf-8").lower()
+    if text is None:
+        if not DOC.is_file():
+            return ["consumer page is missing"]
+        text = DOC.read_text(encoding="utf-8")
+    text = text.lower()
     handler = document.get("handler", {})
     switch = document.get("kindSwitch", {})
     iface = document.get("scriptInterface", {})
@@ -119,6 +379,7 @@ def doc_errors(document: dict) -> list[str]:
         *[row.get("va") for row in switch.get("thunks", [])],
         *iface.get("slotTable", {}).get("functionVas", []),
         *routing_addresses(document),
+        *event_release_addresses(document),
     ]
     errors = [
         f"page does not cite {address}"
@@ -128,6 +389,150 @@ def doc_errors(document: dict) -> list[str]:
     lead = text.split("## input and method")[0]
     if "0x59" not in lead or "wildcard" not in lead:
         errors.append("page lead does not state the 0x59 wildcard join")
+    return errors
+
+
+def event_release_addresses(document: dict) -> list[str]:
+    """Locators for the listener clears, replay guards and direct caller tables."""
+    queue = document.get("scriptInterface", {}).get("eventQueue", {})
+    return [
+        queue.get("holderConstructorVa"),
+        queue.get("holderVtableVa"),
+        queue.get("controlHolderStoreVa"),
+        queue.get("listenerRegistrationCallVa"),
+        queue.get("listenerDispatchVa"),
+        queue.get("eventThreadWordGlobalVa"),
+        queue.get("replayGuards", {}).get("pendingNonNullCompareVa"),
+        queue.get("replayGuards", {}).get("replayCallVa"),
+        *[row.get("functionVa") for row in queue.get("listenerPhases", [])],
+        *[row.get("matchingActiveClearVa") for row in queue.get("listenerPhases", [])],
+        *[row.get("callVa") for row in queue.get("flushDirectCallSites", [])],
+        *[
+            va
+            for row in queue.get("flushDirectCallSites", [])
+            for va in row.get("vtableEntryVas", [])
+        ],
+    ]
+
+
+def event_release_errors(document: dict) -> list[str]:
+    """Validate the bounded callback and replay contract against fixed evidence."""
+    errors: list[str] = []
+    queue = document.get("scriptInterface", {}).get("eventQueue", {})
+    fields = {
+        "rejectsNotAboveActivePriority": "0x00896b32..0x00896b42",
+        "rejectsNotAboveSavedPendingPriority": "0x00896b47..0x00896b54",
+        "priorityByte": "parameter +0x100",
+        "flushVa": "0x00896ed0",
+        "holderClass": "Application::Lua::Script::Client::Event::FormManager",
+        "holderConstructorVa": "0x008951b0",
+        "holderVtableVa": "0x01056fe0",
+        "controlHolderStoreVa": "0x006e37ef",
+        "controlHolderOffset": "+0x60",
+        "activeParameterOffset": "+0x4",
+        "pendingParameterOffset": "+0x8",
+        "pointerWidthBits": 32,
+        "listenerRegistrationCallVa": "0x00cd094a",
+        "listenerDispatchVa": "0x00ccd910",
+        "callbackThreadWordOffset": "+0x14",
+        "callbackThreadWordWidthBits": 16,
+        "eventThreadWordGlobalVa": "0x0134bc40",
+        "pendingFlagStoreVa": "0x00896baa",
+        "pendingFlagOffset": "+0x1c",
+        "replayReadyStoreVa": "0x0089502d",
+        "replayReadyOffset": "+0x1d",
+        "flagWidthBits": 8,
+    }
+    for key, expected in fields.items():
+        if queue.get(key) != expected:
+            errors.append(f"event queue {key} changed")
+    if "rejectsNotAbovePendingPriority" in queue:
+        errors.append("event queue confuses active and saved pending priority")
+    phases = queue.get("listenerPhases", [])
+    phase_values = [
+        (
+            row.get("phase"),
+            row.get("slot"),
+            row.get("functionVa"),
+            row.get("matchingActiveClearVa"),
+            row.get("setsReplayReady"),
+            row.get("tailDispatchSlot"),
+            row.get("fourthArgument"),
+        )
+        for row in phases
+    ]
+    if phase_values != [
+        (
+            0,
+            1,
+            "0x00894f30",
+            "0x00894f9e",
+            False,
+            None,
+            "32-bit pointer to a wrapper holding the selected thread pointer",
+        ),
+        (
+            1,
+            2,
+            "0x00895010",
+            "0x0089503e",
+            "only when the callback word matches the global and byte holder +0x1c equals exactly 1",
+            None,
+            "32-bit pointer to the 16-bit word at thread +0x14",
+        ),
+        (
+            2,
+            3,
+            "0x00892760",
+            None,
+            None,
+            2,
+            "32-bit pointer to the 16-bit word at thread +0x14",
+        ),
+    ]:
+        errors.append("event listener phases or callback ABI changed")
+    if queue.get("replayGuards") != {
+        "bothFlagsNonzeroRange": "0x00896ef8..0x00896f00",
+        "pendingNonNullCompareVa": "0x00896f02",
+        "pendingNullExitVa": "0x00896f0b",
+        "flagClearVas": ["0x00896f05", "0x00896f08"],
+        "detachVa": "0x00896f10",
+        "replayCallVa": "0x00896f35",
+    }:
+        errors.append("event replay flag or pending-pointer guards changed")
+    if queue.get("flushDirectCallSites") != [
+        {
+            "callVa": "0x006e13f4",
+            "functionVa": "0x006e13f0",
+            "controlSlot": 4,
+            "vtableEntryVas": ["0x00fd5a84", "0x00fdfcac"],
+        },
+        {
+            "callVa": "0x006e1e22",
+            "functionVa": "0x006e1de0",
+            "controlSlot": 4,
+            "vtableEntryVas": ["0x00fd5b9c"],
+            "gate": "control byte +0x64 nonzero",
+            "gateWidthBits": 8,
+        },
+    ]:
+        errors.append("event pump caller slots or byte gate changed")
+    release = queue.get("conditionalRelease", {})
+    if (
+        release.get("confidence")
+        != "INFERRED conditional same-native-invocation reachability, not observed execution or guaranteed Lua invocation or release"
+    ):
+        errors.append("event release inference boundary changed")
+    if (
+        queue.get("eventThreadWordStaticImage")
+        != "zero-filled word, runtime mutations and immutability UNKNOWN"
+    ):
+        errors.append("event thread static-image boundary changed")
+    checks = document.get("staticChecks", [])
+    for expected in EVENT_RELEASE_CHECKS:
+        found = [row for row in checks if row.get("name") == expected["name"]]
+        if found != [expected]:
+            errors.append(f"event release static check changed: {expected['name']}")
     return errors
 
 
@@ -468,7 +873,7 @@ def verify(document: dict | None = None) -> list[str]:
         elif kind == "dwords":
             width = check.get("width", 4)
             values = check.get("values", [])
-            if width not in (1, 4) or not values:
+            if width not in (1, 2, 4) or not values:
                 errors.append(f"{label} width or values invalid")
         elif kind == "string":
             if not check.get("text"):
@@ -495,6 +900,7 @@ def verify(document: dict | None = None) -> list[str]:
     )
     if event_ids != [i for i in range(1, 0x5B) if i != 0x21]:
         errors.append("routed event rows are not ids 0x01..0x5a without 0x21")
+    errors.extend(event_release_errors(document))
     errors.extend(routing_errors(document))
     errors.extend(doc_errors(document))
 
@@ -537,6 +943,33 @@ def mutation_test() -> list[str]:
         (
             ("scriptInterface", "eventSelector", "equalPath", "name"),
             "_onUICommandRequest",
+        ),
+        (("scriptInterface", "eventQueue", "activeParameterOffset"), "+0x8"),
+        (("scriptInterface", "eventQueue", "pendingParameterOffset"), "+0x4"),
+        (("scriptInterface", "eventQueue", "callbackThreadWordWidthBits"), 32),
+        (("scriptInterface", "eventQueue", "listenerPhases", 1, "slot"), 3),
+        (
+            (
+                "scriptInterface",
+                "eventQueue",
+                "replayGuards",
+                "pendingNonNullCompareVa",
+            ),
+            "0x00896f05",
+        ),
+        (
+            (
+                "scriptInterface",
+                "eventQueue",
+                "flushDirectCallSites",
+                1,
+                "gateWidthBits",
+            ),
+            32,
+        ),
+        (
+            ("scriptInterface", "eventQueue", "conditionalRelease", "confidence"),
+            "STATIC guaranteed release",
         ),
         (("parameterObjects", "layout", "int1"), "+0x104"),
         (("parameterObjects", "pushOrder"), "string0, string1, string2"),
@@ -588,6 +1021,9 @@ def mutation_test() -> list[str]:
         mutations.append(changed)
     for dropped in (
         "request depth limit",
+        "event listener slot 1 active clear",
+        "event replay guards and flag clears",
+        "event listener vtable",
         "thunk slot 8 child none",
         "handler store dispatcher match",
         "routed event Executed",

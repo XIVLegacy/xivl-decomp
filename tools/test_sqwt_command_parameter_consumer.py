@@ -115,6 +115,156 @@ def run(image: bytes, document: dict) -> list[str]:
     return verifier.verify_image(image, document, require_identity=False)
 
 
+def event_release_tests(real: dict) -> None:
+    """Exercise changed release facts through literal bytes, not manifest agreement."""
+    selected = {
+        "event listener slot 2 active clear": TEXT_VA,
+        "event replay guards and flag clears": TEXT_VA + 0x10,
+        "event desktop byte gate and pump caller": TEXT_VA + 0x30,
+        "event listener slot 2 word pointer": TEXT_VA + 0x50,
+        "event priority compare": TEXT_VA + 0x60,
+        "event listener vtable": DATA_VA,
+        "event thread static zero fill": DATA_VA + 0x20,
+    }
+    text = bytearray(0x80)
+    text[0:7] = bytes.fromhex("C7 46 04 00 00 00 00")
+    text[0x10:0x25] = bytes.fromhex(
+        "38 5E 1C 74 53 38 5E 1D 74 4E 39 5E 08 88 5E 1C 88 5E 1D 74 43"
+    )
+    text[0x30:0x3F] = bytes.fromhex("80 7E 64 00 74 09 8B 4E 60 56 E8 A9 50 1B 00")
+    text[0x50:0x57] = bytes.fromhex("8B 40 08 8D 55 14 52")
+    text[0x60:0x78] = bytes.fromhex(
+        "3B FB 0F 84 81 00 00 00 8A 81 00 01 00 00 3A 87 00 01 00 00 77 07 32 C0"
+    )
+    table = struct.pack("<4I", 0x0089A2B0, 0x00894F30, 0x00895010, 0x00892760)
+    image = build_image(bytes(text), table, 0x30)
+    rows = []
+    for name, va in selected.items():
+        row = copy.deepcopy(
+            next(item for item in real["staticChecks"] if item.get("name") == name)
+        )
+        row["va"] = f"{va:#010x}"
+        rows.append(row)
+    document = {"staticChecks": rows}
+    check("literal event release fixture passes", run(image, document) == [])
+    for label, offset, value, expected_name in (
+        ("active clear targets +4", 2, 8, "event listener slot 2 active clear"),
+        (
+            "replay needs the second flag",
+            0x17,
+            0x1C,
+            "event replay guards and flag clears",
+        ),
+        (
+            "replay needs a pending pointer",
+            0x1C,
+            4,
+            "event replay guards and flag clears",
+        ),
+        (
+            "desktop gate has byte width",
+            0x30,
+            0x83,
+            "event desktop byte gate and pump caller",
+        ),
+        (
+            "callback passes thread-word address",
+            0x55,
+            0x18,
+            "event listener slot 2 word pointer",
+        ),
+        ("priority uses unsigned above", 0x74, 0x76, "event priority compare"),
+    ):
+        changed = bytearray(image)
+        changed[0x200 + offset] = value
+        errors = run(bytes(changed), document)
+        check(label, len(errors) == 1 and expected_name in errors[0])
+    changed_table = bytearray(image)
+    struct.pack_into("<I", changed_table, 0x200 + 0x80 + 4, 0x00895010)
+    errors = run(bytes(changed_table), document)
+    check(
+        "listener slot order is enforced",
+        len(errors) == 1 and "event listener vtable" in errors[0],
+    )
+    nonzero = copy.deepcopy(document)
+    nonzero["staticChecks"][-1]["values"] = ["0x00000001"]
+    errors = run(image, nonzero)
+    check(
+        "static thread word reads zero fill",
+        len(errors) == 1 and "event thread static zero fill" in errors[0],
+    )
+
+    changed = copy.deepcopy(real)
+    changed["scriptInterface"]["eventQueue"]["listenerPhases"][1]["fourthArgument"] = (
+        "16-bit value"
+    )
+    check(
+        "callback pointer ABI drift is rejected",
+        "event listener phases or callback ABI changed"
+        in verifier.event_release_errors(changed),
+    )
+    for field, value, expected_error in (
+        ("pointerWidthBits", 64, "event queue pointerWidthBits changed"),
+        (
+            "callbackThreadWordWidthBits",
+            32,
+            "event queue callbackThreadWordWidthBits changed",
+        ),
+        (
+            "eventThreadWordStaticImage",
+            "immutable zero",
+            "event thread static-image boundary changed",
+        ),
+    ):
+        changed = copy.deepcopy(real)
+        changed["scriptInterface"]["eventQueue"][field] = value
+        check(
+            field + " drift is rejected",
+            expected_error in verifier.event_release_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    changed["scriptInterface"]["eventQueue"]["replayGuards"].pop(
+        "pendingNonNullCompareVa"
+    )
+    check(
+        "pending-null guard cannot disappear",
+        "event replay flag or pending-pointer guards changed"
+        in verifier.event_release_errors(changed),
+    )
+    for name in (
+        "event listener slot 1 active clear",
+        "event replay guards and flag clears",
+        "event listener vtable",
+    ):
+        changed = copy.deepcopy(real)
+        changed["staticChecks"] = [
+            item for item in changed["staticChecks"] if item.get("name") != name
+        ]
+        check(
+            name + " cannot disappear",
+            f"event release static check changed: {name}"
+            in verifier.event_release_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    row = next(
+        item
+        for item in changed["staticChecks"]
+        if item.get("name") == "event replay guards and flag clears"
+    )
+    row["mask"] = " ".join(["00"] * 21)
+    check(
+        "replay guard mask cannot be disabled",
+        "event release static check changed: event replay guards and flag clears"
+        in verifier.event_release_errors(changed),
+    )
+    page = verifier.DOC.read_text(encoding="utf-8").lower()
+    page = page.replace("0x00894f9e", "0x00894f9f")
+    check(
+        "page must cite the active clear",
+        "page does not cite 0x00894f9e" in verifier.doc_errors(real, page),
+    )
+
+
 def main() -> int:
     check("manifest verifies", verifier.verify() == [])
     check("mutations are rejected", verifier.mutation_test() == [])
@@ -194,6 +344,8 @@ def main() -> int:
         "manifest carries all check kinds",
         kinds == {"signature", "dwords", "string", "routedEvent"},
     )
+
+    event_release_tests(real)
 
     if FAILED:
         print(f"FAIL: {len(FAILED)} of {len(PASSED) + len(FAILED)} checks")
