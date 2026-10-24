@@ -77,12 +77,13 @@ the property system supplied it, which is the format string that
 `FUN_009B28C0` reads. That settles the `+0x78` reading that the grammar page
 leaves INFERRED. STATIC.
 
-Case 0 resolves the command by name. `0x00928280` searches the global command
-list (`0x01358728`) by the name string at command `+0x24`. When the name is
-absent, `0x00928F90` allocates a `0x9C` byte `RoutedCommand`
-(constructor `0x00928C90`) and registers it in the same list (`0x00954F8C..0x00954FA8`).
-So any `Command` attribute text yields a command object. Only a few names have a
-static object. The `UILuaCommands` initializers at `0x00F0F29B..0x00F0F51B` and
+Case 0 resolves the command by name through lookup `0x00928280` and fallback
+`0x00928F90`. The concrete ContentControl setter range
+`0x00954F8C..0x00954FA8`, its input representation and conditional storage
+are described in [Command name resolution](#command-name-resolution).
+The fallback requests a `0x9C` byte `RoutedCommand` through constructor
+`0x00928C90`. Allocation success and current registry state remain UNKNOWN.
+The inspected static-name set includes the following initializers. The `UILuaCommands` initializers at `0x00F0F29B..0x00F0F51B` and
 `0x00F145AF..0x00F14620` register `Operate`, `Cancel`, `WidgetClose`,
 `Selection`, `SelectionChanged`, `SelectionChangedOnce`, `PressEnter`,
 `Function1` and `MainMenu`. Names such as `Hover` have no static object and
@@ -174,6 +175,97 @@ Button I slot 65 is `0x0097EDB0`. It calls FrameworkElement's
 owner, stop-byte and store-pointer gates. Thus this concrete Button forwards
 Executed to the base handler store before its specialised logic. STATIC.
 Other specialised control families remain unestablished.
+
+### Command name resolution
+
+The ContentControl specialization has its own Command setter contract. Property
+initializer `0x00F23640` supplies ASCII Command at `0x0106E13C` to descriptor
+constructor `0x009108E0` on descriptor `0x0135A1FC`, then assigns index 0 at
+`+0x14` and flags `0x400` at `+0x18`. Name store `0x009108EA` writes the
+supplied pointer at descriptor `+0`. STATIC from ghidra-cli disassembly and
+file-backed PE32 data of the executable identified above.
+
+Property-info initializer `0x00F236D0` constructs object `0x0135A1C8` from
+count 3 and array `0x012E32E0`, whose entries are `0x0135A1FC`,
+`0x0135A220` and `0x0135A244`. It installs table `0x0106E1D8`,
+getter `0x009541E0` at info `+0x20`, setter `0x00954E70` at `+0x28`
+and zero receiver adjustments at `+0x24` and `+0x2C`. The table's Complete
+Object Locator `0x0117B960` has offset 0 and type descriptor `0x012E3068`,
+`.?AV?$DependencyPropertyInfo@V?$ICommandSource@VContentControl@Controls@Sqwt@@@Input@Sqwt@@@Sqwt@@`.
+Its slot 3 is `0x0091B440`, which adds info `+0x2C` to its incoming first
+argument for callback ECX, pushes the remaining three arguments and calls
+info `+0x28`. The initialized setter receives E and `(index,value,M)`
+without receiver adjustment. This does not establish a runtime caller's E.
+STATIC.
+
+The constructor chain `0x00974410 -> 0x0097F200 -> 0x00954AB0` preserves
+complete E at the calls `0x0097443A` and `0x0097F22B`. The last constructor
+installs tables `0x0106E36C` and `0x0106E244` at E and E `+0xB4`.
+Their COLs `0x0117BA44` and `0x0117BB10` have offsets 0 and `0xB4`
+and name type descriptor `0x012E31A0`,
+`.?AV?$ICommandSource@VContentControl@Controls@Sqwt@@@Input@Sqwt@@`.
+It constructs the Command holder at E `+0x370` through `0x009A6CC0` with
+descriptor `0x0135A1FC`. That helper writes the pointer at holder `+0`
+and metadata byte at `+4`, equivalently E `+0x374`. STATIC.
+
+Setter index 0 branches to `0x00954F8C`. It passes its unchanged second stack
+argument to name lookup `0x00928280` and keeps that returned pointer, or calls
+fallback `0x00928F90` with the same input on a miss. Lookup traverses the
+pointer collection under `0x01358728`, comparing each candidate's `+0x24`
+name with the supplied client string record through `0x00445D20`. The
+comparator reads both `+8` dwords, compares their values minus 1, then compares
+bytes through both records' `+0` buffer pointers. The argument is a client
+string record pointer, not a raw zero-terminated byte pointer or ICommand
+pointer. Its source-level runtime class is UNKNOWN. STATIC for the operands.
+
+The fallback rechecks lookup and retains an existing hit. On a second miss,
+`0x00929076..0x00929096` requests `0x9C` bytes and calls constructor
+`0x00928C90` only when the allocation is nonnull. That constructor copies the
+name to object `+0x24` and installs table `0x0106A78C`. The allocation-null
+path selects null. Existing same-name lookup hits have no proven family.
+STATIC for these branches and table writes.
+
+At `0x00954FCD..0x00954FEA`, the setter calls `0x00953D30` on H=E+0x370
+with `(selectedPointer,E,0x008EE360,0,0x0135A1FC,M,1)` in callee stack
+order. M is consumed as a byte. Let F be the metadata byte at H+4. Subject to
+metadata gates, the writer stores the four-byte selected pointer at
+`0x00953DCB`. If F has mask `0x40`, it first calls
+`0x009157C0(E,descriptor)` and clears that mask. It rejects when
+`(F&2)!=0 && M==0`, or `(F&2)==0 && M==1 && (F&1)==0`.
+Accepted M=0 clears mask 1 before pointer comparison. Equal pointers are
+retained and return AL=1. Unequal pointers set masks `0x04` and `0x08`,
+call helpers with incoming and prior command `+0x1C` pointers, and reach the
+dword store. The forwarded last argument 1 selects the subsequent
+`0x009C3720` call. Other byte values of M are not treated as 1. Metadata and
+helper semantics are not named. This is conditional storage. STATIC.
+
+Selected initializer `0x00F0F250` supplies UILuaCommands.Operate at
+`0x00FA8674` and length argument `0xFFFFFFFF` from `0x00F67298` to
+string constructor `0x00447260`. That constructor scans the terminator for
+this length argument and constructs the string record. At
+`0x00F0F28F..0x00F0F29B`, the initializer supplies that record and integer 1
+to `0x00928D90` on static object `0x0133B798`. The constructor installs
+`0x0106A78C`, copies the name to object `+0x24` through `0x00447200`
+and writes 1 at object `+0x78`. At `0x00928E50..0x00928E62`, it calls
+append helper `0x00813050` on `[0x01358728]+4` with address-of-self.
+The helper's available-capacity branch copies that same object pointer into
+the collection walked by lookup and advances the end by 4. Its growth callee
+`0x008CFC80` is unexpanded. STATIC for the observed branch and identity.
+
+Table `0x0106A78C` has COL `0x01179454`, offset 0 and type descriptor
+`0x012E0398`, `.?AVRoutedCommand@Input@Sqwt@@`. Its slot 2 cell
+`0x0106A794` is `0x00927FA0`. If lookup selects the matching static entry,
+or a fresh construction succeeds, that table supplies the conditional
+RoutedCommand join. The recipient loads `[I+0x2BC]=[E+0x370]` at
+`0x0097ED5F` and invokes its slot 2 at `0x0097ED73`. Getter
+`0x00954231..0x00954243` independently reads E `+0x370` and uses a
+nonnull command's `+0x24` name. STATIC.
+
+Actual setter delivery and E identity, registry contents and duplicate ordering,
+initializer execution, allocation success, metadata admission and live Command
+values remain UNKNOWN. The selected static object is not the unconditional
+same-name result. Full ICommand bodies, target fallback, stop policy, OS/input, session and
+scheduler behavior are outside this resolution join.
 
 ### IsHitTestVisible value and writers
 
@@ -1280,3 +1372,23 @@ the finding. A changed observation must fail the comparison. Preserve the
 exact target identity, locators, expected data and comparison procedure in the
 public evidence contract. These checks establish static-byte agreement, not
 runtime input, Lua, network or server validation.
+
+### Command name-resolution reproduction
+
+1. Read `0x00F23640`, `0x009108E0`, `0x00F236D0` and `0x0091B440`.
+   Resolve the selected property-info table's COL and RTTI, descriptor-pointer
+   array and setter callback fields. Preserve callback ECX and argument order.
+2. Read the constructor chain above, `0x009A6CC0` and setter `0x00954E70`
+   case 0. Follow `0x00928280`, `0x00445D20`, `0x00928F90`,
+   `0x00929076` and `0x00928C90`. Distinguish input records, existing hits,
+   allocation-null results and successful fresh construction.
+3. Read `0x00953D30` through its return. Preserve metadata byte gates,
+   equality retention, the dword store and the final argument 1 condition.
+4. Read `0x00F0F250`, `0x00447260`, `0x00447200`, `0x00928D90`
+   and `0x00813050`. Check the selected name, static receiver and same-pointer
+   append against the lookup collection. Do not infer the unexpanded growth path.
+5. Re-read the selected table/COL/RTTI/slot cells and recipient load and call.
+   Compare the manifest's short byte windows and metadata through the same
+   file-backed PE32 mapping. The optional executable verifier covers these
+   anchors. Public synthetic tests check the validator and literal distinctions,
+   not runtime registry contents, setter visitation or holder admission.

@@ -595,6 +595,140 @@
         "elseTarget": null
       }
     },
+    "commandResolution": {
+      "confidence": "STATIC",
+      "property": {
+        "name": "Command",
+        "descriptorVa": "0x0135a1fc",
+        "nameVa": "0x0106e13c",
+        "initializerVa": "0x00f23640",
+        "descriptorConstructorVa": "0x009108e0",
+        "index": 0,
+        "infoVa": "0x0135a1c8",
+        "infoInitializerVa": "0x00f236d0",
+        "descriptorArrayVa": "0x012e32e0",
+        "descriptorCount": 3,
+        "infoVtableVa": "0x0106e1d8",
+        "infoColVa": "0x0117b960",
+        "infoTypeDescriptorVa": "0x012e3068",
+        "infoRttiName": ".?AV?$DependencyPropertyInfo@V?$ICommandSource@VContentControl@Controls@Sqwt@@@Input@Sqwt@@@Sqwt@@",
+        "dispatchSlot": 3,
+        "dispatchVa": "0x0091b440",
+        "setterOffset": "+0x28",
+        "receiverAdjustmentOffset": "+0x2c",
+        "receiverAdjustment": 0,
+        "setterVa": "0x00954e70",
+        "setterArguments": [
+          "index",
+          "client string record pointer",
+          "byte carrier M"
+        ]
+      },
+      "owner": {
+        "constructorChain": [
+          "0x00974410",
+          "0x0097f200",
+          "0x00954ab0"
+        ],
+        "receiverAdjustment": 0,
+        "primaryVtableVa": "0x0106e36c",
+        "primaryColVa": "0x0117ba44",
+        "primaryColOffset": 0,
+        "interfaceVtableVa": "0x0106e244",
+        "interfaceColVa": "0x0117bb10",
+        "interfaceColOffset": "0xb4",
+        "typeDescriptorVa": "0x012e31a0",
+        "rttiName": ".?AV?$ICommandSource@VContentControl@Controls@Sqwt@@@Input@Sqwt@@",
+        "holderConstructorVa": "0x009a6cc0"
+      },
+      "resolver": {
+        "caseVa": "0x00954f8c",
+        "lookupVa": "0x00928280",
+        "createVa": "0x00928f90",
+        "registryVa": "0x01358728",
+        "comparisonVa": "0x00445d20",
+        "nameOffset": "+0x24",
+        "inputKind": "client string record pointer",
+        "bufferPointerOffset": "+0x00",
+        "lengthFieldOffset": "+0x08",
+        "comparison": "Compare both +8 dwords minus 1, then bytes through both +0 buffer pointers.",
+        "selection": "Keep the first lookup result, else the fallback result, without a family check on existing same-name hits.",
+        "fallbackRechecksLookup": true,
+        "allocationSize": "0x9c",
+        "allocationFailureResult": null,
+        "constructorVa": "0x00928c90"
+      },
+      "holder": {
+        "offset": "+0x370",
+        "metadataOffset": "+0x374",
+        "writerVa": "0x00953d30",
+        "writerCallVa": "0x00954fea",
+        "writerArguments": [
+          "selected pointer V",
+          "E",
+          "0x008ee360",
+          "0",
+          "0x0135a1fc",
+          "byte M",
+          "1"
+        ],
+        "pointerWidthBits": 32,
+        "metadataWidthBits": 8,
+        "storeVa": "0x00953dcb",
+        "refreshMask": "0x40",
+        "refreshHelperVa": "0x009157c0",
+        "reject": [
+          "(F & 2) != 0 and M == 0",
+          "(F & 2) == 0 and M == 1 and (F & 1) == 0"
+        ],
+        "acceptedZeroClearsMask": "0x01",
+        "equalPointerResult": "Retain pointer and return AL = 1.",
+        "changedMetadataMasks": [
+          "0x04",
+          "0x08"
+        ],
+        "afterStoreVa": "0x009c3720",
+        "admission": "UNKNOWN"
+      },
+      "selectedStatic": {
+        "name": "UILuaCommands.Operate",
+        "nameVa": "0x00fa8674",
+        "initializerVa": "0x00f0f250",
+        "stringConstructorVa": "0x00447260",
+        "lengthArgumentVa": "0x00f67298",
+        "lengthArgument": "0xffffffff",
+        "objectVa": "0x0133b798",
+        "constructorVa": "0x00928d90",
+        "integerArgument": 1,
+        "integerOffset": "+0x78",
+        "nameCopyVa": "0x00447200",
+        "registryVa": "0x01358728",
+        "appendVa": "0x00813050",
+        "appendReceiver": "[0x01358728] + 4",
+        "appendArgument": "address of the same object pointer",
+        "appendScope": "Available-capacity branch copies the pointer and advances the end by 4. Growth callee 0x008cfc80 is unexpanded.",
+        "selection": "Only if lookup selects this matching registry entry."
+      },
+      "family": {
+        "vtableVa": "0x0106a78c",
+        "colVa": "0x01179454",
+        "colOffset": 0,
+        "typeDescriptorVa": "0x012e0398",
+        "rttiName": ".?AVRoutedCommand@Input@Sqwt@@",
+        "slot": 2,
+        "slotCellVa": "0x0106a794",
+        "functionVa": "0x00927fa0",
+        "invocationLoadVa": "0x0097ed5f",
+        "invocationCallVa": "0x0097ed73",
+        "scope": "The selected static constructor and successful fresh construction install this table. Existing same-name lookup hits have no proven family."
+      },
+      "unknowns": [
+        "Runtime setter delivery, supplied complete receiver E and source-level class of the string record.",
+        "Current registry contents, ordering, duplicate names and initializer execution.",
+        "Allocation success, holder metadata admission and live Command value.",
+        "Full ICommand bodies and wider families. Target fallback, stop, OS/input, session and scheduler behavior are outside this resolution join."
+      ]
+    },
     "routedCommandJoin": {
       "constructorVa": "0x00928c90",
       "vtableVa": "0x0106a78c",
@@ -1976,6 +2110,402 @@
       "va": "0x0099c780",
       "pattern": "55 8B 6C 24 0C 56 8B F1",
       "mask": "FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command descriptor name and index",
+      "va": "0x00f23640",
+      "pattern": "68 3C E1 06 01 B9 FC A1 35 01 E8 91 D2 9E FF C7 05 10 A2 35 01 00 00 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command descriptor name store",
+      "va": "0x009108e0",
+      "pattern": "56 8B F1 8B 4C 24 08 8B C1 57 89 0E",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command property info callback inputs",
+      "va": "0x00f236d4",
+      "pattern": "68 E0 32 2E 01 6A 03 B9 C8 A1 35 01 BE 70 4E 95 00 33 FF BB E0 41 95 00 33 ED E8 5D 7B A6 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command property info table and callbacks",
+      "va": "0x00f236f8",
+      "pattern": "C7 05 C8 A1 35 01 D8 E1 06 01 89 1D E8 A1 35 01 89 2D EC A1 35 01 89 35 F0 A1 35 01 89 3D F4 A1 35 01",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command setter callback receiver and arguments",
+      "va": "0x0091b440",
+      "pattern": "8B 54 24 0C 8B C1 8B 4C 24 10 51 8B 4C 24 0C 52 8B 50 28 51 8B 48 2C 03 4C 24 10 FF D2",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command Button complete receiver",
+      "va": "0x00974434",
+      "pattern": "8B F1 89 74 24 08 E8 C1 AD 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command ButtonBase complete receiver",
+      "va": "0x0097f225",
+      "pattern": "8B F1 89 74 24 10 E8 80 58 FD FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command ContentControl holder receiver",
+      "va": "0x00954ae1",
+      "pattern": "51 51 68 FC A1 35 01 51 B8 60 E3 8E 00 50 56 8D 8E 70 03 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command ContentControl tables and holder call",
+      "va": "0x00954afe",
+      "pattern": "C7 06 6C E3 06 01 C7 86 B4 00 00 00 44 E2 06 01 C7 86 94 01 00 00 2C E2 06 01 E8 A3 21 05 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder pointer and metadata coordinates",
+      "va": "0x009a6cda",
+      "pattern": "8B 7C 24 1C 89 1E 88 46 04",
+      "mask": "FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command setter zero index branch",
+      "va": "0x00954e93",
+      "pattern": "8B F1 8B 44 24 20 83 E8 00 0F 84 EA 00 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command case zero lookup and fallback",
+      "va": "0x00954f8c",
+      "pattern": "8B 5C 24 24 53 E8 EA 32 FD FF 8B F8 83 C4 04 85 FF 75 0B 53 E8 EB 3F FD FF 83 C4 04 8B F8",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command writer arguments and receiver",
+      "va": "0x00954fcd",
+      "pattern": "8B 54 24 28 6A 01 52 68 FC A1 35 01 33 C9 51 B8 60 E3 8E 00 50 56 57 8D 8E 70 03 00 00 E8 41 ED FF FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command lookup registry start",
+      "va": "0x00928293",
+      "pattern": "8B 2D 28 87 35 01 8B 7D 08 83 C5 04",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command lookup registry end",
+      "va": "0x009282b0",
+      "pattern": "8B 35 28 87 35 01 8B 5E 0C 83 C6 04",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command lookup candidate name comparison",
+      "va": "0x009282dd",
+      "pattern": "8B 4C 24 14 8B 37 51 8D 4E 24 E8 34 DA B1 FF 84 C0 75 0F",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command lookup selected result",
+      "va": "0x0092830f",
+      "pattern": "5F 8B C6 5E 5D 5B C3",
+      "mask": "FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command string record lengths",
+      "va": "0x00445d20",
+      "pattern": "8B 54 24 04 8B 41 08 56 8B 72 08 57 83 EE 01 8D 78 FF 3B F7 74 07",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command string record buffers and bytes",
+      "va": "0x00445d3d",
+      "pattern": "83 C0 FE 78 11 8B 12 8B 31 8A 0C 06 3A 0C 02 75 E8 83 E8 01 79 F3 5F B0 01 5E C2 04 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command fallback lookup recheck",
+      "va": "0x00928fd4",
+      "pattern": "8B 74 24 30 56 E8 A2 F2 FF FF 8B F8 83 C4 04 85 FF 89 7C 24 14 0F 84 87 00 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command fallback existing pointer return",
+      "va": "0x00929060",
+      "pattern": "8B C7 8B 4C 24 20 64 89 0D 00 00 00 00 59 5F 5E 5D 5B 83 C4 18",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command fallback allocation and constructor",
+      "va": "0x00929076",
+      "pattern": "68 9C 00 00 00 E8 B5 8A 0A 00 83 C4 04 89 44 24 14 85 C0 C7 44 24 28 00 00 00 00 74 0C 56 8B C8 E8 F5 FB FF FF 8B F0 EB 02 33 F6",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command fallback selected pointer return",
+      "va": "0x009290e4",
+      "pattern": "8B C6 8B 4C 24 20 64 89 0D 00 00 00 00 59 5F 5E 5D 5B 83 C4 18",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command fresh object name and table",
+      "va": "0x00928cef",
+      "pattern": "8B 44 24 28 50 8D 4E 24 C6 44 24 24 03 C7 06 8C A7 06 01 C7 46 04 80 A7 06 01 C7 07 70 A7 06 01 E8 EC E4 B1 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder refresh gate",
+      "va": "0x00953d33",
+      "pattern": "F6 46 04 40 74 16 8B 44 24 18 8B 4C 24 0C 50 51 E8 78 1A FC FF 83 C4 08 80 66 04 BF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder metadata rejection",
+      "va": "0x00953d4f",
+      "pattern": "8A 4E 04 8A 54 24 1C 8A C1 D0 E8 24 01 74 04 84 D2 74 0D 84 C0 75 0F 80 FA 01 75 0A 84 CA 75 10 32 C0 5E C2 1C 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder low bit and pointer comparison",
+      "va": "0x00953d75",
+      "pattern": "84 D2 75 06 80 E1 FE 88 4E 04 55 8B 2E 57 8B 7C 24 10 3B EF 74 7E",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder changed metadata",
+      "va": "0x00953d8b",
+      "pattern": "8A 46 04 0C 04 53 8A D8 C0 EB 03 0C 08 80 E3 01 85 FF 88 46 04",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder store and callback gate",
+      "va": "0x00953dc6",
+      "pattern": "80 7C 24 2C 01 89 3E 75 1E",
+      "mask": "FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder after store call",
+      "va": "0x00953de8",
+      "pattern": "E8 33 F9 06 00",
+      "mask": "FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command holder accepted return",
+      "va": "0x00953e09",
+      "pattern": "5F 5D B0 01 5E C2 1C 00",
+      "mask": "FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command Operate name string construction",
+      "va": "0x00f0f273",
+      "pattern": "A1 98 72 F6 00 50 68 74 86 FA 00 8D 4C 24 0C E8 D9 7F 53 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command Operate static receiver and arguments",
+      "va": "0x00f0f28f",
+      "pattern": "6A 01 8D 4C 24 08 51 B9 98 B7 33 01 E8 F0 9A A1 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command static object name and table",
+      "va": "0x00928def",
+      "pattern": "8B 44 24 28 50 8D 4E 24 C6 44 24 24 03 C7 06 8C A7 06 01 C7 46 04 80 A7 06 01 C7 07 70 A7 06 01 E8 EC E3 B1 FF 8B 4C 24 2C 89 4E 78",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command static object registry append",
+      "va": "0x00928e50",
+      "pattern": "8B 0D 28 87 35 01 8D 44 24 28 50 83 C1 04 89 74 24 2C E8 E9 A1 EE FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command registry append pointer identity",
+      "va": "0x00813079",
+      "pattern": "8B 46 08 8B 4C 24 10 8B 11 89 10 83 C0 04 89 46 08",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command registry append growth call",
+      "va": "0x0081309e",
+      "pattern": "8B 44 24 14 50 57 56 8D 4C 24 14 51 8B CE E8 CF CB 0B 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command literal string sentinel and buffer",
+      "va": "0x0044726e",
+      "pattern": "8B 7C 24 14 83 FF FF 8D 46 12 88 56 10 88 56 11 C7 46 0C 00 00 00 00 89 56 08 C7 46 04 40 00 00 00 89 06 C6 00 00 75 17",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command literal string terminator scan",
+      "va": "0x004472a0",
+      "pattern": "8A 08 83 C0 01 84 C9 75 F7 2B C7 8B F8",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command name record copy operands",
+      "va": "0x00447238",
+      "pattern": "8B 4F 08 8B 17 8B 06 51 52 50 E8 B9 D3 58 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command getter stored pointer and name",
+      "va": "0x00954231",
+      "pattern": "8B 89 70 03 00 00 85 C9 74 0D 83 C1 24 51 8B 4C 24 0C E8 08 32 AF FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "button Command recipient complete receiver",
+      "va": "0x0097ecee",
+      "pattern": "8B F9 0F 85 9D 00 00 00 8B 9F FC 02 00 00 8B 97 4C FF FF FF 8B 82 1C 01 00 00 56 8D B7 4C FF FF FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command property descriptor array",
+      "va": "0x012e32e0",
+      "values": [
+        "0x0135a1fc",
+        "0x0135a220",
+        "0x0135a244"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command property info RTTI locator",
+      "va": "0x0106e1d4",
+      "values": [
+        "0x0117b960"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command property info RTTI offset",
+      "va": "0x0117b964",
+      "values": [
+        "0x00000000"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command property info RTTI type",
+      "va": "0x0117b96c",
+      "values": [
+        "0x012e3068"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command property info setter slot",
+      "va": "0x0106e1e4",
+      "values": [
+        "0x0091b440"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command source primary RTTI offset",
+      "va": "0x0117ba48",
+      "values": [
+        "0x00000000"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command source interface RTTI locator",
+      "va": "0x0106e240",
+      "values": [
+        "0x0117bb10"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command source interface RTTI offset",
+      "va": "0x0117bb14",
+      "values": [
+        "0x000000b4"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command source interface RTTI type",
+      "va": "0x0117bb1c",
+      "values": [
+        "0x012e31a0"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command RoutedCommand RTTI offset",
+      "va": "0x01179458",
+      "values": [
+        "0x00000000"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "button Command Operate string length argument",
+      "va": "0x00f67298",
+      "values": [
+        "0xffffffff"
+      ]
+    },
+    {
+      "kind": "string",
+      "name": "button Command descriptor name",
+      "va": "0x0106e13c",
+      "text": "Command"
+    },
+    {
+      "kind": "string",
+      "name": "button Command property info RTTI name",
+      "va": "0x012e3070",
+      "text": ".?AV?$DependencyPropertyInfo@V?$ICommandSource@VContentControl@Controls@Sqwt@@@Input@Sqwt@@@Sqwt@@"
     }
   ],
   "unknowns": [

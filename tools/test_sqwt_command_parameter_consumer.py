@@ -761,6 +761,169 @@ def button_source_tests(real: dict) -> None:
     )
 
 
+def button_command_tests(real: dict) -> None:
+    """Reject record, receiver, admission and family conflation with literal fixtures."""
+    text = bytearray(0xD0)
+    fragments = (
+        (
+            "case zero lookup and fallback",
+            0x00,
+            "8B 5C 24 24 53 E8 EA 32 FD FF 8B F8 83 C4 04 85 FF 75 0B 53 E8 EB 3F FD FF 83 C4 04 8B F8",
+        ),
+        (
+            "holder metadata rejection",
+            0x30,
+            "8A 4E 04 8A 54 24 1C 8A C1 D0 E8 24 01 74 04 84 D2 74 0D 84 C0 75 0F 80 FA 01 75 0A 84 CA 75 10 32 C0 5E C2 1C 00",
+        ),
+        ("holder store and callback gate", 0x60, "80 7C 24 2C 01 89 3E 75 1E"),
+        (
+            "Operate static receiver and arguments",
+            0x70,
+            "6A 01 8D 4C 24 08 51 B9 98 B7 33 01 E8 F0 9A A1 FF",
+        ),
+        (
+            "registry append pointer identity",
+            0x90,
+            "8B 46 08 8B 4C 24 10 8B 11 89 10 83 C0 04 89 46 08",
+        ),
+        (
+            "string record lengths",
+            0xB0,
+            "8B 54 24 04 8B 41 08 56 8B 72 08 57 83 EE 01 8D 78 FF 3B F7 74 07",
+        ),
+    )
+    checks = []
+    for name, offset, literal in fragments:
+        raw = bytes.fromhex(literal)
+        text[offset : offset + len(raw)] = raw
+        row = copy.deepcopy(
+            next(
+                row
+                for row in real["staticChecks"]
+                if row.get("name") == "button Command " + name
+            )
+        )
+        row["va"] = f"{TEXT_VA + offset:#010x}"
+        checks.append(row)
+    data = struct.pack(
+        "<6I", 0x0135A1FC, 0x0135A220, 0x0135A244, 0x0091B440, 0, 0xFFFFFFFF
+    )
+    for name, offset in (
+        ("property descriptor array", 0),
+        ("property info setter slot", 12),
+        ("source primary RTTI offset", 16),
+        ("Operate string length argument", 20),
+    ):
+        row = copy.deepcopy(
+            next(
+                row
+                for row in real["staticChecks"]
+                if row.get("name") == "button Command " + name
+            )
+        )
+        row["va"] = f"{DATA_VA + offset:#010x}"
+        checks.append(row)
+    image = build_image(bytes(text), data, len(data))
+    document = {"staticChecks": checks}
+    check(
+        "Command literal resolver/store/registry fixture passes",
+        run(image, document) == [],
+    )
+    for label, offset, value in (
+        ("fallback keeps the same input record", 0x13, 0x57),
+        ("metadata tests M exactly against one", 0x30 + 25, 2),
+        ("holder stores the selected dword", 0x60 + 5, 0x88),
+        ("Operate receiver is the selected static object", 0x70 + 8, 0x9C),
+        ("append copies the same pointer", 0x90 + 8, 0x19),
+        ("name comparator reads record length at plus eight", 0xB0 + 6, 4),
+    ):
+        changed = bytearray(image)
+        changed[0x200 + offset] = value
+        check(label, len(run(bytes(changed), document)) == 1)
+    changed = bytearray(image)
+    struct.pack_into("<I", changed, 0x200 + len(text) + 16, 0xB4)
+    check(
+        "complete source COL offset stays zero", len(run(bytes(changed), document)) == 1
+    )
+    changed = bytearray(image)
+    struct.pack_into("<I", changed, 0x200 + len(text) + 12, 0x00954E70)
+    check(
+        "property slot is the adapter rather than the setter",
+        len(run(bytes(changed), document)) == 1,
+    )
+
+    for section, field, value in (
+        ("property", "index", False),
+        ("property", "receiverAdjustment", 0xB4),
+        ("resolver", "inputKind", "zero-terminated byte pointer"),
+        ("resolver", "allocationFailureResult", "null"),
+        ("holder", "pointerWidthBits", 8),
+        ("holder", "admission", "STATIC accepted"),
+        ("selectedStatic", "selection", "Every matching name returns this object."),
+        ("family", "scope", "Every existing lookup hit is a RoutedCommand."),
+    ):
+        changed = copy.deepcopy(real)
+        changed["buttonSource"]["commandResolution"][section][field] = value
+        check(
+            f"Command {section} distinguishes {field}",
+            f"button Command {section} contract changed"
+            in verifier.button_command_errors(changed),
+        )
+    for path, value in (
+        (("buttonSource", "storedCommand", "offset"), "+0x44"),
+        (("commandSource", "unknownCommandName", "findOrCreateVa"), "0x00928280"),
+        (("buttonSource", "routedCommandJoin", "functionVa"), "0x00927f90"),
+    ):
+        changed = copy.deepcopy(real)
+        node = changed
+        for key in path[:-1]:
+            node = node[key]
+        node[path[-1]] = value
+        check(
+            "Command consumer cross-check " + "/".join(path),
+            "button Command existing consumer join changed"
+            in verifier.button_command_errors(changed),
+        )
+    name = "button Command holder store and callback gate"
+    for mutation in ("drop", "mask", "duplicate"):
+        changed = copy.deepcopy(real)
+        selected = next(
+            row for row in changed["staticChecks"] if row.get("name") == name
+        )
+        if mutation == "drop":
+            changed["staticChecks"].remove(selected)
+        elif mutation == "mask":
+            selected["mask"] = "00 " * 8 + "00"
+        else:
+            changed["staticChecks"].append(copy.deepcopy(selected))
+        check(
+            "Command store recipe rejects " + mutation,
+            f"button Command static check changed: {name}"
+            in verifier.button_command_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    del changed["buttonSource"]["commandResolution"]
+    check(
+        "Command resolver section is required",
+        bool(verifier.button_command_errors(changed)),
+    )
+    page = verifier.DOC.read_text(encoding="utf-8").lower()
+    widened = page.replace(
+        "existing same-name lookup hits have no proven family",
+        "every existing lookup hit is a routedcommand",
+    )
+    check(
+        "Command page preserves the conditional family boundary",
+        "button Command page boundary missing: existing same-name lookup hits have no proven family"
+        in verifier.doc_errors(real, widened),
+    )
+    check(
+        "Command page cites the exact dword store",
+        "page does not cite 0x00953dcb"
+        in verifier.doc_errors(real, page.replace("0x00953dcb", "0x00953dcc")),
+    )
+
+
 def eligibility_tests(real: dict) -> None:
     """Reject changed context, map, operand-width and publication observations."""
     text = bytearray(0xE0)
@@ -1068,6 +1231,7 @@ def main() -> int:
     event_release_tests(real)
     upstream_slot4_tests(real)
     button_source_tests(real)
+    button_command_tests(real)
     eligibility_tests(real)
 
     if FAILED:
