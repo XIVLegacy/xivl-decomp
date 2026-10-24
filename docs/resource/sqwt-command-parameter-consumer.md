@@ -36,8 +36,10 @@ what any individual script does with the values.
 | Instruments | Capstone `5.0.7` x86 32-bit disassembly over a read-only PE32 section mapping, with the `ghidra` CLI xrefs and the `config/ffxivgame.vtable_slots.jsonl` catalog as leads. |
 
 All addresses are VA. Executable size and SHA-256 were checked before the
-observations. Every instruction-level claim below was read from the Capstone
-disassembly. This was static analysis and did not execute the client.
+observations. The routing and consumer instructions were read from the Capstone
+disassembly. The event release section also uses `ghidra-cli 0.2.2`
+disassembly and xrefs checked against the same read-only PE32 image.
+This was static analysis and did not execute the client.
 [sqwt_command_parameter_consumer.json](../../config/sqwt_command_parameter_consumer.json)
 holds the addresses, tables, strings and masked byte signatures that
 [verify_sqwt_command_parameter_consumer.py](../../tools/verify_sqwt_command_parameter_consumer.py)
@@ -544,13 +546,95 @@ Otherwise it compares the byte at `0x0134C3FE` (zero) with the condition byte
 | 0 | a number was given | `0x00896AF0` | `_onUICommandEvent` (`0x01056B88`) |
 | 1 | no number | `0x00896D00` | `_onUICommandRequest` (`0x01056B9C`) |
 
-The event path keeps the parameter in a two slot queue. A second event whose
-priority byte is not above the stored one is rejected with a false return
-(`0x00896B2A..0x00896B42`). A higher priority event takes the second slot and
-runs after the first through `0x00896ED0`. The request path rejects when its
-nesting count at `+0x14` is 8 or more (`0x00896D33`). STATIC. When the first
-stored event is released is UNKNOWN, so the cadence at which equal priority
-events are dropped is not established.
+The event path keeps active and saved pending parameters in separate slots.
+While the active slot exists, incoming priority must exceed the active priority
+and, when present, the saved pending priority (`0x00896B32..0x00896B54`). The
+[event release and pending replay](#event-release-and-pending-replay) section
+records the callback clears and replay guards. The request path rejects when
+its nesting count at `+0x14` is 8 or more (`0x00896D33`). STATIC.
+
+### Event release and pending replay
+
+The holder at control `+0x60` is an
+`Application::Lua::Script::Client::Event::FormManager`. Installation allocates
+`0x20` bytes, calls constructor `0x008951B0` at `0x006E37CB`, and stores the
+result at `0x006E37EF`. The constructor writes vtable `0x01056FE0` at
+`0x008951E5`. Its RTTI name is
+`.?AVFormManager@Event@Client@Script@Lua@Application@@`, through COL
+`0x0117241C` and type descriptor `0x012D7A24`. STATIC.
+
+The immediate branch of `0x00896AF0` requires the 32-bit active pointer at
+holder `+4` to be null. It clears byte flags `+0x1C/+0x1D`, clones the incoming
+parameter into `+4` and writes the current 16-bit word from `0x0134BC40` into
+parameter `+0x102` (`0x00896BB3..0x00896BE8`). The holder is registered as a
+listener at `0x00CD094A`, before method resolution at `0x00CD0961` and the
+invocation attempt at `0x00CD0969`. STATIC. The global word lies in PE virtual
+zero-fill. Its static value is zero, but runtime mutations and immutability
+are UNKNOWN.
+
+Dispatcher `0x00CCD910` selects listener slots 1, 2 and 3 for numeric phases
+0, 1 and 2 (`0x00CCD9F0..0x00CCDA75`). Slot 1, `0x00894F30`, compares the
+callback thread's 16-bit word at `+0x14` with the current global. On equality
+it invokes the active parameter's deleting slot when nonnull and clears the
+32-bit pointer at `0x00894F9E`. This branch does not set `+0x1D`. Slot 2,
+`0x00895010`, receives a 32-bit pointer to the thread word as argument 4. On a
+word match it sets byte `+0x1D` to 1 only when byte `+0x1C` equals exactly 1,
+then deletes the active parameter when nonnull and clears its pointer at
+`0x0089503E`. Slot 3, `0x00892760`, tail-dispatches through slot 2. Phase 2
+also passes a pointer to the word. Phase 0 passes a pointer to a wrapper
+holding the selected thread pointer. The nonmatching branches take separate
+request handling paths. STATIC. The semantic names of these numeric phases
+are UNKNOWN.
+
+The initial native call chain has gates. `0x00CCF9B0` proceeds only when byte
+`[[thread+0xC]+0x1CC]+8` is zero, the resolved object's byte `+0x7F` is
+nonzero, and `0x00CCCD80` returns nonzero (`0x00CCF9BC..0x00CCF9F4`).
+`0x00CCEE30` avoids its early return only when `0x00CF39C0` initially returns
+zero (`0x00CCEE91..0x00CCEE98`). After the native call helper at `0x00CCF042`,
+a second zero result from `0x00CF39C0` reaches `0x00CCE8E0` through
+`0x00CCF1BB`. Other conditional branches perform work before joining there
+(`0x00CCF08E..0x00CCF1BB`). With a zero count in the `0x3C`-entry range at
+thread `+0xDC/+0xE0`, that helper calls phase 0
+(`0x00CCE909..0x00CCE92E`, `0x00CCE9B1..0x00CCE9B5`). Optional calls at
+`0x00CCE970` and `0x00CCE9AC` precede that dispatch. STATIC.
+
+The later call to `0x00CCDBC0` at `0x00CCF245` requires the local byte tested
+at `0x00CCF23F` to be nonzero. That byte receives the `0x00CCFFE0` result
+through `0x00CCF04D` and can be set to 1 at `0x00CCF1A0`. The helper calls
+phase 2 only with a nonnull range start, a nonzero range count, and zero byte
+`[thread+0xC]+0x224` (`0x00CCDBC4..0x00CCDBFB`). STATIC.
+
+A registered holder encountered by one of these dispatches can therefore
+clear the active pointer before the initial `0x00896AF0` returns, when the
+callback word matches the current global and clone, preparation, intervening
+helpers and deleting calls return normally. That composed possibility is
+INFERRED conditional same-native-invocation reachability. It is not observed
+execution, a guarantee that every accepted event invokes Lua, or guaranteed
+eventual release. Complete lookup, failure cleanup and resume paths remain
+UNKNOWN.
+
+While the active pointer exists, incoming priority must exceed its unsigned
+priority byte and, when present, the saved pending priority. The comparisons
+are separate at `0x00896B32..0x00896B42` and `0x00896B47..0x00896B54`.
+A higher-priority clone is stored in the 32-bit pending pointer at holder `+8`.
+The helper `0x00CD09A0` is called before byte `+0x1C` is set to 1 at
+`0x00896BAA`. Pump `0x00896ED0` requires both bytes `+0x1C/+0x1D` nonzero,
+then clears both flags. Replaying additionally requires the pending pointer
+nonnull, compared at `0x00896F02`. A null slot exits at `0x00896F0B`.
+The pump detaches the pending parameter, re-enters `0x00896AF0` at
+`0x00896F35`, and destroys the detached parameter afterward
+(`0x00896EF8..0x00896F4E`). It does not clear the active pointer. STATIC.
+
+The pump's two direct call sites found by the Ghidra xref query are
+`0x006E13F4` and `0x006E1E22`. They belong to control slot 4 in WidgetBase
+and DesktopUtil (`0x00FD5A84`, `0x00FDFCAC`) and DesktopWidget
+(`0x00FD5B9C`), respectively. The DesktopWidget call requires an 8-bit
+nonzero test at control `+0x64` (`0x006E1E18..0x006E1E22`). STATIC.
+Xrefs to the two caller entries returned only those three table entries.
+This is a bounded result from that analysis, not an exhaustive search for
+computed or virtual callers. Their upstream dispatch, cadence and ordering
+relative to Sqwt input remain UNKNOWN. Equal-priority rejection lasts while
+the active slot is nonnull at re-entry. No fixed frame interval follows.
 
 ## Other consumers of the record
 
@@ -668,7 +752,9 @@ What a client implementation can build from this page, in order of the path.
 Items 1 to 3 and 5 to 6 are STATIC. Item 4 is STATIC except for the template
 map expansion and the lookup of the template name for controls outside a
 template, which are INFERRED. Item 7 is STATIC for the debounce and the depth
-limit and UNKNOWN for when a stored event is released.
+limit. Matching listener callbacks clear the active slot as described in
+[event release and pending replay](#event-release-and-pending-replay).
+The upstream pump cadence and complete cleanup coverage remain UNKNOWN.
 
 Delivery also stops silently on the entry flag, the form gate, the `0x006F5640`
 gates and the pad one-shot gate, which the sections above identify only as far
@@ -736,7 +822,10 @@ Do not assume:
 - The meaning of owner fields `+0x128` and `+0x161` and of byte `+0xBA` read by
   the selector gates, beyond the conditions stated.
 - The purpose of the flag byte at `0x01356E14`, beyond its stores and reads.
-- The release point of the first stored event and the cadence of `0x00896ED0`.
+- The upstream caller and cadence of control slot 4, including its order
+  relative to Sqwt input routing. Matching callbacks clear the active slot,
+  but complete lookup, failure cleanup and resume paths and guaranteed
+  eventual release remain UNKNOWN.
 - The sites where `Button`, `KeyBinding` and `PadBinding` put a record into an
   `Executed` event. They are INFERRED to use the same command slot 2 route as
   the binding path in the
@@ -777,6 +866,30 @@ Do not assume:
    `0x006F5640`.
 8. For `NumberInputBox`, disassemble `0x0069C1F0`, `0x0069DB83..0x0069DBB2`,
    `0x0069C340` and `0x004DDCF0`.
-9. For the census, follow the reproduction in the grammar page and group each
+9. For event release, use `ghidra disasm <VA> -n <count> --json` on
+   `0x006E3760` for 100 instructions, `0x008951B0` for 70,
+   `0x00896AF0` for 150, `0x00CD0940` for 17 and `0x00CCDDA0` for 30.
+   Follow `0x00894F30` for 60, `0x00895010` for 30,
+   `0x00892760` for 3, `0x00CD2BC0` for 12 and `0x00CD08F0` for 9.
+   Confirm pointer widths, word comparisons and byte flags. Read the four
+   dwords at `0x01056FE0` and its RTTI pointer chain.
+10. Follow `0x00CCF9B0` for 36 instructions, `0x00CCEE30` for 375,
+    `0x00CCE8E0` for 180, `0x00CCDBC0` for 28 and `0x00CCD910` for 120.
+    For the local result flag, follow `0x00CCFFE0` through its return at
+    `0x00CD0176`. Preserve the entry predicates, both `0x00CF39C0` results,
+    range conditions and normal-return assumptions. Do not infer semantic
+    phase names from numeric cases.
+11. Read `0x00896ED0` for 63 instructions, `0x006E13F0` for 4 and
+    `0x006E1DE0` for 27. Query `ghidra x-ref to 0x00896ed0 --json` and
+    both caller entries. Compare the table dwords at `0x00FD5A84`,
+    `0x00FD5B9C` and `0x00FDFCAC`. This does not trace indirect dispatch.
+12. Compare the observed instruction bytes with the supplied executable by
+    mapping each VA through the PE section table. For a file-backed VA,
+    subtract the image base and section RVA, then add the section raw-file
+    offset. A section's virtual extent beyond its raw size is zero-fill, not
+    file bytes. The optional executable verifier checks the retained release,
+    replay, callback and table signatures. No private analysis output is
+    required to reproduce the method.
+13. For the census, follow the reproduction in the grammar page and group each
    value by the `Command` attribute of its owner. Keep client bytes, decoded
    documents and executable listings outside the repository.
