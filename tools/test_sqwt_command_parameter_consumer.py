@@ -924,6 +924,156 @@ def button_command_tests(real: dict) -> None:
     )
 
 
+def button_stop_tests(real: dict) -> None:
+    """Distinguish scratch reuse, byte1 notification and restoration with literals."""
+    fragments = (
+        ("argument retention", "53 55 8B 6C 24 0C"),
+        ("scratch address", "8D 4C 24 14"),
+        ("comparison value", "B0 01"),
+        ("prior notification gate", "85 DB 74 02 88 03"),
+        ("restore before generic", "89 9F FC 02 00 00 55 8B CF E8 E5 65 FB FF"),
+        ("constructor zero", "C7 86 B0 03 00 00 00 00 00 00"),
+        ("base destructor notification", "74 03 C6 00 01 E9 C4 59 FD FF"),
+        ("deleting destructor pointer gate", "56 8B F1 8B 86 B0 03 00 00 85 C0"),
+    )
+    text = bytearray()
+    offsets = {}
+    checks = []
+    for name, literal in fragments:
+        offsets[name] = len(text)
+        row = copy.deepcopy(
+            next(
+                row
+                for row in real["staticChecks"]
+                if row.get("name") == "button stop " + name
+            )
+        )
+        row["va"] = f"{TEXT_VA + len(text):#010x}"
+        checks.append(row)
+        text.extend(bytes.fromhex(literal))
+    data = struct.pack("<3I", 0xB4, 0, 0x00974540)
+    for name, offset in (
+        ("base interface RTTI offset", 0),
+        ("base primary RTTI offset", 4),
+        ("Button destructor slot", 8),
+    ):
+        row = copy.deepcopy(
+            next(
+                row
+                for row in real["staticChecks"]
+                if row.get("name") == "button stop " + name
+            )
+        )
+        row["va"] = f"{DATA_VA + offset:#010x}"
+        checks.append(row)
+    image = build_image(bytes(text), data, len(data))
+    document = {"staticChecks": checks}
+    check("stop literal stack/destruction fixture passes", run(image, document) == [])
+    for name, offset, value in (
+        ("argument retention", 5, 0x10),
+        ("scratch address", 3, 0x10),
+        ("comparison value", 1, 2),
+        ("prior notification gate", 2, 0x75),
+        ("restore before generic", 0, 0x8B),
+        ("constructor zero", 6, 1),
+        ("base destructor notification", 4, 2),
+        ("deleting destructor pointer gate", 5, 0xAC),
+    ):
+        changed = bytearray(image)
+        changed[0x200 + offsets[name] + offset] = value
+        check(
+            "stop literal rejects changed " + name,
+            len(run(bytes(changed), document)) == 1,
+        )
+    for offset, value in ((0, 0), (4, 0xB4), (8, 0x0097F3E0)):
+        changed = bytearray(image)
+        struct.pack_into("<I", changed, 0x200 + len(text) + offset, value)
+        check(
+            "stop literal separates COL and destructor coordinates " + str(offset),
+            len(run(bytes(changed), document)) == 1,
+        )
+    for section, field, value in (
+        ("coordinates", "flagWidthBits", 32),
+        ("coordinates", "interfaceOffset", True),
+        ("scratch", "entryStackOffset", 20),
+        ("scratch", "separateLocalAllocation", True),
+        ("exits", "equalsByte", True),
+        ("exits", "equalRestoresPointer", True),
+        ("destruction", "pointerMustBeNonNull", False),
+    ):
+        changed = copy.deepcopy(real)
+        changed["buttonSource"]["clickLifetime"][section][field] = value
+        check(
+            f"stop {section} distinguishes {field}",
+            f"button stop {section} contract changed"
+            in verifier.button_stop_errors(changed),
+        )
+    for section, field, value, error in (
+        (
+            "coordinates",
+            "completePointerOffset",
+            764,
+            "button stop pointer coordinate changed",
+        ),
+        ("scratch", "currentStackOffset", 4, "button stop stack coordinate changed"),
+    ):
+        changed = copy.deepcopy(real)
+        changed["buttonSource"]["clickLifetime"][section][field] = value
+        check(
+            "stop coordinate cross-check " + section,
+            error in verifier.button_stop_errors(changed),
+        )
+    for path, value in (
+        (("buttonSource", "click", "temporaryFlagPointerOffset"), "+0x3b0"),
+        (("routing", "command", "argumentLayout", "stopByte"), "+0x19"),
+    ):
+        changed = copy.deepcopy(real)
+        node = changed
+        for key in path[:-1]:
+            node = node[key]
+        node[path[-1]] = value
+        check(
+            "stop existing consumer cross-check " + "/".join(path),
+            "button stop existing consumer join changed"
+            in verifier.button_stop_errors(changed),
+        )
+    name = "button stop restore before generic"
+    for mutation in ("drop", "mask", "duplicate"):
+        changed = copy.deepcopy(real)
+        selected = next(
+            row for row in changed["staticChecks"] if row.get("name") == name
+        )
+        if mutation == "drop":
+            changed["staticChecks"].remove(selected)
+        elif mutation == "mask":
+            selected["mask"] = " ".join(["00"] * 14)
+        else:
+            changed["staticChecks"].append(copy.deepcopy(selected))
+        check(
+            "stop restoration recipe rejects " + mutation,
+            f"button stop static check changed: {name}"
+            in verifier.button_stop_errors(changed),
+        )
+    changed = copy.deepcopy(real)
+    changed["buttonSource"]["clickLifetime"]["unknowns"] = []
+    check(
+        "stop lifetime unknowns remain explicit",
+        "button stop unknowns contract changed" in verifier.button_stop_errors(changed),
+    )
+    page = verifier.DOC.read_text(encoding="utf-8").lower()
+    widened = page.replace("only a value of exactly 1", "any nonzero value")
+    check(
+        "stop page preserves equality1",
+        "button stop page boundary missing: exactly 1"
+        in verifier.doc_errors(real, widened),
+    )
+    check(
+        "stop page cites the concrete destruction writer",
+        "page does not cite 0x0097ec94"
+        in verifier.doc_errors(real, page.replace("0x0097ec94", "0x0097ec93")),
+    )
+
+
 def eligibility_tests(real: dict) -> None:
     """Reject changed context, map, operand-width and publication observations."""
     text = bytearray(0xE0)
@@ -1232,6 +1382,7 @@ def main() -> int:
     upstream_slot4_tests(real)
     button_source_tests(real)
     button_command_tests(real)
+    button_stop_tests(real)
     eligibility_tests(real)
 
     if FAILED:
