@@ -1,0 +1,6777 @@
+{
+  "format": "xivl-achievement-completion-ordinals-v1",
+  "producer": "tools/build_achievement_completion_ordinals.py",
+  "inputs": {
+    "ffxivgame.exe": {
+      "bytes": 15996808,
+      "sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+      "image_base": "0x00400000"
+    },
+    "achievement.csv": {
+      "bytes": 28895,
+      "sha256": "3aecdc3005619b76c813318b12ba7e9b38588d0e3007811d43668a307a68243f",
+      "source": "xivl-client-data:csv/achievement.csv",
+      "manifest": "xivl-client-data:manifests/tables.json",
+      "revision": "492c0e2701747bf63e91cb7ce419e9743f63c3f5"
+    },
+    "achievement_title_map.json": {
+      "source": "config/achievement_title_map.json",
+      "sha256": "d5c658fce09240b30ca35e3545309a8571414292ffc09b8545a88682426a5b1d",
+      "revision": "9c319448e84c1bfd2ee3aa3509d35a61161f89ed",
+      "use": "Independent agreement check for all 208 title-linked rows."
+    }
+  },
+  "method": {
+    "decoder": "Capstone 5.0.7, x86-32",
+    "evaluation": "File-backed instruction and lookup-table evaluation for every sheet achievement ID; no target execution.",
+    "functions": {
+      "achievement_to_ordinal": {
+        "entry_va": "0x0070AB40",
+        "code_end_exclusive_va": "0x0070BCB4",
+        "lookup_end_exclusive_va": "0x0070DBB0"
+      },
+      "ordinal_to_achievement": {
+        "entry_va": "0x0057ABB0",
+        "code_end_exclusive_va": "0x0057BD28",
+        "lookup_end_exclusive_va": "0x0057CD28"
+      }
+    },
+    "completion": "An ordinal is proven only when <1024 and inverse(ordinal) equals that achievement. Otherwise ordinal is null and native evidence is retained.",
+    "default_zero": {
+      "entry_va": "0x0070BCB1",
+      "result_va": "0x0070BCB3",
+      "meaning": "Native zero is ambiguous: inverse(0) returns achievement 100, which owns ordinal 0."
+    },
+    "coverage": "All 746 unique row IDs, sorted numerically. Neither sheet order nor reward values supply an ordinal.",
+    "sheet_ids_sha256": "5a4ae783e64738156ac19bd6a6c7106104c391edb2161416dd0f9258eb91a193",
+    "sheet_ids_encoding": "ASCII JSON array of sorted integer IDs with separators comma and colon, without whitespace or newline."
+  },
+  "summary": {
+    "sheet_rows": 746,
+    "proven_ordinals": 741,
+    "unproven_achievement_ids": [
+      1107,
+      1108,
+      1109,
+      1110,
+      1221
+    ],
+    "title_linked_rows": 208
+  },
+  "rows": [
+    {
+      "achievement_id": 100,
+      "status": "proven",
+      "ordinal": 0,
+      "native_result": 0,
+      "result_va": "0x0070BCB3",
+      "inverse_achievement_id": 100,
+      "inverse_result_va": "0x0057ABCB"
+    },
+    {
+      "achievement_id": 101,
+      "status": "proven",
+      "ordinal": 1,
+      "native_result": 1,
+      "result_va": "0x0070AB5E",
+      "inverse_achievement_id": 101,
+      "inverse_result_va": "0x0057ABD1"
+    },
+    {
+      "achievement_id": 102,
+      "status": "proven",
+      "ordinal": 2,
+      "native_result": 2,
+      "result_va": "0x0070AB64",
+      "inverse_achievement_id": 102,
+      "inverse_result_va": "0x0057ABD7"
+    },
+    {
+      "achievement_id": 103,
+      "status": "proven",
+      "ordinal": 3,
+      "native_result": 3,
+      "result_va": "0x0070AB6A",
+      "inverse_achievement_id": 103,
+      "inverse_result_va": "0x0057ABDD"
+    },
+    {
+      "achievement_id": 104,
+      "status": "proven",
+      "ordinal": 4,
+      "native_result": 4,
+      "result_va": "0x0070AB70",
+      "inverse_achievement_id": 104,
+      "inverse_result_va": "0x0057ABE3"
+    },
+    {
+      "achievement_id": 105,
+      "status": "proven",
+      "ordinal": 5,
+      "native_result": 5,
+      "result_va": "0x0070AB76",
+      "inverse_achievement_id": 105,
+      "inverse_result_va": "0x0057ABE9"
+    },
+    {
+      "achievement_id": 106,
+      "status": "proven",
+      "ordinal": 6,
+      "native_result": 6,
+      "result_va": "0x0070AB7C",
+      "inverse_achievement_id": 106,
+      "inverse_result_va": "0x0057ABEF"
+    },
+    {
+      "achievement_id": 107,
+      "status": "proven",
+      "ordinal": 7,
+      "native_result": 7,
+      "result_va": "0x0070AB82",
+      "inverse_achievement_id": 107,
+      "inverse_result_va": "0x0057ABF5"
+    },
+    {
+      "achievement_id": 108,
+      "status": "proven",
+      "ordinal": 8,
+      "native_result": 8,
+      "result_va": "0x0070AB88",
+      "inverse_achievement_id": 108,
+      "inverse_result_va": "0x0057ABFB"
+    },
+    {
+      "achievement_id": 109,
+      "status": "proven",
+      "ordinal": 9,
+      "native_result": 9,
+      "result_va": "0x0070AB8E",
+      "inverse_achievement_id": 109,
+      "inverse_result_va": "0x0057AC01"
+    },
+    {
+      "achievement_id": 110,
+      "status": "proven",
+      "ordinal": 10,
+      "native_result": 10,
+      "result_va": "0x0070AB94",
+      "inverse_achievement_id": 110,
+      "inverse_result_va": "0x0057AC07"
+    },
+    {
+      "achievement_id": 111,
+      "status": "proven",
+      "ordinal": 11,
+      "native_result": 11,
+      "result_va": "0x0070AB9A",
+      "inverse_achievement_id": 111,
+      "inverse_result_va": "0x0057AC0D"
+    },
+    {
+      "achievement_id": 112,
+      "status": "proven",
+      "ordinal": 12,
+      "native_result": 12,
+      "result_va": "0x0070ABA0",
+      "inverse_achievement_id": 112,
+      "inverse_result_va": "0x0057AC13"
+    },
+    {
+      "achievement_id": 113,
+      "status": "proven",
+      "ordinal": 13,
+      "native_result": 13,
+      "result_va": "0x0070ABA6",
+      "inverse_achievement_id": 113,
+      "inverse_result_va": "0x0057AC19"
+    },
+    {
+      "achievement_id": 114,
+      "status": "proven",
+      "ordinal": 14,
+      "native_result": 14,
+      "result_va": "0x0070ABAC",
+      "inverse_achievement_id": 114,
+      "inverse_result_va": "0x0057AC1F"
+    },
+    {
+      "achievement_id": 115,
+      "status": "proven",
+      "ordinal": 15,
+      "native_result": 15,
+      "result_va": "0x0070ABB2",
+      "inverse_achievement_id": 115,
+      "inverse_result_va": "0x0057AC25"
+    },
+    {
+      "achievement_id": 116,
+      "status": "proven",
+      "ordinal": 16,
+      "native_result": 16,
+      "result_va": "0x0070ABB8",
+      "inverse_achievement_id": 116,
+      "inverse_result_va": "0x0057AC2B"
+    },
+    {
+      "achievement_id": 117,
+      "status": "proven",
+      "ordinal": 17,
+      "native_result": 17,
+      "result_va": "0x0070ABBE",
+      "inverse_achievement_id": 117,
+      "inverse_result_va": "0x0057AC31"
+    },
+    {
+      "achievement_id": 118,
+      "status": "proven",
+      "ordinal": 21,
+      "native_result": 21,
+      "result_va": "0x0070ABC4",
+      "inverse_achievement_id": 118,
+      "inverse_result_va": "0x0057AC37"
+    },
+    {
+      "achievement_id": 197,
+      "status": "proven",
+      "ordinal": 18,
+      "native_result": 18,
+      "result_va": "0x0070ABCA",
+      "inverse_achievement_id": 197,
+      "inverse_result_va": "0x0057AC3D"
+    },
+    {
+      "achievement_id": 198,
+      "status": "proven",
+      "ordinal": 19,
+      "native_result": 19,
+      "result_va": "0x0070ABD0",
+      "inverse_achievement_id": 198,
+      "inverse_result_va": "0x0057AC43"
+    },
+    {
+      "achievement_id": 199,
+      "status": "proven",
+      "ordinal": 20,
+      "native_result": 20,
+      "result_va": "0x0070ABD6",
+      "inverse_achievement_id": 199,
+      "inverse_result_va": "0x0057AC49"
+    },
+    {
+      "achievement_id": 200,
+      "status": "proven",
+      "ordinal": 50,
+      "native_result": 50,
+      "result_va": "0x0070ABDC",
+      "inverse_achievement_id": 200,
+      "inverse_result_va": "0x0057AC4F"
+    },
+    {
+      "achievement_id": 201,
+      "status": "proven",
+      "ordinal": 51,
+      "native_result": 51,
+      "result_va": "0x0070ABE2",
+      "inverse_achievement_id": 201,
+      "inverse_result_va": "0x0057AC55"
+    },
+    {
+      "achievement_id": 202,
+      "status": "proven",
+      "ordinal": 52,
+      "native_result": 52,
+      "result_va": "0x0070ABE8",
+      "inverse_achievement_id": 202,
+      "inverse_result_va": "0x0057AC5B"
+    },
+    {
+      "achievement_id": 203,
+      "status": "proven",
+      "ordinal": 53,
+      "native_result": 53,
+      "result_va": "0x0070ABEE",
+      "inverse_achievement_id": 203,
+      "inverse_result_va": "0x0057AC61"
+    },
+    {
+      "achievement_id": 204,
+      "status": "proven",
+      "ordinal": 54,
+      "native_result": 54,
+      "result_va": "0x0070ABF4",
+      "inverse_achievement_id": 204,
+      "inverse_result_va": "0x0057AC67"
+    },
+    {
+      "achievement_id": 205,
+      "status": "proven",
+      "ordinal": 55,
+      "native_result": 55,
+      "result_va": "0x0070ABFA",
+      "inverse_achievement_id": 205,
+      "inverse_result_va": "0x0057AC6D"
+    },
+    {
+      "achievement_id": 206,
+      "status": "proven",
+      "ordinal": 56,
+      "native_result": 56,
+      "result_va": "0x0070AC00",
+      "inverse_achievement_id": 206,
+      "inverse_result_va": "0x0057AC73"
+    },
+    {
+      "achievement_id": 207,
+      "status": "proven",
+      "ordinal": 57,
+      "native_result": 57,
+      "result_va": "0x0070AC06",
+      "inverse_achievement_id": 207,
+      "inverse_result_va": "0x0057AC79"
+    },
+    {
+      "achievement_id": 208,
+      "status": "proven",
+      "ordinal": 58,
+      "native_result": 58,
+      "result_va": "0x0070AC0C",
+      "inverse_achievement_id": 208,
+      "inverse_result_va": "0x0057AC7F"
+    },
+    {
+      "achievement_id": 209,
+      "status": "proven",
+      "ordinal": 59,
+      "native_result": 59,
+      "result_va": "0x0070AC12",
+      "inverse_achievement_id": 209,
+      "inverse_result_va": "0x0057AC85"
+    },
+    {
+      "achievement_id": 210,
+      "status": "proven",
+      "ordinal": 60,
+      "native_result": 60,
+      "result_va": "0x0070AC18",
+      "inverse_achievement_id": 210,
+      "inverse_result_va": "0x0057AC8B"
+    },
+    {
+      "achievement_id": 211,
+      "status": "proven",
+      "ordinal": 61,
+      "native_result": 61,
+      "result_va": "0x0070AC1E",
+      "inverse_achievement_id": 211,
+      "inverse_result_va": "0x0057AC91"
+    },
+    {
+      "achievement_id": 212,
+      "status": "proven",
+      "ordinal": 62,
+      "native_result": 62,
+      "result_va": "0x0070AC24",
+      "inverse_achievement_id": 212,
+      "inverse_result_va": "0x0057AC97"
+    },
+    {
+      "achievement_id": 213,
+      "status": "proven",
+      "ordinal": 63,
+      "native_result": 63,
+      "result_va": "0x0070AC2A",
+      "inverse_achievement_id": 213,
+      "inverse_result_va": "0x0057AC9D"
+    },
+    {
+      "achievement_id": 214,
+      "status": "proven",
+      "ordinal": 64,
+      "native_result": 64,
+      "result_va": "0x0070AC30",
+      "inverse_achievement_id": 214,
+      "inverse_result_va": "0x0057ACA3"
+    },
+    {
+      "achievement_id": 215,
+      "status": "proven",
+      "ordinal": 65,
+      "native_result": 65,
+      "result_va": "0x0070AC36",
+      "inverse_achievement_id": 215,
+      "inverse_result_va": "0x0057ACA9"
+    },
+    {
+      "achievement_id": 216,
+      "status": "proven",
+      "ordinal": 66,
+      "native_result": 66,
+      "result_va": "0x0070AC3C",
+      "inverse_achievement_id": 216,
+      "inverse_result_va": "0x0057ACAF"
+    },
+    {
+      "achievement_id": 217,
+      "status": "proven",
+      "ordinal": 67,
+      "native_result": 67,
+      "result_va": "0x0070AC42",
+      "inverse_achievement_id": 217,
+      "inverse_result_va": "0x0057ACB5"
+    },
+    {
+      "achievement_id": 218,
+      "status": "proven",
+      "ordinal": 68,
+      "native_result": 68,
+      "result_va": "0x0070AC48",
+      "inverse_achievement_id": 218,
+      "inverse_result_va": "0x0057ACBB"
+    },
+    {
+      "achievement_id": 219,
+      "status": "proven",
+      "ordinal": 69,
+      "native_result": 69,
+      "result_va": "0x0070AC4E",
+      "inverse_achievement_id": 219,
+      "inverse_result_va": "0x0057ACC1"
+    },
+    {
+      "achievement_id": 220,
+      "status": "proven",
+      "ordinal": 70,
+      "native_result": 70,
+      "result_va": "0x0070AC54",
+      "inverse_achievement_id": 220,
+      "inverse_result_va": "0x0057ACC7"
+    },
+    {
+      "achievement_id": 221,
+      "status": "proven",
+      "ordinal": 71,
+      "native_result": 71,
+      "result_va": "0x0070AC5A",
+      "inverse_achievement_id": 221,
+      "inverse_result_va": "0x0057ACCD"
+    },
+    {
+      "achievement_id": 222,
+      "status": "proven",
+      "ordinal": 72,
+      "native_result": 72,
+      "result_va": "0x0070AC60",
+      "inverse_achievement_id": 222,
+      "inverse_result_va": "0x0057ACD3"
+    },
+    {
+      "achievement_id": 223,
+      "status": "proven",
+      "ordinal": 73,
+      "native_result": 73,
+      "result_va": "0x0070AC66",
+      "inverse_achievement_id": 223,
+      "inverse_result_va": "0x0057ACD9"
+    },
+    {
+      "achievement_id": 224,
+      "status": "proven",
+      "ordinal": 74,
+      "native_result": 74,
+      "result_va": "0x0070AC6C",
+      "inverse_achievement_id": 224,
+      "inverse_result_va": "0x0057ACDF"
+    },
+    {
+      "achievement_id": 225,
+      "status": "proven",
+      "ordinal": 75,
+      "native_result": 75,
+      "result_va": "0x0070AC72",
+      "inverse_achievement_id": 225,
+      "inverse_result_va": "0x0057ACE5"
+    },
+    {
+      "achievement_id": 226,
+      "status": "proven",
+      "ordinal": 76,
+      "native_result": 76,
+      "result_va": "0x0070AC78",
+      "inverse_achievement_id": 226,
+      "inverse_result_va": "0x0057ACEB"
+    },
+    {
+      "achievement_id": 227,
+      "status": "proven",
+      "ordinal": 77,
+      "native_result": 77,
+      "result_va": "0x0070AC7E",
+      "inverse_achievement_id": 227,
+      "inverse_result_va": "0x0057ACF1"
+    },
+    {
+      "achievement_id": 228,
+      "status": "proven",
+      "ordinal": 78,
+      "native_result": 78,
+      "result_va": "0x0070AC84",
+      "inverse_achievement_id": 228,
+      "inverse_result_va": "0x0057ACF7"
+    },
+    {
+      "achievement_id": 229,
+      "status": "proven",
+      "ordinal": 79,
+      "native_result": 79,
+      "result_va": "0x0070AC8A",
+      "inverse_achievement_id": 229,
+      "inverse_result_va": "0x0057ACFD"
+    },
+    {
+      "achievement_id": 230,
+      "status": "proven",
+      "ordinal": 80,
+      "native_result": 80,
+      "result_va": "0x0070AC90",
+      "inverse_achievement_id": 230,
+      "inverse_result_va": "0x0057AD03"
+    },
+    {
+      "achievement_id": 231,
+      "status": "proven",
+      "ordinal": 81,
+      "native_result": 81,
+      "result_va": "0x0070AC96",
+      "inverse_achievement_id": 231,
+      "inverse_result_va": "0x0057AD09"
+    },
+    {
+      "achievement_id": 232,
+      "status": "proven",
+      "ordinal": 82,
+      "native_result": 82,
+      "result_va": "0x0070AC9C",
+      "inverse_achievement_id": 232,
+      "inverse_result_va": "0x0057AD0F"
+    },
+    {
+      "achievement_id": 233,
+      "status": "proven",
+      "ordinal": 83,
+      "native_result": 83,
+      "result_va": "0x0070ACA2",
+      "inverse_achievement_id": 233,
+      "inverse_result_va": "0x0057AD15"
+    },
+    {
+      "achievement_id": 234,
+      "status": "proven",
+      "ordinal": 84,
+      "native_result": 84,
+      "result_va": "0x0070ACA8",
+      "inverse_achievement_id": 234,
+      "inverse_result_va": "0x0057AD1B"
+    },
+    {
+      "achievement_id": 235,
+      "status": "proven",
+      "ordinal": 85,
+      "native_result": 85,
+      "result_va": "0x0070ACAE",
+      "inverse_achievement_id": 235,
+      "inverse_result_va": "0x0057AD21"
+    },
+    {
+      "achievement_id": 236,
+      "status": "proven",
+      "ordinal": 86,
+      "native_result": 86,
+      "result_va": "0x0070ACB4",
+      "inverse_achievement_id": 236,
+      "inverse_result_va": "0x0057AD27"
+    },
+    {
+      "achievement_id": 237,
+      "status": "proven",
+      "ordinal": 87,
+      "native_result": 87,
+      "result_va": "0x0070ACBA",
+      "inverse_achievement_id": 237,
+      "inverse_result_va": "0x0057AD2D"
+    },
+    {
+      "achievement_id": 238,
+      "status": "proven",
+      "ordinal": 88,
+      "native_result": 88,
+      "result_va": "0x0070ACC0",
+      "inverse_achievement_id": 238,
+      "inverse_result_va": "0x0057AD33"
+    },
+    {
+      "achievement_id": 239,
+      "status": "proven",
+      "ordinal": 89,
+      "native_result": 89,
+      "result_va": "0x0070ACC6",
+      "inverse_achievement_id": 239,
+      "inverse_result_va": "0x0057AD39"
+    },
+    {
+      "achievement_id": 240,
+      "status": "proven",
+      "ordinal": 90,
+      "native_result": 90,
+      "result_va": "0x0070ACCC",
+      "inverse_achievement_id": 240,
+      "inverse_result_va": "0x0057AD3F"
+    },
+    {
+      "achievement_id": 241,
+      "status": "proven",
+      "ordinal": 91,
+      "native_result": 91,
+      "result_va": "0x0070ACD2",
+      "inverse_achievement_id": 241,
+      "inverse_result_va": "0x0057AD45"
+    },
+    {
+      "achievement_id": 242,
+      "status": "proven",
+      "ordinal": 92,
+      "native_result": 92,
+      "result_va": "0x0070ACD8",
+      "inverse_achievement_id": 242,
+      "inverse_result_va": "0x0057AD4B"
+    },
+    {
+      "achievement_id": 243,
+      "status": "proven",
+      "ordinal": 93,
+      "native_result": 93,
+      "result_va": "0x0070ACDE",
+      "inverse_achievement_id": 243,
+      "inverse_result_va": "0x0057AD51"
+    },
+    {
+      "achievement_id": 244,
+      "status": "proven",
+      "ordinal": 94,
+      "native_result": 94,
+      "result_va": "0x0070ACE4",
+      "inverse_achievement_id": 244,
+      "inverse_result_va": "0x0057AD57"
+    },
+    {
+      "achievement_id": 245,
+      "status": "proven",
+      "ordinal": 95,
+      "native_result": 95,
+      "result_va": "0x0070ACEA",
+      "inverse_achievement_id": 245,
+      "inverse_result_va": "0x0057AD5D"
+    },
+    {
+      "achievement_id": 246,
+      "status": "proven",
+      "ordinal": 96,
+      "native_result": 96,
+      "result_va": "0x0070ACF0",
+      "inverse_achievement_id": 246,
+      "inverse_result_va": "0x0057AD63"
+    },
+    {
+      "achievement_id": 247,
+      "status": "proven",
+      "ordinal": 97,
+      "native_result": 97,
+      "result_va": "0x0070ACF6",
+      "inverse_achievement_id": 247,
+      "inverse_result_va": "0x0057AD69"
+    },
+    {
+      "achievement_id": 248,
+      "status": "proven",
+      "ordinal": 98,
+      "native_result": 98,
+      "result_va": "0x0070ACFC",
+      "inverse_achievement_id": 248,
+      "inverse_result_va": "0x0057AD6F"
+    },
+    {
+      "achievement_id": 249,
+      "status": "proven",
+      "ordinal": 99,
+      "native_result": 99,
+      "result_va": "0x0070AD02",
+      "inverse_achievement_id": 249,
+      "inverse_result_va": "0x0057AD75"
+    },
+    {
+      "achievement_id": 250,
+      "status": "proven",
+      "ordinal": 100,
+      "native_result": 100,
+      "result_va": "0x0070AD08",
+      "inverse_achievement_id": 250,
+      "inverse_result_va": "0x0057AD7B"
+    },
+    {
+      "achievement_id": 251,
+      "status": "proven",
+      "ordinal": 101,
+      "native_result": 101,
+      "result_va": "0x0070AD0E",
+      "inverse_achievement_id": 251,
+      "inverse_result_va": "0x0057AD81"
+    },
+    {
+      "achievement_id": 252,
+      "status": "proven",
+      "ordinal": 102,
+      "native_result": 102,
+      "result_va": "0x0070AD14",
+      "inverse_achievement_id": 252,
+      "inverse_result_va": "0x0057AD87"
+    },
+    {
+      "achievement_id": 253,
+      "status": "proven",
+      "ordinal": 103,
+      "native_result": 103,
+      "result_va": "0x0070AD1A",
+      "inverse_achievement_id": 253,
+      "inverse_result_va": "0x0057AD8D"
+    },
+    {
+      "achievement_id": 254,
+      "status": "proven",
+      "ordinal": 104,
+      "native_result": 104,
+      "result_va": "0x0070AD20",
+      "inverse_achievement_id": 254,
+      "inverse_result_va": "0x0057AD93"
+    },
+    {
+      "achievement_id": 255,
+      "status": "proven",
+      "ordinal": 105,
+      "native_result": 105,
+      "result_va": "0x0070AD26",
+      "inverse_achievement_id": 255,
+      "inverse_result_va": "0x0057AD99"
+    },
+    {
+      "achievement_id": 256,
+      "status": "proven",
+      "ordinal": 106,
+      "native_result": 106,
+      "result_va": "0x0070AD2C",
+      "inverse_achievement_id": 256,
+      "inverse_result_va": "0x0057AD9F"
+    },
+    {
+      "achievement_id": 257,
+      "status": "proven",
+      "ordinal": 107,
+      "native_result": 107,
+      "result_va": "0x0070AD32",
+      "inverse_achievement_id": 257,
+      "inverse_result_va": "0x0057ADA5"
+    },
+    {
+      "achievement_id": 258,
+      "status": "proven",
+      "ordinal": 108,
+      "native_result": 108,
+      "result_va": "0x0070AD38",
+      "inverse_achievement_id": 258,
+      "inverse_result_va": "0x0057ADAB"
+    },
+    {
+      "achievement_id": 259,
+      "status": "proven",
+      "ordinal": 109,
+      "native_result": 109,
+      "result_va": "0x0070AD3E",
+      "inverse_achievement_id": 259,
+      "inverse_result_va": "0x0057ADB1"
+    },
+    {
+      "achievement_id": 260,
+      "status": "proven",
+      "ordinal": 110,
+      "native_result": 110,
+      "result_va": "0x0070AD44",
+      "inverse_achievement_id": 260,
+      "inverse_result_va": "0x0057ADB7"
+    },
+    {
+      "achievement_id": 261,
+      "status": "proven",
+      "ordinal": 111,
+      "native_result": 111,
+      "result_va": "0x0070AD4A",
+      "inverse_achievement_id": 261,
+      "inverse_result_va": "0x0057ADBD"
+    },
+    {
+      "achievement_id": 262,
+      "status": "proven",
+      "ordinal": 112,
+      "native_result": 112,
+      "result_va": "0x0070AD50",
+      "inverse_achievement_id": 262,
+      "inverse_result_va": "0x0057ADC3"
+    },
+    {
+      "achievement_id": 263,
+      "status": "proven",
+      "ordinal": 113,
+      "native_result": 113,
+      "result_va": "0x0070AD56",
+      "inverse_achievement_id": 263,
+      "inverse_result_va": "0x0057ADC9"
+    },
+    {
+      "achievement_id": 264,
+      "status": "proven",
+      "ordinal": 114,
+      "native_result": 114,
+      "result_va": "0x0070AD5C",
+      "inverse_achievement_id": 264,
+      "inverse_result_va": "0x0057ADCF"
+    },
+    {
+      "achievement_id": 265,
+      "status": "proven",
+      "ordinal": 115,
+      "native_result": 115,
+      "result_va": "0x0070AD62",
+      "inverse_achievement_id": 265,
+      "inverse_result_va": "0x0057ADD5"
+    },
+    {
+      "achievement_id": 266,
+      "status": "proven",
+      "ordinal": 116,
+      "native_result": 116,
+      "result_va": "0x0070AD68",
+      "inverse_achievement_id": 266,
+      "inverse_result_va": "0x0057ADDB"
+    },
+    {
+      "achievement_id": 267,
+      "status": "proven",
+      "ordinal": 117,
+      "native_result": 117,
+      "result_va": "0x0070AD6E",
+      "inverse_achievement_id": 267,
+      "inverse_result_va": "0x0057ADE1"
+    },
+    {
+      "achievement_id": 268,
+      "status": "proven",
+      "ordinal": 118,
+      "native_result": 118,
+      "result_va": "0x0070AD74",
+      "inverse_achievement_id": 268,
+      "inverse_result_va": "0x0057ADE7"
+    },
+    {
+      "achievement_id": 269,
+      "status": "proven",
+      "ordinal": 119,
+      "native_result": 119,
+      "result_va": "0x0070AD7A",
+      "inverse_achievement_id": 269,
+      "inverse_result_va": "0x0057ADED"
+    },
+    {
+      "achievement_id": 270,
+      "status": "proven",
+      "ordinal": 120,
+      "native_result": 120,
+      "result_va": "0x0070AD80",
+      "inverse_achievement_id": 270,
+      "inverse_result_va": "0x0057ADF3"
+    },
+    {
+      "achievement_id": 271,
+      "status": "proven",
+      "ordinal": 121,
+      "native_result": 121,
+      "result_va": "0x0070AD86",
+      "inverse_achievement_id": 271,
+      "inverse_result_va": "0x0057ADF9"
+    },
+    {
+      "achievement_id": 272,
+      "status": "proven",
+      "ordinal": 122,
+      "native_result": 122,
+      "result_va": "0x0070AD8C",
+      "inverse_achievement_id": 272,
+      "inverse_result_va": "0x0057ADFF"
+    },
+    {
+      "achievement_id": 273,
+      "status": "proven",
+      "ordinal": 123,
+      "native_result": 123,
+      "result_va": "0x0070AD92",
+      "inverse_achievement_id": 273,
+      "inverse_result_va": "0x0057AE05"
+    },
+    {
+      "achievement_id": 274,
+      "status": "proven",
+      "ordinal": 124,
+      "native_result": 124,
+      "result_va": "0x0070AD98",
+      "inverse_achievement_id": 274,
+      "inverse_result_va": "0x0057AE0B"
+    },
+    {
+      "achievement_id": 275,
+      "status": "proven",
+      "ordinal": 125,
+      "native_result": 125,
+      "result_va": "0x0070AD9E",
+      "inverse_achievement_id": 275,
+      "inverse_result_va": "0x0057AE11"
+    },
+    {
+      "achievement_id": 276,
+      "status": "proven",
+      "ordinal": 126,
+      "native_result": 126,
+      "result_va": "0x0070ADA4",
+      "inverse_achievement_id": 276,
+      "inverse_result_va": "0x0057AE17"
+    },
+    {
+      "achievement_id": 277,
+      "status": "proven",
+      "ordinal": 127,
+      "native_result": 127,
+      "result_va": "0x0070ADAA",
+      "inverse_achievement_id": 277,
+      "inverse_result_va": "0x0057AE1D"
+    },
+    {
+      "achievement_id": 278,
+      "status": "proven",
+      "ordinal": 128,
+      "native_result": 128,
+      "result_va": "0x0070ADB0",
+      "inverse_achievement_id": 278,
+      "inverse_result_va": "0x0057AE23"
+    },
+    {
+      "achievement_id": 279,
+      "status": "proven",
+      "ordinal": 129,
+      "native_result": 129,
+      "result_va": "0x0070ADB6",
+      "inverse_achievement_id": 279,
+      "inverse_result_va": "0x0057AE29"
+    },
+    {
+      "achievement_id": 280,
+      "status": "proven",
+      "ordinal": 130,
+      "native_result": 130,
+      "result_va": "0x0070ADBC",
+      "inverse_achievement_id": 280,
+      "inverse_result_va": "0x0057AE2F"
+    },
+    {
+      "achievement_id": 281,
+      "status": "proven",
+      "ordinal": 131,
+      "native_result": 131,
+      "result_va": "0x0070ADC2",
+      "inverse_achievement_id": 281,
+      "inverse_result_va": "0x0057AE35"
+    },
+    {
+      "achievement_id": 282,
+      "status": "proven",
+      "ordinal": 132,
+      "native_result": 132,
+      "result_va": "0x0070ADC8",
+      "inverse_achievement_id": 282,
+      "inverse_result_va": "0x0057AE3B"
+    },
+    {
+      "achievement_id": 283,
+      "status": "proven",
+      "ordinal": 133,
+      "native_result": 133,
+      "result_va": "0x0070ADCE",
+      "inverse_achievement_id": 283,
+      "inverse_result_va": "0x0057AE41"
+    },
+    {
+      "achievement_id": 284,
+      "status": "proven",
+      "ordinal": 134,
+      "native_result": 134,
+      "result_va": "0x0070ADD4",
+      "inverse_achievement_id": 284,
+      "inverse_result_va": "0x0057AE47"
+    },
+    {
+      "achievement_id": 285,
+      "status": "proven",
+      "ordinal": 135,
+      "native_result": 135,
+      "result_va": "0x0070ADDA",
+      "inverse_achievement_id": 285,
+      "inverse_result_va": "0x0057AE4D"
+    },
+    {
+      "achievement_id": 286,
+      "status": "proven",
+      "ordinal": 136,
+      "native_result": 136,
+      "result_va": "0x0070ADE0",
+      "inverse_achievement_id": 286,
+      "inverse_result_va": "0x0057AE53"
+    },
+    {
+      "achievement_id": 287,
+      "status": "proven",
+      "ordinal": 137,
+      "native_result": 137,
+      "result_va": "0x0070ADE6",
+      "inverse_achievement_id": 287,
+      "inverse_result_va": "0x0057AE59"
+    },
+    {
+      "achievement_id": 288,
+      "status": "proven",
+      "ordinal": 138,
+      "native_result": 138,
+      "result_va": "0x0070ADEC",
+      "inverse_achievement_id": 288,
+      "inverse_result_va": "0x0057AE5F"
+    },
+    {
+      "achievement_id": 289,
+      "status": "proven",
+      "ordinal": 139,
+      "native_result": 139,
+      "result_va": "0x0070ADF2",
+      "inverse_achievement_id": 289,
+      "inverse_result_va": "0x0057AE65"
+    },
+    {
+      "achievement_id": 290,
+      "status": "proven",
+      "ordinal": 140,
+      "native_result": 140,
+      "result_va": "0x0070ADF8",
+      "inverse_achievement_id": 290,
+      "inverse_result_va": "0x0057AE6B"
+    },
+    {
+      "achievement_id": 291,
+      "status": "proven",
+      "ordinal": 141,
+      "native_result": 141,
+      "result_va": "0x0070ADFE",
+      "inverse_achievement_id": 291,
+      "inverse_result_va": "0x0057AE71"
+    },
+    {
+      "achievement_id": 292,
+      "status": "proven",
+      "ordinal": 142,
+      "native_result": 142,
+      "result_va": "0x0070AE04",
+      "inverse_achievement_id": 292,
+      "inverse_result_va": "0x0057AE77"
+    },
+    {
+      "achievement_id": 293,
+      "status": "proven",
+      "ordinal": 143,
+      "native_result": 143,
+      "result_va": "0x0070AE0A",
+      "inverse_achievement_id": 293,
+      "inverse_result_va": "0x0057AE7D"
+    },
+    {
+      "achievement_id": 294,
+      "status": "proven",
+      "ordinal": 144,
+      "native_result": 144,
+      "result_va": "0x0070AE10",
+      "inverse_achievement_id": 294,
+      "inverse_result_va": "0x0057AE83"
+    },
+    {
+      "achievement_id": 295,
+      "status": "proven",
+      "ordinal": 145,
+      "native_result": 145,
+      "result_va": "0x0070AE16",
+      "inverse_achievement_id": 295,
+      "inverse_result_va": "0x0057AE89"
+    },
+    {
+      "achievement_id": 390,
+      "status": "proven",
+      "ordinal": 146,
+      "native_result": 146,
+      "result_va": "0x0070AE1C",
+      "inverse_achievement_id": 390,
+      "inverse_result_va": "0x0057AE8F"
+    },
+    {
+      "achievement_id": 391,
+      "status": "proven",
+      "ordinal": 147,
+      "native_result": 147,
+      "result_va": "0x0070AE22",
+      "inverse_achievement_id": 391,
+      "inverse_result_va": "0x0057AE95"
+    },
+    {
+      "achievement_id": 392,
+      "status": "proven",
+      "ordinal": 148,
+      "native_result": 148,
+      "result_va": "0x0070AE28",
+      "inverse_achievement_id": 392,
+      "inverse_result_va": "0x0057AE9B"
+    },
+    {
+      "achievement_id": 393,
+      "status": "proven",
+      "ordinal": 149,
+      "native_result": 149,
+      "result_va": "0x0070AE2E",
+      "inverse_achievement_id": 393,
+      "inverse_result_va": "0x0057AEA1"
+    },
+    {
+      "achievement_id": 394,
+      "status": "proven",
+      "ordinal": 150,
+      "native_result": 150,
+      "result_va": "0x0070AE34",
+      "inverse_achievement_id": 394,
+      "inverse_result_va": "0x0057AEA7"
+    },
+    {
+      "achievement_id": 400,
+      "status": "proven",
+      "ordinal": 200,
+      "native_result": 200,
+      "result_va": "0x0070AE3A",
+      "inverse_achievement_id": 400,
+      "inverse_result_va": "0x0057AEAD"
+    },
+    {
+      "achievement_id": 401,
+      "status": "proven",
+      "ordinal": 201,
+      "native_result": 201,
+      "result_va": "0x0070AE40",
+      "inverse_achievement_id": 401,
+      "inverse_result_va": "0x0057AEB3"
+    },
+    {
+      "achievement_id": 402,
+      "status": "proven",
+      "ordinal": 202,
+      "native_result": 202,
+      "result_va": "0x0070AE46",
+      "inverse_achievement_id": 402,
+      "inverse_result_va": "0x0057AEB9"
+    },
+    {
+      "achievement_id": 403,
+      "status": "proven",
+      "ordinal": 203,
+      "native_result": 203,
+      "result_va": "0x0070AE4C",
+      "inverse_achievement_id": 403,
+      "inverse_result_va": "0x0057AEBF"
+    },
+    {
+      "achievement_id": 404,
+      "status": "proven",
+      "ordinal": 204,
+      "native_result": 204,
+      "result_va": "0x0070AE52",
+      "inverse_achievement_id": 404,
+      "inverse_result_va": "0x0057AEC5"
+    },
+    {
+      "achievement_id": 405,
+      "status": "proven",
+      "ordinal": 205,
+      "native_result": 205,
+      "result_va": "0x0070AE58",
+      "inverse_achievement_id": 405,
+      "inverse_result_va": "0x0057AECB"
+    },
+    {
+      "achievement_id": 406,
+      "status": "proven",
+      "ordinal": 206,
+      "native_result": 206,
+      "result_va": "0x0070AE5E",
+      "inverse_achievement_id": 406,
+      "inverse_result_va": "0x0057AED1"
+    },
+    {
+      "achievement_id": 407,
+      "status": "proven",
+      "ordinal": 207,
+      "native_result": 207,
+      "result_va": "0x0070AE64",
+      "inverse_achievement_id": 407,
+      "inverse_result_va": "0x0057AED7"
+    },
+    {
+      "achievement_id": 408,
+      "status": "proven",
+      "ordinal": 208,
+      "native_result": 208,
+      "result_va": "0x0070AE6A",
+      "inverse_achievement_id": 408,
+      "inverse_result_va": "0x0057AEDD"
+    },
+    {
+      "achievement_id": 409,
+      "status": "proven",
+      "ordinal": 209,
+      "native_result": 209,
+      "result_va": "0x0070AE70",
+      "inverse_achievement_id": 409,
+      "inverse_result_va": "0x0057AEE3"
+    },
+    {
+      "achievement_id": 410,
+      "status": "proven",
+      "ordinal": 210,
+      "native_result": 210,
+      "result_va": "0x0070AE76",
+      "inverse_achievement_id": 410,
+      "inverse_result_va": "0x0057AEE9"
+    },
+    {
+      "achievement_id": 411,
+      "status": "proven",
+      "ordinal": 211,
+      "native_result": 211,
+      "result_va": "0x0070AE7C",
+      "inverse_achievement_id": 411,
+      "inverse_result_va": "0x0057AEEF"
+    },
+    {
+      "achievement_id": 412,
+      "status": "proven",
+      "ordinal": 212,
+      "native_result": 212,
+      "result_va": "0x0070AE82",
+      "inverse_achievement_id": 412,
+      "inverse_result_va": "0x0057AEF5"
+    },
+    {
+      "achievement_id": 498,
+      "status": "proven",
+      "ordinal": 213,
+      "native_result": 213,
+      "result_va": "0x0070AE88",
+      "inverse_achievement_id": 498,
+      "inverse_result_va": "0x0057AEFB"
+    },
+    {
+      "achievement_id": 499,
+      "status": "proven",
+      "ordinal": 214,
+      "native_result": 214,
+      "result_va": "0x0070AE8E",
+      "inverse_achievement_id": 499,
+      "inverse_result_va": "0x0057AF01"
+    },
+    {
+      "achievement_id": 500,
+      "status": "proven",
+      "ordinal": 250,
+      "native_result": 250,
+      "result_va": "0x0070AE94",
+      "inverse_achievement_id": 500,
+      "inverse_result_va": "0x0057AF07"
+    },
+    {
+      "achievement_id": 501,
+      "status": "proven",
+      "ordinal": 251,
+      "native_result": 251,
+      "result_va": "0x0070AE9A",
+      "inverse_achievement_id": 501,
+      "inverse_result_va": "0x0057AF0D"
+    },
+    {
+      "achievement_id": 502,
+      "status": "proven",
+      "ordinal": 252,
+      "native_result": 252,
+      "result_va": "0x0070AEA0",
+      "inverse_achievement_id": 502,
+      "inverse_result_va": "0x0057AF13"
+    },
+    {
+      "achievement_id": 503,
+      "status": "proven",
+      "ordinal": 253,
+      "native_result": 253,
+      "result_va": "0x0070AEA6",
+      "inverse_achievement_id": 503,
+      "inverse_result_va": "0x0057AF19"
+    },
+    {
+      "achievement_id": 504,
+      "status": "proven",
+      "ordinal": 254,
+      "native_result": 254,
+      "result_va": "0x0070AEAC",
+      "inverse_achievement_id": 504,
+      "inverse_result_va": "0x0057AF1F"
+    },
+    {
+      "achievement_id": 505,
+      "status": "proven",
+      "ordinal": 255,
+      "native_result": 255,
+      "result_va": "0x0070AEB2",
+      "inverse_achievement_id": 505,
+      "inverse_result_va": "0x0057AF25"
+    },
+    {
+      "achievement_id": 506,
+      "status": "proven",
+      "ordinal": 256,
+      "native_result": 256,
+      "result_va": "0x0070AEB8",
+      "inverse_achievement_id": 506,
+      "inverse_result_va": "0x0057AF2B"
+    },
+    {
+      "achievement_id": 507,
+      "status": "proven",
+      "ordinal": 257,
+      "native_result": 257,
+      "result_va": "0x0070AEBE",
+      "inverse_achievement_id": 507,
+      "inverse_result_va": "0x0057AF31"
+    },
+    {
+      "achievement_id": 508,
+      "status": "proven",
+      "ordinal": 258,
+      "native_result": 258,
+      "result_va": "0x0070AEC4",
+      "inverse_achievement_id": 508,
+      "inverse_result_va": "0x0057AF37"
+    },
+    {
+      "achievement_id": 509,
+      "status": "proven",
+      "ordinal": 259,
+      "native_result": 259,
+      "result_va": "0x0070AECA",
+      "inverse_achievement_id": 509,
+      "inverse_result_va": "0x0057AF3D"
+    },
+    {
+      "achievement_id": 510,
+      "status": "proven",
+      "ordinal": 260,
+      "native_result": 260,
+      "result_va": "0x0070AED0",
+      "inverse_achievement_id": 510,
+      "inverse_result_va": "0x0057AF43"
+    },
+    {
+      "achievement_id": 511,
+      "status": "proven",
+      "ordinal": 261,
+      "native_result": 261,
+      "result_va": "0x0070AED6",
+      "inverse_achievement_id": 511,
+      "inverse_result_va": "0x0057AF49"
+    },
+    {
+      "achievement_id": 592,
+      "status": "proven",
+      "ordinal": 263,
+      "native_result": 263,
+      "result_va": "0x0070AEE2",
+      "inverse_achievement_id": 592,
+      "inverse_result_va": "0x0057AF55"
+    },
+    {
+      "achievement_id": 593,
+      "status": "proven",
+      "ordinal": 264,
+      "native_result": 264,
+      "result_va": "0x0070AEE8",
+      "inverse_achievement_id": 593,
+      "inverse_result_va": "0x0057AF5B"
+    },
+    {
+      "achievement_id": 594,
+      "status": "proven",
+      "ordinal": 265,
+      "native_result": 265,
+      "result_va": "0x0070AEEE",
+      "inverse_achievement_id": 594,
+      "inverse_result_va": "0x0057AF61"
+    },
+    {
+      "achievement_id": 595,
+      "status": "proven",
+      "ordinal": 266,
+      "native_result": 266,
+      "result_va": "0x0070AEF4",
+      "inverse_achievement_id": 595,
+      "inverse_result_va": "0x0057AF67"
+    },
+    {
+      "achievement_id": 596,
+      "status": "proven",
+      "ordinal": 267,
+      "native_result": 267,
+      "result_va": "0x0070AEFA",
+      "inverse_achievement_id": 596,
+      "inverse_result_va": "0x0057AF6D"
+    },
+    {
+      "achievement_id": 597,
+      "status": "proven",
+      "ordinal": 268,
+      "native_result": 268,
+      "result_va": "0x0070AF00",
+      "inverse_achievement_id": 597,
+      "inverse_result_va": "0x0057AF73"
+    },
+    {
+      "achievement_id": 598,
+      "status": "proven",
+      "ordinal": 269,
+      "native_result": 269,
+      "result_va": "0x0070AF06",
+      "inverse_achievement_id": 598,
+      "inverse_result_va": "0x0057AF79"
+    },
+    {
+      "achievement_id": 599,
+      "status": "proven",
+      "ordinal": 262,
+      "native_result": 262,
+      "result_va": "0x0070AEDC",
+      "inverse_achievement_id": 599,
+      "inverse_result_va": "0x0057AF4F"
+    },
+    {
+      "achievement_id": 600,
+      "status": "proven",
+      "ordinal": 300,
+      "native_result": 300,
+      "result_va": "0x0070AF0C",
+      "inverse_achievement_id": 600,
+      "inverse_result_va": "0x0057AF7F"
+    },
+    {
+      "achievement_id": 601,
+      "status": "proven",
+      "ordinal": 301,
+      "native_result": 301,
+      "result_va": "0x0070AF12",
+      "inverse_achievement_id": 601,
+      "inverse_result_va": "0x0057AF85"
+    },
+    {
+      "achievement_id": 602,
+      "status": "proven",
+      "ordinal": 302,
+      "native_result": 302,
+      "result_va": "0x0070AF18",
+      "inverse_achievement_id": 602,
+      "inverse_result_va": "0x0057AF8B"
+    },
+    {
+      "achievement_id": 603,
+      "status": "proven",
+      "ordinal": 303,
+      "native_result": 303,
+      "result_va": "0x0070AF1E",
+      "inverse_achievement_id": 603,
+      "inverse_result_va": "0x0057AF91"
+    },
+    {
+      "achievement_id": 604,
+      "status": "proven",
+      "ordinal": 304,
+      "native_result": 304,
+      "result_va": "0x0070AF24",
+      "inverse_achievement_id": 604,
+      "inverse_result_va": "0x0057AF97"
+    },
+    {
+      "achievement_id": 605,
+      "status": "proven",
+      "ordinal": 305,
+      "native_result": 305,
+      "result_va": "0x0070AF2A",
+      "inverse_achievement_id": 605,
+      "inverse_result_va": "0x0057AF9D"
+    },
+    {
+      "achievement_id": 606,
+      "status": "proven",
+      "ordinal": 306,
+      "native_result": 306,
+      "result_va": "0x0070AF30",
+      "inverse_achievement_id": 606,
+      "inverse_result_va": "0x0057AFA3"
+    },
+    {
+      "achievement_id": 607,
+      "status": "proven",
+      "ordinal": 307,
+      "native_result": 307,
+      "result_va": "0x0070AF36",
+      "inverse_achievement_id": 607,
+      "inverse_result_va": "0x0057AFA9"
+    },
+    {
+      "achievement_id": 608,
+      "status": "proven",
+      "ordinal": 308,
+      "native_result": 308,
+      "result_va": "0x0070AF3C",
+      "inverse_achievement_id": 608,
+      "inverse_result_va": "0x0057AFAF"
+    },
+    {
+      "achievement_id": 609,
+      "status": "proven",
+      "ordinal": 309,
+      "native_result": 309,
+      "result_va": "0x0070AF42",
+      "inverse_achievement_id": 609,
+      "inverse_result_va": "0x0057AFB5"
+    },
+    {
+      "achievement_id": 610,
+      "status": "proven",
+      "ordinal": 310,
+      "native_result": 310,
+      "result_va": "0x0070AF48",
+      "inverse_achievement_id": 610,
+      "inverse_result_va": "0x0057AFBB"
+    },
+    {
+      "achievement_id": 611,
+      "status": "proven",
+      "ordinal": 311,
+      "native_result": 311,
+      "result_va": "0x0070AF4E",
+      "inverse_achievement_id": 611,
+      "inverse_result_va": "0x0057AFC1"
+    },
+    {
+      "achievement_id": 612,
+      "status": "proven",
+      "ordinal": 312,
+      "native_result": 312,
+      "result_va": "0x0070AF54",
+      "inverse_achievement_id": 612,
+      "inverse_result_va": "0x0057AFC7"
+    },
+    {
+      "achievement_id": 613,
+      "status": "proven",
+      "ordinal": 313,
+      "native_result": 313,
+      "result_va": "0x0070AF5A",
+      "inverse_achievement_id": 613,
+      "inverse_result_va": "0x0057AFCD"
+    },
+    {
+      "achievement_id": 614,
+      "status": "proven",
+      "ordinal": 314,
+      "native_result": 314,
+      "result_va": "0x0070AF60",
+      "inverse_achievement_id": 614,
+      "inverse_result_va": "0x0057AFD3"
+    },
+    {
+      "achievement_id": 615,
+      "status": "proven",
+      "ordinal": 315,
+      "native_result": 315,
+      "result_va": "0x0070AF66",
+      "inverse_achievement_id": 615,
+      "inverse_result_va": "0x0057AFD9"
+    },
+    {
+      "achievement_id": 616,
+      "status": "proven",
+      "ordinal": 316,
+      "native_result": 316,
+      "result_va": "0x0070AF6C",
+      "inverse_achievement_id": 616,
+      "inverse_result_va": "0x0057AFDF"
+    },
+    {
+      "achievement_id": 617,
+      "status": "proven",
+      "ordinal": 317,
+      "native_result": 317,
+      "result_va": "0x0070AF72",
+      "inverse_achievement_id": 617,
+      "inverse_result_va": "0x0057AFE5"
+    },
+    {
+      "achievement_id": 618,
+      "status": "proven",
+      "ordinal": 318,
+      "native_result": 318,
+      "result_va": "0x0070AF78",
+      "inverse_achievement_id": 618,
+      "inverse_result_va": "0x0057AFEB"
+    },
+    {
+      "achievement_id": 619,
+      "status": "proven",
+      "ordinal": 319,
+      "native_result": 319,
+      "result_va": "0x0070AF7E",
+      "inverse_achievement_id": 619,
+      "inverse_result_va": "0x0057AFF1"
+    },
+    {
+      "achievement_id": 620,
+      "status": "proven",
+      "ordinal": 320,
+      "native_result": 320,
+      "result_va": "0x0070AF84",
+      "inverse_achievement_id": 620,
+      "inverse_result_va": "0x0057AFF7"
+    },
+    {
+      "achievement_id": 621,
+      "status": "proven",
+      "ordinal": 321,
+      "native_result": 321,
+      "result_va": "0x0070AF8A",
+      "inverse_achievement_id": 621,
+      "inverse_result_va": "0x0057AFFD"
+    },
+    {
+      "achievement_id": 622,
+      "status": "proven",
+      "ordinal": 322,
+      "native_result": 322,
+      "result_va": "0x0070AF90",
+      "inverse_achievement_id": 622,
+      "inverse_result_va": "0x0057B003"
+    },
+    {
+      "achievement_id": 623,
+      "status": "proven",
+      "ordinal": 323,
+      "native_result": 323,
+      "result_va": "0x0070AF96",
+      "inverse_achievement_id": 623,
+      "inverse_result_va": "0x0057B009"
+    },
+    {
+      "achievement_id": 624,
+      "status": "proven",
+      "ordinal": 324,
+      "native_result": 324,
+      "result_va": "0x0070AF9C",
+      "inverse_achievement_id": 624,
+      "inverse_result_va": "0x0057B00F"
+    },
+    {
+      "achievement_id": 625,
+      "status": "proven",
+      "ordinal": 325,
+      "native_result": 325,
+      "result_va": "0x0070AFA2",
+      "inverse_achievement_id": 625,
+      "inverse_result_va": "0x0057B015"
+    },
+    {
+      "achievement_id": 626,
+      "status": "proven",
+      "ordinal": 326,
+      "native_result": 326,
+      "result_va": "0x0070AFA8",
+      "inverse_achievement_id": 626,
+      "inverse_result_va": "0x0057B01B"
+    },
+    {
+      "achievement_id": 627,
+      "status": "proven",
+      "ordinal": 327,
+      "native_result": 327,
+      "result_va": "0x0070AFAE",
+      "inverse_achievement_id": 627,
+      "inverse_result_va": "0x0057B021"
+    },
+    {
+      "achievement_id": 628,
+      "status": "proven",
+      "ordinal": 328,
+      "native_result": 328,
+      "result_va": "0x0070AFB4",
+      "inverse_achievement_id": 628,
+      "inverse_result_va": "0x0057B027"
+    },
+    {
+      "achievement_id": 629,
+      "status": "proven",
+      "ordinal": 329,
+      "native_result": 329,
+      "result_va": "0x0070AFBA",
+      "inverse_achievement_id": 629,
+      "inverse_result_va": "0x0057B02D"
+    },
+    {
+      "achievement_id": 630,
+      "status": "proven",
+      "ordinal": 330,
+      "native_result": 330,
+      "result_va": "0x0070AFC0",
+      "inverse_achievement_id": 630,
+      "inverse_result_va": "0x0057B033"
+    },
+    {
+      "achievement_id": 631,
+      "status": "proven",
+      "ordinal": 331,
+      "native_result": 331,
+      "result_va": "0x0070AFC6",
+      "inverse_achievement_id": 631,
+      "inverse_result_va": "0x0057B039"
+    },
+    {
+      "achievement_id": 632,
+      "status": "proven",
+      "ordinal": 332,
+      "native_result": 332,
+      "result_va": "0x0070AFCC",
+      "inverse_achievement_id": 632,
+      "inverse_result_va": "0x0057B03F"
+    },
+    {
+      "achievement_id": 633,
+      "status": "proven",
+      "ordinal": 333,
+      "native_result": 333,
+      "result_va": "0x0070AFD2",
+      "inverse_achievement_id": 633,
+      "inverse_result_va": "0x0057B045"
+    },
+    {
+      "achievement_id": 634,
+      "status": "proven",
+      "ordinal": 334,
+      "native_result": 334,
+      "result_va": "0x0070AFD8",
+      "inverse_achievement_id": 634,
+      "inverse_result_va": "0x0057B04B"
+    },
+    {
+      "achievement_id": 635,
+      "status": "proven",
+      "ordinal": 335,
+      "native_result": 335,
+      "result_va": "0x0070AFDE",
+      "inverse_achievement_id": 635,
+      "inverse_result_va": "0x0057B051"
+    },
+    {
+      "achievement_id": 636,
+      "status": "proven",
+      "ordinal": 336,
+      "native_result": 336,
+      "result_va": "0x0070AFE4",
+      "inverse_achievement_id": 636,
+      "inverse_result_va": "0x0057B057"
+    },
+    {
+      "achievement_id": 637,
+      "status": "proven",
+      "ordinal": 337,
+      "native_result": 337,
+      "result_va": "0x0070AFEA",
+      "inverse_achievement_id": 637,
+      "inverse_result_va": "0x0057B05D"
+    },
+    {
+      "achievement_id": 638,
+      "status": "proven",
+      "ordinal": 338,
+      "native_result": 338,
+      "result_va": "0x0070AFF0",
+      "inverse_achievement_id": 638,
+      "inverse_result_va": "0x0057B063"
+    },
+    {
+      "achievement_id": 639,
+      "status": "proven",
+      "ordinal": 339,
+      "native_result": 339,
+      "result_va": "0x0070AFF6",
+      "inverse_achievement_id": 639,
+      "inverse_result_va": "0x0057B069"
+    },
+    {
+      "achievement_id": 640,
+      "status": "proven",
+      "ordinal": 340,
+      "native_result": 340,
+      "result_va": "0x0070AFFC",
+      "inverse_achievement_id": 640,
+      "inverse_result_va": "0x0057B06F"
+    },
+    {
+      "achievement_id": 641,
+      "status": "proven",
+      "ordinal": 341,
+      "native_result": 341,
+      "result_va": "0x0070B002",
+      "inverse_achievement_id": 641,
+      "inverse_result_va": "0x0057B075"
+    },
+    {
+      "achievement_id": 642,
+      "status": "proven",
+      "ordinal": 342,
+      "native_result": 342,
+      "result_va": "0x0070B008",
+      "inverse_achievement_id": 642,
+      "inverse_result_va": "0x0057B07B"
+    },
+    {
+      "achievement_id": 643,
+      "status": "proven",
+      "ordinal": 343,
+      "native_result": 343,
+      "result_va": "0x0070B00E",
+      "inverse_achievement_id": 643,
+      "inverse_result_va": "0x0057B081"
+    },
+    {
+      "achievement_id": 644,
+      "status": "proven",
+      "ordinal": 344,
+      "native_result": 344,
+      "result_va": "0x0070B014",
+      "inverse_achievement_id": 644,
+      "inverse_result_va": "0x0057B087"
+    },
+    {
+      "achievement_id": 645,
+      "status": "proven",
+      "ordinal": 345,
+      "native_result": 345,
+      "result_va": "0x0070B01A",
+      "inverse_achievement_id": 645,
+      "inverse_result_va": "0x0057B08D"
+    },
+    {
+      "achievement_id": 646,
+      "status": "proven",
+      "ordinal": 346,
+      "native_result": 346,
+      "result_va": "0x0070B020",
+      "inverse_achievement_id": 646,
+      "inverse_result_va": "0x0057B093"
+    },
+    {
+      "achievement_id": 647,
+      "status": "proven",
+      "ordinal": 347,
+      "native_result": 347,
+      "result_va": "0x0070B026",
+      "inverse_achievement_id": 647,
+      "inverse_result_va": "0x0057B099"
+    },
+    {
+      "achievement_id": 648,
+      "status": "proven",
+      "ordinal": 348,
+      "native_result": 348,
+      "result_va": "0x0070B02C",
+      "inverse_achievement_id": 648,
+      "inverse_result_va": "0x0057B09F"
+    },
+    {
+      "achievement_id": 683,
+      "status": "proven",
+      "ordinal": 349,
+      "native_result": 349,
+      "result_va": "0x0070B032",
+      "inverse_achievement_id": 683,
+      "inverse_result_va": "0x0057B0A5"
+    },
+    {
+      "achievement_id": 684,
+      "status": "proven",
+      "ordinal": 350,
+      "native_result": 350,
+      "result_va": "0x0070B038",
+      "inverse_achievement_id": 684,
+      "inverse_result_va": "0x0057B0AB"
+    },
+    {
+      "achievement_id": 685,
+      "status": "proven",
+      "ordinal": 351,
+      "native_result": 351,
+      "result_va": "0x0070B03E",
+      "inverse_achievement_id": 685,
+      "inverse_result_va": "0x0057B0B1"
+    },
+    {
+      "achievement_id": 686,
+      "status": "proven",
+      "ordinal": 352,
+      "native_result": 352,
+      "result_va": "0x0070B044",
+      "inverse_achievement_id": 686,
+      "inverse_result_va": "0x0057B0B7"
+    },
+    {
+      "achievement_id": 687,
+      "status": "proven",
+      "ordinal": 353,
+      "native_result": 353,
+      "result_va": "0x0070B04A",
+      "inverse_achievement_id": 687,
+      "inverse_result_va": "0x0057B0BD"
+    },
+    {
+      "achievement_id": 688,
+      "status": "proven",
+      "ordinal": 354,
+      "native_result": 354,
+      "result_va": "0x0070B050",
+      "inverse_achievement_id": 688,
+      "inverse_result_va": "0x0057B0C3"
+    },
+    {
+      "achievement_id": 689,
+      "status": "proven",
+      "ordinal": 355,
+      "native_result": 355,
+      "result_va": "0x0070B056",
+      "inverse_achievement_id": 689,
+      "inverse_result_va": "0x0057B0C9"
+    },
+    {
+      "achievement_id": 690,
+      "status": "proven",
+      "ordinal": 356,
+      "native_result": 356,
+      "result_va": "0x0070B05C",
+      "inverse_achievement_id": 690,
+      "inverse_result_va": "0x0057B0CF"
+    },
+    {
+      "achievement_id": 691,
+      "status": "proven",
+      "ordinal": 357,
+      "native_result": 357,
+      "result_va": "0x0070B062",
+      "inverse_achievement_id": 691,
+      "inverse_result_va": "0x0057B0D5"
+    },
+    {
+      "achievement_id": 692,
+      "status": "proven",
+      "ordinal": 358,
+      "native_result": 358,
+      "result_va": "0x0070B068",
+      "inverse_achievement_id": 692,
+      "inverse_result_va": "0x0057B0DB"
+    },
+    {
+      "achievement_id": 693,
+      "status": "proven",
+      "ordinal": 359,
+      "native_result": 359,
+      "result_va": "0x0070B06E",
+      "inverse_achievement_id": 693,
+      "inverse_result_va": "0x0057B0E1"
+    },
+    {
+      "achievement_id": 694,
+      "status": "proven",
+      "ordinal": 360,
+      "native_result": 360,
+      "result_va": "0x0070B074",
+      "inverse_achievement_id": 694,
+      "inverse_result_va": "0x0057B0E7"
+    },
+    {
+      "achievement_id": 695,
+      "status": "proven",
+      "ordinal": 361,
+      "native_result": 361,
+      "result_va": "0x0070B07A",
+      "inverse_achievement_id": 695,
+      "inverse_result_va": "0x0057B0ED"
+    },
+    {
+      "achievement_id": 696,
+      "status": "proven",
+      "ordinal": 362,
+      "native_result": 362,
+      "result_va": "0x0070B080",
+      "inverse_achievement_id": 696,
+      "inverse_result_va": "0x0057B0F3"
+    },
+    {
+      "achievement_id": 697,
+      "status": "proven",
+      "ordinal": 363,
+      "native_result": 363,
+      "result_va": "0x0070B086",
+      "inverse_achievement_id": 697,
+      "inverse_result_va": "0x0057B0F9"
+    },
+    {
+      "achievement_id": 698,
+      "status": "proven",
+      "ordinal": 364,
+      "native_result": 364,
+      "result_va": "0x0070B08C",
+      "inverse_achievement_id": 698,
+      "inverse_result_va": "0x0057B0FF"
+    },
+    {
+      "achievement_id": 700,
+      "status": "proven",
+      "ordinal": 400,
+      "native_result": 400,
+      "result_va": "0x0070B092",
+      "inverse_achievement_id": 700,
+      "inverse_result_va": "0x0057B105"
+    },
+    {
+      "achievement_id": 701,
+      "status": "proven",
+      "ordinal": 401,
+      "native_result": 401,
+      "result_va": "0x0070B098",
+      "inverse_achievement_id": 701,
+      "inverse_result_va": "0x0057B10B"
+    },
+    {
+      "achievement_id": 702,
+      "status": "proven",
+      "ordinal": 402,
+      "native_result": 402,
+      "result_va": "0x0070B09E",
+      "inverse_achievement_id": 702,
+      "inverse_result_va": "0x0057B111"
+    },
+    {
+      "achievement_id": 703,
+      "status": "proven",
+      "ordinal": 403,
+      "native_result": 403,
+      "result_va": "0x0070B0A4",
+      "inverse_achievement_id": 703,
+      "inverse_result_va": "0x0057B117"
+    },
+    {
+      "achievement_id": 704,
+      "status": "proven",
+      "ordinal": 404,
+      "native_result": 404,
+      "result_va": "0x0070B0AA",
+      "inverse_achievement_id": 704,
+      "inverse_result_va": "0x0057B11D"
+    },
+    {
+      "achievement_id": 705,
+      "status": "proven",
+      "ordinal": 405,
+      "native_result": 405,
+      "result_va": "0x0070B0B0",
+      "inverse_achievement_id": 705,
+      "inverse_result_va": "0x0057B123"
+    },
+    {
+      "achievement_id": 706,
+      "status": "proven",
+      "ordinal": 406,
+      "native_result": 406,
+      "result_va": "0x0070B0B6",
+      "inverse_achievement_id": 706,
+      "inverse_result_va": "0x0057B129"
+    },
+    {
+      "achievement_id": 707,
+      "status": "proven",
+      "ordinal": 407,
+      "native_result": 407,
+      "result_va": "0x0070B0BC",
+      "inverse_achievement_id": 707,
+      "inverse_result_va": "0x0057B12F"
+    },
+    {
+      "achievement_id": 708,
+      "status": "proven",
+      "ordinal": 408,
+      "native_result": 408,
+      "result_va": "0x0070B0C2",
+      "inverse_achievement_id": 708,
+      "inverse_result_va": "0x0057B135"
+    },
+    {
+      "achievement_id": 709,
+      "status": "proven",
+      "ordinal": 409,
+      "native_result": 409,
+      "result_va": "0x0070B0C8",
+      "inverse_achievement_id": 709,
+      "inverse_result_va": "0x0057B13B"
+    },
+    {
+      "achievement_id": 710,
+      "status": "proven",
+      "ordinal": 410,
+      "native_result": 410,
+      "result_va": "0x0070B0CE",
+      "inverse_achievement_id": 710,
+      "inverse_result_va": "0x0057B141"
+    },
+    {
+      "achievement_id": 711,
+      "status": "proven",
+      "ordinal": 411,
+      "native_result": 411,
+      "result_va": "0x0070B0D4",
+      "inverse_achievement_id": 711,
+      "inverse_result_va": "0x0057B147"
+    },
+    {
+      "achievement_id": 712,
+      "status": "proven",
+      "ordinal": 412,
+      "native_result": 412,
+      "result_va": "0x0070B0DA",
+      "inverse_achievement_id": 712,
+      "inverse_result_va": "0x0057B14D"
+    },
+    {
+      "achievement_id": 713,
+      "status": "proven",
+      "ordinal": 413,
+      "native_result": 413,
+      "result_va": "0x0070B0E0",
+      "inverse_achievement_id": 713,
+      "inverse_result_va": "0x0057B153"
+    },
+    {
+      "achievement_id": 714,
+      "status": "proven",
+      "ordinal": 414,
+      "native_result": 414,
+      "result_va": "0x0070B0E6",
+      "inverse_achievement_id": 714,
+      "inverse_result_va": "0x0057B159"
+    },
+    {
+      "achievement_id": 715,
+      "status": "proven",
+      "ordinal": 415,
+      "native_result": 415,
+      "result_va": "0x0070B0EC",
+      "inverse_achievement_id": 715,
+      "inverse_result_va": "0x0057B15F"
+    },
+    {
+      "achievement_id": 716,
+      "status": "proven",
+      "ordinal": 416,
+      "native_result": 416,
+      "result_va": "0x0070B0F2",
+      "inverse_achievement_id": 716,
+      "inverse_result_va": "0x0057B165"
+    },
+    {
+      "achievement_id": 717,
+      "status": "proven",
+      "ordinal": 417,
+      "native_result": 417,
+      "result_va": "0x0070B0F8",
+      "inverse_achievement_id": 717,
+      "inverse_result_va": "0x0057B16B"
+    },
+    {
+      "achievement_id": 718,
+      "status": "proven",
+      "ordinal": 418,
+      "native_result": 418,
+      "result_va": "0x0070B0FE",
+      "inverse_achievement_id": 718,
+      "inverse_result_va": "0x0057B171"
+    },
+    {
+      "achievement_id": 719,
+      "status": "proven",
+      "ordinal": 419,
+      "native_result": 419,
+      "result_va": "0x0070B104",
+      "inverse_achievement_id": 719,
+      "inverse_result_va": "0x0057B177"
+    },
+    {
+      "achievement_id": 720,
+      "status": "proven",
+      "ordinal": 420,
+      "native_result": 420,
+      "result_va": "0x0070B10A",
+      "inverse_achievement_id": 720,
+      "inverse_result_va": "0x0057B17D"
+    },
+    {
+      "achievement_id": 721,
+      "status": "proven",
+      "ordinal": 421,
+      "native_result": 421,
+      "result_va": "0x0070B110",
+      "inverse_achievement_id": 721,
+      "inverse_result_va": "0x0057B183"
+    },
+    {
+      "achievement_id": 722,
+      "status": "proven",
+      "ordinal": 422,
+      "native_result": 422,
+      "result_va": "0x0070B116",
+      "inverse_achievement_id": 722,
+      "inverse_result_va": "0x0057B189"
+    },
+    {
+      "achievement_id": 723,
+      "status": "proven",
+      "ordinal": 423,
+      "native_result": 423,
+      "result_va": "0x0070B11C",
+      "inverse_achievement_id": 723,
+      "inverse_result_va": "0x0057B18F"
+    },
+    {
+      "achievement_id": 724,
+      "status": "proven",
+      "ordinal": 424,
+      "native_result": 424,
+      "result_va": "0x0070B122",
+      "inverse_achievement_id": 724,
+      "inverse_result_va": "0x0057B195"
+    },
+    {
+      "achievement_id": 725,
+      "status": "proven",
+      "ordinal": 425,
+      "native_result": 425,
+      "result_va": "0x0070B128",
+      "inverse_achievement_id": 725,
+      "inverse_result_va": "0x0057B19B"
+    },
+    {
+      "achievement_id": 726,
+      "status": "proven",
+      "ordinal": 426,
+      "native_result": 426,
+      "result_va": "0x0070B12E",
+      "inverse_achievement_id": 726,
+      "inverse_result_va": "0x0057B1A1"
+    },
+    {
+      "achievement_id": 727,
+      "status": "proven",
+      "ordinal": 427,
+      "native_result": 427,
+      "result_va": "0x0070B134",
+      "inverse_achievement_id": 727,
+      "inverse_result_va": "0x0057B1A7"
+    },
+    {
+      "achievement_id": 728,
+      "status": "proven",
+      "ordinal": 428,
+      "native_result": 428,
+      "result_va": "0x0070B13A",
+      "inverse_achievement_id": 728,
+      "inverse_result_va": "0x0057B1AD"
+    },
+    {
+      "achievement_id": 729,
+      "status": "proven",
+      "ordinal": 429,
+      "native_result": 429,
+      "result_va": "0x0070B140",
+      "inverse_achievement_id": 729,
+      "inverse_result_va": "0x0057B1B3"
+    },
+    {
+      "achievement_id": 730,
+      "status": "proven",
+      "ordinal": 430,
+      "native_result": 430,
+      "result_va": "0x0070B146",
+      "inverse_achievement_id": 730,
+      "inverse_result_va": "0x0057B1B9"
+    },
+    {
+      "achievement_id": 731,
+      "status": "proven",
+      "ordinal": 431,
+      "native_result": 431,
+      "result_va": "0x0070B14C",
+      "inverse_achievement_id": 731,
+      "inverse_result_va": "0x0057B1BF"
+    },
+    {
+      "achievement_id": 732,
+      "status": "proven",
+      "ordinal": 432,
+      "native_result": 432,
+      "result_va": "0x0070B152",
+      "inverse_achievement_id": 732,
+      "inverse_result_va": "0x0057B1C5"
+    },
+    {
+      "achievement_id": 733,
+      "status": "proven",
+      "ordinal": 433,
+      "native_result": 433,
+      "result_va": "0x0070B158",
+      "inverse_achievement_id": 733,
+      "inverse_result_va": "0x0057B1CB"
+    },
+    {
+      "achievement_id": 734,
+      "status": "proven",
+      "ordinal": 434,
+      "native_result": 434,
+      "result_va": "0x0070B15E",
+      "inverse_achievement_id": 734,
+      "inverse_result_va": "0x0057B1D1"
+    },
+    {
+      "achievement_id": 735,
+      "status": "proven",
+      "ordinal": 435,
+      "native_result": 435,
+      "result_va": "0x0070B164",
+      "inverse_achievement_id": 735,
+      "inverse_result_va": "0x0057B1D7"
+    },
+    {
+      "achievement_id": 736,
+      "status": "proven",
+      "ordinal": 436,
+      "native_result": 436,
+      "result_va": "0x0070B16A",
+      "inverse_achievement_id": 736,
+      "inverse_result_va": "0x0057B1DD"
+    },
+    {
+      "achievement_id": 737,
+      "status": "proven",
+      "ordinal": 437,
+      "native_result": 437,
+      "result_va": "0x0070B170",
+      "inverse_achievement_id": 737,
+      "inverse_result_va": "0x0057B1E3"
+    },
+    {
+      "achievement_id": 738,
+      "status": "proven",
+      "ordinal": 438,
+      "native_result": 438,
+      "result_va": "0x0070B176",
+      "inverse_achievement_id": 738,
+      "inverse_result_va": "0x0057B1E9"
+    },
+    {
+      "achievement_id": 739,
+      "status": "proven",
+      "ordinal": 439,
+      "native_result": 439,
+      "result_va": "0x0070B17C",
+      "inverse_achievement_id": 739,
+      "inverse_result_va": "0x0057B1EF"
+    },
+    {
+      "achievement_id": 740,
+      "status": "proven",
+      "ordinal": 440,
+      "native_result": 440,
+      "result_va": "0x0070B182",
+      "inverse_achievement_id": 740,
+      "inverse_result_va": "0x0057B1F5"
+    },
+    {
+      "achievement_id": 741,
+      "status": "proven",
+      "ordinal": 441,
+      "native_result": 441,
+      "result_va": "0x0070B188",
+      "inverse_achievement_id": 741,
+      "inverse_result_va": "0x0057B1FB"
+    },
+    {
+      "achievement_id": 742,
+      "status": "proven",
+      "ordinal": 442,
+      "native_result": 442,
+      "result_va": "0x0070B18E",
+      "inverse_achievement_id": 742,
+      "inverse_result_va": "0x0057B201"
+    },
+    {
+      "achievement_id": 743,
+      "status": "proven",
+      "ordinal": 443,
+      "native_result": 443,
+      "result_va": "0x0070B194",
+      "inverse_achievement_id": 743,
+      "inverse_result_va": "0x0057B207"
+    },
+    {
+      "achievement_id": 744,
+      "status": "proven",
+      "ordinal": 444,
+      "native_result": 444,
+      "result_va": "0x0070B19A",
+      "inverse_achievement_id": 744,
+      "inverse_result_va": "0x0057B20D"
+    },
+    {
+      "achievement_id": 745,
+      "status": "proven",
+      "ordinal": 445,
+      "native_result": 445,
+      "result_va": "0x0070B1A0",
+      "inverse_achievement_id": 745,
+      "inverse_result_va": "0x0057B213"
+    },
+    {
+      "achievement_id": 746,
+      "status": "proven",
+      "ordinal": 446,
+      "native_result": 446,
+      "result_va": "0x0070B1A6",
+      "inverse_achievement_id": 746,
+      "inverse_result_va": "0x0057B219"
+    },
+    {
+      "achievement_id": 747,
+      "status": "proven",
+      "ordinal": 447,
+      "native_result": 447,
+      "result_va": "0x0070B1AC",
+      "inverse_achievement_id": 747,
+      "inverse_result_va": "0x0057B21F"
+    },
+    {
+      "achievement_id": 748,
+      "status": "proven",
+      "ordinal": 448,
+      "native_result": 448,
+      "result_va": "0x0070B1B2",
+      "inverse_achievement_id": 748,
+      "inverse_result_va": "0x0057B225"
+    },
+    {
+      "achievement_id": 749,
+      "status": "proven",
+      "ordinal": 449,
+      "native_result": 449,
+      "result_va": "0x0070B1B8",
+      "inverse_achievement_id": 749,
+      "inverse_result_va": "0x0057B22B"
+    },
+    {
+      "achievement_id": 750,
+      "status": "proven",
+      "ordinal": 450,
+      "native_result": 450,
+      "result_va": "0x0070B1BE",
+      "inverse_achievement_id": 750,
+      "inverse_result_va": "0x0057B231"
+    },
+    {
+      "achievement_id": 751,
+      "status": "proven",
+      "ordinal": 451,
+      "native_result": 451,
+      "result_va": "0x0070B1C4",
+      "inverse_achievement_id": 751,
+      "inverse_result_va": "0x0057B237"
+    },
+    {
+      "achievement_id": 752,
+      "status": "proven",
+      "ordinal": 452,
+      "native_result": 452,
+      "result_va": "0x0070B1CA",
+      "inverse_achievement_id": 752,
+      "inverse_result_va": "0x0057B23D"
+    },
+    {
+      "achievement_id": 753,
+      "status": "proven",
+      "ordinal": 453,
+      "native_result": 453,
+      "result_va": "0x0070B1D0",
+      "inverse_achievement_id": 753,
+      "inverse_result_va": "0x0057B243"
+    },
+    {
+      "achievement_id": 754,
+      "status": "proven",
+      "ordinal": 454,
+      "native_result": 454,
+      "result_va": "0x0070B1D6",
+      "inverse_achievement_id": 754,
+      "inverse_result_va": "0x0057B249"
+    },
+    {
+      "achievement_id": 755,
+      "status": "proven",
+      "ordinal": 455,
+      "native_result": 455,
+      "result_va": "0x0070B1DC",
+      "inverse_achievement_id": 755,
+      "inverse_result_va": "0x0057B24F"
+    },
+    {
+      "achievement_id": 756,
+      "status": "proven",
+      "ordinal": 456,
+      "native_result": 456,
+      "result_va": "0x0070B1E2",
+      "inverse_achievement_id": 756,
+      "inverse_result_va": "0x0057B255"
+    },
+    {
+      "achievement_id": 757,
+      "status": "proven",
+      "ordinal": 457,
+      "native_result": 457,
+      "result_va": "0x0070B1E8",
+      "inverse_achievement_id": 757,
+      "inverse_result_va": "0x0057B25B"
+    },
+    {
+      "achievement_id": 758,
+      "status": "proven",
+      "ordinal": 458,
+      "native_result": 458,
+      "result_va": "0x0070B1EE",
+      "inverse_achievement_id": 758,
+      "inverse_result_va": "0x0057B261"
+    },
+    {
+      "achievement_id": 759,
+      "status": "proven",
+      "ordinal": 459,
+      "native_result": 459,
+      "result_va": "0x0070B1F4",
+      "inverse_achievement_id": 759,
+      "inverse_result_va": "0x0057B267"
+    },
+    {
+      "achievement_id": 760,
+      "status": "proven",
+      "ordinal": 460,
+      "native_result": 460,
+      "result_va": "0x0070B1FA",
+      "inverse_achievement_id": 760,
+      "inverse_result_va": "0x0057B26D"
+    },
+    {
+      "achievement_id": 761,
+      "status": "proven",
+      "ordinal": 461,
+      "native_result": 461,
+      "result_va": "0x0070B200",
+      "inverse_achievement_id": 761,
+      "inverse_result_va": "0x0057B273"
+    },
+    {
+      "achievement_id": 762,
+      "status": "proven",
+      "ordinal": 462,
+      "native_result": 462,
+      "result_va": "0x0070B206",
+      "inverse_achievement_id": 762,
+      "inverse_result_va": "0x0057B279"
+    },
+    {
+      "achievement_id": 763,
+      "status": "proven",
+      "ordinal": 463,
+      "native_result": 463,
+      "result_va": "0x0070B20C",
+      "inverse_achievement_id": 763,
+      "inverse_result_va": "0x0057B27F"
+    },
+    {
+      "achievement_id": 764,
+      "status": "proven",
+      "ordinal": 464,
+      "native_result": 464,
+      "result_va": "0x0070B212",
+      "inverse_achievement_id": 764,
+      "inverse_result_va": "0x0057B285"
+    },
+    {
+      "achievement_id": 765,
+      "status": "proven",
+      "ordinal": 465,
+      "native_result": 465,
+      "result_va": "0x0070B218",
+      "inverse_achievement_id": 765,
+      "inverse_result_va": "0x0057B28B"
+    },
+    {
+      "achievement_id": 766,
+      "status": "proven",
+      "ordinal": 466,
+      "native_result": 466,
+      "result_va": "0x0070B21E",
+      "inverse_achievement_id": 766,
+      "inverse_result_va": "0x0057B291"
+    },
+    {
+      "achievement_id": 767,
+      "status": "proven",
+      "ordinal": 467,
+      "native_result": 467,
+      "result_va": "0x0070B224",
+      "inverse_achievement_id": 767,
+      "inverse_result_va": "0x0057B297"
+    },
+    {
+      "achievement_id": 768,
+      "status": "proven",
+      "ordinal": 468,
+      "native_result": 468,
+      "result_va": "0x0070B22A",
+      "inverse_achievement_id": 768,
+      "inverse_result_va": "0x0057B29D"
+    },
+    {
+      "achievement_id": 769,
+      "status": "proven",
+      "ordinal": 469,
+      "native_result": 469,
+      "result_va": "0x0070B230",
+      "inverse_achievement_id": 769,
+      "inverse_result_va": "0x0057B2A3"
+    },
+    {
+      "achievement_id": 770,
+      "status": "proven",
+      "ordinal": 470,
+      "native_result": 470,
+      "result_va": "0x0070B236",
+      "inverse_achievement_id": 770,
+      "inverse_result_va": "0x0057B2A9"
+    },
+    {
+      "achievement_id": 771,
+      "status": "proven",
+      "ordinal": 471,
+      "native_result": 471,
+      "result_va": "0x0070B23C",
+      "inverse_achievement_id": 771,
+      "inverse_result_va": "0x0057B2AF"
+    },
+    {
+      "achievement_id": 772,
+      "status": "proven",
+      "ordinal": 472,
+      "native_result": 472,
+      "result_va": "0x0070B242",
+      "inverse_achievement_id": 772,
+      "inverse_result_va": "0x0057B2B5"
+    },
+    {
+      "achievement_id": 773,
+      "status": "proven",
+      "ordinal": 473,
+      "native_result": 473,
+      "result_va": "0x0070B248",
+      "inverse_achievement_id": 773,
+      "inverse_result_va": "0x0057B2BB"
+    },
+    {
+      "achievement_id": 774,
+      "status": "proven",
+      "ordinal": 474,
+      "native_result": 474,
+      "result_va": "0x0070B24E",
+      "inverse_achievement_id": 774,
+      "inverse_result_va": "0x0057B2C1"
+    },
+    {
+      "achievement_id": 775,
+      "status": "proven",
+      "ordinal": 475,
+      "native_result": 475,
+      "result_va": "0x0070B254",
+      "inverse_achievement_id": 775,
+      "inverse_result_va": "0x0057B2C7"
+    },
+    {
+      "achievement_id": 776,
+      "status": "proven",
+      "ordinal": 476,
+      "native_result": 476,
+      "result_va": "0x0070B25A",
+      "inverse_achievement_id": 776,
+      "inverse_result_va": "0x0057B2CD"
+    },
+    {
+      "achievement_id": 777,
+      "status": "proven",
+      "ordinal": 477,
+      "native_result": 477,
+      "result_va": "0x0070B260",
+      "inverse_achievement_id": 777,
+      "inverse_result_va": "0x0057B2D3"
+    },
+    {
+      "achievement_id": 778,
+      "status": "proven",
+      "ordinal": 478,
+      "native_result": 478,
+      "result_va": "0x0070B266",
+      "inverse_achievement_id": 778,
+      "inverse_result_va": "0x0057B2D9"
+    },
+    {
+      "achievement_id": 779,
+      "status": "proven",
+      "ordinal": 479,
+      "native_result": 479,
+      "result_va": "0x0070B26C",
+      "inverse_achievement_id": 779,
+      "inverse_result_va": "0x0057B2DF"
+    },
+    {
+      "achievement_id": 780,
+      "status": "proven",
+      "ordinal": 480,
+      "native_result": 480,
+      "result_va": "0x0070B272",
+      "inverse_achievement_id": 780,
+      "inverse_result_va": "0x0057B2E5"
+    },
+    {
+      "achievement_id": 781,
+      "status": "proven",
+      "ordinal": 481,
+      "native_result": 481,
+      "result_va": "0x0070B278",
+      "inverse_achievement_id": 781,
+      "inverse_result_va": "0x0057B2EB"
+    },
+    {
+      "achievement_id": 782,
+      "status": "proven",
+      "ordinal": 482,
+      "native_result": 482,
+      "result_va": "0x0070B27E",
+      "inverse_achievement_id": 782,
+      "inverse_result_va": "0x0057B2F1"
+    },
+    {
+      "achievement_id": 783,
+      "status": "proven",
+      "ordinal": 483,
+      "native_result": 483,
+      "result_va": "0x0070B284",
+      "inverse_achievement_id": 783,
+      "inverse_result_va": "0x0057B2F7"
+    },
+    {
+      "achievement_id": 784,
+      "status": "proven",
+      "ordinal": 484,
+      "native_result": 484,
+      "result_va": "0x0070B28A",
+      "inverse_achievement_id": 784,
+      "inverse_result_va": "0x0057B2FD"
+    },
+    {
+      "achievement_id": 785,
+      "status": "proven",
+      "ordinal": 485,
+      "native_result": 485,
+      "result_va": "0x0070B290",
+      "inverse_achievement_id": 785,
+      "inverse_result_va": "0x0057B303"
+    },
+    {
+      "achievement_id": 786,
+      "status": "proven",
+      "ordinal": 486,
+      "native_result": 486,
+      "result_va": "0x0070B296",
+      "inverse_achievement_id": 786,
+      "inverse_result_va": "0x0057B309"
+    },
+    {
+      "achievement_id": 787,
+      "status": "proven",
+      "ordinal": 487,
+      "native_result": 487,
+      "result_va": "0x0070B29C",
+      "inverse_achievement_id": 787,
+      "inverse_result_va": "0x0057B30F"
+    },
+    {
+      "achievement_id": 788,
+      "status": "proven",
+      "ordinal": 488,
+      "native_result": 488,
+      "result_va": "0x0070B2A2",
+      "inverse_achievement_id": 788,
+      "inverse_result_va": "0x0057B315"
+    },
+    {
+      "achievement_id": 789,
+      "status": "proven",
+      "ordinal": 489,
+      "native_result": 489,
+      "result_va": "0x0070B2A8",
+      "inverse_achievement_id": 789,
+      "inverse_result_va": "0x0057B31B"
+    },
+    {
+      "achievement_id": 790,
+      "status": "proven",
+      "ordinal": 490,
+      "native_result": 490,
+      "result_va": "0x0070B2AE",
+      "inverse_achievement_id": 790,
+      "inverse_result_va": "0x0057B321"
+    },
+    {
+      "achievement_id": 791,
+      "status": "proven",
+      "ordinal": 491,
+      "native_result": 491,
+      "result_va": "0x0070B2B4",
+      "inverse_achievement_id": 791,
+      "inverse_result_va": "0x0057B327"
+    },
+    {
+      "achievement_id": 792,
+      "status": "proven",
+      "ordinal": 492,
+      "native_result": 492,
+      "result_va": "0x0070B2BA",
+      "inverse_achievement_id": 792,
+      "inverse_result_va": "0x0057B32D"
+    },
+    {
+      "achievement_id": 793,
+      "status": "proven",
+      "ordinal": 493,
+      "native_result": 493,
+      "result_va": "0x0070B2C0",
+      "inverse_achievement_id": 793,
+      "inverse_result_va": "0x0057B333"
+    },
+    {
+      "achievement_id": 794,
+      "status": "proven",
+      "ordinal": 494,
+      "native_result": 494,
+      "result_va": "0x0070B2C6",
+      "inverse_achievement_id": 794,
+      "inverse_result_va": "0x0057B339"
+    },
+    {
+      "achievement_id": 795,
+      "status": "proven",
+      "ordinal": 495,
+      "native_result": 495,
+      "result_va": "0x0070B2CC",
+      "inverse_achievement_id": 795,
+      "inverse_result_va": "0x0057B33F"
+    },
+    {
+      "achievement_id": 796,
+      "status": "proven",
+      "ordinal": 496,
+      "native_result": 496,
+      "result_va": "0x0070B2D2",
+      "inverse_achievement_id": 796,
+      "inverse_result_va": "0x0057B345"
+    },
+    {
+      "achievement_id": 797,
+      "status": "proven",
+      "ordinal": 497,
+      "native_result": 497,
+      "result_va": "0x0070B2D8",
+      "inverse_achievement_id": 797,
+      "inverse_result_va": "0x0057B34B"
+    },
+    {
+      "achievement_id": 798,
+      "status": "proven",
+      "ordinal": 498,
+      "native_result": 498,
+      "result_va": "0x0070B2DE",
+      "inverse_achievement_id": 798,
+      "inverse_result_va": "0x0057B351"
+    },
+    {
+      "achievement_id": 799,
+      "status": "proven",
+      "ordinal": 499,
+      "native_result": 499,
+      "result_va": "0x0070B2E4",
+      "inverse_achievement_id": 799,
+      "inverse_result_va": "0x0057B357"
+    },
+    {
+      "achievement_id": 800,
+      "status": "proven",
+      "ordinal": 500,
+      "native_result": 500,
+      "result_va": "0x0070B2EA",
+      "inverse_achievement_id": 800,
+      "inverse_result_va": "0x0057B35D"
+    },
+    {
+      "achievement_id": 801,
+      "status": "proven",
+      "ordinal": 501,
+      "native_result": 501,
+      "result_va": "0x0070B2F0",
+      "inverse_achievement_id": 801,
+      "inverse_result_va": "0x0057B363"
+    },
+    {
+      "achievement_id": 802,
+      "status": "proven",
+      "ordinal": 502,
+      "native_result": 502,
+      "result_va": "0x0070B2F6",
+      "inverse_achievement_id": 802,
+      "inverse_result_va": "0x0057B369"
+    },
+    {
+      "achievement_id": 803,
+      "status": "proven",
+      "ordinal": 503,
+      "native_result": 503,
+      "result_va": "0x0070B2FC",
+      "inverse_achievement_id": 803,
+      "inverse_result_va": "0x0057B36F"
+    },
+    {
+      "achievement_id": 804,
+      "status": "proven",
+      "ordinal": 504,
+      "native_result": 504,
+      "result_va": "0x0070B302",
+      "inverse_achievement_id": 804,
+      "inverse_result_va": "0x0057B375"
+    },
+    {
+      "achievement_id": 805,
+      "status": "proven",
+      "ordinal": 505,
+      "native_result": 505,
+      "result_va": "0x0070B308",
+      "inverse_achievement_id": 805,
+      "inverse_result_va": "0x0057B37B"
+    },
+    {
+      "achievement_id": 806,
+      "status": "proven",
+      "ordinal": 506,
+      "native_result": 506,
+      "result_va": "0x0070B30E",
+      "inverse_achievement_id": 806,
+      "inverse_result_va": "0x0057B381"
+    },
+    {
+      "achievement_id": 807,
+      "status": "proven",
+      "ordinal": 507,
+      "native_result": 507,
+      "result_va": "0x0070B314",
+      "inverse_achievement_id": 807,
+      "inverse_result_va": "0x0057B387"
+    },
+    {
+      "achievement_id": 808,
+      "status": "proven",
+      "ordinal": 508,
+      "native_result": 508,
+      "result_va": "0x0070B31A",
+      "inverse_achievement_id": 808,
+      "inverse_result_va": "0x0057B38D"
+    },
+    {
+      "achievement_id": 809,
+      "status": "proven",
+      "ordinal": 509,
+      "native_result": 509,
+      "result_va": "0x0070B320",
+      "inverse_achievement_id": 809,
+      "inverse_result_va": "0x0057B393"
+    },
+    {
+      "achievement_id": 810,
+      "status": "proven",
+      "ordinal": 510,
+      "native_result": 510,
+      "result_va": "0x0070B326",
+      "inverse_achievement_id": 810,
+      "inverse_result_va": "0x0057B399"
+    },
+    {
+      "achievement_id": 811,
+      "status": "proven",
+      "ordinal": 511,
+      "native_result": 511,
+      "result_va": "0x0070B32C",
+      "inverse_achievement_id": 811,
+      "inverse_result_va": "0x0057B39F"
+    },
+    {
+      "achievement_id": 879,
+      "status": "proven",
+      "ordinal": 512,
+      "native_result": 512,
+      "result_va": "0x0070B332",
+      "inverse_achievement_id": 879,
+      "inverse_result_va": "0x0057B3A5"
+    },
+    {
+      "achievement_id": 880,
+      "status": "proven",
+      "ordinal": 513,
+      "native_result": 513,
+      "result_va": "0x0070B338",
+      "inverse_achievement_id": 880,
+      "inverse_result_va": "0x0057B3AB"
+    },
+    {
+      "achievement_id": 881,
+      "status": "proven",
+      "ordinal": 514,
+      "native_result": 514,
+      "result_va": "0x0070B33E",
+      "inverse_achievement_id": 881,
+      "inverse_result_va": "0x0057B3B1"
+    },
+    {
+      "achievement_id": 882,
+      "status": "proven",
+      "ordinal": 515,
+      "native_result": 515,
+      "result_va": "0x0070B344",
+      "inverse_achievement_id": 882,
+      "inverse_result_va": "0x0057B3B7"
+    },
+    {
+      "achievement_id": 883,
+      "status": "proven",
+      "ordinal": 516,
+      "native_result": 516,
+      "result_va": "0x0070B34A",
+      "inverse_achievement_id": 883,
+      "inverse_result_va": "0x0057B3BD"
+    },
+    {
+      "achievement_id": 884,
+      "status": "proven",
+      "ordinal": 517,
+      "native_result": 517,
+      "result_va": "0x0070B350",
+      "inverse_achievement_id": 884,
+      "inverse_result_va": "0x0057B3C3"
+    },
+    {
+      "achievement_id": 885,
+      "status": "proven",
+      "ordinal": 518,
+      "native_result": 518,
+      "result_va": "0x0070B356",
+      "inverse_achievement_id": 885,
+      "inverse_result_va": "0x0057B3C9"
+    },
+    {
+      "achievement_id": 886,
+      "status": "proven",
+      "ordinal": 519,
+      "native_result": 519,
+      "result_va": "0x0070B35C",
+      "inverse_achievement_id": 886,
+      "inverse_result_va": "0x0057B3CF"
+    },
+    {
+      "achievement_id": 887,
+      "status": "proven",
+      "ordinal": 520,
+      "native_result": 520,
+      "result_va": "0x0070B362",
+      "inverse_achievement_id": 887,
+      "inverse_result_va": "0x0057B3D5"
+    },
+    {
+      "achievement_id": 888,
+      "status": "proven",
+      "ordinal": 521,
+      "native_result": 521,
+      "result_va": "0x0070B368",
+      "inverse_achievement_id": 888,
+      "inverse_result_va": "0x0057B3DB"
+    },
+    {
+      "achievement_id": 889,
+      "status": "proven",
+      "ordinal": 522,
+      "native_result": 522,
+      "result_va": "0x0070B36E",
+      "inverse_achievement_id": 889,
+      "inverse_result_va": "0x0057B3E1"
+    },
+    {
+      "achievement_id": 890,
+      "status": "proven",
+      "ordinal": 523,
+      "native_result": 523,
+      "result_va": "0x0070B374",
+      "inverse_achievement_id": 890,
+      "inverse_result_va": "0x0057B3E7"
+    },
+    {
+      "achievement_id": 891,
+      "status": "proven",
+      "ordinal": 524,
+      "native_result": 524,
+      "result_va": "0x0070B37A",
+      "inverse_achievement_id": 891,
+      "inverse_result_va": "0x0057B3ED"
+    },
+    {
+      "achievement_id": 892,
+      "status": "proven",
+      "ordinal": 525,
+      "native_result": 525,
+      "result_va": "0x0070B380",
+      "inverse_achievement_id": 892,
+      "inverse_result_va": "0x0057B3F3"
+    },
+    {
+      "achievement_id": 893,
+      "status": "proven",
+      "ordinal": 526,
+      "native_result": 526,
+      "result_va": "0x0070B386",
+      "inverse_achievement_id": 893,
+      "inverse_result_va": "0x0057B3F9"
+    },
+    {
+      "achievement_id": 894,
+      "status": "proven",
+      "ordinal": 527,
+      "native_result": 527,
+      "result_va": "0x0070B38C",
+      "inverse_achievement_id": 894,
+      "inverse_result_va": "0x0057B3FF"
+    },
+    {
+      "achievement_id": 895,
+      "status": "proven",
+      "ordinal": 528,
+      "native_result": 528,
+      "result_va": "0x0070B392",
+      "inverse_achievement_id": 895,
+      "inverse_result_va": "0x0057B405"
+    },
+    {
+      "achievement_id": 896,
+      "status": "proven",
+      "ordinal": 529,
+      "native_result": 529,
+      "result_va": "0x0070B398",
+      "inverse_achievement_id": 896,
+      "inverse_result_va": "0x0057B40B"
+    },
+    {
+      "achievement_id": 897,
+      "status": "proven",
+      "ordinal": 530,
+      "native_result": 530,
+      "result_va": "0x0070B39E",
+      "inverse_achievement_id": 897,
+      "inverse_result_va": "0x0057B411"
+    },
+    {
+      "achievement_id": 898,
+      "status": "proven",
+      "ordinal": 531,
+      "native_result": 531,
+      "result_va": "0x0070B3A4",
+      "inverse_achievement_id": 898,
+      "inverse_result_va": "0x0057B417"
+    },
+    {
+      "achievement_id": 899,
+      "status": "proven",
+      "ordinal": 532,
+      "native_result": 532,
+      "result_va": "0x0070B3AA",
+      "inverse_achievement_id": 899,
+      "inverse_result_va": "0x0057B41D"
+    },
+    {
+      "achievement_id": 900,
+      "status": "proven",
+      "ordinal": 550,
+      "native_result": 550,
+      "result_va": "0x0070B3B0",
+      "inverse_achievement_id": 900,
+      "inverse_result_va": "0x0057B423"
+    },
+    {
+      "achievement_id": 901,
+      "status": "proven",
+      "ordinal": 551,
+      "native_result": 551,
+      "result_va": "0x0070B3B6",
+      "inverse_achievement_id": 901,
+      "inverse_result_va": "0x0057B429"
+    },
+    {
+      "achievement_id": 902,
+      "status": "proven",
+      "ordinal": 552,
+      "native_result": 552,
+      "result_va": "0x0070B3BC",
+      "inverse_achievement_id": 902,
+      "inverse_result_va": "0x0057B42F"
+    },
+    {
+      "achievement_id": 903,
+      "status": "proven",
+      "ordinal": 553,
+      "native_result": 553,
+      "result_va": "0x0070B3C2",
+      "inverse_achievement_id": 903,
+      "inverse_result_va": "0x0057B435"
+    },
+    {
+      "achievement_id": 904,
+      "status": "proven",
+      "ordinal": 554,
+      "native_result": 554,
+      "result_va": "0x0070B3C8",
+      "inverse_achievement_id": 904,
+      "inverse_result_va": "0x0057B43B"
+    },
+    {
+      "achievement_id": 905,
+      "status": "proven",
+      "ordinal": 555,
+      "native_result": 555,
+      "result_va": "0x0070B3CE",
+      "inverse_achievement_id": 905,
+      "inverse_result_va": "0x0057B441"
+    },
+    {
+      "achievement_id": 906,
+      "status": "proven",
+      "ordinal": 556,
+      "native_result": 556,
+      "result_va": "0x0070B3D4",
+      "inverse_achievement_id": 906,
+      "inverse_result_va": "0x0057B447"
+    },
+    {
+      "achievement_id": 907,
+      "status": "proven",
+      "ordinal": 557,
+      "native_result": 557,
+      "result_va": "0x0070B3DA",
+      "inverse_achievement_id": 907,
+      "inverse_result_va": "0x0057B44D"
+    },
+    {
+      "achievement_id": 908,
+      "status": "proven",
+      "ordinal": 558,
+      "native_result": 558,
+      "result_va": "0x0070B3E0",
+      "inverse_achievement_id": 908,
+      "inverse_result_va": "0x0057B453"
+    },
+    {
+      "achievement_id": 909,
+      "status": "proven",
+      "ordinal": 559,
+      "native_result": 559,
+      "result_va": "0x0070B3E6",
+      "inverse_achievement_id": 909,
+      "inverse_result_va": "0x0057B459"
+    },
+    {
+      "achievement_id": 910,
+      "status": "proven",
+      "ordinal": 560,
+      "native_result": 560,
+      "result_va": "0x0070B3EC",
+      "inverse_achievement_id": 910,
+      "inverse_result_va": "0x0057B45F"
+    },
+    {
+      "achievement_id": 911,
+      "status": "proven",
+      "ordinal": 561,
+      "native_result": 561,
+      "result_va": "0x0070B3F2",
+      "inverse_achievement_id": 911,
+      "inverse_result_va": "0x0057B465"
+    },
+    {
+      "achievement_id": 912,
+      "status": "proven",
+      "ordinal": 562,
+      "native_result": 562,
+      "result_va": "0x0070B3F8",
+      "inverse_achievement_id": 912,
+      "inverse_result_va": "0x0057B46B"
+    },
+    {
+      "achievement_id": 913,
+      "status": "proven",
+      "ordinal": 563,
+      "native_result": 563,
+      "result_va": "0x0070B3FE",
+      "inverse_achievement_id": 913,
+      "inverse_result_va": "0x0057B471"
+    },
+    {
+      "achievement_id": 914,
+      "status": "proven",
+      "ordinal": 564,
+      "native_result": 564,
+      "result_va": "0x0070B404",
+      "inverse_achievement_id": 914,
+      "inverse_result_va": "0x0057B477"
+    },
+    {
+      "achievement_id": 997,
+      "status": "proven",
+      "ordinal": 565,
+      "native_result": 565,
+      "result_va": "0x0070B40A",
+      "inverse_achievement_id": 997,
+      "inverse_result_va": "0x0057B47D"
+    },
+    {
+      "achievement_id": 998,
+      "status": "proven",
+      "ordinal": 566,
+      "native_result": 566,
+      "result_va": "0x0070B410",
+      "inverse_achievement_id": 998,
+      "inverse_result_va": "0x0057B483"
+    },
+    {
+      "achievement_id": 999,
+      "status": "proven",
+      "ordinal": 567,
+      "native_result": 567,
+      "result_va": "0x0070B416",
+      "inverse_achievement_id": 999,
+      "inverse_result_va": "0x0057B489"
+    },
+    {
+      "achievement_id": 1000,
+      "status": "proven",
+      "ordinal": 600,
+      "native_result": 600,
+      "result_va": "0x0070B41C",
+      "inverse_achievement_id": 1000,
+      "inverse_result_va": "0x0057B48F"
+    },
+    {
+      "achievement_id": 1001,
+      "status": "proven",
+      "ordinal": 601,
+      "native_result": 601,
+      "result_va": "0x0070B422",
+      "inverse_achievement_id": 1001,
+      "inverse_result_va": "0x0057B495"
+    },
+    {
+      "achievement_id": 1002,
+      "status": "proven",
+      "ordinal": 602,
+      "native_result": 602,
+      "result_va": "0x0070B428",
+      "inverse_achievement_id": 1002,
+      "inverse_result_va": "0x0057B49B"
+    },
+    {
+      "achievement_id": 1003,
+      "status": "proven",
+      "ordinal": 603,
+      "native_result": 603,
+      "result_va": "0x0070B42E",
+      "inverse_achievement_id": 1003,
+      "inverse_result_va": "0x0057B4A1"
+    },
+    {
+      "achievement_id": 1004,
+      "status": "proven",
+      "ordinal": 604,
+      "native_result": 604,
+      "result_va": "0x0070B434",
+      "inverse_achievement_id": 1004,
+      "inverse_result_va": "0x0057B4A7"
+    },
+    {
+      "achievement_id": 1005,
+      "status": "proven",
+      "ordinal": 605,
+      "native_result": 605,
+      "result_va": "0x0070B43A",
+      "inverse_achievement_id": 1005,
+      "inverse_result_va": "0x0057B4AD"
+    },
+    {
+      "achievement_id": 1006,
+      "status": "proven",
+      "ordinal": 606,
+      "native_result": 606,
+      "result_va": "0x0070B440",
+      "inverse_achievement_id": 1006,
+      "inverse_result_va": "0x0057B4B3"
+    },
+    {
+      "achievement_id": 1007,
+      "status": "proven",
+      "ordinal": 607,
+      "native_result": 607,
+      "result_va": "0x0070B446",
+      "inverse_achievement_id": 1007,
+      "inverse_result_va": "0x0057B4B9"
+    },
+    {
+      "achievement_id": 1008,
+      "status": "proven",
+      "ordinal": 608,
+      "native_result": 608,
+      "result_va": "0x0070B44C",
+      "inverse_achievement_id": 1008,
+      "inverse_result_va": "0x0057B4BF"
+    },
+    {
+      "achievement_id": 1009,
+      "status": "proven",
+      "ordinal": 609,
+      "native_result": 609,
+      "result_va": "0x0070B452",
+      "inverse_achievement_id": 1009,
+      "inverse_result_va": "0x0057B4C5"
+    },
+    {
+      "achievement_id": 1010,
+      "status": "proven",
+      "ordinal": 610,
+      "native_result": 610,
+      "result_va": "0x0070B458",
+      "inverse_achievement_id": 1010,
+      "inverse_result_va": "0x0057B4CB"
+    },
+    {
+      "achievement_id": 1011,
+      "status": "proven",
+      "ordinal": 611,
+      "native_result": 611,
+      "result_va": "0x0070B45E",
+      "inverse_achievement_id": 1011,
+      "inverse_result_va": "0x0057B4D1"
+    },
+    {
+      "achievement_id": 1012,
+      "status": "proven",
+      "ordinal": 612,
+      "native_result": 612,
+      "result_va": "0x0070B464",
+      "inverse_achievement_id": 1012,
+      "inverse_result_va": "0x0057B4D7"
+    },
+    {
+      "achievement_id": 1013,
+      "status": "proven",
+      "ordinal": 613,
+      "native_result": 613,
+      "result_va": "0x0070B46A",
+      "inverse_achievement_id": 1013,
+      "inverse_result_va": "0x0057B4DD"
+    },
+    {
+      "achievement_id": 1014,
+      "status": "proven",
+      "ordinal": 614,
+      "native_result": 614,
+      "result_va": "0x0070B470",
+      "inverse_achievement_id": 1014,
+      "inverse_result_va": "0x0057B4E3"
+    },
+    {
+      "achievement_id": 1015,
+      "status": "proven",
+      "ordinal": 615,
+      "native_result": 615,
+      "result_va": "0x0070B476",
+      "inverse_achievement_id": 1015,
+      "inverse_result_va": "0x0057B4E9"
+    },
+    {
+      "achievement_id": 1016,
+      "status": "proven",
+      "ordinal": 616,
+      "native_result": 616,
+      "result_va": "0x0070B47C",
+      "inverse_achievement_id": 1016,
+      "inverse_result_va": "0x0057B4EF"
+    },
+    {
+      "achievement_id": 1017,
+      "status": "proven",
+      "ordinal": 617,
+      "native_result": 617,
+      "result_va": "0x0070B482",
+      "inverse_achievement_id": 1017,
+      "inverse_result_va": "0x0057B4F5"
+    },
+    {
+      "achievement_id": 1018,
+      "status": "proven",
+      "ordinal": 618,
+      "native_result": 618,
+      "result_va": "0x0070B488",
+      "inverse_achievement_id": 1018,
+      "inverse_result_va": "0x0057B4FB"
+    },
+    {
+      "achievement_id": 1019,
+      "status": "proven",
+      "ordinal": 619,
+      "native_result": 619,
+      "result_va": "0x0070B48E",
+      "inverse_achievement_id": 1019,
+      "inverse_result_va": "0x0057B501"
+    },
+    {
+      "achievement_id": 1020,
+      "status": "proven",
+      "ordinal": 620,
+      "native_result": 620,
+      "result_va": "0x0070B494",
+      "inverse_achievement_id": 1020,
+      "inverse_result_va": "0x0057B507"
+    },
+    {
+      "achievement_id": 1021,
+      "status": "proven",
+      "ordinal": 621,
+      "native_result": 621,
+      "result_va": "0x0070B49A",
+      "inverse_achievement_id": 1021,
+      "inverse_result_va": "0x0057B50D"
+    },
+    {
+      "achievement_id": 1022,
+      "status": "proven",
+      "ordinal": 622,
+      "native_result": 622,
+      "result_va": "0x0070B4A0",
+      "inverse_achievement_id": 1022,
+      "inverse_result_va": "0x0057B513"
+    },
+    {
+      "achievement_id": 1023,
+      "status": "proven",
+      "ordinal": 623,
+      "native_result": 623,
+      "result_va": "0x0070B4A6",
+      "inverse_achievement_id": 1023,
+      "inverse_result_va": "0x0057B519"
+    },
+    {
+      "achievement_id": 1024,
+      "status": "proven",
+      "ordinal": 624,
+      "native_result": 624,
+      "result_va": "0x0070B4AC",
+      "inverse_achievement_id": 1024,
+      "inverse_result_va": "0x0057B51F"
+    },
+    {
+      "achievement_id": 1025,
+      "status": "proven",
+      "ordinal": 625,
+      "native_result": 625,
+      "result_va": "0x0070B4B2",
+      "inverse_achievement_id": 1025,
+      "inverse_result_va": "0x0057B525"
+    },
+    {
+      "achievement_id": 1026,
+      "status": "proven",
+      "ordinal": 626,
+      "native_result": 626,
+      "result_va": "0x0070B4B8",
+      "inverse_achievement_id": 1026,
+      "inverse_result_va": "0x0057B52B"
+    },
+    {
+      "achievement_id": 1027,
+      "status": "proven",
+      "ordinal": 627,
+      "native_result": 627,
+      "result_va": "0x0070B4BE",
+      "inverse_achievement_id": 1027,
+      "inverse_result_va": "0x0057B531"
+    },
+    {
+      "achievement_id": 1028,
+      "status": "proven",
+      "ordinal": 628,
+      "native_result": 628,
+      "result_va": "0x0070B4C4",
+      "inverse_achievement_id": 1028,
+      "inverse_result_va": "0x0057B537"
+    },
+    {
+      "achievement_id": 1029,
+      "status": "proven",
+      "ordinal": 629,
+      "native_result": 629,
+      "result_va": "0x0070B4CA",
+      "inverse_achievement_id": 1029,
+      "inverse_result_va": "0x0057B53D"
+    },
+    {
+      "achievement_id": 1030,
+      "status": "proven",
+      "ordinal": 630,
+      "native_result": 630,
+      "result_va": "0x0070B4D0",
+      "inverse_achievement_id": 1030,
+      "inverse_result_va": "0x0057B543"
+    },
+    {
+      "achievement_id": 1031,
+      "status": "proven",
+      "ordinal": 631,
+      "native_result": 631,
+      "result_va": "0x0070B4D6",
+      "inverse_achievement_id": 1031,
+      "inverse_result_va": "0x0057B549"
+    },
+    {
+      "achievement_id": 1032,
+      "status": "proven",
+      "ordinal": 632,
+      "native_result": 632,
+      "result_va": "0x0070B4DC",
+      "inverse_achievement_id": 1032,
+      "inverse_result_va": "0x0057B54F"
+    },
+    {
+      "achievement_id": 1033,
+      "status": "proven",
+      "ordinal": 633,
+      "native_result": 633,
+      "result_va": "0x0070B4E2",
+      "inverse_achievement_id": 1033,
+      "inverse_result_va": "0x0057B555"
+    },
+    {
+      "achievement_id": 1034,
+      "status": "proven",
+      "ordinal": 634,
+      "native_result": 634,
+      "result_va": "0x0070B4E8",
+      "inverse_achievement_id": 1034,
+      "inverse_result_va": "0x0057B55B"
+    },
+    {
+      "achievement_id": 1035,
+      "status": "proven",
+      "ordinal": 635,
+      "native_result": 635,
+      "result_va": "0x0070B4EE",
+      "inverse_achievement_id": 1035,
+      "inverse_result_va": "0x0057B561"
+    },
+    {
+      "achievement_id": 1036,
+      "status": "proven",
+      "ordinal": 636,
+      "native_result": 636,
+      "result_va": "0x0070B4F4",
+      "inverse_achievement_id": 1036,
+      "inverse_result_va": "0x0057B567"
+    },
+    {
+      "achievement_id": 1037,
+      "status": "proven",
+      "ordinal": 637,
+      "native_result": 637,
+      "result_va": "0x0070B4FA",
+      "inverse_achievement_id": 1037,
+      "inverse_result_va": "0x0057B56D"
+    },
+    {
+      "achievement_id": 1038,
+      "status": "proven",
+      "ordinal": 638,
+      "native_result": 638,
+      "result_va": "0x0070B500",
+      "inverse_achievement_id": 1038,
+      "inverse_result_va": "0x0057B573"
+    },
+    {
+      "achievement_id": 1039,
+      "status": "proven",
+      "ordinal": 651,
+      "native_result": 651,
+      "result_va": "0x0070B54E",
+      "inverse_achievement_id": 1039,
+      "inverse_result_va": "0x0057B5C1"
+    },
+    {
+      "achievement_id": 1040,
+      "status": "proven",
+      "ordinal": 652,
+      "native_result": 652,
+      "result_va": "0x0070B554",
+      "inverse_achievement_id": 1040,
+      "inverse_result_va": "0x0057B5C7"
+    },
+    {
+      "achievement_id": 1041,
+      "status": "proven",
+      "ordinal": 653,
+      "native_result": 653,
+      "result_va": "0x0070B55A",
+      "inverse_achievement_id": 1041,
+      "inverse_result_va": "0x0057B5CD"
+    },
+    {
+      "achievement_id": 1042,
+      "status": "proven",
+      "ordinal": 654,
+      "native_result": 654,
+      "result_va": "0x0070B560",
+      "inverse_achievement_id": 1042,
+      "inverse_result_va": "0x0057B5D3"
+    },
+    {
+      "achievement_id": 1043,
+      "status": "proven",
+      "ordinal": 655,
+      "native_result": 655,
+      "result_va": "0x0070B566",
+      "inverse_achievement_id": 1043,
+      "inverse_result_va": "0x0057B5D9"
+    },
+    {
+      "achievement_id": 1044,
+      "status": "proven",
+      "ordinal": 656,
+      "native_result": 656,
+      "result_va": "0x0070B56C",
+      "inverse_achievement_id": 1044,
+      "inverse_result_va": "0x0057B5DF"
+    },
+    {
+      "achievement_id": 1045,
+      "status": "proven",
+      "ordinal": 657,
+      "native_result": 657,
+      "result_va": "0x0070B572",
+      "inverse_achievement_id": 1045,
+      "inverse_result_va": "0x0057B5E5"
+    },
+    {
+      "achievement_id": 1046,
+      "status": "proven",
+      "ordinal": 658,
+      "native_result": 658,
+      "result_va": "0x0070B578",
+      "inverse_achievement_id": 1046,
+      "inverse_result_va": "0x0057B5EB"
+    },
+    {
+      "achievement_id": 1047,
+      "status": "proven",
+      "ordinal": 659,
+      "native_result": 659,
+      "result_va": "0x0070B57E",
+      "inverse_achievement_id": 1047,
+      "inverse_result_va": "0x0057B5F1"
+    },
+    {
+      "achievement_id": 1048,
+      "status": "proven",
+      "ordinal": 660,
+      "native_result": 660,
+      "result_va": "0x0070B584",
+      "inverse_achievement_id": 1048,
+      "inverse_result_va": "0x0057B5F7"
+    },
+    {
+      "achievement_id": 1049,
+      "status": "proven",
+      "ordinal": 661,
+      "native_result": 661,
+      "result_va": "0x0070B58A",
+      "inverse_achievement_id": 1049,
+      "inverse_result_va": "0x0057B5FD"
+    },
+    {
+      "achievement_id": 1050,
+      "status": "proven",
+      "ordinal": 662,
+      "native_result": 662,
+      "result_va": "0x0070B590",
+      "inverse_achievement_id": 1050,
+      "inverse_result_va": "0x0057B603"
+    },
+    {
+      "achievement_id": 1051,
+      "status": "proven",
+      "ordinal": 663,
+      "native_result": 663,
+      "result_va": "0x0070B596",
+      "inverse_achievement_id": 1051,
+      "inverse_result_va": "0x0057B609"
+    },
+    {
+      "achievement_id": 1052,
+      "status": "proven",
+      "ordinal": 664,
+      "native_result": 664,
+      "result_va": "0x0070B59C",
+      "inverse_achievement_id": 1052,
+      "inverse_result_va": "0x0057B60F"
+    },
+    {
+      "achievement_id": 1053,
+      "status": "proven",
+      "ordinal": 665,
+      "native_result": 665,
+      "result_va": "0x0070B5A2",
+      "inverse_achievement_id": 1053,
+      "inverse_result_va": "0x0057B615"
+    },
+    {
+      "achievement_id": 1054,
+      "status": "proven",
+      "ordinal": 666,
+      "native_result": 666,
+      "result_va": "0x0070B5A8",
+      "inverse_achievement_id": 1054,
+      "inverse_result_va": "0x0057B61B"
+    },
+    {
+      "achievement_id": 1055,
+      "status": "proven",
+      "ordinal": 667,
+      "native_result": 667,
+      "result_va": "0x0070B5AE",
+      "inverse_achievement_id": 1055,
+      "inverse_result_va": "0x0057B621"
+    },
+    {
+      "achievement_id": 1056,
+      "status": "proven",
+      "ordinal": 668,
+      "native_result": 668,
+      "result_va": "0x0070B5B4",
+      "inverse_achievement_id": 1056,
+      "inverse_result_va": "0x0057B627"
+    },
+    {
+      "achievement_id": 1057,
+      "status": "proven",
+      "ordinal": 669,
+      "native_result": 669,
+      "result_va": "0x0070B5BA",
+      "inverse_achievement_id": 1057,
+      "inverse_result_va": "0x0057B62D"
+    },
+    {
+      "achievement_id": 1058,
+      "status": "proven",
+      "ordinal": 670,
+      "native_result": 670,
+      "result_va": "0x0070B5C0",
+      "inverse_achievement_id": 1058,
+      "inverse_result_va": "0x0057B633"
+    },
+    {
+      "achievement_id": 1059,
+      "status": "proven",
+      "ordinal": 671,
+      "native_result": 671,
+      "result_va": "0x0070B5C6",
+      "inverse_achievement_id": 1059,
+      "inverse_result_va": "0x0057B639"
+    },
+    {
+      "achievement_id": 1060,
+      "status": "proven",
+      "ordinal": 672,
+      "native_result": 672,
+      "result_va": "0x0070B5CC",
+      "inverse_achievement_id": 1060,
+      "inverse_result_va": "0x0057B63F"
+    },
+    {
+      "achievement_id": 1061,
+      "status": "proven",
+      "ordinal": 673,
+      "native_result": 673,
+      "result_va": "0x0070B5D2",
+      "inverse_achievement_id": 1061,
+      "inverse_result_va": "0x0057B645"
+    },
+    {
+      "achievement_id": 1062,
+      "status": "proven",
+      "ordinal": 674,
+      "native_result": 674,
+      "result_va": "0x0070B5D8",
+      "inverse_achievement_id": 1062,
+      "inverse_result_va": "0x0057B64B"
+    },
+    {
+      "achievement_id": 1063,
+      "status": "proven",
+      "ordinal": 675,
+      "native_result": 675,
+      "result_va": "0x0070B5DE",
+      "inverse_achievement_id": 1063,
+      "inverse_result_va": "0x0057B651"
+    },
+    {
+      "achievement_id": 1064,
+      "status": "proven",
+      "ordinal": 676,
+      "native_result": 676,
+      "result_va": "0x0070B5E4",
+      "inverse_achievement_id": 1064,
+      "inverse_result_va": "0x0057B657"
+    },
+    {
+      "achievement_id": 1065,
+      "status": "proven",
+      "ordinal": 677,
+      "native_result": 677,
+      "result_va": "0x0070B5EA",
+      "inverse_achievement_id": 1065,
+      "inverse_result_va": "0x0057B65D"
+    },
+    {
+      "achievement_id": 1066,
+      "status": "proven",
+      "ordinal": 678,
+      "native_result": 678,
+      "result_va": "0x0070B5F0",
+      "inverse_achievement_id": 1066,
+      "inverse_result_va": "0x0057B663"
+    },
+    {
+      "achievement_id": 1067,
+      "status": "proven",
+      "ordinal": 679,
+      "native_result": 679,
+      "result_va": "0x0070B5F6",
+      "inverse_achievement_id": 1067,
+      "inverse_result_va": "0x0057B669"
+    },
+    {
+      "achievement_id": 1068,
+      "status": "proven",
+      "ordinal": 680,
+      "native_result": 680,
+      "result_va": "0x0070B5FC",
+      "inverse_achievement_id": 1068,
+      "inverse_result_va": "0x0057B66F"
+    },
+    {
+      "achievement_id": 1069,
+      "status": "proven",
+      "ordinal": 681,
+      "native_result": 681,
+      "result_va": "0x0070B602",
+      "inverse_achievement_id": 1069,
+      "inverse_result_va": "0x0057B675"
+    },
+    {
+      "achievement_id": 1070,
+      "status": "proven",
+      "ordinal": 682,
+      "native_result": 682,
+      "result_va": "0x0070B608",
+      "inverse_achievement_id": 1070,
+      "inverse_result_va": "0x0057B67B"
+    },
+    {
+      "achievement_id": 1071,
+      "status": "proven",
+      "ordinal": 683,
+      "native_result": 683,
+      "result_va": "0x0070B60E",
+      "inverse_achievement_id": 1071,
+      "inverse_result_va": "0x0057B681"
+    },
+    {
+      "achievement_id": 1072,
+      "status": "proven",
+      "ordinal": 684,
+      "native_result": 684,
+      "result_va": "0x0070B614",
+      "inverse_achievement_id": 1072,
+      "inverse_result_va": "0x0057B687"
+    },
+    {
+      "achievement_id": 1073,
+      "status": "proven",
+      "ordinal": 685,
+      "native_result": 685,
+      "result_va": "0x0070B61A",
+      "inverse_achievement_id": 1073,
+      "inverse_result_va": "0x0057B68D"
+    },
+    {
+      "achievement_id": 1074,
+      "status": "proven",
+      "ordinal": 686,
+      "native_result": 686,
+      "result_va": "0x0070B620",
+      "inverse_achievement_id": 1074,
+      "inverse_result_va": "0x0057B693"
+    },
+    {
+      "achievement_id": 1075,
+      "status": "proven",
+      "ordinal": 687,
+      "native_result": 687,
+      "result_va": "0x0070B626",
+      "inverse_achievement_id": 1075,
+      "inverse_result_va": "0x0057B699"
+    },
+    {
+      "achievement_id": 1076,
+      "status": "proven",
+      "ordinal": 688,
+      "native_result": 688,
+      "result_va": "0x0070B62C",
+      "inverse_achievement_id": 1076,
+      "inverse_result_va": "0x0057B69F"
+    },
+    {
+      "achievement_id": 1077,
+      "status": "proven",
+      "ordinal": 689,
+      "native_result": 689,
+      "result_va": "0x0070B632",
+      "inverse_achievement_id": 1077,
+      "inverse_result_va": "0x0057B6A5"
+    },
+    {
+      "achievement_id": 1078,
+      "status": "proven",
+      "ordinal": 690,
+      "native_result": 690,
+      "result_va": "0x0070B638",
+      "inverse_achievement_id": 1078,
+      "inverse_result_va": "0x0057B6AB"
+    },
+    {
+      "achievement_id": 1079,
+      "status": "proven",
+      "ordinal": 691,
+      "native_result": 691,
+      "result_va": "0x0070B63E",
+      "inverse_achievement_id": 1079,
+      "inverse_result_va": "0x0057B6B1"
+    },
+    {
+      "achievement_id": 1080,
+      "status": "proven",
+      "ordinal": 692,
+      "native_result": 692,
+      "result_va": "0x0070B644",
+      "inverse_achievement_id": 1080,
+      "inverse_result_va": "0x0057B6B7"
+    },
+    {
+      "achievement_id": 1081,
+      "status": "proven",
+      "ordinal": 693,
+      "native_result": 693,
+      "result_va": "0x0070B64A",
+      "inverse_achievement_id": 1081,
+      "inverse_result_va": "0x0057B6BD"
+    },
+    {
+      "achievement_id": 1082,
+      "status": "proven",
+      "ordinal": 694,
+      "native_result": 694,
+      "result_va": "0x0070B650",
+      "inverse_achievement_id": 1082,
+      "inverse_result_va": "0x0057B6C3"
+    },
+    {
+      "achievement_id": 1083,
+      "status": "proven",
+      "ordinal": 695,
+      "native_result": 695,
+      "result_va": "0x0070B656",
+      "inverse_achievement_id": 1083,
+      "inverse_result_va": "0x0057B6C9"
+    },
+    {
+      "achievement_id": 1084,
+      "status": "proven",
+      "ordinal": 696,
+      "native_result": 696,
+      "result_va": "0x0070B65C",
+      "inverse_achievement_id": 1084,
+      "inverse_result_va": "0x0057B6CF"
+    },
+    {
+      "achievement_id": 1085,
+      "status": "proven",
+      "ordinal": 697,
+      "native_result": 697,
+      "result_va": "0x0070B662",
+      "inverse_achievement_id": 1085,
+      "inverse_result_va": "0x0057B6D5"
+    },
+    {
+      "achievement_id": 1086,
+      "status": "proven",
+      "ordinal": 698,
+      "native_result": 698,
+      "result_va": "0x0070B668",
+      "inverse_achievement_id": 1086,
+      "inverse_result_va": "0x0057B6DB"
+    },
+    {
+      "achievement_id": 1087,
+      "status": "proven",
+      "ordinal": 699,
+      "native_result": 699,
+      "result_va": "0x0070B66E",
+      "inverse_achievement_id": 1087,
+      "inverse_result_va": "0x0057B6E1"
+    },
+    {
+      "achievement_id": 1088,
+      "status": "proven",
+      "ordinal": 599,
+      "native_result": 599,
+      "result_va": "0x0070B674",
+      "inverse_achievement_id": 1088,
+      "inverse_result_va": "0x0057B6E7"
+    },
+    {
+      "achievement_id": 1089,
+      "status": "proven",
+      "ordinal": 598,
+      "native_result": 598,
+      "result_va": "0x0070B67A",
+      "inverse_achievement_id": 1089,
+      "inverse_result_va": "0x0057B6ED"
+    },
+    {
+      "achievement_id": 1090,
+      "status": "proven",
+      "ordinal": 597,
+      "native_result": 597,
+      "result_va": "0x0070B680",
+      "inverse_achievement_id": 1090,
+      "inverse_result_va": "0x0057B6F3"
+    },
+    {
+      "achievement_id": 1091,
+      "status": "proven",
+      "ordinal": 596,
+      "native_result": 596,
+      "result_va": "0x0070B686",
+      "inverse_achievement_id": 1091,
+      "inverse_result_va": "0x0057B6F9"
+    },
+    {
+      "achievement_id": 1092,
+      "status": "proven",
+      "ordinal": 595,
+      "native_result": 595,
+      "result_va": "0x0070B68C",
+      "inverse_achievement_id": 1092,
+      "inverse_result_va": "0x0057B6FF"
+    },
+    {
+      "achievement_id": 1093,
+      "status": "proven",
+      "ordinal": 594,
+      "native_result": 594,
+      "result_va": "0x0070B692",
+      "inverse_achievement_id": 1093,
+      "inverse_result_va": "0x0057B705"
+    },
+    {
+      "achievement_id": 1094,
+      "status": "proven",
+      "ordinal": 593,
+      "native_result": 593,
+      "result_va": "0x0070B698",
+      "inverse_achievement_id": 1094,
+      "inverse_result_va": "0x0057B70B"
+    },
+    {
+      "achievement_id": 1095,
+      "status": "proven",
+      "ordinal": 592,
+      "native_result": 592,
+      "result_va": "0x0070B69E",
+      "inverse_achievement_id": 1095,
+      "inverse_result_va": "0x0057B711"
+    },
+    {
+      "achievement_id": 1096,
+      "status": "proven",
+      "ordinal": 591,
+      "native_result": 591,
+      "result_va": "0x0070B6A4",
+      "inverse_achievement_id": 1096,
+      "inverse_result_va": "0x0057B717"
+    },
+    {
+      "achievement_id": 1097,
+      "status": "proven",
+      "ordinal": 590,
+      "native_result": 590,
+      "result_va": "0x0070B6AA",
+      "inverse_achievement_id": 1097,
+      "inverse_result_va": "0x0057B71D"
+    },
+    {
+      "achievement_id": 1098,
+      "status": "proven",
+      "ordinal": 589,
+      "native_result": 589,
+      "result_va": "0x0070B6B0",
+      "inverse_achievement_id": 1098,
+      "inverse_result_va": "0x0057B723"
+    },
+    {
+      "achievement_id": 1099,
+      "status": "proven",
+      "ordinal": 588,
+      "native_result": 588,
+      "result_va": "0x0070B6B6",
+      "inverse_achievement_id": 1099,
+      "inverse_result_va": "0x0057B729"
+    },
+    {
+      "achievement_id": 1100,
+      "status": "proven",
+      "ordinal": 587,
+      "native_result": 587,
+      "result_va": "0x0070B6BC",
+      "inverse_achievement_id": 1100,
+      "inverse_result_va": "0x0057B72F"
+    },
+    {
+      "achievement_id": 1101,
+      "status": "proven",
+      "ordinal": 586,
+      "native_result": 586,
+      "result_va": "0x0070B6C2",
+      "inverse_achievement_id": 1101,
+      "inverse_result_va": "0x0057B735"
+    },
+    {
+      "achievement_id": 1102,
+      "status": "proven",
+      "ordinal": 585,
+      "native_result": 585,
+      "result_va": "0x0070B6C8",
+      "inverse_achievement_id": 1102,
+      "inverse_result_va": "0x0057B73B"
+    },
+    {
+      "achievement_id": 1103,
+      "status": "proven",
+      "ordinal": 584,
+      "native_result": 584,
+      "result_va": "0x0070B6CE",
+      "inverse_achievement_id": 1103,
+      "inverse_result_va": "0x0057B741"
+    },
+    {
+      "achievement_id": 1104,
+      "status": "proven",
+      "ordinal": 583,
+      "native_result": 583,
+      "result_va": "0x0070B6D4",
+      "inverse_achievement_id": 1104,
+      "inverse_result_va": "0x0057B747"
+    },
+    {
+      "achievement_id": 1105,
+      "status": "proven",
+      "ordinal": 582,
+      "native_result": 582,
+      "result_va": "0x0070B6DA",
+      "inverse_achievement_id": 1105,
+      "inverse_result_va": "0x0057B74D"
+    },
+    {
+      "achievement_id": 1106,
+      "status": "proven",
+      "ordinal": 937,
+      "native_result": 937,
+      "result_va": "0x0070B6E0",
+      "inverse_achievement_id": 1106,
+      "inverse_result_va": "0x0057B753"
+    },
+    {
+      "achievement_id": 1107,
+      "status": "unproven_inverse_mismatch",
+      "ordinal": null,
+      "native_result": 0,
+      "result_va": "0x0070BCB3",
+      "inverse_achievement_id": 100,
+      "inverse_result_va": "0x0057ABCB"
+    },
+    {
+      "achievement_id": 1108,
+      "status": "unproven_inverse_mismatch",
+      "ordinal": null,
+      "native_result": 0,
+      "result_va": "0x0070BCB3",
+      "inverse_achievement_id": 100,
+      "inverse_result_va": "0x0057ABCB"
+    },
+    {
+      "achievement_id": 1109,
+      "status": "unproven_inverse_mismatch",
+      "ordinal": null,
+      "native_result": 0,
+      "result_va": "0x0070BCB3",
+      "inverse_achievement_id": 100,
+      "inverse_result_va": "0x0057ABCB"
+    },
+    {
+      "achievement_id": 1110,
+      "status": "unproven_inverse_mismatch",
+      "ordinal": null,
+      "native_result": 0,
+      "result_va": "0x0070BCB3",
+      "inverse_achievement_id": 100,
+      "inverse_result_va": "0x0057ABCB"
+    },
+    {
+      "achievement_id": 1156,
+      "status": "proven",
+      "ordinal": 938,
+      "native_result": 938,
+      "result_va": "0x0070B6E6",
+      "inverse_achievement_id": 1156,
+      "inverse_result_va": "0x0057B759"
+    },
+    {
+      "achievement_id": 1157,
+      "status": "proven",
+      "ordinal": 939,
+      "native_result": 939,
+      "result_va": "0x0070B8EA",
+      "inverse_achievement_id": 1157,
+      "inverse_result_va": "0x0057B95D"
+    },
+    {
+      "achievement_id": 1158,
+      "status": "proven",
+      "ordinal": 940,
+      "native_result": 940,
+      "result_va": "0x0070B8F0",
+      "inverse_achievement_id": 1158,
+      "inverse_result_va": "0x0057B963"
+    },
+    {
+      "achievement_id": 1159,
+      "status": "proven",
+      "ordinal": 941,
+      "native_result": 941,
+      "result_va": "0x0070B8F6",
+      "inverse_achievement_id": 1159,
+      "inverse_result_va": "0x0057B969"
+    },
+    {
+      "achievement_id": 1160,
+      "status": "proven",
+      "ordinal": 942,
+      "native_result": 942,
+      "result_va": "0x0070B8FC",
+      "inverse_achievement_id": 1160,
+      "inverse_result_va": "0x0057B96F"
+    },
+    {
+      "achievement_id": 1161,
+      "status": "proven",
+      "ordinal": 943,
+      "native_result": 943,
+      "result_va": "0x0070B902",
+      "inverse_achievement_id": 1161,
+      "inverse_result_va": "0x0057B975"
+    },
+    {
+      "achievement_id": 1162,
+      "status": "proven",
+      "ordinal": 944,
+      "native_result": 944,
+      "result_va": "0x0070B908",
+      "inverse_achievement_id": 1162,
+      "inverse_result_va": "0x0057B97B"
+    },
+    {
+      "achievement_id": 1163,
+      "status": "proven",
+      "ordinal": 945,
+      "native_result": 945,
+      "result_va": "0x0070B90E",
+      "inverse_achievement_id": 1163,
+      "inverse_result_va": "0x0057B981"
+    },
+    {
+      "achievement_id": 1164,
+      "status": "proven",
+      "ordinal": 946,
+      "native_result": 946,
+      "result_va": "0x0070B914",
+      "inverse_achievement_id": 1164,
+      "inverse_result_va": "0x0057B987"
+    },
+    {
+      "achievement_id": 1165,
+      "status": "proven",
+      "ordinal": 947,
+      "native_result": 947,
+      "result_va": "0x0070B91A",
+      "inverse_achievement_id": 1165,
+      "inverse_result_va": "0x0057B98D"
+    },
+    {
+      "achievement_id": 1166,
+      "status": "proven",
+      "ordinal": 948,
+      "native_result": 948,
+      "result_va": "0x0070B920",
+      "inverse_achievement_id": 1166,
+      "inverse_result_va": "0x0057B993"
+    },
+    {
+      "achievement_id": 1167,
+      "status": "proven",
+      "ordinal": 949,
+      "native_result": 949,
+      "result_va": "0x0070B926",
+      "inverse_achievement_id": 1167,
+      "inverse_result_va": "0x0057B999"
+    },
+    {
+      "achievement_id": 1168,
+      "status": "proven",
+      "ordinal": 950,
+      "native_result": 950,
+      "result_va": "0x0070B92C",
+      "inverse_achievement_id": 1168,
+      "inverse_result_va": "0x0057B99F"
+    },
+    {
+      "achievement_id": 1169,
+      "status": "proven",
+      "ordinal": 951,
+      "native_result": 951,
+      "result_va": "0x0070B932",
+      "inverse_achievement_id": 1169,
+      "inverse_result_va": "0x0057B9A5"
+    },
+    {
+      "achievement_id": 1171,
+      "status": "proven",
+      "ordinal": 952,
+      "native_result": 952,
+      "result_va": "0x0070B938",
+      "inverse_achievement_id": 1171,
+      "inverse_result_va": "0x0057B9AB"
+    },
+    {
+      "achievement_id": 1172,
+      "status": "proven",
+      "ordinal": 953,
+      "native_result": 953,
+      "result_va": "0x0070B93E",
+      "inverse_achievement_id": 1172,
+      "inverse_result_va": "0x0057B9B1"
+    },
+    {
+      "achievement_id": 1173,
+      "status": "proven",
+      "ordinal": 568,
+      "native_result": 568,
+      "result_va": "0x0070B8DE",
+      "inverse_achievement_id": 1173,
+      "inverse_result_va": "0x0057B951"
+    },
+    {
+      "achievement_id": 1174,
+      "status": "proven",
+      "ordinal": 225,
+      "native_result": 225,
+      "result_va": "0x0070B8E4",
+      "inverse_achievement_id": 1174,
+      "inverse_result_va": "0x0057B957"
+    },
+    {
+      "achievement_id": 1175,
+      "status": "proven",
+      "ordinal": 580,
+      "native_result": 580,
+      "result_va": "0x0070B896",
+      "inverse_achievement_id": 1175,
+      "inverse_result_va": "0x0057B909"
+    },
+    {
+      "achievement_id": 1176,
+      "status": "proven",
+      "ordinal": 579,
+      "native_result": 579,
+      "result_va": "0x0070B89C",
+      "inverse_achievement_id": 1176,
+      "inverse_result_va": "0x0057B90F"
+    },
+    {
+      "achievement_id": 1177,
+      "status": "proven",
+      "ordinal": 578,
+      "native_result": 578,
+      "result_va": "0x0070B8A2",
+      "inverse_achievement_id": 1177,
+      "inverse_result_va": "0x0057B915"
+    },
+    {
+      "achievement_id": 1178,
+      "status": "proven",
+      "ordinal": 577,
+      "native_result": 577,
+      "result_va": "0x0070B8A8",
+      "inverse_achievement_id": 1178,
+      "inverse_result_va": "0x0057B91B"
+    },
+    {
+      "achievement_id": 1179,
+      "status": "proven",
+      "ordinal": 576,
+      "native_result": 576,
+      "result_va": "0x0070B8AE",
+      "inverse_achievement_id": 1179,
+      "inverse_result_va": "0x0057B921"
+    },
+    {
+      "achievement_id": 1180,
+      "status": "proven",
+      "ordinal": 575,
+      "native_result": 575,
+      "result_va": "0x0070B8B4",
+      "inverse_achievement_id": 1180,
+      "inverse_result_va": "0x0057B927"
+    },
+    {
+      "achievement_id": 1181,
+      "status": "proven",
+      "ordinal": 574,
+      "native_result": 574,
+      "result_va": "0x0070B8BA",
+      "inverse_achievement_id": 1181,
+      "inverse_result_va": "0x0057B92D"
+    },
+    {
+      "achievement_id": 1182,
+      "status": "proven",
+      "ordinal": 573,
+      "native_result": 573,
+      "result_va": "0x0070B8C0",
+      "inverse_achievement_id": 1182,
+      "inverse_result_va": "0x0057B933"
+    },
+    {
+      "achievement_id": 1183,
+      "status": "proven",
+      "ordinal": 572,
+      "native_result": 572,
+      "result_va": "0x0070B8C6",
+      "inverse_achievement_id": 1183,
+      "inverse_result_va": "0x0057B939"
+    },
+    {
+      "achievement_id": 1184,
+      "status": "proven",
+      "ordinal": 571,
+      "native_result": 571,
+      "result_va": "0x0070B8CC",
+      "inverse_achievement_id": 1184,
+      "inverse_result_va": "0x0057B93F"
+    },
+    {
+      "achievement_id": 1185,
+      "status": "proven",
+      "ordinal": 570,
+      "native_result": 570,
+      "result_va": "0x0070B8D2",
+      "inverse_achievement_id": 1185,
+      "inverse_result_va": "0x0057B945"
+    },
+    {
+      "achievement_id": 1186,
+      "status": "proven",
+      "ordinal": 569,
+      "native_result": 569,
+      "result_va": "0x0070B8D8",
+      "inverse_achievement_id": 1186,
+      "inverse_result_va": "0x0057B94B"
+    },
+    {
+      "achievement_id": 1187,
+      "status": "proven",
+      "ordinal": 581,
+      "native_result": 581,
+      "result_va": "0x0070B890",
+      "inverse_achievement_id": 1187,
+      "inverse_result_va": "0x0057B903"
+    },
+    {
+      "achievement_id": 1188,
+      "status": "proven",
+      "ordinal": 648,
+      "native_result": 648,
+      "result_va": "0x0070B53C",
+      "inverse_achievement_id": 1188,
+      "inverse_result_va": "0x0057B5AF"
+    },
+    {
+      "achievement_id": 1189,
+      "status": "proven",
+      "ordinal": 649,
+      "native_result": 649,
+      "result_va": "0x0070B542",
+      "inverse_achievement_id": 1189,
+      "inverse_result_va": "0x0057B5B5"
+    },
+    {
+      "achievement_id": 1190,
+      "status": "proven",
+      "ordinal": 650,
+      "native_result": 650,
+      "result_va": "0x0070B548",
+      "inverse_achievement_id": 1190,
+      "inverse_result_va": "0x0057B5BB"
+    },
+    {
+      "achievement_id": 1191,
+      "status": "proven",
+      "ordinal": 639,
+      "native_result": 639,
+      "result_va": "0x0070B506",
+      "inverse_achievement_id": 1191,
+      "inverse_result_va": "0x0057B579"
+    },
+    {
+      "achievement_id": 1192,
+      "status": "proven",
+      "ordinal": 640,
+      "native_result": 640,
+      "result_va": "0x0070B50C",
+      "inverse_achievement_id": 1192,
+      "inverse_result_va": "0x0057B57F"
+    },
+    {
+      "achievement_id": 1193,
+      "status": "proven",
+      "ordinal": 641,
+      "native_result": 641,
+      "result_va": "0x0070B512",
+      "inverse_achievement_id": 1193,
+      "inverse_result_va": "0x0057B585"
+    },
+    {
+      "achievement_id": 1194,
+      "status": "proven",
+      "ordinal": 642,
+      "native_result": 642,
+      "result_va": "0x0070B518",
+      "inverse_achievement_id": 1194,
+      "inverse_result_va": "0x0057B58B"
+    },
+    {
+      "achievement_id": 1195,
+      "status": "proven",
+      "ordinal": 643,
+      "native_result": 643,
+      "result_va": "0x0070B51E",
+      "inverse_achievement_id": 1195,
+      "inverse_result_va": "0x0057B591"
+    },
+    {
+      "achievement_id": 1196,
+      "status": "proven",
+      "ordinal": 644,
+      "native_result": 644,
+      "result_va": "0x0070B524",
+      "inverse_achievement_id": 1196,
+      "inverse_result_va": "0x0057B597"
+    },
+    {
+      "achievement_id": 1197,
+      "status": "proven",
+      "ordinal": 645,
+      "native_result": 645,
+      "result_va": "0x0070B52A",
+      "inverse_achievement_id": 1197,
+      "inverse_result_va": "0x0057B59D"
+    },
+    {
+      "achievement_id": 1198,
+      "status": "proven",
+      "ordinal": 646,
+      "native_result": 646,
+      "result_va": "0x0070B530",
+      "inverse_achievement_id": 1198,
+      "inverse_result_va": "0x0057B5A3"
+    },
+    {
+      "achievement_id": 1199,
+      "status": "proven",
+      "ordinal": 647,
+      "native_result": 647,
+      "result_va": "0x0070B536",
+      "inverse_achievement_id": 1199,
+      "inverse_result_va": "0x0057B5A9"
+    },
+    {
+      "achievement_id": 1200,
+      "status": "proven",
+      "ordinal": 700,
+      "native_result": 700,
+      "result_va": "0x0070B944",
+      "inverse_achievement_id": 1200,
+      "inverse_result_va": "0x0057B9B7"
+    },
+    {
+      "achievement_id": 1201,
+      "status": "proven",
+      "ordinal": 701,
+      "native_result": 701,
+      "result_va": "0x0070B94A",
+      "inverse_achievement_id": 1201,
+      "inverse_result_va": "0x0057B9BD"
+    },
+    {
+      "achievement_id": 1202,
+      "status": "proven",
+      "ordinal": 702,
+      "native_result": 702,
+      "result_va": "0x0070B950",
+      "inverse_achievement_id": 1202,
+      "inverse_result_va": "0x0057B9C3"
+    },
+    {
+      "achievement_id": 1203,
+      "status": "proven",
+      "ordinal": 703,
+      "native_result": 703,
+      "result_va": "0x0070B956",
+      "inverse_achievement_id": 1203,
+      "inverse_result_va": "0x0057B9C9"
+    },
+    {
+      "achievement_id": 1204,
+      "status": "proven",
+      "ordinal": 704,
+      "native_result": 704,
+      "result_va": "0x0070B95C",
+      "inverse_achievement_id": 1204,
+      "inverse_result_va": "0x0057B9CF"
+    },
+    {
+      "achievement_id": 1205,
+      "status": "proven",
+      "ordinal": 705,
+      "native_result": 705,
+      "result_va": "0x0070B962",
+      "inverse_achievement_id": 1205,
+      "inverse_result_va": "0x0057B9D5"
+    },
+    {
+      "achievement_id": 1206,
+      "status": "proven",
+      "ordinal": 706,
+      "native_result": 706,
+      "result_va": "0x0070B968",
+      "inverse_achievement_id": 1206,
+      "inverse_result_va": "0x0057B9DB"
+    },
+    {
+      "achievement_id": 1207,
+      "status": "proven",
+      "ordinal": 709,
+      "native_result": 709,
+      "result_va": "0x0070B97A",
+      "inverse_achievement_id": 1207,
+      "inverse_result_va": "0x0057B9ED"
+    },
+    {
+      "achievement_id": 1208,
+      "status": "proven",
+      "ordinal": 710,
+      "native_result": 710,
+      "result_va": "0x0070B980",
+      "inverse_achievement_id": 1208,
+      "inverse_result_va": "0x0057B9F3"
+    },
+    {
+      "achievement_id": 1209,
+      "status": "proven",
+      "ordinal": 711,
+      "native_result": 711,
+      "result_va": "0x0070B986",
+      "inverse_achievement_id": 1209,
+      "inverse_result_va": "0x0057B9F9"
+    },
+    {
+      "achievement_id": 1210,
+      "status": "proven",
+      "ordinal": 712,
+      "native_result": 712,
+      "result_va": "0x0070B98C",
+      "inverse_achievement_id": 1210,
+      "inverse_result_va": "0x0057B9FF"
+    },
+    {
+      "achievement_id": 1211,
+      "status": "proven",
+      "ordinal": 714,
+      "native_result": 714,
+      "result_va": "0x0070B998",
+      "inverse_achievement_id": 1211,
+      "inverse_result_va": "0x0057BA0B"
+    },
+    {
+      "achievement_id": 1212,
+      "status": "proven",
+      "ordinal": 716,
+      "native_result": 716,
+      "result_va": "0x0070B9A4",
+      "inverse_achievement_id": 1212,
+      "inverse_result_va": "0x0057BA17"
+    },
+    {
+      "achievement_id": 1213,
+      "status": "proven",
+      "ordinal": 717,
+      "native_result": 717,
+      "result_va": "0x0070B9AA",
+      "inverse_achievement_id": 1213,
+      "inverse_result_va": "0x0057BA1D"
+    },
+    {
+      "achievement_id": 1214,
+      "status": "proven",
+      "ordinal": 718,
+      "native_result": 718,
+      "result_va": "0x0070B9B0",
+      "inverse_achievement_id": 1214,
+      "inverse_result_va": "0x0057BA23"
+    },
+    {
+      "achievement_id": 1215,
+      "status": "proven",
+      "ordinal": 719,
+      "native_result": 719,
+      "result_va": "0x0070B9B6",
+      "inverse_achievement_id": 1215,
+      "inverse_result_va": "0x0057BA29"
+    },
+    {
+      "achievement_id": 1216,
+      "status": "proven",
+      "ordinal": 720,
+      "native_result": 720,
+      "result_va": "0x0070B9BC",
+      "inverse_achievement_id": 1216,
+      "inverse_result_va": "0x0057BA2F"
+    },
+    {
+      "achievement_id": 1217,
+      "status": "proven",
+      "ordinal": 721,
+      "native_result": 721,
+      "result_va": "0x0070B9C2",
+      "inverse_achievement_id": 1217,
+      "inverse_result_va": "0x0057BA35"
+    },
+    {
+      "achievement_id": 1218,
+      "status": "proven",
+      "ordinal": 723,
+      "native_result": 723,
+      "result_va": "0x0070B9CE",
+      "inverse_achievement_id": 1218,
+      "inverse_result_va": "0x0057BA41"
+    },
+    {
+      "achievement_id": 1219,
+      "status": "proven",
+      "ordinal": 724,
+      "native_result": 724,
+      "result_va": "0x0070B9D4",
+      "inverse_achievement_id": 1219,
+      "inverse_result_va": "0x0057BA47"
+    },
+    {
+      "achievement_id": 1220,
+      "status": "proven",
+      "ordinal": 725,
+      "native_result": 725,
+      "result_va": "0x0070B9DA",
+      "inverse_achievement_id": 1220,
+      "inverse_result_va": "0x0057BA4D"
+    },
+    {
+      "achievement_id": 1221,
+      "status": "unproven_inverse_mismatch",
+      "ordinal": null,
+      "native_result": 0,
+      "result_va": "0x0070BCB3",
+      "inverse_achievement_id": 100,
+      "inverse_result_va": "0x0057ABCB"
+    },
+    {
+      "achievement_id": 1222,
+      "status": "proven",
+      "ordinal": 726,
+      "native_result": 726,
+      "result_va": "0x0070B9E0",
+      "inverse_achievement_id": 1222,
+      "inverse_result_va": "0x0057BA53"
+    },
+    {
+      "achievement_id": 1223,
+      "status": "proven",
+      "ordinal": 727,
+      "native_result": 727,
+      "result_va": "0x0070B9E6",
+      "inverse_achievement_id": 1223,
+      "inverse_result_va": "0x0057BA59"
+    },
+    {
+      "achievement_id": 1224,
+      "status": "proven",
+      "ordinal": 728,
+      "native_result": 728,
+      "result_va": "0x0070B9EC",
+      "inverse_achievement_id": 1224,
+      "inverse_result_va": "0x0057BA5F"
+    },
+    {
+      "achievement_id": 1225,
+      "status": "proven",
+      "ordinal": 729,
+      "native_result": 729,
+      "result_va": "0x0070B9F2",
+      "inverse_achievement_id": 1225,
+      "inverse_result_va": "0x0057BA65"
+    },
+    {
+      "achievement_id": 1226,
+      "status": "proven",
+      "ordinal": 731,
+      "native_result": 731,
+      "result_va": "0x0070B9FE",
+      "inverse_achievement_id": 1226,
+      "inverse_result_va": "0x0057BA71"
+    },
+    {
+      "achievement_id": 1281,
+      "status": "proven",
+      "ordinal": 707,
+      "native_result": 707,
+      "result_va": "0x0070B96E",
+      "inverse_achievement_id": 1281,
+      "inverse_result_va": "0x0057B9E1"
+    },
+    {
+      "achievement_id": 1282,
+      "status": "proven",
+      "ordinal": 708,
+      "native_result": 708,
+      "result_va": "0x0070B974",
+      "inverse_achievement_id": 1282,
+      "inverse_result_va": "0x0057B9E7"
+    },
+    {
+      "achievement_id": 1283,
+      "status": "proven",
+      "ordinal": 713,
+      "native_result": 713,
+      "result_va": "0x0070B992",
+      "inverse_achievement_id": 1283,
+      "inverse_result_va": "0x0057BA05"
+    },
+    {
+      "achievement_id": 1284,
+      "status": "proven",
+      "ordinal": 715,
+      "native_result": 715,
+      "result_va": "0x0070B99E",
+      "inverse_achievement_id": 1284,
+      "inverse_result_va": "0x0057BA11"
+    },
+    {
+      "achievement_id": 1285,
+      "status": "proven",
+      "ordinal": 722,
+      "native_result": 722,
+      "result_va": "0x0070B9C8",
+      "inverse_achievement_id": 1285,
+      "inverse_result_va": "0x0057BA3B"
+    },
+    {
+      "achievement_id": 1286,
+      "status": "proven",
+      "ordinal": 730,
+      "native_result": 730,
+      "result_va": "0x0070B9F8",
+      "inverse_achievement_id": 1286,
+      "inverse_result_va": "0x0057BA6B"
+    },
+    {
+      "achievement_id": 1287,
+      "status": "proven",
+      "ordinal": 732,
+      "native_result": 732,
+      "result_va": "0x0070BA04",
+      "inverse_achievement_id": 1287,
+      "inverse_result_va": "0x0057BA77"
+    },
+    {
+      "achievement_id": 1300,
+      "status": "proven",
+      "ordinal": 750,
+      "native_result": 750,
+      "result_va": "0x0070BA0A",
+      "inverse_achievement_id": 1300,
+      "inverse_result_va": "0x0057BA7D"
+    },
+    {
+      "achievement_id": 1301,
+      "status": "proven",
+      "ordinal": 751,
+      "native_result": 751,
+      "result_va": "0x0070BA10",
+      "inverse_achievement_id": 1301,
+      "inverse_result_va": "0x0057BA83"
+    },
+    {
+      "achievement_id": 1302,
+      "status": "proven",
+      "ordinal": 752,
+      "native_result": 752,
+      "result_va": "0x0070BA16",
+      "inverse_achievement_id": 1302,
+      "inverse_result_va": "0x0057BA89"
+    },
+    {
+      "achievement_id": 1303,
+      "status": "proven",
+      "ordinal": 753,
+      "native_result": 753,
+      "result_va": "0x0070BA1C",
+      "inverse_achievement_id": 1303,
+      "inverse_result_va": "0x0057BA8F"
+    },
+    {
+      "achievement_id": 1304,
+      "status": "proven",
+      "ordinal": 754,
+      "native_result": 754,
+      "result_va": "0x0070BA22",
+      "inverse_achievement_id": 1304,
+      "inverse_result_va": "0x0057BA95"
+    },
+    {
+      "achievement_id": 1305,
+      "status": "proven",
+      "ordinal": 755,
+      "native_result": 755,
+      "result_va": "0x0070BA28",
+      "inverse_achievement_id": 1305,
+      "inverse_result_va": "0x0057BA9B"
+    },
+    {
+      "achievement_id": 1306,
+      "status": "proven",
+      "ordinal": 756,
+      "native_result": 756,
+      "result_va": "0x0070BA2E",
+      "inverse_achievement_id": 1306,
+      "inverse_result_va": "0x0057BAA1"
+    },
+    {
+      "achievement_id": 1307,
+      "status": "proven",
+      "ordinal": 757,
+      "native_result": 757,
+      "result_va": "0x0070BA34",
+      "inverse_achievement_id": 1307,
+      "inverse_result_va": "0x0057BAA7"
+    },
+    {
+      "achievement_id": 1308,
+      "status": "proven",
+      "ordinal": 758,
+      "native_result": 758,
+      "result_va": "0x0070BA3A",
+      "inverse_achievement_id": 1308,
+      "inverse_result_va": "0x0057BAAD"
+    },
+    {
+      "achievement_id": 1309,
+      "status": "proven",
+      "ordinal": 759,
+      "native_result": 759,
+      "result_va": "0x0070BA40",
+      "inverse_achievement_id": 1309,
+      "inverse_result_va": "0x0057BAB3"
+    },
+    {
+      "achievement_id": 1310,
+      "status": "proven",
+      "ordinal": 760,
+      "native_result": 760,
+      "result_va": "0x0070BA46",
+      "inverse_achievement_id": 1310,
+      "inverse_result_va": "0x0057BAB9"
+    },
+    {
+      "achievement_id": 1400,
+      "status": "proven",
+      "ordinal": 800,
+      "native_result": 800,
+      "result_va": "0x0070BA4C",
+      "inverse_achievement_id": 1400,
+      "inverse_result_va": "0x0057BABF"
+    },
+    {
+      "achievement_id": 1401,
+      "status": "proven",
+      "ordinal": 801,
+      "native_result": 801,
+      "result_va": "0x0070BA52",
+      "inverse_achievement_id": 1401,
+      "inverse_result_va": "0x0057BAC5"
+    },
+    {
+      "achievement_id": 1402,
+      "status": "proven",
+      "ordinal": 802,
+      "native_result": 802,
+      "result_va": "0x0070BA58",
+      "inverse_achievement_id": 1402,
+      "inverse_result_va": "0x0057BACB"
+    },
+    {
+      "achievement_id": 1403,
+      "status": "proven",
+      "ordinal": 803,
+      "native_result": 803,
+      "result_va": "0x0070BA5E",
+      "inverse_achievement_id": 1403,
+      "inverse_result_va": "0x0057BAD1"
+    },
+    {
+      "achievement_id": 1404,
+      "status": "proven",
+      "ordinal": 804,
+      "native_result": 804,
+      "result_va": "0x0070BA64",
+      "inverse_achievement_id": 1404,
+      "inverse_result_va": "0x0057BAD7"
+    },
+    {
+      "achievement_id": 1405,
+      "status": "proven",
+      "ordinal": 805,
+      "native_result": 805,
+      "result_va": "0x0070BA6A",
+      "inverse_achievement_id": 1405,
+      "inverse_result_va": "0x0057BADD"
+    },
+    {
+      "achievement_id": 1406,
+      "status": "proven",
+      "ordinal": 806,
+      "native_result": 806,
+      "result_va": "0x0070BA70",
+      "inverse_achievement_id": 1406,
+      "inverse_result_va": "0x0057BAE3"
+    },
+    {
+      "achievement_id": 1499,
+      "status": "proven",
+      "ordinal": 807,
+      "native_result": 807,
+      "result_va": "0x0070BA76",
+      "inverse_achievement_id": 1499,
+      "inverse_result_va": "0x0057BAE9"
+    },
+    {
+      "achievement_id": 1500,
+      "status": "proven",
+      "ordinal": 820,
+      "native_result": 820,
+      "result_va": "0x0070BA7C",
+      "inverse_achievement_id": 1500,
+      "inverse_result_va": "0x0057BAEF"
+    },
+    {
+      "achievement_id": 1501,
+      "status": "proven",
+      "ordinal": 821,
+      "native_result": 821,
+      "result_va": "0x0070BA82",
+      "inverse_achievement_id": 1501,
+      "inverse_result_va": "0x0057BAF5"
+    },
+    {
+      "achievement_id": 1502,
+      "status": "proven",
+      "ordinal": 822,
+      "native_result": 822,
+      "result_va": "0x0070BA88",
+      "inverse_achievement_id": 1502,
+      "inverse_result_va": "0x0057BAFB"
+    },
+    {
+      "achievement_id": 1503,
+      "status": "proven",
+      "ordinal": 823,
+      "native_result": 823,
+      "result_va": "0x0070BA8E",
+      "inverse_achievement_id": 1503,
+      "inverse_result_va": "0x0057BB01"
+    },
+    {
+      "achievement_id": 1504,
+      "status": "proven",
+      "ordinal": 824,
+      "native_result": 824,
+      "result_va": "0x0070BA94",
+      "inverse_achievement_id": 1504,
+      "inverse_result_va": "0x0057BB07"
+    },
+    {
+      "achievement_id": 1505,
+      "status": "proven",
+      "ordinal": 825,
+      "native_result": 825,
+      "result_va": "0x0070BA9A",
+      "inverse_achievement_id": 1505,
+      "inverse_result_va": "0x0057BB0D"
+    },
+    {
+      "achievement_id": 1506,
+      "status": "proven",
+      "ordinal": 826,
+      "native_result": 826,
+      "result_va": "0x0070BAA0",
+      "inverse_achievement_id": 1506,
+      "inverse_result_va": "0x0057BB13"
+    },
+    {
+      "achievement_id": 1507,
+      "status": "proven",
+      "ordinal": 827,
+      "native_result": 827,
+      "result_va": "0x0070BAA6",
+      "inverse_achievement_id": 1507,
+      "inverse_result_va": "0x0057BB19"
+    },
+    {
+      "achievement_id": 1508,
+      "status": "proven",
+      "ordinal": 828,
+      "native_result": 828,
+      "result_va": "0x0070BAAC",
+      "inverse_achievement_id": 1508,
+      "inverse_result_va": "0x0057BB1F"
+    },
+    {
+      "achievement_id": 1509,
+      "status": "proven",
+      "ordinal": 829,
+      "native_result": 829,
+      "result_va": "0x0070BAB2",
+      "inverse_achievement_id": 1509,
+      "inverse_result_va": "0x0057BB25"
+    },
+    {
+      "achievement_id": 1510,
+      "status": "proven",
+      "ordinal": 830,
+      "native_result": 830,
+      "result_va": "0x0070BAB8",
+      "inverse_achievement_id": 1510,
+      "inverse_result_va": "0x0057BB2B"
+    },
+    {
+      "achievement_id": 1511,
+      "status": "proven",
+      "ordinal": 831,
+      "native_result": 831,
+      "result_va": "0x0070BABE",
+      "inverse_achievement_id": 1511,
+      "inverse_result_va": "0x0057BB31"
+    },
+    {
+      "achievement_id": 1512,
+      "status": "proven",
+      "ordinal": 832,
+      "native_result": 832,
+      "result_va": "0x0070BAC4",
+      "inverse_achievement_id": 1512,
+      "inverse_result_va": "0x0057BB37"
+    },
+    {
+      "achievement_id": 1513,
+      "status": "proven",
+      "ordinal": 833,
+      "native_result": 833,
+      "result_va": "0x0070BACA",
+      "inverse_achievement_id": 1513,
+      "inverse_result_va": "0x0057BB3D"
+    },
+    {
+      "achievement_id": 1514,
+      "status": "proven",
+      "ordinal": 834,
+      "native_result": 834,
+      "result_va": "0x0070BAD0",
+      "inverse_achievement_id": 1514,
+      "inverse_result_va": "0x0057BB43"
+    },
+    {
+      "achievement_id": 1515,
+      "status": "proven",
+      "ordinal": 835,
+      "native_result": 835,
+      "result_va": "0x0070BAD6",
+      "inverse_achievement_id": 1515,
+      "inverse_result_va": "0x0057BB49"
+    },
+    {
+      "achievement_id": 1516,
+      "status": "proven",
+      "ordinal": 836,
+      "native_result": 836,
+      "result_va": "0x0070BADC",
+      "inverse_achievement_id": 1516,
+      "inverse_result_va": "0x0057BB4F"
+    },
+    {
+      "achievement_id": 1517,
+      "status": "proven",
+      "ordinal": 837,
+      "native_result": 837,
+      "result_va": "0x0070BAE2",
+      "inverse_achievement_id": 1517,
+      "inverse_result_va": "0x0057BB55"
+    },
+    {
+      "achievement_id": 1518,
+      "status": "proven",
+      "ordinal": 838,
+      "native_result": 838,
+      "result_va": "0x0070BAE8",
+      "inverse_achievement_id": 1518,
+      "inverse_result_va": "0x0057BB5B"
+    },
+    {
+      "achievement_id": 1519,
+      "status": "proven",
+      "ordinal": 839,
+      "native_result": 839,
+      "result_va": "0x0070BAEE",
+      "inverse_achievement_id": 1519,
+      "inverse_result_va": "0x0057BB61"
+    },
+    {
+      "achievement_id": 1520,
+      "status": "proven",
+      "ordinal": 840,
+      "native_result": 840,
+      "result_va": "0x0070BAF4",
+      "inverse_achievement_id": 1520,
+      "inverse_result_va": "0x0057BB67"
+    },
+    {
+      "achievement_id": 1521,
+      "status": "proven",
+      "ordinal": 841,
+      "native_result": 841,
+      "result_va": "0x0070BAFA",
+      "inverse_achievement_id": 1521,
+      "inverse_result_va": "0x0057BB6D"
+    },
+    {
+      "achievement_id": 1522,
+      "status": "proven",
+      "ordinal": 842,
+      "native_result": 842,
+      "result_va": "0x0070BB00",
+      "inverse_achievement_id": 1522,
+      "inverse_result_va": "0x0057BB73"
+    },
+    {
+      "achievement_id": 1523,
+      "status": "proven",
+      "ordinal": 843,
+      "native_result": 843,
+      "result_va": "0x0070BB06",
+      "inverse_achievement_id": 1523,
+      "inverse_result_va": "0x0057BB79"
+    },
+    {
+      "achievement_id": 1524,
+      "status": "proven",
+      "ordinal": 844,
+      "native_result": 844,
+      "result_va": "0x0070BB0C",
+      "inverse_achievement_id": 1524,
+      "inverse_result_va": "0x0057BB7F"
+    },
+    {
+      "achievement_id": 1525,
+      "status": "proven",
+      "ordinal": 845,
+      "native_result": 845,
+      "result_va": "0x0070BB12",
+      "inverse_achievement_id": 1525,
+      "inverse_result_va": "0x0057BB85"
+    },
+    {
+      "achievement_id": 1526,
+      "status": "proven",
+      "ordinal": 846,
+      "native_result": 846,
+      "result_va": "0x0070BB18",
+      "inverse_achievement_id": 1526,
+      "inverse_result_va": "0x0057BB8B"
+    },
+    {
+      "achievement_id": 1527,
+      "status": "proven",
+      "ordinal": 847,
+      "native_result": 847,
+      "result_va": "0x0070BB1E",
+      "inverse_achievement_id": 1527,
+      "inverse_result_va": "0x0057BB91"
+    },
+    {
+      "achievement_id": 1528,
+      "status": "proven",
+      "ordinal": 848,
+      "native_result": 848,
+      "result_va": "0x0070BB24",
+      "inverse_achievement_id": 1528,
+      "inverse_result_va": "0x0057BB97"
+    },
+    {
+      "achievement_id": 1529,
+      "status": "proven",
+      "ordinal": 849,
+      "native_result": 849,
+      "result_va": "0x0070BB2A",
+      "inverse_achievement_id": 1529,
+      "inverse_result_va": "0x0057BB9D"
+    },
+    {
+      "achievement_id": 1530,
+      "status": "proven",
+      "ordinal": 850,
+      "native_result": 850,
+      "result_va": "0x0070BB30",
+      "inverse_achievement_id": 1530,
+      "inverse_result_va": "0x0057BBA3"
+    },
+    {
+      "achievement_id": 1531,
+      "status": "proven",
+      "ordinal": 851,
+      "native_result": 851,
+      "result_va": "0x0070BB36",
+      "inverse_achievement_id": 1531,
+      "inverse_result_va": "0x0057BBA9"
+    },
+    {
+      "achievement_id": 1532,
+      "status": "proven",
+      "ordinal": 852,
+      "native_result": 852,
+      "result_va": "0x0070BB3C",
+      "inverse_achievement_id": 1532,
+      "inverse_result_va": "0x0057BBAF"
+    },
+    {
+      "achievement_id": 1533,
+      "status": "proven",
+      "ordinal": 853,
+      "native_result": 853,
+      "result_va": "0x0070BB42",
+      "inverse_achievement_id": 1533,
+      "inverse_result_va": "0x0057BBB5"
+    },
+    {
+      "achievement_id": 1534,
+      "status": "proven",
+      "ordinal": 854,
+      "native_result": 854,
+      "result_va": "0x0070BB48",
+      "inverse_achievement_id": 1534,
+      "inverse_result_va": "0x0057BBBB"
+    },
+    {
+      "achievement_id": 1535,
+      "status": "proven",
+      "ordinal": 855,
+      "native_result": 855,
+      "result_va": "0x0070BB4E",
+      "inverse_achievement_id": 1535,
+      "inverse_result_va": "0x0057BBC1"
+    },
+    {
+      "achievement_id": 1536,
+      "status": "proven",
+      "ordinal": 856,
+      "native_result": 856,
+      "result_va": "0x0070BB54",
+      "inverse_achievement_id": 1536,
+      "inverse_result_va": "0x0057BBC7"
+    },
+    {
+      "achievement_id": 1537,
+      "status": "proven",
+      "ordinal": 857,
+      "native_result": 857,
+      "result_va": "0x0070BB5A",
+      "inverse_achievement_id": 1537,
+      "inverse_result_va": "0x0057BBCD"
+    },
+    {
+      "achievement_id": 1538,
+      "status": "proven",
+      "ordinal": 858,
+      "native_result": 858,
+      "result_va": "0x0070BB60",
+      "inverse_achievement_id": 1538,
+      "inverse_result_va": "0x0057BBD3"
+    },
+    {
+      "achievement_id": 1539,
+      "status": "proven",
+      "ordinal": 859,
+      "native_result": 859,
+      "result_va": "0x0070BB66",
+      "inverse_achievement_id": 1539,
+      "inverse_result_va": "0x0057BBD9"
+    },
+    {
+      "achievement_id": 1540,
+      "status": "proven",
+      "ordinal": 860,
+      "native_result": 860,
+      "result_va": "0x0070BB6C",
+      "inverse_achievement_id": 1540,
+      "inverse_result_va": "0x0057BBDF"
+    },
+    {
+      "achievement_id": 1541,
+      "status": "proven",
+      "ordinal": 861,
+      "native_result": 861,
+      "result_va": "0x0070BB72",
+      "inverse_achievement_id": 1541,
+      "inverse_result_va": "0x0057BBE5"
+    },
+    {
+      "achievement_id": 1542,
+      "status": "proven",
+      "ordinal": 862,
+      "native_result": 862,
+      "result_va": "0x0070BB78",
+      "inverse_achievement_id": 1542,
+      "inverse_result_va": "0x0057BBEB"
+    },
+    {
+      "achievement_id": 1543,
+      "status": "proven",
+      "ordinal": 863,
+      "native_result": 863,
+      "result_va": "0x0070BB7E",
+      "inverse_achievement_id": 1543,
+      "inverse_result_va": "0x0057BBF1"
+    },
+    {
+      "achievement_id": 1544,
+      "status": "proven",
+      "ordinal": 864,
+      "native_result": 864,
+      "result_va": "0x0070BB84",
+      "inverse_achievement_id": 1544,
+      "inverse_result_va": "0x0057BBF7"
+    },
+    {
+      "achievement_id": 1545,
+      "status": "proven",
+      "ordinal": 865,
+      "native_result": 865,
+      "result_va": "0x0070BB8A",
+      "inverse_achievement_id": 1545,
+      "inverse_result_va": "0x0057BBFD"
+    },
+    {
+      "achievement_id": 1546,
+      "status": "proven",
+      "ordinal": 866,
+      "native_result": 866,
+      "result_va": "0x0070BB90",
+      "inverse_achievement_id": 1546,
+      "inverse_result_va": "0x0057BC03"
+    },
+    {
+      "achievement_id": 1547,
+      "status": "proven",
+      "ordinal": 867,
+      "native_result": 867,
+      "result_va": "0x0070BB96",
+      "inverse_achievement_id": 1547,
+      "inverse_result_va": "0x0057BC09"
+    },
+    {
+      "achievement_id": 1548,
+      "status": "proven",
+      "ordinal": 868,
+      "native_result": 868,
+      "result_va": "0x0070BB9C",
+      "inverse_achievement_id": 1548,
+      "inverse_result_va": "0x0057BC0F"
+    },
+    {
+      "achievement_id": 1549,
+      "status": "proven",
+      "ordinal": 869,
+      "native_result": 869,
+      "result_va": "0x0070BBA2",
+      "inverse_achievement_id": 1549,
+      "inverse_result_va": "0x0057BC15"
+    },
+    {
+      "achievement_id": 1550,
+      "status": "proven",
+      "ordinal": 870,
+      "native_result": 870,
+      "result_va": "0x0070BBA8",
+      "inverse_achievement_id": 1550,
+      "inverse_result_va": "0x0057BC1B"
+    },
+    {
+      "achievement_id": 1551,
+      "status": "proven",
+      "ordinal": 871,
+      "native_result": 871,
+      "result_va": "0x0070BBAE",
+      "inverse_achievement_id": 1551,
+      "inverse_result_va": "0x0057BC21"
+    },
+    {
+      "achievement_id": 1552,
+      "status": "proven",
+      "ordinal": 872,
+      "native_result": 872,
+      "result_va": "0x0070BBB4",
+      "inverse_achievement_id": 1552,
+      "inverse_result_va": "0x0057BC27"
+    },
+    {
+      "achievement_id": 1553,
+      "status": "proven",
+      "ordinal": 873,
+      "native_result": 873,
+      "result_va": "0x0070BBBA",
+      "inverse_achievement_id": 1553,
+      "inverse_result_va": "0x0057BC2D"
+    },
+    {
+      "achievement_id": 1554,
+      "status": "proven",
+      "ordinal": 874,
+      "native_result": 874,
+      "result_va": "0x0070BBC0",
+      "inverse_achievement_id": 1554,
+      "inverse_result_va": "0x0057BC33"
+    },
+    {
+      "achievement_id": 1555,
+      "status": "proven",
+      "ordinal": 875,
+      "native_result": 875,
+      "result_va": "0x0070BBC6",
+      "inverse_achievement_id": 1555,
+      "inverse_result_va": "0x0057BC39"
+    },
+    {
+      "achievement_id": 1556,
+      "status": "proven",
+      "ordinal": 876,
+      "native_result": 876,
+      "result_va": "0x0070BBCC",
+      "inverse_achievement_id": 1556,
+      "inverse_result_va": "0x0057BC3F"
+    },
+    {
+      "achievement_id": 1557,
+      "status": "proven",
+      "ordinal": 877,
+      "native_result": 877,
+      "result_va": "0x0070BBD2",
+      "inverse_achievement_id": 1557,
+      "inverse_result_va": "0x0057BC45"
+    },
+    {
+      "achievement_id": 1558,
+      "status": "proven",
+      "ordinal": 878,
+      "native_result": 878,
+      "result_va": "0x0070BBD8",
+      "inverse_achievement_id": 1558,
+      "inverse_result_va": "0x0057BC4B"
+    },
+    {
+      "achievement_id": 1559,
+      "status": "proven",
+      "ordinal": 879,
+      "native_result": 879,
+      "result_va": "0x0070BBDE",
+      "inverse_achievement_id": 1559,
+      "inverse_result_va": "0x0057BC51"
+    },
+    {
+      "achievement_id": 1560,
+      "status": "proven",
+      "ordinal": 880,
+      "native_result": 880,
+      "result_va": "0x0070BBE4",
+      "inverse_achievement_id": 1560,
+      "inverse_result_va": "0x0057BC57"
+    },
+    {
+      "achievement_id": 1561,
+      "status": "proven",
+      "ordinal": 881,
+      "native_result": 881,
+      "result_va": "0x0070BBEA",
+      "inverse_achievement_id": 1561,
+      "inverse_result_va": "0x0057BC5D"
+    },
+    {
+      "achievement_id": 1562,
+      "status": "proven",
+      "ordinal": 882,
+      "native_result": 882,
+      "result_va": "0x0070BBF0",
+      "inverse_achievement_id": 1562,
+      "inverse_result_va": "0x0057BC63"
+    },
+    {
+      "achievement_id": 1563,
+      "status": "proven",
+      "ordinal": 883,
+      "native_result": 883,
+      "result_va": "0x0070BBF6",
+      "inverse_achievement_id": 1563,
+      "inverse_result_va": "0x0057BC69"
+    },
+    {
+      "achievement_id": 1564,
+      "status": "proven",
+      "ordinal": 884,
+      "native_result": 884,
+      "result_va": "0x0070BBFC",
+      "inverse_achievement_id": 1564,
+      "inverse_result_va": "0x0057BC6F"
+    },
+    {
+      "achievement_id": 1565,
+      "status": "proven",
+      "ordinal": 885,
+      "native_result": 885,
+      "result_va": "0x0070BC02",
+      "inverse_achievement_id": 1565,
+      "inverse_result_va": "0x0057BC75"
+    },
+    {
+      "achievement_id": 1671,
+      "status": "proven",
+      "ordinal": 886,
+      "native_result": 886,
+      "result_va": "0x0070BC08",
+      "inverse_achievement_id": 1671,
+      "inverse_result_va": "0x0057BC7B"
+    },
+    {
+      "achievement_id": 1672,
+      "status": "proven",
+      "ordinal": 887,
+      "native_result": 887,
+      "result_va": "0x0070BC0E",
+      "inverse_achievement_id": 1672,
+      "inverse_result_va": "0x0057BC81"
+    },
+    {
+      "achievement_id": 1673,
+      "status": "proven",
+      "ordinal": 888,
+      "native_result": 888,
+      "result_va": "0x0070BC14",
+      "inverse_achievement_id": 1673,
+      "inverse_result_va": "0x0057BC87"
+    },
+    {
+      "achievement_id": 1674,
+      "status": "proven",
+      "ordinal": 889,
+      "native_result": 889,
+      "result_va": "0x0070BC1A",
+      "inverse_achievement_id": 1674,
+      "inverse_result_va": "0x0057BC8D"
+    },
+    {
+      "achievement_id": 1675,
+      "status": "proven",
+      "ordinal": 890,
+      "native_result": 890,
+      "result_va": "0x0070BC20",
+      "inverse_achievement_id": 1675,
+      "inverse_result_va": "0x0057BC93"
+    },
+    {
+      "achievement_id": 1676,
+      "status": "proven",
+      "ordinal": 891,
+      "native_result": 891,
+      "result_va": "0x0070BC26",
+      "inverse_achievement_id": 1676,
+      "inverse_result_va": "0x0057BC99"
+    },
+    {
+      "achievement_id": 1677,
+      "status": "proven",
+      "ordinal": 892,
+      "native_result": 892,
+      "result_va": "0x0070BC2C",
+      "inverse_achievement_id": 1677,
+      "inverse_result_va": "0x0057BC9F"
+    },
+    {
+      "achievement_id": 1678,
+      "status": "proven",
+      "ordinal": 893,
+      "native_result": 893,
+      "result_va": "0x0070BC32",
+      "inverse_achievement_id": 1678,
+      "inverse_result_va": "0x0057BCA5"
+    },
+    {
+      "achievement_id": 1679,
+      "status": "proven",
+      "ordinal": 894,
+      "native_result": 894,
+      "result_va": "0x0070BC38",
+      "inverse_achievement_id": 1679,
+      "inverse_result_va": "0x0057BCAB"
+    },
+    {
+      "achievement_id": 1680,
+      "status": "proven",
+      "ordinal": 895,
+      "native_result": 895,
+      "result_va": "0x0070BC3E",
+      "inverse_achievement_id": 1680,
+      "inverse_result_va": "0x0057BCB1"
+    },
+    {
+      "achievement_id": 1681,
+      "status": "proven",
+      "ordinal": 896,
+      "native_result": 896,
+      "result_va": "0x0070BC44",
+      "inverse_achievement_id": 1681,
+      "inverse_result_va": "0x0057BCB7"
+    },
+    {
+      "achievement_id": 1682,
+      "status": "proven",
+      "ordinal": 897,
+      "native_result": 897,
+      "result_va": "0x0070BC4A",
+      "inverse_achievement_id": 1682,
+      "inverse_result_va": "0x0057BCBD"
+    },
+    {
+      "achievement_id": 1683,
+      "status": "proven",
+      "ordinal": 898,
+      "native_result": 898,
+      "result_va": "0x0070BC50",
+      "inverse_achievement_id": 1683,
+      "inverse_result_va": "0x0057BCC3"
+    },
+    {
+      "achievement_id": 1684,
+      "status": "proven",
+      "ordinal": 899,
+      "native_result": 899,
+      "result_va": "0x0070BC56",
+      "inverse_achievement_id": 1684,
+      "inverse_result_va": "0x0057BCC9"
+    },
+    {
+      "achievement_id": 1685,
+      "status": "proven",
+      "ordinal": 900,
+      "native_result": 900,
+      "result_va": "0x0070BC5C",
+      "inverse_achievement_id": 1685,
+      "inverse_result_va": "0x0057BCCF"
+    },
+    {
+      "achievement_id": 1686,
+      "status": "proven",
+      "ordinal": 901,
+      "native_result": 901,
+      "result_va": "0x0070BC62",
+      "inverse_achievement_id": 1686,
+      "inverse_result_va": "0x0057BCD5"
+    },
+    {
+      "achievement_id": 1687,
+      "status": "proven",
+      "ordinal": 902,
+      "native_result": 902,
+      "result_va": "0x0070BC68",
+      "inverse_achievement_id": 1687,
+      "inverse_result_va": "0x0057BCDB"
+    },
+    {
+      "achievement_id": 1688,
+      "status": "proven",
+      "ordinal": 903,
+      "native_result": 903,
+      "result_va": "0x0070BC6E",
+      "inverse_achievement_id": 1688,
+      "inverse_result_va": "0x0057BCE1"
+    },
+    {
+      "achievement_id": 1689,
+      "status": "proven",
+      "ordinal": 904,
+      "native_result": 904,
+      "result_va": "0x0070BC74",
+      "inverse_achievement_id": 1689,
+      "inverse_result_va": "0x0057BCE7"
+    },
+    {
+      "achievement_id": 1690,
+      "status": "proven",
+      "ordinal": 905,
+      "native_result": 905,
+      "result_va": "0x0070BC7A",
+      "inverse_achievement_id": 1690,
+      "inverse_result_va": "0x0057BCED"
+    },
+    {
+      "achievement_id": 1691,
+      "status": "proven",
+      "ordinal": 906,
+      "native_result": 906,
+      "result_va": "0x0070BC80",
+      "inverse_achievement_id": 1691,
+      "inverse_result_va": "0x0057BCF3"
+    },
+    {
+      "achievement_id": 1692,
+      "status": "proven",
+      "ordinal": 907,
+      "native_result": 907,
+      "result_va": "0x0070BC86",
+      "inverse_achievement_id": 1692,
+      "inverse_result_va": "0x0057BCF9"
+    },
+    {
+      "achievement_id": 1693,
+      "status": "proven",
+      "ordinal": 908,
+      "native_result": 908,
+      "result_va": "0x0070BC8C",
+      "inverse_achievement_id": 1693,
+      "inverse_result_va": "0x0057BCFF"
+    },
+    {
+      "achievement_id": 1694,
+      "status": "proven",
+      "ordinal": 909,
+      "native_result": 909,
+      "result_va": "0x0070BC92",
+      "inverse_achievement_id": 1694,
+      "inverse_result_va": "0x0057BD05"
+    },
+    {
+      "achievement_id": 1695,
+      "status": "proven",
+      "ordinal": 910,
+      "native_result": 910,
+      "result_va": "0x0070BC98",
+      "inverse_achievement_id": 1695,
+      "inverse_result_va": "0x0057BD0B"
+    },
+    {
+      "achievement_id": 1696,
+      "status": "proven",
+      "ordinal": 911,
+      "native_result": 911,
+      "result_va": "0x0070BC9E",
+      "inverse_achievement_id": 1696,
+      "inverse_result_va": "0x0057BD11"
+    },
+    {
+      "achievement_id": 1697,
+      "status": "proven",
+      "ordinal": 912,
+      "native_result": 912,
+      "result_va": "0x0070BCA4",
+      "inverse_achievement_id": 1697,
+      "inverse_result_va": "0x0057BD17"
+    },
+    {
+      "achievement_id": 1698,
+      "status": "proven",
+      "ordinal": 913,
+      "native_result": 913,
+      "result_va": "0x0070BCAA",
+      "inverse_achievement_id": 1698,
+      "inverse_result_va": "0x0057BD1D"
+    },
+    {
+      "achievement_id": 1699,
+      "status": "proven",
+      "ordinal": 914,
+      "native_result": 914,
+      "result_va": "0x0070BCB0",
+      "inverse_achievement_id": 1699,
+      "inverse_result_va": "0x0057BD23"
+    },
+    {
+      "achievement_id": 2001,
+      "status": "proven",
+      "ordinal": 954,
+      "native_result": 954,
+      "result_va": "0x0070B6EC",
+      "inverse_achievement_id": 2001,
+      "inverse_result_va": "0x0057B75F"
+    },
+    {
+      "achievement_id": 2006,
+      "status": "proven",
+      "ordinal": 955,
+      "native_result": 955,
+      "result_va": "0x0070B6F2",
+      "inverse_achievement_id": 2006,
+      "inverse_result_va": "0x0057B765"
+    },
+    {
+      "achievement_id": 2011,
+      "status": "proven",
+      "ordinal": 956,
+      "native_result": 956,
+      "result_va": "0x0070B6F8",
+      "inverse_achievement_id": 2011,
+      "inverse_result_va": "0x0057B76B"
+    },
+    {
+      "achievement_id": 2016,
+      "status": "proven",
+      "ordinal": 957,
+      "native_result": 957,
+      "result_va": "0x0070B6FE",
+      "inverse_achievement_id": 2016,
+      "inverse_result_va": "0x0057B771"
+    },
+    {
+      "achievement_id": 2017,
+      "status": "proven",
+      "ordinal": 958,
+      "native_result": 958,
+      "result_va": "0x0070B704",
+      "inverse_achievement_id": 2017,
+      "inverse_result_va": "0x0057B777"
+    },
+    {
+      "achievement_id": 2018,
+      "status": "proven",
+      "ordinal": 959,
+      "native_result": 959,
+      "result_va": "0x0070B70A",
+      "inverse_achievement_id": 2018,
+      "inverse_result_va": "0x0057B77D"
+    },
+    {
+      "achievement_id": 2019,
+      "status": "proven",
+      "ordinal": 960,
+      "native_result": 960,
+      "result_va": "0x0070B710",
+      "inverse_achievement_id": 2019,
+      "inverse_result_va": "0x0057B783"
+    },
+    {
+      "achievement_id": 2020,
+      "status": "proven",
+      "ordinal": 961,
+      "native_result": 961,
+      "result_va": "0x0070B716",
+      "inverse_achievement_id": 2020,
+      "inverse_result_va": "0x0057B789"
+    },
+    {
+      "achievement_id": 2021,
+      "status": "proven",
+      "ordinal": 962,
+      "native_result": 962,
+      "result_va": "0x0070B71C",
+      "inverse_achievement_id": 2021,
+      "inverse_result_va": "0x0057B78F"
+    },
+    {
+      "achievement_id": 2022,
+      "status": "proven",
+      "ordinal": 963,
+      "native_result": 963,
+      "result_va": "0x0070B722",
+      "inverse_achievement_id": 2022,
+      "inverse_result_va": "0x0057B795"
+    },
+    {
+      "achievement_id": 2023,
+      "status": "proven",
+      "ordinal": 964,
+      "native_result": 964,
+      "result_va": "0x0070B728",
+      "inverse_achievement_id": 2023,
+      "inverse_result_va": "0x0057B79B"
+    },
+    {
+      "achievement_id": 2024,
+      "status": "proven",
+      "ordinal": 965,
+      "native_result": 965,
+      "result_va": "0x0070B72E",
+      "inverse_achievement_id": 2024,
+      "inverse_result_va": "0x0057B7A1"
+    },
+    {
+      "achievement_id": 2025,
+      "status": "proven",
+      "ordinal": 966,
+      "native_result": 966,
+      "result_va": "0x0070B734",
+      "inverse_achievement_id": 2025,
+      "inverse_result_va": "0x0057B7A7"
+    },
+    {
+      "achievement_id": 2026,
+      "status": "proven",
+      "ordinal": 967,
+      "native_result": 967,
+      "result_va": "0x0070B73A",
+      "inverse_achievement_id": 2026,
+      "inverse_result_va": "0x0057B7AD"
+    },
+    {
+      "achievement_id": 2027,
+      "status": "proven",
+      "ordinal": 968,
+      "native_result": 968,
+      "result_va": "0x0070B740",
+      "inverse_achievement_id": 2027,
+      "inverse_result_va": "0x0057B7B3"
+    },
+    {
+      "achievement_id": 2028,
+      "status": "proven",
+      "ordinal": 969,
+      "native_result": 969,
+      "result_va": "0x0070B746",
+      "inverse_achievement_id": 2028,
+      "inverse_result_va": "0x0057B7B9"
+    },
+    {
+      "achievement_id": 2029,
+      "status": "proven",
+      "ordinal": 970,
+      "native_result": 970,
+      "result_va": "0x0070B74C",
+      "inverse_achievement_id": 2029,
+      "inverse_result_va": "0x0057B7BF"
+    },
+    {
+      "achievement_id": 2030,
+      "status": "proven",
+      "ordinal": 971,
+      "native_result": 971,
+      "result_va": "0x0070B752",
+      "inverse_achievement_id": 2030,
+      "inverse_result_va": "0x0057B7C5"
+    },
+    {
+      "achievement_id": 2031,
+      "status": "proven",
+      "ordinal": 972,
+      "native_result": 972,
+      "result_va": "0x0070B758",
+      "inverse_achievement_id": 2031,
+      "inverse_result_va": "0x0057B7CB"
+    },
+    {
+      "achievement_id": 2032,
+      "status": "proven",
+      "ordinal": 973,
+      "native_result": 973,
+      "result_va": "0x0070B75E",
+      "inverse_achievement_id": 2032,
+      "inverse_result_va": "0x0057B7D1"
+    },
+    {
+      "achievement_id": 2033,
+      "status": "proven",
+      "ordinal": 974,
+      "native_result": 974,
+      "result_va": "0x0070B764",
+      "inverse_achievement_id": 2033,
+      "inverse_result_va": "0x0057B7D7"
+    },
+    {
+      "achievement_id": 2034,
+      "status": "proven",
+      "ordinal": 975,
+      "native_result": 975,
+      "result_va": "0x0070B76A",
+      "inverse_achievement_id": 2034,
+      "inverse_result_va": "0x0057B7DD"
+    },
+    {
+      "achievement_id": 2035,
+      "status": "proven",
+      "ordinal": 976,
+      "native_result": 976,
+      "result_va": "0x0070B770",
+      "inverse_achievement_id": 2035,
+      "inverse_result_va": "0x0057B7E3"
+    },
+    {
+      "achievement_id": 2036,
+      "status": "proven",
+      "ordinal": 977,
+      "native_result": 977,
+      "result_va": "0x0070B776",
+      "inverse_achievement_id": 2036,
+      "inverse_result_va": "0x0057B7E9"
+    },
+    {
+      "achievement_id": 2037,
+      "status": "proven",
+      "ordinal": 978,
+      "native_result": 978,
+      "result_va": "0x0070B77C",
+      "inverse_achievement_id": 2037,
+      "inverse_result_va": "0x0057B7EF"
+    },
+    {
+      "achievement_id": 2038,
+      "status": "proven",
+      "ordinal": 979,
+      "native_result": 979,
+      "result_va": "0x0070B782",
+      "inverse_achievement_id": 2038,
+      "inverse_result_va": "0x0057B7F5"
+    },
+    {
+      "achievement_id": 2039,
+      "status": "proven",
+      "ordinal": 980,
+      "native_result": 980,
+      "result_va": "0x0070B788",
+      "inverse_achievement_id": 2039,
+      "inverse_result_va": "0x0057B7FB"
+    },
+    {
+      "achievement_id": 2040,
+      "status": "proven",
+      "ordinal": 981,
+      "native_result": 981,
+      "result_va": "0x0070B78E",
+      "inverse_achievement_id": 2040,
+      "inverse_result_va": "0x0057B801"
+    },
+    {
+      "achievement_id": 2041,
+      "status": "proven",
+      "ordinal": 982,
+      "native_result": 982,
+      "result_va": "0x0070B794",
+      "inverse_achievement_id": 2041,
+      "inverse_result_va": "0x0057B807"
+    },
+    {
+      "achievement_id": 2042,
+      "status": "proven",
+      "ordinal": 983,
+      "native_result": 983,
+      "result_va": "0x0070B79A",
+      "inverse_achievement_id": 2042,
+      "inverse_result_va": "0x0057B80D"
+    },
+    {
+      "achievement_id": 2043,
+      "status": "proven",
+      "ordinal": 984,
+      "native_result": 984,
+      "result_va": "0x0070B7A0",
+      "inverse_achievement_id": 2043,
+      "inverse_result_va": "0x0057B813"
+    },
+    {
+      "achievement_id": 2044,
+      "status": "proven",
+      "ordinal": 985,
+      "native_result": 985,
+      "result_va": "0x0070B7A6",
+      "inverse_achievement_id": 2044,
+      "inverse_result_va": "0x0057B819"
+    },
+    {
+      "achievement_id": 2045,
+      "status": "proven",
+      "ordinal": 986,
+      "native_result": 986,
+      "result_va": "0x0070B7AC",
+      "inverse_achievement_id": 2045,
+      "inverse_result_va": "0x0057B81F"
+    },
+    {
+      "achievement_id": 2046,
+      "status": "proven",
+      "ordinal": 987,
+      "native_result": 987,
+      "result_va": "0x0070B7B2",
+      "inverse_achievement_id": 2046,
+      "inverse_result_va": "0x0057B825"
+    },
+    {
+      "achievement_id": 2047,
+      "status": "proven",
+      "ordinal": 988,
+      "native_result": 988,
+      "result_va": "0x0070B7B8",
+      "inverse_achievement_id": 2047,
+      "inverse_result_va": "0x0057B82B"
+    },
+    {
+      "achievement_id": 2048,
+      "status": "proven",
+      "ordinal": 989,
+      "native_result": 989,
+      "result_va": "0x0070B7BE",
+      "inverse_achievement_id": 2048,
+      "inverse_result_va": "0x0057B831"
+    },
+    {
+      "achievement_id": 2049,
+      "status": "proven",
+      "ordinal": 990,
+      "native_result": 990,
+      "result_va": "0x0070B7C4",
+      "inverse_achievement_id": 2049,
+      "inverse_result_va": "0x0057B837"
+    },
+    {
+      "achievement_id": 2050,
+      "status": "proven",
+      "ordinal": 991,
+      "native_result": 991,
+      "result_va": "0x0070B7CA",
+      "inverse_achievement_id": 2050,
+      "inverse_result_va": "0x0057B83D"
+    },
+    {
+      "achievement_id": 2051,
+      "status": "proven",
+      "ordinal": 992,
+      "native_result": 992,
+      "result_va": "0x0070B7D0",
+      "inverse_achievement_id": 2051,
+      "inverse_result_va": "0x0057B843"
+    },
+    {
+      "achievement_id": 2052,
+      "status": "proven",
+      "ordinal": 993,
+      "native_result": 993,
+      "result_va": "0x0070B7D6",
+      "inverse_achievement_id": 2052,
+      "inverse_result_va": "0x0057B849"
+    },
+    {
+      "achievement_id": 2053,
+      "status": "proven",
+      "ordinal": 994,
+      "native_result": 994,
+      "result_va": "0x0070B7DC",
+      "inverse_achievement_id": 2053,
+      "inverse_result_va": "0x0057B84F"
+    },
+    {
+      "achievement_id": 2054,
+      "status": "proven",
+      "ordinal": 995,
+      "native_result": 995,
+      "result_va": "0x0070B7E2",
+      "inverse_achievement_id": 2054,
+      "inverse_result_va": "0x0057B855"
+    },
+    {
+      "achievement_id": 2055,
+      "status": "proven",
+      "ordinal": 996,
+      "native_result": 996,
+      "result_va": "0x0070B7E8",
+      "inverse_achievement_id": 2055,
+      "inverse_result_va": "0x0057B85B"
+    },
+    {
+      "achievement_id": 2056,
+      "status": "proven",
+      "ordinal": 997,
+      "native_result": 997,
+      "result_va": "0x0070B7EE",
+      "inverse_achievement_id": 2056,
+      "inverse_result_va": "0x0057B861"
+    },
+    {
+      "achievement_id": 2057,
+      "status": "proven",
+      "ordinal": 998,
+      "native_result": 998,
+      "result_va": "0x0070B7F4",
+      "inverse_achievement_id": 2057,
+      "inverse_result_va": "0x0057B867"
+    },
+    {
+      "achievement_id": 2058,
+      "status": "proven",
+      "ordinal": 999,
+      "native_result": 999,
+      "result_va": "0x0070B7FA",
+      "inverse_achievement_id": 2058,
+      "inverse_result_va": "0x0057B86D"
+    },
+    {
+      "achievement_id": 2059,
+      "status": "proven",
+      "ordinal": 1000,
+      "native_result": 1000,
+      "result_va": "0x0070B800",
+      "inverse_achievement_id": 2059,
+      "inverse_result_va": "0x0057B873"
+    },
+    {
+      "achievement_id": 2060,
+      "status": "proven",
+      "ordinal": 1001,
+      "native_result": 1001,
+      "result_va": "0x0070B806",
+      "inverse_achievement_id": 2060,
+      "inverse_result_va": "0x0057B879"
+    },
+    {
+      "achievement_id": 2061,
+      "status": "proven",
+      "ordinal": 1002,
+      "native_result": 1002,
+      "result_va": "0x0070B80C",
+      "inverse_achievement_id": 2061,
+      "inverse_result_va": "0x0057B87F"
+    },
+    {
+      "achievement_id": 2062,
+      "status": "proven",
+      "ordinal": 1003,
+      "native_result": 1003,
+      "result_va": "0x0070B812",
+      "inverse_achievement_id": 2062,
+      "inverse_result_va": "0x0057B885"
+    },
+    {
+      "achievement_id": 2063,
+      "status": "proven",
+      "ordinal": 1004,
+      "native_result": 1004,
+      "result_va": "0x0070B818",
+      "inverse_achievement_id": 2063,
+      "inverse_result_va": "0x0057B88B"
+    },
+    {
+      "achievement_id": 2064,
+      "status": "proven",
+      "ordinal": 1005,
+      "native_result": 1005,
+      "result_va": "0x0070B81E",
+      "inverse_achievement_id": 2064,
+      "inverse_result_va": "0x0057B891"
+    },
+    {
+      "achievement_id": 2065,
+      "status": "proven",
+      "ordinal": 1006,
+      "native_result": 1006,
+      "result_va": "0x0070B824",
+      "inverse_achievement_id": 2065,
+      "inverse_result_va": "0x0057B897"
+    },
+    {
+      "achievement_id": 2066,
+      "status": "proven",
+      "ordinal": 1007,
+      "native_result": 1007,
+      "result_va": "0x0070B82A",
+      "inverse_achievement_id": 2066,
+      "inverse_result_va": "0x0057B89D"
+    },
+    {
+      "achievement_id": 2067,
+      "status": "proven",
+      "ordinal": 1008,
+      "native_result": 1008,
+      "result_va": "0x0070B830",
+      "inverse_achievement_id": 2067,
+      "inverse_result_va": "0x0057B8A3"
+    },
+    {
+      "achievement_id": 2068,
+      "status": "proven",
+      "ordinal": 1009,
+      "native_result": 1009,
+      "result_va": "0x0070B836",
+      "inverse_achievement_id": 2068,
+      "inverse_result_va": "0x0057B8A9"
+    },
+    {
+      "achievement_id": 2069,
+      "status": "proven",
+      "ordinal": 1010,
+      "native_result": 1010,
+      "result_va": "0x0070B83C",
+      "inverse_achievement_id": 2069,
+      "inverse_result_va": "0x0057B8AF"
+    },
+    {
+      "achievement_id": 2070,
+      "status": "proven",
+      "ordinal": 1011,
+      "native_result": 1011,
+      "result_va": "0x0070B842",
+      "inverse_achievement_id": 2070,
+      "inverse_result_va": "0x0057B8B5"
+    },
+    {
+      "achievement_id": 2071,
+      "status": "proven",
+      "ordinal": 1012,
+      "native_result": 1012,
+      "result_va": "0x0070B848",
+      "inverse_achievement_id": 2071,
+      "inverse_result_va": "0x0057B8BB"
+    },
+    {
+      "achievement_id": 2072,
+      "status": "proven",
+      "ordinal": 1013,
+      "native_result": 1013,
+      "result_va": "0x0070B84E",
+      "inverse_achievement_id": 2072,
+      "inverse_result_va": "0x0057B8C1"
+    },
+    {
+      "achievement_id": 2073,
+      "status": "proven",
+      "ordinal": 1014,
+      "native_result": 1014,
+      "result_va": "0x0070B854",
+      "inverse_achievement_id": 2073,
+      "inverse_result_va": "0x0057B8C7"
+    },
+    {
+      "achievement_id": 2074,
+      "status": "proven",
+      "ordinal": 1015,
+      "native_result": 1015,
+      "result_va": "0x0070B85A",
+      "inverse_achievement_id": 2074,
+      "inverse_result_va": "0x0057B8CD"
+    },
+    {
+      "achievement_id": 2075,
+      "status": "proven",
+      "ordinal": 1016,
+      "native_result": 1016,
+      "result_va": "0x0070B860",
+      "inverse_achievement_id": 2075,
+      "inverse_result_va": "0x0057B8D3"
+    },
+    {
+      "achievement_id": 2076,
+      "status": "proven",
+      "ordinal": 1017,
+      "native_result": 1017,
+      "result_va": "0x0070B866",
+      "inverse_achievement_id": 2076,
+      "inverse_result_va": "0x0057B8D9"
+    },
+    {
+      "achievement_id": 2077,
+      "status": "proven",
+      "ordinal": 1018,
+      "native_result": 1018,
+      "result_va": "0x0070B86C",
+      "inverse_achievement_id": 2077,
+      "inverse_result_va": "0x0057B8DF"
+    },
+    {
+      "achievement_id": 2078,
+      "status": "proven",
+      "ordinal": 1019,
+      "native_result": 1019,
+      "result_va": "0x0070B872",
+      "inverse_achievement_id": 2078,
+      "inverse_result_va": "0x0057B8E5"
+    },
+    {
+      "achievement_id": 2079,
+      "status": "proven",
+      "ordinal": 1020,
+      "native_result": 1020,
+      "result_va": "0x0070B878",
+      "inverse_achievement_id": 2079,
+      "inverse_result_va": "0x0057B8EB"
+    },
+    {
+      "achievement_id": 2080,
+      "status": "proven",
+      "ordinal": 1021,
+      "native_result": 1021,
+      "result_va": "0x0070B87E",
+      "inverse_achievement_id": 2080,
+      "inverse_result_va": "0x0057B8F1"
+    },
+    {
+      "achievement_id": 2081,
+      "status": "proven",
+      "ordinal": 1022,
+      "native_result": 1022,
+      "result_va": "0x0070B884",
+      "inverse_achievement_id": 2081,
+      "inverse_result_va": "0x0057B8F7"
+    },
+    {
+      "achievement_id": 2082,
+      "status": "proven",
+      "ordinal": 1023,
+      "native_result": 1023,
+      "result_va": "0x0070B88A",
+      "inverse_achievement_id": 2082,
+      "inverse_result_va": "0x0057B8FD"
+    }
+  ]
+}

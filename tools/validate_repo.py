@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 import _schema_check
+import build_achievement_completion_ordinals as achievement_completion_builder
 import build_achievement_title_map as achievement_title_map_builder
 import verify_camera_input_chain as camera_input_verifier
 import verify_chara_lighting_model as chara_lighting_verifier
@@ -400,6 +401,7 @@ def main() -> int:
             f"resource-path producer contract: {error}"
             for error in resource_path_errors
         )
+    achievement_title_map = None
     try:
         achievement_title_map = json.loads(
             (ROOT / "config/achievement_title_map.json").read_text(encoding="utf-8")
@@ -412,6 +414,24 @@ def main() -> int:
         )
     errors.extend(
         f"achievement title map: {error}" for error in achievement_title_errors
+    )
+    try:
+        achievement_completion_map = json.loads(
+            (ROOT / "config/achievement_completion_ordinals.json").read_text(
+                encoding="utf-8"
+            )
+        )
+    except (OSError, ValueError) as exc:
+        achievement_completion_errors = [f"cannot read catalog: {exc}"]
+    else:
+        achievement_completion_errors = (
+            achievement_completion_builder.validate_artifact(
+                achievement_completion_map, achievement_title_map
+            )
+        )
+    errors.extend(
+        f"achievement completion map: {error}"
+        for error in achievement_completion_errors
     )
 
     music_song_errors = (

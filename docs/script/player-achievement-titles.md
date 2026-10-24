@@ -216,6 +216,56 @@ refusal and output drift detection. They establish the artifact contract.
 Recomputing with the pinned inputs establishes this static derivation, not
 client execution, runtime update timing or server behavior.
 
+### Complete achievement completion ordinals
+
+STATIC: [the completion ordinal artifact](../../config/achievement_completion_ordinals.json)
+accounts for all 746 unique IDs in `achievement.csv`, including rows without
+titles. It derives 741 unique ordinals below 1024. Every proven row retains
+the native forward result, its return VA, and the independently evaluated
+inverse achievement ID and return VA. Its 208 title-linked records agree
+exactly with the direct completion records in the title map above.
+
+Rows 1107, 1108, 1109, 1110 and 1221 remain unproven. Each reaches the forward
+default return at VA `0x0070BCB3`, producing zero. Evaluating inverse ordinal
+0 returns achievement 100 at VA `0x0057ABCB`. Each of these five rows therefore
+has `status: unproven_inverse_mismatch` and `ordinal: null`, while retaining
+both native results. Achievement 100 legitimately owns ordinal 0. A null
+ordinal does not establish that the row cannot be completed or awarded by
+the server.
+
+[The generator](../../tools/build_achievement_completion_ordinals.py) reuses
+the title generator's bounded native evaluator. The forward helper starts
+at VA `0x0070AB40`, with its jump table at `0x0070BCB4`. The inverse starts at
+VA `0x0057ABB0`, with 1024 pointer entries at `0x0057BD28`. The exclusive code
+and lookup bounds are listed in the helper table above. For a proven ordinal,
+the completion bit lies at state byte `ordinal // 8`, mask
+`0x80 >> (ordinal % 8)`, within the first `0x80` bytes pointed to by
+`MyPlayer+0x114`. Neither CSV position, reward points nor title eligibility
+supplies the ordinal.
+
+The artifact pins the binary and sheet bytes, the sheet source
+`xivl-client-data:csv/achievement.csv` and its manifest at revision
+`492c0e2701747bf63e91cb7ce419e9743f63c3f5`, and the title artifact used for
+agreement checking. It also records a digest of the complete sorted sheet ID
+set, so asset-free validation detects a substituted ID as well as missing or
+duplicate rows. Run from the repository root with Capstone 5.0.7 installed:
+
+```powershell
+python tools/build_achievement_completion_ordinals.py `
+    --exe "<retail-1.23b-ffxivgame.exe>" `
+    --achievement-csv "<decoded-achievement.csv>" `
+    --check config/achievement_completion_ordinals.json
+python tools/test_achievement_completion_ordinals.py
+```
+
+`--output` writes the deterministic ASCII JSON instead. `--check` requires
+byte-identical output and writes nothing. The integrity helper and focused
+tests require neither retail assets nor Capstone. They check complete sheet
+coverage, unique in-range ordinals, explicit unproven records and title-subset
+agreement. Only recomputation with the pinned retail inputs establishes the
+static native derivation. It does not execute the client or establish server
+award criteria.
+
 ### `_hasAchievementTitle` argument boundary
 
 STATIC: `0x00705BD0` first maps its numeric input through `0x0070F910`.
