@@ -91,6 +91,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Director and quest hierarchy](event/director-quest-hierarchy.md)
 - [EndClientOrderEvent receiver](event/end-order-event-receiver.md)
 - [Group and SharedWork system](event/group-shared-work-system.md)
+- [Group member name getter relationship](event/group-member-name-getters.md)
 - [Grand Company promotion presentation](event/grand-company-promotion.md)
 - [Grand Company approval and state delivery](event/gc-approval-wire-contract.md)
 - [Grand Company mission bytecode branches](event/grand-company-mission-bytecode.md)
