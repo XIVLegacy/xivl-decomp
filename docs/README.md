@@ -354,6 +354,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Widget string call sites](script/widget-string-call-sites.md)
 - [Actions and Traits menu contract](script/actions-traits-menu.md)
 - [Equipment soul-crystal controls](script/equipment-soulstones.md)
+- [Player achievement titles](script/player-achievement-titles.md)
 - [LPB corpus](script/lpb-corpus.md)
 - [LPB format and filename cipher](script/lpb-format.md)
 - [Lua actor class construction](script/lua-actor-class-construction.md)

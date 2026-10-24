@@ -1449,13 +1449,13 @@
    "opcode": "0x134",
    "evidence_class": "packet-builder-data-flow",
    "producer": "tools/ghidra_scripts/DecompileToText.java",
-   "observation": "The function writes opcode 0x134 and body size 0x28, writes its u32 argument at application offset 0 and a u32 helper result at offset 4, generates fifteen ASCII letters plus a trailing NUL in a 16-byte buffer, copies that buffer to offsets 8 through 0x17, and sends through 0x004d6d30.",
+   "observation": "The function writes opcode 0x134 and declared record size 0x28, writes its u32 argument at application offset 0 and a u32 helper result at offset 4, generates fifteen ASCII letters plus a trailing NUL in a 16-byte buffer, copies that buffer to offsets 8 through 0x17, and sends through 0x004d6d30. The MyPlayer _setAchievementTitle implementation at 0x006e6360 stores the selected title at +0xe8 and supplies it to this builder at 0x006e63e7; PE-byte inspection with pefile 2024.8.26 and Capstone 5.0.7 established this caller join.",
    "supported_imported_fields": [
     "kind",
     "opcode"
    ],
    "confidence": "direct opcode, size, field-write, generation-loop, and send-call observation",
-   "ambiguity": "The replacement states the generated field shape without assigning a protocol meaning to either u32 value.",
+   "ambiguity": "The helper-result u32 and generated ASCII field have no established protocol meaning; the first u32 is the selected title ID.",
    "retail_provenance": [
     {
      "binary_sha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",

@@ -435,7 +435,8 @@ The client LuaPlayer and engine PlayerBaseClass APIs serve different VMs:
 - `playerWork.scenarioQuest[]`, `playerWork.guildleveQuest[]`
 - GC state: `playerWork.companyRank`, `playerWork.companySealCount`, etc.
 - NPC LS state: `playerWork.npcLinkshell*`
-- Achievement state: `playerWork.achievementTitle`, etc.
+- The [selected achievement title](../script/player-achievement-titles.md#selected-title-and-lua-api-dispatch)
+  is native `PlayerBase+0xE8`; the local-player availability set is separate.
 - **The combat-command gate is `getQuestContentsCommandPermitFlag`**
   (already documented in `docs/event/director-quest-hierarchy.md`). Setting
   `playerWork.questContentsCommandPermitFlag` on the player work table enables

@@ -161,10 +161,9 @@ returns nil or zero for it is a stand-in and not a client rule.
 The title receiver casts its target to PlayerBase and stores the payload dword
 at `+0xE8` without testing the cast result. The job receiver casts the same way
 and passes the payload byte to `0x00706DC0`. That setter compares the new byte
-with the byte at `+0xF1` and stores it only when they differ. What it does after
-a changed store is documented in
-[Active job and soul-stone state](../actor/job-soulstone-state.md#active-state-and-notification):
-it prepares `_onChangeJob(newJob, oldJob)`.
+with the byte at `+0xF1` and stores it only when they differ. After a changed
+store it prepares `_onChangeJob(newJob, oldJob)`, as detailed in
+[Active job and soul-stone state](../actor/job-soulstone-state.md#active-state-and-notification).
 
 `0x00706D70` adds `0xE8` to its receiver and passes that address to the numeric
 wrapper `0x00584F70`, so `_getAchievementTitle` returns the stored dword as a
@@ -201,6 +200,8 @@ and expose them to the two Lua getters. Apply sign extension to the job byte.
 `_getJob` called on a non-player actor returns nothing and a model must not
 return a stored job there. The [job-state finding](../actor/job-soulstone-state.md#active-state-and-notification)
 records the job byte's zero constructor default and direct initializer write.
+The [title finding](../script/player-achievement-titles.md#selected-title-and-lua-api-dispatch)
+records the title dword's zero default, initializer write and local setter.
 
 ## Not established
 

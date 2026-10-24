@@ -333,13 +333,17 @@ callers.
 | Local kind/opcode | Written size | Direct field observation |
 |---|---:|---|
 | Chat `0xc9` | `0x218` internal record; `0x228` wire subpacket | Writes the selected Group entry token at record `+0x18` and the bounded `0x200`-byte message at `+0x1c`. In the legacy normalized body at subpacket `+0x18`, these are `+0x08` and `+0x0c` after header word `10` and reserved zero. |
-| Zone `0x134` | `0x28` | Writes a supplied u32 at application offset `0`, a helper result at offset `4`, and fifteen generated ASCII letters plus NUL at offsets `8..0x17`. |
+| Zone `0x134` | `0x28` | Writes the selected achievement title ID at application offset `0`, a helper result at offset `4`, and fifteen generated ASCII letters plus NUL at offsets `8..0x17`. |
 | Zone `0x135` | `0x18` | Writes one supplied u32 at application offset `0`. |
 
 Source: observations `WorldChat_selected_group_0x00c9_route`,
 `PacketBuilder_opcode_0x0134_u32PairAndGeneratedAscii16`, and
 `PacketBuilder_opcode_0x0135_singleU32_24B` in
 [`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json).
+
+The [achievement-title setter](../script/player-achievement-titles.md#native-request-and-incoming-state)
+supplies the first u32 to the `0x0134` builder. The copied application data is
+24 bytes; the `0x28` field is the declared internal record size.
 
 ### World Chat selected-group route
 

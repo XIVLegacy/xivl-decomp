@@ -155,8 +155,9 @@ class. `checkJobChange` adds no level, quest, battle, macro or mount test.
 General command admission remains a separate path. The repair branch's macro
 test does not apply to the soul-crystal branch.
 
-The window's `TextBlock_Title` is a context heading, not the player's
-honorific title. `setPlayerName` (`:4677-4687`) writes the name, and
+The window's `TextBlock_Title` is a context heading. The
+[player's honorific title](player-achievement-titles.md) belongs to the Status
+window. `setPlayerName` (`:4677-4687`) writes the name, and
 `updateMainSkillHeader` (`:1856-1893`) supplies class/job and level. No player
 title getter or title-selection consumer appears in this EquipWidget script.
 
