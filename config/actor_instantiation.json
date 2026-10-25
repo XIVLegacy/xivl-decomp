@@ -1,0 +1,1446 @@
+{
+  "format": "xivl-actor-instantiation-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 listings as leads"
+  },
+  "record": {
+    "opcode": "0x00cc",
+    "headerBytes": "0x10",
+    "dispatcherArmVa": "0x004d88e2",
+    "wrapperVa": "0x00574780",
+    "wrapperCallVa": "0x005747fb",
+    "applyVa": "0x00774ad0",
+    "firstDword": {
+      "offset": "0x00",
+      "store": "implementation+0x14, copied without conversion",
+      "meaning": "untraced"
+    },
+    "nameOffset": "0x04",
+    "classOffset": "0x24",
+    "textBytes": 32,
+    "streamOffset": "0x44",
+    "streamBytes": 192,
+    "applicationBytes": 264,
+    "terminatorGuard": {
+      "va": "0x0078fa80",
+      "rule": "The last nonzero byte of the 192-byte stream span must be 0x0f or 0xff.",
+      "failure": "The literal [clientversionerror] is passed to 0x00cc7ea0 and the record submits no request."
+    }
+  },
+  "stream": {
+    "byteOrder": "Multi-byte values are big-endian while 0x0134b368 is zero or negative, and the first read sets a zero to -1.",
+    "steps": [
+      {
+        "step": "path",
+        "reader": "0x0078f8d0",
+        "wire": "tag byte, NUL terminated string",
+        "effect": "script path, not an _onInit argument"
+      },
+      {
+        "step": "control A",
+        "reader": "0x0078f840",
+        "wire": "one byte",
+        "effect": "true only for 0x03, selects immediate creation, passed as the last argument of 0x00774530"
+      },
+      {
+        "step": "control B",
+        "reader": "0x0078f840",
+        "wire": "one byte",
+        "effect": "true only for 0x03, enables the setup bundle"
+      },
+      {
+        "step": "setup bundle",
+        "condition": "control B true",
+        "readers": [
+          "0x0078f8d0",
+          "0x0078f8d0",
+          "0x0078f870",
+          "0x0078fa30",
+          "0x0078f840",
+          "0x0078f840"
+        ],
+        "wire": "string, string, word, tag plus byte, bool byte, bool byte",
+        "effect": "passed to 0x00758810, not an _onInit argument"
+      },
+      {
+        "step": "control C",
+        "reader": "0x0078f840",
+        "wire": "one byte",
+        "effect": "true only for 0x03"
+      },
+      {
+        "step": "word C",
+        "condition": "control C true",
+        "reader": "0x0078f900",
+        "wire": "tag plus 4 bytes",
+        "effect": "stored at +0x4c of the object from 0x0076a3f0"
+      },
+      {
+        "step": "control D",
+        "reader": "0x0078f840",
+        "wire": "one byte",
+        "effect": "true only for 0x03"
+      },
+      {
+        "step": "word D",
+        "condition": "control D true",
+        "reader": "0x0078f870",
+        "wire": "tag plus 4 bytes",
+        "effect": "low byte stored at +0xb6 of the object from 0x0076a3f0, a zero word clears control D"
+      },
+      {
+        "step": "control E",
+        "reader": "0x0078f840",
+        "wire": "one byte",
+        "effect": "true only for 0x03"
+      },
+      {
+        "step": "word E",
+        "condition": "control E true",
+        "reader": "0x0078f870",
+        "wire": "tag plus 4 bytes",
+        "effect": "read and discarded"
+      },
+      {
+        "step": "self block",
+        "condition": "record key equals the self id",
+        "readers": [
+          "0x0078f870"
+        ],
+        "wire": "20 words, each tag plus 4 bytes",
+        "effect": "words 0 to 15 fill the 16-entry vector at profile+4, words 16 to 19 fill profile+0x10, +0x14, +0x18 and +0x1c, profile = owner+0x10c"
+      },
+      {
+        "step": "values",
+        "reader": "0x00790aa0",
+        "wire": "tagged values up to the END tag 0x0f",
+        "effect": "the Lua arguments after self"
+      }
+    ],
+    "tags": {
+      "0x00": "signed 32-bit integer, Lua number",
+      "0x01": "32-bit float, loaded with fld dword at 0x00790786, Lua number",
+      "0x02": "NUL terminated string",
+      "0x03": "true",
+      "0x04": "false",
+      "0x05": "nil",
+      "0x06": "actor key resolved to an instance table, an unresolved key sets the visitor error flag and still appends a null binding in the same argument slot",
+      "0x07": "own visitor slot 0x18, untraced",
+      "0x08": "own visitor slot 0x20 through 0x00793290, untraced",
+      "0x09": "own visitor slot 0x1c, untraced",
+      "0x0a": "tag plus 9 bytes consumed, no Lua value (visitor slot 0x24 is a bare return)",
+      "0x0b": "tag plus 8 bytes consumed, no Lua value (visitor slot 0x28 is a bare return)",
+      "0x0c": "tag plus 1 byte consumed, no Lua value (visitor slot 0x30 is a bare return)",
+      "0x0d": "stop through jump table entry 0x007909b6, no value",
+      "0x0e": "stop through jump table entry 0x007909b6, no value",
+      "0x0f": "END, stops without a value",
+      "0x10-0xff": "stop through the unsigned compare at 0x00790719 and the bound at 0x00790722, no value",
+      "length exhausted": "stop when the remaining length is zero, no value"
+    },
+    "onInitCall": "_onInit(self, v1, ..., vn) with the visitor values in order. The path, the controls, the setup bundle, words C, D and E and the self block are not arguments."
+  },
+  "selfPlayer": {
+    "selfIdGetterVa": "0x004d7490",
+    "selfIdOffset": "0x1783c",
+    "selfIdWriter": {
+      "caseVa": "0x004dcc2c",
+      "storeVa": "0x004d9b11",
+      "previousIdOffset": "0x17840",
+      "source": "the id the dispatcher passes for opcode 0x0002, the wrapped source of the sub-event"
+    },
+    "keyTests": [
+      {
+        "va": "0x00774b52",
+        "effect": "reads the self block of the stream"
+      },
+      {
+        "va": "0x00772cfd",
+        "effect": "registers the native MyPlayer prototype before binding the class"
+      },
+      {
+        "va": "0x0075bbf0",
+        "effect": "admits the candidate in queue state 2"
+      }
+    ],
+    "prototype": {
+      "nameVa": "0x00fd898c",
+      "name": "MyPlayer",
+      "allocationBytes": "0x168",
+      "constructorVa": "0x006f9140",
+      "vtableSlot3Va": "0x00fd7868",
+      "slot3TargetVa": "0x006e3440"
+    },
+    "luaClass": "The class field names the Lua class. No installed script is named MyPlayer.",
+    "currentPlayerSetter": {
+      "va": "0x00758e40",
+      "soleCallerVa": "0x006e3482",
+      "storesAt": "CoreWork+0x0c",
+      "clearsWhenArgumentNull": true
+    },
+    "getMyPlayer": {
+      "callbackVa": "0x00707970",
+      "chain": "[[[context+0x4] via 0x00cc7510]+0x4]+0x0c then 0x00748b30",
+      "returns": "the instance table of the control stored by the setter, nil while it is null"
+    },
+    "isMyPlayer": "PlayerBaseClass.isMyPlayer returns whether worldMaster:_getMyPlayer() is self.",
+    "publishedBefore": "The setter runs from instance creation (0x00cdceb0 through slot 3), before 0x0078bbb0 requests the _onInit thread."
+  },
+  "queue": {
+    "stateOffset": "0x16c",
+    "pendingOffset": "0x2c",
+    "bindKeyOffset": "0x170",
+    "flagOffsets": {
+      "gm": "0x174",
+      "dev": "0x175"
+    },
+    "initial": {
+      "state": 0,
+      "bindKey": "0x0130c778",
+      "gm": 0,
+      "dev": "constructor argument, source untraced"
+    },
+    "passVa": "0x00766f00",
+    "stateVa": "0x007663d0",
+    "states": [
+      {
+        "state": 0,
+        "test": "class equals Debug",
+        "next": 1
+      },
+      {
+        "state": 1,
+        "test": "class equals WorldMaster",
+        "next": 2
+      },
+      {
+        "state": 2,
+        "test": "candidate key equals the self id",
+        "next": 3
+      },
+      {
+        "state": 3,
+        "test": "flag 0x174 clear skips to 5, otherwise class equals CommandDebuggerGM",
+        "next": 5
+      },
+      {
+        "state": 5,
+        "test": "flags 0x174 and 0x175 clear skips to 7, otherwise class equals CommandDebuggerDEV",
+        "next": 4
+      },
+      {
+        "state": 4,
+        "test": "class equals CommandDebuggerTEST",
+        "next": 7
+      },
+      {
+        "state": 7,
+        "test": "path starts with /Area/",
+        "next": 8
+      },
+      {
+        "state": 8,
+        "test": "candidate key equals 0xc0000024",
+        "next": 9
+      },
+      {
+        "state": 9,
+        "test": "bound key 0x170 equals 0xc0000024, then state 10 and the current candidate is committed in the same call",
+        "next": 10
+      },
+      {
+        "state": 10,
+        "test": "any candidate",
+        "next": 10
+      }
+    ],
+    "acceptance": "At the commit label 0x00766748 an owner object at candidate+0x134 must pass 0x00765410, otherwise the previous state is restored.",
+    "immediateGate": "0x00774530 binds at once only when state 0x16c is 10 and control A is true.",
+    "order": "Candidates are appended at the tail and scanned from the head.",
+    "bindKeyStore": "0x00772e0e stores the bound candidate key at +0x170 after 0x007687f0 returns.",
+    "readiness": {
+      "tier": "STATIC",
+      "boundKeyGateVa": "0x007664ae",
+      "boundKeyGate": "In states 0 to 9, when the bound key at +0x170 is not the null key 0x0130c778 and resolves to a control, the pass returns without binding until 0x00cc72a0 reads registry byte +0x7d of that control as nonzero. A key that does not resolve is reset to the null key and the pass continues. State 10 skips the test.",
+      "containerGateVa": "0x00766401",
+      "containerGate": "In every state, each entry of the container at +0x20 (count at +0x28) whose key resolves and passes the same test is erased, and the pass returns without binding while any entry remains. Who fills the container is not traced.",
+      "readyByte": "Registry byte +0x7d is written by 0x00ce1dd0 at 0x00ce1e0b, which 0x00ce26c0 calls with 1 from the init-thread completion at 0x00cce23e. That the completion is the return of the _onInit thread is inferred."
+    }
+  },
+  "creation": {
+    "listenerVa": "0x00772c80",
+    "bindVa": "0x007687f0",
+    "createVa": "0x0078bbb0",
+    "instanceVa": "0x00cdcba0",
+    "publishVa": "0x00cd7970",
+    "steps": [
+      "0x00cc7800 enters 0x00cdcba0, which returns null when the class record of the class field is absent or not valid",
+      "0x00cdcba0 publishes the name field as a global",
+      "0x00cdcba0 clones the instance and 0x00ce2440 calls its slot 3, which for the MyPlayer prototype stores the current player",
+      "0x0078bbb0 runs the optional initializer callback",
+      "0x00cc7ad0 requests the init thread",
+      "0x00cd0910 queues _onInit with the value vector"
+    ],
+    "nameRule": "An empty name makes an unnamed instance. A first character outside a to z and the underscore is reported through 0x00cd55a0 and creation continues.",
+    "globalRule": "globals[name] is set to the instance table when globals[name] is nil, and an existing global makes the creation return null.",
+    "initWait": "0x0078bbb0 requests the _onInit thread and does not wait for it. In queue states 0 to 9 the next candidate is held until the registry byte +0x7d of the last bound control is set at init completion, so Debug, WorldMaster, the player, the area master and the local DesktopWidget each finish initialization before the next is bound. State 10 does not wait."
+  },
+  "desktopWidget": {
+    "requestVa": "0x00774700",
+    "key": "0xc0000024",
+    "path": "/Widget/DesktopWidget",
+    "class": "DesktopWidget",
+    "name": "desktopWidget",
+    "values": [],
+    "trigger": "The self branch of 0x00774ad0 ensures the 0xc0000024 element, resolves the DesktopWidget class record and passes it to 0x004d87c0, which reaches 0x00774700. The conditions inside 0x00774700 are untraced.",
+    "onInit": "_onInit(self) with no further arguments"
+  },
+  "getStaticActor": {
+    "callbackVa": "0x006dcdf0",
+    "bodyVa": "0x0078cc30",
+    "contractManifest": "xivl-client-structs:manifests/boot_native_call_contract.json rows _getStaticActor",
+    "classTable": "xivl-client-data:manifests/staticactor_class_paths.json",
+    "worldMasterArgument": 310001,
+    "worldMasterClassPath": "/Judge/JudgeMaster",
+    "instanceName": "_static%X, X the low 20 bits of the identity",
+    "records": "No s2c 0x00cc record creates a static actor."
+  },
+  "observed": {
+    "corpus": "xivl-captures:sources/pcap-1.23b/manifest.yaml",
+    "lane": "main connection 0, s2c",
+    "records": 831,
+    "selfRecords": 12,
+    "captures": [
+      {
+        "capture": "combat_autoattack.pcapng",
+        "sha256": "2f677ab61047b25c4168a3dd9496f372d48de3bba018d582dd5a968b9272f7b2",
+        "records": 5,
+        "selfRecords": 0
+      },
+      {
+        "capture": "from_gridania_to_blackshroud.pcapng",
+        "sha256": "eff300de679230653953ea3399939a15ce9d6aeafd202c7ebcf5f55e6d24930f",
+        "records": 27,
+        "selfRecords": 1
+      },
+      {
+        "capture": "gather_wood.pcapng",
+        "sha256": "c308aa4c984eb3e1912383c06e5115c6924713978df43cdb8075335e1bac7d32",
+        "records": 2,
+        "selfRecords": 0
+      },
+      {
+        "capture": "gridania_to_coerthas.pcapng",
+        "sha256": "63152a1ed6e446df5cc4750fe50a0839f9e45ad270c79abfc72b5c09cc47e547",
+        "records": 232,
+        "selfRecords": 3
+      },
+      {
+        "capture": "local_leve_complete.pcapng",
+        "sha256": "4f0793f354140478725bf2c30642a3458a854460f47fb11a7af635c8881d95cd",
+        "records": 2,
+        "selfRecords": 0
+      },
+      {
+        "capture": "login.pcapng",
+        "sha256": "28e06b54fe559870031f077f8549b9244caafa7e5177dbca08a7feae6c2b1b62",
+        "records": 10,
+        "selfRecords": 1
+      },
+      {
+        "capture": "move_around_gridania.pcapng",
+        "sha256": "bea7ae86444fa3ef9acc08f148f60dff1e5992188ee85136dec50c64e09236d0",
+        "records": 33,
+        "selfRecords": 0
+      },
+      {
+        "capture": "move_out_of_room.pcapng",
+        "sha256": "a7a03a1d688f3feb264f8da9fae3519c55b7e267aa3802472f0221f4d729b37b",
+        "records": 53,
+        "selfRecords": 1
+      },
+      {
+        "capture": "moving_around_gridania.pcapng",
+        "sha256": "bf6abf7ccc7a16e071846036477c1fadbc3b46385ef6e747b543d836f3f51017",
+        "records": 281,
+        "selfRecords": 2
+      },
+      {
+        "capture": "party_battle_leve.pcapng",
+        "sha256": "6327e5e1f5cbd51a9baaa9bcbacf53ca51c50a98fe4b66ae3e6bdecd9198089f",
+        "records": 108,
+        "selfRecords": 0
+      },
+      {
+        "capture": "return_to_inn.pcapng",
+        "sha256": "9a81e483d3dd2673081afef06ed521c190c4d42be16e95e24097f25ff81f58c1",
+        "records": 10,
+        "selfRecords": 1
+      },
+      {
+        "capture": "small_talk_louisoix.pcapng",
+        "sha256": "58b620d90370ba69202e63f7f70edb79004ccbb8068e11e2e112a825d84dcafe",
+        "records": 1,
+        "selfRecords": 0
+      },
+      {
+        "capture": "teleport_to_camp_nine_ivies.pcapng",
+        "sha256": "fac2b485608247d299a406a7065e19918789118e7e544ca85cec4d772da0e3ab",
+        "records": 15,
+        "selfRecords": 1
+      },
+      {
+        "capture": "teleport_to_camp_tranquil.pcapng",
+        "sha256": "488318351cdedb2e2b650dc68c55014b160fbbc26753c200922402c1ba6c4dd7",
+        "records": 19,
+        "selfRecords": 1
+      },
+      {
+        "capture": "teleport_to_gridania.pcapng",
+        "sha256": "779141dc79a4bcf4bfc2e265f8b9510607d5a6b6e78d32f8940e5a847e598fa0",
+        "records": 13,
+        "selfRecords": 1
+      },
+      {
+        "capture": "war_quest_update2.pcapng",
+        "sha256": "bf43b5ee32c58e5dc6f8149b071bd9c5cd5cc0aaa55ea3528872308fd7be2429",
+        "records": 18,
+        "selfRecords": 0
+      },
+      {
+        "capture": "war_quest_update3.pcapng",
+        "sha256": "52279e8cbc13d3f4751b5ee3cb9c91df1895ed5c41d30672629db3ec1c9efd05",
+        "records": 2,
+        "selfRecords": 0
+      }
+    ],
+    "applicationBytes": 264,
+    "parsedToEnd": 831,
+    "controlPatterns": {
+      "4,4,4,4,4": 793,
+      "4,4,4,4,3": 13,
+      "4,3,4,4,4": 13,
+      "4,4,4,3,4": 12
+    },
+    "selfBlock": {
+      "word0": "1351666115 in all 12",
+      "words1to15": "0",
+      "words16to19": "1356861720, 0, 1356867785 or 1356919135, 0"
+    },
+    "loginOrder": [
+      "0x0002",
+      "Player",
+      "Debug",
+      "WorldMaster",
+      "AfterQuestWarpDirector",
+      "ZoneMasterPrvI0",
+      "ObjectBed",
+      "PopulaceCutScenePlayer",
+      "ObjectItemStorage",
+      "ObjectInnDoor",
+      "PopulaceStandard"
+    ],
+    "classes": [
+      {
+        "class": "Player",
+        "path": "/Chara/Player/Player_work",
+        "records": 14,
+        "selfRecords": 12,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            3,
+            4
+          ],
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "T": 14
+        }
+      },
+      {
+        "class": "Debug",
+        "path": "/System/Debug.prog",
+        "records": 13,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            3
+          ]
+        ],
+        "valueTypes": {
+          "TT": 13
+        }
+      },
+      {
+        "class": "WorldMaster",
+        "path": "/World/WorldMaster_event",
+        "records": 13,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "n": 13
+        }
+      },
+      {
+        "class": "WeatherDirector",
+        "path": "/Director/Weather/WeatherDirector",
+        "records": 11,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "i": 11
+        }
+      },
+      {
+        "class": "AfterQuestWarpDirector",
+        "path": "/Director/AfterQuestWarpDirector",
+        "records": 13,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "i": 13
+        }
+      },
+      {
+        "class": "ZoneMasterFstF0",
+        "path": "/Area/Zone/ZoneMasterFstF0",
+        "records": 9,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            3,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "TFF": 9
+        }
+      },
+      {
+        "class": "ZoneMasterPrvI0",
+        "path": "/Area/Zone/ZoneMasterPrvI0",
+        "records": 2,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            3,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "TFF": 2
+        }
+      },
+      {
+        "class": "ZoneMasterRocR0",
+        "path": "/Area/Zone/ZoneMasterRocR0",
+        "records": 1,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            3,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "TFF": 1
+        }
+      },
+      {
+        "class": "ZoneMasterWilW0",
+        "path": "/Area/Zone/ZoneMasterWilW0",
+        "records": 1,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            3,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "TFF": 1
+        }
+      },
+      {
+        "class": "PrivateGLBattleOrbNormal",
+        "path": "/Director/Guildleve/PrivateGLBattleOrbNormal",
+        "records": 1,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iiiiii": 1
+        }
+      },
+      {
+        "class": "PopulaceStandard",
+        "path": "/Chara/Npc/Populace/PopulaceStandard",
+        "records": 269,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iFFiii": 162,
+          "iFFiis": 98,
+          "iTFiiiTFFFFFFFis": 7,
+          "iTFiiiTFFFFFFFii": 2
+        }
+      },
+      {
+        "class": "PopulaceShopSalesman",
+        "path": "/Chara/Npc/Populace/Shop/PopulaceShopSalesman",
+        "records": 57,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iFFiis": 18,
+          "iFFiii": 39
+        }
+      },
+      {
+        "class": "MonkeyLesserStandard",
+        "path": "/Chara/Npc/Monster/Monkey/MonkeyLesserStandard",
+        "records": 54,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iTTiiiTFFTTFFFi": 54
+        }
+      },
+      {
+        "class": "HareStandard",
+        "path": "/Chara/Npc/Monster/Lemming/HareStandard",
+        "records": 53,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iTTiiiTFFFFFFFi": 53
+        }
+      },
+      {
+        "class": "DoorStandard",
+        "path": "/Chara/Npc/MapObj/DoorStandard",
+        "records": 10,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iFFiiii": 10
+        }
+      },
+      {
+        "class": "MiningPoint",
+        "path": "/Chara/Npc/Object/MiningPoint",
+        "records": 37,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iFFiis": 37
+        }
+      },
+      {
+        "class": "ObjectBed",
+        "path": "/Chara/Npc/Object/ObjectBed",
+        "records": 2,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iFFiis": 2
+        }
+      },
+      {
+        "class": "TaskBoard",
+        "path": "/Chara/Npc/Object/TaskBoard",
+        "records": 4,
+        "selfRecords": 0,
+        "controls": [
+          [
+            4,
+            4,
+            4,
+            4,
+            4
+          ]
+        ],
+        "valueTypes": {
+          "iFFiis": 4
+        }
+      }
+    ]
+  },
+  "contract": [
+    "Parse the application as name at 0x04, class at 0x24 and the stream at 0x44 and refuse a stream whose last nonzero byte is not 0x0f or 0xff.",
+    "Read the stream in the order of the step list, with control A..E interleaved with their words as listed.",
+    "Treat a record as the self player when its key equals the id of the s2c 0x0002 sub-event, and only then read the 20-word self block.",
+    "Queue every record and create the instances in the queue order, not the arrival order.",
+    "Create the instance of the class field and set globals[name] to its instance table before _onInit is queued.",
+    "For the self record store the instance as the current player at creation, before its _onInit is queued.",
+    "Queue _onInit(self, v1..vn) from the visitor values only and run it as a coroutine. Hold the next creation in queue states 0 to 9 until the previous instance's _onInit has completed, so worldMaster's _onInit has finished before Player._onInit starts. Creation after the first state-10 bind does not wait.",
+    "Create the DesktopWidget instance with key 0xc0000024, name desktopWidget and no arguments after the area master's _onInit has completed.",
+    "Create the DesktopWidget instance with key 0xc0000024, name desktopWidget and no arguments once the area record is created.",
+    "Resolve _getStaticActor(n) from the static actor class table, create the instance named _static%X on demand and yield until it exists."
+  ],
+  "open": [
+    {
+      "label": "CALIBRATION",
+      "text": "The source of the constructor flag at +0x175 is untraced, the queue takes it false."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The owner readiness test 0x00765410 at the commit label is untraced, the queue takes it true."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The conditions inside 0x00774700 that build the DesktopWidget request are untraced."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The visitor slots of value tags 0x07 to 0x09 are untraced and no retail 0x00cc record carries them."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "No retail 0x00cc record carries tag 0x01, so the float reading of that tag is not exercised."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The initial value of CoreWork+0x0c is untraced."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The consumers of the self block words and of the setup bundle are untraced."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "What the zone-in teardown does with earlier instances and their globals is untraced. A later self record whose _pc<id> global still exists makes 0x00cd7970 return null at 0x00cd79ad instead of publishing."
+    },
+    {
+      "label": "INFERRED",
+      "text": "That the context read by _getMyPlayer is the one that published the current player is inferred."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "Who fills the waiting container at +0x20 that the queue drains before it binds is untraced."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The Lua value of a null actor binding (tag 0x06 with an unresolved key) is untraced."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "Whether an _onInit that raises an error still reaches the completion that sets registry byte +0x7d is untraced."
+    }
+  ],
+  "staticChecks": [
+    {
+      "name": "dispatcher 0xcc arm calls the wrapper",
+      "kind": "signature",
+      "va": "0x004d88e2",
+      "pattern": "8b8e8000000085c9c68692000000000f84c40200008b968800000083c7105752e879be09005f5ec20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "dispatcher case 2 factory and self id store",
+      "kind": "signature",
+      "va": "0x004dcc2c",
+      "pattern": "8b5508526a088bcfe887c4ffff8bf08b4508508bcfe83acdffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "self id getter",
+      "kind": "signature",
+      "va": "0x004d7490",
+      "pattern": "8b813c780100c3",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "self id store",
+      "kind": "signature",
+      "va": "0x004d9b05",
+      "pattern": "8b8e3c780100898e4078010089ae3c780100",
+      "mask": "ffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "wrapper casts and calls the actor record apply",
+      "kind": "signature",
+      "va": "0x005747a2",
+      "pattern": "8bf18b066a0068100b270168900a27016a0050e8125f460083c41485c075508b066a0068d40a270168900a27016a0050e8f55e46008bf88b44243083c414508d4c2420e8364b7500c7442414000000008b4c24205651508bcfe8d0022000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply self key compare",
+      "kind": "signature",
+      "va": "0x00774b39",
+      "pattern": "e8d22955008b088b41048b308b0e8b3f89442440e83e29d6ff3bf80f8580000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply stores the first application dword",
+      "kind": "signature",
+      "va": "0x00774bda",
+      "pattern": "8b45008b7c24403947147403894714",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply name and class strings",
+      "kind": "signature",
+      "va": "0x00774be9",
+      "pattern": "8b0d9872f600518d5504528d8c24e8010000e86026cdffc784244002000001000000a19872f600508d4d24518d8c2440010000e83f26cdff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply reader over the stream",
+      "kind": "signature",
+      "va": "0x00774c29",
+      "pattern": "68c000000083c544558d4c2430e8d5ab0100",
+      "mask": "ffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply terminator guard",
+      "kind": "signature",
+      "va": "0x00774c43",
+      "pattern": "8d4c2428e834ae010084c075458b159872f60052",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply path and first two controls",
+      "kind": "signature",
+      "va": "0x00774cc7",
+      "pattern": "e804ac01008bc8e86dab01008bc8e866ab0100385c241b",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply optional bundle reads",
+      "kind": "signature",
+      "va": "0x00774d48",
+      "pattern": "e883ab01008bc8e87cab01008bc8e815ab01008bc8e8ceac01008bc8e8d7aa01008bc8e8d0aa0100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply third control and word",
+      "kind": "signature",
+      "va": "0x00774dc9",
+      "pattern": "8d4c242c885c241ce86aaa0100385c241874538b1578c730018d442424508d4c242c89542428e80cab0100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply fourth control and byte write",
+      "kind": "signature",
+      "va": "0x00774e33",
+      "pattern": "8d442416508d4c242c885c241ae8fba90100385c241674358d4c241c518d4c242c895c2420e813aa01008b54241c8bcd89542420e88455ffff8a4c24208888b6000000395c241c7504885c2416",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply fifth control and discarded word",
+      "kind": "signature",
+      "va": "0x00774e80",
+      "pattern": "8d542419528d4c242c885c241de8aea90100385c241974128d442420508d4c242c895c2424e8c6a90100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply self sixteen word loop",
+      "kind": "signature",
+      "va": "0x00774eb4",
+      "pattern": "8bbf0c01000033f68d6424008d4c2424518d4c242c895c2428e89ea901008b4f043bcb8b6c2424740c8b47082bc1c1f8023bf07205e8c6d325008b5704892cb283c60183fe107cc4",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply self four word tail",
+      "kind": "signature",
+      "va": "0x00774efc",
+      "pattern": "8d442434508d4c243c518d4c2430895c2440895c243ce859a901008bc8e852a901008b5424388957108b4424348d4c241c518947148d4c242c895c2420e832a901008b54241c8d442420895718508d4c242c895c2424e819a901008b4c24208b6c2430894f1c8b7c2440",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply value vector and visitor",
+      "kind": "signature",
+      "va": "0x00774f82",
+      "pattern": "8d542450528d4c2464e8902efdff",
+      "mask": "ffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply visitor call",
+      "kind": "signature",
+      "va": "0x00774fda",
+      "pattern": "8d4c2460518d54242c52508d4c2426e8b2ba0100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply self flag write",
+      "kind": "signature",
+      "va": "0x00774fee",
+      "pattern": "385c24178bb7d8000000740d385c24167407c6867401000001",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "apply submission call",
+      "kind": "signature",
+      "va": "0x007750a6",
+      "pattern": "c6842460020000128bcee87bf4ffff",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "control reader",
+      "kind": "signature",
+      "va": "0x0078f840",
+      "pattern": "8bc18b08803903538b5c2408560f94c28d7004578b3e83c10185f68813740583c7ff893e5f5e89085bc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "visitor bare return",
+      "kind": "signature",
+      "va": "0x00776340",
+      "pattern": "c20400",
+      "mask": "ffffff"
+    },
+    {
+      "name": "numeric reader byte order",
+      "kind": "signature",
+      "va": "0x00791cf0",
+      "pattern": "8b4424048b0d68b3340183c00185c9750cc70568b33401ffffffffeb027d1d0fb650038b4c240c88110fb650028851010fb650018851020fb610eb1b0fb6108b4c240c88110fb650018851010fb650028851020fb650038851038b4c241085c974098b54240883c2fb891183c004c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string reader",
+      "kind": "signature",
+      "va": "0x00791ca0",
+      "pattern": "8b4c240c568b74240883c60156e80e6dcbff33c038067413eb068d9b0000000083c60183c001803e0075f58b4c241483c60185c9740b8b54240c2bd083ea0289118bc65ec3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "byte reader",
+      "kind": "signature",
+      "va": "0x0078fa30",
+      "pattern": "8bc18b108a4a01538b5c24085683c2018d700485f6578b3e880b740583c7fe893e5f83c2015e89105bc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "terminator guard",
+      "kind": "signature",
+      "va": "0x0078fa80",
+      "pattern": "8b410483e8018b1178118d9b00000000803c1000750883e80179f532c0c38a04103cff74043c0f75f2b001c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "visitor decoder float arm",
+      "kind": "signature",
+      "va": "0x00790779",
+      "pattern": "578d4c2434515550e86a150000d94424408903d95c240c8b168b420c83c40c8bceffd0",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "visitor decoder dispatch",
+      "kind": "signature",
+      "va": "0x00790704",
+      "pattern": "8d7b048b2f8b030fbe1033c93be9740583fa0f760383caff83c20183fa100f878e020000ff2495e0097900",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue constructor state fields",
+      "kind": "signature",
+      "va": "0x00773ab4",
+      "pattern": "899e6c010000a178c73001898670010000c6442418068a4c2424889e74010000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue immediate arm gate",
+      "kind": "signature",
+      "va": "0x007745a3",
+      "pattern": "83be6c0100000a0f859400000080bc24e0010000000f8486000000578d542424528d4c241f",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 0",
+      "kind": "signature",
+      "va": "0x00766511",
+      "pattern": "683489fd008d4f58e842f8cdff84c00f843f020000c7866c01000001000000e913020000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 1",
+      "kind": "signature",
+      "va": "0x00766535",
+      "pattern": "683c89fd008d4f58e81ef8cdff84c00f841b020000c7866c01000002000000e9ef010000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 2",
+      "kind": "signature",
+      "va": "0x00766559",
+      "pattern": "8d4e04e8af0f56008b178b008b48048b09895424148d54241452e87856ffff84c00f84e5010000c7866c01000003000000e9b9010000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 3",
+      "kind": "signature",
+      "va": "0x0076658f",
+      "pattern": "80be74010000007524c7866c0100000500000032c08b8c248800000064890d00000000595f5e5b8be55dc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 5",
+      "kind": "signature",
+      "va": "0x007665e0",
+      "pattern": "80be7401000000752d80be75010000007524c7866c0100000700000032c08b8c248800000064890d00000000595f5e5b8be55dc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 4",
+      "kind": "signature",
+      "va": "0x0076663a",
+      "pattern": "687089fd008d4f58e819f7cdff84c00f8416010000c7866c01000007000000e9ea000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 7",
+      "kind": "signature",
+      "va": "0x0076665e",
+      "pattern": "a19872f60050688489fd008d4c2438e8ee0bceffc7842490000000000000008d4c2430518d97ac00000052e822c5faff83c4088ad8c7842490000000ffffffff8d4c2430e8a908ceff84db0f84b6000000c7866c01000008000000e98a000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 8",
+      "kind": "signature",
+      "va": "0x007666be",
+      "pattern": "68240000c08d4c241ce8542c5600c7842490000000010000008b0f3b080f94c3c7842490000000ffffffff8d4c2418e83e2c560084db746fc7866c01000009000000eb46",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue state 9",
+      "kind": "signature",
+      "va": "0x00766702",
+      "pattern": "68240000c08d4c2424e8102c5600c7842490000000020000008b96700100003b100f94c3c7842490000000ffffffff8d4c2420e8f62b560084db7427c7866c0100000a000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue commit and rollback",
+      "kind": "signature",
+      "va": "0x00766748",
+      "pattern": "8b8f3401000085c9742de8b9ecffff84c075248b44242889866c01000032c08b8c248800000064890d00000000595f5e5b8be55dc204008d4e303bf974df897e2c5681c7ac000000578d4e04e8570f5600b0018b8c248800000064890d00000000595f5e5b8be55dc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue waiting container readiness loop",
+      "kind": "signature",
+      "va": "0x00766401",
+      "pattern": "8b462885c00f84a20000008b4e248b398d46208bd88bc1897c242c895c24288944242485db74078d46203bd87405e880be26003b7c2424746a85db7505e871be26003b7b047505e867be26008d4f0c8d5e04518bcbe8f515560085c07432508bcbe8390e560084c074268b5c24288d4c2428e8b8a1cbff57538d542420528d4e20e8d9bfe1ff8b7c242c8b5c2428eb938d4c2428e896a1cbff8b7c242c8b5c2428eb80837e28000f85b7020000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "queue bound key readiness gate",
+      "kind": "signature",
+      "va": "0x007664ae",
+      "pattern": "83be6c0100000a743d8b86700100003b0578c730018d9e7001000074298d7e04538bcfe87a15560085c0750a8b0d78c73001890beb10508bcfe8b40d560084c00f8471020000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "registry readiness byte reader",
+      "kind": "signature",
+      "va": "0x00cc72a0",
+      "pattern": "8b4424048b0950e8840701008a407dc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "self key test of the queue",
+      "kind": "signature",
+      "va": "0x0075bbf0",
+      "pattern": "8b09e899b8d7ff8b54240433c939020f94c18ac1c20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "pending listener self branch",
+      "kind": "signature",
+      "va": "0x00772cf8",
+      "pattern": "e89347d6ff3be80f85bc000000688c89fd008d4c2424e8ad5ccdff8b462c83c058508bcfe8bf4b55006868010000e80aee250083c404",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "pending listener prototype and register",
+      "kind": "signature",
+      "va": "0x00772d40",
+      "pattern": "e8fb63f8ffeb0233c0889c24800000008b4e2c83c158518d542424528944241cb20288942488000000518b4c24208bc4895c2420896424248908c684248c000000038894248c0000008bcf",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "pending listener records the bound key",
+      "kind": "signature",
+      "va": "0x00772dfc",
+      "pattern": "8b1089542414c6842480000000048b442414898670010000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "create sequence",
+      "kind": "signature",
+      "va": "0x0078bbf0",
+      "pattern": "e80bbc53008b8c248c00000085c98bf074088b018b500456ffd268d87e3701568d442414508bcf",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "create then init thread then onInit",
+      "kind": "signature",
+      "va": "0x0078bc17",
+      "pattern": "e8b4be5300c7442470000000008b0d9872f6005168f004fe008d4c241ce827b6cbffc6442470018b942488000000528d44241850568d4c2418e8bb4c5400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "init thread completion call",
+      "kind": "signature",
+      "va": "0x00cce22a",
+      "pattern": "668b4614663b05d8ce30018d6e1475098b560c52e87d440100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "init completion entry",
+      "kind": "signature",
+      "va": "0x00ce26c0",
+      "pattern": "b8010000005088818000000088417e8b44240850e8f7f6ffffc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "activation stores the ready byte",
+      "kind": "signature",
+      "va": "0x00ce1df4",
+      "pattern": "8a467e84c08a4c2420740884c97404b201eb0232d284c9884e7d",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "instance named creation",
+      "kind": "signature",
+      "va": "0x00cdccd2",
+      "pattern": "8b17803a00c784240801000000000000751368fcd430018bcee8a0a9ffff8bf8e9cf000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "instance name first character",
+      "kind": "signature",
+      "va": "0x00cdcd70",
+      "pattern": "e8db2d7fff8038617c106a008d4c2438e8cb2d7fff80387a7e1c6a008d4c2438e8bb2d7fff80385f740c8b8ecc01000057e8fa87ffff5768fcd430018bce",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "instance slot 3 hook",
+      "kind": "signature",
+      "va": "0x00cdcead",
+      "pattern": "568bcfe88b550000",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "global existence test",
+      "kind": "signature",
+      "va": "0x00cd7982",
+      "pattern": "8d7708558bcee8b3b901008bcee8bcc001006aff8bcee8c3bd010084c06a018bce0f94c3e8b5be010084db74095f5e5d33c05bc20800",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "global publication",
+      "kind": "signature",
+      "va": "0x00cd79ce",
+      "pattern": "8b4424148b088d7708518bcee8e1b801008bcee8cac00100538bcee8d2b801006afe8bcee869ba0100558bcee841b901006afe8bcee878b901008bcee861c001006a028bcee848be0100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "globals index helpers",
+      "kind": "signature",
+      "va": "0x00cf3a50",
+      "pattern": "8b0168eed8ffff50e803aa0d0083c408c3",
+      "mask": "ffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "MyPlayer slot 3",
+      "kind": "signature",
+      "va": "0x006e3474",
+      "pattern": "8bcfe895405e008b008b48045356e8b9590700",
+      "mask": "ffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "current player setter",
+      "kind": "signature",
+      "va": "0x00758e40",
+      "pattern": "8b44240485c0750e89410ca178c73001894110c208008b54240889410c8b02894110c20800",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "_getMyPlayer callback",
+      "kind": "signature",
+      "va": "0x00707970",
+      "pattern": "568b7424088b4e04e893fb5b008b008b48048b510c8d442408508d4c240c518b4e1c89542410e8951104005ec20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "local desktop widget key",
+      "kind": "signature",
+      "va": "0x007747f0",
+      "pattern": "68240000c08d4c2418e8224b5500",
+      "mask": "ffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "local desktop widget empty vector",
+      "kind": "signature",
+      "va": "0x0077485b",
+      "pattern": "c684247401000007508d4c2444",
+      "mask": "ffffffffffffffffffffffffff"
+    },
+    {
+      "name": "local desktop widget submission",
+      "kind": "signature",
+      "va": "0x00774955",
+      "pattern": "8d8424dc000000508d4424305088942494010000e8c2fbffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string Debug",
+      "kind": "string",
+      "va": "0x00fd8934",
+      "text": "Debug"
+    },
+    {
+      "name": "string WorldMaster",
+      "kind": "string",
+      "va": "0x00fd893c",
+      "text": "WorldMaster"
+    },
+    {
+      "name": "string CommandDebuggerGM",
+      "kind": "string",
+      "va": "0x00fd8948",
+      "text": "CommandDebuggerGM"
+    },
+    {
+      "name": "string CommandDebuggerDEV",
+      "kind": "string",
+      "va": "0x00fd895c",
+      "text": "CommandDebuggerDEV"
+    },
+    {
+      "name": "string CommandDebuggerTEST",
+      "kind": "string",
+      "va": "0x00fd8970",
+      "text": "CommandDebuggerTEST"
+    },
+    {
+      "name": "string /Area/",
+      "kind": "string",
+      "va": "0x00fd8984",
+      "text": "/Area/"
+    },
+    {
+      "name": "string MyPlayer",
+      "kind": "string",
+      "va": "0x00fd898c",
+      "text": "MyPlayer"
+    },
+    {
+      "name": "string clientversionerror",
+      "kind": "string",
+      "va": "0x00fdf510",
+      "text": "[clientversionerror]"
+    },
+    {
+      "name": "string DesktopWidget path",
+      "kind": "string",
+      "va": "0x00fdf4c8",
+      "text": "/Widget/DesktopWidget"
+    },
+    {
+      "name": "string DesktopWidget class",
+      "kind": "string",
+      "va": "0x00fdf4e0",
+      "text": "DesktopWidget"
+    },
+    {
+      "name": "string desktopWidget name",
+      "kind": "string",
+      "va": "0x00fdf4f0",
+      "text": "desktopWidget"
+    },
+    {
+      "name": "string onInit",
+      "kind": "string",
+      "va": "0x00fe04f0",
+      "text": "_onInit"
+    },
+    {
+      "name": "queue state jump table",
+      "kind": "dwords",
+      "va": "0x007667b4",
+      "values": [
+        "0x00766511",
+        "0x00766535",
+        "0x00766559",
+        "0x0076658f",
+        "0x0076663a",
+        "0x007665e0",
+        "0x00766765",
+        "0x0076665e",
+        "0x007666be",
+        "0x00766702",
+        "0x00766748"
+      ]
+    },
+    {
+      "name": "MyPlayer vtable slot 3",
+      "kind": "dwords",
+      "va": "0x00fd7868",
+      "values": [
+        "0x006e3440"
+      ]
+    },
+    {
+      "name": "tag decoder jump table",
+      "kind": "dwords",
+      "va": "0x007909e0",
+      "values": [
+        "0x007909b6",
+        "0x00790757",
+        "0x00790779",
+        "0x007907a1",
+        "0x0079072f",
+        "0x0079072f",
+        "0x0079081e",
+        "0x0079084b",
+        "0x00790870",
+        "0x007908de",
+        "0x007908a9",
+        "0x0079092f",
+        "0x00790961",
+        "0x0079098e",
+        "0x007909b6",
+        "0x007909b6",
+        "0x007909b6"
+      ]
+    },
+    {
+      "name": "visitor vtable",
+      "kind": "dwords",
+      "va": "0x00fe1178",
+      "values": [
+        "0x007927b0",
+        "0x00793cf0",
+        "0x00793430",
+        "0x00793d00",
+        "0x00793d10",
+        "0x00793d20",
+        "0x00793db0",
+        "0x00792610",
+        "0x00793ed0",
+        "0x00776340",
+        "0x00776340",
+        "0x00794100",
+        "0x00776340"
+      ]
+    }
+  ]
+}
