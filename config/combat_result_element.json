@@ -686,7 +686,22 @@
    "setterSpecialValue": 50,
    "helperVa": "0x00587580",
    "helperConstant": 35.0,
-   "rule": "the container-selected element must cast to the character element type and lie closer than the radius"
+   "rule": "the container-selected element must cast to the character element type and lie closer than the radius",
+   "radiusRead": {
+    "loadVa": "0x00588e9d",
+    "type": "unsigned 32-bit",
+    "correctionConstantVa": "0x00f54a54",
+    "correctionConstant": 4294967296.0
+   },
+   "compare": {
+    "va": "0x005876aa",
+    "passesWhen": "radius greater than distance",
+    "distanceComponents": 3
+   },
+   "setterStore": {
+    "va": "0x005859d2",
+    "value": "low dword of the toward-zero truncated 64-bit integer"
+   }
   },
   "eventCodeOffset": "0x15",
   "busCallVa": "0x004d7980"
@@ -825,7 +840,52 @@
   "widgets": [
    "Window_PlayerProfileWidget",
    "Window_ChainBonusEffectWidget"
-  ]
+  ],
+  "soundTable": {
+   "va": "0x01270ba4",
+   "count": 30,
+   "stride": 2,
+   "scanVa": "0x005859fe",
+   "ids": [
+    "0x846d",
+    "0x8471",
+    "0x8472",
+    "0x8473",
+    "0x8479",
+    "0x847b",
+    "0x8481",
+    "0x8482",
+    "0x84d1",
+    "0x84d2",
+    "0x847f",
+    "0x848e",
+    "0x848f",
+    "0x8490",
+    "0x8491",
+    "0x8492",
+    "0x8493",
+    "0x8494",
+    "0x8495",
+    "0x8499",
+    "0x849a",
+    "0x849b",
+    "0x849c",
+    "0x849d",
+    "0x849e",
+    "0x849f",
+    "0x84a0",
+    "0x84a1",
+    "0x84a2",
+    "0x84a3"
+   ],
+   "localActorGetterVa": "0x004d7490",
+   "hitReturns": "false unless the row target equals the actor returned by 0x004d7490",
+   "missContinuesVa": "0x00585a17",
+   "playIds": [
+    "0x8475",
+    "0x846e"
+   ]
+  }
  },
  "plates": {
   "listBuilderVa": "0x00795630",
@@ -893,7 +953,22 @@
    "Label_DamageDisplay:TextBlock_Number_3",
    "Label_DamageDisplay:TextBlock_Number_2",
    "Label_DamageDisplay:TextBlock_Number_1"
-  ]
+  ],
+  "effectZero": {
+   "loadVa": "0x007956d4",
+   "branchVa": "0x007956e5",
+   "returnVa": "0x007967a2",
+   "rowEffectOffset": "0x40",
+   "rowStride": "0x14",
+   "kindDecodeVa": "0x007956ed",
+   "preBranchCalls": [
+    "0x00794f30",
+    "0x00794ee0",
+    "0x004d86b0",
+    "0x004d9970"
+   ],
+   "resumeVa": "0x0058c387"
+  }
  },
  "scans": {
   "callSites": [
@@ -1103,10 +1178,12 @@
    "Treat a row with text ID 0 as inert: no log line, no plate and no selector change",
    "Route each drained record by class: copy it to the bucket ring, post scene command 3 for class 0 and 4 otherwise with 0x38 + 0x14 * rows bytes, and drop classes above 25",
    "At drain time, for classes 6 to 10 inside the range gate, emit the header log line from the control halfword and clear the halfword",
+   "Skip the rest of a row when its text ID is in the 30-ID sound table of the message sound filter and its target is not the actor returned by 0x004D7490",
    "Emit one log line per row as the 14-argument tuple, in row order, after the message sound filter of the sound effect page",
-   "Create one plate per row from the kind in effect ID bits 27 to 30, anchored on the source for kinds 7 to 10 and on the row target otherwise, showing the low five decimal digits of the numeric value in a ring of five slots per element",
+   "Create one plate per row whose own effect ID is nonzero, with the kind in its bits 27 to 30, anchored on the source for kinds 7 to 10 and on the row target otherwise, showing the low five decimal digits of the numeric value in a ring of five slots per element",
    "Take the plate gate as four host booleans: container override pointer set, configuration option (2, 5), global pointer set and global byte clear",
-   "Run the row pass only for classes 6 to 10 inside the range gate, because 0x0058CA80 runs 0x0058C220 for no other class"
+   "Run the row pass only for classes 6 to 10 inside the range gate, because 0x0058CA80 runs 0x0058C220 for no other class",
+   "Pass the range gate only when the radius, read as an unsigned 32-bit integer and converted to a float, is strictly greater than the three-component distance (the unit stays CALIBRATION)"
   ],
   "blocked": [
    "The publisher of event 0x59, so the frame on which rows run is an AUTHORED choice until a publisher is found",
@@ -1270,6 +1347,18 @@
    "section": "drain"
   },
   {
+   "id": "range-radius",
+   "tier": "STATIC",
+   "claim": "The range gate reads the radius dword at element +0xAA8 as an unsigned 32-bit value (0x00588E9D loads a signed integer and adds 2 to the 32nd power when the sign is set), and 0x005875A0 passes only when that radius is strictly greater than the three-component distance between the two elements",
+   "section": "drain"
+  },
+  {
+   "id": "range-radius-store",
+   "tier": "STATIC",
+   "claim": "The radius setter 0x00585930 stores the low dword of the toward-zero truncated float as a 64-bit integer when its mode byte is 0, and stores 50 for five element kinds when the mode byte is 1",
+   "section": "drain"
+  },
+  {
    "id": "header-line",
    "tier": "STATIC",
    "claim": "A nonzero control halfword is sent to the logger as a text ID with zero target, numeric value, effect ID and parameter, then cleared",
@@ -1318,6 +1407,18 @@
    "section": "row-processing"
   },
   {
+   "id": "sound-table",
+   "tier": "STATIC",
+   "claim": "The sound filter 0x005859F0 compares the text ID with 30 u16 values at 0x01270BA4, which include 0x847F, 0x848E to 0x8495 and 0x8499 to 0x84A3 and exclude 0x75B1, 0x75B4, 0x846E and 0x8475",
+   "section": "row-processing"
+  },
+  {
+   "id": "sound-table-drop",
+   "tier": "STATIC",
+   "claim": "A table hit returns false unless the row target equals the actor ID returned by 0x004D7490, which skips the rest of the row (special routes, default log line, post call and selector update), while a miss or a matching target goes on to the 0x8475 and 0x846E sound tests and returns true",
+   "section": "row-processing"
+  },
+  {
    "id": "log-arguments",
    "tier": "STATIC",
    "claim": "The default log call passes 14 arguments to 0x005759A0 in the listed order",
@@ -1345,6 +1446,12 @@
    "id": "plate-anchor",
    "tier": "STATIC",
    "claim": "Effect ID bits 27 to 30 give the kind, and kinds 7 to 10 anchor the plate on the record source and every other kind on the row target",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-effect-zero",
+   "tier": "STATIC",
+   "claim": "The plate routine 0x00795630 reloads the row effect ID from record +0x40 plus 0x14 times the row at 0x007956D4 and, when it is 0, branches at 0x007956E5 to the epilogue 0x007967A2 before its inline kind decode at 0x007956ED and the layout jump table, so a row with effect ID 0 gets no plate and the row pass goes on to the sound filter",
    "section": "damage-plate"
   },
   {
@@ -2352,6 +2459,13 @@
    "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
   },
   {
+   "name": "plate pre-branch calls",
+   "kind": "signature",
+   "va": "0x0079569d",
+   "pattern": "57 53 8b ce e8 8a f8 ff ff 57 53 8b ce 89 44 24 74 e8 2d f8 ff ff 8b 4e 08 8b e8 e8 f3 2f d4 ff 8b 46 04 8b 4e 08 50 e8 a7 42 d4 ff 85 ed 0f 84 d1 10 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
    "name": "plate row inputs",
    "kind": "signature",
    "va": "0x007956d1",
@@ -2550,6 +2664,122 @@
    "va": "0x005759d7",
    "pattern": "8b 9c 24 88 00 00 00 66 3b dd 0f 86 86 02 00 00",
    "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate epilogue",
+   "kind": "signature",
+   "va": "0x007967a2",
+   "pattern": "8b 8c 24 f8 01 00 00 64 89 0d 00 00 00 00 59 5f 5e 5d 5b 8b 8c 24 e0 01 00 00 33 cc e8 31 b9 23 00 81 c4 f0 01 00 00 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "radius unsigned read",
+   "kind": "signature",
+   "va": "0x00588e97",
+   "pattern": "8b 8e a8 0a 00 00 db 86 a8 0a 00 00 85 c9 7d 06 d8 05 54 4a f5 00 51 d9 1c 24 56 50 8b ce e8 e6 e6 ff ff 5e 59 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "unsigned conversion constant",
+   "kind": "dwords",
+   "va": "0x00f54a54",
+   "values": [
+    "0x4f800000"
+   ]
+  },
+  {
+   "name": "range gate radius argument",
+   "kind": "signature",
+   "va": "0x0058760c",
+   "pattern": "f3 0f 10 55 10",
+   "mask": "ff ff ff ff ff"
+  },
+  {
+   "name": "range gate radius move",
+   "kind": "signature",
+   "va": "0x00587664",
+   "pattern": "0f 57 c9 f3 0f 10 ca f3 0f 11 44 24 3c 0f 28 44 24 30 0f 29 4c 24 20",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "range gate result",
+   "kind": "signature",
+   "va": "0x005876ae",
+   "pattern": "76 0a b0 01 5f 5e 8b e5 5d c2 0c 00 5f 32 c0 5e 8b e5 5d c2 0c 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "radius setter truncation",
+   "kind": "signature",
+   "va": "0x005859b0",
+   "pattern": "d9 44 24 10 d9 7c 24 14 0f b7 44 24 14 0d 00 0c 00 00 89 44 24 10 d9 6c 24 10 df 7c 24 04 8b 44 24 04 89 87 a8 0a 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "message sound table scan",
+   "kind": "signature",
+   "va": "0x005859fe",
+   "pattern": "b3 01 33 c0 66 3b a8 a4 0b 27 01 8b 74 24 24 74 5d 83 c0 02 83 f8 3c 72 eb 66 81 fd 75 84 75 66",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "message sound table hit",
+   "kind": "signature",
+   "va": "0x00585a6c",
+   "pattern": "8b 4f 7c e8 1c 1a f5 ff 3b f0 74 9f 5f 5e 5d 32 c0 5b 83 c4 10 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "message sound true return",
+   "kind": "signature",
+   "va": "0x00585ae1",
+   "pattern": "5f 5e 5d 8a c3 5b 83 c4 10 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "message sound table",
+   "kind": "dwords",
+   "va": "0x01270ba4",
+   "width": 2,
+   "values": [
+    "0x846d",
+    "0x8471",
+    "0x8472",
+    "0x8473",
+    "0x8479",
+    "0x847b",
+    "0x8481",
+    "0x8482",
+    "0x84d1",
+    "0x84d2",
+    "0x847f",
+    "0x848e",
+    "0x848f",
+    "0x8490",
+    "0x8491",
+    "0x8492",
+    "0x8493",
+    "0x8494",
+    "0x8495",
+    "0x8499",
+    "0x849a",
+    "0x849b",
+    "0x849c",
+    "0x849d",
+    "0x849e",
+    "0x849f",
+    "0x84a0",
+    "0x84a1",
+    "0x84a2",
+    "0x84a3"
+   ]
+  },
+  {
+   "name": "message sound local actor getter",
+   "kind": "signature",
+   "va": "0x004d7490",
+   "pattern": "8b 81 3c 78 01 00 c3",
+   "mask": "ff ff ff ff ff ff ff"
   }
  ]
 }

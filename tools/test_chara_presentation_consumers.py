@@ -439,6 +439,84 @@ def main() -> int:
         all(verifier.turn_class(real, d) == c for d, c in bounds),
     )
     check(
+        "the class difference is the target minus the current angle",
+        verifier.turn_difference(real, 0x000200, 0x000100) == 0x000100
+        and verifier.turn_difference(real, 0x000100, 0x000200) == 0xFFFF00
+        and verifier.turn_difference(real, 0x000100, 0xFFFF00) == 0x000200
+        and verifier.turn_class(
+            real, verifier.turn_difference(real, 0x000200, 0x000100)
+        )
+        == -1
+        and verifier.turn_class(
+            real, verifier.turn_difference(real, 0x000100, 0x000200)
+        )
+        == 1,
+    )
+    rule = verifier.turn_difference_rule(real)
+    check(
+        "the routine bytes give the difference, the unwrap and the stores",
+        rule is not None
+        and rule["difference"] == "target minus current, masked to 24 bits"
+        and rule["startOffset"] == "0x1b0"
+        and rule["targetOffset"] == "0x1b4",
+    )
+    swapped_pushes = copy.deepcopy(real)
+    for item in swapped_pushes["staticChecks"]:
+        if item["name"] == "turn angle class":
+            item["pattern"] = item["pattern"].replace("2b 44 24 08", "2b 44 24 04", 1)
+    check(
+        "a reversed subtraction is reported",
+        verifier.turn_difference_rule(swapped_pushes) is None
+        and "turn class operands or unwrap disagree with the routine bytes"
+        in verifier.verify_sections_only(swapped_pushes),
+    )
+    circle = 0x1000000
+    unwraps = {
+        (0x000200, 0x000100): (-1, 0x000200),
+        (0x000100, 0xFFFF00): (-1, 0x000100 + circle),
+        (0xFFFF00, 0x000100): (1, 0xFFFF00 - circle),
+        (0x000100, 0x000200): (1, 0x000100),
+        (0x800100, 0x000100): (-3, 0x800100),
+        (0x000100, 0x800100): (-3, 0x000100 + circle),
+        (0x400000, 0x400000): (-1, 0x400000),
+    }
+    check(
+        "the target is unwrapped to the side the class names",
+        all(
+            verifier.turn_unwrap(real, target, current) == expected
+            for (target, current), expected in unwraps.items()
+        ),
+    )
+    walk = 0x2545F4
+    shortest = True
+    for _ in range(2000):
+        walk = (walk * 1103515245 + 12345) & 0x7FFFFFFF
+        target = walk & 0xFFFFFF
+        walk = (walk * 1103515245 + 12345) & 0x7FFFFFFF
+        current = walk & 0xFFFFFF
+        turn_kind, unwrapped = verifier.turn_unwrap(real, target, current)
+        delta = unwrapped - current
+        shortest &= (turn_kind < 0) == (delta >= 0) and abs(delta) <= circle // 2
+        shortest &= (unwrapped - current) % circle == (target - current) % circle
+    check(
+        "every unwrapped turn takes the shorter way round for a current angle in range",
+        shortest,
+    )
+    # the signed compares apply the raw rule to an unmasked current angle
+    off_range = verifier.turn_unwrap(real, 0xFFFF00, -0x100)
+    check(
+        "a current angle below 0 gets the raw rule and the long way round",
+        off_range == (-1, 0xFFFF00) and off_range[1] - -0x100 == circle,
+    )
+    check(
+        "the chase stores the current angle unmasked and two other writers mask it",
+        verifier.angle_writers(real)
+        == {
+            "maskedVas": ["0x007a4b31", "0x007a7de3"],
+            "unmaskedVas": ["0x007ab0aa", "0x007ab0c1", "0x007ab0d4"],
+        },
+    )
+    check(
         "a turn back without a saved heading posts at once",
         verifier.turn_back_posts(real, 0x123456, 0, False),
     )
