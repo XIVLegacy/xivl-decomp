@@ -1,0 +1,1943 @@
+{
+  "format": 1,
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections"
+  },
+  "setter": {
+    "va": "0x00537de0",
+    "receiverClass": "Application::Main::Element::FormElement",
+    "receiverVtableVa": "0x00fa1200",
+    "stackArguments": 4,
+    "arguments": [
+      "part name",
+      "property name",
+      "value string",
+      "request id"
+    ],
+    "partGate": {
+      "recordLookupVa": "0x00535690",
+      "partLookupVa": "0x00537950",
+      "zeroIdRecordField": "0x2c"
+    },
+    "nameMatch": {
+      "literal": "Anime",
+      "literalVa": "0x00fa06e8",
+      "idStaticVa": "0x01336b1c",
+      "idFieldVa": "0x01336b24",
+      "internVa": "0x009108e0",
+      "hashVa": "0x009107a0",
+      "upperVa": "0x009db9ed",
+      "hash": "CRC-32 of the upper-cased bytes"
+    },
+    "keySwap": {
+      "literal": "UIElement.Execute",
+      "literalVa": "0x00fa06f0",
+      "staticVa": "0x01336b08"
+    },
+    "rewrite": {
+      "from": "Show",
+      "fromVa": "0x00fa0704",
+      "to": "ShowInactive",
+      "toVa": "0x00fa070c",
+      "equalsVa": "0x00445d60",
+      "assignVa": "0x004489c0"
+    },
+    "gate": {
+      "receiverOffset": "0x9c",
+      "passValue": 1,
+      "literal": "ShowInactive",
+      "literalVa": "0x00fa071c",
+      "differsVa": "0x00445e00",
+      "scope": "every property"
+    },
+    "engine": {
+      "va": "0x00912850",
+      "flag": 0
+    }
+  },
+  "pickup": {
+    "builderVa": "0x005354d0",
+    "commandConstructorVa": "0x0053bc30",
+    "processorVtableVa": "0x00fa0bac",
+    "processorRtti": "Application::Main::Element::SetPropertyProcessor",
+    "slots": [
+      {
+        "slot": 1,
+        "va": "0x005425b0",
+        "type": "int",
+        "format": "%d"
+      },
+      {
+        "slot": 2,
+        "va": "0x00542680",
+        "type": "bool",
+        "format": "True or False"
+      },
+      {
+        "slot": 3,
+        "va": "0x00542710",
+        "type": "string",
+        "format": "as given"
+      },
+      {
+        "slot": 4,
+        "va": "0x00542730",
+        "type": "one float",
+        "format": "%f"
+      },
+      {
+        "slot": 5,
+        "va": "0x00542800",
+        "type": "two floats",
+        "format": "%f,%f"
+      },
+      {
+        "slot": 6,
+        "va": "0x005428f0",
+        "type": "four floats",
+        "format": "%f,%f,%f,%f"
+      }
+    ]
+  },
+  "receiverFlag": {
+    "offset": "0x9c",
+    "initial": 1,
+    "constructorVa": "0x0053af60",
+    "storeVa": "0x0053afd9",
+    "vtableVa": "0x00fa1200"
+  },
+  "executeProperty": {
+    "nameVa": "0x010783b4",
+    "descriptorVa": "0x0135ff80",
+    "initVa": "0x00f275c0",
+    "infoVa": "0x0135ffa4",
+    "infoTableVa": "0x01078610",
+    "getterVa": "0x0095e690",
+    "setterVa": "0x0095f6b0",
+    "registrationVa": "0x00991fdb",
+    "storeVa": "0x0095e500",
+    "differsVa": "0x00445db0",
+    "assignVa": "0x009364d0",
+    "notifyVa": "0x0095dce0",
+    "thunkVa": "0x0095d890",
+    "callbackVa": "0x0092df20",
+    "changeHandlerVa": "0x0093bd80",
+    "default": "empty string",
+    "wrapperVa": "0x0095e830",
+    "resolverVa": "0x00916310",
+    "sentinelVa": "0x01356da8",
+    "referenceMask": "0x40",
+    "changedMask": "0x04",
+    "sentinelMask": "0x10",
+    "precedenceMasks": [
+      "0x01",
+      "0x02"
+    ]
+  },
+  "dispatch": {
+    "prefix": "ApplicationCommands.",
+    "prefixVa": "0x0106c200",
+    "joinVa": "0x0044ab90",
+    "lookupVa": "0x00928280",
+    "registryVa": "0x01358728",
+    "nameField": "0x24",
+    "equalsVa": "0x00445d20",
+    "recordBuilderVa": "0x004ddcf0",
+    "recordArgument": 0,
+    "commandSlot": 2,
+    "commandSlotVa": "0x00927fa0",
+    "commandRtti": "Sqwt::Input::RoutedCommand",
+    "targetOffset": "0xb4"
+  },
+  "events": {
+    "args": {
+      "constructorVa": "0x00929100",
+      "handledPointer": "0x10",
+      "handledByte": "0x19",
+      "command": "0x1c",
+      "recordInteger0": "0x7c",
+      "text": "0x28"
+    },
+    "preview": {
+      "name": "PreviewExecuted",
+      "id": "0x29",
+      "strategy": 2,
+      "static": "0x0135872c"
+    },
+    "executed": {
+      "name": "Executed",
+      "id": "0x2a",
+      "strategy": 0,
+      "static": "0x01358738"
+    },
+    "shown": {
+      "id": "0x47",
+      "static": "0x013573b0"
+    },
+    "hiding": {
+      "id": "0x49",
+      "static": "0x013573c8"
+    }
+  },
+  "window": {
+    "className": "Sqwt::Window",
+    "secondaryOffset": "0xb4",
+    "vtableVa": "0x01069f94",
+    "executedSlot": 65,
+    "executedOffset": "0x104",
+    "handlerVa": "0x00926320",
+    "baseHandlerVa": "0x0092d1f0",
+    "dispatchVa": "0x0091d320",
+    "dispatchJumpTableVa": "0x0091d760",
+    "dispatchByteTableVa": "0x0091d818",
+    "forwardVa": "0x00922030",
+    "chain": [
+      "0x00922030",
+      "0x00935380",
+      "0x00938ba0",
+      "0x0092d060",
+      "0x00939800",
+      "0x0091d320"
+    ]
+  },
+  "commands": [
+    {
+      "name": "Show",
+      "nameVa": "0x0106a37c",
+      "objectVa": "0x01357648"
+    },
+    {
+      "name": "ShowInactive",
+      "nameVa": "0x0106a398",
+      "objectVa": "0x013576e8"
+    },
+    {
+      "name": "Hide",
+      "nameVa": "0x0106a3bc",
+      "objectVa": "0x01357788"
+    },
+    {
+      "name": "Close",
+      "nameVa": "0x0106a3d8",
+      "objectVa": "0x01357828"
+    },
+    {
+      "name": "Copy",
+      "nameVa": "0x0106a3f4",
+      "objectVa": "0x013578c8"
+    },
+    {
+      "name": "MoveFocus",
+      "nameVa": "0x0106a410",
+      "objectVa": "0x01357968"
+    },
+    {
+      "name": "MoveWindow",
+      "nameVa": "0x0106a430",
+      "objectVa": "0x01357a08"
+    },
+    {
+      "name": "ResizeWindow",
+      "nameVa": "0x0106a450",
+      "objectVa": "0x01357aa8"
+    },
+    {
+      "name": "DestroyWindow",
+      "nameVa": "0x0106a474",
+      "objectVa": "0x01357b48"
+    },
+    {
+      "name": "InvisibleWindow",
+      "nameVa": "0x0106a498",
+      "objectVa": "0x01357be8"
+    },
+    {
+      "name": "Operate",
+      "nameVa": "0x0106a4bc",
+      "objectVa": "0x01357c88"
+    },
+    {
+      "name": "OperateRepeat",
+      "nameVa": "0x0106a4d8",
+      "objectVa": "0x01357d28"
+    },
+    {
+      "name": "NotMovedFocus",
+      "nameVa": "0x0106a4fc",
+      "objectVa": "0x01357dc8"
+    },
+    {
+      "name": "SetProperty",
+      "nameVa": "0x0106a520",
+      "objectVa": "0x01357e68"
+    },
+    {
+      "name": "GetProperty",
+      "nameVa": "0x0106a540",
+      "objectVa": "0x01357f08"
+    },
+    {
+      "name": "ShowWindow",
+      "nameVa": "0x0106a560",
+      "objectVa": "0x01357fa8"
+    },
+    {
+      "name": "Focus",
+      "nameVa": "0x0106a580",
+      "objectVa": "0x01358048"
+    },
+    {
+      "name": "ImeOff",
+      "nameVa": "0x0106a59c",
+      "objectVa": "0x013580e8"
+    },
+    {
+      "name": "ShowHelp",
+      "nameVa": "0x0106a5b8",
+      "objectVa": "0x01358188"
+    },
+    {
+      "name": "CloseHelp",
+      "nameVa": "0x0106a5e8",
+      "objectVa": "0x013582c8"
+    },
+    {
+      "name": "MoveHelp",
+      "nameVa": "0x0106a608",
+      "objectVa": "0x01358368"
+    },
+    {
+      "name": "FocusOrderToBottom",
+      "nameVa": "0x0106a628",
+      "objectVa": "0x01358408"
+    },
+    {
+      "name": "Null",
+      "nameVa": "0x0106a688",
+      "objectVa": "0x01358688"
+    }
+  ],
+  "handlers": [
+    {
+      "command": "Show",
+      "objectVa": "0x01357648",
+      "compareVa": "0x0092635e",
+      "effect": "handled, show routine with arguments 1, 0, 1"
+    },
+    {
+      "command": "ShowInactive",
+      "objectVa": "0x013576e8",
+      "compareVa": "0x0092638e",
+      "effect": "handled, show routine with arguments 1, 1, 1, or the log widget path"
+    },
+    {
+      "command": "Close",
+      "objectVa": "0x01357828",
+      "compareVa": "0x0092641c",
+      "effect": "handled, calls 0x00921B00"
+    },
+    {
+      "command": "MoveWindow",
+      "objectVa": "0x01357a08",
+      "compareVa": "0x00926446",
+      "effect": "handled, integer 0 selects one of four one-unit moves"
+    },
+    {
+      "command": "ResizeWindow",
+      "objectVa": "0x01357aa8",
+      "compareVa": "0x00926554",
+      "effect": "handled, integer 0 selects one of four one-unit resizes"
+    },
+    {
+      "command": "Hide",
+      "objectVa": "0x01357788",
+      "compareVa": "0x00926662",
+      "effect": "handled, hide routine, or the log widget path"
+    },
+    {
+      "command": "DestroyWindow",
+      "objectVa": "0x01357b48",
+      "compareVa": "0x00926700",
+      "effect": "handled, clears the byte pointed to by window +0x430 when set, and destroys"
+    },
+    {
+      "command": "InvisibleWindow",
+      "objectVa": "0x01357be8",
+      "compareVa": "0x0092675c",
+      "effect": "handled, clears the byte pointed to by window +0x430 when set, Visibility Hidden"
+    },
+    {
+      "command": "ShowWindow",
+      "objectVa": "0x01357fa8",
+      "compareVa": "0x009267a1",
+      "effect": "handled, calls 0x00926250 with the record text"
+    }
+  ],
+  "showRoutine": {
+    "va": "0x00925aa0",
+    "arguments": [
+      "bookkeeping argument",
+      "always raise Shown",
+      "Visible"
+    ],
+    "show": [
+      1,
+      0,
+      1
+    ],
+    "showInactive": [
+      1,
+      1,
+      1
+    ],
+    "visibleKind": 2,
+    "hiddenKind": 1,
+    "bookkeepingVa": "0x009237d0",
+    "counterOffset": "0x43c",
+    "isVisibleSlot": "0x5c",
+    "visibilitySetterVa": "0x0093c2a0",
+    "shownRaiseVa": "0x00925b85",
+    "windowManagerVa": "0x01356e10"
+  },
+  "hideRoutine": {
+    "va": "0x00921f30",
+    "allowFlagOffset": "0x135",
+    "allowFlagMask": 1,
+    "cancelByteOffset": "0x1c",
+    "hiddenKind": 1,
+    "resultPointerOffset": "0x430",
+    "virtualOffset": "0x134"
+  },
+  "visibility": {
+    "descriptorVa": "0x013596bc",
+    "nameVa": "0x0106beb8",
+    "byteOffset": "0x158",
+    "values": {
+      "Collapsed": 0,
+      "Hidden": 1,
+      "Visible": 2
+    },
+    "isVisibleVa": "0x00939aa0",
+    "rootVa": "0x013597f8",
+    "parserVa": "0x00914580",
+    "printerVa": "0x009145f0",
+    "setterVa": "0x0093c2a0"
+  },
+  "logWidget": {
+    "globalVa": "0x0135708c",
+    "name": "Window_LogWidget",
+    "matchVa": "0x009d6090",
+    "readers": [
+      "0x009263bc",
+      "0x00926690"
+    ],
+    "writers": [],
+    "initial": 0,
+    "helpers": [
+      "0x0091dec0",
+      "0x0093c2a0"
+    ]
+  },
+  "nameIds": {
+    "Anime": "0xe4509bf2",
+    "UIElement.Execute": "0xa169fd0a"
+  },
+  "examples": [
+    {
+      "name": "first Show",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": [
+        "Shown"
+      ]
+    },
+    {
+      "name": "repeated Show",
+      "start": {
+        "latch": "ShowInactive",
+        "visibility": "Visible"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": []
+    },
+    {
+      "name": "Show after the user hid the window",
+      "start": {
+        "latch": "ShowInactive",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "latch": "ShowInactive",
+      "visibility": "Hidden",
+      "events": []
+    },
+    {
+      "name": "Hide then Show",
+      "start": {
+        "latch": "ShowInactive",
+        "visibility": "Visible"
+      },
+      "steps": [
+        {
+          "value": "Hide"
+        },
+        {
+          "value": "Show"
+        }
+      ],
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": [
+        "Hiding",
+        "Shown"
+      ]
+    },
+    {
+      "name": "Hide of a window that does not allow hiding",
+      "start": {
+        "latch": "",
+        "visibility": "Visible"
+      },
+      "steps": [
+        {
+          "value": "Hide"
+        }
+      ],
+      "hideAllowed": false,
+      "latch": "Hide",
+      "visibility": "Visible",
+      "events": []
+    },
+    {
+      "name": "cancelled Hide",
+      "start": {
+        "latch": "",
+        "visibility": "Visible"
+      },
+      "steps": [
+        {
+          "value": "Hide"
+        }
+      ],
+      "cancelHiding": true,
+      "latch": "Hide",
+      "visibility": "Visible",
+      "events": [
+        "Hiding"
+      ]
+    },
+    {
+      "name": "lower case show",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "show"
+        }
+      ],
+      "latch": "show",
+      "visibility": "Hidden",
+      "events": []
+    },
+    {
+      "name": "explicit ShowInactive",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "ShowInactive"
+        }
+      ],
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": [
+        "Shown"
+      ]
+    },
+    {
+      "name": "InvisibleWindow",
+      "start": {
+        "latch": "",
+        "visibility": "Visible"
+      },
+      "steps": [
+        {
+          "value": "InvisibleWindow"
+        }
+      ],
+      "latch": "InvisibleWindow",
+      "visibility": "Hidden",
+      "events": []
+    },
+    {
+      "name": "Show already visible keeps one Shown through ShowInactive",
+      "start": {
+        "latch": "Hide",
+        "visibility": "Visible"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": [
+        "Shown"
+      ]
+    },
+    {
+      "name": "unregistered value",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Fade"
+        }
+      ],
+      "latch": "Fade",
+      "visibility": "Hidden",
+      "events": []
+    },
+    {
+      "name": "log widget with the global set",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "logWidget": true,
+      "logGlobal": 1,
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": []
+    },
+    {
+      "name": "log widget with the global clear",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "logWidget": true,
+      "logGlobal": 0,
+      "latch": "ShowInactive",
+      "visibility": "Visible",
+      "events": [
+        "Shown"
+      ]
+    },
+    {
+      "name": "receiver byte clear drops ShowInactive",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "receiverByte": 0,
+      "latch": "",
+      "visibility": "Hidden",
+      "events": []
+    },
+    {
+      "name": "store refusal keeps the latch",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "storeRefused": true,
+      "latch": "",
+      "visibility": "Hidden",
+      "events": []
+    },
+    {
+      "name": "handled PreviewExecuted skips Executed",
+      "start": {
+        "latch": "",
+        "visibility": "Hidden"
+      },
+      "steps": [
+        {
+          "value": "Show"
+        }
+      ],
+      "previewHandled": true,
+      "latch": "ShowInactive",
+      "visibility": "Hidden",
+      "events": []
+    }
+  ],
+  "contract": [
+    "Input: the part name N, the property name P and the value text V of a _setProperty call on a loaded form. A part that does not resolve ends the call.",
+    "P selects this rule when the CRC-32 of its upper-cased bytes equals that of Anime. Any other P is not this rule.",
+    "Let W be ShowInactive when V is exactly Show, byte for byte, and V otherwise.",
+    "Each part holds one latched Execute string that starts empty. When W equals the latch the call ends with no effect. Otherwise the latch becomes W and the call continues. A cell state not read here can refuse the write before the compare, and then the latch does not change.",
+    "The command is the one named ApplicationCommands. followed by W, matched byte for byte. When no command has that name the call ends.",
+    "The command executes on the part with an empty parameter record. PreviewExecuted tunnels first and the call ends when a handler marks it handled. Otherwise Executed bubbles from the part to the nearest Window, whose handler runs the effect below.",
+    "ShowInactive: set Visibility to Visible, then raise Shown on the window every time.",
+    "Hide: when the window allows hiding, raise Hiding. When no handler cancels it, set Visibility to Hidden.",
+    "InvisibleWindow: set Visibility to Hidden and raise nothing.",
+    "Show: set Visibility to Visible and raise Shown only when the window was not visible before. Anime never produces this command.",
+    "A _setProperty of Visibility stores the value and raises neither Shown nor Hiding.",
+    "The receiver byte and the Window_LogWidget global need no state. The first always passes and the second is read as never set."
+  ],
+  "open": [
+    {
+      "label": "INFERRED",
+      "question": "The owner-qualified name resolution inside 0x00912850 and the property lookup 0x00910F60 are not traced. The join from the engine call to the info setter 0x0095F6B0 rests on the registration at 0x00991FDB and on the descriptor test in the change handler."
+    },
+    {
+      "label": "INFERRED",
+      "question": "The chain from the Window element's slot 13, 0x00922030, to the generic dispatcher follows direct call edges through 0x00935380, 0x00938BA0, 0x0092D060 and 0x00939800. The branches inside those functions that could skip the dispatcher are not decoded."
+    },
+    {
+      "label": "UNKNOWN",
+      "question": "The effects of 0x009237D0, 0x0091DEC0, 0x0092ABC0, 0x00921B00, 0x00926250, 0x0093CC70 and of the notification sent to the object at [0x01356E10] +0x194 are not decoded."
+    },
+    {
+      "label": "UNKNOWN",
+      "question": "How a Hiding handler cancels the hide is not traced. The cancel byte sits in the Hiding event object at +0x1C, set by a handler outside this page."
+    },
+    {
+      "label": "INFERRED",
+      "question": "No store to FormElement +0x9C other than the constructor is found by the instruction scan, so the receiver byte is read as constantly 1. An indirect store is not excluded."
+    },
+    {
+      "label": "UNKNOWN",
+      "question": "Window slot +0x34, 0x00922030, forwards each Executed event to the object at window +0x3A8 when it is set. That object is not identified."
+    },
+    {
+      "label": "UNKNOWN",
+      "question": "The cell flags 0x01, 0x02 and 0x40 tested by 0x0095E830 and 0x0095E500 are not named, and the value the engine call 0x00912850 passes as the info setter's third argument is not traced. The store returns without writing when flag 0x02 is set and that argument is 0, or when flag 0x02 is clear, the argument is 1 and flag 0x01 is clear. The reference branch can end the call with flag 0x10 set and no store. Whether an Anime part reaches those states is not known."
+    },
+    {
+      "label": "INFERRED",
+      "question": "No instruction names 0x0135708C except its two reads and its address is zero filled, so the Window_LogWidget skip reads as dead. A register-relative or runtime write is not excluded. The neighbouring globals 0x01357080, 0x01357084 and 0x01357088 each have one absolute store at 0x00924D88..0x00924D9C, so the area holds a small cluster of globals."
+    },
+    {
+      "label": "CALIBRATION",
+      "question": "The latch suppresses a second Anime Show that has no other Anime value between, and the store can refuse a write before the latch compare in the cell states above. Applying either changes what a script sees when it calls Show twice. A live walk of the retail client decides whether to apply them."
+    }
+  ],
+  "staticChecks": [
+    {
+      "name": "setter lookups and part gate",
+      "kind": "rangeSha256",
+      "va": "0x00537e38",
+      "length": 37,
+      "sha256": "d49275e7f6a5fc1d18d8f53b9436e89c4e279c7828b09d3c9658c8bafa889c93"
+    },
+    {
+      "name": "setter Anime name interning",
+      "kind": "rangeSha256",
+      "va": "0x00537e62",
+      "length": 40,
+      "sha256": "6635b26d43e7647c4e0b7ce6fc207c2f094d50b76341dd5c85a282c0ff5974bf"
+    },
+    {
+      "name": "setter Anime id compare",
+      "kind": "signature",
+      "va": "0x00537ebf",
+      "pattern": "3b0d246b33017574",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "setter Execute name interning",
+      "kind": "signature",
+      "va": "0x00537ee1",
+      "pattern": "68f006fa00b9086b3301e8f0893d00",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "setter Show rewrite",
+      "kind": "rangeSha256",
+      "va": "0x00537f13",
+      "length": 40,
+      "sha256": "f5b842093a51a33f1893ae1b826695fe6142162d4d86238002599206e428107c"
+    },
+    {
+      "name": "setter receiver gate and engine call",
+      "kind": "rangeSha256",
+      "va": "0x00537f3b",
+      "length": 45,
+      "sha256": "6b76acefe87f46ed13e9003775b0eeb059d11d472f090d556fbb9999528020b8"
+    },
+    {
+      "name": "FormElement constructor flag store",
+      "kind": "rangeSha256",
+      "va": "0x0053afb6",
+      "length": 42,
+      "sha256": "81c2623d0bf8b12872ae0de300aa488df5dc940332748f172e8398e8f6d12540"
+    },
+    {
+      "name": "command builder and pickup call",
+      "kind": "rangeSha256",
+      "va": "0x00535538",
+      "length": 44,
+      "sha256": "86ecc293240233f62e7ade33d262959ff063f73eb1bddee243e2d3f419e97e9c"
+    },
+    {
+      "name": "command object field stores",
+      "kind": "rangeSha256",
+      "va": "0x0053bc65",
+      "length": 34,
+      "sha256": "181741f80e74e8fda34180be34c88b783506efb0a2b9bdfef59f20202f85eb9a"
+    },
+    {
+      "name": "string pickup forwards to setter",
+      "kind": "signature",
+      "va": "0x00542710",
+      "pattern": "8b41088b542404508b4110528b510c8b49045052e8b756ffffc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "int pickup call site",
+      "kind": "signature",
+      "va": "0x00542631",
+      "pattern": "8b4e04e8a757ffff",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "bool pickup call site",
+      "kind": "signature",
+      "va": "0x005426e1",
+      "pattern": "4e0452e8f756ffff",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "float pickup call site",
+      "kind": "signature",
+      "va": "0x005427bb",
+      "pattern": "8b4e045250e81b56ffff",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "float pair pickup call site",
+      "kind": "signature",
+      "va": "0x005428a3",
+      "pattern": "8b4e045250e83355ffff",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "float quad pickup call site",
+      "kind": "signature",
+      "va": "0x005429b4",
+      "pattern": "8b4e045250e82254ffff",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "Execute name interning",
+      "kind": "signature",
+      "va": "0x00f275c0",
+      "pattern": "68b4830701b980ff3501e811939eff33c0a394ff3501a398ff3501c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute info table install",
+      "kind": "signature",
+      "va": "0x00f275f6",
+      "pattern": "c705a4ff350110860701c705c0ff350190e69500c705c4ff3501b0f69500",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute registration",
+      "kind": "signature",
+      "va": "0x00991fdb",
+      "pattern": "5668a4ff350168106b260168986f2e016880ff3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute value compare and notify",
+      "kind": "signature",
+      "va": "0x0095e546",
+      "pattern": "e86578aeff84c0742c804e0404578bcee8757ffdff807c2420017519",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute info setter argument exit",
+      "kind": "signature",
+      "va": "0x0095f6b0",
+      "pattern": "837c2404007520",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "Execute info setter calls wrapper",
+      "kind": "signature",
+      "va": "0x0095f6c8",
+      "pattern": "6890d89500515083c124e859f1ffff",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute store wrapper reference branch",
+      "kind": "signature",
+      "va": "0x0095e833",
+      "pattern": "8a4304a8407466",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "Execute store wrapper sentinel exit",
+      "kind": "signature",
+      "va": "0x0095e866",
+      "pattern": "e8a57afbff83c4143da86d3501750c804b0410",
+      "mask": "ffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute store wrapper calls store",
+      "kind": "signature",
+      "va": "0x0095e893",
+      "pattern": "8bcbe866fcffff",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "Execute store wrapper plain path calls store",
+      "kind": "signature",
+      "va": "0x0095e8be",
+      "pattern": "8bcbe83bfcffff",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "string property store precedence exit",
+      "kind": "signature",
+      "va": "0x0095e507",
+      "pattern": "8a4e048ac1d0e82401740484d2740d84c0750f80fa01750a84ca751032c05ec21800",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "RoutedCommand Executed skipped when handled",
+      "kind": "signature",
+      "va": "0x00928099",
+      "pattern": "3818c7842464010000ffffffff8d4c24180f84d7000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "hide routine virtual delivery",
+      "kind": "signature",
+      "va": "0x00921f9f",
+      "pattern": "8b168b92340100008d44241050",
+      "mask": "ffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Execute change thunk",
+      "kind": "signature",
+      "va": "0x0095d890",
+      "pattern": "8b492c8b018b4018ffe0",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "UIElement callback calls change handler",
+      "kind": "signature",
+      "va": "0x0092df39",
+      "pattern": "568bcfe83fde0000",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "change handler Execute descriptor test",
+      "kind": "signature",
+      "va": "0x0093bfe2",
+      "pattern": "3d80ff35010f8514010000",
+      "mask": "ffffffffffffffffffffff"
+    },
+    {
+      "name": "change handler Execute value read",
+      "kind": "rangeSha256",
+      "va": "0x0093bff9",
+      "length": 37,
+      "sha256": "9bbea9a7b66c7c7127f4bef77b39a398203d1f185ff9f824737f567433740a5e"
+    },
+    {
+      "name": "change handler command prefix",
+      "kind": "signature",
+      "va": "0x0093c024",
+      "pattern": "8b0d9872f600516800c206018d8c24f4000000e824b2b0ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "change handler prefix join",
+      "kind": "rangeSha256",
+      "va": "0x0093c03c",
+      "length": 40,
+      "sha256": "f2923f333bff9d56bc934015a29692ff3f5387f3c16c17d17e8b782eecc04295"
+    },
+    {
+      "name": "change handler lookup and execute",
+      "kind": "rangeSha256",
+      "va": "0x0093c078",
+      "length": 72,
+      "sha256": "061ad09b38719bdd7a532f87346ce190f95c58161110433bf0dd145aa706e404"
+    },
+    {
+      "name": "command registry compare",
+      "kind": "signature",
+      "va": "0x009282d3",
+      "pattern": "3b7d087205e8d79f0a008b4c24148b37518d4e24e834dab1ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "RoutedCommand PreviewExecuted raise",
+      "kind": "signature",
+      "va": "0x00927ff2",
+      "pattern": "565557682c8735018d4c242889442424e8f9100000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "RoutedCommand Executed raise",
+      "kind": "signature",
+      "va": "0x009280b5",
+      "pattern": "56555768388735018d8c24c8000000e837100000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "event args handled flag",
+      "kind": "signature",
+      "va": "0x0092913d",
+      "pattern": "894b10884314884315884316884317c64318018801",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "event args command store",
+      "kind": "signature",
+      "va": "0x0092915a",
+      "pattern": "8b44242cc7033ca7060189431c",
+      "mask": "ffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler base call and handled test",
+      "kind": "signature",
+      "va": "0x00926345",
+      "pattern": "8b7c242057e8a16e00008b47108038000f8560040000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler Show compare",
+      "kind": "signature",
+      "va": "0x0092635b",
+      "pattern": "8b471c3d487635017529",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "handler Show action",
+      "kind": "signature",
+      "va": "0x00926365",
+      "pattern": "6a016a006a018d8e4cffffffc6471901e826f7ffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler ShowInactive test",
+      "kind": "rangeSha256",
+      "va": "0x0092638e",
+      "length": 53,
+      "sha256": "8aca43f02db5f5e3caece8e19ef93bb247e0e7a50c9625093484d3e1975f4d6e"
+    },
+    {
+      "name": "handler ShowInactive log widget path",
+      "kind": "signature",
+      "va": "0x009263c3",
+      "pattern": "8bcee8f67affff6a016a00518bc48d8e4cffffff8964242cc60002e8bd5e0100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler ShowInactive normal path",
+      "kind": "signature",
+      "va": "0x009263f7",
+      "pattern": "6a016a016a018d8e4cffffffe898f6ffff",
+      "mask": "ffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler Close",
+      "kind": "signature",
+      "va": "0x0092641c",
+      "pattern": "3d2878350175238d8e4cffffffc6471901e8ceb6ffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler MoveWindow compare",
+      "kind": "signature",
+      "va": "0x00926446",
+      "pattern": "3d087a35010f8503010000",
+      "mask": "ffffffffffffffffffffff"
+    },
+    {
+      "name": "handler ResizeWindow compare",
+      "kind": "signature",
+      "va": "0x00926554",
+      "pattern": "3da87a35010f8503010000",
+      "mask": "ffffffffffffffffffffff"
+    },
+    {
+      "name": "handler Hide test",
+      "kind": "rangeSha256",
+      "va": "0x00926662",
+      "length": 53,
+      "sha256": "fd453cd25b1eea6382b70c3e79dfe6bd6cd54dd2a61e8f6b0abd912ab369a57b"
+    },
+    {
+      "name": "handler Hide log widget path",
+      "kind": "rangeSha256",
+      "va": "0x00926697",
+      "length": 34,
+      "sha256": "080d7e16235f4a8a60375fd1fc59c8fb9ea5eda3c4aaaa1b457bdfe98edbab83"
+    },
+    {
+      "name": "handler Hide normal path",
+      "kind": "signature",
+      "va": "0x009266d6",
+      "pattern": "81c64cffffff8bcee84db8ffff56e8d7440000",
+      "mask": "ffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "handler DestroyWindow compare",
+      "kind": "signature",
+      "va": "0x00926700",
+      "pattern": "3d487b35017555",
+      "mask": "ffffffffffffff"
+    },
+    {
+      "name": "handler InvisibleWindow",
+      "kind": "rangeSha256",
+      "va": "0x0092675c",
+      "length": 49,
+      "sha256": "5f03f36ede58aa6ec888fcb251d8ce6a95565704293e04249aeffc4588bb5d8b"
+    },
+    {
+      "name": "handler ShowWindow",
+      "kind": "signature",
+      "va": "0x009267a1",
+      "pattern": "3da87f350175138d4728508d8e4cffffffe899faffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Window slot 13 calls base chain",
+      "kind": "signature",
+      "va": "0x00922038",
+      "pattern": "8078054f578bf9567407e839330100",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Window base calls element chain",
+      "kind": "signature",
+      "va": "0x00935390",
+      "pattern": "e80b380000",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "element chain calls FrameworkElement slot 13",
+      "kind": "signature",
+      "va": "0x00938be3",
+      "pattern": "538bcde87544ffff",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "FrameworkElement slot 13 calls base",
+      "kind": "signature",
+      "va": "0x0092d06b",
+      "pattern": "558974240ce88bc70000",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "dispatcher indexes by event id",
+      "kind": "rangeSha256",
+      "va": "0x0091d326",
+      "length": 35,
+      "sha256": "4a00cea56652571b11e43ae8437d07b22b9a053140a3380c87515229b076709f"
+    },
+    {
+      "name": "dispatcher Executed arm",
+      "kind": "signature",
+      "va": "0x0091d6bc",
+      "pattern": "8b168b8204010000578bceffd0",
+      "mask": "ffffffffffffffffffffffffff"
+    },
+    {
+      "name": "show routine prior visibility",
+      "kind": "signature",
+      "va": "0x00925ac6",
+      "pattern": "8bf18b86b40000008b505c83863c040000018dbeb40000008bcfffd288442413",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "show routine visibility write",
+      "kind": "signature",
+      "va": "0x00925aff",
+      "pattern": "385c244c6a0153510f95c180c1018bc488088bce89642420e884670100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "show routine bookkeeping call",
+      "kind": "signature",
+      "va": "0x00925b1c",
+      "pattern": "8b542444528bcee8a8dcffff",
+      "mask": "ffffffffffffffffffffffff"
+    },
+    {
+      "name": "show routine Shown decision",
+      "kind": "signature",
+      "va": "0x00925b28",
+      "pattern": "8b078b505c8bcfffd23c017506384424137507807c244801754b",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "show routine Shown raise",
+      "kind": "rangeSha256",
+      "va": "0x00925b42",
+      "length": 72,
+      "sha256": "6a8ddf0abf73d7d1fbc9c12049a81ab1fd533cf6220d61cc010b3394498573b4"
+    },
+    {
+      "name": "hide routine flag and Hiding event",
+      "kind": "signature",
+      "va": "0x00921f57",
+      "pattern": "f6863501000001747933db8d442429c7442414c8733501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "hide routine Hidden write",
+      "kind": "signature",
+      "va": "0x00921fb9",
+      "pattern": "8b86300400003bc3740288186a0153518bc48bce89642418c60001e8c7a20100",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "Visibility name interning",
+      "kind": "rangeSha256",
+      "va": "0x00f22900",
+      "length": 36,
+      "sha256": "5a20517b4fd751ff54f76f7460d1aecf6eac5b1f05d12c02b33ca225feb9f39b"
+    },
+    {
+      "name": "Visibility setter",
+      "kind": "rangeSha256",
+      "va": "0x0093c2a0",
+      "length": 46,
+      "sha256": "3303d94787f86bc1575c52f4ceb5fe05c9cae347fa9e8daaa3f54ae21344e3ba"
+    },
+    {
+      "name": "registry insertion",
+      "kind": "rangeSha256",
+      "va": "0x00928d3c",
+      "length": 39,
+      "sha256": "73daee4eeff783e4b30e714a3a8d2363fa4257069d5be8bde46c3756f395e45c"
+    },
+    {
+      "name": "Null command init",
+      "kind": "signature",
+      "va": "0x00f21c60",
+      "pattern": "b988863501e86660a0ff",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "setter function",
+      "kind": "rangeSha256",
+      "va": "0x00537de0",
+      "length": 448,
+      "sha256": "80d5c8c29b14d8e44a218993a81cbcb7e62639a3140cbb265edcef3c325b662c"
+    },
+    {
+      "name": "string equals string",
+      "kind": "rangeSha256",
+      "va": "0x00445d20",
+      "length": 58,
+      "sha256": "216b0047d7ea061ca2dea5dfd5db5a1fa4cdcc0318af03bdb42c802cb60896e9"
+    },
+    {
+      "name": "string equals c string",
+      "kind": "rangeSha256",
+      "va": "0x00445d60",
+      "length": 65,
+      "sha256": "a5baafd37b78fa9a166105f1a64516b7c59056c878a300413942c3c932a627c8"
+    },
+    {
+      "name": "string differs from string",
+      "kind": "rangeSha256",
+      "va": "0x00445db0",
+      "length": 77,
+      "sha256": "098672b4644e48315376abbe0f2f5b76414ed3e25408c4344cf1fb58f20aa8e1"
+    },
+    {
+      "name": "string differs from c string",
+      "kind": "rangeSha256",
+      "va": "0x00445e00",
+      "length": 65,
+      "sha256": "c58f390b38083159facf568a620887fdbed783045f8cba97eac63186db168507"
+    },
+    {
+      "name": "string assign c string",
+      "kind": "rangeSha256",
+      "va": "0x004489c0",
+      "length": 67,
+      "sha256": "b639adf12a48d19e3f90083d7681b756924017c1616175caba1f4682263ea62c"
+    },
+    {
+      "name": "command registry lookup",
+      "kind": "rangeSha256",
+      "va": "0x00928280",
+      "length": 172,
+      "sha256": "d094be2b1dcdd422442afc426a0e4b19f997e96460c55b86fe543bd95dd27f80"
+    },
+    {
+      "name": "name interner",
+      "kind": "rangeSha256",
+      "va": "0x009107a0",
+      "length": 274,
+      "sha256": "6f85ea69a41f889808bc7a3ed1746791201f2d1d6c215235d2a68fa3ee25cc59"
+    },
+    {
+      "name": "upper case helper",
+      "kind": "rangeSha256",
+      "va": "0x009db9ed",
+      "length": 39,
+      "sha256": "fb5d64ba1b4943602009b77b85e9d79bedebb51a19b7e45d45817a8d3060e8c2"
+    },
+    {
+      "name": "string property store",
+      "kind": "rangeSha256",
+      "va": "0x0095e500",
+      "length": 130,
+      "sha256": "e3ec7f7a1a4c2204b269935ff8e68cb2790153cea35c3e452d4c99ceea3cdda7"
+    },
+    {
+      "name": "Execute info setter",
+      "kind": "rangeSha256",
+      "va": "0x0095f6b0",
+      "length": 42,
+      "sha256": "ff9e9c7ea87f5e20349de13b919be5ee75968da9190252c8b29faad51a7bc193"
+    },
+    {
+      "name": "Execute store wrapper",
+      "kind": "rangeSha256",
+      "va": "0x0095e830",
+      "length": 153,
+      "sha256": "833b43f670593f84017d45404511666330229d5e252fe477fc5533e403aa2bb8"
+    },
+    {
+      "name": "event args constructor",
+      "kind": "rangeSha256",
+      "va": "0x00929100",
+      "length": 180,
+      "sha256": "48508d5531cdd9796a03942d1c288fb8dea27fc6cfbc5c10fa1baff630657082"
+    },
+    {
+      "name": "window Executed handler",
+      "kind": "rangeSha256",
+      "va": "0x00926320",
+      "length": 1199,
+      "sha256": "e85b2fd1ba8ed6511be025464928470b3001592ef38e65d6d3d6953ba9deab7c"
+    },
+    {
+      "name": "show routine",
+      "kind": "rangeSha256",
+      "va": "0x00925aa0",
+      "length": 265,
+      "sha256": "7ca63f35a65ff1e18baa06d6ec9511d8b053eade1e977bf3b86d497478150942"
+    },
+    {
+      "name": "is visible slot",
+      "kind": "rangeSha256",
+      "va": "0x00939aa0",
+      "length": 59,
+      "sha256": "4e9acb7829485514a78591881016da3dbdbaa0ec8ae703033601a6627d7fe2cb"
+    },
+    {
+      "name": "Visibility word parser",
+      "kind": "rangeSha256",
+      "va": "0x00914580",
+      "length": 107,
+      "sha256": "8c8dcead66985bf4aaf12dee8e7bc66cef98548389e4388b2daa0a5d12b80d30"
+    },
+    {
+      "name": "Visibility word printer",
+      "kind": "rangeSha256",
+      "va": "0x009145f0",
+      "length": 54,
+      "sha256": "beb5579e4b9d96f2f85d74a286c98e0ea5f409c57d0031c756fc3bf3a66072a0"
+    },
+    {
+      "name": "command init Show",
+      "kind": "signature",
+      "va": "0x00f20f89",
+      "pattern": "687ca306018d4c240ce8c96252ff8d4c240451b948763501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init ShowInactive",
+      "kind": "signature",
+      "va": "0x00f21009",
+      "pattern": "6898a306018d4c240ce8496252ff8d4c240451b9e8763501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init Hide",
+      "kind": "signature",
+      "va": "0x00f21089",
+      "pattern": "68bca306018d4c240ce8c96152ff8d4c240451b988773501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init Close",
+      "kind": "signature",
+      "va": "0x00f21109",
+      "pattern": "68d8a306018d4c240ce8496152ff8d4c240451b928783501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init Copy",
+      "kind": "signature",
+      "va": "0x00f21189",
+      "pattern": "68f4a306018d4c240ce8c96052ff8d4c240451b9c8783501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init MoveFocus",
+      "kind": "signature",
+      "va": "0x00f21209",
+      "pattern": "6810a406018d4c240ce8496052ff8d4c240451b968793501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init MoveWindow",
+      "kind": "signature",
+      "va": "0x00f21289",
+      "pattern": "6830a406018d4c240ce8c95f52ff8d4c240451b9087a3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init ResizeWindow",
+      "kind": "signature",
+      "va": "0x00f21309",
+      "pattern": "6850a406018d4c240ce8495f52ff8d4c240451b9a87a3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init DestroyWindow",
+      "kind": "signature",
+      "va": "0x00f21389",
+      "pattern": "6874a406018d4c240ce8c95e52ff8d4c240451b9487b3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init InvisibleWindow",
+      "kind": "signature",
+      "va": "0x00f21409",
+      "pattern": "6898a406018d4c240ce8495e52ff8d4c240451b9e87b3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init Operate",
+      "kind": "signature",
+      "va": "0x00f21489",
+      "pattern": "68bca406018d4c240ce8c95d52ff8d4c240451b9887c3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init OperateRepeat",
+      "kind": "signature",
+      "va": "0x00f21509",
+      "pattern": "68d8a406018d4c240ce8495d52ff8d4c240451b9287d3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init NotMovedFocus",
+      "kind": "signature",
+      "va": "0x00f21589",
+      "pattern": "68fca406018d4c240ce8c95c52ff8d4c240451b9c87d3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init SetProperty",
+      "kind": "signature",
+      "va": "0x00f21609",
+      "pattern": "6820a506018d4c240ce8495c52ff8d4c240451b9687e3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init GetProperty",
+      "kind": "signature",
+      "va": "0x00f21689",
+      "pattern": "6840a506018d4c240ce8c95b52ff8d4c240451b9087f3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init ShowWindow",
+      "kind": "signature",
+      "va": "0x00f21709",
+      "pattern": "6860a506018d4c240ce8495b52ff8d4c240451b9a87f3501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init Focus",
+      "kind": "signature",
+      "va": "0x00f21789",
+      "pattern": "6880a506018d4c240ce8c95a52ff8d4c240451b948803501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init ImeOff",
+      "kind": "signature",
+      "va": "0x00f21809",
+      "pattern": "689ca506018d4c240ce8495a52ff8d4c240451b9e8803501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init ShowHelp",
+      "kind": "signature",
+      "va": "0x00f21889",
+      "pattern": "68b8a506018d4c240ce8c95952ff8d4c240451b988813501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init CloseHelp",
+      "kind": "signature",
+      "va": "0x00f21989",
+      "pattern": "68e8a506018d4c240ce8c95852ff8d4c240451b9c8823501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init MoveHelp",
+      "kind": "signature",
+      "va": "0x00f21a09",
+      "pattern": "6808a606018d4c240ce8495852ff8d4c240451b968833501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "command init FocusOrderToBottom",
+      "kind": "signature",
+      "va": "0x00f21a89",
+      "pattern": "6828a606018d4c240ce8c95752ff8d4c240451b908843501",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string Anime",
+      "kind": "string",
+      "va": "0x00fa06e8",
+      "text": "Anime"
+    },
+    {
+      "name": "string UIElement.Execute setter",
+      "kind": "string",
+      "va": "0x00fa06f0",
+      "text": "UIElement.Execute"
+    },
+    {
+      "name": "string Show",
+      "kind": "string",
+      "va": "0x00fa0704",
+      "text": "Show"
+    },
+    {
+      "name": "string ShowInactive rewrite",
+      "kind": "string",
+      "va": "0x00fa070c",
+      "text": "ShowInactive"
+    },
+    {
+      "name": "string ShowInactive gate",
+      "kind": "string",
+      "va": "0x00fa071c",
+      "text": "ShowInactive"
+    },
+    {
+      "name": "string UIElement.Execute registry",
+      "kind": "string",
+      "va": "0x010783b4",
+      "text": "UIElement.Execute"
+    },
+    {
+      "name": "string ApplicationCommands prefix",
+      "kind": "string",
+      "va": "0x0106c200",
+      "text": "ApplicationCommands."
+    },
+    {
+      "name": "string Window_LogWidget show",
+      "kind": "string",
+      "va": "0x01069eb8",
+      "text": "Window_LogWidget"
+    },
+    {
+      "name": "string Window_LogWidget hide",
+      "kind": "string",
+      "va": "0x01069ecc",
+      "text": "Window_LogWidget"
+    },
+    {
+      "name": "string Visibility",
+      "kind": "string",
+      "va": "0x0106beb8",
+      "text": "Visibility"
+    },
+    {
+      "name": "string Shown",
+      "kind": "string",
+      "va": "0x01069e18",
+      "text": "Shown"
+    },
+    {
+      "name": "string Hiding",
+      "kind": "string",
+      "va": "0x01069e30",
+      "text": "Hiding"
+    },
+    {
+      "name": "string Collapsed word",
+      "kind": "string",
+      "va": "0x01068728",
+      "text": "Collapsed"
+    },
+    {
+      "name": "string Hidden word",
+      "kind": "string",
+      "va": "0x01068734",
+      "text": "Hidden"
+    },
+    {
+      "name": "string False word",
+      "kind": "string",
+      "va": "0x0106873c",
+      "text": "False"
+    },
+    {
+      "name": "string Visible word",
+      "kind": "string",
+      "va": "0x01068744",
+      "text": "Visible"
+    },
+    {
+      "name": "string pickup int format",
+      "kind": "string",
+      "va": "0x00f6a2f0",
+      "text": "%d"
+    },
+    {
+      "name": "string pickup True",
+      "kind": "string",
+      "va": "0x00fa0ec8",
+      "text": "True"
+    },
+    {
+      "name": "string pickup False",
+      "kind": "string",
+      "va": "0x00fa0ec0",
+      "text": "False"
+    },
+    {
+      "name": "string pickup float format",
+      "kind": "string",
+      "va": "0x00fa0ed0",
+      "text": "%f"
+    },
+    {
+      "name": "string pickup two float format",
+      "kind": "string",
+      "va": "0x00fa0ed4",
+      "text": "%f,%f"
+    },
+    {
+      "name": "string pickup four float format",
+      "kind": "string",
+      "va": "0x00fa0edc",
+      "text": "%f,%f,%f,%f"
+    },
+    {
+      "name": "string command Show",
+      "kind": "string",
+      "va": "0x0106a37c",
+      "text": "ApplicationCommands.Show"
+    },
+    {
+      "name": "string command ShowInactive",
+      "kind": "string",
+      "va": "0x0106a398",
+      "text": "ApplicationCommands.ShowInactive"
+    },
+    {
+      "name": "string command Hide",
+      "kind": "string",
+      "va": "0x0106a3bc",
+      "text": "ApplicationCommands.Hide"
+    },
+    {
+      "name": "string command Close",
+      "kind": "string",
+      "va": "0x0106a3d8",
+      "text": "ApplicationCommands.Close"
+    },
+    {
+      "name": "string command Copy",
+      "kind": "string",
+      "va": "0x0106a3f4",
+      "text": "ApplicationCommands.Copy"
+    },
+    {
+      "name": "string command MoveFocus",
+      "kind": "string",
+      "va": "0x0106a410",
+      "text": "ApplicationCommands.MoveFocus"
+    },
+    {
+      "name": "string command MoveWindow",
+      "kind": "string",
+      "va": "0x0106a430",
+      "text": "ApplicationCommands.MoveWindow"
+    },
+    {
+      "name": "string command ResizeWindow",
+      "kind": "string",
+      "va": "0x0106a450",
+      "text": "ApplicationCommands.ResizeWindow"
+    },
+    {
+      "name": "string command DestroyWindow",
+      "kind": "string",
+      "va": "0x0106a474",
+      "text": "ApplicationCommands.DestroyWindow"
+    },
+    {
+      "name": "string command InvisibleWindow",
+      "kind": "string",
+      "va": "0x0106a498",
+      "text": "ApplicationCommands.InvisibleWindow"
+    },
+    {
+      "name": "string command Operate",
+      "kind": "string",
+      "va": "0x0106a4bc",
+      "text": "ApplicationCommands.Operate"
+    },
+    {
+      "name": "string command OperateRepeat",
+      "kind": "string",
+      "va": "0x0106a4d8",
+      "text": "ApplicationCommands.OperateRepeat"
+    },
+    {
+      "name": "string command NotMovedFocus",
+      "kind": "string",
+      "va": "0x0106a4fc",
+      "text": "ApplicationCommands.NotMovedFocus"
+    },
+    {
+      "name": "string command SetProperty",
+      "kind": "string",
+      "va": "0x0106a520",
+      "text": "ApplicationCommands.SetProperty"
+    },
+    {
+      "name": "string command GetProperty",
+      "kind": "string",
+      "va": "0x0106a540",
+      "text": "ApplicationCommands.GetProperty"
+    },
+    {
+      "name": "string command ShowWindow",
+      "kind": "string",
+      "va": "0x0106a560",
+      "text": "ApplicationCommands.ShowWindow"
+    },
+    {
+      "name": "string command Focus",
+      "kind": "string",
+      "va": "0x0106a580",
+      "text": "ApplicationCommands.Focus"
+    },
+    {
+      "name": "string command ImeOff",
+      "kind": "string",
+      "va": "0x0106a59c",
+      "text": "ApplicationCommands.ImeOff"
+    },
+    {
+      "name": "string command ShowHelp",
+      "kind": "string",
+      "va": "0x0106a5b8",
+      "text": "ApplicationCommands.ShowHelp"
+    },
+    {
+      "name": "string command CloseHelp",
+      "kind": "string",
+      "va": "0x0106a5e8",
+      "text": "ApplicationCommands.CloseHelp"
+    },
+    {
+      "name": "string command MoveHelp",
+      "kind": "string",
+      "va": "0x0106a608",
+      "text": "ApplicationCommands.MoveHelp"
+    },
+    {
+      "name": "string command FocusOrderToBottom",
+      "kind": "string",
+      "va": "0x0106a628",
+      "text": "ApplicationCommands.FocusOrderToBottom"
+    },
+    {
+      "name": "string command Null",
+      "kind": "string",
+      "va": "0x0106a688",
+      "text": "ApplicationCommands.Null"
+    },
+    {
+      "name": "pickup processor table",
+      "kind": "dwords",
+      "va": "0x00fa0bac",
+      "values": [
+        "0x0053bd00",
+        "0x005425b0",
+        "0x00542680",
+        "0x00542710",
+        "0x00542730",
+        "0x00542800",
+        "0x005428f0"
+      ]
+    },
+    {
+      "name": "RoutedCommand table",
+      "kind": "dwords",
+      "va": "0x0106a78c",
+      "values": [
+        "0x009293a0",
+        "0x00927e70",
+        "0x00927fa0"
+      ]
+    },
+    {
+      "name": "Window Executed slot",
+      "kind": "dwords",
+      "va": "0x0106a098",
+      "values": [
+        "0x00926320"
+      ]
+    },
+    {
+      "name": "Window IsVisible slot",
+      "kind": "dwords",
+      "va": "0x01069ff0",
+      "values": [
+        "0x00939aa0"
+      ]
+    },
+    {
+      "name": "dispatcher byte for Executed",
+      "kind": "signature",
+      "va": "0x0091d841",
+      "pattern": "26",
+      "mask": "ff"
+    },
+    {
+      "name": "dispatcher jump entry for Executed",
+      "kind": "dwords",
+      "va": "0x0091d7f8",
+      "values": [
+        "0x0091d6bc"
+      ]
+    },
+    {
+      "name": "Execute info table",
+      "kind": "dwords",
+      "va": "0x01078610",
+      "values": [
+        "0x009ba860",
+        "0x00965ff0",
+        "0x00993930",
+        "0x009133e0",
+        "0x008d5570",
+        "0x00597d70"
+      ]
+    },
+    {
+      "name": "routed event Shown",
+      "kind": "routedEvent",
+      "va": "0x00f20e70",
+      "id": "0x47",
+      "strategy": 0,
+      "static": "0x013573b0",
+      "eventName": "Shown"
+    },
+    {
+      "name": "routed event Hiding",
+      "kind": "routedEvent",
+      "va": "0x00f20ed0",
+      "id": "0x49",
+      "strategy": 0,
+      "static": "0x013573c8",
+      "eventName": "Hiding"
+    },
+    {
+      "name": "routed event Executed",
+      "kind": "routedEvent",
+      "va": "0x00f21cb0",
+      "id": "0x2a",
+      "strategy": 0,
+      "static": "0x01358738",
+      "eventName": "Executed"
+    },
+    {
+      "name": "routed event PreviewExecuted",
+      "kind": "routedEvent",
+      "va": "0x00f21c80",
+      "id": "0x29",
+      "strategy": 2,
+      "static": "0x0135872c",
+      "eventName": "PreviewExecuted"
+    },
+    {
+      "name": "absolute references to log widget global",
+      "kind": "absoluteRefs",
+      "value": "0x0135708c",
+      "sites": [
+        "0x009263bc",
+        "0x00926690"
+      ]
+    },
+    {
+      "name": "log widget global is zero filled",
+      "kind": "zeroFill",
+      "va": "0x0135708c"
+    }
+  ]
+}
