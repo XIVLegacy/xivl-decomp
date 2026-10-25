@@ -102,6 +102,8 @@ jobs:
         run: python tools/test_promoted_static_checks.py
       - name: Test actor instantiation verifier
         run: python tools/test_actor_instantiation.py
+      - name: Test Sqwt form locale verifier
+        run: python tools/test_sqwt_form_locale.py
       - name: Test character lighting model verifier
         run: python tools/test_chara_lighting_model.py
       - name: Test dungeon layout token index

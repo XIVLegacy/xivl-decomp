@@ -1,0 +1,1144 @@
+{
+  "format": 1,
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 listings as leads",
+    "install": "Census counts come from the client/sqwt tree of a 1.23b install and record names only."
+  },
+  "request": {
+    "scriptCalls": "WidgetBaseClass.loadFormData calls self:_setFilename(name) and self:_loadForm(). The name is the bare form name that getFormName returns (xivl-client-structs:docs/autotranslate-selection-contract.md, AT-ENTER-010).",
+    "setFilename": {
+      "callbackVa": "0x006eb640",
+      "formVa": "0x0075b730",
+      "storeVa": "0x00533ef0",
+      "field": "0x110",
+      "effect": "assigns the Sqwt string at form object +0x110"
+    },
+    "loadForm": {
+      "callbackVa": "0x006e3760",
+      "formVa": "0x0075b750",
+      "implVa": "0x00537d50",
+      "gate": "the string at +0x110 is nonempty and the request id at +0x98 is negative",
+      "suffix": ".form",
+      "requestVa": "0x005377c0",
+      "idField": "0x98",
+      "counterField": "0x94",
+      "result": "the request id is the counter before it is incremented, stored at +0x98"
+    },
+    "builder": {
+      "va": "0x00533b90",
+      "desktop": {
+        "name": "Desktop.form",
+        "path": "\\common\\Desktop.form",
+        "modes": "all three"
+      },
+      "stem": {
+        "va": "0x00446fd0",
+        "label": "INFERRED",
+        "rule": "The name is cut at the dot that 0x00446fd0 finds and .form is appended again. Under the reverse reading the cut is a no-op for every name, because the last dot is the one in the appended .form. A forward search would shorten a dotted name to its first segment. Which one 0x00446800 performs is INFERRED."
+      },
+      "suffix": ".form",
+      "modes": [
+        {
+          "mode": 0,
+          "prefix": "\\widget\\"
+        },
+        {
+          "mode": 1,
+          "prefix": "\\debug\\"
+        },
+        {
+          "mode": 2,
+          "prefix": "\\"
+        }
+      ]
+    },
+    "loop": {
+      "attempts": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "stopOnOpen": true,
+      "failureId": -1,
+      "openerReceiver": "a new request object allocated per call, constructed by 0x0096b120"
+    }
+  },
+  "opener": {
+    "va": "0x0096ba70",
+    "callers": [
+      {
+        "va": "0x005377c0",
+        "use": "form request of the Lua natives, one path per directory mode"
+      },
+      {
+        "va": "0x006a52d0",
+        "use": "owner classes that pass one literal form path"
+      },
+      {
+        "va": "0x004ffcf0",
+        "use": "widget controls that pass the path stored at +0x1d0"
+      }
+    ],
+    "steps": [
+      "Copy the path and canonicalize separators through 0x00452f90, which replaces every / byte with \\ and folds no case.",
+      "Insert the language token before a trailing .tpl or .form through 0x0096a3b0.",
+      "If the inserted path names an existing regular file, keep it.",
+      "Otherwise restore the canonical path and keep it if that names an existing regular file.",
+      "Otherwise return false.",
+      "When the request already holds a loaded object (+0xe8 nonzero) return false.",
+      "Otherwise store the kept path at +0xec, construct the load object and return true."
+    ],
+    "insert": {
+      "va": "0x0096a3b0",
+      "minimumLength": 6,
+      "extensions": [
+        ".tpl",
+        ".form"
+      ],
+      "order": ".tpl first",
+      "match": "the extension must end the string, compared byte for byte",
+      "operation": "insert the token string at the extension position, so Name.form becomes Name.TOKEN.form"
+    },
+    "exists": {
+      "va": "0x0090fbc0",
+      "joins": "root wrapper 0x0132cb98 + sqwt root 0x01356ae0 + path for a path that starts with a separator",
+      "test": "GetFileAttributesW not -1 and the directory attribute clear",
+      "fileSystemOnly": true
+    }
+  },
+  "language": {
+    "tokenGlobalVa": "0x01356b38",
+    "setter": {
+      "va": "0x0090f8d0",
+      "callerVa": "0x004b3314",
+      "value": "a dot followed by the token of the language dword"
+    },
+    "tokenSelector": {
+      "va": "0x00d34cd0",
+      "jumpTableVa": "0x00d34d08"
+    },
+    "tokens": [
+      "ja",
+      "en",
+      "de",
+      "fr",
+      "chs",
+      "cht"
+    ],
+    "outOfRange": "",
+    "field": {
+      "objectOffset": "0x20",
+      "getterVa": "0x004b68a0",
+      "setterVa": "0x004b6890",
+      "setterCallerVa": "0x00402d63"
+    },
+    "derivation": [
+      "If the user-config value at group 0 key 0x19 is nonzero the language is that value minus one, unchecked.",
+      "Otherwise the first five bytes of config.lng are read and byte 4 is the language when it is below 6.",
+      "Otherwise the DWORD value Language under HKLM SOFTWARE\\SquareEnix\\ plus a product key name is the language, unchecked. The name is FINAL FANTASY XIV LATEST or FINAL FANTASY XIV when the string at 0x01323898 is nonempty and none when it is empty.",
+      "Otherwise GetUserDefaultLangID is mapped through the LANGID table."
+    ],
+    "defaultFunctionVa": "0x004055d0",
+    "langIdFunctionVa": "0x00404f70",
+    "langIdMap": {
+      "1": [
+        "0x409",
+        "0x809",
+        "0xc09",
+        "0x1009",
+        "0x1409",
+        "0x1809",
+        "0x1c09",
+        "0x2009",
+        "0x2409",
+        "0x2809",
+        "0x2c09",
+        "0x3009",
+        "0x3409"
+      ],
+      "2": [
+        "0x407",
+        "0x807",
+        "0xc07",
+        "0x1007",
+        "0x1407"
+      ],
+      "3": [
+        "0x40c",
+        "0x80c",
+        "0xc0c",
+        "0x100c",
+        "0x140c",
+        "0x180c"
+      ],
+      "4": [
+        "0x804",
+        "0x1004"
+      ],
+      "5": [
+        "0x404",
+        "0xc04"
+      ],
+      "default": 0
+    }
+  },
+  "roots": {
+    "configGroup": 2,
+    "configKey": 8,
+    "bootValues": [
+      4,
+      5,
+      6
+    ],
+    "bootRoot": "\\client\\sqwt\\boot",
+    "gameRoot": "\\client\\sqwt",
+    "initializerVa": "0x004b2df0"
+  },
+  "consumers": {
+    "sameToken": [
+      {
+        "va": "0x0096a3b0",
+        "kind": "form and template paths"
+      },
+      {
+        "va": "0x008e2f40",
+        "kind": "texture names, the token is appended to the stem before a probe with the .gtex literal"
+      },
+      {
+        "va": "0x009a1db0",
+        "kind": "generic localized file reader"
+      }
+    ],
+    "noToken": [
+      {
+        "va": "0x00983be0",
+        "kind": "Source references of resource dictionaries, reached through the raw reader 0x00910190"
+      }
+    ]
+  },
+  "examples": [
+    {
+      "filename": "ChainBonusEffectWidget",
+      "language": 1,
+      "candidates": [
+        "\\widget\\ChainBonusEffectWidget.en.form",
+        "\\widget\\ChainBonusEffectWidget.form",
+        "\\debug\\ChainBonusEffectWidget.en.form",
+        "\\debug\\ChainBonusEffectWidget.form",
+        "\\ChainBonusEffectWidget.en.form",
+        "\\ChainBonusEffectWidget.form"
+      ]
+    },
+    {
+      "filename": "ChainBonusEffectWidget",
+      "language": 6,
+      "candidates": [
+        "\\widget\\ChainBonusEffectWidget..form",
+        "\\widget\\ChainBonusEffectWidget.form",
+        "\\debug\\ChainBonusEffectWidget..form",
+        "\\debug\\ChainBonusEffectWidget.form",
+        "\\ChainBonusEffectWidget..form",
+        "\\ChainBonusEffectWidget.form"
+      ]
+    },
+    {
+      "filename": "Desktop",
+      "language": 3,
+      "candidates": [
+        "\\common\\Desktop.fr.form",
+        "\\common\\Desktop.form",
+        "\\common\\Desktop.fr.form",
+        "\\common\\Desktop.form",
+        "\\common\\Desktop.fr.form",
+        "\\common\\Desktop.form"
+      ]
+    }
+  ],
+  "pathExamples": [
+    {
+      "path": "\\system\\bootup\\TitlePhase.form",
+      "language": 3,
+      "candidates": [
+        "\\system\\bootup\\TitlePhase.fr.form",
+        "\\system\\bootup\\TitlePhase.form"
+      ]
+    },
+    {
+      "path": "\\widget\\Common.tpl",
+      "language": 0,
+      "candidates": [
+        "\\widget\\Common.ja.tpl",
+        "\\widget\\Common.tpl"
+      ]
+    },
+    {
+      "path": "a.tpl",
+      "language": 1,
+      "candidates": [
+        "a.tpl",
+        "a.tpl"
+      ]
+    },
+    {
+      "path": "/widget/Common.tpl",
+      "language": 0,
+      "candidates": [
+        "\\widget\\Common.ja.tpl",
+        "\\widget\\Common.tpl"
+      ]
+    }
+  ],
+  "census": {
+    "localizedOther": {
+      "le.spk": 140,
+      "win32.gtex": 140
+    },
+    "localizedStems": [
+      {
+        "bare": true,
+        "directory": "system/bootup",
+        "extension": "form",
+        "languages": [
+          "ja",
+          "en",
+          "de",
+          "fr"
+        ],
+        "stem": "TitlePhase"
+      },
+      {
+        "bare": true,
+        "directory": "system/bootup",
+        "extension": "tpl",
+        "languages": [
+          "ja",
+          "en",
+          "de",
+          "fr"
+        ],
+        "stem": "TitlePhase"
+      },
+      {
+        "bare": true,
+        "directory": "system/bootup/charactercreation",
+        "extension": "form",
+        "languages": [
+          "de",
+          "fr"
+        ],
+        "stem": "BirthdayPhase"
+      },
+      {
+        "bare": true,
+        "directory": "system/bootup/charactercreation",
+        "extension": "tpl",
+        "languages": [
+          "de",
+          "fr"
+        ],
+        "stem": "BirthdayPhase"
+      },
+      {
+        "bare": true,
+        "directory": "system/bootup/charactercreation",
+        "extension": "form",
+        "languages": [
+          "de",
+          "fr"
+        ],
+        "stem": "BirthdayPhaseDayWin"
+      },
+      {
+        "bare": true,
+        "directory": "system/bootup/charactercreation",
+        "extension": "form",
+        "languages": [
+          "de",
+          "fr"
+        ],
+        "stem": "BirthdayPhaseMonthWin"
+      },
+      {
+        "bare": false,
+        "directory": "widget",
+        "extension": "form",
+        "languages": [
+          "ja",
+          "en",
+          "de",
+          "fr"
+        ],
+        "stem": "ChainBonusEffectWidget"
+      },
+      {
+        "bare": false,
+        "directory": "widget",
+        "extension": "tpl",
+        "languages": [
+          "ja",
+          "en",
+          "de",
+          "fr"
+        ],
+        "stem": "ChainBonusEffectWidget"
+      }
+    ],
+    "otherFiles": 422,
+    "roots": {
+      "boot": {
+        "form": {
+          "bareOnly": 8,
+          "stems": 8,
+          "withSd": 0
+        },
+        "tpl": {
+          "bareOnly": 10,
+          "stems": 10,
+          "withSd": 0
+        }
+      },
+      "common": {
+        "form": {
+          "bareOnly": 1,
+          "stems": 1,
+          "withSd": 1
+        },
+        "tpl": {
+          "bareOnly": 13,
+          "sdOnly": 1,
+          "stems": 14,
+          "withSd": 13
+        }
+      },
+      "common_c": {
+        "tpl": {
+          "bareOnly": 7,
+          "stems": 7,
+          "withSd": 0
+        }
+      },
+      "system": {
+        "form": {
+          "bareOnly": 99,
+          "both": 4,
+          "stems": 103,
+          "withSd": 85
+        },
+        "tpl": {
+          "bareOnly": 75,
+          "both": 2,
+          "stems": 77,
+          "withSd": 69
+        }
+      },
+      "widget": {
+        "form": {
+          "bareOnly": 248,
+          "languageOnly": 1,
+          "stems": 249,
+          "withSd": 106
+        },
+        "tpl": {
+          "bareOnly": 172,
+          "languageOnly": 1,
+          "stems": 173,
+          "withSd": 73
+        }
+      },
+      "widget_c": {
+        "form": {
+          "bareOnly": 45,
+          "stems": 45,
+          "withSd": 0
+        },
+        "tpl": {
+          "bareOnly": 33,
+          "stems": 33,
+          "withSd": 0
+        }
+      }
+    },
+    "shapes": {
+      "form": {
+        "": 405,
+        "de": 5,
+        "de.sd": 4,
+        "en": 2,
+        "en.sd": 1,
+        "fr": 5,
+        "fr.sd": 4,
+        "ja": 2,
+        "ja.sd": 1,
+        "sd": 191
+      },
+      "tpl": {
+        "": 312,
+        "de": 3,
+        "de.sd": 2,
+        "en": 2,
+        "en.sd": 1,
+        "fr": 3,
+        "fr.sd": 2,
+        "ja": 2,
+        "ja.sd": 1,
+        "sd": 154
+      }
+    }
+  },
+  "contract": [
+    "Input: the bare form name F from _setFilename, the language index L and the sqwt root R, which is client/sqwt or client/sqwt/boot for the boot modes.",
+    "Let N be F + .form. When N is Desktop.form every attempt path is \\common\\Desktop.form.",
+    "Otherwise the attempt paths are \\widget\\ + N, \\debug\\ + N and \\ + N, in that order.",
+    "For each attempt path P in order, replace every / in P with \\, then test P with the token of L inserted before the trailing .form, then test P itself.",
+    "The token is ja, en, de, fr, chs or cht for L 0 to 5 and empty for any other L, which leaves two dots.",
+    "A candidate matches when R + candidate names an existing regular file. The first match ends the search and is the form file.",
+    "When none of the six tests matches the load fails with request id -1.",
+    "A literal form path of a C++ owner gets the same / to \\ rewrite and is tested with the insertion and the plain path only. A template path that reaches the same opener is handled the same way. A Source reference inside a form is read as written.",
+    "The .sd files are not addressed by this rule."
+  ],
+  "open": [
+    {
+      "label": "INFERRED",
+      "text": "0x00446fd0 forwards to 0x00446800 and is read as a reverse search from the end of the string. A forward search would shorten a dotted name to its first segment."
+    },
+    {
+      "label": "INFERRED",
+      "text": "The Source reference reader 0x00983be0 does not reach the token. This reading follows direct calls only and virtual calls are not followed."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "No loader of the .sd.form and .sd.tpl files is found. The pinned executable holds no sd path suffix literal."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The 0x2f branch of 0x00452d50 at 0x00452e7a is not decoded. The opener passes only the character 0x5c."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The order and fallback of the texture reader 0x008e2f40 and the file reader 0x009a1db0 are not decoded."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The directory that 0x00405210 supplies for config.lng is not traced."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The test that selects the LATEST registry key name, 0x00405080, is read only as far as a \\latest.txt probe. The string at 0x01323898 that gates the name is not traced."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The language index a loader uses when no config.lng or registry value exists is an owner choice."
+    }
+  ],
+  "staticChecks": [
+    {
+      "name": "setFilename callback forwards",
+      "kind": "signature",
+      "va": "0x0075b730",
+      "pattern": "8b4424048b108b0952e8d2e1d7ff8b4c2408518bc8e8a687ddffc20800",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "setFilename stores the string at +0x110",
+      "kind": "signature",
+      "va": "0x00533ef0",
+      "pattern": "81c110010000e95535f1ff",
+      "mask": "ffffffffffffffffffffff"
+    },
+    {
+      "name": "loadForm callback forwards",
+      "kind": "signature",
+      "va": "0x0075b750",
+      "pattern": "8b4424048b108b0952e8b2e1d7ff8bc8e8ebc5ddffc20400",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "loadForm appends .form and requests when the id is negative",
+      "kind": "signature",
+      "va": "0x00537d77",
+      "pattern": "8dbe100100008bcfe8cce0f0ff85c0744183be98000000007d38687408fa008d442410508bcfe8aef7f0ffc744246800000000508bcee80efaffff898698000000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string .form loadForm",
+      "kind": "string",
+      "va": "0x00fa0874",
+      "text": ".form"
+    },
+    {
+      "name": "request loop builder and opener",
+      "kind": "signature",
+      "va": "0x00537870",
+      "pattern": "56558d4c2434518bcfe812c3ffffc784248c000000010000006a008d542430528bcbe8d941430084c0751e",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "request loop advance",
+      "kind": "signature",
+      "va": "0x005378af",
+      "pattern": "83c60183fe037cb9",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "request success counter",
+      "kind": "signature",
+      "va": "0x005378d2",
+      "pattern": "8b87940000008d4801898f94000000eb3d",
+      "mask": "ffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "request failure result",
+      "kind": "signature",
+      "va": "0x0053791d",
+      "pattern": "83c8ff",
+      "mask": "ffffff"
+    },
+    {
+      "name": "string Desktop.form",
+      "kind": "string",
+      "va": "0x00fa069c",
+      "text": "Desktop.form"
+    },
+    {
+      "name": "string common Desktop.form",
+      "kind": "string",
+      "va": "0x00fa06ac",
+      "text": "\\common\\Desktop.form"
+    },
+    {
+      "name": "builder Desktop.form test",
+      "kind": "signature",
+      "va": "0x00533c1d",
+      "pattern": "84db74278b0d9872f6005168ac06fa008bcde82c36f1ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "builder stem cut",
+      "kind": "signature",
+      "va": "0x00533c68",
+      "pattern": "a19872f600508d4c2420518bcee85633f1ff8bf8c68424c8020000008d4c241ce8c332f1ff576a008d94241c020000528bcee8e13df1ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string dot",
+      "kind": "string",
+      "va": "0x00fa06c4",
+      "text": "."
+    },
+    {
+      "name": "string .form builder",
+      "kind": "string",
+      "va": "0x00fa06c8",
+      "text": ".form"
+    },
+    {
+      "name": "builder append .form",
+      "kind": "signature",
+      "va": "0x00533caa",
+      "pattern": "68c806fa008d8c2418020000e8454cf1ff",
+      "mask": "ffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "builder mode switch",
+      "kind": "signature",
+      "va": "0x00533cd0",
+      "pattern": "8b8424d802000083e8000f84f900000083e801747b83e8010f855e010000",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string widget prefix",
+      "kind": "string",
+      "va": "0x00fa06d0",
+      "text": "\\widget\\"
+    },
+    {
+      "name": "string debug prefix",
+      "kind": "string",
+      "va": "0x00fa06dc",
+      "text": "\\debug\\"
+    },
+    {
+      "name": "string root prefix",
+      "kind": "string",
+      "va": "0x00fa06e4",
+      "text": "\\"
+    },
+    {
+      "name": "builder mode 0 prefix",
+      "kind": "signature",
+      "va": "0x00533dd9",
+      "pattern": "8b159872f6005268d006fa008d4c2478e87234f1ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "builder mode 1 prefix",
+      "kind": "signature",
+      "va": "0x00533d60",
+      "pattern": "8b0d9872f6005168dc06fa008d8c24cc000000e8e834f1ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "builder mode 2 prefix",
+      "kind": "signature",
+      "va": "0x00533cee",
+      "pattern": "a19872f6005068e406fa008d4c2424e85e35f1ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "opener separator normalization",
+      "kind": "signature",
+      "va": "0x0096bad2",
+      "pattern": "8d84248800000050c68424ec00000001e8a974aeff83c4048d8c2488000000518d4c2438e805b7adff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "opener slash rewrite",
+      "kind": "signature",
+      "va": "0x00452e60",
+      "pattern": "80382f7503c6005c83c0013bc775f1",
+      "mask": "ffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "opener separator call",
+      "kind": "signature",
+      "va": "0x00452f90",
+      "pattern": "8b4424046a5c50e8b4fdffff83c408c3",
+      "mask": "ffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "opener variant then plain",
+      "kind": "signature",
+      "va": "0x0096bb07",
+      "pattern": "e8a4e8ffff8bd652e8ac40faff83c40484c0755d8d842488000000508bcee826b9adff8bce51e88e40faff83c40484c0753f",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "opener loaded gate",
+      "kind": "signature",
+      "va": "0x0096bb78",
+      "pattern": "399fe800000075b9",
+      "mask": "ffffffffffffffff"
+    },
+    {
+      "name": "opener stores the chosen path",
+      "kind": "signature",
+      "va": "0x0096bbef",
+      "pattern": "ff8d4c2434518d8fec000000",
+      "mask": "ffffffffffffffffffffffff"
+    },
+    {
+      "name": "opener success result",
+      "kind": "signature",
+      "va": "0x0096bc75",
+      "pattern": "b001",
+      "mask": "ffff"
+    },
+    {
+      "name": "insert length guard",
+      "kind": "signature",
+      "va": "0x0096a3dc",
+      "pattern": "8bcee86dbaadff8bf883ff050f86b7000000",
+      "mask": "ffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string .tpl insert",
+      "kind": "string",
+      "va": "0x0107122c",
+      "text": ".tpl"
+    },
+    {
+      "name": "string .form insert",
+      "kind": "string",
+      "va": "0x01071234",
+      "text": ".form"
+    },
+    {
+      "name": "insert tpl end test",
+      "kind": "signature",
+      "va": "0x0096a422",
+      "pattern": "8d47fc3be8",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "insert form end test",
+      "kind": "signature",
+      "va": "0x0096a477",
+      "pattern": "83c7fb3bef",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "insert call",
+      "kind": "signature",
+      "va": "0x0096a497",
+      "pattern": "e8b454faff50558bcee83bd9adff",
+      "mask": "ffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "exists reads attributes",
+      "kind": "signature",
+      "va": "0x00453218",
+      "pattern": "8b44240873048d44240850ff1588e2f30083c9ff3bc1894c242c7438a8108b44241c",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "import GetFileAttributesW",
+      "kind": "import",
+      "va": "0x00f3e288",
+      "import": "KERNEL32.dll!GetFileAttributesW"
+    },
+    {
+      "name": "exists joins the root",
+      "kind": "signature",
+      "va": "0x0090fbef",
+      "pattern": "8b442470508d44240c50e862fdffff8d4c241051c744247400000000e8b035b4ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "root separator test",
+      "kind": "signature",
+      "va": "0x0090f9de",
+      "pattern": "e8ed67b3ff83f85c0f843b0100006a008bcfe8db67b3ff83f82f",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "root joins install and sqwt",
+      "kind": "signature",
+      "va": "0x0090fb27",
+      "pattern": "68e06a35018d4c241c6898cb320151e855b0b3ff57508d9424d400000052899c248c010000e83fb0b3ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "root mode config",
+      "kind": "signature",
+      "va": "0x004b3197",
+      "pattern": "6a006a086a028bcee89c0cf9ff83c0fc83f802",
+      "mask": "ffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string boot root",
+      "kind": "string",
+      "va": "0x00f8ca58",
+      "text": "\\client\\sqwt\\boot"
+    },
+    {
+      "name": "string sqwt root",
+      "kind": "string",
+      "va": "0x00f8ca80",
+      "text": "\\client\\sqwt"
+    },
+    {
+      "name": "root default store",
+      "kind": "signature",
+      "va": "0x004b327c",
+      "pattern": "8d54243052e8eac54500",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "root default absolute store",
+      "kind": "signature",
+      "va": "0x004b32bc",
+      "pattern": "518d9424880000006898cb320152e8c178f9ffc68424440100000d50e863c54500",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "root relative setter",
+      "kind": "signature",
+      "va": "0x0090f870",
+      "pattern": "8b44240450b9e06a3501e8d17bb3ffc7442404e06a3501e90437b4ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "token global setter literal",
+      "kind": "signature",
+      "va": "0x0090f8f3",
+      "pattern": "a19872f6005068b48106018d4c240ce85979b3ff50b9386b3501c744246400000000e8367bb3ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "token global setter append",
+      "kind": "signature",
+      "va": "0x0090f92b",
+      "pattern": "8b4c2468e89c53420050b9386b3501e8b18fb3ff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string token dot",
+      "kind": "string",
+      "va": "0x010681b4",
+      "text": "."
+    },
+    {
+      "name": "token global getter",
+      "kind": "signature",
+      "va": "0x0090f950",
+      "pattern": "b8386b3501c3",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "token startup call",
+      "kind": "signature",
+      "va": "0x004b3304",
+      "pattern": "8bcee895350000894424188d44241850e8b7c54500",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "token selector dispatch",
+      "kind": "signature",
+      "va": "0x00d34cd0",
+      "pattern": "8b0183f805772bff2485084dd300",
+      "mask": "ffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "token selector arms",
+      "kind": "signature",
+      "va": "0x00d34cde",
+      "pattern": "b820843701c3b878843701c3b8d0843701c3b828853701c3b880853701c3b8d8853701c3b8c8833701c3",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "token selector jump table",
+      "kind": "dwords",
+      "va": "0x00d34d08",
+      "values": [
+        "0x00d34cde",
+        "0x00d34ce4",
+        "0x00d34cea",
+        "0x00d34cf0",
+        "0x00d34cf6",
+        "0x00d34cfc"
+      ]
+    },
+    {
+      "name": "string token empty",
+      "kind": "string",
+      "va": "0x01110650",
+      "text": ""
+    },
+    {
+      "name": "string token ja",
+      "kind": "string",
+      "va": "0x01110654",
+      "text": "ja"
+    },
+    {
+      "name": "string token en",
+      "kind": "string",
+      "va": "0x01110658",
+      "text": "en"
+    },
+    {
+      "name": "string token de",
+      "kind": "string",
+      "va": "0x0111065c",
+      "text": "de"
+    },
+    {
+      "name": "string token fr",
+      "kind": "string",
+      "va": "0x01110660",
+      "text": "fr"
+    },
+    {
+      "name": "string token chs",
+      "kind": "string",
+      "va": "0x01110664",
+      "text": "chs"
+    },
+    {
+      "name": "string token cht",
+      "kind": "string",
+      "va": "0x01110668",
+      "text": "cht"
+    },
+    {
+      "name": "token init default",
+      "kind": "signature",
+      "va": "0x00f2d536",
+      "pattern": "6850061101b9c8833701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "token init ja",
+      "kind": "signature",
+      "va": "0x00f2d566",
+      "pattern": "6854061101b920843701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "token init en",
+      "kind": "signature",
+      "va": "0x00f2d596",
+      "pattern": "6858061101b978843701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "token init de",
+      "kind": "signature",
+      "va": "0x00f2d5c6",
+      "pattern": "685c061101b9d0843701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "token init fr",
+      "kind": "signature",
+      "va": "0x00f2d5f6",
+      "pattern": "6860061101b928853701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "token init chs",
+      "kind": "signature",
+      "va": "0x00f2d626",
+      "pattern": "6864061101b980853701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "token init cht",
+      "kind": "signature",
+      "va": "0x00f2d656",
+      "pattern": "6868061101b9d8853701",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "language field getter",
+      "kind": "signature",
+      "va": "0x004b68a0",
+      "pattern": "8b4120c3",
+      "mask": "ffffffff"
+    },
+    {
+      "name": "language field setter",
+      "kind": "signature",
+      "va": "0x004b6890",
+      "pattern": "8b442404894120c20400",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "language field setter caller",
+      "kind": "signature",
+      "va": "0x00402d42",
+      "pattern": "536a198bf8538bce897c2424e8ed1004003bc3740983c0ff894424188bf8578bcee8283b0b00",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "default reads config.lng",
+      "kind": "signature",
+      "va": "0x004056a8",
+      "pattern": "538d542414526a058d8424940000005056895c2424ff158ce1f300837c241005750e8a84248c0000003c067303",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string config.lng",
+      "kind": "string",
+      "va": "0x00f54b20",
+      "text": "\\config.lng"
+    },
+    {
+      "name": "import ReadFile",
+      "kind": "import",
+      "va": "0x00f3e18c",
+      "import": "KERNEL32.dll!ReadFile"
+    },
+    {
+      "name": "import CreateFileW",
+      "kind": "import",
+      "va": "0x00f3e1d4",
+      "import": "KERNEL32.dll!CreateFileW"
+    },
+    {
+      "name": "default registry call",
+      "kind": "signature",
+      "va": "0x00405777",
+      "pattern": "8d4424145068584bf5008d8c2498000000516802000080e8adf6ffff",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "registry key name selection",
+      "kind": "signature",
+      "va": "0x00405747",
+      "pattern": "8b0d983832013819750433c0eb13e826f9ffff84c0b80c4cf5007505b8404cf50050",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "wstring registry parent",
+      "kind": "wstring",
+      "va": "0x00f54b2c",
+      "text": "SOFTWARE\\SquareEnix\\"
+    },
+    {
+      "name": "wstring registry value",
+      "kind": "wstring",
+      "va": "0x00f54b58",
+      "text": "Language"
+    },
+    {
+      "name": "wstring registry latest",
+      "kind": "wstring",
+      "va": "0x00f54c0c",
+      "text": "FINAL FANTASY XIV LATEST"
+    },
+    {
+      "name": "wstring registry plain",
+      "kind": "wstring",
+      "va": "0x00f54c40",
+      "text": "FINAL FANTASY XIV"
+    },
+    {
+      "name": "import RegOpenKeyExW",
+      "kind": "import",
+      "va": "0x00f3e00c",
+      "import": "ADVAPI32.dll!RegOpenKeyExW"
+    },
+    {
+      "name": "import GetUserDefaultLangID",
+      "kind": "import",
+      "va": "0x00f3e198",
+      "import": "KERNEL32.dll!GetUserDefaultLangID"
+    },
+    {
+      "name": "LANGID map function",
+      "kind": "rangeSha256",
+      "va": "0x00404f70",
+      "length": 272,
+      "sha256": "6bb2c8ded301d35934bbfb78701d1f2983a8bed29578ab799ca460bdc2ecefc5"
+    },
+    {
+      "name": "texture consumer token call",
+      "kind": "signature",
+      "va": "0x008e310a",
+      "pattern": "e841c8020050",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "spk consumer token call",
+      "kind": "signature",
+      "va": "0x009a1f68",
+      "pattern": "e8e3d9f6ff508d8c247c010000e87669aaff",
+      "mask": "ffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "string gtex",
+      "kind": "string",
+      "va": "0x0106682c",
+      "text": ".gtex"
+    },
+    {
+      "name": "string win32",
+      "kind": "string",
+      "va": "0x01066834",
+      "text": ".win32"
+    },
+    {
+      "name": "string gtex fallback",
+      "kind": "string",
+      "va": "0x0106683c",
+      "text": ".gtex"
+    }
+  ]
+}
