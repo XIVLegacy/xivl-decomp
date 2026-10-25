@@ -120,12 +120,12 @@ to updater entries `0x00A1F3C0`, `0x00A1E820`, `0x00A1E710` or
 
 ## Remaining bindings and reproduction
 
-This establishes a conditional queue-to-base-S ownership relation. The
-selected actor table, FindVins interfaces, J+0x6C registry identity,
-parser/provider state and same-S update/context invocation remain separate
-edges. This base factory profile needs those joins before qualifying a selected
-MotionClip. No equality with a root Acc/Mcc, selected invocation, command,
-normal/hard assignment or playback follows.
+This establishes a conditional queue-to-base-S ownership relation. The registry,
+parsed provider and retained-item updater qualifications below compose with it
+under their stated conditions. Selected actor/FindVins interfaces, retained
+J/registry/provider state, actual slot-26 entry and selected callbacks remain
+unproved. No equality with a root Acc/Mcc, selected invocation,
+command, normal/hard assignment or playback follows.
 
 Authenticate the PE above and compare retained instructions with original
 bytes and independent x86-32 decoding. Check `0x00844330`, `0x0080E070`,
@@ -137,3 +137,173 @@ bytes and independent x86-32 decoding. Check `0x00844330`, `0x0080E070`,
 instruction unions from enclosing spans with unlisted alignment gaps. Follow
 plain-RET getters, output cells, receiver adjustments and five/three-argument
 cleanup separately.
+
+## Queue registry and MotionClip implementation
+
+Singleton `0x00A02360` reads global `0x01364A98` at `0x00A02375`,
+constructs J through `0x00A02030` on its null branch, and publishes the
+return at `0x00A023BA`. Getter `0x00A01540` returns `u32(J+0x6C)`
+with plain `RET`. The [parameter and registry construction contract](attribute-resource-and-scene-binding.md#character-factory-and-world-provider)
+owns initializer `0x00A01A50`, its registry replacement at `0x00A01BF3`
+and the requirement to register again after replacement.
+
+For the queue capture, `0x00A02D2B/0x00A02D32` load and push
+G=`u32(J+0x6C)` as factory argument 4. `0x00A26046` stores it at
+F+0x14. Both base-construction branches in `0x00A26640` supply it as
+Scheduler argument 3, stored at S+0x7C at `0x00A1EC9F`. The parser
+`0x00A24E70` uses plain `RET`, leaving the pushed mode 0/1 as constructor
+argument 7; its parsed result is argument 6 at S+0x50. Constructor
+`0x00A1EBE0` consumes all seven dwords with `RET 0x1C`.
+
+Under the [synchronous builder contract](scb-clip-factory-composition.md#synchronous-builder-invocation),
+S+0x7C reaches local builder+8, then the class-key lookup receiver is G+8
+at `0x00A28641`. Thus the retained source relation is:
+
+```text
+u32(S+0x7C) = u32(F+0x14) = u32(J+0x6C) at capture
+```
+
+CDevSchedulerManager slot 3 at `0x00635760` first calls the base registrar
+`0x00A4C2A0` at `0x00635899` and continues on nonzero AL. The base
+MotionClip insertion at `0x00A4C49C..0x00A4C4BD` pairs literal
+`0x0109B778` with factory `0x00A4DCD0`, using J from `0x00A02360`
+and G from `0x00A01540`. The Rapture replacement then uses:
+
+| Operation | Key | Factory | Original call |
+|---|---|---|---|
+| Erase through `0x0063F920` | `0x00FBD21C` | - | `0x00636CAF` |
+| Insert through `0x0063F710` | `0x00FBD228` | `0x0063C180` | `0x00636CDD` |
+
+Each obtains `u32(returnedJ+0x6C)+8` through those same plain-RET
+getters. All three literal keys spell `MotionClip` followed by NUL.
+The [equal-key erase/insertion contract](attribute-resource-and-scene-binding.md#character-factory-and-world-provider)
+means successful erase followed by successful insertion replaces the earlier
+factory; insertion alone retains an existing equal key. The
+[factory identity](combat-motion-name-provider.md#factory-identity) qualifies
+`0x0063C180 -> 0x0082EF70` as RaptureMotionClip, table `0x010337EC`,
+slot 1 `0x0082F120`.
+
+This profile requires the registration calls and queue creation to retain the
+same J and G, valid key/tree/arena state, and the accepted Rapture pair through
+builder lookup. A later registry replacement or mutation can break that
+relation. No equality to the separate slot-5 global registry is needed.
+
+## Eager parser and serialized name provider
+
+A returned S need not have completed parsing. `0x00A26640` calls
+`0x00A26380` on the same S at `0x00A266F4` on one branch, or at
+`0x00A267AB` after the resource virtual +0x2C AL test passes. The
+alternative `0x00A267C6` sets bit 0x40 in S+0x91 and skips that direct
+parser invocation. The relation here requires the branch that reaches
+`0x00A26380` and its publication.
+
+At `0x00A2655A`, that parser supplies S and its arena to `0x00A25DC0`,
+then stores returned ResourceReference Rr at S+0x74 at `0x00A26561`.
+The helper supplies `u32(u32(S+0x50)+0x38)` as constructor
+`0x00A27450` argument 3, stored at Rr+0x10 at `0x00A2746E`.
+With P=`u32(S+0x50)`, valid storage, successful construction and retention:
+
+```text
+u32(Rr+0x10) = u32(P+0x38)
+```
+
+Original ResourceReference table `0x01098604` slots 2/3 are
+`0x00A276A0/0x00A27560`. This is the same provider source used by the
+[published RIDTBL formula](combat-motion-name-provider.md#resourcereference-and-serialized-provider).
+With callback context+0x0C=S, retained parsed fields/provider and a constructed
+RaptureMotionClip, its nonnegative index can therefore use that formula on
+this base queue path. The existing bounds, source-NUL and 15-character
+conversion conditions still apply. This does not establish a selected index,
+authored resource, callback or name match.
+
+## Retained item and Scheduler update
+
+The item K created at `0x00A02E53..0x00A02E62` stores S at K+4,
+W at K+8, input argument 2 at K+0x0C and zero at K+0x10. Its table
+`0x01093F00` and original RTTI identify CutSceneItemObject. The creation
+path also stores W at S+0xB8 at `0x00A02E2F`.
+
+Let H=`u32(J+0x50)` and Tail=`u32(H+4)` before insertion. At
+`0x00A02E7F`, helper `0x008EA4E0` receives `(H,Tail,&Klocal)`.
+It allocates node N and stores N+0=H, N+4=Tail and N+8=K, returning
+with `RET 0x0C`. The caller increments J+0x54 through `0x00A032B0`,
+stores N at H+4 at `0x00A02E95`, and stores N at Tail+0 at
+`0x00A02E9B`. This appends N before H in an intact ring. Constructor
+`0x00A02030 -> 0x00D51550` initializes H+0=H and H+4=H, with
+J+0x54 zero. Successful allocation and normal capacity-guard return remain
+conditions.
+
+`0x00A025C0` retains its incoming ECX as J. It skips iteration if
+`u8(J+0x20)!=0` or its argument points to a zero dword. Its earlier
+clock-rate setter still runs before those guards. On the surviving path it
+starts at N=`u32(H)`, compares N with H, and follows N+0 at the iteration
+tail. With retained links, it can reach the appended N.
+
+The per-item branch samples b=`u8(S+0x91)&0x20` and state=`u32(K+0x10)`.
+The common update block is reached directly when b is zero or, for nonzero b,
+state is outside 0/1/2. Other paths need the following true helper results;
+false results can skip this item, and the temporary factory/callbacks remain
+retention conditions:
+
+| State when b is nonzero | Required path to common update |
+|---|---|
+| 0 | S+0x6C virtual +0x2C, then `0x00A020C0(J,S)`, then `0x00A01E70(J,S)`; state becomes 3 |
+| 1 | `0x00A02170(J,S)`, then `0x00A01E70(J,S)`; state becomes 3 |
+| 2 | `0x00A01F10(J,S)`; state becomes 3 |
+
+These are branch predicates, without semantic readiness or success claims.
+K+0x10 starts at zero; no assumption is made about S's initial b.
+
+The common block calls W virtual +0x64 at `0x00A02823`, selecting
+`0x00A03740` under table `0x010942E4`. With retained nonnull W+8,
+it returns the float at W+0x24. After local scaling or its S+0xC8 override,
+the block calls S virtual +0x34 at `0x00A02871`. Base Scheduler cell
+`0x01097A88` selects `0x00A1B810 -> 0x00A20390`, which sets the
+clock rate. No selected numeric rate is inferred.
+
+Finally `0x00A0287D/0x00A02880` load ECX through N+8 -> K+4 -> S,
+and `0x00A02883` directly calls `0x00A1F3C0`. Under the same J,
+retained N/K/S/W, loop guards and common branch, this is the exact constructed
+S. It composes with the [existing updater/context chain](scb-clip-factory-composition.md#secondary-collection-callers-and-callback-context)
+under that chain's own collection, iterator, state and table conditions.
+
+Retention is substantive: `0x00A02B20(J,W)` can match K+8 through
+`0x00A01790`, move K to J+0x58/+0x5C, clear the old N+8 and remove
+N through `0x00DB48C0`. Cleanup `0x00A02A10 -> 0x00A022B0` can
+release and clear K+4=S and K+8=W. The iteration and insertion use
+EnterCriticalSection/LeaveCriticalSection on J+8, but those static calls do
+not establish object lifetime or exclude reentrant callbacks.
+
+The incoming-J source has a concrete entry outside that loop. SceneThreadImpl
+table `0x00F931D4` and Framework table `0x0109B16C` slot 26 both select
+`0x00A48970`. Its complete 12-byte body calls singleton `0x00A02360`,
+moves returned J into ECX and tail-jumps to `0x00A025C0` at
+`0x00A48977`, leaving the incoming stack argument unchanged. If that slot
+runs and its singleton return retains the queue's J, it supplies that same J
+to the item loop. Actual slot invocation, argument/state and retained singleton
+identity remain conditions. A direct CALL/JMP search of only `0060*.s` and
+`0023*.s` found no site; the later `0064*.s` search found this helper.
+
+## Profile and update reproduction
+
+Use the PE identity and byte/union procedure above. Registry-specific excerpts
+are `0x00A02375..0x00A0237A`, `0x00A023B3..0x00A023BF`,
+`0x00A01BC2..0x00A01BF9`, getter `0x00A01540`, the queue factory
+capture, both `0x00A26640` constructor/parser branches, base field stores,
+and `0x00636C93..0x00636CE2`, plus the base MotionClip insertion and
+three literal keys. Check exact argument cleanup and the named provider
+publication through `0x00A26380 -> 0x00A25DC0 -> 0x00A27450`.
+The singleton global operands `0x01364A98/0x01365604` lie in the PE's
+virtual data tail and have no original file-backed scalar values.
+
+For item delivery check complete bodies `0x00A025C0`, `0x00A02C60`,
+`0x008EA4E0`, `0x00D51550`, `0x00A032B0`, `0x00A03740`,
+`0x00A03600`, `0x00A1B810`, `0x00A20390`, `0x00A02B20`,
+`0x00A02A10`, `0x00A022B0`, `0x00A01790` and `0x00DB48C0`,
+plus original tables/RTTI and critical-section imports. Preserve unlisted
+alignment gaps, including `[0x00A02AEB,0x00A02AF5)`, separately from
+listed instruction unions. Check empty and nonempty ring insertion and
+the exact retained payload loads before composing with the linked updater.
+For incoming J check `[0x00A48970,0x00A4897C)` and original slot-26
+cells `0x00F9323C/0x0109B1D4`; distinguish this helper's supplied receiver
+from actual invocation of the owning framework slot.

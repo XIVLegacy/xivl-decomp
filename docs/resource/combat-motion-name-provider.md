@@ -129,8 +129,8 @@ same incoming receiver into the published stack-context producer. With its
 required storage, iterator, state and field retention, that producer supplies
 slot 1 with C holding S at +0x0c. If the selected pointer retains the
 RaptureMotionClip table, its initializer reaches this name consumer.
-Delivery of a constructed combat Scheduler to that updater and actual selected
-invocation remain unproved. The separate [ActionClip child delivery](scb-clip-factory-composition.md#actionclip-child-scheduler-delivery)
+Delivery of a selected global Acc/Mcc combat Scheduler to that updater and
+actual selected invocation remain unproved. The separate [ActionClip child delivery](scb-clip-factory-composition.md#actionclip-child-scheduler-delivery)
 supplies a newly constructed AccScheduler to it, without identifying that child
 with the root combat instance. A record-to-RIDTBL interpretation still requires
 the corresponding retained context, parsed fields, resource lifetime and
@@ -147,8 +147,11 @@ name into the MCB availability test, typed resource queries and immediate
 request submission. The actor's concrete resource provider remains separate.
 
 The queue's [conditional base-Scheduler profile](action-queue-scheduler-handoff.md)
-supplies a separate factory/registry source to qualify. The Acc/Mcc paths above
-do not establish that queue profile's registry identity or updater delivery.
+qualifies its slot-3 registry, eager parsed provider and retained-item delivery
+to the updater. It requires the same retained J, successful registration,
+parser and iteration branches. Framework slot 26 supplies its singleton receiver
+through a checked helper; actual slot invocation and selected callbacks remain
+unproved. The Acc/Mcc paths above are separate profiles.
 
 ## Reproduction
 

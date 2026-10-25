@@ -290,6 +290,9 @@ under the phase-store contract above.
   The [ActionClip child path](scb-clip-factory-composition.md#actionclip-child-scheduler-delivery)
   qualifies a separately constructed AccScheduler's conditional delivery;
   it does not identify the root combat instance.
+  The [queue base-Scheduler item loop](action-queue-scheduler-handoff.md#retained-item-and-scheduler-update)
+  qualifies another same-instance delivery under retained J/list/state conditions;
+  its actual framework-slot entry and selected callback remain unproved.
 - The frame rate source of the ticks per frame setter is UNKNOWN.
 - The use of S+0x1cc, the repetition of the wrapper within a frame step and the
   seek branches of the tick were not traced.
