@@ -135,11 +135,14 @@ descriptor has a construct slot. A failed construct logs
 
 - No effect was played back. Nothing here shows what a rendered frame looks like.
 - The caller that supplies the tick delta, the time scale at effect `+0xd4` and
-  the way child unit nodes are updated are UNKNOWN.
+  the way child unit nodes are updated are UNKNOWN. The
+  [emitters page](vfx-generate-emitters.md) records the spawn of child units and
+  the graph time.
 - The action and combat effect names, the instance link and the order in which
   the Qix manager builds resources are not followed.
 - The calc bodies of the control modules are not read except for the DrawResource
-  module on the next page.
+  module on the next page and the emitter and receiver modules on the
+  [emitters page](vfx-generate-emitters.md).
 
 ## Verification
 

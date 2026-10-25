@@ -297,7 +297,8 @@ constants are bound by routines that were not traced.
    root whose version is not `0x1d` or whose declarations fail the compliance check,
    and substitute the built-in default.
 2. Build the unit tree from instance 0 and the child schedules, creating a child at
-   its start tick.
+   its start tick. Create further children from the Generate controls as the
+   [emitters page](vfx-generate-emitters.md#math-for-bahamut-client) describes.
 3. For each DrawResource node take the model name from its resource block, the
    color from the linked color node and the world matrix from the linked matrix
    node, and skip the draw when the color alpha is not above 0.
@@ -317,10 +318,11 @@ constants are bound by routines that were not traced.
 
 - The vfxm model chunk: vertex and index buffers, vertex declarations, sprite
   buffers and the material data table that holds the parameter records.
-- The calc bodies of `ColorRGBARoot`, `MatrixRoot`, the angle and scale controls
-  and the Generate modules, and therefore how the polynomial graph values
-  become a world matrix and a color. The time variable of the polynomial segments
-  is also UNKNOWN.
+- The calc bodies of `ColorRGBARoot`, `MatrixRoot` and the angle and scale
+  controls other than the Generated receivers, and therefore how the polynomial
+  graph values become a world matrix and a color. The time variable of the
+  polynomial segments and the Generate modules are on the
+  [emitters page](vfx-generate-emitters.md).
 - The material constant that the type 0xa parameter writes, and so which shader
   constant receives the flipbook matrix. CALIBRATION.
 - The material parameter type codes other than the color write and type 0xa, the
