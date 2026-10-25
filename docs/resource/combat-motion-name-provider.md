@@ -149,9 +149,11 @@ request submission. The actor's concrete resource provider remains separate.
 The queue's [conditional base-Scheduler profile](action-queue-scheduler-handoff.md)
 qualifies its slot-3 registry, eager parsed provider and retained-item delivery
 to the updater. It requires the same retained J, successful registration,
-parser and iteration branches. Framework slot 26 supplies its singleton receiver
-through a checked helper; actual slot invocation and selected callbacks remain
-unproved. The Acc/Mcc paths above are separate profiles.
+parser and iteration branches. The constructed
+[Framework callback](action-queue-scheduler-handoff.md#framework-callback-entry)
+has a conditional group-130 dispatch path through slot 26 to the singleton
+receiver. Actual execution and selected clip callbacks remain unobserved.
+The Acc/Mcc paths above are separate profiles.
 
 ## Reproduction
 

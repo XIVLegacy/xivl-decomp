@@ -123,7 +123,7 @@ to updater entries `0x00A1F3C0`, `0x00A1E820`, `0x00A1E710` or
 This establishes a conditional queue-to-base-S ownership relation. The registry,
 parsed provider and retained-item updater qualifications below compose with it
 under their stated conditions. Selected actor/FindVins interfaces, retained
-J/registry/provider state, actual slot-26 entry and selected callbacks remain
+J/registry/provider state, actual framework execution and selected callbacks remain
 unproved. No equality with a root Acc/Mcc, selected invocation,
 command, normal/hard assignment or playback follows.
 
@@ -274,15 +274,96 @@ release and clear K+4=S and K+8=W. The iteration and insertion use
 EnterCriticalSection/LeaveCriticalSection on J+8, but those static calls do
 not establish object lifetime or exclude reentrant callbacks.
 
-The incoming-J source has a concrete entry outside that loop. SceneThreadImpl
-table `0x00F931D4` and Framework table `0x0109B16C` slot 26 both select
-`0x00A48970`. Its complete 12-byte body calls singleton `0x00A02360`,
-moves returned J into ECX and tail-jumps to `0x00A025C0` at
-`0x00A48977`, leaving the incoming stack argument unchanged. If that slot
-runs and its singleton return retains the queue's J, it supplies that same J
-to the item loop. Actual slot invocation, argument/state and retained singleton
-identity remain conditions. A direct CALL/JMP search of only `0060*.s` and
-`0023*.s` found no site; the later `0064*.s` search found this helper.
+## Framework callback entry
+
+The normal SceneThread update contains a conditional static call path into
+the queue updater. Let H be SceneThread and T=`u32(H+0x38)`, retaining the
+constructed objects, tables and fields through intervening calls. The
+[thread and initialization contract](attribute-resource-and-scene-binding.md#character-factory-and-world-provider)
+owns the upstream thread state and initialization order.
+
+Original SceneThread table `0x00F93168` slot 2 selects `0x004E9320`.
+The thread-procedure calls at `0x00D35630..0x00D3563F` and
+`0x00D35664..0x00D35673` preserve H for that slot. At
+`0x004E9371/0x004E9377`, the selected method reloads T and directly calls
+`0x00A49B10` with ECX=T.
+
+That method calls T slot 5 at `0x00A49BD5`, then the returned object's
+slot 11 at `0x00A49BDE`. AL must be zero at `0x00A49BE0`.
+On this normal-return branch, `0x00A4A118` calls `0x00A4B470` with
+`(100,499,X)`, independently of the earlier T+0x3C branch. Original cells
+`0x01093550/0x010936C8` supply those inclusive group bounds. X is the
+address of the local dword at ESP+0x0C before the pushes at
+`0x00A4A109..0x00A4A10F`; its dynamically calculated value is unqualified.
+AL nonzero instead selects the branch at `0x00A4A2B7`, whose single-group
+calls use 466 and 520, not the group below.
+
+### Constructed record and group membership
+
+Framework constructor `0x00A4A730` installs table `0x0109B16C`.
+The selected SceneThreadImpl construction calls it at `0x004EA89C` and
+installs table `0x00F931D4` at `0x004EA8B8`. Let B=T+0x1D8.
+The constructor's `0x00A4A967..0x00A4A9A8` writes:
+
+| Field | Constructed value |
+|---|---|
+| B+0/B+4 | B/B, an initially self-linked record |
+| B+8 | Adapter `0x00A68EF0` |
+| B+0x0C | Bound receiver T |
+| B+0x10 | Thunk `0x008F70D0` |
+| B+0x14 | Zero receiver adjustment |
+| B+0x18 | Group 130 from original cell `0x01093580` |
+| B+0x1C | Zero |
+| B+0x20 | `0x01093128`, the original string `UPDATE_CUT_SCHEDULER` |
+
+SceneThread slot 1 `0x004E8460` calls T slot 1 at `0x004E8470`.
+For the constructed SceneThreadImpl table, `0x004E84D0` then directly
+calls `0x00A48BE0` at `0x004E84E0`. After virtual slot-7 initialization,
+that method enrolls the records. At `0x00A48D5B..0x00A48D90`, it inserts
+B before head `L+8+8*q`, where
+`L=u32(u32(u32(0x01364A90)+0x0C)+0x0C)` and
+`q=u32(B+0x1C)+2*u32(B+0x18)`. Retaining the constructed fields gives
+q=260 and head L+8+16*130, the group-130 head consumed by `0x00A00DD0`.
+Successful initialization and retained list membership remain conditions.
+
+### Dispatch and argument cleanup
+
+`0x00A4B470` chooses `0x00A4B220` when both u8(D+0x24) is nonzero
+and u8(D+0x26) is zero, for D=`u32(0x0137B460)`. Otherwise it chooses
+`0x00A4B200`. It stores the pointer at `u32(0x01364A90)+0x20`, then
+calls `0x00A00DD0` with the same `(100,499,X)` at `0x00A4B4CD`.
+
+`0x00A00DD0` traverses the inclusive group range with a sixteen-byte stride.
+For a nonempty group, it transfers the ring to a work ring, removes a record
+and reinserts it into the original group before calling the dispatch pointer
+with `(0,B,X)` at `0x00A00E77..0x00A00E82`. Group 130 lies in that range.
+The record must survive traversal and prior callbacks; concurrent or reentrant
+mutations can prevent this visitation.
+
+The complete body `[0x00A4B200,0x00A4B217)` replaces its first argument with
+`u32(B+0x0C)` and its second with B+0x10, then tail-jumps `u32(B+8)`.
+The profiling alternative `0x00A4B220` makes the same three-argument call
+at `0x00A4B290`, subject to its instrumentation returning normally and
+preserving B. Both routes supply `(T,B+0x10,X)` to `0x00A68EF0`.
+
+That adapter's complete body `[0x00A68EF0,0x00A68F05)` pushes X, forms
+ECX=T+`u32(B+0x14)`=T and calls `u32(B+0x10)` at `0x00A68F02`.
+The exact five-byte thunk `[0x008F70D0,0x008F70D5)` is
+`MOV EAX,[ECX]; JMP [EAX+0x68]`, preserving T and the pending X.
+Both original slot-26 cells `0x00F9323C/0x0109B1D4` select `0x00A48970`.
+Its complete twelve bytes call singleton `0x00A02360`, move returned J into
+ECX and tail-jump to `0x00A025C0` at `0x00A48977`.
+
+The updater's `RET 4` at `0x00A02A06` consumes the adapter-pushed X.
+The adapter has plain `RET`; the profiling dispatcher removes its forwarded
+twelve bytes, and the group walker removes its own three dispatch arguments.
+The group walker has `RET 0x0C`; `0x00A4B470` has plain `RET`, and
+`0x00A4A125` removes its caller's three arguments.
+
+This qualifies the static dispatcher, receiver and argument path. It still
+requires the zero-AL branch, normal returns, retained callback/list state and
+tables, and a singleton return retaining the queue's same J. Actual execution,
+selected queue/clip state and playback were not observed.
 
 ## Profile and update reproduction
 
@@ -307,3 +388,15 @@ the exact retained payload loads before composing with the linked updater.
 For incoming J check `[0x00A48970,0x00A4897C)` and original slot-26
 cells `0x00F9323C/0x0109B1D4`; distinguish this helper's supplied receiver
 from actual invocation of the owning framework slot.
+
+For the constructed callback path, check complete retained instruction unions
+`0x004E9320`, `0x004E8460`, `0x004E84D0`, `0x00A4A730`,
+`0x00A48BE0`, `0x00A49B10`, `0x00A4B470`, `0x00A00DD0` and
+`0x00A4B220`, plus the exact adapter/dispatcher/thunk bodies above.
+Keep the unlisted gap `[0x00A00E2A,0x00A00E30)` separate.
+Authenticate the thread and constructor excerpts, the `RET 4`, original
+group/name cells and SceneThread/Framework/SceneThreadImpl slots.
+In a retained-instruction CFG model with calls returning normally and
+`0x00A49BE2`'s nonzero-AL branch disabled, `0x00A4A118` dominates the normal
+return at `0x00A4A33A`. The model excludes exceptions, nonreturning callees
+and arbitrary indirect-callee state changes.
