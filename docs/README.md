@@ -335,6 +335,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Qix veff data body](resource/vfx-effect-data-body.md)
 - [Qix effect runtime](resource/vfx-effect-runtime.md)
 - [Qix DrawResource, model shaders and render state](resource/vfx-drawresource-and-shaders.md)
+- [Qix emitters and generated motion](resource/vfx-generate-emitters.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)
 - [Music song-ID names and evidence](resource/music-song-names.md)

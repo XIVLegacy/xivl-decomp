@@ -13,6 +13,7 @@ from pathlib import Path
 
 import verify_sqwt_command_parameter_consumer as image_checks
 import vfx_effect_body as body
+import vfx_emitter_body as emitter
 import vfx_qix_resource as qix
 
 
@@ -166,7 +167,109 @@ blend type 1 body
 blend type 2 body
 blend type 3 body
 blend type 4 body
-blend type 7 body""".splitlines()
+blend type 7 body
+mt next output
+mt seed fill
+mt twist first loop
+mt twist counter reset
+mt owner seeds from clock
+mt global instance store
+mt counter pointer store
+spawn draws the global generator
+graph step divides ticks by 5000
+graph segment advance test
+graph transition sets constant term
+graph update scales delta
+frame stage order
+unit node constructor zero
+unit node constructor time
+frame stage main pass
+frame stage dispatch
+unit time advance
+unit loop fields
+unit loop owner test
+unit end tick compare
+genesis init
+genesis degree zero burst
+genesis degree dispatch
+genesis linear peak
+genesis degree one rising
+genesis degree one falling
+genesis quadratic vertex
+genesis event count
+genesis root solver
+genesis elapse gate
+genesis rising head burst
+genesis event enqueue
+event dispatch handler call
+master handler
+master spawn context
+master area scale slot
+spawn probability
+spawn distance gate
+spawn group sends
+spawn angle payload
+spawn scale payload
+density gate
+distance thinning
+axis random draw
+time handler
+payload transform dispatch
+group listener count
+group listener coordinate id
+listener message call
+area kind none and model
+area kind passthrough
+area axis flags
+area kind switch
+area sphere
+area cylinder radius height
+area cylinder cap test
+area cylinder output
+area box extent and surface
+area box per axis scale
+area distance scale tail
+position receiver stores
+position kinematics
+angle receiver stores
+angle kinematics
+scale kinematics
+area handler records
+area random shell
+many unit time construct
+many unit time calc
+many unit time event
+many spawn mode dispatch
+many burst loop
+many form sphere init
+many motion emission init
+many particle integration
+many line lifetime init
+many form sphere sample
+master drift accumulate
+spawn drag flag
+scale receiver stores
+child reference reader
+spawn child reference
+spawn angle payload refs
+spawn scale payload refs
+child unit create
+area payload scalars
+unit draw scale constant
+signed draw scale constant
+two pow 32 float constant
+one float constant
+half float constant
+negative zero float constant
+one double constant
+two double constant
+negative zero double constant
+four double constant
+negative one double constant
+three double constant
+pi float widened constant
+sign mask double constant
+zero double constant""".splitlines()
 )
 EXPECTED_OUTCOMES = {
     "module-registry-tables": "STATIC",
@@ -194,11 +297,22 @@ EXPECTED_OUTCOMES = {
     "unit-tree-shape": "INFERRED",
     "control-and-link-roles": "INFERRED",
     "tick-rate": "INFERRED",
-    "graph-evaluation-time": "UNKNOWN",
+    "graph-evaluation-time": "STATIC",
     "control-parameter-blocks": "UNKNOWN",
     "vfxm-chunk-layout": "UNKNOWN",
     "material-parameter-types": "UNKNOWN",
     "frame-delta-source": "UNKNOWN",
+    "random-source": "STATIC",
+    "genesis-event-counts": "STATIC",
+    "event-delivery": "STATIC",
+    "spawn-chance-and-gates": "STATIC",
+    "spawn-payload": "STATIC",
+    "area-shapes": "STATIC",
+    "area-shape-model": "UNKNOWN",
+    "generated-receivers": "STATIC",
+    "child-unit-lifetime": "STATIC",
+    "many-generate-chain": "INFERRED",
+    "density-default": "UNKNOWN",
 }
 VEFF_COUNT_KEYS = (
     "controls",
@@ -228,6 +342,7 @@ def verify(document: dict | None = None) -> list[str]:
     errors += module_errors(document)
     errors += graph_errors(document)
     errors += engine_errors(document)
+    errors += generate_errors(document)
     checks = document.get("staticChecks")
     if not isinstance(checks, list):
         errors.append("staticChecks is not a list")
@@ -349,8 +464,10 @@ def registry_errors(document: dict) -> list[str]:
     if registry.get("engineTable") != "0x013086a0":
         errors.append("registry.engineTable changed")
     prefix = registry.get("namePrefix", {})
-    if sorted(prefix) != ["cdev", "rapture"] or any(
-        not value.endswith("/Controls/") for value in prefix.values()
+    if (
+        sorted(prefix) != ["cdev", "rapture"]
+        or any(not value.endswith("/Controls/") for value in prefix.values())
+        or prefix != emitter.NAME_PREFIX
     ):
         errors.append("registry.namePrefix changed")
     tables = registry.get("tables", [])
@@ -487,6 +604,118 @@ def engine_errors(document: dict) -> list[str]:
     return errors
 
 
+GENERATE_KEYS = [
+    "areaKinds",
+    "areaRecord",
+    "coordinateModes",
+    "genesis",
+    "graphTime",
+    "groups",
+    "handlers",
+    "many",
+    "masterRecord",
+    "payload",
+    "random",
+    "timeRecords",
+]
+COORDINATE_IDS = {"World": 0, "Root": 1, "Local": 2, "PureWorld": 3}
+
+
+def generate_errors(document: dict) -> list[str]:
+    generate = document.get("generate")
+    if not isinstance(generate, dict) or sorted(generate) != GENERATE_KEYS:
+        return ["generate keys changed"]
+    known = {
+        item.get("name")
+        for item in document.get("staticChecks", [])
+        if isinstance(item, dict)
+    }
+    errors = []
+
+    def tier_error(label: str, row: dict) -> None:
+        if row.get("tier") not in TIERS:
+            errors.append(f"generate.{label} {row} has an unknown tier")
+        elif row["tier"] == "STATIC" and row.get("check") not in known:
+            errors.append(f"generate.{label} {row} names no static check")
+
+    for label in ("random", "graphTime", "genesis"):
+        rows = generate[label]
+        ids = [row.get("id") for row in rows]
+        if not rows or len(ids) != len(set(ids)):
+            errors.append(f"generate.{label} ids are empty or repeated")
+        for row in rows:
+            tier_error(label, row)
+            if not HEX_RE.fullmatch(str(row.get("address", ""))):
+                errors.append(f"generate.{label} {row.get('id')} address is malformed")
+            if not str(row.get("meaning", "")).strip():
+                errors.append(f"generate.{label} {row.get('id')} has no meaning")
+    for label in ("masterRecord", "areaRecord", "payload", "timeRecords", "many"):
+        errors += field_errors(generate[label], f"generate.{label}", known)
+    kinds = generate["areaKinds"]
+    if [row.get("kind") for row in kinds] != list(range(6)):
+        errors.append("generate.areaKinds are not the kinds 0 to 5 in order")
+    for row in kinds:
+        tier_error("areaKinds", row)
+    if [row.get("group") for row in generate["groups"]] != [0, 1, 2]:
+        errors.append("generate.groups are not the groups 0 to 2 in order")
+    for row in generate["groups"]:
+        tier_error("groups", row)
+    slots = {
+        (row["table"], row["name"]): row.get("slots", {})
+        for row in document.get("modules", [])
+    }
+    for row in generate["handlers"]:
+        tier_error("handlers", row)
+        module = slots.get((row.get("table"), row.get("module")))
+        if module is None:
+            errors.append(f"generate.handlers module {row.get('module')!r} is unknown")
+        elif module.get(row.get("slot")) != row.get("address"):
+            errors.append(
+                f"generate.handlers {row.get('module')!r} slot {row.get('slot')}"
+                " differs from the module row"
+            )
+        if not str(row.get("role", "")).strip():
+            errors.append(f"generate.handlers {row.get('module')!r} has no role")
+    seen = set()
+    for row in generate["coordinateModes"]:
+        key = (row.get("table"), row.get("module"))
+        if key in seen or key not in slots:
+            errors.append(f"generate.coordinateModes {key} is repeated or unknown")
+        seen.add(key)
+        suffix = str(row.get("module")).rsplit(":Coord", 1)[-1]
+        if COORDINATE_IDS.get(suffix) != row.get("coordinate"):
+            errors.append(f"generate.coordinateModes {key} disagrees with its name")
+    return errors
+
+
+def generate_image_errors(data: bytes, document: dict) -> list[str]:
+    """The coordinate id and generated flag of every listed receiver, read from the image."""
+    if "generate" not in document:
+        return []
+    sections = image_checks.section_map(data)
+    tables = {
+        row["id"]: int(row["moduleTable"], 16) for row in document["registry"]["tables"]
+    }
+    index = {(row["table"], row["name"]): row["index"] for row in document["modules"]}
+    errors = []
+    for row in document["generate"]["coordinateModes"]:
+        at = (
+            tables[row["table"]]
+            + DESCRIPTOR_SIZE * index[(row["table"], row["module"])]
+        )
+        raw = image_checks.read_va(data, sections, at, DESCRIPTOR_SIZE)
+        words = struct.unpack("<58I", raw) if raw else None
+        if (
+            words is None
+            or words[0x58 // 4] != row["coordinate"]
+            or words[0x50 // 4] != 1
+        ):
+            errors.append(
+                f"coordinate mode of {row['module']!r} differs from the image"
+            )
+    return errors
+
+
 def install_errors(install: dict) -> list[str]:
     errors = []
     if install.get("scope") != SCOPE:
@@ -571,6 +800,77 @@ def install_errors(install: dict) -> list[str]:
         errors.append("install.graphs starts exceed the binding count")
     if sum(vmdl.get("textureRefs", {}).values()) != vmdl.get("count"):
         errors.append("install.vmdl texture reference histogram disagrees")
+    return errors + emitter_errors(install.get("emitters"), veff.get("versions", {}))
+
+
+def emitter_errors(emitters, versions: dict) -> list[str]:
+    if not isinstance(emitters, dict):
+        return ["install.emitters is missing"]
+    errors = []
+    modules = emitters.get("modules", {})
+    master = emitters.get("master", {})
+    kinds = master.get("blockKinds", {})
+    direct = kinds.get("1", 0)
+    nodes = modules.get("R:GenerateMaster", {}).get("nodes", 0)
+    if master.get("controls") != nodes or sum(kinds.values()) != nodes:
+        errors.append("install.emitters master controls disagree with the nodes")
+    if sum(master.get("childRefKinds", {}).values()) != direct:
+        errors.append("install.emitters master child reference kinds disagree")
+    if sum(master.get("areaKinds", {}).values()) != direct:
+        errors.append("install.emitters master area kinds disagree")
+    for key in ("areaSurface", "areaAxesFree"):
+        for kind, count in master.get(key, {}).items():
+            if count > master.get("areaKinds", {}).get(kind, 0):
+                errors.append(f"install.emitters master {key} {kind} exceeds the kind")
+    resolved = master.get("childUnitResolved", 0)
+    if (
+        resolved > master.get("childRefKinds", {}).get("1", 0)
+        or master.get("childUnitHasDrawResource", 0) > resolved
+        or master.get("gated", 0) > nodes
+    ):
+        errors.append("install.emitters master child counts are not nested")
+    rows = [("master", master)] + list(emitters.get("time", {}).items())
+    for label, row in rows:
+        name = "R:GenerateMaster" if label == "master" else label
+        if row.get("controls") != modules.get(name, {}).get("nodes", 0):
+            errors.append(f"install.emitters {label} controls disagree with the nodes")
+        for key in row.get("listenerGroups", {}):
+            if key[:2] not in ("0:", "1:", "2:"):
+                errors.append(f"install.emitters {label} listener group {key!r} is odd")
+    genesis = emitters.get("genesis", {})
+    for name, row in genesis.get("modules", {}).items():
+        if row.get("segments") != sum(row.get("degrees", {}).values()):
+            errors.append(f"install.emitters genesis {name} degrees disagree")
+        if row.get("bindings", 0) > row.get("segments", 0):
+            errors.append(f"install.emitters genesis {name} bindings exceed segments")
+    for name, count in genesis.get("owners", {}).items():
+        if name not in modules or count < 1:
+            errors.append(f"install.emitters genesis owner {name!r} is not an emitter")
+    degree_two = sum(
+        row.get("degrees", {}).get("2", 0)
+        for row in genesis.get("modules", {}).values()
+    )
+    if not 0 <= genesis.get("risingQuadraticSegments", -1) <= degree_two:
+        errors.append("install.emitters rising quadratic segments exceed degree 2")
+    ticks = master.get("childEndTicks", {})
+    if sorted(ticks) != (["max", "median", "min"] if resolved else []) or (
+        resolved and not ticks["min"] <= ticks["median"] <= ticks["max"]
+    ):
+        errors.append("install.emitters master child end ticks are inconsistent")
+    if not emitters.get("loopInstances", -1) >= 0:
+        errors.append("install.emitters loop instance count is missing")
+    many = emitters.get("many", {})
+    if many.get("unitsWithQuartet", 0) > modules.get("R:ManyGenerateUnitTime", {}).get(
+        "nodes", 0
+    ):
+        errors.append("install.emitters many quartets exceed the unit time nodes")
+    if emitters.get("effects", 0) > versions.get("0x1d", 0):
+        errors.append("install.emitters effects exceed the current effects")
+    if any(
+        row.get("effects", 0) > emitters.get("effects", 0) or row.get("nodes", 0) < 1
+        for row in modules.values()
+    ):
+        errors.append("install.emitters module rows are inconsistent")
     return errors
 
 
@@ -623,6 +923,51 @@ def mutation_test() -> list[str]:
         (("elements", "graphRecord", 0, "check"), "no such check"),
         (("install", "vmdl", "shaderRecords"), 1),
         (("install", "vmdl", "vertexTokens", "0xfffe0300"), 1),
+        (("generate", "random", 0, "address"), "0x0137b78"),
+        (("generate", "random", 5, "check"), "no such check"),
+        (("generate", "genesis", 2, "tier"), "GUESSED"),
+        (("generate", "graphTime", 0, "meaning"), " "),
+        (("generate", "handlers", 0, "address"), "0x00d6ad11"),
+        (("generate", "handlers", 1, "module"), "NoSuchModule"),
+        (("generate", "handlers", 2, "slot"), "0x9d"),
+        (("generate", "coordinateModes", 0, "coordinate"), 2),
+        (("generate", "coordinateModes", 1, "module"), "Position3D:CoordRoot"),
+        (("generate", "areaKinds", 3, "kind"), 9),
+        (("generate", "groups", 1, "group"), 3),
+        (("generate", "masterRecord", 0, "check"), "no such check"),
+        (("generate", "areaRecord", 2, "offset"), "8"),
+        (("generate", "payload", 2, "tier"), "GUESSED"),
+        (("generate", "timeRecords", 1, "check"), "no such check"),
+        (("generate", "many", 3, "tier"), "GUESSED"),
+        (("install", "emitters", "master", "controls"), 1),
+        (("install", "emitters", "master", "areaKinds"), {"1": 5}),
+        (("install", "emitters", "master", "childUnitResolved"), 99999),
+        (("install", "emitters", "master", "childRefKinds"), {"1": 1}),
+        (("install", "emitters", "master", "areaSurface", "1"), 99999),
+        (("install", "emitters", "time", "R:GenerateTime", "controls"), 1),
+        (("install", "emitters", "genesis", "owners"), {"R:Nothing": 1}),
+        (
+            (
+                "install",
+                "emitters",
+                "genesis",
+                "modules",
+                "StandardPolynomialGenesis",
+                "segments",
+            ),
+            1,
+        ),
+        (("install", "emitters", "many", "unitsWithQuartet"), 99999),
+        (("install", "emitters", "genesis", "risingQuadraticSegments"), 99999),
+        (("install", "emitters", "master", "childEndTicks"), {}),
+        (
+            ("install", "emitters", "master", "childEndTicks"),
+            {"min": 5, "median": 1, "max": 3},
+        ),
+        (("install", "emitters", "loopInstances"), -1),
+        (("install", "emitters", "effects"), 99999),
+        (("install", "emitters", "modules", "R:GenerateTime", "nodes"), 0),
+        (("install", "emitters"), None),
     ]
     mutations = []
     for path, value in cases:
@@ -638,6 +983,10 @@ def mutation_test() -> list[str]:
         "blend mode 1 body",
         "EffectFactory vtable",
         "tick constants",
+        "genesis event count",
+        "mt next output",
+        "spawn probability",
+        "position kinematics",
     ):
         dropped = copy.deepcopy(document)
         dropped["staticChecks"] = [
@@ -811,7 +1160,7 @@ def verify_image(
     data: bytes, document: dict, require_identity: bool = True
 ) -> list[str]:
     errors = image_checks.verify_image(data, document, require_identity)
-    return errors + table_errors(data, document)
+    return errors + table_errors(data, document) + generate_image_errors(data, document)
 
 
 def verify_executable(path: Path) -> list[str]:
@@ -989,6 +1338,205 @@ def census_veff(data: bytes, info: dict, root: int, out: dict, catalog) -> None:
                     draw["modelTag"] += data[record + 0x18 : record + 0x1C] == b"ldmv"
                     draw["modelFlagsClear"] += data[record + 0x1C] & 2 == 0
                     draw["modelInReferences"] += name in veff["modelNames"]
+    census_emitters(data, info, veff, out["emitters"], catalog[2])
+
+
+EMITTER_PREFIXES = ("R:Generate", "R:ManyGenerate", "R:ContinualPolygonNormal")
+QUARTET = (
+    "R:ManyGenerateFormSphere",
+    "R:ManyGenerateMotionEmission",
+    "R:ManyGenerateUnitTime",
+    "R:ManyGenerateDrawLine",
+)
+
+
+def is_emitter_module(name: str) -> bool:
+    return name.startswith(EMITTER_PREFIXES) or ":GendNormal:" in name
+
+
+def blank_time_row() -> dict:
+    return {"controls": 0, "childUnitResolved": 0, "gated": 0, "listenerGroups": {}}
+
+
+def blank_emitters() -> dict:
+    return {
+        "effects": 0,
+        "modules": {},
+        "master": {
+            **blank_time_row(),
+            "blockKinds": {},
+            "childRefKinds": {},
+            "childUnitHasDrawResource": 0,
+            "childEndTickCounts": {},
+            "baseProbability": {},
+            "probabilityRange": {},
+            "areaKinds": {},
+            "areaSurface": {},
+            "areaAxesFree": {},
+        },
+        "time": {
+            "R:GenerateTime": blank_time_row(),
+            "R:GenerateTimeArea": blank_time_row(),
+        },
+        "genesis": {"modules": {}, "owners": {}, "risingQuadraticSegments": 0},
+        "many": {"nodes": 0, "unitsWithQuartet": 0},
+        "loopInstances": 0,
+    }
+
+
+def bump(table: dict, key, amount: int = 1) -> None:
+    table[str(key)] = table.get(str(key), 0) + amount
+
+
+def census_listeners(data, base, arrays, decls, control, child, row) -> None:
+    nodes = emitter.unit_control_indices(data, base, arrays, child)
+    for group, members in enumerate(
+        emitter.listener_groups(data, base, arrays, control)
+    ):
+        for index in members:
+            if index >= len(nodes):
+                bump(row["listenerGroups"], f"{group}:out of range")
+                continue
+            module = emitter.short_name(
+                emitter.control_module(data, base, arrays, decls, nodes[index])["name"]
+            )
+            bump(row["listenerGroups"], f"{group}:{module}")
+
+
+def census_emitters(
+    data: bytes, info: dict, veff: dict, out: dict, graph_names
+) -> None:
+    """Emitter controls, their parameter records and the Genesis graphs of one veff."""
+    base, arrays = info["payload"], veff["arrays"]
+    decls = veff["decls"]
+    seen = set()
+    for control in range(arrays["controls"]["count"]):
+        module = emitter.short_name(
+            emitter.control_module(data, base, arrays, decls, control)["name"]
+        )
+        if not is_emitter_module(module):
+            continue
+        row = out["modules"].setdefault(module, {"nodes": 0, "effects": 0})
+        row["nodes"] += 1
+        if module not in seen:
+            seen.add(module)
+            row["effects"] += 1
+        if module.startswith("R:ManyGenerate"):
+            out["many"]["nodes"] += 1
+        if module == "R:GenerateMaster":
+            census_master(data, info, veff, control, out["master"])
+        elif module in out["time"]:
+            census_time(data, info, veff, control, out["time"][module])
+    out["effects"] += bool(seen)
+    instances = base + arrays["instances"]["pointer"]
+    for index in range(arrays["instances"]["count"]):
+        out["loopInstances"] += (
+            data[instances + emitter.INSTANCE_STRIDE * index + emitter.INSTANCE_FLAGS]
+            >> 1
+        ) & 1
+    for unit in range(arrays["units"]["count"]):
+        for table in ("standard", "random"):
+            graphs = emitter.unit_graphs(data, base, arrays, unit, graph_names, table)
+            for name, bindings in graphs:
+                if "Genesis" not in name:
+                    continue
+                row = out["genesis"]["modules"].setdefault(
+                    name, {"bindings": 0, "segments": 0, "degrees": {}}
+                )
+                for _, segments in bindings:
+                    row["bindings"] += 1
+                    row["segments"] += len(segments)
+                    for degree, _, coefficients in segments:
+                        bump(row["degrees"], degree)
+                        out["genesis"]["risingQuadraticSegments"] += (
+                            degree == 2 and coefficients[2] > 0.0
+                        )
+            if table == "standard":
+                for owner in emitter.genesis_owners(
+                    data, base, arrays, decls, unit, graphs
+                ):
+                    bump(out["genesis"]["owners"], emitter.short_name(owner["name"]))
+        modules = {
+            emitter.short_name(
+                emitter.control_module(data, base, arrays, decls, control)["name"]
+            )
+            for control in emitter.unit_control_indices(data, base, arrays, unit)
+        }
+        out["many"]["unitsWithQuartet"] += all(item in modules for item in QUARTET)
+
+
+def census_master(data, info, veff, control, row) -> None:
+    base, span, arrays = info["payload"], info["payloadSpan"], veff["arrays"]
+    row["controls"] += 1
+    found = emitter.block_record(data, base, arrays, span, control)
+    if found is None:
+        bump(row["blockKinds"], "none")
+        return
+    record, kind = found
+    bump(row["blockKinds"], kind)
+    if kind != 1:
+        return
+    bump(row["childRefKinds"], data[base + record + emitter.MASTER_CHILD_KIND])
+    row["gated"] += data[base + record + emitter.MASTER_GATE_FLAGS] & 1
+    bump(
+        row["baseProbability"],
+        f"{struct.unpack_from('<f', data, base + record + 0x0C)[0]:.3f}",
+    )
+    bump(
+        row["probabilityRange"],
+        f"{struct.unpack_from('<f', data, base + record + 0x2C)[0]:.3f}",
+    )
+    area_kind = data[base + record + emitter.MASTER_AREA_KIND]
+    bump(row["areaKinds"], area_kind)
+    if area_kind in (1, 2, 3):
+        area = qix.u32(data, base + record + emitter.MASTER_AREA_REF)
+        flags = data[base + area + emitter.AREA_FLAGS]
+        row["areaSurface"][str(area_kind)] = row["areaSurface"].get(
+            str(area_kind), 0
+        ) + (flags & 1)
+        row["areaAxesFree"][str(area_kind)] = row["areaAxesFree"].get(
+            str(area_kind), 0
+        ) + (flags & 0x7E == 0)
+    if data[base + record + emitter.MASTER_CHILD_KIND] != 1:
+        return
+    pointer = qix.u32(
+        data, base + qix.u32(data, base + record + emitter.MASTER_CHILD_REF)
+    )
+    child = emitter.child_unit(data, base, arrays, pointer)
+    if child is None:
+        return
+    row["childUnitResolved"] += 1
+    bump(
+        row["childEndTickCounts"],
+        qix.u32(
+            data,
+            base
+            + arrays["units"]["pointer"]
+            + emitter.UNIT_STRIDE * child
+            + emitter.UNIT_END_TICK,
+        ),
+    )
+    census_listeners(data, base, arrays, veff["decls"], control, child, row)
+    names = [
+        emitter.control_module(data, base, arrays, veff["decls"], index)["name"]
+        for index in emitter.unit_control_indices(data, base, arrays, child)
+    ]
+    row["childUnitHasDrawResource"] += any(
+        (name or "").endswith("Controls/DrawResource") for name in names
+    )
+
+
+def census_time(data, info, veff, control, row) -> None:
+    base, arrays = info["payload"], veff["arrays"]
+    record = qix.u32(data, emitter.control_at(arrays, base, control) + 0x18)
+    row["controls"] += 1
+    row["gated"] += data[base + record + emitter.TIME_GATE_FLAGS] & 1
+    pointer = qix.u32(data, base + record + emitter.TIME_CHILD_POINTER)
+    child = emitter.child_unit(data, base, arrays, pointer)
+    if child is None:
+        return
+    row["childUnitResolved"] += 1
+    census_listeners(data, base, arrays, veff["decls"], control, child, row)
 
 
 def census_graphs(
@@ -1217,6 +1765,7 @@ def blank_census() -> dict:
             "randomInRange": 0,
         },
         "leafVersion": {},
+        "emitters": blank_emitters(),
         "drawResource": {
             "blocks": 0,
             "kinds": {},
@@ -1292,7 +1841,17 @@ def census_install(root: Path, document: dict | None = None) -> dict:
         links[key] = dict(sorted(links[key].items()))
     for key in ("modules", "degrees"):
         out["graphs"][key] = dict(sorted(out["graphs"][key].items()))
+    master = out["emitters"]["master"]
+    master["childEndTicks"] = tick_summary(master.pop("childEndTickCounts"))
     return out
+
+
+def tick_summary(counts: dict) -> dict:
+    """Minimum, upper median and maximum of a histogram keyed by tick strings."""
+    ticks = sorted(int(key) for key, count in counts.items() for _ in range(count))
+    if not ticks:
+        return {}
+    return {"min": ticks[0], "median": ticks[len(ticks) // 2], "max": ticks[-1]}
 
 
 def flatten(node, prefix: str = "") -> dict:

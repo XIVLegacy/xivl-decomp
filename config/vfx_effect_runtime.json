@@ -6537,6 +6537,14 @@
     "meaning": "Pointer and count of 16 byte records. Meaning not traced."
    },
    {
+    "offset": "0x08",
+    "width": 8,
+    "field": "listener group list",
+    "tier": "STATIC",
+    "check": "group listener count",
+    "meaning": "Pointer and count of 8 byte pairs. Each pair is a pointer to u16 node indices of the child unit and a count. An emitter sends its payload to one group per receiver kind."
+   },
+   {
     "offset": "0x10",
     "width": 8,
     "field": "second list",
@@ -6625,12 +6633,36 @@
     "meaning": "Same for the random graph table."
    },
    {
+    "offset": "0x28",
+    "width": 4,
+    "field": "end tick",
+    "tier": "STATIC",
+    "check": "unit end tick compare",
+    "meaning": "The unit ends when its time reaches this value. The root unit holds 0x7fffffff."
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "field": "loop start tick",
+    "tier": "STATIC",
+    "check": "unit loop fields",
+    "meaning": "With the loop flag set, the time returns to this tick after the loop end."
+   },
+   {
+    "offset": "0x30",
+    "width": 4,
+    "field": "loop length in ticks",
+    "tier": "STATIC",
+    "check": "unit loop fields",
+    "meaning": "The loop end is the start plus this length. The time wraps by this length."
+   },
+   {
     "offset": "0x34",
     "width": 1,
-    "field": "end byte",
+    "field": "loop count",
     "tier": "STATIC",
-    "check": "unit end byte test",
-    "meaning": "0xff in every installed unit."
+    "check": "unit loop owner test",
+    "meaning": "Number of loops allowed. Every installed unit holds 0xff, which stores no count: the unit loops only while the call 0x00bb35d0(1) on the object at UnitNode +0x00 returns false. That call tests bit 0 of the dword at +0x28 of that object and the meaning of the bit is UNKNOWN. The length pass tests the byte at 0x00bd2d0d."
    }
   ],
   "materialElement": [
@@ -6823,8 +6855,8 @@
     "width": 1,
     "field": "flags",
     "tier": "STATIC",
-    "check": "instance flag and unit index read",
-    "meaning": "Bit 1 is tested by the lifetime pass."
+    "check": "unit loop fields",
+    "meaning": "Bit 1 enables the unit loop."
    }
   ]
  },
@@ -7867,6 +7899,746 @@
    "va": "0x00d97381",
    "pattern": "6a 01 b9 c8 83 30 01 e8 a3 7b e7 ff 6a 00 b9 c8 83 30 01 e8 07 7e e7 ff 6a 07 b9 c8 83 30 01 e8 2b 7c e7 ff",
    "mask": "ff ff ff 00 00 00 00 ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 00 00 00 ff ff ff 00 00 00 00 ff 00 00 00 00"
+  },
+  {
+   "name": "mt next output",
+   "kind": "signature",
+   "va": "0x00e3f1b0",
+   "pattern": "56 8b f1 8b 86 c0 09 00 00 6a ff 50 ff 15 a4 e1 f3 00 8b c8 83 f9 ff 75 0e 8b ce e8 b0 fe ff ff b9 70 02 00 00 eb 23 81 f9 70 02 00 00 7c 1b b8 2d df f2 2d f7 e9 2b d1 c1 fa 09 8b c2 c1 e8 1f 03 c2 69 c0 70 02 00 00 03 c8 ba 70 02 00 00 2b d1 8b 0c 96 8b c1 c1 e8 0b 33 c8 8b d1 81 e2 ad 58 3a ff c1 e2 07",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "mt seed fill",
+   "kind": "signature",
+   "va": "0x00e3f040",
+   "pattern": "8b 54 24 04 b8 01 00 00 00 89 11 56 8d 64 24 00 8b 11 8b f2 c1 ee 1e 33 f2 69 f6 65 89 07 6c 03 f0 89 71 04 83 c0 01 83 c1 04 3d 70 02 00 00 7c df 5e",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "mt twist first loop",
+   "kind": "signature",
+   "va": "0x00e3f080",
+   "pattern": "56 57 8b c1 be e3 00 00 00 8d a4 24 00 00 00 00 8b 50 04 8b 38 33 fa 81 e7 fe ff ff 7f 33 38 83 e2 01 f7 da d1 ef 81 e2 df b0 08 99 33 fa 33 b8 34 06 00 00 83 ee 01 89 38 83 c0 04 85 f6 75 d0 be 8c 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "mt twist counter reset",
+   "kind": "signature",
+   "va": "0x00e3f117",
+   "pattern": "68 6f 02 00 00 89 30 8b 81 c0 09 00 00 50 ff 15 48 e1 f3 00 5f",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "mt owner seeds from clock",
+   "kind": "signature",
+   "va": "0x00bc3ad5",
+   "pattern": "e8 c6 1d 20 00 50 e8 a0 fe ff ff",
+   "mask": "ff 00 00 00 00 ff ff 00 00 00 00"
+  },
+  {
+   "name": "mt global instance store",
+   "kind": "signature",
+   "va": "0x00bc39dc",
+   "pattern": "8b 4c 24 08 83 c8 ff 89 35 80 b7 37 01",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "mt counter pointer store",
+   "kind": "signature",
+   "va": "0x00bc39c0",
+   "pattern": "8b 4c 24 18 8d 86 c4 09 00 00 51 8b ce 89 86 c0 09 00 00 e8 f8 b8 27 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "spawn draws the global generator",
+   "kind": "signature",
+   "va": "0x00d9a72a",
+   "pattern": "8b 0d 80 b7 37 01 53 8b 5d 0c 56 8b 75 08 57 8b 7d 10 e8 ef 4a 0a 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "graph step divides ticks by 5000",
+   "kind": "signature",
+   "va": "0x00be46b3",
+   "pattern": "8b 54 24 14 f3 0f 2a c0 51 f3 0f 5a c0 f2 0f 5e 05 98 95 fa 00 f2 0f 5a c0 f3 0f 11 04 24",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "graph segment advance test",
+   "kind": "signature",
+   "va": "0x00be4652",
+   "pattern": "3b 44 24 5c 89 44 24 24 0f 8f 97 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "graph transition sets constant term",
+   "kind": "signature",
+   "va": "0x00bec470",
+   "pattern": "8b 54 24 08 8b 4c 24 04 56 57 0f b6 7a 01 33 c0 85 ff 8d 74 b9 04 7e 3c 2b f1 8d 9b 00 00 00 00 0f b6 3a f3 0f 10 0c 0e 83 c7 01 0f af f8 f3 0f 10 44 ba 04 0f 5a c0 0f 5a c9 f2 0f 58 c1 66 0f 5a c0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "graph update scales delta",
+   "kind": "signature",
+   "va": "0x00bcc000",
+   "pattern": "51 80 7c 24 0c 00 53 55 56 57 8b f9 89 7c 24 10 74 0a 8b 44 24 18 89 44 24 1c eb 34 f6 87 98 00 00 00 40 75 0a 8b 4c 24 18 89 4c 24 1c eb 21 f3 0f 10 87 94 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "frame stage order",
+   "kind": "signature",
+   "va": "0x00bc66df",
+   "pattern": "6a 00 6a 01 6a 00 8b ce e8 f4 5a 00 00 6a 00 6a 01 6a 00 8b ce e8 87 76 00 00 8b 9e 8c 00 00 00 85 db 8b be 90 00 00 00 74 15 6a 01 6a 00 6a 00 8b ce e8 7a 81 00 00 85 c0 0f 85 cf 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "frame stage dispatch",
+   "kind": "signature",
+   "va": "0x00bc6786",
+   "pattern": "8b 86 98 00 00 00 a8 04 75 18 c1 e8 0e a8 01 74 11 6a 00 6a 00 6a 00 8b ce e8 8c 60 00 00 84 c0 74 45 8b 5c 24 14 8b 8e 98 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "unit time advance",
+   "kind": "signature",
+   "va": "0x00bce8a4",
+   "pattern": "f6 86 98 00 00 00 40 75 06 8b 44 24 18 eb 1d f3 0f 10 86 94 00 00 00 f3 0f 2a 4c 24 18 0f 5a c0 f3 0f 5a c9 f2 0f 59 c1 f2 0f 2c c0 8b 7e 08 01 86 8c 00 00 00 55 8b cf 89 86 90 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "unit loop fields",
+   "kind": "signature",
+   "va": "0x00bce90e",
+   "pattern": "8b cd e8 0b 3b 00 00 8b 48 2c 8b 68 30 8d 3c 29 89 4c 24 1c 8b 8e 8c 00 00 00 3b cf 89 7c 24 0c 0f 8c 91 00 00 00 53 0f b6 58 34 8b c1 2b c7 99 f7 fd 0f b6 8e ad 00 00 00 83 c0 01 03 c1 3b c3",
+   "mask": "ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "unit loop owner test",
+   "kind": "signature",
+   "va": "0x00bce940",
+   "pattern": "0f b6 8e ad 00 00 00 83 c0 01 03 c1 3b c3 73 69 81 fb ff 00 00 00 c6 44 24 24 01 75 0f 8b 0e 6a 01 e8 6a 4c fe ff 84 c0 74 08 eb 53",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff"
+  },
+  {
+   "name": "unit end tick compare",
+   "kind": "signature",
+   "va": "0x00bce9fa",
+   "pattern": "8b 44 24 14 8b 50 28 8b 86 8c 00 00 00 33 ff 3b c2 5d 7d 15",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis init",
+   "kind": "signature",
+   "va": "0x00becfa0",
+   "pattern": "8b 44 24 08 d9 40 04 8b 44 24 04 0f 57 c0 d9 18 f3 0f 11 40 0c",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis degree zero burst",
+   "kind": "signature",
+   "va": "0x00becfc0",
+   "pattern": "8b 44 24 08 83 ec 08 80 38 00 0f 85 bf 00 00 00 d9 40 04 56 8b 74 24 10 8b 4e 04 d9 1e 83 79 10 00 0f 85 a7 00 00 00 f3 0f 10 40 04 f3 0f 10 4e 0c 0f 5a c0 0f 5a c9 f2 0f 5c c1 66 0f 5a c0 f3 0f 2c c0 85 c0 89 44 24 04 0f 8e 7f 00 00 00 8b 56 08 8b 42 08 53 55 57 8b 38 8b cf e8 8f 92 fd ff 8b 6c 24 2c f3 0f 10 45 08 8b d8 8b 44 24 10 0f 5a c0 f2 0f 59 05 98 95 fa 00 81 c7 14 02 00 00 85 c0 f2 0f 2c c8",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis elapse gate",
+   "kind": "signature",
+   "va": "0x00bed1b4",
+   "pattern": "8b 74 24 30 8b 46 04 83 78 10 00 8b 44 24 34 74 14 f3 0f 10 4c 24 38 e8 c0 f8 ff ff f3 0f 11 06 5e 83 c4 28 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis rising head burst",
+   "kind": "signature",
+   "va": "0x00bed440",
+   "pattern": "f3 0f 10 44 24 1c 81 c3 14 02 00 00 0f 2f 05 50 66 08 01 b9 01 00 00 00 8b f8 89 4c 24 3c 0f 86 7a 00 00 00 8b 44 24 40 f3 0f 10 4c 24 44 e8 1d f6 ff ff f3 0f 5a 4c 24 14 f3 0f 5a c0 f2 0f 5c c1 f3 0f 5a 4c 24 30 f2 0f 5a c0 f3 0f 2c c0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis degree dispatch",
+   "kind": "signature",
+   "va": "0x00bed1d9",
+   "pattern": "0f b6 10 f3 0f 10 70 04 8b ca 83 e9 00 f3 0f 11 74 24 04 0f 84 62 06 00 00 83 e9 01 53 55 57 0f 84 cb 03 00 00 83 e9 01 74 4e 52",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis linear peak",
+   "kind": "signature",
+   "va": "0x00bed2c2",
+   "pattern": "0f 2e c2 9f f6 c4 44 f2 0f 5a dd f3 0f 11 4c 24 18 f3 0f 11 5c 24 20 7a 23 0f 2f ca 72 03 0f 28 dc 0f 5a c9 f3 0f 5a c3 f2 0f 59 c1 0f 5a ce f2 0f 58 c1 66 0f 5a e8 e9 fd 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "genesis quadratic vertex",
+   "kind": "signature",
+   "va": "0x00bed2fe",
+   "pattern": "f3 0f 5a e8 f2 0f 59 2d 28 30 f6 00 0f 5a d1 f2 0f 5e d5 f2 0f 10 2d 08 30 f6 00 f2 0f 5c ea 66 0f 5a d5 f3 0f 5a f0 0f 5a f9 f3 0f 5a ea f2 0f 59 ee f3 0f 5a f2 f2 0f 59 ee f3 0f 5a f2",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis event count",
+   "kind": "signature",
+   "va": "0x00bed3fb",
+   "pattern": "f3 0f 10 44 24 14 f3 0f 5a cd 0f 5a d0 66 0f 2f d1 0f 87 3f 04 00 00 0f 5a c0 f3 0f 5a cd f2 0f 5c c8 66 0f 5a c1 f3 0f 2c c0 85 c0 89 44 24 2c 0f 84 20 04 00 00 8b 4e 08",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff"
+  },
+  {
+   "name": "genesis root solver",
+   "kind": "signature",
+   "va": "0x00becda0",
+   "pattern": "f3 0f 5a e1 f3 0f 5a c0 f2 0f 59 05 98 98 f5 00 f3 0f 5a da f2 0f 5c dc f2 0f 5a e3 0f 57 db f2 0f 5a c0 0f 2e c3 9f f6 c4 44 0f 8b 71 01 00 00 f3 0f 10 54 24 04 0f 5a ca 66 0f 28 e9 f2 0f 59 e9 f3 0f 5a c8",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "genesis event enqueue",
+   "kind": "signature",
+   "va": "0x00bd48a0",
+   "pattern": "8b 44 24 04 8b 4c 81 04 8b 11 8b 52 28 56 8b 74 24 14 56 8b 74 24 14",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "event dispatch handler call",
+   "kind": "signature",
+   "va": "0x00bdb780",
+   "pattern": "3b 5d 00 75 45 8b 4d 08 85 c9 7e 3e 8b 45 04 50 8b 44 24 48 2b c1 8b 4c 24 18 50 8b 44 24 20 c7 05 78 85 36 01 00 00 00 00 8b 13 51 8b 88 9c 00 00 00 52 ff d1 83 c4 10 83 3d 78 85 36 01 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "master handler",
+   "kind": "signature",
+   "va": "0x00d6ad10",
+   "pattern": "8b 44 24 04 8b 48 40 8b 54 24 08 51 52 50 e8 4d fe ff ff 83 c4 0c c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff"
+  },
+  {
+   "name": "master spawn context",
+   "kind": "signature",
+   "va": "0x00d6abbb",
+   "pattern": "89 44 24 24 89 4c 24 28 89 74 24 2c c7 44 24 30 01 00 00 00 c7 44 24 34 02 00 00 00 c7 44 24 38 03 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "master area scale slot",
+   "kind": "signature",
+   "va": "0x00d6abdf",
+   "pattern": "80 7d 28 00 75 0a f3 0f 10 05 70 4f f5 00 eb 14 8b 45 24 83 c0 08 50 57 e8 a4 f4 0c 00 f3 0f 10 00 83 c4 08 8b 03 8d 54 24 20 52",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "spawn probability",
+   "kind": "signature",
+   "va": "0x00d9a741",
+   "pattern": "f3 0f 10 4b 2c 8b 0d 80 b7 37 01 f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 05 40 fd 0c 01 f2 0f 5a c0 f3 0f 5a c0 0f 5a c9 f2 0f 59 c8 66 0f 5a c1 f3 0f 10 4b 0c f3 0f 5a c0 0f 5a c9 f2 0f 58 c1 f2 0f 5a c0 f3 0f 11 44 24 18 e8 22 4a 0a 00 85 c0 89 44 24 14 db 44 24 14 7d 06 d8 05 54 4a f5 00 dc 0d 68 62 0c 01 d9 5c 24 14 d9 44 24 18 d9 44 24 14 df f1",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "spawn distance gate",
+   "kind": "signature",
+   "va": "0x00d9a7bc",
+   "pattern": "f6 43 21 01 74 1b 8b 07 56 8d 4b 10 83 c0 30 51 50 e8 de fe ff ff 83 c4 0c 84 c0 0f 84 cc 03 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "spawn group sends",
+   "kind": "signature",
+   "va": "0x00d9aa20",
+   "pattern": "8b 54 24 3c 8b 44 24 1c 8d 8c 24 a0 00 00 00 51 6a 02 53 52 50 56 e8 95 f8 09 00 83 c3 01",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff"
+  },
+  {
+   "name": "spawn angle payload",
+   "kind": "signature",
+   "va": "0x00d9aa4b",
+   "pattern": "8d 4c 24 50 51 8b 0f e8 29 93 e0 ff 0f 57 c0 0f 29 84 24 90 00 00 00 f3 0f 10 84 24 90 00 00 00 f3 0f 11 44 24 20 f3 0f 10 84 24 94 00 00 00 f3 0f 11 44 24 24 f3 0f 10 84 24 98 00 00 00 f3 0f 11 44 24 28 f3 0f 10 84 24 9c 00 00 00 f3 0f 11 44 24 2c 66 0f 6f 44 24 20 66 0f 7f 44 24 20 f3 0f 10 05 70 4f f5 00 f3 0f 11 44 24 2c f3 0f 7e 44 24 20 8d 54 24 20 66 0f d6 84 24 80 00 00 00 f3 0f 7e 44 24 28 52 8d 4c 24 54 66 0f d6 84 24 8c 00 00 00 e8 5c 8c a8 ff 8b 47 20 50 8d 4c 24 24 e8 6f 23 88 ff",
+   "mask": "ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "spawn scale payload",
+   "kind": "signature",
+   "va": "0x00d9ab20",
+   "pattern": "f3 0f 10 00 f3 0f 11 44 24 20 f3 0f 10 40 04 f3 0f 11 44 24 24 f3 0f 10 40 08 f3 0f 11 44 24 28 f3 0f 10 40 0c f3 0f 11 44 24 2c 0f 28 44 24 20 0f 59 c0 0f 28 c8 0f c6 c8 aa 0f 58 c8 0f c6 c0 55 0f 58 c8 f3 0f 51 c9 0f 29 8c 24 90 00 00 00 f3 0f 10 84 24 90 00 00 00 f3 0f 11 44 8c 40 83 c1 01 83 c0 10 83 f9 03",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "density gate",
+   "kind": "signature",
+   "va": "0x00e3a100",
+   "pattern": "83 ec 08 e8 98 0d d7 ff 8b c8 e8 21 0e d7 ff 8b c8 e8 6a 0e 00 00 d9 1c 24 d9 e8 d9 04 24 df f1 dd d8 72 06 b0 01 83 c4 08 c3 8b 0d 80 b7 37 01 e8 7b 50 00 00 85 c0 89 44 24 04 db 44 24 04 7d 06 d8 05 54 4a f5 00 dc 0d 68 62 0c 01 d9 5c 24 04 d9 44 24 04",
+   "mask": "ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "distance thinning",
+   "kind": "signature",
+   "va": "0x00d99da0",
+   "pattern": "55 8b ec 83 e4 f0 8b 4d 0c 8b 55 10 83 ec 2c 56 8b 75 14 f3 0f 10 5e 08 0f 2e 1d 70 4f f5 00 9f f6 c4 44",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "axis random draw",
+   "kind": "signature",
+   "va": "0x00d999e0",
+   "pattern": "51 8b 0d 80 b7 37 01 e8 c4 57 0a 00 85 c0 89 04 24 db 04 24 7d 06 d8 05 54 4a f5 00 80 7c 24 0c 00 dc 0d 68 62 0c 01 d9 1c 24 74 37 80 7c 24 10 00 f3 0f 10 04 24 74 21 8b 44 24 08 0f 5a c0 f2 0f 59 05 28 30 f6 00 f2 0f 5c 05 a0 98 f5 00 66 0f 5a c0 f3 0f 11 00 59 c3 8b 4c 24 08 f3 0f 11 01 59 c3 80 7c 24 10 00 74 17 f3 0f 10 05 a0 2f f6 00",
+   "mask": "ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "time handler",
+   "kind": "signature",
+   "va": "0x00d6b380",
+   "pattern": "83 ec 58 a1 b0 a8 2e 01 33 c4 89 44 24 54 53 8b 5c 24 64 55 56 8b 73 0c 85 f6 57 8b 7c 24 6c 8b 6f 18 89 6c 24 10 0f 84 d2 00 00 00 57 e8 4e ed 0c 00 83 c4 04 84 c0 0f 84 c1 00 00 00 f6 43 10 01 74 16 57 53 83 c5 30 55 e8 e2 f2 02 00 83 c4 0c 84 c0 0f 84 a5 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "payload transform dispatch",
+   "kind": "signature",
+   "va": "0x00d98f67",
+   "pattern": "0f 57 c0 57 f3 0f 11 44 24 24 0f 84 a8 00 00 00 83 e8 01 0f 85 f2 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "group listener count",
+   "kind": "signature",
+   "va": "0x00e3a340",
+   "pattern": "8b 44 24 04 8b 08 8b 49 04 e8 b2 7d d9 ff 8b 10 8b 42 08 8b 4c 24 08 8b 44 c8 04 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "group listener coordinate id",
+   "kind": "signature",
+   "va": "0x00e3a360",
+   "pattern": "8b 44 24 04 8b 08 8b 49 04 e8 92 7d d9 ff 8b 10 8b 42 08 8b 4c 24 0c 8b 14 c8 8b 44 24 10 0f b7 04 42 8b 54 24 08 8d 0c c0 8b 42 64 8b 4c 88 04 e8 6b 7d d9 ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "listener message call",
+   "kind": "signature",
+   "va": "0x00e3a2d0",
+   "pattern": "8b 44 24 04 8b 08 8b 49 04 53 56 57 e8 1f 7e d9 ff 8b 10 8b 42 08 8b 4c 24 18 8b 14 c8 8b 44 24 1c 0f b7 04 42 8b 5c 24 14 8b 53 64 8d 0c c0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area kind none and model",
+   "kind": "signature",
+   "va": "0x00d9a034",
+   "pattern": "8a 46 04 84 c0 8b 7d 10 89 4c 24 2c 89 54 24 34 0f 84 55 05 00 00 3c 04 75 78",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff"
+  },
+  {
+   "name": "area kind passthrough",
+   "kind": "signature",
+   "va": "0x00d9a0c6",
+   "pattern": "3c 05 0f 84 41 04 00 00 8b 3e 8a 47 1e a8 7e 0f 84 c4 04 00 00",
+   "mask": "ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "area axis flags",
+   "kind": "signature",
+   "va": "0x00d9a0db",
+   "pattern": "0f b6 c8 c0 e9 02 d0 e8 8d 54 24 10 81 e1 01 ff ff ff 51 25 01 ff ff ff 50 52 e8 e6 f8 ff ff 0f b6 47 1e 0f b6 c8 c0 e9 04 c0 e8 03 8d 54 24 20 81 e1 01 ff ff ff 51 25 01 ff ff ff 50 52 e8 c2 f8 ff ff 0f b6 47 1e 0f b6 c8 c0 e9 06 c0 e8 05 8d 54 24 30 81 e1 01 ff ff ff 51 25 01 ff ff ff 50 52",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area kind switch",
+   "kind": "signature",
+   "va": "0x00d9a142",
+   "pattern": "0f b6 46 04 83 c4 24 83 e8 01 0f 84 1b 03 00 00 83 e8 01 0f 84 85 01 00 00 83 e8 01 0f 85 f0 fe ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff 00 00 00 00 ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "area sphere",
+   "kind": "signature",
+   "va": "0x00d9a46d",
+   "pattern": "8b 4c 24 2c 8d 47 20 50 51 e8 25 fc 09 00 8d 57 24 52 8b f0 e8 1a 46 e3 ff d8 06 83 c4 0c f6 47 1e 01 d9 5c 24 0c 75 0d e8 76 9c fc ff d8 4c 24 0c d9 5c 24 0c 8d 44 24 40 50 8d 4c 24 14 e8 a0 12 7a ff d9 44 24 0c f3 0f 7e 00 51 66 0f d6 44 24 14 d9 1c 24 f3 0f 7e 40 08 8d 4c 24 14 66 0f d6 44 24 1c e8 9a 41 69 ff f3 0f 7e 44 24 10 66 0f d6 03 f3 0f 7e 44 24 18 66 0f d6 43 08 8d 4c 24 40 51 8d 4c 24 14 e8 57 12 7a ff f3 0f 7e 00 8b 4c 24 38",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area cylinder radius height",
+   "kind": "signature",
+   "va": "0x00d9a164",
+   "pattern": "8b 4c 24 2c 8d 47 20 50 51 e8 2e ff 09 00 8d 57 28 8b f0 8b 44 24 34 52 50 e8 1e ff 09 00 d9 44 24 20 d9 44 24 28 83 c4 10 89 44 24 28 e8 24 0d c4 ff d9 5c 24 24 d9 44 24 24 d9 5c 24 24 e8 69 9f fc ff d8 0e 8d 4f 2c 51 d9 5c 24 10 e8 ea 48 e3 ff 8b 54 24 2c d8 02 83 c4 04 f6 47 1e 01 d9 5c 24 30",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area cylinder cap test",
+   "kind": "signature",
+   "va": "0x00d9a1cd",
+   "pattern": "66 0f 6f 44 24 10 f2 0f 10 0d 50 2f f6 00 66 0f 7f 84 24 80 00 00 00 0f 57 c0 f3 0f 11 84 24 84 00 00 00 f3 0f 5a 44 24 14 51 66 0f 54 c1 f2 0f 5a c0 8d 84 24 94 00 00 00 f3 0f 11 04 24 50 8d 8c 24 88 00 00 00 e8 28 55 69 ff 8b c8 e8 f1 98 6a ff 84 c0 74 24 f3 0f 5a 44 24 14 66 0f 2f 05 70 2f f6 00 72 0b b8 01 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area cylinder output",
+   "kind": "signature",
+   "va": "0x00d9a257",
+   "pattern": "83 c7 24 57 f3 0f 11 43 04 e8 3b 48 e3 ff d8 44 24 10 83 c4 04 d9 5c 24 0c d9 44 24 24 e8 07 c0 c3 ff d9 5c 24 28 d9 44 24 28 f3 0f 10 4b 04 d8 4c 24 0c f3 0f 10 44 24 30 0f 5a c0 0f 5a c9 d9 1b f2 0f 59 c1 d9 44 24 24 66 0f 5a c0 f3 0f 11 43 04 e8 02 c1 c3 ff d9 5c 24 30 d9 44 24 30 d8 4c 24 0c d9 5b 08 f3 0f 7e 03 66 0f d6 44 24 10 f3 0f 7e 43 08 66 0f d6 44 24 18 0f 57 c0 f3 0f 11 44 24 14 e9 0b 02 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "area box extent and surface",
+   "kind": "signature",
+   "va": "0x00d9a2e0",
+   "pattern": "8b 54 24 2c 8d 4f 2c 51 52 e8 b2 fd 09 00 f3 0f 10 4c 24 18 0f 57 c0 f3 0f 11 0b f2 0f 10 15 50 2f f6 00 0f 5a d9 66 0f 54 da f2 0f 5a db f3 0f 5a e3 0f 57 db 83 c4 08 83 c9 ff 66 0f 2f e3 72 05 0f 28 c1 33 c9 f3 0f 10 4c 24 14 0f 5a e9 66 0f 54 ea f2 0f 5a ed 0f 5a e0 f3 0f 5a ed 66 0f 2f ec f3 0f 11 4b 04 72 08 0f 28 c1 b9 01 00 00 00 f3 0f 10 4c 24 18 f3 0f 11 4b 08 0f 5a c9 66 0f 54 ca f2 0f 5a c9 0f 5a c0 f3 0f 5a c9 66 0f 2f c8 72 05 b9 02 00 00 00 f6 47 1e 01 74 25 85 c9 7c 21 f3 0f 10 04 8b 0f 5a c0 66 0f 2f c3 76 07 ba 01 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area box per axis scale",
+   "kind": "signature",
+   "va": "0x00d9a3c0",
+   "pattern": "8b 44 24 30 f3 0f 10 07 8b 0d 80 b7 37 01 f3 0f 11 44 24 0c f3 0f 10 04 30 f3 0f 11 44 24 3c e8 cc 4d 0a 00 85 c0 89 44 24 28 db 44 24 28 7d 06 d8 05 54 4a f5 00 dc 0d 68 62 0c 01 f3 0f 5a 4c 24 0c 83 c7 04 83 c6 04 83 6c 24 24 01 d9 5c 24 28 f3 0f 10 44 24 28 0f 5a c0 f2 0f 59 c1 f3 0f 5a 4c 24 3c 66 0f 5a c0 f3 0f 5a c0 f2 0f 58 c1 f3 0f 10 4e fc 66 0f 5a c0 f3 0f 5a c0 0f 5a c9 f2 0f 59 c1 66 0f 5a c0 f3 0f 11 46 fc 0f 85 6d ff ff ff f3 0f 7e 03 66 0f d6 44 24 10 f3 0f 7e 43 08 66 0f d6 44 24 18 e9 7e 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "area distance scale tail",
+   "kind": "signature",
+   "va": "0x00d9a50f",
+   "pattern": "8b 54 24 34 80 7a 1c 00 0f 84 82 00 00 00 8b 44 24 2c 50 e8 79 fa 09 00 8b 10 8b c8 8b 42 10 83 c4 04 ff d0 8b 0d b0 b6 36 01",
+   "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "position receiver stores",
+   "kind": "signature",
+   "va": "0x00ba5060",
+   "pattern": "83 7c 24 0c 02 0f 85 58 01 00 00 8b 44 24 10 8b 4c 24 04 b2 01 84 50 48 74 05 08 51 5c eb 04 80 61 5c fe d9 00 84 51 5c d9 59 20 f3 0f 10 40 10 f3 0f 10 48 40 0f 5a c0 0f 5a c9 f2 0f 59 c1 66 0f 5a c0 f3 0f 11 41 30 74 7c d9 00 d9 59 40 d9 00 d9 59 50 d9 40 04 d9 59 24 f3 0f 10 40 14",
+   "mask": "ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "position kinematics",
+   "kind": "signature",
+   "va": "0x00ba5260",
+   "pattern": "8b 44 24 04 8b 50 60 56 8b 74 24 10 01 70 2c f6 40 5c 01 f3 0f 2a 40 2c f3 0f 10 50 30 f3 0f 5a c0 f2 0f 5e 05 98 95 fa 00 8d 48 10 f2 0f 5a c0 f3 0f 5a d8 0f 5a d2 5e f2 0f 59 d3 0f 84 3a 01 00 00 f3 0f 10 58 20 f3 0f 10 49 3c 0f 5a db f2 0f 58 d3 f3 0f 10 58 40",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "angle receiver stores",
+   "kind": "signature",
+   "va": "0x00ba5b60",
+   "pattern": "83 7c 24 0c 02 75 3d 8b 4c 24 10 8b 44 24 04 d9 01 d9 58 20 d9 41 20 d9 58 30 d9 41 30 d9 58 40 d9 41 04 d9 58 24 d9 41 24 d9 58 34 d9 41 34 d9 58 44 d9 41 08 d9 58 28 d9 41 28 d9 58 38",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "angle kinematics",
+   "kind": "signature",
+   "va": "0x00ba5cb0",
+   "pattern": "8b 44 24 04 8b 4c 24 0c 01 48 2c f3 0f 2a 40 2c f3 0f 10 50 30 f3 0f 10 68 34 8b 50 50 f3 0f 5a c0 f2 0f 5e 05 98 95 fa 00 f2 0f 5a c8 0f 5a da f3 0f 5a d1 f2 0f 59 da f3 0f 10 50 40 0f 5a e2 f2 0f 10 15 98 98 f5 00 f2 0f 59 e2 f3 0f 5a c1 f2 0f 59 c0 f2 0f 59 e0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "scale kinematics",
+   "kind": "signature",
+   "va": "0x00ba6320",
+   "pattern": "8b 44 24 04 8b 4c 24 0c 01 48 2c f3 0f 2a 40 2c f3 0f 10 50 30 f3 0f 10 68 34 8b 50 50 f3 0f 5a c0 f2 0f 5e 05 98 95 fa 00 f2 0f 5a c8 0f 5a da f3 0f 5a d1 f2 0f 59 da f3 0f 10 50 40 0f 5a e2 f2 0f 10 15 98 98 f5 00 f2 0f 59 e2 f3 0f 5a c1 f2 0f 59 c0 f2 0f 59 e0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area handler records",
+   "kind": "signature",
+   "va": "0x00d6b540",
+   "pattern": "81 ec a4 00 00 00 a1 b0 a8 2e 01 33 c4 89 84 24 a0 00 00 00 53 55 56 8b b4 24 b4 00 00 00 8b 6e 28 57 8b bc 24 bc 00 00 00 8b 5f 0c 85 db 89 6c 24 24 0f 84 d3 01 00 00 8b 46 20 f3 0f 10 00 8b 4e 24 f3 0f 11 84 24 a0 00 00 00 f3 0f 10 01 80 a4 24 a8 00 00 00 fe 56 f3 0f 11 84 24 a8 00 00 00 e8 5a eb 0c 00 83 c4 04 84 c0 0f 84 9a 01 00 00 f6 47 10 01 74 16 56 57 83 c5 30 55 e8 ee f0 02 00 83 c4 0c 84 c0 0f 84 7e 01 00 00 f3 0f 10 47 2c f3 0f 11 44 24 38 f3 0f 10 47 3c",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "area random shell",
+   "kind": "signature",
+   "va": "0x00d990c0",
+   "pattern": "55 8b ec 83 e4 f8 81 ec 3c 01 00 00 8b 0d 80 b7 37 01 56 e8 58 61 0a 00 8b 0d 80 b7 37 01 f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 05 40 fd 0c 01 f2 0f 5a c0 f3 0f 5a c0 f2 0f 59 05 48 2f f6 00 f2 0f 5a c0 f3 0f 11 44 24 18 e8 23 61 0a 00 8b 0d 80 b7 37 01 f3 0f 2a c0 f3 0f 5a c0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many unit time construct",
+   "kind": "signature",
+   "va": "0x00d79b70",
+   "pattern": "8b 44 24 04 33 c9 89 48 14 c6 40 18 01 66 89 48 1a b0 01 c3 cc",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many unit time calc",
+   "kind": "signature",
+   "va": "0x00d79b90",
+   "pattern": "83 7c 24 0c 00 74 11 8b 44 24 04 0f bf 48 1a 89 48 14 66 c7 40 1a 00 00 c3 cc cc",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many unit time event",
+   "kind": "signature",
+   "va": "0x00d79bb0",
+   "pattern": "8b 0d 80 b7 37 01 56 8b 74 24 08 57 8b 7e 20 e8 ec 55 0c 00 85 c0 89 44 24 0c db 44 24 0c 7d 06 d8 05 54 4a f5 00 dc 0d 68 62 0c 01 d9 5c 24 0c d9 44 24 0c d9 07 df f1 dd d8 72 05 66 83 46 1a 01 5f",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many spawn mode dispatch",
+   "kind": "signature",
+   "va": "0x00d926ae",
+   "pattern": "8b 7d 14 0f b6 4f 08 83 e9 01 0f 84 82 07 00 00 83 e9 01 0f 85 0b 09 00 00 f3 0f 10 43 04 8b 03",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many burst loop",
+   "kind": "signature",
+   "va": "0x00d92e40",
+   "pattern": "83 7f 04 00 7e 12 8d 8c 24 d0 00 00 00 51 50 52 e8 db c4 ff ff 83 c4 0c 80 7c 24 1a 00 74 5b 8b 54 24 24 52 e8 b7 ec fe ff 8b 10 8b c8 8b 42 0c 83 c4 04 ff d0 8d 8c 24 60 01 00 00 51 8b c8 e8 7c d3 68 ff f3 0f 7e 40 30 66 0f d6 84 24 c0 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many form sphere init",
+   "kind": "signature",
+   "va": "0x00d798c0",
+   "pattern": "8b 4c 24 04 8b 54 24 08 b0 01 88 41 2c d9 42 0c d9 59 3c d9 42 10 d9 59 40 84 42 1d 74 05 08 41 2e eb 04 80 61 2e fe 53 8a 5a 1c 88 59 2d d9 02 d9 59 30 5b d9 42 04 d9 59 34 d9 42 08 d9 59 38 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many motion emission init",
+   "kind": "signature",
+   "va": "0x00d8f410",
+   "pattern": "55 8b ec 83 e4 f0 83 ec 44 8b 0d 80 b7 37 01 53 8b 5d 10 56 8b 75 14 57 8b 7d 0c 89 7c 24 3c c7 44 24 18 00 00 00 00 e8 f4 fd 0a 00 f3 0f 10 4e 1c 0f 5a c9 f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 05 40 fd 0c 01 f2 0f 5a c0 f3 0f 5a c0 f2 0f 59 c8 f3 0f 10 46 0c 0f 5a c0 f2 0f 58 c8 66 0f 5a c1 f3 0f 10 4f 10 f3 0f 11 4c 24 20 f3 0f 10 4f 14 f3 0f 11 4c 24 24 f3 0f 10 4f 18 0f c6 c0 00 f3 0f 11 4c 24 28 f3 0f 10 4f 1c f3 0f 11 4c 24 2c 0f 28 4c 24 20 0f 59 c1 0f 29 44 24 40 f3 0f 10 44 24 40 f3 0f 11 44 24 20 f3 0f 10 44 24 44 f3 0f 11 44 24 24 f3 0f 10 44 24 48 f3 0f 11 44 24 28 f3 0f 10 44 24 4c f3 0f 11 44 24 2c f3 0f 7e 44 24 20 66 0f d6 47 10 f3 0f 7e 44 24 28 66 0f d6 47 18 8b 0d 80 b7 37 01 e8 32 fd 0a 00 f3 0f 10 4e 3c f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 05 40 fd 0c 01 f2 0f 5a c0 f3 0f 5a c0 0f 5a c9 f2 0f 59 c8 f3 0f 10 46 2c 0f 5a c0 f2 0f 58 c8 66 0f 5a c1 f3 0f 11 03 0f 57 c0 f3 0f 11 43 04 0f b6 46 54 83 e8 00 74 4c 83 e8 01 0f 85 0e 02 00 00 8d 43 08 50 8d 46 50 50 e8 03 4c 00 00 8b 45 08 83 c4 08 80 78 24 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many particle integration",
+   "kind": "signature",
+   "va": "0x00d942a0",
+   "pattern": "55 8b ec 83 e4 f0 83 ec 20 8b 45 0c f3 0f 10 48 10 f3 0f 11 4c 24 10 f3 0f 10 48 14 f3 0f 2a 45 10 f3 0f 11 4c 24 14 f3 0f 10 48 18 f3 0f 11 4c 24 18 f3 0f 10 48 1c f3 0f 11 4c 24 1c 0f 28 54 24 10 f3 0f 5a c0 f2 0f 5e 05 98 95 fa 00 f2 0f 5a c0 f3 0f 5a c8 f2 0f 59 0d 98 98 f5 00 66 0f 5a c9 8b 4d 08 f3 0f 10 c0 0f c6 c0 00 0f c6 c9 00 0f 59 d1 f3 0f 10 08 f3 0f 11 4c 24 10 f3 0f 10 48 04 f3 0f 11 4c 24 14 f3 0f 10 48 08 f3 0f 11 4c 24 18 f3 0f 10 48 0c f3 0f 11 4c 24 1c 0f 28 4c 24 10 0f 29 14 24 f3 0f 10 14 24 f3 0f 11 54 24 10 f3 0f 10 54 24 04 f3 0f 11 54 24 14 f3 0f 10 54 24 08 f3 0f 11 54 24 18 f3 0f 10 54 24 0c f3 0f 11 54 24 1c 0f 28 54 24 10 0f 58 ca 0f 29 0c 24 f3 0f 10 0c 24 f3 0f 11 4c 24 10 f3 0f 10 4c 24 04",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many line lifetime init",
+   "kind": "signature",
+   "va": "0x00d72fb0",
+   "pattern": "51 8b 44 24 08 53 55 8b 68 0c 56 57 8b 78 04 8b 00 8b 90 80 00 00 00 0f b7 42 04 8b 4f 50 8d 74 28 20 c6 46 12 00 c6 46 13 00 c7 06 00 00 00 00 8b 57 2c 8d 59 01 85 db 89 54 24 10 75 04 33 d2 eb 18 8d 44 24 18 89 4c 24 18 8b 0d 80 b7 37 01 50 e8 3a c2 0c 00 33 d2 f7 f3 8b 4c 24 10 03 d1 69 d2 88 13 00 00 89 56 04 0f b6 47 54 8d 58 01 85 db 75 04 33 d2 eb 18 8b 0d 80 b7 37 01 8d 54 24 18 52 89 44 24 1c e8 04 c2 0c 00 33 d2 f7 f3 66 0f b6 47 0d",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "many form sphere sample",
+   "kind": "signature",
+   "va": "0x00d8ff8d",
+   "pattern": "f3 0f 10 05 60 2f f6 00 8d 54 24 20 52 f3 0f 11 44 24 1c f3 0f 11 44 24 20 f3 0f 11 44 24 24 e8 ef 3f e6 ff d9 5c 24 24 8d 44 24 20 50 e8 e1 3f e6 ff d9 5c 24 24 8d 4c 24 20 51 e8 d3 3f e6 ff d9 5c 24 24 d9 44 24 2c f3 0f 10 05 70 4f f5 00 d9 1e 83 c4 0c d9 44 24 1c 8d 57 20 d9 5e 04 52 d9 44 24 1c 8b ce d9 5e 08 f3 0f 11 46 0c e8 60 ce 88 ff f6 47 1e 01 74 1d f3 0f 10 46 04 f2 0f 10 0d 50 2f f6 00 0f 5a c0 66 0f 54 c1 f2 0f 5a c0 f3 0f 11 46 04 8d 84 24 40 01 00 00 50 8b ce e8 1e b7 7a ff f3 0f 7e 00 66 0f d6 03 f3 0f 7e 40 08 8d 4c 24 18 66 0f d6 43 08 f3 0f 10 05 70 4f f5 00 51 f3 0f 11 44 24 1c e8 44 3f e6 ff d8 4f 30 8d 94 24 f4 00 00 00 8b cb d8 47 2c d9 5c 24 1c d9 44 24 1c d9 1c 24 52 e8 f4 e4 69 ff f3 0f 7e 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff"
+  },
+  {
+   "name": "master drift accumulate",
+   "kind": "signature",
+   "va": "0x00d6ac1e",
+   "pattern": "f3 0f 7e 45 00 66 0f d6 44 24 1c f3 0f 7e 45 08 f3 0f 10 4c 24 1c 66 0f d6 44 24 24 f3 0f 10 06 0f 5a c0 0f 5a c9 f2 0f 58 c1 f3 0f 10 4e 04 66 0f 5a c0 f3 0f 11 06 f3 0f 10 44 24 20 0f 5a c0 0f 5a c9 f2 0f 58 c1 f3 0f 10 4c 24 24 66 0f 5a c0 f3 0f 11 46 04 f3 0f 10 46 08 83 c4 0c 0f 5a c0 0f 5a c9 5f f2 0f 58 c1 66 0f 5a c0 f3 0f 11 46 08 5e 5d 5b 83 c4 34 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "spawn drag flag",
+   "kind": "signature",
+   "va": "0x00d9a9e1",
+   "pattern": "80 a4 24 08 01 00 00 fe f3 0f 10 47 1c 83 c4 20 0f 2e 05 70 4f f5 00 9f f6 c4 44 7b 11 80 8c 24 e8 00 00 00 01 f3 0f 11 84 24 e4 00 00 00 33 db 39 5c 24 18 7e 30",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "scale receiver stores",
+   "kind": "signature",
+   "va": "0x00ba61d0",
+   "pattern": "83 7c 24 0c 02 75 3d 8b 4c 24 10 8b 44 24 04 d9 01 d9 58 20 d9 41 20 d9 58 30 d9 41 30 d9 58 40 d9 41 04 d9 58 24 d9 41 24 d9 58 34 d9 41 34 d9 58 44 d9 41 08 d9 58 28 d9 41 28 d9 58 38",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "child reference reader",
+   "kind": "signature",
+   "va": "0x00d98d60",
+   "pattern": "8b 4c 24 08 53 8b 5c 24 10 c7 03 00 00 00 00 0f b6 41 04 83 e8 01 56 57 0f 84 90 00 00 00 83 e8 01 75 51 8b 01 8b 78 04 85 ff 8b 30 75 4c 8b 74 24 10 68 82 04 00 00 68 50 68 12 01 56",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "spawn child reference",
+   "kind": "signature",
+   "va": "0x00d9a7dd",
+   "pattern": "0f 57 c0 80 a4 24 e8 00 00 00 fe 8d 54 24 14 52 8d 43 1c 50 56",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "spawn angle payload refs",
+   "kind": "signature",
+   "va": "0x00d9aaf1",
+   "pattern": "8d 4b 10 51 8b 4f 10 8d 53 0c 52 8b 54 24 24 8d 44 24 28 50 51",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "spawn scale payload refs",
+   "kind": "signature",
+   "va": "0x00d9ab8a",
+   "pattern": "8b 57 14 8d 43 18 50 8b 44 24 20 83 c3 14 53 8d 4c 24 48 51 52 50 56 e8 7a e2 ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "child unit create",
+   "kind": "signature",
+   "va": "0x00e3a3c0",
+   "pattern": "8b 44 24 04 8b 00 8b 48 08 8b 11 50 8b 44 24 0c 6a 00 50 51 52 e8 66 41 d9 ff 83 c4 14",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff"
+  },
+  {
+   "name": "area payload scalars",
+   "kind": "signature",
+   "va": "0x00d9a5c0",
+   "pattern": "0f 57 c0 83 ec 20 53 55 8b 6c 24 2c 56 8b 74 24 3c 57 8b 7c 24 38 8b 1f f3 0f 11 06 f3 0f 11 46 10 f3 0f 11 46 04 f3 0f 11 46 14 f3 0f 11 46 08 f3 0f 11 46 18 80 7f 04 00 74 13 53 55 e8 9e fa 09 00 f3 0f 10 08 0f 57 c0 83 c4 08 eb 03 0f 28 c8 f3 0f 11 4e 40 80 7f 04 00 74 11 83 c3 04 53 55 e8 7a fa 09 00 f3 0f 10 00 83 c4 08 8b 54 24 3c 8d 44 24 20 50 8d 4c 24 14 51 52 57 55 f3 0f 11 46 44 e8 08 f9 ff ff 83 c4 14 84 c0 75 08 5f 5e 5d 5b 83 c4 20 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "frame stage main pass",
+   "kind": "signature",
+   "va": "0x00bc673c",
+   "pattern": "53 6a 00 57 8b ce e8 99 5a 00 00 6a 01 6a 00 57 8b ce e8 3d 81 00 00 83 e8 00 74 1b 83 e8 01 0f 85 8c 00 00 00 8b 86 98 00 00 00 83 e0 fd 83 c8 04 89 86 98 00 00 00 8b ce e8 56 69 00 00 6a 00 6a 00 57 8b ce e8 fa 75 00 00",
+   "mask": "ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff 00 00 00 00"
+  },
+  {
+   "name": "genesis degree one rising",
+   "kind": "signature",
+   "va": "0x00bed5c9",
+   "pattern": "8b 6c 24 48 f3 0f 10 4d 08 f3 0f 10 5d 0c f3 0f 10 64 24 44 f3 0f 10 40 08 f3 0f 10 56 0c f3 0f 11 5c 24 3c 0f 5a db f3 0f 11 4c 24 2c 0f 5a c9 f2 0f 5c d9 66 0f 5a cb f3 0f 10 5d 10 f3 0f 11 5c 24 40 f3 0f 5a e9 0f 5a dc f2 0f 5c dd 0f 5a e8 66 0f 2f 2d 70 2f f6 00 66 0f 5a db f3 0f 11 44 24 18 f3 0f 11 54 24 34 f3 0f 11 5c 24 30 0f 86 36 01 00 00 0f 5a c0 0f 5a cc f2 0f 59 c1 0f 5a ce f2 0f 58 c1 66 0f 5a c0 f3 0f 5a c8 0f 5a da 66 0f 2f d9 0f 87 ed 01 00 00 f3 0f 5a c0 0f 5a ca f2 0f 5c c1 66 0f 5a c0 f3 0f 2c d8 85 db 0f 84 d2 01 00 00 8b 46 08",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff"
+  },
+  {
+   "name": "genesis degree one falling",
+   "kind": "signature",
+   "va": "0x00bed774",
+   "pattern": "0f 57 ed f3 0f 5a c9 0f 5a e4 66 0f 2f e1 76 03 0f 28 eb 0f 5a c0 0f 5a cd f2 0f 59 c8 0f 5a c6 f2 0f 58 c8 66 0f 5a c1 f3 0f 5a c8 0f 5a da 66 0f 2f d9 0f 87 a4 00 00 00 f3 0f 5a c0 0f 5a ca f2 0f 5c c1 66 0f 5a c0 f3 0f 2c c0 85 c0 89 44 24 3c 0f 84 85 00 00 00 8b 56 08",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff"
+  },
+  {
+   "name": "unit node constructor zero",
+   "kind": "signature",
+   "va": "0x00bcd90d",
+   "pattern": "33 db",
+   "mask": "ff ff"
+  },
+  {
+   "name": "unit node constructor time",
+   "kind": "signature",
+   "va": "0x00bcd993",
+   "pattern": "c7 86 98 00 00 00 02 08 00 00 89 5e 14 88 9e ac 00 00 00 88 9e ad 00 00 00 89 9e 8c 00 00 00 89 9e 90 00 00 00 f3 0f 11 86 94 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "unit draw scale constant",
+   "kind": "dwords",
+   "va": "0x010c6268",
+   "values": [
+    "0x00100000",
+    "0x3df00000"
+   ]
+  },
+  {
+   "name": "signed draw scale constant",
+   "kind": "dwords",
+   "va": "0x010cfd40",
+   "values": [
+    "0x00000000",
+    "0x3e000000"
+   ]
+  },
+  {
+   "name": "two pow 32 float constant",
+   "kind": "dwords",
+   "va": "0x00f54a54",
+   "values": [
+    "0x4f800000"
+   ]
+  },
+  {
+   "name": "one float constant",
+   "kind": "dwords",
+   "va": "0x00f54f70",
+   "values": [
+    "0x3f800000"
+   ]
+  },
+  {
+   "name": "half float constant",
+   "kind": "dwords",
+   "va": "0x00f62f60",
+   "values": [
+    "0x3f000000"
+   ]
+  },
+  {
+   "name": "negative zero float constant",
+   "kind": "dwords",
+   "va": "0x00f62fa0",
+   "values": [
+    "0x80000000"
+   ]
+  },
+  {
+   "name": "one double constant",
+   "kind": "dwords",
+   "va": "0x00f598a0",
+   "values": [
+    "0x00000000",
+    "0x3ff00000"
+   ]
+  },
+  {
+   "name": "two double constant",
+   "kind": "dwords",
+   "va": "0x00f63028",
+   "values": [
+    "0x00000000",
+    "0x40000000"
+   ]
+  },
+  {
+   "name": "negative zero double constant",
+   "kind": "dwords",
+   "va": "0x00f63008",
+   "values": [
+    "0x00000000",
+    "0x80000000"
+   ]
+  },
+  {
+   "name": "four double constant",
+   "kind": "dwords",
+   "va": "0x00fee2a0",
+   "values": [
+    "0x00000000",
+    "0x40100000"
+   ]
+  },
+  {
+   "name": "negative one double constant",
+   "kind": "dwords",
+   "va": "0x00f599d0",
+   "values": [
+    "0x00000000",
+    "0xbff00000"
+   ]
+  },
+  {
+   "name": "three double constant",
+   "kind": "dwords",
+   "va": "0x00f62ff0",
+   "values": [
+    "0x00000000",
+    "0x40080000"
+   ]
+  },
+  {
+   "name": "pi float widened constant",
+   "kind": "dwords",
+   "va": "0x00f62f48",
+   "values": [
+    "0x60000000",
+    "0x400921fb"
+   ]
+  },
+  {
+   "name": "sign mask double constant",
+   "kind": "dwords",
+   "va": "0x00f62f50",
+   "values": [
+    "0xffffffff",
+    "0x7fffffff"
+   ]
+  },
+  {
+   "name": "zero double constant",
+   "kind": "dwords",
+   "va": "0x00f62f70",
+   "values": [
+    "0x00000000",
+    "0x00000000"
+   ]
   }
  ],
  "install": {
@@ -8306,6 +9078,235 @@
    "vertexTokens": {
     "0xfffe0300": 5042
    }
+  },
+  "emitters": {
+   "effects": 722,
+   "genesis": {
+    "modules": {
+     "RandomPolynomialGenesis": {
+      "bindings": 1,
+      "degrees": {
+       "1": 2
+      },
+      "segments": 2
+     },
+     "RandomPolynomialSureGenesis": {
+      "bindings": 4,
+      "degrees": {
+       "0": 4
+      },
+      "segments": 4
+     },
+     "StandardPolynomialGenesis": {
+      "bindings": 191,
+      "degrees": {
+       "0": 30,
+       "1": 322,
+       "2": 6
+      },
+      "segments": 358
+     },
+     "StandardPolynomialSureGenesis": {
+      "bindings": 1231,
+      "degrees": {
+       "0": 155,
+       "1": 1835,
+       "2": 317
+      },
+      "segments": 2307
+     }
+    },
+    "owners": {
+     "R:GenerateMaster": 1086,
+     "R:GenerateTime": 40,
+     "R:GenerateTimeArea": 85,
+     "R:GenerateTimeVertex": 20,
+     "R:ManyGenerateUnitTime": 191
+    },
+    "risingQuadraticSegments": 28
+   },
+   "loopInstances": 70,
+   "many": {
+    "nodes": 768,
+    "unitsWithQuartet": 181
+   },
+   "master": {
+    "areaAxesFree": {
+     "1": 9,
+     "2": 3,
+     "3": 0
+    },
+    "areaKinds": {
+     "0": 199,
+     "1": 616,
+     "2": 26,
+     "3": 30,
+     "4": 215
+    },
+    "areaSurface": {
+     "1": 231,
+     "2": 2,
+     "3": 22
+    },
+    "baseProbability": {
+     "0.500": 2,
+     "0.700": 1,
+     "0.800": 9,
+     "1.000": 1074
+    },
+    "blockKinds": {
+     "1": 1086
+    },
+    "childEndTicks": {
+     "max": 1135000,
+     "median": 230000,
+     "min": 25000
+    },
+    "childRefKinds": {
+     "1": 1076,
+     "2": 10
+    },
+    "childUnitHasDrawResource": 1004,
+    "childUnitResolved": 1075,
+    "controls": 1086,
+    "gated": 49,
+    "listenerGroups": {
+     "0:Position3DGenerated:GendNormal:CoordLocal": 246,
+     "0:Position3DGenerated:GendNormal:CoordRoot": 486,
+     "0:Position3DGenerated:GendNormal:CoordWorld": 205,
+     "0:R:Position3DMapBindGenerated:GendNormal:CoordRoot": 2,
+     "1:Angle3DGenerated:GendNormal:CoordLocal": 22,
+     "1:Angle3DGenerated:GendNormal:CoordPureWorld": 1,
+     "1:Angle3DGenerated:GendNormal:CoordRoot": 146,
+     "1:Angle3DGenerated:GendNormal:CoordWorld": 16,
+     "2:Scale3DGenerated:GendNormal:CoordLocal": 7,
+     "2:Scale3DGenerated:GendNormal:CoordRoot": 12
+    },
+    "probabilityRange": {
+     "0.000": 1083,
+     "0.300": 1,
+     "0.500": 2
+    }
+   },
+   "modules": {
+    "Angle3DGenerated:GendNormal:CoordLocal": {
+     "effects": 20,
+     "nodes": 28
+    },
+    "Angle3DGenerated:GendNormal:CoordPureWorld": {
+     "effects": 2,
+     "nodes": 2
+    },
+    "Angle3DGenerated:GendNormal:CoordRoot": {
+     "effects": 113,
+     "nodes": 165
+    },
+    "Angle3DGenerated:GendNormal:CoordWorld": {
+     "effects": 9,
+     "nodes": 16
+    },
+    "Position3DGenerated:GendNormal:CoordLocal": {
+     "effects": 242,
+     "nodes": 352
+    },
+    "Position3DGenerated:GendNormal:CoordRoot": {
+     "effects": 379,
+     "nodes": 574
+    },
+    "Position3DGenerated:GendNormal:CoordWorld": {
+     "effects": 147,
+     "nodes": 218
+    },
+    "R:ContinualPolygonNormal": {
+     "effects": 86,
+     "nodes": 96
+    },
+    "R:GenerateMaster": {
+     "effects": 600,
+     "nodes": 1086
+    },
+    "R:GenerateTime": {
+     "effects": 39,
+     "nodes": 40
+    },
+    "R:GenerateTimeArea": {
+     "effects": 62,
+     "nodes": 85
+    },
+    "R:GenerateTimeVertex": {
+     "effects": 18,
+     "nodes": 20
+    },
+    "R:ManyGenerateContinualPolygonNormalCylinder": {
+     "effects": 3,
+     "nodes": 4
+    },
+    "R:ManyGenerateDrawLine": {
+     "effects": 140,
+     "nodes": 183
+    },
+    "R:ManyGenerateDrawObject": {
+     "effects": 3,
+     "nodes": 4
+    },
+    "R:ManyGenerateDrawPoint": {
+     "effects": 1,
+     "nodes": 1
+    },
+    "R:ManyGenerateDrawSimpleContinualPolygon": {
+     "effects": 3,
+     "nodes": 3
+    },
+    "R:ManyGenerateFormSphere": {
+     "effects": 145,
+     "nodes": 191
+    },
+    "R:ManyGenerateMotionEmission": {
+     "effects": 143,
+     "nodes": 189
+    },
+    "R:ManyGenerateMotionSphereRotation": {
+     "effects": 2,
+     "nodes": 2
+    },
+    "R:ManyGenerateUnitTime": {
+     "effects": 145,
+     "nodes": 191
+    },
+    "R:Position3DMapBindGenerated:GendNormal:CoordRoot": {
+     "effects": 2,
+     "nodes": 2
+    },
+    "Scale3DGenerated:GendNormal:CoordLocal": {
+     "effects": 7,
+     "nodes": 7
+    },
+    "Scale3DGenerated:GendNormal:CoordRoot": {
+     "effects": 3,
+     "nodes": 12
+    }
+   },
+   "time": {
+    "R:GenerateTime": {
+     "childUnitResolved": 40,
+     "controls": 40,
+     "gated": 0,
+     "listenerGroups": {
+      "0:Position3DGenerated:GendNormal:CoordLocal": 3,
+      "0:Position3DGenerated:GendNormal:CoordRoot": 22
+     }
+    },
+    "R:GenerateTimeArea": {
+     "childUnitResolved": 84,
+     "controls": 85,
+     "gated": 0,
+     "listenerGroups": {
+      "0:Position3DGenerated:GendNormal:CoordLocal": 15,
+      "0:Position3DGenerated:GendNormal:CoordRoot": 56,
+      "0:Position3DGenerated:GendNormal:CoordWorld": 10
+     }
+    }
+   }
   }
  },
  "outcomes": [
@@ -8436,13 +9437,13 @@
   },
   {
    "id": "graph-evaluation-time",
-   "tier": "UNKNOWN",
-   "claim": "The time variable x of the polynomial evaluation, the use of the carried array and the way graph B records modify graph A values are not read. The Genesis forms and the code slots of the Immediate, Linear and Parabolical forms are recorded only as addresses."
+   "tier": "STATIC",
+   "claim": "A polynomial binding is evaluated at x = (unit time - segment start) / 5000, where the unit time is the tick word at UnitNode +0x8c and the segment is the first one whose next start the unit time has not reached. The routine at 0x00be4550 walks the segments, calls the module slot +0x24 at each boundary and the evaluator slot +0x20 with x. The slot +0x24 of a polynomial module stores the constant term of the entered segment plus the carried value."
   },
   {
    "id": "control-parameter-blocks",
    "tier": "UNKNOWN",
-   "claim": "The parameter block of each control module, including how the position, angle and scale controls obtain their vectors and which graph output feeds them, is not read."
+   "claim": "The parameter blocks of the Generate and ManyGenerate emitters are decoded on the generate emitters page. The parameter blocks of the other controls, including how the position, angle and scale controls obtain their vectors and which graph output feeds the matrix controls, are not read."
   },
   {
    "id": "vfxm-chunk-layout",
@@ -8458,6 +9459,966 @@
    "id": "frame-delta-source",
    "tier": "UNKNOWN",
    "claim": "The caller that supplies the tick delta to the frame driver and the value of the time scale float at effect +0xd4 were not traced."
+  },
+  {
+   "id": "random-source",
+   "tier": "STATIC",
+   "claim": "Every emitter draw comes from one MT19937 object whose pointer is stored at 0x0137b780. The DefaultContext constructor 0x00bc3aa0 calls clock() and hands the result to the generator constructor 0x00bc3980. A unit draw multiplies the output word by 1/4294967295 and a signed draw multiplies the word as a signed integer by 2^-31."
+  },
+  {
+   "id": "genesis-event-counts",
+   "tier": "STATIC",
+   "claim": "A Genesis graph binding holds the cumulative event count as a polynomial of degree 0, 1 or 2 in the frame time of its segment. Each graph update emits the truncated peak count of the step minus the count already emitted, and entering a degree 0 segment emits the truncated constant term minus the count emitted. The count already emitted lives at value +0x0c."
+  },
+  {
+   "id": "event-delivery",
+   "tier": "STATIC",
+   "claim": "An event is queued with its age in ticks and the control node that holds the Genesis slot receives it from the event pass 0x00bdb6e0 through descriptor slot +0x9c, once per event. The traced handlers do not read the age."
+  },
+  {
+   "id": "spawn-chance-and-gates",
+   "tier": "STATIC",
+   "claim": "The GenerateMaster handler spawns when a unit draw is not above the base chance plus the spread times a signed draw. A set camera gate bit then thins the spawn by distance. GenerateTime, GenerateTimeArea and GenerateTimeVertex test the global density factor of the manager instead of the chance."
+  },
+  {
+   "id": "spawn-payload",
+   "tier": "STATIC",
+   "claim": "A spawn creates the child unit and sends one payload to the child control nodes of three listener groups. Group 0 receives position, direction, speed scalar, acceleration scalar and the drag flag, group 1 the euler angles of the spawner matrix plus the spawn step sum, group 2 the row lengths of the spawner matrix. The coordinate id at descriptor +0x58 of the first group 0 receiver selects the transform of the position and direction."
+  },
+  {
+   "id": "area-shapes",
+   "tier": "STATIC",
+   "claim": "Area kinds 1 to 3 are a sphere, a box and a cylinder that turn three random axis values and further draws into a position and a direction, and kind 5 leaves both at zero. The axis values follow the bit pairs of the flag byte at area +0x1e."
+  },
+  {
+   "id": "area-shape-model",
+   "tier": "UNKNOWN",
+   "claim": "Area kind 4 resolves a vertex of the model resource at node work +0x2c through 0x00d996b0. The vertex choice and the transform of the vertex are not read."
+  },
+  {
+   "id": "generated-receivers",
+   "tier": "STATIC",
+   "claim": "The Position3DGenerated, Angle3DGenerated and Scale3DGenerated modules keep the payload in their work buffer at message type 2 and add the elapsed ticks divided by 5000 in their calc. The position follows origin + direction * speed * t + direction * acceleration * t^2 / 2 and the drag flag selects a damped integration."
+  },
+  {
+   "id": "child-unit-lifetime",
+   "tier": "STATIC",
+   "claim": "A child unit ends when its time reaches the end tick at unit entry +0x28. With bit 1 of the instance flags set the time wraps over the loop fields at +0x2c and +0x30 up to the count at +0x34."
+  },
+  {
+   "id": "many-generate-chain",
+   "tier": "INFERRED",
+   "claim": "ManyGenerateUnitTime turns the events of a Genesis slot into a particle count with a chance per event and ManyGenerateDrawLine spawns that many particles through the form, motion and line routines. The record offsets of the form, motion and line modules follow from the work buffer offsets the routines read and from the installed values."
+  },
+  {
+   "id": "density-default",
+   "tier": "UNKNOWN",
+   "claim": "The density factors of the manager that gate the GenerateTime handlers sit at manager +0x2c and +0x30. Their default and the code that sets them were not traced."
   }
- ]
+ ],
+ "generate": {
+  "random": [
+   {
+    "id": "instance",
+    "address": "0x0137b780",
+    "tier": "STATIC",
+    "check": "mt global instance store",
+    "meaning": "Pointer to the one generator object. Every emitter draw loads it into ecx."
+   },
+   {
+    "id": "seed",
+    "address": "0x00bc3aa0",
+    "tier": "STATIC",
+    "check": "mt owner seeds from clock",
+    "meaning": "The DefaultContext constructor calls clock() and passes the result to the generator constructor 0x00bc3980."
+   },
+   {
+    "id": "fill",
+    "address": "0x00e3f040",
+    "tier": "STATIC",
+    "check": "mt seed fill",
+    "meaning": "state[0] = seed and state[i] = 1812433253 * (state[i-1] ^ (state[i-1] >> 30)) + i for i below 624."
+   },
+   {
+    "id": "refill",
+    "address": "0x00e3f080",
+    "tier": "STATIC",
+    "check": "mt twist first loop",
+    "meaning": "The MT19937 twist with the matrix constant 0x9908b0df and the offset 397."
+   },
+   {
+    "id": "counter",
+    "address": "0x00e3f117",
+    "tier": "STATIC",
+    "check": "mt twist counter reset",
+    "meaning": "The refill stores 0x26f in the counter that the object points to at +0x9c0."
+   },
+   {
+    "id": "counterPointer",
+    "address": "0x00bc39c4",
+    "tier": "STATIC",
+    "check": "mt counter pointer store",
+    "meaning": "The generator constructor stores the address of the counter at +0x9c4 into +0x9c0, so output index 0x270 tempers the pointer word."
+   },
+   {
+    "id": "next",
+    "address": "0x00e3f1b0",
+    "tier": "STATIC",
+    "check": "mt next output",
+    "meaning": "Decrements the counter, refills when it was -1 and tempers the word at index 0x270 minus the old counter with the masks 0xff3a58ad and 0xffffdf8c. Index 0x270 is the pointer word at +0x9c0."
+   },
+   {
+    "id": "unitDraw",
+    "address": "0x010c6268",
+    "tier": "STATIC",
+    "check": "unit draw scale constant",
+    "meaning": "Unit draws multiply the unsigned word by 1/4294967295 and so reach 1.0."
+   },
+   {
+    "id": "signedDraw",
+    "address": "0x010cfd40",
+    "tier": "STATIC",
+    "check": "signed draw scale constant",
+    "meaning": "Signed draws multiply the word as a signed integer by 2^-31."
+   },
+   {
+    "id": "gate",
+    "address": "0x00e3a100",
+    "tier": "STATIC",
+    "check": "density gate",
+    "meaning": "Keeps a spawn when the float at manager +0x2c is 1.0 or more, else with that chance."
+   }
+  ],
+  "graphTime": [
+   {
+    "id": "tickDivisor",
+    "address": "0x00fa9598",
+    "tier": "STATIC",
+    "check": "graph step divides ticks by 5000",
+    "meaning": "The segment time x is the tick difference divided by 5000.0."
+   },
+   {
+    "id": "segmentAdvance",
+    "address": "0x00be4652",
+    "tier": "STATIC",
+    "check": "graph segment advance test",
+    "meaning": "The walk moves to the next segment while the unit time has reached its start tick, compared as signed integers."
+   },
+   {
+    "id": "transition",
+    "address": "0x00bec470",
+    "tier": "STATIC",
+    "check": "graph transition sets constant term",
+    "meaning": "Entering a polynomial segment stores its constant term plus the carried value."
+   },
+   {
+    "id": "driver",
+    "address": "0x00bcc000",
+    "tier": "STATIC",
+    "check": "graph update scales delta",
+    "meaning": "The graph update scales the delta by the unit time scale at +0x94 when bit 6 of +0x98 is set and walks every graph item."
+   },
+   {
+    "id": "unitTime",
+    "address": "0x00bce8a4",
+    "tier": "STATIC",
+    "check": "unit time advance",
+    "meaning": "UnitNode +0x8c is the unit time. It grows by the scaled delta and +0x90 keeps the delta."
+   },
+   {
+    "id": "unitStart",
+    "address": "0x00bcd993",
+    "tier": "STATIC",
+    "check": "unit node constructor time",
+    "meaning": "The UnitNode constructor stores the register it cleared at 0x00bcd90d into the time at +0x8c and the delta at +0x90."
+   },
+   {
+    "id": "unitStartZero",
+    "address": "0x00bcd90d",
+    "tier": "STATIC",
+    "check": "unit node constructor zero",
+    "meaning": "The register that the constructor stores into the time is cleared here."
+   },
+   {
+    "id": "prePass",
+    "address": "0x00bc66df",
+    "tier": "STATIC",
+    "check": "frame stage order",
+    "meaning": "A zero delta pass runs the graph update and the control calc and then the unit time advance for a node that has a nonzero time."
+   },
+   {
+    "id": "mainPass",
+    "address": "0x00bc673c",
+    "tier": "STATIC",
+    "check": "frame stage main pass",
+    "meaning": "The delta pass runs the graph update, the unit time advance with child creation and the control calc, in this order."
+   },
+   {
+    "id": "eventPass",
+    "address": "0x00bc6786",
+    "tier": "STATIC",
+    "check": "frame stage dispatch",
+    "meaning": "The event pass 0x00bcc830 follows the control calc when bit 14 of +0x98 is set."
+   }
+  ],
+  "genesis": [
+   {
+    "id": "init",
+    "address": "0x00becfa0",
+    "tier": "STATIC",
+    "check": "genesis init",
+    "meaning": "The value object stores the constant term at +0x00 and zero at +0x0c, the count already emitted."
+   },
+   {
+    "id": "burst",
+    "address": "0x00becfc0",
+    "tier": "STATIC",
+    "check": "genesis degree zero burst",
+    "meaning": "Entering a degree 0 segment emits the integer part of its constant term minus the count emitted."
+   },
+   {
+    "id": "burstGate",
+    "address": "0x00becfdd",
+    "tier": "STATIC",
+    "check": "genesis degree zero burst",
+    "meaning": "A nonzero dword at [[value +0x04] +0x10] stops the burst after it stores the constant term at +0x00. The meaning of that condition is UNKNOWN."
+   },
+   {
+    "id": "elapseGate",
+    "address": "0x00bed1bb",
+    "tier": "STATIC",
+    "check": "genesis elapse gate",
+    "meaning": "A nonzero dword at [[value +0x04] +0x10] makes the elapse routine store the polynomial value at x into +0x00 and emit no events. The meaning of that condition is UNKNOWN."
+   },
+   {
+    "id": "dispatch",
+    "address": "0x00bed1d9",
+    "tier": "STATIC",
+    "check": "genesis degree dispatch",
+    "meaning": "The elapse routine branches on the degree byte: 0 does nothing, 1 and 2 count events, any other value logs an exponent error."
+   },
+   {
+    "id": "degreeOneRising",
+    "address": "0x00bed5c9",
+    "tier": "STATIC",
+    "check": "genesis degree one rising",
+    "meaning": "A degree 1 segment with a rate above zero peaks at c0 + c1 * x."
+   },
+   {
+    "id": "degreeOneFalling",
+    "address": "0x00bed774",
+    "tier": "STATIC",
+    "check": "genesis degree one falling",
+    "meaning": "A degree 1 segment with a rate of zero or below peaks at c0 + c1 * max(x - span, 0)."
+   },
+   {
+    "id": "linearPeak",
+    "address": "0x00bed2c2",
+    "tier": "STATIC",
+    "check": "genesis linear peak",
+    "meaning": "A degree 2 segment without a quadratic term peaks at c0 + c1 * x for a rising line and c0 + c1 * (x - span) for a falling one."
+   },
+   {
+    "id": "quadraticPeak",
+    "address": "0x00bed2fe",
+    "tier": "STATIC",
+    "check": "genesis quadratic vertex",
+    "meaning": "With a quadratic term the peak is the largest of the step start, the step end and the vertex at -c1 / c2 when it lies inside the step."
+   },
+   {
+    "id": "count",
+    "address": "0x00bed3fb",
+    "tier": "STATIC",
+    "check": "genesis event count",
+    "meaning": "No event when the peak is below the emitted count, else the truncated difference."
+   },
+   {
+    "id": "risingHeadBurst",
+    "address": "0x00bed44c",
+    "tier": "STATIC",
+    "check": "genesis rising head burst",
+    "meaning": "With a quadratic term above zero the first trunc(N(x) - emitted) of the n events are queued with one shared age and the root solver ages the rest."
+   },
+   {
+    "id": "root",
+    "address": "0x00becda0",
+    "tier": "STATIC",
+    "check": "genesis root solver",
+    "meaning": "Solves c0 + c1 t + (c2 / 2) t^2 = target for the age of an event."
+   },
+   {
+    "id": "enqueue",
+    "address": "0x00bd48a0",
+    "tier": "STATIC",
+    "check": "genesis event enqueue",
+    "meaning": "Adds the event to one of the two genesis buffers of the effect, the sure buffer or the ring buffer."
+   },
+   {
+    "id": "dispatchCall",
+    "address": "0x00bdb780",
+    "tier": "STATIC",
+    "check": "event dispatch handler call",
+    "meaning": "The event pass calls descriptor slot +0x9c of the owning control node with the node work buffer, its parameter block, a flag and the age in ticks."
+   }
+  ],
+  "handlers": [
+   {
+    "module": "GenerateMaster",
+    "table": "rapture",
+    "slot": "0x9c",
+    "address": "0x00d6ad10",
+    "role": "event spawn",
+    "tier": "STATIC",
+    "check": "master handler"
+   },
+   {
+    "module": "GenerateTime",
+    "table": "rapture",
+    "slot": "0x9c",
+    "address": "0x00d6b380",
+    "role": "event spawn at the emitter",
+    "tier": "STATIC",
+    "check": "time handler"
+   },
+   {
+    "module": "GenerateTimeArea",
+    "table": "rapture",
+    "slot": "0x9c",
+    "address": "0x00d6b540",
+    "role": "event spawn on a random shell",
+    "tier": "STATIC",
+    "check": "area handler records"
+   },
+   {
+    "module": "GenerateTimeVertex",
+    "table": "rapture",
+    "slot": "0x9c",
+    "address": "0x00d6b890",
+    "role": "event spawn at a model vertex",
+    "tier": "INFERRED"
+   },
+   {
+    "module": "ManyGenerateUnitTime",
+    "table": "rapture",
+    "slot": "0x68",
+    "address": "0x00d79b70",
+    "role": "construct",
+    "tier": "STATIC",
+    "check": "many unit time construct"
+   },
+   {
+    "module": "ManyGenerateUnitTime",
+    "table": "rapture",
+    "slot": "0x78",
+    "address": "0x00d79b90",
+    "role": "calc",
+    "tier": "STATIC",
+    "check": "many unit time calc"
+   },
+   {
+    "module": "ManyGenerateUnitTime",
+    "table": "rapture",
+    "slot": "0x9c",
+    "address": "0x00d79bb0",
+    "role": "event count",
+    "tier": "STATIC",
+    "check": "many unit time event"
+   },
+   {
+    "module": "Position3DGenerated:GendNormal:CoordRoot",
+    "table": "cdev",
+    "slot": "0x74",
+    "address": "0x00ba5060",
+    "role": "payload receiver",
+    "tier": "STATIC",
+    "check": "position receiver stores"
+   },
+   {
+    "module": "Position3DGenerated:GendNormal:CoordRoot",
+    "table": "cdev",
+    "slot": "0x78",
+    "address": "0x00ba5260",
+    "role": "calc",
+    "tier": "STATIC",
+    "check": "position kinematics"
+   },
+   {
+    "module": "Angle3DGenerated:GendNormal:CoordRoot",
+    "table": "cdev",
+    "slot": "0x74",
+    "address": "0x00ba5b60",
+    "role": "payload receiver",
+    "tier": "STATIC",
+    "check": "angle receiver stores"
+   },
+   {
+    "module": "Angle3DGenerated:GendNormal:CoordRoot",
+    "table": "cdev",
+    "slot": "0x78",
+    "address": "0x00ba5cb0",
+    "role": "calc",
+    "tier": "STATIC",
+    "check": "angle kinematics"
+   },
+   {
+    "module": "Scale3DGenerated:GendNormal:CoordRoot",
+    "table": "cdev",
+    "slot": "0x74",
+    "address": "0x00ba61d0",
+    "role": "payload receiver",
+    "tier": "STATIC",
+    "check": "scale receiver stores"
+   },
+   {
+    "module": "Scale3DGenerated:GendNormal:CoordRoot",
+    "table": "cdev",
+    "slot": "0x78",
+    "address": "0x00ba6320",
+    "role": "calc",
+    "tier": "STATIC",
+    "check": "scale kinematics"
+   }
+  ],
+  "masterRecord": [
+   {
+    "offset": "0x00",
+    "width": 12,
+    "field": "spawn step",
+    "tier": "STATIC",
+    "check": "master drift accumulate",
+    "meaning": "Added to the 3 floats at node work +0x30 after every handler call. The sum is added to the euler angles of the angle payload."
+   },
+   {
+    "offset": "0x0c",
+    "width": 4,
+    "field": "base spawn chance",
+    "tier": "STATIC",
+    "check": "spawn probability",
+    "meaning": "f32. The chance of one event is this value plus the spread times a signed draw."
+   },
+   {
+    "offset": "0x10",
+    "width": 12,
+    "field": "camera gate",
+    "tier": "STATIC",
+    "check": "spawn distance gate",
+    "meaning": "Near distance, far distance and the chance beyond the far distance. Used when bit 0 of +0x21 is set."
+   },
+   {
+    "offset": "0x1c",
+    "width": 8,
+    "field": "child reference",
+    "tier": "STATIC",
+    "check": "spawn child reference",
+    "meaning": "A pointer and a kind byte at +0x20. Kind 1 points to a cell that holds a pointer to a unit entry. Kind 2 points to a weighted list."
+   },
+   {
+    "offset": "0x21",
+    "width": 1,
+    "field": "gate flags",
+    "tier": "STATIC",
+    "check": "spawn distance gate",
+    "meaning": "Bit 0 enables the camera gate."
+   },
+   {
+    "offset": "0x24",
+    "width": 8,
+    "field": "area reference",
+    "tier": "STATIC",
+    "check": "master area scale slot",
+    "meaning": "A pointer to the area record and a kind byte at +0x28."
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "field": "spawn chance spread",
+    "tier": "STATIC",
+    "check": "spawn probability",
+    "meaning": "f32 multiplied by a signed draw."
+   }
+  ],
+  "areaRecord": [
+   {
+    "offset": "0x00",
+    "width": 4,
+    "field": "speed reference",
+    "tier": "STATIC",
+    "check": "area payload scalars",
+    "meaning": "A graph slot reference that gives the payload speed scalar. The area reader 0x00d9a5c0 resolves it."
+   },
+   {
+    "offset": "0x04",
+    "width": 4,
+    "field": "acceleration reference",
+    "tier": "STATIC",
+    "check": "area payload scalars",
+    "meaning": "Graph slot reference that gives the payload acceleration scalar."
+   },
+   {
+    "offset": "0x08",
+    "width": 4,
+    "field": "drag reference",
+    "tier": "STATIC",
+    "check": "master area scale slot",
+    "meaning": "Graph slot reference of the drag factor. A value other than 1.0 switches the position receiver to the drag mode."
+   },
+   {
+    "offset": "0x0c",
+    "width": 4,
+    "field": "angular speed reference",
+    "tier": "STATIC",
+    "check": "spawn angle payload refs",
+    "meaning": "Slot reference of the angle payload speed."
+   },
+   {
+    "offset": "0x10",
+    "width": 4,
+    "field": "angular acceleration reference",
+    "tier": "STATIC",
+    "check": "spawn angle payload refs",
+    "meaning": "Slot reference of the angle payload acceleration."
+   },
+   {
+    "offset": "0x14",
+    "width": 4,
+    "field": "scale speed reference",
+    "tier": "STATIC",
+    "check": "spawn scale payload refs",
+    "meaning": "Slot reference of the scale payload speed."
+   },
+   {
+    "offset": "0x18",
+    "width": 4,
+    "field": "scale acceleration reference",
+    "tier": "STATIC",
+    "check": "spawn scale payload refs",
+    "meaning": "Slot reference of the scale payload acceleration."
+   },
+   {
+    "offset": "0x1c",
+    "width": 1,
+    "field": "distance scale flag",
+    "tier": "STATIC",
+    "check": "area distance scale tail",
+    "meaning": "Nonzero scales the sampled position by a camera dependent factor."
+   },
+   {
+    "offset": "0x1e",
+    "width": 1,
+    "field": "axis and surface flags",
+    "tier": "STATIC",
+    "check": "area axis flags",
+    "meaning": "Bit 0 selects the surface. Bit pairs (1,2), (3,4) and (5,6) set the random range of the x, y and z axis."
+   },
+   {
+    "offset": "0x20",
+    "width": 4,
+    "field": "radius or spread",
+    "tier": "STATIC",
+    "check": "area sphere",
+    "meaning": "Sphere and cylinder: slot reference of the radius. Box: first of three spread floats."
+   },
+   {
+    "offset": "0x24",
+    "width": 4,
+    "field": "radius jitter",
+    "tier": "STATIC",
+    "check": "area sphere",
+    "meaning": "f32 multiplied by a unit draw and added to the radius."
+   },
+   {
+    "offset": "0x28",
+    "width": 4,
+    "field": "height or box spread",
+    "tier": "STATIC",
+    "check": "area cylinder radius height",
+    "meaning": "Cylinder: slot reference of the height. Box: third spread float."
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "field": "height jitter or extent",
+    "tier": "STATIC",
+    "check": "area box extent and surface",
+    "meaning": "Cylinder: f32 height jitter. Box: slot reference of the half extent."
+   }
+  ],
+  "areaKinds": [
+   {
+    "kind": 0,
+    "name": "point",
+    "tier": "STATIC",
+    "check": "area kind none and model",
+    "meaning": "Position and direction stay zero."
+   },
+   {
+    "kind": 1,
+    "name": "sphere",
+    "tier": "STATIC",
+    "check": "area sphere",
+    "meaning": "Random vector scaled to a radius."
+   },
+   {
+    "kind": 2,
+    "name": "box",
+    "tier": "STATIC",
+    "check": "area box extent and surface",
+    "meaning": "Random vector scaled per axis by the half extent."
+   },
+   {
+    "kind": 3,
+    "name": "cylinder",
+    "tier": "STATIC",
+    "check": "area cylinder radius height",
+    "meaning": "Angle from the x and z of the random vector, radius and height."
+   },
+   {
+    "kind": 4,
+    "name": "model vertex",
+    "tier": "INFERRED",
+    "check": "area kind none and model",
+    "meaning": "Position and normal of a vertex of the model resource at node work +0x2c."
+   },
+   {
+    "kind": 5,
+    "name": "unchanged",
+    "tier": "STATIC",
+    "check": "area kind passthrough",
+    "meaning": "Skips to the distance scale step with zero position and direction."
+   }
+  ],
+  "payload": [
+   {
+    "offset": "0x00",
+    "width": 16,
+    "field": "position",
+    "tier": "STATIC",
+    "check": "position receiver stores",
+    "meaning": "Group 0 initial position. Group 1 initial euler angles. Group 2 initial scale."
+   },
+   {
+    "offset": "0x10",
+    "width": 16,
+    "field": "direction",
+    "tier": "STATIC",
+    "check": "position receiver stores",
+    "meaning": "Group 0 unit direction of the area sample."
+   },
+   {
+    "offset": "0x20",
+    "width": 16,
+    "field": "speed",
+    "tier": "STATIC",
+    "check": "angle receiver stores",
+    "meaning": "Group 1 and group 2 angular or scale speed."
+   },
+   {
+    "offset": "0x30",
+    "width": 16,
+    "field": "acceleration",
+    "tier": "STATIC",
+    "check": "angle receiver stores",
+    "meaning": "Group 1 and group 2 acceleration."
+   },
+   {
+    "offset": "0x40",
+    "width": 4,
+    "field": "speed scalar",
+    "tier": "STATIC",
+    "check": "position receiver stores",
+    "meaning": "Group 0 speed that multiplies the direction."
+   },
+   {
+    "offset": "0x44",
+    "width": 4,
+    "field": "acceleration or drag scalar",
+    "tier": "STATIC",
+    "check": "position receiver stores",
+    "meaning": "Group 0 acceleration that multiplies the direction. In the drag mode the drag factor."
+   },
+   {
+    "offset": "0x48",
+    "width": 1,
+    "field": "drag mode flag",
+    "tier": "STATIC",
+    "check": "spawn drag flag",
+    "meaning": "Bit 0 is set when the drag reference is not 1.0."
+   }
+  ],
+  "coordinateModes": [
+   {
+    "table": "cdev",
+    "module": "Position3DGenerated:GendNormal:CoordRoot",
+    "coordinate": 1
+   },
+   {
+    "table": "cdev",
+    "module": "Position3DGenerated:GendNormal:CoordWorld",
+    "coordinate": 0
+   },
+   {
+    "table": "cdev",
+    "module": "Position3DGenerated:GendNormal:CoordPureWorld",
+    "coordinate": 3
+   },
+   {
+    "table": "cdev",
+    "module": "Position3DGenerated:GendNormal:CoordLocal",
+    "coordinate": 2
+   },
+   {
+    "table": "cdev",
+    "module": "Angle3DGenerated:GendNormal:CoordRoot",
+    "coordinate": 1
+   },
+   {
+    "table": "cdev",
+    "module": "Angle3DGenerated:GendNormal:CoordWorld",
+    "coordinate": 0
+   },
+   {
+    "table": "cdev",
+    "module": "Angle3DGenerated:GendNormal:CoordPureWorld",
+    "coordinate": 3
+   },
+   {
+    "table": "cdev",
+    "module": "Angle3DGenerated:GendNormal:CoordLocal",
+    "coordinate": 2
+   },
+   {
+    "table": "cdev",
+    "module": "Scale3DGenerated:GendNormal:CoordRoot",
+    "coordinate": 1
+   },
+   {
+    "table": "cdev",
+    "module": "Scale3DGenerated:GendNormal:CoordWorld",
+    "coordinate": 0
+   },
+   {
+    "table": "cdev",
+    "module": "Scale3DGenerated:GendNormal:CoordPureWorld",
+    "coordinate": 3
+   },
+   {
+    "table": "cdev",
+    "module": "Scale3DGenerated:GendNormal:CoordLocal",
+    "coordinate": 2
+   },
+   {
+    "table": "rapture",
+    "module": "Position3DMapBindGenerated:GendNormal:CoordRoot",
+    "coordinate": 1
+   },
+   {
+    "table": "rapture",
+    "module": "Position3DMapBindGenerated:GendNormal:CoordWorld",
+    "coordinate": 0
+   },
+   {
+    "table": "rapture",
+    "module": "Position3DMapBindGenerated:GendNormal:CoordPureWorld",
+    "coordinate": 3
+   },
+   {
+    "table": "rapture",
+    "module": "Position3DMapBindGenerated:GendNormal:CoordLocal",
+    "coordinate": 2
+   }
+  ],
+  "groups": [
+   {
+    "group": 0,
+    "receiver": "Position3DGenerated",
+    "tier": "STATIC",
+    "check": "spawn group sends",
+    "meaning": "Receives the position payload after the coordinate transform."
+   },
+   {
+    "group": 1,
+    "receiver": "Angle3DGenerated",
+    "tier": "STATIC",
+    "check": "spawn angle payload",
+    "meaning": "Receives the euler angles of the spawner matrix plus the spawn step sum."
+   },
+   {
+    "group": 2,
+    "receiver": "Scale3DGenerated",
+    "tier": "STATIC",
+    "check": "spawn scale payload",
+    "meaning": "Receives the lengths of the first three rows of the spawner matrix."
+   }
+  ],
+  "timeRecords": [
+   {
+    "offset": "0x00",
+    "width": 12,
+    "field": "camera gate",
+    "tier": "STATIC",
+    "check": "time handler",
+    "meaning": "Same three floats as the master record. Used when bit 0 of +0x10 is set."
+   },
+   {
+    "offset": "0x0c",
+    "width": 4,
+    "field": "child unit pointer",
+    "tier": "STATIC",
+    "check": "time handler",
+    "meaning": "Pointer to a unit entry. Zero skips the handler."
+   },
+   {
+    "offset": "0x10",
+    "width": 1,
+    "field": "gate flags",
+    "tier": "STATIC",
+    "check": "time handler",
+    "meaning": "Bit 0 enables the camera gate."
+   },
+   {
+    "offset": "0x20",
+    "width": 12,
+    "field": "area center",
+    "tier": "INFERRED",
+    "check": "area handler records",
+    "meaning": "GenerateTimeArea only. Read as the translation of the shell."
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "field": "shell radius",
+    "tier": "INFERRED",
+    "check": "area handler records",
+    "meaning": "GenerateTimeArea only. Base radius of the shell."
+   },
+   {
+    "offset": "0x30",
+    "width": 12,
+    "field": "shell angles",
+    "tier": "INFERRED",
+    "check": "area handler records",
+    "meaning": "GenerateTimeArea only. Euler angles that orient the shell."
+   },
+   {
+    "offset": "0x3c",
+    "width": 4,
+    "field": "shell radius spread",
+    "tier": "INFERRED",
+    "check": "area handler records",
+    "meaning": "GenerateTimeArea only. Multiplied by a signed draw."
+   }
+  ],
+  "many": [
+   {
+    "offset": "0x00",
+    "width": 4,
+    "field": "unit time event slot",
+    "tier": "INFERRED",
+    "meaning": "ManyGenerateUnitTime: graph slot reference of the Genesis value that delivers the events."
+   },
+   {
+    "offset": "0x04",
+    "width": 4,
+    "field": "unit time chance slot",
+    "tier": "INFERRED",
+    "meaning": "ManyGenerateUnitTime: graph slot reference of the chance that one event counts. The event handler reads the second slot pointer."
+   },
+   {
+    "offset": "0x00",
+    "width": 12,
+    "field": "form center",
+    "tier": "INFERRED",
+    "check": "many form sphere init",
+    "meaning": "ManyGenerateFormSphere: vector added to the random cube vector."
+   },
+   {
+    "offset": "0x0c",
+    "width": 4,
+    "field": "form radius",
+    "tier": "INFERRED",
+    "check": "many form sphere init",
+    "meaning": "ManyGenerateFormSphere: base radius."
+   },
+   {
+    "offset": "0x10",
+    "width": 4,
+    "field": "form radius spread",
+    "tier": "INFERRED",
+    "check": "many form sphere init",
+    "meaning": "ManyGenerateFormSphere: multiplied by a signed draw."
+   },
+   {
+    "offset": "0x1d",
+    "width": 1,
+    "field": "form hemisphere flag",
+    "tier": "INFERRED",
+    "check": "many form sphere init",
+    "meaning": "ManyGenerateFormSphere: bit 0 takes the absolute value of the y axis."
+   },
+   {
+    "offset": "0x0c",
+    "width": 4,
+    "field": "motion speed base",
+    "tier": "INFERRED",
+    "check": "many motion emission init",
+    "meaning": "ManyGenerateMotionEmission."
+   },
+   {
+    "offset": "0x1c",
+    "width": 4,
+    "field": "motion speed spread",
+    "tier": "INFERRED",
+    "check": "many motion emission init",
+    "meaning": "ManyGenerateMotionEmission."
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "field": "motion drag base",
+    "tier": "INFERRED",
+    "check": "many motion emission init",
+    "meaning": "ManyGenerateMotionEmission."
+   },
+   {
+    "offset": "0x3c",
+    "width": 4,
+    "field": "motion drag spread",
+    "tier": "INFERRED",
+    "check": "many motion emission init",
+    "meaning": "ManyGenerateMotionEmission."
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "field": "line lifetime base",
+    "tier": "INFERRED",
+    "check": "many line lifetime init",
+    "meaning": "ManyGenerateDrawLine: frames."
+   },
+   {
+    "offset": "0x50",
+    "width": 4,
+    "field": "line lifetime spread",
+    "tier": "INFERRED",
+    "check": "many line lifetime init",
+    "meaning": "ManyGenerateDrawLine: frames, an integer draw from 0 to this value is added."
+   },
+   {
+    "offset": "0x0d",
+    "width": 1,
+    "field": "line history base",
+    "tier": "INFERRED",
+    "check": "many line lifetime init",
+    "meaning": "ManyGenerateDrawLine: points kept behind the head."
+   },
+   {
+    "offset": "0x54",
+    "width": 1,
+    "field": "line history spread",
+    "tier": "INFERRED",
+    "check": "many line lifetime init",
+    "meaning": "ManyGenerateDrawLine: an integer draw from 0 to this value is added."
+   }
+  ]
+ }
 }

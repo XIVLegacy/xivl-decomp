@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import verify_sqwt_command_parameter_consumer as image_checks  # noqa: E402
 import verify_vfx_effect_runtime as verifier  # noqa: E402
 import vfx_effect_body as body  # noqa: E402
+import vfx_emitter_math as emath  # noqa: E402
 import vfx_qix_resource as qix  # noqa: E402
 
 
@@ -214,6 +215,128 @@ def synthetic_veff(
     struct.pack_into("<3f", record, 0x70, -1.0, -1.0, -1.0)
     struct.pack_into("<3f", record, 0x80, 1.0, 1.0, 1.0)
     return make_blob("veff", bytes(record), bytes(tail))
+
+
+def synthetic_emitter_veff(flaw: str = "") -> bytes:
+    """A GenerateMaster that holds a Genesis slot in the root unit and a child unit
+    with a position receiver and a DrawResource."""
+    modules = [
+        ("rapture", "GenerateMaster"),
+        ("cdev", "Position3DGenerated:GendNormal:CoordRoot"),
+        ("rapture", "DrawResource"),
+    ]
+    layout = {}
+    tail = bytearray()
+
+    def put(label: str, data: bytes) -> int:
+        while len(tail) % 4:
+            tail.append(0)
+        layout[label] = 0x2C + 0x100 + len(tail)
+        tail.extend(data)
+        return layout[label]
+
+    decls = bytearray()
+    for index, (table, name) in enumerate(modules):
+        prefix = MANIFEST["registry"]["namePrefix"][table]
+        put(f"name{index}", (prefix + name).encode() + b"\0")
+        decls += decl_bytes(module_row(name, table), layout[f"name{index}"])
+    put("decl", bytes(decls))
+    put("cell", bytes(4))
+    area = bytearray(0x40)
+    area[0x1E] = 0x7F
+    put("area", bytes(area))
+    record = bytearray(0x30)
+    struct.pack_into("<f", record, 0x0C, 1.0)
+    struct.pack_into("<I", record, 0x1C, layout["cell"])
+    record[0x20], record[0x21] = 1, 1
+    struct.pack_into("<I", record, 0x24, layout["area"])
+    record[0x28] = 1
+    struct.pack_into("<f", record, 0x2C, 0.5)
+    put("record", bytes(record))
+    put("block", struct.pack("<II", layout["record"], 2 if flaw == "kind" else 1))
+    slot = bytearray(16)
+    slot[9], slot[10], slot[11] = (5 if flaw == "owner" else 0), 0, 0xFF
+    put("slot", bytes(slot))
+    put("members", struct.pack("<H", 0))
+    put("groups", struct.pack("<II", layout["members"], 1) + bytes(8))
+    controls = bytearray()
+    for index in range(3):
+        control = bytearray(0x24)
+        if index == 0:
+            struct.pack_into("<II", control, 0, layout["slot"], 1)
+            struct.pack_into("<II", control, 8, layout["groups"], 2)
+            struct.pack_into("<I", control, 0x18, layout["block"])
+        struct.pack_into("<H", control, 0x1C, index)
+        controls += control
+    put("control", bytes(controls))
+    links = bytearray()
+    for index in range(3):
+        link = bytearray(0x1C)
+        struct.pack_into("<H", link, 0x14, index)
+        links += link
+    put("link", bytes(links))
+    put("nodes0", struct.pack("<H", 0))
+    put("nodes1", struct.pack("<2H", 1, 2))
+    put("kids0", struct.pack("<H", 1))
+    put("sched0", struct.pack("<iHH", 0, 0, 0))
+    if flaw == "rising":
+        segments = struct.pack("<BBH", 2, 1, 0) + struct.pack("<3f", 0.0, 1.0, 2.0)
+        segments += struct.pack("<BBH", 2, 1, 0) + struct.pack("<3f", 0.0, 1.0, -2.0)
+    else:
+        segments = struct.pack("<BBH", 0, 1, 0) + struct.pack("<f", 3.0)
+        segments += struct.pack("<BBH", 0, 1, 0) + struct.pack("<f", 4.0)
+    put("segments", segments)
+    put("cellseg", struct.pack("<I", layout["segments"]))
+    put("starts", struct.pack("<II", 0, 5000))
+    put("binding", struct.pack("<III", layout["cellseg"], layout["starts"], 2))
+    graph_index = next(
+        row["index"]
+        for row in MANIFEST["graphModules"]
+        if row["name"] == "StandardPolynomialSureGenesis"
+    )
+    put("graph", struct.pack("<HBBIHH", graph_index, 0, 0, layout["binding"], 1, 0))
+    unit0 = struct.pack(
+        "<10I",
+        layout["nodes0"],
+        1,
+        layout["kids0"],
+        1,
+        layout["sched0"],
+        1,
+        layout["graph"],
+        1,
+        0,
+        0,
+    )
+    unit1 = struct.pack("<10I", layout["nodes1"], 2, 0, 0, 0, 0, 0, 0, 0, 0)
+    units = bytearray()
+    for unit in (unit0, unit1):
+        entry = bytearray(0x38)
+        entry[0 : len(unit)] = unit
+        entry[0x34] = 0xFF
+        struct.pack_into("<I", entry, 0x28, 230000)
+        units += entry
+    put("units", bytes(units))
+    child = layout["units"] + (3 if flaw == "child" else 0x38)
+    struct.pack_into("<I", tail, layout["cell"] - 0x2C - 0x100, child)
+    instances = bytearray(0x48 * 2)
+    struct.pack_into("<H", instances, 0x48, 1)
+    instances[0x48 + 0x0F] = 2
+    put("instances", bytes(instances))
+    root = bytearray(0x100)
+    root[0:2] = struct.pack("<H", 0x1D)
+    root[4:20] = name16("emit")
+    root[0x14:0x18] = b"ffev"
+    for at, key, count in (
+        (0x30, "control", 3),
+        (0x38, "link", 3),
+        (0x40, "units", 2),
+        (0x48, "instances", 2),
+        (0x58, "decl", 3),
+    ):
+        struct.pack_into("<II", root, at, layout[key], count)
+    struct.pack_into("<I", root, 0x50, 600000)
+    return make_blob("veff", bytes(root), bytes(tail))
 
 
 def ctab_tokens(version: int, constants: list[tuple[str, int, int]]) -> bytes:
@@ -709,6 +832,323 @@ def main() -> int:
     check(
         "a table outside the image is reported",
         "cannot be read" in verifier.table_errors(image, broken)[0],
+    )
+    # emitter census
+    ebank = bank_of([("veff", synthetic_emitter_veff())])
+    found = census({"abl/0005": ebank})["emitters"]
+    check(
+        "census reads the master record and its child unit",
+        found["effects"] == 1
+        and found["modules"]
+        == {
+            "R:GenerateMaster": {"nodes": 1, "effects": 1},
+            "Position3DGenerated:GendNormal:CoordRoot": {"nodes": 1, "effects": 1},
+        }
+        and found["master"]
+        == {
+            "controls": 1,
+            "blockKinds": {"1": 1},
+            "childRefKinds": {"1": 1},
+            "childUnitResolved": 1,
+            "childUnitHasDrawResource": 1,
+            "childEndTicks": {"min": 230000, "median": 230000, "max": 230000},
+            "gated": 1,
+            "baseProbability": {"1.000": 1},
+            "probabilityRange": {"0.500": 1},
+            "areaKinds": {"1": 1},
+            "areaSurface": {"1": 1},
+            "areaAxesFree": {"1": 0},
+            "listenerGroups": {"0:Position3DGenerated:GendNormal:CoordRoot": 1},
+        },
+    )
+    check(
+        "census attributes a Genesis graph to the control that holds its slot",
+        found["genesis"]
+        == {
+            "modules": {
+                "StandardPolynomialSureGenesis": {
+                    "bindings": 1,
+                    "segments": 2,
+                    "degrees": {"0": 2},
+                }
+            },
+            "owners": {"R:GenerateMaster": 1},
+            "risingQuadraticSegments": 0,
+        },
+    )
+    check(
+        "census counts the instances that set the loop bit", found["loopInstances"] == 1
+    )
+    rising = census({"abl/0005": bank_of([("veff", synthetic_emitter_veff("rising"))])})
+    check(
+        "census counts the Genesis segments with a rising quadratic term",
+        rising["emitters"]["genesis"]["risingQuadraticSegments"] == 1
+        and rising["emitters"]["genesis"]["modules"]["StandardPolynomialSureGenesis"][
+            "degrees"
+        ]
+        == {"2": 2},
+    )
+    flawed = census({"abl/0005": bank_of([("veff", synthetic_emitter_veff("child"))])})
+    check(
+        "a child pointer that is not a unit entry is not resolved",
+        flawed["emitters"]["master"]["childUnitResolved"] == 0
+        and flawed["emitters"]["master"]["listenerGroups"] == {},
+    )
+    flawed = census({"abl/0005": bank_of([("veff", synthetic_emitter_veff("kind"))])})
+    check(
+        "a block of another kind is counted and not read further",
+        flawed["emitters"]["master"]["blockKinds"] == {"2": 1}
+        and flawed["emitters"]["master"]["areaKinds"] == {},
+    )
+    flawed = census({"abl/0005": bank_of([("veff", synthetic_emitter_veff("owner"))])})
+    check(
+        "a slot on a missing graph owns no Genesis value",
+        flawed["emitters"]["genesis"]["owners"] == {},
+    )
+    check(
+        "the emitter census agrees with itself",
+        verifier.emitter_errors(found, {"0x1d": 1}) == [],
+    )
+    # descriptor words of the generated receivers
+    descriptor = bytearray(0xE8)
+    struct.pack_into("<I", descriptor, 0x50, 1)
+    struct.pack_into("<I", descriptor, 0x58, 1)
+    probe = {
+        "registry": {"tables": [{"id": "cdev", "moduleTable": "0x00a00000"}]},
+        "modules": [{"table": "cdev", "name": "Gen", "index": 0}],
+        "generate": {
+            "coordinateModes": [{"table": "cdev", "module": "Gen", "coordinate": 1}]
+        },
+    }
+    probe_image = build_image([(0x00A00000, bytes(descriptor))])
+    check(
+        "a receiver descriptor with the listed coordinate id passes",
+        verifier.generate_image_errors(probe_image, probe) == [],
+    )
+    probe["generate"]["coordinateModes"][0]["coordinate"] = 2
+    check(
+        "a receiver whose coordinate id differs is reported",
+        len(verifier.generate_image_errors(probe_image, probe)) == 1,
+    )
+    probe["generate"]["coordinateModes"][0]["coordinate"] = 1
+    struct.pack_into("<I", descriptor, 0x50, 0)
+    check(
+        "a receiver that is not generated is reported",
+        len(
+            verifier.generate_image_errors(
+                build_image([(0x00A00000, bytes(descriptor))]), probe
+            )
+        )
+        == 1,
+    )
+    # reference math
+    mt = emath.ClientMt(5489, pointer_word=0xDEADBEEF)
+    out = [mt.next_u32() for _ in range(1250)]
+    check(
+        "the client generator starts at word 1 of the seeded state",
+        out[:3] == [581869302, 3890346734, 3586334585] and out[622] == 4020325887,
+    )
+    check(
+        "the client generator emits the counter cell and refills at word 0",
+        out[623] == 3759560541
+        and out[624:626] == [4178893912, 610818241]
+        and out[1247] == 2538210759
+        and out[1248] == 3759560541
+        and out[1249] == 358555951,
+    )
+    check(
+        "draw conversions",
+        emath.unit_draw(0xFFFFFFFF) == 1.0
+        and emath.unit_draw(0) == 0.0
+        and emath.unit_draw(0x80000000) == 0.5
+        and emath.signed_draw(0x80000000) == -1.0
+        and emath.signed_draw(0xC0000000) == -0.5
+        and emath.signed_draw(0x40000000) == 0.5,
+    )
+    sure = (
+        [0, 40000],
+        [
+            (2, 1, (1.0, 1.447808861732483, -0.08070230484008789)),
+            (2, 1, (10.0, 0.0, 0.0)),
+        ],
+    )
+    check(
+        "polynomial segments evaluate at ticks over 5000",
+        abs(emath.graph_value(*sure, 20000) - 6.145617) < 1e-5
+        and emath.graph_value(*sure, 40000) == 10.0
+        and abs(emath.graph_value(*sure, 39999) - 9.99986) < 1e-4
+        and emath.graph_value([0], [(1, 2, (1.0, 0.5, 2.0, 0.25))], 10000, 1) == 2.5,
+    )
+    check(
+        "segments are entered one start at a time",
+        emath.graph_segment([0, 30000, 10000], 15000) == 0
+        and emath.graph_segment([0, 30000, 10000], 35000) == 2
+        and emath.graph_segment([0, 20000, 40000], 20000) == 1,
+    )
+    counter = emath.Genesis(*sure)
+    steps = [counter.step(0, 0)] + [counter.step(5000, 5000 * k) for k in range(1, 11)]
+    check(
+        "a degree two Genesis binding emits the whole counts it crosses",
+        steps == [1, 1, 1, 1, 2, 1, 1, 1, 1, 0, 0],
+    )
+    line = ([0, 310000], [(1, 1, (1.0, 0.064516)), (1, 1, (5.0, 0.0))])
+    counter = emath.Genesis(*line)
+    total = counter.step(0, 0)
+    for k in range(1, 62):
+        total += counter.step(5000, 5000 * k)
+    early = total
+    for k in range(62, 67):
+        total += counter.step(5000, 5000 * k)
+    check(
+        "a degree one Genesis binding reaches its next constant term",
+        early == 4 and total == 5,
+    )
+    rising = emath.Genesis([0], [(2, 1, (0.0, 1.0, 2.0))])
+    check(
+        "a rising quadratic Genesis segment emits its peak count once",
+        [rising.step(0, 0), rising.step(5000, 5000)] == [0, 2]
+        and rising.emitted == 2.0,
+    )
+    falling = emath.Genesis([0, 5000], [(0, 1, (5.0,)), (1, 1, (1.0, -0.5))])
+    check(
+        "a falling count never pushes the emitted count back",
+        [falling.step(0, 0), falling.step(5000, 5000), falling.step(5000, 10000)]
+        == [5, 0, 0]
+        and falling.emitted == 5.0,
+    )
+    gated = emath.Genesis(*sure, gated=True)
+    check(
+        "a gated Genesis binding emits nothing",
+        [gated.step(0, 0)] + [gated.step(5000, 5000 * k) for k in range(1, 11)]
+        == [0] * 11
+        and gated.emitted == 0.0
+        and emath.Genesis([0], [(0, 1, (3.0,))], gated=True).step(0, 0) == 0,
+    )
+    burst = emath.Genesis(
+        [0, 50000, 100000], [(0, 1, (3.0,)), (0, 1, (3.0,)), (0, 1, (5.0,))]
+    )
+    check(
+        "a degree zero segment emits the step of its constant term",
+        [burst.step(0, 0), burst.step(5000, 5000), burst.step(5000, 50000)] == [3, 0, 0]
+        and burst.step(5000, 100000) == 2,
+    )
+    check(
+        "spawn chance and the camera gate",
+        emath.spawn_probability(0.5, 0.5, 0x80000000) == 0.0
+        and emath.spawn_probability(0.5, 0.5, 0x40000000) == 0.75
+        and emath.distance_pass(2.0, 10.0, 0.2, 6.0, 0x80000000)
+        and not emath.distance_pass(2.0, 10.0, 0.2, 6.0, 0xC0000000)
+        and not emath.distance_pass(2.0, 10.0, 0.2, 12.0, 0x40000000)
+        and emath.distance_pass(2.0, 10.0, 0.2, 2.0, 0xFFFFFFFF)
+        and emath.distance_pass(2.0, 10.0, 1.0, 50.0, 0xFFFFFFFF),
+    )
+    check(
+        "axis values follow the flag bit pairs",
+        emath.axis_value(1, 1, 0xC0000000) == 0.5
+        and emath.axis_value(1, 0, 0xC0000000) == 0.75
+        and emath.axis_value(0, 1, 0xC0000000) == -0.75
+        and emath.axis_value(0, 0, 0xC0000000) == 0.0
+        and emath.axis_vector(0x1E, (0xC0000000, 0x40000000, 0xC0000000))
+        == (0.5, -0.5, 0.0),
+    )
+    draws = (0xC0000000,) * 3
+    check(
+        "each axis reads its enable bit at 1 + 2i and its sign bit at 2 + 2i",
+        emath.axis_vector(0x02, draws) == (0.75, 0.0, 0.0)
+        and emath.axis_vector(0x04, draws) == (-0.75, 0.0, 0.0)
+        and emath.axis_vector(0x08, draws) == (0.0, 0.75, 0.0)
+        and emath.axis_vector(0x10, draws) == (0.0, -0.75, 0.0)
+        and emath.axis_vector(0x20, draws) == (0.0, 0.0, 0.75)
+        and emath.axis_vector(0x40, draws) == (0.0, 0.0, -0.75),
+    )
+    axes = (0xC0000000, 0x40000000, 0x80000000)
+    half = 0.5**0.5
+    position, direction = emath.sphere_sample(
+        0x7E, 2.0, 0.5, axes + (0x80000000, 0x80000000)
+    )
+    shell, _ = emath.sphere_sample(0x7F, 2.0, 0.5, axes + (0x80000000, 0))
+    check(
+        "a sphere sample scales the unit direction",
+        all(
+            abs(a - b) < 1e-6
+            for a, b in zip(position, (half * 1.125, -half * 1.125, 0.0))
+        )
+        and all(abs(a - b) < 1e-6 for a, b in zip(direction, (half, -half, 0.0)))
+        and all(
+            abs(a - b) < 1e-5 for a, b in zip(shell, (half * 2.25, -half * 2.25, 0.0))
+        ),
+    )
+    inner, _ = emath.box_sample(
+        0x7E, (1.0, 2.0, 3.0), (0.0, 0.0, 0.0), axes + (0, 0, 0)
+    )
+    outer, _ = emath.box_sample(
+        0x7F, (1.0, 2.0, 3.0), (0.0, 0.0, 0.0), axes + (0, 0, 0)
+    )
+    check(
+        "a box sample snaps the axis chosen by the signed compare",
+        inner == (0.5, -1.0, 0.0) and outer == (0.5, -1.0, -3.0),
+    )
+    wall, wall_direction = emath.cylinder_sample(
+        0x7F, 2.0, 3.0, (0.0, 0.5), axes + (0x80000000,) * 3
+    )
+    cap, _ = emath.cylinder_sample(
+        0x7F,
+        2.0,
+        3.0,
+        (0.0, 0.0),
+        (0x90000000, 0xF0000000, 0x90000000, 0x80000000, 0, 0),
+    )
+    check(
+        "a cylinder sample picks the wall or the cap",
+        abs(wall[0]) < 1e-6
+        and abs(wall[1] + 1.625) < 1e-6
+        and abs(wall[2] - 2.0) < 1e-6
+        and abs(wall_direction[2] - 1.0) < 1e-6
+        and abs(cap[0] - half) < 1e-5
+        and cap[1] == 3.0
+        and abs(cap[2] - half) < 1e-5,
+    )
+    check(
+        "generated motion follows the elapsed frames",
+        emath.generated_position((1, 2, 3), (0, 1, 0), 0.035, -0.00025, 500000)
+        == (1.0, 4.25, 3.0)
+        and emath.generated_position((0, 0, 0), (0, 1, 0), 0.0, 0.0, 5000, (10, 0, 0))
+        == (10.0, 0.0, 0.0)
+        and emath.generated_rotation(
+            (0.1, 0, 0), (0.2, 0, 0), (0.02, 0, 0), 50000, (1, 0, 0)
+        )
+        == (4.1, 0.0, 0.0)
+        and emath.generated_scale((1, 1, 1), (0.1, 0, 0), (0, 0, 0), 50000, (2, 2, 2))
+        == (4.0, 2.0, 2.0),
+    )
+    drag = emath.DragPosition((0, 0, 0), (1, 0, 0), 1.0, 0.5)
+    check(
+        "the drag mode damps the step once per update",
+        [drag.update(5000)[0] for _ in range(3)] == [1.0, 1.5, 1.75],
+    )
+    check(
+        "particle steps and line lifetimes",
+        emath.particle_step((0, 0, 0), (1, 0, 0), (2, 0, 0), 10000)
+        == ((6.0, 0.0, 0.0), (5.0, 0.0, 0.0))
+        and emath.line_lifetime_ticks(16, 8, 8) == 120000,
+    )
+    record = {
+        "speed": (0.075, 0.025),
+        "drag": (1.0, 0.0),
+        "velocity": ((0, 0, 0), (1, 1, 1)),
+        "accel": ((0, 0, 0), (0, 0, 0)),
+    }
+    plain = emath.emission_init(record, (0, 1, 0), [0] * 14)
+    jittered = emath.emission_init(
+        record, (0, 0, 0), [0x40000000, 0, 0x40000000, 0x40000000] + [0] * 10
+    )
+    flipped = emath.emission_init(record, (0, 0, 0), [0, 0, 0x40000000, 0] + [0] * 10)
+    check(
+        "emission start state",
+        plain[0] == [0.0, 0.075, 0.0]
+        and plain[2] == 1.0
+        and jittered[0][0] == 0.25
+        and flipped[0][0] == -0.25,
     )
     # manifest
     check("manifest verifies", verifier.verify() == [])

@@ -213,16 +213,19 @@ installed effects use only the Polynomial shape. The 51,929 unit graph records
 split into 12 modules: StandardPolynomialFloat32X3 18,318, Float32 10,580, X4
 7,888, X2 7,519, SureGenesis 1,231 and Genesis 191, and
 RandomPolynomialFloat32X3 3,799, X2 1,910, X4 278, Float32 210, SureGenesis 4
-and Genesis 1. INFERRED from the install.
+and Genesis 1. INFERRED from the install. The Genesis forms count events, see the
+[emitters page](vfx-generate-emitters.md#genesis-graphs).
 
 ## Boundaries
 
 - The meaning of descriptor `+0x06`, `+0x18`, `+0x1c`, `+0x20` and `+0x60` is
   named by use at the cited routines only. The other non-null slots are
   addresses without a traced caller.
-- The module parameter layouts and calc bodies are not read for any module. The
-  DrawResource module is followed in the
-  [DrawResource page](vfx-drawresource-and-shaders.md).
+- The module parameter layouts and calc bodies are not read for any module except
+  DrawResource and the emitter and receiver modules. The DrawResource module is
+  followed in the [DrawResource page](vfx-drawresource-and-shaders.md) and the
+  Generate, ManyGenerate and Generated modules in the
+  [emitters page](vfx-generate-emitters.md).
 - The Immediate, Linear and Parabolical graph forms are not used by the install
   and their code is not read.
 - The install counts describe one 1.23b installation. They do not show which

@@ -63,6 +63,7 @@ The tables below give each entry layout. Offsets are relative to the entry.
 | Offset | Width | Field | Evidence |
 |---|---:|---|---|
 | `+0x00` | 8 | slot record list, 16 byte records | INFERRED |
+| `+0x08` | 8 | listener group list, 8 byte pairs of a pointer to u16 child node indices and a count | STATIC, `0x00e3a340` |
 | `+0x10` | 8 | second list | INFERRED |
 | `+0x18` | 4 | parameter block pointer | INFERRED |
 | `+0x1c` | 2 | declaration index, rewritten to the module index | STATIC, `0x00bd4027` |
@@ -84,16 +85,18 @@ The tables below give each entry layout. Offsets are relative to the entry.
 | `+0x10` | 8 | child schedule, 8 byte records | STATIC, `0x00bce7f7` |
 | `+0x18` | 8 | graph A list, 12 byte records | STATIC, `0x00bd41bb` sizes |
 | `+0x20` | 8 | graph B list, 12 byte records | STATIC, same |
-| `+0x28` | 4 | | UNKNOWN |
-| `+0x2c` | 4 | read by the length pass when the end byte is `0xff` | STATIC, `0x00bd2d0d` |
-| `+0x30` | 4 | | UNKNOWN |
-| `+0x34` | 1 | end byte, `0xff` in every unit | STATIC, `0x00bd2d0d` |
+| `+0x28` | 4 | end tick, the unit ends when its time reaches it | STATIC, `0x00bce9fa` |
+| `+0x2c` | 4 | loop start tick | STATIC, `0x00bce90e` |
+| `+0x30` | 4 | loop length in ticks | STATIC, `0x00bce90e` |
+| `+0x34` | 1 | loop count, `0xff` in every installed unit, which stores no count and makes the loop depend on a flag test | STATIC, `0x00bce950` and `0x00bd2d0d` |
 
 A schedule record is an s32 start tick, a u16 index into the child instance list
 and a u16 zero. GenerateChildUnit_ at `0x00bce770` creates the child when the unit
-time reaches the start tick. The words at unit `+0x28` and `+0x30` hold tick
-values such as 210000 and 300000 in the installed units and 0x7fffffff in the
-root unit. Their roles are UNKNOWN.
+time reaches the start tick. The end tick holds values such as 210000 in the
+installed units and 0x7fffffff in the root unit. The loop applies when bit 1 of the
+instance flags is set, see the
+[emitters page](vfx-generate-emitters.md#graph-time-and-the-frame-stage) for the
+flag test behind `0xff`.
 
 ### Instance entry (0x48 bytes)
 
@@ -101,7 +104,7 @@ root unit. Their roles are UNKNOWN.
 |---|---:|---|---|
 | `+0x00` | 2 | unit index | STATIC, `0x00bd2cf3` |
 | `+0x08` | 1 | draw layer | INFERRED, read by `0x00bd38d0` |
-| `+0x0f` | 1 | flags, bit 1 tested by the length pass | STATIC, `0x00bd2cf3` |
+| `+0x0f` | 1 | flags, bit 1 enables the unit loop | STATIC, `0x00bd2cf3` and `0x00bce8fb` |
 
 ### Slot record (16 bytes)
 
@@ -193,19 +196,19 @@ In the install the 51,929 graph records hold 107,656 bindings and 157,458
 segments, and every binding walks as a contiguous run of segments with a matching
 component count. Degrees are 0 (84,118 segments), 1 (7,505) and 2 (65,835). The
 start tick array begins at 0 and does not decrease in all bindings except 10.
-INFERRED. The unit of x, the way x relates to the start ticks and the use of the
-carried value are not read, see the boundaries.
+INFERRED. The value `x` is the unit time minus the segment start, divided by
+5000, and the [emitters page](vfx-generate-emitters.md#graph-time-and-the-frame-stage)
+follows the walk over the segments and the use of the carried value.
 
 ## Boundaries
 
 - Control parameter blocks, the second control list and the 16 byte slot value
   kinds are not decoded. A control with a block pointer at the payload end has no
   block.
-- The meaning of unit `+0x28` and `+0x30`, of root `+0x60` to `+0x6c` and of the
-  link entry fields beyond the lists is UNKNOWN.
-- The Genesis graph forms spawn values over time and are read only as far as the
-  polynomial exponent byte of the spawn count routine at `0x00bed1b0`. They are
-  not followed here.
+- The meaning of root `+0x60` to `+0x6c` and of the link entry fields beyond the
+  lists is UNKNOWN.
+- The Genesis graph forms count events over time. The
+  [emitters page](vfx-generate-emitters.md#genesis-graphs) follows them.
 - No effect was played back and nothing here shows a rendered result.
 
 ## Verification
