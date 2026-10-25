@@ -108,6 +108,9 @@ wrapper at `+8` through `0x00758860`, and constructs a
 `BehaviorLogger::GetLogStringListener` for the message record.
 Missing source objects and empty source names take an empty-result path.
 
+[ActorBase text-source initialization](actor-base-text-source.md) documents
+the loader-side name writes and their matching-receiver and lifetime conditions.
+
 The surviving path reaches `0x00771C20`. It copies the ordered variants and
 contextual fields through `0x00789C30/0x007446E0/0x004D5850` and computes source
 readiness through `0x007898E0`. On ready, valid-source completion, the call at
