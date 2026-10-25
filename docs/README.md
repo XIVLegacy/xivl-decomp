@@ -72,6 +72,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Retainer presentation contract](actor/retainer-presentation.md)
 - [Retainer market ward and district selection](actor/retainer-ward-districts.md)
 - [Rivenroad command and presentation contract](actor/rivenroad-presentation.md)
+- [Rivenroad MotionClip names and resource entries](actor/rivenroad-motion-records.md)
 - [RunEventFunction gate writer candidates](actor/run-event-gate-candidates.md)
 - [Scenario and monster hierarchy](actor/scenario-monster-hierarchy.md)
 - [Paired float getters](actor/paired-float-getters.md)

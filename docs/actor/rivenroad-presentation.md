@@ -43,9 +43,9 @@ phase ordering.
 
 ## Nael and fragment resources
 
-Nael uses model family m917. The sources include BID banks 0000 and
-0001 plus WSS banks 0001-0007, 0009-0012, and 0014-0019. Selected immutable
-identities are:
+Nael uses model family m917. The selected action resources are under
+`client/chara/mon/m917/act/2sp_emp/`: BID banks 0000 and 0001 plus WSS
+banks 0001-0007, 0009-0012, and 0014-0019. Selected immutable identities are:
 
 | Resource | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -55,6 +55,10 @@ identities are:
 | m917 WSS 0010 | 296,560 | `ceb64d20125ad0bb57887655205e0b896ba4a3d309aa4271da25a2cfa73e53ff` |
 | m917 WSS 0015 | 559,040 | `b7d794582af055bf37cb103c05d27ac31993f09576049f224acf6396fa1c718f` |
 | m917 WSS 0018 | 717,584 | `0c901e313e85c4c4901e66d6ce2e35d82a2620eaed2ea404280d93b69c42b848` |
+
+The [MotionClip record finding](rivenroad-motion-records.md) owns the other
+thirteen input identities, conditional local-name joins and duplicate resource
+entries. Those names do not establish command dispatch or difficulty selection.
 
 Effect names and scheduler structure provide strong presentation joins:
 
