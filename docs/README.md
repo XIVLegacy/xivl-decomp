@@ -330,6 +330,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Native seasonal switch using existing DATs](resource/native-stock-seasonal-switch.md)
 - [Qix effect resource container](resource/vfx-qix-resource-container.md)
 - [VFX effect family](resource/vfx-effect-family.md)
+- [Client-initiated music](resource/client-music-initiators.md)
 - [Qix control module registry](resource/vfx-control-module-registry.md)
 - [Qix veff data body](resource/vfx-effect-data-body.md)
 - [Qix effect runtime](resource/vfx-effect-runtime.md)

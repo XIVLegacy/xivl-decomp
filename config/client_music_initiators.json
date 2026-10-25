@@ -1,0 +1,2222 @@
+{
+  "format": "xivl-client-music-initiators-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "method": "Disassembly listings from ghidra-cli 12.1.4 and Capstone 5.0.7 were treated as leads. Every instruction sequence, table and string below is confirmed against the pinned bytes by tools/verify_client_music_initiators.py --exe, which also reruns the direct call, jump and data-reference scans.",
+    "companionEvidence": [
+      "xivl-decomp:docs/net/music-control-runtime.md",
+      "xivl-decomp:docs/resource/music-song-table.md",
+      "xivl-decomp:config/music_song_resources.json",
+      "xivl-decomp:docs/resource/sound-effect-triggers.md",
+      "xivl-decomp:docs/net/receive-dispatch-ranges.md",
+      "xivl-decomp:docs/net/state-id-transition-helper.md",
+      "xivl-decomp:docs/resource/map-layout-selector.md",
+      "xivl-decomp:docs/resource/weather-drawenv-resource-shape.md"
+    ]
+  },
+  "module": {
+    "getterVa": "0x004d7500",
+    "getterRule": "Returns the application object plus 0x928, the RaptureSoundModule.",
+    "slotArray": "0x0132f384",
+    "slotStride": "0x18",
+    "slotCount": 2,
+    "clusterRange": [
+      "0x004b5690",
+      "0x004c3980"
+    ],
+    "selectedSlotCell": "0x0132f32c",
+    "boundary": "The cluster's own callers pass the module from 0x004d7500. The slot array is addressed only by the immediates in immediateScans."
+  },
+  "entries": [
+    {
+      "name": "control entry",
+      "va": "0x004bbb30",
+      "role": "SetMusic receiver body that applies a song id and a mode.",
+      "sites": [
+        {
+          "site": "0x004c3941",
+          "role": "gate replay of the cached pair",
+          "function": "0x004c3900"
+        },
+        {
+          "site": "0x004dcc22",
+          "role": "packet 0x000c receiver",
+          "function": "0x004dcc12"
+        },
+        {
+          "site": "0x0075c945",
+          "role": "Lua wrapper 0x0075c930",
+          "function": "0x0075c930"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "request",
+      "va": "0x004b7650",
+      "role": "request(resource id, volume, duration): replaces the selected slot's song.",
+      "sites": [
+        {
+          "site": "0x004bbb8c",
+          "role": "control body, internal mode",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbbc1",
+          "role": "control body, mode 1",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbc1f",
+          "role": "control body, mode 2",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbc5e",
+          "role": "control body, mode 3 fallback",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbcbd",
+          "role": "control body, mode 5",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbcf4",
+          "role": "control body, mode 6",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbd2c",
+          "role": "control body, modes 7 to 10",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbd62",
+          "role": "control body, modes 11 to 14",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbe42",
+          "role": "delayed song update",
+          "function": "0x004bbdb0"
+        },
+        {
+          "site": "0x0060f6d7",
+          "role": "cut manager play routine",
+          "function": "0x0060f630"
+        },
+        {
+          "site": "0x00687c57",
+          "role": "play helper, no caller",
+          "function": "0x00687c40"
+        },
+        {
+          "site": "0x006a60b9",
+          "role": "PhaseCredit constructor",
+          "function": "0x006a5f80"
+        },
+        {
+          "site": "0x006a8e7a",
+          "role": "menu song helper",
+          "function": "0x006a8e60"
+        },
+        {
+          "site": "0x006b3ad6",
+          "role": "BootupManager constructor",
+          "function": "0x006b3210"
+        },
+        {
+          "site": "0x00878c4b",
+          "role": "CISLoginPhase slot 4",
+          "function": "0x00878b80"
+        },
+        {
+          "site": "0x0087c809",
+          "role": "PatchPhase slot 1",
+          "function": "0x0087c750"
+        },
+        {
+          "site": "0x0088679d",
+          "role": "TitlePhase slot 6",
+          "function": "0x00886760"
+        },
+        {
+          "site": "0x0088c29c",
+          "role": "CharacterSelectionPhase slot 6",
+          "function": "0x0088c240"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "release",
+      "va": "0x004b5690",
+      "role": "release(duration): releases the selected slot.",
+      "sites": [
+        {
+          "site": "0x004bbc88",
+          "role": "control body, mode 4",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x0060f64f",
+          "role": "cut manager play routine",
+          "function": "0x0060f630"
+        },
+        {
+          "site": "0x0060f746",
+          "role": "cut manager stop member, no caller",
+          "function": "0x0060f720"
+        },
+        {
+          "site": "0x0061194c",
+          "role": "cut manager stop wrapper, no caller",
+          "function": "0x00611930"
+        },
+        {
+          "site": "0x00611dd7",
+          "role": "cut manager end",
+          "function": "0x00611d60"
+        },
+        {
+          "site": "0x00687c6f",
+          "role": "stop helper, no caller",
+          "function": "0x00687c60"
+        },
+        {
+          "site": "0x006a6127",
+          "role": "PhaseCredit destructor body",
+          "function": "0x006a60e0"
+        },
+        {
+          "site": "0x008759c8",
+          "role": "CISLoginPhase destructor body",
+          "function": "0x00875980"
+        },
+        {
+          "site": "0x00886632",
+          "role": "title phase release, mode 1",
+          "function": "0x00886610"
+        },
+        {
+          "site": "0x00886702",
+          "role": "title phase release, mode 2",
+          "function": "0x008866e0"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "control",
+      "va": "0x004b56c0",
+      "role": "control(duration, value): suspends with 1 and restores with 0.",
+      "sites": [
+        {
+          "site": "0x004bbbf1",
+          "role": "control body, mode 2",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbc39",
+          "role": "control body, mode 3",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x0060f690",
+          "role": "cut manager play routine",
+          "function": "0x0060f630"
+        },
+        {
+          "site": "0x0060f77d",
+          "role": "cut manager stop member, no caller",
+          "function": "0x0060f720"
+        },
+        {
+          "site": "0x00611983",
+          "role": "cut manager stop wrapper, no caller",
+          "function": "0x00611930"
+        },
+        {
+          "site": "0x00611e0f",
+          "role": "cut manager end",
+          "function": "0x00611d60"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "volume",
+      "va": "0x004b56e0",
+      "role": "Float and duration pair forwarded to the selected handle.",
+      "sites": [
+        {
+          "site": "0x0060f70a",
+          "role": "cut manager volume member, no caller",
+          "function": "0x0060f6f0"
+        },
+        {
+          "site": "0x006119b2",
+          "role": "cut manager volume wrapper, no caller",
+          "function": "0x00611990"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "mute",
+      "va": "0x004b5710",
+      "role": "Float and duration pair forwarded to the selected handle, used by modes 5 and 6.",
+      "sites": [
+        {
+          "site": "0x004bbcd6",
+          "role": "control body, mode 5",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbd0d",
+          "role": "control body, mode 6",
+          "function": "0x004bbb30"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "parameter",
+      "va": "0x004b5740",
+      "role": "Parameter cell write or replay on the selected handle.",
+      "sites": [
+        {
+          "site": "0x004bbd43",
+          "role": "control body, modes 7 to 10",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x00588fc6",
+          "role": "CharaElement parameter driver, cell 0 write",
+          "function": "0x00588f60"
+        },
+        {
+          "site": "0x00588fef",
+          "role": "CharaElement parameter driver, cell 1 replay",
+          "function": "0x00588f60"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "hold wrapper",
+      "va": "0x004b57a0",
+      "role": "Forwards its argument to 0x00b908f0.",
+      "sites": [
+        {
+          "site": "0x0060f6bd",
+          "role": "cut manager play routine",
+          "function": "0x0060f630"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "requested id",
+      "va": "0x004b57b0",
+      "role": "Selected slot's requested resource id.",
+      "sites": [
+        {
+          "site": "0x004bbc6a",
+          "role": "control body, mode 4",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x0060f661",
+          "role": "cut manager play routine",
+          "function": "0x0060f630"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "swap",
+      "va": "0x004b57d0",
+      "role": "Toggles the selected slot.",
+      "sites": [
+        {
+          "site": "0x004bbc02",
+          "role": "control body, mode 2",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x004bbc2b",
+          "role": "control body, mode 3",
+          "function": "0x004bbb30"
+        },
+        {
+          "site": "0x0060f6a2",
+          "role": "cut manager play routine",
+          "function": "0x0060f630"
+        },
+        {
+          "site": "0x0060f768",
+          "role": "cut manager stop member, no caller",
+          "function": "0x0060f720"
+        },
+        {
+          "site": "0x0061196e",
+          "role": "cut manager stop wrapper, no caller",
+          "function": "0x00611930"
+        },
+        {
+          "site": "0x00611df7",
+          "role": "cut manager end",
+          "function": "0x00611d60"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "gate",
+      "va": "0x004c3900",
+      "role": "Sets the enable gate and replays the cached packet pair on a zero to one change.",
+      "sites": [
+        {
+          "site": "0x00611d32",
+          "role": "cut manager begin, argument 0",
+          "function": "0x00611c30"
+        },
+        {
+          "site": "0x00611e23",
+          "role": "cut manager end, argument 1",
+          "function": "0x00611d60"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "request by index",
+      "va": "0x004b7560",
+      "role": "Requests a resource from the table at 0x00f8d668.",
+      "sites": [],
+      "dataRefs": []
+    },
+    {
+      "name": "release both",
+      "va": "0x004b7720",
+      "role": "Releases both slots.",
+      "sites": [],
+      "dataRefs": []
+    },
+    {
+      "name": "module reset",
+      "va": "0x004b7340",
+      "role": "Stops the module with (0, 500) and rebuilds the slots and cells.",
+      "sites": [
+        {
+          "site": "0x004d6a5c",
+          "role": "state helper 0x004d6a50",
+          "function": "0x004d6a50"
+        },
+        {
+          "site": "0x004db45d",
+          "role": "application update",
+          "function": "0x004daf00"
+        },
+        {
+          "site": "0x004dca7d",
+          "role": "opcode 0x0007 handler",
+          "function": "0x004dc8dc"
+        },
+        {
+          "site": "0x004dcd38",
+          "role": "opcode 0x00cb handler",
+          "function": "0x004dccf6"
+        },
+        {
+          "site": "0x004dce7b",
+          "role": "opcode 0x0004 handler",
+          "function": "0x004dcd4c"
+        }
+      ],
+      "dataRefs": []
+    }
+  ],
+  "immediateScans": [
+    {
+      "value": "0x0132f384",
+      "role": "slot array base, stride 0x18",
+      "sites": [
+        "0x004b56b0",
+        "0x004b56d3",
+        "0x004b5700",
+        "0x004b5730",
+        "0x004b5767",
+        "0x004b5785",
+        "0x004b57c3",
+        "0x004b7582",
+        "0x004b75ba",
+        "0x004b766e",
+        "0x004b76a5",
+        "0x004b7743",
+        "0x004b777d",
+        "0x00f0772f",
+        "0x00f2e63a"
+      ],
+      "outsideCluster": [
+        "0x00f0772f",
+        "0x00f2e63a"
+      ]
+    },
+    {
+      "value": "0x0132f398",
+      "role": "second slot's embedded cell",
+      "sites": [
+        "0x004b7383"
+      ],
+      "outsideCluster": []
+    },
+    {
+      "value": "0x0132f32c",
+      "role": "selected-slot index",
+      "sites": [
+        "0x004b5694",
+        "0x004b56c3",
+        "0x004b56e3",
+        "0x004b5713",
+        "0x004b5743",
+        "0x004b57b3",
+        "0x004b57d3",
+        "0x004b57e6",
+        "0x004b7378",
+        "0x004b7570",
+        "0x004b75a5",
+        "0x004b7660",
+        "0x004b7690",
+        "0x004b772c",
+        "0x004b7750",
+        "0x004b775f",
+        "0x004b776c",
+        "0x00f07713"
+      ],
+      "outsideCluster": [
+        "0x00f07713"
+      ]
+    },
+    {
+      "value": "0x0132f320",
+      "role": "parameter cell 0",
+      "sites": [
+        "0x004b575c",
+        "0x004b577a",
+        "0x004b7446"
+      ],
+      "outsideCluster": []
+    },
+    {
+      "value": "0x0132f324",
+      "role": "parameter cell 1",
+      "sites": [
+        "0x004b744b"
+      ],
+      "outsideCluster": []
+    },
+    {
+      "value": "0x0132f3d0",
+      "role": "enable gate",
+      "sites": [
+        "0x004b743d",
+        "0x004bbb34",
+        "0x004bbe0c",
+        "0x004c390e",
+        "0x004c391e",
+        "0x004c3966",
+        "0x00f07783"
+      ],
+      "outsideCluster": [
+        "0x00f07783"
+      ]
+    },
+    {
+      "value": "0x0132f3d4",
+      "role": "delayed song cell",
+      "sites": [
+        "0x004b7428",
+        "0x004bbba3",
+        "0x004bbc8f",
+        "0x004bbdc6",
+        "0x004bbdf8",
+        "0x00f07793"
+      ],
+      "outsideCluster": [
+        "0x00f07793"
+      ]
+    },
+    {
+      "value": "0x0132f3d8",
+      "role": "delayed song timer",
+      "sites": [
+        "0x004bbc9a",
+        "0x00f077a1"
+      ],
+      "outsideCluster": [
+        "0x00f077a1"
+      ]
+    },
+    {
+      "value": "0x012695ec",
+      "role": "cached packet song",
+      "sites": [
+        "0x004b742e",
+        "0x004bbb4e",
+        "0x004bbe1a",
+        "0x004c392e",
+        "0x004c3948"
+      ],
+      "outsideCluster": []
+    },
+    {
+      "value": "0x00f8d668",
+      "role": "request-by-index table",
+      "sites": [
+        "0x004b7590",
+        "0x004b75fc",
+        "0x004b762e"
+      ],
+      "outsideCluster": []
+    },
+    {
+      "value": "0x012d63d8",
+      "role": "patch phase track table",
+      "sites": [
+        "0x0087c7f7"
+      ],
+      "outsideCluster": [
+        "0x0087c7f7"
+      ]
+    }
+  ],
+  "initiators": [
+    {
+      "id": "boot-manager-title",
+      "group": "title",
+      "owner": "BootupManager constructor",
+      "site": "0x006b3ad6",
+      "resource": "0x07fe001c",
+      "duration": 2000,
+      "check": "boot manager song request",
+      "tier": "STATIC"
+    },
+    {
+      "id": "login-phase-title",
+      "group": "title",
+      "owner": "CISLoginPhase slot 4",
+      "site": "0x00878c4b",
+      "resource": "0x07fe001c",
+      "duration": 2000,
+      "check": "login phase song request",
+      "tier": "STATIC"
+    },
+    {
+      "id": "title-phase-title",
+      "group": "title",
+      "owner": "TitlePhase slot 6",
+      "site": "0x0088679d",
+      "resource": "0x07fe001c",
+      "duration": 2000,
+      "check": "title phase song gate and request",
+      "tier": "STATIC"
+    },
+    {
+      "id": "character-selection-title",
+      "group": "title",
+      "owner": "CharacterSelectionPhase slot 6",
+      "site": "0x0088c29c",
+      "resource": "0x07fe001c",
+      "duration": 2000,
+      "check": "character selection song gate and request",
+      "tier": "STATIC"
+    },
+    {
+      "id": "patch-phase-title",
+      "group": "title",
+      "owner": "PatchPhase slot 1",
+      "site": "0x0087c809",
+      "resource": "0x27950015..0x27950017",
+      "duration": 2000,
+      "check": "patch phase track selection",
+      "tier": "STATIC"
+    },
+    {
+      "id": "credit-song",
+      "group": "credit",
+      "owner": "PhaseCredit constructor",
+      "site": "0x006a60b9",
+      "resource": "0x07fe003f",
+      "duration": 0,
+      "check": "credit song request",
+      "tier": "STATIC"
+    },
+    {
+      "id": "menu-song",
+      "group": "menu",
+      "owner": "menu song helper",
+      "site": "0x006a8e7a",
+      "resource": "0x07fe0046",
+      "duration": 400,
+      "check": "menu song request",
+      "tier": "STATIC"
+    },
+    {
+      "id": "cutscene-bgm",
+      "group": "cutscene",
+      "owner": "cut manager play routine",
+      "site": "0x0060f6d7",
+      "resource": "clip data +0x20",
+      "duration": "clip data +0x14",
+      "check": "cutscene play",
+      "tier": "STATIC"
+    }
+  ],
+  "releases": [
+    {
+      "id": "login-phase-release",
+      "owner": "CISLoginPhase destructor body",
+      "site": "0x008759c8",
+      "duration": 2000,
+      "check": "login phase release"
+    },
+    {
+      "id": "title-phase-release-1",
+      "owner": "title phase release, mode 1",
+      "site": "0x00886632",
+      "duration": 2000,
+      "check": "title phase release, mode 1"
+    },
+    {
+      "id": "title-phase-release-2",
+      "owner": "title phase release, mode 2",
+      "site": "0x00886702",
+      "duration": 2000,
+      "check": "title phase release, mode 2"
+    },
+    {
+      "id": "credit-release",
+      "owner": "PhaseCredit destructor body",
+      "site": "0x006a6127",
+      "duration": 2000,
+      "check": "credit release"
+    },
+    {
+      "id": "cutscene-end-release",
+      "owner": "cut manager end",
+      "site": "0x00611dd7",
+      "duration": 2000,
+      "check": "cutscene end releases the track"
+    }
+  ],
+  "titleTracks": {
+    "selectorVa": "0x0087c750",
+    "tableVa": "0x012d63d8",
+    "tableValues": [
+      21,
+      22,
+      23
+    ],
+    "resourceBase": "0x27950000",
+    "choice": "rand() mod 3 indexes the table",
+    "retryCounterVa": "0x0135107c",
+    "retryLimit": 30,
+    "retryRule": "A request that returns false adds one to the counter and the gate skips the request once the counter exceeds the limit.",
+    "startedFlagVa": "0x01351080",
+    "durationArgument": 2000
+  },
+  "gate": {
+    "cellVa": "0x0132f3d0",
+    "cachedPairVa": "0x012695ec",
+    "disabledBy": "0x00611c30 (cut manager begin, argument 0)",
+    "enabledBy": "0x00611d60 (cut manager end, argument 1)",
+    "replay": "A zero to one change replays the single cached packet song and mode through 0x004bbb30 and clears the cache.",
+    "cachedWhileDisabled": "One song and mode pair, the latest request; no queue.",
+    "pairing": "The gate closes only on a begin that sets +0x180 and reopens only on an end that finds +0x180 set."
+  },
+  "cutManager": {
+    "endCallerVa": "0x0061c7ea",
+    "endCallerOwner": "Application::Scene::Actor::System::CutManagerActor slot 141 (0x0061c790)",
+    "beginCallers": [
+      "0x0061215a",
+      "0x0061c587"
+    ],
+    "fields": {
+      "holdByte": "0x160",
+      "playingByte": "0x161",
+      "activeByte": "0x180",
+      "modeDword": "0x1e8"
+    },
+    "playArguments": [
+      "resource id",
+      "duration",
+      "unused",
+      "flag"
+    ],
+    "clipDataOffsets": {
+      "resourceId": "0x20",
+      "duration": "0x14",
+      "unused": "0x18"
+    },
+    "flagSource": "1 when the target object's id (virtual +0x10) equals the id derived from the ProxyActor name",
+    "endReleaseDuration": 2000,
+    "endResumeControl": [
+      2000,
+      0
+    ],
+    "endModeCondition": "The release and resume block runs when the dword at +0x1e8 is below 0 or above 1.",
+    "beginCallerOwners": {
+      "0x0061215a": "untraced",
+      "0x0061c587": "0x0061c4d0, called by case 0 of the 0x0061c6c0 message handler"
+    },
+    "messageHandler": {
+      "va": "0x0061c6c0",
+      "owner": "Application::Scene::Actor::System::CutManagerActor slot 157",
+      "tableVa": "0x0061c780",
+      "caseCount": 4,
+      "cases": {
+        "0": "0x0061c4d0 stores the message and calls begin 0x00611c30",
+        "1": "0x0060f440 untraced",
+        "2": "0x0060f3f0 mode setter",
+        "3": "0x0061c72b untraced"
+      }
+    },
+    "modeSetter": {
+      "va": "0x0060f3f0",
+      "rule": "+0x1e8 becomes the larger of its value and the dword the argument points at",
+      "writers": [
+        "0x00611c79 begin, writes 0",
+        "0x0060f401 mode setter, raises"
+      ],
+      "armsEnd": "When virtual +0x0c of the object at +0x174 returns true it also sets the dword +0x1e4, which slot 141 tests before it runs the end routine.",
+      "senderOfValue": "untraced"
+    },
+    "pairing": "Begin returns false at once while +0x180 is set, and otherwise sets +0x180, clears +0x160 and +0x161, zeroes +0x1e8 and closes the gate. End returns at once while +0x180 is clear, and otherwise clears +0x180 after its restore steps.",
+    "endModuleCalls": {
+      "objectGetterVa": "0x0060b280",
+      "first": {
+        "vtableOffset": "0x08",
+        "arguments": [
+          "1.0",
+          "1000"
+        ],
+        "meaning": "untraced"
+      },
+      "second": {
+        "vtableOffset": "0x1c",
+        "arguments": [
+          "0x0b",
+          "1000"
+        ],
+        "receiverSlot": 7,
+        "slotVa": "0x00441b00",
+        "tier": "INFERRED"
+      }
+    },
+    "endModeFour": "End passes 0 instead of -1 to 0x00610040 when +0x1e8 is 4, and the effect is untraced."
+  },
+  "parameters": {
+    "writerVa": "0x004b5740",
+    "cells": [
+      "0x0132f320",
+      "0x0132f324"
+    ],
+    "receiverModes": "7 through 10 write cell 1 with mode minus 7",
+    "driverVa": "0x00588f60",
+    "driverOwner": "Application::Main::Element::Chara::CharaElement slot 6 (0x0058df90)",
+    "driverRule": "For the local element, states 0x0f and 0x5b at +0xf0 write cell 0 with 1 when the float at +0x868 times 30.0 exceeds the parameter table value for id 1, else 0, and clear bit 2 of +0x274. Other states replay cell 1 once and set bit 2 of +0x274.",
+    "stateMeaning": "UNPROVED"
+  },
+  "reset": {
+    "moduleResetVa": "0x004b7340",
+    "stopCall": {
+      "receiverSlot": 7,
+      "arguments": [
+        0,
+        500
+      ]
+    },
+    "sites": [
+      {
+        "site": "0x004dca7d",
+        "opcode": "0x0007",
+        "condition": "the removed actor equals the local actor at owner +0x17838"
+      },
+      {
+        "site": "0x004dcd38",
+        "opcode": "0x00cb",
+        "condition": "the actor equals the local actor at owner +0x17838"
+      },
+      {
+        "site": "0x004dce7b",
+        "opcode": "0x0004",
+        "condition": "the byte at owner +0x54b is clear: the handler sets it, walks the actor map and then resets unconditionally. When the byte is set, the handler clears it, calls 0x004d8080(1) and exits without a reset",
+        "toggleByte": "owner +0x54b, also set at 0x004daf99 and cleared at 0x004db567 in the application update"
+      },
+      {
+        "site": "0x004d6a5c",
+        "opcode": null,
+        "condition": "state helper 0x004d6a50, reached from 0x004d9980 with id 0xc0000000"
+      },
+      {
+        "site": "0x004db45d",
+        "opcode": null,
+        "condition": "application update 0x004daf00, condition unresolved"
+      }
+    ],
+    "opcodeNames": {
+      "0x0007": "DeleteAllActors",
+      "0x00cb": "RemoveActor",
+      "0x0004": "unnamed"
+    }
+  },
+  "unreferenced": [
+    {
+      "va": "0x004b7560",
+      "role": "request by table index"
+    },
+    {
+      "va": "0x004b7720",
+      "role": "release both slots"
+    },
+    {
+      "va": "0x00687c40",
+      "role": "play helper"
+    },
+    {
+      "va": "0x00687c60",
+      "role": "stop helper"
+    },
+    {
+      "va": "0x0060f6f0",
+      "role": "cut manager volume member"
+    },
+    {
+      "va": "0x0060f720",
+      "role": "cut manager stop member"
+    },
+    {
+      "va": "0x00611930",
+      "role": "cut manager stop wrapper"
+    },
+    {
+      "va": "0x00611990",
+      "role": "cut manager volume wrapper"
+    }
+  ],
+  "requestTable": {
+    "va": "0x00f8d668",
+    "indexes0to31": "0x07fe0008 through 0x07fe0027 in order",
+    "indexes32to36": [
+      "0x035b0000",
+      "0x035b0001",
+      "0x035b0002",
+      "0x035b0003",
+      "0x035b000d"
+    ]
+  },
+  "engineClips": {
+    "BGMStopClip": "SQEX::CDev::Engine::Cut::Plugins::BGMStopClip slot 1 0x00df66b0",
+    "BGMVolumeClip": "SQEX::CDev::Engine::Cut::Plugins::BGMVolumeClip slot 1 0x00df69f0",
+    "route": "UNPROVED",
+    "retailCutData": "NOT FOUND"
+  },
+  "ambient": {
+    "envSoundClipClass": "Application::Scene::Cut::Clip::LayRaptureEnvSoundClip",
+    "tickVa": "0x008344a0",
+    "instanceTypeId": 6,
+    "managerGetterVa": "0x00807d20",
+    "handoffVa": "0x00808430",
+    "handoffRule": "0x00808430 stores the enable byte into the manager entry only when it is non-zero, and the entry clears it on every update.",
+    "environmentSoundUpdateVa": "0x00807e80",
+    "managerClass": "Application::Scene::Actor::Map::Sound::EnvironmentSoundManager",
+    "soundClass": "Application::Scene::Actor::Map::Sound::EnvironmentSound",
+    "fadeDivisor": 3.0,
+    "fadeDivisorFlagged": 1.0,
+    "tickDivisor": 300000.0,
+    "volumeMax": 1.0,
+    "fields": {
+      "handle": "0x04",
+      "enableByte": "0x0c",
+      "volume": "0x10"
+    },
+    "seLayoutClasses": [
+      "Application::Scene::Actor::Map::Layout::RaptureSEBaseObject",
+      "Application::Scene::Actor::Map::Layout::RaptureSEInstanceObjectProperty",
+      "Application::Scene::Actor::Map::Layout::RaptureSEBaseObjectCreator"
+    ],
+    "busConfig": "xivl-decomp:docs/resource/sound-effect-triggers.md#driver-configuration",
+    "weatherLayoutEvidence": "xivl-decomp:docs/resource/weather-drawenv-resource-shape.md"
+  },
+  "install": {
+    "scope": "owner installation of build 2012.09.19.0001, existence, size, SHA-256 and SEDBSSCF magic only",
+    "titleTrackFiles": [
+      {
+        "index": 21,
+        "resource": "0x27950015",
+        "size": 2874442,
+        "sha256": "efd2da18ea21da5b5411d88861fe13daf99e0f46ae4416b12dbad48583755845",
+        "streams": 1
+      },
+      {
+        "index": 22,
+        "resource": "0x27950016",
+        "size": 2996059,
+        "sha256": "4469f6df4c8cd26823cb9971534b3db2e64e3420b5d9579c314d84997ca71a8e",
+        "streams": 1
+      },
+      {
+        "index": 23,
+        "resource": "0x27950017",
+        "size": 2684944,
+        "sha256": "eee0c6845ceddc6ca5c7546b0aad3157b143ecfb5f90a400b8fab412151b476e",
+        "streams": 1
+      }
+    ],
+    "songTable": "xivl-decomp:config/music_song_resources.json, install.songs",
+    "sheets": [
+      {
+        "name": "_zoneParam",
+        "resource": "0x01030025",
+        "columnCount": 1,
+        "columnMax": 1,
+        "types": [
+          "s32"
+        ],
+        "index": [
+          0
+        ],
+        "blockBegin": 0,
+        "blockCount": 501
+      },
+      {
+        "name": "_region",
+        "resource": "0x010304d3",
+        "columnCount": 1,
+        "columnMax": 2,
+        "types": [
+          "u16"
+        ],
+        "index": [
+          1
+        ],
+        "blockBegin": 0,
+        "blockCount": 931
+      },
+      {
+        "name": "regionParam",
+        "resource": "0x0103059c",
+        "columnCount": 3,
+        "columnMax": 3,
+        "types": [
+          "s32",
+          "s32",
+          "s32"
+        ],
+        "index": [
+          0,
+          1,
+          2
+        ],
+        "blockBegin": 1,
+        "blockCount": 6
+      },
+      {
+        "name": "zoneGroupParam",
+        "resource": "0x010305a0",
+        "columnCount": 6,
+        "columnMax": 6,
+        "types": [
+          "s32",
+          "s32",
+          "s32",
+          "s32",
+          "s32",
+          "s32"
+        ],
+        "index": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "blockBegin": 100,
+        "blockCount": 502
+      },
+      {
+        "name": "_layout",
+        "resource": "0x0103045f",
+        "columnCount": 3,
+        "columnMax": 4,
+        "types": [
+          "u8",
+          "s32",
+          "u16"
+        ],
+        "index": [
+          1,
+          2,
+          3
+        ],
+        "blockBegin": 1,
+        "blockCount": 8085
+      }
+    ],
+    "sheetBoundary": "Column types and block slot counts of the sheet definition documents, not row values. The definitions carry no column names, so the exclusion of a music column rests on the call census."
+  },
+  "policy": {
+    "nativeZoneMusic": "none found",
+    "nativeRegionMusic": "none found",
+    "nativeTimeOfDayMusic": "none found",
+    "nativeMountMusic": "none found",
+    "nativeBattleStartMusic": "none found",
+    "nativeAmbientSelection": "layout data"
+  },
+  "claims": [
+    {
+      "id": "entry-census",
+      "tier": "STATIC",
+      "claim": "Every direct call or jump to the music entry points, and every dword reference to them, is enumerated in entries."
+    },
+    {
+      "id": "slot-array-closure",
+      "tier": "STATIC",
+      "claim": "The slot array and its cells are addressed only by the listed immediates, so every native start of the two music slots goes through an entry in entries."
+    },
+    {
+      "id": "packet-lua-gate-callers",
+      "tier": "STATIC",
+      "claim": "The control entry has three callers: the packet receiver, the Lua wrapper and the gate replay."
+    },
+    {
+      "id": "boot-title-song",
+      "tier": "STATIC",
+      "claim": "The boot manager and three bootup phases request resource 0x07fe001c with duration 2000."
+    },
+    {
+      "id": "patch-phase-tracks",
+      "tier": "STATIC",
+      "claim": "PatchPhase requests one of 0x27950015, 0x27950016 and 0x27950017 by a random index, with duration 2000, until a request succeeds or the counter passes 30."
+    },
+    {
+      "id": "title-track-files",
+      "tier": "OBSERVED",
+      "claim": "The three title track resources exist on the installation as single-stream SEDBSSCF containers."
+    },
+    {
+      "id": "credit-song",
+      "tier": "STATIC",
+      "claim": "PhaseCredit requests 0x07fe003f with duration 0 and releases with duration 2000."
+    },
+    {
+      "id": "menu-song",
+      "tier": "STATIC",
+      "claim": "One helper requests 0x07fe0046 with duration 400."
+    },
+    {
+      "id": "menu-song-owner",
+      "tier": "INFERRED",
+      "claim": "The helper's two call sites lie in the bootup menu flow."
+    },
+    {
+      "id": "login-releases",
+      "tier": "STATIC",
+      "claim": "Login, title and credit teardown release with duration 2000."
+    },
+    {
+      "id": "cutscene-gate",
+      "tier": "STATIC",
+      "claim": "The cut manager begin closes the gate and the end opens it, replaying one cached packet pair."
+    },
+    {
+      "id": "cutscene-bgm-clip",
+      "tier": "STATIC",
+      "claim": "RaptureBgmClip slot 1 passes the resource id at clip data +0x20 and the duration at +0x14 to the play routine."
+    },
+    {
+      "id": "cutscene-hold-and-restore",
+      "tier": "STATIC",
+      "claim": "The play routine suspends and swaps the world song once, requests the clip song, and the end routine releases and resumes."
+    },
+    {
+      "id": "cutscene-owner-class",
+      "tier": "STATIC",
+      "claim": "The begin routine, the mode setter and the end routine trace to CutManagerActor slots 157 and 141."
+    },
+    {
+      "id": "engine-bgm-clips",
+      "tier": "NOT FOUND",
+      "claim": "The retail cut scheduler census holds no row for BGMStopClip or BGMVolumeClip."
+    },
+    {
+      "id": "parameter-cells",
+      "tier": "STATIC",
+      "claim": "Two parameter cells are written by modes 7 to 10 and by the CharaElement driver."
+    },
+    {
+      "id": "parameter-states",
+      "tier": "UNPROVED",
+      "claim": "The meaning of element states 0x0f and 0x5b and of the parameter values."
+    },
+    {
+      "id": "module-reset-sites",
+      "tier": "STATIC",
+      "claim": "The module reset runs on DeleteAllActors or RemoveActor of the local actor, on opcode 0x0004 and from two other sites."
+    },
+    {
+      "id": "reset-stop-semantics",
+      "tier": "INFERRED",
+      "claim": "Receiver slot 7 with (0, 500) stops the module's sounds."
+    },
+    {
+      "id": "unreferenced-entries",
+      "tier": "STATIC",
+      "claim": "Eight functions in the cluster have no call, jump or dword reference."
+    },
+    {
+      "id": "zone-sheet-shapes",
+      "tier": "OBSERVED",
+      "claim": "The zone, region, region parameter, zone group and layout sheet definitions have 1, 1, 3, 6 and 3 integer columns and carry no column names."
+    },
+    {
+      "id": "no-zone-time-mount-battle",
+      "tier": "NOT FOUND",
+      "claim": "No native input from zone, region, layout, time of day, mount or battle start reaches a music request."
+    },
+    {
+      "id": "ambient-clip",
+      "tier": "STATIC",
+      "claim": "LayRaptureEnvSoundClip checks an SE instance type, a time window and string and id conditions, then hands an enable byte to the manager."
+    },
+    {
+      "id": "ambient-fade",
+      "tier": "STATIC",
+      "claim": "EnvironmentSound fades a handle's volume by ticks over 300000.0 over 3.0 or 1.0 per update and drops the enable byte each update."
+    },
+    {
+      "id": "ambient-meaning",
+      "tier": "INFERRED",
+      "claim": "The environment sound is the layout-scheduled ambient loop."
+    },
+    {
+      "id": "ambient-selection",
+      "tier": "UNPROVED",
+      "claim": "Which sound a layout object names and the meaning of the clip's string conditions."
+    },
+    {
+      "id": "cutscene-pairing",
+      "tier": "STATIC",
+      "claim": "Begin is a no-op while the active byte +0x180 is set and end is a no-op while it is clear, so the gate reopens only on an end paired with a begin."
+    },
+    {
+      "id": "cutscene-mode-setter",
+      "tier": "STATIC",
+      "claim": "The only traced raise of the mode dword +0x1e8 is the max-assign at 0x0060f401, reached from case 2 of the CutManagerActor slot 157 message handler, and begin writes 0."
+    },
+    {
+      "id": "cutscene-play-owner",
+      "tier": "INFERRED",
+      "claim": "The play routine belongs to the same class because it uses the same object fields."
+    },
+    {
+      "id": "cutscene-end-module-calls",
+      "tier": "STATIC",
+      "claim": "The end routine makes virtual +0x08 and +0x1c calls on the object that 0x0060b280 returns before the mode block."
+    },
+    {
+      "id": "cutscene-end-stop-semantics",
+      "tier": "INFERRED",
+      "claim": "The +0x1c call is receiver slot 7 0x00441b00, the stop call the module reset makes, here with a non-zero first argument."
+    },
+    {
+      "id": "reset-opcode-4-toggle",
+      "tier": "STATIC",
+      "claim": "Opcode 0x0004 resets the music state only when the byte at owner +0x54b is clear, and otherwise clears it, calls 0x004d8080(1) and exits."
+    },
+    {
+      "id": "engine-bgm-clip-route",
+      "tier": "UNPROVED",
+      "claim": "The route from BGMStopClip and BGMVolumeClip to the music entries."
+    },
+    {
+      "id": "music-class-rejection",
+      "tier": "STATIC",
+      "claim": "The generic sound request path at 0x007cf320 returns false for resource class 0x07fe."
+    }
+  ],
+  "staticChecks": [
+    {
+      "name": "release entry",
+      "kind": "signature",
+      "va": "0x004b5690",
+      "pattern": "56 6a 00 68 2c f3 32 01 8b f1 ff 15 a4 e1 f3 00 8b 4c 24 08 8b 16 8b 52 18 51 8d 04 40 8d 0c c5 84 f3 32 01 51 8b ce ff d2 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "release(duration): releases the selected slot through receiver slot 6 (offset 0x18 of the module table)."
+    },
+    {
+      "name": "control entry",
+      "kind": "signature",
+      "va": "0x004b56c0",
+      "pattern": "6a 00 68 2c f3 32 01 ff 15 a4 e1 f3 00 8d 0c 40 8d 0c cd 84 f3 32 01 e9 c4 e1 f8 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "control(duration, value) tail-jumps to 0x004438a0 with the selected slot address."
+    },
+    {
+      "name": "volume entry",
+      "kind": "signature",
+      "va": "0x004b56e0",
+      "pattern": "6a 00 68 2c f3 32 01 ff 15 a4 e1 f3 00 d9 44 24 04 8b 4c 24 08 51 51 8d 0c 40 d9 1c 24 8d 0c cd 84 f3 32 01 e8 17 e2 f8 ff c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff",
+      "note": "Float and int pair forwarded to 0x00443920 on the selected slot."
+    },
+    {
+      "name": "parameter entry",
+      "kind": "signature",
+      "va": "0x004b5740",
+      "pattern": "6a 00 68 2c f3 32 01 ff 15 a4 e1 f3 00 8b 4c 24 08 85 c9 7d 1e 8b 4c 24 04 8b 0c 8d 20 f3 32 01 51 8d 0c 40 8d 0c cd 84 f3 32 01 e8 f0 e1 f8 ff c2 08 00 8b 54 24 04 89 0c 95 20 f3 32 01 51 8d 0c 40 8d 0c cd 84 f3 32 01 e8 d2 e1 f8 ff c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff",
+      "note": "Parameter cell write or replay: a negative value re-sends the stored cell, otherwise the cell stores the value and sends it to 0x00443960."
+    },
+    {
+      "name": "hold wrapper",
+      "kind": "signature",
+      "va": "0x004b57a0",
+      "pattern": "8b 44 24 04 50 e8 46 b1 6d 00 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff 00 00 00 00 ff ff ff ff",
+      "note": "Forwards its argument to 0x00b908f0."
+    },
+    {
+      "name": "requested id entry",
+      "kind": "signature",
+      "va": "0x004b57b0",
+      "pattern": "6a 00 68 2c f3 32 01 ff 15 a4 e1 f3 00 8d 0c 40 8d 0c cd 84 f3 32 01 e9 c4 e0 f8 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "Tail-jumps to 0x00443890, the selected slot's requested resource id."
+    },
+    {
+      "name": "swap entry",
+      "kind": "signature",
+      "va": "0x004b57d0",
+      "pattern": "6a 00 68 2c f3 32 01 ff 15 a4 e1 f3 00 f7 d8 1b c0 83 c0 01 50 68 2c f3 32 01 ff 15 48 e1 f3 00 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Toggles the selected slot index at 0x0132f32c."
+    },
+    {
+      "name": "gate entry",
+      "kind": "signature",
+      "va": "0x004c3900",
+      "pattern": "33 c0 38 44 24 04 56 0f 95 c0 8b f1 50 68 d0 f3 32 01 ff 15 48 e1 f3 00 85 c0 75 42 50 68 d0 f3 32 01 ff 15 a4 e1 f3 00 83 f8 01 75 43 a1 ec 95 26 01 83 f8 ff 74 39 8b 0d f0 95 26 01 51 50 8b ce e8 ea 81 ff ff c7 05 ec 95 26 01 ff ff ff ff c7 05 f0 95 26 01 ff ff ff ff 5e c2 04 00 83 f8 01 75 0d 6a 00 68 d0 f3 32 01 ff 15 a4 e1 f3 00 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Gate 0x0132f3d0 exchange, and on a zero to one change a replay of the cached packet pair through 0x004bbb30."
+    },
+    {
+      "name": "reset stops the module first",
+      "kind": "signature",
+      "va": "0x004b7367",
+      "pattern": "8b 01 8b 50 1c 68 f4 01 00 00 6a 00 ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reset 0x004b7340 calls receiver slot 7 with (0, 0x1f4) before it rebuilds the slots."
+    },
+    {
+      "name": "reset clears pending cache gate and cells",
+      "kind": "signature",
+      "va": "0x004b7420",
+      "pattern": "8b 35 48 e1 f3 00 53 68 d4 f3 32 01 89 1d ec 95 26 01 89 1d f0 95 26 01 ff d6 6a 01 68 d0 f3 32 01 ff d6 33 c0 a3 20 f3 32 01 a3 24 f3 32 01 8b 4c 24 2c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Reset sets the delayed song and the cached pair to -1, enables the gate and zeroes both parameter cells."
+    },
+    {
+      "name": "receiver module table",
+      "kind": "dwords",
+      "va": "0x00f90f9c",
+      "values": [
+        "0x004ddd70",
+        "0x00441aa0",
+        "0x00441a50",
+        "0x004422f0",
+        "0x00441dc0",
+        "0x00441f00",
+        "0x00441c60",
+        "0x00441b00",
+        "0x00442050"
+      ],
+      "note": "RaptureSoundModule table: slot 4 request, slot 5 request with position, slot 6 release, slot 7 reset stop, slot 8 volume gate."
+    },
+    {
+      "name": "request by table index",
+      "kind": "signature",
+      "va": "0x004b7560",
+      "pattern": "83 ec 10 53 8b 1d a4 e1 f3 00 55 56 57 6a 00 68 2c f3 32 01 8b f1 ff d3 8b 6c 24 24 8d 04 40 8d 3c c5 84 f3 32 01 8b cf e8 03 c3 f8 ff 3b 04 ad 68 d6 f8 00 75 0c 5f 5e 5d b0 01 5b 83 c4 10 c2 0c 00 6a 00 68 2c f3 32 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Compares the selected slot's requested id with table 0x00f8d668 entry [index] and requests it."
+    },
+    {
+      "name": "request table head",
+      "kind": "dwords",
+      "va": "0x00f8d668",
+      "values": [
+        "0x07fe0008",
+        "0x07fe0009",
+        "0x07fe000a",
+        "0x07fe000b",
+        "0x07fe000c",
+        "0x07fe000d",
+        "0x07fe000e",
+        "0x07fe000f"
+      ],
+      "note": "Indexes 0 through 7 of the 0x00f8d668 table hold 0x07fe0008 through 0x07fe000f."
+    },
+    {
+      "name": "request table tail",
+      "kind": "dwords",
+      "va": "0x00f8d6dc",
+      "values": [
+        "0x07fe0025",
+        "0x07fe0026",
+        "0x07fe0027",
+        "0x035b0000",
+        "0x035b0001",
+        "0x035b0002"
+      ],
+      "note": "Indexes 31 through 36: the last music id, then category 0 ids."
+    },
+    {
+      "name": "release both slots",
+      "kind": "signature",
+      "va": "0x004b7720",
+      "pattern": "53 56 57 8b 3d a4 e1 f3 00 6a 00 68 2c f3 32 01 8b f1 ff d7 8b 5c 24 10 8b 16 8b 52 18 8d 04 40 8d 0c c5 84 f3 32 01 53 51 8b ce ff d2 6a 00 68 2c f3 32 01 ff d7 f7 d8 1b c0 83 c0 01 50 68 2c f3 32 01 ff 15 48 e1 f3 00 6a 00 68 2c f3 32 01 ff d7 8b 16 8b 52 18 8d 04 40 8d 0c c5 84 f3 32 01 53 51 8b ce ff d2 5f 5e 5b c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Releases the selected slot, toggles the selected-slot index and releases the other slot."
+    },
+    {
+      "name": "boot manager song request",
+      "kind": "signature",
+      "va": "0x006b3abb",
+      "pattern": "d9 e8 68 d0 07 00 00 51 d9 1c 24 e8 35 25 1d 00 8b 4d 04 50 e8 2c 3a e2 ff 8b c8 e8 75 3b e0 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "BootupManager constructor: request(0x886000(), 1.0, 2000)."
+    },
+    {
+      "name": "login phase song request",
+      "kind": "signature",
+      "va": "0x00878c35",
+      "pattern": "d9 1c 24 e8 c3 d3 00 00 8b 8e bc 01 00 00 50 e8 b7 e8 c5 ff 8b c8 e8 00 ea c3 ff",
+      "mask": "ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "CISLoginPhase slot 4: request(0x886000(), 1.0, 2000)."
+    },
+    {
+      "name": "title phase song gate and request",
+      "kind": "signature",
+      "va": "0x00886773",
+      "pattern": "8b 86 1c 02 00 00 83 f8 01 74 24 83 f8 02 74 1f d9 e8 68 d0 07 00 00 51 d9 1c 24 8b 4e 04 68 1c 00 fe 07 e8 65 0d c5 ff 8b c8 e8 ae 0e c3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "TitlePhase slot 6: requests resource 0x07fe001c with duration 2000 when the mode at +0x21c is neither 1 nor 2."
+    },
+    {
+      "name": "character selection song gate and request",
+      "kind": "signature",
+      "va": "0x0088c259",
+      "pattern": "8b 86 1c 02 00 00 33 db 83 f8 01 57 88 9e 18 02 00 00 c7 86 78 03 00 00 ff ff ff ff 88 9e 7c 03 00 00 74 05 83 f8 02 75 1f d9 e8 68 d0 07 00 00 51 d9 1c 24 8b 4e 04 68 1c 00 fe 07 e8 66 b2 c4 ff 8b c8 e8 af b3 c2 ff 68 d5 87 01 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff",
+      "note": "CharacterSelectionPhase slot 6: requests resource 0x07fe001c with duration 2000 when the mode at +0x21c is 1 or 2."
+    },
+    {
+      "name": "title song constant",
+      "kind": "signature",
+      "va": "0x00886000",
+      "pattern": "b8 1c 00 fe 07 c3",
+      "mask": "ff ff ff ff ff ff",
+      "note": "0x00886000 returns 0x07fe001c."
+    },
+    {
+      "name": "patch phase track selection",
+      "kind": "signature",
+      "va": "0x0087c7da",
+      "pattern": "d9 e8 33 d2 b9 03 00 00 00 f7 f1 68 d0 07 00 00 51 8b 8e 4c fe ff ff d9 1c 24 8b 14 95 d8 63 2d 01 81 c2 00 00 95 27 52 e8 f9 ac c5 ff 8b c8 e8 42 ae c3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "PatchPhase slot 1: (rand mod 3) indexes table 0x012d63d8, adds 0x27950000 and requests it with duration 2000."
+    },
+    {
+      "name": "patch phase request result",
+      "kind": "signature",
+      "va": "0x0087c80e",
+      "pattern": "84 c0 74 09 c6 05 80 10 35 01 01 eb 07 83 05 7c 10 35 01 01 c7 44 24 14 ff ff ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "A true request result sets flag 0x01351080, a false one increments counter 0x0135107c."
+    },
+    {
+      "name": "patch phase entry gates",
+      "kind": "signature",
+      "va": "0x0087c774",
+      "pattern": "80 3d 80 10 35 01 00 0f 85 b2 00 00 00 8b 8e 4c fe ff ff e8 24 ae c5 ff 84 c0 0f 84 9f 00 00 00 8b 8e 4c fe ff ff e8 21 ad c5 ff 8b 10 8b c8 8b 42 24 ff d0 84 c0 0f 85 83 00 00 00 83 3d 7c 10 35 01 1e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Flag 0x01351080 is clear, the application predicate holds, the virtual at +0x24 is false and the counter does not exceed 0x1e."
+    },
+    {
+      "name": "patch phase track table",
+      "kind": "dwords",
+      "va": "0x012d63d8",
+      "values": [
+        "0x00000015",
+        "0x00000016",
+        "0x00000017"
+      ],
+      "note": "Three track indexes 0x15, 0x16, 0x17."
+    },
+    {
+      "name": "patch phase vtable",
+      "kind": "dwords",
+      "va": "0x01050ac8",
+      "values": [
+        "0x00881000",
+        "0x0087c750"
+      ],
+      "note": "Slot 1 of Application::Main::Menu::Bootup::Patch::PatchPhase is 0x0087c750."
+    },
+    {
+      "name": "title phase slot 6 cell",
+      "kind": "dwords",
+      "va": "0x010533c4",
+      "values": [
+        "0x00886760"
+      ],
+      "note": "TitlePhase slot 6."
+    },
+    {
+      "name": "character selection slot 6 cell",
+      "kind": "dwords",
+      "va": "0x010558c4",
+      "values": [
+        "0x0088c240"
+      ],
+      "note": "CharacterSelectionPhase slot 6."
+    },
+    {
+      "name": "login phase slot 0 and 4 cells",
+      "kind": "dwords",
+      "va": "0x00fd0618",
+      "values": [
+        "0x006a5ca0",
+        "0x00a72a20",
+        "0x00776340",
+        "0x0056bb20",
+        "0x00878b80"
+      ],
+      "note": "CISLoginPhase slot 0 0x006a5ca0 and slot 4 0x00878b80."
+    },
+    {
+      "name": "login phase destructor release",
+      "kind": "signature",
+      "va": "0x006a5ca0",
+      "pattern": "56 8b f1 e8 d8 fc 1c 00",
+      "mask": "ff ff ff ff 00 00 00 00",
+      "note": "Slot 0 body that reaches 0x00875980 through a call."
+    },
+    {
+      "name": "login phase release",
+      "kind": "signature",
+      "va": "0x008759bc",
+      "pattern": "68 d0 07 00 00 e8 3a 1b c6 ff 8b c8 e8 c3 fc c3 ff",
+      "mask": "ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "release(2000) in the CISLoginPhase destructor path 0x00875980."
+    },
+    {
+      "name": "title phase release, mode 1",
+      "kind": "signature",
+      "va": "0x00886624",
+      "pattern": "c6 86 18 02 00 00 01 e8 d0 0e c5 ff 8b c8 e8 59 f0 c2 ff",
+      "mask": "ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "0x00886610: sets +0x218 and releases with duration 2000."
+    },
+    {
+      "name": "title phase release, mode 2",
+      "kind": "signature",
+      "va": "0x008866f4",
+      "pattern": "c6 86 18 02 00 00 01 e8 00 0e c5 ff 8b c8 e8 89 ef c2 ff",
+      "mask": "ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "0x008866e0: sets +0x218 and releases with duration 2000."
+    },
+    {
+      "name": "title release duration push",
+      "kind": "signature",
+      "va": "0x0088661b",
+      "pattern": "61 8b 4e 04 68 d0 07 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff",
+      "note": "push 0x7d0 before the module getter."
+    },
+    {
+      "name": "credit song request",
+      "kind": "signature",
+      "va": "0x006a60a3",
+      "pattern": "d9 e8 53 51 8b 4e 04 d9 1c 24 68 3f 00 fe 07 e8 49 14 e3 ff 8b c8 e8 92 15 e1 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "PhaseCredit constructor: request(0x07fe003f, 1.0, ebx) with ebx zeroed at 0x006a5fb8."
+    },
+    {
+      "name": "credit duration register",
+      "kind": "signature",
+      "va": "0x006a5fb8",
+      "pattern": "33 db",
+      "mask": "ff ff",
+      "note": "xor ebx,ebx."
+    },
+    {
+      "name": "credit release",
+      "kind": "signature",
+      "va": "0x006a611b",
+      "pattern": "68 d0 07 00 00 e8 db 13 e3 ff 8b c8 e8 64 f5 e0 ff",
+      "mask": "ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "PhaseCredit destructor body 0x006a60e0: release(2000)."
+    },
+    {
+      "name": "credit vtable",
+      "kind": "dwords",
+      "va": "0x00fd0e54",
+      "values": [
+        "0x006a64f0"
+      ],
+      "note": "Slot 0 of PhaseCredit is the destructor 0x006a64f0, which reaches 0x006a60e0."
+    },
+    {
+      "name": "menu song request",
+      "kind": "signature",
+      "va": "0x006a8e60",
+      "pattern": "d9 e8 68 90 01 00 00 51 d9 1c 24 8b 49 04 68 46 00 fe 07 e8 88 e6 e2 ff 8b c8 e8 d1 e7 e0 ff c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff",
+      "note": "0x006a8e60: request(0x07fe0046, 1.0, 400)."
+    },
+    {
+      "name": "cutscene begin disables the gate",
+      "kind": "signature",
+      "va": "0x00611d24",
+      "pattern": "8b 8e 14 01 00 00 53 e8 50 95 ff ff 8b c8 e8 c9 1b eb ff 83 c8 ff",
+      "mask": "ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff",
+      "note": "Cut manager begin ends with 4c3900(0) and clears two flags."
+    },
+    {
+      "name": "cutscene begin sets state",
+      "kind": "signature",
+      "va": "0x00611c66",
+      "pattern": "c6 86 80 01 00 00 01 88 9e 60 01 00 00 88 9e 61 01 00 00 89 9e e8 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Begin sets +0x180 and zeroes the hold byte +0x160, the playing byte +0x161 and the dword +0x1e8."
+    },
+    {
+      "name": "cutscene end releases the track",
+      "kind": "signature",
+      "va": "0x00611dbd",
+      "pattern": "38 9e 61 01 00 00 74 1d 8b 8e 14 01 00 00 68 d0 07 00 00 e8 ab 94 ff ff 8b c8 e8 b4 38 ea ff 88 9e 61 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff",
+      "note": "End releases the playing track with 2000 when +0x161 is set and clears the byte."
+    },
+    {
+      "name": "cutscene end resumes the held song",
+      "kind": "signature",
+      "va": "0x00611de2",
+      "pattern": "38 9e 60 01 00 00 74 2a 8b 8e 14 01 00 00 e8 8b 94 ff ff 8b c8 e8 d4 39 ea ff 8b 8e 14 01 00 00 53 68 d0 07 00 00 e8 73 94 ff ff 8b c8 e8 ac 38 ea ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "End swaps slots and calls control(2000, 0) when +0x160 is set."
+    },
+    {
+      "name": "cutscene end enables the gate",
+      "kind": "signature",
+      "va": "0x00611e14",
+      "pattern": "8b 8e 14 01 00 00 6a 01 e8 5f 94 ff ff 8b c8 e8 d8 1a eb ff",
+      "mask": "ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "End calls 4c3900(1)."
+    },
+    {
+      "name": "cutscene end mode gate",
+      "kind": "signature",
+      "va": "0x00611dae",
+      "pattern": "8b 86 e8 01 00 00 3b c3 7c 05 83 f8 01 7e 57 38 9e 61 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The suspend and release block runs when the mode at +0x1e8 is below 0 or above 1."
+    },
+    {
+      "name": "cutscene play",
+      "kind": "signature",
+      "va": "0x0060f630",
+      "pattern": "53 8a 5c 24 14 84 db 55 56 8b f1 74 17 8b 8e 14 01 00 00 68 d0 07 00 00 e8 33 bc ff ff 8b c8 e8 3c 60 ea ff 8b 8e 14 01 00 00 e8 21 bc ff ff 8b c8 e8 4a 61 ea ff 8b 6c 24 10 3b c5 74 7a 80 be 60 01 00 00 00 57 8b 7c 24 18 75 32 84 db 75 2e 8b 8e 14 01 00 00 6a 01 57 e8 f2 bb ff ff 8b c8 e8 2b 60 ea ff 8b 8e 14 01 00 00 e8 e0 bb ff ff 8b c8 e8 29 61 ea ff c6 86 60 01 00 00 01 8b 8e 14 01 00 00 6a 00 e8 c5 bb ff ff 8b c8 e8 de 60 ea ff d9 e8 57 51 8b 8e 14 01 00 00 d9 1c 24 55 e8 ab bb ff ff 8b c8 e8 74 7f ea ff 84 db 5f 75 07 c6 86 61 01 00 00 01 5e 5d 5b c2 10 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Cut manager play routine 0x0060f630(song, duration, unused, flag)."
+    },
+    {
+      "name": "cutscene stop and resume",
+      "kind": "signature",
+      "va": "0x0060f720",
+      "pattern": "56 8b f1 80 be 61 01 00 00 00 57 8b 7c 24 0c 75 07 80 7c 24 10 00 74 1a 8b 8e 14 01 00 00 57 e8 3c bb ff ff 8b c8 e8 45 5f ea ff c6 86 61 01 00 00 00 80 be 60 01 00 00 00 74 27 8b 8e 14 01 00 00 e8 1a bb ff ff 8b c8 e8 63 60 ea ff 8b 8e 14 01 00 00 6a 00 57 e8 05 bb ff ff 8b c8 e8 3e 5f ea ff 5f 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff",
+      "note": "0x0060f720(duration, force): release when playing or forced, then swap and control(duration, 0) when held."
+    },
+    {
+      "name": "cutscene play wrapper",
+      "kind": "signature",
+      "va": "0x00611900",
+      "pattern": "8b 4c 24 04 85 c9 74 19 8b 44 24 14 8b 54 24 10 50 8b 44 24 10 52 8b 54 24 10 50 52 e8 0f dd ff ff c2 14 00 cc",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff",
+      "note": "0x00611900 forwards four stack values to 0x0060f630 when its first argument is non-null."
+    },
+    {
+      "name": "cutscene stop wrapper",
+      "kind": "signature",
+      "va": "0x00611930",
+      "pattern": "56 8b 74 24 08 85 f6 74 50 8b 8e 14 01 00 00 57 8b 7c 24 10 57 e8 36 99 ff ff 8b c8 e8 3f 3d ea ff 80 be 60 01 00 00 00 c6 86 61 01 00 00 00 74 27 8b 8e 14 01 00 00 e8 14 99 ff ff 8b c8 e8 5d 3e ea ff 8b 8e 14 01 00 00 6a 00 57 e8 ff 98 ff ff 8b c8 e8 38 3d ea ff 5f 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff",
+      "note": "0x00611930(self, duration): release, clear +0x161, and resume when +0x160 is set."
+    },
+    {
+      "name": "cutscene volume member",
+      "kind": "signature",
+      "va": "0x0060f6f0",
+      "pattern": "8b 44 24 08 d9 44 24 04 50 51 8b 89 14 01 00 00 d9 1c 24 e8 78 bb ff ff 8b c8 e8 d1 5f ea ff c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff",
+      "note": "0x0060f6f0 forwards a float and a duration to volume 0x004b56e0."
+    },
+    {
+      "name": "cutscene volume wrapper",
+      "kind": "signature",
+      "va": "0x00611990",
+      "pattern": "8b 44 24 04 85 c0 74 1f 8b 4c 24 0c d9 44 24 08 51 51 8b 88 14 01 00 00 d9 1c 24 e8 d0 98 ff ff 8b c8 e8 29 3d ea ff c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff",
+      "note": "0x00611990 forwards a float and a duration to volume 0x004b56e0."
+    },
+    {
+      "name": "bgm clip arguments",
+      "kind": "signature",
+      "va": "0x0081c029",
+      "pattern": "8b 54 24 10 52 8b 57 18 52 8b 57 14 52 8b 57 20 52 50 e8 c0 58 df ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "RaptureBgmClip slot 1 pushes clip data +0x20, +0x14 and +0x18 and a flag, then calls 0x00611900."
+    },
+    {
+      "name": "bgm clip flag compare",
+      "kind": "signature",
+      "va": "0x0081c003",
+      "pattern": "8b 13 8b f0 8b 42 10 8b cb ff d0 3b c6 5b 75 05 c6 44 24 10 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "RaptureBgmClip slot 1 sets the flag byte to 1 when the target's id (virtual +0x10) equals the id derived from the ProxyActor name."
+    },
+    {
+      "name": "bgm clip proxy actor cell",
+      "kind": "dwords",
+      "va": "0x012b7f34",
+      "values": [
+        "0x00fb945c"
+      ],
+      "note": "Pointer to the string ProxyActor."
+    },
+    {
+      "name": "proxy actor name",
+      "kind": "string",
+      "va": "0x00fb945c",
+      "text": "ProxyActor",
+      "note": "Name string reached through the cell at 0x012b7f34."
+    },
+    {
+      "name": "unreferenced play helper",
+      "kind": "signature",
+      "va": "0x00687c40",
+      "pattern": "d9 e8 8b 44 24 04 6a 00 51 8b 49 7c d9 1c 24 50 e8 ab f8 e4 ff 8b c8 e8 f4 f9 e2 ff c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff",
+      "note": "0x00687c40: request(arg, 1.0, 0) on the object at +0x7c; no call or dword reference exists."
+    },
+    {
+      "name": "unreferenced stop helper",
+      "kind": "signature",
+      "va": "0x00687c60",
+      "pattern": "8b 49 7c 68 d0 07 00 00 e8 93 f8 e4 ff 8b c8 e8 1c da e2 ff c3",
+      "mask": "ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff",
+      "note": "0x00687c60: release(2000) on the object at +0x7c; no call or dword reference exists."
+    },
+    {
+      "name": "bgm clip slot 1 cell",
+      "kind": "dwords",
+      "va": "0x0100d4a8",
+      "values": [
+        "0x0081bfb0"
+      ],
+      "note": "Slot 1 of Application::Scene::Cut::Clip::RaptureBgmClip is 0x0081bfb0."
+    },
+    {
+      "name": "bgm clip stop name",
+      "kind": "string",
+      "va": "0x0109b3d4",
+      "text": "BGMStopClip",
+      "note": "Name string of the engine clip BGMStopClip."
+    },
+    {
+      "name": "bgm clip volume name",
+      "kind": "string",
+      "va": "0x0109b3c4",
+      "text": "BGMVolumeClip",
+      "note": "Name string of the engine clip BGMVolumeClip."
+    },
+    {
+      "name": "bgm clip name",
+      "kind": "string",
+      "va": "0x00fbcb5c",
+      "text": "RaptureBgmClip",
+      "note": "Name string of RaptureBgmClip."
+    },
+    {
+      "name": "parameter driver body",
+      "kind": "signature",
+      "va": "0x00588f60",
+      "pattern": "83 ec 08 56 8b f1 8b 4e 7c e8 42 f7 f4 ff 3b c6 0f 85 85 00 00 00 8b 86 f0 00 00 00 83 f8 0f 74 05 83 f8 5b 75 52 d9 86 68 08 00 00 57 dc 0d 18 7b fa 00 6a 01 8b ce 33 ff d9 5c 24 0c d9 44 24 0c dd 5c 24 0c e8 96 5b 00 00 dd 44 24 08 df f1 dd d8 76 05 bf 01 00 00 00 8b 4e 7c 57 6a 00 e8 3c e5 f4 ff 8b c8 e8 75 c7 f2 ff 80 a6 74 02 00 00 fb 5f 5e 83 c4 08 c3 f6 86 74 02 00 00 04 75 1a 8b 4e 7c 6a ff 6a 01 e8 13 e5 f4 ff 8b c8 e8 4c c7 f2 ff 80 8e 74 02 00 00 04 5e 83 c4 08 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "CharaElement parameter updater: local element, state 0x0f or 0x5b at +0xf0, product with 30.0 against the parameter table, cell 0 write, and cell 1 replay otherwise."
+    },
+    {
+      "name": "parameter driver scale",
+      "kind": "dwords",
+      "va": "0x00fa7b18",
+      "values": [
+        "0x00000000",
+        "0x403e0000"
+      ],
+      "note": "Double 30.0 (low dword 0, high dword 0x403e0000)."
+    },
+    {
+      "name": "chara element slot 6 cell",
+      "kind": "dwords",
+      "va": "0x00fa7c68",
+      "values": [
+        "0x0058df90"
+      ],
+      "note": "CharaElement slot 6 is 0x0058df90, which calls the parameter driver."
+    },
+    {
+      "name": "parameter driver call",
+      "kind": "signature",
+      "va": "0x0058e018",
+      "pattern": "e8 43 af ff ff",
+      "mask": "ff 00 00 00 00",
+      "note": "Call to 0x00588f60 inside the CharaElement update."
+    },
+    {
+      "name": "reset site, DeleteAllActors",
+      "kind": "signature",
+      "va": "0x004dca5f",
+      "pattern": "3b 87 38 78 01 00 89 44 24 2c 75 17 68 00 00 00 c0 8b cf e8 09 cf ff ff 8d 8f 28 09 00 00 e8 be a8 fd ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "Opcode 0x0007 handler: the removed actor equals the local actor at owner +0x17838, then 0x004d9980(0xc0000000) and the reset."
+    },
+    {
+      "name": "reset site, RemoveActor",
+      "kind": "signature",
+      "va": "0x004dcd1e",
+      "pattern": "3b b7 38 78 01 00 75 17 68 00 00 00 c0 8b cf e8 4e cc ff ff 8d 8f 28 09 00 00 e8 03 a6 fd ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "Opcode 0x00cb handler: the actor equals the local actor, then 0x004d9980(0xc0000000) and the reset."
+    },
+    {
+      "name": "reset site, opcode 0x0004",
+      "kind": "signature",
+      "va": "0x004dce6d",
+      "pattern": "84 c0 0f 85 6b ff ff ff 8d 8f 28 09 00 00 e8 c0 a4 fd ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "Opcode 0x0004 handler: the reset follows the actor-map loop and runs unconditionally once the loop ends."
+    },
+    {
+      "name": "reset site, state helper",
+      "kind": "signature",
+      "va": "0x004d6a50",
+      "pattern": "56 57 8b f9 8d b7 28 09 00 00 8b ce e8 df 08 fe ff 6a 64 6a 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff",
+      "note": "0x004d6a50 resets the module and then rebuilds other state."
+    },
+    {
+      "name": "reset site, application update",
+      "kind": "signature",
+      "va": "0x004db457",
+      "pattern": "8d 8b 28 09 00 00 e8 de be fd ff",
+      "mask": "ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "Reset inside 0x004daf00."
+    },
+    {
+      "name": "receive dispatcher low targets",
+      "kind": "dwords",
+      "va": "0x004dd3d0",
+      "values": [
+        "0x004dcc2c",
+        "0x004dc750",
+        "0x004dcd4c",
+        "0x004dcbf7",
+        "0x004dc7d6",
+        "0x004dc8dc",
+        "0x004dc7e6",
+        "0x004dc82d",
+        "0x004dc869",
+        "0x004dc89d",
+        "0x004dcc12",
+        "0x004dcc65",
+        "0x004dcfff",
+        "0x004dcc92",
+        "0x004dccbf",
+        "0x004dccf6",
+        "0x004dd3a9"
+      ],
+      "note": "Target table of the low opcode range."
+    },
+    {
+      "name": "opcode index bytes 0x0004 to 0x0007",
+      "kind": "dwords",
+      "va": "0x004dd416",
+      "width": 1,
+      "values": [
+        "0x02",
+        "0x03",
+        "0x04",
+        "0x05"
+      ],
+      "note": "Index bytes of opcodes 0x0004 through 0x0007: 2, 3, 4, 5."
+    },
+    {
+      "name": "opcode index byte 0x00cb",
+      "kind": "dwords",
+      "va": "0x004dd4dd",
+      "width": 1,
+      "values": [
+        "0x0f"
+      ],
+      "note": "Index byte of opcode 0x00cb: 15."
+    },
+    {
+      "name": "env sound clip update cell",
+      "kind": "dwords",
+      "va": "0x0103959c",
+      "values": [
+        "0x008344a0"
+      ],
+      "note": "Slot 38 of the second LayRaptureEnvSoundClip table is the tick 0x008344a0."
+    },
+    {
+      "name": "env sound clip error text",
+      "kind": "string",
+      "va": "0x01039238",
+      "text": "[Lay][LayRaptureEnvSoundClip]Error: TargetInstance is not SE-InstObj\n",
+      "note": "Error text of the SE instance type check."
+    },
+    {
+      "name": "env sound clip type check",
+      "kind": "signature",
+      "va": "0x00834535",
+      "pattern": "ff d0 8b 10 8b c8 8b 42 04 ff d0 83 f8 06 74 3c 68 38 92 03 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Instance object type id must equal 6, otherwise the error text is logged."
+    },
+    {
+      "name": "env sound clip window check",
+      "kind": "signature",
+      "va": "0x008345aa",
+      "pattern": "8b 84 24 d4 04 00 00 3b c7 7c 04 3b c3 7c 0a c6 44 24 14 00 e9 15 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "Tick time is compared with the clip start and end, and outside the window the enable byte is zero."
+    },
+    {
+      "name": "env sound clip enable hand-off",
+      "kind": "signature",
+      "va": "0x008346d8",
+      "pattern": "e8 43 36 fd ff 85 c0 74 15 8b 54 24 14 8b 46 38 52 50 e8 31 36 fd ff 8b c8 e8 3a 3d fd ff",
+      "mask": "ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff 00 00 00 00",
+      "note": "The manager at 0x00807d20 receives the clip's target and the enable byte through 0x00808430."
+    },
+    {
+      "name": "env sound enable hand-off is conditional",
+      "kind": "signature",
+      "va": "0x00808430",
+      "pattern": "83 ec 08 53 8a 5c 24 14 84 db 74 4f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x00808430 returns without a store when its enable byte is zero."
+    },
+    {
+      "name": "env sound enable byte store",
+      "kind": "signature",
+      "va": "0x00808482",
+      "pattern": "8b 56 10 88 5a 0c",
+      "mask": "ff ff ff ff ff ff",
+      "note": "The enable byte is stored at +0x0c of the manager entry."
+    },
+    {
+      "name": "env sound vtables",
+      "kind": "dwords",
+      "va": "0x00ff48d0",
+      "values": [
+        "0x008091e0",
+        "0x00807e80",
+        "0x011649d4",
+        "0x00809af0"
+      ],
+      "note": "EnvironmentSound slot 0 and 1, EnvironmentSoundManager slot 0 and 1."
+    },
+    {
+      "name": "env sound fade rate",
+      "kind": "signature",
+      "va": "0x00807ea8",
+      "pattern": "f3 0f 10 05 bc 40 ff 00 f3 0f 10 0d 70 4f f5 00 33 db 38 5c 24 34 74 03 0f 28 c1 38 5e 0c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Fade divisor 3.0, or 1.0 when the second argument byte is non-zero."
+    },
+    {
+      "name": "env sound fade step",
+      "kind": "signature",
+      "va": "0x00807ee1",
+      "pattern": "8b 44 24 30 f3 0f 2a 58 10 f3 0f 5a e3 f2 0f 10 1d 20 70 f6 00 f2 0f 5e e3 0f 5a c0 f2 0f 5a e4 f3 0f 5a e4 f2 0f 5e e0 f2 0f 5a c4 f3 0f 5a c0 0f 5a d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Volume increases by (ticks / 300000.0) / divisor, clamped to 1.0."
+    },
+    {
+      "name": "env sound fade out step",
+      "kind": "signature",
+      "va": "0x00808031",
+      "pattern": "f3 0f 10 4e 10 8b 54 24 30 0f 5a d1 f3 0f 2a 4a 10 0f 5a d9 f2 0f 10 0d 20 70 f6 00 0f 5a c0 f2 0f 5e d9 f2 0f 5a db f3 0f 5a db f2 0f 5e d8 f2 0f 5a c3 f3 0f 5a c0 f2 0f 5c d0 f2 0f 5a c2 0f 57 d2 f3 0f 11 44 24 30 f3 0f 11 46 10 0f 2f d0 0f 57 c0 8d 54 24 34 f2 0f 59 c1 f2 0f 2c c0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Volume decreases by the same step, and the handle is destroyed once the volume is below zero."
+    },
+    {
+      "name": "env sound enable byte reset",
+      "kind": "signature",
+      "va": "0x008080bd",
+      "pattern": "88 5e 0c",
+      "mask": "ff ff ff",
+      "note": "The enable byte at +0x0c is cleared at the end of every update."
+    },
+    {
+      "name": "env sound fade constants",
+      "kind": "dwords",
+      "va": "0x00ff40bc",
+      "values": [
+        "0x40400000"
+      ],
+      "note": "Float 3.0."
+    },
+    {
+      "name": "env sound tick divisor",
+      "kind": "dwords",
+      "va": "0x00f67020",
+      "values": [
+        "0x00000000",
+        "0x41124f80"
+      ],
+      "note": "Double 300000.0 (low dword 0, high dword 0x41124f80)."
+    },
+    {
+      "name": "cutscene begin active guard",
+      "kind": "signature",
+      "va": "0x00611c37",
+      "pattern": "38 9e 80 01 00 00 57 74 07 32 c0 5f 5e 5b 59 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Begin returns false at once when the active byte +0x180 is already set."
+    },
+    {
+      "name": "cutscene end active guard",
+      "kind": "signature",
+      "va": "0x00611d67",
+      "pattern": "38 9e 80 01 00 00 57 0f 84 4a 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "End returns without any action when the active byte +0x180 is clear."
+    },
+    {
+      "name": "cutscene end clears active",
+      "kind": "signature",
+      "va": "0x00611f35",
+      "pattern": "88 9e 80 01 00 00",
+      "mask": "ff ff ff ff ff ff",
+      "note": "End clears the active byte +0x180 after its restore steps."
+    },
+    {
+      "name": "cutscene end module calls",
+      "kind": "signature",
+      "va": "0x00611d74",
+      "pattern": "8b 8e 14 01 00 00 e8 01 95 ff ff d9 e8 8b 10 68 e8 03 00 00 51 8b c8 d9 1c 24 8b 42 08 ff d0 8b 8e 14 01 00 00 e8 e2 94 ff ff 8b 10 68 e8 03 00 00 8b c8 8b 42 1c 6a 0b ff d0",
+      "mask": "ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "End makes virtual +0x08 with (1.0, 1000) and virtual +0x1c with (0xb, 1000) on the object that 0x0060b280 returns."
+    },
+    {
+      "name": "cut message dispatch",
+      "kind": "signature",
+      "va": "0x0061c6ce",
+      "pattern": "8b 54 24 34 83 fa 03 8b 44 24 38 0f 87 8e 00 00 00 ff 24 95 80 c7 61 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff",
+      "note": "0x0061c6c0 takes a case index below 4 and jumps through the table at 0x0061c780."
+    },
+    {
+      "name": "cut message case 0",
+      "kind": "signature",
+      "va": "0x0061c6e6",
+      "pattern": "50 e8 e4 fd ff ff",
+      "mask": "ff ff 00 00 00 00",
+      "note": "Case 0 calls 0x0061c4d0 with the message pointer."
+    },
+    {
+      "name": "cut message case 2",
+      "kind": "signature",
+      "va": "0x0061c6fd",
+      "pattern": "50 e8 ed 2c ff ff",
+      "mask": "ff ff 00 00 00 00",
+      "note": "Case 2 calls the mode setter 0x0060f3f0 with the message pointer."
+    },
+    {
+      "name": "cut message begin call",
+      "kind": "signature",
+      "va": "0x0061c57b",
+      "pattern": "8b cf c7 87 24 02 00 00 00 00 00 00 e8 a4 56 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00",
+      "note": "0x0061c4d0 stores the message fields and calls the begin routine 0x00611c30."
+    },
+    {
+      "name": "reset site, opcode 0x0004 toggle",
+      "kind": "signature",
+      "va": "0x004dcd4c",
+      "pattern": "80 bf 4b 05 00 00 00 74 15 6a 01 8b cf c6 87 4b 05 00 00 00 e8 1b b3 ff ff e9 3f 06 00 00 33 f6 c6 87 4b 05 00 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 00 00 00 00 ff 00 00 00 00 ff ff ff ff ff ff ff ff ff",
+      "note": "Opcode 0x0004 handler: a set byte +0x54b is cleared and the handler calls 0x004d8080(1) and exits; a clear byte is set and the handler walks the actor map."
+    },
+    {
+      "name": "reset site, opcode 0x0004 loop entry",
+      "kind": "signature",
+      "va": "0x004dcdcb",
+      "pattern": "e8 a0 7f 46 00 84 c0 0f 84 9d 00 00 00 eb 06",
+      "mask": "ff 00 00 00 00 ff ff ff ff ff ff ff ff ff ff",
+      "note": "An empty actor map leaves the loop at once for the reset at 0x004dce75."
+    },
+    {
+      "name": "cut message mode setter",
+      "kind": "signature",
+      "va": "0x0060f3f0",
+      "pattern": "8b 44 24 04 8b 00 56 8b f1 39 86 e8 01 00 00 7d 06 89 86 e8 01 00 00 8b 8e 74 01 00 00 8b 11 8b 42 0c ff d0 84 c0 74 19 32 c0 83 be e4 01 00 00 00 75 10 c7 86 e4 01 00 00 01 00 00 00 5e c2 04 00 32 c0 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "0x0060f3f0 raises the mode dword +0x1e8 to the value its argument points at when that is larger, then may set the dword +0x1e4 that slot 141 tests."
+    },
+    {
+      "name": "cut manager slot 141 gate",
+      "kind": "signature",
+      "va": "0x0061c790",
+      "pattern": "56 8b f1 83 be e4 01 00 00 00 0f 84 8c 00 00 00 80 be ec 01 00 00 00 75 69 80 be c1 01 00 00 00 53 0f 95 c3 84 db 75 05",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 141 continues toward the end call only while the dword +0x1e4 is non-zero and the byte +0x1ec is clear, and it records whether the byte +0x1c1 is set."
+    },
+    {
+      "name": "generic sound request refuses class 0x07fe",
+      "kind": "signature",
+      "va": "0x007cf35c",
+      "pattern": "25 00 00 ff ff 3d 00 00 fe 07 75 16 32 c0 5f 5e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff",
+      "note": "The sound request path at 0x007cf320 returns false for resource class 0x07fe."
+    },
+    {
+      "name": "cut message jump table",
+      "kind": "dwords",
+      "va": "0x0061c780",
+      "values": [
+        "0x0061c6e6",
+        "0x0061c714",
+        "0x0061c6fd",
+        "0x0061c72b"
+      ],
+      "note": "Four-entry case table of 0x0061c6c0: case 0 begin, case 1 0x0060f440, case 2 mode setter, case 3 untraced."
+    },
+    {
+      "name": "cut manager slot 141 cell",
+      "kind": "dwords",
+      "va": "0x00fb8fd8",
+      "values": [
+        "0x0061c790"
+      ],
+      "note": "Slot 141 of Application::Scene::Actor::System::CutManagerActor."
+    },
+    {
+      "name": "cut manager slot 157 cell",
+      "kind": "dwords",
+      "va": "0x00fb9018",
+      "values": [
+        "0x0061c6c0"
+      ],
+      "note": "Slot 157 of Application::Scene::Actor::System::CutManagerActor."
+    },
+    {
+      "name": "cut manager slot 141 end call",
+      "kind": "signature",
+      "va": "0x0061c7e3",
+      "pattern": "84 db 5b 75 15 8b ce e8 71 55 ff ff c7 86 e4 01 00 00 00 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff 00 00 00 00 ff ff ff ff ff ff ff ff ff",
+      "note": "Slot 141 calls the end routine only when the recorded +0x1c1 test was clear, then clears +0x1e4."
+    }
+  ],
+  "cutChain": [
+    {
+      "name": "cut manager begin",
+      "va": "0x00611c30",
+      "sites": [
+        {
+          "site": "0x0061215a",
+          "role": "untraced caller"
+        },
+        {
+          "site": "0x0061c587",
+          "role": "message begin body 0x0061c4d0"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "cut manager end",
+      "va": "0x00611d60",
+      "sites": [
+        {
+          "site": "0x0061c7ea",
+          "role": "CutManagerActor slot 141"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "cut message begin body",
+      "va": "0x0061c4d0",
+      "sites": [
+        {
+          "site": "0x0061c6e7",
+          "role": "case 0 of the message handler"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "cut message mode setter",
+      "va": "0x0060f3f0",
+      "sites": [
+        {
+          "site": "0x0061c6fe",
+          "role": "case 2 of the message handler"
+        }
+      ],
+      "dataRefs": []
+    },
+    {
+      "name": "cut message handler",
+      "va": "0x0061c6c0",
+      "sites": [],
+      "dataRefs": [
+        "0x00fb9018"
+      ]
+    },
+    {
+      "name": "cut manager slot 141",
+      "va": "0x0061c790",
+      "sites": [],
+      "dataRefs": [
+        "0x00fb8fd8"
+      ]
+    }
+  ]
+}
