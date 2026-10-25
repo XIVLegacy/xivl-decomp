@@ -81,9 +81,12 @@ and tail-jumps to `0x00896F70`.
 
 That function selects a native binding `B`. It tests the owner key through
 `0x00CC7190`; a true result selects `B=T`, while false selects
-`B=0x00CC7A50(owner)` in the same context. The predicate reads metadata
-through `0x00CD80F0 -> 0x00D035D0`. Its runtime result is not established
-by the actor ID's high bits or the command sheet ID.
+`B=0x00CC7A50(owner)` in the same context. The predicate
+`0x00CD80F0 -> 0x00D035D0` compares bits 20 to 23 of the key with the byte at
+`0x0130D426` after a group-registration check. The
+[RunEventFunction binding](../event/event-base-callback-arguments.md#runeventfunction-binding)
+section owns the rule, its witness and its open conditions. The command sheet
+ID does not enter the predicate.
 
 Local preparation requires `B` nonzero, binding byte `+0x5C` nonzero, a
 nonzero object at `U+8` and its slot-4 readiness result. At `0x0089706F`,
@@ -222,8 +225,12 @@ Application SHA-256:
 
 The conditional matrix consumes `confirmLeve` as the method key. The third
 typed value becomes `A2`; it is present in the input, not an automatically
-inserted copy of the owner. This witness does not observe native binding
-resolution, the metadata predicate, Lua execution or a materia callback.
+inserted copy of the owner. The owner key has the group `0xF` shape
+(`(key >> 28) == 0xA` and `((key >> 20) & 0xF) == 0xF`), which
+selects `B=T` once that group is registered, as recorded in the
+[binding rule](../event/event-base-callback-arguments.md#runeventfunction-binding).
+This witness does not observe native binding resolution, Lua execution or a
+materia callback.
 
 The complete preserved outer/prefix-string census remains canonical in
 `xivl-captures:studies/local-guildleve-dialogue/README.md`, "Delegated

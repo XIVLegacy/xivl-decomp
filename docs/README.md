@@ -99,6 +99,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Director and quest framework](event/director-quest-framework.md)
 - [Director and quest hierarchy](event/director-quest-hierarchy.md)
 - [EndClientOrderEvent receiver](event/end-order-event-receiver.md)
+- [Event base callback arguments and admission](event/event-base-callback-arguments.md)
 - [Group and SharedWork system](event/group-shared-work-system.md)
 - [Group member name getter relationship](event/group-member-name-getters.md)
 - [Grand Company promotion presentation](event/grand-company-promotion.md)
