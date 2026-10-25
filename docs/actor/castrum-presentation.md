@@ -104,6 +104,25 @@ native motion-resource search, loaded-bank selection and successful playback
 remain separate from this equality. The selected BID bank's lack of
 cbbm_abl_3 does not establish its absence from other resources.
 
+The six matched records also have same-bank MCB and CIBT entries with those
+same final-component names. Original RESOURCE_TYPE values are `0x006D7462`
+for MTB, `0x006D6362` for MCB and `0x63696274` for CIBT. File offsets and
+payload byte counts for the companion entries are:
+
+| Bank | Name | MCB offset / bytes | CIBT offset / bytes |
+|---|---|---|---|
+| bid/0000 | cbbm_ded | 0x1df50 / 760 | 0x1e248 / 44 |
+| bid/0000 | cbbm_abl_1 | 0xffe0 / 592 | 0x10230 / 64 |
+| wss/0001 | cbbm_sp_a01 | 0x3a18 / 592 | 0x3c68 / 64 |
+| wss/0002 | cbbm_sp_a02 | 0x4d58 / 592 | 0x4fa8 / 64 |
+| wss/0003 | cbbm_sp_b01 | 0x4128 / 592 | 0x4378 / 64 |
+
+The [native request](../resource/motion-resource-request.md) first tests
+MCB availability through the actor's current resource provider before querying
+MCB, MTB and CIBT again. These authored companion entries do not identify that
+provider or prove lookup success. The selected BID bank has no MCB or CIBT
+name match for cbbm_abl_3 either. The companion payloads were not decoded here.
+
 All seven records are 0x2c bytes. They have `u8(D+0x14)=0x20`,
 `u8(D+0x15)=1`, `s32(D+0x1c)=0`, `u16(D+0x24)=100` and
 `u8(D+0x26)=1`. The remaining request words are:

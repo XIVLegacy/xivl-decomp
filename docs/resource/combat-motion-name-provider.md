@@ -135,6 +135,10 @@ Class construction, name selection, a same-bank MTB name match and successful
 native playback remain separate claims. No command ID, F-1/H-1 assignment,
 spawn, phase or authoritative AI follows from these paths.
 
+The [native motion request](motion-resource-request.md) follows the returned
+name into the MCB availability test, typed resource queries and immediate
+request submission. The actor's concrete resource provider remains separate.
+
 ## Reproduction
 
 Authenticate the PE above and map each VA through its section table using
