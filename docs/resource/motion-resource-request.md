@@ -4,8 +4,9 @@ RaptureMotionClip supplies its resolved name and request to `0x007B9920`.
 That method first tests MCB availability, then queries CIBT, MCB and MTB
 resources and companion names through the actor's resource interface.
 A matching MTB name in an authored bank does not establish acceptance or
-playback. The concrete resource provider and lower motion-object conversion
-remain unresolved.
+playback. A [provider initialization and search profile](actor-motion-resource-provider.md)
+qualifies a concrete implementation conditionally. Selected root contents and
+the lower motion-object conversion remain unresolved.
 
 ## Evidence identity
 
@@ -58,11 +59,13 @@ unchanged to virtual +0x10 of B=`u32(A+8)` and returns its result.
 
 The later helper `0x00662720(A,type,name)` converts the name in the same
 way and calls the same actor virtual +0x10. Neither wrapper implements a
-string search or RES traversal. B's concrete table, resource roots, bank
-order, duplicate-name precedence and loading behavior remain unproved.
-The exact unresolved search edge is the indirect call at `0x006206D9`.
-Co-resident resource entries cannot substitute for the identity and state
-of this provider.
+string search or RES traversal. The wrappers alone do not identify B's concrete
+table, resource roots, bank order, duplicate-name precedence or loading behavior.
+The [provider construction profile](actor-motion-resource-provider.md)
+qualifies that indirect call at `0x006206D9` when its CharaActor initialization
+path executes and retains the resulting RaptureReferenceResource. Its actual
+root vector, order and fallback graph at a selected lookup remain unproved.
+Co-resident resource entries cannot substitute for those identities and state.
 
 ## Request assembly
 
@@ -136,6 +139,7 @@ owns original name and companion-resource matches.
 
 These observations establish a typed name interface and conditional request
 submission. They do not bind a selected bank to the actor's current provider,
-prove disk loading, recover a concrete resource search algorithm, establish
-successful lower request handling or observe playback. They supply no
+prove disk loading, establish successful lower request handling or observe
+playback. The linked provider profile owns its conditional search algorithm.
+These findings supply no
 command, variant, spawn, phase or authoritative encounter policy.
