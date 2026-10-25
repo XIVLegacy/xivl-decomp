@@ -16,6 +16,7 @@ import build_achievement_title_map as achievement_title_map_builder
 import verify_camera_input_chain as camera_input_verifier
 import verify_chara_lighting_model as chara_lighting_verifier
 import verify_chara_presentation_consumers as chara_presentation_verifier
+import verify_client_music_initiators as client_music_verifier
 import verify_combat_result_element as combat_result_element_verifier
 import verify_emote_animation_catalog as emote_animation_verifier
 import verify_grow_data_boundary as grow_data_verifier
@@ -479,6 +480,13 @@ def main() -> int:
     if sound_effect_errors:
         errors.extend(
             f"sound effect trigger contract: {error}" for error in sound_effect_errors
+        )
+    client_music_errors = (
+        client_music_verifier.verify() + client_music_verifier.mutation_test()
+    )
+    if client_music_errors:
+        errors.extend(
+            f"client music initiator contract: {error}" for error in client_music_errors
         )
     combat_result_errors = (
         combat_result_element_verifier.verify()

@@ -329,6 +329,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Native seasonal switch using existing DATs](resource/native-stock-seasonal-switch.md)
 - [Qix effect resource container](resource/vfx-qix-resource-container.md)
 - [VFX effect family](resource/vfx-effect-family.md)
+- [Client-initiated music](resource/client-music-initiators.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)
 - [Music song-ID names and evidence](resource/music-song-names.md)

@@ -348,7 +348,9 @@ region, combat or time input reaches the derivation. The
 [sender policy](../net/music-control-runtime.md#sender-policy-and-remaining-inputs)
 section of the control page lists the inputs that remain open.
 
-Three other places were checked for a client default, and none was found.
+The [client-initiated music page](client-music-initiators.md) lists every native
+start of the music slots. None is driven by a zone, region, layout or time of
+day. Three other places were checked for a client default, and none was found.
 
 - The decoded client Lua index
   (`xivl-client-scripts:lua/napi_index.json`, `apis._setMusic`) lists three call
