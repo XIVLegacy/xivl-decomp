@@ -390,6 +390,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Widget work members](script/widget-work-members.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Player LogControl producers and English row availability](script/logcontrol-player-producer.md)
+- [WorldMaster message-pool text lookup](script/worldmaster-message-pool.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)
 - [Virtual-item creation completion](script/virtual-item-creation.md)
 - [Widget string call sites](script/widget-string-call-sites.md)

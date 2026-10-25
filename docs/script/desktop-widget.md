@@ -147,14 +147,19 @@ The main file's overrides + Lua-defined methods include:
 
 | Method | Forwards to |
 |---|---|
-| `showMessage(self, ...)` | Wraps `_appendMessagePool` |
-| `showLog(self, target, kind, ...)` | Wraps `_appendLogPool` (called by `worldMaster:say` with kind=32, `worldMaster:notify` with kind=33) |
+| `showMessage(self, ...)` | Wraps `_appendMessagePool`; `WorldMaster.say` supplies literal 40 |
+| `showLog(self, target, kind, ...)` | Wraps `_appendLogPool`; `WorldMaster.notify` supplies literal 32 and `WorldMaster.alert` supplies literal 33 |
 | `notify(self, ...)` | Convenience wrapper |
 | `cancelAllTarget(self)` | Clears all targeting via `_setTargetCharacter(nil)` etc. |
 | `cueAttentionOnClient(self, ...)` | Trigger attention cue |
 | `openPublicInformDialogWidget(self, ...)` | Open the public-info popup |
 | `recordRequestInformation(self, ...)` | Record info-request action |
 | `updateBazaarPackage(self, ...)` | Bazaar inventory refresh |
+
+The say/notify/alert caller associations are documented in
+[WorldMaster message arguments](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/worldmaster-message-arguments.md),
+using `world/worldmaster_event.lua:111-156` and
+`widget/desktopwidget.lua:369-402`, with source and original-resource identities.
 
 ## DesktopWidget_connector (26,564 LOC, 1,135 method refs)
 
