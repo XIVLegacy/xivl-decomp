@@ -37,6 +37,12 @@ load the normal item character bank. `0x00799c90` loads
 `/client/vfx/itm/%04d.bin` for route kinds 6 and 7 only when the low
 `effectBank` field is nonzero.
 
+The [character-bank root publication path](../resource/actor-motion-resource-provider.md#character-bank-request-and-root-publication)
+distinguishes the pending load handle from a decoded root and traces
+conditional insertion into the owner's resource lookup vector. The request
+record index is separate from that vector's insertion position; actual
+delivery and retained bank/actor state remain required.
+
 ## Raid-dungeon warp bank
 
 The retail `RaidDungeonWarp.activateWarpDevice` client method requests

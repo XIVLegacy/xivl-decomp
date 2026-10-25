@@ -92,8 +92,12 @@ n-to-b fallback. The table records supplied names and stored pointer results,
 without proving that any query succeeds.
 
 The low byte of Q+0x48 receives `u8(M+0xA9)` before that counter increments
-(`0x007B9A7F..0x007B9AA8`). Increment wrap replaces zero with 1. The initial
-counter value was not traced. Return AL is loaded from Q+0x48 at
+(`0x007B9A7F..0x007B9AA8`). Increment wrap replaces zero with 1. Constructor
+`0x007B20C0` writes 1 at M+0xA9 at `0x007B2128`, before its reset call
+`0x007ABEF0`. The counter at a selected request remains a state condition.
+The [constructor owner profile](actor-motion-resource-provider.md#constructor-owner-profile)
+also identifies the actor supplied to M+4 and the action controller's owner
+field, without proving the selected callback's target. Return AL is loaded from Q+0x48 at
 `0x007B9C49`; it is not the lower routine's success result. A nonzero return
 therefore does not prove playback.
 
