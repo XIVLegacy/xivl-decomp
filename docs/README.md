@@ -231,6 +231,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt RangeBase float ValueChanged production](resource/sqwt-range-value-changed.md)
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
+- [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Bitmap font flag-bit-0x02 shader consumers](resource/bitmap-font-edge-shader-consumers.md)
