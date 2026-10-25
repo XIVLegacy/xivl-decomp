@@ -32,6 +32,7 @@ import verify_s2c_0193_native_state as s2c_0193_state_verifier
 import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 import verify_status_wire_translation as status_wire_verifier
 import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
+import verify_scb_clip_classes as scb_clip_class_verifier
 import verify_sound_effect_triggers as sound_effect_verifier
 import verify_sun_moon_orientation as sun_moon_verifier
 import verify_vfx_qix_resource as vfx_qix_verifier
@@ -462,6 +463,14 @@ def main() -> int:
     if vfx_qix_errors:
         errors.extend(
             f"Qix effect resource contract: {error}" for error in vfx_qix_errors
+        )
+    scb_clip_class_errors = (
+        scb_clip_class_verifier.verify() + scb_clip_class_verifier.mutation_test()
+    )
+    if scb_clip_class_errors:
+        errors.extend(
+            f"cut scheduler clip class contract: {error}"
+            for error in scb_clip_class_errors
         )
     sound_effect_errors = (
         sound_effect_verifier.verify() + sound_effect_verifier.mutation_test()

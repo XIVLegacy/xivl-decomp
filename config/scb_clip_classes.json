@@ -1,0 +1,2529 @@
+{
+  "format": "xivl-scb-clip-classes-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "size": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "method": "Disassembly listings from capstone 5.0.7 over the pinned image and ghidra-cli 0.2.2 queries on Ghidra 12.1.4 were treated as leads. Every instruction sequence, table and string below is confirmed against the pinned bytes by tools/verify_scb_clip_classes.py --exe. The install census and invariants are recomputed by tools/verify_scb_clip_classes.py --install.",
+    "companionEvidence": [
+      "xivl-decomp:docs/resource/cut-scheduler-clip-layout.md",
+      "xivl-decomp:docs/resource/cut-collision-clip-corpus.md",
+      "xivl-decomp:docs/resource/scb-clip-factory-composition.md",
+      "xivl-decomp:docs/resource/attribute-resource-and-scene-binding.md",
+      "xivl-decomp:docs/resource/cut-scheduler-clip-class-census.csv"
+    ]
+  },
+  "registry": {
+    "managerSlot3Registrar": "0x00635760",
+    "baseRegistrar": "0x00a4c2a0",
+    "insert": "0x0063f710",
+    "erase": "0x0063f920",
+    "registrySingleton": "0x00a02360",
+    "boundary": "The registry object is u32(u32(S+0x6c))+8 for the singleton S returned by 0x00a02360, the same object the published layout page names. The Rapture group of 0x00635760 also re-registers some keys in the registry of a second singleton returned by 0x00a65600 and in the Lay registry. Those groups were not followed."
+  },
+  "common": {
+    "phases": [
+      {
+        "state": 1,
+        "va": "0x00a20f30",
+        "check": "base begin stores state 1 and target",
+        "note": "Base begin method called by slot 1 of every class here. It also stores the value returned by 0x00a20110 at clip +0x24."
+      },
+      {
+        "state": 2,
+        "va": "0x00a20f90",
+        "check": "base update promotes state 1 to 2",
+        "note": "Base update, slot 2."
+      },
+      {
+        "state": 3,
+        "va": "0x00a21000",
+        "check": "base accessor end state",
+        "note": "Slot 3."
+      },
+      {
+        "state": 4,
+        "va": "0x00a21010",
+        "check": "base accessor stop state",
+        "note": "Slot 4. Also clears bit 16 of clip +0x30."
+      }
+    ],
+    "headerAccessors": [
+      {
+        "slot": 5,
+        "va": "0x00a21030",
+        "reads": "u8(D+2)",
+        "check": "base accessor class ordinal"
+      },
+      {
+        "slot": 6,
+        "va": "0x00a21060",
+        "reads": "u8(D+3)",
+        "check": "base accessor actor ordinal"
+      },
+      {
+        "slot": 7,
+        "va": "0x00a21070",
+        "reads": "u32(D+4)",
+        "check": "base accessor raw value"
+      },
+      {
+        "slot": 8,
+        "va": "0x00a21080",
+        "reads": "jumps through slot 7",
+        "check": "base accessor default length"
+      },
+      {
+        "slot": 20,
+        "va": "0x00a21170",
+        "reads": "s16(D+0x0c)",
+        "check": "base accessor header word +0x0C"
+      },
+      {
+        "slot": 22,
+        "va": "0x00a21190",
+        "reads": "s16(D+0x08)",
+        "check": "base accessor header word +0x08"
+      },
+      {
+        "slot": 23,
+        "va": "0x00a211a0",
+        "reads": "u8(D+0x0a)",
+        "check": "base accessor header byte +0x0A"
+      },
+      {
+        "slot": 25,
+        "va": "0x00a211b0",
+        "reads": "bit 0 of u8(D+0x0b)",
+        "check": "base accessor header flag bit 0"
+      },
+      {
+        "slot": 26,
+        "va": "0x00a211f0",
+        "reads": "bit 2 of u8(D+0x0b)",
+        "check": "base accessor header flag bit 2"
+      },
+      {
+        "slot": 27,
+        "va": "0x00a211d0",
+        "reads": "bit 1 of u8(D+0x0b)",
+        "check": "base accessor header flag bit 1"
+      }
+    ]
+  },
+  "classes": [
+    {
+      "name": "SetPosClip",
+      "rank": 1,
+      "clips": 33078,
+      "schedulers": 689,
+      "registration": {
+        "origin": "rapture override",
+        "eraseKeyLiteral": "0x00fbd154",
+        "keyLiteral": "0x00fbd160",
+        "factory": "0x0063bd90",
+        "insertSite": "0x00636ab4",
+        "eraseSite": "0x00636a86",
+        "baseKeyLiteral": "0x0109b7ac",
+        "baseFactory": "0x00a4db10",
+        "baseInsertSite": "0x00a4c434"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x00829fc0",
+        "primaryVtable": "0x0102f44c",
+        "typeDescriptor": "0x012cdfc8",
+        "rtti": ".?AVRaptureSetPosClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0082a080",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00829f90"
+      },
+      "record": {
+        "span": 63,
+        "linkRule": "0x40",
+        "tail": "D+0x40, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorA.x",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 12 when the paired flag byte is nonzero.",
+          "meaning": "position x",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorA.y",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 12 when the paired flag byte is nonzero.",
+          "meaning": "position y",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorA.z",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 12 when the paired flag byte is nonzero.",
+          "meaning": "position z",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x34",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorA.x override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorA.x."
+        },
+        {
+          "offset": "0x35",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorA.y override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorA.y."
+        },
+        {
+          "offset": "0x36",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorA.z override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorA.z."
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorB.x",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 14 when the paired flag byte is nonzero.",
+          "meaning": "rotation in radians x",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorB.y",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 14 when the paired flag byte is nonzero.",
+          "meaning": "rotation in radians y",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorB.z",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 14 when the paired flag byte is nonzero.",
+          "meaning": "rotation in radians z",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x38",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorB.x override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorB.x."
+        },
+        {
+          "offset": "0x39",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorB.y override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorB.y."
+        },
+        {
+          "offset": "0x3a",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorB.z override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorB.z."
+        },
+        {
+          "offset": "0x28",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorC.x",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 16 when the paired flag byte is nonzero.",
+          "meaning": "scale x",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x2c",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorC.y",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 16 when the paired flag byte is nonzero.",
+          "meaning": "scale y",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x30",
+          "width": 4,
+          "type": "f32",
+          "field": "vectorC.z",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Replaces the matching component of the current vector fetched through target slot 16 when the paired flag byte is nonzero.",
+          "meaning": "scale z",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x3c",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorC.x override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorC.x."
+        },
+        {
+          "offset": "0x3d",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorC.y override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorC.y."
+        },
+        {
+          "offset": "0x3e",
+          "width": 1,
+          "type": "u8",
+          "field": "vectorC.z override flag",
+          "tier": "STATIC",
+          "check": "SetPosClip component overrides",
+          "feeds": "Nonzero keeps the authored vectorC.z."
+        },
+        {
+          "offset": "0x37",
+          "width": 1,
+          "type": "u8",
+          "field": "setter flag source",
+          "tier": "STATIC",
+          "check": "SetPosClip inverted byte 0x37",
+          "feeds": "Bit 0 is inverted by 0x0082a2c2 and passed as the last argument of CharaActor setters 0x0065e660 and 0x0065e690."
+        }
+      ]
+    },
+    {
+      "name": "MotionClip",
+      "rank": 2,
+      "clips": 22085,
+      "schedulers": 670,
+      "registration": {
+        "origin": "rapture override",
+        "eraseKeyLiteral": "0x00fbd21c",
+        "keyLiteral": "0x00fbd228",
+        "factory": "0x0063c180",
+        "insertSite": "0x00636cdd",
+        "eraseSite": "0x00636caf",
+        "baseKeyLiteral": "0x0109b778",
+        "baseFactory": "0x00a4dcd0",
+        "baseInsertSite": "0x00a4c4b8"
+      },
+      "object": {
+        "size": "0x00000060",
+        "constructor": "0x0082ef70",
+        "primaryVtable": "0x010337ec",
+        "typeDescriptor": "0x012ce794",
+        "rtti": ".?AVRaptureMotionClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0082f120",
+        "slot2": "0x0082f4f0",
+        "slot8": "0x0082f110",
+        "slot29": "0x0082faa0"
+      },
+      "record": {
+        "span": 39,
+        "linkRule": "0x2c",
+        "tail": "D+0x2c, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "s32",
+          "field": "name index",
+          "tier": "STATIC",
+          "check": "MotionClip begin reads name index",
+          "feeds": "Negative: the clip calls its slot 18 with 1 and its slot 12 with 0 and returns. Otherwise the index is passed to slot 3 of the scheduler name object at +0x74, which fills a 16 byte name record."
+        },
+        {
+          "offset": "0x14",
+          "width": 1,
+          "type": "u8",
+          "field": "flags",
+          "tier": "STATIC",
+          "check": "MotionClip flag byte 0x14 and byte 0x26",
+          "feeds": "Bit 2 is stored in a request byte, bit 6 in clip +0x44 and a request byte, and bit 7 selects the selector branches. Bits 0, 1, 3, 4 and 5 are not read."
+        },
+        {
+          "offset": "0x15",
+          "width": 1,
+          "type": "u8",
+          "field": "selector byte",
+          "tier": "STATIC",
+          "check": "MotionClip selector branches",
+          "feeds": "The value 0xff becomes the signed integer -1 and any other value becomes its signed byte value minus 1. The result reaches the request only when bit 7 of +0x14 is set and bit 6 is clear. With bit 6 set the request word is -1 when bit 7 is set and 0 otherwise. With both clear it is 0. A result of -1 also makes the clip call its slot 12 with 2."
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "u32",
+          "field": "slot 8 value",
+          "tier": "STATIC",
+          "check": "MotionClip slot 8 length",
+          "feeds": "Returned by clip slot 8."
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "s32",
+          "field": "scaled word 0x1c",
+          "tier": "STATIC",
+          "check": "MotionClip fields 0x1c and 0x20",
+          "feeds": "Divided by 10000 with truncation toward zero. The low 16 bits are stored in a request word."
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "s32",
+          "field": "scaled word 0x20",
+          "tier": "STATIC",
+          "check": "MotionClip fields 0x1c and 0x20",
+          "feeds": "Divided by 10000 with truncation toward zero. The low 16 bits are stored in a request word, except that 0 is stored when bit 6 of +0x14 is set or when bit 7 is set and the selector result is nonzero."
+        },
+        {
+          "offset": "0x24",
+          "width": 2,
+          "type": "u16",
+          "field": "scale word",
+          "tier": "STATIC",
+          "check": "MotionClip fields 0x24 and 0x15",
+          "feeds": "Divided by 100.0 and multiplied by a local float that starts at 1.0.",
+          "meaning": "speed in percent",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x26",
+          "width": 1,
+          "type": "u8",
+          "field": "flag byte",
+          "tier": "STATIC",
+          "check": "MotionClip flag byte 0x14 and byte 0x26",
+          "feeds": "Nonzero is stored in a request byte."
+        }
+      ]
+    },
+    {
+      "name": "ShowHideClip",
+      "rank": 3,
+      "clips": 21581,
+      "schedulers": 621,
+      "registration": {
+        "origin": "rapture override",
+        "eraseKeyLiteral": "0x00fbd1a4",
+        "keyLiteral": "0x00fbd1b4",
+        "factory": "0x0063bf40",
+        "insertSite": "0x00636ba1",
+        "eraseSite": "0x00636b73",
+        "baseKeyLiteral": "0x0109b79c",
+        "baseFactory": "0x00a4db80",
+        "baseInsertSite": "0x00a4c455"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x0082ddb0",
+        "primaryVtable": "0x0103146c",
+        "typeDescriptor": "0x012ce228",
+        "rtti": ".?AVRaptureShowHideClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0082de70",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 17,
+        "linkRule": "0x14",
+        "tail": "D+0x14, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 1,
+          "type": "u8",
+          "field": "operand byte",
+          "tier": "STATIC",
+          "check": "ShowHideClip visibility call",
+          "feeds": "Compared with 1 and passed as a boolean to slot 2 of the object at RaptureActor +0x9c, with the RaptureActor as first argument.",
+          "meaning": "1 shows and 0 hides",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RapturePhysicsLookAtClip",
+      "rank": 4,
+      "clips": 15619,
+      "schedulers": 620,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcce4",
+        "factory": "0x0063a5f0",
+        "insertSite": "0x00636307"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x00821a80",
+        "primaryVtable": "0x0101564c",
+        "typeDescriptor": "0x012cbc18",
+        "rtti": ".?AVRapturePhysicsLookAtClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00821b40",
+        "slot2": "0x00821a70",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 52,
+        "linkRule": "0x34",
+        "tail": "D+0x14, returned by the shared slot 29 method 0x00823ce0. It is not the record end."
+      },
+      "fields": [
+        {
+          "offset": "0x14",
+          "width": 1,
+          "type": "u8",
+          "field": "target flag",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip bytes 0x14 to 0x17 and float 0x18",
+          "feeds": "Pushed to the three look-at setters. In mode 0 a nonzero value also selects the target-actor branch."
+        },
+        {
+          "offset": "0x15",
+          "width": 1,
+          "type": "u8",
+          "field": "channel 0 enable",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip bytes 0x14 to 0x17 and float 0x18",
+          "feeds": "The loop pass with index 0 runs only when this byte is nonzero."
+        },
+        {
+          "offset": "0x16",
+          "width": 1,
+          "type": "u8",
+          "field": "channel 1 enable",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip bytes 0x14 to 0x17 and float 0x18",
+          "feeds": "The loop pass with index 1 runs only when this byte is nonzero."
+        },
+        {
+          "offset": "0x17",
+          "width": 1,
+          "type": "u8",
+          "field": "setter flag",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip bytes 0x14 to 0x17 and float 0x18",
+          "feeds": "Pushed to the three look-at setters."
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "f32",
+          "field": "float 0x18",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 1 angles",
+          "feeds": "Stored in a local float that the mode 1 and mode 2 calls push as their first float argument, ahead of the angles or vector."
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "u32",
+          "field": "mode",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode switch",
+          "feeds": "0, 1 and 2 select the three branches below. Any other value runs no branch."
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "s32",
+          "field": "target actor ordinal",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 0 target ordinal",
+          "feeds": "Negative with the target flag set takes the error branch at 0x00821fae that logs the missing-target error text. Otherwise looked up as an actor ordinal and cast to CharaActor.",
+          "when": "mode 0"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "s32",
+          "field": "node index",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 0 node index",
+          "feeds": "Passed to scheduler lookup 0x00a20080.",
+          "when": "mode 0"
+        },
+        {
+          "offset": "0x28",
+          "width": 4,
+          "type": "f32",
+          "field": "offset.x",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 0 offset vector",
+          "feeds": "Copied to the offset vector passed to 0x0065e730.",
+          "when": "mode 0"
+        },
+        {
+          "offset": "0x2c",
+          "width": 4,
+          "type": "f32",
+          "field": "offset.y",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 0 offset vector",
+          "feeds": "Copied to the offset vector passed to 0x0065e730.",
+          "when": "mode 0"
+        },
+        {
+          "offset": "0x30",
+          "width": 4,
+          "type": "f32",
+          "field": "offset.z",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 0 offset vector",
+          "feeds": "Copied to the offset vector passed to 0x0065e730.",
+          "when": "mode 0"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "f32",
+          "field": "angle 0",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 1 angles",
+          "feeds": "Multiplied by pi and divided by 180.0 before the call to 0x00662be0.",
+          "when": "mode 1",
+          "meaning": "degrees",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "f32",
+          "field": "angle 1",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 1 angles",
+          "feeds": "Multiplied by pi and divided by 180.0 before the call to 0x00662be0.",
+          "when": "mode 1",
+          "meaning": "degrees",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "f32",
+          "field": "point.x",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 2 vector",
+          "feeds": "Copied to the vector passed to 0x0065e7c0.",
+          "when": "mode 2"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "f32",
+          "field": "point.y",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 2 vector",
+          "feeds": "Copied to the vector passed to 0x0065e7c0.",
+          "when": "mode 2"
+        },
+        {
+          "offset": "0x28",
+          "width": 4,
+          "type": "f32",
+          "field": "point.z",
+          "tier": "STATIC",
+          "check": "PhysicsLookAtClip mode 2 vector",
+          "feeds": "Copied to the vector passed to 0x0065e7c0.",
+          "when": "mode 2"
+        }
+      ]
+    },
+    {
+      "name": "ClipSyncClip",
+      "rank": 5,
+      "clips": 14001,
+      "schedulers": 689,
+      "registration": {
+        "origin": "base only",
+        "baseKeyLiteral": "0x0109b7e8",
+        "baseFactory": "0x0063c570",
+        "baseInsertSite": "0x00a4c3b0"
+      },
+      "object": {
+        "size": "0x0000003c",
+        "constructor": "0x00a100d0",
+        "primaryVtable": "0x0109604c",
+        "typeDescriptor": "0x012ec7d0",
+        "rtti": ".?AVClipSyncClip@Plugins@Cut@Engine@CDev@SQEX@@",
+        "slot1": "0x00a100b0",
+        "slot2": "0x00a10120",
+        "slot8": "0x00a21080",
+        "slot29": "0x00a10210"
+      },
+      "record": {
+        "span": 22,
+        "linkRule": "(0x14 + 2n + 3) & ~3 with n = u16(D+0x10) & 0x7fff",
+        "tail": "D + ((2n + 0x19) & ~3). This is the record end for odd n and 4 bytes past it for even n."
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 2,
+          "type": "u16",
+          "field": "count and mode",
+          "tier": "STATIC",
+          "check": "ClipSyncClip update reads header word",
+          "feeds": "Bits 0 to 14 are the count n. Bit 15 selects the all-finished loop when set and the any-finished loop when clear."
+        },
+        {
+          "offset": "0x14",
+          "width": 2,
+          "type": "s16",
+          "field": "clip index list",
+          "tier": "STATIC",
+          "check": "ClipSyncClip all-finished loop",
+          "feeds": "n consecutive entries. Each is passed to the scheduler clip lookup, whose bounds check returns zero outside the clip array."
+        }
+      ]
+    },
+    {
+      "name": "LocalCameraClip",
+      "rank": 6,
+      "clips": 13888,
+      "schedulers": 663,
+      "registration": {
+        "origin": "base only",
+        "baseKeyLiteral": "0x0109b804",
+        "baseFactory": "0x00a4d950",
+        "baseInsertSite": "0x00a4c36e"
+      },
+      "object": {
+        "size": "0x00000120",
+        "constructor": "0x00a0c5d0",
+        "primaryVtable": "0x01095874",
+        "typeDescriptor": "0x012b7a44",
+        "rtti": ".?AVLocalCameraClip@Plugins@Cut@Engine@CDev@SQEX@@",
+        "slot1": "0x00a0c740",
+        "slot2": "0x00a0bfd0",
+        "slot8": "0x00a0b830",
+        "slot29": "0x00df1040"
+      },
+      "record": {
+        "span": 62,
+        "linkRule": "0x40 when bit 0 of u8(D+0x1a) is set, otherwise 0x20",
+        "tail": "D+0x24, the first extension float. The extension starts at D+0x20."
+      },
+      "fields": [
+        {
+          "offset": "0x08",
+          "width": 2,
+          "type": "s16",
+          "field": "word 0x08",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin reads words 0x08 and 0x1c",
+          "feeds": "Passed with word 0x1c to scheduler lookup 0x00a1b7c0, whose byte result is stored at clip +0x74 as a boolean."
+        },
+        {
+          "offset": "0x0c",
+          "width": 2,
+          "type": "s16",
+          "field": "word 0x0c",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin reads actor ordinal and index words",
+          "feeds": "Passed to scheduler lookup 0x00a20120."
+        },
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "u32",
+          "field": "slot 8 value",
+          "tier": "STATIC",
+          "check": "LocalCameraClip slot 8 length",
+          "feeds": "Returned by clip slot 8 plus clip +0x110."
+        },
+        {
+          "offset": "0x14",
+          "width": 2,
+          "type": "u16",
+          "field": "index",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin reads actor ordinal and index words",
+          "feeds": "Passed to scheduler lookup 0x00a20090."
+        },
+        {
+          "offset": "0x16",
+          "width": 2,
+          "type": "u16",
+          "field": "word 0x16",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin reads word 0x16",
+          "feeds": "Pushed as an argument of the virtual call at 0x00a0ca27."
+        },
+        {
+          "offset": "0x18",
+          "width": 1,
+          "type": "u8",
+          "field": "byte 0x18",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin reads byte 0x18",
+          "feeds": "Pushed as an argument of the virtual call at 0x00a0ca50."
+        },
+        {
+          "offset": "0x1a",
+          "width": 1,
+          "type": "u8",
+          "field": "flags",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin extension gate",
+          "feeds": "Bit 0 gates the extension record read at +0x20, together with key entry byte +4 >= 4 of the clip class. Bit 2 is read by the update method under the same key entry gate. Bit 1 is not read by the begin or update methods."
+        },
+        {
+          "offset": "0x1c",
+          "width": 2,
+          "type": "s16",
+          "field": "word 0x1c",
+          "tier": "STATIC",
+          "check": "LocalCameraClip begin reads words 0x08 and 0x1c",
+          "feeds": "Passed with word 0x08 to scheduler lookup 0x00a1b7c0."
+        },
+        {
+          "offset": "0x20",
+          "width": 2,
+          "type": "s16",
+          "field": "bind actor ordinal",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension reads word 0",
+          "feeds": "Negative takes the error branch at 0x00a0b9e4 that logs the bind-actor error text. Otherwise looked up as an actor ordinal.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x22",
+          "width": 2,
+          "type": "s16",
+          "field": "bind part index",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension reads word 2",
+          "feeds": "Negative takes the error branch at 0x00a0ba53 that logs the bind-part error text. Otherwise passed to scheduler lookup 0x00a20080.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "f32",
+          "field": "bind value 0",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to float k at +0x08+4k of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x28",
+          "width": 4,
+          "type": "f32",
+          "field": "bind value 1",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to float k at +0x08+4k of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x2c",
+          "width": 4,
+          "type": "f32",
+          "field": "bind value 2",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to float k at +0x08+4k of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x30",
+          "width": 4,
+          "type": "f32",
+          "field": "bind value 3",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to float k at +0x08+4k of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x34",
+          "width": 4,
+          "type": "f32",
+          "field": "bind value 4",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to float k at +0x08+4k of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x38",
+          "width": 4,
+          "type": "f32",
+          "field": "bind value 5",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to float k at +0x08+4k of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x3c",
+          "width": 1,
+          "type": "u8",
+          "field": "bind byte 0",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to byte +0x20 of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        },
+        {
+          "offset": "0x3d",
+          "width": 1,
+          "type": "u8",
+          "field": "bind byte 1",
+          "tier": "STATIC",
+          "check": "LocalCameraClip extension copy",
+          "feeds": "Copied to byte +0x21 of the bind record at clip +0x80.",
+          "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
+        }
+      ]
+    }
+  ],
+  "staticChecks": [
+    {
+      "name": "base accessor class ordinal",
+      "kind": "signature",
+      "va": "0x00a21030",
+      "pattern": "8b 41 14 0f b6 40 02 c3",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor actor ordinal",
+      "kind": "signature",
+      "va": "0x00a21060",
+      "pattern": "8b 41 14 0f b6 40 03 c3",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor raw value",
+      "kind": "signature",
+      "va": "0x00a21070",
+      "pattern": "8b 41 14 8b 40 04 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor default length",
+      "kind": "signature",
+      "va": "0x00a21080",
+      "pattern": "8b 01 8b 50 1c ff e2 cc cc cc cc cc cc cc cc cc 8b 44 24 04 89 41 28 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor state getter",
+      "kind": "signature",
+      "va": "0x00a210e0",
+      "pattern": "8b 41 1c c3",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "base accessor phase setter",
+      "kind": "signature",
+      "va": "0x00a210f0",
+      "pattern": "8b 44 24 04 89 41 20 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor abort bit setter",
+      "kind": "signature",
+      "va": "0x00a21140",
+      "pattern": "33 c0 38 44 24 04 0f 95 c0 c1 e0 10 33 41 30 25 00 00 01 00 31 41 30 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor header word +0x0C",
+      "kind": "signature",
+      "va": "0x00a21170",
+      "pattern": "8b 41 14 0f bf 40 0c c3",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor header word +0x08",
+      "kind": "signature",
+      "va": "0x00a21190",
+      "pattern": "8b 41 14 0f bf 40 08 c3",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor header byte +0x0A",
+      "kind": "signature",
+      "va": "0x00a211a0",
+      "pattern": "8b 41 14 0f b6 40 0a c3",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor header flag bit 0",
+      "kind": "signature",
+      "va": "0x00a211b0",
+      "pattern": "8b 41 14 8a 40 0b 24 01 2c 01 f6 d8 1b c0 83 c0 01 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor header flag bit 1",
+      "kind": "signature",
+      "va": "0x00a211d0",
+      "pattern": "8b 41 14 8a 48 0b 80 e1 02 33 c0 80 f9 02 0f 94 c0 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor header flag bit 2",
+      "kind": "signature",
+      "va": "0x00a211f0",
+      "pattern": "8b 41 14 8a 48 0b 80 e1 04 33 c0 80 f9 04 0f 94 c0 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor end state",
+      "kind": "signature",
+      "va": "0x00a21000",
+      "pattern": "c7 41 1c 03 00 00 00 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor stop state",
+      "kind": "signature",
+      "va": "0x00a21010",
+      "pattern": "81 61 30 ff ff fe ff c7 41 1c 04 00 00 00 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base begin stores state 1 and target",
+      "kind": "signature",
+      "va": "0x00a20f45",
+      "pattern": "81 66 30 ff ff fe ff 8b cf 89 46 24 c7 46 1c 01 00 00 00 c7 46 20 00 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base update promotes state 1 to 2",
+      "kind": "signature",
+      "va": "0x00a20f90",
+      "pattern": "83 ec 08 56 8b f1 83 7e 1c 01 c7 46 2c 00 00 00 00 75 09",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip rapture erase",
+      "kind": "signature",
+      "va": "0x00636a6a",
+      "pattern": "c7 44 24 18 54 d1 fb 00 e8 e9 b8 3c 00 8b c8 e8 c2 aa 3c 00 8d 4c 24 18 51 8d 48 08 e8 95 8e 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip rapture insert",
+      "kind": "signature",
+      "va": "0x00636aa4",
+      "pattern": "c7 44 24 20 60 d1 fb 00 c7 44 24 24 90 bd 63 00 e8 57 8c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c424",
+      "pattern": "c7 44 24 14 ac b7 09 01 c7 44 24 18 10 db a4 00 e8 d7 32 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip rapture erase key",
+      "kind": "string",
+      "va": "0x00fbd154",
+      "text": "SetPosClip"
+    },
+    {
+      "name": "SetPosClip rapture insert key",
+      "kind": "string",
+      "va": "0x00fbd160",
+      "text": "SetPosClip"
+    },
+    {
+      "name": "SetPosClip base key",
+      "kind": "string",
+      "va": "0x0109b7ac",
+      "text": "SetPosClip"
+    },
+    {
+      "name": "SetPosClip factory object size",
+      "kind": "signature",
+      "va": "0x0063bdb8",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063bdf7",
+      "pattern": "e8 c4 e1 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0082a001",
+      "pattern": "c7 06 4c f4 02 01 c7 46 08 40 f4 02 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0102f44c",
+      "values": [
+        "0x0082a330",
+        "0x0082a080",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "SetPosClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x0102f4c0",
+      "values": [
+        "0x00829f90"
+      ]
+    },
+    {
+      "name": "SetPosClip RTTI name",
+      "kind": "string",
+      "va": "0x012cdfd0",
+      "text": ".?AVRaptureSetPosClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "SetPosClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00829f90",
+      "pattern": "8b 41 14 83 c0 40 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip record and actor ordinal reads",
+      "kind": "signature",
+      "va": "0x0082a0a7",
+      "pattern": "8b 75 14 0f b6 46 03 50 8b cb",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip CharaActor cast",
+      "kind": "signature",
+      "va": "0x0082a0cb",
+      "pattern": "8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b cb ff d0 50 e8 e6 05 1b 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip target vectors fetched through slots 12 14 16",
+      "kind": "signature",
+      "va": "0x0082a100",
+      "pattern": "8b 17 8b 52 30 53 55 8d 44 24 1c 50 8b cf ff d2 8b 07 8b 50 38 53 55 8d 4c 24 2c 51 8b cf ff d2 8b 07 8b 50 40 53 55 8d 4c 24 4c 51 8b cf ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip component overrides",
+      "kind": "signature",
+      "va": "0x0082a130",
+      "pattern": "80 7e 34 00 74 0b f3 0f 10 46 10 f3 0f 11 44 24 14 80 7e 35 00 74 0b f3 0f 10 46 14 f3 0f 11 44 24 18 80 7e 36 00 74 0b f3 0f 10 46 18 f3 0f 11 44 24 1c 80 7e 38 00 74 0b f3 0f 10 46 1c f3 0f 11 44 24 24 80 7e 39 00 74 0b f3 0f 10 46 20 f3 0f 11 44 24 28 80 7e 3a 00 74 0b f3 0f 10 46 24 f3 0f 11 44 24 2c 80 7e 3c 00 74 0b f3 0f 10 46 28 f3 0f 11 44 24 44 80 7e 3d 00 74 0b f3 0f 10 46 2c f3 0f 11 44 24 48 80 7e 3e 00 74 0b f3 0f 10 46 30 f3 0f 11 44 24 4c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip origin transform branch and slot 18 call",
+      "kind": "signature",
+      "va": "0x0082a1c9",
+      "pattern": "8b 03 8b 50 30 8b cb ff d2 8b 4c 24 78 50 e8 94 5e 1f 00 8b c8 e8 6d 1e 1f 00 84 c0 0f 84 ca 00 00 00 8b 4c 24 78 e8 7c 5e 1f 00 8b c8 e8 35 1e 1f 00 f3 0f 10 00 8b 4c 24 78 f3 0f 11 44 24 34 f3 0f 10 40 04 f3 0f 11 44 24 38 f3 0f 10 40 08 f3 0f 11 44 24 3c f3 0f 10 40 0c f3 0f 11 44 24 40 f3 0f 7e 44 24 34 66 0f d6 44 24 64 f3 0f 7e 44 24 3c 66 0f d6 44 24 6c e8 29 5e 1f 00 8b c8 e8 f2 1d 1f 00 f3 0f 10 00 8d 4c 24 14 51 f3 0f 11 44 24 38 f3 0f 10 40 04 8d 54 24 28 52 f3 0f 11 44 24 40 f3 0f 10 40 08 8d 4c 24 4c 51 8d 54 24 60 52 f3 0f 11 44 24 4c f3 0f 10 40 0c 8b 07 8b 50 48 8d 4c 24 74 51 f3 0f 11 44 24 54 f3 0f 7e 44 24 48 53 66 0f d6 44 24 6c f3 0f 7e 44 24 54 55 8b cf 66 0f d6 44 24 78 ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip inverted byte 0x37",
+      "kind": "signature",
+      "va": "0x0082a2b5",
+      "pattern": "8a 46 37",
+      "mask": "ff ff ff"
+    },
+    {
+      "name": "SetPosClip inverted byte mask",
+      "kind": "signature",
+      "va": "0x0082a2c2",
+      "pattern": "f6 d0 24 01",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip CharaActor setter 0x0065e660 call",
+      "kind": "signature",
+      "va": "0x0082a2ce",
+      "pattern": "53 83 ec 10 8b c4 66 0f d6 00 f3 0f 7e 44 24 30 8d b7 b4 11 00 00 57 8b ce 66 0f d6 40 08 e8 6f 43 e3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "SetPosClip CharaActor setter 0x0065e690 call",
+      "kind": "signature",
+      "va": "0x0082a2f7",
+      "pattern": "53 83 ec 10 8b c4 66 0f d6 00 f3 0f 7e 44 24 40 57 8b ce 66 0f d6 40 08 e8 7c 43 e3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip rapture erase",
+      "kind": "signature",
+      "va": "0x00636b57",
+      "pattern": "c7 44 24 18 a4 d1 fb 00 e8 fc b7 3c 00 8b c8 e8 d5 a9 3c 00 8d 54 24 18 52 8d 48 08 e8 a8 8d 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip rapture insert",
+      "kind": "signature",
+      "va": "0x00636b91",
+      "pattern": "c7 44 24 20 b4 d1 fb 00 c7 44 24 24 40 bf 63 00 e8 6a 8b 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c445",
+      "pattern": "c7 44 24 14 9c b7 09 01 c7 44 24 18 80 db a4 00 e8 b6 32 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip rapture erase key",
+      "kind": "string",
+      "va": "0x00fbd1a4",
+      "text": "ShowHideClip"
+    },
+    {
+      "name": "ShowHideClip rapture insert key",
+      "kind": "string",
+      "va": "0x00fbd1b4",
+      "text": "ShowHideClip"
+    },
+    {
+      "name": "ShowHideClip base key",
+      "kind": "string",
+      "va": "0x0109b79c",
+      "text": "ShowHideClip"
+    },
+    {
+      "name": "ShowHideClip factory object size",
+      "kind": "signature",
+      "va": "0x0063bf68",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063bfa7",
+      "pattern": "e8 04 1e 1f 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0082ddf1",
+      "pattern": "c7 06 6c 14 03 01 c7 46 08 60 14 03 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0103146c",
+      "values": [
+        "0x0082df00",
+        "0x0082de70",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "ShowHideClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x010314e0",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "ShowHideClip RTTI name",
+      "kind": "string",
+      "va": "0x012ce230",
+      "text": ".?AVRaptureShowHideClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "ShowHideClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00823ce0",
+      "pattern": "8b 41 14 83 c0 14 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip record and actor ordinal reads",
+      "kind": "signature",
+      "va": "0x0082de8d",
+      "pattern": "8b 7e 14 0f b6 47 03 50 8b cb e8 04 21 1f 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip RaptureActor cast",
+      "kind": "signature",
+      "va": "0x0082dead",
+      "pattern": "8b 42 5c 6a 00 68 e0 77 2b 01 68 48 7c 2b 01 6a 00 8b ce ff d0 50 e8 04 c8 1a 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ShowHideClip visibility call",
+      "kind": "signature",
+      "va": "0x0082decf",
+      "pattern": "8b 88 9c 00 00 00 85 c9 74 10 80 7f 10 01 8b 11 0f 94 c3 53 50 8b 42 08 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip rapture erase",
+      "kind": "signature",
+      "va": "0x00636c93",
+      "pattern": "c7 44 24 18 1c d2 fb 00 e8 c0 b6 3c 00 8b c8 e8 99 a8 3c 00 8d 54 24 18 52 8d 48 08 e8 6c 8c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip rapture insert",
+      "kind": "signature",
+      "va": "0x00636ccd",
+      "pattern": "c7 44 24 20 28 d2 fb 00 c7 44 24 24 80 c1 63 00 e8 2e 8a 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c4a8",
+      "pattern": "c7 44 24 14 78 b7 09 01 c7 44 24 18 d0 dc a4 00 e8 53 32 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip rapture erase key",
+      "kind": "string",
+      "va": "0x00fbd21c",
+      "text": "MotionClip"
+    },
+    {
+      "name": "MotionClip rapture insert key",
+      "kind": "string",
+      "va": "0x00fbd228",
+      "text": "MotionClip"
+    },
+    {
+      "name": "MotionClip base key",
+      "kind": "string",
+      "va": "0x0109b778",
+      "text": "MotionClip"
+    },
+    {
+      "name": "MotionClip factory object size",
+      "kind": "signature",
+      "va": "0x0063c1a8",
+      "pattern": "c7 00 60 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063c1e7",
+      "pattern": "e8 84 2d 1f 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0082efcc",
+      "pattern": "c7 06 ec 37 03 01 c7 46 08 e4 37 03 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x010337ec",
+      "values": [
+        "0x0082fb20",
+        "0x0082f120",
+        "0x0082f4f0",
+        "0x0082f580",
+        "0x0082f620",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x0082f110"
+      ]
+    },
+    {
+      "name": "MotionClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01033860",
+      "values": [
+        "0x0082faa0"
+      ]
+    },
+    {
+      "name": "MotionClip RTTI name",
+      "kind": "string",
+      "va": "0x012ce79c",
+      "text": ".?AVRaptureMotionClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "MotionClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x0082faa0",
+      "pattern": "8b 41 14 83 c0 2c c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip begin reads name index",
+      "kind": "signature",
+      "va": "0x0082f16e",
+      "pattern": "8b 77 14 c6 47 45 00 f3 0f 11 47 50 83 7e 10 00 7d 2b",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip name record fetch",
+      "kind": "signature",
+      "va": "0x0082f1ab",
+      "pattern": "8b cb e8 8e 0e 1f 00 8b 4e 10 8b 10 8b 52 0c 51 8d 4c 24 60 51 8b c8 ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip actor ordinal read",
+      "kind": "signature",
+      "va": "0x0082f1d9",
+      "pattern": "0f b6 4e 03 66 89 54 24 48 8a 40 0e 51 8b cb 88 44 24 4e c6 44 24 4f 00 e8 aa 0d 1f 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip name prefix test",
+      "kind": "signature",
+      "va": "0x0082f21d",
+      "pattern": "8a 44 24 3c 3c 63 74 04 3c 65 75 42 80 7c 24 3e 5f 75 3b 8a 44 24 3d 3c 6d 74 08 3c 66 74 04 3c 68 75 2b 8b 17 8b 42 48 6a 01 8b cf ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip actor guards",
+      "kind": "signature",
+      "va": "0x0082f1fd",
+      "pattern": "8b cb ff d0 84 c0 74 46 8b 13 8b 42 5c 8b cb ff d0 85 c0 89 44 24 58 74 35 05 b4 11 00 00 74 2e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip end call",
+      "kind": "signature",
+      "va": "0x0082f24b",
+      "pattern": "8b 17 8b 42 30 6a 00 8b cf ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip flag byte 0x14 and byte 0x26",
+      "kind": "signature",
+      "va": "0x0082f2fb",
+      "pattern": "8a 46 14 8b 17 8a c8 8a d8 c0 e9 02 80 e1 01 c0 eb 06 c0 e8 07 80 e3 01 80 7e 26 00 88 4c 24 1a 88 44 24 11 8b 42 24 8b cf 0f 95 44 24 1b ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip fields 0x1c and 0x20",
+      "kind": "signature",
+      "va": "0x0082f32b",
+      "pattern": "8b 4e 1c f3 0f 2a c0 b8 ad 8b db 68 f7 e9 8b 4e 20 c1 fa 0c 8b c2 c1 e8 1f 03 c2 89 44 24 4c b8 ad 8b db 68 f7 e9 8b 4c 24 1c c1 fa 0c 8b c2 f3 0f 5a c0 f2 0f 5e 05 70 05 fe 00 c1 e8 1f 03 c2 f2 0f 5a c0 f3 0f 11 44 24 50 89 44 24 54",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip fields 0x24 and 0x15",
+      "kind": "signature",
+      "va": "0x0082f38e",
+      "pattern": "0f b7 4e 24 f3 0f 5a 4c 24 20 8a 46 15 3c ff f2 0f 2a c1 f2 0f 5e 05 d0 5a f5 00 f2 0f 59 c1 f2 0f 5a c0 f3 0f 11 44 24 20 75 09 83 c8 ff 89 44 24 14 eb 0a 0f be c0 83 e8 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip selector branches",
+      "kind": "signature",
+      "va": "0x0082f3cc",
+      "pattern": "84 db 88 5f 44 74 10 8a 44 24 11 33 f6 f6 d8 1b c0 89 44 24 14 eb 2b 80 7c 24 11 00 8b 74 24 54 75 0a c7 44 24 14 00 00 00 00 eb 16 85 c0 74 02 33 f6 83 f8 ff 75 0b 8b 17 8b 42 30 6a 02 8b cf ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip motion start call",
+      "kind": "signature",
+      "va": "0x0082f456",
+      "pattern": "8b 74 24 58 88 54 24 35 8d 54 24 24 88 44 24 36 52 8d 44 24 40 f3 0f 11 44 24 28 f3 0f 10 44 24 54 88 4c 24 3c 81 c6 c0 04 00 00 50 8b ce f3 0f 11 44 24 30 88 5c 24 39 c6 44 24 3f 01 e8 88 a4 f8 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "MotionClip slot 8 length",
+      "kind": "signature",
+      "va": "0x0082f110",
+      "pattern": "8b 41 14 8b 40 18 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip rapture insert",
+      "kind": "signature",
+      "va": "0x006362f7",
+      "pattern": "c7 44 24 20 e4 cc fb 00 c7 44 24 24 f0 a5 63 00 e8 04 94 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcce4",
+      "text": "RapturePhysicsLookAtClip"
+    },
+    {
+      "name": "PhysicsLookAtClip factory object size",
+      "kind": "signature",
+      "va": "0x0063a618",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063a657",
+      "pattern": "e8 24 74 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00821ac1",
+      "pattern": "c7 06 4c 56 01 01 c7 46 08 40 56 01 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0101564c",
+      "values": [
+        "0x00822160",
+        "0x00821b40",
+        "0x00821a70",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "PhysicsLookAtClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x010156c0",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "PhysicsLookAtClip RTTI name",
+      "kind": "string",
+      "va": "0x012cbc20",
+      "text": ".?AVRapturePhysicsLookAtClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "PhysicsLookAtClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00823ce0",
+      "pattern": "8b 41 14 83 c0 14 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip record read",
+      "kind": "signature",
+      "va": "0x00821b70",
+      "pattern": "8b 73 14",
+      "mask": "ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip actor ordinal read",
+      "kind": "signature",
+      "va": "0x00821bb1",
+      "pattern": "0f b6 46 03",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip CharaActor cast",
+      "kind": "signature",
+      "va": "0x00821bd4",
+      "pattern": "8b 13 8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b cb ff d0 50 e8 db 8a 1b 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip bytes 0x14 to 0x17 and float 0x18",
+      "kind": "signature",
+      "va": "0x00821c10",
+      "pattern": "80 7e 14 00 f3 0f 10 46 18 f3 0f 10 0d 70 4f f5 00 0f 95 44 24 18 80 7e 15 00 f3 0f 11 44 24 20 0f 57 c0 0f 95 44 24 12 80 7e 16 00 0f 95 44 24 13 80 7e 17 00 0f 95 c2 88 54 24 1c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode switch",
+      "kind": "signature",
+      "va": "0x00821c80",
+      "pattern": "8b 46 1c 83 e8 00 0f 84 1e 02 00 00 83 e8 01 0f 84 bb 01 00 00 83 e8 01 0f 85 b4 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 2 vector",
+      "kind": "signature",
+      "va": "0x00821c9e",
+      "pattern": "f3 0f 10 56 20 8b 4c 24 2c 8b 01 8b 50 30 f3 0f 11 54 24 40 f3 0f 10 56 24 f3 0f 11 54 24 44 f3 0f 10 56 28 f3 0f 11 54 24 48",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 2 argument push",
+      "kind": "signature",
+      "va": "0x00821e0e",
+      "pattern": "d9 44 24 48 8b 4c 24 1c 8b 54 24 18 8b 44 24 14 83 ec 10 d9 5c 24 0c d9 44 24 54 d9 5c 24 08 d9 44 24 50 d9 5c 24 04 d9 44 24 30 d9 1c 24 51 52 53 50 8d 88 b4 11 00 00 e8 75 c9 e3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 1 angles",
+      "kind": "signature",
+      "va": "0x00821e50",
+      "pattern": "f3 0f 10 46 24 d9 44 24 20 8b 44 24 1c 8b 54 24 18 0f 5a c0 f2 0f 59 c2 83 ec 0c f2 0f 5e c3 66 0f 5a c0 f3 0f 11 44 24 08 f3 0f 10 46 20 0f 5a c0 f2 0f 59 c2 f2 0f 5e c3 66 0f 5a c0 f3 0f 11 44 24 04 d9 1c 24 50 52 53 51 81 c1 b4 11 00 00 e8 3b 0d e4 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 0 target flag",
+      "kind": "signature",
+      "va": "0x00821eae",
+      "pattern": "80 7c 24 18 01 f3 0f 11 44 24 28 f3 0f 11 44 24 30 f3 0f 11 44 24 34 0f 85 84 00 00 00 8b 46 20 85 c0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 0 target ordinal",
+      "kind": "signature",
+      "va": "0x00821ecb",
+      "pattern": "8b 46 20 85 c0 0f 8c d8 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 0 node index",
+      "kind": "signature",
+      "va": "0x00821f1d",
+      "pattern": "8b 46 24 8b 4c 24 24 50 e8 56 e1 1f 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 0 offset vector",
+      "kind": "signature",
+      "va": "0x00821f2a",
+      "pattern": "f3 0f 10 46 28 8b 4c 24 14 f3 0f 11 44 24 28 f3 0f 10 46 2c f3 0f 11 44 24 30 f3 0f 10 46 30 f3 0f 11 44 24 34",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip mode 0 call 0x0065e730",
+      "kind": "signature",
+      "va": "0x00821f7c",
+      "pattern": "53 57 51 81 c1 b4 11 00 00 e8 a6 c7 e3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c3a0",
+      "pattern": "c7 44 24 14 e8 b7 09 01 c7 44 24 18 70 c5 63 00 e8 5b 33 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip base key",
+      "kind": "string",
+      "va": "0x0109b7e8",
+      "text": "ClipSyncClip"
+    },
+    {
+      "name": "ClipSyncClip factory object size",
+      "kind": "signature",
+      "va": "0x0063c598",
+      "pattern": "c7 00 3c 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063c5d7",
+      "pattern": "e8 f4 3a 3d 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00a100e4",
+      "pattern": "c7 06 4c 60 09 01 c7 46 08 40 60 09 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0109604c",
+      "values": [
+        "0x00a10230",
+        "0x00a100b0",
+        "0x00a10120",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "ClipSyncClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x010960c0",
+      "values": [
+        "0x00a10210"
+      ]
+    },
+    {
+      "name": "ClipSyncClip RTTI name",
+      "kind": "string",
+      "va": "0x012ec7d8",
+      "text": ".?AVClipSyncClip@Plugins@Cut@Engine@CDev@SQEX@@"
+    },
+    {
+      "name": "ClipSyncClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00a10210",
+      "pattern": "8b 49 14 0f b7 41 10 25 ff 7f ff ff 8d 44 00 19 83 e0 fc 03 c1 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip slot 1 begin",
+      "kind": "signature",
+      "va": "0x00a100b0",
+      "pattern": "8b 44 24 04 56 50 8b f1 e8 73 0e 01 00 8b 16 8b 42 30 6a 01 8b ce c6 46 38 00 ff d0 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip update reads header word",
+      "kind": "signature",
+      "va": "0x00a10135",
+      "pattern": "8b 5e 14 0f b7 43 10 0f b7 f8 81 e7 ff 7f ff ff 33 ed a9 00 80 00 00 74 57",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip all-finished loop",
+      "kind": "signature",
+      "va": "0x00a10152",
+      "pattern": "83 c3 14 0f bf 0b 51 8b 4c 24 1c e8 4e fe 00 00 8b f0 85 f6 74 35 8b 16 8b 42 2c 8b ce ff d0 83 f8 03 74 0e 8b 16 8b 42 2c 8b ce ff d0 83 f8 04 75 19 83 c5 01 83 c3 02 3b ef 7c c7 8b 74 24 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip finish call",
+      "kind": "signature",
+      "va": "0x00a10192",
+      "pattern": "8b 16 8b 42 30 6a 00 8b ce ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip any-finished loop",
+      "kind": "signature",
+      "va": "0x00a101a9",
+      "pattern": "83 c3 14 8d 64 24 00 0f bf 0b 51 8b 4c 24 1c e8 f3 fd 00 00 8b f0 85 f6 74 da 8b 16 8b 42 2c 8b ce ff d0 83 f8 03 74 20 8b 16 8b 42 2c 8b ce ff d0 83 f8 04 74 12 83 c5 01 83 c3 02 3b ef 7c c7",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSyncClip any-finished exit",
+      "kind": "signature",
+      "va": "0x00a101f1",
+      "pattern": "8b 4c 24 10 8b 11 5f 5e 5d 5b 83 c4 04 c7 44 24 04 00 00 00 00 8b 42 30 ff e0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSync clip lookup by index",
+      "kind": "signature",
+      "va": "0x00a1b790",
+      "pattern": "8b 49 34 e9 98 5c 00 00 cc cc cc cc cc cc cc cc 8b 49 50 85 c9 75 05 33 c0 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ClipSync array bounds check",
+      "kind": "signature",
+      "va": "0x00a21430",
+      "pattern": "8b 41 10 85 c0 74 15 8b 54 24 04 85 d2 7c 0d 3b c2 7e 09 8b 41 08 8b 04 90 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c35e",
+      "pattern": "c7 44 24 14 04 b8 09 01 c7 44 24 18 50 d9 a4 00 e8 9d 33 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip base key",
+      "kind": "string",
+      "va": "0x0109b804",
+      "text": "LocalCameraClip"
+    },
+    {
+      "name": "LocalCameraClip factory object size",
+      "kind": "signature",
+      "va": "0x00a4d96d",
+      "pattern": "c7 00 20 01 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00a4d9ad",
+      "pattern": "e8 1e ec fb ff",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00a0c603",
+      "pattern": "c7 06 74 58 09 01 c7 46 08 68 58 09 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x01095874",
+      "values": [
+        "0x00a0cb90",
+        "0x00a0c740",
+        "0x00a0bfd0",
+        "0x00a0bfb0",
+        "0x00a0b8f0",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a0b830"
+      ]
+    },
+    {
+      "name": "LocalCameraClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x010958e8",
+      "values": [
+        "0x00df1040"
+      ]
+    },
+    {
+      "name": "LocalCameraClip RTTI name",
+      "kind": "string",
+      "va": "0x012b7a4c",
+      "text": ".?AVLocalCameraClip@Plugins@Cut@Engine@CDev@SQEX@@"
+    },
+    {
+      "name": "LocalCameraClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00df1040",
+      "pattern": "8b 41 14 83 c0 24 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin reads actor ordinal and index words",
+      "kind": "signature",
+      "va": "0x00a0c7b7",
+      "pattern": "8b 6e 14 0f b6 45 03 50 8b cf 89 6c 24 14 e8 d6 37 01 00 89 46 64 0f b7 4d 14 51 8b cf 89 44 24 18 e8 b3 38 01 00 0f bf 55 0c 52 8b cf 8b d8 e8 35 39 01 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin reads words 0x08 and 0x1c",
+      "kind": "signature",
+      "va": "0x00a0c9c7",
+      "pattern": "0f bf 50 1c 0f bf 40 08 52 50 8b cf e8 98 36 01 00 8b c8 e8 e1 ed 00 00 85 c0 74 09 80 38 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin reads word 0x16",
+      "kind": "signature",
+      "va": "0x00a0ca0a",
+      "pattern": "0f b7 4a 16 51 50 8b cf e8 29 36 01 00 8b 54 24 20 50 8b 44 24 2c 52 8b 50 04 56 8b cd ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin reads byte 0x18",
+      "kind": "signature",
+      "va": "0x00a0ca3b",
+      "pattern": "0f b6 5b 18 8b 55 00 8b 52 14 53 51 50 8b 44 24 20 50 56 8b cd ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin extension gate",
+      "kind": "signature",
+      "va": "0x00a0ca52",
+      "pattern": "8b 46 18 80 78 04 04 5d 0f 82 82 00 00 00 8b 5c 24 0c f6 43 1a 01 74 78 8b 4e 24 8b 11 8b 42 24 ff d0 85 c0 74 1f 50 83 c3 20 53 57 56",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin extension call",
+      "kind": "signature",
+      "va": "0x00a0ca7f",
+      "pattern": "8d 8e b0 00 00 00 51 8d 96 80 00 00 00 52 e8 2e ef ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "class key entry fill",
+      "kind": "signature",
+      "va": "0x00a27234",
+      "pattern": "0f b7 1e 8b 51 5c 8b 12 0f bf 1c 5a 03 da 8b 51 58 89 1c c2 8a 5e 02 8b 51 58 88 5c c2 04",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "class key entry fill call for CCPT",
+      "kind": "signature",
+      "va": "0x00a244d4",
+      "pattern": "f3 a6 8d 4c 24 10 75 20 53 e8 ce 2d 00 00 50 8d 4c 24 18 e8 04 2e 00 00 0f bf c0 50 8b cd e8 19 2d 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CCPT chunk tag",
+      "kind": "string",
+      "va": "0x01098234",
+      "text": "@CCPT"
+    },
+    {
+      "name": "clip builder key entry",
+      "kind": "signature",
+      "va": "0x00a28617",
+      "pattern": "8b 56 0c 8b d8 0f b6 4b 02 8d 3c ca",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip update reads flag bit 2",
+      "kind": "signature",
+      "va": "0x00a0c11e",
+      "pattern": "8b 56 18 80 7a 04 04 72 36 8b 44 24 10 f6 40 1a 04 74 2c",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip update reads flag bit 0",
+      "kind": "signature",
+      "va": "0x00a0c15d",
+      "pattern": "8b 46 18 80 78 04 04 0f 82 68 02 00 00 8b 4c 24 10 f6 41 1a 01 0f 84 5a 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip extension reads word 0",
+      "kind": "signature",
+      "va": "0x00a0b9dc",
+      "pattern": "0f b7 07 66 85 c0 7d 50",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip extension reads word 2",
+      "kind": "signature",
+      "va": "0x00a0ba4a",
+      "pattern": "0f b7 47 02 66 85 c0 7d 52",
+      "mask": "ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip extension copy",
+      "kind": "signature",
+      "va": "0x00a0bb7f",
+      "pattern": "d9 47 04 d9 5e 08 8b 94 24 18 04 00 00 d9 47 08 5d d9 5e 0c 5b d9 47 0c d9 5e 10 d9 47 10 d9 5e 14 d9 47 14 d9 5e 18 d9 47 18 d9 5e 1c 8a 47 1c 88 46 20 8a 4f 1d 88 4e 21",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip slot 8 length",
+      "kind": "signature",
+      "va": "0x00a0b830",
+      "pattern": "8b 41 14 8b 40 10 03 81 10 01 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip bind actor error branch",
+      "kind": "signature",
+      "va": "0x00a0b9e4",
+      "pattern": "68 3c 55 09 01",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip bind part error branch",
+      "kind": "signature",
+      "va": "0x00a0ba53",
+      "pattern": "68 00 55 09 01",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip missing target error branch",
+      "kind": "signature",
+      "va": "0x00821fae",
+      "pattern": "68 24 4d 01 01",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip not IActor error branch",
+      "kind": "signature",
+      "va": "0x00821fd9",
+      "pattern": "68 64 4d 01 01",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip not CharaActor error branch",
+      "kind": "signature",
+      "va": "0x00822004",
+      "pattern": "68 a8 4d 01 01",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip bind actor error text",
+      "kind": "signature",
+      "va": "0x0109553c",
+      "pattern": "5b 45 52 52 4f 52 5d 20 42 69 6e 64 20 43 61 6d 65 72 61 81 46 83 6f 83 43 83 93 83 68 90 e6 82 cc 83 41 83 4e 83 5e 81 5b 82 aa 95 73 90 b3 82 c5 82 b7 20 3d 20 2d 31 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip bind part error text",
+      "kind": "signature",
+      "va": "0x01095500",
+      "pattern": "5b 45 52 52 4f 52 5d 20 42 69 6e 64 20 43 61 6d 65 72 61 81 46 83 6f 83 43 83 93 83 68 90 e6 82 cc 83 70 81 5b 83 63 96 bc 82 aa 95 73 90 b3 82 c5 82 b7 20 3d 20 2d 31 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip missing target error text",
+      "kind": "signature",
+      "va": "0x01014d24",
+      "pattern": "5b 45 52 52 4f 52 5d 52 61 70 74 75 72 65 50 68 79 73 69 63 73 4c 6f 6f 6b 41 74 43 6c 69 70 20 54 61 72 67 65 74 8e 77 92 e8 82 aa 82 a0 82 e8 82 dc 82 b9 82 f1 81 42 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip not IActor error text",
+      "kind": "signature",
+      "va": "0x01014d64",
+      "pattern": "5b 45 52 52 4f 52 5d 52 61 70 74 75 72 65 50 68 79 73 69 63 73 4c 6f 6f 6b 41 74 43 6c 69 70 20 54 61 72 67 65 74 8e 77 92 e8 82 aa 49 41 63 74 6f 72 82 c5 82 cd 82 c8 82 a2 81 42 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "PhysicsLookAtClip not CharaActor error text",
+      "kind": "signature",
+      "va": "0x01014da8",
+      "pattern": "5b 45 52 52 4f 52 5d 52 61 70 74 75 72 65 50 68 79 73 69 63 73 4c 6f 6f 6b 41 74 43 6c 69 70 20 54 61 72 67 65 74 8e 77 92 e8 82 aa 43 68 61 72 61 41 63 74 6f 72 82 c5 82 cd 82 c8 82 a2 81 42 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    }
+  ],
+  "invariants": [
+    {
+      "id": "setpos-link",
+      "class": "SetPosClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x40."
+    },
+    {
+      "id": "setpos-flags",
+      "class": "SetPosClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x34 to +0x3a and +0x3c to +0x3e are 0 or 1."
+    },
+    {
+      "id": "setpos-unread",
+      "class": "SetPosClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x3b and +0x3f are 0."
+    },
+    {
+      "id": "setpos-rotation",
+      "class": "SetPosClip",
+      "tier": "OBSERVED",
+      "claim": "Floats +0x1c, +0x20 and +0x24 are within plus or minus pi."
+    },
+    {
+      "id": "showhide-link",
+      "class": "ShowHideClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x14."
+    },
+    {
+      "id": "showhide-state",
+      "class": "ShowHideClip",
+      "tier": "OBSERVED",
+      "claim": "Byte +0x10 is 0 or 1."
+    },
+    {
+      "id": "showhide-pad",
+      "class": "ShowHideClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x11 to +0x13 are 0."
+    },
+    {
+      "id": "motion-link",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x2c."
+    },
+    {
+      "id": "motion-name-index",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x10 is not negative."
+    },
+    {
+      "id": "motion-time-units",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x18, +0x1c and +0x20 are multiples of 10000."
+    },
+    {
+      "id": "motion-flag",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "Byte +0x26 is 0 or 1."
+    },
+    {
+      "id": "motion-unread",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x16, +0x17 and +0x27 are 0."
+    },
+    {
+      "id": "lookat-link",
+      "class": "RapturePhysicsLookAtClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x34."
+    },
+    {
+      "id": "lookat-mode",
+      "class": "RapturePhysicsLookAtClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x1c is 0, 1 or 2."
+    },
+    {
+      "id": "lookat-angles",
+      "class": "RapturePhysicsLookAtClip",
+      "tier": "OBSERVED",
+      "claim": "In mode 1 the floats +0x20 and +0x24 are within plus or minus 90."
+    },
+    {
+      "id": "lookat-flags",
+      "class": "RapturePhysicsLookAtClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x14 to +0x17 are 0 or 1."
+    },
+    {
+      "id": "clipsync-link",
+      "class": "ClipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are (0x14 + 2n + 3) & ~3 for n = u16 +0x10 & 0x7fff."
+    },
+    {
+      "id": "clipsync-pad",
+      "class": "ClipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "U16 +0x12 is 0."
+    },
+    {
+      "id": "clipsync-refs",
+      "class": "ClipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "Every listed index is inside the scheduler clip list and is not the clip itself."
+    },
+    {
+      "id": "localcamera-link",
+      "class": "LocalCameraClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x40 when bit 0 of +0x1a is set and 0x20 otherwise."
+    },
+    {
+      "id": "localcamera-ext",
+      "class": "LocalCameraClip",
+      "tier": "OBSERVED",
+      "claim": "The extension actor ordinal is a scheduler actor and the part index is not negative."
+    },
+    {
+      "id": "localcamera-pad",
+      "class": "LocalCameraClip",
+      "tier": "OBSERVED",
+      "claim": "U16 +0x16 and u16 +0x1e are 0."
+    },
+    {
+      "id": "setpos-key-byte",
+      "class": "SetPosClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "showhide-key-byte",
+      "class": "ShowHideClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "motion-key-byte",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 2."
+    },
+    {
+      "id": "lookat-key-byte",
+      "class": "RapturePhysicsLookAtClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "clipsync-key-byte",
+      "class": "ClipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "localcamera-key-byte",
+      "class": "LocalCameraClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 4. It passes the key entry byte +4 gate of the extension."
+    }
+  ],
+  "outcomes": [
+    {
+      "id": "registry-two-groups",
+      "tier": "STATIC",
+      "claim": "The base registrar 0x00a4c2a0 inserts SetPosClip (factory 0x00a4db10), ShowHideClip (0x00a4db80), MotionClip (0x00a4dcd0), ClipSyncClip (0x0063c570) and LocalCameraClip (0x00a4d950) through 0x0063f710. Manager slot 3 at 0x00635760 calls it at 0x00635899 and then inserts the Rapture group. In that group RapturePhysicsLookAtClip (0x0063a5f0) is a new key. SetPosClip (0x0063bd90), ShowHideClip (0x0063bf40) and MotionClip (0x0063c180) are each preceded by a call to 0x0063f920 with a second copy of the key literal. Both groups address the registry object reached through the singleton returned by 0x00a02360."
+    },
+    {
+      "id": "registry-effective-factory",
+      "tier": "INFERRED",
+      "claim": "Insertion keeps the earlier factory for an equal key, and the call to 0x0063f920 before each of the three Rapture re-registrations is read as erase by key. The registry then holds the Rapture factories for SetPosClip, ShowHideClip and MotionClip, and the base factories for ClipSyncClip and LocalCameraClip. The body of 0x0063f920 was not walked."
+    },
+    {
+      "id": "object-and-slots",
+      "tier": "STATIC",
+      "claim": "Each factory stores its object size when the size argument is nonnull. The sizes are 0x38 for SetPosClip, ShowHideClip and RapturePhysicsLookAtClip, 0x60 for MotionClip, 0x3c for ClipSyncClip and 0x120 for LocalCameraClip. Each constructor installs the primary vtable at +0 and a secondary table at +8. In every primary vtable slot 1 calls the base method 0x00a20f30, which stores state 1 at clip +0x1c. Slot 2 is the update method. Slot 29 returns a class-specific address relative to D. It is the record end for SetPosClip, ShowHideClip and MotionClip. It is not the record end for the other three classes, as listed per class."
+    },
+    {
+      "id": "common-header-accessors",
+      "tier": "STATIC",
+      "claim": "Base accessors read s16(D+8) in slot 22, u8(D+0x0a) in slot 23, bits 0, 1 and 2 of u8(D+0x0b) in slots 25, 27 and 26, and s16(D+0x0c) in slot 20, beside the u8(D+2), u8(D+3) and u32(D+4) readers in slots 5, 6 and 7. Slot 8 jumps through slot 7 unless a class overrides it. MotionClip returns u32(D+0x18) and LocalCameraClip returns u32(D+0x10) plus clip +0x110. Base slots 3 and 4 store state 3 and state 4, and the update method moves state 1 to state 2."
+    },
+    {
+      "id": "setpos-layout",
+      "tier": "STATIC",
+      "claim": "RaptureSetPosClip slot 1 at 0x0082a080 resolves the actor record, casts its slot 23 result from IActor to CharaActor, and fetches three vectors from the object at clip +0x24 through its slots 12, 14 and 16. It replaces the x, y and z floats of the vectors with the floats at +0x10, +0x1c and +0x28 where the flag bytes at +0x34 to +0x36, +0x38 to +0x3a and +0x3c to +0x3e are nonzero. When the scheduler test 0x00a1c050 is true it calls slot 18 of the target object with the three vectors and the scheduler origin. It then calls CharaActor setter 0x0065e660 with vector A and 0x0065e690 with vector B. Both receive the inverse of bit 0 of u8(D+0x37). Vector C reaches only the slot 18 call. Bytes +0x3b and +0x3f are not read."
+    },
+    {
+      "id": "setpos-meaning",
+      "tier": "INFERRED",
+      "claim": "Vector A is a position, vector B is a rotation in radians and vector C is a scale. The 33,078 install records hold A components between -2824.9 and 3563.5, B components within plus or minus pi and C components between 0.1 and 8.0. When CharaActor slot 154 returns 0, the setter 0x0065e660 stores the vector it receives at CharaActor +0x11f0. The roles of the slot 12, 14 and 16 vectors and of 0x0065e690 were not traced beyond the argument flow."
+    },
+    {
+      "id": "showhide-layout",
+      "tier": "STATIC",
+      "claim": "RaptureShowHideClip slot 1 at 0x0082de70 requires the actor record's slot 23 result to cast from IActor to RaptureActor and a nonnull pointer at RaptureActor +0x9c. It calls slot 2 of that pointer with the RaptureActor and the boolean u8(D+0x10) == 1. Slot 1 reads no record field beyond the actor ordinal and this byte. All 21,581 install records are 0x14 bytes and hold 0 or 1 at +0x10."
+    },
+    {
+      "id": "motion-layout",
+      "tier": "STATIC",
+      "claim": "RaptureMotionClip slot 1 at 0x0082f120 ends the clip at once when s32(D+0x10) is negative. Otherwise it passes the index to slot 3 of the scheduler name object at +0x74, which fills a 16 byte name record. When slot 7 of the actor record is false, its slot 23 result is null or the actor address plus 0x11b4 is zero, it calls slot 12 with 0 and returns. When the name record starts with c or e, has m, f or h second and has an underscore third, it calls slot 18 with 1 and then slot 12 with 0. In every other case it builds a motion request from u8(D+0x14) bits 2, 6 and 7, u8(D+0x15), s32(D+0x1c) and s32(D+0x20) divided by 10000, u16(D+0x24) divided by 100.0 and u8(D+0x26), and passes it to 0x007b9920 with ECX at actor +0x4c0. Bytes +0x16, +0x17, +0x27 and the word at +0x28 are not read by slots 1, 2 or 3."
+    },
+    {
+      "id": "motion-meaning",
+      "tier": "INFERRED",
+      "claim": "The 16 byte record is a motion name and the request starts that motion on the actor. The words at +0x18, +0x1c and +0x20 are multiples of 10000 in all 22,085 install records, which fits integer units scaled by 10000. The u16 at +0x24 is 100 in 20,305 records, which fits a percent scale. Names that start with cm_, cf_, ch_, em_, ef_ or eh_ end the clip without starting a motion."
+    },
+    {
+      "id": "lookat-layout",
+      "tier": "STATIC",
+      "claim": "RapturePhysicsLookAtClip slot 1 at 0x00821b40 casts the actor record to CharaActor and runs two passes. Pass 0 runs when u8(D+0x15) is nonzero and pass 1 when u8(D+0x16) is nonzero. Each pass switches on u32(D+0x1c). Mode 0 reads the target actor ordinal s32(D+0x20) when u8(D+0x14) is nonzero, a node index at +0x24 and an offset vector at +0x28, and calls 0x0065e730. Mode 1 reads the floats at +0x20 and +0x24, multiplies them by pi and divides by 180.0, and calls 0x00662be0. Mode 2 reads the vector at +0x20 and calls 0x0065e7c0. Any other mode runs no branch. The float at +0x18 is the first float argument of the mode 1 and mode 2 calls, ahead of the angles or vector. The error branches at 0x00821fae, 0x00821fd9 and 0x00822004 log missing target, not IActor and not CharaActor texts."
+    },
+    {
+      "id": "lookat-meaning",
+      "tier": "INFERRED",
+      "claim": "Mode 1 carries two angles in degrees and mode 2 a point. In the install the 2,169 mode 1 records hold angles within plus or minus 90, and 130 mode 2 records hold coordinate-sized floats. Mode 0 targets another actor by ordinal. The meaning of the two passes and of the node index was not traced."
+    },
+    {
+      "id": "clipsync-layout",
+      "tier": "STATIC",
+      "claim": "ClipSyncClip is registered by the base registrar only. Slot 1 at 0x00a100b0 sets the byte at clip +0x38 to 0 and calls its slot 12 with 1. Slot 2 at 0x00a10120 reads u16(D+0x10). Its low 15 bits are the count n of s16 clip indexes at +0x14. Each index goes through the scheduler clip lookup 0x00a1b790, which returns 0 outside the clip array. With bit 15 set the clip calls its slot 12 with 0 once every listed clip is in state 3 or 4. With bit 15 clear it does so as soon as one listed clip is. Slot 29 returns D + ((2n + 0x19) & ~3), which equals the record end (2n + 0x17) & ~3 for odd n and lies 4 bytes past it for even n."
+    },
+    {
+      "id": "localcamera-layout",
+      "tier": "STATIC",
+      "claim": "LocalCameraClip is registered by the base registrar only. Slot 1 at 0x00a0c740 reads u8(D+3), u16(D+0x14), s16(D+0x0c), s16(D+8), s16(D+0x1c), u16(D+0x16) and u8(D+0x18), stores at clip +0x74 whether a scheduler lookup byte is nonzero, and pushes u16(D+0x16) and u8(D+0x18) as arguments of the virtual calls at 0x00a0ca27 and 0x00a0ca50. Every read of u8(D+0x1a) in slots 1 and 2 first loads the class key entry from clip +0x18 and skips the read when key entry byte +4 is below 4 (0x00a0ca52, 0x00a0c11e, 0x00a0c15d). When that byte is at least 4 and bit 0 of u8(D+0x1a) is set, slot 1 passes D+0x20 to 0x00a0b9c0, which reads a bind record of s16 actor ordinal, s16 part index, six floats and two bytes. Negative ordinals or part indexes take error branches. Bit 2 of u8(D+0x1a) is read by slot 2 under the same key entry gate. Slot 8 returns u32(D+0x10) plus clip +0x110. Slot 29 returns D+0x24, the first extension float, and the extension itself starts at D+0x20."
+    },
+    {
+      "id": "class-key-entry",
+      "tier": "STATIC",
+      "claim": "The scheduler resource loader at 0x00a24400 calls 0x00a27210 for the @CCPT chunk. For each four byte name entry it stores the address of the String table entry named by u16(entry) at key entry +0 and the byte at name entry +2 at key entry +4, in 8 byte key entries. The clip builder 0x00a28510 selects keyEntry = table + 8 * u8(D+2) and hands it to the factory, whose constructor stores it at clip +0x18."
+    },
+    {
+      "id": "class-key-link",
+      "tier": "INFERRED",
+      "claim": "The table the clip builder reads at +0x0c of its owner is the table 0x00a27210 fills, because both use 8 byte entries with the string pointer at +0 and the entry is passed on as the class key. The owner object that holds the table was not traced. The role of the @CCPT entry byte +2, which equals 4 for LocalCameraClip in all 663 schedulers that list it, is UNKNOWN beyond this gate."
+    },
+    {
+      "id": "showhide-sink",
+      "tier": "UNKNOWN",
+      "claim": "The object at RaptureActor +0x9c, whose slot 2 receives the ShowHideClip operand, was not identified. RaptureActor's constructor at 0x007ced70 does not store it."
+    },
+    {
+      "id": "undecoded-words",
+      "tier": "UNKNOWN",
+      "claim": "The shared header words s16(D+8), u8(D+0x0a), u8(D+0x0b) and s16(D+0x0c) are read by accessors whose callers were not traced. The fields of the four classes listed in the manifest are only the ones read by slot 1 and by the slot 2 and slot 8 methods named above. The second-group registrations and the Lay registry were not followed."
+    },
+    {
+      "id": "install-census",
+      "tier": "OBSERVED",
+      "claim": "The scan reads 9,593 files below client/cut, finds 86,405 SEDB headers of which 689 fold to scb, and parses every scheduler. The 222,491 clip records use 102 classes. The six classes in this manifest are ranks 1 to 6 and hold 120,252 records. The full ranking is in cut-scheduler-clip-class-census.csv."
+    },
+    {
+      "id": "install-invariants",
+      "tier": "OBSERVED",
+      "claim": "The invariants listed in the manifest hold for every record of their class: record sizes, flag bytes and enumerations, padding words, the ClipSyncClip index range, the LocalCameraClip extension, the SetPosClip rotation range, the MotionClip scaled words and the PhysicsLookAtClip mode 1 angle range and the @CCPT entry byte +2 of each class. The install section also pins the ShowHideClip operand, MotionClip speed, PhysicsLookAtClip mode and ClipSyncClip count parity distributions and the SetPosClip position and scale ranges."
+    }
+  ],
+  "install": {
+    "scope": "owner installation client/cut tree",
+    "files": 9593,
+    "sedbHeaders": 86405,
+    "schedulers": 689,
+    "clips": 222491,
+    "classes": 102,
+    "perClass": {
+      "SetPosClip": {
+        "clips": 33078,
+        "schedulers": 689,
+        "recordBytes": {
+          "64": 33078
+        }
+      },
+      "MotionClip": {
+        "clips": 22085,
+        "schedulers": 670,
+        "recordBytes": {
+          "44": 22085
+        }
+      },
+      "ShowHideClip": {
+        "clips": 21581,
+        "schedulers": 621,
+        "recordBytes": {
+          "20": 21581
+        }
+      },
+      "RapturePhysicsLookAtClip": {
+        "clips": 15619,
+        "schedulers": 620,
+        "recordBytes": {
+          "52": 15619
+        }
+      },
+      "ClipSyncClip": {
+        "clips": 14001,
+        "schedulers": 689,
+        "recordBytes": {
+          "20": 27,
+          "24": 13914,
+          "28": 22,
+          "32": 10,
+          "36": 7,
+          "40": 5,
+          "44": 8,
+          "48": 5,
+          "52": 1,
+          "56": 1,
+          "76": 1
+        }
+      },
+      "LocalCameraClip": {
+        "clips": 13888,
+        "schedulers": 663,
+        "recordBytes": {
+          "32": 12404,
+          "64": 1484
+        }
+      }
+    },
+    "invariants": {
+      "setpos-key-byte": {
+        "checked": 33078,
+        "violations": 0
+      },
+      "showhide-key-byte": {
+        "checked": 21581,
+        "violations": 0
+      },
+      "motion-key-byte": {
+        "checked": 22085,
+        "violations": 0
+      },
+      "lookat-key-byte": {
+        "checked": 15619,
+        "violations": 0
+      },
+      "clipsync-key-byte": {
+        "checked": 14001,
+        "violations": 0
+      },
+      "localcamera-key-byte": {
+        "checked": 13888,
+        "violations": 0
+      },
+      "setpos-link": {
+        "checked": 33078,
+        "violations": 0
+      },
+      "setpos-flags": {
+        "checked": 33078,
+        "violations": 0
+      },
+      "setpos-unread": {
+        "checked": 33078,
+        "violations": 0
+      },
+      "setpos-rotation": {
+        "checked": 33078,
+        "violations": 0
+      },
+      "showhide-link": {
+        "checked": 21581,
+        "violations": 0
+      },
+      "showhide-state": {
+        "checked": 21581,
+        "violations": 0
+      },
+      "showhide-pad": {
+        "checked": 21581,
+        "violations": 0
+      },
+      "motion-link": {
+        "checked": 22085,
+        "violations": 0
+      },
+      "motion-name-index": {
+        "checked": 22085,
+        "violations": 0
+      },
+      "motion-time-units": {
+        "checked": 22085,
+        "violations": 0
+      },
+      "motion-flag": {
+        "checked": 22085,
+        "violations": 0
+      },
+      "motion-unread": {
+        "checked": 22085,
+        "violations": 0
+      },
+      "lookat-link": {
+        "checked": 15619,
+        "violations": 0
+      },
+      "lookat-mode": {
+        "checked": 15619,
+        "violations": 0
+      },
+      "lookat-angles": {
+        "checked": 2169,
+        "violations": 0
+      },
+      "lookat-flags": {
+        "checked": 15619,
+        "violations": 0
+      },
+      "clipsync-link": {
+        "checked": 14001,
+        "violations": 0
+      },
+      "clipsync-pad": {
+        "checked": 14001,
+        "violations": 0
+      },
+      "clipsync-refs": {
+        "checked": 14001,
+        "violations": 0
+      },
+      "localcamera-link": {
+        "checked": 13888,
+        "violations": 0
+      },
+      "localcamera-ext": {
+        "checked": 1484,
+        "violations": 0
+      },
+      "localcamera-pad": {
+        "checked": 13888,
+        "violations": 0
+      }
+    },
+    "distributions": {
+      "showhide-state": {
+        "0": 9399,
+        "1": 12182
+      },
+      "motion-speed": {
+        "100": 20305,
+        "other": 1780
+      },
+      "lookat-mode": {
+        "0": 13320,
+        "1": 2169,
+        "2": 130
+      },
+      "clipsync-count-parity": {
+        "even": 247,
+        "odd": 13754
+      }
+    },
+    "ranges": {
+      "setpos-position": [
+        -2824.9,
+        3563.5
+      ],
+      "setpos-scale": [
+        0.1,
+        8.0
+      ]
+    }
+  }
+}
