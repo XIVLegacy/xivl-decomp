@@ -31,6 +31,7 @@ class Clip:
     raw: int
     class_name: str
     record: bytes
+    block: int = 0
 
 
 @dataclass
@@ -171,7 +172,7 @@ def parse_scheduler(span: bytes, start: int = 0) -> Scheduler:
         at += link
     cbkt = found[b"@CBKT\0"]
     header = cbkt + 0x10
-    for _ in range(_read("<h", data, cbkt + 0x0A, "@CBKT count")):
+    for block_index in range(_read("<h", data, cbkt + 0x0A, "@CBKT count")):
         block = CHUNK_UNIT * _read("<H", data, header + 6, "block size")
         if block < BLOCK_FIRST_CLIP or header + block > size:
             raise ParseError(f"bad block at {header:#x}")
@@ -194,6 +195,7 @@ def parse_scheduler(span: bytes, start: int = 0) -> Scheduler:
                     _read("<I", data, record + 4, "clip raw"),
                     sched.clip_classes[cls],
                     bytes(data[record : record + link]),
+                    block_index,
                 )
             )
             record += link

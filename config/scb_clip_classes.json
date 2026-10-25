@@ -930,6 +930,435 @@
           "when": "bit 0 of +0x1a and key entry byte +4 >= 4"
         }
       ]
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip",
+      "rank": 7,
+      "clips": 11142,
+      "schedulers": 646,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcae0",
+        "factory": "0x00639ab0",
+        "insertSite": "0x00635f5b"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x0081ab00",
+        "primaryVtable": "0x0100a83c",
+        "typeDescriptor": "0x012caa80",
+        "rtti": ".?AVRaptureNqMotionBlendOnOffClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0081abc0",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00defc20"
+      },
+      "record": {
+        "span": 24,
+        "linkRule": "0x18",
+        "tail": "D+0x18, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "u32",
+          "field": "blend switch",
+          "tier": "STATIC",
+          "check": "RaptureNqMotionBlendOnOffClip flag and value call",
+          "feeds": "Compared with zero. The boolean result is the first argument of CharaActor method 0x0065d260.",
+          "meaning": "blend on or off",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "blend value",
+          "tier": "STATIC",
+          "check": "CharaActor blend setter 0x0065d260",
+          "feeds": "Second argument of 0x0065d260. That method stores the value, or -1 when the switch is clear, at CharaActor +0x134c and passes it to 0x007ad020 with ECX at actor +0x4c0. 0x007ad020 compares it with the difference of two entry times converted from ticks to frames.",
+          "meaning": "blend length in motion frames",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip",
+      "rank": 8,
+      "clips": 9081,
+      "schedulers": 586,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcf68",
+        "factory": "0x0063b370",
+        "insertSite": "0x00636747"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x00827080",
+        "primaryVtable": "0x010248dc",
+        "typeDescriptor": "0x012cd0a0",
+        "rtti": ".?AVRaptureFacialPoseForSchClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00827140",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00830580"
+      },
+      "record": {
+        "span": 56,
+        "linkRule": "0x38",
+        "tail": "D+0x38, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 32,
+          "type": "char[32]",
+          "field": "pose name",
+          "tier": "STATIC",
+          "check": "RaptureFacialPoseForSchClip name and word call",
+          "feeds": "The address D+0x10 is the first argument of 0x0065e8d0 and then of 0x007a6210. That method copies the name into a 16 byte buffer at +0x190 of the actor facial component (ECX at actor +0x1bc). A name whose first four bytes equal off (0x00fe711c) is replaced by cfxf_default (0x00fe6f00). Any other name than cfxf_default must resolve through 0x00662720 with both the bcm and btm tags.",
+          "meaning": "facial pose resource name",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x30",
+          "width": 4,
+          "type": "s32",
+          "field": "word 0x30",
+          "tier": "STATIC",
+          "check": "RaptureFacialPoseForSchClip name and word call",
+          "feeds": "Second argument of 0x007a6210. Its low 16 bits are stored at +0x17c of the component with bit 16 set."
+        },
+        {
+          "offset": "0x34",
+          "width": 4,
+          "type": "s32",
+          "field": "word 0x34",
+          "tier": "STATIC",
+          "check": "RaptureFacialPoseForSchClip name and word call",
+          "feeds": "Third argument of 0x007a6210, stored as a float at +0x174 of the component. The fourth argument is the constant -1 pushed by 0x0065e8d0 and is stored as a float at +0x178."
+        }
+      ]
+    },
+    {
+      "name": "RaptureFacialLipSyncClip",
+      "rank": 10,
+      "clips": 7441,
+      "schedulers": 579,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcf0c",
+        "factory": "0x0063b1c0",
+        "insertSite": "0x006366bd",
+        "secondKeyLiteral": "0x00fbd3dc",
+        "secondInsertSite": "0x0063715b"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x008269f0",
+        "primaryVtable": "0x010229d4",
+        "typeDescriptor": "0x012cce08",
+        "rtti": ".?AVRaptureFacialLipSyncClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00826ab0",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00defc20"
+      },
+      "record": {
+        "span": 24,
+        "linkRule": "0x18",
+        "tail": "D+0x18, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "u32",
+          "field": "mode word",
+          "tier": "STATIC",
+          "check": "RaptureFacialLipSyncClip mode and set call",
+          "feeds": "First argument of 0x0065e980. After the CharaActor slot 154 guard it is the first argument of 0x007a6fc0 with ECX at actor +0x35c. While the float at +0x1c of that component is positive only the values 2 and 3 are kept, at +0x28. Otherwise the value 1 selects the second name of a table row and any other value selects the first.",
+          "meaning": "lip shape variant",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "set word",
+          "tier": "STATIC",
+          "check": "RaptureFacialLipSyncClip mode and set call",
+          "feeds": "Second argument of 0x007a6fc0. It selects the row of the six name table at 0x00fe7200, two names per row, and the chosen name is resolved through 0x00662720 with the bcm and btm tags.",
+          "meaning": "lip shape set",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureMesClip",
+      "rank": 11,
+      "clips": 6301,
+      "schedulers": 573,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbc81c",
+        "factory": "0x00638a60",
+        "insertSite": "0x00635a1c"
+      },
+      "object": {
+        "size": "0x00000058",
+        "constructor": "0x00813c70",
+        "primaryVtable": "0x00ffb0a4",
+        "typeDescriptor": "0x012c92d4",
+        "rtti": ".?AVRaptureMesClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00813cf0",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 36,
+        "linkRule": "0x24",
+        "tail": "D+0x14, the first class field. This is not the record end."
+      },
+      "fields": [
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "message word 0",
+          "tier": "STATIC",
+          "check": "RaptureMesClip key 3 record reads",
+          "feeds": "Stored with the word at +0x18 in a two word block that 0x00813f10 or 0x00813f60 copies into a message."
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "u32",
+          "field": "message word 1",
+          "tier": "STATIC",
+          "check": "RaptureMesClip key 3 record reads",
+          "feeds": "Second word of the block described for +0x14."
+        },
+        {
+          "offset": "0x1c",
+          "width": 1,
+          "type": "u8",
+          "field": "route byte",
+          "tier": "STATIC",
+          "check": "RaptureMesClip message dispatch and phase",
+          "feeds": "Zero calls 0x00813f60, which posts message type 0xb of 0x14 bytes through 0x007ce7b0. Nonzero calls 0x00813f10, which posts type 0xa of 0x1c bytes."
+        },
+        {
+          "offset": "0x1d",
+          "width": 1,
+          "type": "u8",
+          "field": "phase byte",
+          "tier": "STATIC",
+          "check": "RaptureMesClip message dispatch and phase",
+          "feeds": "Read only after the type 0xa post. Nonzero sets the clip phase word to 1 and zero sets it to 2, through slot 12."
+        },
+        {
+          "offset": "0x1e",
+          "width": 1,
+          "type": "u8",
+          "field": "slot 3 byte",
+          "tier": "STATIC",
+          "check": "RaptureMesClip slot 3 scheduler flag",
+          "feeds": "Slot 3 tests it when the key entry byte +4 is 2 or 3. A nonzero value calls 0x00a1c620, which sets scheduler +0xc8 to 2 when it is 0."
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "u32",
+          "field": "entry mask",
+          "tier": "STATIC",
+          "check": "RaptureMesClip key 3 mask loops",
+          "feeds": "Only read when the key entry byte +4 is 3. Bits 1 to 7 select entries of the object at scheduler +0xf0 through its slot 17, and bits 20 to 24 through its slot 29.",
+          "when": "key entry byte +4 is 3"
+        }
+      ]
+    },
+    {
+      "name": "DepthOfFieldClip",
+      "rank": 12,
+      "clips": 6245,
+      "schedulers": 541,
+      "registration": {
+        "origin": "base only",
+        "baseKeyLiteral": "0x0109b580",
+        "baseFactory": "0x00a4ead0",
+        "baseInsertSite": "0x00a4c8c8"
+      },
+      "object": {
+        "size": "0x00000060",
+        "constructor": "0x00df0290",
+        "primaryVtable": "0x011370a4",
+        "typeDescriptor": "0x0131f46c",
+        "rtti": ".?AVDepthOfFieldClip@Plugins@Cut@Engine@CDev@SQEX@@",
+        "slot1": "0x00df0350",
+        "slot2": "0x00df02e0",
+        "slot8": "0x00df0040",
+        "slot29": "0x00df0c80"
+      },
+      "record": {
+        "span": 52,
+        "linkRule": "0x1c when bit 1 of u32(D+0x14) is set, otherwise 0x34",
+        "tail": "D+0x34, the end of the 0x34 byte records. It lies 0x18 bytes past the end of a 0x1c byte record."
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "u32",
+          "field": "end tick",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip slot 8 length",
+          "feeds": "Returned by clip slot 8, the end tick."
+        },
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "flag word",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip flag word routing",
+          "feeds": "Bit 0 is the enable bit and bit 1 selects the preset branch. Bits 4 to 10 mark which of the seven parameter floats at +0x18 to +0x30 are present. Bits 2, 3 and 11 to 31 are not read. Slot 1 copies bits 0, 1 and 4 to 10 into bits 0 to 8 of clip +0x38."
+        },
+        {
+          "offset": "0x18",
+          "width": 2,
+          "type": "u16",
+          "field": "preset index",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip preset word read",
+          "feeds": "Passed to scheduler lookup 0x00a20090, whose record gives the preset resource.",
+          "when": "bit 1 of +0x14 set"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 0",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 0 of a seven float block fetched from the target object when bit 4 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 4 of +0x14 set"
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 1",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 1 of a seven float block fetched from the target object when bit 5 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 5 of +0x14 set"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 2",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 2 of a seven float block fetched from the target object when bit 6 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 6 of +0x14 set"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 3",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 3 of a seven float block fetched from the target object when bit 7 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 7 of +0x14 set"
+        },
+        {
+          "offset": "0x28",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 4",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 4 of a seven float block fetched from the target object when bit 8 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 8 of +0x14 set"
+        },
+        {
+          "offset": "0x2c",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 5",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 5 of a seven float block fetched from the target object when bit 9 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 9 of +0x14 set"
+        },
+        {
+          "offset": "0x30",
+          "width": 4,
+          "type": "f32",
+          "field": "parameter 6",
+          "tier": "STATIC",
+          "check": "DepthOfFieldClip parameter float reads",
+          "feeds": "Replaces float 6 of a seven float block fetched from the target object when bit 10 of +0x14 is set. The block follows an enable byte and is passed to slot 13 of the target object.",
+          "when": "bit 1 of +0x14 clear and bit 10 of +0x14 set"
+        }
+      ]
+    },
+    {
+      "name": "KillClip",
+      "rank": 13,
+      "clips": 4995,
+      "schedulers": 555,
+      "registration": {
+        "origin": "base only",
+        "baseKeyLiteral": "0x0109b6d4",
+        "baseFactory": "0x00a4e210",
+        "baseInsertSite": "0x00a4c634",
+        "secondKeyLiteral": "0x0109b6d4",
+        "secondInsertSite": "0x00a4d08d"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x00dec780",
+        "primaryVtable": "0x01135744",
+        "typeDescriptor": "0x0131ea24",
+        "rtti": ".?AVKillClip@Plugins@Cut@Engine@CDev@SQEX@@",
+        "slot1": "0x00dec7f0",
+        "slot2": "0x00a20f90",
+        "slot8": "0x00a21080",
+        "slot29": "0x00dec7d0"
+      },
+      "record": {
+        "span": 22,
+        "linkRule": "(0x14 + 2n + 3) & ~3 for n = s16(D+0x10)",
+        "tail": "D + ((2n + 0x19) & ~3), which equals the record end for odd n and lies 4 bytes past it for even n"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 2,
+          "type": "s16",
+          "field": "index count n",
+          "tier": "STATIC",
+          "check": "KillClip count read",
+          "feeds": "Loop bound. A count of zero or less runs no iteration."
+        },
+        {
+          "offset": "0x14",
+          "width": 2,
+          "type": "s16",
+          "field": "clip index",
+          "tier": "STATIC",
+          "check": "KillClip target abort loop",
+          "feeds": "Repeated n times at +0x14 + 2k. Each index goes through the scheduler clip lookup 0x00a1ffb0. A clip that is found gets slot 18 called with 1, which sets its abort bit. A missing clip logs an error text.",
+          "when": "index k below n"
+        }
+      ]
     }
   ],
   "staticChecks": [
@@ -2051,9 +2480,1319 @@
       "va": "0x01014da8",
       "pattern": "5b 45 52 52 4f 52 5d 52 61 70 74 75 72 65 50 68 79 73 69 63 73 4c 6f 6f 6b 41 74 43 6c 69 70 20 54 61 72 67 65 74 8e 77 92 e8 82 aa 43 68 61 72 61 41 63 74 6f 72 82 c5 82 cd 82 c8 82 a2 81 42 00",
       "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler ticks per second constant",
+      "kind": "dwords",
+      "va": "0x00f67020",
+      "values": [
+        "0x00000000",
+        "0x41124f80"
+      ]
+    },
+    {
+      "name": "scheduler motion frame rate constant",
+      "kind": "dwords",
+      "va": "0x00fa7b18",
+      "values": [
+        "0x00000000",
+        "0x403e0000"
+      ]
+    },
+    {
+      "name": "scheduler ticks per frame image value",
+      "kind": "dwords",
+      "va": "0x012ed240",
+      "values": [
+        "0x0000271a"
+      ]
+    },
+    {
+      "name": "scheduler ticks per frame getter",
+      "kind": "signature",
+      "va": "0x00a20470",
+      "pattern": "a1 40 d2 2e 01 c3",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler ticks per frame setter",
+      "kind": "signature",
+      "va": "0x00a20490",
+      "pattern": "f3 0f 10 44 24 04 f2 0f 10 0d 20 70 f6 00 0f 5a c0 f2 0f 5e c8 f2 0f 2c c1 a3 40 d2 2e 01 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler frames per second helper",
+      "kind": "signature",
+      "va": "0x00a204b0",
+      "pattern": "51 db 05 40 d2 2e 01 dc 3d 20 70 f6 00 d9 1c 24 d9 04 24 59 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler clock advance by one frame",
+      "kind": "signature",
+      "va": "0x00a204d0",
+      "pattern": "80 79 18 00 74 07 f3 0f 10 41 14 eb 08 f3 0f 10 05 70 4f f5 00 f3 0f 2a 0d 40 d2 2e 01 8b 51 10 85 d2 f3 0f 5a c9 0f 5a c0 f2 0f 59 c8 f2 0f 2c c1 74 0d 03 c2 c7 41 10 00 00 00 00 79 02 33 c0 99 01 41 08 11 51 0c c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler clock time getter",
+      "kind": "signature",
+      "va": "0x00a20350",
+      "pattern": "8b 41 08 8b 51 0c c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler clock rate getter",
+      "kind": "signature",
+      "va": "0x00a203b0",
+      "pattern": "80 79 18 00 74 04 d9 41 14 c3 d9 e8 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler clock initial state",
+      "kind": "signature",
+      "va": "0x00a20310",
+      "pattern": "f3 0f 10 05 70 4f f5 00 8b c1 33 c9 c7 00 64 7b 09 01 89 48 08 89 48 0c 89 48 10 f3 0f 11 40 14 c6 40 18 01 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler clock time passed to tick",
+      "kind": "signature",
+      "va": "0x00a1e3fe",
+      "pattern": "53 8d 8d d0 00 00 00 e8 46 1f 00 00 2b 85 a0 00 00 00 8b cd 2b 85 98 00 00 00 50 e8 12 ef ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler running clip pass update and end test",
+      "kind": "signature",
+      "va": "0x00a1e1e5",
+      "pattern": "8b ce ff d2 8b 06 8b 50 20 8b ce ff d2 8b e8 8b 06 8b 50 1c 8b ce ff d2 2b e8 8b 06 8b 50 24 8b ce ff d2 3b c5 7c 1b 8b 06 8b 50 2c 8b ce ff d2 83 f8 02 75 0d 8b 06 8b 50 34 8b ce ff d2 85 c0 74 0d 8b 06 8b 50 4c 8b ce ff d2 3c 01 75 61",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick header word +0x08 filter and start compare",
+      "kind": "signature",
+      "va": "0x00a1d46a",
+      "pattern": "8b 55 00 8b 42 58 8b cd ff d0 8b 4f 58 50 e8 83 96 00 00 84 c0 0f 84 f1 02 00 00 8b 55 00 8b 42 1c 8b cd ff d0 8b b4 24 58 04 00 00 3b f0 0f 8c ca 02 00 00 8b 4c 24 14 8b 11",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick begin state gate",
+      "kind": "signature",
+      "va": "0x00a1d5c8",
+      "pattern": "8b 55 00 8b 42 2c 8b cd ff d0 85 c0 74 13 8b 55 00 8b 42 2c 8b cd ff d0 83 f8 04 0f 85 8d 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick skip flag and header bit 2",
+      "kind": "signature",
+      "va": "0x00a1d5ed",
+      "pattern": "83 b9 c8 00 00 00 00 74 1f 8b 55 00 8b 42 68 8b cd ff d0 3c 01 75 11 8b 55 00 8b 42 28 6a 04 8b cd ff d0 e9 61 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick begun flag and header bit 0",
+      "kind": "signature",
+      "va": "0x00a1d657",
+      "pattern": "8b 4c 24 18 8b 51 0c 8b 44 24 1c 03 d3 80 3c 02 01 75 12 8b 55 00 8b 42 64 8b cd ff d0 84 c0 0f 85 fa 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick begin overshoot",
+      "kind": "signature",
+      "va": "0x00a1d6d0",
+      "pattern": "8b 55 00 8b 42 1c 8b cd ff d0 8b 8c 24 58 04 00 00 2b c8 51 8d 4c 24 38 e8 03 2a 00 00 8b 55 00 8b 52 04 8d 44 24 34 50 8b cd ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick update before end test",
+      "kind": "signature",
+      "va": "0x00a1d7b3",
+      "pattern": "8b 57 f8 8b 42 34 8d 77 f8 89 4c 24 18 8b ce ff d0 8b 16 8b 52 08 8b d8 8d 44 24 34 50 8b ce ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick end rule",
+      "kind": "signature",
+      "va": "0x00a1d7d4",
+      "pattern": "8b 06 8b 50 20 8b ce ff d2 8b e8 8b 06 8b 50 1c 8b ce ff d2 2b e8 8b 06 8b 50 24 8b ce ff d2 3b c5 7c 1b 8b 06 8b 50 2c 8b ce ff d2 83 f8 02 75 0d 8b 06 8b 50 34 8b ce ff d2 85 c0 74 0d 8b 06 8b 50 4c 8b ce ff d2 3c 01 75 75",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick end calls",
+      "kind": "signature",
+      "va": "0x00a1d81f",
+      "pattern": "8b 06 8b 50 0c 8d 4c 24 34 51 8b ce ff d2 8b 06 8b 50 10 8d 4c 24 34 51 8b ce ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick phase one pins the playhead",
+      "kind": "signature",
+      "va": "0x00a1d894",
+      "pattern": "8b 16 8b 42 34 8b ce ff d0 83 f8 01 75 36 8b 7c 24 14 8b 17 8b 42 3c 56 8b cf ff d0 8b 16 8b 42 1c 8b ce ff d0 8b 8c 24 58 04 00 00 2b c8 8b c1 99 01 87 a0 00 00 00 11 97 a4 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base begin stores elapsed and step",
+      "kind": "signature",
+      "va": "0x00a20f5f",
+      "pattern": "e8 9c f1 ff ff 81 4e 30 ff ff 00 00 8b cf 89 46 28 c7 46 2c 00 00 00 00 e8 f4 f0 ff ff 5f 89 46 34 5e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base update adds step to elapsed",
+      "kind": "signature",
+      "va": "0x00a20fa3",
+      "pattern": "c7 46 1c 02 00 00 00 eb 34 57 8b 7c 24 14 8b cf e8 b8 f0 ff ff 8b c8 e8 71 a8 ff ff dd 5c 24 08 8b cf e8 f6 ef ff ff f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 44 24 08 f2 0f 2c c0 89 46 2c 5f 8b 46 28 03 46 2c 3d ff ff ff 7f 73 03 89 46 28 5e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "base accessor elapsed",
+      "kind": "signature",
+      "va": "0x00a210a0",
+      "pattern": "8b 41 28 c3",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "base accessor phase getter",
+      "kind": "signature",
+      "va": "0x00a21100",
+      "pattern": "8b 41 20 c3",
+      "mask": "ff ff ff ff"
+    },
+    {
+      "name": "base accessor abort bit getter",
+      "kind": "signature",
+      "va": "0x00a21160",
+      "pattern": "8b 41 30 25 00 00 01 00 c1 e8 10 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "clip index word consumer",
+      "kind": "signature",
+      "va": "0x00a28287",
+      "pattern": "8b f0 0f bf 4e 0c 51 8b 8c 24 34 04 00 00 e8 96 91 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "clip index lookup in scheduler list",
+      "kind": "signature",
+      "va": "0x00a1b790",
+      "pattern": "8b 49 34 e9 98 5c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip rapture insert",
+      "kind": "signature",
+      "va": "0x00635f5b",
+      "pattern": "c7 44 24 1c e0 ca fb 00 c7 44 24 20 b0 9a 63 00 52 8d 48 08 e8 9c 97 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcae0",
+      "text": "RaptureNqMotionBlendOnOffClip"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip factory object size",
+      "kind": "signature",
+      "va": "0x00639ad8",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00639b17",
+      "pattern": "e8 e4 0f 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0081ab41",
+      "pattern": "c7 06 3c a8 00 01 c7 46 08 30 a8 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0100a83c",
+      "values": [
+        "0x0081ac40",
+        "0x0081abc0",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x0100a8b0",
+      "values": [
+        "0x00defc20"
+      ]
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip RTTI name",
+      "kind": "string",
+      "va": "0x012caa88",
+      "text": ".?AVRaptureNqMotionBlendOnOffClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "slot 29 tail pointer D+0x18",
+      "kind": "signature",
+      "va": "0x00defc20",
+      "pattern": "8b 41 14 83 c0 18 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip record and actor ordinal reads",
+      "kind": "signature",
+      "va": "0x0081abcf",
+      "pattern": "8b 7e 14 0f b6 47 03 50 8b cb e8 c2 53 20 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip CharaActor cast",
+      "kind": "signature",
+      "va": "0x0081abed",
+      "pattern": "8b 16 8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b ce ff d0 50 e8 c2 fa 1b 00 83 c4 14",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip flag and value call",
+      "kind": "signature",
+      "va": "0x0081ac11",
+      "pattern": "83 7f 10 00 8b 4f 14 0f 95 c2 51 8b c8 52 e8 3c 26 e4 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CharaActor blend setter 0x0065d260",
+      "kind": "signature",
+      "va": "0x0065d260",
+      "pattern": "80 7c 24 04 00 74 06 8b 44 24 08 eb 03 83 c8 ff 89 81 4c 13 00 00 50 81 c1 c0 04 00 00 e8 9e fd 14 00 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "motion list frame conversion 0x007ad020",
+      "kind": "signature",
+      "va": "0x007ad08b",
+      "pattern": "f3 0f 2a 00 8b 17 8b 52 14 f3 0f 5a c0 f2 0f 59 05 18 7b fa 00 f2 0f 5e 05 20 70 f6 00 f2 0f 5a c0 f3 0f 2c c0 89 44 24 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "motion list value compare 0x007ad020",
+      "kind": "signature",
+      "va": "0x007ad0e7",
+      "pattern": "8b 44 24 28 8b cb 2b 4c 24 10 88 46 67 3b c8 7f 31",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip rapture insert",
+      "kind": "signature",
+      "va": "0x00636747",
+      "pattern": "c7 44 24 20 68 cf fb 00 c7 44 24 24 70 b3 63 00 e8 b4 8f 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcf68",
+      "text": "RaptureFacialPoseForSchClip"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip factory object size",
+      "kind": "signature",
+      "va": "0x0063b398",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063b3d7",
+      "pattern": "e8 a4 bc 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x008270c1",
+      "pattern": "c7 06 dc 48 02 01 c7 46 08 d0 48 02 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x010248dc",
+      "values": [
+        "0x008271d0",
+        "0x00827140",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01024950",
+      "values": [
+        "0x00830580"
+      ]
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip RTTI name",
+      "kind": "string",
+      "va": "0x012cd0a8",
+      "text": ".?AVRaptureFacialPoseForSchClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00830580",
+      "pattern": "8b 41 14 83 c0 38 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip record and actor ordinal reads",
+      "kind": "signature",
+      "va": "0x0082714f",
+      "pattern": "8b 7e 14 0f b6 47 03 50 8b cb e8 42 8e 1f 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip CharaActor cast",
+      "kind": "signature",
+      "va": "0x0082716d",
+      "pattern": "8b 16 8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b ce ff d0 50 e8 42 35 1b 00 83 c4 14",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip name and word call",
+      "kind": "signature",
+      "va": "0x0082719b",
+      "pattern": "8b 57 34 52 8b 57 30 52 83 c7 10 57 50 e8 23 77 e3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CharaActor facial pose setter 0x0065e8d0",
+      "kind": "signature",
+      "va": "0x0065e8d9",
+      "pattern": "8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 1c 8b 44 24 14 8b 4c 24 10 8b 54 24 0c 6a ff 50 51 52 8d 8e bc 01 00 00 e8 0b 79 14 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "facial pose off name compare 0x007a6210",
+      "kind": "signature",
+      "va": "0x007a621a",
+      "pattern": "bf 1c 71 fe 00 8b f0 b9 04 00 00 00 33 d2 f3 a6 75 49",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "facial pose resource lookups 0x007a6210",
+      "kind": "signature",
+      "va": "0x007a62bf",
+      "pattern": "8b 4d 00 57 68 62 63 6d 00 e8 53 c4 eb ff 85 c0 0f 84 b6 00 00 00 8b 4d 00 57 68 62 74 6d 00 e8 3d c4 eb ff 85 c0 0f 84 a0 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "facial pose stores 0x007a6210",
+      "kind": "signature",
+      "va": "0x007a6318",
+      "pattern": "57 8d b5 90 01 00 00 6a 10 56 e8 d4 c6 22 00 66 8b 54 24 28 f3 0f 2a 44 24 2c 66 89 95 7c 01 00 00 81 8d 7c 01 00 00 00 00 01 00 83 c4 0c 80 7c 24 13 00 f3 0f 11 85 74 01 00 00 f3 0f 2a 44 24 24 f3 0f 11 85 78 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "facial pose off name",
+      "kind": "string",
+      "va": "0x00fe711c",
+      "text": "off"
+    },
+    {
+      "name": "facial pose default name",
+      "kind": "string",
+      "va": "0x00fe6f00",
+      "text": "cfxf_default"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip rapture insert",
+      "kind": "signature",
+      "va": "0x006366bd",
+      "pattern": "c7 44 24 20 0c cf fb 00 c7 44 24 24 c0 b1 63 00 e8 3e 90 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip second insert",
+      "kind": "signature",
+      "va": "0x00637149",
+      "pattern": "e8 b2 e4 42 00 8d 4c 24 18 51 8d 54 24 24 52 8d 48 08 c7 44 24 20 dc d3 fb 00 c7 44 24 24 c0 b1 63 00 e8 a0 85 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcf0c",
+      "text": "RaptureFacialLipSyncClip"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip second key",
+      "kind": "string",
+      "va": "0x00fbd3dc",
+      "text": "RaptureFacialLipSyncClip"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip factory object size",
+      "kind": "signature",
+      "va": "0x0063b1e8",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063b227",
+      "pattern": "e8 c4 b7 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00826a31",
+      "pattern": "c7 06 d4 29 02 01 c7 46 08 c8 29 02 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x010229d4",
+      "values": [
+        "0x00826b30",
+        "0x00826ab0",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureFacialLipSyncClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01022a48",
+      "values": [
+        "0x00defc20"
+      ]
+    },
+    {
+      "name": "RaptureFacialLipSyncClip RTTI name",
+      "kind": "string",
+      "va": "0x012cce10",
+      "text": ".?AVRaptureFacialLipSyncClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip record and actor ordinal reads",
+      "kind": "signature",
+      "va": "0x00826abf",
+      "pattern": "8b 7e 14 0f b6 47 03 50 8b cb e8 d2 94 1f 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip CharaActor cast",
+      "kind": "signature",
+      "va": "0x00826add",
+      "pattern": "8b 16 8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b ce ff d0 50 e8 d2 3b 1b 00 83 c4 14 85 c0 74 18",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip mode and set call",
+      "kind": "signature",
+      "va": "0x00826b0b",
+      "pattern": "8b 57 14 52 8b 57 10 52 50 e8 67 7e e3 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "CharaActor lip sync setter 0x0065e980",
+      "kind": "signature",
+      "va": "0x0065e989",
+      "pattern": "8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 15 8b 44 24 10 8b 4c 24 0c 50 51 8d 8e 5c 03 00 00 e8 12 86 14 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "lip sync deferral 0x007a6fc0",
+      "kind": "signature",
+      "va": "0x007a6fc6",
+      "pattern": "f3 0f 10 46 1c 0f 2f 05 60 44 fa 00 76 23 8b 44 24 20 83 f8 02 74 09 83 f8 03 0f 85 95 00 00 00 89 46 28 8b 44 24 24 89 46 2c 5e 83 c4 18 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "lip sync table and resource lookups 0x007a6fc0",
+      "kind": "signature",
+      "va": "0x007a6ff7",
+      "pattern": "8b 4c 24 20 8b 44 24 24 33 d2 83 f9 01 0f 94 c2 89 46 2c 89 4e 28 c7 44 24 04 00 72 fe 00 c7 44 24 08 10 72 fe 00 c7 44 24 0c 20 72 fe 00 c7 44 24 10 30 72 fe 00 8d 04 42 c7 44 24 14 40 72 fe 00 c7 44 24 18 50 72 fe 00 8b 4c 84 04 51 8b 0e 68 62 63 6d 00 c6 46 30 01 e8 cb b6 eb ff 33 d2 83 7e 28 01 89 46 10 8b 46 2c 0f 94 c2 8d 0c 42 8b 54 8c 04 8b 0e 52 68 62 74 6d 00 e8 a8 b6 eb ff 89 46 14",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip table row 0",
+      "kind": "string",
+      "va": "0x00fe7200",
+      "text": "cfxl_lip_nor1"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip table row 1",
+      "kind": "string",
+      "va": "0x00fe7210",
+      "text": "cfxl_lip_nor2"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip table row 2",
+      "kind": "string",
+      "va": "0x00fe7220",
+      "text": "cfxl_lip_wis1"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip table row 3",
+      "kind": "string",
+      "va": "0x00fe7230",
+      "text": "cfxl_lip_wis2"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip table row 4",
+      "kind": "string",
+      "va": "0x00fe7240",
+      "text": "cfxl_lip_sho1"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip table row 5",
+      "kind": "string",
+      "va": "0x00fe7250",
+      "text": "cfxl_lip_sho2"
+    },
+    {
+      "name": "RaptureMesClip rapture insert",
+      "kind": "signature",
+      "va": "0x00635a1c",
+      "pattern": "c7 44 24 18 1c c8 fb 00 8d 4c 24 18 51 8d 54 24 24 52 8d 48 08 c7 44 24 24 60 8a 63 00 e8 d2 9c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip rapture key",
+      "kind": "string",
+      "va": "0x00fbc81c",
+      "text": "RaptureMesClip"
+    },
+    {
+      "name": "RaptureMesClip factory object size",
+      "kind": "signature",
+      "va": "0x00638a88",
+      "pattern": "c7 00 58 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00638ac7",
+      "pattern": "e8 a4 b1 1d 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00813caf",
+      "pattern": "c7 06 a4 b0 ff 00 c7 46 08 98 b0 ff 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x00ffb0a4",
+      "values": [
+        "0x00813fb0",
+        "0x00813cf0",
+        "0x00a20f90",
+        "0x00813bb0",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureMesClip vtable slot 3",
+      "kind": "dwords",
+      "va": "0x00ffb0b0",
+      "values": [
+        "0x00813bb0"
+      ]
+    },
+    {
+      "name": "RaptureMesClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x00ffb118",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "RaptureMesClip RTTI name",
+      "kind": "string",
+      "va": "0x012c92dc",
+      "text": ".?AVRaptureMesClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureMesClip key entry byte switch",
+      "kind": "signature",
+      "va": "0x00813d87",
+      "pattern": "8b 47 18 8a 40 04 3c 02 75 19",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip key 2 record reads",
+      "kind": "signature",
+      "va": "0x00813d91",
+      "pattern": "8a 4e 1c 8a 56 1d 8b 46 18 88 4c 24 16 8b 4e 14 88 54 24 17 e9 de 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip key 3 record reads",
+      "kind": "signature",
+      "va": "0x00813daa",
+      "pattern": "3c 03 0f 85 3f 01 00 00 0f b6 46 1c 8b 4e 18 8b 56 14 88 44 24 16 0f b6 46 1d 89 4c 24 44 8b 8c 24 ac 00 00 00 89 54 24 3c 88 44 24 17",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip key 3 mask loops",
+      "kind": "signature",
+      "va": "0x00813de2",
+      "pattern": "bf 01 00 00 00 ba 01 00 00 00 8b cf d3 e2 85 56 20 74 1d 8b 45 00 8b 50 44 57 8b cd ff d2 8b 4c 24 18 89 44 24 38 8d 44 24 38 50 e8 2e 57 d4 ff 83 c7 01 83 ff 08 7c cd 33 ff 8d 64 24 00 ba 00 00 10 00 8b cf d3 e2 85 56 20 74 42 a1 98 72 f6 00 8b 55 00 50 8b 42 74 57 8b cd ff d0 50 8d 4c 24 50 e8 17 34 c3 ff c7 84 24 a4 00 00 00 00 00 00 00 50 8b cb e8 f4 aa c3 ff c7 84 24 a4 00 00 00 ff ff ff ff 8d 4c 24 48 e8 e0 30 c3 ff 83 c7 01 83 ff 05 7c a8",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip message dispatch and phase",
+      "kind": "signature",
+      "va": "0x00813e88",
+      "pattern": "80 7c 24 16 00 89 44 24 24 89 4c 24 28 74 3f 8b 54 24 20 57 8d 4c 24 28 51 8b 4c 24 24 52 c7 44 24 38 00 00 00 00 89 6c 24 3c 89 5c 24 40 e8 55 00 00 00 80 7c 24 17 00 8b cf 74 09 6a 01 e8 25 d2 20 00 eb 24 6a 02 e8 1c d2 20 00 eb 1b",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip message type 0xa builder",
+      "kind": "signature",
+      "va": "0x00813f39",
+      "pattern": "6a 1c 8d 44 24 04 50 6a 0a c7 44 24 0c 01 00 00 00 66 0f d6 44 24 18 89 54 24 24 e8 57 a8 fb ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip message type 0xb builder",
+      "kind": "signature",
+      "va": "0x00813f7e",
+      "pattern": "6a 14 8d 44 24 04 50 6a 0b c7 44 24 0c 01 00 00 00 66 0f d6 44 24 18 e8 16 a8 fb ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip slot 3 scheduler flag",
+      "kind": "signature",
+      "va": "0x00813bb0",
+      "pattern": "8b 41 18 8a 40 04 3c 02 8b 51 14 74 04 3c 03 75 17 8a 52 1e 84 d2 74 10 8b 4c 24 04 e8 9f c4 20 00 8b c8 e8 48 8a 20 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler skip flag setter 0x00a1c620",
+      "kind": "signature",
+      "va": "0x00a1c620",
+      "pattern": "83 b9 c8 00 00 00 00 75 0a c7 81 c8 00 00 00 02 00 00 00 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c8c8",
+      "pattern": "c7 44 24 14 80 b5 09 01 c7 44 24 18 d0 ea a4 00 e8 33 2e bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip base key",
+      "kind": "string",
+      "va": "0x0109b580",
+      "text": "DepthOfFieldClip"
+    },
+    {
+      "name": "DepthOfFieldClip factory object size",
+      "kind": "signature",
+      "va": "0x00a4eaed",
+      "pattern": "c7 00 60 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00a4eb2a",
+      "pattern": "e8 61 17 3a 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00df02ac",
+      "pattern": "c7 06 a4 70 13 01 c7 46 08 98 70 13 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x011370a4",
+      "values": [
+        "0x00df07e0",
+        "0x00df0350",
+        "0x00df02e0",
+        "0x00df0050",
+        "0x00df00d0",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00df0040"
+      ]
+    },
+    {
+      "name": "DepthOfFieldClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01137118",
+      "values": [
+        "0x00df0c80"
+      ]
+    },
+    {
+      "name": "DepthOfFieldClip RTTI name",
+      "kind": "string",
+      "va": "0x0131f474",
+      "text": ".?AVDepthOfFieldClip@Plugins@Cut@Engine@CDev@SQEX@@"
+    },
+    {
+      "name": "DepthOfFieldClip slot 8 length",
+      "kind": "signature",
+      "va": "0x00df0040",
+      "pattern": "8b 41 14 8b 40 10 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00df0c80",
+      "pattern": "8b 41 14 83 c0 34 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip begin target object fetch",
+      "kind": "signature",
+      "va": "0x00df037d",
+      "pattern": "8b 4e 24 33 db 89 5e 3c 89 5e 5c 8b 01 8b 50 18 ff d2 3b c3 89 44 24 10 0f 84 10 04 00 00 8b 10 57 8b 7e 14 8b c8 8b 42 30 56 ff d0 f3 0f 7e 00 8b 4e 38 66 0f d6 44 24 1c f3 0f 7e 40 08 66 0f d6 44 24 24 f3 0f 7e 40 10 66 0f d6 44 24 2c f3 0f 7e 40 18 66 0f d6 44 24 34",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip flag word routing",
+      "kind": "signature",
+      "va": "0x00df03d7",
+      "pattern": "33 4f 14 83 e1 01 31 4e 38 8b 47 14 8b 4e 38 d1 e8 03 c0 33 c1 83 e0 02 33 c1 89 46 38 8b 4f 14 c1 e9 04 03 c9 03 c9 33 c8 83 e1 04 33 c8 89 4e 38 8b 47 14 c1 e8 05 03 c0 03 c0 03 c0 33 c1 83 e0 08 33 c1 89 46 38 8b 4f 14 c1 e9 06 c1 e1 04 33 c8 83 e1 10 33 c8 89 4e 38 8b 47 14 c1 e8 07 c1 e0 05 33 c1 83 e0 20 33 c1 89 46 38 8b 4f 14 c1 e9 08 c1 e1 06 33 c8 83 e1 40 33 c8 89 4e 38 8b 47 14 c1 e8 09 c1 e0 07 33 c1 25 80 00 00 00 33 c1 89 46 38 8b 4f 14 c1 e9 0a c1 e1 08 33 c8 81 e1 00 01 00 00 33 c8 f6 c1 01 89 4e 38",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip preset word read",
+      "kind": "signature",
+      "va": "0x00df0494",
+      "pattern": "0f b7 57 18 52 8b cd e8 f0 fb c2 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip parameter float reads",
+      "kind": "signature",
+      "va": "0x00df0721",
+      "pattern": "f3 0f 10 47 18 f3 0f 11 44 24 20 f6 c1 08 74 0b f3 0f 10 47 1c f3 0f 11 44 24 24 f6 c1 10 74 0b f3 0f 10 47 20 f3 0f 11 44 24 28 f6 c1 20 74 0b f3 0f 10 47 24 f3 0f 11 44 24 2c f6 c1 40 74 0b f3 0f 10 47 28 f3 0f 11 44 24 30 f6 c1 80 74 0b f3 0f 10 47 2c f3 0f 11 44 24 34 f7 c1 00 01 00 00 74 0b f3 0f 10 47 30 f3 0f 11 44 24 38",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip enable byte and target call",
+      "kind": "signature",
+      "va": "0x00df078f",
+      "pattern": "8b 4e 38 83 e1 01 88 4c 24 1c 8b 4c 24 14 8b 11 8b 52 34 8d 44 24 1c 50 56 ff d2 5f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip update elapsed frames",
+      "kind": "signature",
+      "va": "0x00df02f1",
+      "pattern": "8b 46 38 a8 01 74 4e a8 02 74 4a 8b 06 8b 50 24 8b ce ff d2 f3 0f 2a c0 f3 0f 5a c0 8b cf f2 0f 11 44 24 08 e8 a6 fc c2 ff f3 0f 2a c0 f3 0f 5a c8 f2 0f 10 44 24 08 f2 0f 5e c1 66 0f 5a c0 f3 0f 11 44 24 14 d9 44 24 14 51 d9 1c 24 57 8b ce e8 da fd ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip slot 3 end call",
+      "kind": "signature",
+      "va": "0x00df0050",
+      "pattern": "8b 44 24 04 83 ec 20 57 50 8b f9 e8 a0 0f c3 ff 8b 47 14 8b 40 14 a8 01 74 5f a8 02 74 5b 8b 4f 24 8b 11 8b 42 18 56 ff d0 8b f0 85 f6 74 49 8b 16 8b 42 30 57 8b ce ff d0 f3 0f 7e 00 8b 16 8b 52 34 66 0f d6 44 24 08 f3 0f 7e 40 08 66 0f d6 44 24 10 f3 0f 7e 40 10 66 0f d6 44 24 18 f3 0f 7e 40 18 8d 44 24 08 50 57 8b ce 66 0f d6 44 24 28 c6 44 24 10 00 ff d2 5e 5f 83 c4 20 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c634",
+      "pattern": "c7 44 24 14 d4 b6 09 01 c7 44 24 18 10 e2 a4 00 e8 c7 30 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip second insert",
+      "kind": "signature",
+      "va": "0x00a4d07b",
+      "pattern": "e8 80 85 01 00 8d 54 24 04 52 8d 4c 24 10 51 8d 48 08 c7 44 24 0c d4 b6 09 01 c7 44 24 10 10 e2 a4 00 e8 6e 26 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip base key",
+      "kind": "string",
+      "va": "0x0109b6d4",
+      "text": "KillClip"
+    },
+    {
+      "name": "KillClip factory object size",
+      "kind": "signature",
+      "va": "0x00a4e22d",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00a4e26a",
+      "pattern": "e8 11 e5 39 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00dec794",
+      "pattern": "c7 06 44 57 13 01 c7 46 08 38 57 13 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x01135744",
+      "values": [
+        "0x00dec8b0",
+        "0x00dec7f0",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "KillClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x011357b8",
+      "values": [
+        "0x00dec7d0"
+      ]
+    },
+    {
+      "name": "KillClip RTTI name",
+      "kind": "string",
+      "va": "0x0131ea2c",
+      "text": ".?AVKillClip@Plugins@Cut@Engine@CDev@SQEX@@"
+    },
+    {
+      "name": "KillClip slot 29 tail pointer",
+      "kind": "signature",
+      "va": "0x00dec7d0",
+      "pattern": "8b 49 14 0f bf 41 10 8d 44 00 19 83 e0 fc 03 c1 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip count read",
+      "kind": "signature",
+      "va": "0x00dec804",
+      "pattern": "8b 6e 14 33 f6 66 39 75 10 0f 8e 8a 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip target abort loop",
+      "kind": "signature",
+      "va": "0x00dec820",
+      "pattern": "0f bf 0f 51 8b 8c 24 14 04 00 00 e8 80 37 c3 ff 85 c0 74 0d 8b 10 8b c8 8b 42 48 6a 01 ff d0 eb 4d",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip missing target error branch",
+      "kind": "signature",
+      "va": "0x00dec841",
+      "pattern": "56 6a 36 68 34 58 13 01 68 f0 57 13 01 68 fe 03 00 00 8d 4c 24 20 68 00 04 00 00 51 c6 84 24 26 04 00 00 00 e8 35 87 be ff 68 98 4d f5 00 8d 54 24 2c 68 00 04 00 00 52 e8 36 83 be ff 8d 44 24 34 6a 03 50 ff 15 b4 51 26 01 83 c4 30",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x0081aa54",
+      "pattern": "e8 07 68 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00826fd4",
+      "pattern": "e8 87 a2 1f 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureFacialLipSyncClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00826944",
+      "pattern": "e8 17 a9 1f 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00813b04",
+      "pattern": "e8 57 d7 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "DepthOfFieldClip constructor base call",
+      "kind": "signature",
+      "va": "0x00df029f",
+      "pattern": "e8 bc 0f c3 ff",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "KillClip constructor base call",
+      "kind": "signature",
+      "va": "0x00dec78f",
+      "pattern": "e8 cc 4a c3 ff",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler held clip pass update and release",
+      "kind": "signature",
+      "va": "0x00a1e2ac",
+      "pattern": "8b 7b 48 3b fd 0f 84 99 00 00 00 8b 4f 04 8b 57 f8 8b 52 08 8d 77 f8 8d 44 24 14 89 4c 24 10 50 8b ce ff d2 8b 06 8b 50 2c 8b ce ff d2 83 f8 02 75 66 8b 06 8b 50 34 8b ce ff d2 85 c0 75 59 8b 06 8b 50 0c 8d 4c 24 14 51 8b ce ff d2 8b 06 8b 50 10 8d 4c 24 14 51 8b ce ff d2 8b 43 4c 3b c5 74 36 83 f8 01 7e 2a 3b 7b 48 75 06 8b 47 04 89 43 48 8b 47 08 3b c5 8b 4f 04 74 03 89 48 04 3b cd 74 06 8b 57 08 89 51 08 89 6f 04 89 6f 08 eb 03 89 6b 48 83 43 4c ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler wrapper held count gate",
+      "kind": "signature",
+      "va": "0x00a1e3a1",
+      "pattern": "83 7d 4c 00 0f 8f 27 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler wrapper held step",
+      "kind": "signature",
+      "va": "0x00a1e4d2",
+      "pattern": "8d 8d d0 00 00 00 e8 d3 1e 00 00 dd 5c 24 0c e8 8a 1f 00 00 f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 44 24 0c f2 0f 2c c0 99 01 85 a0 00 00 00 11 95 a4 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler hold list insert",
+      "kind": "signature",
+      "va": "0x00a1d9b0",
+      "pattern": "8b 44 24 04 85 c0 74 0f 83 c0 08 89 44 24 04 83 c1 44 e9 b9 b8 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip begin stores scheduler origin",
+      "kind": "signature",
+      "va": "0x00a0c777",
+      "pattern": "e8 f4 38 01 00 8b 88 a0 00 00 00 8b 80 a4 00 00 00 89 8e 08 01 00 00 8b 4e 24 89 86 0c 01 00 00 89 9e 10 01 00 00 89 9e 14 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "LocalCameraClip update stores origin change",
+      "kind": "signature",
+      "va": "0x00a0c126",
+      "pattern": "36 8b 44 24 10 f6 40 1a 04 74 2c 8b 4e 60 e8 37 3f 01 00 8b 88 a0 00 00 00 2b 8e 08 01 00 00 8b 90 a4 00 00 00 1b 96 0c 01 00 00 89 8e 10 01 00 00 89 96 14 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick skip when flag clear",
+      "kind": "signature",
+      "va": "0x00a1d44f",
+      "pattern": "f6 87 90 00 00 00 02 75 12 8b 55 00 8b 42 78 8b cd ff d0 3c 01 0f 84 0c 03 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick phase one stops the scan",
+      "kind": "signature",
+      "va": "0x00a1d709",
+      "pattern": "8b 55 00 8b 42 34 8b cd ff d0 83 f8 01 75 5e 01 44 24 1c 8b 74 24 14",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick running list append",
+      "kind": "signature",
+      "va": "0x00a1d8d8",
+      "pattern": "8b 54 24 28 33 f6 3b d6 74 3c 83 fa 01 7e 2c 3b 7c 24 24 75 07 8b 47 04 89 44 24 24 8b 47 08 3b c6 8b 4f 04 74 03 89 48 04 3b ce 74 06 8b 47 08 89 41 08 89 77 04 89 77 08 eb 04 89 74 24 24 83 ea 01 89 54 24 28 8b 54 24 14 8b 42 3c 3b c6 75 0b 89 77 04 89 77 08 89 7a 3c eb 28 8b 48 04 3b ce 74 0e eb 03 8d 49 00 8b c1 8b 48 04 3b ce 75 f7 8b 48 04 3b ce 89 4f 04 89 47 08 74 03 89 79 08 89 78 04 83 42 40 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick rescan after hold",
+      "kind": "signature",
+      "va": "0x00a1d881",
+      "pattern": "83 fb 01 0f 85 d6 00 00 00 c6 44 24 13 00 e9 cc 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick rescan loop test",
+      "kind": "signature",
+      "va": "0x00a1d96c",
+      "pattern": "33 c0 38 44 24 13 89 44 24 24 89 44 24 28 0f 84 10 fa ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler tick begun flag set",
+      "kind": "signature",
+      "va": "0x00a1d6bf",
+      "pattern": "8b 4c 24 18 8b 51 0c 8b 44 24 1c 03 d7 c6 04 02 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "clip list builder call",
+      "kind": "signature",
+      "va": "0x00a1c7f8",
+      "pattern": "e8 13 bd 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "block list builder call",
+      "kind": "signature",
+      "va": "0x00a1bae6",
+      "pattern": "e8 25 c7 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler frame step fixed branch",
+      "kind": "signature",
+      "va": "0x00a1e5d6",
+      "pattern": "8b 4c 24 2c 51 8b ce e8 9e fd ff ff 8b cf e8 e7 1e 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler frame step variable branch",
+      "kind": "signature",
+      "va": "0x00a1e688",
+      "pattern": "8b 4c 24 2c 51 8b ce e8 ec fc ff ff 8d 8e d0 00 00 00 e8 31 1e 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler ticks per frame setter caller",
+      "kind": "signature",
+      "va": "0x00a025db",
+      "pattern": "8b 46 74 8b 48 04 8b 01 8b 50 10 57 ff d2 8b f8 8b 07 8b 50 08 8b cf ff d2 51 d9 1c 24 e8 93 de 01 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler ticks per frame observer",
+      "kind": "signature",
+      "va": "0x00a036e0",
+      "pattern": "8b 01 8b 50 38 ff d2 84 c0 74 0e d9 44 24 04 51 d9 1c 24 e8 98 cd 01 00 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip target chain",
+      "kind": "signature",
+      "va": "0x00813d30",
+      "pattern": "8b ce e8 f9 c2 20 00 85 c0 0f 84 b2 01 00 00 8b c8 e8 1a 76 df ff 85 c0 0f 84 a3 01 00 00 8b 40 68 85 c0 89 44 24 20 0f 84 94 01 00 00 05 64 01 00 00 89 44 24 1c 0f 84 85 01 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "clip slot 30 returns true",
+      "kind": "signature",
+      "va": "0x00b73290",
+      "pattern": "b0 01 c3",
+      "mask": "ff ff ff"
+    },
+    {
+      "name": "SetPosClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x0102f4c4",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "MotionClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x01033864",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "ShowHideClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x010314e4",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RapturePhysicsLookAtClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x010156c4",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "ClipSyncClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x010960c4",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "LocalCameraClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x010958ec",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureNqMotionBlendOnOffClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x0100a8b4",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureFacialPoseForSchClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x01024954",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureFacialLipSyncClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x01022a4c",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureMesClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x00ffb11c",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "DepthOfFieldClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x0113711c",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "KillClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x011357bc",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "scheduler wrapper pending frame step adjust",
+      "kind": "signature",
+      "va": "0x00a1e3ab",
+      "pattern": "8b 45 00 8b 50 38 8b cd ff d2 3c 01 75 45 8a 85 91 00 00 00 a8 02 74 3b 24 fd 8d 8d d0 00 00 00 88 85 91 00 00 00 e8 da 1f 00 00 dd 5c 24 0c e8 91 20 00 00 f3 0f 2a c0 f3 0f 5a c0 f2 0f 59 44 24 0c f2 0f 2c c0 99 01 85 a0 00 00 00 11 95 a4 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler wrapper aborted ActionClip pass",
+      "kind": "signature",
+      "va": "0x00a1e41e",
+      "pattern": "55 8d 4c 24 1c e8 48 1b 00 00 8b 5d 3c 85 db 8b 45 5c c7 44 24 34 00 00 00 00 89 44 24 20 89 5c 24 0c 74 7c 57 eb 04 8b 5c 24 10 8b 4b 04 8b 53 f8 8b 42 4c 83 c3 f8 89 4c 24 14 8b cb ff d0 3c 01 75 50 8b 13 8b 82 a0 00 00 00 8b cb ff d0 8b 38 be 30 7a 09 01 b9 0b 00 00 00 33 c0 f3 a6 74 05 1b c0 83 d8 ff 85 c0 75 29 8b 13 8b 52 0c 8d 44 24 1c 50 8b cb ff d2 8b 03 8b 50 10 8d 4c 24 1c 51 8b cb ff d2 8b 44 24 10 50 8d 4d 38 e8 6f 13 00 00 8b 44 24 14 85 c0 89 44 24 10 75 88 5f 8d 4c 24 18 c7 44 24 34 ff ff ff ff e8 c1 1a 00 00 5b eb 33",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "scheduler wrapper ActionClip name",
+      "kind": "string",
+      "va": "0x01097a30",
+      "text": "ActionClip"
+    },
+    {
+      "name": "scheduler clock pending delta setter",
+      "kind": "signature",
+      "va": "0x00a203c0",
+      "pattern": "80 7c 24 08 00 75 0a 8b 44 24 04 89 41 10 c2 08 00 8b 54 24 04 01 51 10 c2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureMesClip type 0xa post null guard",
+      "kind": "signature",
+      "va": "0x00813f10",
+      "pattern": "8b 4c 24 04 83 ec 1c 85 c9 74 3e",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
     }
   ],
   "invariants": [
+    {
+      "id": "setpos-key-byte",
+      "class": "SetPosClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "showhide-key-byte",
+      "class": "ShowHideClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "motion-key-byte",
+      "class": "MotionClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 2."
+    },
+    {
+      "id": "lookat-key-byte",
+      "class": "RapturePhysicsLookAtClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "clipsync-key-byte",
+      "class": "ClipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "localcamera-key-byte",
+      "class": "LocalCameraClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 4. It passes the key entry byte +4 gate of the extension."
+    },
     {
       "id": "setpos-link",
       "class": "SetPosClip",
@@ -2187,40 +3926,190 @@
       "claim": "U16 +0x16 and u16 +0x1e are 0."
     },
     {
-      "id": "setpos-key-byte",
-      "class": "SetPosClip",
+      "id": "nqblend-key-byte",
+      "class": "RaptureNqMotionBlendOnOffClip",
       "tier": "OBSERVED",
       "claim": "The @CCPT entry byte +2 of the class is 1."
     },
     {
-      "id": "showhide-key-byte",
-      "class": "ShowHideClip",
+      "id": "nqblend-link",
+      "class": "RaptureNqMotionBlendOnOffClip",
       "tier": "OBSERVED",
-      "claim": "The @CCPT entry byte +2 of the class is 1."
+      "claim": "Record bytes are 0x18."
     },
     {
-      "id": "motion-key-byte",
-      "class": "MotionClip",
+      "id": "nqblend-flag",
+      "class": "RaptureNqMotionBlendOnOffClip",
       "tier": "OBSERVED",
-      "claim": "The @CCPT entry byte +2 of the class is 2."
+      "claim": "U32 +0x10 is 0 or 1."
     },
     {
-      "id": "lookat-key-byte",
-      "class": "RapturePhysicsLookAtClip",
+      "id": "nqblend-value",
+      "class": "RaptureNqMotionBlendOnOffClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 is at most 500."
+    },
+    {
+      "id": "facialpose-key-byte",
+      "class": "RaptureFacialPoseForSchClip",
       "tier": "OBSERVED",
       "claim": "The @CCPT entry byte +2 of the class is 0."
     },
     {
-      "id": "clipsync-key-byte",
-      "class": "ClipSyncClip",
+      "id": "facialpose-link",
+      "class": "RaptureFacialPoseForSchClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x38."
+    },
+    {
+      "id": "facialpose-name",
+      "class": "RaptureFacialPoseForSchClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x10 to +0x2f hold an ASCII name that starts with cfxf_, ends before byte 16 and is zero filled."
+    },
+    {
+      "id": "facialpose-words",
+      "class": "RaptureFacialPoseForSchClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x30 is within 0 to 9 and s32 +0x34 is within 0 to 1200."
+    },
+    {
+      "id": "lipsync-key-byte",
+      "class": "RaptureFacialLipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "lipsync-link",
+      "class": "RaptureFacialLipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x18."
+    },
+    {
+      "id": "lipsync-mode",
+      "class": "RaptureFacialLipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is within 0 to 7."
+    },
+    {
+      "id": "lipsync-set",
+      "class": "RaptureFacialLipSyncClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 is within 0 to 2."
+    },
+    {
+      "id": "mes-key-byte",
+      "class": "RaptureMesClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 3."
+    },
+    {
+      "id": "mes-link",
+      "class": "RaptureMesClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x24."
+    },
+    {
+      "id": "mes-lead",
+      "class": "RaptureMesClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is 1."
+    },
+    {
+      "id": "mes-flags",
+      "class": "RaptureMesClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x1c, +0x1d and +0x1e are 0 or 1 and byte +0x1f is 0."
+    },
+    {
+      "id": "mes-mask",
+      "class": "RaptureMesClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x20 only sets bits 1 to 7 and bits 20 to 24."
+    },
+    {
+      "id": "dof-key-byte",
+      "class": "DepthOfFieldClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 3."
+    },
+    {
+      "id": "dof-link",
+      "class": "DepthOfFieldClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x1c when bit 1 of u32 +0x14 is set and 0x34 otherwise."
+    },
+    {
+      "id": "dof-flags",
+      "class": "DepthOfFieldClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 only sets bits 0, 1 and 4 to 10."
+    },
+    {
+      "id": "dof-end",
+      "class": "DepthOfFieldClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is not below the start tick and equals it when bit 1 of u32 +0x14 is clear."
+    },
+    {
+      "id": "dof-preset-pad",
+      "class": "DepthOfFieldClip",
+      "tier": "OBSERVED",
+      "claim": "U16 +0x1a is 0 when bit 1 of u32 +0x14 is set."
+    },
+    {
+      "id": "kill-key-byte",
+      "class": "KillClip",
       "tier": "OBSERVED",
       "claim": "The @CCPT entry byte +2 of the class is 1."
     },
     {
-      "id": "localcamera-key-byte",
+      "id": "kill-count",
+      "class": "KillClip",
+      "tier": "OBSERVED",
+      "claim": "S16 +0x10 is within 0 to 19."
+    },
+    {
+      "id": "kill-link",
+      "class": "KillClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are (0x14 + 2n + 3) & ~3 for n = s16 +0x10."
+    },
+    {
+      "id": "kill-pad",
+      "class": "KillClip",
+      "tier": "OBSERVED",
+      "claim": "S16 +0x12 and every byte after the last listed index are 0."
+    },
+    {
+      "id": "kill-refs",
+      "class": "KillClip",
+      "tier": "OBSERVED",
+      "claim": "Every listed index is -1 or inside the scheduler clip list and is not the clip itself."
+    },
+    {
+      "id": "localcamera-end",
       "class": "LocalCameraClip",
       "tier": "OBSERVED",
-      "claim": "The @CCPT entry byte +2 of the class is 4. It passes the key entry byte +4 gate of the extension."
+      "claim": "U32 +0x10 is not below the start tick."
+    },
+    {
+      "id": "clip-start-unit",
+      "class": "*",
+      "tier": "OBSERVED",
+      "claim": "The start tick u32 +4 is a multiple of 10000."
+    },
+    {
+      "id": "clip-start-order",
+      "class": "*",
+      "tier": "OBSERVED",
+      "claim": "The start tick u32 +4 is not below that of the previous clip in the same block."
+    },
+    {
+      "id": "clip-index-word",
+      "class": "*",
+      "tier": "OBSERVED",
+      "claim": "S16 +0x0c is the index of the clip in the scheduler clip list."
     }
   ],
   "outcomes": [
@@ -2237,12 +4126,12 @@
     {
       "id": "object-and-slots",
       "tier": "STATIC",
-      "claim": "Each factory stores its object size when the size argument is nonnull. The sizes are 0x38 for SetPosClip, ShowHideClip and RapturePhysicsLookAtClip, 0x60 for MotionClip, 0x3c for ClipSyncClip and 0x120 for LocalCameraClip. Each constructor installs the primary vtable at +0 and a secondary table at +8. In every primary vtable slot 1 calls the base method 0x00a20f30, which stores state 1 at clip +0x1c. Slot 2 is the update method. Slot 29 returns a class-specific address relative to D. It is the record end for SetPosClip, ShowHideClip and MotionClip. It is not the record end for the other three classes, as listed per class."
+      "claim": "Each factory stores its object size when the size argument is nonnull. The sizes are 0x38 for SetPosClip, ShowHideClip, RapturePhysicsLookAtClip, RaptureNqMotionBlendOnOffClip, RaptureFacialPoseForSchClip, RaptureFacialLipSyncClip and KillClip, 0x58 for RaptureMesClip, 0x60 for MotionClip and DepthOfFieldClip, 0x3c for ClipSyncClip and 0x120 for LocalCameraClip. Each constructor installs the primary vtable at +0 and a secondary table at +8. In every primary vtable slot 1 calls the base method 0x00a20f30, which stores state 1 at clip +0x1c. Slot 2 is the update method. Slot 29 returns a class-specific address relative to D. It is the record end for SetPosClip, ShowHideClip, MotionClip, RaptureNqMotionBlendOnOffClip, RaptureFacialPoseForSchClip and RaptureFacialLipSyncClip. It is not the record end for the other classes, as listed per class."
     },
     {
       "id": "common-header-accessors",
       "tier": "STATIC",
-      "claim": "Base accessors read s16(D+8) in slot 22, u8(D+0x0a) in slot 23, bits 0, 1 and 2 of u8(D+0x0b) in slots 25, 27 and 26, and s16(D+0x0c) in slot 20, beside the u8(D+2), u8(D+3) and u32(D+4) readers in slots 5, 6 and 7. Slot 8 jumps through slot 7 unless a class overrides it. MotionClip returns u32(D+0x18) and LocalCameraClip returns u32(D+0x10) plus clip +0x110. Base slots 3 and 4 store state 3 and state 4, and the update method moves state 1 to state 2."
+      "claim": "Base accessors read s16(D+8) in slot 22, u8(D+0x0a) in slot 23, bits 0, 1 and 2 of u8(D+0x0b) in slots 25, 27 and 26, and s16(D+0x0c) in slot 20, beside the u8(D+2), u8(D+3) and u32(D+4) readers in slots 5, 6 and 7. Slot 7 is the clip start tick. Slot 8 is the clip end tick and jumps through slot 7 unless a class overrides it. MotionClip returns u32(D+0x18), DepthOfFieldClip returns u32(D+0x10) and LocalCameraClip returns u32(D+0x10) plus clip +0x110. Base slots 3 and 4 store state 3 and state 4, and the update method moves state 1 to state 2."
     },
     {
       "id": "setpos-layout",
@@ -2307,17 +4196,137 @@
     {
       "id": "undecoded-words",
       "tier": "UNKNOWN",
-      "claim": "The shared header words s16(D+8), u8(D+0x0a), u8(D+0x0b) and s16(D+0x0c) are read by accessors whose callers were not traced. The fields of the four classes listed in the manifest are only the ones read by slot 1 and by the slot 2 and slot 8 methods named above. The second-group registrations and the Lay registry were not followed."
+      "claim": "The scheduler tick reads s16(D+8) through slot 22 as a filter against the object at scheduler +0x58, bit 2 of u8(D+0x0b) through slot 26 while scheduler +0xc8 is set, and bit 0 of u8(D+0x0b) through slot 25 for clips that already began. The callers of the accessors for u8(D+0x0a) and bit 1 of u8(D+0x0b) were not traced, and neither was the object behind slot 22. The fields of the classes listed in the manifest are only the ones read by slots 1, 2, 3, 4 and 8 named above. The Lay registry was not followed."
     },
     {
       "id": "install-census",
       "tier": "OBSERVED",
-      "claim": "The scan reads 9,593 files below client/cut, finds 86,405 SEDB headers of which 689 fold to scb, and parses every scheduler. The 222,491 clip records use 102 classes. The six classes in this manifest are ranks 1 to 6 and hold 120,252 records. The full ranking is in cut-scheduler-clip-class-census.csv."
+      "claim": "The scan reads 9,593 files below client/cut, finds 86,405 SEDB headers of which 689 fold to scb, and parses every scheduler. The 222,491 clip records use 102 classes. The twelve classes in this manifest are ranks 1 to 8 and 10 to 13 and hold 165,457 records. Rank 9 is BindActorClip. The full ranking is in cut-scheduler-clip-class-census.csv."
     },
     {
       "id": "install-invariants",
       "tier": "OBSERVED",
-      "claim": "The invariants listed in the manifest hold for every record of their class: record sizes, flag bytes and enumerations, padding words, the ClipSyncClip index range, the LocalCameraClip extension, the SetPosClip rotation range, the MotionClip scaled words and the PhysicsLookAtClip mode 1 angle range and the @CCPT entry byte +2 of each class. The install section also pins the ShowHideClip operand, MotionClip speed, PhysicsLookAtClip mode and ClipSyncClip count parity distributions and the SetPosClip position and scale ranges."
+      "claim": "The invariants listed in the manifest hold for every record of their class: record sizes, flag bytes and enumerations, padding words, the ClipSyncClip and KillClip index ranges, the LocalCameraClip extension, the SetPosClip rotation range, the MotionClip scaled words, the PhysicsLookAtClip mode 1 angle range, the FacialPoseForSch name shape, the DepthOfFieldClip flag word and the @CCPT entry byte +2 of each class. The install section also pins the ShowHideClip operand, MotionClip speed and end order, PhysicsLookAtClip mode, ClipSyncClip count parity, NqMotionBlend switch, LipSync set, DepthOfField mode, Kill count and Mes route distributions, the SetPosClip position and scale ranges and the integer ranges of three word fields."
+    },
+    {
+      "id": "registry-continued",
+      "tier": "STATIC",
+      "claim": "The Rapture group of 0x00635760 inserts RaptureMesClip (key 0x00fbc81c, factory 0x00638a60), RaptureNqMotionBlendOnOffClip (0x00fbcae0, 0x00639ab0), RaptureFacialLipSyncClip (0x00fbcf0c, 0x0063b1c0) and RaptureFacialPoseForSchClip (0x00fbcf68, 0x0063b370) through 0x0063f710. None of the four is preceded by a call to 0x0063f920 and none has a key in the base group. The base registrar 0x00a4c2a0 inserts DepthOfFieldClip (0x0109b580, 0x00a4ead0) and KillClip (0x0109b6d4, 0x00a4e210)."
+    },
+    {
+      "id": "registry-second-inserts",
+      "tier": "STATIC",
+      "claim": "RaptureFacialLipSyncClip (key 0x00fbd3dc, site 0x0063715b) and KillClip (key 0x0109b6d4, site 0x00a4d08d) are inserted a second time with the same factory. Each second insert takes its registry operand from the result of a call to 0x00a65600 plus 8 immediately before it. The registry behind that call, and what reads it, were not walked."
+    },
+    {
+      "id": "nqblend-layout",
+      "tier": "STATIC",
+      "claim": "RaptureNqMotionBlendOnOffClip slot 1 at 0x0081abc0 resolves the actor record, casts its slot 23 result from IActor to CharaActor and calls 0x0065d260 with the boolean u32(D+0x10) != 0 and u32(D+0x14). That method stores the value, or -1 when the boolean is false, at CharaActor +0x134c and passes it to 0x007ad020 with ECX at actor +0x4c0. 0x007ad020 converts two entry times from ticks to frames by multiplying by 30.0 and dividing by 300000.0 and compares the frame difference with the value. Slot 29 returns D+0x18, the record end."
+    },
+    {
+      "id": "nqblend-meaning",
+      "tier": "INFERRED",
+      "claim": "The first word switches a blend on or off and the second is a length in motion frames. The install records hold 0 or 1 at +0x10 and a value of at most 500 at +0x14, with 15 in 10,335 of the 11,142 records. The role of the entry times inside 0x007ad020 was not traced."
+    },
+    {
+      "id": "facialpose-layout",
+      "tier": "STATIC",
+      "claim": "RaptureFacialPoseForSchClip slot 1 at 0x00827140 casts the actor record to CharaActor and calls 0x0065e8d0 with the address D+0x10, s32(D+0x30) and s32(D+0x34). After the CharaActor slot 154 guard that method calls 0x007a6210 with ECX at actor +0x1bc and a fourth argument of -1. 0x007a6210 replaces a name that starts with off by cfxf_default, requires the bcm and btm lookups of 0x00662720 to succeed for any other name, copies at most 15 characters to +0x190, stores the low 16 bits of the first word with bit 16 set at +0x17c and stores the two numbers as floats at +0x174 and +0x178. Slot 29 returns D+0x38, the record end."
+    },
+    {
+      "id": "facialpose-meaning",
+      "tier": "INFERRED",
+      "claim": "The 32 byte field is a facial pose resource name. All 9,081 install records hold a name that starts with cfxf_ and has at most 15 characters, followed by zero bytes. The meaning of the two trailing numbers was not traced beyond the stores."
+    },
+    {
+      "id": "lipsync-layout",
+      "tier": "STATIC",
+      "claim": "RaptureFacialLipSyncClip slot 1 at 0x00826ab0 casts the actor record to CharaActor and calls 0x0065e980 with u32(D+0x10) and u32(D+0x14). After the CharaActor slot 154 guard that method calls 0x007a6fc0 with ECX at actor +0x35c. While the float at +0x1c of that component is positive, 0x007a6fc0 keeps only the first-word values 2 and 3, at +0x28 and +0x2c. Otherwise it stores both words, sets byte +0x30, picks the name at index (first == 1) + 2 * second of the table at 0x00fe7200 and resolves it through 0x00662720 with the bcm and btm tags into +0x10 and +0x14. Slot 29 returns D+0x18, the record end."
+    },
+    {
+      "id": "lipsync-meaning",
+      "tier": "INFERRED",
+      "claim": "The table names are cfxl_lip_nor1, nor2, wis1, wis2, sho1 and sho2, so the second word selects a lip set and the first word a variant. The install records hold 0 to 7 in the first word, with 0 in 5,797 of the 7,441, and 0 to 2 in the second. The effect of the first-word values 4 to 7 was not traced."
+    },
+    {
+      "id": "mes-layout",
+      "tier": "STATIC",
+      "claim": "RaptureMesClip slot 1 at 0x00813cf0 needs a target found through 0x00a20030 and 0x0060b360 and then reads the key entry byte +4. Value 2 copies u8(D+0x1c), u8(D+0x1d), u32(D+0x18) and u32(D+0x14). Value 3 does the same and then walks u32(D+0x20): bits 1 to 7 select entries of the object at scheduler +0xf0 through its slot 17 and bits 20 to 24 through its slot 29. Any other value returns after the base begin. A zero u8(D+0x1c) calls 0x00813f60, which posts message type 0xb of 0x14 bytes through 0x007ce7b0. A nonzero value calls 0x00813f10, which posts type 0xa of 0x1c bytes, and then calls slot 12 with 1 when u8(D+0x1d) is nonzero and 2 otherwise. Slot 3 at 0x00813bb0 calls 0x00a1c620 when the key entry byte is 2 or 3 and u8(D+0x1e) is nonzero. That function sets scheduler +0xc8 to 2 when it is 0. Slot 29 is the method shared with ShowHideClip and returns D+0x14, which is not the record end."
+    },
+    {
+      "id": "mes-sink",
+      "tier": "UNKNOWN",
+      "claim": "The receiver of the type 0xa and 0xb messages, the meaning of the words at +0x14 and +0x18, the entries selected by the +0x20 mask and the effect of scheduler +0xc8 beyond the tick test were not traced. All 6,301 install records have key entry byte 3, so the key 2 branch has no install data. The words at +0x10 and +0x1f are not read."
+    },
+    {
+      "id": "dof-layout",
+      "tier": "STATIC",
+      "claim": "DepthOfFieldClip slot 1 at 0x00df0350 fetches the target object from the object at clip +0x24 and copies a 32 byte block from its slot 12. It moves bits 0, 1 and 4 to 10 of u32(D+0x14) into bits 0 to 8 of clip +0x38. With bit 1 set it passes u16(D+0x18) to scheduler lookup 0x00a20090 and builds a preset. With bit 1 clear each present bit replaces one of seven floats of the block with the floats at +0x18 to +0x30. Slot 1 ends by calling slot 13 of the target object with the clip and the block, whose first byte is bit 0 of clip +0x38. Slot 2 at 0x00df02e0 passes the elapsed ticks divided by the ticks per frame to 0x00df0120 when bits 0 and 1 are set. Slot 3 at 0x00df0050 sends the fetched block back with its first byte 0 when both bits are set. Slot 8 returns u32(D+0x10). Slot 29 returns D+0x34, which is 0x18 bytes past the end of a 0x1c byte record."
+    },
+    {
+      "id": "dof-meaning",
+      "tier": "INFERRED",
+      "claim": "The seven floats are depth of field parameters and bit 1 selects a stored preset that is blended over the clip duration. The 5,780 parameter records have an end tick equal to the start tick. The 465 preset records are 0x1c bytes long and end after the start. The names rest on the class name and the argument flow."
+    },
+    {
+      "id": "kill-layout",
+      "tier": "STATIC",
+      "claim": "KillClip slot 1 at 0x00dec7f0 reads the count n = s16(D+0x10) and, for each of n s16 indexes from D+0x14, calls the scheduler clip lookup 0x00a1ffb0. A clip that is found gets slot 18 called with 1, which sets its abort bit. A missing clip logs an error text with the index. Slot 29 returns D + ((2n + 0x19) & ~3), the rule of ClipSyncClip."
+    },
+    {
+      "id": "kill-meaning",
+      "tier": "INFERRED",
+      "claim": "The class ends the clips it lists. The install records hold n from 0 to 19, and 229 records list an index of -1, which the lookup rejects. The 90 records with n = 0 list no clip."
+    },
+    {
+      "id": "timing-unit",
+      "tier": "STATIC",
+      "claim": "The scheduler clock counts ticks. The constant 300000.0 at 0x00f67020 divided by a frame rate gives the ticks per frame, which the setter 0x00a20490 truncates into 0x012ed240, and 0x00a204b0 returns the inverse as a frame rate. The image value of 0x012ed240 is 10010, the truncation of 300000 / 29.97. The clock advance 0x00a204d0 adds the ticks per frame times the clock rate to the time at clock +8 once per frame step 0x00a1e540. It also consumes the pending delta at clock +0x10 once: the delta is added to the step, cleared, and a negative sum is clamped to 0 (setter and adder 0x00a203c0). 0x007ad020 converts ticks to motion frames at 30.0 per 300000.0. A tick is 1/300000 of a second and a frame is 300000 / f ticks for the frame rate f."
+    },
+    {
+      "id": "timing-frame-source",
+      "tier": "UNKNOWN",
+      "claim": "The float f passed to 0x00a20490 comes from slot 2 of the object returned by slot 4 of the object at [manager +0x74] + 4 in 0x00a025c0, and from the observer method 0x00a036e0. The concrete type and value were not traced, so the frame rate of a running client is UNKNOWN. The image value 10010 is the only static ticks per frame."
+    },
+    {
+      "id": "timing-start-end",
+      "tier": "STATIC",
+      "claim": "The start tick of a clip is slot 7, u32(D+4). The end tick is slot 8. The base slot 8 jumps through slot 7, so a class that does not override it has a duration of 0. MotionClip returns u32(D+0x18), DepthOfFieldClip u32(D+0x10) and LocalCameraClip u32(D+0x10) plus clip +0x110. Clip +0x110 starts at 0 and the LocalCameraClip update stores the change of scheduler origin word +0xa0 since the begin there only when bit 2 of u8(D+0x1a) is set behind the key entry gate. Slot 9 returns the elapsed ticks at clip +0x28."
+    },
+    {
+      "id": "timing-end-rule",
+      "tier": "STATIC",
+      "claim": "0x00a1d330, called from 0x00a1e380 at 0x00a1e419, takes the scheduler time t as the clock time minus scheduler +0xa0 and +0x98. It walks the list at scheduler +0x30 from the cursor at scheduler +0x94 and stops at the first clip whose start tick is above t. A clip whose state is 0 or 4 begins when its start is not above t: slot 1 runs with a context that carries t - start, the base begin stores that overshoot as the elapsed ticks at clip +0x28, and the base update adds ticks per frame times the clock rate once per update. The tick updates each clip it began and the running pass 0x00a1e190 updates the clips in the list at scheduler +0x3c. Both end a clip by calling slot 3 and then slot 4 when the elapsed ticks are not below end - start, the state is 2 and the phase word is 0, or when the abort bit is set. The wrapper runs the running pass first, then the tick. The comparison of t with the start tick and the comparison of the elapsed ticks with end - start are signed 32 bit, so a clip whose end is below its start passes the end test on its first end check. Before the tick the wrapper tests scheduler slot 14 and bit 1 of the byte at scheduler +0x91 (0x00a1e3ab to 0x00a1e3f8): when slot 14 returns 1 and the bit is set, it clears the bit and adds one step, ticks per frame times the clock rate, to the 64 bit word at scheduler +0xa0, so t is held back one step. After the tick it walks the list at scheduler +0x3c (0x00a1e41e to 0x00a1e4bd) and, for each clip whose abort bit is set and whose slot 40 name is ActionClip, calls slot 3 and slot 4 and removes it from the list."
+    },
+    {
+      "id": "timing-phase-pin",
+      "tier": "STATIC",
+      "claim": "A begun clip with phase word 1 that is not ended is recorded through scheduler slot 15 (0x00a1d9b0) in the held list at scheduler +0x44, with head +0x48 and count +0x4c, and the tick adds t - start to scheduler origin word +0xa0 (0x00a1d8c5). While the held count is above 0 the wrapper 0x00a1e380 runs no tick and adds the step to +0xa0 instead (0x00a1e3a1 and 0x00a1e4d2), so the scheduler time does not advance. The running pass updates each held clip and ends it, with slot 3 and slot 4, when its state is 2 and its phase word is 0, without the duration test (0x00a1e2ac to 0x00a1e344). The phase word is clip +0x20, set by slot 12 and read by slot 13. ClipSyncClip, MotionClip and RaptureMesClip call slot 12."
+    },
+    {
+      "id": "timing-begin-gate",
+      "tier": "STATIC",
+      "claim": "The tick skips a clip when bit 1 of the byte at scheduler +0x90 is clear and slot 30 returns true (0x00a1d44f to 0x00a1d464). Slot 30 is 0x00b73290, which loads 1 and returns, in the primary vtable of all twelve documented classes (vtable +0x78). A documented clip therefore begins only while bit 1 of scheduler +0x90 is set."
+    },
+    {
+      "id": "timing-gate-writers",
+      "tier": "UNKNOWN",
+      "claim": "The code that sets bit 1 of the byte at scheduler +0x90 and the code that sets bit 1 of the byte at scheduler +0x91 are UNKNOWN, as is the code that returns a RaptureMesClip phase word from 1 to 0 or sets its abort bit. A phase 1 RaptureMesClip holds the scheduler time under the documented rules until one of them runs."
+    },
+    {
+      "id": "timing-index-word",
+      "tier": "STATIC",
+      "claim": "The list builder 0x00a28210 appends, for each clip record of a block, the entry at index s16(D+0x0c) of the list of all clips of the scheduler to the list at scheduler +0x30. 0x00a28510 builds the list of all clips block by block in record order, and slot 20 returns the index word. The clip lookup used by ClipSyncClip and KillClip indexes the same list."
+    },
+    {
+      "id": "timing-untraced",
+      "tier": "UNKNOWN",
+      "claim": "Which block the scheduler plays and how it is chosen, the callers of 0x00a1ba90, the block header fields, the use of scheduler +0x1cc, how often 0x00a1e540 repeats the wrapper in one frame step, the seek branches of the tick and the frame rate source were not traced."
+    },
+    {
+      "id": "install-timing",
+      "tier": "OBSERVED",
+      "claim": "Every one of the 222,491 clip records has a start tick that is a multiple of 10000 and an s16(D+0x0c) equal to its index in the scheduler clip list. Within a block the start ticks do not decrease, over 213,369 pairs. The MotionClip end tick is above the start in 21,988 records, equal in 38 and below in 59, so a negative duration occurs, and 19,529 end ticks are multiples of 10000. The LocalCameraClip end is never below the start and 11 records set bit 2 of u8(D+0x1a). The DepthOfFieldClip end equals the start in all 5,780 parameter records and is above it in all 465 preset records."
     }
   ],
   "install": {
@@ -2379,6 +4388,58 @@
         "recordBytes": {
           "32": 12404,
           "64": 1484
+        }
+      },
+      "RaptureNqMotionBlendOnOffClip": {
+        "clips": 11142,
+        "schedulers": 646,
+        "recordBytes": {
+          "24": 11142
+        }
+      },
+      "RaptureFacialPoseForSchClip": {
+        "clips": 9081,
+        "schedulers": 586,
+        "recordBytes": {
+          "56": 9081
+        }
+      },
+      "RaptureFacialLipSyncClip": {
+        "clips": 7441,
+        "schedulers": 579,
+        "recordBytes": {
+          "24": 7441
+        }
+      },
+      "RaptureMesClip": {
+        "clips": 6301,
+        "schedulers": 573,
+        "recordBytes": {
+          "36": 6301
+        }
+      },
+      "DepthOfFieldClip": {
+        "clips": 6245,
+        "schedulers": 541,
+        "recordBytes": {
+          "28": 465,
+          "52": 5780
+        }
+      },
+      "KillClip": {
+        "clips": 4995,
+        "schedulers": 555,
+        "recordBytes": {
+          "20": 90,
+          "24": 4480,
+          "28": 256,
+          "32": 143,
+          "36": 10,
+          "40": 4,
+          "48": 1,
+          "52": 1,
+          "56": 3,
+          "60": 7
         }
       }
     },
@@ -2494,6 +4555,130 @@
       "localcamera-pad": {
         "checked": 13888,
         "violations": 0
+      },
+      "nqblend-key-byte": {
+        "checked": 11142,
+        "violations": 0
+      },
+      "nqblend-link": {
+        "checked": 11142,
+        "violations": 0
+      },
+      "nqblend-flag": {
+        "checked": 11142,
+        "violations": 0
+      },
+      "nqblend-value": {
+        "checked": 11142,
+        "violations": 0
+      },
+      "facialpose-key-byte": {
+        "checked": 9081,
+        "violations": 0
+      },
+      "facialpose-link": {
+        "checked": 9081,
+        "violations": 0
+      },
+      "facialpose-name": {
+        "checked": 9081,
+        "violations": 0
+      },
+      "facialpose-words": {
+        "checked": 9081,
+        "violations": 0
+      },
+      "lipsync-key-byte": {
+        "checked": 7441,
+        "violations": 0
+      },
+      "lipsync-link": {
+        "checked": 7441,
+        "violations": 0
+      },
+      "lipsync-mode": {
+        "checked": 7441,
+        "violations": 0
+      },
+      "lipsync-set": {
+        "checked": 7441,
+        "violations": 0
+      },
+      "mes-key-byte": {
+        "checked": 6301,
+        "violations": 0
+      },
+      "mes-link": {
+        "checked": 6301,
+        "violations": 0
+      },
+      "mes-lead": {
+        "checked": 6301,
+        "violations": 0
+      },
+      "mes-flags": {
+        "checked": 6301,
+        "violations": 0
+      },
+      "mes-mask": {
+        "checked": 6301,
+        "violations": 0
+      },
+      "dof-key-byte": {
+        "checked": 6245,
+        "violations": 0
+      },
+      "dof-link": {
+        "checked": 6245,
+        "violations": 0
+      },
+      "dof-flags": {
+        "checked": 6245,
+        "violations": 0
+      },
+      "dof-end": {
+        "checked": 6245,
+        "violations": 0
+      },
+      "dof-preset-pad": {
+        "checked": 465,
+        "violations": 0
+      },
+      "kill-key-byte": {
+        "checked": 4995,
+        "violations": 0
+      },
+      "kill-count": {
+        "checked": 4995,
+        "violations": 0
+      },
+      "kill-link": {
+        "checked": 4995,
+        "violations": 0
+      },
+      "kill-pad": {
+        "checked": 4995,
+        "violations": 0
+      },
+      "kill-refs": {
+        "checked": 4995,
+        "violations": 0
+      },
+      "localcamera-end": {
+        "checked": 13888,
+        "violations": 0
+      },
+      "clip-start-unit": {
+        "checked": 222491,
+        "violations": 0
+      },
+      "clip-start-order": {
+        "checked": 213369,
+        "violations": 0
+      },
+      "clip-index-word": {
+        "checked": 222491,
+        "violations": 0
       }
     },
     "distributions": {
@@ -2513,6 +4698,84 @@
       "clipsync-count-parity": {
         "even": 247,
         "odd": 13754
+      },
+      "motion-end-vs-start": {
+        "after": 21988,
+        "before": 59,
+        "equal": 38
+      },
+      "motion-end-unit": {
+        "other": 2556,
+        "unit": 19529
+      },
+      "localcamera-drift-bit": {
+        "clear": 13877,
+        "set": 11
+      },
+      "nqblend-flag": {
+        "0": 4587,
+        "1": 6555
+      },
+      "lipsync-set": {
+        "0": 6982,
+        "1": 233,
+        "2": 226
+      },
+      "dof-mode": {
+        "parameters": 5780,
+        "preset": 465
+      },
+      "kill-count": {
+        "0": 90,
+        "1": 4078,
+        "10": 2,
+        "13": 1,
+        "16": 1,
+        "17": 2,
+        "18": 1,
+        "19": 7,
+        "2": 402,
+        "3": 125,
+        "4": 131,
+        "5": 139,
+        "6": 4,
+        "7": 6,
+        "8": 4,
+        "9": 2
+      },
+      "kill-missing-index": {
+        "minus-one": 229,
+        "none": 4766
+      },
+      "nqblend-value-15": {
+        "15": 10335,
+        "other": 807
+      },
+      "lipsync-mode": {
+        "0": 5797,
+        "1": 178,
+        "2": 461,
+        "3": 843,
+        "4": 92,
+        "5": 39,
+        "6": 17,
+        "7": 14
+      },
+      "dof-flags": {
+        "0x0": 1,
+        "0x5f0": 11,
+        "0x5f1": 44,
+        "0x5f3": 2,
+        "0x7d3": 1,
+        "0x7f0": 260,
+        "0x7f1": 5464,
+        "0x7f3": 462
+      },
+      "mes-route": {
+        "00": 553,
+        "01": 17,
+        "10": 4081,
+        "11": 1650
       }
     },
     "ranges": {
@@ -2524,6 +4787,162 @@
         0.1,
         8.0
       ]
+    },
+    "intRanges": {
+      "nqblend-value": [
+        0,
+        500
+      ],
+      "facialpose-words": [
+        0,
+        1200
+      ],
+      "lipsync-mode": [
+        0,
+        7
+      ]
     }
+  },
+  "timing": {
+    "unit": {
+      "ticksPerSecond": 300000,
+      "ticksPerSecondVa": "0x00f67020",
+      "ticksPerFrameVa": "0x012ed240",
+      "ticksPerFrameImageValue": 10010,
+      "ticksPerFrameSetter": "0x00a20490",
+      "framesPerSecondHelper": "0x00a204b0",
+      "motionFrameRate": 30,
+      "motionFrameRateVa": "0x00fa7b18"
+    },
+    "scheduler": {
+      "tick": "0x00a1d330",
+      "tickCall": "0x00a1e419",
+      "stepWrapper": "0x00a1e380",
+      "frameStep": "0x00a1e540",
+      "runningPass": "0x00a1e190",
+      "clockAdvance": "0x00a204d0",
+      "pendingDeltaSetter": "0x00a203c0",
+      "beginPredicate": "0x00b73290"
+    },
+    "checks": [
+      "LocalCameraClip begin stores scheduler origin",
+      "LocalCameraClip update stores origin change",
+      "base accessor abort bit getter",
+      "base accessor elapsed",
+      "base accessor phase getter",
+      "base begin stores elapsed and step",
+      "base update adds step to elapsed",
+      "clip index lookup in scheduler list",
+      "clip index word consumer",
+      "clip slot 30 returns true",
+      "motion list frame conversion 0x007ad020",
+      "scheduler clock advance by one frame",
+      "scheduler clock initial state",
+      "scheduler clock pending delta setter",
+      "scheduler clock rate getter",
+      "scheduler clock time getter",
+      "scheduler clock time passed to tick",
+      "scheduler frames per second helper",
+      "scheduler held clip pass update and release",
+      "scheduler hold list insert",
+      "scheduler motion frame rate constant",
+      "scheduler running clip pass update and end test",
+      "scheduler tick begin overshoot",
+      "scheduler tick begin state gate",
+      "scheduler tick begun flag and header bit 0",
+      "scheduler tick end calls",
+      "scheduler tick end rule",
+      "scheduler tick header word +0x08 filter and start compare",
+      "scheduler tick phase one pins the playhead",
+      "scheduler tick skip flag and header bit 2",
+      "scheduler tick update before end test",
+      "scheduler ticks per frame getter",
+      "scheduler ticks per frame image value",
+      "scheduler ticks per frame setter",
+      "scheduler ticks per second constant",
+      "scheduler wrapper ActionClip name",
+      "scheduler wrapper aborted ActionClip pass",
+      "scheduler wrapper held count gate",
+      "scheduler wrapper held step",
+      "scheduler wrapper pending frame step adjust"
+    ],
+    "classes": [
+      {
+        "name": "SetPosClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "MotionClip",
+        "start": "u32(D+4)",
+        "end": "u32(D+0x18)",
+        "endVa": "0x0082f110",
+        "control": "Slot 1 and slot 2 call slot 18 with 1 and slot 12 with 0 or 2."
+      },
+      {
+        "name": "ShowHideClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "RapturePhysicsLookAtClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "ClipSyncClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 1 calls slot 12 with 1. Slot 2 calls slot 12 with 0 once the listed clips are done."
+      },
+      {
+        "name": "LocalCameraClip",
+        "start": "u32(D+4)",
+        "end": "u32(D+0x10) plus clip +0x110",
+        "endVa": "0x00a0b830"
+      },
+      {
+        "name": "RaptureNqMotionBlendOnOffClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "RaptureFacialPoseForSchClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "RaptureFacialLipSyncClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "RaptureMesClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 1 calls slot 12 with 1 or 2 after the type 0xa post."
+      },
+      {
+        "name": "DepthOfFieldClip",
+        "start": "u32(D+4)",
+        "end": "u32(D+0x10)",
+        "endVa": "0x00df0040"
+      },
+      {
+        "name": "KillClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 1 calls slot 18 with 1 on the listed clips, not on itself."
+      }
+    ]
   }
 }
