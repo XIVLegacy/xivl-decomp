@@ -818,6 +818,100 @@ is not instruction coverage. The published local-context producer retains
 its own instruction union and intervening-call qualifications. No runtime
 entry, selected bank, clip invocation or playback was observed.
 
+## ActionClip child scheduler delivery
+
+The additional direct caller of `0x00A1F3C0` supplies an ActionClip-owned
+child AccScheduler. It does not supply the root combat Acc/Mcc instance.
+This closes a conditional child construction-to-update relation while leaving
+root ingress to the updater unproved.
+
+### ActionClip identity and construction
+
+Original primary table `0x01096F6C` has slot 1 `0x00A18170`, slot 2
+`0x00A18480`, slot 4 `0x00A17CB0` and slot 49 `0x00A17A30`.
+Its COL at `0x01185158` points to type descriptor `0x012CE820`, with
+decorated name `.?AVActionClip@Plugins@Cut@Engine@CDev@SQEX@@`.
+Constructor `0x00A179C0` installs this table at `0x00A179E5` and
+clears clip+0x3C at `0x00A179F9`.
+
+Let L be that ActionClip, C0 its supplied context, P=`u32(C0+0x0C)`
+and N the child below. On successful state/resource branches, slot 1 calls
+slot 49 at `0x00A18364` or `0x00A183B7` with four arguments:
+`(C0,resourceValue,retainedEDI,D)`, where D comes from L+0x14.
+The resource and state checks remain conditions, rather than observed success.
+
+Slot 49 constructs a local AccSchedulerFactory F through `0x00A19B60`
+at `0x00A17A7E`, then calls `0x00A1A470(F,O,0)` at `0x00A17A96`.
+O reuses slot 49's incoming first-argument stack cell at entry ESP+4;
+C0 was retained separately in EDI at `0x00A17A4C`. F is distinct from O.
+On its nonzero allocation
+branch, `0x00A1A470` supplies N as ECX to `0x00A1A670` at
+`0x00A1A4FF`. That constructor calls the base Scheduler constructor,
+installs Acc primary/secondary tables `0x0109765C/0x0109764C` at
+`0x00A1A6CB/0x00A1A6D1`, and returns N with `RET 0x18`.
+Allocation failure supplies zero.
+
+The factory writes N to *O at `0x00A1A50C`, invokes initializer
+`0x00A1A1E0(F,N)` without testing its success return, and returns O
+with `RET 8`. Immediately after that return, `0x00A17A30` loads
+N=*O at `0x00A17A9B`, clears *O, and stores N at L+0x3C at
+`0x00A17AC1`. Between the load and store, an unequal nonnull previous
+L+0x3C can receive a deleting slot-0 call. Normal ABI, nonaliasing storage
+and retention through those calls remain necessary. Slot 49 later stores
+one at L+0x40 at `0x00A17C7D`.
+
+The local factory inherits inputs from P. With R=`u32(P+0x74)`,
+the five arguments supplied to `0x00A19B60` are
+`(resourceValue,u32(R+4),u32(P+0x80),u32(P+0x7C),P)`.
+Its direct base call `0x00A25E80` stores argument 4 at F+0x14,
+`u32(P+0x84)` at F+0x18, and `u32(u32(P+0x74)+0x0C)` at F+0x1C.
+This qualifies a copied registry input from P+0x7C. Equality with the
+[global root registry](combat-motion-name-provider.md#global-registration-and-root-construction)
+still requires P's identity and retained fields.
+
+### Retained child into update
+
+ActionClip slot 2 at `0x00A18480` retains L in ESI. Its base update and
+state/resource branches must return normally, and L+0x40 must be nonzero
+after `0x00A184BD`. At `0x00A185D1`, it loads ECX=`u32(L+0x3C)`
+and calls `0x00A1F3C0` at `0x00A185D4` with no adjustment or explicit
+stack argument. If the same L retains the nonzero constructed N, this supplies
+that same N to the [existing updater/context chain](#secondary-collection-callers-and-callback-context),
+subject to all its collection, iterator, table, state and field conditions.
+
+L slot 4 at `0x00A17CB0` can invoke N virtual +0x2C and deleting slot 0,
+then clear L+0x3C at `0x00A17CE2`. Thus neither child lifetime nor pointer
+retention from construction to update follows solely from the constructor.
+This path already needs P active enough to invoke L and creates a separate N.
+It supplies no equality N=rootS, owner registration for rootS, or first updater
+entry for P. It does not establish selected invocation or playback.
+
+### Other checked entries and reproduction
+
+Acc secondary table `0x0109764C` slot 1 and Mcc secondary table
+`0x01097148` slot 1 both select `0x00A19140`. With incoming ECX=S+4,
+this wrapper subtracts four and calls complete S primary slot 19, then returns
+with `RET 0x0C`. Acc selects `0x00A1A700`; Mcc selects `0x00A18FC0`.
+Their checked bodies construct/populate resource collections and have no direct
+call or jump to `0x00A1F3C0`, `0x00A1E820`, `0x00A1E710` or
+`0x00A1E380`. Their external and indirect callee effects remain separate.
+
+The additional tail entry `0x00A1EA40` retains incoming S, calls
+`0x00A1C6E0` with &S+0x38, restores ECX=S at `0x00A1EA4C` and
+jumps to `0x00A1E820` at `0x00A1EA4F`. No entry in the vtable-slot
+catalog targets it, and a direct CALL/JMP search of retained `0061*.s` and
+`0062*.s` found no caller to it. That module-limited absence does not establish
+whole-program absence. The supplier of rootS to an updater remains unproved.
+
+Using the PE identity and byte/union procedure above, check complete bodies
+`0x00A179C0`, `0x00A17A30`, `0x00A17CB0`, `0x00A18170`,
+`0x00A18480`, `0x00A19B60`, `0x00A1A470`, `0x00A1A1E0`,
+`0x00A1A670`, `0x00A25E80`, getters `0x00A20040/50/60/70`,
+`0x00A1B950/60`, `0x00A19140`, `0x00A18FC0`, `0x00A1A700`
+and `0x00A1EA40`, plus the cited table/COL/type-descriptor cells.
+Follow output addresses and `RET` cleanup separately from object
+receivers. The checked twenty bodies have contiguous instruction unions.
+
 ## Parsed clip-key table
 
 Let F be the selected `LaySchedulerFactory`. The parsed object P is the Q

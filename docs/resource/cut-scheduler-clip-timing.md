@@ -15,12 +15,15 @@ field of it.
 
 The evidence identity, tools and tier labels are those of the
 [first payloads page](cut-scheduler-clip-payloads.md#evidence). The manifest
-[scb_clip_classes.json](../../config/scb_clip_classes.json) holds every
-instruction sequence and constant below as a byte check in its `staticChecks`,
-and lists them in its `timing` section.
+[scb_clip_classes.json](../../config/scb_clip_classes.json) records the timing
+instruction/constant byte checks in `staticChecks` and their relationships in
+its `timing` section.
 `tools/verify_scb_clip_classes.py --exe <ffxivgame.exe>` compares them with the
 pinned image, and `--install <game-root>` checks the OBSERVED invariants against
 the `client/cut` tree.
+The additional [ActionClip limit writers](#actionclip-limit-writers) use the
+separate original-PE byte/decode verification described in the linked
+[child-delivery reproduction](scb-clip-factory-composition.md#other-checked-entries-and-reproduction).
 
 ## Time unit
 
@@ -254,6 +257,28 @@ in the clip list that the parser builds. Within a block the start ticks do not
 decrease, over 213,369 consecutive pairs. They can decrease at a block boundary,
 so a block starts its own timeline.
 
+## ActionClip limit writers
+
+The [child scheduler construction path](scb-clip-factory-composition.md#actionclip-child-scheduler-delivery)
+also qualifies several writers of the limit at ActionClip L+0x44. Constructor
+`0x00a179c0` clears it at `0x00a179ff`; slot 1 clears it again at
+`0x00a1819a`. In slot 49 `0x00a17a30`, D is the fourth argument,
+loaded at `0x00a17b64`, and the selected branches write:
+
+| Condition | Limit stored at L+0x44 | Store VA |
+|---|---|---|
+| `u8(D+0x14)&0x40` nonzero | 1 | `0x00a17be4` |
+| Otherwise, `s8(D+0x15)<0` | -1 | `0x00a17bf5` |
+| Otherwise | `s8(D+0x15)+s16(AX)` returned by `0x00a012e0` | `0x00a17c17` |
+
+The call to `0x00a012e0` at `0x00a17c06` pushes zero last and a value
+whose low word is `s8(D+0x16)+1` first. That helper's implementation and
+return semantics remain unqualified; no random or range interpretation follows.
+These are authenticated writers, rather than an exhaustive writer census or
+selected values. Slot 2 compares L+0x58 with the limit, when it differs from -1, at
+`0x00a185e0..0x00a185f3` and calls `0x00a210f0(L,0)` on equality,
+under the phase-store contract above.
+
 ## Open items
 
 - The block that a selected scheduler plays, the block header fields and the
@@ -262,6 +287,9 @@ so a block starts its own timeline.
   qualifies the `0x00a1cb20` and `0x00a1e710` calls to `0x00a1ba90` and
   their receiver/argument flow. It does not establish delivery of a constructed
   combat scheduler to that updater, selected block values or block order.
+  The [ActionClip child path](scb-clip-factory-composition.md#actionclip-child-scheduler-delivery)
+  qualifies a separately constructed AccScheduler's conditional delivery;
+  it does not identify the root combat instance.
 - The frame rate source of the ticks per frame setter is UNKNOWN.
 - The use of S+0x1cc, the repetition of the wrapper within a frame step and the
   seek branches of the tick were not traced.
@@ -273,8 +301,8 @@ so a block starts its own timeline.
   bit is UNKNOWN, possibly the message reply path. Until it runs, phase 1 holds
   the scheduler time under the rules above.
 - The effect of bit 1 of `u8(D+0x0b)` and of `u8(D+0x0a)` is UNKNOWN.
-- The writers of the ActionClip limit at clip +0x44, which decides when its
-  slot 2 calls slot 12 with 0, are UNKNOWN.
+- The selected ActionClip limit and the return semantics of its
+  `0x00a012e0` input remain UNKNOWN; the checked writers are described above.
 
 ## Verification
 

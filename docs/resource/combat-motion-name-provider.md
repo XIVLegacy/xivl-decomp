@@ -130,7 +130,9 @@ required storage, iterator, state and field retention, that producer supplies
 slot 1 with C holding S at +0x0c. If the selected pointer retains the
 RaptureMotionClip table, its initializer reaches this name consumer.
 Delivery of a constructed combat Scheduler to that updater and actual selected
-invocation remain unproved. A record-to-RIDTBL interpretation still requires
+invocation remain unproved. The separate [ActionClip child delivery](scb-clip-factory-composition.md#actionclip-child-scheduler-delivery)
+supplies a newly constructed AccScheduler to it, without identifying that child
+with the root combat instance. A record-to-RIDTBL interpretation still requires
 the corresponding retained context, parsed fields, resource lifetime and
 qualified registry state.
 
