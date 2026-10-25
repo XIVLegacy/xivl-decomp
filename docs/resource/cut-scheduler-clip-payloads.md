@@ -56,8 +56,9 @@ call to `0x0063f920` with a second copy of the key literal (`0x00fbd154`,
 that call as an erase by key, so the registry then holds the Rapture factories
 for those three classes (INFERRED, the body of `0x0063f920` was not walked).
 ClipSyncClip and LocalCameraClip keep their base factories. The Rapture group
-also registers some keys in the registry of a second singleton returned by
-`0x00a65600` and in the Lay registry. Those groups were not followed.
+uses other scheduler registries through separate manager methods. The
+[global MotionClip registration and name provider](combat-motion-name-provider.md)
+qualifies the slot-5 replacement in the singleton returned by `0x00a65600`.
 
 ## Objects and entry points
 

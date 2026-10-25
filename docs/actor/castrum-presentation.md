@@ -69,6 +69,66 @@ Quaternion descriptors used kind 0; scalar descriptors used kinds 4..9 and
 runtime row-name mapping was not supplied by these files, so joint keys were
 not assigned skeleton-node names or rendered poses.
 
+## MotionClip names and resident MTB entries
+
+The [combat MotionClip name provider](../resource/combat-motion-name-provider.md)
+qualifies the global registry's RaptureMotionClip factory and its RIDTBL
+lookup. Under that construction path, when the callback context retains the
+corresponding scheduler, `s32(D+0x10)` selects a 16-byte name entry from that
+scheduler's RIDTBL. It is not a String-table index. The selected callback
+context and actual invocation have not been established.
+The selected entries below are NUL-terminated within 16 bytes, so the
+provider's 15-byte output limit does not shorten them.
+
+The four m052 files above contain seven MotionClip records. Offsets in this
+table are absolute file offsets. Bank abbreviations are relative to
+`client/chara/mon/m052/act/emp_emp/`, with `base/` omitted.
+
+| Bank | Scheduler label | Clip D | Index | Name entry | Selected name | Same-bank MTB offset |
+|---|---|---:|---:|---:|---|---:|
+| bid/0000 | dead | 0x4821c | 1 | 0x482e0 | cbbm_ded | 0x19328 |
+| bid/0000 | cas00 | 0x4874c | 1 | 0x487f0 | cbbm_abl_1 | 0xe1d8 |
+| bid/0000 | cas90 | 0x48c2c | 1 | 0x48cd0 | cbbm_abl_1 | 0xe1d8 |
+| bid/0000 | itm00 | 0x4992c | 1 | 0x499d0 | cbbm_abl_3 | No match in this bank |
+| wss/0001 | skill01/mon_main | 0x46e8 | 0 | 0x4808 | cbbm_sp_a01 | 0xe0 |
+| wss/0002 | skill02/mon_main | 0x5a28 | 1 | 0x5b88 | cbbm_sp_a02 | 0xe0 |
+| wss/0003 | skill3/mon_main | 0x3eb58 | 2 | 0x3ec90 | cbbm_sp_b01 | 0xe0 |
+
+Each MTB match is equality with the final component of an original RES
+directory name in that same bank. The BID entries are under
+`mon/m052/animation/a001/bt_emp_emp/miga/base/b001/bin/`; the WSS entries
+have an additional leading `chr/`. The MTB sizes are 19495 bytes for
+cbbm_ded, 7687 for cbbm_abl_1 and 14647/19575/16455 for the three WSS
+entries respectively. These are authored name/resource associations. The
+native motion-resource search, loaded-bank selection and successful playback
+remain separate from this equality. The selected BID bank's lack of
+cbbm_abl_3 does not establish its absence from other resources.
+
+All seven records are 0x2c bytes. They have `u8(D+0x14)=0x20`,
+`u8(D+0x15)=1`, `s32(D+0x1c)=0`, `u16(D+0x24)=100` and
+`u8(D+0x26)=1`. The remaining request words are:
+
+| Scheduler label | u32(D+0x18) | s32(D+0x20) |
+|---|---:|---:|
+| dead | 1050000 | 1050000 |
+| cas00, cas90 | 300000 | 300000 |
+| itm00 | 750000 | 750000 |
+| skill01/mon_main | 700000 | 700000 |
+| skill02/mon_main | 900000 | 900000 |
+| skill3/mon_main | 800000 | 800000 |
+
+The [RaptureMotionClip consumer](../resource/cut-scheduler-clip-payloads.md#motionclip)
+owns the field conversions and request call. These raw values do not establish
+encounter timers, cast times or server commands. The other eleven selected
+m052 SCBs have no MotionClip record.
+
+Reproduction reauthenticated the four complete files against the identities
+above. Python 3.12.0 standard-library reads applied the native RIDTBL formula
+to each selected SCB, checked name bounds and record identities, and compared
+the original RES directory names, types, offsets and sizes. The public
+`tools/scb_clip_scheduler.py` parser independently agreed with the retained
+class and clip boundaries. No target execution supplied these observations.
+
 ## Parsing boundary
 
 The [SCB layout](../resource/cut-scheduler-clip-layout.md), [MTB

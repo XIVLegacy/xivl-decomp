@@ -280,6 +280,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [City seasonal root effects](resource/city-seasonal-root-effects.md)
 - [Limsa fireworks scheduler bindings](resource/limsa-fireworks-scheduler-bindings.md)
 - [SCB parsing and clip construction](resource/scb-clip-factory-composition.md)
+- [Global MotionClip factory and RIDTBL names](resource/combat-motion-name-provider.md)
 - [Scheduler parser directory input](resource/scheduler-parser-directory-input.md)
 - [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
