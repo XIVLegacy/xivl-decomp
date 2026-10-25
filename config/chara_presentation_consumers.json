@@ -715,6 +715,35 @@
     "class": 1
    }
   ],
+  "classDifference": {
+   "callVa": "0x007b05eb",
+   "expression": "target minus current, masked to 24 bits",
+   "currentOffset": "0x1ac"
+  },
+  "unwrap": {
+   "negative": {
+    "when": "current angle greater than target",
+    "adjust": "plus one circle"
+   },
+   "positive": {
+    "when": "current angle less than target",
+    "adjust": "minus one circle"
+   },
+   "startOffset": "0x1b0",
+   "targetOffset": "0x1b4"
+  },
+  "angleWriters": {
+   "storeOffset": "0x1ac",
+   "maskedVas": [
+    "0x007a4b31",
+    "0x007a7de3"
+   ],
+   "unmaskedVas": [
+    "0x007ab0aa",
+    "0x007ab0c1",
+    "0x007ab0d4"
+   ]
+  },
   "beginVa": "0x007a4cd0",
   "timer": {
    "offset": "0x38",
@@ -1158,6 +1187,27 @@
    "id": "angle-classes",
    "tier": "STATIC",
    "claim": "The angle classes are -1, -2, -3, 3, 2 and 1 for differences up to 0x1C71C7, 0x4E38E3, 0x800000, 0xB1C71C, 0xE38E39 and above in 24 bit units of 360 over 2 to the 24 degrees",
+   "section": "turn-request",
+   "page": "chara-turn-and-field-consumers"
+  },
+  {
+   "id": "angle-difference",
+   "tier": "STATIC",
+   "claim": "0x007A4E70 subtracts its second argument from its first and masks the result to 24 bits, and 0x007B0530 pushes the current angle at +0x1AC first and the target angle second, so the difference is the target minus the current angle",
+   "section": "turn-request",
+   "page": "chara-turn-and-field-consumers"
+  },
+  {
+   "id": "angle-unwrap",
+   "tier": "STATIC",
+   "claim": "After the class call, a negative class adds one circle to the target when the current angle is greater than it and a positive class subtracts one circle when the current angle is smaller, and 0x007A4CD0 stores that target at +0x1B4 and the current angle at +0x1B0",
+   "section": "turn-request",
+   "page": "chara-turn-and-field-consumers"
+  },
+  {
+   "id": "angle-range",
+   "tier": "UNPROVED",
+   "claim": "The angle at +0x1AC is not shown to stay inside 0 to 0xFFFFFF between turns, because the chase near 0x007AB040 stores an unmasked sum, difference or target at +0x1AC (0x007AB0AA, 0x007AB0C1 and 0x007AB0D4) while 0x007A4B31 and 0x007A7DE3 store masked values",
    "section": "turn-request",
    "page": "chara-turn-and-field-consumers"
   },
@@ -2205,6 +2255,27 @@
    "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
   },
   {
+   "name": "turn angle masked write 1",
+   "kind": "signature",
+   "va": "0x007a4b2b",
+   "pattern": "81 e1 ff ff ff 00 89 8e ac 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "turn angle masked write 2",
+   "kind": "signature",
+   "va": "0x007a7dde",
+   "pattern": "25 ff ff ff 00 89 86 ac 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "turn angle chase stores",
+   "kind": "signature",
+   "va": "0x007ab081",
+   "pattern": "8b c7 2b c1 bb 00 00 00 01 f2 0f 2c d0 25 ff ff ff 00 2b da 3b d8 7c 39 3b c2 7c 35 3d 00 00 80 00 7c 17 2b ca 5f 8b c1 5b 89 8e ac 01 00 00 89 86 b0 01 00 00 5e 59 c2 04 00 03 ca 5f 8b c1 5b 89 8e ac 01 00 00 89 86 b0 01 00 00 5e 59 c2 04 00 8b c7 89 be ac 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
    "name": "turn begin rotation",
    "kind": "signature",
    "va": "0x007a4cd0",
@@ -2961,6 +3032,7 @@
    "implementNow": [
     "Raise bit 1 of the turning byte for _turnBack and for a heading change and clear it on event 0x4A",
     "Raise event 0x4A for the turn back shortcut when no heading is saved or the heading is within 0x38E39 units of the saved one, and for a pending turn that a new turn replaces",
+    "Classify a turn from the 24 bit target minus current angle difference, then lift the target by one circle for a negative class when the current angle is above it and lower it by one circle for a positive class when the current angle is below it",
     "Raise event 0x4A when the turn timer runs out, with a timer of the larger of 10.0 and the 6 bit value of the controller, lowered by delta times the controller scale (AUTHORED unit and scale)",
     "Hold the hidden bit as bit 1 of a visibility byte that _setVisible sets for false and clears for true, with the chara visible when the byte is 0",
     "Ease the floating offset as the current value plus the smaller of 0.02 and the difference times 0.02 times the delta, and add it to the ground height of the chara",

@@ -184,6 +184,134 @@ def main() -> int:
         and verifier.plate_digits(123456) == [6, 5, 4, 3, 2],
     )
 
+    check(
+        "a row with effect ID 0 gets no plate and any other row gets its kind",
+        verifier.plate_for_row(real, 0) is None
+        and verifier.plate_for_row(real, 0x00000001) == 0
+        and verifier.plate_for_row(real, 0x38000000) == 7
+        and verifier.plate_for_row(real, 0x78000000) == 15,
+    )
+    zero = verifier.plate_zero_return(real)
+    check(
+        "the plate zero return is decoded from the routine bytes",
+        zero is not None
+        and (
+            zero["loadVa"],
+            zero["branchVa"],
+            zero["returnVa"],
+            zero["rowEffectOffset"],
+            zero["rowStride"],
+        )
+        == (0x007956D4, 0x007956E5, 0x007967A2, 0x40, 0x14),
+    )
+    check(
+        "the zero branch follows the anchor calls and precedes the inline kind decode",
+        verifier.plate_pre_branch_calls(real)
+        == ["0x00794f30", "0x00794ee0", "0x004d86b0", "0x004d9970"]
+        and zero is not None
+        and zero["kindDecodeVa"] == 0x007956ED,
+    )
+    retargeted = copy.deepcopy(real)
+    for item in retargeted["staticChecks"]:
+        if item["name"] == "plate pre-branch calls":
+            item["pattern"] = item["pattern"].replace(
+                "e8 f3 2f d4 ff", "e8 f4 2f d4 ff", 1
+            )
+    check(
+        "a changed call before the zero branch is reported",
+        "plate routine calls before the zero branch disagree with the manifest"
+        in verifier.verify_plate_zero(retargeted),
+    )
+    moved = copy.deepcopy(real)
+    for item in moved["staticChecks"]:
+        if item["name"] == "plate row inputs":
+            item["pattern"] = item["pattern"].replace("8b 44 8b 40", "8b 44 8b 3c", 1)
+    check(
+        "a different row field offset is reported",
+        "plate effect load is not the row effect field"
+        in verifier.verify_plate_zero(moved),
+    )
+
+    check(
+        "the radius is read as an unsigned dword",
+        verifier.radius_conversion(real) == "unsigned 32-bit"
+        and verifier.range_gate_passes(real, 0x80000000, 2.0e9)
+        and verifier.range_gate_passes(real, 0xFFFFFFFF, 4.0e9)
+        and not verifier.range_gate_passes(real, 0x80000000, 3.0e9),
+    )
+    check(
+        "the range gate is strict",
+        verifier.range_gate_rule(real) == "radius greater than distance"
+        and verifier.range_gate_passes(real, 50, 49.5)
+        and not verifier.range_gate_passes(real, 50, 50.0)
+        and not verifier.range_gate_passes(real, 50, 50.5)
+        and not verifier.range_gate_passes(real, 0, 0.0),
+    )
+    signed = copy.deepcopy(real)
+    for item in signed["staticChecks"]:
+        if item["name"] == "radius unsigned read":
+            item["pattern"] = item["pattern"].replace("85 c9 7d 06", "85 c9 7c 06", 1)
+    check(
+        "a signed radius read is reported",
+        verifier.radius_conversion(signed) is None
+        and "radius conversion disagrees with the range gate bytes"
+        in verifier.verify_range_gate(signed),
+    )
+    check(
+        "the setter stores the low dword of a truncated 64-bit integer",
+        verifier.radius_store(real)
+        == "low dword of the toward-zero truncated 64-bit integer",
+    )
+
+    layout = verifier.sound_table_layout(real)
+    ids = verifier.sound_table_ids(real)
+    check(
+        "the sound table layout is decoded from the filter scan",
+        layout is not None
+        and (layout["va"], layout["stride"], layout["count"]) == (0x01270BA4, 2, 30)
+        and (layout["hitVa"], layout["missVa"], layout["hitMissVa"], layout["getterVa"])
+        == (0x00585A6C, 0x00585A17, 0x00585A17, 0x004D7490)
+        and len(ids) == 30
+        and len(set(ids)) == 30,
+    )
+    local = 0x10000001
+    other = 0x20000002
+    check(
+        "a table hit for another actor ends the row and every other row continues",
+        not verifier.sound_row_continues(real, other, 0x848E, local)
+        and not verifier.sound_row_continues(real, other, 0x8493, local)
+        and verifier.sound_row_continues(real, local, 0x848E, local)
+        and verifier.sound_row_continues(real, other, 0x8496, local)
+        and verifier.sound_row_continues(real, other, 0x75B1, local)
+        and verifier.sound_row_continues(real, other, 0x846E, local)
+        and verifier.sound_row_continues(real, other, 0x8475, local),
+    )
+    grouped_ids = [int(i, 16) for i in grouped] + [0x847F]
+    check(
+        "every extra route text ID of the group list and 0x847F is in the table",
+        all(i in ids for i in grouped_ids)
+        and not any(i in ids for i in (0x75B1, 0x75B4, 0x8496, 0x8497, 0x8498)),
+    )
+    stepped = copy.deepcopy(real)
+    for item in stepped["staticChecks"]:
+        if item["name"] == "message sound table scan":
+            item["pattern"] = item["pattern"].replace("83 c0 02", "83 c0 04", 1)
+    check(
+        "a changed table stride is reported",
+        "sound filter layout disagrees with the manifest"
+        in verifier.verify_sound_filter(stepped),
+    )
+    inverted = copy.deepcopy(real)
+    for item in inverted["staticChecks"]:
+        if item["name"] == "message sound table hit":
+            item["pattern"] = item["pattern"].replace("32 c0", "b0 01", 1)
+    check(
+        "a table hit that returns true is reported",
+        verifier.sound_table_layout(inverted) is None
+        and verifier.verify_sound_filter(inverted)
+        == ["sound filter bytes are unreadable"],
+    )
+
     record = real["record"]
     check(
         "eighteen rows fill the record",

@@ -21,6 +21,9 @@ on the [look-at page](chara-look-at-consumers.md#record-path).
 | The heading setter 0x00587D40 sets bit 1 of byte +0x26D and posts record 0x32, which CharaActor case 0x00662F94 hands to 0x0065C220 and the turn start 0x007B0530 | STATIC | [turn-request](#turn-request) |
 | 0x007B0530 posts event 0x4A for a turn still pending, stores the target or saved heading, classifies the angle into six classes and starts the rotation and the timer | STATIC | [turn-request](#turn-request) |
 | The angle classes are -1, -2, -3, 3, 2 and 1 for differences up to 0x1C71C7, 0x4E38E3, 0x800000, 0xB1C71C, 0xE38E39 and above in 24 bit units of 360 over 2 to the 24 degrees | STATIC | [turn-request](#turn-request) |
+| 0x007A4E70 subtracts its second argument from its first and masks the result to 24 bits, and 0x007B0530 pushes the current angle at +0x1AC first and the target angle second, so the difference is the target minus the current angle | STATIC | [turn-request](#turn-request) |
+| After the class call, a negative class adds one circle to the target when the current angle is greater than it and a positive class subtracts one circle when the current angle is smaller, and 0x007A4CD0 stores that target at +0x1B4 and the current angle at +0x1B0 | STATIC | [turn-request](#turn-request) |
+| The angle at +0x1AC is not shown to stay inside 0 to 0xFFFFFF between turns, because the chase near 0x007AB040 stores an unmasked sum, difference or target at +0x1AC (0x007AB0AA, 0x007AB0C1 and 0x007AB0D4) while 0x007A4B31 and 0x007A7DE3 store masked values | UNPROVED | [turn-request](#turn-request) |
 | The turn timer at controller +0x38 starts at 10.0 or at the float of the low 6 bits of the dword at controller +0x258 if that is larger, and mode 2 turns store 0 in +0x1C4 | STATIC | [turn-completion](#turn-completion) |
 | Each CharaActor slot 142 call lowers the timer by the delta times the controller scale at +0xF8, and when it reaches 0 the controller posts event 0x4A | STATIC | [turn-completion](#turn-completion) |
 | The only calls of the event post 0x0065BEF0 are the timer expiry 0x007A4C20, the pending turn replacement 0x007B0547 and the turn back shortcut 0x007B06F6 | STATIC | [turn-completion](#turn-completion) |
@@ -110,19 +113,22 @@ not traced.
 2. With a zero flag it stores the angle as the heading at `+0x70`. With a
    nonzero flag it sets bit 1 of `+0x04` and stores the current heading, in
    radians, at `+0x1BC`.
-3. It classifies the difference between the angle and the current angle at
-   `+0x1AC` through `0x007A4E70`, calls the object at `+0x284` with the class
-   and the mode when that object exists, and moves the angle by one circle so
-   that it lies on the side the class names.
+3. It classifies the target angle minus the current angle at `+0x1AC` through
+   `0x007A4E70`, calls the object at `+0x284` with the class and the mode when
+   that object exists, and moves the target by one circle so that it lies on the
+   side the class names (see below).
 4. It calls `0x007A4CD0`, which stores the start and target angles, the state 1
    and zero in `+0x1C0` and `+0x1C8`, and puts the float of the low 6 bits of
    the dword at `+0x258` in `+0x1C4`. Mode 2 sets flag `0x80` in `+0x04` and
    zeroes `+0x1C4`. Any other mode raises `+0x1C4` to 10.0 when it is lower.
 5. It stores the timer: `+0x1C4` when that is above 10.0 and 10.0 otherwise.
 
-The angle classes of `0x007A4E70` use the 24 bit difference `u`. The bounds are
-exact in units of 360 over 2 to the 24 degrees, and the last column rounds them
-to whole degrees.
+The angle classes of `0x007A4E70` use the 24 bit difference `u`. The routine
+returns its first argument minus its second, masked with `0xFFFFFF`, and
+`0x007B0530` pushes the current angle at `+0x1AC` first and the target angle
+second (the call at `0x007B05EB`), so `u` is the target minus the current angle.
+The bounds are exact in units of 360 over 2 to the 24 degrees, and the last
+column rounds them to whole degrees.
 
 | `u` up to | Class | Degrees |
 |---|---:|---|
@@ -132,6 +138,27 @@ to whole degrees.
 | `0xB1C71C` | 3 | 250 |
 | `0xE38E39` | 2 | 320 |
 | above | 1 | 360 |
+
+After the call the target is unwrapped against the current angle (`0x007B0609`
+to `0x007B062D`). A negative class adds `0x1000000` to the target when the
+current angle is greater than it, and a positive class subtracts `0x1000000`
+when the current angle is smaller. The unwrapped target therefore lies above the
+current angle by `u` for the classes -1 to -3 (`u` up to `0x800000`) and below
+it by `0x1000000` minus `u` for the classes 3, 2 and 1, when the current angle
+lies in 0 to `0xFFFFFF`. The two compares are signed (`jle` at `0x007B0613` and
+`jge` at `0x007B0625`), so the add and subtract rule above holds for any current
+angle, while the sides stated hold only inside that range. `0x007A4CD0` then
+stores the current angle at `+0x1B0` and the unwrapped target at `+0x1B4`.
+
+Whether the angle at `+0x1AC` stays inside 0 to `0xFFFFFF` between turns is not
+established. `0x007A4B31` and `0x007A7DE3` store it after `and 0xFFFFFF`. The
+chase near `0x007AB040` masks only the copy it compares, and stores the sum
+(`0x007AB0C1`), the difference (`0x007AB0AA`) or the target loaded from `+0x1B4`
+(`0x007AB0D4`) at `+0x1AC` unmasked. The unwrapped target at `+0x1B4` can lie
+below 0 or above `0xFFFFFF`, and whether the chase stops before such a value
+reaches `+0x1AC` was not traced. Those are the writers that were read, not a
+search of every writer. Which way the heading value increases on screen, and
+what runs the chase, were not traced.
 
 ## Turn completion
 
@@ -282,6 +309,7 @@ the underlying claims above:
 
 - Raise bit 1 of the turning byte for _turnBack and for a heading change and clear it on event 0x4A
 - Raise event 0x4A for the turn back shortcut when no heading is saved or the heading is within 0x38E39 units of the saved one, and for a pending turn that a new turn replaces
+- Classify a turn from the 24 bit target minus current angle difference, then lift the target by one circle for a negative class when the current angle is above it and lower it by one circle for a positive class when the current angle is below it
 - Raise event 0x4A when the turn timer runs out, with a timer of the larger of 10.0 and the 6 bit value of the controller, lowered by delta times the controller scale (AUTHORED unit and scale)
 - Hold the hidden bit as bit 1 of a visibility byte that _setVisible sets for false and clears for true, with the chara visible when the byte is 0
 - Ease the floating offset as the current value plus the smaller of 0.02 and the difference times 0.02 times the delta, and add it to the ground height of the chara

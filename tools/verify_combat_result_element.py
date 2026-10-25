@@ -59,6 +59,8 @@ EXPECTED_CLAIMS = {
     "scene-ops": "STATIC",
     "header-dispatch": "STATIC",
     "range-gate": "STATIC",
+    "range-radius": "STATIC",
+    "range-radius-store": "STATIC",
     "header-line": "STATIC",
     "drain-skips-rows": "STATIC",
     "row-trigger": "STATIC",
@@ -67,6 +69,8 @@ EXPECTED_CLAIMS = {
     "second-door": "STATIC",
     "local-builder": "STATIC",
     "row-order": "STATIC",
+    "sound-table": "STATIC",
+    "sound-table-drop": "STATIC",
     "log-arguments": "STATIC",
     "special-text-ids": "STATIC",
     "special-route-meaning": "UNPROVED",
@@ -76,6 +80,7 @@ EXPECTED_CLAIMS = {
     "plate-widgets": "STATIC",
     "plate-digits": "STATIC",
     "plate-kinds": "STATIC",
+    "plate-effect-zero": "STATIC",
     "plate-kind-visuals": "UNPROVED",
     "status-field": "NOT FOUND",
     "delay-constants": "NOT FOUND",
@@ -189,6 +194,21 @@ FIXED_VALUES = {
     ("drain", "headerPrecondition", "setterSpecialValue"): 50,
     ("drain", "headerPrecondition", "helperVa"): "0x00587580",
     ("drain", "headerPrecondition", "helperConstant"): 35.0,
+    ("drain", "headerPrecondition", "radiusRead"): {
+        "loadVa": "0x00588e9d",
+        "type": "unsigned 32-bit",
+        "correctionConstantVa": "0x00f54a54",
+        "correctionConstant": 4294967296.0,
+    },
+    ("drain", "headerPrecondition", "compare"): {
+        "va": "0x005876aa",
+        "passesWhen": "radius greater than distance",
+        "distanceComponents": 3,
+    },
+    ("drain", "headerPrecondition", "setterStore"): {
+        "va": "0x005859d2",
+        "value": "low dword of the toward-zero truncated 64-bit integer",
+    },
     ("drain", "eventCodeOffset"): "0x15",
     ("drain", "busCallVa"): "0x004d7980",
     ("events", "rowTrigger"): {
@@ -232,6 +252,18 @@ FIXED_VALUES = {
         "Window_PlayerProfileWidget",
         "Window_ChainBonusEffectWidget",
     ],
+    ("rowProcessing", "soundTable", "va"): "0x01270ba4",
+    ("rowProcessing", "soundTable", "count"): 30,
+    ("rowProcessing", "soundTable", "stride"): 2,
+    ("rowProcessing", "soundTable", "scanVa"): "0x005859fe",
+    ("rowProcessing", "soundTable", "localActorGetterVa"): "0x004d7490",
+    (
+        "rowProcessing",
+        "soundTable",
+        "hitReturns",
+    ): "false unless the row target equals the actor returned by 0x004d7490",
+    ("rowProcessing", "soundTable", "missContinuesVa"): "0x00585a17",
+    ("rowProcessing", "soundTable", "playIds"): ["0x8475", "0x846e"],
     ("rowProcessing", "headerLine", "condition"): "controlValue nonzero",
     ("rowProcessing", "headerLine", "textId"): "controlValue",
     ("rowProcessing", "headerLine", "otherArguments"): "zero",
@@ -242,6 +274,16 @@ FIXED_VALUES = {
     ("plates", "gate", "configOption"): [2, 5],
     ("plates", "gate", "globalPointer"): "0x01356e10",
     ("plates", "gate", "globalByte"): "0x01356e14",
+    ("plates", "effectZero"): {
+        "loadVa": "0x007956d4",
+        "branchVa": "0x007956e5",
+        "returnVa": "0x007967a2",
+        "rowEffectOffset": "0x40",
+        "rowStride": "0x14",
+        "kindDecodeVa": "0x007956ed",
+        "preBranchCalls": ["0x00794f30", "0x00794ee0", "0x004d86b0", "0x004d9970"],
+        "resumeVa": "0x0058c387",
+    },
     ("plates", "kindShift"): 27,
     ("plates", "kindMask"): 15,
     ("plates", "anchorSourceKinds"): [7, 8, 9, 10],
@@ -450,6 +492,18 @@ EXPECTED_PUSH_SCANS = {
 }
 EXPECTED_DWORD_SCANS = {"0x00587130": [], "0x005856c0": [], "0x00585740": []}
 REQUIRED_CHECKS = {
+    "plate epilogue",
+    "radius unsigned read",
+    "unsigned conversion constant",
+    "range gate radius argument",
+    "range gate radius move",
+    "range gate result",
+    "radius setter truncation",
+    "message sound table scan",
+    "message sound table hit",
+    "message sound true return",
+    "message sound table",
+    "message sound local actor getter",
     "element vtable slots 6 to 9",
     "dispatcher pre-gates",
     "dispatcher range test",
@@ -567,6 +621,7 @@ REQUIRED_CHECKS = {
     "local builder",
     "plate list lookup",
     "plate global gates",
+    "plate pre-branch calls",
     "plate row inputs",
     "plate slot allocation",
     "plate slot store",
@@ -941,6 +996,370 @@ def verify_plates(document: dict) -> list[str]:
     return errors
 
 
+def check_va(document: dict, name: str) -> int:
+    try:
+        return int(check_row(document, name).get("va", "0"), 16)
+    except ValueError:
+        return 0
+
+
+def rel32_target(code: list[int], base: int, index: int) -> int:
+    """Target of the E8 or E9 at code[index] when code[0] sits at VA base."""
+    rel = int.from_bytes(bytes(code[index + 1 : index + 5]), "little", signed=True)
+    return (base + index + 5 + rel) & 0xFFFFFFFF
+
+
+def radius_conversion(document: dict) -> str | None:
+    """How the range gate turns the dword at the radius offset into the float it passes."""
+    code = check_bytes(document, "radius unsigned read")
+    constant = check_values(document, "unsigned conversion constant")
+    gate = document.get("drain", {}).get("headerPrecondition", {})
+    try:
+        offset = int(gate["radiusOffset"], 16).to_bytes(4, "little")
+        constant_value = struct.unpack("<f", constant[0].to_bytes(4, "little"))[0]
+        range_va = int(gate["rangeVa"], 16)
+    except (KeyError, IndexError, ValueError, OverflowError):
+        return None
+    if len(code) != 38:
+        return None
+    base = check_va(document, "radius unsigned read")
+    layout = (
+        code[0:2] == [0x8B, 0x8E]  # mov ecx, [esi + radius]
+        and bytes(code[2:6]) == offset
+        and code[6:8] == [0xDB, 0x86]  # fild dword ptr [esi + radius]
+        and bytes(code[8:12]) == offset
+        and code[12:16] == [0x85, 0xC9, 0x7D, 0x06]  # test ecx, ecx; jge +6
+        and code[16:18] == [0xD8, 0x05]  # fadd dword ptr [constant]
+        and int.from_bytes(bytes(code[18:22]), "little")
+        == int(gate.get("radiusRead", {}).get("correctionConstantVa", "0"), 16)
+        and check_va(document, "unsigned conversion constant")
+        == int.from_bytes(bytes(code[18:22]), "little")
+        and constant_value == 2.0**32
+        # push ecx; fstp [esp] makes the float the first pushed (last) argument
+        and code[22:26] == [0x51, 0xD9, 0x1C, 0x24]
+        and code[26:30] == [0x56, 0x50, 0x8B, 0xCE]
+        and code[30] == 0xE8
+        and rel32_target(code, base, 30) == range_va
+    )
+    return "unsigned 32-bit" if layout else None
+
+
+def range_gate_rule(document: dict) -> str | None:
+    """The comparison 0x005875A0 makes between the radius argument and the distance."""
+    argument = check_bytes(document, "range gate radius argument")
+    move = check_bytes(document, "range gate radius move")
+    compare = check_bytes(document, "range gate compare")
+    result = check_bytes(document, "range gate result")
+    if len(move) != 23 or len(compare) < 24 or len(result) != 22:
+        return None
+    ok = (
+        argument == [0xF3, 0x0F, 0x10, 0x55, 0x10]  # xmm2 = [ebp + 0x10], the radius
+        and move[0:7] == [0x0F, 0x57, 0xC9, 0xF3, 0x0F, 0x10, 0xCA]  # xmm1 = xmm2
+        and move[18:23] == [0x0F, 0x29, 0x4C, 0x24, 0x20]  # [esp + 0x20] = radius
+        and compare[-24:]
+        == [
+            *(0xF3, 0x0F, 0x10, 0x44, 0x24, 0x30),  # xmm0 = [esp + 0x30], distance
+            *(0xF3, 0x0F, 0x10, 0x4C, 0x24, 0x20),  # xmm1 = [esp + 0x20], radius
+            *(0x0F, 0x5A, 0xC0, 0x0F, 0x5A, 0xC9),
+            *(0x66, 0x0F, 0x2F, 0xC8),  # comisd xmm1, xmm0
+            *(0x76, 0x0A),  # jbe false
+        ]
+        and result[0:4] == [0x76, 0x0A, 0xB0, 0x01]  # fall through: al = 1
+        and result[12:15] == [0x5F, 0x32, 0xC0]  # jbe target: al = 0
+    )
+    return "radius greater than distance" if ok else None
+
+
+def range_gate_passes(document: dict, raw_radius: int, distance: float) -> bool:
+    """Gate result for a stored radius dword and a float distance, per the decoded bytes."""
+    value = raw_radius & 0xFFFFFFFF
+    if radius_conversion(document) != "unsigned 32-bit" and value >= 1 << 31:
+        value -= 1 << 32
+    radius = struct.unpack("<f", struct.pack("<f", float(value)))[0]
+    limit = struct.unpack("<f", struct.pack("<f", distance))[0]
+    if range_gate_rule(document) == "radius greater than distance":
+        return radius > limit
+    return radius >= limit
+
+
+def radius_store(document: dict) -> str | None:
+    """What the radius setter writes in its float mode."""
+    code = check_bytes(document, "radius setter truncation")
+    offset = document.get("drain", {}).get("headerPrecondition", {}).get("radiusOffset")
+    if len(code) != 40 or not offset:
+        return None
+    ok = (
+        code[13:18] == [0x0D, 0x00, 0x0C, 0x00, 0x00]  # or eax, 0xc00: truncate
+        and code[26:30] == [0xDF, 0x7C, 0x24, 0x04]  # fistp qword ptr [esp + 4]
+        and code[30:34] == [0x8B, 0x44, 0x24, 0x04]  # eax = low dword
+        and code[34:36] == [0x89, 0x87]
+        and bytes(code[36:40]) == int(offset, 16).to_bytes(4, "little")
+    )
+    return "low dword of the toward-zero truncated 64-bit integer" if ok else None
+
+
+def int8(value: int) -> int:
+    return value - 256 if value > 127 else value
+
+
+def sound_table_layout(document: dict) -> dict | None:
+    """Table address, stride, count and branch targets decoded from the filter scan."""
+    scan = check_bytes(document, "message sound table scan")
+    hit = check_bytes(document, "message sound table hit")
+    true_return = check_bytes(document, "message sound true return")
+    if len(scan) != 32 or len(hit) != 24 or len(true_return) != 12:
+        return None
+    scan_va = check_va(document, "message sound table scan")
+    hit_va = check_va(document, "message sound table hit")
+    fixed = (
+        scan[0:7]
+        == [0xB3, 0x01, 0x33, 0xC0, 0x66, 0x3B, 0xA8]  # bl = 1; cmp bp, [eax + table]
+        and scan[11:16] == [0x8B, 0x74, 0x24, 0x24, 0x74]
+        and scan[17:19] == [0x83, 0xC0]
+        and scan[20:22] == [0x83, 0xF8]
+        and scan[23] == 0x72
+        and scan[25:30] == [0x66, 0x81, 0xFD, 0x75, 0x84]  # cmp bp, 0x8475
+        and hit[0:4] == [0x8B, 0x4F, 0x7C, 0xE8]
+        and hit[8:12] == [0x3B, 0xF0, 0x74, 0x9F]  # cmp esi, eax; je miss path
+        and hit[12:18] == [0x5F, 0x5E, 0x5D, 0x32, 0xC0, 0x5B]  # al = 0
+        and hit[21:24] == [0xC2, 0x08, 0x00]
+        and true_return[3:5] == [0x8A, 0xC3]  # al = bl
+    )
+    if not fixed:
+        return None
+    loop_back = scan_va + 23 + 2 + int8(scan[24])
+    return {
+        "va": int.from_bytes(bytes(scan[7:11]), "little"),
+        "stride": scan[19],
+        "count": scan[22] // scan[19],
+        "loopVa": loop_back,
+        "hitVa": scan_va + 15 + 2 + scan[16],
+        "missVa": scan_va + 25,
+        "hitMissVa": hit_va + 10 + 2 + int8(hit[11]),
+        "getterVa": rel32_target(hit, hit_va, 3),
+    }
+
+
+def sound_table_ids(document: dict) -> list[int]:
+    return check_values(document, "message sound table")
+
+
+def sound_row_continues(
+    document: dict, target: int, text_id: int, local_actor: int
+) -> bool:
+    """False when the sound filter ends the row.
+
+    The table ids come from the manifest bytes and the false return on a foreign
+    target is the hit branch that sound_table_layout decodes.
+    """
+    if sound_table_layout(document) is None:
+        raise ValueError("sound filter bytes are unreadable")
+    return not (text_id in sound_table_ids(document) and target != local_actor)
+
+
+def plate_zero_return(document: dict) -> dict | None:
+    """Row effect load and zero-effect branch decoded from the plate routine."""
+    code = check_bytes(document, "plate row inputs")
+    epilogue = check_bytes(document, "plate epilogue")
+    if len(code) != 38 or len(epilogue) != 42:
+        return None
+    base = check_va(document, "plate row inputs")
+    ok = (
+        code[0:3] == [0x8D, 0x0C, 0xBF]  # ecx = row * 5
+        and code[3:6] == [0x8B, 0x44, 0x8B]  # eax = [ebx + ecx * 4 + disp8]
+        and code[7:9] == [0x85, 0xC0]  # test eax, eax
+        and code[20:22] == [0x0F, 0x84]  # je rel32
+        and code[26:34] == [0x8B, 0xC8, 0xC1, 0xE9, 0x1B, 0x83, 0xE1, 0x0F]
+        and epilogue[0:7] == [0x8B, 0x8C, 0x24, 0xF8, 0x01, 0x00, 0x00]
+        and epilogue[39:42] == [0xC2, 0x08, 0x00]
+    )
+    if not ok:
+        return None
+    rel = int.from_bytes(bytes(code[22:26]), "little", signed=True)
+    return {
+        "loadVa": base + 3,
+        "branchVa": base + 20,
+        "returnVa": base + 26 + rel,
+        "rowEffectOffset": code[6],
+        "rowStride": 5 * 4,
+        "kindDecodeVa": base + 28,
+        "kindShift": code[30],
+        "kindMask": code[33],
+    }
+
+
+def plate_pre_branch_calls(document: dict) -> list[str] | None:
+    """Call targets the plate routine makes before the zero-effect branch."""
+    code = check_bytes(document, "plate pre-branch calls")
+    base = check_va(document, "plate pre-branch calls")
+    if len(code) != 52 or base + 52 != check_va(document, "plate row inputs"):
+        return None
+    call_at = (4, 17, 27, 39)
+    rel = int.from_bytes(bytes(code[48:52]), "little", signed=True)
+    ok = (
+        all(code[i] == 0xE8 for i in call_at)
+        and code[44:48] == [0x85, 0xED, 0x0F, 0x84]  # test ebp, ebp; je epilogue
+        and (base + 52 + rel) & 0xFFFFFFFF == check_va(document, "plate epilogue")
+    )
+    return [hex8(rel32_target(code, base, i)) for i in call_at] if ok else None
+
+
+def plate_for_row(document: dict, effect_id: int) -> int | None:
+    """Plate kind of a row, or None when the decoded zero-effect branch returns early."""
+    zero = plate_zero_return(document)
+    if zero is None:
+        raise ValueError("plate routine bytes are unreadable")
+    if effect_id == 0:
+        return None
+    return (effect_id >> zero["kindShift"]) & zero["kindMask"]
+
+
+def bytes_at(document: dict, name: str, va: object, length: int) -> list[int]:
+    """Bytes of a static check starting at a VA that lies inside it."""
+    try:
+        start = int(str(va), 16) - check_va(document, name)
+    except ValueError:
+        return []
+    code = check_bytes(document, name)
+    return code[start : start + length] if 0 <= start < len(code) else []
+
+
+def verify_range_gate(document: dict) -> list[str]:
+    errors: list[str] = []
+    gate = document.get("drain", {}).get("headerPrecondition", {})
+    read = gate.get("radiusRead", {})
+    if radius_conversion(document) != read.get("type"):
+        errors.append("radius conversion disagrees with the range gate bytes")
+    if bytes_at(document, "radius unsigned read", read.get("loadVa"), 2) != [
+        0xDB,
+        0x86,
+    ]:
+        errors.append("radius load address is not the integer load")
+    if range_gate_rule(document) != gate.get("compare", {}).get("passesWhen"):
+        errors.append("radius comparison disagrees with the range gate bytes")
+    if bytes_at(
+        document, "range gate compare", gate.get("compare", {}).get("va"), 4
+    ) != [0x66, 0x0F, 0x2F, 0xC8]:
+        errors.append("radius comparison address is not the comisd")
+    if radius_store(document) != gate.get("setterStore", {}).get("value"):
+        errors.append("radius store disagrees with the setter bytes")
+    if bytes_at(
+        document, "radius setter truncation", gate.get("setterStore", {}).get("va"), 2
+    ) != [0x89, 0x87]:
+        errors.append("radius store address is not the setter store")
+    return errors
+
+
+def verify_sound_filter(document: dict) -> list[str]:
+    errors: list[str] = []
+    table = document.get("rowProcessing", {}).get("soundTable", {})
+    layout = sound_table_layout(document)
+    ids = sound_table_ids(document)
+    if layout is None:
+        return ["sound filter bytes are unreadable"]
+    wanted = {
+        "va": int(table.get("va", "0"), 16),
+        "stride": table.get("stride"),
+        "count": table.get("count"),
+        # the scan loops back to the cmp that follows bl = 1; xor eax, eax
+        "loopVa": check_va(document, "message sound table scan") + 4,
+        "hitVa": check_va(document, "message sound table hit"),
+        "missVa": int(table.get("missContinuesVa", "0"), 16),
+        "hitMissVa": int(table.get("missContinuesVa", "0"), 16),
+        "getterVa": int(table.get("localActorGetterVa", "0"), 16),
+    }
+    if layout != wanted:
+        errors.append("sound filter layout disagrees with the manifest")
+    if check_va(document, "message sound table") != layout["va"]:
+        errors.append("sound table address disagrees with the filter scan")
+    if check_va(document, "message sound local actor getter") != layout["getterVa"]:
+        errors.append("sound table hit does not call the local actor getter")
+    if len(ids) != layout["count"] or [f"0x{i:04x}" for i in ids] != table.get("ids"):
+        errors.append("sound table ids disagree with the filter scan")
+    special = [
+        e
+        for e in document.get("rowProcessing", {}).get("specialTextIds", [])
+        if isinstance(e, dict)
+    ]
+    plate_ids = [
+        i
+        for e in special
+        if e.get("route", "").startswith("plate list")
+        for i in e["ids"]
+    ]
+    other = [e for e in special if not e.get("route", "").startswith("plate list")]
+    default_only = [i for e in other for i in e.get("defaultLineOnly", [])]
+    if plate_ids != ["0x75b1", "0x75b4"] or default_only[:1] != ["0x8493"]:
+        errors.append(
+            "special text id routes are not the expected plate and default-line ids"
+        )
+    inside = [i for e in other for i in e.get("ids", [])] + default_only[:1]
+    for text_id in inside:
+        if int(text_id, 16) not in ids:
+            errors.append(f"special text id {text_id} is not in the sound table")
+    for text_id in plate_ids:
+        if int(text_id, 16) in ids:
+            errors.append(f"plate text id {text_id} is in the sound table")
+    for text_id in table.get("playIds", []):
+        if int(text_id, 16) in ids:
+            errors.append(f"sound id {text_id} is in the sound table")
+    return errors
+
+
+def verify_plate_zero(document: dict) -> list[str]:
+    errors: list[str] = []
+    zero = document.get("plates", {}).get("effectZero", {})
+    found = plate_zero_return(document)
+    if found is None:
+        return ["plate row input bytes are unreadable"]
+    wanted = {
+        "loadVa": int(zero.get("loadVa", "0"), 16),
+        "branchVa": int(zero.get("branchVa", "0"), 16),
+        "returnVa": int(zero.get("returnVa", "0"), 16),
+        "kindDecodeVa": int(zero.get("kindDecodeVa", "0"), 16),
+        "rowEffectOffset": int(zero.get("rowEffectOffset", "0"), 16),
+        "rowStride": int(zero.get("rowStride", "0"), 16),
+        "kindShift": document["plates"]["kindShift"],
+        "kindMask": document["plates"]["kindMask"],
+    }
+    if found != wanted:
+        errors.append("plate zero effect return disagrees with the manifest")
+    if plate_pre_branch_calls(document) != zero.get("preBranchCalls"):
+        errors.append(
+            "plate routine calls before the zero branch disagree with the manifest"
+        )
+    if zero.get("kindDecodeVa") != hex8(found["kindDecodeVa"]):
+        errors.append(
+            "plate kind decode is not the inline decode after the zero branch"
+        )
+    record = document.get("record", {})
+    effect = next(
+        (f for f in record.get("rowFields", []) if f.get("name") == "effectId"), {}
+    )
+    if found["rowEffectOffset"] != int(record.get("headerSize", "0"), 16) + int(
+        effect.get("offset", "0"), 16
+    ):
+        errors.append("plate effect load is not the row effect field")
+    if found["rowStride"] != int(record.get("rowStride", "0"), 16):
+        errors.append("plate effect load does not use the row stride")
+    if check_va(document, "plate epilogue") != found["returnVa"]:
+        errors.append("plate zero return does not reach the epilogue")
+    resume = int(zero.get("resumeVa", "0"), 16)
+    sites = next(
+        (
+            s.get("sites")
+            for s in document.get("scans", {}).get("callSites", [])
+            if s.get("target") == "0x00795630"
+        ),
+        [],
+    )
+    if [hex8(int(s, 16) + 5) for s in sites] != [hex8(resume)] or check_va(
+        document, "row sound filter"
+    ) != resume:
+        errors.append("the row pass does not resume at the sound filter")
+    return errors
+
+
 def verify_scans(document: dict) -> list[str]:
     errors: list[str] = []
     scans = document.get("scans", {})
@@ -1001,6 +1420,9 @@ def verify_sections(document: dict) -> list[str]:
     errors += verify_drain(document)
     errors += verify_events(document)
     errors += verify_plates(document)
+    errors += verify_range_gate(document)
+    errors += verify_sound_filter(document)
+    errors += verify_plate_zero(document)
     errors += verify_scans(document)
     return errors
 
@@ -1118,6 +1540,10 @@ def verify(document: dict | None = None, text: str | None = None) -> list[str]:
     return errors
 
 
+def claim_index(document: dict, claim_id: str) -> int:
+    return [c.get("id") for c in document["claims"]].index(claim_id)
+
+
 def mutation_test() -> list[str]:
     document = json.loads(MANIFEST.read_text(encoding="ascii"))
     cases = [
@@ -1174,7 +1600,28 @@ def mutation_test() -> list[str]:
         (("scans", "pushScans", 0, "sites"), ["0x00585722"]),
         (("scans", "dwordSites", 0, "sites"), ["0x00401000"]),
         (("claims", 0, "tier"), "INFERRED"),
-        (("claims", 27, "tier"), "STATIC"),
+        (("claims", claim_index(document, "row-trigger-sender"), "tier"), "STATIC"),
+        (("claims", claim_index(document, "range-radius"), "tier"), "INFERRED"),
+        (("claims", claim_index(document, "sound-table-drop"), "tier"), "INFERRED"),
+        (("claims", claim_index(document, "plate-effect-zero"), "tier"), "UNPROVED"),
+        (("drain", "headerPrecondition", "radiusRead", "type"), "signed 32-bit"),
+        (("drain", "headerPrecondition", "radiusRead", "loadVa"), "0x00588ea3"),
+        (
+            ("drain", "headerPrecondition", "compare", "passesWhen"),
+            "radius at least distance",
+        ),
+        (("drain", "headerPrecondition", "compare", "va"), "0x005876ae"),
+        (("drain", "headerPrecondition", "setterStore", "va"), "0x005859d8"),
+        (("rowProcessing", "soundTable", "count"), 31),
+        (("rowProcessing", "soundTable", "ids", 3), "0x8474"),
+        (("rowProcessing", "soundTable", "ids", 29), "0x84a4"),
+        (("rowProcessing", "soundTable", "hitReturns"), "true"),
+        (("rowProcessing", "soundTable", "playIds", 0), "0x8471"),
+        (("plates", "effectZero", "returnVa"), "0x007967a3"),
+        (("plates", "effectZero", "rowEffectOffset"), "0x3c"),
+        (("plates", "effectZero", "resumeVa"), "0x0058c382"),
+        (("plates", "effectZero", "kindDecodeVa"), "0x007956eb"),
+        (("plates", "effectZero", "preBranchCalls", 1), "0x00794f30"),
         (("claims", 3, "id"), "slot-nine"),
         (("claims", 5, "claim"), " "),
         (("claims", 7, "section"), "nowhere"),
@@ -1205,12 +1652,58 @@ def mutation_test() -> list[str]:
         "event publisher",
         "plate digit loop bound",
         "plate form load",
+        "plate epilogue",
+        "plate pre-branch calls",
+        "radius unsigned read",
+        "unsigned conversion constant",
+        "range gate result",
+        "radius setter truncation",
+        "message sound table scan",
+        "message sound table hit",
+        "message sound table",
+        "message sound local actor getter",
     ):
         dropped = copy.deepcopy(document)
         dropped["staticChecks"] = [
             item for item in dropped["staticChecks"] if item["name"] != name
         ]
         mutations.append(dropped)
+    for name, at, value in (
+        ("radius unsigned read", 14, 0x7C),
+        ("radius unsigned read", 7, 0x87),
+        ("unsigned conversion constant", None, "0x4f000000"),
+        ("range gate result", 0, 0x72),
+        ("range gate result", 14, 0x33),
+        ("range gate radius argument", 3, 0x54),
+        ("range gate compare", -2, 0x77),
+        ("radius setter truncation", 15, 0x0B),
+        ("radius setter truncation", 38, 0xAC),
+        ("message sound table scan", 19, 0x04),
+        ("message sound table scan", 22, 0x38),
+        ("message sound table scan", 16, 0x5C),
+        ("message sound table hit", 14, 0x33),
+        ("message sound table hit", 3, 0xE9),
+        ("message sound table hit", 10, 0x75),
+        ("message sound true return", 3, 0x8B),
+        ("message sound table", 0, "0x846e"),
+        ("plate pre-branch calls", 5, 0x8B),
+        ("plate pre-branch calls", 44, 0x85 ^ 0xFF),
+        ("plate row inputs", 6, 0x44),
+        ("plate row inputs", 22, 0xB8),
+        ("plate row inputs", 21, 0x85),
+        ("plate epilogue", 0, 0x00),
+    ):
+        edited = copy.deepcopy(document)
+        for item in edited["staticChecks"]:
+            if item["name"] != name:
+                continue
+            if isinstance(value, str):
+                item["values"][0] = value
+            else:
+                pattern = item["pattern"].split()
+                pattern[at] = f"{value:02x}"
+                item["pattern"] = " ".join(pattern)
+        mutations.append(edited)
     swapped = copy.deepcopy(document)
     for item in swapped["staticChecks"]:
         if item["name"] == "slot 9 rejected-state byte table":

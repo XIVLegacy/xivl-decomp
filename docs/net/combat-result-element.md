@@ -45,6 +45,8 @@ was found.
 | Class 0 posts bus command 3 and classes 1 to 25 post command 4, each with the record and 0x38 plus 0x14 times the row count bytes | STATIC | [Drain](#drain) |
 | Classes 3 to 11 then call 0x0058CA80, which runs the header for class 5 through 0x00585AF0 and for classes 6 to 10 through 0x0058C220, and does nothing for classes 3, 4 and 11 | STATIC | [Drain](#drain) |
 | The header runs only when the container-selected element casts to a character element and lies closer than the radius at element +0xAA8 | STATIC | [Drain](#drain) |
+| The range gate reads the radius dword at element +0xAA8 as an unsigned 32-bit value (0x00588E9D loads a signed integer and adds 2 to the 32nd power when the sign is set), and 0x005875A0 passes only when that radius is strictly greater than the three-component distance between the two elements | STATIC | [Drain](#drain) |
+| The radius setter 0x00585930 stores the low dword of the toward-zero truncated float as a 64-bit integer when its mode byte is 0, and stores 50 for five element kinds when the mode byte is 1 | STATIC | [Drain](#drain) |
 | A nonzero control halfword is sent to the logger as a text ID with zero target, numeric value, effect ID and parameter, then cleared | STATIC | [Header line](#header-line) |
 | The drain calls 0x0058CA80 with the arguments 1 and 0, which stops 0x0058C220 after the header line, so no row is processed at drain time | STATIC | [Header line](#header-line) |
 | Rows are processed by element event 0x59, which finds the record by serial in its bucket ring and calls 0x0058CA80 with 0 and the record route flag, so the ordinal filter is on only for route flag 0 | STATIC | [Row trigger](#row-trigger) |
@@ -53,11 +55,14 @@ was found.
 | Element event 0x64 stages a record through the same classifier and the single-row stager with route flag 0 | STATIC | [Row trigger](#row-trigger) |
 | The routine at 0x006AACE0 builds result views with numeric value 9999 and calls the wrappers 0x0058C880 and 0x0058C930 directly | STATIC | [Row trigger](#row-trigger) |
 | Row processing runs the inert test, the ordinal filter, the plate, the sound filter, the special text ID switch, the default log, the post call and the selector update in that order | STATIC | [Row processing](#row-processing) |
+| The sound filter 0x005859F0 compares the text ID with 30 u16 values at 0x01270BA4, which include 0x847F, 0x848E to 0x8495 and 0x8499 to 0x84A3 and exclude 0x75B1, 0x75B4, 0x846E and 0x8475 | STATIC | [Row processing](#row-processing) |
+| A table hit returns false unless the row target equals the actor ID returned by 0x004D7490, which skips the rest of the row (special routes, default log line, post call and selector update), while a miss or a matching target goes on to the 0x8475 and 0x846E sound tests and returns true | STATIC | [Row processing](#row-processing) |
 | The default log call passes 14 arguments to 0x005759A0 in the listed order | STATIC | [Row processing](#row-processing) |
 | Text IDs 0x75B1, 0x75B4, 0x847F, 0x848E to 0x8492, 0x8494, 0x8495 and 0x8499 to 0x84A3 take extra routes before or instead of the default log, and 0x8493 and 0x8496 to 0x8498 get the default line only | STATIC | [Row processing](#row-processing) |
 | What the plate list at +0xE24 and the group list at +0xE4C display | UNPROVED | [Row processing](#row-processing) |
 | A plate is created only when the container override pointer at +0x17838 is nonzero, configuration option (2, 5) is nonzero, the global pointer at 0x01356E10 is set and the global byte at 0x01356E14 is clear | STATIC | [Damage plate](#damage-plate) |
 | Effect ID bits 27 to 30 give the kind, and kinds 7 to 10 anchor the plate on the record source and every other kind on the row target | STATIC | [Damage plate](#damage-plate) |
+| The plate routine 0x00795630 reloads the row effect ID from record +0x40 plus 0x14 times the row at 0x007956D4 and, when it is 0, branches at 0x007956E5 to the epilogue 0x007967A2 before its inline kind decode at 0x007956ED and the layout jump table, so a row with effect ID 0 gets no plate and the row pass goes on to the sound filter | STATIC | [Damage plate](#damage-plate) |
 | Each element keeps a ring of five plate slots, and a slot object is 0x48 bytes | STATIC | [Damage plate](#damage-plate) |
 | The plate list initializer loads DamagePlateWidget.form, and a plate fills five digit blocks, an icon, an additional text and a damage type text | STATIC | [Damage plate](#damage-plate) |
 | The numeric value is written least significant digit first into Number_5 through Number_1, so only the low five decimal digits show | STATIC | [Damage plate](#damage-plate) |
@@ -299,10 +304,23 @@ arguments 1 and 0, and `0x0058A010` on the same record. The header routine
 returns unless `0x00588E70` agrees. That gate casts the container-selected
 element (the override pointer at `+0x17838`, otherwise `+0x17834`) to the
 character element type and passes only when the distance between the two
-elements is smaller than the integer at element `+0xAA8`. The radius setter
-`0x00585930` stores a truncated float, or 50 for five element kinds. The helper
-`0x00587580` passes 35.0. Writers beyond the four setter call sites, and the
-unit of the radius, were not traced.
+elements is smaller than the radius at element `+0xAA8`.
+
+The radius is an unsigned 32-bit integer. `0x00588E9D` loads it with a signed
+integer load and the code after the load adds the constant `4294967296.0` at
+`0x00F54A54` when the sign bit is set, so a stored value from `0x80000000`
+upward is a large positive radius and never a negative one. The float goes to
+`0x005875A0` as its last argument. That routine takes the difference of the
+two position vectors that `0x004CFE30` returns, sums the squares of the first
+three components, takes the square root and compares with `comisd`
+(`0x005876AA`). It returns true only when the radius is strictly greater than
+the distance, so a distance equal to the radius fails.
+
+The radius setter `0x00585930` has two modes. Mode 0 loads the float argument,
+sets the rounding to truncation, stores it as a 64-bit integer and writes the
+low dword to `+0xAA8` (`0x005859D2`). Mode 1 writes 50 for five element kinds.
+The helper `0x00587580` passes 35.0. Writers beyond the four setter call sites,
+and the unit of the radius, were not traced.
 
 When the gate passes, `0x0058CA80` runs class 5 through `0x00585AF0` and classes
 6 to 10 through `0x0058C220`. Classes 3, 4 and 11 run nothing. The
@@ -387,6 +405,26 @@ Each row runs these steps in order:
 7. The post routine `0x005785D0` runs with the row target and the record effect ID.
 8. The selector becomes the row ordinal and the row text ID is cleared.
 
+The sound filter `0x005859F0` can end a row after its plate. It scans 30 `u16` text IDs at `0x01270BA4` (stride 2, bound `0x3C` bytes).
+
+| Table IDs | Count |
+| --- | --- |
+| `0x846D`, `0x8471`, `0x8472`, `0x8473`, `0x8479`, `0x847B`, `0x8481`, `0x8482`, `0x84D1`, `0x84D2` | 10 |
+| `0x847F` | 1 |
+| `0x848E` to `0x8495` | 8 |
+| `0x8499` to `0x84A3` | 11 |
+
+On a hit it compares the row target with the dword that `0x004D7490` returns
+(container `+0x1783C`, the local actor in the
+[sound effect page](../resource/sound-effect-triggers.md#server-driven-sound))
+and returns false when they differ, which ends the row before the special
+switch, the default line, the post call and the selector update. A text ID that
+is not in the table, or a hit whose target matches, goes on to the `0x8475` and
+`0x846E` tests and the function returns true. The IDs `0x75B1`, `0x75B4`,
+`0x846E`, `0x8475` and `0x8496` to `0x8498` are not in the table. Every ID of the
+group list route and `0x847F` are, so those extra routes run only for a row
+whose target is that actor, and `0x8493` is in the table as well.
+
 The default log line is one call of `0x005759A0` on the logger object, with these
 14 arguments in order:
 
@@ -447,11 +485,20 @@ still gets its plate. It needs all of these:
   clear (the first checks of `0x00795630`)
 - the anchor element exists
 
-The anchor comes from `0x00794EE0`. The kind is effect ID bits 27 to 30. Kinds 7
-to 10 look up the record source actor and every other kind looks up the row
-target, both through `0x004D9970` on the container. The call is then
+The anchor comes from `0x00794EE0`, which has no zero test. It reads the effect
+ID dword of the row (record `+0x40` plus `0x14` times the row index) and decodes
+the kind from bits 27 to 30. Kinds 7 to 10 look up the record source actor and
+every other kind, a zero effect ID included, looks up the row target, both
+through `0x004D9970` on the container. The call at `0x0058C382` is then
 `0x00795630` on the plate list at anchor `+0xD3C` with the record and the row
 index.
+
+The plate routine `0x00795630` reloads the row effect ID at `0x007956D4` and,
+when it is 0, branches at `0x007956E5` to its epilogue `0x007967A2`. That branch
+comes after its calls to `0x00794F30`, `0x00794EE0` (at `0x007956AE`),
+`0x004D86B0` and `0x004D9970` and before its inline kind decode at `0x007956ED`
+and the layout jump table. A row with effect ID 0 therefore gets no plate of any
+kind, and the row pass goes on with the sound filter at `0x0058C387`.
 
 Each list keeps a ring of five slots, advanced by a low-nibble counter that
 wraps after 4. A slot object is `0x48` bytes. The list initializer `0x007950A0`,
@@ -521,10 +568,12 @@ the tier of the underlying claims above:
 - Treat a row with text ID 0 as inert: no log line, no plate and no selector change
 - Route each drained record by class: copy it to the bucket ring, post scene command 3 for class 0 and 4 otherwise with 0x38 + 0x14 * rows bytes, and drop classes above 25
 - At drain time, for classes 6 to 10 inside the range gate, emit the header log line from the control halfword and clear the halfword
+- Skip the rest of a row when its text ID is in the 30-ID sound table of the message sound filter and its target is not the actor returned by 0x004D7490
 - Emit one log line per row as the 14-argument tuple, in row order, after the message sound filter of the sound effect page
-- Create one plate per row from the kind in effect ID bits 27 to 30, anchored on the source for kinds 7 to 10 and on the row target otherwise, showing the low five decimal digits of the numeric value in a ring of five slots per element
+- Create one plate per row whose own effect ID is nonzero, with the kind in its bits 27 to 30, anchored on the source for kinds 7 to 10 and on the row target otherwise, showing the low five decimal digits of the numeric value in a ring of five slots per element
 - Take the plate gate as four host booleans: container override pointer set, configuration option (2, 5), global pointer set and global byte clear
 - Run the row pass only for classes 6 to 10 inside the range gate, because 0x0058CA80 runs 0x0058C220 for no other class
+- Pass the range gate only when the radius, read as an unsigned 32-bit integer and converted to a float, is strictly greater than the three-component distance (the unit stays CALIBRATION)
 
 What stays blocked, and why:
 

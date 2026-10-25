@@ -94,6 +94,9 @@ EXPECTED_CLAIMS = {
     "heading-post": "STATIC",
     "turn-start": "STATIC",
     "angle-classes": "STATIC",
+    "angle-difference": "STATIC",
+    "angle-unwrap": "STATIC",
+    "angle-range": "UNPROVED",
     "turn-timer": "STATIC",
     "timer-step": "STATIC",
     "event-sites": "STATIC",
@@ -472,6 +475,28 @@ EXPECTED_SECTIONS = {
             {"upTo": "0xe38e39", "class": 2},
             {"upTo": "0xffffff", "class": 1},
         ],
+        "classDifference": {
+            "callVa": "0x007b05eb",
+            "expression": "target minus current, masked to 24 bits",
+            "currentOffset": "0x1ac",
+        },
+        "unwrap": {
+            "negative": {
+                "when": "current angle greater than target",
+                "adjust": "plus one circle",
+            },
+            "positive": {
+                "when": "current angle less than target",
+                "adjust": "minus one circle",
+            },
+            "startOffset": "0x1b0",
+            "targetOffset": "0x1b4",
+        },
+        "angleWriters": {
+            "storeOffset": "0x1ac",
+            "maskedVas": ["0x007a4b31", "0x007a7de3"],
+            "unmaskedVas": ["0x007ab0aa", "0x007ab0c1", "0x007ab0d4"],
+        },
         "beginVa": "0x007a4cd0",
         "timer": {
             "offset": "0x38",
@@ -637,6 +662,9 @@ REQUIRED_CHECKS = {
     "record 0x0c case",
     "look-at angle worker",
     "turn begin rotation",
+    "turn angle masked write 1",
+    "turn angle masked write 2",
+    "turn angle chase stores",
     "look-at arbiter kind 2 and 3 payloads",
     "base slot 12 returns the ready byte",
     "CharaActor record handler gate and table dispatch",
@@ -909,6 +937,152 @@ def turn_class(document: dict, delta: int) -> int:
         if delta <= parse_hex(entry["upTo"]):
             return entry["class"]
     raise ValueError("delta outside every class")
+
+
+def match_template(code: bytes, at: int, template: list[int | None]) -> bool:
+    """True when code matches the template at an index, with None as a wildcard."""
+    window = code[at : at + len(template)]
+    return len(window) == len(template) and all(
+        want is None or got == want for got, want in zip(window, template)
+    )
+
+
+def hex_template(text: str) -> list[int | None]:
+    return [None if part == "??" else int(part, 16) for part in text.split()]
+
+
+def le_word(value: int) -> str:
+    return " ".join(f"{b:02x}" for b in value.to_bytes(4, "little"))
+
+
+def turn_difference_rule(document: dict) -> dict | None:
+    """The class argument order, the unwrap and the stores decoded from the turn routines."""
+    turn = document["turn"]
+    start = check_bytes(document, "turn start")
+    classify = check_bytes(document, "turn angle class")
+    begin = check_bytes(document, "turn begin rotation")
+    start_va = parse_hex(check_row(document, "turn start").get("va", "0x0"))
+    circle = parse_hex(turn["unitsPerCircle"])
+    current = parse_hex(turn["classDifference"]["currentOffset"])
+    # angle argument to units in edi, current angle pushed first, target pushed second, class call
+    prologue = hex_template(
+        "f3 0f 5a 44 24 08 f2 0f 59 05 ?? ?? ?? ?? f3 0f 5a 0d ?? ?? ?? ?? 53 55 57 "
+        f"c6 86 af 01 00 00 00 8b 8e {le_word(current)} f2 0f 5e c1 51 f2 0f 2c f8 "
+        f"81 e7 {le_word(circle - 1)} 57 8b ce e8"
+    )
+    at = bytes(start).find(
+        bytes([0xF3, 0x0F, 0x5A, 0x44, 0x24, 0x08, 0xF2, 0x0F, 0x59, 0x05]), 0x80
+    )
+    if at < 0 or not match_template(bytes(start), at, prologue):
+        return None
+    call_at = at + len(prologue) - 1
+    rel = int.from_bytes(bytes(start[call_at + 1 : call_at + 5]), "little", signed=True)
+    call_va = start_va + call_at
+    if call_va != parse_hex(turn["classDifference"]["callVa"]) or (
+        (call_va + 5 + rel) & 0xFFFFFFFF
+    ) != parse_hex(turn["classVa"]):
+        return None
+    # eax = first argument, minus the second, masked: the last pushed value is the first argument
+    pushed = ["current", "target"]
+    if bytes(classify[0:13]) != bytes.fromhex("8b4424042b44240825") + (
+        circle - 1
+    ).to_bytes(4, "little"):
+        return None
+    difference = (
+        f"{pushed[-1]} minus {pushed[0]}, masked to {circle.bit_length() - 1} bits"
+    )
+    tail = call_at + 5
+    unwrap = hex_template(
+        "8b d8 74 09 8b 11 8b 42 04 55 53 ff d0 85 db 7d 10 39 be "
+        f"{le_word(current)} 7e 06 81 c7 {le_word(circle)} 85 db 7e 0e 39 be {le_word(current)} "
+        f"7d 06 81 ef {le_word(circle)} 55 57 8b ce e8"
+    )
+    skip = bytes(start).find(bytes([0x8B, 0xD8]), tail)
+    if skip < 0 or not match_template(bytes(start), skip, unwrap):
+        return None
+    begin_call = skip + len(unwrap) - 1
+    begin_rel = int.from_bytes(
+        bytes(start[begin_call + 1 : begin_call + 5]), "little", signed=True
+    )
+    if ((start_va + begin_call + 5 + begin_rel) & 0xFFFFFFFF) != parse_hex(
+        turn["beginVa"]
+    ):
+        return None
+    stores = hex_template(f"8b 81 {le_word(current)} 8b 54 24 04 89 81 ?? ?? ?? ??")
+    target_store = bytes([0x89, 0x91])
+    if not match_template(bytes(begin), 0, stores):
+        return None
+    start_offset = int.from_bytes(bytes(begin[12:16]), "little")
+    at_target = bytes(begin).find(target_store, 16)
+    if at_target < 0:
+        return None
+    target_offset = int.from_bytes(
+        bytes(begin[at_target + 2 : at_target + 6]), "little"
+    )
+    return {
+        "difference": difference,
+        "negative": {
+            "when": "current angle greater than target",
+            "adjust": "plus one circle",
+        },
+        "positive": {
+            "when": "current angle less than target",
+            "adjust": "minus one circle",
+        },
+        "startOffset": f"0x{start_offset:x}",
+        "targetOffset": f"0x{target_offset:x}",
+    }
+
+
+def angle_writers(document: dict) -> dict | None:
+    """Stores to the current angle, split by whether the stored register was masked to 24 bits."""
+    offset = parse_hex(document["turn"]["angleWriters"]["storeOffset"])
+    mask_imm = (parse_hex(document["turn"]["unitsPerCircle"]) - 1).to_bytes(4, "little")
+    masked: list[str] = []
+    unmasked: list[str] = []
+    for name in (
+        "turn angle masked write 1",
+        "turn angle masked write 2",
+        "turn angle chase stores",
+    ):
+        code = check_bytes(document, name)
+        base = parse_hex(check_row(document, name).get("va", "0x0"))
+        # registers narrowed by 25 imm32 (eax) or 81 /4 imm32 in the same check
+        anded = set()
+        for at in range(len(code) - 5):
+            if code[at] == 0x25 and code[at + 1 : at + 5] == mask_imm:
+                anded.add(0)
+            if (
+                code[at] == 0x81
+                and code[at + 1] & 0xF8 == 0xE0
+                and code[at + 2 : at + 6] == mask_imm
+            ):
+                anded.add(code[at + 1] & 7)
+        # mov [esi + offset], reg
+        for at in range(len(code) - 5):
+            if code[at] == 0x89 and code[at + 1] & 0xC7 == 0x86:
+                if int.from_bytes(code[at + 2 : at + 6], "little") == offset:
+                    register = (code[at + 1] >> 3) & 7
+                    (masked if register in anded else unmasked).append(hex8(base + at))
+    if not masked and not unmasked:
+        return None
+    return {"maskedVas": sorted(masked), "unmaskedVas": sorted(unmasked)}
+
+
+def turn_difference(document: dict, target: int, current: int) -> int:
+    """The 24 bit difference the class routine receives."""
+    return (target - current) & (parse_hex(document["turn"]["unitsPerCircle"]) - 1)
+
+
+def turn_unwrap(document: dict, target: int, current: int) -> tuple[int, int]:
+    """The class and the target stored by 0x007A4CD0 for a target and a current angle."""
+    circle = parse_hex(document["turn"]["unitsPerCircle"])
+    turn_kind = turn_class(document, turn_difference(document, target, current))
+    if turn_kind < 0 and current > target:
+        target += circle
+    elif turn_kind > 0 and current < target:
+        target -= circle
+    return (turn_kind, target)
 
 
 def turn_back_posts(document: dict, current: int, saved: int, has_saved: bool) -> bool:
@@ -1233,6 +1407,22 @@ def verify_models(document: dict) -> list[str]:
         document, "and byte ptr [reg+0x26d], 0xfd"
     ):
         errors.append("turn bit clear sites differ from the pattern scan")
+    rule = turn_difference_rule(document)
+    wanted = {
+        "difference": turn["classDifference"]["expression"],
+        "negative": turn["unwrap"]["negative"],
+        "positive": turn["unwrap"]["positive"],
+        "startOffset": turn["unwrap"]["startOffset"],
+        "targetOffset": turn["unwrap"]["targetOffset"],
+    }
+    if rule != wanted:
+        errors.append("turn class operands or unwrap disagree with the routine bytes")
+    writers = turn["angleWriters"]
+    if angle_writers(document) != {
+        "maskedVas": writers["maskedVas"],
+        "unmaskedVas": writers["unmaskedVas"],
+    }:
+        errors.append("current angle writers disagree with the routine bytes")
     marker = document["marker"]
     for target, sites in marker["readers"].items():
         if sites != scan_sites(document, target):
@@ -1424,6 +1614,18 @@ MUTATIONS = [
     (("controller", "defaultNode"), "EID_LOOK_AT1"),
     (("turn", "classes", 0, "upTo"), "0x1c71c8"),
     (("turn", "windowUnits"), "0x38e3a"),
+    (
+        ("turn", "classDifference", "expression"),
+        "current minus target, masked to 24 bits",
+    ),
+    (("turn", "classDifference", "callVa"), "0x007b05ec"),
+    (("turn", "classDifference", "currentOffset"), "0x1b0"),
+    (("turn", "unwrap", "negative", "when"), "current angle less than target"),
+    (("turn", "unwrap", "positive", "adjust"), "plus one circle"),
+    (("turn", "unwrap", "targetOffset"), "0x1b8"),
+    (("turn", "unwrap", "startOffset"), "0x1b4"),
+    (("turn", "angleWriters", "unmaskedVas", 2), "0x007ab0da"),
+    (("turn", "angleWriters", "maskedVas", 0), "0x007a4b37"),
     (("turn", "timer", "minimum"), 9.0),
     (("turn", "event", "sites", 0), "0x007a4c21"),
     (("turn", "event", "codeBias"), 2),
@@ -1437,6 +1639,25 @@ MUTATIONS = [
     (("marker", "stringOffsets", 1), "0x43c"),
     (("targetFields", "npcTargetInitial"), 1),
     (("targetFields", "elementTargetInitial"), "0x00000000"),
+]
+
+
+TURN_BYTE_MUTATIONS = [
+    ("turn angle class", "2b 44 24 08", "03 44 24 08"),
+    ("turn angle class", "2b 44 24 08", "2b 44 24 0c"),
+    ("turn angle class", "25 ff ff ff 00", "25 ff ff 7f 00"),
+    ("turn start", "f2 0f 5e c1 51 f2 0f 2c f8", "f2 0f 5e c1 50 f2 0f 2c f8"),
+    ("turn start", "85 db 7d 10 39 be", "85 db 7c 10 39 be"),
+    ("turn start", "7e 06 81 c7", "7d 06 81 c7"),
+    ("turn start", "7d 06 81 ef", "7e 06 81 ef"),
+    ("turn start", "81 c7 00 00 00 01", "81 ef 00 00 00 01"),
+    ("turn start", "81 ef 00 00 00 01", "81 c7 00 00 00 01"),
+    ("turn begin rotation", "89 81 b0 01 00 00", "89 81 b4 01 00 00"),
+    ("turn begin rotation", "89 91 b4 01 00 00", "89 91 b0 01 00 00"),
+    ("turn angle masked write 1", "81 e1 ff ff ff 00", "81 e2 ff ff ff 00"),
+    ("turn angle masked write 2", "25 ff ff ff 00", "25 ff ff 7f 00"),
+    ("turn angle chase stores", "89 be ac 01 00 00", "89 be b0 01 00 00"),
+    ("turn angle chase stores", "89 8e ac 01 00 00", "89 86 ac 01 00 00"),
 ]
 
 
@@ -1471,6 +1692,13 @@ def mutation_test() -> list[str]:
     leaked = copy.deepcopy(document)
     leaked["source"]["method"] += " /" + "Users/someone/ffxivgame.exe"
     mutations.append(leaked)
+    for name, old, new in TURN_BYTE_MUTATIONS:
+        edited = copy.deepcopy(document)
+        for item in edited["staticChecks"]:
+            if item["name"] == name:
+                assert old in item["pattern"], (name, old)
+                item["pattern"] = item["pattern"].replace(old, new, 1)
+        mutations.append(edited)
     errors = [
         f"mutation {index} was accepted"
         for index, item in enumerate(mutations, 1)
