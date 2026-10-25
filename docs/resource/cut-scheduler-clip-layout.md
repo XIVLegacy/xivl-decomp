@@ -72,7 +72,7 @@ check and calls the registered factory with `(D, keyEntry, arena, 0)`:
 | `+0x02` | u8 | `@CCPT` clip class ordinal |
 | `+0x03` | u8 | Actor ordinal, an `@CACT` index |
 | `+0x04` | u32 | Raw value returned by clip slot 7 |
-| `+0x14` | | Clip-specific payload, returned by slot 29 |
+| `+0x10` | | Class-specific bytes. The classes read below start at `+0x14`. The slot 29 result differs per class, see the [clip payloads](cut-scheduler-clip-payloads.md#objects-and-entry-points) |
 
 RaptureMapCollisionOnOffClip slot 1, `0x00819AD0`, reads:
 
@@ -129,3 +129,7 @@ success, block execution order, or the activation and flag conditions in
 [Attribute resource and native physics registration](attribute-resource-and-scene-binding.md).
 The [cut collision clip corpus](cut-collision-clip-corpus.md) applies this
 predicate to the 1.23b `client/cut` tree.
+
+The [clip class census](cut-scheduler-clip-class-census.md) ranks all 102 clip
+classes of these schedulers. The [clip payloads page](cut-scheduler-clip-payloads.md)
+documents six more, which read class fields from +0x10 or +0x14.
