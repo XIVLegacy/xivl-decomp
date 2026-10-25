@@ -34,6 +34,7 @@ import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
 import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 import verify_sqwt_form_locale as sqwt_form_locale_verifier
+import verify_sqwt_xpath_binding as sqwt_xpath_binding_verifier
 import verify_status_wire_translation as status_wire_verifier
 import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
 import verify_scb_clip_classes as scb_clip_class_verifier
@@ -568,6 +569,15 @@ def main() -> int:
     if sqwt_form_locale_errors:
         errors.extend(
             f"sqwt form locale contract: {error}" for error in sqwt_form_locale_errors
+        )
+    sqwt_xpath_binding_errors = (
+        sqwt_xpath_binding_verifier.verify()
+        + sqwt_xpath_binding_verifier.mutation_test()
+    )
+    if sqwt_xpath_binding_errors:
+        errors.extend(
+            f"sqwt xpath binding contract: {error}"
+            for error in sqwt_xpath_binding_errors
         )
     sun_moon_errors = sun_moon_verifier.verify() + sun_moon_verifier.mutation_test()
     if sun_moon_errors:
