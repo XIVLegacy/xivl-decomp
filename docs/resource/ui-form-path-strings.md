@@ -34,3 +34,10 @@ Direct byte search of the pinned executable confirms one occurrence of
 pinned-PE push addresses and bytes. The push references do not establish that
 the client loads either form. The executable is pinned by SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+
+## Resolution of the paths
+
+The opener that receives these literals tests a language variant of each path
+before the plain path. The directory search for script form names and the
+language token are on the
+[form and template path resolution](sqwt-form-locale-resolution.md) page.
