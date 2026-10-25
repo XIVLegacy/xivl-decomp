@@ -8,8 +8,9 @@ to 6 of the [clip class census](cut-scheduler-clip-class-census.md) and the
 undocumented. For each class the page gives the registration, the object, the
 entry points and the record fields that the entry points read. The
 [second payloads page](cut-scheduler-clip-payloads-ranks-7-13.md) covers six
-more classes, and the [clip timing page](cut-scheduler-clip-timing.md) covers
-the start and end ticks of all twelve. D is the serialized clip record, and all
+more classes, the [third payloads page](cut-scheduler-clip-payloads-ranks-14-22.md)
+covers eight more, and the [clip timing page](cut-scheduler-clip-timing.md) covers
+the start and end ticks of all twenty. D is the serialized clip record, and all
 offsets are relative to D unless a row says otherwise. All values are
 little-endian.
 
