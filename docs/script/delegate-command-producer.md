@@ -94,7 +94,8 @@ nonzero object at `U+8` and its slot-4 readiness result. At `0x0089706F`,
 `0x00CD0940` at `0x00897199`, subject to the intervening state operations.
 Failed binding/readiness or conversion instead reaches
 `0x00894090 -> 0x0075E670`, which constructs outgoing `0x012E`.
-That response construction is separate from local Lua invocation.
+That response construction is separate from local Lua invocation. Its content
+is recorded under [Refusal reply](#refusal-reply).
 
 ## Typed values and bounds
 
@@ -207,6 +208,239 @@ owns key consumption, receiver insertion and its open tail call.
 The selected outer function and inner lookup result must still be identified.
 Neither the raw owner key nor the trigger key alone determines `A1`.
 
+## Refusal reply
+
+Labels: OBSERVED is a direct instruction or data read in the pinned image.
+INFERRED is a conclusion named in the text. DERIVED is computed from OBSERVED
+bytes. UNKNOWN is not established.
+
+OBSERVED. Both failure branches of `0x00896F70` send the same reply through
+`0x00894090`. The conversion branch is taken when `0x00790AA0` returns false
+(`0x0089706F`) and sends at `0x008970ED`. The gate branch is taken when B is
+null, byte `+0x5C` is zero, `[U+8]` is null or its slot 4 returns zero
+(`0x00896FD0`, `0x00896FDA`, `0x00896FE5`, `0x00896FF4`) and sends at
+`0x0089722B`. Neither branch runs Lua.
+
+- `0x00785B90` builds a vector of `0x40` bytes valued zero (`push 0` then `push
+  0x40` at `0x0089707C` and `0x008971B4`).
+- The typed-stream writer `0x0078F790` is constructed over that vector with
+  its begin pointer and length (`0x008970B8`, `0x008971F1`). Its constructor
+  clears the range through `0x009D2110` (`0x0078F7C8`), stores `0x0F` at the
+  first byte (`0x0078F7D2`) and steps its cursor past it. Nothing is appended,
+  so the 64 bytes are `0F` followed by 63 zero bytes.
+- `0x00894090` takes six stack arguments: `U+4`, the trigger object T, a
+  pointer to the call's event-type byte, the address `0x012C3F72`, the buffer
+  pointer and the length `0x40` (`0x008970DD` to `0x008970ED` and
+  `0x00897213` to `0x0089722B`). T is the first argument of `0x00896F70` after
+  the replacement made by `0x006E1140`. The length pushed at `0x008970D1`
+  stays on the stack in the conversion branch, so `[esp+0xB4]` at `0x008970DD`
+  and `[esp+0xB0]` at `0x00897213` name the same argument slot.
+- The event-type pointer is receiver `+0xB8`, which `0x0089E260` passes as the
+  fifth argument of the call at `0x0089E2BE` and which holds incoming payload
+  byte `+0x08`.
+- `0x00894090` forwards its arguments to `0x0075E670` at `0x0089410A` in the
+  order (`U+4`, resolved key record, address `0x012C3F72`, event-type pointer,
+  buffer, length). The builder reads the byte at the address as the kind byte
+  and the byte at the event-type pointer as the event type (`0x0075E6D7` to
+  `0x0075E6E4`).
+
+The application layout of `0x012E` is owned by
+`xivl-client-structs:structs/network/event-update.md`, section "Builder and
+copied extent". For this reply the fields are:
+
+| Application offset | Value |
+| --- | --- |
+| `0x00` | OBSERVED: the dword at entry `+0x70` of the registry entry of T, found through `0x00CC73B0` and copied by `0x00CC7030`. INFERRED: that dword is the key of T. OBSERVED: the owner key, argument 4 of `0x00896F70`, is never passed to `0x00894090`. |
+| `0x04` | Context record dword copied by `0x0075D460`. Its meaning stays unresolved on the page above. |
+| `0x08` | `1`, the sign-extended byte at `0x012C3F72` (image value `1`). |
+| `0x0C` | `0xCC6BD671`, DERIVED as CRC32 of `0F` followed by 63 zero bytes. The builder checksums the supplied block, as the same page records. |
+| `0x10` | The call's event type. |
+| `0x11` | The 64-byte block. |
+| `0x51` | Seven unwritten stack bytes. |
+
+OBSERVED. The normal completion `0x00894AB0` calls the same wrapper with
+`0x0134C3FC` in the kind position (`0x00894B53`), a cell with no image value.
+`0x00894BC0` also sends a zeroed `0x40` block with `0x012C3F72` in that
+position (`0x00894C67` to `0x00894C7C`). UNKNOWN: the runtime value at
+`0x0134C3FC`, and so whether a receiver can tell the refusal from a normal
+completion with no results by the kind word alone.
+
+## Lua error inside the called function
+
+OBSERVED. After the local preparation above, `0x00CD0940` reaches
+`0x00CCF9B0 -> 0x00CCEE30 -> 0x00CCFFE0`. `0x00CCFFE0` has one other caller,
+`0x00CCED4D`.
+
+- `0x00CCF9B0` returns without preparing or running anything while byte `+8`
+  of the object at engine `+0x1CC` is nonzero (`0x00CCF9B3`). That object is
+  the engine's error handler, as recorded in
+  [the define-class page](define-class-repeat-definition.md#failure-reports).
+- `0x00CCFFE0` selects the call wrapper from its byte argument
+  (`0x00CD0087`). `0x00CF4010` calls the protected-call routine `0x00DCE900`
+  with error function zero (`0x00CF4098`, `0x00CF409D`). `0x00CF4230` calls
+  `0x00DCFD30` with two arguments (`0x00CF42B3`), INFERRED to resume the
+  thread. Both map status `2` to an error record of type `2` with default text
+  `runtime error`, status `4` to type `4` with `memory error` and status `5`
+  to type `5` with `err error`. The literals are `0x0110EACC`, `0x0110EADC`
+  and `0x0110EAEC` in `0x00CF4010` (`0x00CF40A5` to `0x00CF40BC`) and
+  `0x0110EAF8`, `0x0110EB08` and `0x0110EB18` in `0x00CF4230` (`0x00CF42BB`
+  to `0x00CF42D9`, `0x00CF43A8`). Every other status in `0x00CF4010`,
+  including `3`, leaves the record empty and exits at `0x00CF4205`.
+- INFERRED: when the error value is a string it replaces the default text.
+  The basis is the type test `0x00DCDD90`, the string fetch `0x00DCDF80` and
+  the assignment `0x004489C0` on that path.
+- `0x00CCFFE0` returns zero when the record is empty and one otherwise. It
+  calls `0x00CD3E70` for type `2` (`0x00CD00D7`), `0x00CD3990` for type `4`
+  (`0x00CD00FF`) and `0x00CD4080` for type `5` (`0x00CD0127`), with the
+  handler object as the receiver.
+- Each reporter sets handler byte `+8` (`0x00CD3EBC`, `0x00CD39E2`,
+  `0x00CD40D2`) and calls a handler vtable slot with the text: slot 4 for type
+  `2` (`0x00CD401C`), slot 1 for type `4` (`0x00CD3AA0`) and slot 5 for type
+  `5` (`0x00CD418C`). INFERRED: `0x00CD3E70` appends a script stack trace
+  to the text unless it already contains `stack trace:` followed by a newline
+  (`0x0110E510`). It then calls `0x00CF19C0`. When that returns nonzero it
+  clears byte `+8` and skips the slot call (`0x00CD3FC3`). The routine reads a
+  field of the request state at `+0x38`. UNKNOWN: what it accepts, because its
+  callee `0x00CE25D0` was not traced.
+- Slot 4 of the default handler vtable `0x0110E564` is `0x00CD2D30`, which is
+  `ret 4`. The setter `0x00CD8310` stores the handler at engine `+0x1CC`
+  (`0x00CD8332`). Its only caller is `0x00CC9830`, whose only caller is
+  `0x007634B0` at `0x00763623`. INFERRED: the handler in use is
+  `Application::Lua::Script::Client::ErrorHandler`. The basis is its only
+  constructor call, `0x00764840` at `0x0057A588`, in `0x0057A3C0`, which also
+  calls `0x007634B0` (`0x0057AAB1`).
+
+The Client handler vtable at `0x00FE0184` holds `0x0076F210`, `0x0076F270`,
+`0x0076F2D0`, `0x0076F300`, `0x0076F360` and `0x0076F570` in slots 0 to 5.
+OBSERVED effects of the three slots reached from the call path:
+
+| Slot | Target | Effect |
+| --- | --- | --- |
+| 1 | `0x0076F270` | Calls `0x0076E270` (`0x0076F299`), queues state `1` through `0x00C9B410` and calls `0x0076F120`. |
+| 4 | `0x0076F360` | Text starting `[clientversionerror]` (`0x00FD87D4`) queues state `7` and calls `0x004DA380` with `0x9C40` directly (`0x0076F470`). Text starting `[servererror]` (`0x00FD87EC`) queues state `6` and calls `0x0076F120` without calling `0x0076E270` (`0x0076F4FA`). Any other text calls `0x0076E270` (`0x0076F52E`), queues state `4` and calls `0x0076F120`. |
+| 5 | `0x0076F570` | Queues state `5` and calls `0x0076F120`. |
+
+OBSERVED. `0x0076F120` tests and clears handler byte `+0x24`, which the
+constructor sets to `1` (`0x007648A0`), and only then calls `0x004DA380` with
+`0x9C40` (decimal `40000`) and the state queue (`0x0076F149` to `0x0076F1F0`).
+`0x004DA380` calls `0x004D9980` with `0xC0000000` and forwards the code and
+queue to `0x0059B880`. UNKNOWN: whether that ends the connection or shows a
+dialog, because those callees were not traced.
+
+OBSERVED. `0x0076E270` joins the literal `#` (`0x00FDF54C`), a value from the
+context record, the banner ` ***** Client Script ERROR *****` (`0x00FDF528`),
+an optional ` lpb version: ` field (`0x00FDF550`) with a value from
+`0x00CC7730`, a newline and the handler text. The values go in through
+`0x004E75F0`, which is INFERRED to append a number. It pads the result with
+zero bytes to a multiple of `0x80` (`0x0076E386` to `0x0076E3AB`) and sends
+each `0x80`-byte piece in its own `0x012D` record of body length `0xC8` through
+`0x004D6D30` (`0x0076E4B4`, `0x0076E4BF`, `0x0076E508`). The tracked finding
+`xivl-client-structs:manifests/combat_action_c2s_findings.json`, entry
+`builderVa` `0x0076E270`, names the same builder a diagnostic Lua-error
+emitter. The call sites of `0x00894090` are `0x00894B65`, `0x00894C7C`,
+`0x008970ED` and `0x0089722B`. No reporter, handler slot, `0x0076F120` or
+`0x0076E270` calls `0x00894090` or `0x0075E670` directly.
+
+OBSERVED. `0x00CCFFE0` returns one for an error record (the call at
+`0x00CCF042`) and the caller stores the result in a local byte (`0x00CCF04D`).
+`0x00CF39C0` returns one only when the Lua thread status equals one, so it
+returns zero after a non-yield error. With that byte nonzero the branch at
+`0x00CCF0A1` jumps to `0x00CCF1B9`, which calls `0x00CCE8E0` (`0x00CCF1BB`).
+Two static calls follow on the error path:
+
+1. `0x00CCE8E0` calls dispatcher `0x00CCD910` with phase 0 when the count in
+   the `0x3C`-entry range at request `+0xDC/+0xE0` is zero (`0x00CCE9B1` to
+   `0x00CCE9B5`, as recorded in
+   [the command parameter consumer page](../resource/sqwt-command-parameter-consumer.md)).
+   Phase 0 calls listener slot 1 (`0x00CCDA62`, `0x00CCDA75`). The executor
+   registers its owner object U as a listener through `0x00CD0940`
+   (`0x00897199`, `esi` pushed at `0x0089718D`), and U carries vtable
+   `0x0105706C` (`0x00895F89`, RTTI `Event::PlayerManager`). Its slot 1 is
+   `0x00896090`. That routine calls `0x00894AB0` (`0x00896161`) when a 16-bit
+   word reached through `0x00CD2BC0` from its argument equals the word at `0x0134BC1C`, and calls
+   `0x00893AB0` (`0x00896104`) when it equals the word at `0x0134BC18`. Both
+   cells lie in zero-fill with no image value. `0x00894AB0` sends the
+   completion `0x012E` through `0x00894090` (`0x00894B65`).
+2. After the call returns, `0x00CCF245` calls `0x00CCDBC0` when the local
+   byte tested at `0x00CCF23F` is nonzero. Under the conditions recorded on
+   the same consumer page that routine calls the dispatcher with phase 2
+   (`0x00CCDBF7` to `0x00CCDBFB`), which reaches listener slot 3, and it sets
+   request byte `+0x13C` (`0x00CCDC0B`). U's slot 3 is `0x00892870`, a bare
+   `ret 0x10`.
+
+The local byte tested at `0x00CCF23F` is the `0x00CCFFE0` result, or is set at
+`0x00CCF1A0`. That write follows a stack-count comparison (`0x00CCF173`) and a
+report through `0x00CD4970` on the error handler, which calls handler vtable
+`+0x30` (`0x00CD49EA`). What the `0x00CCF1A0` condition means is UNKNOWN. The
+completion routine `0x00CCDED0`, which gathers results, is not called from
+`0x00CCEE30`.
+
+UNKNOWN. Whether an errored request receives a completion `0x012E` depends on
+the runtime words at `0x0134BC18` and `0x0134BC1C`, the word the dispatcher
+passes to U, and the range count at request `+0xDC/+0xE0`. Statically the
+error path contains a route to `0x00894AB0`. The client also sends `0x012D`
+diagnostic text and, once per handler, raises code `0x9C40`. A server that
+must not strand the session should not assume either outcome after a script
+error. The other callers of `0x00CCDED0` (`0x00CCE168`, `0x00CCE206`,
+`0x00CCF372`, `0x00CFC882`, `0x00D04D5E`, `0x00D04ED3`, `0x00D08EA6`) are
+untraced.
+
+## Completion reply serializer
+
+OBSERVED. The normal completion `0x00894AB0` clears a `0x40`-byte local,
+constructs the writer over it (`0x00894B13`) and calls the serializer
+`0x00790CE0` once (`0x00894B44`) with the context pointer at receiver `+4`,
+the result container passed as its second argument, start index zero and the
+writer. It then sends the buffer through `0x00894090` with length `0x40`. The
+writer already holds the `0F` terminator at its first byte. Each element steps
+the cursor back over that terminator, appends its record and writes a new
+terminator.
+
+The list holds 16-byte variant elements. The value pointer is at element `+8`
+and the variant index is the signed byte at `+0xC` (`0x00790D8F`). The
+serializer maps the index as follows:
+
+| Index | Held value | Wire bytes | Anchor |
+| --- | --- | --- | --- |
+| `0` | int32 | Tag `00` and the value (`0x00790DC1`). | Built by `0x00583D90` from the int operator (`0x00CFACE7`). |
+| `1` | float32 | Tag `01` and the value (`0x00791640`). | Built by `0x0073E010` from the float operator (`0x00CFAE92`). |
+| `2` | bool | Tag `03` for true, `04` for false (`0x007900D0`, `0x007900D5`). | Built by `0x00583E30` from the bool operator. |
+| `3` | string | Tag `02`, the bytes and a zero byte (`0x00791708`). | INFERRED: the destroy path releases a `Utf8String` for this index (`0x00CFCA91`). |
+| `4` | control | Tag `06` and the key (`0x00791800`), or the item path through `0x006F5260` when the key is in a registered group other than the trigger group. | Built by `0x0073DDD0` from the control operator (`0x00CFB4A3`). The item branch casts to `ItemBase` at `0x0075AFEB` and is covered by [the retainer page](../net/retainer-item-storage.md#transfer-result-values-and-widths). |
+| `5` | Tentative | Nothing (`0x00792BBB`). | INFERRED from the operator order and the always-false predicate of that operator. |
+| `6` | Nil | Tag `05` (`0x0079248C`). | Built by `0x00583F70` on the nil path of every operator, for example `0x00CFAC99`. |
+| `7` | Table marker | Nothing. | Built by `0x00CFCA70` without a stored value (`0x00CFCABD`) from the table operator (`0x00CFB701`). |
+
+All multi-byte values use the byte order selected by `0x0134B368`, big-endian
+by default as for incoming values. Any index above `6` reaches the dispatcher
+`0x00792B70` and falls through without writing (`0x00792BBB`).
+
+OBSERVED consequences:
+
+- A table result writes no bytes, not even a placeholder, so later results move
+  up by one record.
+- A non-integer number is written as float32 only when the float operator
+  accepted it. The int operator accepts a number only when it equals its
+  integer conversion (`0x00CF369A`) and converts through the truncating
+  `0x009D6600` (`0x00CFACB6`). The float predicate accepts any Lua number
+  (`0x00CF3840`).
+- Selection among operators for a returned value runs through the chooser
+  `0x00CFC4E0`. It sends nil to the nil variant first (`0x00CFC514`), then calls
+  each candidate's predicate in vector order and uses the first match
+  (`0x00CFC5A9`). UNKNOWN: the candidate order for a function-end result list,
+  so whether an integer-valued number reaches the int or the float operator,
+  and whether a non-integer is ever truncated, is not established here.
+- The integer, float, boolean, nil and key writers test only the writer's
+  closed flag at `+0x22` and never compare the cursor with the window end. The
+  string writer `0x007916A0` cuts the text to the bytes left from the
+  terminator it overwrites (`0x00791762`) and then writes the tag, the text, a
+  zero byte and the terminator. Both therefore write past the `0x40`-byte area
+  when the records do not fit. The string case overruns by up to three bytes.
+  The remaining-count field can go negative. INFERRED: only the first `0x40`
+  bytes reach the wire, because the builder copies exactly 16 dwords, so an
+  over-window stream is cut mid-record with no terminator. UNKNOWN: whether any
+  caller bounds the list length before this point.
+
 ## Preserved witness and materia boundary
 
 An existing observation demonstrates the wire shape:
@@ -261,3 +495,10 @@ subevent; retain consumed leaf bounds, END and padding separately. Its
 parameter span starts at application `+0x49` and has length `0x40`.
 Compare the actual `F`, `O`, materialized values and VM entry when claiming
 execution, rather than substituting a requested property name or raw actor ID.
+For the refusal reply, the error path and the result serializer, decode the
+addresses named in those sections and run
+`python3 tools/verify_run_event_function.py --exe orig/ffxivgame.exe`. It
+checks the listings, data bytes, literals, zero-fill cells, caller sets and vtable
+slots against the pinned image and holds reference models of the binding
+rule, the reply and the serializer. `tools/test_run_event_function.py` covers
+it.

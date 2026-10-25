@@ -1,0 +1,2990 @@
+{
+  "format": 1,
+  "source": {
+    "binary": "ffxivgame.exe",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000",
+    "gameVerSha256": "3dbeed87ae1f2805bec69d63137e3deca9dd444ad5caa3ea5dedb68b8a50bfef"
+  },
+  "classes": [
+    {
+      "class": "TabControl",
+      "typeName": ".?AVTabControl@Controls@Sqwt@@",
+      "vftable": "0x01081654",
+      "arrange": "0x00960bf0",
+      "measure": "0x00960a40"
+    },
+    {
+      "class": "TabPanel",
+      "typeName": ".?AVTabPanel@Primitives@Controls@Sqwt@@",
+      "vftable": "0x01081a7c",
+      "arrange": "0x00960bf0",
+      "measure": "0x00960a40"
+    },
+    {
+      "class": "TabItem",
+      "typeName": ".?AVTabItem@Controls@Sqwt@@",
+      "vftable": "0x01080e6c",
+      "arrange": "0x00937480",
+      "measure": "0x00937310"
+    },
+    {
+      "class": "TabItemBorder",
+      "typeName": ".?AVTabItemBorder@Controls@Sqwt@@",
+      "vftable": "0x01080c24",
+      "arrange": "0x0099ca00",
+      "measure": "0x0092a250"
+    },
+    {
+      "class": "SelectedContentPanel",
+      "typeName": ".?AVSelectedContentPanel@TabControl@Controls@Sqwt@@",
+      "vftable": "0x010813e4",
+      "arrange": "0x0092a300",
+      "measure": "0x0092a250"
+    },
+    {
+      "class": "ScrollViewer",
+      "typeName": ".?AVScrollViewer@Controls@Sqwt@@",
+      "vftable": "0x010733d4",
+      "arrange": "0x00970df0",
+      "measure": "0x00970070"
+    },
+    {
+      "class": "ScrollContentPresenter",
+      "typeName": ".?AVScrollContentPresenter@Controls@Sqwt@@",
+      "vftable": "0x010829a4",
+      "arrange": "0x009c2ec0",
+      "measure": "0x009c2c90"
+    },
+    {
+      "class": "TextBoxBase",
+      "typeName": ".?AVTextBoxBase@Primitives@Controls@Sqwt@@",
+      "vftable": "0x0107573c",
+      "arrange": "0x00937480",
+      "measure": "0x00937310"
+    },
+    {
+      "class": "TextBoxScrollViewer",
+      "typeName": ".?AVTextBoxScrollViewer@TextBoxBase@Primitives@Controls@Sqwt@@",
+      "vftable": "0x01074f74",
+      "arrange": "0x00970df0",
+      "measure": "0x00970070"
+    },
+    {
+      "class": "TextBox",
+      "typeName": ".?AVTextBox@Controls@Sqwt@@",
+      "vftable": "0x0106edb4",
+      "arrange": "0x00957b80",
+      "measure": "0x00937310"
+    },
+    {
+      "class": "LogControl",
+      "typeName": ".?AVLogControl@CustomControl@SqwtInterface@Main@Application@@",
+      "vftable": "0x00fa935c",
+      "arrange": "0x00957b80",
+      "measure": "0x00937310"
+    },
+    {
+      "class": "ContentControl",
+      "typeName": ".?AVContentControl@Controls@Sqwt@@",
+      "vftable": "0x0106b634",
+      "arrange": "0x00937480",
+      "measure": "0x00937310"
+    },
+    {
+      "class": "ItemsControl",
+      "typeName": ".?AVItemsControl@Controls@Sqwt@@",
+      "vftable": "0x0106fadc",
+      "arrange": "0x00960bf0",
+      "measure": "0x00960a40"
+    },
+    {
+      "class": "Selector",
+      "typeName": ".?AVSelector@Primitives@Controls@Sqwt@@",
+      "vftable": "0x01072874",
+      "arrange": "0x00960bf0",
+      "measure": "0x00960a40"
+    },
+    {
+      "class": "ListBox",
+      "typeName": ".?AVListBox@Controls@Sqwt@@",
+      "vftable": "0x01072214",
+      "arrange": "0x00960bf0",
+      "measure": "0x00960a40"
+    },
+    {
+      "class": "Control",
+      "typeName": ".?AVControl@Controls@Sqwt@@",
+      "vftable": "0x0106bb54",
+      "arrange": "0x00937480",
+      "measure": "0x00937310"
+    }
+  ],
+  "partTable": {
+    "baseVa": "0x012dcde0",
+    "stride": "0x30",
+    "keyOffset": "0x20",
+    "count": 66
+  },
+  "census": {
+    "corpus": {
+      "forms": 620,
+      "templates": 482,
+      "styles": 20,
+      "skins": 20,
+      "unparsed": 1
+    },
+    "elements": {
+      "TabControl": {
+        "elements": 27,
+        "files": 25,
+        "attributes": {
+          "FontSize": 2,
+          "Grid.Column": 2,
+          "Grid.Row": 5,
+          "Height": 2,
+          "HorizontalAlignment": 11,
+          "IsHitTestVisible": 2,
+          "IsTabStop": 27,
+          "KeyboardNavigation.DirectionalNavigation": 7,
+          "Margin": 15,
+          "MaxHeight": 2,
+          "MinHeight": 2,
+          "Name": 26,
+          "SqwtStyle": 27,
+          "Style": 17,
+          "VerticalAlignment": 13,
+          "Visibility": 1,
+          "Width": 9
+        },
+        "styles": {
+          "TBC_basis": 13,
+          "TBC_basis_sd": 8,
+          "TBC_basis_selectEffect": 2,
+          "TBC_basis_selectEffect_sd": 2,
+          "TBC_chat": 1,
+          "TBC_chat_sd": 1
+        }
+      },
+      "TabItem": {
+        "elements": 102,
+        "files": 25,
+        "attributes": {
+          "ContentTemplate": 5,
+          "Focusable": 97,
+          "FontSize": 89,
+          "FontStyle": 49,
+          "Header": 95,
+          "Help.Type": 40,
+          "Help.Value0": 40,
+          "HorizontalAlignment": 2,
+          "HorizontalContentAlignment": 35,
+          "KeyboardNavigation.DirectionalNavigation": 2,
+          "Margin": 20,
+          "MinWidth": 35,
+          "Name": 102,
+          "SqwtDesignData.StringValue2": 4,
+          "SqwtStyle": 102,
+          "VerticalAlignment": 2,
+          "VerticalContentAlignment": 5,
+          "Visibility": 6
+        },
+        "styles": {
+          "TBI_basis": 68,
+          "TBI_basis_sd": 30,
+          "TBI_chat": 2,
+          "TBI_chat_sd": 2
+        }
+      },
+      "TextBox": {
+        "elements": 122,
+        "files": 52,
+        "attributes": {
+          "AcceptsReturn": 5,
+          "AcceptsTab": 3,
+          "Anchor": 99,
+          "AutoWordSelection": 5,
+          "CaretIndex": 122,
+          "CharacterCasing": 122,
+          "Focusable": 9,
+          "FontEdge": 4,
+          "FontHeightSpacing": 19,
+          "FontSize": 28,
+          "FontStretch": 8,
+          "Grid.Column": 8,
+          "Grid.ColumnSpan": 3,
+          "Grid.Row": 18,
+          "Height": 23,
+          "Help.Location": 3,
+          "Help.Type": 18,
+          "Help.Value0": 18,
+          "HorizontalAlignment": 13,
+          "HorizontalScrollBarVisibility": 3,
+          "InputMethod.SqwtInputAllowedChars": 23,
+          "InputMethod.SqwtInputMethodStatus": 23,
+          "IsHitTestVisible": 7,
+          "IsReadOnly": 9,
+          "IsTabStop": 1,
+          "IsUndoEnabled": 8,
+          "Margin": 90,
+          "MaxLength": 95,
+          "MaxLines": 71,
+          "MinWidth": 3,
+          "Name": 122,
+          "Padding": 104,
+          "SqwtComment": 8,
+          "SqwtDesignData.StringValue2": 4,
+          "SqwtStyle": 111,
+          "StringData.Value0": 7,
+          "Style": 14,
+          "Template": 7,
+          "Text": 7,
+          "TextWrapping": 21,
+          "VerticalAlignment": 32,
+          "VerticalContentAlignment": 13,
+          "VerticalScrollBarVisibility": 11,
+          "Visibility": 1,
+          "Width": 32
+        },
+        "styles": {
+          "TEB_basis": 9,
+          "TEB_basis_input": 90,
+          "TEB_chat_input": 2,
+          "TextBox_CharaMake": 10
+        }
+      },
+      "ScrollViewer": {
+        "elements": 27,
+        "files": 21,
+        "attributes": {
+          "Anchor": 4,
+          "Focusable": 4,
+          "Grid.Row": 11,
+          "Height": 13,
+          "HorizontalContentAlignment": 2,
+          "IsHitTestVisible": 4,
+          "IsTabStop": 1,
+          "Margin": 20,
+          "MaxHeight": 3,
+          "MinHeight": 3,
+          "Name": 19,
+          "Padding": 1,
+          "SqwtStyle": 27,
+          "VerticalAlignment": 3,
+          "VerticalScrollBarVisibility": 23,
+          "Visibility": 4,
+          "Width": 1
+        },
+        "styles": {
+          "SCV_basis": 2,
+          "ScrollViewer_basis": 22,
+          "ScrollViewer_basis_withHoverEffect": 1,
+          "ScrollViewer_chat": 2
+        }
+      },
+      "LogControl": {
+        "elements": 6,
+        "files": 4,
+        "attributes": {
+          "FontEdge": 4,
+          "FontEdgeColor": 4,
+          "FontHeightSpacing": 6,
+          "FontSize": 6,
+          "FontStyle": 4,
+          "HorizontalScrollBarVisibility": 1,
+          "IndentHasName": 4,
+          "IndentNoName": 4,
+          "IsDisplayLastOne": 2,
+          "IsEnableKeyWait": 6,
+          "IsHitTestVisible": 1,
+          "IsTabStop": 2,
+          "LinesPerSec": 6,
+          "LinesPerSecHi": 4,
+          "LogFormat": 6,
+          "LogFormat2": 6,
+          "Margin": 6,
+          "Name": 6,
+          "SqwtStyle": 6,
+          "Style": 4,
+          "VerticalScrollBarVisibility": 6
+        },
+        "styles": {
+          "LogControl_chat": 4,
+          "LogControl_npcLines": 2
+        }
+      }
+    },
+    "styleResolution": {
+      "TabControl": {
+        "distinct": 6,
+        "defined": 6
+      },
+      "TabItem": {
+        "distinct": 4,
+        "defined": 4
+      },
+      "TextBox": {
+        "distinct": 4,
+        "defined": 4
+      },
+      "ScrollViewer": {
+        "distinct": 4,
+        "defined": 4
+      },
+      "LogControl": {
+        "distinct": 2,
+        "defined": 2
+      }
+    },
+    "logWidget": {
+      "shadowing": {
+        "leafStyles": 21,
+        "fewestFiles": 2,
+        "mostFiles": 8,
+        "differing": 9
+      },
+      "styleFile": "common/default.style",
+      "skinFile": "common/default.skin",
+      "elements": {
+        "TabControl": 1,
+        "TabItem": 2,
+        "TextBox": 1,
+        "ScrollViewer": 1,
+        "LogControl": 2
+      },
+      "attributes": {
+        "TabControl": {
+          "FontSize": 1,
+          "IsHitTestVisible": 1,
+          "IsTabStop": 1,
+          "Name": 1,
+          "SqwtStyle": 1
+        },
+        "TabItem": {
+          "Focusable": 2,
+          "FontSize": 2,
+          "FontStyle": 2,
+          "Header": 2,
+          "HorizontalContentAlignment": 2,
+          "Margin": 1,
+          "MinWidth": 2,
+          "Name": 2,
+          "SqwtDesignData.StringValue2": 2,
+          "SqwtStyle": 2,
+          "VerticalContentAlignment": 2
+        },
+        "TextBox": {
+          "Anchor": 1,
+          "CaretIndex": 1,
+          "CharacterCasing": 1,
+          "FontHeightSpacing": 1,
+          "IsUndoEnabled": 1,
+          "MaxLength": 1,
+          "MaxLines": 1,
+          "Name": 1,
+          "Padding": 1,
+          "SqwtStyle": 1,
+          "Style": 1
+        },
+        "ScrollViewer": {
+          "MaxHeight": 1,
+          "MinHeight": 1,
+          "SqwtStyle": 1,
+          "VerticalScrollBarVisibility": 1
+        },
+        "LogControl": {
+          "FontEdge": 2,
+          "FontEdgeColor": 2,
+          "FontHeightSpacing": 2,
+          "FontSize": 2,
+          "FontStyle": 2,
+          "IndentHasName": 2,
+          "IndentNoName": 2,
+          "IsEnableKeyWait": 2,
+          "LinesPerSec": 2,
+          "LinesPerSecHi": 2,
+          "LogFormat": 2,
+          "LogFormat2": 2,
+          "Margin": 2,
+          "Name": 2,
+          "SqwtStyle": 2,
+          "Style": 2,
+          "VerticalScrollBarVisibility": 2
+        }
+      },
+      "styles": {
+        "TabControl": [
+          "TBC_chat"
+        ],
+        "TabItem": [
+          "TBI_chat"
+        ],
+        "TextBox": [
+          "TEB_chat_input"
+        ],
+        "ScrollViewer": [
+          "ScrollViewer_chat"
+        ],
+        "LogControl": [
+          "LogControl_chat"
+        ]
+      },
+      "targets": {
+        "LogControl_Main_1:PART_ContentHost": 5,
+        "LogControl_Main_1:PART_ContentHost:PART_TextArea": 3,
+        "LogControl_Main_1:PART_ContentHost:PART_VerticalScrollBar": 2,
+        "LogControl_Main_1:PART_ContentHost:PART_VerticalScrollBar:PART_DownButton": 2,
+        "LogControl_Main_1:PART_ContentHost:PART_VerticalScrollBar:PART_Track": 2,
+        "LogControl_Main_1:PART_ContentHost:PART_VerticalScrollBar:PART_Track:PART_Thumb": 2,
+        "LogControl_Main_1:PART_ContentHost:PART_VerticalScrollBar:PART_UpButton": 2,
+        "LogControl_Main_2:PART_ContentHost": 5,
+        "LogControl_Main_2:PART_ContentHost:PART_TextArea": 3,
+        "LogControl_Main_2:PART_ContentHost:PART_VerticalScrollBar": 2,
+        "LogControl_Main_2:PART_ContentHost:PART_VerticalScrollBar:PART_DownButton": 2,
+        "LogControl_Main_2:PART_ContentHost:PART_VerticalScrollBar:PART_Track": 2,
+        "LogControl_Main_2:PART_ContentHost:PART_VerticalScrollBar:PART_Track:PART_Thumb": 2,
+        "LogControl_Main_2:PART_ContentHost:PART_VerticalScrollBar:PART_UpButton": 2,
+        "TabControl_Log:PART_SelectedContentPanel": 3,
+        "TabControl_Log:TabItem_1": 3,
+        "TabControl_Log:TabItem_2": 3,
+        "TextBox_ChatInput:PART_ContentHost": 2,
+        "TextBox_ChatInput:PART_ContentHost:PART_TextArea": 2
+      },
+      "parts": [
+        [
+          "TabControl",
+          "TBC_chat",
+          "Background_TabPanel",
+          "Window",
+          "NULL"
+        ],
+        [
+          "TabControl",
+          "TBC_chat",
+          "Background_SelectedContent",
+          "Window",
+          "TBC_chat_selectedContent"
+        ],
+        [
+          "TabControl",
+          "TBC_chat",
+          "LeftButton",
+          "Button",
+          "BTN_chat_tabHeaderLeft"
+        ],
+        [
+          "TabControl",
+          "TBC_chat",
+          "RightButton",
+          "Button",
+          "BTN_chat_tabHeaderRight"
+        ],
+        [
+          "TabItem",
+          "TBI_chat",
+          "Background_Header",
+          "Button",
+          "TBI_basis_header"
+        ],
+        [
+          "TextBox",
+          "TEB_chat_input",
+          "Background",
+          "Window",
+          "TEB_chat_input"
+        ],
+        [
+          "TextBox",
+          "TEB_chat_input",
+          "RightDownSpace",
+          "Window",
+          "NULL"
+        ],
+        [
+          "TextBox",
+          "TEB_chat_input",
+          "HorizontalScrollBar",
+          "ScrollBar",
+          "SCB_basis"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "UpButton",
+          "Button",
+          "BTN_basis_scrollUp"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "DownButton",
+          "Button",
+          "BTN_basis_scrollDown"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "LeftButton",
+          "Button",
+          "BTN_basis_scrollLeft"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "RightButton",
+          "Button",
+          "BTN_basis_scrollRight"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "HorizontalSlidingThumb",
+          "Button",
+          "BTN_basis_scrollSlidingH"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "VerticalSlidingThumb",
+          "Button",
+          "BTN_basis_scrollSlidingV"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "HorizontalBackground",
+          "Window",
+          "SCB_basis_bgH"
+        ],
+        [
+          "ScrollBar",
+          "SCB_basis",
+          "VerticalBackground",
+          "Window",
+          "SCB_basis_bgV"
+        ],
+        [
+          "TextBox",
+          "TEB_chat_input",
+          "VerticalScrollBar",
+          "ScrollBar",
+          "SCB_basis"
+        ],
+        [
+          "ScrollViewer",
+          "ScrollViewer_chat",
+          "Background",
+          "Window",
+          "WIN_null"
+        ],
+        [
+          "ScrollViewer",
+          "ScrollViewer_chat",
+          "RightDownSpace",
+          "Window",
+          "NULL"
+        ],
+        [
+          "ScrollViewer",
+          "ScrollViewer_chat",
+          "HorizontalScrollBar",
+          "ScrollBar",
+          "SCB_chat"
+        ],
+        [
+          "ScrollBar",
+          "SCB_chat",
+          "UpButton",
+          "Button",
+          "BTN_chat_scrollUp"
+        ],
+        [
+          "ScrollBar",
+          "SCB_chat",
+          "DownButton",
+          "Button",
+          "BTN_chat_scrollDown"
+        ],
+        [
+          "ScrollBar",
+          "SCB_chat",
+          "LeftButton",
+          "Button",
+          "BTN_chat_scrollLeft"
+        ],
+        [
+          "ScrollBar",
+          "SCB_chat",
+          "RightButton",
+          "Button",
+          "BTN_chat_scrollRight"
+        ],
+        [
+          "ScrollBar",
+          "SCB_chat",
+          "HorizontalSlidingThumb",
+          "Button",
+          "BTN_chat_scrollSlidingH"
+        ],
+        [
+          "ScrollBar",
+          "SCB_chat",
+          "VerticalSlidingThumb",
+          "Button",
+          "BTN_chat_scrollSlidingV"
+        ],
+        [
+          "ScrollViewer",
+          "ScrollViewer_chat",
+          "VerticalScrollBar",
+          "ScrollBar",
+          "SCB_chat"
+        ],
+        [
+          "LogControl",
+          "LogControl_chat",
+          "WaitCursor",
+          "Button",
+          "BTN_chat_logWaitCursor"
+        ],
+        [
+          "LogControl",
+          "LogControl_chat",
+          "Background",
+          "Window",
+          "WIN_null"
+        ],
+        [
+          "LogControl",
+          "LogControl_chat",
+          "RightDownSpace",
+          "Window",
+          "NULL"
+        ],
+        [
+          "LogControl",
+          "LogControl_chat",
+          "HorizontalScrollBar",
+          "ScrollBar",
+          "SCB_chat"
+        ],
+        [
+          "LogControl",
+          "LogControl_chat",
+          "VerticalScrollBar",
+          "ScrollBar",
+          "SCB_chat"
+        ]
+      ],
+      "frames": [
+        [
+          "Window",
+          "TBC_chat_selectedContent",
+          "Frame",
+          "TBC_chat_selectedContent",
+          "TBC_chat_selectedContent",
+          "TBC_chat_selectedContent",
+          "TBC_chat_selectedContent",
+          "TBC_chat_selectedContent",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_tabHeaderLeft",
+          "Frame",
+          "BTN_chat_tabHeaderLeft_N",
+          "BTN_chat_tabHeaderLeft_H",
+          "BTN_chat_tabHeaderLeft_N",
+          "BTN_chat_tabHeaderLeft_H",
+          "BTN_chat_tabHeaderLeft_H",
+          "BTN_chat_tabHeaderLeft_H",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_tabHeaderRight",
+          "Frame",
+          "BTN_chat_tabHeaderRight_N",
+          "BTN_chat_tabHeaderRight_H",
+          "BTN_chat_tabHeaderRight_N",
+          "BTN_chat_tabHeaderRight_H",
+          "BTN_chat_tabHeaderRight_H",
+          "BTN_chat_tabHeaderRight_H",
+          "NULL"
+        ],
+        [
+          "Button",
+          "TBI_basis_header",
+          "Frame",
+          "TBI_basis_header_N",
+          "TBI_basis_header_A",
+          "TBI_basis_header_N",
+          "NULL",
+          "TBI_basis_header_H",
+          "TBI_basis_header_R",
+          "TBI_basis_header_H"
+        ],
+        [
+          "Window",
+          "TEB_chat_input",
+          "Frame",
+          "TEB_chat_input_bg_N",
+          "TEB_chat_input_bg_H",
+          "TEB_chat_input_bg_N",
+          "TEB_chat_input_bg_H",
+          "TEB_chat_input_bg_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_basis_scrollUp",
+          "Frame",
+          "BTN_basis_scrollUp_N",
+          "BTN_basis_scrollUp_H",
+          "BTN_basis_scrollUp_N",
+          "BTN_basis_scrollUp_H",
+          "BTN_basis_scrollUp_H",
+          "BTN_basis_scrollUp_H",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_basis_scrollDown",
+          "Frame",
+          "BTN_basis_scrollDown_N",
+          "BTN_basis_scrollDown_H",
+          "BTN_basis_scrollDown_N",
+          "BTN_basis_scrollDown_H",
+          "BTN_basis_scrollDown_H",
+          "BTN_basis_scrollDown_H",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_basis_scrollLeft",
+          "Frame",
+          "BTN_basis_scrollLeft_N",
+          "BTN_basis_scrollLeft_H",
+          "BTN_basis_scrollLeft_N",
+          "BTN_basis_scrollLeft_H",
+          "BTN_basis_scrollLeft_H",
+          "BTN_basis_scrollLeft_H",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_basis_scrollRight",
+          "Frame",
+          "BTN_basis_scrollRight_N",
+          "BTN_basis_scrollRight_H",
+          "BTN_basis_scrollRight_N",
+          "BTN_basis_scrollRight_H",
+          "BTN_basis_scrollRight_H",
+          "BTN_basis_scrollRight_H",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_basis_scrollSlidingH",
+          "Frame",
+          "BTN_basis_scrollSlidingH_N",
+          "BTN_basis_scrollSlidingH_H",
+          "BTN_basis_scrollSlidingH_N",
+          "BTN_basis_scrollSlidingH_H",
+          "BTN_basis_scrollSlidingH_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_basis_scrollSlidingV",
+          "Frame",
+          "BTN_basis_scrollSlidingV_N",
+          "BTN_basis_scrollSlidingV_H",
+          "BTN_basis_scrollSlidingV_N",
+          "BTN_basis_scrollSlidingV_H",
+          "BTN_basis_scrollSlidingV_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Window",
+          "SCB_basis_bgH",
+          "Frame",
+          "SCB_basis_bgH",
+          "SCB_basis_bgH",
+          "SCB_basis_bgH",
+          "SCB_basis_bgH",
+          "SCB_basis_bgH",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Window",
+          "SCB_basis_bgV",
+          "Frame",
+          "SCB_basis_bgV",
+          "SCB_basis_bgV",
+          "SCB_basis_bgV",
+          "SCB_basis_bgV",
+          "SCB_basis_bgV",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Window",
+          "WIN_null",
+          "Frame",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_scrollUp",
+          "Frame",
+          "BTN_chat_scrollUp_N",
+          "BTN_chat_scrollUp_H",
+          "BTN_chat_scrollUp_N",
+          "BTN_chat_scrollUp_H",
+          "BTN_chat_scrollUp_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_scrollDown",
+          "Frame",
+          "BTN_chat_scrollDown_N",
+          "BTN_chat_scrollDown_H",
+          "BTN_chat_scrollDown_N",
+          "BTN_chat_scrollDown_H",
+          "BTN_chat_scrollDown_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_scrollLeft",
+          "Frame",
+          "BTN_chat_scrollLeft_N",
+          "BTN_chat_scrollLeft_H",
+          "BTN_chat_scrollLeft_N",
+          "BTN_chat_scrollLeft_H",
+          "BTN_chat_scrollLeft_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_scrollRight",
+          "Frame",
+          "BTN_chat_scrollRight_N",
+          "BTN_chat_scrollRight_H",
+          "BTN_chat_scrollRight_N",
+          "BTN_chat_scrollRight_H",
+          "BTN_chat_scrollRight_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_scrollSlidingH",
+          "Frame",
+          "BTN_chat_scrollSlidingH_N",
+          "BTN_chat_scrollSlidingH_H",
+          "BTN_chat_scrollSlidingH_N",
+          "BTN_chat_scrollSlidingH_H",
+          "BTN_chat_scrollSlidingH_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_scrollSlidingV",
+          "Frame",
+          "BTN_chat_scrollSlidingV_N",
+          "BTN_chat_scrollSlidingV_H",
+          "BTN_chat_scrollSlidingV_N",
+          "BTN_chat_scrollSlidingV_H",
+          "BTN_chat_scrollSlidingV_H",
+          "NULL",
+          "NULL"
+        ],
+        [
+          "Button",
+          "BTN_chat_logWaitCursor",
+          "Frame",
+          "BTN_chat_logWaitCursor",
+          "BTN_chat_logWaitCursor",
+          "BTN_chat_logWaitCursor",
+          "BTN_chat_logWaitCursor",
+          "BTN_chat_logWaitCursor",
+          "NULL",
+          "NULL"
+        ]
+      ],
+      "skinNames": 38,
+      "skinKinds": {
+        "AnimationSkins": 1,
+        "CellSkins": 37
+      }
+    }
+  },
+  "contract": [
+    "Each control on this page draws through part keys of the form Type:Part or Type:Part:SubPart, which the executable resolves through the style file to a Frame part that holds seven skin names. STATIC.",
+    "The seven skin slots are read in the order SkinNormal, SkinActive, SkinDisabled, SkinFocused, SkinHover, SkinReserved, SkinAnchored, and SkinDroppable is not read. STATIC.",
+    "An undefined SkinReserved slot takes the SkinActive skin and an undefined SkinAnchored slot takes the SkinFocused skin. STATIC for the replacement, INFERRED that undefined means an absent Property row.",
+    "TabControl builds a template Grid whose column definitions have the unit type bytes 0, 2 and 0 and whose row definitions have 0 and 2, where 2 is the constructor default of one star. STATIC for the bytes, INFERRED that 0 means Auto.",
+    "The left RepeatButton, the TabPanel and the right RepeatButton sit in row 0 and columns 0, 1 and 2, and a ContentPresenter that shows the SelectedContentPanel spans the three columns of row 1. STATIC.",
+    "The TabControl itself carries the key TabControl:Background_TabPanel, the SelectedContentPanel carries TabControl:Background_SelectedContent and the name PART_SelectedContentPanel, and the arrow buttons carry TabControl:LeftButton and TabControl:RightButton. STATIC.",
+    "The arrow buttons are Visible only while the viewport is smaller than the extent, the left button is enabled while the offset is not zero, and the right button is enabled while the offset plus the viewport is smaller than the extent. STATIC for the arithmetic, INFERRED for the field names.",
+    "The TabControl constructor sets both arrow RepeatButtons to Collapsed, so they stay Collapsed until the scroll changed handler runs. STATIC.",
+    "SelectedIndex starts at -1, and a Visible TabItem that is added while nothing is selected becomes the selection. STATIC.",
+    "The items handler at 0x009BBD10 acts only when the action byte of its argument is 0, which the base handler treats as the add action, and it returns without selecting or appending when the last item is missing, is not a TabItem, or has a Visibility byte other than 2 while nothing is selected. STATIC for the branches, INFERRED for the meaning of the action byte.",
+    "When SelectedIndex is not -1 at an add, the handler appends the content element of the last TabItem to the SelectedContentPanel children unless that element's parent already is the panel, and sets it Hidden, so every tab content is a child of the panel from add time. STATIC for the calls, INFERRED for the content element and for the parent field at +0x240.",
+    "The content element of a selected TabItem is appended to the SelectedContentPanel children and set Visible, and the content of a deselected TabItem is set Hidden. STATIC for the calls, INFERRED for the content element.",
+    "Arrange and measure are virtual slots 54 and 55 of the offset-0 vftable, called from the layout core at 0x0092FFFC and 0x0092BAD6. STATIC.",
+    "Control measure removes BorderThickness plus Padding from the available size, measures each template child with the remainder and adds the same sum back to the largest child size. STATIC.",
+    "Control arrange gives each template child the rectangle inset by BorderThickness plus Padding and returns the final size. STATIC.",
+    "ScrollViewer measure removes the same inset sum before the Control measure and adds it back after, so the inset counts twice. STATIC.",
+    "ScrollContentPresenter measure stores the child desired size as the extent and measures the child again at the larger of its size and the available size when it overflows, and its arrange stores the final size as the viewport and arranges the child at no less than its desired size. STATIC for the arithmetic, INFERRED for the field names.",
+    "ItemsControl owns the measure and arrange pair at slots 54 and 55 that Selector, ListBox, TabControl and TabPanel inherit, and the pair changes the size on the item axis only when MaxVisibleItems differs from 10000000 or MinVisibleItems differs from 0. STATIC.",
+    "TextBox arrange, which LogControl inherits, insets the child by BorderThickness plus Padding, raises the child height to MinVisibleLines lines when needed, caps it at MaxVisibleLines lines for a Stretch alignment, and centres it in the leftover height. STATIC for the arithmetic, UNKNOWN for three host fields.",
+    "ScrollBarVisibility text matches Disabled, Hidden, Visible and AutoHidden to 1, 2, 3 and 4 without regard to ASCII case, and any other text, including Auto, gives 0. STATIC.",
+    "ScrollViewer defaults to HorizontalScrollBarVisibility 1 (Disabled) and VerticalScrollBarVisibility 3 (Visible). STATIC.",
+    "ScrollViewer computes each scroll bar's Visibility from its mode, the extent and the viewport. Auto gives Visible when the extent exceeds the viewport and Collapsed otherwise, Disabled gives Collapsed, Hidden gives Hidden, Visible gives Visible, and AutoHidden gives Visible when the extent exceeds the viewport and Hidden otherwise. STATIC.",
+    "ScrollableWidth and ScrollableHeight are the extent less the viewport with a floor of 0. STATIC.",
+    "Visibility text maps Collapsed and False to 0, Hidden to 1 and every other text, including Visible, to 2. STATIC.",
+    "The default part table holds 66 records keyed by part name. STATIC.",
+    "No installed style file defines a Caret widget, so Caret:Background resolves to no skin. INFERRED.",
+    "The chat scroll bar style SCB_chat defines no HorizontalBackground or VerticalBackground part. INFERRED.",
+    "The LogWidget part closure is read from the style file that the form root names, common/default.style, which defines every style in the closure. Each leaf style of the closure is defined in several of the install's style files with rows that sometimes differ, so a merge of all style files is not the source of those rows. INFERRED.",
+    "The installed LogWidget form and template use each of the five controls with the attributes and styles listed in the census tables. INFERRED.",
+    "No installed form sets TabStripPlacement, SelectedIndex, MaxVisibleItems or MinVisibleItems on a TabControl, TabStripPlacement or IsSelected on a TabItem, or MinVisibleLines or MaxVisibleLines on a TextBox or LogControl. INFERRED."
+  ],
+  "open": [
+    {
+      "label": "UNKNOWN",
+      "text": "Which skin slot a selected TabItem header draws. Trace targets are the IsSelected change path of TabItem and the consumer that picks one of the seven slots that 0x00933E70 reads for TabItem:Background_Header. A painter needs an authored choice until then."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "How TabPanel places its TabItem headers. Trace targets are the TabPanel constructor at 0x009BCFC0, which calls the base constructor at 0x0096D980, and the TabPanel vftable at 0x01081A7C beyond slots 54 and 55, for the items panel, orientation and spacing. A painter needs an authored placement until then."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "How HorizontalOffset and VerticalOffset move the content child during arrange. The ContentPresenter arrange at 0x0099CA00 was not traced."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The meaning of the TextBox arrange host fields at +0x113C and +0x04A4, of the integer behind +0x17F0, and of the eight floats and three pointers in each default part record."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "How a part whose style is NULL or undefined resolves. The resolver at 0x00933E70 returns without writing a skin, and the loader at 0x00934210 names fallback styles, but the join was not traced."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "How LogControl paints its lines. The lines come from the native log document, which this page does not trace."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "Whether Lua or a command changes the tab selection before the first paint."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "How the caret is drawn. It has the part PART_Caret and the key Caret:Background, and no style file defines it."
+    }
+  ],
+  "staticChecks": [
+    {
+      "name": "rtti name TabControl",
+      "kind": "string",
+      "va": "0x012e8d18",
+      "text": ".?AVTabControl@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TabControl",
+      "kind": "rtti",
+      "va": "0x01081654",
+      "nameVa": "0x012e8d18",
+      "bases": [
+        ".?AVTabControl@Controls@Sqwt@@",
+        ".?AVSelector@Primitives@Controls@Sqwt@@",
+        ".?AVItemsControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TabControl",
+      "kind": "dwords",
+      "va": "0x0108172c",
+      "values": [
+        "0x00960bf0",
+        "0x00960a40"
+      ]
+    },
+    {
+      "name": "rtti name TabPanel",
+      "kind": "string",
+      "va": "0x012e8d40",
+      "text": ".?AVTabPanel@Primitives@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TabPanel",
+      "kind": "rtti",
+      "va": "0x01081a7c",
+      "nameVa": "0x012e8d40",
+      "bases": [
+        ".?AVTabPanel@Primitives@Controls@Sqwt@@",
+        ".?AVListBox@Controls@Sqwt@@",
+        ".?AVSelector@Primitives@Controls@Sqwt@@",
+        ".?AVItemsControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TabPanel",
+      "kind": "dwords",
+      "va": "0x01081b54",
+      "values": [
+        "0x00960bf0",
+        "0x00960a40"
+      ]
+    },
+    {
+      "name": "rtti name TabItem",
+      "kind": "string",
+      "va": "0x012e8bc8",
+      "text": ".?AVTabItem@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TabItem",
+      "kind": "rtti",
+      "va": "0x01080e6c",
+      "nameVa": "0x012e8bc8",
+      "bases": [
+        ".?AVTabItem@Controls@Sqwt@@",
+        ".?AVHeaderedContentControl@Controls@Sqwt@@",
+        ".?AVContentControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TabItem",
+      "kind": "dwords",
+      "va": "0x01080f44",
+      "values": [
+        "0x00937480",
+        "0x00937310"
+      ]
+    },
+    {
+      "name": "rtti name TabItemBorder",
+      "kind": "string",
+      "va": "0x012e8b9c",
+      "text": ".?AVTabItemBorder@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TabItemBorder",
+      "kind": "rtti",
+      "va": "0x01080c24",
+      "nameVa": "0x012e8b9c",
+      "bases": [
+        ".?AVTabItemBorder@Controls@Sqwt@@",
+        ".?AVContentPresenter@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TabItemBorder",
+      "kind": "dwords",
+      "va": "0x01080cfc",
+      "values": [
+        "0x0099ca00",
+        "0x0092a250"
+      ]
+    },
+    {
+      "name": "rtti name SelectedContentPanel",
+      "kind": "string",
+      "va": "0x012e8c90",
+      "text": ".?AVSelectedContentPanel@TabControl@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases SelectedContentPanel",
+      "kind": "rtti",
+      "va": "0x010813e4",
+      "nameVa": "0x012e8c90",
+      "bases": [
+        ".?AVSelectedContentPanel@TabControl@Controls@Sqwt@@",
+        ".?AVPanel@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots SelectedContentPanel",
+      "kind": "dwords",
+      "va": "0x010814bc",
+      "values": [
+        "0x0092a300",
+        "0x0092a250"
+      ]
+    },
+    {
+      "name": "rtti name ScrollViewer",
+      "kind": "string",
+      "va": "0x012e45ac",
+      "text": ".?AVScrollViewer@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases ScrollViewer",
+      "kind": "rtti",
+      "va": "0x010733d4",
+      "nameVa": "0x012e45ac",
+      "bases": [
+        ".?AVScrollViewer@Controls@Sqwt@@",
+        ".?AVContentControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots ScrollViewer",
+      "kind": "dwords",
+      "va": "0x010734ac",
+      "values": [
+        "0x00970df0",
+        "0x00970070"
+      ]
+    },
+    {
+      "name": "rtti name ScrollContentPresenter",
+      "kind": "string",
+      "va": "0x012e90a4",
+      "text": ".?AVScrollContentPresenter@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases ScrollContentPresenter",
+      "kind": "rtti",
+      "va": "0x010829a4",
+      "nameVa": "0x012e90a4",
+      "bases": [
+        ".?AVScrollContentPresenter@Controls@Sqwt@@",
+        ".?AVContentPresenter@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots ScrollContentPresenter",
+      "kind": "dwords",
+      "va": "0x01082a7c",
+      "values": [
+        "0x009c2ec0",
+        "0x009c2c90"
+      ]
+    },
+    {
+      "name": "rtti name TextBoxBase",
+      "kind": "string",
+      "va": "0x012712b8",
+      "text": ".?AVTextBoxBase@Primitives@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TextBoxBase",
+      "kind": "rtti",
+      "va": "0x0107573c",
+      "nameVa": "0x012712b8",
+      "bases": [
+        ".?AVTextBoxBase@Primitives@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TextBoxBase",
+      "kind": "dwords",
+      "va": "0x01075814",
+      "values": [
+        "0x00937480",
+        "0x00937310"
+      ]
+    },
+    {
+      "name": "rtti name TextBoxScrollViewer",
+      "kind": "string",
+      "va": "0x012e4c40",
+      "text": ".?AVTextBoxScrollViewer@TextBoxBase@Primitives@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TextBoxScrollViewer",
+      "kind": "rtti",
+      "va": "0x01074f74",
+      "nameVa": "0x012e4c40",
+      "bases": [
+        ".?AVTextBoxScrollViewer@TextBoxBase@Primitives@Controls@Sqwt@@",
+        ".?AVScrollViewer@Controls@Sqwt@@",
+        ".?AVContentControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TextBoxScrollViewer",
+      "kind": "dwords",
+      "va": "0x0107504c",
+      "values": [
+        "0x00970df0",
+        "0x00970070"
+      ]
+    },
+    {
+      "name": "rtti name TextBox",
+      "kind": "string",
+      "va": "0x0126d2c8",
+      "text": ".?AVTextBox@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases TextBox",
+      "kind": "rtti",
+      "va": "0x0106edb4",
+      "nameVa": "0x0126d2c8",
+      "bases": [
+        ".?AVTextBox@Controls@Sqwt@@",
+        ".?AVTextBoxBase@Primitives@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots TextBox",
+      "kind": "dwords",
+      "va": "0x0106ee8c",
+      "values": [
+        "0x00957b80",
+        "0x00937310"
+      ]
+    },
+    {
+      "name": "rtti name LogControl",
+      "kind": "string",
+      "va": "0x01271270",
+      "text": ".?AVLogControl@CustomControl@SqwtInterface@Main@Application@@"
+    },
+    {
+      "name": "rtti bases LogControl",
+      "kind": "rtti",
+      "va": "0x00fa935c",
+      "nameVa": "0x01271270",
+      "bases": [
+        ".?AVLogControl@CustomControl@SqwtInterface@Main@Application@@",
+        ".?AVTextBox@Controls@Sqwt@@",
+        ".?AVTextBoxBase@Primitives@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots LogControl",
+      "kind": "dwords",
+      "va": "0x00fa9434",
+      "values": [
+        "0x00957b80",
+        "0x00937310"
+      ]
+    },
+    {
+      "name": "rtti name ContentControl",
+      "kind": "string",
+      "va": "0x01269e44",
+      "text": ".?AVContentControl@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases ContentControl",
+      "kind": "rtti",
+      "va": "0x0106b634",
+      "nameVa": "0x01269e44",
+      "bases": [
+        ".?AVContentControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots ContentControl",
+      "kind": "dwords",
+      "va": "0x0106b70c",
+      "values": [
+        "0x00937480",
+        "0x00937310"
+      ]
+    },
+    {
+      "name": "rtti name ItemsControl",
+      "kind": "string",
+      "va": "0x0126d6f4",
+      "text": ".?AVItemsControl@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases ItemsControl",
+      "kind": "rtti",
+      "va": "0x0106fadc",
+      "nameVa": "0x0126d6f4",
+      "bases": [
+        ".?AVItemsControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots ItemsControl",
+      "kind": "dwords",
+      "va": "0x0106fbb4",
+      "values": [
+        "0x00960bf0",
+        "0x00960a40"
+      ]
+    },
+    {
+      "name": "rtti name Selector",
+      "kind": "string",
+      "va": "0x012bbc78",
+      "text": ".?AVSelector@Primitives@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases Selector",
+      "kind": "rtti",
+      "va": "0x01072874",
+      "nameVa": "0x012bbc78",
+      "bases": [
+        ".?AVSelector@Primitives@Controls@Sqwt@@",
+        ".?AVItemsControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots Selector",
+      "kind": "dwords",
+      "va": "0x0107294c",
+      "values": [
+        "0x00960bf0",
+        "0x00960a40"
+      ]
+    },
+    {
+      "name": "rtti name ListBox",
+      "kind": "string",
+      "va": "0x0126d314",
+      "text": ".?AVListBox@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases ListBox",
+      "kind": "rtti",
+      "va": "0x01072214",
+      "nameVa": "0x0126d314",
+      "bases": [
+        ".?AVListBox@Controls@Sqwt@@",
+        ".?AVSelector@Primitives@Controls@Sqwt@@",
+        ".?AVItemsControl@Controls@Sqwt@@",
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots ListBox",
+      "kind": "dwords",
+      "va": "0x010722ec",
+      "values": [
+        "0x00960bf0",
+        "0x00960a40"
+      ]
+    },
+    {
+      "name": "rtti name Control",
+      "kind": "string",
+      "va": "0x01269e70",
+      "text": ".?AVControl@Controls@Sqwt@@"
+    },
+    {
+      "name": "rtti bases Control",
+      "kind": "rtti",
+      "va": "0x0106bb54",
+      "nameVa": "0x01269e70",
+      "bases": [
+        ".?AVControl@Controls@Sqwt@@",
+        ".?AVFrameworkElement@Sqwt@@",
+        ".?AVUIElement@Sqwt@@",
+        ".?AVVisual@Media@Sqwt@@",
+        ".?AVDependencyObject@Sqwt@@",
+        ".?AVDependencyObjectBase@Sqwt@@",
+        ".?AVObject@Sqwt@@",
+        ".?AVAllocatorBase@Sqwt@@",
+        ".?AVInputElement@Sqwt@@",
+        ".?AVIInputElement@Sqwt@@",
+        ".?AVIAddChild@Markup@Sqwt@@"
+      ]
+    },
+    {
+      "name": "layout slots Control",
+      "kind": "dwords",
+      "va": "0x0106bc2c",
+      "values": [
+        "0x00937480",
+        "0x00937310"
+      ]
+    },
+    {
+      "name": "MeasureCore calls virtual slot 55",
+      "kind": "signature",
+      "va": "0x0092bad6",
+      "pattern": "8b92dc000000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "arrange helper calls virtual slot 54",
+      "kind": "signature",
+      "va": "0x0092fffc",
+      "pattern": "8b92d8000000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "Selector SelectedIndex default is -1",
+      "kind": "signature",
+      "va": "0x0096f7e0",
+      "pattern": "33d2526aff6880b63501",
+      "mask": "ffffffffffffffffffff"
+    },
+    {
+      "name": "TabStripPlacement default byte is 1",
+      "kind": "signature",
+      "va": "0x009bc2e4",
+      "pattern": "c644243701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "MaxVisibleItems stored at ItemsControl +0x370",
+      "kind": "signature",
+      "va": "0x009652fa",
+      "pattern": "8d8e70030000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "MinVisibleItems stored at ItemsControl +0x378",
+      "kind": "signature",
+      "va": "0x00965324",
+      "pattern": "8d8e78030000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "Padding stored at Control +0x2a4",
+      "kind": "signature",
+      "va": "0x0093829d",
+      "pattern": "8d8ea4020000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "BorderThickness stored at Control +0x2b8",
+      "kind": "signature",
+      "va": "0x009382d8",
+      "pattern": "8d8eb8020000",
+      "mask": "ffffffffffff"
+    },
+    {
+      "name": "Visibility stored at FrameworkElement +0x158",
+      "kind": "signature",
+      "va": "0x0093c897",
+      "pattern": "68bc96350152b800b79300508d8e5801000056",
+      "mask": "ffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "ScrollViewer HorizontalScrollBarVisibility default is 1",
+      "kind": "signature",
+      "va": "0x00973341",
+      "pattern": "68a4bc350153b860269700508d8eb003000056c644242e01",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "ScrollViewer VerticalScrollBarVisibility default is 3",
+      "kind": "signature",
+      "va": "0x00973364",
+      "pattern": "686cbe350153b860269700508d8eb203000056c644242e03",
+      "mask": "ffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "MaxVisibleItems default constant",
+      "kind": "dwords",
+      "va": "0x0106f68c",
+      "values": [
+        "0x4b189680"
+      ]
+    },
+    {
+      "name": "integer sentinel",
+      "kind": "dwords",
+      "va": "0x012e33ac",
+      "values": [
+        "0x7fffffff"
+      ]
+    },
+    {
+      "name": "half constant",
+      "kind": "dwords",
+      "va": "0x00f59898",
+      "values": [
+        "0x00000000",
+        "0x3fe00000"
+      ]
+    },
+    {
+      "name": "range Control measure",
+      "kind": "rangeSha256",
+      "va": "0x00937310",
+      "length": 361,
+      "sha256": "426fd5f5f8093b48f50862782fc540c60fe53f1e0266d52eab5cf31916da5f25"
+    },
+    {
+      "name": "range Control arrange",
+      "kind": "rangeSha256",
+      "va": "0x00937480",
+      "length": 317,
+      "sha256": "6dd1c8f72e3d65a36455630fbafa973c93040352796cb901204ac43cfc835966"
+    },
+    {
+      "name": "range Control border thickness read",
+      "kind": "rangeSha256",
+      "va": "0x00937260",
+      "length": 164,
+      "sha256": "70271333b18ea57d08a884eb89e4a6f668007ab21cfd7515c64aa2eaf9ddde17"
+    },
+    {
+      "name": "range Control padding read",
+      "kind": "rangeSha256",
+      "va": "0x009371b0",
+      "length": 164,
+      "sha256": "06b2100c1ae141c702ac1aa4654a6072401d6dbe4f7392416684616430400e89"
+    },
+    {
+      "name": "range ScrollViewer measure",
+      "kind": "rangeSha256",
+      "va": "0x00970070",
+      "length": 241,
+      "sha256": "8580fc352e212b04542805e01e32a46c6021b012225c0c6ad6b1522545874c14"
+    },
+    {
+      "name": "range ScrollViewer arrange",
+      "kind": "rangeSha256",
+      "va": "0x00970df0",
+      "length": 86,
+      "sha256": "d1bf126e94630be540b2e70a435e32e723cefc0e2eb00db8e601cee4eda27b6d"
+    },
+    {
+      "name": "range ScrollContentPresenter measure",
+      "kind": "rangeSha256",
+      "va": "0x009c2c90",
+      "length": 545,
+      "sha256": "a4243e0eb1559c557b017965fe654b7172adc23e994c7d3a35bf8f49e3df6d8c"
+    },
+    {
+      "name": "range ScrollContentPresenter arrange",
+      "kind": "rangeSha256",
+      "va": "0x009c2ec0",
+      "length": 309,
+      "sha256": "6143f95f6fca357ffc69f7ef379c5d6180f136cb1ba998e6931d9637a3eeecbf"
+    },
+    {
+      "name": "range ItemsControl measure",
+      "kind": "rangeSha256",
+      "va": "0x00960a40",
+      "length": 423,
+      "sha256": "3fb34221de8572ededb97077a597598e25df6e43f1a53307b951c701a452363e"
+    },
+    {
+      "name": "range ItemsControl arrange",
+      "kind": "rangeSha256",
+      "va": "0x00960bf0",
+      "length": 382,
+      "sha256": "8a05af0a488a2a1cb949d2481d3f294ff35451104ce8ff7447163bcad40c47b5"
+    },
+    {
+      "name": "range ItemsControl item count",
+      "kind": "rangeSha256",
+      "va": "0x00960760",
+      "length": 77,
+      "sha256": "7af59e2529f1c7a631da746abd978c5b2cf2a9fbfd9915d388d6080d2a7d8a69"
+    },
+    {
+      "name": "range ItemsControl item at index",
+      "kind": "rangeSha256",
+      "va": "0x00961420",
+      "length": 90,
+      "sha256": "9356310e85c1e67b1aea2818ec2598559b820680a383037880283ddb0aad1125"
+    },
+    {
+      "name": "range TabItem content accessor",
+      "kind": "rangeSha256",
+      "va": "0x009baa00",
+      "length": 7,
+      "sha256": "a8da0b5693401a523d8b1e810c763f94bd8d06155bb51cdfc29f51c9e87ae389"
+    },
+    {
+      "name": "range TextBox arrange",
+      "kind": "rangeSha256",
+      "va": "0x00957b80",
+      "length": 527,
+      "sha256": "7e888c6f83091b77fafcd97d5a3912279d1ed808ab63eb8f3f891c91fc20df00"
+    },
+    {
+      "name": "range TabControl scroll changed",
+      "kind": "rangeSha256",
+      "va": "0x009bb320",
+      "length": 160,
+      "sha256": "6e8531df523ff4dc0dffdca80b3afd4164125ab287b031b67b99b00fb7d083fa"
+    },
+    {
+      "name": "range TabControl items added",
+      "kind": "rangeSha256",
+      "va": "0x009bbd10",
+      "length": 288,
+      "sha256": "58980d5889387638f564421e9d8fcf5ffd1eb5674cb40eb9e4fee6045b86f03e"
+    },
+    {
+      "name": "range TabControl selection changed",
+      "kind": "rangeSha256",
+      "va": "0x009bbb00",
+      "length": 520,
+      "sha256": "040b8bc4af01e6def47d74c747e266daabf5864c6718c31ab0436cd438ef1d3d"
+    },
+    {
+      "name": "range TabControl constructor",
+      "kind": "rangeSha256",
+      "va": "0x009bc270",
+      "length": 1703,
+      "sha256": "506af3384d56e7dd8106b4f8aeb8e35a6c075b4c0b55318d56cd42ab2de4351d"
+    },
+    {
+      "name": "range TabItem constructor",
+      "kind": "rangeSha256",
+      "va": "0x009bb0f0",
+      "length": 419,
+      "sha256": "b47b8917402dd2d36b987683e021916755db365cdcad93efd3524ca7c30adcac"
+    },
+    {
+      "name": "range ScrollViewer constructor",
+      "kind": "rangeSha256",
+      "va": "0x00973190",
+      "length": 1229,
+      "sha256": "d8123b26ddf98555a3d234be0223b2754b922dd62029e9955cba70f562ff047f"
+    },
+    {
+      "name": "range ItemsControl constructor",
+      "kind": "rangeSha256",
+      "va": "0x009638c0",
+      "length": 835,
+      "sha256": "29599752227a7f3ca3383c3690542276832035e3de66c77e4e9d9e54899d5912"
+    },
+    {
+      "name": "range Selector constructor",
+      "kind": "rangeSha256",
+      "va": "0x0096f7b0",
+      "length": 310,
+      "sha256": "b1bce2b0958ef21af8ca95ebfb3da7c4faa94e196bbb6ca44113a07cf139d061"
+    },
+    {
+      "name": "range TextBox constructor",
+      "kind": "rangeSha256",
+      "va": "0x0095c300",
+      "length": 1489,
+      "sha256": "fb6fbd9f9ab6affb8859e1054052add528e6e405233dad5cb4a23f4c3eea8098"
+    },
+    {
+      "name": "range style part resolver",
+      "kind": "rangeSha256",
+      "va": "0x00933e70",
+      "length": 920,
+      "sha256": "052bf1128e10900d0ae77d679d5a9ced01ba8a081b423ee44850746cb113660c"
+    },
+    {
+      "name": "range ScrollBarVisibility parser",
+      "kind": "rangeSha256",
+      "va": "0x00914460",
+      "length": 146,
+      "sha256": "fab1ecd6e2b2bd4b742f6a69aac9018c05b36799c7d87c97b34dea5ce80c21cf"
+    },
+    {
+      "name": "range ScrollBarVisibility name",
+      "kind": "rangeSha256",
+      "va": "0x00914500",
+      "length": 37,
+      "sha256": "cdad2c4d10bd097cbbd9b53432998da9575ddd3f6893a28581b31796047a1122"
+    },
+    {
+      "name": "range Visibility parser",
+      "kind": "rangeSha256",
+      "va": "0x00914580",
+      "length": 107,
+      "sha256": "8c8dcead66985bf4aaf12dee8e7bc66cef98548389e4388b2daa0a5d12b80d30"
+    },
+    {
+      "name": "range Visibility name",
+      "kind": "rangeSha256",
+      "va": "0x009145f0",
+      "length": 54,
+      "sha256": "beb5579e4b9d96f2f85d74a286c98e0ea5f409c57d0031c756fc3bf3a66072a0"
+    },
+    {
+      "name": "range Grid column setter",
+      "kind": "rangeSha256",
+      "va": "0x00976c80",
+      "length": 52,
+      "sha256": "be0a3863a692ba00f9841e63e3f0d59e5e1b7e774a5620d1fe9ce56ae27b1876"
+    },
+    {
+      "name": "range Grid row setter",
+      "kind": "rangeSha256",
+      "va": "0x00976c40",
+      "length": 53,
+      "sha256": "6312dfaa87c0cceebcf8d7d89955a7ab1decf440c276887533f763f16a6fc03d"
+    },
+    {
+      "name": "range Grid column span setter",
+      "kind": "rangeSha256",
+      "va": "0x00976d10",
+      "length": 80,
+      "sha256": "409d3db7fb2e4c55182e41d00f0f7cc2b5ff96eeca45c2114e7a9723bb4a69d1"
+    },
+    {
+      "name": "range SelectedContentPanel slot 5",
+      "kind": "rangeSha256",
+      "va": "0x009bb510",
+      "length": 3,
+      "sha256": "4bc724f3b1d0caf4fe369c18cba3102e6c4ea057f63fe1587e3973134a7f755e"
+    },
+    {
+      "name": "range ScrollViewer scroll info update",
+      "kind": "rangeSha256",
+      "va": "0x00973660",
+      "length": 1594,
+      "sha256": "51df32f2a1f229786f8b5e39c6c48c9da6811d7446d574a00187e3efad08846d"
+    },
+    {
+      "name": "range string compare entry",
+      "kind": "rangeSha256",
+      "va": "0x009d244e",
+      "length": 80,
+      "sha256": "41b6ba055a1706e53d11b91efedb873b915ea460b2ca002758563adf5a53f8d9"
+    },
+    {
+      "name": "range Visibility setter",
+      "kind": "rangeSha256",
+      "va": "0x0093c2a0",
+      "length": 46,
+      "sha256": "3303d94787f86bc1575c52f4ceb5fe05c9cae347fa9e8daaa3f54ae21344e3ba"
+    },
+    {
+      "name": "range part table lookup",
+      "kind": "rangeSha256",
+      "va": "0x008e0eb0",
+      "length": 131,
+      "sha256": "9505b53815ff7b0ae2ca06643db4aedbbd268db1c77b6f67760559880254a5ad"
+    },
+    {
+      "name": "range default part table",
+      "kind": "rangeSha256",
+      "va": "0x012dcde0",
+      "length": 3168,
+      "sha256": "4cfd0e4b5d4c5081aff810a9c630c080a4c7c199a409bee6d77229acba14a07d"
+    },
+    {
+      "name": "range ASCII case-folding compare",
+      "kind": "rangeSha256",
+      "va": "0x009d2346",
+      "length": 53,
+      "sha256": "7e5823046cef634a0ef6fed149abc1c7db3f092b8af301b9397e15696e25c086"
+    },
+    {
+      "name": "TabControl ctor TabPanel key",
+      "kind": "signature",
+      "va": "0x009bc430",
+      "pattern": "6850110801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabControl ctor TabPanel key",
+      "kind": "string",
+      "va": "0x01081150",
+      "text": "TabControl:Background_TabPanel"
+    },
+    {
+      "name": "TabControl ctor LeftButton key",
+      "kind": "signature",
+      "va": "0x009bc681",
+      "pattern": "688c110801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabControl ctor LeftButton key",
+      "kind": "string",
+      "va": "0x0108118c",
+      "text": "TabControl:LeftButton"
+    },
+    {
+      "name": "TabControl ctor RightButton key",
+      "kind": "signature",
+      "va": "0x009bc701",
+      "pattern": "68a4110801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabControl ctor RightButton key",
+      "kind": "string",
+      "va": "0x010811a4",
+      "text": "TabControl:RightButton"
+    },
+    {
+      "name": "TabControl ctor SelectedContentPanel name",
+      "kind": "signature",
+      "va": "0x009bc810",
+      "pattern": "68bc110801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabControl ctor SelectedContentPanel name",
+      "kind": "string",
+      "va": "0x010811bc",
+      "text": "PART_SelectedContentPanel"
+    },
+    {
+      "name": "TabControl ctor SelectedContent key",
+      "kind": "signature",
+      "va": "0x009bc853",
+      "pattern": "68d8110801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabControl ctor SelectedContent key",
+      "kind": "string",
+      "va": "0x010811d8",
+      "text": "TabControl:Background_SelectedContent"
+    },
+    {
+      "name": "TabControl type name",
+      "kind": "signature",
+      "va": "0x009bc3e8",
+      "pattern": "6844110801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabControl type name",
+      "kind": "string",
+      "va": "0x01081144",
+      "text": "TabControl"
+    },
+    {
+      "name": "TabItem ctor Header key",
+      "kind": "signature",
+      "va": "0x009bb230",
+      "pattern": "687c0a0801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabItem ctor Header key",
+      "kind": "string",
+      "va": "0x01080a7c",
+      "text": "TabItem:Background_Header"
+    },
+    {
+      "name": "TabItemBorder ctor type name",
+      "kind": "signature",
+      "va": "0x009bb04d",
+      "pattern": "68980a0801",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TabItemBorder ctor type name",
+      "kind": "string",
+      "va": "0x01080a98",
+      "text": "TabItemBorder"
+    },
+    {
+      "name": "ScrollViewer ctor type name",
+      "kind": "signature",
+      "va": "0x00973589",
+      "pattern": "682c300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer ctor type name",
+      "kind": "string",
+      "va": "0x0107302c",
+      "text": "ScrollViewer"
+    },
+    {
+      "name": "ScrollViewer ctor Background key",
+      "kind": "signature",
+      "va": "0x009735d2",
+      "pattern": "683c300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer ctor Background key",
+      "kind": "string",
+      "va": "0x0107303c",
+      "text": "ScrollViewer:Background"
+    },
+    {
+      "name": "ScrollViewer horizontal bar part name",
+      "kind": "signature",
+      "va": "0x00970973",
+      "pattern": "6854300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer horizontal bar part name",
+      "kind": "string",
+      "va": "0x01073054",
+      "text": "PART_HorizontalScrollBar"
+    },
+    {
+      "name": "ScrollViewer horizontal left part name",
+      "kind": "signature",
+      "va": "0x009709c8",
+      "pattern": "6870300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer horizontal left part name",
+      "kind": "string",
+      "va": "0x01073070",
+      "text": "PART_LeftButton"
+    },
+    {
+      "name": "ScrollViewer horizontal right part name",
+      "kind": "signature",
+      "va": "0x00970a21",
+      "pattern": "6880300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer horizontal right part name",
+      "kind": "string",
+      "va": "0x01073080",
+      "text": "PART_RightButton"
+    },
+    {
+      "name": "ScrollViewer horizontal track part name",
+      "kind": "signature",
+      "va": "0x00970a7e",
+      "pattern": "6894300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer horizontal track part name",
+      "kind": "string",
+      "va": "0x01073094",
+      "text": "PART_Track"
+    },
+    {
+      "name": "ScrollViewer horizontal thumb part name",
+      "kind": "signature",
+      "va": "0x00970ac8",
+      "pattern": "68a0300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer horizontal thumb part name",
+      "kind": "string",
+      "va": "0x010730a0",
+      "text": "PART_Thumb"
+    },
+    {
+      "name": "ScrollViewer vertical bar part name",
+      "kind": "signature",
+      "va": "0x00970b63",
+      "pattern": "68ac300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer vertical bar part name",
+      "kind": "string",
+      "va": "0x010730ac",
+      "text": "PART_VerticalScrollBar"
+    },
+    {
+      "name": "ScrollViewer vertical up part name",
+      "kind": "signature",
+      "va": "0x00970bb8",
+      "pattern": "68c4300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer vertical up part name",
+      "kind": "string",
+      "va": "0x010730c4",
+      "text": "PART_UpButton"
+    },
+    {
+      "name": "ScrollViewer vertical down part name",
+      "kind": "signature",
+      "va": "0x00970c11",
+      "pattern": "68d4300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer vertical down part name",
+      "kind": "string",
+      "va": "0x010730d4",
+      "text": "PART_DownButton"
+    },
+    {
+      "name": "ScrollViewer vertical track part name",
+      "kind": "signature",
+      "va": "0x00970c6e",
+      "pattern": "68e4300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer vertical track part name",
+      "kind": "string",
+      "va": "0x010730e4",
+      "text": "PART_Track"
+    },
+    {
+      "name": "ScrollViewer vertical thumb part name",
+      "kind": "signature",
+      "va": "0x00970cb8",
+      "pattern": "68f0300701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string ScrollViewer vertical thumb part name",
+      "kind": "string",
+      "va": "0x010730f0",
+      "text": "PART_Thumb"
+    },
+    {
+      "name": "TextBox ctor type name",
+      "kind": "signature",
+      "va": "0x0095c76e",
+      "pattern": "68c4eb0601",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TextBox ctor type name",
+      "kind": "string",
+      "va": "0x0106ebc4",
+      "text": "TextBox"
+    },
+    {
+      "name": "TextBox ctor Background key",
+      "kind": "signature",
+      "va": "0x0095c7b6",
+      "pattern": "68cceb0601",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TextBox ctor Background key",
+      "kind": "string",
+      "va": "0x0106ebcc",
+      "text": "TextBox:Background"
+    },
+    {
+      "name": "TextBoxBase ctor content host name",
+      "kind": "signature",
+      "va": "0x0097d59b",
+      "pattern": "68904d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TextBoxBase ctor content host name",
+      "kind": "string",
+      "va": "0x01074d90",
+      "text": "PART_ContentHost"
+    },
+    {
+      "name": "TextBoxBase ctor text area name",
+      "kind": "signature",
+      "va": "0x0097d5d5",
+      "pattern": "68a44d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TextBoxBase ctor text area name",
+      "kind": "string",
+      "va": "0x01074da4",
+      "text": "PART_TextArea"
+    },
+    {
+      "name": "TextBoxBase scroll viewer type name",
+      "kind": "signature",
+      "va": "0x0097bb0a",
+      "pattern": "687c4d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TextBoxBase scroll viewer type name",
+      "kind": "string",
+      "va": "0x01074d7c",
+      "text": "TextBoxScrollViewer"
+    },
+    {
+      "name": "TextBoxBase scroll info type name",
+      "kind": "signature",
+      "va": "0x0097bc87",
+      "pattern": "68b84d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string TextBoxBase scroll info type name",
+      "kind": "string",
+      "va": "0x01074db8",
+      "text": "TextBoxScrollInfo"
+    },
+    {
+      "name": "Caret type name",
+      "kind": "signature",
+      "va": "0x0097b988",
+      "pattern": "68cc4d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string Caret type name",
+      "kind": "string",
+      "va": "0x01074dcc",
+      "text": "Caret"
+    },
+    {
+      "name": "Caret Background key",
+      "kind": "signature",
+      "va": "0x0097b9ba",
+      "pattern": "68d44d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string Caret Background key",
+      "kind": "string",
+      "va": "0x01074dd4",
+      "text": "Caret:Background"
+    },
+    {
+      "name": "Caret part name",
+      "kind": "signature",
+      "va": "0x0097ba2e",
+      "pattern": "68e84d0701",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string Caret part name",
+      "kind": "string",
+      "va": "0x01074de8",
+      "text": "PART_Caret"
+    },
+    {
+      "name": "LogControl ctor type name",
+      "kind": "signature",
+      "va": "0x00595edb",
+      "pattern": "68bc8efa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl ctor type name",
+      "kind": "string",
+      "va": "0x00fa8ebc",
+      "text": "LogControl"
+    },
+    {
+      "name": "LogControl ctor Background key",
+      "kind": "signature",
+      "va": "0x00595f25",
+      "pattern": "68c88efa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl ctor Background key",
+      "kind": "string",
+      "va": "0x00fa8ec8",
+      "text": "LogControl:Background"
+    },
+    {
+      "name": "LogControl ctor wait cursor name first",
+      "kind": "signature",
+      "va": "0x0059601e",
+      "pattern": "68e08efa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl ctor wait cursor name first",
+      "kind": "string",
+      "va": "0x00fa8ee0",
+      "text": "PART_WaitCursor"
+    },
+    {
+      "name": "LogControl ctor wait cursor name second",
+      "kind": "signature",
+      "va": "0x0059608d",
+      "pattern": "68f08efa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl ctor wait cursor name second",
+      "kind": "string",
+      "va": "0x00fa8ef0",
+      "text": "PART_WaitCursor"
+    },
+    {
+      "name": "LogControl ctor WaitCursor key",
+      "kind": "signature",
+      "va": "0x005960ac",
+      "pattern": "68008ffa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl ctor WaitCursor key",
+      "kind": "string",
+      "va": "0x00fa8f00",
+      "text": "LogControl:WaitCursor"
+    },
+    {
+      "name": "LogControl content host accessor",
+      "kind": "signature",
+      "va": "0x00591410",
+      "pattern": "68308ffa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl content host accessor",
+      "kind": "string",
+      "va": "0x00fa8f30",
+      "text": "PART_ContentHost"
+    },
+    {
+      "name": "LogControl horizontal bar accessor",
+      "kind": "signature",
+      "va": "0x0059149e",
+      "pattern": "68448ffa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl horizontal bar accessor",
+      "kind": "string",
+      "va": "0x00fa8f44",
+      "text": "PART_HorizontalScrollBar"
+    },
+    {
+      "name": "LogControl vertical bar accessor",
+      "kind": "signature",
+      "va": "0x0059153e",
+      "pattern": "68608ffa00",
+      "mask": "ffffffffff"
+    },
+    {
+      "name": "string LogControl vertical bar accessor",
+      "kind": "string",
+      "va": "0x00fa8f60",
+      "text": "PART_VerticalScrollBar"
+    },
+    {
+      "name": "property TabControl TabStripPlacement",
+      "kind": "string",
+      "va": "0x01081120",
+      "text": "TabStripPlacement"
+    },
+    {
+      "name": "property TabControl SelectedContent",
+      "kind": "string",
+      "va": "0x01081134",
+      "text": "SelectedContent"
+    },
+    {
+      "name": "property TabItem IsSelected",
+      "kind": "string",
+      "va": "0x01080a54",
+      "text": "IsSelected"
+    },
+    {
+      "name": "property TabItem TabStripPlacement",
+      "kind": "string",
+      "va": "0x01080a60",
+      "text": "TabStripPlacement"
+    },
+    {
+      "name": "property Selector SelectedIndex",
+      "kind": "string",
+      "va": "0x0107263c",
+      "text": "SelectedIndex"
+    },
+    {
+      "name": "property Selector SelectedItem",
+      "kind": "string",
+      "va": "0x0107264c",
+      "text": "SelectedItem"
+    },
+    {
+      "name": "property ItemsControl MaxVisibleItems",
+      "kind": "string",
+      "va": "0x0106f808",
+      "text": "MaxVisibleItems"
+    },
+    {
+      "name": "property ItemsControl MinVisibleItems",
+      "kind": "string",
+      "va": "0x0106f818",
+      "text": "MinVisibleItems"
+    },
+    {
+      "name": "property ScrollViewer CanContentScroll",
+      "kind": "string",
+      "va": "0x01072f0c",
+      "text": "CanContentScroll"
+    },
+    {
+      "name": "property ScrollViewer ComputedHorizontalScrollBarVisibility",
+      "kind": "string",
+      "va": "0x01072f20",
+      "text": "ComputedHorizontalScrollBarVisibility"
+    },
+    {
+      "name": "property ScrollViewer ComputedVerticalScrollBarVisibility",
+      "kind": "string",
+      "va": "0x01072f48",
+      "text": "ComputedVerticalScrollBarVisibility"
+    },
+    {
+      "name": "property ScrollViewer ExtentHeight",
+      "kind": "string",
+      "va": "0x01072f6c",
+      "text": "ExtentHeight"
+    },
+    {
+      "name": "property ScrollViewer ExtentWidth",
+      "kind": "string",
+      "va": "0x01072f7c",
+      "text": "ExtentWidth"
+    },
+    {
+      "name": "property ScrollViewer HorizontalOffset",
+      "kind": "string",
+      "va": "0x01072f88",
+      "text": "HorizontalOffset"
+    },
+    {
+      "name": "property ScrollViewer VerticalOffset",
+      "kind": "string",
+      "va": "0x01072f9c",
+      "text": "VerticalOffset"
+    },
+    {
+      "name": "property ScrollViewer HorizontalScrollBarVisibility",
+      "kind": "string",
+      "va": "0x01072fac",
+      "text": "HorizontalScrollBarVisibility"
+    },
+    {
+      "name": "property ScrollViewer VerticalScrollBarVisibility",
+      "kind": "string",
+      "va": "0x01072fcc",
+      "text": "VerticalScrollBarVisibility"
+    },
+    {
+      "name": "property ScrollViewer ScrollableHeight",
+      "kind": "string",
+      "va": "0x01072fe8",
+      "text": "ScrollableHeight"
+    },
+    {
+      "name": "property ScrollViewer ScrollableWidth",
+      "kind": "string",
+      "va": "0x01072ffc",
+      "text": "ScrollableWidth"
+    },
+    {
+      "name": "property ScrollViewer ViewportHeight",
+      "kind": "string",
+      "va": "0x0107300c",
+      "text": "ViewportHeight"
+    },
+    {
+      "name": "property ScrollViewer ViewportWidth",
+      "kind": "string",
+      "va": "0x0107301c",
+      "text": "ViewportWidth"
+    },
+    {
+      "name": "property ScrollContentPresenter ViewportHeight",
+      "kind": "string",
+      "va": "0x010827b0",
+      "text": "ViewportHeight"
+    },
+    {
+      "name": "property ScrollContentPresenter ViewportWidth",
+      "kind": "string",
+      "va": "0x010827c0",
+      "text": "ViewportWidth"
+    },
+    {
+      "name": "property ScrollContentPresenter ExtentHeight",
+      "kind": "string",
+      "va": "0x010827d0",
+      "text": "ExtentHeight"
+    },
+    {
+      "name": "property ScrollContentPresenter ExtentWidth",
+      "kind": "string",
+      "va": "0x010827e0",
+      "text": "ExtentWidth"
+    },
+    {
+      "name": "property ScrollContentPresenter HorizontalOffset",
+      "kind": "string",
+      "va": "0x010827ec",
+      "text": "HorizontalOffset"
+    },
+    {
+      "name": "property ScrollContentPresenter VerticalOffset",
+      "kind": "string",
+      "va": "0x01082800",
+      "text": "VerticalOffset"
+    },
+    {
+      "name": "property TextBoxBase IsReadOnly",
+      "kind": "string",
+      "va": "0x01074ad8",
+      "text": "IsReadOnly"
+    },
+    {
+      "name": "property TextBoxBase AcceptsReturn",
+      "kind": "string",
+      "va": "0x01074ae4",
+      "text": "AcceptsReturn"
+    },
+    {
+      "name": "property TextBoxBase HorizontalScrollBarVisibility",
+      "kind": "string",
+      "va": "0x01074af4",
+      "text": "HorizontalScrollBarVisibility"
+    },
+    {
+      "name": "property TextBoxBase VerticalScrollBarVisibility",
+      "kind": "string",
+      "va": "0x01074b14",
+      "text": "VerticalScrollBarVisibility"
+    },
+    {
+      "name": "property TextBoxBase TextChanged",
+      "kind": "string",
+      "va": "0x01074b90",
+      "text": "TextChanged"
+    },
+    {
+      "name": "property TextBox SelectionStart",
+      "kind": "string",
+      "va": "0x0106ead4",
+      "text": "SelectionStart"
+    },
+    {
+      "name": "property TextBox SelectionLength",
+      "kind": "string",
+      "va": "0x0106eae4",
+      "text": "SelectionLength"
+    },
+    {
+      "name": "property TextBox CaretIndex",
+      "kind": "string",
+      "va": "0x0106eaf4",
+      "text": "CaretIndex"
+    },
+    {
+      "name": "property TextBox TextWrapping",
+      "kind": "string",
+      "va": "0x0106eb00",
+      "text": "TextWrapping"
+    },
+    {
+      "name": "property TextBox MaxLength",
+      "kind": "string",
+      "va": "0x0106eb10",
+      "text": "MaxLength"
+    },
+    {
+      "name": "property TextBox MinVisibleLines",
+      "kind": "string",
+      "va": "0x0106eb1c",
+      "text": "MinVisibleLines"
+    },
+    {
+      "name": "property TextBox MaxVisibleLines",
+      "kind": "string",
+      "va": "0x0106eb2c",
+      "text": "MaxVisibleLines"
+    },
+    {
+      "name": "property TextBox MaxLines",
+      "kind": "string",
+      "va": "0x0106eb3c",
+      "text": "MaxLines"
+    },
+    {
+      "name": "property TextBox TextAlignment",
+      "kind": "string",
+      "va": "0x0106eb48",
+      "text": "TextAlignment"
+    },
+    {
+      "name": "property TextBox FirstVisibleLineIndex",
+      "kind": "string",
+      "va": "0x0106eb58",
+      "text": "FirstVisibleLineIndex"
+    },
+    {
+      "name": "property TextBox VisibleLines",
+      "kind": "string",
+      "va": "0x0106eb70",
+      "text": "VisibleLines"
+    },
+    {
+      "name": "property TextBox VerticalTextAlignment",
+      "kind": "string",
+      "va": "0x0106eb80",
+      "text": "VerticalTextAlignment"
+    },
+    {
+      "name": "property TextBox TextUI",
+      "kind": "string",
+      "va": "0x0106eb98",
+      "text": "TextUI"
+    },
+    {
+      "name": "property TextBox IsReplaceUnaccept",
+      "kind": "string",
+      "va": "0x0106eba0",
+      "text": "IsReplaceUnaccept"
+    },
+    {
+      "name": "property TextBox IsValidFirst",
+      "kind": "string",
+      "va": "0x0106ebb4",
+      "text": "IsValidFirst"
+    },
+    {
+      "name": "property LogControl LogChanged",
+      "kind": "string",
+      "va": "0x00fa8de0",
+      "text": "LogChanged"
+    },
+    {
+      "name": "property LogControl LinesPerSec",
+      "kind": "string",
+      "va": "0x00fa8dec",
+      "text": "LinesPerSec"
+    },
+    {
+      "name": "property LogControl LinesPerSecHi",
+      "kind": "string",
+      "va": "0x00fa8df8",
+      "text": "LinesPerSecHi"
+    },
+    {
+      "name": "property LogControl LinesBeginHi",
+      "kind": "string",
+      "va": "0x00fa8e08",
+      "text": "LinesBeginHi"
+    },
+    {
+      "name": "property LogControl Categories",
+      "kind": "string",
+      "va": "0x00fa8e18",
+      "text": "Categories"
+    },
+    {
+      "name": "property LogControl LogFormat",
+      "kind": "string",
+      "va": "0x00fa8e24",
+      "text": "LogFormat"
+    },
+    {
+      "name": "property LogControl LogFormat2",
+      "kind": "string",
+      "va": "0x00fa8e30",
+      "text": "LogFormat2"
+    },
+    {
+      "name": "property LogControl IndentHasName",
+      "kind": "string",
+      "va": "0x00fa8e3c",
+      "text": "IndentHasName"
+    },
+    {
+      "name": "property LogControl IndentNoName",
+      "kind": "string",
+      "va": "0x00fa8e4c",
+      "text": "IndentNoName"
+    },
+    {
+      "name": "property LogControl SignalText",
+      "kind": "string",
+      "va": "0x00fa8e5c",
+      "text": "SignalText"
+    },
+    {
+      "name": "property LogControl SignalCommand",
+      "kind": "string",
+      "va": "0x00fa8e68",
+      "text": "SignalCommand"
+    },
+    {
+      "name": "property LogControl Action",
+      "kind": "string",
+      "va": "0x00fa8e78",
+      "text": "Action"
+    },
+    {
+      "name": "property LogControl Talker",
+      "kind": "string",
+      "va": "0x00fa8e80",
+      "text": "Talker"
+    },
+    {
+      "name": "property LogControl LastCategory",
+      "kind": "string",
+      "va": "0x00fa8e88",
+      "text": "LastCategory"
+    },
+    {
+      "name": "property LogControl IsEnableKeyWait",
+      "kind": "string",
+      "va": "0x00fa8e98",
+      "text": "IsEnableKeyWait"
+    },
+    {
+      "name": "property LogControl IsDisplayLastOne",
+      "kind": "string",
+      "va": "0x00fa8ea8",
+      "text": "IsDisplayLastOne"
+    },
+    {
+      "name": "enum string 0x010686d0 Disabled",
+      "kind": "string",
+      "va": "0x010686d0",
+      "text": "Disabled"
+    },
+    {
+      "name": "enum string 0x010686dc Hidden",
+      "kind": "string",
+      "va": "0x010686dc",
+      "text": "Hidden"
+    },
+    {
+      "name": "enum string 0x010686e4 Visible",
+      "kind": "string",
+      "va": "0x010686e4",
+      "text": "Visible"
+    },
+    {
+      "name": "enum string 0x010686ec AutoHidden",
+      "kind": "string",
+      "va": "0x010686ec",
+      "text": "AutoHidden"
+    },
+    {
+      "name": "enum string 0x010686f8 Auto",
+      "kind": "string",
+      "va": "0x010686f8",
+      "text": "Auto"
+    },
+    {
+      "name": "enum string 0x01068728 Collapsed",
+      "kind": "string",
+      "va": "0x01068728",
+      "text": "Collapsed"
+    },
+    {
+      "name": "enum string 0x01068734 Hidden",
+      "kind": "string",
+      "va": "0x01068734",
+      "text": "Hidden"
+    },
+    {
+      "name": "enum string 0x0106873c False",
+      "kind": "string",
+      "va": "0x0106873c",
+      "text": "False"
+    },
+    {
+      "name": "enum string 0x01068744 Visible",
+      "kind": "string",
+      "va": "0x01068744",
+      "text": "Visible"
+    },
+    {
+      "name": "LogControl content host path PART_HorizontalScrollBar:PART_RightButton",
+      "kind": "string",
+      "va": "0x00fa8a88",
+      "text": "PART_ContentHost:PART_HorizontalScrollBar:PART_RightButton"
+    },
+    {
+      "name": "LogControl content host path PART_HorizontalScrollBar:PART_LeftButton",
+      "kind": "string",
+      "va": "0x00fa8af0",
+      "text": "PART_ContentHost:PART_HorizontalScrollBar:PART_LeftButton"
+    },
+    {
+      "name": "LogControl content host path PART_HorizontalScrollBar:PART_Thumb",
+      "kind": "string",
+      "va": "0x00fa8b58",
+      "text": "PART_ContentHost:PART_HorizontalScrollBar:PART_Thumb"
+    },
+    {
+      "name": "LogControl content host path PART_HorizontalScrollBar:PART_Track",
+      "kind": "string",
+      "va": "0x00fa8bc8",
+      "text": "PART_ContentHost:PART_HorizontalScrollBar:PART_Track"
+    },
+    {
+      "name": "LogControl content host path PART_VerticalScrollBar:PART_DownButton",
+      "kind": "string",
+      "va": "0x00fa8c34",
+      "text": "PART_ContentHost:PART_VerticalScrollBar:PART_DownButton"
+    },
+    {
+      "name": "LogControl content host path PART_VerticalScrollBar:PART_UpButton",
+      "kind": "string",
+      "va": "0x00fa8c94",
+      "text": "PART_ContentHost:PART_VerticalScrollBar:PART_UpButton"
+    },
+    {
+      "name": "LogControl content host path PART_VerticalScrollBar:PART_Thumb",
+      "kind": "string",
+      "va": "0x00fa8cf4",
+      "text": "PART_ContentHost:PART_VerticalScrollBar:PART_Thumb"
+    },
+    {
+      "name": "LogControl content host path PART_VerticalScrollBar:PART_Track",
+      "kind": "string",
+      "va": "0x00fa8d5c",
+      "text": "PART_ContentHost:PART_VerticalScrollBar:PART_Track"
+    },
+    {
+      "name": "default part table keys",
+      "kind": "recordKeys",
+      "va": "0x012dcde0",
+      "stride": 48,
+      "keyOffset": 32,
+      "count": 66,
+      "keys": [
+        "",
+        "Window",
+        "ScrollBar:LeftButton",
+        "ScrollBar:RightButton",
+        "ScrollBar:VerticalSlidingThumb",
+        "ScrollBar:HorizontalSlidingThumb",
+        "ScrollBar:UpButton",
+        "ScrollBar:DownButton",
+        "ScrollBar:VerticalBackground",
+        "ScrollBar:HorizontalBackground",
+        "TextBox:HorizontalScrollBar:LeftButton",
+        "TextBox:HorizontalScrollBar:RightButton",
+        "TextBox:HorizontalScrollBar:HorizontalSlidingThumb",
+        "TextBox:HorizontalScrollBar:HorizontalBackground",
+        "TextBox:VerticalScrollBar:VerticalSlidingThumb",
+        "TextBox:VerticalScrollBar:UpButton",
+        "TextBox:VerticalScrollBar:DownButton",
+        "TextBox:VerticalScrollBar:VerticalBackground",
+        "ListBox:HorizontalScrollBar:LeftButton",
+        "ListBox:HorizontalScrollBar:RightButton",
+        "ListBox:HorizontalScrollBar:HorizontalSlidingThumb",
+        "ListBox:HorizontalScrollBar:HorizontalBackground",
+        "ListBox:VerticalScrollBar:VerticalSlidingThumb",
+        "ListBox:VerticalScrollBar:UpButton",
+        "ListBox:VerticalScrollBar:DownButton",
+        "ListBox:VerticalScrollBar:VerticalBackground",
+        "ScrollViewer:HorizontalScrollBar:LeftButton",
+        "ScrollViewer:HorizontalScrollBar:RightButton",
+        "ScrollViewer:HorizontalScrollBar:HorizontalSlidingThumb",
+        "ScrollViewer:HorizontalScrollBar:HorizontalBackground",
+        "ScrollViewer:VerticalScrollBar:VerticalSlidingThumb",
+        "ScrollViewer:VerticalScrollBar:UpButton",
+        "ScrollViewer:VerticalScrollBar:DownButton",
+        "ScrollViewer:VerticalScrollBar:VerticalBackground",
+        "Button",
+        "ComboBox:Background",
+        "ComboBox:DownButton",
+        "ListBox:Background",
+        "RadioButton:UncheckedButton:Frame,CheckedButton:Frame",
+        "CheckBox:UncheckedButton:Frame,CheckedButton:Frame",
+        "ToggleButton:UncheckedButton:Frame,CheckedButton:Frame",
+        "ComboBox:DownButton:UncheckedButton:Frame,DownButton:CheckedButton:Frame",
+        "TextBox:Background",
+        "ProgressBar:HorizontalBackground",
+        "ProgressBar:VerticalBackground",
+        "ProgressBar:HorizontalIndicator",
+        "ProgressBar:VerticalIndicator",
+        "ListBoxItem",
+        "Slider:HorizontalBackground",
+        "Slider:VerticalBackground",
+        "Slider:HorizontalSlidingThumb",
+        "Slider:VerticalSlidingThumb",
+        "TabItem:Background_Header",
+        "TabControl:Background_SelectedContent",
+        "TabControl:Background_TabPanel",
+        "RepeatButton",
+        "LogControl:Background",
+        "LogControl:WaitCursor",
+        "LogControl:HorizontalScrollBar:LeftButton",
+        "LogControl:HorizontalScrollBar:RightButton",
+        "LogControl:HorizontalScrollBar:HorizontalSlidingThumb",
+        "LogControl:HorizontalScrollBar:HorizontalBackground",
+        "LogControl:VerticalScrollBar:UpButton",
+        "LogControl:VerticalScrollBar:DownButton",
+        "LogControl:VerticalScrollBar:VerticalSlidingThumb",
+        "LogControl:VerticalScrollBar:VerticalBackground"
+      ]
+    }
+  ]
+}
