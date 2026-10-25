@@ -398,7 +398,9 @@ cluster matches the `FUN_00d2*` cluster from `FUN_00cd80f0`'s
 xref list - strong confirmation of two parallel registries with
 identical id-classification policy.
 
-The write path that assigns metadata tag `0x0F` remains unidentified.
+The registrars that add group `0xF` are `0x00D038C0` and `0x00D03A50`. No
+writer of the compared byte `0x0130D426` was found, see the
+[binding rule](event-base-callback-arguments.md#runeventfunction-binding).
 
 Recovered names:
 - `FUN_00cc7a50` -> `ActorRegistry::lookup_actor`
@@ -457,10 +459,11 @@ to identify the writer.
 ### Slot 3 dispatch hypothesis
 
 Slot 3's pattern may be the actual "dispatch this kick" entry
-that wraps slot 2's gate check. Its `CALL 0x006ee680` candidate
-trampolines into `DirectorBase::OnEventStarted` (or whichever
-DirectorBase slot is the "got a kick, run the noticeEvent body"
-hook). This identity remains unconfirmed.
+that wraps slot 2's gate check. The hypothesis that its
+`CALL 0x006ee680` candidate trampolines into a `DirectorBase` hook is not
+supported: `0x006EE680` is a method of the looked-up actor and none of its
+direct calls reaches a Lua callback
+([KickEvent begin path](event-base-callback-arguments.md#kickevent-begin-path)).
 
 ## Cross-references
 
