@@ -39,8 +39,8 @@ PUBLISHED_COUNTS = {
     "RaptureCharaVisualClip": 151,
     "RaptureMapCollisionOnOffClip": 2688,
 }
-# Ranks 1 to 8 and 10 to 13 of the census. Rank 9 is BindActorClip, which the
-# clip layout page documents.
+# Ranks 1 to 8, 10 to 17 and 19 to 22 of the census. Rank 9 is BindActorClip and
+# rank 18 is RaptureMapCollisionOnOffClip, which the clip layout page documents.
 CLASS_ORDER = [
     "SetPosClip",
     "MotionClip",
@@ -54,6 +54,14 @@ CLASS_ORDER = [
     "RaptureMesClip",
     "DepthOfFieldClip",
     "KillClip",
+    "RaptureNqIdleSetClip",
+    "RaptureAutoMoveClip",
+    "RaptureBlackFadeClip",
+    "RaptureSoundClip",
+    "ActionClip",
+    "RaptureScaleClip",
+    "RaptureTurnClip",
+    "RaptureBgmClip",
 ]
 # name: (rank, size, factory, primary vtable, slot 1, slot 2, slot 29, origin)
 OBJECTS = {
@@ -177,6 +185,86 @@ OBJECTS = {
         0x00DEC7D0,
         "base only",
     ),
+    "RaptureNqIdleSetClip": (
+        14,
+        0x38,
+        0x00639A20,
+        0x01009DE4,
+        0x0081A990,
+        0x00A20F90,
+        0x00A172A0,
+        "rapture only",
+    ),
+    "RaptureAutoMoveClip": (
+        15,
+        0x40,
+        0x00638790,
+        0x00FF851C,
+        0x00811C80,
+        0x00811910,
+        0x00813000,
+        "rapture only",
+    ),
+    "RaptureBlackFadeClip": (
+        16,
+        0x40,
+        0x006395A0,
+        0x01005CCC,
+        0x00818FF0,
+        0x00818EF0,
+        0x00823CE0,
+        "rapture only",
+    ),
+    "RaptureSoundClip": (
+        17,
+        0x54,
+        0x00639B40,
+        0x0100B2A4,
+        0x0081AEA0,
+        0x0081B240,
+        0x00823CE0,
+        "rapture only",
+    ),
+    "ActionClip": (
+        19,
+        0x68,
+        0x0063C210,
+        0x01033BEC,
+        0x0082FC60,
+        0x0082FCB0,
+        0x00813000,
+        "rapture override",
+    ),
+    "RaptureScaleClip": (
+        20,
+        0x38,
+        0x0063AC20,
+        0x0101C264,
+        0x00825100,
+        0x00A20F90,
+        0x00823CE0,
+        "rapture only",
+    ),
+    "RaptureTurnClip": (
+        21,
+        0x3C,
+        0x00638670,
+        0x00FF7054,
+        0x00811470,
+        0x008114F0,
+        0x00823CE0,
+        "rapture only",
+    ),
+    "RaptureBgmClip": (
+        22,
+        0x38,
+        0x00639D80,
+        0x0100D4A4,
+        0x0081BFB0,
+        0x00A20F90,
+        0x00823CE0,
+        "rapture only",
+    ),
 }
 # Slot 8 is the clip end tick. The base method returns the start tick.
 BASE_SLOT8 = 0x00A21080
@@ -184,18 +272,35 @@ SLOT8 = {
     "MotionClip": 0x0082F110,
     "LocalCameraClip": 0x00A0B830,
     "DepthOfFieldClip": 0x00DF0040,
+    "ActionClip": 0x00A176D0,
+}
+# Slot 30 is the begin gate predicate. ActionClip alone overrides the shared one.
+BASE_SLOT30 = 0x00B73290
+SLOT30 = {"ActionClip": 0x005C5C80}
+# Slots 3 and 4 of the classes whose pages list them.
+SLOT34 = {
+    "RaptureNqIdleSetClip": (0x00A21000, 0x00A21010),
+    "RaptureAutoMoveClip": (0x00811810, 0x00811C30),
+    "RaptureBlackFadeClip": (0x00A21000, 0x00A21010),
+    "RaptureSoundClip": (0x0081B430, 0x00A21010),
+    "ActionClip": (0x00A176E0, 0x00A17CB0),
+    "RaptureScaleClip": (0x00A21000, 0x00A21010),
+    "RaptureTurnClip": (0x00A21000, 0x00A21010),
+    "RaptureBgmClip": (0x00A21000, 0x00A21010),
 }
 # How each class derives its end tick, in terms of the record D.
 END_FIELD = {
     "MotionClip": "u32(D+0x18)",
     "LocalCameraClip": "u32(D+0x10) plus clip +0x110",
     "DepthOfFieldClip": "u32(D+0x10)",
+    "ActionClip": "u32(D+0x18)",
 }
 BASE_END_FIELD = "the start tick, u32(D+4)"
 BASE_FACTORIES = {
     "SetPosClip": 0x00A4DB10,
     "MotionClip": 0x00A4DCD0,
     "ShowHideClip": 0x00A4DB80,
+    "ActionClip": 0x00A4DD40,
 }
 REGISTRY = {
     "managerSlot3Registrar": "0x00635760",
@@ -248,6 +353,29 @@ EXPECTED_OUTCOMES = {
     "install-census": "OBSERVED",
     "install-invariants": "OBSERVED",
     "install-timing": "OBSERVED",
+    "registry-ranks-14-22": "STATIC",
+    "objects-ranks-14-22": "STATIC",
+    "nqidle-layout": "STATIC",
+    "nqidle-meaning": "INFERRED",
+    "automove-layout": "STATIC",
+    "automove-meaning": "INFERRED",
+    "automove-sink": "UNKNOWN",
+    "blackfade-layout": "STATIC",
+    "blackfade-meaning": "INFERRED",
+    "sound-layout": "STATIC",
+    "sound-meaning": "INFERRED",
+    "sound-sink": "UNKNOWN",
+    "action-layout": "STATIC",
+    "action-meaning": "INFERRED",
+    "action-sink": "UNKNOWN",
+    "scale-layout": "STATIC",
+    "scale-meaning": "INFERRED",
+    "turn-layout": "STATIC",
+    "turn-meaning": "INFERRED",
+    "bgm-layout": "STATIC",
+    "bgm-meaning": "INFERRED",
+    "timing-ranks-14-22": "STATIC",
+    "timing-action-gate": "STATIC",
 }
 TIMING_UNIT = {
     "ticksPerSecond": 300000,
@@ -308,74 +436,258 @@ TIMING_CHECKS = {
     "clip index word consumer",
     "clip index lookup in scheduler list",
     "motion list frame conversion 0x007ad020",
+    "ActionClip slot 30 returns false",
+    "ActionClip slot 8 end tick",
+    "RaptureBlackFadeClip frame number helper 0x00a203e0",
+    "RaptureBlackFadeClip scheduler frame getter 0x00a1b860",
+    "RaptureSoundClip slot 2 elapsed milliseconds",
 }
-REQUIRED_CHECKS = {
-    "base begin stores state 1 and target",
-    "base update promotes state 1 to 2",
-    "base accessor class ordinal",
-    "base accessor actor ordinal",
-    "base accessor raw value",
-    "base accessor header word +0x0C",
-    "base accessor header word +0x08",
-    "base accessor header byte +0x0A",
-    "base accessor header flag bit 0",
-    "base accessor header flag bit 1",
-    "base accessor header flag bit 2",
-    "base accessor end state",
-    "base accessor stop state",
-    "SetPosClip rapture erase",
-    "SetPosClip rapture insert",
-    "SetPosClip base insert",
-    "SetPosClip component overrides",
-    "SetPosClip CharaActor cast",
-    "SetPosClip CharaActor setter 0x0065e660 call",
-    "ShowHideClip rapture insert",
-    "ShowHideClip visibility call",
-    "MotionClip rapture insert",
-    "MotionClip fields 0x1c and 0x20",
-    "MotionClip name prefix test",
-    "PhysicsLookAtClip mode switch",
-    "PhysicsLookAtClip mode 1 angles",
-    "PhysicsLookAtClip mode 0 call 0x0065e730",
-    "ClipSyncClip base insert",
-    "ClipSyncClip all-finished loop",
-    "ClipSyncClip any-finished loop",
-    "ClipSync array bounds check",
-    "LocalCameraClip base insert",
-    "LocalCameraClip begin extension gate",
-    "LocalCameraClip update reads flag bit 2",
-    "LocalCameraClip update reads flag bit 0",
-    "LocalCameraClip extension copy",
-    "class key entry fill",
-    "class key entry fill call for CCPT",
-    "CCPT chunk tag",
-    "clip builder key entry",
-    "MotionClip actor guards",
-    "MotionClip end call",
-    "RaptureNqMotionBlendOnOffClip rapture insert",
-    "RaptureNqMotionBlendOnOffClip flag and value call",
-    "CharaActor blend setter 0x0065d260",
-    "RaptureFacialPoseForSchClip rapture insert",
-    "RaptureFacialPoseForSchClip name and word call",
-    "facial pose stores 0x007a6210",
-    "RaptureFacialLipSyncClip rapture insert",
-    "RaptureFacialLipSyncClip second insert",
-    "RaptureFacialLipSyncClip mode and set call",
-    "lip sync table and resource lookups 0x007a6fc0",
-    "RaptureMesClip rapture insert",
-    "RaptureMesClip key entry byte switch",
-    "RaptureMesClip key 3 mask loops",
-    "RaptureMesClip message dispatch and phase",
-    "RaptureMesClip slot 3 scheduler flag",
-    "DepthOfFieldClip base insert",
-    "DepthOfFieldClip flag word routing",
-    "DepthOfFieldClip parameter float reads",
-    "DepthOfFieldClip slot 8 length",
-    "KillClip base insert",
-    "KillClip second insert",
-    "KillClip target abort loop",
-    "RaptureMesClip type 0xa post null guard",
-} | TIMING_CHECKS
+NEW_CHECKS = {
+    "RaptureNqIdleSetClip rapture insert",
+    "RaptureNqIdleSetClip rapture key",
+    "RaptureNqIdleSetClip factory object size",
+    "RaptureNqIdleSetClip factory constructor call",
+    "RaptureNqIdleSetClip constructor installs primary vtable",
+    "RaptureNqIdleSetClip constructor chain base call",
+    "RaptureNqIdleSetClip vtable slots 0 to 8",
+    "RaptureNqIdleSetClip vtable slot 29",
+    "RaptureNqIdleSetClip vtable slot 30",
+    "RaptureNqIdleSetClip RTTI name",
+    "RaptureAutoMoveClip rapture insert",
+    "RaptureAutoMoveClip rapture key",
+    "RaptureAutoMoveClip factory object size",
+    "RaptureAutoMoveClip factory constructor call",
+    "RaptureAutoMoveClip constructor installs primary vtable",
+    "RaptureAutoMoveClip constructor chain base call",
+    "RaptureAutoMoveClip vtable slots 0 to 8",
+    "RaptureAutoMoveClip vtable slot 29",
+    "RaptureAutoMoveClip vtable slot 30",
+    "RaptureAutoMoveClip RTTI name",
+    "RaptureBlackFadeClip rapture insert",
+    "RaptureBlackFadeClip rapture key",
+    "RaptureBlackFadeClip factory object size",
+    "RaptureBlackFadeClip factory constructor call",
+    "RaptureBlackFadeClip constructor installs primary vtable",
+    "RaptureBlackFadeClip constructor chain base call",
+    "RaptureBlackFadeClip vtable slots 0 to 8",
+    "RaptureBlackFadeClip vtable slot 29",
+    "RaptureBlackFadeClip vtable slot 30",
+    "RaptureBlackFadeClip RTTI name",
+    "RaptureSoundClip rapture insert",
+    "RaptureSoundClip rapture key",
+    "RaptureSoundClip factory object size",
+    "RaptureSoundClip factory constructor call",
+    "RaptureSoundClip constructor installs primary vtable",
+    "RaptureSoundClip constructor chain base call",
+    "RaptureSoundClip vtable slots 0 to 8",
+    "RaptureSoundClip vtable slot 29",
+    "RaptureSoundClip vtable slot 30",
+    "RaptureSoundClip RTTI name",
+    "RaptureScaleClip rapture insert",
+    "RaptureScaleClip rapture key",
+    "RaptureScaleClip factory object size",
+    "RaptureScaleClip factory constructor call",
+    "RaptureScaleClip constructor installs primary vtable",
+    "RaptureScaleClip constructor chain base call",
+    "RaptureScaleClip vtable slots 0 to 8",
+    "RaptureScaleClip vtable slot 29",
+    "RaptureScaleClip vtable slot 30",
+    "RaptureScaleClip RTTI name",
+    "RaptureTurnClip rapture insert",
+    "RaptureTurnClip rapture key",
+    "RaptureTurnClip factory object size",
+    "RaptureTurnClip factory constructor call",
+    "RaptureTurnClip constructor installs primary vtable",
+    "RaptureTurnClip constructor chain base call",
+    "RaptureTurnClip vtable slots 0 to 8",
+    "RaptureTurnClip vtable slot 29",
+    "RaptureTurnClip vtable slot 30",
+    "RaptureTurnClip RTTI name",
+    "RaptureBgmClip rapture insert",
+    "RaptureBgmClip rapture key",
+    "RaptureBgmClip factory object size",
+    "RaptureBgmClip factory constructor call",
+    "RaptureBgmClip constructor installs primary vtable",
+    "RaptureBgmClip constructor chain base call",
+    "RaptureBgmClip vtable slots 0 to 8",
+    "RaptureBgmClip vtable slot 29",
+    "RaptureBgmClip vtable slot 30",
+    "RaptureBgmClip RTTI name",
+    "ActionClip factory object size",
+    "ActionClip factory constructor call",
+    "ActionClip constructor installs primary vtable",
+    "ActionClip constructor chain base call",
+    "ActionClip vtable slots 0 to 8",
+    "ActionClip vtable slot 29",
+    "ActionClip vtable slot 30",
+    "ActionClip RTTI name",
+    "ActionClip rapture erase",
+    "ActionClip rapture insert",
+    "ActionClip base insert",
+    "ActionClip second insert",
+    "ActionClip rapture erase key",
+    "ActionClip rapture insert key",
+    "ActionClip base key",
+    "RaptureNqIdleSetClip record read and CharaActor cast",
+    "RaptureNqIdleSetClip CharaActor idle name setter 0x0065e3e0",
+    "RaptureNqIdleSetClip idle name copy 0x007a4fb0",
+    "RaptureNqIdleSetClip idle name map update 0x0065c4c0",
+    "RaptureAutoMoveClip track lookup index",
+    "RaptureAutoMoveClip track data window",
+    "RaptureAutoMoveClip parameter block reads",
+    "RaptureAutoMoveClip point count loop bound",
+    "RaptureAutoMoveClip handoff to CharaActor",
+    "RaptureAutoMoveClip update abort cancel",
+    "RaptureAutoMoveClip update seek test",
+    "RaptureAutoMoveClip update seek curve sample",
+    "RaptureAutoMoveClip update seek position set",
+    "RaptureAutoMoveClip update running test",
+    "RaptureAutoMoveClip slot 4 releases path objects",
+    "RaptureBlackFadeClip fade object lookup",
+    "RaptureBlackFadeClip color table init",
+    "RaptureBlackFadeClip duration and color reads",
+    "RaptureBlackFadeClip end frame",
+    "RaptureBlackFadeClip slot 2 end test",
+    "RaptureBlackFadeClip fade setter 0x00612400",
+    "RaptureBlackFadeClip frame number helper 0x00a203e0",
+    "RaptureBlackFadeClip scheduler frame getter 0x00a1b860",
+    "RaptureSoundClip slot 1 init and preload gate",
+    "RaptureSoundClip slot 2 first update gates",
+    "RaptureSoundClip slot 2 elapsed milliseconds",
+    "RaptureSoundClip slot 2 phase after start",
+    "RaptureSoundClip start helper key switch",
+    "RaptureSoundClip start helper key 0 and 1 id reads",
+    "RaptureSoundClip start helper key 2 and 3 flag and volume reads",
+    "RaptureSoundClip start helper array element and play call",
+    "RaptureSoundClip start helper selector failure gates",
+    "RaptureSoundClip start helper result",
+    "RaptureSoundClip preload replay bit 3 argument",
+    "RaptureSoundClip slot 3 stop gate",
+    "RaptureSoundClip stop helper key switch and slot argument",
+    "RaptureSoundClip stop helper key 2 and 3 fade",
+    "RaptureSoundClip play call free element scan",
+    "RaptureSoundClip play call slot vector",
+    "RaptureSoundClip play call shared request object",
+    "ActionClip slot 1 started object flag test",
+    "ActionClip slot 2 gate and dispatch",
+    "ActionClip begin negative id guard",
+    "ActionClip begin actor ordinal and flag bit 3",
+    "ActionClip begin lookup by id when bit 3 clear",
+    "ActionClip begin lookup by id when bit 3 set",
+    "ActionClip update loop branch",
+    "ActionClip update single pass branch",
+    "ActionClip slot 3 end",
+    "ActionClip slot 4 release",
+    "ActionClip slot 8 end tick",
+    "ActionClip slot 24 returns true",
+    "ActionClip slot 30 returns false",
+    "RaptureScaleClip slot 1 record reads",
+    "RaptureScaleClip CharaActor scale and size setter 0x0065e390",
+    "RaptureScaleClip CharaActor size setter 0x0065e320",
+    "RaptureScaleClip CharaActor scale index setter 0x00662b20",
+    "RaptureScaleClip scale index mapper 0x0065b5c0",
+    "RaptureScaleClip scale transition 0x0065c0d0",
+    "RaptureTurnClip slot 1 reads",
+    "RaptureTurnClip slot 2 wait for turn",
+    "RaptureTurnClip CharaActor turn setter 0x0065e4a0",
+    "RaptureTurnClip turn predicate 0x007a4cc0",
+    "RaptureTurnClip angle to direction 0x007b0530",
+    "RaptureBgmClip slot 1 reads",
+    "RaptureBgmClip music request 0x0060f630",
+    "RaptureBgmClip music request forwarder 0x00611900",
+    "ActionClip base vtable slots 0 to 8",
+    "ActionClip base RTTI name",
+    "ActionClip base constructor base call",
+    "RaptureSoundClip start helper jump table",
+    "RaptureSoundClip stop helper jump table",
+    "RaptureAutoMoveClip curve key pointers",
+    "RaptureAutoMoveClip curve name tx",
+    "RaptureAutoMoveClip curve name ty",
+    "RaptureAutoMoveClip curve name tz",
+    "RaptureAutoMoveClip track name TracePoint",
+    "RaptureBlackFadeClip color pointer table",
+    "RaptureNqIdleSetClip map key cbnm_id0",
+    "RaptureNqIdleSetClip map key cbbm_id0",
+    "scheduler motion frame rate double",
+    "angle scale doubles",
+    "full turn float",
+    "milliseconds per second double",
+    "negation double",
+    "slot 29 tail pointer D+0x30",
+    "slot 29 tail pointer D+0x28",
+    "RaptureAutoMoveClip slot 3 forwards to the base end state",
+}
+REQUIRED_CHECKS = (
+    {
+        "base begin stores state 1 and target",
+        "base update promotes state 1 to 2",
+        "base accessor class ordinal",
+        "base accessor actor ordinal",
+        "base accessor raw value",
+        "base accessor header word +0x0C",
+        "base accessor header word +0x08",
+        "base accessor header byte +0x0A",
+        "base accessor header flag bit 0",
+        "base accessor header flag bit 1",
+        "base accessor header flag bit 2",
+        "base accessor end state",
+        "base accessor stop state",
+        "SetPosClip rapture erase",
+        "SetPosClip rapture insert",
+        "SetPosClip base insert",
+        "SetPosClip component overrides",
+        "SetPosClip CharaActor cast",
+        "SetPosClip CharaActor setter 0x0065e660 call",
+        "ShowHideClip rapture insert",
+        "ShowHideClip visibility call",
+        "MotionClip rapture insert",
+        "MotionClip fields 0x1c and 0x20",
+        "MotionClip name prefix test",
+        "PhysicsLookAtClip mode switch",
+        "PhysicsLookAtClip mode 1 angles",
+        "PhysicsLookAtClip mode 0 call 0x0065e730",
+        "ClipSyncClip base insert",
+        "ClipSyncClip all-finished loop",
+        "ClipSyncClip any-finished loop",
+        "ClipSync array bounds check",
+        "LocalCameraClip base insert",
+        "LocalCameraClip begin extension gate",
+        "LocalCameraClip update reads flag bit 2",
+        "LocalCameraClip update reads flag bit 0",
+        "LocalCameraClip extension copy",
+        "class key entry fill",
+        "class key entry fill call for CCPT",
+        "CCPT chunk tag",
+        "clip builder key entry",
+        "MotionClip actor guards",
+        "MotionClip end call",
+        "RaptureNqMotionBlendOnOffClip rapture insert",
+        "RaptureNqMotionBlendOnOffClip flag and value call",
+        "CharaActor blend setter 0x0065d260",
+        "RaptureFacialPoseForSchClip rapture insert",
+        "RaptureFacialPoseForSchClip name and word call",
+        "facial pose stores 0x007a6210",
+        "RaptureFacialLipSyncClip rapture insert",
+        "RaptureFacialLipSyncClip second insert",
+        "RaptureFacialLipSyncClip mode and set call",
+        "lip sync table and resource lookups 0x007a6fc0",
+        "RaptureMesClip rapture insert",
+        "RaptureMesClip key entry byte switch",
+        "RaptureMesClip key 3 mask loops",
+        "RaptureMesClip message dispatch and phase",
+        "RaptureMesClip slot 3 scheduler flag",
+        "DepthOfFieldClip base insert",
+        "DepthOfFieldClip flag word routing",
+        "DepthOfFieldClip parameter float reads",
+        "DepthOfFieldClip slot 8 length",
+        "KillClip base insert",
+        "KillClip second insert",
+        "KillClip target abort loop",
+        "RaptureMesClip type 0xa post null guard",
+    }
+    | TIMING_CHECKS
+    | NEW_CHECKS
+)
 FLAG_OFFSETS = (0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3C, 0x3D, 0x3E)
 PI_F32 = struct.unpack("<f", struct.pack("<f", math.pi))[0]
 
@@ -488,6 +800,55 @@ def _dof_end(clip, sched, index) -> bool:
     flags = le("I", clip.record, 0x14)
     end = le("I", clip.record, 0x10)
     return end >= clip.raw and (flags & 2 != 0 or end == clip.raw)
+
+
+def _key_byte_in(*wanted: int):
+    return lambda clip, sched, index: sched.clip_class_bytes[clip.cls] in wanted
+
+
+def _idle_name(clip, sched, index) -> bool:
+    name = clip.record[0x10:0x30]
+    end = name.find(b"\0")
+    return (
+        0 < end < 16
+        and name[end:] == bytes(len(name) - end)
+        and all(0x20 <= byte < 0x7F for byte in name[:end])
+    )
+
+
+def _automove_speed(clip, sched, index) -> bool:
+    return 0.0 < le("f", clip.record, 0x20) <= 35.0
+
+
+def _sound_array(clip, sched, index) -> bool:
+    size = le("I", clip.record, 0x24)
+    return size % 4 == 0 and 4 <= size <= 36
+
+
+def _sound_volume(clip, sched, index) -> bool:
+    return 0.0 <= le("f", clip.record, 0x1C) <= 1.0
+
+
+def _action_end(clip, sched, index) -> bool:
+    return (
+        le("I", clip.record, 0x14) & 0x80 != 0 or le("i", clip.record, 0x18) > clip.raw
+    )
+
+
+def _scale_preset(clip, sched, index):
+    if le("I", clip.record, 0x14) != 0:
+        return None
+    return le("I", clip.record, 0x18) <= 4
+
+
+def _scale_factor(clip, sched, index):
+    if le("I", clip.record, 0x14) != 1:
+        return None
+    return 0.25 <= le("f", clip.record, 0x18) <= 8.0
+
+
+def _turn_angle(clip, sched, index) -> bool:
+    return -PI_F32 <= le("f", clip.record, 0x10) <= PI_F32
 
 
 MES_MASK_BITS = 0xFE | (0x1F << 20)
@@ -778,6 +1139,240 @@ INVARIANTS = {
         "every listed index is -1 or inside the scheduler clip list and is not the clip itself",
         _kill_refs,
     ),
+    "nqidle-key-byte": (
+        "RaptureNqIdleSetClip",
+        "the @CCPT entry byte +2 of the class is 0",
+        _key_byte(0),
+    ),
+    "nqidle-link": (
+        "RaptureNqIdleSetClip",
+        "record bytes are 0x30",
+        lambda c, s, i: c.link == 0x30,
+    ),
+    "nqidle-name": (
+        "RaptureNqIdleSetClip",
+        "bytes +0x10 to +0x2f hold an ASCII name that ends before byte 16 and is zero filled",
+        _idle_name,
+    ),
+    "automove-key-byte": (
+        "RaptureAutoMoveClip",
+        "the @CCPT entry byte +2 of the class is 3",
+        _key_byte(3),
+    ),
+    "automove-link": (
+        "RaptureAutoMoveClip",
+        "record bytes are 0x28",
+        lambda c, s, i: c.link == 0x28,
+    ),
+    "automove-count": (
+        "RaptureAutoMoveClip",
+        "s32 +0x10 is within 2 to 20",
+        lambda c, s, i: 2 <= le("i", c.record, 0x10) <= 20,
+    ),
+    "automove-mode": (
+        "RaptureAutoMoveClip",
+        "u16 +0x14 is within 0 to 2",
+        lambda c, s, i: le("H", c.record, 0x14) <= 2,
+    ),
+    "automove-flags": (
+        "RaptureAutoMoveClip",
+        "u16 +0x16, s32 +0x18 and u16 +0x24 are 0 or 1",
+        lambda c, s, i: (
+            le("H", c.record, 0x16) in (0, 1)
+            and le("i", c.record, 0x18) in (0, 1)
+            and le("H", c.record, 0x24) in (0, 1)
+        ),
+    ),
+    "automove-hold": (
+        "RaptureAutoMoveClip",
+        "s32 +0x1c is within 0 to 350",
+        lambda c, s, i: 0 <= le("i", c.record, 0x1C) <= 350,
+    ),
+    "automove-speed": (
+        "RaptureAutoMoveClip",
+        "f32 +0x20 is above 0 and at most 35",
+        _automove_speed,
+    ),
+    "blackfade-key-byte": (
+        "RaptureBlackFadeClip",
+        "the @CCPT entry byte +2 of the class is 0",
+        _key_byte(0),
+    ),
+    "blackfade-link": (
+        "RaptureBlackFadeClip",
+        "record bytes are 0x1c",
+        lambda c, s, i: c.link == 0x1C,
+    ),
+    "blackfade-lead": (
+        "RaptureBlackFadeClip",
+        "u32 +0x10 is 0",
+        lambda c, s, i: le("I", c.record, 0x10) == 0,
+    ),
+    "blackfade-color": (
+        "RaptureBlackFadeClip",
+        "u32 +0x14 is 0 or 1",
+        lambda c, s, i: le("I", c.record, 0x14) in (0, 1),
+    ),
+    "blackfade-frames": (
+        "RaptureBlackFadeClip",
+        "s32 +0x18 is within -1 to 120",
+        lambda c, s, i: -1 <= le("i", c.record, 0x18) <= 120,
+    ),
+    "sound-key-byte": (
+        "RaptureSoundClip",
+        "the @CCPT entry byte +2 of the class is 2 or 3, which selects the array branch of the start helper",
+        _key_byte_in(2, 3),
+    ),
+    "sound-link": (
+        "RaptureSoundClip",
+        "record bytes are 0x28 plus u32 +0x24",
+        lambda c, s, i: c.link == 0x28 + le("I", c.record, 0x24),
+    ),
+    "sound-array": (
+        "RaptureSoundClip",
+        "u32 +0x24 is a multiple of 4 within 4 to 36",
+        _sound_array,
+    ),
+    "sound-lead": (
+        "RaptureSoundClip",
+        "u32 +0x10 is 0",
+        lambda c, s, i: le("I", c.record, 0x10) == 0,
+    ),
+    "sound-flags": (
+        "RaptureSoundClip",
+        "u32 +0x14 is within 0 to 4",
+        lambda c, s, i: le("I", c.record, 0x14) <= 4,
+    ),
+    "sound-slot": (
+        "RaptureSoundClip",
+        "u32 +0x18 is within 0 to 3",
+        lambda c, s, i: le("I", c.record, 0x18) <= 3,
+    ),
+    "sound-volume": (
+        "RaptureSoundClip",
+        "f32 +0x1c is within 0 to 1",
+        _sound_volume,
+    ),
+    "action-key-byte": (
+        "ActionClip",
+        "the @CCPT entry byte +2 of the class is 1",
+        _key_byte(1),
+    ),
+    "action-link": (
+        "ActionClip",
+        "record bytes are 0x28",
+        lambda c, s, i: c.link == 0x28,
+    ),
+    "action-id": (
+        "ActionClip",
+        "s32 +0x10 is not negative",
+        lambda c, s, i: le("i", c.record, 0x10) >= 0,
+    ),
+    "action-flags": (
+        "ActionClip",
+        "u32 +0x14 only sets bits 7 to 15",
+        lambda c, s, i: le("I", c.record, 0x14) & ~0xFF80 == 0,
+    ),
+    "action-end": (
+        "ActionClip",
+        "s32 +0x18 is above the start tick when bit 7 of u32 +0x14 is clear",
+        _action_end,
+    ),
+    "action-tail": (
+        "ActionClip",
+        "u32 +0x24 is within 50 to 100",
+        lambda c, s, i: 50 <= le("I", c.record, 0x24) <= 100,
+    ),
+    "scale-key-byte": (
+        "RaptureScaleClip",
+        "the @CCPT entry byte +2 of the class is 1",
+        _key_byte(1),
+    ),
+    "scale-link": (
+        "RaptureScaleClip",
+        "record bytes are 0x24",
+        lambda c, s, i: c.link == 0x24,
+    ),
+    "scale-lead": (
+        "RaptureScaleClip",
+        "u32 +0x10 is 0",
+        lambda c, s, i: le("I", c.record, 0x10) == 0,
+    ),
+    "scale-mode": (
+        "RaptureScaleClip",
+        "u32 +0x14 is 0 or 1",
+        lambda c, s, i: le("I", c.record, 0x14) in (0, 1),
+    ),
+    "scale-preset": (
+        "RaptureScaleClip",
+        "in mode 0 u32 +0x18 is within 0 to 4",
+        _scale_preset,
+    ),
+    "scale-factor": (
+        "RaptureScaleClip",
+        "in mode 1 f32 +0x18 is within 0.25 to 8",
+        _scale_factor,
+    ),
+    "scale-switch": (
+        "RaptureScaleClip",
+        "u32 +0x1c is 0 or 1",
+        lambda c, s, i: le("I", c.record, 0x1C) in (0, 1),
+    ),
+    "scale-length": (
+        "RaptureScaleClip",
+        "u32 +0x20 is within 0 to 15",
+        lambda c, s, i: le("I", c.record, 0x20) <= 15,
+    ),
+    "turn-key-byte": (
+        "RaptureTurnClip",
+        "the @CCPT entry byte +2 of the class is 0",
+        _key_byte(0),
+    ),
+    "turn-link": (
+        "RaptureTurnClip",
+        "record bytes are 0x14",
+        lambda c, s, i: c.link == 0x14,
+    ),
+    "turn-angle": (
+        "RaptureTurnClip",
+        "f32 +0x10 is within plus or minus pi",
+        _turn_angle,
+    ),
+    "bgm-key-byte": (
+        "RaptureBgmClip",
+        "the @CCPT entry byte +2 of the class is 0",
+        _key_byte(0),
+    ),
+    "bgm-link": (
+        "RaptureBgmClip",
+        "record bytes are 0x24",
+        lambda c, s, i: c.link == 0x24,
+    ),
+    "bgm-lead": (
+        "RaptureBgmClip",
+        "u32 +0x10 is 0",
+        lambda c, s, i: le("I", c.record, 0x10) == 0,
+    ),
+    "bgm-fade": (
+        "RaptureBgmClip",
+        "s32 +0x14 is within 0 to 30000",
+        lambda c, s, i: 0 <= le("i", c.record, 0x14) <= 30000,
+    ),
+    "bgm-word": (
+        "RaptureBgmClip",
+        "s32 +0x18 is within 0 to 10000",
+        lambda c, s, i: 0 <= le("i", c.record, 0x18) <= 10000,
+    ),
+    "bgm-constant": (
+        "RaptureBgmClip",
+        "u32 +0x1c is 4",
+        lambda c, s, i: le("I", c.record, 0x1C) == 4,
+    ),
+    "bgm-resource": (
+        "RaptureBgmClip",
+        "the high 16 bits of u32 +0x20 are 0x07fe",
+        lambda c, s, i: le("I", c.record, 0x20) >> 16 == 0x07FE,
+    ),
     "localcamera-end": (
         "LocalCameraClip",
         "u32 +0x10 is not below the start tick",
@@ -847,17 +1442,63 @@ DISTRIBUTIONS = {
     "lipsync-mode": ("RaptureFacialLipSyncClip", lambda r: str(le("I", r, 0x10))),
     "dof-flags": ("DepthOfFieldClip", lambda r: hex(le("I", r, 0x14))),
     "mes-route": ("RaptureMesClip", lambda r: f"{r[0x1C]}{r[0x1D]}"),
+    "nqidle-name": (
+        "RaptureNqIdleSetClip",
+        lambda r: "cbfm_id0" if r[0x10:0x19] == b"cbfm_id0\0" else "other",
+    ),
+    "automove-start": (
+        "RaptureAutoMoveClip",
+        lambda r: "curves" if le("H", r, 0x24) == 0 else "position",
+    ),
+    "automove-hold": ("RaptureAutoMoveClip", lambda r: str(le("i", r, 0x18))),
+    "blackfade-color": ("RaptureBlackFadeClip", lambda r: str(le("I", r, 0x14))),
+    "blackfade-length": (
+        "RaptureBlackFadeClip",
+        lambda r: "default" if le("i", r, 0x18) < 0 else "set",
+    ),
+    "sound-entries": ("RaptureSoundClip", lambda r: str(le("I", r, 0x24) // 4)),
+    "sound-flags": ("RaptureSoundClip", lambda r: str(le("I", r, 0x14))),
+    "sound-slot": (
+        "RaptureSoundClip",
+        lambda r: "zero" if le("I", r, 0x18) == 0 else "set",
+    ),
+    "action-loop": (
+        "ActionClip",
+        lambda r: "loop" if le("I", r, 0x14) & 0x80 else "single",
+    ),
+    "action-end-vs-start": (
+        "ActionClip",
+        lambda r: _order(le("i", r, 0x18), le("I", r, 4)),
+    ),
+    "scale-mode": (
+        "RaptureScaleClip",
+        lambda r: "preset" if le("I", r, 0x14) == 0 else "factor",
+    ),
+    "bgm-fade": (
+        "RaptureBgmClip",
+        lambda r: "zero" if le("i", r, 0x14) == 0 else "set",
+    ),
 }
 # id: (class, float offsets). The manifest holds min and max rounded to one decimal.
 RANGES = {
     "setpos-position": ("SetPosClip", (0x10, 0x14, 0x18)),
     "setpos-scale": ("SetPosClip", (0x28, 0x2C, 0x30)),
+    "automove-speed": ("RaptureAutoMoveClip", (0x20,)),
+    "turn-angle": ("RaptureTurnClip", (0x10,)),
 }
 # id: (class, int offsets). The manifest holds the minimum and maximum.
 INT_RANGES = {
     "nqblend-value": ("RaptureNqMotionBlendOnOffClip", (0x14,), "I"),
     "facialpose-words": ("RaptureFacialPoseForSchClip", (0x30, 0x34), "i"),
     "lipsync-mode": ("RaptureFacialLipSyncClip", (0x10,), "I"),
+    "automove-count": ("RaptureAutoMoveClip", (0x10,), "i"),
+    "automove-hold": ("RaptureAutoMoveClip", (0x1C,), "i"),
+    "automove-track": ("RaptureAutoMoveClip", (0x26,), "H"),
+    "blackfade-frames": ("RaptureBlackFadeClip", (0x18,), "i"),
+    "sound-param": ("RaptureSoundClip", (0x20,), "I"),
+    "action-id": ("ActionClip", (0x10,), "i"),
+    "bgm-fade": ("RaptureBgmClip", (0x14,), "i"),
+    "bgm-resource": ("RaptureBgmClip", (0x20,), "I"),
 }
 
 
@@ -954,8 +1595,14 @@ def class_errors(document: dict) -> list[str]:
             errors.append(f"class {name} vtable slot check differs from the object")
         if tables.get(f"0x{vtable + 4 * 29:08x}") != [f"0x{slot29:08x}"]:
             errors.append(f"class {name} slot 29 check differs from the object")
-        if tables.get(f"0x{vtable + 4 * 30:08x}") != ["0x00b73290"]:
+        if tables.get(f"0x{vtable + 4 * 30:08x}") != [
+            f"0x{SLOT30.get(name, BASE_SLOT30):08x}"
+        ]:
             errors.append(f"class {name} slot 30 check differs from the predicate")
+        if name in SLOT34:
+            want34 = [f"0x{value:08x}" for value in SLOT34[name]]
+            if slots[3:5] != want34 or [obj.get("slot3"), obj.get("slot4")] != want34:
+                errors.append(f"class {name} slot 3 or 4 differs from the table")
         reg = row.get("registration", {})
         if reg.get("origin") != origin:
             errors.append(f"class {name} registration origin changed")
@@ -1240,6 +1887,31 @@ def mutation_test() -> list[str]:
         (("install", "distributions", "dof-mode", "preset"), 464),
         (("install", "distributions", "motion-end-vs-start", "before"), 58),
         (("install", "perClass", "KillClip", "clips"), 4994),
+        (("classes", 12, "object", "size"), "0x40"),
+        (("classes", 13, "registration", "factory"), "0x00638791"),
+        (("classes", 13, "object", "slot4"), "0x00811c31"),
+        (("classes", 14, "object", "slot29"), "0x00823ce1"),
+        (("classes", 15, "registration", "secondInsertSite"), "0x6372"),
+        (("classes", 15, "object", "slot3"), "0x0081b431"),
+        (("classes", 16, "registration", "baseFactory"), "0x00a4dd41"),
+        (("classes", 16, "object", "slot8"), "0x00a21080"),
+        (("classes", 17, "fields", 0, "tier"), "INFERRED"),
+        (("classes", 18, "fields", 0, "offset"), "0x30"),
+        (("classes", 19, "object", "primaryVtable"), "0x0100d4a5"),
+        (("timing", "classes", 16, "end"), "the start tick, u32(D+4)"),
+        (("timing", "classes", 16, "endVa"), "0x00a21080"),
+        (("timing", "classes", 14, "start"), "u32(D+8)"),
+        (("install", "invariants", "sound-link", "violations"), 1),
+        (("install", "invariants", "action-end", "checked"), 0),
+        (("install", "invariants", "turn-angle", "checked"), 1777),
+        (("install", "distributions", "action-loop", "loop"), 815),
+        (("install", "distributions", "sound-entries", "6"), 29),
+        (("install", "distributions", "sound-slot", "zero"), 1915),
+        (("install", "intRanges", "bgm-resource"), [1, 0]),
+        (("install", "ranges", "automove-speed"), [40.0, 0.3]),
+        (("install", "perClass", "RaptureSoundClip", "recordBytes", "44"), 2714),
+        (("install", "perClass", "ActionClip", "clips"), 2141),
+        (("install", "perClass", "RaptureBgmClip", "recordBytes", "36"), 1609),
     ]
     mutations = []
     for path, value in cases:
@@ -1262,6 +1934,14 @@ def mutation_test() -> list[str]:
         "scheduler wrapper aborted ActionClip pass",
         "scheduler clock pending delta setter",
         "clip slot 30 returns true",
+        "RaptureNqIdleSetClip record read and CharaActor cast",
+        "RaptureAutoMoveClip track lookup index",
+        "RaptureBlackFadeClip duration and color reads",
+        "RaptureSoundClip start helper key switch",
+        "ActionClip slot 30 returns false",
+        "RaptureScaleClip slot 1 record reads",
+        "RaptureTurnClip slot 2 wait for turn",
+        "RaptureBgmClip music request 0x0060f630",
     ):
         dropped = copy.deepcopy(document)
         dropped["staticChecks"] = [
@@ -1285,7 +1965,27 @@ def mutation_test() -> list[str]:
             if item["name"] == f"{name} vtable slots 0 to 8":
                 item["values"][8] = "0x00a21081"
         mutations.append((changed_slot, csv_text))
-    for outcome in ("timing-unit", "mes-sink", "registry-second-inserts"):
+    for name, index, value in (
+        ("ActionClip vtable slot 30", 0, "0x00b73290"),
+        ("RaptureBgmClip vtable slot 30", 0, "0x005c5c80"),
+        ("RaptureSoundClip vtable slots 0 to 8", 3, "0x0081b431"),
+        ("RaptureAutoMoveClip vtable slots 0 to 8", 4, "0x00811c31"),
+        ("ActionClip vtable slots 0 to 8", 8, "0x00a21080"),
+    ):
+        changed_slot = copy.deepcopy(document)
+        for item in changed_slot["staticChecks"]:
+            if item["name"] == name:
+                item["values"][index] = value
+        mutations.append((changed_slot, csv_text))
+    for outcome in (
+        "timing-unit",
+        "mes-sink",
+        "registry-second-inserts",
+        "sound-sink",
+        "action-layout",
+        "bgm-meaning",
+        "timing-action-gate",
+    ):
         changed = copy.deepcopy(document)
         for item in changed["outcomes"]:
             if item["id"] == outcome:
