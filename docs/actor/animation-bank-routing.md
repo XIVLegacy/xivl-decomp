@@ -30,6 +30,7 @@ routes:
 | 8 | `em3` | 6 | Explicit ground-seated character bank; VFX uses `itm` |
 | 1 | `mgc` | 9 | Magic character bank and magic VFX |
 | 4 | `lib` | 1 | Library character bank and library VFX |
+| 25 | `atk` | 17 | Category-name route; no automatic bow-shot binding established |
 
 For route kind 7, `0x00798bf0` selects `em1` for posture values 0, 2, 15, and
 91; `em2` for 11; and `em3` for 13 and 14. Unsupported posture values do not
@@ -42,6 +43,47 @@ distinguishes the pending load handle from a decoded root and traces
 conditional insertion into the owner's resource lookup vector. The request
 record index is separate from that vector's insertion position; actual
 delivery and retained bank/actor state remain required.
+
+## Attack category and command identity
+
+The `CharaActionVisual` vtable at `0x00FE4544`, slot `+0x5C`, contains
+`0x00798640` at cell `0x00FE45A0`. The route-17 branch of `0x00798BF0`
+calls that slot at `0x00798E14`. The complete getter
+`0x00798640..0x0079865A` reads the category-name table. Category 25's record
+at `0x00FE3404` has name pointer `0x00FE32B4` (`atk`), character/effect
+flags 1/1 and route kind 17. This is category-name selection, without a
+weapon-specific automatic-shot discriminator at that call.
+
+The cell, category record/name and complete instruction unions of the getter
+and caller (`0x00798BF0..0x00799723`) were checked against the pinned original
+PE with pefile 2024.8.26 and Capstone 5.0.7, using retained Ghidra assembly
+locators. That check covers 8 getter instructions / 27 bytes and 606 caller
+instructions / 2,868 bytes. It is static evidence, not observed playback.
+
+Command labels are a separate namespace. The extracted catalog has Light Shot
+at IDs 22108 and 27259, both mapped to `ShotCommand`, and Heavy Shot at
+27228 and 27579, mapped to `AttackWeaponSkill` and `AttackCommand`
+respectively. These static identities do not establish which command an
+automatic bow attack executes (`xivl-client-data:derived/command_battle_params.csv`,
+those row IDs, and `manifests/staticactor_class_paths.json`).
+
+The 622-target-row retained battle-result dataset contains 158 rows with
+command 22104 and packed selector `0x19001000`, including row_index 10 in
+`combat_autoattack.pcapng`, frame 20, subevent 1. This splits to category25,
+character bank1 and effect bank0. None of those target rows has any of the
+four shot command IDs above. The dataset has no gear join for the witness,
+and zero-target packets contribute no target rows. It therefore establishes
+neither an automatic bow-shot mapping nor a supported replacement selector.
+
+Source: `xivl-captures:studies/battle-result-backfit/derived/battle-result-rows.csv`,
+SHA-256 `d67cb49d9489df127b3f374ee85792c43a6feffecbd4e2314072c0622b22e494`,
+and the study's `derived/accounting.json`. The selected command table SHA-256
+is `bc043bbd5558916a971de4d3a3a8dac5ec9d8ca36571bb534d0e964cd0b55d6a`.
+The action/result fields and queue remain separate in the
+[action-queue finding](action-queue.md) and
+[combat-result finding](../net/combat-result-element.md). Deciding whether
+one selector can select a bow motion requires the same actor's equipped
+appearance, command/result context and selected resource/clip to be joined.
 
 ## Raid-dungeon warp bank
 

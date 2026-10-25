@@ -12,7 +12,8 @@ Each finding records its evidence and the limits of what it establishes.
 
 - [Actor action queue](actor/action-queue.md)
 - [Integer-to-float setter candidate](actor/integer-float-setter.md)
-- [Character and effect animation bank routing](actor/animation-bank-routing.md)
+- [Character and effect animation bank routing](actor/animation-bank-routing.md) -
+  category dispatch and the automatic bow-shot binding boundary.
 - [Emote and server animation IDs](actor/emote-animation-ids.md)
 - [Actor architecture](actor/architecture.md)
 - [Actor instantiation and the self player](actor/actor-instantiation-and-self-player.md)
