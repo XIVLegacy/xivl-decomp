@@ -132,6 +132,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lobby clear types 0x0007 and 0x0008](net/lobby-clear-0007-0008-consumers.md)
 - [Network dispatch paths](net/network-dispatch-paths.md)
 - [Receive dispatcher ranges](net/receive-dispatch-ranges.md)
+- [Combat result element path](net/combat-result-element.md)
 - [Map low-opcode pair staging](net/low-opcode-pair-staging.md)
 - [Map serverbound 0x0001 application producer](net/periodic-map-0001.md)
 - [Zone value-2 record construction](net/zone-value-two-record.md)

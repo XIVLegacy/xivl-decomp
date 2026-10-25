@@ -1,0 +1,2555 @@
+{
+ "format": "xivl-combat-result-element-v1",
+ "source": {
+  "binary": "ffxivgame.exe retail 1.23b",
+  "build": "2012.09.19.0001",
+  "size": 15996808,
+  "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+  "imageBase": "0x00400000",
+  "method": "Disassembly listings from ghidra-cli 12.1.4 and Capstone 5.0.7 were treated as leads. Every instruction sequence, table and string under staticChecks is confirmed against the pinned bytes by tools/verify_combat_result_element.py --exe, and the call, push and dword scans are recomputed from the image.",
+  "companionEvidence": [
+   "xivl-decomp:docs/net/receive-dispatch-ranges.md",
+   "xivl-decomp:docs/net/actorimpl-receiver-dispatch.md",
+   "xivl-decomp:docs/resource/attribute-resource-and-scene-binding.md",
+   "xivl-decomp:docs/actor/action-queue.md",
+   "xivl-decomp:docs/actor/battle-npc-body-parts.md",
+   "xivl-decomp:docs/actor/animation-bank-routing.md",
+   "xivl-decomp:docs/resource/sound-effect-triggers.md"
+  ]
+ },
+ "route": {
+  "dispatcherVa": "0x004dc690",
+  "opcodeRange": [
+   "0x012e",
+   "0x013d"
+  ],
+  "sharedPathVa": "0x004dcfff",
+  "registryLookupVa": "0x004d9910",
+  "registryMapOffset": "0x17804",
+  "elementVtableVa": "0x00fa7c50",
+  "elementSlot": 9,
+  "elementSlotTargetVa": "0x0058cca0",
+  "elementDrainSlot": 6,
+  "elementDrainTargetVa": "0x0058df90",
+  "elementEventSlot": 8,
+  "elementEventTargetVa": "0x0058e0c0",
+  "keySource": "sub-event header dword +4",
+  "keyRemap": {
+   "mask": "0x5ff80000",
+   "result": "0x5ff80002 minus (key & 1)"
+  },
+  "keyStores": {
+   "headerCopy": "0x00daf612",
+   "recordStore": "0x00daf789",
+   "dispatcherRead": "0x004e21e8",
+   "remap": "0x004e21f1",
+   "call": "0x004e221d"
+  },
+  "elementKeyOffset": "0x88",
+  "elementKeyGetterVa": "0x004d6750",
+  "missBehavior": "no element, no staging",
+  "preGate": {
+   "byteOffset": "0x54b",
+   "predicateVa": "0x00575740",
+   "objectOffset": "0x510",
+   "onlyOpcode": "0x0004"
+  }
+ },
+ "admission": {
+  "predicateVa": "0x004d8830",
+  "callSite": "0x0058cce5",
+  "rejectsWhen": [
+   "element byte +0x92 is nonzero",
+   "element pointer +0x80 is nonzero",
+   "0x00574aa0 on that pointer returns nonzero"
+  ],
+  "rejectedStateByteTableVa": "0x0058d8c4",
+  "rejectedStateIndexBase": "0x0137",
+  "rejectedStatePassingAbove0134": [
+   "0x0137",
+   "0x0144",
+   "0x0145",
+   "0x0197",
+   "0x01a0"
+  ],
+  "droppedWhenRejected": [
+   "0x0139",
+   "0x013a",
+   "0x013b",
+   "0x013c"
+  ]
+ },
+ "opcodes": [
+  {
+   "opcode": "0x0139",
+   "caseVa": "0x0058d553",
+   "wrapperVa": "0x0058c880",
+   "stagerVa": "0x00587370",
+   "rowForm": "single",
+   "rowCapacity": 1,
+   "countBound": "none, one row is always staged (record count still holds the wire u16)",
+   "lastPayloadByteRead": 53
+  },
+  {
+   "opcode": "0x013a",
+   "caseVa": "0x0058d565",
+   "wrapperVa": "0x0058c930",
+   "stagerVa": "0x005873e0",
+   "rowForm": "ten",
+   "rowCapacity": 10,
+   "countBound": "wire u16 only",
+   "lastPayloadByteRead": 179
+  },
+  {
+   "opcode": "0x013b",
+   "caseVa": "0x0058d577",
+   "wrapperVa": "0x0058c990",
+   "stagerVa": "0x005874b0",
+   "rowForm": "eighteen",
+   "rowCapacity": 18,
+   "countBound": "wire u16 only",
+   "lastPayloadByteRead": 291
+  },
+  {
+   "opcode": "0x013c",
+   "caseVa": "0x0058d541",
+   "wrapperVa": "0x0058c7d0",
+   "stagerVa": "0x00587210",
+   "rowForm": "none",
+   "rowCapacity": 0,
+   "countBound": "not bounded (record count still holds the wire u16)",
+   "lastPayloadByteRead": 39
+  }
+ ],
+ "wrapper": {
+  "classifierVa": "0x00585800",
+  "classifierFallback": 6,
+  "routeFlag": 1,
+  "ringOffset": "0xa80",
+  "ringPushVa": "0x005901d0",
+  "payloadViewOffset": "0x10"
+ },
+ "record": {
+  "size": "0x1a0",
+  "headerSize": "0x38",
+  "rowStride": "0x14",
+  "rowCapacity": 18,
+  "serialCounterVa": "0x01338d2c",
+  "serialEventCommand": "0x39",
+  "header": [
+   {
+    "offset": "0x00",
+    "width": 4,
+    "name": "sequenceId",
+    "source": "counter"
+   },
+   {
+    "offset": "0x04",
+    "width": 4,
+    "name": "visualClass",
+    "source": "caller"
+   },
+   {
+    "offset": "0x08",
+    "width": 4,
+    "name": "routeFlag",
+    "source": "caller"
+   },
+   {
+    "offset": "0x0c",
+    "width": 4,
+    "name": "sourceActorId",
+    "source": "0x00"
+   },
+   {
+    "offset": "0x10",
+    "width": 4,
+    "name": "effectOrAnimationId",
+    "source": "0x04"
+   },
+   {
+    "offset": "0x14",
+    "width": 4,
+    "name": "preActionDword0",
+    "source": "0x08"
+   },
+   {
+    "offset": "0x18",
+    "width": 4,
+    "name": "preActionDword1",
+    "source": "0x0c"
+   },
+   {
+    "offset": "0x1c",
+    "width": 4,
+    "name": "preActionFloat0",
+    "source": "0x10"
+   },
+   {
+    "offset": "0x20",
+    "width": 4,
+    "name": "preActionFloat1",
+    "source": "0x14"
+   },
+   {
+    "offset": "0x24",
+    "width": 4,
+    "name": "preActionFloat2",
+    "source": "0x18"
+   },
+   {
+    "offset": "0x28",
+    "width": 4,
+    "name": "constant",
+    "source": "1.0 at 0x00f54f70"
+   },
+   {
+    "offset": "0x2c",
+    "width": 4,
+    "name": "preActionFloat3",
+    "source": "0x1c"
+   },
+   {
+    "offset": "0x30",
+    "width": 2,
+    "name": "rowCount",
+    "source": "0x20"
+   },
+   {
+    "offset": "0x32",
+    "width": 2,
+    "name": "controlValue",
+    "source": "0x22"
+   },
+   {
+    "offset": "0x34",
+    "width": 2,
+    "name": "commandId",
+    "source": "0x24"
+   },
+   {
+    "offset": "0x36",
+    "width": 2,
+    "name": "presentationFlags",
+    "source": "0x26"
+   }
+  ],
+  "rowFields": [
+   {
+    "offset": "0x00",
+    "width": 4,
+    "name": "targetActorId"
+   },
+   {
+    "offset": "0x04",
+    "width": 4,
+    "name": "numericValue",
+    "note": "zero-extended from a wire u16"
+   },
+   {
+    "offset": "0x08",
+    "width": 4,
+    "name": "effectId"
+   },
+   {
+    "offset": "0x0c",
+    "width": 2,
+    "name": "worldMasterTextId"
+   },
+   {
+    "offset": "0x0e",
+    "width": 1,
+    "name": "textParam"
+   },
+   {
+    "offset": "0x0f",
+    "width": 1,
+    "name": "rowOrdinal"
+   },
+   {
+    "offset": "0x10",
+    "width": 4,
+    "name": "reserved",
+    "note": "not written by the stagers"
+   }
+  ],
+  "wireRows": {
+   "single": {
+    "target": "0x28",
+    "numeric": "0x2c",
+    "textId": "0x2e",
+    "effect": "0x30",
+    "textParam": "0x34",
+    "ordinal": "0x35"
+   },
+   "ten": {
+    "target": "0x28",
+    "numeric": "0x50",
+    "textId": "0x64",
+    "effect": "0x78",
+    "textParam": "0xa0",
+    "ordinal": "0xaa"
+   },
+   "eighteen": {
+    "target": "0x28",
+    "numeric": "0x70",
+    "textId": "0x94",
+    "effect": "0xb8",
+    "textParam": "0x100",
+    "ordinal": "0x112"
+   }
+  },
+  "wireRowStrides": {
+   "target": 4,
+   "numeric": 2,
+   "textId": 2,
+   "effect": 4,
+   "textParam": 1,
+   "ordinal": 1
+  },
+  "stageRequest": {
+   "loggerGetterVa": "0x004d7470",
+   "requestVa": "0x00578390",
+   "trigger": "control halfword nonzero for the header, row text ID nonzero for a row",
+   "skipsEffectTypes": [
+    "0x10",
+    "0x14"
+   ],
+   "skipsEffectId": "0x7c000062"
+  }
+ },
+ "classifier": {
+  "va": "0x00585800",
+  "laneSplitVa": "0x00798370",
+  "rowReadVa": "0x007982d0",
+  "tableVa": "0x00fe32d8",
+  "rowStride": 12,
+  "validRows": 34,
+  "indexBound": "0x22",
+  "rowSplit": "type lane = effect id >> 24, middle lane = bits 12 to 23, low lane = bits 0 to 11, except type 0x0b keeps the low 24 bits as one value",
+  "typeOverrides": {
+   "0x7c": 7,
+   "0x6f": 8,
+   "0x70": 9,
+   "0x71": 10
+  },
+  "kindToClass": {
+   "8": 11,
+   "2": 14,
+   "3": 15,
+   "4": 16,
+   "5": 17
+  },
+  "kind1": {
+   "classInside": 13,
+   "classOutside": 12,
+   "middleRange": [
+    "0x00d",
+    "0x013"
+   ],
+   "middleExtra": "0xfe9"
+  },
+  "otherKinds": "return the caller fallback",
+  "rows": [
+   {
+    "row": 0,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 1,
+    "name": "mgc",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 9
+   },
+   {
+    "row": 2,
+    "name": "sys",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 3,
+    "name": "etc",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 4,
+    "name": "lib",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 1
+   },
+   {
+    "row": 5,
+    "name": "emt",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 7
+   },
+   {
+    "row": 6,
+    "name": "em1",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 6
+   },
+   {
+    "row": 7,
+    "name": "em2",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 6
+   },
+   {
+    "row": 8,
+    "name": "em3",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 6
+   },
+   {
+    "row": 9,
+    "name": "em4",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 6
+   },
+   {
+    "row": 10,
+    "name": "kao",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 8
+   },
+   {
+    "row": 11,
+    "name": "glx",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 10
+   },
+   {
+    "row": 12,
+    "name": "gly",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 11
+   },
+   {
+    "row": 13,
+    "name": "cbi",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 14,
+    "name": "mgc",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 12
+   },
+   {
+    "row": 15,
+    "name": "pop",
+    "characterBank": 0,
+    "effectBank": 1,
+    "routeKind": 13
+   },
+   {
+    "row": 16,
+    "name": "cft",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 17,
+    "name": "btl",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 18,
+    "name": "wsc",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 19,
+    "name": "wss",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 20,
+    "name": "pic",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 0
+   },
+   {
+    "row": 21,
+    "name": "liu",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 2
+   },
+   {
+    "row": 22,
+    "name": "lin",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 3
+   },
+   {
+    "row": 23,
+    "name": "lif",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 4
+   },
+   {
+    "row": 24,
+    "name": "lil",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 5
+   },
+   {
+    "row": 25,
+    "name": "atk",
+    "characterBank": 1,
+    "effectBank": 1,
+    "routeKind": 17
+   },
+   {
+    "row": 26,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 27,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 28,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 29,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 30,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 31,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 32,
+    "name": "cmn",
+    "characterBank": 0,
+    "effectBank": 0,
+    "routeKind": 0
+   },
+   {
+    "row": 33,
+    "name": "wss",
+    "characterBank": 1,
+    "effectBank": 0,
+    "routeKind": 16
+   }
+  ]
+ },
+ "drain": {
+  "slot": 6,
+  "slotVa": "0x0058df90",
+  "callSite": "0x0058dfc8",
+  "drainVa": "0x0058da10",
+  "recordsPerPass": 1,
+  "mainRingOffset": "0xa80",
+  "bucketRingBase": "0x878",
+  "bucketRingStride": "0x14",
+  "bucketCount": 26,
+  "dropAbove": 25,
+  "postSize": "0x38 + 0x14 * rowCount",
+  "caseTargets": [
+   "0x0058da7c",
+   "0x0058da9f",
+   "0x0058dabf",
+   "0x0058dadf",
+   "0x0058db42"
+  ],
+  "classCases": [
+   {
+    "classes": [
+     0,
+     0
+    ],
+    "case": 0,
+    "sceneOp": 3,
+    "headerDispatch": false
+   },
+   {
+    "classes": [
+     1,
+     1
+    ],
+    "case": 1,
+    "sceneOp": 4,
+    "headerDispatch": false
+   },
+   {
+    "classes": [
+     2,
+     2
+    ],
+    "case": 2,
+    "sceneOp": 4,
+    "headerDispatch": false
+   },
+   {
+    "classes": [
+     3,
+     11
+    ],
+    "case": 3,
+    "sceneOp": 4,
+    "headerDispatch": true
+   },
+   {
+    "classes": [
+     12,
+     25
+    ],
+    "case": 4,
+    "sceneOp": 4,
+    "headerDispatch": false
+   }
+  ],
+  "headerDispatchVa": "0x0058ca80",
+  "headerFlags": {
+   "drain": [
+    1,
+    0
+   ],
+   "trigger": [
+    "0",
+    "routeFlag & 1"
+   ]
+  },
+  "headerTargets": {
+   "5": "0x00585af0",
+   "6..10": "0x0058c220"
+  },
+  "headerPrecondition": {
+   "va": "0x00588e70",
+   "rangeVa": "0x005875a0",
+   "radiusOffset": "0xaa8",
+   "setterVa": "0x00585930",
+   "setterCallSites": [
+    "0x00585e04",
+    "0x0058758c",
+    "0x0058b297",
+    "0x0058bb3d"
+   ],
+   "setterSpecialValue": 50,
+   "helperVa": "0x00587580",
+   "helperConstant": 35.0,
+   "rule": "the container-selected element must cast to the character element type and lie closer than the radius"
+  },
+  "eventCodeOffset": "0x15",
+  "busCallVa": "0x004d7980"
+ },
+ "events": {
+  "rowTrigger": {
+   "command": "0x44",
+   "code": "0x59",
+   "handlerVa": "0x0058de90",
+   "publisherVa": "0x005856c0",
+   "publisherCaller": "0x005871ec",
+   "publisherOuterVa": "0x00587130",
+   "finishCommand": "0x43",
+   "finishCode": "0x58",
+   "finishHandlerVa": "0x0058dbe0",
+   "otherCode": "0x5a",
+   "otherHandlerVa": "0x0058bc50",
+   "otherPublisherVa": "0x00585740",
+   "otherPublisherCaller": "0x006aca52"
+  },
+  "stageDoor": {
+   "command": "0x4f",
+   "code": "0x64",
+   "routeFlag": 0,
+   "classifierFallback": 6,
+   "stagerVa": "0x00587370"
+  },
+  "localBuilder": {
+   "va": "0x006aace0",
+   "wrappers": [
+    "0x0058c880",
+    "0x0058c930"
+   ],
+   "numericConstant": 9999
+  },
+  "serial": {
+   "command": "0x39",
+   "code": "0x4e"
+  }
+ },
+ "rowProcessing": {
+  "va": "0x0058c220",
+  "arguments": [
+   "record",
+   "headerOnly",
+   "allOrdinals"
+  ],
+  "headerLine": {
+   "condition": "controlValue nonzero",
+   "textId": "controlValue",
+   "otherArguments": "zero",
+   "afterwards": "controlValue cleared, post call 0x005785d0"
+  },
+  "steps": [
+   "skip the row when worldMasterTextId is zero",
+   "skip the row when the ordinal filter is on, a selector is set and the row ordinal differs",
+   "create a damage plate when the plate gate holds",
+   "call the message sound filter 0x005859f0 and skip the rest of the row when it returns false",
+   "run the special text ID switch",
+   "send the default log line unless text ID 0x75b4 took the special route",
+   "call the post routine 0x005785d0 with the row target and the record effect ID",
+   "set the selector to the row ordinal and clear the row text ID"
+  ],
+  "logArguments": [
+   "sourceElementId",
+   "commandId",
+   "flags >> 4 & 0x7f",
+   "preActionDword0",
+   "preActionDword1",
+   "flags & 3",
+   "flags >> 2 & 3",
+   "preActionFloat3",
+   "flags >> 11",
+   "textId",
+   "targetActorId",
+   "numericValue low 16 bits",
+   "effectId",
+   "textParam"
+  ],
+  "logVa": "0x005759a0",
+  "loggerContainerOffset": "0x510",
+  "soundFilterVa": "0x005859f0",
+  "specialTextIds": [
+   {
+    "ids": [
+     "0x75b1"
+    ],
+    "route": "plate list at target element +0xe24 with the text parameter, then the default log",
+    "gate": "0x0058c010"
+   },
+   {
+    "ids": [
+     "0x75b4"
+    ],
+    "route": "plate list at target element +0xe24 with parameter 0, no default log",
+    "gate": "0x0058c010"
+   },
+   {
+    "ids": [
+     "0x847f"
+    ],
+    "route": "when the target is the container-selected element, two named widgets are looked up and receive values built from the numeric value, then the default log",
+    "gate": "target equals the container-selected element"
+   },
+   {
+    "ids": [
+     "0x848e",
+     "0x848f",
+     "0x8490",
+     "0x8491",
+     "0x8492",
+     "0x8494",
+     "0x8495",
+     "0x8499",
+     "0x849a",
+     "0x849b",
+     "0x849c",
+     "0x849d",
+     "0x849e",
+     "0x849f",
+     "0x84a0",
+     "0x84a1",
+     "0x84a2",
+     "0x84a3"
+    ],
+    "defaultLineOnly": [
+     "0x8493",
+     "0x8496",
+     "0x8497",
+     "0x8498"
+    ],
+    "route": "group list at target element +0xe4c with a flag and the numeric value, then the default log",
+    "gate": "target element found"
+   }
+  ],
+  "widgets": [
+   "Window_PlayerProfileWidget",
+   "Window_ChainBonusEffectWidget"
+  ]
+ },
+ "plates": {
+  "listBuilderVa": "0x00795630",
+  "listOffset": "0xd3c",
+  "anchorVa": "0x00794ee0",
+  "gate": {
+   "overrideElementVa": "0x004d7430",
+   "configOption": [
+    2,
+    5
+   ],
+   "globalPointer": "0x01356e10",
+   "globalByte": "0x01356e14"
+  },
+  "kindShift": 27,
+  "kindMask": 15,
+  "anchorSourceKinds": [
+   7,
+   8,
+   9,
+   10
+  ],
+  "kindFallthrough": {
+   "kinds": [
+    0,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "target": "0x007963ae"
+  },
+  "kindTargets": {
+   "1": "0x00795a27",
+   "2": "0x00795a27",
+   "3": "0x00795b74",
+   "4": "0x00795c50",
+   "5": "0x007963ae",
+   "6": "0x00795ca6",
+   "7": "0x00795a27",
+   "8": "0x00795c0c",
+   "9": "0x0079609b",
+   "10": "0x00795c50"
+  },
+  "poolSlots": 5,
+  "slotObjectSize": "0x48",
+  "digitBlocks": 5,
+  "digitOrder": "least significant digit first into Number_5 through Number_1",
+  "digitDivisor": 10,
+  "digitMax": 99999,
+  "formPath": "\\system\\ingame\\DamagePlateWidget.form",
+  "widgets": [
+   "IconControl_Icon",
+   "TextBlock_Additional",
+   "TextBlock_DamageType"
+  ],
+  "animations": [
+   "DamagePlateAnime.Popup",
+   "MissPlateAnime.Popup"
+  ],
+  "digitBlockNames": [
+   "Label_DamageDisplay:TextBlock_Number_5",
+   "Label_DamageDisplay:TextBlock_Number_4",
+   "Label_DamageDisplay:TextBlock_Number_3",
+   "Label_DamageDisplay:TextBlock_Number_2",
+   "Label_DamageDisplay:TextBlock_Number_1"
+  ]
+ },
+ "scans": {
+  "callSites": [
+   {
+    "target": "0x004d8830",
+    "sites": [
+     "0x0058cce5"
+    ]
+   },
+   {
+    "target": "0x0058c7d0",
+    "sites": [
+     "0x0058d549"
+    ]
+   },
+   {
+    "target": "0x0058c880",
+    "sites": [
+     "0x0058d55b",
+     "0x006aad9b"
+    ]
+   },
+   {
+    "target": "0x0058c930",
+    "sites": [
+     "0x0058d56d",
+     "0x006aae74"
+    ]
+   },
+   {
+    "target": "0x0058c990",
+    "sites": [
+     "0x0058d57f"
+    ]
+   },
+   {
+    "target": "0x00587210",
+    "sites": [
+     "0x00587360",
+     "0x0058738b",
+     "0x005873fb",
+     "0x005874cb",
+     "0x0058c805"
+    ]
+   },
+   {
+    "target": "0x00587370",
+    "sites": [
+     "0x0058c702",
+     "0x0058c85a",
+     "0x0058c8b5",
+     "0x0058ca5d",
+     "0x0058e683"
+    ]
+   },
+   {
+    "target": "0x005873e0",
+    "sites": [
+     "0x0058c90a",
+     "0x0058c965"
+    ]
+   },
+   {
+    "target": "0x005874b0",
+    "sites": [
+     "0x0058c9c5"
+    ]
+   },
+   {
+    "target": "0x0058ca80",
+    "sites": [
+     "0x0058db21",
+     "0x0058dd67",
+     "0x0058df64"
+    ]
+   },
+   {
+    "target": "0x0058c220",
+    "sites": [
+     "0x0058caad"
+    ]
+   },
+   {
+    "target": "0x00585af0",
+    "sites": [
+     "0x0058cac3"
+    ]
+   },
+   {
+    "target": "0x0058a010",
+    "sites": [
+     "0x0058db3b"
+    ]
+   },
+   {
+    "target": "0x0058de90",
+    "sites": [
+     "0x0058e481"
+    ]
+   },
+   {
+    "target": "0x0058dbe0",
+    "sites": [
+     "0x0058e464",
+     "0x0058e80e"
+    ]
+   },
+   {
+    "target": "0x00795630",
+    "sites": [
+     "0x0058c382"
+    ]
+   },
+   {
+    "target": "0x005856c0",
+    "sites": [
+     "0x005871ec"
+    ]
+   },
+   {
+    "target": "0x00587130",
+    "sites": []
+   },
+   {
+    "target": "0x00585740",
+    "sites": [
+     "0x006aca52"
+    ]
+   },
+   {
+    "target": "0x005901d0",
+    "sites": [
+     "0x0058c216",
+     "0x0058c712",
+     "0x0058c815",
+     "0x0058c86a",
+     "0x0058c8c5",
+     "0x0058c91a",
+     "0x0058c975",
+     "0x0058c9d5",
+     "0x0058ca6d",
+     "0x0058da83",
+     "0x0058daa6",
+     "0x0058dac6",
+     "0x0058daea",
+     "0x0058db4d",
+     "0x0058e693"
+    ]
+   },
+   {
+    "target": "0x0058da10",
+    "sites": [
+     "0x0058dfc8"
+    ]
+   },
+   {
+    "target": "0x007950a0",
+    "sites": [
+     "0x0058b768"
+    ]
+   }
+  ],
+  "pushScans": [
+   {
+    "target": "0x004d7980",
+    "pushes": [
+     "0x43",
+     "0x44",
+     "0x45"
+    ],
+    "window": 14,
+    "sites": [
+     "0x00585722",
+     "0x00585749"
+    ]
+   },
+   {
+    "target": "0x0054b0d0",
+    "pushes": [
+     "0x43",
+     "0x44",
+     "0x45"
+    ],
+    "window": 14,
+    "sites": []
+   }
+  ],
+  "dwordSites": [
+   {
+    "value": "0x00587130",
+    "sites": []
+   },
+   {
+    "value": "0x005856c0",
+    "sites": []
+   },
+   {
+    "value": "0x00585740",
+    "sites": []
+   }
+  ]
+ },
+ "consumer": {
+  "implementNow": [
+   "Drop a result without staging it when the element resolved from the sub-event source ID is in the rejecting state of the admission predicate (the client drops silently, so a drop counter is AUTHORED)",
+   "Stage one row for 0x0139 and the wire row count for 0x013A and 0x013B, with a caller-chosen cap of 10 and 18, and keep the wire count for 0x0139 and 0x013C records as the record count that the post size and row walk read, with a caller-chosen treatment of count against staged rows (AUTHORED)",
+   "Treat a row with text ID 0 as inert: no log line, no plate and no selector change",
+   "Route each drained record by class: copy it to the bucket ring, post scene command 3 for class 0 and 4 otherwise with 0x38 + 0x14 * rows bytes, and drop classes above 25",
+   "At drain time, for classes 6 to 10 inside the range gate, emit the header log line from the control halfword and clear the halfword",
+   "Emit one log line per row as the 14-argument tuple, in row order, after the message sound filter of the sound effect page",
+   "Create one plate per row from the kind in effect ID bits 27 to 30, anchored on the source for kinds 7 to 10 and on the row target otherwise, showing the low five decimal digits of the numeric value in a ring of five slots per element",
+   "Take the plate gate as four host booleans: container override pointer set, configuration option (2, 5), global pointer set and global byte clear",
+   "Run the row pass only for classes 6 to 10 inside the range gate, because 0x0058CA80 runs 0x0058C220 for no other class"
+  ],
+  "blocked": [
+   "The publisher of event 0x59, so the frame on which rows run is an AUTHORED choice until a publisher is found",
+   "worldMaster text resolution for the logged message IDs",
+   "Per-kind plate visuals, animation durations and the layout of DamagePlateWidget.form",
+   "The display meaning of the +0xE24 plate list, the +0xE4C group list and the two named widgets",
+   "The initial value of the range radius at element +0xAA8 and any writer beyond its four setter call sites",
+   "The effect of the stage-time request 0x00578390 and of the post routine 0x005785D0 beyond their guards"
+  ]
+ },
+ "boundaries": [
+  "CALIBRATION: the frame on which row processing runs while event 0x59 has no identified publisher",
+  "CALIBRATION: the row cap for a wire count above the form capacity, which the client leaves unchecked",
+  "CALIBRATION: the unit of the range radius at element +0xAA8",
+  "UNPROVED: the display state values written for blocks past the last significant digit",
+  "INFERRED: the ring at element +0xA94 is never pushed because a Capstone displacement sweep of 0x00580000 to 0x005A0000 found no push site, so the drain call 0x0058A010 finds no entry"
+ ],
+ "claims": [
+  {
+   "id": "dispatcher-gate",
+   "tier": "STATIC",
+   "claim": "Before the range test the dispatcher exits for every opcode except 0x0004 while container byte +0x54B is nonzero or 0x00575740 on the object at container +0x510 returns true",
+   "section": "element-resolution"
+  },
+  {
+   "id": "dispatcher-range",
+   "tier": "STATIC",
+   "claim": "The receive dispatcher sends every opcode from 0x012E to 0x013D to one shared lookup path",
+   "section": "element-resolution"
+  },
+  {
+   "id": "element-key",
+   "tier": "STATIC",
+   "claim": "The lookup key is the sub-event header dword at +4 (the source actor ID), with 0x5FF8xxxx values remapped to 0x5FF80002 minus the low bit",
+   "section": "element-resolution"
+  },
+  {
+   "id": "lookup-miss",
+   "tier": "STATIC",
+   "claim": "A key with no registered element ends the packet and stages nothing",
+   "section": "element-resolution"
+  },
+  {
+   "id": "element-slot",
+   "tier": "STATIC",
+   "claim": "A found element receives the payload view through virtual slot 9, 0x0058CCA0",
+   "section": "element-resolution"
+  },
+  {
+   "id": "admission-predicate",
+   "tier": "STATIC",
+   "claim": "Slot 9 first calls 0x004D8830, which returns 0 only when element byte +0x92, pointer +0x80 and the readiness slot of that pointer are all nonzero",
+   "section": "admission"
+  },
+  {
+   "id": "admission-drop",
+   "tier": "STATIC",
+   "claim": "A zero result drops opcodes 0x0139 to 0x013C, and above 0x0134 only 0x0137, 0x0144, 0x0145, 0x0197 and 0x01A0 still pass",
+   "section": "admission"
+  },
+  {
+   "id": "opcode-routes",
+   "tier": "STATIC",
+   "claim": "Opcodes 0x0139, 0x013A, 0x013B and 0x013C call the wrappers 0x0058C880, 0x0058C930, 0x0058C990 and 0x0058C7D0",
+   "section": "opcode-routes"
+  },
+  {
+   "id": "wrapper-arguments",
+   "tier": "STATIC",
+   "claim": "Each wrapper classifies the effect ID with fallback 6, passes route flag 1 to its stager and queues the record at element +0xA80",
+   "section": "opcode-routes"
+  },
+  {
+   "id": "stager-forms",
+   "tier": "STATIC",
+   "claim": "The stagers read one row (0x0139), up to ten (0x013A), up to eighteen (0x013B) or none (0x013C)",
+   "section": "staging"
+  },
+  {
+   "id": "serial-publication",
+   "tier": "STATIC",
+   "claim": "Every staged record takes a serial from the shared counter at 0x01338D2C, skipping 0, and publishes it as bus command 0x39",
+   "section": "staging"
+  },
+  {
+   "id": "record-fields",
+   "tier": "STATIC",
+   "claim": "The base stager copies the wire header fields to the record offsets of the field map",
+   "section": "staging"
+  },
+  {
+   "id": "row-fields",
+   "tier": "STATIC",
+   "claim": "The row stagers copy target, numeric value, effect ID, text ID, text parameter and ordinal from the wire offsets of the row map",
+   "section": "staging"
+  },
+  {
+   "id": "count-unclamped",
+   "tier": "STATIC",
+   "claim": "The ten-row and eighteen-row loops are bounded by the wire row count alone, and the single-row stager ignores it",
+   "section": "staging"
+  },
+  {
+   "id": "stage-request",
+   "tier": "STATIC",
+   "claim": "A nonzero control halfword or row text ID makes the stager call 0x004D7470 and then 0x00578390",
+   "section": "staging"
+  },
+  {
+   "id": "stage-request-effect",
+   "tier": "UNPROVED",
+   "claim": "What 0x00578390 does after it skips effect IDs of type 0x10, type 0x14 and the ID 0x7C000062",
+   "section": "staging"
+  },
+  {
+   "id": "classifier",
+   "tier": "STATIC",
+   "claim": "The class comes from the effect ID type lane, four reserved types and a route-kind table",
+   "section": "classifier"
+  },
+  {
+   "id": "category-table",
+   "tier": "STATIC",
+   "claim": "The table at 0x00FE32D8 has 34 valid rows of 12 bytes, and the classifier maps route kinds 8, 1, 2, 3, 4 and 5",
+   "section": "classifier"
+  },
+  {
+   "id": "ring-push",
+   "tier": "STATIC",
+   "claim": "The element ring at +0xA80 stores private 0x1A0-byte copies at head plus count and grows through 0x00590070 when the new count would reach the capacity",
+   "section": "drain"
+  },
+  {
+   "id": "drain-cadence",
+   "tier": "STATIC",
+   "claim": "Element slot 6 runs the drain once per call and the drain takes one record per pass",
+   "section": "drain"
+  },
+  {
+   "id": "class-buckets",
+   "tier": "STATIC",
+   "claim": "Classes 0 to 25 are copied to a bucket ring at +0x878 plus 0x14 times the class and larger classes are dropped",
+   "section": "drain"
+  },
+  {
+   "id": "scene-ops",
+   "tier": "STATIC",
+   "claim": "Class 0 posts bus command 3 and classes 1 to 25 post command 4, each with the record and 0x38 plus 0x14 times the row count bytes",
+   "section": "drain"
+  },
+  {
+   "id": "header-dispatch",
+   "tier": "STATIC",
+   "claim": "Classes 3 to 11 then call 0x0058CA80, which runs the header for class 5 through 0x00585AF0 and for classes 6 to 10 through 0x0058C220, and does nothing for classes 3, 4 and 11",
+   "section": "drain"
+  },
+  {
+   "id": "range-gate",
+   "tier": "STATIC",
+   "claim": "The header runs only when the container-selected element casts to a character element and lies closer than the radius at element +0xAA8",
+   "section": "drain"
+  },
+  {
+   "id": "header-line",
+   "tier": "STATIC",
+   "claim": "A nonzero control halfword is sent to the logger as a text ID with zero target, numeric value, effect ID and parameter, then cleared",
+   "section": "header-line"
+  },
+  {
+   "id": "drain-skips-rows",
+   "tier": "STATIC",
+   "claim": "The drain calls 0x0058CA80 with the arguments 1 and 0, which stops 0x0058C220 after the header line, so no row is processed at drain time",
+   "section": "header-line"
+  },
+  {
+   "id": "row-trigger",
+   "tier": "STATIC",
+   "claim": "Rows are processed by element event 0x59, which finds the record by serial in its bucket ring and calls 0x0058CA80 with 0 and the record route flag, so the ordinal filter is on only for route flag 0",
+   "section": "row-trigger"
+  },
+  {
+   "id": "row-trigger-sender",
+   "tier": "NOT FOUND",
+   "claim": "No code was found that publishes event 0x59, because the only command 0x44 publisher has no caller of its own",
+   "section": "row-trigger"
+  },
+  {
+   "id": "row-trigger-classes",
+   "tier": "STATIC",
+   "claim": "Event 0x59 searches only the bucket rings of classes 3 to 11 and 0x0058CA80 runs the row pass only for classes 6 to 10, so rows of every other class reach no row processing in the traced element code",
+   "section": "row-trigger"
+  },
+  {
+   "id": "second-door",
+   "tier": "STATIC",
+   "claim": "Element event 0x64 stages a record through the same classifier and the single-row stager with route flag 0",
+   "section": "row-trigger"
+  },
+  {
+   "id": "local-builder",
+   "tier": "STATIC",
+   "claim": "The routine at 0x006AACE0 builds result views with numeric value 9999 and calls the wrappers 0x0058C880 and 0x0058C930 directly",
+   "section": "row-trigger"
+  },
+  {
+   "id": "row-order",
+   "tier": "STATIC",
+   "claim": "Row processing runs the inert test, the ordinal filter, the plate, the sound filter, the special text ID switch, the default log, the post call and the selector update in that order",
+   "section": "row-processing"
+  },
+  {
+   "id": "log-arguments",
+   "tier": "STATIC",
+   "claim": "The default log call passes 14 arguments to 0x005759A0 in the listed order",
+   "section": "row-processing"
+  },
+  {
+   "id": "special-text-ids",
+   "tier": "STATIC",
+   "claim": "Text IDs 0x75B1, 0x75B4, 0x847F, 0x848E to 0x8492, 0x8494, 0x8495 and 0x8499 to 0x84A3 take extra routes before or instead of the default log, and 0x8493 and 0x8496 to 0x8498 get the default line only",
+   "section": "row-processing"
+  },
+  {
+   "id": "special-route-meaning",
+   "tier": "UNPROVED",
+   "claim": "What the plate list at +0xE24 and the group list at +0xE4C display",
+   "section": "row-processing"
+  },
+  {
+   "id": "plate-gate",
+   "tier": "STATIC",
+   "claim": "A plate is created only when the container override pointer at +0x17838 is nonzero, configuration option (2, 5) is nonzero, the global pointer at 0x01356E10 is set and the global byte at 0x01356E14 is clear",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-anchor",
+   "tier": "STATIC",
+   "claim": "Effect ID bits 27 to 30 give the kind, and kinds 7 to 10 anchor the plate on the record source and every other kind on the row target",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-pool",
+   "tier": "STATIC",
+   "claim": "Each element keeps a ring of five plate slots, and a slot object is 0x48 bytes",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-widgets",
+   "tier": "STATIC",
+   "claim": "The plate list initializer loads DamagePlateWidget.form, and a plate fills five digit blocks, an icon, an additional text and a damage type text",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-digits",
+   "tier": "STATIC",
+   "claim": "The numeric value is written least significant digit first into Number_5 through Number_1, so only the low five decimal digits show",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-kinds",
+   "tier": "STATIC",
+   "claim": "A jump table with ten entries selects the plate layout by kind 1 to 10",
+   "section": "damage-plate"
+  },
+  {
+   "id": "plate-kind-visuals",
+   "tier": "UNPROVED",
+   "claim": "The visual meaning of each kind, the animation duration and the widget layout",
+   "section": "damage-plate"
+  },
+  {
+   "id": "status-field",
+   "tier": "NOT FOUND",
+   "claim": "No staging or row-processing body reads a status-change field",
+   "section": "damage-plate"
+  },
+  {
+   "id": "delay-constants",
+   "tier": "NOT FOUND",
+   "claim": "No delay or timer constant is read between receive, drain and row processing",
+   "section": "damage-plate"
+  }
+ ],
+ "staticChecks": [
+  {
+   "name": "element vtable slots 6 to 9",
+   "kind": "dwords",
+   "va": "0x00fa7c68",
+   "values": [
+    "0x0058df90",
+    "0x00588a00",
+    "0x0058e0c0",
+    "0x0058cca0"
+   ]
+  },
+  {
+   "name": "dispatcher range test",
+   "kind": "signature",
+   "va": "0x004dc71e",
+   "pattern": "3d 3d 01 00 00 0f 87 ba 08 00 00 3d 2e 01 00 00 0f 83 cb 08 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "dispatcher pre-gates",
+   "kind": "signature",
+   "va": "0x004dc6d5",
+   "pattern": "8a 87 4b 05 00 00 84 c0 74 0b 66 83 7e 02 04 0f 85 bf 0c 00 00 8d 9f 10 05 00 00 8b cb e8 49 90 09 00 84 c0 74 0b 66 83 7e 02 04 0f 85 a3 0c 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "shared lookup and slot 9 call",
+   "kind": "signature",
+   "va": "0x004dd005",
+   "pattern": "e8 06 c9 ff ff 85 c0 0f 84 97 03 00 00 8b 10 8b c8 8b 42 24 56 ff d0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "key read from packet record",
+   "kind": "signature",
+   "va": "0x004e21e8",
+   "pattern": "8b 43 14",
+   "mask": "ff ff ff"
+  },
+  {
+   "name": "key remap",
+   "kind": "signature",
+   "va": "0x004e21f1",
+   "pattern": "81 e2 00 00 f8 5f 81 fa 00 00 f8 5f 75 0b 24 01 f6 d8 1b c0 05 02 00 f8 5f",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "dispatcher call arguments",
+   "kind": "signature",
+   "va": "0x004e2215",
+   "pattern": "51 8b 4e 08 50 83 c1 10 e8 6e a4 ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "sub-event source copy",
+   "kind": "signature",
+   "va": "0x00daf612",
+   "pattern": "8b 54 08 04 8d 6f 08 89 55 04",
+   "mask": "ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "packet record key and target store",
+   "kind": "signature",
+   "va": "0x00daf789",
+   "pattern": "8b 4f 0c 89 4e 14 8b 57 10 89 56 18",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "registry map lookup",
+   "kind": "signature",
+   "va": "0x004d9910",
+   "pattern": "83 ec 08 53 56 57 8d b1 04 78 01 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "registry miss",
+   "kind": "signature",
+   "va": "0x004d993d",
+   "pattern": "8b 74 24 10 3b fe 75 0b 5f 5e 33 c0 5b 83 c4 08 c2 04 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "registry hit",
+   "kind": "signature",
+   "va": "0x004d9963",
+   "pattern": "8b 46 10 5f 5e 5b 83 c4 08 c2 04 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "element key getter",
+   "kind": "signature",
+   "va": "0x004d6750",
+   "pattern": "8b 81 88 00 00 00 c3",
+   "mask": "ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "admission predicate",
+   "kind": "signature",
+   "va": "0x004d8830",
+   "pattern": "80 b9 92 00 00 00 00 74 16 8b 89 80 00 00 00 85 c9 74 0c e8 58 c2 09 00 84 c0 74 03 32 c0 c3 b0 01 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 admission call",
+   "kind": "signature",
+   "va": "0x0058cce5",
+   "pattern": "e8 46 bb f4 ff 84 c0 75 33",
+   "mask": "ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 rejected-state split",
+   "kind": "signature",
+   "va": "0x0058ccee",
+   "pattern": "0f b7 46 02 3d 34 01 00 00 77 5c 74 26",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 rejected-state index",
+   "kind": "signature",
+   "va": "0x0058cd55",
+   "pattern": "2d 37 01 00 00 83 f8 69 0f 87 1a 09 00 00 0f b6 88 c4 d8 58 00 ff 24 8d bc d8 58 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 admitted-state index",
+   "kind": "signature",
+   "va": "0x0058d330",
+   "pattern": "2d 35 01 00 00 83 f8 72 0f 87 37 03 00 00 0f b6 80 94 d9 58 00 ff 24 85 30 d9 58 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 rejected-state byte table",
+   "kind": "signature",
+   "va": "0x0058d8c4",
+   "pattern": "00 01 01 01 01 01 01 01 01 01 01 01 01 00 00 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 01 00 01 01 01 01 01 01 01 01 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 rejected-state targets",
+   "kind": "dwords",
+   "va": "0x0058d8bc",
+   "values": [
+    "0x0058cd21",
+    "0x0058d67d"
+   ]
+  },
+  {
+   "name": "slot 9 admitted-state byte table",
+   "kind": "signature",
+   "va": "0x0058d994",
+   "pattern": "00 18 18 18 01 02 03 04 18 18 18 18 18 18 18 05 06",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 9 admitted-state targets",
+   "kind": "dwords",
+   "va": "0x0058d930",
+   "values": [
+    "0x0058d4d0",
+    "0x0058d553",
+    "0x0058d565",
+    "0x0058d577",
+    "0x0058d541",
+    "0x0058d44b",
+    "0x0058d4c0"
+   ]
+  },
+  {
+   "name": "case 0x013C body",
+   "kind": "signature",
+   "va": "0x0058d541",
+   "pattern": "6a 01 83 c6 10 56 8b cf e8 82 f2 ff ff e9 2a 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "case 0x0139 body",
+   "kind": "signature",
+   "va": "0x0058d553",
+   "pattern": "6a 01 83 c6 10 56 8b cf e8 20 f3 ff ff e9 18 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "case 0x013A body",
+   "kind": "signature",
+   "va": "0x0058d565",
+   "pattern": "6a 01 83 c6 10 56 8b cf e8 be f3 ff ff e9 06 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "case 0x013B body",
+   "kind": "signature",
+   "va": "0x0058d577",
+   "pattern": "6a 01 83 c6 10 56 8b cf e8 0c f4 ff ff e9 f4 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x0139 classify and stage",
+   "kind": "signature",
+   "va": "0x0058c88f",
+   "pattern": "8b 47 04 50 6a 06 8b f1 e8 64 8f ff ff 8b 8c 24 b0 01 00 00 51 50 57 8d 54 24 14 52 8b ce c7 44 24 18 00 00 00 00 e8 b6 aa ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x0139 queue",
+   "kind": "signature",
+   "va": "0x0058c8ba",
+   "pattern": "8d 44 24 08 50 8d 8e 80 0a 00 00 e8 06 39 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x013A classify and stage",
+   "kind": "signature",
+   "va": "0x0058c93f",
+   "pattern": "8b 47 04 50 6a 06 8b f1 e8 b4 8e ff ff 8b 8c 24 b0 01 00 00 51 50 57 8d 54 24 14 52 8b ce c7 44 24 18 00 00 00 00 e8 76 aa ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x013A queue",
+   "kind": "signature",
+   "va": "0x0058c96a",
+   "pattern": "8d 44 24 08 50 8d 8e 80 0a 00 00 e8 56 38 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x013B classify and stage",
+   "kind": "signature",
+   "va": "0x0058c99f",
+   "pattern": "8b 47 04 50 6a 06 8b f1 e8 54 8e ff ff 8b 8c 24 b0 01 00 00 51 50 57 8d 54 24 14 52 8b ce c7 44 24 18 00 00 00 00 e8 e6 aa ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x013B queue",
+   "kind": "signature",
+   "va": "0x0058c9ca",
+   "pattern": "8d 44 24 08 50 8d 8e 80 0a 00 00 e8 f6 37 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x013C classify and stage",
+   "kind": "signature",
+   "va": "0x0058c7df",
+   "pattern": "8b 47 04 50 6a 06 8b f1 e8 14 90 ff ff 8b 8c 24 b0 01 00 00 51 50 57 8d 54 24 14 52 8b ce c7 44 24 18 00 00 00 00 e8 06 aa ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "wrapper 0x013C queue",
+   "kind": "signature",
+   "va": "0x0058c80a",
+   "pattern": "8d 44 24 08 50 8d 8e 80 0a 00 00 e8 b6 39 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "base stager serial",
+   "kind": "signature",
+   "va": "0x00587214",
+   "pattern": "b8 01 00 00 00 01 05 2c 8d 33 01 57 8b f9 75 05 a3 2c 8d 33 01",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "base stager serial publish",
+   "kind": "signature",
+   "va": "0x0058722e",
+   "pattern": "6a 04 8d 4c 24 0c 51 6a 39 8b cf 89 44 24 14 e8 3e 07 f5 ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "base stager header copy",
+   "kind": "signature",
+   "va": "0x00587254",
+   "pattern": "89 4e 08 89 16 89 46 04 8b 44 24 24 8b 10 89 56 0c 8b 48 04 89 4e 10 0f b7 50 24 66 89 56 34 8b 48 08 89 4e 14 8b 50 0c 89 56 18",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "base stager control and row count",
+   "kind": "signature",
+   "va": "0x005872ca",
+   "pattern": "0f b7 48 20 66 89 4e 30 0f b7 50 22",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "base stager flags store",
+   "kind": "signature",
+   "va": "0x0058730e",
+   "pattern": "0f b7 50 26 66 33 d1 66 81 e2 ff 07 66 33 50 26 66 83 7e 32 00 66 89 56 36",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "base stager name request",
+   "kind": "signature",
+   "va": "0x0058731e",
+   "pattern": "66 83 7e 32 00 66 89 56 36 74 23 8b cf e8 20 f4 f4 ff 89 44 24 20 8b 46 10 50 8d 4c 24 24 51 8b 4f 7c e8 2b 01 f5 ff 8b c8 e8 44 10 ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "single-row stager copy",
+   "kind": "signature",
+   "va": "0x00587390",
+   "pattern": "8b 57 28 89 56 38 0f b7 4f 2c 8d 46 38 89 4e 3c 66 8b 57 2e 66 89 56 44 66 83 7e 44 00 8b 4f 30 89 4e 40 8a 57 34 88 56 46 8a 4f 35 88 4e 47",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "ten-row stager entry",
+   "kind": "signature",
+   "va": "0x00587400",
+   "pattern": "66 83 7e 30 00 0f 86 92 00 00 00 55 57 8d bb aa 00 00 00 8d 6b 78 b9 56 ff ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "ten-row stager row copy",
+   "kind": "signature",
+   "va": "0x00587430",
+   "pattern": "8b 55 b0 89 56 f8 0f b7 53 ec 8d 46 f8 89 56 fc 66 8b 13 66 89 56 04 66 83 7e 04 00 8b 55 00 89 16 0f b6 57 f6 88 56 06 0f b6 17 88 56 07",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "ten-row stager loop bound",
+   "kind": "signature",
+   "va": "0x00587484",
+   "pattern": "0f b7 40 30 83 c7 01 8d 14 39 83 c3 02 83 c5 04 83 c6 14 3b d0 7c 95",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "eighteen-row stager entry",
+   "kind": "signature",
+   "va": "0x005874d0",
+   "pattern": "66 83 7e 30 00 0f 86 95 00 00 00 55 57 8d bb 12 01 00 00 8d ab b8 00 00 00 b9 ee fe ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "eighteen-row stager row copy",
+   "kind": "signature",
+   "va": "0x00587500",
+   "pattern": "8b 95 70 ff ff ff 89 56 f8 0f b7 53 dc 8d 46 f8 89 56 fc 66 8b 13 66 89 56 04 66 83 7e 04 00 8b 55 00 89 16 0f b6 57 ee 88 56 06 0f b6 17",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "eighteen-row stager loop bound",
+   "kind": "signature",
+   "va": "0x00587557",
+   "pattern": "0f b7 40 30 83 c7 01 8d 14 39 83 c3 02 83 c5 04 83 c6 14 3b d0 7c 92",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "classifier type overrides",
+   "kind": "signature",
+   "va": "0x00585832",
+   "pattern": "83 f8 7c 75 0c b8 07 00 00 00 5b 83 c4 14 c2 08 00 83 f8 6f 75 0c b8 08 00 00 00 5b 83 c4 14 c2 08 00 83 f8 70 75 0c b8 09 00 00 00 5b 83 c4 14 c2 08 00 83 f8 71 75 0c b8 0a 00 00 00 5b 83 c4 14 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "classifier kind 8",
+   "kind": "signature",
+   "va": "0x0058589a",
+   "pattern": "83 f8 08 75 0c b8 0b 00 00 00 5b 83 c4 14 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "classifier kind 1",
+   "kind": "signature",
+   "va": "0x005858ab",
+   "pattern": "83 f8 01 75 2d 8b 44 24 0c 83 f8 0d 7c 05 83 f8 13 7e 07 3d e9 0f 00 00 75 0c b8 0d 00 00 00 5b 83 c4 14 c2 08 00 b8 0c 00 00 00 5b 83 c4 14 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "classifier kinds 2 to 5 and fallback",
+   "kind": "signature",
+   "va": "0x005858dd",
+   "pattern": "83 f8 02 75 0c b8 0e 00 00 00 5b 83 c4 14 c2 08 00 83 f8 03 75 0c b8 0f 00 00 00 5b 83 c4 14 c2 08 00 83 f8 04 75 0c b8 10 00 00 00 5b 83 c4 14 c2 08 00 83 f8 05 b8 11 00 00 00 74 04 8b 44 24 1c 5b 83 c4 14 c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "lane split type 0x0B",
+   "kind": "signature",
+   "va": "0x0079837a",
+   "pattern": "c1 e9 18 83 f9 0b 89 0a 75 16 8b 4c 24 0c 8b 54 24 10 25 ff ff ff 00 c7 01 00 00 00 00 89 02",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "lane split ordinary",
+   "kind": "signature",
+   "va": "0x0079839a",
+   "pattern": "8b 54 24 0c 8b c8 c1 e9 0c 81 e1 ff 0f 00 00 89 0a 8b 4c 24 10 25 ff 0f 00 00 89 01 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "category index bound",
+   "kind": "signature",
+   "va": "0x007982d0",
+   "pattern": "8b 44 24 04 83 f8 22 76 19 8b 44 24 08 8b 4c 24 0c 8b 54 24 10 c6 00 00 c6 01 00 c7 02 12 00 00 00 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "category row read",
+   "kind": "signature",
+   "va": "0x007982f2",
+   "pattern": "8b 54 24 08 8d 04 40 03 c0 0f b6 8c 00 dc 32 fe 00 03 c0 88 0a 0f b6 88 dd 32 fe 00 8b 54 24 0c 88 0a 8b 80 e0 32 fe 00 8b 4c 24 10 89 01 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "category table rows 0 to 33",
+   "kind": "dwords",
+   "va": "0x00fe32d8",
+   "values": [
+    "0x00fe3250",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe3254",
+    "0x00000101",
+    "0x00000009",
+    "0x00fe3258",
+    "0x00000100",
+    "0x00000000",
+    "0x00fe325c",
+    "0x00000100",
+    "0x00000000",
+    "0x00fe3260",
+    "0x00000101",
+    "0x00000001",
+    "0x00fe3264",
+    "0x00000101",
+    "0x00000007",
+    "0x00fe3268",
+    "0x00000101",
+    "0x00000006",
+    "0x00fe326c",
+    "0x00000101",
+    "0x00000006",
+    "0x00fe3270",
+    "0x00000101",
+    "0x00000006",
+    "0x00fe3274",
+    "0x00000101",
+    "0x00000006",
+    "0x00fe3278",
+    "0x00000100",
+    "0x00000008",
+    "0x00fe327c",
+    "0x00000100",
+    "0x0000000a",
+    "0x00fe3280",
+    "0x00000100",
+    "0x0000000b",
+    "0x00fe3284",
+    "0x00000100",
+    "0x00000000",
+    "0x00fe3288",
+    "0x00000101",
+    "0x0000000c",
+    "0x00fe328c",
+    "0x00000100",
+    "0x0000000d",
+    "0x00fe3290",
+    "0x00000101",
+    "0x00000000",
+    "0x00fe3294",
+    "0x00000101",
+    "0x00000000",
+    "0x00fe3298",
+    "0x00000101",
+    "0x00000000",
+    "0x00fe329c",
+    "0x00000101",
+    "0x00000000",
+    "0x00fe32a0",
+    "0x00000101",
+    "0x00000000",
+    "0x00fe32a4",
+    "0x00000101",
+    "0x00000002",
+    "0x00fe32a8",
+    "0x00000101",
+    "0x00000003",
+    "0x00fe32ac",
+    "0x00000101",
+    "0x00000004",
+    "0x00fe32b0",
+    "0x00000101",
+    "0x00000005",
+    "0x00fe32b4",
+    "0x00000101",
+    "0x00000011",
+    "0x00fe32b8",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32bc",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32c0",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32c4",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32c8",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32cc",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32d0",
+    "0x00000000",
+    "0x00000000",
+    "0x00fe32d4",
+    "0x00000001",
+    "0x00000010"
+   ]
+  },
+  {
+   "name": "category name row 4",
+   "kind": "string",
+   "va": "0x00fe3260",
+   "text": "lib"
+  },
+  {
+   "name": "category name row 10",
+   "kind": "string",
+   "va": "0x00fe3278",
+   "text": "kao"
+  },
+  {
+   "name": "category name row 21",
+   "kind": "string",
+   "va": "0x00fe32a4",
+   "text": "liu"
+  },
+  {
+   "name": "category name row 22",
+   "kind": "string",
+   "va": "0x00fe32a8",
+   "text": "lin"
+  },
+  {
+   "name": "category name row 23",
+   "kind": "string",
+   "va": "0x00fe32ac",
+   "text": "lif"
+  },
+  {
+   "name": "category name row 24",
+   "kind": "string",
+   "va": "0x00fe32b0",
+   "text": "lil"
+  },
+  {
+   "name": "ring push growth",
+   "kind": "signature",
+   "va": "0x005901d3",
+   "pattern": "8b 46 10 83 c0 01 39 46 08 57 77 07 6a 01 e8 8a fe ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "ring push slot copy",
+   "kind": "signature",
+   "va": "0x005901e6",
+   "pattern": "8b 7e 0c 03 7e 10 8b 46 08 3b c7 77 02 2b f8 8b 4e 04 83 3c b9 00 75 13 68 a0 01 00 00 e8 2d 19 44 00 8b 56 04 83 c4 04 89 04 ba 8b 44 24 0c 8b 4e 04 8b 14 b9 50 52 e8 ce ea ff ff 83 46 10 01",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "slot 6 drain call",
+   "kind": "signature",
+   "va": "0x0058dfc6",
+   "pattern": "8b ce e8 43 fa ff ff",
+   "mask": "ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain empty test",
+   "kind": "signature",
+   "va": "0x0058da13",
+   "pattern": "83 be 90 0a 00 00 00 0f 84 8a 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain pop and class dispatch",
+   "kind": "signature",
+   "va": "0x0058da4d",
+   "pattern": "8b 86 88 0a 00 00 3b c7 77 02 2b f8 8b 96 84 0a 00 00 8b 3c ba 8b 47 04 83 f8 19 0f 87 fd 00 00 00 0f b6 88 c0 db 58 00 ff 24 8d ac db 58 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case targets",
+   "kind": "dwords",
+   "va": "0x0058dbac",
+   "values": [
+    "0x0058da7c",
+    "0x0058da9f",
+    "0x0058dabf",
+    "0x0058dadf",
+    "0x0058db42"
+   ]
+  },
+  {
+   "name": "drain class to case table",
+   "kind": "signature",
+   "va": "0x0058dbc0",
+   "pattern": "00 01 02 03 03 03 03 03 03 03 03 03 04 04 04 04 04 04 04 04 04 04 04 04 04 04",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case 0",
+   "kind": "signature",
+   "va": "0x0058da7c",
+   "pattern": "57 8d 8e 78 08 00 00 e8 48 27 00 00 0f b7 47 30 8d 14 80 8d 04 95 38 00 00 00 50 57 6a 03 e9 c5 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case 1",
+   "kind": "signature",
+   "va": "0x0058da9f",
+   "pattern": "57 8d 8e 8c 08 00 00 e8 25 27 00 00 0f b7 47 30 8d 0c 80 8d 14 8d 38 00 00 00 52 e9 a2 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case 3 bucket push",
+   "kind": "signature",
+   "va": "0x0058dadf",
+   "pattern": "8d 14 80 57 8d 8c 96 78 08 00 00 e8 e1 26 00 00 0f b7 47 30 8d 04 80 8d 0c 85 38 00 00 00 51 57 6a 04 8b ce e8 78 9e f4 ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case 3 post and header",
+   "kind": "signature",
+   "va": "0x0058db08",
+   "pattern": "8b 47 04 6a 00 8d 14 80 6a 01 8d 8c 96 78 08 00 00 e8 e2 7a 23 00 50 8b ce e8 5a ef ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case 3 range release",
+   "kind": "signature",
+   "va": "0x0058db26",
+   "pattern": "8b 7f 04 8d 04 bf 8d 8c 86 78 08 00 00 e8 c8 7a 23 00 50 8b ce e8 d0 c4 ff ff eb 29",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain case 4",
+   "kind": "signature",
+   "va": "0x0058db42",
+   "pattern": "8d 0c 80 57 8d 8c 8e 78 08 00 00 e8 7e 26 00 00 0f b7 47 30 8d 14 80 8d 04 95 38 00 00 00 50",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain post tail",
+   "kind": "signature",
+   "va": "0x0058db61",
+   "pattern": "57 6a 04 8b ce e8 15 9e f4 ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain pop",
+   "kind": "signature",
+   "va": "0x0058db6b",
+   "pattern": "8b 86 90 0a 00 00 85 c0 5f 74 34 83 86 8c 0a 00 00 01 8b 8e 8c 0a 00 00 39 8e 88 0a 00 00 77 0a c7 86 8c 0a 00 00 00 00 00 00 83 c0 ff 89 86 90 0a 00 00 75 0a c7 86 8c 0a 00 00 00 00 00 00 5e",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "header dispatch",
+   "kind": "signature",
+   "va": "0x0058ca83",
+   "pattern": "e8 e8 c3 ff ff 84 c0 74 3c 8b 44 24 08 8b 48 04 83 f9 05 74 1e 83 c1 fa 83 f9 04 77 28 8b 4c 24 10 8b 54 24 0c 51 52 50 8b ce e8 6e f7 ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "header line part 1",
+   "kind": "signature",
+   "va": "0x0058c264",
+   "pattern": "0f b7 4e 32 33 db 66 3b cb 74 7b 0f b7 46 36 d9 46 2c 53 53 53 53 51 0f b7 c8 66 c1 e9 0b 0f b6 d0 c0 ea 02 51 51 d9 1c 24 0f b6 c8 83 e2 03 52",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "header line part 2",
+   "kind": "signature",
+   "va": "0x0058c294",
+   "pattern": "8b 56 18 83 e1 03 51 8b 4e 14 52 0f b7 56 34 51 c1 e8 04 83 e0 7f 50 52 8b cd e8 9d a4 f4 ff 8b 4d 7c 50 e8 b4 b1 f4 ff 8b c8 e8 dd 96 fe ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "header line part 3",
+   "kind": "signature",
+   "va": "0x0058c2c3",
+   "pattern": "8b cd 66 89 5e 32 e8 82 a4 f4 ff 89 44 24 14 8b 46 10 50 8d 4c 24 18 51 8b 4d 7c e8 8d b1 f4 ff 8b c8 e8 e6 c2 fe ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "drain mode flags",
+   "kind": "signature",
+   "va": "0x0058c2ea",
+   "pattern": "38 9c 24 54 01 00 00 74 0d 38 9c 24 58 01 00 00 0f 84 4c 03 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "row inert test",
+   "kind": "signature",
+   "va": "0x0058c324",
+   "pattern": "66 83 7f fe 00 0f 84 07 03 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "row ordinal filter",
+   "kind": "signature",
+   "va": "0x0058c32f",
+   "pattern": "80 bc 24 58 01 00 00 00 75 11 83 f8 ff 74 0c 0f b6 57 01 3b c2 0f 85 ec 02 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate gate part 1",
+   "kind": "signature",
+   "va": "0x0058c34a",
+   "pattern": "8b 4d 7c e8 de b0 f4 ff 84 c0 74 31 8b 4d 7c e8 62 b0 f4 ff 8b c8 e8 2b 8b f2 ff 84 c0 74 1e",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate gate part 2",
+   "kind": "signature",
+   "va": "0x0058c369",
+   "pattern": "53 56 8d 8d 3c 0d 00 00 e8 6a 8b 20 00 85 c0 74 0d 53 56 8d 88 3c 0d 00 00 e8 a9 92 20 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "row sound filter",
+   "kind": "signature",
+   "va": "0x0058c387",
+   "pattern": "0f b7 47 fe 8b 4f f2 8d 5f f2 50 51 8b cd e8 56 96 ff ff 84 c0 0f 84 90 02 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "special text id compare 1",
+   "kind": "signature",
+   "va": "0x0058c3a2",
+   "pattern": "0f b7 47 fe 3d 92 84 00 00 0f 8f b9 01 00 00 3d 8e 84 00 00 0f 8d c6 01 00 00 2d b1 75 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "special text id compare 2",
+   "kind": "signature",
+   "va": "0x0058c3c1",
+   "pattern": "0f 84 72 01 00 00 83 e8 03 0f 84 29 01 00 00 2d cb 0e 00 00 0f 85 cd 01 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "text id 0x75B4 plate list call",
+   "kind": "signature",
+   "va": "0x0058c4f9",
+   "pattern": "8b 0b 51 8b 4d 7c e8 6c d4 f4 ff 85 c0 89 44 24 14 0f 84 00 01 00 00 8b 56 0c 52 8b cd e8 f5 fa ff ff 84 c0 0f 84 ed 00 00 00 8b 4c 24 14 6a 00 81 c1 24 0e 00 00 e8 4c aa 20 00 e9 d7 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "text id 0x75B1 plate list call",
+   "kind": "signature",
+   "va": "0x0058c539",
+   "pattern": "8b 03 8b 4d 7c 50 e8 2c d4 f4 ff 8b d8 85 db 74 5e 8b 4e 0c 51 8b cd e8 bb fa ff ff 84 c0 74 4f 0f b6 17 52 8d 8b 24 0e 00 00 e8 18 aa 20 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "text id 0x848E group call",
+   "kind": "signature",
+   "va": "0x0058c582",
+   "pattern": "8b 0b 51 8b 4d 7c e8 e3 d3 f4 ff 85 c0 74 17 8b 57 f6 33 c9 38 0f 52 0f 95 c1 51 8d 88 4c 0e 00 00 e8 18 b0 20 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "default log arguments 1",
+   "kind": "signature",
+   "va": "0x0058c5a8",
+   "pattern": "0f b6 17 d9 46 2c 8b 4f fa 0f b7 46 36 52 0f b7 57 f6 51 8b 4f f2 52 0f b7 57 fe 51 52 0f b7 c8 8d 5f f2 66 c1 e9 0b 0f b6 d0 c0 ea 02",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "default log arguments 2",
+   "kind": "signature",
+   "va": "0x0058c5d5",
+   "pattern": "51 51 d9 1c 24 0f b6 c8 83 e2 03 52 8b 56 18 83 e1 03 51 8b 4e 14 52 0f b7 56 34 51 c1 e8 04 83 e0 7f 50 52",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "default log call",
+   "kind": "signature",
+   "va": "0x0058c5f9",
+   "pattern": "8b cd e8 50 a1 f4 ff 8b 4d 7c 50 e8 67 ae f4 ff 8b c8 e8 90 93 fe ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "row post and selector",
+   "kind": "signature",
+   "va": "0x0058c610",
+   "pattern": "8b 46 10 8b 4d 7c 50 53 e8 53 ae f4 ff 8b c8 e8 ac bf fe ff 0f b6 4f 01 89 4c 24 14 66 c7 47 fe 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "special text id table index",
+   "kind": "signature",
+   "va": "0x0058c56a",
+   "pattern": "2d 94 84 00 00 83 f8 0f 77 34 0f b6 80 80 c6 58 00 ff 24 85 78 c6 58 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "special text id group targets",
+   "kind": "dwords",
+   "va": "0x0058c678",
+   "values": [
+    "0x0058c582",
+    "0x0058c5a8"
+   ]
+  },
+  {
+   "name": "special text id group table",
+   "kind": "signature",
+   "va": "0x0058c680",
+   "pattern": "00 00 01 01 01 00 00 00 00 00 00 00 00 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "profile widget name",
+   "kind": "string",
+   "va": "0x00fa7204",
+   "text": "Window_PlayerProfileWidget"
+  },
+  {
+   "name": "chain bonus widget name",
+   "kind": "string",
+   "va": "0x00fa7220",
+   "text": "Window_ChainBonusEffectWidget"
+  },
+  {
+   "name": "range gate call",
+   "kind": "signature",
+   "va": "0x00588e85",
+   "pattern": "e8 26 f8 f4 ff 50 e8 3c 18 45 00 83 c4 14 85 c0 74 26",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "range gate compare",
+   "kind": "signature",
+   "va": "0x0058767b",
+   "pattern": "0f 59 c0 0f 28 c8 0f c6 c8 aa 0f 58 c8 0f c6 c0 55 0f 58 c8 f3 0f 51 c9 0f 29 4c 24 30 f3 0f 10 44 24 30 f3 0f 10 4c 24 20 0f 5a c0 0f 5a c9 66 0f 2f c8 76 0a",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "element event dispatch",
+   "kind": "signature",
+   "va": "0x0058e0df",
+   "pattern": "83 c0 b6 83 f8 1a 57 8b 7d 0c 8b f1 0f 87 a7 05 00 00 ff 24 85 b0 e6 58 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "element event targets",
+   "kind": "dwords",
+   "va": "0x0058e6b0",
+   "values": [
+    "0x0058e373",
+    "0x0058e698",
+    "0x0058e698",
+    "0x0058e698",
+    "0x0058e4ba",
+    "0x0058e504",
+    "0x0058e0f8",
+    "0x0058e157",
+    "0x0058e698",
+    "0x0058e391",
+    "0x0058e3b1",
+    "0x0058e3ec",
+    "0x0058e425",
+    "0x0058e447",
+    "0x0058e463",
+    "0x0058e480",
+    "0x0058e49d",
+    "0x0058e54e",
+    "0x0058e593",
+    "0x0058e5c3",
+    "0x0058e5e2",
+    "0x0058e601",
+    "0x0058e620",
+    "0x0058e63f",
+    "0x0058e698",
+    "0x0058e698",
+    "0x0058e663"
+   ]
+  },
+  {
+   "name": "event 0x59 case",
+   "kind": "signature",
+   "va": "0x0058e480",
+   "pattern": "57 e8 0a fa ff ff",
+   "mask": "ff ff ff ff ff ff"
+  },
+  {
+   "name": "event 0x58 case",
+   "kind": "signature",
+   "va": "0x0058e463",
+   "pattern": "57 e8 77 f7 ff ff",
+   "mask": "ff ff ff ff ff ff"
+  },
+  {
+   "name": "event 0x59 handler head",
+   "kind": "signature",
+   "va": "0x0058de98",
+   "pattern": "8a 55 08 8b 45 04 80 e2 01 83 f8 03 89 4c 24 04 88 54 24 18 0f 82 c8 00 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "event 0x59 handler class bound",
+   "kind": "signature",
+   "va": "0x0058deb2",
+   "pattern": "83 f8 0b 0f 87 bf 00 00 00 56 8d 04 80",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "event 0x59 handler row call",
+   "kind": "signature",
+   "va": "0x0058df4b",
+   "pattern": "8b 4c 24 24 51 6a 00 8d 4c 24 1c 89 7c 24 24 e8 81 13 00 00 8b 4c 24 18 50 e8 17 eb ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "event publisher",
+   "kind": "signature",
+   "va": "0x0058570e",
+   "pattern": "6a 28 74 09 8d 44 24 04 50 6a 43 eb 07 8d 54 24 04 52 6a 44 e8 59 22 f5 ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "bus command mapping",
+   "kind": "signature",
+   "va": "0x004d79c8",
+   "pattern": "8b 4d 08 8b 96 88 00 00 00 57 83 c1 15 50 51 52 8d 4c 24 24 e8 9f 46 01 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "bus delivery",
+   "kind": "signature",
+   "va": "0x004d79ea",
+   "pattern": "8b 8e 84 00 00 00 8b 11 50 8b 42 0c ff d0",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "event 0x64 stage",
+   "kind": "signature",
+   "va": "0x0058e663",
+   "pattern": "8b 4f 04 51 6a 06 8b ce e8 90 71 ff ff 6a 00 50 57 8d 54 24 64 52 8b ce c7 44 24 68 00 00 00 00 e8 e8 8c ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "local builder",
+   "kind": "signature",
+   "va": "0x006aad86",
+   "pattern": "66 c7 44 24 44 0f 27 66 89 74 24 46 c6 44 24 4c 01 89 44 24 48 e8 e0 1a ee ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate list lookup",
+   "kind": "signature",
+   "va": "0x00794eef",
+   "pattern": "8b 42 40 c1 e8 1b 83 e0 0f 83 f8 07 74 0f 83 f8 08 74 0a 83 f8 0a 74 05 83 f8 09 75 10 8b 56 0c 8b 49 08 52 e8 58 4a d4 ff 5e c2 08 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate global gates",
+   "kind": "signature",
+   "va": "0x0079567c",
+   "pattern": "e8 2f 4b 18 00 85 c0 0f 84 19 11 00 00 e8 a2 46 18 00 84 c0 0f 85 0c 11 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate row inputs",
+   "kind": "signature",
+   "va": "0x007956d1",
+   "pattern": "8d 0c bf 8b 44 8b 40 85 c0 8d 54 bf 0f 8b 0c 93 89 4c 24 28 0f 84 b7 10 00 00 8b c8 c1 e9 1b 83 e1 0f 89 4c 24 64",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate slot allocation",
+   "kind": "signature",
+   "va": "0x00795747",
+   "pattern": "6a 48 e8 e7 c3 23 00",
+   "mask": "ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate slot store",
+   "kind": "signature",
+   "va": "0x00795778",
+   "pattern": "8b 4e 10 83 e1 0f 89 44 8e 14",
+   "mask": "ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate form load",
+   "kind": "signature",
+   "va": "0x0079516e",
+   "pattern": "68 88 18 fe 00 8d 4c 24 30 e8 b4 35 cb ff c6 84 24 88 00 00 00 02 8d 44 24 2c 50 8d 4c 24 18 e8 0e b3 17 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate pool advance",
+   "kind": "signature",
+   "va": "0x00795935",
+   "pattern": "8d 41 01 33 c1 83 e0 0f 33 c1 8b c8 80 e1 0f 80 f9 04 8d 1c 96 89 46 10 76 06 83 e0 f0 89 46 10",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate kind dispatch",
+   "kind": "signature",
+   "va": "0x00795a10",
+   "pattern": "8b 44 24 64 83 c0 ff 83 f8 09 0f 87 8e 09 00 00 ff 24 85 cc 67 79 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate kind bounds",
+   "kind": "signature",
+   "va": "0x00795a14",
+   "pattern": "83 c0 ff 83 f8 09 0f 87 8e 09 00 00 ff 24 85 cc 67 79 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate kind targets",
+   "kind": "dwords",
+   "va": "0x007967cc",
+   "values": [
+    "0x00795a27",
+    "0x00795a27",
+    "0x00795b74",
+    "0x00795c50",
+    "0x007963ae",
+    "0x00795ca6",
+    "0x00795a27",
+    "0x00795c0c",
+    "0x0079609b",
+    "0x00795c50"
+   ]
+  },
+  {
+   "name": "plate digit magic divide",
+   "kind": "signature",
+   "va": "0x007952f9",
+   "pattern": "b8 67 66 66 66 f7 ef c1 fa 02 8b f2 c1 ee 1f 03 f2 8d 04 b6 6a 01 03 c0 6a 03 8d 4c 24 3c 2b f8 e8 d2 ed da ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate digit loop bound",
+   "kind": "signature",
+   "va": "0x007953e3",
+   "pattern": "83 c5 01 83 fd 05 0f 8c d6 fe ff ff",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "plate digit block names",
+   "kind": "dwords",
+   "va": "0x012c41b8",
+   "values": [
+    "0x00fe1640",
+    "0x00fe1690",
+    "0x00fe16e0",
+    "0x00fe1730",
+    "0x00fe1780"
+   ]
+  },
+  {
+   "name": "plate form path",
+   "kind": "wideString",
+   "va": "0x00fe1888",
+   "text": "\\system\\ingame\\DamagePlateWidget.form"
+  },
+  {
+   "name": "plate icon name",
+   "kind": "wideString",
+   "va": "0x00fe18d4",
+   "text": "IconControl_Icon"
+  },
+  {
+   "name": "plate additional text name",
+   "kind": "wideString",
+   "va": "0x00fe18f8",
+   "text": "TextBlock_Additional"
+  },
+  {
+   "name": "plate damage type name",
+   "kind": "wideString",
+   "va": "0x00fe1924",
+   "text": "TextBlock_DamageType"
+  },
+  {
+   "name": "plate damage animation",
+   "kind": "wideString",
+   "va": "0x00fe1950",
+   "text": "DamagePlateAnime.Popup"
+  },
+  {
+   "name": "plate miss animation",
+   "kind": "wideString",
+   "va": "0x00fe1980",
+   "text": "MissPlateAnime.Popup"
+  },
+  {
+   "name": "plate digit block 5",
+   "kind": "wideString",
+   "va": "0x00fe1640",
+   "text": "Label_DamageDisplay:TextBlock_Number_5"
+  },
+  {
+   "name": "plate digit block 4",
+   "kind": "wideString",
+   "va": "0x00fe1690",
+   "text": "Label_DamageDisplay:TextBlock_Number_4"
+  },
+  {
+   "name": "plate digit block 3",
+   "kind": "wideString",
+   "va": "0x00fe16e0",
+   "text": "Label_DamageDisplay:TextBlock_Number_3"
+  },
+  {
+   "name": "plate digit block 2",
+   "kind": "wideString",
+   "va": "0x00fe1730",
+   "text": "Label_DamageDisplay:TextBlock_Number_2"
+  },
+  {
+   "name": "plate digit block 1",
+   "kind": "wideString",
+   "va": "0x00fe1780",
+   "text": "Label_DamageDisplay:TextBlock_Number_1"
+  },
+  {
+   "name": "name request guard",
+   "kind": "signature",
+   "va": "0x005783b6",
+   "pattern": "8b 44 24 28 3d 62 00 00 7c 74 60 8d 88 00 00 00 f0 81 f9 ff ff ff 00 76 52 05 00 00 00 ec 3d ff ff ff 00 76 46",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "logger getter",
+   "kind": "signature",
+   "va": "0x004d7470",
+   "pattern": "8d 81 10 05 00 00 c3",
+   "mask": "ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "override getter",
+   "kind": "signature",
+   "va": "0x004d7430",
+   "pattern": "33 c0 39 81 38 78 01 00 0f 95 c0 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "config getter",
+   "kind": "signature",
+   "va": "0x004b4e90",
+   "pattern": "6a 01 6a 05 6a 02 e8 a5 ef f8 ff f7 d8 1b c0 f7 d8 c3",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "config lookup",
+   "kind": "signature",
+   "va": "0x00443e40",
+   "pattern": "8b 44 24 04 8b 54 24 08 c1 e0 05 83 e2 1f 03 c2 69 c0 bc 00 00 00 03 41 08 74 06 8b 40 60 c2 0c 00 8b 44 24 0c c2 0c 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  },
+  {
+   "name": "text id zero test",
+   "kind": "signature",
+   "va": "0x005759d7",
+   "pattern": "8b 9c 24 88 00 00 00 66 3b dd 0f 86 86 02 00 00",
+   "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+  }
+ ]
+}
