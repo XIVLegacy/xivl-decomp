@@ -110,6 +110,8 @@ jobs:
         run: python tools/test_sqwt_anime_property.py
       - name: Test Sqwt tab, scroll and text part verifier
         run: python tools/test_sqwt_tab_scroll_text.py
+      - name: Test Sqwt XPath data source verifier
+        run: python tools/test_sqwt_xpath_binding.py
       - name: Test character lighting model verifier
         run: python tools/test_chara_lighting_model.py
       - name: Test dungeon layout token index

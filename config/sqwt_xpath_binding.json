@@ -1,0 +1,1443 @@
+{
+  "format": 1,
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "tools": "Capstone 5.0.7 over the file-backed PE sections, Ghidra 12.1.4 listings as leads, xivl extract-resource for the sqwt markup",
+    "install": "Census counts and form facts come from the client/sqwt tree of a 1.23b install and record names and shapes only.",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "size": 15996808,
+    "imageBase": "0x00400000"
+  },
+  "resourceDictionary": {
+    "class": "Sqwt::ResourceDictionary",
+    "properties": [
+      {
+        "index": 0,
+        "name": "Document",
+        "offset": "0x3c"
+      },
+      {
+        "index": 1,
+        "name": "x:Key",
+        "offset": "0x4c"
+      },
+      {
+        "index": 2,
+        "name": "XPath",
+        "offset": "0x54"
+      },
+      {
+        "index": 3,
+        "name": "XPathNode",
+        "offset": "0x44"
+      },
+      {
+        "index": 4,
+        "name": "Source",
+        "offset": "0x5c"
+      },
+      {
+        "index": 5,
+        "name": "IsReadOnly",
+        "offset": "0x64"
+      }
+    ],
+    "getterVa": "0x00982c80",
+    "setterVa": "0x00983c50",
+    "changedVa": "0x009835e0",
+    "xpathChangedVa": "0x00982da0",
+    "selectNodeVa": "0x00982a30",
+    "derived": [
+      "SqwtXmlDataMaker",
+      "RaptureSsdDataReader"
+    ]
+  },
+  "declarations": {
+    "SqwtXmlDataMaker": {
+      "class": "Sqwt::Data::SqwtXmlDataMaker",
+      "base": "Sqwt::ResourceDictionary",
+      "attributes": [
+        "x:Key",
+        "XPath",
+        "Name",
+        "Source"
+      ],
+      "rowRootVa": "0x00944850"
+    },
+    "RaptureSsdDataReader": {
+      "class": "Application::Main::SqwtInterface::CustomControl::RaptureSsdDataReader",
+      "base": "Sqwt::ResourceDictionary",
+      "attributes": [
+        "x:Key",
+        "XPath",
+        "Name",
+        "SheetName",
+        "XmlFormat",
+        "Row"
+      ],
+      "properties": [
+        "SheetName",
+        "XmlFormat",
+        "Row"
+      ],
+      "rowBuilderVa": "0x006986b0",
+      "rowParserVa": "0x00698ec0",
+      "rowDelimiters": " ,",
+      "rowSpecMarkers": {
+        "range": -1,
+        "openEnd": -2
+      },
+      "rowAttribute": "ssdindex"
+    }
+  },
+  "binding": {
+    "class": "Sqwt::Data::Binding",
+    "parserVa": "0x00912340",
+    "resolveVa": "0x00911f50",
+    "evaluateVa": "0x009993c0",
+    "slashProperty": "XPathNode",
+    "otherProperty": "DataContext",
+    "fields": {
+      "source": "0x3c",
+      "targetObject": "0x44",
+      "converter": "0x4c",
+      "xpath": "0x54",
+      "sourceProperty": "0x5c",
+      "targetProperty": "0x60",
+      "elementName": "0x64",
+      "converterParameter": "0x68",
+      "backConverterParameter": "0x6c",
+      "path": "0x70",
+      "sourceKey": "0x74",
+      "name": "0x78"
+    }
+  },
+  "xpathForms": [
+    {
+      "shape": "/N",
+      "evaluation": "node handle of the source when the XPath starts with the XPath of the source",
+      "label": "STATIC"
+    },
+    {
+      "shape": "/N/N",
+      "evaluation": "same test and result as the one-segment form because the whole text is compared",
+      "label": "STATIC"
+    },
+    {
+      "shape": "/N/N[@N=N]",
+      "evaluation": "handle of the first child whose attribute equals the value, else the handle of the source",
+      "label": "INFERRED"
+    },
+    {
+      "shape": "/N[position() ge N and position() le N]",
+      "evaluation": "handle of the source with a child index range stored on it",
+      "label": "INFERRED"
+    },
+    {
+      "shape": "@N",
+      "evaluation": "attribute of the current row, empty text when absent",
+      "label": "STATIC"
+    },
+    {
+      "shape": "text()",
+      "evaluation": "text of the current row element",
+      "label": "INFERRED"
+    }
+  ],
+  "itemsControl": {
+    "class": "Sqwt::Controls::ItemsControl",
+    "properties": [
+      {
+        "index": 0,
+        "name": "SortKeyAttr"
+      },
+      {
+        "index": 1,
+        "name": "ItemsPanel"
+      },
+      {
+        "index": 2,
+        "name": "ItemContainerGenerator"
+      },
+      {
+        "index": 3,
+        "name": "ItemCount"
+      },
+      {
+        "index": 4,
+        "name": "MaxVisibleItems"
+      },
+      {
+        "index": 5,
+        "name": "MinVisibleItems"
+      },
+      {
+        "index": 6,
+        "name": "ItemsSource"
+      },
+      {
+        "index": 7,
+        "name": "ItemTemplate"
+      },
+      {
+        "index": 8,
+        "name": "ItemTemplateSelector"
+      },
+      {
+        "index": 9,
+        "name": "SqwtFocusedIndex"
+      },
+      {
+        "index": 10,
+        "name": "SourceFirstIndex"
+      },
+      {
+        "index": 11,
+        "name": "SourceCount"
+      }
+    ],
+    "sourceOffset": "0x354",
+    "payloadOffset": "0x46c",
+    "itemTemplateOffset": "0x344",
+    "selectorOffset": "0x34c",
+    "refreshVa": "0x00964580",
+    "itemVa": "0x009620c0",
+    "templateVa": "0x009601d0",
+    "applyVa": "0x00960570",
+    "hiddenAttribute": "visibility",
+    "hiddenValue": "False",
+    "templateAttribute": "template"
+  },
+  "census": {
+    "files": 1155,
+    "declarationAttributeSets": {
+      "RaptureSsdDataReader": {
+        "Name,Row,SheetName,XPath,XmlFormat,x:Key": 5,
+        "Name,SheetName,XPath,XmlFormat,x:Key": 10
+      },
+      "SqwtXmlDataMaker": {
+        "Name,Source,XPath,x:Key": 18,
+        "Name,XPath,x:Key": 274,
+        "XPath,x:Key": 5
+      }
+    },
+    "declarationXPathShapes": {
+      "/N": 271,
+      "/N/N": 41
+    },
+    "bindingXPathShapes": {
+      "/N": 135,
+      "/N/N": 38,
+      "/N/N[@N=N]": 306,
+      "@N": 642
+    },
+    "bindings": {
+      "total": 1121,
+      "withSource": 479,
+      "oneWay": 1121
+    },
+    "itemsSourceBindings": {
+      "ComboBox": 17,
+      "ListBox": 133
+    }
+  },
+  "forms": {
+    "MainMenuWidget": {
+      "sources": [
+        {
+          "tag": "SqwtXmlDataMaker",
+          "x:Key": "XmlData_System",
+          "XPath": "/System",
+          "Name": "SystemMenu"
+        },
+        {
+          "tag": "SqwtXmlDataMaker",
+          "x:Key": "XmlData_Main",
+          "XPath": "/Main",
+          "Name": "MainMenu"
+        }
+      ],
+      "bindings": [
+        {
+          "element": "ListBox",
+          "name": "ListBox_SystemMenu",
+          "property": "ItemsSource",
+          "source": "XmlData_System",
+          "xpath": "/System",
+          "itemTemplate": "DataTemplate_ListBoxItem_System",
+          "selector": false
+        },
+        {
+          "element": "ListBox",
+          "name": "ListBox_MainMenu",
+          "property": "ItemsSource",
+          "source": "XmlData_Main",
+          "xpath": "/Main",
+          "itemTemplate": "DataTemplate_ListBoxItem_Main",
+          "selector": true
+        }
+      ],
+      "templateRowAttributes": {
+        "DataTemplate_ListBoxItem_System": [
+          "Help",
+          "SystemEnable",
+          "SystemIcon",
+          "SystemName"
+        ],
+        "DataTemplate_ListBoxItem_Main": [
+          "Help",
+          "MainEnable",
+          "MainName"
+        ],
+        "DataTemplate_ListBoxItem_Return": [
+          "FValue0",
+          "FValue1",
+          "Help",
+          "IValue0",
+          "MainEnable",
+          "MainName",
+          "TimerVisibility"
+        ]
+      }
+    },
+    "MiniMapWidget": {
+      "sources": [
+        {
+          "tag": "RaptureSsdDataReader",
+          "XPath": "/root/type",
+          "SheetName": "2Dmap_actor_data",
+          "XmlFormat": "Type,SparkleFile,SparkleSequence",
+          "Row": "0-33",
+          "x:Key": "type_data",
+          "Name": "TypeData"
+        },
+        {
+          "tag": "SqwtXmlDataMaker",
+          "x:Key": "gl_marker_data",
+          "XPath": "/root/marker",
+          "Name": "GLMakerData"
+        },
+        {
+          "tag": "RaptureSsdDataReader",
+          "XPath": "/root/marker",
+          "SheetName": "2Dmap_marker",
+          "XmlFormat": ",X,Y,,,,,Z,SparkleFile,SparkleSequence,Region,Layout,Floor,Template",
+          "x:Key": "ssd_marker_data",
+          "Name": "ssd_marker_data"
+        },
+        {
+          "tag": "RaptureSsdDataReader",
+          "XPath": "/root/marker",
+          "SheetName": "2Dmap_marker",
+          "XmlFormat": ",X,Z,,,,,Y,SparkleFile,SparkleSequence,Region,Layout,Floor,Template,,,,HideLayout",
+          "x:Key": "map_marker_data",
+          "Name": "map_marker_data"
+        }
+      ],
+      "bindings": [
+        {
+          "element": "CustomControl",
+          "name": "CustomControl_MiniMap",
+          "property": "TypeDataSource",
+          "source": "type_data",
+          "xpath": "/root/type",
+          "itemTemplate": "",
+          "selector": false
+        },
+        {
+          "element": "CustomControl",
+          "name": "CustomControl_MiniMap",
+          "property": "GlMarkerSource",
+          "source": "gl_marker_data",
+          "xpath": "/root/marker",
+          "itemTemplate": "",
+          "selector": false
+        },
+        {
+          "element": "CustomControl",
+          "name": "CustomControl_MiniMap",
+          "property": "SsdMarkerSource",
+          "source": "ssd_marker_data",
+          "xpath": "/root/marker",
+          "itemTemplate": "",
+          "selector": false
+        },
+        {
+          "element": "CustomControl",
+          "name": "CustomControl_MiniMap",
+          "property": "MapMarkerSource",
+          "source": "map_marker_data",
+          "xpath": "/root/marker",
+          "itemTemplate": "",
+          "selector": false
+        }
+      ],
+      "templateRowAttributes": {
+        "MapMarkerTemplate": [
+          "Template"
+        ],
+        "MapMarker": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerUnder": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerLeft": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerRight": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerPoint": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerSymbol": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerSymbolUnder": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerSymbolLeft": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerSymbolRight": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerAetheryte": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerAetheryteUnder": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerAetheryteLeft": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerAetheryteRight": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerParty": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerQuest": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ],
+        "MapMarkerQuestArea": [
+          "SparkleSequence",
+          "Text",
+          "Visibility"
+        ]
+      }
+    },
+    "AchievementPopupWidget": {
+      "sources": [
+        {
+          "tag": "SqwtXmlDataMaker",
+          "x:Key": "XmlData_Achievement",
+          "XPath": "/Achievement",
+          "Name": "Achievement_Maker"
+        }
+      ],
+      "bindings": [
+        {
+          "element": "ListBox",
+          "name": "ListBox_AchievementList",
+          "property": "ItemsSource",
+          "source": "XmlData_Achievement",
+          "xpath": "/Achievement",
+          "itemTemplate": "DataTemplate_ListBoxItem_AchievementPopup",
+          "selector": false
+        }
+      ],
+      "templateRowAttributes": {
+        "DataTemplate_ListBoxItem_AchievementList": [
+          "arrowstyle",
+          "borderalpha",
+          "bordercolor",
+          "bordervisible",
+          "detailvisible",
+          "framevisible",
+          "gridalpha",
+          "gridcolor",
+          "help",
+          "icon",
+          "iconvisible",
+          "name",
+          "point",
+          "point1",
+          "point10",
+          "point10v",
+          "progress",
+          "reward",
+          "rewardget",
+          "rewardvisible",
+          "style",
+          "value"
+        ],
+        "DataTemplate_ListBoxItem_AchievementPopup": [
+          "help",
+          "icon",
+          "name",
+          "point",
+          "point1",
+          "point10",
+          "point10v",
+          "reward",
+          "rewardvisible",
+          "style"
+        ],
+        "DataTemplate_ListBoxItem_AchievementDescription": [
+          "help",
+          "name"
+        ]
+      }
+    }
+  },
+  "rangeExamples": [
+    {
+      "predicate": "position() ge 3 and position() le 8]",
+      "count": 20,
+      "bounds": [
+        3,
+        8
+      ]
+    },
+    {
+      "predicate": "position() le 4]",
+      "count": 20,
+      "bounds": [
+        0,
+        4
+      ]
+    },
+    {
+      "predicate": "position() ge 25]",
+      "count": 20,
+      "bounds": [
+        19,
+        19
+      ]
+    },
+    {
+      "predicate": "3 le position() and 8 ge position()]",
+      "count": 20,
+      "bounds": [
+        3,
+        8
+      ]
+    },
+    {
+      "predicate": "position() ge 1]",
+      "count": 0,
+      "bounds": [
+        -1,
+        -1
+      ]
+    },
+    {
+      "predicate": "position() ge 10 and position() le 4]",
+      "count": 20,
+      "bounds": [
+        4,
+        4
+      ]
+    },
+    {
+      "predicate": "position() 7 ge 9 ge position()]",
+      "count": 20,
+      "bounds": [
+        9,
+        9
+      ]
+    },
+    {
+      "predicate": "position() and ge 3]",
+      "count": 10,
+      "bounds": [
+        0,
+        9
+      ]
+    }
+  ],
+  "rowExamples": [
+    {
+      "text": "0-33",
+      "spec": [
+        0,
+        -1,
+        33
+      ],
+      "sheetRows": 100,
+      "rows": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ]
+    },
+    {
+      "text": "5-3",
+      "spec": [
+        3,
+        -1,
+        5
+      ],
+      "sheetRows": 10,
+      "rows": [
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "text": "7",
+      "spec": [
+        7
+      ],
+      "sheetRows": 10,
+      "rows": [
+        7
+      ]
+    },
+    {
+      "text": "12-0",
+      "spec": [
+        12,
+        -2
+      ],
+      "sheetRows": 15,
+      "rows": [
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "text": "1, 4-5",
+      "spec": [
+        1,
+        4,
+        -1,
+        5
+      ],
+      "sheetRows": 10,
+      "rows": [
+        1,
+        4,
+        5
+      ]
+    }
+  ],
+  "selectExamples": [
+    {
+      "xpath": "/root/marker",
+      "found": "marker"
+    },
+    {
+      "xpath": "/root",
+      "found": "root"
+    },
+    {
+      "xpath": "/",
+      "found": ""
+    },
+    {
+      "xpath": "/other",
+      "found": null
+    },
+    {
+      "xpath": "root",
+      "found": null
+    }
+  ],
+  "contract": [
+    "A data source is a ResourceDictionary entry declared by a SqwtXmlDataMaker or RaptureSsdDataReader element and keyed by its x:Key.",
+    "A binding with an XPath reads the XPathNode property of its source when the XPath starts with a slash and the DataContext property of its source otherwise.",
+    "A slash XPath that does not start with the XPath of its source writes nothing to the target.",
+    "A slash XPath without a bracket writes the node handle of the source to the target.",
+    "An at-sign XPath writes the named attribute of the current row to the target, or the empty string when the row has no such attribute.",
+    "ItemsSource takes the node handle and builds one item for each child of that node whose visibility attribute is not False.",
+    "Each item gets its row as DataContext and its template from the row template attribute when ItemTemplateSelector is nonempty, else from ItemTemplate.",
+    "A RaptureSsdDataReader builds rows only when its Row value names at least one row."
+  ],
+  "rule": [
+    "Model a data source as a named list of rows. A row is an ordered map of attribute names to strings and the list keeps the XPath it was declared with.",
+    "Declare one list for each SqwtXmlDataMaker or RaptureSsdDataReader element, found by x:Key from bindings and by Name from the script list natives.",
+    "Evaluate a binding with an XPath from the resolved source and the current row. A slash XPath reads the list through the source and an at-sign XPath reads one attribute of the current row.",
+    "Leave the target unchanged when a slash XPath does not start with the XPath of its source.",
+    "Hand the list to the items control for an ItemsSource binding, and build one item for each row whose visibility attribute is not False.",
+    "Give each item its row as DataContext and choose its template from the row template attribute when the ItemTemplateSelector of the control is nonempty, else from ItemTemplate. For ListBox_MainMenu, treating the markup selector as nonempty is a CALIBRATION choice until the SqwtDefaultTemplateSelector reference is settled (UNKNOWN, see Open).",
+    "Evaluate the at-sign bindings of an item against its row and write the attribute text through the same string parsing as a markup attribute. A missing attribute reads as the empty string.",
+    "Feed the MainMenuWidget and AchievementPopupWidget lists from the script list natives by Name. Their bindings use only the slash and at-sign shapes, so the bracket predicates and text() need no support for these forms.",
+    "Build the Type, SsdMarker and MapMarker lists of MiniMapWidget from their sheets by XmlFormat and Row, feed the GlMarker list from whatever feeds GLMakerData (UNKNOWN, see Open, so the binding layer's choice is CALIBRATION), and pass the four Source properties of the map control as list handles."
+  ],
+  "open": [
+    {
+      "label": "UNKNOWN",
+      "text": "The list names that the MainMenuWidget and AchievementPopupWidget scripts pass to the list natives."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "What redraws a bound list or item after the first resolution when a row attribute or the row count changes."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The consumer of the four list handles that MapScreenControl receives and the writer of Row for the sheet readers that declare none."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "Whether the SqwtDefaultTemplateSelector reference of ListBox_MainMenu resolves to a nonempty selector, because no markup file or executable string declares that key."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "What feeds the `GLMakerData` list of MiniMapWidget, because `gl_marker_data` is only a `SqwtXmlDataMaker` and no traced script or native names it."
+    },
+    {
+      "label": "UNKNOWN",
+      "text": "The reader of the child index range that a position predicate stores on a node."
+    },
+    {
+      "label": "CALIBRATION",
+      "text": "The frame on which a list write reaches the bound items. A binding layer chooses the next frame until a retail capture settles it."
+    }
+  ],
+  "staticChecks": [
+    {
+      "kind": "signature",
+      "name": "binding parser XPath key",
+      "va": "0x0091259f",
+      "pattern": "68 F4 83 06 01 8D 4C 24 34 E8 B3 4C B3 FF 6A 01 6A 00 8D 54 24 34 52 8B CF C7 84 24 BC 00 00 00 09 00 00 00 E8 D8 18 00 00 50 8B CE E8 70 67 08 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "binding XPath field store",
+      "va": "0x00998d40",
+      "pattern": "56 8B 74 24 10 6A 01 56 8B 74 24 14 56 68 90 0C 36 01 33 D2 52 B8 30 8A 99 00 50 8B 44 24 20 51 50 83 C1 54 E8 97 AF 01 00 5E",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF"
+    },
+    {
+      "kind": "signature",
+      "name": "binding ElementName field",
+      "va": "0x009124fa",
+      "pattern": "8D 4E 64",
+      "mask": "FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "binding Path field",
+      "va": "0x00912564",
+      "pattern": "8D 5E 70",
+      "mask": "FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "binding Source field",
+      "va": "0x0091261a",
+      "pattern": "8D 4E 74",
+      "mask": "FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "resolve XPath nonempty",
+      "va": "0x00911f7d",
+      "pattern": "8B 46 54 8B 00 80 38 00 0F 84 07 01 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "resolve default source is the target",
+      "va": "0x00911fb9",
+      "pattern": "6A 01 6A 00 53 8B CE E8 5B 6C 08 00",
+      "mask": "FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "resolve slash test",
+      "va": "0x00911fd0",
+      "pattern": "8B 4E 54 E8 38 32 B3 FF 80 38 2F 75 4B",
+      "mask": "FF FF FF FF 00 00 00 00 FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "resolve XPathNode lookup",
+      "va": "0x00911fed",
+      "pattern": "68 34 84 06 01 B9 24 6C 35 01 89 6C 24 64 E8 E0 E8 FF FF C7 44 24 60 FF FF FF FF 8B 4E 3C 55 8D 44 24 6C 50 68 24 6C 35 01 89 6C 24 74 E8 41 EF FF FF 8B 4C 24 68 89 4E 5C EB 6C",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "resolve DataContext lookup",
+      "va": "0x00912038",
+      "pattern": "68 40 84 06 01 B9 10 6C 35 01 C7 44 24 64 01 00 00 00 E8 91 E8 FF FF C7 44 24 60 FF FF FF FF 8B 4E 3C 89 6C 24 68 F6 41 20 02 74 12 8B 11 8B 42 0C 6A 01 55 FF D0 50 8B CE E8 AA 6B 08 00 55 8D 4C 24 6C 51 8B 4E 3C 68 10 6C 35 01 E8 D7 EE FF FF 8B 54 24 68 89 56 5C EB 02 33 ED",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate no source property",
+      "va": "0x009993fd",
+      "pattern": "83 7B 5C 00 89 5C 24 24 0F 84 18 06 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate no-property path",
+      "va": "0x00999a23",
+      "pattern": "8D 8C 24 98 00 00 00 E8 C1 C2 AA FF 8B 43 3C 8D 8C 24 98 00 00 00 51 8D 54 24 28 52 C7 84 24 A8 01 00 00 09 00 00 00 89 44 24 2C E8 AD C2 F7 FF 8B 53 60 8B 4B 44 83 C4 08 6A 00 8D 84 24 9C 00 00 00 50 52 E8 E4 8D F7 FF",
+      "mask": "FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate property read",
+      "va": "0x00999414",
+      "pattern": "8B 7B 4C 85 FF C7 84 24 A0 01 00 00 00 00 00 00 8D 4B 68 74 20 8B 37 8B 6B 3C 8D 44 24 44 50 83 C6 38 E8 65 11 00 00 8B 4B 5C 8B 16 50 51 55 8B CF FF D2 EB 22 E8 52 11 00 00 50 8D 4C 24 48 E8 F8 DF AA FF 8B 53 5C 8B 4B 3C 6A 00 8D 44 24 48 50 52 E8 B5 7B F7 FF 3C 01 0F 85 AA 05 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate XPath and node lookup",
+      "va": "0x00999473",
+      "pattern": "8B 73 54 8B CE C7 44 24 20 00 00 00 00 E8 CB C9 AA FF 85 C0 0F 84 6C 05 00 00 8D 44 24 44 50 8D 4C 24 28 51 E8 34 FB F7 FF 8B E8 83 C4 08 85 ED 0F 84 50 05 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range reset",
+      "va": "0x009994a9",
+      "pattern": "8B 7D 10 6A 00 68 EC 11 2E 01 68 5C AD 2B 01 6A 00 57 E8 0C 12 04 00 83 C4 14 85 C0 89 44 24 38 74 10 8B 10 68 FF FF 00 00 8B C8 8B 42 14 6A 00 FF D0",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate slash and at tests",
+      "va": "0x009994db",
+      "pattern": "6A 00 8B CE E8 6C BB AA FF 80 38 2F 74 76 6A 00 8B CE E8 5E BB AA FF 80 38 40 75 42",
+      "mask": "FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate attribute branch",
+      "va": "0x009994f7",
+      "pattern": "8B 0D 98 72 F6 00 51 6A 01 8D 94 24 F4 00 00 00 52 8B CE E8 71 E5 AA FF 8B 55 08 8D 4D 08 50 8B 42 1C C6 84 24 A4 01 00 00 01 FF D0 50 8D 4C 24 48 E8 23 DF AA FF 8D 8C 24 EC 00 00 00 E9 B3 04 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate text branch",
+      "va": "0x00999539",
+      "pattern": "68 B0 9B 07 01 8B CE E8 1B C8 AA FF 84 C0 0F 84 AC 04 00 00 83 C5 70 55 8D 4C 24 48 E8 F6 DE AA FF E9 9A 04 00 00",
+      "mask": "FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF 00 00 00 00 FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate source XPath prefix compare",
+      "va": "0x0099955f",
+      "pattern": "F6 05 E0 0B 36 01 01 75 26 83 0D E0 0B 36 01 01 68 B8 9B 07 01 B9 CC 0B 36 01 C6 84 24 A4 01 00 00 02 E8 5A 73 F7 FF C6 84 24 A0 01 00 00 00 8D 8C 24 40 01 00 00 E8 56 C7 AA FF 8B 4B 3C 33 ED 55 8D 94 24 44 01 00 00 52 68 CC 0B 36 01 C6 84 24 AC 01 00 00 03 E8 66 7A F7 FF 8D 8C 24 40 01 00 00 E8 2A BC AA FF 50 8B CE E8 42 BC AA FF 50 8D 8C 24 48 01 00 00 E8 35 BC AA FF 50 E8 94 BE 03 00 83 C4 0C",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF 00 00 00 00 FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate mismatch skips the write",
+      "va": "0x009995e4",
+      "pattern": "85 C0 74 1D 8D 8C 24 40 01 00 00 C6 84 24 A0 01 00 00 00 E8 54 D9 AA FF 8D 4C 24 44 E9 6E 04 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate bracket search",
+      "va": "0x00999605",
+      "pattern": "6A 5B 8B CE E8 02 BC AA FF 50 E8 FC EE 03 00 8B F0 83 C4 08 3B F5 0F 84 C4 03 00 00 8D 4C 24 44 E8 C6 BB AA FF 85 C0 0F 84 B3 03 00 00 83 C6 01 80 3E 40 0F 85 E6 00 00 00",
+      "mask": "FF FF FF FF FF 00 00 00 00 FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate attribute predicate parse",
+      "va": "0x0099963e",
+      "pattern": "83 C6 01 6A 3D 56 E8 C7 EE 03 00 8B E8 83 C4 08 85 ED 0F 84 8F 03 00 00 2B C6 50 56 8D 8C 24 F4 00 00 00 E8 FA DB AA FF 83 C5 01 6A 5D 55",
+      "mask": "FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate attribute predicate lookup",
+      "va": "0x009996a0",
+      "pattern": "8B 07 6A 00 68 84 AD 2B 01 68 5C AD 2B 01 6A 00 8D 8C 24 A8 00 00 00 51 8D 94 24 00 01 00 00 52 8B 50 20 8B CF FF D2 8B C8 E8 32 98 42 00 50 E8 F8 0F 04 00 83 C4 14 85 C0 89 44 24 20 74 18 50 E8 3B DB F7 FF 8D 4C 24 48 51 8D 54 24 28 52 E8 9C 06 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range token position",
+      "va": "0x00999800",
+      "pattern": "68 C4 9B 07 01 55 8D 4C 24 30 E8 A1 B4 AA FF 8B C8 E8 4A C5 AA FF 84 C0 74 53",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range position after number",
+      "va": "0x0099981a",
+      "pattern": "80 FB 01 75 44 83 EF 01 74 22 83 EF 01 75 31 39 74 24 18 7D 04 89 74 24 18 39 74 24 1C 7D 21 33 FF 89 74 24 1C 32 DB E9 32 01 00 00 39 74 24 18 7E 04 89 74 24 18 39 74 24 1C 7E 04 89 74 24 1C 33 FF 32 DB E9 15 01 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range position first",
+      "va": "0x00999863",
+      "pattern": "C6 44 24 17 01 E9 0B 01 00 00",
+      "mask": "FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range token ge",
+      "va": "0x0099986d",
+      "pattern": "68 D0 9B 07 01 55 8D 4C 24 30 E8 34 B4 AA FF 8B C8 E8 DD C4 AA FF 84 C0 74 0A",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range op ge",
+      "va": "0x00999887",
+      "pattern": "BF 01 00 00 00 E9 E7 00 00 00",
+      "mask": "FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range token le",
+      "va": "0x00999891",
+      "pattern": "68 D4 9B 07 01 55 8D 4C 24 30 E8 10 B4 AA FF 8B C8 E8 B9 C4 AA FF 84 C0 74 0A",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range op le",
+      "va": "0x009998ab",
+      "pattern": "BF 02 00 00 00 E9 C3 00 00 00",
+      "mask": "FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range token and",
+      "va": "0x009998b5",
+      "pattern": "68 D8 9B 07 01 55 8D 4C 24 30 E8 EC B3 AA FF 8B C8 E8 95 C4 AA FF 84 C0 0F 85 9C 00 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range number first",
+      "va": "0x009998d3",
+      "pattern": "6A 00 55 8D 4C 24 30 E8 D1 B3 AA FF 8B C8 E8 7A B7 AA FF 8A 00 2C 30 3C 09 0F 87 86 00 00 00 85 FF 75 20 55 8D 4C 24 2C E8 B0 B3 AA FF 8B C8 E8 09 B9 AA FF 50 E8 D0 D6 03 00 83 C4 04 8B F0 B3 01 EB 62",
+      "mask": "FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range number after position",
+      "va": "0x00999916",
+      "pattern": "80 7C 24 17 01 75 52 55 8D 4C 24 2C E8 89 B3 AA FF 8B C8 E8 E2 B8 AA FF 50 E8 A9 D6 03 00 83 C4 04 83 EF 01 8B F0 74 1B 83 EF 01 75 2E 39 74 24 18 7E 04 89 74 24 18 39 74 24 1C 7E 1E 89 74 24 1C EB 18 39 74 24 18 7D 04 89 74 24 18 39 74 24 1C 7D 08 89 74 24 1C EB 02 32 DB C6 44 24 17 00 33 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00 FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range initial bounds",
+      "va": "0x009997c4",
+      "pattern": "8B 17 89 44 24 40 8B 42 20 8B CF FF D0 8B C8 E8 58 17 CE FF 83 E8 01 33 ED 32 DB 33 F6 33 FF 39 6C 24 40 89 44 24 3C 89 6C 24 18 89 44 24 1C 88 5C 24 17 0F 86 9B 01 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range clamp",
+      "va": "0x00999985",
+      "pattern": "83 7C 24 18 00 8B 44 24 3C 7D 08 C7 44 24 18 00 00 00 00 83 7C 24 1C 00 7D 08 C7 44 24 1C 00 00 00 00 39 44 24 18 7E 04 89 44 24 18 39 44 24 1C 7E 04 89 44 24 1C",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate range apply",
+      "va": "0x009999bb",
+      "pattern": "8B 44 24 1C 8B 4C 24 38 8B 11 8B 52 14 50 8B 44 24 1C 50 FF D2",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "evaluate target write",
+      "va": "0x009999f9",
+      "pattern": "8B 53 60 8B 4B 44 6A 00 8D 44 24 48 50 52 E8 44 8E F7 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "handle registry lookup",
+      "va": "0x00916860",
+      "pattern": "8B 4C 24 04 8B 01 83 EC 0C 80 38 00 75 06 33 C0 83 C4 0C C3 64 A1 2C 00 00 00 8B 15 38 3F 36 01 8B 14 90 56 8B B2 1C 00 00 00 6A 00 8D 44 24 18 50 81 C6 18 21 00 00 C7 44 24 1C 00 00 00 00 E8 6C E9 B2 FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "XmlElement GetAttribute",
+      "va": "0x0099adb0",
+      "pattern": "8B 44 24 04 50 81 C1 CC 00 00 00 E8 10 81 42 00 85 C0 74 06 83 C0 68 C2 04 00 B8 48 B2 37 01 C2 04 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "XmlElement children list",
+      "va": "0x0099ae00",
+      "pattern": "8B 81 E0 00 00 00 85 C0 75 06 8D 81 BC 00 00 00 C3",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "XmlElemenBase SetRange",
+      "va": "0x0099ae30",
+      "pattern": "8B 44 24 04 8B 54 24 08 89 41 08 89 51 0C C2 08 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ResourceDictionary XPathNode getter",
+      "va": "0x00982cd6",
+      "pattern": "8B 51 44 8B 44 24 08 50 8D 4C 24 08 51 89 54 24 0C E8 74 30 F9 FF 83 C4 08 B0 01 C2 08 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ResourceDictionary XPath changed",
+      "va": "0x0098366a",
+      "pattern": "8B CE E8 2F F7 FF FF",
+      "mask": "FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "ResourceDictionary XPath selects the node",
+      "va": "0x00982db2",
+      "pattern": "8B 4F 54 6A 00 83 C0 08 50 51 8B CF E8 6D FC FF FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "SelectNode absolute test",
+      "va": "0x00982a83",
+      "pattern": "E8 C8 33 AC FF 83 F8 01 0F 82 B8 01 00 00 33 DB 53 8B CE E8 B5 25 AC FF 80 38 2F 0F 85 A5 01 00 00",
+      "mask": "FF 00 00 00 00 FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "SelectNode segment cut",
+      "va": "0x00982aa4",
+      "pattern": "6A 2F 8B CE E8 63 27 AC FF 83 C0 01 50 E8 5A 5A 05 00 8B F8 83 C4 08 3B FB 8B CE 75 09 E8 2A 27 AC FF 8B F8 EB 07 E8 41 27 AC FF 2B F8 83 FF 01 77 1A 53 68 84 AD 2B 01 68 5C AD 2B 01 53 55 E8 E4 7B 05 00 83 C4 14 E9 5B 01 00 00",
+      "mask": "FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "SqwtXmlDataMaker row root create flag",
+      "va": "0x009448a5",
+      "pattern": "8B 47 54 6A 01 51 50 8B CF E8 7D E1 03 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "RaptureSsdDataReader row root create flag",
+      "va": "0x006987b8",
+      "pattern": "8B 47 54 6A 01 51 50 8B CF E8 6A A2 2E 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "RaptureSsdDataReader row gate",
+      "va": "0x006986ed",
+      "pattern": "8B 87 C4 00 00 00 33 F6 3B C6 0F 84 F2 06 00 00 8B 00 80 38 00 0F 94 C0 84 C0 0F 85 E2 06 00 00 8B 87 F0 00 00 00 3B C6 0F 84 D4 06 00 00 8B 8F F4 00 00 00 2B C8 C1 F9 02 0F 84 C3 06 00 00 39 B7 44 02 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "RaptureSsdDataReader node reselect",
+      "va": "0x00698dd9",
+      "pattern": "6A FF 6A FF 8D 8F 18 01 00 00 E8 D8 E3 2E 00 8B CF E8 B1 9F 2E 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl ItemsSource index",
+      "va": "0x00f23e20",
+      "pattern": "68 28 F8 06 01 B9 5C AB 35 01 E8 B1 CA 9E FF C7 05 70 AB 35 01 06 00 00 00 C3",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl source store",
+      "va": "0x0096536d",
+      "pattern": "8D BE 54 03 00 00 50 8B CF E8 E5 CE FC FF 8B 8E F0 03 00 00 85 C9 74 10 8B 96 68 03 00 00 6A 01 6A 00 52 E8 AB E1 05 00 8B 3F 85 FF 8B CE 74 10 8B 47 10 89 86 6C 04 00 00 E8 45 FE FF FF EB 05",
+      "mask": "FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl row visibility test",
+      "va": "0x00962162",
+      "pattern": "8B 0D 98 72 F6 00 51 68 E4 F8 06 01 8D 4C 24 2C E8 E9 50 AE FF 8B AC 24 88 00 00 00 8B 55 08 8B 52 1C 8D 4D 08 8D 44 24 24 50 C7 84 24 84 00 00 00 00 00 00 00 FF D2 8D 4C 24 24 89 84 24 88 00 00 00 C7 84 24 80 00 00 00 FF FF FF FF E8 9C 4D AE FF 8B 8C 24 88 00 00 00 8B 01 80 38 00 74 26 68 F0 F8 06 01 E8 94 3B AE FF 84 C0 74 18 8B 8C 24 8C 00 00 00 51 8B CB E8 01 B9 33 00 D9 EE D9 18 E9 52 01 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl row template attribute",
+      "va": "0x009602c9",
+      "pattern": "68 B8 F8 06 01 8D 4C 24 70 89 BC 24 24 01 00 00 E8 82 6F AE FF 8B 16 8B 52 1C 8D 44 24 68 50 8B CE C6 84 24 20 01 00 00 03 FF D2",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl row template fallback",
+      "va": "0x00960312",
+      "pattern": "8B 45 00 80 38 00 74 19 8B 8C 24 BC 00 00 00 80 39 00 75 19 55 8D 8C 24 C0 00 00 00 E8 1D 71 AE FF 8B 94 24 BC 00 00 00 80 3A 00 74 44 F6 05 38 AA 35 01 02 75 25 09 3D 38 AA 35 01 68 C4 F8 06 01 B9 10 AA 35 01 C6 84 24 20 01 00 00 04 E8 7B 05 FB FF C6 84 24 1C 01 00 00 02 6A 00 8D 84 24 C0 00 00 00 50 68 10 AA 35 01 8B CB E8 CD 24 FB FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl selector gate",
+      "va": "0x00960593",
+      "pattern": "8B 86 4C 03 00 00 8B 00 80 38 00 74 2B 8B 8E 44 03 00 00 8B 54 24 1C 8B 44 24 18 51 52 50 8B CE E8 18 FC FF FF",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl row DataContext set",
+      "va": "0x0092f310",
+      "pattern": "56 8B 74 24 10 56 8B 74 24 10 56 68 5C 88 35 01 33 D2 52 B8 B0 DA 92 00 50 8B 44 24 1C 51 50 81 C1 08 02 00 00 E8 E6 44 09 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "ItemsControl row DataContext call",
+      "va": "0x00962223",
+      "pattern": "6A 01 6A 00 55 8B CE E8 E1 D0 FC FF 56 55 8B CF E8 38 E3 FF FF",
+      "mask": "FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF 00 00 00 00"
+    },
+    {
+      "kind": "signature",
+      "name": "DataContext property index",
+      "va": "0x00f22020",
+      "pattern": "68 B8 A9 06 01 B9 5C 88 35 01 E8 B1 E8 9E FF C7 05 70 88 35 01 11 00 00 00",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ResourceDictionary XPath index",
+      "va": "0x00f25fe0",
+      "pattern": "68 3C 6E 07 01 B9 C4 E8 35 01 E8 F1 A8 9E FF C7 05 D8 E8 35 01 02 00 00 00 C3",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "signature",
+      "name": "ResourceDictionary XPathNode index",
+      "va": "0x00f26000",
+      "pattern": "68 44 6E 07 01 B9 E8 E8 35 01 E8 D1 A8 9E FF C7 05 FC E8 35 01 03 00 00 00 C7 05 00 E9 35 01 80 00 00 00 C3",
+      "mask": "FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF"
+    },
+    {
+      "kind": "dwords",
+      "name": "ItemsControl setter table",
+      "va": "0x009654a0",
+      "values": [
+        "0x00965237",
+        "0x00965261",
+        "0x0096528b",
+        "0x009652b5",
+        "0x009652df",
+        "0x00965309",
+        "0x00965333",
+        "0x009653ce",
+        "0x009653f8",
+        "0x00965422",
+        "0x0096544c",
+        "0x00965476"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "ItemsControl getter table",
+      "va": "0x00960a04",
+      "values": [
+        "0x009608c7",
+        "0x009608dd",
+        "0x009608f3",
+        "0x00960909",
+        "0x00960923",
+        "0x0096093d",
+        "0x00960957",
+        "0x0096096d",
+        "0x00960983",
+        "0x009609ad",
+        "0x009609c7",
+        "0x009609e1"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "ResourceDictionary getter table",
+      "va": "0x00982d20",
+      "values": [
+        "0x00982c94",
+        "0x00982cb2",
+        "0x00982cc4",
+        "0x00982cd6",
+        "0x00982cf4",
+        "0x00982d06"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "ResourceDictionary setter table",
+      "va": "0x00983d58",
+      "values": [
+        "0x00983c65",
+        "0x00983c8c",
+        "0x00983cb5",
+        "0x00983cde",
+        "0x00983d05",
+        "0x00983d2e"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "ResourceDictionary changed table",
+      "va": "0x009837f4",
+      "values": [
+        "0x00983629",
+        "0x009837dd",
+        "0x0098366a",
+        "0x00983685",
+        "0x009836a2"
+      ]
+    },
+    {
+      "kind": "string",
+      "name": "string XPath binding key",
+      "va": "0x010683f4",
+      "text": "XPath"
+    },
+    {
+      "kind": "string",
+      "name": "string XPathNode binding",
+      "va": "0x01068434",
+      "text": "XPathNode"
+    },
+    {
+      "kind": "string",
+      "name": "string DataContext binding",
+      "va": "0x01068440",
+      "text": "DataContext"
+    },
+    {
+      "kind": "string",
+      "name": "string XPath evaluator",
+      "va": "0x01079bb8",
+      "text": "XPath"
+    },
+    {
+      "kind": "string",
+      "name": "string text()",
+      "va": "0x01079bb0",
+      "text": "text()"
+    },
+    {
+      "kind": "string",
+      "name": "string predicate delimiters",
+      "va": "0x01079bc0",
+      "text": "[] "
+    },
+    {
+      "kind": "string",
+      "name": "string position()",
+      "va": "0x01079bc4",
+      "text": "position()"
+    },
+    {
+      "kind": "string",
+      "name": "string ge",
+      "va": "0x01079bd0",
+      "text": "ge"
+    },
+    {
+      "kind": "string",
+      "name": "string le",
+      "va": "0x01079bd4",
+      "text": "le"
+    },
+    {
+      "kind": "string",
+      "name": "string and",
+      "va": "0x01079bd8",
+      "text": "and"
+    },
+    {
+      "kind": "string",
+      "name": "string visibility row",
+      "va": "0x0106f8e4",
+      "text": "visibility"
+    },
+    {
+      "kind": "string",
+      "name": "string False",
+      "va": "0x0106f8f0",
+      "text": "False"
+    },
+    {
+      "kind": "string",
+      "name": "string template row",
+      "va": "0x0106f8b8",
+      "text": "template"
+    },
+    {
+      "kind": "string",
+      "name": "string ssdindex",
+      "va": "0x00fc9910",
+      "text": "ssdindex"
+    },
+    {
+      "kind": "string",
+      "name": "string ItemsSource",
+      "va": "0x0106f828",
+      "text": "ItemsSource"
+    },
+    {
+      "kind": "string",
+      "name": "string ItemTemplate",
+      "va": "0x0106f834",
+      "text": "ItemTemplate"
+    },
+    {
+      "kind": "string",
+      "name": "string ItemTemplateSelector",
+      "va": "0x0106f844",
+      "text": "ItemTemplateSelector"
+    },
+    {
+      "kind": "string",
+      "name": "string ResourceDictionary XPath",
+      "va": "0x01076e3c",
+      "text": "XPath"
+    },
+    {
+      "kind": "string",
+      "name": "string ResourceDictionary XPathNode",
+      "va": "0x01076e44",
+      "text": "XPathNode"
+    },
+    {
+      "kind": "string",
+      "name": "string SheetName",
+      "va": "0x00fc98c8",
+      "text": "SheetName"
+    },
+    {
+      "kind": "string",
+      "name": "string XmlFormat",
+      "va": "0x00fc98d4",
+      "text": "XmlFormat"
+    },
+    {
+      "kind": "string",
+      "name": "string Row",
+      "va": "0x00fc98e0",
+      "text": "Row"
+    },
+    {
+      "kind": "string",
+      "name": "RTTI DOM_Node name",
+      "va": "0x012bad64",
+      "text": ".?AVDOM_Node@Xml@Component@@"
+    },
+    {
+      "kind": "string",
+      "name": "RTTI XmlElement name",
+      "va": "0x012bad8c",
+      "text": ".?AVXmlElement@Xml@Sqwt@@"
+    },
+    {
+      "kind": "string",
+      "name": "RTTI XmlElemenBase name",
+      "va": "0x012e11f4",
+      "text": ".?AVXmlElemenBase@Xml@Sqwt@@"
+    },
+    {
+      "kind": "dwords",
+      "name": "RTTI SqwtXmlDataMaker bases",
+      "va": "0x01179d58",
+      "values": [
+        "0x01179d7c",
+        "0x0115a024"
+      ]
+    },
+    {
+      "kind": "dwords",
+      "name": "RTTI RaptureSsdDataReader bases",
+      "va": "0x01159fe4",
+      "values": [
+        "0x0115a008",
+        "0x0115a024"
+      ]
+    },
+    {
+      "kind": "string",
+      "name": "RTTI ResourceDictionary name",
+      "va": "0x012bad10",
+      "text": ".?AVResourceDictionary@Sqwt@@"
+    }
+  ]
+}
