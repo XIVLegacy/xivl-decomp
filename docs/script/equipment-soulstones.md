@@ -101,6 +101,56 @@ compatible crystal supplies an icon. Dimming does not disable selection.
 the item-update batch reaches zero. `updateWindowDisplay` (`:5587-5713`)
 maintains the soul panel at steps 121/122 and updates list focus when requested.
 
+### Open-window refresh callers
+
+`CharaBaseClass._onUpdateItemPackage` forwards `(actor, package, slot-list)` to
+`DesktopWidget.processUpdateItemInformation`. For the local player, that
+dispatcher calls `updateMainMenuModeWidget("EquipWidget", package, slot-list)`.
+The helper uses `getWidget(3, "EquipWidget")` and returns if the window is
+absent; otherwise it calls `DesktopWidget.updatePlayerItem` on that widget.
+The latter first supplies `(0, slot-count)`, then calls the widget once per
+supplied `(package, slot)`. An empty slot-list initializes the count to zero
+without a per-slot completion call.
+
+The Equipment handler decrements a positive batch count. At zero, package 101
+rebuilds the important-item list and opacity. Its `updateWindowDisplay` call
+omits the focus flag. That method preserves the panel at steps 121/122, but
+calls `updateListFocus` only when its flag is exactly Boolean true. Thus this
+batch-completion caller does not request list-focus refresh.
+
+Work callbacks provide another route. The local-player dispatcher calls the
+open Equipment widget's `update(group)` for `stateAtQuicklyForAll`,
+`battleStateForSelf`, `exp`, `battleParameter` or `gameParameter`. The
+[original shared-branch proof](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/general-parameter-18-consumers.md#update-path)
+owns the last two groups; the canonical decompile lost their OR branch.
+`EquipWidget.update` refreshes the header, three parameter groups, ordinary
+equipment and crystal opacity/icon. Its group argument is unused. This method
+does not itself update masks, rebuild the list or request list-focus refresh.
+These are conditional callback paths, without proof that a particular job-byte
+packet delivers them or establishes rendered timing.
+
+The original Lua 5.1 locators below use zero-based PCs. Method names and
+canonical paths are in `xivl-client-scripts:lua/registry.json`; original
+resource/payload identities are in its `manifests/retail_lua_coverage.json`.
+
+| Source under `lua/scripts/` | Original prototype / PCs | Contract edge |
+| --- | --- | --- |
+| `chara/charabaseclass.lua:1310-1324` | `root/proto28`, PC 7 | Item-package callback to desktop |
+| `widget/desktopwidget_connector.lua:5861-6046` | `root/proto86`, PCs 59-61, 136-140 | Local-player guard and named-widget dispatch |
+| `widget/desktopwidget_connector.lua:6288-6368` | `root/proto95`, PCs 3-11; `root/proto97`, PCs 3-11 | Existing-widget lookup, batch count and slot loop |
+| `widget/equipwidget.lua:7977-8108` | `root/proto124`, PCs 0-113 | Counted item updates and package-101 completion |
+| `widget/equipwidget.lua:5587-5713` | `root/proto88`, PCs 64-104 | Panel preservation and exact-true focus gate |
+| `widget/desktopwidget_connector.lua:4841-5340` | `root/proto78`, update PCs 216, 259, 286, 361 | Work-group calls to open Equipment |
+| `widget/equipwidget.lua:1668-1693` | `root/proto7`, PCs 3-13 | Refresh targets |
+
+The item callback source SHA-256 is
+`F17B3E62A137D8F524BA88D55296E1FB064512DC803F7A85DC980DD4BCBC9625`;
+its resource `729s9/729s989r57y9rr.le.lpb` SHA-256 is
+`C7CD1DAD84F7D9B723F5A10FB66108DA9D9D6EF5D7C15186B48EC55092465238`.
+The linked shared-branch finding pins the desktop resource and payload.
+The Equipment identity above pins the remaining methods. These checked
+inputs, rather than the callback names alone, support the paths.
+
 ## Request and incompatible-class dialog
 
 `itemUICommandSelection` (`:1464-1494`) rejects a focus beyond the filtered
@@ -134,10 +184,15 @@ requiredBase)` when in a job. Both English rows in
 equipping a weapon of its corresponding class. No job-change command or
 automatic weapon change occurs on this branch.
 
-After a successful command return, `equipedJobOnly` (`:9986-10030`) scans
+The compatible branch requests exactly one local command result (`root/proto128`,
+CALL C=2 at PCs 55/62) and tests its Lua truthiness at PC 64. False or nil skips
+cleanup; numeric zero would be truthy if returned. This is a local return
+test, without an authoritative success check. `equipedJobOnly` (`:9986-10030`) scans
 ordinary equipment slots 1 through 27 for compatibility keys 2119 through
-2129. With none present, it unmasks equipment and returns focus to the soul
-button. This check occurs after submission; it does not reject the request.
+2129. A truthy first command result and falsy `equipedJobOnly` result reach
+PCs 70-77: unmask equipment, focus the soul button, and explicitly call
+`jobstoneSlotFocused`. This check occurs after submission; it does not reject
+the request or assign the active job.
 
 ## Widget masks and limits
 
