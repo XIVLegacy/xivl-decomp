@@ -13,6 +13,7 @@ from urllib.parse import unquote
 import _schema_check
 import build_achievement_completion_ordinals as achievement_completion_builder
 import build_achievement_title_map as achievement_title_map_builder
+import verify_actor_instantiation as actor_instantiation_verifier
 import verify_camera_input_chain as camera_input_verifier
 import verify_chara_lighting_model as chara_lighting_verifier
 import verify_chara_presentation_consumers as chara_presentation_verifier
@@ -550,6 +551,15 @@ def main() -> int:
         errors.extend(
             f"player profile accessor contract: {error}"
             for error in player_profile_errors
+        )
+    actor_instantiation_errors = (
+        actor_instantiation_verifier.verify()
+        + actor_instantiation_verifier.mutation_test()
+    )
+    if actor_instantiation_errors:
+        errors.extend(
+            f"actor instantiation contract: {error}"
+            for error in actor_instantiation_errors
         )
     sun_moon_errors = sun_moon_verifier.verify() + sun_moon_verifier.mutation_test()
     if sun_moon_errors:

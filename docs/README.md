@@ -15,6 +15,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Character and effect animation bank routing](actor/animation-bank-routing.md)
 - [Emote and server animation IDs](actor/emote-animation-ids.md)
 - [Actor architecture](actor/architecture.md)
+- [Actor instantiation and the self player](actor/actor-instantiation-and-self-player.md)
 - [Character movement displacement branch](actor/character-movement-displacement.md)
 - [Chara look-at records and their consumers](actor/chara-look-at-consumers.md)
 - [Chara turn, visibility, floating offset and marker consumers](actor/chara-turn-and-field-consumers.md)
