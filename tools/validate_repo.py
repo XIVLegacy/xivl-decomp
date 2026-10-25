@@ -32,6 +32,7 @@ import verify_resource_path_producer as resource_path_verifier
 import verify_s2c_018d_client_consumer as s2c_018d_consumer_verifier
 import verify_s2c_0190_persistent_consumer as s2c_0190_consumer_verifier
 import verify_s2c_0193_native_state as s2c_0193_state_verifier
+import verify_sqwt_anime_property as sqwt_anime_verifier
 import verify_sqwt_command_parameter_consumer as sqwt_command_consumer_verifier
 import verify_sqwt_form_locale as sqwt_form_locale_verifier
 import verify_sqwt_tab_scroll_text as sqwt_tab_scroll_text_verifier
@@ -578,6 +579,13 @@ def main() -> int:
         errors.extend(
             f"sqwt tab, scroll and text part contract: {error}"
             for error in sqwt_tab_scroll_text_errors
+        )
+    sqwt_anime_errors = (
+        sqwt_anime_verifier.verify() + sqwt_anime_verifier.mutation_test()
+    )
+    if sqwt_anime_errors:
+        errors.extend(
+            f"sqwt anime property contract: {error}" for error in sqwt_anime_errors
         )
     sun_moon_errors = sun_moon_verifier.verify() + sun_moon_verifier.mutation_test()
     if sun_moon_errors:
