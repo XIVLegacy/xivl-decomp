@@ -80,6 +80,8 @@ jobs:
         run: python tools/test_scb_clip_classes.py
       - name: Test combat result element verifier
         run: python tools/test_combat_result_element.py
+      - name: Test chara presentation consumer verifier
+        run: python tools/test_chara_presentation_consumers.py
       - name: Test achievement title map
         run: python tools/test_achievement_title_map.py
       - name: Test achievement completion ordinals

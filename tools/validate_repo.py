@@ -15,6 +15,7 @@ import build_achievement_completion_ordinals as achievement_completion_builder
 import build_achievement_title_map as achievement_title_map_builder
 import verify_camera_input_chain as camera_input_verifier
 import verify_chara_lighting_model as chara_lighting_verifier
+import verify_chara_presentation_consumers as chara_presentation_verifier
 import verify_combat_result_element as combat_result_element_verifier
 import verify_emote_animation_catalog as emote_animation_verifier
 import verify_grow_data_boundary as grow_data_verifier
@@ -486,6 +487,15 @@ def main() -> int:
     if combat_result_errors:
         errors.extend(
             f"combat result element contract: {error}" for error in combat_result_errors
+        )
+    chara_presentation_errors = (
+        chara_presentation_verifier.verify()
+        + chara_presentation_verifier.mutation_test()
+    )
+    if chara_presentation_errors:
+        errors.extend(
+            f"chara presentation consumer contract: {error}"
+            for error in chara_presentation_errors
         )
     s2c_018d_errors = s2c_018d_consumer_verifier.verify()
     if s2c_018d_errors:
