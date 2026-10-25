@@ -109,6 +109,12 @@ route. The [bank-routing finding](animation-bank-routing.md) owns the
 concrete character/effect loaders. Compatible resources and successful
 playback still require separate evidence.
 
+The [SCB-to-Scheduler handoff](../resource/action-queue-scheduler-handoff.md)
+qualifies the CharaActor-table continuation from the SCB resource to a base
+Scheduler wrapped in CutSceneObject. The queue retains that wrapper at +0x10;
+the scheduler is a distinct object at wrapper+8. Dynamic input interfaces,
+retained registry and same-instance update remain conditional.
+
 ## Staged type and packed-selector domains
 
 The shared builder preserves the routing fields rather than collapsing them.

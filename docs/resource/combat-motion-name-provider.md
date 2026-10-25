@@ -146,6 +146,10 @@ The [native motion request](motion-resource-request.md) follows the returned
 name into the MCB availability test, typed resource queries and immediate
 request submission. The actor's concrete resource provider remains separate.
 
+The queue's [conditional base-Scheduler profile](action-queue-scheduler-handoff.md)
+supplies a separate factory/registry source to qualify. The Acc/Mcc paths above
+do not establish that queue profile's registry identity or updater delivery.
+
 ## Reproduction
 
 Authenticate the PE above and map each VA through its section table using
