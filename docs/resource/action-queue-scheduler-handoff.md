@@ -60,10 +60,12 @@ in `0x0080CC00`.
 
 `0x0080F3C0` loads A from embedded+8. Under CharaActor table
 `0x00FC0D34`, A virtual +0x13C selects `0x0061FF10`, returning
-U=`u32(A+0x40)`. U virtual +0x18, its return virtual +8 and the latter
-return virtual +0x6C(R) supply inputs for FindVins adapter constructor
-`0x008D0DE0`. Those dynamic interfaces remain unqualified; the first
-unresolved target on this table branch is U virtual +0x18 at `0x0080F3FD`.
+U=`u32(A+0x40)`. The [constructor-qualified input profile](action-queue-findvins-input.md)
+joins U to the world-owned RaptureActorContainer, then follows its world and
+resource graph through the three virtual calls into FindVins constructor
+`0x008D0DE0`. This requires that construction path and retained objects,
+tables and resource links; it does not classify an arbitrary U. Successful
+adapter vector publication and the selected live inputs remain unproved.
 Denote the resulting staged adapter dword by Dv.
 
 The later A virtual +0x214 call at `0x0080F47B` has a separate concrete
@@ -122,7 +124,7 @@ to updater entries `0x00A1F3C0`, `0x00A1E820`, `0x00A1E710` or
 
 This establishes a conditional queue-to-base-S ownership relation. The registry,
 parsed provider and retained-item updater qualifications below compose with it
-under their stated conditions. Selected actor/FindVins interfaces, retained
+under their stated conditions. Selected live actor/FindVins inputs, retained
 J/registry/provider state, actual framework execution and selected callbacks remain
 unproved. No equality with a root Acc/Mcc, selected invocation,
 command, normal/hard assignment or playback follows.

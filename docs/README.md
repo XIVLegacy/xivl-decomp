@@ -293,6 +293,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Motion name lookup and native request](resource/motion-resource-request.md)
 - [Actor reference-resource construction and lookup](resource/actor-motion-resource-provider.md)
 - [Action queue SCB and Scheduler handoff](resource/action-queue-scheduler-handoff.md)
+- [Action queue FindVins input profile](resource/action-queue-findvins-input.md)
 - [Scheduler parser directory input](resource/scheduler-parser-directory-input.md)
 - [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
