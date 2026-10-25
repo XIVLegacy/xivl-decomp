@@ -354,6 +354,27 @@ The predicate `0x00CC7190` is `MOV ECX,[ECX]; JMP 0x00CD80F0`. That loads
   (`0x00D03348` to `0x00D0334E`).
 - That group equals the byte at `0x0130D426` (`0x00D035F5`).
 
+The membership lookup `0x00D03540` is OBSERVED as follows. It extracts the
+group byte through `0x00D03340` (`0x00D03555`) and passes it to the lookup
+`0x00D03DC0` with the container at classifier `+4` (`0x00D0356A`). That lookup
+sign-extends the byte and applies `xor 0xDEADBEEF`, a division by `0x1F31D`,
+the multipliers `0x41A7` and `0xB14` and the wrap `+0x7FFFFFFF` of a negative
+result (`0x00D03DCC` to `0x00D03DFA`). It selects a bucket from an
+eight-byte-entry vector at container `+0x14`, then walks nodes that hold the
+group byte at node `+8`, compared as a signed byte (`0x00D03E7D`), and a
+dword at node `+0xC`. INFERRED: a hash map from group byte to stored base,
+whose scramble constants are the Park-Miller step of the VC8 hash comparator.
+
+The lookup returns a pair whose second member is a node. `0x00D03540` loads
+the sentinel node from classifier `+0xC` (`0x00D0356F`) and returns false when
+the pair's node is that sentinel (`0x00D0358A` to `0x00D03591`). Otherwise it
+compares `key & 0xF0F00000` with node `+0xC` and returns the `sete` result
+(`0x00D035AD` to `0x00D035B9`). `0x00D035D0` runs that test first and returns
+false when it fails. On success it extracts the group byte again and returns
+whether it equals the byte at `0x0130D426` (`0x00D035E3` to `0x00D035FC`).
+The top nibble `0xA` is tested only through the stored value in the mask
+comparison.
+
 The byte at `0x0130D426` has image value `0x0F` and no writer was found. The
 registrars that can add group `0xF` are `0x00D038C0` (callers `0x00CD9861` and
 `0x00CD9B4E`) and `0x00D03A50` (caller `0x00CD806A`), which always registers
@@ -448,6 +469,11 @@ and `0x00896510` with the arbiter `0x008939C0`, the records `0x008962C0`,
 `0x008963F0`, `0x00893C80`, `0x00893D00`, `0x00893DE0`, `0x00893E70` and
 `0x00892720`, the request routines `0x00CD0940` and `0x00CC7A90` with
 `0x00CCF9B0`, `0x00CCF7D0` and `0x00CCFFE0`, and the predicate chain
-`0x00CC7190`, `0x00CD80F0`, `0x00D035D0`, `0x00D03540`, `0x00D03340`,
-`0x00D038C0` and `0x00D03A50`. A function size in a listing does not fill a
-gap or prove execution.
+`0x00CC7190`, `0x00CD80F0`, `0x00D035D0`, `0x00D03540`, `0x00D03DC0`,
+`0x00D03340`, `0x00D038C0` and `0x00D03A50`. A function size in a listing does
+not fill a gap or prove execution.
+
+`tools/verify_run_event_function.py` checks the predicate, membership and
+binding-selection listings and the data byte at `0x0130D426` against the
+pinned image, and holds a reference model of the rule.
+`tools/test_run_event_function.py` covers both.
