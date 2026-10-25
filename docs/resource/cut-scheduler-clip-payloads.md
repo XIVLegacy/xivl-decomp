@@ -6,9 +6,12 @@ RapturePhysicsLookAtClip, ClipSyncClip and LocalCameraClip. They are ranks 1
 to 6 of the [clip class census](cut-scheduler-clip-class-census.md) and the
 [cut scheduler clip layout](cut-scheduler-clip-layout.md) leaves them
 undocumented. For each class the page gives the registration, the object, the
-entry points and the record fields that the entry points read. D is the
-serialized clip record, and all offsets are relative to D unless a row says
-otherwise. All values are little-endian.
+entry points and the record fields that the entry points read. The
+[second payloads page](cut-scheduler-clip-payloads-ranks-7-13.md) covers six
+more classes, and the [clip timing page](cut-scheduler-clip-timing.md) covers
+the start and end ticks of all twelve. D is the serialized clip record, and all
+offsets are relative to D unless a row says otherwise. All values are
+little-endian.
 
 ## Evidence
 
@@ -77,7 +80,9 @@ method. The base update `0x00a20f90` moves state 1 to state 2. Slots 3 and 4,
 `0x00a21000` and `0x00a21010`, store state 3 and state 4. Slot 29 returns an
 address relative to D, listed per class below. It is the record end for
 SetPosClip, ShowHideClip and MotionClip and is not the record end for the other
-three classes. Slot 8 jumps through slot 7 unless the class overrides it.
+three classes. Slot 7 is the start tick and slot 8 the end tick. Slot 8 jumps
+through slot 7 unless the class overrides it, as the
+[timing page](cut-scheduler-clip-timing.md#clip-start-and-end) records.
 
 ## Record header words
 
@@ -87,16 +92,21 @@ Base accessors read the header words that every class shares.
 | ---: | --- | --- |
 | 5 | `0x00a21030` | `u8(D+2)`, the class ordinal |
 | 6 | `0x00a21060` | `u8(D+3)`, the actor ordinal |
-| 7 | `0x00a21070` | `u32(D+4)` |
+| 7 | `0x00a21070` | `u32(D+4)`, the start tick |
 | 22 | `0x00a21190` | `s16(D+0x08)` |
 | 23 | `0x00a211a0` | `u8(D+0x0a)` |
 | 25, 27, 26 | `0x00a211b0`, `0x00a211d0`, `0x00a211f0` | bits 0, 1 and 2 of `u8(D+0x0b)` |
 | 20 | `0x00a21170` | `s16(D+0x0c)` |
 
-The callers of these accessors were not traced, so what the words select is
-UNKNOWN. SetPosClip, MotionClip, ShowHideClip, ClipSyncClip and LocalCameraClip
-read class fields from +0x10, so the bytes from +0x10 to +0x13 belong to the
-class and not to the shared header.
+The scheduler tick reads `s16(D+0x08)` as a filter, bit 0 of `u8(D+0x0b)` to
+block a second begin and bit 2 to skip a clip while S+0xc8 is set, as the
+[timing page](cut-scheduler-clip-timing.md#begin) records. `s16(D+0x0c)` is the
+index of the clip in the scheduler clip list, as the
+[timing page](cut-scheduler-clip-timing.md#clip-index-word) records. The callers
+of the accessors for `u8(D+0x0a)` and for bit 1 of `u8(D+0x0b)` were not traced,
+so what those words select is UNKNOWN. SetPosClip, MotionClip, ShowHideClip,
+ClipSyncClip and LocalCameraClip read class fields from +0x10, so the bytes from
++0x10 to +0x13 belong to the class and not to the shared header.
 
 ## Class key entry
 
@@ -179,7 +189,7 @@ Slot 29 returns D+0x2c, the record end.
 | `0x10` | 4 | `s32` name index | `0x0082f16e` | Index into the name object. |
 | `0x14` | 1 | `u8` flags | `0x0082f2fb` | Bit 2 goes to a request byte. Bit 6 goes to clip +0x44 and a request byte. Bit 7 selects the selector branches. |
 | `0x15` | 1 | `u8` selector | `0x0082f3cc` | `0xff` becomes -1, any other value becomes the signed value minus 1. It reaches the request only when bit 7 of +0x14 is set and bit 6 is clear. With bit 6 set the request word is -1 or 0 by bit 7. With both clear it is 0. A result of -1 makes the clip call its slot 12 with 2. |
-| `0x18` | 4 | `u32` | `0x0082f110` | Returned by slot 8. |
+| `0x18` | 4 | `u32` | `0x0082f110` | Returned by slot 8, the end tick. |
 | `0x1c` | 4 | `s32` | `0x0082f32b` | Divided by 10000, truncated toward zero, low 16 bits to a request word. |
 | `0x20` | 4 | `s32` | `0x0082f32b` | The same division. The request word is 0 when bit 6 of +0x14 is set, or when bit 7 is set and the selector result is nonzero. |
 | `0x24` | 2 | `u16` | `0x0082f38e` | Divided by 100.0 and multiplied by a local float that starts at 1.0. |
@@ -287,14 +297,15 @@ and `0x00a0c15d`). The source of that byte is described under [Class key
 entry](#class-key-entry). When it is at least 4 and bit 0 of `u8(D+0x1a)` is
 set, slot 1 passes D+0x20 to `0x00a0b9c0`, which reads the bind record below.
 Slot 2 tests bit 0 and bit 2 of `u8(D+0x1a)` behind the same gate. Slot 8
-returns `u32(D+0x10)` plus clip +0x110. Slot 29 returns D+0x24, the first
-extension float. The extension itself starts at D+0x20.
+returns `u32(D+0x10)` plus clip +0x110, which the
+[timing page](cut-scheduler-clip-timing.md#clip-start-and-end) describes. Slot 29
+returns D+0x24, the first extension float. The extension itself starts at D+0x20.
 
 | Offset | Width | Field | Read at | Use |
 | --- | ---: | --- | --- | --- |
 | `0x08` | 2 | `s16` | `0x00a0c9c7` | Lookup argument with +0x1c. |
 | `0x0c` | 2 | `s16` | `0x00a0c7b7` | Argument of `0x00a20120`. |
-| `0x10` | 4 | `u32` | `0x00a0b830` | Slot 8 value. |
+| `0x10` | 4 | `u32` | `0x00a0b830` | Slot 8 value, the end tick before the origin change. |
 | `0x14` | 2 | `u16` | `0x00a0c7b7` | Argument of `0x00a20090`. |
 | `0x16` | 2 | `u16` | `0x00a0ca0a` | Argument of the virtual call at `0x00a0ca27`. |
 | `0x18` | 1 | `u8` | `0x00a0ca3b` | Argument of the virtual call at `0x00a0ca50`. |
@@ -318,8 +329,8 @@ ordinal is an actor of the scheduler and the part index is not negative.
 
 - The concrete type behind RaptureActor +0x9c, which receives the ShowHideClip
   operand, is UNKNOWN.
-- The meaning of the shared header words at +0x08, +0x0a, +0x0b and +0x0c is
-  UNKNOWN.
+- The meaning of the shared header byte at +0x0a and of bit 1 of the byte at
+  +0x0b is UNKNOWN.
 - The meaning of the @CCPT entry byte +2, which key entry +4 carries, is
   UNKNOWN beyond the LocalCameraClip extension gate, and the owner of the table
   that the clip builder reads is INFERRED.
