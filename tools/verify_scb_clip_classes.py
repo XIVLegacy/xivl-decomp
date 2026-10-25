@@ -39,6 +39,8 @@ PUBLISHED_COUNTS = {
     "RaptureCharaVisualClip": 151,
     "RaptureMapCollisionOnOffClip": 2688,
 }
+# Ranks 1 to 8 and 10 to 13 of the census. Rank 9 is BindActorClip, which the
+# clip layout page documents.
 CLASS_ORDER = [
     "SetPosClip",
     "MotionClip",
@@ -46,6 +48,12 @@ CLASS_ORDER = [
     "RapturePhysicsLookAtClip",
     "ClipSyncClip",
     "LocalCameraClip",
+    "RaptureNqMotionBlendOnOffClip",
+    "RaptureFacialPoseForSchClip",
+    "RaptureFacialLipSyncClip",
+    "RaptureMesClip",
+    "DepthOfFieldClip",
+    "KillClip",
 ]
 # name: (rank, size, factory, primary vtable, slot 1, slot 2, slot 29, origin)
 OBJECTS = {
@@ -109,7 +117,81 @@ OBJECTS = {
         0x00DF1040,
         "base only",
     ),
+    "RaptureNqMotionBlendOnOffClip": (
+        7,
+        0x38,
+        0x00639AB0,
+        0x0100A83C,
+        0x0081ABC0,
+        0x00A20F90,
+        0x00DEFC20,
+        "rapture only",
+    ),
+    "RaptureFacialPoseForSchClip": (
+        8,
+        0x38,
+        0x0063B370,
+        0x010248DC,
+        0x00827140,
+        0x00A20F90,
+        0x00830580,
+        "rapture only",
+    ),
+    "RaptureFacialLipSyncClip": (
+        10,
+        0x38,
+        0x0063B1C0,
+        0x010229D4,
+        0x00826AB0,
+        0x00A20F90,
+        0x00DEFC20,
+        "rapture only",
+    ),
+    "RaptureMesClip": (
+        11,
+        0x58,
+        0x00638A60,
+        0x00FFB0A4,
+        0x00813CF0,
+        0x00A20F90,
+        0x00823CE0,
+        "rapture only",
+    ),
+    "DepthOfFieldClip": (
+        12,
+        0x60,
+        0x00A4EAD0,
+        0x011370A4,
+        0x00DF0350,
+        0x00DF02E0,
+        0x00DF0C80,
+        "base only",
+    ),
+    "KillClip": (
+        13,
+        0x38,
+        0x00A4E210,
+        0x01135744,
+        0x00DEC7F0,
+        0x00A20F90,
+        0x00DEC7D0,
+        "base only",
+    ),
 }
+# Slot 8 is the clip end tick. The base method returns the start tick.
+BASE_SLOT8 = 0x00A21080
+SLOT8 = {
+    "MotionClip": 0x0082F110,
+    "LocalCameraClip": 0x00A0B830,
+    "DepthOfFieldClip": 0x00DF0040,
+}
+# How each class derives its end tick, in terms of the record D.
+END_FIELD = {
+    "MotionClip": "u32(D+0x18)",
+    "LocalCameraClip": "u32(D+0x10) plus clip +0x110",
+    "DepthOfFieldClip": "u32(D+0x10)",
+}
+BASE_END_FIELD = "the start tick, u32(D+4)"
 BASE_FACTORIES = {
     "SetPosClip": 0x00A4DB10,
     "MotionClip": 0x00A4DCD0,
@@ -140,8 +222,92 @@ EXPECTED_OUTCOMES = {
     "class-key-link": "INFERRED",
     "showhide-sink": "UNKNOWN",
     "undecoded-words": "UNKNOWN",
+    "registry-continued": "STATIC",
+    "registry-second-inserts": "STATIC",
+    "nqblend-layout": "STATIC",
+    "nqblend-meaning": "INFERRED",
+    "facialpose-layout": "STATIC",
+    "facialpose-meaning": "INFERRED",
+    "lipsync-layout": "STATIC",
+    "lipsync-meaning": "INFERRED",
+    "mes-layout": "STATIC",
+    "mes-sink": "UNKNOWN",
+    "dof-layout": "STATIC",
+    "dof-meaning": "INFERRED",
+    "kill-layout": "STATIC",
+    "kill-meaning": "INFERRED",
+    "timing-unit": "STATIC",
+    "timing-frame-source": "UNKNOWN",
+    "timing-start-end": "STATIC",
+    "timing-end-rule": "STATIC",
+    "timing-phase-pin": "STATIC",
+    "timing-begin-gate": "STATIC",
+    "timing-gate-writers": "UNKNOWN",
+    "timing-index-word": "STATIC",
+    "timing-untraced": "UNKNOWN",
     "install-census": "OBSERVED",
     "install-invariants": "OBSERVED",
+    "install-timing": "OBSERVED",
+}
+TIMING_UNIT = {
+    "ticksPerSecond": 300000,
+    "ticksPerSecondVa": "0x00f67020",
+    "ticksPerFrameVa": "0x012ed240",
+    "ticksPerFrameImageValue": 10010,
+    "motionFrameRate": 30,
+    "motionFrameRateVa": "0x00fa7b18",
+}
+TIMING_SCHEDULER = {
+    "tick": "0x00a1d330",
+    "tickCall": "0x00a1e419",
+    "stepWrapper": "0x00a1e380",
+    "frameStep": "0x00a1e540",
+    "runningPass": "0x00a1e190",
+    "clockAdvance": "0x00a204d0",
+    "pendingDeltaSetter": "0x00a203c0",
+    "beginPredicate": "0x00b73290",
+}
+TIMING_CHECKS = {
+    "clip slot 30 returns true",
+    "scheduler wrapper pending frame step adjust",
+    "scheduler wrapper aborted ActionClip pass",
+    "scheduler wrapper ActionClip name",
+    "scheduler clock pending delta setter",
+    "scheduler ticks per second constant",
+    "scheduler motion frame rate constant",
+    "scheduler ticks per frame image value",
+    "scheduler ticks per frame getter",
+    "scheduler ticks per frame setter",
+    "scheduler frames per second helper",
+    "scheduler clock advance by one frame",
+    "scheduler clock time getter",
+    "scheduler clock rate getter",
+    "scheduler clock initial state",
+    "scheduler clock time passed to tick",
+    "scheduler running clip pass update and end test",
+    "scheduler tick header word +0x08 filter and start compare",
+    "scheduler tick begin state gate",
+    "scheduler tick skip flag and header bit 2",
+    "scheduler tick begun flag and header bit 0",
+    "scheduler tick begin overshoot",
+    "scheduler tick update before end test",
+    "scheduler tick end rule",
+    "scheduler tick end calls",
+    "scheduler tick phase one pins the playhead",
+    "scheduler held clip pass update and release",
+    "scheduler wrapper held count gate",
+    "scheduler wrapper held step",
+    "scheduler hold list insert",
+    "LocalCameraClip begin stores scheduler origin",
+    "LocalCameraClip update stores origin change",
+    "base begin stores elapsed and step",
+    "base update adds step to elapsed",
+    "base accessor elapsed",
+    "base accessor phase getter",
+    "base accessor abort bit getter",
+    "clip index word consumer",
+    "clip index lookup in scheduler list",
+    "motion list frame conversion 0x007ad020",
 }
 REQUIRED_CHECKS = {
     "base begin stores state 1 and target",
@@ -186,7 +352,30 @@ REQUIRED_CHECKS = {
     "clip builder key entry",
     "MotionClip actor guards",
     "MotionClip end call",
-}
+    "RaptureNqMotionBlendOnOffClip rapture insert",
+    "RaptureNqMotionBlendOnOffClip flag and value call",
+    "CharaActor blend setter 0x0065d260",
+    "RaptureFacialPoseForSchClip rapture insert",
+    "RaptureFacialPoseForSchClip name and word call",
+    "facial pose stores 0x007a6210",
+    "RaptureFacialLipSyncClip rapture insert",
+    "RaptureFacialLipSyncClip second insert",
+    "RaptureFacialLipSyncClip mode and set call",
+    "lip sync table and resource lookups 0x007a6fc0",
+    "RaptureMesClip rapture insert",
+    "RaptureMesClip key entry byte switch",
+    "RaptureMesClip key 3 mask loops",
+    "RaptureMesClip message dispatch and phase",
+    "RaptureMesClip slot 3 scheduler flag",
+    "DepthOfFieldClip base insert",
+    "DepthOfFieldClip flag word routing",
+    "DepthOfFieldClip parameter float reads",
+    "DepthOfFieldClip slot 8 length",
+    "KillClip base insert",
+    "KillClip second insert",
+    "KillClip target abort loop",
+    "RaptureMesClip type 0xa post null guard",
+} | TIMING_CHECKS
 FLAG_OFFSETS = (0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3C, 0x3D, 0x3E)
 PI_F32 = struct.unpack("<f", struct.pack("<f", math.pi))[0]
 
@@ -203,6 +392,10 @@ def clipsync_count(record: bytes) -> int:
 # None means the record does not take part in the check.
 def _all(record: bytes, offsets, values) -> bool:
     return all(record[offset] in values for offset in offsets)
+
+
+def _order(value: int, start: int) -> str:
+    return "after" if value > start else "equal" if value == start else "before"
 
 
 def _clipsync_refs(clip, sched, index) -> bool:
@@ -235,6 +428,70 @@ def _localcamera_ext(clip, sched, index):
 
 def _key_byte(want: int):
     return lambda clip, sched, index: sched.clip_class_bytes[clip.cls] == want
+
+
+def _clip_index_word(clip, sched, index) -> bool:
+    return le("h", clip.record, 0x0C) == index
+
+
+def _start_order(clip, sched, index):
+    if index == 0 or sched.clips[index - 1].block != clip.block:
+        return None
+    return clip.raw >= sched.clips[index - 1].raw
+
+
+def _end_not_before_start(offset: int):
+    return lambda clip, sched, index: le("I", clip.record, offset) >= clip.raw
+
+
+def _facialpose_name(clip, sched, index) -> bool:
+    name = clip.record[0x10:0x30]
+    end = name.find(b"\0")
+    return (
+        0 <= end < 16
+        and name.startswith(b"cfxf_")
+        and name[end:] == bytes(len(name) - end)
+        and all(0x20 <= byte < 0x7F for byte in name[:end])
+    )
+
+
+def _kill_count(record: bytes) -> int:
+    return le("h", record, 0x10)
+
+
+def _kill_refs(clip, sched, index) -> bool:
+    count = _kill_count(clip.record)
+    refs = struct.unpack_from(f"<{count}h", clip.record, 0x14)
+    return all(
+        ref == -1 or (0 <= ref < len(sched.clips) and ref != index) for ref in refs
+    )
+
+
+def _kill_pad(clip, sched, index) -> bool:
+    used = 0x14 + 2 * _kill_count(clip.record)
+    return le("h", clip.record, 0x12) == 0 and clip.record[used:] == bytes(
+        len(clip.record) - used
+    )
+
+
+def _dof_link(clip, sched, index) -> bool:
+    return clip.link == (0x1C if le("I", clip.record, 0x14) & 2 else 0x34)
+
+
+def _dof_preset_pad(clip, sched, index):
+    if not le("I", clip.record, 0x14) & 2:
+        return None
+    return le("H", clip.record, 0x1A) == 0
+
+
+def _dof_end(clip, sched, index) -> bool:
+    flags = le("I", clip.record, 0x14)
+    end = le("I", clip.record, 0x10)
+    return end >= clip.raw and (flags & 2 != 0 or end == clip.raw)
+
+
+MES_MASK_BITS = 0xFE | (0x1F << 20)
+DOF_FLAG_BITS = 0x3 | (0x7F << 4)
 
 
 INVARIANTS = {
@@ -382,6 +639,165 @@ INVARIANTS = {
         "u16 +0x16 and u16 +0x1e are 0",
         lambda c, s, i: le("H", c.record, 0x16) == 0 and le("H", c.record, 0x1E) == 0,
     ),
+    "nqblend-key-byte": (
+        "RaptureNqMotionBlendOnOffClip",
+        "the @CCPT entry byte +2 of the class is 1",
+        _key_byte(1),
+    ),
+    "nqblend-link": (
+        "RaptureNqMotionBlendOnOffClip",
+        "record bytes are 0x18",
+        lambda c, s, i: c.link == 0x18,
+    ),
+    "nqblend-flag": (
+        "RaptureNqMotionBlendOnOffClip",
+        "u32 +0x10 is 0 or 1",
+        lambda c, s, i: le("I", c.record, 0x10) in (0, 1),
+    ),
+    "nqblend-value": (
+        "RaptureNqMotionBlendOnOffClip",
+        "u32 +0x14 is at most 500",
+        lambda c, s, i: le("I", c.record, 0x14) <= 500,
+    ),
+    "facialpose-key-byte": (
+        "RaptureFacialPoseForSchClip",
+        "the @CCPT entry byte +2 of the class is 0",
+        _key_byte(0),
+    ),
+    "facialpose-link": (
+        "RaptureFacialPoseForSchClip",
+        "record bytes are 0x38",
+        lambda c, s, i: c.link == 0x38,
+    ),
+    "facialpose-name": (
+        "RaptureFacialPoseForSchClip",
+        "bytes +0x10 to +0x2f hold an ASCII name that starts with cfxf_, ends before byte 16 and is zero filled",
+        _facialpose_name,
+    ),
+    "facialpose-words": (
+        "RaptureFacialPoseForSchClip",
+        "s32 +0x30 is within 0 to 9 and s32 +0x34 is within 0 to 1200",
+        lambda c, s, i: (
+            0 <= le("i", c.record, 0x30) <= 9 and 0 <= le("i", c.record, 0x34) <= 1200
+        ),
+    ),
+    "lipsync-key-byte": (
+        "RaptureFacialLipSyncClip",
+        "the @CCPT entry byte +2 of the class is 0",
+        _key_byte(0),
+    ),
+    "lipsync-link": (
+        "RaptureFacialLipSyncClip",
+        "record bytes are 0x18",
+        lambda c, s, i: c.link == 0x18,
+    ),
+    "lipsync-mode": (
+        "RaptureFacialLipSyncClip",
+        "u32 +0x10 is within 0 to 7",
+        lambda c, s, i: le("I", c.record, 0x10) <= 7,
+    ),
+    "lipsync-set": (
+        "RaptureFacialLipSyncClip",
+        "u32 +0x14 is within 0 to 2",
+        lambda c, s, i: le("I", c.record, 0x14) <= 2,
+    ),
+    "mes-key-byte": (
+        "RaptureMesClip",
+        "the @CCPT entry byte +2 of the class is 3",
+        _key_byte(3),
+    ),
+    "mes-link": (
+        "RaptureMesClip",
+        "record bytes are 0x24",
+        lambda c, s, i: c.link == 0x24,
+    ),
+    "mes-lead": (
+        "RaptureMesClip",
+        "u32 +0x10 is 1",
+        lambda c, s, i: le("I", c.record, 0x10) == 1,
+    ),
+    "mes-flags": (
+        "RaptureMesClip",
+        "bytes +0x1c, +0x1d and +0x1e are 0 or 1 and byte +0x1f is 0",
+        lambda c, s, i: (
+            _all(c.record, (0x1C, 0x1D, 0x1E), (0, 1)) and c.record[0x1F] == 0
+        ),
+    ),
+    "mes-mask": (
+        "RaptureMesClip",
+        "u32 +0x20 only sets bits 1 to 7 and bits 20 to 24",
+        lambda c, s, i: le("I", c.record, 0x20) & ~MES_MASK_BITS == 0,
+    ),
+    "dof-key-byte": (
+        "DepthOfFieldClip",
+        "the @CCPT entry byte +2 of the class is 3",
+        _key_byte(3),
+    ),
+    "dof-link": (
+        "DepthOfFieldClip",
+        "record bytes are 0x1c when bit 1 of u32 +0x14 is set and 0x34 otherwise",
+        _dof_link,
+    ),
+    "dof-flags": (
+        "DepthOfFieldClip",
+        "u32 +0x14 only sets bits 0, 1 and 4 to 10",
+        lambda c, s, i: le("I", c.record, 0x14) & ~DOF_FLAG_BITS == 0,
+    ),
+    "dof-end": (
+        "DepthOfFieldClip",
+        "u32 +0x10 is not below the start tick and equals it when bit 1 of u32 +0x14 is clear",
+        _dof_end,
+    ),
+    "dof-preset-pad": (
+        "DepthOfFieldClip",
+        "u16 +0x1a is 0 when bit 1 of u32 +0x14 is set",
+        _dof_preset_pad,
+    ),
+    "kill-key-byte": (
+        "KillClip",
+        "the @CCPT entry byte +2 of the class is 1",
+        _key_byte(1),
+    ),
+    "kill-count": (
+        "KillClip",
+        "s16 +0x10 is within 0 to 19",
+        lambda c, s, i: 0 <= _kill_count(c.record) <= 19,
+    ),
+    "kill-link": (
+        "KillClip",
+        "record bytes are (0x14 + 2n + 3) & ~3 for n = s16 +0x10",
+        lambda c, s, i: c.link == (0x14 + 2 * _kill_count(c.record) + 3) & ~3,
+    ),
+    "kill-pad": (
+        "KillClip",
+        "s16 +0x12 and every byte after the last listed index are 0",
+        _kill_pad,
+    ),
+    "kill-refs": (
+        "KillClip",
+        "every listed index is -1 or inside the scheduler clip list and is not the clip itself",
+        _kill_refs,
+    ),
+    "localcamera-end": (
+        "LocalCameraClip",
+        "u32 +0x10 is not below the start tick",
+        _end_not_before_start(0x10),
+    ),
+    "clip-start-unit": (
+        "*",
+        "the start tick u32 +4 is a multiple of 10000",
+        lambda c, s, i: c.raw % 10000 == 0,
+    ),
+    "clip-start-order": (
+        "*",
+        "the start tick u32 +4 is not below that of the previous clip in the same block",
+        _start_order,
+    ),
+    "clip-index-word": (
+        "*",
+        "s16 +0x0c is the index of the clip in the scheduler clip list",
+        _clip_index_word,
+    ),
 }
 
 
@@ -397,11 +813,51 @@ DISTRIBUTIONS = {
         "ClipSyncClip",
         lambda r: "even" if clipsync_count(r) % 2 == 0 else "odd",
     ),
+    "motion-end-vs-start": (
+        "MotionClip",
+        lambda r: _order(le("I", r, 0x18), le("I", r, 4)),
+    ),
+    "motion-end-unit": (
+        "MotionClip",
+        lambda r: "unit" if le("I", r, 0x18) % 10000 == 0 else "other",
+    ),
+    "localcamera-drift-bit": (
+        "LocalCameraClip",
+        lambda r: "set" if r[0x1A] & 4 else "clear",
+    ),
+    "nqblend-flag": ("RaptureNqMotionBlendOnOffClip", lambda r: str(le("I", r, 0x10))),
+    "lipsync-set": ("RaptureFacialLipSyncClip", lambda r: str(le("I", r, 0x14))),
+    "dof-mode": (
+        "DepthOfFieldClip",
+        lambda r: "preset" if le("I", r, 0x14) & 2 else "parameters",
+    ),
+    "kill-count": ("KillClip", lambda r: str(_kill_count(r))),
+    "kill-missing-index": (
+        "KillClip",
+        lambda r: (
+            "minus-one"
+            if -1 in struct.unpack_from(f"<{_kill_count(r)}h", r, 0x14)
+            else "none"
+        ),
+    ),
+    "nqblend-value-15": (
+        "RaptureNqMotionBlendOnOffClip",
+        lambda r: "15" if le("I", r, 0x14) == 15 else "other",
+    ),
+    "lipsync-mode": ("RaptureFacialLipSyncClip", lambda r: str(le("I", r, 0x10))),
+    "dof-flags": ("DepthOfFieldClip", lambda r: hex(le("I", r, 0x14))),
+    "mes-route": ("RaptureMesClip", lambda r: f"{r[0x1C]}{r[0x1D]}"),
 }
 # id: (class, float offsets). The manifest holds min and max rounded to one decimal.
 RANGES = {
     "setpos-position": ("SetPosClip", (0x10, 0x14, 0x18)),
     "setpos-scale": ("SetPosClip", (0x28, 0x2C, 0x30)),
+}
+# id: (class, int offsets). The manifest holds the minimum and maximum.
+INT_RANGES = {
+    "nqblend-value": ("RaptureNqMotionBlendOnOffClip", (0x14,), "I"),
+    "facialpose-words": ("RaptureFacialPoseForSchClip", (0x30, 0x34), "i"),
+    "lipsync-mode": ("RaptureFacialLipSyncClip", (0x10,), "I"),
 }
 
 
@@ -463,7 +919,7 @@ def class_errors(document: dict) -> list[str]:
     errors = []
     rows = document.get("classes")
     if not isinstance(rows, list) or [row.get("name") for row in rows] != CLASS_ORDER:
-        return ["classes are not the six documented classes in rank order"]
+        return ["classes are not the documented classes in rank order"]
     check_names = {
         item.get("name")
         for item in document.get("staticChecks", [])
@@ -478,6 +934,7 @@ def class_errors(document: dict) -> list[str]:
             "primaryVtable": f"0x{vtable:08x}",
             "slot1": f"0x{slot1:08x}",
             "slot2": f"0x{slot2:08x}",
+            "slot8": f"0x{SLOT8.get(name, BASE_SLOT8):08x}",
             "slot29": f"0x{slot29:08x}",
         }
         for key, value in want.items():
@@ -491,10 +948,14 @@ def class_errors(document: dict) -> list[str]:
             if isinstance(item, dict) and item.get("kind") == "dwords"
         }
         slots = tables.get(f"0x{vtable:08x}", [])
-        if slots[1:3] != [f"0x{slot1:08x}", f"0x{slot2:08x}"]:
+        if slots[1:3] != [f"0x{slot1:08x}", f"0x{slot2:08x}"] or slots[8:9] != [
+            f"0x{SLOT8.get(name, BASE_SLOT8):08x}"
+        ]:
             errors.append(f"class {name} vtable slot check differs from the object")
         if tables.get(f"0x{vtable + 4 * 29:08x}") != [f"0x{slot29:08x}"]:
             errors.append(f"class {name} slot 29 check differs from the object")
+        if tables.get(f"0x{vtable + 4 * 30:08x}") != ["0x00b73290"]:
+            errors.append(f"class {name} slot 30 check differs from the predicate")
         reg = row.get("registration", {})
         if reg.get("origin") != origin:
             errors.append(f"class {name} registration origin changed")
@@ -509,7 +970,7 @@ def class_errors(document: dict) -> list[str]:
                 errors.append(f"class {name} base factory changed")
             if parse_hex(reg.get("factory", "0x0")) != factory:
                 errors.append(f"class {name} factory changed")
-        for key in ("eraseSite", "insertSite", "baseInsertSite"):
+        for key in ("eraseSite", "insertSite", "baseInsertSite", "secondInsertSite"):
             if key in reg and not HEX_RE.fullmatch(reg[key]):
                 errors.append(f"class {name} {key} is malformed")
         fields = row.get("fields")
@@ -570,31 +1031,75 @@ def install_errors(install: dict) -> list[str]:
             errors.append(f"install.{key} changed")
     per_class = install.get("perClass", {})
     if sorted(per_class) != sorted(CLASS_ORDER):
-        errors.append("install.perClass is not keyed by the six classes")
+        errors.append("install.perClass is not keyed by the documented classes")
     for name, row in per_class.items():
         if row.get("clips") != sum(row.get("recordBytes", {}).values()):
             errors.append(f"install {name} recordBytes do not sum to clips")
         if row.get("schedulers", 0) > install.get("schedulers", 0):
             errors.append(f"install {name} schedulers exceed the total")
-    for section, wanted in (("distributions", DISTRIBUTIONS), ("ranges", RANGES)):
+    for section, wanted in (
+        ("distributions", DISTRIBUTIONS),
+        ("ranges", RANGES),
+        ("intRanges", INT_RANGES),
+    ):
         if sorted(install.get(section, {})) != sorted(wanted):
             errors.append(f"install.{section} is not keyed by its ids")
     for key, row in install.get("distributions", {}).items():
         owner = DISTRIBUTIONS.get(key, ("",))[0]
         if sum(row.values()) != per_class.get(owner, {}).get("clips"):
             errors.append(f"install distribution {key} does not sum to its class")
-    for key, row in install.get("ranges", {}).items():
-        if len(row) != 2 or row[0] > row[1]:
-            errors.append(f"install range {key} is malformed")
+    for section in ("ranges", "intRanges"):
+        for key, row in install.get(section, {}).items():
+            if len(row) != 2 or row[0] > row[1]:
+                errors.append(f"install range {key} is malformed")
     checks = install.get("invariants", {})
     if sorted(checks) != sorted(INVARIANTS):
         errors.append("install.invariants is not keyed by the invariant ids")
     for key, row in checks.items():
-        clips = per_class.get(INVARIANTS.get(key, ("",))[0], {}).get("clips")
+        owner = INVARIANTS.get(key, ("",))[0]
+        clips = (
+            install.get("clips")
+            if owner == "*"
+            else per_class.get(owner, {}).get("clips")
+        )
         if row.get("violations") != 0:
             errors.append(f"install invariant {key} records violations")
         if not 0 < row.get("checked", 0) <= (clips or 0):
             errors.append(f"install invariant {key} checked count is out of range")
+    return errors
+
+
+def timing_errors(document: dict) -> list[str]:
+    timing = document.get("timing")
+    if not isinstance(timing, dict):
+        return ["timing is not an object"]
+    errors = []
+    unit = timing.get("unit", {})
+    if {key: unit.get(key) for key in TIMING_UNIT} != TIMING_UNIT:
+        errors.append("timing.unit changed")
+    scheduler = timing.get("scheduler", {})
+    if {key: scheduler.get(key) for key in TIMING_SCHEDULER} != TIMING_SCHEDULER:
+        errors.append("timing.scheduler changed")
+    names = {
+        item.get("name")
+        for item in document.get("staticChecks", [])
+        if isinstance(item, dict)
+    }
+    if set(timing.get("checks", [])) != TIMING_CHECKS or not TIMING_CHECKS <= names:
+        errors.append("timing.checks is not the timing check set")
+    rows = timing.get("classes")
+    if not isinstance(rows, list) or [r.get("name") for r in rows] != CLASS_ORDER:
+        return errors + ["timing.classes are not the documented classes in rank order"]
+    objects = {row.get("name"): row.get("object", {}) for row in document["classes"]}
+    for row in rows:
+        name = row["name"]
+        if row.get("start") != "u32(D+4)":
+            errors.append(f"timing {name} start changed")
+        if row.get("end") != END_FIELD.get(name, BASE_END_FIELD):
+            errors.append(f"timing {name} end changed")
+        want = f"0x{SLOT8.get(name, BASE_SLOT8):08x}"
+        if row.get("endVa") != want or objects.get(name, {}).get("slot8") != want:
+            errors.append(f"timing {name} end method differs from the object")
     return errors
 
 
@@ -655,6 +1160,7 @@ def verify(document: dict | None = None, csv_text: str | None = None) -> list[st
         elif not str(item.get("text", "")):
             errors.append(f"staticChecks {item['name']!r} text is empty")
     errors += class_errors(document)
+    errors += timing_errors(document)
     errors += csv_errors(csv_text, document)
     errors += invariant_errors(document)
     outcomes = document.get("outcomes")
@@ -711,6 +1217,29 @@ def mutation_test() -> list[str]:
         (("install", "distributions", "showhide-state", "1"), 12181),
         (("install", "distributions", "lookat-mode", "2"), 131),
         (("install", "ranges", "setpos-scale"), [8.1, 0.1]),
+        (("classes", 6, "object", "size"), "0x40"),
+        (("classes", 7, "registration", "factory"), "0x0063b371"),
+        (("classes", 8, "registration", "secondInsertSite"), "0x6366"),
+        (("classes", 9, "object", "slot1"), "0x00813cf1"),
+        (("classes", 10, "object", "slot8"), "0x00df0041"),
+        (("classes", 11, "registration", "baseFactory"), "0x00a4e211"),
+        (("classes", 11, "fields", 0, "tier"), "INFERRED"),
+        (("classes", 10, "fields", 1, "offset"), "0x34"),
+        (("timing", "unit", "ticksPerSecond"), 30000),
+        (("timing", "unit", "ticksPerFrameImageValue"), 10000),
+        (("timing", "scheduler", "tick"), "0x00a1d331"),
+        (("timing", "scheduler", "beginPredicate"), "0x00b73291"),
+        (("timing", "checks"), []),
+        (("timing", "classes", 1, "end"), "u32(D+0x1c)"),
+        (("timing", "classes", 10, "endVa"), "0x00a21080"),
+        (("timing", "classes", 6, "start"), "u32(D+8)"),
+        (("install", "invariants", "clip-index-word", "violations"), 1),
+        (("install", "invariants", "clip-start-order", "checked"), 0),
+        (("install", "invariants", "kill-refs", "checked"), 4996),
+        (("install", "intRanges", "nqblend-value"), [501, 0]),
+        (("install", "distributions", "dof-mode", "preset"), 464),
+        (("install", "distributions", "motion-end-vs-start", "before"), 58),
+        (("install", "perClass", "KillClip", "clips"), 4994),
     ]
     mutations = []
     for path, value in cases:
@@ -726,6 +1255,13 @@ def mutation_test() -> list[str]:
         "ClipSyncClip any-finished loop",
         "LocalCameraClip begin extension gate",
         "base accessor raw value",
+        "DepthOfFieldClip flag word routing",
+        "KillClip target abort loop",
+        "scheduler tick end rule",
+        "scheduler clock time passed to tick",
+        "scheduler wrapper aborted ActionClip pass",
+        "scheduler clock pending delta setter",
+        "clip slot 30 returns true",
     ):
         dropped = copy.deepcopy(document)
         dropped["staticChecks"] = [
@@ -737,6 +1273,24 @@ def mutation_test() -> list[str]:
         if item["name"] == "MotionClip vtable slots 0 to 8":
             item["values"][1] = "0x0082f121"
     mutations.append((changed_slot, csv_text))
+    for name in ("SetPosClip", "KillClip"):
+        changed_slot = copy.deepcopy(document)
+        for item in changed_slot["staticChecks"]:
+            if item["name"] == f"{name} vtable slot 30":
+                item["values"][0] = "0x00b73291"
+        mutations.append((changed_slot, csv_text))
+    for name in ("DepthOfFieldClip", "KillClip"):
+        changed_slot = copy.deepcopy(document)
+        for item in changed_slot["staticChecks"]:
+            if item["name"] == f"{name} vtable slots 0 to 8":
+                item["values"][8] = "0x00a21081"
+        mutations.append((changed_slot, csv_text))
+    for outcome in ("timing-unit", "mes-sink", "registry-second-inserts"):
+        changed = copy.deepcopy(document)
+        for item in changed["outcomes"]:
+            if item["id"] == outcome:
+                item["tier"] = "OBSERVED"
+        mutations.append((changed, csv_text))
     short = copy.deepcopy(document)
     short["outcomes"].pop()
     mutations.append((short, csv_text))
@@ -776,6 +1330,17 @@ def cut_files(root: Path) -> list[Path]:
     )
 
 
+def note_range(seen: list, fmt: str, record: bytes, offsets) -> None:
+    """Widen seen by the values at offsets. A record too short for a field adds nothing."""
+    for offset in offsets:
+        try:
+            value = le(fmt, record, offset)
+        except struct.error:
+            continue
+        seen[0] = min(seen[0], value)
+        seen[1] = max(seen[1], value)
+
+
 def census_data(data: bytes, out: dict) -> None:
     """Add one file's counts to the census. No bytes are kept."""
     out["files"] += 1
@@ -791,7 +1356,7 @@ def census_data(data: bytes, out: dict) -> None:
             out["classLinks"][name][clip.link] += 1
             seen.add(name)
             for key, (owner, _, check) in INVARIANTS.items():
-                if owner != name:
+                if owner not in (name, "*"):
                     continue
                 try:
                     result = check(clip, sched, index)
@@ -803,14 +1368,18 @@ def census_data(data: bytes, out: dict) -> None:
                 out["violations"][key] += not result
             for key, (owner, bucket) in DISTRIBUTIONS.items():
                 if owner == name:
-                    out["distributions"][key][bucket(clip.record)] += 1
+                    try:
+                        out["distributions"][key][bucket(clip.record)] += 1
+                    except (IndexError, struct.error):
+                        out["distributions"][key]["short"] += 1
             for key, (owner, offsets) in RANGES.items():
                 if owner == name:
                     seen_range = out["ranges"].setdefault(key, [math.inf, -math.inf])
-                    for offset in offsets:
-                        value = le("f", clip.record, offset)
-                        seen_range[0] = min(seen_range[0], value)
-                        seen_range[1] = max(seen_range[1], value)
+                    note_range(seen_range, "f", clip.record, offsets)
+            for key, (owner, offsets, fmt) in INT_RANGES.items():
+                if owner == name:
+                    seen_range = out["intRanges"].setdefault(key, [math.inf, -math.inf])
+                    note_range(seen_range, fmt, clip.record, offsets)
         out["classSchedulers"].update(seen)
 
 
@@ -827,6 +1396,7 @@ def blank_census() -> dict:
         "violations": collections.Counter(),
         "distributions": collections.defaultdict(collections.Counter),
         "ranges": {},
+        "intRanges": {},
     }
 
 
@@ -899,6 +1469,7 @@ def census_manifest(census: dict) -> dict:
         "ranges": {
             key: [round(value, 1) for value in census["ranges"][key]] for key in RANGES
         },
+        "intRanges": {key: census["intRanges"][key] for key in INT_RANGES},
     }
 
 

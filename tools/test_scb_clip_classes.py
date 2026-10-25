@@ -28,11 +28,17 @@ CLIPS = [
     "ClipSyncClip",
     "LocalCameraClip",
     "BindActorClip",
+    "RaptureNqMotionBlendOnOffClip",
+    "RaptureFacialPoseForSchClip",
+    "RaptureFacialLipSyncClip",
+    "RaptureMesClip",
+    "DepthOfFieldClip",
+    "KillClip",
 ]
 
 
 # @CCPT entry byte +2 per class, in CLIPS order
-KEY_BYTES = [1, 1, 2, 0, 1, 4, 0]
+KEY_BYTES = [1, 1, 2, 0, 1, 4, 0, 1, 0, 0, 3, 3, 1]
 
 
 def check(name: str, condition: bool) -> None:
@@ -57,6 +63,7 @@ def scheduler(
     actors: list[tuple[int, int]],
     subtype=b"SCB\0",
     key_bytes=KEY_BYTES,
+    index_words=True,
 ) -> bytes:
     """A SEDBSCB span with the directory, string table and four child chunks."""
     names = ACTORS + CLIPS
@@ -87,7 +94,16 @@ def scheduler(
         ),
     )
     parts = b""
+    index = 0
     for clips in blocks:
+        if index_words:
+            clips = [
+                raw
+                if struct.unpack_from("<h", raw, 0x0C)[0]
+                else raw[:0x0C] + struct.pack("<h", index + k) + raw[0x0E:]
+                for k, raw in enumerate(clips)
+            ]
+        index += len(clips)
         body = bytearray(0x30)
         struct.pack_into("<H", body, 0x18, len(clips))
         raw = b"".join(clips)
@@ -170,6 +186,42 @@ def localcamera(ext=False, **over) -> bytes:
     return record(5, 1, 0x40 if ext else 0x20, **fields)
 
 
+def nqblend(flag=1, value=15, **over) -> bytes:
+    return record(7, 0, 0x18, **{"10_I": flag, "14_I": value, **over})
+
+
+def facialpose(name=b"cfxf_smile", **over) -> bytes:
+    out = bytearray(record(8, 0, 0x38, **{"30_i": 2, "34_i": 10, **over}))
+    out[0x10:0x30] = bytes(32)
+    out[0x10 : 0x10 + len(name)] = name
+    return bytes(out)
+
+
+def lipsync(mode=0, set_word=0, **over) -> bytes:
+    return record(9, 0, 0x18, **{"10_I": mode, "14_I": set_word, **over})
+
+
+def mes(**over) -> bytes:
+    fields = {"10_I": 1, "14_I": 22, "18_I": 100, "1c_B": 1, "1d_B": 1, "20_I": 0x1E}
+    return record(10, 0, 0x24, **{**fields, **over})
+
+
+def dof(preset=False, **over) -> bytes:
+    if preset:
+        fields = {"10_I": 20000, "14_I": 0x7F3, "18_H": 3}
+        return record(11, 0, 0x1C, **{**fields, **over})
+    return record(11, 0, 0x34, **{"14_I": 0x7F1, "18_f": 2.0, **over})
+
+
+def kill(refs=(0,), link=None, **over) -> bytes:
+    n = len(refs)
+    fields = {"10_h": n}
+    for k, ref in enumerate(refs):
+        fields[f"{0x14 + 2 * k:x}_h"] = ref
+    fields.update(over)
+    return record(12, 0, link or (0x14 + 2 * n + 3) & ~3, **fields)
+
+
 def good_blocks() -> list[list[bytes]]:
     return [
         [
@@ -185,6 +237,16 @@ def good_blocks() -> list[list[bytes]]:
             localcamera(ext=True),
             record(6, 1, 0x14),
             clipsync((0, 2), False),
+        ],
+        [
+            nqblend(),
+            nqblend(0, 500),
+            facialpose(),
+            lipsync(2, 1),
+            mes(),
+            dof(),
+            dof(True),
+            kill((0, -1)),
         ],
     ]
 
@@ -203,6 +265,12 @@ def violations(blocks: list[list[bytes]]) -> dict:
 def with_clip(index: int, new: bytes) -> list[list[bytes]]:
     blocks = copy.deepcopy(good_blocks())
     blocks[0][index] = new
+    return blocks
+
+
+def with_block_clip(block: int, index: int, new: bytes) -> list[list[bytes]]:
+    blocks = copy.deepcopy(good_blocks())
+    blocks[block][index] = new
     return blocks
 
 
@@ -251,14 +319,16 @@ def main() -> int:
         [(a[0], len(a[2])) for a in sched.actors] == [(0, 8), (1, 12)],
     )
     check(
-        "both blocks are walked in order",
+        "all blocks are walked in order",
         [c.class_name for c in sched.clips][:2] == ["SetPosClip", "ShowHideClip"]
-        and len(sched.clips) == 10,
+        and len(sched.clips) == 18
+        and [c.block for c in sched.clips] == [0] * 6 + [1] * 4 + [2] * 8,
     )
     check(
         "clip links are the record sizes",
         [c.link for c in sched.clips]
-        == [0x40, 0x14, 0x2C, 0x34, 0x34, 24, 0x20, 0x40, 0x14, 24],
+        == [0x40, 0x14, 0x2C, 0x34, 0x34, 24, 0x20, 0x40, 0x14, 24]
+        + [0x18, 0x18, 0x38, 0x18, 0x24, 0x34, 0x1C, 24],
     )
     check("key entry bytes are read", sched.clip_class_bytes == KEY_BYTES)
     check(
@@ -298,7 +368,7 @@ def main() -> int:
         except scb.ParseError:
             ok = True
         check(f"{name} is rejected", ok)
-    bad_class = bytearray(scheduler([[record(9, 0, 0x14)]], [(8, 0)]))
+    bad_class = bytearray(scheduler([[record(13, 0, 0x14)]], [(8, 0)]))
     try:
         scb.parse_scheduler(bytes(bad_class))
         rejected = False
@@ -310,7 +380,7 @@ def main() -> int:
     check(
         "census counts files, headers, schedulers and clips",
         (census["files"], census["sedbHeaders"], census["schedulers"], census["clips"])
-        == (1, 1, 1, 10),
+        == (1, 1, 1, 18),
     )
     check(
         "census counts clips per class",
@@ -323,6 +393,12 @@ def main() -> int:
             "ClipSyncClip": 2,
             "LocalCameraClip": 2,
             "BindActorClip": 1,
+            "RaptureNqMotionBlendOnOffClip": 2,
+            "RaptureFacialPoseForSchClip": 1,
+            "RaptureFacialLipSyncClip": 1,
+            "RaptureMesClip": 1,
+            "DepthOfFieldClip": 2,
+            "KillClip": 1,
         },
     )
     check(
@@ -350,12 +426,18 @@ def main() -> int:
         "census csv rows are ranked by clips then name",
         verifier.census_csv(census) == "rank,class,clips,schedulers,recordBytes\n"
         "1,ClipSyncClip,2,1,24:2\n"
-        "2,LocalCameraClip,2,1,32:1;64:1\n"
-        "3,RapturePhysicsLookAtClip,2,1,52:2\n"
-        "4,BindActorClip,1,1,20:1\n"
-        "5,MotionClip,1,1,44:1\n"
-        "6,SetPosClip,1,1,64:1\n"
-        "7,ShowHideClip,1,1,20:1\n",
+        "2,DepthOfFieldClip,2,1,28:1;52:1\n"
+        "3,LocalCameraClip,2,1,32:1;64:1\n"
+        "4,RaptureNqMotionBlendOnOffClip,2,1,24:2\n"
+        "5,RapturePhysicsLookAtClip,2,1,52:2\n"
+        "6,BindActorClip,1,1,20:1\n"
+        "7,KillClip,1,1,24:1\n"
+        "8,MotionClip,1,1,44:1\n"
+        "9,RaptureFacialLipSyncClip,1,1,24:1\n"
+        "10,RaptureFacialPoseForSchClip,1,1,56:1\n"
+        "11,RaptureMesClip,1,1,36:1\n"
+        "12,SetPosClip,1,1,64:1\n"
+        "13,ShowHideClip,1,1,20:1\n",
     )
 
     check(
@@ -366,6 +448,18 @@ def main() -> int:
             "motion-speed": {"100": 1},
             "lookat-mode": {"0": 1, "1": 1},
             "clipsync-count-parity": {"odd": 1, "even": 1},
+            "motion-end-vs-start": {"after": 1},
+            "motion-end-unit": {"unit": 1},
+            "localcamera-drift-bit": {"clear": 2},
+            "nqblend-flag": {"0": 1, "1": 1},
+            "lipsync-set": {"1": 1},
+            "dof-mode": {"parameters": 1, "preset": 1},
+            "kill-count": {"2": 1},
+            "kill-missing-index": {"minus-one": 1},
+            "nqblend-value-15": {"15": 1, "other": 1},
+            "lipsync-mode": {"2": 1},
+            "dof-flags": {"0x7f1": 1, "0x7f3": 1},
+            "mes-route": {"11": 1},
         },
     )
     skewed = copy.deepcopy(good_blocks())
@@ -385,7 +479,8 @@ def main() -> int:
         census["checked"]["localcamera-key-byte"] == 2
         and census["checked"]["lookat-key-byte"] == 2,
     )
-    for index, name in enumerate(CLIPS[:6]):
+    for name in verifier.CLASS_ORDER:
+        index = CLIPS.index(name)
         wrong = list(KEY_BYTES)
         wrong[index] ^= 1
         out = verifier.blank_census()
@@ -455,13 +550,171 @@ def main() -> int:
             clipsync((1,), link=28),
             {"clipsync-link": 1},
         ),
-        ("clipsync index past the clip list", 5, clipsync((10,)), {"clipsync-refs": 1}),
+        ("clipsync index past the clip list", 5, clipsync((99,)), {"clipsync-refs": 1}),
         ("clipsync negative index", 5, clipsync((-1,)), {"clipsync-refs": 1}),
         ("clipsync index of itself", 5, clipsync((5,)), {"clipsync-refs": 1}),
         ("clipsync padding", 5, clipsync((1,), **{"12_H": 1}), {"clipsync-pad": 1}),
     ]
     for name, index, new, expected in cases:
         check(f"census reports {name}", violations(with_clip(index, new)) == expected)
+
+    bad_pose = bytearray(facialpose())
+    bad_pose[0x2F] = 1
+    last = 7
+    new_cases = [
+        ("nqblend switch of 2", 2, 0, nqblend(2), {"nqblend-flag": 1}),
+        ("nqblend value of 501", 2, 0, nqblend(1, 501), {"nqblend-value": 1}),
+        (
+            "nqblend short record",
+            2,
+            0,
+            record(7, 0, 0x14),
+            {"nqblend-link": 1, "nqblend-value": 1},
+        ),
+        (
+            "facial pose name without the prefix",
+            2,
+            2,
+            facialpose(b"cfxl_smile"),
+            {"facialpose-name": 1},
+        ),
+        (
+            "facial pose name of 16 characters",
+            2,
+            2,
+            facialpose(b"cfxf_0123456789a"),
+            {"facialpose-name": 1},
+        ),
+        (
+            "facial pose bytes after the name",
+            2,
+            2,
+            bytes(bad_pose),
+            {"facialpose-name": 1},
+        ),
+        (
+            "facial pose first word of 10",
+            2,
+            2,
+            facialpose(**{"30_i": 10}),
+            {"facialpose-words": 1},
+        ),
+        (
+            "facial pose negative second word",
+            2,
+            2,
+            facialpose(**{"34_i": -1}),
+            {"facialpose-words": 1},
+        ),
+        ("lipsync mode of 8", 2, 3, lipsync(8), {"lipsync-mode": 1}),
+        ("lipsync set of 3", 2, 3, lipsync(0, 3), {"lipsync-set": 1}),
+        ("mes lead word of 2", 2, 4, mes(**{"10_I": 2}), {"mes-lead": 1}),
+        ("mes route byte of 2", 2, 4, mes(**{"1c_B": 2}), {"mes-flags": 1}),
+        ("mes byte 0x1f set", 2, 4, mes(**{"1f_B": 1}), {"mes-flags": 1}),
+        ("mes mask bit 0", 2, 4, mes(**{"20_I": 1}), {"mes-mask": 1}),
+        ("mes mask bit 25", 2, 4, mes(**{"20_I": 1 << 25}), {"mes-mask": 1}),
+        ("dof flag bit 2", 2, 5, dof(**{"14_I": 0x7F5}), {"dof-flags": 1}),
+        (
+            "dof preset padding",
+            2,
+            6,
+            dof(True, **{"1a_H": 1}),
+            {"dof-preset-pad": 1},
+        ),
+        (
+            "dof preset record of parameter length",
+            2,
+            6,
+            record(11, 0, 0x34, **{"10_I": 20000, "14_I": 0x7F3}),
+            {"dof-link": 1},
+        ),
+        ("dof end before the start", 2, last, dof(**{"04_I": 10000}), {"dof-end": 1}),
+        (
+            "dof parameter end after the start",
+            2,
+            5,
+            dof(**{"10_I": 10000}),
+            {"dof-end": 1},
+        ),
+        ("kill index of itself", 2, last, kill((17,)), {"kill-refs": 1}),
+        ("kill index past the list", 2, last, kill((99,)), {"kill-refs": 1}),
+        ("kill index of -2", 2, last, kill((-2,)), {"kill-refs": 1}),
+        ("kill link off the count", 2, last, kill((0,), link=28), {"kill-link": 1}),
+        ("kill high count word", 2, last, kill((0,), **{"12_h": 1}), {"kill-pad": 1}),
+        (
+            "kill byte after the indexes",
+            2,
+            last,
+            kill((0,), **{"16_h": 5}),
+            {"kill-pad": 1},
+        ),
+        (
+            "kill negative count",
+            2,
+            last,
+            record(12, 0, 0x14, **{"10_h": -1}),
+            {"kill-count": 1, "kill-refs": 1},
+        ),
+        (
+            "camera end before the start",
+            1,
+            3,
+            localcamera(**{"04_I": 10000, "10_I": 0}),
+            {"localcamera-end": 1},
+        ),
+        (
+            "start tick off the unit",
+            0,
+            5,
+            clipsync(**{"04_I": 10001}),
+            {"clip-start-unit": 1},
+        ),
+        (
+            "index word of another clip",
+            2,
+            2,
+            facialpose(**{"0c_h": 7}),
+            {"clip-index-word": 1},
+        ),
+        (
+            "start tick lower than the previous clip",
+            0,
+            5,
+            clipsync(**{"04_I": 10000}),
+            {"clip-start-order": 1},
+        ),
+    ]
+    for name, block, index, new, expected in new_cases:
+        blocks = with_block_clip(block, index, new)
+        if name == "start tick lower than the previous clip":
+            blocks[0][4] = lookat(1, **{"20_f": 45.0, "04_I": 20000})
+        check(f"census reports {name}", violations(blocks) == expected)
+    blocks = with_block_clip(0, 5, clipsync(**{"04_I": 50000}))
+    check("a start tick may drop at a block boundary", violations(blocks) == {})
+    ordered = copy.deepcopy(good_blocks())
+    ordered[2] += [
+        motion(**{"04_I": 30000, "18_i": 10000}),
+        motion(**{"04_I": 30000, "18_i": 30000}),
+    ]
+    check(
+        "census orders the motion end against the start",
+        dict(run(ordered)["distributions"]["motion-end-vs-start"])
+        == {"after": 1, "before": 1, "equal": 1},
+    )
+    check(
+        "census tracks integer ranges",
+        run(good_blocks())["intRanges"]
+        == {
+            "nqblend-value": [15, 500],
+            "facialpose-words": [2, 10],
+            "lipsync-mode": [2, 2],
+        },
+    )
+    check(
+        "census counts the timing checks over every clip",
+        run(good_blocks())["checked"]["clip-start-unit"] == 18
+        and run(good_blocks())["checked"]["clip-start-order"] == 15,
+    )
 
     blocks = copy.deepcopy(good_blocks())
     blocks[1][0] = record(5, 1, 0x40, **{"1a_B": 2})
@@ -503,10 +756,72 @@ def main() -> int:
         "the census csv has one row per class", len(verifier.csv_rows(csv_text)) == 102
     )
     check(
-        "the six documented ranks lead the csv",
-        [r["class"] for r in verifier.csv_rows(csv_text)[:6]] == verifier.CLASS_ORDER,
+        "the documented classes sit at their ranks in the csv",
+        {r["class"]: int(r["rank"]) for r in verifier.csv_rows(csv_text)}[
+            "RaptureMesClip"
+        ]
+        == 11
+        and [
+            int(r["rank"])
+            for r in verifier.csv_rows(csv_text)
+            if r["class"] in verifier.CLASS_ORDER
+        ]
+        == [v[0] for v in verifier.OBJECTS.values()]
+        and list(verifier.OBJECTS) == verifier.CLASS_ORDER,
     )
 
+    check(
+        "invariant owners are documented classes or every clip",
+        {owner for owner, _, _ in verifier.INVARIANTS.values()}
+        <= set(verifier.CLASS_ORDER) | {"*"},
+    )
+    check("the timing section verifies", verifier.timing_errors(manifest) == [])
+    for name, path, value in (
+        ("the tick rate", ("unit", "ticksPerSecond"), 30000),
+        ("the image ticks per frame", ("unit", "ticksPerFrameImageValue"), 10000),
+        ("the tick entry", ("scheduler", "tick"), "0x00a1d331"),
+        ("the check list", ("checks",), []),
+    ):
+        broken = copy.deepcopy(manifest)
+        node = broken["timing"]
+        for key in path[:-1]:
+            node = node[key]
+        node[path[-1]] = value
+        check(
+            f"a changed timing {name} is reported",
+            len(verifier.timing_errors(broken)) >= 1,
+        )
+    for name, key, value in (
+        ("start", "start", "u32(D+8)"),
+        ("end", "end", "u32(D+0x1c)"),
+        ("end method", "endVa", "0x00a21081"),
+    ):
+        broken = copy.deepcopy(manifest)
+        broken["timing"]["classes"][1][key] = value
+        check(
+            f"a changed timing class {name} is reported",
+            len(verifier.timing_errors(broken)) >= 1,
+        )
+    broken = copy.deepcopy(manifest)
+    broken["timing"]["classes"].reverse()
+    check(
+        "a reordered timing class list is reported",
+        any("rank order" in e for e in verifier.timing_errors(broken)),
+    )
+    check(
+        "every documented class has an end method that matches its object",
+        all(
+            row["object"]["slot8"]
+            == f"0x{verifier.SLOT8.get(row['name'], verifier.BASE_SLOT8):08x}"
+            for row in manifest["classes"]
+        ),
+    )
+    late = copy.deepcopy(manifest)
+    late["classes"][8]["registration"]["secondInsertSite"] = "0x6366"
+    check(
+        "a malformed second insert site is reported",
+        any("secondInsertSite" in e for e in verifier.class_errors(late)),
+    )
     wrong_total = csv_text.replace("1,SetPosClip,33078", "1,SetPosClip,33079", 1)
     check(
         "a csv count change is reported",
@@ -564,7 +879,7 @@ def main() -> int:
         found = verifier.census_install(root)
         check(
             "install walk skips .DS_Store and counts the file",
-            (found["files"], found["schedulers"], found["clips"]) == (1, 1, 10),
+            (found["files"], found["schedulers"], found["clips"]) == (1, 1, 18),
         )
         document = {"install": verifier.census_manifest(found)}
         text = verifier.census_csv(found)
