@@ -34,11 +34,19 @@ CLIPS = [
     "RaptureMesClip",
     "DepthOfFieldClip",
     "KillClip",
+    "RaptureNqIdleSetClip",
+    "RaptureAutoMoveClip",
+    "RaptureBlackFadeClip",
+    "RaptureSoundClip",
+    "ActionClip",
+    "RaptureScaleClip",
+    "RaptureTurnClip",
+    "RaptureBgmClip",
 ]
 
 
 # @CCPT entry byte +2 per class, in CLIPS order
-KEY_BYTES = [1, 1, 2, 0, 1, 4, 0, 1, 0, 0, 3, 3, 1]
+KEY_BYTES = [1, 1, 2, 0, 1, 4, 0, 1, 0, 0, 3, 3, 1, 0, 3, 0, 3, 1, 1, 0, 0]
 
 
 def check(name: str, condition: bool) -> None:
@@ -222,6 +230,58 @@ def kill(refs=(0,), link=None, **over) -> bytes:
     return record(12, 0, link or (0x14 + 2 * n + 3) & ~3, **fields)
 
 
+def idle_set(name=b"cbfm_id0", **over) -> bytes:
+    out = bytearray(record(13, 0, 0x30, **over))
+    out[0x10:0x30] = bytes(32)
+    out[0x10 : 0x10 + len(name)] = name
+    return bytes(out)
+
+
+def automove(**over) -> bytes:
+    fields = {"10_i": 4, "14_H": 1, "18_i": 1, "1c_i": 10, "20_f": 2.0, "26_H": 7}
+    return record(14, 0, 0x28, **{**fields, **over})
+
+
+def blackfade(**over) -> bytes:
+    return record(15, 0, 0x1C, **{"14_I": 1, "18_i": 30, **over})
+
+
+def sound(ids=(0x07FE0007,), **over) -> bytes:
+    fields = {"18_I": 1, "1c_f": 1.0, "24_I": 4 * len(ids)}
+    for k, value in enumerate(ids):
+        fields[f"{0x28 + 4 * k:x}_I"] = value
+    return record(16, 0, 0x28 + 4 * len(ids), **{**fields, **over})
+
+
+def action(**over) -> bytes:
+    fields = {"10_i": 143, "14_I": 0x100, "18_i": 300000, "20_i": 300000, "24_I": 100}
+    return record(17, 0, 0x28, **{**fields, **over})
+
+
+def scale(mode=1, **over) -> bytes:
+    if mode == 1:
+        fields = {"14_I": 1, "18_f": 1.1, "1c_I": 0, "20_I": 1}
+    else:
+        fields = {"14_I": 0, "18_I": 2, "20_I": 1}
+    return record(18, 0, 0x24, **{**fields, **over})
+
+
+def turn(angle=1.5, **over) -> bytes:
+    return record(19, 0, 0x14, **{"10_f": angle, **over})
+
+
+def bgm(**over) -> bytes:
+    fields = {"14_i": 3000, "1c_I": 4, "20_I": 0x07FE0007}
+    return record(20, 0, 0x24, **{**fields, **over})
+
+
+def resize(raw: bytes, link: int) -> bytes:
+    """The record cut or zero padded to link bytes with its link word updated."""
+    out = bytearray(raw[:link]) + bytes(max(0, link - len(raw)))
+    struct.pack_into("<h", out, 0, link)
+    return bytes(out)
+
+
 def good_blocks() -> list[list[bytes]]:
     return [
         [
@@ -247,6 +307,21 @@ def good_blocks() -> list[list[bytes]]:
             dof(),
             dof(True),
             kill((0, -1)),
+        ],
+        [
+            idle_set(),
+            automove(),
+            automove(**{"24_H": 1, "18_i": 0}),
+            blackfade(),
+            blackfade(**{"14_I": 0, "18_i": -1}),
+            sound(),
+            sound((0x28680000, 0x28680001), **{"18_I": 0}),
+            action(),
+            action(**{"14_I": 0xFF80, "18_i": -300000}),
+            scale(1),
+            scale(0),
+            turn(),
+            bgm(),
         ],
     ]
 
@@ -321,14 +396,29 @@ def main() -> int:
     check(
         "all blocks are walked in order",
         [c.class_name for c in sched.clips][:2] == ["SetPosClip", "ShowHideClip"]
-        and len(sched.clips) == 18
-        and [c.block for c in sched.clips] == [0] * 6 + [1] * 4 + [2] * 8,
+        and len(sched.clips) == 31
+        and [c.block for c in sched.clips] == [0] * 6 + [1] * 4 + [2] * 8 + [3] * 13,
     )
     check(
         "clip links are the record sizes",
         [c.link for c in sched.clips]
         == [0x40, 0x14, 0x2C, 0x34, 0x34, 24, 0x20, 0x40, 0x14, 24]
-        + [0x18, 0x18, 0x38, 0x18, 0x24, 0x34, 0x1C, 24],
+        + [0x18, 0x18, 0x38, 0x18, 0x24, 0x34, 0x1C, 24]
+        + [
+            0x30,
+            0x28,
+            0x28,
+            0x1C,
+            0x1C,
+            0x2C,
+            0x30,
+            0x28,
+            0x28,
+            0x24,
+            0x24,
+            0x14,
+            0x24,
+        ],
     )
     check("key entry bytes are read", sched.clip_class_bytes == KEY_BYTES)
     check(
@@ -368,7 +458,7 @@ def main() -> int:
         except scb.ParseError:
             ok = True
         check(f"{name} is rejected", ok)
-    bad_class = bytearray(scheduler([[record(13, 0, 0x14)]], [(8, 0)]))
+    bad_class = bytearray(scheduler([[record(21, 0, 0x14)]], [(8, 0)]))
     try:
         scb.parse_scheduler(bytes(bad_class))
         rejected = False
@@ -380,7 +470,7 @@ def main() -> int:
     check(
         "census counts files, headers, schedulers and clips",
         (census["files"], census["sedbHeaders"], census["schedulers"], census["clips"])
-        == (1, 1, 1, 18),
+        == (1, 1, 1, 31),
     )
     check(
         "census counts clips per class",
@@ -399,6 +489,14 @@ def main() -> int:
             "RaptureMesClip": 1,
             "DepthOfFieldClip": 2,
             "KillClip": 1,
+            "RaptureNqIdleSetClip": 1,
+            "RaptureAutoMoveClip": 2,
+            "RaptureBlackFadeClip": 2,
+            "RaptureSoundClip": 2,
+            "ActionClip": 2,
+            "RaptureScaleClip": 2,
+            "RaptureTurnClip": 1,
+            "RaptureBgmClip": 1,
         },
     )
     check(
@@ -425,19 +523,27 @@ def main() -> int:
     check(
         "census csv rows are ranked by clips then name",
         verifier.census_csv(census) == "rank,class,clips,schedulers,recordBytes\n"
-        "1,ClipSyncClip,2,1,24:2\n"
-        "2,DepthOfFieldClip,2,1,28:1;52:1\n"
-        "3,LocalCameraClip,2,1,32:1;64:1\n"
-        "4,RaptureNqMotionBlendOnOffClip,2,1,24:2\n"
-        "5,RapturePhysicsLookAtClip,2,1,52:2\n"
-        "6,BindActorClip,1,1,20:1\n"
-        "7,KillClip,1,1,24:1\n"
-        "8,MotionClip,1,1,44:1\n"
-        "9,RaptureFacialLipSyncClip,1,1,24:1\n"
-        "10,RaptureFacialPoseForSchClip,1,1,56:1\n"
-        "11,RaptureMesClip,1,1,36:1\n"
-        "12,SetPosClip,1,1,64:1\n"
-        "13,ShowHideClip,1,1,20:1\n",
+        "1,ActionClip,2,1,40:2\n"
+        "2,ClipSyncClip,2,1,24:2\n"
+        "3,DepthOfFieldClip,2,1,28:1;52:1\n"
+        "4,LocalCameraClip,2,1,32:1;64:1\n"
+        "5,RaptureAutoMoveClip,2,1,40:2\n"
+        "6,RaptureBlackFadeClip,2,1,28:2\n"
+        "7,RaptureNqMotionBlendOnOffClip,2,1,24:2\n"
+        "8,RapturePhysicsLookAtClip,2,1,52:2\n"
+        "9,RaptureScaleClip,2,1,36:2\n"
+        "10,RaptureSoundClip,2,1,44:1;48:1\n"
+        "11,BindActorClip,1,1,20:1\n"
+        "12,KillClip,1,1,24:1\n"
+        "13,MotionClip,1,1,44:1\n"
+        "14,RaptureBgmClip,1,1,36:1\n"
+        "15,RaptureFacialLipSyncClip,1,1,24:1\n"
+        "16,RaptureFacialPoseForSchClip,1,1,56:1\n"
+        "17,RaptureMesClip,1,1,36:1\n"
+        "18,RaptureNqIdleSetClip,1,1,48:1\n"
+        "19,RaptureTurnClip,1,1,20:1\n"
+        "20,SetPosClip,1,1,64:1\n"
+        "21,ShowHideClip,1,1,20:1\n",
     )
 
     check(
@@ -460,6 +566,18 @@ def main() -> int:
             "lipsync-mode": {"2": 1},
             "dof-flags": {"0x7f1": 1, "0x7f3": 1},
             "mes-route": {"11": 1},
+            "nqidle-name": {"cbfm_id0": 1},
+            "automove-start": {"curves": 1, "position": 1},
+            "automove-hold": {"0": 1, "1": 1},
+            "blackfade-color": {"0": 1, "1": 1},
+            "blackfade-length": {"default": 1, "set": 1},
+            "sound-entries": {"1": 1, "2": 1},
+            "sound-flags": {"0": 2},
+            "sound-slot": {"set": 1, "zero": 1},
+            "action-loop": {"loop": 1, "single": 1},
+            "action-end-vs-start": {"after": 1, "before": 1},
+            "scale-mode": {"factor": 1, "preset": 1},
+            "bgm-fade": {"set": 1},
         },
     )
     skewed = copy.deepcopy(good_blocks())
@@ -472,7 +590,12 @@ def main() -> int:
     check(
         "census tracks float ranges",
         census["ranges"]
-        == {"setpos-position": [-5.5, 100.0], "setpos-scale": [0.5, 8.0]},
+        == {
+            "setpos-position": [-5.5, 100.0],
+            "setpos-scale": [0.5, 8.0],
+            "automove-speed": [2.0, 2.0],
+            "turn-angle": [1.5, 1.5],
+        },
     )
     check(
         "census checks the key byte of every clip",
@@ -482,7 +605,7 @@ def main() -> int:
     for name in verifier.CLASS_ORDER:
         index = CLIPS.index(name)
         wrong = list(KEY_BYTES)
-        wrong[index] ^= 1
+        wrong[index] ^= 4 if name == "RaptureSoundClip" else 1
         out = verifier.blank_census()
         verifier.census_data(
             scheduler(good_blocks(), [(8, 0), (8, 0)], key_bytes=wrong), out
@@ -689,6 +812,186 @@ def main() -> int:
         if name == "start tick lower than the previous clip":
             blocks[0][4] = lookat(1, **{"20_f": 45.0, "04_I": 20000})
         check(f"census reports {name}", violations(blocks) == expected)
+    nan = {"20_I": 0x7FC00000}
+    bad_idle = bytearray(idle_set())
+    bad_idle[0x2F] = 1
+    tail_cases = [
+        (
+            "idle name of 16 characters",
+            0,
+            idle_set(b"cbfm_0123456789a"),
+            {"nqidle-name": 1},
+        ),
+        ("idle name bytes after the name", 0, bytes(bad_idle), {"nqidle-name": 1}),
+        ("idle empty name", 0, idle_set(b""), {"nqidle-name": 1}),
+        (
+            "idle short record",
+            0,
+            record(13, 0, 0x2C),
+            {"nqidle-link": 1, "nqidle-name": 1},
+        ),
+        ("automove count of 1", 1, automove(**{"10_i": 1}), {"automove-count": 1}),
+        ("automove count of 21", 1, automove(**{"10_i": 21}), {"automove-count": 1}),
+        ("automove mode word of 3", 1, automove(**{"14_H": 3}), {"automove-mode": 1}),
+        ("automove block flag of 2", 1, automove(**{"16_H": 2}), {"automove-flags": 1}),
+        (
+            "automove hold switch of 2",
+            1,
+            automove(**{"18_i": 2}),
+            {"automove-flags": 1},
+        ),
+        ("automove start word of 2", 1, automove(**{"24_H": 2}), {"automove-flags": 1}),
+        ("automove hold of 351", 1, automove(**{"1c_i": 351}), {"automove-hold": 1}),
+        ("automove negative hold", 1, automove(**{"1c_i": -1}), {"automove-hold": 1}),
+        ("automove speed of 0", 1, automove(**{"20_f": 0.0}), {"automove-speed": 1}),
+        ("automove speed of 36", 1, automove(**{"20_f": 36.0}), {"automove-speed": 1}),
+        ("automove speed nan", 1, automove(**nan), {"automove-speed": 1}),
+        (
+            "automove short record",
+            1,
+            resize(automove(), 0x24),
+            {"automove-link": 1, "automove-flags": 1},
+        ),
+        ("blackfade lead word", 3, blackfade(**{"10_I": 1}), {"blackfade-lead": 1}),
+        ("blackfade color of 2", 3, blackfade(**{"14_I": 2}), {"blackfade-color": 1}),
+        (
+            "blackfade frames of 121",
+            3,
+            blackfade(**{"18_i": 121}),
+            {"blackfade-frames": 1},
+        ),
+        (
+            "blackfade frames of -2",
+            3,
+            blackfade(**{"18_i": -2}),
+            {"blackfade-frames": 1},
+        ),
+        (
+            "blackfade short record",
+            3,
+            record(15, 0, 0x18),
+            {"blackfade-link": 1, "blackfade-frames": 1},
+        ),
+        (
+            "sound link off the array length",
+            5,
+            record(16, 0, 0x30, **{"18_I": 1, "1c_f": 1.0, "24_I": 4}),
+            {"sound-link": 1},
+        ),
+        (
+            "sound array of 6 bytes",
+            5,
+            record(16, 0, 0x2E, **{"18_I": 1, "1c_f": 1.0, "24_I": 6}),
+            {"sound-array": 1},
+        ),
+        (
+            "sound empty array",
+            5,
+            record(16, 0, 0x28, **{"18_I": 1, "1c_f": 1.0}),
+            {"sound-array": 1},
+        ),
+        (
+            "sound array of 40 bytes",
+            5,
+            record(16, 0, 0x50, **{"18_I": 1, "1c_f": 1.0, "24_I": 40}),
+            {"sound-array": 1},
+        ),
+        ("sound lead word", 5, sound(**{"10_I": 1}), {"sound-lead": 1}),
+        ("sound flag word of 5", 5, sound(**{"14_I": 5}), {"sound-flags": 1}),
+        ("sound slot of 4", 5, sound(**{"18_I": 4}), {"sound-slot": 1}),
+        ("sound volume of 1.5", 5, sound(**{"1c_f": 1.5}), {"sound-volume": 1}),
+        ("sound negative volume", 5, sound(**{"1c_f": -0.1}), {"sound-volume": 1}),
+        ("sound volume nan", 5, sound(**{"1c_I": 0x7FC00000}), {"sound-volume": 1}),
+        ("action negative id", 7, action(**{"10_i": -1}), {"action-id": 1}),
+        ("action flag bit 3", 7, action(**{"14_I": 0x108}), {"action-flags": 1}),
+        ("action flag bit 16", 7, action(**{"14_I": 0x10100}), {"action-flags": 1}),
+        ("action end at the start", 7, action(**{"18_i": 0}), {"action-end": 1}),
+        ("action end before the start", 7, action(**{"18_i": -1}), {"action-end": 1}),
+        ("action tail word of 49", 7, action(**{"24_I": 49}), {"action-tail": 1}),
+        ("action tail word of 101", 7, action(**{"24_I": 101}), {"action-tail": 1}),
+        ("action long record", 7, resize(action(), 0x2C), {"action-link": 1}),
+        ("scale lead word", 9, scale(**{"10_I": 1}), {"scale-lead": 1}),
+        ("scale mode of 2", 9, scale(**{"14_I": 2}), {"scale-mode": 1}),
+        ("scale preset of 5", 10, scale(0, **{"18_I": 5}), {"scale-preset": 1}),
+        ("scale factor of 8.5", 9, scale(**{"18_f": 8.5}), {"scale-factor": 1}),
+        ("scale factor of 0.2", 9, scale(**{"18_f": 0.2}), {"scale-factor": 1}),
+        ("scale switch of 2", 9, scale(**{"1c_I": 2}), {"scale-switch": 1}),
+        ("scale length of 16", 9, scale(**{"20_I": 16}), {"scale-length": 1}),
+        (
+            "scale short record",
+            9,
+            resize(scale(), 0x20),
+            {"scale-link": 1, "scale-length": 1},
+        ),
+        ("turn angle of 3.2", 11, turn(3.2), {"turn-angle": 1}),
+        ("turn angle nan", 11, turn(**{"10_I": 0x7FC00000}), {"turn-angle": 1}),
+        (
+            "turn short record",
+            11,
+            record(19, 0, 0x10),
+            {"turn-link": 1, "turn-angle": 1},
+        ),
+        ("bgm lead word", 12, bgm(**{"10_I": 1}), {"bgm-lead": 1}),
+        ("bgm negative fade", 12, bgm(**{"14_i": -1}), {"bgm-fade": 1}),
+        ("bgm fade of 30001", 12, bgm(**{"14_i": 30001}), {"bgm-fade": 1}),
+        ("bgm word of 10001", 12, bgm(**{"18_i": 10001}), {"bgm-word": 1}),
+        ("bgm negative word", 12, bgm(**{"18_i": -1}), {"bgm-word": 1}),
+        ("bgm constant of 5", 12, bgm(**{"1c_I": 5}), {"bgm-constant": 1}),
+        (
+            "bgm resource outside 0x07fe",
+            12,
+            bgm(**{"20_I": 0x08000007}),
+            {"bgm-resource": 1},
+        ),
+        (
+            "bgm resource of 0x07ff0007",
+            12,
+            bgm(**{"20_I": 0x07FF0007}),
+            {"bgm-resource": 1},
+        ),
+    ]
+    for name, index, new, expected in tail_cases:
+        check(
+            f"census reports {name}",
+            violations(with_block_clip(3, index, new)) == expected,
+        )
+    check(
+        "census counts the conditional checks of the new classes",
+        (
+            census["checked"]["scale-preset"],
+            census["checked"]["scale-factor"],
+            census["checked"]["sound-key-byte"],
+            census["checked"]["action-end"],
+        )
+        == (1, 1, 2, 2),
+    )
+    out = verifier.blank_census()
+    verifier.census_data(
+        scheduler(
+            good_blocks(),
+            [(8, 0), (8, 0)],
+            key_bytes=KEY_BYTES[:16] + [2] + KEY_BYTES[17:],
+        ),
+        out,
+    )
+    check(
+        "a sound key byte of 2 is accepted",
+        sum(out["violations"].values()) == 0,
+    )
+    out = verifier.blank_census()
+    verifier.census_data(
+        scheduler(
+            good_blocks(),
+            [(8, 0), (8, 0)],
+            key_bytes=KEY_BYTES[:16] + [1] + KEY_BYTES[17:],
+        ),
+        out,
+    )
+    check(
+        "a sound key byte of 1 is reported",
+        {k: v for k, v in out["violations"].items() if v} == {"sound-key-byte": 2},
+    )
+
     blocks = with_block_clip(0, 5, clipsync(**{"04_I": 50000}))
     check("a start tick may drop at a block boundary", violations(blocks) == {})
     ordered = copy.deepcopy(good_blocks())
@@ -708,12 +1011,20 @@ def main() -> int:
             "nqblend-value": [15, 500],
             "facialpose-words": [2, 10],
             "lipsync-mode": [2, 2],
+            "automove-count": [4, 4],
+            "automove-hold": [10, 10],
+            "automove-track": [7, 7],
+            "blackfade-frames": [-1, 30],
+            "sound-param": [0, 0],
+            "action-id": [143, 143],
+            "bgm-fade": [3000, 3000],
+            "bgm-resource": [0x07FE0007, 0x07FE0007],
         },
     )
     check(
         "census counts the timing checks over every clip",
-        run(good_blocks())["checked"]["clip-start-unit"] == 18
-        and run(good_blocks())["checked"]["clip-start-order"] == 15,
+        run(good_blocks())["checked"]["clip-start-unit"] == 31
+        and run(good_blocks())["checked"]["clip-start-order"] == 27,
     )
 
     blocks = copy.deepcopy(good_blocks())
@@ -816,6 +1127,59 @@ def main() -> int:
             for row in manifest["classes"]
         ),
     )
+    action_row = next(r for r in manifest["classes"] if r["name"] == "ActionClip")
+    check(
+        "the action clip overrides the begin gate and the end tick",
+        action_row["object"]["slot8"] == "0x00a176d0"
+        and verifier.SLOT30 == {"ActionClip": 0x005C5C80}
+        and verifier.SLOT8["ActionClip"] == 0x00A176D0
+        and next(r for r in manifest["timing"]["classes"] if r["name"] == "ActionClip")[
+            "end"
+        ]
+        == "u32(D+0x18)",
+    )
+    for name, key, path, value in (
+        (
+            "slot 30 of the action clip",
+            "slot 30",
+            ("ActionClip vtable slot 30", 0),
+            "0x00b73290",
+        ),
+        (
+            "slot 30 of the turn clip",
+            "slot 30",
+            ("RaptureTurnClip vtable slot 30", 0),
+            "0x005c5c80",
+        ),
+        (
+            "slot 3 of the sound clip",
+            "slot 3",
+            ("RaptureSoundClip vtable slots 0 to 8", 3),
+            "0x00a21000",
+        ),
+        (
+            "slot 4 of the automove clip",
+            "slot 4",
+            ("RaptureAutoMoveClip vtable slots 0 to 8", 4),
+            "0x00a21010",
+        ),
+    ):
+        broken = copy.deepcopy(manifest)
+        for item in broken["staticChecks"]:
+            if item["name"] == path[0]:
+                item["values"][path[1]] = value
+        check(
+            f"a changed {name} is reported",
+            len(verifier.class_errors(broken)) >= 1,
+        )
+    broken = copy.deepcopy(manifest)
+    next(r for r in broken["classes"] if r["name"] == "RaptureSoundClip")["object"][
+        "slot3"
+    ] = "0x0081b431"
+    check(
+        "a sound object slot 3 that differs from the table is reported",
+        any("slot 3 or 4" in e for e in verifier.class_errors(broken)),
+    )
     late = copy.deepcopy(manifest)
     late["classes"][8]["registration"]["secondInsertSite"] = "0x6366"
     check(
@@ -879,7 +1243,7 @@ def main() -> int:
         found = verifier.census_install(root)
         check(
             "install walk skips .DS_Store and counts the file",
-            (found["files"], found["schedulers"], found["clips"]) == (1, 1, 18),
+            (found["files"], found["schedulers"], found["clips"]) == (1, 1, 31),
         )
         document = {"install": verifier.census_manifest(found)}
         text = verifier.census_csv(found)
