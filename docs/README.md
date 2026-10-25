@@ -16,6 +16,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Emote and server animation IDs](actor/emote-animation-ids.md)
 - [Actor architecture](actor/architecture.md)
 - [Character movement displacement branch](actor/character-movement-displacement.md)
+- [Chara look-at records and their consumers](actor/chara-look-at-consumers.md)
+- [Chara turn, visibility, floating offset and marker consumers](actor/chara-turn-and-field-consumers.md)
 - [Mesh matrix input and shared renderer state](actor/mesh-matrix-input.md)
 - [Selected body shader constant join](actor/body-shader-constant-join.md)
 - [Scene body mesh and pass admission](actor/body-mesh-pass-admission.md)
