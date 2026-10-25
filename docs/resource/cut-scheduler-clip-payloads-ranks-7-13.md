@@ -318,6 +318,6 @@ itself. The count is 1 in 4,078 records, 2 in 402 and 0 in 90.
 `python tools/verify_scb_clip_classes.py` checks the manifest, the census table
 and the mutation cases. `--exe <ffxivgame.exe>` compares the byte checks with
 the pinned image. `--install <game-root>` recomputes the census and checks every
-record of the twelve classes against the OBSERVED invariants in the manifest.
+record of the twenty classes against the OBSERVED invariants in the manifest.
 `python tools/test_scb_clip_classes.py` covers the parser, the invariants and the
 verifier with synthetic schedulers.

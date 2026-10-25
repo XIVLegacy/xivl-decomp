@@ -3,9 +3,10 @@
 This page records how the retail 1.23b client starts and ends the clips of an
 embedded `SEDBSCB` scheduler. It names the clip fields that carry the start and
 the end, the unit of those fields, and the scheduler routines that compare them
-with the scheduler time. It covers the twelve classes of the
-[first payloads page](cut-scheduler-clip-payloads.md) and the
-[second payloads page](cut-scheduler-clip-payloads-ranks-7-13.md). The record D
+with the scheduler time. It covers the twenty classes of the
+[first payloads page](cut-scheduler-clip-payloads.md), the
+[second payloads page](cut-scheduler-clip-payloads-ranks-7-13.md) and the
+[third payloads page](cut-scheduler-clip-payloads-ranks-14-22.md). The record D
 and its offsets are those of the [clip layout](cut-scheduler-clip-layout.md#clip-records).
 All values are little-endian. S is the scheduler object, and `S+0x..` names a
 field of it.
@@ -36,6 +37,8 @@ The scheduler clock counts ticks.
 | Clock rate | `0x00a203b0` | Returns the float at clock +0x14, or 1.0 when the byte at clock +0x18 is 0. |
 | Clock initializer | `0x00a20310` | Sets the time to 0, the rate to 1.0 and the byte at +0x18 to 1. |
 | Motion frame rate constant | double at `0x00fa7b18` | 30.0 |
+| Frame number | `0x00a1b860` through `0x00a203e0` | The 64 bit clock time at clock +8 divided by ticks per frame, as a signed 64 bit division. |
+| Milliseconds per second constant | double at `0x00f91c48` | 1000.0 |
 
 The scheduler keeps its clock at S+0xd0. The motion code converts ticks to frames
 by multiplying by 30.0 and dividing by 300000.0 (`0x007ad020`, used by the
@@ -86,6 +89,14 @@ override slot 8 has a duration of 0.
 | RaptureMesClip | `u32(D+4)` | the start tick | slot 12 with 1 or 2 on the type 0xa route |
 | DepthOfFieldClip | `u32(D+4)` | `u32(D+0x10)` | none |
 | KillClip | `u32(D+4)` | the start tick | slot 18 with 1 on the clips it lists |
+| RaptureNqIdleSetClip | `u32(D+4)` | the start tick | none |
+| RaptureAutoMoveClip | `u32(D+4)` | the start tick | slot 12 with 2 while the move runs and 0 when it ends or is aborted |
+| RaptureBlackFadeClip | `u32(D+4)` | the start tick | slot 12 with 2 at begin and 0 after the fade frames |
+| RaptureSoundClip | `u32(D+4)` | the start tick | slot 12 with 0 for a slot 0 clip, 2 (1 with the preload bit) for a nonzero slot, 0 when aborted |
+| ActionClip | `u32(D+4)` | `u32(D+0x18)` | slot 12 with 0 at the loop limit |
+| RaptureScaleClip | `u32(D+4)` | the start tick | none |
+| RaptureTurnClip | `u32(D+4)` | the start tick | slot 12 with 2 while the turn runs, slot 18 with 1 and slot 12 with 0 after 90 updates |
+| RaptureBgmClip | `u32(D+4)` | the start tick | none |
 
 Clip +0x110 of LocalCameraClip starts at 0. The begin method stores the 64 bit
 word S+0xa0 at clip +0x108. When bit 2 of `u8(D+0x1a)` is set behind the key
@@ -132,8 +143,10 @@ clips of one block, as described under
 
 1. A clip is skipped when bit 1 of the byte at S+0x90 is clear and slot 30
    returns true (`0x00a1d44f` to `0x00a1d464`). Slot 30 is `0x00b73290`, which
-   loads 1 and returns, in the primary vtable of all twelve classes (vtable
-   +0x78). So a clip begins only while bit 1 of S+0x90 is set. It is also
+   loads 1 and returns, in the primary vtable (vtable +0x78) of nineteen of the
+   twenty classes. ActionClip has `0x005c5c80`, which returns false, so an
+   ActionClip is never skipped by this test. For the other nineteen a clip
+   begins only while bit 1 of S+0x90 is set. It is also
    skipped when the test `0x00a26b00` on `s16(D+8)`, read through slot 22 and checked against the
    object at S+0x58, is false (`0x00a1d46a` to `0x00a1d47f`).
 2. When t is below the start tick of the clip, slot 7, the scan stops and the
@@ -180,8 +193,9 @@ abort bit is set (`0x00a1d7d4` to `0x00a1d81d`, `0x00a1e1e5` to `0x00a1e232`).
 
 The end calls slot 3 and then slot 4 with the context (`0x00a1d81f` to
 `0x00a1d83b`). The base methods store state 3 and state 4. MotionClip,
-LocalCameraClip and DepthOfFieldClip override both, and RaptureMesClip overrides
-slot 3. KillClip ends a listed clip by setting its abort bit.
+LocalCameraClip, DepthOfFieldClip, RaptureAutoMoveClip (slot 3 is a jump to the
+base method) and ActionClip override both, and RaptureMesClip and RaptureSoundClip
+override slot 3. KillClip ends a listed clip by setting its abort bit.
 
 ## Phase word
 
@@ -197,9 +211,33 @@ has no duration check (`0x00a1e2ac` to `0x00a1e344`). When a clip that held phas
 1 ends, the tick scans again from the cursor with the same t (`0x00a1d881` to
 `0x00a1d88f` and the loop test at `0x00a1d96c`).
 
-ClipSyncClip, MotionClip and RaptureMesClip call slot 12. Phase 2 of MotionClip
-and RaptureMesClip keeps a clip from ending by duration without holding the
-scheduler time.
+ClipSyncClip, MotionClip and RaptureMesClip call slot 12, and so do
+RaptureAutoMoveClip, RaptureBlackFadeClip, RaptureSoundClip, ActionClip and
+RaptureTurnClip. Phase 2 of MotionClip and RaptureMesClip keeps a clip from
+ending by duration without holding the scheduler time. Phase 2 of the five newer
+classes does the same. RaptureSoundClip can also take phase 1, which holds the
+scheduler time like the RaptureMesClip phase 1.
+
+## Clips that count frames or updates
+
+RaptureBlackFadeClip stores the scheduler frame number (`0x00a1b860`) at clip
++0x38 at begin. Slot 2 ends the clip when the frame number reaches that value
+plus `s32(D+0x18)`, which is 30 for a negative field. Its duration is therefore
+counted in frames of the scheduler clock and not in ticks of the record. The
+fade setter receives the same length as ticks at a fixed 10000 per frame, the
+product of the frames and 300000 over 30, which does not follow the ticks per
+frame setter. RaptureTurnClip counts calls to slot 2 and ends after 90 of them
+at the latest. Both are STATIC and described on the
+[third payloads page](cut-scheduler-clip-payloads-ranks-14-22.md#raptureblackfadeclip).
+
+RaptureAutoMoveClip holds phase 2 while the move it handed to the actor runs.
+RaptureSoundClip slot 2 sets phase 0 when the start helper returns false, which
+is the case for every slot 0 clip (1,916 of the 2,763 install records) and means
+the clip is one-shot, and after an abort or the end of a preload. A clip with a
+nonzero sound slot (847 records) holds phase 2 after the start, so what ends
+such a clip is UNKNOWN. ActionClip slot 8 returns `u32(D+0x18)`, which is below
+the start tick in 637 of its 816 looping records in the install and so gives a
+negative duration, as for MotionClip.
 
 ## Clip index word
 
@@ -232,6 +270,8 @@ so a block starts its own timeline.
   bit is UNKNOWN, possibly the message reply path. Until it runs, phase 1 holds
   the scheduler time under the rules above.
 - The effect of bit 1 of `u8(D+0x0b)` and of `u8(D+0x0a)` is UNKNOWN.
+- The writers of the ActionClip limit at clip +0x44, which decides when its
+  slot 2 calls slot 12 with 0, are UNKNOWN.
 
 ## Verification
 

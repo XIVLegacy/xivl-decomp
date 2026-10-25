@@ -284,6 +284,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Cut scheduler clip class census](resource/cut-scheduler-clip-class-census.md)
 - [Cut scheduler clip payloads](resource/cut-scheduler-clip-payloads.md)
 - [Cut scheduler clip payloads, ranks 7 to 13](resource/cut-scheduler-clip-payloads-ranks-7-13.md)
+- [Cut scheduler clip payloads, ranks 14 to 22](resource/cut-scheduler-clip-payloads-ranks-14-22.md)
 - [Cut scheduler clip timing](resource/cut-scheduler-clip-timing.md)
 - [DrawEnv texture-binding boundary](resource/draw-env-texture-binding-boundary.md)
 - [Limsa rain DrawEnv and VFX inputs](resource/limsa-rain-presentation.md)
