@@ -53,6 +53,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Garuda plume color-root boundary](actor/garuda-plume-color-root.md)
 - [Ifrit and Infernal Nail action banks](actor/ifrit-nail-action-banks.md)
 - [Ifrit ground-effect bank resources](actor/ifrit-ground-effect-banks.md)
+- [Selected Castrum presentation resources](actor/castrum-presentation.md)
 - [Goobbue mount appearance resolver](actor/goobbue-mount-resolver.md)
 - [Actor damage display](actor/damage-display.md)
 - [Actor kick-gate writer](actor/kick-gate-writer.md)
