@@ -16,6 +16,7 @@ import build_achievement_title_map as achievement_title_map_builder
 import verify_camera_input_chain as camera_input_verifier
 import verify_chara_lighting_model as chara_lighting_verifier
 import verify_chara_presentation_consumers as chara_presentation_verifier
+import verify_client_music_initiators as client_music_verifier
 import verify_combat_result_element as combat_result_element_verifier
 import verify_emote_animation_catalog as emote_animation_verifier
 import verify_grow_data_boundary as grow_data_verifier
@@ -36,6 +37,7 @@ import verify_skeleton_hierarchy_composition as skeleton_composition_verifier
 import verify_scb_clip_classes as scb_clip_class_verifier
 import verify_sound_effect_triggers as sound_effect_verifier
 import verify_sun_moon_orientation as sun_moon_verifier
+import verify_vfx_effect_runtime as vfx_effect_verifier
 import verify_vfx_qix_resource as vfx_qix_verifier
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -465,6 +467,13 @@ def main() -> int:
         errors.extend(
             f"Qix effect resource contract: {error}" for error in vfx_qix_errors
         )
+    vfx_effect_errors = (
+        vfx_effect_verifier.verify() + vfx_effect_verifier.mutation_test()
+    )
+    if vfx_effect_errors:
+        errors.extend(
+            f"Qix effect runtime contract: {error}" for error in vfx_effect_errors
+        )
     scb_clip_class_errors = (
         scb_clip_class_verifier.verify() + scb_clip_class_verifier.mutation_test()
     )
@@ -479,6 +488,13 @@ def main() -> int:
     if sound_effect_errors:
         errors.extend(
             f"sound effect trigger contract: {error}" for error in sound_effect_errors
+        )
+    client_music_errors = (
+        client_music_verifier.verify() + client_music_verifier.mutation_test()
+    )
+    if client_music_errors:
+        errors.extend(
+            f"client music initiator contract: {error}" for error in client_music_errors
         )
     combat_result_errors = (
         combat_result_element_verifier.verify()

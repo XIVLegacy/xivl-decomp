@@ -1359,6 +1359,651 @@
           "when": "index k below n"
         }
       ]
+    },
+    {
+      "name": "RaptureNqIdleSetClip",
+      "rank": 14,
+      "clips": 4442,
+      "schedulers": 551,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcac8",
+        "factory": "0x00639a20",
+        "insertSite": "0x00635f31"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x0081a8d0",
+        "primaryVtable": "0x01009de4",
+        "typeDescriptor": "0x012ca9ac",
+        "rtti": ".?AVRaptureNqIdleSetClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0081a990",
+        "slot2": "0x00a20f90",
+        "slot3": "0x00a21000",
+        "slot4": "0x00a21010",
+        "slot8": "0x00a21080",
+        "slot29": "0x00a172a0"
+      },
+      "record": {
+        "span": 48,
+        "linkRule": "0x30",
+        "tail": "D+0x30, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 32,
+          "type": "char[32]",
+          "field": "idle set name",
+          "tier": "STATIC",
+          "check": "RaptureNqIdleSetClip record read and CharaActor cast",
+          "feeds": "The address D+0x10 is passed to CharaActor method 0x0065e3e0. After the slot 154 guard it copies the string into the 16 byte buffer at idle component +4 through 0x007a4fb0 and passes the same address to 0x0065c4c0. When bit 9 of actor +0x2b70 is set that method stores the string under the keys cbnm_id0 and cbbm_id0 in table 0 of the state object at actor +0x590 through 0x007b9420 and then calls 0x007a4130.",
+          "meaning": "idle motion set name",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureAutoMoveClip",
+      "rank": 15,
+      "clips": 3381,
+      "schedulers": 442,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbc7a8",
+        "factory": "0x00638790",
+        "insertSite": "0x00635943"
+      },
+      "object": {
+        "size": "0x00000040",
+        "constructor": "0x00811820",
+        "primaryVtable": "0x00ff851c",
+        "typeDescriptor": "0x012c8eb0",
+        "rtti": ".?AVRaptureAutoMoveClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00811c80",
+        "slot2": "0x00811910",
+        "slot3": "0x00811810",
+        "slot4": "0x00811c30",
+        "slot8": "0x00a21080",
+        "slot29": "0x00813000"
+      },
+      "record": {
+        "span": 40,
+        "linkRule": "0x28",
+        "tail": "D+0x28, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "s32",
+          "field": "curve sample count n",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip point count loop bound",
+          "feeds": "Loop bound of the per-point sampling in slot 1, argument of the point list reservation 0x00812460 and the parameter of the seek branch of slot 2, which evaluates the curves at float(n).",
+          "meaning": "number of path points",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x14",
+          "width": 2,
+          "type": "u16",
+          "field": "move mode word",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip parameter block reads",
+          "feeds": "Stored plus 1 in the parameter block at block +0x10 that slot 1 hands to CharaActor method 0x0065eaf0."
+        },
+        {
+          "offset": "0x16",
+          "width": 2,
+          "type": "u16",
+          "field": "block flag",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip parameter block reads",
+          "feeds": "Nonzero stores 1 in the byte at block +0x1d."
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "s32",
+          "field": "hold switch",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip parameter block reads",
+          "feeds": "Nonzero copies s32(D+0x1c) into block +0x18 and zero stores -1 there."
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "s32",
+          "field": "hold value",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip parameter block reads",
+          "feeds": "Copied into block +0x18 when s32(D+0x18) is nonzero.",
+          "when": "s32 +0x18 is nonzero"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "f32",
+          "field": "speed",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip parameter block reads",
+          "feeds": "Stored at block +0x14. The path builder 0x007ae8b0 divides each segment length by this value divided by 30.0 (motion frame rate constant 0x00fa7b18) to get its frame count.",
+          "meaning": "movement speed",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x24",
+          "width": 2,
+          "type": "u16",
+          "field": "start mode word",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip parameter block reads",
+          "feeds": "Zero stores 1 in the byte at block +0x1c and takes all n points from the curves. Nonzero stores 0 there, takes point 0 from slot 34 of the actor object and points 1 to n-1 from the curves.",
+          "meaning": "start from authored curve or actor position",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x26",
+          "width": 2,
+          "type": "u16",
+          "field": "track index",
+          "tier": "STATIC",
+          "check": "RaptureAutoMoveClip track lookup index",
+          "feeds": "Argument of scheduler lookup 0x00a20090. The returned record gives the data window at +0x20 of length s32(+0x10) from which 0x00810fa0 builds the curve set. The curves tx, ty and tz are read from it.",
+          "meaning": "index of the track record holding the path",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureBlackFadeClip",
+      "rank": 16,
+      "clips": 3095,
+      "schedulers": 689,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbc9f8",
+        "factory": "0x006395a0",
+        "insertSite": "0x00635dc1"
+      },
+      "object": {
+        "size": "0x00000040",
+        "constructor": "0x00818f30",
+        "primaryVtable": "0x01005ccc",
+        "typeDescriptor": "0x012ca3a8",
+        "rtti": ".?AVRaptureBlackFadeClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00818ff0",
+        "slot2": "0x00818ef0",
+        "slot3": "0x00a21000",
+        "slot4": "0x00a21010",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 28,
+        "linkRule": "0x1c",
+        "tail": "D+0x14, the first class field. This is not the record end."
+      },
+      "fields": [
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "color selector",
+          "tier": "STATIC",
+          "check": "RaptureBlackFadeClip duration and color reads",
+          "feeds": "Index into the pointer table at 0x012ca3e8. Entry 0 points at the float4 0,0,0,1 and entry 1 at 0,0,0,0, both written by slot 1 on first use. The pointer is passed with the object at +0x6c of the owner result to fade setter 0x00612400.",
+          "meaning": "fade target color, opaque or clear black",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "s32",
+          "field": "fade frames",
+          "tier": "STATIC",
+          "check": "RaptureBlackFadeClip duration and color reads",
+          "feeds": "Frames at 30 per second. A negative value is replaced by 30. The fade setter receives frames times 300000 over 30 ticks and the clip ends when the scheduler frame number reaches the begin frame plus the frames.",
+          "meaning": "fade length in frames",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureSoundClip",
+      "rank": 17,
+      "clips": 2763,
+      "schedulers": 435,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcb00",
+        "factory": "0x00639b40",
+        "insertSite": "0x00635f8d",
+        "secondKeyLiteral": "0x00fbd4fc",
+        "secondInsertSite": "0x006372e1"
+      },
+      "object": {
+        "size": "0x00000054",
+        "constructor": "0x0081ada0",
+        "primaryVtable": "0x0100b2a4",
+        "typeDescriptor": "0x012cab5c",
+        "rtti": ".?AVRaptureSoundClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0081aea0",
+        "slot2": "0x0081b240",
+        "slot3": "0x0081b430",
+        "slot4": "0x00a21010",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 76,
+        "linkRule": "0x28 + u32(D+0x24)",
+        "tail": "D+0x14, the first class field. This is not the record end."
+      },
+      "fields": [
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "key 0 resource id",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper key 0 and 1 id reads",
+          "feeds": "Second stack argument of the sound play entry 0x007cf100 with slot 0.",
+          "meaning": "resource id",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 0"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "u32",
+          "field": "key 1 resource id",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper key 0 and 1 id reads",
+          "feeds": "Second stack argument of the sound play entry 0x007cf100 with slot 0.",
+          "meaning": "resource id",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 1"
+        },
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "flag word",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper key 2 and 3 flag and volume reads",
+          "feeds": "Bit 0 is the fifth stack argument of 0x007cf100 in the first call and in the preload replay (through bit 3 of clip +0x38) and makes the selector 0x0081ac50 fail when the actor ordinal names no actor. Bit 1 selects the array index through 0x006b6cd0 and bit 2 through the table at 0x0100aa33.",
+          "when": "key entry byte +4 is 2 or 3"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "u32",
+          "field": "sound slot",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper array element and play call",
+          "feeds": "First stack argument of 0x007cf100. Zero names the shared request object 0x0132f3b4 and n names element n-1 of the 0x18 byte element vector at +0xbc. Slot 3 passes it to 0x007ce6d0 with 1000 to stop the sound. The start helper returns whether it is nonzero on the array path.",
+          "meaning": "sound object slot number",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 2 or 3"
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "f32",
+          "field": "volume",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper key 2 and 3 flag and volume reads",
+          "feeds": "Capped at 1.0 and passed as the volume of 0x007cf100.",
+          "meaning": "volume",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 2 or 3"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "u32",
+          "field": "play argument",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper array element and play call",
+          "feeds": "Fourth stack argument of 0x007cf100 and stored at clip +0x4c.",
+          "when": "key entry byte +4 is 2 or 3"
+        },
+        {
+          "offset": "0x24",
+          "width": 4,
+          "type": "u32",
+          "field": "array byte length",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper key 2 and 3 flag and volume reads",
+          "feeds": "Divided by 4 to give the entry count that bounds the index.",
+          "when": "key entry byte +4 is 2 or 3"
+        },
+        {
+          "offset": "0x28",
+          "width": 4,
+          "type": "u32",
+          "field": "resource id array element",
+          "tier": "STATIC",
+          "check": "RaptureSoundClip start helper array element and play call",
+          "feeds": "The element at the selected index is stored at clip +0x44 and passed as the resource argument of 0x007cf100.",
+          "meaning": "sound resource id",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 2 or 3"
+        }
+      ]
+    },
+    {
+      "name": "ActionClip",
+      "rank": 19,
+      "clips": 2142,
+      "schedulers": 271,
+      "registration": {
+        "origin": "rapture override",
+        "eraseKeyLiteral": "0x00fbd234",
+        "keyLiteral": "0x00fbd240",
+        "factory": "0x0063c210",
+        "insertSite": "0x00636d1c",
+        "eraseSite": "0x00636cfe",
+        "baseKeyLiteral": "0x01097a30",
+        "baseFactory": "0x00a4dd40",
+        "baseInsertSite": "0x00a4c4c9",
+        "secondKeyLiteral": "0x01097a30",
+        "secondInsertSite": "0x00a4cf7c"
+      },
+      "object": {
+        "size": "0x00000068",
+        "constructor": "0x0082fb30",
+        "primaryVtable": "0x01033bec",
+        "typeDescriptor": "0x012ce7e4",
+        "rtti": ".?AVRaptureActionClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0082fc60",
+        "slot2": "0x0082fcb0",
+        "slot3": "0x00a176e0",
+        "slot4": "0x00a17cb0",
+        "slot8": "0x00a176d0",
+        "slot29": "0x00813000"
+      },
+      "record": {
+        "span": 40,
+        "linkRule": "0x28",
+        "tail": "D+0x28, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "s32",
+          "field": "action id",
+          "tier": "STATIC",
+          "check": "ActionClip begin negative id guard",
+          "feeds": "A negative value logs an error and sets the abort bit through slot 18. Otherwise it is the id passed to the lookup methods of the object returned by 0x00a20040.",
+          "meaning": "action id",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x14",
+          "width": 1,
+          "type": "u8",
+          "field": "variant bit",
+          "tier": "STATIC",
+          "check": "ActionClip begin actor ordinal and flag bit 3",
+          "feeds": "Bit 3 selects which of two methods of the clip owner starts the action after the lookups.",
+          "when": "bit 3"
+        },
+        {
+          "offset": "0x14",
+          "width": 1,
+          "type": "u8",
+          "field": "loop bit",
+          "tier": "STATIC",
+          "check": "ActionClip update loop branch",
+          "feeds": "Bit 7 selects the looping update branch of slot 2.",
+          "meaning": "looping action",
+          "meaningTier": "INFERRED",
+          "when": "bit 7"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "s32",
+          "field": "end tick",
+          "tier": "STATIC",
+          "check": "ActionClip slot 8 end tick",
+          "feeds": "Returned by slot 8 as the clip end tick.",
+          "meaning": "end tick",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "s32",
+          "field": "loop restart offset",
+          "tier": "STATIC",
+          "check": "ActionClip update loop branch",
+          "feeds": "In the loop branch the restart position passed to 0x00a1c640 is the action position minus s32(D+0x20) plus the slot 39 result plus this word. Slot 39 of the restart receives the boolean that the word is above zero.",
+          "when": "bit 7 of u8 +0x14"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "s32",
+          "field": "completion threshold",
+          "tier": "STATIC",
+          "check": "ActionClip update loop branch",
+          "feeds": "The action position plus the slot 39 result is compared with it. Reaching it ends a pass in both branches.",
+          "meaning": "action length in ticks",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureScaleClip",
+      "rank": 20,
+      "clips": 1784,
+      "schedulers": 183,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcdfc",
+        "factory": "0x0063ac20",
+        "insertSite": "0x006364f1"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x00825040",
+        "primaryVtable": "0x0101c264",
+        "typeDescriptor": "0x012cc57c",
+        "rtti": ".?AVRaptureScaleClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00825100",
+        "slot2": "0x00a20f90",
+        "slot3": "0x00a21000",
+        "slot4": "0x00a21010",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 36,
+        "linkRule": "0x24",
+        "tail": "D+0x14, the first class field. This is not the record end."
+      },
+      "fields": [
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "u32",
+          "field": "mode word",
+          "tier": "STATIC",
+          "check": "RaptureScaleClip slot 1 record reads",
+          "feeds": "Zero calls 0x00662b20, 1 calls 0x0065e390 and any other value calls 0x0065e320.",
+          "meaning": "scale mode",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "u32",
+          "field": "preset index",
+          "tier": "STATIC",
+          "check": "RaptureScaleClip slot 1 record reads",
+          "feeds": "First argument of 0x00662b20, which maps it through 0x0065b5c0.",
+          "meaning": "scale preset index",
+          "meaningTier": "INFERRED",
+          "when": "mode word is 0"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "f32",
+          "field": "uniform factor",
+          "tier": "STATIC",
+          "check": "RaptureScaleClip slot 1 record reads",
+          "feeds": "Stored in x, y and z of the vector passed to 0x0065e390 with w set to 1.0.",
+          "meaning": "scale factor",
+          "meaningTier": "INFERRED",
+          "when": "mode word is 1"
+        },
+        {
+          "offset": "0x1c",
+          "width": 4,
+          "type": "u32",
+          "field": "length",
+          "tier": "STATIC",
+          "check": "RaptureScaleClip slot 1 record reads",
+          "feeds": "Second argument of 0x00662b20 and 0x0065e390 and the argument of 0x0065e320.",
+          "meaning": "transition length",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 0"
+        },
+        {
+          "offset": "0x1c",
+          "width": 1,
+          "type": "u8",
+          "field": "transition switch",
+          "tier": "STATIC",
+          "check": "RaptureScaleClip slot 1 record reads",
+          "feeds": "Nonzero is the last argument of 0x0065e390, which selects 0x008530e0 and zero selects 0x00853090.",
+          "when": "key entry byte +4 is 1 and mode word is 1"
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "u32",
+          "field": "length",
+          "tier": "STATIC",
+          "check": "RaptureScaleClip slot 1 record reads",
+          "feeds": "Takes the role of s32(D+0x1c) in the previous branch.",
+          "meaning": "transition length",
+          "meaningTier": "INFERRED",
+          "when": "key entry byte +4 is 1"
+        }
+      ]
+    },
+    {
+      "name": "RaptureTurnClip",
+      "rank": 21,
+      "clips": 1776,
+      "schedulers": 473,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbc77c",
+        "factory": "0x00638670",
+        "insertSite": "0x006358e7"
+      },
+      "object": {
+        "size": "0x0000003c",
+        "constructor": "0x008113b0",
+        "primaryVtable": "0x00ff7054",
+        "typeDescriptor": "0x012c8d0c",
+        "rtti": ".?AVRaptureTurnClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x00811470",
+        "slot2": "0x008114f0",
+        "slot3": "0x00a21000",
+        "slot4": "0x00a21010",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 20,
+        "linkRule": "0x14",
+        "tail": "D+0x14, the end of the record"
+      },
+      "fields": [
+        {
+          "offset": "0x10",
+          "width": 4,
+          "type": "f32",
+          "field": "turn angle",
+          "tier": "STATIC",
+          "check": "RaptureTurnClip slot 1 reads",
+          "feeds": "Passed to CharaActor method 0x0065e4a0, which calls 0x007a4500 and then 0x007b0530. The latter scales the angle by 16777216 over the float 2 pi into a 24 bit direction.",
+          "meaning": "target direction in radians",
+          "meaningTier": "INFERRED"
+        }
+      ]
+    },
+    {
+      "name": "RaptureBgmClip",
+      "rank": 22,
+      "clips": 1610,
+      "schedulers": 482,
+      "registration": {
+        "origin": "rapture only",
+        "keyLiteral": "0x00fbcb5c",
+        "factory": "0x00639d80",
+        "insertSite": "0x00636045"
+      },
+      "object": {
+        "size": "0x00000038",
+        "constructor": "0x0081bef0",
+        "primaryVtable": "0x0100d4a4",
+        "typeDescriptor": "0x012caeac",
+        "rtti": ".?AVRaptureBgmClip@Clip@Cut@Scene@Application@@",
+        "slot1": "0x0081bfb0",
+        "slot2": "0x00a20f90",
+        "slot3": "0x00a21000",
+        "slot4": "0x00a21010",
+        "slot8": "0x00a21080",
+        "slot29": "0x00823ce0"
+      },
+      "record": {
+        "span": 36,
+        "linkRule": "0x24",
+        "tail": "D+0x14, the first class field. This is not the record end."
+      },
+      "fields": [
+        {
+          "offset": "0x14",
+          "width": 4,
+          "type": "s32",
+          "field": "fade time",
+          "tier": "STATIC",
+          "check": "RaptureBgmClip slot 1 reads",
+          "feeds": "Second argument of 0x00611900 and so the second of 0x0060f630, which passes it to 0x004b56c0 with 1 while its latch at +0x160 and the flag are clear and as the last argument of 0x004b7650 after 1.0.",
+          "meaning": "fade time in milliseconds",
+          "meaningTier": "INFERRED"
+        },
+        {
+          "offset": "0x18",
+          "width": 4,
+          "type": "s32",
+          "field": "word 0x18",
+          "tier": "STATIC",
+          "check": "RaptureBgmClip slot 1 reads",
+          "feeds": "Third argument of 0x00611900. The receiving method 0x0060f630 does not read it."
+        },
+        {
+          "offset": "0x20",
+          "width": 4,
+          "type": "u32",
+          "field": "music resource id",
+          "tier": "STATIC",
+          "check": "RaptureBgmClip slot 1 reads",
+          "feeds": "First argument of 0x00611900, compared in 0x0060f630 with the current music id returned by 0x004b57b0 and passed to 0x004b7650 when it differs. 0x004b57a0 is called with 0.",
+          "meaning": "music resource id",
+          "meaningTier": "INFERRED"
+        }
+      ]
     }
   ],
   "staticChecks": [
@@ -3754,6 +4399,1313 @@
       "va": "0x00813f10",
       "pattern": "8b 4c 24 04 83 ec 1c 85 c9 74 3e",
       "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip rapture insert",
+      "kind": "signature",
+      "va": "0x00635f31",
+      "pattern": "c7 44 24 20 c8 ca fb 00 c7 44 24 24 20 9a 63 00 e8 ca 97 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcac8",
+      "text": "RaptureNqIdleSetClip"
+    },
+    {
+      "name": "RaptureNqIdleSetClip factory object size",
+      "kind": "signature",
+      "va": "0x00639a48",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00639a87",
+      "pattern": "e8 44 0e 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0081a911",
+      "pattern": "c7 06 e4 9d 00 01 c7 46 08 d8 9d 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x0081a824",
+      "pattern": "e8 37 6a 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x01009de4",
+      "values": [
+        "0x0081aa10",
+        "0x0081a990",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureNqIdleSetClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01009e58",
+      "values": [
+        "0x00a172a0"
+      ]
+    },
+    {
+      "name": "RaptureNqIdleSetClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x01009e5c",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureNqIdleSetClip RTTI name",
+      "kind": "string",
+      "va": "0x012ca9b4",
+      "text": ".?AVRaptureNqIdleSetClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureAutoMoveClip rapture insert",
+      "kind": "signature",
+      "va": "0x00635943",
+      "pattern": "c7 44 24 20 a8 c7 fb 00 c7 44 24 24 90 87 63 00 e8 b8 9d 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip rapture key",
+      "kind": "string",
+      "va": "0x00fbc7a8",
+      "text": "RaptureAutoMoveClip"
+    },
+    {
+      "name": "RaptureAutoMoveClip factory object size",
+      "kind": "signature",
+      "va": "0x006387b8",
+      "pattern": "c7 00 40 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip factory constructor call",
+      "kind": "signature",
+      "va": "0x006387f7",
+      "pattern": "e8 24 90 1d 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0081185f",
+      "pattern": "c7 06 1c 85 ff 00 c7 46 08 10 85 ff 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00812364",
+      "pattern": "e8 f7 ee 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x00ff851c",
+      "values": [
+        "0x00812420",
+        "0x00811c80",
+        "0x00811910",
+        "0x00811810",
+        "0x00811c30",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureAutoMoveClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x00ff8590",
+      "values": [
+        "0x00813000"
+      ]
+    },
+    {
+      "name": "RaptureAutoMoveClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x00ff8594",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureAutoMoveClip RTTI name",
+      "kind": "string",
+      "va": "0x012c8eb8",
+      "text": ".?AVRaptureAutoMoveClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureBlackFadeClip rapture insert",
+      "kind": "signature",
+      "va": "0x00635dc1",
+      "pattern": "c7 44 24 20 f8 c9 fb 00 c7 44 24 24 a0 95 63 00 e8 3a 99 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip rapture key",
+      "kind": "string",
+      "va": "0x00fbc9f8",
+      "text": "RaptureBlackFadeClip"
+    },
+    {
+      "name": "RaptureBlackFadeClip factory object size",
+      "kind": "signature",
+      "va": "0x006395c8",
+      "pattern": "c7 00 40 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00639607",
+      "pattern": "e8 24 f9 1d 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00818f74",
+      "pattern": "c7 06 cc 5c 00 01 c7 46 08 c0 5c 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x008191a4",
+      "pattern": "e8 b7 80 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x01005ccc",
+      "values": [
+        "0x00819260",
+        "0x00818ff0",
+        "0x00818ef0",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureBlackFadeClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01005d40",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "RaptureBlackFadeClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x01005d44",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureBlackFadeClip RTTI name",
+      "kind": "string",
+      "va": "0x012ca3b0",
+      "text": ".?AVRaptureBlackFadeClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureSoundClip rapture insert",
+      "kind": "signature",
+      "va": "0x00635f8d",
+      "pattern": "c7 44 24 20 00 cb fb 00 c7 44 24 24 40 9b 63 00 e8 6e 97 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcb00",
+      "text": "RaptureSoundClip"
+    },
+    {
+      "name": "RaptureSoundClip factory object size",
+      "kind": "signature",
+      "va": "0x00639b68",
+      "pattern": "c7 00 54 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00639ba7",
+      "pattern": "e8 f4 11 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0081adfd",
+      "pattern": "c7 06 a4 b2 00 01 c7 46 08 98 b2 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x0081b494",
+      "pattern": "e8 c7 5d 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0100b2a4",
+      "values": [
+        "0x0081b550",
+        "0x0081aea0",
+        "0x0081b240",
+        "0x0081b430",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureSoundClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x0100b318",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "RaptureSoundClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x0100b31c",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureSoundClip RTTI name",
+      "kind": "string",
+      "va": "0x012cab64",
+      "text": ".?AVRaptureSoundClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureScaleClip rapture insert",
+      "kind": "signature",
+      "va": "0x006364f1",
+      "pattern": "c7 44 24 20 fc cd fb 00 c7 44 24 24 20 ac 63 00 e8 0a 92 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcdfc",
+      "text": "RaptureScaleClip"
+    },
+    {
+      "name": "RaptureScaleClip factory object size",
+      "kind": "signature",
+      "va": "0x0063ac48",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063ac87",
+      "pattern": "e8 b4 a3 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x00825081",
+      "pattern": "c7 06 64 c2 01 01 c7 46 08 58 c2 01 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00824f94",
+      "pattern": "e8 c7 c2 1f 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0101c264",
+      "values": [
+        "0x008252d0",
+        "0x00825100",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureScaleClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x0101c2d8",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "RaptureScaleClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x0101c2dc",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureScaleClip RTTI name",
+      "kind": "string",
+      "va": "0x012cc584",
+      "text": ".?AVRaptureScaleClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureTurnClip rapture insert",
+      "kind": "signature",
+      "va": "0x006358e7",
+      "pattern": "c7 44 24 20 7c c7 fb 00 c7 44 24 24 70 86 63 00 e8 14 9e 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip rapture key",
+      "kind": "string",
+      "va": "0x00fbc77c",
+      "text": "RaptureTurnClip"
+    },
+    {
+      "name": "RaptureTurnClip factory object size",
+      "kind": "signature",
+      "va": "0x00638698",
+      "pattern": "c7 00 3c 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip factory constructor call",
+      "kind": "signature",
+      "va": "0x006386d7",
+      "pattern": "e8 d4 8c 1d 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x008113f1",
+      "pattern": "c7 06 54 70 ff 00 c7 46 08 48 70 ff 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00811304",
+      "pattern": "e8 57 ff 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x00ff7054",
+      "values": [
+        "0x008115a0",
+        "0x00811470",
+        "0x008114f0",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureTurnClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x00ff70c8",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "RaptureTurnClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x00ff70cc",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureTurnClip RTTI name",
+      "kind": "string",
+      "va": "0x012c8d14",
+      "text": ".?AVRaptureTurnClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "RaptureBgmClip rapture insert",
+      "kind": "signature",
+      "va": "0x00636045",
+      "pattern": "c7 44 24 20 5c cb fb 00 c7 44 24 24 80 9d 63 00 e8 b6 96 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip rapture key",
+      "kind": "string",
+      "va": "0x00fbcb5c",
+      "text": "RaptureBgmClip"
+    },
+    {
+      "name": "RaptureBgmClip factory object size",
+      "kind": "signature",
+      "va": "0x00639da8",
+      "pattern": "c7 00 38 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip factory constructor call",
+      "kind": "signature",
+      "va": "0x00639de7",
+      "pattern": "e8 04 21 1e 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0081bf31",
+      "pattern": "c7 06 a4 d4 00 01 c7 46 08 98 d4 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x0081be44",
+      "pattern": "e8 17 54 20 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x0100d4a4",
+      "values": [
+        "0x0081c060",
+        "0x0081bfb0",
+        "0x00a20f90",
+        "0x00a21000",
+        "0x00a21010",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a21080"
+      ]
+    },
+    {
+      "name": "RaptureBgmClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x0100d518",
+      "values": [
+        "0x00823ce0"
+      ]
+    },
+    {
+      "name": "RaptureBgmClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x0100d51c",
+      "values": [
+        "0x00b73290"
+      ]
+    },
+    {
+      "name": "RaptureBgmClip RTTI name",
+      "kind": "string",
+      "va": "0x012caeb4",
+      "text": ".?AVRaptureBgmClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "ActionClip factory object size",
+      "kind": "signature",
+      "va": "0x0063c238",
+      "pattern": "c7 00 68 00 00 00",
+      "mask": "ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip factory constructor call",
+      "kind": "signature",
+      "va": "0x0063c277",
+      "pattern": "e8 b4 38 1f 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip constructor installs primary vtable",
+      "kind": "signature",
+      "va": "0x0082fb71",
+      "pattern": "c7 06 ec 3b 03 01 c7 46 08 e0 3b 03 01 c7 46 38 54 3b 03 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip constructor chain base call",
+      "kind": "signature",
+      "va": "0x00a179cf",
+      "pattern": "e8 8c 98 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x01033bec",
+      "values": [
+        "0x00830010",
+        "0x0082fc60",
+        "0x0082fcb0",
+        "0x00a176e0",
+        "0x00a17cb0",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a176d0"
+      ]
+    },
+    {
+      "name": "ActionClip vtable slot 29",
+      "kind": "dwords",
+      "va": "0x01033c60",
+      "values": [
+        "0x00813000"
+      ]
+    },
+    {
+      "name": "ActionClip vtable slot 30",
+      "kind": "dwords",
+      "va": "0x01033c64",
+      "values": [
+        "0x005c5c80"
+      ]
+    },
+    {
+      "name": "ActionClip RTTI name",
+      "kind": "string",
+      "va": "0x012ce7ec",
+      "text": ".?AVRaptureActionClip@Clip@Cut@Scene@Application@@"
+    },
+    {
+      "name": "ActionClip rapture erase",
+      "kind": "signature",
+      "va": "0x00636ce2",
+      "pattern": "c7 44 24 18 34 d2 fb 00 e8 71 b6 3c 00 8b c8 e8 4a a8 3c 00 8d 4c 24 18 51 8d 48 08 e8 1d 8c 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip rapture insert",
+      "kind": "signature",
+      "va": "0x00636d1c",
+      "pattern": "c7 44 24 20 40 d2 fb 00 c7 44 24 24 10 c2 63 00 e8 df 89 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip base insert",
+      "kind": "signature",
+      "va": "0x00a4c4c9",
+      "pattern": "c7 44 24 14 30 7a 09 01 c7 44 24 18 40 dd a4 00 e8 32 32 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip second insert",
+      "kind": "signature",
+      "va": "0x00a4cf7c",
+      "pattern": "c7 44 24 0c 30 7a 09 01 c7 44 24 10 40 dd a4 00 e8 7f 27 bf ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip rapture erase key",
+      "kind": "string",
+      "va": "0x00fbd234",
+      "text": "ActionClip"
+    },
+    {
+      "name": "ActionClip rapture insert key",
+      "kind": "string",
+      "va": "0x00fbd240",
+      "text": "ActionClip"
+    },
+    {
+      "name": "ActionClip base key",
+      "kind": "string",
+      "va": "0x01097a30",
+      "text": "ActionClip"
+    },
+    {
+      "name": "RaptureNqIdleSetClip record read and CharaActor cast",
+      "kind": "signature",
+      "va": "0x0081a99f",
+      "pattern": "8b 5e 14 0f b6 43 03 50 8b cf e8 f2 55 20 00 8b f0 8b 16 8b 42 1c 8b ce ff d0 84 c0 74 38 8b 16 8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b ce ff d0 50 e8 f2 fc 1b 00 83 c4 14 85 c0 74 14 8d 88 b4 11 00 00 85 c9 74 0a 83 c3 10 53 50 e8 eb 39 e4 ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip CharaActor idle name setter 0x0065e3e0",
+      "kind": "signature",
+      "va": "0x0065e3e0",
+      "pattern": "56 8b 74 24 08 85 f6 74 2a 8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 1a 57 8b 7c 24 10 57 8d 8e ac 03 00 00 e8 a6 6b 14 00 57 8b ce e8 ae e0 ff ff 5f 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip idle name copy 0x007a4fb0",
+      "kind": "signature",
+      "va": "0x007a4fb0",
+      "pattern": "8b 44 24 04 50 83 c1 04 6a 10 51 e8 3b da 22 00 83 c4 0c c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureNqIdleSetClip idle name map update 0x0065c4c0",
+      "kind": "signature",
+      "va": "0x0065c4c0",
+      "pattern": "f7 81 70 2b 00 00 00 02 00 00 74 5e 56 57 8b 7c 24 0c 85 ff 8d b1 90 05 00 00 8b ce 75 25 68 64 03 fc 00 57 e8 b7 84 15 00 68 70 03 fc 00 57 8b ce e8 aa 84 15 00 57 8b ce e8 32 7c 14 00 5f 5e c2 04 00 57 68 7c 03 fc 00 6a 00 e8 10 cf 15 00 57 68 88 03 fc 00 6a 00 8b ce e8 01 cf 15 00 6a 00 8b ce e8 08 7c 14 00 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip track lookup index",
+      "kind": "signature",
+      "va": "0x00811ceb",
+      "pattern": "0f b7 40 26 50 8b ce e8 99 e3 20 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip track data window",
+      "kind": "signature",
+      "va": "0x00811d64",
+      "pattern": "8b 4b 10 8b 40 50 51 8d 53 20 52 8b c8 e8 2a f2 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip parameter block reads",
+      "kind": "signature",
+      "va": "0x00811e18",
+      "pattern": "83 7b 18 00 89 44 24 44 74 09 8b 43 1c 89 44 24 7c eb 08 c7 44 24 7c ff ff ff ff 0f b7 4b 14 83 c1 01 89 4c 24 74 f3 0f 10 43 20 33 d2 f3 0f 11 44 24 78 66 39 53 16 0f 95 c2 88 94 24 81 00 00 00 66 83 7b 24 00 0f 85 08 02 00 00 c6 84 24 80 00 00 00 01",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip point count loop bound",
+      "kind": "signature",
+      "va": "0x00811e6c",
+      "pattern": "8b 43 10 50 8d 4c 24 68 e8 e7 05 00 00 83 7b 10 00 c7 44 24 10 00 00 00 00 0f 8e 2e 04 00 00 eb 03",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip handoff to CharaActor",
+      "kind": "signature",
+      "va": "0x008122b9",
+      "pattern": "8b 54 24 50 8d 4c 24 64 51 8b 8c 24 c0 00 00 00 52 e8 21 c8 e4 ff 8b 07 8b 50 30 6a 02 8b cf ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip update abort cancel",
+      "kind": "signature",
+      "va": "0x00811987",
+      "pattern": "8b 16 8b 42 4c 8b ce ff d0 84 c0 74 1f 8b 4c 24 10 57 e8 82 d1 e4 ff 8b 16 8b 42 30 6a 00 8b ce ff d0 5f 5e 5d 5b 83 c4 74 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip update seek test",
+      "kind": "signature",
+      "va": "0x008119b3",
+      "pattern": "8b 8c 24 88 00 00 00 e8 b1 e6 20 00 83 b8 c8 00 00 00 00 0f 84 3c 02 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip update seek curve sample",
+      "kind": "signature",
+      "va": "0x00811a21",
+      "pattern": "8b 4c 24 10 8b 11 f3 0f 2a 45 10 8b f8 8b 42 1c 51 f3 0f 11 04 24 ff d0 d9 5c 24 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip update seek position set",
+      "kind": "signature",
+      "va": "0x00811bc1",
+      "pattern": "8d bb b4 11 00 00 53 8b cf e8 51 cf e4 ff f3 0f 7e 44 24 24 6a 01 83 ec 10 8b c4 66 0f d6 00 f3 0f 7e 44 24 40 53 8b cf 66 0f d6 40 08 e8 6d ca e4 ff 8b 06 8b 50 30 6a 00 8b ce ff d2 5f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip update running test",
+      "kind": "signature",
+      "va": "0x00811c08",
+      "pattern": "8b 4c 24 10 57 e8 4e cf e4 ff 84 c0 74 dd 8b 06 8b 50 30 6a 02 8b ce ff d2 5f 5e 5d 5b 83 c4 74",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip slot 4 releases path objects",
+      "kind": "signature",
+      "va": "0x00811c30",
+      "pattern": "53 56 57 8b 7c 24 10 57 8b f1 e8 d1 f3 20 00 8b 4e 38 33 db 3b cb 74 08 8b 01 8b 10 6a 01 ff d2 8b cf 89 5e 38 e8 16 e4 20 00 8b 40 50 39 58 04 8b 4e 3c 74 11 3b cb 74 0d 8b 40 04 8b 10 51 8b c8 8b 42 28 ff d0 5f 89 5e 3c 5e 5b c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip fade object lookup",
+      "kind": "signature",
+      "va": "0x00819023",
+      "pattern": "8b ce e8 06 70 20 00 85 c0 0f 84 1a 01 00 00 8b c8 e8 27 23 df ff 85 c0 0f 84 0b 01 00 00 8b 68 6c 85 ed 0f 84 00 01 00 00 8d 85 38 01 00 00 85 c0 89 44 24 18 0f 84 ee 00 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip color table init",
+      "kind": "signature",
+      "va": "0x00819063",
+      "pattern": "8b 4f 14 0f 57 c0 83 ca ff a8 01 75 3c 83 c8 01 a3 3c e2 34 01 c7 44 24 24 00 00 00 00 f3 0f 10 0d 70 4f f5 00 f3 0f 11 05 2c e2 34 01 f3 0f 11 05 30 e2 34 01 f3 0f 11 05 34 e2 34 01 f3 0f 11 0d 38 e2 34 01 89 54 24 24 a8 02 75 34 83 c8 02 a3 3c e2 34 01 c7 44 24 24 01 00 00 00 f3 0f 11 05 1c e2 34 01 f3 0f 11 05 20 e2 34 01 f3 0f 11 05 24 e2 34 01 f3 0f 11 05 28 e2 34 01 89 54 24 24",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip duration and color reads",
+      "kind": "signature",
+      "va": "0x008190e4",
+      "pattern": "8b 59 18 85 db 7d 05 bb 1e 00 00 00 8b f3 69 f6 e0 93 04 00 b8 89 88 88 88 f7 ee 03 d6 c1 fa 04 8b c2 c1 e8 1f 03 c2 89 44 24 14 8b 41 14 8b 0c 85 e8 a3 2c 01 8d 54 24 14 52 51 8b 4c 24 20 55 e8 d7 92 df ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip end frame",
+      "kind": "signature",
+      "va": "0x0081912d",
+      "pattern": "e8 3e 6f 20 00 8b c8 e8 27 27 20 00 8b 17 89 47 38 03 c3 89 47 3c 8b 42 30 6a 02 8b cf ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip slot 2 end test",
+      "kind": "signature",
+      "va": "0x00818ef9",
+      "pattern": "e8 92 80 20 00 8b cf e8 6b 71 20 00 8b c8 e8 54 29 20 00 39 46 3c 7f 0b 8b 06 8b 50 30 6a 00 8b ce ff d2",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip fade setter 0x00612400",
+      "kind": "signature",
+      "va": "0x00612400",
+      "pattern": "8b 44 24 04 85 c0 74 3b 8b 4c 24 08 f3 0f 7e 01 66 0f d6 80 6c 01 00 00 f3 0f 7e 41 08 8b 4c 24 0c 66 0f d6 80 74 01 00 00 8b 11 89 90 7c 01 00 00 8b 88 68 01 00 00 83 e1 fe 83 c9 02 89 88 68 01 00 00 c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip frame number helper 0x00a203e0",
+      "kind": "signature",
+      "va": "0x00a203e0",
+      "pattern": "a1 40 d2 2e 01 99 52 50 8b 41 0c 8b 49 08 50 51 e8 8b 54 fb ff c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBlackFadeClip scheduler frame getter 0x00a1b860",
+      "kind": "signature",
+      "va": "0x00a1b860",
+      "pattern": "81 c1 d0 00 00 00 e9 75 4b 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip slot 1 init and preload gate",
+      "kind": "signature",
+      "va": "0x0081aea0",
+      "pattern": "55 56 57 8b 7c 24 10 57 8b f1 e8 81 60 20 00 f3 0f 10 05 70 4f f5 00 80 66 38 e0 33 ed 8b cf 89 6e 40 89 6e 44 f3 0f 11 46 48 89 6e 4c 89 6e 50 e8 9b 51 20 00 f6 80 91 00 00 00 04 75 62 8b 46 18 0f b6 40 04 83 e8 02 75 61 8b 4e 14 8b 51 14 c1 ea 03 02 d2 02 d2 32 56 38 80 e2 04 30 56 38 f6 46 38 04 74 45 53 68 ac e2 34 01 ff 15 cc e2 f3 00 8b 3d a4 e1 f3 00 55 68 ac e2 34 01 ff d7 55 68 a8 e2 34 01 8b d8 ff d7 3b d8 5b 75 11 8b 06 8b 50 30 6a 01 8b ce ff d2 5f 5e 5d c2 04 00 8b 06 8b 50 30 6a 02 8b ce ff d2 5f 5e 5d c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip slot 2 first update gates",
+      "kind": "signature",
+      "va": "0x0081b251",
+      "pattern": "f6 46 38 01 0f 85 c6 00 00 00 8b cf e8 0e 4e 20 00 83 b8 c8 00 00 00 00 0f 85 97 01 00 00 8b cf e8 fa 4d 20 00 f6 80 91 00 00 00 80 0f 85 83 01 00 00 8b cf e8 e6 4d 20 00 f6 80 90 00 00 00 80 0f 85 6f 01 00 00 8b cf e8 d2 4d 20 00 f6 80 91 00 00 00 04 75 7a",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip slot 2 elapsed milliseconds",
+      "kind": "signature",
+      "va": "0x0081b2a7",
+      "pattern": "8b 06 8b 50 24 8b ce ff d2 89 44 24 14 db 44 24 14 8b ce dc 35 20 70 f6 00 d9 5c 24 14 d9 44 24 14 dc 0d 48 1c f9 00 d9 7c 24 14 0f b7 44 24 14 0d 00 0c 00 00 89 44 24 08 d9 6c 24 08 df 7c 24 08 8b 44 24 08 50 57 d9 6c 24 1c e8 69 fc ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip slot 2 phase after start",
+      "kind": "signature",
+      "va": "0x0081b2f7",
+      "pattern": "8b 16 02 c0 32 46 38 8b ce 24 02 32 46 38 0c 01 a8 02 88 46 38 0f 84 e9 00 00 00 24 04 f6 d8 1b c0 83 c0 02 50 8b 42 30 ff d0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper key switch",
+      "kind": "signature",
+      "va": "0x0081afa1",
+      "pattern": "8b 47 18 0f b6 50 04 83 fa 03 53 56 8b 77 14 77 20 ff 24 95 34 b1 81 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper key 0 and 1 id reads",
+      "kind": "signature",
+      "va": "0x0081afb9",
+      "pattern": "d9 e8 8b 56 14 51 d9 14 24 6a 01 6a 00 51 d9 1c 24 52 6a 00 e8 2e 41 fb ff 5e 5b 5f 32 c0 5d 83 c4 1c c2 08 00 d9 e8 8b 46 18 51 d9 14 24 6a 01 6a 00 51 d9 1c 24 50 6a 00 e8 09 41 fb ff 5e 5b 5f 32 c0 5d 83 c4 1c c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper key 2 and 3 flag and volume reads",
+      "kind": "signature",
+      "va": "0x0081b003",
+      "pattern": "f3 0f 10 46 1c f3 0f 10 0d 70 4f f5 00 0f 2f c1 f3 0f 11 44 24 18 76 06 f3 0f 11 4c 24 18 8b 46 14 0f b6 56 03 8a 5e 14 8b c8 d1 e9 80 e1 01 c1 e8 02 88 4c 24 24 24 01 80 e3 01 52 8b cd 88 5c 24 20 88 44 24 24 e8 52 4f 20 00 8b 4e 24 8d 54 24 13 52 8d 6f 50 55 c1 e9 02 8d 54 24 1c 52 8b 54 24 30 51 8b 4c 24 30 51 8b 4c 24 30 52 8b 54 24 40 51 50 52 c7 44 24 38 00 00 00 00 c6 44 24 37 00 e8 c6 fb ff ff 83 c4 24 84 c0 0f 84 3d ff ff ff 80 7c 24 13 00 75 1a 8b 4c 24 30 e8 cb 4f 20 00 8b 10 8b c8 8b 42 38 ff d0 3c 02 0f 84 1c ff ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper array element and play call",
+      "kind": "signature",
+      "va": "0x0081b0b6",
+      "pattern": "8b 4e 18 8b 54 24 14 f3 0f 10 44 24 18 02 db 02 db 02 db 32 5f 38 89 4f 40 8b 44 96 28 f3 0f 11 47 48 80 e3 08 89 47 44 8b 4e 20 30 5f 38 f6 47 38 04 89 4f 4c 0f 5a c0 74 08 f2 0f 59 05 d0 99 f5 00 d9 e8 8b 54 24 1c 8b 46 20 51 d9 1c 24 52 8b 56 18 50 51 8b 4f 44 66 0f 5a c0 f3 0f 11 04 24 51 8b 4d 00 52 e8 df 3f fb ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper selector failure gates",
+      "kind": "signature",
+      "va": "0x0081b08d",
+      "pattern": "84 c0 0f 84 3d ff ff ff 80 7c 24 13 00 75 1a 8b 4c 24 30 e8 cb 4f 20 00 8b 10 8b c8 8b 42 38 ff d0 3c 02 0f 84 1c ff ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper result",
+      "kind": "signature",
+      "va": "0x0081b121",
+      "pattern": "33 c0 39 46 18 5e 5b 5f 0f 95 c0 5d 83 c4 1c c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip preload replay bit 3 argument",
+      "kind": "signature",
+      "va": "0x0081b343",
+      "pattern": "d9 e8 8b 56 4c f3 0f 10 46 48 c0 e8 03 51 d9 1c 24 0f 5a c0 f2 0f 59 05 d0 99 f5 00 66 0f 5a c0 25 01 ff ff ff 50 8b 46 44 52 8b 56 40 51 f3 0f 11 04 24 50 52 e8 83 3d fb ff 84 c0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip slot 3 stop gate",
+      "kind": "signature",
+      "va": "0x0081b430",
+      "pattern": "56 57 8b 7c 24 0c 57 8b f1 e8 c2 5b 20 00 8a 46 38 a8 02 74 0c a8 01 74 08 57 8b ce e8 ff fc ff ff 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip stop helper key switch and slot argument",
+      "kind": "signature",
+      "va": "0x0081b18c",
+      "pattern": "8b 47 18 0f b6 40 04 83 f8 03 53 8b 5e 64 55 8b 6f 14 0f 87 81 00 00 00 ff 24 85 2c b2 81 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip stop helper key 2 and 3 fade",
+      "kind": "signature",
+      "va": "0x0081b215",
+      "pattern": "8b 55 18 68 e8 03 00 00 52 8b c8 e8 ab 34 fb ff 5d 5b 5e 5f",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip play call free element scan",
+      "kind": "signature",
+      "va": "0x007cf159",
+      "pattern": "38 5d 18 0f 84 35 01 00 00 33 ff eb 0a 8d a4 24 00 00 00 00 8d 49 00 8b 86 cc 00 00 00 85 c0 0f 84 19 01 00 00 8b 8e d0 00 00 00 2b c8 b8 ab aa aa 2a f7 e9 c1 fa 02 8b c2 c1 e8 1f 03 c2 3b f8 0f 83 f8 00 00 00 8b 86 cc 00 00 00 85 c0 74 1d 8b 8e d0 00 00 00 2b c8 b8 ab aa aa 2a f7 e9 c1 fa 02 8b c2 c1 e8 1f 03 c2 3b f8 72 05 e8 e9 30 20 00 8b 8e cc 00 00 00 03 cb e8 98 39 38 00 84 c0 74 0b 0f 57 c0 83 c7 01 83 c3 18 eb 89 8b 86 cc 00 00 00 85 c0 74 1d 8b 8e d0 00 00 00 2b c8 b8 ab aa aa 2a f7 e9 c1 fa 02 8b c2 c1 e8 1f 03 c2 3b f8 72 05 e8 a1 30 20 00 8b 8e cc 00 00 00 8d 04 7f 8d 3c c1 85 ff 74 71 8d 54 24 20 52 8b ce e8 71 06 29 00 f3 0f 10 00 8b 8e 14 01 00 00 f3 0f 11 44 24 0c f3 0f 10 40 04 f3 0f 11 44 24 10 f3 0f 10 40 08 f3 0f 11 44 24 14 f3 0f 10 40 0c f3 0f 11 44 24 18 e8 1b c0 e3 ff d9 45 1c 8b 8e d8 00 00 00 8b 10 8b 52 10 51 51 d9 1c 24 8d 4c 24 14 d9 45 10 51 8b 4d 14 51 51 8b 4d 0c d9 1c 24 51 57 8b c8 e9 dd 01 00 00 0f 57 c0",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip play call slot vector",
+      "kind": "signature",
+      "va": "0x007cf2f5",
+      "pattern": "8b 86 bc 00 00 00 85 c0 8d be b8 00 00 00 74 16 8b 4f 08 2b c8 b8 ab aa aa 2a f7 e9 c1 fa 02 8b c2 c1 e8 1f 03 c2 3b c3 73 08 53 8b cf e8 e9 10 00 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip play call shared request object",
+      "kind": "signature",
+      "va": "0x007cf2e9",
+      "pattern": "68 b4 f3 32 01 8b c8",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 1 started object flag test",
+      "kind": "signature",
+      "va": "0x0082fc60",
+      "pattern": "8b 44 24 04 56 50 8b f1 e8 03 85 1e 00 8b 16 8b 82 a4 00 00 00 8b ce ff d0 8b 90 f0 00 00 00 05 f0 00 00 00 8b c8 8b 42 6c ff d0 8b 00 85 c0 74 11 f6 40 08 20 74 0b 8b 16 8b 42 48 6a 01 8b ce ff d0 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 2 gate and dispatch",
+      "kind": "signature",
+      "va": "0x0082fcb0",
+      "pattern": "56 8b f1 83 7e 50 02 8b 46 14 57 8b 7c 24 0c 7d 10 8b 16 50 8b 82 c0 00 00 00 57 ff d0 84 c0 74 45 8b 16 8b 82 a8 00 00 00 8b ce ff d0 85 c0 75 0d 57 8b ce e8 97 87 1e 00 5f 5e c2 04 00 80 38 01 75 ee 80 78 01 00 74 e8 57 8b ce e8 8f 12 1f 00 80 7e 40 00 74 0f 8b 4e 3c e8 b1 f6 1e 00 8b ce e8 9a 81 1e 00 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip begin negative id guard",
+      "kind": "signature",
+      "va": "0x00a181d0",
+      "pattern": "8b 5e 14 8b 43 10 3b c7 7d 5a",
+      "mask": "ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip begin actor ordinal and flag bit 3",
+      "kind": "signature",
+      "va": "0x00a18234",
+      "pattern": "0f b6 4b 03 8b 7d 08 51 8b cf e8 5d 7d 00 00 8b cf 89 44 24 18 e8 f2 7d 00 00 f6 43 14 08 8b f8 75 46 8b 54 24 10",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip begin lookup by id when bit 3 clear",
+      "kind": "signature",
+      "va": "0x00a18256",
+      "pattern": "8b 54 24 10 8b 02 8b 17 8b 52 10 89 44 24 14 8b 43 10 50 8d 4c 24 20 51 8b cf ff d2 8b 4b 10 50 8b 07 8b 40 0c 51 8d 54 24 28 52 8b cf ff d0 8b 54 24 18 8b 4c 24 14 50 8b 42 08 57 8b 7c 24 24 57 56 ff d0 eb 48",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip begin lookup by id when bit 3 set",
+      "kind": "signature",
+      "va": "0x00a1829c",
+      "pattern": "8b 4c 24 10 8b 11 8b 4b 10 8b 07 8b 40 10 89 54 24 14 51 8d 54 24 20 52 8b cf ff d0 8b 17 8b 52 0c 50 8b 43 10 50 8d 4c 24 28 51 8b cf ff d2 8b 54 24 18 8b 4c 24 14 50 8b 44 24 20 57 50 8b 42 0c 56 ff d0 8b 7c 24 18",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip update loop branch",
+      "kind": "signature",
+      "va": "0x00a184fc",
+      "pattern": "f6 43 14 80 0f 84 8a 00 00 00 8b 46 38 8b 50 7c 8d 7e 38 8d 4c 24 18 51 8b cf ff d2 8b 28 8b 06 8b 90 9c 00 00 00 8b ce ff d2 03 c5 3b 43 20 0f 8c a0 00 00 00 8b 46 3c 83 78 4c 00 0f 8f 93 00 00 00 83 46 58 01 8b 46 44 83 f8 ff 8b 4e 58 74 04 3b c1 74 74 8b 17 8b 52 7c 8b 6b 1c 8d 44 24 10 50 8b cf ff d2 8b 38 8b 46 3c 8b 16 85 ed 0f 9f c1 89 44 24 18 8b 82 9c 00 00 00 51 8b ce ff d0 2b 7b 20 8b 4c 24 1c 03 c5 03 f8 57 e8 b2 40 00 00 eb 35",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip update single pass branch",
+      "kind": "signature",
+      "va": "0x00a18590",
+      "pattern": "8b 56 38 8b 52 7c 8d 4e 38 8d 44 24 18 50 ff d2 8b 38 8b 06 8b 90 9c 00 00 00 8b ce ff d2 03 c7 3b 43 20 7c 1c 8b 46 3c 83 78 4c 00 7f 13 c7 46 58 01 00 00 00 8b 16 8b 82 b0 00 00 00 8b ce ff d0 8b 4e 3c e8 e7 6d 00 00 8b ce e8 d0 f8 ff ff",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 3 end",
+      "kind": "signature",
+      "va": "0x00a176e0",
+      "pattern": "8b 44 24 04 56 50 8b f1 e8 13 99 00 00 80 7e 40 00 74 19 83 7e 3c 00 c7 46 54 03 00 00 00 74 0c 8b 16 8b 82 b0 00 00 00 8b ce ff d0 5e c2 04 00 8b 41 dc 8a 40 14 c0 e8 07 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 4 release",
+      "kind": "signature",
+      "va": "0x00a17cb0",
+      "pattern": "8b 44 24 04 53 56 50 8b f1 e8 52 93 00 00 33 db 38 5e 40 74 20 8b 4e 3c 3b cb 74 07 8b 11 8b 42 2c ff d0 8b 4e 3c 3b cb 74 08 8b 11 8b 02 6a 01 ff d0 89 5e 3c 8b 4e 48 3b cb 74 31 8b 11 8b 42 28 ff d0 84 c0 74 26 38 5e 61 74 0d 8b 4e 48 8b 11 8b 42 34 ff d0 88 5e 61 38 5e 62 74 0f 8b 4e 4c 3b cb 74 08 e8 56 c5 17 00 88 5e 62 5e 5b c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 8 end tick",
+      "kind": "signature",
+      "va": "0x00a176d0",
+      "pattern": "8b 41 14 8b 40 18 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 24 returns true",
+      "kind": "signature",
+      "va": "0x00a17610",
+      "pattern": "b0 01 c3",
+      "mask": "ff ff ff"
+    },
+    {
+      "name": "ActionClip slot 30 returns false",
+      "kind": "signature",
+      "va": "0x005c5c80",
+      "pattern": "32 c0 c3",
+      "mask": "ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip slot 1 record reads",
+      "kind": "signature",
+      "va": "0x00825100",
+      "pattern": "55 8b ec 83 e4 f0 83 ec 24 a1 b0 a8 2e 01 33 c4 89 44 24 20 53 56 57 8b 7d 08 57 8b d9 e8 0e be 1f 00 8b 73 14 0f b6 46 03 50 8b cf e8 6f ae 1f 00 8b f8 8b 17 8b 42 1c 8b cf ff d0 84 c0 0f 84 5c 01 00 00 8b 17 8b 42 5c 6a 00 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b cf ff d0 50 e8 6b 55 1b 00 83 c4 14 85 c0 0f 84 34 01 00 00 8d 88 b4 11 00 00 85 c9 0f 84 26 01 00 00 8b 53 18 8a 52 04 84 d2 0f 85 82 00 00 00 8b 7e 14 83 ef 00 8b 56 1c 74 71 83 ef 01 74 1b 52 50 e8 81 91 e3 ff 5f 5e 5b 8b 4c 24 20 33 cc e8 47 cf 1a 00 8b e5 5d c2 04 00 f3 0f 10 46 18 6a 00 52 f3 0f 11 44 24 18 f3 0f 11 44 24 1c f3 0f 11 44 24 20 f3 0f 10 05 70 4f f5 00 8d 54 24 18 f3 0f 11 44 24 24 0f 28 44 24 18 52 50 0f 29 44 24 20 e8 a0 91 e3 ff 5f 5e 5b 8b 4c 24 20 33 cc e8 f6 ce 1a 00 8b e5 5d c2 04 00 52 e9 8c 00 00 00 80 fa 01 0f 85 8d 00 00 00 8b 56 14 83 ea 00 8b 7e 20 74 77 83 ea 01 74 1b 57 50 e8 f6 90 e3 ff 5f 5e 5b 8b 4c 24 20 33 cc e8 bc ce 1a 00 8b e5 5d c2 04 00 80 7e 1c 00 f3 0f 10 46 18 0f 95 c2 f3 0f 11 44 24 10 f3 0f 11 44 24 14 f3 0f 11 44 24 18 f3 0f 10 05 70 4f f5 00 f3 0f 11 44 24 1c 0f 28 44 24 10 52 57 8d 54 24 18 52 50 0f 29 44 24 20 e8 0f 91 e3 ff 5f 5e 5b 8b 4c 24 20 33 cc e8 65 ce 1a 00 8b e5 5d c2 04 00 57 8b 56 18 52 50 e8 80 d8 e3 ff 8b 4c 24 2c 5f 5e 5b 33 cc e8 46 ce 1a 00 8b e5 5d c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip CharaActor scale and size setter 0x0065e390",
+      "kind": "signature",
+      "va": "0x0065e390",
+      "pattern": "56 8b 74 24 08 85 f6 74 37 8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 27 8b 4c 24 10 db 44 24 10 85 c9 8b 44 24 14 50 7d 06 d8 05 54 4a f5 00 8b 54 24 10 51 d9 1c 24 52 8b ce e8 00 dd ff ff 5e c2 10 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip CharaActor size setter 0x0065e320",
+      "kind": "signature",
+      "va": "0x0065e320",
+      "pattern": "83 ec 08 56 8b 74 24 10 85 f6 74 50 8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 40 8b 44 24 14 db 44 24 14 85 c0 7d 06 d8 05 54 4a f5 00 d9 7c 24 10 0f b7 44 24 10 0d 00 0c 00 00 89 44 24 14 d9 6c 24 14 df 7c 24 04 8b 4c 24 04 51 8d 8e 50 16 00 00 d9 6c 24 14 e8 64 50 1f 00 5e 83 c4 08 c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip CharaActor scale index setter 0x00662b20",
+      "kind": "signature",
+      "va": "0x00662b20",
+      "pattern": "56 8b 74 24 08 85 f6 74 32 8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 22 8b 44 24 10 db 44 24 10 85 c0 7d 06 d8 05 54 4a f5 00 51 8b 4c 24 10 d9 1c 24 51 8b ce e8 b5 eb ff ff 5e c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip scale index mapper 0x0065b5c0",
+      "kind": "signature",
+      "va": "0x0065b5c0",
+      "pattern": "51 f3 0f 10 05 70 4f f5 00 8b c1 8b 88 10 2b 00 00 85 c9 f3 0f 11 04 24 74 2d 81 b8 e0 00 00 00 ff ff ff 7f 75 14 8b 44 24 08 50 e8 70 6b 1f 00 d9 1c 24 d9 04 24 59 c2 04 00 8b 54 24 08 52 e8 4c 6b 1f 00 d9 1c 24 d9 04 24 59 c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureScaleClip scale transition 0x0065c0d0",
+      "kind": "signature",
+      "va": "0x0065c0d0",
+      "pattern": "d9 44 24 08 8b 54 24 04 83 ec 08 81 c1 50 16 00 00 80 7c 24 14 00 74 2d d9 7c 24 14 0f b7 44 24 14 0d 00 0c 00 00 89 44 24 10 d9 6c 24 10 df 3c 24 8b 04 24 50 52 d9 6c 24 1c e8 d1 6f 1f 00 83 c4 08 c2 0c 00 d9 7c 24 14 0f b7 44 24 14 0d 00 0c 00 00 89 44 24 10 d9 6c 24 10 df 3c 24 8b 04 24 50 52 d9 6c 24 1c e8 54 6f 1f 00 83 c4 08 c2 0c 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip slot 1 reads",
+      "kind": "signature",
+      "va": "0x00811470",
+      "pattern": "56 8b 74 24 08 57 56 8b f9 e8 b2 fa 20 00 8b 4f 24 8b 01 8b 50 24 ff d2 85 c0 74 52 53 8b 5f 14 0f b6 43 03 50 8b ce e8 04 eb 20 00 8b f0 8b 16 8b 42 1c 8b ce ff d0 84 c0 74 32 8b 16 8b 42 5c 8b ce ff d0 8d 88 b4 11 00 00 85 c9 74 0d d9 43 10 51 d9 1c 24 50 e8 d5 cf e4 ff 8b 17 8b 42 30 6a 02 8b cf c7 47 38 00 00 00 00 ff d0 5b 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip slot 2 wait for turn",
+      "kind": "signature",
+      "va": "0x008114f0",
+      "pattern": "56 57 8b 7c 24 0c 57 8b f1 e8 32 fa 20 00 8b 46 14 0f b6 40 03 50 8b cf e8 93 ea 20 00 8b f8 8b 17 8b 42 1c 8b cf ff d0 84 c0 6a 00 74 58 8b 17 8b 42 5c 68 10 78 2b 01 68 48 7c 2b 01 6a 00 8b cf ff d0 50 e8 93 91 1c 00 83 c4 14 85 c0 74 34 83 46 38 01 83 7e 38 5a 73 1f 8d 88 f0 0b 00 00 e8 6b 37 f9 ff 84 c0 74 10 8b 16 8b 42 30 6a 02 8b ce ff d0 5f 5e c2 04 00 8b 16 8b 42 48 6a 01 8b ce ff d0 6a 00 8b 16 8b 42 30 8b ce ff d0 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip CharaActor turn setter 0x0065e4a0",
+      "kind": "signature",
+      "va": "0x0065e4a0",
+      "pattern": "56 8b 74 24 08 85 f6 74 30 8b 06 8b 90 68 02 00 00 8b ce ff d2 85 c0 75 20 81 c6 f0 0b 00 00 8b ce e8 3a 60 14 00 d9 44 24 0c 6a 00 6a 00 51 8b ce d9 1c 24 e8 57 20 15 00 5e c2 08 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip turn predicate 0x007a4cc0",
+      "kind": "signature",
+      "va": "0x007a4cc0",
+      "pattern": "33 c0 83 b9 b8 01 00 00 01 0f 94 c0 c3",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureTurnClip angle to direction 0x007b0530",
+      "kind": "signature",
+      "va": "0x007b0530",
+      "pattern": "0f 57 c0 56 8b f1 f3 0f 10 4e 38 0f 2f c8 76 0c 8b 0e f3 0f 11 46 38 e8 a4 b9 ea ff 80 7c 24 10 00 f3 0f 5a 0d 20 4d 2c 01 74 27 f3 0f 2a 46 70 83 4e 04 02 f3 0f 5a c0 f2 0f 59 c1 f2 0f 59 05 d8 7e fe 00 f2 0f 5a c0 f3 0f 11 86 bc 01 00 00 eb 1e f3 0f 5a 44 24 08 f2 0f 59 05 e0 7e fe 00 f2 0f 5e c1 f2 0f 2c c0 25 ff ff ff 00 89 46 70 8b 8e ac 02 00 00 85 c9 74 09 8b 11 8b 42 04 6a 01 ff d0 f3 0f 5a 44 24 08 f2 0f 59 05 e0 7e fe 00 f3 0f 5a 0d 20 4d 2c 01 53 55 57",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip slot 1 reads",
+      "kind": "signature",
+      "va": "0x0081bfb0",
+      "pattern": "56 8b 74 24 08 57 56 8b f9 e8 72 4f 20 00 8b ce e8 6b 40 20 00 85 c0 74 78 55 8b c8 e8 8f f3 de ff 8b e8 85 ed 74 69 8b 7f 14 0f b6 47 03 53 50 8b ce e8 b9 3f 20 00 8b 0d 34 7f 2b 01 51 8b ce 8b d8 c6 44 24 18 00 e8 74 40 20 00 8b c8 e8 7d fb 1f 00 8b 13 8b f0 8b 42 10 8b cb ff d0 3b c6 5b 75 05 c6 44 24 10 01 8b 45 68 85 c0 74 21 8d 88 64 01 00 00 85 c9 74 17 8b 54 24 10 52 8b 57 18 52 8b 57 14 52 8b 57 20 52 50 e8 c0 58 df ff 5d 5f 5e c2 04 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip music request 0x0060f630",
+      "kind": "signature",
+      "va": "0x0060f630",
+      "pattern": "53 8a 5c 24 14 84 db 55 56 8b f1 74 17 8b 8e 14 01 00 00 68 d0 07 00 00 e8 33 bc ff ff 8b c8 e8 3c 60 ea ff 8b 8e 14 01 00 00 e8 21 bc ff ff 8b c8 e8 4a 61 ea ff 8b 6c 24 10 3b c5 74 7a 80 be 60 01 00 00 00 57 8b 7c 24 18 75 32 84 db 75 2e 8b 8e 14 01 00 00 6a 01 57 e8 f2 bb ff ff 8b c8 e8 2b 60 ea ff 8b 8e 14 01 00 00 e8 e0 bb ff ff 8b c8 e8 29 61 ea ff c6 86 60 01 00 00 01 8b 8e 14 01 00 00 6a 00 e8 c5 bb ff ff 8b c8 e8 de 60 ea ff d9 e8 57 51 8b 8e 14 01 00 00 d9 1c 24 55 e8 ab bb ff ff 8b c8 e8 74 7f ea ff 84 db 5f 75 07 c6 86 61 01 00 00 01 5e 5d 5b c2 10 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureBgmClip music request forwarder 0x00611900",
+      "kind": "signature",
+      "va": "0x00611900",
+      "pattern": "8b 4c 24 04 85 c9 74 19 8b 44 24 14 8b 54 24 10 50 8b 44 24 10 52 8b 54 24 10 50 52 e8 0f dd ff ff c2 14 00",
+      "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "ActionClip base vtable slots 0 to 8",
+      "kind": "dwords",
+      "va": "0x01096f6c",
+      "values": [
+        "0x00a18720",
+        "0x00a18170",
+        "0x00a18480",
+        "0x00a176e0",
+        "0x00a17cb0",
+        "0x00a21030",
+        "0x00a21060",
+        "0x00a21070",
+        "0x00a176d0"
+      ]
+    },
+    {
+      "name": "ActionClip base RTTI name",
+      "kind": "string",
+      "va": "0x012ce828",
+      "text": ".?AVActionClip@Plugins@Cut@Engine@CDev@SQEX@@"
+    },
+    {
+      "name": "ActionClip base constructor base call",
+      "kind": "signature",
+      "va": "0x00a179cf",
+      "pattern": "e8 8c 98 00 00",
+      "mask": "ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureSoundClip start helper jump table",
+      "kind": "dwords",
+      "va": "0x0081b134",
+      "values": [
+        "0x0081afb9",
+        "0x0081afde",
+        "0x0081b003",
+        "0x0081b003"
+      ]
+    },
+    {
+      "name": "RaptureSoundClip stop helper jump table",
+      "kind": "dwords",
+      "va": "0x0081b22c",
+      "values": [
+        "0x0081b1ab",
+        "0x0081b1ab",
+        "0x0081b1bd",
+        "0x0081b1bd"
+      ]
+    },
+    {
+      "name": "RaptureAutoMoveClip curve key pointers",
+      "kind": "dwords",
+      "va": "0x01097e24",
+      "values": [
+        "0x01096320",
+        "0x0109631c",
+        "0x01096314"
+      ]
+    },
+    {
+      "name": "RaptureAutoMoveClip curve name tx",
+      "kind": "string",
+      "va": "0x01096320",
+      "text": "tx"
+    },
+    {
+      "name": "RaptureAutoMoveClip curve name ty",
+      "kind": "string",
+      "va": "0x0109631c",
+      "text": "ty"
+    },
+    {
+      "name": "RaptureAutoMoveClip curve name tz",
+      "kind": "string",
+      "va": "0x01096314",
+      "text": "tz"
+    },
+    {
+      "name": "RaptureAutoMoveClip track name TracePoint",
+      "kind": "string",
+      "va": "0x00ff7ca8",
+      "text": "TracePoint"
+    },
+    {
+      "name": "RaptureBlackFadeClip color pointer table",
+      "kind": "dwords",
+      "va": "0x012ca3e8",
+      "values": [
+        "0x0134e22c",
+        "0x0134e21c"
+      ]
+    },
+    {
+      "name": "RaptureNqIdleSetClip map key cbnm_id0",
+      "kind": "string",
+      "va": "0x00fc037c",
+      "text": "cbnm_id0"
+    },
+    {
+      "name": "RaptureNqIdleSetClip map key cbbm_id0",
+      "kind": "string",
+      "va": "0x00fc0388",
+      "text": "cbbm_id0"
+    },
+    {
+      "name": "scheduler motion frame rate double",
+      "kind": "dwords",
+      "va": "0x00fa7b18",
+      "values": [
+        "0x00000000",
+        "0x403e0000"
+      ]
+    },
+    {
+      "name": "angle scale doubles",
+      "kind": "dwords",
+      "va": "0x00fe7ed8",
+      "values": [
+        "0x00000000",
+        "0x3e700000",
+        "0x00000000",
+        "0x41700000"
+      ]
+    },
+    {
+      "name": "full turn float",
+      "kind": "dwords",
+      "va": "0x012c4d20",
+      "values": [
+        "0x40c90fdb"
+      ]
+    },
+    {
+      "name": "milliseconds per second double",
+      "kind": "dwords",
+      "va": "0x00f91c48",
+      "values": [
+        "0x00000000",
+        "0x408f4000"
+      ]
+    },
+    {
+      "name": "negation double",
+      "kind": "dwords",
+      "va": "0x00f599d0",
+      "values": [
+        "0x00000000",
+        "0xbff00000"
+      ]
+    },
+    {
+      "name": "slot 29 tail pointer D+0x30",
+      "kind": "signature",
+      "va": "0x00a172a0",
+      "pattern": "8b 41 14 83 c0 30 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "slot 29 tail pointer D+0x28",
+      "kind": "signature",
+      "va": "0x00813000",
+      "pattern": "8b 41 14 83 c0 28 c3",
+      "mask": "ff ff ff ff ff ff ff"
+    },
+    {
+      "name": "RaptureAutoMoveClip slot 3 forwards to the base end state",
+      "kind": "signature",
+      "va": "0x00811810",
+      "pattern": "e9 eb f7 20 00",
+      "mask": "ff ff ff ff ff"
     }
   ],
   "invariants": [
@@ -4088,6 +6040,282 @@
       "claim": "Every listed index is -1 or inside the scheduler clip list and is not the clip itself."
     },
     {
+      "id": "nqidle-key-byte",
+      "class": "RaptureNqIdleSetClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "nqidle-link",
+      "class": "RaptureNqIdleSetClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x30."
+    },
+    {
+      "id": "nqidle-name",
+      "class": "RaptureNqIdleSetClip",
+      "tier": "OBSERVED",
+      "claim": "Bytes +0x10 to +0x2f hold an ASCII name that ends before byte 16 and is zero filled."
+    },
+    {
+      "id": "automove-key-byte",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 3."
+    },
+    {
+      "id": "automove-link",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x28."
+    },
+    {
+      "id": "automove-count",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x10 is within 2 to 20."
+    },
+    {
+      "id": "automove-mode",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "U16 +0x14 is within 0 to 2."
+    },
+    {
+      "id": "automove-flags",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "U16 +0x16, s32 +0x18 and u16 +0x24 are 0 or 1."
+    },
+    {
+      "id": "automove-hold",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x1c is within 0 to 350."
+    },
+    {
+      "id": "automove-speed",
+      "class": "RaptureAutoMoveClip",
+      "tier": "OBSERVED",
+      "claim": "F32 +0x20 is above 0 and at most 35."
+    },
+    {
+      "id": "blackfade-key-byte",
+      "class": "RaptureBlackFadeClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "blackfade-link",
+      "class": "RaptureBlackFadeClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x1c."
+    },
+    {
+      "id": "blackfade-lead",
+      "class": "RaptureBlackFadeClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is 0."
+    },
+    {
+      "id": "blackfade-color",
+      "class": "RaptureBlackFadeClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 is 0 or 1."
+    },
+    {
+      "id": "blackfade-frames",
+      "class": "RaptureBlackFadeClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x18 is within -1 to 120."
+    },
+    {
+      "id": "sound-key-byte",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 2 or 3, which selects the array branch of the start helper."
+    },
+    {
+      "id": "sound-link",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x28 plus u32 +0x24."
+    },
+    {
+      "id": "sound-array",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x24 is a multiple of 4 within 4 to 36."
+    },
+    {
+      "id": "sound-lead",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is 0."
+    },
+    {
+      "id": "sound-flags",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 is within 0 to 4."
+    },
+    {
+      "id": "sound-slot",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x18 is within 0 to 3."
+    },
+    {
+      "id": "sound-volume",
+      "class": "RaptureSoundClip",
+      "tier": "OBSERVED",
+      "claim": "F32 +0x1c is within 0 to 1."
+    },
+    {
+      "id": "action-key-byte",
+      "class": "ActionClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "action-link",
+      "class": "ActionClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x28."
+    },
+    {
+      "id": "action-id",
+      "class": "ActionClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x10 is not negative."
+    },
+    {
+      "id": "action-flags",
+      "class": "ActionClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 only sets bits 7 to 15."
+    },
+    {
+      "id": "action-end",
+      "class": "ActionClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x18 is above the start tick when bit 7 of u32 +0x14 is clear."
+    },
+    {
+      "id": "action-tail",
+      "class": "ActionClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x24 is within 50 to 100."
+    },
+    {
+      "id": "scale-key-byte",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 1."
+    },
+    {
+      "id": "scale-link",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x24."
+    },
+    {
+      "id": "scale-lead",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is 0."
+    },
+    {
+      "id": "scale-mode",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x14 is 0 or 1."
+    },
+    {
+      "id": "scale-preset",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "In mode 0 u32 +0x18 is within 0 to 4."
+    },
+    {
+      "id": "scale-factor",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "In mode 1 f32 +0x18 is within 0.25 to 8."
+    },
+    {
+      "id": "scale-switch",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x1c is 0 or 1."
+    },
+    {
+      "id": "scale-length",
+      "class": "RaptureScaleClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x20 is within 0 to 15."
+    },
+    {
+      "id": "turn-key-byte",
+      "class": "RaptureTurnClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "turn-link",
+      "class": "RaptureTurnClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x14."
+    },
+    {
+      "id": "turn-angle",
+      "class": "RaptureTurnClip",
+      "tier": "OBSERVED",
+      "claim": "F32 +0x10 is within plus or minus pi."
+    },
+    {
+      "id": "bgm-key-byte",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "The @CCPT entry byte +2 of the class is 0."
+    },
+    {
+      "id": "bgm-link",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "Record bytes are 0x24."
+    },
+    {
+      "id": "bgm-lead",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x10 is 0."
+    },
+    {
+      "id": "bgm-fade",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x14 is within 0 to 30000."
+    },
+    {
+      "id": "bgm-word",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "S32 +0x18 is within 0 to 10000."
+    },
+    {
+      "id": "bgm-constant",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "U32 +0x1c is 4."
+    },
+    {
+      "id": "bgm-resource",
+      "class": "RaptureBgmClip",
+      "tier": "OBSERVED",
+      "claim": "The high 16 bits of u32 +0x20 are 0x07fe."
+    },
+    {
       "id": "localcamera-end",
       "class": "LocalCameraClip",
       "tier": "OBSERVED",
@@ -4327,6 +6555,121 @@
       "id": "install-timing",
       "tier": "OBSERVED",
       "claim": "Every one of the 222,491 clip records has a start tick that is a multiple of 10000 and an s16(D+0x0c) equal to its index in the scheduler clip list. Within a block the start ticks do not decrease, over 213,369 pairs. The MotionClip end tick is above the start in 21,988 records, equal in 38 and below in 59, so a negative duration occurs, and 19,529 end ticks are multiples of 10000. The LocalCameraClip end is never below the start and 11 records set bit 2 of u8(D+0x1a). The DepthOfFieldClip end equals the start in all 5,780 parameter records and is above it in all 465 preset records."
+    },
+    {
+      "id": "registry-ranks-14-22",
+      "tier": "STATIC",
+      "claim": "Manager slot 3 at 0x00635760 inserts RaptureNqIdleSetClip (factory 0x00639a20), RaptureAutoMoveClip (0x00638790), RaptureBlackFadeClip (0x006395a0), RaptureSoundClip (0x00639b40), RaptureScaleClip (0x0063ac20), RaptureTurnClip (0x00638670) and RaptureBgmClip (0x00639d80) through 0x0063f710 with no erase call and no base group key. It inserts ActionClip (0x0063c210) after an erase call 0x0063f920 with a second copy of the key literal. The base registrar 0x00a4c2a0 inserts ActionClip with the factory 0x00a4dd40 at 0x00a4c4c9 and again at 0x00a4cf7c. RaptureSoundClip is inserted a second time at 0x006372e1 with the same factory through the registry of 0x00a65600."
+    },
+    {
+      "id": "objects-ranks-14-22",
+      "tier": "STATIC",
+      "claim": "The factories store the object sizes 0x38 for RaptureNqIdleSetClip, RaptureScaleClip and RaptureBgmClip, 0x40 for RaptureAutoMoveClip and RaptureBlackFadeClip, 0x54 for RaptureSoundClip, 0x68 for ActionClip and 0x3c for RaptureTurnClip. Each constructor chain ends in 0x00a21260 and installs the primary vtable at +0 and a secondary table at +8. The RTTI name of ActionClip is RaptureActionClip."
+    },
+    {
+      "id": "nqidle-layout",
+      "tier": "STATIC",
+      "claim": "RaptureNqIdleSetClip slot 1 passes the address D+0x10 to CharaActor method 0x0065e3e0, which copies the string into a 16 byte buffer and passes it to 0x0065c4c0. The record is 0x30 bytes and slot 29 returns D+0x30."
+    },
+    {
+      "id": "nqidle-meaning",
+      "tier": "INFERRED",
+      "claim": "The string names the idle motion set. The name 0x0065c4c0 binds to the keys cbnm_id0 and cbbm_id0 follows from the call arguments. The effect of the state object after the rebind was not traced."
+    },
+    {
+      "id": "automove-layout",
+      "tier": "STATIC",
+      "claim": "RaptureAutoMoveClip slot 1 reads the fields at D+0x10 to D+0x26, builds a position list from the curves tx, ty and tz of the track record named by u16(D+0x26) and hands a parameter block to CharaActor method 0x0065eaf0. Slot 2 follows the move through 0x0065eb60 and its seek branch sets the position through 0x0065e660."
+    },
+    {
+      "id": "automove-meaning",
+      "tier": "INFERRED",
+      "claim": "The track record holds a movement path and f32(D+0x20) is its speed. The names rest on the argument flow into the path builder 0x007ae8b0 and the strings tx, ty and tz."
+    },
+    {
+      "id": "automove-sink",
+      "tier": "UNKNOWN",
+      "claim": "The meaning of the words at D+0x14, D+0x16, D+0x18 and D+0x1c after the handoff, the scheduler chunk behind the table of 0x00a20090 and the effect of CharaActor method 0x0065eaf0 on the actor were not traced."
+    },
+    {
+      "id": "blackfade-layout",
+      "tier": "STATIC",
+      "claim": "RaptureBlackFadeClip slot 1 selects a float4 from a two entry pointer table with u32(D+0x14), converts s32(D+0x18) frames to ticks at 30 frames per second and passes both to 0x00612400 with the object at +0x6c of the owner result. Slot 2 ends the clip when the scheduler frame number reaches the begin frame plus the frames."
+    },
+    {
+      "id": "blackfade-meaning",
+      "tier": "INFERRED",
+      "claim": "Entry 0 of the table is opaque black and entry 1 is clear black, so the clip fades the screen toward one of them. Which direction each selector gives was not traced."
+    },
+    {
+      "id": "sound-layout",
+      "tier": "STATIC",
+      "claim": "RaptureSoundClip reads the key entry byte +4 and takes the resource id from D+0x14 for 0, from D+0x18 for 1 and from the array at D+0x28 for 2 and 3. The array length is u32(D+0x24) in bytes. The play entry 0x007cf100 receives the slot number, the resource id, the volume and two more words. The start helper returns true only for a nonzero slot on the array path, so a slot 0 clip ends with phase 0 after its start."
+    },
+    {
+      "id": "sound-meaning",
+      "tier": "INFERRED",
+      "claim": "The array entries are sound resource ids and the clip plays one of them. The meaning of the flag word bits and of the selector 0x006b6cd0 is inferred from their use as index sources."
+    },
+    {
+      "id": "sound-sink",
+      "tier": "UNKNOWN",
+      "claim": "The sound objects behind the slot number, the global counters 0x0134e2a8 and 0x0134e2ac that bit 3 of the flag word feeds, the receiver of u32(D+0x20) and the key 0 and 1 branches are not in the install and were not traced beyond the call arguments. What ends a clip of nonzero slot is also not known."
+    },
+    {
+      "id": "action-layout",
+      "tier": "STATIC",
+      "claim": "ActionClip slot 1 and the shared begin 0x00a18170 read the action id at D+0x10, bits 3 and 7 of u8(D+0x14) and the words at D+0x1c and D+0x20. Slot 8 returns D+0x18 as the end tick and slot 30 returns false."
+    },
+    {
+      "id": "action-meaning",
+      "tier": "INFERRED",
+      "claim": "The clip starts an actor action by id and the looping branch repeats it. The names rest on the lookup call shape and the error texts."
+    },
+    {
+      "id": "action-sink",
+      "tier": "UNKNOWN",
+      "claim": "The object returned by 0x00a20040, the action tables behind the lookup methods, the two start methods chosen by bit 3, the writers of clip +0x44 and the bytes D+0x15 and D+0x24 to D+0x27 are not decoded."
+    },
+    {
+      "id": "scale-layout",
+      "tier": "STATIC",
+      "claim": "RaptureScaleClip slot 1 requires a CharaActor, switches on the key entry byte +4 with the values 0 and 1 and the mode word at D+0x14, and calls 0x00662b20, 0x0065e390 or 0x0065e320 with the words of the selected layout."
+    },
+    {
+      "id": "scale-meaning",
+      "tier": "INFERRED",
+      "claim": "Mode 0 selects a size preset by index and mode 1 sets a uniform scale factor. The unit of the length word was not traced."
+    },
+    {
+      "id": "turn-layout",
+      "tier": "STATIC",
+      "claim": "RaptureTurnClip slot 1 passes f32(D+0x10) to CharaActor method 0x0065e4a0 and slot 2 waits on the predicate 0x007a4cc0 for up to 90 updates. Slot 2 begins with the base begin 0x00a20f30 instead of the base update."
+    },
+    {
+      "id": "turn-meaning",
+      "tier": "INFERRED",
+      "claim": "The float is a target direction in radians. The scaling by 16777216 over the float 2 pi into a 24 bit direction is read from 0x007b0530."
+    },
+    {
+      "id": "bgm-layout",
+      "tier": "STATIC",
+      "claim": "RaptureBgmClip slot 1 forwards u32(D+0x20), s32(D+0x14), s32(D+0x18) and a flag that is true when the actor record class is ProxyActor to 0x00611900 and so to 0x0060f630."
+    },
+    {
+      "id": "bgm-meaning",
+      "tier": "INFERRED",
+      "claim": "The values are a music resource id in the 0x07fe0000 range and a fade time. The meaning of the flag beyond its use in 0x0060f630 was not traced."
+    },
+    {
+      "id": "timing-ranks-14-22",
+      "tier": "STATIC",
+      "claim": "The eight classes read the start tick u32(D+4) and all but ActionClip use the base end tick method 0x00a21080. ActionClip slot 8 returns u32(D+0x18). RaptureBlackFadeClip converts the scheduler clock to a frame number with 0x00a203e0."
+    },
+    {
+      "id": "timing-action-gate",
+      "tier": "STATIC",
+      "claim": "Slot 30 of ActionClip is 0x005c5c80, which returns false, so the begin test of the scheduler tick never skips an ActionClip for a clear bit 1 of S+0x90."
     }
   ],
   "install": {
@@ -4440,6 +6783,65 @@
           "52": 1,
           "56": 3,
           "60": 7
+        }
+      },
+      "RaptureNqIdleSetClip": {
+        "clips": 4442,
+        "schedulers": 551,
+        "recordBytes": {
+          "48": 4442
+        }
+      },
+      "RaptureAutoMoveClip": {
+        "clips": 3381,
+        "schedulers": 442,
+        "recordBytes": {
+          "40": 3381
+        }
+      },
+      "RaptureBlackFadeClip": {
+        "clips": 3095,
+        "schedulers": 689,
+        "recordBytes": {
+          "28": 3095
+        }
+      },
+      "RaptureSoundClip": {
+        "clips": 2763,
+        "schedulers": 435,
+        "recordBytes": {
+          "44": 2715,
+          "48": 1,
+          "64": 28,
+          "76": 19
+        }
+      },
+      "ActionClip": {
+        "clips": 2142,
+        "schedulers": 271,
+        "recordBytes": {
+          "40": 2142
+        }
+      },
+      "RaptureScaleClip": {
+        "clips": 1784,
+        "schedulers": 183,
+        "recordBytes": {
+          "36": 1784
+        }
+      },
+      "RaptureTurnClip": {
+        "clips": 1776,
+        "schedulers": 473,
+        "recordBytes": {
+          "20": 1776
+        }
+      },
+      "RaptureBgmClip": {
+        "clips": 1610,
+        "schedulers": 482,
+        "recordBytes": {
+          "36": 1610
         }
       }
     },
@@ -4664,6 +7066,190 @@
         "checked": 4995,
         "violations": 0
       },
+      "nqidle-key-byte": {
+        "checked": 4442,
+        "violations": 0
+      },
+      "nqidle-link": {
+        "checked": 4442,
+        "violations": 0
+      },
+      "nqidle-name": {
+        "checked": 4442,
+        "violations": 0
+      },
+      "automove-key-byte": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "automove-link": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "automove-count": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "automove-mode": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "automove-flags": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "automove-hold": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "automove-speed": {
+        "checked": 3381,
+        "violations": 0
+      },
+      "blackfade-key-byte": {
+        "checked": 3095,
+        "violations": 0
+      },
+      "blackfade-link": {
+        "checked": 3095,
+        "violations": 0
+      },
+      "blackfade-lead": {
+        "checked": 3095,
+        "violations": 0
+      },
+      "blackfade-color": {
+        "checked": 3095,
+        "violations": 0
+      },
+      "blackfade-frames": {
+        "checked": 3095,
+        "violations": 0
+      },
+      "sound-key-byte": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "sound-link": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "sound-array": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "sound-lead": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "sound-flags": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "sound-slot": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "sound-volume": {
+        "checked": 2763,
+        "violations": 0
+      },
+      "action-key-byte": {
+        "checked": 2142,
+        "violations": 0
+      },
+      "action-link": {
+        "checked": 2142,
+        "violations": 0
+      },
+      "action-id": {
+        "checked": 2142,
+        "violations": 0
+      },
+      "action-flags": {
+        "checked": 2142,
+        "violations": 0
+      },
+      "action-end": {
+        "checked": 2142,
+        "violations": 0
+      },
+      "action-tail": {
+        "checked": 2142,
+        "violations": 0
+      },
+      "scale-key-byte": {
+        "checked": 1784,
+        "violations": 0
+      },
+      "scale-link": {
+        "checked": 1784,
+        "violations": 0
+      },
+      "scale-lead": {
+        "checked": 1784,
+        "violations": 0
+      },
+      "scale-mode": {
+        "checked": 1784,
+        "violations": 0
+      },
+      "scale-preset": {
+        "checked": 399,
+        "violations": 0
+      },
+      "scale-factor": {
+        "checked": 1385,
+        "violations": 0
+      },
+      "scale-switch": {
+        "checked": 1784,
+        "violations": 0
+      },
+      "scale-length": {
+        "checked": 1784,
+        "violations": 0
+      },
+      "turn-key-byte": {
+        "checked": 1776,
+        "violations": 0
+      },
+      "turn-link": {
+        "checked": 1776,
+        "violations": 0
+      },
+      "turn-angle": {
+        "checked": 1776,
+        "violations": 0
+      },
+      "bgm-key-byte": {
+        "checked": 1610,
+        "violations": 0
+      },
+      "bgm-link": {
+        "checked": 1610,
+        "violations": 0
+      },
+      "bgm-lead": {
+        "checked": 1610,
+        "violations": 0
+      },
+      "bgm-fade": {
+        "checked": 1610,
+        "violations": 0
+      },
+      "bgm-word": {
+        "checked": 1610,
+        "violations": 0
+      },
+      "bgm-constant": {
+        "checked": 1610,
+        "violations": 0
+      },
+      "bgm-resource": {
+        "checked": 1610,
+        "violations": 0
+      },
       "localcamera-end": {
         "checked": 13888,
         "violations": 0
@@ -4776,6 +7362,60 @@
         "01": 17,
         "10": 4081,
         "11": 1650
+      },
+      "nqidle-name": {
+        "cbfm_id0": 4117,
+        "other": 325
+      },
+      "automove-start": {
+        "curves": 1659,
+        "position": 1722
+      },
+      "automove-hold": {
+        "0": 1320,
+        "1": 2061
+      },
+      "blackfade-color": {
+        "0": 1726,
+        "1": 1369
+      },
+      "blackfade-length": {
+        "default": 353,
+        "set": 2742
+      },
+      "sound-entries": {
+        "1": 2715,
+        "2": 1,
+        "6": 28,
+        "9": 19
+      },
+      "sound-flags": {
+        "0": 2486,
+        "1": 213,
+        "2": 26,
+        "3": 19,
+        "4": 19
+      },
+      "sound-slot": {
+        "set": 847,
+        "zero": 1916
+      },
+      "action-loop": {
+        "loop": 816,
+        "single": 1326
+      },
+      "action-end-vs-start": {
+        "after": 1484,
+        "before": 637,
+        "equal": 21
+      },
+      "scale-mode": {
+        "factor": 1385,
+        "preset": 399
+      },
+      "bgm-fade": {
+        "set": 1147,
+        "zero": 463
       }
     },
     "ranges": {
@@ -4786,6 +7426,14 @@
       "setpos-scale": [
         0.1,
         8.0
+      ],
+      "automove-speed": [
+        0.3,
+        35.0
+      ],
+      "turn-angle": [
+        -3.1,
+        3.1
       ]
     },
     "intRanges": {
@@ -4800,6 +7448,38 @@
       "lipsync-mode": [
         0,
         7
+      ],
+      "automove-count": [
+        2,
+        20
+      ],
+      "automove-hold": [
+        0,
+        350
+      ],
+      "automove-track": [
+        0,
+        159
+      ],
+      "blackfade-frames": [
+        -1,
+        120
+      ],
+      "sound-param": [
+        0,
+        21000
+      ],
+      "action-id": [
+        1,
+        1331
+      ],
+      "bgm-fade": [
+        0,
+        30000
+      ],
+      "bgm-resource": [
+        134086658,
+        134086765
       ]
     }
   },
@@ -4825,8 +7505,13 @@
       "beginPredicate": "0x00b73290"
     },
     "checks": [
+      "ActionClip slot 30 returns false",
+      "ActionClip slot 8 end tick",
       "LocalCameraClip begin stores scheduler origin",
       "LocalCameraClip update stores origin change",
+      "RaptureBlackFadeClip frame number helper 0x00a203e0",
+      "RaptureBlackFadeClip scheduler frame getter 0x00a1b860",
+      "RaptureSoundClip slot 2 elapsed milliseconds",
       "base accessor abort bit getter",
       "base accessor elapsed",
       "base accessor phase getter",
@@ -4942,6 +7627,59 @@
         "end": "the start tick, u32(D+4)",
         "endVa": "0x00a21080",
         "control": "Slot 1 calls slot 18 with 1 on the listed clips, not on itself."
+      },
+      {
+        "name": "RaptureNqIdleSetClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "RaptureAutoMoveClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 1 calls slot 12 with 2 after the handoff. Slot 2 calls slot 12 with 2 while 0x0065eb60 reports a move in progress and with 0 when it does not or when the clip is aborted."
+      },
+      {
+        "name": "RaptureBlackFadeClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 1 calls slot 12 with 2 and records the begin frame. Slot 2 calls slot 12 with 0 once the scheduler frame number reaches the begin frame plus the fade frames."
+      },
+      {
+        "name": "RaptureSoundClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 2 starts the sound once. It calls slot 12 with 0 when the start helper returns false, which holds for every slot 0 clip, and with 2, or 1 for a preload clip, when it returns true for a nonzero slot, and with 0 after an abort. Slot 1 calls slot 12 with 2 when bit 2 of S+0x91 is set."
+      },
+      {
+        "name": "ActionClip",
+        "start": "u32(D+4)",
+        "end": "u32(D+0x18)",
+        "endVa": "0x00a176d0",
+        "control": "Slot 1 ends at u32(D+0x18). Slot 2 calls slot 12 with 0 when clip +0x44 is not -1 and equals the pass counter at clip +0x58. Slot 30 returns false so the begin does not wait for S+0x90 bit 1."
+      },
+      {
+        "name": "RaptureScaleClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
+      },
+      {
+        "name": "RaptureTurnClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080",
+        "control": "Slot 1 calls slot 12 with 2. Slot 2 starts with the base begin 0x00a20f30, then calls slot 12 with 2 while the turn predicate holds within 90 updates and calls slot 18 with 1 and slot 12 with 0 otherwise."
+      },
+      {
+        "name": "RaptureBgmClip",
+        "start": "u32(D+4)",
+        "end": "the start tick, u32(D+4)",
+        "endVa": "0x00a21080"
       }
     ]
   }

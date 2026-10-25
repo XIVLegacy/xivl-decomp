@@ -133,8 +133,9 @@ The [cut collision clip corpus](cut-collision-clip-corpus.md) applies this
 predicate to the 1.23b `client/cut` tree.
 
 The [clip class census](cut-scheduler-clip-class-census.md) ranks all 102 clip
-classes of these schedulers. The [clip payloads page](cut-scheduler-clip-payloads.md)
-and the [second payloads page](cut-scheduler-clip-payloads-ranks-7-13.md)
-document twelve more, which read class fields from +0x10 or +0x14. The
+classes of these schedulers. The [clip payloads page](cut-scheduler-clip-payloads.md),
+the [second payloads page](cut-scheduler-clip-payloads-ranks-7-13.md) and the
+[third payloads page](cut-scheduler-clip-payloads-ranks-14-22.md)
+document twenty more, which read class fields from +0x10 or +0x14. The
 [clip timing page](cut-scheduler-clip-timing.md) covers the start tick at +4 and
 the end tick of every documented class.

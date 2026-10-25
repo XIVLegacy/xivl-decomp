@@ -74,8 +74,12 @@ jobs:
         run: python tools/test_music_song_resources.py
       - name: Test sound effect trigger verifier
         run: python tools/test_sound_effect_triggers.py
+      - name: Test client music initiator verifier
+        run: python tools/test_client_music_initiators.py
       - name: Test Qix effect resource verifier
         run: python tools/test_vfx_qix_resource.py
+      - name: Test Qix effect runtime verifier
+        run: python tools/test_vfx_effect_runtime.py
       - name: Test cut scheduler clip class verifier
         run: python tools/test_scb_clip_classes.py
       - name: Test combat result element verifier

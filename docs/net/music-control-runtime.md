@@ -163,6 +163,10 @@ their own, without claiming that incomplete native join.
 
 ## Sender policy and remaining inputs
 
+The [client-initiated music page](../resource/client-music-initiators.md) lists
+the other callers of the music slots and how a cutscene closes this control's
+gate.
+
 For a normal/combat transition plan, the established inputs are a selected
 song ID, a control mode, the client's selected/retained slot state, and any
 outstanding delayed replacement. Modes 2/3 offer a two-slot retain/return

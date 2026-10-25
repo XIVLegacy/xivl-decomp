@@ -55,18 +55,22 @@ schedulers that hold the class and the record sizes in bytes as
 | 11 | RaptureMesClip | 6,301 | 573 | 36 | [payloads](cut-scheduler-clip-payloads-ranks-7-13.md#rapturemesclip) |
 | 12 | DepthOfFieldClip | 6,245 | 541 | 28 or 52 | [payloads](cut-scheduler-clip-payloads-ranks-7-13.md#depthoffieldclip) |
 | 13 | KillClip | 4,995 | 555 | 20 to 60 | [payloads](cut-scheduler-clip-payloads-ranks-7-13.md#killclip) |
-| 14 | RaptureNqIdleSetClip | 4,442 | 551 | 48 | |
-| 15 | RaptureAutoMoveClip | 3,381 | 442 | 40 | |
-| 16 | RaptureBlackFadeClip | 3,095 | 689 | 28 | |
-| 17 | RaptureSoundClip | 2,763 | 435 | 44 to 76 | |
+| 14 | RaptureNqIdleSetClip | 4,442 | 551 | 48 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#rapturenqidlesetclip) |
+| 15 | RaptureAutoMoveClip | 3,381 | 442 | 40 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#raptureautomoveclip) |
+| 16 | RaptureBlackFadeClip | 3,095 | 689 | 28 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#raptureblackfadeclip) |
+| 17 | RaptureSoundClip | 2,763 | 435 | 44 to 76 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#rapturesoundclip) |
 | 18 | RaptureMapCollisionOnOffClip | 2,688 | 600 | 28 | [layout](cut-scheduler-clip-layout.md#clip-records) |
+| 19 | ActionClip | 2,142 | 271 | 40 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#actionclip) |
+| 20 | RaptureScaleClip | 1,784 | 183 | 36 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#rapturescaleclip) |
+| 21 | RaptureTurnClip | 1,776 | 473 | 20 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#raptureturnclip) |
+| 22 | RaptureBgmClip | 1,610 | 482 | 36 | [payloads](cut-scheduler-clip-payloads-ranks-14-22.md#rapturebgmclip) |
 
-The twelve classes with a payload page hold 165,457 of the 222,491 records.
+The twenty classes with a payload page hold 186,450 of the 222,491 records.
 BindActorClip at rank 9 is covered by the layout page, which also covers
 RaptureCharaVisualClip (151 records, rank 64) and
 RaptureMapCollisionOnOffClip. The other classes have no payload page. The
 [clip timing page](cut-scheduler-clip-timing.md) gives the start and end ticks
-of the twelve payload classes and the scheduler routine that uses them.
+of the twenty payload classes and the scheduler routine that uses them.
 
 ## Reproduction
 
