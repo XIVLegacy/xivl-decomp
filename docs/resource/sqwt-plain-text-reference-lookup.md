@@ -354,6 +354,10 @@ behavior. SQTP-06 follows the selected numeric call into decimal conversion.
 
 ### SQTP-05: Bounded framing and reference encoding
 
+The separate [entry-count control finding](rich-string-entry-counts.md)
+qualifies constructor-selected `08`/`09` handlers and literal `E2`/`E5`
+comparisons for two original Gcl107 count tokens.
+
 Observed with Ghidra CLI and independent LLVM decoding of the identified
 executable: `FUN_00CB2760` selects the handler after `0x02`, then calls
 `FUN_00CB2D50` for the declared payload length with final mode 1. At

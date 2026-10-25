@@ -224,6 +224,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt markup numeric font properties](resource/sqwt-markup-font-numeric-properties.md)
 - [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Sqwt plain text reference lookup](resource/sqwt-plain-text-reference-lookup.md)
+- [Rich-string entry count controls](resource/rich-string-entry-counts.md)
 - [Sqwt form and template path resolution](resource/sqwt-form-locale-resolution.md)
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
