@@ -256,9 +256,12 @@ so a block starts its own timeline.
 
 ## Open items
 
-- The block that a scheduler plays, the callers of `0x00a1ba90`, the block header
-  fields and the scheduler length are UNKNOWN. A consumer needs further evidence
-  for the order of blocks.
+- The block that a selected scheduler plays, the block header fields and the
+  scheduler length are UNKNOWN. The
+  [secondary-collection caller relation](scb-clip-factory-composition.md#secondary-collection-callers-and-callback-context)
+  qualifies the `0x00a1cb20` and `0x00a1e710` calls to `0x00a1ba90` and
+  their receiver/argument flow. It does not establish delivery of a constructed
+  combat scheduler to that updater, selected block values or block order.
 - The frame rate source of the ticks per frame setter is UNKNOWN.
 - The use of S+0x1cc, the repetition of the wrapper within a frame step and the
   seek branches of the tick were not traced.

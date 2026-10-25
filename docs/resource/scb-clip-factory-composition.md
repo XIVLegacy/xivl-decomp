@@ -706,6 +706,118 @@ instruction starts at `0x00A1C891`; include its complete end
 at `S+0x34` from L at `u32(u32(S+0x50)+0x3C)`. These checks consumed
 no asset input and observed no execution.
 
+## Secondary collection callers and callback context
+
+The [clip-index contract](cut-scheduler-clip-timing.md#clip-index-word) owns
+the built-list lookup and secondary append performed by `0x00A28210`.
+The caller paths below supply its actual arguments and retain the incoming
+receiver through population and the published callback-context producer.
+They do not establish delivery of a constructed combat Scheduler to that
+later updater entry.
+
+Let A=`u32(S+0x30)`, B=`u32(S+0x34)`, Q=`u32(S+0x50)` and
+G=`u32(S+0x7C)`. The preceding construction finding owns those fields.
+Here S names the incoming receiver, with retained-field identity as a condition.
+
+### Population arguments and pointer transfer
+
+`0x00A1CB20` retains its receiver in ESI, stores its first argument U at
+S+0xB4, and clears S+0x94 and A+0x10. Getter `0x00A27BD0` returns
+k=`u8(u32(U+4))` with plain `RET`. G pushed before that getter therefore
+survives, and `0x00A1CB4D` calls `0x00A1BA90(S,k,G)`, with S in ECX.
+The callee's `RET 8` consumes k and G. Valid U and a supported k remain
+conditions; the field store alone does not select a valid block.
+
+`0x00A1BA90` builds a local receiver from `(G,u32(Q+0x58),Q)` through
+`0x00A28170`, whose `RET 12` consumes those constructor arguments.
+It pushes B and then k before calling `0x00A26990` at `0x00A1BAD8`,
+with ECX=`u32(Q+0x3C)`. The getter removes only k with `RET 4`, leaving
+B on the stack. The following pushes supply its returned V and A, so
+`0x00A1BAE6` invokes `0x00A28210` with exactly `(A,V,B)`.
+That method's `RET 12` removes all three arguments. Its ECX is the local
+builder, not S. The block getter has no independent bounds check for k.
+
+For entry ESP R of `0x00A1BA90`, its local/saved-register setup gives
+ESP=R-0x24. B is at R-0x28 and k at R-0x2C before the getter call.
+After `RET 4`, pushing V and A gives R-0x30; `0x00A28210` enters at
+R-0x34 with A/V/B at entry +4/+8/+0x0C. Its `RET 12` restores R-0x24.
+Treating the intermediate getter as plain `RET` would change this ABI.
+
+The block's virtual +0x1C must supply a valid iterator with the expected
+cleanup. `0x00A28289` sign-extends record+0x0C to built-list index i;
+`0x00A28295` queries B through `0x00A21430`. A nonzero result M is
+passed unchanged to the appender on A at `0x00A282A6`. The appender
+`0x00A21520` increments A+0x10 without a capacity check. A zero lookup
+takes the diagnostic branch and is not appended. Valid count, capacity,
+iterator and retained array storage remain necessary.
+
+This relates B[i] to a resulting A[j]; it does not equate i and j.
+Secondary positions depend on iterator order and successful nonnull appends.
+The earlier count reset defines a fresh sequence only if intervening calls
+preserve the required fields and storage.
+
+### Same incoming receiver at initialization dispatch
+
+`0x00A1E710` retains incoming ECX in ESI. Its first argument b is passed
+to `0x00A28090` on `u32(Q+0x40)`, producing U. That getter has `RET 4`
+and no independent b bounds check. The nonzero-U branch calls
+`0x00A1BD20` with `(k,b)` and `RET 8`, retains U at S+0xB4, resets
+S+0x94 and A+0x10, then calls `0x00A1BA90(S,k,G)` at `0x00A1E76B`.
+The zero-U path does not establish this population.
+
+After population, `0x00A1E788` calls `0x00A1E540` with ECX=S, then
+`0x00A1E797` explicitly supplies that same S to `0x00A1E380`.
+The [scheduler-time contract](cut-scheduler-clip-timing.md#scheduler-time)
+owns the latter's conditional call to `0x00A1D330` at `0x00A1E419`.
+The receiver is retained in EBP and reloaded into ECX on that call.
+Expected callee-saved register and required-field preservation remain conditions.
+
+The [stack-context producer](uldah-halloween-material.md#stack-context-producer-and-initialization-dispatch)
+constructs local C from that incoming S and supplies C to slot 1 of a
+nonzero secondary entry M on its qualified branch. Under its existing
+retention, storage, state and table conditions, the relation is:
+
+```text
+B[i] -> A[j] -> M slot1(C)
+u32(C+0x0C) = S
+```
+
+If M retains the [RaptureMotionClip table](combat-motion-name-provider.md#factory-identity),
+that slot reaches its published initializer and RIDTBL name consumer.
+This is conditional invocation capability, not an observed selected clip.
+
+`0x00A1E820` also retains its incoming receiver and forwards it to
+`0x00A1E710` at `0x00A1EA27` on its state-dependent nonnegative-selection
+path. `0x00A1F3C0` retains its incoming receiver across its calls to
+`0x00A1E820` and `0x00A1E380`. No checked caller supplies the constructed
+combat S to those updater entries. That owner/state edge, selected block,
+iterator target, clip indices and retained storage remain separate bindings.
+
+### Caller reproduction
+
+The original PE identity and pefile/Capstone method above apply. Complete
+instruction ranges checked for the caller extension are half-open:
+
+| Function | Instruction union |
+|---|---|
+| 0x00A1CB20 | [0x00A1CB20,0x00A1CB5D) |
+| 0x00A1BA90 | [0x00A1BA90,0x00A1BB0E) |
+| 0x00A28210 | [0x00A28210,0x00A28349) |
+| 0x00A1E710 | [0x00A1E710,0x00A1E814) |
+| 0x00A1E820 | [0x00A1E820,0x00A1EA3F) |
+| 0x00A1F3C0 | [0x00A1F3C0,0x00A1F560) |
+| 0x00A1BD20 | [0x00A1BD20,0x00A1BD88) |
+| 0x00A28090 | [0x00A28090,0x00A280A8) |
+| 0x00A26990 | [0x00A26990,0x00A269A8) |
+| 0x00A27BD0 | [0x00A27BD0,0x00A27BD7) |
+
+The reused construction, collection getter/appender and wrapper bodies were
+also checked. The `0x00A1E540` union is
+`[0x00A1E540,0x00A1E677)` and `[0x00A1E680,0x00A1E705)`; its gap
+is not instruction coverage. The published local-context producer retains
+its own instruction union and intervening-call qualifications. No runtime
+entry, selected bank, clip invocation or playback was observed.
+
 ## Parsed clip-key table
 
 Let F be the selected `LaySchedulerFactory`. The parsed object P is the Q

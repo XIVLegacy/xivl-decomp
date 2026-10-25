@@ -44,7 +44,7 @@ Each record is 0x2c bytes, and every selected name is NUL-terminated
 within its 16-byte RIDTBL entry. The provider therefore preserves it
 without shortening. BID 0001 contains no SCB in this bounded RES walk.
 
-| Scheduler label | Clip / name-entry offsets | Index | Name | Matching selected bank |
+| Scheduler label | Clip / name-entry offsets | RIDTBL index | Name | Matching selected bank |
 |---|---|---:|---|---|
 | dead | 0x71c2c / 0x71ce0 | 0 | cbbm_ded | bid/0001 |
 | cas90 | 0x7223c / 0x722d0 | 0 | cbbm_wslp_1 | bid/0001 |
@@ -69,7 +69,7 @@ Every listed WSS name has same-bank MTB, MCB and CIBT entries. Offsets
 and byte counts in resource cells are `file offset / payload bytes`.
 Multiple entries are retained rather than choosing one by position.
 
-| WSS | Clip / name-entry offsets | Index | Name | MTB | MCB | CIBT |
+| WSS | Clip / name-entry offsets | RIDTBL index | Name | MTB | MCB | CIBT |
 |---|---|---:|---|---|---|---|
 | 0001 | 0x11404 / 0x11544 | 2 | cbbm_sp_01 | 0x3f8 / 66973 | 0xe0 / 792 | 0x10998 / 44 |
 | 0002 | 0xe064 / 0xe194 | 2 | cbbm_sp_02 | 0x3e8 / 53773 | 0xd0 / 792 | 0xd5f8 / 44 |
@@ -109,6 +109,12 @@ table formula. `tools/scb_clip_scheduler.py` supplied actor/class and clip
 record boundaries. Original RESOURCE_TYPE entries supplied native types
 `0x006D7462` (MTB), `0x006D6362` (MCB) and `0x63696274` (CIBT).
 Name matches compare complete final components of original RES names.
+
+Across all 808 clip records, the separate signed word `s16(D+0x0c)` equalled
+the record's zero-based position in its SCB's all-block order. This is the
+[built-list clip index](../resource/cut-scheduler-clip-timing.md#clip-index-word),
+distinct from the RIDTBL name index at D+0x10 in the tables above. It does not
+establish a selected block or invocation.
 
 All nonmetadata child extents and the needed metadata prefixes fit their
 owning views. No metadata declaration overran its view in this selection.

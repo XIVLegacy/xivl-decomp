@@ -122,12 +122,17 @@ reading authored data.
 ## Callback identity and remaining bindings
 
 Getter `0x00A20040` returns `u32(u32(C+0x0c)+0x74)` for the supplied
-callback context C. Construction establishes R for S; it does not establish
-that an invoked C retains this same S at +0x0c. The
-[existing context boundary](scb-clip-factory-composition.md#actor-collection-field-handoff)
-also separates these identities. A record-to-RIDTBL interpretation requires
-that corresponding scheduler context, retained parsed fields, valid resource
-lifetime and the qualified registry state.
+callback context C. Construction alone establishes R for S. The
+[secondary-collection caller relation](scb-clip-factory-composition.md#secondary-collection-callers-and-callback-context)
+conditionally carries a built pointer from S+0x34 to S+0x30 and retains the
+same incoming receiver into the published stack-context producer. With its
+required storage, iterator, state and field retention, that producer supplies
+slot 1 with C holding S at +0x0c. If the selected pointer retains the
+RaptureMotionClip table, its initializer reaches this name consumer.
+Delivery of a constructed combat Scheduler to that updater and actual selected
+invocation remain unproved. A record-to-RIDTBL interpretation still requires
+the corresponding retained context, parsed fields, resource lifetime and
+qualified registry state.
 
 The [selected Castrum records](../actor/castrum-presentation.md#motionclip-names-and-resident-mtb-entries)
 apply this conditional local-name formula to original resource bytes.

@@ -61,6 +61,12 @@ selection classes. All 30 SCBs had one ProxyActor record and all 223 clips
 selected actor ordinal 0. Class names did not prove execution; raw slot-7
 values were not interpreted as encounter timers.
 
+Across all 223 records, `s16(D+0x0c)` equalled the record's zero-based
+position in its SCB's all-block clip order. The
+[clip-index contract](../resource/cut-scheduler-clip-timing.md#clip-index-word)
+uses this word for built-list lookup. This authenticated index alignment does
+not establish a selected block, callback invocation or encounter timing.
+
 All 28 MTBs had version 0x43, Header and SpuBinary section names, three group
 names (root, 005_n_hara, other), and three motion pair-table entries. Their
 big-endian SpuBinary blobs contained 58 descriptors and 4212 channels.
@@ -84,7 +90,7 @@ The four m052 files above contain seven MotionClip records. Offsets in this
 table are absolute file offsets. Bank abbreviations are relative to
 `client/chara/mon/m052/act/emp_emp/`, with `base/` omitted.
 
-| Bank | Scheduler label | Clip D | Index | Name entry | Selected name | Same-bank MTB offset |
+| Bank | Scheduler label | Clip D | RIDTBL index | Name entry | Selected name | Same-bank MTB offset |
 |---|---|---:|---:|---:|---|---:|
 | bid/0000 | dead | 0x4821c | 1 | 0x482e0 | cbbm_ded | 0x19328 |
 | bid/0000 | cas00 | 0x4874c | 1 | 0x487f0 | cbbm_abl_1 | 0xe1d8 |
