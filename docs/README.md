@@ -108,6 +108,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Grand Company mission bytecode branches](event/grand-company-mission-bytecode.md)
 - [Grand Company and exchange catalogs](event/grand-company-exchanges.md)
 - [Instance-raid widget lifecycle](event/instance-raid-widget-lifecycle.md)
+- [Inn position record continuation](event/inn-position-record.md)
 - [JobQuestCompleteTriple receiver](event/job-quest-triple-receiver.md)
 - [KickClientOrderEvent receiver](event/kick-order-event-receiver.md)
 - [Notice target staging and widget lifetime](event/notice-widget-lifetime.md)
