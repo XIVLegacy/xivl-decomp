@@ -64,6 +64,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Native item-appearance boundary](actor/item-appearance-boundary.md)
 - [Actor and coordinate map-marker lanes](actor/map-marker-lanes.md)
 - [Monster model-state and color transitions](actor/model-state-color-transitions.md)
+- [Cibb pointer installation and record flag](actor/cibb-pointer-and-record-flag.md)
 - [Thornmarch Moogle action contract](actor/moogle-action-contract.md)
 - [MyPlayer vtable slot 3 callers](actor/myplayer-slot3-callers.md)
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
