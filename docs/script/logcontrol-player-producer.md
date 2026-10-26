@@ -122,13 +122,72 @@ plain English cells. No replacement row or language follows from this result.
 
 ## Native default and execution boundary
 
+OBSERVED. The parser used by 0x00C98A90 selects factory 0x00DC21E0.
+The factory calls constructor 0x00DC3740, which installs table 0x01129BF0.
+Complete-object
+locator 0x011A318C and type descriptor 0x012E1214 identify
+.?AVDOM_Element@Xml@Component@@. The parser passes that receiver through
+child insertion 0x00DC34E0 and collection 0x00DC36F0 -> 0x00DC3590 to
+registration 0x00C98580. Registration retains the receiver for its attribute
+call at 0x00C986B3 and both ExcelSheet constructor callsites. Parsing,
+allocation and vector helper completion remain conditions. This static join
+does not establish a loaded native receiver.
+
+OBSERVED. DOM_Element table slot +0x1C is 0x0099ADB0. An absent attribute
+returns wrapper 0x0137B248 through the name search at 0x00DC2ED0.
+Initializer 0x00F2DED0 calls 0x00445CF0, which gives that wrapper stored
+size 1, cached length 0 and NUL content. Initializer 0x00F2C700 constructs
+attribute-name wrapper 0x01376200 from literal param at 0x01108B90 through
+0x00447260. Registration saves the attribute result at 0x00C986B7 and
+passes it as the fourth explicit argument at both constructor callsites.
+The constructor supplies it to 0x00CAFA80 at 0x00CB08F2. These wrapper
+properties require normal static initialization.
+
 OBSERVED. Constructor 0x00CB0811 initially stores the first logical index at
-sheet +0x0B, giving 1 for this metadata. The later call at 0x00CB08F2 passes
-the param attribute to 0x00CAFA80. The DOM_Element candidate missing-attribute
-path returns an empty UTF-8 value and skips the initial parameter insertion
-loop. The actual XML receiver feeding 0x00C986B3 and fresh SHEET-map/DEF join
-through 0x009130A0 remain open. Initial default 1 is not a proved final native
-default. The row-absence result does not depend on that unresolved default.
+sheet +0x0B, giving 1 for this metadata. It also initializes the map at
+sheet +0x20 with a self-linked sentinel at 0x00CB0511..0x00CB052C.
+Before the override, block construction at 0x00CB08A8 calls 0x00CC3330
+with the sheet pointer, retained at block +0x08 by 0x00CC3370. The enable
+attribute can select resource-service slot +8 at 0x00CC3542 or +4 at
+0x00CC354F with that block as callback and selector -2. Initializer
+0x00F2CD80 anchors the attribute wrapper to literal enable at 0x0110DC88.
+The selected service implementation, synchronous callback behavior and
+writes through the retained sheet pointer remain unproved. Initial default 1
+and the initialized map therefore do not establish their state at override
+entry.
+
+OBSERVED. The override initializes its local vector empty. Its first split at
+0x00CAFAF0 reaches 0x0044F770 -> 0x00446FB0 -> 0x00446B10. A source
+wrapper with stored size 1 returns 0xFFFFFFFF at 0x00446B22..0x00446B29.
+The comparison at 0x0044F7B9 then exits before insertion 0x0044F7F9.
+Thus the normally initialized missing-param wrapper leaves the first split
+empty and skips the parameter insertion loop. Between the splits,
+0x00CAFD15 calls 0x00444DC0 with equal zero range endpoints. Its branch
+at 0x00444DE1 reaches 0x00444E2D without mutating the vector.
+
+OBSERVED. The later SHEET query at 0x00CAFD6D uses ExcelSheet slot +0x24,
+0x00CAF7B0, and the map at sheet +0x20. Search 0x00CB0B90 reaches
+0x009130A0. On an empty map its sentinel test returns the miss iterator,
+and 0x00CAF807 returns wrapper 0x01266B10. That file-backed wrapper has
+pointer 0x01266B22, capacity 0x40, stored size 1, cached length 0, flags
+1/1 and a pointed NUL byte. The second split at 0x00CAFD70 takes the same
+no-insertion exit. The empty vector then takes 0x00CAFDA3 -> 0x00CAFE1B,
+bypassing DEF comparison 0x00CAFDCB and the default-byte store at
+0x00CAFE14.
+
+INFERRED. With normal initialized wrappers and an empty sheet +0x20 map at
+entry to 0x00CAFA80, absent param leaves both split results empty and
+bypasses the local DEF store. On normal completion the override preserves its
+entry default byte. If that byte is 1, it remains 1 through this local path. The
+initial store at 0x00CB0811 does not independently prove an entry value of 1.
+
+OBSERVED. The later constructor call at 0x00CB08FA reaches 0x00CB0140.
+Its inspected instructions contain no direct store to sheet +0x0B. Its
+row-block path reaches 0x00CC36D0 and 0x00CC2640, which can dispatch
+resource-service calls with selectors -3 and -1. These later effects and
+the earlier selector -2 effects leave map state, override-entry default
+and the final native default unproved. No final physical column follows.
+The row-absence result does not depend on those unresolved values.
 
 UNKNOWN. Global native identities and startup assignments, invocation of
 _onInit on the selected owner, readiness, dynamic method/native binder
