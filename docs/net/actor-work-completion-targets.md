@@ -53,6 +53,87 @@ after that attempt does it compare status with the symbolic global at
 `0x0134BB04`; inequality selects the later transfer call. Runtime contents
 of that global are not established by file-backed bytes.
 
+## SyncMemory wrapper inputs
+
+Let I be wrapper `0x00759ED0`'s incoming ECX, P its second stack argument,
+and T its temporary receiver. The
+[incoming-state finding](../script/job-action-acquisition.md#incoming-state-and-outgoing-work-requests)
+owns the one-byte length N at P and the copied N-byte stream starting at P+1.
+At `0x00759EFA-0x00759F06`, the wrapper supplies `(P+1,N)` to constructor
+`0x0089F4C0` with ECX=T. The constructor stores `0x0105747C` at T+0
+and requests `0x00531320(this=T+4, begin=P+1, end=P+1+N)` at
+`0x0089F4FE-0x0089F50C`. The copy/storage helper's successful completion
+remains a condition; this selected body does not independently validate it.
+
+At `0x00759F13-0x00759F1F`, the wrapper supplies Receive `0x0089E550`
+with ECX=T and ordered stack arguments `(O=I+4, X=dword[I+8])`.
+O is an address, separately saved in ESI by Receive. It is not `dword[I+4]`.
+The caller of the wrapper and the provenance of I/P remain unselected.
+
+Receive calls `0x00CC7510` with ECX=O at `0x0089E57B`. If H is its
+return, `0x0089E584-0x0089E586` load `B=dword[dword[H]+4]`.
+The later manager receiver is `dword[B+0xEC]` at `0x0089E59E`.
+These operands do not identify the live manager or owner.
+
+Receive next supplies `0x00CC73B0(this=O, A, X)` at `0x0089E591`.
+At `0x0089E589-0x0089E58E`, X is pushed before A is formed. The LEA
+therefore addresses Receive's incoming first-argument stack word, whose O
+value was already saved in ESI. A is not the X slot or an implementation-field
+address.
+
+The helper loads `dword[O]` into ECX and calls
+`0x00CD7A30(this=dword[O], X)` at `0x00CC73B5-0x00CC73C1`.
+Let J be the selected registry entry returned by that lookup. It loads A
+into ESI at `0x00CC73C6`, then calls `0x00CC7030(this=J, A)` at
+`0x00CC73CA-0x00CC73CD`. The existing
+[binding-reference finding](../event/counted-lua-item-references.md#wire-shape)
+and [entry-key copy finding](../script/delegate-command-producer.md#refusal-reply)
+own the lookup and the dword copy from entry J+0x70 into A.
+`0x00CC73D2` returns A in EAX, with `RET 8` at `0x00CC73D6`.
+After normal helper completion, the call at `0x0089E5AA` is:
+
+| Operand of `0x00775A30` | Selected source |
+| --- | --- |
+| ECX | `dword[B+0xEC]`, loaded at `0x0089E59E` |
+| Argument 1, O | Saved ESI, pushed at `0x0089E5A9` |
+| Argument 2, Kp | A returned in EAX, pushed unchanged at `0x0089E5A8` |
+| Argument 3, S | Address T+4, formed/pushed at `0x0089E5A4-0x0089E5A7` |
+
+Thus S addresses the receiver's embedded stream storage, while Kp=A
+addresses the copied key `dword[J+0x70]`. X remains a lookup input; neither
+`[Kp]=X`, `Kp=I+8` nor a concrete numeric key/packet actor ID is established.
+
+On the accepted new-updater construction path below, the initial value at
+newU+0 is consequently `dword[Kp]=dword[A]=dword[J+0x70]`. Existing
+context/state/readiness guards, reuse paths and callback/transfer conditions
+still apply. This identifies operand transport without identifying a packet
+actor ID, registry entry, live binding or particular runtime actor.
+
+The local cleanup call `0x0089E5BB` uses A after `0x00775A30` returns.
+Receive returns with `RET 8` at `0x0089E5D2`; the wrapper then requests
+destruction of T at `0x00759F30` and returns with `RET 8` at `0x00759F45`.
+If new-updater construction occurs during this `0x00775A30` call, its copy
+precedes these normal-path cleanup requests. Later key/object/registry or cached replay lifetime remains unproven.
+Valid input/storage, ordinary callee-preserved registers, expected argument
+cleanup and normal helper returns remain conditions. These static calls do
+not establish server publication policy, rendering, historical invocation
+or encounter causality.
+
+The additional selected ranges in the same pinned original `ffxivgame.exe`
+are `[0x00759ED0,0x00759F48)`, `[0x0089E550,0x0089E5D5)`,
+`[0x0089F4C0,0x0089F52E)` and `[0x00CC73B0,0x00CC73D9)`, totaling
+404 bytes. Retained Ghidra listing bytes were matched to original
+section-backed PE bytes with pefile
+`2024.8.26` and every byte was independently decoded with Capstone `5.0.7`,
+x86-32. The old export run identity was not established; original-byte
+comparison and complete-range decoding support these local operand facts.
+There were no listing gaps, undecoded tails or interior returns;
+each selected body follows a straight-line normal path through calls to its
+final return. Unselected callees, unwind paths and typed static data were
+not inspected. Reproduction authenticates the binary size/hash/image base
+given below, maps these exact ranges through PE raw section offsets, compares
+every listing byte and independently decodes their complete extents.
+
 ## New updater key construction
 
 Let Kp be the pointer supplied as the second argument of `0x00775A30`.
@@ -141,8 +222,9 @@ selected bodies totalling 3168 instruction bytes: the 173-byte constructor and
 2995 bytes of previously covered code, including the 11-byte classifier.
 The retained record-processor gap stayed excluded; no typed static data was
 read. Exact operand checks distinguished copying `[Kp]` from storing Kp,
-a fixed pointer, or the separate construction byte. This supplies no upstream
-producer for the numeric key passed to `0x00775A30` and no runtime observation.
+a fixed pointer, or the separate construction byte. The wrapper/helper
+transport above qualifies the selected entry's copied binding reference;
+its concrete numeric value and runtime identity remain unestablished.
 
 A local discriminator must correlate the actual actor/context key, O and
 resolved owner with the full `0x0137` stream; record `C+0x24`, updater flags,
