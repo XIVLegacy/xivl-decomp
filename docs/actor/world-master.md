@@ -107,8 +107,13 @@ are Lua-implemented wrappers that compose the C++ primitives.
 | `getJSTWeekAndDay(self)` | Current Japan Standard Time week + day-of-week |
 | `calcJSTWeekAndDay(self, time)` | Convert a UNIX timestamp to JST (week, day). Internal: `floor((time + 9*3600) / (7*86400))` style |
 | `getJSTWeekPastTimes(self, time)` | JST seconds-since-epoch (for seasonal-event windowing) |
-| `createCutScene(self, name, ...)` | Schedule a cutscene by name (wrapper around C++ cutscene scheduler) |
+| `createCutScene(self, scene, subject)` | Lua scene factory with fixed arguments |
 | `CutScene` | Cutscene factory namespace |
+
+The factory's exact global callable, argument positions and full-result
+forwarding are recorded in
+`xivl-client-scripts:docs/content-director-ui-contracts.md`, WorldMaster scene
+factory, at revision `563c1a875a7ba686507b336f8c9ff4ba2ab2a449`.
 
 ### `WorldMaster_event.lpb` (329 LOC) - the dialog/notification API
 
