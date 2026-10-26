@@ -34,6 +34,12 @@ Garuda, Lesser Ifrit, Lesser White General, Normal Garuda, Normal Ifrit, and
 Normal White General. Empty two-line subclasses still inherit the base
 lifecycle; absence of an override is not absence of behavior.
 
+The canonical `InstanceRaidBaseClass` countdown comparisons, repeat suppression
+and exact notification arguments are owned by
+`xivl-client-scripts:docs/content-director-ui-contracts.md#instance-raid-countdown-and-notices`.
+That original-bytecode contract applies to the inherited timer consumer; it
+does not establish the times supplied by a historical server.
+
 ## Hamlet presentation order
 
 The three opening cutscenes own the location title. Their marker maps through
