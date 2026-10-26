@@ -149,8 +149,10 @@ Capstone `5.0.7` in x86-32 mode, including the cited vtable and RTTI data.
 The caller `0x004E20A0` obtains holder H through `0x00DAE520`.
 With nonnull H, it supplies P=[H+`0x24`] and the key from H+`0x14` to `0x004DC690`
 at `0x004E221D`. Keys satisfying `(K & 0x5FF80000)==0x5FF80000`
-become `0x5FF80002-(K&1)`. The production of H inside `0x00DAE520`
-and the native-view-to-wire relationship remain untraced.
+become `0x5FF80002-(K&1)`. The [wrapper source and frame](network-dispatch-paths.md#the-dispatch-wrapper---fun_00dae520)
+qualifies its supplied record, direct publication and post-dispatch reload.
+That proof does not equate its H' with this caller's H or establish the
+native view's outer-wire relationship.
 
 After its entry checks, the [receive dispatcher](receive-dispatch-ranges.md)
 selects `0x004DCFFF` for opcode `0x0145`. Lookup through `0x004D9910`
