@@ -8,7 +8,9 @@ Observed against FINAL FANTASY XIV 1.23b ffxivgame.exe, build 2012.09.19.0001,
 image base 0x00400000. All locators are VAs. Ghidra CLI 0.2.2 disassembly,
 referenced tables and RTTI establish the static contract. Decompilation is
 navigation only. Confidence is high for the cited instructions and data.
-A real producer, selected row and live result remain unproved.
+Conditional Lua producer frames and English row availability are recorded in
+the [player producer contract](../script/logcontrol-player-producer.md).
+Native lookup execution and a live result remain unproved.
 
 The [pool feed contract](logcontrol-pool-feed.md) owns the native arguments,
 category gates, listener, FIFO and publication behavior.
@@ -100,13 +102,15 @@ Since this caller initializes O empty at 0x00771DEC..0x00771DF3, that
 conditional case returns the same pre-NUL byte sequence without parameter
 substitution and meets the caller's positive-result gate.
 
-UNKNOWN. No actual cell is established to satisfy this condition. Actual K,
-R, registered sheet, cache mode, default logical or physical column, cell type
-and contents remain unproved. No producer or shared load callsite is joined
-to this lookup. Parameter arity, four-argument Lua binder acceptance, category
-admission, asynchronous completion, macro behavior outside this branch,
-fallback, formatting and rendered visibility remain unknown. The rule does not
-remove the earlier category 0x1B path or other gates in the pool feed contract.
+UNKNOWN. No actual cell is established to satisfy this condition. Actual native
+K/R, registered sheet, cache mode, final default logical or physical column,
+and cell contents remain unproved. The player producer contract records exact
+conditional call frames, a WorldMaster load callsite and absent English rows.
+It does not join the global owner to an initialized native instance. Native
+parameter acceptance, four-argument Lua binder acceptance, category admission,
+asynchronous completion, macro behavior outside this branch, fallback, formatting
+and rendered visibility remain unknown. The rule does not remove the earlier
+category 0x1B path or other gates in the pool feed contract.
 
 ## Reproduction
 
