@@ -188,6 +188,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [s2c 0x0190 persistent consumer](net/s2c-0190-persistent-consumer.md)
 - [s2c 0x0193 native state](net/s2c-0193-native-state.md)
 - [SyncWriter wire format](net/sync-writer.md)
+- [Actor work completion targets](net/actor-work-completion-targets.md)
 - [Weather transition runtime](net/weather-transition-runtime.md)
 - [Three-city weather resource selection](net/city-weather-selection.md)
 - [Music packet control](net/music-control-runtime.md)

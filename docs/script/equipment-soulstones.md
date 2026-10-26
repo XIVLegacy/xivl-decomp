@@ -129,6 +129,11 @@ does not itself update masks, rebuild the list or request list-focus refresh.
 These are conditional callback paths, without proof that a particular job-byte
 packet delivers them or establishes rendered timing.
 
+The [native actor completion-target contract](../net/actor-work-completion-targets.md)
+binds the selected `charaWork/battleParameter` marker to a guarded Lua callback
+attempt. Concrete live actor resolution, callback arrival and rendering remain
+separate observations.
+
 The original Lua 5.1 locators below use zero-based PCs. Method names and
 canonical paths are in `xivl-client-scripts:lua/registry.json`; original
 resource/payload identities are in its `manifests/retail_lua_coverage.json`.

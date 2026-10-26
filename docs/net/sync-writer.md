@@ -33,6 +33,10 @@ When the field uses a shared-work wrapper, that wrapper's slot 1 forwards to
 the inner concrete writer's slot 1. The writer class is selected by the
 registered Information subtype; it is not a fixed actor-structure offset.
 
+The [actor completion-target contract](actor-work-completion-targets.md) owns
+the separate marker, initialization, owner/readiness and Lua-notification
+path after property application.
+
 ## Common scalar layout
 
 The retained Boolean, Integer8, Integer16, Integer24, Integer32, and Float
