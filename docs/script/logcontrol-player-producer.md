@@ -151,10 +151,10 @@ with the sheet pointer, retained at block +0x08 by 0x00CC3370. The enable
 attribute can select resource-service slot +8 at 0x00CC3542 or +4 at
 0x00CC354F with that block as callback and selector -2. Initializer
 0x00F2CD80 anchors the attribute wrapper to literal enable at 0x0110DC88.
-The selected service implementation, synchronous callback behavior and
-writes through the retained sheet pointer remain unproved. Initial default 1
-and the initialized map therefore do not establish their state at override
-entry.
+The selected construction and callback paths are described below. Actual
+delivery, timing and complete callback effects through the retained sheet pointer
+remain unproved. Initial default 1 and the initialized map therefore do not
+establish their state at override entry.
 
 OBSERVED. The override initializes its local vector empty. Its first split at
 0x00CAFAF0 reaches 0x0044F770 -> 0x00446FB0 -> 0x00446B10. A source
@@ -188,6 +188,56 @@ resource-service calls with selectors -3 and -1. These later effects and
 the earlier selector -2 effects leave map state, override-entry default
 and the final native default unproved. No final physical column follows.
 The row-absence result does not depend on those unresolved values.
+
+OBSERVED. The selected construction at 0x004B33B6..0x004B33FC stores a
+ResourceModule pointer at enclosing object +0x50 and supplies it to
+ExcelModule constructor 0x00C98C30, which retains it at module +8.
+Registration and construction carry that pointer to sheet +4 and block +4.
+ResourceModule constructor 0x00C99090 installs table 0x01108C3C at 0x00C990C3, whose
+slots +4/+8 select 0x00C99130/0x00C992D0. Complete-object locator
+0x0119C364 and descriptor 0x0130B648 identify
+.?AVResourceModule@Resource@Component@@. This qualifies the selected
+successful construction under retained object/table identity, not an actual
+active carrier.
+
+OBSERVED. Block constructor 0x00CC3330 installs table 0x0110DC94 at 0x00CC3367.
+Complete-object locator 0x0119D660 and descriptor 0x0130C4B8 identify
+.?AVExcelSubSheet@Excel@Component@@ with offset zero. Slot +4 selects
+0x00CC39F0 without receiver adjustment. The block retains the service at
++4 and sheet at +8. The early -2 and later -3/-1 calls use that service
+and supply the block as callback.
+
+OBSERVED. The selected existing-resource paths call 0x00CAED30 at
+0x00C991C7/0x00C99383. Literal 1 selects the list at resource +0x74.
+Helper 0x008F75C0 copies callback and selector to node +8/+0x0C.
+The nonnull new-resource path forms the same pair at 0x00CAEF02.
+Dispatcher 0x00CAE9E0 reads those fields at 0x00CAEA32..0x00CAEA47
+and invokes callback slot +4 with the incoming flag, resource and selector.
+For the selected block table this reaches 0x00CC39F0. No dispatcher caller,
+actual delivery, progress schedule or synchronous completion is established.
+
+OBSERVED. A nonzero flag in 0x00CC39F0 selects these branches. A zero flag
+calls 0x00CC2E40. The shown normal returns decrement block +0x20 and
+return the incoming low flag byte after the nested calls return normally.
+
+| Selector | Target | Observed sheet use |
+| --- | --- | --- |
+| -2 | 0x00CC3590 | Appends delivered dwords through sheet +0x44 vector state and advances sheet +0x4C on the sufficient-capacity path at 0x00CC3603..0x00CC360B. The capacity path calls 0x008CFC80. |
+| -1 | 0x00CC3850 | Changed row count and zero sheet byte +8 permit sheet slot +0x0C with zero at 0x00CC388A. The retained ExcelSheet table selects 0x00CB0140. |
+| -3 | 0x00CC30C0 | Passes the sheet to row-wrapper constructor 0x00C9A810 and invokes slot +0x0C of the cache at sheet +0x40. Parser 0x00C9A6A0 reads sheet +0x0A/+0x10 and writes allocated row storage. |
+
+OBSERVED. For a matching selector/resource record, 0x00CC2E40 can invoke
+resource slot +0x14 at 0x00CC2F6A, then call unexhausted helper
+0x00CC3F20 at 0x00CC2F84 with the pending-record container and iterator
+state. Record removal and the helper's nested effects are not established.
+
+UNKNOWN. Generic vector insertion, the offset-conversion helpers
+selected by 0x00CC3850, its tail after 0x00CC396F, the installed cache
+implementation, wrapper cleanup/string conversion and resource access/calls
+remain nested boundaries. These selected callback operations establish
+enabled-row and cache effects, not complete preservation of sheet +0x0B or
+sheet +0x20. The absent-param entry-byte rule retains its initialized-wrapper
+and empty-map conditions. No final numeric default or physical column follows.
 
 UNKNOWN. Global native identities and startup assignments, invocation of
 _onInit on the selected owner, readiness, dynamic method/native binder
