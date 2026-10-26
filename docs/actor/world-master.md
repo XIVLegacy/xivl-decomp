@@ -115,6 +115,38 @@ forwarding are recorded in
 `xivl-client-scripts:docs/content-director-ui-contracts.md`, WorldMaster scene
 factory, at revision `563c1a875a7ba686507b336f8c9ff4ba2ab2a449`.
 
+#### Native scene-creation handoff
+
+If the factory's global `_createActor` resolves through the documented
+Global forwarder and native binding, the forwarder supplies the `global`
+receiver separately. The factory's five values occupy these native
+ExecuteParameters cells:
+
+| Cell | Factory value | Native role |
+| ---: | --- | --- |
+| 0 | nil | Instance name; the native reads nil as its empty string object. |
+| 1 | `"CutScene"` | Class-registry lookup key. |
+| 2 | false | Requests creation, bypassing the existing-control reuse branch. |
+| 3 | scene | First cell of the payload tail copied for conversion. |
+| 4 | subject | Second cell of that tail. |
+
+The receiverless call convention is owned by
+`xivl-client-structs:docs/global-native-contract.md`, Forwarder. Native cell
+handling, payload conversion, class selection and return conditions are owned
+by `xivl-client-structs:docs/create-actor-native-contract.md`, Registration and
+signature, Call sequence, Class kinds and Creation, with its structured
+record `manifests/create_actor_native_call_contract.json`.
+
+Under that class registry, `CutScene` selects creator `0x006E19D0` and the
+fixed control identity `0xC0000005`. Its native profile requests `_onInit`
+with the converted payload and takes the wait/checker path. Conversion does
+not establish unchanged scene/subject object identity, and the checker does
+not prove that `_onInit` finished. Native errors, thread termination and
+runtime binding/class state remain conditions. The Lua factory forwards all
+results; this does not guarantee that a valid control returns or that playback
+succeeds. These are a composition of the cited client contracts, without a
+new original-byte reading or a duty/encounter-mode assignment.
+
 ### `WorldMaster_event.lpb` (329 LOC) - the dialog/notification API
 
 This is **THE most-called API in the corpus** (3,100 hits). Every
