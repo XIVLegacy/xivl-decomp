@@ -296,8 +296,11 @@ the defaults. Larger rows are initialized by `0x00bbb990` from the value that
 
 The routine `0x00c133e0` looks up the slots of these names and of `vfogRange`,
 `vfogTopColor` and `vfogBottomColor` in the loaded shader's constant table and
-keeps the slot indices. The model matrices, the light constants and the latitude
-constants are bound by routines that were not traced.
+keeps the slot indices. The
+[selected model material-value contract](vfx-model-material-values.md) records
+normal source copies, current-value pointers, constant request counts and
+sampler/texture forwarding. Per-instance matrix, light, fog and latitude values,
+current renderer state and actual draw execution remain unobserved.
 
 ## What a renderer needs for this family
 
@@ -340,9 +343,11 @@ constants are bound by routines that were not traced.
   [emitters page](vfx-generate-emitters.md).
 - The material constant that the type 0xa parameter writes, and so which shader
   constant receives the flipbook matrix. CALIBRATION.
-- The material parameter type codes other than the color write and type 0xa, the
-  sources of the model, light, fog and latitude constants and the model draw call
-  that follows the constant binding.
+- Remaining DrawResource material parameter cases beyond the color write and
+  type 0xa, current evaluated model/light/fog/latitude values and actual selected
+  draw execution. The [normal model material-value contract](vfx-model-material-values.md)
+  records bounded source, constant and sampler requests without selecting a
+  current B0 instance.
 - Whether and how a unit is drawn as a camera-facing billboard. No billboard
   routine was followed.
 - The node flag bits other than 0, 2, 5 and 6 and the origin of the node depth
