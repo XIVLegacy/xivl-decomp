@@ -104,11 +104,31 @@ without lane conversion. Format mapper 0x00C1B980 uses table 0x00C1B9F8:
 
 The conditional compact descriptor prefix built by 0x00C1A100 is count 4 followed
 by these (offset, component count, storage, mapped format) tuples: (0,4,3,0),
-(8,4,8,1), (12,4,8,10) and (16,2,7,2). The numeric mappings establish no attribute
-usage, signedness, normalization or graphics API type. The
-[WRB declaration boundary](wrb-vertex-declaration.md) has its own producer,
-packing and converter evidence. No join imports its API semantics into these
-tuples.
+(8,4,8,1), (12,4,8,10) and (16,2,7,2). The selected tuples enter the shared compact builder at
+0x00C1A8B0..0x00C1A8E6, after the tuple construction at
+0x00C1A210..0x00C1A338. Builder 0x00C1E410..0x00C1E55F uses
+0x00C1E1D0 and 0x00C1E260, appends the terminator and calls retained Core
+slot +0xC0. Table 0x010B590C at Core global 0x0136B6B0 holds 0x00B9FCE0
+in that slot. Calls at 0x00B9FCEB and 0x0041891D join 0x004188B0 and
+0x00419A20. The
+[WRB declaration boundary](wrb-vertex-declaration.md#api-array-conversion)
+supplies the common converter and primary API authority. Under that join, the
+selected four rows are:
+
+| Byte offset | Components | Compact format/usage | API Type/Usage/Index | Interpretation |
+| ---: | ---: | --- | --- | --- |
+| 0 | 4 | 4/0 | 7/0/0 | SHORT4 POSITION0 |
+| 8 | 4 | 3/2 | 8/3/0 | UBYTE4N NORMAL0 |
+| 12 | 4 | 3/3 | 8/10/0 | UBYTE4N COLOR0 |
+| 16 | 2 | 2/8 | 15/5/0 | FLOAT16_2 TEXCOORD0 |
+
+All streams and emitted Methods are zero. These API meanings require valid
+initialized scratch globals 0x01328D88/0x01328D8C, successful prior allocation,
+retained Core identity and normal nested completion. The builder stores the
+returned value at declaration +0x4C without a shown nonnull check. API
+normalization is not observed CPU arithmetic or successful resource creation.
+The legacy seven-byte source layout remains distinct from the
+[modern eight-byte components](vfx-modern-model-geometry.md#vertexbuffer-dictionary).
 
 Kind 12 has count 1 and record I at [3920,3988). Its raw code is 4, big-endian
 u32 I+1 is 24, u32 I+5 and u16 I+9 are zero, and byte I+0x0B is 8. The selected
@@ -197,7 +217,7 @@ test. Alternate and staging paths are separate conditions. Complete native setup
 and lower creator/interface identities remain unresolved. A helper return value
 of 1 is not evidence of a nonnull underlying resource.
 
-These findings establish no native construction success, graphics API
-interpretation, effect activation, color or matrix calculation, resource lifetime,
+These findings establish no native construction success, imported primitive
+topology, effect activation, color or matrix calculation, resource lifetime,
 actual binding, draw execution or rendered output. They do not join this selected
 model to an actual DrawResource instance or complete its final submission path.

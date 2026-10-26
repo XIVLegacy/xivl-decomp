@@ -211,9 +211,12 @@ The model chunk carries the file magic `vfxm` at its `+0x04` in its dword form
 carries `vins` the same way. The animation chunk carries `vfxa` the same way. The
 selected legacy version-2.2 geometry and material framing is described in
 [Legacy VFX model geometry](vfx-legacy-model-geometry.md). The
+[modern geometry field dictionary](vfx-modern-model-geometry.md) records the
+selected stock version-4 header, geometry fields, packed sources and conditional
+declaration interpretation. The
 [seasonal model and material bindings](seasonal-model-material-bindings.md)
-describe a separate version-3-or-later representation. Those bounded findings
-do not establish every model, animation or instance layout.
+provide its indexed-library and material context. Those bounded findings do not
+establish every model, animation or instance layout.
 
 A shader record is a 16 byte key, a big endian u32 length, 12 pad bytes and the
 Direct3D 9 token stream of that length. The length plus 32 equals the record size
@@ -321,8 +324,8 @@ constants are bound by routines that were not traced.
 ## Unknown
 
 - Complete model setup and submission beyond the bounded
-  [legacy version-2.2 sources and material framing](vfx-legacy-model-geometry.md)
-  and the separate
+  [legacy version-2.2 sources and material framing](vfx-legacy-model-geometry.md),
+  the [selected version-4 field dictionary](vfx-modern-model-geometry.md) and
   [version-3-or-later bindings](seasonal-model-material-bindings.md), including
   unqualified sprite-buffer paths and lower resource creation.
 - The calc bodies of `ColorRGBARoot`, `MatrixRoot` and the angle and scale
