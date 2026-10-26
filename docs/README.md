@@ -232,6 +232,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
 - [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
+- [LogControl and pool feed static contract](resource/logcontrol-pool-feed.md)
 - [Sqwt XPath data sources](resource/sqwt-xpath-data-sources.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
