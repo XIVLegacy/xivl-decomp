@@ -53,10 +53,10 @@ runtime-resolved.
 
 ## Two dispatch patterns
 
-Receivers split into two physical-allocation patterns based on
-their vtable size:
+The wrapper body determines receiver allocation and application. Vtable
+size alone does not select the dispatch pattern:
 
-### Pattern A - stack temporary (2-slot Receivers, ~24 of 43)
+### Pattern A - stack temporary with direct application
 
 LuaActorImpl::slotN body stack-builds the Receiver, invokes
 `Receive`, then destructs it in-place:
@@ -74,16 +74,20 @@ void LuaActorImpl::slot48(SetEventStatusPacket* pkt) {
 This is visible by direct CALL rel32 from the LuaActorImpl slot to
 the Receiver's `Receive` method.
 
-### Pattern B - heap-allocated, long-lived (5/6-slot Receivers, ~6 of 43)
+### Pattern B - retained event receiver
 
 For Receivers participating in the event lifecycle (Kick /
-StartServerOrderEvent / EndClientOrderEvent / JobQuestCompleteTriple
-/ UserData / ChangeActorSubStatStatus), the LuaActorImpl slot
+StartServerOrderEvent / EndClientOrderEvent / ChangeActorSubStatStatus), the LuaActorImpl slot
 heap-allocates the Receiver and keeps it alive across multiple
 packets. `Receive` itself is invoked through the Receiver's own
 vtable (slot 2), so the slot has no direct CALL to `Receive` - only
 to the Receiver's ctor. The slot mapping is recovered by tracing
 **ctor write callsites** instead.
+
+The [UserData receiver](../event/user-data-receiver.md) uses Pattern A
+through its two-slot primary interface, despite its separate six-slot
+secondary interface. [JobQuestCompleteTriple](../event/job-quest-triple-receiver.md)
+has its own two-stage Pattern C path.
 
 ## Recovered slot map (LuaActorImpl)
 
@@ -101,7 +105,7 @@ authoritative version:
 | 56  | `FUN_0076c0d0` | **KickClientOrderEventReceiver**    | B |
 | 57  | `FUN_0076c220` | **StartServerOrderEventFunctionReceiver** | B |
 | 58  | `FUN_0076c3b0` | **EndClientOrderEventReceiver**     | B |
-| 59  | `FUN_00759e50` | UserDataReceiver                    | B |
+| 59  | `FUN_00759e50` | UserDataReceiver                    | A |
 | 60  | `FUN_00759ed0` | SyncMemoryReceiver                  | A |
 | 61  | `FUN_00759f50` | SetTargetTimeReceiver               | A |
 | 62  | `FUN_0076c4d0` | SetDisplayNameReceiver              | A |
@@ -118,7 +122,7 @@ authoritative version:
 | 75  | `FUN_0075a530` | AchievementTitleReceiver            | A |
 | 76  | `FUN_0075a5b0` | AchievementIdReceiver               | A |
 | 77  | `FUN_0075a630` | AchievementAchievedCountReceiver    | A |
-| 78  | `FUN_0076c690` | JobQuestCompleteTripleReceiver      | B |
+| 78  | `FUN_0076c690` | JobQuestCompleteTripleReceiver      | C |
 | 79  | `FUN_0075a6b0` | JobChangeReceiver                   | A |
 | 80  | `FUN_0075a730` | EntrustItemReceiver                 | A |
 | 82  | `FUN_0075a7c0` | HamletSupplyRankingReceiver         | A |

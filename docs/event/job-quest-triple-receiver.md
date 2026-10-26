@@ -231,9 +231,8 @@ Pattern C is structurally a hybrid: it allocates like Pattern A but
 dispatches through an additional success-gated helper that knows how
 to talk to the LuaEngine's per-receiver registry. The presence of two
 distinct global success-byte sentinels (`0x012c41af` + `0x012c3120`)
-plus the gated invocation suggests JobQuestComplete (and likely
-UserDataReceiver, the other 6-slot) are **player-state-update
-receivers that need to verify the update applies before processing**
+plus the gated invocation suggests JobQuestComplete is a **player-state-update
+receiver that needs to verify the update applies before processing**
 - hence the 2-step verification.
 
 UserDataReceiver is also 6-slot but uses Pattern A, confirming that vtable

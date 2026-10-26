@@ -1,226 +1,177 @@
-# UserData receiver
+# UserDataReceiver and the data-packet callback
 
-This page maps the six-slot `UserDataReceiver`, classifies its receive path,
-and compares it with `JobQuestCompleteTripleReceiver`.
+The mapped actor `0x0133` route reaches `UserDataReceiver` through
+`LuaActorImpl` slot 59. Its ordinary data path requests
+`_onReceiveDataPacket` with the selected binding's Lua value followed by
+materialized typed input values in order. The receiver name and call shape
+do not establish persistent preferences, a key/value store or server policy.
 
-## TL;DR - UserDataReceiver is Pattern A (NOT Pattern C)
+## Artifact and method
 
-Despite both being 6-slot, **UserDataReceiver and JobQuestCompleteTriple
-use different dispatch patterns**:
+Retail Windows 1.23b `ffxivgame.exe`, size `15996808`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`,
+PE32 image base `0x00400000`. Addresses are VAs. Retained Ghidra assembly
+was checked against original PE bytes with pefile `2024.8.26` and independent
+Capstone `5.0.7` x86-32 decoding over every selected listed extent.
+`0x008A0190` covers `[0x008A0190,0x008A036E)`, 478 instruction bytes,
+without listing gaps. The retained export run identity was not established;
+each relied instruction was checked against the original file. The two
+visitor names are the RTTI catalog identities in
+[`ffxivgame.rtti.json`](../../config/ffxivgame.rtti.json), vtable RVAs
+`0x00BE1140` and `0x00BE1178`.
 
-- **JobQuestCompleteTriple** = Pattern C: real work happens in slot 5
-  via the 2-step success-gated `FUN_00785bf0` dispatcher; the standard
-  Receive slot (slot 2) is a constant success-byte stub.
+The actor mapping is also recorded in
+`xivl-client-structs:manifests/event_family_sibling_findings.json`,
+`0x0133` row. Shared decoder and Lua conversion semantics are owned by
+[the typed decoder](../script/delegate-command-producer.md#typed-values-and-bounds),
+[operator-vector request contracts](event-base-callback-arguments.md#operator-vector)
+and [the invocation boundary](../script/lua-call-function-bridge.md#invocation-boundary).
+The UserData-specific visitor and caller below qualify that reuse.
 
-- **UserDataReceiver** = Pattern A: the **6-slot vtable is MI-thunk
-  scaffolding** for the SECONDARY base; the real Receive lives at
-  slot 1 of a **second 2-slot vtable** (the PRIMARY base, at `this+0`).
-  LuaActorImpl::slot59 stack-builds the receiver and directly calls
-  the primary's slot 1 - standard Pattern A.
+## Direct native application and input
 
-This refines the Pattern-A/B/C taxonomy from `docs/net/actorimpl-receiver-dispatch.md`:
-**vtable size alone doesn't determine pattern** - the dispatch path
-through LuaActorImpl matters more.
+`0x00575060` loads the actor implementation, selects vtable offset `0xEC`
+(slot 59) and tail-jumps. The `LuaActorImpl` entry at `0x00FDFC18` is
+`0x00759E50`. That wrapper constructs a temporary receiver at
+`0x00759E84`, directly calls `0x008A0190` at `0x00759E9D`, and destroys
+it at `0x00759EAE`.
 
-## Two vtables via multiple inheritance
+Let I be the implementation and P its supplied native input pointer. The
+constructor receives `(P,0xC0)`. The receive call receives `(I+4,[I+8])`.
+`0xC0` is the input count, not an established receiver instance size.
+Constructor `0x0089EED0` initializes receiver fields `+0x14/+0x18/+0x1C`,
+calls `0x006D5AF0` with count `0xC0` and fill byte zero, then requests the
+copy `0x009D4600([receiver+0x14],P,0xC0)` at `0x0089EF71`.
+Allocation, storage and copy helper completion remain conditions.
 
-UserDataReceiver has **two RTTI-named vtables**, both COL->TD-confirmed
-as `Application::Lua::Script::Client::Command::Network::UserDataReceiver`:
+Receive derives its reader length from `[receiver+0x18]-[receiver+0x14]`
+and gives that pointer/length to `0x0078F810`. No independent malformed-input
+safety or transport payload offset follows from the supplied copy extent.
 
-| Vtable | RVA | Slots | Role |
-|---|---|---:|---|
-| Primary | `0xc574a4` | 2 | At `this+0`. Contains the actual functions. |
-| Secondary | `0xc57488` | 6 | At `this+8`. Contains MI thunks back to primary + a few sub-interface methods. |
+The constructor installs primary table `0x010574A4` at receiver `+0` and
+secondary table `0x01057488` at `+8`. Primary slot 1 is `0x008A0190`;
+secondary slot 1 is `0x008A2A20`. The direct wrapper calls the primary
+handler irrespective of the secondary interface's six-slot shape.
 
-The dtor confirms the layout (`FUN_0089e760` at offset +0x2a..+0x36):
+## First tag and materialized arguments
 
-```asm
-LEA EDI, [ESI+8]                  ; EDI = this+8
-MOV [ESI], 0x010574a4             ; write primary vtable at this+0
-MOV [EDI], 0x01057488             ; write secondary vtable at this+8
-```
+`0x0078FA60` reads the first tag even when the remaining count is zero.
+Given valid reader memory, it returns true exactly for a nonzero count and
+first tag `0x0D`. That branch supplies literal `[servererror]` to
+`0x00CC7EA0` at `0x008A022B` and bypasses the ordinary data callback request.
+It is not a demonstrated generic parse-failure test.
 
-So `this+0` holds the primary subobject (2-slot iface), `this+8` holds
-the secondary subobject (6-slot iface).
+Otherwise `0x00790A30` constructs the visitor through `0x00793110` and calls
+shared decoder `0x007906C0`. The installed table `0x00FE1140` belongs to
+`FunctionCallValueList`; the event-function decoder's `0x00FE1178`
+`FunctionKickValueList` table is different. The qualified Call visitor paths
+are:
 
-### Primary vtable (`0xc574a4`, 2 slots) - the real interface
+| Tag | Call visitor path | Ordinary accepted value |
+| --- | --- | --- |
+| `00` | `0x00793420 -> 0x00585020`, operator index 0 | Signed int32 as Lua number. |
+| `01` | `0x00793990 -> 0x00793830`, operator index 1 | Float32 as Lua number. |
+| `02` | `0x007939A0 -> 0x00748C80`, operator index 3 | Copied string. |
+| `03/04` | `0x00793980 -> 0x00748BF0`, operator index 2 | True/false. |
+| `05` | `0x00793CE0 -> 0x00748D10`, operator index 6 | Explicit supplied nil. |
+| `06` | `0x007939B0 -> 0x0075B050 -> 0x00748F20`, operator index 4 | Resolved binding's Lua value. |
 
-| Slot | RVA | Size | Role |
-|---:|:---|---:|---|
-| 0 | `0x4a1660` | ~32 B | **Scalar deleting dtor** - calls inner dtor `FUN_0089e760`, optionally `delete this` per heap flag |
-| 1 | `0x4a0190` | **592 B** | **Receive** - the actual UserData handler (big body) |
+Numeric byte order and encoded extents follow the shared decoder contract.
+The ordered descriptor walk preserves the actual accepted values and explicit
+nil positions on the ordinary supported path. These values must be distinguished
+from raw encoded-token counts. Tags `07-0C` are not assigned a materialization
+count here. The shared END tag `0x0F` adds no argument.
 
-### Secondary vtable (`0xc57488`, 6 slots) - MI thunks
+For tag `06`, unresolved lookup sets visitor error byte `+0x1C` and still
+calls the object appender with that result (`0x007939FF`, `0x00793A0B`).
+Neither `0x00790A30` nor its caller tests that flag before requesting the
+normal callback. The event-function decoder's conversion-failure rejection
+therefore does not transfer to UserData. This failure path does not establish
+nil substitution or preserved token-to-argument positions.
 
-| Slot | RVA | Size | Role |
-|---:|:---|---:|---|
-| 0 | `0x4a15e0` | 8 B | **MI thunk dtor** - `SUB ECX, 8; JMP <primary dtor>` (back to this+0 view) |
-| 1 | `0x4a2a20` | ~16 B | **MI thunk for slot 5** - `CALL slot 5; if non-null ADD EAX, 8` (return secondary subobject ptr) |
-| 2 | `0x49e080` | 13 B | **Sync "success" byte** - `*out = [0x012c41af]`. Same global as KickReceiver's "default success byte" + JobQuestComplete's gate 1. |
-| 3 | `0x49e090` | ~48 B | **Actor lookup + virtual call** - calls `FUN_00cc7a50` (`ActorRegistry::lookup_actor`); if found calls `[ECX-8]->vtable[1]` (back to primary's slot 1 - the big Receive!) |
-| 4 | `0x49e0c0` | 14 B | **`m_field_18 != NO_ACTOR` predicate** - same 14-byte shape as EndEvent slot 4 |
-| 5 | `0x49f070` | ~192 B | **36-byte sub-object factory** - `operator new(0x24)`, computes `base = this[+0x10] - this[+0xc]`, calls `FUN_0089efa0`. Distinct from the receiver's own ctor. |
+## Requested Lua frame
 
-The secondary's slot 3 is interesting - it routes back to the primary
-via `[ECX-8]->vtable[1]`, which IS the primary's slot 1 (the 592-byte
-Receive). So even external callers using the secondary interface
-ultimately reach the same handler.
+At `0x008A0305`, the request to `0x00CC7A90` is
+`(this=I+4, X=[I+8], name="_onReceiveDataPacket", V)`.
+The literal is at `0x01057290`; V is the materialized value list.
+No fixed selector or extra owner/event argument is inserted by this receiver.
 
-## The LuaActorImpl::slot59 wrapper - Pattern A
+The shared request resolves X to its registry entry and reaches
+`0x00CCF7D0`. Its ordinary path requires the context state byte at
+`[[this+0xC]+0x1CC]+8` to be zero and entry byte `+0x7F` to be nonzero.
+It calls shared function preparation `0x00CCCD80` at `0x00CCF851` and,
+when that succeeds, passes the entry and V to `0x00CCECB0` at `0x00CCF862`.
+The existing operator-vector contract connects this path to the ordered
+conversions in `0x00CCFFE0`.
 
-Per `docs/net/actorimpl-receiver-dispatch.md`, UserDataReceiver
-dispatches from **LuaActorImpl::slot59 (FUN_00759e50, 118 B)**:
+Let O be the selected binding's Lua value, F the looked-up function, and
+D0 through D[N-1] the actual materialized values. The ordinary supplied
+suffix is `(F,O,D0,...,D[N-1])`, giving the function `N+1` arguments.
+Function lookup, registry fallback, callable replacement and call/resume
+conditions retain their shared-contract limits. The native receiver applies
+directly; this does not establish a global scheduling rule or callback completion.
 
-```c
-void LuaActorImpl::slot59(void *arg) {  // ECX=this, [ESP+3c]=arg
-    char buf[0xc0];     // 192-byte stack receiver
+If F is the authenticated InstanceRaid `_onReceiveDataPacket`, its self is O,
+its selector is D0, and its vararg tail begins at D1. The existing callback
+contract is owned by
+`xivl-client-scripts:docs/content-director-ui-contracts.md`,
+"Instance-raid data-packet callback". That callback's exact-boolean init guard
+and literal numeric selector comparisons remain conditional on the selected
+function and actual supplied values. A string containing `1` remains a string.
+No actual actor/class, content, encounter mode, time value, message provider,
+clear/failure settlement or historical invocation is identified by this join.
 
-    /* Construct receiver on stack */
-    PUSH 0xc0                              ; size = 192
-    PUSH arg                               ; arg0
-    LEA ECX, [ESP+0x10]                    ; ECX = &stack_receiver
-    CALL FUN_0089eed0                      ; UserDataReceiver::ctor(this, arg, size)
+## Reproduction coverage
 
-    /* Directly call primary's slot 1 (Receive) */
-    MOV ECX, [ESI+8]                       ; ECX = this->m_field_8 (some context)
-    PUSH ECX
-    ADD ESI, 4                             ; ESI = this+4
-    PUSH ESI
-    LEA ECX, [ESP+0x10]                    ; ECX = &stack_receiver (primary at +0)
-    CALL FUN_008a0190                      ; NOTE PRIMARY VT SLOT 1 - the 592-byte Receive
+Authenticate the original PE identity and file-backed section mapping. Compare
+every retained instruction byte with the original, then decode each complete
+listed extent independently in x86-32 mode. The selected instruction unions
+total 2,250 bytes. These ranges have no gaps; they do not include unselected
+callees, storage/allocator implementations or exception-unwind functions.
 
-    /* Tear down */
-    LEA ECX, [ESP+8]
-    CALL FUN_0089e760                      ; inner dtor (not scalar-deleting)
-}
-```
+| Function VA | Half-open instruction extent |
+| --- | --- |
+| `0x00575060` | `[0x00575060,0x0057506C)` |
+| `0x00759E50` | `[0x00759E50,0x00759EC6)` |
+| `0x0089EED0` | `[0x0089EED0,0x0089EF99)` |
+| `0x008A0190` | `[0x008A0190,0x008A036E)` |
+| `0x0078F810` | `[0x0078F810,0x0078F822)` |
+| `0x0078FA60` | `[0x0078FA60,0x0078FA7B)` |
+| `0x0078FAB0` | `[0x0078FAB0,0x0078FAB3)` |
+| `0x0078FAC0` | `[0x0078FAC0,0x0078FAC1)` |
+| `0x00790A30` | `[0x00790A30,0x00790A9F)` |
+| `0x00793110` | `[0x00793110,0x00793189)` |
+| `0x00793980` | `[0x00793980,0x00793990)` |
+| `0x00793420` | `[0x00793420,0x00793430)` |
+| `0x00793990` | `[0x00793990,0x007939A0)` |
+| `0x007939A0` | `[0x007939A0,0x007939A8)` |
+| `0x00793CE0` | `[0x00793CE0,0x00793CF0)` |
+| `0x007939B0` | `[0x007939B0,0x00793A34)` |
+| `0x006D5AF0` | `[0x006D5AF0,0x006D5B99)` |
+| `0x00CCF7D0` | `[0x00CCF7D0,0x00CCF94C)` |
+| `0x00585020` | `[0x00585020,0x005850A5)` |
+| `0x00793830` | `[0x00793830,0x007938B9)` |
+| `0x00748D10` | `[0x00748D10,0x00748D99)` |
 
-So the dispatch is **classic Pattern A** - ctor -> direct Receive call
--> dtor, with no intermediate gating helper. The "primary slot 1" call
-target (`FUN_008a0190` at `0x4a0190`) is exactly what the primary
-vtable's slot 1 entry points at.
+Read the original tables at `0x01057488` (24 bytes), `0x010574A4` (8),
+`0x00FDFC18` (4), `0x00FE1140` (52) and `0x00FE1178` (52); the literals
+at `0x01057280` (14) and `0x01057290` (21); and the four-byte string
+constructor operand at `0x00F67298`. These selected data total 179 bytes.
+The shared decoder, converters and function-preparation contracts above are
+reused with their own guards and evidence bounds, rather than expanded into
+a full parser or scheduling contract.
 
-The 6-slot main vtable's existence has NO effect on the dispatch path
-from LuaActorImpl::slot59 - those 6 slots exist for external callers
-who acquired a UserDataReceiver pointer via some MI-aware interface
-(probably the "receiver" abstract base that `Command::Network::*`
-classes participate in via secondary inheritance).
+Retained local export input names included
+`asm/ffxivgame/0049eed0_FUN_0089eed0.s`,
+`asm/ffxivgame/0049e760_FUN_0089e760.s` and
+`asm/ffxivgame/004a0190_FUN_008a0190.s`. The destructor export was a prior
+reference only; the selected caller proof authenticates its callsite, without
+rechecking that destructor body. The original PE observations above, rather
+than an untracked source reconstruction, support this contract.
 
-## FUN_008a0190 - the 592-byte Receive
-
-The call-target footprint gives a clear semantic picture without a full
-decode:
-
-| Helper | Role |
-|---|---|
-| `FUN_009d22b4` (x3) | String compare helper |
-| `FUN_0044726?` / `FUN_0004726?` | Sqex Utf8String ctor |
-| `FUN_00046f5?` | Sqex Utf8String dtor |
-| `FUN_0078f810` / `0078fa60` / `0078fab0` / `0078fac0` | Lua engine helpers (same neighborhood as `FUN_00785bf0` from JobQuestComplete Pattern C) |
-| `FUN_00cc7ea0` / `FUN_00cc7a90` | Engine root / ActorRegistry navigation |
-| `FUN_00584e10` / `FUN_00584540` | Lua helpers |
-| `FUN_0004d350` | `operator delete` |
-| `FUN_00790a30` | Lua engine helper |
-
-So Receive: navigates the engine context, builds/looks-up Utf8String
-keys, talks to ActorRegistry, dispatches per-key into the Lua engine
-helpers. Consistent with **"user data" = persistent player KV blob
-sync**, probably how the server pushes a player's saved preferences,
-options, or per-character state at login.
-
-**Notably absent**: no call to `FUN_00785bf0` (the 2-step gated
-dispatcher). UserDataReceiver does NOT share Pattern C with
-JobQuestCompleteTriple - they happen to both be 6-slot but use
-different dispatch architectures.
-
-## FUN_0089eed0 - the ctor (201 B)
-
-Standard MSVC SEH-protected ctor:
-1. Write parent class vtable at `[this+0]` = `0x00fdf980` (a parent - likely `CommandUpdaterBase` or `CommandReceiverBase`)
-2. ESI = `this+8` (secondary subobject ptr)
-3. Call parent ctor at `0x007942b0` with `ECX = this+8`
-4. (Later writes the correct primary + secondary vtables - done by the dtor visibly; ctor probably does it too further in)
-5. Initialize Utf8String members via `FUN_009d22b4` + `FUN_005d4600`
-6. Initialize a 36-byte child object (size matches the slot-5 factory)
-
-The size arg `0xc0` (192 bytes) from LuaActorImpl::slot59 is plausibly
-the total UserDataReceiver instance size including its embedded
-Utf8String + child sub-object.
-
-## FUN_0089e760 - the inner dtor (159 B)
-
-```c
-void UserDataReceiver::~UserDataReceiver(this) {  // not scalar-deleting
-    /* Restore vtables (post-dtor convention) */
-    [this+0] = 0x010574a4;        // primary vt
-    [this+8] = 0x01057488;        // secondary vt
-
-    /* Tear down sub-objects */
-    FUN_008c9330(...);             // some helper teardown
-    operator delete(...);          // FUN_0004d350
-
-    /* Parent dtor */
-    FUN_007942c0(this);            // parent dtor (CommandUpdaterBase::~CommandUpdaterBase)
-}
-```
-
-The vtable-restore-then-parent-dtor sequence is classic MSVC, ensuring
-parent-dtor sees the parent's vtable.
-
-## Refined Pattern taxonomy
-
-This decode refines the Pattern A/B/C taxonomy from
-`docs/net/actorimpl-receiver-dispatch.md`:
-
-| Pattern | Examples | Recognition |
-|---|---|---|
-| **A** (stack temporary) | 24+ 2-slot receivers (SetEventStatus, ChangeSystemStat, ...) + **UserDataReceiver** (despite 6-slot main) | LuaActorImpl::slotN calls `Receive` directly after ctor; no intermediate dispatcher |
-| **B** (heap allocated, event lifecycle) | 5-slot Kick/Start/End events | LuaActorImpl::slotN allocates via `New` factory; `Receive` is invoked LATER via the receiver's own vtable as part of the event lifecycle |
-| **C** (stack temporary + 2-step success-gated dispatch) | JobQuestCompleteTriple | LuaActorImpl::slotN calls `FUN_00785bf0` between ctor and dtor; the receiver's "official" Receive slot is a constant-success stub; real work is reached through slot 3->slot 5 |
-
-**vtable size does NOT determine pattern.** Both 6-slot Receivers use
-DIFFERENT patterns. The recognition signal is **what LuaActorImpl::
-slotN calls between the ctor and dtor**: direct Receive (A), New
-factory (B), or `FUN_00785bf0` (C).
-
-## What "UserData" probably is
-
-Naming + dispatch shape + helpers suggest:
-
-- **Server-side**: persistent per-character KV state - saved menu
-  preferences, hotbar layouts, custom UI configurations, tutorial
-  progress flags, "don't show again" dialogs, last-viewed-zone
-  bookmarks, etc.
-- **Wire**: probably a single opcode that emits `(key: u16, value:
-  blob)` pairs - multiple pairs per packet (the 592-byte Receive
-  needs to handle a non-trivial payload).
-- **Client**: writes into a per-character KV table accessed by Lua UI
-  scripts via something like `mainPlayer:getUserData("hotbar.slot1")`.
-
-This would be the canonical mechanism for client-side state that the
-server needs to persist across sessions but doesn't otherwise care
-about (game logic doesn't depend on hotbar layouts). The 36-byte
-sub-object factory (secondary slot 5) probably allocates the
-per-entry storage struct.
-
-## Cross-references
-
-- `docs/net/receiver-class-inventory.md` - the 43 Receivers
-  + UserDataReceiver listed with BOTH vtables `0xc57488` (6-slot) and
-  `0xc574a4` (2-slot) - the inventory noted this MI but didn't
-  decode it)
-- `docs/net/actorimpl-receiver-dispatch.md` - LuaActorImpl
-  slot 59 = UserDataReceiver dispatch, Pattern recognition heuristic)
-- `docs/event/job-quest-triple-receiver.md` - the
-  other 6-slot Receiver, introduces Pattern C - distinct from
-  UserDataReceiver's Pattern A despite same slot count)
-- `docs/event/kick-order-event-receiver.md` - source of the
-  `[0x012c41af]` "default success byte" referenced in slot 2 stub +
-  the `[0x0130c778]` NO_ACTOR sentinel referenced in slot 4 predicate)
-- `docs/event/end-order-event-receiver.md` - source of the
-  14-byte `m_field_18 != NO_ACTOR` predicate shape - slot 4 here)
-- `asm/ffxivgame/0049eed0_FUN_0089eed0.s` - ctor (201 B)
-- `asm/ffxivgame/0049e760_FUN_0089e760.s` - inner dtor (159 B)
-- `asm/ffxivgame/004a0190_FUN_008a0190.s` - primary slot 1, the
-  592-byte Receive (main handler - partial decode here; full decomp
-  would yield the wire format for the UserData blob)
+Related receiver taxonomy is recorded in
+[actor implementation dispatch](../net/actorimpl-receiver-dispatch.md),
+[the receiver inventory](../net/receiver-class-inventory.md),
+[the separate JobQuestCompleteTriple receiver](job-quest-triple-receiver.md),
+[KickEvent](kick-order-event-receiver.md) and
+[EndEvent](end-order-event-receiver.md).

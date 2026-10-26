@@ -1,8 +1,7 @@
 # Two-path packet dispatch in the FFXIV 1.x client
 
-This page maps the two client packet-dispatch paths and explains why opcodes
-0x0133 and 0x017A do not use the Kick, RunEventFunction, and EndEvent receiver
-path.
+This page maps the two client packet-dispatch paths and separates the actor `0x0133` callback from the Group `0x017A` work
+path. Receiver allocation and callable slots vary across these families.
 
 ## TL;DR
 
@@ -17,8 +16,8 @@ different opcode families:
    each with a 2- or 5-slot vtable. Slot 2 is `Receive(payload)`.
 
 2. **Channel dispatch through a stub vtable** - opcodes that
-   read into work-table state (`0x017A SynchGroupWorkValues`, `0x0133
-   GenericData / GROUP_CREATED` IN-side, etc.) flow through the
+   read into work-table state (`0x017A SynchGroupWorkValues`,
+   for example) flow through the
    `ZoneProtoChannel` -> `ZoneProtoDownCallbackInterface` -> per-opcode
    vtable slot path. The actual concrete callback at runtime is
    `ZoneProtoDownDummyCallback`, whose per-opcode slots are 3-byte
@@ -128,7 +127,6 @@ spawned on the client.
 
 The 49 Receiver classes contain no dedicated class for several common opcodes:
 
-- `0x0133` (IN: GROUP_CREATED, OUT: GenericData) - no Receiver
 - `0x017A` (OUT: SynchGroupWorkValues) - no Receiver
 - `0x017C/D/E/F` (OUT: GroupHeader/Begin/X/End) - no Receiver
 - `0x0183` (OUT: ContentMembersX08) - no Receiver
@@ -158,14 +156,17 @@ different paths.
 
 ## Client consequence
 
-The static evidence places `0x017A` and `0x0133` handling in
-`Group::PacketProcessor` and `SyncWriter`; it does not identify a separate
-per-opcode dispatch entry. The packet-handling side is the queue-walk and
-work-table-mutation pattern documented in
-`docs/event/group-shared-work-system.md`.
+The Group `0x017A` work path is documented in
+`docs/event/group-shared-work-system.md`. The separate actor `0x0133`
+route selects `LuaActorImpl` slot 59 through `0x00575060`, then directly
+applies `UserDataReceiver` and requests `_onReceiveDataPacket`. Its exact
+typed frame and conditions are owned by the
+[UserData contract](../event/user-data-receiver.md). That actor route
+does not establish Group-state writes or a universal transport assignment.
 
-The dispatch stub does not implement game logic. Dedicated Receiver classes
-use slot 2 of their vtables. Other opcodes flow into a work table through the
+The dispatch stub does not implement game logic. Receiver interfaces use
+different callable slots; UserData uses its primary slot 1. Group work flows
+into a work table through the
 channel-bound queue, with the relevant entry point at
 `Group::PacketProcessor::OnPacket` or a sibling updater.
 
