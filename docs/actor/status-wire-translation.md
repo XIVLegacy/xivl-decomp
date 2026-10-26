@@ -183,27 +183,41 @@ do.
 
 ## Wording for dependent catalogs
 
-`xivl-client-structs:manifests/lua_bridge_verification.json` (`method.step2`
-and the status-id key finding) and the 0x008A3350 constructor notes of
-`manifests/symbols.json` already record the added form as 200000 and 217232.
-Their boundary reads `< 0x8000` and `>= 0x8000`, which should read `<= 0x8000`
-and `> 0x8000`.
+`xivl-client-structs:manifests/symbols.json`, entry `BCS-Y-1399`, and
+`manifests/lua_bridge_verification.json`, `key_findings[4]`, at revision
+`fb0cf0d568a1a1d600fab9c9ccbeb2147a094c7e` record the added offsets:
+200000 for nonzero wire ids through `0x8000`, and 217232 above it. Zero
+skips lookup. `method.step2` records the same added constants.
 
-The `xivl-captures` study `studies/status-wire-projection-census` and the
-`xivl-client-data` status join state the high branch as a subtraction. The
-manifest lists each replacement under `corrections`. In short:
+`xivl-client-data:tools/analyze_substat_status.py`, `decode_wire_id` and
+`wire_ids_for_row`, at revision
+`b9273931d11b05b0523988f604ad894fadc4618f`, implement the additive
+decoder and its inverse over nonzero wire encodings. The lookup chain in
+`docs/substat-status-join.md` describes the same strict high boundary and
+disjoint row images. Each reachable row has one wire id; rows 232769 to
+250000 have none.
 
-- The translation is `row = 200000 + wire + adjustment`, with `adjustment` equal
-  to `0x4350` only when `wire > 0x8000`.
-- The two branches reach disjoint row ranges, so a row has at most one wire id
-  and there are no overlapping low and high reverse encodings.
-- `all_wire_ids_for_row_hex` and `high_wire_id_hex` hold the low wire id only
-  for rows 221000 to 232015. Rows 251001, 253001, 253002 and 253003 take
-  `0x83E9`, `0x8BB9`, `0x8BBA` and `0x8BBB`.
-- The extractor's `decode_wire_id` adds the adjustment. The three observed joins
-  do not change.
-- The wire id `0x9DA9`, which the census lists for row 223129, translates to
-  key 257593.
+The data product `derived/substat_status_crosswalk.csv` stores that encoding
+in `low_wire_id_hex` or `high_wire_id_hex` according to its branch, leaving
+the other column empty. A low-only row's `high_wire_id_hex` is empty, not
+another copy of its low wire id. Row 223263 has low encoding `0x5ADF`;
+row 251001 has high encoding `0x83E9`.
+
+The manifest's `corrections` array is a checked replacement-contract fixture.
+For the separately owned `xivl-captures:studies/status-wire-projection-census`
+and `tools/extractors/extract_status_wire_census.py`, it specifies these
+expected mappings:
+
+- The decoder adds `0x4350` only when `wire > 0x8000`, and the inverse has
+  no overlapping low and high encodings.
+- The capture product's `all_wire_ids_for_row_hex` holds only `0x5A59`,
+  `0x5ADF` and `0x5DBF` for rows 223129, 223263 and 223999, respectively.
+  This list field is distinct from the data crosswalk's two branch columns.
+- Wire `0x9DA9` resolves to key 257593, rather than row 223129. The three
+  observed low-wire joins retain their values.
+
+These fixture expectations do not attest to an update of the capture census
+or its extractor.
 
 ## What bahamut-client can change
 
