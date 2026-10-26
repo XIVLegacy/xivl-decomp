@@ -53,14 +53,46 @@ after that attempt does it compare status with the symbolic global at
 `0x0134BB04`; inequality selects the later transfer call. Runtime contents
 of that global are not established by file-backed bytes.
 
+## New updater key construction
+
+Let Kp be the pointer supplied as the second argument of `0x00775A30`.
+The caller passes that pointer to its manager lookup at `0x00775A63`, then
+forwards `(O,Kp,S)` to the parser at `0x00775ABB`. Parser `0x00775180` saves
+Kp at `0x007751DA` and passes it as record processor argument 2 at
+`0x007756EE-0x007756F2`. Its alternate record call also preserves Kp/O at
+`0x00775774-0x0077578B`. O is a separate operand.
+
+Both new-updater allocation paths in `0x00774220` allocate `0xC8` bytes,
+then call constructor `0x00768260` at `0x0077432B` or `0x007743D8` with
+ECX=U and arguments `(Kp, zero-extended C[+0x29])`. At
+`0x0076828C-0x00768292`, the constructor reads the dword pointed to by Kp
+and stores it at U+0. It copies the second argument to `U+0xC5` and clears
+`U+0xC4/+0xC6/+0xC7`. Its initial key is therefore the copied value `[Kp]`,
+rather than Kp itself or a fixed vtable pointer.
+
+The same constructor clears `U+0x08/+0x0C/+0x10`, initializes the target
+at U+0x14 and returns U with eight-byte stack cleanup. Its second argument's
+nonzeroness also selects `0xA0` or `0x300` for the call at `0x007682E9`;
+the selected instructions do not make that byte an actor-category selector.
+It is distinct from the later callback byte at U+0xC4.
+
+Found target/reserved-key updaters take reuse paths. These stores establish
+the key for new construction only, without proving every reused updater came
+from this invocation's Kp or that opaque helpers never change its key.
+
 ## Owner, readiness and callback arguments
 
 `0x00773F10` calls resolver `0x00CC7A50` with O as ECX and U as its stack
 argument. The resolver uses `*O` as lookup receiver and U as input to the
 opaque predicate `0x00CD80F0`, selecting `0x00CD81D0` or `0x00CD8160`.
-It returns zero or the first dword of the selected lookup result. Those
-three callee bodies and the concrete actor/key association remain untraced.
-A zero resolver result exits before property callbacks or Lua dispatch.
+It returns zero or the first dword of the selected lookup result. The existing
+[key classifier](../event/event-base-callback-arguments.md#runeventfunction-binding)
+and `xivl-client-structs:manifests/talk_native_call_contract.json`,
+`identityLookup`, own those conditional registry lookups. For a newly
+constructed U, the resolver's U input points to the copied `[Kp]` key above.
+The concrete numeric key, registration and live actor association remain
+unestablished. A zero resolver result exits before property callbacks or Lua
+dispatch; the construction byte `C+0x29` is not shown selecting the lookup.
 
 With a resolved result, the helper tests the target strings and cached
 readiness at `U+0xC6`. When uncached, every collected property's virtual
@@ -101,6 +133,16 @@ bytes authenticated thresholds and selected literals. The bodies were
 gap `[0x0077450D,0x00774510)` was excluded from authentication and coverage.
 Focused branch/operand checks distinguished target lengths, flags, state
 admission, readiness exits, callback arguments and pre-transfer ordering.
+
+The key-construction finding additionally authenticated constructor
+`[0x00768260,0x0076830D)` and the cited caller/parser/record-processor
+transport against that same original PE using Capstone 5.0.7. These were five
+selected bodies totalling 3168 instruction bytes: the 173-byte constructor and
+2995 bytes of previously covered code, including the 11-byte classifier.
+The retained record-processor gap stayed excluded; no typed static data was
+read. Exact operand checks distinguished copying `[Kp]` from storing Kp,
+a fixed pointer, or the separate construction byte. This supplies no upstream
+producer for the numeric key passed to `0x00775A30` and no runtime observation.
 
 A local discriminator must correlate the actual actor/context key, O and
 resolved owner with the full `0x0137` stream; record `C+0x24`, updater flags,
