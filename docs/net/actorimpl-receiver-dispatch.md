@@ -375,3 +375,80 @@ this doc.
 - `tools/extract_receiver_actorimpl_map.py` - the extractor
 - `build/wire/ffxivgame.receiver_actorimpl_map.{json,md}` - raw
   regenerable output
+
+## Native 0x0137 SyncMemory route
+
+The [receive ranges](receive-dispatch-ranges.md) route native opcode
+`0x0137` through `0x004DCFFF`, object lookup and virtual `+0x24`.
+For a selected E with the CharaElement table described above, slot9 reaches
+`0x0058CCA0`. Let M be its supplied native packet view. The inspected
+opcode is `word[M+2]`; the application pointer below is M+0x10.
+The previously described native-view boundary does not establish its
+relationship to an outer wire header or an observed packet.
+
+At `0x0058CCE5`, helper `0x004D8830` receives ECX=E. Nonzero returned AL
+branches directly to `0x0058CD21`. Zero AL reads the opcode and, for
+`0x0137`, selects that same target through the first table row below.
+The common path selects `0x0058D675` through the second row, then calls
+`0x004D8860(this=E, M)` at `0x0058D678`.
+
+| Selected use | Index | Byte cell/value | Target cell/value |
+| --- | --- | --- | --- |
+| First selection | `0x137-0x137=0` | `0x0058D8C4 = 0` | `0x0058D8BC = 0x0058CD21` |
+| Common selection | `0x137-0x135=2` | `0x0058D996 = 0x18` | `0x0058D990 = 0x0058D675` |
+| Subdispatcher | `0x137-0xCC=0x6B` | `0x004D8C8F = 9` | `0x004D8BE4 = 0x004D89EF` |
+
+The table bases/scales come from `0x0058CD63/0x0058CD6A`,
+`0x0058D33E/0x0058D345` and `0x004D88D4/0x004D88DB`.
+These opcode selectors do not test a property-id sentinel.
+
+`0x004D8860` has a separate guard. If byte[E+0x92], preliminary
+L=[E+0x80] and the AL result of `0x00574AA0(this=L)` are all nonzero,
+the `0x0137!=0x00CC` comparison returns at `0x004D8BBC` before the
+ordinary switch. Otherwise the selected switch reaches `0x004D89EF`,
+which reloads L and returns if it is null. The two helper results are
+independent opaque results here; neither is established as an actor-state
+or binding test. The [holder finding](../input/chara-selection-producers.md#selected-actor-implementation-handle-and-slot23)
+owns conditional construction/replacement of L's implementation.
+
+The admitted arm loads C=`dword[E+0x88]`, forms P=M+0x10, reuses its
+incoming packet-argument slot as a local C, and calls
+`0x00575070(this=L, &local_C, P)` at `0x004D8A10`.
+This wrapper captures D=[L] at `0x00575091`. At `0x00575093-0x0057509E`, it calls `0x00CC9320` with C as its stack
+argument and ECX addressing its own first-argument stack slot. The returned EAX becomes the first slot-call
+operand. P remains the second operand at `0x005750AB-0x005750BB`.
+The helper's returned-address alias and any further role of C are not
+established here. Its result is separate from the receiver's later Kp.
+
+At `0x005750BB`, ECX is the captured D and the target is `[D]` virtual
+`+0xF0`, slot60. The LuaActorImpl cell `0x00FDFC1C` contains
+`0x00759ED0`; the paired NullActorImpl cell `0x00FE039C` contains
+`0x00775BD0`, whose body is outside this trace. With the Lua table installed,
+the [SyncMemory wrapper contract](actor-work-completion-targets.md#syncmemory-wrapper-inputs)
+therefore receives I=D and exactly P=M+0x10 as its second stack argument.
+That wrapper does not read the separate first argument. The current table,
+valid memory, expected argument cleanup, preserved registers and normal
+helper returns remain conditions. No actual actor, registration, binding,
+key value, lifetime, callback arrival or server policy is identified.
+
+This implementation slot60 is separate from the ZoneProtoDown callback
+interface's opcode `0x0137` slot56. The structural mapping is recorded in
+`xivl-opcodes:data/zone_dispatch_map.json`, case 54. The known
+ZoneProtoDownDummyCallback path does not identify D's table.
+
+The retained export run identity was not established. Authenticated
+coverage used the same pinned retail `ffxivgame.exe` above,
+pefile `2024.8.26` raw-section mapping and Capstone `5.0.7` x86-32 decoding.
+The exact code ranges were `[0x0058CCA0,0x0058CCF9)`,
+`[0x0058CD21,0x0058CD33)`, `[0x0058CD55,0x0058CD71)`,
+`[0x0058D330,0x0058D34C)`, `[0x0058D675,0x0058D6A3)`,
+`[0x004D8860,0x004D888F)`, `[0x004D88BB,0x004D88E2)`,
+`[0x004D89EF,0x004D8A1A)`, `[0x004D8BBB,0x004D8BC0)` and
+`[0x00575070,0x005750E1)`: 456 instruction bytes, without gaps or
+undecoded tails inside these selected ranges. The two roots remain partial.
+The three selector pairs and two implementation cells cover 23 typed bytes.
+To reproduce, authenticate the size/hash/image base above, compare retained
+rows to original bytes at these exact ranges, independently decode each
+range, and derive/read only the listed indexed cells from their operands.
+Unselected callees, other root arms, unwind paths and implementation bodies
+are outside the authenticated proof coverage.

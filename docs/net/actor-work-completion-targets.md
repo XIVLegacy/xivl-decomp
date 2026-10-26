@@ -68,7 +68,9 @@ remains a condition; this selected body does not independently validate it.
 At `0x00759F13-0x00759F1F`, the wrapper supplies Receive `0x0089E550`
 with ECX=T and ordered stack arguments `(O=I+4, X=dword[I+8])`.
 O is an address, separately saved in ESI by Receive. It is not `dword[I+4]`.
-The caller of the wrapper and the provenance of I/P remain unselected.
+The [selected actor route](actorimpl-receiver-dispatch.md#native-0x0137-syncmemory-route)
+qualifies its conditional caller and implementation/body pointers. Their
+runtime values and outer-wire association remain unobserved.
 
 Receive calls `0x00CC7510` with ECX=O at `0x0089E57B`. If H is its
 return, `0x0089E584-0x0089E586` load `B=dword[dword[H]+4]`.
