@@ -233,6 +233,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
 - [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
 - [LogControl and pool feed static contract](resource/logcontrol-pool-feed.md)
+- [LogControl message-wait checker and handler](resource/logcontrol-message-wait.md)
 - [LogControl ordinary text lookup](resource/logcontrol-text-lookup.md)
 - [SparkleControl Source and Sequence](resource/sparklecontrol-source-sequence.md)
 - [Sqwt XPath data sources](resource/sqwt-xpath-data-sources.md)
