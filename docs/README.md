@@ -384,6 +384,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lua bootstrap chunks and standard library globals](script/lua-bootstrap-chunks.md)
 - [Widget work members](script/widget-work-members.md)
 - [DesktopWidget](script/desktop-widget.md)
+- [Player LogControl producers and English row availability](script/logcontrol-player-producer.md)
 - [Direct purchase widget helper contract](script/direct-purchase-widget-contract.md)
 - [Virtual-item creation completion](script/virtual-item-creation.md)
 - [Widget string call sites](script/widget-string-call-sites.md)
