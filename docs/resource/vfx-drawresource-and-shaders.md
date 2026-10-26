@@ -47,7 +47,10 @@ from the install.
 | color | `ColorRGBARoot:CoordRoot` 7,418, `ColorRGBABlink` 80, `ColorRGBABlink:CoordRoot` 76, `ColorRGBAWorld:CoordWorld` 1 |
 | matrix | `MatrixRoot:MatrixRoot` 5,874, `MatrixLinkEx:MatrixLinkEx` 1,575, `MatrixLink:MatrixLink` 126 |
 
-The color and matrix calc bodies are not read. For comparison, the calc of
+The [generic color-root arithmetic](../actor/garuda-plume-color-root.md) and the
+[selected MatrixRoot mode-0 calculation](vfx-root-matrix-mode-zero.md) have bounded
+static contracts. Current per-node factors and inputs, other matrix modes and
+draw-time outcomes remain unresolved. For comparison, the calc of
 `Position3D:CoordRoot` at `0x00ba4c60` copies the three floats that its first slot
 pointer names into its work area at `+0x10` and sets the fourth float to 1.0.
 STATIC.
@@ -328,9 +331,11 @@ constants are bound by routines that were not traced.
   the [selected version-4 field dictionary](vfx-modern-model-geometry.md) and
   [version-3-or-later bindings](seasonal-model-material-bindings.md), including
   unqualified sprite-buffer paths and lower resource creation.
-- The calc bodies of `ColorRGBARoot`, `MatrixRoot` and the angle and scale
-  controls other than the Generated receivers, and therefore how the polynomial
-  graph values become a world matrix and a color. The time variable of the
+- MatrixRoot modes 1 through 10, nonzero-angle preparation, the zero-vector
+  fallback and the angle and scale controls other than the Generated receivers.
+  Current color factors, matrix providers and getter-backed state, source units
+  and how polynomial graph values reach per-node color/matrix inputs remain
+  unresolved. The time variable of the
   polynomial segments and the Generate modules are on the
   [emitters page](vfx-generate-emitters.md).
 - The material constant that the type 0xa parameter writes, and so which shader
