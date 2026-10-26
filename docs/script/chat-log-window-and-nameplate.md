@@ -6,6 +6,9 @@ line path, and the log-related client configuration entries. Labels:
 Observed means read from instructions, data or decoded forms, Inferred means a
 reading of observations, Unknown means not established.
 
+The [LogControl and pool feed static contract](../resource/logcontrol-pool-feed.md)
+records the native producer, document, and shared module findings.
+
 ## Input
 
 | Item | Identity |
