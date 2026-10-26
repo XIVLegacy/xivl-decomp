@@ -209,7 +209,11 @@ and the flags word is zero in all 5,042 sets. The texture reference arrays hold 
 The model chunk carries the file magic `vfxm` at its `+0x04` in its dword form
 `mxfv` in 4,948 models and as the bytes `vfxm` in 45, and the instance chunk
 carries `vins` the same way. The animation chunk carries `vfxa` the same way. The
-chunk layouts are not read.
+selected legacy version-2.2 geometry and material framing is described in
+[Legacy VFX model geometry](vfx-legacy-model-geometry.md). The
+[seasonal model and material bindings](seasonal-model-material-bindings.md)
+describe a separate version-3-or-later representation. Those bounded findings
+do not establish every model, animation or instance layout.
 
 A shader record is a 16 byte key, a big endian u32 length, 12 pad bytes and the
 Direct3D 9 token stream of that length. The length plus 32 equals the record size
@@ -316,8 +320,11 @@ constants are bound by routines that were not traced.
 
 ## Unknown
 
-- The vfxm model chunk: vertex and index buffers, vertex declarations, sprite
-  buffers and the material data table that holds the parameter records.
+- Complete model setup and submission beyond the bounded
+  [legacy version-2.2 sources and material framing](vfx-legacy-model-geometry.md)
+  and the separate
+  [version-3-or-later bindings](seasonal-model-material-bindings.md), including
+  unqualified sprite-buffer paths and lower resource creation.
 - The calc bodies of `ColorRGBARoot`, `MatrixRoot` and the angle and scale
   controls other than the Generated receivers, and therefore how the polynomial
   graph values become a world matrix and a color. The time variable of the
