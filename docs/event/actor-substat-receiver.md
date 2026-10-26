@@ -13,19 +13,18 @@ how the constructor `0x008A3350` turns the wire id into the key stored at
 
 ## TL;DR
 
-`ChangeActorSubStatStatusReceiver` is the **most thoroughly-gated
-receiver in the entire inventory**. Unlike the other 5-slot receivers
-which check ONE actor flag, this one checks **two flags on two
-different actors**:
+With its done latch clear, `ChangeActorSubStatStatusReceiver` checks
+readiness through two storage owners:
 
-1. **Primary actor**'s `+0x7d` (event-dispatch-ready) - same gate as
+1. The cached `StatusBase` object's associated class-binding entry at
+   `+0x7d` (class ready) - same gate as
    `StartServerOrderEventFunctionReceiver`
-2. **Secondary actor**'s `+0x5c` (kick-gate) - same gate as
-   `KickClientOrderEventReceiver`
+2. The resolved **secondary CharaBase**'s `+0x5c` (kick-gate) - same gate as
+   `KickClientOrderEventReceiver`. A missing owner takes the done-set exit.
 
-Plus a **per-instance done-flag** at `receiver[+0x15]` that
-short-circuits to success if already processed (so subsequent
-re-dispatches don't re-run the gates).
+A **per-instance done latch** at `receiver[+0x15]` short-circuits to the
+success-byte exit when set. The wire constructor presets it for a zero
+wire id; slot 2 can set it later, so it is mutable lifecycle state.
 
 It uses the **3-path registry lookup chain** (`lookup_actor` ->
 `FUN_00cc7180` predicate -> `FUN_00cc78c0` find-or-queue) - same as
@@ -36,8 +35,8 @@ purpose:
 - Primary cast: `LuaControl -> StatusBase` (the status-effect instance)
 - Secondary cast: `LuaControl -> CharaBase` (the character bearing it)
 
-So the receiver applies / updates a **status-effect sub-state on a
-character**: "tell character C that status S has sub-state X".
+Slot 3 forwards the cached status object and the constructor-supplied
+status-slot byte to the character's update method.
 
 ### Additional RTTI types recovered
 
@@ -47,28 +46,27 @@ beyond the Network-namespace ones:
 | RTTI addr | Class | Notes |
 |---|---|---|
 | `0x01270b4c` | `Component::Lua::GameEngine::LuaControl` | **System-namespace SrcType** - distinct from Network's `0x01270964 ActorBase` |
-| `0x012c31f8` | `Application::Lua::Script::Client::Control::StatusBase` | Additional subclass - extends LuaControl; represents an active status effect |
+| `0x012c31f8` | `Application::Lua::Script::Client::Control::StatusBase` | Derives from ActorBase; target of the cached status-object cast |
 | `0x012709a4` | `Application::Lua::Script::Client::Control::CharaBase` | Previously inferred in the Lua actor hierarchy; its RTTI Type Descriptor address is concretely recovered here |
 
-**Stable finding**: System-namespace receivers cast from
+System-namespace receivers cast from
 `Component::Lua::GameEngine::LuaControl`, NOT from
-`Application::Lua::Script::Client::Control::ActorBase`. This is a
-**deeper engine-level base class** that BOTH ActorBase AND StatusBase
-extend.
+`Application::Lua::Script::Client::Control::ActorBase`. The retained
+primary chain places `StatusBase` beneath `ActorBase`, with `LuaControl`
+as their deeper base.
 
-Updated inheritance picture:
+Primary inheritance chain, omitting secondary bases:
 
 ```
 Component::Lua::GameEngine::LuaControl                  (System-ns SrcType)
 +-- Application::Lua::Script::Client::Control::ActorBase  (Network-ns SrcType)
-    +-- CharaBase, DirectorBase, ...
-    |
-+-- Application::Lua::Script::Client::Control::StatusBase (per this decomp - sibling of ActorBase under LuaControl)
+    +-- Application::Lua::Script::Client::Control::StatusBase
 ```
 
-So `StatusBase` is **NOT** a subclass of `ActorBase` - it's a SIBLING
-under the deeper `LuaControl` base. Both can be reached via
-`__RTDynamicCast` from a `LuaControl*`.
+`xivl-client-structs:manifests/symbols.json`, entry `BCS-Y-1497`, and
+`manifests/statusbase_base_classes.json`, records `BCD #1` through `BCD #4`
+of `base_classes`, retain the exact self descriptor and primary chain at revision
+`4d25c5b16438f331f7daaded7ae0d8b6070a5a34`.
 
 ## Vtable map (5 slots) - RTTI `0xc575c8`
 
@@ -76,7 +74,7 @@ under the deeper `LuaControl` base. Both can be reached via
 |---|---|---|---|---|
 | 0 | `0x004a4f40` | `0x008a4f40` | 30 B | Scalar deleting destructor (MSVC pattern: dtor body + optional `operator delete`) |
 | 1 | `0x004a34d0` | `0x008a34d0` | 120 B | **`New()` factory** - allocates 0x18 bytes via `operator new`, calls ctor at `0x008a4cf0` with 5 args reading from `[ESI+0x8/0xc/0x10/0x14/0x15]` |
-| 2 | `0x004a3550` | `0x008a3550` | **219 B** | **`Receive()` - the most thoroughly gated entry in the inventory. See below.** |
+| 2 | `0x004a3550` | `0x008a3550` | **219 B** | **`Receive()` - readiness checks and the done latch. See below.** |
 | 3 | `0x004a3630` | `0x008a3630` | 97 B | **Dispatch entry** - runs after slot 2's gate passes; calls a method on the secondary CharaBase with the cached StatusBase as an arg |
 | 4 | `0x004a36a0` | `0x008a36a0` | 13 B | Predicate - `bool isSecondaryActorSet() { return this->[+0x8] != NO_ACTOR; }` |
 
@@ -84,7 +82,7 @@ under the deeper `LuaControl` base. Both can be reached via
 
 ```c
 char *Receive(this, char *out_result_byte, void *lookup_ctx) {
-  // CHECK 1: per-instance done-flag - already-processed receivers short-circuit
+  // CHECK 1: per-instance done latch, including the wire-zero preset
   if (this->done_flag /* [+0x15] */ != 0) {
     *out_result_byte = SUCCESS_BYTE;   // from [0x012c41af] (same SUCCESS_BYTE constant
                                        //  as KickReceiver - clever offset into the
@@ -99,15 +97,15 @@ char *Receive(this, char *out_result_byte, void *lookup_ctx) {
     if (primary == NULL) {
       // path A miss - try path B (predicate)
       if (FUN_00cc7180(lookup_ctx, &this->[+0xc]) != 0) {
-        // path B hit -> failure exit 0x008a3603, done flag stays clear
-        *out_result_byte = FAILURE_BYTE;
+        // path B hit -> done-clear exit 0x008a3603; byte value/meaning unresolved
+        *out_result_byte = DONE_CLEAR_BYTE;  // from [0x0134c560]
         return out_result_byte;
       }
       // path A + B miss - try path C (find-or-queue placeholder)
       primary = FUN_00cc78c0(lookup_ctx, &this->[+0xc]);
       if (primary == NULL) {
-        // failure exit 0x008a3603
-        *out_result_byte = FAILURE_BYTE;
+        // done-clear exit 0x008a3603
+        *out_result_byte = DONE_CLEAR_BYTE;
         return out_result_byte;
       }
     }
@@ -121,11 +119,11 @@ char *Receive(this, char *out_result_byte, void *lookup_ctx) {
     this->[+0x10] = status;              // cache for next call
   }
 
-  // CHECK 3: primary actor's +0x7d (event-dispatch-ready) - via alias resolver
-  // FUN_00cc72a0 = wrapper that calls FUN_00cd7a30 (alias resolver) and returns byte [alias+0x7d]
+  // CHECK 3: associated class-binding entry's +0x7d readiness byte
+  // FUN_00cc72a0 calls FUN_00cd7a30 and reads [entry+0x7d], not StatusBase+0x7d.
   byte ready = FUN_00cc72a0(lookup_ctx, this->cached_primary /* [+0x10] */);
   if (ready == 0) {
-    *out_result_byte = FAILURE_BYTE;     // from [0x0134c560]
+    *out_result_byte = DONE_CLEAR_BYTE;  // from [0x0134c560]
     return out_result_byte;
   }
 
@@ -143,7 +141,7 @@ char *Receive(this, char *out_result_byte, void *lookup_ctx) {
 
   // CHECK 5: secondary actor's +0x5c (kick-gate)
   if (chara->[+0x5c] == 0) {
-    *out_result_byte = FAILURE_BYTE;
+    *out_result_byte = DONE_CLEAR_BYTE;
     return out_result_byte;
   }
 
@@ -165,7 +163,7 @@ void slot3_dispatch(this, void *lookup_ctx) {
     // Call chara's status-update method with the cached StatusBase
     chara->updateSubStatus(
         lookup_ctx,                       // arg1
-        (byte)this->[+0x14],              // arg2 = sub-stat status enum
+        (byte)this->[+0x14],              // arg2 = constructor-supplied status-slot byte
         this->cached_primary /* [+0x10] */, // arg3 = StatusBase ptr (cached by slot 2)
         1                                  // arg4 = some "apply" flag
     );  // FUN_007084b0 - slot 2 of CharaBase? or non-virtual setter
@@ -190,7 +188,7 @@ The `0x00cc7` cluster has **7 known methods**:
 | `0x00cc7170` | **This page** | **Fallback dispatch call; exact semantics are unresolved** |
 | `0x00cc7180` | Existing cluster | Sibling predicate using `[+0x1c8]` classifier |
 | `0x00cc7190` | xref-only | Likely add/remove sibling |
-| `0x00cc72a0` | Existing cluster | Read actor's `+0x7d` flag (alias resolver wrapper) |
+| `0x00cc72a0` | Existing cluster | Read associated class-binding entry's `+0x7d` readiness byte |
 | `0x00cc78c0` | Existing cluster | Heavyweight "find or queue placeholder" |
 | `0x00cc7a50` | Existing cluster | `ActorRegistry::lookup_actor` |
 
@@ -208,17 +206,21 @@ struct ChangeActorSubStatStatusReceiver {  // 0x18 bytes
   /* +0x04 */ uint32_t parent_field;        // base-class field (owner pointer not established)
   /* +0x08 */ uint32_t secondary_actor_id;  // (from packet)
   /* +0x0c */ uint32_t primary_actor_id;    // (from packet - the StatusBase id)
-  /* +0x10 */ StatusBase *cached_primary;   // initially NULL; populated by slot 2
-  /* +0x14 */ uint8_t  sub_stat_enum;        // (from packet) - which sub-stat to update
-  /* +0x15 */ uint8_t  done_flag;            // 0 initially; set to 1 after first successful Receive
+  /* +0x10 */ StatusBase *cached_primary;   // NULL in wire ctor; slot 2 caches the cast result
+  /* +0x14 */ uint8_t  status_slot;          // constructor-supplied slot byte; no universal enum established
+  /* +0x15 */ uint8_t  done_flag;            // wire == 0 at 0x008A3350; copied by slot 1, mutable in slot 2
   /* +0x16 */ uint8_t  pad[2];               // alignment
 };
 ```
 
-The done_flag pattern is a **performance optimization** - once a
-status update has been processed, the receiver instance can be
-re-dispatched (e.g. by a retry loop) without re-running the gates.
-The instance persists across calls.
+The [wire constructor](../actor/status-wire-translation.md#zero-id) presets
+the done latch for wire zero and leaves it clear for a nonzero wire id.
+Slot 1 copies the latch; slot 2 can set it at `0x008A3615` and returns
+the success byte immediately on later calls with it set. Registry-miss
+and not-ready exits leave it clear. This is the lifecycle role retained in
+`xivl-client-structs:manifests/structs.json`, entry `BCS-S-0437`, at revision
+`4d25c5b16438f331f7daaded7ae0d8b6070a5a34`. The slot byte `+0x14` and mutable
+latch `+0x15` are separate fields; neither is a universal status enum.
 
 ## Implications for the receiver gate model
 
@@ -226,13 +228,15 @@ This receiver **combines** the gate types documented above:
 
 | Gate | Where checked elsewhere | In this receiver |
 |---|---|---|
-| `[+0x7d]` (event-dispatch-ready) | `StartServerOrderEventFunctionReceiver` dequeue path | CHECK 3 - on the primary StatusBase |
+| Entry `[+0x7d]` (class ready) | `StartServerOrderEventFunctionReceiver` dequeue path | CHECK 3 - on the cached StatusBase's associated class-binding entry |
 | `[+0x5c]` (kick-gate) | `KickClientOrderEventReceiver` Branch A/B2 | CHECK 5 - on the secondary CharaBase |
 | Per-instance done-flag `[+0x15]` | (none previously cataloged) | CHECK 1 - short-circuit success |
 | 3-path registry lookup | `StartServerOrderEventFunctionReceiver` forward-lookup path | CHECK 2 - for the primary id |
 
-Specifically, since this receiver requires BOTH actors' flags set, it's the most
-failure-prone receiver in the inventory.
+The class-binding readiness check applies to the cached status object.
+The secondary CharaBase kick-gate check applies only when that owner resolves;
+a missing owner takes the done-set exit. Done-clear exits alone do not
+establish a failure return byte or the registry's later outcome.
 
 But: in the SEQ_005 cinematic flow, this receiver isn't on the hot
 path. Status effects aren't part of the man0g0 tutorial fight setup.

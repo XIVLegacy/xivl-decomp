@@ -101,28 +101,36 @@ Slot 2 returns early on a set done flag. Otherwise it resolves the handle at
 predicate `0x00CC7180` and the find-or-queue call `0x00CC78C0` follow. A
 predicate hit or a second miss branches from `0x008A3584` to the exit
 `0x008A3603`, which writes the byte at `0x0134C560` and leaves the done flag
-clear. Whether that exit means failure is not shown by the bytes. The not-ready
-path at `0x008A35C5` writes the same byte, and the success exit writes a
-different byte with the done flag set. INFERRED, on the assumption that a
-receiver left with its done flag clear is one that did not complete. A resolved object is cast to `StatusBase` (type descriptor
-`0x012C31F8`) and cached at `+0x10`. The cached object must pass the ready
-byte `+0x7D` through `0x00CC72A0`. The owner at `+0x08` is cast to `CharaBase`
+clear. The not-ready path at `0x008A35C5` writes the same byte, and the
+success exit writes a different byte with the done flag set. Interpreting a
+clear latch as incomplete is INFERRED, on the assumption that the latch
+tracks completion; it establishes neither a failure return byte nor the
+registry's later handling. A resolved object is cast to
+`Application::Lua::Script::Client::Control::StatusBase` (type descriptor
+`0x012C31F8`) and cached at `+0x10`. Through `0x00CC72A0` and `0x00CD7A30`,
+the readiness check reads byte `+0x7D` of its associated class-binding entry.
+The manifest's `statusReadyOffset` is relative to that entry. The owner at
+`+0x08` is cast to `CharaBase`
 (`0x012709A4`) and must have `+0x5C` set. The success exit `0x008A3615` sets
 the done flag and writes the byte at `0x012C41AF`. A missing owner also takes
 the success exit. STATIC.
 
-The [ChangeActorSubStatStatus receiver](../event/actor-substat-receiver.md)
-page lists the registry misses as success. The bytes at `0x008A3584` branch to
-the same exit as the `+0x5C` check.
+The cache type and readiness storage are retained in
+`xivl-client-structs:manifests/symbols.json`, entries `BCS-Y-1497`,
+`BCS-Y-1803` and `BCS-Y-1581`, and `manifests/structs.json`, entries
+`BCS-S-0088`, `BCS-S-0052` and `BCS-S-0437`, at revision
+`4d25c5b16438f331f7daaded7ae0d8b6070a5a34`. The receiver's `+0x10` cache
+and its associated entry's `+0x7D` readiness byte have different storage
+owners; the latter is not a member of the cached `StatusBase` object.
 
 Slot 3 resolves the owner, casts it to `CharaBase` and calls `0x007084B0` with
 the manager, the slot byte, the cached status object and 1. When the owner is
 absent it passes the status handle to `0x00CC7170` unless the handle is the
 sentinel. STATIC.
 
-A key with no status object behind it therefore never reaches
-`0x007084B0` and leaves a receiver whose done flag stays clear. What the
-registry does with such a receiver is unresolved.
+A slot-2 pass that exits with the status object unresolved leaves the done
+flag clear. The return-byte meaning and what the registry does with that
+receiver later are unresolved.
 
 ## Producers
 
@@ -183,27 +191,41 @@ do.
 
 ## Wording for dependent catalogs
 
-`xivl-client-structs:manifests/lua_bridge_verification.json` (`method.step2`
-and the status-id key finding) and the 0x008A3350 constructor notes of
-`manifests/symbols.json` already record the added form as 200000 and 217232.
-Their boundary reads `< 0x8000` and `>= 0x8000`, which should read `<= 0x8000`
-and `> 0x8000`.
+`xivl-client-structs:manifests/symbols.json`, entry `BCS-Y-1399`, and
+`manifests/lua_bridge_verification.json`, `key_findings[4]`, at revision
+`fb0cf0d568a1a1d600fab9c9ccbeb2147a094c7e` record the added offsets:
+200000 for nonzero wire ids through `0x8000`, and 217232 above it. Zero
+skips lookup. `method.step2` records the same added constants.
 
-The `xivl-captures` study `studies/status-wire-projection-census` and the
-`xivl-client-data` status join state the high branch as a subtraction. The
-manifest lists each replacement under `corrections`. In short:
+`xivl-client-data:tools/analyze_substat_status.py`, `decode_wire_id` and
+`wire_ids_for_row`, at revision
+`b9273931d11b05b0523988f604ad894fadc4618f`, implement the additive
+decoder and its inverse over nonzero wire encodings. The lookup chain in
+`docs/substat-status-join.md` describes the same strict high boundary and
+disjoint row images. Each reachable row has one wire id; rows 232769 to
+250000 have none.
 
-- The translation is `row = 200000 + wire + adjustment`, with `adjustment` equal
-  to `0x4350` only when `wire > 0x8000`.
-- The two branches reach disjoint row ranges, so a row has at most one wire id
-  and there are no overlapping low and high reverse encodings.
-- `all_wire_ids_for_row_hex` and `high_wire_id_hex` hold the low wire id only
-  for rows 221000 to 232015. Rows 251001, 253001, 253002 and 253003 take
-  `0x83E9`, `0x8BB9`, `0x8BBA` and `0x8BBB`.
-- The extractor's `decode_wire_id` adds the adjustment. The three observed joins
-  do not change.
-- The wire id `0x9DA9`, which the census lists for row 223129, translates to
-  key 257593.
+The data product `derived/substat_status_crosswalk.csv` stores that encoding
+in `low_wire_id_hex` or `high_wire_id_hex` according to its branch, leaving
+the other column empty. A low-only row's `high_wire_id_hex` is empty, not
+another copy of its low wire id. Row 223263 has low encoding `0x5ADF`;
+row 251001 has high encoding `0x83E9`.
+
+The manifest's `corrections` array is a checked replacement-contract fixture.
+For the separately owned `xivl-captures:studies/status-wire-projection-census`
+and `tools/extractors/extract_status_wire_census.py`, it specifies these
+expected mappings:
+
+- The decoder adds `0x4350` only when `wire > 0x8000`, and the inverse has
+  no overlapping low and high encodings.
+- The capture product's `all_wire_ids_for_row_hex` holds only `0x5A59`,
+  `0x5ADF` and `0x5DBF` for rows 223129, 223263 and 223999, respectively.
+  This list field is distinct from the data crosswalk's two branch columns.
+- Wire `0x9DA9` resolves to key 257593, rather than row 223129. The three
+  observed low-wire joins retain their values.
+
+These fixture expectations do not attest to an update of the capture census
+or its extractor.
 
 ## What bahamut-client can change
 

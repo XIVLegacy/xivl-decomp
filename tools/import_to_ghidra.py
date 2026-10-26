@@ -25,7 +25,7 @@ Usage:
   python3 tools/import_to_ghidra.py /path/to/ffxivgame.exe --project-dir build/ghidra
 
 Windows uses Ghidra's support/analyzeHeadless.bat and its configured JDK:
-  python tools/import_to_ghidra.py "C:\\Program Files (x86)\\SquareEnix\\FINAL FANTASY XIV\\ffxivgame.exe" --ghidra-home C:\\Tools\\ghidra_12.1_PUBLIC
+  python tools/import_to_ghidra.py "C:\\Program Files (x86)\\SquareEnix\\FINAL FANTASY XIV\\ffxivgame.exe" --ghidra-home C:\\Tools\\ghidra_12.1.3_PUBLIC
 
 On Windows, GHIDRA_HOME defaults to the newest ghidra_*_PUBLIC under ~/Tools.
 On POSIX, it defaults to the brew install path if unset.
