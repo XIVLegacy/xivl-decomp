@@ -314,6 +314,88 @@ the final helper's EAX, not a proved C return. On copy paths that helper
 returns the exact third-dword load at `0x00A3DBFE`; an opaque nonzero-AL
 alternative preserves that call's full EAX.
 
+### Default context callback
+
+The static default table `0x0109A690` has cell `0x0109A698` at byte
+`+0x08`, containing `0x0060D980`. Its four-byte original-file SHA-256 is
+`9da31d8bbe7eceffb3096c00e231d430c3905063ef10e72ca43819322f51a996`.
+The complete callback and that cell were checked against the same retail
+PE identified above, using Python 3.12.0, pefile 2024.8.26 and Capstone
+5.0.7 in x86-32 mode. All retained bytes and decoded instruction boundaries
+matched; the complete interval had no gap or overlap.
+
+| Complete half-open VA interval | Bytes / instructions | Code SHA-256 |
+| --- | ---: | --- |
+| `[0x0060D980,0x0060DA32)` | 178 / 56 | `a1186e788af31e9ef125f35c1316ba07c8c450168235e720fcd665889ab2fab1` |
+
+The callback's RVA and file offset are `0x0020D980`; the cell's are
+`0x00C9A698`. The [slot catalog](../../config/ffxivgame.vtable_slots.jsonl),
+row 64066, supplies the static slot identity. Runtime selection requires
+the current factory receiver to retain the corresponding table and cell.
+
+Let F be callback entry ECX. With S=entry ESP, its fixed frame base is
+B=S-`0x20`; the five arguments occupy B+`0x24` through B+`0x34`.
+The common `+0x08` frame above supplies `(current A4, L, current A5,
+current A6, current A7)` in that order. Thus callback argument 2 is the
+name-derived last component, and callback argument 5 is the context input.
+Their later values require intact slots, expected call cleanup and the
+common factory's name-copy, alias and current-value conditions.
+
+At `0x0060D9A4..0x0060D9A9`, the callback loads F's current vptr and
+calls virtual `+0x10` with ECX=F, having pushed no explicit query argument.
+Let R be that call's actual full EAX on normal return. R feeds the context
+arithmetic below; the callback's final EAX comes from its later request and
+constructor branch. No size type, constant or success meaning is assigned
+to the query word.
+
+After the query, `0x0060D9AB` freshly loads callback argument 5 as Pctx.
+For nonzero Pctx, `0x0060D9B3` reads D=`[Pctx+0x10]`. Only nonzero D
+with dword `[D+8]` equal to zero reaches the update at
+`0x0060D9C0..0x0060D9C6`:
+
+```text
+U = ((R + 7) mod 2^32) & 0xFFFFFFF8
+u32(D+4) = (current u32(D+4) + U) mod 2^32
+```
+
+The other branches skip the addition. The body rejects no overflow and
+makes no intervening call between these Pctx/D/flag reads and the write.
+Its earlier virtual query and later opaque calls can affect the storage.
+The common factory's BL was computed at an earlier context read time;
+BL nonzero does not establish these later guards or a persistent result.
+
+The callback obtains T through opaque `0x0040E2D0` at `0x0060D9D4`,
+then overwrites its own argument-5 stack slot with the saved T bits at
+`0x0060D9E2`. This is the callback's pushed argument copy, separate from
+the common factory's original context slot and the pointed-to context.
+The conditional D+4 addition above is a separate memory effect.
+
+It selects the current `0x01327FC0` word or the actual result of opaque
+`0x0040E500`, without another null test. Opaque `0x0040E110` at
+`0x0060D9F2` receives that selected receiver and `(0x40,current saved T)`
+under expected stack and ESI preservation. The literal `0x40` is a request
+operand, without a complete-object size, ownership or lifetime contract.
+Let Z be this call's actual EAX.
+
+For Z=0, `0x0060DA15` explicitly selects EAX=0. For nonzero Z, the
+call at `0x0060DA0E` supplies opaque `0x0060D7B0` with ECX=Z and one
+explicit argument: the current callback argument 2. The body directly
+reads neither arguments 1/3/4 nor forwards them to that helper. The helper's
+actual full EAX survives the normal epilogue; no Z-to-EAX return move
+follows. This result can itself be zero. The callback uses `RET 0x14`.
+These operations establish no returned type, C=Z equality, constructor
+fields or safe request-failure handling. Opaque effects, faults, exception
+unwinding and possible nonreturn retain their own conditions.
+
+On the qualified common default `+0x08` branch, child C is that actual
+callback EAX. C=0 takes the common early zero return without a raw/view
+fallback. Nonzero C skips the two raw/view-only object calls and reaches
+the existing append, current-slot-3 forwarding and low-31-bit child-field
+update under their storage and ABI premises. The later ID helper still
+defines the common factory's final EAX. This static default contract does
+not identify actual CIBB/custom dispatch, join C to searched N or root Q,
+or establish backing bytes, persistent effects, ownership or lifetime.
+
 ### Type lookup and default raw creator
 
 At lookup `0x00A44B00`, let M be entry ECX, O the output-pair address and
