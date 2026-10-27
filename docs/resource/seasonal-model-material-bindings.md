@@ -311,6 +311,11 @@ keeps the attribute payload cursors separate from in-place source copying.
 `0x00C195D0` selected parameter names from kind 6 and sampler names from
 kind 7. It registered parameter metadata, copied the supplied parameter
 values into native storage and built the material's data-table index list.
+
+The [Name record contract](vfx-model-name-records.md) distinguishes
+serialized kind 6/7 character records, allocated Name objects and the
+conditional direct indexed name pointers.
+
 The name words at table entries `2*T+j` and `T+i` recognize `0xFFFF`,
 then sign-extend other words before unsigned library-count comparisons at
 `0x00C19746..0x00C19774` and `0x00C199B4..0x00C199E0`. The selected
