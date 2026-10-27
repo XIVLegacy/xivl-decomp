@@ -339,6 +339,11 @@ zero; otherwise factory ECX comes from a fresh [K+0x10] load. Repeated
 loads and returning diagnostic calls retain the qualifications above.
 The registered value's provenance is not established by the lookup.
 
+The [ResourceFactory registration contract](resource-factory-registration.md)
+joins the outer owner to the then-current inner map and conditionally joins
+registration inputs to node key/value storage. It does not establish an active
+`0x63696262` entry or the factory bound to a particular lookup.
+
 The local fallback initially has vptr `0x0109A690`. If it remains intact,
 the authenticated byte+4 cell selects `0x00A465E0` on the qualified raw
 `+0x04` branch. BL's `+0x08` route still has priority. This callback's
