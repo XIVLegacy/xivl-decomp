@@ -130,6 +130,10 @@ copies set result flags to the original mouse event
 (`0x0097EBC4..0x0097EC53`). STATIC. This source starts at delivered routed
 preview events. OS input, hit testing and capture are not established here.
 
+The [delivered mouse preview producer](../input/sqwt-mouse-preview-producer.md)
+records conditional target selection before these preview events. OS arrival,
+complete hit testing and capture remain UNKNOWN.
+
 Button's Click recipient is I slot 13, `0x0097ECE0`. It first calls primary
 E slot 71, which is the bare-return `0x0097EB60` for this Button. When the
 Command pointer at E `+0x370` is nonnull, it then calls that command's slot 2
