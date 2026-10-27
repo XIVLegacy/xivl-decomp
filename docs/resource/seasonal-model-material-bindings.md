@@ -339,25 +339,75 @@ the source component-copy extent, current shared-storage reads, native register
 counts and conditional sampler/device forwarding. Omitted lanes, complete
 TexMatrix values and current cache/device state remain separate conditions.
 
-`0x00BE2110` read 24-byte dependency rows from the construction descriptor's
-`+0x20`, with count at `+0x24`. For each ordinal it submitted the resource
-ID through `0x00BF6D50`. It took the resolved resource's `+0x44` object,
-then that object's `+0x30` pointer, and stored it in live model `+0x80`
-at the same ordinal, bounded by model `+0x96`.
-`0x00BF6D50` selected a context-owned lookup or the checked global fallback;
-it did not resolve a DDS path literal.
+Ghidra disassembly and original PE checks establish the following selected
+allocation and texture joins. Let X be the native model,
+C=u16(X+0x94), D=u16(X+0x96), W=ptr32(X+0x84) and
+P=ptr32(X+0x80). At `0x00C19604..0x00C19615`, C takes the low word
+of R `+0x38` and D takes the low word of R `+0x14`. These runtime
+16-bit counts are distinct from the serialized Material counts.
 
-At `0x00C16F89..0x00C16FDF`, the material's first T 16-bit indices selected
-that texture-pointer array. Live material L was
-`ptr32(model+0x70)+ordinal*0x4C`. The producer conditionally filled L
-`+0x28` and `+0x2C`. It sign-extended each dependency index and required
-signed `u16(model+0x96)>index`, with no shown lower-bound test. A high-bit
-raw word becomes negative and can satisfy that comparison. Each assignment
-also required the zero-extended live byte count at L `+0x48` to exceed its
-slot ordinal in a signed comparison. The `+0x2C` store checked its array pointer, while the
-`+0x28` store had no separate shown null check. Valid readable storage and
-prior construction remain conditions, not a malformed-index safety policy.
-The next T indices supplied sampler names to the shader binder. Thus an
+At `0x00C19B54..0x00C19C3A`, the shared allocation places P immediately
+after C material pointers at W, so `P=W+4*C`. Its texture partition
+contributes `4*D` bytes with no added leading texture element. The
+complete allocation request remains unqualified. Native count and pointer
+arithmetic wraps at 32 bits.
+
+Separate loops at `0x00C19E0E..0x00C19E69` zero W[0..C) and P[0..D).
+D==0 skips P writes. Completed setup at `0x00C1723B..0x00C17277` stores
+`W[j]=ptr32(X+0x70)+0x4C*j`. With C>0, stable completed setup, readable
+storage and ordinary nonoverflow interpretation, P[-1] aliases W[C-1].
+This conditional adjacency supplies no sentinel intention or fallback
+meaning.
+
+`0x00BE2110..0x00BE228F` reads 24-byte dependency rows from the
+construction descriptor's `+0x20` and a signed dword loop count at `+0x24`.
+For each ordinal it submits the resource ID through `0x00BF6D50`. With
+unsigned D>ordinal, it stores the resolved resource's `+0x44` object's
+`+0x30` pointer directly at P[ordinal], without a base adjustment. This
+does not establish equality between the descriptor count and D.
+`0x00BF6D50` selects a context-owned lookup or the checked global fallback.
+It does not resolve a DDS path literal.
+
+At `0x00BE216C..0x00BE2276`, a null lookup enters diagnostics and then
+reads current global ptr32(0x01368518) before dereferencing `+0x44`. A
+null `+0x44` object enters another diagnostic path, with no shown
+replacement before the capacity-guarded `+0x30` read. The population store
+checks neither P nor the stored pointer value for null. Current fallback
+identity and diagnostic disposition remain unknown.
+
+For fixed Material M, let T=u32(M+4), N=u32(M+8) and
+I=ptr32(M+0x20). The complete local texture loop at
+`0x00C16F40..0x00C17003` starts i=0 and iterates unsigned i<T. Live
+material L is `ptr32(X+0x70)+materialOrdinal*0x4C`. The first T words
+select `x=s16(u16(I+2*i))`. Signed D<=x skips both assignments. Every
+negative signed16 x passes that comparison against zero-extended D, even
+when D==0. No local lower-bound test, 0xFFFF test or +1 compensation
+appears. This is conditional branch arithmetic, not an accepted index
+domain.
+
+Each destination branch at `0x00C16FA5..0x00C16FD5` separately requires
+signed zero-extended-u8(L+0x48)>signed32(i). The `+0x2C` branch also checks
+its destination pointer. The `+0x28` branch has no separate shown null
+check. Both read ptr32(P+4*x) without checking P or the selected entry for
+null. Ordinary setup stores low8(T) at L `+0x48`, as described above. It
+does not qualify large or high-bit counts or complete destination bounds.
+
+The selected fixup at `0x00C02461..0x00C024B6` installs
+`I=M+s16(M+0x12)` and, for flag byte==1, converts wrapped `2*T+N` words.
+The word helper `0x00C029B0..0x00C029B9` swaps the two bytes and
+preserves 0xFFFF without a value-domain branch. This caller/helper pair
+supplies no first-T sentinel or lower-bound admission.
+
+Construction at `0x00C1AC20..0x00C1AC75` checks AL after calls to
+`0x00C195D0`, `0x00C17160`, `0x00C19170` and `0x00C17280` in order.
+Successful
+continuation at `0x00BE27B0..0x00BE27EC` calls `0x00BE2110`,
+`0x00BE1450` and `0x00C16DF0`. Unexpanded construction, shader and
+virtual predecessors prevent excluding all earlier validation or mutation.
+The accepted retail domain, complete allocation, diagnostic and lifetime
+contracts, current owner and live safety remain unknown.
+
+The next T indices supply sampler names to the shader binder. Thus an
 alias rewrite needs a proved ID-to-ordinal-to-texture join, not merely an
 equal collection of path strings.
 
