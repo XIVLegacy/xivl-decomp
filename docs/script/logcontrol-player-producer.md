@@ -55,8 +55,11 @@ SELF places the method in R2 and receiver in R3. Fixed CALL B=7 supplies
 R3 through R8, including five explicit arguments after the receiver. B=6
 supplies R3 through R7, exactly four explicit arguments. The last three
 frames pass no trailing nil or stale R8. C=1 requests no return values.
-These are fixed Lua call frames. The dynamic method value, native binder
-acceptance and category 68 meaning or reader admission are unproved.
+These are fixed Lua call frames. The
+[conditional four-explicit native frame](../resource/logcontrol-pool-feed.md#conditional-four-explicit-native-frame)
+passes the count/omission gate under its retained descriptor, valid-frame and
+successful prefix-reader conditions. Current dynamic method, receiver/type
+acceptance and category 68 meaning or reader admission remain unproved.
 
 ## Conditional WorldMaster load
 
@@ -72,10 +75,78 @@ OBSERVED. Native callback 0x006E7500 adds 0x03A20000 at 0x006E7568.
 The literal 39 therefore requests resource 0x03A20027. Named-sheet readiness
 allows the immediate writer at 0x006E75D5 or deferred checker 0x00718640 to
 copy worldMaster into the receiver's ActorBase +0x08. This gives a conditional
-key for an instance initialized through that method. It does not join the
-player callback's global worldMaster reads to that native instance. Neither
-chunk contains a direct SETGLOBAL for worldMaster or desktopWidget. This
-bounded negative does not exclude indirect writes or other startup sources.
+key for an instance initialized through that method. The
+[conditional native WorldMaster join](#conditional-native-worldmaster-join)
+connects construction, publication and key ownership only under its same-instance
+and method/readiness predicates. Neither chunk contains a direct SETGLOBAL for
+worldMaster or desktopWidget. This bounded negative does not exclude indirect
+writes or other startup sources.
+
+## Conditional native WorldMaster join
+
+OBSERVED. Owner getter 0x0071BB80 accepts the typed control cell through the
+LuaControl descriptor 0x01270B4C and ActorBase target 0x01270964. The worker's
+source classification separately tries WorldMaster 0x012C1328 before CharaBase
+at 0x006E853C. These are type predicates on accepted cells, not classification
+of arbitrary pointers.
+
+OBSERVED. Retained WorldMaster table 0x00FD5864 has complete-object locator
+0x0115E158 and hierarchy 0x0115E16C. Its seven base records include these
+exact types with mdisp=0, pdisp=-1 and vdisp=0:
+
+| Type descriptor | Mangled RTTI symbol |
+| --- | --- |
+| 0x012C1328 | `.?AVWorldMaster@Control@Client@Script@Lua@Application@@` |
+| 0x01270964 | `.?AVActorBase@Control@Client@Script@Lua@Application@@` |
+| 0x01270B4C | `.?AVLuaControl@GameEngine@Lua@Component@@` |
+
+INFERRED. A successfully constructed, still-live object retaining that table can
+supply both the WorldMaster source and ActorBase owner at receiver offset zero.
+
+OBSERVED. The [native parent registration](native-class-registration-parents.md) records
+WorldMaster, WorldBaseClass and prototype constructor 0x006DF130.
+That constructor calls ActorBase constructor 0x006DBB70 on the same receiver,
+installs 0x00FD5864 and initializes its +0x60 field. The base constructor
+initializes the owned UTF-8 key object at native +8 at 0x006DBBA5..0x006DBBAE.
+Construction alone does not establish a loaded key.
+
+OBSERVED. Selected record creation 0x00CE2D50 loads the prototype at class-record
++0 and dispatches its +4 slot through 0x00CCC9B0 at 0x00CE2D9C. The retained
+cell 0x00FD5868 selects clone 0x00718DB0..0x00718E0D. On its successful
+allocation path, it requests 0x64 native bytes at 0x00718DD1 and calls
+0x006DF130 at 0x00718DED. This constructs a fresh native WorldMaster, without
+copying a preloaded prototype key. Record constructor 0x00CE2BC0 stores native
+at record +0 at 0x00CE2BF7 and record at native +4 at 0x00CE2C90.
+0x00CE2D50 also stores the source class record at instance-record +0x0C at
+0x00CE2DF9. Valid retained class/prototype identity, successful native/record
+allocations, separated storage, normal constructor/helper completion and lifetime
+remain conditions.
+
+The generic nonempty-name publication mechanism at 0x00CDCDAE -> 0x00CD7970
+remains canonical in XIVLegacy/xivl-client-structs:docs/create-actor-native-contract.md,
+Creation and Global publication, and the
+[instance-creation contract](../actor/actor-instantiation-and-self-player.md#instance-creation).
+It requires a nil global slot and publishes the registry instance table. Its
+relationship to the table received as self by _onInit remains INFERRED under
+the published same-registry/context conditions. This mechanism supplies no
+WorldMaster-specific setter or observed startup assignment.
+
+INFERRED. If a valid class/name record selects this retained WorldMaster prototype,
+nonempty name worldMaster has a nil global slot, publication succeeds and the
+same registry identity/table reaches initialization, the native/record association
+above can join that published instance to the owner. If the published
+WorldMaster._onInit method and native load callback are actually selected on
+this same instance and named load39/worldMaster completes immediately or deferred,
+the writers 0x006E75D5/0x00718640 address that same native +8 key object.
+With retained lifetime, no later key mutation and no intervening global replacement,
+the two separately evaluated worldMaster reads in the player frame can supply
+the WorldMaster source and ActorBase text owner. Actual globals, method selection,
+load readiness, runtime language and native lookup execution remain unobserved.
+
+To reproduce these native joins, inspect the listed binder, collector, cast and
+construction VAs in the identified PE. Compare instructions, direct call targets
+and referenced table/RTTI data. Retain the stated receiver/type, normal-completion,
+same-instance and lifetime conditions.
 
 ## Exact English resources
 
@@ -239,12 +310,13 @@ enabled-row and cache effects, not complete preservation of sheet +0x0B or
 sheet +0x20. The absent-param entry-byte rule retains its initialized-wrapper
 and empty-map conditions. No final numeric default or physical column follows.
 
-UNKNOWN. Global native identities and startup assignments, invocation of
-_onInit on the selected owner, readiness, dynamic method/native binder
-acceptance, category 68 admission, actual language selection, native lookup
-execution, asynchronous completion, fallback, formatting and rendered
-visibility remain unproved. These producer and English asset facts establish
-no usable plain-text feed or live retail outcome.
+UNKNOWN. Actual current globals and startup assignments, selected method and
+receiver/type acceptance, same-instance registry/key continuity and lifetime,
+invocation of _onInit on the selected owner, readiness, category 68 admission,
+actual language selection, native lookup execution, asynchronous completion,
+fallback, formatting and rendered visibility remain unproved. The conditional
+count/placeholder and WorldMaster construction joins establish no actual lookup,
+text publication or live retail outcome.
 
 ## Reproduction
 

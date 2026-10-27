@@ -20,13 +20,48 @@ OBSERVED. Argument 0 selects source-name handling: integer -> 0x007721B0, UTF-8 
 
 OBSERVED. The sinks allocate a 0x118-byte record at 0x0076B3D0/0x00776690 and append it to logger deque +0x08. It owns UTF-8 text at +0x00 and source name at +0x54. It stores argument 3 at +0x104, initially assigns the source integer/Chara ID or zero to +0x108, and stores the low 16 bits of argument 1 at +0x10E, source-name enable byte at +0x110, and flag at +0x111. The ordinary valid-owner branch at 0x007723CF..0x007723F0 resets +0x108 to zero before copying the source name. The field does not retain the initial source ID through that branch. WorldMaster sets source-name enable to 0. The other three sinks set it to 1. The ready byte +0x112, suppression/empty-text byte +0x113, fallback-result byte +0x114, and 16-bit poll count +0x10C initially contain zero.
 
+## Conditional four-explicit native frame
+
+The generic descriptor and marshalling rules remain canonical in
+XIVLegacy/xivl-client-structs:docs/talk-native-contract.md, Message and log pools,
+and XIVLegacy/xivl-client-structs:docs/widget-native-call-contract.md, Argument
+marshalling and Variable argument reader.
+
+OBSERVED. The pool list builder at 0x00743A30 declares five formals: source
+Which, int category, LuaControl owner, int row and Variable suffix. Marshaller
+0x00D19A20 initializes cursor 2 at 0x00D19AC2 and compares the final cursor
+with saved top at 0x00D19B0D..0x00D19B15. Cursor greater than top bypasses
+GetArguments_. Missing-position dispatcher 0x00CFAA10 tests at 0x00CFAA47,
+constructs/appends one internal tag-6 placeholder at 0x00CFAA6B/0x00CFAA7D
+and increments the cursor once at 0x00CFAA8F. It reads no present Lua value
+on that branch.
+
+INFERRED. With retained descriptors, a valid native frame, a DesktopWidget
+receiver accepted by its holder route, four prefix readers that succeed and
+each advance once, and normal placeholder-helper completion, a receiver plus
+four explicit values has saved top 5.
+The prefix advances cursor 2->6. The omitted fifth Variable produces one tag-6
+cell and advances 6->7. Since 7>5, this selected argument-count gate accepts.
+This is conditional count acceptance, not proof of current receiver/type or
+dynamic method acceptance. The [player frames](../script/logcontrol-player-producer.md#player-call-frames)
+supply the corresponding fixed four-explicit Lua cases without a trailing nil.
+
+OBSERVED. With the log wrapper's flag 0, worker 0x006E8360 requires cells 0..3
+and starts collector 0x007702C0 at index 4. For the valid five-cell vector above,
+tag 6 at index 4 follows 0x00770382/0x0077039C -> 0x00770560 and exits at
+0x00770572 after advancing the index. That iteration appends no formatter
+argument and performs no context-value write. Under the same normally initialized
+collector state and normal helper completion, its formatter/context state equals
+the four-cell, no-iteration case. The internal placeholder is not a supplied Lua
+argument, message body or invented formatter value.
+
 ## Conditional parameter-free path
 
 OBSERVED. A bounded shared-worker case uses a WorldMaster source, category C, text-owner ActorBase A, text selector R, and no parameter cells at index 4 or later. The collector initializes an empty parameter vector when the cell count is 4. On the ordinary owner-lookup branch of 0x007722A0, the text owner must resolve, and 0x00758860 must return a nonempty key. That helper copies the UTF-8 object at actor +0x08. A conditional category 0x1B path at 0x007722E0..0x00772330 can set empty text, suppression, and readiness and return before owner lookup.
 
 OBSERVED. On that ordinary owner-lookup branch, 0x007722A0 creates GetLogStringListener at 0x00777DF0 and calls 0x00771C20 on the object at second state-chain +0xDC. The ordinary lookup path resolves the owner again and invokes TextModule slot +0x0C, target 0x00CA0930, with the owner key, unchanged row selector R, literal 0xFF, a parameter-set object, and an output string. The [ordinary text lookup contract](logcontrol-text-lookup.md) establishes the installed provider, loaded sheet-name key, named Excel lookup, configured default logical column, and conditional plain-byte result. A result greater than zero forwards that output to listener callback 0x00777EC0. The callback copies the output to record +0x00, marks an empty output at +0x113, sets ready +0x112, and detaches the listener link. String assignment 0x00447450 copies into destination-owned storage.
 
-UNKNOWN. The selected registered sheet for this instance, any numerically specified valid C/R pair, a concrete owner key, Lua binder omission rules, and the parameter or macro requirements of any real row remain unproved. The generic lookup rule establishes R as an unchanged row selector but selects no real row. This conditional native path is not a demonstrated parameter-free retail text or live-client feed.
+UNKNOWN. The selected registered sheet for this instance, any numerically specified valid C/R pair, a concrete current owner key, actual receiver/type and dynamic method acceptance, and the parameter or macro requirements of any real row remain unproved. The generic lookup rule establishes R as an unchanged row selector but selects no real row. This conditional native path is not a demonstrated parameter-free retail text or live-client feed.
 
 ## FIFO, flags, publication, and lifetime
 
