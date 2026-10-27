@@ -237,6 +237,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
 - [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
+- [Sqwt Track and ScrollBar rectangle requests](resource/sqwt-track-rectangle-requests.md)
 - [LogControl and pool feed static contract](resource/logcontrol-pool-feed.md)
 - [LogControl message-wait checker and handler](resource/logcontrol-message-wait.md)
 - [LogControl ordinary text lookup](resource/logcontrol-text-lookup.md)
