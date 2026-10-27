@@ -224,22 +224,106 @@ carriers. They do not establish interchangeability of their complete models.
 
 ## Material and texture joins
 
-For the checked material record M, the native consumers read these fields.
-The pointer fields are results of fixup, not serialized absolute addresses.
+For the checked material record M, Ghidra disassembly through ghidra-cli and
+comparison with the identified PE establish these in-place reads. The pointer
+fields are 32-bit fixup destinations, not serialized absolute addresses or
+allocated Material attribute object offsets.
 
 | M offset | Consumption |
 | --- | --- |
-| `+4` | Texture/sampler count T. |
-| `+8` | Material parameter count N. |
+| `+4` | 32-bit texture/sampler count T, read at `0x00C0241C` and `0x00C196FC`. |
+| `+8` | 32-bit material parameter count N, read at `0x00C02425` and `0x00C196F3`. |
 | `+0x0C..+0x10` | State bytes consumed by `0x00C17160` to produce material flags and state. |
 | `+0x12` | Signed 16-bit relative offset of the index/name table. |
 | `+0x18` | Fixup wrote `M+0x24`, the N parameter descriptors with stride eight. |
 | `+0x1C` | Fixup wrote `M+0x24+8*N`, the parameter payload source. |
 | `+0x20` | Fixup wrote `M + s16(M+0x12)`, the T+T+N 16-bit index entries. |
 
+`0x00C02461..0x00C0247C` writes the three pointer bases above. All count,
+`2*T+N`, `8*N` and pointer formulas use native 32-bit wrapping arithmetic.
+`0x00C0241C..0x00C02436` converts and writes complete dwords for T and N.
+The count reads do not by themselves establish signedness. The selected
+fixup and texture-join bounds use unsigned T, while the sampler-name loop
+at `0x00C199A9..0x00C19A12` uses signed T and skips when T<=0. The selected
+N descriptor loops use unsigned bounds. On the ordinary allocated-material
+continuation, `0x00C19F9D..0x00C1A03D` stores the low byte of T at live
+material `+0x48`. That store does not narrow the serialized count.
+
+The containing FileInfo branch at `0x00BE26F4..0x00BE26F9` selects the
+[modern construction route](#native-construction-order) with unsigned
+version>=3 after header copy/conversion. Inside `0x00C02750`, marker byte 1
+takes the no-conversion header path through `0x00C02870`. The wrapper
+sign-extends the marker byte and compares it to native dword 1 at
+`0x010D0FFC` to produce its conversion flag. It calls Material fixup in
+either case. In `0x00C023C0`, field and table/payload conversion require
+flag byte exactly 1, while the pointer writes occur with either flag.
+Other marker values choose conversion without validating an endian enum.
+The wrapper supplies no tag/version validator. These routing predicates
+do not establish a valid profile for every version, tag or variant.
+
+Attribute serialization is a separate route. Material table `0x010D1978`
+selects size `0x00C0BFD0`, Save `0x00C0C0A0` and Load
+`0x00C0C320` by their observed operations. On the create-flag byte==1
+branch, `0x00C0E57D..0x00C0E5DF` allocates a `0x34`-byte Material
+attribute object A. Its embedded Index objects are at A `+0x18/+0x20`.
+Its descriptor objects have stride `0xC`, unlike their eight-byte modern
+serialization. Neither A nor the live material stride `0x4C` is the
+serialized header layout.
+
+Load `0x00C0C33E..0x00C0C3E5` reads dwords M `+0/+4/+8`, then
+five bytes `+0xC..+0x10`. Let Q be `ptr32(0x0136E5F8)` and V the
+unsigned dword at Q `+0xC`. With stable readable context and the selected
+object vtables, V>=3 starts two scalar Index fields at M `+0x14/+0x16`
+and skips 12 bytes after them at `0x00C0C481..0x00C0C493`. Descriptors
+therefore begin at M `+0x24`. This Load leaves byte `+0x11`, word
+`+0x12` and `+0x18..+0x23` unread. Save writes word `+0x12` but
+leaves the other listed extents untouched in its observed stores. These
+skips do not prescribe zero padding.
+
+Index size `0x00C06700..0x00C06728` is four only when Q!=0,
+`u32(Q+8)==0x76696E73`, `u32(Q+0x10)==5` and `u32(Q+0xC)==1`.
+Otherwise it is two. Special Load reads a dword and retains its low word
+after optional conversion. Ordinary Load reads a word. Save always writes
+one word at `0x00C06730..0x00C067EC`. DataTable size is seven for
+unsigned V<3 and eight otherwise at `0x00C067F0..0x00C06808`.
+Below three, Material Load starts scalar Index fields at `M+0x11`, reads
+the `2*T` and N Index groups before the descriptors, then reads N
+seven-byte descriptors and selected payloads. Save retains its modern
+scalar start and descriptor/index ordering. No symmetric legacy writer
+profile follows from these routines.
+
+Load conversion tests the low flag byte for exactly one. Save tests it
+for nonzero at `0x00C0C0BD`, `0x00C06735` and `0x00C06815`.
+These are operation predicates, not a validated endian enumeration.
+Material and DataTable dereference Q without a null guard. Index size
+handles null Q. Initial Index allocation is gated by wrapped
+`T+N!=0` for a wrapped `2*T+N` count at `0x00C0C3E7..0x00C0C47E`.
+At `0x00C0C3F5..0x00C0C58F`, object-array size overflow saturates
+the requested size to `0xFFFFFFFF`,
+while payload-pointer allocation `4*N` wraps. Load traverses wrapped
+`2*T` and N as separate unsigned groups, while Save traverses wrapped
+`2*T+N` in one group. Descriptor loops compare unsigned against N.
+These widths, allocation gates and traversal differences do not provide
+source bounds, initialized allocation bytes or complete failure/cleanup
+behavior. The [serialized component contract](vfx-model-material-values.md#serialized-components-versus-current-storage)
+keeps the attribute payload cursors separate from in-place source copying.
+
 `0x00C195D0` selected parameter names from kind 6 and sampler names from
 kind 7. It registered parameter metadata, copied the supplied parameter
 values into native storage and built the material's data-table index list.
+The name words at table entries `2*T+j` and `T+i` recognize `0xFFFF`,
+then sign-extend other words before unsigned library-count comparisons at
+`0x00C19746..0x00C19774` and `0x00C199B4..0x00C199E0`. The selected
+material lookup requires nonzero count and offset, but its inner rejection
+is count<ordinal, not count<=ordinal. Outer loop bounds remain separate.
+Zero lookup results are followed by dereferences. These checks do not
+establish safe malformed-input admission or complete name resolution.
+
+Binder `0x00C19604..0x00C19665` takes the low 16 bits of R `+0x38` for
+its live material count. A count>=16 enters an unqualified diagnostic path.
+The main allocation null branch at `0x00C19BF3..0x00C19C0F` returns false.
+These selected checks do not establish complete allocation/error lifecycles.
+
 Shader initialization `0x00C11230`, reached through `0x00C13990` and
 `0x00C123F0`, passed those registered names to the vertex and pixel
 parameter lookup interfaces. A matching CTAB register layout does not
@@ -258,9 +342,16 @@ at the same ordinal, bounded by model `+0x96`.
 `0x00BF6D50` selected a context-owned lookup or the checked global fallback;
 it did not resolve a DDS path literal.
 
-At `0x00C16F89..0x00C16FD5`, the material's first T 16-bit indices selected
-that texture-pointer array. The producer filled both sampler pointer arrays
-at live material `+0x28` and `+0x2C`, in a material array with stride `0x4C`.
+At `0x00C16F89..0x00C16FDF`, the material's first T 16-bit indices selected
+that texture-pointer array. Live material L was
+`ptr32(model+0x70)+ordinal*0x4C`. The producer conditionally filled L
+`+0x28` and `+0x2C`. It sign-extended each dependency index and required
+signed `u16(model+0x96)>index`, with no shown lower-bound test. A high-bit
+raw word becomes negative and can satisfy that comparison. Each assignment
+also required the zero-extended live byte count at L `+0x48` to exceed its
+slot ordinal in a signed comparison. The `+0x2C` store checked its array pointer, while the
+`+0x28` store had no separate shown null check. Valid readable storage and
+prior construction remain conditions, not a malformed-index safety policy.
 The next T indices supplied sampler names to the shader binder. Thus an
 alias rewrite needs a proved ID-to-ordinal-to-texture join, not merely an
 equal collection of path strings.

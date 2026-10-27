@@ -47,10 +47,62 @@ indices [2004,2060). Thirteen payloads are nonempty and total 140 bytes, SHA-256
 Nine descriptors have zero length and classification 0xFF. These counts are not
 a final native map size or proof of current value contents.
 
-Each selected modern descriptor uses byte +0 for the copied component count,
-byte +2 for classification and u32 little-endian +4 for declared payload length.
-Every selected nonempty length is four times its copied component count. This
-selected source framing does not supply a general malformed-input validator.
+Each selected modern eight-byte descriptor uses byte +0 for the copied
+component count, byte +1 for storage code, byte +2 for classification and
+u32 little-endian +4 for declared payload length. The reads at
+0x00C19727..0x00C1980B and 0x00C1991D zero-extend component/storage bytes
+where used as counts/codes. The selected windows establish no read or
+must-zero rule for byte +3. Every selected nonempty length is four times
+its copied component count. The [material fixup contract](seasonal-model-material-bindings.md#material-and-texture-joins)
+owns the count widths and pointer bases.
+
+Attribute DataTable Load `0x00C06860..0x00C068A0` reads the same three
+byte fields, then a full dword at C `+4` for unsigned context version>=3
+or C `+3` below three. Save `0x00C06810..0x00C06853` always writes
+the dword at C `+4` and leaves C `+3` unwritten. Zeroing allocated
+object byte `+7` at `0x00C0E180..0x00C0E199` does not prescribe
+serialized C `+3`.
+
+The attribute Material Load cursor differs from in-place fixup and the
+native-storage source copy below. Let c be descriptor byte 0, s byte 1
+and L its declared dword length. At `0x00C0C595..0x00C0C68D` and
+`0x00C0C8D3..0x00C0C9CB`, only c!=0, c!=5 and s==0 allocates,
+copies and advances `4*c` bytes. L and classification do not size that
+path. c==0 or c==5 explicitly stores a null payload pointer. When
+c!=0/5 and s!=0, this path consumes zero bytes and does not write the
+pointer slot. Its incoming allocation bytes remain unknown.
+
+For stable readable modern context and ordinary nonoverflow traversal,
+let `P=M+0x24+8*N`. Load's payload for admitted descriptor j starts at
+`P+4*sum(c[k] for admitted k<j)`. Its final Index group starts at
+`P+4*sum(c admitted)`, followed by `2*T` two-byte entries and N
+two-byte entries at `0x00C0C693..0x00C0C72B`. Save instead copies
+each full nonzero dword L and places its Index group at `P+sum(L)`,
+then writes `2*T+N` entries at `0x00C0C261..0x00C0C302`.
+Save `0x00C0C13D..0x00C0C1AF` writes a word at M `+0x12`:
+`low16(0x24+low16(N)*low16(d)+sum(low16(L)))`, where d is the
+DataTable serialized size, with word conversion when the low flag byte is
+nonzero. In-place fixup consumes that word as signed16. GetSize
+`0x00C0BFD0..0x00C0C099` instead gives the modern ordinary formula
+`0x24+8*N+2*(2*T+N)+4*sum(c admitted)`. Native count, size and
+pointer arithmetic retains the [allocation and traversal limits](seasonal-model-material-bindings.md#material-and-texture-joins).
+These distinct cursors and narrowing operations do not validate their
+agreement or the signed displacement for arbitrary records.
+
+Load payload conversion compares the low flag byte to one and passes
+values through FLD/FSTP and `0x00C066C0`. Save uses nonzero flag tests
+around temporary conversion calls. These sequences do not prove a bit
+permutation for every binary32 pattern under arbitrary x87 state. The
+address windows do not establish complete called-helper behavior.
+
+Length converter 0x00C029F0..0x00C02A27 changes only descriptor +4 when
+its flag byte is nonzero. Fixup 0x00C024CA..0x00C0250D adds the converted
+lengths with 32-bit wrap and logically shifts the aggregate right by two
+for its payload iteration count. It passes payload values through x87
+loads/stores and the conversion helper 0x00C02830. This does not prove a
+pure bit permutation for every binary32 pattern or arbitrary x87 state.
+The inspected 0x00C02830..0x00C02863 window stops before its complete
+return. No divisibility, per-descriptor padding or file-bound check follows.
 
 At 0x00C12F20, registration forwards automatic index -1 to 0x00C12B30.
 Its successful new-key branch reserves ceil(sizeBytes/16) blocks, checks the
@@ -61,13 +113,22 @@ The selected success return at 0x00C12C46 is bounded evidence. Complete
 insertion/duplicate/error lifecycle and arbitrary malformed inputs are separate.
 
 The selected source loop in 0x00C195D0 skips a zero-length descriptor unless
-its classification byte is 0x36. At 0x00C198B9..0x00C1998C, let D be the
-retained DataTableMap and m the successfully returned metadata. The destination
-is ptr32(D+0x1C)+16*u8(m). Source position is the serialized payload prefix
-computed from prior descriptor lengths. The loop copies exactly descriptor
-byte 0 float components through FLD/FSTP. Its shown stores do not supply the
-remaining lanes of a short value. Valid returned metadata, readable storage and
-normal completion remain conditions.
+its classification byte is 0x36. Resolved names latitudeParam, lightCount and
+ambientLightColor also skip at 0x00C1978E..0x00C197CC through comparisons
+including their terminators. Failed name resolution is not a safe fallback.
+At 0x00C198B9..0x00C1998C, let D be the retained DataTableMap and m the
+successfully returned metadata. The destination is
+ptr32(D+0x1C)+16*u8(m). For nonzero current length and an ordinary
+nonnegative descriptor ordinal, 0x00C198EC..0x00C1991A divides the signed
+32-bit wrapping sum of prior lengths by four toward zero, then scales it
+by four and adds the payload base. Current length zero selects source
+pointer zero. For the selected nonempty four-byte-aligned lengths, this
+is the sequential payload prefix. It is not a general prefix or padding
+rule for arbitrary lengths. The loop copies exactly descriptor byte 0
+float components through FLD/FSTP. Its shown stores do not supply the
+remaining lanes of a short value. Valid returned metadata, readable
+storage, normal helper completion and suitable x87 state remain conditions.
+Complete registration, diagnostic and error lifecycles remain unqualified.
 
 These are the selected nonempty source-to-CTAB matches. Each target below is a
 Float4-register set entry with declared register count 1:
