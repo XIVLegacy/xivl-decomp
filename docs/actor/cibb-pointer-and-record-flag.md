@@ -91,6 +91,54 @@ are unexamined. Four conditional branches leave the prefix for
 `0x006BDAAE`, whose effects are also unexamined. The successful cast does
 not identify C's exact dynamic vptr or its virtual `+0x188` implementation.
 
+## Conditional nominal CharaActor search path
+
+The [published CharaActor mapping](battle-npc-body-parts.md) places
+`0x007CE9F0` in nominal vtable cell `0x00FC0EBC`, byte offset `+0x188`.
+Under the binary identity and Capstone method above, the additional exact
+PE-backed intervals were:
+
+| Selected VA extent, exclusive end | Bytes / instructions | Window SHA-256 |
+| --- | ---: | --- |
+| `0x007CE9F0..0x007CEA98` | 168 / 44 | `782df3f1cf5b1919e43f11e7d57a7af5ef5f848b6112f519b05515741e0650e1` |
+| `0x00857AB0..0x00857B13` | 99 / 45 | `ce90f34199629d1b4323c2c73911b47531c2ded2c55942eab2aeed45241f5cc7` |
+| `0x00A3D970..0x00A3D9DD` | 109 / 41 | `1d570c4b909022ca0e1b2e9bd830e54c4f506cce96e90c5428424f5f246c38e2` |
+
+RVA and file offset equal VA minus `0x00400000` at these sites. The selected
+boundaries do not guarantee complete machine functions.
+
+For incoming object W and argument pointer T, `0x007CEA04/0D/12` loads T
+and dword X=`[W+8]`. If X is nonzero, `0x007CEA7B/7C` forwards T to
+`0x00857AB0` with ECX=X. Its array traversal loads candidate N at
+`0x00857AF0`; a nonnull N reaches `0x00A3D970` at `0x00857AFC` with ECX=N,
+the same T, and flag 0. This flag includes the candidate's own `+0x30`
+comparison. The separate [BHP caller's flag 1](../resource/bgchip-instance-resource-setup.md)
+does not apply. An invalid current array bound calls opaque `0x009D22B4`
+at `0x00857AE8`; its effects are unexamined. These return observations
+apply after calls return and reached memory reads succeed.
+
+With stable supplied nonzero dword `[T]=0x63696262`, the search returns
+either a candidate/reached node whose dword `+0x30` equals that key, or zero
+on the exhausted/absent paths. Equality returns the node address itself in
+full EAX (`0x00A3D98D/990` or `0x00A3D9B3/B6`); the common epilogue
+`0x00A3D9D3..0x00A3D9DA` preserves it. The traversal retains at most
+`0x40` pending `+0x1C` links, so zero does not prove absence from an
+unbounded graph. The first nonzero result passes unchanged through
+`0x00857B01..0x00857B10` back to the wrapper.
+
+At `0x007CEA8A`, the wrapper calls `0x009D20F4` before returning. The
+zero-X path explicitly clears EAX at `0x007CEA62` and also calls that
+target at `0x007CEA6D`. The selected intervals do not establish its EAX
+effects. A matched-node identity for the wrapper's actual return therefore
+requires that intervening call to preserve EAX, in addition to actual
+dispatch selecting this nominal implementation. No observed caller's vptr
+or override is bound by this nominal mapping.
+
+Even under those conditions, the matched type key does not identify a
+producer for `[A+0x40]`, the interface or indirect target reached through
+it, or the backing/serialized identity of P. The supplied Cibb storage M
+and the returned resource node A remain separate objects.
+
 ## Record lookup and flag write
 
 The helper at `0x00850C10` reads dword R0=`[M+4]` at `0x00850C13`.
