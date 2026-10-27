@@ -401,6 +401,171 @@ also obtains a memory view through global `0x01327C24` slot 3. It supplies
 an interface lead, not the current G, U2, their vptrs, backing bytes or lifetime
 here. No byte-copy contract is inferred merely from the `0x009D4600` address.
 
+### View directory arguments and default creator
+
+The view route at `0x00A3C151` calls wrapper `0x00A44730`. The following
+complete functions were checked against the same retail PE identified above.
+Python 3.12.0, pefile 2024.8.26 and Capstone 5.0.7 supplied the PE mapping
+and x86-32 decoding. End addresses are exclusive; these file offsets equal
+VA minus `0x00400000`.
+
+| Selected VA interval | Bytes / instructions | Code SHA-256 |
+| --- | ---: | --- |
+| `0x00A44730..0x00A4485F` | 303 / 108 | `9ec8836126441ca948d6f900177f6d2c2b864681d5c53cc2a08d0238a3b98e1a` |
+| `0x00A466E0..0x00A467A7` | 199 / 64 | `3b62356fc00f56c2aa34875fe386918f265fb466b17a8aa40b4b12c62f803398` |
+| `0x00A46520..0x00A465E0` | 192 / 58 | `7ca5740adc23a9541505671012deb2b127721fda2fc4eccb88becc05716c8338` |
+
+Three exact four-byte cells were authenticated against that PE and the
+[slot catalog](../../config/ffxivgame.vtable_slots.jsonl), rows
+64067/64069/64070:
+
+| Cell VA | Stored pointer | Default factory role |
+| --- | --- | --- |
+| `0x0109A69C` | `0x00A466E0` | Slot `+0x0C` |
+| `0x0109A6A4` | `0x00B73290` | Predicate slot `+0x14` |
+| `0x0109A6A8` | `0x00B73290` | Predicate slot `+0x18` |
+
+The [selected RES/txb finding](gtex-pwib-loader.md#selected-restxb-consumer)
+owns the true-return contract for `0x00B73290`. These cells qualify the
+local default route, without identifying a registered CIBB callback.
+
+At wrapper entry, ECX is factory/map owner P. Let B0 be entry ESP minus
+`0x2C`, after the initial frame and three register saves. Its seven inputs
+are:
+
+| Slot | B0-relative offset | Reached role |
+| --- | --- | --- |
+| W1 | `+0x30` | Parent/root value |
+| W2 | `+0x34` | Name pointer |
+| W3 | `+0x38` | Pointer to reversed ID pair |
+| W4 | `+0x3C` | Pointer to local type dword |
+| W5 | `+0x40` | Entry view |
+| W6 | `+0x44` | Fresh parser context |
+| W7 | `+0x48` | Selector-containing dword |
+
+Only W7's low byte was initialized by this caller: initially 1 when its
+fetched context and context byte `+0x14` were nonzero, otherwise 0. Each
+value below means current slot contents at its actual load. Entry/saved
+identity requires intact storage and expected call/ABI behavior.
+
+At `0x00A4474B`, EDI receives current W5 as V0. For nonzero V0, virtual
+`+8` at `0x00A4475E` returns L0, then virtual `+4` at `0x00A4476B`
+returns D0. Their locals are at B0+`0x0C` and B0+`0x10`. Zero V0 sets
+both locals from preserved zero EBX. These calls do not establish the getter
+bodies, backing bytes, bounds or one coherent view/pointer/length snapshot.
+
+After PUSH EBP changes the base to B=B0-4, the wrapper initializes its
+local default vptr `0x0109A690` at B+`0x18`. It calls lookup `0x00A44B00`
+at `0x00A44797` with M=P+4, output-pair address B+`0x1C` and current W4.
+It dereferences lookup EAX without a null guard. The lookup and
+[registration contract](resource-factory-registration.md) retain their
+existing conditions. With intact lookup/output/ABI state, the returned pair
+contains M and candidate or head K.
+
+The `0x00A4479C` unsigned comparison of the current L0 local against
+preserved initial EBX=0 selects the default for zero length. Otherwise the
+candidate/head/value tests, possible returning diagnostics `0x009D22B4`,
+and repeated loads can select a fresh [K+`0x10`] factory pointer F. A zero
+value selects the default receiver, address B+`0x18`. An earlier nonzero
+test does not guarantee the later selected load is nonzero. A high-bit
+length is not a signed nonpositive-length fallback here.
+
+For selected F, the wrapper freshly loads its vptr for predicate `+0x14`
+at `0x00A447EE`, saves that call's AL in wrapper BL, then reloads the vptr
+for predicate `+0x18` at `0x00A447F9`. Let p14/p18 mean the respective
+AL!=0 tests. The outgoing W7 low byte is 0 exactly when the current input
+low byte is 0 and both p14 and p18 are nonzero; otherwise it is 1. Only
+that byte is written, so the upper three bytes remain current/unestablished.
+Reached calls can mutate F, its vptr and slots. With the default local/vptr
+preserved, the authenticated predicates therefore leave an input-low-zero
+default route at zero and otherwise produce one.
+
+At `0x00A44815..0x00A44843`, the common factory receives
+`(current W1, current W2, current W3, current W4, current D0 local,
+current L0 local, current W6, current W7 dword after the byte update)`.
+Incoming EAX is fresh W5 from `0x00A4483B`, denoted Vf, and ECX is saved
+F. Vf need not equal V0 or describe the earlier D0/L0 observations.
+
+Common factory `0x00A443A0` has its own BL mode from current context
+`+0x10` and that object's `+8` test. This is distinct from wrapper predicate
+BL. Its `+0x08` route has priority; only after excluding it does current
+argument-8 low byte select `+0x04` when nonzero and `+0x0C` when zero.
+The qualified `+0x0C` callback receives `(current type pointer, last name
+component, saved incoming view V, current length, current context)`, with
+V's identity conditional on preceding preservation. The common factory's
+unbounded name copy, current slots and opaque-call conditions still apply.
+
+The authenticated default `+0x0C` callback is `0x00A466E0`. It captures
+its fifth argument, context, in EDI at `0x00A466F9`. If context, its
+`+0x10` pointer and that pointer's `+8` dword are nonzero, virtual `+8`
+receives a `0x50`-byte request. The fallback through opaque allocation
+helpers `0x0040E2D0`, optional `0x0040E500` and `0x0040E110` also
+requests `0x50` bytes (80 decimal). This request is not a universal sizeof
+claim or a guarantee of allocation/failure safety.
+
+Under expected cleanup, fallback tag store `0x00A4673F` overwrites callback
+argument slot 5, without itself changing captured EDI. Nonzero allocation Z
+reaches constructor `0x00A46520` with ECX=Z and
+`(current name, current type pointer, current view, current length,
+captured EDI context)` at `0x00A46765..0x00A4677C`. The fifth input is
+not a fresh load of the overwritten slot. Its saved identity still requires
+EDI preservation across reached calls. Zero allocation returns full EAX=0
+without calling the constructor. Otherwise the callback preserves the
+constructor's actual full EAX through its normal `ret 0x14` epilogue.
+There is no output-address argument or output-local extraction/clear here.
+
+The constructor saves allocation Z in ESI. Its current five arguments are
+`(name, type pointer, view, length, context)`; this body has no explicit
+argument-5 read. Opaque `0x00632D30` and name-related `0x00A3DC20`,
+slot/memory preservation and expected cleanup qualify the source identities.
+Its direct operations include:
+
+| VA | Reached operation |
+| --- | --- |
+| `0x00A46542` | Write dword [current ESI+`0x40`]=0 |
+| `0x00A46558/5E` | Install `0x0109AA8C` at full base and `0x0109AA80` at full `+0x0C` |
+| `0x00A46565` | Write byte [ESI+`0x48`]=1 before the opaque name-related call |
+| `0x00A46571` | Load current length L for the `+0x34` update |
+| `0x00A46575/79` | Load current type pointer, then its dword k into EDX |
+| `0x00A4657B` | Load current view argument into ECX as U0 |
+| `0x00A46584` | Complete the low-31-bit XOR update at full `+0x34` |
+| `0x00A46589` | Write captured k to dword [ESI+`0x30`] |
+| `0x00A4658C` | Write captured U0 bits directly to dword [ESI+`0x40`] |
+
+These are the same cataloged `DefaultResourceNode` tables identified above.
+They do not establish a live type/vptr observation. No call intervenes
+between the k/U0 loads and their stores. Earlier length-field writes can
+alias the source storage, but the two values are already in registers.
+The byte `+0x48` write applies to this constructor path; later opaque calls
+can change it and the other fields.
+
+For `+0x34`, let d0 be the first field read and d1 its value at the final
+memory XOR. The exact result is
+`d1 ^ ((d0 ^ L) & 0x7FFFFFFF)`. Interpreting it as preserving the high bit
+and replacing the low 31 bits with L requires stability of those low bits
+between d0 and d1. This is not an atomic field snapshot.
+
+Nonzero U0 receives virtual `+0x18` at `0x00A46596`, returning J0. Nonzero
+J0 enables fresh U1=[ESI+`0x40`] at `0x00A4659C` and another virtual
+`+0x18` at `0x00A465A4`. Its result J1 is dereferenced without another
+null guard. J1's virtual `+8` at `0x00A465AD` returns a full discriminator;
+equality to 3 ORs `0x01` into byte [ESI+`0x38`]. Other paths do not
+directly clear that byte. U1 and J1 need not equal earlier observations.
+
+All normal constructor paths return full EAX=current ESI without adjustment
+and `ret 0x14`. Under the saved-base and call/state conditions, this is Z
+and the concrete callback's child C. The common `+0x0C` branch takes C
+directly from actual callback EAX. The wrapper preserves the common factory's
+actual final EAX through `ret 0x1C`; the later ID helper still defines that
+final value on its continuation paths, so it is not an unconditional C return.
+
+This constructor has neither the raw constructor's call through global
+`0x01327C24` nor its `0x009D4600` call. The direct view-bit store proves
+no backing copy, valid byte span, retain, ownership, lifetime or persistent
+field value. The view interfaces remain opaque. Actual CIBB dispatch, the
+C=N join and the distinction between root Q, child C and map owner P retain
+the limits above.
+
 ### Root constructor and conditional full-object +0x40
 
 Main `0x00A3BF10` initially reads header scalar H through reader `+0x28`
