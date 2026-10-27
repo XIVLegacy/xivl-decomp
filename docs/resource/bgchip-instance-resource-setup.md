@@ -199,17 +199,161 @@ Its initializer `0x00E0D120` points reader `+0x18` at resource buffer
 16-byte directory entries. Reader slot 1 returns the count less reserved
 entries; slots 3 and 6 obtain an entry's content pointer and size.
 
-`0x00A3BF10` enumerates that reader's entries and calls `0x00A44660` or
-`0x00A44730` with the constructed root as parent. Both routes call
-`0x00A443A0`. After a creator returns a child, the call at `0x00A4461F`
-passes it and the parent to `0x00A440F0`, which calls `0x00A3B950`.
-That append helper detaches an already-parented child through `0x00A3B820`,
-writes child `+0x14` to the new parent, and either fills parent `+0x18`
-or follows sibling `+0x1C` links and appends there. This supplies the
-same child/sibling structure searched by the collision consumer below.
-The route is conditional on reader entries, creator results and allocations.
-It establishes the packed factory's construction mechanism, without an
-observed tree for the selected resource.
+For the directory, factory and root observations below, pefile 2024.8.26
+mapped the following `.text` intervals and Capstone 5.0.7 decoded them in
+32-bit x86 mode. The source was the 15,996,808-byte retail executable
+identified above. End addresses are exclusive; file offsets equal VA minus
+`0x00400000` for these selected intervals.
+
+| Selected VA interval | Bytes / instructions | Code SHA-256 |
+| --- | ---: | --- |
+| `0x00A3BF10..0x00A3C1E6` | 726 / 261 | `76a460fc88d863d152e2cdd6283f14159dd1049a3986e044a3e9abea17124553` |
+| `0x00A44220..0x00A44332` | 274 / 86 | `b5162aff45255361c717fbbca39b19fcee7ea4bede5de24e2a45e4f7bd3b9911` |
+| `0x00A44A60..0x00A44AFD` | 157 / 42 | `15a37463f0e3c3533eaad262bd428cd9ae30507ef1b642721fa988f668bc5521` |
+| `0x00A443A0..0x00A44651` | 689 / 201 | `50c5e69234d6b640f8dd19137323d474677cb78cebd3a0c470e617c23d706784` |
+| `0x00A44660..0x00A44730` | 208 / 71 | `6f70291da40ce8219bc5b6f65134d70dec8df1359c6c4eb069225336a364533a` |
+| `0x00A3DB40..0x00A3DC12` | 210 / 75 | `f714f8fbde6096f55cd67433af45a6ab25aff5d540f8a692097474d69f2f3c07` |
+| `0x00A440F0..0x00A44161` | 113 / 34 | `f035ede5b292ca6c65e6d909ec727495ae75b59facdfd208dc31f23404b06698` |
+
+### Raw directory arguments and callbacks
+
+On the raw-entry route, `0x00A3C196` calls wrapper `0x00A44660` with
+the seven arguments below. Reader offsets denote byte offsets in its
+vtable. The [reader contract](gtex-pwib-loader.md#native-consumer-boundary)
+owns the directory, metadata and endian interpretation. Each value means
+its contents at the actual load, with saved-value identity conditional on
+intact local/argument storage and expected ABI behavior.
+
+| Argument | Producer | Reached factory role |
+| --- | --- | --- |
+| A1 | Current saved root R, loaded at `0x00A3C185` | Parent/append input |
+| A2 | Name pointer originally from reader `+0x1C` at `0x00A3C109` | String copied locally and split into its last path component |
+| A3 | Pointer to two reader `+0x24` ID qwords, selectors 0/1 at `0x00A3C035/47`, each byte-reversed with qword order preserved | Supplied 16-byte ID pair for `C+0x20..+0x2C` |
+| A4 | Pointer to local `RESOURCE_TYPE`, originally reader `+0x20` at `0x00A3C025` | Wrapper lookup input and callback type-pointer argument |
+| A5 | Payload pointer from reader `+0x0C` at `0x00A3C160` | Raw callback pointer input |
+| A6 | Current saved byte length, originally reader `+0x18` at `0x00A3BFEF`, loaded at `0x00A3C175` | Callback length and `C+0x34` low 31-bit source |
+| A7 | Fresh context from reader `+0x14` at `0x00A3C173` | Nullable branch/callback context |
+
+The wrapper supplies current A4 to lookup `0x00A44B00` at `0x00A4469A`,
+then forwards its seven current slots in order to `0x00A443A0` at
+`0x00A44714`, adding A8=1 and incoming EAX=0. A nonzero reader view instead
+selects the opaque `0x00A44730` call at `0x00A3C151`; its body is not
+established by this raw-wrapper trace. The supplied selector's low byte
+is set from initial context byte `+0x14`; those stores do not initialize
+the pushed dword's upper bytes.
+
+In factory `0x00A443A0`, let B be entry ESP minus `0x118`, F incoming
+ECX, V incoming EAX, and L the last component of the local name copy at
+B+0x18. The callback targets are loaded from F's vptr and use ECX=F.
+When current A7 is nonzero, let T be the dword read at that pointer +0x10.
+The earlier tests set BL on the reached T nonzero and [T+8] zero path.
+That branch has priority.
+Every numbered argument below is the then-current slot value at its load.
+
+| Reached condition / callsite | Callback byte offset | Arguments in callee order | Selected child C |
+| --- | --- | --- | --- |
+| BL nonzero; `0x00A44576` | `+0x08` | A4, L, A5, A6, A7 | Full callback EAX |
+| BL zero, current A8 low byte nonzero; `0x00A445BE` | `+0x04` | Address B+0x14, A4, L, A5, A6, A7 | Dword at callback EAX |
+| BL zero, current A8 low byte zero; `0x00A445FB` | `+0x0C` | A4, L, V, A6, A7 | Full callback EAX |
+
+Thus A4 is callback argument 1 on `+0x08/+0x0C`, and argument 2 on
+`+0x04`. Only `+0x08` has the local zero-C return branch. The `+0x04`
+route clears the dword at callback EAX, not a demonstrated child field,
+then conditionally cleans up the object in local B+0x14. Its alias
+relationship to the callback's returned pointer is unproved.
+
+The name-length check can call an opaque error target for length at least
+`0x100`. If that call returns, the visible copy still has no bound and can
+overwrite saved state and argument slots. Later A1/A3..A8 loads therefore
+need intact slots, a suitable copy extent, no intervening alias mutation,
+and expected stack/register/return state to equal their entry values.
+Opaque error calls are not assumed to abort or preserve reachable memory.
+
+At `0x00A4461F`, ESI=C and EDI=current A1 enter `0x00A440F0`. Let C0
+and P0 be that function's entry ESI and EDI. Its body explicitly assigns
+neither register. Every normal path sets full EAX=current ESI at
+`0x00A44154`, overwriting callee EAX. Entry-value identity on calling paths
+requires reached callees to preserve ESI/EDI and the expected stack/return state.
+
+| Entry condition | Reached calls under preserved registers | Full EAX on normal return |
+| --- | --- | --- |
+| P0=0, any C0 | None | C0, with no callee preservation premise |
+| P0 nonzero, C0=0 | Append `0x00A3B950` | 0 under the reached-call ABI/state conditions |
+| P0 and C0 nonzero | Opaque `0x00A3E670` twice, append `0x00A3B950`, opaque `0x00A3E680` | C0 under the reached-call ABI/state conditions |
+
+The append call at `0x00A44138` uses ECX=current EDI and one child word
+written from ESI at `0x00A4412B`, before the second opaque helper.
+Append-time child identity also requires that stack word to remain intact.
+A nonzero parent does not guard append against a zero child. Successful
+accesses, returning calls and intact stack/return state remain conditions;
+no null safety, ownership or lifetime guarantee follows.
+
+The reached append helper `0x00A3B950` detaches an already-parented child
+through `0x00A3B820`, writes child `+0x14` to the new parent, and fills
+parent `+0x18` or appends through sibling `+0x1C` links. A parent-zero
+return therefore need not establish any tree membership. This construction
+mechanism remains conditional on reached entries, callbacks and allocations.
+
+The current A3 pointer reaches `0x00A3DB40` at `0x00A4462E` with ECX=C.
+Its reached copy interleaves four dword loads with stores to
+`C+0x20/+0x24/+0x28/+0x2C`; it is neither a snapshot nor an overlap-safe
+copy. It has no direct `C+0x30` operand. At `0x00A44643`, the factory
+instead updates `C+0x34` to `(old & 0x80000000) | (current A6 & 0x7FFFFFFF)`.
+Neither operation is a child-type writer. The wrapper preserves actual
+factory EAX, which is zero on the `+0x08` null-child path and otherwise
+the final helper's EAX, not a proved C return. On copy paths that helper
+returns the exact third-dword load at `0x00A3DBFE`; an opaque nonzero-AL
+alternative preserves that call's full EAX.
+
+### Root constructor and conditional full-object +0x40
+
+Main `0x00A3BF10` initially reads header scalar H through reader `+0x28`
+at `0x00A3BF2C`, from header `+0x3C`. Its calls to creator `0x00A44220`
+at `0x00A3BF72/0x00A3BFB1` supply `(M1, M2, &local H, 0 or initial context)`,
+where M1/M2 are the first two main entry arguments. Both allocation paths
+request `0x48` bytes. Nonzero allocation reaches constructor `0x00A44A60`
+with allocation base Q in ECX and current `(M2, &local H)` as arguments.
+
+The constructor installs `0x00FBC32C` at Q and `0x00FBC31C` at Q+0x0C
+at `0x00A44A94/9A`. Its first supplied pointer reaches the helper at
+`0x00A44AA1` for the four-dword copy to Q+0x20..+0x2C. At `0x00A44AA6/AA`, it loads
+the current second-argument pointer and then its current pointed-to dword J.
+`0x00A44AAC` writes J to Q+0x30. Equality J=the original H requires intact
+arguments, local/pointee state, alias conditions and expected ABI behavior.
+A later opaque `0x00A3DC20` call may change that field, with no reread.
+The constructor separately writes Q+0x40=0 at `0x00A44AE5` and returns
+EAX=Q at `0x00A44AED`, without adjustment under the same ABI conditions.
+The [separate constructor](attribute-resource-and-scene-binding.md) at
+`0x00632F20` writes fixed `trsr`; that literal is not universal to roots.
+The loop's per-entry type pointer is separate from this header-derived source.
+
+Constructor result Q enters the creator's append input; zero allocation
+supplies zero instead. Let U be actual append EAX. The explicit append
+return supports U=Q under the reached-call register/stack conditions above.
+The creator preserves U directly or through ESI and main saves it as R.
+Thus Q=U=R is conditional on all intervening ABI, local-storage and return
+conditions. A null allocation supplies U=R=0 only if the whole reached
+creator path returns normally, without proving safe failure handling.
+The factory's append result similarly equals selected C only conditionally;
+the later ID helper still defines the factory's final continuation EAX.
+Root Q, append U, saved R, factory child C and searched N retain these
+separate roles; the qualified Q=U=R composition supplies no C=N join.
+
+At main's tail, P denotes the current saved context-derived pointer,
+initially zero or the earlier load from initial context `+0x10`. It loads
+W=[P+8] once at `0x00A3C1B4`. The store at `0x00A3C1CF` writes that saved
+W unchanged to `[EBX+0x40]` only after P and W are nonzero, current M1
+equals current `[P+0x10]`, and `(current [P+0x0C] - W)` modulo 2^32
+equals current `[P+4]`. These loads are not an atomic snapshot. EBX=R
+requires intact saved local/register state and valid accessed memory.
+Main ignores wrapper EAX, restores its current saved root after each reached
+wrapper, and returns actual EBX bits. Where R=Q holds, this conditional
+store shares the constructor's Q base; neither Q+0x30 nor Q+0x40 persistence
+is established by these reached writes.
+
+No child +0x30 type writer or C=N pointer/layout join follows. No actual
+resource tree, actor/getter/interface pointer, serialized CIBB identity or
+encounter identity is established by these static paths.
 
 The relevant exported listings are under `asm/ffxivgame/`, including
 `0063bf10_FUN_00a3bf10.s`, `006443a0_FUN_00a443a0.s`,
