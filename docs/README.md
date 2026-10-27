@@ -361,6 +361,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Legacy VFX model geometry](resource/vfx-legacy-model-geometry.md)
 - [Modern VFX model geometry](resource/vfx-modern-model-geometry.md)
 - [VFX model material values and texture requests](resource/vfx-model-material-values.md)
+- [VFX model name records](resource/vfx-model-name-records.md)
 - [Qix emitters and generated motion](resource/vfx-generate-emitters.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)
