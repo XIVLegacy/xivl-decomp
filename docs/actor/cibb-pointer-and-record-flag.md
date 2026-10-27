@@ -126,13 +126,39 @@ full EAX (`0x00A3D98D/990` or `0x00A3D9B3/B6`); the common epilogue
 unbounded graph. The first nonzero result passes unchanged through
 `0x00857B01..0x00857B10` back to the wrapper.
 
-At `0x007CEA8A`, the wrapper calls `0x009D20F4` before returning. The
-zero-X path explicitly clears EAX at `0x007CEA62` and also calls that
-target at `0x007CEA6D`. The selected intervals do not establish its EAX
-effects. A matched-node identity for the wrapper's actual return therefore
-requires that intervening call to preserve EAX, in addition to actual
-dispatch selecting this nominal implementation. No observed caller's vptr
-or override is bound by this nominal mapping.
+The [published cookie definition and checker contract](../resource/skeleton-output-float4-submission.md)
+support the inference that `0x009D20F4` compares ECX with the cookie cell at
+`0x012EA8B0` and preserves incoming EAX on its equality-return path. The
+inequality tail's EAX behavior, return and nonreturn remain unestablished.
+
+For this wrapper's 32-bit stack calculation, let E be entry ESP and
+B=`E-0x404`. At `0x007CE9F6`, C0 is the dword read from `0x012EA8B0`;
+`0x007CE9FB/FD` stores K0=`C0 XOR B` at `[B+0x400]`. W remains the
+receiver and T the argument pointer defined above.
+
+At the saved-word loads `0x007CEA81` and `0x007CEA64`, let S_j be actual
+ESP and K_j the dword read from `[S_j+0x400]`. Let H_j be the cookie cell's
+value when the helper compares it. Each following call, `0x007CEA8A` or
+`0x007CEA6D`, receives ECX=`K_j XOR S_j`. The call's own return-address
+push occurs afterward and does not replace S_j with `S_j-4` in that XOR.
+
+The exact reached equality requirement is `K_j XOR S_j = H_j`.
+Restored S_j=B, saved K_j=K0 and cookie stability at C0 through the
+comparison are a stronger sufficient package, not necessary invariants.
+The wrapper does not establish that package after its opaque calls. The
+zero-X path's `0x28` cleanup at `0x007CEA5F` alone does not prove restored
+ESP; supplied size constants and the sentinel do not prove callee bounds,
+nonaliasing or preservation of the saved word or cookie cell. The other
+caller's published equality and stability proof does not transfer here.
+
+On nonzero X, let R_N be the actual full EAX returned by `0x00857AB0`.
+The zero-X path instead explicitly clears EAX at `0x007CEA62`. If the
+respective checker call takes equality and the wrapper reaches its original
+caller through the remaining epilogue, the caller receives R_N or zero,
+respectively. A matched-node identity for installer A additionally requires
+actual dispatch selecting this nominal implementation and the search
+conditions above. No observed caller's vptr or override is bound by this
+nominal mapping.
 
 Even under those conditions, the matched type key does not identify a
 producer for `[A+0x40]`, the interface or indirect target reached through
