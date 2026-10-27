@@ -118,8 +118,8 @@ passes the five producer arguments at 0x004D8279:
 | 5 | W, caller argument 4 |
 
 B is the nonnull cast-helper result checked at 0x004D81CF. Its fields'
-population, gameplay meanings, coordinate system and float units remain
-unknown. The extra staged dword from B+0xA8 is not consumed by this producer.
+population at this call, gameplay meanings, coordinate system and float units
+remain unknown. The extra staged dword from B+0xA8 is not consumed by this producer.
 
 The caller requires 0x00C99E40 to return nonzero AL after processing its text
 input into the local record. When T+0x660 is nonnull it also calls
@@ -131,6 +131,86 @@ The selector is low16(W), followed by zero u16. The capture finding labels
 value 1 Say. A separate conditional upstream call below supplies W=1. The
 float-helper literal at 0x004D825A remains a different argument. The retained
 direct-call references do not establish absence of indirect callers.
+
+## Prefix source descriptors and getters
+
+These observations use the same authenticated retail 1.23b `ffxivgame.exe`
+and VA convention stated above. GhidraCLI disassembly and original PE data
+supplied the findings. Complete instruction coverage and original byte
+agreement were checked. No client was executed.
+
+At 0x004D81B6..0x004D81C5 the call to 0x009DA6CC is supplied descriptor
+addresses 0x01269C58 and 0x01269C88. Their names at descriptor+8 are
+`.?AVRaptureElement@Main@Application@@` and
+`.?AVRelativeElement@Element@Main@Application@@`. If the helper obeys the
+MSVC `__RTDynamicCast` ABI, its checked nonnull result B is a pointer to an
+`Application::Main::Element::RelativeElement` subobject, with RaptureElement
+as the source descriptor type. The helper body and ABI are not independently
+established here. A derived object could supply that subobject. B's exact
+dynamic class and invocation remain unestablished.
+
+Constructor 0x00534090 calls 0x004DAB50 at 0x005340CE. Stores at
+0x005340E4/+EA install table 0x00FA0D28 at receiver+0 and 0x00FA0C04 at
+receiver+8. Their preceding locator pointers lead to 0x0114494C and
+0x011449A8. Both locators name descriptor 0x01269C88, with numeric receiver
+offsets 0 and 8 respectively. Stores at 0x005340F1..0x0053411D clear
++0x94/+0x98, set float +0x9C/+0xA0/+0xA4/+0xAC to +0.0 and +0xA8 to
++1.0. This establishes constructor initialization, not current chat values
+or a constructor invocation on the selected B.
+
+The two qword copies at 0x004D823E..0x004D825E stage four dwords from
+B+0x9C..+0xA8. The [producer argument contract](https://github.com/XIVLegacy/xivl-decomp/blob/06b3891b743832ab021190b3429d9b437acdba19/docs/net/map-0003-emitter.md#complete-application-write-map)
+consumes the first three. Getter 0x004CFE30 instead copies all four dwords
+when its low flag byte is zero or receiver+0x98 is null. Otherwise it
+recurses on that pointee with flag 1 and adds four single-precision lanes
+at 0x004CFED1. The chat caller does not invoke this additive getter.
+
+Float helper 0x004DD8B0 tests the low flag byte. A zero low byte or null
+receiver+0x98 returns receiver+0xAC without reduction at 0x004DD924. A
+nonzero low byte and nonnull +0x98 select recursion through that pointee
+with flag 1 at 0x004DD8C6. It adds the current +0xAC and rounds the sum
+to single precision at 0x004DD8D1. Only this recursive path applies the
+following reduction. The binary doubles at 0x00F62F48 and 0x00F62FE0 are
+represented as p=3.1415927410125732 and t=6.2831854820251465.
+
+For ordinary finite inputs whose adjusted quotient is convertible to signed
+int32, the shown operations add p for a rounded sum >=0 or subtract p for
+a sum <0, divide by t, truncate to signed int32, and subtract that integer
+times t from the rounded sum. A final store/reload at 0x004DD919/+1D
+rounds to single precision. This describes the bounded operation, not a
+mathematical modulo or universal output interval. The constants establish
+no observed gameplay unit. The [caller contract](https://github.com/XIVLegacy/xivl-decomp/blob/06b3891b743832ab021190b3429d9b437acdba19/docs/net/map-0003-emitter.md#immediate-caller-and-conditional-selector)
+joins its literal helper flag 1 and float return separately from W.
+
+The non-constructor +0x98 writer, pointee RTTI, child +0x88 meaning,
+ownership, lifetime and recursion termination remain unknown. No writer
+is joined to the exact chat B or its source-field population. Layout
+compatibility establishes no such join or universal helper equivalence.
+Coordinates, axes, handedness, rotation axis, gameplay units, active/local
+owner identity, current prefix values, invocation and delivery remain
+unestablished. Malformed pointers, cycles, faults, nonfinite or out-of-range
+inputs, conversion overflow and FPU/MXCSR modes remain outside the ordinary
+finite reduction description. These findings establish no prefix origin
+policy.
+
+The additional complete bodies are half-open ranges. These digests do not
+extend the catalog verifier's asserted scope.
+
+| Complete body | Bytes | SHA256 |
+| --- | ---: | --- |
+| [0x00534090,0x00534142) constructor | 178 | 2e971e987e1172757ca23ec29b87a9fee2c523b7ee35dba4fd78a6f0dc1b583f |
+| [0x004CFE30,0x004CFF31) getter | 257 | 2603d28c6763b956468a9e1d54168fcc0f993850c1529588af6be9630fed2b26 |
+
+To reproduce, authenticate the input above, map descriptor, locator and
+constant addresses through the PE section table, and disassemble the
+complete bodies. For the additional bodies, using the analyzed program:
+
+```text
+ghidra disasm 0x00534090 -n 44 --project ffxiv-1.23b --program ffxivgame.exe --json
+ghidra disasm 0x004CFE30 -n 61 --project ffxiv-1.23b --program ffxivgame.exe --json
+```
+
+The caller and float-helper ranges and digests are in the input table above.
 
 ## Conditional upstream selector-one route
 
