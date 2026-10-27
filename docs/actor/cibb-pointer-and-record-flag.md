@@ -91,6 +91,10 @@ are unexamined. Four conditional branches leave the prefix for
 `0x006BDAAE`, whose effects are also unexamined. The successful cast does
 not identify C's exact dynamic vptr or its virtual `+0x188` implementation.
 
+The [selected CharaActor base layout](architecture.md#selected-charaactor-base-layout)
+qualifies the declared CharaActor/CDevActor relationship. It does not bind
+the call-time vptr at `[C]` or establish whether S and C are equal.
+
 ## Conditional nominal CharaActor search path
 
 The [published CharaActor mapping](battle-npc-body-parts.md) places

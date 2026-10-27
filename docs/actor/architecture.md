@@ -55,19 +55,90 @@ at VA `0x0065F180` calls `0x006329C0` before any member initialisation, and
 first, derived-vftable-second order is standard MSVC construction order, so
 the callee is the immediate base rather than a member or a helper.
 
-`config/ffxivgame.rtti.json` independently corroborates the relationship:
-CDevActor is depth 4 with 7 bases and 164 slots, while CharaActor is depth 5
-with 11 bases and 188 slots. Depth 5 is exactly one level below depth 4. The
-11 CharaActor entries are CDevActor's 7, plus CDevActor itself, plus three
-further side bases from multiple inheritance. The vtable grows by 24 slots,
-so CharaActor adds 24 virtuals.
+[The RTTI catalog](../../config/ffxivgame.rtti.json) records CDevActor at
+depth 4 with 7 entries and 164 slots, and CharaActor at depth 5 with 11
+entries and 188 slots. The selected descriptors below resolve the 11 as
+CharaActor itself, the seven-entry CDevActor subtree, and the three-entry
+CharaCommand branch. Catalog depths and slot counts alone do not identify
+direct bases or virtual method effects.
 
 Slot 0 is a 34-byte scalar deleting destructor that calls a 968-byte parent
 destructor at `FUN_00666130` (file `0x266130`), suggesting a substantial
-inheritance chain. Only the immediate base is established. The three
-remaining side bases are not named; naming them needs
-`BaseClassDescriptor.pTypeDescriptor` resolution in the RTTI dumper, which is
-a tooling change rather than an open analysis question.
+inheritance chain.
+
+## Selected CharaActor base layout
+
+The source was the retail FFXIV 1.23b `ffxivgame.exe`, 15,996,808 bytes,
+PE32 x86, image base `0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The producing instrument was a bounded Python `struct` reader using the
+[existing RTTI traversal](../../tools/verify_sqwt_tab_scroll_text.py):
+COL `+0x10` points to CHD, whose `+8` count and `+0xC` array select the
+BCDs and their TDs. The selected PE-backed records used absolute pointers.
+All locators below are VAs: COL is Complete Object Locator, CHD is Class
+Hierarchy Descriptor, BCA is Base Class Array, TD is Type Descriptor, and
+BCD is Base Class Descriptor.
+
+| Selected root | TD | COL | CHD | BCA / bytes | Entries |
+| --- | --- | --- | --- | --- | ---: |
+| CharaActor | `0x012B7810` | `0x011581C8` | `0x011581DC` | `0x011581EC` / 44 | 11 |
+| CDevActor | `0x012B7AB4` | `0x01155B80` | `0x01154C4C` | `0x01154C5C` / 28 | 7 |
+
+Both 20-byte COLs encoded signature, offset and cdOffset zero, with TD/CHD
+pointers matching the table. Both 16-byte CHDs encoded signature zero and
+attributes `0x1` (`CHD_MULTINH` only); `CHD_VIRTINH`, `CHD_AMBIGUOUS` and
+unknown bits were clear. TD headers encoded first dword `0x01085D0C` and
+spare zero; bounded NUL-terminated names began at TD `+8`. The type
+identities below retain the raw mangled names.
+
+The BCD prefix is 24 bytes: TD pointer at `+0`, unsigned
+`numContainedBases` at `+4`, signed PMD integers `mdisp`, `pdisp`, `vdisp`
+at `+8`, `+12`, `+16`, and attributes at `+20`. Microsoft's
+`rttidata.h:36,53,85,97,110` and `ehdata_forceinclude.h:51` from installed
+MSVC 14.44.35207 supplied this format and flag vocabulary; they do not
+identify the client's compiler version or runtime cast algorithm.
+
+In the complete selected CharaActor array, `n` is raw `numContainedBases`
+and the PMD tuple is signed decimal `(mdisp, pdisp, vdisp)`. The container
+ordinal is an interpretation of preorder and counts: entry `i` spans the
+inclusive interval `[i, i+n]`, and its immediate container is the deepest
+prior interval containing it. It is not an additional raw descriptor field.
+
+| Ordinal | Raw mangled type identity | TD | BCD | n | Inferred container | Signed PMD | Attributes | pClassDescriptor |
+| ---: | --- | --- | --- | ---: | ---: | --- | --- | --- |
+| 0 | `.?AVCharaActor@Chara@Actor@Scene@Application@@` | `0x012B7810` | `0x0115821C` | 10 | - | `(0, -1, 0)` | `0x40` | `0x011581DC` |
+| 1 | `.?AVCDevActor@Actor@Scene@Application@@` | `0x012B7AB4` | `0x01154C30` | 6 | 0 | `(0, -1, 0)` | `0x40` | `0x01154C4C` |
+| 2 | `.?AVRaptureActor@Scene@Application@@` | `0x012B77E0` | `0x01154C7C` | 5 | 1 | `(0, -1, 0)` | `0x40` | `0x01154C98` |
+| 3 | `.?AVActor@SceneObject@Fw@Engine@CDev@SQEX@@` | `0x012B7C14` | `0x01154CC4` | 4 | 2 | `(0, -1, 0)` | `0x40` | `0x01154CE0` |
+| 4 | `.?AVIActor@ISceneObject@Common@Engine@CDev@SQEX@@` | `0x012B7C48` | `0x01154D08` | 1 | 3 | `(0, -1, 0)` | `0x40` | `0x01154D24` |
+| 5 | `.?AVIReferenceResource@ISceneObject@Common@Engine@CDev@SQEX@@` | `0x012B7C88` | `0x01154D40` | 0 | 4 | `(0, -1, 0)` | `0x40` | `0x01154D5C` |
+| 6 | `.?AVSceneObjectMemoryObject@SceneObject@Fw@Engine@CDev@SQEX@@` | `0x012B6588` | `0x01153F0C` | 0 | 3 | `(4, -1, 0)` | `0x40` | `0x01153F28` |
+| 7 | `.?AVNonCopyable@Misc@Common@Engine@CDev@SQEX@@` | `0x012B65D0` | `0x01153F5C` | 0 | 3 | `(5, -1, 0)` | `0x4D` | `0x01153F78` |
+| 8 | `.?AUCharaCommand@Chara@Command@Scene@Application@@` | `0x01270BE4` | `0x01158238` | 2 | 0 | `(312, -1, 0)` | `0x40` | `0x01148A08` |
+| 9 | `.?AUCDevCommand@Command@Scene@Application@@` | `0x0126F334` | `0x01154D90` | 1 | 8 | `(312, -1, 0)` | `0x40` | `0x01146F9C` |
+| 10 | `.?AUCommandParam@Command@Scene@Application@@` | `0x0126F368` | `0x01154DAC` | 0 | 9 | `(312, -1, 0)` | `0x40` | `0x01146FD4` |
+
+The selected CDevActor array was exactly CharaActor ordinals 1 through 7,
+with its own ordinals 0 through 6 and correspondingly shifted intervals.
+The seven BCD/TD identities, counts, PMDs, flags and optional CHD pointers
+were shared. There were 11 unique BCDs and TDs in the CharaActor array.
+
+Every BCD encoded `BCD_HASPCHD` (`0x40`), and its four-byte
+`pClassDescriptor` extension at `+24` was read. Extension targets outside
+the selected pair were not traversed. NonCopyable alone encoded `0x4D`,
+adding `BCD_NOTVISIBLE` (`0x1`), `BCD_PRIVORPROTBASE` (`0x4`) and
+`BCD_PRIVORPROTINCOMPOBJ` (`0x8`). All other BCDs encoded only HASPCHD;
+`BCD_AMBIGUOUS`, `BCD_VBOFCONTOBJ`, `BCD_NONPOLYMORPHIC` and unknown bits
+were clear. These flag names alone do not establish runtime cast accessibility.
+
+For a complete object described by this selected CharaActor map, the
+zero-displacement chain is at offset zero, SceneObjectMemoryObject at
+`+4`, NonCopyable at `+5`, and the command branch at `+312` (`+0x138`).
+Every selected PMD encoded `pdisp=-1`, `vdisp=0`, so none required an
+object-dependent virtual-base adjustment. These are declared base-subobject
+placements, not member-field or object-size measurements. The selected
+zero CDevActor displacement does not prove an actual cast's pointer
+adjustment, the complete dynamic type, or placement in every descendant.
 
 ## CharaActor field layout
 
@@ -94,8 +165,8 @@ vtable-write pattern found at only two sites in the binary: the destructor and
 The destructor at `FUN_00666130` belongs to CharaActor, not its parent. The
 vtable swap to 0xfc0d34 at the top is the standard MSVC pattern that sets the
 vtable to the class's own table during destruction. The immediate parent is
-CDevActor, as established by the constructor order above. The three remaining
-side bases are still unnamed.
+CDevActor, as established by the constructor order above. The declared base
+placements are mapped in the [selected layout](#selected-charaactor-base-layout).
 
 **Literal initializers with unresolved meanings:**
 - `+0x0169` = 1 (byte flag)
