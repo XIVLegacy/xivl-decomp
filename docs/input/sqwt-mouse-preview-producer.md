@@ -4,11 +4,13 @@ A delivered Sqwt event with raw id `0x54` can enter a DesktopWindow mouse
 producer. Results from device virtual calls drive generic preview events. Target
 selection precedes routing. A later exact mask test can select the named
 left-button previews. These are conditional static paths. OS mouse arrival,
-the actual device provider and current UI ownership are UNKNOWN.
+the actual current device receiver and current UI ownership are UNKNOWN.
 
 [Button mouse source](../resource/sqwt-command-parameter-consumer.md#button-mouse-source)
 owns the concrete Button ingress and Click gates. This page owns the delivered
-producer and target selection observations.
+producer and target selection observations. The
+[concrete RaptureMouseDevice provider](sqwt-rapture-mouse-device.md) owns the
+selected device construction, raw report creator and stored-state methods.
 
 ## Input and method
 
@@ -50,7 +52,9 @@ its result for two dwords. It stores the pair at receiver+`0x10`/
 `0x14` and in the output pair. Starting at D, it subtracts float32
 object+`0x24`/`0x28` from the output through the parent pointer32 at
 object+`0xA4`. The arithmetic uses x87 float loads and stores. STATIC.
-Provider identity, units, coordinate origin and physical sampling are UNKNOWN.
+Actual current receiver identity, units, coordinate origin and physical
+sampling are UNKNOWN. The concrete-provider page identifies one selected
+construction path without identifying every incoming receiver.
 
 At `0x0091A748..0x0091A795`, virtual slots `+0x14`, `+0x18` and
 `+0x1C` each receive by-value dword `0xFF`. The `+0x14` result drives
@@ -74,9 +78,11 @@ device pointer, dword R+`0x20`, mask dword and a pressed byte. Down passes
 
 The constructor installs vtable `0x010691D0`, identified by RTTI as
 `Sqwt::Input::MouseButtonEventArgs`. It first calls base constructor
-`0x00545B50`. That base's initialization and the provider return contracts
-are UNKNOWN here. The listed writes do not establish total initialization or
-a physical-button enumeration. STATIC for the writes and RTTI.
+`0x00545B50`. The concrete-provider page describes that base construction
+and one selected provider's stored-state return contracts. Other incoming
+provider implementations and actual current receiver/state remain UNKNOWN.
+The listed writes do not establish total initialization or a physical-button
+enumeration. STATIC for the writes and RTTI.
 
 ## Preview production and specialization
 
@@ -195,9 +201,9 @@ preconditions and all setter/release callers are UNKNOWN.
 A capture-like interpretation of the preferred slot is INFERRED from its
 precedence, setter and ancestry cleanup. OS SetCapture/ReleaseCapture,
 physical capture, focus policy and complete lifecycle are UNKNOWN.
-Also UNKNOWN are the OS bridge that creates or delivers raw id `0x54`,
-the actual device provider and state, current DesktopWindow or application
-owner, tree contents, handler attachment and widget lifetime.
+Also UNKNOWN are physical OS arrival and complete delivery to raw id `0x54`,
+the actual current device receiver and state, current DesktopWindow or
+application owner, tree contents, handler attachment and widget lifetime.
 These facts do not establish any particular Button, installed Click trigger,
 safe malformed-input admission, universal input profile, default state,
 rendering effect or live result.
