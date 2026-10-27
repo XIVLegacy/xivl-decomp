@@ -417,7 +417,7 @@ a newly pushed argument. Its actual EAX does not become the direct field
 base or normal result. Saved ESI, expected cleanup and intact frame/return
 storage qualify the later operations.
 
-The opaque producer `0x0060D3E0` at `0x0060D7F2` receives no newly
+The producer `0x0060D3E0` at `0x0060D7F2` receives no newly
 pushed argument. ECX was not restored to F after the base call, so its
 receiver is not equated with F. Let P be its actual full EAX; no P null
 test precedes the reads below. Every destination uses then-current ESI:
@@ -439,7 +439,7 @@ mutation can affect later reads; this is not a stable or atomic 16-byte
 snapshot. The `+0x30` literal has no assigned NULL, type-key or searched-N
 meaning. The two AND operations preserve the current high dword bit and
 the other byte bits, respectively. They do not initialize either field
-to zero. All these stores precede the final opaque call, so they do not
+to zero. All these stores precede the final byte-input update, so they do not
 establish persistent field values or a complete object layout or size.
 
 The installed primary pointer has these original-file identity frames,
@@ -467,12 +467,13 @@ equality with DefaultResourceNode, root Q or searched N.
 
 At `0x0060D80B`, EAX captures the current sole argument after the two
 opaque calls. The intervening direct operations preserve those captured
-bits, pushed at `0x0060D824`. The call to opaque `0x00A3DC20` at
+bits, pushed at `0x0060D824`. The call to `0x00A3DC20` at
 `0x0060D827` receives ECX=current ESI and that one explicit argument.
 Equality to the earlier callback/common name value requires retained slots
 and the alias/state premises. This constructor does not itself dereference
-the argument, copy a string or directly install a name field. The base,
-producer and name-related callees retain their own unresolved effects.
+the argument, copy a string or directly install a name field. The [producer and byte-input contracts](resource-node-values.md) qualify P
+and the later direct `+0x10/+0x20..+0x2C` updates. The base call and
+opaque callees retain unresolved effects.
 
 After that call, `0x0060D834` explicitly selects full EAX=current ESI.
 It overwrites the name-related callee's actual EAX before restoring caller
