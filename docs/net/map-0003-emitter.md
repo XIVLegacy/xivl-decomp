@@ -182,7 +182,28 @@ mathematical modulo or universal output interval. The constants establish
 no observed gameplay unit. The [caller contract](https://github.com/XIVLegacy/xivl-decomp/blob/06b3891b743832ab021190b3429d9b437acdba19/docs/net/map-0003-emitter.md#immediate-caller-and-conditional-selector)
 joins its literal helper flag 1 and float return separately from W.
 
-The non-constructor +0x98 writer, pointee RTTI, child +0x88 meaning,
+Non-constructor routine [0x00533FC0,0x00533FE9) assigns its explicit pointer
+argument to receiver+0x98. Before assignment it decrements the dword at
+old-pointee+0x94 when the old pointer is nonnull. After assignment it
+increments new-pointee+0x94 when the new pointer is nonnull. Its complete
+body consumes one argument and contains no calls. These field updates
+establish no ownership, lifetime or synchronization policy.
+
+At 0x004D9346 in 0x004D92D0 and 0x004DB190 in 0x004DAF00, checked joins
+use the nonnull 0x009DA6CC result as receiver and pass zero to 0x00533FC0.
+Both helper calls supply descriptors 0x01269C58 and 0x01269C88. If the
+helper obeys the assumed MSVC cast ABI, these clear-call receivers are
+RelativeElement subobject pointers. The shared descriptor pair establishes
+no identical instance, exact dynamic class or invocation for chat B. These
+two checked clear paths establish no reached nonzero assignment. Other
+inlined, computed or indirect writers are not excluded.
+
+Complete accessor [0x004D6750,0x004D6757) returns the dword stored at
+receiver+0x88. No join from that receiver to the actual chat child is
+established. The setter, clear joins and accessor use the same GhidraCLI
+disassembly and original PE byte-check method and input identified above.
+
+The reached nonzero +0x98 writer, pointee RTTI, child +0x88 meaning,
 ownership, lifetime and recursion termination remain unknown. No writer
 is joined to the exact chat B or its source-field population. Layout
 compatibility establishes no such join or universal helper equivalence.
@@ -200,6 +221,8 @@ extend the catalog verifier's asserted scope.
 | --- | ---: | --- |
 | [0x00534090,0x00534142) constructor | 178 | 2e971e987e1172757ca23ec29b87a9fee2c523b7ee35dba4fd78a6f0dc1b583f |
 | [0x004CFE30,0x004CFF31) getter | 257 | 2603d28c6763b956468a9e1d54168fcc0f993850c1529588af6be9630fed2b26 |
+| [0x00533FC0,0x00533FE9) assignment routine | 41 | f4e044401a48bd99388f47e4532c743b5b679181ce1ea450479f47431e003273 |
+| [0x004D6750,0x004D6757) accessor | 7 | 5476eda4edbb9461e6f52b7c7e8237d3c04cb2321a42d9b5a1f362c237c2ce8a |
 
 To reproduce, authenticate the input above, map descriptor, locator and
 constant addresses through the PE section table, and disassemble the
@@ -208,6 +231,8 @@ complete bodies. For the additional bodies, using the analyzed program:
 ```text
 ghidra disasm 0x00534090 -n 44 --project ffxiv-1.23b --program ffxivgame.exe --json
 ghidra disasm 0x004CFE30 -n 61 --project ffxiv-1.23b --program ffxivgame.exe --json
+ghidra disasm 0x00533FC0 -n 10 --project ffxiv-1.23b --program ffxivgame.exe --json
+ghidra disasm 0x004D6750 -n 2 --project ffxiv-1.23b --program ffxivgame.exe --json
 ```
 
 The caller and float-helper ranges and digests are in the input table above.
