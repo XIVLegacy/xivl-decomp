@@ -19,6 +19,10 @@ is `tools/census_sqwt_tab_scroll_text.py`. The form loading path is on the
 `Margin` attribute shapes are on the
 [TextBlock Margin inputs](sqwt-textblock-margin-inputs.md) page.
 
+The [Track and ScrollBar rectangle requests](sqwt-track-rectangle-requests.md)
+page records supplied-field arithmetic and the arrange request boundary. Final
+layout and unresolved style-part behavior remain UNKNOWN.
+
 ## Verdict
 
 - Each control on this page draws through part keys of the form Type:Part or
