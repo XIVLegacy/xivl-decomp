@@ -382,10 +382,11 @@ call at `0x0060DA0E` supplies opaque `0x0060D7B0` with ECX=Z and one
 explicit argument: the current callback argument 2. The body directly
 reads neither arguments 1/3/4 nor forwards them to that helper. The helper's
 actual full EAX survives the normal epilogue; no Z-to-EAX return move
-follows. This result can itself be zero. The callback uses `RET 0x14`.
-These operations establish no returned type, C=Z equality, constructor
-fields or safe request-failure handling. Opaque effects, faults, exception
-unwinding and possible nonreturn retain their own conditions.
+follows. The callback uses `RET 0x14`. The
+[constructor contract](#resourcenode-context-constructor) below qualifies
+its return of Z, nominal primary identity and reached field writes.
+Opaque request/call effects, faults, exception unwinding and possible
+nonreturn retain their own conditions.
 
 On the qualified common default `+0x08` branch, child C is that actual
 callback EAX. C=0 takes the common early zero return without a raw/view
@@ -395,6 +396,95 @@ update under their storage and ABI premises. The later ID helper still
 defines the common factory's final EAX. This static default contract does
 not identify actual CIBB/custom dispatch, join C to searched N or root Q,
 or establish backing bytes, persistent effects, ownership or lifetime.
+
+### ResourceNode context constructor
+
+The default context callback's `0x0060D7B0` edge has the following
+complete original-authenticated contract. It uses the same retail PE
+identified above; Python 3.12.0, pefile 2024.8.26, Capstone 5.0.7 in
+x86-32 mode and little-endian structure decoding supplied the observations.
+All retained bytes and instruction boundaries matched, with dense complete
+coverage. Its RVA and file offset are `0x0020D7B0`.
+
+| Complete half-open VA interval | Bytes / instructions | Code SHA-256 |
+| --- | ---: | --- |
+| `[0x0060D7B0,0x0060D849)` | 153 / 41 | `3d3857930d1d89d1324d0bd2c3bc0e630737b657080fd0a738df11a3c0f19725` |
+
+Let F be entry ECX and B=entry ESP-`0x18`. The sole argument is
+B+`0x1C`. At `0x0060D7D2`, ESI captures F. The opaque base edge
+`0x0060D690` at `0x0060D7D8` receives ECX still equal to F, without
+a newly pushed argument. Its actual EAX does not become the direct field
+base or normal result. Saved ESI, expected cleanup and intact frame/return
+storage qualify the later operations.
+
+The opaque producer `0x0060D3E0` at `0x0060D7F2` receives no newly
+pushed argument. ECX was not restored to F after the base call, so its
+receiver is not equated with F. Let P be its actual full EAX; no P null
+test precedes the reads below. Every destination uses then-current ESI:
+
+| Width / offset | Reached operation | Instruction VA |
+| --- | --- | --- |
+| dword `+0` | Store `0x00FB6EDC` | `0x0060D7E5` |
+| dword `+0x0C` | Store literal `0x00FB6ECC` | `0x0060D7EB` |
+| dword `+0x20` | Store the word read from `[P]` | Read `0x0060D7F7`, store `0x0060D7F9` |
+| dword `+0x24` | Store the word read from `[P+4]` | Read `0x0060D7FC`, store `0x0060D7FF` |
+| dword `+0x28` | Store the word read from `[P+8]` | Read `0x0060D802`, store `0x0060D805` |
+| dword `+0x2C` | Store the word read from `[P+0x0C]` | Read `0x0060D808`, store `0x0060D80F` |
+| dword `+0x30` | Store literal `0x6E756C6C` | `0x0060D812` |
+| dword `+0x34` | AND current word with `0x80000000` | `0x0060D819` |
+| byte `+0x38` | AND current byte with `0xFE` | `0x0060D820` |
+
+The four P reads are interleaved with destination stores. Aliases or other
+mutation can affect later reads; this is not a stable or atomic 16-byte
+snapshot. The `+0x30` literal has no assigned NULL, type-key or searched-N
+meaning. The two AND operations preserve the current high dword bit and
+the other byte bits, respectively. They do not initialize either field
+to zero. All these stores precede the final opaque call, so they do not
+establish persistent field values or a complete object layout or size.
+
+The installed primary pointer has these original-file identity frames,
+91 bytes in total:
+
+| Frame VA | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `0x00FB6ED8`, preceding COL-pointer cell | 4 | `55648b1dec739b6d624b826df482c0882f56d11881fb7fd57fcc59fcc524ce8a` |
+| `0x01154084`, PE32 complete-object locator | 20 | `e5cff85af5ecd82b437710e745735e0e1d7fe5968d683184dcb74c92d5ec62f2` |
+| `0x012B66D8`, type-descriptor header | 8 | `90d6e672ca36ba9e325beebcd3ae5df1498217a9d16e11347be1cad47828b086` |
+| `0x012B66E0`, type name including NUL | 59 | `d891daaa9a549a1b7b110b4b2de228a6009f6578206192656b83bbc3df9037e2` |
+
+The preceding cell points to COL `0x01154084`. Its signature, offset and
+cdOffset are zero, and its type-descriptor pointer is `0x012B66D8`.
+The exact framed name is
+`.?AVResourceNode@Resource@SceneGraph@Dw@Engine@CDev@SQEX@@`.
+This supplies nominal
+`SQEX::CDev::Engine::Dw::SceneGraph::Resource::ResourceNode` identity.
+Together with the ESI+0 store, COL offset zero places current ESI at the
+nominal full base at that reached installation. Its relationship to entry
+F or the callback's Z still requires saved-base/ABI preservation. The
+`+0x0C` pointer is a literal store, without an independently qualified
+secondary type or hierarchy. This proves neither a final dynamic vptr nor
+equality with DefaultResourceNode, root Q or searched N.
+
+At `0x0060D80B`, EAX captures the current sole argument after the two
+opaque calls. The intervening direct operations preserve those captured
+bits, pushed at `0x0060D824`. The call to opaque `0x00A3DC20` at
+`0x0060D827` receives ECX=current ESI and that one explicit argument.
+Equality to the earlier callback/common name value requires retained slots
+and the alias/state premises. This constructor does not itself dereference
+the argument, copy a string or directly install a name field. The base,
+producer and name-related callees retain their own unresolved effects.
+
+After that call, `0x0060D834` explicitly selects full EAX=current ESI.
+It overwrites the name-related callee's actual EAX before restoring caller
+ESI. The remaining normal epilogue preserves EAX and uses `RET 4`.
+Under saved-ESI, argument/local/return storage and expected cleanup across
+all three calls, current ESI remains F=Z. The callback therefore normally
+returns zero for its zero request result, or Z on this preserved-base
+constructor path. This is a conditional register-flow result, without a
+safe allocation, retained nominal type, ownership or lifetime guarantee.
+The common factory's later ID helper still defines its final EAX; C, Q and
+N keep their separate roles. No `0x40` complete-size claim or actual CIBB,
+runtime-dispatch or C=N join follows.
 
 ### Type lookup and default raw creator
 
