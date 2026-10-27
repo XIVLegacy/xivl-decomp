@@ -388,6 +388,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Keyboard movement bindings](input/keyboard-movement-bindings.md)
 - [Sqwt delivered mouse preview producer](input/sqwt-mouse-preview-producer.md)
 - [Sqwt RaptureMouseDevice report provider](input/sqwt-rapture-mouse-device.md)
+- [Sqex mouse numeric callback and repeat state](input/sqex-mouse-numeric-callback.md)
 - [Config utility settings and controls](input/config-utility-settings.md)
 - [Config file and selection error handling](input/config-file-error-handling.md)
 - [Config System Information collection](input/config-system-information.md)

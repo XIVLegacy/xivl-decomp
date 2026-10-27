@@ -6,13 +6,15 @@ constructs `Sqwt::Input::MouseEventArgs`, assigns the device directly to
 R+`0x2C`, and can deliver raw descriptor id `0x54` through the embedded
 `RaptureElementContainer` interface to the DesktopWindow bridge. These are
 selected static construction and call paths. Actual current receivers,
-physical button-state creation and complete OS input delivery are UNKNOWN.
+actual physical button-state creation and complete OS input delivery are UNKNOWN.
 
 This page owns the concrete provider and report construction facts.
 The [delivered mouse preview producer](sqwt-mouse-preview-producer.md) owns
 generic preview production, target selection and routing. The
 [Button mouse source](../resource/sqwt-command-parameter-consumer.md#button-mouse-source)
-owns Button ingress and Click gates.
+owns Button ingress and Click gates. The
+[numeric callback and repeat state](sqex-mouse-numeric-callback.md) page owns
+the selected Sqex writer and callback submission path.
 
 ## Input and method
 
@@ -181,8 +183,10 @@ Function `0x00547ED0..0x00548053` takes U as its first pointer
 argument. Before its first predicate call it clears byte P+`0x60`.
 It calls `0x00D352A0` with receiver U and argument P+`0x28`.
 If AL is zero it calls `0x00D352D0` with the same pointer roles.
-If both tested AL values are zero it skips the update body. The helper
-meanings are UNKNOWN. STATIC for these calls and branches.
+Either the first nonzero AL or a nonzero second AL admits the update body.
+Two zero results branch to `0x00548035` and skip its stores
+(`0x00547F10..0x00547F29`). The helper meanings are UNKNOWN. STATIC
+for these calls and branches.
 
 On the update body, these stores occur. STATIC.
 
@@ -203,7 +207,8 @@ On the update body, these stores occur. STATIC.
 The coordinate conversions precede the U+`0x08` comparison. Equality skips
 its store. Inequality stores the sampled dword at `0x00547F4C`, even if
 zero. Only a changed nonzero sample takes an additional event path through
-opaque constructor `0x00546040` and route helper `0x0091E980`, using
+the [MouseWheelEventArgs constructor](sqex-mouse-numeric-callback.md#signed-quotient-and-wheel-scalar-interpretation)
+at `0x00546040` and route helper `0x0091E980`, using
 descriptors `0x01359798` and `0x013593C0`. Those route calls use stored
 P+`0x04` without an intervening local null check. A changed zero sample
 stores zero and skips the extra event path. STATIC.
@@ -244,19 +249,40 @@ cadence, OS scheduling or live input-frame guarantee is established.
 
 ## Conditional upstream copied state
 
-Let B be EDI in the selected construction window at
-`0x004B35F4..0x004B36AD`, and S the ECX context receiver of
-`0x004B3C50`. The local window requests `0x18` from opaque helper
+Let C be complete `Application::Rapture`. Constructor-like routine
+`0x004B3B50` installs primary table `0x00F8CC30` at C and interface
+table `0x00F8CC1C` at C+`0x04`
+(`0x004B3B96..0x004B3B9C`). Both RTTI chains name
+`.?AVRapture@Application@@`. Complete Object Locators `0x01140B1C`
+and `0x01140BA4` give offsets zero and `0x04`. Interface table slots
+0/1/2 select initialization `0x004B2DF0`, update `0x004B3C50` and
+cleanup `0x004B3830`. STATIC.
+
+Let B be EDI in initialization and S the interface receiver of update.
+These methods receive the interface C+`0x04`. The initialization body
+`0x004B2DF0..0x004B37DE` sets EDI=entry ECX at `0x004B2E39`.
+It has no subsequent caller instruction writing EDI until epilogue POP EDI
+at `0x004B37C6`, and no implicit string-register write to EDI.
+B therefore remains that interface base under ordinary x86 callee-saved
+call/return behavior. STATIC for the instructions, INFERRED for continuity
+across callees under that convention. Initialization is separate from
+complete-object construction.
+
+The selected initialization window `0x004B35F4..0x004B36AD`
+requests `0x18` from opaque helper
 `0x009D1B35`, calls `0x00D31F10` only on a nonzero result, and
 stores that result or zero at B+`0x44`. It also requests `0x17D58`,
 conditionally calls MainModule constructor `0x004DC3A0`, and stores the
-result or zero at B+`0x64`. Entry `0x004B2E39` initially sets
-EDI=ECX. STATIC.
+result or zero at B+`0x64`. Thus B+`0x44` is C+`0x48` and
+B+`0x64` is C+`0x68`. The update destination S+`0xC4` is C+`0xC8`
+when S is that same interface. STATIC for the offsets.
 
 Let M be the constructed `Sqex::Input::MouseDevice`.
 Constructor `0x00D31F10..0x00D31F7B` installs table `0x01110504`
 at M and `0x011104FC` at M+`0x04`, stores its pointer argument at
-M+`0x14`, and calls opaque helper `0x00D428D0` on M+`0x04`.
+M+`0x14`, and calls the
+[RepeatCounter initialization helper](sqex-mouse-numeric-callback.md#repeatcounter-output)
+`0x00D428D0` on M+`0x04`.
 Table `0x01110504` has RTTI name `.?AVMouseDevice@Input@Sqex@@`
 and complete-object offset zero. STATIC.
 
@@ -276,10 +302,11 @@ zero dwords at `0x013783B0`, `0x013783B8`, `0x013783B4` and
 `0x013783A8` (`0x00D31E50..0x00D31E66`). INFERRED for the
 conditional construction-to-caller join, STATIC for the method bodies.
 
-The middle of `0x004B2DF0` between the selected entry and construction
-windows is unread. EDI preservation, whole-function constructor completion,
-S=B, field persistence, allocation semantics/success, current provider and
-lifetime are UNKNOWN. The supplied M+`0x14` pointer type is UNKNOWN.
+Actual same-instance identity S=B, field persistence, allocation
+semantics/success, initialization completion, current provider and lifetime
+remain UNKNOWN. The local interface layout and register continuity do not
+prove those properties across callbacks, cleanup or arbitrary later calls.
+The supplied M+`0x14` pointer type is UNKNOWN.
 The skipped-copy path does not establish fresh input or safe fallback.
 
 ## Conditional USER32 coordinate calls
@@ -300,14 +327,17 @@ It passes a local two-dword buffer to GetCursorPos, then the same buffer
 and stored handle dword to ScreenToClient (`0x00D31DFD..0x00D31E14`).
 It reads the buffer dwords into globals `0x013783A0`/`0x013783A4`.
 No API return-value check occurs between those coordinate calls and buffer
-reads. It calls opaque helper `0x00D42940` on M+`0x04` with dword
-`0x013783AC` and zero, storing its result to `0x013783BC`. STATIC.
+reads. It calls the
+[RepeatCounter helper](sqex-mouse-numeric-callback.md#repeatcounter-output)
+`0x00D42940` on M+`0x04` with dword `0x013783AC` and zero,
+storing its result to `0x013783BC`. STATIC.
 API success, current active window, coordinate units and failure policy are
 UNKNOWN.
 
-Callback wrapper `0x00D31F80` forwards six arguments to opaque
-`0x00D31C30`, then the original first four arguments to thunk
-`0x00DCD3C8`. Other retained methods pass callback address
+The [callback submission and wrapper return](sqex-mouse-numeric-callback.md#callback-address-submission-and-wrapper-return)
+contract distinguishes inner `0x00D31C30` returning zero from wrapper
+`0x00D31F80` returning its ordinal-`413` delegate result. Other selected
+methods pass callback address
 `0x00D31F80` through `0x00DCD3CE`/`0x00DCD3D4` under their local
 [pointer32(M+`0x14`)+`0x0C`] test
 (`0x00D31FC0..0x00D31FD9`, `0x00D32060..0x00D3207D`).
@@ -320,10 +350,14 @@ identities. STATIC.
 | `0x00DCD3CE` | `0x00F3E028` | `COMCTL32.dll` ordinal `412` |
 | `0x00DCD3D4` | `0x00F3E02C` | `COMCTL32.dll` ordinal `410` |
 
-No semantic API names are assigned to those ordinal imports. Callback body
-`0x00D31C30`, button/transition writers, message cases, physical-button
-mapping, enable-byte writers and complete callback registration/lifecycle
-are UNKNOWN.
+No semantic API names are assigned to those ordinal imports. The
+[numeric callback](sqex-mouse-numeric-callback.md#numeric-case-mapping)
+establishes selected message cases and current/transition writers.
+It writes byte `0x0137839C` at entry, before any window/message test
+(`0x00D31C38`). This does not exhaust writers or establish its initial
+value. The numeric page separates its conditional platform-constant
+correspondence from binary observations. Actual physical delivery, successful
+callback installation and complete registration/lifecycle remain UNKNOWN.
 
 ## Conditional join and unresolved boundary
 
@@ -346,7 +380,8 @@ pointer `+0x10`.
 
 Uninspected helpers include `0x00919B50`, `0x0091B020`,
 `0x00D35280`/`0x00D352A0`/`0x00D352D0`, `0x0091B7B0`,
-`0x0091A1C0`, `0x00D428D0` and `0x00D42940`. Their meanings must
+`0x0091A1C0`, and RepeatCounter storage helpers `0x009D04AC`/
+`0x009D2110`. Their meanings must
 not be assigned from call shape alone. Other writers and complete exception,
 null, allocation and lifecycle contracts are UNKNOWN.
 
