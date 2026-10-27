@@ -214,6 +214,14 @@ identified above. End addresses are exclusive; file offsets equal VA minus
 | `0x00A44660..0x00A44730` | 208 / 71 | `6f70291da40ce8219bc5b6f65134d70dec8df1359c6c4eb069225336a364533a` |
 | `0x00A3DB40..0x00A3DC12` | 210 / 75 | `f714f8fbde6096f55cd67433af45a6ab25aff5d540f8a692097474d69f2f3c07` |
 | `0x00A440F0..0x00A44161` | 113 / 34 | `f035ede5b292ca6c65e6d909ec727495ae75b59facdfd208dc31f23404b06698` |
+| `0x00A44B00..0x00A44B69` | 105 / 39 | `3be84050d552bc5febe06a6be1b509ce5db9dd0cc3a4d6ea9b57ade5bde24229` |
+| `0x00A465E0..0x00A466DD` | 253 / 81 | `1f911459fc45bb24e05bf4b1a309654b16a0b1d84c0335b1d79c32c167204053` |
+| `0x00A46380..0x00A4645C` | 220 / 72 | `31b9f52227f9339b578cd1e580c2b98af9cb8bee033bc812a987057017a6c5a5` |
+
+The selected four-byte data cell `0x0109A694..0x0109A698` held
+`0x00A465E0`, matching the [slot catalog](../../config/ffxivgame.vtable_slots.jsonl)
+row 64065. The cell binds the default callback target independently of the
+catalog's `DefaultResourceNodeFactory` label.
 
 ### Raw directory arguments and callbacks
 
@@ -260,7 +268,8 @@ Thus A4 is callback argument 1 on `+0x08/+0x0C`, and argument 2 on
 `+0x04`. Only `+0x08` has the local zero-C return branch. The `+0x04`
 route clears the dword at callback EAX, not a demonstrated child field,
 then conditionally cleans up the object in local B+0x14. Its alias
-relationship to the callback's returned pointer is unproved.
+relationship to the callback's returned pointer is unproved for an arbitrary
+callback; the qualified default relation is resolved below.
 
 The name-length check can call an opaque error target for length at least
 `0x100`. If that call returns, the visible copy still has no bound and can
@@ -304,6 +313,88 @@ factory EAX, which is zero on the `+0x08` null-child path and otherwise
 the final helper's EAX, not a proved C return. On copy paths that helper
 returns the exact third-dword load at `0x00A3DBFE`; an opaque nonzero-AL
 alternative preserves that call's full EAX.
+
+### Type lookup and default raw creator
+
+At lookup `0x00A44B00`, let M be entry ECX, O the output-pair address and
+T the current type pointer. The wrapper supplies M=its receiver+4 and T=A4.
+The lookup reads H0=[M+4] and the head's `+4` node pointer. A terminal-byte
+test at node `+0x15` can skip the key dereference. Otherwise it loads k0=[T]
+and walks signed node keys at `+0x0C`: key<k0 follows `+8`, while the other
+edge retains that node as candidate D and follows `+0`. This is a lower-bound
+search under valid ordered-tree, sentinel and stable-memory invariants.
+
+The final test freshly loads H1=[M+4]. D==H1 selects pair (M,H1).
+Otherwise a fresh k1=[T] with signed k1<[D+0x0C] also selects (M,H1);
+the other edge selects (M,D). Stable k0=k1 and a valid ordered tree make
+the candidate an exact-key match. The two components are loaded before
+stores to O/O+4, and full EAX=O. The lookup makes no calls, insertion or
+allocation. Output aliasing prevents an arbitrary map-nonmutation claim.
+
+With intact output/slot and ABI state, K denotes the second component loaded
+by the raw wrapper from the lookup's returned pair. Its signed nonpositive
+current A6 route selects its local default. The positive route also selects
+the default when K equals its fresh head read or a reached [K+0x10] is
+zero; otherwise factory ECX comes from a fresh [K+0x10] load. Repeated
+loads and returning diagnostic calls retain the qualifications above.
+The registered value's provenance is not established by the lookup.
+
+The local fallback initially has vptr `0x0109A690`. If it remains intact,
+the authenticated byte+4 cell selects `0x00A465E0` on the qualified raw
+`+0x04` branch. BL's `+0x08` route still has priority. This callback's
+six arguments are `(output address, type pointer, L, raw pointer, length,
+context)`. Both allocation paths request `0x50` bytes (80 decimal), not
+a universal object size. A nonzero context path can call virtual `+8`;
+the fallback uses opaque allocation helpers. Their semantics remain unbound.
+
+For a nonzero allocation Z, both paths call `0x00A46380` at
+`0x00A46643/0x00A466BB` with ECX=Z and current arguments
+`(L, type pointer, raw pointer, length)`. Zero allocation supplies result 0.
+Each normal callback path stores its result through the then-current output
+slot and returns that output address in full EAX. With intact output slot,
+storage and return state, the factory's following dereference obtains that
+result C and its clear targets the same output local. This alias is resolved
+only for this concrete default callback, not arbitrary registered callbacks.
+
+The constructor retains Z in ESI under expected ABI behavior. It installs
+cataloged `SQEX::CDev::Engine::Dw::SceneGraph::Resource::DefaultResourceNode`
+primary vptr `0x0109AA8C` at full `+0` and secondary `0x0109AA80` at
+full `+0x0C` at `0x00A463B9/BF`. These stores and the class label do not
+identify a current runtime object or give either interface a semantic name.
+Opaque calls and local/argument mutation remain relevant to base identity.
+
+After the opaque name-related call, `0x00A463D2` retains the current length
+in EDI; `0x00A463D6/DA` loads the current type pointer and its dword k into
+EDX. The intervening low-31-bit update of full `+0x34` preserves its old
+high bit and does not change EDX. `0x00A463E6` stores that exact loaded k
+to current ESI+0x30, with no intervening call. Even an alias between the
+length-update destination and type source does not change the already loaded
+k. Under the base/output/ABI premises this is the selected child C's type
+store; subsequent opaque calls can change the field again.
+
+### Default child +0x40 value source
+
+Let X denote the constructor's current ESI at each access, conditionally Z
+and the published child C. Its full-base `+0x40` operations are:
+
+| VA | Exact reached operation |
+| --- | --- |
+| `0x00A463A3` | Write dword [X+0x40]=0 before the opaque name-related call |
+| `0x00A463E9..0x00A463FC` | Load G=[0x01327C24]; call dword[dword[G]+0x0C] with ECX=G and `(retained length, 0x10, 0x0109AA5C)` |
+| `0x00A46400` | Store that call's full EAX U0 to [X+0x40] |
+| `0x00A46405..0x00A4642A` | Nonzero U0 enables its virtual +0x18; a nonzero result enables fresh U1=[X+0x40], another virtual +0x18 and the returned object's virtual +8; full EAX==3 enables OR mask `0x01` into byte [X+0x38] |
+| `0x00A4642E..0x00A4643F` | Common path freshly loads U2=[X+0x40], invokes its virtual +4 at `0x00A46436`, then calls opaque `0x009D4600` with `(last virtual EAX, current raw pointer, retained length)` |
+
+U0 is the exact store value, not an assumed allocation base or byte pointer.
+U1/U2 need not equal U0 across opaque calls or aliases. Earlier null tests
+do not guard the common U2 dereference. The later full EAX=current ESI
+return at `0x00A4644C` requires expected saved-register/stack state.
+Neither safe failure handling nor persistence of `+0x30/+0x40` follows.
+
+The [separate SCB path](timeline-scb-resource-binding.md#cache-miss-construction)
+also obtains a memory view through global `0x01327C24` slot 3. It supplies
+an interface lead, not the current G, U2, their vptrs, backing bytes or lifetime
+here. No byte-copy contract is inferred merely from the `0x009D4600` address.
 
 ### Root constructor and conditional full-object +0x40
 
@@ -351,9 +442,13 @@ wrapper, and returns actual EBX bits. Where R=Q holds, this conditional
 store shares the constructor's Q base; neither Q+0x30 nor Q+0x40 persistence
 is established by these reached writes.
 
-No child +0x30 type writer or C=N pointer/layout join follows. No actual
-resource tree, actor/getter/interface pointer, serialized CIBB identity or
-encounter identity is established by these static paths.
+For type k=`0x63696262`, the qualified default route supports a reached
+write of that loaded value to child `+0x30`. It does not establish that an
+actual CIBB resource selects the default rather than a registered callback.
+The exact map record/factory at [K+0x10] for that key, C=N pointer/layout
+join, global G/view-getter implementations and backing remain unbound.
+Root Q and child C are separate. No actual resource tree, actor/getter/interface
+pointer, serialized CIBB identity or encounter identity follows.
 
 The relevant exported listings are under `asm/ffxivgame/`, including
 `0063bf10_FUN_00a3bf10.s`, `006443a0_FUN_00a443a0.s`,
