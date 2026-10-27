@@ -25,14 +25,21 @@ the selected Sqex writer and callback submission path.
 | Size | `15996808` bytes |
 | SHA-256 | `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9` |
 | Format and image base | PE32, VA `0x00400000` |
-| Method | Ghidra CLI disassembly and xrefs, compared with file-backed PE bytes and encoded relative destinations, plus bounded manual descriptor-header, RTTI, vtable and PE import interpretation |
+| Method | Ghidra CLI disassembly and xrefs, compared with file-backed PE bytes and encoded relative destinations, plus bounded manual x86, descriptor-header, RTTI, vtable and PE import interpretation |
 
 All addresses are VA. STATIC marks instruction or data observations.
-INFERRED marks an explicit conditional join. UNKNOWN marks an unsettled fact.
+INFERRED marks an explicit interpretation or conditional join. UNKNOWN marks an
+unsettled fact.
 The [RTTI catalog](../../config/ffxivgame.rtti.json) and
 [vtable-slot catalog](../../config/ffxivgame.vtable_slots.jsonl) provide
 type and slot anchors. Static construction writes do not establish current
 contents, universal defaults, whole-object initialization or execution.
+
+The relative transfer at `0x00F2D525` is a JMP to `0x00D35280`, although
+Ghidra xref metadata labels it `UNCONDITIONAL_CALL`. The selected constructor
+site `0x00547D74` is a CALL to that helper. Instruction bytes settle the
+transfer kind. These selected references do not establish complete callers.
+STATIC.
 
 ## Object notation and construction
 
@@ -77,14 +84,32 @@ base chain places `Sqwt::Input::MouseDevice` and
 | `+0x00` | pointer32 | Install table `0x00FA2AF4` |
 | `+0x04` | pointer32 | Store receiver argument |
 | `+0x18`, `+0x1C`, `+0x20`, `+0x24` | float32 each | Store zero |
-| `+0x28` | helper receiver | Call uninspected `0x00D35280` |
+| `+0x28` | helper receiver | Call partial initializer `0x00D35280` |
 | `+0x48`, `+0x4C`, `+0x50`, `+0x54`, `+0x58`, `+0x5C` | dword each | Store zero |
 | `+0x60`, `+0x61` | byte each | Store zero |
 
-Other base/helper writes, total object size, allocation success and lifetime
-are UNKNOWN. The explicit null argument branch is not a universal nonnull
-receiver guarantee. Static embedded construction does not identify a running
-instance or prove persistence of its stored fields.
+At `0x00547D67`, the constructor forms helper receiver P+`0x28` in ECX.
+Intervening stores preserve ECX, and `0x00547D74` calls
+`0x00D35280`. Under ordinary x86 callee-saved call/return behavior, P
+remains the constructor receiver across the opaque base call. STATIC for the
+instructions, INFERRED for receiver continuity across that call.
+
+The complete helper `0x00D35280..0x00D35295` returns its receiver in
+EAX and stores zero dwords at receiver-relative `0x0C`, `0x10`,
+`0x1C`, `0x00`, `0x04` and `0x08`, in that order. It has no
+state comparison, conditional branch or nested call. On this construction
+path those stores clear P+`0x34`, `0x38`, `0x44`, `0x28`,
+`0x2C` and `0x30`. STATIC.
+
+The helper does not touch record-relative `0x14` or `0x18`, which
+are P+`0x3C` and P+`0x40`. The explicit constructor stores also do not
+zero those fields. The opaque base effects and their initial or current
+values remain UNKNOWN. This is partial record
+initialization, not a whole-record default. Other base effects, total
+object size, allocation success and lifetime are UNKNOWN. The explicit null
+argument branch is not a universal nonnull receiver guarantee. Static embedded
+construction does not identify a running instance or prove persistence of its
+stored fields.
 
 ## Raw descriptor and report gates
 
@@ -185,8 +210,38 @@ It calls `0x00D352A0` with receiver U and argument P+`0x28`.
 If AL is zero it calls `0x00D352D0` with the same pointer roles.
 Either the first nonzero AL or a nonzero second AL admits the update body.
 Two zero results branch to `0x00548035` and skip its stores
-(`0x00547F10..0x00547F29`). The helper meanings are UNKNOWN. STATIC
-for these calls and branches.
+(`0x00547F10..0x00547F29`). STATIC for these calls and branches.
+
+Both comparison helpers receive X in ECX and pointer argument Y at entry
+ESP+`0x04`. They compare full dword bit patterns without an AND mask.
+Each returns AL=`0` after all its comparisons are equal, or AL=`1`
+on the first observed inequality, then consumes the pointer argument with
+RET `4`. STATIC.
+
+| Complete helper range | Compared offsets relative to both X and Y, in order |
+|---|---|
+| `0x00D352A0..0x00D352CD` | `0x00`, `0x04`, `0x08` |
+| `0x00D352D0..0x00D352FD` | `0x0C`, `0x10`, `0x18`, `0x1C` |
+
+Helper `0x00D352A0` clears EAX before using it as a counter that reaches
+only `0..3`. Its final AL write therefore makes the whole returned EAX
+exactly `0`
+or `1`. Helper `0x00D352D0` loads Y into EAX and subsequently overwrites
+only AL, so returned EAX bits `31..8` retain those of Y. Only its AL is
+guaranteed
+to be `0` or `1`. INFERRED from the bounded counter and register
+writes. The consumer tests AL for both helpers. Neither comparison helper
+stores through X or Y or makes a nested call. Helper `0x00D352A0` saves
+and restores ESI on the stack. STATIC for these local instructions.
+
+If the storage read through U and P+`0x28` remains stable and readable
+throughout these comparisons, and the calls return ordinarily, admission is
+equivalent to a mismatch at
+any offset in `0x00`, `0x04`, `0x08`, `0x0C`, `0x10`,
+`0x18`, `0x1C`. Offset `0x14` is excluded. A difference confined
+to that offset does not admit the body. A difference confined to high bits
+of a compared field can admit it even when its low three bits match.
+INFERRED. These are raw field comparisons, not physical-button predicates.
 
 On the update body, these stores occur. STATIC.
 
@@ -215,9 +270,12 @@ stores zero and skips the extra event path. STATIC.
 
 The additional event calls occur before the later mask reads and copies
 (`0x00547F42..0x00548031`). They may mutate U or device state.
-The predicates are also uninspected. The fields and copied record are not
-proved to be an atomic snapshot. Numeric units, valid source domains, SSE
-rounding environment, extra-event semantics and other writers are UNKNOWN.
+Although the gate excludes U+`0x14`, an admitted body later reads that
+field, applies AND `7`, and includes it in the 32-byte copy. The gate
+reads, later fields and copied record are not proved to be one atomic
+snapshot. These store and copy paths require ordinary return from the
+intervening calls. Numeric units, valid source domains, SSE rounding
+environment, extra-event semantics and other writers are UNKNOWN.
 The AND `7` operations do not establish a physical-button domain or a safe
 null/fallback contract.
 
@@ -379,8 +437,7 @@ The stop byte at `+0x17` remains distinct from the handled byte behind
 pointer `+0x10`.
 
 Uninspected helpers include `0x00919B50`, `0x0091B020`,
-`0x00D35280`/`0x00D352A0`/`0x00D352D0`, `0x0091B7B0`,
-`0x0091A1C0`, and RepeatCounter storage helpers `0x009D04AC`/
+`0x0091B7B0`, `0x0091A1C0`, and RepeatCounter storage helpers `0x009D04AC`/
 `0x009D2110`. Their meanings must
 not be assigned from call shape alone. Other writers and complete exception,
 null, allocation and lifecycle contracts are UNKNOWN.

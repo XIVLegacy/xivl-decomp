@@ -243,7 +243,8 @@ stored provider fields. The [provider feed](sqwt-rapture-mouse-device.md#state-f
 admits stores only if `0x00D352A0` returns nonzero AL, or after its
 zero result `0x00D352D0` returns nonzero AL. Two zero results branch to
 `0x00548035` and bypass the update stores
-(`0x00547F10..0x00547F29`). Helper meanings remain UNKNOWN.
+(`0x00547F10..0x00547F29`). The linked provider section owns the
+field comparisons and their return semantics.
 Additional event calls occur before later mask stores and record copies
 (`0x00547F51..0x00548031`). They can mutate U or provider state.
 The copy/feed is not an atomic snapshot or proof of fresh state.
