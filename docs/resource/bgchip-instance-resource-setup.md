@@ -470,7 +470,7 @@ and the published child C. Its full-base `+0x40` operations are:
 | `0x00A463E9..0x00A463FC` | Load G=[0x01327C24]; call dword[dword[G]+0x0C] with ECX=G and `(retained length, 0x10, 0x0109AA5C)` |
 | `0x00A46400` | Store that call's full EAX U0 to [X+0x40] |
 | `0x00A46405..0x00A4642A` | Nonzero U0 enables its virtual +0x18; a nonzero result enables fresh U1=[X+0x40], another virtual +0x18 and the returned object's virtual +8; full EAX==3 enables OR mask `0x01` into byte [X+0x38] |
-| `0x00A4642E..0x00A4643F` | Common path freshly loads U2=[X+0x40], invokes its virtual +4 at `0x00A46436`, then calls opaque `0x009D4600` with `(last virtual EAX, current raw pointer, retained length)` |
+| `0x00A4642E..0x00A4643F` | Common path freshly loads U2=[X+0x40], invokes its virtual +4 at `0x00A46436`, then calls `0x009D4600` with `(last virtual EAX, current raw pointer, retained length)` |
 
 U0 is the exact store value, not an assumed allocation base or byte pointer.
 U1/U2 need not equal U0 across opaque calls or aliases. Earlier null tests
@@ -478,10 +478,11 @@ do not guard the common U2 dereference. The later full EAX=current ESI
 return at `0x00A4644C` requires expected saved-register/stack state.
 Neither safe failure handling nor persistence of `+0x30/+0x40` follows.
 
-The [separate SCB path](timeline-scb-resource-binding.md#cache-miss-construction)
-also obtains a memory view through global `0x01327C24` slot 3. It supplies
-an interface lead, not the current G, U2, their vptrs, backing bytes or lifetime
-here. No byte-copy contract is inferred merely from the `0x009D4600` address.
+The [SystemHeapBlock interface composition](system-heap-block-interface.md#conditional-raw-resource-copy)
+qualifies the nominal global producer, U2 getter and `(P,R,L)` copy contract.
+It requires retained receiver/vptr/field identities, the caller/copy ABI and
+valid spans. Actual G/U2 identities, backing bytes and lifetime remain
+unestablished.
 
 ### View directory arguments and default creator
 
@@ -634,6 +635,11 @@ null guard. J1's virtual `+8` at `0x00A465AD` returns a full discriminator;
 equality to 3 ORs `0x01` into byte [ESI+`0x38`]. Other paths do not
 directly clear that byte. U1 and J1 need not equal earlier observations.
 
+The [SystemHeapBlock probe composition](system-heap-block-interface.md#qualified-supplied-view-probe)
+qualifies each `+0x18` query as a current receiver-field return under the
+canonical table/receiver premises. It does not identify J1's vptr,
+virtual `+0x08` target or discriminator result.
+
 All normal constructor paths return full EAX=current ESI without adjustment
 and `ret 0x14`. Under the saved-base and call/state conditions, this is Z
 and the concrete callback's child C. The common `+0x0C` branch takes C
@@ -644,7 +650,7 @@ final value on its continuation paths, so it is not an unconditional C return.
 This constructor has neither the raw constructor's call through global
 `0x01327C24` nor its `0x009D4600` call. The direct view-bit store proves
 no backing copy, valid byte span, retain, ownership, lifetime or persistent
-field value. The view interfaces remain opaque. Actual CIBB dispatch, the
+field value. View identities remain unbound. Actual CIBB dispatch, the
 C=N join and the distinction between root Q, child C and map owner P retain
 the limits above.
 
@@ -698,7 +704,7 @@ For type k=`0x63696262`, the qualified default route supports a reached
 write of that loaded value to child `+0x30`. It does not establish that an
 actual CIBB resource selects the default rather than a registered callback.
 The exact map record/factory at [K+0x10] for that key, C=N pointer/layout
-join, global G/view-getter implementations and backing remain unbound.
+join, actual G/view identities and backing remain unbound.
 Root Q and child C are separate. No actual resource tree, actor/getter/interface
 pointer, serialized CIBB identity or encounter identity follows.
 
