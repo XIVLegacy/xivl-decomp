@@ -360,6 +360,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [VFX MatrixRoot mode-zero calculation](resource/vfx-root-matrix-mode-zero.md)
 - [Legacy VFX model geometry](resource/vfx-legacy-model-geometry.md)
 - [Modern VFX model geometry](resource/vfx-modern-model-geometry.md)
+- [VFX model material values and texture requests](resource/vfx-model-material-values.md)
 - [Qix emitters and generated motion](resource/vfx-generate-emitters.md)
 - [Music IDs 13 and 57 resources](resource/music-id-resources.md)
 - [Music song-id resource table](resource/music-song-table.md)

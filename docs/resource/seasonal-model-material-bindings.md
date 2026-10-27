@@ -245,6 +245,11 @@ Shader initialization `0x00C11230`, reached through `0x00C13990` and
 parameter lookup interfaces. A matching CTAB register layout does not
 supply a missing parameter value or sampler name.
 
+The [selected VFX material-value contract](vfx-model-material-values.md) records
+the source component-copy extent, current shared-storage reads, native register
+counts and conditional sampler/device forwarding. Omitted lanes, complete
+TexMatrix values and current cache/device state remain separate conditions.
+
 `0x00BE2110` read 24-byte dependency rows from the construction descriptor's
 `+0x20`, with count at `+0x24`. For each ordinal it submitted the resource
 ID through `0x00BF6D50`. It took the resolved resource's `+0x44` object,
