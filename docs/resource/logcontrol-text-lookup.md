@@ -50,6 +50,13 @@ the named lookup and copies the key to the captured destination when ready.
 These observed writers establish a loaded sheet-name key. They do not prove
 an actual K or an exhaustive writer inventory.
 
+INFERRED. The
+[conditional WorldMaster construction and key join](../script/logcontrol-player-producer.md#conditional-native-worldmaster-join)
+connects the same native ActorBase +8 object to the published load39/worldMaster
+path only under retained prototype/registry identity, the inferred table/self
+relationship, selected method/callback, completed named loading, stable globals
+and key, and valid lifetime. It selects no current instance or actual K.
+
 ## Sheet, row and column
 
 OBSERVED. 0x00CA0930 receives TextModule in ECX and five stack arguments:
@@ -106,10 +113,12 @@ UNKNOWN. No actual cell is established to satisfy this condition. Actual native
 K/R, registered sheet, cache mode, final default logical or physical column,
 and cell contents remain unproved. The player producer contract records exact
 conditional call frames, a WorldMaster load callsite and absent English rows.
-It does not join the global owner to an initialized native instance. Native
-parameter acceptance, four-argument Lua binder acceptance, category admission,
-asynchronous completion, macro behavior outside this branch, fallback, formatting
-and rendered visibility remain unknown. The rule does not remove the earlier
+The [conditional native frame](logcontrol-pool-feed.md#conditional-four-explicit-native-frame)
+and the producer's conditional WorldMaster join narrow the count/omission and
+construction edges. Actual current globals, receiver/type and dynamic method
+acceptance, same-instance/key continuity and lifetime, runtime language, category
+admission, asynchronous completion, macro behavior outside this branch, fallback,
+formatting and rendered visibility remain unknown. The rule does not remove the earlier
 category 0x1B path or other gates in the pool feed contract.
 
 ## Reproduction
