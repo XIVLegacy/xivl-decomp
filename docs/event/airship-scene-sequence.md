@@ -58,8 +58,12 @@ does not supply that missing correlation.
 
 No client-side stale/duplicate filter for a booking reply was established.
 The local request/result association does not prove a booking generation,
-and the reply context dword's domain remains unresolved. The scene name
-and unassigned notice tail are not established invocation discriminators.
+and the reply context dword's domain remains unresolved. Its provenance is
+bound: normal and refusal sends read shared cached incoming `0x00CC`
+state at send time, rather than a request-specific snapshot. The canonical
+trace is `xivl-client-structs:structs/network/event-update.md`, section
+`Context dword provenance and correlation`. The scene name and unassigned
+notice tail are not established invocation discriminators.
 Server-side correlation may use retained request/session state,
 but no particular algorithm or generation scheme is recovered here.
 
@@ -276,13 +280,20 @@ which wait is pending.
 
 ### Map loading state and writers
 
-`0x0075C820` resolves parent `V`, calls `0x004D7390`, and reads the
-returned object's byte `+0xB9`. The getter returns `[V+0x4E0]`.
-Parent construction at `0x004DBFA5` passes `V+0x4AC` to factory-table
+Here `C` denotes the RaptureElementContainer receiver of getter
+`0x004D7390` and reset `0x004DAF00`. The main-envelope receiver `M`
+used by `0x004DAA10` is distinct: construction at
+`0x004DC401`-`0x004DC414` builds `C` at `M+0x10`. Thus the current
+map element at `C+0x4E0` is `M+0x4F0`, while the envelope queue at
+`M+0x17928` is `C+0x17918`. Offsets below use these explicit bases.
+
+`0x0075C820` resolves parent `C`, calls `0x004D7390`, and reads the
+returned object's byte `+0xB9`. The getter returns `[C+0x4E0]`.
+Parent construction at `0x004DBFA5` passes `C+0x4AC` to factory-table
 constructor `0x0053B230`. The factory registers callback `0x005335C0`
 at index 9. The reached initialization branch at `0x004D91E2` supplies
 selector 9 and actor key `0xC000001E`; factory `0x00537620` stores its
-callback result at factory `+0x34`, hence `V+0x4E0`. The callback constructs
+callback result at factory `+0x34`, hence `C+0x4E0`. The callback constructs
 `0x208` bytes through `0x0059EE50`, which installs MapLayoutElement
 vtable `0x00FAAD88`. This establishes the ordinary static pointer/type
 relationship, not a particular historical instance or its reset lifetime.
@@ -310,7 +321,7 @@ nonzero and predicate `0x00626A80` returns false, that method clears
 at `0x0062AC4E`. The predicate returns true while actor `+0x188` is
 nonzero or any reached object in its two pointer ranges has nonzero byte
 `+0x1B0`. It has no elapsed-time test in the inspected body. The reached
-objects' types and terminal failure states remain untraced.
+layout-manager registration and selected terminal branches are traced below.
 
 The [local envelope transport](../net/ferry-scene-notice-producer.md#native-result-producers-and-local-transport)
 routes through actor `+0xDC`. If that key resolves to this MapLayoutElement,
@@ -320,13 +331,251 @@ not compare one. The key's actual target, instance lifetime and relation to
 the Lua poll's currently resolved parent pointer remain runtime identities.
 This is a conditional clear path, not proof against a stale queued clear.
 
-Reset `0x004DAF00` separately resolves `V+0x4E0` and calls the clear
+### Enumerated layout-manager states
+
+The ranges are the begin/end pairs of vector wrappers at MapLayoutActor
+`+0x134/+0x144`, initialized at `0x0062D59F`-`0x0062D5D1`.
+Registration `0x0062C550` appends its supplied pointer through
+`0x0079EE80`: pointee dword `+0x150` equal to 0 or 1 selects wrapper
+`+0x144`; other values select `+0x134`. The two registration methods
+`0x00642F20/0x00642F60` supply their complete `this` pointer after setting
+that field. Both are slots 5/4 of RaptureLayoutManager primary table
+`0x00FBFEE4`. Constructor `0x00651CD0` installs that table and initializes
+its own byte `+0x1B0` to 1 at `0x00651DB6`. The selected ordinary factory
+branch allocates `0x3B0` bytes and calls that constructor at `0x00652128`.
+This binds a concrete layout-manager family to the enumerated pointers;
+it does not identify every dynamic subtype in a historical vector. The
+MapLayoutActor's own dword `+0x1B0` is a different field.
+
+The [layout acquisition state machine](../resource/map-layout-request-boundary.md#registered-states-and-typed-view)
+uses manager dword `+0x140`. Dispatcher `0x00648950`, table `0x00648A00`,
+and the constructed primary table establish these distinct paths:
+
+| Reached condition | Effect on the enumerated manager byte `+0x1B0` |
+| --- | --- |
+| State 2, `0x00648310`: after the status helper returns false, its classifier returns false; or the reached request record lacks either pointer at record `+8`'s `+4/+0x0C` | Set state 11 and clear the byte at `0x0064836F`. |
+| State 3, `0x00648460`: typed acquisition returns 1 | Return with state 3 and the byte unchanged. |
+| The same acquisition returns 0 | Advance to state 4; no byte clear on that branch. |
+| The same acquisition returns another value | Set state 11 and clear the byte at `0x0064855B`. |
+| State 4, `0x00645490`: typed-node check `0x006434F0` returns false | Set state 13 and clear the byte at `0x006454BB`. |
+| Dispatcher sees state 10, 11, 12 or 13 | Clear the byte at `0x006489B0`. These numeric states do not all establish the same outcome. |
+| Update `0x00650750` in state 8 or 9 | First clear the separate `+0x1B1` latch if set; otherwise copy the accumulated child-update byte to `+0x1B0` at `0x006509E8`. |
+
+The state-2 classifier is `0x0079AA60`, applied after the request-status
+helper `0x0079C4D0`. The typed-node check tests ancestry and the typed tag;
+its rejection is not successful layout admission. Thus some resource
+rejection/missing-object branches stop contributing a nonzero byte to the
+map-loading predicate. That alone neither clears another manager's byte
+nor bypasses MapLayoutActor `+0x188`.
+
+Removal is separate. The ordinary cleanup branch of `0x0064A280` calls
+`0x0062ACA0` at `0x0064A332` to erase the complete pointer from the selected
+vector. Destructor `0x0064F120` calls that cleanup at `0x0064F16C`.
+MapLayoutActor teardown also empties both vector ranges through
+`0x0062B4B0/0x0071CC50`. Removing membership does not publish a resource
+success or cancellation result. Raw states 10/12 and the cancellation causes
+remain unnamed. No path here proves every failed request reaches a terminal
+branch.
+
+The concrete children are `RaptureLayoutBlock` full objects. Their factory
+and membership are owned by [the layout-block contract](../resource/layout-block-activation.md#concrete-manager-and-block-interfaces).
+Constructor `0x0064EB60` installs table `0x00FBFC4C`;
+`0x00650400` dispatches child state dword `+0x7C`. State 3 handler
+`0x0064D370` checks `BaseObjectResourceBindInfo` pointers in child vector
+wrapper `+0x9C`. Binder constructor `0x0064C840` installs table
+`0x00FBFA9C`, retains the input definition at `+0x20`, and clears flags
+`+0x18/+0x19`.
+
+Dependency checker `0x00648F20` returns 1 while a dependency remains
+pending, and 3 for selected missing-record/unbound-pointer or rejected
+resource-status cases. State 3 removes and destroys a binder on result 3,
+or when installation helper `0x00649160` returns false
+(`0x0064D438`-`0x0064D4BC`). It can advance to state 4 when every remaining
+binder's indexed pointer is nonnull (`0x006429F0`, `0x0064D4CA`). This
+rejection-to-removal path does not prove every requested resource loaded.
+
+State 4 calls input-definition virtual slots `+0x6C/+0x58` through
+`0x0064B060`, marks binder `+0x18`, and advances to state 5 once all those
+flags are set (`0x00642AA0`, `0x0064D5C8`). State 5 processes the Instance
+list through `0x007FF6D0`, invokes the block interface callback, and writes
+byte `+0x92=1` and state 6 (`0x0064D75D/0x0064D764`). A state 6 poll calls
+full-object slot 1, `0x0064ED70`, then returns false to the manager;
+that return is not an all-resource-success flag. State 7 cleanup
+`0x0064EF60` returns to state 1 when child `+0x8C` is set and to state 0
+otherwise. Resource terminal statuses, input-dependent definition methods
+and causes of every state 7 request remain unbound. No universal completion
+or timeout follows.
+
+### Reset inputs
+
+Reset `0x004DAF00` separately resolves `C+0x4E0` and calls the clear
 routine at `0x004DAFA2` when nonnull. Admitted raw command `0x000E` and
 `0x0011` branches in the main dispatcher call that reset at
-`0x004DCC73/0x004DCCA0`. Callback `0x004DB5B0` also reaches it for raw
-byte values 0, 1 and 2. Their command/selector meanings and connection-loss
-delivery were not established. These paths prove a reset clear exists,
-not automatic timeout, disconnect recovery or return to the origin.
+`0x004DCC73/0x004DCCA0`.
+
+Callback `0x004DB5B0` has a concrete message-dialog producer chain.
+Let `D=C+0x49C` be the callback subobject.
+Container construction `0x004DBFC5` installs table `0x00F91198` at D;
+its complete-object locator records offset `0x49C`, and slot 1 contains
+the callback. Methods `0x004DA280/0x004DA300/0x004DA380` pass D to
+`0x0059B880` on the MessageDialogManager at `C+0x17508`. The request
+stores D at record `+0x58`; `0x0059B820` copies it into a list node's
+embedded record through `0x0059C780/0x0059C6F0/0x0059C5C0`.
+
+Constructed dialog tables `0x00FAA020`, `0x00FAA050`,
+`0x00FAA080` and `0x00FAA0B0` bind slot 9 to `0x0059C750`. The completion
+path at `0x0059A70D` calls that slot, which forwards to `0x0059B610`
+on the retained manager. Its admitted callback branch loads node `+0x60`
+(record `+0x58`) as `this` and invokes slot 1 at `0x0059B652`.
+The callback's second argument comes from node word `+0x0A`, hence
+record `+2`; the dialog-result argument is forwarded separately.
+
+That word has a traced metadata provider. MessageDialogManager `+0x64`
+retains the startup `ExcelModule` through
+`0x004B33FC -> 0x004B3697 -> 0x004DC414 -> 0x004DC1B3`.
+`0x0059B1E0` resolves `_text_error_type` through provider slot 1
+(`0x00C981D0`) and retains the `ExcelSheet` at manager `+0x78`.
+The sheet table is `0x0110C6D4`, with row getter `0x00CAF760` at slot
+`+0x18`. The backing/lazy row-return path still determines availability.
+
+Type-3 request handler `0x0059B000` starts with record `+0x60` as its
+numeric row key. If sheet slot `+0x3C` (`0x00CAF570`) rejects the enabled
+range, `0x0059B053`-`0x0059B065` rounds the unsigned key down to a multiple
+of 10000. That effective key serves both `xtx/_text_error` text and metadata
+lookups. Fields 0/1/2 are `u8`: field 0 minus one selects the dialog kind;
+field 1 becomes the callback word's high byte at `0x0059B0DB` and field 2
+its low byte at `0x0059B0F3`. `0x004DB5B0` reads that low byte. Values
+0, 1 and 2 subtract `0x49C` from D before calling `0x004DAF00`.
+The dialog result is a separate argument.
+
+Both retained `_text_error_type.csv` variants agree on their 85 common
+rows, have only zero values in field 2, and contain row 40000 with fields
+`[1,0,0]`. Their identities are given below; the filename suffix does not
+identify the active runtime variant. These rows support callback selector 0
+and provide no retained source for selectors 1 or 2. They do not establish
+transport-state meanings.
+
+The [Lua-error producer](../script/delegate-command-producer.md#lua-error-inside-the-called-function)
+supplies a concrete key: when its per-handler byte `+0x24` admits submission,
+`0x0076F120` calls `0x004DA380` with decimal 40000 and handler `+0x10`
+at `0x0076F1F0`. Conditional on successful lookup, dialog construction and
+completion, row 40000 supplies metadata low byte 0. Callback `0x004DB5B0`
+then resets C and requests raw state `0x0B` through `0x00565AA0`.
+Immediate or deferred state dispatch `0x0055E010`, table `0x0055E4DC`,
+binds that state to constructor `0x006B3210` with mode argument 1. It
+constructs RTTI type `Application::Main::Menu::Bootup::BootupManager`
+(table `0x00FD25FC`). Mode is stored at `+0x4180`; the mode-1 branch calls
+guarded helper `0x004E1EB0`, which can return false. This establishes a
+conditional local script-error reset and bootup-state request. Asynchronous
+progress after that helper, successful reconnection, origin return and
+booking recovery remain unproved.
+
+The raw main-command domain is separate. Caller `0x004E20A0` obtains
+a native holder through `0x00DAE520`, loads the holder's `+0x24` payload
+pointer and supplies that pointer to `0x004DC690` at `0x004E221D`.
+The dispatcher reads the command from payload word `+2`.
+The [dequeue wrapper](../net/network-dispatch-paths.md#the-dispatch-wrapper---fun_00dae520)
+reaches `0x00DB1960`, which can publish a queued holder or use its
+`0x00DB0D50` fallback. That fallback passes a tree node's connection
+pointer at `+0x10` to `0x00DAFA30`, which calls parser `0x00DAF5B0` on
+`connection+0x1C`. Its buffer at parser `+8` first passes through
+`0x00DA1CE0`, which can transform buffer `+0x10` through `0x00E3FD60`.
+The parser then walks 16-byte record headers. Type 3, selected by table
+`0x00DAF824`, reaches `0x00DAF766`: it copies record length minus 16 bytes
+after the header into holder `+0x24`, stores length at `+0x20`, and
+`0x00DAFA30` publishes the holder at output `+8`.
+
+On this fallback route, `0x000E/0x0011` are inner native command words,
+separate from parser record type 3. Connection virtual slot `+8` at
+`0x00DAFA88` and optional parser callback slot `+0x1C` at `0x00DAF7DD`
+remain dynamic inputs. Queued holders supplied through `0x00DB1960` are a
+separate producer domain. No producer of a particular `0x000E/0x0011`
+payload is identified, and the processed record is not established as an
+unchanged wire frame. An outer wire opcode, timeout or connection-loss
+meaning does not follow from those native command numbers.
+
+### Element routing and pending clears
+
+The admitted ordinary create path gives the MapLayoutElement and its
+MapLayoutActor the same routing key `K=0xC000001E`. Element base
+`0x004DAB50` stores container `C` at element `+0x7C` and K at `+0x88`.
+Registration `0x004DA9A0` inserts the key/pointer pair into the registry at
+`C+0x17804`, which is `M+0x17814`. The scene-create record from
+`0x0059F0AE`-`0x0059F0D4` carries K and class `0x13`. The selected
+scene dispatch and actor factory `0x007A02D0 -> 0x0079FBE0` pass K through
+`0x0062D520 -> 0x007CEF80`; store `0x007CF062` writes actor `+0xDC`.
+This closes the ordinary key-copy route, without identifying a historical
+actor instance or a particular transfer.
+
+The C-family key reservation through `0x004D9030 -> 0x00D35AF0` tests and
+sets a bitmap bit for the key's low 24 bits. Release `0x00D35B30` clears
+that bit. These operations do not increment a per-key generation. Registry
+lookup `0x004D9910 -> 0x0071D420` compares the full 32-bit node key at
+`+0x0C`; its element pointer is node `+0x10`. An equal-key insertion
+through `0x004DE940` returns the existing node rather than replacing its
+pointer. Reuse after retirement is distinct from in-place replacement.
+
+Element destruction `0x0059F590 -> 0x0059E9D0 -> 0x004DB6A0` reaches
+retirement `0x004DAC20` before publishing a scene-side deletion request.
+Retirement first calls `0x005374D0`; its selected K branch clears the
+factory's current map pointer at `C+0x4E0`. The registry paths then differ:
+
+| Retirement condition | Reached effect |
+| --- | --- |
+| `C+0x17820 == 0` | Erase the registry node through `0x004DE280`, then release the key's bitmap bit. |
+| `C+0x17820 != 0` | Null node `+0x10` at `0x004DACC9` and append K to the deferred-key range. The selected update traversal later erases those nodes at `0x004DA89D` and releases their bits at `0x004DA8DC`. The initial null store alone does not make K reusable. |
+
+The envelope publisher copies K and its payload into the queue at
+`M+0x17928`. It retains neither the emitting actor pointer nor the receiving
+element pointer in those copied fields. `0x004DDB50` dequeues a state-1
+slot and marks it state 2. Consumer `0x004DAA10` resolves the copied K
+against the current registry, skips a missing/null pointer, or calls that
+current element's slot `+0x20`. After return it releases the queue slot.
+Queue indices and slot states govern queue ownership; they are not compared
+with a transfer generation in this dispatch chain.
+
+Ordinary reset `0x004DAF00` selects elements for destruction through their
+wrapper predicate or factory auxiliary-map membership. K has no literal
+exemption, but mere registry membership does not select it. Reset's
+reconstruction of `C+0x510` does not by itself prove a new MapLayoutElement
+is admitted. The reached direct map-element initializer is in the startup
+path at `0x004B3720`, separate from the ordinary update below.
+
+Reset cleanup `0x00578230(C+0x510)` has no direct queue operation in its
+fully decoded body. Its loops at `0x0057829B -> 0x0075B3D0` act on a
+different, concretely constructed object at `C+0x17758`, reading and
+decrementing counters at that object's `+0x18/+0x2C/+0x40/+0x54`.
+They do not dequeue the scene-envelope queue. Deeper cleanup reaches
+unresolved owned-object callbacks, including virtual deletion of the
+environment's `+0x218` and first-field pointees at
+`0x00CDB758/0x00CDB7CC`. Complete preservation of pending queue records
+through reset is therefore unproved.
+
+The selected ordinary update supplies a concrete relative order. Its
+construction stores M in the outer caller and in native object `N` at `N+8`
+(`0x004B3697`, `0x004E0DF0`). Call `0x004B3CCC` runs
+`0x004E30A0(N)` first. Raw native phases 4 and 5 select `0x004E20A0`,
+whose admitted record loop calls `0x004DC690(C)` at `0x004E221D`.
+The later call at `0x004B3DD4` drains the scene-envelope queue for that
+same M. Thus, when both selected branches run and return, native staging
+can precede the explicit scene-queue drain. This does not prove that an old
+clear and a newer loading input coexist or survive the intervening work.
+
+If a zero-byte envelope remains pending while the same key names a newer
+element, or while the surviving element starts another loading operation,
+the selected consumer can deliver zero to the then-current byte `+0xB9`
+without a generation comparison. The key-copy/lookup path and ordinary
+caller order support this conditional dataflow. Pending-record survival,
+intervening callbacks and the relationship to different transfer epochs
+remain assumptions. No unconditional race or historical stale clear is
+established.
+
+Main destruction is a different path. `0x004DBE4E -> 0x004D9BC0 ->
+0x004D92D0` retires registry elements before `0x004DBEE2` releases queue
+state storage and `0x004DBEF0`-`0x004DBF0D` releases its record array.
+Container destruction follows. No migration of an old pending record into
+a newly constructed main object's queue was established. This ordering is
+not an ordinary reset flush invariant or a global concurrency proof.
 
 ### Generic CutScene removal
 
@@ -362,7 +611,8 @@ callee effects remain outside this observation.
 | --- | --- | --- |
 | Server never answers after the scene | A local callback publishes the scene checker result independently of a server acknowledgement. A successful scene helper can then wait for map load. | No same-request post-scene server-answer dependency, automatic retry or return to menu was established. An unchanged live checker stays waiting, which does not prove a session hangs forever. |
 | Slow zone transfer | The mode-61 true-result path polls shared MapLayoutElement loading byte `+0xB9` until it is zero. Conditional scene and reset clear paths are traced above. | No local deadline, transfer-generation identity or bound on waiting is established. Other engine/connection timers are untraced. |
-| Failed zone transfer | This load checker exposes waiting versus done, with no distinct failure result. The paired Lua method has no recovery menu. | The local clear predicate's terminal resource states and reset inputs' failure meanings are unbound. Neither guaranteed timeout nor permanent hang is established. |
+| Failed zone transfer | This load checker exposes waiting versus done, with no distinct failure result. Selected layout-manager rejection/missing-object branches clear their contribution; child polling can remove rejected binders and advance over the remaining ones. The paired Lua method has no recovery menu. | Other contributions, dynamic resource methods, eventual terminal progress and automatic reset delivery remain unbound. Neither guaranteed timeout nor permanent hang is established. |
+| Client script error | The admitted one-per-handler 40000 request can complete a dialog with metadata selector 0, reset C and request BootupManager mode 1. | Lookup, dialog completion and guarded/asynchronous bootup progress remain conditional. This is not a proven server-silence or disconnect trigger. |
 | Drop during boarding | The default fade-out helper precedes `_play`; a pending CutScene can lose its checker association through the generic removal path if reached. | The connection-loss-to-removal/fade-clear edge is unbound. |
 | Drop during departure or flight | The first scene helper must return before the optional arrival helper starts. Its successful result can include a map-load wait. | No separate durable client flight phase or reconnect resume point was recovered. |
 | Drop during arrival | The optional second helper has its own scene lifecycle, followed by the final fade helper after normal return. | No persisted scene-pair PC or arrival recovery reader was joined to the next session. |
@@ -397,9 +647,34 @@ or connection-failure experiment was performed.
 | `0x0059C8F0 +0x54`, `0x0059CEB0 +0x1F`, `0x0059CED0 +0x110`, `0x0059E3C0 +0x109`, `0x0059E660 +0x45`, `0x00563D70 +0xD8` | Selected loading-byte writers and scene-result raise. |
 | `0x0062AC20 +0x7D`, `0x00626A80 +0xD9`, `0x007CE7EA +0x49`, `0x004DAA95 +0x31`, `0x004D65E0 +0x3A`, `0x004D66C0 +0x30` | Conditional scene clear predicate, producer and envelope delivery. |
 | `0x004DAF33 +0x74`, `0x004DB5B0 +0xE1`, `0x004DC6D0 +0x80`, `0x004DCC65 +0x5A` | Parent reset, raw callback and selected dispatcher paths. |
+| `0x0062D59F +0x35`, `0x0062C550 +0x3D`, `0x0079EE80 +0x69`, `0x00642F20 +0x32`, `0x00642F60 +0xBC` | Vector initialization, insertion and complete-pointer registration. |
+| `0x00651CF6 +0xF1`, `0x006520D3 +0x5F`, `0x00623C60 +6` | Concrete layout-manager construction and current-actor getter. |
+| `0x00648950 +0xAE`, `0x00648310 +0x141`, `0x00648460 +0x10E`, `0x00645490 +0x8D`, `0x006434F0 +0x43` | Numeric-state dispatch, rejected/missing resource branches and busy-byte clears. |
+| `0x0079C4D0 +0xEC`, `0x0079AA60 +0x15`, `0x0064C1D0 +0x24`, `0x0064E200 +0x1B`, `0x00650750 +0x2C3`, `0x00650400 +0xF6` | Request-status helper/classifier, states 8/9 and child-update aggregate. |
+| `0x0064F145 +0x2C`, `0x0064A280 +0x122`, `0x0062ACA0 +0x112`, `0x0062DB04 +7`, `0x0062B4B0 +0x77`, `0x0071CC50 +0x5A` | Cleanup removes vector membership separately from resource completion. |
+| `0x004DA280 +0x7E`, `0x004DA300 +0x71`, `0x004DA380 +0x71`, `0x004DC19D +0x1B`, `0x0059B6A0 +0x179` | Same-container message-dialog manager and callback registration. |
+| `0x0059B880 +0x102`, `0x0059C2E0 +0xC4`, `0x0059B820 +0x5F`, `0x0059C780 +0x8F`, `0x0059C6F0 +0x59`, `0x0059C5C0 +0xC3` | Callback record construction, copy and queue insertion. |
+| `0x0059BF90 +0x6F`, `0x0059A601 +0x139`, `0x0059A900 +0x38`, `0x0059C750 +0x0B`, `0x0059B610 +0x88`, `0x0059B1E0 +0xC9`, `0x0059B000 +0x1D2` | Dialog completion invocation and metadata-word producer, separate from the result argument. |
+| `0x004E213E +0xE4`, `0x00DAE520 +0xB5`, `0x00DB1960 +0x62` | Native holder dequeue and payload-pointer input to the main command dispatcher. |
 | `0x006FCAA0 +0xD1` | CutScene slot-5 clearing and base call. |
 | `0x00CCC9E0 +7`, `0x00CE24C0 +0x98`, `0x00CDAEB0 +0xF5` | Slot-5 forwarder, guarded raiser and removal caller. |
 | `0x00CDB5E6 +0xF8`, `0x00CDB6F9 +0x0F`, `0x00CDB760 +0x20`, `0x00CC9650 +0x2E` | Control iteration and engine release spans. |
+| `0x004DC3A0 +0x22F`, `0x004DAB50 +0xC2`, `0x0059EE50 +0x2E8` | Main/container construction, element parent/key stores and scene-create publication. |
+| `0x004D9030 +0x50`, `0x00D35AF0 +0x34`, `0x00D35B30 +0x28`, `0x004D9910 +0x5F`, `0x0071D420 +0x69`, `0x004DA9A0 +0x69` | Key bitmap reservation/release and exact registry lookup/insertion entry. |
+| `0x007A02D0 +0x139`, `0x0079FBE0 +0x75`, `0x0062D557 +0x22`, `0x007CEF80 +0x178` | Selected class-`0x13` actor constructor and key store. |
+| `0x004DAC20 +0x15F`, `0x005374D0 +0x11B`, `0x004DA7C6 +0x11B` | Immediate/deferred retirement and factory pointer clearing. |
+| `0x004DAA10 +0x136`, `0x004DDB50 +0x77`, `0x004DE080 +0x10F`, `0x004DAF00 +0x6AF` | Full consumer, dequeue, queue construction and ordinary reset bodies. |
+| `0x00578230 +0x15D`, `0x0075B3D0 +0x9E`, `0x004B3656 +0x99`, `0x004E0DE6 +0x30`, `0x004B3C50 +0x218`, `0x004E30A0 +0x345`, `0x004E20A0 +0x5A2` | Cleanup, separate counter loops and same-main native-before-envelope order. |
+| `0x004DBE10 +0x130`, `0x004D9BC0 +0xA3`, `0x004D92D0 +0xC7` | Element retirement before main queue-storage destruction. |
+| `0x0064EB60 +0x20B`, `0x0064C840 +0xBC`, `0x0064D790 +0xBC`, `0x00648C00 +0x1E`, `0x005CDCC0 +0x13` | Concrete block and binder construction, append and accessors. |
+| `0x0064D370 +0x16B`, `0x00648770 +0x3B`, `0x00648F20 +0x239`, `0x00649160 +0x663`, `0x00640360 +0x3D`, `0x006429F0 +0xA8` | Child dependency polling, rejected-binder removal and remaining-pointer readiness. |
+| `0x0064B1A0 +0x529`, `0x00655C50 +0x1E`, `0x0064FCC0 +0x10C` | Binder removal and destruction helpers. |
+| `0x0064D4E0 +0xF9`, `0x0064B060 +0x77`, `0x00642AA0 +0x64`, `0x0064D5E0 +0x1A2`, `0x0064ED70 +0x48`, `0x0064D9A0 +0x7D`, `0x0064EF60 +0x34` | States 4-7, definition dispatch, flags and callback progress. |
+| `0x004B33C6 +0x39`, `0x004B3676 +0x26`, `0x004DC3A0 +0x79`, `0x004DBF40 +0x2D`, `0x004DC187 +0x31`, `0x00C98C30 +0xA8`, `0x00C981D0 +0x85` | Startup ExcelModule construction and dialog-provider forwarding. |
+| `0x00CB04B0 +0x467`, `0x00C98580 +0x2A3`, `0x00CAF760 +0x4E`, `0x00CAF570 +0x6B`, `0x00CAF6B0 +0xAA`, `0x00C9A480 +0x17` | Sheet construction, range check, row access and lazy fallback. |
+| `0x00F10320 +0x21`, `0x00F10350 +0x21` | Original-PE static initializers for the metadata/text names. |
+| `0x0076F120 +0xEB`, `0x00565AA0 +0x72`, `0x005659E0 +0xBC`, `0x0055E010 +0x4CC`, `0x006B3210 +0x97B`, `0x004E1EB0 +0xB8` | Admitted 40000 dialog request, queued/immediate state dispatch, Bootup construction and guarded helper. |
+| `0x00DB0D50 +0x1AD`, `0x00DAFA30 +0x21E`, `0x00DAF5B0 +0x273`, `0x00DAF210 +0x67`, `0x00DAF110 +0x81`, `0x00DA1CE0 +0x8B` | Connection fallback, parser record type, holder publication and buffer transformation. |
 
 Use the PE translation and Capstone decoder in the
 [scene-notice reproduction](../net/ferry-scene-notice-producer.md#reproduction),
@@ -421,6 +696,43 @@ at locator `+0x0C`, then mangled name at descriptor `+8`. Tables
 `0x00FAAD88` and `0x00FBAE3C` identify
 `.?AVMapLayoutElement@Map@Element@Main@Application@@` and
 `.?AVMapLayoutActor@Map@Actor@Scene@Application@@` respectively.
+
+For the manager-state and reset-input joins, also read state table
+`0x00648A00` (13 dwords), request classifier `0x0079AA78` (11 dwords),
+child-state table `0x006504F8` (8 dwords), and RaptureLayoutManager table
+`0x00FBFEE4` (18 dwords). Read the first 10 dwords of each dialog table
+`0x00FAA020/0x00FAA050/0x00FAA080/0x00FAA0B0`. The same selected
+COL/descriptor walk identifies table `0x00FBFEE4` as
+`.?AVRaptureLayoutManager@Layout@Map@Actor@Scene@Application@@`,
+`0x00FAA020` as
+`.?AVMessageDialogForManager@MessageDialog@Menu@Main@Application@@`,
+and `0x00FAA0E0` as
+`.?AVMessageDialogManager@MessageDialog@Menu@Main@Application@@`.
+For table `0x00F91198`, retain the COL's `+4` offset `0x49C` along
+with its RaptureElementContainer type name.
+
+The child, metadata and bootup joins also use tables `0x00FBFA9C` (6
+dwords), `0x00FBFC4C` (2), `0x01108C00` (2), `0x0110C6D4` (16),
+`0x0055E4DC` (24) and `0x00FD25FC` (3). The same COL/descriptor walk
+identifies BaseObjectResourceBindInfo, RaptureLayoutBlock, ExcelModule,
+ExcelSheet and BootupManager respectively. Read parser table `0x00DAF824`
+(10 dwords) and NUL-terminated strings `_text_error_type` at `0x00FA9E74`
+and `xtx/_text_error` at `0x00FA9E88` through the same PE translation.
+
+The exact metadata extractions are listed in
+`xivl-client-data:manifests/tables.json`, version `2012.09.19.0001`:
+
+| CSV member under `csv/` | Bytes | SHA-256 |
+| --- | --- | --- |
+| `_text_error_type.csv` | 1099 | `6f50f4add69b6b60d393cb57780f36cd9b7f7a9f59907294f2d08f0b598afe46` |
+| `_text_error_type(2).csv` | 1039 | `8ad0a522f0c32fea1c6cabf373e94cc6b6e9293e3488928fc4493ffe24d176c8` |
+
+Read the exact members with Python `csv.reader` from the archive pinned by
+`xivl-client-data:manifests/private_csv_corpus.json`. The first column is
+the row key; numbered fields 0/1/2 follow it. Compare the common rows,
+field-2 sets and row 40000 without assuming which variant the runtime chose.
+Confidence is high for these instruction/data joins; dynamic resource
+outcomes and connection-loss delivery remain bounded as stated above.
 
 ## Scene assets
 

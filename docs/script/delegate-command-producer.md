@@ -251,7 +251,7 @@ copied extent". For this reply the fields are:
 | Application offset | Value |
 | --- | --- |
 | `0x00` | OBSERVED: the dword at entry `+0x70` of the registry entry of T, found through `0x00CC73B0` and copied by `0x00CC7030`. INFERRED: that dword is the key of T. OBSERVED: the owner key, argument 4 of `0x00896F70`, is never passed to `0x00894090`. |
-| `0x04` | Context record dword copied by `0x0075D460`. Its meaning stays unresolved on the page above. |
+| `0x04` | Shared cached incoming `0x00CC` application `+0`, copied by `0x0075D460`. The source/writer proof is on the page above; the numerical identity domain remains unresolved. |
 | `0x08` | `1`, the sign-extended byte at `0x012C3F72` (image value `1`). |
 | `0x0C` | `0xCC6BD671`, DERIVED as CRC32 of `0F` followed by 63 zero bytes. The builder checksums the supplied block, as the same page records. |
 | `0x10` | The call's event type. |
@@ -324,8 +324,10 @@ OBSERVED. `0x0076F120` tests and clears handler byte `+0x24`, which the
 constructor sets to `1` (`0x007648A0`), and only then calls `0x004DA380` with
 `0x9C40` (decimal `40000`) and the state queue (`0x0076F149` to `0x0076F1F0`).
 `0x004DA380` calls `0x004D9980` with `0xC0000000` and forwards the code and
-queue to `0x0059B880`. UNKNOWN: whether that ends the connection or shows a
-dialog, because those callees were not traced.
+queue to `0x0059B880`. The [dialog and reset trace](../event/airship-scene-sequence.md#reset-inputs)
+binds this to a type-3 error dialog request. Conditional on lookup and dialog
+completion, row 40000 supplies metadata selector 0, resets the same container
+and requests BootupManager mode 1. Successful reconnection remains unproved.
 
 OBSERVED. `0x0076E270` joins the literal `#` (`0x00FDF54C`), a value from the
 context record, the banner ` ***** Client Script ERROR *****` (`0x00FDF528`),

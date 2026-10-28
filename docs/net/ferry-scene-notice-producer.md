@@ -80,10 +80,35 @@ After an accepted skip prompt, selector 1 is conditional on the result
 callback being reached with the same actor's skip byte still set. Neither
 the widget nor the `_skip` adapter proves that callback occurred.
 
-The second constructor also has a conditional `0x00D0` send at
-`0x00764085`, after the `0x00CE` send. Its predicate is a separate byte
-obtained by `0x006FBC9E -> 0x00763060`, not the result boolean. That branch
+The constructor can also send the conditional
+[`0x00D0` vector](#conditional-0x00d0-vector) after `0x00CE`. That branch
 does not add fields to the `0x00CE` body or establish event correlation.
+
+## Conditional 0x00D0 vector
+
+At `0x00763EBD`, `0x00763DC0` tests its third argument byte. A zero
+byte skips the rest of this branch. The byte comes from
+`0x006FBC9E -> 0x00763060`, which returns zero for an empty counted list
+or reads the first list control's `+0xBB` byte. This is separate from the
+callback boolean and the CutScene skip flag.
+
+For a nonzero byte, the constructor zeros a `0x100`-byte array at
+`0x00763EC7`-`0x00763ED3`. It walks the container returned by
+`0x004D73A0`, excludes the node whose dword `+0x0C` equals the wrapper
+pointee's `+0x1783C` value, and applies the numeric comparisons at
+`0x00763F67`-`0x00764016`. Selected node `+0x0C` dwords are appended at
+`0x00764022`-`0x0076402F`, up to `0x40` entries. Their broader semantic
+domain and the compared floating fields are not assigned here.
+
+At `0x00764051/0x0076405C`, the record receives code `0x00D0` and size
+`0x110`. The 64-dword copy at `0x00764067`-`0x00764080` places the entire
+array at record `+0x18`. With the same forwarding rule as `0x00CE`, the
+serverbound Map application body is exactly `0x100` bytes: 64 dwords with
+zero padding after the selected entries. No count field is appended. The
+branch sends through `0x004D6D10` at `0x00764085`, even when no entries
+were selected. The inspected body copies neither the local result boolean
+nor its returned dword into this array. It supplies no established booking
+or invocation discriminator.
 
 ## Native result producers and local transport
 
@@ -148,6 +173,32 @@ to the call of `0x00563D70` at `0x00566762`. This closes the local
 producer-to-result-handler route conditionally on the key resolving to that
 element. It supplies no originating event or scene-invocation token.
 
+### Default result controller
+
+The ordinary CutManagerActor construction installs vtable `0x00FB8DA4`,
+constructs the embedded object at actor `+0x168` through `0x007DFE20`,
+and stores that object's address at actor `+0x174`
+(`0x00619203`-`0x00619252`). That controller installs vtable `0x00FEF2B0`,
+whose RTTI identifies
+`Application::Scene::Cut::CutScenePlayer::CutScenePlayerControl`.
+It initializes controller `+4` to zero at `0x007DFE60`.
+
+If result publication still uses this embedded controller, its slot
+`+0x14` is `0x007DFD50`. With controller `+4` null, the getter returns zero
+and consumes the original argument. Otherwise it calls the child object's
+virtual slot `+0xC8`, then tail-dispatches the returned object's slot
+`+0x44` with the original argument still on the stack. A reached setup path
+stores the result of `0x00635690` into controller `+4` at `0x007DFF65`.
+The default getter is therefore a conditional zero fallback or a second
+virtual lookup, not an established event-identity producer.
+
+This construction does not prove that actor `+0x174` still selects the
+embedded controller at a particular result. The selected controller and the
+two later virtual targets' value domain remain unbound. For this default
+case, the earlier unbound slot-`+0x14` edge is narrowed to those receiver
+identities and virtual lookups. No success, cancel or booking-generation
+meaning is assigned to the returned dword.
+
 ## Enclosing request completion
 
 The generic request listener also has an authenticated return path.
@@ -182,10 +233,14 @@ the cells' values in a historical invocation.
 it through `0x00894090` (`0x00894B44`-`0x00894B65`). The wrapper obtains
 the reply context through `0x0075D460` and `0x00CC73B0`, then calls
 serverbound Map `0x012E` builder `0x0075E670` at `0x0089410A`.
-Application `+4` is the context dword copied from input `+0x14` by
-`0x0075D460`; its domain meaning is unresolved. No event name is added to
-this reply. The full operand layout is owned by
-`xivl-client-structs:structs/network/event-update.md`; the typed result
+Application `+4` copies the shared cache at that helper's input `+0x14`.
+The reached writers initialize it to zero and update it from incoming
+`0x00CC` application `+0`. Normal completion and refusal paths read the
+cache at send time, rather than snapshotting a token from the incoming
+event request. Its numerical identity domain remains unresolved. No event
+name is added to this reply. The full operand layout and source/writer
+proof are owned by `xivl-client-structs:structs/network/event-update.md`,
+section `Context dword provenance and correlation`; the typed result
 encoding and error route are owned by the
 [generic executor finding](../script/delegate-command-producer.md#completion-reply-serializer).
 
@@ -198,8 +253,9 @@ the phase-0 listener. Neither `0x00CE` selector 2 nor a terminated or empty
 The first remaining invocation edge is the binding of a particular incoming
 event request and Lua thread to the two created CutScene actors and to the
 resolved CutManagerActor/element keys. The remaining dword-value edge is the
-controller slot `+0x14` called at `0x0061A15C` or `0x0061A237`; its result
-is not an event identifier merely because it reaches Lua. The smallest local
+controller slot `+0x14` called at `0x0061A15C` or `0x0061A237`, with the
+default-controller case narrowed above; its result is not an event identifier
+merely because it reaches Lua. The smallest local
 comparison records those request/thread/actor identities and generations,
 the `0x15/0x16/0x17` delivery, both producer code/dword pairs, and the
 same request at `0x00896152` and `0x0089410A`, with exact `0x00CE/0x012E`
@@ -274,6 +330,7 @@ ranges = (
     (0x0074F83E, 0x51), (0x007362CE, 0x51), (0x006E1970, 0x23),
     (0x006FB8D1, 0x81), (0x006FBC50, 0x6D),
     (0x0076D706, 0xB8), (0x00763DE6, 0xD7),
+    (0x00763EBD, 0x1E4), (0x00763060, 0x23),
     (0x00563D9A, 0xAE), (0x00574E50, 0x13),
     (0x0075D950, 0x2D), (0x008A3910, 0x38),
     (0x00713030, 0x60), (0x00713090, 0x0C), (0x007491F0, 0x2D),
@@ -287,6 +344,8 @@ ranges = (
     (0x0061FF70, 0x95), (0x008280D0, 0x5B), (0x0061B000, 0x1A),
     (0x007CE7B0, 0xBF), (0x004D65E0, 0x3A), (0x004D66C0, 0x30),
     (0x007CF7F0, 0x88), (0x004DAA95, 0x31), (0x00566740, 0x2E),
+    (0x00619203, 0x55), (0x007DFE20, 0x91),
+    (0x007DFD50, 0x21), (0x007DFF51, 0x17),
     (0x00CCF55D, 0x192), (0x00CCE909, 0xB1),
     (0x00CCDA53, 0x24), (0x00897171, 0x2D),
     (0x008960C2, 0xA4), (0x00CD2BC0, 0x1D), (0x00CD08F0, 0x17),
@@ -305,9 +364,9 @@ Read table `0x00563E48`, vtable cells `0x00FDFBB8` and
 `0x00FD51AC..0x00FD51B4`, and strings `0x00FD7F68/0x00FD6DB8` with the
 same PE translation. Also read jump tables `0x0061C780` and `0x00566854`,
 and the cited cells of vtables `0x00FB8DA4`, `0x00FEF314`, `0x00FA4DB8`,
-`0x01028284` and `0x0105706C`. Their RTTI descriptors are respectively
+`0x01028284`, `0x0105706C` and `0x00FEF2B0`. Their RTTI descriptors are respectively
 `0x012B7894`, `0x012C6970`, `0x0126F668`, `0x012CD680` and
-`0x012D7BA8`; read the mangled names at descriptor `+8`.
+`0x012D7BA8`, followed by `0x012C6830`; read the mangled names at descriptor `+8`.
 The generic completion checks are also reproduced by
 `python tools/verify_run_event_function.py --exe <matching-executable>`.
 The retained constructor has an unrelated cleanup gap
