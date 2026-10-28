@@ -129,9 +129,10 @@ Let `S=I+0x3C` for this selected target.
 
 Before its main branch, `FUN_004CF650` calls `FUN_004CF0A0` twice
 at `0x004CF6A7` and `0x004CF6C2`, supplying `C,D` and
-receiver-relative byte/tree locations. These preliminary calls remain part
-of the condition. Their side effects and preservation of aliased input are
-unresolved.
+receiver-relative byte/tree locations. The
+[direct footprint](#preliminary-helper-direct-footprint) below identifies
+their flag store and called targets. Callee effects and preservation of
+aliased input remain conditions.
 
 For `K=0` and a first-byte test that still reads `@`, the target reaches
 `0x004CF7B8`. The checks at `0x004CF7C0..0x004CF7DC` require byte
@@ -157,6 +158,79 @@ does not reach this nonzero-`K` branch on the selected classifier path.
 For the `K=0,@` branch whose byte-index-1 digit check fails, another
 helper path returns wrapper `0x0132F768` at `0x004CF948`. Its effective
 string contents remain unresolved.
+
+### Preliminary helper direct footprint
+
+Python 3.12.0, pefile 2024.8.26 and Capstone 5.0.7 in x86 32-bit mode
+decoded the complete original-PE range `[0x004CF0A0,0x004CF17D)`,
+221 bytes at file offset 848032, from the executable identified above.
+Its SHA-256 is
+`1971a7b9cab8a07d86955d82638d488cef4783d0d01cba40cd3a731e28c09f44`.
+These observations cover this helper only, without callee-body analysis.
+
+Let E be entry ESP, with explicit inputs C at E+4, D at E+8, F at E+12
+and H at E+16. The two caller sites supply these values:
+
+| Caller VA | F | H |
+| --- | --- | --- |
+| `0x004CF6A7` | S+`0x264` | S+`0x270` |
+| `0x004CF6C2` | S+`0x265` | S+`0x27C` |
+
+Incoming ECX=S is overwritten at `0x004CF0AC` before being read. H is
+retained in EBX, and Q=`[H+4]` is loaded at that instruction. C is used
+as an unsigned 32-bit comparison key without being dereferenced. This does
+not make the H/F storage independent of S or establish any relation to W.
+
+Two scans start separately at `[Q+4]`, each stopping at a nonzero byte
+at node+`0x13D`. They use full dword keys at node+`0x0C`, without masking.
+
+| Scan and VA range | Zero-marker step |
+| --- | --- |
+| U, `0x004CF0B2..0x004CF0D9` | Initially U=Q. If unsigned C < key, set U=node and follow node+0. Otherwise follow node+8 without updating U. |
+| V, `0x004CF0DC..0x004CF0FE` | Initially V=Q. If unsigned key >= C, set V=node and follow node+0. Otherwise follow node+8 without updating V. |
+
+These recurrences do not establish ordering, ownership, stable contents,
+acyclicity or termination of the reachable structure. H has already been
+dereferenced before its zero check at `0x004CF0FE`. With H nonzero and
+completed scans yielding V=U, `0x004CF10F` selects the epilogue without
+any callee call or store through F. With successful reads and ordinary stack
+storage disjoint from W, that path preserves W bytes. It does not establish
+which path either actual preliminary call takes.
+
+Otherwise a writable local pair [L,node] begins as [H,V] at E-8,E-4.
+The first scan's U occupies the reused E+16 argument slot. The complete
+direct-call set is:
+
+| Callsite and target VA | Reach predicate and observed inputs |
+| --- | --- |
+| `0x004CF106 -> 0x009D22B4` | H=0 after the scans. No explicit argument or receiver setup. |
+| `0x004CF129 -> 0x009D22B4` | In pair processing, L=0 or L!=H. No explicit argument or receiver setup. |
+| `0x004CF138 -> 0x009D22B4` | After preceding checks return, node!=U and L=0. No explicit argument or receiver setup. |
+| `0x004CF142 -> 0x009D22B4` | After preceding checks return, node!=U and node=`[L+4]`. No explicit argument or receiver setup. |
+| `0x004CF153 -> 0x004D02D0` | After those checks, node!=U and `[node+0x1C] != [D+8]`. ECX points to the local pair; no explicit stack argument. |
+| `0x004CF167 -> 0x004D5A30` | After those checks, node!=U and `[node+0x1C] == [D+8]`. ECX=H; explicit arguments are address of the local pair, L, node. |
+
+After `0x004CF153`, the body reloads L/node from the pair and repeats at
+`0x004CF121`. It returns when node equals the boundary reloaded from E+16.
+Pair advancement, preservation of that boundary slot and eventual termination
+are unresolved callee effects. `0x009D22B4` is not established as aborting
+or nonreturning here. No new argument setup does not imply that a target
+ignores live registers, the stack or ambient memory.
+
+After `0x004CF167`, `0x004CF16C` reloads a pointer from E+12 and
+`0x004CF170` stores byte 1 through it. This is the only explicit store
+not addressed through ESP. Four explicit dword stores use E+16 or the
+local pair; pushes, calls and register saves also write the stack. The byte
+store targets original F only if E+12 survives the call. A compatible normal
+return from `0x004D5A30` must remove its 12 pushed argument bytes for the
+visible epilogue to balance; the other calls must leave caller ESP unchanged.
+Post-call statements require compatible register and stack preservation.
+
+The flag pointer can alias W. Disjoint flags and stack scratch alone also do
+not prove preservation on paths calling `0x004D02D0`, `0x004D5A30` or
+`0x009D22B4`: their effects and indirect access remain unresolved. No
+actual W/S/C/D alias relation, selected runtime state or rendered text follows
+from this direct footprint.
 
 ## FP-04: Join to font numeric handling
 
@@ -199,6 +273,7 @@ bytes local. Each range below is start-inclusive and end-exclusive.
 |---|---|
 | Property preprocessing and conversion | `0x0095CB50..0x0095CBC7`, `0x00916310..0x009164C1`, `0x00988A30..0x00988A8A`, `0x00445050..0x00445059`, `0x00445210..0x00445213`, `0x00974220..0x00974226` |
 | Preliminary and temporary helpers | `0x009157C0..0x0091581C`, `0x009A3850..0x009A38C2`, `0x0099A890..0x0099A8A8`, `0x0099A730..0x0099A73A`, `0x009A3D60..0x009A3E51` |
+| Delegated preliminary direct footprint | `0x004CF0A0..0x004CF17D`. Callee bodies are outside this observation. |
 | Selected classifier construction | `0x0054E190..0x0054E225`, `0x009741F0..0x00974200`, `0x00548610..0x00548627`, `0x004D74F0..0x004D74F7`, `0x004DC3A0..0x004DC5CF`, `0x004DBF40..0x004DC085`, `0x00C9CFA0..0x00C9CFEC` |
 | Classifier and delegated target | `0x00C9BBD0..0x00C9BC19`, `0x00445550..0x0044556B`, `0x00548400..0x00548408`, `0x004CF650..0x004CFA49` |
 | Font parser and descriptor names | `0x009382F8..0x0093836E`, `0x00F22420..0x00F22444`, `0x00F22450..0x00F22474`. Names `0x0106B8F8` and `0x0106B904`, each plus 9 bytes |
@@ -214,3 +289,6 @@ activation, Resource loading, original asset identity, and live raster output
 remain unresolved. Decorated `.H` identity in the broader numeric finding
 still supplies no promoted source-level type name. The published FontSize,
 FontType, and font source findings retain their separate downstream conditions.
+The preliminary helper's direct footprint leaves `0x004D02D0` pair effects,
+`0x004D5A30` effects and stack cleanup, `0x009D22B4` behavior, runtime
+alias relations and preservation of post-call argument slots unresolved.
