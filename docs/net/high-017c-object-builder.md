@@ -73,6 +73,17 @@ bytes `+0x09` and `+0x0A` to zero. It returns the outer record pointer in
 `EAX` and does not explicitly write byte `+0x0B`. These instructions establish
 allocation and initialized offsets, not a higher-level type or helper purpose.
 
+The installer call with `ECX = owner +0x0C` does not establish a binding to the
+world object's group lookup. The authenticated original-PE getter observation is
+recorded in
+`xivl-client-structs:docs/nameplate-group-native-contract.md#group-natives`.
+That contract identifies the lookup object at `Y +0xE4` and the dereferenced
+root passed to `0x006C3E50`. No pointer-binding observation identifies this
+carrier with that lookup object, or their inner pointers
+with each other. Allocation shape and a shared literal do not establish the
+association.
+
+
 ## Evidence
 
 Addresses in this note are virtual addresses (VA). The observations come from
