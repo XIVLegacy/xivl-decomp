@@ -247,6 +247,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [LogControl key wait, Wait0 and page advance](resource/logcontrol-key-wait.md)
 - [LogControl Talker and the speaker display name](resource/logcontrol-talker-name.md)
 - [NpcSay backdrop draw](resource/npcsay-backdrop-draw.md)
+- [SetActorName display-name id 0 and the speaker name](resource/display-name-id-zero.md)
 - [SparkleControl Source and Sequence](resource/sparklecontrol-source-sequence.md)
 - [Sqwt XPath data sources](resource/sqwt-xpath-data-sources.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
