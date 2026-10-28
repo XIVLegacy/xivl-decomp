@@ -249,11 +249,13 @@ At VA `0x004C9BB0` (RVA `0x000C9BB0`), the body passes object pointer
 `+0xA00`, zero, and size `0x1E8` to `0x009D2110`, then copies input byte
 `+0x1E0` to object byte `+0xBE0`. If the input byte equals `1`, it copies four
 dwords from input `+0` through `+0x0C`, copies four entries at `0x0C`-byte
-strides using two dwords and two bytes per entry, and copies four qwords from
+strides using two dwords and four bytes per entry, and copies four qwords from
 input `+0x1C0` through `+0x1D8` to object `+0xBC0` through `+0xBD8`. If the
 byte is not `1`, it calls `0x004C7710` with `0xB8B`. Both paths write `8` to
 object dword `+0x10`. Other helper calls in the selected branch remain
-unassigned.
+unassigned. The [current recruitment count contract](current-recruitment-member-count.md)
+joins the four input bytes `+0x1B + 0x0C*i` to the details UI and distinguishes
+them from the response-status byte `+0x1E0`.
 
 ### `0x01D0` and `0x01D2`
 
