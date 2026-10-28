@@ -25,6 +25,7 @@ import verify_lobby_assigned_connection_u32 as lobby_assigned_u32_verifier
 import verify_music_song_resources as music_song_verifier
 import verify_map_0003_emitter as map_emitter_verifier
 import verify_player_profile_accessors as player_profile_verifier
+import verify_remote_actor_auto_move as remote_auto_move_verifier
 import verify_lobby_acknowledgement_consumer as lobby_ack_verifier
 import verify_lobby_clear_0007_0008_consumers as lobby_clear_verifier
 import verify_retail_protocol_caller as retail_verifier
@@ -623,6 +624,14 @@ def main() -> int:
     if status_wire_errors:
         errors.extend(
             f"status wire translation contract: {error}" for error in status_wire_errors
+        )
+    remote_auto_move_errors = (
+        remote_auto_move_verifier.verify() + remote_auto_move_verifier.mutation_test()
+    )
+    if remote_auto_move_errors:
+        errors.extend(
+            f"remote actor auto-move contract: {error}"
+            for error in remote_auto_move_errors
         )
     skeleton_composition_errors = skeleton_composition_verifier.verify()
     if skeleton_composition_errors:

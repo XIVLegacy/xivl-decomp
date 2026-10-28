@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import verify_camera_input_chain as camera  # noqa: E402
 import verify_map_0003_emitter as map_emitter  # noqa: E402
 import verify_player_profile_accessors as profile  # noqa: E402
+import verify_remote_actor_auto_move as auto_move  # noqa: E402
 import verify_s2c_0193_native_state as timer  # noqa: E402
 import verify_status_wire_translation as status  # noqa: E402
 import verify_sun_moon_orientation as moon  # noqa: E402
@@ -912,12 +913,46 @@ def map_emitter_checks() -> None:
     )
 
 
+def auto_move_checks() -> None:
+    document = json.loads(auto_move.MANIFEST.read_text(encoding="ascii"))
+    check("auto-move manifest passes", auto_move.verify(document) == [])
+    check("auto-move mutations are all rejected", auto_move.mutation_test() == [])
+    slot1 = row_float(document, "constant 1/15 float", "<f")
+    slot2 = row_float(document, "constant 1/6 float", "<f")
+    divisor = row_float(document, "constant 30.0 double", "<d")
+    check(
+        "auto-move defaults equal the retail on-foot wire list 0, 2, 5, 5",
+        [round(v * divisor, 4) for v in (0.0, slot1, slot2, slot2)]
+        == [0.0, 2.0, 5.0, 5.0],
+    )
+    check(
+        "wire speed 5.0 is 1/6 per step",
+        abs(auto_move.per_step(5.0) - slot2) < 1e-6,
+    )
+    check(
+        "catch-up multiplier saturates at 1.2 after 2.5 steps",
+        abs(auto_move.catch_up_multiplier(2.5, 1.2, 0.08) - 1.2) < 1e-9
+        and auto_move.catch_up_multiplier(1.0, 1.2, 0.08) < 1.2,
+    )
+    check(
+        "linear arrival radius is speed times (steps + 1) / 2",
+        abs(auto_move.arrival_radius_linear(1.0, 4) - 2.5) < 1e-9,
+    )
+    wanted = document["census"]["map00D0"]
+    check(
+        "00D0 count bytes sum to the record total",
+        sum(wanted["byCountByte"].values()) == wanted["total"],
+    )
+
+
 def main() -> int:
     exercise("timer handler", timer, timer.MANIFEST)
     exercise("player profile", profile, profile.MANIFEST)
     exercise("sun and moon", moon, moon.MANIFEST)
     exercise("camera input chain", camera, camera.MANIFEST)
     exercise("status wire translation", status, status.MANIFEST)
+    exercise("remote actor auto-move", auto_move, auto_move.MANIFEST)
+    auto_move_checks()
 
     sentinel = 0xFFFFFFFF
     check(

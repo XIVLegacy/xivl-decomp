@@ -1,0 +1,182 @@
+{
+  "format": "xivl-remote-actor-auto-move-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "bytes": 15996808,
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9",
+    "imageBase": "0x00400000",
+    "addressKind": "VA",
+    "instrument": "ghidra-cli decompile and cross-reference queries, with Capstone 5.0.7 x86-32 disassembly and raw PE reads of the staticChecks ranges"
+  },
+  "model": {
+    "wireSpeedList": {
+      "opcode": "0x00D0",
+      "countByteOffset": 144,
+      "recordStride": 8,
+      "floatOffset": 16,
+      "slotOffset": 20,
+      "slotWidthBytes": 2,
+      "receiverCopyLimit": 16,
+      "terminatorSlot": "0xFFFF"
+    },
+    "speedTable": {
+      "slotCount": 16,
+      "tableOffsets": [
+        "0x10C",
+        "0x14C"
+      ],
+      "divisor": 30.0,
+      "defaultPerSecond": [
+        0.0,
+        2.0,
+        5.0,
+        5.0
+      ],
+      "liveScalarOffsets": {
+        "rampActive": "0xEC",
+        "otherwise": "0xF4"
+      },
+      "rampLengthOffset": "0x100",
+      "noRampValue": -1.0
+    },
+    "autoMove": {
+      "levelOffset": "0x80",
+      "targetOffset": "0x50",
+      "targetHistoryOffsets": [
+        "0x90",
+        "0xA0"
+      ],
+      "stateOffset": "0x84",
+      "stateHold": 3,
+      "stateChase": 0,
+      "arrivalRadiusOffset": "0x1DC",
+      "arrivalRadiusInitial": 0.0,
+      "holdReengageDistance": 0.1,
+      "remoteGate": "C+0x1104 == 4"
+    },
+    "catchUp": {
+      "triggerFlatDistance": 30.0,
+      "timerSteps": 30.0,
+      "multiplierCeiling": 1.2,
+      "multiplierStepPerStep": 0.08,
+      "multiplierOffsets": {
+        "timer": "0x1E0",
+        "current": "0x1E4",
+        "applied": "0xF8"
+      }
+    },
+    "secondVector": {
+      "elementOffsets": [
+        "0xB0",
+        "0xB8"
+      ],
+      "elementCommand": "0x26",
+      "consumedComponent": "y",
+      "heightStoreOffsets": {
+        "target": "0x588",
+        "current": "0x58C"
+      },
+      "heightObject": "C+0x590"
+    }
+  },
+  "census": {
+    "captureCount": 54,
+    "map00CF": {
+      "subEventBytes": 80,
+      "total": 15100,
+      "byState": {
+        "0": 12904,
+        "1": 880,
+        "2": 1155,
+        "3": 161
+      },
+      "secondVectorXzAlwaysZero": true,
+      "secondVectorYNonzero": {
+        "total": 416,
+        "byState": {
+          "0": 349,
+          "1": 67
+        },
+        "min": 1.1,
+        "max": 1.7
+      }
+    },
+    "map00D0": {
+      "subEventBytes": 168,
+      "total": 1247,
+      "captureCount": 30,
+      "byCountByte": {
+        "1": 64,
+        "3": 530,
+        "4": 653
+      },
+      "slot0AlwaysZero": true,
+      "mostCommonFourSlot": {
+        "records": 638,
+        "valuesBySlot": [
+          0.0,
+          2.0,
+          5.0,
+          5.0
+        ]
+      },
+      "mountedFourSlot": {
+        "records": 14,
+        "valuesBySlot": [
+          0.0,
+          3.6,
+          9.0,
+          9.0
+        ]
+      }
+    }
+  },
+  "staticChecks": [
+    {"name": "speed table receiver", "kind": "signature", "va": "0x0058d052", "pattern": "33 c0 38 86 90 00 00 00 76 2b 8d 8f 88 01 00 00 83 f8 0f 77 0f 66 8b 54 c6 14 66 89 51 04 d9 44 c6 10 d9 19 0f b6 96 90 00 00 00 83 c0 01 83 c1 08 3b c2 7c db 0f b6 8e 90 00 00 00 b8 ff ff 00 00 66 89 84 cf 8c 01 00 00 8d 97 88 01 00 00 52 8d 4c 24 78 66 89 87 0c 02 00 00 e8 fe 1b 00 00 68 88 00 00 00 50 6a 10 8b cf e8 bf a8 f4 ff", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Element receiver of s2c 0x00D0: count byte at +0x90, float at +0x10+8i and u16 slot at +0x14+8i for i below the count, 0xFFFF terminator, then element command 0x10."},
+    {"name": "actor command 0x10 speed list", "kind": "signature", "va": "0x0065ce50", "pattern": "56 57 8b 7c 24 0c 0f b7 57 04 33 f6 66 81 fa ff ff 74 44 53 8b c7 0f b7 d2 8d 99 f0 0b 00 00 90 f3 0f 10 00 0f 5a c0 f2 0f 5e 05 18 7b fa 00 51 0f b7 c2 66 0f 5a c0 f3 0f 11 04 24 50 8b cb e8 bc 78 14 00 83 c6 01 0f b7 54 f7 04 66 81 fa ff ff 8d 04 f7 75 ca 5b 5f 5e c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Walks (float, u16 slot) records to slot 0xFFFF and calls the slot setter with the float divided by the double 30.0."},
+    {"name": "speed slot setter", "kind": "signature", "va": "0x007a4750", "pattern": "f3 0f 10 44 24 08 8b 44 24 04 f3 0f 11 84 81 0c 01 00 00 f3 0f 10 81 00 01 00 00 0f 2f 05 60 44 fa 00 76 16 8b 91 e0 00 00 00 d9 84 91 0c 01 00 00 d9 99 ec 00 00 00 c2 08 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Stores H+0x10C+4*slot, then reloads the live speed scalar from the entry of the applied level."},
+    {"name": "speed slot getter", "kind": "signature", "va": "0x007a47f0", "pattern": "8b 44 24 04 d9 84 81 0c 01 00 00 c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Returns H+0x10C+4*slot."},
+    {"name": "auto-move level setter", "kind": "signature", "va": "0x007a4700", "pattern": "8b 01 f6 80 78 2b 00 00 01 75 0e 8b 44 24 04 85 c0 74 06 89 81 80 00 00 00 c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Stores H+0x80 only when C+0x2B78 bit 0 is clear and the argument is nonzero."},
+    {"name": "constructor speed defaults", "kind": "signature", "va": "0x007b83da", "pattern": "0f 57 c0 f3 0f 11 03 f3 0f 11 45 00 f3 0f 10 05 c4 7f fe 00 f3 0f 11 86 50 01 00 00 f3 0f 11 86 10 01 00 00 f3 0f 10 05 8c 81 fe 00 83 c4 24 8b ce f3 0f 11 86 54 01 00 00 f3 0f 11 86 14 01 00 00 f3 0f 11 86 58 01 00 00 f3 0f 11 86 18 01 00 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Both 16-slot tables get slot 0 = 0.0, slot 1 = float at 0x00FE7FC4, slots 2 and 3 = float at 0x00FE818C."},
+    {"name": "helper reset clears arrival radius", "kind": "signature", "va": "0x007a7612", "pattern": "f3 0f 11 80 dc 01 00 00", "mask": "ff ff ff ff ff ff ff ff", "note": "Reset stores 0.0 to H+0x1DC."},
+    {"name": "command byte table 0x10", "kind": "dwords", "va": "0x00663c18", "values": ["0x0f"], "width": 1, "note": "Command 0x10 selects arm index 0x0F."},
+    {"name": "command byte table 0x26", "kind": "dwords", "va": "0x00663c2e", "values": ["0x22"], "width": 1, "note": "Command 0x26 selects arm index 0x22."},
+    {"name": "command byte table 0x34 to 0x36", "kind": "dwords", "va": "0x00663c3c", "values": ["0x30", "0x31", "0x32"], "width": 1, "note": "Commands 0x34, 0x35 and 0x36 select arm indexes 0x30, 0x31 and 0x32."},
+    {"name": "command arm table 0x0F", "kind": "dwords", "va": "0x00663b24", "values": ["0x00663844"], "note": "Arm 0x0F is the command 0x10 speed list arm."},
+    {"name": "command arm table 0x22", "kind": "dwords", "va": "0x00663b70", "values": ["0x00663074"], "note": "Arm 0x22 is the command 0x26 arm."},
+    {"name": "command arm table 0x30 to 0x32", "kind": "dwords", "va": "0x00663ba8", "values": ["0x00662e7c", "0x00662e9d", "0x00662ecf"], "note": "Arms 0x30, 0x31 and 0x32 are the commands 0x34, 0x35 and 0x36."},
+    {"name": "arm 0x10 to speed list walker", "kind": "signature", "va": "0x00663844", "pattern": "56 8b cf e8 04 96 ff ff", "mask": "ff ff ff ff ff ff ff ff", "note": "Passes the data pointer to 0x0065CE50."},
+    {"name": "arm 0x26 to height setter", "kind": "signature", "va": "0x00663074", "pattern": "56 8b cf e8 e4 9b ff ff", "mask": "ff ff ff ff ff ff ff ff", "note": "Passes the data pointer to 0x0065CC60."},
+    {"name": "arm 0x35 to target setter", "kind": "signature", "va": "0x00662e9d", "pattern": "f3 0f 7e 06 83 ec 10 8b c4 66 0f d6 00 f3 0f 7e 46 08 8b cf 66 0f d6 40 08 e8 e5 9d ff ff", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Copies the 16-byte vector to the stack and calls 0x0065CCA0, which calls 0x007A76C0."},
+    {"name": "arm 0x36 to level setter", "kind": "signature", "va": "0x00662ecf", "pattern": "8b 06 50 8d 8f f0 0b 00 00 e8 23 18 14 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Passes the u32 to 0x007A4700 with H = C+0xBF0."},
+    {"name": "height setter 0x65CC60", "kind": "signature", "va": "0x0065cc60", "pattern": "51 56 8b f1 8b 8e 10 2b 00 00 85 c9 c6 44 24 04 80 74 09 e8 28 42 1f 00 88 44 24 04 8b 44 24 04 50 51 8b 4c 24 14 d9 41 04 8d 8e 90 05 00 00 d9 1c 24 e8 19 76 14 00 5e 59 c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Reads the y float of the 16-byte vector and calls 0x007A42B0 on C+0x590."},
+    {"name": "height store 0x7A42B0", "kind": "signature", "va": "0x007a42b0", "pattern": "8a 44 24 08 f3 0f 10 44 24 04 88 81 b4 05 00 00 8b 81 b4 05 00 00 a9 00 02 00 00 f3 0f 11 81 88 05 00 00 74 13 25 ff fd ff ff 89 81 b4 05 00 00 f3 0f 11 81 8c 05 00 00 c2 08 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Stores the float at +0x588 and, when flag 0x200 is set, also at +0x58C."},
+    {"name": "s2c 0x00CF case body", "kind": "signature", "va": "0x0058cef7", "pattern": "8b cf e8 52 98 f4 ff 8b 4f 7c 8b d8 e8 88 a5 f4 ff 3b c3 75 1a 8b 4f 7c 80 a7 6d 02 00 00 fe 68 fd 04 00 00 51 e8 1f a0 ff ff 83 c4 08 eb 0b 66 8b 56 28 66 89 97 10 02 00 00 f3 0f 10 46 18 d9 46 24 0f b7 46 28 6a 01 51 f3 0f 11 44 24 3c f3 0f 10 46 1c d9 1c 24 f3 0f 11 44 24 40 f3 0f 10 46 20 50 8d 4c 24 40 f3 0f 11 44 24 48 f3 0f 10 05 70 4f f5 00 51 8b cf f3 0f 11 44 24 50 e8 c6 22 00 00 f3 0f 10 46 30 f3 0f 11 44 24 34 f3 0f 10 46 34 f3 0f 11 44 24 38 f3 0f 10 46 38 6a 01 8d 54 24 38 f3 0f 11 44 24 40 f3 0f 10 05 70 4f f5 00 52 8b cf f3 0f 11 44 24 48 e8 a9 21 00 00 e9 c1 06 00 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Self branch, remote state store at +0x210, 0x0058F240 with the first vector, 0x0058F160 with the second."},
+    {"name": "0x58F240 first vector sender", "kind": "signature", "va": "0x0058f240", "pattern": "66 8b 44 24 08 83 ec 10 80 7c 24 20 00 56 8b f1 66 89 86 84 01 00 00 57 8b 7c 24 1c f3 0f 7e 07 66 0f d6 86 14 02 00 00 f3 0f 7e 47 08 66 0f d6 86 1c 02 00 00 74 58 6a 04 8d 4c 24 2c 0f b7 c0 51 6a 36 8b ce 89 44 24 34 e8 f2 86 f4 ff f3 0f 10 44 24 24 6a 04 8d 54 24 2c 52 6a 34 8b ce f3 0f 11 44 24 34 e8 d6 86 f4 ff f3 0f 7e 07 6a 10 8d 44 24 0c 50 66 0f d6 44 24 10 f3 0f 7e 47 08 6a 35 8b ce 66 0f d6 44 24 1c e8 b1 86 f4 ff 5f 5e 83 c4 10 c2 10 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Stores +0x184, +0x214 and +0x21C and sends element commands 0x36, 0x34 and 0x35."},
+    {"name": "0x58F160 second vector sender", "kind": "signature", "va": "0x0058f160", "pattern": "8b 44 24 04 f3 0f 7e 00 66 0f d6 81 b0 00 00 00 f3 0f 7e 40 08 83 ec 10 80 7c 24 18 00 66 0f d6 81 b8 00 00 00 74 22 f3 0f 7e 00 66 0f d6 04 24 f3 0f 7e 40 08 6a 10 8d 44 24 04 50 6a 26 66 0f d6 44 24 14 e8 d7 87 f4 ff 83 c4 10 c2 08 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Stores +0xB0 and +0xB8 and sends element command 0x26."},
+    {"name": "target setter 0x7A76C0", "kind": "signature", "va": "0x007a76c0", "pattern": "55 8b ec 83 e4 f0 83 ec 1c 56 8b f1 8b 06 f6 80 78 2b 00 00 01 0f 85 c4 00 00 00 0f 28 86 90 00 00 00 8b 4d 08 0f 29 86 a0 00 00 00 d9 86 b0 00 00 00 d9 9e b4 00 00 00 0f 28 46 50 0f 29 86 90 00 00 00 0f 57 c0 f3 0f 11 86 b0 00 00 00 0f 28 09 0f 29 4e 50 f3 0f 10 0d 70 4f f5 00 f3 0f 11 4e 5c 0f 28 4e 10 0f 28 56 50 0f 5c ca 0f 29 4c 24 10 f3 0f 11 44 24 14 0f 28 44 24 10 0f 59 c0 0f 28 c8 0f c6 c8 aa 0f 58 c8 0f c6 c0 55 0f 58 c8 f3 0f 51 c9 0f 29 4c 24 10 f3 0f 10 44 24 10 0f 5a c0 66 0f 2f 05 18 7b fa 00 76 32 8b 0e 81 b9 e0 00 00 00 ff ff ff 7f 74 24 e8 00 2e eb ff 84 c0 75 1b 8b 16 f6 82 78 2b 00 00 01 75 10 f3 0f 10 05 e4 32 f9 00 f3 0f 11 86 e0 01 00 00 5e 8b e5 5d c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Shifts the target history, stores H+0x50 and arms H+0x1E0 for a flat distance above 30.0."},
+    {"name": "catch-up multiplier ramp", "kind": "signature", "va": "0x007b6c91", "pattern": "f3 0f 11 9e e4 01 00 00 0f 57 e4 f3 0f 11 a6 e0 01 00 00 e9 a0 00 00 00 f3 0f 10 86 e0 01 00 00 0f 57 e4 0f 2f c4 76 58 0f 5a c0 0f 5a d1 f2 0f 5c c2 f3 0f 10 15 88 81 fe 00 66 0f 5a c0 f3 0f 11 86 e0 01 00 00 f3 0f 10 86 e4 01 00 00 0f 2f d0 76 65 0f 5a c9 f2 0f 59 0d 80 81 fe 00 0f 5a c0 f2 0f 58 c8 66 0f 5a c1 0f 2f c2 f3 0f 11 86 e4 01 00 00 76 42 f3 0f 11 96 e4 01 00 00 eb 38 f3 0f 10 86 e4 01 00 00 0f 2f c3 76 2b 0f 5a c0 0f 5a c9 f2 0f 59 0d 80 81 fe 00 f2 0f 5c c1 66 0f 5a c0 0f 2f d8 f3 0f 11 86 e4 01 00 00 76 08 f3 0f 11 9e e4 01 00 00 8b 86 e0 00 00 00 f3 0f 10 8c 86 4c 01 00 00 0f 2f cc 76 15 f3 0f 10 84 86 0c 01 00 00 0f 5a c0 0f 5a c9 f2 0f 5e c1 eb 08 f2 0f 10 05 a0 98 f5 00 d9 86 e4 01 00 00 8b 0e d9 9e f8 00 00 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Timer H+0x1E0 and multiplier H+0x1E4 ramp toward 1.2 and back to 1.0 at 0.08 per step, copied to H+0xF8."},
+    {"name": "remote mover gate", "kind": "signature", "va": "0x007b6ea8", "pattern": "83 be ec 01 00 00 00 75 6f 8b 0e 83 b9 04 11 00 00 04 74 10 d9 45 08 51 8b ce d9 1c 24 e8 46 de ff ff eb 54 e8 2f 36 ea ff 84 c0 75 24 8b 0e f6 81 78 2b 00 00 01 75 40 e8 9b 36 ea ff 84 c0 75 37 d9 45 08 51 8b ce d9 1c 24 e8 19 e6 ff ff eb 27", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "With H+0x1EC zero and C+0x1104 equal to 4, a non-selected actor reaches 0x007B5510."},
+    {"name": "arrival test", "kind": "signature", "va": "0x007b55d8", "pattern": "f3 0f 10 8e dc 01 00 00 f3 0f 11 44 24 18 0f 5a c0 0f 5a c9 66 0f 2f c8 0f 82 55 09 00 00 83 be e0 00 00 00 00 0f 84 48 09 00 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Chase continues while H+0x1DC is below the distance or the applied level is 0."},
+    {"name": "arrival level write", "kind": "signature", "va": "0x007b5603", "pattern": "f6 46 04 08 75 2c 8b 8e d4 02 00 00 85 c9 c6 44 24 0f 00 74 1d 8b 11 8b 52 04 8d 44 24 0f 50 ff d2 80 7c 24 0f 00 74 0a c7 86 a0 01 00 00 00 00 00 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Past the radius test the requested level H+0x1A0 is written 0 when H+4 bit 3 is clear and the H+0x2D4 object grants it."},
+    {"name": "chase step", "kind": "signature", "va": "0x007b5f4b", "pattern": "f6 46 04 08 8b 9e 80 00 00 00 75 28 8b 8e d4 02 00 00 85 c9 c6 44 24 0f 00 74 19 8b 01 8b 40 04 8d 54 24 0f 52 ff d0 80 7c 24 0f 00 74 06 89 9e a0 01 00 00 57 8b ce e8 09 47 ff ff 8b ce e8 02 9e ff ff d9 45 08 51 8d 8c 24 94 00 00 00 d9 1c 24 51 8b ce e8 ac 1e ff ff 0f 28 46 10 0f 28 08 0f 58 c1 0f 29 46 10 d9 86 f4 00 00 00 83 be 80 00 00 00 00 d9 5e 74 0f 85 c3 03 00 00 c7 86 80 00 00 00 01 00 00 00 c7 86 84 00 00 00 03 00 00 00 e9 aa 03 00 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Requests level H+0x80, steps H+0x10 by the displacement of 0x007A7E50, and forces H+0x80 to 1 with state 3 when it was 0."},
+    {"name": "hold re-engage", "kind": "signature", "va": "0x007b07d0", "pattern": "f3 0f 10 44 24 10 0f 2f 05 ec 7d fb 00 76 20 f3 0f 10 5e 78 f3 0f 10 96 f8 00 00 00 0f 5a d2 0f 5a db f2 0f 58 d3 66 0f 5a d2 f3 0f 11 56 78 0f 5a c0 66 0f 2f 05 50 ad fb 00 76 19 f3 0f 11 4e 78 f3 0f 11 4e 7c c7 86 84 00 00 00 00 00 00 00 5e 8b e5 5d c3", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "A distance above the double at 0x00FBAD50 resets the hold counters and sets H+0x84 to 0."},
+    {"name": "speed ramp tick", "kind": "signature", "va": "0x007a7bd0", "pattern": "83 ec 0c 56 8b f1 f3 0f 10 86 00 01 00 00 0f 2f 05 60 44 fa 00 f3 0f 11 44 24 08 0f 82 bd 00 00 00 d9 86 ec 00 00 00 f3 0f 10 86 fc 00 00 00 d9 5c 24 0c 83 ec 14 d9 86 04 01 00 00 f3 0f 11 44 24 18 d9 5c 24 10 d9 44 24 18 d9 5c 24 0c d9 44 24 1c d9 5c 24 08 d9 44 24 20 d9 5c 24 04 d9 86 f0 00 00 00 d9 1c 24 e8 74 d1 ff ff f3 0f 10 86 f8 00 00 00 d9 9e f4 00 00 00 f3 0f 10 4c 24 14 0f 5a c0 0f 5a c9 f2 0f 59 c1 f3 0f 5a 4c 24 04 f2 0f 58 c1 f3 0f 5a 4c 24 08 66 0f 5a c0 f3 0f 11 86 fc 00 00 00 f3 0f 5a c0 66 0f 2f c1 76 2e f3 0f 10 44 24 0c f3 0f 11 86 f4 00 00 00 f3 0f 11 86 f0 00 00 00 f3 0f 10 05 80 2f f6 00 f3 0f 11 86 fc 00 00 00 f3 0f 11 86 00 01 00 00 5e 83 c4 0c c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "H+0xF4 interpolates from H+0xF0 to H+0xEC over H+0x100 steps when H+0x100 is not negative."},
+    {"name": "interpolation 0x7A4DB0", "kind": "signature", "va": "0x007a4db0", "pattern": "f3 0f 10 44 24 14 0f 2e 05 60 44 fa 00 9f f6 c4 44 7a 22 f3 0f 10 44 24 10 f3 0f 10 4c 24 0c 0f 5a c0 0f 5a c9 f2 0f 5e c1 66 0f 5a c0 f3 0f 11 44 24 10 eb 25 d9 44 24 10 d8 74 24 0c d9 5c 24 10 d9 44 24 10 d9 44 24 14 e8 82 64 23 00 d9 5c 24 10 d9 44 24 10 d9 5c 24 10 d9 44 24 08 d9 44 24 04 d9 c0 de ea d9 44 24 10 de ca de c1 d9 5c 24 10 d9 44 24 10 c2 14 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Returns a + (i / n) * (b - a) when the easing argument equals 0.0."},
+    {"name": "displacement scale 0x7A7E50", "kind": "signature", "va": "0x007a7e50", "pattern": "55 8b ec 83 e4 f0 83 ec 18 56 8b f1 f3 0f 10 86 f4 00 00 00 8b 0e 57 8b 7d 08 f3 0f 11 44 24 0c e8 8b 26 eb ff 84 c0 74 1b f3 0f 10 86 08 01 00 00 f3 0f 5a 4c 24 0c 0f 5a c0 f2 0f 59 c1 66 0f 5a c0 eb 06 f3 0f 10 44 24 0c f3 0f 10 8e e8 01 00 00 8b 06 8b 88 18 01 00 00 8b 49 78 85 c9 f3 0f 5a c0 0f 5a c9 f2 0f 59 c8 66 0f 5a c1 f3 0f 10 8e f8 00 00 00 f3 0f 5a c0 0f 5a c9 f2 0f 59 c1 f3 0f 10 4d 0c 66 0f 5a c0 f3 0f 5a c0 0f 5a c9 f2 0f 59 c1 66 0f 5a c0 f3 0f 11 44 24 0c 74 23 e8 da c6 e7 ff 84 c0 74 14 f3 0f 5a 44 24 0c f2 0f 59 05 70 2f f6 00 f2 0f 5a c0 eb 06 f3 0f 10 44 24 0c 8b 16 f6 82 78 2b 00 00 01 74 10 f3 0f 5a c0 f2 0f 59 05 70 2f f6 00 f2 0f 5a c0 f3 0f 10 8e c0 00 00 00 0f 5a c9 f3 0f 5a d0 f2 0f 59 ca 66 0f 5a c9 f3 0f 11 4c 24 10 f3 0f 10 8e c4 00 00 00 0f 5a c9 f3 0f 5a d0 f2 0f 59 ca 66 0f 5a c9 f3 0f 11 4c 24 14 f3 0f 10 8e c8 00 00 00 f3 0f 5a c0 0f 5a c9 f2 0f 59 c8 66 0f 5a c1 f3 0f 11 44 24 18 0f 57 c0 f3 0f 11 44 24 1c 0f 28 44 24 10 0f 29 07 8b c7 5f 5e 8b e5 5d c2 08 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Delta is direction times H+0xF4 times H+0x1E8 times H+0xF8 times the timestep, with H+0x108 for the selected actor. The result is multiplied by the double 0.0 at 0x00F62F70 when the object at C+0x118 has a nonzero +0x78 and 0x006245D0 is true, and again when C+0x2B78 bit 0 is set."},
+    {"name": "catch-up early return gate", "kind": "signature", "va": "0x007b6c37", "pattern": "8b 0e 57 e8 91 73 ea ff 84 c0 8b 0e 74 36", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "0x007B6C20 calls 0x0065DFD0 first and, when it is true, copies a float from the object of 0x0065E020 and returns, skipping the catch-up ramp and the chase."},
+    {"name": "constant 0.0 double", "kind": "dwords", "va": "0x00f62f70", "values": ["0x00000000", "0x00000000"], "note": "Factor of the displacement scale under 0x006245D0 or C+0x2B78 bit 0."},
+    {"name": "arrival radius writer", "kind": "signature", "va": "0x007a45a0", "pattern": "f3 0f 10 44 24 04 f3 0f 11 81 dc 01 00 00 c2 04 00", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Stores the argument at H+0x1DC."},
+    {"name": "arrival radius sum", "kind": "signature", "va": "0x008bf860", "pattern": "48 81 c1 f0 0b 00 00 50 e8 93 26 ef ff 84 c0 0f 84 b7 00 00 00 8b 06 8d b8 f0 0b 00 00 8b cf e8 bc 4f ee ff 50 8b cf e8 64 4f ee ff d9 5c 24 18 8b 4c 24 3c 0f 57 c0 0f be c1 33 ff 85 c0 f3 0f 11 44 24 10 7c 71 c1 e1 10 c1 f9 18 85 c9 89 4c 24 14 db 44 24 14 7d 06 d8 05 54 4a f5 00 dc 35 48 78 f6 00 8b 0e 83 ec 14 f3 0f 2a c7 81 c1 f0 0b 00 00 d9 5c 24 28 d9 44 24 28 d9 5c 24 10 d9 ee f3 0f 11 44 24 0c f3 0f 2a c0 f3 0f 11 44 24 08 d9 5c 24 04 d9 44 24 2c d9 1c 24 e8 af 54 ee ff d8 44 24 10 8b 4c 24 3c 0f be c1 83 c7 01 3b f8 d9 5c 24 10 7e 8f d9 44 24 10 51 8b 0e d9 1c 24 81 c1 f0 0b 00 00 e8 74 4c ee ff", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Sums 0x007A4DB0 of the auto-move level speed toward 0 over steps 0 to n inclusive and stores the sum with 0x007A45A0."},
+    {"name": "slot 166 height add", "kind": "signature", "va": "0x00661041", "pattern": "84 db 75 0e f3 0f 10 44 24 24 f3 0f 11 44 24 14 eb 21 d9 44 24 34 09 86 74 2b 00 00 8d 8e 90 05 00 00 d9 5c 24 0c e8 84 32 14 00 d8 44 24 0c d9 5c 24 14", "mask": "ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff", "note": "Adds the float at C+0x590+0x58C to the y of a ground query hit."},
+    {"name": "constant 30.0 double", "kind": "dwords", "va": "0x00fa7b18", "values": ["0x00000000", "0x403e0000"], "note": "Divisor of the wire speed and threshold of the catch-up trigger."},
+    {"name": "constant 1/15 float", "kind": "dwords", "va": "0x00fe7fc4", "values": ["0x3d888889"], "note": "Default slot 1 value per step, equal to 2.0 / 30."},
+    {"name": "constant 1/6 float", "kind": "dwords", "va": "0x00fe818c", "values": ["0x3e2aaaab"], "note": "Default slot 2 and slot 3 value per step, equal to 5.0 / 30."},
+    {"name": "constant 0.08 double", "kind": "dwords", "va": "0x00fe8180", "values": ["0x60000000", "0x3fb47ae1"], "note": "Catch-up multiplier step."},
+    {"name": "constant 1.2 float", "kind": "dwords", "va": "0x00fe8188", "values": ["0x3f99999a"], "note": "Catch-up multiplier ceiling."},
+    {"name": "constant 30.0 float", "kind": "dwords", "va": "0x00f932e4", "values": ["0x41f00000"], "note": "Catch-up timer start and default level change ramp length."},
+    {"name": "constant 0.5 double", "kind": "dwords", "va": "0x00f59898", "values": ["0x00000000", "0x3fe00000"], "note": "Half-speed test in the arrival branch."},
+    {"name": "constant 0.1 double", "kind": "dwords", "va": "0x00fbad50", "values": ["0xa0000000", "0x3fb99999"], "note": "Hold re-engage distance."},
+    {"name": "constant -1.0 float", "kind": "dwords", "va": "0x00f62f80", "values": ["0xbf800000"], "note": "Default ramp length meaning no ramp."}
+  ]
+}

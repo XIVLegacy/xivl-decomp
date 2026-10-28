@@ -25,7 +25,7 @@ the opcode.
 | c2s position report | `0x00CA` | 64 | x, y, z, rotation f32 at 24, 28, 32, 36 and u16 move state | 40 |
 | s2c move actor | `0x00CF` | 80 | x, y, z, rotation f32 at 24, 28, 32, 36 and u16 move state | 40 |
 | s2c move actor | `0x00CF` | 80 | second x, y, z f32 at 48, 52, 56 | none |
-| s2c speed bands | `0x00D0` | 168 | four (index, f32) pairs as the capture study reads them, floats at 24, 32, 40, 48 | none |
+| s2c speed list | `0x00D0` | 168 | count byte at 144, then f32 at 16+8i and u16 slot at 20+8i | none |
 | s2c actor state | `0x0134` | 40 | main state byte, no name table | none |
 
 Sources: `xivl-opcodes:opcodes.json` rows `MapServerbound` `0x00ca`
@@ -59,15 +59,14 @@ captures with the extractor named in the method section.
 The first and second `0x00CF` vectors differ in all but 52 of the 15100
 records. All 52 carry state 0.
 
-The s2c `0x00D0` pair (slot 0, slot 1) is (2.0, 5.0) in the on-foot
-baseline in all three movement captures (32, 267 and 51 records), (3.6, 9.0)
-mounted, with (0.0, 0.0) and (2.5, 8.0) as rarer pairs
-(`xivl-captures:studies/movement-speed-band-observations/derived/observed-bands.md`).
-The 5.0 matches the 4.92 mean on-foot speed of the c2s study. The client reads
-each float together with the u32 that follows it, so the study's pairing is
-shifted by one record. The
-[selection finding](locomotion-selection.md#speed-table)
-records this alignment as unconfirmed against a payload.
+The s2c `0x00D0` list read the client way, slot by slot, is (0.0, 2.0, 5.0,
+5.0) in the on-foot baseline and (0.0, 3.6, 9.0, 9.0) mounted, with other
+three-slot lists in the [wire census](../net/move-actor-wire-census.md#0x00d0-records).
+The 5.0 of slot 2 matches the 4.92 mean on-foot speed of the c2s study. The
+study `xivl-captures:studies/movement-speed-band-observations` pairs the same
+bytes one record early, as (2.0, 5.0) in slots 0 and 1. The
+[remote actor auto-move](remote-actor-auto-move.md#0x00d0-speed-list) finding
+owns the client pairing.
 
 ## Relation to the client level
 
@@ -84,18 +83,14 @@ The client side, from the selection finding:
   nonzero, so value 0 leaves the stored level unchanged and values 1 to 3 lie in
   the range of the level enum.
 - The `0x00D0` records fill a speed table, and the displacement speed is the
-  table entry of the applied level. Which slot of the capture pairs belongs to
-  which level is unconfirmed.
+  table entry of the applied level, so slots 1, 2 and 3 serve levels 1, 2 and
+  3.
 
 ## Not established
 
-- Whether values 1, 2 and 3 on the s2c lane name the walk, run and battle move
-  levels. They share the range of the client's level enum, and the captures
+- Which gait the retail server intends by each s2c value. The client uses the
+  value itself as the requested level and as the speed slot (see the
+  [auto-move finding](remote-actor-auto-move.md#the-chase)), and the captures
   show value 1 in login placement bursts and travel captures.
-- Whether a remote actor's displacement follows the first vector as an
-  auto-move target or the second vector as an immediate current-position write.
-  The same `0x00CF` record carries both, and the selection finding lists this as
-  open.
-- Whether speed band slot 0 or slot 1 drives the animation selection.
 - The clip names that each level plays are in the selection finding and the
   census. No capture ties a clip to a move state value.

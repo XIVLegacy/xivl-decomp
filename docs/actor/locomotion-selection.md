@@ -40,10 +40,10 @@ is the state object that holds the posture bytes at `S+0x5A8` to `S+0x5AD`
 | `H+0x1A0` | requested level | writer `0x007AA570` (SetLevel), also `0x007B562B`, `0x007B5F79` |
 | `H+0xE0` | applied level, read by getter `0x007A4E30` | stored from `H+0x1A0` in `0x007AFD90` at `0x007B0208` and `0x007B025D`. The [displacement page](character-movement-displacement.md#retained-direction-and-state) states the equality on its direction-preserving branch |
 | `H+0x80` | auto-move level for server-driven movement | writer `0x007A4700` |
-| `H+0x10C + 4*level` | speed table, four floats | setter `0x007A4750`, getter `0x007A47F0` |
+| `H+0x10C + 4*level` | speed table, 16 floats of which slots 0 to 3 are used | setter `0x007A4750`, getter `0x007A47F0` |
 
 Levels: 0 idle, 1 walk, 2 run, 3 battle move. Evidence: the selector
-`0x00661270` only ever passes 0 to 3 to SetLevel, the speed table has four
+`0x00661270` only ever passes 0 to 3 to SetLevel, the wire speed list has four
 slots, the c2s report sends the applied level (below), and the motion names
 carry `01f` for level 1, `02f` for level 2 and a weapon-stance pair for
 level 3.
@@ -70,11 +70,12 @@ the record count from the byte at `+0x90`, copies up to 16 records
 `(f32 at +0x10+8i, u16 at +0x14+8i)` to `E+0x188` and writes `0xFFFF` after the
 last. The `xivl-captures` study `movement-speed-band-observations` lists the
 same bytes as `(u32 slot, f32)` pairs, which is the same stream read four bytes
-later. Read the client way,
-each float pairs with the u32 that follows it. INFERRED from that alignment:
-the on-foot pair 2.0 and 5.0 is walk and run, the mounted 3.6 and 9 likewise,
-and level 0 is never set by the wire. The alignment was not confirmed against
-a payload.
+later. The client pairs each float with the u16 slot that follows it, and the
+on-foot payloads carry slots 0, 1, 2, 3 after the floats 0.0, 2.0, 5.0, 5.0,
+so the wire sets slot 0 to 0.0 as well.
+The [remote actor auto-move](remote-actor-auto-move.md#0x00d0-speed-list) page
+owns the full list contract, the constructor defaults and the
+[census](../net/move-actor-wire-census.md#0x00d0-records).
 
 ## Selector `0x00661270`
 
@@ -154,19 +155,18 @@ never by receiving state 0.
 
 The same case then calls `0x0058F160` with a second vector (three floats at
 offsets 48, 52 and 56, completed by the constant 1.0 lane). `0x0058F160`
-stores it to `E+0xB0` and `E+0xB8` and sends element command `0x26`. This is an
-immediate write of a current-position field, which the auto-move reading above
-does not account for. The two vectors differ in all but 52 of the 15100 `0x00CF`
-records of the [capture census](locomotion-wire-move-states.md#census-all-54-captures),
-and those 52 all carry state 0. Whether command `0x26` and the `E+0xB0` write or
-the `0x35` target drives a remote actor's displacement is open (see Open).
+stores it to `E+0xB0` and `E+0xB8` and sends element command `0x26`. The
+[auto-move finding](remote-actor-auto-move.md#second-vector) traces command
+`0x26` to a store of the vector `y` only, used as a height above a ground query
+hit. The second vector does not drive displacement. Its `x` and `z` are 0 in all
+15100 records of the [capture census](../net/move-actor-wire-census.md#0x00cf-records).
 
 `H+0x1DC` is written by `0x007A45A0` from the state-machine callback
 `0x008BF790` (end of the section below): it sums, over the entry of the stop
 clip's metadata record (fetched by `0x007B1F00`), a lerp of the current
 speed (`table[H+0x80]`) toward zero. The sum is the distance covered while the
-stop clip decelerates. INFERRED role: the client begins the stop clip that
-distance before the target.
+stop clip decelerates. The [auto-move finding](remote-actor-auto-move.md#arrival-radius)
+owns its use as the arrival radius of the remote chase.
 
 ## Motion state tables
 
@@ -329,8 +329,9 @@ traced.
 4. On level back to 0 it plays `stp_ls` or `stp_rs` (alternating foot) of the
    current speed, then `cbnm_id0`.
 5. The c2s report carries the applied level. The s2c `0x00CF` state reaches
-   `H+0x80` only when nonzero, and arrival ends the auto-move. The immediate
-   current-position write of the same record is unresolved (see Open).
+   `H+0x80` only when nonzero, and arrival ends the auto-move. The second
+   vector of the same record is a ground height, see the
+   [auto-move finding](remote-actor-auto-move.md#second-vector).
 6. World speed per tick is the speed table entry of the applied level. The wire
    value is per second at 30 ticks.
 
@@ -341,17 +342,9 @@ traced.
 - Which machine (`cbnm` set or `cbbm` set, registered by `0x008C0910` and
   `0x008C03C0`) is active for a given stance, and what picks the 03f weapon
   stance value for a PC.
-- The alignment of the `0x00D0` pairs against a real payload, and whether
-  level 3 has its own table entry in the wire.
 - The `H+0x100` rule that repeats the last reported moveState.
 - The role of the 100-scaled float argument of `0x007B9030`, and of the three
   integer fields packed beside it.
-- Whether a remote actor's displacement follows the auto-move target (command
-  `0x35`, level `H+0x80`) or the immediate current-position write of
-  `0x0058F160` (command `0x26`), and why the same `0x00CF` record carries both
-  vectors. `xivl-client-structs:manifests/0x00CF_moveactor_pipeline.json`
-  describes the second write as an interpolation helper, which is an
-  interpretation. The instructions cited here show only the two stores.
 - The clip a start or stop state resolves to when its `cbnm` name has no entry
   in the bank (states 7 and 16, `cbnm_01f_f_rs` and `cbnm_02f_f_rs`). The retry
   `0x007B9030` makes with a `cbbm` name and the fallback of `0x007B1AA0` are the
