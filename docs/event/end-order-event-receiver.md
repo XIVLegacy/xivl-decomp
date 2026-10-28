@@ -10,9 +10,9 @@ the shared receiver pattern and its structural role.
 end-of-cinematic packet**. Unlike its siblings (`KickClient` and
 `StartServerOrder`), it does NO actor-readiness gating - it
 unconditionally dispatches via slot 3 even if the actor lookup
-returns NULL. This is by design: end-event has to work even when
-the actor has been removed in the meantime (otherwise event
-state could never be cleaned up for despawned actors).
+returns NULL. This establishes the receiver's dispatch behavior;
+the selected per-type handler still determines what happens to
+a null actor and whether event state is cleaned up.
 
 Slot 2 (the network entry) is a **15-byte no-op success-writer**
 - writes `0x01` to the out-result byte and returns. The actual
@@ -146,9 +146,8 @@ staging) tuples.
 
 ## Implications for client
 
-**EndEvent is NOT a hang risk** for the man0g0 cinematic. Even
-if the post-warp actor list is empty when the EndEvent packet
-arrives, the receiver:
+The slot-3 receiver does not discard the input because actor lookup
+returned null. Its directly observed sequence is:
 1. Dispatches via slot 3 -> calls `ActorRegistry_lookup_actor`
    (returns NULL, but no gate)
 2. Stages the NULL actor pointer + receiver fields
@@ -157,10 +156,18 @@ arrives, the receiver:
    needs case-by-case inspection - but the receiver itself doesn't
    silently drop
 
-This rules out "EndEvent silent drop" as the hang's root
-cause. The hang is at the **KICK** stage (`+0x5c` gate) and
-possibly cascades to **RunEventFunction** (`+0x7d` gate). EndEvent
-will eventually land regardless.
+This excludes a null-actor early return in this receiver body. It does
+not prove packet delivery, successful per-type cleanup, CutScene teardown,
+resumed waiters or the cause of a particular loading hang. KickEvent and
+RunEventFunction have separate readiness gates; their presence does not
+establish that either caused a particular failure.
+
+The receiver span `0x0089E2D0 +0x49`, dispatcher span
+`0x008A13A0 +0xC4` and tables at `0x008A1464/0x008A149C` were checked
+against retail 1.23b `ffxivgame.exe`, image base `0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`,
+using pefile `2024.8.26` and Capstone `5.0.7`, x86 32-bit mode.
+This static decode does not establish a connection-failure outcome.
 
 This is a discriminated-union opcode with up to 102 type variants. The active
 bands are mapped below. The concrete type-51 producer and its selector-2
