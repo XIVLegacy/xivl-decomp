@@ -17,7 +17,7 @@ The speaker name is in
 | What shows the window? | The desktop mode order `16`, placed by `PlayerBaseClass._onPreEvent`, which sets static widget 14 force visible. The `Shown` event then sets the window opacity to 0 |
 | What closes the window? | `PlayerBaseClass._onPostEvent` cancels mode `16`. The fallback mode no longer forces the widget visible, so `hide` writes `Anime` `Hide`, the `Hiding` animation fades the window, and `InvisibleWindow` hides it |
 | What raises `TextChanged`? | The `LogControl`, through `0x005910F0`, when its document reports new or changed rows |
-| What releases a parked message? | `RaptureCommands.LogControlWait0`, raised by the LogDocument when the last wait weight is released |
+| What releases a parked message? | `RaptureCommands.LogControlWait0`, raised by the LogDocument when the last wait weight is released. What gives a row a weight is UNKNOWN, see [key wait](../resource/logcontrol-key-wait.md#wait-weight-source) |
 | Where does the speaker name come from? | The `Talker` property, filled from the record's source name, which is the NPC's display-name state |
 | What does the EndEvent packet do to the window? | It reaches `_onPostEvent` through the PlayerManager end routines. The four end routines contain no direct call to the EventUpdate builder `0x0075E670`. Whether the block slots or `_onPostEvent` lead to a `0x012E` reply was not traced |
 
@@ -63,9 +63,13 @@ exactly those two categories.
 
 OBSERVED. The form `Window_NpcSayWidget` holds `Label_NpcName` with
 `TextBlock_NpcName`, and `LogControl_NpcSay` with `LinesPerSec="10"`,
-`IsEnableKeyWait="True"`, `IsDisplayLastOne="True"`, both scroll bars disabled
-and `IsHitTestVisible="False"`. The window is `IsHitTestVisible="False"` and
-`IsTabStop="False"`.
+`IsEnableKeyWait="True"`, `IsDisplayLastOne="True"`, `LogFormat="2600"`,
+`FontSize="16"`, `FontHeightSpacing="2"`, both scroll bars disabled and
+`IsHitTestVisible="False"`. The control sits in a body `Label` of width 620 and
+height 106. The window is `IsHitTestVisible="False"` and `IsTabStop="False"`.
+No shipped script sets these properties, and the
+[key-wait page](../resource/logcontrol-key-wait.md#control-properties-of-the-npcsay-and-chat-logs)
+records what they do.
 
 OBSERVED. The template `ControlTemplate_Window_NpcSay` has these triggers in
 document order.
@@ -282,7 +286,8 @@ A client may implement these parts of the contract.
 These stay CALIBRATION: the language column and operand rules of the name
 macro, which EndEvent type byte ends a talk block, the sound for
 `FileNumber="50"`, the order of the `0x012E` reply against a parked release, the
-row template (`LogFormat`), and the pacing of `LinesPerSec`. A client that
+row template (`LogFormat`), and what holds a one-line message. `LinesPerSec`
+paces only the scroll of the text area, as the key-wait page records. A client that
 keeps the stand-in of showing the window only while its control holds a line
 differs from this behavior at event start, where the window is shown and
 transparent before any message arrives.

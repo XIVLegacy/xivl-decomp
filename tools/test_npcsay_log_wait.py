@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import extract_class_registrations as ecr
 import verify_npcsay_log_wait as vnl
@@ -72,6 +74,63 @@ class KeyReleaseTests(unittest.TestCase):
     def test_page_break_with_a_wait_still_pending_keeps_wait0_back(self) -> None:
         got = vnl.release_wait(3, 2, 1, True)
         self.assertEqual(got, vnl.Release(True, 1, 1, False, False))
+
+
+class ArmWaitTests(unittest.TestCase):
+    def test_plain_line_inside_one_page_arms_nothing(self) -> None:
+        got = vnl.arm_wait([0], 3)
+        self.assertEqual(got, vnl.Armed(0, 0, -1, (), 1))
+
+    def test_plain_message_that_exactly_fills_a_page_arms_nothing(self) -> None:
+        got = vnl.arm_wait([0, 0, 0], 3)
+        self.assertEqual(got, vnl.Armed(0, 0, -1, (), 3))
+
+    def test_plain_message_one_row_past_a_page_breaks_once(self) -> None:
+        got = vnl.arm_wait([0, 0, 0, 0], 3)
+        self.assertEqual(got, vnl.Armed(1, 0, -1, (2,), 2))
+
+    def test_plain_message_flags_every_page_boundary_but_the_last_row(self) -> None:
+        got = vnl.arm_wait([0] * 7, 3)
+        self.assertEqual(got.page_breaks, (2, 5))
+        self.assertEqual(got.pending, 2)
+
+    def test_weighted_last_row_holds_without_a_page_break(self) -> None:
+        got = vnl.arm_wait([0, 0, 1], 3)
+        self.assertEqual(got, vnl.Armed(1, 1, 2, (), 2))
+
+    def test_weighted_row_on_the_boundary_takes_no_page_break(self) -> None:
+        got = vnl.arm_wait([0, 0, 2, 0], 3)
+        self.assertEqual(got, vnl.Armed(2, 2, 2, (), 2))
+
+    def test_boundary_starts_at_the_current_row(self) -> None:
+        got = vnl.arm_wait([0] * 6, 2, first_row=2)
+        self.assertEqual(got, vnl.Armed(1, 0, -1, (3,), 3))
+
+
+class PageRowTests(unittest.TestCase):
+    # The text height is an illustrative value, not a measured retail metric.
+    def test_count_truncates_the_height_over_line_height(self) -> None:
+        self.assertEqual(vnl.visible_lines(2, 102, 18), 5)
+
+    def test_count_is_never_below_one(self) -> None:
+        self.assertEqual(vnl.visible_lines(2, 5, 18), 1)
+
+
+class ScrollPaceTests(unittest.TestCase):
+    def test_short_backlog_keeps_lines_per_sec(self) -> None:
+        self.assertEqual(vnl.scroll_speed(10.0, 10.0, 10, 9, False), 10.0)
+
+    def test_backlog_at_lines_begin_hi_selects_five_times_the_hi_speed(self) -> None:
+        self.assertEqual(vnl.scroll_speed(10.0, 10.0, 10, 10, False), 50.0)
+
+    def test_active_marker_selects_three_times_the_hi_speed(self) -> None:
+        self.assertEqual(vnl.scroll_speed(10.0, 10.0, 10, 99, True), 30.0)
+
+    def test_step_is_per_call_and_scales_with_line_height(self) -> None:
+        self.assertEqual(vnl.scroll_step(20.0, 10.0, False), 4.0)
+
+    def test_display_last_one_halves_the_step(self) -> None:
+        self.assertEqual(vnl.scroll_step(20.0, 10.0, True), 2.0)
 
 
 class PropertyByteTests(unittest.TestCase):
@@ -148,6 +207,59 @@ class RetailImageTests(unittest.TestCase):
         errors = vnl.check_listings(self.patched(0x00929137, 1, 0x4B))
         self.assertTrue(any("event_constructor_field_8" in e for e in errors))
 
+    def test_event_source_gate_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x0091E212, 0, 0x74))
+        self.assertTrue(any("element_raise_gate" in e for e in errors))
+
+    def test_element_handle_store_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x0091E11D, 2, 0x6C))
+        self.assertTrue(any("element_ctor_handle_store" in e for e in errors))
+
+    def test_wait_weight_field_default_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x005578AB, 2, 0x50))
+        self.assertTrue(any("fontattr_ctor_tail" in e for e in errors))
+
+    def test_page_row_floor_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x00959C0D, 2, 2))
+        self.assertTrue(any("page_rows_calc" in e for e in errors))
+
+    def test_scroll_step_operand_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x005957DA, 4, 0xD1))
+        self.assertTrue(any("pace_step" in e for e in errors))
+
+    def test_lines_begin_hi_default_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x00595B4C, 1, 0x0B))
+        self.assertTrue(any("default_lines_begin_hi" in e for e in errors))
+
+    def test_pacing_constant_is_pinned(self) -> None:
+        errors = vnl.check_operands(self.patched(0x00F55AD0, 0, 0x01))
+        self.assertEqual(len(errors), 1)
+
+    def test_wait0_reference_set_is_pinned(self) -> None:
+        errors = vnl.check_refs(self.patched(0x00594B1F, 0, 0x39))
+        self.assertTrue(any("0x0133a438" in e for e in errors))
+
+    def test_attribute_store_set_is_pinned(self) -> None:
+        errors = vnl.check_attribute_stores(self.patched(0x0055AFCA, 2, 0x50))
+        self.assertEqual(len(errors), 1)
+        self.assertIn("0x55afca", errors[0])
+
+    def test_attribute_constructor_callers_are_pinned(self) -> None:
+        errors = vnl.check_callers(self.patched(0x00557A27, 0, 0x90))
+        self.assertTrue(any("0x00557810" in e for e in errors))
+
+    def test_decoder_handler_vector_is_pinned(self) -> None:
+        errors = vnl.check_decoder_handlers(self.patched(0x00CA043D, 3, 0x01))
+        self.assertEqual(len(errors), 1)
+
+    def test_decoder_passthrough_lead_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x00C9F310, 3, 0x16))
+        self.assertTrue(any("decoder_passthrough_0x15" in e for e in errors))
+
+    def test_desktop_widget_initial_flag_is_pinned(self) -> None:
+        errors = vnl.check_listings(self.patched(0x006E0698, 1, 0x00))
+        self.assertTrue(any("desktopwidget_ctor_flag" in e for e in errors))
+
     def test_boolean_bit_is_pinned(self) -> None:
         errors = vnl.check_listings(self.patched(0x0093E227, 2, 0x04))
         self.assertTrue(any("bool_setter" in e for e in errors))
@@ -186,6 +298,29 @@ class RetailImageTests(unittest.TestCase):
         errors = vnl.check_tables(ecr.Image(bytes(patched)))
         self.assertEqual(len(errors), 1)
         self.assertIn("SetDisplayNameReceiver", errors[0])
+
+
+CLIENT = os.environ.get("XIVL_CLIENT_ROOT")
+BLOWFISH = os.environ.get("XIVL_BLOWFISH")
+
+
+@unittest.skipUnless(CLIENT and BLOWFISH, "no client install or Blowfish module")
+class InstallTests(unittest.TestCase):
+    def test_install_satisfies_every_form_and_script_check(self) -> None:
+        self.assertEqual(vnl.check_install(Path(CLIENT), Path(BLOWFISH)), [])
+
+    def test_form_attribute_mismatch_is_reported(self) -> None:
+        with mock.patch.dict(vnl.NPC_SAY_LOG, {"IsEnableKeyWait": "False"}):
+            errors = vnl.check_install(Path(CLIENT), Path(BLOWFISH))
+        self.assertEqual(len(errors), 1)
+        self.assertIn("IsEnableKeyWait", errors[0])
+
+    def test_script_mention_of_a_property_name_is_reported(self) -> None:
+        names = (*vnl.UNSET_PROPERTY_NAMES, b"cancelLogWait")
+        with mock.patch.object(vnl, "UNSET_PROPERTY_NAMES", names):
+            errors = vnl.check_install(Path(CLIENT), Path(BLOWFISH))
+        self.assertEqual(len(errors), 1)
+        self.assertIn("cancelLogWait occurs in 2 scripts", errors[0])
 
 
 if __name__ == "__main__":
