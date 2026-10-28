@@ -187,10 +187,15 @@ A nonnil text ID builds `@id`; following integer arguments build `/i` plus
 their value until the first Nil. Consequently these count arguments select
 `@228/i0/iN` when current is zero. Zero does not terminate the argument scan.
 The [conditional native property route](../resource/sqwt-plain-text-reference-lookup.md#sqtp-03-conditional-native-textblock-route)
-retains Nil admission through the declared marshaller, input aliasing, TLS,
-selected interface/tables, property-state gates, loading and lifetime as
-conditions. The Lua call's nil part selector does not establish those
-conditions for an actual invocation.
+uses a leading internal Nil cell. The declared Utf8String reader's
+present-Nil branch is established by
+`xivl-client-structs:docs/widget-native-call-contract.md#declared-utf8string-and-present-nil`:
+for a valid native frame and normal helper completion, it appends one tag-6
+Nil cell and advances the formal cursor once. Thus the Lua nil part selector
+has a conditional marshalling path to that leading cell. Actual invocation,
+input aliasing, TLS, selected interface/tables, property-state gates, loading
+and lifetime remain unestablished. This does not make the native property
+route or displayed text unconditional.
 
 The [identified English backing strings](../resource/sqwt-plain-text-reference-lookup.md#uistr-01-selected-english-backing-strings)
 pin definition resource `0x0B450082`, English sheet ordinal 1, physical str
