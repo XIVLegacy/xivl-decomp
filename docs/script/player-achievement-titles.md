@@ -362,6 +362,33 @@ No recovered Lua callsite uses `_hasAchievementTitle` outside its generated
 wrapper. Its argument must not be documented as an available title ID merely
 from the API name.
 
+## Earn notification and selected-title order
+
+The achievement state update above precedes the handler's filtered Lua
+callback. The recovered `_onReceiveAchievementId` forwards to static widget
+24 and `AchievementPopupWidget.setAchivement`, which asynchronously loads
+the achievement row. If `unlockFlag == false`, the item reward is zero and
+the title reward is nonzero, the popup uses UI row 12012 with the title ID
+and an explicit `isFemale()` selector. It then updates list properties,
+starts its timer and shows the widget. The callback and popup bodies do not
+call the selected-title setter. Sources:
+`xivl-client-scripts:lua/scripts/chara/player/playerbaseclass.lua:2962`,
+`xivl-client-scripts:lua/scripts/widget/desktopwidget_connector.lua:24967`, and
+`xivl-client-scripts:lua/scripts/widget/achievementpopupwidget.lua:52-64,67-263`.
+
+A separate NPC event, `PopulaceAchievement.eventReward`, supplies
+`worldMaster:say(self,14,A1,A3)` when A2 is not exactly true, then finishes
+the talk turn. Its text source is `populaceAchievement`, so row 14 is the
+title-award sentence. The conditional native message path preserves A1/A3
+as the achievement/title row keys when both take integer-capture paths,
+with message category literal 40. No inspected source orders this NPC
+event against receipt of `0x019E` or `0x019D`, or establishes its server
+recipient set. The complete row, argument, source-identity and callback
+contracts are owned by
+`xivl-client-data:docs/title-earn-message-rows.md`, "Title-award sentence"
+and "Achievement popup fragment". These text consumers do not turn an
+available title into a selected one.
+
 ## List selection, clearing and preview
 
 STATIC: `AchievementTitleListWidget.init` reads the native count and current
