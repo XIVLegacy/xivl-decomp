@@ -103,12 +103,13 @@ through `0x006FAFF0`), which handles the map-server packet `0x013D`
 | Branch of `0x006FAFF0` | Stores | Locator |
 |---|---|---|
 | id is `0xFFFFFFFF` | id `-1`, the supplied string at `+4`, a byte at `+0x58`, and `+0x59 = 1` | `0x006FB0A1..0x006FB0CE` |
-| any other id | the id at `+0`, the supplied string at `+4`, the byte at `+0x58`, `+0x59 = 0`, then `0x0076FFF0` starts the name lookup | `0x006FB1F3..0x006FB229` |
+| any other id | the id at `+0`, the string and byte it already held, `+0x59 = 0`, then `0x0076FFF0` starts the name lookup | `0x006FB1D8..0x006FB233` |
 
 The name structure therefore holds either a custom string (id `-1`) or a
-display-name id that the client resolves itself. The wire offsets of the packet
-belong to the opcode catalog and were not re-derived here. The `0x00CC`
-object-name string of the actor is not read on any path above.
+display-name id that the client resolves itself. The packet fields, the id `0`
+map and the drop rule are in
+[SetActorName display-name id 0 and the speaker name](display-name-id-zero.md).
+The `0x00CC` object-name string of the actor is not read on any path above.
 
 ## Display-name lookup
 
@@ -145,10 +146,10 @@ The column literals of the cells in columns 0, 1, 3 and 4 are the bytes `01`,
 `02`, `0E` and `14`, which decode to `xtx/displayName` columns 0, 1, 13 and 19
 under the rule that a literal byte `n` encodes `n - 1`. Column 2 uses code `32`
 with an extra leading literal and was not decoded. Column 4 appends further
-tokens after the `if`. That `E9 08` is the id placed first in the parameter set
-and that `EB 03` is the custom-string slot are INFERRED from the parameter-set
-construction in `0x0076FB10` and are not proved by a decode of the operand
-classes.
+tokens after the `if`. `E9 08` reads integer context element 6, which holds
+the id, and `EB 03` reads string context element 1, which holds the custom
+string. The operand decode is in
+[the id page](display-name-id-zero.md#row-222-and-the-text-context).
 
 OBSERVED. `xtx_displayName.csv` has 5813 data rows keyed by display-name id,
 for example id 1000001 holds the Japanese name in column 0 and `Bardolf` in
@@ -176,11 +177,11 @@ becomes the empty string, and the label is hidden.
 - Which of the five `xtx/_text_ui` columns the client reads. Selector `0xFF`
   uses the sheet's default logical column from its metadata, and that column
   was not read.
-- The operand classes of the `E9` and `EB` references and the code `32` cell.
+- The meaning of the code `32` cell. The `E9` and `EB` operand classes are in
+  [the id page](display-name-id-zero.md#row-222-and-the-text-context).
 - How `LogFormat="2600"` and `LogFormat2="2600"` resolve to templates, and so
   whether the NpcSay row text repeats the name.
 - The writer of resolver `+0x14` beyond the readiness reading above.
-- How the `0x013D` packet fields map to the arguments of `0x006FAFF0`.
 
 ## Reproduction
 
@@ -209,8 +210,7 @@ A client may implement these parts of the contract.
   the name from `Talker`, and whether the row text also repeats it depends on
   the unresolved `LogFormat` value.
 
-These stay CALIBRATION: the language column of `xtx/_text_ui`, the operand
-classes of the macro, the exact packet fields of `0x013D`, and the row
-template. A client that
+These stay CALIBRATION: the language column of `xtx/_text_ui`, the meaning
+of code `32`, and the row template. A client that
 uses `xtx/displayName` column 1 for English output matches the decoded cell of
 column 1 and does not claim the language selection rule.
