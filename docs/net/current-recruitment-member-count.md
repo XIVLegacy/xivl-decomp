@@ -33,12 +33,13 @@ It writes the requested count to the same controls' `IntData.Value3`.
 3 (`NumberOfCurrent`) and 4 (`NumberOfPeople`). `displayData` passes current,
 then requested, to UI text 228's two number macros, separated by ` / `.
 
-For a nonzero requested count, current zero reaches the first number macro
-unchanged: the static presentation is `number(0) / number(requested)`, with
-no Lua-side leader addition, increment, blank substitution or zero-specific
+For a nonzero requested count N, current zero reaches the first number macro
+unchanged. The [conditional ASCII construction](#conditional-ascii-construction)
+produces `0 / N`, with N written as minimal decimal digits. There is no
+Lua-side leader addition, increment, blank substitution or zero-specific
 hide branch. Requested zero hides the row. Purpose 99 separately hides the
-first count control after formatting. Literal rendered glyphs were not
-observed, and the native number-macro zero branch is not established here.
+first count control after formatting. Actual runtime delivery and rendered
+pixels are not established by this static construction.
 The later current-equals-requested test controls `TextBlock_Fixed_i`
 visibility; it does not replace the displayed count.
 
@@ -127,11 +128,98 @@ Its authenticated CSV archive matched `manifests/private_csv_corpus.json`:
 Numeric columns 0 through 4 of row 228 all contain
 `[@number:022003e80203] / [@number:022003e80303]`.
 
+## Conditional ASCII construction
+
+For the constructor-selected TextModule/MacroDecoder tables, an admitted
+TextBlock.Text reference path, the selected ready string row and normal
+allocation, copy, CRT, locale and wrapper-helper completion, text 228
+constructs current count, ` / ` and requested count as minimal decimal ASCII.
+Thus current 0 and requested N in the visible-row domain `1..255` construct
+`0 / N`. This is a conditional text-construction result, not an observed
+runtime lookup or rendered display.
+
+The original English row has the exact integer-reference frames below.
+The [Sqwt argument and frame contracts](../resource/sqwt-plain-text-reference-lookup.md#sqtp-04-supplied-argument-selectors-and-output-handlers)
+establish handler `0x20`, one-based `E8` supplied-integer references and
+preservation of argument order. Its SQTP-05 subset requires each complete
+frame's declared two-byte payload and closing byte.
+
+| Row 228 component | Frame bytes | Selected value |
+| --- | --- | --- |
+| First number | `02 20 03 E8 02 03` | Supplied integer argument 1: current count |
+| Separator | ASCII ` / ` | Copied literal text |
+| Second number | `02 20 03 E8 03 03` | Supplied integer argument 2: requested count |
+
+The source's [selected decimal conversion](../resource/sqwt-plain-text-reference-lookup.md#sqtp-06-selected-signed-decimal-conversion)
+traces handler `0x20` through thunk VA `0x00A4B0F0`, constructor-selected
+target `0x00C9F350` and `0x00454ED0` with constants 10 and 0. The selected
+`%d` literal at `0x00F677E0` reaches `0x009D4F08 -> 0x009E51C4`.
+Default precision one and width zero make zero one ASCII `0` digit on the
+normal completion path; nonnegative counts have no sign, grouping or leading
+zeroes. The linked source records its Ghidra CLI and independent LLVM/PE
+instruction observations against the same executable identity above.
+
+The Lua argument chain preserves both numbers. `WidgetBaseClass.setText`
+calls `setItemText` with nil part selector, the control name and text ID.
+`setItemText` supplies property `Text` to `setTextProperty`, whose numeric-ID
+branch calls `_setTextProperty` with the same ordered trailing arguments
+(`xivl-client-scripts:lua/scripts/widget/widgetbaseclass_common.lua:1833-1844,1859-1871,3276-3311`).
+The source is 69077 bytes, SHA-256
+`2057f6a4a94071bf8c9f2fa697bc0571b47da14a6bc4919a6d5491005417800f`,
+matched against `manifests/scripts.json` with the archive identity above.
+Its original resource `n1635q/n1635q89r57y9rr_7vxxvw.le.lpb` is 32996 bytes,
+SHA-256 `c549f746370366f9827570ee22201516e07a05d91829ca643a2e2ec0c73bcf3c`;
+decoded payload SHA-256 is
+`7c45426b1a9f168557d84e420c5767c6fdea4abf90b976b276546af4e6a5de5f`.
+Both matched `retail_lua_coverage.json`. The same decoder and ChunkReader
+used above confirm open VARARG/CALL forwarding, with zero-based PCs:
+
+| Method | Prototype | VARARG then CALL payload offsets |
+| --- | --- | --- |
+| `setText` | `root/proto89`, PCs 4/5 | `0x541A`, `0x541E` |
+| `setItemText` | `root/proto91`, PCs 5/6 | `0x54D5`, `0x54D9` |
+| `setTextProperty` numeric branch | `root/proto182`, PCs 12/13 | `0x7EDE`, `0x7EE2` |
+
+The native widget serialization contract in
+`xivl-client-structs:docs/widget-native-call-contract.md#property-access`
+identifies `_setTextProperty` callback `0x006F5010` and handler `0x006F4910`.
+A nonnil text ID builds `@id`; following integer arguments build `/i` plus
+their value until the first Nil. Consequently these count arguments select
+`@228/i0/iN` when current is zero. Zero does not terminate the argument scan.
+The [conditional native property route](../resource/sqwt-plain-text-reference-lookup.md#sqtp-03-conditional-native-textblock-route)
+retains Nil admission through the declared marshaller, input aliasing, TLS,
+selected interface/tables, property-state gates, loading and lifetime as
+conditions. The Lua call's nil part selector does not establish those
+conditions for an actual invocation.
+
+The [identified English backing strings](../resource/sqwt-plain-text-reference-lookup.md#uistr-01-selected-english-backing-strings)
+pin definition resource `0x0B450082`, English sheet ordinal 1, physical str
+column 0 and the block beginning at row 0. Python standard-library reads
+authenticated these exact original resources before selecting row 228:
+
+| Resource | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Data `0x0B4502B5` | 71588 | `f99e738cf8762e0831f9675f37ddfea7b6072d475b3d4b0c9edeadb67bb013e0` |
+| Enable `0x0B4502B6` | 1552 | `3f7c0b8461cfd18a336fb9bb72dbcd5439e65106eea8ea85a6ab731894866183` |
+| Row offsets `0x0B4502B7` | 52080 | `c027d8115b2d9f7a67b0d1f1ec2b6623bdf214defd83f255a00dc96922ff2804` |
+
+Row-offset entries 227 and 228 select data span `[911,930)`, a 19-byte
+complete string frame with SHA-256
+`a629f0d55f9120139d789b41fa9a3f39b8c1e8dbc67fc16f106435a59c0104be`.
+The little-endian u16 declares 17 body bytes. Removing the `0xFF` marker
+and `0x73` terminator and XOR-decoding the intervening bytes with `0x73`
+produces the two six-byte frames and three-byte separator above, exactly
+15 bytes, SHA-256
+`eb7d65a2b3ac4939e26ffa4f08ffcfe3733365282f82b1cd0df9ce3bc32fd577`.
+This pins the original English row rather than inferring frame semantics
+from the CSV's macro label. It does not select a runtime language or prove
+that a running instance loaded that row.
+
 ## Evidence boundary
 
 This proves the retail client's stored unsigned values and static display
 arguments. It does not prove whether the server includes a leader, which
 members count toward each row, capacity policy, or any successful retained
-`0x01C8` exchange. A literal `0 / N` glyph claim additionally requires the
-native number-macro zero branch. The separate `0x01C7` list's row+`0x29`
+`0x01C8` exchange. The conditional ASCII result does not establish actual
+property admission, resource delivery or visible glyphs. The separate `0x01C7` list's row+`0x29`
 `currentInt` must not be substituted for this details layout.
