@@ -13,13 +13,16 @@ set. The window that hosts the NpcSay `LogControl` is in the
 Observed against FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
 `2012.09.19.0001`, 15996808 bytes, SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`, image base
-`0x00400000`. All locators are VAs. Ghidra CLI navigated the code, and Capstone
-5.0.7 listings of the identified PE checked every cited instruction and data
-word. Decompiler output is navigation only. OBSERVED marks instructions, data
+`0x00400000`. All locators are VAs. Ghidra CLI navigated the code. Capstone
+5.0.7 listings of the identified PE checked the cited instructions and data
+words, except the [input-event consumer](#input-event-consumer), which was
+checked with Ghidra CLI disassembly and direct PE reads. Decompiler output is
+navigation only. OBSERVED marks instructions, data
 and decoded assets. INFERRED marks an interpretation of observed code. UNKNOWN
 marks what was not traced. `tools/verify_npcsay_log_wait.py` re-checks the
 listings, tables, reference sets and caller sets below, and
-`tools/test_npcsay_log_wait.py` covers it.
+`tools/test_npcsay_log_wait.py` covers it. The input-event consumer observations
+are outside this verifier's coverage.
 
 The form attributes and the script scan below come from a read-only retail
 install. The forms `NpcSayWidget.form` and `LogWidget.form` are decoded with
@@ -494,13 +497,38 @@ then calls `0x00590F40` to raise `LogChanged` (`0x0133C334`, initializer
 document (`0x00593950`, which stores the module) or update slot 2 reports a
 change.
 
+## Input-event consumer
+
+OBSERVED. Routine `0x00552DF0` obtains a two-DWORD record through
+`0x00D35210` with remove=1 at `0x00552E9D` and `0x005530BC`. A zero
+first byte ends the loop. Mask `0x04` of that byte selects the branch at
+`0x00552EC4..0x00552EC7`. With the mask clear, record byte 1 becomes the
+third argument to `0x00545A40` at `0x0055303C`. That constructor stores
+the value at event `+0x2C` and installs vtable `0x00FA2634` at
+`0x00545A85`. Its complete-object locator `0x011453C4` points to type
+descriptor `0x0126DB78`, named `.?AUKeyEventArgs@Input@Sqwt@@`. The
+constructed event is passed through the owner's virtual `+0x34` at
+`0x00553061`.
+
+OBSERVED. With mask `0x04` set, a path in the other branch extracts up to
+four bytes from the second DWORD, suppresses a leading `0x02` or `0x03`, and
+reaches `0x00545C70` and `0x00545DD0` (`0x00552EDC..0x00552F91`). Those byte
+comparisons do not establish rich-text delimiters or wait-token semantics.
+
+INFERRED. These callsites process input events. They do not identify the
+rich-text wait-token consumer. This observation does not classify other
+callers of the generic queue helper `0x00D35210`.
+
+For reproduction, use Ghidra CLI disassembly of the identified executable
+within `0x00552DF0..0x00553140`, `0x00545A40..0x00545AFA` and
+`0x00D35210..0x00D3527C`. Compare the cited instructions and relative-call
+targets with the PE, then follow the pointer at vtable `-4` to the
+complete-object locator and its type-descriptor pointer at `+0x0C`.
+
 ## Open items
 
 - The writer of `LogAttribute+0x4C`, and so the text token that arms a wait.
-  The traced constructors and copies leave it at zero. A run track that observes
-  a one-line NPC speech holding and releasing in the live client, or a trace of
-  the Sqwt rich-text token consumer behind `0x00D35210` and `0x00552DF0`, would
-  settle it.
+  The traced constructors and copies leave it at zero.
 - What holds and releases the `_appendMessagePool` yield for a one-page plain
   line, given that no weight is armed.
 - Which row states reach the two wait-wiping exits of slot 3.
