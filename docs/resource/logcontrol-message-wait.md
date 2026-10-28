@@ -137,10 +137,14 @@ Read the container table, its constructor store, event selector and jump
 entry before composing the conditional callback path. Compare instructions,
 branch targets and referenced data with PE section-based VA mapping.
 
-UNKNOWN. The full producer-target route to the container, literal 0xC0000024
-registration, X=D alias, actual VM consumption or resume time, marker and
-suffix meanings, NPC talk window show/hide/page advance, rendering and
-runtime chronology remain unproved. The separate
+The [key-wait page](logcontrol-key-wait.md) records the release routine that
+raises command 0x0133A438, the press commands that reach it, and the fan-out to
+the container handler. The [NpcSay window chain](../event/npcsay-window-chain.md)
+records the window show and hide.
+
+UNKNOWN. The literal 0xC0000024 registration beyond the local DesktopWidget
+record, actual VM consumption or resume time, marker and suffix meanings,
+rendering and runtime chronology remain unproved. The separate
 [Anime and Window path](sqwt-anime-property.md#window-handler) does not
 establish an edge from these message calls to window visibility.
 
