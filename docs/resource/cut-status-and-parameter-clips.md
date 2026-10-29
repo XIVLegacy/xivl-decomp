@@ -294,10 +294,36 @@ reloads of current bucket bounds are not a guarantee of unchanged membership.
 The complete `0x0080BCD0` stores the full incoming dword at S+`0x48`
 at `0x0080BCD4`, exactly 1 for this producer, then calls `0x0080BB80`
 at `0x0080BCDA`, ECX=S+`0x50`, without an explicit stack argument.
-It returns that delegate's EAX. The delegate's effect is untraced.
-Neither inspected body directly removes or deletes entries. This proves
-a guarded control-word write and request, with no actual stop/cancellation,
-collision restoration, defeat/wipe/retry/exit or server receipt assigned.
+It returns that delegate's EAX. Neither body directly removes or deletes
+entries. The delegate performs the callback walk below; concrete effects
+remain unbound, including actual stop/cancellation, collision restoration,
+defeat/wipe/retry/exit behavior and any server receipt.
+
+### Control callback fan-out
+
+For H=S+`0x50`, `0x0080BB80` captures E=u32(H+`0x10`) and starts cursor
+at u32(H+`0x0C`). Valid execution requires the initial begin/end unsigned
+range guards. Cursor equality with captured E ends the loop; otherwise the
+current cursor must be unsigned-below the live u32(H+`0x10`) before and
+after each callback. Diagnostics use untraced `0x009D22B4`; their no-return
+or failure behavior is not assumed. The cursor advances by four bytes.
+
+At `0x0080BBC5`, each reached P=u32(cursor) receives virtual byte offset
+4 with `[u32(H+4)]`, freshly read for that callback. There is no local P,
+vptr or target-null guard. The callback argument is not the incoming
+control flag 1. No concrete callback type or target is established from the
+four-byte target cell at u32(P)+4.
+
+The delegate directly writes no object/container field. Captured end controls
+equality exit, while live end is rechecked; callback mutation, reentrancy and
+unchanged membership are not promised. Normal callee-saved registers and
+four-byte callback argument cleanup are ABI requirements, not independently
+bound callback implementations.
+
+On a valid empty range, no callback overwrites the incoming EAX, so this
+upstream path returns 1. On a valid nonempty normally returning walk, it
+returns the final callback's EAX. There is no Boolean normalization or
+completion/settlement guarantee. Incoming EAX is not a delegate parameter.
 
 ## Exact remaining joins
 
@@ -310,7 +336,7 @@ status effects and server encounter phases remain distinct domains.
 
 The closest specific joins are the movement-bit reader,
 the identity of P_L with the scene mask owner,
-the runtime virtual types and `0x0080BB80` effect, and the asynchronous
+the runtime virtual types and callback effects, and the asynchronous
 `0x0D` consumer. These contracts
 establish no collision polarity, activation/cancellation, defeat/wipe/retry/
 exit restoration or constructor-as-reset policy.
@@ -344,3 +370,4 @@ not a separately established source-level function.
 | `0x00844EF0` | `[0x00844EF0,0x00844FF0)` | `a5bb44c05fe6b0a8273712765052fb587a1da03d8a5c52ed0ee3566cd05a819a` |
 | `0x0080BCD0` | `[0x0080BCD0,0x0080BCE2)` | `1233ca2c21f7ff9011c2dfffcb7738c81416b161f5fc276eb1c77caa883689c3` |
 | CharaActor constructor prefix | `[0x0065F180,0x0065F356)` | `ab931ce82dedd1789a1014528648aefb08ee76ad60f6f0f93e26bd20585bb559` |
+| `0x0080BB80` | `[0x0080BB80,0x0080BBDB)` | `d4ad90d7d393dbd16ae099a76c9b585f7e1b02f8863c51ddd7e1b279c876e1da` |
