@@ -306,8 +306,9 @@ runtime receiver or an unconditional native-call result.
 The TLS, interface, classifier, mutable-table, property-state and preliminary
 `FUN_004CF0A0` helper conditions remain required. Its
 [direct footprint](sqwt-numeric-font-preprocessing.md#preliminary-helper-direct-footprint)
-identifies a conditional flag-byte store and unresolved callee effects.
-This path does not establish preservation of aliased input through them.
+and [selected callee effects](sqwt-numeric-font-preprocessing.md#selected-callee-effects)
+identify conditional flag, pair, link and scalar stores, plus further effect
+boundaries. This path does not establish preservation of aliased input.
 Other context overloads, Label.Content route equivalence, list `ValueType`
 and `Action` pickups, runtime resource delivery and rendering are outside
 this native join.
