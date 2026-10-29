@@ -90,6 +90,62 @@ receives `[out*,targetName,kind,N]`; at `0x006465BB`, O slot 7 receives
 remain uninspected. No name/N comparison or output population occurs in
 these delegates. Their returns pop 20 and 16 bytes.
 
+## Embedded collection initialization
+
+The nominal constructor `0x00651CD0` retains complete-object R in ESI at
+`0x00651CF6`. At `0x00651F58` it forms ECX=R+`0x350`, then calls
+`0x006301C0` at `0x00651F62`. No push supplies an explicit argument after
+the preceding call. The receiver is the embedded address Z, not a pointer
+loaded from R+`0x350`. This call precedes the constructor's first local
+branch and executes if preceding calls return normally.
+
+The wrapper `0x006301C0` calls `0x0062F400` at `0x006301F6`, ECX=Z,
+with nearest-first arguments `[L,L]`. L is the same stack-local byte address,
+entry ESP-`0x11`; the wrapper does not initialize that byte. It directly
+writes no Z-relative field and returns Z with plain `RET`. Neither argument
+is assigned an allocator or member meaning from its position alone.
+
+`0x0062F400` calls `0x0062F120` at `0x0062F42C`, ECX=Z. Let H be the
+returned pointer. The pointer-producing helper calls opaque `0x0044D500`
+at `0x0062F154` with nearest-first arguments `[0x18,0,0x24]`. Its allocation
+and failure behavior was not traced. The observed head writes are:
+
+| Locator | Write | Local condition |
+| --- | --- | --- |
+| `0x0062F16A` | u32(H+0)=0 | H!=0 |
+| `0x0062F177` | u32(H+4)=0 | (H+4) modulo 2^32 !=0 |
+| `0x0062F184` | u32(H+8)=0 | (H+8) modulo 2^32 !=0 |
+| `0x0062F191` | u8(H+`0x14`)=1 | No local guard after those tests |
+| `0x0062F195` | u8(H+`0x15`)=0 | No local guard after those tests |
+
+These separate address tests do not form a safe allocation-failure branch.
+Normal completion requires valid writable storage for the later byte stores.
+The helper returns H with plain `RET` at `0x0062F1AA`.
+
+After that return, `0x0062F400` makes the following direct writes:
+
+| Locator | Write |
+| --- | --- |
+| `0x0062F431` | u32(Z+4)=H |
+| `0x0062F434` | u8(H+`0x15`)=1 |
+| `0x0062F43B` | u32(u32(Z+4)+4)=u32(Z+4) |
+| `0x0062F441` | u32(u32(Z+4)+0)=u32(Z+4) |
+| `0x0062F446` | u32(u32(Z+4)+8)=u32(Z+4) |
+| `0x0062F449` | u32(Z+8)=0 |
+
+For ordinary valid, distinct header/head storage, this establishes a
+self-linked head and zero word Z+8 immediately after this initialization.
+The query's initial node=u32(H) would equal H, so its member loop would skip
+at that instant, before any later mutation. Z+8's count/capacity role, the
+bytes' semantic names and a standard C++ container type remain unestablished.
+Neither head routine directly initializes the member payload H+`0x10` or
+writes a concrete O vftable. The construction routine returns Z with `RET 8`
+at `0x0062F462`; its two incoming argument words are not directly read.
+
+This is an initialization contract. Later opaque R-receiving calls may
+register members, so it does not establish emptiness when the complete R
+constructor returns, identify O or describe encounter reset behavior.
+
 ## Separate root and child fallback
 
 For a zero Z, the nominal callers instead call `0x00804040` /
@@ -171,6 +227,10 @@ basic blocks, independently of catalog summed sizes.
 | `0x00646560` | `[0x00646560,0x006465DE)` | `17e38ccb84b0cf0792d55730f9a5b0c80e49786d57507c4a7b7c8f8f719eab46` |
 | `0x00804040` | `[0x00804040,0x00804131)` | `4dcaf0d3bfc1623da08aee554d6d84f8930caadad4e03d7fac70c0abe33281c0` |
 | `0x008042C0` | `[0x008042C0,0x008043A4)` | `e2ed30750a423ae43bbc4a40d5e9f302f2ce3b1c09cebd0303e334c3a8d3a74d` |
+| `0x00651CD0` | `[0x00651CD0,0x006520A4)` | `f41038c37c1b28c657b35c6eca03536ffb051c9ba26f76fd90525161a728e2d2` |
+| `0x006301C0` | `[0x006301C0,0x00630216)` | `3b343c0214f834f2b410abdac456d7bfa83c6bca81c269e00af9436db5866144` |
+| `0x0062F400` | `[0x0062F400,0x0062F465)` | `72c6f4d52000eae88e691dc2e96874091201e7c4aaf22d326fe93ae204407784` |
+| `0x0062F120` | `[0x0062F120,0x0062F1AB)` | `8c8b884c857e67b94909f5dff0737db1491d656254f74359a36f8b88af4c4430` |
 
 The selected kind-7 router plus guard/default occupied only
 `[0x00640E40,0x00640E53)`, `[0x00640E77,0x00640E80)` and
