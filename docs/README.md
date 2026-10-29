@@ -237,6 +237,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
 - [Sqwt CommandParameter consumer](resource/sqwt-command-parameter-consumer.md)
 - [Sqwt IsEnabled literal Setter contract](resource/sqwt-is-enabled-literal-setter.md)
+- [Sqwt template initial IsEnabled receiver](resource/sqwt-template-initial-enabled-receiver.md)
 - [Sqwt RangeBase float ValueChanged production](resource/sqwt-range-value-changed.md)
 - [Sqwt DoubleAnimation clock and capture](resource/sqwt-double-animation-clock.md) -
   Bounded nonrepeat timer input, current-property capture and ordering limits.
