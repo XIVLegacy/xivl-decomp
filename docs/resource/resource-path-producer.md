@@ -139,9 +139,65 @@ the original `ffxivgame.exe`, 15,996,808 bytes, image base `0x00400000`,
 SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 pefile `2024.8.26` and Capstone `5.0.7` independently checked source bytes,
 listed ranges and instruction boundaries without executing the client.
-The retained `0x0044B690` body has discontinuous AddressSet coverage;
-unlisted bytes are not treated as retained function code or used here to
-claim a reachable successful return.
+The retained `0x0044B690` body has discontinuous AddressSet coverage.
+The [catalog text initialization](#catalog-text-initialization) below recovers
+its reachable ordinary success path without treating the catalog size as a
+contiguous extent.
+
+## Catalog text initialization
+
+The ordinary successful control flow of `0x0044B690` is recoverable directly
+from the pinned executable. Entry-rooted x86 decoding inside
+`[0x0044B690,0x0044BFC0)` reaches the return at `0x0044BFBB` through
+`[0x0044B690,0x0044BBB5)` and `[0x0044BBC0,0x0044BFBC)`.
+The recovered body includes `0x0044BF07..0x0044BF7A`, which the retained
+Ghidra listing omitted. Its calls sort the group records, close the file and
+destroy temporary wrappers, then set `AL=1` at `0x0044BF77`. The retained
+size `0x8AD` was a sum over its AddressSet, not a contiguous function extent.
+This establishes a static success path, conditional on called routines
+returning, without establishing an actual retail initialization result.
+
+The initializer reads the opened text stream twice. Both read calls pass
+capacity `0x2000` to `0x009D26C2`, whose byte loop stops at LF, EOF or
+capacity and adds NUL (`0x009D27E3..0x009D2827`). Between passes,
+`0x0044BB7D` calls `_fseek(FILE*,0,0)` without checking the result.
+
+Header helper `0x0044B110` requires a leading slash and finds a later `[`.
+It treats the following bytes through `]`, NUL or the wrapper's reported
+length as the group prefix and returns its length plus one. Data helper
+`0x0044AFD0` separates four fields at commas or signed bytes below `0x20`.
+It does not implement CSV quoting. The first three fields supply group key,
+index and selector through four hex lookup digits at token offsets `+2..+5`.
+The converter initializes `0-9`, `A-F` and `a-f`; it does not verify a `0x`
+prefix, exact token width or the remaining lookup entries. The fourth field
+supplies the full path candidate. Selector low byte `0x40` skips the row.
+
+The first pass derives the header count and each group's index extent.
+The second pass creates one 12-byte record per header and populates the
+pointer table and byte-string arena. A row that increases the group's highest
+index writes its group key as a u16 and `index+1` as a u16 at
+`0x0044BDCF/D3`. Index `0xFFFF` wraps that stored count to zero.
+Lower indices do not revalidate the group key, and missing indices retain
+null string pointers. Repeated indices pass candidate selection through
+`0x0044ADA0`, which depends on configuration-derived selector values,
+optional substring preference and candidate path length. Selected paths are
+stored after dropping the header prefix length plus one byte
+(`0x0044BED4 -> 0x0044B240`), without checking prefix equality.
+
+The success path sorts the records by their unsigned u16 group key using
+`_qsort` and comparator `0x0044B280` (`0x0044BF07..0x0044BF29`).
+Source group order need not be sorted. Duplicate group keys are not rejected
+or merged here, and the comparator returns equality for them. The parser
+therefore does not establish unique duplicate-group resolution or a safe
+additive mapping policy.
+
+These observations used pefile `2024.8.26` and Capstone `5.0.7` on the
+exact executable identified above. All retained instruction bytes were checked
+against that executable before extending the owned CFG. No client ran.
+The authenticated configuration key names and values, exact catalog member,
+existing assignments and request-time mode remain unbound. An additive
+mode-zero profile requires those joins and a preservation audit of the actual
+catalog; static parser success alone does not provide one.
 
 ## Path ownership
 
