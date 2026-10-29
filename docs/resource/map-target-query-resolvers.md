@@ -223,6 +223,27 @@ a different resolved record's `0x10` field by this TimeLine provider.
 None is established as an actor, command or model identifier. Later member
 mutations, actual matches, converted T and historical delivery remain unbound.
 
+### Typed initialization continuation
+
+Before the selected registration pair, `0x0064A623` forms ECX=R+`0x274`.
+At `0x0064A62A`, `0x00805EC0` receives that O and nearest-first arguments
+`[R,0]`. The zero second argument selects its branch at `0x00805EC4` /
+`0x00805EC6`. It rewrites the two stack arguments to `[7,R]`, preserves
+ECX=O and tail-delegates at `0x00805EF1` to `0x00805650`.
+There is no local return or provider/record field write.
+
+The other finite branch, for second argument A2!=0, uses ECX=A2+`0x68`,
+rewrites the stack words to `[7,O]` and tail-delegates through
+u32(u32(A2+`0x68`)+`0x20`). It is not selected by the proved nominal source.
+Neither this branch's target/type nor the direct tail target's body was
+inspected. The literal 7 is not given a semantic identifier name from its
+value or the provider's class alone.
+
+The exact next typed record-list boundary is `0x00805650(O,[7,R])`.
+No write to provider O+8/+`0x0C` or resolved record J+`0x10` was proved
+in this initializer. This narrows the missing producer without reopening
+the closed authored timeline/Attribute-token searches.
+
 ## Separate root and child fallback
 
 For a zero Z, the nominal callers instead call `0x00804040` /
@@ -321,6 +342,7 @@ basic blocks, independently of catalog summed sizes.
 | `0x0079E570` | `[0x0079E570,0x0079E75D)` | `5417c53d9fedf2ced4d765f18cd8901bc5c7554b29083253e005e9ec5d685480` |
 | `0x0079DED0` | `[0x0079DED0,0x0079DF5F)` | `14743b028acb4d7ecae4cfa46dcbb8b0d321895af889499fa6e35bd0036ddebf` |
 | `0x0061EEC0` | `[0x0061EEC0,0x0061EEF3)` | `d800c08453ed0ba28a5e1b099e5b5565115982d30221a9d5c13fedfd8233845e` |
+| `0x00805EC0` | `[0x00805EC0,0x00805EF6)` | `841772c92760cef382e43c6f410584e816bed15ee6efb6c651c917f989d9dcce` |
 
 The selected kind-7 router plus guard/default occupied only
 `[0x00640E40,0x00640E53)`, `[0x00640E77,0x00640E80)` and
