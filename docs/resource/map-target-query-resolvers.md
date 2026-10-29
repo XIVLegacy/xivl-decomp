@@ -235,14 +235,60 @@ There is no local return or provider/record field write.
 The other finite branch, for second argument A2!=0, uses ECX=A2+`0x68`,
 rewrites the stack words to `[7,O]` and tail-delegates through
 u32(u32(A2+`0x68`)+`0x20`). It is not selected by the proved nominal source.
-Neither this branch's target/type nor the direct tail target's body was
-inspected. The literal 7 is not given a semantic identifier name from its
-value or the provider's class alone.
+This branch's target/type remains uninspected. The literal 7 is not given a
+semantic identifier name from its value or the provider's class alone.
 
-The exact next typed record-list boundary is `0x00805650(O,[7,R])`.
-No write to provider O+8/+`0x0C` or resolved record J+`0x10` was proved
-in this initializer. This narrows the missing producer without reopening
-the closed authored timeline/Attribute-token searches.
+The selected direct continuation is `0x00805650(O,[7,R])`, described below.
+Neither this initializer nor that continuation directly writes provider
+O+8/+`0x0C` or resolved record J+`0x10`.
+
+### Typed enumeration continuation
+
+`0x00805650` enumerates two levels of opaque virtual results before calling
+`0x00804DF0`. Let A and B_i be unsigned 32-bit return words used as loop
+bounds, Q_i a returned receiver and P_ij an inner return word. The selected
+incoming first argument is 7. All slot numbers below are zero based.
+
+| Callsite | Target | Receiver | Nearest-first arguments | Return use |
+| --- | --- | --- | --- | --- |
+| `0x0080566D` | u32(u32(R+4)+`0x13C`), slot79 | R+4 | `[]` | A |
+| `0x0080568B` | u32(u32(R+4)+`0x144`), slot81 | R+4 | `[i]` | Q_i |
+| `0x0080569A` | u32(u32(Q_i)+`0x30`), slot12 | Q_i | `[]` | B_i |
+| `0x008056AC` | u32(u32(Q_i)+`0x38`), slot14 | Q_i | `[j]` | P_ij |
+| `0x008056B6` | `0x00804DF0` | O | `[7,P_ij]` | Not tested |
+
+TEST/JBE at `0x00805671`/`0x0080567B` skips the outer loop exactly when
+A==0. i starts at zero. Q_i==0 at `0x0080568F`/`0x00805691` skips the
+inner calls. For nonzero Q_i, TEST/JBE at `0x008056A0`/`0x008056A2`
+skips the inner loop exactly when B_i==0. j starts at zero. TEST clears CF,
+so these unsigned-below-or-equal branches are zero tests, not signed guards.
+
+The inner increment/unsigned comparison is at
+`0x008056BB`/`0x008056BE`/`0x008056C0`; the outer equivalent is at
+`0x008056CA`/`0x008056CD`/`0x008056D5`. They continue while j<B_i and
+i<A. Each bound is a snapshot. No bound is narrowed, masked or sign extended.
+P_ij has no null test before the direct delegate. None of these local
+predicates examines a query record or N.
+
+Let S be entry ESP. The explicit memory destinations are stack cells:
+u32(S+8)=R+4 at `0x00805669`, replacing incoming argument2;
+u32(S-4)=A at `0x00805673`; u32(S-8)=0 at `0x00805677`; and
+u32(S-8)=i+1 at `0x008056D1`. Other stack writes save registers, pass
+arguments or hold call return addresses. No local instruction writes
+through O, R, Q_i or P_ij. RET8 at `0x008056DE` is the sole local exit;
+the routine assigns no uniform success value to EAX.
+
+The member-call interpretation assumes valid distinct stack/object storage,
+normal returns and ordinary callee-saved-register preservation. The caller
+expects argument cleanup of 0/4/0/4/8 bytes for the five calls in table order;
+outside callee returns were not decoded. All four virtual implementations
+and `0x00804DF0` remain opaque, including their mutations and failures.
+
+The next direct boundary is `0x00804DF0(O,[7,P_ij])`. Passing O does not
+prove an O+8/+`0x0C` write; P_ij is not established as resolved query record
+J. The producer/meaning of J+`0x10`, concrete virtual targets, actual matches
+and historical delivery remain unestablished. This enumeration supplies no
+collision polarity, activation/cancellation or encounter-reset semantics.
 
 ## Separate root and child fallback
 
@@ -343,6 +389,7 @@ basic blocks, independently of catalog summed sizes.
 | `0x0079DED0` | `[0x0079DED0,0x0079DF5F)` | `14743b028acb4d7ecae4cfa46dcbb8b0d321895af889499fa6e35bd0036ddebf` |
 | `0x0061EEC0` | `[0x0061EEC0,0x0061EEF3)` | `d800c08453ed0ba28a5e1b099e5b5565115982d30221a9d5c13fedfd8233845e` |
 | `0x00805EC0` | `[0x00805EC0,0x00805EF6)` | `841772c92760cef382e43c6f410584e816bed15ee6efb6c651c917f989d9dcce` |
+| `0x00805650` | `[0x00805650,0x008056E1)` | `255315ab266716c2c2c0cabbe034165cb13cff787c30df7b7912d6df0994eb62` |
 
 The selected kind-7 router plus guard/default occupied only
 `[0x00640E40,0x00640E53)`, `[0x00640E77,0x00640E80)` and
