@@ -121,6 +121,47 @@ after loading and returns early when the root container is empty. This records
 a loader handoff only. It does not establish weather selection, token or ID
 meaning, travel routes, endpoint selection, or runtime behavior.
 
+### Size and counted-row boundary
+
+Entry-seeded x86-32 control-flow recovery of `0x0079D900` owns
+`[0x0079D900,0x0079DBA6)`, SHA-256
+`aee14d632f11f328ae24b3b0ec3b31aab96c48b9c71f39db18bbc0fed901bb4d`.
+pefile 2024.8.26 and Capstone 5.0.7 checked the reachable instructions in
+the pinned executable. Direct calls remained separate analysis boundaries.
+The recovered normal control flow had no unresolved jumps. Exception
+dispatch and the called constructors were outside this recovery.
+
+At `0x0079DA56`, the loader compares the dword at header `+0x20` with
+the reported extent. A mismatch takes `0x0079DA5B` and skips row
+construction. The extent comes from request-record `+0x10` when its cached
+data pointer at `+0x0C` is nonnull. Otherwise it comes from the Resource's
+virtual slot `+0x28` at `0x0079DA50`. A null Resource supplies zero on
+that branch. This enforces full 32-bit size equality without validating
+the counted row span.
+
+The name comparison uses 18 bytes at header `+0`, and the version comparison
+uses five bytes at `+0x18` (`0x0079DA69/0x0079DA80`). The dword root count
+at `+0x24` controls unsigned iteration
+(`0x0079DA8C/0x0079DA9F/0x0079DB78`). Each root's dword `+0x0C` controls
+unsigned child iteration (`0x0079DAF1/0x0079DB57`). Cursor increments at
+`0x0079DAEE/0x0079DB54` consume one `0x30` row each.
+
+The complete recovered normal loader control flow has no minimum-header-length
+check, per-row remaining-length check, final cursor-versus-extent comparison,
+suffix divisibility test or suffix scan. An unconsumed suffix is left unread
+by this loader. Its reported extent must still equal header `+0x20`.
+Matching the size word does not prove that declared counts fit the buffer or
+that malformed input is safe. Called constructors and downstream acceptance
+remain separate. Retain the
+[root and child constraints](map-layout-selector.md#root-and-child-construction).
+
+For the pinned no-tail 52,336-byte catalog, one appended root with one child
+adds two `0x30` rows. The header consequences are root count 62 at `+0x24`
+and size `0xCCD0` (52,432) at `+0x20`, provided the reported extent equals
+that full length. These are count/size consequences, not a general writer
+or client acceptance result. Require an exact no-tail walk for that bounded
+profile as a stricter check than the native loader performs.
+
 ## Selected non-weather resource rows
 
 Five other rows in this DAT bind these literal IDs and tokens to DAT keys:
