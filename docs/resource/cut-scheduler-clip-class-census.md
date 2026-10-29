@@ -69,7 +69,8 @@ The twenty payload classes in this table hold 186,450 of the 222,491 records.
 BindActorClip at rank 9 is covered by the layout page, which also covers
 RaptureCharaVisualClip (151 records, rank 64) and
 RaptureMapCollisionOnOffClip. Separate native contracts cover
-[StatusCall and SetParam](cut-status-and-parameter-clips.md).
+[StatusCall and SetParam](cut-status-and-parameter-clips.md) and
+[ActionCall](cut-action-call-clip.md).
 The [clip timing page](cut-scheduler-clip-timing.md) gives the start and end ticks
 of the twenty payload classes and the scheduler routine that uses them.
 

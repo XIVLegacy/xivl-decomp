@@ -318,6 +318,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
 - [Cut scheduler clip class census](resource/cut-scheduler-clip-class-census.md)
 - [Cut scheduler status and parameter clips](resource/cut-status-and-parameter-clips.md)
+- [Cut scheduler ActionCall clip](resource/cut-action-call-clip.md)
 - [Cut scheduler clip payloads](resource/cut-scheduler-clip-payloads.md)
 - [Cut scheduler clip payloads, ranks 7 to 13](resource/cut-scheduler-clip-payloads-ranks-7-13.md)
 - [Cut scheduler clip payloads, ranks 14 to 22](resource/cut-scheduler-clip-payloads-ranks-14-22.md)
