@@ -65,7 +65,7 @@
           "0x0078f840"
         ],
         "wire": "string, string, word, tag plus byte, bool byte, bool byte",
-        "effect": "passed to 0x00758810, not an _onInit argument"
+        "effect": "passed to 0x00758810, not an _onInit argument; the first string supplies the pending area name copied to AreaBase+0x64, as docs/actor/actor-instantiation-and-self-player.md#area-setup-name records"
       },
       {
         "step": "control C",
@@ -821,7 +821,7 @@
     },
     {
       "label": "CALIBRATION",
-      "text": "The consumers of the self block words and of the setup bundle are untraced."
+      "text": "The consumers of the self block words and remaining setup-bundle fields are not fully traced; the first setup string's AreaBase+0x64 assignment is documented in docs/actor/actor-instantiation-and-self-player.md#area-setup-name."
     },
     {
       "label": "CALIBRATION",

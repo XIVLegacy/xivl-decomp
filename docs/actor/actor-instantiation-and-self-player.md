@@ -16,12 +16,14 @@ The executable is `ffxivgame.exe`, 15,996,808 bytes, image base `0x00400000`,
 SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 All executable addresses are VAs. Instruction listings from ghidra-cli 12.1.4
 were treated as leads and decoded again with Capstone 5.0.7 over the file-backed
-PE sections. The sequences cited here are the `staticChecks` rows of
+PE sections. The stream and creation sequences are the `staticChecks` rows of
 [`config/actor_instantiation.json`](../../config/actor_instantiation.json),
 and `tools/verify_actor_instantiation.py --exe` compares each one with the
 pinned bytes. The same tool holds a reference model of the stream reads and of
 the creation order, and `tools/test_actor_instantiation.py` exercises both.
 `tools/census_actor_instantiation.py` runs the stream model over the captures.
+The [area setup name](#area-setup-name) uses the separate exact-address
+control-flow checks described in that section.
 
 The retail observations read the main-lane s2c direction of the 17 captures of
 `xivl-captures:sources/pcap-1.23b/manifest.yaml` that contain a `0x00CC`, with
@@ -87,7 +89,7 @@ does not check the tag byte. The control reader only tests whether its byte is
 | Path | `0x0078F8D0` | tag, NUL terminated string | The script path. Not an argument |
 | Control A | `0x0078F840` | 1 byte, true only for `0x03` | Last argument of the submission `0x00774530`. True binds at once when the queue is in state 10 |
 | Control B | `0x0078F840` | 1 byte | True adds the setup bundle |
-| Setup bundle | `0x0078F8D0` twice, `0x0078F870`, `0x0078FA30`, `0x0078F840` twice | string, string, word, tag and byte, bool, bool | Passed to `0x00758810`. Consumer NOT TRACED |
+| Setup bundle | `0x0078F8D0` twice, `0x0078F870`, `0x0078FA30`, `0x0078F840` twice | string, string, word, tag and byte, bool, bool | Passed to `0x00758810`. [First string supplies the pending area name](#area-setup-name); remaining consumers are not fully traced |
 | Control C, word C | `0x0078F840`, `0x0078F900` | 1 byte, then tag and 4 bytes when true | The word is stored at `+0x4C` of the object from `0x0076A3F0` |
 | Control D, word D | `0x0078F840`, `0x0078F870` | 1 byte, then tag and 4 bytes when true | The low byte goes to `+0xB6` of that object. A zero word clears control D |
 | Control E, word E | `0x0078F840`, `0x0078F870` | 1 byte, then tag and 4 bytes when true | The word is read and discarded |
@@ -187,6 +189,43 @@ The area records match the stored arguments of
 `xivl-client-scripts:docs/area-base-client-initialization.md`: the three values
 `(true, false, false)` are `A1, A2, A3`, with `A2` the instance-raid Boolean
 that `_setInstanceRaid` receives.
+
+## Area setup name
+
+For an area record with control B true, the first string of the six-value
+setup bundle supplies the pending name. It is separate from the instance
+name, class name and script-path string. `0x00774D94/0x00774D97` calls
+setter `0x00758810` with the area-list manager at owner `+0x18`.
+The setter assigns the first string to manager `+0x0C` through
+`0x00447450` at `0x0075881B`. It assigns the second string to manager
+`+0x60` at `0x00758828`. The
+[string assignment finding](../resource/install-unpacker.md#object-model)
+identifies `0x00447450` as `Utf8String::operator=`.
+
+AreaBase vtable `0x00FD63D4` has slot 3 at `0x006E1670`. That method
+resolves the context state through `0x00CC7510`, selects its area-list
+manager at state `+0x18`, and passes the context and AreaBase control to
+`0x00768390` (`0x006E1672..0x006E1689`). That insertion method assigns
+pending manager `+0x0C` to control `+0x64` at
+`0x007683F3..0x007683FA`. It then clears the pending strings at manager
+`+0x0C/+0x60` using empty string object `0x01266B10`
+(`0x00768423..0x00768437`). The known `_getZoneName` callback
+`0x006F9700` returns control `+0x64`, as
+`xivl-client-structs:docs/nameplate-group-native-contract.md`, "Area natives",
+records. This closes the static writer of that string for a matching context.
+It does not prove a historical setup-to-insertion correlation.
+
+These new assignments were decoded from the pinned executable with pefile
+2024.8.26 and Capstone 5.0.7, x86-32. Entry-seeded normal control flow
+recovered `0x00758810..0x00758858`, `0x006E1670..0x006E1692`,
+`0x00768390..0x0076845E` and `0x00774AD0..0x00775170`, without unresolved
+jumps. Calls and exception dispatch remained separate boundaries.
+
+The explicit setup name and received class/path establish inputs, not a
+numeric zone-to-name or zone-to-ZoneMaster lookup. That producer remains
+UNESTABLISHED. The registry vocabulary and ordered class-definition
+requirements do not establish an actual area request's require/definition
+sequence or a sufficient set of new sheets and scripts.
 
 ## Creation order
 
@@ -408,7 +447,9 @@ artifact.
 - The visitor slots of value tags `0x07` to `0x09` are untraced, and no retail
   `0x00CC` record carries them.
 - The initial value of `CoreWork+0x0C` is untraced.
-- The consumers of the self block words and of the setup bundle are untraced.
+- The consumers of the self block words and the remaining setup-bundle
+  fields are not fully traced. The first setup string's area-name assignment
+  is established above.
 - No retail record carries tag `0x01`, so the float reading is not exercised.
 - The zone-in teardown is untraced. A later self record whose `_pc<id>` global
   still exists makes `0x00CD7970` return null at `0x00CD79AD` instead of
