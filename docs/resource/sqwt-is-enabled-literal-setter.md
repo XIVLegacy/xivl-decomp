@@ -17,3 +17,30 @@ Transition 0x0093E120 handles packed 0x80 cleanup before admission. It rejects f
 Getter table 0x0093A350 ordinal 6 selects 0x0093A29A -> 0x0093E100, which reads bit 0. Callback case 0x0093B987 also reads current bit 0 and requests notification using descriptor 0x0135956C, named IsEnabledChangedEvent by 0x00F22810. Its callback prelude invokes virtual +0x18 before checking context change state. No actual event delivery or downstream effect is established.
 
 This contract is conditional on the built-in empty-TargetName route, selected registration and lookup, ordinary preprocessing and comparator branch, and admitted packed transition. It establishes no asset use, actual instance state, named-target resolution, style/trigger/template application, inheritance, disabled appearance, physical input acceptance or rendering effect.
+
+## Conditional Window notification path
+
+Direct PE table reads and LLVM 21.0.0 disassembly of the identified
+ffxivgame.exe establish a concrete Window notification path. Offset-zero
+RTTI .?AVWindow@Sqwt@@ anchors primary table 0x0106A0BC. Its slots
++0x18, +0x14 and +0x10 select 0x00934B60, 0x00937170 and 0x00937140.
+
+Callback 0x0093B700 invokes +0x18 at 0x0093B732 before testing the
+context change bit at 0x0093B739. The Window prelude calls
+0x0092DF20 -> 0x0093BD80 -> 0x00912AC0. At 0x00912B6E, the last
+function tests context metadata bit 0x10 independently of the change bit.
+With context metadata still 0x30, a successful owner-property read at
+0x00912B95 reaches +0x14 and +0x10. Each selected non-null receiver is
+passed to generic property engine 0x00912850 at 0x00912BC8 with incoming
+flag 1. Count helper 0x00937170 adds one to 0x0092C2F0's result when
+E+0x318 is non-null. Index helper 0x00937140 delegates an index below that
+base count to 0x0092D680 and otherwise returns the pointer stored at E+0x318. Read success,
+actual counts, selected pointers and downstream effects remain conditions.
+
+Thus change=0 does not bypass this Window prelude or its metadata test.
+After its notification call at 0x0093E1EB, raw helper 0x0093E120 returns
+without restoring the packed byte. These observations establish neither a
+callback mutation nor post-notification preservation. The completed Window
+construction byte and the effects of prior attributes, earlier Setters and
+reached callbacks remain unresolved. No event delivery, input acceptance or
+rendering effect follows.
