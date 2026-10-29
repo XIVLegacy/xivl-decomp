@@ -239,6 +239,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt RangeBase float ValueChanged production](resource/sqwt-range-value-changed.md)
 - [Sqwt ProgressBar template style and indicator sizing](resource/sqwt-progress-template-style.md)
 - [Sqwt CellSkins texture filename selection](resource/sqwt-skin-texture-filename.md)
+- [DamagePlate numeric presentation](resource/damage-plate-numeric-presentation.md)
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
 - [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
