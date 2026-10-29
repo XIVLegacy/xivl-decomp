@@ -201,7 +201,25 @@ initializer 0x0042FCF0..0x0042FDBA. Its eight 8-byte stores cover all 64 bytes
 and establish a 4x4 identity from positive zero and binary32 1 at 0x00F54F70.
 The source occupies the virtual-only tail of the PE .data section, rather
 than a file-backed matrix payload. Pointer 0x00F53CD8 names the wrapper.
-That pointer does not establish startup traversal or invocation order.
+The PE entry sequence 0x009D4BAA..0x009D4BB3 calls 0x009E4E6C, then jumps
+to 0x009D49CA. The bounded startup prefix 0x009D49CA..0x009D4B56 calls
+0x009D8F9A at 0x009D4B0F. In complete walker 0x009D8F9A..0x009D902B,
+a zero result from precheck 0x009D8ECB admits an ascending walk of four-byte
+pointers in [0x00F3E66C,0x00F53CE4). It skips null entries and indirectly calls
+nonnull entries. Slot 0x00F53CD8 lies within that range and names the wrapper.
+
+If the precheck returns zero, table and control state remain stable, memory
+and frames remain valid, callbacks preserve the expected x86 nonvolatile
+registers and stack conventions, and the selected calls return normally,
+the wrapper is invoked before the one later transfer
+0x009D4B3C -> 0x00403640. Four arguments derived from the image base, zero,
+command-line tail and startup show value support a WinMain-compatible
+interpretation of that transfer. No exact original function name is inferred.
+A nonzero precheck can return without this walk. Startup's diagnostic call
+can syntactically rejoin the application path if it returns, so reaching the
+transfer alone does not prove the selected table was invoked. Earlier helpers
+or callbacks may reach Vfx initialization first. Later callbacks or startup
+work may change the source.
 
 If that initializer completes first with valid storage, a valid stack frame,
 no destructive alias and the checked constant value, it establishes source
@@ -210,9 +228,9 @@ source and writable destination storage without address wrap, completes
 normally and retains identity through all eight loads without destructive
 aliases or writers, it establishes complete destination identity. No later or
 concurrent writer may change that destination if the result is to persist.
-These are sufficient
-conditions, not a current matrix observation. Startup traversal/order, other
-writers and current matrices remain unobserved. Ambient and exLight fourth
+These are sufficient conditions, not a current matrix observation. Ordering
+before every 0x00C13C20 call, source identity survival, other writers and current
+matrices remain unobserved. Ambient and exLight fourth
 lanes and scalar normalPower/multiNormalPower tails remain incoming/current-state
 bytes unless an independently established writer supplies them.
 
@@ -520,8 +538,21 @@ the mapped PE bytes and direct call targets. Track the registration output local
 stack argument order, destination arithmetic and all eight ordered transfers.
 Trace every initializer source lane before its store and read the binary32 1
 at 0x00F54F70. Check pointer 0x00F53CD8 and the source's .data virtual/raw
-extents separately. Neither the pointer nor bounded xrefs establish startup
-traversal, ordering or an exhaustive writer set.
+extents separately.
+
+For the startup join, read PE AddressOfEntryPoint. Disassemble the entry
+sequence 0x009D4BAA with 2 instructions, bounded startup prefix 0x009D49CA
+with 127, complete walker 0x009D8F9A with 50 and complete argument helper
+0x009E4966 with 42. The startup prefix stops before exception handlers and
+the remaining tail. Compare mapped bytes and recompute direct call/branch
+targets. Trace the precheck result, unsigned table bounds, null skip, indirect
+call and four-byte increment. Read the selected slot from the stated table
+range. Check the nonzero-precheck return and diagnostic rejoin separately.
+Resolve GetCommandLineA at IAT 0x00F3E31C and GetStartupInfoA at 0x00F3E324
+through the PE import descriptors, lookup words and names. Trace their argument
+sources through 0x009E4966 and the four pushes before 0x009D4B3C. Bounded
+xrefs do not establish exhaustive callers or writers. This startup join does
+not order the wrapper before every Vfx initialization or prove source survival.
 
 From the identified B0, recover the material descriptors, sequential payload
 lengths, 28 name indices and both selected CTAB tables. Check all 22 source-name
