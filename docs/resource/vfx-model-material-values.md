@@ -186,13 +186,35 @@ For fogParam, completed initialization before the B0 XYZ=(0,100,1) copy, with
 no intervening or later value writer, preserves W=1. That conditional result
 is (0,100,1,1). It is not an observation of current shared storage.
 
-Size-64 rows take 0x00E3ACF0/0x00BBB990 at 0x00C13D38..0x00C13D45 instead
-of the 16-byte table-copy branch. Four table floats, including the four ones
-beside depthOffSetWVPMatrix, do not establish a completed 64-byte matrix.
-Those helper effects and completed matrix values remain unknown. Ambient and
-exLight fourth lanes and scalar normalPower/multiNormalPower tails likewise
-remain incoming/current-state bytes unless an independently established writer
-supplies them.
+Size-64 rows take the calls at 0x00C13D38..0x00C13D49 instead of the
+16-byte table-copy branch. Complete helper 0x00E3ACF0..0x00E3ACF5 returns
+source address 0x0137B698. The caller passes metadata m from its registration
+output local as the first stack argument, that source as the second and D in
+ECX to 0x00BBB990. The complete helper 0x00BBB990..0x00BBB9F6 writes to
+ptr32(D+0x1C)+16*u8(m), using 32-bit address arithmetic. Eight interleaved
+loads and stores copy 8 bytes each at offsets 0,8,16,24,32,40,48,56, covering
+all 64 destination bytes in increasing order. The four default floats in the row
+are not this source. Destructive overlap can change later unread source chunks.
+
+Complete wrapper 0x00F2E000..0x00F2E00B passes 0x0137B698 to complete
+initializer 0x0042FCF0..0x0042FDBA. Its eight 8-byte stores cover all 64 bytes
+and establish a 4x4 identity from positive zero and binary32 1 at 0x00F54F70.
+The source occupies the virtual-only tail of the PE .data section, rather
+than a file-backed matrix payload. Pointer 0x00F53CD8 names the wrapper.
+That pointer does not establish startup traversal or invocation order.
+
+If that initializer completes first with valid storage, a valid stack frame,
+no destructive alias and the checked constant value, it establishes source
+identity. If the admitted size-64 path then receives valid metadata, readable
+source and writable destination storage without address wrap, completes
+normally and retains identity through all eight loads without destructive
+aliases or writers, it establishes complete destination identity. No later or
+concurrent writer may change that destination if the result is to persist.
+These are sufficient
+conditions, not a current matrix observation. Startup traversal/order, other
+writers and current matrices remain unobserved. Ambient and exLight fourth
+lanes and scalar normalPower/multiNormalPower tails remain incoming/current-state
+bytes unless an independently established writer supplies them.
 
 ## Current value records, handles and constant counts
 
@@ -490,6 +512,16 @@ object locator and type descriptor to confirm the exact RTTI names above.
 Independently map instruction/data ranges through the original PE sections,
 recompute direct relative targets and track stack arguments, source extents,
 current-value pointers and device-call arguments.
+
+For the size-64 predefined path, disassemble 0x00C13C20 with 92 instructions,
+0x00E3ACF0 with 2, 0x00BBB990 with 24, 0x00F2E000 with 4 and 0x0042FCF0
+with 38. Each count reaches the complete return of its named routine. Compare
+the mapped PE bytes and direct call targets. Track the registration output local,
+stack argument order, destination arithmetic and all eight ordered transfers.
+Trace every initializer source lane before its store and read the binary32 1
+at 0x00F54F70. Check pointer 0x00F53CD8 and the source's .data virtual/raw
+extents separately. Neither the pointer nor bounded xrefs establish startup
+traversal, ordering or an exhaustive writer set.
 
 From the identified B0, recover the material descriptors, sequential payload
 lengths, 28 name indices and both selected CTAB tables. Check all 22 source-name
