@@ -331,6 +331,61 @@ instruction bytes and recompute direct relative call targets. Trace ECX, stack
 arguments, helper cleanup and the later source +0x28 reload. Check the packed
 multiply operand order and sequential additions before interpreting the layout.
 
+#### Conditional BaseCamera source table
+
+These spans use the identified ffxivgame.exe, PE32 image base 0x00400000 and
+Ghidra disassembly method above. Ranges are half-open. A normal body excludes
+exception handlers and transitive callee effects.
+
+| Role | Start VA | Exclusive end VA | Extent |
+| --- | --- | --- | --- |
+| Forwarding caller | 0x00BB9FD0 | 0x00BBA006 | Prefix |
+| Pair-container construction | 0x00BB9A70 | 0x00BB9B1C | Normal body |
+| Source-object construction | 0x00E3D4F0 | 0x00E3D53A | Normal body |
+| First address getter | 0x00E3C780 | 0x00E3C787 | Complete leaf |
+| Second address getter | 0x00E3C790 | 0x00E3C797 | Complete leaf |
+| Initializer receiver | 0x00E3CC40 | 0x00E3CC70 | Prefix |
+| Initializer virtual call | 0x00E3CDC1 | 0x00E3CDCA | Window |
+
+In 0x00BB9A70, a nonzero result from helper 0x00416480 is passed as ECX
+to 0x00E3D4F0. Its returned EAX is stored at both C+0x0C and C+0x10,
+where C is the outer routine's receiver. The zero-result branch instead
+stores zero in both fields. These stores precede later predicate-controlled
+0x00E3C660 calls, whose effects remain unqualified.
+
+At 0x00E3D51B, source construction stores table 0x0113E1F4 at the incoming
+object pointer before calling initializer 0x00E3CC40. Table[-4] at
+0x0113E1F0 points to complete object locator 0x011A891C. Its +0x0C pointer
+selects TypeDescriptor 0x01322124, whose NUL-terminated name at +8 is
+`.?AVBaseCamera@Camera@Common@Vfx@Engine@CDev@SQEX@@`.
+This identifies the static table. Its slots +0x0C/+0x10 contain
+0x00E3C780/0x00E3C790, complete leaves returning addresses O+0x84/O+0xC4
+for incoming ECX=O. They do not load or validate matrix contents.
+
+The initializer prefix saves incoming ECX in ESI. The separate late window
+calls slot +4 of the table at then-current [ESI], with ECX=then-current ESI.
+The intervening body and called-helper effects remain unqualified. In the
+0x00BB9FD0 caller prefix, nonzero C and a nonzero low byte of the second
+argument select the branch with the 0x00BB9D30 call using ECX=C, after calls
+to 0x00BB9C20 and 0x00BB9B30. This does not identify that C with a particular
+construction.
+
+The join to the preceding forwarding contract is conditional on normal
+returns, expected nonvolatile-register preservation and pointer/table
+continuity through initialization, later helpers and both later virtual
+dispatches. If O remains selected and table 0x0113E1F4 remains its table at
+both dispatches, the getters supply O+0x84 and O+0xC4. Each requires a valid,
+nonwrapping, readable and stable 64-byte source region under the preceding
+copy, lifetime, alias and concurrency limits. Current selection, ownership
+and numeric contents remain unknown.
+
+To reproduce, authenticate the identified executable and disassemble only
+the stated spans. Map instruction and RTTI VAs through the original PE
+sections, compare bytes and recompute direct branch/call targets. Trace
+receiver/result registers and stack cleanup, inspect table[-4], locator
++0x0C, descriptor+8 and both slot dwords, then decode the two LEA/RET leaves.
+Keep the initializer windows separate when assessing receiver continuity.
+
 ## Sampler names, generated values and native records
 
 Hash helper 0x00C126C0 starts h=0x01000193 and repeats
