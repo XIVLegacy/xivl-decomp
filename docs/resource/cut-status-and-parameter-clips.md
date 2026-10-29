@@ -2,8 +2,9 @@
 
 `RaptureStatusCallClip` converts a serialized dword to 0, 2, 1 or -1 and
 sends internal CharaActor record `0x3D`. The nominal handler stores that
-value in an inline component and its low byte through the component's
-pointer. These are numeric writes; their actor/model/status meaning and
+value at actor+`0x1118` and its low byte at actor+`0xB3A`, under the
+normal constructor owner relation below. These are numeric writes;
+their actor/model/status meaning and
 encounter-specific use remain unestablished.
 
 `RaptureSetParamClip` splits text on `/` and dispatches the exact root keys
@@ -89,15 +90,44 @@ five-instruction callee makes these writes:
 | `0x007A5247` | O=u32(A+`0x1110`) |
 | `0x007A5249` | u8(O+`0xB3A`)=low8(payload) |
 
-O's equality with A is not established by this setter. Existing
+The setter alone does not establish O's equality with A. The normal
+constructor relation below supplies that static join. Existing
 [inline-component evidence](../actor/status-controllers.md#status-controller-layout-in-charaactor-partial)
-locates A+`0x1110`; a source-qualified owner initialization is still needed.
+locates A+`0x1110`; the sequence below establishes its normal owner initialization.
 The independently documented
 [chant guard](../actor/battle-npc-body-parts.md#battle-npc-byte-1-0xf0-model-supplied-chant-motion)
-compares actor bytes `0xB39` and `0xB3A`. It is a conditional downstream
-relationship only if O is that actor. This record is not the separate
+compares actor bytes `0xB39` and `0xB3A`. Under that owner relation, this
+producer writes the second byte of that equality gate. This does not prove
+a chant request, a transition of the first byte or historical playback.
+This record is not the separate
 [model-substate record 0x3B](../actor/model-state-color-transitions.md#m049-model-state-route).
 No actor main state, status effect or server encounter phase is named here.
+
+### Static owner and initial value
+
+The CharaActor constructor prefix `[0x0065F180,0x0065F356)` retains
+incoming complete-object A in ESI at `0x0065F1C7`, with no later explicit
+ESI definition in that prefix. Opaque calls preserve it under the normal
+x86 callee-saved convention. At `0x0065F1FD`, u32(A) receives the nominal
+CharaActor table `0x00FC0D34`.
+
+At `0x0065F34A` the caller pushes A. The LEA at `0x0065F34B` forms
+ECX=A+`0x1110`; the actual CALL at `0x0065F351` targets `0x007B2030`.
+The [inline-field catalog](../../include/actor/chara_actor.h) owns the
+member locations. The prefix is a selected instruction range, not a
+complete constructor extent or a runtime witness.
+
+For receiver H and explicit owner argument O_arg, `0x007B2030` stores
+u32(H)=O_arg at `0x007B205C`. Its call at `0x007B2095` supplies
+`[H+4,0,0x38]` to the already documented
+[zeroing helper](attribute-resource-and-scene-binding.md#query-descriptor-construction)
+`0x009D2110`, clearing `[H+4,H+0x3C)` on normal return, including H+8.
+With the proved caller tuple, this establishes initial u32(A+`0x1110`)=A
+and initial u32(A+`0x1118`)=0. The record-`0x3D` setter consequently writes
+the same actor's `0xB3A` byte while this owner relation holds.
+
+Constructor initialization is not encounter reset. A current actor's lifetime,
+derived virtual targets and later owner-pointer state remain runtime joins.
 
 ## SetParam grammar and routing
 
@@ -154,8 +184,42 @@ Only flag_word's low byte is initialized: case-insensitive token-3 equality
 with `show` (`0x00FB7130`). Its upper 24 bits retain bits of the incoming
 token-vector pointer, whose argument slot is reused by a byte store before
 the whole dword is pushed. This is not a normalized 32-bit Boolean.
-The callee's consumed width and effect, token 2's numeric domain and r's
-meaning remain unestablished. Tokens after index 3 are not read here.
+Tokens after index 3 are not read here. The selected consumers below read
+only the low flag byte and resolve token 2 as a name, not a decimal number.
+
+`0x006279F0` scans at most eight pointers from `0x012B82BC`, stopping at
+the first null pointer or index 8. It compares the supplied token-2 C string
+case-insensitively and returns the matching zero-based index, or full dword
+`0xFFFFFFFF` on exhaustion/null. The original table has eight nonnull names:
+
+| Index | Exact name | Pointer cell |
+| --- | --- | --- |
+| 0 | sgrp_meteor | `0x012B82BC` |
+| 1 | sgrp_meteor117 | `0x012B82C0` |
+| 2 | sgrp_meteor118 | `0x012B82C4` |
+| 3 | sgrp_meteor119 | `0x012B82C8` |
+| 4 | sgrp_meteor120 | `0x012B82CC` |
+| 5 | sgrp_meteor121 | `0x012B82D0` |
+| 6 | sgrp_meteor122 | `0x012B82D4` |
+| 7 | sgrp_meteor123 | `0x012B82D8` |
+
+`0x00624E00` reads only low8(flag_word), ignoring the caller's preserved
+upper 24 bits. Its raw index operation is `mask=1<<(r&31)` with no local
+range check. This name lookup supplies only indices 0..7. Nonzero flag
+ORs the mask into u32(P_L+`0x35C`) at `0x00624E1F` and stores byte 1 at
+P_L+`0x364` at `0x00624E25`. Zero flag ANDs the complemented mask into
+the dword at `0x00624E14` / `0x00624E16` and leaves the byte untouched
+by this body. Repeating a value still performs these writes.
+
+Thus recognized `layout/satellite/<name>/show` sets that bit and the byte;
+another fourth token clears the bit. The existing
+[celestial-layout record](sky-celestial-layout-census.md#noon-snapshot-d)
+owns the same eight names and the `0x0062AEB0` reader of scene masks
+`0x358`/`0x35C`/`0x360`. Those masks all admit the bit, except scene
+mode 3 at `0x1F0` uses only `0x35C`. If P_L is that scene receiver,
+this producer writes its middle visibility mask. Their owner identity is
+not established by matching names and offsets. No collision or encounter
+timing follows from this conditional render relationship.
 
 ### Lua pointer payload
 
@@ -181,21 +245,73 @@ that call. It calls virtual `0x5C` and casts IActor to CharaActor as above,
 writing A and A+`0x11B4` to the two output cells. A null cast returns false.
 On success, `0x00824AA0` calls `0x00662D10`. That wrapper requires A
 nonzero and calls `0x00661520` with ECX=A and the unchanged complete token
-vector. A+`0x11B4` is not that final parser's receiver. Token operations,
-numeric conversions and final field writes stop at the untraced parser.
+vector. A+`0x11B4` is not that parser's receiver.
+
+The parser requires nonnull begin and unsigned n>1. It compares token 1
+case-insensitively with `rmovecheck` (`0x00FC0300`), then on mismatch
+`cancelchantsyncclip` (`0x00FC0310`). Both successful operation branches
+require unsigned n>2 before reading token 2. Extra tokens after index 2 are
+not read. Repeated fallback begin/count failures call `0x009D22B4` at
+`0x006615D8`; no uniform termination behavior is inferred if that untraced
+helper returns. The caller does not consume a uniform success Boolean.
+
+For `rmovecheck`, token-2 equality with `off` (`0x00FC030C`), ignoring
+case, supplies a flag to `0x007A5220` at `0x006615AB`, ECX=A+`0x1030`.
+Only the low byte is initialized by that caller. The setter consumes bit 0
+and updates exactly one byte:
+
+`u8(A+0x1038) = (old_byte & 0xFE) | (low8(flag) & 1)`.
+
+An `off` match sets bit 0; another token 2 clears it. The old byte's bits
+1..7 are preserved. Only input bit 0 is consumed; other input bits are
+ignored. The setter makes no
+other state write or call. A reader and the bit's movement/checking effect
+remain unestablished.
+
+For `cancelchantsyncclip`, token 2 must equal `lib` (`0x00FC0324`),
+ignoring case. Only that match calls `0x00844EF0` at `0x0066162B`,
+ECX=A+`0x2858`, with nearest-first arguments `[0x0C,1]`.
+The literal's spelling does not itself establish cancellation.
+
+### Character bucket-12 control request
+
+The [action-queue contract](../actor/action-queue.md#storage-ceiling)
+owns the inline CharaActionController at A+`0x2858`. Let C be that receiver.
+`0x00844EF0` selects bucket wrapper C+`0x14`*type+4, without a local type
+bound. This producer supplies type `0x0C`, within the published 26 buckets,
+so its wrapper is C+`0xF4`. This is a bucket ordinal, not an action ID.
+
+For each reached entry E, `0x00844F6E` calls E virtual `0x2C` with `[1]`.
+Only nonzero returned AL continues. X=u32(E+`0x10`) must be nonzero.
+At `0x00844FA8`, X virtual `0xC8` returns R; zero skips the request.
+R virtual `0x6C` at `0x00844FB5` returns T. The call at `0x00844FC2`
+is `0x0080BCD0`, ECX=S=u32(T), with `[1]`. T has no separate null guard
+before that read. S must be nonzero at `0x00844FB9` / `0x00844FBB`.
+Concrete virtual target types remain
+unbound. Iterator failure paths call `0x009D22B4`; empty/end exits and
+reloads of current bucket bounds are not a guarantee of unchanged membership.
+
+The complete `0x0080BCD0` stores the full incoming dword at S+`0x48`
+at `0x0080BCD4`, exactly 1 for this producer, then calls `0x0080BB80`
+at `0x0080BCDA`, ECX=S+`0x50`, without an explicit stack argument.
+It returns that delegate's EAX. The delegate's effect is untraced.
+Neither inspected body directly removes or deletes entries. This proves
+a guarded control-word write and request, with no actual stop/cancellation,
+collision restoration, defeat/wipe/retry/exit or server receipt assigned.
 
 ## Exact remaining joins
 
 Static numeric producer and token routing are established under their
-guards. Current D, concrete actor vtable, component owner, authored
+guards. Current D, concrete actor vtable, current owner-pointer state, authored
 record/fight/variant assignments and historical invocation remain unbound.
 No command ID, packed playback selector or model-qualified WSS/BID bank
 can be assigned from these fields. Model substates, actor main states,
 status effects and server encounter phases remain distinct domains.
 
-The closest specific native joins are owner constructor `0x007B2030`,
-character parser `0x00661520`, layout string consumer `0x006279F0`, layout
-operation `0x00624E00` and the asynchronous `0x0D` consumer. These contracts
+The closest specific joins are the movement-bit reader,
+the identity of P_L with the scene mask owner,
+the runtime virtual types and `0x0080BB80` effect, and the asynchronous
+`0x0D` consumer. These contracts
 establish no collision polarity, activation/cancellation, defeat/wipe/retry/
 exit restoration or constructor-as-reset policy.
 
@@ -220,3 +336,11 @@ not a separately established source-level function.
 | `0x00612070` | `[0x00612070,0x00612138)` | `c32bf2c753b803207ab05fdf9c93fe661c4bc6de3ae456572d725dd11ee6fbbc` |
 | `0x00824A30` | `[0x00824A30,0x00824A93)` | `d351c188ad199e1910c4624a337182332836dbbb5bedb3a027c82a8d8ea148d9` |
 | `0x00662D10` | `[0x00662D10,0x00662D25)` | `4c1a16ce1376f2462edf807b78308aa6bbeeb5c9a9e3ba617ef1a5bad49d12ae` |
+| `0x007B2030` | `[0x007B2030,0x007B20BA)` | `477e4bff02485ca4a58bef0ee8fdee86723cf58d166f4c28e53385d50a305609` |
+| `0x00661520` | `[0x00661520,0x00661636)` | `af75c32c6fd78f484bd4f9fc3fc3016d51858a313bee5a7d89e815e2313e6270` |
+| `0x006279F0` | `[0x006279F0,0x00627A26)` | `0a994b420d2545032e337ef23665178b268708259afa3d4678a39c5f6dc97dba` |
+| `0x00624E00` | `[0x00624E00,0x00624E2F)` | `1e73dcf6d814956dc95c853e034970fb1d4c9242053f4b59d1f162ad1a307e80` |
+| `0x007A5220` | `[0x007A5220,0x007A522F)` | `eea1be16efdb35d0318aadbc905e28306f1d985045c6abc7dcc1f3cdc99bd7e4` |
+| `0x00844EF0` | `[0x00844EF0,0x00844FF0)` | `a5bb44c05fe6b0a8273712765052fb587a1da03d8a5c52ed0ee3566cd05a819a` |
+| `0x0080BCD0` | `[0x0080BCD0,0x0080BCE2)` | `1233ca2c21f7ff9011c2dfffcb7738c81416b161f5fc276eb1c77caa883689c3` |
+| CharaActor constructor prefix | `[0x0065F180,0x0065F356)` | `ab931ce82dedd1789a1014528648aefb08ee76ad60f6f0f93e26bd20585bb559` |

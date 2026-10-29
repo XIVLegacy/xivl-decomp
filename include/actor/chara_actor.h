@@ -195,10 +195,13 @@ static const size_t subobj_0b80 = 0x0b80;
 static const size_t subobj_0bf0 = 0x0bf0;
 
 // ---- 0x1000..0x1400 block ----
-// Inline members, not pointers. LEA ECX,[ESI + offset] appears immediately
-// before each constructor call at 0x0065F30F, 0x0065F323, 0x0065F337 and
-// 0x0065F34B, and again in the destructor at 0x006663EC, 0x006663FC,
-// 0x0066640C and 0x0066641C. Each ctor takes one argument and stores it at
+// Inline members, not pointers. Constructor LEA ECX,[ESI + offset] setup
+// sites are 0x0065F30F, 0x0065F323, 0x0065F337 and 0x0065F34B. The matching
+// CALLs are 0x0065F315, 0x0065F329, 0x0065F33D and 0x0065F351. Corresponding
+// destructor locations are 0x006663EC, 0x006663FC, 0x0066640C and 0x0066641C.
+// Capstone 5.0.7 over retail ffxivgame.exe verified the constructor prefix
+// [0x0065F180,0x0065F356); see docs/resource/cut-status-and-parameter-clips.md.
+// Each ctor takes one argument and stores it at
 // member offset 0, an owner back-pointer to CharaActor. None assigns a
 // vtable, so these are non-polymorphic and have no RTTI record; they cannot
 // be named from the RTTI dump. Sizes are derived from offset adjacency, not
