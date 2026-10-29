@@ -282,6 +282,110 @@ These identify the original packed spans without publishing them. No stream is
 recreated. Model-relative payload offsets 1840 and 14672 are divisible by 16. Their
 file-equivalent offsets 2164 and 14996 are not runtime pointer values.
 
+## Selected shader input profile
+
+The embedded B0 pair has a conditional source-operand profile under the six-element
+[declaration interpretation](#common-declaration-interpretation). A format-aware Node
+Buffer walk of the identified B0 input reads complete SM3 instruction boundaries, CTAB
+entries, declarations, source operands and structured Bool blocks. This is serialized
+shader evidence. It does not select native Bool values or establish shader execution.
+Offsets in this section are hexadecimal B0 file offsets, with half-open ranges.
+
+| Stage | Complete stream | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| vs_3_0 | [0x516C,0x5B14) | 2472 | 2e168ca4e13e55f25776fad7524b5c11e7ac51caeaf63206720078e55d6eea13 |
+| ps_3_0 | [0x5B34,0x634C) | 2072 | e228579ecc0d059dee6150f08ae02dabba2b33f023796c8aa0af08cbcaf210c4 |
+
+Big-endian length fields at 0x515C and 0x5B24 delimit those streams. Their CTAB comments
+occupy [0x5170,0x5440) and [0x5B38,0x5F4C), with CTAB headers at 0x5178 and 0x5B40.
+The headers contain 14 and 19 constant entries. Their embedded version fields at 0x5180
+and 0x5B48 are inside comments, not additional shader starts. Instruction walks after
+the comments consume 108 and 66 instructions, excluding COMMENT and END, and terminate
+at END offsets 0x5B10 and 0x6348, exactly at the declared stream bounds. Declaration
+payloads and immediate definitions are excluded from source-operand counts.
+
+The complete vertex input declarations are:
+
+| DCL offset | Register | Semantic | Source operands in the complete stream |
+| --- | --- | --- | --- |
+| 0x5470 | v0 | POSITION0 | Four unconditional, one under b0=true. First at 0x556C. |
+| 0x547C | v1 | COLOR0 | Two unconditional. First at 0x5A8C. |
+| 0x5488 | v2 | NORMAL0 | One unconditional at 0x5538. |
+| 0x5494 | v3 | TEXCOORD5 | Two unconditional. First at 0x554C. |
+| 0x54A0 | v4 | TEXCOORD6 | Twelve under b0=true. First at 0x55F4. |
+| 0x54AC | v5 | TEXCOORD7 | One under b0=true at 0x558C. |
+| 0x54B8 | v6 | TEXCOORD0 | Two unconditional. First at 0x596C. |
+| 0x54C4 | v7 | TEXCOORD1 | Two unconditional. First at 0x59A0. |
+
+The CTAB Bool entries each use register set 0 and count 1. All three IF source operands
+have modifier 0. The blocks are unnested, with these exact guards:
+
+| Stage and CTAB name | Entry offset | Register | IF / source operand | True body | ELSE / false body | ENDIF |
+| --- | --- | --- | --- | --- | --- | --- |
+| Vertex isSkining | 0x51F8 | b0 | 0x5578 / 0x557C | [0x5580,0x57D8) | None | 0x57D8 |
+| Pixel light0bit0 | 0x5C60 | b8 | 0x622C / 0x6230 | [0x6234,0x6278) | 0x6278 / [0x627C,0x6288) | 0x6288 |
+| Pixel light1bit0 | 0x5C74 | b10 | 0x628C / 0x6290 | [0x6294,0x62DC) | None | 0x62DC |
+
+The only address-register write is at 0x55E0, inside b0's true body. It writes a0.xyzw
+before all 12 relative source operands. In groups of three, the relative operands at
+0x55F8/0x560C/0x5620, 0x5630/0x5648/0x5660, 0x5678/0x5690/0x56A8 and
+0x56C0/0x56D8/0x56F0 use constant bases c21/c22/c23 with a0.y, a0.x, a0.z and a0.w,
+respectively. Each operand has relative-address bit 13 set and a following address
+token. CTAB entry 0x520C names c21..c164 jointMatrices. The guard establishes no
+particular address value or effective joint-matrix access bound.
+
+Under the hypothetical vertex assignment b0=false, 13 retained input source operands
+name exactly POSITION0, NORMAL0, COLOR0, TEXCOORD0, TEXCOORD1 and TEXCOORD5, with no
+relative operands. These are exactly the six supplied packed semantics under the
+conditional mapping above. Under hypothetical b0=true, 27 input source operands also
+name TEXCOORD6 and TEXCOORD7, which are absent from the six-element packed source, and
+all 12 relative operands remain. All eight original DCL records remain in both
+profiles. A six-semantic read profile does not establish acceptance of a reduced
+native declaration or supply values for the two absent semantics.
+
+The pixel declarations at 0x5F7C/0x5F88/0x5F94/0x5FA0 map v0/v1/v2/v3 to
+TEXCOORD0/TEXCOORD3/COLOR0/TEXCOORD4. All six input source operands are unconditional.
+The sampler CTAB entries use set 3, count 1, and join these declared registers and
+actual texture-source operands:
+
+| CTAB name / entry | Sampler | DCL / dimension field | Sampler source operand |
+| --- | --- | --- | --- |
+| _sampler_00 / 0x5B5C | s0 | 0x5FAC / 0x5FB0 | 0x6020 |
+| _sampler_01 / 0x5B98 | s1 | 0x5FB8 / 0x5FBC | 0x6094 |
+| _sampler_02 / 0x5BD4 | s2 | 0x5FC4 / 0x5FC8 | 0x60D4 |
+
+All three dimension fields contain code 2, meaning 2D. All four hypothetical b8/b10
+assignments retain the same four pixel input semantics, all three sampler operands
+and zero relative operands. The Bool branches can still change arithmetic results.
+Thus each b0=false combination reads only the six supplied vertex semantics, while
+each b0=true combination retains the TEXCOORD6/7 gap, regardless of b8/b10.
+
+For reproduction, authenticate the B0 identity above, read the two record lengths,
+and hash each complete stream. Walk little-endian DWORD instruction tokens using
+opcode bits 15:0 and length bits 27:24, with COMMENT length in bits 30:16. Decode DCL
+semantics separately from executable operands, consume the extra address token after
+each relative source, and match the explicit IF/ELSE/ENDIF blocks before filtering
+source operands for each hypothetical assignment. No other flow opcode, predication
+flag, DEFB or DEFI occurs in these two streams. CTAB names, register sets, indices and
+counts join the Bool and sampler operands independently of their descriptive names.
+
+The format interpretation follows Microsoft's [shader format](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/shader-code-format),
+[instruction token](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/instruction-token),
+[source token](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/source-parameter-token),
+[relative addressing](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/shader-relative-addressing),
+[DCL format](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/dcl-instruction),
+[Bool IF](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/if-bool---vs)
+and [sampler declaration](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dcl-samplertype---ps)
+contracts. The dimension code is defined by D3DSTT_2D in Microsoft's
+[d3d9types.h](https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9types.h).
+
+A retained source operand is a syntactic read, not a proof of mathematical liveness
+or contribution by every lane. Arithmetic, effective indices and native/current Bool
+values remain unevaluated. The inherited converter conditions remain unchanged.
+Native shader creation, validation, declaration/stream acceptance, execution, bound
+texture contents, sampler state and rendering remain unestablished by this static
+profile. It covers only the identified B0 pair.
+
 ## Reproduction and limits
 
 On the identified analyzed program, use bounded ghidra disasm queries with the VA or
