@@ -97,11 +97,15 @@ literal `Desktop.form` (`0x00FA069C`) it returns `\common\Desktop.form`
 
 The mode switch sits at `0x00533CD0..0x00533CEE`. STATIC.
 
-`0x00446FD0` forwards to the search routine `0x00446800`. Read as a reverse
-search from the end of the string (start argument `-1`), the cut is a no-op for
-every name, because the last dot is the one in the appended `.form`. A forward
-search would shorten a dotted name to its first segment. Which one `0x00446800`
-performs is INFERRED.
+`0x00446FD0` forwards start argument `-1` and flag zero to `0x00446800`.
+The sentinel branch at `0x0044684A..0x0044687F` starts at the string end.
+The flag-zero branch compares bytes at `0x0044699A..0x004469DA`, and the
+retry at `0x00446AC2..0x00446AE9` moves backward and decrements the logical
+index. For ASCII form names, the selected dot is therefore the last dot,
+which belongs to the appended `.form`. Cutting there and appending `.form`
+again preserves a dotted name. STATIC. See the [extension rule](sqwt-skin-texture-filename.md#extension-rule)
+for the independently checked search path and its limits. This observation
+does not define general Unicode filename behavior or establish a live lookup.
 
 ## The opener
 
@@ -334,7 +338,6 @@ a Windows LANGID is a CALIBRATION question.
 
 | Label | Question |
 |---|---|
-| INFERRED | `0x00446FD0` forwards to `0x00446800` and is read as a reverse search. A forward search would shorten a dotted name to its first segment. |
 | INFERRED | The `Source` reader `0x00983BE0` does not reach the token. The reading follows direct calls only. |
 | UNKNOWN | No loader of the `.sd.form` and `.sd.tpl` files is found. |
 | UNKNOWN | The `0x2F` branch of `0x00452D50` at `0x00452E7A` is not decoded. The opener passes only `0x5C`. |
