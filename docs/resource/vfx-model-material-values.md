@@ -267,6 +267,70 @@ light arrays behind shader +0xA4/+0xA8. Their sources are separate from similarl
 named serialized fields. Current blocks, selected light records and evaluated
 values are not established by the B0 file.
 
+#### Current matrix setters and derived storage
+
+These observations use the executable identity and Ghidra disassembly method
+above. The following VA spans are half-open. A prefix qualifies only the stated
+instructions.
+
+| Role | Start VA | Exclusive end VA | Extent |
+| --- | --- | --- | --- |
+| Setter for block A | 0x00BB99B0 | 0x00BB9A23 | Complete |
+| Setter for block B | 0x00BB9A30 | 0x00BB9A61 | Complete |
+| 64-byte copy helper | 0x00419B60 | 0x00419BBA | Complete |
+| Selected-object source chain | 0x00BB9D30 | 0x00BB9D89 | Prefix |
+| Context-object source chain | 0x00BF71A0 | 0x00BF71FA | Complete |
+| Derived-block getter | 0x00BD8300 | 0x00BD833B | Complete |
+| System-product source path | 0x00C10670 | 0x00C106D8 | Prefix |
+| Vector times matrix helper | 0x0042EC50 | 0x0042EDAA | Complete |
+| Matrix product helper | 0x0042EDB0 | 0x0042EE11 | Complete |
+| Four-row assembly helper | 0x004201A0 | 0x00420200 | Complete |
+
+Let A name the 64-byte block at 0x01308520 and B the block at 0x01308560.
+Setter 0x00BB99B0 reads its caller pointer at entry ESP+4 and copies eight
+qwords in ascending source order to A. It ORs byte 0x01308628 with 0x0D
+between the final source read and final destination store. Setter 0x00BB9A30
+passes its caller pointer to 0x00419B60 with ECX=B, copying 64 bytes, then
+ORs the dirty byte with 0x16. It next reloads source +0x28, stores that dword
+at 0x01308620 and stores zero bits at 0x01308624. The scalar is the later
+source read, not an entry snapshot. Both masks set bit 0x04.
+
+The 0x00BB9D30 prefix receives C in ECX and selects
+O=ptr32(C+0x0C+4*((u8(C+0x14)-1)&1)). It calls O's virtual slots +0x0C
+and +0x10 with ECX=O. The first returned pointer supplies setter A, and
+the second supplies the B copy, dirty OR and scalar reload/stores above.
+The complete 0x00BF71A0 instead takes stack argument P and selects
+O=ptr32(ptr32(P)+0xF0). It retains both slot returns before those copies.
+Its first pointer must survive the second virtual call until the A copy.
+Both indirect targets and the object identities remain unknown.
+
+Getter 0x00BD8300 tests dirty bit 0x04. When set, it calls 0x0042EDB0 with
+ECX=B, first stack argument a temporary destination and second argument A.
+It copies the result to 0x013085E0, then ANDs the dirty byte with 0xFB.
+Both paths return 0x013085E0. The 0x00C10670 prefix repeats this conditional
+recompute between products using its supplied M. It establishes no later
+backend behavior.
+
+For four contiguous Float4 rows, the helpers support the mathematical
+row-layout interpretation A*B. The native MULPS operands are B row lanes
+followed by broadcast A[i,k], giving p[k,j]=B[k,j]*A[i,k]. ADDPS accumulates
+(((p[0,j]+p[1,j])+p[2,j])+p[3,j]). The matrix helper evaluates A rows in
+order 3,2,1,0 into separate temporaries before 0x004201A0 assembles output
+rows 0,1,2,3. Operand commutation, reassociation, fused arithmetic and fixed
+MXCSR or NaN behavior are not established.
+
+These paths require valid objects, readable source blocks of 64 bytes, stable
+sources and normal completion. The scalar source must remain valid through its later
+reload. No general alias, overlapping-copy, atomic publication or
+concurrent-source guarantee follows. Current values, source ownership, current
+B0 identity and execution remain unknown.
+
+To reproduce, query the named spans with bounded ghidra-cli disassembly on the
+identified PE32 program. Map their VAs through the original PE sections, compare
+instruction bytes and recompute direct relative call targets. Trace ECX, stack
+arguments, helper cleanup and the later source +0x28 reload. Check the packed
+multiply operand order and sequential additions before interpreting the layout.
+
 ## Sampler names, generated values and native records
 
 Hash helper 0x00C126C0 starts h=0x01000193 and repeats
