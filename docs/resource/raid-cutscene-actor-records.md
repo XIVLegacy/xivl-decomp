@@ -125,8 +125,9 @@ two `RaptureBgActionClip` records at payload offsets `0xA38` and `0xD9C`
 name `roc_r0_dun01` and `time_door_a1_open`, with trailing words
 `[18, 0]`. That timeline belongs to six door instances (1406 and
 1408-1412), so the target string alone does not select a unique door.
-The trailing words' dispatch ABI and historical viewing policy remain
-unknown.
+The [BG clip consumer](cut-bg-action-clip.md) separates the trailing numeric,
+Boolean and mode fields, with conditional target-resolution and dispatch
+tuples. Concrete target binding and historical viewing policy remain unknown.
 
 The same layout's relative `lyb` base is physical offset
 `0x4A50`. Its node at relative `0x22680` names `roc_r0_dun01` and has
