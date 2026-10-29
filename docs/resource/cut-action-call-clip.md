@@ -146,19 +146,61 @@ assignment is supplied by this producer join.
 
 The pointer wrapper `0x007A0F70` stores Q at its receiver T+0 and returns
 T. It makes no call or Q dereference. Under ordinary distinct local/request
-storage, that wrapper does not alter Q's bytes. Other Q-taking gates at
-`0x00845F02 -> 0x008440A0` and `0x00845F12 -> 0x00844FF0` remain
-uninspected. Thus original u32(D+`0x14`) is supplied to the packed-selector
-input field; equality with the later visual selector remains conditional on
-preservation of Q+`0x10` across those calls. Q+4's separate preservation
-conditions still apply to type dispatch and bucket selection.
+storage, that wrapper does not alter Q's bytes. The two Q-taking predicates
+below preserve the selected fields on the ordinary type-5 path. Original
+u32(D+`0x14`) is supplied to the packed-selector input field; its equality
+with the later visual selector still depends on upstream target helpers,
+aliases and compatible copying. Q+4's separate source/reread conditions
+still apply to type dispatch and bucket selection.
+
+## Two admission predicates and record preservation
+
+At `0x00845EF6`, `0x0065DF30` receives ECX=u32(C+`0x228`) and `[1]`.
+Zero AL skips Gate A. Otherwise `0x00845F02` calls `0x008440A0`, ECX=C,
+with `[Q]`; zero Gate-A AL branches to `0x00845FB6`, while nonzero AL
+continues. Gate B, `0x00844FF0`, receives the same `[Q]` at `0x00845F12`.
+Its nonzero AL selects `0x00845FB6`; zero continues to `0x00845F1F`.
+The initial actor predicate remains untraced and is not assigned a status name.
+
+Gate A reads only u32(Q+`0x10`) at `0x008440B1`. At `0x008440D2`, the
+existing scalar decomposer `0x00798370` receives that copied dword and three
+distinct local output-word addresses. Q is not an explicit argument. Gate A
+returns AL=1 exactly when the outputs, in argument order, are `0x7F`, 0 and
+unsigned 100..199. It writes only its local frame. These are compiled
+predicate constants, not observed serialized selector values or game-command
+IDs, and are distinct from the BG clip's native dispatch selector `0x7F`.
+
+Gate B's wrapper T is its incoming argument cell, entry ESP+4, containing Q.
+It is not the request base. `0x007A0F70` writes the same pointer into that
+cell. Existing `0x007A14E0` reads the selector high byte and tests it against
+`0x19`; `0x007A0F90`, called at `0x00845040`, is one RET with no memory
+access or call. Gate B contains no direct Q or controller-field write.
+
+False high-byte predicate returns zero. Otherwise Gate B requires
+`u32(type-6)<=1`, so an unchanged ActionCall type 5 returns zero before the later
+controller reads/call. For types 6/7, AL=1 additionally requires all of:
+
+- Nonzero u32(C+20*type+20), the indexed bucket count.
+- Ordered f32(C+`0x22C`)>0.0; NaN and nonpositive values return zero.
+- Nonzero `0x00844B60(C,[type])` result.
+
+The exact threshold is binary32 `[0x01086650,0x01086654)`, SHA-256
+`df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119`.
+`0x00844B60` remains uninspected and is unreachable for unchanged type 5.
+No timer, phase, collision or reset meaning is assigned to C+`0x22C`.
+
+Under ordinary disjoint record/controller/argument/local storage, normal
+x86 ABI and the published scalar-helper contracts, these two gates preserve
+Q+4 and Q+`0x10` on this type-5 path. That is not an unconditional equality
+between original D+`0x14` and the later visual selector through all upstream
+target helpers or aliases.
 
 ## Remaining joins
 
 The source-qualified staged-record copy and packed-selector input role are
-established under their guards. The exact remaining value-preservation
-boundaries are `0x008440A0` and `0x00844FF0`; actual source values,
-resource compatibility, successful playback, completion/settlement and
+established under their guards. The upstream target-selection helpers
+`0x0081CFA0` and `0x0081D120`, aliases and actual source values remain
+qualified. Resource compatibility, successful playback, completion/settlement and
 encounter actor/add/variant membership remain unestablished. A packed
 playback selector is distinct from a game-command ID and a model-qualified
 WSS/BID bank. Historical actor binding does not prevent this static join.
@@ -184,3 +226,6 @@ It is not a complete function extent.
 | `0x00843B50` | `[0x00843B50,0x00843CE9)` | `d81fbb356614a547dc1cd9bbe3c578b3c63eb84c807c396a9d7f4b045c7fcacd` |
 | `0x005692F0` | `[0x005692F0,0x00569365)` | `baaf7459d908c2bb963526dd7862ec361d520dfdaffbd59ede6dc26fb7ab80e9` |
 | `0x007A0F70` | `[0x007A0F70,0x007A0F7B)` | `0d9d4797ad8c81da5b9f78b6e3eba5066720c9a41fbd098a5dac1e8581c3c29c` |
+| `0x008440A0` | `[0x008440A0,0x00844103)` | `f946ed4f8cec8273cf19caea158340414b2207c777b6466f4e17a57bddcafaf0` |
+| `0x00844FF0` | `[0x00844FF0,0x008450A9)` | `363c9d0c85b5f92d847d5bf14d4c2113da9e4ae5cf8eed6a63c8e0f834760f01` |
+| `0x007A0F90` | `[0x007A0F90,0x007A0F91)` | `ae3f4619b0413d70d3004b9131c3752153074e45725be13b9a148978895e359e` |
