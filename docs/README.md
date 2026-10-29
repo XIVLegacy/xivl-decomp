@@ -237,6 +237,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
 - [Sqwt CommandParameter consumer](resource/sqwt-command-parameter-consumer.md)
 - [Sqwt RangeBase float ValueChanged production](resource/sqwt-range-value-changed.md)
+- [Sqwt DoubleAnimation clock and capture](resource/sqwt-double-animation-clock.md) -
+  Bounded nonrepeat timer input, current-property capture and ordering limits.
 - [Sqwt ProgressBar template style and indicator sizing](resource/sqwt-progress-template-style.md)
 - [Sqwt CellSkins texture filename selection](resource/sqwt-skin-texture-filename.md)
 - [DamagePlate numeric presentation](resource/damage-plate-numeric-presentation.md)
