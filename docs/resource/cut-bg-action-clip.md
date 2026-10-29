@@ -108,6 +108,11 @@ calls V vtable +`0x1C`, slot 7, at `0x0062A136` with
 names remain UNESTABLISHED. These observations do not name slot 7
 cancellation or N a command ID.
 
+The [nominal map query resolvers](map-target-query-resolvers.md) establish
+the conditional RaptureLayoutManager +`0xE0` methods and their kind-7 fast
+member route. Actual R/O binding remains separate; their root numeric filter
+must not be assigned to the BG caller without that path join.
+
 Both skip the shared helper when `u32(result+0x0C) == 0x00FFFFFF`.
 Otherwise `0x0062A0EB` / `0x0062A156` calls `0x00629E40` with ECX=M and
 `[P, result*, 0, float32(1.0)]`. The branch helpers return with `RET 28`
