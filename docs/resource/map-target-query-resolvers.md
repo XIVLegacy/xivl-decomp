@@ -2,12 +2,15 @@
 
 The nominal RaptureLayoutManager query interface routes BG kind 7 through
 an embedded member collection. It does not fall back to the root query when
-that collection is empty or its member calls produce no output. The actual
-member implementation and the BG numeric argument's meaning remain unbound.
+that collection is empty or its member calls produce no output. A selected
+normal registration path supplies the embedded TimeLine provider at R+`0x274`
+to the node payload consumed by those member calls. Actual runtime membership,
+matches and historical BG binding remain unbound.
 
 Two separately recovered root query methods have exact kind/name predicates,
-including a numeric equality filter with zero wildcard. Their presence does
-not establish that the BG kind-7 member selects them.
+including a numeric equality filter with zero wildcard. The constructed
+TimeLine provider selects these methods through its authenticated table.
+Other members require their own type and slot joins.
 
 ## Source and nominal interface
 
@@ -86,9 +89,10 @@ is empty. The delegates use H=u32(Z+4), then node=u32(H). Each reached
 non-sentinel node provides O=u32(node+`0x10`). At `0x00646530`, O slot 5
 receives `[out*,targetName,kind,N]`; at `0x006465BB`, O slot 7 receives
 `[out*,targetName,kind]`. The local iterator then passes through
-`0x009172C0` before the next loop test. That helper and O's virtual targets
-remain uninspected. No name/N comparison or output population occurs in
-these delegates. Their returns pop 20 and 16 bytes.
+`0x009172C0` before the next loop test. That helper remains uninspected.
+The typed producer below supplies one O implementation; arbitrary current
+members remain runtime identities. No name/N comparison or output population
+occurs in these delegates. Their returns pop 20 and 16 bytes.
 
 ## Embedded collection initialization
 
@@ -146,6 +150,79 @@ This is an initialization contract. Later opaque R-receiving calls may
 register members, so it does not establish emptiness when the complete R
 constructor returns, identify O or describe encounter reset behavior.
 
+## Nominal TimeLine provider and node publication
+
+The same R constructor forms ECX=R+`0x274` at `0x00651E88` and calls
+`0x00805E60` at `0x00651E8E`. That constructor installs table
+`0x00FF3C34` at `0x00805E95`. Its original COL cell `0x00FF3C30` points
+to `0x01164688`, complete-object offset 0, type descriptor `0x012C828C`.
+The RTTI identity is `Application::Scene::Actor::Map::Instance::TimeLine`.
+Original slot-5 cell `0x00FF3C48` contains `0x00804040`; slot-7 cell
+`0x00FF3C50` contains `0x008042C0`. This is query provider O, not the
+converted BG dispatch target T.
+
+Nominal RaptureLayoutManager primary table `0x00FBFEE4` supplies slot 15
+through cell `0x00FBFF20` -> `0x0064E200`, and slot 16 through
+`0x00FBFF24` -> `0x0064C1D0`. The slot-15 call at `0x0064E203`
+forwards unadjusted R to `0x0064A560`. Slot 16 forwards the same R at
+`0x0064C1E3` only when u32(the `0x00623C60` return+`0x164`) is nonzero.
+Opaque calls retain the usual callee-saved-register qualification.
+
+`0x0064A560` exits when u8(R+`0x1B4`) is nonzero. Its selected main path
+stores a two-dword local pair: K=u32(global `0x012B9A1C`) at pair+0 and
+O=R+`0x274` at pair+4. At `0x0064A747`, `0x008095B0` receives ECX=Z
+and `[out*,pair*]`. Normal completion of the main path sets byte R+`0x1B4`
+to 1 at `0x0064A876`. This byte's encounter meaning is not established.
+
+A second caller, `0x0064A890`, supplies K=u32(P+`0x88`) and O=P+`0x148`
+at `0x0064A94C`, receiver U+`0x350`. P is its explicit argument and U
+its incoming receiver. U/P's concrete classes remain unbound, so this is
+not assigned the nominal provider's type from matching offsets.
+
+The ordered-search helper `0x008095B0` reads H=u32(Z+4), starts at
+u32(H+4), and compares K unsigned with node+`0x0C`, following node+0/+8
+until a nonzero byte node+`0x15`. Its selected new-node path delegates
+through the following exact chain:
+
+| Callsite -> target | Receiver | Nearest-first arguments |
+| --- | --- | --- |
+| `0x0080960E` -> `0x0079E570` | Z | `[outIterator*,lastLess,parent,pair*]` |
+| `0x0079E5F4` -> `0x0079DED0` | Z | `[H,parent,H,pair*,0]` |
+| `0x0079DF39` -> `0x0061EEC0` | New node | `[H,parent,H,pair*,0]` |
+
+This ordinary creation path requires u32(Z+8)<`0xFFFFFFFE`, a nonzero
+valid node returned by the opaque `0x0044D500` call, normal construction and
+readable/writable disjoint node/pair storage. A zero return skips the
+node constructor; the upper path is not established as safe for that result.
+Error/iterator helper effects remain opaque. A no-delegate result from
+`0x008095B0` returns flag byte 0 and does not run this constructor; forwarding
+a pair does not establish replacement of an existing candidate's payload.
+
+The complete node constructor has no calls or guards. Its ordered stores are:
+
+| Locator | Store |
+| --- | --- |
+| `0x0061EECA` | u32(node+0)=H |
+| `0x0061EED0` | u32(node+8)=H |
+| `0x0061EED7` | u32(node+4)=parent |
+| `0x0061EEDC` | u32(node+`0x0C`)=u32(pair+0), the registration key K |
+| `0x0061EEE6` | u32(node+`0x10`)=u32(pair+4), the provider pointer O |
+| `0x0061EEE9` | u8(node+`0x14`)=low8(fifth argument), here 0 |
+| `0x0061EEEC` | u8(node+`0x15`)=0 |
+
+It returns node with `RET 20`. The earlier producer returns that allocation
+with `RET 20`; `0x0079E570` increments Z+8 at `0x0079E603` and updates
+the link/flag structure before its `RET 16`. No standard C++ container or
+color enum is assigned. This closes the selected TimeLine-pointer-to-node
+payload producer and permits its slot contracts below to be composed with
+the fast reader, under the stated creation and membership conditions.
+
+Keep K, O and N separate. K is the unsigned node+`0x0C` registration key;
+node+`0x10` is an interface pointer. BG N is a query argument tested against
+a different resolved record's `0x10` field by this TimeLine provider.
+None is established as an actor, command or model identifier. Later member
+mutations, actual matches, converted T and historical delivery remain unbound.
+
 ## Separate root and child fallback
 
 For a zero Z, the nominal callers instead call `0x00804040` /
@@ -164,8 +241,8 @@ Iterator failure calls `0x009D22B4`; its behavior was not inspected. Null
 pointer adjustment alone does not establish a safe empty-child-list path.
 
 These root/child alternatives are not triggered by an empty BG kind-7 fast
-collection. No matching virtual-slot ordinal identifies a fast O with one
-of the root implementations below.
+collection. The TimeLine attribution above comes from construction, original
+table cells and a node-payload producer, beyond matching a slot ordinal.
 
 ## Root matching and output semantics
 
@@ -202,14 +279,18 @@ must be preserved.
 
 ## Applicability and exact remaining join
 
-For the retained Dzemael composition, valid nominal kind-7 routing only
-narrows `[16,1]` to forwarding N=16 into fast O slot 5 and `[18,0]` to O
-slot 7 with N=18 omitted. The root equality filter is not evidence that
-either scene selects a particular placement, timeline or collision member.
+For the retained Dzemael composition, valid nominal kind-7 routing narrows
+`[16,1]` to forwarding N=16 into fast O slot 5 and `[18,0]` to O slot 7
+with N=18 omitted. If the selected normal TimeLine publication supplies that
+member, the first path compares its resolved record+`0x10` with 16, while
+the second uses the no-N API. This is the provider's fast-member dispatch,
+not the nominal zero-Z fallback. It does not establish either scene's actual
+record, named alias, placement or collision member.
 
 Missing joins remain: current R's dynamic class, concrete clip/current D,
-the embedded fast-list membership writer, O's table/slots 5 and 7, actual
-matches and historical playback. Command IDs, model substates, statuses and
+actual membership through the selected producer or other member writers,
+the resolved-record field producer, actual matches and historical playback.
+Command IDs, model substates, statuses and
 server phases cannot be derived from N, kind, acquisition-state threshold or
 native dispatch P. No collision activation/cancellation or defeat/wipe/retry/
 exit restoration is established here.
@@ -231,6 +312,15 @@ basic blocks, independently of catalog summed sizes.
 | `0x006301C0` | `[0x006301C0,0x00630216)` | `3b343c0214f834f2b410abdac456d7bfa83c6bca81c269e00af9436db5866144` |
 | `0x0062F400` | `[0x0062F400,0x0062F465)` | `72c6f4d52000eae88e691dc2e96874091201e7c4aaf22d326fe93ae204407784` |
 | `0x0062F120` | `[0x0062F120,0x0062F1AB)` | `8c8b884c857e67b94909f5dff0737db1491d656254f74359a36f8b88af4c4430` |
+| `0x0064A560` | `[0x0064A560,0x0064A883)` | `54efa8bf8cee02fbd026ddcdd802f1053d39a5bdab16645f2ded5f9b94142c7d` |
+| `0x0064A890` | `[0x0064A890,0x0064AA4F)` | `52815badad77ef19efd8c9d343781dbc7b1ba5a946d8a51d31f179e4535eccf8` |
+| `0x008095B0` | `[0x008095B0,0x00809669)` | `cc127a9971f36a9c491995c1d048a2551c44f0ca37aea56168e99252fce2438d` |
+| `0x0064E200` | `[0x0064E200,0x0064E21B)` | `8958b6838935f9644c4fc7d198ed683fc3d8c299b3968a9dfe39463b6f77babe` |
+| `0x0064C1D0` | `[0x0064C1D0,0x0064C1F4)` | `013066c428ad6287cf4828172a367c70f0ad53bd2b12e822888303b4cc77f5b8` |
+| `0x00805E60` | `[0x00805E60,0x00805EB6)` | `7c87af8b40a5848d4800f658e0124bd934207ce08a30d47a77f5d582d0e996f6` |
+| `0x0079E570` | `[0x0079E570,0x0079E75D)` | `5417c53d9fedf2ced4d765f18cd8901bc5c7554b29083253e005e9ec5d685480` |
+| `0x0079DED0` | `[0x0079DED0,0x0079DF5F)` | `14743b028acb4d7ecae4cfa46dcbb8b0d321895af889499fa6e35bd0036ddebf` |
+| `0x0061EEC0` | `[0x0061EEC0,0x0061EEF3)` | `d800c08453ed0ba28a5e1b099e5b5565115982d30221a9d5c13fedfd8233845e` |
 
 The selected kind-7 router plus guard/default occupied only
 `[0x00640E40,0x00640E53)`, `[0x00640E77,0x00640E80)` and
