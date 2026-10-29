@@ -202,9 +202,10 @@ static const size_t subobj_0bf0 = 0x0bf0;
 // Capstone 5.0.7 over retail ffxivgame.exe verified the constructor prefix
 // [0x0065F180,0x0065F356); see docs/resource/cut-status-and-parameter-clips.md.
 // Each ctor takes one argument and stores it at
-// member offset 0, an owner back-pointer to CharaActor. None assigns a
-// vtable, so these are non-polymorphic and have no RTTI record; they cannot
-// be named from the RTTI dump. Sizes are derived from offset adjacency, not
+// member offset 0, an owner back-pointer to CharaActor. Direct vtable-store
+// absence does not prove non-polymorphism or exclude helper-installed state;
+// subobj_1030 delegates to FUN_007a5070. Its concrete type remains unestablished.
+// Sizes are derived from offset adjacency, not
 // witnessed structure sizes.
 static const size_t subobj_0fc0 = 0x0fc0; // ctor FUN_007b1180; size 0x70
 static const size_t subobj_1030 = 0x1030; // ctor FUN_007ab450; size 0x40

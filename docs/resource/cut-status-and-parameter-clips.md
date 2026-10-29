@@ -273,6 +273,25 @@ ignoring case. Only that match calls `0x00844EF0` at `0x0066162B`,
 ECX=A+`0x2858`, with nearest-first arguments `[0x0C,1]`.
 The literal's spelling does not itself establish cancellation.
 
+### Component constructor boundary
+
+The existing CharaActor constructor prefix forms S=A+`0x1030` at
+`0x0065F323` and calls `0x007AB450` at `0x0065F329`. That component
+constructor writes its first stack argument to u32(S+0) at `0x007AB457`,
+then calls opaque `0x007A5070` with ECX=S at `0x007AB459`.
+After normal return it writes raw dword `0xC0000000` to S+`0x20`,
+equivalently A+`0x1050`, at `0x007AB45E`. It returns S in EAX and
+uses RET4 at `0x007AB468`. No floating-point or gameplay meaning is
+assigned to that bit pattern.
+
+The selected body has no local conditional branch, direct S+8 store or
+vtable installation. Its helper's writes remain uninspected. A direct
+vtable-store absence does not establish a non-polymorphic concrete type or
+exclude helper-installed state. The actor+`0x1038` bit's initial value,
+reader and effect remain UNESTABLISHED; this constructor is not an
+encounter-reset witness. The [header](../../include/actor/chara_actor.h)
+retains the inline-member and adjacency-based size qualifications.
+
 ### Character bucket-12 control request
 
 The [action-queue contract](../actor/action-queue.md#storage-ceiling)
@@ -371,3 +390,4 @@ not a separately established source-level function.
 | `0x0080BCD0` | `[0x0080BCD0,0x0080BCE2)` | `1233ca2c21f7ff9011c2dfffcb7738c81416b161f5fc276eb1c77caa883689c3` |
 | CharaActor constructor prefix | `[0x0065F180,0x0065F356)` | `ab931ce82dedd1789a1014528648aefb08ee76ad60f6f0f93e26bd20585bb559` |
 | `0x0080BB80` | `[0x0080BB80,0x0080BBDB)` | `d4ad90d7d393dbd16ae099a76c9b585f7e1b02f8863c51ddd7e1b279c876e1da` |
+| `0x007AB450` | `[0x007AB450,0x007AB46B)` | `6a58bd9bc21b3e9f923b71c5e0f08e53f0dc22b595cfaace0d7037a9a9041998` |
