@@ -55,9 +55,10 @@ B+`0xD0`, not the address of a cell holding that pointer. The selected stores ar
 | Area `+0x38` | Starts at `0x0081D44C`, stride `0x14` at `0x0081D4B9`; an accepted entry's first dword is u32(slot23_result+`0xDC`), stores `0x0081D4AC` / `0x0081D4B7` |
 
 The `0xDC` source words are not given actor-ID semantics from their offsets.
-The two target-selection helpers `0x0081CFA0` and `0x0081D120`, their full
-selection predicates and other Q fields remain untraced. This table is a
-partial field relationship, not a complete request schema.
+The two target-selection helpers `0x0081CFA0` and `0x0081D120` have the
+caller tuples below. Their effects, full selection predicates, output sizes
+and other Q fields remain untraced. This table is a partial field
+relationship, not a complete request schema.
 
 At `0x0081D4ED` the caller forms Q. Pushes at `0x0081D4F4` and
 `0x0081D4F5` supply Q then R. The call at `0x0081D500` is
@@ -65,6 +66,62 @@ At `0x0081D4ED` the caller forms Q. Pushes at `0x0081D4F4` and
 The receiver comes from `0x0081D3DA` / `0x0081D3E2`, restored at
 `0x0081D4E0`. Normal x86 call/return and callee-saved-register conventions
 are assumed.
+
+### Target-helper caller tuples
+
+Let B be steady caller-local ESP, P the entry clip ECX, and X the original
+entry stack word. P is stored at B+`0x20` at `0x0081D25D`; X is loaded
+from B+`0x280` at `0x0081D373`/`0x0081D46C`. These are pointer/raw-word
+roles, not actor identities. The cursor cell B+`0x14` initially receives
+D+`0x18` at `0x0081D27F`/`0x0081D286`.
+
+| Helper callsite | Receiver / nearest-first supplied arguments | Return use |
+| --- | --- | --- |
+| `0x0081D291` -> `0x0081D120` | &cell(B+`0x14`), `[B+0x7C]` | EAX becomes receiver of `0x00445E00` at `0x0081D2A8`. |
+| `0x0081D2F5` -> `0x0081D120` | &cell(B+`0x14`), `[B+0x7C]` | EAX becomes receiver of `0x00445D20` at `0x0081D305`. |
+| `0x0081D363` -> `0x0081D120` | &cell(B+`0x14`), `[B+0x28]` | EAX becomes receiver of `0x00445210` at `0x0081D37D`. |
+| `0x0081D45C` -> `0x0081D120` | &cell(B+`0x14`), `[B+0x28]` | EAX becomes receiver of `0x00445210` at `0x0081D476`. |
+| `0x0081D387` -> `0x0081CFA0` | P, `[W,X]` | EAX is retained in ESI at `0x0081D38C`. |
+| `0x0081D480` -> `0x0081CFA0` | P, `[W,X]` | EAX is retained in ESI at `0x0081D485`. |
+
+The D120 receiver and explicit word are local addresses, not loads from
+those cells. The two CFA0 calls load their receiver from a stack cell and
+push W without dereferencing it. W is the immediately preceding
+`0x00445210` return word.
+
+The X pushes at `0x0081D37A`/`0x0081D473` precede the accessor calls.
+The exact accessor at `0x00445210` reads u32(ECX+0) into EAX and returns
+at `0x00445212` with no immediate argument cleanup. It has no call, object
+write or stack-argument read. Thus X remains live across it, followed by
+the W pushes at `0x0081D386`/`0x0081D47F`. Under normal balanced-call
+and consistent-local-frame conventions, receiver loads
+`0x0081D382`/`0x0081D47B` select P, and CFA0 receives `[W,X]` with
+eight-byte cleanup expected by its caller. This is caller evidence; CFA0's
+implementation/formal signature remains uninspected. The
+[existing accessor use](sqwt-markup-font-numeric-properties.md)
+provides a separate string-wrapper context, not a type proof for this W.
+
+The second D120 call requires nonzero AL from `0x00445E00`, retained in
+BL and tested at `0x0081D2C3`/`0x0081D2C5`. The third requires zero AL
+from `0x00445D20` at `0x0081D331`/`0x0081D333`; its nonzero alternative
+bypasses that call and the first CFA0 call. No meaning is assigned to
+these opaque predicates. The loop repeats the fourth D120 and second CFA0
+calls after the Q fields are initialized. It rereads and sign-extends
+D+`0x11` at `0x0081D4CD`, rather than snapshotting that loop bound.
+
+Caller cursor progression reads the current cursor's first byte and adds
+8 when nonzero or `0x24` when zero, storing the result at B+`0x14`.
+The initial progression is `0x0081D42F-0x0081D43E`; loop progression is
+`0x0081D4BC-0x0081D4D6`. Helper effects on that cursor and D remain opaque.
+The loop's nonzero CFA0 result must also have a nonzero slot23 result
+before its returned +`0xDC` word is appended to the accepted target area.
+
+Q=B+`0xD0` and its row area starts at B+`0x108`. The supplied local
+addresses differ from those bases; neither helper directly receives Q or
+its row base. Unknown output extents and pointers reachable through the
+cursor, receiver, W or X can still alias Q or rows. Caller tuples alone
+therefore do not prove unconditional selector preservation, target identity,
+successful playback, command IDs or encounter/variant membership.
 
 ## Forwarding and guards
 
@@ -229,3 +286,4 @@ It is not a complete function extent.
 | `0x008440A0` | `[0x008440A0,0x00844103)` | `f946ed4f8cec8273cf19caea158340414b2207c777b6466f4e17a57bddcafaf0` |
 | `0x00844FF0` | `[0x00844FF0,0x008450A9)` | `363c9d0c85b5f92d847d5bf14d4c2113da9e4ae5cf8eed6a63c8e0f834760f01` |
 | `0x007A0F90` | `[0x007A0F90,0x007A0F91)` | `ae3f4619b0413d70d3004b9131c3752153074e45725be13b9a148978895e359e` |
+| `0x00445210` | `[0x00445210,0x00445213)` | `19d200194d49b34530548575f37a1bb4203ee60f18d42f0084e86b7a8c899faa` |
