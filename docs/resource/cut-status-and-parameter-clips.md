@@ -284,13 +284,43 @@ equivalently A+`0x1050`, at `0x007AB45E`. It returns S in EAX and
 uses RET4 at `0x007AB468`. No floating-point or gameplay meaning is
 assigned to that bit pattern.
 
-The selected body has no local conditional branch, direct S+8 store or
-vtable installation. Its helper's writes remain uninspected. A direct
-vtable-store absence does not establish a non-polymorphic concrete type or
-exclude helper-installed state. The actor+`0x1038` bit's initial value,
+The selected constructor body has no local conditional branch, direct S+8
+store or vtable installation. Its same-S initializer is described below.
+A direct vtable-store absence does not establish a non-polymorphic concrete
+type or exclude helper-installed state. The actor+`0x1038` bit's semantic
 reader and effect remain UNESTABLISHED; this constructor is not an
 encounter-reset witness. The [header](../../include/actor/chara_actor.h)
 retains the inline-member and adjacency-based size qualifications.
+
+### Component initialization writes
+
+`0x007A5070` has no local branch and directly updates these fields of S:
+
+| Write VA | Width | Update |
+| --- | --- | --- |
+| `0x007A5089` | u32 | S+4 = old & `0xFFFFFFFC`, clearing bits0..1 only. |
+| `0x007A508D` | u8 | S+8 = old & `0xFE`, clearing bit0 and preserving bits1..7. |
+| `0x007A5091` | u32 | S+`0x0C` = `0xFFFFFFFF`. |
+| `0x007A50AE` | 16 bytes | Copies 16 bytes from the earlier virtual call's returned address P into S+`0x10`..+`0x1F`. |
+| `0x007A50B6` | 8 bytes | Zeroes S+`0x28`..+`0x2F`. |
+| `0x007A50BB` | 8 bytes | Zeroes S+`0x30`..+`0x37`. |
+
+The byte AND establishes actor+`0x1038` bit0=0 at `0x007A508D` on
+the selected constructor path. It does not initialize the entire byte to
+zero. There is no direct S+0 write. O=u32(S+0) is used as the receiver
+of virtual byte offset `0x88` at `0x007A50A5`; the nearest pushed word
+is a local stack-buffer address. Its formal arity and implementation remain
+uninspected. The returned P is read for 16 bytes at `0x007A50A7`.
+No O, dispatch-target or P null check is present locally. The data's meaning
+and concrete virtual target remain unestablished.
+
+Both that virtual implementation and direct `0x009D20F4`, called at
+`0x007A50C3`, remain opaque. They occur after the byte clear, so a complete
+postcall byte value or a guarantee that later callees preserve bit0 is not
+established. No local semantic EAX result is assigned after the last call.
+RET at `0x007A50CB` has no immediate argument cleanup. The read-modify-write
+supports bit preservation at its instruction, not a gameplay reader, boss
+mode, status effect, server phase or encounter-reset operation.
 
 ### Character bucket-12 control request
 
@@ -391,3 +421,4 @@ not a separately established source-level function.
 | CharaActor constructor prefix | `[0x0065F180,0x0065F356)` | `ab931ce82dedd1789a1014528648aefb08ee76ad60f6f0f93e26bd20585bb559` |
 | `0x0080BB80` | `[0x0080BB80,0x0080BBDB)` | `d4ad90d7d393dbd16ae099a76c9b585f7e1b02f8863c51ddd7e1b279c876e1da` |
 | `0x007AB450` | `[0x007AB450,0x007AB46B)` | `6a58bd9bc21b3e9f923b71c5e0f08e53f0dc22b595cfaace0d7037a9a9041998` |
+| `0x007A5070` | `[0x007A5070,0x007A50CC)` | `ed233e5232362a0b98877bb06a4a95006119ca28770460bc310f49f06b40c144` |
