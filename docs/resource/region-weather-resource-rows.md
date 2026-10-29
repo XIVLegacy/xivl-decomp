@@ -91,6 +91,31 @@ Its [Limsa rain selection](../net/weather-transition-runtime.md#limsa-rain-selec
 joins supplied region key `101` and weather `8007` to the selected resource
 and weather queue under the documented native guards.
 
+## Declared roots 102 and 105
+
+The declared root/child runs in the pinned 52,336-byte table give these
+type-zero memberships. Parentage follows the root's `+0x0C` child count,
+rather than the nearest token. Python `struct` and `hashlib` checked the
+table identity and the selected records using the loader finding's framing.
+
+| Root ID | Root token / file offset | All children | Type-zero children | Type-zero IDs in file order |
+| ---: | --- | ---: | ---: | --- |
+| 102 | `roc_r0` / `0x610` | 25 | 11 | 8001, 8002, 8003, 8004, 8007, 8006, 8028, 8065, 8031, 8030, 8032 |
+| 105 | `lak_l0` / `0x1810` | 15 | 10 | 8001, 8002, 8003, 8004, 8007, 8017, 8065, 8031, 8030, 8032 |
+
+All selected children have raw `+0x0C == 0x102`; both roots have raw
+`+0x20 == 0`. Root 102's selected children occupy `0x640..0x820` in
+`0x30`-byte steps. Root 105's occupy `0x1840..0x19F0` in the same steps.
+For example, ID 8007 binds key `0x28D90011` at `0x700` under 102 and
+key `0x03E70007` at `0x1900` under 105; ID 8017 binds
+`0x03E70008` at `0x1930` under 105.
+
+The [three-city selection](../net/city-weather-selection.md#declared-region-membership)
+owns the corresponding memberships for roots 101, 103 and 104. These
+resource bindings include specialized weather IDs. They do not define an
+ordinary lottery, weights, an active area, or city-to-field weather policy.
+The raw stored dwords do not receive a probability interpretation.
+
 ## Native loader boundary
 
 The pinned 1.23b `ffxivgame.exe` (SHA-256
