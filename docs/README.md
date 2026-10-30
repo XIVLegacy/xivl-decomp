@@ -229,6 +229,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt FontType property bridge](resource/sqwt-font-type-property-bridge.md)
 - [Sqwt FontEdge property bridge](resource/sqwt-font-edge-property-bridge.md)
 - [Sqwt markup numeric font properties](resource/sqwt-markup-font-numeric-properties.md)
+- [Sqwt qualified property lookup](resource/sqwt-qualified-property-lookup.md)
 - [Sqwt conditional numeric font preprocessing](resource/sqwt-numeric-font-preprocessing.md)
 - [Sqwt plain text reference lookup](resource/sqwt-plain-text-reference-lookup.md)
 - [Rich-string entry count controls](resource/rich-string-entry-counts.md)
