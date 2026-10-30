@@ -421,6 +421,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lua reflective call alias](script/lua-call-function-bridge.md)
 - [Lua bootstrap chunks and standard library globals](script/lua-bootstrap-chunks.md)
 - [Widget work members](script/widget-work-members.md)
+- [StatusEffectWidget lifecycle](script/status-effect-widget-lifecycle.md)
 - [DesktopWidget](script/desktop-widget.md)
 - [Player LogControl producers and English row availability](script/logcontrol-player-producer.md)
 - [WorldMaster message-pool text lookup](script/worldmaster-message-pool.md)
