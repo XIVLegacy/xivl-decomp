@@ -5,6 +5,11 @@ A retained Paladin job-activation sequence contains a job-state update
 `0x04000029` (decimal `67108905`). The native presentation path selects
 `client/vfx/lib/0041`. The job-byte setter does not itself request the effect.
 
+The [seven-job map](#seven-job-presentation-bank-map) confirms the job-specific
+banks `lib/0039` through `lib/0045` against original Lua bytecode and the
+installed effect resources. Paladin also has the captured activation witness;
+the other assignments are static client evidence.
+
 The separate bank `client/vfx/lib/0048` contains the authored `jobchange`
 presentation. Its effect-only selector is `0x04000030` (decimal `67108912`):
 category 4 (`lib`), character bank 0, effect bank 48. That selector remains a
@@ -151,6 +156,120 @@ and the visual constructors and dispatch at `0x007983C0`, `0x00843DB0`,
 The existing `tools/verify_combat_result_element.py --exe` and
 `tools/verify_player_profile_accessors.py --exe` checks also passed against
 the pinned image. These checks observed static bytes, not execution.
+
+## Seven-job presentation bank map
+
+The [Equipment job table](../script/equipment-soulstones.md#important-item-backing)
+owns the job IDs and soul-stone item identities. The retail helper
+`QuestBaseClass.showGetJobItemWidget`, decoded at
+`xivl-client-scripts:lua/scripts/quest/questbaseclass_common.lua:1189-1228`,
+assigns these selectors for those exact items and calls
+`playerArgument:_runCharaScheduler(selector)`. This is an explicit script
+assignment, not a name guessed from the bank filename.
+
+| Job | Job ID | Soul-stone item | Bank | Packed selector | Original EQ / LOADK PCs |
+| --- | ---: | ---: | --- | --- | --- |
+| Warrior | 17 | 2000203 | `lib/0039` | `0x04000027` | 42 / 44 |
+| Monk | 15 | 2000202 | `lib/0040` | `0x04000028` | 46 / 48 |
+| Paladin | 16 | 2000201 | `lib/0041` | `0x04000029` | 50 / 52 |
+| White Mage | 27 | 2000206 | `lib/0042` | `0x0400002A` | 54 / 56 |
+| Black Mage | 26 | 2000207 | `lib/0043` | `0x0400002B` | 58 / 60 |
+| Dragoon | 19 | 2000204 | `lib/0044` | `0x0400002C` | 62 / 64 |
+| Bard | 18 | 2000205 | `lib/0045` | `0x0400002D` | 66 / 68 |
+
+Each selector has category 4, middle field 0 and its bank number in the low
+12 bits. The native route already traced above therefore selects its
+corresponding `/client/vfx/lib/NNNN.bin` request. Every mapped selector is
+visual class 12. The job ID, item ID and bank number are distinct namespaces.
+
+### Original script verification
+
+The decoded helper is 35,511 bytes, SHA-256
+`cf61a5687dbc7b6accd26c8cd3a138decc0372fb72518ac6f2054f125bc1465e`,
+authenticated against `xivl-client-scripts:manifests/scripts.json`.
+The original `client/script/tp5rq/tp5rq89r57y9rr_7vxxvw.le.lpb` is
+13,072 bytes, SHA-256
+`ecc3f7c6fb49df196431494aa5aece95ede1c24ca1325af11ddc993a3836322d`.
+Its decoded Lua payload is 13,059 bytes, SHA-256
+`9379ee6832bdfa542273c7f43f065d7a15f9a730d9ef244be9a565a1faa53504`.
+Those original and payload identities match
+`xivl-client-scripts:manifests/retail_lua_coverage.json`.
+
+`xivl-client-scripts:tools/retail_script.py:decode_lpb` decoded the original.
+`tools/build_quest_contracts.py:ChunkReader` in that repository parsed the
+payload through EOF. In `root/proto40`, each tabled `EQ` compares parameter
+register 2 with its item constant. The equality branch reaches the listed
+`LOADK` into register 7; its following jump reaches PC 115. PCs 115-117 use
+`SELF` on parameter register 1 with `_runCharaScheduler`, move register 7
+into its argument slot and call with the receiver and selected ID. The
+bytecode therefore confirms the item-to-selector branches and forwarding,
+independently of the recovered Lua rendering.
+
+### Component effect resources
+
+All seven banks contain two `veff` blobs. These are the authored source
+basenames, containing directory names and absolute blob offsets within the
+extensionless bank file. The common authored directory prefix is
+`d:\gra_rapture\vfx\lib\`; each directory below has a `vfx` child.
+The two lifetime values are the respective veff root `+0x50` tick words.
+They are not the SCB action-end fields.
+
+| Job | Authored directory | First veff | Second veff | Blob offsets | Lifetime ticks |
+| --- | --- | --- | --- | --- | --- |
+| Warrior | `job_stn39` | `job_stn39.veff` | `s_weapon.veff` | `0x110A0`, `0x189E0` | 600000, 375000 |
+| Monk | `job_stn40_mnk` | `jobstn40_mk.veff` | `s_weapon.veff` | `0x110B0`, `0x18A60` | 550000, 375000 |
+| Paladin | `job_stn41_pld` | `job_stn41_knight.veff` | `s_weapon.veff` | `0x10C00`, `0x18670` | 550000, 375000 |
+| White Mage | `job_stn42_whm` | `job_stn42_wm.veff` | `s_siroma.veff` | `0x1D1E0`, `0x24CC0` | 550000, 350000 |
+| Black Mage | `job_stn43_bkm` | `job_stn43bm.veff` | `s_kuroma.veff` | `0x18A70`, `0x203C0` | 600000, 350000 |
+| Dragoon | `job_stn44_drg` | `job_stn44_dk.veff` | `s_weapon.veff` | `0x10C00`, `0x18E40` | 600000, 375000 |
+| Bard | `job_stn45_brd` | `job_stn45_gn.veff` | `s_song.veff` | `0x13860`, `0x1B1B0` | 600000, 600000 |
+
+The same repository RES, Qix-root and SCB parsers used for the Paladin bank
+decoded every bank above. All Qix relocation-directory checks passed.
+The resource contents corroborate the script assignments, including Warrior's
+otherwise generic `job_stn39` name. They do not prove rendered colours or a
+universal server policy for job-change playback.
+
+### Authored action and sound timing
+
+Each SCB binds one proxy actor, starts action 1 and sound ID `2346713177`
+at tick 0, then starts another action and sound at tick 400000. Its first
+ActionClip ends at tick 550000. The later action differs as follows:
+
+| Job | Later action ID | Later action end tick | Later sound ID |
+| --- | ---: | ---: | ---: |
+| Warrior | 2 | 780000 | 2346713179 |
+| Monk | 3 | 780000 | 2346713182 |
+| Paladin | 2 | 780000 | 2346713183 |
+| White Mage | 2 | 750000 | 2346713184 |
+| Black Mage | 2 | 750000 | 2346713181 |
+| Dragoon | 2 | 780000 | 2346713180 |
+| Bard | 2 | 1000000 | 2346713185 |
+
+These are serialized ActionClip IDs, timing fields and sound resource IDs.
+In particular, Monk uses action 3 for the later entry. The numeric action-to-ACB
+lookup and final Qix playback are not established by this resource census.
+
+### Resource identities
+
+The matching installed build was `2012.09.19.0001`. The bank paths are relative
+to `client/vfx/`; the [Paladin identity](#captured-paladin-bank) is recorded
+with its capture-backed resource join.
+
+| Bank | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `lib/0039` | 221392 | `96fcada7d23163cc701a67422bf4fefe4334f7c2a0ffe907dfe927f49c7af54a` |
+| `lib/0040` | 221584 | `affed652927251d5cd3aa7312c3a667c79ddc0a57516e365338be9eb2d686db1` |
+| `lib/0042` | 321360 | `a2b4b91628ddd0d5287a4acf0c6bea41d56a414a1be2240ec97fcbd5930e3dcb` |
+| `lib/0043` | 285360 | `b1d26c2436fe57b8ac40481290d72eede2dc5d30ddc6c0a90245547b9d31f2a7` |
+| `lib/0044` | 223760 | `a666986bfc5b6dca3d114bdd291479882a4995dc25504f291448e7e49b05721b` |
+| `lib/0045` | 296272 | `e51b4c1d72880bfdd367436d533f6e65f04d556137c8a83ef52c8a7c7504cf18` |
+
+The script helper presents soul-stone rewards, so its assignment proves a
+job-specific presentation family. The captured Paladin activation independently
+uses the same selector. Equivalent activation captures for the other six jobs
+are not established here. Bank 48 is separate from all seven explicit
+soul-stone branches and remains unassigned to an individual job.
 
 ## Captured Paladin bank
 
