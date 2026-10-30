@@ -221,11 +221,11 @@ recovered `0x00758810..0x00758858`, `0x006E1670..0x006E1692`,
 `0x00768390..0x0076845E` and `0x00774AD0..0x00775170`, without unresolved
 jumps. Calls and exception dispatch remained separate boundaries.
 
-The explicit setup name and received class/path establish inputs, not a
-numeric zone-to-name or zone-to-ZoneMaster lookup. That producer remains
-UNESTABLISHED. The registry vocabulary and ordered class-definition
-requirements do not establish an actual area request's require/definition
-sequence or a sufficient set of new sheets and scripts.
+The [zone initialization input finding](zone-initialization-inputs.md) joins
+these explicit strings to captured SetMap values and the deferred path-to-require
+submission. The client receives region and zone separately from the name,
+class and path. A sufficient set of new sheet rows and successful completion
+for an authored area remain unestablished.
 
 ## Creation order
 
