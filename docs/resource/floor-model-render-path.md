@@ -77,9 +77,8 @@ registers ModelResourceNodeFactory vtable `0x010F2BC8` under numeric type
 `0x00C49EF8`; the constructor installs main vtable `0x010FAAE4` and metadata
 vtable `0x010FAAD4` at object `+0x0C`, at `0x00C770CA/0x00C770D0`.
 The selected primary resource's WRB entry starts at file `0x221C`, with
-`SEDBwrb\0` and version `23`. Validator `0x00C77270` recognizes that signature
-and requires version at least seven, interpreting the version according to
-header byte `+0x0C`. Together with the
+`SEDBwrb\0` and version `23`. Validator `0x00C77270` implements the
+[header predicate below](#wrb-header-validation-predicate). Together with the
 [packed child construction](bgchip-instance-resource-setup.md#packed-resource-child-construction),
 this connects WRB factory construction to the ResourceFinder's class test.
 The exact loaded tree and collected list for the selected candidate remain
@@ -94,6 +93,28 @@ The model's `+0xD8` pointer is therefore not a raw serialized MESH payload.
 Nonpositive drawable `+0x368` changes drawable `+0xA0` flags at
 `0x00A62096..0x00A620B8`. Successful allocation alone does not imply a
 nonempty drawable.
+
+## WRB header validation predicate
+
+For supplied pointer `B`, validator `0x00C77270` compares all eight bytes
+with `SEDBwrb\0` at `0x00C77271..0x00C7729E`. It reads the dword at
+`B+0x08` at `0x00C772A4`. Byte `B+0x0C` selects its interpretation:
+exactly 1 takes the byte-reversal path, including `BSWAP` at `0x00C772AF`;
+every other value takes the native little-endian path. The comparison at
+`0x00C772B7/0x00C772BA` rejects unsigned versions below 7. Thus this is
+a lower-bound predicate, not an equality test for the selected version 23.
+
+This validator does not read `B+0x0D`, a declared total, a directory kind
+or a supplied extent. It therefore establishes no meaning for `+0x0D` and
+no complete file-range or subtype-loading validation. The branch for values
+other than 1 does not authorize rewriting the endian byte to an arbitrary
+value; other WRB consumers remain separate.
+
+These observations used Python 3.12.0, pefile 2024.8.26 and Capstone 5.0.7
+against the original executable identity above. Entry-seeded x86-32 normal
+CFG decoding covered `[0x00C77270,0x00C772C7)` with no unresolved local
+branch. This static header predicate does not establish resource acceptance
+or rendered output.
 
 ## Streams and active counts
 
