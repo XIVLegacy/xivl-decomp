@@ -41,10 +41,16 @@ RLE step. The obfuscation is **byte-wise XOR with the constant 0x73**.
 | Offset | Bytes | Meaning |
 |---:|---|---|
 | 0..3 | `72 6c 65 0c` | Magic `rle\x0c` |
-| 4..7 | `1f c5 00 00` | Constant 0x0000c51f (purpose unknown - appears in 2513/2670 files; ~158 files have a different value here, likely a per-file checksum or version tag) |
-| 8..11 | variable | 4-byte size field (little-endian; matches body length within +/-3 bytes) |
-| 12 | `ff` | XOR'd `0x8c` (purpose unknown) |
+| 4..7 | `1f c5 00 00` | Little-endian tag, purpose unknown: 0x0000c51f in 2513 of 2670 files, 34 distinct values in all, upper 16 bits always zero |
+| 8..11 | variable | Little-endian size equal to the decoded chunk length (file length - 13) |
+| 12 | `ff` | XOR'd `0x8c` in every file (purpose unknown) |
 | 13..15 | `68 3f 06` | XOR'd `\x1bLu` - the **first 3 bytes of the Lua 5.1 signature** |
+
+A census of all 2670 `rle\x0c` files in the 1.23b install found the size
+field equal to the decoded chunk length in every file and byte 12 equal to
+`ff` in every file. The low 16 bits of the tag do not match the CRC-32,
+Adler-32, or byte sum of the decoded chunk, so the tag is not one of those
+checksums; its meaning remains unknown.
 
 ### Payload (offset 16+)
 
