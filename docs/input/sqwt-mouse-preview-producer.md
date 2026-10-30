@@ -195,8 +195,153 @@ preferred pointer is zero. STATIC.
 The branch at `0x0091D9D0` requires nonnull child C and ECX equal to
 pointer32(C+`0x60`). At `0x0091DAC2..0x0091DADD`, it follows
 parent+`0x60` from the preferred pointer and clears the slot if C occurs
-in that ancestry. STATIC for this local branch. Full cleanup, caller
-preconditions and all setter/release callers are UNKNOWN.
+in that ancestry. STATIC for this local branch. Other caller preconditions,
+parent overrides and complete cleanup remain UNKNOWN.
+
+### Selected Button arming and preference
+
+For this path, let E be the complete Button, B=E+`0xB4` its input interface,
+and A the delivered argument. The
+[Button mouse source](../resource/sqwt-command-parameter-consumer.md#button-mouse-source)
+owns the concrete type, table construction and later pressed/Click gates.
+Button table `0x01073B84` and ButtonBase table `0x0107603C` supply these
+selected input slots. STATIC.
+
+| Slot | Byte offset | Target |
+|---|---|---|
+| 15 | `+0x3C` | Setter `0x0091C640` |
+| 16 | `+0x40` | Clearer `0x0091C650` |
+| 32 | `+0x80` | Control method `0x0093A020` |
+
+Let G(E) be AL from `0x0093F060`. It calls byte reader `0x00974240`.
+A nonzero byte global `0x0135C2B0` yields AL zero. Otherwise G(E) is
+exactly whether dword E+`0xA0` is nonzero
+(`0x0093F063..0x0093F079`). STATIC. Enabled/disabled, ownership and device
+semantics for this raw predicate remain UNKNOWN.
+
+Button down `0x0097EFF0` calls `0x0092EB90` at `0x0097EFFE`, which
+first calls Control down base `0x009398D0`. That base first calls
+`0x0091C840`. After normal return, arming requires the handled byte behind
+A+`0x10` zero, G(E)==1, and nonzero `0x0095F020` results for both
+descriptors below (`0x0093991A..0x00939962`). Values are read through
+`0x0095EE10` and converted through `0x00988A30`. STATIC.
+
+| Name | Descriptor | Initializer | Literal |
+|---|---|---|---|
+| DragDrop.Id | `0x013603B8` | `0x00F27BD0` | `0x01078514` |
+| DragDrop.SourceCategory | `0x01360400` | `0x00F27C30` | `0x01078520` |
+
+Only a nonzero first converted result admits the block at
+`0x009399DE..0x00939A27`. After `0x0067AB40(A,E)` returns, it ORs
+mask `0x10` into byte B+`0xDC` (E+`0x190`) at `0x00939A08`.
+This is an arming write, distinct from preferred-pointer publication. STATIC.
+Provider admission, other state writers, actual registration and default
+DragDrop values remain UNKNOWN.
+
+PreviewMouseMove initializer `0x00F22E20` supplies descriptor `0x013595FC`,
+id `0x11`, routing byte `2` and literal `0x0106C0AC`. Dispatcher
+`0x0091D320` subtracts one from the id before indexing `0x0091D818`.
+This entry selects `0x0091D394` through `0x0091D760` and calls virtual
+`+0x80` at `0x0091D39F`. The selected Button table joins it to
+`0x0093A020`. That method first calls `0x0091C6C0` at `0x0093A065`,
+then tests B+`0xDC` mask `0x10` and G(E)==1 before calling B virtual
+`+0x3C` at `0x0093A093`. Under the selected table, the reached setter
+publishes B. STATIC for dispatch and calls, INFERRED for the selected-table
+join.
+
+Button up `0x0097F080` first calls Control up base `0x00939E90` at
+`0x0097F08C`. The base first calls `0x0091C870` at `0x00939ED5`,
+then tests B+`0xDC` mask `0x10` and G(E)==1 before calling B virtual
+`+0x40` at `0x00939F03`. The selected table reaches the clearer. No
+local handled-byte or preferred-owner comparison intervenes between that
+forwarding-helper return and this call. The clearer does not compare its
+receiver with the preferred slot. Only a reached clear is unconditional.
+STATIC.
+
+Each initial forwarding helper `0x0091C840`, `0x0091C6C0` and
+`0x0091C870` requires B+`0x64` nonzero, A+`0x17` zero and B+`0x4C`
+nonzero before invoking its stored handler. Those gates govern forwarding,
+not the later B+`0xDC`/G(E) tests. STATIC. Callbacks can change state,
+arguments, tables, preference or lifetime.
+
+If the selected up base reaches its clear and returns normally, that clear
+precedes Button's later handled/IsHitTestVisible checks, old pressed-bit
+snapshot and Click gates through `0x0097F11E`. INFERRED from call order.
+The linked Button study owns those gates and the separate
+[Click destruction notification](../resource/sqwt-command-parameter-consumer.md#click-destruction-notification).
+An ordinary Button down is not thereby an unconditional preference acquisition,
+and a clear does not verify that B still owns the slot.
+
+Joining separate down, move and up deliveries requires the intended same live
+E and B, selected current tables, readable event/state objects, ordinary
+callee-saved returns, the intended same delivered device and owner, and no
+intervening lifetime break. These are conditions, not actual state or device
+enforcement by the scalar slot. Actual visitation and final state remain
+UNKNOWN. Reaching a Click helper does not prove attachment, command success,
+completed Click or object survival.
+
+### Selected retirement and subtree cleanup
+
+The linked Button destruction path reaches body `0x0097EC70`. Its selected
+continuation has these transfers. Complete E is retained under ordinary
+callee-saved returns until the final explicit interface adjustment. STATIC.
+
+| Caller body | Transfer site | Destination and receiver |
+|---|---|---|
+| `0x0097EC70` | `0x0097EC97`, tail JMP | `0x00954660`, E |
+| `0x00954660` | `0x0095478A`, CALL | `0x00935660`, E |
+| `0x00935660` | `0x009357EF`, CALL | `0x00936C70`, E |
+| `0x00936C70` | `0x00936D8D`, CALL | `0x009314E0`, E |
+| `0x009314E0` | `0x00931707`, CALL | `0x0093AC10`, E |
+| `0x0093AC10` | `0x0093ACB3`, CALL | `0x0091DBD0`, B=E+`0xB4` |
+
+The final adjustment is explicit at `0x0093AC3B` and `0x0093ACAC`.
+InputElement retirement `0x0091DBD0` installs table `0x01069A6C`.
+COL `0x01178F70` and type descriptor `0x01269D3C` identify
+`.?AVInputElement@Sqwt@@`. It reads B+`0x60` at `0x0091DC32`.
+A nonnull parent P receives virtual `+0x54` with child B at `0x0091DC3F`.
+The null-parent branch instead calls `0x0091D930` at `0x0091DC45`.
+It also directly calls `0x0091D9D0` on selected contained children at
+`0x0091DC7C`. STATIC. Earlier resource-release and indirect calls are not
+assumed harmless or exception-free.
+
+If the parent's selected slot reaches the cleanup above, its child/parent
+preconditions hold and the ancestry remains live and readable, the preferred
+pointer can be cleared when it is B or lies in B's removed subtree. INFERRED.
+That clear at `0x0091DADD` precedes the later C+`0x60` clear at
+`0x0091DB96`. Parent-null effects, other parent overrides, destruction
+callers and complete retirement coverage remain UNKNOWN. Opaque callees and
+other cleanup are not closed. No universal stale-pointer prevention or actual
+failure result follows.
+
+### Preferred-pointer reproduction
+
+The lifecycle observations use `ghidra-cli 0.2.2` against the identified
+executable. Subtract image base `0x00400000` from a VA for RVA. Focused
+recipes include:
+
+```sh
+ghidra disasm 0x0091C4E0 -n 120 --json
+ghidra disasm 0x0093F060 -n 15 --json
+ghidra disasm 0x00974240 -n 3 --json
+ghidra disasm 0x009398D0 -n 135 --json
+ghidra disasm 0x0093A020 -n 140 --json
+ghidra disasm 0x00939E90 -n 140 --json
+ghidra disasm 0x0097EFF0 -n 105 --json
+ghidra disasm 0x0097F109 -n 16 --json
+ghidra disasm 0x0091D9D0 -n 160 --json
+ghidra disasm 0x0091DBD0 -n 170 --json
+ghidra disasm 0x0093AC10 -n 65 --json
+```
+
+Read the selected slot dwords, descriptor initializer operands and literals,
+and the cited transfer sites with their receiver setup. For RTTI, follow
+table[-1] to COL, COL+`0x0C` to TypeDescriptor and TypeDescriptor+8 to the
+NUL-terminated name. Compare instructions and referenced data with PE section
+raw-file mapping. Virtual extent beyond a section's raw size does not supply
+file bytes or current global values. Keep executable bytes, bodies, listings
+and Ghidra state outside the tracked tree. Other indirect users and memory
+writers are not exhausted by these selected paths.
 
 A capture-like interpretation of the preferred slot is INFERRED from its
 precedence, setter and ancestry cleanup. OS SetCapture/ReleaseCapture,
