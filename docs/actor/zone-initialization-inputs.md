@@ -140,11 +140,60 @@ Inn initialization additionally has its conditional `cutReplay` sheet path.
 
 The [zone/layout sheet inventory](../resource/client-music-initiators.md#zone-and-layout-inputs)
 includes `_zoneParam` (`0x01030025`), `_region`, `regionParam`,
-`zoneGroupParam` and `_layout`. The native `_zoneParam` name construction is
-at `0x006B3A7A`. Neither that string construction nor the inspected SetMap/area script
-route proves a row lookup keyed by SetMap zone. `ZoneMasterFstF0` and
+`zoneGroupParam` and `_layout`. The native boot consumer below reads a
+character-record field as its key; it does not establish a lookup keyed by
+the live SetMap zone. `ZoneMasterFstF0` and
 `ZoneMasterPrvI0` are actor class names, not evidence of a ZoneMaster sheet
 selector. A new zone's required rows in these sheets remain UNESTABLISHED.
+
+## `_zoneParam` boot consumer
+
+Original-PE checks with Python, pefile and Capstone identify a concrete
+consumer of the name constructed at `0x006B3A7A`. Let B be the complete
+BootupManager. Its constructor `0x006B3210` assigns `_zoneParam` to the
+string at `B+0x3CC4` and initializes its handle at `B+0x3D18` to zero
+(`0x006B3569`). The constructor installs table `0x00FD25E0` at
+`B+0x34` (`0x006B3266`); its slot 2 selects `0x006B0220`. That method's
+receiver S is therefore `B+0x34`, not B.
+
+When the handle is null, `0x006B1ECD..0x006B1EE5` obtains the Excel provider
+through `0x004D74C0`, supplies the name at `S+0x3C90` to provider slot
+`+4`, and retains the result at `S+0x3CE4`. These are the same B fields
+above. The [named sheet lookup](../resource/logcontrol-text-lookup.md#sheet-row-and-column)
+owns provider `0x00C981D0`, its name map and null-result conditions.
+This update yields after the request; a null handle is tested again on a
+subsequent admitted update.
+
+The nonnull-handle branch calls `0x006B3D40` on the character vector at
+`S+0x1BC0`, using the counter at `S+0x1B78`. Its result supplies record
+`+0x0C` as the row key (`0x006B1F0D`). This is the vector retained at
+`B+0x1BF4`, whose [lobby record consumers](../net/retainer-lobby-record-consumers.md#compatible-downstream-lobby-consumers-conditional-on-callback-identity)
+own the remaining received-callback identity boundary. The route does not
+read the MapLayoutElement's SetMap zone field.
+
+At `0x006B1F16`, sheet slot `+0x3C` tests that key against the enabled-row
+ranges. Its concrete table entry is `0x00CAF570`, not a ready-row test.
+An excluded key reaches the common iteration tail without storing a column
+value. There, `0x006B1F2B` sends the terminal record to `0x006B2593`, which
+clears the counters and state; a nonterminal record increments the counter
+at `0x006B1F31..0x006B1F34`. An admitted key reaches row slot `+0x18`
+at `0x006B1F4B`; a null row yields without advancing this counter. The
+[row/cache contract](../resource/logcontrol-text-lookup.md#sheet-row-and-column)
+owns the possible asynchronous request and readiness gate. For a returned
+row, `0x006B1F5F` unwraps it and `0x006B1F63` calls `0x00C9A480` for
+logical column 0. The dword is cached at `S+0x3CE4+4*counter` by
+`0x006B1F70`, then the wrapper is released and control reaches that same
+iteration tail.
+
+The cache value is later read at `0x008851AA` from
+`B+0x3D1C+4*selection`; its zero branch differs from its nonzero branch.
+This establishes a boot consumer of column 0, including skipped and pending
+rows. It does not prove that character-record `+0x0C` equals a received
+SetMap zone, qualify every later cache consumer, or make `_zoneParam` a
+mandatory zone-in initialization sheet. Other native or computed-name
+consumers remain outside this trace.
+
+## Minimum new-zone input status
 
 | Client input | Status and new-zone consequence |
 |---|---|
@@ -154,7 +203,7 @@ selector. A new zone's required rows in these sheets remain UNESTABLISHED.
 | Setup name and control profile | SETTLED input route. Supply the intended internal name independently of the numeric zone; name-sensitive AreaBase methods still apply. |
 | Class/path and definition | PARTIAL overall. The selected leaves can reuse their existing class/path with a different received setup name without a new leaf definition solely because the zone number changes. A different class name needs a definition and resolvable path, including its base dependencies. This does not qualify arbitrary names or complete initialization. |
 | Shared preparation sheets | SETTLED for the inspected calls. Existing shared sheets can be retained; those calls establish no new row keyed by the new number. Availability and downstream feature dependencies remain separate. |
-| `_zoneParam` and other numeric-zone rows | UNESTABLISHED as a sufficient or mandatory set. Trace actual row-key consumers before requiring or omitting new rows. |
+| `_zoneParam` and other numeric-zone rows | PARTIAL consumer evidence. The boot path queries `_zoneParam` with character-record `+0x0C` and caches column 0, with excluded/pending-row branches. Its equality to the live SetMap zone and a sufficient or mandatory zone-in row set remain UNESTABLISHED. |
 
 ## Actor-zone integration limit
 
@@ -166,9 +215,9 @@ width or a native upper bound. Keep `0..511` as the declared integration
 limit, not a native RegionInfo or SetMap rejection predicate and not proof
 that any number in that interval is unused.
 
-The remaining static step is to follow the `_zoneParam` name constructed
-at `0x006B3A7A` to its sheet handle, actual row-key readers and any other zone-indexed
-sheet consumers. A separate completion trace must join a queued area path,
+The remaining static step is to trace character-record `+0x0C` to its
+received producer and identify an actual live-zone sheet consumer before
+requiring or omitting rows for zone-in. A separate completion trace must join a queued area path,
 resolved LPB, definition, successful listener callback and first creation.
 InitializeWaitingActorContainer table `0x00FE0478` has bind slot `+4`
 `0x00772C80` and cleanup slot `+8` `0x00772EB0`; table identity alone
