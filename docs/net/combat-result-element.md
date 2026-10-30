@@ -198,6 +198,16 @@ other stagers call it first and then fill the rows.
 The final store of the flags is a bitfield merge that ends with all 16 bits of
 the wire halfword. Eighteen rows of `0x14` bytes follow the header at `+0x38`.
 
+The word at view `+0x26` is shared by the `0x013B` eighteen-row and
+`0x013C` no-row staging routes. It is separate from row count at view
+`+0x20` and from the parallel row arrays. Copying this word does not
+establish a required constant for either opcode. On the
+[default row-log path](#row-processing), its bits 4-10, 0-1, 2-3 and 11-15
+become logger arguments 3, 6, 7 and 9 respectively. These partitions are
+established carriers; their semantic names and opcode-specific values
+remain unestablished. A no-row staging route does not by itself prove a
+zero wire count or a particular presentation-flags word.
+
 | Row offset | Width | Field |
 | --- | --- | --- |
 | `+0x00` | 4 | target actor ID |
