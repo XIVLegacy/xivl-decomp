@@ -367,10 +367,11 @@ do not copy or transform the second span.
 
 These index checks do not validate `D`, name indices, the name walk, metadata sizes, or
 `o + L` against the first span's length. The signature and version failures
-call an assertion callback. Whether the requested extent is enforced depends
-on the concrete virtual slot `+0x24` implementation, which is outside this
-finding. The reader uses 32-bit offset/count arithmetic without a demonstrated
-overflow check.
+call an assertion callback. The
+[constructed SystemHeapBlock view](#concrete-systemheapblock-views) supplies
+no additional extent check through slot `+0x24`. Other supplied view providers
+need their own implementation audit. The reader uses 32-bit offset/count
+arithmetic without a demonstrated overflow check.
 
 Reader virtual slot `+0x14` (`0x00e0ca10`) returns the saved parser context.
 `0x00a3bf10` carries it with the selected block pointer or view, length, type,
@@ -406,7 +407,7 @@ observations do not justify discarding or changing the information.
 | Count `+0x30` | `0x00E0D277` reads `N` to form the table/payload boundary. Accessors bound indices against `N` or `V`. | Preserve physical order, metadata associations and exposed count. No checked multiply/add or enclosing table-extent guard is established here. |
 | Names offset/count `+0x34/+0x38` | `0x00E0D2AC..0x00E0D307` forms the payload-relative names start and builds pointers by consecutive NUL scans. | Preserve all referenced ordinals and termination. No supplied-length bound constrains these scans. |
 | Row `+0x00` | `0x00E0CCEC/0x00E0CCF2` use a name ordinal after checking the visible row index. | It is not a resource ID. No name-ordinal bound or uniqueness predicate is established. |
-| Row offset/size `+0x04/+0x08` | `0x00E0C9CC/0x00E0C9D0` return `D+offset`; `0x00E0CB5C` returns size; `0x00E0D618` requests the member view. | Preserve the subtype's ranges and offset bases. Concrete view containment remains unresolved. |
+| Row offset/size `+0x04/+0x08` | `0x00E0C9CC/0x00E0C9D0` return `D+offset`; `0x00E0CB5C` returns size; `0x00E0D618` requests the member view. | Preserve the subtype's ranges and offset bases. The constructed SystemHeapBlock view does not check containment; enforce frame and root bounds in the writer. Other providers remain unqualified. |
 | Row `+0x0C` | The audited initializer, converter, constructor and row accessors do not consume it as a kind. | Preserve it as opaque. Generic types instead come from `RESOURCE_TYPE` through `0x00E0CD34`; IDs come from `RESOURCE_ID` through `0x00E0C940`. |
 
 Streaming loader `0x004EA560` checks that the initial read returned 16 bytes
@@ -435,14 +436,12 @@ PWIB view separately requests alignment 16. These methods establish no
 universal member offset/length multiple-of-4 or multiple-of-16 predicate.
 Concrete subtype requirements remain separate.
 
-Extent enforcement remains unresolved at the view interface. `0x00A643F2`
-loads a caller-supplied input whose slot `+0x24` is invoked at
-`0x00A644B1/0x00A64505`. Constructor `0x00E0D4C0` loads and saves its
+`0x00A643F2` loads a caller-supplied input whose slot `+0x24` is invoked
+at `0x00A644B1/0x00A64505`. Constructor `0x00E0D4C0` loads and saves its
 caller-supplied first view at `0x00E0D4E0/0x00E0D505`, then invokes that
-view's slot `+0x24` at `0x00E0D618`. These functions do not establish the
-input views' concrete vtables. The next evidence is an authenticated caller
-that identifies both dynamic vtables, followed by complete audits of those
-slot targets for offset, length, overflow, alignment and error handling.
+view's slot `+0x24` at `0x00E0D618`. The concrete construction below joins
+these calls to an unchecked SystemHeapBlock method for one source profile.
+The generic signatures alone do not identify other providers.
 
 The `bin`/`trb` callbacks `0x00A3D700`, `0x00A3D7D0` and `0x00A3D880`
 construct nested readers and re-enter the generic parser without a local
@@ -454,6 +453,120 @@ specified in the 2D field boundary. Complete entry-seeded normal CFGs of the
 named methods and row accessors terminated at returns without unresolved
 normal branches. Exception edges and callees beyond the named methods were
 not assumed to add or omit checks. No runtime acceptance was observed.
+
+### Concrete SystemHeapBlock views
+
+The statically constructed SystemHeapSpace source supplies the same
+SystemHeapBlock interface table `0x00F56FC0` for the whole input and every
+successfully constructed slice. Its slot `+0x24`, cell `0x00F56FE4`, contains
+`0x00414A10`. That method constructs a descriptor without checking the
+requested range against the parent or root length. This closes extent
+enforcement for this constructed source, conditional on its retained objects,
+tables and backing. It does not identify a live global value or an arbitrary
+caller-supplied provider.
+
+#### Source and interface identity
+
+The [SystemHeapBlock source finding](system-heap-block-interface.md#qualified-space-producer-and-interface-identity)
+owns startup construction and the conditional copy of the space into global
+`0x01327C24`. The [request route](../actor/body-resource-identity.md#conditional-request-data-and-factory-root)
+reaches `0x00A63760` at `0x007CBD22`. This method reads that global at
+`0x00A6379B` and calls space slot `+0x0C` at `0x00A637AA` with whole-input
+length, alignment 4 and tag zero. Constructed space table `0x00F5701C`
+selects `0x00414690`, which raises alignment below 16 to 16 without rounding
+logical length, then calls block factory `0x00414580` at `0x004146C7`.
+For a successful full block `H`, the factory installs `0x00F56FC0` at `H+4`
+at `0x004145DA`; the returned interface is `I=H+4`.
+
+After copying the whole input into that backing, `0x00A637E0` supplies `I`
+to scene-graph slot `+8`. Retained graph table `0x00FE96FC` selects
+`0x00A642F0`. The following are therefore concrete interface joins:
+
+| View | Construction or forwarding locator | Interface table / slot `+0x24` |
+|---|---|---|
+| Whole input | `0x00A637AA`, factory `0x00414580` | `0x00F56FC0` / `0x00414A10` |
+| PWIB second and first spans | `0x00A644B1`, `0x00A64505`, both alignment 16 and tag zero | Same table and target through child constructor `0x004147B0` |
+| First-V RES members | First view passed at `0x00A64588`, saved at reader `+4`, sliced at `0x00E0D618` | Same child table, installed at `0x00414802` |
+| Nested supplied-view RES members | Reader getter `0x00E0C9E0`, dispatcher `0x00A44730`, packed callback `0x00A3D7D0`, nested reader call `0x00A3D7FB` | Reuses the member interface and the same slice constructor |
+
+The reader's own table `0x0113BA20` is separate from the view table. Only
+the physical first `V` rows populate its view vector. Direct names, type and
+ID metadata accesses do not thereby pass every physical metadata row's
+declared length through the slicing method.
+
+#### Slice arithmetic and extent predicates
+
+For interface `I` and inputs `(o,L,a,tag)`, `0x00414A10` allocates a new
+`0x3C`-byte descriptor aligned 16. It allocates no child backing and copies
+no member data. At `0x00414A5E..0x00414A64` it loads the original root
+`R=u32(I+0x28)` and computes the new absolute offset:
+
+```text
+d' = (u32(I+0x24) + o) mod 2^32
+```
+
+Constructor `0x004147B0`, called at `0x00414A87`, stores requested length
+`L` at child `+0x1C`, recorded alignment `a` at `+0x20`, `d'` at `+0x28`
+and root `R` at `+0x2C`. It installs the same interface table at child `+4`.
+A null root argument substitutes the child itself; ordinary slices forward
+the original root. The maker links the descriptor under that root and
+returns child `+4` at `0x00414AD3`. Child descriptors retain `R` as their
+backing root, rather than the immediate parent descriptor.
+
+The complete maker has only descriptor-null tests at
+`0x00414A52/0x00414A92/0x00414ACF`. It does not read parent length, compute
+or check `o+L`, test root capacity, check the carry from `d+o`, validate
+requested alignment or round the source pointer. It calls no assertion
+callback. The constructor has no calls and only a root-null predicate.
+Zero length, end offsets, offsets beyond the end, overlong lengths and
+wrapped offsets have no distinct extent rejection in these methods.
+Allocation failure is not a demonstrated safe refusal: the common list
+insertion can write through a zero link at `0x00414AB4/0x00414AB7`.
+
+Owner slots `+0x2C/+0x30` around construction select
+`0x00414B10/0x00414B20` for the stated space. They call the imported
+critical-section enter/leave functions with owner `+8`, without range
+arguments. Descriptor allocation receives fixed size `0x3C` and alignment
+16. These calls do not supply a hidden parent-range predicate.
+
+Length getter `0x00410780`, table cell `0x00F56FC8`, returns `u32(I+0x18)`.
+For a root this is the requested whole-input size; for a slice it is requested
+`L`, not a validated available byte count. Pointer getter `0x00414830` returns
+`(u32(R+0x18)+u32(I+0x24)) mod 2^32`. Alignment getter `0x0060DE70`, cell
+`0x00F56FCC`, returns the recorded request at `I+0x1C`. Neither recorded
+alignment nor allocator padding proves valid capacity or actual pointer
+alignment. Root lifetime and valid backing remain prerequisites for its
+linked descriptors and raw-pointer consumers.
+
+The whole-input-copy route sets context `+0x14` to 1 at `0x00A63797`.
+Its raw packed callbacks `0x00A3D700/0x00A3D880` construct nested readers
+through `0x00E0D450` from raw pointers, without another member-view vector.
+Do not infer an additional slice check on this branch. The supplied-view
+callback `0x00A3D7D0` instead uses `0x00E0D4C0`, preserving the unchecked
+view construction recursively.
+
+#### Writer containment requirement
+
+A writer must check containment with wider or checked arithmetic against
+actual input and frame lengths. For a parent-relative view request, require
+`o <= parentLength` and `L <= parentLength-o`, and separately bound the
+accumulated root-relative span. Reject overflow in count/table/payload-base
+and offset calculations before forming any range. Validate the PWIB split,
+visible member spans, names and independently consumed metadata prefixes.
+Successful descriptor construction and the returned child length supply none
+of those guarantees. Preserve subtype alignment and opaque declarations;
+an unused metadata length is not a demonstrated whole-range validation rule.
+
+The audit used the pinned executable, Python 3.12.0, pefile 2024.8.26 and
+Capstone 5.0.7, x86-32 at image base `0x00400000`. Original table cells,
+constructor stores, forwarding sites and lock imports were checked directly.
+Entry-seeded decoding covered the complete normal CFGs of maker
+`0x00414A10` (86 instructions) and child constructor `0x004147B0`
+(31 instructions), without unresolved normal branches. Startup/lifecycle
+tail targets and opaque calls retain their stated conditions. No native
+execution, malformed input or edited container was run. Other supplied
+providers, subtype-specific acceptance, row `+0x0C` meaning and general
+member-replacement admission remain separate questions.
 
 ### m520/e001 texture-bank boundary
 
