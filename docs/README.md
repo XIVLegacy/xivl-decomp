@@ -71,6 +71,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [MyPlayer control bootstrap boundary](actor/myplayer-control-bootstrap.md)
 - [PlayerBaseClass](actor/player-base-class.md)
 - [Active job and soul-stone state](actor/job-soulstone-state.md)
+- [Job-change effect bank](actor/job-change-effect.md)
 - [Player nameplate icons](actor/player-nameplate-icons.md)
 - [Retainer presentation contract](actor/retainer-presentation.md)
 - [Retainer market ward and district selection](actor/retainer-ward-districts.md)
