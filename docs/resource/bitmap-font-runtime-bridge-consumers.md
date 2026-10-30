@@ -135,10 +135,52 @@ Including the dispatcher's additional first argument, the overwritten entry
 is its eighth explicit argument at entry-relative `0x20`, original argument
 7. Other dispatcher and backend branches remain outside this observation.
 
-Interpretation: TEXC supplies an index offset on this path. No original font
-resource bytes were read. Runtime asset identity, resource contents, creation
+Interpretation: TEXC supplies an index offset on this path. These native
+relations alone do not identify a font member. Runtime asset identity, creation
 or binding success, half-size atlas grouping, dimension-halving selection,
 and a relation between TEXC and half the list length remain unresolved.
+
+### Selected TEXC dimension pair
+
+The [retail resource census](bitmap-font-container.md#retail-resources)
+pins `data/27/95/00/02.DAT`, size 823938, SHA-256
+`aa022ebd8610ae8ba0dfa6b4c356b58c32c09945d8f4452d73157debcc26b804`.
+A bounded chunk walk of that original file reads TEXC as 1 and finds these
+two GTEX payloads, in file order:
+
+| Ordinal | File payload offset | Bytes | Requested width/height | Payload SHA-256 |
+|---:|---:|---:|---|---|
+| 0 | `20` | `655408` | `2048 / 128` | `ebdca9899e6e35326564f7292ca8eef0072981eafe32638dbcc013e38dcbf101` |
+| 1 | `655436` | `163888` | `1024 / 64` | `7963a2df347aead9cddc5b9a295cf1b65049c817fdd21c60356a55ba91733889` |
+
+Both descriptors use format index 22. The second descriptor stores half
+the first descriptor's width and height. This is an authored data relation,
+not an automatic halving rule established by TEXC. With index zero and the
+resource order above retained, the unoffset and TEXC-offset requests select
+ordinals zero and one respectively.
+
+The [texture consumer](bitmap-font-texture-consumers.md#resource-identity-and-requested-dimensions)
+normalizes coordinates by the first wrapper's requested dimensions at
+`0x00CB9551..0x00CB957F`. The
+[second-resource shader path](bitmap-font-edge-shader-consumers.md#bs-03-complete-pixel-interpretation)
+uses the same normalized coordinates for both samplers, without
+renormalizing against the second wrapper's dimensions. Together these
+facts explain how unequal stored dimensions can participate in that
+conditional path; they do not prove which font instance selected it.
+
+Python 3.12.0 standard-library reads checked the original file hash, each
+little-endian chunk length and whole-file consumption, then decoded the
+GTEX big-endian width/height words in place. Original-PE Capstone 5.0.7
+normal-CFG checks covered `0x00CAD120`, `0x00CA55A0` and `0x00CB9280`
+without unresolved local branches. Runtime source identity, retained vector
+order, flag `0x02`, wrapper creation, stage binding and rendered output
+remain unobserved. The next static join is from the exact FontData source
+to this member and its retained resource vector. A live discriminator would
+record both selected wrappers and extents at `0x00CAC5BE/0x00CAC5D0`,
+the flag at `0x00CA55B9` and UVs at the `0x00CB962E` batch submission.
+Correlate that submission with its eventual flush through `0x00CB90D0`,
+recording the stage-0/1 resource arguments at
+`0x00CB917C/0x00CB918A`; actual binding success is a further observation.
 
 ## BR-03: Composite getter and literal newline increment
 
