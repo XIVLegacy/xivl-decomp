@@ -376,8 +376,8 @@ The accepted path stores the triangle reference at output record `+0x10`,
 writes a vector through `0x00B0E730`, and increments the output count.
 `0x00A7C550` at `0x00B0C8F6` advances the packed reference or invokes
 `0x00A7C180` to advance the quantized node cursor. The
-[PHB format contract](https://github.com/XIVLegacy/xivl-tools/blob/main/docs/formats/phb-collision.md)
-owns the node encoding and helper details.
+[branching-tree finding](phb-branching-tree.md) owns the node encoding,
+quantization, terminal loads and helper details.
 
 This establishes a conditional native node/reference-to-triangle query route,
 separate from renderer enumeration. The offline authored file supplies the

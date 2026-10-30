@@ -283,6 +283,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Selected floor import and native rendering contract](resource/floor-import-contract.md)
 - [Selected floor material alpha and clipping](resource/floor-material-alpha.md)
 - [Attribute resource and native physics registration](resource/attribute-resource-and-scene-binding.md)
+- [PHB branching tree consumers](resource/phb-branching-tree.md)
 - [SceneThreadImpl world lifetime](resource/scene-thread-world-lifetime.md)
 - [DivideMap block activation](resource/layout-block-activation.md)
 - [Layout manager block selection](resource/layout-block-streaming.md)
