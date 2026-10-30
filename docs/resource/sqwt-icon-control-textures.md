@@ -21,6 +21,8 @@ locators and type descriptors anchor the concrete RTTI identities.
 Decompiler names, signatures and control-flow renderings remain
 interpretations where instructions or original data do not establish them.
 No client execution or texture payload inspection supplies these claims.
+The sampler paths were independently checked with LLVM objdump 21.0.0.
+Microsoft declarations supply API meanings, not client behavior.
 
 ## OBSERVED: ordinary control to renderer
 
@@ -110,10 +112,11 @@ floats to signed integers and back to floats before storing at
 `+0xF0..+0xFC`. Resource dimensions do not replace the destination width
 or height on the one-image path.
 
-The code compares truncated destination dimensions to texture fields
+At `0x008E1CFD..0x008E1D1D`, the code truncates supplied dimensions
+to signed integers with `CVTTSS2SI` and compares them to texture fields
 `+0x18` and `+0x1C`. It passes zero for equal sizes or one for unequal
-sizes to `0x00CA4130`. The meaning of this state argument as sampler
-behavior is unresolved.
+sizes to `0x00CA4130`. This comparison does not establish the transformed
+screen footprint.
 
 At `0x008E1D22..0x008E1D30`, RenderIcon passes the texture object and
 render-argument `+0x10` color pointer to `0x00CA5670`. Its paths call
@@ -122,6 +125,73 @@ render-argument `+0x10` color pointer to `0x00CA5670`. Its paths call
 `(1,0)`, `(0,1)`, `(1,1)`, then emit six vertex references.
 Constant `0x00F54F70` is float 1.0. This selects the full normalized
 texture, without an atlas-cell or source-crop selection in this path.
+
+## OBSERVED: size-dependent numeric sampler requests
+
+Setter `0x00CA4130` compares the argument with state `0x01376494`.
+Equality returns without a flush or store. A change calls `0x00CA3A70`
+before storing the new state at `0x00CA4142`. That flush calls consumer
+`0x00CA3890` before its pending-geometry dispatch, so it uses the prior
+state. The setter does not immediately apply the new state to the device.
+
+At `0x00CA3973..0x00CA3A39`, state zero requests numeric arguments
+`(1, 1, 2, bias)` through `0x004186E0` for samplers 0 and 1.
+State one requests `(2, 2, 2, bias)`. Both read bias from `0x0137648C`.
+Other size states skip these calls. Helper `0x004186E0` reaches
+`0x0041CD00`, which reads signed mode M from `0x01329884` through
+`0x004181C0`. Its guard at `0x0041CDB8..0x0041CE1B` yields these
+requests to `0x004236A0` for each sampler:
+
+| Size state | Signed M | Parameter 5 | Parameter 6 | Parameter 7 |
+| --- | --- | --- | --- | --- |
+| 0, equal | 0, 1, 2 or 3 | 1 | 1 | 2 |
+| 1, unequal | 0, 1 or 2 | 2 | 3 | 2 |
+| 1, unequal | 3 | 2 | 2 | 2 |
+| 0 or 1 | Outside 0..3 | Skipped | Skipped | Skipped |
+
+The table records values, not dispatch order. The route passes two as the
+fourth argument to `0x0041CD00`, so its argument-zero cleanup is not
+taken. These paths do not request numeric address parameters 1, 2 or 3.
+This is not a general addressing-state census.
+
+Wrapper `0x004236A0` uses manager `0x0132987C` and checks
+`0x00423F50` with sampler, parameter and value. Equality suppresses
+backend dispatch. A changed value updates the cache and dispatches backend
+vtable `+0x20` with the same arguments. Serial method `0x00438720`
+calls device slot `+0x114`. Parallel methods `0x00437040` and
+`0x00433C60` retain the arguments in a command with vtable
+`0x00F64928` and submit it through `0x0043C2D0`. That command's
+`+4` method, `0x004352A0`, calls the supplied device's `+0x114`
+slot with those arguments. Submission does not establish queue execution.
+
+## INFERRED: Direct3D9 sampler filtering
+
+The API identity follows the device construction path. The PE imports
+`d3d9.dll!Direct3DCreate9` at IAT `0x00F3E5F8`. Thunk
+`0x009FC756` reads that slot. Function `0x0041FED0` calls the thunk
+with `0x20` and stores the interface at `0x01329830`.
+At `0x0041E2CC..0x0041E2E6`, the client calls interface slot `+0x40`
+with device output `0x01329834`. At `0x0041E3CF..0x0041E3E8`,
+it passes that output to manager constructor `0x00423480`, whose backend
+constructors `0x00438FE0`, `0x00438290` and `0x00434EF0`
+retain the supplied device at `+4`.
+
+Microsoft's [d3d9.h declarations](https://raw.githubusercontent.com/microsoft/win32metadata/64ed9177fb76eb244fc9051c74b8a93fdfe20873/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h)
+identify ordinal 16 as `IDirect3D9::CreateDevice`, with an
+`IDirect3DDevice9` output, and device ordinal 69 as
+`SetSamplerState`. Four-byte pointers place those slots at `+0x40`
+and `+0x114`. This anchors the numeric requests to
+[SetSamplerState](https://learn.microsoft.com/en-us/windows/win32/api/d3d9/nf-d3d9-idirect3ddevice9-setsamplerstate).
+
+The official [sampler parameters](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dsamplerstatetype)
+identify 5, 6 and 7 as `MAGFILTER`, `MINFILTER` and `MIPFILTER`.
+The official [filter values](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dtexturefiltertype)
+identify 1, 2 and 3 as point, linear and anisotropic. For admitted modes,
+equal sizes request point magnification and minification. Unequal sizes
+request linear magnification with anisotropic minification for M=0,1,2 or
+linear minification for M=3. Both request linear mip filtering. This static
+request contract remains subject to state timing, cache suppression and
+backend execution. It does not prove device acceptance or a pixel result.
 
 ## INFERRED: generic eligibility
 
@@ -137,10 +207,13 @@ identity.
 Runtime queue identity, scheduling, delivery, actual cached renderer identity
 and active branch choice are unobserved. Exact generic layout measurement,
 desired-size policy, accumulated screen transform and final screen placement
-are unresolved. Final clipping, texture availability, payload format,
-decoding, filtering, blend state, sampler state and final pixels are outside
-these observations. Local geometry and full UVs do not establish screenshot
-or pixel equivalence.
+are unresolved. Runtime filter mode, bias, backend selection, cache contents,
+queue execution, API call success, device capabilities and driver behavior
+remain unknown. The native mode getter does not establish a user-facing
+setting name. Final clipping, texture availability, payload format, decoding,
+blend state and final pixels remain outside these observations. The sampler
+requests do not establish that mip filtering affects a particular texture.
+Local geometry and full UVs do not establish screenshot or pixel equivalence.
 
 Larger lists, timer rendering, arbitrary negative IDs, out-of-table IDs,
 overflow, malformed text, reload races and resource-request failure lifecycle
@@ -172,3 +245,12 @@ choice, inspect `0x0060B270`, the world constructor range,
 inspect `0x008CC2D0`, `0x008CF4A0`, `0x00CA5670`,
 `0x00CBDE10` and `0x00CBA970`. These static queries do not execute the
 client or establish request completion and live presentation.
+
+For sampler filtering, inspect the comparison, setter, consumer, mode guard,
+cache wrapper and backend methods above. Read command vtable `0x00F64928`
+and decode `0x004352A0` even if the analysis listing has no function there.
+Follow the import thunk, interface-output call and manager handoff before
+assigning API names to slots. Compare interface declaration order with the
+pinned Microsoft header and filter enums with
+[d3d9types.h](https://raw.githubusercontent.com/microsoft/win32metadata/64ed9177fb76eb244fc9051c74b8a93fdfe20873/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9types.h)
+at the same commit. These declarations establish API meanings only.
