@@ -1,17 +1,21 @@
-# Job-change effect bank
+# Job-change presentation and effect banks
 
-The retail 1.23b effect bank `client/vfx/lib/0048` contains the authored
-`jobchange` presentation. Its packed effect-only selector is `0x04000030`
-(decimal `67108912`): category 4 (`lib`), character bank 0, effect bank 48.
-This is a resource-routing result, not a captured job-change packet or a
-recorded playback test.
+A retained Paladin job-activation sequence contains a job-state update
+`0x01A4` and a separate presentation request `0x00DA` with selector
+`0x04000029` (decimal `67108905`). The native presentation path selects
+`client/vfx/lib/0041`. The job-byte setter does not itself request the effect.
+
+The separate bank `client/vfx/lib/0048` contains the authored `jobchange`
+presentation. Its effect-only selector is `0x04000030` (decimal `67108912`):
+category 4 (`lib`), character bank 0, effect bank 48. That selector remains a
+resource-routing result, without a captured job-change selection.
 
 The blue-violet ribbons visible around 5:01 in RydiaMist's
 [FFXIV Patch 1.21 Instance - Cutter's Cry 5 Chest Run](https://www.youtube.com/watch?v=tMN3cAYkRtI&t=301s)
-are a visual reference for this investigation. The bank's authored name and
-ring/glow resources make it a strong candidate for that effect. The video is
-labeled patch 1.21; the binary and resource below are 1.23b. Their exact visual
-equivalence remains unverified.
+are a visual reference for this investigation. Bank 48's authored name and
+ring/glow resources make it a candidate for that effect. The video is labeled
+patch 1.21; the binary and resources below are 1.23b. The video's exact bank
+match remains unverified.
 
 ## Evidence and method
 
@@ -20,12 +24,12 @@ The executable is retail 1.23b `ffxivgame.exe`, build `2012.09.19.0001`,
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 Native addresses below are preferred VAs. Retained Ghidra listings supplied
 locators. Each listed instruction in `0x00798470`, `0x007982D0`,
-`0x00798640`, `0x00798BF0`, `0x00799C90` and `0x00706DC0` was compared with file-backed
-PE bytes and decoded individually using pefile 2024.8.26 and Capstone 5.0.7
-in x86-32 mode. Category records, vtable cells and path strings were read
-from the same image.
+`0x00798640`, `0x00798BF0`, `0x00799C90` and `0x00706DC0` was compared with
+file-backed PE bytes and decoded individually using pefile 2024.8.26 and
+Capstone 5.0.7 in x86-32 mode. Category records, vtable cells and path strings
+were read from the same image.
 
-The installed bank is 181,056 bytes, SHA-256
+Bank 48 is 181,056 bytes, SHA-256
 `c986f5d5c3f65d8d1eb481515300a301df01db7aa5a1e4b583095b85f6946b19`.
 Python standard-library reads and the repository's `tools/vfx_qix_resource.py`,
 `tools/vfx_effect_body.py` and `tools/scb_clip_scheduler.py` decoded its
@@ -33,7 +37,7 @@ PWIB/RES directory, Qix roots and SCB records. Every Qix blob passed the
 existing relocation-directory checks. Resource offsets below are absolute
 file offsets, not offsets into an extracted payload.
 
-## Selector and native resource request
+## Bank 48 selector and native resource request
 
 The [bank-routing finding](animation-bank-routing.md) owns the general packed
 selector representation. For this bank, the checked native path is:
@@ -63,7 +67,113 @@ generic animation delivery through s2c `0x00DA`, `0x00E0` and `0x00E1`.
 That generic reachability does not identify which message selected this bank
 during a retail job change.
 
-## Authored scheduler, effect and sound
+## Captured presentation trigger
+
+The retained source is `gear_changesoul.pcapng`, 23,784 bytes, SHA-256
+`62af2cde3a4683fba3e09cc3dfed8001d74303b120381de577b05df492926780`.
+Source identity belongs to `xivl-captures:sources/pcap-1.23b/manifest.yaml`.
+The existing `xivl-captures:studies/map-00da-00e1-comparison/derived/occurrences.csv`
+row for this capture records s2c frame 14, subevent 0, stream offset 1182,
+with first application dword `0x04000029`. The second application dword is 0.
+Its `derived/neighborhoods.csv`, anchor 2, relative event -1, records the
+same-actor `0x01A4` at frame 13, subevent 0, stream offset 1128.
+
+`xivl-captures:studies/c2s-012d-event-start/derived/job-change-context.json`
+adds the job byte `16` and the same-connection request context. The
+[Equipment job table](../script/equipment-soulstones.md#important-item-backing)
+identifies job 16 as Paladin. The c2s `0x012D` request is frame 19,
+subevent 0, stream offset 3416. Its event name is `commandRequest`, its
+static-owner low 16 bits are 12017, and its typed tail begins with integer
+1 followed by eight nils. The request and job update have equal actor fields.
+The [request-side mapping](job-soulstone-state.md#text-command-and-macro-requests)
+submits command 12017 with mode 1 for job activation.
+
+The s2c presentation request is the next wrapped-actor message after that
+job update in the same connection and direction. This is wire order, not
+proof of native execution order or rendering. The separate c2s request
+cannot be ordered against those s2c frames by comparing their frame indices.
+
+The same context product checked 65,864 complete decoded subevents across
+the 54 retained source members. It found neither exact `0x04000030` nor a
+packed selector satisfying `(value & 0xFF000FFF) == 0x04000030`, which also
+allows a nonzero character-bank field. This is a bounded absence in admitted
+complete subevents, not a rule excluding bank 48 from retail playback.
+
+The [action-queue consumer](action-queue.md#boundary-with-wire-and-vfx-systems)
+owns this `0x00DA` route:
+
+```text
+0x0058CCA0 case 0x00DA at 0x0058CFFA
+  -> 0x0058CAD0 -> 0x0058C690
+  -> 0x00585800(5, 0x04000029): visual class 12
+  -> 0x00587370 -> 0x00587210: record+0x10 = selector
+  -> 0x005901D0: CharaElement+0xA80 ring
+  -> 0x0058DA10: class-12 bucket, Scene command 4
+  -> 0x00662D30 case 4 -> 0x00846080 -> 0x00845E80
+  -> CharaActionQue -> CharaActionVisual -> 0x00798470
+  -> 0x00799C90: /client/vfx/lib/0041.bin
+```
+
+At `0x0058CFFA`, the dispatcher reads the first application dword, view
+`+0x10`, and passes its value to `0x0058CAD0`. That helper obtains the current
+element's actor ID through `0x004D6750` and supplies it as the target to
+`0x0058C690`, with route-control value 0. The builder also uses that resolved
+actor as its source. The second on-wire dword is not read on this path.
+
+The classifier splits `0x04000029` into category 4, middle 0 and low 41.
+Category 4 has route kind 1, and middle 0 misses the special middle-bank
+range 13 through 19 and value `0xFE9`. The branch at
+`0x005858AB-0x005858D6` therefore returns class 12. The
+[drain](../net/combat-result-element.md#drain) admits that class without
+the classes-3-through-11 header-call path. This is presentation routing,
+not a job-change success test.
+
+The [concrete visual dispatch](action-queue.md#concrete-visual-dispatch)
+preserves the staged selector at visual `+0x3C` and resolves visual slot
+`+0x40` to `0x00798470`. Source and target actor fields remain separate;
+the receiving element is selected by the sub-event header source. Element
+readiness, actor binding, queue admission and resource availability still
+apply.
+
+The [combat-result consumer](../net/combat-result-element.md#opcode-routes)
+also accepts packed selectors, at a different application offset. That
+alternative route does not establish a combat-result trigger for this
+captured job presentation.
+
+Original-PE instruction comparison additionally covered the receiver
+`0x0089CB60`, presentation helpers `0x0058CAD0` and `0x0058C690`, result
+wrappers `0x0058C880` and `0x0058C7D0`, stagers
+`0x00587210` and `0x00587370`, classifier `0x00585800`, selector splitter
+`0x00798370`, drain `0x0058DA10`, insertion `0x00846080` and `0x00845E80`,
+and the visual constructors and dispatch at `0x007983C0`, `0x00843DB0`,
+`0x00843B50` and `0x00798AA0`. The complete dispatcher range
+`0x0058CFFA-0x0058D004` was also compared and decoded from original PE bytes.
+The existing `tools/verify_combat_result_element.py --exe` and
+`tools/verify_player_profile_accessors.py --exe` checks also passed against
+the pinned image. These checks observed static bytes, not execution.
+
+## Captured Paladin bank
+
+`client/vfx/lib/0041` is 221,760 bytes, SHA-256
+`83f85907f74b57a90918558ffe1c089e4a8a099e7d3c7a5643ca06627ef5a519`.
+The same RES, SCB and Qix parsers used for bank 48 recover its `j41pld`
+resource family, `main` scheduler, `jobstn_pld` and `jbstn41_2` action names.
+The veff roots include these authored paths:
+
+- `d:\gra_rapture\vfx\lib\job_stn41_pld\vfx\job_stn41_knight.veff`
+- `d:\gra_rapture\vfx\lib\job_stn41_pld\vfx\s_weapon.veff`
+
+The SCB has an action starting at tick 0 and another at tick 400000, each
+with a sound trigger at its start. Its final ActionClip ends at tick 780000,
+about 2.6 seconds under the scheduler clock interpretation. These authored
+records do not by themselves prove rendered playback.
+
+The [job-state finding](job-soulstone-state.md#actions-and-acquisition-boundaries)
+also records use of this selector by the quest item-presentation helper.
+Resource identity therefore does not distinguish soul-stone acquisition from
+job activation; the captured request and state context supply that distinction.
+
+## Bank 48 scheduler, effect and sound
 
 The outer RES starts at file offset `0x10`. Its name table pairs entry 0
 with `main\bin\main` and entry 1 with `lst\sch_effect_data\jobchange`.
@@ -117,6 +227,7 @@ value. The recovered Lua callback has an empty body. The setter contains
 no direct request for bank 48. Updating the job byte alone therefore does
 not establish playback of this effect.
 
-A same-actor capture joining job/equipment updates to the presentation
-selector, or a recorded client resource/playback trace, is still needed to
-prove the job-change delivery sequence and the video's exact bank match.
+The captured presentation has an explicit `0x00DA` selector. It supplies a
+concrete delivery mechanism for the Paladin witness, without making every
+job-byte write play an effect. The same-actor selection of bank 48 and the
+video's exact bank match remain unverified.

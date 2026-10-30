@@ -63,6 +63,10 @@ state, or forward a widget/action refresh. This describes the recovered
 method body and setter tail, without claiming that no other update can
 refresh those surfaces.
 
+The [captured presentation trigger](job-change-effect.md#captured-presentation-trigger)
+is a separate `0x00DA` request after a same-actor Paladin job update. Its
+selector enters the native action queue rather than this Lua callback.
+
 The [Equipment refresh callers](../script/equipment-soulstones.md#open-window-refresh-callers)
 establish separate item/work callback routes to an already open Equipment
 window. The empty changed-job callback does not select those routes. A job-byte
