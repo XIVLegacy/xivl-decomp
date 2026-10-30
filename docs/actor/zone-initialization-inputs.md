@@ -168,8 +168,8 @@ The nonnull-handle branch calls `0x006B3D40` on the character vector at
 `S+0x1BC0`, using the counter at `S+0x1B78`. Its result supplies record
 `+0x0C` as the row key (`0x006B1F0D`). This is the vector retained at
 `B+0x1BF4`, whose [lobby record consumers](../net/retainer-lobby-record-consumers.md#compatible-downstream-lobby-consumers-conditional-on-callback-identity)
-own the remaining received-callback identity boundary. The route does not
-read the MapLayoutElement's SetMap zone field.
+join the constructed boot request to its received character vector. The route
+does not read the MapLayoutElement's SetMap zone field.
 
 At `0x006B1F16`, sheet slot `+0x3C` tests that key against the enabled-row
 ranges. Its concrete table entry is `0x00CAF570`, not a ready-row test.
@@ -193,6 +193,43 @@ SetMap zone, qualify every later cache consumer, or make `_zoneParam` a
 mandatory zone-in initialization sheet. Other native or computed-name
 consumers remain outside this trace.
 
+## Received character row key
+
+The initial character-list handler supplies a received source for newly
+appended character slots. `0x00DAA9F0` reads the packet word at `+2`,
+subtracts `0x0D` and dispatches through `0x00DAAC04`. Entry 0 selects
+`0x00DAAA17`. That branch forms application pointer P as packet `+0x10`
+at `0x00DAAA1A` and passes it to `0x00DA76B0` at `0x00DAAA7D`, with
+the context from operation `+8`. Only a zero parser return reaches the
+`0x00DA5030` completion call at `0x00DAAA8D`.
+
+For input record index i, `0x00DA7755` computes `i*0x1D0` and the
+parser retains `P+i*0x1D0` at `0x00DA7763`. On its new-entry branch,
+`0x00DA7847` reloads that pointer, `0x00DA784B` advances it by `0x10`,
+and `0x00DA7857` copies `0x74` dwords into the local character slot.
+The four bytes that become slot `+0x0C` therefore come from
+`P+0x1C+i*0x1D0`. They retain their byte order through this copy and the
+later x86 u32 row-key read. They are received input, rather than a value
+computed from the live MapLayoutElement.
+
+The parser appends the local slot through `0x00891F00` at `0x00DA7894`.
+Its capacity-present path reaches copy constructor `0x00891360` through
+`0x00891900 -> 0x008916F0 -> 0x008913E0`. The constructor copies the
+first `0x1D0` bytes at `0x00891397`, preserving `+0x0C`. The growth path
+uses `0x00891E50 -> 0x00891B20`, whose copy helpers reach that constructor
+or the same-size prefix transfer at `0x0089169D`. Callback consumer
+`0x0088E870` also appends through `0x00891F00` into BootupManager
+`B+0x1BF4`, so that scalar survives the second vector copy. The
+[callback-owner finding](../net/retainer-lobby-record-consumers.md#callback-owner-boundary)
+owns the connection between the received operation and this boot callback.
+
+These are `0x2E0`-byte character slots, distinct from that page's nested
+`0x30`-byte retainer records. The producer rule above covers the new-entry
+branch of the initial list parser. Its matched-entry branch and other
+character-update opcodes need their own field-use checks. The received
+selector's equality to a live SetMap zone and a sufficient zone-in sheet
+set remain unestablished.
+
 ## Minimum new-zone input status
 
 | Client input | Status and new-zone consequence |
@@ -203,7 +240,7 @@ consumers remain outside this trace.
 | Setup name and control profile | SETTLED input route. Supply the intended internal name independently of the numeric zone; name-sensitive AreaBase methods still apply. |
 | Class/path and definition | PARTIAL overall. The selected leaves can reuse their existing class/path with a different received setup name without a new leaf definition solely because the zone number changes. A different class name needs a definition and resolvable path, including its base dependencies. This does not qualify arbitrary names or complete initialization. |
 | Shared preparation sheets | SETTLED for the inspected calls. Existing shared sheets can be retained; those calls establish no new row keyed by the new number. Availability and downstream feature dependencies remain separate. |
-| `_zoneParam` and other numeric-zone rows | PARTIAL consumer evidence. The boot path queries `_zoneParam` with character-record `+0x0C` and caches column 0, with excluded/pending-row branches. Its equality to the live SetMap zone and a sufficient or mandatory zone-in row set remain UNESTABLISHED. |
+| `_zoneParam` and other numeric-zone rows | PARTIAL overall. The boot path queries `_zoneParam` with character-record `+0x0C` and caches column 0. For newly appended initial-list entries, opcode `0x000D` supplies that selector unchanged at application `+0x1C+0x1D0*i`, through the registered boot callback. Its equality to the live SetMap zone and a sufficient or mandatory zone-in row set remain UNESTABLISHED. |
 
 ## Actor-zone integration limit
 
@@ -215,8 +252,7 @@ width or a native upper bound. Keep `0..511` as the declared integration
 limit, not a native RegionInfo or SetMap rejection predicate and not proof
 that any number in that interval is unused.
 
-The remaining static step is to trace character-record `+0x0C` to its
-received producer and identify an actual live-zone sheet consumer before
+The remaining static step is to identify an actual live-zone sheet consumer before
 requiring or omitting rows for zone-in. A separate completion trace must join a queued area path,
 resolved LPB, definition, successful listener callback and first creation.
 InitializeWaitingActorContainer table `0x00FE0478` has bind slot `+4`

@@ -31,6 +31,11 @@ The allocator trace also decodes original PE continuations at
 early. Import names below come from the PE import descriptors and matching
 lookup/IAT thunk arrays, not from an observed loaded module.
 
+The boot callback-owner trace additionally used Python 3.12.14 and LLVM
+22.1.4, with original-byte checks through Python 3.12.0, pefile 2024.8.26
+and Capstone 5.0.7. Entry-rooted queries followed selected direct branches
+and bounded dispatch tables. This trace observed no client execution.
+
 This is static client evidence. Runtime callback identity, server mutations,
 retainer creation or rename acceptance, and transaction settlement do not
 follow from these operations.
@@ -609,12 +614,62 @@ encoder.
 FUN_00DA5030 receives C in ECX and a callback pointer K as its stack argument.
 At 0x00DA5083-0x00DA50D0 it passes C+0x1D0 and other cached owners through K's
 virtual slots; the final +0x1C call at 0x00DA50D0 receives [C+0x20], C+0x1D0,
-C+0x1E0, C+0x1F0, C+0x200 as its five arguments. The immediate parser caller
-loads K=[O+0x34] at 0x00DAAA86 before calling FUN_00DA5030 at 0x00DAAA8D.
-The exact first unresolved edge is identity of that O+0x34 callback object:
-the authenticated direct parser/distribution chain does not establish that it is
-the constructed callback with vtable 0x01056A4C described below.
-Compatible vtable layout does not establish that identity.
+C+0x1E0, C+0x1F0, C+0x200 as its five arguments. The character-list response
+branch loads K=[O+0x34] at 0x00DAAA86 before calling FUN_00DA5030 at
+0x00DAAA8D. The guarded boot request establishes that callback's static
+producer as follows.
+
+Let B be the complete BootupManager, S=B+0x34 its update receiver, and K the
+callback retained at B+0x1BDC. The constructor and K's owner field are
+identified below. Boot state 35 selects 0x006B161A through table
+0x006B25EC. Its counter-zero branch loads [S+0x1BA8]=K at 0x006B1637
+and passes it to FUN_004DFB20 at 0x006B164E. That method requires a
+nonnull C=[client+0x240] and successful FUN_00DA4660 admission, then
+forwards K to FUN_00DA5A00 at 0x004DFB65.
+
+FUN_00DA5A00 has two paths to FUN_00DA58F0. When the existing C+8
+object has state 3, 4 or 5, 0x00DA5C22..0x00DA5C2A passes K directly.
+The queued path instead supplies it to FUN_00DA8AF0 at 0x00DA5BDD.
+That constructor retains K at Q+8 (0x00DA8B14), sets Q+0x0C to 1 and
+installs table 0x011280E4. Its slot +0x58 selects FUN_00DA7070, which
+loads Q+8 and forwards K to FUN_00DA58F0 at 0x00DA7086.
+
+FUN_00DA58F0 constructs O through FUN_00DA85E0 at 0x00DA599E.
+The latter forwards C, sequence, K and timeout to FUN_00DAD770 at
+0x00DA85FB. The base constructor retains C at O+8 (0x00DAD787) and
+K at O+0x34 (0x00DAD79E); the derived constructor installs table
+0x01127FBC at 0x00DA8607.
+
+O enters the C+0x1A8 pending-operation map at 0x00DA59C7 under the
+incremented C+0x18 sequence. The update supplies its node value to
+FUN_00DA9230 at 0x00DA69AB. O's concrete table selects FUN_00DAA070
+for request slot 0 and FUN_00DAA9F0 for response slot +4. The request
+registers expected response key 0x000D at 0x00DAA136. After successful
+request construction, FUN_00DA9230 registers O in C+0x1B4 and changes
+O+0x10 from 1 to 2.
+
+The response switch maps 0x000D to 0x00DAAA17. At 0x00DAAA7D it
+passes [O+8]=C and the application pointer to FUN_00DA76B0. A zero
+parser result reaches FUN_00DA5030 with [O+0x34]=K. Thus its slot
++0x1C call delivers C+0x1D0 through that same K to FUN_0088EAD0 and
+FUN_0088E870, which populate B+0x1BF4. The
+[character row-key producer](../actor/zone-initialization-inputs.md#received-character-row-key)
+owns the incoming scalar and copy path.
+
+Opcode 0x0017 instead selects 0x00DAAB80, calls FUN_00DA4D80 at
+0x00DAABE5 and returns AL=1 at 0x00DAABEC. It updates the same C's
+retainer accumulator without invoking FUN_00DA5030 itself. Its received
+records and a later character-vector completion remain distinct events.
+
+This establishes K-to-O identity for the constructed, admitted boot request.
+FUN_00DA58F0 rejects null C+8, a state outside 3/4/5, or a still-nonempty
+pending-operation set after its cleanup call. Allocation, a fresh noncolliding
+sequence registration, live unchanged owners and successful response dispatch
+remain required. Response processing requires O+0x10=2. A nonzero list-parser
+result leaves the operation active; a zero result permits vector delivery and
+the common wrapper's state-2-to-3 transition. Polling, timeout and unexpected
+opcode branches do not establish vector delivery. Raw callback-pointer stores
+do not establish reference-counted ownership or a historical request outcome.
 
 ## Compatible downstream lobby consumers, conditional on callback identity
 
