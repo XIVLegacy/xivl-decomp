@@ -116,13 +116,53 @@ the class-registry root list), e.g. `ScenarioBaseClass`, `QuestDirectorBaseClass
 
 ## Engine-bound declaration census
 
-Scanning the string tables of 26 `_u` LPB files for paired
-`_<method>_inl` and `_<method>_cpp` declarations found 429 declarations
-across 19 classes and 419 distinct method names. Ten names recur across
-classes. The rest are class-specific declarations. The largest surfaces are
-`PlayerBaseClass` (94), `CharaBaseClass` (76), `desktopWidget` (43),
-`math` (32), `WidgetBaseClass` (24), `NpcBaseClass` (23), `WorldMaster`
-(23), `ItemBaseClass` (19), `Global` (15), and `GroupBaseClass` (15).
+The [input census](../../config/lpb_declaration_census.json) pins the 26
+shipped members whose decoded source basenames end in `_u` (physical suffix
+`_p.le.lpb`). Two different scans of this same input set explain the
+counts. [tools/extract_cpp_bindings.py](../../tools/extract_cpp_bindings.py)
+collects distinct `_<method>_inl` names per member with the raw pattern
+`(_[A-Za-z][A-Za-z0-9_]+)_inl\x00`; it does not require a corresponding
+`_<method>_cpp`. That definition reproduces 429 entries, 19 nonempty
+basename-derived class keys and 419 distinct names. Seven names occur in
+multiple members, accounting for ten extra occurrences. The class keys
+come from decoded filenames, rather than a runtime class-identity walk.
+
+Parsing each member's Lua 5.1 prototype constant-string tables and taking
+the union across its root and nested prototypes gives 368 distinct
+(member, method) pairs in 17 members and 358 distinct method names when
+both exact `_<method>_inl` and `_<method>_cpp` strings are required.
+Identifiers match `[A-Za-z_][A-Za-z0-9_]*`. Pairing is per member: no pair
+occurs wholly inside one prototype's constant table. The historical raw
+`_inl` matches equal the parsed `_inl` constant entries on all 26 members.
+
+The difference is 61 `_inl` names without a matching `_cpp` constant in
+the same member. They occur only in these seven members, and none is
+paired in another member:
+
+| Decoded source basename | `_inl` entries | Paired names | Unmatched `_inl` names |
+|---|---:|---:|---:|
+| `charabaseclass_u` | 76 | 70 | 6 |
+| `playerbaseclass_u` | 94 | 93 | 1 |
+| `actorbaseclass_u` | 10 | 6 | 4 |
+| `debug_u` | 7 | 4 | 3 |
+| `table_u` | 5 | 0 | 5 |
+| `string_u` | 14 | 0 | 14 |
+| `math_u` | 32 | 4 | 28 |
+
+`table_u` and `string_u` account for the difference between the 19 nonempty
+filename keys and the 17 members containing pairs. This reconciles the two
+counting definitions on the pinned inputs. The original survey did not
+retain a byte-pinned input manifest, so its original input-byte identity
+remains unestablished.
+
+The reconciliation used Python 3.12.0 and standard-library in-memory LPB
+decoding and Lua 5.1 prototype-table parsing. The input census records the
+parser digest, decoder and extractor revisions/digests, each member's
+physical/logical path, size and SHA-256, and the per-member differences.
+Bounds, exact header and whole-input consumption were checked without
+retaining decoded bytecode. An independent prior scan's ordered original
+and decoded input hash lists matched this scan; their digest definitions
+and values are retained in the census.
 
 These are declarations visible in shipped LPBs, not a count of native
 registrar implementations. The later registrar walk measured about 344
