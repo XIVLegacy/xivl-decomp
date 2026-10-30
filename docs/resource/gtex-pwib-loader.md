@@ -137,8 +137,45 @@ Only three indices occur in the 21,161-file retail census:
 
 The numeric-to-name assignments follow Microsoft's authoritative
 [`D3DFORMAT`](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dformat)
-definition. Client metadata independently labels the same indices
-`A8R8G8B8`, `DXT1`, and `DXT5`.
+definition. The numeric API table, rather than a nearby metadata label,
+establishes these names.
+
+### 2D writer field boundary
+
+The complete normal control flow of loader `0x00431F30`, upload loop
+`0x00431E20`, source helper `0x00432500`, uploader `0x00431080` and creation
+method `0x004312D0` establishes this field-use boundary. This is static
+consumption, not device acceptance of a rewritten resource.
+
+| Stored field | Consumer and rule |
+|---|---|
+| Format byte `+0x06` | Creation and upload index the API table at `0x00F637B8`. Index 24 requests DXT1. Index 3 reads API value 22 at `0x00F637C4`, or `D3DFMT_X8R8G8B8`; index 4 requests `D3DFMT_A8R8G8B8`. Preserve the distinction between the two 32-bit formats. |
+| Mip count `+0x07` | The 2D constructor retains it unchanged; `0x00431E20` uses the retained count for iteration and the header count for table indexing. Creation forwards it to D3DX. Zero mips gives no iterations in this upload loop. |
+| Width/height `+0x0A/+0x0C` | Loader decodes big-endian words; the 2D constructor raises zero to one before retention and creation. Upload uses destination surface dimensions obtained through the Direct3D object, not a stored payload-length word. |
+| Table base `+0x10`, source base `+0x14`, entry first dword | Honored by the source arithmetic above. With a supplied view and zero source base, `0x00431EE5` checks only the start offset against the view length. |
+| Entry second dword | Not read by these upload/source methods as an extent guard. The descriptor builder writes an encoded size there; preserving or recomputing it remains necessary for a coherent file. |
+| Flags `+0x09`, depth `+0x0E` | Retain the texture-type/creation semantics above. A 2D profile does not establish the cube or volume resource contract. |
+
+The index-3 metadata record at `0x00F63CB4` supplies 32 bits per pixel and
+a zero block-format byte at `+0x21`, giving the linear source-pitch path.
+The numeric API names follow the linked Microsoft `D3DFORMAT` definition.
+An icon described as XRGB must first be authenticated and shown to carry
+index 3; a 32-bit payload alone cannot distinguish it from index 4. No new
+icon member identity or runtime upload was established here.
+
+The 2D constructor normalizes width at `0x00418C1B..0x00418C28` and height
+at `0x00418C2B..0x00418C34`. It retains the input mip count through
+`0x00418C59/0x00418C78` and `0x0043176B/0x00431770`. Creation forwards
+zero mips at `0x00431491/0x00431494`, while the upload loop's test at
+`0x00431E65/0x00431E67` prevents uploads for that count. This distinguishes
+constructor normalization, API arguments and actual loop iterations.
+
+The audit used the pinned 15,996,808-byte executable, Python 3.12.0,
+pefile 2024.8.26 and Capstone 5.0.7, x86-32 at image base `0x00400000`.
+Entry-seeded decoding reached every normal local branch in the five methods
+without an unresolved branch. Calls into D3DX and device virtual methods
+remain external boundaries. The native methods do not establish complete
+source-footprint bounds, table bounds or a general malformed-input policy.
 
 #### GTEX index 22
 
@@ -353,6 +390,70 @@ length checks, and transformations. The searched generic family supplies no
 cross-buffer offset resolution and no second-span byte read. This is not a
 negative claim about unsearched concrete handlers, nor evidence for a texture,
 palette, compression, or standalone SEDB interpretation.
+
+### Container validation and replacement boundary
+
+The generic methods establish field use and some local predicates. They do
+not establish a complete member-replacement profile. Let `S`, `N`, `D` and
+`V` retain the definitions above. A preservation rule below means that these
+observations do not justify discarding or changing the information.
+
+| Field | Validation and consumer | Preservation boundary |
+|---|---|---|
+| PWIB big-endian `+0x04` | `0x004EBF00` subtracts `+0x0C` to obtain the second length; `0x00A644B1` requests that view. | Keep the actual second end consistent with the container extent. These callers do not compare total to enclosing length or exclude subtraction underflow. |
+| PWIB `+0x08/+0x0C` | `0x004EBED0` subtracts first offset from second offset; `0x00A64505` requests the first view. | Preserve ordered, contained split spans. The observed first offset 16 is not a loader-enforced constant. |
+| SEDBRES `+0x10` | `0x00E0CE6B..0x00E0CEC8` converts a qword. Neither initializer `0x00E0D120` nor constructor `0x00E0D4C0` compares it with the first-view length. | Preserve this scalar's source representation. Conversion does not establish a validated total, nor permission to ignore it in other handlers. |
+| Count `+0x30` | `0x00E0D277` reads `N` to form the table/payload boundary. Accessors bound indices against `N` or `V`. | Preserve physical order, metadata associations and exposed count. No checked multiply/add or enclosing table-extent guard is established here. |
+| Names offset/count `+0x34/+0x38` | `0x00E0D2AC..0x00E0D307` forms the payload-relative names start and builds pointers by consecutive NUL scans. | Preserve all referenced ordinals and termination. No supplied-length bound constrains these scans. |
+| Row `+0x00` | `0x00E0CCEC/0x00E0CCF2` use a name ordinal after checking the visible row index. | It is not a resource ID. No name-ordinal bound or uniqueness predicate is established. |
+| Row offset/size `+0x04/+0x08` | `0x00E0C9CC/0x00E0C9D0` return `D+offset`; `0x00E0CB5C` returns size; `0x00E0D618` requests the member view. | Preserve the subtype's ranges and offset bases. Concrete view containment remains unresolved. |
+| Row `+0x0C` | The audited initializer, converter, constructor and row accessors do not consume it as a kind. | Preserve it as opaque. Generic types instead come from `RESOURCE_TYPE` through `0x00E0CD34`; IDs come from `RESOURCE_ID` through `0x00E0C940`. |
+
+Streaming loader `0x004EA560` checks that the initial read returned 16 bytes
+at `0x004EA63A`. For the first segment it compares
+`(returnedCount + 15) & 0xFFFFFFF0` with
+`(computedLength + 15) & 0xFFFFFFF0` at `0x004EA746`, after the rounding
+operations at `0x004EA731..0x004EA743`. Equality of those rounded 32-bit
+values does not require an exact read length; a short read in the same
+16-byte bucket passes this comparison.
+The RES version branch at `0x00E0D235/0x00E0D23C` tests unsigned
+version at least 4000. Signature/version failures call assertion callbacks
+and continue if those callbacks return, so they are not demonstrated hard
+rejections.
+
+Rows may select the same name ordinal without a local uniqueness check.
+Equal strings in distinct ordinals are not rejected by these methods either.
+This does not establish arbitrary suffix-overlap encoding: the names are
+built from consecutive terminator scans. Named lookup `0x00E0CAA0` selects
+an occurrence in visible row order, while metadata lookup `0x00E0C8D0`
+selects the first matching row among all physical entries. Sorting,
+deduplicating or moving metadata therefore lacks a preservation argument.
+
+The member-view alignment is derived at `0x00E0D5AA..0x00E0D5E5` using the
+formula above. It can be any power of two from 1 through 128. The second
+PWIB view separately requests alignment 16. These methods establish no
+universal member offset/length multiple-of-4 or multiple-of-16 predicate.
+Concrete subtype requirements remain separate.
+
+Extent enforcement remains unresolved at the view interface. `0x00A643F2`
+loads a caller-supplied input whose slot `+0x24` is invoked at
+`0x00A644B1/0x00A64505`. Constructor `0x00E0D4C0` loads and saves its
+caller-supplied first view at `0x00E0D4E0/0x00E0D505`, then invokes that
+view's slot `+0x24` at `0x00E0D618`. These functions do not establish the
+input views' concrete vtables. The next evidence is an authenticated caller
+that identifies both dynamic vtables, followed by complete audits of those
+slot targets for offset, length, overflow, alignment and error handling.
+
+The `bin`/`trb` callbacks `0x00A3D700`, `0x00A3D7D0` and `0x00A3D880`
+construct nested readers and re-enter the generic parser without a local
+total/name/member-span check. This establishes recursive consumption, not
+subtype acceptance or safe arbitrary relocation of nested resources.
+
+This audit used the pinned executable and the Python/pefile/Capstone profile
+specified in the 2D field boundary. Complete entry-seeded normal CFGs of the
+named methods and row accessors terminated at returns without unresolved
+normal branches. Exception edges and callees beyond the named methods were
+not assumed to add or omit checks. No runtime acceptance was observed.
 
 ### m520/e001 texture-bank boundary
 
