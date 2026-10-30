@@ -138,6 +138,78 @@ it against `[this+0x10]` and `[this+0x14]`, and calls insertion helper
 temporary reference through `0x00A3E680`. This method has no payload subtype
 test; retaining a decoded object is not proof of scene activation.
 
+## Failed open and local continuation
+
+The shared [missing-resource path](music-song-table.md#missing-resource)
+and [ResourceModule completion dispatch](music-song-table.md#request-path)
+apply to this numeric request. LocalFile open `0x00453C00` receives retry
+count zero at `0x00C9697F`. If it leaves a null stream, `0x00C961F0`
+publishes Resource state 3. ResourceModule update maps state 3 to terminal
+state 8 and dispatches completion flag zero at `0x00C999A2`. A missing
+file does not reach the successful-read state 2 or its state-7 completion.
+
+The false arm of `0x00631C70` calls event slot `+0x0C`, clearing the
+pending Resource at event `+0x18` / manager `+0x54`, then slot `+0x18`
+with a null payload. It skips both decoder branches and the actor-object
+forwarder. `0x006114A0` returns on null, so a fresh manager's decoded
+object at `+0x58` remains null. This differs from a successful empty decode.
+
+The completion cleanup also calls Resource helper `0x00CAECA0` with
+rearm flag zero. Its test at `0x00CAED0F` therefore skips the state-1
+rearm store. Region construction still proceeds to child submission after
+the asynchronous auxiliary request. The inspected region construction,
+update and readiness paths do not retry this auxiliary request, and the
+readiness predicate below does not await its success. These are local
+continuation properties. They do not establish harmless absence through
+every later scene operation or acceptance of an authored auxiliary payload.
+
+These paths were decoded from the pinned original PE with LLVM 22.1.4
+and Python 3.12.14. Targeted checks covered the request bridge, FileThread
+open/read, Resource state dispatch, false completion, cleanup rearm flag,
+region construction and child-layout readiness. No client ran.
+
+## Full-install numeric-path census
+
+Read-only Python 3.12.0 `struct`, `pathlib`, `os` and `hashlib` inspection
+used the retail install whose `game.ver` is `2012.09.19.0001` and whose
+executable matches the binary identity above. Catalog
+`data/03/C0/00/00.DAT` is 52,336 bytes, SHA-256
+`c04b0d998aea4c1b13ed322292a5aa5af45485c698da2315171c3c024bcb9a74`.
+Its 61 counted root groups consume exactly 1,089 `0x30`-byte rows from
+file `+0x40` to EOF. Roots 902 and 911 have nonzero raw `+0x20`.
+Roots 201 (`0xC9`) and 203 (`0xCB`) are childless. Each of the remaining
+57 roots has zero raw `+0x20` and at least one child.
+
+For each of those 57 roots, take the first child's resource high word and
+one plus the largest resource low word across every declared child,
+including types zero and one. No maximum is `0xFFFF`. All 57 derived keys
+lack a regular file at their numeric `data/AA/BB/CC/DD.DAT` path. First-child
+numeric files exist for 45 of the same roots. Root 206 derives
+`0x7F1F0001` and has the same absent result.
+
+The inspected namespace contains 191,960 regular files and 26,828
+directories including its root, totaling 12,947,445,672 file bytes. No
+reparse points or traversal errors were encountered. Sorting case-sensitive
+relative POSIX paths ordinally and hashing UTF-8 records of
+`path + TAB + decimal_size + LF` gives SHA-256
+`32ba521e1ad72690b127824234a73d9be98d970ecebebaa1f5167049ee0c03b1`.
+This identifies the inspected path/size namespace; it is not a content hash
+of every file. The catalog and executable have separate full-content pins.
+
+This is a full-install numeric-path absence result. It does not by itself
+establish path-table absence, the request-time formatter mode, a completed
+failed request, or client acceptance of an authored region.
+
+The [compiled path defaults](resource-path-producer.md#compiled-resource-path-defaults)
+select numeric filenames, and their default path-table member is absent
+from this install. No selected external configuration or mode-zero catalog
+was authenticated. There is therefore no authenticated alternate table in
+this evidence set against which to test the 57 keys. The numeric producer
+and its LocalFile failure path do not supply an archive fallback. An
+overridden mode-zero catalog could resolve another filename or suppress the
+request before Resource construction, so this census is not an unconditional
+retail-profile verdict.
+
 ## Selection readiness and remaining evidence
 
 The [read-only region snapshot](../../tools/windows/region-resource-snapshot.md)

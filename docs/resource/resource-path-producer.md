@@ -80,8 +80,9 @@ path formatting.
 The formatter receives a resource key and reads initialized global catalog
 state. This branch does not read a weather ID, event ID, season or a second
 bank selector. Changing the global path mechanism does not itself add a
-weather registration or recover historical resource contents. The catalog's
-configuration key names and its actual retail initialization remain unbound.
+weather registration or recover historical resource contents. The
+[compiled defaults](#compiled-resource-path-defaults) identify the mode and
+path-file keys. Actual retail initialization remains unbound.
 
 These observations used the retained Ghidra listings for `0x0044B3A0`,
 `0x0044B2A0` and `0x0044B690`. Python pefile `2024.8.26` mapped each listed
@@ -104,8 +105,8 @@ The getter computes a wrapping u32 address
 u32 at S+`0x60` when S is nonzero, or argument 3 when S is zero
 (`0x00443E56/59/5B/61`). For `(2,0,0)`, the normal read is the table base
 plus `0x2F60`, with fallback zero. The guard tests the computed address,
-rather than the table-base pointer alone. The record's semantic key name
-and actual retail value were not established.
+rather than the table-base pointer alone. The record is the `number_file`
+setting identified below. Its actual retail value was not established.
 
 When that getter returns zero, the initializer calls table initializer
 `0x0044B690` at `0x004B3141`. TEST AL and SETZ BL at
@@ -122,7 +123,7 @@ integer getter `0x00443E40(ESI;2,18,0)`, integer getter
 `0x00443E40(ESI;3,0,0)`, and getter
 `0x00443E70(ESI;2,30,empty-wrapper)`. The string-like getter shares the
 same index formula but returns S+`0x68` or its third-argument fallback.
-These are exact input tuples, not authenticated configuration names.
+Tuple `(2,3)` is `path_file`; the remaining names are not established here.
 At `0x0044B733`, the table initializer passes its first argument, literal
 `rt` at `0x00F672F4`, and retry zero to LocalFile open `0x00453C00`.
 Zero AL at `0x0044B738` reaches cleanup `0x0044BF7B` and clears AL at
@@ -143,6 +144,23 @@ The retained `0x0044B690` body has discontinuous AddressSet coverage.
 The [catalog text initialization](#catalog-text-initialization) below recovers
 its reachable ordinary success path without treating the catalog size as a
 contiguous extent.
+
+## Compiled resource path defaults
+
+SystemConfig constructor `0x004B8640` registers `(2,0)` as `number_file`,
+with scalar default 1, through `0x00443CF0` at `0x004B90CE`. It registers
+`(2,3)` as `path_file`, with default `/client/program/include/path.dat`,
+through `0x00443D50` at `0x004B91FE`. The named string/default setup is in
+`0x004B90A1..0x004B91FE`; scalar helper stores are at
+`0x00443D32/0x00443D35`. LLVM 22.1.4 and Python 3.12.14 checked these
+instructions and literal references directly in the pinned original PE.
+
+The full-install [auxiliary census](region-auxiliary-resource.md#full-install-numeric-path-census)
+found no `client/program/include/path.dat`. These are compiled defaults,
+not authenticated request-time settings. Configuration overrides, the actual
+root input and any selected external catalog remain unestablished. Numeric
+mode is the compiled default; a mode-zero request still requires an
+authenticated selected catalog before assigning a path or claiming absence.
 
 ## Catalog text initialization
 
@@ -194,8 +212,8 @@ additive mapping policy.
 These observations used pefile `2024.8.26` and Capstone `5.0.7` on the
 exact executable identified above. All retained instruction bytes were checked
 against that executable before extending the owned CFG. No client ran.
-The authenticated configuration key names and values, exact catalog member,
-existing assignments and request-time mode remain unbound. An additive
+The selected configuration values, exact catalog member, existing assignments
+and request-time mode remain unbound. An additive
 mode-zero profile requires those joins and a preservation audit of the actual
 catalog; static parser success alone does not provide one.
 
