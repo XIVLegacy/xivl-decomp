@@ -245,6 +245,7 @@ Each finding records its evidence and the limits of what it establishes.
   Bounded nonrepeat timer input, current-property capture and ordering limits.
 - [Sqwt ProgressBar template style and indicator sizing](resource/sqwt-progress-template-style.md)
 - [Sqwt CellSkins texture filename selection](resource/sqwt-skin-texture-filename.md)
+- [Sqwt IconControl textures](resource/sqwt-icon-control-textures.md)
 - [DamagePlate numeric presentation](resource/damage-plate-numeric-presentation.md)
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
