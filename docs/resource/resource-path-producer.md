@@ -106,7 +106,8 @@ u32 at S+`0x60` when S is nonzero, or argument 3 when S is zero
 (`0x00443E56/59/5B/61`). For `(2,0,0)`, the normal read is the table base
 plus `0x2F60`, with fallback zero. The guard tests the computed address,
 rather than the table-base pointer alone. The record is the `number_file`
-setting identified below. Its actual retail value was not established.
+setting identified below. The startup defaults and root producer are
+established below; its request-time value remains unobserved.
 
 When that getter returns zero, the initializer calls table initializer
 `0x0044B690` at `0x004B3141`. TEST AL and SETZ BL at
@@ -123,7 +124,7 @@ integer getter `0x00443E40(ESI;2,18,0)`, integer getter
 `0x00443E40(ESI;3,0,0)`, and getter
 `0x00443E70(ESI;2,30,empty-wrapper)`. The string-like getter shares the
 same index formula but returns S+`0x68` or its third-argument fallback.
-Tuple `(2,3)` is `path_file`; the remaining names are not established here.
+Tuple `(2,3)` is `path_file`; the other settings are identified below.
 At `0x0044B733`, the table initializer passes its first argument, literal
 `rt` at `0x00F672F4`, and retry zero to LocalFile open `0x00453C00`.
 Zero AL at `0x0044B738` reaches cleanup `0x0044BF7B` and clears AL at
@@ -155,12 +156,47 @@ through `0x00443D50` at `0x004B91FE`. The named string/default setup is in
 `0x00443D32/0x00443D35`. LLVM 22.1.4 and Python 3.12.14 checked these
 instructions and literal references directly in the pinned original PE.
 
+The other catalog inputs registered by that constructor are `(2,18)`
+`readable_version` = 255 (`0x004B9600`), `(3,0)` `extra_platform` = 0
+(`0x004B9955`), and `(2,30)` `priority_ext` = empty string
+(`0x004B9906`). These are constructor values, not request-time observations.
+
+## Startup root and configuration boundary
+
+The pinned PE initializes formatter byte `0x01266B64` to 1 in its data
+image, at file offset `0x00E66B64`. Main startup obtains the executable
+directory through `GetModuleFileNameW` in `0x00401A00`. Call
+`0x00402C25` supplies that directory to `0x004B69C0`, which overwrites
+SystemConfig `(8,1)`, `platform_install_path`. Startup later supplies the
+SystemConfig at Main `+0x3A0` to Rapture initialization at `0x0040354B`.
+
+On the nonzero `number_file` branch, getter `0x004B6A60` reads `(8,1)`;
+`0x004B2D30` supplies the resulting path to root wrapper `0x0132CB98`.
+The inspected precedence is constructor registration, assignment of the
+executable directory to `(8,1)`, then the initializer's `number_file` read
+and conditional mode store. This establishes an executable-relative numeric
+startup profile, conditional on successful executable-directory production,
+intervening calls returning, and the settings retaining those values.
+Original-PE entry-rooted checks used Python
+3.12.14 and LLVM 22.1.4; independent pefile/Capstone checks confirmed the
+selected root and mode transfers.
+
+Mode zero instead reads `(2,1)`, `root_path`, through `0x00443E70` at
+`0x004B2F0A`, then supplies it to the root setter at `0x004B2F10`.
+The executable-directory producer therefore does not locate a mode-zero
+catalog. Its selected root and catalog remain unestablished.
+
 The full-install [auxiliary census](region-auxiliary-resource.md#full-install-numeric-path-census)
-found no `client/program/include/path.dat`. These are compiled defaults,
-not authenticated request-time settings. Configuration overrides, the actual
-root input and any selected external catalog remain unestablished. Numeric
-mode is the compiled default; a mode-zero request still requires an
-authenticated selected catalog before assigning a path or claiming absence.
+used the directory containing the authenticated executable and found no
+`client/program/include/path.dat`. The inspected startup chain identifies
+no selected external configuration overriding the resource-path settings.
+The [binary system-store consumers](../input/system-configuration-consumers.md#direct-startup-joins)
+do not establish such overrides either. No authenticated mode-zero catalog
+is therefore available here for a 57-instance mapping search. This is a
+qualified static startup profile; it does not establish request-time mode,
+exclude another invocation or later mutation, or qualify harmless absence.
+A mode-zero request still needs its selected catalog authenticated before
+assigning a path or claiming absence.
 
 ## Catalog text initialization
 

@@ -178,7 +178,8 @@ executable matches the binary identity above. Catalog
 Its 61 counted root groups consume exactly 1,089 `0x30`-byte rows from
 file `+0x40` to EOF. Roots 902 and 911 have nonzero raw `+0x20`.
 Roots 201 (`0xC9`) and 203 (`0xCB`) are childless. Each of the remaining
-57 roots has zero raw `+0x20` and at least one child.
+57 roots has zero raw `+0x20` and at least one child. Their derived keys
+contain 34 distinct values; repeated keys remain separate root instances.
 
 For each of those 57 roots, take the first child's resource high word and
 one plus the largest resource low word across every declared child,
@@ -200,11 +201,12 @@ This is a full-install numeric-path absence result. It does not by itself
 establish path-table absence, the request-time formatter mode, a completed
 failed request, or client acceptance of an authored region.
 
-The [compiled path defaults](resource-path-producer.md#compiled-resource-path-defaults)
-select numeric filenames, and their default path-table member is absent
-from this install. No selected external configuration or mode-zero catalog
-was authenticated. There is therefore no authenticated alternate table in
-this evidence set against which to test the 57 keys. The numeric producer
+The [startup root and configuration boundary](resource-path-producer.md#startup-root-and-configuration-boundary)
+qualifies an executable-relative numeric startup profile for these 57 root
+instances. Its default path-table member is absent from this install.
+No selected external configuration or mode-zero catalog was authenticated.
+There is therefore no authenticated alternate table in this evidence set
+against which to test the derived keys. The numeric producer
 and its LocalFile failure path do not supply an archive fallback. An
 overridden mode-zero catalog could resolve another filename or suppress the
 request before Resource construction, so this census is not an unconditional
