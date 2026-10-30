@@ -31,6 +31,8 @@ interpretations:
 | `widget/desktopwidget` | `client/script/n1635q/65rzqvun1635q.le.lpb` | 4029 | `be7b0959ba530027991b22308b1d6a84ce5db311bdb727f987678b5dbf810e51` |
 | `chara/charabaseclass` | `client/script/729s9/729s989r57y9rr.le.lpb` | 13821 | `c7cd1dad84f7d9b723f5a10fb66108da9d9d6ef5d7c15186b48ec55092465238` |
 | `chara/charabaseclass_parameter` | `client/script/729s9/729s989r57y9rr_u9s9x5q5s.le.lpb` | 14673 | `e60a1ad866e4275e2f4e2e536697ac78a4926161820ade6ac07d939c6cf446bc` |
+| `chara/charabaseclass_cliprog` | `client/script/729s9/729s989r57y9rr_7y1usv3.le.lpb` | 4508 | `06ac1ccf8aa9fdd612f4465f298b937138b9957ce67f3260bdea702da1bcb35f` |
+| `chara/player/playerbaseclass` | `client/script/729s9/uy9l5s/uy9l5s89r57y9rr.le.lpb` | 25846 | `32182274f3886d0cdf6329f8a82e6592790c9b3038e00bebe5b2b38702bbd53e` |
 
 The script name and inherited class are cataloged in
 `xivl-client-scripts:lua/registry.json`, key
@@ -106,6 +108,51 @@ Each traversed slot performs these writes in order:
 `FloatData.Value1=0` and `IntData.Value0=1`. The storyboard command stops
 the two declared status animations. A zero slot length performs none of these
 per-button operations.
+
+## Local player flag and array capacity
+
+STATIC. `CharaBaseClass._onInit`, `chara/charabaseclass` `main/f21`,
+declares `gameParameter` as a temporary boolean at PCs 3..10. The declaration
+write is PC 10, LPB+`0x17A6`. PC 417, LPB+`0x1E02`, assigns the method's
+first argument to that member. The producer is a local initialization argument,
+not a server-response query or an active-status count.
+
+`PlayerBaseClass._onInit`, `chara/player/playerbaseclass` `main/f18`,
+supplies literal true,true to its superclass `_onInit` before declaring its
+own work. PCs 2..3 load those booleans at LPB+`0x17BE` and `0x17C2`.
+PC 4 calls at LPB+`0x17C6`. Those fixed arguments select the truthy
+CharaBaseClass declaration path.
+
+CharaBaseClass constructs the declaration tuple
+`{"statusShownTime","array",20,"integer32"}` at `main/f21` PCs 42..47.
+Count 20 is loaded at PC 45, LPB+`0x1832`. The row enters `_sync` only on
+the truthy first-argument path. The `_sync` write at PC 162, LPB+`0x1A06`,
+and `_tag` write at PC 415, LPB+`0x1DFA`, precede the `gameParameter`
+assignment. This establishes declaration order, not receipt of server values.
+
+`hasGameParameter`, `chara/charabaseclass_cliprog` `main/f0` PCs 0..2,
+LPB+`0x0360..0x0368`, directly reads the member. `getStatusSlotLength`,
+`chara/charabaseclass` `main/f43`, tests its Lua truth value and returns zero
+on the false path. Its true path applies LEN to `statusShownTime` at PC 8,
+LPB+`0x3219`. Neither reader counts nonzero timers or active status objects.
+
+The [work userdata contract](widget-work-members.md) owns the member carrier
+and declaration mechanism. Declaration metadata, installed storage and stored
+values are separate facts. Native `0x00D272D0` rejects a write without
+installed storage. On its nonbinding path, BooleanInformation vtable
+`0x0110FBC4` supplies store `0x00D28810` at slot `+0x6C` and reader
+`0x00D28890` at `+0x1C`. The store converts the Lua value by Lua truth rules
+and writes a pool bit addressed through work metadata. The reader returns nil
+without installed storage and otherwise reads a boolean from the pool. Zero
+constructor descriptor pointers do not establish a boolean default value.
+
+ArrayInformation vtable `0x0110F804` supplies initializer `0x00D21E00`
+and reader `0x00D216A0`. Its declaration count at `+0x10` reaches the
+array object's count at `+0x58`. Registered `__len` callback `0x00D2F2A0`
+returns that count without scanning element values. A successfully declared
+and initialized count-20 array therefore has length 20 even when every value
+is zero. Successful allocation, declaration installation and readiness of the
+particular instance remain conditions.
 
 ## Exact property arguments
 
@@ -224,9 +271,36 @@ property-cell refusal and routed-event gates can prevent delivery. That page's
 INFERRED engine joins remain INFERRED here. A show request is not a live
 visibility observation.
 
-UNKNOWN: initial actor readiness, the native transition that makes
-`gameParameter` available, its ordering against initial population, and
-`0x0137` timing relative to those operations. No live event delivery,
-frame, renderer pixels or animation arbitration was observed. The bounded
-widget and connector reads do not establish a fallback clear after zero slot
-length or a whole-client absence of one.
+## Player publication and initial population frontier
+
+STATIC. `_getMyPlayer` callback `0x00707970`, registered by `0x00752750`,
+follows the engine-associated pointer pair through `0x00CC7510` and
+`0x00CD7910`. It returns the selected nested pointer without testing
+`gameParameter`, array length or completed Lua `_onInit`. A nonnull result
+therefore does not establish player readiness. `PlayerBaseClass.isMyPlayer`,
+`main/f25` PC 3, LPB+`0x2B4B`, compares that result with self. This is an
+identity comparison.
+
+The selected native player construction branch at `0x00772CFD` reaches
+MyPlayer selection, constructor `0x006F9140` and control installation through
+`0x00CC8010` before the shared next boundary `0x007687F0`. Native construction
+does not establish completion of the Lua superclass initialization above. The
+Desktop candidate `0x00774700` has a direct caller in `0x00574970`, with
+CALL at `0x00574A40`. Its helper `0x00774530` can call the boundary directly
+or construct and queue a request through `0x00773960`. Queue execution order
+and downstream lifecycle completion are UNKNOWN. The shared construction
+boundary does not establish an order between the two Lua chains.
+
+The player declaration/flag order and Desktop create/update/show order are
+established locally. Their relative order is UNKNOWN. The unresolved join is
+whether work storage and PlayerBaseClass superclass initialization completed
+for the exact pointer returned by `_getMyPlayer` before initial static16:
+`update()`. The writer and publication timing of that getter's selected pointer
+remain untraced. A nonnull pointer, locally supplied true, capacity 20 or an
+empty status list cannot settle that join. The observed flag producer and
+reader supply no server-response condition.
+
+`0x0137` timing relative to those operations remains UNKNOWN. No live initial
+flag value, event delivery, frame, renderer pixels or animation arbitration was
+observed. The bounded widget and connector reads do not establish a fallback
+clear after zero slot length or a whole-client absence of one.
