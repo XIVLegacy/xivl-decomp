@@ -242,6 +242,56 @@ talk turn open for the next handoff; on sampled decline 0 they close it.
 Repeated `ask` expressions in a readable decompile must not be implemented
 as repeated prompts without a bytecode check.
 
+## Nymiene and Aergfloh talks
+
+The `com0l4` talk methods below and `Etc3u1.processEvent020` were read
+directly from a Lua 5.1 instruction listing of the decoded chunks in the
+[source table](grand-company-mission-bytecode-sources.csv). `Etc3u1` is
+the class path of static actor 110726 in
+`xivl-client-data:manifests/staticactor_class_paths.json`. Each `say`
+call passes the row as its second argument and 0 as its third. This page
+records row numbers only. The row text belongs to the decoded `com0l4`
+and `etc3u1` text sheets.
+
+| Quest / method | Branch | Rows in call order |
+| --- | --- | --- |
+| 111404 `Com0l4.processEventNymiene(a)` | numeric `a == 1` | 44, 46, 47 |
+| 111404 `Com0l4.processEventNymiene(a)` | any other value | 45, 46, 47 |
+| 111404 `Com0l4.processEventNymiene_01` | none | 57 |
+| 111404 `Com0l4.processEventAergfloh` | none | 48, 49 |
+| 111404 `Com0l4.processEventAergfloh_01` | none | 50 |
+| 110726 `Etc3u1.processEvent020(a)` | boolean `a == true` | 38, 39, 40, 41 |
+| 110726 `Etc3u1.processEvent020(a)` | any other value | 63, 39, 40, 41 |
+
+Every method opens with `startCliantTalkTurn` and `_runCharaScheduler`
+and closes with `finishCliantTalkTurn`. `Etc3u1.processEvent020` calls
+`_runCharaScheduler` again between rows 39 and 40. The `_01` methods and
+`processEventAergfloh` take three parameters and contain no conditional
+instruction. `processEventAergfloh_01` says row 50 alone, not rows 48
+and 49.
+
+The two branches are one `EQ` with A = 0 on R3, the fourth parameter
+after the quest, player and event owner. When R3 equals the constant,
+the `EQ` skips the following `JMP` and the first row plays. Otherwise
+the `JMP` reaches the second row.
+
+| Chunk | Method | `EQ` PC (chunk offset) | Raw word | Constant | Equal edge | Other edge |
+| --- | --- | --- | --- | --- | --- | --- |
+| `com0l4` | `processEventNymiene` | 7 (`0xD81`) | `0x01C10017` | K4, number 1 | PC 9, row 44 | `JMP` to PC 15, row 45 |
+| `etc3u1` | `processEvent020` | 7 (`0x1379`) | `0x01C10017` | K4, boolean `true` | PC 9, row 38 | `JMP` to PC 15, row 63 |
+
+Lua 5.1 equality between values of different types is false. Boolean
+`true` therefore takes row 45 in `Com0l4`, and numeric 1 or `nil` takes
+row 63 in `Etc3u1`. The two quests test different value types in the
+same argument position.
+
+The `com0l4` root binds closures 6, 7, 8 and 9 to `processEventNymiene`,
+`processEventNymiene_01`, `processEventAergfloh` and
+`processEventAergfloh_01` at PCs 27, 30, 33 and 36. The `etc3u1` root
+binds closure 15 to `processEvent020` at PC 54. These branches establish
+client presentation selection only. UNKNOWN: the value the retail server
+passed in either argument, and whether it chose a `_01` method.
+
 ## Bytecode trace locators
 
 The following locators use zero-based Lua 5.1 instruction PCs within the
@@ -268,20 +318,29 @@ independently inspectable in the original chunks.
 | `com5l1` | `processEvent_030_1` | 14 | `ask` 13 (`0xD9F`) |
 | `com5g1` | `processEvent_020_1` | 14 | `ask` 13 (`0x10FA`) |
 | `com5u1` | `processEvent_020_1` | 14 | `ask` 13 (`0xB54`) |
+| `com0l4` | `processEventNymiene` | 7 | `say` 13 (`0xD99`), 19 (`0xDB1`) |
+| `com0l4` | `processEventNymiene_01` | - | `say` 11 (`0xEDD`) |
+| `com0l4` | `processEventAergfloh` | - | `say` 11 (`0xFBD`), 16 (`0xFD1`) |
+| `com0l4` | `processEventAergfloh_01` | - | `say` 11 (`0x10BA`) |
+| `etc3u1` | `processEvent020` | 7 | `say` 13 (`0x1391`), 19 (`0x13A9`) |
 
 The familiar predicates were sampled with `nil`, 0, 1, `false`, and `true`;
 the finale predicates used the corresponding extra-argument tuples. The
 six ask methods were sampled with choices 0 and 1. Client calls were
 recording stubs; their effects outside these methods were not simulated.
+The `say` rows for the talk methods come from the instruction listing,
+not from sampling. Their two `say` PCs are the equal and other edges.
 
 ## Provenance and limits
 
 The [source table](grand-company-mission-bytecode-sources.csv) identifies
-all 18 original `client/script` LPBs by path and SHA-256, plus the SHA-256
-of each decoded Lua 5.1 chunk. Decoding those LPBs with
+the 18 original `client/script` LPBs of the bytecode pass and the
+`etc3u1` LPB by path and SHA-256, plus the SHA-256 of each decoded Lua
+5.1 chunk. Decoding those LPBs with
 `xivl-client-structs/tools/decode_lpb.py` reproduced all 18 chunks used by
-the bytecode pass byte-for-byte. The method and PC locators above identify
-the relevant instructions in those chunks.
+the bytecode pass byte-for-byte and produced the listed `etc3u1` chunk.
+The method and PC locators above identify the relevant instructions in
+those chunks.
 The trace domain was `nil`, 0, 1, `false`, and `true` for extra arguments,
 with sampled choices 0 and 1. That coverage does not prove behavior for
 arbitrary inputs, client rendering, or historical server dispatch.
