@@ -27,7 +27,7 @@ an extra argument to their NQ scenes `COM0l110`, `COM0G110`, and
 The value sent by the historical retail server remains unknown; neither
 zero nor an actor ID is justified as a replacement.
 
-The aftermath scene assets each contain one setup `NumberClip`.
+The aftermath scene assets each contain one `NumberClip`.
 Their decoded initial values are separate from that missing forwarded
 argument:
 
@@ -44,6 +44,171 @@ above identify the inspected scene assets. In the pinned executable, the
 register-1 reader. These serialized
 values are not a proven fallback when the NQ playback argument is
 missing, nor proof of the server's historical choice for any player.
+
+## Aftermath recognition branch
+
+`com0l110` and `com0u110` each test their register-fed `NumberClip` with
+an `IfClip` that selects one of two branch tracks in block `c02`.
+`com0g110` has no such test. The client facts below come from Ghidra
+decompilation and disassembly of the pinned `ffxivgame.exe` (image base
+`0x00400000`, addresses are VAs). The scene facts come from the three
+scene files whose SHA-256 values are in the
+[aftermath table](#familiar-entry-and-aftermath). D is a serialized clip
+record with the shared header on the
+[clip layout page](../resource/cut-scheduler-clip-layout.md#clip-records),
+and all values are little-endian.
+
+### IfClip record
+
+The constructor `0x00A291E0` installs the
+`SQEX::CDev::Engine::Cut::Scheduler::IfClip` vftable `0x010988EC`. It and
+the branch builder `0x00A29390` walk this layout:
+
+| Offset | Width | Field |
+| --- | ---: | --- |
+| `D+0x10` | 2 | `s16` track passed to the track call |
+| `D+0x12` | 1 | `u8` branch count |
+| `D+0x14` | | First branch |
+
+Each branch is a 4-byte header followed by its conditions. The builder
+copies the target into the branch object at +0x08 and the mode into
++0x0C.
+
+| Branch offset | Width | Field |
+| --- | ---: | --- |
+| `+0x00` | 2 | `s16` target track |
+| `+0x02` | 1 | `u8` condition count |
+| `+0x03` | 1 | `u8` combine mode |
+| `+0x04` | | First condition |
+
+The condition iterator `0x00A2AA50` advances 8 bytes per condition, or
+20 bytes when the type byte is 1.
+
+| Condition offset | Width | Field |
+| --- | ---: | --- |
+| `+0x00` | 1 | `u8` operator |
+| `+0x01` | 1 | `u8` type |
+| `+0x02` | 2 | `s16` index of the tested clip |
+| `+0x04` | 4 | `s32` value, or 16 string bytes when the type is 1 |
+
+### Evaluation
+
+Slot 1 of the IfClip vftable, `0x00A29690`, rebuilds the branches through
+`0x00A29390` and tests them in record order with `0x00A28F30`. The first
+branch that passes supplies its target track. When none passes, the
+target stays -1. The method then calls `0x00A20000` with `s16(D+0x10)`
+and the target.
+
+`0x00A28F30` reads the combine mode. Mode 0 passes when every condition
+holds, so an empty list passes. Mode 1 passes when any condition holds,
+so an empty list fails. Any other mode fails.
+
+`0x00A2A9A0` evaluates one condition. It looks up the clip at the
+condition's index through `0x00A21430` and fails when no clip is there.
+For type 1 it passes the string from the clip's vtable +0x40 method and
+the condition string to `0x00A2A950`, which accepts operators 0 (always),
+1 and 2 (16-byte `strncmp` equal and not equal) and fails any other. For
+every other type it passes the value from the clip's vtable +0x3C method
+and the condition value to `0x00A2A8A0`:
+
+| Operator | Holds when |
+| ---: | --- |
+| 0 | Always |
+| 1 | clip value == condition value |
+| 2 | clip value != condition value |
+| 3 | clip value > condition value, signed |
+| 4 | clip value >= condition value, signed |
+| 5 | clip value < condition value, signed |
+| 6 | clip value <= condition value, signed |
+| 7 | (clip value AND condition value) != 0 |
+| 8 | (clip value AND condition value) == 0 |
+| Other | Never |
+
+`0x00A20000` forwards to the track object at +0x58 of the object at +0x0C
+of the slot argument. That object holds one node per track index in its
++0x08 array. Its walks read node +0x00 as the parent, +0x04 as the first
+child, +0x08 as the next sibling and the byte at +0x0C as the enable
+flag. With target -1, `0x00A26B70` clears the flag on every child of
+the node for `s16(D+0x10)`. Otherwise `0x00A26B20` clears it on every
+child of the target node's parent, when the node has one, and then sets
+it on the target node.
+The begin test `0x00A26B00`, shown on the
+[clip timing page](../resource/cut-scheduler-clip-timing.md), returns
+false unless the clip's track node and every node on its parent chain
+have the flag set.
+
+### NumberClip register feed
+
+GetNumberRegisterClip (vftable `0x0113A9DC`) slot 2, `0x00DFAEC0`, looks
+up the clip at index `s16(D+0x10)` through `0x00A1FFB0`. It reads the
+value for register `s16(D+0x12)` through vtable +0x44 of the object at
++0xF0 of the `0x00A20070` result and stores it through the target clip's
+vtable +0x38 method. In the NumberClip vftable `0x0113AF9C`, +0x38 is
+`0x00DFB230`, which stores the word at clip +0x38, and +0x3C is
+`0x00DFB240`, which returns it. An IfClip condition on a NumberClip
+therefore compares the word that the register feed stored.
+
+### Scene tables
+
+Each scene has one GetNumberRegisterClip, and each one reads register 1
+into the scene's NumberClip:
+
+| Scene | GetNumberRegisterClip | Payload | NumberClip index | Block |
+| --- | --- | --- | ---: | --- |
+| `com0l110` | `0x1C8DC` | clip 14, register 1 | 14 | setup |
+| `com0g110` | `0x918` | clip 22, register 1 | 22 | `c01` |
+| `com0u110` | `0xBE80` | clip 15, register 1 | 15 | setup |
+
+The register-fed IfClips sit in block setup. Each branch has one type 0
+condition and combine mode 0, and `s16(D+0x10)` equals the record's own
+track word `s16(D+0x08)`.
+
+| Scene | IfClip (track) | Branch 1 | Branch 2 | No match |
+| --- | --- | --- | --- | --- |
+| `com0l110` | `0x1CAD8` (43) | clip 14 == 1: track 44 | clip 14 != 9999: track 46 | 9999 |
+| `com0u110` | `0xBFA4` (10) | clip 15 == 0: track 11 | clip 15 == 1: track 13 | every value except 0 and 1 |
+
+The branch tracks hold no clips. Block `c02` places one RaptureMesClip on
+the track after each target. The message word 0 is `u32(D+0x14)` from the
+[RaptureMesClip payload](../resource/cut-scheduler-clip-payloads-ranks-7-13.md#rapturemesclip).
+
+| Scene | Target | RaptureMesClip (track) | Message word 0 |
+| --- | ---: | --- | ---: |
+| `com0l110` | 44 | `0x1CFEC` (45) | 34 |
+| `com0l110` | 46 | `0x1D010` (47) | 58 |
+| `com0u110` | 11 | `0xC41C` (12) | 58 |
+| `com0u110` | 13 | `0xC440` (14) | 32 |
+
+The other IfClips test actor clips, not a NumberClip:
+
+| Scene | IfClip (track) | Tested clips | Targets |
+| --- | --- | --- | --- |
+| `com0l110` | `0x1C950` (27) | RaptureGetActorCategoryClip `0x1C868` (clip 15): == 1, != 9999 | 28, 30 |
+| `com0u110` | `0xBED8` (24) | RaptureGetActorCategoryClip `0xBE00` (clip 12): == 1, == 3, != 9999999 | 25, 27, 29 |
+| `com0g110` | `0x720` (17) | RaptureGetActorNumberClip `0x610` (clip 12): == 3 or == 9 (mode 1), then RaptureGetActorCategoryClip `0x5D8` (clip 10): == 3, == 1, == 2 | 18, 20, 22, 24 |
+
+The camera targets in `com0l110` and `com0u110` also hold no clips, and
+their LocalCameraClips sit on the tracks after them (29 and 31, then 26,
+28 and 30).
+
+### Interpretation and limits
+
+- INFERRED: each target track is the parent of the following track, so
+  selecting target N lets the clips on track N+1 begin. The enable walk
+  above is observed, but the parent links come from the scene's `@CTRK`
+  track table, which this page does not decode.
+- INFERRED: message word 0 names the text row. The values match the
+  variant pairs `com0l1` 34 and 58 and `com0u1` 32 and 58 in
+  `xivl-client-data:docs/grand-company-dialogue-variants.md`. The
+  RaptureMesClip payload page leaves the meaning of the word UNKNOWN.
+- Under both inferences, `com0l110` plays row 34 for register value 1 and
+  row 58 for any other value except 9999. `com0u110` plays row 58 for 0,
+  row 32 for 1 and neither row for any other value.
+- UNKNOWN: whether the extra `startNQCutScene` argument of the aftermath
+  methods reaches register 1. The register source behind vtable +0x44 of
+  the +0xF0 object was not traced to the Lua call.
+- UNKNOWN: how `com0g110` chooses between its two `c02` blocks. No IfClip
+  in that scene reads NumberClip 22.
 
 ## Level-22 finale predicates
 
