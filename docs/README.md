@@ -445,6 +445,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Lua class registry](script/lua-class-registry.md)
 - [Native class registration parents](script/native-class-registration-parents.md)
 - [Script class definition and repeat definition](script/define-class-repeat-definition.md)
+- [Judge sheet globals](script/sheet-globals.md)
 - [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
 
 ## Type notes
