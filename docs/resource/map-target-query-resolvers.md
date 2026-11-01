@@ -333,17 +333,87 @@ This member-call interpretation assumes valid distinct stack/object storage,
 normal returns and ordinary callee-saved-register preservation. The caller
 expects cleanup of 0/0/4/0/12/4/0/8 argument bytes for the eight table rows.
 It explicitly removes the `0x14` argument with ADD ESP,4 at `0x00804E53`.
-Outside callee returns and exceptional unwind behavior were not decoded.
+The record delegate's `RET 12` is recovered below. Other outside callee
+returns and exceptional unwind behavior were not decoded.
 
 No local instruction writes through O, P, U, G, H, T or W. The O+4 delegate
 `0x0079EE80(O+4,[L])`, the O delegate `0x008011A0(O,[k,W])`,
-the G delegate `0x00801140(G,[k,P,T])`, the size-argument call and
-all four virtual implementations remain opaque. In particular, passing
+the size-argument call and all four provider virtual implementations remain
+opaque. The G delegate's local initialization is recovered below. Passing
 O+4 does not establish a store at O+8/+`0x0C`. Neither P nor H nor W is
 established as resolved query record J, and this local flow does not bind
 the producer or meaning of J+`0x10`. Actual record membership, matches,
 placement, collision effects and historical encounter lifecycle remain
 unestablished.
+
+### Provider record initialization
+
+`0x00801140` receives G in ECX and nearest-first `[k,P,T]`. The selected
+provider supplies k=7. Entry-seeded local flow reaches `RET 12` at
+`0x00801188`; all reached instructions lie in
+`[0x00801140,0x0080118B)`. The separately published next delegate entry
+`0x008011A0` supplied the finite upper admission limit, rather than an
+assumed function end.
+
+With S=entry ESP, the routine loads k from S+4 at `0x00801140`, T from
+S+12 at `0x00801147` after saving ESI, and P from S+8 at `0x0080114E`
+after saving EDI. G is retained in ESI. These loads precede the following
+explicit dword stores:
+
+| Destination | Value | Store |
+| --- | --- | --- |
+| G | `0x00FF3AFC` | `0x00801152` |
+| G+4 | k | `0x00801158` |
+| G+8 | P | `0x0080115B` |
+| G+`0x0C` | T | `0x0080115E` |
+| G+`0x10` | 0 | `0x00801161` |
+
+The installed table has nominal class
+`Application::Scene::Actor::Map::Instance::InstanceObject`. The
+[RTTI catalog](../../config/ffxivgame.rtti.json), row with RVA
+`0x00BF3AFC`, and [slot catalog](../../config/ffxivgame.vtable_slots.jsonl),
+same table's slot 0, agree with original data. Cell `0x00FF3AF8` points to
+COL `0x01164280`; cell `0x00FF3AFC` contains `0x00807090`. The COL has
+signature, complete-object offset and constructor displacement zero, and type
+descriptor `0x012C7F60` names
+`.?AVInstanceObject@Instance@Map@Actor@Scene@Application@@`. The eight
+table/COL-pointer bytes have SHA-256
+`0221cb51d96edb4337453f35052b80248f2ea39c944f3d8646327e1aa24d2f96`;
+the 20-byte COL has SHA-256
+`bd6b98917d51009076a4339c7bf98dc7821df9c627238e983fa9607b4ec4d87d`.
+The slot target was not opened.
+
+TEST at `0x0080114B` checks the loaded T. The intervening pushes, loads and
+stores preserve its flags, so JE at `0x00801168` skips both virtual calls
+exactly when T==0. Otherwise the first call returns V; its next use
+dereferences V without a local null guard:
+
+| Callsite | Target | ECX | Newly supplied words |
+| --- | --- | --- | --- |
+| `0x00801172` | u32(u32(T)+`0xE8`), slot 58 | T | None |
+| `0x0080117F` | u32(u32(V)+`0x98`), slot 38 | V | `[P]` |
+
+The second return is written to G+`0x10` at `0x00801181`. Both virtual
+implementations remain opaque. The first has no new argument push; the
+normal caller convention expects zero and four bytes of argument cleanup
+respectively. `0x00801185` sets EAX=G before the final saved-register
+restoration and `RET 12`, so the provider's H equals G on a normal ABI return.
+
+These are point-specific stores under valid receiver/input/stack storage and
+ordinary callee-saved-register conditions. The explicit receiver destinations
+span 20 bytes, but this does not establish allocation success, complete object
+extent or ownership. Aliases and opaque calls can change earlier fields;
+the virtual return stored at +`0x10` has no established numeric domain or
+semantic name. In particular, this G is not yet joined to root-query record J.
+The append delegate and actual provider membership remain separate, so these
+stores do not establish the producer of J+`0x10`, collision effects or a
+historical encounter placement.
+
+Python 3.12, pefile 2024.8.26 and Capstone 5.0.7 recovered this bounded
+original-PE flow. Manual section-offset arithmetic, literal instruction
+checks, local branch/store/call checks and a separate linear partition agreed
+on its 75-byte reached range. Both partitions used Capstone and are not
+independent disassembler results. No callee body was followed.
 
 ## Separate root and child fallback
 
@@ -424,6 +494,7 @@ basic blocks, independently of catalog summed sizes.
 
 | Entry | Actual interval(s) | SHA-256 |
 | --- | --- | --- |
+| `0x00801140` | `[0x00801140,0x0080118B)` | `bf3eec9801c28342385701350bca3b5199915c99a32b20e590b25f129ae89eae` |
 | `0x00647980` | `[0x00647980,0x00647A5C)` | `4e6c1dda646f9abd3972eef2cea92f45b7adccc89cb0e20848648e314b4ce18a` |
 | `0x00647B20` | `[0x00647B20,0x00647BE5)` | `136cebcff561d5a03bda63631327c2af7a681bf783dc6406abaa29655fb76316` |
 | `0x006464D0` | `[0x006464D0,0x00646553)` | `5ce23ca169a6947367d11d9d440d284cebe82c39c0e59e19f398c418eba1e267` |
