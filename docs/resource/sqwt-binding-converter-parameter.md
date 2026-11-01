@@ -26,7 +26,10 @@ All addresses below are VA. Subtract `0x00400000` for RVA. Executable size
 and SHA-256 were checked before the observations. Decompiled output supplied
 leads. The described loads, stores, arguments and dispatches were checked in
 the corresponding instructions. This was static analysis, without client
-execution or a fresh analysis-project reproduction.
+execution or a fresh analysis-project reproduction. The RangeBase descriptor
+indices and special float values use `ghidra-cli 0.2.2` disassembly and
+memory reads of the same executable, whose size and SHA-256 were checked
+first.
 
 `B` denotes the complete object returned by `FUN_00999c70`. Its constructor
 installs table `0x01079CD8` at `B` and table `0x01079C9C` at `B+0x18`,
@@ -90,8 +93,9 @@ targets as `0x00966C54`, `0x00966C6D`, `0x00966C86`, `0x00966C9F` and
 
 These branches pass an address at receiver offset `0x33C`, `0x344`,
 `0x34C`, `0x354` or `0x35C`, respectively, plus the working string, to
-`FUN_00988D50`. Out-of-range indices return a false low byte. The exact
-`Value` descriptor-to-index join is not established here.
+`FUN_00988D50`. Out-of-range indices return a false low byte. The
+[RangeBase descriptor indices](#rangebase-descriptor-indices) join each
+descriptor to its index and receiver offset.
 
 After two scalar-comparison branches, `0x00988DC4..0x00988E0A` tests the
 working string's length. A nonempty string supplies its character pointer
@@ -108,7 +112,76 @@ variadic argument address to `0x009D8CBD`, labeled `__vsnprintf` by Ghidra.
 The instructions establish the format and value argument roles. They do not
 establish actual output under a particular locale, floating-point environment,
 rounding case, malformed format or truncation case. The two earlier scalar
-branches and empty-format literal contents are outside this finding.
+branches are in [Special float values](#special-float-values).
+
+## RangeBase descriptor indices
+
+Five initializers name the `RangeBase<float>` descriptors. Each passes a
+name literal and its descriptor to `0x009108E0` and stores a distinct dword
+at descriptor `+0x14`. The index store addresses below are that field.
+
+| Index | Name | Name literal | Descriptor | Index store | Initializer | Callback block | Scalar offset |
+|---:|---|---|---|---|---|---|---|
+| 0 | `LargeChange` | `0x0106FD94` | `0x0135AE1C` | `0x0135AE30` | `0x00F23FA0` | `0x00966C54` | `+0x33C` |
+| 1 | `Maximum` | `0x0106FDA0` | `0x0135ADC4` | `0x0135ADD8` | `0x00F23FD0` | `0x00966C6D` | `+0x344` |
+| 2 | `Minimum` | `0x0106FDA8` | `0x0135ADA0` | `0x0135ADB4` | `0x00F24000` | `0x00966C86` | `+0x34C` |
+| 3 | `SmallChange` | `0x0106FDB0` | `0x0135AD7C` | `0x0135AD90` | `0x00F24030` | `0x00966C9F` | `+0x354` |
+| 4 | `Value` | `0x0106FDBC` | `0x0135ADF4` | `0x0135AE08` | `0x00F24060` | `0x00966CB8` | `+0x35C` |
+
+The initializers span `0x00F23FA0..0x00F23FC3`, `0x00F23FD0..0x00F23FF3`,
+`0x00F24000..0x00F24023`, `0x00F24030..0x00F24053` and
+`0x00F24060..0x00F24083`. The callback blocks are the five targets of the
+jump at `0x00966C4D`. Each adds its offset to ECX at `0x00966C59`,
+`0x00966C72`, `0x00966C8B`, `0x00966CA4` and `0x00966CBD` and calls
+`FUN_00988D50` with that address and the working string. The last column
+pairs each block with the offset it adds. STATIC.
+
+The `RangeBase<float>` constructor `0x00967850` calls `0x009C1FD0` once per
+descriptor, with the scalar receiver `this+0x33C`, `+0x344`, `+0x34C`,
+`+0x354` and `+0x35C` and the descriptors `0x0135AE1C`, `0x0135ADC4`,
+`0x0135ADA0`, `0x0135AD7C` and `0x0135ADF4`, at `0x009678C0`, `0x009678E3`,
+`0x00967906`, `0x0096792B` and `0x0096794E`. Its pairing agrees with the
+table: `Maximum` is the scalar at `+0x344` and `Value` the scalar at
+`+0x35C`. The `ProgressBar` default indicator path in
+[ProgressBar template style](sqwt-progress-template-style.md) reads the same
+three offsets as Value, Minimum and Maximum. STATIC.
+
+The initializer at `0x00F24090` pushes count 5 at `0x00F24099` and calls
+`0x0098B250` for info object `0x0135AE40` at `0x00F240AE`. The constructor
+passes that info object and the receiver to `0x0098B400` at `0x009679A5`.
+That the five descriptors share this one info object and callback is
+INFERRED from the count and the single registration. The lookup that maps a binding `Path`
+name to a descriptor and then to this info object at run time is not traced
+here (UNKNOWN). A `Path=Maximum` binding is therefore the same conditional
+path as `Path=Value`, selecting index 1 where `Value` selects index 4. The
+source property index is the only difference between the two, and the
+`ConverterParameter` handling does not depend on it.
+
+## Special float values
+
+`FUN_00988D50` compares the scalar with two doubles before it reads the
+working string. `FLD float [ESI]` at `0x00988D6C` loads the float behind
+its first argument, and `FCOMP double [0x00FA2EE0]` at `0x00988D6F` compares
+it with `-20000000.0`. The double at `0x00FA2EE0` is the byte run
+`00 00 00 00 D0 12 73 C1`. `FNSTSW AX`, `TEST AH,0x44` and `JP` at
+`0x00988D7C..0x00988D81` take the jump on every outcome except equality. The
+fall-through pushes literal `0x0107729C`, the text `NaN`, at `0x00988D83` and
+calls `0x0097FD10` with the buffer, size `0x100` and no value argument.
+
+The second compare at `0x00988D9C..0x00988DA9` uses the double at
+`0x0106F978`, bytes `00 00 00 00 D0 12 63 41`, which is `20000000.0`. Its
+fall-through pushes literal `0x010772A0`, the text `PositiveInfinity`, at
+`0x00988DAB` and calls `0x0097FD10` the same way. Both fall-throughs join
+`0x00988E03`, which copies the buffer into the working string.
+
+Any other float continues at `0x00988DC4`. A nonempty working string is the
+format and an empty one selects literal `0x010772B4`, the text `%f`, at
+`0x00988DEC`. STATIC for the instructions and literals. The equality
+reading of the jump is INFERRED from the x87 condition-code bits that the
+test selects: the jump is not taken only when C3 is set and C2 is clear.
+A float equal to `-20000000.0` or `20000000.0` therefore prints text and
+never digits. A NaN compares unordered and an infinity compares unequal, so
+both reach the CRT format. Their output is outside this finding.
 
 ## Bounded retail HUD carriers
 
@@ -179,6 +252,7 @@ Retain identities, ordinals, tags and syntax classes. Keep client bytes, XML
 bodies, executable listings and decompiled bodies outside the public repository.
 
 The surviving gaps are runtime object and table selection, native source
-property resolution, the exact `Value` index, successful downstream property
-assignment and rendering, all alternate converter implementations, reverse
-conversion behavior, special scalar behavior and exact CRT output rules.
+property resolution, the run-time lookup from a `Path` name to its descriptor,
+successful downstream property assignment and rendering, all alternate
+converter implementations, reverse conversion behavior, the output for NaN and
+infinite inputs and exact CRT output rules.
