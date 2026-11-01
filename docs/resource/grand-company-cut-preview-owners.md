@@ -24,6 +24,12 @@ Offsets are absolute in the named file. D is a clip record.
 - The stage string is the only ASCII match of the form `aaa_a0_aaa00` in
   the file. Every match lies inside the scheduler span.
 
+The selected background records also have an exact class-entry and
+String-index join, described [below](#background-class-entries-and-indexed-names).
+Those selected metadata reads used Python 3.12 `struct` and `hashlib` against
+the file and scheduler identities in [Scene files](#scene-files). They did
+not depend on the stage-name pattern to resolve the index.
+
 The [native preview setup consumer](cut-preview-setup-clip.md) covers the
 fixed owner-buffer copy and its delegated internal event. The
 [background setup input contract](cut-background-setup-inputs.md) gives
@@ -47,6 +53,64 @@ receiver bindings remain unestablished.
 | `com0g510` | `0x2EA5C`, `Com0g6` | `0x2E4A0`, 103, 34 | `fst_f0_fld02` at `0x49F3D` |
 | `com0u510` | `0x768`, `Com0u6` | `0x678`, 104, 36 | `wil_w0_fld03` at `0x1B061` |
 | `elv0l110` | none | `0x434`, 101, 21 | `sea_s0_ind01` at `0xC10`, `0x2B84` |
+
+## Background class entries and indexed names
+
+For each selected 72-byte record D, `u8(D+2)` selects one four-byte
+`@CCPT` entry at `child+0x10+4*u8(D+2)`. Resolving the entry's first
+u16 token through its scheduler's String table gives `RaptureBgSetupClip`
+in every row. Each selected entry's byte +2 is **7**. The ordinal is local
+to the scheduler and is not the entry byte or a region number.
+
+Let T be the String offset table at its directory entry +`0x20`. For the
+index I=`u32(D+0x18)`, the exact target is `T+s16(T+2*I)`. Every target
+below contains the corresponding NUL-terminated stage string in
+[Scene records](#scene-records). Class and stage-name reads stopped at the
+first NUL within a 256-byte bound inside the authenticated scheduler.
+The duplicate stage strings in `com0g610` and `elv0l110` therefore have
+specific indexed targets, rather than interchangeable matching locations.
+All addresses in this table are absolute file offsets.
+
+| Scene | Class ordinal | Selected class entry | T | Index cell T+2*I | Indexed name | `u32(D+0x30)` |
+| --- | ---: | --- | --- | --- | --- | ---: |
+| `com0l110` | 0 | `0x1C23C` | `0x2755C` | `0x2759E` | `0x2781F` | 0 |
+| `com0g110` | 1 | `0x134` | `0xAA30` | `0xAA72` | `0xACFF` | 0 |
+| `com0u110` | 0 | `0xB900` | `0x13D60` | `0x13D9C` | `0x13FE0` | 8002 |
+| `com0l410` | 0 | `0x68D68` | `0x74848` | `0x74882` | `0x74ABF` | 0 |
+| `com0g410` | 0 | `0x68648` | `0x74098` | `0x740D2` | `0x7430F` | 0 |
+| `com0u410` | 0 | `0x68798` | `0x74218` | `0x74252` | `0x7448F` | 0 |
+| `com0l610` | 4 | `0x611DC` | `0x80D0C` | `0x80D54` | `0x8101C` | 0 |
+| `com0g610` | 3 | `0xA5D7C` | `0xCF740` | `0xCF78E` | `0xCFA91` | 8001 |
+| `com0u610` | 0 | `0x8D378` | `0xAE698` | `0xAE6D6` | `0xAE936` | 0 |
+| `com0l510` | 0 | `0x2000` | `0x151E0` | `0x15226` | `0x154CC` | 0 |
+| `com0g510` | 2 | `0x2DD44` | `0x49C5C` | `0x49CA0` | `0x49F3D` | 8003 |
+| `com0u510` | 3 | `0x13C` | `0x1AD60` | `0x1ADA8` | `0x1B061` | 0 |
+| `elv0l110` | 1 | `0x134` | `0x29C0` | `0x29EA` | `0x2B84` | 0 |
+
+All 13 selected records have `u8(D+0x20)=1` and
+`u16(D+0x22)=0xFFFF`. The table's +`0x30` values are separate from
+both leading words. Their domain is not established here.
+
+The [class-key producer](scb-clip-factory-composition.md#parsed-clip-key-table)
+stores serialized entry byte +2 at runtime key-entry +4 and resolves its
+class-name pointer from T. The
+[builder](scb-clip-factory-composition.md#class-key-and-registry-selection)
+selects that eight-byte key entry by D's class ordinal. If this parsed
+key/record reaches the corresponding clip constructor, the nominal
+background implementation is selected with preserved fields, and the
+selected context retains this scheduler's String table, the key-type byte in the
+[native input contract](cut-background-setup-inputs.md#leading-word-and-request-tuple)
+is 7. On that conditional composition the leading word supplies the region
+input position, the table's +`0x30` value supplies its second argument,
+the low flag byte is 1, and the native state-1 name lookup uses the indexed
+stage string above. The native mode argument is 3 under that contract.
+This does not prove the actual factory selection, constructed clip/context/
+receiver, invocation, accepted region, meaning of the second argument,
+historical playback or server quest outcome.
+
+The [background registration and construction path](cut-background-setup-construction.md)
+gives the selected factory and D/key field forwarding. It retains actual
+registry selection, context and invocation as conditions.
 
 ## Scene files
 

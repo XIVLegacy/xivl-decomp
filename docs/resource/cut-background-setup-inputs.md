@@ -5,8 +5,11 @@ forwards its leading record word to the region-input position of the existing
 SetMap helper. Its next
 word is used as a name index on key types 2 through 7, while type 1 supplies
 the address of inline bytes at that position. These are conditional native
-input relationships. The authored Grand Company records do not establish
-their actual key type, receiver, invocation or successful scene transition.
+input relationships. The
+[authored Grand Company records](grand-company-cut-preview-owners.md#background-class-entries-and-indexed-names)
+have serialized class-entry byte 7 and exact indexed stage-name targets.
+They do not establish their actual constructed key/clip/receiver, invocation
+or successful scene transition.
 
 ## Binary and selected ranges
 

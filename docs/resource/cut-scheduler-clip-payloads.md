@@ -122,10 +122,14 @@ routine writes 8 bytes: the address of the String table entry named by
 `u16(entry)` at key entry +0, and `u8(entry+2)` at key entry +4 (`0x00a27234`).
 STATIC for both functions.
 
-INFERRED: the table the builder reads is the table `0x00a27210` fills, because
-both use 8 byte entries with a string address at +0 and the entry is the class
-key. The owner object that holds the table was not traced. What the @CCPT entry
-byte +2 means beyond the LocalCameraClip gate is UNKNOWN.
+The [parsed class-key producer](scb-clip-factory-composition.md#parsed-clip-key-table)
+and [builder field sources](scb-clip-factory-composition.md#class-key-and-registry-selection)
+identify the parsed owner and the same eight-byte-entry table used by the
+builder. This composition requires valid parser/arena inputs and preserved
+fields; it does not prove runtime selection. Class-specific readers include
+the LocalCameraClip gate and the
+[background input branches](cut-background-setup-inputs.md#leading-word-and-request-tuple).
+A universal meaning for the entry byte is not established.
 
 OBSERVED: every record of a class sees one value of the @CCPT entry byte +2.
 
