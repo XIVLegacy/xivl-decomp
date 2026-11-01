@@ -25,8 +25,10 @@ Offsets are absolute in the named file. D is a clip record.
   the file. Every match lies inside the scheduler span.
 
 The [native preview setup consumer](cut-preview-setup-clip.md) covers the
-fixed owner-buffer copy and its delegated internal event. The background
-setup words listed here retain UNKNOWN meanings on this page.
+fixed owner-buffer copy and its delegated internal event. The
+[background setup input contract](cut-background-setup-inputs.md) gives
+conditional native roles for the leading words; actual record/key-type and
+receiver bindings remain unestablished.
 
 ## Scene records
 

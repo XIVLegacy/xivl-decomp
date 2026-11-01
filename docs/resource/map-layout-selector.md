@@ -81,6 +81,21 @@ region and high-16-bit mode before `0x0062D1C0`. The latter validates the
 region through `0x0079B310` and packs it again. A root intended for this
 normal path needs a nonzero region key representable in 16 bits.
 
+The explicit incoming positions of `0x0062D1C0` are independently visible
+before its indirect dispatch. Its prologue lowers ESP by `0x28` bytes.
+`0x0062D24E` reads the first explicit argument from current ESP+`0x2C`
+into EBP and `0x0062D259` supplies that unchanged dword as the sole argument
+to `0x0079B310`, using `u32(receiver+0x154)` as the lookup-table receiver.
+Thus this direct helper input reaches the full-dword lookup before the
+later low-16-bit repacking at `0x0062D272..0x0062D278`.
+The separate incoming-mode position is in the
+[creation-policy contract](../net/weather-transition-runtime.md#creation-policy-inputs). The
+[background-setup input finding](cut-background-setup-inputs.md#binary-and-selected-ranges)
+records these partial original ranges and hashes. Normal return, stack and
+register preservation, valid distinct storage without harmful aliases and
+unchanged relevant values across opaque calls remain conditions; the region
+lookup can return null.
+
 ## Normal construction and name resolution
 
 `0x0064F900` reaches `0x0064E830`, which queries the region through

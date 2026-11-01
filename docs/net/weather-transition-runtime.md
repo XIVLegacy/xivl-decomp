@@ -507,7 +507,16 @@ the control object retained at S+`0x350`; teardown `0x0062DA70` clears
 the control pointer and singleton. Publication does not establish safe
 use before construction completes.
 `0x006274A0` writes its incoming mode to S+`0x1F0`, with saved-mode
-handling at `+0x1F4`; `0x0062D1C0` supplies argument 3 to that writer.
+handling at `+0x1F4`. Its first explicit incoming argument is loaded into
+ESI at `0x006274AF`; when the local read at `0x006274D5` is zero, the
+selected branch stores ESI at S+`0x1F0` at `0x006274E5`.
+Caller `0x0062D1C0` retains its own third
+explicit incoming argument in EDI at `0x0062D1E9` and supplies it as the
+writer's first argument at `0x0062D30C` on the selected direct branch.
+The [positional source ranges](../resource/cut-background-setup-inputs.md#binary-and-selected-ranges)
+identify the partial checks. They do not establish that every invocation
+reaches that branch or that its calls return. Positional compositions assume
+valid distinct storage and preservation of the relevant values across calls.
 `0x0062B660` restores the saved mode. The inspected state-2 writers
 `0x00624240/0x006242B0/0x00626E80` require the old mode to differ
 from 3, alongside their other local guards. Incoming request selectors,
