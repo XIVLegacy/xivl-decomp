@@ -532,7 +532,11 @@ UNKNOWN. The write of a prior non-string ContentObject, the TextUI-named
 descriptors (`ContentTextUI` by `0x00F22220`, `HeaderTextUI` by `0x00F244E0`)
 whose parsers are not traced, any control other than Button and Label, and every
 condition SQTP-03 leaves open. A row whose bytes contain `0x02` reaches the
-token handlers, and only handlers `0x20` and `0x29` have contracts in SQTP-04.
+token handlers. SQTP-04 holds handlers `0x20` and `0x29`, the
+[entry count page](rich-string-entry-counts.md) holds `0x08` and `0x09`, the
+[sheet and case page](rich-text-sheet-and-case-handlers.md) holds `0x28`, `0x2B`
+and `0x2D`, and the [colour page](rich-text-colour-tokens.md) holds `0x13` and
+`0x14`.
 
 ## Deferred numeric font properties
 
