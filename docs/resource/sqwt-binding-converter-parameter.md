@@ -169,7 +169,7 @@ fall-through pushes literal `0x0107729C`, the text `NaN`, at `0x00988D83` and
 calls `0x0097FD10` with the buffer, size `0x100` and no value argument.
 
 The second compare at `0x00988D9C..0x00988DA9` uses the double at
-`0x0106F978`, bytes `00 00 00 00 D0 12 63 41`, which is `20000000.0`. Its
+`0x0106F978`, bytes `00 00 00 00 D0 12 63 41`, which is `10000000.0`. Its
 fall-through pushes literal `0x010772A0`, the text `PositiveInfinity`, at
 `0x00988DAB` and calls `0x0097FD10` the same way. Both fall-throughs join
 `0x00988E03`, which copies the buffer into the working string.
@@ -179,9 +179,11 @@ format and an empty one selects literal `0x010772B4`, the text `%f`, at
 `0x00988DEC`. STATIC for the instructions and literals. The equality
 reading of the jump is INFERRED from the x87 condition-code bits that the
 test selects: the jump is not taken only when C3 is set and C2 is clear.
-A float equal to `-20000000.0` or `20000000.0` therefore prints text and
-never digits. A NaN compares unordered and an infinity compares unequal, so
-both reach the CRT format. Their output is outside this finding.
+A float equal to `-20000000.0` prints `NaN` and a float equal to
+`10000000.0` prints `PositiveInfinity`, and neither prints digits. A float of
+`20000000.0` is not special. A NaN compares unordered and an infinity
+compares unequal, so both reach the CRT format. Their output is outside this
+finding.
 
 ## Bounded retail HUD carriers
 
