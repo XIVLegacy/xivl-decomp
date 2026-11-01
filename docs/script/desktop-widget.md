@@ -98,7 +98,7 @@ methods organize into clear domains:
 | `_sendCountDown(self, ...)` | Trigger countdown UI element |
 | `_getLastAttacker(self)` | Most-recent damager (combat target tracking) |
 | `_waitForCameraTutorial(self)` | Block until camera-tutorial completes |
-| `_waitForItemSearchWidget(self)` | Block until item-search widget closes |
+| `_waitForItemSearchWidget(self)` | Open item-search form and yield while the manager's widget field is nonzero |
 | `_waitForTargetTutorial(self)` | Block until target-tutorial completes |
 
 ## Lua-side API (DesktopWidget main, 402 LOC)
@@ -241,10 +241,9 @@ Lua call into the appropriate handler.
 
 ### `_waitFor*Tutorial` blocks are tutorial-flow gates
 
-Three tutorials are surfaced as blocking primitives:
+Two tutorials are surfaced as blocking primitives:
 - `_waitForCameraTutorial` (camera control onboarding)
 - `_waitForTargetTutorial` (targeting onboarding)
-- `_waitForItemSearchWidget` (item-search UI demo)
 
 These are called from tutorial scripts (the SimpleQuestBattleBaseClass hierarchy
 decomped in `docs/event/director-quest-hierarchy.md`) to pause the script until the player
@@ -259,6 +258,22 @@ one NUL-terminated ASCII literal `_waitForItemSearchWidget` in `.rdata` at RVA
 was checked with `pefile` 2024.8.26. This establishes string presence only; it
 does not identify an xref or native function body, show when the method is
 called, or establish its runtime UI result.
+
+## Item-search native wait
+
+The separate `_waitForItemSearchWidget` registration binds callback
+`0x006E1B90`. Its static path selects factory kind 1 and constructor
+`0x0052A540`, whose form path is `\widget\ItemSearchWidget.form`, then
+stores the widget at manager M+`0xC8` and yields through
+`s_ItemSearchWidgetResumeChecker`. The poll waits while that field is
+nonzero and reports done when it is zero; the native pushes no Lua results.
+The field's clear writer and removal/destruction owner remain untraced.
+This predicate does not establish an actual runtime close or identify the
+native form with the separate Lua `widget/ask/itemsearchwidget.lua` source.
+The canonical source is
+`xivl-client-structs:docs/desktop-state-native-contract.md#item-search-widget-wait`
+and its `_waitForItemSearchWidget` row in
+`xivl-client-structs:manifests/desktop_state_native_call_contract.json`.
 
 ## Cross-references
 
