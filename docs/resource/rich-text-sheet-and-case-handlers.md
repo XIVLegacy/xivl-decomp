@@ -11,8 +11,8 @@ SQTP-04 and SQTP-06, and
 [Rich-string entry count controls](rich-string-entry-counts.md). The colour
 handlers are in [Rich-text colour tokens](rich-text-colour-tokens.md).
 
-This page does not establish the failure return of a handler, a sheet other
-than the ones named below, non-integer comparisons, or any rendered text.
+This page does not establish the special field branches of the lookup, a sheet
+other than the ones named below, non-integer comparisons, or any rendered text.
 
 ## Input and method
 
@@ -163,8 +163,16 @@ The stack arguments of `FUN_00CA0930` are the name at `[ESP+0x418]`, the row at
 negative field calls virtual `+0x20` of the sheet with the field complemented,
 and a field of exactly `0xFF` calls virtual `+0x1C` (`0x00CA09A5..0x00CA09CC`).
 Any other field goes to the type query directly. The two special branches are
-not traced. UNKNOWN. The failure return when the sheet, row or field is
-missing is also UNKNOWN.
+not traced. UNKNOWN.
+
+The lookup keeps its result in `EDI`, which is zero from `0x00CA0971`. A null
+sheet (`0x00CA0979`) or a null row (`0x00CA0995`) jumps to the return at
+`0x00CA0DD8` with that zero. A type code of 0 or above 10 (the result minus 1 is above 9,
+`0x00CA09D9..0x00CA09DF`) returns `-1` from `EBX` (`0x00CA0DCD`). The handler
+`0x28` appends nothing for any return other than 1 (`0x00CA0F4E`, with the
+no-append exit at `0x00CA0FA1..0x00CA0FF1` returning zero), so a missing sheet,
+row or unmapped type leaves its output unchanged. STATIC. What the type query
+returns for a missing field is not traced. UNKNOWN.
 
 ### Installed sheet observation
 
@@ -201,8 +209,10 @@ append the string with `FUN_00447C80`. A zero decode width appends nothing.
 
 Handler `0x2B` first skips tokens at the head of the decoded string. While the
 byte is `0x02` it decodes the length with `FUN_00CB2D50` and steps over
-`0x02`, the code, the length and `0x03` (`0x00C9FCA6..0x00C9FCD2`). The count
-of skipped bytes is the start index. STATIC.
+`0x02`, the code, the length bytes, the payload of the decoded length and `0x03`
+(`0x00C9FCA6..0x00C9FCD2`). The payload is skipped by adding the decoded length
+value, and the `0x03` by the added 1. The count of skipped bytes is the start
+index. STATIC.
 
 Both handlers read the language through TextModule decoder `+0x2C`, virtual
 `+0x18` (`0x00C9FCD4..0x00C9FCDC`, `0x00C9FDC0..0x00C9FDC8`). That target is

@@ -119,10 +119,11 @@ The vtable cells are at `0x0110C014` plus the thunk offset. For `0x13` the thunk
 `FUN_00CC1970`. For `0x14` the thunk `0x00B24210` jumps through `+0x24`, the cell
 `0x0110C038`, which holds `FUN_00CC1A80`. STATIC.
 
-`FUN_00CC1970` and `FUN_00CC1A80` have one shape and differ in the state they
-write. Colour state is four floats at processor `+0x78` for `0x13` and at
-`+0x88` for `0x14`. A container at processor `+0x4C` for `0x13` and `+0x50` for
-`0x14` holds the saved states. STATIC.
+`FUN_00CC1970` and `FUN_00CC1A80` share steps 1 and 2 below and differ in what
+they store. The `0x13` state is four floats at processor `+0x78`, of which the
+handler writes only the first three. The `0x14` state is four floats at `+0x88`
+and the handler writes all four. A container at processor `+0x4C` for `0x13` and
+`+0x50` for `0x14` holds the saved states, 16 bytes each. STATIC.
 
 1. `FUN_00CB2590` tests the first payload byte for `0xEC` (`0x00CC197D`). When
    it is not `0xEC` and the container exists, the handler first appends the
@@ -130,15 +131,25 @@ write. Colour state is four floats at processor `+0x78` for `0x13` and at
    (`0x00CC198D..0x00CC1991`).
 2. It decodes the integer operand with `FUN_00CB2D50` mode 1 and the local
    vector (`0x00CC19A5`). With a zero width it ends there.
-3. For a payload that is not `0xEC` it converts the value with `FUN_005545E0`
-   and stores the four floats as the current state (`0x00CC19D7..0x00CC19E0`).
+3. For a payload that is not `0xEC` it converts the value with `FUN_005545E0`.
+   `FUN_00CC1A80` stores the four floats as the current state with two 8-byte
+   moves at `+0x88` and `+0x90` (`0x00CC1ADD..0x00CC1AEE`). `FUN_00CC1970`
+   reads the float at `+0x84` into a local first (`0x00CC19C4..0x00CC19D1`),
+   stores the converted red, green and blue at `+0x78..+0x83`
+   (`0x00CC19DC..0x00CC19EA`), and writes the saved float back to `+0x84`
+   (`0x00CC19F2..0x00CC19F8`). The alpha byte of a `0x13` token is therefore
+   discarded and the `0x13` alpha float is not changed by any `0x13` token.
 4. For `0xEC`, when the container exists and is not empty, it copies the last
    saved state back with `FUN_007C5600` and removes it
-   (`0x00CC1A02..0x00CC1A56`).
+   (`0x00CC1A02..0x00CC1A56` and `0x00CC1B01..0x00CC1B4D`). `FUN_00CC1A80`
+   restores all 16 bytes (`0x00CC1B13..0x00CC1B24`). `FUN_00CC1970` restores the
+   same 16 bytes and then stores the live `+0x84` float again
+   (`0x00CC1A0F..0x00CC1A41`), so its alpha float is again unchanged. STATIC.
 
-For `0x13` the handler then calls `FUN_00CC0670` with the dword at processor
-`+0x200` and zero (`0x00CC1A5F..0x00CC1A6A`). That call is not traced. UNKNOWN.
-Both handlers return the decoded width and end with `RET 0x10`.
+Only `FUN_00CC1970` then calls `FUN_00CC0670` with the dword at processor
+`+0x200` and zero (`0x00CC1A5F..0x00CC1A6A`), on every path that decoded a
+nonzero width. That call is not traced. UNKNOWN. `FUN_00CC1A80` returns without
+it. Both handlers return the decoded width and end with `RET 0x10`.
 
 The conversion `FUN_005545E0` (`0x005545E0..0x00554647`) reads the value as
 `0xAARRGGBB`. It stores `(v >> 16 & 0xFF) / 255.0` at offset 0,
@@ -172,7 +183,8 @@ each language. Rows 2227 to 2238 hold one each in order, the literal 13 in row
 plain text. Rows 2401 to 2424 hold the other 24, in rows of seven to nine
 segments. The literal operands read as `0xAARRGGBB` values with alpha
 `0xFF` for all but one value, `0x99CCCCCC`, which each of the `ja` and `en`
-tables uses for 167 tokens.
+tables uses for 167 tokens. The `0x13` handler discards the alpha byte of its
+value (CT-03), so the alpha of a `0x13` literal has no effect on the state.
 
 INFERRED. Rows 2227 to 2238 are twelve consecutive entries indexed by the
 operand, and
