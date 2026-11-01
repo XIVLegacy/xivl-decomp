@@ -444,6 +444,96 @@ PE with LLVM, starting at `0x009E51C4` and the writer entry `0x009E5BC1`,
 and checked against file-backed bytes. They do not have a second Ghidra
 instruction listing. No CRT invocation or rendered-text result is asserted.
 
+### SQTP-07: Conditional native route to ContentControl.Content
+
+Observed with Ghidra CLI `0.2.2` disassembly and decompilation of the
+identified executable, with the instruction ranges read from section-mapped
+bytes. SQTP-03 joins a native `_setTextProperty` write to the TextBlock.Text
+callback. This section records the setter entry that the native handler and the
+markup attribute setter share, the per-object list that entry searches, and the
+constructor chains that put the ContentControl info into the list of a Button
+or a Label.
+
+Both entries call `FUN_00912850` with the same argument roles. Native handler
+`FUN_00537DE0` builds name descriptor D from its name argument through
+`FUN_00445210` and `FUN_009108E0` at `0x00537E97..0x00537EA1`, builds a local
+wrapper from its text argument through `FUN_00447200` at
+`0x00537EAA..0x00537EAF`, and at `0x00537F55..0x00537F63` pushes zero, the
+wrapper address and D, then calls `FUN_00912850` with ECX the resolved part. The
+branch at `0x00537F3B..0x00537F53` that gates the call is the visibility gate of
+SQTP-03. Markup attribute setter `FUN_00946A30` builds D through the same two
+helpers at `0x00946A6A..0x00946A76`, pushes zero, its value wrapper and D at
+`0x00946A7F..0x00946A86`, and calls `FUN_00912850` with ECX the target object
+at `0x00946A8B`. The pushed zero is the setter's flag argument in both. STATIC.
+
+For a name with no qualifier (`D+4` zero, `0x0091287D..0x00912881`),
+`FUN_00912850` calls `FUN_00910F60` with ECX the receiver at
+`0x00912900..0x00912912`. Its unqualified branch at `0x00910F76..0x00910F7A`
+continues at `0x00911003..0x00911009` to `FUN_00910B60` with ECX the receiver.
+`FUN_00910B60` reads a list pointer at receiver `+0x10`, whose vector of info
+pointers begins at list `+4` and ends at list `+8`. From the last info to the
+first, `0x00910B7C..0x00910BB9` calls the info's virtual `+4` with D and stops at
+the first nonnegative result. It returns that info and stores the descriptor
+at `[[info+8]+4*result]` through its output pointer (`0x00910BC4..0x00910BEF`).
+After the owner gate of SQTP-03, the setter dispatches the returned info's
+virtual `+0x0C` with the receiver, the descriptor's index at descriptor `+0x14`,
+the value wrapper and the flag at `0x00912A3F..0x00912A55`. For both the
+TextBlock info vtable `0x0106E960` and the ContentControl info vtable
+`0x0106B4C0`, virtual `+4` is `FUN_00965FF0` and virtual `+0x0C` is
+`FUN_0091B440`. `FUN_00965FF0` returns the index of the first descriptor in the
+info whose complete-name hash equals `D+8`, reading the hash at descriptor `+8`
+for an unqualified descriptor, and `-1` when none does. STATIC.
+
+Registration helper `FUN_0098B400` takes an object and an info. Under critical
+section `0x012E6304` it assigns the object's current list to the info's own list
+when that list is empty (`FUN_0098AFD0` at `0x0098B42D..0x0098B437`), appends the
+info (`FUN_0096C140` at `0x0098B43C..0x0098B447`), and stores the info's list
+pointer at object `+0x10` at `0x0098B45A`. A constructor that calls it after its
+base constructor therefore leaves a list that holds the base list followed by its
+own info. STATIC for the calls and stores, with the assign and append roles of
+the two helpers read from their bodies.
+
+`FUN_00936190` is the ContentControl constructor
+(`xivl-client-structs:docs/native-input-ui-boundaries.md`, ContentControl
+constructor). It calls `FUN_00938C80` at `0x009361BC`, constructs the Content
+holder with descriptor `0x01358F94` at `+0x33C` at `0x009361C1..0x009361F8`, and
+registers info `0x01358FB8` through `FUN_0098B400` at `0x0093628C..0x0093629D`.
+Initializer `FUN_00F22240` constructs that info with count 3 at `0x00F22249` and
+`0x00F2225E`, stores vtable `0x0106B4C0` at `0x00F22268` and stores callback
+`FUN_00936320` at info `+0x28` at `0x00F2227E`. Initializers `0x00F221E0`,
+`0x00F22200` and `0x00F22220` name `Content` (descriptor `0x01358F94`, index
+zero), `ContentTemplate` and `ContentTextUI`. STATIC.
+
+The Button constructor `0x00974410` calls ButtonBase `0x0097F200` at
+`0x0097443A`. ButtonBase calls the ICommandSource<ContentControl> constructor
+`0x00954AB0` at `0x0097F22B`, which calls `FUN_00936190` at `0x00954ADA`. After
+their base calls, `0x00954AB0`, `0x0097F200` and `0x00974410` register infos
+`0x0135A1C8`, `0x0135E658` and `0x0135C398` at `0x00954BCD..0x00954BDE`,
+`0x0097F311..0x0097F322` and `0x009747CC..0x009747DD`. The Label constructor
+`0x009742A0` calls `FUN_00936190` at `0x009742CA`. The only other initializer
+that names a descriptor `Content` is `0x00F28600` (descriptor `0x0136106C`),
+which the ContentPresenter constructor `FUN_0099D650` uses at `0x0099D6E7`.
+STATIC.
+
+Interpretation, INFERRED. `FUN_00936190` runs `FUN_0099D650` on a separate
+object that it allocates at `0x009362BE..0x009362DA`, so that registration
+stores to the new object's list and not to the receiver's. The list of a Button
+or Label receiver then holds the ContentControl info and no ContentPresenter
+info. A lookup of the name `Content` reaches descriptor `0x01358F94` with index
+zero and callback `FUN_00936320`, the callback that SQTP, Named text properties,
+routes to the common preprocessing. Under the conditions of SQTP-03 a native
+`@N` write to Button.Content or Label.Content then takes the same preprocessing
+as the markup attribute `Content="@N"` of the same control. The infos
+registered by ICommandSource, ButtonBase and Button are not enumerated here, so
+a descriptor of theirs with the hash of `Content` is excluded only by the
+initializer search above.
+
+UNKNOWN. The write of a prior non-string ContentObject, the TextUI-named
+descriptors (`ContentTextUI` by `0x00F22220`, `HeaderTextUI` by `0x00F244E0`)
+whose parsers are not traced, any control other than Button and Label, and every
+condition SQTP-03 leaves open. A row whose bytes contain `0x02` reaches the
+token handlers, and only handlers `0x20` and `0x29` have contracts in SQTP-04.
+
 ## Deferred numeric font properties
 
 An admitted deferred FontSize or FontType reference can complete through the
@@ -593,6 +683,10 @@ function bodies outside published artifacts.
 | Descriptor arguments and variant construction | `0x004CEA90..0x004CEB53`, `0x004CE582..0x004CE6C9`, `0x004D33EC..0x004D3403`, `0x004D347C..0x004D3497`, `0x004472AD..0x004472C8`, `0x004D50D0..0x004D5128` |
 | Pending-node copy and argument order | `0x004CF7E2..0x004CF845`, `0x004D5E98..0x004D5EA8`, `0x004D5EF8..0x004D5F07`, `0x004D6470..0x004D647D`, `0x004D63F0..0x004D6440`, `0x004D6254`, `0x004D60D0..0x004D613C`, `0x004D5F98..0x004D5FB4`, `0x004CEC65..0x004CECCF`, `0x004D5900..0x004D5A1D`, `0x004D57F0..0x004D5840`, `0x004D5250..0x004D5548`, `0x004B4040..0x004B4068`, `0x004B3EC0..0x004B3EE8`, `0x0058F2E0..0x0058F322`, `0x004D4700..0x004D4748`, `0x004D350C..0x004D3523` |
 | Selected native string-property join | `0x006F4BA5..0x006F4BD8`, `0x006E9AC0..0x006E9B1A`, `0x0075B810..0x0075B82F`, `0x005355A0..0x005355B4`, `0x005354D0..0x0053555F`, `0x0053BC30..0x0053BC87`, `0x00716AC0..0x00716B23`, `0x00716B30..0x00716B42`, `0x00542710..0x00542729`, `0x00537F63`, `0x00F23880..0x00F238C4`, `0x00912A2B..0x00912A55`, `0x0091B440..0x0091B45D`, `0x00955738..0x0095575B`, `0x009BA4E0..0x009BA52E`, `0x009163E4..0x0091640A`, `0x00548400..0x00548403` |
+| Shared setter entry and name search | `0x00537E97..0x00537EAF`, `0x00537F55..0x00537F63`, `0x00946A6A..0x00946A8B`, `0x0091287D..0x00912881`, `0x00912900..0x00912912`, `0x00910F76..0x00910F7A`, `0x00911003..0x00911009`, `0x00910B7C..0x00910BEF`, `0x00912A3F..0x00912A55`, `0x00965FF0`, vtables `0x0106B4C0` plus 24 bytes and `0x0106E960` plus 24 bytes |
+| Info registration and ContentControl info | `0x0098B400..0x0098B45F`, `0x0098AFD0`, `0x0096C140`, `0x00F22240..0x00F22293`, `0x00F221E0..0x00F22229`, `0x0093628C..0x0093629D` |
+| Button and Label constructor chains | `0x0097443A`, `0x0097F22B`, `0x00954ADA`, `0x009361BC..0x009361F8`, `0x009742CA`, `0x00954BCD..0x00954BDE`, `0x0097F311..0x0097F322`, `0x009747CC..0x009747DD` |
+| Other Content descriptor | `0x00F28600..0x00F28619`, `0x0099D6E7`, `0x009362BE..0x009362DA` |
 | Supplied argument selection | `0x00CB2DCE..0x00CB2E81`, `0x00CB2B9F..0x00CB2C86`, `0x008A68A0`, `0x00778D50`, `0x00779BC0..0x00779C08` |
 | Selected formatter handlers | `0x00CA03C0..0x00CA03EB`, `0x00CA0598..0x00CA059B`, `0x00CA06C8..0x00CA06CB`, `0x00A4B0F0..0x00A4B0F2`, `0x00CA15B0..0x00CA15B2`, `0x00CB291B..0x00CB294C`, `0x00C9F389..0x00C9F40E`, `0x00C9FAE2..0x00C9FB5D`, `0x00447C80` |
 | Selected frame walk and number encoding | `0x00CB27CC..0x00CB2813`, `0x00CB291B..0x00CB294C`, `0x00CB2A7E..0x00CB2A86`, `0x00CB2D95..0x00CB2DC9`, `0x00CB30A4`, `0x00CB314B..0x00CB3157`, `0x00CB2020..0x00CB21C2`, case table `0x00CB21C8` plus 60 bytes, `0x00CB2210` |
