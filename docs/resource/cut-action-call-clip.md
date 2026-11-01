@@ -141,6 +141,30 @@ load L=u32(return+`0x70`) at `0x0081CFC5`. The published
 reads u32(X+`0x0C`), without a null guard. The two reads are separate
 and need not return the same root across the intervening lookup or aliases.
 
+The selected lookup `0x00A1BB80` first reads N=u32(R_lookup+`0x50`), where
+R_lookup is the first getter result, separate from the caller's selected R.
+It has no prior R_lookup null guard. Zero N returns
+`0xFFFFFFFF`. Otherwise it snapshots signed n=s32(N+`0x4C`); n<=0 also
+returns `0xFFFFFFFF`. For n>0, it reads A=u32(N+`0x50`) and the supplied
+G word, then visits indices i=0..n-1. Each entry supplies the byte-string
+pointer u32(A+8*i). No explicit lookup-entry field read at +4 is present.
+Selected name/G pointees may still alias those bytes, other entry bytes,
+input or stack storage and be read by the byte loop. An inline
+comparison advances two bytes at a time, without a length bound, case
+conversion or pointer-null guards. With valid readable terminated strings
+and stable storage, H is the first index whose string exactly equals G's
+string, or `0xFFFFFFFF` when none matches. No current G, array contents,
+concrete H or dynamic type for R_lookup was recovered. The published
+[ProxyActor name-index use](cut-scheduler-clip-payloads-ranks-14-22.md#rapturebgmclip)
+is prior context, not a current-value or type proof for this call.
+
+This lookup contains no calls or external branches. Its zero-N return at
+`0x00A1BB8A` and common return at `0x00A1BBDF` both use `RET 4`.
+The nonnull arm saves and restores EBX, EBP, ESI and EDI. Its only memory
+writes are stack saves. Thus each normal return consumes the supplied G
+word without an opaque-callee cleanup condition. Input validity, stable
+storage and input/stack aliases remain qualified.
+
 Zero L returns zero. Otherwise the helper calls `0x00A21D00(L)` and
 returns zero for a signed nonpositive result. It starts i=0 and calls
 `0x00A21C80(L,[i])` at `0x0081CFE5`, retaining the result J in EDI.
@@ -170,15 +194,22 @@ The zero comparison branches at `0x0081D037` to `0x0081D050`, which
 sets final EAX=J. It does not return the internal comparison word.
 
 Let S be helper entry ESP. Composing these operations with the published
-`[W,X]` caller tuple requires the prefix's getter/lookup pair to remove
-the pushed G, leaving ESP=S-8 at the H store. Under that condition,
-H replaces the X argument cell at S+8. With balanced subsequent calls,
-the loop ESP is S-16: the slot-4 comparison reads H, and the ESI load
-reads W from S+4. The uninspected lookup's cleanup is a condition,
-not a recovered formal signature. Callee-saved registers, saved stack
-words and the two argument cells must also survive delegated effects
-and aliases. Without these conditions, the exact local operands remain
+`[W,X]` caller tuple uses the getter/normal-frame conditions and the
+lookup's observed `RET 4`, which removes the pushed G. ESP is then S-8
+at the H store, so H replaces the X argument cell at S+8. With balanced
+subsequent calls, the loop ESP is S-16: the slot-4 comparison reads H,
+and the ESI load reads W from S+4. Callee-saved registers, saved stack
+words and the two argument cells must also survive later delegated
+effects and aliases. Actual W, H and storage validity remain conditions.
+Without the composition's conditions, the exact local operands remain
 the actual-ESP expressions above.
+
+CFA0's recovered local flow does not reject H=`0xFFFFFFFF` before the
+slot-4 equality comparison. Under the same frame and preservation
+conditions, the sentinel remains a compared raw word, not a proven
+no-match guard in CFA0. A slot-4 return equal to that word would continue
+to the subsequent byte-string test. The virtual return domain and actual
+occurrence of that equality remain unbound.
 
 Under those stack and readable-input conditions, the helper returns the
 first enumerated nonnull J whose primary-slot-4 return equals H and
@@ -192,9 +223,8 @@ with the caller's cleanup expectation under the stated frame conditions.
 
 The sole explicit memory-destination instruction is the ESP-relative H
 store. Pushes and calls also write stack. There is no local store through
-P, X, W, L or J, but delegated effects and aliases remain opaque. The
-lookup H, unbound virtuals and actual X/W/collection validity remain
-the next dependencies. This byte-string/result-word match does not prove
+P, X, W, L or J, but delegated effects and aliases remain opaque. The actual lookup inputs/result H, unbound virtuals and actual
+X/W/collection validity remain dependencies. This byte-string/result-word match does not prove
 a dynamic actor type, numeric identity, Q preservation, game-command ID,
 encounter/variant binding, successful playback or historical target.
 
@@ -205,6 +235,20 @@ All local branches stayed within that union and every callee remained
 unopened. Original PE mapping, selected literal instruction checks and
 a separate linear partition confirmed the operands and reached range.
 Both partitions used Capstone, so they are not independent disassemblers.
+
+The selected lookup used the separate admitted envelope
+`[0x00A1BB80,0x00A1BBF0)`, capped by the next distinct catalog entry.
+Entry-seeded original-PE decoding recovered exactly
+`[0x00A1BB80,0x00A1BBE2)`, file offsets
+`[0x0061BB80,0x0061BBE2)`, SHA-256
+`9c1807d2aa6d9c9abfb2ecaa2f56998b1a91d2c7f8051f77f1c4d2290256461f`.
+No original global cell, name data, other body or concrete virtual table
+was inspected. Original file identity and mapping were authenticated with
+Python 3.12.0 and pefile 2024.8.26; Capstone 5.0.7 x86-32 produced the
+instructions. A separate partition used the same decoder and agreed with
+the entry-seeded instruction union. Both normal return sites were checked
+as literal `C2 04 00`; no external control-flow dependency was found in
+this body.
 
 ### Cursor helper local dispatch
 
@@ -449,8 +493,8 @@ constructor/assignment roles and cookie-equality return are established
 under their stated conditions. CFA0's local result-word and byte-string
 selection is established under its stated stack, input and preservation
 conditions. D120's intermediate local chain, final output extent and input
-validity, cookie equality after opaque calls, CFA0's opaque lookup and virtual
-contracts, stack balance, aliases and actual source values remain qualified. Resource compatibility, successful playback, completion/settlement and
+validity, cookie equality after opaque calls, CFA0's actual lookup inputs and result, unbound virtual
+contracts, subsequent stack balance, aliases and actual source values remain qualified. Resource compatibility, successful playback, completion/settlement and
 encounter actor/add/variant membership remain unestablished. A packed
 playback selector is distinct from a game-command ID and a model-qualified
 WSS/BID bank. Historical actor binding does not prevent this static join.
@@ -468,6 +512,7 @@ It is not a complete function extent.
 
 | Entry / selected interval | Actual range | SHA-256 |
 | --- | --- | --- |
+| `0x00A1BB80` | `[0x00A1BB80,0x00A1BBE2)` | `9c1807d2aa6d9c9abfb2ecaa2f56998b1a91d2c7f8051f77f1c4d2290256461f` |
 | `0x0081CFA0` | `[0x0081CFA0,0x0081D059)` | `76f043ae2c6741bc1d3ebb3530eeee1cc565d65adebb703f4462465e03db1260` |
 | `0x0081D120` | `[0x0081D120,0x0081D223)` | `9eec18544655a976855a420713cd867da9df53f906ad67a1ca9ca7b332999d8b` |
 | `0x0081D230` | `[0x0081D230,0x0081D521)` | `deb7c9c6e905974559b10af0d1675d839698ff30785eb5d34ad4ffdd7702beb4` |
