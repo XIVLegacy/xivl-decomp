@@ -336,15 +336,12 @@ It explicitly removes the `0x14` argument with ADD ESP,4 at `0x00804E53`.
 The record delegate's `RET 12` is recovered below. Other outside callee
 returns and exceptional unwind behavior were not decoded.
 
-No local instruction writes through O, P, U, G, H, T or W. The O+4 delegate
-`0x0079EE80(O+4,[L])`, the O delegate `0x008011A0(O,[k,W])`,
-the size-argument call and all four provider virtual implementations remain
-opaque. The G delegate's local initialization is recovered below. Passing
-O+4 does not establish a store at O+8/+`0x0C`. Neither P nor H nor W is
-established as resolved query record J, and this local flow does not bind
-the producer or meaning of J+`0x10`. Actual record membership, matches,
-placement, collision effects and historical encounter lifecycle remain
-unestablished.
+No local instruction writes through O, P, U, G, H, T or W. The O delegate
+`0x008011A0(O,[k,W])`, the size-argument call and all four provider virtual
+implementations remain opaque. The G initialization and append's direct
+storage branch are recovered below. That branch supplies a conditional G-to-J
+join, rather than establishing every append, current record membership,
+matches, placement, collision effect or historical encounter lifecycle.
 
 ### Provider record initialization
 
@@ -404,16 +401,69 @@ ordinary callee-saved-register conditions. The explicit receiver destinations
 span 20 bytes, but this does not establish allocation success, complete object
 extent or ownership. Aliases and opaque calls can change earlier fields;
 the virtual return stored at +`0x10` has no established numeric domain or
-semantic name. In particular, this G is not yet joined to root-query record J.
-The append delegate and actual provider membership remain separate, so these
-stores do not establish the producer of J+`0x10`, collision effects or a
-historical encounter placement.
+semantic name. The append composition below conditionally joins G to one J
+entry. It does not establish final field preservation, all insertion paths,
+collision effects or a historical encounter placement.
 
 Python 3.12, pefile 2024.8.26 and Capstone 5.0.7 recovered this bounded
 original-PE flow. Manual section-offset arithmetic, literal instruction
 checks, local branch/store/call checks and a separate linear partition agreed
 on its 75-byte reached range. Both partitions used Capstone and are not
 independent disassembler results. No callee body was followed.
+
+### Provider pointer-array append
+
+The [pointer-copy contract](map-layout-selector.md#ordinary-manager-update)
+identifies `0x0079EE80`. Its exact wrapper-field mapping composes
+with the provider record as follows. Let X=O+4, the append
+receiver. The helper reads B=u32(X+4), E=u32(X+8) and C=u32(X+`0x0C`)
+on its selected capacity path. These are O+8, O+`0x0C` and O+`0x10`;
+the last is a wrapper field, distinct from G+`0x10`.
+
+For nonzero B, instructions `0x0079EE91-0x0079EEA7` compute `(E-B)>>2`
+and `(C-B)>>2` using wrapping 32-bit subtraction and arithmetic right shift,
+then compare the resulting words unsigned. Strictly less selects the direct
+append path. B==0 or the unsigned greater-or-equal result selects the opaque
+fallback.
+
+The direct path makes no call. It reloads E'=u32(X+8) at `0x0079EEA9`,
+loads the explicit source-cell address L at `0x0079EEAC`, then performs:
+
+| Instruction | Operation |
+| --- | --- |
+| `0x0079EEB0` | Read Q=u32(L) |
+| `0x0079EEB2` | Store u32(E')=Q |
+| `0x0079EEB7` | Store u32(X+8)=E'+4 |
+| `0x0079EEBE` | Return with `RET 4` |
+
+No local null test validates Q. In particular, the provider's zero-G branch
+can supply zero instead of a record; the append body does not reject it.
+
+For a valid stable pointer-array wrapper with ordered four-byte-aligned
+storage, available capacity and disjoint wrapper/buffer/stack storage, the
+selected nonzero-G provider path supplies Q=H=G. The direct append stores
+that pointer at the old end and advances O+`0x0C` by four. The nominal
+TimeLine root query reads the same O+8/O+`0x0C` begin/end pair, so it can
+subsequently select this entry as J=G if the provider, entry and fields remain
+retained. On that composition, the earlier stores supply J+4=k (here 7),
+J+8=P and J+`0x0C`=T at their store points. J+`0x10` starts at zero and
+can receive the T/V virtual result described above; preservation until query
+remains a separate condition. This establishes a conditional field-producer
+join; the virtual result's domain, actual match and historical delivery remain
+unestablished.
+
+The fallback conditionally calls `0x009D22B4` at `0x0079EEC9` when the
+loaded begin exceeds the loaded end unsigned, then delegates to `0x0079ED90`
+at `0x0079EEDC` if execution continues. Those bodies remain unopened; their
+growth, error, mutation and alias effects are not supplied by this fast-path
+proof. No allocation-success or all-path append guarantee follows.
+
+The original `[0x0079EE80,0x0079EEE9)` span is documented in the
+[airship native evidence](../event/airship-scene-sequence.md#native-evidence-and-reproduction).
+The field/branch composition uses the G/H caller identity above. Original PE
+mapping, literal operand, branch,
+store, return and separate local-partition checks passed. Both partitions
+used Capstone; no outside callee was followed.
 
 ## Separate root and child fallback
 
@@ -451,7 +501,9 @@ arithmetic right shift `(end-begin)>>2`. Each pointer names record J.
 
 Neither name comparison folds case. The nonnull-name root-slot-7 path has
 no explicit object/name-result null guards. Getter types/virtual targets and
-record+`0x10`'s producer, enum and semantic name remain unestablished.
+record+`0x10`'s enum, domain and semantic name remain unestablished. The direct
+append supplies a conditional producer; other insertion paths and preservation
+until query remain unbound.
 Only this exact root-slot-5 API proves N's zero-wildcard/equality role.
 
 Each match attempts to append u32(J+8). Calls at `0x00804103` /
@@ -481,7 +533,8 @@ record, named alias, placement or collision member.
 
 Missing joins remain: current R's dynamic class, concrete clip/current D,
 actual membership through the selected producer or other member writers,
-the resolved-record field producer, actual matches and historical playback.
+the resolved-record producer on other insertion paths, field preservation
+until query, actual matches and historical playback.
 Command IDs, model substates, statuses and
 server phases cannot be derived from N, kind, acquisition-state threshold or
 native dispatch P. No collision activation/cancellation or defeat/wipe/retry/
@@ -494,6 +547,7 @@ basic blocks, independently of catalog summed sizes.
 
 | Entry | Actual interval(s) | SHA-256 |
 | --- | --- | --- |
+| `0x0079EE80` | `[0x0079EE80,0x0079EEE9)` | `af7148f81d1c09f92c8ab6658318570fd1e7ada9505122acb0947bd330990499` |
 | `0x00801140` | `[0x00801140,0x0080118B)` | `bf3eec9801c28342385701350bca3b5199915c99a32b20e590b25f129ae89eae` |
 | `0x00647980` | `[0x00647980,0x00647A5C)` | `4e6c1dda646f9abd3972eef2cea92f45b7adccc89cb0e20848648e314b4ce18a` |
 | `0x00647B20` | `[0x00647B20,0x00647BE5)` | `136cebcff561d5a03bda63631327c2af7a681bf783dc6406abaa29655fb76316` |
