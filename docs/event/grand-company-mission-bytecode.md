@@ -292,6 +292,73 @@ binds closure 15 to `processEvent020` at PC 54. These branches establish
 client presentation selection only. UNKNOWN: the value the retail server
 passed in either argument, and whether it chose a `_01` method.
 
+## Level-25 fifth-quest predicates
+
+The closing talks of the three fifth company quests branch on their fourth
+parameter. They were read from a Lua 5.1 instruction listing of the decoded
+`com0l5`, `com0g5` and `com0u5` chunks in the
+[source table](grand-company-mission-bytecode-sources.csv) and sampled with
+`nil`, 0, 1, `false` and `true` in that parameter. Each `say` call passes
+the row as its second argument and 0 as its third. This page records row
+numbers only. The row text belongs to the decoded `com0l5`, `com0g5` and
+`com0u5` text sheets.
+
+| Quest / method | Branch | Rows in call order |
+| --- | --- | --- |
+| 111405 `Com0l5.processEvent_015(a)` | numeric `a == 1` | 51, 71, 68, 52, 53, 54, 55, 56, 57, 58, 59, 60 |
+| 111405 `Com0l5.processEvent_015(a)` | any other value | 51, 71, 68, 52, 53, 54, 55, 56, 57, 58, 64, 69, 70, 60 |
+| 111605 `Com0g5.processEvent030(a)` | numeric `a == 0` | 48 to 59, 60, 61, 62, 84 |
+| 111605 `Com0g5.processEvent030(a)` | numeric `a == 1` | 48 to 59, 82, 83, 84 |
+| 111605 `Com0g5.processEvent030(a)` | any other value | 48 to 59, 60, 61, 62, 84 |
+| 111805 `Com0u5.processEvent030(a)` | numeric `a == 1` | 59, 60, 61, 62, 89, 63, 64, 65, 66, 68, 69, 70, 71, 72, 73, 74 |
+| 111805 `Com0u5.processEvent030(a)` | any other value | 59, 60, 61, 62, 89, 63, 64, 91, 92, 67, 68, 69, 70, 71, 72, 73, 74 |
+
+Rows 48 to 59 of `Com0g5` play in ascending order. The sampled values
+`nil`, `false` and `true` take the any-other-value row list in each
+method, and 0 takes it in `Com0l5` and `Com0u5`. Every method opens with
+`startCliantTalkTurn`, calls `_runCharaScheduler` between rows and closes
+with `finishCliantTalkTurn`. `Com0l5.processEvent_015` calls `_wait(3)`
+after row 71, `Com0g5.processEvent030` calls `_wait(1.5)` before row 84,
+and `Com0u5.processEvent030` calls `_wait(2)` twice between rows 70
+and 71. No method returns a value.
+
+Each test is an `EQ` with A = 0, so the equal edge skips the following
+`JMP`. `Com0g5` copies R3 to R4 at PC 79 and tests the copy twice. The
+branches rejoin before the final rows: `Com0l5` at PC 95 for row 60,
+`Com0g5` at PC 138 for row 84 and `Com0u5` at PC 76 for row 68.
+
+| Chunk | Method | `EQ` PC (chunk offset) | Raw word | Constant | Equal edge | Other edge |
+| --- | --- | --- | --- | --- | --- | --- |
+| `com0l5` | `processEvent_015` | 66 (`0x12B9`) | `0x01C50017` | K20, number 1 | PC 68, row 59 | `JMP` to PC 77, rows 64, 69, 70 |
+| `com0g5` | `processEvent030` | 80 (`0x14D3`) | `0x02418017` | K6, number 0 | PC 82, rows 60, 61, 62 | `JMP` to PC 102 |
+| `com0g5` | `processEvent030` | 102 (`0x152B`) | `0x02468017` | K26, number 1 | PC 104, rows 82, 83 | `JMP` to PC 119, rows 60, 61, 62 |
+| `com0u5` | `processEvent030` | 48 (`0x1815`) | `0x01C38017` | K14, number 1 | PC 50, rows 65, 66 | `JMP` to PC 61, rows 91, 92, 67 |
+
+`Com0l5.processEvent_015_01` also declares four parameters, but no
+instruction reads R3, and every sampled value says row 47 alone. The
+`com0l5` root binds closure 13 to `processEvent_015` at PC 48, the
+`com0g5` root binds closure 14 to `processEvent030` at PC 51 and the
+`com0u5` root binds closure 18 to `processEvent030` at PC 63.
+
+The scene calls of the same chunks name these NQ scenes. The
+[cut preview owner page](../resource/grand-company-cut-preview-owners.md)
+records the scene files.
+
+| Chunk | Method | Branch | Scene, arguments after the name |
+| --- | --- | --- | --- |
+| `com0l5` | `processEvent_010` | none | `COM0l110`, 1, 0 |
+| `com0l5` | `processEvent_elevator_nq1` | `ask` result == 1 | `elv0l110`, 1, 0, then `com0l610`, 1, 0 |
+| `com0l5` | `processEvent_elevator_nq2` | `ask` result == 1 | `elv0l110`, 1, 0 |
+| `com0g5` | `processEvent005` | none | `com0g610`, 1 |
+| `com0u5` | `processEvent025` | none | `com0u610`, 1 |
+| `com0l6` | `processEvent_010` | none | `com0l510`, 1, 0, R3 |
+| `com0g6` | `processEventNq` | none | `COM0G510`, 1 |
+| `com0u6` | `processEvent_005_03` | none | `com0u510`, 1, 0, R3 |
+
+These branches establish client presentation selection only. UNKNOWN: the
+value the retail server passed in the fourth parameter, and whether it
+dispatched `Com0l5.processEvent_010`.
+
 ## Bytecode trace locators
 
 The following locators use zero-based Lua 5.1 instruction PCs within the
@@ -323,6 +390,17 @@ independently inspectable in the original chunks.
 | `com0l4` | `processEventAergfloh` | - | `say` 11 (`0xFBD`), 16 (`0xFD1`) |
 | `com0l4` | `processEventAergfloh_01` | - | `say` 11 (`0x10BA`) |
 | `etc3u1` | `processEvent020` | 7 | `say` 13 (`0x1391`), 19 (`0x13A9`) |
+| `com0l5` | `processEvent_015` | 66 | `say` 75 (`0x12DD`), 84 (`0x1301`), 102 (`0x1349`) |
+| `com0g5` | `processEvent030` | 80, 102 | `say` 89 (`0x14F7`), 111 (`0x154F`), 126 (`0x158B`), 151 (`0x15EF`) |
+| `com0u5` | `processEvent030` | 48 | `say` 54 (`0x182D`), 65 (`0x1859`), 83 (`0x18A1`) |
+| `com0l5` | `processEvent_010` | - | `startNQCutScene` 7 (`0xD6C`) |
+| `com0l5` | `processEvent_elevator_nq1` | 17 | `ask` 16 (`0x14F8`), `startNQCutScene` 26 (`0x1520`), 31 (`0x1534`) |
+| `com0l5` | `processEvent_elevator_nq2` | 14 | `ask` 13 (`0x16D8`), `startNQCutScene` 23 (`0x1700`) |
+| `com0g5` | `processEvent005` | - | `startNQCutScene` 6 (`0x847`) |
+| `com0u5` | `processEvent025` | - | `startNQCutScene` 6 (`0x16AA`) |
+| `com0l6` | `processEvent_010` | - | `startNQCutScene` 8 (`0xFE2`) |
+| `com0g6` | `processEventNq` | - | `startNQCutScene` 6 (`0x1C96`) |
+| `com0u6` | `processEvent_005_03` | - | `startNQCutScene` 8 (`0xEAC`) |
 
 The familiar predicates were sampled with `nil`, 0, 1, `false`, and `true`;
 the finale predicates used the corresponding extra-argument tuples. The
@@ -330,6 +408,9 @@ six ask methods were sampled with choices 0 and 1. Client calls were
 recording stubs; their effects outside these methods were not simulated.
 The `say` rows for the talk methods come from the instruction listing,
 not from sampling. Their two `say` PCs are the equal and other edges.
+The fifth-quest talks were sampled with `nil`, 0, 1, `false`, and `true`
+in the fourth parameter. Their listed `say` PCs are the first row of each
+edge and then the first row after the edges rejoin.
 
 ## Provenance and limits
 
@@ -339,6 +420,11 @@ the 18 original `client/script` LPBs of the bytecode pass and the
 5.1 chunk. Decoding those LPBs with
 `xivl-client-structs/tools/decode_lpb.py` reproduced all 18 chunks used by
 the bytecode pass byte-for-byte and produced the listed `etc3u1` chunk.
+The `com0l5`, `com0g5`, `com0u5`, `com0l6`, `com0g6`, `com0u6`, `gcl104`,
+`gcl105` and `gcl106` rows were decoded with this repository's `tools/decode_lpb.py`, which also reproduced
+the listed `com0l1` and `com0l4` chunks. Their instruction listing used the
+Lua 5.1 chunk reader and instruction decoder of
+`xivl-client-scripts/tools/build_quest_contracts.py`.
 The method and PC locators above identify the relevant instructions in
 those chunks.
 The trace domain was `nil`, 0, 1, `false`, and `true` for extra arguments,
