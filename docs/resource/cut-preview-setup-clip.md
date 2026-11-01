@@ -5,8 +5,9 @@ and passes them with the clip pointer to a delegate. When its guard permits
 the request, that delegate packs an internal selector-9 event containing a
 zero dword, 32 bytes from its reloaded first argument and its reloaded second
 argument. These equal the supplied owner buffer and clip pointer when the
-preservation conditions below hold. This does not establish how
-the event consumer interprets the authored preview-owner string.
+preservation conditions below hold. The conditional
+[event consumer](cut-preview-event-consumer.md) owns the subsequent string
+input and callback-argument path.
 
 ## Source and nominal handler
 
@@ -103,8 +104,9 @@ asynchronous consumption.
 
 ## Remaining consumer boundary
 
-The guard's predicate, selector-9 consumer and the clip pointer's later use
-remain untraced here. There is no local owner-name lookup, quest selection,
+The guard's predicate and the clip pointer's later use remain untraced here.
+The separately qualified [selector-9 consumer](cut-preview-event-consumer.md)
+does not establish actual key-to-element selection. There is no local owner-name lookup, quest selection,
 text-bank load, zone binding or authoritative quest-state mutation. These
 bodies alone do not prove successful preview setup or historical playback.
 
