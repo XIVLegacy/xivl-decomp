@@ -165,6 +165,9 @@ It stores the values in the binding object `B`.
 | B+0x74 | sourceKey |
 | B+0x78 | name |
 
+The pre-parser that fills `B+0x3c` before this constructor runs, and the keys
+it overwrites it with, are in [Sqwt binding source arms](sqwt-binding-source-arms.md).
+
 The resolver `0x00911F50` runs when the binding attaches to its target. With a
 nonempty `XPath` it takes the object named by `Source` as the source, and the
 target element itself when `Source` is empty. It then stores the source
