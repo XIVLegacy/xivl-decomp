@@ -165,6 +165,21 @@ STATIC. Pointer table `0x0130DA6C-0x0130DA94` names the member types
 `nesting` and `_assignForChild`. Each declaration list entry is a Lua array of
 a member name, a type or structural tag, and an optional third operand.
 
+The `_temp` writer calls the shared declaration walker `0x00D1E0F0` at
+`0x00D166FF`. The [registry lookup contract](../net/sync-writer.md#group-updater-apply-and-notification)
+describes the walker's token lookup and matched-node factory dispatch;
+lookup can return zero, and this callsite alone does not establish a selected
+node or concrete factory.
+
+Candidate initializer `0x00D28390` forwards its incoming argument to opaque
+`0x00D27450`. After normal return, `0x00D2839D` installs table
+`0x0110FBC4` in its receiver and reaches `RET 4` at `0x00D283A6`, under
+ordinary callee-saved-register conditions. The argument's meaning is
+unestablished. The [Boolean reader contract](status-effect-widget-lifecycle.md#local-player-flag-and-array-capacity)
+identifies that table, but the selected registry node for the `boolean` token
+is not bound to this initializer. The vptr store does not establish a declared
+field's first value.
+
 ### Nested members
 
 STATIC. `0x00D207A0` builds the metatable of a second userdata kind with the
@@ -294,7 +309,9 @@ widget scripts run.
 ## Open
 
 - The initial value a declared field reads before its first write, per type
-  tag. The descriptor readers behind vtable `+0x1C` were not traced.
+  tag. The conditional Boolean and array readers in the
+  [storage contract](status-effect-widget-lifecycle.md#local-player-flag-and-array-capacity)
+  keep factory selection, storage installation and stored values separate.
 - The meaning of `_assignForChild` and of the `nesting` operand `72` and the
   `string` operand `64`, including whether they count bytes or bits.
 - The record kinds accepted by `0x00CE16C0` (`0x0130D4FC`, `0x0130D500`,
