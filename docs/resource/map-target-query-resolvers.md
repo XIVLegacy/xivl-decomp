@@ -266,7 +266,9 @@ so these unsigned-below-or-equal branches are zero tests, not signed guards.
 The inner increment/unsigned comparison is at
 `0x008056BB`/`0x008056BE`/`0x008056C0`; the outer equivalent is at
 `0x008056CA`/`0x008056CD`/`0x008056D5`. They continue while j<B_i and
-i<A. Each bound is a snapshot. No bound is narrowed, masked or sign extended.
+i<A. Each bound is a snapshot. This caller performs no further narrowing,
+masking or sign extension of the returned words. The nominal outer getter's
+mask is described below.
 P_ij has no null test before the direct delegate. None of these local
 predicates examines a query record or N.
 
@@ -280,9 +282,58 @@ the routine assigns no uniform success value to EAX.
 
 The member-call interpretation assumes valid distinct stack/object storage,
 normal returns and ordinary callee-saved-register preservation. The caller
-expects argument cleanup of 0/4/0/4/8 bytes for the five calls in table order;
-outside callee returns were not decoded. All four enumeration virtual
-implementations remain opaque, including their mutations and failures.
+expects argument cleanup of 0/4/0/4/8 bytes for the five calls in table order.
+The two nominal outer implementations are recovered below. The Q_i slot12/14
+implementations, including their mutations and failures, remain opaque.
+
+### Nominal outer enumeration storage
+
+For nominal R+4 table `0x00FBFCEC`, the original slot79 and slot81 cells
+matched [the slot catalog](../../config/ffxivgame.vtable_slots.jsonl), lines
+20295/20297. The original table's complete-object offset four is established
+under [source and nominal interface](#source-and-nominal-interface).
+
+| Slot | Pointer cell | Target | Four-byte cell SHA-256 |
+| --- | --- | --- | --- |
+| 79 | `0x00FBFE28` | `0x00A8C7D0` | `7c9d8aa6ba3b927309e0fee01e4d5a2dfcfaed9ed24be6eda29a75ed7466a17b` |
+| 81 | `0x00FBFE30` | `0x00A8C7E0` | `04fe05cf78dd82f9ebfb1580a4ee5789b5545a741bb5f29a17c18155624ada87` |
+
+Entry-seeded decoding used finite caps `[0x00A8C7D0,0x00A8C7E0)` and
+`[0x00A8C7E0,0x00A8C820)`, without treating them as function ends.
+The reached instruction spans were:
+
+| Target | Recovered interval, end exclusive | Exit | SHA-256 |
+| --- | --- | --- | --- |
+| `0x00A8C7D0` | `[0x00A8C7D0,0x00A8C7DC)` | `RET` at `0x00A8C7DB` | `3fd28908aa4cd35f219baf748bf1552a1a56541b37773e776b6962b3f56da916` |
+| `0x00A8C7E0` | `[0x00A8C7E0,0x00A8C7F0)` | `RET 4` at `0x00A8C7ED` | `5154ee5a918f67542f3ae8afc7fd03dfc91278e1b2f4b929cda1de41e5bd7e80` |
+
+For incoming interface I, slot79 reads `u32(I+0x8C)` at `0x00A8C7D0`,
+masks EAX with `0x00FFFFFF` at `0x00A8C7D6` and returns. The high byte is
+ignored here; its meaning is unestablished. Slot81 reads U=`u32(I+0x88)`
+at `0x00A8C7E0`, loads its sole explicit index i from the entry stack at
+`0x00A8C7E6`, and returns `u32(U+4*i)` at `0x00A8C7EA`. The effective
+address uses wrapping 32-bit arithmetic. It does not test U, i or a count.
+Neither reached span calls another target or writes memory.
+
+With I=R+4 and the supplied caller tuples, the conditional composition is:
+
+```text
+A   = u32(R+0x90) & 0x00FFFFFF
+Q_i = u32(u32(R+0x8C) + 4*i)
+```
+
+This requires the nominal table binding, valid memory and the caller's retained
+R/index identities. A is the earlier count snapshot; slot81 reloads its base
+pointer on every invocation. Neither getter proves that the count and current
+storage agree, that every selected entry is valid, or that opaque inner calls
+preserve the base, count or entries between iterations. The caller's Q_i-null
+test occurs after this unchecked pointer read.
+
+The same target addresses occur in the engine LayoutManager and several
+MapLayoutWeather tables in the catalog. Sharing these accessors does not
+identify a returned Q_i's concrete type, its slot12/14 implementations, P_ij's
+domain or a historical placed object. No collection writer is recovered by
+these two reads, and the actual BG lookup result R remains unbound.
 
 The direct provider's local flow is described below. P_ij is not established
 as resolved query record J. This enumeration supplies no collision polarity,
