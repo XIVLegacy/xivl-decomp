@@ -57,8 +57,8 @@ B+`0xD0`, not the address of a cell holding that pointer. The selected stores ar
 The `0xDC` source words are not given actor-ID semantics from their offsets.
 The two helpers `0x0081CFA0` and `0x0081D120` have the caller tuples
 below. D120's local cursor-byte dispatch and source-qualified string
-operations are recovered below. Its intermediate local chain and CFA0
-remain uninspected. Full selection predicates, final output extents and
+operations are recovered below. D120's intermediate local chain and
+CFA0's lookup and unbound virtual effects remain qualified below. Full selection predicates, final output extents and
 other Q fields remain unestablished. This table is a partial field
 relationship, not a complete request schema.
 
@@ -98,8 +98,9 @@ write or stack-argument read. Thus X remains live across it, followed by
 the W pushes at `0x0081D386`/`0x0081D47F`. Under normal balanced-call
 and consistent-local-frame conventions, receiver loads
 `0x0081D382`/`0x0081D47B` select P, and CFA0 receives `[W,X]` with
-eight-byte cleanup expected by its caller. This is caller evidence; CFA0's
-implementation/formal signature remains uninspected. The
+eight-byte cleanup expected by its caller. These are caller-supplied roles; CFA0's
+[local selection](#target-helper-local-selection) retains the stack and input
+conditions stated below. The
 [existing accessor use](sqwt-markup-font-numeric-properties.md)
 provides a separate string-wrapper context, not a type proof for this W.
 
@@ -125,6 +126,85 @@ its row base. Unknown output extents and pointers reachable through the
 cursor, receiver, W or X can still alias Q or rows. Caller tuples alone
 therefore do not prove unconditional selector preservation, target identity,
 successful playback, command IDs or encounter/variant membership.
+
+### Target helper local selection
+
+`0x0081CFA0` does not read its incoming receiver P before replacing ECX.
+It retains X from entry ESP+8 at `0x0081CFA7`, reads G from the global
+word at `0x012B7F34`, and pushes G at `0x0081CFAB`. It calls
+`0x00A20070` with receiver X at `0x0081CFAE`, then calls
+`0x00A1BB80` with that return as receiver at `0x0081CFB5`. Let H
+be the latter return word. The store at `0x0081CFBC` writes H to the
+then-current ESP+`0x10`. A second `0x00A20070(X)` call precedes the
+load L=u32(return+`0x70`) at `0x0081CFC5`. The published
+[context getter](uldah-halloween-material.md#initializer-context)
+reads u32(X+`0x0C`), without a null guard. The two reads are separate
+and need not return the same root across the intervening lookup or aliases.
+
+Zero L returns zero. Otherwise the helper calls `0x00A21D00(L)` and
+returns zero for a signed nonpositive result. It starts i=0 and calls
+`0x00A21C80(L,[i])` at `0x0081CFE5`, retaining the result J in EDI.
+The published [collection helpers](timeline-weather-record-view.md#synchronous-scheduler-callback)
+read the signed count at L+`0x10` and return the indexed vector pointer
+for a nonnegative index below that count, otherwise zero. The
+[indexed-call stack contract](showhide-clip-dispatch.md#operation-argument-vectors)
+establishes `RET 4` for the supplied i. These are reused helper contracts;
+collection validity and preservation remain conditions here.
+
+Each nonnull J receives a call through its primary-vtable byte offset
+`0x10`, slot 4, at `0x0081CFF7`, with no new explicit push. Its EAX
+must equal u32(actual ESP+`0x18`) at `0x0081CFF9` to continue. The
+next call, at `0x0081D00C`, uses receiver J+`0x60` and the word at
+u32(u32(J+`0x60`)+`0x0C`), slot 3 of that embedded interface. It
+also has no new explicit push. Neither virtual has a bound concrete
+table or type here. Before the second call, `0x0081D005` loads ESI
+from u32(actual ESP+`0x14`).
+
+The local byte loop compares that ESI pointer's bytes against bytes at
+the second virtual's EAX return, two bytes per iteration. A differing
+byte produces nonzero internal comparison word -1 or 1. Matching zero
+bytes produce comparison word zero. There is no input length bound,
+case conversion or pointer-null guard. With valid readable terminated
+strings and preserved byte storage, zero means exact byte-string equality.
+The zero comparison branches at `0x0081D037` to `0x0081D050`, which
+sets final EAX=J. It does not return the internal comparison word.
+
+Let S be helper entry ESP. Composing these operations with the published
+`[W,X]` caller tuple requires the prefix's getter/lookup pair to remove
+the pushed G, leaving ESP=S-8 at the H store. Under that condition,
+H replaces the X argument cell at S+8. With balanced subsequent calls,
+the loop ESP is S-16: the slot-4 comparison reads H, and the ESI load
+reads W from S+4. The uninspected lookup's cleanup is a condition,
+not a recovered formal signature. Callee-saved registers, saved stack
+words and the two argument cells must also survive delegated effects
+and aliases. Without these conditions, the exact local operands remain
+the actual-ESP expressions above.
+
+Under those stack and readable-input conditions, the helper returns the
+first enumerated nonnull J whose primary-slot-4 return equals H and
+whose embedded-interface-slot-3 byte string equals W. Skipped or failed
+entries increment i and call `0x00A21D00(L)` again at `0x0081D03E`.
+Signed i<count repeats the loop. The count is reread, so the initial count is
+not a fixed traversal bound.
+The explicit empty/exhausted paths return zero. All three exits use
+`RET 8` at `0x0081CFD0`, `0x0081D04D` or `0x0081D056`, agreeing
+with the caller's cleanup expectation under the stated frame conditions.
+
+The sole explicit memory-destination instruction is the ESP-relative H
+store. Pushes and calls also write stack. There is no local store through
+P, X, W, L or J, but delegated effects and aliases remain opaque. The
+lookup H, unbound virtuals and actual X/W/collection validity remain
+the next dependencies. This byte-string/result-word match does not prove
+a dynamic actor type, numeric identity, Q preservation, game-command ID,
+encounter/variant binding, successful playback or historical target.
+
+Entry-seeded recovery used the finite envelope
+`[0x0081CFA0,0x0081D060)`, capped by the next distinct catalog entry.
+The actual reached instruction union is `[0x0081CFA0,0x0081D059)`.
+All local branches stayed within that union and every callee remained
+unopened. Original PE mapping, selected literal instruction checks and
+a separate linear partition confirmed the operands and reached range.
+Both partitions used Capstone, so they are not independent disassemblers.
 
 ### Cursor helper local dispatch
 
@@ -366,9 +446,11 @@ target helpers or aliases.
 The source-qualified staged-record copy and packed-selector input role are
 established under their guards. D120's local byte dispatch, reused
 constructor/assignment roles and cookie-equality return are established
-under their stated conditions. Its intermediate local chain, final output
-extent and input validity, cookie equality after opaque calls,
-`0x0081CFA0`, aliases and actual source values remain qualified. Resource compatibility, successful playback, completion/settlement and
+under their stated conditions. CFA0's local result-word and byte-string
+selection is established under its stated stack, input and preservation
+conditions. D120's intermediate local chain, final output extent and input
+validity, cookie equality after opaque calls, CFA0's opaque lookup and virtual
+contracts, stack balance, aliases and actual source values remain qualified. Resource compatibility, successful playback, completion/settlement and
 encounter actor/add/variant membership remain unestablished. A packed
 playback selector is distinct from a game-command ID and a model-qualified
 WSS/BID bank. Historical actor binding does not prevent this static join.
@@ -386,6 +468,7 @@ It is not a complete function extent.
 
 | Entry / selected interval | Actual range | SHA-256 |
 | --- | --- | --- |
+| `0x0081CFA0` | `[0x0081CFA0,0x0081D059)` | `76f043ae2c6741bc1d3ebb3530eeee1cc565d65adebb703f4462465e03db1260` |
 | `0x0081D120` | `[0x0081D120,0x0081D223)` | `9eec18544655a976855a420713cd867da9df53f906ad67a1ca9ca7b332999d8b` |
 | `0x0081D230` | `[0x0081D230,0x0081D521)` | `deb7c9c6e905974559b10af0d1675d839698ff30785eb5d34ad4ffdd7702beb4` |
 | `0x0065EAC0` | `[0x0065EAC0,0x0065EAED)` | `44949d1cbf2638cba108e23da4e6334b7aef18efe21e6a9901cd1bc2f7642bb4` |
