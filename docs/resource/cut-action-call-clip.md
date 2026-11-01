@@ -55,9 +55,11 @@ B+`0xD0`, not the address of a cell holding that pointer. The selected stores ar
 | Area `+0x38` | Starts at `0x0081D44C`, stride `0x14` at `0x0081D4B9`; an accepted entry's first dword is u32(slot23_result+`0xDC`), stores `0x0081D4AC` / `0x0081D4B7` |
 
 The `0xDC` source words are not given actor-ID semantics from their offsets.
-The two target-selection helpers `0x0081CFA0` and `0x0081D120` have the
-caller tuples below. Their effects, full selection predicates, output sizes
-and other Q fields remain untraced. This table is a partial field
+The two helpers `0x0081CFA0` and `0x0081D120` have the caller tuples
+below. D120's local cursor-byte dispatch and source-qualified string
+operations are recovered below. Its intermediate local chain and CFA0
+remain uninspected. Full selection predicates, final output extents and
+other Q fields remain unestablished. This table is a partial field
 relationship, not a complete request schema.
 
 At `0x0081D4ED` the caller forms Q. Pushes at `0x0081D4F4` and
@@ -112,7 +114,8 @@ D+`0x11` at `0x0081D4CD`, rather than snapshotting that loop bound.
 Caller cursor progression reads the current cursor's first byte and adds
 8 when nonzero or `0x24` when zero, storing the result at B+`0x14`.
 The initial progression is `0x0081D42F-0x0081D43E`; loop progression is
-`0x0081D4BC-0x0081D4D6`. Helper effects on that cursor and D remain opaque.
+`0x0081D4BC-0x0081D4D6`. D120 has no direct cursor-cell store, but its delegated effects on that
+cursor and D remain opaque.
 The loop's nonzero CFA0 result must also have a nonzero slot23 result
 before its returned +`0xDC` word is appended to the accepted target area.
 
@@ -122,6 +125,112 @@ its row base. Unknown output extents and pointers reachable through the
 cursor, receiver, W or X can still alias Q or rows. Caller tuples alone
 therefore do not prove unconditional selector preservation, target identity,
 successful playback, command IDs or encounter/variant membership.
+
+### Cursor helper local dispatch
+
+`0x0081D120` retains the cursor-cell address C in EDI at `0x0081D16A`
+and loads its sole explicit word O into ESI at `0x0081D163`. The published
+caller supplies O=B+`0x7C` or B+`0x28`. The helper first calls
+`0x00445CF0` with receiver O at `0x0081D176`, before reading the cursor.
+The [independent retail constructor observation](../arr-debug-comparison.md#utf8string-layout-contradiction)
+identifies this exact 39-byte constructor in the same executable. Applied
+to O under its normal-return and writable-storage conditions, it initializes
+a capacity dword to `0x40`, a count dword to 1, the dword at O+`0x0C` to
+zero, state bytes O+`0x10` and O+`0x11` to 1, and the data pointer to the
+inline buffer O+`0x12`. These are reused retail facts, not ARR layout or
+field-width transfers. They establish constructor writes, not a fixed
+final output footprint or preservation through later calls.
+
+After that call returns, `0x0081D182` reads V=u32(C), and
+`0x0081D184` compares u8(V) with zero. A zero byte takes `0x0081D18E`
+to `0x0081D1ED`, forms V+4 and passes that address to `0x004489C0`
+with receiver O at `0x0081D1F3`. It does not load u32(V+4) on this arm.
+The [published same-binary string-helper contract](sqwt-anime-property.md#identity-and-method)
+identifies `0x004489C0` as C-string assignment. With a valid constructed
+destination, a valid accessible terminated input at V+4 and normal assignment
+completion, this arm assigns that C string to O. The body supplies no bound
+on the input text length or final storage extent.
+
+A nonzero byte instead calls `0x00569500` with a local-address receiver
+and explicit word 1 at `0x0081D196`. After its return, `0x0081D1A6`
+reloads U=u32(C). The load at `0x0081D1AB` obtains u32(U+4), which
+is supplied by value to `0x005434A0` at `0x0081D1B2`. U need not
+equal V through the opaque call or aliases. The following local chain
+includes `0x00567C10`, then `0x00447450` with receiver O and a local
+address. The [same-binary caller finding](../actor/actor-instantiation-and-self-player.md#area-setup-name)
+identifies this exact callee as `Utf8String::operator=`, and the
+[assignment contract](logcontrol-pool-feed.md#conditional-parameter-free-path)
+establishes copying into destination-owned storage. Applied here with valid
+source/destination objects and normal completion, it copies from the supplied
+local-address source to O. That source's construction, text and validity
+remain dependent on the uninspected `0x00569500`, `0x005434A0` and
+`0x00567C10` chain. The arm finishes with calls to `0x00567D40` and
+`0x0053B870`, whose effects also remain opaque. No meaning is assigned
+to the nonzero byte or the explicit word 1.
+
+The exact local calls are below. E_a denotes ESP at the indicated
+instruction address a, rather than an assumed common frame base. Supplied
+words are nearest-first. A dash means no new argument push was made for
+that call in this body; it does not establish the callee's formal arity or
+the absence of live stack words from earlier calls. ESI and EDI retention
+assumes the normal x86 callee-saved-register convention.
+
+| Callsite / callee | Receiver ECX | Newly supplied words |
+| --- | --- | --- |
+| `0x0081D176` / `0x00445CF0` | O | - |
+| `0x0081D196` / `0x00569500` | E_0081D192+`0x1C` | `[1]` |
+| `0x0081D1B2` / `0x005434A0` | E_0081D1AE+`0x1C` | `[u32(U+4)]` |
+| `0x0081D1BB` / `0x00567C10` | E_0081D1B7+`0x1C` | - |
+| `0x0081D1C7` / `0x00447450` | O | `[E_0081D1C0+0x58]` |
+| `0x0081D1DA` / `0x00567D40` | E_0081D1D3+`0xEC` | - |
+| `0x0081D1E6` / `0x0053B870` | E_0081D1DF+`0xEC` | - |
+| `0x0081D1F3` / `0x004489C0` | O | `[V+4]` |
+| `0x0081D215` / `0x009D20F4` | u32(E_0081D20C+`0x110`) XOR E_0081D213 | - |
+
+Both local arms join at `0x0081D1F8`, which sets EAX=O. The epilogue
+calls `0x009D20F4` at `0x0081D215` before `RET 4` at `0x0081D220`.
+The [published same-binary checker contract](skeleton-output-float4-submission.md#complete-direct-closure)
+covers `[0x009D20F4,0x009D2103)`: equality with the cookie at
+`0x012EA8B0` returns at `0x009D20FC` and preserves incoming EAX;
+inequality tail-jumps to uninspected `0x009DF74C`. Its inequality-path
+EAX behavior, return and nonreturn remain unestablished.
+
+For this call, let S be actual ESP at `0x0081D20C`, unchanged by the
+following load and XOR through `0x0081D213`. Let K be the dword actually
+read at S+`0x110`, and H the cookie cell's value when the checker compares.
+The exact reached equality condition is `K XOR S = H`. The call's own
+return-address push occurs after that XOR and does not replace S with S-4.
+If equality holds and the remaining epilogue returns to the original caller,
+the final EAX is O. D120's opaque calls do not establish restored S,
+preservation of K or cookie stability. The checker contract therefore
+supports a conditional final return, not an unconditional cookie-success
+or stack-restoration claim.
+
+All explicit local memory stores are stack-relative or FS-relative. There
+is no direct store through C, O, V or U, and no direct cursor-cell advance.
+The visible input operations are a byte test and, only on the nonzero arm,
+a dword read at the reloaded cursor+4. There is no local output-size or
+output-tag store. Constructor initialization, the two assignment roles and
+the checker's equality-return behavior are reused from existing findings;
+they were not newly decoded with this body. The intermediate local chain,
+assignment inputs and bounds, later preservation of the initialized state,
+cursor progression through aliases and opaque calls, and opaque-call stack
+cleanup remain unresolved. Destination-owned text storage is a reachable
+pointee rather than a fixed inline write bound. Input/output aliases and
+pointees reachable through them still prevent an unconditional Q-preservation
+claim. The local dispatch and string operations do not identify an actor,
+command, encounter, variant or resource bank.
+
+Entry-seeded recovery stayed within the admitted address envelope
+`[0x0081D120,0x0081D230)`, whose upper bound is the separately published
+caller entry rather than an assumed helper end. All normal local paths
+ended at `0x0081D223`; no branch left the envelope. Every callee and the
+exception-handler target `0x00EB01A3` remained unopened. Continuing local
+fallthrough after a call is conditional on normal return. Original PE
+section arithmetic, selected literal instruction checks and a separate
+linear partition confirmed the source mapping, branch destinations,
+address-versus-value distinction and recovered range. Both decoding
+partitions used Capstone, so they are not independent disassembler results.
 
 ## Forwarding and guards
 
@@ -255,9 +364,11 @@ target helpers or aliases.
 ## Remaining joins
 
 The source-qualified staged-record copy and packed-selector input role are
-established under their guards. The upstream target-selection helpers
-`0x0081CFA0` and `0x0081D120`, aliases and actual source values remain
-qualified. Resource compatibility, successful playback, completion/settlement and
+established under their guards. D120's local byte dispatch, reused
+constructor/assignment roles and cookie-equality return are established
+under their stated conditions. Its intermediate local chain, final output
+extent and input validity, cookie equality after opaque calls,
+`0x0081CFA0`, aliases and actual source values remain qualified. Resource compatibility, successful playback, completion/settlement and
 encounter actor/add/variant membership remain unestablished. A packed
 playback selector is distinct from a game-command ID and a model-qualified
 WSS/BID bank. Historical actor binding does not prevent this static join.
@@ -275,6 +386,7 @@ It is not a complete function extent.
 
 | Entry / selected interval | Actual range | SHA-256 |
 | --- | --- | --- |
+| `0x0081D120` | `[0x0081D120,0x0081D223)` | `9eec18544655a976855a420713cd867da9df53f906ad67a1ca9ca7b332999d8b` |
 | `0x0081D230` | `[0x0081D230,0x0081D521)` | `deb7c9c6e905974559b10af0d1675d839698ff30785eb5d34ad4ffdd7702beb4` |
 | `0x0065EAC0` | `[0x0065EAC0,0x0065EAED)` | `44949d1cbf2638cba108e23da4e6334b7aef18efe21e6a9901cd1bc2f7642bb4` |
 | `0x00846080` | `[0x00846080,0x00846092)` | `2bc347070e8187c8a7ee1b4ec92ff31caa95136803cb87c3395913f65e3bdb65` |
