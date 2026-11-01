@@ -281,14 +281,69 @@ the routine assigns no uniform success value to EAX.
 The member-call interpretation assumes valid distinct stack/object storage,
 normal returns and ordinary callee-saved-register preservation. The caller
 expects argument cleanup of 0/4/0/4/8 bytes for the five calls in table order;
-outside callee returns were not decoded. All four virtual implementations
-and `0x00804DF0` remain opaque, including their mutations and failures.
+outside callee returns were not decoded. All four enumeration virtual
+implementations remain opaque, including their mutations and failures.
 
-The next direct boundary is `0x00804DF0(O,[7,P_ij])`. Passing O does not
-prove an O+8/+`0x0C` write; P_ij is not established as resolved query record
-J. The producer/meaning of J+`0x10`, concrete virtual targets, actual matches
-and historical delivery remain unestablished. This enumeration supplies no
-collision polarity, activation/cancellation or encounter-reset semantics.
+The direct provider's local flow is described below. P_ij is not established
+as resolved query record J. This enumeration supplies no collision polarity,
+activation/cancellation or encounter-reset semantics.
+
+### Provider delegates
+
+`0x00804DF0` receives O in ECX and nearest-first `[k,P]`. The selected
+enumeration supplies k=7 and P=P_ij. The routine first dereferences P without
+a local null guard. Let U be P slot61's return, T be zero when U==0 or
+U slot44's return otherwise, and W be P slot58's later return. All slot
+numbers are zero based. The virtual table is reloaded from P at each of its
+three calls.
+
+| Callsite | Target | Receiver | Nearest-first arguments | Return use |
+| --- | --- | --- | --- | --- |
+| `0x00804E24` | u32(u32(P)+`0xF4`), slot61 | P | `[]` | U |
+| `0x00804E36` | u32(u32(U)+`0xB0`), slot44 | U, only if U!=0 | `[]` | T |
+| `0x00804E46` | u32(u32(P)+`0x54`), slot21 | P | `[k]` | Low byte gates the next three direct calls |
+| `0x00804E4E` | `0x009D1B35` | ECX is not locally reassigned after slot21 | `[0x14]` | G |
+| `0x00804E6B` | `0x00801140` | G, only if G!=0 | `[k,P,T]` | H |
+| `0x00804E88` | `0x0079EE80` | O+4 | `[L]` | Not tested |
+| `0x00804E97` | u32(u32(P)+`0xE8`), slot58 | P | `[]` | W |
+| `0x00804EA1` | `0x008011A0` | O, only if W!=0 | `[k,W]` | Retained in EAX on normal return |
+
+TEST/JE at `0x00804E48`/`0x00804E4A` skips the G request, conditional
+G delegate and O+4 delegate exactly when slot21's AL is zero. This is a
+byte test, not a test of the full return word. On the nonzero-byte path,
+G==0 skips `0x00801140` and selects H=0. Otherwise H is that helper's
+return. Both paths call `0x0079EE80` with L pointing to a stack cell holding
+H. A zero G therefore does not skip that delegate.
+
+Let S be entry ESP. L=S+8 is the incoming argument2 cell. P was already
+saved in ESI. The routine writes u32(L)=G at `0x00804E56` and u32(L)=H
+at `0x00804E84`; the latter uses ESP+`0x2C` after pushing L. The
+exception-state stack cell u32(S-4) becomes 0 at `0x00804E5A` and
+`0xFFFFFFFF` at `0x00804E74`. FS:[0] receives S-12 at `0x00804E0E`
+and its saved prior value at `0x00804EAA`. Other writes save registers,
+exception/cookie data, arguments or call return addresses on the stack.
+
+P slot58 runs after either slot21 branch. TEST/JE at
+`0x00804E99`/`0x00804E9B` skips `0x008011A0` exactly when W==0.
+RET8 at `0x00804EB9` is the sole local exit. EAX is zero on the W==0
+normal-return path and is `0x008011A0`'s return otherwise. The routine
+assigns no uniform success value and contains no local loop.
+
+This member-call interpretation assumes valid distinct stack/object storage,
+normal returns and ordinary callee-saved-register preservation. The caller
+expects cleanup of 0/0/4/0/12/4/0/8 argument bytes for the eight table rows.
+It explicitly removes the `0x14` argument with ADD ESP,4 at `0x00804E53`.
+Outside callee returns and exceptional unwind behavior were not decoded.
+
+No local instruction writes through O, P, U, G, H, T or W. The O+4 delegate
+`0x0079EE80(O+4,[L])`, the O delegate `0x008011A0(O,[k,W])`,
+the G delegate `0x00801140(G,[k,P,T])`, the size-argument call and
+all four virtual implementations remain opaque. In particular, passing
+O+4 does not establish a store at O+8/+`0x0C`. Neither P nor H nor W is
+established as resolved query record J, and this local flow does not bind
+the producer or meaning of J+`0x10`. Actual record membership, matches,
+placement, collision effects and historical encounter lifecycle remain
+unestablished.
 
 ## Separate root and child fallback
 
@@ -390,6 +445,7 @@ basic blocks, independently of catalog summed sizes.
 | `0x0061EEC0` | `[0x0061EEC0,0x0061EEF3)` | `d800c08453ed0ba28a5e1b099e5b5565115982d30221a9d5c13fedfd8233845e` |
 | `0x00805EC0` | `[0x00805EC0,0x00805EF6)` | `841772c92760cef382e43c6f410584e816bed15ee6efb6c651c917f989d9dcce` |
 | `0x00805650` | `[0x00805650,0x008056E1)` | `255315ab266716c2c2c0cabbe034165cb13cff787c30df7b7912d6df0994eb62` |
+| `0x00804DF0` | `[0x00804DF0,0x00804EBC)` | `7d1d379bc5aa44eb5347db5de576898ce9056a12390c8638a86c8e146d755404` |
 
 The selected kind-7 router plus guard/default occupied only
 `[0x00640E40,0x00640E53)`, `[0x00640E77,0x00640E80)` and
