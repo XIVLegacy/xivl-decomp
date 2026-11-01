@@ -236,6 +236,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Rich-string entry count controls](resource/rich-string-entry-counts.md)
 - [Sqwt form and template path resolution](resource/sqwt-form-locale-resolution.md)
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
+- [Sqwt binding source arms](resource/sqwt-binding-source-arms.md)
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
 - [Sqwt CommandParameter consumer](resource/sqwt-command-parameter-consumer.md)
 - [Sqwt IsEnabled literal Setter contract](resource/sqwt-is-enabled-literal-setter.md)
