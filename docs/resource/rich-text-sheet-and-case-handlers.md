@@ -167,12 +167,16 @@ not traced. UNKNOWN.
 
 The lookup keeps its result in `EDI`, which is zero from `0x00CA0971`. A null
 sheet (`0x00CA0979`) or a null row (`0x00CA0995`) jumps to the return at
-`0x00CA0DD8` with that zero. A type code of 0 or above 10 (the result minus 1 is above 9,
-`0x00CA09D9..0x00CA09DF`) returns `-1` from `EBX` (`0x00CA0DCD`). The handler
-`0x28` appends nothing for any return other than 1 (`0x00CA0F4E`, with the
-no-append exit at `0x00CA0FA1..0x00CA0FF1` returning zero), so a missing sheet,
-row or unmapped type leaves its output unchanged. STATIC. What the type query
-returns for a missing field is not traced. UNKNOWN.
+`0x00CA0DD8` with that zero. A type code of 0 or above 10 (the result minus 1 is
+above 9, `0x00CA09D9..0x00CA09DF`) returns `-1` from `EBX` (`0x00CA0DCD`). The
+handler `0x28` appends nothing for any return other than 1 (`0x00CA0F4E`) and
+returns zero from the no-append exit (`0x00CA0FA1..0x00CA0FF1`). The formatter
+treats a zero from any handler as failure. It frees its output buffer and
+returns false (`0x00CB2940..0x00CB2942`, `0x00CB2AB4..0x00CB2AC5`), so a
+missing sheet, a missing row or an unmapped type fails the whole row and not
+only the token. STATIC. What the type query returns for a missing field, and
+what the caller of the formatter does with a false return, are not traced.
+UNKNOWN.
 
 ### Installed sheet observation
 
@@ -281,7 +285,8 @@ outside published artifacts.
 | Handler registration | `0x00CA0390..0x00CA0898`, thunk bytes at each thunk address above, vtable `0x01108ECC` plus `0xA0` bytes |
 | Null handler copy | `0x00CB27CC..0x00CB2813`, `0x00CB2818..0x00CB28D5` |
 | Comparison leads | `0x00CB2E86..0x00CB3073`, table `0x00CB3218` plus 24 bytes |
-| Sheet handler | `0x00CA0E20..0x00CA0FF3`, `0x00CB3480..0x00CB36EB`, `0x00CA0930..0x00CA0A25` |
+| Sheet handler | `0x00CA0E20..0x00CA0FF3`, `0x00CB3480..0x00CB36EB`, `0x00CA0930..0x00CA0A25`, `0x00CA0DCD..0x00CA0DD8`, `0x00CA0F4C..0x00CA0FF1` |
+| Handler failure | `0x00CB2938..0x00CB2948`, `0x00CB2AB4..0x00CB2AC5` |
 | Case handlers | `0x00C9FC20..0x00C9FD3F`, `0x00C9FD50..0x00C9FE0F`, `0x00445220..0x004453A5` |
 | Language and exceptions | `0x00C98150..0x00C98154`, `0x01108EA4` plus 24 bytes, `0x01108E70` plus 4 bytes, `0x01108E78` plus 3 bytes |
 | Installed sheet | Definition resource `0x0B450269` and the `xtx/_text_ui` definition `0x0B450082` for the per-language fields and the row 231 operands |
