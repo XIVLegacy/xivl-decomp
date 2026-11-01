@@ -90,7 +90,8 @@ address (`receiver + 0x18` of the TextModule). The vector is filled by the
 holder `FUN_00771B80` and the config change handler `FUN_004DB800`. See
 [Rich-text global parameter vector](rich-text-global-parameters.md) for the
 seed values, the colour writer and the element that each `0xE9` operand
-selects. STATIC.
+selects. STATIC for each writer. The join of the holder deque and the decoder
+deque is INFERRED (GP-05), and so is the sizing to 55 elements (GP-02).
 
 ## CT-03: Processor handlers
 

@@ -27,11 +27,11 @@ Installed-data observations give token ids, operand kinds and row ids and carry 
 
 ## GP-01: Vector identity
 
-The TextModule class `Component::Text::TextModule` has the primary vtable `0x01108F70`. Its slot 1 (`0x01108F74`) is `FUN_00C0EA60`, which is `LEA EAX,[ECX+0x18]` and `RET`. The constructor `FUN_00CA0390` (`0x00CA0390..0x00CA0898`) stores the decoder sub-object at TextModule `+4` (vtable `0x01108ECC`) and calls the decoder constructor `FUN_00CB33A0` at `0x00CA03CD`. So the deque that `0xE9` and `0xEB` read at decoder `+0x14` (CT-02) is the object at TextModule `+0x18`, and slot 1 returns its address. The deque is a standard block deque with the start offset and size at deque `+0xC` and `+0x10`, and `FUN_008A68A0` is its bounds-checked indexed accessor. A cell is a variant with the value at `+4` and a tag byte at `+8`, and the integer reader `FUN_00778D50` requires tag 0. STATIC.
+The TextModule class `Component::Text::TextModule` has the primary vtable `0x01108F70`. Its slot 1 (`0x01108F74`) is `FUN_00C0EA60`, which is `LEA EAX,[ECX+0x18]` and `RET`. The constructor `FUN_00CA0390` (`0x00CA0390..0x00CA0898`) stores the decoder sub-object at TextModule `+4` (vtable `0x01108ECC`) and calls the decoder constructor `FUN_00CB33A0` at `0x00CA03CD`. So the deque that `0xE9` and `0xEB` read at decoder `+0x14` (CT-02) is the object at TextModule `+0x18`, and slot 1 returns its address. The deque is a standard block deque with the start offset and size at deque `+0xC` and `+0x10`, and `FUN_008A68A0` is its bounds-checked indexed accessor. A cell is a variant with the value at `+0`, a pointer to the value at `+4` (the integer setter `FUN_004D3390` stores the cell address there, `0x004D33FC`) and a tag byte at `+8`. The integer reader `FUN_00778D50` requires tag 0 and returns the `+4` pointer (`0x00778D76`), and its caller dereferences it (`0x00CB2E2A`). STATIC.
 
 The parameter holder constructor `FUN_00771B80` (`0x00771B80..0x00771C16`) takes a TextModule pointer and a second argument, stores them at holder `+0` and `+4`, allocates a four byte cell with `FUN_009D1B35`, and calls TextModule slot 1 through `CALL EAX` at `0x00771BD8`. It passes the returned deque address to `FUN_007716A0` and stores the cell at holder `+8` (`0x00771BE9`). The cell therefore holds the TextModule deque address, and every holder method reaches the vector through `[[holder+8]]`. STATIC.
 
-The UI data object at container `+0x510` is filled by `FUN_0057A3C0`. The container constructor `FUN_004DBF40` places a TextModule at container `+0x554` (`0x004DC061..0x004DC068`), and the call sites at `0x004D7ACD`, `0x004DB4D5` and `0x004DCF2C` pass that address as the third argument of `FUN_0057A3C0`. At `0x0057A673` that routine calls `FUN_00771B80` with the TextModule and stores the holder at object `+0xC` (`0x0057A6A1`). STATIC.
+The UI data object at container `+0x510` is filled by `FUN_0057A3C0`. The container constructor `FUN_004DBF40` places a TextModule at container `+0x554` (`0x004DC05F..0x004DC068`), and the call sites at `0x004D7ADA`, `0x004DB4E2` and `0x004DCF35` pass that address as the third argument of `FUN_0057A3C0` (the `LEA` of `+0x554` is at `0x004D7ACB`, `0x004DB4D3` and `0x004DCF2A`). At `0x0057A673` that routine calls `FUN_00771B80` with the TextModule and stores the holder at object `+0xC` (`0x0057A6A1`). STATIC.
 
 ## GP-02: Seed values
 
@@ -51,7 +51,7 @@ The config change handler is slot 1 of the vtable `0x00F9117C` (cell `0x00F91180
 
 When its group argument is `-1` or `1` (`0x004DB99E..0x004DB9A6`), the handler runs a loop with the counter `i` from 0 to `0x1F` (`0x004DB9B0..0x004DB9C8`):
 
-1. It calls `FUN_004B4F80(i)` with the config store as the receiver. That function calls `FUN_00443E40(1, i, 0)` and subtracts `0x1000000` from the result (`0x004B4F8E`). `FUN_00443E40` returns the dword at entry `+0x60` of the config row at `(group*0x20 + (i & 0x1F)) * 0xBC` from the table at store `+8`, or its third argument when the table is absent (`0x00443E40..0x00443E65`).
+1. It calls `FUN_004B4F80(i)` with the config store as the receiver. That function calls `FUN_00443E40(1, i, 0)` and subtracts `0x1000000` from the result (`0x004B4F8E`). `FUN_00443E40` returns the dword at entry `+0x60` of the config row at `(group*0x20 + (i & 0x1F)) * 0xBC` from the table at store `+8`, or its third argument only when the sum of the table pointer and the row offset is zero (`0x00443E56..0x00443E61`), which for the group 1 rows is a null table with a zero offset and never occurs. A null table with a nonzero offset is dereferenced.
 2. It calls `FUN_00575510(i, value)` with the receiver `this+0x6C`. That function loads the holder from receiver `+0xC` and tail calls `FUN_0076A7B0`, which writes the integer `value` to deque element `i + 0xC` (`ADD EAX,0xC` at `0x0076A7C6`, accessor call at `0x0076A7CA`, variant store `FUN_004D3390`). STATIC.
 
 For a config value `v` in `0..0xFFFFFF` the subtraction gives `0xFF000000 | v` modulo 2^32, so the element holds an opaque `0xAARRGGBB` dword with the config value as the low 24 bits. The `0x13` handler reads red from bits 16 to 23 (CT-03), so a config value is `0xRRGGBB`. STATIC for the arithmetic, INFERRED for the channel order of the stored config value because the handler is the only reader traced.
@@ -62,7 +62,7 @@ The dispatch of this handler with group `-1` or `1` at config load, and the save
 
 ## GP-04: Config defaults
 
-`FUN_004C4750` registers the group 1 colour rows through `FUN_00443CF0` (`0x004C67E0..0x004C6D80`). Each call pushes the default, the maximum `0xFFFFFF`, the minimum 0, the index and the group 1, and the register routine stores the default at entry `+0x60`. The names are the strings at `0x00F8D360..0x00F8D4DB`. STATIC.
+`FUN_004C4750` registers the group 1 colour rows through `FUN_00443CF0`, with the 32 calls at `0x004C681D` (`log_color01`) to `0x004C70FB` (`logcolor32`). Each call pushes the default, the maximum `0xFFFFFF`, the minimum 0, the index and the group 1, and the register routine stores the default at entry `+0x60`. The names are the strings at `0x00F8D360..0x00F8D4DE`, from the start of `log_color01` to the terminator of `logcolor32` (the string at `0x00F8D4D4`). STATIC.
 
 | Index | Key | Default |
 |---:|---|---|
@@ -101,6 +101,6 @@ Verify the executable identity and PE32 base. Read the vtables `0x01108F70`, `0x
 | Purpose | Ranges and data |
 |---|---|
 | Vector and holder | `0x00C0EA60`, `0x00CA0390..0x00CA03DF`, `0x00771B80..0x00771C16`, `0x007716A0..0x007718E5`, `0x0057A3C0` (`0x0057A64B..0x0057A6A1`) |
-| Container placement | `0x004DBF40` (`0x004DBFD9`, `0x004DC061..0x004DC068`), `0x004D7ACD`, `0x004DB4D5`, `0x004DCF2C` |
+| Container placement | `0x004DBF40` (`0x004DBFD9`, `0x004DC05F..0x004DC068`), `0x004D7ACB..0x004D7ADA`, `0x004DB4D3..0x004DB4E2`, `0x004DCF2A..0x004DCF35` |
 | Colour writer | `0x004DB800` (`0x004DB99E..0x004DB9C8`), `0x004B4F80`, `0x00443E40`, `0x00575510`, `0x00575520`, `0x0076A7B0`, `0x0076A7E0`, `0x004D3390` |
-| Config rows | `0x004C4750` (`0x004C67E0..0x004C6D80`), `0x00443CF0`, `0x00F8D360..0x00F8D4DB` |
+| Config rows | `0x004C4750` (`0x004C681D..0x004C70FB`), `0x00443CF0`, `0x00F8D360..0x00F8D4DE` |
