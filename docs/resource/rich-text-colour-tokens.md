@@ -8,8 +8,9 @@ stay open. The formatter and its handler vector are in
 [Rich-text sheet and case handlers](rich-text-sheet-and-case-handlers.md),
 RT-01.
 
-This page does not establish the contents of the container that `0xE9` reads,
-a colour in the rendered frame, or any other processor handler.
+This page does not establish a colour in the rendered frame or any other
+processor handler. The container that `0xE9` reads is in
+[Rich-text global parameter vector](rich-text-global-parameters.md).
 
 ## Input and method
 
@@ -83,12 +84,14 @@ whose base constructor `FUN_00CBFD10` calls the decoder constructor
 `FUN_00CB33A0` at `0x00CBFD13`.
 
 `FUN_00CB33A0` stores zero to the four dword fields at receiver `+0x18`,
-`+0x1C`, `+0x20` and `+0x24`, so the container starts empty. The code that
-fills the TextModule container is not identified. The getter at TextModule
-virtual `+4` (`FUN_00C0EA60`, the table `0x01108F70`) returns its address
-(`receiver + 0x18`). The callers of the append helper `FUN_004D50D0` and the copy
-helper `FUN_004D5900` were listed, and none was traced to a store into that
-container. UNKNOWN. With an empty container the operand `0xE9` decodes to zero.
+`+0x1C`, `+0x20` and `+0x24`, so the container starts empty. The getter at
+TextModule virtual `+4` (`FUN_00C0EA60`, the table `0x01108F70`) returns its
+address (`receiver + 0x18` of the TextModule). The vector is filled by the
+holder `FUN_00771B80` and the config change handler `FUN_004DB800`. See
+[Rich-text global parameter vector](rich-text-global-parameters.md) for the
+seed values, the colour writer and the element that each `0xE9` operand
+selects. STATIC for each writer. The join of the holder deque and the decoder
+deque is INFERRED (GP-05), and so is the sizing to 55 elements (GP-02).
 
 ## CT-03: Processor handlers
 
@@ -186,14 +189,11 @@ segments. The literal operands read as `0xAARRGGBB` values with alpha
 tables uses for 167 tokens. The `0x13` handler discards the alpha byte of its
 value (CT-03), so the alpha of a `0x13` literal has no effect on the state.
 
-INFERRED. Rows 2227 to 2238 are twelve consecutive entries indexed by the
-operand, and
-[User config store contract](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/user-config-store-contract.md)
-lists the keys `logcolor13` to `logcolor24` in the chat log colour group, with
-the same twelve numbers. The agreement of the numbering does not show that the
-container at decoder `+0x14` holds those values, how a 24-bit config value
-becomes the dword, or when it is written. The same document leaves the byte
-order of the config values untraced. UNKNOWN.
+The twelve `0xE9` literals 13 to 24 select the one based vector elements 13 to
+24 (zero based 12 to 23), which hold the chat log colours with indices 0 to 11
+and the keys `log_color01` to `log_color12`. They do not select the keys `logcolor13` to `logcolor24`.
+[Rich-text global parameter vector](rich-text-global-parameters.md), GP-05,
+records the join and the default of each colour. INFERRED.
 
 ## Reproduction bounds
 
