@@ -198,7 +198,7 @@ void addNoticeCondition(T *this, Utf8String *event_name,
                         Utf8String *cond_data, byte *cond_flag)
 {
   ConditionEntry *entry;
-  byte kind = *((byte *)cond_data);          // first byte = condition kind
+  byte kind = *cond_flag;                   // third argument; receiver +0x59
   if (kind == CONST_X /* [0x0134c3fe] */) {
     // "rich" condition (0x60 bytes, 2 ctor args)
     entry = (ConditionEntry *)operator new(0x60);   // FUN_009d1b35
@@ -219,9 +219,29 @@ void addNoticeCondition(T *this, Utf8String *event_name,
 }
 ```
 
-The 0x60/0x5c sizes correspond to two ConditionEntry subclasses (one
-with 2 storage slots, one with 1). The `[0x0134c3fe]` constant
-discriminates between them.
+The 0x60/0x5c sizes correspond to two ConditionEntry subclasses. The
+third supplied pointer, receiver `+0x59`, supplies the byte compared with
+mutable cell `0x0134c3fe`. Equality selects the 0x60-byte constructor and
+forwards the second pointer, receiver `+0x58`; inequality selects the
+0x5c-byte constructor. This does not assign a Boolean or priority meaning
+to the second argument.
+
+Native argument inspection used retail 1.23b `ffxivgame.exe`, 15,996,808 bytes,
+SHA-256 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`,
+image base `0x00400000`. pefile 2024.8.26 mapped original file-backed bytes;
+Capstone 5.0.7 decoded complete x86-32 bodies `[0x006F1380,0x006F1450)`,
+`[0x006F2E80,0x006F2F53)` and `[0x0089D980,0x0089D9D3)`.
+Their original span SHA-256 values are, respectively,
+`c67090ae87cc67275efa46fec4d7be4cc062c2fa66f2ec186384de806e291c2a`,
+`ec2fb2ba743d61cefa292215478e5b785d6aec6d349d9c741070a8277e1369da`
+and `0a485a929fdb1edfb7f205db7b7bca01b81194942e403fbd9abfc991b97806ca`.
+At `0x006F13AF` and `0x006F2EAF`, current stack `+0x28` loads the third
+original argument: seven four-byte prologue pushes displaced entry stack
+`+0x0C` by `0x1C`. The comparisons are at `0x006F13B5/0x006F2EB5`.
+The receiver pushes `+0x59`, `+0x58` and `+0x04` right to left at
+`0x0089D9A3..0x0089D9B1` and `0x0089D9BB..0x0089D9C9`.
+These are static argument and constructor observations, not runtime values
+of the mutable comparison cell or proof that a particular condition fired.
 
 ### Gates summary
 
@@ -232,8 +252,9 @@ discriminates between them.
    whether the cinematic's notice-event evaluator looks in both fields
    or only one.
 2. `operator new` - silent no-op on OOM (extremely rare).
-3. Per-packet kind discriminator (`cond_data[0]`) only selects ctor
-   size; never causes a no-op.
+3. The byte at the third argument (`*cond_flag`, receiver `+0x59`) selects
+   the Block or NonBlock constructor by comparison with mutable cell
+   `0x0134c3fe`; either normal allocation branch registers an entry.
 
 The fallback divergence is the **interesting one for SEQ_005 debugging**.
 
