@@ -171,14 +171,17 @@ describes the walker's token lookup and matched-node factory dispatch;
 lookup can return zero, and this callsite alone does not establish a selected
 node or concrete factory.
 
-Candidate initializer `0x00D28390` forwards its incoming argument to opaque
-`0x00D27450`. After normal return, `0x00D2839D` installs table
+Initializer `0x00D28390` forwards its incoming argument through
+`0x00D27450`; the [native boolean layout](job-action-acquisition.md#native-boolean-layout)
+owns the argument's bit-start meaning and descriptor width. After normal
+return, `0x00D2839D` installs table
 `0x0110FBC4` in its receiver and reaches `RET 4` at `0x00D283A6`, under
-ordinary callee-saved-register conditions. The argument's meaning is
-unestablished. The [Boolean reader contract](status-effect-widget-lifecycle.md#local-player-flag-and-array-capacity)
-identifies that table, but the selected registry node for the `boolean` token
-is not bound to this initializer. The vptr store does not establish a declared
-field's first value.
+ordinary callee-saved-register conditions. The [Boolean reader contract](status-effect-widget-lifecycle.md#local-player-flag-and-array-capacity)
+owns that table's read/store behavior. The static type-name factory mapping
+is published in `xivl-client-structs:docs/work-binder-native-contract.md:310-322`.
+The actual matched registry node and factory on this `_temp` invocation remain
+conditions; the constructor/vptr observations do not establish installed pool
+storage or a declared field's first value.
 
 ### Nested members
 
