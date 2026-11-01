@@ -98,7 +98,7 @@ methods organize into clear domains:
 | `_sendCountDown(self, ...)` | Trigger countdown UI element |
 | `_getLastAttacker(self)` | Most-recent damager (combat target tracking) |
 | `_waitForCameraTutorial(self)` | Block until camera-tutorial completes |
-| `_waitForItemSearchWidget(self)` | Open item-search form and yield while the manager's widget field is nonzero |
+| `_waitForItemSearchWidget(self)` | Attempt to open the item-search form and yield while the manager's widget field is nonzero |
 | `_waitForTargetTutorial(self)` | Block until target-tutorial completes |
 
 ## Lua-side API (DesktopWidget main, 402 LOC)
@@ -274,6 +274,51 @@ The canonical source is
 `xivl-client-structs:docs/desktop-state-native-contract.md#item-search-widget-wait`
 and its `_waitForItemSearchWidget` row in
 `xivl-client-structs:manifests/desktop_state_native_call_contract.json`.
+
+### Item-search manager argument retention
+
+The published factory call at `0x0066ED94` supplies the new widget W as
+receiver of `0x004FFCF0`, with explicit arguments `(M,1,0)`. The separate
+[form-loading contract](../resource/sqwt-form-locale-resolution.md#the-opener)
+already describes that function's receiver+`0x1D0` path role. Its local
+argument propagation is as follows.
+
+The reached instruction span is `[0x004FFCF0,0x004FFD4F)`, 95 bytes, SHA-256
+`77e6a6def32cc3fd3e988d2db893410bce936bde214206e483f034204c392212`.
+Python 3.12, pefile 2024.8.26 and Capstone 5.0.7 x86-32 recovered
+entry-seeded local flow from the same pinned executable. The inspection
+stopped at `0x004FFD50`; that finite cap and the catalog size were not
+treated as function boundaries. Its reached exit is `RET 12` at
+`0x004FFD4C`. No callee body was opened for this argument question.
+
+Let a1/a2/a3 denote the words actually loaded from the three argument cells
+after the delegated calls. At `0x004FFD02`,
+`0x0096BE20` receives ECX=`u32(W+0x3C)` and nearest-first arguments
+`[u32(W+0x40),W+0x178]`. At `0x004FFD13`, the known form opener
+`0x0096BA70` receives ECX=W+`0x30`, arguments `[W+0x1D0,0]`.
+The caller saves the opener's AL in BL and compares it with exact byte 1.
+Any other byte skips the following local stores and optional call:
+
+| Local operation | Site | With supplied `(M,1,0)` values preserved at their loads |
+| --- | --- | --- |
+| OR W+`0x224` with `0x20000000` | `0x004FFD23` | Sets that bit, preserving other bits at this instruction. |
+| Store a2 at W+`0x228` | `0x004FFD31` | Stores 1. |
+| Store a1 at W+`0x2C` | `0x004FFD3D` | Stores M. |
+| If reloaded a3 is nonzero, call `0x004F5300` with ECX=a3 and sole explicit argument W | `0x004FFD43` | a3=0 skips this call. |
+
+The tuple-to-field composition holds when each argument load receives its
+supplied M, 1 or 0 value, respectively, and W retains its incoming identity.
+It also assumes ordinary argument cleanup and callee-saved-register
+preservation, and valid distinct stack/object storage. Argument-cell addresses
+alone do not establish that their contents survived the earlier calls.
+The optional call's effects are not recovered.
+
+`0x004FFD49` restores AL from BL before the return. It does not assign a
+uniform complete EAX value. This establishes a conditional widget-to-manager
+pointer at W+`0x2C`, separately from the factory caller's M+`0xC8` widget
+slot. It does not identify any writer that clears M+`0xC8`, establish that
+the form opened in a historical execution, or prove removal or destruction.
+The outside calls can have effects beyond the local stores listed here.
 
 ## Cross-references
 
