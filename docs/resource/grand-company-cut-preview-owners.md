@@ -24,8 +24,9 @@ Offsets are absolute in the named file. D is a clip record.
 - The stage string is the only ASCII match of the form `aaa_a0_aaa00` in
   the file. Every match lies inside the scheduler span.
 
-The native readers of both clip classes were not traced, so the meaning of
-these fields is UNKNOWN on this page.
+The [native preview setup consumer](cut-preview-setup-clip.md) covers the
+fixed owner-buffer copy and its delegated internal event. The background
+setup words listed here retain UNKNOWN meanings on this page.
 
 ## Scene records
 

@@ -331,6 +331,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
 - [Grand Company cut preview owners](resource/grand-company-cut-preview-owners.md)
+- [Cut scheduler preview setup consumer](resource/cut-preview-setup-clip.md)
 - [Cut scheduler clip class census](resource/cut-scheduler-clip-class-census.md)
 - [Cut scheduler status and parameter clips](resource/cut-status-and-parameter-clips.md)
 - [Cut scheduler ActionCall clip](resource/cut-action-call-clip.md)
