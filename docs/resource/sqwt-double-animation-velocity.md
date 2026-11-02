@@ -40,20 +40,45 @@ derives the span and the rate in one of two ways. STATIC.
 | Velocity | Span D (qword at `+0x190`) | Rate (float at `+0x188`) |
 |---|---|---|
 | Sentinel (unset) | the Duration qword at `+0x48`, in milliseconds | `abs(start - end) * 1000.0 / D` (`0x009B497A..0x009B49C7`) |
-| Set, nonzero | `round(abs(start - end) * 1000.0 / Velocity)` | the Velocity value itself (`0x009B49C9..0x009B49F9`) |
+| Set, nonzero | `trunc(abs(start - end) * 1000.0 / Velocity)`, truncated toward zero | the Velocity value itself (`0x009B49C9..0x009B49F9`) |
 | Set, equal to 0.0 | all ones (`OR EDI, 0xFFFFFFFF` at `0x009B48B5` is stored at `0x009B4A09` and `0x009B4A0F`) | the Velocity value, 0.0 |
 
 The constant 1000.0 is the double at `0x00F91C48` (`0x408F400000000000`). The
 zero compared against is the double at `0x00F62F70`. The conversion from the
-x87 result to the qword calls `0x009D6636`, a round-to-nearest conversion to
-a 64-bit integer. Start and end are the values already chosen by the setup
-described on the clock page, with their offsets applied (`+0x17C` and
-`+0x180`). A set Velocity therefore overrides Duration, and a Velocity of
-zero yields a span that no elapsed input equals. STATIC.
+x87 result to the qword calls `0x009D6636` at `0x009B49F4`. Start and end are
+the values already chosen by the setup described on the clock page, with
+their offsets applied (`+0x17C` and `+0x180`). A set Velocity therefore
+overrides the derived span, and a Velocity of zero yields a span that no
+elapsed input equals. STATIC.
 
-The sign of Velocity is not tested. A negative Velocity gives a negative
-quotient, and what the conversion at `0x009D6636` returns for it is not
-traced. UNKNOWN.
+The helper `0x009D6636` truncates toward zero. It runs FISTP into a qword
+(`0x009D6645`) and FILD of that qword back (`0x009D6649`), so the stored
+integer is the nearest one under the current x87 rounding mode. It then
+subtracts the integer from the original (`0x009D6659`) and reads the sign of
+the remainder as a float. For a positive original (`0x009D667D..0x009D6693`)
+it adds `0x7FFFFFFF` to the remainder bits and subtracts the carry from the
+qword, which lowers the integer by one when the remainder is negative, that
+is when FISTP rounded up. For a negative original (`0x009D665F..0x009D667B`)
+it flips the remainder sign first and adds the carry, which raises the
+integer by one when FISTP rounded away from zero. A quotient of 666.67
+therefore stores 666 and not 667, and -2.7 stores -2. The structure removes
+any dependence on the rounding mode. STATIC for the instructions, INFERRED
+for the mode independence.
+
+Setup reaches `0x009B4A17` only on the Velocity-set path. There it passes a
+pointer to a copy of D to `0x009AC730` (`0x009B4A36`), which writes D into the
+base Duration property at record `+0x48` through descriptor `0x0136182C` and
+`0x009C2130`. The unset path jumps from `0x009B49C7` to `0x009B4A3B` and skips
+the write. A Velocity animation therefore leaves a Duration of D in the
+property that the clock page names as the Duration qword. STATIC.
+
+A negative Velocity gives a negative quotient. Truncation keeps the sign, so
+the stored D is the two's-complement qword of a negative integer, for example
+`0xFFFFFFFFFFFFFED4` for -300, and no elapsed input equals it. A quotient
+between -1 and 0 truncates to 0. The rate stored at `+0x188` is the negative
+Velocity itself. STATIC for the stores. INFERRED for the consequence that a
+negative Velocity of ordinary magnitude never reaches its end check, as a
+Velocity of zero does not.
 
 The two acceleration type bytes (`+0x168` and `+0x16A`) set bit 0 of the flag
 byte at `+0x198` when either selects a ramp, and setup clears the bit first at
@@ -82,8 +107,13 @@ property setter `0x00912850`, as on the clock page.
 Consequences. INFERRED from the paths above with a forward-moving elapsed
 input.
 
-- A Velocity animation from 0 to 300 at 100 completes after 3000 ms, whatever
-  Duration the markup also names.
+- A Velocity animation from 0 to 300 at 100 has D of 3000 and writes a
+  Duration of 3000 into `+0x48`, whatever Duration the markup also names. That
+  the timeline's own completion test reads the `+0x48` Duration, and so
+  completes the run after 3000 ms, is not traced. UNKNOWN. The evaluator's
+  end value at Q equal to D is STATIC.
+- A span with a fractional quotient drops the fraction. To-From of 2 at
+  Velocity 3 gives 666, not 667.
 - The span depends on the endpoints read at Begin, so a To or From bound to a
   property changes the span with the value at that moment.
 - A Velocity of 0.0 holds the start value indefinitely, because the end check
@@ -91,9 +121,12 @@ input.
 
 ## Open items
 
-- UNKNOWN: the sign handling above, and the span when the endpoints are equal
-  and Velocity is set. The quotient is zero there and the zero-span scheduler
-  branch of the clock page is the only edge traced.
+- UNKNOWN: the span when the endpoints are equal and Velocity is set. The
+  quotient is zero there and the zero-span scheduler branch of the clock page
+  is the only edge traced.
+- UNKNOWN: whether the timeline completion test at `0x009AC820` reads the
+  Duration at `+0x48` that the Velocity path writes, as the consequence above
+  needs.
 - UNKNOWN: the units of the bound Velocity of the cast gauge template
   (`FloatData.Value0` of the templated parent). The page establishes the
   arithmetic on a float and not what writes the slot.
@@ -106,5 +139,6 @@ Verify the executable identity above. Read the string at `0x0107DC14`, the
 initializer at `0x00F298D0`, the constructor window `0x009B5440..0x009B5570`,
 the constants at `0x0107DAD0`, `0x00F91C48` and `0x00F62F70`, setup
 `0x009B4680..0x009B4A5B` and evaluator `0x009B4A70`. Check the branch at
-`0x009B496A..0x009B4975` against the sentinel, the stores at `0x009B49C9..0x009B4A17`
-and the two evaluator paths.
+`0x009B496A..0x009B4975` against the sentinel, the stores at
+`0x009B49C9..0x009B4A17`, the call at `0x009B4A36` with `0x009AC730`, the
+helper `0x009D6636..0x009D66AA` and the two evaluator paths.
