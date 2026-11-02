@@ -259,6 +259,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [LogControl and pool feed static contract](resource/logcontrol-pool-feed.md)
 - [LogControl message-wait checker and handler](resource/logcontrol-message-wait.md)
 - [LogControl ordinary text lookup](resource/logcontrol-text-lookup.md)
+- [LogControl line format and category filter](resource/logcontrol-line-format.md)
 - [LogControl key wait, Wait0 and page advance](resource/logcontrol-key-wait.md)
 - [LogControl Talker and the speaker display name](resource/logcontrol-talker-name.md)
 - [NpcSay backdrop draw](resource/npcsay-backdrop-draw.md)
