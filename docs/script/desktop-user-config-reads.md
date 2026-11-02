@@ -3,10 +3,11 @@
 The DesktopWidget connector reaches the game user config store through a table
 that maps 68 work indices to a Lua group and key. Its init method applies the
 log font size, the UI lock, the popup help and the action help from that store,
-and the log windows read their tab enable flags, channel colours and font size
-from it. The installed scripts treat a record that is not the number 1 as off,
-and the log font size treats any value but 1 or 2 as the small size. This page
-records those reads. The store contents and defaults are owned by
+and the log windows read their tab enable flags and channel colours from it.
+The connector reads the font size itself and hands it to the log windows. The
+installed scripts treat a record that is not the number 1 as off, and the log
+font size treats any value but 1 or 2 as the small size. This page records
+those reads. The store contents and defaults are owned by
 [the user config store contract](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/user-config-store-contract.md).
 
 ## Tiers

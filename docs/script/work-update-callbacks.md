@@ -1,11 +1,16 @@
 # Work update callback consumers
 
 The installed `_onUpdateWork` methods of `CharaBaseClass` and `PlayerBaseClass`
-read the `desktopWidget` global without a nil test and forward every
-non-initial update to the DesktopWidget connector. For the local player the
-connector repaints the PlayerParameterWidget rows when the slot is
-`stateAtQuicklyForAll`. This page records those script chains, the group names
-the slot strings come from, and what the evidence leaves open.
+read the `desktopWidget` global without a nil test on the paths that reach the
+DesktopWidget. `CharaBaseClass` forwards every update except `_init` and
+`charaWork/commandAcquired` to the connector method
+`processCharacterParameterUpdated`. `PlayerBaseClass` calls specific
+`desktopWidget:processUpdate*` methods for its `playerWork` slots and sends the
+remaining slots to the `CharaBaseClass` method through its registered parent
+([native class parents](native-class-registration-parents.md), STATIC). For the
+local player the connector repaints the PlayerParameterWidget rows when the slot
+is `stateAtQuicklyForAll`. This page records those script chains, the group
+names the slot strings come from, and what the evidence leaves open.
 
 ## Tiers
 
@@ -82,8 +87,10 @@ which is the `CharaBaseClass` method above.
 OBSERVED. The connector method `processCharacterParameterUpdated`, `main/f78`
 of `widget/desktopwidget_connector`, returns for a nil actor (PCs 4 to 6) and
 then compares the actor with `getCurrentTargetCharacter` (PCs 7 to 9). Its arms
-index the value `getStaticWidget(n)` returns without testing it for nil, for
-example at PCs 11, 61, 187 and 221. The DesktopWidget `init` method, `main/f0`,
+index the value `getStaticWidget(n)` returns without testing it for nil. The
+calls sit at PCs 11, 61, 187 and 221, and the unguarded index follows at PC 17
+or 23 in the target arm, PC 72 or 79 in the party arm, PC 190 in the
+local-player arm and PC 224 in the `stateAtQuicklyForSelf` arm. The DesktopWidget `init` method, `main/f0`,
 calls `setDefaultWidgetLocation` at PC 316. That method, `main/f142`, holds the
 sequence of `createStaticWidget` calls and lists static index 1
 `MainMenuWidget`, 2 and 3 `LogWidget`, 4 `PlayerParameterWidget`, 5
@@ -96,21 +103,29 @@ desktop initialization creating the widgets
 ([Initial show request](status-effect-widget-lifecycle.md#initial-show-request-and-remaining-unknowns)).
 
 INFERRED. A non-initial `_onUpdateWork` call made before `init` has created
-the static widgets raises a Lua error in the installed scripts. The basis is the
+the static widgets fails inside the installed scripts. The basis is the
 unguarded global read at `main/f23` PC 42 and the unguarded static widget reads
-above. The client reports a Lua error through the handler that
-[queues dialog code 40000](delegate-command-producer.md#lua-error-inside-the-called-function),
-so a retail session that reached the callback early would show that dialog. That
-the client never raises one earlier is the inference, because no script guard
-exists. The mechanism that orders the two is NOT TRACED. The status page leaves
-the order of the player and desktop initializations UNKNOWN
+above. Whether the `desktopWidget` global exists before `init` returns is NOT
+TRACED, because no tracked page shows where the client first assigns it. A
+headless host that assigns the global late reports `attempt to index global
+desktopWidget` (AUTHORED by that host's timing, not retail evidence). The client
+reports a Lua error through the handler that
+[queues dialog code 40000](delegate-command-producer.md#lua-error-inside-the-called-function).
+That path is conditional on lookup and dialog completion, tests a one-shot
+handler byte (`+0x24`), and rests on an INFERRED choice of the Client
+`ErrorHandler`. This page therefore does not claim that a retail session would
+show the dialog. The mechanism that orders the two initializations is NOT
+TRACED. The status page leaves the order of the player and desktop
+initializations UNKNOWN
 ([Player publication and initial population frontier](status-effect-widget-lifecycle.md#player-publication-and-initial-population-frontier)).
 
 ## Parameter dispatch
 
-OBSERVED. In `main/f78` the arms below are the ones that reach the three rows of
-the PlayerParameterWidget, the widget that static index 4 holds. The slot is
-argument 3 of the method (struct is argument 2).
+OBSERVED. In `main/f78` the arms below are the ones that repaint HP, MP and TP
+rows. The first two reach the TargetParameterWidget (static index 5) and the
+PartyParameterWidget (static index 6). The last two reach the
+PlayerParameterWidget, which static index 4 holds. The slot is argument 3 of the
+method (struct is argument 2).
 
 | Actor tested | Slot | PCs | Calls |
 |---|---|---|---|
@@ -135,15 +150,20 @@ shows.
 ## Where the slot strings come from
 
 OBSERVED. `CharaBaseClass._onInit`, `main/f21` of `chara/charabaseclass`, calls
-`initCommonParameterSync` of `chara/charabaseclass_parameter` and writes the
-resulting group list to `charaWork._tag` at PC 415 when the method
-treats the actor as the local player. The tracked group table is
+`initCommonParameterSync` of `chara/charabaseclass_parameter` at PC 168 when its
+`gameParameter` argument is true (the test at PCs 164 to 165). With the argument
+false the lists are empty (PCs 204 to 207). Every actor then reaches the
+`charaWork._tag` write at PC 415. The local-player flag (`isPlayer` and
+`isMyPlayer`, PCs 11 to 16) only decides whether the `Self` groups are appended
+(PCs 313 to 324), so an actor that carries `gameParameter` holds the groups of
+the "all" list and only the local player holds the `Self` ones. The tracked
+group table is
 [Tag groups](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/work-binder-native-contract.md#tag-groups).
 It lists `stateAtQuicklyForAll` with interval 0.3 and five members, which the
 `initCommonParameterSync` listing confirms as `parameterSave.hp` and
 `parameterSave.hpMax` (each with element index 1), `parameterSave.mp`,
-`parameterSave.mpMax` and `parameterTemp.tp`. `stateAtQuicklyForSelf` applies to the local player and holds
-`parameterSave.state_boostPointForSkill`.
+`parameterSave.mpMax` and `parameterTemp.tp`. `stateAtQuicklyForSelf` applies
+to the local player and holds `parameterSave.state_boostPointForSkill`.
 
 STATIC. A completion target on a `0x0137` stream supplies the two callback
 strings after the receiver, so a target spelled `charaWork/<group>` raises
@@ -163,11 +183,11 @@ joined here and no single trace shows the join end to end.
   in the work binder contract).
 - NOT TRACED. Which wire target the retail server sent for a change of HP, MP
   or TP. The captured targets in the retail pcaps are scrubbed.
-- UNKNOWN. Whether a retail client repaints the rows for a stream that closes
-  with `_init` or with a group other than `stateAtQuicklyForAll`. The listing
-  shows that the connector arms need the slot, and an `_init` slot returns
-  before them (`main/f23` PCs 28 to 33).
-- UNKNOWN. The ordering that keeps `_onUpdateWork` from reaching the connector
+- NOT TRACED. Whether a retail client repaints the rows for a stream that
+  closes with `_init` or with a group other than `stateAtQuicklyForAll`. The
+  listing shows that the connector arms need the slot, and an `_init` slot
+  returns before them (`main/f23` PCs 27 to 32).
+- NOT TRACED. The ordering that keeps `_onUpdateWork` from reaching the connector
   before the DesktopWidget init has created its static widgets.
 
 ## Reproduction
