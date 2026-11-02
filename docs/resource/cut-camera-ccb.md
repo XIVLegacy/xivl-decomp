@@ -124,7 +124,7 @@ selector value below.
 |---|---|---|---|
 | +0x00 | 16 | camera name, NUL terminated | OBSERVED |
 | +0x20 | f32 | copied to CameraObject +0x28. 14.003 in every record (film height) | `0x00a113de` |
-| +0x24 | f32 | copied to CameraObject +0x24. 24.892 in every record (film width) | `0x00a113d1` |
+| +0x24 | f32 | copied to CameraObject +0x24. 24.892 in every record at three decimals (film width) | `0x00a113d1` |
 | +0x28 | f32 | copied to CameraObject +0x2c (near) | `0x00a113e4` |
 | +0x2c | f32 | copied to CameraObject +0x30 (far) | `0x00a113ea` |
 | +0x30 | u8 | node count of chain A | `0x00a114bd` |
