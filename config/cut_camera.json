@@ -1,0 +1,36 @@
+{
+  "format": "xivl-cut-camera-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+  },
+  "census": {
+    "cameras": {
+      "1": 14766,
+      "2": 17,
+      "3": 7,
+      "4": 5
+    },
+    "containers": 14795,
+    "curves": {
+      "constant": 518471,
+      "fixed": 42393,
+      "linear16": 3580,
+      "step": 14795
+    },
+    "film_gates": 2,
+    "nonzero_frame_offsets": 337,
+    "ordered_sections": 14795,
+    "scenes": 689,
+    "selectors": {
+      "1": 14795
+    },
+    "top_chain_shape": [
+      2,
+      3,
+      2,
+      0
+    ]
+  }
+}
