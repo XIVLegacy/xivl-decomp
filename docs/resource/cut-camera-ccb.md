@@ -190,8 +190,12 @@ a signed 32 bit integer. STATIC:
   translation matrix as the multiplicand), and the accumulator after each
   node is `acc = N * acc` (`0x00a118b3` to `0x00a11906`) from an identity
   accumulator (`0x00a11450`). The first listed node is therefore the outermost
-  parent. Chain B and chain C accumulate translation matrices the same way,
-  starting from the chain A result (a copy at `0x00a119c0` to `0x00a11a35`).
+  parent. Chain C builds translation matrices with `0x00430430` and
+  multiplies them with `0x0042ec50` in the loop at `0x00a11a70`, and chain B
+  does the same in the loop at `0x00a11f3c`. That both start from the chain A
+  result is INFERRED from the copies of the accumulator at `0x00a119c0` to
+  `0x00a11a35` and from the actor fit below, and the register-level flow of
+  both loops was not traced end to end.
 
 INFERRED from names and values and not from a read: the translation row of the
 chain A result after chain B's nodes except the last is the eye, the translation
