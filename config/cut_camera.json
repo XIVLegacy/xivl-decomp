@@ -1,0 +1,122 @@
+{
+  "format": "xivl-cut-camera-v1",
+  "source": {
+    "binary": "ffxivgame.exe retail 1.23b",
+    "build": "2012.09.19.0001",
+    "binarySha256": "9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9"
+  },
+  "census": {
+    "cameras": {
+      "1": 14766,
+      "2": 17,
+      "3": 7,
+      "4": 5
+    },
+    "containers": 14795,
+    "curves": {
+      "constant": 518471,
+      "fixed": 42393,
+      "linear16": 3580,
+      "step": 14795
+    },
+    "durations": {
+      "start_0_multi": 12227,
+      "start_0_multi_end": 8890,
+      "start_0_multi_end_minus_start": 8890,
+      "start_0_multi_no_container": 2788,
+      "start_0_multi_other_container": 549,
+      "start_0_single": 6,
+      "start_0_single_end": 6,
+      "start_0_single_end_minus_start": 6,
+      "start_above_0_multi": 1538,
+      "start_above_0_multi_end": 61,
+      "start_above_0_multi_end_minus_start": 879,
+      "start_above_0_multi_no_container": 481,
+      "start_above_0_multi_other_container": 117
+    },
+    "fchd_payload_patterns": 46,
+    "film_gates": 2,
+    "film_pairs": {
+      "14.003x24.892": 14841
+    },
+    "fit_interest_nearer_than_eye": 514,
+    "fit_medians": {
+      "chain_a_only": 2.645,
+      "eye": 2.953,
+      "interest": 2.455,
+      "interest_no_rotation": 5.202,
+      "interest_previous_block": 3.187,
+      "negated_order_xyz": 4.993,
+      "negated_order_xzy": 5.002,
+      "negated_order_yxz": 5.105,
+      "negated_order_yzx": 5.096,
+      "negated_order_zxy": 4.999,
+      "negated_order_zyx": 5.138,
+      "order_xyz": 2.455,
+      "order_xzy": 2.455,
+      "order_yxz": 2.543,
+      "order_yzx": 2.553,
+      "order_zxy": 2.447,
+      "order_zyx": 2.553
+    },
+    "fit_shots": 786,
+    "focal_constant_range": [
+      10.0,
+      300.0
+    ],
+    "focal_curves": {
+      "constant": 12851,
+      "fixed": 1863,
+      "linear16": 127
+    },
+    "near_values": [
+      0.0001,
+      0.001,
+      0.01,
+      0.1
+    ],
+    "nonzero_frame_offsets": 337,
+    "ordered_sections": 14795,
+    "pairing": {
+      "paired": 657,
+      "paired_multi_container": 651,
+      "refused": 31,
+      "refused_with_local_camera": 6,
+      "schedulers": 689,
+      "with_local_camera": 663
+    },
+    "scenes": 689,
+    "selector_curves": {
+      "tx:step": 14795
+    },
+    "selector_keys": {
+      "1": 14770,
+      "2": 15,
+      "3": 5,
+      "4": 5
+    },
+    "selector_values": {
+      "0": 14791,
+      "1": 28,
+      "2": 11,
+      "3": 5
+    },
+    "selectors": {
+      "1": 14795
+    },
+    "structure": {
+      "duration_differs_from_header": 0,
+      "fchd_payload_nonzero": 535,
+      "fcpa_not_after_mtb_boundary": 0,
+      "mtb_length_differs_from_names": 0,
+      "sections_equal_names": 14795,
+      "selector_value_not_a_record": 0
+    },
+    "top_chain_shape": [
+      2,
+      3,
+      2,
+      0
+    ]
+  }
+}

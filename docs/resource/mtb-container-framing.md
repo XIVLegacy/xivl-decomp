@@ -148,7 +148,9 @@ Each property is read by `0x00a30110`, which tests the mask bits `0x0001`,
 `0x0100`, `0x0200`, `0x0400`, `0x0800` and `0x1000` in that order. The first
 set bit is cleared and selects one of 14 fixed property-name strings stored in
 a `std::string` table at `0x01365164` with stride `0x1c`. The strings are
-runtime-initialized and were not read, so no bit has a name here. When no bit
+runtime-initialized. The initializer, the mask to name map and the bit
+test order are on the
+[cut camera page](cut-camera-ccb.md#mtb-property-names). When no bit
 is set, a u32 name index precedes the property (`0x00a2d800`, then
 `0x00a2d470` through table 3). One type byte follows (`0x00a2d810`), and the
 `ParseMTB_` switch at `0x00a30cf8` dispatches on it.
@@ -298,8 +300,7 @@ returned payload for the blob size and start the blob 0x10 bytes later.
 
 - The u32 at B+0x0c, the f32 at P+0x00 and the section bytes S+4..S+0x0f have
   no audited reader.
-- Names of the 14 mask-selected properties, and the meaning of types 10 and 11,
-  were not read.
+- The meaning of types 10 and 11 was not read.
 - The wide record's V+0..V+7 fields and the sign test at `0x00a30ef0` are not
   interpreted.
 - Whether `0x00dfca80` reaches `ParseMTB_` for a `SpuBinary` container is not
