@@ -457,6 +457,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Script class definition and repeat definition](script/define-class-repeat-definition.md)
 - [Judge sheet globals](script/sheet-globals.md)
 - [Chat log window, name plates and text path](script/chat-log-window-and-nameplate.md)
+- [Work update callback consumers](script/work-update-callbacks.md)
+- [DesktopWidget user config reads](script/desktop-user-config-reads.md)
 
 ## Type notes
 
