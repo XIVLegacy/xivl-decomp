@@ -247,6 +247,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt RangeBase float ValueChanged production](resource/sqwt-range-value-changed.md)
 - [Sqwt DoubleAnimation clock and capture](resource/sqwt-double-animation-clock.md) -
   Bounded nonrepeat timer input, current-property capture and ordering limits.
+- [Sqwt DoubleAnimation Velocity](resource/sqwt-double-animation-velocity.md) -
+  The span and per-sample value a set Velocity gives in place of Duration.
 - [Sqwt ProgressBar template style and indicator sizing](resource/sqwt-progress-template-style.md)
 - [Sqwt CellSkins texture filename selection](resource/sqwt-skin-texture-filename.md)
 - [Sqwt IconControl textures](resource/sqwt-icon-control-textures.md)
