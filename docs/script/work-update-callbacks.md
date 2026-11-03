@@ -95,17 +95,20 @@ calls `setDefaultWidgetLocation` at PC 316. That method, `main/f142`, holds the
 sequence of `createStaticWidget` calls and lists static index 1
 `MainMenuWidget`, 2 and 3 `LogWidget`, 4 `PlayerParameterWidget`, 5
 `TargetParameterWidget`, 6 `PartyParameterWidget`, 7 `ActionMenuWidget` and 16
-`StatusEffectWidget` among others (PCs 0 to 70 and following). This listing creates the static
-widgets, so they exist after `init` has run. INFERRED. `init` runs from
+`StatusEffectWidget` among others (PCs 0 to 70 and following). This listing
+requests their creation; it does not establish completed creation or live
+availability. INFERRED. `init` runs from
 the inherited `_onInit` path that `DesktopWidget._onInit` starts with
 `_callSuperClassFunc("_onInit", ...)`, because the status page records the
-desktop initialization creating the widgets
+desktop initialization requesting widget creation
 ([Initial show request](status-effect-widget-lifecycle.md#initial-show-request-and-remaining-unknowns)).
 
-INFERRED. A non-initial `_onUpdateWork` call made before `init` has created
-the static widgets fails inside the installed scripts. The basis is the
-unguarded global read at `main/f23` PC 42 and the unguarded static widget reads
-above. Whether the `desktopWidget` global exists before `init` returns is NOT
+INFERRED. A callback path that indexes an absent `desktopWidget`, or reaches
+one of the unguarded static-widget indexes above with a nil result, fails
+there. This does not cover every non-initial `_onUpdateWork`: the published
+`charaWork`/`commandAcquired` path returns before `main/f23` PC 42, although
+it still requires the preceding worldMaster/player/judge chain. Whether the
+`desktopWidget` global exists before `init` returns is NOT
 TRACED, because no tracked page shows where the client first assigns it. A
 headless host that assigns the global late reports `attempt to index global
 desktopWidget` (AUTHORED by that host's timing, not retail evidence). The client
