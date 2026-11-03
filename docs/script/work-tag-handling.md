@@ -201,9 +201,10 @@ members reach descriptor slot 8, do not prove a specific high-level receiver
 type from the inferred signature, and do not establish a callback, server state,
 wire target, or runtime delivery. Existing script evidence says
 completion-target callbacks are static/inferred and leaves changed-member
-notification without a completion target untraced. A009 leaves the
-result-producing `0x00DCDD50` body unadmitted, and A010 leaves the value at
-global cell `0x0134B368` unread; neither boundary proves member-hash delivery or
+notification without a completion target untraced. The `0x00CF36E0` predicate
+leaves the result-producing `0x00DCDD50` body untraced, and the `0x00D2FC10`
+initializer leaves the value at global cell `0x0134B368` unread; neither
+boundary proves member-hash delivery or
 runtime state.
 
 To reproduce the static result, use the authenticated executable identity above
@@ -225,13 +226,14 @@ The focused byte check passed the whole-file identity, five body-span hashes,
 the pointer-cell value, three immediate-return checks, 24
 direct-call targets, 24 conditional-branch targets, and 21 control/operand
 patterns (including the current-group bounds, both opaque predicate branches,
-the A009 caller operands, and the scalar ESI/A010 aliases). The check treats
+the `0x00CF36E0` caller operands, and the scalar ESI/`0x00D2FC10` aliases).
+The check treats
 the `RET 0x20` immediate and the observed register/stack instructions as byte
 facts; it does not infer a source ABI or runtime behavior.
 
-The separate A009/A010 replay passed the 29-byte/61-byte spans, 11/18
-instruction counts, one unadmitted A009 callee call, the A010 `JNE`, and the
-finite return/field contracts stated above.
+The separate `0x00CF36E0`/`0x00D2FC10` replay passed the 29-byte/61-byte spans,
+11/18 instruction counts, one untraced `0x00CF36E0` callee call, the
+`0x00D2FC10` `JNE`, and the finite return/field contracts stated above.
 
 Public source locators:
 
