@@ -1,9 +1,10 @@
 # Sqwt desktop relative source
 
 `{Binding RelativeSource={RelativeSource Desktop}}` writes the dword at
-`0x01356E10` into the binding source slot. That dword is a singleton pointer to
-the `Sqwt::DesktopWindow` object: its constructor stores `this` there and its
-destructor clears it, and the cross-reference query lists no other write.
+`0x01356E10` into the binding source slot. The constructor of the
+`Sqwt::DesktopWindow` object stores `this` in that dword and its destructor
+clears it, and the cross-reference query lists no other write, so the dword
+reads as that one object or zero (INFERRED, see "What follows").
 
 This page records the writers of that dword and what they establish. It does not
 establish how a binding with a nonzero slot and no element name attaches, what
@@ -52,6 +53,18 @@ A cross-reference query of `0x01356E10` returns 114 references. Two are writes.
 
 The constructor has one caller, `0x004DBF40` (`0x004DBF6D`). STATIC for all rows.
 
+The three vtables the constructor stores are the `Sqwt::DesktopWindow` ones:
+
+| Object offset | Store | Vtable | RTTI locator |
+|---|---|---|---|
+| `+0` | `0x0091B055` | `0x0106934C` | `0x01178D68` |
+| `+0xB4` | `0x0091B061` | `0x01069224` | `0x01178D7C` |
+| `+0x194` | `0x0091B068` | `0x01069210` | `0x01178D90` |
+
+Each locator, read at the dword before its vtable, carries the matching
+offset field (`0`, `0xB4`, `0x194`) and names the type descriptor
+`0x01269DFC`, whose name at `0x01269E04` is `.?AVDesktopWindow@Sqwt@@`. STATIC.
+
 The other 112 references read the dword. They are not traced here, so UNKNOWN
 is the state of what each reader does with the pointer.
 
@@ -72,6 +85,11 @@ cannot resolve by an element name or a template part.
 - The route of a concrete `ExecuteCommandAction` target attribute into the
   generic setter `0x00912850` (the same gap as the binding source arms page).
 - What a command raised on the desktop reaches: the `common/Desktop.tpl`
-  `DesktopWindow` template holds sound triggers only, and the installed
-  `RaptureCommands.ShowHelp` and `RaptureCommands.CloseHelp` commands are named by
-  `widget/PopupHelpWidget.tpl` alone.
+  `DesktopWindow` template holds sound triggers only, and among the installed
+  forms and templates read, the `RaptureCommands.ShowHelp` and
+  `RaptureCommands.CloseHelp` commands are named by `widget/PopupHelpWidget.tpl`
+  alone. The executable also holds both names as strings used by native code, a lead for this gap. The
+  string `RaptureCommands.ShowHelp` at `0x00FA871C` is referenced as data from
+  `FUN_00F0F550` at `0x00F0F579`, and `RaptureCommands.CloseHelp` at `0x00FA8738`
+  from `FUN_00F0F5D0` at `0x00F0F5F9`. STATIC for the references. What either
+  function does with the name is UNKNOWN.
