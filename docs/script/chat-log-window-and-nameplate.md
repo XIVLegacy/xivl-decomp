@@ -168,6 +168,10 @@ The skins in `default.skin` are `PRB_namePlate_newHp_*`, `BOD_namePlate_target*`
 color is `#ffffffff`. Related forms are `TargetCursorNameplate`,
 `LockonImageNameplate` and `ConfigNamePlateWidget`.
 
+The attachment selector, the `name_plate_offset` path and the tests the class
+does and does not hold are in
+[nameplate-layout-and-attachment.md](../actor/nameplate-layout-and-attachment.md).
+
 ## Unknowns
 
 1. The displayType to `log_color` slot mapping and to tab category. This needs

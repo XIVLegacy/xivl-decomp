@@ -87,6 +87,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Status-related UI RTTI search](actor/status-effects.md)
 - [Status wire translation](actor/status-wire-translation.md)
 - [WindowActor nameplate anchor producer](actor/window-actor-anchor-producer.md)
+- [Name plate layout and attachment](actor/nameplate-layout-and-attachment.md)
 - [WorldMaster](actor/world-master.md)
 
 ## Events and quests
