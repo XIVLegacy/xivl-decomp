@@ -16,16 +16,22 @@ observations, UNKNOWN means not established.
 | Addresses | Absolute VAs at the image base |
 
 Decompiler renderings are interpretations. Every claim below states the
-instruction or data it rests on. The instruction ranges are `[0x006A2900,
+instruction or data it rests on. The instruction ranges are `[0x006A28F0,
 0x006A43F4)` for the `NamePlate` methods, `[0x005854E0, 0x0058563E)` for the
 attachment selector and `[0x007F90BE, 0x007F91D2)` for the offset consumer.
+
+The class is identified by RTTI. The vtable `0x00FCF98C` has 24 slots and the
+dword before it, at `0x00FCF988`, points to the complete object locator
+`0x0115B780`. Its type descriptor at `0x012BD7C8` names
+`.?AVNamePlate@Char@Element@Main`. STATIC.
 
 ## Summary
 
 | Question | Result | Tier |
 |---|---|---|
-| Text size | The plate label is the form's `TextBlock_PrimaryLabel` with FontSize 24, owned by the [form attribute record](https://github.com/XIVLegacy/xivl-client-data/blob/758cf9ebf4edf6bbbf622cfe799b51c7eb99eabd/docs/sqwt-nameplate-primary-label.md). No `NamePlate` method scales it | STATIC |
-| Vertical anchor | The anchor is the model attachment point `EID_NAME`, or one of five state variants, plus `name_plate_offset` divided by 100.0 | STATIC |
+| Text size | The form declares FontSize 24 on the plate label `TextBlock_PrimaryLabel`, in the [form attribute record](https://github.com/XIVLegacy/xivl-client-data/blob/758cf9ebf4edf6bbbf622cfe799b51c7eb99eabd/docs/sqwt-nameplate-primary-label.md). That page bounds its values as declared metadata with no runtime meaning, and the same element carries a `SqwtStyle` of `TBL_namePlate` that was not resolved and could override the size. No `NamePlate` method scales the label | Declared metadata (size), STATIC (no method scales it) |
+| Vertical anchor | The anchor is the model attachment point `EID_NAME`, or one of five state variants, selected by the state value | STATIC |
+| User offset entry | The value `name_plate_offset / 100.0` enters the `+0x158` lane of a record that the producer combines with camera-derived vectors. Its units, direction and sign are not established, and it is not shown to be a plain addition to the attachment height | STATIC (value and entry), INFERRED (lane role), UNKNOWN (units, direction, sign) |
 | Default offset | `name_plate_offset` defaults to 0 (`xivl-client-structs:docs/user-config-store-contract.md`, group 6 key 3) | STATIC |
 | Attachment height in yalms | Not recoverable from the executable. The point lives in model data | UNKNOWN |
 | Range, count cap | No distance, depth or count test exists in the `NamePlate` methods | STATIC |
@@ -51,13 +57,19 @@ selector record on the stack and calls `NamePlate` vtable slot 9 through
 | 2 | `0x0058556D` | `EID_NAME_SIT` (`0x00FA71C8`) | 11 |
 | 3 | `0x005855B5` | `EID_NAME_GB` (`0x00FA71E8`) when byte `CharaElement+0x269` is nonzero, otherwise `EID_NAME_CHO` (`0x00FA71F4`) | 15, 91 |
 | 4 | `0x00585591` | `EID_NAME_CFT` (`0x00FA71D8`) | 30, 31, 32 |
-| 5 | `0x0058560D` | none, the selector is left unchanged | every other value up to `0x5B`, and every value above it |
+| 5 | `0x0058560D` | no string and no slot 9 call, the selector is left unchanged | every other value up to `0x5B`, and every value above it |
+
+Every arm continues into the tail at `0x0058560D`, which class 5 enters
+directly. The tail calls `0x004D7310` on `[CharaElement+0x7C]` and, when that
+returns an object, calls `0x004D6750` and then `0x00561DC0`. That is not a name
+plate call and its role was not traced. UNKNOWN.
 
 The table and the values come from reading the 92 bytes at `0x00585658` and the
 24 bytes at `0x00585640`. STATIC. The suffixes are labels in the data and their
-meanings are INFERRED: `GRD` ground, `SIT` sitting, `CFT` crafting, `CHO`
-chocobo and `GB` a second riding or glide state. The mapping from a state value
-to its gameplay name is not established here.
+meanings are INFERRED: `GRD` ground, `SIT` sitting, `CFT` crafting and `CHO`
+chocobo. The `GB` meaning is UNKNOWN. The mapping from a state value to its
+gameplay name is not established here, and state value 91 has no local support
+for either of its two arms.
 
 `NamePlate` slot 9 at `0x006A2930` copies the string into `NamePlate+0x13C`
 and forwards it through `0x00548450` to `DrawingToolContext` slot 47
@@ -71,7 +83,7 @@ anchor is the model's own node. STATIC for the path. The point's position is
 not in the executable.
 
 Damage plates substitute the same `EID_NAME` default for an empty string
-(`damage-plate-numeric-presentation.md`, kind 1 anchor).
+([damage-plate-numeric-presentation.md](../resource/damage-plate-numeric-presentation.md), kind 1 anchor).
 
 ## Offset setting
 
@@ -80,27 +92,26 @@ calls `0x004B5230`, which pushes `(0, 3, 6)` into `0x00443E40`. That is user
 config group 6 key 3, `name_plate_offset`, range -30 to 30, default 0
 (`xivl-client-structs:docs/user-config-store-contract.md`). When the signed
 byte differs from the cache at `NamePlate+0xF1` the slot stores the new value
-and builds a four-float vector at `0x006A3A1F..0x006A3A4B`:
-
-```text
-x = 0.0f    y = (float)(value / 100.0)    z = 0.0f    w = 1.0f
-```
+and builds a four-float vector at `0x006A3A1F..0x006A3A4B`. Its x and z lanes are
+zero, its y lane is the signed byte divided by 100.0 and narrowed to a float
+(`cvtsd2ss` at `0x006A3A40`), and its w lane is 1.0f loaded at `0x006A3A38`.
 
 The divisor is the double at `0x00F55AD0`, which reads `0x4059000000000000`,
 that is 100.0. The `w` lane is the float at `0x00F54F70`, 1.0f. The vector goes
 through `0x005484D0` to `DrawingToolContext` slot 48 (`0x0055A5F0`), which
 copies 16 bytes into record `+0x398` and sets byte `+0x5A` bit `0x10`. The
-publisher submits it at `0x0054E890` line `FUN_0054b0d0(0x1f, record+0x398,
-0x10)`, operation `0x1F`. The `WindowActor` receiver slot 157 (`0x007FA2B0`)
+publisher `0x0054E890` submits the 16 bytes at record `+0x398` as operation
+`0x1F`, through the helper `0x0054B0D0`. The `WindowActor` receiver slot 157 (`0x007FA2B0`)
 stores operation `0x1F` into `WindowActor+0x154..+0x163`.
 
 In the producer `0x007F8D20`, the instructions at `0x007F90BE..0x007F90DC`
 multiply the `+0x158` lane by one normalized four-lane vector, multiply the
 `+0x154` lane by another, subtract the first product from the second and store
 the result at `+0x164`. `0x007F9136..0x007F917A` then adds `+0x164` to the
-filtered anchor at `+0x190`, as the anchor producer page records. Thus the user
-setting enters as an offset of `value / 100.0` in the `+0x158` lane before the
-camera-derived vectors are applied. Both multiplied vectors are derived inside
+filtered anchor at `+0x190`, as the anchor producer page records. Thus the value
+`setting / 100.0` enters the `+0x158` lane before the camera-derived vectors are
+applied. STATIC for that entry only. The lane is multiplied, not added, so the
+setting is not shown to be a plain vertical addition. Both multiplied vectors are derived inside
 the producer from per-frame state. Their directions and the sign of the vertical
 displacement are not established here. INFERRED for the lane roles, UNKNOWN for
 the directions. The setting spans -0.30 to +0.30 in that lane's units, and the
@@ -109,21 +120,30 @@ default 0.
 
 ## What the NamePlate class does not test
 
-The decoded range `[0x006A2900, 0x006A43F4)` holds the 24 methods of the
-vtable `0x00FCF98C` and the functions around them, among them `0x006A2D50`,
+The decoded range `[0x006A28F0, 0x006A43F4)` holds the 24 methods of the
+vtable `0x00FCF98C` (slot 11 is `0x006A28F0`, the lowest) and the functions
+around them, among them `0x006A2D50`,
 `0x006A2E90`, `0x006A3380`, `0x006A3430`, `0x006A34B0`, `0x006A3C00` and
 `0x006A4270`. In it:
 
-- The float arithmetic is one `divsd` at `0x006A3A23`, the offset division
-  above. There is no `sqrtss`, `rsqrtss`, `mulss`, `addss`, `subss` or `divss`.
-  No instruction forms a distance, a depth or a screen extent.
+- The floating-point arithmetic on geometry is one `divsd` at `0x006A3A23`, the
+  offset division above. There is no `sqrtss`, `rsqrtss`, `mulss`, `addss`,
+  `subss` or `divss`. No instruction forms a distance, a depth, an overlap or a
+  screen extent. Three integer-to-float conversions remain. Two `cvtsi2ss` at
+  `0x006A36A8` and `0x006A36C1` convert integers into the float argument of the
+  setters `0x00967500` and `0x00966C00`, called on the object at `[ESI+0xC8]`,
+  and a `cvttss2si` at `0x006A2E74` reads the float at `[owner+0x1AC]` back as
+  an integer. They look like size or position setters of the label control and
+  were not traced, so a layout role is UNKNOWN.
 - The only float compares are the four `ucomisd` instructions at `0x006A393E`,
   `0x006A3968`, `0x006A3980` and `0x006A3998` between the four colour lanes
   at `NamePlate+0x78..+0x84` and their cache at `+0x98..+0xA4`.
 - The float constants loaded from data are 36.0, 64.0 and 96.0 at `0x00FCF500`,
   `0x00FCF504` and `0x00FCF508` for the control-size slots `0x006A2C50` and
   `0x006A2E10`, the colour defaults 1.0f and 0.5f at `0x00F54F70` and
-  `0x00F62F60` stored by `0x006A4150..0x006A4178`, and the 100.0 above.
+  `0x00F62F60` stored by `0x006A4150..0x006A4178`, the 100.0 above, and the
+  1.0f at `0x00F54F70` loaded again at `0x006A3A38` (the vector w lane) and
+  `0x006A3C3F` (the constructor `0x006A3C00`).
 - The visibility selector `0x006A2E90` reads the per-kind switches through
   `0x004B5100..0x004B5360`. Those are config reads, not geometry. The kinds are
   the player, party, other, npc and enemy name and HP settings of the
