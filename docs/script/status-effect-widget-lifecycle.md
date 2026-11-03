@@ -287,9 +287,12 @@ MyPlayer selection, constructor `0x006F9140` and control installation through
 does not establish completion of the Lua superclass initialization above. The
 Desktop candidate `0x00774700` has a direct caller in `0x00574970`, with
 CALL at `0x00574A40`. Its helper `0x00774530` can call the boundary directly
-or construct and queue a request through `0x00773960`. Queue execution order
-and downstream lifecycle completion are UNKNOWN. The shared construction
-boundary does not establish an order between the two Lua chains.
+or construct and queue a request through `0x00773960`. The
+[readiness account](work-callback-readiness-gate.md#relation-to-desktop-readiness)
+records the published queue's conditional readiness, Desktop-key and
+waiting-container gates. Those gates do not establish relative execution
+order between these Lua chains or downstream lifecycle completion. The shared
+construction boundary does not establish that order.
 
 The player declaration/flag order and Desktop create/update/show order are
 established locally. Their relative order is UNKNOWN. The unresolved join is

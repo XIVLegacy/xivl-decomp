@@ -115,10 +115,39 @@ error at this call, because `_string` holds the renamed standard `string`
 library ([Lua bootstrap chunks](lua-bootstrap-chunks.md)) and the standard
 `%x` conversion rejects a nil argument.
 
+## Selected configuration controls
+
+OBSERVED. The following widget contracts own the control operands, predicates,
+call widths and immediate Lua consumers that complement the map above:
+
+| Widget | Owning request contract |
+|---|---|
+| Nameplate | [Nameplate controls](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/config-nameplate-widget-contract.md#local-control-contract) records the work-index requests, toggle/selection writes, conditional slider writes and initialization reads. |
+| Sound | [Sound configuration](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/config-sound-widget-contract.md) records the seven sound controls, conversions and configuration requests. |
+| Camera | [Camera configuration](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/config-camera-widget-contract.md) records the camera and lock-on controls, conditional writes and initialization reads. |
+| System | [System configuration](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/config-system-widget-contract.md) records nine toggle work-index requests and the direct index-64 selection read/write. |
+
+These controls request user-work group 1 on the control. That group is separate
+from the Lua configuration group returned by `getConfigCategory` and from the
+native store's zero-based group/key coordinates. A later
+`getControlUserWorkInt(1, control)` result supplies the work index used by the
+getter or setter. The earlier setter request does not establish that native
+getter result. The system contract's passing fixture deliberately returns 901
+after requesting control work 1; the following request uses 901.
+
+Conditional on that returned index resolving through the published map, the
+map supplies the Lua store group/key. The widget contracts establish local
+getter/setter requests and immediate control requests. They do not establish
+native application, rendered or audio output, readback, or disk persistence.
+The store's registration, coercion, defaults and overlay behavior remain owned
+by the linked store contract.
+
 ## Open items
 
-- NOT TRACED. The consumers of work indices 1, 4 to 7, 9 to 19 and 20 to 32,
-  and of groups 4, 5 and 7 beyond the three reads above.
+- NOT TRACED. Consumers beyond the selected widget request contracts above,
+  and the native control-work getter result needed to join a requested
+  control index to the store map in an actual invocation. Effective native
+  application of those widget requests remains separate.
 - NOT TRACED. Whether the character file overlay completes before the DesktopWidget
   init reads the store.
 - NOT TRACED. The contents of a retail character file.

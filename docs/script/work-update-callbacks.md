@@ -114,9 +114,11 @@ reports a Lua error through the handler that
 That path is conditional on lookup and dialog completion, tests a one-shot
 handler byte (`+0x24`), and rests on an INFERRED choice of the Client
 `ErrorHandler`. This page therefore does not claim that a retail session would
-show the dialog. The mechanism that orders the two initializations is NOT
-TRACED. The status page leaves the order of the player and desktop
-initializations UNKNOWN
+show the dialog. The [readiness gate](work-callback-readiness-gate.md)
+records a bounded native record/receiver predicate and the published queue's
+conditional readiness and Desktop-key gates. It does not establish that the
+Desktop Lua initialization completed before this callback. The status page
+leaves the order of the player and desktop initializations UNKNOWN
 ([Player publication and initial population frontier](status-effect-widget-lifecycle.md#player-publication-and-initial-population-frontier)).
 
 ## Parameter dispatch
@@ -175,10 +177,11 @@ joined here and no single trace shows the join end to end.
 
 ## Open items
 
-- NOT TRACED. What the client does with the interval and the member list of a
-  `_tag` group. This page shows only that the group name is a slot string the
-  connector tests. Whether the client raises `_onUpdateWork` for a changed
-  member without a completion target is not shown
+- PARTIAL. The [native member walk](work-tag-handling.md) records a bounded
+  group/member consumer and conditional scalar writer construction. The
+  selected interval predicate, per-member notification discriminator and
+  change-to-`_onUpdateWork` join remain unresolved. Whether the client raises
+  `_onUpdateWork` for a changed member without a completion target is not shown
   ([Open](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/work-binder-native-contract.md#open)
   in the work binder contract).
 - NOT TRACED. Which wire target the retail server sent for a change of HP, MP
@@ -188,7 +191,9 @@ joined here and no single trace shows the join end to end.
   listing shows that the connector arms need the slot, and an `_init` slot
   returns before them (`main/f23` PCs 27 to 32).
 - NOT TRACED. The ordering that keeps `_onUpdateWork` from reaching the connector
-  before the DesktopWidget init has created its static widgets.
+  before the DesktopWidget init has created its static widgets. The
+  [bounded native readiness gate](work-callback-readiness-gate.md) does not
+  establish that Lua initialization or a universal ordering guarantee.
 
 ## Reproduction
 
