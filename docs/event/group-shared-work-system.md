@@ -575,11 +575,81 @@ that every scheduled control takes this arm or that every request completes.
 
 **UNRESOLVED:** Clientbound `0x0133` still needs the actual receiver/table
 at the `0x004DD01A` virtual call and its argument/owner flow to one of these
-processors. The `0x017A` arms that retain WorkSync state, and any later path
-from those containers, are outside the concrete submission path above.
+processors. The retained `0x017A` updater has the conditional later-call
+submission path below; actual matching lookup, lifetime and context continuity
+remain conditions.
 These bounds come from the named function bodies, not a global absence scan.
 Computed calls, computed addresses and overlapping wider stores are not
 excluded by literal-reference searches.
+
+#### WorkSync retention and later submission
+
+Let W be the WorkSync receiver passed from `[entry+0xA0]` to
+`0x006C84A0`, D the decoded record supplied as argument 4 of
+`0x006C7020`, and U the updater selected in that call. The calls at
+`0x006C8968` and `0x006C89DD` preserve W as receiver and C as argument 3.
+W, C, P and U are distinct roles; neither WorkSync container below is P's
+submission or pair queue.
+
+`0x006C7020` looks up D in W+0x1C at `0x006C706A`. A hit loads
+U=`[node+0xBC]` at `0x006C71B2` and erases that node at `0x006C71C5`.
+On a miss with D+0xAC zero, it first tries static fallback key object
+`0x0134B3A0` in the same container at `0x006C7116`; a hit joins the same
+load-and-erase arm. Other miss arms request a new `0xF0`-byte updater.
+The constructor return U is appended through `0x007238B0` to W+0x28 at
+`0x006C7100` or `0x006C7198`, before the final D+0xB4 test. W+0x28 is
+therefore new-updater pointer retention, without an established drain or
+pending-submission meaning. Allocation-null arms set U=0 and continue;
+safe later use of that value is not established.
+
+The selecting arms join at `0x006C71CA`. The intervening child traversal
+uses receiver U, target `0x006C56D0`, and a handler-pointer subrange from
+the supplied start index to D+0xB0. Its append behavior is owned by
+[SyncWriter](../net/sync-writer.md). With D+0xB4 zero, the branch at
+`0x006C7264` reaches `0x006C72B1`, which calls `0x006D7410(W+0x1C,D)`.
+That helper returns selected node+0xBC at `0x006D74C7`; the store at
+`0x006C72B6` writes the same U there. This normal arm returns without
+another submission call.
+
+The selected key helpers establish narrower facts than complete tree behavior:
+
+| Body or call | Original-byte observation |
+|---|---|
+| `0x006D7410` | Calls lower-bound helper `0x006CEF40` at `0x006D7446`, compares D with node+0x0C through `0x006BF2A0` at `0x006D7461`, and on its insertion arm constructs a local pair through `0x006CE470` before passing it to `0x006D6110`. |
+| `0x006BF310` | Copies string subobjects at 0 and +0x54 through `0x00447200`, then directly copies ushort +0xA8/+0xAA and byte +0xAC/+0xAD/+0xAE. It does not copy count +0xB0 or discriminator +0xB4. |
+| `0x006CE470` | Copies that prefix from D into the local insertion pair and stores the supplied initial zero updater pointer at pair+0xB0. Pair+0xB0 and D's handler count +0xB0 are different fields. |
+| `0x006BF2A0` | Compares strings at 0 and +0x54 through `0x00446250`; when equal, orders unsigned words +0xA8 then +0xAA. It does not read +0xAC/+0xAD/+0xAE, +0xB0 or +0xB4. |
+| `0x006BF7C0` | Copies the prefix through `0x006BF310`, then writes its supplied count to D+0xB0 and byte to D+0xB4. The fallback temporary constructed at `0x006C89B3` receives byte zero, so its normal later call takes retention. |
+
+The existing [string-copy finding](../resource/sqwt-anime-property.md) and
+[bounded byte comparison](../resource/map-layout-request-boundary.md) own
+those primitives and their conditions. Changing a later record's count,
+B4 or copied flag bytes does not itself change the selected comparator's
+key when the compared strings and words remain equal. The tree navigation
+and insertion primitives were not recursively closed; actual lookup selection
+and stored-key lifetime remain conditions.
+
+A later invocation on the same W that actually resolves the retained node
+loads that exact U at `0x006C71B2`, erases the node, and carries U through
+the traversal. If the later record has nonzero D+0xB4, `0x006C729D`
+supplies U and the later C to `0x006C5E10`. The established path above then
+queues U on P=`[C+8]`. This is a conditional deferred submission through
+the same function, without needing a W+0x28 drain. U must survive node
+erasure and the intervening calls; the selected node need only survive until
+its read. No intervening replacement, prior erasure or destruction may prevent
+the matching lookup. The future count/start must meet the iterator checks.
+Identifying this P with the original processor additionally requires the same
+C and an unchanged `[C+8]`; the bodies do not establish these invariants
+globally.
+
+Source: original PE identity below, independently decoded with Capstone 5.0.7
+and pefile 2024.8.26. Complete entry-rooted syntactic normal CFGs covered
+`[0x006C7020,0x006C72D6)`, `[0x006C84A0,0x006C8ABC)`,
+`[0x006D7410,0x006D74E8)`, `[0x006BF7C0,0x006BF82B)`,
+`[0x006BF310,0x006BF3BA)`, `[0x006CE470,0x006CE4D3)` and
+`[0x006BF2A0,0x006BF308)`. They had no outgoing normal edges or computed
+jumps. Calls retain syntactic fallthrough; this does not prove their normal
+return, exception paths, allocation success or lifetime safety.
 
 #### Evidence
 
