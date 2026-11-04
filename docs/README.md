@@ -154,6 +154,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Battle target select, decide and lock senders](net/target-lock-decide-senders.md)
 - [Target command handler](net/target-command-handler.md) -
   Key bindings, gates and sender branches of the TargetElement command handler.
+- [Target cycle and click pick](net/target-cycle-and-pick.md) -
+  Candidate walk, cycle and nearest scoring, predicate layers and the click pick.
 - [Move actor wire census](net/move-actor-wire-census.md)
 - [Chat outbound header and fixed value](net/chat-outbound-header.md)
 - [Map 0x01C8 caller inputs](net/recruitment-1c8-caller-inputs.md)
@@ -266,6 +268,8 @@ Each finding records its evidence and the limits of what it establishes.
   Form path, row branches, slot ring, colour inputs, Canvas measure and Foreground.
 - [Sqwt TextBlock Margin inputs](resource/sqwt-textblock-margin-inputs.md)
 - [Sqwt Anime property](resource/sqwt-anime-property.md)
+- [Sqwt name lookup cache](resource/sqwt-name-lookup-cache.md) -
+  Per-form name cache of the script property lookup and the second log window.
 - [Sqwt TabControl, ScrollViewer and TextBox parts](resource/sqwt-tab-scroll-text-parts.md)
 - [Sqwt ListBox constructed parts](resource/sqwt-listbox-constructed-parts.md)
 - [Sqwt Track and ScrollBar rectangle requests](resource/sqwt-track-rectangle-requests.md)

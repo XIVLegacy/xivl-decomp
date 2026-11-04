@@ -17,7 +17,9 @@ model of the rule is in that tool. The command layer under this page is on the
 [CommandParameter consumer](sqwt-command-parameter-consumer.md) page, the record
 layout is on the [CommandParameter text grammar](sqwt-command-parameter-grammar.md)
 page, and the route from a Lua string to the setter is shared with
-[SQTP-03](sqwt-plain-text-reference-lookup.md).
+[SQTP-03](sqwt-plain-text-reference-lookup.md). The part lookup `0x00537950`
+and its name cache, which keeps an old name resolving after a rename, are on
+the [Sqwt name lookup cache](sqwt-name-lookup-cache.md) page.
 
 ## Verdict
 
