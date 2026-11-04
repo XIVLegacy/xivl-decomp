@@ -60,11 +60,11 @@ ordering. Ascending input order is therefore not required by this class
 table. A later row resolving to the same runtime key assigns its path over
 the selected value at `0x00D13BE5`.
 
-The final rule for duplicate stored low IDs remains unresolved at identity
-conversion `0x00D03A50`, specifically its existing-key output branch
-`0x00D03AEA..0x00D03B00`. Close that branch and, if needed, insertion
-helper `0x00D04090` before equating duplicate low IDs with the proven
-same-runtime-key overwrite. Reverse-name alias selection also remains
+The existing-entry output branch of identity conversion is qualified below.
+Equal low IDs produce equal keys when they resolve the same stored group
+base and the stated output-preservation conditions hold. This is not an
+unconditional duplicate policy across changed classifier state.
+Reverse-name alias selection remains
 unestablished at `0x00D13310`, reached from `_getStaticActor` through
 `0x00CC7130`.
 
@@ -76,6 +76,62 @@ record census. Normal-CFG coverage excludes exception paths and does not
 identify the input view's concrete provider. No malformed input or edited
 registry was executed. A general replacement profile and client acceptance
 remain unestablished.
+
+### Existing-entry identity conversion
+
+`0x00CC70E0` forwards its output pointer O and low-ID argument x unchanged
+through `0x00CD8050` to `0x00D03A50`. The first wrapper loads its incoming
+receiver's dword; the second loads that object's +0x1C4 as classifier S.
+The direct calls are `0x00CC70F6` and `0x00CD806A`. Both wrappers return O.
+Their complete straight-line spans are `[0x00CC70E0,0x00CC7102)` and
+`[0x00CD8050,0x00CD8076)`.
+
+In `0x00D03A50`, the entry-rooted normal CFG covers 92 instructions in
+`[0x00D03A50,0x00D03B63)`, SHA-256
+`d6b58b7a838f28af8926725ff441b9e285633a418b9673f69fe7bd43fb461fcc`.
+Its stable post-prologue ESP is entry ESP minus 0x30, so `[ESP+0x34]` is O
+and `[ESP+0x38]` is x. It reads group byte g from `0x0130D426` and looks
+it up in classifier S+4 through `0x00D03DC0` at `0x00D03A79`.
+The [registered-group finding](../event/event-base-callback-arguments.md#runeventfunction-binding)
+owns that signed-byte hash lookup, the image value g=0x0F and first-group
+base construction. An unchanged image byte is a condition for applying that
+value at runtime.
+
+After a successful existing-entry selection and its iterator checks,
+`0x00D03AFD` loads B=`[node+0x0C]` into EDI. The addition at
+`0x00D03B00` forms K=(B+x) modulo 2^32. This is addition, without a local
+low-ID mask or range test. The group-miss arm instead constructs a pair
+with g and `(sign_extend(g)+0xA00)<<20` at
+`0x00D03AA3..0x00D03ABC`, passes it to `0x00D04090` at `0x00D03ADD`,
+then joins the same node-base load and addition. The insertion helper's full
+behavior is not established here; the selected returned node supplies B.
+
+The remainder uses K for a second classifier container at S+0x2C through
+`0x006D1170` and `0x00D04AE0`; at `0x00D03B45` it writes zero through
+the latter's return. It then supplies the held EDI and O to `0x00CC9320`
+at `0x00D03B52`. That complete 11-byte helper writes its supplied dword
+to its receiver and returns the receiver with `RET 4`.
+Thus O receives K if those intervening calls preserve the held EDI,
+the expected live stack/control and output-pointer values, and the writes
+and reads succeed. The helper bodies, aliasing, call preservation and
+exception paths are not closed by the arithmetic observation.
+
+Consequently, two rows with equal x that select the same B produce the
+same output key under these conditions. With B=0xA0F00000 and
+0<=x<0x100000, addition equals the retail OR expression above. The
+already proved class-table assignment then overwrites the earlier path for
+that same key, provided the subsequent publication uses that key and table.
+No unconditional assertion about changed g, map replacement, concurrent
+mutation, failed insertion or lifetime follows. A separate insertion or
+runtime discriminator is needed to remove those conditions, rather than
+another SAN row census.
+
+Method: original-PE section mapping and Capstone 5.0.7/pefile 2024.8.26
+decoding against the executable identity in Provenance. The two wrappers,
+`0x00D03A50`, pair constructor `[0x00D03C60,0x00D03C72)` and output
+helper `[0x00CC9320,0x00CC932B)` were checked directly. Calls retain
+syntactic fallthrough; exceptions and nonreturning calls are not modeled.
+No edited SAN or client execution was used.
 
 ## Native preload boundary
 
