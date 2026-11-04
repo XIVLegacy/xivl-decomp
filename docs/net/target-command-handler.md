@@ -204,7 +204,8 @@ The block stores 1 at `+0x9C` (`0x00565E5F`) and then tests the command
 
 So a first click on an actor selects it and a second click on the same actor
 decides it. A null pick also takes the select path, which clears the target
-when the counter is 0 (`STATIC`).
+when the counter is 0 (`STATIC`). The pick itself is traced in
+[target cycle and click pick](target-cycle-and-pick.md#click-pick).
 
 The cycle branch reads cursor `+0x04` (`0x00565FBF`). With no target
 (`0xC0000000`) it starts from the identity of `G +0x17834` and calls
@@ -249,7 +250,8 @@ wrap argument of 1 it calls `0x0055E730` with 2 for next or 3 for previous
 (`0x00563A46`). A candidate is selected at `0x00563A5B` for index `+0xB8` and
 the routine returns 1. It never calls the decide routine and does not test the
 counter (`STATIC`). The candidate rules of `0x004DA400`, `0x0055E730` and
-`0x005655F0` are `UNKNOWN`.
+`0x005655F0` and the predicate at `+0x94` are traced in
+[target cycle and click pick](target-cycle-and-pick.md).
 
 ## Send conditions
 
@@ -316,8 +318,8 @@ same actor
 - The routing from a gesture to slot 65 and to `0x00896AF0`, including what
   `setUICommandCondition` filters.
 - Which of rows 10, 11 and 12 handles an `Enter` event first.
-- The candidate rules of `0x004DA400`, `0x0055E730` and `0x005655F0`, and the
-  pick predicate at `+0x94`.
+- The open inputs of the candidate rules and the pick, listed under
+  [target cycle and click pick](target-cycle-and-pick.md#open).
 - The sender of `RaptureCommands.ChangeTargetMode`.
 - Which `key_config` profile the running client selects.
 
