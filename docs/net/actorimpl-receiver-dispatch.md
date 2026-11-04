@@ -454,3 +454,62 @@ rows to original bytes at these exact ranges, independently decode each
 range, and derive/read only the listed indexed cells from their operands.
 Unselected callees, other root arms, unwind paths and implementation bodies
 are outside the authenticated proof coverage.
+
+## Native 0x0133 UserData route
+
+The actor-dispatch interval `0x012E`..`0x013D` selects `0x004DCFFF`
+for native opcode `0x0133`. With incoming dispatcher D and lookup key K,
+`0x004D9910(D,K)` uses registry D+0x17804. Its load at `0x004D9963`
+returns E=`[selected_node+0x10]`, not the address of that field. With
+nonnull E, `0x004DD01A` calls virtual `+0x24`, passing native packet M
+including its header.
+
+Applying the CharaElement path requires that lookup select the same
+registered entry described above and that E's final table remain installed.
+Its original slot 9 cell `0x00FA7C74=0x0058CCA0` then selects the
+following path, where the opcode word is `[M+2]`:
+
+| Condition or selector | Exact result |
+|---|---|
+| `0x004D8830(E)` returns zero AL at `0x0058CCE5` | The low selector computes `0x133-0xF=0x124`, exceeding `0xD4`; `0x0058CD03` branches to `0x0058D67D` before table access. |
+| The same helper returns nonzero AL | The common low selector computes `0x124`, exceeding `0xD6`; `0x0058CD41` branches to default `0x0058D675`, which calls `0x004D8860(E,M)` at `0x0058D678`. |
+| Subdispatcher admits its ordinary switch | `0x133-0xCC=0x67` is within its `0xDC` bound. Byte cell `0x004D8C8B=7` selects dword cell `0x004D8BDC=0x004D89B7`. |
+
+Neither low selector supplies a table cell for this opcode; their rejected
+index must not be used as a selector. The helper's AL is an opaque result,
+without an established actor-state or script-binding meaning.
+
+The subdispatcher guard described for `0x0137` also applies here. If
+byte[E+0x92], preliminary L0=`[E+0x80]` and the result of
+`0x00574AA0(L0)` are all nonzero, the `0x0133!=0x00CC` branch at
+`0x004D8889` targets epilogue `0x004D8BBC` and returns before the switch.
+Reaching the ordinary selector instead requires an earlier zero-test branch
+to `0x004D88BB`; its packet load is at distinct address `0x004D88BC`.
+These addresses must not be conflated.
+
+The selected arm `0x004D89B7` reloads L=`[E+0x80]` and exits if null
+at `0x004D89BF`. Otherwise `0x004D89C5` forms M+0x10 and
+`0x004D89C9` calls `0x00575060(this=L, M+0x10)`. The published
+[UserData contract](../event/user-data-receiver.md) owns the downstream
+thunk and receiver behavior. That thunk loads I=`[L]` and invokes I's
+virtual +0xEC, slot 59. With valid I and its actual LuaActorImpl table
+`0x00FDFB2C`, original cell `0x00FDFC18=0x00759E50` joins the
+UserDataReceiver construction from `(M+0x10,0xC0)` and its conditional
+`_onReceiveDataPacket` request. Nonnull L alone does not prove that table.
+The expected registers, stack/control and pointers must survive the opaque
+calls; no runtime registration, binding, completion or lifetime was observed.
+
+This establishes a conditional actor/UserData route. Identifying it with
+the [Group processor](../event/group-shared-work-system.md#retail-derived-queue-record-and-callback-observations)
+still needs an actual owner, argument or field handoff to C, P, its temporary
+processor or a concrete request. Neither callback-interface slot 52 nor
+neighboring handlers provides that identity. No global absence of another
+Group handoff is claimed.
+
+Source: the same retail PE identity above, pefile 2024.8.26 raw-section
+mapping and Capstone 5.0.7 x86-32 decoding. Selected partial-root ranges
+were checked for complete instruction decoding, exact branches, bounded
+indices and original table cells. The newly selected arm is
+`[0x004D89B7,0x004D89D3)`; the lookup return load is at `0x004D9963`.
+The downstream UserData bodies were reused from their canonical finding.
+No unselected root arms, callee preservation or exception paths were closed.

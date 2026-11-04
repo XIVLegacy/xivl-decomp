@@ -514,7 +514,7 @@ request readiness and completion are separate from wire dispatch.
 | `0x017E` | `0x004DD077` -> `0x005762D0` -> `0x006C4180` | The normal arm calls `0x006C39F0` on `[C+8]`. It uses the same three-dword body key, loads the same lookup's node+0x20, invokes virtual offset `0x44`, then erases that lookup entry through `0x0077E4F0`. EntryBuilder's slot `0x44` is `0x006C0570`, which sets request+0x3E; its readiness slot `0x48` at `0x006DA9C0` reads that byte. The request pointer already held in P+8 is the later staging input. |
 | `0x017F` | `0x004DD087` -> `0x005762E0` -> `0x006C2F70` | The normal arm calls `0x006C19D0` on `[C+8]`, with the same three-dword body key, records beginning at body+0x10, and signed count byte body+0x190. After resolving node+0x20 through P+0x30, it invokes request virtual offset `0x40` at `0x006C1B9A` for each `0x30`-byte record. EntryBuilder forwards through request+0x38 at `0x006CD680`; OnlineStatusUpdater uses `0x006C44D0`. The updated request is the pointer inserted by `0x017C`, when the keys match. |
 | `0x0183` | `0x004DD0C7` -> `0x00576320` -> `0x006C3100` | When C+0x0C is absent or its byte +8 is zero, `0x006C3136` loads P and calls `0x006C1C00`, with the same key, body+0x10 records and signed count byte body+0x70. It resolves P+0x30 and invokes request virtual offset `0x40` at `0x006C1CF7` for each `0x0C`-byte record. This can modify the same pending request as `0x017F`; the packet itself is not enqueued. An active temporary carrier suppresses this path. |
-| `0x0133` | `0x004DC71E`..`0x004DC72E` -> `0x004DCFFF` | This opcode falls in the actor-dispatch interval `0x012E`..`0x013D`. The dispatcher calls `0x004D9910(D,context)`, then invokes virtual offset `0x24` on the returned object at `0x004DD01A`, passing the packet including its header. The lookup uses D+0x17804 and returns node+0x10 (`0x004D9963`). The actual target of that virtual call and a data-flow path from it to C, P or a request remain unresolved. The separate callback-interface slot 52 does not supply that proof. |
+| `0x0133` | `0x004DC71E`..`0x004DC72E` -> `0x004DCFFF` | The lookup at `0x004D9910(D,context)` uses D+0x17804 and returns the pointer `[node+0x10]`. The dispatcher calls that object's virtual +0x24 at `0x004DD01A` with the packet including its header. The [conditional CharaElement selector](../net/actorimpl-receiver-dispatch.md#native-0x0133-userdata-route) joins an admitted path to the published UserDataReceiver. An actual C/P/request handoff remains unjoined; callback-interface slot 52 does not establish it. |
 
 `FUN_006D75F0` and `FUN_006D04A0` both search through `FUN_006CF090`
 and compare the three key dwords against node+0x18, +0x14 and +0x10.
@@ -573,9 +573,9 @@ That body's both-complete arm calls `FUN_006CDA80(P,...)` at `0x006CDEB2`.
 This proves a conditional same-receiver callback path. It does not establish
 that every scheduled control takes this arm or that every request completes.
 
-**UNRESOLVED:** Clientbound `0x0133` still needs the actual receiver/table
-at the `0x004DD01A` virtual call and its argument/owner flow to one of these
-processors. The retained `0x017A` updater has the conditional later-call
+**UNRESOLVED:** Clientbound `0x0133` has a conditional CharaElement/UserData
+bridge, but its actual runtime receiver/table and any argument/owner handoff
+to one of these Group processors remain unestablished. The retained `0x017A` updater has the conditional later-call
 submission path below; actual matching lookup, lifetime and context continuity
 remain conditions.
 These bounds come from the named function bodies, not a global absence scan.
