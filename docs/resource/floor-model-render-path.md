@@ -195,6 +195,46 @@ at `0x00C4185A/0x00C41860` and initializes `+0x131/+0x132` to one at
 the DrawableObject and selected MeshContainer. Thus `+0x118` is an ownership
 link, rather than the material pointer.
 
+### MINS HEAD+0x10 transfer
+
+On the component-construction path, `0x00C5016D` reads four bytes from
+the selected MINS HEAD body +0x10 with MOVSS. The immediately following
+MOVSS at `0x00C50172` stores the same low 32 bits to component+0x24.
+There is no byte swap, arithmetic, conversion or intervening call between
+these instructions. This establishes a bit transfer, without a quantity,
+unit, default or decoder policy.
+
+The compare at `0x00C5015F` tests unsigned word[component+0x74]
+against `0x12`. MOVZX and MOV at `0x00C50164`/`0x00C50168` preserve
+its flags; JB at `0x00C5016B` skips the pair when that word is below
+`0x12`. The field's role is not established by this discriminator. The
+pair does not write component+0x24 on the skip path; earlier contents and
+callee effects remain outside this observation.
+
+Within the inspected prefix, D=`ptr32(EBX)` at `0x00C5009B` has the
+established DrawableObject role. `0x00C500E5` loads its +0x36C component
+array, and `0x00C500EF` adds local byte offset k to form C. Thus the
+destination is `C+0x24` for C=`ptr32(D+0x36C)+k`. The existing component
+finding owns the stride; this prefix does not independently prove k's
+index or bounds. The
+[component hierarchy finding](floor-model-visibility.md#component-hierarchy-matrix)
+owns the MICT -> indexed MINS -> HEAD selection that precedes this prefix
+and supplies EDI's selected HEAD premise.
+Those roles require the opaque intervening calls to preserve the retained
+registers, expected stack/control and relevant source/owner memory, with
+valid readable/writable nonwrapping addresses.
+
+Source: the retail PE identity and original-byte method above, Capstone
+5.0.7 and pefile 2024.8.26. Complete instruction coverage was
+`[0x00C50058,0x00C5018F)`, seeded at that interior prefix rather than a
+proven function entry. The requested stop `0x00C50190` cuts an instruction.
+The prefix has no RET and leaves through `0x00C5018A -> 0x00C501DB` or
+`0x00C5018C -> 0x00C5018F`; neither continuation was decoded here.
+No subsequent instruction in the admitted prefix reads C+0x24. The
+component-to-tag ownership link above does not identify a reader of this
+field or establish its units. Calls retain normal fallthrough; failure,
+unwind, lifetime and whole-function behavior remain unqualified.
+
 ### Selected material binding
 
 The single-entry builder creates the drawable's material array through
