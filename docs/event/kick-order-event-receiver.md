@@ -219,15 +219,10 @@ to the out-result pointer. The caller - presumably the IpcChannel
 dispatcher - has no way to surface "kick not delivered" to the
 user).
 
-**`+0x5c` is set by the actor spawn packets.** Specifically, the
-spawn packet sequence (`AddActor` 0x00CA + the trailing
-properties + the player-state-finalize) ends with whatever
-SetActorState / SetActorIsZoning / etc. flips the actor into
-"ready for events" mode. The flag corresponds (in C# terminology)
-to `Actor.spawned` or `Actor.isInitialized`.
-
-A subsequent `DeleteAllActors` can nullify the spawn state and cause this
-silent failure.
+`STATIC`: the [Lua-control ready-byte writer](../actor/kick-gate-writer.md)
+sets control `+0x5C` at `0x00767028` after the waiting container reaches
+state 10 and the control's registry entry has `+0x7D` set. That page owns
+the registration and same-container producer/consumer proof.
 
 ### 2. The `[0x0130c778]` global - `NO_ACTOR` sentinel (`0xE0000000`)
 
