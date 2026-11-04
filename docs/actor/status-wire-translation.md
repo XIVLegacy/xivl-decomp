@@ -224,9 +224,6 @@ expected mappings:
 - Wire `0x9DA9` resolves to key 257593, rather than row 223129. The three
   observed low-wire joins retain their values.
 
-These fixture expectations do not attest to an update of the capture census
-or its extractor.
-
 ## Client and server consequences
 
 A client maps a wire id to a status lookup key as `200000 + wire + 0x4350` for a
@@ -244,8 +241,7 @@ more and not model the shift wrap of the staging helper.
 A server that encodes a status row as a wire id uses the row minus 200000 for a
 row from 200001 to 232768 and the row minus 217232 for a row from 250001 to
 282767. Any other row, including row 0 and a row between 232769 and 250000, has
-no wire id. The census reverse encodings must not be
-used for that direction.
+no wire id.
 
 ## Open questions
 
