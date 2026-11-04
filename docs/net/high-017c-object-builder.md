@@ -2,10 +2,12 @@
 
 The inbound route through `0x006CC620` to `0x006CC070` is documented in the
 [group queue trace](../event/group-shared-work-system.md#1-type-tagged-queue-and-conditional-work-creation)
-and [wire-protocol notes](wire-protocol.md#type-tagged-high-opcode-route). This
-page records the narrower instruction-level behavior at `0x006CC5B0` and
-`0x006CC070`: the first copies a `0x78`-byte block, changes the copied word at
-`+0x74` to `1`, and passes the copy onward. The second has a guarded
+and [wire-protocol notes](wire-protocol.md#type-tagged-high-opcode-route).
+The queue trace identifies the complete processor, its two queues and the
+normal versus temporary receiver paths. This page records the narrower
+instruction-level behavior at `0x006CC5B0` and `0x006CC070`: the first copies
+a `0x78`-byte block, changes the copied word at `+0x74` to `1`, and passes
+the copy onward. The second has a guarded
 `+0x10 == 0x0E` branch that requests `0x50` bytes and a general branch that
 requests `0x40` bytes. The observations below name fields by offset and callees
 by address; they do not identify higher-level field semantics.

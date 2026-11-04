@@ -6,8 +6,10 @@ opcode 0x0133 and for 0x017A SynchGroupWorkValues.
 
 ## Packet correspondence
 
-The GroupHeader/Begin/X08/End trio plus the 0x0133 init reply corresponds to
-the packet sequence used by the cinematic post-warp path.
+The clientbound `0x017C`..`0x017F` and `0x0183` routes select Group request
+objects. Clientbound `0x0133` follows a separate actor lookup. The
+[queue trace](#1-type-tagged-queue-and-conditional-work-creation) distinguishes
+request creation, later request updates, and callback delivery.
 
 ## Group class hierarchy (18 vtables)
 
@@ -41,61 +43,38 @@ Plus the Lua-script binding base:
 |---|---|---:|---|
 | `Application::Lua::Script::Client::Control::GroupBase` | `0xbd53cc` | 34 | Group base bindable from Lua scripts (15 client-side methods exposed via `_x_cpp` / `_x_inl`; see `lpb-corpus.md`) |
 
-## Group::PacketProcessor dispatch pattern (slot 1 = `OnPacket`)
+## Group::PacketProcessor queue and callback dispatch
 
-The engine's per-packet receive entry is `PacketProcessor::OnPacket(buf)`
-at `FUN_006cde30` (RVA `0x2cde30`, 141 B). Decoded structure:
+**DECOMPILED:** `FUN_006CDE30` is slot 1 of the `PacketProcessor` table at
+VA `0x00FD42F4` (RVA `0x00BD42F4`). It compares the supplied buffer object
+with the stored objects at `this+0x40` and `this+0x94` using
+`FUN_00445D20`, clears a matching stored object through `FUN_00445530`,
+and sets the corresponding completion byte at `+0xE8` or `+0xE9`.
+`FUN_00445D20` compares lengths at `+8` and then bytes through the pointers
+at `+0`; its body does not decode an opcode or a packet header.
 
-```c
-struct PacketProcessor {
-  /* +0x00 */ void**  vtable;
-  /* +0x3c */ void*   on_both_complete_arg;   // passed into combined cb
-  /* +0x40 */ Subdecoder1 sub1;               // ~84 B, e.g. MemberInfo
-  /* +0x94 */ Subdecoder2 sub2;               // ~84 B, e.g. Property
-  /* +0xe8 */ uint8_t sub1_complete;
-  /* +0xe9 */ uint8_t sub2_complete;
-  /* +0xea */ uint8_t both_callback_pending;
-};
+| PacketProcessor offset | Observed use |
+|---|---|
+| `+0x04` | Owning context passed to the constructor |
+| `+0x08` | Queue of four-byte request pointers |
+| `+0x1C` | Queue of eight-byte request pairs |
+| `+0x30` | Keyed request lookup |
+| `+0x3C` | Control pointer used for callback requests |
+| `+0x40`, `+0x94` | Stored buffer objects used in callback matching |
+| `+0xE8`, `+0xE9` | Completion bytes for those two stored objects |
+| `+0xEA` | Busy byte checked by `FUN_006CDD20` |
+| `+0xEB` | Callback suppression byte checked by table slot 2 |
 
-void PacketProcessor::OnPacket(this, buf) {
-    // Try subdecoder 1
-    if (sub1.TryParse(buf)) {                  // FUN_00445d20
-        sub1.Process(this);                    // FUN_00445530
-        sub1_complete = 1;
-        // If sub1's combined-callback target is alive, fire it
-        if (sub1_combined_target != 0)
-            sub1.AfterParse(this, &sub1.work); // FUN_00cc76f0
-    } else if (sub2.TryParse(buf)) {           // FUN_00445d20 again (same fn, different `this`)
-        sub2.Process(this);                    // FUN_00445530
-        sub2_complete = 1;
-    }
-    // If both subdecoders have completed, fire the on-both-done callback
-    if (sub1_complete && sub2_complete) {
-        OnBothComplete(this, &this->on_both_complete_arg);  // FUN_006cda80
-        both_callback_pending = 0;
-    }
-}
-```
+When both completion bytes are nonzero, `FUN_006CDE30` clears `+0xEA` and
+calls `FUN_006CDA80` on the same complete object. Slot 2 at `FUN_006BFE70`
+forwards to slot 1 on that same receiver when `+0xEB` is zero. The
+[instance trace](#1-type-tagged-queue-and-conditional-work-creation) records
+how selected inbound producers, both queues and this callback receiver join.
+These instructions establish conditional request processing, without fixing
+frame cadence or eventual completion of every request.
 
-The two subdecoders are co-resident on the same PacketProcessor object
-(at `+0x40` and `+0x94`). The engine **routes a single inbound packet
-to whichever subdecoder accepts it**, tracks both completion flags
-independently, and fires a combined callback when both have completed.
-
-The X08 mid-marker is the second subdecoder's signal.
-
-## Group::PacketProcessor slot 0 (dtor) and slot 2
-
-- **Slot 0** (`FUN_006d7d90`, 27 B) - standard MSVC virtual dtor. Calls
-  base-class dtor at `FUN_006c4a20` (the parent destructor), then
-  conditionally calls `operator delete` (offset `0x9d1b17`) if the
-  delete-flag bit is set on the stack.
-- **Slot 2** (`FUN_006bfe70`, 19 B) - a guard-tail dispatcher. If
-  `[ecx+0xeb] != 0` (a re-entrant guard), no-op return. Else,
-  tail-jumps to `vtable[1]` of `*ecx` - i.e. tail-calls a parent
-  class's slot 1 (the OnPacket entry). This is the safe-reentrant entry
-  point that callers use when they don't know if the processor is
-  currently executing.
+Slot 0 at `FUN_006D7D90` calls the destructor `FUN_006C4A20` and conditionally
+calls `0x009D1B17` when the stack delete flag has bit 0 set.
 
 ### SharedWork tables and member value records
 
@@ -211,7 +190,7 @@ entry pointers at `0xdc0f5c` (jump table).
 | PacketRequestBase | 13-slot map below |
 | OnlineStatusUpdater and BreakupBuilder | Slot maps below |
 | Opcodes 0x0133 and 0x017A | Wire formats derived from packet captures below |
-| ZoneProtoDownCallbackInterface | `docs/net/network-dispatch-paths.md` shows the catalogued `DummyCallback` table with `ret 0xc` per-opcode stubs. `Group::PacketProcessor` has a queue walk and two sub-decoders; this evidence does not establish that opcodes 0x017A, 0x0133, 0x017C-F, and 0x0183 all feed one queue instance. |
+| Selected inbound Group routes | The [instance trace](#1-type-tagged-queue-and-conditional-work-creation) joins conditional `0x017A`, `0x017C`..`0x017F` and `0x0183` paths to a concrete PacketProcessor. It distinguishes the additional temporary processor and leaves `0x0133` unjoined. |
 
 ## Retail wire format - 0x017A SynchGroupWorkValues vs 0x0133
 
@@ -495,10 +474,126 @@ wrapper.
 
 ### 1. Type-tagged queue and conditional work creation
 
-The local inbound dispatcher maps `0x17c` to `0x00576250`. That route reaches
-`0x006cc620`, whose literal-`0x2711` branch can call `0x006cc070`.
-`0x006cc070` requests either `0x50` or `0x40` bytes and queues the resulting
-pointer. No actor, spawn, or acknowledgement meaning is assigned to this path.
+**DECOMPILED:** The normal paths for clientbound `0x017A`, `0x017C`..`0x017F`
+and `0x0183` use the same context-selected `Group::PacketProcessor` for a
+fixed C and its installed P, subject to their guards and matching request keys. They do not each insert a packet
+into its eight-byte queue. `0x017C` creates a request, `0x017D`..`0x017F`
+and `0x0183` address an existing request, and a conditional `0x017A` path
+submits a WorkSyncUpdater. The special `0x017C` path can create a second
+processor. No matching-instance path from clientbound `0x0133` is established.
+
+#### Complete-object identity
+
+Let D be incoming ECX of `FUN_004DC690`, H=`D+0x510`, C=`[H+0x18]` and
+P=`[C+0x08]`. Brackets denote a dword load. At `0x004DC6EA`, the dispatcher
+forms H and later supplies H as ECX to the six Group handlers below. Each
+handler loads C from `H+0x18`. The opcode case map is at VA `0x004DD5B4`
+and its jump table at `0x004DD4F8`, indexed after subtracting `0x0143`.
+The packet body begins at the dispatcher's input packet plus `0x10`.
+
+The dispatcher also calls `FUN_0057A3C0` on H at `0x004DCF35`.
+That setup calls `FUN_006CACD0` at `0x0057A73B` and publishes its
+return at `H+0x18` at `0x0057A769`. `FUN_006CACD0` allocates `0xFC` bytes,
+constructs the allocation through `FUN_006C5E80` with C as its argument,
+and installs that exact return at `C+8` at `0x006CADB0`.
+`FUN_006C5E80` writes table VA `0x00FD42F4` at P and C at `P+4`
+(`0x006C5EBB`..`0x006C5EC1`). Queue receivers `P+8`, `P+0x1C` and lookup
+receiver `P+0x30` are member addresses of this complete object. The calls to
+`FUN_006CDD20` and the callback receiver use P itself, without a base adjustment.
+
+#### Per-route producer and update paths
+
+All rows describe conditional static paths. Failed admission, absent entries,
+request readiness and completion are separate from wire dispatch.
+
+| Clientbound opcode | Dispatcher case and handler | Receiver and data-flow result |
+|---|---|---|
+| `0x017A` | `0x004DD147` -> `0x005763B0` -> `0x006C9910` | `0x006C9916` loads P from C. `0x006C96B0(P,C,body)` resolves an entry through `[P+4]`, copies `body[+9..]` using byte `body[+8]`, and calls `0x006C84A0` on `[entry+0xA0]`. Its `0x006C8968` and `0x006C89DD` calls to `0x006C7020` preserve C as argument 3. When the selected decoded record has nonzero byte `+0xB4`, `0x006C729D` calls `0x006C5E10(C,updater)`, which loads `[C+8]` and calls `0x006C5400(P,updater)`. That helper enqueues the exact updater pointer at P+8 through `0x007238B0`. Other arms retain work in the WorkSync object's own containers. |
+| `0x017C` | `0x004DD044` -> `0x00576250` -> `0x006CC620` | The normal arm loads P at `0x006CC6E3` and calls `0x006CC070(P,C,context,body)`. The constructed `0x40`- or `0x50`-byte request is inserted into P+8 by `0x007238B0` at `0x006CC11C` or `0x006CC2E5`, and the identical pointer is stored under P+0x30 by `0x006D75F0` at `0x006CC13D`/`0x006CC306`, followed by `MOV [EAX],EDI`. |
+| `0x017D` | `0x004DD067` -> `0x005762C0` -> `0x006C2F30` | The normal arm passes `[C+8]` to `0x006C2A50`. It forms key `(body+8,body+0xC,body+0)`, looks up P+0x30 through `0x006D04A0`, loads node+0x20 and invokes virtual offset `0x3C` on that request, passing signed word `body+0x18`. For EntryBuilder this slot is the `RET 4` stub `0x006C0560`; for OnlineStatusUpdater, `0x006C3E00` writes request+0x48. This packet is not a separate queue entry. |
+| `0x017E` | `0x004DD077` -> `0x005762D0` -> `0x006C4180` | The normal arm calls `0x006C39F0` on `[C+8]`. It uses the same three-dword body key, loads the same lookup's node+0x20, invokes virtual offset `0x44`, then erases that lookup entry through `0x0077E4F0`. EntryBuilder's slot `0x44` is `0x006C0570`, which sets request+0x3E; its readiness slot `0x48` at `0x006DA9C0` reads that byte. The request pointer already held in P+8 is the later staging input. |
+| `0x017F` | `0x004DD087` -> `0x005762E0` -> `0x006C2F70` | The normal arm calls `0x006C19D0` on `[C+8]`, with the same three-dword body key, records beginning at body+0x10, and signed count byte body+0x190. After resolving node+0x20 through P+0x30, it invokes request virtual offset `0x40` at `0x006C1B9A` for each `0x30`-byte record. EntryBuilder forwards through request+0x38 at `0x006CD680`; OnlineStatusUpdater uses `0x006C44D0`. The updated request is the pointer inserted by `0x017C`, when the keys match. |
+| `0x0183` | `0x004DD0C7` -> `0x00576320` -> `0x006C3100` | When C+0x0C is absent or its byte +8 is zero, `0x006C3136` loads P and calls `0x006C1C00`, with the same key, body+0x10 records and signed count byte body+0x70. It resolves P+0x30 and invokes request virtual offset `0x40` at `0x006C1CF7` for each `0x0C`-byte record. This can modify the same pending request as `0x017F`; the packet itself is not enqueued. An active temporary carrier suppresses this path. |
+| `0x0133` | `0x004DC71E`..`0x004DC72E` -> `0x004DCFFF` | This opcode falls in the actor-dispatch interval `0x012E`..`0x013D`. The dispatcher calls `0x004D9910(D,context)`, then invokes virtual offset `0x24` on the returned object at `0x004DD01A`, passing the packet including its header. The lookup uses D+0x17804 and returns node+0x10 (`0x004D9963`). The actual target of that virtual call and a data-flow path from it to C, P or a request remain unresolved. The separate callback-interface slot 52 does not supply that proof. |
+
+`FUN_006D75F0` and `FUN_006D04A0` both search through `FUN_006CF090`
+and compare the three key dwords against node+0x18, +0x14 and +0x10.
+The former returns node+0x20 for the producer's pointer store. The latter
+returns the located node to the update routines, which load that same +0x20
+slot. This joins request identity when the keys match; it does not assume
+that an arbitrary packet has an existing matching request.
+
+#### Temporary processor
+
+When `0x006CC620` takes its admitted literal-`0x2711` arm with C+0x0C
+empty, it creates a carrier T through `0x006C6CA0`, installs T at C+0x0C,
+and calls `0x006CC5B0` on T. T contains another processor P'=`[T]`, also
+constructed through `0x006C5E80` with C as owner. The replay calls
+`0x006CC070` on P', using a copied body whose word +0x74 is 1.
+A nonzero T+0x0A also permits replay to normal P. Thus the same input can
+contribute to distinct processor instances.
+
+`0x017D` uses an active T to call `0x006C2A50` on P' through
+`0x006C2D30`. `0x017F` can retain selected records at T+4 through
+`0x006C1040`. T+0x0A can permit their normal P arms as well.
+`0x017E` reaches `0x006C3A60`, which replays those retained records through
+`0x006C19D0(P',...)`, calls `0x006C39F0(P',body)` and clears T+8.
+`0x006CDF20` loads P' from T on its carrier arm and P from C+8 on its normal
+arm. Its calls to `0x006C5F40` and `0x006CDD20` preserve the selected
+complete processor. No equality between P and P' is assumed.
+
+#### Pointer queue to pair queue and callback
+
+`FUN_007238B0` appends one dword to the queue passed in ECX. For P+8,
+its map, capacity, head and size are P+0x0C, +0x10, +0x14 and +0x18.
+`FUN_006C5F40(P,...)` reads that queue and retains its front request as R.
+After the request's virtual readiness/build gates, it passes `(R,0)` or
+`(0,R)` to `FUN_006D5E30` with ECX=P+0x1C at `0x006C6144` or
+`0x006C624C`. The helper copies both dwords into an eight-byte pair and
+increments size P+0x2C. The completed staging arm advances the four-byte
+queue head and decrements P+0x18. This is the concrete conversion between
+the two queues; the enqueue helper alone does not identify the pair queue.
+
+`FUN_006CDD20(P,...)` reads that same pair queue through P+0x1C.
+`FUN_006CDA80(P,...)` indexes its map at P+0x20 using capacity P+0x24,
+head P+0x28 and size P+0x2C. It dispatches and removes the front pair.
+`FUN_006CDF20` calls staging and the busy gate with the same selected P
+or P' at `0x006CDF73`/`0x006CDF7B` and `0x006CDFEE`/`0x006CDFF6`.
+
+The busy gate supplies the complete P as callback argument to
+`FUN_00CC76F0` at `0x006CDDED` or `0x006CDE0C`. That wrapper and
+`FUN_00CD7DA0` pass P into `FUN_00D0C440`, whose record constructor
+`FUN_00D0D7A0` stores it at record+0x5C (`0x00D0D7F2`). The queue insertion
+through `FUN_00D0F790`/`FUN_00D0D900`/`FUN_00D0D630` preserves this field
+(`0x00D0D677`..`0x00D0D67A`). On the missing-control arm of
+`FUN_00D0C070`, `0x00D0C111` recovers the retained P and `0x00D0C15D`
+invokes its table slot 2 with the copied buffer as argument. With P+0xEB
+zero, `FUN_006BFE70` forwards to slot 1, `FUN_006CDE30`, on P itself.
+That body's both-complete arm calls `FUN_006CDA80(P,...)` at `0x006CDEB2`.
+This proves a conditional same-receiver callback path. It does not establish
+that every scheduled control takes this arm or that every request completes.
+
+**UNRESOLVED:** Clientbound `0x0133` still needs the actual receiver/table
+at the `0x004DD01A` virtual call and its argument/owner flow to one of these
+processors. The `0x017A` arms that retain WorkSync state, and any later path
+from those containers, are outside the concrete submission path above.
+These bounds come from the named function bodies, not a global absence scan.
+Computed calls, computed addresses and overlapping wider stores are not
+excluded by literal-reference searches.
+
+#### Evidence
+
+All addresses in this section are VAs in retail 1.23b `ffxivgame.exe`,
+image base `0x00400000`, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
+The observations use Ghidra instruction listings exported by
+[`DumpFunctions.java`](../../tools/ghidra_scripts/DumpFunctions.java),
+checked against original PE section bytes and independently decoded with
+Capstone 5.0.7 using pefile 2024.8.26. The case-map cells, jump targets,
+PacketProcessor callback slots and the request slots named above were also
+read from that original image. Static analysis establishes the conditional
+paths, without executing the client or observing runtime receiver values.
+
 The [block normalization and construction note](../net/high-017c-object-builder.md)
 records the deeper byte and branch observations.
 Source: observations `Zone_MAIN_inbound_opcode_dispatcher_50plus_handlers`,
@@ -506,12 +601,10 @@ Source: observations `Zone_MAIN_inbound_opcode_dispatcher_50plus_handlers`,
 `TypeTaggedEntry_buildAndQueue` in
 [`ffxivgame.symbol_evidence.json`](../../config/ffxivgame.symbol_evidence.json).
 
-The related queue bodies establish the following narrower mechanics:
+Related helper observations remain bounded to their inspected bodies:
 
-| RVA | Direct retail-byte observation |
+| VA | Direct retail-byte observation |
 |---:|---|
-| `0x006cda80` | Indexes storage at `+0x20` as pairs of 8-byte entries, using capacity `+0x24`, head `+0x28`, and size `+0x2c`; each completed path advances the head and decrements the size once. |
-| `0x006cdd20` | Runs only when size `+0x2c` is nonzero and byte `+0xea` is zero; it can set `+0xea`, schedule through objects at `+0x40` or `+0x94`, or clear `+0xea` and call `0x006cda80`. |
 | `0x006cd8e0` | Calls a fixed local sequence ending in `0x006db9a0`; the body contains no packet-opcode literal. |
 | `0x006db9a0` | Handles two fixed pointer/count pairs at `+0x10`/`+0x2c` and `+0x14`/`+0x30`, then walks the range `+0x38..+0x3c` in `0x10`-byte steps. |
 | `0x006cbc90` | Tests four signed counts at `+0x14`, `+0x18`, `+0x1c`, and `+0x20`; when any is positive, it supplies literal `0x48` to the allocation path before calling `0x006c8cf0`. |
