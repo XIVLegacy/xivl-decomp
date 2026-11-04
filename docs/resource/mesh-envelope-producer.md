@@ -3,7 +3,8 @@
 The selected MESH producer connects a HEAD byte count and indexed ENVD
 payload calls to the runtime mesh fields consumed by the
 [skeleton name loop](skeleton-output-pointer-initialization.md).
-The selected serialized names and a complete safe decoder remain unresolved.
+A selected serialized MESH has bounded ENVD names matching primary names in
+its same-member skeleton. A complete safe decoder remains unresolved.
 
 ## Identity and method
 
@@ -117,8 +118,9 @@ producer's call-argument triple, not a complete helper or copying-safety contrac
 The optional-size payload wrapper computes L-0x10, while the producer supplies
 L with the payload address E_j+0x10. This difference must remain explicit.
 Do not silently normalize the producer to L-0x10 or claim that L bytes of
-payload are valid. No asset input, malformed resource, read-past-end execution
-or resulting failure was observed. L's real-resource domain remains unmeasured.
+payload are valid. No malformed-resource execution or resulting failure was
+observed. The selected-input measurement below records L without changing
+the call contract.
 
 ## Existing consumer join and name boundary
 
@@ -136,22 +138,93 @@ skeleton ordinal with j.
 The new producer joins that runtime input to the ENVD payload call and its
 occurrence ordering. A prospective serialized name interpretation is therefore
 BE16 at ENVD payload offset 0 followed by self-relative name position. The
-actual transfer is mediated by 0x009d4600. This is a static derivation, not an
-observation of any actual ENVD name or a full resource decoder contract.
+actual transfer is mediated by 0x009d4600. This is a static derivation, not a
+full resource decoder contract. The selected-input section below tests the
+serialized expression independently of runtime transfer.
 The [conditional leading-word transfer](#conditional-envd-leading-word-transfer)
 establishes equality of the leading word on its explicitly bounded mover
 paths. It does not establish that a selected allocation takes those paths.
 
-No payload name bytes, NUL terminator, minimum record length, name termination
-bound, offset admission, containing file extent, or safe span bound was read.
-The count loop bounds table ordinals by n. It does not bound the self-relative
+The native count loop bounds table ordinals by n. It does not bound the self-relative
 name offset or the subsequent string lookup against the ENVD extent.
 Do not promote a general safe decoder from this finding alone.
 
+## Selected serialized ENVD names
+
+The read-only input was logical member `client/chara/pc/c001/skl/0000`,
+200672 bytes, SHA-256
+`5ccf5d3f6f4781ca08885debc58938fcb12800acecde4dbba1c96db2d1f700e6`.
+Python standard-library `struct`, bounded byte searches and SHA-256 hashing
+authenticated the member before and after measurement. All following file
+ranges are half open. Bounds and unsigned-32-bit nonwrapping offset arithmetic
+were checked at each selected parent and child; this does not establish
+nonwrapping runtime addresses after adding an unknown loaded base.
+
+The PWIB first span contains a top-level RES. Its row 0 selects RES
+`[192,187736)`; that RES's rows 4 and 5 select WRB `[41200,169584)` and
+SKL `[169584,187396)`. Their SHA-256 digests are respectively
+`77a2b111d2d5989705ec8670ba2075dc6bacdfbf5298c167c9a7c648af33c7a6`
+and `81cb1b11810f1f43ca4125213f8ec562acc7e3b7bd9f2af6701c06ca431edca8`.
+This selection does not validate unrelated directory rows.
+
+The generic WRB header has header size `0x30`, declared size 128384 and
+byte `+0x0C` equal to zero. Its generic size fields were read little endian;
+the child fields below were read big endian as the native accessors specify.
+Neither generic endian conversion nor acceptance by a separate validator
+follows from that measured combination.
+
+| Selected header | File offset | Declared end | L | Next delta |
+|---|---:|---:|---:|---:|
+| WRB | 41248 | 169584 | 128336 | 0 |
+| MDLC occurrence 0 | 41280 | 169104 | 127824 | 127824 |
+| MDL occurrence 0 | 41360 | 100352 | 58992 | 58992 |
+| MESH occurrence 0 | 41472 | 75024 | 33552 | 33552 |
+| First HEAD | 41504 | 41536 | 32 | 32 |
+
+The MESH's forward child chain starts at 41504. HEAD payload Q is 41520;
+unsigned byte Q+3 is 25. Exactly 25 ENVD headers occur in that chain.
+For every occurrence E, payload A=E+16, BE16(A)=16 and name position
+A+16=E+32. Every name is nonempty and its first NUL lies strictly before
+E+L. No extra two-byte adjustment was used. Only that leading offset and
+bounded string relation were interpreted; other payload fields remain opaque.
+
+| ENVD j | E | L | Next delta | A | Name start | NUL | SKL primary record ordinal | A+L |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 68720 | 328 | 336 | 68736 | 68752 | 68760 | 4 | 69064 |
+| 14 | 71968 | 532 | 544 | 71984 | 72000 | 72006 | 3 | 72516 |
+| 24 | 74816 | 128 | 128 | 74832 | 74848 | 74857 | 46 | 74960 |
+
+The same-member SKL has primary record base 169664, stride 176 and count
+95, with string base 186384 and count 99, using the equations in
+[skeleton bone framing](skeleton-bone-framing.md). The 99 bounded NUL scans
+end at 187395; the final byte remains opaque. All 95 primary-name strings
+are unique. Each of the 25 ENVD names equals exactly one of those strings.
+The [primary-name lookup](skeleton-joint-access.md) owns the runtime hash and
+string comparison relation. ENVD occurrence j, physical primary record
+ordinal, returned Joint global ordinal and attachment identity remain distinct.
+No successful runtime lookup or attachment meaning follows from this equality.
+
+For all 25 entries, accessor size is L-16 while the producer supplies L
+with source A. Thus its requested source interval ends at E+L+16, exactly
+16 bytes past the declared ENVD end. Next delta minus L is 0, 4, 8 or 12,
+so that interval intersects the next child header by 16, 12, 8 or 4 bytes.
+All requested intervals remain physically inside this MESH and member.
+For j=0, declared ENVD is `[68720,69048)`, accessor payload is
+`[68736,69048)` and requested source interval is `[68736,69064)`; the next
+header begins at 69056. Physical containment does not make the extra bytes
+ENVD payload or prove what the complete mover reads or copies.
+
+The runtime join still requires these actual MESH and skeleton resources to
+be selected, successful allocation and pointer-table storage, stable lifetime
+and counts, the published transfer premises, and a successful lookup under
+its documented hash-order and collision limits. The conditional leading-word
+transfer does not prove transfer of the entire name or its terminator.
+
 ## Unresolved boundary
 
-No selected retail asset or resource was parsed. No ENVD entry was connected to
-one concrete skeleton resource, primary Joint name, blend index or weight.
+The selected serialized names establish a relation to one concrete same-member
+skeleton's primary-name source, without observing runtime resource binding.
+No ENVD entry was connected to a blend index or weight.
 No palette, bind, inverse-bind, shader, matrix-content or draw mapping follows.
 The parent MESH lookup, selected HEAD lookup and ENVD occurrence search do not
 establish total file bounds or successful runtime loading. Allocator contracts,
@@ -336,10 +409,9 @@ resource satisfies those conditions.
 
 The producer's `L` remains unadjusted. The optional-size accessor reports
 `L-0x10`. Nothing here validates `[E_j+0x10,E_j+0x10+L)`, changes the
-producer argument or replaces it with `L-0x10`. A selected resource's valid
-payload extent, actual name bytes, name offset admission, NUL termination
-and bounds remain unmeasured. The verified mover path is not a safe serialized
-decoder.
+producer argument or replaces it with `L-0x10`. The selected serialized
+measurement above bounds its names independently; the verified mover path
+does not establish whole-name transfer or a safe serialized decoder.
 
 The unaligned destination route, backward overlap route and external fast
 tail remain outside this proof. In particular, `L>=256` with a nonzero
@@ -557,10 +629,10 @@ prerequisite only after these producer-return links are established. All
 other mover premises remain necessary, including valid separated spans,
 stable dispatch tables and destination separation from both tables.
 The producer still requests and supplies unadjusted L with E_j+0x10, while
-its optional-size accessor reports L-0x10. This finding does not validate
-that source extent, a leading word, a name offset, a terminator or name
-bounds for any actual resource. No selected allocation, asset, skeleton,
-palette, shader, animation, bind or inverse-bind meaning is established.
+its optional-size accessor reports L-0x10. This alignment calculation does
+not validate that source extent or establish actual allocation and transfer.
+The selected serialized measurement above supplies name bounds separately.
+No palette, shader, animation, bind or inverse-bind meaning is established.
 
 ### Reproduction and coverage
 
