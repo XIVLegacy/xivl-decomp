@@ -62,25 +62,31 @@ and nonzero branch at `0x00D26E6B` restart the outer traversal. The separate
 bounds current-group member indices at `0x00D26D98` and `0x00D26E04`. The
 member index is initialized to 2 at `0x00D26BAF`.
 
-The optional-index predicate call at `0x00D26BCF` targets `0x00CF36E0`.
+The numeric type-predicate call at `0x00D26BCF` targets `0x00CF36E0`.
 `TEST AL,AL` at `0x00D26BD4` and `JZ 0x00D26BDF` mean a nonzero predicate
 result sets the local flag and changes `EDI` from 2 to 3 at
-`0x00D26BD8..0x00D26BDA`; a zero result leaves `EDI` at 2. The predicate's
-inputs and meaning are not established, so this is not an index-presence or
-numeric-interval claim. On the resulting path, index 3 is tested at
+`0x00D26BD8..0x00D26BDA`; a zero result leaves `EDI` at 2. This selects
+a member-start path without establishing an interval's scheduling meaning.
+On the resulting path, index 3 is tested at
 `0x00D26BF1..0x00D26C00`; the receiver-context call is at `0x00D26C15`, and a
-match moves the member start to 4 (`0x00D26C1E..0x00D26C23`). These are opaque
-predicate/context gates, not proof of timer scheduling or handling of 0.3.
+match moves the member start to 4 (`0x00D26C1E..0x00D26C23`). The context
+gate remains opaque; neither gate proves timer scheduling or handling of 0.3.
 
 The admitted predicate body at `0x00CF36E0` reads `[ESP+0x04]` into `EAX`,
-dereferences `[ECX]` into `ECX`, pushes those values, and calls the unadmitted
+dereferences `[ECX]` into `ECX`, pushes those values, and calls
 `0x00DCDD50`. Its `SUB`/`NEG`/`SBB`/`ADD` sequence returns `EAX=1` exactly
 when that callee result is 1, and returns 0 for every other 32-bit result;
 `RET 0x4` is at `0x00CF36FA`. The admitted caller at `0x00D26BCF` pushes
 `-1` at `0x00D26BCB` and moves `ESI` to `ECX` at `0x00D26BCD`, so this call's
-stack operand is statically the pushed `-1`. The unadmitted callee determines
-the type/value predicate; no index-2 presence rule or native handling of the
-published 0.3 interval is established.
+stack operand is statically the pushed `-1`.
+The [published primitive contract](https://github.com/XIVLegacy/xivl-client-structs/blob/f303ef13882b74e979190d9c4a63b9056df7e338/docs/progfunc-native-call-contract.md#lua-type-handling-per-position)
+and `xivl-client-structs:manifests/progfunc_native_call_contract.json`,
+`luaTypeHandling`,
+establish that `0x00DCDD50` returns 1 for a VM number or a string accepted
+by its numeric conversion helper. Conversion uses a local value and does not
+mutate the Lua stack slot. This supplies type semantics at the passed state's
+index -1. It does not identify that state with another wrapper's state,
+prove an index-2 presence rule or establish native scheduling of 0.3.
 
 The setup branch at `0x00D26C71..0x00D26CC0` calls `0x00D27290` at
 `0x00D26C90` for the receiver-marked path and `0x00D27250` at `0x00D26CB8`
@@ -102,10 +108,13 @@ The `0x00D26EA0` member loop has no analogous early-exit sequence. No callback
 identifier, async event identifier, or wire opcode occurs in either body.
 
 `0x00D26EA0` walks a related group/member sequence but uses a different
-optional-index predicate: it calls `0x00CF3740` at `0x00D26FD5`, tests `AL` at
+type predicate: it calls `0x00CF3740` at `0x00D26FD5`, tests `AL` at
 `0x00D26FDA`, and takes the nonzero branch to `0x00D27082`. This opposite branch
-and different predicate must not be equated with the `0x00D26BCF` path. It also
-checks receiver context at
+and different predicate must not be equated with the `0x00D26BCF` path. The
+[Lua API identity finding](define-class-repeat-definition.md#inputs) qualifies
+`0x00CF3740` as is-table, VM type equal to 5 through `0x00DCDCE0`.
+That predicate identity does not equate the two callers' operands or states.
+It also checks receiver context at
 `0x00D27050..0x00D2707D`, and loops members from `0x00D270A7` through
 `0x00D271EB`. Repeated calls to `0x004E7290` forward the second argument with
 static marker addresses. This is a metadata/string-forwarding traversal; it
@@ -178,7 +187,7 @@ a member is reached and resolved, are:
 - `mp`, `mpMax`, and `tp`: `Integer16Information` slot 8 at `0x00D2BF40`.
 
 These routes are conditional on a member being reached and resolved; the
-opaque interval predicate and member-loop exits do not prove that all five
+type gates and member-loop exits do not prove that all five
 listed members dispatch. The scalar body and its pointer cell have independent
 byte verification; the array body remains outside this evidence. No additional
 data range is required.
@@ -194,18 +203,17 @@ save-kind notification path is assigned to these `_sync` members.
 
 ## Limits and reproduction
 
-The native spans show opaque optional-index predicate outcomes,
+The native spans show numeric/table type gates,
 receiver-context testing, and ordered member traversal. They do not show the
 numeric interval being used as a period, do not prove that all five listed
 members reach descriptor slot 8, do not prove a specific high-level receiver
 type from the inferred signature, and do not establish a callback, server state,
 wire target, or runtime delivery. Existing script evidence says
 completion-target callbacks are static/inferred and leaves changed-member
-notification without a completion target untraced. The `0x00CF36E0` predicate
-leaves the result-producing `0x00DCDD50` body untraced, and the `0x00D2FC10`
-initializer leaves the value at global cell `0x0134B368` unread; neither
-boundary proves member-hash delivery or
-runtime state.
+notification without a completion target untraced. The primitive type
+semantics do not establish member-hash delivery. The `0x00D2FC10`
+initializer leaves the value at global cell `0x0134B368` unread and does
+not establish runtime state.
 
 To reproduce the static result, use the authenticated executable identity above
 with an x86 PE decoder at image base `0x00400000`, inspect the five stated
@@ -225,7 +233,7 @@ inclusive spans, verify `RET 0x1C` at `0x00D26E98`, `RET 0x8` at
 The focused byte check passed the whole-file identity, five body-span hashes,
 the pointer-cell value, three immediate-return checks, 24
 direct-call targets, 24 conditional-branch targets, and 21 control/operand
-patterns (including the current-group bounds, both opaque predicate branches,
+patterns (including the current-group bounds, both type-predicate branches,
 the `0x00CF36E0` caller operands, and the scalar ESI/`0x00D2FC10` aliases).
 The check treats
 the `RET 0x20` immediate and the observed register/stack instructions as byte
