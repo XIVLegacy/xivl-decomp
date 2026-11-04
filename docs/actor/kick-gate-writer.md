@@ -2,13 +2,13 @@
 
 > The writer is `FUN_00766f00`
 > (RVA `0x366f00`), which calls `ActorRegistry::lookup_actor`
-> (`FUN_00cc7a50` - the same helper KickReceiver uses), checks the
-> actor's `+0x7d` gate via `FUN_00cc72a0`, then sets `[actor+0x5c]=1`.
+> (`FUN_00cc7a50` - the same helper KickReceiver uses), tests registry
+> entry byte `+0x7D` via `FUN_00cc72a0`, then sets `[actor+0x5c]=1`.
 
 ## Confirmed result
 
 `FUN_00766f00` is the `+0x5c` kick-gate writer. The call-chain
-analysis confirmed that it checks `actor[+0x7d]` through `FUN_00cc72a0` before
+analysis confirmed that it tests registry entry byte `+0x7D` through `FUN_00cc72a0` before
 setting `actor[+0x5c]`.
 
 ## Actor ownership
@@ -91,10 +91,6 @@ over an actor's component sub-objects. The function would be called
 when the actor's full spawn-packet sequence has been processed, to
 flip each component (and the actor itself) into "ready for events" state.
 
-But **without proper Ghidra-decompiler-assist disassembly**, the EBP helper's
-return value remains unconfirmed, as does whether the function operates on a
-Lua-actor-wrapper or another class that happens to have a `+0x5c` field.
-
 ## Why the writer isn't a vtable entry
 
 None of the 6 candidates appears as a vtable entry in any of the 8
@@ -153,9 +149,8 @@ every tick.
 
 ## Candidate cross-references
 
-Re-ran the `c6 4? 5c 01` (`MOV byte [reg+0x5c], 1`) scan with stricter
-filters (Variant family + sync primitive). The fuller list is **10
-candidates** (after applying the same filters):
+The `c6 4? 5c 01` (`MOV byte [reg+0x5c], 1`) scan with the Variant-family and
+sync-primitive filters leaves **10 candidates**:
 
 | Function | Size | Callers | Result |
 |---|---:|---:|---|
@@ -239,7 +234,7 @@ if (EBP == NULL) goto skip;               ; null-check
 ... (additional setup)
 PUSH EBP;
 LEA ECX, [EBX+4];
-CALL FUN_00cc72a0;                        ; check actor[+0x7d]
+CALL FUN_00cc72a0;                        ; test registry entry byte +0x7D
 TEST AL, AL;
 JZ skip;
 MOV byte [EBP+0x5c], 1;                   ; NOTE SET KICK GATE
@@ -252,22 +247,24 @@ MOV byte [EBP+0x5c], 1;                   ; NOTE SET KICK GATE
 That's **the exact same `ActorRegistry::lookup_actor` helper** the
 KickReceiver uses.
 
-### FUN_00cc72a0 - the +0x7d gate check (18 B)
+### FUN_00cc72a0 - the registry entry +0x7D test (18 B)
 
 The second key helper:
 
 ```asm
 FUN_00cc72a0:
-    MOV EAX, [ESP+4]                      ; arg = actor id
-    MOV ECX, [ECX]                        ; this->vtable / registry root
+    MOV EAX, [ESP+4]                      ; arg = object from FUN_00cc7a50
+    MOV ECX, [ECX]                        ; registry root
     PUSH EAX;
-    CALL FUN_00cd7a30;                     ; lookup actor by id -> EAX = actor*
-    MOV AL, byte [EAX + 0x7d]              ; NOTE READ actor's +0x7d gate
+    CALL FUN_00cd7a30;                     ; resolve registry entry -> EAX = entry
+    MOV AL, byte [EAX + 0x7d]              ; NOTE READ the entry's +0x7D byte
     RET 4
 ```
 
-So `FUN_00cc72a0` is **`Actor::IsRunEventReady()`** equivalent - it
-returns `actor[+0x7d]`, the RunEventFunction gate.
+So `FUN_00cc72a0` returns byte `+0x7D` of the entry that `FUN_00cd7a30`
+returns, not a byte on the object passed in. The
+[start-event contract](../event/start-event-fn-receiver.md)
+owns that read.
 
 ### Confirmed semantic of FUN_00766f00
 
@@ -282,7 +279,7 @@ void FUN_00766f00(this) {                  // ECX = this (= EBX/Spawn coordinato
         actor = ActorRegistry::lookup_actor(...);  // EBP = actor*
         if (actor == NULL) continue;
 
-        if (Actor::IsRunEventReady(arg)) {         // returns actor[+0x7d]
+        if (FUN_00cc72a0(registry, actor)) {       // registry entry byte +0x7D
             actor[+0x5c] = 1;                       // NOTE SET KICK GATE
             // ... additional post-set processing ...
         }
@@ -292,11 +289,11 @@ void FUN_00766f00(this) {                  // ECX = this (= EBX/Spawn coordinato
 
 The kick gate flow is:
 
-1. Actor spawns -> `ActorBase` ctor zeros `+0x5c` and `+0x7d`
-2. Some upstream code sets `actor[+0x7d] = 1` (the RunEventFunction gate)
-   - that writer remains unresolved
+1. Actor spawns -> `ActorBase` ctor zeros `+0x5c`
+2. Activation `0x00CE1DD0` stores the registry entry byte `+0x7D` at
+   `0x00CE1E0B`, as the [actor instantiation record](actor-instantiation-and-self-player.md#creation-order) traces
 3. **Per-frame, `FUN_00766f00` runs over pending actors**. For each:
-   - If `actor[+0x7d] == 1` (run-event ready), THEN
+   - If the actor's registry entry byte `+0x7D` is nonzero, THEN
    - `actor[+0x5c] = 1` (kick-gate set)
 4. KickReceiver can succeed on this actor
 5. Eventually `MyPlayer::vtable[66]` (the clearer per
@@ -308,8 +305,8 @@ The kick gate flow is:
 `FUN_00578970` iterates over sub-objects each tick, so `FUN_00766f00` can run
 every tick on every actor. This is consistent with the gate semantics because:
 - Per-tick `MOV byte [reg+0x5c], 1` is **idempotent** - already-1 stays 1
-- The gate is conditional on `actor[+0x7d]==1`, so it only fires for
-  actors that have already passed the +0x7d readiness gate
+- The gate is conditional on the registry entry byte `+0x7D`, so it only
+  fires after that readiness byte is set
 - Setting an already-set flag every tick is harmless
 - The behavior is "kick gate set whenever the precondition holds"
 
@@ -319,8 +316,8 @@ every tick on every actor. This is consistent with the gate semantics because:
   that READS `[actor+0x5c]`; uses the same `ActorRegistry::lookup_actor`
   at `0x8c7a50` that this writer uses.
 - `docs/event/start-event-fn-receiver.md`
-  (the RunEventFunctionReceiver that READS `[actor+0x7d]`; the gate
-  whose set state triggers FUN_00766f00's +0x5c write)
+  (the RunEventFunctionReceiver that reads registry entry byte `+0x7D`,
+  the same byte FUN_00766f00 tests before its +0x5c write)
 - `docs/net/kick-dispatcher-clearer.md` - the dispatcher state clearer
   (`FUN_006e32f0` = `MyPlayer::vtable[66]`), separate from the +0x5c
   writer recovered here

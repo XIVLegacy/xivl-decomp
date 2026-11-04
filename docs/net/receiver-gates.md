@@ -172,7 +172,7 @@ The SEQ_005 cinematic packet sequence has this classification:
 | Opcode | LuaActorImpl slot | Receiver | Pattern | Gate |
 |---|---:|---|---|---|
 | `0x012F` Kick | 56 | KickClientOrderEventReceiver | **B** (heap-alloc, 5-slot) | `actor[+0x5c] != 0` + 3-way state machine on `context_root[+0x128]/[+0x12c]` |
-| `0x0130` RunEventFunction | 57 | StartServerOrderEventFunctionReceiver | **B** | `actor[+0x7d] != 0` |
+| `0x0130` RunEventFunction | 57 | StartServerOrderEventFunctionReceiver | **B** | `0x0089E8E0` dependency vector: empty admits; otherwise the reverse pass reads registry entry byte `+0x7D` through `0x00CC72A0` |
 | `0x0131` EndEvent | 58 | EndClientOrderEventReceiver | **B** | 102-case dispatcher, 12 active types |
 | `0x0136` SetEventStatus | 48 | SetEventStatusReceiver | **A1.1** (unguarded cast to `NpcBase`) | If actor isn't NpcBase, handler dispatches with NULL -> silent no-op |
 | `0x016B` SetNoticeEventCondition | (no LuaActorImpl slot - owned by event handler) | SetNoticeEventConditionReceiver | **A1.0** (guarded cast to `DirectorBase` with fallback to `ActorBase[+0x118]`) | If actor isn't DirectorBase, writes to `ActorBase[+0x118]` instead (the "orphaned conditions" hypothesis) |
