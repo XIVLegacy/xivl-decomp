@@ -83,7 +83,7 @@ M+0x24. The fields below are read from P.
 | Offset | Width | Read | Meaning |
 |---|---|---|---|
 | `+0x00` | f32 | no audited reader | UNKNOWN. Equal to 30.0 in every census container |
-| `+0x04` | f32 | `FLD` at `0x00a30bc0` and `0x00a30f4b` | stored by the container constructor `0x00a31a90` at container `+0x38` |
+| `+0x04` | f32 | `FLD` at `0x00a30bc0` and `0x00a30f4b` | stored by constructor `0x00a31a90` at container `+0x38`; [conditional endpoint/difference consumer](mtb-header-scalar-consumer.md) |
 | `+0x08` | u16 | `0x00a30bf4`, `0x00a302af` | Curve section count when `+0x0a` is zero, copied to object `+0x5c` |
 | `+0x0a` | u16 | `0x00a30b93` | group count. Zero selects the single-clip route, nonzero selects the group route |
 | `+0x0c` | u8 | `0x00a30bbc`, `0x00a2d840` | bit 0 is forwarded to the container constructor as a flag byte at container `+0x3d`. Bit 3 selects the wide Curve header below |

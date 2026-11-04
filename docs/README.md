@@ -393,6 +393,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Bounded MTB native memory selection](resource/mtb-native-memory-selection.md)
 - [Bounded MTB FixedCurve scalar sampling](resource/mtb-fixed-curve.md)
 - [MTB container framing](resource/mtb-container-framing.md)
+- [MTB Header scalar consumer](resource/mtb-header-scalar-consumer.md)
 - [MTB SpuBinary motion blob and FixedMotionCalculator](resource/mtb-fixed-motion-calculator.md)
 - [MTB scalar curve application to Joint translation](resource/mtb-joint-translation-write.md)
 - [PE layout](resource/pe-layout.md)
