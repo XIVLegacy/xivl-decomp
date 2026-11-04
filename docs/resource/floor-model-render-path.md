@@ -235,6 +235,38 @@ component-to-tag ownership link above does not identify a reader of this
 field or establish its units. Calls retain normal fallthrough; failure,
 unwind, lifetime and whole-function behavior remain unqualified.
 
+#### Examined draw consumers
+
+The concrete owner link at tag+0x118 supplies component C to the
+MeshDrawTag method `0x00C439C0`. Its attributable direct component reads
+cover +0xA8, +0x0C, +0x98 and +0x30..+0x3F, without a C+0x24 read.
+The actual forwarding call at `0x00C43E2D` passes C to `0x00C32C20`;
+that helper instead loads D=`ptr32(C+0x78)` and reads D+0x104/+0xFC/+0x100.
+Its returned ST0 goes to the draw context +0xC44 at `0x00C43E32`.
+This scalar therefore does not establish a reader of the MINS field.
+
+The earlier calls at `0x00C43B46` and `0x00C43B60` pass the same C
+and dword[tag+0x11C] argument to `0x00C44F80` and `0x00C450F0`. Their direct
+component reads use +0xA8/+0x8C/+0x7C/+0x90 or +0x8C/+0x90,
+respectively, without C+0x24. These checks were bounded to complete
+entry-rooted syntactic normal CFGs:
+
+| Start VA | Exclusive end VA |
+|---|---|
+| `0x00C439C0` | `0x00C43FCA` |
+| `0x00C32C20` | `0x00C32C5E` |
+| `0x00C44F80` | `0x00C45036` |
+| `0x00C450F0` | `0x00C45157` |
+
+Original PE mapping and Capstone/pefile decoding used the identity and method
+above. Calls retain normal fallthrough. Indirect calls through `0x0132390C`
+and the invalid-vector call to `0x009D22B4` remain opaque; a live ECX=C at
+an indirect call does not establish the target's implicit-register contract.
+No actual typed C+0x24 reader was identified in these selected paths.
+This bounded result supplies no units and excludes neither other aliases
+nor readers elsewhere. The missing edge is still an attributable consumer
+of the stored field, rather than the component-to-tag ownership link alone.
+
 ### Selected material binding
 
 The single-entry builder creates the drawable's material array through
