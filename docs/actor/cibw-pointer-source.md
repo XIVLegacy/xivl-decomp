@@ -145,6 +145,42 @@ With this constructed primary table retained, the last target is the actual
 owner/callback association. It does not identify every runtime Q, prove
 completion or readiness, or establish a successful cast in a live invocation.
 
+### Conditional root publication
+
+WeaponVisual's original primary cells also select the published
+[ordinary resource completion and publication](../resource/actor-motion-resource-provider.md#conditional-decode-and-accepted-root):
+
+| Slot | Cell | Target |
+|---:|---|---|
+| 1 | `0x01064ED8` | `0x00631C70` |
+| 4 | `0x01064EE4` | `0x00632760` |
+| 5 | `0x01064EE8` | `0x00631390` |
+| 6 | `0x01064EEC` | `0x00632440` |
+
+This supplies a conditional publisher for the constructed Q/M profile.
+It requires an actual Q resource completion with matching nonnull stored H,
+nonnull delivered view, the canonical ordinary-decode predicate and successful
+nonnull root R. The sampled graph must select the published graph methods;
+the respective zero-mode uses require the tested request-record E[k]+0x68
+to be zero. These conditions are separate from the `var_wep` row callback.
+
+At `0x00631DFE`, Q slot 6 receives `(M,R,k)`. Its zero-mode call at
+`0x00632471` uses M virtual +0x18. Original WeaponActor cell
+`0x01057EFC=0x00620880` forwards `(R,0)` to the retained nonnull
+M+8 provider B. Its original cell `0x01047258=0x00A6ABE0` selects
+the published pointer-retention/insertion path at explicit vector position 0.
+The publisher also stores R at E[k]+0x5C at `0x0063249B`, subject to
+replacement, opaque-call, memory and lifetime conditions. This is an insertion
+event, without a final-state or later winning-node guarantee.
+
+Request record k is not the definition's table-0/one-slot registration, and
+the provider destination is literal 0 independently of k. H, decoded R and
+the later type-search node remain distinct. The completion's graph+8 decode
+parent is also separate from the provider graph+0x0C fallback; equality of
+the sampled and retained graph objects requires its own join. No character-bank
+path, index formula or selected member is supplied by these inherited cells.
+The type-only Cibw search retains its separate published traversal contract.
+
 The additional complete syntactic normal CFGs were
 `[0x008A5AB0,0x008A5B8A)`, `[0x008A5C80,0x008A5DA4)`,
 `[0x008A56C0,0x008A579E)` and `[0x008DB4F0,0x008DB5A0)`.
@@ -156,9 +192,9 @@ remain conditions.
 
 ## Remaining source boundary
 
-The constructed profile narrows the source beyond an arbitrary incoming
-receiver. Actual runtime instance/table continuity and the provider's later
-root attachment remain unobserved. The pre-lookup `0x008DC350` and
+The constructed profile supplies a conditional root publisher. Actual runtime
+instance/table continuity, request/input identity and the provider's later
+root/vector state remain unobserved. The pre-lookup `0x008DC350` and
 `0x008A5900` own-body shapes supply no explicit M+8-provider attachment
 or authenticated root-pointer argument. Their opaque calls may have effects;
 same-M receivers and delivered `var_wep` rows do not substitute for a root join.
