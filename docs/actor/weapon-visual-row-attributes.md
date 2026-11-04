@@ -91,8 +91,45 @@ valid current storage. B1 is not equated to B0 across the opaque handler.
 The normalization tests the flag's low byte and writes one byte per matched
 index. It is neither a full-dword truth test nor a packed-bit operation.
 The observed row caller's F=1 therefore sets matching reached bytes to 1.
-The directory/buffer producers, concrete E/U types and later readers remain
-unqualified; no shader/GPU effect follows from this byte update.
+The constructed source profile below identifies E/U conditionally. The actual
+directory/buffer producers and later byte readers remain unqualified; no
+shader/GPU effect follows from this byte update.
+
+### Constructed tag and Mesh profile
+
+The [component/tag construction](body-mesh-pass-admission.md#ownership-before-registration)
+and [ownership producers](mesh-matrix-input.md) provide a conditional source
+profile for the same component child array used by `0x00C32C10`.
+`0x00C341D0` retains Drawable D and the selected MeshContainer at component
++0x78/+0x7C. `0x00C33430` obtains its mesh count, constructs MeshDrawTags
+and publishes their pointers at component+0x84[j]. The initializer
+`0x00C42500` retains component and ordinal at tag+0x118/+0x11C, and
+`0x00C448EF` stores the native Mesh at tag+0x1C.
+
+For a retained child produced by that route, E is this MeshDrawTag T and
+U=`[T+0x1C]` is its native Mesh. Applying the profile to the actual
+WeaponVisual call requires the same current Drawable/component/child objects,
+successful construction and retained fields/tables/lifetimes. The shared
+offsets alone do not prove those instance equalities or a selected serialized
+member. Under that profile the written byte buffer belongs to T; the name
+directory is reached through its retained Mesh.
+
+The [ordinary MeshDrawTag draw](../resource/floor-model-render-path.md#draw-tags-and-indexed-submission)
+selects `0x00C439C0`. In its complete normal span
+`[0x00C439C0,0x00C43FCA)`, tracked direct T-provenance reads do not overlap
+`[T+0x3C,T+0x44)`. It does store the retained T at current render
+context+0x1A0 at `0x00C43A14`, and forwards T to callees. The test at
+`0x00C43EFF` splits on tag+0x114. Its nonzero arm calls
+`0x00C43670(T,R)` at `0x00C43F0A` and bypasses the tag+0x160 test.
+Only the zero arm reaches that separate test at `0x00C43F11`, before a
+reached `0x00C423B0(T,R)` call at `0x00C43F2D`. Current context R is
+the explicit argument on both calls.
+
+These are whole-tag forwarding/storage edges, without an authenticated
+attribute-buffer argument or read. Their callees and untracked aliases remain
+outside this bounded check. A current-T byte-buffer reader or actual buffer/
+directory producer is needed to advance the attribute effect beyond the
+qualified named-byte write; whole-tag forwarding alone supplies no GPU effect.
 
 ## Named ShapeWeight update
 
