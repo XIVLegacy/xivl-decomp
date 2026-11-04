@@ -357,7 +357,7 @@ are `UNKNOWN`.
 
 The shipped script builds the command 21001 request (`INFERRED`):
 
-- `DesktopWidget.processCommandMainMenu`, lines 4762-4800, handles
+- `DesktopWidget.analyzeShortCutCommand`, lines 4762-4838, handles
   `UILuaCommands.ChangeActivateMode`. When the player is not riding it calls
   `executePlayerActivation` with the negation of `isActiveMode()`.
 - `executePlayerActivation`, lines 14589-14611, calls
