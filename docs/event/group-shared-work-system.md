@@ -1,8 +1,8 @@
 # Group and SharedWork system
 
 This page maps the client Group and SharedWork system, including the
-`Group::PacketProcessor` dispatch pattern and receiver-side path for opcode
-0x0133 SynchGroupWorkValues.
+`Group::PacketProcessor` dispatch pattern and the receiver-side paths for
+opcode 0x0133 and for 0x017A SynchGroupWorkValues.
 
 ## Packet correspondence
 
@@ -175,11 +175,9 @@ callback interface (`ZoneProtoDownCallbackInterface`, 199 slots).
 
 Default-installed handler is
 `Application::Network::ZoneClient::ZoneProtoDownDummyCallback` whose
-slot 52 is a 3-byte stub `ret 0xc` (`FUN_00db8810`). The real handler
-is plugged in at runtime via callback registration - RTTI doesn't
-expose it because the engine constructs the handler instance + sets
-the vtable pointer dynamically (no compile-time inheritance edge to
-trace via `??_R*` records).
+slot 52 is a 3-byte stub `ret 0xc` (`FUN_00db8810`). This default does not
+identify the code that applies the opcode;
+`docs/net/network-dispatch-paths.md` owns the actor route.
 
 The dispatcher emits per-case 17-byte blocks of the shape:
 
@@ -213,7 +211,7 @@ entry pointers at `0xdc0f5c` (jump table).
 | PacketRequestBase | 13-slot map below |
 | OnlineStatusUpdater and BreakupBuilder | Slot maps below |
 | Opcodes 0x0133 and 0x017A | Wire formats derived from packet captures below |
-| ZoneProtoDownCallbackInterface | No runtime registration exists. `docs/net/network-dispatch-paths.md` shows `DummyCallback` with `ret 0xc` per-opcode stubs. Opcodes 0x017A, 0x0133, 0x017C-F, and 0x0183 are consumed by `Group::PacketProcessor` through its queue walk and two sub-decoders. |
+| ZoneProtoDownCallbackInterface | `docs/net/network-dispatch-paths.md` shows the catalogued `DummyCallback` table with `ret 0xc` per-opcode stubs. `Group::PacketProcessor` has a queue walk and two sub-decoders; this evidence does not establish that opcodes 0x017A, 0x0133, 0x017C-F, and 0x0183 all feed one queue instance. |
 
 ## Retail wire format - 0x017A SynchGroupWorkValues vs 0x0133
 

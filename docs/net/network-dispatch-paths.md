@@ -146,14 +146,15 @@ The 49 Receiver classes contain no dedicated class for several common opcodes:
 - `0x017C/D/E/F` (OUT: GroupHeader/Begin/X/End) - no Receiver
 - `0x0183` (OUT: ContentMembersX08) - no Receiver
 
-All of these are *group-related*. They flow through the
-`ZoneProtoDownCallbackInterface` -> `DummyCallback` path AND get
-consumed by the `Group::PacketProcessor` (3 slots, RVA `0xbd42f4`,
-documented in `docs/event/group-shared-work-system.md`). The PacketProcessor
-walks the channel's packet queue independently - it doesn't go
-through the per-opcode dispatch.
+All of these are *group-related*, and the catalogued `DummyCallback` table
+gives their `ZoneProtoDownCallbackInterface` slots stubs. The
+`Group::PacketProcessor` (3 slots, RVA `0xbd42f4`, documented in
+`docs/event/group-shared-work-system.md`) walks a queue outside the
+per-opcode dispatch. Its lookup tables and queue mechanics do not
+establish that all of these routes feed one `PacketProcessor` queue instance.
+Assigning a route to it needs producer calls and receiver identity.
 
-The two packet paths are:
+The two dispatch mechanisms are:
 
 ```
        +---- network arrives ----+
@@ -166,8 +167,7 @@ The two packet paths are:
                              effects on SharedWork)
 ```
 
-Both consume the same packet stream. Different opcodes belong to
-different paths.
+The diagram does not assign each group-related opcode to the queue path.
 
 ## Client consequence
 
@@ -180,9 +180,8 @@ typed frame and conditions are owned by the
 does not establish Group-state writes or a universal transport assignment.
 
 The dispatch stub does not implement game logic. Receiver interfaces use
-different callable slots; UserData uses its primary slot 1. Group work flows
-into a work table through the
-channel-bound queue, with the relevant entry point at
+different callable slots; UserData uses its primary slot 1. Group work that reaches
+that queue enters a work table through
 `Group::PacketProcessor::OnPacket` or a sibling updater.
 
 ## Cross-references
