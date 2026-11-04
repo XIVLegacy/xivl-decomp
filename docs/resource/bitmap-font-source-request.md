@@ -140,6 +140,13 @@ The table entries do not establish default selection, legal selector values,
 an actual zero-key request, font-family names, or a FontStyle/global
 configuration relationship.
 
+An exact contiguous little-endian dword search with Python `bytes.find` for
+`0x27950002` at every file offset of the pinned original PE found no occurrence. This finite
+literal query does not exclude computed, split, encoded, mutable or external
+keys and does not establish that the selected `02.DAT` can never be requested.
+Its construction-source identity remains unbound; another query of the known
+tables above does not supply it.
+
 ## FR-03: Request, Resource buffer, and registered callback
 
 `FUN_00C99130` obtains its first explicit argument as a raw dword at
