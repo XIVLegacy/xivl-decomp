@@ -238,6 +238,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Rich-text sheet and case handlers](resource/rich-text-sheet-and-case-handlers.md)
 - [Rich-text colour tokens](resource/rich-text-colour-tokens.md)
 - [Rich-text global parameter vector](resource/rich-text-global-parameters.md)
+- [Battle log line path](resource/battle-log-line-path.md)
 - [Sqwt form and template path resolution](resource/sqwt-form-locale-resolution.md)
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
 - [Sqwt binding source arms](resource/sqwt-binding-source-arms.md)
