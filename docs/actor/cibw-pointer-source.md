@@ -87,10 +87,81 @@ S actually selects that implementation and its published traversal,
 cookie, key-stability and return conditions hold. The cast target and nominal
 table do not select S's actual current vptr or exclude a derived override.
 
-The first missing typed edge is S's actual vptr at `0x008A53C7`;
-the qualified callers narrow its source to the nonzero WeaponActor-cast result.
-Independently, the matched node's +0x40 producer, actual virtual +4
-implementation and association of P with authenticated member bytes remain
-missing. A construction/caller/table discriminator for this same S, or a
-producer for this same node's interface, is needed before another body or
-member decoder is justified. No selected member size or digest is established.
+## Constructed owner and callback profile
+
+Original table references identify initialization body `0x008A5C80` and
+cleanup body `0x008A5AB0`. The initializer's first call at `0x008A5CC2`
+supplies its unchanged receiver M and `(A1,0x12,A2,A3,A4)` to
+`0x006329C0`, where A1..A4 are its four stack arguments. It installs
+the WeaponActor table at `0x008A5CE2`. The cleanup body writes the same
+table at `0x008A5AD8`; that write does not produce backing data.
+The existing [base-constructor contract](../resource/action-queue-findvins-input.md#constructor-input-identity)
+and [reference-resource profile](../resource/actor-motion-resource-provider.md#construction-and-initialization)
+own the inherited forwarding, initial M+8 clear and A4 source at M+0x114.
+Current fields and physical registers must survive the intervening calls.
+
+The nominal WeaponActor creation cell `0x01057F10=0x007CCC10` forwards
+through virtual +0x218. Its actual nominal cell
+`0x010580FC=0x008A56C0` selects the WeaponActor-specific initializer.
+That method invokes virtual +0xFC at `0x008A5734`; retained nominal cell
+`0x01057FE0=0x007CD2D0` therefore selects the published provider
+construction/publication path. This supplies a conditional M+8 provider
+profile without borrowing CharaActor's different +0x218 target.
+The provider's explicit local-root vector starts empty. Its later attachment,
+root ordering and selected node are not supplied by constructor state.
+
+`0x008A56C0` also constructs `0x0080E8C0`'s already published
+[RaptureSchEffectController](../resource/action-queue-scheduler-handoff.md#queue-resource-and-owner)
+and publishes it at M+0x220 at `0x008A5785`. That scheduler field is
+separate from the lookup provider and is not a resource-root proof.
+
+On its nonnull-candidate path, the WeaponActor constructor's call at
+`0x008A5D71` supplies separate storage Q requested with size 0x54 to
+`0x008DB4F0`, with arguments M and
+X=`0x0060B290([M+0x114])`, and publishes its result at M+0x22C at
+`0x008A5D7F`. X's concrete meaning is not qualified here. The child
+constructor forwards `(M,5,X,1)` through `0x006307D0` at `0x008DB52A`.
+The [shared visual-owner path](body-mesh-pass-admission.md), whose store is
+at `0x0061F582`, supplies conditional Q+8=M under its shared-base and
+retention premises. The new tuple is not a branch-complete universal owner
+proof; no direct Q+8 store occurs in `0x008DB4F0` itself.
+
+The child installs primary/secondary WeaponVisual tables
+`0x01064ED4`/`0x01064EB4` at `0x008DB537`/`0x008DB53D`.
+Original locators `0x01176C0C`/`0x01176C70` have offsets 0/4 and
+share TypeDescriptor `0x012DCC34`. Its primary cells are:
+
+| Slot | Cell | Target |
+|---:|---|---|
+| 13 | `0x01064F08` | `0x006315D0` |
+| 16 | `0x01064F14` | `0x008DC350` |
+| 17 | `0x01064F18` | `0x00631590` |
+
+The child registers `(table 0, var_wep, one slot)` through `0x006314D0`
+at `0x008DB565`. The [published waiter/readiness route](appearance-path-decoder.md)
+delivers rows through slot 17, then slot 13 and conditionally slot 16.
+With this constructed primary table retained, the last target is the actual
+`0x008DC350` caller above. This establishes a conditional constructed
+owner/callback association. It does not identify every runtime Q, prove
+completion or readiness, or establish a successful cast in a live invocation.
+
+The additional complete syntactic normal CFGs were
+`[0x008A5AB0,0x008A5B8A)`, `[0x008A5C80,0x008A5DA4)`,
+`[0x008A56C0,0x008A579E)` and `[0x008DB4F0,0x008DB5A0)`.
+Original-PE mapping, RTTI/cells and Capstone/pefile checks used the identity
+and method above. Shared base, provider, scheduler and waiter bodies were
+reused from their canonical findings. Normal call preservation, current
+tables, nonnull allocation, valid storage, successful delivery and lifetime
+remain conditions.
+
+## Remaining source boundary
+
+The constructed profile narrows the source beyond an arbitrary incoming
+receiver. Actual runtime instance/table continuity and the provider's later
+root attachment remain unobserved. The pre-lookup `0x008DC350` and
+`0x008A5900` own-body shapes supply no explicit M+8-provider attachment
+or authenticated root-pointer argument. Their opaque calls may have effects;
+same-M receivers and delivered `var_wep` rows do not substitute for a root join.
+The matched node's +0x40 producer, actual virtual +4 implementation and
+association of P with authenticated member bytes therefore remain missing.
+No selected member size, digest or weapon-index spelling is established.
