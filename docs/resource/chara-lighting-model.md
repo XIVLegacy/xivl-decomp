@@ -184,10 +184,12 @@ without the shadow term (no `shadowMap0`, no shadow constants), with two point
 lights instead of four and a smaller instruction count in every family (V). The
 pass is chosen by bit 0 of the pixel permutation flags, which `0x00C3D790` builds
 from the draw context byte at `C+0x770` (setter `0x00C479E0`, getter
-`0x00C47A70`) together with the caller's flags. The mesh draw tag at `0x00C439C0`
-calls the setter at `0x00C43B16` with the pushed register `ebx` under conditions
-of `0x00C47BF0`, `0x00C47AA0` and a record flag. The value of `ebx` is not
-traced (U), so whether this call clears the byte is I. Which bit value selects `_000` is U.
+`0x00C47A70`) together with the caller's flags. The
+[material-state finding](floor-material-alpha.md) qualifies the MeshDrawTag's
+temporary clear at `0x00C43B16` under the context/record predicates and its
+saved-state restoration at `0x00C43FAE`. The selected MINS HEAD byte +0x09
+supplies the component flag that bypasses that clear. This conditional state
+path does not identify which permutation bit value selects `_000` (U).
 
 ## Other families
 

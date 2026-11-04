@@ -229,7 +229,8 @@ Source: the retail PE identity and original-byte method above, Capstone
 `[0x00C50058,0x00C5018F)`, seeded at that interior prefix rather than a
 proven function entry. The requested stop `0x00C50190` cuts an instruction.
 The prefix has no RET and leaves through `0x00C5018A -> 0x00C501DB` or
-`0x00C5018C -> 0x00C5018F`; neither continuation was decoded here.
+`0x00C5018C -> 0x00C5018F`. The selected byte-list continuation is qualified
+below; it does not supply a component+0x24 reader.
 No subsequent instruction in the admitted prefix reads C+0x24. The
 component-to-tag ownership link above does not identify a reader of this
 field or establish its units. Calls retain normal fallthrough; failure,
@@ -266,6 +267,90 @@ No actual typed C+0x24 reader was identified in these selected paths.
 This bounded result supplies no units and excludes neither other aliases
 nor readers elsewhere. The missing edge is still an attributable consumer
 of the stored field, rather than the component-to-tag ownership link alone.
+
+### MINS HEAD byte list
+
+Let H be the selected MINS HEAD body and C the component from the source
+equation above. The reused prefix zero-extends H+0x08 into dword C+0x08
+at `0x00C50177..0x00C5017B`, without a local mask. Its content consumer
+remains unidentified. H+0x09's separate transfer and material-state effect
+belong to [the material finding](floor-material-alpha.md), and H+0x0A's
+mask-selector use belongs to [the mask finding below](#mask-updates-and-caller-boundary).
+Those transfers require the earlier signed guard at `0x00C5011E` not to
+bypass setup.
+
+At the shared join `0x00C50184`, the code zero-extends byte H+0x0B as n.
+Zero n skips the list loop. Otherwise bytes `H+0x0C+j`, j=0..n-1, supply
+zero-extended indices u. The cursor advances by one and the remaining n
+decrements at `0x00C501D1..0x00C501D9`. EDI ceases to hold H when it
+receives u at `0x00C5019F`; EBX retains the source cursor. This is a byte
+list, without a big-endian dword-index interpretation or a general record
+layout/nonoverlap guarantee with the distinct H+0x10 input.
+
+For each actual owner reload, let L be the pointer read from current stack
+local +0x1C and Dcurrent=`ptr32(L)`. Calls `0x00C501AB` and
+`0x00C501C7` use the embedded interface address I=`Dcurrent+0x2E0`.
+The target comes from `V=ptr32(I)` at slots +0x0C and +0x10, respectively.
+ECX receives I, rather than the pointer V. The second call freshly reloads
+the owner/interface and runs only if u is signed-less-than the first call's
+full returned EAX. It receives u as its explicit argument.
+
+Original nominal DrawableObject table `0x010D63B8` has COL `0x01199DD4`
+with offset 0x2E0 and mangled type
+`.?AVDrawableObject@Renderer@Dw@Engine@CDev@SQEX@@`. Its slot cells
+`0x010D63C4`/`0x010D63C8` select `0x00C39840`/`0x00C39860`.
+These metadata establish a conditional nominal profile, without proving the
+current interface's table or excluding a derived implementation.
+
+Its original hierarchy at `0x01197D2C`, base array `0x01197D40`, includes
+base descriptor `0x01197EAC` at ordinal 22. TypeDescriptor `0x01306F94`
+names `.?AVILightContainer@Renderer@Dw@Engine@CDev@SQEX@@`, with PMD
+`(mdisp=0x2E0,pdisp=-1,vdisp=0)`. This anchors the declared nonvirtual
+ILightContainer base at that embedded address. It does not identify the
+current array's element objects or establish their downstream lighting effect.
+
+Under that selection, `0x00C39840` reads B=`ptr32(I+0x70)` and
+E=`ptr32(I+0x74)`, full Drawable offsets +0x350/+0x354. Null B returns
+zero; otherwise it returns arithmetic-right-shift-2 of the 32-bit difference
+E-B. A nonnegative element-count interpretation requires a valid ordered,
+aligned, nonwrapping array span. `0x00C39860` returns `dword[B+4*u]` on
+its valid-index path. Null B or an invalid unsigned index calls opaque
+`0x009D22B4`; ordinary continuation after that call reloads B before the
+read. No rejection, repair or nonreturn guarantee follows.
+
+The selected full 32-bit return is immediately pushed at `0x00C501C9`
+and passed to `0x00C32C80(C,v)` at `0x00C501CC`. That body reads
+t=`dword[C+0x10]`, skips its store for signed t>=4, and otherwise writes
+`dword[C+0x14+4*t]=v`, then increments C+0x10 modulo 2^32.
+For an initialized t in 0..3, these are C+0x14/+0x18/+0x1C/+0x20.
+The guard alone does not establish t>=0, initialization or valid address
+arithmetic. A skipped store does not terminate the source loop or skip the
+preceding virtual lookup. Component counter t and source count n are distinct.
+
+The byte list therefore indexes the current Drawable's four-byte element
+array under the nominal table, valid-domain, same-owner/array, call and
+lifetime conditions. Its element producer/content type remains unbound:
+no bone, matrix, material or attachment meaning is assigned. Neither these
+stores nor their adjacency to C+0x24 identify that field's consumer.
+
+The new internal normal continuation covers
+`[0x00C5018F,0x00C5025E)`, 56 instructions/207 bytes. It stops at earlier
+edges `0x00C501F2 -> 0x00C50025` and
+`0x00C50259 -> 0x00C4FA70`; neither target was decoded. No constructor
+return or catalog-end tail was reached. This remains an internal continuation,
+without full-function coverage. Original PE/Capstone/pefile checks used the
+identity and method above, with these additional span digests:
+
+| Half-open VA span | SHA-256 |
+|---|---|
+| `0x00C5018F..0x00C5025E` | `d0257b7a165f4e8912097df0c0ab3fd200208187ad14837d37b38a2dcf5b32cc` |
+| `0x00C39840..0x00C39853` | `3625c821e901abc8ebcfa2c2a7b09364b4e39ba35b3ba14f6fb72541c2c2c87a` |
+| `0x00C39860..0x00C39893` | `201d3c254c4ec77a93a3967ab9be9e1d93ded30092805f0d5d775c6df01908c7` |
+| `0x00C32C80..0x00C32C97` | `d21e089b4cb49bdabee18210011fc5d816ffa9bbece6d6668dda9e949cd05def` |
+
+The three helpers have complete normal CFGs. Calls, source extents, counter
+state, physical preservation and actual table/array identity retain their
+explicit conditions; no runtime observation or serialized list bytes were read.
 
 ### Selected material binding
 
