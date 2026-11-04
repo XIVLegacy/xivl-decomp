@@ -195,7 +195,7 @@ EXPECTED_QUEUE = {
         "boundKeyGate": "In states 0 to 9, when the bound key at +0x170 is not the null key 0x0130c778 and resolves to a control, the pass returns without binding until 0x00cc72a0 reads registry byte +0x7d of that control as nonzero. A key that does not resolve is reset to the null key and the pass continues. State 10 skips the test.",
         "containerGateVa": "0x00766401",
         "containerGate": "In every state, each entry of the container at +0x20 (count at +0x28) whose key resolves and passes the same test is erased, and the pass returns without binding while any entry remains. Who fills the container is not traced.",
-        "readyByte": "Registry byte +0x7d is written by 0x00ce1dd0 at 0x00ce1e0b, which 0x00ce26c0 calls with 1 from the init-thread completion at 0x00cce23e. That the completion is the return of the _onInit thread is inferred.",
+        "readyByte": "Registry byte +0x7d is written by 0x00ce1dd0 at 0x00ce1e0b. Kind-qualified activation follows normal return or reported Lua error through 0x00cce8e0 with an empty saved-call range, and checker-directed termination through 0x00cce1c0. Checker output 2 is not Lua return status. See docs/resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion.",
     },
 }
 EXPECTED_CREATION = {
@@ -214,7 +214,7 @@ EXPECTED_CREATION = {
     ],
     "nameRule": "An empty name makes an unnamed instance. A first character outside a to z and the underscore is reported through 0x00cd55a0 and creation continues.",
     "globalRule": "globals[name] is set to the instance table when globals[name] is nil, and an existing global makes the creation return null.",
-    "initWait": "0x0078bbb0 requests the _onInit thread and does not wait for it. In queue states 0 to 9 the next candidate is held until the registry byte +0x7d of the last bound control is set at init completion, so Debug, WorldMaster, the player, the area master and the local DesktopWidget each finish initialization before the next is bound. State 10 does not wait.",
+    "initWait": "0x0078bbb0 requests the _onInit thread and does not wait for it. In queue states 0 to 9 the next candidate is held until registry byte +0x7d of the last bound control is set. Normal return, reported Lua error and checker-directed termination can set that byte under their completion guards; it does not prove successful initialization. Whether another enable targets the same fresh pending control remains untraced. State 10 does not wait.",
 }
 EXPECTED_DESKTOP = {
     "requestVa": "0x00774700",
@@ -698,8 +698,9 @@ def verify(document: dict | None = None) -> list[str]:
     contract = document.get("contract", [])
     if (
         len(contract) != 10
-        or "until the previous instance's _onInit has completed" not in contract[6]
-        or "after the area master's _onInit has completed" not in contract[7]
+        or "until the previous instance's registry readiness byte is set"
+        not in contract[6]
+        or "after the area master's registry readiness gate passes" not in contract[7]
     ):
         errors.append("consumer contract changed")
     if (

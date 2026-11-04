@@ -950,14 +950,56 @@ handle `Q+4`. The [handle producer and reuse path](#script-instance-handle-and-t
 below establish its association with bound instance `S` on the successful
 cloned-control branch.
 
-Scheduler `0x00CF1B50` calls `0x00CCE1C0` at `0x00CF1D16` when thread
-status equals `u32(0x0130CED0)`, value 2. The completion method requires a
+Scheduler `0x00CF1B50` calls `0x00CCE1C0` at `0x00CF1D16` when the
+resume checker's output equals `u32(0x0130CED0)`, value 2. This is a
+termination request, not the Lua coroutine's return status. The method requires a
 nonzero `X+0x10` and kind `0xFFFE` (`0x00CCE22E`), then calls
 `0x00CE26C0` at `0x00CCE23E`. That function sets pending and `S+0x80`,
 then calls activation `0x00CE1DD0` at `0x00CE26D4`. With an accepted
 `S+8`, activation fires Lua control slot 11. While control byte `+0xE1`
 remains set, its resend sends `_setGroundOn(1)` for the bound element key.
-`0x00CCE8E0` contains the same kind-qualified call at `0x00CCE9AC`.
+`0x00CCE8E0` contains the same kind-qualified call at `0x00CCE9AC`,
+guarded by an empty saved-call range `X+0xDC/+0xE0` at `0x00CCE92E`.
+
+The two status domains are distinct. The following observations were decoded
+from the pinned PE with Capstone 5.0.7. STATIC.
+
+| Producer | Status and consumer |
+|---|---|
+| Checker poll `0x00CCD4A0` | Calls slot 1 of `X+0xE8` at `0x00CCD527` with the output pointer. A null checker writes 2 at `0x00CCD4DC`. Scheduler value 1 (`0x0130CECC`) leaves the thread queued; 2 calls `0x00CCE1C0`; another value calls `0x00CCF290` to resume. |
+| OnInitResumeChecker `0x007140C0` | An absent target control writes 2 at `0x007140E2`. A present control writes the ready value from `0x01377ECC` when its selected byte is set, or waiting value 1 when clear. This polls a target, not completion of the waiting Lua caller. |
+| Lua resume `0x00DCFD30` | Reads Lua state byte `L+6`. Without a fiber it invokes `0x00DCFCB0` through the protected runner `0x00DCF140`, writes a nonzero caught status at `0x00DCFD92`, and returns `L+6` on the ordinary exit. With a fiber, `0x00DCEFE0` switches to it and returns the same byte at `0x00DCF012`. |
+| Lua fiber entry `0x00DCEF10` | Calls the protected runner at `0x00DCEF35` and writes its result to `L+6` at `0x00DCEF3F`. Normal return leaves 0. A caught Lua error leaves its nonzero status. Yield `0x00DCF7D0` instead writes 1 at `0x00DCF819`, or reaches fiber suspension `0x00DCF020`, which writes 1 at `0x00DCF025` before switching back. |
+| Resume wrapper `0x00CF4230` | Calls `0x00DCFD30` at `0x00CF42B3`. It translates statuses 2, 4 and 5 into runtime, memory and error-handler records, respectively (`0x00CF42BB..0x00CF4402`). These are Lua error statuses, distinct from checker output 2. |
+
+Initial `_onInit` invocation reaches
+`0x00CD0910 -> 0x00CCF9B0 -> 0x00CCEE30 -> 0x00CCFFE0`.
+The call mode selects the protected-call wrapper `0x00CF4010` or resume
+wrapper `0x00CF4230` (`0x00CD0087..0x00CD00AB`). Both translate their
+Lua error statuses into the error record and report them, as the
+[request error contract](../script/delegate-command-producer.md#lua-error-inside-the-called-function)
+describes. `0x00CF39C0` tests exactly `L+6 == 1` by calling the byte reader
+`0x00DCEAB0`. At `0x00CCF08E` a yield takes the suspended branch
+`0x00CCF1C4`; ordinary non-yield processing reaches `0x00CCE8E0` at
+`0x00CCF1BB`. A reported error takes that same call directly at
+`0x00CCF0A1`, skipping normal result processing. Thus a caught and reported
+Lua error can set S `+0x7D` through `0x00CCE9AC -> 0x00CE26C0`, just as
+normal return can, when the saved-call range is empty and the owner/kind
+guards pass. It does not require a later checker output of 2.
+
+For a suspended request whose checker becomes ready, `0x00CCF290` calls the
+checker's slot 2 at `0x00CCF332`, clears that checker, and resumes Lua through
+`0x00CF4230` at `0x00CCF4BF`. Its later `L+6 == 1` test is
+`0x00CCF558`; a non-yield path reaches `0x00CCE8E0` at `0x00CCF6EA`
+after the applicable saved-call/result processing. If the checker instead
+answers 2, `0x00CCE1C0` destroys the checker at `0x00CCE1F8` and does
+not invoke the waiting coroutine's resume path before its kind-qualified
+activation. The `_createActor`
+checker can therefore end the waiting initialization thread because its
+target disappeared. Registry readiness proves neither successful `_onInit`
+return nor that its remaining Lua instructions ran. These paths assume the
+error reporter returns and the instance remains live; a process fault or a
+nonreturning native handler is outside this completion claim.
 
 The script-side record needed by `0x00775890` is inserted synchronously
 during binding. Control slot 3 reaches slot 36 at `0x006E03E7`.
@@ -985,11 +1027,17 @@ virtual control object and returned handle; `H = u32(S+4)` is its instance
 userdata payload address. Constructor `0x00CE2BC0` stores Q at `S+0`
 (`0x00CE2BF7`) and H at `S+4` (`0x00CE2BFD`). It then writes S through
 H at `0x00CE2C8C` and writes S at `Q+4` at `0x00CE2C90`.
+STATIC. The record constructor does not install a vtable at S: its first
+word is the control pointer. A retail C++ name for S is UNKNOWN. The catalog's
+record identity is not evidence of such a name.
 
 On the successful packet-binding clone branch, `0x00CDCBA0` calls
 `0x00CE2D50` at `0x00CDCE4B`. The clone method invokes control slot 1
 at `0x00CE2D9E`, allocates the new instance, and calls `0x00CE2BC0` at
-`0x00CE2DE5`. Binding uses that S for its SID, accepted type and pending
+`0x00CE2DE5`. The allocation requests `0x84` bytes at
+`0x00CE2DA9/0x00CE2DB2`; the constructor clears the new S `+0x7D` at
+`0x00CE2C80`, independently of the source record's enabled byte.
+Binding uses that S for its SID, accepted type and pending
 state. `0x00CC7800` returns Q at `0x00CC781D`. The later
 `0x00CC7AD0` call resolves Q at `0x00CC7AF1` and passes the result to
 `0x00CF1060` at `0x00CC7AF9`, with force 0 (`0x00CC7ADB`).
@@ -998,6 +1046,15 @@ that result is the bound S by the constructor store. Its null and engine
 sentinel arms are separate cases. Destruction clears H's S and Q's
 back-pointer at `0x00CE29A8` and `0x00CE29BB`; the association requires
 live objects.
+
+The sentinel arm uses the same constructor. Engine setup `0x00CD8990`
+allocates a `0x84`-byte S at `0x00CD8C5C/0x00CD8C61`, supplies its
+8-byte control and userdata to `0x00CE2BC0` at `0x00CD8D0A`, and stores
+the result at engine `+0x1BC` at `0x00CD8D18`. `0x00CD7A30` returns
+that S when its control equals the argument (`0x00CD7A43`), otherwise it
+returns the live argument's `+4`. Both arms therefore recover the same
+constructed record shape, with separate allocation and lifetime. This does
+not establish how many arbitrary controls could be made to share a record.
 
 `0x00CF1060` selects a Lua cache by H and the unsigned kind word k.
 Its registry keys are `u32(0x0130D508) = 0x1000B` and

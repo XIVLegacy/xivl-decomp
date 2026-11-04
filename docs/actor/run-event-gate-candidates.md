@@ -31,8 +31,12 @@ void* FUN_00cd7a30(this, arg) {     // ECX=this, [ESP+4]=arg
 The result is the entry pointer stored at `this+0x1BC` or the `+4` field of the
 argument.
 `ActorBase` constructor `FUN_006dbb70` does not write `+4`; parent constructor
-`FUN_00cccb70` sets it to zero. This page does not establish what installs the
-`+4` field or how many actors share one entry.
+`FUN_00cccb70` sets it to zero at `0x00CCCB78`. The
+[script-instance handle producer](../resource/attribute-resource-and-scene-binding.md#script-instance-handle-and-thread-reuse)
+establishes the later `Q+4=S` store at `0x00CE2C90`, the fresh `0x84`-byte
+record allocation and the separate engine-sentinel case. STATIC. The entry is
+that script-instance record S, not the virtual control Q. This identifies the
+record and constructor, not a retail C++ class name; that name remains UNKNOWN.
 
 ## Traced writers
 
@@ -43,7 +47,48 @@ argument.
 
 The [actor instantiation record](actor-instantiation-and-self-player.md#creation-order)
 traces activation through `0x00CE26C0` and the init-thread completion
-`0x00CCE1C0`.
+and termination paths `0x00CCE8E0` and `0x00CCE1C0`.
+
+### Explicit activation and fresh records
+
+`0x00CC72C0` resolves its control argument through `0x00CD7A30` at
+`0x00CC72CA`, then calls `0x00CE1DD0` on that S at `0x00CC72D9`.
+Activation writes the supplied byte before its pending/type checks and does
+not test initialization-thread status. The following direct callers were read
+from Ghidra listings and checked against the pinned `ffxivgame.exe` bytes with
+Capstone 5.0.7. STATIC.
+
+| Call site | Control and byte | Ordering boundary |
+|---|---|---|
+| `0x006E1D41` | Incoming control `this`, byte 0 | Sets control `+0x7A` to 1 before disabling. It cannot set S `+0x7D` to 1. |
+| `0x006E1E12` | The same incoming control `this`, byte 1 | Requires control `+0x7A != 0` and `0x006C02D0` true, then clears control `+0x7A`. Neither guard reads the init thread. Its call belongs to DesktopWidget control; a path from a fresh pending control to this call is NOT TRACED. |
+| `0x0077418B` | Q saved from SID lookup `0x00773F49`, byte 1 | Requires the request to pass its earlier guards and descriptor `+0xC4 == 0` at `0x0077404F`. The packet-character route is a [re-enable after slot 11](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion); this does not prove early activation of a fresh pending control. |
+| `0x0077591E` | Q resolved from the supplied SID at `0x00775912`, byte 0 | Disables the instance while preparing script-side work. It cannot set S `+0x7D` to 1. |
+| `0x0078FC31` | Q returned by `0x00CC78A0` at `0x0078FC27`, byte 1 | The loop creates `global`, `math`, `string` and `table` controls. `0x00CD99F0` clones their records and sets type `0x1000A` through `0x00CE16A0` at `0x00CD9B39`; this is separate from the actor `_onInit` creation path. |
+
+DesktopWidget constructor `0x006E0650` installs vtable `0x00FD5B8C`
+at `0x006E0687`; its slots 4 and 11 contain `0x006E1DE0` and
+`0x006E1D30`. The PE RTTI descriptor `0x012C2108` identifies
+`.?AVDesktopWidget@Control@Client@Script@Lua@Application@@`. This
+establishes the receiver class, not the time of a call on a fresh instance.
+
+Class setup `0x00CD9360` also calls activation with 1 at `0x00CD988F`.
+Its new-clone branch obtains S at `0x00CD9799`, selects class-record type
+`0x10009` through `0x00CE1680` at `0x00CD97CA`, stores S in EBX at
+`0x00CD97DD`, and activates that same record after SID assignment and pending
+setup (`0x00CD986F`, `0x00CD9885`). A reused class record joins the same tail.
+This is class setup, not the later actor instance: `0x00CDCBA0` clones the
+class through `0x00CE2D50` at `0x00CDCE4B`, and the new S has its own
+`+0x7D` cleared by `0x00CE2BC0`. STATIC. The class record's enabled byte is
+not copied into that fresh record.
+
+These paths establish possible explicit writes and exclude class setup and
+the two disabling calls as evidence of early activation of the same fresh
+actor record. Whether DesktopWidget re-enable or another admitted descriptor
+can target a fresh instance while its `_onInit` is suspended remains NOT
+TRACED. Settling it requires the same Q/S association from creation through
+the enable caller with a still-pending initialization thread, rather than a
+call edge or the absence of a status guard alone.
 
 ## Literal-store census
 

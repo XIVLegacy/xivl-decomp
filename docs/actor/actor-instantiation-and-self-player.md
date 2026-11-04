@@ -46,7 +46,7 @@ marks a gap.
 | Only the self record reads a block of 20 words before its values | STATIC, MEASURED | [Stream reads](#stream-reads) |
 | Retail records are queued and bound in a fixed class order, not arrival order | STATIC, MEASURED | [Creation order](#creation-order) |
 | In queue states 0 to 9 each bind waits until the previously bound instance has set registry byte `+0x7D`, and state 10 does not wait | STATIC | [Creation order](#creation-order) |
-| Registry byte `+0x7D` is set at init thread completion, which is taken as the return of `_onInit` | STATIC, INFERRED for the link to the return | [Creation order](#creation-order) |
+| Registry byte `+0x7D` can be set after normal return, a reported Lua error or checker-directed termination | STATIC | [Initialization completion](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion) |
 | `worldMaster` and the other lowercase globals are the name field of the record, set when the instance is made | STATIC | [Instance creation](#instance-creation) |
 | `_getMyPlayer` returns the self instance from creation on, before its `_onInit` is queued | STATIC, INFERRED for the shared context | [Self player](#self-player) |
 | The DesktopWidget instance is made by the client, with no arguments | STATIC | [Local DesktopWidget](#local-desktopwidget) |
@@ -235,8 +235,8 @@ waiting container, which is `InitializeWaitingActorContainer`. The per-frame
 pass `0x00766F00` runs the state function `0x007663D0` over the candidates from
 the head of the list, and candidates are appended at the tail. One candidate is
 bound at a time: `0x00772C80` clears the pending slot at `+0x2C` when it
-returns. The state function also holds the pass until the previous instance has
-finished initialization, as [Initialization gates](#initialization-gates)
+returns. The state function also holds the pass until the previous instance's
+registry readiness byte is set, as [Initialization gates](#initialization-gates)
 records. The commit call with the sentinel candidate, `edi == esi+0x30`
 rejected at `0x0076677F`, binds nothing.
 
@@ -285,17 +285,19 @@ rows.
 | Bound key | `0x007664AE` to `0x007664EE` | In states 0 to 9, when `+0x170` is not the null key `[0x0130C778]`, the key is resolved through `0x00CC7A50` and tested by `0x00CC72A0`. That function returns byte `+0x7D` of the registry entry that `0x00CD7A30` returns. A false result jumps to `0x00766765`, which returns without binding. A key that does not resolve is reset to the null key and the pass continues. State 10 jumps over the test at `0x007664B5` | STATIC |
 | Waiting container | `0x00766401` to `0x007664A8` | In every state, each entry of the container at `+0x20`, with its count at `+0x28`, is resolved the same way. An entry that resolves and passes the test is erased. The pass returns without binding while any entry remains | STATIC. Who fills the container is NOT TRACED |
 | Ready byte | `0x00CE1E0B` | `0x00CE1DD0` stores its argument at `S+0x7D`. `0x00CE26C0` calls it with 1 at `0x00CE26D4`, and the init-thread completion `0x00CCE1C0` calls `0x00CE26C0` at `0x00CCE23E`, as the [initialization completion](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion) section records | STATIC |
-| Completion is the end of `_onInit` | `0x00CF1D16` | The scheduler calls the completion when the thread status equals the word at `0x0130CED0`, value 2 in that section. That the status means the `_onInit` function returned is not decoded here | INFERRED |
+| Checker-directed termination | `0x00CF1D16` | Checker output 2 reaches `0x00CCE1C0`, which can activate an init-kind owner through termination instead of the waiting coroutine's resume path. Normal return and reported error have the separate `0x00CCE8E0` path. The [status decoding](../resource/attribute-resource-and-scene-binding.md#initialization-completion-and-record-insertion) distinguishes both from Lua status | STATIC |
 
-In states 0 to 9 each bind therefore waits until the instance bound before it has
-completed initialization. `Debug` completes before `WorldMaster` is made, and
-`WorldMaster` before the player. That includes the yield of
-`_getStaticActor(310001)`, so `worldMaster`'s `_onInit` has finished before
-`Player._onInit` starts. The player completes before the area master, the area
-master before the DesktopWidget, and the DesktopWidget before the first state 10
-bind, which the state 9 call commits. Binds in state 10 do not wait for one
-another. Whether an `_onInit` that raises an error still reaches the completion
-is NOT TRACED. If it does not, the queue holds every later instance.
+In states 0 to 9 each bind waits for the readiness of the instance bound before
+it. The readiness order is `Debug`, `WorldMaster`, the player, the area master
+and the DesktopWidget, followed by the first state 10 bind, which the state 9
+call commits. On the ordinary normal-return path, this orders their `_onInit`
+returns and includes `WorldMaster`'s `_getStaticActor(310001)` yield before
+`Player._onInit` starts. A reported Lua error or checker-directed termination
+can also release the gate. Readiness alone therefore does not establish a
+successful return or execution past that yield. The
+[explicit activation callers](run-event-gate-candidates.md#explicit-activation-and-fresh-records)
+also leave a narrow open edge for early re-enable of a fresh control. Binds in
+state 10 do not wait for one another.
 
 ## Self player
 
@@ -421,12 +423,13 @@ the `_getStaticActor` entry of `returnObjects` in
    nil before it exists.
 7. Queue `_onInit(self, v1..vn)` from the visitor values only and run it as a
    coroutine. In queue states 0 to 9, hold the next creation until the previous
-   instance's `_onInit` has completed, so `worldMaster`'s `_onInit` has finished
-   before `Player._onInit` starts. Creation after the first state 10 bind does
-   not wait. The link from the ready byte to the return of `_onInit` is INFERRED.
+   instance's registry readiness byte is set. Normal return, reported Lua error
+   and checker-directed termination can set it under the completion guards.
+   On the normal-return path `worldMaster` finishes before `Player._onInit`
+   starts. Creation after the first state 10 bind does not wait.
 8. Create the DesktopWidget instance with key `0xC0000024`, name
-   `desktopWidget` and no arguments after the area master's `_onInit` has
-   completed.
+   `desktopWidget` and no arguments after the area master's registry readiness
+   gate passes.
 9. Resolve `_getStaticActor(n)` from the static actor class table, create the
    instance named `_static%X` on demand and yield until it exists.
 10. Decode tag `0x01` as a float, though no captured record exercises it. Stop
@@ -460,8 +463,10 @@ artifact.
   records.
 - Who fills the waiting container at `+0x20` is untraced.
 - The Lua value of a null actor binding is untraced.
-- Whether an `_onInit` that raises an error still sets registry byte `+0x7D` is
-  untraced.
+- Whether an explicit enable can target the same fresh control before its
+  initialization thread ends remains untraced, as the
+  [activation caller analysis](run-event-gate-candidates.md#explicit-activation-and-fresh-records)
+  records.
 
 ## Reproduction
 
