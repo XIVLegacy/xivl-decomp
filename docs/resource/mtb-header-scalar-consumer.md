@@ -91,11 +91,10 @@ consumer identifies seconds, FPS, scheduler ticks or a sampling-time domain.
 The bound getter's plain RET, expected floating-point state, preserved live
 registers, stack/control and readable/writable storage remain conditions.
 
-The owner is an existing element in the incoming receiver's vector rooted
-at +0x1C. Its producer and concrete table remain unbound. The actual later
-dispatch at `0x00DFCCE4` uses ECX=owner and virtual +0x3C, slot 15;
-the target is not identified. A typed owner producer or attributable reader
-of the initialized fields is needed to establish their later time domain.
+The owner is an element in the incoming receiver's vector rooted at +0x1C.
+The conditional construction profile below identifies it as a MotionControlLayer.
+An actual consumer of its initialized range fields is still needed to establish
+their later time domain.
 Call `0x00A3E670` at `0x00DFCB07` uses incoming argument 2 as its
 receiver and is not proof of this owner's constructor.
 
@@ -108,6 +107,71 @@ receiver and is not proof of this owner's constructor.
 | `[0x00DFCA80,0x00DFCD03)` | 200 |
 | `[0x00E08D80,0x00E08DD0)` | 18 |
 | `[0x00E08CD0,0x00E08D07)` | 19 |
+
+## Conditional context and owner construction
+
+The reached caller `0x00A6FC50` supplies Ctx=`[Outer+0x60]`, result L
+from `0x00DFC9F0(Ctx)`, and its explicit input R to `0x00DFCA80` at
+`0x00A6FEE5`. It rejects zero L. The selected call also requires the
+embedded interface at R+0x0C to return a pointer whose dword equals the
+runtime global `0x01323868`; that guard does not identify a serialized member.
+Outer, Ctx, L and the accessor's N/P roles remain distinct.
+
+Initially nonzero Outer+0x60 bypasses construction. On its null branch,
+`0x00A6FDAA` constructs Ctx through `0x00DFC6A0` and publishes its
+return at Outer+0x60 at `0x00A6FDD6`. The constructor consumes two stack
+arguments and returns its receiver with RET 8 at `0x00DFC831`. Its first
+input is a pointer moved from an opaque `0x00C3BB80` result. The second
+argument's low 16 bits are stored at Ctx+0x18; assigning the caller's earlier
+prepared EDI word to that argument requires the intervening calls' expected
+stack cleanup and preservation. No clock meaning is assigned to that word.
+
+The constructor installs table `0x0113B34C` at `0x00DFC6C3`; original
+locator `0x011A7450` and TypeDescriptor `0x01320FD8` identify
+`.?AVAnimationController@Animation@Dw@Engine@CDev@SQEX@@`.
+It zeros the Ctx+0x1C vector's pointer fields +0x20/+0x24/+0x28.
+Its separate [16-byte Joint-row block](mtb-fixed-motion-calculator.md) is not
+this owner vector. The opaque
+`0x00DFC490(Ctx)` runs after publication and before the common element
+producer, so constructor state alone does not establish later vector state.
+
+At `0x00DFCA42`, `0x00DFC9F0` supplies a nonnull candidate to
+`0x00DFD360` with argument **address Ctx+4**, not the pointer stored there.
+It then supplies returned K to `0x00A31F00` on Ctx+0x1C and returns the
+held value as L. Null candidate supplies zero. Successful append, retention
+and opaque-call preservation remain conditions; the initially empty vector's
+growth path was not closed.
+
+`0x00DFD360` installs table `0x0113B2B4` at `0x00DFD3A0`.
+Original locator `0x011A7400` and TypeDescriptor `0x01320F98` identify
+`.?AVMotionControlLayer@Animation@Dw@Engine@CDev@SQEX@@`.
+It stores address Ctx+4 at K+0x7C, initializes K+0x78/+0x80 to zero,
+and constructs the range at K+4 with the already qualified `(0,0,30,30)`
+helper. This table is distinct from the AnimationController table.
+
+`0x00DFCAD6..0x00DFCADC` compares requested L with the actual vector entry.
+Only equality can reach the selected owner load at `0x00DFCB16`; nonzero
+K+0x78 instead takes an early return. Thus a found, eligible entry reaching
+the scalar operation is exactly K=L, without a sole-entry assumption. The
+constructed profiles require retained objects, fields and current tables;
+the preexisting-context branch is not automatically assigned these identities.
+
+With K's constructed table retained, its actual slot-15 call at
+`0x00DFCCE4` selects original cell `0x0113B2F0=0x00E11DC0`.
+This is the [shared vector-count getter](skeleton-embedded-container-parents.md),
+here reading K+0x24/+0x28. It reads neither range field K+8 nor K+0x18.
+The returned count goes to `0x00A3B680` at `0x00DFCCE9` with ECX=Ctx+4;
+that body was not expanded. A count handoff does not establish range units.
+The remaining scalar question is an attributable MotionControlLayer range-field
+consumer, with the actual source/type, lifetime and retention conditions above.
+
+Additional original-PE normal CFG coverage was
+`[0x00A6FC50,0x00A6FEF1)`, `[0x00DFC6A0,0x00DFC834)`,
+`[0x00DFC9F0,0x00DFCA75)`, `[0x00DFD360,0x00DFD454)` and
+`[0x00E11DC0,0x00E11DD3)`. Catalog metadata truncated the constructor at
+`0x00DFC81E`; its independently decoded 22-byte tail supplied the actual
+epilogue and RET 8, without assuming the opaque error calls were nonreturning.
+No uninvoked layer slot, allocator, count helper or vector-growth body was read.
 
 ## Same-name MCB selection boundary
 
