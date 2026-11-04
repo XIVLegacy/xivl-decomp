@@ -136,7 +136,7 @@ leaf or vins blob has six groups in every installed case.
 6. Optionally scan leaf and vins blobs for sibling names. Label the result as
    an inferred link.
 
-## What a bhc-formats reader can implement now
+## What a reader can implement
 
 - The PWIB, RES and nested RES walk, including the declared header word of
   `0x30` or `0x40` with the directory at `0x40`, and the RES name table.

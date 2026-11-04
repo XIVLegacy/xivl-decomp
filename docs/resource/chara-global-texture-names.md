@@ -152,7 +152,7 @@ list is not traced here.)
 ## What `client/chara/pc/cmn/0001` holds (V)
 
 The file is a PWIB wrapper over a SEDBRES directory with ten entries.
-Reading it through the `bhc-formats` directory and GTEX parsers:
+Its directory and GTEX headers read as follows:
 
 | Slot | Directory name tail | Kind | GTEX format index | Mips | Size |
 |---:|---|---|---:|---:|---|

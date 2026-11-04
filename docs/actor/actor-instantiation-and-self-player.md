@@ -401,7 +401,7 @@ where `310001` is
 the `_getStaticActor` entry of `returnObjects` in
 `xivl-client-structs:manifests/desktop_native_call_contract.json` records.
 
-## What bahamut-client can implement
+## Client implementation requirements
 
 1. Split the 264-byte application at `0x04` (name), `0x24` (class) and `0x44`
    (stream). Refuse a stream whose last nonzero byte is not `0x0F` or `0xFF`.
@@ -429,8 +429,8 @@ the `_getStaticActor` entry of `returnObjects` in
    completed.
 9. Resolve `_getStaticActor(n)` from the static actor class table, create the
    instance named `_static%X` on demand and yield until it exists.
-10. Decode tag `0x01` as a float, or leave it unhandled, because no retail
-    record uses it. Stop the values at tags `0x0D` and above and at an
+10. Decode tag `0x01` as a float, though no captured record exercises it. Stop
+    the values at tags `0x0D` and above and at an
     exhausted length, and keep a tag `0x06` whose key does not resolve as a
     null binding in its slot.
 

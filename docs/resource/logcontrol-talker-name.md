@@ -193,7 +193,7 @@ read row 222 of `xtx__text_ui.csv` and a row of `xtx_displayName.csv`. No
 instruction body, byte dump or decompiled body is needed in a published
 artifact.
 
-## Consumer notes for bahamut-client
+## Client implementation notes
 
 A client may implement these parts of the contract.
 

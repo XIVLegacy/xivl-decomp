@@ -316,7 +316,7 @@ cells and `--samples <payload_samples.json>` for the census. Without `--exe` the
 command prints a skip line. No instruction body, byte dump or decompiled body is
 needed in a published artifact.
 
-## Consumer notes for bahamut-client
+## Client implementation notes
 
 A client may implement these parts of the contract.
 

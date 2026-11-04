@@ -1170,7 +1170,7 @@ gates and the pad one-shot gate, which the sections above identify only as far
 as stated. A client that implements the contract without them delivers in cases
 where retail does not.
 
-### What bahamut-client can implement now
+### What a client can implement
 
 Implement as written, all STATIC:
 

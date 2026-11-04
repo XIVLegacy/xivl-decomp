@@ -311,7 +311,7 @@ current renderer state and actual draw execution remain unobserved.
    and substitute the built-in default.
 2. Build the unit tree from instance 0 and the child schedules, creating a child at
    its start tick. Create further children from the Generate controls as the
-   [emitters page](vfx-generate-emitters.md#math-for-bahamut-client) describes.
+   [emitters page](vfx-generate-emitters.md#emitter-math) describes.
 3. For each DrawResource node take the model name from its resource block, the
    color from the linked color node and the world matrix from the linked matrix
    node, and skip the draw when the color alpha is not above 0.

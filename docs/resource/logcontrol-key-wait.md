@@ -557,7 +557,7 @@ script scan. Export the three `key_config` sheets with `xivl extract` and
 compare the cited rows. No instruction body, byte dump or decompiled body is
 needed in a published artifact.
 
-## Consumer notes for bahamut-client
+## Client implementation notes
 
 A client may implement these parts of the contract.
 

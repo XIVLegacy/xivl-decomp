@@ -394,7 +394,7 @@ def doc_errors() -> list[str]:
             errors.append(f"page does not use the {tier.upper()} tier label")
     for needle in (
         "200000 + wire + 0x4350",
-        "what bahamut-client can change",
+        "client and server consequences",
         "xivl-captures",
     ):
         if needle not in text:

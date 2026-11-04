@@ -227,16 +227,13 @@ expected mappings:
 These fixture expectations do not attest to an update of the capture census
 or its extractor.
 
-## What bahamut-client can change
+## Client and server consequences
 
-`status_row_id` in `crates/bhc-world/src/status.rs` can return
-`200000 + wire + 0x4350` for a wire id from `0x8001` to `0xFFFF`, keep
-`200000 + wire` for 1 to `0x8000` and keep `None` for zero. It has no
-CALIBRATION branch left. The tests can pin `0x8000` to 232768, `0x8001` to
-250001, `0x83E9` to 251001 and `0xFFFF` to 282767, and drop the assertion that
-a wire id above `0x8000` has no row. The module header and the status panel
-section of `docs/development.md` can cite this page instead of the census
-wording.
+A client maps a wire id to a status lookup key as `200000 + wire + 0x4350` for a
+wire id from `0x8001` to `0xFFFF` and as `200000 + wire` for 1 to `0x8000`. Zero
+has no key. So `0x8000` maps to 232768, `0x8001` to 250001, `0x83E9` to 251001
+and `0xFFFF` to 282767. A key need not have a sheet row, as the
+[sheet row space](#sheet-row-space) records.
 
 The single-slot opcode `0x0177` feeds the same translation and the same slot
 array as `0x0179`, so the self status panel can apply it to the slot its index
@@ -245,8 +242,9 @@ staging helper does not range-check it, so a client rewrite should reject an ind
 more and not model the shift wrap of the staging helper.
 
 A server that encodes a status row as a wire id uses the row minus 200000 for a
-row up to 232768 and the row minus 217232 for a row from 250001. A row between
-232769 and 250000 has no wire id. The census reverse encodings must not be
+row from 200001 to 232768 and the row minus 217232 for a row from 250001 to
+282767. Any other row, including row 0 and a row between 232769 and 250000, has
+no wire id. The census reverse encodings must not be
 used for that direction.
 
 ## Open questions

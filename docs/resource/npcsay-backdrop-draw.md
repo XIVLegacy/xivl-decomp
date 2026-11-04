@@ -415,7 +415,7 @@ Run `python tools/verify_npcsay_backdrop_draw.py --exe <ffxivgame.exe>` for the
 executable rows. Add `--install <client/sqwt> --blowfish <xivl-tools/tools/blowfish.py>`
 to re-read the form, the style rows, the skin rectangles and the texture alpha.
 
-## Consumer notes for bahamut-client
+## Client implementation notes
 
 A client may implement these parts of the contract.
 

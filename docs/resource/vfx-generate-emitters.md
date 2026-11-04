@@ -422,7 +422,7 @@ STATIC and the record offsets are INFERRED like those above. How the line is
 drawn, the form transform, the clamps of the motion record at `+0x40` and the
 other draw controls are UNKNOWN.
 
-## Math for bahamut-client
+## Emitter math
 
 1. Seed one MT19937 with the clock or any value. Convert a word to a unit draw by
    `word / 4294967295` and to a signed draw by `int32(word) * 2^-31`.

@@ -81,6 +81,13 @@ Keep the source identity and the local binary observation distinct so a reader
 can tell which part was incorporated and which part was independently
 confirmed.
 
+## Client implementation labels
+
+Client implementation notes use two labels for what retail evidence does not
+settle. `CALIBRATION` marks a value or rule that evidence does not yet fix and
+that an implementation must choose and may later replace. `AUTHORED` marks an
+implementer's own choice, which is not a retail claim.
+
 ## Numbers in prose
 
 Keep a number when it carries the claim: an address, offset, size, slot,

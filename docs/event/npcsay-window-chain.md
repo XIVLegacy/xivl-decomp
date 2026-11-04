@@ -264,7 +264,7 @@ trigger elements. Read the cited ranges in the executable and run
 instruction body, XML body or decompiled body is needed in a published
 artifact.
 
-## Consumer notes for bahamut-client
+## Client implementation notes
 
 A client may implement these parts of the contract.
 
@@ -288,6 +288,6 @@ macro, which EndEvent type byte ends a talk block, the sound for
 `FileNumber="50"`, the order of the `0x012E` reply against a parked release, the
 row template (`LogFormat`), and what holds a one-line message. `LinesPerSec`
 paces only the scroll of the text area, as the key-wait page records. A client that
-keeps the stand-in of showing the window only while its control holds a line
+shows the window only while its control holds a line
 differs from this behavior at event start, where the window is shown and
 transparent before any message arrives.

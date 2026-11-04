@@ -566,7 +566,7 @@ def doc_errors() -> list[str]:
     for tier in ("static", "inferred"):
         if tier not in text:
             errors.append(f"page does not use the {tier.upper()} tier label")
-    if "what bahamut-client can change" not in text:
+    if "client consequence." not in text:
         errors.append("page lacks the client-change notes")
     return errors
 

@@ -13,7 +13,8 @@ level and state machine that the chase feeds. The
 
 Labels. STATIC means the cited instructions and data state it. OBSERVED means
 it was counted in the retail captures. INFERRED is an interpretation of STATIC
-evidence. OPEN is not established.
+evidence. OPEN is not established. The client notes also use the
+[client implementation labels](../ai_agents/evidence-and-claims.md#client-implementation-labels).
 
 ## Identity and method
 
@@ -64,7 +65,7 @@ writes it.
 
 The float comes first and its slot follows in the same record. The payloads
 agree. In the on-foot records the u16 values 0, 1, 2, 3 follow the floats 0.0,
-2.0, 5.0, 5.0 (see the [wire census](../net/move-actor-wire-census.md#0x00d0-speed-list)).
+2.0, 5.0, 5.0 (see the [wire census](../net/move-actor-wire-census.md#0x00d0-records)).
 The `xivl-captures` study `movement-speed-band-observations` reads the same
 bytes as `(slot, float)` and so pairs every value with the previous slot. The
 client reading is the one that applies.
@@ -282,7 +283,7 @@ units per second against the on-foot run entry 5.0
 (`xivl-captures:studies/c2s-00ca-position-report`). The source of the timestep
 argument (the frame clock) was not traced.
 
-## Consumer notes for bahamut-client
+## Client implementation notes
 
 A client may implement as STATIC or OBSERVED:
 
@@ -290,8 +291,8 @@ A client may implement as STATIC or OBSERVED:
   the float at `16+8i` and the u16 slot at `20+8i`. Store `float / 30` per step
   at the slot, with at most 16 records applied. Slots 0 to 3 are the observed
   range.
-- Start from the default list 0, 2, 5, 5 per second (0, 1/15, 1/6, 1/6 per
-  step) before any `0x00D0`.
+- Start from the default list 0, 1/15, 1/6, 1/6 per step before any `0x00D0`.
+  The per-second reading 0, 2, 5, 5 is INFERRED from the timestep unit.
 - On `0x00CF`, keep the last nonzero state `s` as the gait level, which is also
   the speed slot. Replace the target with the first vector every record, even for
   state 0. Apply the rotation float at offset 36.

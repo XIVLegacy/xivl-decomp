@@ -65,7 +65,7 @@ so that predicate removes the first-person keys. With `+0x448` bit `0x10` set,
 requests for keys 1, 3, 5 and 7 return before any change. The user-facing
 meaning of both predicates is unresolved.
 
-What bahamut-client can change. A client that models only key 0 can name the
+Client consequence. A client that models only key 0 can name the
 other keys from this table. It needs no behavior for keys 4 to 7 until the
 predicate in `0x00616F90` is resolved.
 
@@ -95,8 +95,7 @@ Command 3 (`0x006179B0`) restores the four slots to 4.5 and, for keys 1 and 5,
 `+0x428` to 0.75. The camera element sends event 3 from its default-position
 routine, see Pointer path.
 
-What bahamut-client can change. The initial chase radius 4.5 replaces the
-authored 6.0. Its look-at height is not part of this page, see Open questions.
+Client consequence. The initial chase radius is 4.5. Its look-at height is not part of this page, see Open questions.
 
 ## Update pipeline and command receiver
 
@@ -142,7 +141,7 @@ Commands 40, 41 and 42 return while the first or second word stored by command
 2 for families 0 and 2 and key 3 for families 1 and 3 before they store the
 item, through the tables at `0x00618C38`, `0x00618C98` and `0x00618FFC`.
 
-What bahamut-client can change. A pointer drag or a wheel notch while in key 0
+Client consequence. A pointer drag or a wheel notch while in key 0
 or key 4 first switches to the Wow family (key 2 or 3, normalized by the lock
 rule), then applies its effect. A camera-move command with a nonzero payload
 switches back to key 0 or 1. The client can keep one orbit state and treat the
@@ -218,7 +217,7 @@ drives through s2c 0x0193 subopcodes 0x14 and 0x15, is described in
 [s2c 0x0193 native state](../net/s2c-0193-native-state.md) and is not traced
 here.
 
-What bahamut-client can change. Wheel input should be quantized to whole notches
+Client consequence. Wheel input should be quantized to whole notches
 before it reaches the camera model. Rotation should use the cursor change per
 move. Right drag orbits. The left button does not orbit. The middle-button drag
 (command 0x29) is not traced.
@@ -255,9 +254,8 @@ The clamp bounds 1.5 and 10.0 are the setter constants documented on the
 [indexed float page](indexed-float-clamp.md). They are the radius limits of
 slots 0 and 1. Slots 2 and 3 are not written by the traced handlers.
 
-What bahamut-client can change. Set the wheel step to 0.4 per notch and the
-third-person radius limits to 1.5 and 10.0 from the authored 0.1 and 2.0 to
-20.0. Zoom in past 1.5 toggles to first person. Wheel input in first person
+Client consequence. The third-person wheel step is 0.4 per notch and its radius
+limits are 1.5 and 10.0. Zoom in past 1.5 toggles to first person. Wheel input in first person
 changes a 0 to 1 zoom that maps to the field of view below.
 
 ## Drag rotation
@@ -300,13 +298,12 @@ Key 0 consumes the camera-move payload instead. Its yaw step is
 (`0x007F3FC5..0x007F4000`). The values `MoveCamera` carries for a held key are
 unresolved.
 
-What bahamut-client can change. Right drag rates and limits can use these
+Client consequence. Right drag rates and limits can use these
 constants: pitch +-45 degrees and 0.002 radians per cursor unit in third person.
 Yaw orbit applies only while the key 2 byte `+0x10` is zero. Retail turns the
 actor instead while it is set, and which state applies during walking is
 unresolved, so a client should keep orbit as the default and label the actor
-turn path CALIBRATION. The pitch limits -1.2 to 0.2 in the authored chase are
-not retail.
+turn path CALIBRATION.
 
 ## Follow tick
 
@@ -322,8 +319,8 @@ result and sets ctx `+0x10` to 1 (`0x007F5653`). When the actor pointer at
 [locomotion selection](locomotion-selection.md) page. Whether it holds during
 ordinary walking is unresolved, so the auto-follow condition is unresolved.
 
-What bahamut-client can change. Nothing yet beyond the drag gate above. Only
-the blend form and rate are known.
+Client consequence. Only the blend form and rate are known, so this section
+adds nothing to implement beyond the drag gate above.
 
 ## Lens
 
@@ -360,8 +357,8 @@ and `+0x15C` with near `0.01` and far `1000.0`. The update never takes it. The
 producers of `+0x1C4` and `+0x1C5` are the camera-move payload (command 1) and,
 upstream, the camera config widget. That upstream link is unresolved.
 
-What bahamut-client can change. Near 0.25 and far 10000.0 replace the authored
-lens planes, with the aspect taken from the viewport. The field of view
+Client consequence. The lens planes are near 0.25 and far 10000.0, with the
+aspect taken from the viewport. The field of view
 1.3173 radians (`f = 18`) rests on the INFERRED reading of `+0x15C` above. It
 adds 30 degrees to a value that is already `2 * atan(sensor / (2 f))`, which is
 unproven, so the default stays a CALIBRATION value until the consumer of
@@ -382,7 +379,7 @@ ends after 300000 elapsed units. The unit is unresolved, and the
 [screen environment page](../resource/screen-env-glare-latitude.md) leaves the
 same unit open.
 
-What bahamut-client can change. After every key change, replace the eye and
+Client consequence. After every key change, replace the eye and
 look-at each frame with `target + (current - target) * w` and let `w` fall
 linearly from 1 to 0 over the timer. The duration in seconds stays a
 CALIBRATION value until the elapsed unit is known.
@@ -397,7 +394,7 @@ distance depends on runtime geometry. The look-at is the object vector from
 `0x00664100`, built from the actor's `+0x88`, `+0x94` and `+0x9C` methods, and
 its height is not recoverable from the instructions alone.
 
-What bahamut-client can change. Keep clearance and look-at height as
+Client consequence. Keep clearance and look-at height as
 CALIBRATION values.
 
 ## Script natives and packets
@@ -413,7 +410,8 @@ and `_forceCameraTPSMode` (`PlayerBaseClass`) and `_aimCameraTutorial`,
 camera flags is unresolved. The server can already gate the camera commands
 through the user-control groups of the s2c 0x0193 page cited above.
 
-What bahamut-client can change. Nothing until the natives' effect is resolved.
+Client consequence. The natives' effect is unresolved, so this section gives
+nothing to implement.
 
 ## Open questions
 
