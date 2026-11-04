@@ -1,6 +1,6 @@
 # DamagePlate numeric presentation
 
-[Documentation index](../README.md) | [Combat result path](../net/combat-result-element.md#damage-plate)
+[Documentation index](../README.md) | [Combat result path](../net/combat-result-element.md#damage-plate) | [Form rules](damage-plate-form-rules.md)
 
 This page records a bounded static numeric branch and declarations from the identified DamagePlate assets. It does not establish displayed pixels, a concrete projection, or a live animation lifecycle.
 
