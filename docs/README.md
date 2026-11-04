@@ -151,6 +151,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Zone value-2 record construction](net/zone-value-two-record.md)
 - [Zone outbound opcode header binding](net/zone-outbound-header.md)
 - [Map serverbound 0x0003 emitter](net/map-0003-emitter.md)
+- [Battle target select, decide and lock senders](net/target-lock-decide-senders.md)
 - [Move actor wire census](net/move-actor-wire-census.md)
 - [Chat outbound header and fixed value](net/chat-outbound-header.md)
 - [Map 0x01C8 caller inputs](net/recruitment-1c8-caller-inputs.md)
