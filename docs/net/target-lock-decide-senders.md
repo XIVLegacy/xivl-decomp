@@ -26,7 +26,8 @@ selected bodies from the raw PE bytes through the section table after the size
 and hash were checked. Direct callers were found by scanning `.text` for
 `rel32` `call` and `jmp`. Virtual and indirect callers are not covered by that
 scan. RTTI names were read from the type descriptors that the complete-object
-locators cite. No client was executed.
+locators cite. Import names were read from the PE import directory. No client
+was executed.
 
 | Complete body, half-open | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -40,6 +41,19 @@ locators cite. No client was executed.
 | `[0x0075C720,0x0075C73D)` unlock wrapper | 29 | `b62c79ba91495d5d7ae07f08bc273e580c5403f8a7fc32fa716ef039d4503fb1` |
 | `[0x006E5DC0,0x006E5EA7)` MyPlayer slot `+0x134` | 231 | `8219b83c89b99bb45ecaa9334571d122d80ab0bc6c1ae4400451a2ae36269ccf` |
 | `[0x0075EB30,0x0075EB92)` widget `0xCD` poster | 98 | `96a64c07a256945c44bf4ea24471156183e32099a3bc1da3022b14e53b9eb526` |
+| `[0x006DE870,0x006DE87A)` `_setLockonTarget` callback | 10 | `0ec16258a11e90fdcafbefe4ac1abed803d09d94d28ea8b152e35011e91f384b` |
+| `[0x00892D70,0x00892E2D)` `_onTalkEvent` caller | 189 | `0f4be88825259d2ad1ed0b1c7783df0481fbace3bc621e7192a645a414d08fcf` |
+| `[0x00CC7A90,0x00CC7AC6)` decided dispatch call | 54 | `2eb18497f48591638f13089c4d4bc4cd81f08f04c6c24a6bcab3151abed3c59d` |
+| `[0x00CC7AD0,0x00CC7B15)` event thread request | 69 | `66db355963192f44686597b11eb1188948193210c14eba1945f048001978ad3e` |
+| `[0x00CF1060,0x00CF15EA)` script thread lookup or create | 1418 | `09c9e115f359328ada5476c291d6119f06802755d92b36cddd0e8093c97f192d` |
+| `[0x00CF3230,0x00CF3261)` thread constructor | 49 | `a212daf7383f3456f850620d8cb28d959d67edeee055f181462e26fcc9cb5bbc` |
+| `[0x00DCEF60,0x00DCEFBF)` fiber create | 95 | `470752073fcb10b61a3e9d936f3c12c8030294a76dba806bc5cdfcb0791faaeb` |
+| `[0x00DCEFE0,0x00DCF018)` fiber switch | 56 | `4b50f38aa2d634e6df32d53bb16889e9c13a77400dce4bd69324ef775fddd621` |
+| `[0x00DCFD30,0x00DCFDB4)` resume | 132 | `c2087bc0f98b0b1b302b066d14bf642e4edb54f4d81e1988e0e4f36ea19eda71` |
+
+| Data, half-open | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `[0x0130D034,0x0130D038)` thread stack size dword | 4 | `313588ae36b23498c072b8718f9a3614d9e52b444cdcea74ecd49c93044741b3` |
 
 The script facts come from the canonical decoded scripts of extraction
 `2012.09.19.0001`, reproduced with `xivl-client-scripts:tools/retail_script.py`
@@ -49,7 +63,12 @@ SHA-256
 `9c33f21c1f70a0056147e716d53300634efabe5b744ef6e8690114db21613a01`.
 `xivl-client-scripts:lua/scripts/chara/charabaseclass_cliprog.lua` has SHA-256
 `ea04844921f8820562afd172845cab7baf2df235725d20ad179bb713754c87fd`.
-Both identities are recorded in `xivl-client-scripts:manifests/scripts.json`.
+`xivl-client-scripts:lua/scripts/chara/npc/npcbaseclass.lua` has SHA-256
+`f18c6c3198db0402431ca6aa683b601afbf5a0dc5c22481b3c1da1deabef0dc2`.
+`xivl-client-scripts:lua/scripts/chara/npc/populace/populacecutsceneplayer.lua`
+has SHA-256
+`0080cafda1b0174612d464308a33e1ce4489cfba6bafb6c7adfff209e5e69747`.
+All four identities are recorded in `xivl-client-scripts:manifests/scripts.json`.
 Line numbers below refer to those files. Script control flow is static reading
 of decompiled bytecode, so every script path is `INFERRED`.
 
@@ -95,7 +114,8 @@ makes the bridge copy 8 application bytes, so the second dword is whatever the
 stack slot held (`INFERRED`).
 `xivl-client-structs:manifests/c2s_payload_schemas.json` records 10 distinct
 u32 values at application offset 4 over 66 serverbound `0xCC` samples
-(`MEASURED`), consistent with an unwritten dword.
+(`MEASURED`). [The second dword](#the-second-dword) gives the slot address,
+the threads the locks run on and the values each path sends.
 
 ### Argument 0, unlock
 
@@ -133,6 +153,154 @@ target object, or 0 when there is no current cursor.
 
 The lock path has no read of a main state or battle mode (`STATIC` for this
 body). Its callees beyond the listed getters were not traced.
+
+### The second dword
+
+The builder opens with `push ebp`, `mov ebp, esp`, `and esp, -8` and
+`sub esp, 0x8B0` (`0x00561BB0` to `0x00561BB6`), stores the cookie at
+`[esp+0x8AC]` and pushes `esi` and `edi`. Let E be the aligned `esp` after the
+`sub`. Both arms push 0 and `0xCC` and take R as `[esp+0x18]`, which is
+E`+0x08` (`0x00561C64`, `0x00561D08`). R`+0x18` is E`+0x20` and R`+0x1C` is
+E`+0x24`, which is `(EBP & ~7) - 0x88C`. No instruction in the body writes that
+address (`STATIC`).
+
+Battle and talk locks both call `_setLockonTarget` (`INFERRED`, script paths
+below), and that native reaches this one builder through one chain
+(`STATIC`). `_setLockonTarget` callback `0x006DE870` loads the receiver vtable
+cell `+0x134` and jumps to it (`0x006DE870` to `0x006DE878`). The MyPlayer slot
+`0x006E5DC0` tests the argument tag at `0x006E5E17` and calls the lock wrapper
+`0x0075C6B0` at `0x006E5E72` or the unlock wrapper `0x0075C720` at
+`0x006E5E8C`. The wrapper calls `0x004D9970`, `0x004D7310`, the select
+routine, the builder with 1 at `0x0075C6F6` and the select routine again, as
+[the lock inside the decided dispatch](#the-lock-inside-the-decided-dispatch)
+lists.
+
+The slot address follows from that chain (`STATIC`). Let S be `esp` in
+`0x006E5DC0` after its nine prologue pushes (`0x006E5DC0` to `0x006E5DDA`).
+The push at `0x006E5E6F`, the return address and the three saved registers of
+the wrapper put its body at S`-0x14`. The `push 1` at `0x0075C6F2`, the return
+address and `push ebp` give the builder an `EBP` of S`-0x20`. The slot is
+therefore S`-0x8AC` when S mod 8 is 0 and S`-0x8B0` when S mod 8 is 4. The
+unlock path pushes only its 0 argument at `0x0075C733`, so its builder `EBP` is
+S`-0x10` and its slot sits `0x10` higher.
+
+Two candidate writers do not supply the value:
+
+- The select routine (`and esp, -8`, `sub esp, 0x8BC` at `0x00562D33` and
+  `0x00562D36`) builds its own record at `[esp+0x28]` after five pushes
+  (`0x00562E4D`) and stores the getter result at its R`+0x1C` (`0x00562E69`).
+  That store lands on the builder slot only when S mod 8 is 4, and only on the
+  send path (`STATIC`). The first select in the wrapper is passed the current
+  target, so it returns at `0x00562D9E` and sends nothing (`INFERRED` for the
+  run-time object).
+- The direct callees that run in the same chain before the builder,
+  `0x00CC7510`, `0x0071BC90` and `0x00CC73B0` in `0x006E5DC0` and
+  `0x004D9970` and `0x004D7310` in the wrapper, reach no more than about
+  `0xC4` bytes below their entry on their normal path. The deepest is
+  `0x0071BC90`, whose type-4 path calls `__RTDynamicCast` `0x009DA6CC` at
+  `0x0071BD07`. That cast opens an `_SEH_prolog4` frame and calls the RTTI
+  search helpers `0x009DA476` or `0x009DA578` and the leaf compare
+  `0x009D8870`. The others stay within about `0x40` bytes (`INFERRED` from a
+  static walk of direct calls that excludes the error branches through
+  `0x009D22B4`, the cast-fail branch at `0x0071BD13` and the cast's throw
+  path, which its zero last argument skips, and does not cover indirect
+  calls).
+
+The dword is therefore stale stack contents left by an earlier, deeper call on
+the same stack before the `_setLockonTarget` callback ran (`INFERRED`). Which
+routine wrote it is `UNKNOWN`.
+
+#### The threads the locks run on
+
+A battle lock runs inside the decided dispatch (`INFERRED`, from the script
+path in [the lock inside the decided dispatch](#the-lock-inside-the-decided-dispatch)).
+`0x006FEBB0` calls `0x00CC7A90`, which loads `[[receiver]+0x1C0]`, takes the
+script thread from `0x00CF0910` (`mov eax, [ecx+0x2C]`) and runs the handler
+through `0x00CCF7D0` (`0x00CC7A95` to `0x00CC7ABC`, `STATIC`). Whether that
+thread runs on its own fiber is `UNKNOWN`.
+
+A talk lock runs inside a talk event script (`INFERRED`):
+
+- `NpcBaseClass._onTalkEvent`, lines 406-446 of `npcbaseclass.lua`, calls
+  `_setLockonTarget(self)` at line 422 when
+  `desktopWidget:isEventLockonCameraEnable()` is true and
+  `_setLockonTarget(nil)` at line 427 otherwise. It then calls
+  `_callServerOnTalk`, `_setLockonTarget(nil)` at line 437 and
+  `cancelAllTarget`.
+- `PopulaceCutScenePlayer._onTalkEvent`, lines 41-73 of
+  `populacecutsceneplayer.lua`, has the same lock test with the lock at line 49
+  and the unlock at line 64, and no `_callServerOnTalk`.
+
+The native caller `0x00892D70` pushes name literal `0x01056C00`
+`_onTalkEvent` at `0x00892DCB`. It obtains its script thread through
+`0x006DE170` (call at `0x00892DB7`), `0x006DDBB0` (`0x006DE1B6`), `0x00CC7AD0`
+(`0x006DDC13`) and `0x00CF1060` (`0x00CC7AF9`) (`STATIC`). On the create branch
+`0x00CF1060` calls the thread constructor `0x00CF3230` at `0x00CF12A1`. That
+constructor reads the dword at `0x0130D034` (`0x00CF3231`) and passes it to
+`0x00DCEF60` (`STATIC`). The file-backed value of that dword is `0x00020000`,
+and `0x00CF3231` is its only absolute reference in `.text` (`STATIC` by byte
+scan). `0x00DCEF60` creates no fiber for a negative value. It keeps a
+value of `0x9000` or more, raises a smaller positive value to `0x9000`, uses
+the dword at `0x0137B45C` for 0, rounds down to a multiple of 16 and calls
+`CreateFiberEx` through import cell `0x00F3E0D4` with commit v, reserve
+`(v >> 1) * 3`, flags 0 and start `0x00DCEF10`. It stores the fiber at
+L`-0x10` (`0x00DCEF75` to `0x00DCEFAA`, `STATIC`). For
+`0x00020000` the call is commit `0x20000` and reserve `0x30000`. The resume
+routine `0x00DCFD30`, whose error literal at `0x01131154` reads
+`cannot resume non-suspended coroutine`, calls `0x00DCEFE0` when L`-0x10` is
+nonzero (`0x00DCFD54` to `0x00DCFD60`). `0x00DCEFE0` calls
+`ConvertThreadToFiber` (`0x00F3E0CC`) when the thread is not yet a fiber and
+then `SwitchToFiber` (`0x00F3E0D8`) (`STATIC`). Each script thread made there
+therefore has its own fiber stack, as the
+[delegate command producer](../script/delegate-command-producer.md) resume
+table records.
+
+Fresh fiber stack pages read as zero, so a lock sent before any call on that
+fiber reached the slot depth carries 0. That is the explanation of the zero
+talk lock and the zero clear sent after the talk event resumes (`INFERRED`).
+It is not proven. `0x00CF1060` reuses a cached thread for the same instance
+and kind, as the
+[script instance thread lookup](../resource/attribute-resource-and-scene-binding.md#script-instance-handle-and-thread-reuse)
+traces, and a reused fiber that once ran deeper could carry a nonzero value.
+
+#### Captured values
+
+The retail captures give these second dwords (`MEASURED`). The lock rows and
+the totals over all 33 clears are in
+`xivl-captures:studies/c2s-battle-engage-order/derived/accounting.json`, key
+`lock_second_dword`. Every `actor, nonzero` lock there follows command 21001
+and is followed in its frame by a decide on the same actor (key `locks`). The
+split of the clears by the preceding actor lock is not a retained product. It
+comes from the decoder of
+`xivl-captures:tools/extractors/extract_c2s_battle_engage_order.py` run over
+the `pcap-1.23b` captures, with each clear attributed to the most recent
+actor lock in client order, the join that key `clears` uses.
+
+| Path | Study shape | Second dword | Records |
+| --- | --- | --- | --- |
+| Lock from the Active Mode decide | `actor, nonzero` | `0x0466E6A4` | 12 of 16 |
+| | | `0x00000040` | 3 of 16 |
+| | | `0x048AE2A4` | 1 of 16 |
+| Talk lock | `actor, zero` | `0x00000000` | 17 of 17 |
+| Disengage clear after a battle lock | clear | `0x03918EB0` | 8 of 16 |
+| | | `0x00000000`, `0x00000058` | 2 each |
+| | | `0x00000020`, `0x00000040`, `0x00CF97AA`, `0x008B000A` | 1 each |
+| Clear that ends a talk lock | clear | `0x00000000` | 15 of 17 |
+| | | `0x00000040`, `0x65440100` | 1 each |
+
+The three `0x00000040` locks are `party_battle_leve.pcapng` c2s frames 1356,
+1360 and 1386, all on one actor. The `0x048AE2A4` lock is
+`war_quest_update2.pcapng` frame 101, the only lock frame that also carries a
+`commandDefault` EventStart in the study's engage order table. The
+`0x00000040` talk clear is `party_battle_leve.pcapng` frame 1785, after the
+selector 101 `talkDefault`, and the `0x65440100` clear is
+`cutscene_book.pcapng` frame 202.
+
+`0x0466E6A4` and `0x048AE2A4` are 4 mod 8, lie above the end of the image and
+equal no actor id in their capture (`STATIC` for the arithmetic, `MEASURED`
+for the actor comparison in the study). `0x0466E6A4` repeats in four separate
+captures, which fits a stable heap or stack address better than a value
+computed per lock (`INFERRED`). Its source is `UNKNOWN`.
 
 ## Select `0x00562D30`
 
@@ -271,31 +439,18 @@ and from the config value 13 branch of `updateConfigWork` at line 23917
 
 ## Input handler `0x00565E10`
 
-The handler reads the event pointer at `[esp+8]`. Event `+0x1C` is the command
-object and event `+0x7C` its value. It acts only when the byte that event
-`+0x10` points at is 0, a current cursor exists and `+0xA0` is nonzero. Every
-path ends by passing the event to `0x0091D8F0` (`STATIC`). The command objects
-are constructed with name literals, read at the constructor pushes
-(`STATIC`):
-
-| Object | Name literal | Handler action |
-| --- | --- | --- |
-| `0x0133A1B8` | `0x00FA81C8` `RaptureCommands.LockTarget` | `0x00565E73` to `0x00565E83`: call vtable `+0x04` of the current cursor and pass `sete` of its byte result to the lock builder. Reading it as a toggle is INFERRED. |
-| `0x01357968` | `0x0106A410` `ApplicationCommands.MoveFocus` | Value 10 with a zero result from vtable `+0x18` of the object at `G +0x17758` and a true pick predicate: select null. Value 9 with a target: decide at `0x0056609B`. Value 9 without a target and a zero result from that `G +0x17758` call (`0x005660C3`): select the result of `0x005655F0(1)`. |
-| `0x0133A118` | `0x00FA81A0` `RaptureCommands.ChangeTargetMouseCursor` | Pick through `0x004DA510` with the event coordinates. A pick equal to the cursor target decides at `0x00565F87`. Any other pick selects when that `G +0x17758` call returns 0. |
-| `0x0133A078` | `0x00FA817C` `RaptureCommands.ChangeTargetMode` | Stores event `+0x7C` at `+0x98`. |
-| `0x01339CB8` to `0x01339FD8` | `ChangeTargetNext`, `ChangeTargetPrev`, `ChangeEnemyTargetNext`, `ChangeEnemyTargetPrev`, `ChangeBattleTargetNext`, `ChangeBattleTargetPrev` | Call `0x005639B0`, then select or call `0x004BBB00`. Reading these as target cycling is INFERRED from the names. |
-
-The `MoveFocus` name is recorded in the
-[Sqwt anime property page](../resource/sqwt-anime-property.md#commands). The
-`0x0133A1B8` toggle is the only native input lock in this handler. It can send
-`0xCC` alone, with no `0xCD` in the same routine. The first click on a new
-target selects and a second click on it decides (`STATIC` for the comparison at
-`0x00565F7F`).
+The `TargetElement` command handler `0x00565E10` is the native input caller of
+all three senders. It calls the cycle routine `0x005639B0`, which ends in the
+select routine, the select routine for a click, `Escape` and `Enter` without a
+target, the decide routine for `Enter` with a target and a click on the current
+target, and the lock builder for `RaptureCommands.LockTarget` at `0x00565E83`
+(`STATIC`). That toggle is the only native input lock in the handler. It can
+send `0xCC` alone, with no `0xCD` in the same routine. The command table, the
+installed key bindings and the gates are in the
+[target command handler](target-command-handler.md).
 
 No instruction in the handler body reads chara `+0xF0`, a main state, or
-battle mode (`STATIC`). The callees `0x004DA510`, `0x005639B0`, `0x005655F0`,
-the pick predicate and the `G +0x17758` call were not traced.
+battle mode (`STATIC`).
 
 ### The state gate
 
@@ -385,8 +540,10 @@ identities and command-list limit"). The retail request carries the event name
 (`xivl-captures:studies/c2s-012d-event-start/README.md`, section "Combat
 stance request context", `MEASURED`). The next row of that table is clientbound
 `0x0134` with state byte 2 for the same actor (`MEASURED`). Reading it as the
-reply is `INFERRED`. Which input sends
-`UILuaCommands.ChangeActivateMode` when the weapon is drawn is `UNKNOWN`.
+reply is `INFERRED`. The installed `key_config` sheet binds
+`UILuaCommands.ChangeActivateMode` to `F`, as the
+[target command handler](target-command-handler.md#key-bindings) records.
+Which input produced each captured request is `UNKNOWN`.
 
 The native target-cursor senders above do not send `0x012D` (`STATIC` for those
 bodies). The selection of `commandForced` for 21001 through the command
@@ -424,13 +581,13 @@ their use there is `UNKNOWN`.
   of its third argument.
 - Whether `0x00CC7A90` runs the `_onTargetDecided` handler before it returns.
 - The writer that copies the `0x0134` state byte to chara `+0xF0`.
-- The input that issues `UILuaCommands.ChangeActivateMode` and the value 217
-  and 224 text commands.
+- The input that issues the value 217 and 224 text commands.
 - The selection of the `commandForced` event name for command 21001.
 - The consumers of the lock event kind 1 and select event kind 0 posted
   through `0x004D7980`.
 - The role of the `0x00589290` call in the select routine.
-- The callees of the input handler listed above.
+- The routine that leaves `0x0466E6A4` in the lock slot, and whether the
+  decided dispatch thread has its own fiber.
 
 ## Reproduction
 
@@ -443,7 +600,14 @@ lists. Read the locators at `[vtable - 4]` and the names at type descriptor
 `+0x08` for the RTTI claims. Read the command name literals from the immediate
 pushed before each `mov ecx, <object>` and `call 0x00928C90` pair in the
 constructors at `0x00F0DD14` to `0x00F0E114` and at `0x00F21209` to
-`0x00F21229`. Decode the scripts with
+`0x00F21229`. For the second dword, follow `esp` through each push, call and
+`ret` operand from `0x006E5DC0` into the builder, read the dword at
+`0x0130D034` through the section table, scan `.text` for its little-endian
+address, and resolve the import cells `0x00F3E0CC`, `0x00F3E0D4` and
+`0x00F3E0D8` through the import directory. Decode the scripts with
 `xivl-client-scripts:tools/retail_script.py` and check them against
-`manifests/scripts.json` before reading the cited lines. No decompiled body,
-script body or ignored export is a tracked evidence dependency.
+`manifests/scripts.json` before reading the cited lines. For the captured
+values, run the decoder of the study extractor over the `pcap-1.23b` captures
+and group every client `0xCC` by its second dword and by the shape of the most
+recent actor lock. No decompiled body, script body or ignored export is a
+tracked evidence dependency.

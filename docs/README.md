@@ -152,6 +152,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Zone outbound opcode header binding](net/zone-outbound-header.md)
 - [Map serverbound 0x0003 emitter](net/map-0003-emitter.md)
 - [Battle target select, decide and lock senders](net/target-lock-decide-senders.md)
+- [Target command handler](net/target-command-handler.md) -
+  Key bindings, gates and sender branches of the TargetElement command handler.
 - [Move actor wire census](net/move-actor-wire-census.md)
 - [Chat outbound header and fixed value](net/chat-outbound-header.md)
 - [Map 0x01C8 caller inputs](net/recruitment-1c8-caller-inputs.md)
@@ -240,6 +242,8 @@ Each finding records its evidence and the limits of what it establishes.
 - [Rich-text colour tokens](resource/rich-text-colour-tokens.md)
 - [Rich-text global parameter vector](resource/rich-text-global-parameters.md)
 - [Battle log line path](resource/battle-log-line-path.md)
+- [LogWidget window placement](resource/log-widget-window-placement.md) -
+  Native numbering and stacking of the second log window.
 - [Sqwt form and template path resolution](resource/sqwt-form-locale-resolution.md)
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
 - [Sqwt binding source arms](resource/sqwt-binding-source-arms.md)
