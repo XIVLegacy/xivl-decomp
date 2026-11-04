@@ -329,9 +329,11 @@ preceding virtual lookup. Component counter t and source count n are distinct.
 
 The byte list therefore indexes the current Drawable's four-byte element
 array under the nominal table, valid-domain, same-owner/array, call and
-lifetime conditions. Its element producer/content type remains unbound:
-no bone, matrix, material or attachment meaning is assigned. Neither these
-stores nor their adjacency to C+0x24 identify that field's consumer.
+lifetime conditions. The [connected constructor](model-lightset-source.md)
+supplies a conditional producer of native LightSets for that array. Actual
+current population, source/member identity and successful nonnull allocation
+remain separate conditions. Neither these stores nor their adjacency to
+C+0x24 identify that field's consumer.
 
 The new internal normal continuation covers
 `[0x00C5018F,0x00C5025E)`, 56 instructions/207 bytes. It stops at earlier

@@ -130,6 +130,9 @@ attribute-buffer argument or read. Their callees and untracked aliases remain
 outside this bounded check. A current-T byte-buffer reader or actual buffer/
 directory producer is needed to advance the attribute effect beyond the
 qualified named-byte write; whole-tag forwarding alone supplies no GPU effect.
+The same context field has a separate
+[component LightSet-list role](../resource/model-lightset-source.md#component-list-and-conditional-pixellight-read),
+which does not identify a reader of T's attribute-byte buffer.
 
 ## Named ShapeWeight update
 

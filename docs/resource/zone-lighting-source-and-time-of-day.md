@@ -195,11 +195,20 @@ colour is the amb light. The `ltst_NN` members are slot records of
   (the C+0x308 block and the fixed array at `0x0136E908` are the candidates).
 
 The zone directional and ambient lights are the LightSet content of the zone
-DrawEnv objects. A weather DrawEnv of the same name replaces that DrawEnv as
-the current one (the lane selection path), so while a same-named lane exists
-the zone pair is replaced and does not add to the weather pair (I: that the
-draw reads its C+0x1A0 LightSets from the holder's current DrawEnv). With no
-same-named lane the zone DrawEnv and its pair stay in use (I).
+DrawEnv objects. A weather DrawEnv of the same name replaces the holder's
+current DrawEnv through the lane-selection path. This object replacement
+alone does not identify the LightSet list read by a selected draw.
+
+The [ordinary MeshDrawTag source](model-lightset-source.md#component-list-and-conditional-pixellight-read)
+stores the tag at render context+0x1A0; its getters expose the MINS-selected
+component list. Equality between that list's entries and the current DrawEnv's
+LightSets needs a separate source/selection join. The
+[per-node context+0x308 block](chara-engine-samplers-and-light-inputs.md#per-node-light-list-and-ambient-seed-v)
+has its own DrawEnv/LightEnv sources. The selected VertexLight branch reads
+that separate block, as qualified in the
+[driver source finding](model-lightset-source.md#selected-vertexlight-source).
+No universal weather-versus-zone light replacement/addition rule for every
+draw follows from these distinct paths.
 
 ## DrawEnv cubes
 
