@@ -192,6 +192,11 @@ remain conditions.
 
 ## Remaining source boundary
 
+The [delivered-row consumer](weapon-visual-row-attributes.md) qualifies the
+`0x008DC398` input as a row-pointer array under the callback profile and
+traces selected attribute/ShapeWeight columns. That path does not supply a
+selected resource request, root or member identity.
+
 The constructed profile supplies a conditional root publisher. Actual runtime
 instance/table continuity, request/input identity and the provider's later
 root/vector state remain unobserved. The pre-lookup `0x008DC350` and
