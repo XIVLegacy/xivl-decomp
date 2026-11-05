@@ -69,7 +69,7 @@ during onboarding:
 | `_lookAtPlayerTutorial` / `_cancelLookAtPlayerTutorial` | Force NPCs to look at player during tutorial |
 | `_runCharaSchedulerTutorial` | Run a chara-scheduler step (NPC anim/move) in tutorial mode |
 | `_waitForCharaSchedulerTutorialFinished` | Block script until scheduler finishes |
-| `_isKeyboardOnlyTutorial` | Predicate: is the player in keyboard-only tutorial mode? |
+| `_isKeyboardOnlyTutorial` | Boolean tutorial predicate; see the [native and script contracts](#_iskeyboardonlytutorial-predicate). |
 
 ### Chocobo
 
@@ -210,9 +210,24 @@ single-word variant.
 
 ### `_isKeyboardOnlyTutorial` predicate
 
-Tutorial scripts gate behaviour on whether the player is in keyboard-only mode. The
-likely path: the player's `controlMode` work-table field is read by the C++
-`_isKeyboardOnlyTutorial_cpp` impl.
+The native takes no argument and returns one Boolean. The
+[keyboard-only tutorial test](https://github.com/XIVLegacy/xivl-client-structs/blob/main/docs/talk-native-contract.md#keyboard-only-tutorial-test)
+in `xivl-client-structs:docs/talk-native-contract.md` owns callback
+`0x00707C70`, refresh `0x0075D120`, predicate `0x0075CE30` and their exact
+binary identity. Its receiver identity as
+`Application::Main::RaptureElementContainer` is `INFERRED`. The
+constructor-based true result remains conditional on that identity and the
+absence of an unknown store through a computed address. The property meanings
+and the object behind `0xC0000024` remain unknown.
+
+The [script vocabulary](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/tutorial-widget-vocabularies.md)
+in `xivl-client-scripts:docs/tutorial-widget-vocabularies.md` distinguishes
+this Boolean from the stored numeric controller choice and records the
+mode-selector button restriction. The
+[normal city contracts](https://github.com/XIVLegacy/xivl-client-scripts/blob/main/docs/opening-normal-tutorial-city-contracts.md#shared-local-sequence)
+compare separate global predicate reads around device selection. These
+contracts do not establish a fresh character's predicate value, actual
+selection, hardware availability or accepted input.
 
 ### `_getMyPlayer` is the most-called method in the binary
 
