@@ -281,6 +281,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [LogControl ordinary text lookup](resource/logcontrol-text-lookup.md)
 - [Excel row cells and native f16 conversion](resource/excel-row-field-decoder.md)
 - [Model LightSet construction and draw lists](resource/model-lightset-source.md)
+- [ModelResourceNode LTCD light sources](resource/model-resource-light-source.md)
 - [LogControl line format and category filter](resource/logcontrol-line-format.md)
 - [LogControl key wait, Wait0 and page advance](resource/logcontrol-key-wait.md)
 - [LogControl Talker and the speaker display name](resource/logcontrol-talker-name.md)

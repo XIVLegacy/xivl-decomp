@@ -73,7 +73,10 @@ At `0x00C4FE2A`, `0x00C51900(S,j)` returns the selected source word
 S_j from that pointer array on its valid-index path. Its callbacks and
 `0x009D22B4` failure path remain opaque. After such calls it reloads the
 current array; no failure rejection or old-array stability is assumed.
-S_j's concrete resource/payload type remains unbound.
+The [registered source construction profile](model-resource-light-source.md)
+produces separate native 0x34-byte descriptors for this array. Applying that
+profile to current S_j requires the same normally constructed source object,
+current array, index and lifetime joins; S_j is not thereby a serialized header.
 
 For nonnull storage A requested with size 0x34, the caller invokes
 `0x00C306D0(A,S_j,I)` at `0x00C4FEA6`, where I is the freshly reloaded
@@ -192,8 +195,11 @@ minimum clamp for ordered values. Its magnitude establishes no units.
 The +0xDC copy has no local type-range validation. Packed J kind 4 and
 LightNode ambient type value 4 belong to different selector domains.
 
-Q2 is a native property source with matching field positions. That shape
-does not prove its RTTI type, producer or serialized backing. Actual source/
+The [LTCD property producer](model-resource-light-source.md#native-property-prototypes)
+conditionally constructs Renderer::LightNode prototypes for S+0x74/+0x78
+and initializes them from LIGT/DATA fields. With that source profile and array
+continuity retained, Q2 is a constructed native prototype. Its native shape
+alone does not prove this origin or a selected serialized member. Actual source/
 destination spans, current P type/lifetime, selector callbacks and normal FP
 completion remain conditions. No source asset, light identifier or universal
 parameter invariant is established.
