@@ -195,6 +195,51 @@ at `0x00C4185A/0x00C41860` and initializes `+0x131/+0x132` to one at
 the DrawableObject and selected MeshContainer. Thus `+0x118` is an ownership
 link, rather than the material pointer.
 
+### Component initialization
+
+At `0x00C4FFF4`, the array-initialization call supplies element base, stride
+0xB0, count N, initializer `0x00C33B20` and cleanup `0x00C36E50` to
+`0x009D61D6`. Its [published normal frame/count/stride contract](ambient-garlean-fleet.md)
+is reused. The checked assignments at `0x009D61F5..0x009D61FA` load
+the current element into ECX and call the supplied initializer. A normal
+return advances by the stride. For signed-positive N, valid writable backing,
+ordinary frame helpers and preserved arguments, callback i receives
+`C_i=base+0xB0*i`, i=0..N-1. Nonpositive N invokes no callback on this path.
+Unwind and cleanup behavior remain outside this qualification.
+
+The selected callback copies incoming ECX to EAX and returns that same
+receiver with a plain RET. Its complete normal body
+`[0x00C33B20,0x00C33C0F)` has 50 instructions/239 bytes, with no call,
+branch or explicit stack-argument read. The actual callback argument selects
+its entry, and entry-rooted decoding stops at the callback's own return.
+No neighboring instruction was read.
+
+Its selected states at normal return are:
+
+| Component field | Final own state |
+|---|---|
+| Dword +0x08 | 0 |
+| Dword +0x0C | 0x0F |
+| Dword +0x10 | 0 |
+| Bytes +0x14..+0x23 | No overlapping own write |
+| Dword +0x24 | `0xBF800000` |
+| Byte +0x28 | 0 |
+
+The +0x24 field is first zeroed, then overwritten by the scalar store at
+`0x00C33BDC`, using the four-byte load at `0x00C33BAA`. Its source is
+the [pinned binary32 -1.0 cell](log-widget-window-placement.md) at
+`[0x00F62F80,0x00F62F84)`. This establishes raw default bits. Neither the
+float encoding nor the default establishes this field's units, a sentinel
+rule or an actual downstream reader.
+
+The count zero is a point-of-return producer fact. Using it at the later
+MINS store requires the same live C and retention through intervening setup.
+Under that initialized-count profile, the signed `t<4` store can fill the
+four C+0x14/+0x18/+0x1C/+0x20 positions; it does not supply a universal
+runtime invariant or remove the documented negative-counter alias case.
+Untouched list cells receive no invented zero value. The guarded HEAD+0x10
+transfer below and all later field mutations retain their own conditions.
+
 ### MINS HEAD+0x10 transfer
 
 On the component-construction path, `0x00C5016D` reads four bytes from

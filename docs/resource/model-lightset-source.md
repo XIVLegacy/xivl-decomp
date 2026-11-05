@@ -297,7 +297,8 @@ body was inspected.
 
 Source S_j's payload identity, preparation/growth behavior, actual loaded
 owner/table state and selected driver/context identity remain explicit limits.
-The component counter initializer is a supplied callback `0x00C33B20` in
-the call at `0x00C4FFF4`; neither that callback nor its iterator was read.
-No initial count is inferred from its presence. The component+0x24 and
-attribute-byte-buffer reader questions are distinct from this LightSet path.
+The [component initializer](floor-model-render-path.md#component-initialization)
+qualifies the actual callback's selected count/default writes and iterator
+receiver assignment. Its zero count applies at callback return, with retention
+to the later list store still required. The component+0x24 reader and attribute
+byte buffer reader remain separate questions from this LightSet path.
