@@ -157,6 +157,10 @@ The method's +8 read at `0x00C450A0` is relative to M+0x2C, giving
 M+0x34. It is not a component C+8 read. No attributable direct C+8,
 C+0x24 or C+0xA8 access occurs in this complete body.
 
+The [component record-storage finding](skeleton-output-pointer-initialization.md#component-record-storage-and-indexed-address)
+owns the C+0x90 base and C+0x8C count producer, plus the conditional address
+join to the actual `0x00C3433F -> 0x00C6C1F0` initializer receiver.
+
 ## Normal control-flow bounds
 
 The original-byte traversal established these own-code bounds. Ends are

@@ -121,8 +121,10 @@ ECX = ptr32(parent+0x90) + byte_offset + 4
 The loop advances `byte_offset` by `0x38` at `0x00c34344`. This is an
 observed address calculation. Object identity, allocation success,
 lifetime and palette meaning are unresolved. The combined listing stops
-at `0x00c343ce` before the remaining epilogue. Its outgoing target at
-callsite `0x00c343ba` remains uninspected.
+at `0x00c343ce` before the remaining epilogue. The
+[version-flag finding](wrb-version-component-flag.md#normal-control-flow-bounds)
+owns the complete normal body of `0x00c341d0` and its actual outgoing
+`0x00c343ba -> 0x00c33430` tag-construction route.
 
 
 The `0x00c341d0` prefix separately derives the initializer inputs.
@@ -140,6 +142,77 @@ original first and second explicit arguments. The second is pushed at
 `0x00c6c695`, then the first at `0x00c6c696`. With its retained entry
 receiver as ECX, the call at `0x00c6c699` forwards those two inputs
 unchanged. Its complete return and object lifetime remain outside the prefix.
+
+## Component record storage and indexed address
+
+This section uses Cmp for the component receiver of `0x00c341d0`, K for
+its current MeshContainer, N for an outer count and P for its record-array
+base. These differ from the helper receiver R and inner name count n above.
+The [component caller profile](floor-model-render-path.md#draw-tags-and-indexed-submission)
+supplies the MeshContainer and DrawableObject arguments.
+
+At `0x00c3424c`, K=ptr32(Cmp+0x7c). The instructions through
+`0x00c34262` snapshot the outer count:
+
+```text
+B = ptr32(K+0x30)
+N = 0 if B == 0 else SAR32((ptr32(K+0x34)-B) mod 2^32, 2)
+```
+
+Here SAR32 is an arithmetic right shift of the 32-bit subtraction result.
+The captured EBX value is retained across opaque calls. This count is not
+the later per-Mesh word at +0xfe, and current vector state may change after
+the snapshot.
+
+The zero-count branch requests four bytes at `0x00c34279..0x00c34280`.
+The nonzero branch at `0x00c3429a..0x00c342b9` supplies a size derived
+from 0x38*N+4, using overflow/carry handling, to a separate allocation path.
+The allocation callees remain opaque. Their return A is not proof of capacity,
+alignment or successful initialization.
+
+For nonnull A, `0x00c342da` sets P=A+4 and `0x00c342e0` writes the
+captured N at A. At `0x00c342e2`, the array-construction call receives
+`(P,0x38,N,0x00c37020,0x00c36fc0)`. The callbacks remain opaque.
+For null A, `0x00c342e9` instead sets P=0. At
+`0x00c342f5/0x00c342fb`, the method stores P at Cmp+0x90 and the
+captured N at Cmp+0x8c. The count store is not conditional on a nonnull P.
+Ordinary register/stack and memory preservation across construction remain
+conditions of this transfer.
+
+For signed N>0, the loop at `0x00c34303..0x00c3434e` starts i=0 and
+byte_offset=0, then increments i by one and byte_offset by 0x38 while i<N.
+Each iteration freshly reloads K from Cmp+0x7c and its Mesh vector. After
+the current vector diagnostic, `0x00c34325/0x00c3432c` select
+Mesh_i=ptr32(ptr32(K+0x30)+4*i). The diagnostic can return into that
+selection, so this is not a bounds-safety guarantee.
+
+The actual call at `0x00c3433f` receives:
+
+```text
+ECX = fresh ptr32(Cmp+0x90) + byte_offset + 4
+arguments = (current Mesh_i, current original second argument DrawableObject)
+```
+
+The array-element base is P+0x38*i. The helper receiver is four bytes
+past that base. Equality with a previously allocated P requires current
+Cmp+0x90, object and backing continuity. Positive N with null P does not
+bypass this loop and does not establish a usable receiver.
+
+The [component/index reader](wrb-version-component-flag.md#componentindex-return-contract)
+at `0x00c45040` returns zero for a zero current Mesh+0xfe word. Otherwise
+it returns `(fresh ptr32(Cmp+0x90)+0x38*u+4) mod 2^32`.
+With the same current Cmp, base P and index u=i, this equals the initializer
+receiver above. It is a structural address join. Successful initialization,
+current selected Mesh identity, pointer-table contents, lifetime and actual
+later content use need their own continuity conditions. The reader itself
+does not dereference the computed result or prove those contents.
+
+The producer and address join used the executable identity above with
+Capstone 5.0.7 x86-32 and pefile 2024.8.26. Entry-rooted normal decoding
+of `[0x00c341d0,0x00c343d5)` closed at RET8 `0x00c343d2`, covering
+168 instructions and 517 instruction bytes. Rechecking the already published
+helper used only its two code ranges below. The seven-byte gap remained
+opaque. No new helper body or resource payload was needed for the address join.
 
 ## Reproduction and limits
 
