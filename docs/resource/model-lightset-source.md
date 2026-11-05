@@ -127,6 +127,50 @@ allocation and owner/array preservation remain conditions. It does not type
 every current array entry by proximity or establish a loaded LightSet's
 complete live membership, parameters or serialized source identity.
 
+## Native LightNode property source
+
+After construction, the prefix tests packed record J+0x14 with mask 0x7C00
+against 0x1000 and derives q by arithmetic-right-shifting that word by 15.
+Call `0x00C4FD30 -> 0x00C512D0` reads the current resource S's
+pointer-array fields +0x74/+0x78. A signed q below its count can reach two
+`0x00C51870(S,q)` selections. The first result Q1 supplies an opaque
+virtual source/initializer path; the fresh second result Q2 at `0x00C4FD75`
+is the actual input to `0x00C2F280(P,Q2)` at `0x00C4FD7D`.
+Q1=Q2 requires current source/array stability across the calls. Neither the
+signed count test nor the selector's opaque diagnostic paths prove rejection
+of negative or otherwise invalid indices.
+
+The initializer has no calls and reads Q2 directly. Its selected fields are:
+
+| Q2 source to same P offset | Operation | Destination role from the Light record |
+|---|---|---|
+| +0xDC | Dword bit copy | Light type |
+| +0xC0..+0xCF | Two eight-byte MOVQ bit copies | RGB and alpha |
+| +0xD0 | Binary32 FLD/FSTP | Intensity |
+| +0xE0/+0xEC/+0xE8/+0xF0 | Binary32 FLD/FSTP | Point extras |
+| +0xE4 | Source/minimum MOVSS selection | Point extra |
+| +0xF4 | Dword bit copy | Priority |
+| +0xF9 | Byte bit copy | Category |
+
+The canonical offset/role distinction remains: the offsets are verified and
+the names interpreted. These native loads have no endian reversal. FLD/FSTP
+are floating-point transfers, without an unconditional all-encoding bit-copy
+claim for exceptional values or FP state.
+
+The +0xE4 comparison at `0x00C2F2D8` uses the referenced binary32
+constant at `0x00FB7AB4`, bits `0x3A83126F`, approximately 0.001.
+Under normal COMISS completion, JB at `0x00C2F2DB` selects that constant
+for less or unordered input; otherwise the source is stored. This is a
+minimum clamp for ordered values. Its magnitude establishes no units.
+The +0xDC copy has no local type-range validation. Packed J kind 4 and
+LightNode ambient type value 4 belong to different selector domains.
+
+Q2 is a native property source with matching field positions. That shape
+does not prove its RTTI type, producer or serialized backing. Actual source/
+destination spans, current P type/lifetime, selector callbacks and normal FP
+completion remain conditions. No source asset, light identifier or universal
+parameter invariant is established.
+
 ## Component list and conditional PixelLight read
 
 The [MINS lookup/store](floor-model-render-path.md#mins-head-byte-list)
@@ -152,10 +196,35 @@ table/owner retention distinguish the static profile from an arbitrary object.
 Ordinary MeshDrawTag `0x00C439C0` stores T at current render context
 K+0x1A0 at `0x00C43A14`. The published
 [PixelLightShaderDriver contract](zone-lighting-source-and-time-of-day.md#draw-time-light-list-and-rules)
-reads that context field as a LightSet list through virtual +0x10/+0x14.
-Under that contract, same K, current K+0x1A0=T, actual nominal getter
-selection and valid retained C list, the consumer sees this component list.
-The exact C22DD0 virtual-call instruction ABI was not newly decoded here.
+reads that context field as a LightSet list. Its actual entry ABI is driver
+ECX plus explicit `(K,Q)` context/shader-container inputs, with RET 8.
+At `0x00C233C7` it loads T_count from K+0x1A0 and invokes that object's
+table +0x10 at `0x00C233EB`, ECX=T_count, with no newly staged explicit
+argument. It freshly reloads T_array at `0x00C233ED` and similarly invokes
+table +0x14 at `0x00C233FE`. The count's full 32-bit EAX is tested for a
+signed value at or below zero; the full array-pointer EAX supplies W=`dword[array+4*i]`
+at `0x00C23416`. The two current tag/table loads are not assumed equal
+across the virtual count call. Joining these to one component list requires
+same-tag/table/count/array and valid-address continuity.
+
+For that selected W, the driver reads member begin/end at W+0x24/+0x28
+and calls `0x006213C0(W,j)` at `0x00C2344F`, with ECX=W and the current
+member index as its sole explicit argument. The first entered index is zero;
+the API is not limited to zero. The getter checks a signed cached count,
+reloads the current member array and checks an unsigned index, then returns
+the selected full dword member value in EAX. It returns that value, rather
+than its vector-cell address. Its diagnostics and `0x009D22B4` paths remain
+opaque; ordinary continuation can reload the array and perform a read, so no
+malformed-input rejection or nonreturn policy is inferred.
+
+The Pixel caller immediately dereferences p+0xDC at `0x00C23454`, where
+p is that actual EAX return. One reached branch reads p+0xC0/+0xC4/+0xC8/
++0xCC/+0xD0 at `0x00C23461..0x00C2349E`. Under the same constructed
+member/current-array profile, these are the LightNode fields supplied by the
+property path above. Their actual same-object, valid-span and lifetime joins
+remain conditions. This trace qualifies only the tag's +0x10/+0x14 calls;
+it supplies no additional tag getter or component+0x24 reader. LightSet
+W+0x24 is its member begin pointer, a distinct field/object.
 
 Reaching a tag draw does not establish accepted PixelLightShaderDriver
 membership or its invocation with that K. The
@@ -206,10 +275,25 @@ coverage. Additional complete normal bodies were:
 | `0x00C31230..0x00C31299` | Member append fast store |
 | `0x00C51610..0x00C5169D` | Output-slot factory |
 | `0x00C2F690..0x00C2F7B0` | Constructed LightNode return/type join |
+| `0x00C512D0..0x00C512E3` | Native property-source count |
+| `0x00C51870..0x00C518F6` | Native property-source selection |
+| `0x00C2F280..0x00C2F32E` | LightNode field copies and minimum clamp |
 | `0x00C452F0..0x00C452FA` | Component LightSet count getter |
 | `0x00C45300..0x00C4530A` | Component LightSet array getter |
 | `0x00C22A90..0x00C22DD0` | VertexLight wrapper |
 | `0x00C21A60..0x00C21F3B` | Selected VertexLight helper |
+| `0x00C22DD0..0x00C23A0A` | PixelLight list source/virtual-call ABI |
+| `0x006213C0..0x0062142E` | Selected LightSet member getter |
+
+The PixelLight catalog's 3120-byte endpoint `0x00C23A00` cuts the reached
+security-cookie call at `0x00C239FF`. Completing that call and its ordinary
+fallthrough adds ten bytes, through RET 8 at `0x00C23A07`.
+The completed normal envelope is 3130 bytes, SHA-256
+`b4cfbb04972712b76cf97d9504054d4c9e59ef6481da763c5eced44651a61e6b`.
+Its CFG reaches 661 of 664 decoded instructions; decoded sites
+`0x00C2343C`, `0x00C2388D` and `0x00C2389D` are unreachable under that
+model. No nonreturn assumption hid the ordinary tail, and no neighboring
+body was inspected.
 
 Source S_j's payload identity, preparation/growth behavior, actual loaded
 owner/table state and selected driver/context identity remain explicit limits.

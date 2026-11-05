@@ -91,6 +91,11 @@ layouts also carry their own lights, see
 
 ## Light record
 
+The [model construction path](model-lightset-source.md#native-lightnode-property-source)
+separately qualifies native source-field copies into Renderer::LightNode,
+including the +0xE4 minimum clamp. That source-object contract does not
+establish its serialized backing or a Weather input.
+
 Runtime light node (Weather::LightNode over Renderer::LightNode, ctor
 `0x008CAEB0`, base ctor `0x00C2F690`). Offsets V, names I:
 
