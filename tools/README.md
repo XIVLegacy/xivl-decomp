@@ -217,6 +217,12 @@ another repository, a retail binary, or a Ghidra project.
 
 ## Analysis sweeps
 
+The `caller_fn` labels from [`extract_up_opcodes.py`](extract_up_opcodes.py)
+use `_find_fn`'s `rva <= site < rva + size` lookup. This supplies a candidate
+name from the [catalog byte-count window](#import-and-catalog-export), without
+body-range ownership proof. Constructor-call and opcode candidates require
+independent original-instruction and argument-flow qualification.
+
 | Tool | Purpose | Required inputs |
 |---|---|---|
 | `extract_pe.py` | Parses each local PE32 executable and writes section metadata plus optional raw section dumps. | One or more retail executables under `orig/`, or an alternate `--orig-dir`. |
