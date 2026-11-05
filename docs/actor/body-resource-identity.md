@@ -457,8 +457,12 @@ These descendants are selected by metadata type. Packed type `0x00747262`
 uses factory `0x00FB6E68` to recurse. Raw context+0x14=1 reaches factory
 slot +4 through `0x00A443A0`, after its sizing pass. WRB type `0x00777262`
 selects ModelResourceNodeFactory `0x010F2BC8`, raw target `0x00C49F30`,
-then `0x00C771B0 -> 0x00C77150`. The latter copies the selected WRB into
-separate backing at `0x00C77175..0x00C77187` before model parsing.
+then `0x00C771B0 -> 0x00C77150`. The latter stages the selected WRB copy
+into separate backing at `0x00C77175..0x00C77187` before model parsing.
+The [raw provider finding](../resource/model-resource-light-source.md#raw-input-and-copied-backing)
+owns the exact backing request, copy-argument extent and initializer inputs,
+with current state, valid spans and normal mover completion retained as
+conditions.
 SHD type `0x73647262` selects MaterialResourceNodeFactory `0x010F2C64`,
 raw target `0x00C4A160 -> 0x00C79870 -> 0x00C79810`; it copies the SHD
 at `0x00C79844`. These static joins explain descendant byte ownership

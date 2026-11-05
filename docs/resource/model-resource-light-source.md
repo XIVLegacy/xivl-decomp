@@ -15,8 +15,9 @@ Source: retail `ffxivgame.exe` 1.23b, 15996808 bytes, SHA-256
 PE32 x86, image base `0x00400000`. All addresses are VA.
 Capstone 5.0.7 x86-32 and pefile 2024.8.26 checked original raw-backed
 instructions, normal control flow, literal tags and RTTI. Full executable
-identity matched before and after the reads. No asset payload or active client
-instance was used; raw bodies and instruction listings remain untracked.
+identity matched before and after the reads. The selected-floor observation
+below used bounded headers and count fields from its pinned model. No active
+client instance was used; raw bodies and instruction listings remain untracked.
 
 ## Factory and retained input
 
@@ -45,8 +46,115 @@ The initializer retains c3 at R+0xBC and c5 at R+0xC0. At `0x00C764B3`,
 provider V=c3 receives a no-argument virtual +4 call, yielding H. The
 [WRB header predicate](floor-model-render-path.md#wrb-header-validation-predicate)
 tests H at `0x00C764B9`. Thus c3 is not itself established as the raw
-header. V's concrete type, H's backing/extent and member identity require
-their own source join.
+header. The constructed-view profile below supplies one conditional provider
+implementation. An arbitrary current V, its backing/extent and member identity
+require their own source join.
+
+## Constructed view input
+
+The [view dispatcher](bgchip-instance-resource-setup.md#view-directory-arguments-and-default-creator)
+owns `0x00A44730`'s complete argument and selector contract. Reader call
+`0x00A3C117` obtains a current entry view through virtual +0x10; a nonnull
+result enters `0x00A3C151 -> 0x00A44730`. Its earlier captured V0 supplies
+separate length and pointer observations through virtual +8 at `0x00A4475E`
+and +4 at `0x00A4476B`. A fresh current view Vf is instead loaded at
+`0x00A4483B` into incoming EAX for common factory `0x00A443A0`.
+Vf need not equal V0 or describe those earlier observations.
+
+The original ModelResourceNodeFactory cells independently qualify its branch:
+
+| Cell | Target | Role |
+|---|---|---|
+| `0x010F2BD4` | `0x00C49E20` | Callback +0x0C |
+| `0x010F2BDC` | `0x00B73290` | Predicate +0x14 |
+| `0x010F2BE0` | `0x00B73290` | Predicate +0x18 |
+
+The predicates select the published
+[true-return body](gtex-pwib-loader.md#selected-restxb-consumer). With these
+current cells and normal preservation, an input selector low byte zero remains
+zero. Registry lookup must actually select and retain this factory; a matching
+registered type alone does not establish that selection.
+
+After excluding the common factory's distinct priority +8 callback mode,
+selector-low-zero reaches its +0x0C call at `0x00A445FB`. The arguments
+are current `(type pointer,last name component,saved incoming Vf,length,context)`.
+The third is pushed from EDI at `0x00A445EF`, with preservation through
+the earlier calls and suitable bounded name-copy input required. This is a
+callback argument, without a proved equality between the constructed node
+and the dispatcher's final raw EAX.
+
+Combined with the registered constructor profile, current a3 becomes c3.
+`0x00C76450` captures it in ESI; `0x00C76462` stores it at R+0xBC.
+The actual `0x00C764B3` call uses saved ESI as receiver, rather than a
+fresh R+0xBC reload. Stored bits, later field contents and the call receiver
+therefore retain their own continuity conditions.
+
+For the [constructed SystemHeapBlock view route](gtex-pwib-loader.md#concrete-systemheapblock-views),
+successfully constructed whole-input and sliced interfaces I expose table
+`0x00F56FC0`. With that actual provider/table retained, cell `0x00F56FC4`
+selects the published [pointer getter](system-heap-block-interface.md#slot-1-full-width-getter)
+`0x00414830`. Its result at the initializer is:
+
+`A0=ptr32(I+0x28); B=ptr32(A0+0x18); d=ptr32(I+0x24); H=(B+d) mod 2^32`.
+
+This combines the retained root descriptor's backing word with the slice's
+current accumulated offset. The getter has no length, overflow or capacity
+guard. Equality to the dispatcher's earlier pointer observation needs the same
+view and stable current descriptor/root/offset state. It does not establish
+a readable WRB extent or current member identity.
+
+The [whole-input-copy route](../actor/body-resource-identity.md#conditional-request-data-and-factory-root)
+sets context+0x14=1. Under retained selector state and after excluding the
+common priority mode, it selects the separate +4 raw callback below.
+
+## Raw input and copied backing
+
+Original ModelResourceNodeFactory cell `0x010F2BCC` selects
+`0x00C49F30` for the common factory's +4 call at `0x00A445BE`.
+Its six arguments are `(O,type pointer,name,raw source B,length L,context)`.
+Its nonnull object-allocation paths call `0x00C771B0` with ECX=A and
+current `(name,type pointer,B,L)`, then store the actual constructor result
+through current O. The callback returns O, rather than that object word.
+Allocation-null bypasses the constructor and supplies zero through that slot.
+Current slots, successful accesses and expected call/stack preservation remain
+conditions. The context used for this object allocation is separate from the
+global space used for the byte backing below.
+
+The raw constructor installs main table `0x010FAAE4` at `0x00C771EA`
+and metadata table `0x010FAAD4` at R+0x0C at `0x00C771F0`.
+Its own zero stores at `0x00C77213..0x00C77228` initialize
+R+0x74/+0x78/+0x7C and R+0x88/+0x8C/+0x90 before its actual
+`0x00C77249 -> 0x00C77150` call. At `0x00C7724E`, it overwrites
+the inner return with R, without testing initialization success.
+
+The inner routine loads current G from global `0x01327B28` at
+`0x00C77160`. At `0x00C77173`, G's virtual +0x0C receives
+`(L,0x10,0x010FA8BC)` and returns I. It obtains a destination P through
+I virtual +4 at `0x00C77184`, then calls `0x009D4600` at `0x00C77187`
+with `(P,B,L)`. This is the actual copy-argument extent; successful complete
+copying and valid source/destination spans retain the mover's normal conditions.
+The source and length words are already pending when virtual +4 executes;
+the getter's no-argument/no-cleanup ABI and the mover's expected cleanup
+are conditions of this nested argument profile.
+No mover body was expanded to establish a new safety guarantee.
+
+The [startup co-store](system-heap-block-interface.md#fresh-global-copy)
+conditionally supplies `0x01327B28` from the same constructed SystemHeapSpace
+value as `0x01327C24`. These are distinct global cells; current equality
+requires retention. With that space/table profile, virtual +0x0C selects
+`0x00414690`, whose factory returns a SystemHeapBlock interface I with
+table `0x00F56FC0`. The same published pointer getter then applies to I.
+The earlier destination and later H require their own same-interface,
+descriptor/root/offset and backing continuity across the copy and other calls.
+
+At `0x00C7719F`, the actual initializer tuple is
+`0x00C76410(ECX=R,args=(current name,current type pointer,I,current L,0))`.
+It retains that current provider through the c3 path described above. The
+fifth word is literal zero, distinct from the view callback's U loaded from
+context+0x0C. A second-span view retained by the view profile therefore
+cannot be silently imported into this raw profile. No current S origin,
+copied-byte identity, active load or readable LTCD extent follows solely
+from returning R.
 
 ## LTCD tags and pointer roles
 
@@ -64,7 +172,8 @@ A null LTCD result C exits this block. For nonnull C, the invoked wrappers are:
 | `0x00C76DE4` | `0x00C8FC70`, indexed `LSET` | E_k = raw matching header for zero-based occurrence k |
 
 The wrappers reuse the published
-[first/indexed tag searches](mesh-envelope-producer.md#envd-occurrence-order-and-runtime-table-position).
+[first-tag](mesh-envelope-producer.md#first-tag-search) and
+[indexed tag](mesh-envelope-producer.md#envd-occurrence-order-and-runtime-table-position) searches.
 Indexed occurrences follow that one forward candidate chain; this establishes
 neither recursive descent nor physical containment. The HEAD and DATA
 wrappers add 0x10 unconditionally to the search return. A missing header
@@ -152,6 +261,36 @@ These allocations are distinct from E_k, Q and the later runtime LightSet W.
 The [source selector and LightSet initializer](model-lightset-source.md#lightset-source-selection-and-construction)
 own the subsequent R+0x88/+0x8C selection and member-index consumption.
 
+## Selected native floor
+
+The [selected original floor model](floor-import-contract.md#selected-inputs-and-method),
+`data/7F/1C/00/00.DAT`, is 41088 bytes, SHA-256
+`1af91b0e1e5e34f676f1af2884f82eddb63062e62bee058b0260e9646dfb7d0f`.
+Python bounded reads authenticated its selected WRB `[0x221C,0x9E8C)`,
+SHA-256 `1f359f7263982b6e07832fc8b4b51cf94e56e2978b42b4a9ce1523529201eb94`.
+Its header matches the published predicate. No authored copy was used.
+
+For H=file 0x221C, root H+0x30 is at 0x224C and declares end 0x9E8C.
+The first-tag path begins with MDLC at 0x226C; its BE32 +0x0C advance
+0x7B40 leads to LTCD at 0x9DAC. That LTCD declares its own end 0x9DEC.
+Its first HEAD is at 0x9DCC, whose consumed eight-byte payload
+`[0x9DDC,0x9DE4)` holds property count zero and descriptor count zero.
+The payload SHA-256 is
+`af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc`.
+These counts authorize no indexed LIGT/DATA or LSET payload read.
+
+The same root chain reaches MICT at 0x9DEC by LTCD's advance 0x40.
+MICT and its first indexed MINS at 0x9E0C end at 0x9E8C. MINS's first
+HEAD is at 0x9E2C, ends at 0x9E6C and has payload at 0x9E3C.
+Its [LightSet byte-list](floor-model-render-path.md#mins-head-byte-list)
+count at file 0x9E47, payload+0x0B, is also zero. No list bytes were read.
+The empty source counts and empty component list are coherent for these
+serialized bytes. Each consumed span fit its own parent with nonwrapping
+arithmetic; neither the MDLC payload nor the outer RES tail was decoded.
+Both original model and executable hashes matched before and after the check.
+These file observations do not bind H to an active provider or establish a
+loaded array, driver membership or visible-floor result.
+
 ## Coverage and source limits
 
 The complete normal scopes were:
@@ -160,6 +299,10 @@ The complete normal scopes were:
 |---|---|
 | `0x00C49E20..0x00C49F25` | Registered factory, 78 instructions/261 bytes |
 | `0x00C77090..0x00C7714E` | Constructor, 54 instructions/190 bytes |
+| `0x00A44730..0x00A4485F` | Published view dispatcher, 108 instructions/303 bytes |
+| `0x00C49F30..0x00C4A05E` | Raw callback, 89 instructions/302 bytes |
+| `0x00C771B0..0x00C77263` | Raw constructor, 51 instructions/179 bytes |
+| `0x00C77150..0x00C771AA` | Raw provider/copy/initializer path, 37 instructions/90 bytes |
 | `0x00C76410..0x00C7707C` | Initializer code envelope, 845 reached instructions/3169 instruction bytes |
 | `0x00C8FC40..0x00C8FC4E` | HEAD wrapper |
 | `0x00C8FC50..0x00C8FC62` | Indexed LIGT wrapper |

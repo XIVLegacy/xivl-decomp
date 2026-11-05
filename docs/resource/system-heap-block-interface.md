@@ -55,6 +55,16 @@ stores the loaded bits into `0x01327C24`, and ten following direct global
 stores use the same EAX without an intervening call or EAX write.
 This is a reached copy of that load's value.
 
+The following co-store at `0x00409450` writes the same EAX into
+`0x01327B28`, after the `0x01327C24` store and an intervening direct
+store to `0x01327B0C`. Original-PE Capstone 5.0.7/pefile 2024.8.26
+checks of `[0x0040943A,0x00409455)` verified the fresh source load,
+zero-branch guard and these stores, without an intervening EAX definition or
+call. This applies the constructed-space profile to a later retained
+`0x01327B28` value, including the
+[raw ModelResourceNode backing request](model-resource-light-source.md#raw-input-and-copied-backing).
+The cells remain distinct, and later reads need not retain equal values.
+
 The preceding call at `0x00409435` targets `0x0040A250`. Its returned
 EAX is overwritten by the fresh load. Its newly pushed ESI was last
 explicitly assigned from `0x01327A24` at `0x004093EF`, with preservation

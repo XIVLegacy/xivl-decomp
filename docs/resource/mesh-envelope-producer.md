@@ -66,6 +66,34 @@ Its returned pointer is written to M+0x104 at 0x00c8e6ee. At 0x00c8e6f4,
 byte Q+3 is zero-extended to AX and at 0x00c8e6f9 written as a native 16-bit
 word at M+0xfe. Allocator failure, lifetime and ownership are not established.
 
+### First-tag search
+
+The first-tag search `0x00C697E0` starts its cursor at receiver+0x20 at
+`0x00C69807`. It uses tag reader `0x00C2D7D0` and comparison call
+`0x0044F9A0`, whose selected four-byte-tag contracts are owned by
+[STMS child selection](wrb-vertex-declaration.md#stms-child-selection).
+Under those helper and storage/preservation conditions, a matching tag
+returns the current header through `0x00C698E7`; the shared epilogue uses
+RET 4 at `0x00C698E4`.
+
+On a nonmatch, `0x00C6989C` reads header+0x0C and reverses its byte
+order. Zero exits at `0x00C698B2`. The second load at `0x00C698B4`
+independently reverses that current lane and adds it to the cursor. A computed zero
+cursor exits at `0x00C698C9`; otherwise the loop repeats. Initial cursor
+zero and those exit paths return zero through `0x00C698CF`.
+The two lane reads require stable source storage. These own instructions
+select no header-endian byte; the requested-string NUL scan is a separate
+operation. Native addition is modulo 2^32, without a parent/end-bound check.
+An offline extent check must independently reject wraps and out-of-parent
+addresses.
+
+Original-PE Capstone 5.0.7 x86-32 and pefile 2024.8.26 checks covered
+`[0x00C697E0,0x00C698EB)`, 96 reached instructions/267 bytes, with
+no unresolved local normal edge. Span SHA-256:
+`02edd3d887cdbb5ec5fc9062e4194a6b93a4c734d3be34d4a2114712d0ad2da4`.
+Tag-reader, comparison and string/free bodies retain their published contracts
+or remain opaque; the normal CFG does not close exceptions or descendants.
+
 ### ENVD occurrence order and runtime table position
 
 ESI is zeroed at 0x00c8e700. At 0x00c8e719 the producer calls payload wrapper
