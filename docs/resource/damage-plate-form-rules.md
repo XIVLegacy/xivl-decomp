@@ -5,8 +5,9 @@
 This page records the native rules that decide how the identified
 `DamagePlateWidget.form` is opened, laid out, coloured and replayed: the
 form path, the per-plate row selection, the five-slot ring, the icon and
-text roles, the colour classifier inputs, Canvas measurement, the
-Foreground path to the drawing peer and the storyboard clock. These are
+text roles, the status icon map, the colour classifier inputs, Canvas
+measurement, the Foreground path to the drawing peer and the storyboard
+clock. These are
 static mechanics. They do not establish rendered pixels or a live plate.
 
 ## Identity and method
@@ -23,8 +24,33 @@ RTTI traversal from complete object locators. Decompiler renderings were
 leads only.
 
 STATIC denotes inspected instructions or original data. INFERRED denotes a
-bounded interpretation of them, with the join stated. UNKNOWN retains an
-unresolved edge. Install observations name files and counts only.
+bounded interpretation of them, with the join stated. MEASURED denotes a
+count or value read from a cited tracked study or catalog. UNKNOWN retains
+an unresolved edge. Install observations come from a retail 1.23b install,
+game.ver `2012.09.19.0001`. They decode sheet definitions with
+`xivl extract-resource --as scrambled-xml` (`xivl-tools:docs/cli.md`) and
+read the enable, row-offset and string resources that each definition
+names by the contracts in `xivl-tools:docs/formats/ssd-sheet.md`. They name
+resources, ranges, counts and token structure only, never cell text.
+
+The bodies and data that the text role and status icon map sections cite
+were read from the file through the section table and hashed as follows.
+
+| Complete body, half-open | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `[0x00795410,0x007955E9)` text role setter | 473 | `5a4902b9b66965bc5c50c1989220714a6bbe0991f299eb50b279bae198160cbf` |
+| `[0x007955F0,0x0079562B)` text pair request | 59 | `76d7e70c1a8429635212a2280b99430f9364e283ff617f9c5762542ddd781a9a` |
+| `[0x009556A0,0x009556D0)` TextBlock Text setter | 48 | `98841cb2cc781d2c8ab2a4c2fbfa1c5d51d5e8ecd5b0da0d32d644a104f7c152` |
+| `[0x007950A0,0x00795277)` DamagePlate constructor | 471 | `5c50626ccf33909a94ba3219b28ab0dd3dc437b9392c8a133ed48c52076ec54e` |
+| `[0x00795030,0x00795094)` status icon lookup | 100 | `5f7218082306a42be01c7282a160584c00ef793cc3fa5a86302cc8dd7a1c5468` |
+| `[0x00A44B00,0x00A44B69)` map find | 105 | `3be84050d552bc5febe06a6be1b509ce5db9dd0cc3a4d6ea9b57ade5bde24229` |
+| `[0x00F198C0,0x00F198D6)` map static initializer | 22 | `5b3fa628627243a49bb03d083da97f8856e536fad327a813119b81e7e0f97a70` |
+| `[0x00F33430,0x00F3343A)` map exit thunk | 10 | `39514000703add6d0fd5eda5a361babeeef40c2a767632dbb74cee71ecdc7951` |
+
+| Data, half-open | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `[0x00FE1610,0x00FE162C)` status icon pair table | 28 | `c90167018d9c46749f60164530f741d2a1aaddd01a6f43732214edcb2d0a26cb` |
+| `[0x00FE1878,0x00FE1882)` text markup literals | 10 | `b19440260bdfe901fd018f250530f3dc24201301f5a0fbc67d9a11a151374e34` |
 
 ## Form file selection
 
@@ -113,15 +139,122 @@ FontEdgeColor `(255,0,52,104)`. Inside `0x00794C00` only final selector 2
 selects that same table, at `0x00794C03..0x00794C3F`. Selectors 0, 1 and 3
 all select by classification. STATIC.
 
-Text request `0x00795410` with a negative text ID sets Text to the empty
-literal at `0x00FE14D6` through `0x009556A0` and Visibility 0 through
-`0x0093C2A0`. Otherwise it requests Visibility 2 and a text lookup. The
-meanings of text IDs `0x7D1` through `0x7D6` are not traced here. UNKNOWN.
+The [text role](#text-role) section traces how each text ID and parameter
+become TextBlock Text and Visibility.
 
 The scatter offset branch excludes only `CurePlateAnime.Popup` and
 `StatusPlateAnime.Popup`, so `MissPlateAnime.Popup` and
 `DamagePlateAnime.Popup` plates both take it. STATIC, from the comparisons
 at `0x007964C0..0x00796545`.
+
+## Text role
+
+Pair request `0x007955F0(roleA, roleB, idA, idB, paramA, paramB)` is a
+thiscall that returns with `ret 0x18` at `0x00795628`. When roleA is
+non-null it calls `0x00795410(roleA, idA, paramA)` at `0x00795608`. When
+roleB is non-null it calls `0x00795410(roleB, idB, paramB)` at
+`0x00795622`. STATIC.
+
+Slot creation looks up `TextBlock_Additional` (`0x00FE18F8`) into slot
+`+0xA0` at `0x00795873..0x00795895` and `TextBlock_DamageType`
+(`0x00FE1924`) into slot `+0xB4` at `0x007958BF..0x007958E1`. The plate
+routine loads them into EDI and EBP at `0x00795917..0x0079591E`. Each of
+the 16 calls to `0x007955F0` passes EDI as roleA and EBP as roleB. Direct
+calls `0x00795410(role, -1, -1)` at `0x00795960` and `0x00795970` reset
+both roles before the kind switch, and the default branch repeats them at
+`0x007963D8` and `0x007963E8`. A rel32 call scan of `.text` finds exactly
+those 16 and 6 call sites. STATIC.
+
+| Text ID | Role | Parameter | Call sites |
+|---|---|---|---|
+| `0x7D1` | Additional | -1 | `0x00795B38` |
+| `0x7D2` | Additional | -1 | `0x00795A5D` |
+| `0x7D3` | Additional | -1 | `0x00795AA7` |
+| `0x7D4` | DamageType | -1 | `0x00795DDF`, `0x00795EE8` |
+| `0x7D5` | DamageType | -1 | `0x00795F35`, `0x0079603A` |
+| `0x7D6` | Additional | id18 | `0x00795C8D` |
+
+Every other text ID and parameter at these sites is -1. The `0x7D6` call
+reloads `[ESP+0x1C]` at `0x00795C7B` and pushes it as paramA. That cell
+holds `E & 0x3FFFF` from `0x00795729` and `0x0079573D`. Table
+`0x007967CC` sends only kinds 4 and 10 to `0x00795C50`, and no direct jump
+targets it, so only those kinds pass P = id18. STATIC.
+
+Setter `0x00795410(role, T, P)` returns at once for a null role
+(`0x00795442`). For T < 0 it builds a string from the empty literal at
+`0x00FE14D6`, writes it as Text through `0x009556A0` at `0x0079547F` and
+then writes Visibility byte 0 through `0x0093C2A0` at `0x007954A8`. For
+T >= 0 it first writes Visibility byte 2 at `0x007954C2` and then builds
+markup in a string stream. Constructor `0x005440F0` runs with mode 3 and
+installs table `0x00FA0DE4`, whose complete object locator names
+`.?AV?$basic_stringstream@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@`.
+STATIC.
+
+For P >= 0 (`0x007954E9`) the setter inserts `@` (`0x00FE187C`), T, `/i`
+(`0x00FE1878`) and P. Otherwise it inserts `@` (`0x00FE1880`) and T.
+`0x004E7290` inserts the literals and `0x005434A0` the integers.
+`0x005404E0` extracts the string at `0x0079553B`, and `0x009556A0` writes it
+as Text at `0x00795565`. The integer inserter calls `num_put` table
+`0x00F91BC8` slot `+0x1C` through `0x0053BA60`. That slot is `0x004E79D0`,
+which formats with the literal `ld` at `0x00F91C18`. STATIC. T and P are
+therefore written as signed decimal, given the fresh stream's default base.
+INFERRED. The Text written is `@T` or `@T/iP`. The plate writes `@2001`
+through `@2005`, or `@2006/i` followed by id18.
+
+`0x009556A0` pushes descriptor `0x0135A300` and calls `0x009BA4E0` with
+control `+0x33C`. Registration `0x00F23800` names that descriptor `Text`
+(`0x0106E67C`). Registration `0x00F22900` names the `0x0093C2A0` descriptor
+`0x013596BC` `Visibility` (`0x0106BEB8`). `0x009BA4E0` calls the
+`0x00916310` preprocessing at `0x009BA516` only when property bit `0x40`
+is set (`0x009BA4E6`). STATIC. The enum names of Visibility values 0 and 2
+are not established here.
+
+The [plain text reference](sqwt-plain-text-reference-lookup.md) page,
+sections "Default table and named language fields", SQTP-01, SQTP-03 and
+SQTP-04, owns the resolution of that markup. Under its admission
+conditions, `@N` reads row N of the default table `xtx/_text_ui` in the
+field the language table selects. Each `/iV` segment appends a tag 0
+integer argument, which expression `0xE8` reads one-based.
+`xivl-client-data:manifests/sheet_inventory.csv`, row `xtx/_text_ui`,
+identifies definition `0x0B450082`. Text IDs `0x7D1` through `0x7D6` are
+therefore `xtx/_text_ui` rows 2001 to 2006, and a status plate supplies
+id18 as argument 1 of row 2006. INFERRED, conditional on property bit
+`0x40` at byte `+4` of each role's Text property and on the SQTP admission
+gates.
+
+In the install, definition `0x0B450082` gives each of its `ja`, `en`,
+`de`, `fr` and `chs` sheets a block 0 that begins at row 0. The block 0
+enable resource that the definition names for each language holds the
+pair `(2001, 6)`, one enable range covering rows 2001 to 2006, and rows
+2000 and 2007 have empty row-offset spans. Install observation. No tracked
+artifact states the text of rows 2001 to 2005, so their meanings are not
+recorded here.
+
+In the same blocks, row 2006 holds no literal text. Its string body is two
+handler `0x28` tokens, which the
+[rich-text handlers](rich-text-sheet-and-case-handlers.md#rt-03-handler-0x28-named-sheet-text)
+page traces. Each names sheet `xtx/status` as a literal string expression
+and takes supplied argument 1 as its row. `sheet_inventory.csv` lists that
+sheet as definition `0x0B450073`. The first token gives literal field 24. The second
+gives the language's name field, field 3 in the `en` block and field 1 in
+the `ja` block. Install observation.
+
+The installed `xtx/status` definition `0x0B450073` has one sheet per
+language, and each lists its own logical fields. The `ja` sheet lists
+fields 1, 20 and 24, and its `SHEET|DEF` parameter names field 1. The `en`
+sheet lists fields 2 to 7, 21 and 24, and its `SHEET|DEF` parameter names
+field 3. Install observation, STATIC for the schema. Each token field is
+therefore a logical field of the definition for its block's language.
+`xivl-client-data:docs/status-names.md`, section "Columns and limits",
+numbers `xtx_status.csv` columns as zero-based sheet positions and records
+column 24 as the encoded icon control and columns 3 and 1 as the English
+and Japanese names. Reading logical field N as that column N is INFERRED,
+from those positions and from the `SHEET|DEF` name fields, which fall on
+the same columns 3 and 1. The `FUN_00CAF330` field-to-column mapping that
+RT-03 cites is not traced for this sheet. RT-03 shows that a missing sheet
+or row fails the whole formatted row, so an id18 that is not an
+`xtx/status` row fails row 2006. STATIC there. What the TextBlock shows
+after that failure is UNKNOWN.
 
 ## Icon role
 
@@ -136,8 +269,84 @@ Only kinds 4 and 10 pass a value other than -1. That value is
 `0x00795030(id18)`, which searches the map at `0x0134C8F8` and returns its
 node `+0x10` or -1 on a miss. STATIC. Every numeric plate therefore requests
 a collapsed icon, so the declared IconID 30 is not shown by those paths.
-INFERRED from the requests, conditional on property admission. The contents
-of the map at `0x0134C8F8` are UNKNOWN.
+INFERRED from the requests, conditional on property admission. The
+[status icon map](#status-icon-map) holds three keys, so a status plate
+requests a visible icon only for id18 231001, 231002 or 231003. INFERRED,
+from the constructor fill and the writer scan in that section.
+
+## Status icon map
+
+Static initializer `0x00F198C0` calls `0x007A0AD0` with ECX `0x0134C8F8`
+and passes `0x00F33430` to `0x009D25C2`. `0x007A0AD0` allocates a head
+node, links it to itself, sets its byte `+0x15` to 1 and stores size 0 at
+object `+8`. `0x00F33430` loads the same object and jumps to `0x0081F1B0`.
+The dword at `0x00F48F3C` is `0x00F198C0`. It follows the dwords
+`0x00F19820`, `0x00F19850`, `0x00F19880` and `0x00F198B0` and precedes a
+zero dword. STATIC. Reading `0x00F48F3C` as a dynamic initializer table
+entry and `0x009D25C2` as an exit registration is INFERRED from that
+layout.
+
+The object is a `std::map<int,int>` with its head at `+4` and size at `+8`.
+Nodes hold the key at `+0xC`, the value at `+0x10` and a nil flag at
+`+0x15`, and `0x00A44B00` compares keys signed. INFERRED from those
+layouts. No RTTI names the container.
+
+The only writer is constructor `0x007950A0`, which installs table
+`0x00FE1E34`, `.?AVDamagePlate@Chara@Element@Main@Application@@`. Its only
+call site is `0x0058B768`. EBP is zero from `0x00795107`. At `0x00795220`
+the constructor compares size dword `0x0134C900` with EBP and skips the
+fill when it is nonzero. The loop at `0x00795228..0x0079525A` reads the
+value at `0x00FE1614 + 8i`, passes the key address `0x00FE1610 + 8i` to
+`0x00871D00` on the map, and stores the value through the returned cell. It
+stores the first pair before any test, then continues while the next key is
+at least zero (signed `jge` at `0x0079525A`). STATIC. Reading `0x00871D00`
+as the map's `operator[]` is INFERRED from that store.
+
+The `.rdata` table at `0x00FE1610`, file offset `0x00BE1610`, holds these
+pairs and ends with key -1 at `0x00FE1628`. STATIC.
+
+| Key, id18 | Value, icon ID |
+|---|---|
+| 231001 | 10001 |
+| 231002 | 10002 |
+| 231003 | 10003 |
+
+The only reader is `0x00795030(key)`, a cdecl routine whose only call site
+is `0x00795C55` in the kind 4 and 10 branch. It calls `0x00A44B00`, a
+lower bound with the signed compare at `0x00A44B1A` and an exact key check
+at `0x00A44B3F` that falls back to the head. When the found node equals
+the head `[0x0134C8FC]` it returns -1 (`0x0079506F`). Otherwise it returns
+node `+0x10` (`0x0079508A`). STATIC.
+
+A scan of the whole file for the little-endian dwords `0x0134C8F8`,
+`0x0134C8FC`, `0x0134C900`, `0x00FE1610` and `0x00FE1614` finds them only
+at file offsets `0x395041`, `0x39505A`, `0x395239`, `0xB198C1` and
+`0xB33431`, `0x395052`, `0x395222`, `0x39522D`, `0x395250` and `0x395256`,
+and `0x395233`, in that order of value. Each lies in the reader, the
+constructor fill, the initializer or the exit thunk. The dwords
+`0x00FE1618` through `0x00FE1628` and `0x0134C8F4` have no hits. STATIC. No
+sheet loader or Lua native writes the map. INFERRED from the scan, which
+does not see computed addresses.
+
+The icon request therefore receives 10001, 10002 or 10003 for those three
+id18 values and -1 for every other id18. A -1 collapses the icon role. A
+listed value requests Visibility 2 and IconDatas `10001`, `10002` or
+`10003`. INFERRED, through the `std::map<int,int>` layout, the
+`operator[]` reading of `0x00871D00` and the writer scan above. The request
+side is STATIC in the [icon role](#icon-role). The
+[resource calculation](../actor/player-nameplate-icons.md#form-and-resource-evidence)
+maps those IDs to `0x1C5A0001`, `0x1C5A0002` and `0x1C5A0003`. INFERRED
+for this form, because the path from the DamagePlate IconControl through
+`0x0096A010` to texture manager `0x004B6670` is traced on that page and
+not again for this widget.
+
+`xivl-client-data:derived/status_names.csv` holds rows 231001 to 231003 of
+`status`, definition `0x01030198`. Its `status_col_25` values for them are
+10012, 10015 and 231, so the map is not that column. MEASURED.
+`xivl-captures:studies/battle-result-backfit/derived/battle-result-rows.csv`
+column `effect_id` has 57 kind 4 rows with 13 distinct id18 values from
+223013 to 223999 and no kind 10 row. None is a map key. MEASURED. Every
+captured status plate therefore requested a collapsed icon. INFERRED.
 
 ## Per-plate Window writes
 
@@ -377,8 +586,16 @@ applies that matrix to the whole Window subtree is UNKNOWN there and here.
 
 ## Surviving gaps
 
-- The text sheet meaning of IDs `0x7D1` through `0x7D6`.
-- The status icon map at `0x0134C8F8`.
+- The text of `xtx/_text_ui` rows 2001 to 2005, which no tracked artifact
+  states.
+- Property bit `0x40` at byte `+4` of each role's Text property (`+0x33C`),
+  whose source is not traced. It gates markup resolution.
+- The TextBlock result when row 2006 fails for an id18 that is not an
+  `xtx/status` row.
+- How the renderer draws the `xtx/status` field 24 icon control in plate
+  text.
+- A retail kind 4 or 10 plate with id18 231001 to 231003, and the
+  DamagePlate IconControl path to the texture manager.
 - K and the two container selections in the classifier.
 - The `+0x288` pair of each DamagePlate Canvas after style and skin.
 - The source argument used by markup attributes and style Setters.
@@ -395,5 +612,9 @@ table at `0x007967CC`, the float lanes at `0x012C4214` and `0x012C4294`, the
 UTF-16 literals and the descriptor names directly from the file. Resolve
 each cited table through its Complete Object Locator to the RTTI
 TypeDescriptor name. Scan `.text` for raw immediates and call targets to
-reproduce the reference counts. Keep generated listings, decoded assets and
-retail bytes outside tracked files.
+reproduce the reference counts. Read the status icon pair table at
+`0x00FE1610` as little-endian signed dwords, scan the whole file for the
+map and table dwords, and check each hashed range against the SHA-256
+tables in Identity and method. Decode the install sheet definitions and
+resources as Identity and method states. Keep generated listings, decoded
+assets and retail bytes outside tracked files.
