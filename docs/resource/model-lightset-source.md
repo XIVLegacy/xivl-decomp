@@ -37,6 +37,33 @@ These are native pointer/value arrays, without a serialized record-layout
 claim. Their count arithmetic uses 32-bit differences shifted right by two.
 Valid ordered, aligned, nonwrapping spans remain premises.
 
+## Finder and output slots
+
+At `0x00C51026/0x00C5102E`, the wrapper constructs Finder F at its
+local+0x18, passing the supplied resource list, count and fifth input to
+`0x00C524A0`. It reads F+0x40/+0x44 for its model-count decision.
+On the one-entry branch, `0x00C51094` supplies builder arguments
+`(L,F,U)`: L is a separate local output-slot address and U is the wrapper's
+fourth input. The builder reloads that same F at `0x00C4FA4C`, reads its
+current F+0x40 begin at `0x00C4FA58`, and loads S from the current iterator
+at `0x00C4FAAB`. The
+[metadata/ancestry profile](floor-model-render-path.md#primary-resource-and-concrete-receivers)
+types this collection as admitted ModelResourceNode resources. Current list,
+metadata, iterator, frame and lifetime continuity remain premises; a prior
+count-one decision does not freeze the array or identify S's actual creator.
+
+The builder loads L at `0x00C4F926`, saves it at local+0x1C at
+`0x00C4F932`, and reloads it on the loop exit at `0x00C50251`.
+The incoming own EDI definitions at `0x00C50283`, EAX=EDI, are exactly
+that initial load and saved-slot reload. Under saved-slot/frame and physical
+preservation through opaque calls, its plain RET at `0x00C502A8` therefore
+returns L. The wrapper reads the returned slot at `0x00C51099`, clears it at
+`0x00C510A2`, and transfers the logical object word through its own supplied
+output slot O at `0x00C510A4`. The empty-model branch stores zero through O.
+After Finder cleanup, `0x00C510CC` sets EAX=O before plain RET at
+`0x00C510E6`. Thus O is the wrapper's raw return address; *O is its logical
+object/null result, subject to output storage and normal call preservation.
+
 ## LightSet source selection and construction
 
 The current native resource S is loaded at `0x00C4FAAB` and retained in a
@@ -260,14 +287,20 @@ PixelLight membership remain separate questions.
 
 ## Coverage and source limits
 
-The connected new prefix `[0x00C4F8E0,0x00C50058)` contains 546 reached
-instructions/1912 bytes. It exits to `0x00C5025E`, `0x00C501F8` or
-the separately qualified MINS continuation. No constructor RET was reached.
-This is prefix coverage, without complete constructor, exception or descendant
+The connected prefix `[0x00C4F8E0,0x00C50058)` contains 546 reached
+instructions/1912 bytes. Together with the adjoining MINS prefix/continuation
+and actual exit tail `[0x00C5025E,0x00C502A9)`, the entry-rooted normal CFG
+closes at 713 instructions/2505 bytes, through plain RET at `0x00C502A8`.
+The complete contiguous span `[0x00C4F8E0,0x00C502A9)` has SHA-256
+`89e64aae293153a79147212ee02bca3736a0df79bae96f1c45f5c201745cb149`;
+the 75-byte exit tail has SHA-256
+`73df9936cbe67bf93ad5e5c30ef3fcdf27fbdb9b8f603504f6ce9b90aac74a5d`.
+Calls remain opaque normal-return edges, without exception or descendant
 coverage. Additional complete normal bodies were:
 
 | Half-open VA span | Role |
 |---|---|
+| `0x00C50FE0..0x00C510E7` | Finder input, one-entry caller and output-slot result |
 | `0x00C51900..0x00C51995` | Native source-entry selector |
 | `0x00C306D0..0x00C3081B` | LightSet initializer |
 | `0x00C397E0..0x00C397F3` | Nominal member count |

@@ -45,9 +45,12 @@ extent and does not describe the omitted success path.
 Both construction routes use `0x00C524A0`. It initializes a
 `InstanceCreator::ResourceFinder` with main vtable `0x010F5734` and visits the
 supplied candidates at `0x00C52532..0x00C52543`. Traversal `0x00A44BF0`
-dispatches the visitor and follows resource children. `0x00C50FE0` returns
-null when its collected model list is empty, uses `0x00C4F8E0` for one entry,
-and uses `0x00C502B0` for multiple entries. The latter constructor remains a
+dispatches the visitor and follows resource children. `0x00C50FE0` stores a
+null logical result when its collected model list is empty, uses `0x00C4F8E0`
+for one entry, and uses `0x00C502B0` for multiple entries. Its raw return is
+the supplied output-slot address; the
+[Finder/output-slot join](model-lightset-source.md#finder-and-output-slots)
+owns the exact input and result contracts. The latter constructor remains a
 separate branch; one candidate does not by itself prove one collected entry.
 
 The selection uses native class metadata. ResourceNode metadata getter
@@ -380,12 +383,13 @@ current population, source/member identity and successful nonnull allocation
 remain separate conditions. Neither these stores nor their adjacency to
 C+0x24 identify that field's consumer.
 
-The new internal normal continuation covers
-`[0x00C5018F,0x00C5025E)`, 56 instructions/207 bytes. It stops at earlier
-edges `0x00C501F2 -> 0x00C50025` and
-`0x00C50259 -> 0x00C4FA70`; neither target was decoded. No constructor
-return or catalog-end tail was reached. This remains an internal continuation,
-without full-function coverage. Original PE/Capstone/pefile checks used the
+The internal normal continuation covers
+`[0x00C5018F,0x00C5025E)`, 56 instructions/207 bytes. Its outgoing
+earlier-code edges are `0x00C501F2 -> 0x00C50025` and
+`0x00C50259 -> 0x00C4FA70`. The adjoining prefix and exit tail are qualified
+in the [complete normal CFG](model-lightset-source.md#coverage-and-source-limits).
+The selected MINS interval forms part of that CFG.
+Original PE/Capstone/pefile checks used the
 identity and method above, with these additional span digests:
 
 | Half-open VA span | SHA-256 |

@@ -121,8 +121,11 @@ Fallback query `0x00C38AD0` reads precisely that vector at
 `0x00C38B88`. This joins registration to the mask-1 collection below.
 The nonzero-global insertion/query tree branches remain unexpanded.
 
-`0x00C50FE0` uses resource finder `0x00C524A0`: no collected model returns
-null, one reaches `0x00C4F8E0`, and multiple reach `0x00C502B0`.
+`0x00C50FE0` uses resource finder `0x00C524A0`: no collected model stores a
+null logical result, one reaches `0x00C4F8E0`, and multiple reach `0x00C502B0`.
+Its raw return is the supplied output-slot address, with the exact same-Finder
+input and result contracts in the
+[Finder/output-slot join](../resource/model-lightset-source.md#finder-and-output-slots).
 `0x00C510F0` selects the latter after the same finder. A single top-level
 candidate does not prove a single collected model. Both branches create
 material slots through `0x00C519A0`, initialize nodes through
