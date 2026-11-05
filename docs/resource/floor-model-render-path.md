@@ -121,6 +121,11 @@ or rendered output.
 
 ## Streams and active counts
 
+The [version-flag chain](wrb-version-component-flag.md) owns the separate
+version-at-least-9 predicate, conditional indexed-container transfer and
+component bit-1 test in tag initialization. It preserves the missing actual
+resource-builder invocation and current source-object join.
+
 Resource builder `0x00C75840` constructs a `MeshContainer` through
 `0x00C8F160`, then calls `0x00C8DC10` for each MESH at `0x00C75B1C`.
 `0x00C8F470` installs MeshContainer vtable `0x010F9568`; `0x00C72720`

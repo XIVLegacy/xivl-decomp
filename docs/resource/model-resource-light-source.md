@@ -52,6 +52,11 @@ require their own source join.
 
 ## Constructed view input
 
+The [version-flag finding](wrb-version-component-flag.md) follows the same
+actual H into the separate version-at-least-9 predicate and byte R+0xD8.
+Its conditional downstream joins do not establish H+0x0D meaning or a
+current resource's equality with this constructed R.
+
 The [view dispatcher](bgchip-instance-resource-setup.md#view-directory-arguments-and-default-creator)
 owns `0x00A44730`'s complete argument and selector contract. Reader call
 `0x00A3C117` obtains a current entry view through virtual +0x10; a nonnull
