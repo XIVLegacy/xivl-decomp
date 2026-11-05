@@ -36,7 +36,7 @@ The cast normalises a `Component::Lua::GameEngine::LuaControl` (or `ActorBase`) 
 |---|---|---|---|
 | `SetDisplayNameReceiver` | `CharaBase` | `CALL FUN_006faff0` | Decoded in `docs/event/status-condition-receivers.md` (similar pattern) |
 | `SetNoticeEventConditionReceiver` | `DirectorBase` | `CALL FUN_006f1380` | Has fallback to `ActorBase[+0x118]` on cast failure |
-| `SendLogReceiver` | `CharaBase` AND `WorldMaster` | `CALL FUN_00772650` | TWO target classes - likely tries CharaBase first, falls back to WorldMaster |
+| `SendLogReceiver` | `CharaBase` AND `WorldMaster` | `CALL FUN_00772650` | TWO target classes - the WithActor and WithoutActor arms test the apply context for `WorldMaster` first and the WithoutActor arm falls back to a `CharaBase` cast, see [SL-07](../script/sendlog-sink-chain.md#sl-07-family-arms) |
 
 ### A1.1 - Unguarded casts (24 receivers)
 
