@@ -190,8 +190,10 @@ own clamp, range test or arithmetic beyond floating-point staging.
 The completed consumer envelope is `[0x008DBB40,0x008DC000)`, 1216 bytes,
 SHA-256
 `53702ce5a9fc313a0531df517623d524f9909c0bbfc2ce692592b8586a1b9989`.
-The catalog's 1213-byte endpoint cuts before the reached three-byte RET 4 at
-`0x008DBFFD`. Of 336 decoded instructions, 335 are entry-reachable under
+Using the catalog's 1213-byte body count as an initial contiguous read length
+stops before the reached three-byte RET 4 at `0x008DBFFD`. That count is a
+[sum of body ranges](../../tools/README.md#import-and-catalog-export), not an
+enclosing extent. Of 336 decoded instructions, 335 are entry-reachable under
 syntactic normal successors. The decoded instruction at `0x008DBC0D` is
 unreachable by that model. The adjacent `0x008DC000` body was not inspected.
 
@@ -206,8 +208,9 @@ The complete ShapeWeight spans and SHA-256 values are:
 | `0x00C32C10..0x00C32C20` | 16 | `bfebf29323bd6e655302a5c3441efcbb2d690916d545abe7beb77dd4fc57e086` |
 | `0x00C42240..0x00C422EB` | 171 | `d0c222bca8355e9146c257e3d0a4b007681a1d301b7ff04ecf3473d13efe8f89` |
 
-The attribute leaf's catalog endpoint also omits a reached RET 8 at
-`0x00C422E8`. Its completed span contains one unreachable three-byte
+Likewise, the attribute leaf's 168-byte body count is three bytes shorter than
+the independently completed span, whose reached RET 8 is at `0x00C422E8`.
+That span contains one unreachable three-byte
 instruction at `0x00C4225D`. All other selected helper instructions were
 entry-reachable under normal syntactic successors. This does not prove actual
 call execution or termination.

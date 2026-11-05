@@ -285,8 +285,11 @@ coverage. Additional complete normal bodies were:
 | `0x00C22DD0..0x00C23A0A` | PixelLight list source/virtual-call ABI |
 | `0x006213C0..0x0062142E` | Selected LightSet member getter |
 
-The PixelLight catalog's 3120-byte endpoint `0x00C23A00` cuts the reached
-security-cookie call at `0x00C239FF`. Completing that call and its ordinary
+Using PixelLight's catalog body count of 3120 bytes as an initial contiguous
+read length stops at `0x00C23A00`, inside the reached security-cookie call at
+`0x00C239FF`. The count is a
+[sum of body ranges](../../tools/README.md#import-and-catalog-export), not an
+enclosing extent. Independently completing that call and its ordinary
 fallthrough adds ten bytes, through RET 8 at `0x00C23A07`.
 The completed normal envelope is 3130 bytes, SHA-256
 `b4cfbb04972712b76cf97d9504054d4c9e59ef6481da763c5eced44651a61e6b`.

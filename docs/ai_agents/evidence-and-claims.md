@@ -27,6 +27,11 @@ Agent output, summaries, search snippets, and uncited notes are leads, not
 evidence. Inspect the contributor-supplied binary output before promoting a
 fact.
 
+Function-catalog `size` values count Ghidra body-range bytes, as defined by the
+[exporters](../../tools/README.md#import-and-catalog-export). They do not
+establish a contiguous body extent or prove that entry plus `size` is a valid
+instruction boundary.
+
 ## Claim boundary
 
 Make the narrowest claim supported by the cited output.

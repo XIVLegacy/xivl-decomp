@@ -168,8 +168,10 @@ consumer, with the actual source/type, lifetime and retention conditions above.
 Additional original-PE normal CFG coverage was
 `[0x00A6FC50,0x00A6FEF1)`, `[0x00DFC6A0,0x00DFC834)`,
 `[0x00DFC9F0,0x00DFCA75)`, `[0x00DFD360,0x00DFD454)` and
-`[0x00E11DC0,0x00E11DD3)`. Catalog metadata truncated the constructor at
-`0x00DFC81E`; its independently decoded 22-byte tail supplied the actual
+`[0x00E11DC0,0x00E11DD3)`. Using the constructor's catalog body count as an
+initial contiguous read length stopped at `0x00DFC81E`; that count is a
+[sum of body ranges](../../tools/README.md#import-and-catalog-export), not an
+enclosing extent. Its independently decoded 22-byte tail supplied the actual
 epilogue and RET 8, without assuming the opaque error calls were nonreturning.
 No uninvoked layer slot, allocator, count helper or vector-growth body was read.
 

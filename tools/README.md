@@ -42,6 +42,15 @@ query-output identity profile, CPU qualification and native execution gates.
 | `ghidra_scripts/DumpRtti.java` | Exports the tracked, deterministic MSVC RTTI class/vtable catalog and streaming vtable-slot catalog, including source and tool metadata. | A current PE32 Ghidra program after the Microsoft RTTI analyzer, with `XIVL_DECOMP_ROOT` set. |
 | `ghidra_scripts/ApplyKnownNames.java` | Applies locally generated neutral vtable names to default-named functions without replacing existing names; JSON string escapes are decoded. | A disposable Ghidra program and flat JSON catalogs selected by `APPLY_NAMES_JSON`, or `config/<binary>.vtable_method_names.json`. Never run it against an export project. |
 
+The function catalogs' `size` field is the sum of lengths of all address
+ranges in Ghidra's function body. Both
+[`DumpFunctions.java`](ghidra_scripts/DumpFunctions.java) and
+[`DumpSymbolsOnly.java`](ghidra_scripts/DumpSymbolsOnly.java) calculate it
+from `fn.getBody().getAddressRanges()`. A body may contain gaps or disjoint
+ranges, so entry plus `size` is not a declared enclosing end address. The
+catalog does not export those ranges. Use an independently recovered control
+flow and instruction boundaries to qualify a contiguous decoding span.
+
 ### Analysis queries
 
 | Tool | Purpose | Required inputs |
