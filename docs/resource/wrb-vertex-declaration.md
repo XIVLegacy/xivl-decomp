@@ -90,6 +90,85 @@ whose address calculation at `0x00c3773b..0x00c37742` has stride `0x24`.
 Single-field branches and later rebuilds in `0x00c8dc10` do not establish
 one universal resource-import rule.
 
+## Descriptor-derived Mesh flag
+
+The descriptor conversion also supplies a conditional native Mesh field
+profile. This supplies the separate Mesh+0xD8 gate used by the
+[version-bit control path](wrb-version-component-flag.md#tag-handoff-and-actual-bit-test).
+It is distinct from the ModelResourceNode R+0xD8 version predicate.
+
+Constructor prefix `0x00c72720..0x00c72779` captures entry receiver A in
+ESI, zeros EBX, then writes BL at A+0xD8 at `0x00c72773`. This zero
+requires physical preservation across the opaque `0x00c7276e -> 0x00c6a950`
+call. The [Mesh construction profile](floor-model-render-path.md#streams-and-active-counts)
+owns the native type and table. The prefix does not establish the complete
+constructor's return or successful construction.
+
+The builder's nonnull-allocation path calls that constructor at
+`0x00c8dcb4` and stores its full EAX result at current SP+0x48 at
+`0x00c8dcbb`. The null path stores zero at `0x00c8dcc1`.
+Equality of this returned value with A, and with a later current Mesh,
+requires its own constructor-result, stack-slot, object and lifetime joins.
+
+In the descriptor prefix, let D be the source record and S the stable
+per-iteration stack base before pending arguments. The published loop profile
+supplies ESI=D+0x0C. The exact source transfers are:
+
+| Locator | Transfer |
+|---|---|
+| `0x00c8e486..0x00c8e497` | BE32(D+4), the numeric format lookup row f, is retained at S+0x30 |
+| `0x00c8e49b..0x00c8e4b8` | BE16(D+0x0C), the numeric usage u, is retained in EBX |
+| `0x00c8e572` | Appends the intermediate record through `0x00c37c70` |
+| `0x00c8e577/0x00c8e579` | Nonzero current EBX bypasses the flag stores |
+| `0x00c8e57b..0x00c8e58f` | Fresh current dword(S+0x30) must equal 0 or 4 to reach the stores |
+| `0x00c8e591` | Mcur=ptr32(S+0x48) |
+| `0x00c8e595` | byte(Mcur+0xD8)=1 |
+| `0x00c8e59c` | dword(Mcur+0xDC)=the current format-row value, 0 or 4 |
+
+Connecting the post-call values to descriptor u and f requires preserved EBX,
+stack base and local contents through the append and diagnostic calls. The
+append call requires its expected RET4 cleanup. With those conditions, usage
+0 and format row 0 or 4 admit these writes. The field is not established as
+an iff summary of every descriptor or every builder path. Other declaration
+branches, subsequent mutation and whole-object state remain separate.
+
+The already qualified [tag initializer](wrb-version-component-flag.md#normal-control-flow-bounds)
+has two actual readers of the paired +0xDC field:
+
+| Fresh Mesh reload | Field comparison | Unequal branch |
+|---|---|---|
+| `0x00c426f1`, from T+0x1C into EDX | `0x00c426f4`, dword(Mesh+0xDC)==4 | `0x00c42700 -> 0x00c42761` |
+| `0x00c4298d`, from T+0x1C into ECX | `0x00c42990`, dword(Mesh+0xDC)==4 | `0x00c429a0 -> 0x00c429f5` |
+
+Both readers require the initial unsigned word(component+0x76)>=0x0B arm.
+They are separate from the less-than-0x0B version-bit route. The first also
+requires the Mesh+0xD8 check at `0x00c42575` not to branch. That outcome
+does not universally dominate the second reader. Current T+0x1C and Mesh
+field continuity are needed to join either fresh read to the producer.
+
+The equal-to-4 arms use opaque calls to `0x00c12420`, `0x0042e570` and
+`0x0042e5f0`. The unequal arms use the first two. Both copy two qwords
+from the final returned pointer into T+0x4C and T+0x54. The equal arms
+then overwrite the dword at T+0x58 from literal address `0x00f54f70`,
+whose native bits are `0x3f800000` (binary32 1.0). The equal-arm stores
+are at `0x00c42756` and `0x00c429ee`.
+The block covers 16 bytes, with its final four bytes overwritten on those
+equal arms. Readable returned data, normal calls, retained T and storage
+remain conditions. No conversion, coordinate, palette or shader meaning is
+established by these opaque math selections and byte transfers.
+
+This profile used the same executable identity above with Capstone 5.0.7
+x86-32 and pefile 2024.8.26. The exact original-byte prefixes were
+`[0x00c72720,0x00c72779)`, `[0x00c8dc10,0x00c8dccc)` and
+`[0x00c8e46d,0x00c8e5a2)`. They have no inspected RET and do not claim
+whole-method closure. The two reader branches reuse the complete
+`[0x00c42500,0x00c42c75)` normal body qualified by the linked finding.
+Only the actual four-byte literal `[0x00f54f70,0x00f54f74)` was read.
+The descriptor stores end at the untraversed `0x00c8e5a2` successor.
+No append, diagnostic, allocation, math or cleanup body
+was expanded. No selected retail skeletal-mesh descriptor or live tag-to-Mesh
+identity follows from this conditional native field transfer.
+
 ## Compact element packing
 
 The builder packs each field record into eight bytes at

@@ -120,7 +120,9 @@ The version-bit route has these exact conditions:
    `0x00C42B45`. Bit set continues.
 3. `0x00C42A6F` obtains Mesh=ptr32(T+0x1C).
    `0x00C42A72/0x00C42A79` require byte(Mesh+0xD8)!=0 to continue.
-   This Mesh field is distinct from the ModelResourceNode R+0xD8 producer.
+   The [descriptor-derived field profile](wrb-vertex-declaration.md#descriptor-derived-mesh-flag)
+   owns its conditional initialization and stores. This Mesh field is distinct
+   from the ModelResourceNode R+0xD8 producer.
 4. `0x00C42A82` calls `0x00C45040(ECX=C,index)`.
 5. `0x00C42A87/0x00C42A89` tests returned EAX. Zero takes the bit-2
    fallback at `0x00C42AB8`. Nonzero freshly loads ptr32(C+0x7C) and
