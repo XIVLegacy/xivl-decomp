@@ -168,6 +168,91 @@ The selected MiniMap mask asset is `data/61/C1/00/00.DAT`, 262176 bytes,
 SHA-256 `a0c0028ad9952201d5803c29c72000032f5b3e10672820bada3a462c87a5558e`.
 It inspects as 256 by 256 A8R8G8B8 GTEX (MEASURED).
 
+## Masked tile sampling
+
+For a tile admitted to the masked branch, `0x00671025..0x00671075`
+builds both the local destination and tile source as `(0, 0, 256, 256)`
+under the pushed tile transform. The mask source uses a separate pixel
+rectangle. Let `W,H` be the viewport from control `+0x14C/+0x150`,
+`Cx,Cy` the map center computed at `0x00676D6F..0x00676E7E`, and
+`X,Y,w,h` the tile rectangle at `TileElement +8/+0xC/+0x10/+0x14`.
+The draw scale `s` is the stored f32 product of control
+`+0x610 * +0x60C` at `0x00676BBB..0x00676BF1`. Control
+`+0x508/+0x510` supplies the configured mask extents `Mx,My` at
+`0x00676F43..0x00676F62`. These are `MaskImageWidth` and
+`MaskImageHeight` (initializers `0x00F11D00/0x00F11D20`), with
+constructor defaults of 256 at `0x0067A410..0x0067A451` (STATIC).
+
+For positive finite viewport dimensions and finite intermediates,
+`0x00671090..0x006711E1` selects `S=W, q=f32(Mx/W)` when `W <= H`
+and `S=H, q=f32(My/H)` otherwise. The f32 origin intermediates are
+`bx=f32(S/2-Cx*s)` and `by=f32(S/2-Cy*s)`. The stored mask rectangle
+is `(f32((bx+X*s)*q), f32((by+Y*s)*q), f32(w*s*q), f32(h*s*q))`.
+The branch widens the stored f32 `q,bx,by` for the final binary64
+arithmetic and stores the rectangle as f32. These are pixel coordinates before
+texture normalization (STATIC).
+
+The admitted executor at `0x00696950..0x00696A37` multiplies the
+command color by the current context color and passes both texture
+lookup results. `0x00CBA2C0` forms corners from each source rectangle's
+`(x,y)` and `(f32(x+w),f32(y+h))`. The far corners are rounded to
+f32 before normalization at `0x00CBA3C1..0x00CBA3F2` for the tile and
+`0x00CBA42A..0x00CBA44C` for the mask. A nonnull texture wrapper
+supplies its own width and height at `+0x18/+0x1C`. Each corner is
+multiplied by the corresponding f32 reciprocal and stored as f32
+(tile at `0x00CBA45A..0x00CBA4D8`, mask at
+`0x00CBA4EB..0x00CBA56B`). The batch has stride `0x1C`.
+Converter `0x00419A20` maps descriptor `0x0130C29C` to float2
+position at `+0`, `UBYTE4N COLOR0` at `+8`, and float2
+`TEXCOORD0/1` at `+0xC/+0x14`. The flush binds the tile to stage 0
+and the mask to stage 1 at `0x00CBA1CC/0x00CBA1DA`. A null wrapper
+skips its UV normalization and
+can reach generic default texture substitution at `0x0041BEE0`.
+The substituted texel values remain UNKNOWN (STATIC).
+
+On a draw-mode transition, `0x00CA4600..0x00CA4635` flushes the
+previous mode, sets mode 3, and selects vertex and pixel program indices
+`(2, 2)` through `0x00CA2E80`. An existing mode 3 reuses its state.
+The pinned PE program pointer and size cells give the following ranges.
+Set `exe` to the executable's absolute path and pass the file offset
+to `python3 tools/d3d9_shader_decode.py "$exe" <offset> --listing`
+from the repository root (MEASURED).
+
+| Program | Pointer and size cells | Payload VA, file offset, and byte length | Raw payload SHA-256 |
+| --- | --- | --- | --- |
+| Vertex 2 | `0x0130BB08`, `0x0110933C` | `0x01109700`, `0xD09700`, `0x1A4` | `71b662d09c8a4e76cdb2d3780602c80cb320bf992fdd68ab56b5fe86d7938df1` |
+| Pixel 2 | `0x0130BB88`, `0x01109360` | `0x0110A780`, `0xD0A780`, `0x144` | `3137109322925c3c6934df9081dd08b07e4d6a5493cc6593cb6074b6359db5f0` |
+
+The vertex program forwards both UV sets independently and forwards
+normalized packed `COLOR0` for interpolation. The color packer at
+`0x00CB9640` clamps each finite lane to `[0,1]`, multiplies by 255
+and truncates. The pixel program
+samples the tile from sampler 0 at UV 0 and the mask from sampler 1 at
+UV 1. Before blending, RGB is tile RGB times tint RGB and alpha is
+tile alpha times tint alpha times mask red. The sample of mask alpha
+has no role in this equation. The sample and multiply instructions
+request partial precision (STATIC).
+
+When the shared flush reaches `0x00CA3513/0x00CA3540`, it requests
+clamp for both samplers. Filter setup at `0x00CA3890` uses the shared
+selector at `0x01376494`, initialized to 1 at `0x00CA3E73` and
+changeable at `0x00CA4142`. The masked mode leaves that selector in
+place. The checked selector-0 requests use point magnification and
+minification with linear mip filtering. Selector 1 requests linear
+magnification and mip filtering, and anisotropic minification for
+signed modes 0 through 2 or linear minification for signed mode 3.
+Other selectors or signed modes skip these checked filter writes
+(STATIC). [Shared sampler requests](sqwt-icon-control-textures.md#observed-size-dependent-numeric-sampler-requests).
+
+The shared flush uses shader wrapper calls `0x0041C440/0x0041C460`
+when backend byte `0x013763C0` is zero, and
+`0x00420860/0x004208B0` in its alternate branch. Both select the
+indexed program objects in the checked mode
+(`0x00CA3554..0x00CA36A9`). Device feature and state-cache checks
+still govern delivery. The active backend, effective sampler and
+blend state, final compositing, and live painting remain UNKNOWN.
+[Shared flush states](npcsay-backdrop-draw.md#states-and-programs).
+
 ## Selected Bridge piece and reproduction
 
 For the checked layout `5005` with page `0`, `_layout` column 2 selects
