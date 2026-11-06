@@ -8,8 +8,9 @@ Observed against FINAL FANTASY XIV 1.23b ffxivgame.exe, build
 image base 0x00400000. All locators are VAs. Ghidra CLI produced the
 disassembly, xrefs and decompilation used to navigate the trace. Instructions,
 branch operands, referenced tables and RTTI were checked against the identified
-PE. Confidence is high for these static observations. Runtime selection and
-rendering remain unproved.
+PE. LLVM objdump 21.0.0 and little-endian reads of the installed files verify
+the ActionMenu sequence locators and offsets. Runtime selection and rendering
+remain unproved.
 
 ## Property wrappers and dispatch
 
@@ -86,6 +87,11 @@ requires global interface pointer 0x01336BA8, submits its staging destination
 with size 100 through 0x0054B0D0, and clears its own mask only after AL==1.
 A failure branches to 0x0054F0F2 before that clear.
 
+The Sequence proxy at `0x0055A2B0` clears and rewrites the same 100-byte
+field at `+0x2E0`. The consumer reads that field once per admitted submission
+at `0x0054EDB8..0x0054EDDE`. If two sequence values reach the same staging
+field before submission, the second replaces the first.
+
 OBSERVED. At 0x0054B11F, helper 0x0054B0D0 adds 0x15 to its local operation.
 It constructs an internal ScenePacket through 0x004EC080, submits through
 the object at interface +0x20, virtual +0x0C, and returns that virtual call's
@@ -133,6 +139,25 @@ unsigned word at P+4 bounds repeated 100-byte runtime allocation requests.
 The loop latch at 0x008E2F03..0x008E2F17 rereads that word. The Source caller
 uses index i=0. The allocation size is not a file record stride.
 
+## Sequence name selection
+
+OBSERVED. With a reader at renderer `+0x70`, `0x008E3CF0` passes the
+sequence name to `0x008E3C30`. With section pointer `P` at reader `+8` and
+a nonzero `u32LE(P + 8)`, the lookup sets `Q = P + u32LE(P + 8)`.
+It scans up to `u16LE(Q)` entries in order. Entry `i` starts at
+`E = Q + u32LE(Q + 4 + 4*i)`. The lookup compares the input and the
+NUL-terminated name at `E + 4` byte for byte at `0x008E3C56..0x008E3C95`.
+On a match it clears reader byte `+0`, clears the reader list at `+0x1C`,
+and passes `u16LE(E)` to `0x008E35B0` at `0x008E3CD7`. That method stores
+the selected index at reader `+4`. The renderer clears its fields at `+8`
+and `+0xC` only if the lookup succeeds.
+
+On the reader path at `0x008E3622..0x008E3677`, the selected index `j`
+picks the record at `P + u32LE(P + 0xC + 4*j)`. The unsigned word at the
+record start bounds the command loop. The first command starts at record
+`+4`. The unsigned word at the command start advances the command pointer,
+for example at `0x008E36A4` and `0x008E3931`.
+
 ## Template and package correlations
 
 OBSERVED. client/sqwt/common/MapMarker.tpl, 15166 bytes, SHA-256
@@ -164,21 +189,61 @@ records callbacks 0x0067C220/0x00680810 and package literal 0x00FC3390.
 Package-path use does not establish group_marker_data, MapMarkerParty or
 wire-record ownership.
 
+## ActionMenu completion package
+
+The [ActionMenu TimerIcon style](action-menu-timer-icon-style.md#observed-form-and-style-declarations)
+declares `common/timerEffect.le.spk` and the sequence names `No_anime`
+and `Effect_start`. The named files in the build `2012.09.19.0001` install
+are under `client/sqwt/`.
+
+| File | Magic | Bytes | SHA-256 |
+| --- | --- | --- | --- |
+| `common/timerEffect.le.spk` | `SPKL` | 424 | `bcb3d8cf8fefce3bf77b0ab553226204f494153ed776458357b20ade4a8c1000` |
+| `common/timerEffect.win32.gtex` | `GTEX` | 16416 | `9adacfe8e813660d427bcf2d712a8741c929fc5c89e55d25f2ada5edb1c47397` |
+
+OBSERVED. In the SPK file, the unsigned words at `+8` and `+0xA` both
+read 80. The index-zero section cell at `0x14` selects `P = 0x24`. The
+unsigned word at `P + 4` reads 1. The dword at `P + 8` reads `0x30`, so
+the sequence lookup formula selects `Q = 0x54`, where the entry count is 2.
+The cells and records below apply those formulas to the file offsets.
+
+| Sequence name | Table cell | Name entry | Selected index | Selected record | First command |
+| --- | --- | --- | --- | --- | --- |
+| `No_anime` | `0x58` | `0x60` | 0 | `0x84` | `0x88` |
+| `Effect_start` | `0x5C` | `0x70` | 1 | `0x94` | `0x98` |
+
+Each selected record contains one command whose leading unsigned word is
+12. These offsets establish how the checked formulas would select the
+named records if the renderer's package buffer holds this file.
+
+OBSERVED. The Source loader takes the prefix before the first period at
+`0x008E3072..0x008E30B0`. The declared source therefore supplies the stem
+`common/timerEffect`. Helper `0x00933B80` qualifies the stem using runtime
+path state. The loader passes `.gtex` and flag 1 to `0x00D39290` at
+`0x008E3140..0x008E3179`. Its callee `0x00D38E50` adds `.*` at
+`0x00D38F38` and the extension at `0x00D38FD6`. The resulting search
+pattern uses `timerEffect.*.gtex`. When that probe fails,
+`0x008E31A7..0x008E31E5` appends `.win32` and then `.gtex` to the
+qualified stem. At `0x008E323B` the loader calls `0x00CA2590` with the
+selected path. The installed sibling matches the search pattern and the
+fallback name. The runtime root, probe result and texture resolution
+remain unknown.
+
 ## Reproduction and limits
 
 Use Ghidra CLI on the identified executable. Inspect the constructor,
 property initializers, handler and apply targets above. Follow the getter,
 interface constructors and factory, checking the cited virtual slots and
 COL/type links. Inspect the staging methods, dirty consumer, submit helper,
-ScenePacket constructor, native cases, Source loader and pointer/count reader
-at their locators. Compare instructions, branch targets and referenced data
-with PE section-based VA mapping. Decode the exact template basename with the
+ScenePacket constructor, native cases, Source loader, reader and sequence
+lookup at their locators. Compare instructions, branch targets and referenced
+data with PE section-based VA mapping. Decode the exact template basename with the
 published SQEX algorithm and compare the stated package positions without
 assigning other header roles.
 
 UNKNOWN. The queue receiver at interface +0x20 and its delivery/translation
-to 0x008CEC60, complete raw-file/cache identity, sequence selection through
-0x008E3C30, full SPKL schema, signature/version validation, table bounds
+to 0x008CEC60, complete raw-file/cache identity, live ActionMenu sequence
+delivery, full SPKL schema, signature/version validation, table bounds
 policy and file record stride remain unproved. General property-helper flags,
 staging-helper encoding/truncation/failure behavior, XML tag-to-factory
 registration, actual runtime global selection, cached-object type, command

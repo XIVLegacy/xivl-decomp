@@ -77,6 +77,20 @@ The native Storyboard hook dispatches a retained command when present.
 Installation and delivery of this declared command remain unresolved. See
 [DoubleAnimation samples and Storyboard completion](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion).
 
+TimerIcon registers `SpkSource` as descriptor `0x013630D8`, tag `0xB`, and
+`SpkSeq` as `0x013630FC`, tag `0xC`, at `0x00F2A6D0..0x00F2A709`. The
+callback `0x009C0330` reads the wrappers at control `+0x338` and `+0x340`
+in arms `0x009C04A5` and `0x009C04C7`. The arms call `0x009BFA30` and
+`0x009C02E0`. With a nonempty source, a package result, and admitted
+drawing context, the source path forwards through virtual `+0x60` at
+`0x009BFBD7`. With an admitted context, the sequence path forwards through
+virtual `+0x64` at `0x009C0304`.
+
+If both sequence assignments reach the same DrawingToolContext staging
+field before it submits the command, `Effect_start` can replace `No_anime`
+there. The static lookup and installed package and texture are documented
+in [ActionMenu completion package](sparklecontrol-source-sequence.md#actionmenu-completion-package).
+
 ## OBSERVED TimerIconId handoff
 
 | Locator | Observation |
