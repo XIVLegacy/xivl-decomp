@@ -294,6 +294,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [SetActorName display-name id 0 and the speaker name](resource/display-name-id-zero.md)
 - [SparkleControl Source and Sequence](resource/sparklecontrol-source-sequence.md)
 - [Sqwt XPath data sources](resource/sqwt-xpath-data-sources.md)
+- [MiniMap base tiles](resource/minimap-base-tiles.md)
 - [Bitmap font texture consumers](resource/bitmap-font-texture-consumers.md)
 - [Bitmap font shader consumers](resource/bitmap-font-shader-consumers.md)
 - [Bitmap font flag-bit-0x02 shader consumers](resource/bitmap-font-edge-shader-consumers.md)
