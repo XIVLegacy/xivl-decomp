@@ -8,7 +8,7 @@ and evaluates, how `ItemsSource` turns the result into items, and how scripts
 fill the rows. It ends with the rule a binding layer should follow for
 `MainMenuWidget`, `MiniMapWidget` and `AchievementPopupWidget`.
 
-The machine-checked form of every STATIC fact is
+The machine-checked STATIC findings are recorded in
 [`sqwt_xpath_binding.json`](../../config/sqwt_xpath_binding.json), checked by
 `tools/verify_sqwt_xpath_binding.py` against the pinned bytes. The reference
 model of the evaluator, the node select and the row range is in that tool.
@@ -380,9 +380,64 @@ The window binds no `ItemsSource`. The `CustomControl` of type
 `MapScreenControl` binds `TypeDataSource`, `GlMarkerSource`, `SsdMarkerSource`
 and `MapMarkerSource` to the four lists with `Mode=OneWay` and the same slash
 paths, so each property receives a list handle. The marker templates in
-`common/MapMarker.tpl` read the row attributes `SparkleSequence`, `Text` and
-`Visibility`, and `MapMarkerTemplate` reads `Template`. The
-consumer of the four handles inside `MapScreenControl` is not traced (UNKNOWN).
+`common/MapMarker.tpl` also read the row attributes `SparkleSequence`,
+`Text` and `Visibility`.
+
+#### Marker wrapper and row context
+
+Replay the installed carriers under `client/sqwt` with
+`xivl extract-resource --as sqwt` and `verify-extraction --source`.
+Python Expat identifies the element lines. LLVM objdump 21.0.0
+confirms the selected native instructions in the pinned PE.
+
+| Carrier | Bytes | SHA-256 | Decoded SHA-256 |
+| --- | ---: | --- | --- |
+| `widget/MiniMapWidget.form` | 2943 | `83428fa59fa9d26951c1c646d40b87fbbfd9ea0b537ae30e3af4b1ff36560360` | `7c3d9d8a0c69291d21b705c8823444fc5ab89d4ee3ae06eda80caab040e85c88` |
+| `common/MapMarker.tpl` | 15166 | `c9a9ddb8568e07bf67564e96328722c647a086ded15907900f73092c6706dba5` | `68a685d900291186ba0b6472e8a6f9054459d2b2d874913725ee0fb8fe1e5555` |
+
+The form merges `common/MapMarker.tpl` at line 11 and declares
+`MapMarkerTemplate` as both `GlMarkerDefaultTemplate` and
+`SsdMarkerDefaultTemplate` on the map control at line 19. This key
+names the outer `ControlTemplate` at template line 2. Its inner
+`ContentControl` at line 5 binds `Template` with `XPath=@Template`
+and `Mode=OneWay`. The binding omits `Source` and supplies no literal
+inner template key (MEASURED). With a resolved row, the generic
+[binding resolution](#binding-resolution) and [evaluation](#evaluation)
+paths request an attribute string write. A row without `Template`
+supplies empty text.
+
+The selected native SSD and map source setters at `0x00673D42` and
+`0x00673D7E` pass the holders at map control `+0x498` and `+0x4A0`
+to the source store. The `SsdMarkerDefaultTemplate` descriptor
+`0x013400C0` (tag `0x12`) uses the holder at `+0x4C8` through
+`0x00673E80..0x00673E86`. With the corresponding source and node-list
+pointer present, the SSD path at `0x00678E72..0x00678EAB` and map path
+at `0x00679022..0x00679059` pass the list result to `0x006805F0`.
+The map path also requires `+0xA68` mask `0x80` clear and `+0x600`
+nonzero at `0x00679008..0x0067901C`. A nonnull `+0x4C8` supplies
+the same wrapper name to both calls. A null holder supplies the empty
+object at `0x01266B10` (STATIC).
+
+Both paths visit their retained marker entries through `0x0067DBD0`
+at `0x00678F2E` and `0x006790D1`. The per-entry call at `0x0067DC1C`
+enters `0x0067BEC0`. For an entry with mask `0x02` set at `+0x3D`
+and nonempty wrapper name, `0x0067C038..0x0067C03F` requests a
+`Template` write on the retained element. The name key at
+`0x0133FDD4` is initialized from `Template` at `0x00F119A0`. After the
+write request returns, the routine casts the row from `DOM_Node` to `Sqwt::Xml::XmlElement`
+at `0x0067C04A..0x0067C057`. At `0x0067C062` it passes that result
+to the outer element's `DataContext` setter `0x0092F310`, which
+uses descriptor `0x0135885C` and holder `+0x208` (STATIC).
+See [Control Template application](sqwt-template-initial-enabled-receiver.md)
+for the generic named resource route.
+
+The SSD and map readers at form lines 8 and 9 omit `Row`. The
+[reader gate](#rapturessddatareader-rows) therefore leaves initial
+row selection to a separate producer. The native call order above
+establishes the outer template request before the outer row assignment.
+Activation and row propagation to the inner binding, the inner
+setter outcome for empty or unresolved keys, live row selection, and
+rendered markers remain UNKNOWN.
 
 ## Census
 
@@ -429,9 +484,9 @@ The client facts behind the rule, restated as contract lines:
 
 - UNKNOWN: The list names that the MainMenuWidget and AchievementPopupWidget scripts pass to the list natives.
 - UNKNOWN: What redraws a bound list or item after the first resolution when a row attribute or the row count changes.
-- UNKNOWN: The consumer of the four list handles that MapScreenControl receives and the writer of Row for the sheet readers that declare none.
+- UNKNOWN: The remaining MapScreenControl list consumers and the ordinary MiniMap writer of Row for the sheet readers that declare none. The [selected SSD and map marker route](#marker-wrapper-and-row-context) establishes the outer template and row assignment.
 - UNKNOWN: Whether the SqwtDefaultTemplateSelector reference of ListBox_MainMenu resolves to a nonempty selector, because no markup file or executable string declares that key.
-- UNKNOWN: What feeds the `GLMakerData` list of MiniMapWidget, because `gl_marker_data` is only a `SqwtXmlDataMaker` and no traced script or native names it.
+- UNKNOWN: Ordinary initial contents of the MiniMap `GLMakerData` list. The [coordinate marker path](../actor/map-marker-lanes.md#coordinate-circles) supplies a separate script writer.
 - UNKNOWN: The reader of the child index range that a position predicate stores on a node.
 - CALIBRATION: The frame on which a list write reaches the bound items. A binding layer chooses the next frame until a retail capture settles it.
 
@@ -446,7 +501,8 @@ the range arithmetic and the row range are covered by
 `tools/test_sqwt_xpath_binding.py`.
 
 The surviving gaps are the redraw signal after the first resolution, the
-`MapScreenControl` list consumers, the writer of `Row`, the script list names
-of two forms, the selector key, the `GLMakerData` feeder, the reader of the child range, the decoded
+`MapScreenControl` list consumers outside the selected route, the writer of
+`Row`, the script list names of two forms, the selector key, initial
+`GLMakerData` contents, the reader of the child range, the decoded
 child lookup by attribute and the per-property string setters that parse the
 written text.
