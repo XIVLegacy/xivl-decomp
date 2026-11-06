@@ -306,8 +306,10 @@ For a start of 0 the two rules are the same, so the 8,890 count once. The
 cross-check therefore passes for 940 of 1,538 clips with a start above 0 and 8,890
 of 12,227 with a start of 0, and it fails for 598 and 3,337. The ordering is
 supported but not proven. The `CameraClip` class (rank 27 in the
-[census](cut-scheduler-clip-class-census.md)) has a 36 byte record and was not
-decoded.
+[census](cut-scheduler-clip-class-census.md)) has a 36 byte record, read by the
+[layout page](cut-scheduler-clip-layout.md#cameraclip). Its update evaluates the
+same CameraObject at the elapsed ticks, and whether its resource index selects a
+container of the same file was not measured.
 
 ## Census
 
