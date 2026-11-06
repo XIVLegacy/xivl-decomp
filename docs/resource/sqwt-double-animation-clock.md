@@ -59,6 +59,17 @@ through a text conversion. It does not read the bounded event snapshot at
 `+0x36C` or a separately identified render sample. STATIC. A prior admitted
 animation write can therefore contribute to a later start. INFERRED.
 
+For TimerIcon, property array cell `0x012E8FC4` holds the `Percent`
+descriptor `0x01362F70`, index 1. Initializer `0x00F2A950..0x00F2A994`
+supplies getter `0x009BF650` and zero receiver adjustment. Table cell
+`0x010825C8` selects adapter `0x009A71C0`. Getter cell `0x009BF8C4`
+selects `0x009BF67D`, which passes control `+0x2C4` to `0x00988D50` and
+returns success. STATIC. With this getter admitted and To still at its
+sentinel, `0x009B48FC..0x009B4941` retains the converted current `Percent`
+as the endpoint before applying the To offset, even with an explicit From.
+A failed property read leaves the temporary zero before the offset. The
+value and binding order at a live ActionMenu Begin remain unresolved.
+
 BeginStoryboard constructor `0x0094D740` installs primary table
 `0x0106D7D4`. Its slot-2 body `0x009AF6F0` iterates the retained timeline
 list and calls each timeline's virtual `+0x38`. For Storyboard table
