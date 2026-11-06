@@ -155,6 +155,32 @@ field before it submits the command, `Effect_start` can replace `No_anime`
 there. The static lookup and installed package and texture are documented
 in [ActionMenu completion package](sparklecontrol-source-sequence.md#actionmenu-completion-package).
 
+### TimerEnd default parameter and root Event
+
+STATIC. The `TimerEnd` action declares only `Command`. Its constructor
+`0x009B2D00` calls the base initializer `0x00954C00` at `0x009B2D2B`.
+That initializer passes the parameter holder at `+0x54` to `0x00953B10`
+at `0x00954C99`. The holder points to `0x01361160` after `0x00953B1F`,
+the shared [kind-0 default](sqwt-keyframe-target-binding.md#default-completion-record-and-event-arguments).
+With no property names, `0x009B2A5B..0x009B2AAF` copies the default
+and skips reparsing. The call at `0x009B2B74..0x009B2B7E` supplies the
+copied record, the resolved TimerIcon source and the triggering event.
+The RoutedCommand event-argument constructor copies kind 0 to event `+0x24`
+at `0x0092916A..0x00929170`. The source event can also supply route
+flags through `0x0092801B..0x00928049` and `0x009280D4..0x00928110`.
+
+If `Executed` reaches the ActionMenu Window and matches its plain
+priority-5 root subscription, the Window is the subscription sender and
+the TimerIcon remains the routed source. The kind-0 adapter selected at
+`0x00536689` uses an empty template string at `0x006F5740`. The admitted
+Event path at `0x00896AF0` passes exactly `nil`, `_widget` and
+`UILuaCommands.TimerEnd` through `0x00749220..0x00749262` after the
+resolved Lua receiver. The shared Lua wrapper forwards five slots, so
+both payload slots are nil. See the
+[TimerEnd registration and refresh](https://github.com/XIVLegacy/xivl-client-scripts/blob/7941b9bca4d4015c939c50eb68d95bc2ec44f723/docs/action-menu-recast-inputs.md#timerend-refresh).
+Actual PreviewExecuted admission, priority gating and live delivery
+remain UNKNOWN.
+
 ## OBSERVED TimerIconId handoff
 
 | Locator | Observation |
