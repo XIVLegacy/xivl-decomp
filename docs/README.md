@@ -253,6 +253,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
 - [Sqwt binding source arms](resource/sqwt-binding-source-arms.md)
 - [Sqwt style animation reverse binding](resource/sqwt-style-reverse-binding.md)
+- [Sqwt bound targets for discrete property keyframes](resource/sqwt-keyframe-target-binding.md)
 - [Sqwt desktop relative source](resource/sqwt-desktop-relative-source.md)
 - [Sqwt render transform](resource/sqwt-render-transform.md)
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
