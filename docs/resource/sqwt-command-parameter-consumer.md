@@ -353,6 +353,100 @@ masks. These inspected writers do not establish exhaustive aliases or writers,
 late resolution inputs, a concrete Button caller, current instance values,
 physical input delivery or control membership. STATIC.
 
+## ActionMenu PadBinding source
+
+The standard ActionMenu form puts repeat-enabled `LUp` and `LDown`
+bindings under the outer `Grid.InputBindings`. Their commands are
+`UILuaCommands.PushSlotPrev` and `UILuaCommands.PushSlotNext`, respectively.
+The pinned decoded form and declarations are in
+[xivl-client-scripts: ActionMenu page controls](https://github.com/XIVLegacy/xivl-client-scripts/blob/a99d17dc70e7017347c8ab2619537117ca0d9593/docs/action-menu-page-controls.md#input-and-dispatch)
+(OBSERVED). The following native joins use the executable identified above,
+Ghidra CLI 0.2.2 disassembly and RTTI, and original PE32 instruction and table reads.
+
+### Grid binding materialization
+
+The markup branch at `0x0094B991..0x0094B9C0` checks the
+`.InputBindings` suffix at `0x0106D4AC` and a nonnull complete owner.
+It passes owner+0xDC to the wrapper constructor `0x00545E60`, which
+retains it at wrapper+0x74 (`0x00545EAF`). The wrapper table
+`0x00FA2658` selects the child consumer `0x0094AC10` at +0x20.
+For a `PadBinding` child, `0x0094A87E..0x0094A8D5` stamps
+XamlPadBinding table `0x0106DD90`, reads the child attributes and
+invokes the wrapper consumer. That consumer calls the child's +0x20
+at `0x0094AC43`, increments collection+0x20 and passes the nonnull
+factory result to insertion helper `0x0068CAA0` on collection+4
+(`0x0094AC4E..0x0094AC5A`) (STATIC).
+
+XamlPadBinding's attribute reader maps `LUp` and `LDown` to 1 and 2
+at `0x0094890E..0x0094892C` and writes the parsed mask to node+0x174
+(`0x00948A76..0x00948A85`). The base initializer clears release and
+repeat at node+0x168 and +0x169 (`0x00556DAE`, `0x00556DB4`).
+The corresponding attribute readers write those bytes at
+`0x009488B6..0x009488C5` and `0x0094847B..0x0094848A`. The form sets
+repeat and leaves release at its initialized value. XamlPadBinding slot +0x20
+selects `0x00947710`, which uses the stored command or resolves it through
+`0x0096E850`. With nonzero mask and resolved command, it constructs a
+PadGesture with the mask, axis index zero and the release and repeat bytes,
+then constructs a PadBinding (calls at `0x009477A5` and `0x009477FF`).
+The gesture constructor `0x0068C730` writes the mask to +0x18, axis index
+to +0x20 and the two bytes to +0x24 and +0x25, and stamps table
+`0x00FC5AD4` (`0x0068C76B..0x0068C78C`) (STATIC).
+
+A separate PadBinding factor path uses `0x009CF1F0` for attributes and
+`0x009CF640` for construction. Its mask and repeat readers are at
+`0x009CF318..0x009CF4B4` and `0x009CEABC..0x009CEAD4`. The adapter
+calls `0x009CFF00` at `0x009CF691` to construct the gesture and calls
+`0x009CF930` at `0x009CF6C6` to construct the binding. Its direct
+insertion entry `0x009CF6E0` reaches the same complete owner offsets
++0xFC and +0xE0 at `0x009CF758..0x009CF768` (STATIC).
+The two checked materialization paths do not identify which reader
+produced any specific live Grid.
+
+### Routed PadChange and repeat match
+
+The native pad update enters the routed PreviewPadChange and PadChange
+path described in
+[xivl-client-structs: Pad receiver and first consumer](https://github.com/XIVLegacy/xivl-client-structs/blob/8ee5be22e27b63b0442d4a413d584238796a744c/docs/native-input-ui-boundaries.md#pad-receiver-and-first-consumer).
+PadChange descriptor `0x01359420` takes id 0x26 at `0x00F22FD9`.
+The generic dispatcher uses byte `0x0091D83D=0x22`, then cell
+`0x0091D7E8`, then arm `0x0091D349`, which calls interface +0x6C.
+The Grid constructor stamps table `0x0107442C` at complete owner+0xB4
+(`0x00975107`). Its preceding locator `0x0117D6E4` confirms that
+displacement and RTTI `.?AVGrid@Controls@Sqwt@@`. Its route slot +0x34
+points to `0x0092D060`, which reaches the generic dispatcher through
+`0x00939800`. Its slot +0x6C at `0x01074498` points to `0x0091F200`
+(STATIC).
+
+When the route visits that Grid, `0x0091F200` calls `0x00920340` on an
+eligible returned collection first and on interface+0x28 at `0x0091F265`.
+The latter is the markup's complete owner+0xDC collection. For an admitted
+entry, the executor calls the gesture slot +0x0C at `0x0092042A` with the
+binding's target, parameter storage, pad event and bit 0 of binding+0x9C.
+PadGesture slot +0x0C is `0x0099A340`. With axis index zero, release byte
+zero and repeat byte one, it requires all action bits in event+0x4C when
+the passed bit is zero or in event+0x34 when it is one. It stores a
+nonzero intersection with event+0x48 at gesture+0x28. Without a fresh
+intersection it requires the retained bits to intersect event+0x50.
+If that test fails, it calls gesture +0x1C and refuses the match. An admitted directional gesture writes
+event+0x58 masked by the action to parameter+0x74
+(`0x0099A383..0x0099A432`) (STATIC).
+
+The executor requires command slot +4 to accept before invoking slot +8
+with the binding parameter, stored target and a null third argument
+(`0x00920430..0x00920463`). For a RoutedCommand, slot +8 is the
+[PreviewExecuted and Executed path](#target-and-route). On an exact return
+of 1 and unchanged collection serial, the executor calls gesture +0x1C at
+`0x0092049D`. PadGesture supplies `0x0099A440`, which passes its mask
+and release byte to `0x009825D0`. With release byte zero, the helper
+clears the selected bits from event+0x48, +0x4C, +0x50 and +0x58 at
+`0x009825DD..0x009825E6`. It sets event+0x19 when the resulting event+0x48
+and +0x54 are both zero (`0x009825EE..0x009825FA`) (STATIC).
+
+The join is conditional on the current route visiting the Grid and on
+the binding, gesture and command gates. Physical device mapping and repeat
+cadence, focus and modal selection, the live recipient, and ActionBar alias
+producers remain UNKNOWN.
+
 ## Executed event delivery
 
 `Sqwt::Input::RoutedCommand` slot 2 (`0x00927FA0`) builds a `PreviewExecuted`
@@ -1245,10 +1339,10 @@ Do not assume:
   IsHitTestVisible aliases and writers, late property-resolution inputs, dynamic
   metadata defaults, all packed-state writers, binding-driven ClickMode changes and
   installed Click EventTriggers. Arbitrary ICommand bodies remain untraced.
-- The sites where `KeyBinding` and `PadBinding` put a record into an
-  `Executed` event. They are INFERRED to use the same command slot 2 route as
-  the binding path in the
-  [movement command origin page](../input/player-movement-command-origin.md).
+- The live routing and admission of installed input bindings. The
+  [ActionMenu PadBinding source](#actionmenu-padbinding-source) reaches
+  the native command executor under the checked PadChange gates.
+  The selected `KeyBinding` markup-to-command join remains UNKNOWN.
 - The `Lua` parameter lists of `_onUICommandEvent` and `_onUICommandRequest`, and
   every subscription list, which are script content.
 - The consumers of the `Selector.*`, `KeyConfig.*` and `MapScreen.*` commands.
