@@ -386,6 +386,77 @@ binding activation and property admission, runtime floating-point exception
 state, later arrange and render scheduling, and the effect of WindowContext
 opacity on final compositing remain unresolved.
 
+## OBSERVED effective opacity at the selected skin quad
+
+The checked form names `common/default.style` at line 1 and nests
+`Label_CommandIcon_1` under `Label_MenuSlot_1` at lines 44 to 51.
+The command Label selects `ControlTemplate_Label_MenuIcon`, whose
+`Border_FocusEffect` at template line 154 declares style
+`BOD_actionMenu_commandEffect` and local `VisualOpacity` 0. In the
+default style, its Frame rows at lines 4041 to 4047 select the identically
+named skin for Normal, Hover, Active, Disabled and Focused. The default
+skin declares a `1,1` CellSkin at line 964 and a `Stretch` cell at line
+965 with source rectangle `228,601,72,72` from `common/default.dds`.
+The selected Border needs a positive effective alpha to enter the renderer.
+When the declared zero is retained as local alpha, it fails that gate
+under the finite parent-alpha path.
+
+The [form and template input record](action-menu-timer-icon-style.md#inputs-and-method)
+identifies those carriers. The same SQWT extraction and source replay
+identify the two selected common resources. Python Expat supplies the
+decoded line locations.
+
+| Carrier under `client/sqwt` | Carrier bytes | Carrier SHA-256 | Decoded bytes | Decoded SHA-256 |
+| --- | ---: | --- | ---: | --- |
+| `common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` | 353775 | `33bb178c3b172c62eeb65e8bcaf94f701a0ec3921564e27a619516900896d9f6` |
+| `common/default.skin` | 141967 | `6788f2986d9cc8aeab83fcdbcf7a9115d3576ecfabf40529cc861f41f0df5640` | 141959 | `929e65e9d5f191292d9b044e3e659ba115f18f6b3d8a82894046a7c75cbcad5a` |
+
+WindowContext draw requires the owner check at `0x008CE7D9..0x008CE7F9`,
+byte `+0x128` equal to 3 and nonzero byte `+0x12B`. Its renderer loop
+requires effective alpha `+0x10C` greater than the binary32 zero at
+`0x00FB7A64`, nonzero extents at `+0xF8` and `+0xFC`, and a zero
+result from `0x008CBED0`
+(`0x008CE9F6..0x008CEA48`). The call at `0x008CEA77` passes the
+effective color vector at context `+0x100` to `0x008CF4A0`, which puts
+its pointer at draw argument `+0x10`. The loop calls virtual `+4` of
+each nonnull renderer with nonzero byte `+4` at `0x008CEA87..0x008CEAA8`.
+
+Before the loop, `0x008CE838` passes context `+0x58` to `0x008CBEF0`.
+When context byte `+0x6D` is nonzero, `+0x6C` equal to 1 requests
+scissor disable. Other `+0x6C` values reach `0x008CBF2C`, which requests a scissor
+with the stored left and top and their sums with width and height.
+With render global `0x013764A0` zero, `0x00CA3E30` selects
+`0x00CA3C60`, which uses state `0xAE` and clamps the enabled rectangle
+against the render target bounds before the device request through
+`0x0041BD90`. A zero `+0x6D` leaves this helper's scissor state alone.
+The page template's ContentPresenter at line 312 declares
+`ClipToBounds` false. The actual scissor at the selected draw remains
+a separate condition.
+
+For a selected `RenderSkin`, virtual cell `0x01066938` leads through
+`0x008E2670` to `0x008E2450`. That routine requires nonempty skin
+records and a nonnull selected Frame record at `0x008E2456..0x008E24C5`.
+With a nonnull Frame skin, it copies the effective vector to renderer
+`+0x58..+0x64` at `0x008E25CF..0x008E25E4`. Enable byte `+0x115`
+equal to 1 admits the `0x008E20F0` call at `0x008E261B` with zero
+offsets. The CellSkin branch requires a resolved
+texture at `0x008E2362..0x008E236B`. The `1,1` dimensions select
+`0x008E0930` at `0x008E2427`, which passes the effective color pointer
+at `0x008E09BA` to `0x008E00F0`.
+
+The `Stretch` parser stores draw mode 0 at `0x009A84B9`. That mode
+reaches `0x00CA58A0` at `0x008E01FD`. With zero offsets, the zero
+render-global branch reaches `0x00CBC910` through `0x00CBCC50` at
+`0x00CBCF02`. The other branch reaches `0x00CBAB20` through
+`0x00CBB1E0` at `0x00CBB646`. Both quad builders call `0x00CB9640`
+with the effective color. The packer clamps the fourth lane to `[0,1]`,
+multiplies by 255 and truncates at `0x00CB964B..0x00CB968E`.
+
+On an admitted descendant skin draw, the page Label's alpha can reach
+the packed skin vertex through the WindowContext parent chain. Live
+context ancestry, selected Frame and texture, frame delivery, and final
+pixel compositing remain unresolved.
+
 ## OBSERVED page storyboard completion target
 
 The Next and Prev Storyboards at template lines 316 and 335 both declare
