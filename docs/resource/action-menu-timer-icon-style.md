@@ -60,6 +60,9 @@ empty `SqwtIsAutoSetSkin` attribute and sets `SpkSource` to
 The omitted `To` follows the native endpoint setup when the target and
 property resolve. See
 [DoubleAnimation setup and TimerIcon Percent capture](sqwt-double-animation-clock.md#setup-current-value-and-repeated-begin).
+The [TimerIcon recast inputs](sqwt-timer-icon-recast-inputs.md#observed-recast-inputs-and-derived-values)
+record the native calculation of `ToPercent` and `TimerDuration`, the
+`RunningValue` notification order, and the `AnimeTime` text representation.
 
 TimerIcon registers its `AnimeTime` descriptor `0x01362FDC`, index 4, at
 `0x00F2A5E0..0x00F2A603` with the string at `0x0108220C`. Setter cell
