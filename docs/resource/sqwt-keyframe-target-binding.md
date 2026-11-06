@@ -517,6 +517,38 @@ lookup `0x00928280` and fallback `0x00928F90`. For a retained
 `RoutedCommand` and nonnull Label target, the [explicit command route](sqwt-command-parameter-consumer.md#target-and-route)
 raises `Executed` from the outgoing Label if `PreviewExecuted` allows it.
 
+### Default completion record and Event arguments
+
+Both Storyboards omit `CompletedCommandParameter`. The Storyboard
+constructor passes descriptor `0x013616F4` and holder `+0x168` to
+`0x00953B10` at `0x009A68F1..0x009A690B`. The helper sets the holder
+to shared record `0x01361160` at `0x00953B1F`. The record's kind dword
+at `+0x00` is in PE zero-fill. Startup `0x00F28730..0x00F28769`
+initializes the string and clears the eight integer slots, leaving kind
+0. See [command parameter storage](sqwt-command-parameter-grammar.md#callers-of-the-parser).
+
+With that default still retained, the completion hook passes it at
+`0x009A64C2..0x009A64C9`. The `RoutedCommand` event constructor copies
+kind 0 to event `+0x24` at `0x0092916A..0x00929170`. If the route
+reaches the ActionMenu Window's handler and its plain root subscription
+matches, the handler uses the Window as its subscription sender. The
+outgoing Label remains the routed source. A control name matching the root
+becomes `_widget` at `0x005365B1`. A template key matching the root name at
+`0x005365E2..0x005365F7` selects the kind-0 root adapter at `0x00536689`.
+See [subscription keys](sqwt-command-parameter-consumer.md#subscription-gate)
+and the [ActionMenu registration](https://github.com/XIVLegacy/xivl-client-scripts/blob/a99d17dc70e7017347c8ab2619537117ca0d9593/docs/action-menu-page-controls.md#L60-L88).
+
+The root adapter supplies an empty template string at `0x006F5740`.
+On the admitted Event path at `0x00896AF0`, the no-payload parameter
+pushes `nil`, `"_widget"` and `"UILuaCommands.FinishAnimation"` at
+`0x00749220..0x00749262`. The method call
+through `0x00896CA0` supplies the resolved ActionMenu Lua instance as
+`self`. The shared `_onUICommandEvent` wrapper forwards five argument
+slots to that instance's `processUICommandEvent`, so its two payload
+slots are nil. This argument shape depends on the route, subscription,
+Event admission and Lua method invocation. See [native argument pushes](sqwt-command-parameter-consumer.md#script-entry)
+and [Lua method frame](../script/delegate-command-producer.md#function-binding-value-and-supplied-frame).
+
 ### Interpretation and limits
 
 The preseed supplies the outgoing Label. A successful forward transfer
