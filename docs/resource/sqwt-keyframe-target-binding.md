@@ -529,6 +529,93 @@ clears `work.slotMoving` on delivery. See the
 The trace does not establish live binding activation, child write
 admission, behavior under reentry, or receipt of the completion by Lua.
 
+## OBSERVED named StopStoryboard in the window template
+
+The checked form assigns `ControlTemplate_Window_ActionMenu` to
+`Window_ActionMenuWidget` at form line 10. The template declares that
+key at line 2 and its trigger collection at line 7. The first three
+actions in each selected EventTrigger are two `StopStoryboard` actions
+followed by one `BeginStoryboard`.
+
+| RoutedEvent and line | `BeginStoryboardName` in stop order | Begin `Name` | Child Storyboard completion |
+| --- | --- | --- | --- |
+| `Shown`, 8 | `ActionMenu_ClosingAnimation` (9), `ActionMenu_HidingAnimation` (10) | `ActionMenu_ShownAnimation` (11) | Omitted (12) |
+| `Closing`, 22 | `ActionMenu_HidingAnimation` (23), `ActionMenu_ShownAnimation` (24) | `ActionMenu_ClosingAnimation` (25) | `ApplicationCommands.DestroyWindow` (26) |
+| `Hiding`, 38 | `ActionMenu_ClosingAnimation` (39), `ActionMenu_ShownAnimation` (40) | `ActionMenu_HidingAnimation` (41) | `ApplicationCommands.InvisibleWindow` (42) |
+
+The EventTrigger markup arm constructs the trigger at `0x0094967C` and
+appends it to template `+0x24` at `0x0094968E..0x00949698`. The
+`StopStoryboard` arm uses tag string `0x0106CB3C`, constructs the
+action at `0x009499DB`, and appends it at `0x009499F8` before
+reading its attributes at `0x00949A15`. The Stop and Begin markup
+attribute callbacks `0x00946BA0` and `0x00946B60` pass action
+`+0x18` to the generic setter. Stop's `BeginStoryboardName` descriptor
+`0x013620B0` selects setter `0x009B42F0`, which uses the text
+wrapper at action `+0x44`. The shared `Name` setter `0x00912D20`
+uses dependency subobject `+8`, giving action `+0x20` for Begin's name.
+
+The Control event route at `0x00938BE6..0x00938C5E` calls the base
+route first. It visits the installed template's trigger collection if
+event byte `+0x17` differs from 1, the descriptor is nonnull,
+and the template exists. It passes the same collection to the selected
+EventTrigger. On an admitted event, the EventTrigger compares its
+descriptor at `0x009B1865..0x009B186B` and visits its actions in order,
+passing the supplied collection to each action at `0x009B198B..0x009B1996`.
+
+Stop action cell `0x0107DABC` selects `0x009B4270`. With an empty
+cache at action `+0x4C`, it searches the supplied collection at
+`0x009B4281`. Lookup `0x009C2530` walks trigger pointers at
+`+8..+0x0C` forward and returns the first nonnull result from trigger
+slot `+0x0C`. EventTrigger cell `0x0107D560` selects `0x009B1740`.
+That routine walks its actions at `+0x64..+0x68` forward and returns
+the first action whose name matches in the length and byte comparison
+`0x00445D20`. The selected names each identify one Begin declaration
+in the checked template. A miss leaves the cache null, returns without
+stopping a timeline and allows a later search. A hit is stored at
+`0x009B4286` and reused directly on a later call. The name's change
+callback clears the cache at `0x009B425D` on descriptor index 0.
+The constructor initializes the same slot to null at `0x009B43D2`.
+This lookup has no second collection search or null collection guard.
+
+At `0x009B4298` a hit calls action slot `+0x0C` with argument 0.
+Begin cell `0x0106D7E0` selects `0x009AF760`. Begin previously
+recorded its supplied collection at `+0x68` at `0x009AF701`.
+When that pointer is nonnull, Stop passes null to `0x009C24F0`,
+which clears the collection's current action slot `+0x1C` without
+requiring the stopped Begin to be its current occupant. The helper
+can also stop a nonnull prior occupant, including the same Begin,
+when collection flag `+0x20` is 1 and the replacement is null
+(`0x009C2505`). The constructor initializes that flag to 0 at
+`0x009C27C9`. The selected Begin visits its timelines at
+`0x009AF7BB` even when it has no recorded collection.
+
+Storyboard Stop cell `0x0107C368` selects `0x009CACE0`. It walks
+child timelines forward at `0x009CAD2B` and enters the base stop at
+`0x009CAD42`. The selected discrete and DoubleAnimation child cells
+`0x0106D770` and `0x0107DD10` also select that base stop,
+`0x009AC3C0`. It disables the timer at `0x009AC3D1` and clears
+active byte `+0x128` at `0x009AC3D6`. These stop bodies perform
+no property write, final sample, or completion dispatch. Prior admitted
+writes remain until another writer changes those values. See
+[timer lifetime](sqwt-double-animation-clock.md#timer-dispatch-order-and-lifetime)
+and the separate [terminal completion path](#observed-page-storyboard-completion-target).
+
+On a normal Closing or Hiding visit, a selected Stop with constructor
+flag `+0x3C=1` from `0x009B441D` can contribute to the EventTrigger's
+handled byte even on a name miss. When event `+0x14` is zero, the
+walker latches that flag before dispatch at `0x009B1957..0x009B1965`
+and publishes it to event `+0x14` after the walk at `0x009B19CA`.
+The Closing and Hiding producers initialize this byte to zero at
+`0x00921B4A` and `0x00921F7A`. Their wrappers copy a final value
+of 1 to cancel byte `+0x1C` at `0x00921DC4` and `0x00921DF4`.
+The producers check that byte at `0x00921B84` and `0x00921FB2`
+before their immediate close or hide paths.
+
+The trace applies to the selected template with admitted actions and
+normal returns. Live event delivery, cache validity under collection
+mutation or target renaming, behavior under reentry, and later delivery
+of either window completion command remain unresolved.
+
 ## OBSERVED local SqwtDrawOrder paint order
 
 The checked form declares `Label_MenuSlot_1` through `Label_MenuSlot_4`
