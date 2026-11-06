@@ -18,9 +18,10 @@ Observed against FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
 words, except the [input-event consumer](#input-event-consumer), which was
 checked with Ghidra CLI disassembly and direct PE reads. Decompiler output is
 navigation only. OBSERVED marks instructions, data
-and decoded assets. INFERRED marks an interpretation of observed code. UNKNOWN
-marks what was not traced. `tools/verify_npcsay_log_wait.py` re-checks the
-listings, tables, reference sets and caller sets below, and
+and decoded assets. STATIC marks what was read directly from instructions or
+data at the cited address. INFERRED marks an interpretation of observed code.
+UNKNOWN marks what was not traced. `tools/verify_npcsay_log_wait.py` re-checks
+the listings, tables, reference sets and caller sets below, and
 `tools/test_npcsay_log_wait.py` covers it. The input-event consumer observations
 are outside this verifier's coverage.
 
@@ -287,10 +288,12 @@ object into offsets `+0x44` and `+0x48` of its argument record
 `LogAttribute`. The control's template
 attribute at `+0x1A68` has no store at `+0x1AB4`.
 
-UNKNOWN. A store that gives `LogAttribute+0x4C` a nonzero value was not found.
-The writer, and so the rich-string code or other text token that arms a wait,
-is not identified. Update slot 2 and the release routine are the only readers
-that matter, and the traced writers leave the field at zero.
+OBSERVED. The store that gives `LogAttribute+0x4C` a nonzero value is outside
+the `FontAttribute` family. The line fit writes it into the line state record
+from a counter that the font code handler for code `0x11` increments, and the
+line attribute is a copy of that record. The chain is in
+[Wait token](#wait-token). Update slot 2 and the release routine are the only
+readers that matter.
 
 OBSERVED. The rich-string decoder constructor `0x00CA0390` installs handlers
 for the leads `0x07`, `0x08`, `0x09`, `0x11`, `0x12`, `0x13`, `0x14`, `0x15`,
@@ -306,17 +309,130 @@ INFERRED to pass on as well. A decode of the English text sheets finds
 the single sequence `0x02 0x1D 0x01 0x03` and nothing else. No traced consumer
 ties any lead to the weight.
 
-INFERRED. Because every traced `LogAttribute` carries weight 0, a plain NpcSay
-line that fits the page arms nothing. `I+0x134` stays 0, slot 3 returns 0 on a
-press (`0x00590BFA`), and Wait0 is never raised for it. A message taller than
-the page gets one page break per boundary row except its last row, so the last
-page of any message does not hold. The writers of
+INFERRED. A row with no code `0x11` token that decodes to 0 carries weight 0.
+A plain NpcSay line without that token that fits the page arms nothing.
+`I+0x134` stays 0, slot 3 returns 0 on a press (`0x00590BFA`), and Wait0 is
+never raised for it. A message taller than the page gets one page break per
+boundary row except its last row, so the last page of any message does not
+hold. Whether the text an NpcSay line is built from carries the token is in
+[Wait token](#wait-token). The writers of
 `DesktopWidget +0x79` are its constructor (value 1, `0x006E06A9`),
 `_appendMessagePool` (value 0, `0x006ECEF9`), the Wait0 callback target
 (`0x006DCA80`) and the checker teardown (`0x00718E4C`,
 [message-wait page](logcontrol-message-wait.md#checker-setup-and-output)). The
 traced code therefore does not explain what holds the `_appendMessagePool`
 yield of a one-page line. That gap is recorded as an open item.
+
+## Wait token
+
+This section was checked with Capstone 5.0.7 x86-32 listings of the identified
+PE, read through the section table, and Ghidra CLI for the data references. It
+is outside the coverage of `tools/verify_npcsay_log_wait.py`. The bodies below
+are complete and half-open, and each was hashed before it was read. The bodies
+that the [log line format](logcontrol-line-format.md#copied-controls) page
+already hashes are listed with the same values.
+
+| Complete body, half-open | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `[0x00CC0D10,0x00CC0DA3)` code `0x11` handler | 147 | `b1b2c77bc13c9402fd9ba6cc6fecdec54db6bac599e27b76f00a6899e3d5aa0d` |
+| `[0x00A53E20,0x00A53E25)` code `0x11` thunk | 5 | `7df46f5f9733992c2e74afeefb77525d9a4519da841b6bbe291669e8b34f9f46` |
+| `[0x0055B290,0x0055B2F6)` line attribute constructor | 102 | `50ec99d0b24b81d91e6bf14416e2cad01b82efc6c2e737125d377729f4ff6c89` |
+| `[0x00CC2190,0x00CC231F)` line fit | 399 | `a902e899a4afee9652b9f081c3a6e1b3f66a14e9b03bececa965efcd83656fe3` |
+| `[0x00CC14B0,0x00CC177F)` FontCodeModule constructor | 719 | `308e8768d1801cfaa741c9129b21ecfb915729ae3d57ca4583ddd8a09ec95c17` |
+| `[0x0055B3E0,0x0055BB4B)` RaptureFontInterface slot 1 | 1899 | `bcdfece1a365275e7fc5ac5289eaa5a3a5f2a6d16e08c112b409f3f34fa2b8d2` |
+| `[0x00592F30,0x005933E0)` document line insert | 1200 | `d82eea3e55c517317d5fb254a5baf504a39e5d2a78c9cca18cf8306f25e33f26` |
+| `[0x00CB2D50,0x00CB3250)` integer decoder, with its two jump tables from `0x00CB3218` | 1280 | `0797bedb028d975dd049f2511562f81205d6f085ad3459706eba35d2f1407faf` |
+
+### Handler registration
+
+STATIC. The FontCodeModule constructor `0x00CC14B0` stores the thunk
+`0x00A53E20` at handler vector offset `+0x44` (`0x00CC166D`), beside the
+`0x10` thunk at `+0x40` (`0x00CC164A`). The vector is indexed by code times 4
+([CT-03](rich-text-colour-tokens.md#ct-03-processor-handlers)), so the entry
+is code `0x11`. The thunk loads the vtable and jumps through slot `+0x14`
+(`0x00A53E20..0x00A53E24`). Cell `+0x14` holds `0x00CC0D10` in the
+`.?AVFontCodeModule@Text@Component@@` vtable `0x0110C014` (cell `0x0110C028`),
+the `.?AVBitmapFont@Font@Component@@` vtable `0x0110C0BC` (`0x0110C0D0`), the
+`.?AVOsFont@Font@Component@@` vtable `0x0110C35C` (`0x0110C370`) and the
+`.?AVFont@0Component@@` vtable `0x0110D95C` (`0x0110D970`). No other data word
+in the image holds `0x00CC0D10`. The formatter handler for code `0x11` re-emits
+the token ([Wait weight source](#wait-weight-source)), so a `0x11` token in a
+sheet row reaches this layout handler. That join is INFERRED there.
+
+### Code 0x11 handler
+
+STATIC. `0x00CC0D10` receives the processor as its receiver and decodes one
+integer with `0x00CB2D50` in mode 1 (`0x00CC0D26`). A zero decoded width
+returns 0 and changes nothing (`0x00CC0D2F..0x00CC0D34`). The operand lead
+rules are [CT-02](rich-text-colour-tokens.md#ct-02-operand-leads), so
+`02 11 02 01 03` decodes to 0 and `02 11 02 <v> 03` to `v - 1`.
+
+STATIC. The handler reads the mode word at processor `+0x5C`
+(`0x00CC0D37`). When the mode is 0 or 1 (`0x00CC0D3A..0x00CC0D41`):
+
+- a decoded 0 adds the advance `+0x68` to y at `+0x74`, adds 1 to the counter
+  at `+0xB0` and sets x at `+0x70` to 0 (`0x00CC0D81..0x00CC0D8E`), then
+  returns the decoded width
+- a nonzero value is added to the accumulator at `+0xAC` (`0x00CC0D97`)
+
+When the mode is 2 (`0x00CC0D43`):
+
+- a decoded 0 sets x to 0, adds the advance to y and subtracts 1 from `+0xB0`,
+  and returns -1 when the counter went negative (`0x00CC0D50..0x00CC0D65`)
+- a nonzero value is subtracted from `+0xAC`, and the handler returns -2 when
+  the accumulator went negative (`0x00CC0D68..0x00CC0D76`)
+
+Any other mode leaves both fields (`0x00CC0D9D`). The line fit sets `+0x5C` to
+1 (`0x00CC21AD`), so a fit takes the first branch. Which caller sets mode 2 is
+UNKNOWN.
+
+### Writeback into the row attribute
+
+STATIC. The line fit `0x00CC2190` stores 0 in `+0xAC` and `+0xB0` before it
+runs the processor (`0x00CC223A`, `0x00CC2240`, processor call `0x00CC2276`).
+After a nonnegative result it copies `+0xAC` to P `+0x44`
+(`0x00CC22EC..0x00CC22F2`) and `+0xB0` to P `+0x48` (`0x00CC22F5..0x00CC22FB`),
+where P is the line state record that
+[Line fitting](logcontrol-line-format.md#line-fitting) describes. The record
+is the block that `0x00557810` builds, whose `+0x44` and `+0x48` are the
+seventh and eighth constructor arguments
+([Wait weight source](#wait-weight-source)).
+
+STATIC. `0x0055B3E0` builds each row's attribute from P with `0x0055B290` on a
+fresh allocation (`0x0055B96C`). `0x0055B290` installs the
+`RaptureFontAttribute` vtable `0x00FA2F8C` (`0x0055B2CE`) and copies P into the
+block at `+4` with `0x0055AFF0` (`0x0055B2D4`), which copies `+0x44` and
+`+0x48` unchanged. The document line insert `0x00592F30` then copies that
+attribute into a `LogAttribute` with `0x00599720`, so `LogAttribute+0x48` is
+P `+0x44` and `LogAttribute+0x4C` is P `+0x48`.
+
+STATIC for the count and the writeback. The wait weight of a row is the number
+of code `0x11` tokens in it that decode to 0. INFERRED. Each such token also
+ends the row, on the row it ends, as a newline does. The handler moves y down
+one advance and resets x but tests no cap and returns the decoded width, 0, so
+the processor continues (its nonnegative-result stop is on `+0xB4`, which this
+handler never touches). The row end rests on the next wrap callback entry,
+which returns -3 once y is at or past the height cap `+0xA0`
+([Code 0x10](logcontrol-line-format.md#code-0x10)), and that join is not
+traced here. The row field `LogAttribute+0x48` is the sum
+of the nonzero `0x11` operands of the row. The document line insert
+accumulates that field across the rows of a line against a
+`QueryPerformanceCounter` value scaled by 1000 (`0x00592F30`, the loop from
+`0x00593221`), so it is INFERRED to be a reveal delay in milliseconds. Its
+consumer is not traced.
+
+### Token source
+
+UNKNOWN. Where an NpcSay line gets its `0x11` token is not settled. The image
+holds no literal `02 11 ...03` sequence in any section. The
+[Wait weight source](#wait-weight-source) sheet survey did not separate code
+`0x11` from the other handled leads, so whether the scenario rows carry it is
+not stated. The flag-1 suffix at dispatcher `+0x177B0` is INFERRED empty above.
+The `Variable suffix` formal of the pool list builder
+([pool feed](logcontrol-pool-feed.md#conditional-four-explicit-native-frame))
+and the shipped Lua that calls `_appendMessagePool` were not read for the
+token. One of those producers, or the sheet row itself, must supply it for a
+plain line to hold.
 
 ## Key release and Wait0
 
@@ -527,10 +643,13 @@ complete-object locator and its type-descriptor pointer at `+0x0C`.
 
 ## Open items
 
-- The writer of `LogAttribute+0x4C`, and so the text token that arms a wait.
-  The traced constructors and copies leave it at zero.
-- What holds and releases the `_appendMessagePool` yield for a one-page plain
-  line, given that no weight is armed.
+- The producer that puts a code `0x11` token into an NpcSay line: the sheet
+  row, the Lua suffix argument or the flag-1 suffix. Without one, a one-page
+  plain line arms no weight and nothing traced holds its `_appendMessagePool`
+  yield.
+- The caller that runs the font code processor in mode 2, where a `0x11` token
+  consumes a weight instead of arming one.
+- The consumer of the row delay `LogAttribute+0x48`.
 - Which row states reach the two wait-wiping exits of slot 3.
 - The meaning of the press serial at `0x0132FB8C`.
 - The body of document slot 11 and the exact definition of the area height at
@@ -580,14 +699,17 @@ A client may implement these parts of the contract.
 - Give the NpcSay control `IsEnableKeyWait` and `IsDisplayLastOne` true and the
   chat log `IsEnableKeyWait` false, as the forms do.
 
-For a one-line NPC speech the observed contract is this. The line becomes one
-row with weight 0 and fits the page, so the control arms no wait. A press is
-not consumed, no Wait0 is raised and no `PressedKey` sound plays. Nothing
-traced explains what keeps the `say` yield parked for such a line. Until the
-weight writer or a live observation settles it, treat the hold as CALIBRATION
-and not as a retail fact. A client that needs the NPC to wait for the player
-may hold the yield until a bound press, the mode-change cancel or the event end
-and must record that choice as its own.
+For a one-line NPC speech the observed contract is this. A line without a code
+`0x11` token that decodes to 0 becomes one row with weight 0 and fits the page,
+so the control arms no wait. A press is not consumed, no Wait0 is raised and no
+`PressedKey` sound plays. A line that ends in `02 11 02 01 03` ends its row
+there with weight 1, one press releases it, and that release raises Wait0 and
+`PressedKey`. Which NpcSay lines carry the token is UNKNOWN
+([Token source](#token-source)). Until the producer or a live observation
+settles it, treat the hold of a line without the token as CALIBRATION and not
+as a retail fact. A client that needs the NPC to wait for the player may hold
+the yield until a bound press, the mode-change cancel or the event end and must
+record that choice as its own.
 
 For a multi-page speech the contract is this. Take the page row count
 `VisibleLines` from the control height and font metrics. Append all rows. Flag
@@ -596,12 +718,14 @@ again every page row count rows, never on the last row of the message. Stop
 appending while any break is pending. Each press consumes the first flagged
 break or weighted row, raises `TextChanged`, moves the start row to the stored
 bound minus the page row count, and resumes appending. The final page carries no
-break, so a message holds only between pages. A weighted row would additionally
-raise Wait0 and `PressedKey` when its last weight is released, but no source of
-a weight is known.
+break, so a message holds only between pages. A row that a code `0x11` token
+with a zero operand ends carries one weight per such token, and a press on it
+additionally raises Wait0 and `PressedKey` when it releases the last weight. A
+nonzero `0x11` operand arms nothing and adds to the row delay, whose consumer is
+untraced.
 
-These stay CALIBRATION until traced: the token that arms a wait, what holds a
-one-page line, the numeric page row count for the NpcSay font and style, the
+These stay CALIBRATION until traced: which lines carry the wait token, what
+holds a one-page line without it, the numeric page row count for the NpcSay font and style, the
 interaction of the scroll pacing with page flips, the auto-release timing in
 update slot 2, and the press serial. A client that models only the last message
 and a single wait per message stays within the observed behavior for the page
