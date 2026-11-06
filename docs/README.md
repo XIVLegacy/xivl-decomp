@@ -252,6 +252,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt form and template path resolution](resource/sqwt-form-locale-resolution.md)
 - [Sqwt binding converter parameter](resource/sqwt-binding-converter-parameter.md)
 - [Sqwt binding source arms](resource/sqwt-binding-source-arms.md)
+- [Sqwt style animation reverse binding](resource/sqwt-style-reverse-binding.md)
 - [Sqwt desktop relative source](resource/sqwt-desktop-relative-source.md)
 - [Sqwt render transform](resource/sqwt-render-transform.md)
 - [Sqwt CommandParameter text grammar](resource/sqwt-command-parameter-grammar.md)
