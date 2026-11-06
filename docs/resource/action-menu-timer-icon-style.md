@@ -57,6 +57,10 @@ empty `SqwtIsAutoSetSkin` attribute and sets `SpkSource` to
 | 567 to 574 | `RunningValue` 2, 3, or 0 | Pauses, resumes, or stops the same named storyboard, respectively. |
 | 562, 576 to 579 | `TimerIcon.PercentAnimeEnd` | The storyboard names this as its completion command. The matching trigger sets `SpkSeq` to `No_anime` and then `Effect_start`, and executes `UILuaCommands.TimerEnd`. |
 
+The omitted `To` follows the native endpoint setup when the target and
+property resolve. See
+[DoubleAnimation setup and TimerIcon Percent capture](sqwt-double-animation-clock.md#setup-current-value-and-repeated-begin).
+
 ## OBSERVED TimerIconId handoff
 
 | Locator | Observation |
