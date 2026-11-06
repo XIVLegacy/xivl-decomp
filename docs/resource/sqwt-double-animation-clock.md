@@ -215,6 +215,49 @@ origin. Group pause and resume visit their children before those base
 bodies, at `0x009CAD50` and `0x009CADC0`. This is sampled pause bookkeeping,
 not proof of an exact wall-time pause interval. STATIC.
 
+## Default TimerIcon Percent evaluation
+
+DoubleAnimation constructor `0x009B5440` supplies acceleration type byte
+zero to `+0x168` and `+0x16A` at `0x009B557F..0x009B55C2`. The default
+acceleration strengths at `+0x158` and `+0x160` and `Velocity` at `+0x140`
+receive the binary32 sentinel `10000000.0` from `0x0107DAD0`
+(`0x009B54CE..0x009B54EE`, `0x009B5535..0x009B557A`). Setup clears nonlinear
+mask `0x01` at `+0x198` at `0x009B46B9`. The zero type arms at `0x009B46FF`
+and `0x009B479C` leave it clear. The inherited Timeline constructor supplies
+finite repeat count one at `0x009AD5EC..0x009AD632`, zero `BeginTime` at
+`0x009AD653..0x009AD668`, and `SpeedRatio` one at `0x009AD688..0x009AD69F`.
+It clears the `AutoReverse` value bit at `0x009AD6A4`. STATIC.
+
+With those defaults retained and with start 0, endpoint 100, and positive
+Duration D in milliseconds, setup takes the unset Velocity branch. It copies
+D to `+0x190`, divides `100000` by D in x87, then stores the rate R as
+binary32 at `+0x188` (`0x009B4977..0x009B49C1`). The same Duration at `+0x48`
+supplies the scheduler span at `+0xF8` through `0x009AD10B..0x009AD157`.
+See [Velocity setup](sqwt-double-animation-velocity.md#setup) for the
+explicit Velocity branch. STATIC for the operations and INFERRED for the
+selected inputs.
+
+For the admitted ascending interior sample `0 < Q < D`, the evaluator
+loads R, multiplies it by unsigned qword Q, divides by double `1000.0`
+from `0x00F91C48`, and adds the retained start in x87. It stores the result
+as binary32 at `+0x184` (`0x009B4BB4..0x009B4C0A`). The result is linear in
+Q before rounding, with separate binary32 stores for the rate and sample.
+The interior arm has no clamp. At `Q = D`, the evaluator copies the
+retained endpoint directly at `0x009B4AF7..0x009B4AFD`. The bounded
+nonrepeat scheduler above supplies Q equal to D at completion. STATIC for
+the evaluator, INFERRED for the scheduler bound.
+
+Under round-to-nearest with a 53-bit or 64-bit x87 significand, D=6 and
+Q=3 store `49.999996185302734375` (`0x4247FFFF`). A single rounding of
+`100 * Q / D` would give 50. For D=100000001 and Q=100000000, the rounded
+rate is `0x3A83126F` and the interior result is `100.00000762939453125`
+(`0x42C80001`).
+The latter is a rounding overshoot despite Q remaining below D. These are
+arithmetic examples. The live x87 mode and ActionMenu duration remain
+UNKNOWN. The evaluator formats the stored sample through `0x00988D50` at
+`0x009B4C88` before requesting the target write at `0x009B4CA0`. The
+examples specify the sample before that text conversion.
+
 ## Ordering and surviving edges
 
 The checked RangeBase ValueChanged producer stores its bounded snapshot

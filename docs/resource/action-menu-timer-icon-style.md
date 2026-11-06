@@ -63,6 +63,8 @@ property resolve. See
 The [TimerIcon recast inputs](sqwt-timer-icon-recast-inputs.md#observed-recast-inputs-and-derived-values)
 record the native calculation of `ToPercent` and `TimerDuration`, the
 `RunningValue` notification order, and the `AnimeTime` text representation.
+The [default Percent evaluator](sqwt-double-animation-clock.md#default-timericon-percent-evaluation)
+records the native linear sample calculation and terminal endpoint write.
 
 TimerIcon registers its `AnimeTime` descriptor `0x01362FDC`, index 4, at
 `0x00F2A5E0..0x00F2A603` with the string at `0x0108220C`. Setter cell
