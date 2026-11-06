@@ -108,7 +108,50 @@ These are distinct internal code domains. Local operation 0x24 is not
 ScenePacket code 0x24, and neither domain establishes a game network opcode.
 The AL==1 branches do not prove runtime delivery.
 
+### Ordinary Sqwt update and scene queue
+
+STATIC. The [ordinary Sqwt update](sqwt-double-animation-clock.md#timer-dispatch-order-and-lifetime)
+calls the timer wrapper at `0x005527C1`. After it returns, the update walks
+the retained drawing proxies and calls `0x0054E890` at `0x00552841` when
+proxy `+8` is nonnull. On an admitted visit that consumer first submits
+proxy selection (local `0x22` at `0x0054E8FB`), then the dirty Source and
+Sequence operations above, then dirty Percent (local `0x16` at
+`0x0054EF28`). These are relative positions among the guarded submissions.
+
+The [TimerIcon completion trigger](action-menu-timer-icon-style.md#observed-storyboard-completion-route)
+requests `No_anime` and then `Effect_start` on the event source. On the
+ordinary non-reentrant return path, both admitted writes to one proxy's
+Sequence field occur before its flush. An admitted flush of that buffer
+with no intervening overwrite submits `Effect_start` as its Sequence.
+The setter forwards before calling its property notification helper at
+`0x009C0321`. Alternate scheduling and reentry through notification
+remain UNKNOWN.
+
+STATIC. On the constructed interface path, `0x004B356E..0x004B3697` and
+`0x004DC43C..0x004DC59B` supply the SceneModule retained at
+RaptureSqwtInterface `+0x20` (`0x0054E207`). Its virtual `+0x0C` cell
+`0x00F91DF4` selects `0x004E8390`, which calls the retry loop at
+`0x004E8350`. The loop calls `0x004E82A0` to admit a copy into the
+SceneThreadImpl ring at `+0x370`. The wrapper returns AL=1 at
+`0x004E83A3` after the loop returns.
+
+The scene job entry `0x004E9700`, registered at `0x004EAA15`, drains the
+ring separately. It reads code from `+0x94` at `0x004E97F0`. The ordinary
+route at `0x004E98D1..0x004E98F9` supplies that code, actor key from
+`+0x90` and length from `+0x96` to `0x0060C140`, with the payload inline
+at `+0x10` for length 100. The callee reaches keyed actor dispatch at
+`0x007C93C0`. This establishes the
+enqueue and consumer boundary. Which draw or present sees the resulting
+state remains UNKNOWN.
+
 ## Guarded native cases and Source reader
+
+STATIC. For the admitted WindowActor, dispatch at `0x007C95D3..0x007C95F2`
+subtracts `0x15` and calls actor virtual `+0x274`. WindowActor cell
+`0x00FF1F38` selects `0x007FA2B0`. With global `0x0134E06C` and a current
+context at actor `+0x1A0`, the local `0x10` table entry at `0x007FA953`
+selects index `0x0C`. Jump cell `0x007FA94C` reaches `0x007FA8EA`,
+which calls the WindowContext dispatcher `0x008CEC60`.
 
 OBSERVED. Handler 0x008CEC60 reads its local operation argument and uses an
 unsigned upper bound of 0x28 before indexing table 0x008CF3B8. Entry
@@ -116,15 +159,14 @@ unsigned upper bound of 0x28 before indexing table 0x008CF3B8. Entry
 case 0x008CF144 for local 0x10. With their holder/state nonnull, both cases
 copy 0x19 dwords from the supplied payload into stack storage. Source reaches
 0x008E2F40 through holder helper 0x008CC0B0 and helper 0x0060B270. Sequence
-uses existing state +0xD8 and reaches 0x008E3CF0. Matching local ids and
-100-byte shapes do not establish the ScenePacket-to-handler delivery bridge.
+uses existing state +0xD8 and reaches 0x008E3CF0.
 
 OBSERVED. RenderSparkle table 0x01066910 links to locator 0x01176F5C and type
 descriptor 0x012DDB68,
 .?AVRenderSparkle@Renderer@Window@Actor@Scene@Application@@. The store at
 0x008E0B0B installs that table. DrawingToolContext, this renderer identity and
-the native handler remain separate. The holder/materializer navigation does
-not establish the complete allocation or queue bridge.
+the native handler remain separate. The full allocation and holder lifecycle
+remain unresolved.
 
 OBSERVED. On its reader path, Source loader 0x008E2F40 requires the
 0x007FA1F0 resource result to
@@ -432,9 +474,8 @@ data with PE section-based VA mapping. Decode the exact template basename with t
 published SQEX algorithm and compare the stated package positions without
 assigning other header roles.
 
-UNKNOWN. The queue receiver at interface +0x20 and its delivery/translation
-to 0x008CEC60, complete raw-file/cache identity, live ActionMenu sequence
-delivery, full SPKL schema, signature/version validation, table bounds
+UNKNOWN. Complete raw-file/cache identity, live ActionMenu sequence
+delivery, reentry, full SPKL schema, signature/version validation, table bounds
 policy and file record stride remain unproved. General property-helper flags,
 staging-helper encoding/truncation/failure behavior, XML tag-to-factory
 registration, actual runtime global selection, cached-object type, command
