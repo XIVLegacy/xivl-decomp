@@ -145,7 +145,8 @@ in that callee stack order. The target comes from
 A nonzero result is adjusted by `+0xB4`. On a zero result the recipient uses
 I only when primary slot 44 returns a nonzero pointer whose byte `+0x15D`
 has mask `0x20` clear. Otherwise it passes null. STATIC for this target logic.
-Its untraced slot and mask are not assigned semantic names.
+The [standard ActionMenu arrows](#actionmenu-arrow-target-fallback)
+qualify the slot and flag on their checked Window ancestry.
 
 ButtonBase calls the `ICommandSource<ContentControl>` constructor
 `0x00954AB0`, which owns the Command, CommandTarget and CommandParameter
@@ -179,6 +180,47 @@ Button I slot 65 is `0x0097EDB0`. It calls FrameworkElement's
 owner, stop-byte and store-pointer gates. Thus this concrete Button forwards
 Executed to the base handler store before its specialised logic. STATIC.
 Other specialised control families remain unestablished.
+
+### ActionMenu arrow target fallback
+
+The standard form's `Button_MenuSlotChange_Up` and
+`Button_MenuSlotChange_Down` declare `PushSlotPrev` and `PushSlotNext`
+with no local `CommandTarget`, `CommandParameter` or `ClickMode`.
+The authenticated decoded form places each Button under five Grids and
+then `Window_ActionMenuWidget`. The form identity and command names are in
+[xivl-client-scripts: ActionMenu page controls](https://github.com/XIVLegacy/xivl-client-scripts/blob/a99d17dc70e7017347c8ab2619537117ca0d9593/docs/action-menu-page-controls.md#input-and-dispatch)
+(OBSERVED).
+
+With that logical parent chain attached, Button primary table cell
+`0x01073D5C` and Grid cell `0x01074604` both select `0x0092B1F0`.
+It reads complete owner+0x240 and tail-calls the parent's primary +0xB0.
+Window cell `0x0106A16C` selects `0x00921BD0`, which returns the
+complete receiver. Thus the Button's fallback call at `0x0097ED41`
+returns its Window under those conditions. Parent attachment and
+detachment are qualified in
+[xivl-client-structs: native input UI boundaries](https://github.com/XIVLegacy/xivl-client-structs/blob/8ee5be22e27b63b0442d4a413d584238796a744c/docs/native-input-ui-boundaries.md#L1489-L1498)
+(STATIC).
+
+With no resolved command target, `0x0097ED47..0x0097ED5F` selects the
+Button interface when the returned Window's +0x15D mask 0x20 is clear.
+It passes null when that bit is set or when the primary slot returns null.
+The Window refresh at `0x009268AB..0x0092690C` copies the bit into
+the packed value at Window+0x3B6 when either low bit is set and bit 5
+differs. The update names the value through descriptor `0x013571C0`,
+whose initializer reads `IsActive` at `0x01069D30` (`0x00F20BD0`).
+The nonnull Button interface takes the [target route](#target-and-route).
+The null target uses the current keyboard-focus recipient through
+`0x0091F5AD..0x0091F5BC`, subject to its route gates (STATIC).
+
+The Button parameter holder at complete+0x380 is initialized through
+`0x00953B10` at `0x00954B58`. It starts at shared record `0x01361160`
+with [kind 0](sqwt-keyframe-target-binding.md#default-completion-record-and-event-arguments).
+With that default retained, the Click path forwards its pointer at
+`0x0097ED6C..0x0097ED73` (STATIC).
+
+These observations used Ghidra CLI 0.2.2 and file-backed PE32 reads of
+the identified executable. The selected focus recipient, Window flag at
+click time, click eligibility and resulting Lua delivery remain UNKNOWN.
 
 ### Click destruction notification
 
@@ -503,8 +545,9 @@ event source at `+0x08` cast to `Sqwt::FrameworkElement` (type descriptor
 `0x01269E8C`) with the dynamic cast helper `0x009DA6CC`. Either result is moved
 to the element interface at `+0xB4`, and a failed cast gives a null target. It
 calls command slot 2 with the record, the target and the trigger flags. STATIC.
-A null target is routed from the global root at `0x01357020` through
-`0x0091EE90`, which this page does not follow.
+A null target calls `0x0091EE90` if the current keyboard-focus recipient at
+`0x01357020` is nonnull. Its route gates are separate from the explicit
+target path. [Keyboard-focus recipient evidence](https://github.com/XIVLegacy/xivl-client-structs/blob/8ee5be22e27b63b0442d4a413d584238796a744c/docs/native-input-ui-boundaries.md#borrowed-native-keyboard-focus-recipient).
 
 `0x0091F590` calls the route function `0x0091E1C0` with the event, the target
 interface and three flag arguments that are all 1. STATIC. The route function
