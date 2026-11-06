@@ -17,6 +17,35 @@ confirms the branch, arithmetic, and store instructions in the original PE.
 Read the strings, constants, and dispatch cells from their mapped sections.
 The control RTTI is `.?AVTimerIcon@Controls@Sqwt@@` at `0x012E8F50`.
 
+## OBSERVED constructor recast values
+
+The TimerIcon constructor at `0x009C0DA0` supplies binary32 zero to
+`Percent` and `ToPercent` at `0x009C0E17..0x009C0E54`. The wrapper
+constructor `0x009C1FD0` stores the supplied value at `0x009C1FE0`.
+The byte constructor at `0x006845C0` takes zero for `RunningValue`
+from the call at `0x009C11DC`. The caller clears EDX at `0x009C11AD`
+and passes it as the value. The helper stores the byte at `0x006845E0`
+(STATIC).
+
+Four TimeSpan wrappers receive the same source pointer `0x013637C0`.
+
+| Property | Wrapper offset | Descriptor | Call to `0x009AD900` |
+| --- | --- | --- | --- |
+| `TimerDuration` | `+0x2D8` | `0x01362FB8` | `0x009C0E74` |
+| `AnimeTime` | `+0x2E8` | `0x01362FDC` | `0x009C0E94` |
+| `StartTime` | `+0x2F8` | `0x01363000` | `0x009C0EB4` |
+| `EndTime` | `+0x308` | `0x01363024` | `0x009C0ED4` |
+
+The helper copies both dwords from the source into the receiver
+(`0x009AD907..0x009AD90B`, `0x009AD925`). The qword at `0x013637C0`
+lies in the PE zero-fill tail of `.data`. That section starts at
+`0x01265000`, its file-backed end is `0x01324000`, and its virtual
+end is `0x0137C940`, both exclusive. Ghidra CLI 0.2.2 and a whole-image
+little-endian operand search found nine direct uses of the source address,
+all as copy sources. Each wrapper therefore receives zero if the shared
+source retains its image value at construction. Indirect changes, style
+materialization and later activation remain separate conditions (STATIC).
+
 ## OBSERVED recast inputs and derived values
 
 | Property | Descriptor and initializer | Setter cell and receiver storage |
