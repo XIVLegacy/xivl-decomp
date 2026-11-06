@@ -266,6 +266,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Sqwt ProgressBar template style and indicator sizing](resource/sqwt-progress-template-style.md)
 - [Sqwt CellSkins texture filename selection](resource/sqwt-skin-texture-filename.md)
 - [Sqwt IconControl textures](resource/sqwt-icon-control-textures.md)
+- [Sqwt TimerIcon Percent](resource/sqwt-timer-icon-percent.md)
 - [DamagePlate numeric presentation](resource/damage-plate-numeric-presentation.md)
 - [DamagePlate form rules](resource/damage-plate-form-rules.md) -
   Form path, row branches, slot ring, colour inputs, Canvas measure and Foreground.
