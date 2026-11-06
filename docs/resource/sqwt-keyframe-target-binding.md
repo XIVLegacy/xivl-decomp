@@ -137,6 +137,68 @@ text at record `+8` to `0x00912850` with flag 0 at
 An admitted zero-span callback can supply an elapsed-zero record at
 `0x009ACAB2..0x009ACB68`, which can apply a due zero-time keyframe.
 The keyframe setup copies the values and prepares the cursor before the
-callback. Live ActionMenu binding activation, namescope and target lifetime,
-setter admission, and the relative scheduler order of the sibling
-animations remain unresolved.
+callback.
+
+## Storyboard child order and zero-span writes
+
+Each selected Storyboard has eight direct timeline children. In declaration
+order, four outgoing children bind their target name to the owner's `Name`,
+followed by four incoming children that bind to `StringData.Value0` for Next
+or `StringData.Value1` for Prev.
+
+| Children in order | Properties in order | Next declaration lines | Prev declaration lines |
+| --- | --- | --- | --- |
+| 1-4, outgoing | `Visibility`, `Canvas.Top`, `VisualOpacity`, `SqwtDrawOrder` | 317, 320, 321, 322 | 336, 339, 340, 341 |
+| 5-8, incoming | `Visibility`, `Canvas.Top`, `VisualOpacity`, `SqwtDrawOrder` | 323, 326, 327, 328 | 342, 345, 346, 347 |
+
+Both `Canvas.Top` and both `VisualOpacity` children in each Storyboard
+declare `Duration="0:0:0.2"`. The outgoing and incoming `SqwtDrawOrder`
+DoubleAnimations declare `From`/`To` of `0.5`/`0` and `0`/`0.5`,
+respectively, and omit `Duration` and `Velocity`.
+
+The DoubleAnimation and discrete markup arms at `0x00949EB9` and
+`0x00949F5A` call `0x0094E2B0` before reading the child contents.
+The call at `0x0094E2C8` appends at the collection end through `0x0096C140`
+(`0x0096C169..0x0096C19C`). Storyboard setup cell `0x0107C378` selects
+`0x009CAB40`. It walks child pointers from group `+0x138` to `+0x13C`
+in increasing order, calls target-gated child preparation at `0x009CABA4`,
+and passes the largest returned span to the group Duration setter at
+`0x009CABE1` before resetting the group at `0x009CABF0`. Storyboard
+evaluator cell `0x0107C37C` selects `0x009CAC70`. It walks the same
+collection forward, passing its input record unchanged to each child
+clock at `0x009CACB7` before advancing at `0x009CACC6`. On a normal
+visit without reentry or collection changes, this preserves declaration
+order for preparation and sampling.
+
+For a freshly prepared, unpaused group with positive finite span, zero
+BeginTime, SpeedRatio one, repeat count one and AutoReverse false, an
+elapsed-zero input takes the below-span branch at
+`0x009ACA7B..0x009ACAAC`. Its remainder is zero at
+`0x009ACBE2..0x009ACBF1`, so control skips the group evaluator via
+`0x009ACC88` and reaches the count check at `0x009ACECD`. With nondecreasing input
+and no overflow, the children first receive the first admitted nonzero
+group sample. That sample can already be the group's terminal sample.
+An incoming zero-time `Visibility` keyframe can therefore be due on
+that child visit even though the group skipped its elapsed-zero sample.
+
+The Timeline constructor supplies the zero-filled qword at `0x013637C0`
+to the Duration wrapper at `0x009AD637..0x009AD64D`. With retained
+zero Duration and unset Velocity, DoubleAnimation setup still divides
+by Duration at `0x009B49BF`. If setup returns normally and the freshly
+prepared, unpaused child has zero span and the same forward, single-repeat
+clock settings, its first admitted nonnegative input reaches the terminal
+branch at `0x009ACAB2..0x009ACB68`. That branch supplies zero in sample
+qwords `+0` and `+8` before advancing the count at `0x009ACB6A`.
+DoubleAnimation evaluator cell `0x0107DD24` selects `0x009B4A70`.
+With a resolved target and property, the sample at `+8` equals the
+evaluator duration, so `0x009B4AE3..0x009B4B03` selects the retained
+endpoint without using the setup rate. The evaluator formats the
+result and calls `0x00912850` at `0x009B4CA0`. With the declared `To`
+and default offset retained, the outgoing lane requests `0` and the
+incoming lane requests `0.5` on their respective visits.
+
+The zero-duration setup exception state, live binding activation,
+namescope and target lifetime, setter admission, callback cadence, and
+rendered order remain unresolved. See the
+[bounded clock path](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion)
+for the shared sample and completion gates.
