@@ -38,6 +38,91 @@ as `Visibility` and binds `Storyboard.TargetName` `OneWay` from
 | `UILuaCommands.ChangePagePrev`, 333 | 336 | `Name` | 337 | `0:0:0.2` | `Hidden` |
 | `UILuaCommands.ChangePagePrev`, 333 | 342 | `StringData.Value1` | 343 | `0:0:0` | `Visible` |
 
+## OBSERVED page peer binding initialization
+
+The checked `ActionMenuWidget.form` declares four page Labels under the
+Canvas at line 43. Each Label at lines 44, 76, 108 and 140 sets
+`StringData.Value0` and `StringData.Value1` through a peer `ElementName`
+with `Path=Name` and `Mode=OneWay`. See the
+[form input record](action-menu-timer-icon-style.md#inputs-and-method)
+and [peer declaration table](https://github.com/XIVLegacy/xivl-client-scripts/blob/880a3e742f123b7e0e7c502c8ee1047eb8fed3dd/docs/action-menu-page-controls.md#L99-L119).
+
+The qualified setter at `0x0095EDD4..0x0095EDF6` selects the attached
+string provider for `0x0135FA28` or `0x0135FA70`. Its per-owner lookup
+`0x009600E0` can create the setter proxy through `0x00993650`,
+`0x009932A0` and `0x0095F990`. The constructor calls the DependencyObject
+constructor at `0x0095F9BD`, sets proxy `+0x20` mask `0x02` at
+`0x0095F9C2`, and stores the original Label at `+0x2C` at `0x0095FA16`.
+The Binding constructor reads this flag and calls proxy virtual `+0x0C`
+at `0x009123B9`. That slot selects `0x00657330` and returns the Label,
+which is stored as the forward write receiver at Binding `+0x44`.
+
+The [ElementName source arm](sqwt-binding-source-arms.md#what-the-constructor-reads)
+supplies an initially null source. The parser copies `ElementName` into
+Binding `+0x64` at `0x00912505`, stores mode 1 at `0x00912755`, and
+appends the binding to the proxy's deferred list at `+0x14` through
+`0x009127F3..0x0091282D`. The proxy enters the load context's activation
+queue at `+0x20D8` through `0x00912E9F` during construction.
+
+On the ordinary textual form path, the reader calls `0x0096A580` at
+`0x0096A8A2` before load completion. The normal completion branch
+`0x0096AC4E..0x0096AC59` merges the load context through `0x009925C0`
+and drains activation through `0x00910CD0` before notifying form
+completion listeners at `0x0096ACD3`. The merge appends the activation
+queue at `0x00992AEA..0x00992AF0` and transfers per-owner attached
+provider entries for matching registers through `0x00992EB8`,
+`0x009911A0` and `0x0095F4D0`. Thus the normal drain follows form parsing
+and makes the transferred proxies available to the receiving context.
+
+Proxy activation cell `0x0106F4AC` selects `0x00912190`. Its deferred
+walk calls `0x00911F50` at `0x00912252`. With a null source, this routine
+reads Binding `+0x64`, parses the element name at `0x009120B3` and calls
+`0x00910980` at `0x009120C5` with parent fallback enabled. The walk can
+ascend from the proxy to its owning Label and from the Label to the
+Canvas through Label slot `+0x0C` (`0x0092B5D0` reads `+0x240`).
+Canvas child add at `0x00995676` calls `0x009313C0`, which can store the
+logical parent at `0x0093145B` and append the child at `0x00931482`.
+Canvas slot `+0x20` uses `0x00910A10`, which enumerates its logical
+children and compares their name keys at `+0x1C` (`0x00910A4B..0x00910A50`).
+The resolver can therefore select a peer declared later in the form
+when the expected named siblings have been added before the drain. This
+walk is separate from the [Lua FormElement cache](sqwt-name-lookup-cache.md#lookup-0x00537950).
+
+On a hit, `0x009120CD` sets the source at Binding `+0x3C`.
+The simple `Name` Path resolves descriptor `0x01356BC8` and stores it
+at Binding `+0x5C` through `0x00912110..0x00912128`. Registration at
+`0x0091213B` requests the source listener for `Name` and the target
+listener on the proxy. The registration helper can skip insertion when
+the container is unavailable (`0x00911E9A..0x00911E9F`). The attach
+still returns true at `0x00912140` on that path. A successful deferred
+attach invokes Binding activation at `0x0091229B`, which requests the
+initial OneWay transfer. Later notifications require an inserted listener.
+The forward arm reads the source name through `0x00911020` at
+`0x00999466` and requests a flag-0 write on the owning Label at
+`0x00999A07`. The qualified setter selects that Label's provider proxy
+again. Both string descriptors use `0x0095F6B0` to write proxy `+0x24`
+through `0x0095E830`. An admitted change can notify the owning Label
+through `0x0095D890`. Label virtual `+0x18` selects `0x00934B60`,
+which reaches the dependency listener path through `0x0092DF20` and
+`0x0093BD80`. This supplies the owner-side notification for the
+storyboards' `StringData` bindings described below when registered.
+
+A missing source returns false at `0x00912144`. The deferred walk
+then deletes that Binding at `0x00912280`, zeros its entry at
+`0x0091228C` and releases the deferred list at `0x00912324..0x0091232C`.
+This failed entry cannot wait for a later peer. On a successful attach,
+the `Name` setter at `0x00912D20` can publish a changed value through
+`0x009CB580` and `0x009CB460`. Its callback updates the name key at
+`0x00912B5D` and requests listener delivery at `0x00912B69` when the
+event flag is set. Mode 1 requires the retained source pointer and
+`Name` descriptor to match at `0x00998A8A..0x00998A94`. It rereads
+that source's current name without resolving the original `ElementName`
+again on this notification path.
+
+This establishes the conditional initialization and rename routes. Live
+form selection, registration and write admission, replacement or removal
+of a bound peer, and timing under reentry remain unresolved.
+
 ## OBSERVED ControlTemplate owner and binding
 
 | Locator | Observation |
