@@ -137,6 +137,77 @@ path loads a stored double at `0x009DAB5D`, and the subsequent x87 multiply
 retains the incoming precision and rounding environment before truncation.
 Locale and that floating-point environment are not closed here. UNKNOWN.
 
+## Timer dispatch order and lifetime
+
+The Rapture update entry `0x004B3C50` calls `0x004DAA10` at
+`0x004B3DD4`. That routine handles queued element records first. One
+admitted record route resolves an element at `0x004DAAAE` and calls its
+virtual `+0x20` at `0x004DAAC4`. It then calls the RaptureSqwtInterface
+update `0x005527A0` at `0x004DAB33`. After that update returns, the jump
+at `0x004DAB41` enters `0x004DA680`, which can reach the later
+[gated Lua control walk](sqwt-command-parameter-consumer.md#upstream-control-slot-4).
+Both timer passes described below precede that walk on this normal-return
+route. STATIC.
+
+The Sqwt update calls wrapper `0x0093DB50` at `0x005527C1`. The wrapper
+increments TLS `+0x14`, calls `0x0093D6C0`, decrements TLS `+0x14`,
+and calls `0x0096B470` before returning. The
+[window-load completion route](log-widget-window-placement.md#load-completion)
+can also reach the wrapper at `0x0066F1CC` after the placement guards at
+`0x0066EFD6..0x0066F004`. The update passes a qword from `0x00555B20`
+and the load route passes zero. When the selected Sqwt interface is present,
+the body takes an independent sample through virtual `+0x44` at
+`0x0093D6FD` and calls `0x00986C70` at `0x0093D701`. STATIC.
+
+The first timer pass precedes the deferred drains at
+`0x0093D726..0x0093D730`. The last of those calls enters `0x00910CD0`,
+which removes entries from context `+0x20DC/+0x20E0` and invokes their
+virtual `+0x28` at `0x00910DBF..0x00910DC9`. For TimerIcon that slot
+reaches [control and binding activation](sqwt-timer-icon-recast-inputs.md#observed-activation-and-notification-order).
+The markup loader `0x0096B220` also calls this drain at `0x0096B2F6`
+after its load call at `0x0096B2EC`, before handing back the container.
+The work loop also calls `0x00922B30` at `0x0093D747`, which removes
+queued entries and invokes virtual `+0x130` with EventArgs at
+`0x00922BD1..0x00922BF3`. STATIC.
+
+The later pass reuses the selected interface if present and requires the
+work loop's normal exit. An empty context range `+0x2038/+0x203C`
+takes the branch at `0x0093D79A` to the call at `0x0093D853`. After that call,
+an empty range `+0x2048/+0x204C` takes the branch at `0x0093D8A1`
+to the helper check at `0x0093D9D1..0x0093D9D8`. If the latter range
+starts nonempty and drains, `0x0093D8F9` instead takes that iteration
+to the outer loop check at `0x0093D9DE`. Helper `0x00973DC0` returns
+1 if context `+0x208C/+0x2090` starts empty. When it drains that range,
+it returns 0 and the outer loop can retry. The 1000-iteration limit
+can lead to the return at `0x0093DB0D`. On the normal exit,
+`0x0093DB2A` takes a fresh clock sample and `0x0093DB2E` dispatches it.
+STATIC.
+
+Timeline Begin resets the timer at Timeline `+0xA0` and then enters
+`0x00987370` at `0x009AC4F3`. That helper calls `0x00986AD0` to mark
+matching active entries and erase matching pending entries before adding
+one pending entry. Dispatcher `0x00986C70` moves entries from context
+`+0x20CC/+0x20D0` to the active range at `+0x20BC/+0x20C0`
+(`0x00986D1C..0x00986D74`) and skips marked entries. It
+requires a callback and a due value other than all ones. After the first
+due callback, a further callback also requires an enabled period and a
+sample at least as large as the last delivered sample plus that period.
+The dispatcher stores the new sample before invoking the callback
+(`0x00986DCC..0x00986E94`). It compacts marked entries at
+`0x00986F14..0x00986F58`. Entries queued by callbacks can be
+appended and scanned in the same pass using its supplied sample
+(`0x00986F71..0x0098706F`). STATIC.
+
+Timeline Stop and completion call reset `0x009871C0` with due and
+period set to all ones at `0x009AC3D1` and `0x009AD464`. Reset leaves
+existing entries in place. If the timer is absent from both ranges,
+`0x0098732C` appends a pending entry before `0x00987335..0x0098735A`
+stores the values that disable callbacks. The Timeline destructor calls
+the embedded timer destructor `0x00986C30` at `0x009AD536`. That
+destructor calls `0x00986AD0`, which marks matching active entries at
+`0x00986B55` and erases matching pending entries at
+`0x00986BD0..0x00986C10`. STATIC.
+
 ## Timeline AnimeTime publication
 
 Initializer `0x00F290E0..0x00F290F9` names Timeline descriptor
@@ -271,21 +342,20 @@ not establish a full UI tick order.
 The selected template's SourceName and StatusBar target registration,
 successful listener installation, To binding refresh relative to
 ValueChanged, distinct-animation precedence, all reentrant effects,
-upstream dispatcher scheduling, exact literal-0.7 D, zero-duration setup
-exception handling, caption observation and rendered visibility remain
-UNKNOWN. `0x0093D6C0` contains an initial
-timer pass and a conditional later timer pass using a fresh interface clock.
-That does not prove a fixed cadence or a single animation pass per visible
-frame. No client execution or live result is claimed.
+upstream Rapture scheduling and cadence, the installed ActionMenu's exact
+activation pass, exact literal-0.7 D, zero-duration setup exception
+handling, caption observation, rendered visibility and presentation order
+remain UNKNOWN.
 
 ## Reproduction
 
 Verify the executable identity and PE32 base above. Read the selected table
 cells, their preceding Complete Object Locator pointers, offsets and RTTI
 TypeDescriptor names. Read the two imports from the PE import descriptors.
-Disassemble the cited constructors, setup, begin, group, timer, evaluator,
-getter and completion windows with ghidra-cli and independently with LLVM
-objdump in x86 32-bit mode. Map every instruction byte to the original PE
-section raw-file offset and require equality. Read the named strings, scale
+Check the caller xrefs to `0x0093DB50` and `0x0093D6C0`. Disassemble
+the cited constructor, setup, begin, group, dispatch, evaluator, getter,
+completion and teardown windows with ghidra-cli and independently with
+LLVM objdump in x86 32-bit mode. Map every instruction byte to the original
+PE section raw-file offset and require equality. Read the named strings, scale
 constant and getter index table directly from file-backed sections. Keep
 all generated listings, decoded assets and retail bytes outside tracked files.
