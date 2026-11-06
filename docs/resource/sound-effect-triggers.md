@@ -216,10 +216,59 @@ The tracked
 [PlayerParameter structure](https://github.com/XIVLegacy/xivl-client-data/blob/f9326afc4830e0ce9f744b47b8f966f99be0ed6e/docs/sqwt-player-parameter-structure.md)
 records one template that uses file number 3 for `MouseEnter` and
 `GotKeyboardFocus`, 4 for `Click` and `ApplicationCommands.Operate` and 1 for
-`UILuaCommands.Cancel`. The census generalizes that shape. Which form and event
-uses each other value is not mapped. Command triggers named by `UILuaCommands`
-can be raised from script, which makes them a script-driven path to a sound
-effect (INFERRED, the raising code was not read).
+`UILuaCommands.Cancel`. The census generalizes that shape. The ActionMenu page
+commands below give a separate instance of a script-driven sound request.
+
+### ActionMenu page turns
+
+The [ActionMenu template input record](action-menu-timer-icon-style.md#inputs-and-method)
+identifies the carrier and its SQWT extraction and source replay. Python Expat
+locates two page CommandTriggers in `ControlTemplate_Label_MenuSlot`.
+
+| Command | Trigger line | First action | Second action |
+| --- | ---: | --- | --- |
+| `UILuaCommands.ChangePageNext` | 314 | `BeginStoryboard`, 315 | `SoundPlayerAction`, 331 |
+| `UILuaCommands.ChangePagePrev` | 333 | `BeginStoryboard`, 334 | `SoundPlayerAction`, 350 |
+
+Each sound action declares `FileNumber` 3 and omits `Index`, `Volume` and
+`Priority`. The ordinary command-bar script sends the selected page command
+to the outgoing Label. See the
+[page-control script record](https://github.com/XIVLegacy/xivl-client-scripts/blob/880a3e742f123b7e0e7c502c8ee1047eb8fed3dd/docs/action-menu-page-controls.md#L67-L97).
+
+LLVM objdump 21.0.0 and PE dispatch cells identify the selected native
+order. The markup parser calls the action append slot at `0x00949970`
+for BeginStoryboard and at `0x00949B64` for SoundPlayerAction, after the
+sound constructor call at `0x00949B47`. CommandTrigger
+markup cell `0x0106DAF4` selects `0x0094EB10`, which appends at
+`0x0094EB2C`. The sound attribute callback `0x00946BA0` passes action
+`+0x18` through the attribute helper call at `0x00946BB5` to the
+generic setter at `0x00946A8B`. The `FileNumber`
+descriptor `0x01361E80` selects the integer write route for action `+0x44`
+at `0x009B3275..0x009B3293`.
+
+CommandTrigger handler `0x009B11F0` checks Executed id `0x2A`, command
+identity, and any retained parameter filter before calling the action walk
+at `0x009B1256`. The walk can bypass the collection if both event bytes
+`+0x14` and `+0x15` are 1 at `0x009B1855..0x009B185F`. After admission,
+it applies the per-action flags at `0x009B1957..0x009B1989`. Constructor
+calls at `0x0094D76E` and `0x009B341F` supply BeginStoryboard `(1,0)` and
+SoundPlayerAction `(0,1)` to action bytes `+0x3C` and `+0x3D`, stored at
+`0x009ADD15..0x009ADD18`. The per-action skip at `0x009B1989` requires
+both action flags to be 1, so these two pairs each reach virtual `+8`
+at `0x009B1996`. With a normally returning Begin and an unchanged action
+collection, the call to `0x009AF6F0` precedes the sound call to `0x009B3060`. The
+[storyboard completion route](sqwt-keyframe-target-binding.md#observed-page-storyboard-completion-target)
+runs through the separate terminal clock path.
+
+With the declared file number admitted and the other
+[action defaults](#soundplayeraction) retained, the action requests file
+number 3, index 0, volume 1.0 and priority 0. The
+[pending request](#pending-request) accepts priority 0 only when the held
+priority is 0. Another admitted request can replace it before the update
+drains the cell. The [category lookup](#number-split-and-category-table)
+maps file number 3 to `0x035B0003`. The installed `data/03/5B/00/03.DAT`
+is a 2240-byte SSCF carrier. Live event admission, retention until the drain,
+and audible playback remain unresolved.
 
 ## Driver configuration
 
