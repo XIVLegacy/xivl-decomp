@@ -144,13 +144,65 @@ That helper fills an empty descriptor type key at `+0x1C` using RTTI
 `0x012E7F44`, `.?AUTimeSpan@Sqwt@@`, at `0x009AD92B..0x009AD940`.
 
 The 34 type key pairs initialized at `0x00F287E0..0x00F28BA4` for table
-`0x013612D0` omit that RTTI type. On the default uncached type path,
-`0x009111C3` calls `0x009A2C90`, whose table miss produces type 1 at
-`0x009A2D67`. Type 1 branches to cleanup at `0x00538203..0x00538209`
-without invoking a result processor lane. The string arm at `0x0053821D`
-is reached for types `0x0C` and `0x14`. A successful native getter and
-formatted text therefore do not establish a Lua string return on this
-path. Type overrides and the VM-visible default result remain unresolved.
+`0x013612D0` omit that RTTI type. The type selector at
+`0x009111A1..0x009111BA` uses the low byte of the descriptor dword
+at `+0x20` when both the type key and that dword are nonzero. On the
+uncached path, `0x009111C3` calls `0x009A2C90`, whose table miss produces type 1 at
+`0x009A2D67`. The selector caches that result at `0x009111CF`.
+The separate `Anime` name substitution at `0x00537B7B..0x00537BD7`
+selects `UIElement.Execute` on a hash match. `AnimeTime` has a
+different hash. The checked TimerIcon initializer at
+`0x00F2A5E0..0x00F2A603` supplies no cached type override.
+
+Type 1 jumps to cleanup at `0x00538209 -> 0x00538481` without calling
+a result processor lane. The string arm at `0x0053821D` serves types
+`0x0C` and `0x14`. The result range initialized empty at
+`0x00D19C54..0x00D19C5C` stays empty on the type-1 path. The reserve
+helper `0x00584C50` preserves its count, and
+`0x00D19CCA..0x00D19D1C` connects the result holder to
+`ExecuteParameters+0x1C`.
+
+The WidgetBase registration declares four
+`Which<Utf8String,int,bool,float>` return operators. On immediate
+return, `0x00D19F42` calls `0x00D196F0`, which visits the declared
+operators through `0x00CF9630` at `0x00D19771`. The first visit
+finds no cell at `0x00CF9679..0x00CF968A` and constructs a temporary
+internal tag-6 cell at `0x00583FD9` to test acceptance. The `Which` cell
+`0x0110E180` selects `0x00CF8EE0`. The four alternative predicates
+at `0x00CF8880`, `0x00CF8890`, `0x00CF88A0`, and `0x00CF88B0`
+accept tags 0, 1, 3, and 2, respectively. The rejected tag-6 probe
+therefore reaches the diagnostic calls at `0x00CF9715` and
+`0x00CF975C` before any value push.
+
+With the default diagnostic table, cell `0x0110E58C` selects the
+return-only `0x00CD2D90` for the first call. The second call enters
+`0x00CD3540`. Its checks at `0x00CD35C1..0x00CD35E6` take the
+error arm when the current thread's `+0xDC..+0xE0` frame range is
+nonempty (`0x00CCD340`), thread byte `+0x13E` is zero, and VM
+status differs from 1 (`0x00CF39C0 -> 0x00DCEAB0`).
+The ordinary admitted invocation at `0x00D04EA2..0x00D04EB4` pushes
+a frame through `0x00CCD2FD -> 0x00D01F33 -> 0x00D03250` and
+publishes the thread at `0x00CCD30C -> 0x00CF092B`. The append takes
+thread `+0xD4` at `0x00CCD20D`, adds 4 at `0x00D01F28` and updates
+that same frame range at `0x00D032C1`. The diagnostic
+binding at `0x00CD8332..0x00CD8341` supplies the same thread manager
+when retained. The ordinary thread initializer clears `+0x13E`
+at `0x00CCE439`. A separate path sets it to 1 at `0x00CCE7A4`.
+With these guards, `0x00CD3685` calls
+`0x00CF38A0`, which reaches the Lua error path at
+`0x00DCEBC0 -> 0x00DD1E60`. Its ordinary error arm passes status 2
+to `0x00DCF9C0` at `0x00DD1EDA..0x00DD1EDD`.
+
+If the alternate diagnostic path returns normally on all four
+operator visits, each contributes zero at `0x00CF9786` and the
+marshaller returns zero Lua results through `0x00D19776..0x00D19783`
+and `0x00D1A067`. When the thread bytes `+0x13D` and `+0x13C`
+are clear, the immediate VM return forwards that count at
+`0x00D04ED8` and `0x00D0805A`. The temporary tag-6 probe never
+becomes a Lua result.
+A separate arm at `0x00CFA8D3..0x00CFA900` can push nil for an
+already present tag-6 cell. Live invocation and behavior with an
+overridden property type or diagnostic binding remain unresolved.
 
 ### Repeated control name components
 
