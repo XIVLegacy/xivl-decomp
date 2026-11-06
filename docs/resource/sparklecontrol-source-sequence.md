@@ -426,6 +426,45 @@ the renderer and window transforms. The outer renderer loads XY scale
 from `0x012DCDD0` and applies optional translation from its
 `+0x7C/+0x80` (`0x008E3AE0..0x008E3C07`).
 
+### TimerIcon draw order and translation-only placement
+
+STATIC. The WindowContext factory at `0x008CC150` uses kind `0x15` to
+construct RenderTimerIcon when cache `+0xDC` is empty. It stores the
+result at `+0xDC` and publishes the cached pointer to draw slot `+0xC4`
+at `0x008CC1D3..0x008CC1E3`. The Sparkle factory publishes to slot
+`+0xC8` at `0x008CC137`. The admitted draw loop at
+`0x008CEA7C..0x008CEAB0` visits `+0xC0`, `+0xC4` and `+0xC8` in order
+and calls virtual `+4` on each nonnull enabled renderer. In a context
+holding both expected renderers, the enabled RenderTimerIcon visit
+precedes the enabled RenderSparkle visit. Cache reuse alone does not
+identify the object in slot `+0xC4`.
+
+The local origin producer at `0x0093F8E9..0x0093F8FE` reaches proxy
+slot `+0x34`, whose target `0x0055A000` stores integer-truncated X and
+Y as binary32 with zero Z. Flush `0x0054F03C..0x0054F055` sends local
+operation `0x0E`. The consumer at `0x008CF0A9..0x008CF0E5` retains the
+local XYZ values in context `+0x28/+0x2C/+0x30`. In the additive update
+branch at `0x008CDA9E..0x008CDB0B`, context `+0x34/+0x38/+0x3C` receives
+the local origin or its sum with the current parent's accumulated origin.
+The draw path with null transform fields `+0x20/+0x24` uses `0x008CF860`
+to build a translation matrix from that accumulated origin.
+
+RenderSparkle initializes its offset pair to zero at `0x008E0B30..0x008E0B3F`.
+Operation `0x13` can replace the pair through `0x008CF1C0..0x008CF1E0`
+and `0x008E0C20`. Both scale axes use the binary32 at `0x012DCDD0`, whose
+file value is 1.0. Operation `0x0C` can change it through `0x008CF06F`
+and `0x008DF476`. For the translation-only context, retained scale 1
+and zero renderer offset, the selected first sample spans accumulated
+origin plus `[8, 72]` on both axes before projection. Active transforms,
+the actual stock ancestors and effective scale and offset remain UNKNOWN.
+
+The context passes its clip substate to `0x008CBEF0` at
+`0x008CE832..0x008CE838` before visiting the renderers. The admitted rectangle path at
+`0x008CBF15..0x008CBF2C` passes `(L, T, L + W, T + H)` to `0x00CA3E30`.
+The runtime stock clip remains UNKNOWN.
+
+### Texture sampling and blend
+
 The quad dispatch `0x00CA5760` selects `0x00CBC910` or `0x00CBAB20`
 by global `0x013764A0`. Both normalize the source rectangle by the
 texture dimensions and pack color through `0x00CB9640`, which clamps
