@@ -183,9 +183,9 @@ redirection of a templated element to its parent, is UNKNOWN.
 
 A `Source` binding with a slash path therefore reads the data source named by
 its `x:Key`. A binding without `Source` and with an at-sign path reads the
-`DataContext` property of its own target element, which the template content
-inherits from the item container that holds the row (INFERRED for the
-inheritance). That holds only while the flag above is clear on the target.
+`DataContext` property of its own target element while the flag above is
+clear. See [MiniMap marker context inheritance](#marker-context-inheritance)
+for the selected template path from the container to that property.
 
 ## Evaluation
 
@@ -431,13 +431,73 @@ uses descriptor `0x0135885C` and holder `+0x208` (STATIC).
 See [Control Template application](sqwt-template-initial-enabled-receiver.md)
 for the generic named resource route.
 
+#### Marker context inheritance
+
+The outer template request precedes the outer row assignment. With the
+selected wrapper instantiated and its root retained, the ordinary
+`ContentControl` paths below can carry `DataContext` to the inner control
+(STATIC).
+
+| Path | Locators and conditions |
+| --- | --- |
+| Context already on the owner | For a nonnull root with no logical parent, `0x00936EB9..0x00936ED7` calls the parent attachment path. The inner control's parent getter cell `0x0106B640` returns `+0x240` through `0x0092B5D0`. The [inherited refresh](sqwt-progress-template-style.md#conditional-style-inheritance) at `0x00931489 -> 0x00912C10` can copy the registered property from the owner. `DataContext` metadata `0x30` at `0x00F22039` admits the inherited read and write and qualifies the descriptor for inherited-name collection. |
+| Context assigned after materialization | Changed-property handling at `0x00912B6E..0x00912BC8` checks notification mask `0x10`, reads the value and sends mode-1 writes to dependency children. The `ContentControl` child getter/count at `0x00937140`/`0x00937170` expose its retained template `+0x318`. The `ControlTemplate` getter/count cells `0x00FCB0CC`/`0x00FCB0D0` expose the nonnull root `+0xB0`. The named template constructor `0x00936C00 -> 0x0099B3A0` retains the base descriptor list at instance `+0x10` from `0x00912E65 -> 0x0098B400`. The array at `0x012DFC44` contains one descriptor, `0x01356BC8`. On the resulting `DataContext` descriptor miss, mode 1 recurses at `0x00912A5B..0x00912A97`. |
+
+The inner `DataContext` getter cell `0x0092BFE8` selects `0x0092BE70` and
+reads holder `+0x208` at `0x0092BE75..0x0092BE7B`. The setter branch
+`0x00930876..0x00930897` writes through `0x00932260` and `0x009C3820`.
+The holder initializer at `0x0092F8B0..0x0092F8C7` supplies descriptor
+`0x0135885C` to `0x00965600`, which derives its initial low bits from
+descriptor metadata. Mode 1 refuses a write with both low bits clear
+at `0x009C383F..0x009C385F`. An admitted different pointer is stored at
+`0x009C38A2` and can notify listeners (STATIC).
+
+For the source-less binding on the ordinary inner control, the clear-bit
+path at `0x0091205E..0x0091208D` resolves `DataContext` on the control
+itself. The base constructor clears source redirection bit `0x02` at
+`0x00912E1C`. The `OneWay` string at `0x01068424` sets mode 1 at
+`0x0091273C..0x00912755`. On admitted activation, the inner control cell
+`0x0106B65C` leads through `0x00937CD0`, `0x0092A060` and `0x0093CC20`
+to the [binding activation walk](sqwt-style-reverse-binding.md#observed-attachment-activation-and-retention)
+at `0x00912190`. Binding activation can seed from the row already in
+the holder through forward slot `+0x10` at `0x0099939A..0x009993A2`.
+A subsequent notification for the matching source and descriptor can
+use the same forward slot at `0x00998A8A..0x00998A9B` (STATIC).
+
+#### Inner template key result
+
+The forward evaluator sends the attribute text to the inner `Template`
+setter as a mode-0 write at `0x009999F9..0x00999A07`. An absent `Template`
+attribute supplies empty text. A successful read of a null context also
+formats empty text through `0x00931E60 -> 0x00915D60 -> 0x009182B0`.
+The evaluator's object-lookup miss at `0x009994A1..0x009994A3` sends that
+working text to the target (STATIC).
+
+- With successful allocations the ordinary `ContentControl` constructor
+  installs a default template with a `ContentPresenter` root at
+  `0x009362A2..0x00936306`. The default name starts empty at
+  `0x0099B208..0x0099B20E`. The parser's same-name check at
+  `0x00938644..0x00938697` bypasses application and assignment when the
+  current template exists and its name equals the incoming text. An empty
+  write can therefore retain this default template (STATIC).
+- A different name, or an absent current template, takes the allocation
+  and resource application path. Empty text can enter this path with a
+  nonempty owner class name at `0x0099AFF9..0x0099B04A` and
+  `0x0096A610..0x0096A67D`. A resource lookup miss at
+  `0x0094A2BD..0x0094A2C4` returns false at `0x0094A30B` without
+  materializing a root in that attempt. Application stores the result
+  at template `+0xCC` at `0x0099B053`. The parser still calls the
+  assignment helper `0x00938140` at `0x009386DE` after application returns.
+  An admitted write can retain the unresolved template at `+0x318` through
+  the store at `0x00926FA0`. Visual attachment uses the separate `+0x334`
+  state through `0x00936DF0`, which can retry application when the retained
+  template root is null (STATIC).
+
 The SSD and map readers at form lines 8 and 9 omit `Row`. The
-[reader gate](#rapturessddatareader-rows) therefore leaves initial
-row selection to a separate producer. The native call order above
-establishes the outer template request before the outer row assignment.
-Activation and row propagation to the inner binding, the inner
-setter outcome for empty or unresolved keys, live row selection, and
-rendered markers remain UNKNOWN.
+[reader gate](#rapturessddatareader-rows) leaves initial row selection
+to a separate producer. The first live row and inner key, actual
+binding activation order, the GL marker path, and marker painting
+remain UNKNOWN.
 
 ## Census
 
