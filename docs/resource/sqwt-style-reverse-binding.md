@@ -96,5 +96,83 @@ which passes control `+0x2CC` to float formatter `0x00988D50`.
 `0x00F2A5B0..0x00F2A5D3`. Getter cell `0x009BF8CC` selects `0x009BF6AF`,
 which passes control `+0x2D8` to timespan formatter `0x009153D0`.
 
-Live ActionMenu activation, first transfer timing, source property
-admission, and binding lifetime during style replacement remain unresolved.
+## OBSERVED attachment, activation and retention
+
+The ActionMenu template's line 563 supplies a simple `AnimeTime` Path,
+`TemplatedParent` source and `OneWayToSource` mode, with no converter.
+The attribute is applied while the style is materialized at `0x00930833`,
+before the Style assignment request at `0x00930842`.
+
+The binding constructor builds the Path key at `0x00912785..0x00912792`.
+Key constructor `0x009108E0` clears the qualifier field at `0x009108EC`,
+so the plain key skips the qualifier lookup at `0x00912799..0x009127A0`.
+With the nonnull TimerIcon returned by the checked `TemplatedParent` route,
+`0x009127D8..0x009127EC` calls `0x00911F50` during attribute handling.
+The deferred target-list branch at `0x009127F3` is bypassed on these inputs.
+
+With both property descriptors resolved, `0x00911ED0` stores the target
+registration owner at Binding `+0x9C` and requests insertion on
+DoubleAnimation at `0x00911F1A` and TimerIcon at `0x00911F30`. Both use the
+endpoint's listener container at `+0x18`. A missing container is allocated
+by `0x00911E40`, and a null result skips insertion at `0x00911E9A..0x00911E9F`.
+Each successful insertion stores the descriptor and Binding pair, appends
+the container to the Binding's list at `+0x04`, and increments the Binding's
+word at `+0x14` (`0x00914274..0x00914296`). The virtual call at `0x009142A3`
+uses listener-container cell `0x01068508`, which selects `0x00776340`,
+a return with no transfer.
+
+The built-in TimerIcon markup branch calls its constructor at `0x0094B8D8`
+before reading its attributes at `0x0094B907`. The constructor calls at
+`0x009C0DD3`, `0x0096A25B`, `0x0092F66D`, `0x0093C78C` and
+`0x009405EB` preserve the control receiver through to DependencyObject
+constructor `0x00912DB0`. DoubleAnimation reaches that constructor at
+`0x009B546C` and `0x009AD5BD`. The constructor appends the receiver to
+the current Sqwt context queue at `+0x20D8` through `0x0096C140` at
+`0x00912E9F`. The drain `0x00910CD0` removes the oldest entry and calls its
+virtual `+0x28` at `0x00910D89..0x00910DC9`. A TimerIcon constructed
+before its style animation enters the queue first when both insertions
+use the same context.
+
+TimerIcon cell `0x010824DC` selects `0x009C1A20`, which reaches generic
+activation `0x00912190` before its own `RunningValue` tests. DoubleAnimation
+cell `0x0107DCFC` selects `0x00912190` directly. Activation sets receiver
+`+0x20` mask 1 at `0x00912199` and calls each registered binding's virtual
+`+0x0C` at `0x009121ED..0x009121F5`. Either endpoint's admitted
+activation can therefore reach this binding. Binding's activation sets
+`+0xA0` to 1 at `0x009992BF`, checks the target object, source object and
+target descriptor at `0x00999358..0x00999369`, and dispatches mode 3 to
+the reverse transfer at `0x009993A4..0x009993AC`. That transfer still
+requires the source descriptor and a successful target getter.
+
+A changed Timeline `AnimeTime` can separately use the registered
+DoubleAnimation entry. The notification route through `0x00912B60..0x00912B69`,
+`0x009114A0` and `0x00998A40` checks the event flag, listener entry and
+matching endpoints. It has no separate test of the object's activation bit
+or Binding `+0xA0`. See
+[Timeline AnimeTime publication](sqwt-double-animation-clock.md#timeline-animetime-publication)
+for the producer's changed-value gates.
+
+## OBSERVED replacement and detach boundaries
+
+The admitted Style assignment uses the control's pointer holder at
+`+0x1FC` (`0x0092F23F..0x0092F245`). On a changed pointer,
+`0x009C388F..0x009C38A2` retains the new pointer, releases the previous
+pointer and stores the new pointer. The old pointer's deleting virtual
+call follows through `0x00915680` at `0x009C38D4` when the holder's
+mask `0x10` and prior mask `0x08` are set and the old pointer is nonnull.
+
+DoubleAnimation's deleting entry `0x009B5860` calls the Timeline destructor
+at `0x009B5870`. The latter reaches DependencyObject cleanup via
+`0x009AD56D` and `0x00911710` when the thread has a Sqwt context.
+On its registered-list path, `0x00911200` clears Binding `+0x9C` and calls
+container removal at `0x0091142E..0x0091144E` when the registration owner
+and its `+0x18` container are nonnull. It clears the source endpoint and
+requests removal at `0x00911450..0x00911472` when that endpoint and its
+`+0x18` container are nonnull. Container cell `0x01068500`
+selects `0x00914100` for removal.
+
+The static path establishes where the declared binding attaches and how
+either endpoint's activation can request the first reverse transfer.
+The concrete ActionMenu load pass, the first admitted property write and
+the complete replacement path through every owned collection remain
+unresolved.
