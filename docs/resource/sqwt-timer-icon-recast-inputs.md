@@ -163,7 +163,24 @@ TimerIcon primary cell `0x010824D4` selects `0x00910A10`, whose first test
 compares the component hash with the receiver's name hash at `+0x1C`.
 A match returns that receiver at `0x00910A1F..0x00910A23`.
 
-On this fallback, a repeated TimerIcon name can resolve to the same control
-when the first component finds it and its own name hash matches the second.
-The check establishes the receiver rule. It leaves any live form cache,
-caller path, and property result unresolved.
+Setter action cell `0x0107D5F8` selects `0x009B22C0`. It casts the
+source at event `+0x08` from `Sqwt::Object` to `Sqwt::DependencyObject` at
+`0x009B2300..0x009B2320`. The type descriptors are `0x01269CFC` and
+`0x01269EF0`. The `TargetName` descriptor `0x01361D28` is named at
+`0x00F294F0..0x00F294FA` and its setter selects the string wrapper at
+Setter `+0x54` through `0x009B249D..0x009B24B4`.
+
+With an admitted cast and nonempty `TargetName`, `0x009B2335` calls
+`0x0052D420`, which splits the text through `0x004EC300` at
+`0x0052D452`. At `0x009B2345` the Setter calls `0x00910980` with the
+cast source as the starting receiver and parent fallback enabled. On a
+component miss, the resolver can retry the full path from the object
+returned by virtual `+0x0C` at `0x009109CC..0x009109F8`. The Setter
+exits on a null lookup result at `0x009B234C`. Otherwise it passes the
+returned receiver to property setter `0x00912850` at `0x009B2395`.
+
+In either route through the component walk, a repeated name can resolve
+to the same TimerIcon when the first component finds it and its own name
+hash matches the next component. This establishes the conditional Setter
+receiver and write request. Live form cache contents, caller routing and
+the property write result remain unresolved.
