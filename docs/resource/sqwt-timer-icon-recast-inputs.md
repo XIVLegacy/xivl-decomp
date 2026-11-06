@@ -128,8 +128,62 @@ The setter parser recognizes `.` and `:` for the day, hour, and minute
 components at `0x009152ED..0x00915341`. It uses `atof` for the seconds and
 multiplies by 1000 before setting truncation for integer conversion at
 `0x0091534C..0x00915378`. A formatted value can traverse this parser.
-The ambient floating-point environment and locale leave exact millisecond
-round trips unresolved.
+The ambient floating-point environment and locale leave the live millisecond
+round trip unresolved.
+
+### Conditional millisecond round trip
+
+At `0x009DAB5D`, the atof path loads the parsed seconds from binary64.
+The multiply at `0x00915351` uses binary64 1000.0 at `0x00F91C48`.
+Only after the multiply does `0x00915363` set control-word bits 10 and
+11 for the integer conversion. The code restores the incoming control
+word at `0x00915378`. These instructions were checked with Ghidra CLI
+0.2.2 and Apple LLVM objdump 21.0.0 on the identified PE32 image (STATIC).
+
+The following arithmetic model assumes a period separator, nearest
+formatting and correctly rounded binary64 atof. For milliseconds within
+one minute, the binary32 seconds error is below 0.000002 seconds, so
+three decimal places recover the initial decimal fraction. For any
+multiple of 125 ms in that range, the seconds are an exact multiple of
+one eighth and the product is an exactly representable integer. Those
+values survive the checked multiply and truncation under the three x87
+significand precisions. Other values depend on the multiply precision.
+
+| Original milliseconds | Text seconds | 53-bit multiply, then truncate | 64-bit multiply, then truncate |
+| ---: | --- | ---: | ---: |
+| 125 | `0.125` | 125 | 125 |
+| 625 | `0.625` | 625 | 625 |
+| 700 | `0.700` | 700 | 699 |
+| 1001 | `1.001` | 1000 | 1000 |
+| 1250 | `1.250` | 1250 | 1250 |
+| 2500 | `2.500` | 2500 | 2500 |
+
+The model rounds the multiply to nearest before truncation. Binary64
+seconds have at most 53 significand bits, and multiplication by 1000
+fits within 64 significand bits. Python 3 reproduces the two modeled
+lanes with the exact rational product and its nearest binary64 rounding.
+
+```python
+from fractions import Fraction
+
+loss53 = loss64 = 0
+for ms in range(60_000):
+    seconds = float(f"{ms // 1000}.{ms % 1000:03d}")
+    product = Fraction.from_float(seconds) * 1000
+    parsed53 = int(float(product))
+    parsed64 = int(product)
+    assert parsed53 in (ms, ms - 1)
+    assert parsed64 in (ms, ms - 1)
+    if ms % 125 == 0:
+        assert parsed53 == parsed64 == ms
+    loss53 += parsed53 != ms
+    loss64 += parsed64 != ms
+assert (loss53, loss64) == (372, 29757)
+```
+
+The model covers the seconds component and assumes the stated conversions.
+The client's live x87 control word, locale, and exact CRT conversion for
+all tested strings remain UNKNOWN.
 
 ## OBSERVED WidgetBase lookup boundaries
 
