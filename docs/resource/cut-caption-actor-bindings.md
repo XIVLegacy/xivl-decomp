@@ -134,7 +134,7 @@ It reads mode `u32(D+0x10)` at `0x00826044`. Mode 1 uses literal
 result and target's constructed name are supplied to `0x00613960` at
 `0x008260A5`. That delegate rejects class value `0xFFFFFFFF` or a null
 first explicit word before its call to `0x006121A0`. Its broader actor
-replacement effects are not established here.
+effects follow the [class-to-appearance request](cut-actor-class-update.md).
 
 ## Integer vector to ScheduleRegister
 
@@ -253,7 +253,8 @@ resets the register but supplies fewer than two entries, index 1 retains
 `0xFFFFFFFF`; the existing class-value delegate rejects that sentinel.
 This closes the static index relationship. It does not establish actual
 arguments, successful object construction, a reached callback, retained
-runtime state, actor replacement effects or appearance.
+runtime state or appearance. The class word's
+[queued appearance effects](cut-actor-class-update.md) are a separate contract.
 
 Original file-backed checks used the Python/pefile/Capstone versions above,
 entry-seeded instruction flow with finite bounds, original cells/RTTI and
