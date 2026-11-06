@@ -229,6 +229,139 @@ selected path. The installed sibling matches the search pattern and the
 fallback name. The runtime root, probe result and texture resolution
 remain unknown.
 
+## OBSERVED ActionMenu completion render samples
+
+The selected inputs are the installed timerEffect SPK and GTEX pinned in
+[the completion package](#actionmenu-completion-package).
+The GTEX is format index 4 (`D3DFMT_A8R8G8B8`), 64 by 64, depth 1,
+flags 0 and one mip. Its offset table at `0x18` selects the 16384-byte
+surface at data base `0x20`. These are checks of the installed files.
+The runtime buffer and texture identity remain conditional.
+
+### Clock and selected records
+
+On successful construction, `0x008CC116..0x008CC137` constructs
+RenderSparkle, stores it at WindowContext `+0xD8` and `+0xC8`, and sets
+renderer byte `+4` to 1. The admitted WindowContext draw at
+`0x008CEA7C..0x008CEAA8` visits that slot and calls renderer virtual
+`+4`. Cell `0x01066914` selects `0x008E3A40`, which requires its
+SPK buffer `+0x6C` and a nonnull named texture result from `0x00CA2190`
+at `0x008E3A6B`. On the selected file, B-relative word `+0xC` is 30.
+The loader divides integer 1000 by that word and stores 33 at renderer
+`+0x74` (`0x008E3249..0x008E3255`).
+
+A successful name selection clears the reader stop byte and renderer
+deadline (`0x008E3CA1..0x008E3CD7`, `0x008E3D04..0x008E3D0F`).
+On an admitted render with deadline zero, `0x008E3A7B..0x008E3A99` seeds
+the deadline from `timeGetTime`. The due loop at
+`0x008E3A99..0x008E3AD4` calls the reader `0x008E3600` once per due
+step while the unsigned 64-bit deadline is at or before the zero-extended
+clock reading. Each step adds 33 ms to that deadline. The renderer draws
+after that loop at `0x008E3C12`. The first step can be due in the same draw that seeds
+the clock. A later draw can process several steps before submitting a
+quad.
+
+The `Effect_start` lookup selects record 1. Its section count word at
+`P+6` is 9, and the advance at `0x008E398B..0x008E39A2` visits records
+1 through 8 on consecutive due steps. The table gives only the decoded
+effective numerators consumed by this path. Omitted scale or alpha lanes
+use the implicit default numerator 1024. Every sample command uses track
+0 and selected section index 3 in words `+4/+6`.
+
+| Record | Sample command offset | Mask at command +2 | X/Y scale numerator | X/Y position numerator | Alpha numerator |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `0x98` | `0x04` | 1024 | 800 | 1024 |
+| 2 | `0xA8` | `0x04` | 1024 | 800 | 1024 |
+| 3 | `0xB8` | `0x05` | 1023 | 800 | 1024 |
+| 4 | `0xCC` | `0x0D` | 1130 | 800 | 595 |
+| 5 | `0xE8` | `0x0D` | 1199 | 800 | 320 |
+| 6 | `0x104` | `0x0D` | 1244 | 800 | 140 |
+| 7 | `0x120` | `0x0D` | 1271 | 799 | 35 |
+| 8 | `0x148` | `0x0D` | 1280 | 800 | 0 |
+
+The scale and color lanes divide signed words by 1024 and use 1 for
+each omitted lane (`0x008E37E2..0x008E3823`,
+`0x008E38AB..0x008E392C`). RGB is 1 throughout. Position divides each
+signed word by 20 (`0x008E3863..0x008E38A6`). The constants are
+`0x01050B00` (binary64 1/1024), `0x00FB6E90` (binary64 20) and
+`0x00F54F70` (binary32 1). These paths store binary32 components.
+Mask bit `0x02` is clear throughout and its transform terms are zero
+(`0x008E3823..0x008E3863`).
+
+In record 8 the preceding command at `0x13C` has mask `0x80` and
+selector 1 at `+4`. Dispatch cell `0x008E3A20` selects `0x008E369D`,
+which sets the reader stop byte and continues the same command loop.
+The alpha-zero sample therefore applies in that step. The stop byte
+bypasses future root command evaluation and suppresses record advance
+(`0x008E3619..0x008E361C`, `0x008E398B..0x008E398E`).
+Nested reader work can still run at `0x008E39A9..0x008E3A08`. The held
+terminal state can reach draw submission with packed alpha zero. The
+shared state flush requests alpha test GREATER 0 at
+`0x00CA34AE..0x00CA34D7`, which rejects those fragments when active.
+
+### Quad and default blend
+
+The command path selects the track and sets its active bit at
+`0x008E3785..0x008E37BA`. A changed section index reaches
+`0x008E32E0` at `0x008E37CA`. That loader resolves
+`B + u32LE(B + 0x14 + 4*i)`. Index 3 selects a type-2 nested reader
+at file offset `0x18C`. Its one record at `0x19C` selects type-1
+section index 2 at `0x16C`. The nested step occurs through
+`0x008E39DE..0x008E3A08`. The type-1 section has one leaf entry,
+selects section index 1 at `0x160`, and supplies the identity XY
+scale with translation `(-32, -32)`. The selected rectangle words
+at `0x164..0x16A` are `(0, 0, 64, 64)`.
+
+Draw `0x008E1930` visits active tracks at `0x008E1968..0x008E1980`.
+The consumer `0x008E19A0` composes the parent and track matrices through
+`0x0042EDB0`, multiplies the track and parent color components, and
+clamps the products to `[0, 1]`. It recurses for the nested reader at
+`0x008E1B13`. The leaf applies its matrix at `0x008E1BC5..0x008E1BCB`
+and submits the destination rectangle `(0, 0, 64, 64)`, source rectangle,
+color and named texture at `0x008E1BD0..0x008E1C57`. In effect-local
+coordinates, each axis of the quad is `t + s * (p - 32)`, where
+`p` is 0 or 64, `s` is the decoded scale and `t` the decoded position.
+For example, the first sample covers `[8, 72]` on each axis before
+the renderer and window transforms. The outer renderer loads XY scale
+from `0x012DCDD0` and applies optional translation from its
+`+0x7C/+0x80` (`0x008E3AE0..0x008E3C07`).
+
+The quad dispatch `0x00CA5760` selects `0x00CBC910` or `0x00CBAB20`
+by global `0x013764A0`. Both normalize the source rectangle by the
+texture dimensions and pack color through `0x00CB9640`, which clamps
+and truncates each component times 255. With a white parent, the selected
+vertex alpha bytes are `255, 255, 255, 148, 79, 34, 8, 0`. Both paths
+select pixel program 1. Its bounded decode at `0x0110A680` multiplies
+the sampled texel by interpolated vertex color. See
+[the shared quad programs and device state](npcsay-backdrop-draw.md#states-and-programs).
+
+RenderSparkle initializes blend byte `+0x78` to zero at `0x008E0B2D`
+and forwards it through `0x00CA4170` at `0x008E3B00`. A local
+operation `0x12` can change it through `0x008CF19E` and `0x008E0C10`.
+With the constructor mode retained, `0x00CA38E8..0x00CA393A` enables
+blending and supplies `SRCALPHA` and `INVSRCALPHA` to both the color
+and alpha factor lanes, and `ADD` to both operation lanes. The factor
+and operation wrappers are `0x0041D050` and `0x0041D010`. The
+separate-alpha enable is state 206 set to 1 by `0x0041C480`, called at
+`0x00A487A0` during device setup. With it enabled, a
+source alpha `a` gives color `src_rgb*a + dst_rgb*(1-a)` and target
+alpha `a*a + dst_a*(1-a)`.
+
+### Projection boundary
+
+These inputs support a bounded preview of the centered, expanding textured
+quad and its recorded alpha fade using the installed texture and the
+default blend. The selected WindowContext path still applies its actor
+and state gates at `0x008CE7D9..0x008CE813` and its context color and
+transform. The clipping helper `0x008CBEF0` forwards only with clip
+substate `+0x15` nonzero. Substate `+0x14` equal to 1 requests disable.
+When backend global `0x013764A0` is zero, `0x00CA3E30` uses the
+rectangle and scissor route at `0x00CA3C60`. The other backend path
+forces scissor disable.
+Live command delivery, the runtime package and texture joins, window
+placement and clipping, retained blend mode, draw cadence, backend
+selection and pixel parity remain unresolved.
+
 ## Reproduction and limits
 
 Use Ghidra CLI on the identified executable. Inspect the constructor,
