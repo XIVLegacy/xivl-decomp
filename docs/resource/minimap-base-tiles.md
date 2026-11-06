@@ -24,6 +24,77 @@ change paths pass the value to embedded image `+0x7EC` through
 `0x00991090` at `0x00672706` and `0x006738BB`. The image retains the ID
 at its own `+0x58` (STATIC).
 
+## Scene layout and page inputs
+
+On the admitted position update, `0x0065CC42` calls `0x007D4020`.
+The latter queries the active layout at the supplied position through
+`0x00624AC0` at `0x007D40C6`. The checked spatial branch reaches
+`0x00644840 -> 0x00644210`. A successful selection writes the block
+and its paired layout object to the result at `0x00644341..0x00644346`
+(STATIC).
+
+The [DivideMap folder registration](layout-block-activation.md#folder-registration)
+builds `BlockAABB` from the relocated folder. At `0x006427DA..0x006427E9`,
+`0x006426C0` copies folder byte `+0x60` to block `+0x10` and folder byte
+`+0x63` to block `+0x11`. At `0x007D40E4..0x007D40F9`, the position
+update calls the selected layout object's `+4` interface slot `+0x164`
+and passes the resulting ID to `0x00662440`. The layout post resolves it
+through `0x0062B8C0`, which calls active layout lookup `0x00626820`
+and mapping helper `0x0062B380`. A layout miss or a zero mapped value
+selects the original ID OR `0x8000` at `0x0062B8DE..0x0062B8E4` (STATIC).
+
+The [scene-to-main event queue](../actor/chara-turn-and-field-consumers.md#turn-completion)
+delivers separate layout and page values. The checked producers post when
+the corresponding scene actor value changes. The layout post also requires
+the active layout pointer read at `0x00662474` (STATIC).
+
+| Value | Scene post to `0x007CE7B0` | `CharaElement` slot 8 store |
+| --- | --- | --- |
+| Resolved layout dword | `0x0066247E..0x00662492`, event `0x5B`, four bytes | `+0xB30` at `0x0058E553`, table cell `0x0058E6F4` |
+| Block byte `+0x10`, used as the page | `0x007D40FE..0x007D4105` supplies it to `0x00662510`, event `0x5D`, one byte at `0x00662532` | `+0xB38` at `0x0058E5C5`, table cell `0x0058E6FC` |
+| Block byte `+0x11` | `0x007D410A..0x007D4111` supplies it to `0x00662540`, event `0x5E`, one byte at `0x00662560` | `+0xB39` at `0x0058E5E4`, table cell `0x0058E700` |
+
+When `0x004D72F0` returns the local `CharaElement`, `0x00565060` places
+it first in the list used by `0x006795D0`. The control retains that first
+element at `+0x9E0` at `0x0067963F..0x00679649`.
+At `0x0067968C..0x006796E3`, it copies the changed layout
+and page to `+0x9F4` and `+0x9FC` and separately copies `+0xB39` to
+`+0x9FD`. A changed pair can set the load request bit `+0xA69 & 0x10`
+at `0x00679710` when `QuestMapIndex` is `-1` and either layout or page
+override is absent (STATIC).
+
+The request at `0x00679C5D..0x00679CD7` requires `+0xA69 & 0x10`
+and the `Ready` bit `+0x480 & 0x20`. The `Ready` descriptor
+`0x0133FF34` selects `+0x480` at `0x00673C34..0x00673C4E`.
+The `Layout` descriptor
+`0x0133FEEC` uses `+0x470` and the `Rect` descriptor `0x0133FF10`
+uses `+0x478`. Their initializers name the properties at `0x00F11A90`
+and `0x00F11AB0`, and the constructor initializes both to `-1`
+at `0x0067A080..0x0067A0B1`. `Layout` supplies its dword when present.
+`Rect` compares its dword with `-1`, then supplies its zero-extended
+low byte when present. The ordinary branch otherwise reads the
+corresponding retained field at `0x00679C9D..0x00679CC1`. When an override is absent,
+the availability branch rejects retained layout `-1`. It zero-extends
+the retained page before comparing with dword `-1` at
+`0x00679C89..0x00679C92`, so byte `0xFF` can pass that comparison
+and reach the request as 255 (STATIC).
+
+After the dirty and Ready gates, `+0xA6A & 4` forces layout `101` and
+page `0` at `0x00679CCD..0x00679CD2`. It can take that branch with both
+explicit overrides present or on a failed retained availability check.
+The constructor clears that bit at `0x0067A9E3..0x0067AA12`. The property
+handler at `0x0067391C` is a checked writer that sets it. `0x006712B0`
+requires a nonnull checker and a nonnegative layout at
+`0x00671343..0x00671359` before storing layout and page at
+`MapLoadChecker +0x18` and `+0x1C`. The caller clears its dirty bit after
+the helper returns at `0x00679CD7` (STATIC).
+
+The published SetMap application fields are region, zone and mode. The
+checked MiniMap route derives its inputs from the active scene and the
+selected block. The live layout mapping, block selection and `Ready`
+timing for a particular session remain UNKNOWN.
+[SetMap framing and native base](https://github.com/XIVLegacy/xivl-client-structs/blob/180ab8aaa49b0157fee8996abe4d27e05b588bda/docs/map-layout-selector.md#L31-L56).
+
 ## Native piece producer
 
 `MapLoadChecker` cell `0x00FC3310` selects `0x00670210`. After an admitted
