@@ -288,6 +288,104 @@ rendered order remain unresolved. See the
 [bounded clock path](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion)
 for the shared sample and completion gates.
 
+## OBSERVED mixed numeric target writes
+
+The selected Next and Prev DoubleAnimations use the same outgoing Name and
+incoming peer paths as the discrete tracks. Every numeric child binds
+`Storyboard.TargetName` OneWay from TemplatedParent. The declared endpoints
+and durations are as follows. Each arrow denotes the declared From and To.
+
+| Track | Next outgoing / incoming | Prev outgoing / incoming | Duration |
+| --- | --- | --- | --- |
+| `Canvas.Top` | 0 -> -20 / 20 -> 0 (320, 326) | 0 -> 20 / -20 -> 0 (339, 345) | 0:0:0.2 |
+| `VisualOpacity` | 1 -> 0 / 0 -> 1 (321, 327) | 1 -> 0 / 0 -> 1 (340, 346) | 0:0:0.2 |
+| `SqwtDrawOrder` | 0.5 -> 0 / 0 -> 0.5 (322, 328) | 0.5 -> 0 / 0 -> 0.5 (341, 347) | Omitted |
+
+The DoubleAnimation markup arm appends the timeline at `0x00949EB9`,
+calls the shared target-seeding markup constructor `0x0094F030` at
+`0x00949EC4` and then reads the contents at `0x00949EE9`. Attribute
+cell `0x0106DC68` selects `0x00946C20`, which calls the same generic
+attribute handler `0x00946A30` as the discrete lane. The native
+DoubleAnimation and discrete timeline cells have the same functions
+for these joins.
+
+| Slot | DoubleAnimation cell | Discrete cell | Shared function |
+| --- | --- | --- | --- |
+| `+0x0C`, owner | `0x0107DCE0` | `0x0106D740` | `0x009AC410` |
+| `+0x24`, TemplatedParent | `0x0107DCF8` | `0x0106D758` | `0x00910AB0` |
+| `+0x18`, property change | `0x0107DCEC` | `0x0106D74C` | `0x009AC500` |
+
+Thus the same attached string proxy, owner walk and timeline target cache
+apply. The `Storyboard.TargetProperty` change reads the attached text,
+constructs its generic property key at `0x009AC5E9` and caches it at
+`0x009AC5F4`. The DoubleAnimation evaluator calls target lookup
+`0x009A6B50` at `0x009B4AB2` and cached property lookup `0x009A66C0`
+at `0x009B4ABE`. A nonnull target and nonempty property key are
+required at `0x009B4AC8..0x009B4ADD`. The evaluator formats its
+binary32 sample through `0x00988D50` at `0x009B4C88` and calls the
+generic text setter on that target with flag 0 at `0x009B4CA0`.
+
+For an admitted sample on a resolved page Label, the native sinks are as
+follows.
+
+- `Canvas.Top` takes the qualified setter's attached fallback at
+  `0x009128F3`. Its descriptor `0x0135FEA8` registers a float provider
+  at `0x009921C2..0x009921EA`. The provider's `+4` cell `0x01078594`
+  selects the per-owner lookup `0x009600E0`. Its float setter
+  `0x0095EAF0` passes proxy `+0x24` to `0x0095E7B0` at
+  `0x0095EB10`. An admitted changed value can notify the Label through
+  `0x0095D890`. Label virtual `+0x18` reaches `0x0093BD80` through
+  `0x00934B60` and `0x0092DF20`. The event's `+0x78` mask `0x02`
+  and the descriptor match at `0x0093C10C` admit the parent route.
+  Label `+0x60` selects `0x0092AF60`, returning the logical parent at
+  `+0x240`. With that parent present, `0x0093C20E` calls
+  `0x0093B250` on the Canvas to queue arrange work. Canvas arrange
+  checks the child property at `0x009B9712` and reads it at
+  `0x009B973F`, with numeric conversion at `0x009B974E`. The
+  resulting Y value enters the child arrange rectangle at
+  `0x009B981D..0x009B9845` on the admitted path.
+- `VisualOpacity` selects inherited Visual descriptor `0x0135988C`
+  and index 4. Setter cell `0x009400EC` selects `0x0093FFC6`, which
+  passes Label `+0x48` to the same float wrapper at `0x0093FFE0`.
+  The `0x0093FE00` callback can send the four Visual opacity values
+  through drawing context `+0x44` at `0x0093FEBF..0x0093FEE8` when
+  `0x0135C2B0` is zero and the context is nonnull. DrawingToolContext
+  cell `0x00FA2928` selects `0x0055A050`, which stores overall
+  opacity first at tool state `+0x70` and sets dirty mask `0x08`.
+  The [tool flush](npcsay-backdrop-draw.md#from-element-to-quad-code)
+  supplies these 16 bytes as scene packet `0x15` (local command 0).
+  On the [ordinary WindowActor route](sqwt-icon-control-textures.md#observed-ordinary-control-to-renderer),
+  WindowContext cell `0x008CF3B8` selects `0x008CECCB`. It calls
+  `0x008CC2A0`, which writes the four body values to WindowContext
+  `+0x11C`, `+0x110`, `+0x114` and `+0x118`, in that order. The
+  WindowContext draw path at `0x008CE83D..0x008CE8ED` copies those local
+  lanes into effective state at `+0x100..+0x10C`. With a parent, it
+  multiplies the four lanes by the parent's corresponding effective values.
+- `SqwtDrawOrder` takes the inherited Visual index-11 path described
+  under [local paint order](#observed-local-sqwtdraworder-paint-order).
+  Both zero-span lanes still require normal setup return and a supplied
+  terminal sample. With default Velocity retained, setup divides by
+  the zero duration at `0x009B49BF`. An admitted Q=0, D=0 evaluator
+  takes the endpoint copy at `0x009B4AF7..0x009B4AFD` and can request
+  the outgoing 0 and incoming 0.5 writes, in group declaration order.
+  The equal-value store gate and paint ordering conditions still apply.
+
+The positive-duration lanes omit Velocity and acceleration controls. With
+the default branches retained, setup forms the absolute endpoint difference
+at `0x009B4947..0x009B4968`, then stores the binary32 rate after scaling
+by 1000 and dividing by D at `0x009B4977..0x009B49C1`. The nonterminal
+linear evaluator adds the rate contribution to the start for ascending
+endpoints at `0x009B4C00..0x009B4C0A` or subtracts it for descending
+endpoints at `0x009B4C54..0x009B4C5E`. The shared terminal branch
+copies the retained To endpoint. See the [default clock arithmetic](sqwt-double-animation-clock.md#default-timericon-percent-evaluation)
+for the separate binary32 stores and [bounded samples](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion)
+for the scheduler gates.
+
+This joins the selected native write paths to the resolved Labels. Live
+binding activation and property admission, runtime floating-point exception
+state, later arrange and render scheduling, and the effect of WindowContext
+opacity on final compositing remain unresolved.
+
 ## OBSERVED page storyboard completion target
 
 The Next and Prev Storyboards at template lines 316 and 335 both declare
