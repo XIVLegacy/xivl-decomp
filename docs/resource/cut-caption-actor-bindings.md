@@ -136,6 +136,136 @@ result and target's constructed name are supplied to `0x00613960` at
 first explicit word before its call to `0x006121A0`. Its broader actor
 replacement effects are not established here.
 
+## Integer vector to ScheduleRegister
+
+The native integer-vector handoff preserves the index on the following
+conditional path. Let V be `_play`'s produced integer vector, Q the local
+start record, M the receiving CutManagerActor, C its selected controller,
+W the controller's CutSceneObject and S that wrapper's Scheduler. Valid
+storage, normal returns, retained tables/pointers and no intervening overwrite
+are conditions throughout. The selected record/register composition below
+covers at most eight integer entries; the copy loops do not themselves clamp
+an arbitrary count to that capacity.
+
+### Request and actor copies
+
+Argument splitter `0x006EED90` packs a leading run of Boolean cells into
+one mask entry, then appends consecutive integer cells in their original
+order. Its mask append is at `0x006EEECC`; integer appends are at
+`0x006EEF38`. Thus a leading true followed by seven integers produces
+eight integer entries, with mask 1 at index 0 and the first integer at
+index 1. This describes native typed cells, not their unobserved Lua inputs.
+
+The `_play` adapter and
+[local scene transport](../net/ferry-scene-notice-producer.md#native-result-producers-and-local-transport)
+lead through `0x0076D610 -> 0x0055FFE0`. In the latter's accepted state-0
+branch, `0x00560026` calls record builder `0x00567930`, then
+`0x00560035` posts selector 0 with size `0xE8`. The builder stores the
+integer count at Q+`0x20` and copies V[i] to Q+`0x24+4*i`
+(`0x00567980`, `0x00567985`, `0x005679A3..0x005679AE`). The
+published selector-0 route reaches `0x0061C4D0` on the resolved M.
+
+That consumer stores the count at M+`0x274` and copies the corresponding
+words from Q+`0x24` to M+`0x278`, incrementing both addresses by 4 without
+changing the index (`0x0061C50C..0x0061C535`). Its later call to the
+begin helper is separate from applying these saved parameters.
+
+### Setup and indexed writes
+
+The state-1 branch of setup callback `0x0061C930` calls
+`0x0061C8A0` on its successfully cast actor at `0x0061C992`. If the
+latter obtains nonzero M+`0x178`, it calls controller C=`u32(M+0x174)`
+slots 1 and 2, then `0x00611BA0`, then `0x0060EF00` at
+`0x0061C91F`. With the
+[default embedded controller](../net/ferry-scene-notice-producer.md#default-result-controller),
+slot 1 selects `0x007DFEC0`. That method stores the returned wrapper
+from `0x00635690` at C+4 at `0x007DFF65`. Wrapper construction and
+the returned Scheduler relation are owned by the
+[base Scheduler and wrapper contract](action-queue-scheduler-handoff.md#base-scheduler-and-wrapper-return).
+
+`0x0060EF00` first calls controller slot 6, byte offset `0x18`, for
+indexes 0 through 7 with word `0xFFFFFFFF` (`0x0060EF15..0x0060EF2B`).
+It then reads count M+`0x274`, starts at M+`0x278` and calls the same
+slot with `(i,savedWord[i])` in increasing index order
+(`0x0060EF6B..0x0060EF9D`). No index adjustment occurs between those
+loads and calls.
+
+The original default table `0x00FEF2B0` cell `0x00FEF2C8` selects
+`0x007DFD80`. That bridge returns with `RET 8` without a write when
+W=`u32(C+4)` is zero. Otherwise it calls W's slot 50, byte offset
+`0xC8`, with plain-RET/no explicit arguments, then tail-jumps to the
+returned interface's slot 18, byte offset `0x48`. The original
+`(index,value)` stack words remain intact for that final setter.
+
+CutSceneObject constructor `0x00A05000` installs table `0x010942E4`
+at `0x00A05027` and stores its incoming S at W+8 at `0x00A0502D`.
+Cell `0x010943AC` selects slot-50 getter `0x00A03AF0`. Its slot-14
+predicate `0x00A03600` tests W+8; the getter returns S+`0xF0` for
+nonzero S and zero otherwise. The controller does not test that returned
+interface for zero. A successful handoff therefore requires both W and S
+to be nonzero, with the named tables retained.
+
+### Actual parameter interface and read
+
+Scheduler constructor `0x00A1EBE0` forms S+`0xF0` at
+`0x00A1ED3B` and constructs it through `0x00A29A50` at
+`0x00A1ED45`. This embedded object I has its own table `0x010989AC`,
+installed at `0x00A29A53`, and eight zero-initialized words at I+4
+through I+`0x20`. Original RTTI COL `0x01186760`, descriptor
+`0x012EDE7C`, identifies it as
+`.?AVScheduleRegister@Scheduler@Cut@Engine@CDev@SQEX@@`.
+
+| Interface operation | Original cell / target | Complete body, end exclusive | Word operation |
+| --- | --- | --- | --- |
+| Slot 17, getter | `0x010989F0` / `0x00A29AC0` | `[0x00A29AC0,0x00A29ACB)` | Return `u32le(I+4+4*i)`; `RET 4` |
+| Slot 18, setter | `0x010989F4` / `0x00A29AD0` | `[0x00A29AD0,0x00A29ADF)` | Store value to `I+4+4*i`; `RET 8` |
+
+Neither body checks its index or adjusts its receiver. These are raw 32-bit
+word operations, without a signedness interpretation. The outer Scheduler
+table `0x01097A54` also has a slot 17, targeting `0x00A1CB60`; that is
+a different interface and is not selected by this clip's S+`0xF0` load.
+
+The [retained-item update](action-queue-scheduler-handoff.md#retained-item-and-scheduler-update)
+supplies the constructed S to the
+[updater/context chain](scb-clip-factory-composition.md#secondary-collection-callers-and-callback-context).
+In root tick `0x00A1D330`, `0x00A1D34E` retains its incoming S in ESI.
+`0x00A1D35F..0x00A1D368` passes that S to local context constructor
+`0x00A1FF70`, whose store at `0x00A1FF81` writes it to F+`0x0C`.
+The tick reuses this F for the begin call at `0x00A1D6FA` after the
+time setter `0x00A200F0`, which writes only F+`0x10`.
+Earlier clip callbacks also receive F, so retention of F+`0x0C` through
+those calls remains a condition; a whole-program exclusion of callback
+writes is not claimed.
+
+At `0x00826055..0x00826071`, the actor-class evaluator obtains
+S=`u32(F+0x0C)` through `0x00A20070`, then loads the table at
+S+`0xF0`, supplies I=S+`0xF0`, and calls its slot 17 with the record's
+index. On the same retained S after the indexed write:
+
+```text
+getter(i) = u32le(S + 0xF4 + 4*i) = savedWord[i] = V[i]
+index 1  = u32le(S + 0xF8)       = u32le(M + 0x27C)
+```
+
+For the selected `man50250` record, actor 5 therefore consumes V[1].
+The leading Boolean mask, when present, remains V[0]. If the apply path
+resets the register but supplies fewer than two entries, index 1 retains
+`0xFFFFFFFF`; the existing class-value delegate rejects that sentinel.
+This closes the static index relationship. It does not establish actual
+arguments, successful object construction, a reached callback, retained
+runtime state, actor replacement effects or appearance.
+
+Original file-backed checks used the Python/pefile/Capstone versions above,
+entry-seeded instruction flow with finite bounds, original cells/RTTI and
+independent operand checks for the copies and indexed operations. A fresh
+read-only Ghidra 12.1.3/JDK 21 run used `DecompileToText.java`, SHA-256
+`83a31add99e86bea0128470e4cc52b193e373ebc342cf060861bd3c17339668a`,
+for the builder, actor consumer/apply/setup, controller/wrapper bridge and
+ScheduleRegister constructor/getter/setter. All twelve selected decompilations
+completed without an analysis timeout. Ghidra did not recover the controller's
+indirect tail-call signature; the original instructions and cells establish
+its receiver and stack forwarding. No target execution was used.
+
 ## Selected man50250 records
 
 Source `client/cut/man50250/man50250` is 15,086,704 bytes, SHA-256
