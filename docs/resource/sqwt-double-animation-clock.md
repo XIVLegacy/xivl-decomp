@@ -137,6 +137,37 @@ path loads a stored double at `0x009DAB5D`, and the subsequent x87 multiply
 retains the incoming precision and rounding environment before truncation.
 Locale and that floating-point environment are not closed here. UNKNOWN.
 
+## Timeline AnimeTime publication
+
+Initializer `0x00F290E0..0x00F290F9` names Timeline descriptor
+`0x01361874` as `AnimeTime` using the string at `0x0107C96C` and index 4.
+The getter registered at `0x00F29147..0x00F29168` is `0x009AC640`. Its
+index-4 cell `0x009AC6EC` selects `0x009AC6AB`, which passes the qword at
+Timeline `+0x68` to timespan formatter `0x009153D0`. STATIC.
+
+On the forward clock path with nonnegative prior accumulation,
+`0x009AC82A..0x009AC8D9` copies the accumulated input from `+0x100` to
+`AnimeTime` before the timeline's own SpeedRatio multiplication, BeginTime
+subtraction, or evaluator call.
+The input uses the millisecond clock units described above. A write requires
+mask `0x03` nonzero at Timeline `+0x70` and a changed qword. The write sets
+mask `0x04` and calls `0x009C2050`. During Begin, DoubleAnimation setup calls
+`0x009AD020` at `0x009B4A48`. That reset clears the accumulators and applies
+the same property gate to publish zero at `0x009AD073..0x009AD0CF`.
+Paused ticks update the previous input and return before this property write.
+STATIC. The published value uses the supplied timeline input, which can come
+from a parent timeline, and precedes the evaluator's final sample clamp.
+INFERRED from the producer order.
+
+`0x009C2050` constructs a descriptor event through `0x00590380` and
+invokes `0x009AC420`, which dispatches through virtual offset `+0x18`.
+On DoubleAnimation, cell `0x0107DCEC` selects `0x009AC500`, which calls
+the generic property handler `0x00912AC0` at `0x009AC613`. That handler
+checks event mask `0x02` before calling `0x009114A0` at `0x00912B69`.
+`0x009114A0` calls registered listeners for the descriptor at `0x00911525`.
+STATIC. Listener installation and reverse binding transfer for the
+ActionMenu instance remain UNKNOWN.
+
 ## Bounded nonrepeat samples and completion
 
 For a normal-return path after setup, without reentry or arithmetic overflow,
@@ -164,13 +195,18 @@ consequence.
 
 The evaluator serializes its result through `0x00988D50` and calls target
 property setter `0x00912850`. On the checked normal-return path, the Q=D
-result request returns before the timeline calls completion. Completion `0x009AD450` disables its timer,
-clears active byte `+0x128`, calls virtual `+0x54`, and then calls retained
-completion listeners. DoubleAnimation's `+0x54` is the empty
-`0x009AC400`. Storyboard's hook is `0x009A6490`, which conditionally executes
-its retained CompletedCommand. No target restoration occurs in the checked
-DoubleAnimation stop or completion bodies. STATIC. A retained final
-property value remains conditional on property admission and later writers.
+result request returns before the completion dispatch at `0x009ACEDD`.
+Completion `0x009AD450` disables its timer, clears active byte `+0x128`,
+calls virtual `+0x54`, and then calls retained completion listeners. The
+completion body has no separate `AnimeTime` write. DoubleAnimation's
+`+0x54` at `0x0107DD28` selects the empty `0x009AC400`. Storyboard cell
+`0x0107C380` selects `0x009A6490`. Its constructor associates descriptor
+`0x013616AC`, named `CompletedCommand` at `0x0107C190`, with Storyboard
+`+0x158` at `0x009A68A3..0x009A68CB`. The hook dispatches that retained
+command through virtual offset `+8` at `0x009A64C9` when it is non-null.
+No target restoration occurs in the checked DoubleAnimation stop or
+completion bodies. STATIC. A retained final property value remains
+conditional on property admission and later writers.
 
 Pause and resume bodies `0x009AC3E0` and `0x009AC3F0` write one and zero
 to `+0x129`. While paused, `0x009AC820` still updates its previous supplied

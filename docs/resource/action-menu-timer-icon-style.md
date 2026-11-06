@@ -61,6 +61,19 @@ The omitted `To` follows the native endpoint setup when the target and
 property resolve. See
 [DoubleAnimation setup and TimerIcon Percent capture](sqwt-double-animation-clock.md#setup-current-value-and-repeated-begin).
 
+TimerIcon registers its `AnimeTime` descriptor `0x01362FDC`, index 4, at
+`0x00F2A5E0..0x00F2A603` with the string at `0x0108220C`. Setter cell
+`0x009C19C0` selects `0x009C1573`, which passes control `+0x2E8` to timespan
+setter `0x009BF130`. The Timeline can publish its own `AnimeTime` before
+evaluation. Installation and delivery through this `OneWayToSource`
+binding remain unresolved. See
+[Timeline AnimeTime publication](sqwt-double-animation-clock.md#timeline-animetime-publication).
+
+The template declares `TimerIcon.PercentAnimeEnd` as the completion command.
+The native Storyboard hook dispatches a retained command when present.
+Installation and delivery of this declared command remain unresolved. See
+[DoubleAnimation samples and Storyboard completion](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion).
+
 ## OBSERVED TimerIconId handoff
 
 | Locator | Observation |
