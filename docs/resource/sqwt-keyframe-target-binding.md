@@ -203,6 +203,78 @@ rendered order remain unresolved. See the
 [bounded clock path](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion)
 for the shared sample and completion gates.
 
+## OBSERVED page storyboard completion target
+
+The Next and Prev Storyboards at template lines 316 and 335 both declare
+`CompletedCommand` as `UILuaCommands.FinishAnimation`. Their
+`CompletedCommandTarget` bindings specify `RelativeSource=TemplatedParent`
+and omit both `Path` and `Mode`.
+
+Storyboard construction initializes the pointer holder at `+0x160`
+to null with descriptor `0x013616D0` at `0x009A68D0..0x009A68EC`. Before reading
+the storyboard attributes and children at `0x00949DC3`, the common
+markup handler walks parent `+0x0C` links at `0x00949D5C..0x00949D79`.
+When terminal markup `+0x10` holds a nonnull owner, the handler passes it
+to the holder setter `0x009A65A0` at `0x00949D87`. On the selected
+ControlTemplate construction path that owner is the requesting outgoing
+Label. The preseed precedes processing of the explicit binding.
+
+Storyboard markup attribute cell `0x0106DC44` leads through `0x00946C00`
+and `0x00946A30` to the generic property setter. The `CompletedCommandTarget`
+descriptor selects the direct Storyboard setter arm at
+`0x009A6C24..0x009A6C45`. It uses `+0x160`, separate from the attached
+`TargetName` proxy and timeline target cache. TemplatedParent dispatch
+at `0x00911C19..0x00911C28` starts at the Storyboard itself. Its cells
+`0x0107C350` and `0x0107C338` select `0x00910AB0` and `0x009AC410`,
+which follow timeline owner `+0xE0`. BeginStoryboard's `0x009ADC90`
+continues to the CommandTrigger subobject, where `0x009C24E0` returns
+the same Label from trigger `+0x40`.
+
+Binding construction initializes mode 0 at `0x00999C85`. An omitted path
+leaves the source descriptor null at `0x009120D7..0x009120E3`. Storyboard
+activation cell `0x0107C354` selects the shared listener walk `0x00912190`.
+The Label activation path through `0x00937CD0` and `0x0092A060` also calls
+that walk at `0x0093CC5D`. On admitted activation, `0x00999350` retains
+the source and target endpoints through
+`0x00917220` and dispatches the mode-0 forward arm at `0x00999390` to
+`0x009993C0`. The null source descriptor selects `0x00999A23`, which formats
+the source pointer through `0x00915D00` and `0x00917FB0` and requests a
+flag-0 target write at `0x00999A67`. The holder setter calls `0x00918760`
+through `0x009169A0` at `0x009A5F20`. Its pointer decoder `0x00916860`
+looks up the parsed pointer in the Sqwt thread-local map at context
+`+0x2118`, and `0x009187AF` casts the result to `FrameworkElement`.
+The holder helper `0x009C3820` skips pointer replacement on equality at
+`0x009C3877..0x009C3879`. For an admitted changed value it retains the new
+pointer, releases the old pointer, and stores the result at
+`0x009C388F..0x009C38A2`.
+
+In the forward single-repeat terminal branch described above, the group
+evaluator call at `0x009ACB68` walks the child clocks at `0x009CACB7`.
+With normal returns and no reentry or collection changes, the child
+visits finish before the group completion call at `0x009ACEDD`.
+Storyboard cell `0x0107C384` selects `0x009CAB00`, which checks for the
+group's own completion and enters `0x009AD450`. That routine disables
+the timer, clears running byte `+0x128` and calls `0x009A6490` through
+cell `0x0107C380` at `0x009AD478`. With a command at `+0x158`, the
+callback reads the retained target directly from `+0x160`. It adds
+`0xB4` when nonnull and calls the command's `+8` slot at `0x009A64C9`.
+The `CompletedCommand` setter at `0x009A6C4E..0x009A6CAE` uses name
+lookup `0x00928280` and fallback `0x00928F90`. For a retained
+`RoutedCommand` and nonnull Label target, the [explicit command route](sqwt-command-parameter-consumer.md#target-and-route)
+raises `Executed` from the outgoing Label if `PreviewExecuted` allows it.
+
+### Interpretation and limits
+
+The preseed supplies the outgoing Label. A successful forward transfer
+of that same Label leaves the retained pointer in place. Completion
+uses the pointer then held, with a null-target branch if the holder is
+empty. The group order places any admitted writes from its terminal
+child visits before this dispatch. The Lua `FinishAnimation` handler
+clears `work.slotMoving` on delivery. See the
+[page-control script record](https://github.com/XIVLegacy/xivl-client-scripts/blob/880a3e742f123b7e0e7c502c8ee1047eb8fed3dd/docs/action-menu-page-controls.md#L67-L97).
+The trace does not establish live binding activation, child write
+admission, behavior under reentry, or receipt of the completion by Lua.
+
 ## OBSERVED local SqwtDrawOrder paint order
 
 The checked form declares `Label_MenuSlot_1` through `Label_MenuSlot_4`
