@@ -95,6 +95,48 @@ selected block. The live layout mapping, block selection and `Ready`
 timing for a particular session remain UNKNOWN.
 [SetMap framing and native base](https://github.com/XIVLegacy/xivl-client-structs/blob/180ab8aaa49b0157fee8996abe4d27e05b588bda/docs/map-layout-selector.md#L31-L56).
 
+### Serialized DivideMap folder page
+
+The page is an unsigned byte at raw LYB node `+0x60` for the checked
+`RefObjects/SharedFolder/DivideMap/DivideMapFolderObject` shape. The
+manager tests that class at `0x0064F588`. When node byte `+0x62` has bit
+0 clear, it passes the relocated node to the deferred registration at
+`0x0064F5AE`. The copy at `0x006427DA..0x006427E2` supplies the page
+byte at `+0x60` to `BlockAABB +0x10` (STATIC).
+[Folder registration](layout-block-activation.md#folder-registration).
+
+The loader calls `0x00C1F110` at `0x00642E87` before manager dispatch.
+With payload `+0x0D` bit 0 clear and `+0x0E` equal to 2, it calls
+`0x00C1EF90` at `0x00C1F12C`. The node loop at
+`0x00C1F006..0x00C1F01C` adds the relocation delta to each nonzero
+dword identified by a field descriptor's offset. The folder's
+`0x70`-byte declaration places those dwords at
+`+0x04, +0x08, +0x10, +0x18, +0x50, +0x58, +0x64`. None spans
+`+0x60` (STATIC).
+[LYB relocation](bgchip-model-binding.md#lyb-relocation-and-attachment).
+[Declared folder shape](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md#L232-L236).
+
+For both installed samples below, the relocation flag is clear and the
+variant is 2. Use the LYB payload and node declarations to enumerate the
+first inventory entry's definition list. Select the exact folder class
+and apply the `+0x62` bit test. An in-memory Python replay of the
+header, kind-table, node-field and inventory relocations with base
+`0x10000000` resolves the same definition offsets and preserves
+`+0x60..+0x63` on every selected node (MEASURED).
+[LYB payload and node declarations](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md#L93-L134).
+
+| Installed DAT and resource ID | Size and SHA-256 | LYB payload file offset | Deferred folders and first page locator |
+| --- | --- | --- | --- |
+| `data/72/42/00/07.DAT`, `0x72420007` | 35552 bytes, `902cde4a009619b27161f578ed6fa3e659ab31f70c5ac2745b3d51abbce9c57b` | `0x11D0` | 1 of 2 exact-class definitions. Node at payload `0x77E0`, page at file `0x8A10`. |
+| `data/29/D9/00/01.DAT`, `0x29D90001` | 1197104 bytes, `bc40d7ff57ab8998978532cce4564e2488ed81d6d10b8f7ede3e1586b0b26523` | `0x99D0` | 229 of 230 exact-class definitions. First deferred node at payload `0xE29D0`, page at file `0xEC400`. |
+
+The samples establish the field's serialized position. Whether a live
+session selects any of these folders is UNKNOWN. The mapping from zone 140 or
+layout 5005 to resource `0x72420007` remains UNKNOWN.
+[Bridge resource identity](https://github.com/XIVLegacy/xivl-client-data/blob/44544085b003cd6f0530cdd994d6faf9c1a5b057/docs/bridge-map-identity.md#L40-L46).
+[Bridge evidence limits](https://github.com/XIVLegacy/xivl-client-data/blob/44544085b003cd6f0530cdd994d6faf9c1a5b057/docs/bridge-map-identity.md#L69-L76).
+[MapLayout exemplar identity](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md#L25-L28).
+
 ## Native piece producer
 
 `MapLoadChecker` cell `0x00FC3310` selects `0x00670210`. After an admitted
