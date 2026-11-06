@@ -299,6 +299,64 @@ terminal state can reach draw submission with packed alpha zero. The
 shared state flush requests alpha test GREATER 0 at
 `0x00CA34AE..0x00CA34D7`, which rejects those fragments when active.
 
+### Selected command and leaf fields
+
+OBSERVED. For a type-2 reader section `P`, the track count is `u16LE(P+4)`
+and the record count is `u16LE(P+6)` (`0x008E2E97..0x008E2F17`,
+`0x008E3990..0x008E39A2`). The section-relative record offset table
+starts at `P+0xC` and has four bytes per entry. At each record `R`,
+`u16LE(R)` counts the commands and the first starts at `R+4`
+(`0x008E3635..0x008E3677`). For a command `C`, `u16LE(C)` is its byte
+length including the length word, and `u16LE(C+2)` is the mask. The
+loop advances by that length at `0x008E36A4..0x008E36AF` or
+`0x008E3931..0x008E3940`.
+
+The sample branch reads the unsigned track and section indices at `C+4`
+and `C+6` (`0x008E3785..0x008E37CA`). Its payload cursor starts at
+`C+8` and advances through each present group in mask order. The
+selected masks use these layouts, with all channel words signed and
+little-endian. The lengths are the values in the selected file.
+
+| Mask | Length | Channel words at command-relative offsets |
+| --- | --- | --- |
+| `0x00` | `8` | None |
+| `0x04` | `12` | X and Y position at `+8/+0xA` |
+| `0x05` | `16` | X and Y scale at `+8/+0xA`, then X and Y position at `+0xC/+0xE` |
+| `0x0D` | `24` | Scale and position as in `0x05`, then R, G, B and A at `+0x10/+0x12/+0x14/+0x16` |
+
+The cursor steps and signed reads are at `0x008E37E2..0x008E38A6`
+and `0x008E38AB..0x008E3904`. Mask `0x00` is the nested record's
+sample. The stop command with mask `0x80` is 12 bytes in this file.
+Its selector is `u16LE(C+4)` and the selector-1 arm reads no channel
+words (`0x008E367D..0x008E36AF`). The root has one command per record
+through record 7, then a stop command followed by a sample in record 8.
+The nested reader has one track, one record and one command.
+
+OBSERVED. Let `S(i) = B + u32LE(B+0x14+4*i)`. `0x008E3318..0x008E337C`
+dispatches on `u16LE(S(i))` and retains the type-1 section pointer for
+leaf draws. The leaf count is `u16LE(S(i)+2)`. Entry `k` starts at
+`L = S(i)+4+0x1C*k` (`0x008E1B24..0x008E1B57`,
+`0x008E1C5C..0x008E1C76`). `u32LE(L)` selects a rectangle
+section through `S`. The six little-endian binary32 words at `L+4`
+through `L+0x18` are `sx, sy, x_to_y, y_to_x, tx, ty` in that order.
+The stores at `0x008E1B5E..0x008E1BBC` populate an identity matrix so
+the local transform is `(sx*x + y_to_x*y + tx, x_to_y*x + sy*y + ty)`.
+The rectangle section supplies unsigned little-endian X, Y, width and
+height at `+4/+6/+8/+0xA` (`0x008E1BD0..0x008E1C57`). Its leading word
+is zero in the selected file.
+
+For bounded extraction of this file, check each offset cell and referenced
+span before following it. The four section cells occupy `[0x14, 0x24)`.
+Their sorted destinations and the file end bound the root, rectangle,
+leaf and nested reader spans at `[0x24, 0x160)`, `[0x160, 0x16C)`,
+`[0x16C, 0x18C)` and `[0x18C, 0x1A8)`, respectively. The name offsets
+use `Q` as their base and each selected name terminates within the root
+section. The root and nested record tables fit in their sections, and
+each counted command fits its record, ending by the next record or the
+section end. The selected leaf count and stride fit its section and
+its crop fits the associated GTEX surface. These are bounds for the
+selected extraction, with retail malformed-input handling still unknown.
+
 ### Quad and default blend
 
 The command path selects the track and sets its active bit at
