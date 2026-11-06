@@ -356,6 +356,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Scheduler parser directory input](resource/scheduler-parser-directory-input.md)
 - [Court in the Sands cutscene actor records](resource/court-sands-cutscene-actor-records.md)
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
+- [Cutscene caption and actor-class inputs](resource/cut-caption-actor-bindings.md)
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
 - [Grand Company cut preview owners](resource/grand-company-cut-preview-owners.md)
 - [Cut scheduler preview setup consumer](resource/cut-preview-setup-clip.md)
