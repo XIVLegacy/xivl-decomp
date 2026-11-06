@@ -160,6 +160,34 @@ multiplies by 1000 before setting truncation for integer conversion at
 The ambient floating-point environment and locale leave the live millisecond
 round trip unresolved.
 
+### CRT and device precision setup
+
+The selected CRT startup at `0x009D49CA` passes 1 to `__cinit` at
+`0x009D4B0E..0x009D4B0F`. On the validated pointer path,
+`0x009D8FB6` calls cell `0x01085D30`, whose PE value is `0x009D1D0F`.
+The nonzero argument selects `0x009DF016` at `0x009D1D25`.
+That routine passes mask `0x30000`, value `0x10000` and a null result
+pointer to `0x009F63A8` at `0x009DF017..0x009DF024`.
+The admitted path reaches `0x009FB819` through `0x009F6406`.
+A changed control word uses the mapper at `0x009FB6EB`, where the
+selected value maps to x87 precision bits `0x0200`
+(`0x009FB754..0x009FB764`). The caller loads the updated word at
+`0x009FB8E5`. This selects a 53-bit significand at that CRT step.
+The mask leaves the rounding-control bits outside this selection (STATIC).
+
+The client also calls `d3d9.dll!Direct3DCreate9` at `0x0041FF52`
+and stores its return at `0x01329830` (`0x0041FF57)). The device path
+reloads that interface and calls its `CreateDevice` slot +0x40 at
+`0x0041E2E6`. It passes BehaviorFlags `0x54` at `0x0041E2DD`.
+The Windows header defines `D3DCREATE_FPU_PRESERVE` as `0x2`, which is
+clear in this argument (STATIC).
+[Microsoft SDK flag definition](https://github.com/microsoft/win32metadata/blob/64ed9177fb76eb244fc9051c74b8a93fdfe20873/generation/WinSDK/RecompiledIdlHeaders/shared/d3d9.h#L1655-L1665).
+
+Microsoft describes the non-preserve Direct3D default as single
+precision with nearest rounding. The client call identifies the flag
+choice. The ambient x87 state at a later TimerIcon conversion remains
+UNKNOWN. [Microsoft Direct3D device flags](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dcreate).
+
 ### Conditional millisecond round trip
 
 At `0x009DAB5D`, the atof path loads the parsed seconds from binary64.
