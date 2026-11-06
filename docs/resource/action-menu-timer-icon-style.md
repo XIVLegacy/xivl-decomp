@@ -72,10 +72,64 @@ unresolved. See
 [Timeline AnimeTime publication](sqwt-double-animation-clock.md#timeline-animetime-publication)
 and [Sqwt style animation reverse binding](sqwt-style-reverse-binding.md).
 
-The template declares `TimerIcon.PercentAnimeEnd` as the completion command.
-The native Storyboard hook dispatches a retained command when present.
-Installation and delivery of this declared command remain unresolved. See
-[DoubleAnimation samples and Storyboard completion](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion).
+## OBSERVED Storyboard completion route
+
+The declaration at template line 562 omits `CompletedCommandTarget`. On the
+checked style materialization path, `0x0099B025..0x0099B04A` passes Style
+`+0xC8` to `0x0096A610`. The terminal markup constructor called at
+`0x0096A688` clears its parent at `+0x0C` and stores that owner at `+0x10`
+(`0x00949356..0x00949359`). The Storyboard constructor initializes
+`CompletedCommandTarget` descriptor `0x013616D0` with a null pointer at
+Storyboard `+0x160` (`0x009A68D0..0x009A68EC`). The Storyboard markup reader
+walks markup `+0x0C` to the terminal object at `0x00949D5C..0x00949D79`.
+When its `+0x10` is non-null, the reader passes it to `0x009A65A0` with mode
+0 and notification 1 before reading the Storyboard contents at `0x00949DC3`.
+The helper passes descriptor `0x013616D0` and Storyboard `+0x160` at
+`0x009A65AB..0x009A65C5`. The admitted pointer store is at `0x009C38A2`.
+This path supplies the style owner as the default target for the declaration.
+
+The `CompletedCommand` setter at `0x009A6C4E..0x009A6CAE` and the
+`CommandTrigger` setter at `0x009552C1..0x0095531A` resolve their name
+through `0x00928280` with fallback `0x00928F90`. The setters retain the
+selected command at Storyboard `+0x158` and trigger `+0x80`, respectively.
+The declaration gives both setters `TimerIcon.PercentAnimeEnd`. On an
+admitted same-name resolution, both can retain the same command object.
+The fallback can create a `RoutedCommand` on a registry miss. See
+[command name resolution](sqwt-command-parameter-consumer.md#command-name-resolution).
+
+When the completion hook finds a retained command, `0x009A64A7..0x009A64C9`
+adds `0xB4` to a non-null target and calls command virtual `+8`. For
+`RoutedCommand`, this is `0x00927FA0`. It routes `PreviewExecuted` first and
+routes `Executed` only if the preview did not mark the event handled. With
+the retained TimerIcon target, the explicit-target route sets unset original
+source and source at `0x0091E20C` and `0x0091E217` and starts `Executed` at
+that target. The null-target branch in `0x0091F590` instead calls
+`0x0091EE90` when global `0x01357020` is non-null. See
+[Storyboard completion](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion)
+and [routed target dispatch](sqwt-command-parameter-consumer.md#target-and-route).
+
+TimerIcon interface cell `0x010823C0` selects `0x0092D060`. After the base
+dispatch, `0x0092D075..0x0092D0B8` requires a clear event stop byte at
+`+0x17` for this path. At `0x0092D0BE..0x0092D142` it reads the installed
+Style at interface `+0x148` and calls entries in Style's trigger collection
+at `+0x24` when that Style is present. The markup path
+creates `CommandTrigger` at `0x0094972E..0x0094973F`. Its cell `0x0107D2DC`
+selects `0x009B11F0`, which requires event id `0x2A` and event `+0x1C`
+equal to trigger `+0x80`. It also checks a retained parameter filter when
+present. On admission it calls the trigger action walker at `0x009B1256`.
+The walker invokes admitted actions in collection order at
+`0x009B198B..0x009B1996`.
+
+For an admitted action without a target name, Setter cell `0x0107D5F8`
+selects `0x009B22C0`, which resolves the event source at `+0x08` and requests
+the property write at `0x009B2395`. ExecuteCommandAction cell `0x0107D7FC`
+selects `0x009B28C0`, which reaches command dispatch at
+`0x009B2B40..0x009B2B7E`. The template's action order thus supplies the two
+sequence requests before the `UILuaCommands.TimerEnd` request on the
+checked normal-return path. Live style activation, command allocation and
+retention, interruption or reentry between actions, and delivery of
+`TimerEnd` to a Lua subscriber remain unresolved. See
+[form and subscription delivery](sqwt-command-parameter-consumer.md#subscription-gate).
 
 TimerIcon registers `SpkSource` as descriptor `0x013630D8`, tag `0xB`, and
 `SpkSeq` as `0x013630FC`, tag `0xC`, at `0x00F2A6D0..0x00F2A709`. The
