@@ -202,3 +202,77 @@ namescope and target lifetime, setter admission, callback cadence, and
 rendered order remain unresolved. See the
 [bounded clock path](sqwt-double-animation-clock.md#bounded-nonrepeat-samples-and-completion)
 for the shared sample and completion gates.
+
+## OBSERVED local SqwtDrawOrder paint order
+
+The checked form declares `Label_MenuSlot_1` through `Label_MenuSlot_4`
+as direct children of the same Canvas at form line 43. None of the four
+labels declares a local `SqwtDrawOrder` attribute. Canvas child-add cell
+`0x0107FE90` selects `0x00995650`. With a nonnull child, it adjusts the
+receiver from the `+0x194` subobject and calls `0x00940B30` at
+`0x00995663`. That routine inserts the child and stores the parent
+at child `+0xA4` (`0x00940B5D..0x00940B69`).
+
+Visual descriptor `0x01359988` is named `SqwtDrawOrder` and has index
+`0x0B` (`0x00F23390..0x00F2339F`). The Visual constructor initializes
+its float at `+0x70` to zero at `0x00940701..0x0094071B`. The constructor
+chain preserves the receiver for Label and Canvas. Label reaches
+FrameworkElement through ContentControl and Control at `0x009742CA`,
+`0x009361BC` and `0x00938CAC`. Canvas reaches FrameworkElement through
+Panel at `0x009B98CA` and `0x00995B9D`. Both reach the Visual constructor
+through UIElement at `0x0092F66D` and `0x0093C78C`. Visual property
+info uses setter dispatch `0x0093FF90` (`0x00F233DA`), whose index-11
+cell `0x00940108` selects `0x009400BA`. That arm parses the numeric text
+through `0x0095E7B0`. On a changed admitted value, `0x009413B6..0x009413CF`
+stores the binary32 value and requests notification. Callback `0x0093FE00`
+selects the index-11 arm through cells `0x0093FF8B` and `0x0093FF78`, then
+calls `0x0093FD70` at `0x0093FF35`. An equal finite value takes the skip
+at `0x009413B4`.
+
+With a parent present, `0x0093FD70` reads the child's old index, removes
+it and reinserts it into that same parent's collection at `+0xAC`
+(`0x0093FD73..0x0093FDAA`). Adding a second child promotes the single
+slot to a list and sets parent `+0xB0` mask `0x01`
+(`0x0093FC62..0x0093FCBB`). In the list case, `0x0093F560` searches
+backward. The x87 comparison at `0x0093F5DC..0x0093F5EC` stops at the
+last existing finite value less than or equal to the incoming value.
+`0x0093FBE0` inserts after that entry, or at the front if there is no
+match. Finite values therefore sort in ascending order. A new insertion
+or reinsertion at an equal value follows the existing ties.
+
+When the child index changes, global byte `0x0135C2B0` is zero, and
+child `+0xA0` holds a drawing context, `0x0093FDD4..0x0093FDE6` passes
+a predecessor to drawing-context virtual `+0x8C`. Helper `0x0093F730`
+searches backward from the child for the preceding sibling with a
+nonnull drawing context and can return null. DrawingToolContext cell
+`0x00FA2970` selects `0x0054BB10`, which submits local operation
+`0x0D` with the child and predecessor contexts when the command producer
+is present. See the
+[local command transport](sqwt-icon-control-textures.md#observed-ordinary-control-to-renderer).
+
+WindowActor dispatch selects `0x007FA883` for `0x0D` and resolves the
+child's renderer context through registry `0x0134E0A4`. A successful
+lookup reaches WindowContext dispatch at `0x007FA8FF`. Cell `0x008CF3EC`
+selects `0x008CF2E8`, which resolves a nonnull predecessor when supplied
+and requires an existing renderer parent at child `+0x70`. The arm
+removes and reinserts that child in the same parent at
+`0x008CF34C..0x008CF35F`. Insertion `0x008CE440` puts it after a
+predecessor found in that parent's child list, at the beginning for a
+null predecessor, or at the end for a resolved predecessor absent from
+the list (`0x008CE45A..0x008CE4F5`). Renderer creation and initial
+parenting also request this list insertion through interface `+0x0C`
+using the preceding drawing context (`0x0093F880`, `0x0054BBB0`,
+`0x0093F9CD..0x0093F9F9`, `0x007FA504..0x007FA514`).
+
+WindowContext draw `0x008CE7D0` requires state `+0x128` equal to 3 and
+byte `+0x12B` nonzero, subject to the actor pass check at
+`0x008CE7D9..0x008CE7F9`. When the child pass is admitted at
+`0x008CEB47..0x008CEB58`, it visits the parent context's `+4/+8` child
+vector forward and recursively calls draw at `0x008CEB85`. On the path
+where the renderer list mirrors visual sibling order, an admitted
+child at `0` is visited before a child at `0.5` under the same parent.
+Maintaining that order requires corresponding parentage and initial order,
+then each changed index using a null predecessor or one present in that
+renderer list. An unchanged visual index sends no reorder command.
+The actual ActionMenu targets, accepted renderer commands, visibility,
+resulting pixels and input ordering remain unresolved.
