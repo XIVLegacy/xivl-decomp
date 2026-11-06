@@ -176,7 +176,7 @@ selected value maps to x87 precision bits `0x0200`
 The mask leaves the rounding-control bits outside this selection (STATIC).
 
 The client also calls `d3d9.dll!Direct3DCreate9` at `0x0041FF52`
-and stores its return at `0x01329830` (`0x0041FF57)). The device path
+and stores its return at `0x01329830` (`0x0041FF57`). The device path
 reloads that interface and calls its `CreateDevice` slot +0x40 at
 `0x0041E2E6`. It passes BehaviorFlags `0x54` at `0x0041E2DD`.
 The Windows header defines `D3DCREATE_FPU_PRESERVE` as `0x2`, which is
