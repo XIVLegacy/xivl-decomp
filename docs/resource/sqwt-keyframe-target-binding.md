@@ -677,7 +677,15 @@ at `0x009413B4`.
 ### Empty literal on the dummy page Label
 
 The authenticated ActionMenu form at line 174 declares an empty
-`SqwtDrawOrder` on `Label_MenuSlot_Dummy`. The XML parser at
+`SqwtDrawOrder` on `Label_MenuSlot_Dummy`. Its parent is
+`Grid_ActionCommands`, under the unnamed Grid below `Grid_Base` and
+`Window_ActionMenuWidget`. The Label selects
+`ControlTemplate_Label_MenuSlot`. The four numbered page Labels
+sit inside the Canvas under sibling `Grid_MenuSlotCenter`.
+These are separate authored parent sites.
+[Authenticated form identity](action-menu-timer-icon-style.md#inputs-and-method).
+
+The XML parser at
 `0x00DC29D1..0x00DC29F9` skips value assignment for adjacent quotes
 and still inserts the attribute at `0x00DC2A9D`. The attribute's
 value wrapper starts with an empty string (`0x00DC349E..0x00DC34A5`).
