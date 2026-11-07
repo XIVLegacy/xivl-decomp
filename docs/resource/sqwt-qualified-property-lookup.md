@@ -295,6 +295,54 @@ lookup. An absent scope bypasses this branch. STATIC. Live recipient
 selection and [delivery to the ActionMenu Grid](sqwt-command-parameter-consumer.md#routed-padchange-and-repeat-match)
 remain UNKNOWN.
 
+## ActionMenu design data strings
+
+The [authenticated form and template](action-menu-timer-icon-style.md#inputs-and-method)
+declare two binding shapes for `SqwtDesignData.StringValue0`.
+Form lines 177-186 bind `Button_Command_1` through
+`Button_Command_10` to the corresponding `Label_Command_1` through
+`Label_Command_10` with `Path=Name` and `Mode=OneWay`.
+Line 220 on `ToggleButton_ChangeBattleRegimen` and line 228 on
+`Button_BattleRegimenStarting` instead supply only ElementName for
+`Label_ChangeBattleRegimen` and `Label_BattleRegimenStarting`
+(OBSERVED).
+
+The context registration at `0x00991F67` joins descriptor
+`0x0135FB48` to context `+0x2584`. The descriptor uses string tag
+`0x500` and ordinal 0. Descriptor information at `0x0135FB6C`
+selects getter `0x0095E690` and setter `0x0095F6B0`.
+The per-owner proxy route at `0x009600E0` supplies storage.
+The getter reads proxy `+0x24`. The setter passes that slot to
+`0x0095E830` at `0x0095F6D2` (STATIC).
+
+Deferred ElementName resolution at `0x009120C5` calls
+`0x00910980`, which can retry at the parent while excluding the
+previous branch at `0x009109CC..0x009109F8`. The slot call at
+`0x009109AF` reaches subtree search `0x00910A10`, which recurses
+through child slot `+0x20` at `0x00910A5C`. The selected
+Name getter `0x00910CB0` supplies the source object's name text,
+as in the [page peer bindings](sqwt-keyframe-target-binding.md#observed-page-peer-binding-initialization)
+(STATIC).
+
+An admitted omitted-path activation keeps a null source descriptor
+and the default binding mode 0 (`0x009120D7..0x009120E3`,
+`0x00999C85`). At `0x00999A23..0x00999A67` it
+formats the resolved source object through `0x00915D00` and
+transfers the resulting handle string through `0x00912850`.
+The selected templates of the two omitted-path controls bind popup
+help CommandTarget through the attached string at template lines
+358-370 and 486-498. The typed CommandTarget consumer reaches
+`0x00954480` at `0x009550D6`, then decodes the numeric handle
+through `0x00916860` before a FrameworkElement cast. The
+[page completion finding](sqwt-keyframe-target-binding.md#observed-page-storyboard-completion-target)
+describes the same handle representation (STATIC).
+
+The ten explicit Name declarations select the MenuIcon template.
+The similarly named popup declarations at template lines 255-297
+belong to the separate MenuIconSmall template. The checked name
+declarations establish the string source and attached store. Live
+attachment, popup targeting and delivery remain UNKNOWN.
+
 ## Unqualified Foreground and completion
 
 With `D+4` zero, `0x00910F60 -> 0x00910B60` searches the receiver's
