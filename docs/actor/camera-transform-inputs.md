@@ -213,6 +213,102 @@ The [camera update](camera-input-chain.md#update-pipeline-and-command-receiver)
 owns the input and `dt` producer. The live target vector, selected
 world query shape, elapsed unit and character visibility remain UNKNOWN.
 
+## Camera query filters and mesh hits
+
+The camera line worker `0x00610D60` and radius worker
+`0x00613710` read CameraActor `+0x110` and use the provider
+collection at its `+4`. Both supply group mask `0x00010006`
+and the optional mask and comparison pair `(1, 0)` from
+`0x0103DA28`. The line descriptor initializes its `+0x30`
+flags to 3 and passes exclusion 3 through
+`0x00610E85 -> 0x00AF94D0 -> 0x00B016E0`.
+The radius descriptor writes length at `+0x20`, radius at
+`+0x40` and forces flag bits `0x05` at `0x00613800`.
+Its dispatcher `0x00AF8E40` selects exclusion 3 with bit 2 set.
+Other preexisting radius descriptor bits are unresolved (STATIC).
+
+The selected scene enumerators check the same shape conditions at
+`0x00B0CAF3..0x00B0CB38` for the line and
+`0x00B0DF57..0x00B0DF9A` for the radius. Shape byte
+`+0x4B` has no overlap with exclusion 3 and has bit `0x10`
+set. The group bit indexed by the low five bits of shape
+`+0x4C` intersects the query mask. The optional comparison
+at `0x00B06950..0x00B06997` requires a clear low bit of
+shape `+0x4E` on the checked non-type-8 path. Type 8
+bypasses that outer comparison. Its mesh leaf checks the low
+bit of the selected triangle's 16-bit word `+6` at
+`0x00B0C707..0x00B0C752` for the line and
+`0x00B0D956..0x00B0D9B1` for the radius.
+See [shape flags and groups](../resource/attribute-resource-and-scene-binding.md#query-shape-flags-and-groups)
+and [triangle reads](../resource/attribute-resource-and-scene-binding.md#collision-query-leaf-and-triangle-reads)
+for the source structure (STATIC).
+
+Radius enumerator `0x00B0DF0F..0x00B0E100` calls
+`0x00B0DD30`. A shape with `+0x4A` equal to 8 reaches the
+triangle-mesh branch `0x00B0D0E0` at `0x00B0DDE6`.
+Other types reach `0x00B0B040` at `0x00B0DD68`.
+The mesh branch expands triangle vertices through
+`0x00A7CB20` at `0x00B0D9F8`, transforms them at
+`0x00B0DA0E`, then projects the initial center onto the
+triangle at `0x00B0DA27`. For initial separation at least
+the radius, the solver call at `0x00B0DAD8` supplies one
+radius and the center displacement to `0x00B0AD00`.
+On success, `0x00B0DB1C` projects the advanced center
+onto the triangle. This is the checked swept-sphere
+mesh path (INFERRED from the static solver arguments).
+
+The mesh hit stores the projected point at record `+0x10`
+at `0x00B0DBB2`. It stores the normalized triangle
+cross-product vector at `+0x00` through the helper
+`0x00B0E730`. The shape `+0x4B` bit `0x20` branch can
+orient that normal relative to the query direction
+(`0x00B0DC3B..0x00B0DC76`). On the checked noninitial
+mesh path the returned comparison scalar includes the
+travel length plus the radius at `0x00B0DB26..0x00B0DB61`.
+The outer search at `0x00B0E082..0x00B0E0D1` replaces
+its result on a nonnegative, strictly smaller scalar.
+Equal candidates retain the earlier hit. It copies the
+record point and normal, which the camera helper returns
+at `0x0061421F` and `0x00614227` (STATIC).
+
+Live shape selection, initial overlap details and the result
+semantics of other primitive types remain UNKNOWN.
+
+### Region 103 nominal tavern segment
+
+The installed interior layout `0x29B00002` is 460368 bytes
+with SHA-256
+`f2088d1feba5fe71fbc4c462229f1bd1970371d6f023622a7a83d6aa8d450876`.
+Its Attribute at file `0x5AEDC` has group byte 1 at
+`0x5AF04`. The `bhp` row 427 at file `0x35A0` selects
+PHB `0x72E7059B`. The matching placed child has ID 19,
+with byte `0x05` at file `0x55E64`. The Attribute
+[placement setup](../resource/attribute-resource-and-scene-binding.md#placed-setup-flags-and-group-byte)
+describes the corresponding conditional native group write.
+
+PHB `0x72E7059B` is 238928 bytes with SHA-256
+`2591e3858e7806ae21e59597da84c03d9930a03ebd77beb26d78b2cab5a61fd5`.
+Hull 0 triangle 4956, indexed from zero, starts at file `0x29920`.
+Its little-endian surface word at `0x29926` is 5.
+The camera's type-8 mesh triangle check excludes this face
+when the placed mesh reaches that native branch (STATIC).
+
+An offline probe used the nominal focus
+`F = (66.15, 5.2, -1198.49)` and endpoint
+`F + (0, 4.5*sin(0.2), -4.5*cos(0.2))`.
+Export each layout `0x29B00000..0x29B0000D` and `0x29B00018`
+with the pinned
+[`export-zones` command](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/cli.md#export-zone-collision-geometry).
+Intersect the supplied segment against both sides of the exported
+triangles and use the face ranges to recover resource and triangle identity.
+The nearest of six intersections was triangle 4956 at
+1.011330 yalms. All six had surface 5 in the same PHB.
+All 24 triangle bounds overlapping the nominal segment's bounds
+expanded by 0.2 also came from this PHB with surface 5.
+The 0.2 downward eye segment hit no exported triangles.
+These measurements use the supplied offline pose and exported mesh
+geometry. Live camera endpoints and native contacts remain UNKNOWN.
+
 ## One-layer helper evidence
 
 The vector helpers expose the remaining dynamic object inputs. In
