@@ -207,6 +207,85 @@ The cited instructions, vtable cells, RTTI and string objects were read
 through Ghidra CLI 0.2.2 and independently checked against LLVM 21.0.0
 and the pinned PE's section-backed bytes.
 
+## Battle-regimen Starting Button declarations
+
+OBSERVED markup. Form line 228 declares the ordinary Button
+`Button_BattleRegimenStarting`. Its static-resource Template key is
+`ControlTemplate_Button_BattleRegimenStarting`, and its SqwtStyle is
+`BTN_actionMenu_battleRegimenStarting`. It declares command
+`UILuaCommands.ExecuteBattleRegimen`, the same named CommandTarget,
+Bottom alignment and Focusable False. Its `SqwtDesignData.StringValue0`
+binding names `Label_BattleRegimenStarting`, with no Path or Mode there.
+
+The owner Grid at form line 227 declares Visibility Collapsed. The Button
+has no local Visibility or Content declaration. At form line 232, the help
+Label binds Content OneWay to the Button's Content. It selects
+`ControlTemplate_Label_PopupHelp_MenuIconSmall`, SqwtStyle NULL,
+IsHitTestVisible False and VisualOpacity 0. Its unnamed Grid and StackPanel
+ancestors are at lines 230 and 231. The StackPanel declares Focusable False
+and IsHitTestVisible False.
+
+The selected ControlTemplate occupies template lines 482 through 501 and
+targets Button. Its only child is `ControlTemplate.Triggers`. It declares
+no visual child, initial Setter, cloned Name or property Trigger.
+
+| Template lines | Event and SourceType Button | First command | Second command |
+| --- | --- | --- | --- |
+| 484 through 487 | MouseLeave | `UILuaCommands.LeaveButton` | `SQWTDesignCommands.NonDisplayPopupHelp` |
+| 488 through 491 | LostAnchor | `UILuaCommands.LeaveButton` | `SQWTDesignCommands.NonDisplayPopupHelp` |
+| 492 through 495 | MouseEnter | `UILuaCommands.EnterButton` | `SQWTDesignCommands.DisplayPopupHelp` |
+| 496 through 499 | GotAnchor | `UILuaCommands.EnterButton` | `SQWTDesignCommands.DisplayPopupHelp` |
+
+Each event declares two ExecuteCommandActions in that order. The first
+binds CommandParameter to TemplatedParent.Name, without an explicit Mode.
+The second binds CommandTarget OneWay to
+TemplatedParent.SqwtDesignData.StringValue0. This selected template declares
+no ElementName binding. The
+[omitted-path handle consumer](sqwt-qualified-property-lookup.md#actionmenu-design-data-strings)
+records the separate native lookup boundary.
+
+Form line 1 names `common/default.style`. Under Widget Type Button,
+`BTN_actionMenu_battleRegimenStarting` occupies style lines 1637 through
+1648. It contains one Frame part at line 1638 and eight condition properties.
+
+| Style line | Frame condition | Skin | SkinOffset |
+| --- | --- | --- | --- |
+| 1639 | SkinNormal | `TOG_actionMenu_battleRegimenOn_H` | omitted |
+| 1640 | SkinHover | `TOG_actionMenu_battleRegimenOn_H` | omitted |
+| 1641 | SkinActive | `TOG_actionMenu_battleRegimenOn_H` | `1,1` |
+| 1642 | SkinDisabled | `TOG_actionMenu_battleRegimenOn_H` | omitted |
+| 1643 | SkinFocused | `NULL` | omitted |
+| 1644 | SkinAnchored | `TOG_actionMenu_battleRegimenOn_H` | omitted |
+| 1645 | SkinReserved | `TOG_actionMenu_battleRegimenOn_H` | omitted |
+| 1646 | SkinDroppable | `NULL` | omitted |
+
+The style root at line 1 names `common/default.skin`. The selected Frame
+part has no Reference, Widget type reference, CheckedButton or
+UncheckedButton declaration. SkinNormal is an explicit `_H` reference.
+This is a declaration about an ordinary Button style, separate from the
+ToggleButton's checked and unchecked parts.
+
+The three original named containers and decoded documents have the sizes
+and digests in [Inputs and method](#inputs-and-method) and the ToggleButton
+style input record above. They were decoded with `xivl-tools` revision
+`f2a9a2b5a6a4c450458db7a493c25fcdcd70aca0` using
+`extract-resource --as sqwt`. Each fresh extraction passed exact
+`verify-extraction --source` replay. Python Expat provides the decoded line
+locations. The recipe uses each original basename unchanged:
+
+```sh
+xivl inspect <original-named-file> --as sqwt
+xivl extract-resource <original-named-file> --output <new-private-output> --as sqwt --format json
+xivl verify-extraction <new-private-output> --source <original-named-file> --report json
+```
+
+These are static declarations. Native Button construction, initial skin
+condition selection, style precedence, resource readiness, template
+materialization, omitted-path binding activation, routed-event delivery,
+command execution and actual first live paint remain UNKNOWN. The selected
+style's SkinNormal reference does not establish a rendered initial state.
+The referenced skin and textures are separate inputs.
+
 ## OBSERVED Storyboard completion route
 
 The declaration at template line 562 omits `CompletedCommandTarget`. On the
