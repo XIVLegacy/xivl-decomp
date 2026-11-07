@@ -384,7 +384,10 @@ Installer tables `0x007AC78C/0x007AC75C` map selected 13 to
 The constructor retains the callback and, with installation argument 1,
 invokes it on the checked `0x008BFE41..0x008BFE69` path before
 returning. Argument 0 takes `0x008BFE7E..0x008BFE8D` instead,
-leaving subsequent callback delivery conditional. Selected 11 calls
+leaving callback delivery conditional. The
+[request fallback](#posture-resource-wait-and-request-fallback)
+can invoke readiness within this call under its own state and holder guards.
+Selected 11 calls
 `0x008C0020` on `S+0x150` at `0x007AC628`.
 
 Selected 14 maps to table index 11, epilogue
@@ -399,13 +402,88 @@ Desired can differ from retained selected and committed values while
 a phase waits. The checked phase-1 and phase-2 instruction unions do
 not reread desired `S+0x5AA`. External writes and reentry remain
 separate possibilities. Owner virtual results, helper admission,
-bit-`0x400` clearing, later readiness delivery, the full phase-3 exit
-and other phases require further qualification. Callback delivery and
+the full phase-3 exit and other phases require further qualification.
+The resource wait and request fallback below retain their own delivery guards. Callback delivery and
 visit counts establish no fixed frame count or live playback.
 
 The cited instructions and tables were read with Ghidra CLI 0.2.2,
 independently decoded with LLVM 21.0.0 and checked against
 section-backed bytes of the pinned `ffxivgame.exe`.
+
+## Posture resource wait and request fallback
+
+STATIC. Let V be the retained CharaVisual under the actor
+`A+0x2B5C` owner profile. The [idle-kind apply path](idle-bank-selection.md)
+reaches `0x006B95C0`, which writes mode 4 to `V+0x178` at
+`0x006B95F1` and passes its address to `0x00632540(0xF,...)`
+at `0x006B95F7`. That helper retains the pointer at `V+0x38`
+at `0x00632557`. The
+[aggregate request/delivery protocol](appearance-path-decoder.md#request-and-delivery)
+and [body resource inputs](body-resource-inputs.md) own the resource
+and row-readiness masks.
+
+Delivery `0x006315D0` requires V virtual `+0x38` true and
+bytes `V+0x35/V+0x34` equal at `0x006315D3..0x006315E6`.
+It passes the retained mode pointer as explicit argument 5 to virtual
+`+0x40` at `0x00631603`. CharaVisual cells
+`0x00FD3F08/0x00FD3F0C/0x00FD3F14` contain
+`0x006315D0/0x00630930/0x006BE3D0`. The checked
+`0x00630930` readiness routine returns true.
+
+Handler `0x006BE3D0` dereferences argument 5 at entry. Its mode-4
+arm `0x006BE4EF..0x006BE514` obtains the owner from `V+8`
+and casts CDevActor to CharaActor using RTTI descriptors
+`0x012B7AB4/0x012B7810`. A nonnull result calls `0x00660570`,
+which passes actor `+0x590` to `0x007A39C0` at
+`0x00660578..0x0066057E`. That complete routine
+`0x007A39C0..0x007A39E1` tests `S+0x5B4` bit `0x400`.
+When set, it clears the bit at `0x007A39CD..0x007A39D2`
+and clears owner byte `+0x56B` at `0x007A39DA`.
+An unset bit bypasses both writes.
+
+This joins the checked posture wait to mode-4 aggregate delivery.
+The handler reads a retained pointer, and neither it nor the clear
+routine compares an individual request ID, desired state or selected
+state before those writes. Attribution therefore requires the same
+retained visual/owner, current mode 4, admitted readiness dispatch and
+successful cast. Request overlap, reentry and delivery timing remain
+conditional. Aggregate readiness alone establishes no selected decoded
+bank, displayed clip or successful live posture commit.
+
+### Selected-13 request fallback
+
+For machine `R=S+0x120`, the argument-0 installer calls
+`0x008BE910(R,1,1,10)` at `0x008BFE7E..0x008BFE80`.
+That routine stores current state 1 at `R+0x2C` at `0x008BE958`
+and binds `0x008BEA40` to R at `0x008BE9A3..0x008BE9AE`.
+The wrapper reaches `0x007B9030` at `0x008BE9E6`.
+Binding chain `0x008C5020 -> 0x008C41B0 -> 0x008C2D20`
+retains R and the callback at `+4/+8`. Vtable `0x0105AA3C`,
+slot `+4`, selects adapter `0x008C1A40`.
+
+The complete `0x008BEA40` prologue lowers ESP by `0x44` before
+its `[ESP+0x4C]` load at `0x008BEA70`. That is entry ESP+8,
+the second explicit stack argument. `RET 0xC` at `0x008BEBB5`
+confirms three stack words. When this second argument equals 1,
+`0x008BEAB1..0x008BEACC` calls owner helper `0x007A3040`
+and invokes the nonnull retained holder at `R+4`. With the exact
+S-bound callback above, this sets `S+0x5B4` bit `0x2000`.
+
+If `0x007B9030` returns AL zero and the local callback holder is
+nonnull, `0x008BE9EB..0x008BEA06` calls that wrapper with
+`(descriptor pointer, current R+0x2C, 0)`. It reloads current state
+at `0x008BE9F5`. Thus state still 1 and surviving exact R-bound
+and S-bound holders can release readiness synchronously before the
+request and constructor return. The third argument's zero supplies
+no contrary discriminator. Reentry or another writer may change the
+reloaded state, and the owner helper may affect retention.
+
+The successful or retained request's later callback delivery and the
+third callback word's role remain unresolved. The discriminator value
+1 has no established clip-completion or end-frame meaning here.
+The cited instruction unions, full prologues/returns, vtable cells
+and RTTI descriptors were checked through Ghidra CLI 0.2.2,
+LLVM 21.0.0 and the pinned PE's section-backed bytes.
 
 ## Motion callback inputs
 
