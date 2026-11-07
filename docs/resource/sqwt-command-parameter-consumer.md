@@ -596,8 +596,58 @@ and +0x54 are both zero (`0x009825EE..0x009825FA`) (STATIC).
 
 The join is conditional on the current route visiting the Grid and on
 the binding, gesture and command gates. Physical device mapping and repeat
-cadence, focus and modal selection, the live recipient, and ActionBar alias
-producers remain UNKNOWN.
+cadence, focus and modal selection, and the live recipient remain UNKNOWN.
+
+## ActionMenu keyboard aliases
+
+The standard game-master `key_config` rows 171-174 belong to the first
+enabled range, which loads into group 0. They supply ActionBarSlotNext
+and ActionBarSlotPrev with the default primary fields `Down Shift` and
+`Up Shift` and empty secondary fields. The [selected row evidence](https://github.com/XIVLegacy/xivl-client-data/blob/61125bad3035e142d5dae8b451d388004509fa4e/docs/movement-binding-rows.md#actionbar-aliases)
+identifies the backing spans and profile differences. The
+[table-to-markup loader](../input/player-movement-command-origin.md#configuration-text-and-substitutions)
+describes the group and configuration substitution.
+
+Column 2 value 0 dispatches through `0x00551EF8/0x00551EDC` to
+`0x0054F4BA`. The no-hyphen arm at `0x0054F7E4..0x0054F916`
+emits a KeyBinding with a Key field. The separate Modifiers field is
+omitted for column 4 value `**` at `0x0054F9A7..0x0054F9B3`.
+These four rows have columns 5-7 equal to 0, 1 and 0, so the emitter
+sets `IsRepeat=True` and omits `IsUp` and `HandledEventsToo`.
+It sets `SqwtShowAnchor=True` and omits command target and parameter.
+
+Under the default substitution, the key parser `0x00946CD0` and
+the packing at `0x00948683..0x009486A6` yield keys 0x28 and 0x26
+with inline Shift mask 4. The KeyBinding branch through `0x0054BF70`
+reaches `0x0094A79A`, whose markup table `0x0106DD40` selects
+`0x009474C0`. At `0x0094755D` it constructs the gesture through
+`0x0068C550` with the key, modifiers, up, repeat and handled-event
+arguments. It constructs the binding through `0x006874D0` at
+`0x009475B7`, with a null target and kind-0 parameter. The empty
+secondary key fails the nonzero-key construction gate at
+`0x00947501` (STATIC).
+
+The desktop's normal KeyDown and KeyUp workers use the provider and
+binding walker. KeyDown uses `0x0091F47E` and `0x0091F499`.
+At `0x0091E2BF..0x0091E2EB` the inner route can append the desktop
+interface for a different recipient. When the route visits the
+desktop, its provider `0x005472E0` selects group 0 by comparing
+the receiving interface to the desktop object plus `0xB4`.
+
+The desktop PreviewKeyDown and PreviewKeyUp wrappers at `0x004D8600`
+and `0x004D8670` reach helpers `0x009221F0` and `0x009221C0`.
+They can update event flags and reach callbacks through `0x0091C750`
+and `0x0091C720`. With desktop input `+0x32C` bit `0x20` clear,
+preview sets the handled byte initially pointed to by event `+0x10`.
+The normal walker then skips an alias without HandledEventsToo at
+`0x0092119F..0x009211AD`. The gesture
+matcher `0x0068C5D0` tests the key and exact modifier mask, admits
+matching KeyDown and repeat, and rejects KeyUp for these declarations
+(STATIC).
+
+The conditional group and gesture path leaves active profile,
+substituted values, actual desktop visitation, and eventual command
+recipient UNKNOWN.
 
 ## Executed event delivery
 

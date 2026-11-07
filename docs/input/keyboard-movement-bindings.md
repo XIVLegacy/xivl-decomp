@@ -115,9 +115,9 @@ The two handlers call `0x00921110` for a nonempty provider collection,
 when present, and for their interface's own collection at `+0x28`
 (`0x0091F429/0x0091F435`, `0x0091F499/0x0091F4A5`).
 The existing provider `0x005472E0` selects the profile from
-`[0x01336BC4]` and chooses its group from the supplied interface's equality
-with the TLS container's root interface. It does not establish which
-configuration bytes or binding records were installed.
+`[0x01336BC4]` and chooses its group using the
+[desktop interface comparison](player-movement-command-origin.md#provider-and-configuration-boundary).
+The installed configuration bytes and binding records remain separate.
 
 For explicit binding `B`, `0x00921110` skips a record when
 `*[A + 0x10] == 1` and `B + 0x9C` bit 0 is clear. A nonnull target
