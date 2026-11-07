@@ -229,6 +229,16 @@ There is no retry or class-ring append for that selected exit. The admitted
 special/copy arms construct `(Q0,0x1D,bank,0x74)` at `0x0056389C` and
 post at `0x005638B4`. This helper has no selected slot-44 write.
 
+The [override population contract](../net/state-id-transition-helper.md#override-publication-and-lookup)
+supplies the constructor defaults, keyed state-ID assignment and clearing
+routes. The [bank population and update order](attribute-resource-and-scene-binding.md#bank-initialization-and-pending-rows)
+supplies partial packet writes, pending row replacement and publication timing.
+The selected zero-class request supplies the destination. Current container
+history selects the special/copy branch and any source object's bank contents.
+A same-ID override call
+can retain a prior lookup miss, and a direct bank copy can precede normal dirty
+publication or a pending rebuild.
+
 ### Successful class-drain text state
 
 Only row-resolution AL==1 and Q+4 equal to 12000 admit the extra call

@@ -100,6 +100,12 @@ Catalog citation:
 `sha256=7DA8241400530885E0A28DED04A03ACF2771B0580A79C1F49F46EE0861010611`;
 `extraction=2012.09.19.0001`.
 
+The [bank population and publication order](../resource/attribute-resource-and-scene-binding.md#bank-initialization-and-pending-rows)
+distinguishes pending row requests, successful replacement and later dirty
+submission. A successful replacement returns before the flush in that updater
+call; a failed pending rebuild can publish a previously dirty old bank while
+retaining the pending ID.
+
 The complete xref census found exactly two direct callers of `0x0055d2b0`:
 `0x00564d80` at call site `0x00564e6d` and `0x00585d70` at call site
 `0x00585da5`. It found no static code or data reference to `0x00586b10`.
@@ -375,7 +381,10 @@ ceiling at the invocation and source-writer boundary. A new invocation or
 alias-preserving source-writer edge from static analysis or preserved evidence
 would change that result.
 
-No wire provenance is established for the structure. Calling the queued record
-a wire packet requires a demonstrated network-to-record data-flow edge. The
+No wire provenance is established for the alternate `0x00586B10` source
+structure. The separately checked
+[partial packet bank updates](../resource/attribute-resource-and-scene-binding.md#appearance-commands)
+establish field writes into the CharaElement cache. They do not identify that
+alternate source or make the queued 116-byte record a wire layout. The
 packed lanes must not be assigned item, model, variant, or color semantics by
 magnitude or by a modern format analogy.

@@ -899,13 +899,113 @@ count = u8(R+0x80) for 0xD7, u8(R+0x100) for 0xD6
 E.bank[u8(R+8*i+4)] = u32(R+8*i)    for fields 0..27
 ```
 
-CharaElement slot 6, `0x0058DF90`, calls the publisher `0x00585D70`. When
-the dirty byte is set, the publisher queues source 8 with the 29-dword bank
+Scalar setter `0x00586870` admits unsigned fields 0..27 and otherwise returns
+without writing the bank or dirty byte. Repeated fields take their last
+admitted value, while unmentioned fields retain their previous contents.
+The packet arm does not clear the bank first. Its count is an unsigned byte,
+with no additional 16/32-entry clamp in this arm. Valid packet storage and
+upstream admission remain conditions.
+
+After the loop, even for count zero, `0x0058D10A..0x0058D14E` sets bank
+flags bit 1, clears bit 2, replaces bit 0 with the low bit returned by
+`0x00443E40`, and sets the dirty byte. Field 28 is not directly settable
+through the scalar setter. These flag updates preserve the other bits.
+An admitted packet also leaves a pending row at `E+0xB24` unchanged.
+
+CharaElement slot 6, `0x0058DF90`, calls updater `0x00585D70`. The pending
+row and dirty paths have the ordering below. On its flush path, the updater
+queues source 8 with the 29-dword bank
 `E+0xAAC`, size `0x74` (`0x00585DEE`), and clears the byte. Source 8 is
 container command 29 and slot 157 command 8. That command copies the bank to
 `C+0x13C8` and arms the nibble. `0x004DA680` calls slot 6 on every element
 in the container's element map (`0x004DA817`). It skips the walk only on
 container-wide state.
+
+#### Bank initialization and pending rows
+
+Let B be `E+0xAAC`, D the dirty byte `E+0xB20`, and N the pending-row dword
+`E+0xB24`. Constructor `0x0058B4E0` calls `0x005670D0` on B, zeros D and
+N at `0x0058B6D5/DB`, and does not dirty the initial bank. The initializer
+zeros fields 0..27 and changes field 28 to `(old & 0xFFFFFFFA) | 2`.
+Bits 3..31 of that flags word are not established as zero by this helper.
+
+Writer `0x005868A0` accepts these row requests when the low word of its
+second argument is `0xCA`:
+
+| First argument | New N |
+| --- | --- |
+| `0x4164` | `0x005A0703` |
+| `0x4165` | `0x005A0700` |
+| `0x4166` | `0x005A0701` |
+| `0x4167` | `0x005A0702` |
+
+These branches change N only. They do not immediately rebuild B or dirty it.
+The checked caller `0x0058BF60` reaches this writer at `0x0058BFD1` after
+its own admission and allocation path; allocation success is not established
+by reaching that call. A later row request replaces the earlier pending ID.
+The [catalog-resolution finding](../actor/item-appearance-boundary.md#catalog-resolution-result)
+owns these row IDs and their sheet interpretation.
+
+Other inputs to `0x005868A0` select a fallback that writes B[0]=10999,
+B[1]=integer 1 and D=1 (`0x00586903..0x00586917`). Other bank fields and
+the prior N remain unchanged. This mutates an existing bank; it does not
+produce the separate freshly initialized special bank of the
+[name-12000 zero-class helper](cut-actor-class-update.md#zero-class-appearance-source).
+
+With N nonzero, updater `0x00585D70` obtains the resolver owner through
+`0x004D7330`, which reads container+`0x4C8`. If nonnull, it initializes a
+temporary bank and calls `0x0055D2B0(N,temporary)`. A missing sheet handle
+or unresolved row returns AL=0. Missing numeric columns leave their initialized
+components unchanged and do not themselves cause that failure return.
+The row builder initializes fields 0..27, applies the same partial flag
+initialization through `0x00567140`, and assigns flags bit 0 from
+`0x00443E40`'s low bit. No complete provenance for temporary flags bits
+3..31 is established by these initializers.
+
+#### Bank replacement and publication order
+
+| Updater entry and result | Bank, dirty and pending state after normal return | Submission in this call |
+| --- | --- | --- |
+| N=0, D=0 | Unchanged | None |
+| N=0, D nonzero | B retained, D=0 | Source 8 with current B |
+| N nonzero, owner missing or builder AL=0, D=0 | Old B retained, N retained | None |
+| N nonzero, owner missing or builder AL=0, D nonzero | Old B retained, D=0, N retained | Source 8 with old B |
+| N nonzero, builder AL nonzero | All 29 fields replaced, D=1, N=0 | None |
+
+Successful replacement copies all 29 dwords at `0x00585DAF..0x00585DBE`,
+sets D, clears N and returns at `0x00585DD7`. It does not fall through to
+the dirty check at `0x00585DD8`. A later updater call can flush that rebuilt
+bank if no intervening successful pending rebuild takes precedence. A failed
+rebuild can instead flush an already dirty older bank while retaining N.
+The flush clears D after normal submission/helper returns without testing
+Scene receipt or completed resource loading.
+
+The scalar setter also has a checked call at `0x006ACEBA` in `0x006ACC10`,
+which supplies increasing field indices from a vector through a caller-owned
+handle. Its receiver must retain the expected bank layout; actual handle
+identity and invocation were not observed. The alternate full builder
+`0x00586B10` keeps its separate
+[missing invocation/source edge](../actor/item-appearance-boundary.md#static-evidence-boundary).
+These are inspected population paths, not an exhaustive proof about every
+possible aliased writer in the image.
+
+A direct source-bank copy can therefore read a construction default, cumulative
+packet edits, fallback edits, a resolved row already copied before its normal
+publication, or later edits through another caller. D and N describe pending
+work and publication state; they do not select one such history. The
+[name-12000 copy](cut-actor-class-update.md#zero-class-appearance-source) reads
+current B without waiting for these states. Actual source-element identity,
+packet/update order, row values, retained flag bits and callback timing remain
+inputs rather than observed `man50250` state.
+
+These population checks used the original PE identified in the
+[state-ID helper's binary contract](../net/state-id-transition-helper.md#binary-and-method),
+pefile 2024.8.26 and Capstone 5.0.7 in x86-32 mode. Selected retained
+instruction rows and original dispatch/vtable cells were authenticated in
+place. Inferred decompiler signatures did not supply the packet offsets,
+return cleanup or rebuild/flush ordering.
+
+#### Script appearance requests
 
 Two Lua bindings send source 9, container command 30:
 
@@ -1219,9 +1319,9 @@ field `0x30` at `0x004DD633`. The send through
 `0x01129AE8` and `0x01129ACC` identifies ClientPacketBuilder and
 PacketBufferTmpl<ZoneProtoUp>, establishing the outbound channel.
 
-Of the 11 direct callers of id setter `0x004D9980`, only case 2 supplies
-the packet id (`0x004DCC3E`); the other ten supply sentinel `0xC0000000`.
-Thus the case-2 id selects the local position reporter. After command 15
+The [checked state-ID assignment](../net/state-id-transition-helper.md#override-publication-and-lookup)
+supplies the case-2 key at `0x004DCC3E`. With the lookup and retention
+conditions, that ID selects the local position reporter. After command 15
 resolves its actor, the same actor is the `+0xD0` default camera subject:
 `0x00616380` resolves explicit camera key `K+0x440`, falling back to
 `u32(u32(K+0x118)+0xD0)` at `0x006163A0` when that key is absent or
