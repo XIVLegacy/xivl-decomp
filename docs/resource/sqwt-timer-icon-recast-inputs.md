@@ -188,6 +188,46 @@ precision with nearest rounding. The client call identifies the flag
 choice. The ambient x87 state at a later TimerIcon conversion remains
 UNKNOWN. [Microsoft Direct3D device flags](https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dcreate).
 
+#### Startup device and timer threads
+
+The selected startup `CreateDevice` call executes on the scene worker.
+The Rapture initialization slot at `0x004B370B` enters
+`0x004E8220 -> 0x00D35050 -> 0x00D356A0`. The CRT helper calls
+`CreateThread` at `0x00DC42CE` with trampoline `0x00DC41CF`.
+The trampoline reaches `0x00DC41A6`, which calls the supplied entry
+`0x00D355B0`. See the
+[Rapture worker start](seasonal-decoration-update-order.md#scene-launch-and-remaining-phase-order).
+
+The worker dispatch at `0x00D35603` enters `0x004E8460`.
+Its startup chain runs through `0x004E84D0 -> 0x00A48BE0 -> 0x00B24240`.
+The last call dispatches virtual `+0x1C`, with selected cell
+`0x00F931F0` holding `0x004E9E60`. The graphics initialization then
+passes through `0x00A49810 -> 0x00A47F70 -> 0x00A475A0 -> 0x0041EF90 ->
+0x0041EA30`. The call at `0x0041EBA8` reaches `0x0041DF20`, which
+issues the selected device call at `0x0041E2E6` (STATIC).
+
+The ordinary timer update runs on the startup caller's thread.
+The CRT call at `0x009D4B3C` enters `0x00403640`. Its call at
+`0x00403932` reaches `0x004014B0`, with synchronous Rapture update
+calls at `0x004015A2` and `0x004015C5`. The
+[timer dispatch](sqwt-double-animation-clock.md#timer-dispatch-order-and-lifetime)
+can admit an AnimeTime reverse transfer. Its synchronous getter dispatch
+at `0x00998B4E` reaches the formatter at `0x009AC6B4 -> 0x009153D0`.
+If the getter succeeds, the setter dispatch at `0x00998B65` reaches
+the parser at `0x009BF186 -> 0x009152B0` (STATIC).
+
+The startup device flag therefore leaves the ordinary timer thread's
+ambient precision unresolved. The selected device wrapper and caller
+have no local x87 or MXCSR restore in `0x0041DF20..0x0041E821` and
+`0x0041EA30..0x0041EC1C`. The alternate display wrapper at `0x0041E830`
+temporarily sets x87 truncation and restores the saved word at
+`0x0041E97C`, before its call at `0x0041E9BA` to the device setup
+routine `0x0041DF20`.
+The timer formatter has no local control-word change. The parser saves
+and restores its own incoming word after the multiply, as described below.
+The live timer thread control word and millisecond round trip remain
+UNKNOWN.
+
 ### Conditional millisecond round trip
 
 At `0x009DAB5D`, the atof path loads the parsed seconds from binary64.
