@@ -286,6 +286,175 @@ command execution and actual first live paint remain UNKNOWN. The selected
 style's SkinNormal reference does not establish a rendered initial state.
 The referenced skin and textures are separate inputs.
 
+## Battle-regimen effect Label declarations
+
+OBSERVED markup. `Label_BRSEffect` selects a Label template with command-driven
+scale and opacity animation declarations. The markup does not establish live
+activation or a rendered effect.
+
+The same original named inputs and extraction/source-replay method recorded in the
+[Starting Button study](#battle-regimen-starting-button-declarations) supply these observations.
+The retained extraction seals and original identities were rechecked. Python Expat supplies
+decoded element start and end lines.
+
+### Owner and initial declarations
+
+Form line 229 declares `Label_BRSEffect`, with static-resource Template key
+`ControlTemplate_Label_BRSEffect` and SqwtStyle `LAB_actionMenu_BRSEffect`.
+It declares VerticalAlignment Bottom, Focusable False, IsHitTestVisible False
+and VisualOpacity 0. It declares no local Content, Visibility, dimensions or
+RenderTransform.
+
+Its parent `Grid_BattleRegimenStartingButton` at form line 227 declares
+Visibility Collapsed. The remaining form ancestors are the unnamed Grid at
+line 16, `Grid_Base` at line 15 and `Window_ActionMenuWidget` at line 1.
+Those ancestors declare no local Visibility or VisualOpacity values. These
+local declarations do not establish effective live visibility or opacity.
+
+### Selected template and ordered animation declarations
+
+The template at lines 527 through 556 targets Label. Its two direct children
+are a Setter at line 528 and `ControlTemplate.Triggers` at line 529. The
+Setter names RenderTransform with value ScaleTransform. The template declares
+no visual child, ContentPresenter or named cloned element.
+
+The first CommandTrigger, at lines 530 through 542, names
+`UILuaCommands.BRSEffectAnimeStart`. Its only action is BeginStoryboard
+`IconLoopAnime` at line 531. The Storyboard at line 532 declares RepeatBehavior
+Forever. Its children occur in the following order.
+
+| Template line | Declared animation type | TargetProperty | Declared values |
+| --- | --- | --- | --- |
+| 533 through 535 | PropertyAnimationUsingKeyFrames | RenderTransformOrigin | One DiscreteValueKeyFrame at line 534, Value `0.5,0.5`, no KeyTime |
+| 536 | DoubleAnimation | SqwtDrawOrder | From `0`, To `0.5`, no Duration |
+| 537 | DoubleAnimation | RenderTransform.ScaleX | From `1`, To `1.6`, Duration `0:0:0.4`, ToAccelType `SlowDown`, ToAccelValue `0.8` |
+| 538 | DoubleAnimation | RenderTransform.ScaleY | From `1`, To `1.6`, Duration `0:0:0.4`, ToAccelType `SlowDown`, ToAccelValue `0.8` |
+| 539 | DoubleAnimation | VisualOpacity | From `1`, To `0`, Duration `0:0:0.4`, ToAccelType `SlowDown`, ToAccelValue `0.8` |
+
+The second CommandTrigger, at lines 543 through 554, names
+`UILuaCommands.BRSEffectAnimeStop`. It first declares StopStoryboard at line
+544, with BeginStoryboardName `IconLoopAnime`. It then declares an unnamed
+BeginStoryboard at line 545, containing the Storyboard at line 546. That
+Storyboard declares these children in order.
+
+| Template line | Declared animation type | TargetProperty | Declared values |
+| --- | --- | --- | --- |
+| 547 through 549 | PropertyAnimationUsingKeyFrames | RenderTransformOrigin | One DiscreteValueKeyFrame at line 548, Value `0.5,0.5`, no KeyTime |
+| 550 | DoubleAnimation | SqwtDrawOrder | From `0.5`, To `0`, no Duration |
+| 551 | DoubleAnimation | VisualOpacity | To `0`, Duration `0:0:0`, no From |
+
+The stop Storyboard declares no RepeatBehavior. Neither Storyboard declares a
+completion command or completion target. None of these animation declarations
+supplies Storyboard.TargetName. These are declaration strings, not established
+native target resolution, endpoint capture, clock, acceleration or repeat rules.
+
+### Frame skin declarations
+
+Form line 1 names `common/default.style`. Under Widget Type Label at style
+line 1964, `LAB_actionMenu_BRSEffect` occupies lines 2385 through 2396.
+Its only part is Frame at line 2386. SkinNormal, SkinHover, SkinActive,
+SkinDisabled and SkinFocused at lines 2387 through 2391 all reference skin
+`LAB_actionMenu_BRSEffect`. SkinAnchored, SkinReserved and SkinDroppable at
+lines 2392 through 2394 reference `NULL`. These properties declare no SkinOffset.
+
+The style root at line 1 names `common/default.skin`. No effect binary filename
+or SpkSource is declared in the selected Label template or style subtree. The
+named skin file and its resource or texture contents are separate inputs and
+were not read for this finding.
+
+### Boundary
+
+Template selection and materialization, effective ancestor state, property
+admission, command delivery, animation targets, clock sampling, repeat and stop
+semantics, acceleration, skin resolution, resource readiness, draw submission
+and actual live appearance remain UNKNOWN. The owner opacity and ancestor
+Visibility declarations alone do not prove whether a later animation runs or
+whether an effect is visible.
+
+## Small popup-help Label declarations
+
+OBSERVED markup. The battle-regimen help labels select a shared Label template
+with a ContentPresenter and two command-driven opacity animation declarations.
+The markup does not establish command delivery or live popup appearance.
+
+The same original named inputs and extraction/source-replay method recorded in the
+[Starting Button study](#battle-regimen-starting-button-declarations) supply these observations.
+The retained extraction seals and original identities were rechecked. Python Expat supplies
+decoded element start and end lines.
+
+### Help-label owners and initial declarations
+
+The two form declarations selecting
+`ControlTemplate_Label_PopupHelp_MenuIconSmall` are `Label_ChangeBattleRegimen`
+at line 223 and `Label_BattleRegimenStarting` at line 232. Their Content
+bindings are OneWay from the corresponding ToggleButton or Button Content.
+Both declare HorizontalContentAlignment Center, SqwtStyle `NULL`, Margin
+`2,0,2,0`, Width `24`, IsHitTestVisible False and VisualOpacity `0`. Neither
+Label declares a local Visibility or RenderTransform.
+
+The first Label's ancestor chain includes Grid 221 and StackPanel 222 below
+`Grid_BattleRegimenButton` at line 219. The second includes Grid 230 and
+StackPanel 231 below `Grid_BattleRegimenStartingButton` at line 227. The two
+named Grids declare Visibility Collapsed. Their common remaining form ancestors
+are unnamed Grid 16, `Grid_Base` at line 15 and `Window_ActionMenuWidget` at
+line 1. Other nodes in these ancestor chains declare no local Visibility or
+VisualOpacity. StackPanel 231 declares Focusable False and IsHitTestVisible
+False. StackPanel 222 omits those two properties. These omissions do not
+establish native defaults or effective live state.
+
+The corresponding controls at form lines 220 and 228 declare
+SqwtDesignData.StringValue0 bindings naming their help Labels, with no Path or
+Mode. Their selected event templates bind popup CommandTarget OneWay to
+TemplatedParent.SqwtDesignData.StringValue0 at template lines 358 through 370
+and 486 through 498. The
+[omitted-path handle consumer](sqwt-qualified-property-lookup.md#actionmenu-design-data-strings)
+records the separate native lookup boundary.
+
+### Selected template graph
+
+The template at lines 80 through 105 targets Label. Its direct children occur
+in this order: ContentPresenter at line 81, Setter at line 82 and
+`ControlTemplate.Triggers` at line 83. The ContentPresenter declares
+IsHitTestVisible False and ClipToBounds False. It has no child and no local
+Content, dimensions, style, transform, name or binding declaration. The Setter
+names RenderTransform with value ScaleTransform.
+
+The first CommandTrigger, lines 84 through 93, declares command
+`SQWTDesignCommands.DisplayPopupHelp` and Name `DisplayPopupHelp`. Its only
+action is an unnamed BeginStoryboard at line 85, containing the Storyboard at
+line 86. The second CommandTrigger, lines 94 through 103, declares command
+`SQWTDesignCommands.NonDisplayPopupHelp` and Name `NonDisplayPopupHelp`. Its
+only action is an unnamed BeginStoryboard at line 95, containing the
+Storyboard at line 96.
+
+| Template lines | Ordered Storyboard child | Declared values |
+| --- | --- | --- |
+| 87 through 89 | PropertyAnimationUsingKeyFrames targeting RenderTransformOrigin | One DiscreteValueKeyFrame at line 88, Value `0.5,0.5`, no KeyTime |
+| 90 | DoubleAnimation targeting VisualOpacity | To `1`, Duration `0:0:0.2`, no From |
+| 97 through 99 | PropertyAnimationUsingKeyFrames targeting RenderTransformOrigin | One DiscreteValueKeyFrame at line 98, Value `0.5,0.5`, no KeyTime |
+| 100 | DoubleAnimation targeting VisualOpacity | To `0`, Duration `0:0:0.2`, no From |
+
+The first two rows belong to DisplayPopupHelp and the last two to
+NonDisplayPopupHelp. Neither trigger declares StopStoryboard. Neither
+Storyboard declares Name, RepeatBehavior, CompletedCommand or
+CompletedCommandTarget. The selected template declares no scale-axis animation,
+Storyboard.TargetName, popup positioning value, skin key, SpkSource or effect
+binary filename. It does not declare a Content binding on its ContentPresenter.
+
+Form line 1 names `common/default.style`, whose root names
+`common/default.skin`. The help owners' SqwtStyle literal is `NULL`. This
+finding does not interpret that literal as a native no-draw guarantee. The
+referenced skin file and any texture or effect contents were not read.
+
+### Boundary
+
+Template materialization, Content transfer to the presenter, resource
+resolution, effective ancestor state, omitted-path binding activation, command
+target selection, command delivery, animation endpoint capture, clocks,
+interpolation, concurrent storyboard behavior, popup placement, draw submission
+and actual live appearance remain UNKNOWN. A declared opacity destination does
+not establish a running clock or a visible popup.
+
 ## OBSERVED Storyboard completion route
 
 The declaration at template line 562 omits `CompletedCommandTarget`. On the
