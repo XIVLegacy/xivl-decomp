@@ -245,6 +245,62 @@ ancestor composition, popup command delivery, completion delivery and rendered
 state remain UNKNOWN. Distinct names and declared write sets do not prove
 commutativity, full-form admission or a live result.
 
+### Conditional SqwtIsAutoSetSkin property path
+
+The input is the identified retail ffxivgame.exe, 15996808 bytes, SHA-256
+`9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`,
+PE32 x86, image base `0x00400000`. Locators are VAs. Ghidra CLI 0.2.2
+provided focused string, xref and disassembly queries in the existing analyzed
+program. Original section-mapped PE bytes independently matched the inspected
+instructions and referenced strings, property table and RTTI data.
+
+STATIC. Initializer `0x00F28DD0..0x00F28DE9` associates the ASCII literal
+SqwtIsAutoSetSkin at `0x0107BFDC` with descriptor `0x013615D0` and ordinal
+zero at `0x013615E4`. The one-entry property-info initializer at
+`0x00F28DF0..0x00F28E1A` supplies table `0x012E7D64` and count one to
+info object `0x013615F4`, then installs getter `0x009A62F0` and setter
+`0x009A6360`. Its table `0x0107C040`, locator `0x01180338` and type
+descriptor `0x012E7D20` identify
+`.?AV?$DependencyPropertyInfo@VStyle@Sqwt@@@Sqwt@@`.
+
+STATIC. Style construction at `0x009A6269..0x009A62D4` installs primary
+table `0x0107BFFC` and seeds value bit `0x20` true in Style `+0xD0`.
+Locator `0x011802DC` and type descriptor `0x012DFCFC` identify
+`.?AVStyle@Sqwt@@`. The constructor derives packed bits 0 and 1 separately
+from metadata `0x013615E8`. Getter `0x009A62F0..0x009A631F` accepts ordinal
+zero and passes normalized value bit 5 to `0x00989060`. This
+constructor value is distinct from later property assignment.
+
+STATIC. Setter `0x009A6360..0x009A6389` accepts ordinal zero and passes
+the owner, descriptor, callback `0x009A6220`, incoming mode and notification
+flag one to helper `0x00941AD0` for Style `+0xD0`. The helper calls
+preprocessor `0x00916310`. Sentinel `0x01356DA8` sets packed bit `0x10`
+and returns before conversion. Its non-sentinel branch calls Boolean converter
+`0x00988F90`, then packed store `0x0095E290`.
+
+INFERRED under the published
+[ordinary Boolean text conditions](sqwt-is-enabled-literal-setter.md): when
+preprocessing preserves the supplied empty wrapper, the comparator global is
+zero and the relevant pointers are non-null, empty text converts to false.
+It is not a presence-only true value on this branch. This does not establish
+that a selected Style markup attribute reaches this provider or store.
+
+STATIC. In `0x0095E2AF..0x0095E2DD`, mode zero is rejected when packed bit
+1 is set. An admitted mode-zero write clears bit 0. At
+`0x0095E2DF..0x0095E301`, a differing Boolean replaces value bit 5 and sets
+bit `0x04`. With notification flag one, the changed path requests helper
+`0x0095DDC0` at `0x0095E311`. The supplied callback, when reached, dispatches
+virtual `+0x18` at `0x009A6220..0x009A6225`. The identified Style table
+selects `0x00912AC0` for that slot. Equal values skip this changed-value
+notification request. Cleanup and property admission remain conditions.
+
+UNKNOWN. The exact markup path that selects info `0x013615F4`, the live
+preprocessing and packed admission state, and the downstream reader of Style
+`+0xD0` bit 5 remain unresolved. This bounded chain establishes a property fragment,
+constructor value and conditional Boolean write. It does not establish the
+meaning or effect of the empty attribute in a live ActionMenu style, automatic
+skin assignment, resource readiness, callback side effects or rendering.
+
 ## Battle-regimen ToggleButton declarations
 
 OBSERVED markup. Form line 220 declares the sole ToggleButton,
