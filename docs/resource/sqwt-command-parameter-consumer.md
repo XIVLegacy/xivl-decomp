@@ -395,6 +395,87 @@ masks. These inspected writers do not establish exhaustive aliases or writers,
 late resolution inputs, a concrete Button caller, current instance values,
 physical input delivery or control membership. STATIC.
 
+### Local hit flags and child-first query
+
+STATIC. In the checked point-query profile, an ancestor's local
+IsHitTestVisible false value does not prune its descendants. The
+result is conditional on retained child values, admitted visibility,
+geometry, clipping and query fields.
+
+For TabControl, input table `0x0108152C` has COL `0x01181E84`
+and subobject offset `0xB4`. Its `+0x58/+0x5C` cells select
+`0x00939B10/0x00939AA0`. Primary table `0x01081654` has
+zero-offset COL `0x01181E08` and `+0x38 -> 0x0092B640`.
+The primary `+0x58` cell is distinct from the input-interface query.
+
+Query `0x00939B10..0x00939B86` subtracts `0xB4` from its
+receiver to obtain full E, adjusts the point through the visual offset
+chain, and calls wrapper `0x0097E1A0` at `0x00939B64`.
+The wrapper admits an initial rectangle and calls recursion
+`0x0097DE40` at `0x0097E250`. A nonnull result `+4` is
+converted to an input interface by adding `0xB4`.
+
+Recursion `0x0097DE40..0x0097E196` visits visual children before
+calling the parent's primary `+0x38`. Child count is `E+0x30`.
+The checked walk starts at count minus one at
+`0x0097DEF0..0x0097DEF8`, obtains children from the visual
+storage rooted at `E+0xAC`, and recurses at `0x0097E0BE` after
+its point/rectangle and clipping operations. A nonnull child result
+returns before the parent callback. The remaining-child branch
+decrements the index at `0x0097E0E3..0x0097E0E6`.
+The complete recursion contains no ancestor hit-flag conjunction.
+Empty admitted rectangles have a separate early return.
+
+After exhausting children, the parent call at
+`0x0097E16C..0x0097E181` supplies PointHitTestParameters.
+For callback `0x0092B640`, the input `+0x5C` predicate first
+checks the receiver and successive parents for Visibility value 2
+through `0x00939AA0..0x00939ADA`. This is a separate visibility
+chain and contains no IsHitTestVisible read.
+At `0x0092B6E2..0x0092B6F9`, ordinary candidate eligibility is
+`(E[0x15A] & 0x20) != 0` or query byte `+0x10 != 0`.
+After the other admission and containment gates, the eligible result
+stores E at result `+4` at `0x0092B7AE`.
+Auxiliary help processing has a separate arm. Helper `0x0093E910`
+can clear a result on another filtered query path. Its entry bypasses
+that path for query dword `+0x0C` zero at
+`0x0093E954..0x0093E969`.
+
+Native TextBoxBase::TextBoxScrollInfo uses the same callback/query
+cells. Its primary table `0x010754DC`, COL `0x0117D848`,
+has offset zero. Input table `0x010753B4`, COL `0x0117D8D8`,
+has offset `0xB4`. Construction at
+`0x0097D474..0x0097D4C8` places it at owner `+0x1010`
+through constructor `0x0097BB70`. Naming at
+`0x0097D5D5..0x0097D5FA` supplies `PART_TextArea` from
+`0x01074DA4` for that receiver. This is a constructor relationship,
+without proof of a selected LogWidget instance's attachment.
+
+Changed callback `0x0093B700` first sends a generic virtual
+notification, then dispatches descriptor ordinal 2 through cell
+`0x0093BD38 + 2*4`. Case `0x0093B876..0x0093B88F`
+calls `0x0093A3E0(0,1,1)` when the local hit bit is false.
+That helper targets IsMouseOver descriptor `0x0135968C` and local
+byte `E+0x15F`. The direct case has no child walk.
+A separate generic notification arm
+`0x00912B6E..0x00912BD3` can enumerate children when event
+metadata mask `0x10` is set. Metadata propagation and later writers
+therefore remain separate from this retained-value query result.
+
+With a child retaining true, the visible chain and geometry admitted,
+and the ordinary zero-filter query profile, an ancestor's false hit
+flag alone cannot prevent the earlier child result. The ancestor's
+own ordinary candidacy still uses its own flag or the explicit query
+override. This establishes no universal inheritance rule, actual
+Window activation, capture/explicit-target bypass, alternate overrides,
+physical wheel delivery or live hit result. The
+[LogWidget declarations](sqwt-tab-scroll-text-parts.md#logwidget-declared-hit-filters)
+record the independent asset targets.
+
+The instruction unions, primary/input cells, COL offsets and named
+part were checked with Ghidra CLI 0.2.2, LLVM 21.0.0 and original
+section-backed bytes of the identified `ffxivgame.exe`.
+
 ## ActionMenu PadBinding source
 
 The standard ActionMenu form puts repeat-enabled `LUp` and `LDown`

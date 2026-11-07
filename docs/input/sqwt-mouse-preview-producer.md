@@ -352,3 +352,10 @@ application owner, tree contents, handler attachment and widget lifetime.
 These facts do not establish any particular Button, installed Click trigger,
 safe malformed-input admission, universal input profile, default state,
 rendering effect or live result.
+
+## Local visual-query eligibility
+
+The [child-first point-query profile](../resource/sqwt-command-parameter-consumer.md#local-hit-flags-and-child-first-query)
+separates an element's local hit flag from descendant traversal and
+ancestor visibility. Its retained-value and query-field conditions
+remain distinct from this producer's capture and explicit-target paths.

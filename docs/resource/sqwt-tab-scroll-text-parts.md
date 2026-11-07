@@ -594,8 +594,9 @@ The Visibility text is parsed by `0x00914580` and written by `0x009145F0`.
 `TextBox` derives from `TextBoxBase`, which derives from `Control`. `LogControl`
 derives from `TextBox`. The `TextBox` constructor at `0x0095C300` keys the control
 with `TextBox:Background`. `TextBoxBase` creates a `TextBoxScrollViewer` named
-`PART_ContentHost`, a text area named `PART_TextArea`, a `TextBoxScrollInfo` and
-a caret. The caret is named `PART_Caret` and keyed `Caret:Background`. No
+`PART_ContentHost`, a `TextBoxScrollInfo` named `PART_TextArea` and a caret.
+The [native local-hit profile](sqwt-command-parameter-consumer.md#local-hit-flags-and-child-first-query)
+joins that constructor and name to its callback tables. The caret is named `PART_Caret` and keyed `Caret:Background`. No
 installed style file defines a `Caret` widget, and the default part table has no
 caret record. INFERRED that the caret draws no skin.
 
@@ -610,6 +611,59 @@ presentation values `FontSize`, `FontEdge`, `FontEdgeColor`, `LogFormat`,
 `LogControl` constructor creates a wait cursor named `PART_WaitCursor` keyed
 `LogControl:WaitCursor`. Painting the lines is outside this page, see the open
 questions.
+
+### LogWidget declared hit filters
+
+OBSERVED asset structure. The standard `widget/LogWidget.form` has two
+LogControls, `LogControl_Main_1` at form line 32 and
+`LogControl_Main_2` at line 35. Their direct XML parents are
+TabItem_1 and TabItem_2, under TabControl_Log at line 30.
+That TabControl declares IsHitTestVisible False. Neither LogControl
+has a local hit, visibility, enable or FontType declaration.
+Omission supplies no default or runtime value.
+
+The form merges only `widget/LogWidget.tpl` at line 5. Its Window
+selects ControlTemplate_Window, whose ContentPresenter at template
+line 3 declares ClipToBounds False. Both LogControls select
+Style_LogControl at form lines 32/35. That style at template lines
+271 through 281 contains a Talker/LastCategory trigger and no
+Template or hit-filter Setter. Neither file declares a LogControl
+ControlTemplate or a PART_TextArea element.
+
+The Window template names these separate history targets:
+
+- `LogControl_Main_1:PART_ContentHost:PART_TextArea`
+- `LogControl_Main_2:PART_ContentHost:PART_TextArea`
+
+Each event declaration below contains IsHitTestVisible Setters targeting
+the outer LogControl, its PART_ContentHost and its PART_TextArea,
+in that order for main 1 and then main 2.
+
+| Window event | Value | Main 1 control / host / area lines | Main 2 control / host / area lines |
+| --- | --- | --- | --- |
+| Activated, template line 17 | True | 20 / 21 / 22 | 23 / 24 / 25 |
+| Deactivated, template line 27 | False | 34 / 35 / 36 | 37 / 38 / 39 |
+| Shown, Name WindowOpen, template line 41 | False | 45 / 46 / 47 | 48 / 49 / 50 |
+
+The assets provide no Setter on TabControl_Log itself. Header writes
+on TabControl_Log:TabItem_1/2 and editor writes on
+TextBox_ChatInput:PART_ContentHost:PART_TextArea have distinct
+targets. The history paths above name native-created parts rather
+than XML clones. Their constructor/type relationship is separate
+from selected runtime instances, parentage and arranged rectangles.
+
+| Named container | Bytes | SHA-256 | Decoded bytes | Decoded SHA-256 |
+| --- | --- | --- | --- | --- |
+| `widget/LogWidget.form` | 12323 | `0a5cf3d560a7fa4e32d6363a9a4efffba628ca45ec166af7b95c53243eae29fe` | 12315 | `a7c64d3fd69b4b2bdf5bfeadb6536d6d6052284afcd60f7baf252b1316707f88` |
+| `widget/LogWidget.tpl` | 21543 | `1db2198b63cc37f8bbd6131e8029153a5a57bb529803bb865549f9e8a078c112` | 21535 | `508b182fba0991a501b3aa581044d1fdfe8620b2a114d541606bbe9a34d3effc` |
+
+`xivl-tools` revision `f2a9a2b5a6a4c450458db7a493c25fcdcd70aca0`
+decoded each complete original basename with
+`extract-resource --as sqwt`. Exact `verify-extraction --source`
+replays passed. Python Expat supplies the decoded line locations.
+These declarations establish neither trigger delivery nor effective
+eligibility, script overrides, viewport/clip bounds, actual selection,
+scroll behavior or live rendering.
 
 ## Registered property names
 
