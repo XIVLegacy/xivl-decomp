@@ -152,7 +152,8 @@ For this record, the create request's class word is zero. Exact name word
 12000 consequently selects the [zero-class 12000 alternative](cut-actor-class-update.md#zero-class-alternatives).
 A later successful class drain with that name word also selects its
 [name-dependent call sequence](cut-actor-class-update.md#main-thread-class-queue).
-Those helpers' wider semantics remain separate from the name binding.
+The [name-12000 effects](cut-actor-class-update.md#name-12000-effects) own
+the appearance-source choice and successful-drain text-parameter write.
 
 ## Reproduction and limits
 

@@ -105,11 +105,11 @@ sheet handle or unresolved row returns AL=0. Only AL==1 at `0x00564E72`
 permits the send/pop path; another result leaves the front request queued.
 
 After successful resolution, Q+4 equal to 12000 also selects
-`0x00564E7A..0x00564EA5`: call `0x006B6F40` with the first appearance
-dword, pass whether its result equals 2 to `0x004D7470` on
-`u32(E+0x7C)`, then call `0x00575520` on that call's returned receiver.
-These callees' wider effects remain opaque here; their normal returns are
-required before the following packet construction.
+`0x00564E7A..0x00564EA5`. It classifies the first appearance dword through
+`0x006B6F40`, then supplies whether the result equals 2 to the
+[rich-text parameter writer](#successful-class-drain-text-state). The Boolean
+stays on the stack across getter `0x004D7470` and is consumed by
+`0x00575520`. Normal completion precedes the following packet construction.
 
 The accepted path calls `0x004EC080` with
 `(Q0,0x1D,appearance,0x74)` at `0x00564EBD`, then posts through
@@ -150,15 +150,127 @@ Q+8 equal to zero selects these alternatives in `0x005656E0`:
 | --- | --- |
 | 10000 | Store Q0 at E+`0x11C`; `0x0055FB90` requests appearance from the nonnull source at `u32(u32(E+0x7C)+0x17838)` |
 | 10001 through 10066 | `0x00565410` uses index Q4-10001; success returns directly, while failure writes fallback row key `0x00632EB4` into Q8 and appends |
-| 12000 | `0x005637F0` uses the `0x004D7430` predicate to select a special fallback or a source-copy path. The latter sends only when `0x00563750` returns a nonnull source; null returns without sending. |
+| 12000 | `0x005637F0` selects the [special bank or source copy](#zero-class-appearance-source); a null copy source returns without sending. |
 | Other values | Append with row key zero |
 
 The first branch's TEST/JA sequence admits exactly 10000, not a range below
 it. These alternative sources do not establish an actual `man50250`
 argument. The [ProxyActor name contract](cut-proxy-actor-names.md) supplies
 name word 12000 for actor 5 under its formatting and retention conditions.
-For name word 12000, the null-source exit is `0x00563872 -> 0x005638F2`,
-before the shared packet construction at `0x0056389C`.
+
+## Name-12000 effects
+
+Let W be `u32(E+0x7C)`. The zero-class helper and successful class drain
+have separate effects. The former posts an appearance directly. The latter
+also updates a TextModule global parameter before posting its resolved bank.
+
+### Zero-class appearance source
+
+`0x005637F0` first initializes a local 29-dword bank through `0x005670D0`.
+Its predicate `0x004D7430` returns exactly whether W+`0x17838` is nonzero.
+That field is the [override-only pointer](../input/chara-selection-producers.md#container-selection-getters-and-command-arguments),
+distinct from reporting selection W+`0x17834`. This predicate supplies no
+player-class, actor-ID or successful-lookup test.
+
+With a nonzero override, `0x0056384E..0x00563867` calls
+`0x006B5520(999)`, which adds decimal 10000, and produces this bank:
+
+| Dword / offset | Result |
+| --- | --- |
+| 0 / `0x00` | 10999 |
+| 1 / `0x04` | Integer bit pattern `0x00000001` |
+| 2 through 27 / `0x08..0x6C` | Zero |
+| 28 / `0x70` | `(old & 0xFFFFFFFA) \| 2` |
+
+The initializer zeros bytes `0x00..0x6F`, then reads and masks the last
+dword at `0x0056712A..0x00567133`. Bits 0 and 2 become clear, bit 1 becomes
+set, and bits 3..31 retain their earlier value. No earlier whole-word
+initialization of that local flag word was established. The bank is therefore
+partially initialized. The literal at dword 1 is not floating-point `1.0`.
+The [base-model split](../actor/appearance-path-decoder.md#base-model-split)
+maps 10999 to category 1, model number 999 (`mon/m999`), without establishing
+resource existence or visible output.
+
+With a zero override, `0x00563869..0x00563872` calls `0x00563750` and
+tests its result. The resolver itself captures O through `0x004D72F0`:
+
+1. If captured O is nonnull and a fresh override-presence test is true,
+   return captured O. The fresh test does not compare pointer equality.
+2. Otherwise walk the tree returned by `0x004D73A0`, W+`0x4E4`, and return
+   the first node+`0x10` value unequal to captured O.
+3. On exhaustion, return captured O.
+
+The captured-O compare is `0x005637B7..0x005637BE`, and the exhaustion
+return is `0x005637D3`. Their stack offset addresses the saved O despite
+intervening pushes. Iterator `0x009172C0` takes the in-order successor.
+Insertion `0x004E5CA0` compares unsigned node keys at `+0x0C`. With stable
+W and a still-zero override, the result is the first nonnull value in ascending
+unsigned-key order, or null. The resolver performs no name-12000 or
+reporting-selection match. Valid tree storage and stable links are required.
+
+This is the type-8 element map. Container construction places its factory at
+W+`0x4AC` through `0x0053B230`; the factory's `+0x38` tree is W+`0x4E4`.
+The type-8 arm at `0x0053770D` publishes a key/result pair through
+`0x004E5CA0`, with node value at `+0x10`. Creator `0x00533540` selects
+constructor `0x0058B4E0`, which installs CharaElement tables `0x00FA7C50`
+and `0x00FA7B2C`. Their original RTTI name is
+`.?AVCharaElement@Chara@Element@Main@Application@@`, with object offsets
+0 and 8. Allocation, actual map ownership and retained layouts remain
+conditions. Null creator results and existing equal keys prevent identifying
+every creator return with a newly retained entry.
+
+For a retained source of that route, source+`0xAAC` is the
+[CharaElement-local appearance bank](../actor/item-appearance-boundary.md#native-consumption-chain).
+`0x00563874..0x00563883` copies all 29 current dwords, including flags.
+It does not require the source's dirty byte, a completed pending-row rebuild
+or loaded resources. It preserves Q0 as the destination Scene actor ID.
+A null source exits through `0x00563872 -> 0x005638F2`, before any send.
+There is no retry or class-ring append for that selected exit. The admitted
+special/copy arms construct `(Q0,0x1D,bank,0x74)` at `0x0056389C` and
+post at `0x005638B4`. This helper has no selected slot-44 write.
+
+### Successful class-drain text state
+
+Only row-resolution AL==1 and Q+4 equal to 12000 admit the extra call
+sequence. Classifier `0x006B6F40` reads the resolved bank's first dword.
+Its byte table at `0x006B6F7C` and jump table at `0x006B6F70` give:
+
+| Base-model word | Classifier result | Stored Boolean |
+| --- | ---: | ---: |
+| 2, 4, 6, 8, 10, 11, 22, 23, 25 | 2 | 1 |
+| 1, 3, 5, 7, 9, 12, 21, 24 | 1 | 0 |
+| 13 through 20 and every value outside 1 through 25 | 0 | 0 |
+
+The selected calls and tables establish these numeric cohorts. They do not
+assign an independently anchored semantic name to the resulting Boolean.
+
+`0x004D7470` returns W+`0x510` with plain `RET`, leaving the pushed
+Boolean for the next call. `0x00575520` loads that object's `+0x0C` holder
+and tail-jumps to `0x0076A7E0`. That function zero-extends the argument byte,
+selects zero-based parameter `0x2C` (44) through `0x008A68A0`, and stores
+the integer through `0x004D3390`. Its `RET 4` consumes the Boolean.
+The [global-vector contract](rich-text-global-parameters.md#gp-01-vector-identity)
+owns the holder/TextModule relationship, typed cell and vector lifetime.
+The result is integer 0 or 1 in global parameter 44 of that TextModule.
+
+This write precedes packet construction and post, without waiting for Scene
+delivery or model loading. Missing row resolution skips it and leaves the
+class request queued. Another name skips it. There is no selected rollback
+after later packet delivery failure, and other writers can change shared
+TextModule state before a reader uses it.
+
+The [integer operand decoder](rich-text-colour-tokens.md#ct-02-operand-leads)
+can read that cell through lead `0xE9` and one-based operand 45, subject to
+the same TextModule/vector, a valid integer-tagged cell and its bounds.
+The authenticated `man502.csv` caption rows 129..142 contain only newline
+and non-breaking-space control tokens across source columns 0..3 (Japanese,
+English, German and French). Those selected cells have no global-parameter
+control expression. This trace therefore establishes shared text state but
+does not establish a slot-44-dependent caption choice in those rows.
+Source: `xivl-client-data:manifests/tables.json`, `csv/man502.csv`, 25,838
+bytes, SHA-256 `bad770856a72e0b4f5fb3e48f4e767803ead2257240bb3dba51b240962b263a5`,
+extraction `2012.09.19.0001`. Other banks and computed text inputs remain
+outside that selected-row observation.
 
 ## Reproduction and limits
 
@@ -177,3 +289,8 @@ decompilations completed without analysis timeout. No target execution
 or runtime observation was used. Exact supplied values, lookup success,
 allocation, queue delivery, current table/object identity and completed
 resource loading remain unobserved.
+
+The name-12000 helper trace also used a fresh read-only Ghidra 12.1.3/JDK 21
+export with the same pinned post-script. All 23 requested decompilations
+completed without analysis timeout. Original instructions and return operands
+determined the Boolean's stack lifetime across the getter and setter.

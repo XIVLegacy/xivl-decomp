@@ -56,7 +56,10 @@ When its group argument is `-1` or `1` (`0x004DB99E..0x004DB9A6`), the handler r
 
 For a config value `v` in `0..0xFFFFFF` the subtraction gives `0xFF000000 | v` modulo 2^32, so the element holds an opaque `0xAARRGGBB` dword with the config value as the low 24 bits. The `0x13` handler reads red from bits 16 to 23 (CT-03), so a config value is `0xRRGGBB`. STATIC for the arithmetic, INFERRED for the channel order of the stored config value because the handler is the only reader traced.
 
-`FUN_00575520` (`0x00575520`, tail call to `FUN_0076A7E0`) writes a byte to element `0x2C` (44) the same way. STATIC.
+`FUN_00575520` (`0x00575520`, tail call to `FUN_0076A7E0`) zero-extends a byte argument and writes the resulting integer to element `0x2C` (44) the same way. STATIC.
+The [name-12000 class drain](cut-actor-class-update.md#successful-class-drain-text-state)
+supplies this value from its resolved appearance-base classifier before
+posting the Scene appearance packet.
 
 The dispatch of this handler with group `-1` or `1` at config load, and the saved values a player has set, are not traced. Until the handler runs, the colour elements hold the GP-02 seed. UNKNOWN.
 
