@@ -77,10 +77,16 @@ test is recorded in the
 the four area slots, then fills them by asking each manager flagged at `+0xF4`
 for the area under the player position through `0x00644840`. That calls
 manager vtable slot `+0x174` (world to layout-local point) and `0x00644210`,
-which tests the point against every registered block box (`0x0064AF50` AABBs)
-and keeps the best match. The comparison keys are: smaller distance value from
-`0x00640040`, then larger block priority at record `+0x0C`, then lower manager
-type nibble (`+0x150 & 0xF`), then the nearer box centre.
+which performs a per-manager containment search followed by a bounded
+nearest-box fallback. The cross-manager comparison prefers smaller distance
+from `0x00640040`, then greater block priority at `+0x0C`, then higher manager
+type nibble (`+0x150 & 0xF`), then nearer box centre. A full tie selects the
+later retained manager visit. This area resolver supplies selector 0 at
+`0x0062999A` and `0x006299CF`. Its containment filter tests flags `0x18`
+at `0x0064229C`, and its fallback filters flag `0x08` at `0x006424E9`
+before the common callback excludes flag `0x10`. The
+[finite spatial contract](minimap-base-tiles.md#finite-spatial-selection)
+records selector 1's eligibility and the shared traversal and comparison rules.
 
 Results: scene `+0x168` and `+0x16C` are the owning managers, `+0x170` and
 `+0x174` are the matching serialized DivideMapFolder records. Type `0x1000`
@@ -151,8 +157,8 @@ The observed behavior, as an ordered summary:
 1. A manager exists for every child whose type dword is not 0 or 1.
 2. Each manager holds its DivideMapFolder cells with box, priority, name list,
    name pairs and the byte `+0x62` resident bit.
-3. Every frame, the player position selects the best containing cell by the
-   order in "Area resolution". Blocks of the managers named by that cell's
+3. Every frame, the player position selects a cell through the containment
+   and bounded fallback route in "Area resolution". Blocks of the managers named by that cell's
    pairs (or a radius query when the cell has none) are requested when they
    lie within scene `+0x1D0` plus the manager radius. Without a resolved area,
    the load-all path applies in mode 5.

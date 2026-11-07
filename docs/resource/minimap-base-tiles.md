@@ -162,6 +162,70 @@ is `0x00644100 -> 0x00644210`: the folder winner and cross-manager
 comparison must select the same manager and block before assigning a live
 layout/page pair.
 
+### Finite spatial selection
+
+STATIC. The checked position update passes selector 1 to `0x00624AC0`
+at `0x007D40B7..0x007D40C6`, with a cleared block/manager result and
+maximum finite f32 distance fields. Scene `+0x17C` supplies the preferred
+region owner. Only a null pointer there selects the manager at `+0x180`.
+The region route invokes `0x00645FD0` with flag 0. Its retained linked
+list at owner `+0x34` supplies node manager `+8` and next node `+0`.
+At `0x00646016..0x00646053`, flag 0 excludes complete type `0x1000`.
+Flag 1 admits only that type.
+
+At `0x0064485A..0x0064488B`, an enabled manager requires byte `+0xF4`
+nonzero. It transforms the query through interface slot `+0x174` and
+calls `0x00644210` on manager `+0x100`. The XYZ sign-mask test at
+`0x00644220..0x00644242` rejects a point outside the aggregate bounds.
+
+The per-manager helper `0x00644100` first calls containment search
+`0x006420F0` with priority -1 and returns a nonnull result immediately
+at `0x00644120..0x0064412E`. For selector 1, a candidate requires
+block flag `+0x12 & 0x10` clear, signed priority `+0x0C` strictly
+greater than the carried priority, and containment from `0x006400A0`
+(`0x0064223F..0x00642269`). Registration zero-extends serialized folder
+byte `+0x61` into that priority at `0x00642794..0x0064279C`.
+Local entries in `[+0x34,+0x38)` precede recursive children in
+`[+0x44,+0x48)`, each in ascending retained vector order. Recursive
+replacement also requires a strictly greater priority at
+`0x006422CD..0x0064233A`. Equal-priority containment preserves the first
+retained tree visit.
+
+Containment helper `0x006400A0` uses the block's stored AABB. A nonnull
+block `+8` instead supplies its matrix at `+0x30` to transform the point
+and its bounds at `+0x10/+0x20`. The XYZ sign-mask gate is at
+`0x006400F6..0x0064010B`.
+
+If containment returns null, `0x00644134..0x006441EA` queries a cube
+through `0x00642370`. Its XYZ half-width is the absolute f32 manager
+radius from interface slot `+0x188`. Complete type `0x1000` uses f32
+512 from `0x00FBFA60` on this helper's alternate branch. Callback
+`0x006420B5..0x006420E4` excludes flag `0x10`, narrows the
+`0x00641C10` squared point-to-box distance to f32 and replaces only
+for a strictly smaller stored f32 distance. The helper's XYZ sum of
+squares and f32 return are at `0x00641D63..0x00641D86`. Equal fallback
+distances preserve the first retained visit.
+
+For finite ordered values, the cross-manager comparison at
+`0x00644260..0x0064434E` prefers smaller f32 point-to-box distance from
+`0x00640040`, then greater block priority, then greater manager type
+low nibble `manager+0x150 & 0xF`, then smaller f32 distance to the
+stored block AABB centre. The final centre sum and square root are
+SSE f32 at `0x0064428D..0x006442CD`. At `0x00644312..0x0064433B`,
+EAX holds the old manager nibble and ECX the new nibble. `JA` rejects
+old greater than new. Equal keys replace the previous candidate, so
+the later retained manager visit wins a full tie.
+
+The result is conditional on retained manager, list and tree state.
+Tree construction `0x0064D288..0x0064D2CE` inserts pointers through
+`0x0064CCF0`, which can subdivide and redistribute entries. The mapping
+from serialized declaration order to final tree traversal remains
+UNKNOWN. Actual manager readiness, list construction order, selected
+tavern layout/page, live cadence and painting remain UNKNOWN. Optional
+folder geometry and transforms require their own admission. NaN,
+infinities and signed-zero boundary cases are outside this finite
+ordered interpretation.
+
 ### Serialized DivideMap folder page
 
 The page is an unsigned byte at raw LYB node `+0x60` for the checked
