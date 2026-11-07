@@ -207,6 +207,41 @@ value is `SqwtImagePartsIndex`, then binds this descriptor at VA `0x00F22075`
 (RVA `0x00B22075`). This path switches an image-part index; it does not set
 `IsEnabled` or prove click acceptance.
 
+### Constructor checked value and image index
+
+STATIC. For the full ToggleButton object T, primary vtable
+`0x0106F2B4` has zero-offset COL `0x0117BF60` and ToggleButton
+type descriptor `0x012D6E44`. Constructor `0x0095D620` calls its
+base at `0x0095D64A` and installs that table at `0x0095D64F`.
+The [constructor mask described below](#checked-state-mutation-guard-comes-from-metadata)
+explicitly clears checked bit 5 at `0x0095D669`. The later merges
+at `0x0095D695..0x0095D6CD` affect bits 1 and 0 separately.
+Thus the checked seed is false, conditional on no later overwrite.
+
+Info initializer `0x00F23C90..0x00F23CD3` registers one-entry
+array `0x012E35AC` and getter `0x0095D400`, retained at
+`0x0135A7E0`. Its ordinal-zero arm `0x0095D400..0x0095D431`
+extracts `(T[0x3B4] >> 5) & 1` and passes the normalized byte to
+`0x00989060`. Nonzero ordinals fail. This is the property getter.
+`0x0095D470` is the separate toggle method. Formatter output modes
+and Lua representation require separate qualification.
+
+The base-constructor chain through `0x0097F22B`, `0x00954ADA`,
+`0x009361BC` and `0x00938CAC` reaches FrameworkElement.
+At `0x0092F8ED..0x0092F908`, scalar `T+0x218` is initialized
+through `0x009BD240` with default zero. Its store at
+`0x009BD260` copies the fifth explicit argument. This is the
+SqwtImagePartsIndex scalar identified above. Part-key string
+`T+0x220` is separate. The zero seed requires no initial checked
+changed callback. Later index, condition and checked-state writes
+remain independent conditions.
+
+The constructor chain, complete getter, descriptor and RTTI data were
+checked with Ghidra CLI 0.2.2, independently decoded LLVM 21.0.0
+instructions and section-backed reads of the identified PE.
+The [ActionMenu skin profile](../resource/action-menu-timer-icon-style.md#conditional-initial-toggle-skin)
+joins the constructor's native key order to the selected row.
+
 ### Checked-state mutation guard comes from metadata
 
 The toggle method tests a separate state bit `0x02` at VA `0x0095D4A6`
