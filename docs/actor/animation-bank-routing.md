@@ -44,6 +44,57 @@ conditional insertion into the owner's resource lookup vector. The request
 record index is separate from that vector's insertion position; actual
 delivery and retained bank/actor state remain required.
 
+## Posture source and snapshot
+
+STATIC. The kind-7 loader `0x00798BF0` reads the retained dword
+`V+0x28` at `0x00798C2D` and `0x0079906C`, where V is its
+`CharaActionVisual` receiver. It does not read actor posture directly
+at those instructions. Vtable `0x00FE4544`, slot `+0x54`, contains
+this loader at cell `0x00FE4598`. Slot `+0x48`, cell `0x00FE458C`,
+contains setter `0x00799FD0`. The complete setter
+`0x00799FD0..0x00799FDA` sign-extends its argument's low byte,
+stores the dword at `V+0x28`, and returns with `RET 4`.
+Construction initializes that dword to `0xFFFFFFFF` at `0x0079841B`.
+
+Let C be the action controller and A its retained actor under the
+[constructor owner profile](../resource/actor-motion-resource-provider.md#constructor-owner-profile).
+The two checked queue-construction paths copy the same actor byte
+into their visual through that setter.
+
+| Path | Actor and byte sample | Constructor input and retained visual | Setter call |
+| --- | --- | --- | --- |
+| Ordinary submission `0x00845E80` | `C+0x228` at `0x00845F1F`, byte `A+0xB39` at `0x00845F2B` | Bundle `+0x1C` at `0x00845F78`, constructor `0x00843B50`, visual at queue `+0x14` | `0x00843CBB..0x00843CC8` |
+| Preload `0x00845D70` | `C+0x228` at `0x00845D99`, byte `A+0xB39` at `0x00845DA5` | Bundle `+0x1C` at `0x00845DF8`, constructor `0x008438D0`, visual at queue `+8` | `0x00843A13..0x00843A20` |
+
+Both constructors call `0x00798AA0`, whose store at `0x00798AE7`
+installs V's primary vtable. They zero-extend bundle `+0x1C` before
+calling virtual `+0x48`. For `S=A+0x590`, the source `A+0xB39`
+is committed `S+0x5A9`. Selected `S+0x5A8` and desired `S+0x5AA`
+are separate fields in the [posture producer](locomotion-selection.md#posture-inputs-and-selected-machine).
+
+The ordinary sample follows conditional helper calls at
+`0x00845EDB..0x00845F1F`. The checked path requires
+`0x0065DF20` false, `0x0065DF30(1)` false or
+`0x008440A0(record)` true, and `0x00844FF0(record)` false.
+Preload samples before its `0x0065DF20` call at `0x00845DFC`
+and requires that result false before construction. Both paths
+require allocation and construction to succeed. The
+[action queue](action-queue.md) owns the remaining admission and
+consumption conditions.
+
+The copied committed byte, after the setter's sign extension, is the
+posture input retained for the checked kind-7 load. A later actor-state
+commit alone does not cause a fresh actor read in that loader.
+Unsupported retained values gain no standing fallback, and `-1` fails
+the loader's unsigned `0x5B` bound. Other setter calls, direct writers
+or replacement may change V before loading. These paths establish no
+fixed sample-to-load latency, live queue delivery, bank availability,
+actor selection or successful playback.
+
+The cited instructions, vtable cells and route tables were checked in
+Ghidra CLI 0.2.2 and independently decoded with LLVM 21.0.0 against
+section-backed bytes of the pinned PE. This is static evidence.
+
 ## Attack category and command identity
 
 The `CharaActionVisual` vtable at `0x00FE4544`, slot `+0x5C`, contains

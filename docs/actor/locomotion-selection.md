@@ -280,8 +280,9 @@ Generic posture transitions can defer installation. The
 [proved transformation transitions](guildleve-transformation.md)
 own their checked 0-to-2 and 2-to-0 paths. Initial `0xFF` and the
 selected field/battle arms establish neither a universal live idle
-state nor every posture phase. Action/emote bank-posture selection
-remains a separate consumer join.
+state nor every posture phase. The separate
+[action/emote bank consumer](animation-bank-routing.md#posture-source-and-snapshot)
+copies the committed byte during the checked queue construction paths.
 
 ## Motion callback inputs
 
