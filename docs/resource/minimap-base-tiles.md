@@ -176,6 +176,126 @@ constant is at `0x00FC3400`. The piece is appended to the container at
 After the materialization pass the control releases the reader and sets
 `+0x600` to 1 at `0x00678620` (STATIC).
 
+## Viewport center and scale inputs
+
+STATIC. The authenticated MiniMap declaration at form line 19 sets
+`Function=1`. It declares no local `Scale`, `MaxScale`, `MinScale`,
+`FocusPointColumn`, `PlayerPosX` or `PlayerPosY` value. The property
+initializers and constructor establish these separate holders.
+
+| Property | Descriptor and holder | Constructor value and locator |
+| --- | --- | --- |
+| `Function` | `0x0133FE38`, `+0x448` | 0 at `0x00679FEB..0x00679FFF` |
+| `Scale` | `0x0133FE5C`, `+0x450` | 0 at `0x0067A004..0x0067A01E` |
+| `MaxScale` | `0x0133FE80`, `+0x458` | 1 at `0x0067A023..0x0067A03D` |
+| `MinScale` | `0x0133FEA4`, `+0x460` | 0.5 at `0x0067A042..0x0067A060` |
+| `PlayerPosX`, `PlayerPosY` | `0x01340228`, `0x0134024C`, `+0x4F8/+0x500` | Both 0 at `0x0067A3DC..0x0067A40B` |
+| `FocusPointColumn` | `0x01340300`, `+0x53C` | -1 at `0x0067A5B7..0x0067A5CD` |
+
+The name registrations are at `0x00F119F0..0x00F11A69`,
+`0x00F11D80..0x00F11DD9` and `0x00F11E60..0x00F11E79`.
+The `Scale` setter arm selects its holder at
+`0x00673B85..0x00673BA6`. The draw path reads separate actual-scale fields below.
+
+### Automatic position and sheet conversion
+
+With an admitted first local `CharaElement`, `0x0067963F..0x00679673`
+calls `0x004CFE30` with selector 1 and copies the returned X and Z
+lanes to `0x00675840`. The getter adds parent positions when present.
+[World-position getter](../net/target-cycle-and-pick.md#range).
+`0x00675851..0x00675864` retains the pair at `+0x968/+0x96C`.
+For nonzero `Function`, `0x00679717..0x00679728` submits this pair
+to center helper `0x00672D30` on this update. The selected `Function=1`
+declaration admits that arm. Successful actor acquisition remains a condition.
+
+The admitted `SSDReader` reads `mapNavi_data` columns 3 and 4 as signed
+integers, converts each to f32 and subtracts it from negative zero at
+`0x006766BA..0x00676706`. It reads columns 8 through 11 into four
+f32 fields at `0x00676708..0x0067676A`. Materialization copies these
+values to control fields at `0x0067812B..0x00678161`.
+
+| Control fields | Selected sheet values |
+| --- | --- |
+| `+0x638/+0x63C`, denoted `Ox,Oy` | Negated columns 3 and 4 |
+| `+0x65C/+0x660`, denoted `Bx,By` | Columns 8 and 9 |
+| `+0x664/+0x668`, denoted `Dx,Dy` | Columns 10 and 11 |
+
+The checked `MapLoadChecker` first converts `_layout` column 1's unsigned
+byte to f32 at `0x006702E2..0x00670300`. A resolved `mapNavi_data`
+column 5 is converted as an unsigned dword, using the `2^32` correction
+at `0x00670545..0x00670559`. If the stored f32 is nonzero,
+`0x0067055D..0x00670573` replaces checker `+0x10` with it.
+On an admitted piece result, `0x00679DBB..0x00679DC4` applies
+`CVTTSS2SI` followed by `CVTSI2SS` and stores the result at control
+`+0x614`, denoted `r`. This value supplies the coordinate resolution.
+The finite contract below requires a positive `r` within the signed
+conversion range. Zero, nonfinite and out-of-range inputs remain UNKNOWN.
+
+### Center admission and draw coordinates
+
+`0x00672D30` first compares the proposed pair with retained
+`+0x640/+0x644`. On a difference it calls `0x00672A80`, then stores
+a changed returned pair and invalidates affected draw state at
+`0x00672D77..0x00672E13`. Let the retained pair be `Px,Py`.
+For navigation row `+0x9F0` other than 1, `0x00676D7B..0x00676DF3`
+computes `Cx=f32((Px-Ox)*r+Ox)` and
+`Cy=f32((Py-Oy)*r+Oy)`. It widens the stored f32 inputs to binary64
+for subtraction, multiplication and addition, then stores f32. This
+converts the retained position into drawing coordinates.
+
+For row 1, `0x00676DFC..0x00676E7E` instead computes
+`Cx=f32(Dx/2+Bx+Ox)` and `Cy=f32(Dy/2+By+Oy)` with binary64
+arithmetic before the f32 stores. The center helper returns its input
+unchanged for row 1 at `0x00672A8B..0x00672A9E`.
+
+For the other rows, `0x00672AA4..0x00672BCD` forms these stored f32
+intermediates, with widened binary64 arithmetic inside each expression:
+`k=f32((u/a)/r)`, `hx=f32(W*k/2)`, `hy=f32(H*k/2)`,
+`Lx=f32(Bx/r)`, `Ux=f32((Bx+Dx)/r)`,
+`Ly=f32(By/r)`, and `Uy=f32((By+Dy)/r)`.
+Here `u` and `a` are control `+0x610/+0x60C`, and `W,H` are
+`+0x14C/+0x150`. For each axis it compares stored
+`delta=f32(proposed-O)` minus/plus the corresponding half extent against
+the lower/upper bound, widening the stored delta, half extent and bound
+to binary64. A lower violation selects `f32(L+h+O)`, otherwise
+an upper violation selects `f32(U-h+O)` (`0x00672BCD..0x00672C70`).
+If `U-L < 2*h`, the later correction overrides that result with
+`f32((L+h+O)-f32(h-(U-L)/2))` at `0x00672C75..0x00672D22`.
+The binary64 outer arithmetic and nested f32 conversion are distinct.
+Positive finite dimensions, scale and resolution bound this analysis.
+Native argument validation and the ambient floating-point rounding mode
+remain UNKNOWN.
+
+### Actual scale and explicit properties
+
+The constructor loads f32 1 and stores it at `+0x610` and `+0x614`
+at `0x0067A753..0x0067A794`. On nonzero `Function`, admitted piece
+materialization writes actual scale `+0x60C=1` at
+`0x0067841A..0x00678445`, reclamps the retained center and requests
+`Scale=1` through the property holder subject to its flags. This
+property update and the actual-scale store are separate operations.
+The draw at `0x00676BBB..0x00676BF1` computes
+`drawScale=f32(double(+0x610)*double(+0x60C))`.
+
+An admitted `Scale` change selects a stepped transition or a direct update. Callback `0x00673803..0x0067383C` starts step count zero and
+captures the old actual scale when `+0x600==1` and `+0x601!=0`.
+Its other arm calls `0x00673640` directly. That helper stores actual
+scale, reclamps the center and invalidates affected draw state.
+`0x0067996A..0x006799DE` advances the selected transition and stops it
+at step 6. Elapsed-time cadence and transition rounding remain UNKNOWN.
+
+`PlayerPosX/Y` are position readbacks on the checked update path.
+`0x00675840` derives their integer values from `(position-offset)/100`,
+or requests -1 for navigation row 1. The checked callback keeps their tags `0x1C/0x1D` on the integer
+readback path. A general writable center property remains UNKNOWN. With explicit layout/page overrides, other center choices
+include the sheet focus pair selected by `FocusPointColumn` and the retained
+map midpoint (`0x00679DCE..0x00679E21`). Those are separate from the
+nonzero-Function automatic actor arm.
+
+Live actor readiness, selected row, property overrides, later writes,
+rotation, frame delivery and painting remain UNKNOWN. Mapping from SetMap region or zone values to the native layout key
+remains UNKNOWN.
+
 ## Viewport and draw
 
 The active viewport update at `0x006762F0` walks retained pieces and calls
