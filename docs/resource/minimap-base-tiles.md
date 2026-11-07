@@ -217,14 +217,101 @@ old greater than new. Equal keys replace the previous candidate, so
 the later retained manager visit wins a full tie.
 
 The result is conditional on retained manager, list and tree state.
-Tree construction `0x0064D288..0x0064D2CE` inserts pointers through
-`0x0064CCF0`, which can subdivide and redistribute entries. The mapping
-from serialized declaration order to final tree traversal remains
-UNKNOWN. Actual manager readiness, list construction order, selected
+The [folder bounds and tree order](#folder-bounds-and-tree-order) are
+reproducible given the registered vector. Actual inventory membership,
+registration order, manager readiness, list construction order, selected
 tavern layout/page, live cadence and painting remain UNKNOWN. Optional
 folder geometry and transforms require their own admission. NaN,
 infinities and signed-zero boundary cases are outside this finite
 ordered interpretation.
+
+### Folder bounds and tree order
+
+STATIC. For an admitted registered folder,
+`0x006426D1..0x0064277F` widens each serialized f32 minimum at
+`+0x30/+0x34/+0x38` to f64, subtracts f64
+`0.009999999776482582` from `0x00FBF9D0`, then narrows to f32.
+The maxima at `+0x40/+0x44/+0x48` receive the corresponding addition
+and narrowing. The coarse bounds occupy BlockAABB `+0x20/+0x30`,
+with fourth lanes set to f32 1. This conversion order leaves the
+ambient rounding mode unproved. [Registration input gate](layout-block-activation.md#folder-registration).
+
+At `0x0064D277..0x0064D2CE`, tree construction creates a depth-0 root
+with aggregate bounds and inserts registered pointers in vector index
+order through `0x0064CCF0`. Node constructor `0x0064CC40` retains
+depth at `+8`, bounds at `+0x10/+0x20` and initially empty local and
+child vectors. Insertion first rejects a coarse AABB that does not
+intersect the node through the XYZ sign mask at `0x0064CD30..0x0064CD5A`.
+
+An unsplit leaf splits when its existing local count is at least 16
+and depth is less than 5 (`0x0064CD7C..0x0064CDA3`). Helper
+`0x0062E150` computes f32 midpoints as `(min+max)*0.5`.
+Constructor/append pairs `0x0064CE4E/0x0064CE6D`,
+`0x0064CEFA/0x0064CF19`, `0x0064CFA6/0x0064CFC5` and
+`0x0064D048/0x0064D067` create four XZ children in this order:
+low-X/low-Z, high-X/low-Z, low-X/high-Z, high-X/high-Z.
+Each child retains the parent's complete Y interval.
+
+The incoming pointer follows existing local entries at
+`0x0064D070..0x0064D077`. Redistribution at
+`0x0064D07C..0x0064D132` visits entries in ascending local index
+and, for each entry, children in ascending index. Intersecting boxes
+can enter multiple children. The old local range is erased through
+`0x0071CC50` at `0x0064D13C..0x0064D161`. Unsplit leaves append
+at `0x0064D179..0x0064D181`. Already split nodes visit every child
+in ascending order at `0x0064D188..0x0064D1CB`.
+
+For finite nonpathological bounds, this establishes final tree order
+given the registered vector. Selector-1 query order remains local
+entries before recursive children in retained vector order. INFERRED
+from the strict priority comparison, a unique greatest-priority
+containing box among eligible admitted candidates wins independently
+of traversal order. Equal priorities and fallback queries require
+the checked tree order. Serialized typed-node enumeration alone does
+not establish the selected inventory's membership or registration
+sequence.
+
+### Optional folder box transform
+
+STATIC. At `0x00642783..0x0064278F`, nonzero folder dword `+0x68`
+selects one call to `0x00641DA0` with the record pointer at `+0x64`.
+This route uses the dword as a Boolean gate. Successful allocation
+stores the optional object at BlockAABB `+8` at `0x00641E87`.
+
+| Referenced record | Selected use |
+| --- | --- |
+| `+0x00`, three f32 | Translation T, `0x00641F9F..0x00642019` |
+| `+0x10`, three f32 | Angle input to `0x00652200`, `0x00641EA0..0x00641ECC` |
+| `+0x20`, three f32 | Scale S, `0x00641ED4..0x00641F97` |
+| `+0x30`, three f32 | Local minimum at optional `+0x10`, `0x00641E32..0x00641E8A` |
+| `+0x40`, three f32 | Local maximum at optional `+0x20`, `0x00641E37..0x00641E9C` |
+
+The optional local bounds are copied without the coarse expansion.
+The stack arguments at `0x00641FF2..0x00642018` leave the scale
+pointer and destination after rotation construction at `0x00642021`.
+With row vectors, multiplication helper `0x0061D050` evaluates each
+row as `(((left.y*right.row1 + left.x*right.row0) +
+left.z*right.row2) + left.w*right.row3)` using separate SSE f32
+operations. The calls at `0x00642036` and `0x0064203D` produce
+R*T followed by S*(R*T). The composed matrix reaches `0x006522D0`
+at `0x0064204E`, and its inverse rows are stored at optional
+`+0x30` through `0x00642053..0x00642078`.
+[Shared affine inverse and reciprocal limits](skeleton-constructor-affine-inverse.md#cofactors-and-reciprocal-refinement).
+
+Containment `0x006400CE..0x006400EF` transforms the manager-local
+point by that inverse through `0x0060CE50`, then selects the optional
+local bounds. The point helper uses the same ordered separate SSE f32
+row sum at `0x0060CE69..0x0060CE9F`, with no perspective division.
+The XYZ sign bits of `MINPS(q-min,max-q)` must all be clear at
+`0x006400F6..0x0064010B`. Aggregate tree and manager gates precede
+this optional test.
+
+The rotation builder uses native per-lane approximation through
+`0x0063FC70`. Host trigonometry and exact matrix inversion have no
+established same-bit qualification for this route. The shared inverse
+uses an RCPPS estimate and refinement with no singularity guard.
+Ambient MXCSR state, boundary classification, selected optional-record
+membership and actual live manager activation remain UNKNOWN.
 
 ### Serialized DivideMap folder page
 
