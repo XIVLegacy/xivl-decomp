@@ -146,7 +146,9 @@ by `0x0091F200`.
 
 For provider receiver `C` and requested root `U`, `0x005472E0` returns
 `C + 0x8C * [0x01336BC4] + 0x18 + 0x24 * j`, where `j` is zero when
-`U` equals the TLS container from `0x0091A1B0` plus `0xB4`, and one otherwise.
+`U` equals the comparison interface, and one otherwise. That interface is
+the desktop object from global `0x01356E10` plus `0xB4` when present and
+null otherwise (`0x0091A1B0`, `0x005472E8..0x005472F5`).
 The profile index and root identity therefore select a collection before
 the generic binding loop runs. Construction alone does not identify its rows.
 
