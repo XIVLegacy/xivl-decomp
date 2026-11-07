@@ -210,6 +210,76 @@ The selected MiniMap mask asset is `data/61/C1/00/00.DAT`, 262176 bytes,
 SHA-256 `a0c0028ad9952201d5803c29c72000032f5b3e10672820bada3a462c87a5558e`.
 It inspects as 256 by 256 A8R8G8B8 GTEX (MEASURED).
 
+## Drawing stream delivery
+
+STATIC. The masked base-tile request uses DrawingToolContext slot `+0x20`.
+Its cell `0x00FA2904` selects `0x00559F60`, which obtains the tool state
+through `0x00559DE0` and forwards to `0x0054DF20`. The builder creates
+`DrawImageWithMask` through `0x005542A0` and appends `0x50` bytes through
+`0x0054CCC0`. Constructor `0x005542DD..0x00554349` installs vtable
+`0x00FA2A10` and stores destination, image source, mask source and color
+at `+0x04`, `+0x14`, `+0x24` and `+0x34`. Image ID, mask ID and flag
+are at `+0x44`, `+0x48` and `+0x4C`. This command layout is distinct
+from the `0x40`-byte unmasked `DrawImage` layout.
+[Drawing context builders](npcsay-backdrop-draw.md#from-element-to-quad-code).
+
+With tool dirty bit `+0x5A & 0x40`, `0x0054E971..0x0054EA64` sends
+its retained byte stream through `0x0054B0D0`. The producer sends at most
+`0x78` bytes per successful request. Nonfinal chunks use local command
+`0x19` and the final chunk uses `0x1A`. An empty stream also sends
+`0x1A`. Successful sends advance tool `+0x54`. Completion clears the
+producer byte range and this dirty bit. `0x0054B11F` adds `0x15` for
+the ScenePacket command, yielding `0x2E` or `0x2F`.
+[WindowActor dispatch](sqwt-icon-control-textures.md#observed-ordinary-control-to-renderer).
+
+The WindowContext dispatch table at `0x008CF3B8` has direct entries
+`0x008CF41C -> 0x008CEEC9` for local `0x19` and
+`0x008CF420 -> 0x008CEEE1` for local `0x1A`. Both pass the payload
+and byte count to `0x008CEBE0`. If context `+0x12E` is already 1,
+`0x008CEBE6..0x008CEC12` clears the previous retained stream and
+resets that byte before appending. The final-command arm resets offset
+`+0x7C` to zero and sets `+0x12E=1` at `0x008CEEF0..0x008CEEF7`.
+
+The draw path requires the checked WindowContext state `+0x128=3` and
+nonzero `+0x12B` at `0x008CE7FF..0x008CE813`. After the earlier
+renderer-slot pass, `0x008CEAFB..0x008CEB32` additionally requires
+alpha `+0x10C` above the constant at `0x00FB7A64`, `+0x12E=1`,
+and either `0x00CA3E00()==1` or `+0x12F=0` before calling
+`0x008CE530`. The earlier actor/category test at
+`0x008CE7D9..0x008CE7F9` can return before this path.
+
+`0x008CE530` reads the retained begin/end pointers at `+0x14/+0x18`
+and starts at offset `+0x7C`. After the nonzero result from `0x007F8B60` at `0x008CE71B..0x008CE722`,
+`0x008CE730..0x008CE783` copies the context color from
+`+0x100..+0x10C`, calls each command's virtual `+4`, and advances by
+the returned byte count. It stops at the retained end or the draw-state
+stop byte. The `DrawImageWithMask` cell `0x00FA2A14` selects
+`0x00696950`, whose checked return is `0x50` at `0x00696A41`.
+This joins the base-tile command to the [masked texture consumer](#masked-tile-sampling).
+The WindowContext drawing stream owns this delivery. Stream delivery, live state values, texture readiness, intervening
+updates and actual painting remain UNKNOWN.
+
+### The declared area image
+
+The authenticated MiniMap form also declares `GlAreaImageId=0x61C10004`
+at line 19. This property is descriptor `0x01340324`, tag `0x23`,
+registered at `0x00F11E80..0x00F11E99`. The setter arm at
+`0x0067412F..0x00674150` selects holder `+0x544`. Activation skips
+`-1` and passes an admitted ID to embedded image `+0x900` at
+`0x00672754..0x00672766`. The active-change callback requires
+control `+0x20 & 1` and updates that image at
+`0x0067396F..0x00673986`.
+
+The checked consumer is a later entry pass, separate from the base-piece
+loop. The caller requires control `+0x958 != -1` at
+`0x00677DE9..0x00677DEF`. `0x00677E46`, `0x00677E9C` and `0x00677EF2` call the walker
+`0x0067DAC0`, which calls `0x0067B980`. That callee requires entry
+`+0x3D` bits 0, 1 and 2 and a positive entry float at `+0x14`
+(`0x0067B9B5..0x0067B9DC`). It selects image `+0x900` in both the
+masked branch through `0x0067BC4A..0x0067BC78` and the unmasked
+request at `0x0067BD36..0x0067BD45`. The entry flags and positive-float gate control this later area pass.
+Entry population, selected geometry and live pass admission remain UNKNOWN.
+
 ## Masked tile sampling
 
 For a tile admitted to the masked branch, `0x00671025..0x00671075`
