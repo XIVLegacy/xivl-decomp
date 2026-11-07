@@ -405,6 +405,25 @@ The pinned decoded form and declarations are in
 (OBSERVED). The following native joins use the executable identified above,
 Ghidra CLI 0.2.2 disassembly and RTTI, and original PE32 instruction and table reads.
 
+### Grid binding declaration
+
+The standard form's `Window_ActionMenuWidget` contains `Grid_Base`
+at line 15 and its unnamed child Grid at line 16. The unnamed Grid's
+`Grid.InputBindings` at lines 17-24 contains six leaves in this order.
+Each command below has the prefix `UILuaCommands.`.
+
+| Form line | PadAction | Command suffix | Declared IsRepeat |
+| --- | --- | --- | --- |
+| 18 | `L1+RLeft` | `ChangeTargetCirclePlayer` | absent |
+| 19 | `L1+RUp` | `ChangeTargetCircleAll` | absent |
+| 20 | `L1+RRight` | `ChangeTargetCircleParty` | absent |
+| 21 | `L1+RDown` | `ChangeTargetCircleEnemy` | absent |
+| 22 | `LUp` | `PushSlotPrev` | `True` |
+| 23 | `LDown` | `PushSlotNext` | `True` |
+
+None declares a command target, parameter or release override.
+See the [decoded form identity and extraction method](action-menu-timer-icon-style.md#inputs-and-method) (OBSERVED).
+
 ### Grid binding materialization
 
 The markup branch at `0x0094B991..0x0094B9C0` checks the
@@ -481,6 +500,39 @@ event at `0x0091E688`. The admitted current-interface store is at
 This supplies a conditional producer for the focus interface read by
 PadChange. Which interface the Window chooses and whether the route
 visits its outer Grid remain UNKNOWN for the live form.
+
+### Window focus candidate search
+
+The Window's input slot `+0x68` selects `0x0092E650` through
+cell `0x01069FFC`. The selected mode `0x0F` reaches `0x0092E6A7`.
+It requires input slot `+0x5C` to succeed at `0x0092E6AE..0x0092E6B2`
+before calling `0x0092E5F0`. The helper can return the Window's own
+interface after checks through input slots `+0x0C` and `+4`, and
+complete slot `+0xE4`. Otherwise it calls `0x0092E020` with
+mode `0x0F` at `0x0092E635` (STATIC).
+
+The descendant search enumerates immediate children through
+`0x0092D860`. A child that fails input slot `+0x5C` is skipped
+with its subtree at `0x0092E207..0x0092E20B`. The checked Grid's
+slot selects `0x00939AA0`, which checks visibility along the
+ancestor chain. For an admitted child, direct return requires
+input slot `+4`, complete slot `+0xE4` and input slot `+0x0C`
+to return 1 at `0x0092E214..0x0092E235`. Failure at any of these
+three checks recurses into that child at `0x0092E23A` (STATIC).
+
+The Grid input table `0x0107442C` selects `0x0091C3D0` at
+slot `+4`, which reads bit 0 of input interface `+0x70`.
+InputElement construction clears that bit at `0x0091E103..0x0091E123`.
+The Grid constructor path through `0x00995B70` requests
+`Focusable=False` at `0x00995CE4..0x00995CEA` (STATIC).
+The form's two outer Grids declare no Focusable override.
+The named StackPanels at form lines 176 and 205 declare both
+`Focusable=True` and `FocusManager.IsFocusScope=True` (OBSERVED).
+
+Under the checked constructor and markup state, the binding Grid
+fails the direct return's focusability gate. Its eligible descendants
+can still be searched. The actual selected interface and route visit
+remain UNKNOWN for the live form.
 
 ### Routed PadChange and repeat match
 
