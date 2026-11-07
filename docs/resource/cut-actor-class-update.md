@@ -38,8 +38,9 @@ That lookup walks the actor list and compares the supplied bytes with each
 actor's virtual slot-13 name, byte offset `0x34`. The comparison is exact
 and case-sensitive; the first match returns its actor pointer T, and exhaustion
 returns zero (`0x007D2930..0x007D29C5`). A dictionary label, actor ordinal,
-runtime actor ID and constructed lookup name remain distinct until their
-construction is joined.
+runtime actor ID and constructed lookup name have distinct roles. The
+[ProxyActor name contract](cut-proxy-actor-names.md) joins the selected
+`man50250` record to its adjusted getter and copied lookup bytes.
 
 For nonzero T, `0x006121D1` calls `0x0060F130` with
 `(T,constructedName,classWord)`. The latter forms this 12-byte Q and calls
@@ -154,7 +155,8 @@ Q+8 equal to zero selects these alternatives in `0x005656E0`:
 
 The first branch's TEST/JA sequence admits exactly 10000, not a range below
 it. These alternative sources do not establish an actual `man50250`
-argument or identify its authored label with the decimal name word.
+argument. The [ProxyActor name contract](cut-proxy-actor-names.md) supplies
+name word 12000 for actor 5 under its formatting and retention conditions.
 For name word 12000, the null-source exit is `0x00563872 -> 0x005638F2`,
 before the shared packet construction at `0x0056389C`.
 

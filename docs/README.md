@@ -358,6 +358,7 @@ Each finding records its evidence and the limits of what it establishes.
 - [Cut scheduler clip layout](resource/cut-scheduler-clip-layout.md)
 - [Cutscene caption and actor-class inputs](resource/cut-caption-actor-bindings.md)
 - [Cut actor-class appearance requests](resource/cut-actor-class-update.md)
+- [Cut ProxyActor constructed names](resource/cut-proxy-actor-names.md)
 - [Cut collision clip corpus](resource/cut-collision-clip-corpus.md)
 - [Grand Company cut preview owners](resource/grand-company-cut-preview-owners.md)
 - [Cut scheduler preview setup consumer](resource/cut-preview-setup-clip.md)

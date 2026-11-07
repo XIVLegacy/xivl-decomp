@@ -135,6 +135,8 @@ result and target's constructed name are supplied to `0x00613960` at
 `0x008260A5`. That delegate rejects class value `0xFFFFFFFF` or a null
 first explicit word before its call to `0x006121A0`. Its broader actor
 effects follow the [class-to-appearance request](cut-actor-class-update.md).
+The [ProxyActor name contract](cut-proxy-actor-names.md) owns the adjusted
+interface, constructed lookup bytes and caller-side String copy.
 
 ## Integer vector to ScheduleRegister
 
