@@ -209,7 +209,8 @@ attribute. The origin property is explicit, while its native recipient remains
 unresolved. The remaining Window animation properties are VisualOpacity,
 SqwtTopOffset and SqwtLeftOffset.
 
-Form line 14 declares Label_TargetingMember with VisualOpacity 0 and selects
+Form line 14 declares Label_TargetingMember with SqwtStyle
+`LAB_basis_unitSelected` and VisualOpacity 0. It selects
 ControlTemplate_Label_TargetEffect. That template at widget-template lines
 14 through 40 has the separate RenderTransform Setter ScaleTransform at line
 15. Its TargetEffectOn and TargetEffectOff command triggers at lines 17 and
