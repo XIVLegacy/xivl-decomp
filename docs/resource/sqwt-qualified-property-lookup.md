@@ -306,6 +306,62 @@ The checked Button-local branches compare separate design-data
 descriptors. This route establishes retained owner data and ordinary
 change delivery. Live property reads and command delivery remain UNKNOWN.
 
+## ActionMenu macro ContentTemplate literals
+
+The [authenticated ActionMenu form](action-menu-timer-icon-style.md#inputs-and-method)
+declares `ContentTemplate` on `Button_UserMacroIcon_1` through
+`Button_UserMacroIcon_10` at lines 206-215. Each value has the text shape
+`{CommandParameter Int,N}`, with N equal to the owner suffix 1 through 10.
+These Buttons select `ControlTemplate_Button_MacroIcon` and command
+`UILuaCommands.ExecuteUserMacro`. Their selected property is separate from
+the command Buttons' `CommandParameter` at form lines 177-186.
+The selected form and template declare no resource key equal to these
+ten ContentTemplate strings (STATIC).
+
+The [ordinary property route](sqwt-plain-text-reference-lookup.md#sqtp-07-conditional-native-route-to-contentcontrolcontent)
+reaches `0x00912850`. Its brace test at `0x00912960..0x009129EE`
+tries the exact first token `{Binding`, supplied at `0x010683A8`.
+Tokenizer delimiters at `0x01068318` are `} ,=`. Comparison
+`0x0091199C..0x009119A3` rejects the selected `{CommandParameter`
+token. The original value wrapper then reaches the owner hook at
+`0x00912A39`. Button cell `0x01073CE0` selects `0x00910B50`, which
+returns false, allowing property dispatch at `0x00912A3F..0x00912A55`.
+This selected route supplies text to the ContentTemplate setter (STATIC).
+
+Initializer `0x00F22200..0x00F22219` gives `ContentTemplate` descriptor
+`0x01358F4C` index 1. ContentControl parser `0x00936320` takes its
+nonempty branch at `0x009363DF`. If the existing holder at owner
+`+0x354` has the same name text, `0x009363E9..0x00936427` bypasses
+construction, application and assignment. Otherwise, successful allocation
+reaches `0x009348F0` at `0x0093644E`. It constructs a DataTemplate,
+whose base copies the complete input text into its name at `+0x48`
+(`0x0099B3E4..0x0099B41D`). This checked path selects named DataTemplate construction (STATIC).
+
+Application at `0x00936463` calls `0x0099AF80`. The DataTemplate
+cell `0x0106B25C` selects `0x00934910`, supplying `DataTemplate`
+through the string initialized at `0x00F28F60..0x00F28F70`.
+`0x0099AFDE..0x0099B04A` supplies the retained complete name, owner
+class and template type to the named resource lookup. Its
+`0x0094A2BD..0x0094A2C4` miss returns false at `0x0094A30B`,
+and application stores that outcome at template `+0xCC` at
+`0x0099B053`. The root starts null at `0x0096E53F` through
+the subobject constructed at template `+0x80`; a lookup miss
+materializes no root in that attempt (STATIC).
+
+After application returns, `0x00936472` still requests assignment
+through `0x00935C50`. Its property is owner `+0x354`, descriptor
+`0x01358F4C`. An admitted changed write retains the DataTemplate
+pointer at `0x009C38A2` and can notify through `0x009C38BF`.
+After its owner callback returns normally, ContentControl change handling
+checks the current retained template root at `0x009359E4..0x009359F6`.
+A null root calls `0x00934F40`
+with null Content at `0x00935A09..0x00935A11`. This conditional Content write has its own property-state gates (STATIC).
+
+This establishes the selected text, named DataTemplate attempt and conditional
+retained state. The form and selected template have no matching key, but
+complete live resource dictionaries, actual lookup outcome, notifications,
+subsequent Content writes and rendered macro appearance remain UNKNOWN.
+
 ## ActionMenu StackPanel focus declarations
 
 The [authenticated ActionMenu form](action-menu-timer-icon-style.md#inputs-and-method)
