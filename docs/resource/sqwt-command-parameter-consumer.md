@@ -449,6 +449,26 @@ produced any specific live Grid.
 The native pad update enters the routed PreviewPadChange and PadChange
 path described in
 [xivl-client-structs: Pad receiver and first consumer](https://github.com/XIVLegacy/xivl-client-structs/blob/8ee5be22e27b63b0442d4a413d584238796a744c/docs/native-input-ui-boundaries.md#pad-receiver-and-first-consumer).
+The [routed event arm](../input/player-movement-command-origin.md#pad-record-to-routed-event)
+calls `0x0091EE90` twice with the same event at `0x0091AD02..0x0091AD24`,
+first with kind 2 (PreviewPadChange), then with kind 0 (PadChange).
+The router requires a focus interface at `0x01357020` and copies the
+route entries from `0x01357060` at `0x0091EEBD..0x0091EEEF`. In the
+nonempty-copy arm at `0x0091EF05..0x0091F046`, if focus differs from
+the desktop interface and from the final pair's recipient, the router
+can move the pair matching its derived key to the end of the copy.
+Kind 0 reverses the copy at `0x0091F046`, so a pair moved to the end
+becomes the first outer route candidate for PadChange. Kind 2 skips
+that reversal.
+
+The matching pair's recipient fields `+0x64` and `+0x68` supply event
+fields `+0x0C` and `+0x08` at `0x0091F0F0..0x0091F115`. The router calls
+`0x0091E1C0` for admitted nonnull candidates at `0x0091F199` and stops
+the walk when event `+0x17` equals 1. The matching recipient can differ
+from the stored focus interface, and later candidates can use other
+recipients. STATIC. The live ActionMenu focus and recipient list remain
+UNKNOWN.
+
 PadChange descriptor `0x01359420` takes id 0x26 at `0x00F22FD9`.
 The generic dispatcher uses byte `0x0091D83D=0x22`, then cell
 `0x0091D7E8`, then arm `0x0091D349`, which calls interface +0x6C.
