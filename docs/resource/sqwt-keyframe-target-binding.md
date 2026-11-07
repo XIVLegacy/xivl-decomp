@@ -674,6 +674,27 @@ selects the index-11 arm through cells `0x0093FF8B` and `0x0093FF78`, then
 calls `0x0093FD70` at `0x0093FF35`. An equal finite value takes the skip
 at `0x009413B4`.
 
+### Empty literal on the dummy page Label
+
+The authenticated ActionMenu form at line 174 declares an empty
+`SqwtDrawOrder` on `Label_MenuSlot_Dummy`. The XML parser at
+`0x00DC29D1..0x00DC29F9` skips value assignment for adjacent quotes
+and still inserts the attribute at `0x00DC2A9D`. The attribute's
+value wrapper starts with an empty string (`0x00DC349E..0x00DC34A5`).
+The markup path forwards that wrapper at `0x009469D2..0x009469DF`.
+
+On the admitted fresh Visual path, the empty string reaches the float
+converter at `0x00988CD0`. Its fallback calls the CRT conversion at
+`0x00988D3B`. The no-digit branch at `0x009EB9E3..0x009EB9EB` produces
+positive zero, which the float converter stores as binary32 at
+`0x00988D40`. The selected empty literal therefore requests zero.
+The fresh Visual already holds zero, so `0x009413B4` skips the
+value store and notification. An admitted write over a different finite
+value takes the normal zero assignment path. STATIC. Live intervening
+writes and the resulting paint remain UNKNOWN.
+
+### Sibling order changes
+
 With a parent present, `0x0093FD70` reads the child's old index, removes
 it and reinserts it into that same parent's collection at `+0xAC`
 (`0x0093FD73..0x0093FDAA`). Adding a second child promotes the single
