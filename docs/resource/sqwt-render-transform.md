@@ -156,6 +156,93 @@ branch of the origin notification, the retained pair has no own
 visual matrix effect. This does not establish the Window's live
 pointer, ancestor composition or trigger delivery.
 
+## PlayerParameter Window origin
+
+OBSERVED markup. The PlayerParameter Window selects an origin-animation
+template without declaring an own RenderTransform assignment. Its selected
+targeting-label template has a separate ScaleTransform Setter. This finding
+bounds those declarations and the conditional native null-pointer path above.
+
+Paths are relative to `client/sqwt`. The first three identities agree with the
+[PlayerParameter structure record](https://github.com/XIVLegacy/xivl-client-data/blob/3fdca48f2ab6d61187b10a1e04f02326661270f7/docs/sqwt-player-parameter-structure.md#source-and-extraction).
+
+| Input | Container bytes | Container SHA-256 | Decoded bytes | Decoded SHA-256 |
+| --- | --- | --- | --- | --- |
+| `widget/PlayerParameterWidget.form` | 5987 | `602cefe3489630240466d9d3dab9484bd59f3dbefaa33a50534f7b65ea5c5b2a` | 5979 | `88c37e2cc1b7ac5e83f24349dfeeedbdd148a44beaefc41015296ad24a5a8237` |
+| `widget/PlayerParameterWidget.tpl` | 2514 | `81155d689fc5dfe64c348487b9e63470a19e342ba25bf00a6db433672a454c91` | 2506 | `ca8698a204a642943db9cb6f8757e387bc29c664ff7779734b6fa2e405fcafce` |
+| `common/WINBasisLight_noGrayout.tpl` | 4303 | `be271e92c52765dd1cfd8c786c0f77144440520b84239f08db5b0c21c97c8949` | 4295 | `47271a67f14e47e0fb458e1a211de9366b17c112576e951668bd519e116ee6d8` |
+| `common/default.style` | 353783 | `632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0` | 353775 | `33bb178c3b172c62eeb65e8bcaf94f701a0ec3921564e27a619516900896d9f6` |
+
+`xivl-tools` revision `f2a9a2b5a6a4c450458db7a493c25fcdcd70aca0`
+produced the decoded documents with `extract-resource --as sqwt`. The form
+and both templates passed fresh exact `verify-extraction --source` replay.
+The retained style extraction has a passing exact source-replay receipt. Its
+file seals and original identity were rechecked. Python Expat supplies the
+decoded locations. Preserve each original basename in this recipe:
+
+```sh
+xivl inspect <original-named-file> --as sqwt
+xivl extract-resource <original-named-file> --output <new-private-output> --as sqwt --format json
+xivl verify-extraction <new-private-output> --source <original-named-file> --report json
+```
+
+Form line 1 names Window_PlayerParameterWidget and WIN_null. Lines 5 and 6
+merge the identified common and widget dictionaries. Lines 10 through 12
+select ControlTemplate_Window_WINBasisLight. The complete form declares no
+RenderTransformOrigin or RenderTransform attribute, transform slot, transform
+binding or trigger. The selected common Window template at lines 2 through
+73 has Grid_Content and ContentPresenter at lines 3 and 4, then SqwtTopOffset
+and SqwtLeftOffset setters at lines 6 and 7. It declares no own transform
+literal, Setter, slot or binding.
+
+| Common-template event | Ordered actions | Origin track and keyframe |
+| --- | --- | --- |
+| Shown at line 9 | Stop ClosingAnimation, stop HidingAnimation, begin OpeningAnimation at lines 10 through 12 | PropertyAnimationUsingKeyFrames at lines 14 through 16, Value `0.5,0.5` at line 15 |
+| Closing at line 23 | Stop OpeningAnimation, stop HidingAnimation, begin ClosingAnimation at lines 24 through 26 | PropertyAnimationUsingKeyFrames at lines 28 through 30, Value `0.5,0.5` at line 29 |
+| Hiding at line 37 | Stop OpeningAnimation, stop ClosingAnimation, begin HidingAnimation at lines 38 through 40 | PropertyAnimationUsingKeyFrames at lines 42 through 44, Value `0.5,0.5` at line 43 |
+
+Each origin track declares only Storyboard.TargetProperty RenderTransformOrigin,
+and its single DiscreteValueKeyFrame declares only Value `0.5,0.5`. These
+track/keyframe pairs omit BeginTime, Duration and KeyTime. The selected Window
+trigger descendants have no TargetName, Storyboard.TargetName or binding-shaped
+attribute. The origin property is explicit, while its native recipient remains
+unresolved. The remaining Window animation properties are VisualOpacity,
+SqwtTopOffset and SqwtLeftOffset.
+
+Form line 14 declares Label_TargetingMember with VisualOpacity 0 and selects
+ControlTemplate_Label_TargetEffect. That template at widget-template lines
+14 through 40 has the separate RenderTransform Setter ScaleTransform at line
+15. Its TargetEffectOn and TargetEffectOff command triggers at lines 17 and
+28 first stop the opposite named storyboard, then begin their own. Their
+origin tracks at lines 21 through 23 and 32 through 34 declare BeginTime
+`0:0:0` and keyframe Value `0.5,0.5`, with no Duration or KeyTime. They also
+omit TargetName and Storyboard.TargetName. These are the only two other
+origin tracks in the identified form and dictionaries.
+
+The complete form, both complete dictionaries and the 12 directly named
+style subtrees plus their eight distinct explicit Window part-reference
+subtrees declare no ScaleX, ScaleY or AngleZ literal, slot, binding or
+animation. The Window WIN_null style at lines 15 through 26 has no transform
+or origin declaration. None of the other selected style subtrees adds one.
+The style root names common/default.skin, whose contents are outside this
+finding. Omitted explicit styles do not establish native default selections.
+
+STATIC from the constructor and notification paths above. If an admitted
+origin write reaches an element while its own transform pointer at +0x138
+is null, the origin is retained and this notification skips own visual
+reapplication. The selected PlayerParameter Window origin tracks and absence of a
+local own-transform assignment supply a finite asset candidate for this
+conditional branch. They do not prove the unnamed track's recipient or its
+live pointer. The targeting Label's separate Setter cannot establish the
+Window's pointer.
+
+The missing runtime facts are the resolved origin-write recipient, its own
+transform pointer at notification, and any intervening writer of that pointer
+or origin. Template activation, property admission, trigger delivery, later
+script or native writes, effective ancestor composition, clock execution,
+hit testing and rendered state remain UNKNOWN. The declarations do not
+identify a particular interaction as an origin-change producer.
+
 ## Applying the transform to the visual
 
 `0x00940260` forwards to `0x00941290` with the descriptor `0x01359868`, which is
