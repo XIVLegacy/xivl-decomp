@@ -114,12 +114,13 @@ the same with `0x00990C40` and `0x00990C70`. STATIC.
 The origin is therefore a fraction of the render size, applied as a multiplier
 of the size pair, and the centre is in the units of `RenderSize`. STATIC.
 
-The code at `0x0093BAE2..0x0093BB8B` and `0x0093BBFF..` multiplies the same pair
-again into the cached transforms' centres when it runs, and then re-applies the
-transform pointer at `+0x138` through `0x00940260` when it is non-null (the load
-and test at `0x0093BB76..0x0093BB7E`, the call at `0x0093BB8B`). Which event runs this block is not traced, so the
-claim that the centre follows a size change is INFERRED from the block's use of
-`+0x14C` and `+0x150`.
+The origin notification uses descriptor tag `0x0B`. Callback table cell
+`0x0093BD64` selects `0x0093BAE2`, which multiplies the same pair into the
+centres of any existing cached transforms. The load and test at
+`0x0093BB76..0x0093BB7E` skip visual application when the own transform
+pointer at `+0x138` is null. Otherwise the call at `0x0093BB8B` reapplies
+that pointer through `0x00940260`. A separate centre update at
+`0x0093BBFF` also uses the render size pair. STATIC for these paths.
 
 ## Markup routes
 
@@ -136,6 +137,24 @@ therefore do not set a `ScaleTransform` centre through the markup. The centre of
 such a transform is `RenderTransformOrigin * RenderSize`. INFERRED. A
 `RotateTransform` centre has the other writers above, so this conclusion
 does not extend to it.
+
+## ActionMenu Window origin
+
+The [authenticated ActionMenu inputs](action-menu-timer-icon-style.md#input-and-method)
+declare `RenderTransformOrigin` `(0.5, 1)` on the Window at form line 1.
+Form lines 9 through 13 select `ControlTemplate_Window_ActionMenu` and
+`Style_ActionBarWindow`. The root, selected template and selected style
+declare no own transform assignment. The template's Shown, Closing and
+Hiding origin tracks at lines 13 through 14, 27 through 28 and 43
+through 44 supply `(0.5, 0.5)`. The selected Window style's tracks
+target named border opacity. These are declaration observations.
+
+STATIC. The base constructor initializes the own transform pointer to
+null at `0x0093C819..0x0093C830`. The literal route at
+`0x0093D222..0x0093D249` retains the origin pair. On the null pointer
+branch of the origin notification, the retained pair has no own
+visual matrix effect. This does not establish the Window's live
+pointer, ancestor composition or trigger delivery.
 
 ## Applying the transform to the visual
 
@@ -215,7 +234,7 @@ singleton holds in a session with no input, are UNKNOWN.
 - The reader of `VisualTransform` and the composition of the matrix with the
   element's layout position.
 - Hit testing under a transform.
-- The event that runs the size-driven centre update at `0x0093BAE2`.
+- The full caller and notification conditions for the separate centre update at `0x0093BBFF`.
 - The events that run the `IsMouseOver` setters `0x0093A410` and `0x0093A480`.
 - The writers of the anchor global `0x01357020` and of the gate global
   `0x01356F34`, and the value of the singleton byte `+0x158` in a session with
