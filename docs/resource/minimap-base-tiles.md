@@ -463,6 +463,45 @@ The selected MiniMap mask asset is `data/61/C1/00/00.DAT`, 262176 bytes,
 SHA-256 `a0c0028ad9952201d5803c29c72000032f5b3e10672820bada3a462c87a5558e`.
 It inspects as 256 by 256 A8R8G8B8 GTEX (MEASURED).
 
+### Base tile local transform requests
+
+STATIC. For the admitted base-piece draw, `0x00676BBB..0x00676C0C`
+builds a uniform scale from the stored f32 draw scale `s`.
+`0x00676C7E..0x00676D13` builds translation by
+`(f32(W/2),f32(H/2),0)` and pushes it through context slot `+0x14`
+at `0x00676D6D`. After computing `Cx,Cy`,
+`0x00676E82..0x00676EE1` builds the negative center translation and
+multiplies it with that scale. The second transform is pushed at
+`0x00676F39`. With the checked row-vector multiplication, its matrix
+is `T(-Cx,-Cy) * S(s,s)`.
+[Matrix builders and multiplication](sqwt-render-transform.md#matrix).
+
+Each tile initializes an identity matrix and replaces its fourth-row
+X/Y translation with tile `+0x08/+0x0C` at
+`0x00670F93..0x00670FB2`. The tile transform is pushed at
+`0x00671023` before the local 256-by-256 destination rectangle is drawn.
+The tile helper pops it through context slot `+0x18` at
+`0x00671260..0x00671267` after the request.
+No rotation matrix is introduced by these selected base-tile operations.
+
+The push slot cell `0x00FA28F8` selects `0x00559F10`, forwarding to
+`0x0054DC00`. It constructs a `0x44`-byte `PushTransform` command
+with vtable `0x00FA29E0` and a 4-by-4 f32 matrix at `+4` through
+`0x005540D0`. Command cell `0x00FA29E4` selects `0x00696E80`.
+When the current stack record's `+0x4C` is nonzero,
+`0x00696EA0..0x00696EAF` computes command matrix times the current
+matrix, then applies and pushes the result at `0x00696EDD..0x00696EEC`.
+The alternate branch includes the current record's XYZ offset.
+The pop slot cell `0x00FA28FC` selects `0x00559F20 -> 0x0054DDA0`.
+Its command cell `0x00FA29F4` selects `0x00696DF0`.
+
+INFERRED algebra, before an unchanged admitted outer matrix `B`: a local
+tile point `(x,y)` in the checked stack sequence becomes
+`((x+tileX-Cx)*s+W/2, (y+tileY-Cy)*s+H/2)` and then receives `B`.
+This equation describes matrix composition. Exact floating-point rounding
+and final pixels require separate qualification. The active outer offset/matrix, extra
+transforms, live rotation, backend state and painting remain UNKNOWN.
+
 ## Drawing stream delivery
 
 STATIC. The masked base-tile request uses DrawingToolContext slot `+0x20`.
