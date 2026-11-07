@@ -91,6 +91,67 @@ unresolved. See
 [Timeline AnimeTime publication](sqwt-double-animation-clock.md#timeline-animetime-publication)
 and [Sqwt style animation reverse binding](sqwt-style-reverse-binding.md).
 
+## Battle-regimen ToggleButton declarations
+
+OBSERVED markup. Form line 220 declares the sole ToggleButton,
+`ToggleButton_ChangeBattleRegimen`, with static-resource Template key
+`ControlTemplate_ToggleButton_BattleRegimen` and SqwtStyle
+`TOG_actionMenu_battleRegimen`. It declares command
+`UILuaCommands.ChangeCombinationMode`, the same named CommandTarget,
+Bottom alignment and Focusable False. Its `SqwtDesignData.StringValue0`
+binding names `Label_ChangeBattleRegimen`, with no Path or Mode there.
+The help Label at form line 223 binds Content OneWay to that
+ToggleButton's Content. The
+[omitted-path handle consumer](sqwt-qualified-property-lookup.md)
+records the separate native lookup boundary.
+
+The selected ControlTemplate occupies template lines 354 through 373
+and targets `{x:Type ToggleButton}`. Its only child is
+`ControlTemplate.Triggers`. It declares no visual child, initial
+Setter, cloned Name or checked-state property Trigger.
+
+| Template lines | Event and SourceType ToggleButton | First command | Second command |
+| --- | --- | --- | --- |
+| 356 through 359 | MouseLeave | `UILuaCommands.LeaveButton` | `SQWTDesignCommands.NonDisplayPopupHelp` |
+| 360 through 363 | LostAnchor | `UILuaCommands.LeaveButton` | `SQWTDesignCommands.NonDisplayPopupHelp` |
+| 364 through 367 | MouseEnter | `UILuaCommands.EnterButton` | `SQWTDesignCommands.DisplayPopupHelp` |
+| 368 through 371 | GotAnchor | `UILuaCommands.EnterButton` | `SQWTDesignCommands.DisplayPopupHelp` |
+
+Each event declares two ExecuteCommandActions in that order. The first
+binds CommandParameter to TemplatedParent.Name, without an explicit Mode.
+The second binds CommandTarget OneWay to
+TemplatedParent.SqwtDesignData.StringValue0. These references name the
+owner, without a declared per-clone Name or ElementName binding inside
+this selected template.
+
+Form line 1 names `common/default.style`. Under Widget Type ToggleButton,
+its `TOG_actionMenu_battleRegimen` style at lines 3452 through 3455
+contains CheckedButton and UncheckedButton parts. Both reference Widget
+Type Button, selecting `TOG_actionMenu_battleRegimenOn` and
+`TOG_actionMenu_battleRegimenOff` respectively. Their Button styles at
+lines 1613 through 1624 and 1601 through 1612 declare Frame conditions.
+Normal and Disabled use their corresponding `_N` skin. Hover, Anchored
+and Reserved use `_H`. Active uses `_H` with SkinOffset `1,1`.
+Focused and Droppable use `NULL`. Those selected style subtrees contain
+no IsChecked property setter or trigger. The source skin and textures
+are separate inputs.
+
+The style container is 353783 bytes, SHA-256
+`632b314cb2257fcbee42d4b002989a58dfeb42e64af864c1f5356336dc233dc0`.
+Its decoded document is 353775 bytes, SHA-256
+`33bb178c3b172c62eeb65e8bcaf94f701a0ec3921564e27a619516900896d9f6`.
+The form, template and style named containers were decoded with
+`xivl-tools` revision `f2a9a2b5a6a4c450458db7a493c25fcdcd70aca0`,
+using `extract-resource --as sqwt` and exact `verify-extraction --source`
+replay. Python Expat provides the decoded locations. The form/template
+digests agree with the inputs above.
+
+These are static declarations. Native default and checked-state
+selection, internal Button construction, style precedence, trigger
+subscription, command execution, template materialization, input and
+rendering require separate evidence. The declared absence of a visual
+child or IsChecked value supplies none of those behaviors.
+
 ## OBSERVED Storyboard completion route
 
 The declaration at template line 562 omits `CompletedCommandTarget`. On the
