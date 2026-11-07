@@ -263,6 +263,49 @@ do not establish an inherited-Foreground alias. Callback effects and other
 provider-specific compatibility and admission remain UNKNOWN. This provider
 is not selected by the catalog miss described above.
 
+## ActionMenu Button integer data
+
+The [authenticated ActionMenu form](action-menu-timer-icon-style.md#inputs-and-method)
+declares `IntData.Value0` on the ten `Button_Command_1` through
+`Button_Command_10` owners at lines 177 through 186. Each literal is its
+owner number, from 1 through 10. All are children of
+`StackPanel_MainMenu` under `Grid_MainMenu` in `Label_MenuSlot_Dummy`.
+Their selected template is `ControlTemplate_Button_MenuIcon`. The
+normalized declaration is separate from each Button's `CommandParameter`
+record. The authenticated template declares no `IntData.Value0` attribute
+or binding (STATIC).
+
+The [attached provider](#a-concrete-attached-provider) owns descriptor
+`0x0135F908`. Context constructor `0x00991ACB` clears `EBX`, and
+`0x00991DF5` stores that zero at the selected register's `+0x40`.
+The miss constructor loads this default pointer at `0x009931E1`,
+then `0x0095F724..0x0095F739` supplies its dword to the property
+constructor at holder `+0x24`. Receiver-keyed allocation therefore gives
+the selected property an initial integer zero (STATIC).
+
+Metadata construction `0x00F26CA0/0x00F26CAA` selects getter
+`0x0095E600` and writer `0x0095EAC0`. Both require property index
+zero. The writer calls `0x009415B0` at `0x0095EAE0`. A preprocessing
+return other than sentinel `0x01356DA8` reaches the signed numeric
+converter `0x00988A30` at `0x009415FB`, then integer store
+`0x0095E200` at `0x00941617`. The
+[converter finding](sqwt-markup-font-numeric-properties.md#fm-03-preprocessing-and-signed-numeric-conversion)
+owns its base-zero `strtol` rules. The ordinary unchanged literal wrappers
+for 1 through 10 select the corresponding integer values.
+`0x0095E257..0x0095E274` retains a changed dword and conditionally
+notifies through `0x0095DCE0`. Equal values bypass that notification
+call. The property state flags can refuse a write earlier in this routine
+(STATIC).
+
+Getter `0x0095E60C..0x0095E61D` supplies holder `+0x24` to
+`0x00988A90`. Its ordinary format is `%d` at `0x01077268`.
+The attached callback at `0x0095D890` forwards to the retained receiver's
+slot `+0x18`. Button primary table `0x01073CAC` selects `0x00934B60`
+for that slot, which calls the inherited handler at `0x00934BA4`.
+The checked Button-local branches compare separate design-data
+descriptors. This route establishes retained owner data and ordinary
+change delivery. Live property reads and command delivery remain UNKNOWN.
+
 ## ActionMenu StackPanel focus declarations
 
 The [authenticated ActionMenu form](action-menu-timer-icon-style.md#inputs-and-method)
