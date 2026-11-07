@@ -47,6 +47,15 @@ through 153. Both controls declare centered alignment and a 64 by 64 size.
 declares a local `Visibility`, `VisualOpacity`, or `Percent` value. The
 ordinary `IconControl` declares no literal image ID or source there.
 
+The `Label` template sets its owner's `RenderTransform` to `ScaleTransform`
+at template line 150. `Grid_Command` declares 44 by 44 at line 151.
+Neither that Grid nor the TimerIcon declares a local transform or
+`ClipToBounds`. The `Label` template has no track for either scale axis.
+It targets `RenderTransformOrigin` at lines 186 and 197. The containing
+page template's ContentPresenter declares `ClipToBounds` false at line
+312. These declarations leave effective ancestor state and arranged
+placement open.
+
 `Style_TimerIcon` targets `TimerIcon` in the same dictionary. It declares an
 empty `SqwtIsAutoSetSkin` attribute and sets `SpkSource` to
 `common/timerEffect.le.spk` at template lines 557 and 558.
@@ -180,6 +189,39 @@ both payload slots are nil. See the
 [TimerEnd registration and refresh](https://github.com/XIVLegacy/xivl-client-scripts/blob/7941b9bca4d4015c939c50eb68d95bc2ec44f723/docs/action-menu-recast-inputs.md#timerend-refresh).
 Actual PreviewExecuted admission, priority gating and live delivery
 remain UNKNOWN.
+
+## Initial transform and clip forwarding
+
+STATIC. An unchanged default [ScaleTransform](sqwt-render-transform.md#scaletransform-object)
+returns the shared matrix object referenced by `0x012E6594` at
+`0x00990DEE..0x00990DF5`. Startup `0x00F26AE0..0x00F26B00` initializes
+that object's matrix with the identity builder `0x0042FCF0`. The Visual
+transform update at `0x009412E1..0x00941309` also selects that pointer
+when the VisualTransform storage's cached matrix is null. It compares
+that matrix with the supplied transform's
+matrix through `0x0098FBB0` and skips the dirty path on equality. A
+default transform declaration alone therefore need not stage a matrix.
+The WindowContext matrix consumer at `0x008CD0B6..0x008CD0E3` also
+skips an equal identity when both context transform fields are null.
+Later writes and effective parent matrices remain separate inputs.
+
+STATIC. The `ClipToBounds` callback's tag `0x0E` reaches `0x00939BD0`
+through `0x0093BCFA`. The helper requests a zero rectangle when the bit
+is clear, or a rectangle at `(0, 0)` with width and height each at least
+one when set. It calls the VisualClip setter at `0x00939C8C`. The setter
+skips a zero request against the default zero rectangle
+(`0x00941DC2..0x00941DDC`). Changed VisualClip tag 8 forwards through
+`0x0093FE6E..0x0093FE86` and proxy slot `+0x4C`.
+The proxy target `0x0055A0E0` stages the rectangle and flush
+`0x0054EB68..0x0054EBB1` submits it as local `0x04`.
+
+WindowContext case `0x008CEDBB` calls `0x008CD6D0`, which reaches
+`0x008CD110`. It ignores an all-zero rectangle when local clip byte
+`+0x55` is already clear (`0x008CD136..0x008CD189`). Inherited clip is
+separate. The parent update passes its retained clip at `+0x58` to the
+child update at `0x008CDD7E..0x008CDDAE`. A false local setting does not
+settle the effective stock scissor. See
+[translation-only placement and draw order](sparklecontrol-source-sequence.md#timericon-draw-order-and-translation-only-placement).
 
 ## OBSERVED TimerIconId handoff
 
