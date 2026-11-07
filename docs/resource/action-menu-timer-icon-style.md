@@ -146,11 +146,66 @@ using `extract-resource --as sqwt` and exact `verify-extraction --source`
 replay. Python Expat provides the decoded locations. The form/template
 digests agree with the inputs above.
 
-These are static declarations. Native default and checked-state
-selection, internal Button construction, style precedence, trigger
-subscription, command execution, template materialization, input and
-rendering require separate evidence. The declared absence of a visual
-child or IsChecked value supplies none of those behaviors.
+These are static declarations. The conditional native initial skin
+profile below has a separate constructor and renderer proof. Internal
+Button construction, style precedence, trigger subscription, command
+execution, template materialization, input and actual rendering remain
+separate boundaries.
+
+### Conditional initial Toggle skin
+
+STATIC. The [constructor checked value and image-index seeds](../input/game-controller-startup.md#constructor-checked-value-and-image-index)
+are false and zero respectively, subject to later writes. The
+[published checked callback](../input/game-controller-startup.md#checked-state-callback-changes-the-image-part-index)
+requests index one or zero under its own mutation guards.
+
+At `0x0095D70E..0x0095D72D`, the constructor supplies
+`ToggleButton:UncheckedButton:Frame,CheckedButton:Frame` from
+`0x0106F100` to `0x00930BA0`. Its target is the empty Sqwt-string
+object `0x01266B10`, with zero recorded length and NUL data at
+its pointer `0x01266B22`. The
+[unnamed own-key path](sqwt-progress-template-style.md)
+assigns SqwtStyleControlName, separately from the scalar image index.
+
+The comma-group loop `0x0093463E..0x009346E2` resolves in string
+order. At `0x00934678` it calls `0x00933E70`, then advances the
+row by `0x1C` and group by one at `0x009346D4..0x009346DD`.
+The checked leaf path `0x00933FF8..0x00934032` requests
+SkinNormal and stores its result in row slot zero. Thus native key
+group zero is UncheckedButton, even though the style XML lists the
+CheckedButton declaration first. Reference, dictionary and resource
+resolution retain the [skin resolver's conditions](sqwt-skin-texture-filename.md).
+
+For fresh WindowContext C, construction zeros `C+0x120/+0x124`
+at `0x008CE388/0x008CE38E`. Fresh RenderSkin R, constructed
+through `0x008E2940`, has primary table `0x01066934` and zeros
+`R+0xE4/+0xE8` at `0x008E29A1/0x008E29A7`.
+Factory `0x008CCFCE..0x008CD04D` creates R when `C+0xD4`
+is absent, then forwards the two context values through
+`0x008E09F0/0x008E1880` at `0x008CD02A..0x008CD049`.
+The stores at `0x008E09F4/0x008E188D` set R's group and condition.
+The factory installs R in main renderer slot `C+0xC4` at
+`0x008CD092..0x008CD098`.
+
+RenderSkin cell `0x01066940`, slot `+0x0C`, selects
+`0x008E2CA0`. A dirty flag can call resolver `0x008E2A50`.
+The load at `0x008E2CBD..0x008E2CE1` uses group `R+0xE4`
+and condition `R+0xE8`. For nonnegative conditions zero through six,
+the row address is `R+0x7C + 4*(7*group + condition)`.
+A nonnull selection reaches `0x008E1540` at `0x008E2CFE`.
+This finite profile supplies no arbitrary negative-condition bound.
+
+With the fresh zero seeds retained, no intervening index or condition
+write, accepted constructor keys and successfully resolved selected
+style rows, group zero and condition zero select UncheckedButton Frame
+SkinNormal. The ActionMenu declaration maps that part to its Off style.
+The seed does not require a changed callback. Cached or replaced
+renderers, later property writes, resource readiness, draw submission
+and the actual first live paint remain unverified.
+
+The cited instructions, vtable cells, RTTI and string objects were read
+through Ghidra CLI 0.2.2 and independently checked against LLVM 21.0.0
+and the pinned PE's section-backed bytes.
 
 ## OBSERVED Storyboard completion route
 
