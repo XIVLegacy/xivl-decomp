@@ -91,6 +91,160 @@ unresolved. See
 [Timeline AnimeTime publication](sqwt-double-animation-clock.md#timeline-animetime-publication)
 and [Sqwt style animation reverse binding](sqwt-style-reverse-binding.md).
 
+## ActionMenu Window template and style write sets
+
+OBSERVED markup. Form lines 9 through 14 select
+ControlTemplate_Window_ActionMenu and Style_ActionBarWindow from the merged
+ActionMenuWidget.tpl dictionary. Each key occurs once in that dictionary.
+The full selected subtrees occupy template lines 2 through 79 and 583 through
+614, respectively. Both declare TargetType Window. The Style also declares
+an empty SqwtIsAutoSetSkin attribute. Its only direct child is Style.Triggers.
+The template has Grid_Content and its ContentPresenter at lines 3 and 4,
+Setter SqwtTopOffset `32` at line 6, then ControlTemplate.Triggers at line 7.
+The presenter declares ClipToBounds False. Neither selected source declares
+an own transform assignment.
+
+The form, template and default.style identities are the pinned inputs on this
+page. These observations use retained xivl-tools revision
+`f2a9a2b5a6a4c450458db7a493c25fcdcd70aca0` extractions, each with a passing
+exact source-replay receipt. Original identities and retained file seals were
+rechecked. Decode each original basename with `extract-resource --as sqwt`,
+replay with `verify-extraction --source`, and use Python Expat to select the
+exact keys and decoded line ranges above. This method does not materialize
+or run the templates.
+
+### Complete template trigger and action order
+
+The table lists direct actions in document order. Begin-action names and
+StopStoryboard BeginStoryboardName values are literal strings.
+
+| Template lines | Trigger | Ordered actions |
+| --- | --- | --- |
+| 8 through 21 | Shown, Name WindowOpen | Stop ActionMenu_ClosingAnimation, stop ActionMenu_HidingAnimation, begin ActionMenu_ShownAnimation |
+| 22 through 37 | Closing, Name WindowClose | Stop ActionMenu_HidingAnimation, stop ActionMenu_ShownAnimation, begin ActionMenu_ClosingAnimation, then NonDisplayPopupHelp commands targeting Label_ChangeBattleRegimen and Label_BattleRegimenStarting in that order |
+| 38 through 53 | Hiding, Name WindowHide | Stop ActionMenu_ClosingAnimation, stop ActionMenu_ShownAnimation, begin ActionMenu_HidingAnimation, then the same two popup-help commands in that order |
+| 54 through 56 | UILuaCommands.Cancel | SoundPlayerAction FileNumber `1` |
+| 57 through 59 | ApplicationCommands.MoveFocus, SourceType Button | SoundPlayerAction FileNumber `3` |
+| 60 through 62 | MouseEnter, SourceType Button | SoundPlayerAction FileNumber `3` |
+| 63 through 65 | UILuaCommands.ExecuteCommand | SoundPlayerAction FileNumber `42` |
+| 66 through 68 | UILuaCommands.ExecuteCommandError | SoundPlayerAction FileNumber `41` |
+| 69 through 71 | UILuaCommands.PushSlotPrev | SoundPlayerAction FileNumber `3` |
+| 72 through 74 | UILuaCommands.PushSlotNext | SoundPlayerAction FileNumber `3` |
+| 75 through 77 | Deactivated, SourceType Window | ExecuteCommandAction UILuaCommands.Deactivated |
+
+Shown, Closing, Hiding, MouseEnter and Deactivated are EventTriggers. The
+other six are CommandTriggers. SourceType is absent except where listed.
+The selected template has no SourceName declaration. Its four popup-help
+ExecuteCommandActions at lines 35, 36, 51 and 52 declare
+SQWTDesignCommands.NonDisplayPopupHelp. Their CommandTarget bindings name
+only the respective ElementName, omitting Path and Mode. They are the only
+bindings in either selected source. The Deactivated action omits
+CommandTarget and CommandParameter. Every ExecuteCommandAction in the pair
+omits CommandParameter.
+
+Each template Storyboard declares these children in order: an origin property
+animation, a VisualOpacity double animation, then two SqwtTopOffset double
+animations. Each origin track at lines 13, 27 and 43 has only
+Storyboard.TargetProperty RenderTransformOrigin. Its single discrete keyframe
+at lines 14, 28 and 44 has only Value `0.5,0.5`. BeginTime, Duration and
+KeyTime are omitted on these track/keyframe pairs.
+
+| Template lines | DoubleAnimation property | From | To | BeginTime | Duration | FromAccelType / ToAccelType |
+| --- | --- | --- | --- | --- | --- | --- |
+| 16 | VisualOpacity | `0` | `1` | `0:0:0` | `0:0:0.3` | omitted |
+| 17 | SqwtTopOffset | omitted | `-4` | `0:0:0` | `0:0:0.2` | SpeedUp / SlowDown |
+| 18 | SqwtTopOffset | `-4` | `0` | `0:0:0.2` | `0:0:0.1` | SlowDown / SpeedUp |
+| 30, 46 | VisualOpacity | `1` | `0` | `0:0:0` | `0:0:0.3` | omitted |
+| 31, 47 | SqwtTopOffset | omitted | `-4` | `0:0:0` | `0:0:0.1` | SlowDown / SpeedUp |
+| 32, 48 | SqwtTopOffset | `-4` | `32` | `0:0:0.1` | `0:0:0.2` | SpeedUp / SlowDown |
+
+Each listed accelerated offset track declares both acceleration values `0.9`.
+The template animation descendants omit TargetName and Storyboard.TargetName.
+Opening Storyboard line 12 has no attributes. Closing line 26 declares only
+CompletedCommand ApplicationCommands.DestroyWindow. Hiding line 42 declares
+only CompletedCommand ApplicationCommands.InvisibleWindow. Thus all three
+omit CompletedCommandTarget, BeginTime, Duration and RepeatBehavior.
+
+### Complete style trigger and animation order
+
+The IsAnchorWithin True Trigger at line 585 begins Effect_ON at line 586,
+then Loop_Anime at line 593, then stops Effect_OFF at line 599. The False
+Trigger at line 601 begins Effect_OFF at line 602, then stops Effect_ON at
+line 610 and Loop_Anime at line 611. These are the style's only two triggers.
+It declares no Setter, EventTrigger, CommandTrigger or ExecuteCommandAction.
+
+All nine style tracks are DoubleAnimations targeting VisualOpacity. Let E1
+and E2 denote the exact Storyboard.TargetName strings Border_ActionMenuFrameEffect_1
+and Border_ActionMenuFrameEffect_2 in the following table.
+
+| Template line | Begin action | Storyboard.TargetName | From | To | BeginTime | Duration |
+| --- | --- | --- | --- | --- | --- | --- |
+| 588 | Effect_ON | E1 | `0` | `1` | omitted | `0:0:0.2` |
+| 589 | Effect_ON | E1 | `1` | `0` | `0:0:0.2` | `0:0:0.2` |
+| 590 | Effect_ON | E2 | `0` | `1` | omitted | `0:0:0.2` |
+| 595 | Loop_Anime | E2 | `1` | `0.2` | omitted | `0:0:0.6` |
+| 596 | Loop_Anime | E2 | `0.2` | `1` | `0:0:0.6` | `0:0:0.6` |
+| 604 | Effect_OFF | E1 | `0` | `1` | omitted | `0:0:0.2` |
+| 605 | Effect_OFF | E1 | `1` | `0` | `0:0:0.2` | `0:0:0.2` |
+| 606 | Effect_OFF | E2 | omitted | `1` | omitted | `0:0:0.2` |
+| 607 | Effect_OFF | E2 | `1` | `0` | `0:0:0.2` | `0:0:0.2` |
+
+Tracks 588, 590, 604 and 606 declare FromAccelType SpeedUp, ToAccelType
+SlowDown and both acceleration values `0.8`. The other five omit those
+fields. Loop_Anime's Storyboard at line 594 declares BeginTime `0:0:0.2`
+and RepeatBehavior Forever. The other two style Storyboards have no
+attributes. All three omit Duration, CompletedCommand and CompletedCommandTarget.
+
+### Names, declared write sets and surviving boundary
+
+The template begins ActionMenu_ShownAnimation, ActionMenu_ClosingAnimation
+and ActionMenu_HidingAnimation. The style begins Effect_ON, Loop_Anime and
+Effect_OFF. Each name has exactly one BeginStoryboard declaration in the full
+dictionary, and none in the form. The two sets are disjoint. Every selected
+StopStoryboard names a begin declaration within its own selected source.
+Each Begin action declares only Name, and each Stop action declares only
+BeginStoryboardName. Neither source declares PauseStoryboard or ResumeStoryboard. These lexical
+facts do not establish independent native clock instances, namespace scope or
+runtime stop resolution.
+
+The template's declared write set is SqwtTopOffset, RenderTransformOrigin
+and VisualOpacity with unnamed animation recipients. The style tests
+IsAnchorWithin and names VisualOpacity on E1 and E2. It has no property
+binding that reads the template's write set. Omitted From values at lines
+17, 31, 47 and 606 are preserved as omissions, without asserting a live
+captured value or capture order.
+
+E1 and E2 each match one Border Name in the full form, at lines 28 and 29,
+and no Name declaration in the full dictionary. Both declare Visibility
+Visible and VisualOpacity 0. Their form ancestor chain is unnamed Grid 16,
+Grid_Base at line 15, then Window_ActionMenuWidget at line 1. None of those
+ancestors declares local VisualOpacity. The selected template's Grid_Content
+and ContentPresenter also omit local VisualOpacity. This is a static
+containment record, not established runtime visual ancestry or effective opacity.
+
+The root WIN_null style occupies default.style lines 15 through 26. E1 and
+E2 select BOD_actionMenu_frameEffect_1 and BOD_actionMenu_frameEffect_2 at
+lines 5037 through 5048 and 5049 through 5060. These three complete subtrees
+have no Parts Reference, transform or VisualOpacity declaration. For each
+border style, SkinNormal, SkinHover, SkinActive, SkinDisabled and SkinFocused
+reference its same-named skin. SkinAnchored, SkinReserved and SkinDroppable
+reference NULL. WIN_null references NULL in all eight conditions. The style
+root names common/default.skin. Its contents remain outside this finding.
+The popup command targets match one form Label Name each at lines 223 and
+232 and none in the dictionary. Both select the
+[small popup-help template](#small-popup-help-label-declarations).
+Their Content declarations bind OneWay to the corresponding control's Content.
+Those form bindings are outside the two selected Window sources.
+
+The meaning and effect of the Style's empty SqwtIsAutoSetSkin attribute remain UNKNOWN.
+
+Native name scope, implicit animation recipients, binding activation, initial
+property-trigger evaluation, the relative dispatch order of Window.Template
+and Window.Style, clock creation and capture order, stop resolution, effective
+ancestor composition, popup command delivery, completion delivery and rendered
+state remain UNKNOWN. Distinct names and declared write sets do not prove
+commutativity, full-form admission or a live result.
+
 ## Battle-regimen ToggleButton declarations
 
 OBSERVED markup. Form line 220 declares the sole ToggleButton,
