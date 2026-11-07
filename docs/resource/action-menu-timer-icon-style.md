@@ -223,6 +223,31 @@ child update at `0x008CDD7E..0x008CDDAE`. A false local setting does not
 settle the effective stock scissor. See
 [translation-only placement and draw order](sparklecontrol-source-sequence.md#timericon-draw-order-and-translation-only-placement).
 
+## Centered one-cell arrange
+
+The selected `Grid_Command` declares no tracks. Its children do not
+declare attached Grid positions or spans. The default definition builder
+at `0x00975247..0x009752E7` creates one definition per axis with type 2,
+weight 1, minimum 0 and maximum 10000000. The ordinary one-track path
+assigns the available 44 units to the sole weighted track in each axis
+(`0x00975980..0x00975A3E`, `0x00976531..0x009765EF`) and starts its
+offset at zero. The child call at
+`0x00978A53..0x00978A8C` passes the resulting `(0, 0, 44, 44)` cell.
+STATIC for the selected unchanged sizes at layout scale 1.
+
+The generic child arrange at `0x0092FD20` preserves explicit size
+lanes through the slot-size check at `0x0092FE45..0x0092FEC9`. The
+TimerIcon arrange slot at `0x0092A300` returns the supplied extents.
+The two Center arms at `0x009301A0..0x009301B4` and
+`0x0093022B..0x0093023F` add half the difference between slot and
+arranged extent without clamping the offset to zero. With the declared
+64 by 64 child, scale 1 and unchanged margins and size bounds, the
+result is `(-10, -10)` relative to the Grid origin and an arranged
+extent of 64 by 64. `0x00939720` retains that extent and forwards the
+position through VisualOffset. STATIC for the admitted full-arrange
+path. Effective ancestor placement, clip and rendered coverage remain
+UNKNOWN.
+
 ## OBSERVED TimerIconId handoff
 
 | Locator | Observation |
