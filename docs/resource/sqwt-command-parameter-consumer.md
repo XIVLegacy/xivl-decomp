@@ -444,6 +444,44 @@ insertion entry `0x009CF6E0` reaches the same complete owner offsets
 The two checked materialization paths do not identify which reader
 produced any specific live Grid.
 
+### Conditional ActionMenu focus request
+
+The authenticated Desktop connector's `updateActionMenuWidget` obtains
+the ActionMenu through static slot 7 at canonical lines 9485-9490. In
+the checked show arm, lines 9506-9542 require the second argument to be
+true and subtarget selection to be false. It requests ActionMenu focus
+when the third argument is not true and `mainTargetDecidedFlag` is true.
+The other focus branch selects Desktop. The connector identity and
+extraction method are in
+[target select and decide inputs](../net/target-lock-decide-senders.md#input-and-method).
+
+The connector's `changeFocusedWidget` at lines 7055-7100 requires a
+nonnull `checkActor` result, enables input for a non-Desktop widget
+and can request a show if its second argument asks for one. It returns
+true if the widget already equals `_getKeyboardFocusedWidget`.
+Otherwise it calls `_setKeyboardFocusedWidget` with the selected widget.
+The ActionMenu call at lines 9533-9535 supplies only the widget after
+the receiver (STATIC).
+
+The native widget cast and null rejection are in the
+[boot contract](https://github.com/XIVLegacy/xivl-client-structs/blob/8ee5be22e27b63b0442d4a413d584238796a744c/docs/boot-native-call-contract.md#lock-on-and-focus).
+The nonnull arm in `0x006FDCF0` calls `0x0075BA30` at `0x006FDDA1`
+and retains its Boolean result. The wrapper calls `0x00535A00` at
+`0x0075BA47`. That worker checks the selected registry entry, obtains
+the widget root via `0x00535690` and offset `+0x2C`, then calls
+root input interface `+0x38` at `0x00535A77`. The Window table cell
+`0x01069FCC` selects `0x0091E3E0`. Its slot `+4` and `+0x5C`
+checks can refuse the request at `0x0091E41E` and `0x0091E42F`.
+During a focus change, slot `+0x68` can return a distinct interface.
+In that case `0x0091E62F` invokes the returned interface's focus slot
+and returns. Otherwise the focus change continues through the routed
+event at `0x0091E688`. The admitted current-interface store is at
+`0x0091E75C` to `0x01357020` (STATIC).
+
+This supplies a conditional producer for the focus interface read by
+PadChange. Which interface the Window chooses and whether the route
+visits its outer Grid remain UNKNOWN for the live form.
+
 ### Routed PadChange and repeat match
 
 The native pad update enters the routed PreviewPadChange and PadChange
