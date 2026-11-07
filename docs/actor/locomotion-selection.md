@@ -25,13 +25,15 @@ Producing tools are `ghidra` CLI decompile and cross-reference queries plus
 Capstone 5.0.7 x86-32 disassembly and raw reads of the PE image for jump
 tables, string tables and constants. Install facts come from the
 [bank census](locomotion-bank-census.md) and are not restated here. No resource
-bytes or hashes are recorded. No live session was observed.
+bytes or hashes are recorded. No live session was observed. The producer joins also use Ghidra CLI 0.2.2,
+LLVM objdump 21.0.0 and original PE section-backed instruction and data checks.
 
 Roles used below. `C` is the CharaActor. `H = C+0xBF0` is the movement helper
 (see the [displacement page](character-movement-displacement.md)). `S = C+0x590`
 is the state object that holds the posture bytes at `S+0x5A8` to `S+0x5AD`
 (the idle page calls its first byte the state byte, see
 [idle bank selection](idle-bank-selection.md)). `E` is the CharaElement.
+`R` denotes the installed locomotion machine, separate from `H` and `S`.
 
 ## Level enum and where it lives
 
@@ -226,6 +228,109 @@ the entries `emp_emp/bid/base/0000` holds for the walk and run states use the
 records that `cbnm_01f_f_rs` and `cbnm_02f_f_rs`, which this page's tables name
 as states 7 and 16, are not entries of that bank.
 
+## Posture inputs and selected machine
+
+STATIC. The `0x0134` arm at `0x0058D319..0x0058D326` masks the
+wrapped record dword `+0x10` with `0xFF` before calling `0x00588BA0`.
+The latter stores it at element `+0xF4` at `0x00588BB3`. Its separate
+Lua-facing publication excludes incoming states 1 and 3 after initialization.
+The independent local posts at `0x00588C16..0x00588C3B` carry a serial
+through record `0x39`, then the state through record `0x3A`.
+
+Record `0x3A` selects cell `0x00663BC0`, holding `0x00663882`.
+That arm calls `0x007B43E0` on component `C+0x1110` at `0x0066388B`.
+When component byte `+0x5C` is zero, `0x007B4411..0x007B4434`
+sets it to 1, stores the state dword at component `+8`, copies its
+low byte to `C+0xB3A`, equivalently `S+0x5AA`, and assigns a delay
+at component `+0x58`. The other arm at `0x007B43E9..0x007B4406`
+queues kind 1 through `0x007C7C20`. That queued arm retains the value
+until a later drain. The kind-1 consumer at `0x007BF551..0x007BF565`
+then stores the dword and desired byte.
+
+The normal actor call at `0x00667F16` updates this component through
+`0x007C2170`. With a positive finite prior delay, the checked
+`0x007C2170..0x007C21A8` path subtracts dt and drains when the
+result is nonpositive. Other drain invocations and complete queue
+behavior require separate qualification. The component constructor
+clears `+0x5C/+0x5D` at `0x007B2086..0x007B208D`.
+[Component owner and distinct direct record 0x3D](../resource/cut-status-and-parameter-clips.md).
+
+The state constructor writes `0xFF` to `S+0x5A8/+0x5A9/+0x5AA`
+at `0x007B7428`, `0x007B742F` and `0x007B7436`. These storage
+roles are distinct:
+
+| Field | Selected use |
+| --- | --- |
+| `S+0x5AA` | Desired low state byte from the admitted component input or queue drain |
+| `S+0x5A8` | Selected state for machine installation and update delegate |
+| `S+0x5A9` | Committed state read by battle predicate `0x007A74A0` |
+
+State installation `0x007AC5A0` uses tables `0x007AC78C/0x007AC75C`.
+States `0x00/0x46` reach `0x007AC60E`, installing the field machine
+through `0x008C0910` on `R=S+4`. States `0x02/0x51` reach
+`0x007AC6CC`, installing the battle machine through `0x008C03C0`
+on `R=S+0x64`. The update binding `0x007BA850` selects field
+`0x008AA030` at `0x007BA8A0..0x007BA8DD`, or battle `0x008A8CB0`
+at `0x007BAAB0..0x007BAAF0`, retained through `S+0x560` with
+inline storage `+0x564`. At `0x007BAC50..0x007BAC5A`, the selected
+byte is copied to the committed byte before owner notifications.
+The battle predicate is true for committed `0x02/0x51`.
+
+Generic posture transitions can defer installation. The
+[proved transformation transitions](guildleve-transformation.md)
+own their checked 0-to-2 and 2-to-0 paths. Initial `0xFF` and the
+selected field/battle arms establish neither a universal live idle
+state nor every posture phase. Action/emote bank-posture selection
+remains a separate consumer join.
+
+## Motion callback inputs
+
+STATIC. Field installation `0x008C0962..0x008C0984` binds
+`0x008BF790`; battle installation `0x008C03C0` binds `0x008BF0A0`.
+Registration `0x007A78B0` retains the wrapper at `H+0x298` with
+inline storage `+0x29C`. Constructors `0x008C1F20/0x008C1650`
+store the receiver and callback at wrapper `+4/+8`. Their vtables
+`0x0105A97C/0x0105A8EC`, slot `+4`, select `0x008C1A40`,
+which reloads those fields and tail-jumps with the stack arguments.
+
+The admitted `0x007AFD90` direction branch normalizes `H+0x190`
+into `H+0xC0` when `H+0x1B8` is not 1 and the vector passes its
+small-length gate. The [displacement contract](character-movement-displacement.md)
+owns the permission and vector-admission branches. At
+`0x007B0002..0x007B003A`, the helper derives heading from
+`atan2(H+0xC0.x,H+0xC0.z)`, through CRT entry `0x009DAEBA`.
+It spills the result to f32, multiplies by f64 16777216 from
+`0x00FE7EE0`, divides by f32 6.2831854820251465 from
+`0x012C4D20`, converts through `0x009D6600`, then masks to 24 bits.
+The CRT metadata names `atan2` at `0x012EBB81`, and the checked
+finite kernel uses `FPATAN` at `0x009EC98B`. The orientation is zero
+along +Z with a positive quarter turn toward +X. Conversion and
+intermediate precision need their own boundary qualification.
+
+When the wrapper is nonnull, `0x007B0102..0x007B0145` supplies
+these seven explicit arguments through its slot `+4`:
+
+| Position | Supplied value |
+| --- | --- |
+| 1 | Pointer to `H+0xC0` |
+| 2 | Requested level `H+0x1A0` |
+| 3 | Derived movement heading |
+| 4 | Low-byte target-resolved predicate |
+| 5 | Target-relative direction class |
+| 6 | Target heading |
+| 7 | Low-byte requested-versus-applied-level change predicate |
+
+Current facing is independently retained at `H+0x1AC`, read by
+`0x007A4A50`. Resample `0x007A4AE0` obtains the owner rotation
+through virtual `+0x94` and reads component `+4` at
+`0x007A4B08..0x007A4B31`. It converts the f32 radian value through
+widened arithmetic, the turn constants, `CVTTSD2SI` and the 24-bit
+mask. The remote setter `0x007A46B0` instead retains the received
+rotation at `H+0x1BC` under its owner admission. With `H+4 & 0x02`
+clear, it also writes a converted desired angle at `H+0x70`.
+Current facing still depends on later turning and resampling.
+[Remote movement and chase limits](remote-actor-auto-move.md).
+
 ## Relative-angle classes `0x007A4E70`
 
 `0x007A4E70(a, b)` takes two 24-bit angles (one full turn is `0x1000000`) and
@@ -240,18 +345,56 @@ returns a class from `d = (a - b) & 0xFFFFFF`:
 | to `0xE38E39` | 2 |
 | above | 1 |
 
-Thresholds are about 40, 110, 180, 250 and 320 degrees. The caller `0x008BF790`
-computes `p2 = class(move_heading, this+0x58)` and `p3 = class(move_heading,
-H+0x1AC)`: the heading against the previous heading and against the facing.
-The heading comes from the caller. Class magnitude 1 picks `f`, 2 picks
+Thresholds are about 40, 110, 180, 250 and 320 degrees. Field callback
+`0x008BF790` computes `p2 = class(move_heading,R+0x58)` and
+`p3 = class(move_heading,H+0x1AC)` at `0x008BF7B9..0x008BF7ED`.
+The references are the last retained history facing and current facing.
+Battle callback `0x008BF0A0` performs those comparisons at
+`0x008BF0C9..0x008BF0FD`. Its resolved-target branch can instead
+call `0x008AF060` with separate target arguments at
+`0x008BF119..0x008BF12C`. Class magnitude 1 picks `f`, 2 picks
 `l`/`r`, 3 picks `bl`/`br`, and the sign picks the foot or side.
+
+### Five-sample facing history and update order
+
+STATIC. The five `(state,facing)` pairs occupy
+`(R+0x34,R+0x38)`, `(+0x3C,+0x40)`, `(+0x44,+0x48)`,
+`(+0x4C,+0x50)` and `(+0x54,+0x58)`. Field update
+`0x008AA033..0x008AA076` shifts pairs 0 through 3 into pairs 1
+through 4, inserts current machine state `R+0x2C` in slot zero,
+and samples current facing through `0x007A4A50` into `R+0x38`.
+Battle update `0x008A8CEF..0x008A8D32` performs the same shift
+and insert after its speed-factor request. Delegate wrappers through
+`0x007C5070/0x007C4870/0x007C37A0` and
+`0x007C52A0/0x007C4AA0/0x007C3C00` use tables
+`0x00FE7F34/0x00FE7F70`, slot `+4`, to invoke the stored
+callback through `0x007C3F10` with its receiver and float input.
+
+After an ordinary insert into populated history, the fifth slot
+normally contains the facing from four prior history updates.
+Clip-end callback `0x008ABDF0` first refreshes all five facing slots
+from current `H+0x1AC` at `0x008ABE00..0x008ABE15`, preserving
+the paired state words. Initial history population and fixed sample
+age remain UNKNOWN.
+
+The admitted normal actor path calls movement-input update
+`0x00665220` at `0x00667D76`; its local branch can invoke
+`0x007AFD90` at `0x00665A9D`. Later, owner mask `C+0x2B70 & 0x200`
+gates the queue and state updates at `0x00667F16/0x00667F33`.
+State update `0x007C2B90` calls posture processing `0x007C0E10`
+at `0x007C2BCD`, then the current history delegate at `0x007C2BE9`.
+Facing resampling follows at `0x00667F8F`. Further guarded movement
+stepping at `0x0066801E` can take the chase route and invoke
+`0x007AFD90` again at `0x007B5F89`. This conditional order permits
+selectors on both sides of history and facing updates. Callback count,
+frame cadence, full posture admission, target-relative battle behavior
+and remote chase activation remain UNKNOWN.
 
 ## State machine
 
-`0x008BF790(this, ?, level, heading)` dispatches on its third argument
-(INFERRED to be the locomotion level, from the 0 / 1 / 2-3 split matching the
-stop, walk and run handlers): 0 to the stop handler `0x008B2970`, 1 to the
-walk handler `0x008B3600`, 2 and 3 to the run handler `0x008B46D0`. Transitions
+Field callback `0x008BF790` receives requested level `H+0x1A0`.
+Level 0 selects stop handler `0x008B2970`, level 1 selects walk handler
+`0x008B3600`, and levels 2 and 3 select run handler `0x008B46D0`. Transitions
 go through `0x008B2610(state, force, blend, ?, phase, ?)`, which sets
 `this[0xC] = this[0xB]`, `this[0xB] = state`, resolves the name and plays it
 with `0x007B9030`.
@@ -278,7 +421,7 @@ loop of the other speed the machines jump to the target loop: walk from state
 `0x15` goes to `0xC` for `p3` of 1, 2, -2, -1 and to 10 or 11 for -3 or 3, and
 run from state `0xC` goes to `0x15` for 1, 2, -2, -1 and to `0x13` or `0x14`
 for -3 or 3. While a walk or run clip is current, a heading class `p2` of -3 or
-3 against the previous heading restarts the machine in `bl` or `br`
+3 against the last retained facing restarts the machine in `bl` or `br`
 (`0x008B3600` blend 10, targets 10 and 11, and `0x008B46D0` targets `0x13` and
 `0x14`).
 
@@ -319,10 +462,10 @@ traced.
 
 ## Selection summary
 
-1. Per tick the selector computes `m` and sets the applied level as above.
-2. The state machine computes `p3` from the movement heading against the facing
-   and `p2` against the last heading with the `0x007A4E70` thresholds (24-bit
-   angle).
+1. The movement branch supplies `m` to the selector, which requests a level as
+   above. Movement application retains the applied level separately.
+2. The field callback computes `p3` against current facing and `p2` against
+   the last retained history facing with the `0x007A4E70` thresholds.
 3. On level 0 to 1 or 2 it picks a start state from `p3` and plays it. On its
    end it plays the loop (12 or 21). Loops restart on a level change or a back
    class.
@@ -337,11 +480,8 @@ traced.
 
 ## Open
 
-- The caller of the state-machine functor and what supplies its heading and
-  level arguments (the functor is registered through `0x007A78B0`).
-- Which machine (`cbnm` set or `cbbm` set, registered by `0x008C0910` and
-  `0x008C03C0`) is active for a given stance, and what picks the 03f weapon
-  stance value for a PC.
+- Full posture-phase admission, actual machine activation and selection for
+  other states, and the separate 03f weapon-stance producer for a PC.
 - The `H+0x100` rule that repeats the last reported moveState.
 - The role of the 100-scaled float argument of `0x007B9030`, and of the three
   integer fields packed beside it.
