@@ -284,6 +284,129 @@ state nor every posture phase. The separate
 [action/emote bank consumer](animation-bank-routing.md#posture-source-and-snapshot)
 copies the committed byte during the checked queue construction paths.
 
+## Guarded posture selection and commit
+
+STATIC. Desired, selected and committed state have separate storage and
+update points. Phase byte `S+0x5AD` and subphase byte `S+0x5AE`
+control the checked paths below. The normal state update calls
+`0x007C0E10` before its current history delegate.
+
+At `0x007C0E38..0x007C0E6C`, a nonzero owner virtual `+0x268`
+result returns before phase dispatch. Phase table `0x007C1CDC`
+selects the handler. Phase 0 calls `0x007A7220` and requires its
+low-byte result nonzero. Other phases bypass that phase-0 predicate
+on the checked visit.
+
+For valid retained pointers and finite `S+0x5A0`, the complete predicate
+`0x007A7220..0x007A727C` rejects these conditions before comparing
+committed and desired bytes:
+
+- Owner `+0x118`'s object has a nonnull `+0x78` receiver whose
+  `0x006245D0` call returns true.
+- Float `S+0x5A0` is greater than zero, compared with the scalar at
+  `0x00FA4460`.
+- Doubling owner dword `+0x474` with wrapping 32-bit addition gives
+  a signed-positive result.
+- Byte `S+0x5AC` is in unsigned range 1 through 5.
+
+After those gates it returns committed `S+0x5A9` != desired
+`S+0x5AA`. The finite float profile preserves the instruction's
+`COMISS` boundary and leaves unordered input outside this claim.
+Admitted phase-0 work at `0x007C0E72..0x007C0EC4` calls conditional
+owner helpers, clears `S+0x5B4` bits `0x3400`, and dispatches on
+sign-extended committed state plus one through tables
+`0x007C1D54/0x007C1D20`.
+
+| Committed and desired input | Selected state and next phase/subphase | Locators |
+| --- | --- | --- |
+| `0xFF`, desired other than 11 | Selected = desired, phase 1, subphase 1 | `0x007C0ECB..0x007C0F01` |
+| `0xFF`, desired 11 | Selected = 0, phase 1, subphase 1, desired remains 11 | `0x007C0ED1/0x007C0EE4` |
+| 0, desired 11 or 13 | Selected = desired, phase 2, subphase 1 | `0x007C0F40..0x007C0F4D` |
+| 0, desired 14 | Selected = 14, phase 6, subphase 1 | `0x007C105D`, `0x007C1094..0x007C10A1` |
+| 11 or 13, admitted different desired | Selected = 0, phase 3, subphase 1 | `0x007C10EB..0x007C10F9` |
+| 14 in phase 0 | Return arm, without a selected or phase write there | `0x007C1CC7` |
+
+The committed-0 rows use desired-minus-one tables
+`0x007C1DD0/0x007C1DB4`. Default switch arms establish writes,
+without proving that every desired byte has a supported machine.
+The [transformation study](guildleve-transformation.md) owns its
+separately checked 0-to-2 and 2-to-0 paths.
+
+Phase 1 calls `0x007BC110` at `0x007C1961`. Its subphase-1 path
+at `0x007BC3A5` calls owner helpers `0x0065C470` and
+`0x0065C360(-1)`. It requires owner `+0xE0` equal to
+`0x7FFFFFFF`, or both `0x007AD830(owner+0x4C0)` false and
+`0x0065C3C0(owner,-1)` true. For selected 0 or 13 it requests
+`0x00665140(0,1)` or `(5,1)` respectively. A true request result
+calls `0x0065B140` and sets `S+0x5B4` bit `0x400`.
+It advances to subphase 5 at `0x007BC485`. For the checked
+selected-0/13 profile, subphase 5 waits for that bit to clear,
+then calls installation `0x007AC5A0(1)` at
+`0x007BC23D..0x007BC241` and advances to subphase 6.
+Subphase 6 requires bit `0x2000`, calls `0x007BA850` at
+`0x007BC144`, and resets both phase bytes. The selected-to-committed
+copy remains the store at `0x007BAC50..0x007BAC5A`.
+
+Phase 2 calls `0x007BC5C0` at `0x007C197D`. Subphase 1 requires
+owner `+0xBF4` bit 2 clear and `+0xDA8` != 1 at
+`0x007BC604..0x007BC61D`, conditionally writes movement level zero,
+requests `cbnm_id0`, and advances to subphase 3. That subphase
+requires `0x007AC240(owner+0x438,cbnm_id0)` true. For selected 11,
+it additionally calls helpers including `0x0065B160(owner)`.
+That helper's false arm rewrites selected 11 to 13 at `0x007BC731`.
+Its true arm saves owner virtual `+0x88/+0x94` outputs at
+`S+0x300/S+0x310`. Both routes advance to subphase 4.
+The helper's physical admission semantics remain unresolved.
+
+Subphase 4 repeats the owner sentinel/helper gate and requires the
+`cbnm_id0` check. It requests `0x00665140(4,1)` for selected 11
+or `(5,1)` for selected 13 at `0x007BC7C7..0x007BC7D3`.
+A true result calls `0x0065B140` and sets bit `0x400`.
+Subphase 5 waits for that bit clear, then installs through
+`0x007AC5A0(0)` at `0x007BC8A8..0x007BC8B1` and advances to 6.
+Subphase 6 waits for bit `0x2000`, calls `0x007BA850` at
+`0x007BC8D5` and resets both phase bytes. Each checked handler
+returns through the dispatch epilogue after its current subphase.
+Advancing the byte alone does not execute the next subphase there.
+
+### Installation readiness callback
+
+Installation binds callback `0x007A3D80` to the exact S at
+`0x007AC5C6..0x007AC5D1`. Wrapper chain
+`0x007C4630 -> 0x007C3710 -> 0x007C3070` stores S at `+4`
+and the callback at `+8`. Vtable `0x00FE7F1C`, slot `+4`,
+selects adapter `0x0090A0D0`, which reloads those fields and
+tail-jumps. The complete callback `0x007A3D80..0x007A3D8A`
+sets `S+0x5B4` bit `0x2000` and returns.
+
+Installer tables `0x007AC78C/0x007AC75C` map selected 13 to
+`0x007AC632`, calling `0x008BFDC0` on machine `S+0x120`.
+The constructor retains the callback and, with installation argument 1,
+invokes it on the checked `0x008BFE41..0x008BFE69` path before
+returning. Argument 0 takes `0x008BFE7E..0x008BFE8D` instead,
+leaving subsequent callback delivery conditional. Selected 11 calls
+`0x008C0020` on `S+0x150` at `0x007AC628`.
+
+Selected 14 maps to table index 11, epilogue
+`0x007AC737..0x007AC759`, without an installer or callback call
+there. Its phase-6 subphase-1 path calls `0x007AC5A0(0)` at
+`0x007BD6FD`. These checked tables supply no new selected-14
+machine or readiness callback. The separate emote-bank recognition
+of 14 remains a consumer fact.
+
+These paths establish a guarded transition over multiple visits.
+Desired can differ from retained selected and committed values while
+a phase waits. The checked phase-1 and phase-2 instruction unions do
+not reread desired `S+0x5AA`. External writes and reentry remain
+separate possibilities. Owner virtual results, helper admission,
+bit-`0x400` clearing, later readiness delivery, the full phase-3 exit
+and other phases require further qualification. Callback delivery and
+visit counts establish no fixed frame count or live playback.
+
+The cited instructions and tables were read with Ghidra CLI 0.2.2,
+independently decoded with LLVM 21.0.0 and checked against
+section-backed bytes of the pinned `ffxivgame.exe`.
+
 ## Motion callback inputs
 
 STATIC. Field installation `0x008C0962..0x008C0984` binds
