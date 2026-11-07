@@ -140,7 +140,7 @@ does not extend to it.
 
 ## ActionMenu Window origin
 
-The [authenticated ActionMenu inputs](action-menu-timer-icon-style.md#input-and-method)
+The [authenticated ActionMenu inputs](action-menu-timer-icon-style.md#inputs-and-method)
 declare `RenderTransformOrigin` `(0.5, 1)` on the Window at form line 1.
 Form lines 9 through 13 select `ControlTemplate_Window_ActionMenu` and
 `Style_ActionBarWindow`. The root, selected template and selected style

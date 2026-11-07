@@ -263,6 +263,38 @@ do not establish an inherited-Foreground alias. Callback effects and other
 provider-specific compatibility and admission remain UNKNOWN. This provider
 is not selected by the catalog miss described above.
 
+## ActionMenu StackPanel focus declarations
+
+The [authenticated ActionMenu form](action-menu-timer-icon-style.md#inputs-and-method)
+declares `Focusable` and `FocusManager.IsFocusScope` true for
+`StackPanel_MainMenu` and `StackPanel_UserMacro_1` at lines 176 and 205.
+The unnamed StackPanel at line 231 declares `Focusable` false and omits
+the scope property.
+
+STATIC. `Focusable` is descriptor `0x0135975C`, tag 4. The UIElement
+constructor at `0x0093C96D..0x0093C9BF` initializes it false. The literal
+route at `0x0093D14F..0x0093D170` uses the Boolean property store. An
+admitted change at `0x0093B8A5..0x0093B8C7` forwards the retained bit to
+input-interface slot `+8`. For StackPanel table `0x0107F1DC`, the target
+`0x0091C3E0` mirrors it into input-interface `+0x70` bit 0. The focus
+transition at `0x0091E415..0x0091E42F` checks that eligibility and a
+second virtual predicate before its later admitted focus store.
+
+STATIC. `FocusManager.IsFocusScope` is a separate attached Boolean.
+Registration at `0x00992288..0x009922A2` selects provider `0x010785B8`
+and default false. The change callback at `0x0093C12D..0x0093C186`
+calls `0x009A6080` with the owner and converted value. True adds an
+absent owner to map `0x013615B0` with null remembered recipient and
+preserves an existing entry. False removes an existing entry. This
+operation leaves the current keyboard focus at `0x01357020` separate.
+
+When StackPanel receives `GotKeyboardFocus` for its own input interface,
+`0x00930E10..0x00930E4E` checks its own scope entry. With an entry it
+tries the remembered interface or, when null, the mode-9 descendant
+lookup. An absent scope bypasses this branch. STATIC. Live recipient
+selection and [delivery to the ActionMenu Grid](sqwt-command-parameter-consumer.md#routed-padchange-and-repeat-match)
+remain UNKNOWN.
+
 ## Unqualified Foreground and completion
 
 With `D+4` zero, `0x00910F60 -> 0x00910B60` searches the receiver's
