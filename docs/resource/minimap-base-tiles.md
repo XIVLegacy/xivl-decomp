@@ -95,6 +95,73 @@ selected block. The live layout mapping, block selection and `Ready`
 timing for a particular session remain UNKNOWN.
 [SetMap framing and native base](https://github.com/XIVLegacy/xivl-client-structs/blob/180ab8aaa49b0157fee8996abe4d27e05b588bda/docs/map-layout-selector.md#L31-L56).
 
+### Numeric manager identity to layout sheet key
+
+STATIC. The selected manager's `+4` interface table `0x00FBFCEC`
+has cell `0x00FBFE50` at slot `+0x164`, selecting `0x00657660`.
+That getter returns interface `+0x78`, equivalently complete manager
+`+0x7C`. On the checked loaded-layout path, `0x0064F44B..0x0064F450`
+assigns it the result of `0x00A8ABB0`. That helper increments global
+`0x013657BC` and returns the incremented dword. This identity is a runtime serial. The layout resource key and serialized LYB
+fields have separate storage and consumers.
+[Concrete manager construction](map-layout-selector.md#selected-floor-key-and-name).
+
+`0x00626820` scans the two retained complete-manager pointer ranges at
+actor `+0x138/+0x13C` and `+0x148/+0x14C`. It calls each manager's
+`+4` interface slot `+0x164`, compares the result with the supplied
+serial and returns the matching complete pointer. The numeric branch of
+`0x0062B380`, selected when manager `+0x1B3` is zero, reads the
+manager's retained resource key at `+0x158` and calls `0x0079B540`
+with actor `+0x190` as the preferred region (`0x0062B453..0x0062B467`).
+The admitted region-owner constructor `0x00626DF0` stores its region
+argument at actor `+0x190` at `0x00626E25`. Resource setup stores
+manager `+0x158` at `0x00642F30`.
+
+`0x0079B540` first searches that region, then scans the table's root
+range if the region or its nonzero child-key result is missing.
+Child helper `0x0079ADF0` compares the full resource dword at
+`LayoutInfo +0x60` and returns the matched child key at `+0x58`
+(`0x0079AE47..0x0079AE5C`). The [row constructors](map-layout-selector.md#root-and-child-construction)
+copy raw child `+0x08` and `+0x00` into those fields. A mapping miss
+in `0x0062B380` returns the manager serial OR `0x8000` at
+`0x0062B472..0x0062B480`. The outer `0x0062B8C0` also uses the
+supplied serial OR `0x8000` when its manager lookup or result fails.
+The alternate named-manager branch is outside this numeric contract.
+
+MEASURED. The [authenticated RegionResourceData](region-weather-resource-rows.md)
+contains these selected rows. Its size is 52336 bytes. Follow the declared
+root count at file `+0x24`, root child count at raw `+0x0C` and
+`0x30`-byte row stride from file `0x40`.
+
+| Root key and file offset | Child file offset | Raw child key | Resource key |
+| --- | --- | ---: | --- |
+| 103, `0xAF0` | `0xF70` | 321 | `0x29B00001` |
+| 103, `0xAF0` | `0x10C0` | 331 | `0x29B00002` |
+| 202, `0x8950` | `0x8AA0` | 5005 | `0x72420007` |
+
+These joins require an admitted numeric manager lookup. The Bridge resource
+maps to child key 5005 independently of the runtime serial. The connection
+from SetMap zone 140 to this selected manager remains UNKNOWN.
+[Bridge row identity](https://github.com/XIVLegacy/xivl-client-data/blob/61125bad3035e142d5dae8b451d388004509fa4e/docs/bridge-map-identity.md).
+
+The selected `_layout` rows confirm column 1 and column 2 as
+`(2,2700)` for key 321, `(2,2800)` for key 331, and `(4,70)` for
+key 5005. These are the initial conversion factor and navigation-row base
+for the [checked piece producer](#native-piece-producer). Page addition and
+the nonzero navigation column-5 override remain separate operations.
+Replay definition `0x0103045F` and the next three DATs through the
+existing sheet extraction recipe. The resulting `_layout.csv` has 173
+data rows, 2648 bytes and SHA-256
+`2fd242794ec24288b8d4f6f54878b6d8f9241a80eea7a4ce4f2e62df0286ba88`,
+matching the [table manifest](https://github.com/XIVLegacy/xivl-client-data/blob/61125bad3035e142d5dae8b451d388004509fa4e/manifests/tables.json).
+
+Actual manager readiness and spatial selection, the chosen DivideMap folder
+and its page, duplicate-key behavior outside these selected rows, named
+resource mode and live delivery remain UNKNOWN. The next spatial frontier
+is `0x00644100 -> 0x00644210`: the folder winner and cross-manager
+comparison must select the same manager and block before assigning a live
+layout/page pair.
+
 ### Serialized DivideMap folder page
 
 The page is an unsigned byte at raw LYB node `+0x60` for the checked
@@ -131,8 +198,10 @@ header, kind-table, node-field and inventory relocations with base
 | `data/29/D9/00/01.DAT`, `0x29D90001` | 1197104 bytes, `bc40d7ff57ab8998978532cce4564e2488ed81d6d10b8f7ede3e1586b0b26523` | `0x99D0` | 229 of 230 exact-class definitions. First deferred node at payload `0xE29D0`, page at file `0xEC400`. |
 
 The samples establish the field's serialized position. Whether a live
-session selects any of these folders is UNKNOWN. The mapping from zone 140 or
-layout 5005 to resource `0x72420007` remains UNKNOWN.
+session selects any of these folders is UNKNOWN. The admitted
+[numeric manager lookup](#numeric-manager-identity-to-layout-sheet-key) joins
+resource `0x72420007` to layout key 5005. Its connection to SetMap zone 140
+and actual scene selection remains UNKNOWN.
 [Bridge resource identity](https://github.com/XIVLegacy/xivl-client-data/blob/44544085b003cd6f0530cdd994d6faf9c1a5b057/docs/bridge-map-identity.md#L40-L46).
 [Bridge evidence limits](https://github.com/XIVLegacy/xivl-client-data/blob/44544085b003cd6f0530cdd994d6faf9c1a5b057/docs/bridge-map-identity.md#L69-L76).
 [MapLayout exemplar identity](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md#L25-L28).
