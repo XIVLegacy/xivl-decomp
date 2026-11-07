@@ -362,6 +362,54 @@ retained state. The form and selected template have no matching key, but
 complete live resource dictionaries, actual lookup outcome, notifications,
 subsequent Content writes and rendered macro appearance remain UNKNOWN.
 
+### ContentTemplate write gates and fresh Content
+
+STATIC. The ordinary markup call at `0x00948C9A..0x00948CA1` supplies
+mode zero from EBX, cleared at `0x00948BB5`. The selected ContentTemplate
+setter forwards that mode with notify 1 at `0x00936468..0x00936472`.
+Holder helper `0x009C383F..0x009C386C` rejects mode 0 when holder bit 1
+is set. Mode 1 is rejected when bits 0 and 1 are both clear. An admitted
+mode-0 write clears bit 0. Pointer equality at `0x009C3873..0x009C3879`
+bypasses assignment and notification. A changed pointer is retained,
+the old reference released and the new pointer stored at
+`0x009C388F..0x009C38A2`. Notify 1 reaches `0x009C3720` at
+`0x009C38BF` independently of template root availability.
+
+ContentControl construction at `0x009361C1..0x009361F8` creates its
+Content at owner `+0x33C`. The input at `0x00936A6A..0x00936A86`
+has payload and text pointers zero and low type flags 6. Copy helper
+`0x00936680` retains them at owner `+0x340/+0x344/+0x34C`.
+The property-state byte is owner `+0x350`. The ContentTemplate holder
+starts with pointer zero at owner `+0x354` through
+`0x00936202..0x0093621D`.
+
+Holder construction at `0x00969C5C..0x00969CAB` derives bits 0 and 1
+from descriptor metadata bits 5 and 7. The ContentTemplate and Content
+metadata flag dwords at `0x01358F64` and `0x01358FAC` are initially
+in the PE zero-fill tail. With those metadata bits unchanged, their
+property-state low bits are clear. The complete holder byte preserves
+other incoming bits. Later indirect metadata writes and live property
+state remain UNKNOWN.
+
+After a normal owner-hook return, a null current template root selects
+the checked Content request at `0x00935A09..0x00935A11`. Its incoming
+ContentObject has payload zero, low type flags 5 and no text lane
+at `0x00934F65..0x00934F8E`. The Content setter has an independent
+property-state mode gate at `0x009367D1..0x00936800`. On admission,
+its change test `0x0087C890` compares payload pointers, then tests
+the incoming text lane at `0x0087C897..0x0087C8B5`. Equal zero
+payloads with no incoming text lane return false. For an unchanged
+constructor Content payload, the null request therefore skips Content
+assignment and notification at `0x00936808..0x00936838`, preserving
+its existing type flags. The changed ContentTemplate pointer can still
+notify through its separate holder path.
+
+This fresh-state result requires unchanged constructor payload and
+metadata/property state, admitted mode-0 writes, successful allocation,
+normal returns and no intervening callback mutation. The equal-complete-name
+bypass, a resource hit and prior Content writes have separate outcomes.
+Complete live dictionaries and rendered macro appearance remain UNKNOWN.
+
 ## ActionMenu StackPanel focus declarations
 
 The [authenticated ActionMenu form](action-menu-timer-icon-style.md#inputs-and-method)
