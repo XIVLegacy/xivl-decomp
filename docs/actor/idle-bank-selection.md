@@ -224,10 +224,13 @@ edge from an idle scheduler through a `MotionClip` to an MTB name was found.
 
 - Callers of vtable slot 26 (`0x006be5c0`) and so the writers of the common bank
   number were not found.
-- Meaning of the state bytes at `state_object+0x5a8` and of the actor dword
-  `+0xe0` sentinel are not traced.
-- The trigger that invokes the stage handler `0x006be3d0` when a stage's loads
-  finish is not traced. Stage words and handler cases were read from code only.
+- The actor dword `+0xe0` sentinel's meaning remains unresolved. The
+  [posture producer](locomotion-selection.md#posture-inputs-and-selected-machine)
+  identifies the selected-state byte separately.
+- Stage delivery follows the
+  [aggregate readiness protocol](appearance-path-decoder.md#request-and-delivery).
+  The [mode-4 posture wait](locomotion-selection.md#posture-resource-wait-and-request-fallback)
+  retains dynamic owner, mode, request-overlap and timing conditions.
 - Names written into suffixes 1 to 4 by the `cibe` chunk are not read, and every
   c001 name directory is `base`.
 - The scheduler key lookup result and the clip record layout of the `initf_idle`
