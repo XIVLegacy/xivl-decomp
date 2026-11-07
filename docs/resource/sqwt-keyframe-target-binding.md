@@ -701,6 +701,28 @@ value store and notification. An admitted write over a different finite
 value takes the normal zero assignment path. STATIC. Live intervening
 writes and the resulting paint remain UNKNOWN.
 
+### Empty literal on the command Buttons
+
+The authenticated form at lines 177-186 declares the same empty
+`SqwtDrawOrder` on `Button_Command_1` through `Button_Command_10`.
+The Buttons are children of `StackPanel_MainMenu` and select
+`ControlTemplate_Button_MenuIcon` (OBSERVED).
+
+The Button constructor path is
+`0x00974410 -> 0x0097F200 -> 0x00954AB0 -> 0x00936190 -> 0x00938C80 ->
+0x0092F640 -> 0x0093C750 -> 0x009405C0`. Visual construction passes
+positive zero and complete-object `+0x70` to the initializer at
+`0x00940701..0x0094071B`. The binary32 store is at `0x0095DA10`.
+The Button primary table cell `0x01073CE0` selects the false-return
+interceptor `0x00910B50`. The admitted generic Visual descriptor path
+for `0x01359988` reaches `0x0095E7B0`, whose float conversion
+call at `0x0095E7FB` selects `0x00988CD0` (STATIC).
+
+The empty Button literal therefore requests the same positive zero.
+When the owner still holds the fresh zero, the equality branch at
+`0x009413B4` skips the value store and notification. Live intervening
+writes and resulting paint remain UNKNOWN.
+
 ### Sibling order changes
 
 With a parent present, `0x0093FD70` reads the child's old index, removes
