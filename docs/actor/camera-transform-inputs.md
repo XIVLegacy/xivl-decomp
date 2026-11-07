@@ -136,6 +136,83 @@ types and callee identities remain unresolved.
   and `+0x340` at `0x007F542F`. Its slot-7 method `0x007F5280` updates
   camera `+0x428` and has no endpoint store in the bounded instructions.
 
+## Key-0 endpoint queries and smoothing
+
+The `CameraActorContextTPS` key-0 worker `0x007F3BA0` requires a
+selected target and a nonzero target slot `+0x258` result at
+`0x007F3BD5..0x007F3C1B`. A changed target refreshes the cached
+binding through context slot `+0x10`. The selected binding helper
+`0x007F6170` stores the target at `0x007F6194`. For a nonnull
+binding, it seeds the horizontal radius from CameraActor slot 0,
+the rate with binary32 0.3 and the vertical offset with binary32
+0.5 at `0x007F61BE`, `0x007F61CF` and `0x007F61E4`.
+The enter helper `0x007F46A0` can instead seed from existing pose
+fields (STATIC).
+
+Let `F` be the candidate focus vector and `E` the candidate eye
+vector. The horizontal eye offset uses retained direction at
+context `+0x10` and radius at `+0x84`. The vertical eye offset
+uses context `+0x78`. A prior downward-probe latch at context `+0x88`
+reduces the horizontal radius by `0.20000000298023224 * dt` and clears
+at `0x007F4026..0x007F4059`. The ordered positive direction-dot arm
+at `0x007F41B9..0x007F426B` clamps the finite radius between the
+greater of `R - 1` and 1.5 and the requested slot-0 radius `R`.
+A nonpositive or unordered dot retains the old direction, stores
+binary32 0.1 in the radius and disables the queries at
+`0x007F42B3` (STATIC).
+
+On the query-eligible path, the worker applies the following in order.
+
+1. `0x007F4318` queries from `E` to `E + (0, -0.2, 0)`.
+   On a hit it uses the hit point minus that offset for `E`.
+   It stores `E.y - F.y` to context `+0x78`. The latch becomes
+   the result of comparing the signed input scalar against
+   `0.10000000149011612` at `0x007F4348..0x007F4361`. The
+   scalar comes from CameraActor word `+0x1BE`, with the sign
+   selected by `+0x1C6` mask `0x04`, divided by 100 and rounded
+   to binary32 at `0x007F3DA1..0x007F3DE0`.
+2. `0x007F4380` queries from `F` to `E`. On a hit it replaces
+   `E` with the returned point.
+3. When `d = length_xyz(E - F)` exceeds `0.5000000074505806`,
+   the worker invokes the radius query at `0x007F443B`. It uses
+   `r = 0.20000000298023224` and an endpoint
+   `F + normalize_xyz(E - F) * (d - r)`. On success, with hit
+   point `H` and normal `N`, it replaces `E` with
+   `F + normalize_xyz(E - F) * length_xyz(H + r*N - F)`
+   at `0x007F4444..0x007F44AA`. A failed radius query keeps
+   the existing `E`.
+
+The 0.5 comparison selects the radius query. Helper `0x006141E0`
+reaches `0x00613710`, which passes the radius with the segment
+direction and length to the query descriptor at
+`0x006137AC..0x006137BE`. The formulas describe the XYZ
+lanes. The worker's `normalize_xyz` is the SSE helper
+`0x0061CFD0`, with reciprocal-square-root refinement (STATIC).
+
+The worker stores the candidates at context `+0x30` and `+0x50`
+at `0x007F44BC..0x007F44C0`. The base rate is binary32 0.3 when
+both CameraActor input words `+0x1BC` and `+0x1BE` are zero,
+and binary32 0.5 otherwise. If queries were eligible, the rate
+target is `1 + (base - 1) * clamp(length_xz(previousEye -
+previousFocus) - 1.5, 0, 1)`. This selection uses eligibility
+even if each query misses. The other path keeps the base rate
+(`0x007F44C4..0x007F4599`). The previous vectors are the
+retained values at context `+0x20` and `+0x40` at this block.
+The earlier discontinuity path at `0x007F3C79..0x007F3D0C` can
+refresh those values before interpolation.
+
+At `0x007F45A7..0x007F4679` the worker moves context rate
+`+0x7C` halfway to that target. For finite inputs the interpolation
+factor is `min(rate * dt, 1)`. It interpolates the previous eye
+and focus at context `+0x20` and `+0x40` toward the corresponding
+candidate. It forwards these vectors to CameraActor `+0x330`
+and `+0x340`. The caller subsequently performs the separate
+working-endpoint interpolation described above (STATIC).
+
+The [camera update](camera-input-chain.md#update-pipeline-and-command-receiver)
+owns the input and `dt` producer. The live target vector, selected
+world query shape, elapsed unit and character visibility remain UNKNOWN.
+
 ## One-layer helper evidence
 
 The vector helpers expose the remaining dynamic object inputs. In
