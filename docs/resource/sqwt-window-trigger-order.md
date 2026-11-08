@@ -146,6 +146,40 @@ rejected-child branch at 0x0094727A skips that hook. This hook alone performs
 no initial evaluation. Constructor, setter, child-reader, listener and binding
 activation effects remain separate joins.
 
+## Subsequent focus and anchor refresh
+
+Initializer `0x00F229A0` supplies the IsKeyboardFocusWithin string at
+`0x0106BF00` and descriptor `0x01359378` to `0x009108E0`. It writes
+ordinal 5 at `0x00F229AF` and metadata `0x80` at `0x00F229B9`. These are
+initializer assignments, not observations of a current descriptor instance.
+
+Callback `0x0093B700` first dispatches E primary `+0x18` at `0x0093B732`.
+After return, current A+0x78 mask 2 and current descriptor ordinal
+`[A+0x70]+0x14` gate its switch. Ordinal 5 selects `0x0093B927` through
+original table cell `0x0093BD4C`. That arm calls current E primary `+0x64`
+at `0x0093B92F`. If E retains Window primary table `0x0106A0BC`, cell
+`0x0106A120` selects `0x00926870`. Its RTTI locator `0x01179064` has
+complete-object offset zero and identifies the Window type above.
+
+Method `0x00926870` performs separate local-property work and may notify
+descriptor `0x013571C0` at `0x0092690C`. After normal return, its call at
+`0x00926918` passes E and the saved incoming argument to `0x0093D490`.
+This joins an admitted current IsKeyboardFocusWithin notification to the
+[anchor source refresh](sqwt-render-transform.md#isanchorwithin-and-ismouseover),
+conditional on descriptor identity surviving the generic call and the stated
+current gates and tables. An arbitrary ordinal-5 descriptor is not identified
+as IsKeyboardFocusWithin by its ordinal alone.
+
+The linked refresh contract owns source sampling, comparison, changed-arm
+storage and notification arguments. Any resulting anchor event remains subject
+to the current-descriptor and shared-action gates.
+
+This is a subsequent property-refresh route. It does not establish first
+Window attachment, listener arming, initial IsAnchorWithin=0 Trigger evaluation,
+first BeginStoryboard or endpoint capture. Generic and local-property callbacks,
+reentry, current table retention and object lifetime remain conditions. Other
+initialization and notification paths are not excluded.
+
 ## Property Trigger and shared event flags
 
 Original Trigger primary table +8 cell 0x0107D0E0 selects 0x009B0620.
