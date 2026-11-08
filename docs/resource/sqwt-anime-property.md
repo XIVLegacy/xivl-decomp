@@ -225,8 +225,10 @@ records. The route runs slot 13 of each element from the target to the root and
 stops when the handled byte is set. For a `Window` that slot is `0x00922030`.
 For every event id except `0x4F` it calls `0x00935380`, which calls `0x00938BA0`,
 which calls `0x0092D060`, which calls `0x00939800` and so the dispatcher. STATIC
-for the call edges. The branches inside those functions that could skip the
-dispatcher are not decoded, so the delivery is INFERRED as a whole.
+for the call edges. The conditional
+[Style and ControlTemplate collection passes](sqwt-window-trigger-order.md)
+have their own storage and byte guards. The complete upstream delivery
+predicate remains unresolved, so delivery is INFERRED as a whole.
 
 The handler calls the base handler `0x0092D1F0`, then returns when the handled
 byte is already set. Otherwise it compares the command with the objects below.
