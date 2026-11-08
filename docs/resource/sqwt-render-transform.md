@@ -289,10 +289,23 @@ entered with the address of the element's `+0xB4` part. What raises those two
 calls is not traced. STATIC for the stores.
 
 `IsAnchorWithin` is recomputed by `0x0093D490`. It calls slot `+0x48` of the
-table at element `+0xB4`, and then stores only when `byte & 3` is nonzero and the
-returned byte differs from bit 5 (`TEST AL,3` at `0x0093D4D0`, `SHR CL,5` at
-`0x0093D4D6`), notifying the property system through `0x0099C680`
-(`0x0093D4FE`). `0x0093D510`, `0x0093D5A0` and
+table at element `+0xB4` and retains the full returned byte r. After conditional
+helper processing, it reloads current state byte b. It stores only when b&3 is
+nonzero at `0x0093D4D0` and q=(b>>5)&1 differs from r at `0x0093D4DC`.
+The comparison normalizes q, not r. Equality skips the explicit store and
+notification, including q=0,r=0 even with nonzero admission bits. Other helper
+or callback effects are not excluded.
+
+The changed arm replaces bit 5 with bit 0 of r shifted to that position, sets
+mask 4 and calls `0x0099C680` at `0x0093D4FE`. Its immediate ECX is the
+field address element `+0x160`. Explicit arguments supply that address, the
+complete element, callback `0x0093B700`, zero adjustment, descriptor
+`0x013594FC` and notification 1. Helper `0x0099C680` constructs a property
+event at `0x0099C6F6` and synchronously calls the supplied callback with the
+complete element at `0x0099C714`. This does not guarantee descriptor or state
+preservation after callbacks. STATIC.
+
+ `0x0093D510`, `0x0093D5A0` and
 `0x0093D630` are three more entries to the same body for a caller that passes the
 `+0xB4` part (`LEA EDI,[EBP-0xB4]`), each calling slot `+0x48` through that
 part's own table. They continue into `0x0091CA60`, `0x0091CA90` and
@@ -306,8 +319,13 @@ non-null and its byte `+0x158` is `2`. Slot `+0x14` returns true when the part i
 the object held in the global `0x01357020` or an ancestor of it, following the
 parent word at `+0x60`, and false otherwise. STATIC for the instructions. That
 the global holds the anchor the property name suggests is INFERRED from the walk.
-The base table is the only one read. Whether a derived class overrides slot
-`+0x48` is UNKNOWN.
+Window interface table `0x01069F94`, cell `0x01069FDC`, also selects
+`0x0091C590` at `+0x48`. Its RTTI locator `0x01179078` identifies offset
+`+0xB4` of `.?AVWindow@Sqwt@@`, descriptor `0x01269E20`. Other derived
+tables remain outside this finding. The
+[subsequent Window focus route](sqwt-window-trigger-order.md#subsequent-focus-and-anchor-refresh)
+supplies a concrete caller, without establishing first attachment or initial
+property Trigger evaluation.
 
 The value is therefore derived and not a constant. It reads false while
 `0x01357020` is null or the gate fails, and it can be true only when the global
