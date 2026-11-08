@@ -259,6 +259,44 @@ parser delivery, name-resolution success, current state/table retention and
 lifetime remain conditions. Initial owner-state evaluation, first action,
 BeginStoryboard capture and Style/Template priority remain unestablished.
 
+## Registration and queued activation
+
+The selected constructor call at `0x009B0AAB` supplies D and info
+`0x01361AC0` as explicit arguments to `0x0098B400`. The helper retains
+D at `0x0098B41A`, forms info+0x0C at `0x0098B41E` and directly stores
+`[D+0x10]=info+0x0C` at `0x0098B45A`. This selects descriptor information,
+separate from D+0x18 listener storage. Container calls and synchronization
+remain indirect effects. This direct store does not establish listener arming
+or tested-value evaluation.
+
+Trigger base construction reaches `0x00912DB0` with D through calls at
+`0x009B09C7`, `0x009B1C06` and `0x009C266F`. It clears D+0x10/+0x14/+0x18
+and requests an append of D to current context+0x20D8 at `0x00912E9F`.
+Insertion and survival remain conditions. The request precedes installation
+of Trigger dependency table `0x0107D09C` at `0x009B09F5`, so an arbitrary
+reentrant drain is not guaranteed to see that table.
+
+Drain `0x00910CD0` removes the selected queued receiver before calling its
+current virtual +0x28 at `0x00910DC9`. With D and its Trigger table retained,
+original cell `0x0107D0C4` selects generic activation `0x00912190`.
+That method sets receiver+0x20 mask 1 at `0x00912199`. Its current D+0x18
+entries receive virtual +0x0C at `0x009121F5`. The separate D+0x14 loop
+requests attachment through `0x00911F50` with flag 1 at `0x00912252`.
+A nonzero result admits that entry's virtual +0x0C at `0x0091229B`.
+The actual entries, targets and indirect effects remain unresolved for this
+Trigger. The concrete Binding example on the
+[reverse-binding page](sqwt-style-reverse-binding.md#observed-attachment-activation-and-retention)
+does not identify them.
+
+These entry activations are distinct from Trigger primary +8 evaluation and
+from Q's virtual +8, whose original cell `0x0107D094` selects `0x00933210`.
+Ordinary listener dispatch at `0x00911525` supplies descriptor and sender to
+the listener receiver. Trigger primary +8 instead consumes an owner and
+property event. Matching slot numbers do not join those call contracts.
+Current entry population, the first matching owner-property event, initial
+predicate evaluation and first BeginStoryboard capture remain unknown.
+Context, construction, reentry, current tables and lifetime remain conditions.
+
 ## Reproduction
 
 Authenticate the input above and use PE section mapping to reproduce table
