@@ -35,9 +35,10 @@ Neighbouring owners:
   sampler record, not by name. Both records read slot 0 across the whole
   `chara` corpus, so both samplers bind the same cube, slot 0 of the draw's
   DrawEnv (V).
-- That cube is a layout file resource (`CubeMapBaseObject`). The only slot
-  writers that do not copy another DrawEnv's pointer are the layout loops and
-  the weather pool assignment (V).
+- The layout loops forward indexed values from a lookup return. Known cube
+  interfaces expose matching array storage, but the concrete lookup return
+  and serialized resource identity remain unresolved. Other observed slot
+  writers copy another DrawEnv's pointer or assign weather-pool entries (V).
 - The per-node ambient block that seeds the draw ambient colour is the 16
   bytes at node `+0x134`, seeded to (0, 0, 0, 1.0) and summed with the node's
   type 4 lights (V).
@@ -184,7 +185,7 @@ Writers of the DrawEnv slot array (`SetEnvmapTexture`, `0x00C20410`, see the
 
 | Caller | Observed source |
 |---|---|
-| `0x00A82020` | Layout initializer. Loop `i` from 0, element `i` of the object's array getter (slot `+0xAC`, `0x008D5980`) stored into slot `i`. |
+| `0x00A82020` | Layout initializer. Loop `i` from 0, return of the unresolved lookup receiver's slot `+0xAC(i)` stored into slot `i`. Known cube interfaces select `0x008D5980`, but the actual return type is unresolved. |
 | `0x00A816C0` | Second loop of the same shape, in slot 34 of the `LayoutDrawEnvObject` vftable (`0x0109FD44`, entry at `0x0109FDCC`). |
 | `0x008CB370`, `0x0083BBE0`, `0x007D4E30`, `0x007D6180` | Each reads `GetEnvmapTexture(i)` from another DrawEnv and stores the pointer, with no generation. |
 | `0x007E6300` | Reads the DrawEnv argument's slots, then stores entries of a pooled list into slots. |
@@ -197,9 +198,12 @@ Its address is in vftable slots 42 and 43 of RTTI
 `Application::Scene::Actor::Map::Layout::RaptureCubeMapBaseObject` (vftable
 `0x01061704`).
 
-So slot `i` of a layout DrawEnv holds `CubeMapBaseObject` texture `i` at
-initialization. Every other writer copies a pointer or assigns an entry of a
-pooled list. `Leap` for the DrawEnv fog parameters (`0x007D4E30`) copies the
+The known cube writer and getter address the same storage after their
+four-byte interface adjustment. This does not identify the layout lookup
+return, establish loader ordering or select a serialized resource. The
+[binding boundary](draw-env-texture-binding-boundary.md#conditional-source-and-runtime-storage-joins)
+retains those joins and limitations. Other observed writers copy a pointer
+or assign an entry of a pooled list. `Leap` for the DrawEnv fog parameters (`0x007D4E30`) copies the
 source's 32 slot pointers rather than blending them. (I: `0x007E6300` assigns
 weather blend render targets, since it is reached only from the weather
 manager function `0x007E8910`.) The string
