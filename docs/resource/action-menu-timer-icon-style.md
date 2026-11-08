@@ -301,6 +301,35 @@ constructor value and conditional Boolean write. It does not establish the
 meaning or effect of the empty attribute in a live ActionMenu style, automatic
 skin assignment, resource readiness, callback side effects or rendering.
 
+### Style resource-tag wrapper boundary
+
+STATIC. On the identified retail executable, resource dispatcher
+`0x0094A550` compares the child name with Style at `0x0106CCF4` through
+`0x009D244E` at `0x0094A6BB..0x0094A6D2`. Its equality branch calls
+constructor `0x0094E8E0` at `0x0094A6EE`, then recursive reader
+`0x00947040` at `0x0094A706`.
+
+The constructor installs table `0x0106D9CC` at `0x0094E951`. Locator
+`0x0117A880` and type descriptor `0x012E1DF4` identify
+`.?AVXamlFrameworkTemplate@Markup@Sqwt@@`. At
+`0x0094E90D..0x0094E933`, it copies parent `+0x18` into wrapper `+0x18`
+and initializes wrapper `+0x10` to zero. This is a concrete markup-wrapper
+join, not an established selection of the Style property-info object.
+
+Table cell `0x0106D9D8`, virtual `+0x0C`, selects attribute handler
+`0x00948FF0`. Its fallback call at `0x00949158` reaches the generic
+attribute handler `0x00948B60`. Neither that call nor the inherited `+0x18`
+value establishes the actual supplemental provider for the selected Style
+resource. The exact context that supplies or replaces that value, and the
+connection to info `0x013615F4`, remain UNKNOWN. No downstream skin-flag
+reader or empty-attribute effect follows from this wrapper boundary.
+
+The input identity and Ghidra CLI 0.2.2 method are the same as the conditional
+SqwtIsAutoSetSkin finding above. Original section-mapped PE reads confirmed
+the cited instructions, Style literal, vtable cell and RTTI pointers. The
+queries reused the existing analyzed program without executing the PE or
+changing annotations.
+
 ## Battle-regimen ToggleButton declarations
 
 OBSERVED markup. Form line 220 declares the sole ToggleButton,
