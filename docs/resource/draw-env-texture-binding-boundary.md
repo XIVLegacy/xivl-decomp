@@ -233,7 +233,8 @@ at O+8 and sets AL=1. This is the location read as interface `+4` by the
 source getter above after the four-byte adjustment. On the subsequent
 normal path, `0x00A752F7..0x00A75309` forwards P and O+4 to `0x00AB6A00`
 using container-interface `+8`, then selects O+4 as the return. The helper's
-behavior and any intervening mutations remain untraced.
+storage operations are described below. Successful admission and surviving
+object and table state remain conditions.
 
 ### Conditional caller and explicit manager context
 
@@ -319,10 +320,9 @@ Under the published constructed RaptureLayoutBaseObjectManager field
 provenance and its current table `0x00FBF814`, +0x20 selects
 `0x00A8A190`. `0x00A8A19D..0x00A8A1B0` first requests its virtual
 +0x30(P), then forwards (P,O) to `0x00AB6A00` using the same
-base-manager-interface+8 receiver used by the lookup helpers. That call's
-body remains uninspected. Its storage writes, success conditions, replacement
-behavior and visibility to a subsequent lookup are not established here.
-The intervening object callbacks' mutation effects remain conditions too.
+base-manager-interface+8 receiver used by the lookup helpers. The storage
+operations and caller result constraints are described below. The intervening
+object callbacks' mutation effects remain conditions.
 
 At `0x00A8B3C1..0x00A8B3D9`, the helper builds temporary context C:
 C+0 is M+4, and C+4 is its unchanged second explicit argument L. It
@@ -340,6 +340,108 @@ Consequently the manager tail's +0x54(M+4) callback does not reach the cube
 +0x24 load fragment through this entry. The separate creation call above
 supplies the conditional cube loader context.
 
+
+### Registration storage and result constraints
+
+Focused Ghidra CLI 0.2.2 disassembly and section-mapped PE checks on the
+identified executable supplied these STATIC observations. The cited
+instructions, RTTI and table cells were confirmed. No layout or cube resource
+was opened, and no retail execution was observed.
+
+For `0x00AB6A00`, let R be the base-manager-interface+8 receiver used by
+lookup, P its first argument, O its second, mask the dword at R+0x0C and
+used the dword at R+8. All arithmetic here is 32-bit. At
+`0x00AB6A03..0x00AB6A26`, C=mask+1 is compared unsigned with
+used+(used>>1). C greater than that threshold bypasses growth. Otherwise
+the helper requests `0x00AB6CE0(R,2*C)`. Zero returned AL exits before
+the requested P/O stores. This gate precedes even equal-key replacement.
+
+On admission, `0x00AB6A29..0x00AB6A5A` reloads R+4 and R+0x0C and
+uses the lookup's hash, raw-key equality and linear probing. It stops at an
+empty key cell or equal P. At `0x00AB6A5B..0x00AB6A76`, used increments
+when the previous cell differs from P, the key cell becomes P, and the
+parallel value at `[R+4] + 4*(mask+h+1)` becomes O. Equal P replaces its
+value without incrementing used. The helper sets AL=1 at `0x00AB6A7A`.
+Its post-admission store path has no call on old or new O. Unlike the known
+caller, this helper does not reject zero P or O. Valid mapped storage,
+suitable mask and arithmetic, receiver identity and a terminating probe
+remain conditions.
+
+Growth helper `0x00AB6CE0..0x00AB6DC1` rejects requested N below two
+with AL=0 before map-field writes. N no greater than current mask+1 returns
+AL=1 without rebuilding. For larger N, it saves old storage and old C,
+writes mask=N-1 and used=0, then calls `0x0040D300` with size 8*N.
+It writes the returned value to R+4. The null branch at
+`0x00AB6D47..0x00AB6D50` returns AL=0 without restoring those fields
+or reaching the later old-storage call.
+
+For non-null returned storage, `0x00AB6D53..0x00AB6D6F` clears the
+computed 2*N dword extent. `0x00AB6D71..0x00AB6D9F` walks the old C
+physical key cells, requests reinsertion of each nonzero key and its parallel
+value through `0x00AB6A00`, and ignores each returned AL. It then calls
+`0x0040ADC0` with the saved old pointer and size 8*old C and returns AL=1.
+The storage callees remain uninspected. These calls do not establish
+allocation, release or ownership effects. Wraparound, recursive admission
+and unchecked reinsertion results prevent an unconditional preservation
+claim for arbitrary map state.
+
+At `0x00A8A19D..0x00A8A1B0`, the selected registration method saves its
+pre-store +0x30(P) result, then requests the pair store. It does not test
+that call's AL before further callbacks. At `0x00A8A208..0x00A8A211`,
+it returns the saved pre-store value in full EAX. The outer `0x00A8B350`
+also ignores its +0x44 result. Neither return proves a successful store.
+
+INFERRED FROM STATIC STORES. After an admitted nonzero P/O store completes,
+a same-R lookup for identical raw key P reads O when table state and memory
+remain valid and unchanged and the probe terminates. Applying this to the
+DrawEnv lookup E requires E=P, successful admission, surviving registration
+and retained receiver tables. This is conditional storage correspondence,
+not observed runtime population or proof of a cube-class return.
+
+### Conditional generic listener and query arguments
+
+STATIC. When the current generic LayoutManager interface table is
+`0x010A22A4`, +0x34 selects `0x00A8B7D0` and +0x30 selects
+`0x00A8E290`. For non-null resource input,
+`0x00A8B801..0x00A8B81E` constructs a local listener and substitutes
+its +4 interface only when L is null. A supplied non-null L is retained.
+Resource identity checks and a non-null buffer precede
+`0x00A8B8A5..0x00A8B8B6`, which forwards selected L to current +0x30.
+If the manager still has that table, the generic creation branch at
+`0x00A8E400..0x00A8E40C` forwards L unchanged to `0x00A8B350`.
+The [Generic default receiver](limsa-rain-presentation.md#generic-default-receiver)
+section supplies the bounded generic branch provenance.
+
+At `0x00AB7407`, constructor `0x00AB73F0` saves entry ECX in ESI.
+`0x00AB7424..0x00AB742A` installs table `0x010A86B0` at complete +0
+and interface table `0x010A86A0` at +4. Locator `0x0118E8F4` records
+offset four and identifies
+`.?AVDefaultSetupListenerWithReferenceResource@Layout@Stella@Lay@Engine@CDev@SQEX@@`.
+The interface's +4 selects `0x00AB74B0`. With the manager and listener
+tables retained, this identifies substituted L on the conditional generic
+creation route. It does not identify application-path L or prove a runtime
+cube was created through this route.
+
+The selected listener at `0x00AB74BB..0x00AB74CF` requires nonzero
+count at descriptor+0, pair pointer at +4 and query pointer at +0x14.
+Guard failure clears only the low 24 bits of descriptor+0x24 at
+`0x00AB7543`. On admission, `0x00AB74D1..0x00AB74D7` requests output
+storage through `0x00AA4C10` with flag zero and ignores its result.
+For pair i, `0x00AB74E2..0x00AB74F5` calls global `0x0136578C`'s
++0x44 with descriptor+0x10. A null result skips that index's write.
+
+At `0x00AB74FA..0x00AB7508`, the method passes the pair's second
+dword, local destination storage and literal `0x10` to uninspected
+`0x0062E2D0`. At `0x00AB7520`, it copies the first dword into local
+storage. The pushes at `0x00AB7529/0x00AB752E` pass pointers to local
+preparation storage and that copied first dword to descriptor+0x14's +0x10.
+The output slot for i is captured from descriptor+0x20 at
+`0x00AB750D..0x00AB7519` before the query call. Returned EAX is stored
+there at `0x00AB7531`. The loop rereads descriptor count at
+`0x00AB7533..0x00AB7538`. Preparation and query semantics and mutation
+effects remain uninspected. This same-index write fragment does not prove
+all-slot initialization, stable descriptor state, adequate output storage
+or a valid later cube output read.
 
 ## Interpretation and unknowns
 
@@ -364,8 +466,8 @@ valid-index or safety contract.
 
 The callsite chain, conditional source getters and known cube-interface
 storage joins are directly observed. The current-table conditions select known lookup implementations, but active
-factory/table retention, registration storage effects, concrete lookup-return
-class, concrete L, loader input/output identity and ordering, serialized fixup
+factory/table retention, successful surviving registration, concrete lookup-return
+class, concrete application-path L, loader input/output identity and ordering, serialized fixup
 and resource-table relationship remain unresolved. The known `+0xac`
 implementation does not identify the actual lookup return. The pointer at `[EBP + 0x18]` and incoming
 32-bit value's representation, ownership and lifetime remain unresolved.

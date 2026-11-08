@@ -33,6 +33,47 @@ Declared shapes and Fields consumed by the zone reader, and
 Only the three original layout DATs were read; resource-table targets were
 identified without opening the resident resources.
 
+## Layout 331 environment references
+
+STATIC. In the identified Gridania layout above, the complete declared DrawEnv
+extent has five `0x3C`-byte entries. Their descriptors are
+`(4,0),(8,2),(0x10,0),(0x18,0),(0x20,0),(0x24,0),(0x28,0),(0x30,0)`.
+The entries at file offsets `371192`, `371252`, `371312` and `371432`
+have `+0x28=381444`, a payload-relative reference to one EnvironmentMap
+at file offset `406708`. The entry at `371372` has a null `+0x28`.
+These fields enumerate declarations, not current spatial selection.
+
+The shared EnvironmentMap is `0x1C` bytes with descriptors
+`(4,0),(8,2),(0x14,0)`. Its `+0x14=381472` and `+0x18=1`
+declare one eight-byte record at file offset `406736`. The complete
+record extent has descriptors `(0,2),(4,2)`. Its two u32 fields are
+`72213` and `72230`, at file offsets `406736` and `406740`.
+Both descriptors declare string references. No runtime meaning is
+assigned to the first field.
+
+The second reference resolves to a 12-byte key at file offset `97494`.
+That key has SHA-256
+`6a359edfb2e3157340f7eb0fb25ccce2c7f247056bfacc350d4df7caa0f57e04`
+and matches exactly one outer-table row: zero-based index `278`, file
+offset `8960`, tag `bxt`, resource ID `0x72E80096`, unknown `+0x18=258`.
+This is a static alias equality in this one layout. The referenced resource
+was not opened or checked for existence, format, texture contents or runtime use.
+
+Python 3.15.2 and the pinned `parse_layout` above enumerated the complete
+DrawEnv extent, resolved `+0x28` and `+0x14/+0x18` through the declared
+shapes, checked the full pair extent and preserved every matching outer row.
+A fresh receipt-bound read repeated these metadata observations. The
+selected records had no diagnostics. The whole layout retained two aggregate
+declared-extent overlap pairs, so this result does not assert global
+non-overlap or validate unrelated declarations.
+
+The [native handoff boundary](draw-env-texture-binding-boundary.md)
+records conditional source reads at `+0x28`, count reads at `+0x18` and
+an indexed renderer handoff. Similar offsets and the `bxt` tag do not
+prove serialized relocation, active creator, registration, returned resource
+class, slot ordering, geometry ownership or rendering. Layout 331 does not
+by itself identify the active zone instance or establish zone 155 or 206.
+
 ## Typed selector and owner contract
 
 Each selected TimeLine has size `0x28` and descriptors
