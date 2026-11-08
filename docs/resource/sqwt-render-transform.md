@@ -328,5 +328,6 @@ singleton holds in a session with no input, are UNKNOWN.
   `0x01356F34`, and the value of the singleton byte `+0x158` in a session with
   no input.
 - Whether a derived `UIElement` class overrides slot `+0x48` of the `+0xB4` table.
-- The relative order of the trigger sets of a `Window.Template` and a
-  `Window.Style` on one root.
+- Initial evaluation and materialization order of a Window's Style and
+  Template trigger sets. Their conditional
+  [event-pass order](sqwt-window-trigger-order.md) is established separately.

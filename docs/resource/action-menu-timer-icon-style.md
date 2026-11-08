@@ -238,11 +238,13 @@ Those form bindings are outside the two selected Window sources.
 
 The meaning and effect of the Style's empty SqwtIsAutoSetSkin attribute remain UNKNOWN.
 
+The conditional native [Window event passes](sqwt-window-trigger-order.md)
+visit an admitted Style collection before an admitted ControlTemplate
+collection. This does not establish initial evaluation or materialization order.
 Native name scope, implicit animation recipients, binding activation, initial
-property-trigger evaluation, the relative dispatch order of Window.Template
-and Window.Style, clock creation and capture order, stop resolution, effective
-ancestor composition, popup command delivery, completion delivery and rendered
-state remain UNKNOWN. Distinct names and declared write sets do not prove
+property-trigger evaluation, clock creation and capture order, stop resolution,
+effective ancestor composition, popup command delivery, completion delivery
+and rendered state remain UNKNOWN. Distinct names and declared write sets do not prove
 commutativity, full-form admission or a live result.
 
 ### Conditional SqwtIsAutoSetSkin property path
