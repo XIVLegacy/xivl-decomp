@@ -318,7 +318,40 @@ A reached arm loads `[C+0x1494]` at `0x007D8D13`, pushes that loaded pointer
 at `0x007D8D1B` and calls `0x007D85D0` with flag zero at `0x007D8D1E`.
 The entry has readiness tests and early exits. This is conditional reachability,
 not an unconditional scheduling claim. The argument is a stored pointer,
-not the field address. Its equality with the installer's actor `[C+8]` is U.
+not the field address. Both fields have the constructor input described below.
+Their equality at a later update remains conditional.
+
+### Common actor input at construction
+
+CharaActor primary slot 68, table cell `0x00FC0E44`, selects `0x007CD360`.
+Let `P` be that method's actor receiver. It preserves `P` at `0x007CD385`.
+On the arm with a nonnull auxiliary object, it requests `0x14A0` bytes at
+`0x007CD3FD`. A nonnull allocation return admits the call to constructor
+`0x007D49F0` at `0x007CD419`, with `P` pushed as argument 1 at `0x007CD416`.
+Normal return publishes the returned controller at `P+0x18` at `0x007CD42A`.
+
+For constructor receiver `C`, `0x007D4A1F` preserves argument `P` in EBX.
+It forwards `P` to base constructor `0x00A68CB0` at `0x007D4A2A`.
+The base reads argument 1 at `0x00A68CDA` and stores it at `C+8` at
+`0x00A68CE1`. The derived constructor installs table `0x00FEE17C` at
+`0x007D4A59`, then stores preserved `P` at `C+0x1494` at `0x007D4BC7`.
+The argument remains preserved under normal ABI-conforming calls. This is
+one concrete input flow to the two direct assignments, not an identity
+inferred from matching types or offsets.
+
+The base store precedes intervening direct and indirect calls. The derived
+constructor writes `C` to global `0x0134DFB0` at `0x007D4B7C`. It also calls
+the object loaded from global `0x0136578C` through primary `+0x50` at
+`0x007D4BC1`, with `C+0x50` pushed at `0x007D4B85`, before the later actor
+store. These observations do not exclude visibility, reentry or mutation
+during construction. The indirect call's semantic role remains U.
+
+INFERENCE: if construction completes, the same controller and actor survive,
+and no intervening or later mutation changes the two stored fields or receiver
+identities, the installer getter and query argument can both supply `P`.
+Alias writes, callbacks, replacement, partial construction and lifetime remain
+conditions. This is not an exhaustive writer search or an observation of
+field equality at an arbitrary update.
 
 The same-character spatial-query-to-installation join, authoritative containing
 environment, current actor position, work-set readiness, initialization,
