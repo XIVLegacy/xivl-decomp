@@ -198,6 +198,67 @@ bytes and action+0x3C/+0x3D. Ordered visits therefore do not establish
 independent or unconditional execution. The meanings of all these flags
 and complete reentry behavior remain outside this finding.
 
+## Tested-property reference producer
+
+Let R be a complete property Trigger, D=R+0x18 its dependency interface and
+Q=R+0x90 its embedded property object, under retained current-table and object
+validity conditions. Constructor `0x009B0990` supplies Q to the R+0x7C holder
+constructor at `0x009B09FC`. The holder stores Q at `0x009B0B2E`. The Trigger
+constructor installs Q table `0x0107D08C` at `0x009B0A51` and sets Q+8 to
+zero at `0x009B0A57`. R+0x7C is the pointer holder, not the tested descriptor.
+Registration helper `0x0098B400` follows at `0x009B0AAB`. Its complete effects
+and later constructor state remain unclosed.
+
+Original dependency table `0x0107D09C` has RTTI locator `0x01180960`, offset
+0x18 and Trigger type descriptor `0x012E8174`. Its +0x24 cell `0x0107D0C0`
+selects `0x009C24E0`, which reads [D+0x28]=[R+0x40], the retained owner O.
+Its +0x18 cell `0x0107D0B4` selects generic dependency notification
+`0x00912AC0`. These observations require the current tables to remain valid.
+
+Initializer `0x00F29280` supplies literal Property at `0x0107D020` and
+descriptor `0x01361A54`, then writes ordinal zero at `0x00F2928F`.
+Initializer `0x00F292E0` supplies descriptor array `0x012E81D4` and count 3
+to info `0x01361AC0`. It installs info table `0x0107D0EC`, parser
+`0x009B0810` at info+0x28 and zero adjustment at info+0x2C. The original
+info +0x0C cell `0x0107D0F8` selects adjusting bridge `0x009B2090`, not
+`0x0091B440`. On a nonnull supplied D, that bridge subtracts 0x18 at
+`0x009B209A`, adds current info+0x2C and calls current info+0x28 at
+`0x009B20B8`. These are initializer and table joins, not runtime parser
+selection or delivery observations.
+
+If lookup selects that current info/parser and Property ordinal zero, the
+parser obtains O through D+0x24 at `0x009B0896`. With nonnull O it supplies
+the incoming name and O to `0x009B0490` at `0x009B08BD`. The helper calls
+`0x00910F60` on O at `0x009B04AC`. A nonnull info return admits the store
+of the descriptor output at Q+8 at `0x009B04B9`. Failure skips this explicit
+store and can leave the earlier value. Simple-name resolution is descriptor
+lookup through the owner's info list, not the evaluator's current-value read.
+This Q+8 is the dword used by the event-descriptor gate above. A name must
+actually resolve to IsAnchorWithin before that specific identity can be claimed.
+
+The descriptor write precedes holder cleanup, admission and pointer comparison.
+After possible helper processing, holder mask 2 at `0x009B08EA` can exit.
+On the admitted arm, current [R+0x7C] is compared with Q at `0x009B08F2`.
+Equality branches at `0x009B08FB` past the later pointer-change notification.
+State-bit processing can already have occurred. Pointer equality does not mean
+that the parser performed no earlier mutation.
+
+On the admitted changed-pointer arm, helper processing precedes the Q store at
+R+0x7C at `0x009B0933`. Call `0x009B0935` sends notification 1 through
+`0x00999E10` for the Trigger's own Property descriptor `0x01361A54`.
+Its immediate receiver is the holder address. The supplied callback receives
+complete R and thunk `0x009B04D0` adjusts it to D before forwarding through
+D+0x18 to `0x00912AC0`. That descriptor and route are distinct from the
+owner's tested descriptor at Q+8 and Trigger primary +8 evaluation.
+
+The selected direct constructor/parser/writer path establishes reference
+readiness without directly calling `0x009B0620`, `0x009B1820` or the value
+reader `0x00911180`. It does not recursively close registration, resolver,
+listener, binding, constructor, notification or attachment effects. Actual
+parser delivery, name-resolution success, current state/table retention and
+lifetime remain conditions. Initial owner-state evaluation, first action,
+BeginStoryboard capture and Style/Template priority remain unestablished.
+
 ## Reproduction
 
 Authenticate the input above and use PE section mapping to reproduce table
