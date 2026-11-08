@@ -4,8 +4,8 @@ VA `0x00a82020` contains a guarded, indexed handoff to VA `0x00c20410`.
 The callee stores the incoming 32-bit value at offset `0x35c + index * 4`
 from its entry `ECX`. Its index check is signed-less-than `0x20`.
 These instructions establish the call chain, argument movement, and destination
-store. They do not identify the concrete virtual source or the meaning and
-ownership of its returned values.
+store. The concrete lookup return, serialized resource correspondence and
+ownership of the returned values remain unresolved.
 
 ## Input and method
 
@@ -89,6 +89,97 @@ signed-less path contains no call or explicit retain/release operation.
 The body has one indirect call and no direct calls. The diagnostic callee is
 uninspected. Its behavior, including whether it returns, remains unresolved.
 
+## Conditional source and runtime storage joins
+
+Focused Ghidra CLI 0.2.2 disassembly and xrefs over the same identified
+executable supplied these STATIC observations. PE section mapping confirmed
+the selected instructions, constants, RTTI and vtable cells, including the
+back edge at `0x00AAD1D9`. No layout or texture input was opened.
+
+### Source and handoff conditions
+
+STATIC. LayoutDrawEnvObject table `0x0109FD44`, locator `0x0118AAC0` and
+type descriptor `0x012F2748` identify
+`.?AVLayoutDrawEnvObject@DrawEnv@Dw@External@Default@Lay@Engine@CDev@SQEX@@`,
+with complete-object offset four. Its `+0x78` and `+0x7C` targets are
+`0x00A81640` and `0x00A81650`. Both invoke virtual `+4`, selected here as
+`0x008D5570`, returning N from interface `+4`.
+
+The reference getter returns E = `[N+0x28]` at `0x00A81647`. The count getter
+at `0x00A81657..0x00A81662` reads the same field, returns zero for null E,
+and otherwise reads the full dword `[E+0x18]`. Neither getter checks N for
+null before dereferencing it. This states in-memory reads only, without
+claiming a serialized fixup or node-shape correspondence.
+
+The initializer saves the returned count L. Its handoff is bypassed for zero
+L at `0x00A82371`, null E at `0x00A8237E`, or null lookup return at
+`0x00A82390`. The lookup uses the explicit argument's virtual `+0x5C`.
+Under those guards, `0x00A82392..0x00A823B2` enumerates i from zero,
+requests virtual `+0xAC(i)` on that return and passes its result with the
+same i to SetEnvmapTexture. There is no intervening null-entry test.
+
+Known CubeMapBaseObject and RaptureCubeMapBaseObject interface tables
+`0x010A659C` and `0x01061704` have complete-object offset four and select
+`0x008D5980` at `+0xAC`. It compares i unsigned against the low 24 bits of
+interface `+0x54`. It returns null out of range, otherwise the pointer at
+`[interface+0x50][i]`. The concrete lookup return and equality between L
+and this runtime count are not established. Neither count supplies a proven
+bound against SetEnvmapTexture's separate `0x20` diagnostic threshold.
+
+### Concrete count, tag and writer
+
+STATIC. In both known cube-interface tables, `+0x60` selects `0x00AACC40`,
+which tail-dispatches `+0xA4` to `0x00AACCD0`. That function invokes
+`+0x20`, selected as `0x008D5570`, and returns zero for a null result or
+its full dword `+0x18` otherwise (`0x00AACCD0..0x00AACCDF`). This null
+source check is distinct from the unchecked N in the layout source getters.
+These facts do not prove the two receivers hold the same source pointer.
+
+The concrete `+0x68` getter `0x00AACC80..0x00AACC85` ignores its ordinal
+and returns the dword at `0x010A2048`: `0x00747862`, ASCII token bxt.
+It does not select a cube resource by ordinal. In the load fragment
+`0x00AAD0D0..0x00AAD0F2`, temporary entry i pairs this return with the
+second dword of the eight-byte record reached through source `+0x14`.
+That second dword's serialized meaning remains unresolved.
+
+The offset-zero tables `0x010A6650` and `0x010617B8` select writer
+`0x00AACDD0` at `+8`. At `0x00AACDD3..0x00AACDE2`, the writer accepts i
+only when it is unsigned-less-than the low 24 bits of complete-object
+`+0x58`. Its store at `0x00AACDFE` writes the supplied value at
+`[complete-object+0x54][i]`. Those fields are the same locations as interface
+`+0x50/+0x54` after the four-byte receiver adjustment. A non-null old entry
+requests `0x00A3E680` before the store, and a non-null stored entry requests
+`0x00A3E670` afterward. Those callees' ownership and mutation effects are
+not established here. Out-of-range skips this writer's store.
+
+Preparation `0x00AACFF0` passes complete-object `+0x50`, the requested count
+and flag zero to `0x00AA4C10`, then clears entries using the retained low
+24-bit count. The helper can return with `AL=0` at `0x00AA4C58..0x00AA4C5E`.
+A null result from the uninspected call `0x00AA4B30`, tested at
+`0x00AA4C8A..0x00AA4C8C`, also reaches that failure indication. The admitted count-update path at `0x00AA4CDA..0x00AA4CEC`
+replaces the low 24 bits with the requested count when its flag is zero.
+The preparation call at `0x00AACFFD` does not check the helper result before
+continuing. A requested count therefore does not unconditionally establish
+the runtime getter/writer count.
+
+### Load fragment and surviving correspondence gap
+
+STATIC. In `0x00AAD030`, zero explicit-argument `+4` bypasses this load
+path at `0x00AAD070..0x00AAD074`. Otherwise it saves the `+0x60` source
+count C in EBP and applies an unsigned upper gate of `0x80` at
+`0x00AAD0B2..0x00AAD0BD`. Counts above that gate skip the load path.
+Within it, input records retain ordinal i before the opaque indirect loader
+at `0x00AAD1B8`.
+
+After that call returns, `0x00AAD1BA..0x00AAD1D9` reads output storage[i]
+and forwards it with i to the adjusted complete-object writer. The unsigned
+back edge at `0x00AAD1D9` returns to `0x00AAD1C0`. The loop bound is saved
+source count C, without an observed comparison against an output-vector
+length. The writer's own index guard does not validate that preceding read.
+This establishes ordinal preservation within the pre-loader and post-loader
+fragments, not correspondence across the opaque loader or a valid output extent.
+
+
 ## Interpretation and unknowns
 
 `xivl-client-structs:data/vendor/client_function_names/candidate_symbols.json`,
@@ -110,11 +201,12 @@ no early return before its store, but the uninspected diagnostic may prevent
 that store by not returning. These observations do not establish a broader
 valid-index or safety contract.
 
-The callsite chain and destination store are directly observed. The concrete
-implementations of slots `+0x7c`, `+0x78`, `+0x5c`, and `+0xac` remain
-unresolved. Their return values and the pointer at `[EBP + 0x18]` have no
-confirmed type or semantic identity from this observation. The incoming
-32-bit value's representation, ownership, and lifetime remain unresolved.
+The callsite chain, conditional source getters and known cube-interface
+storage joins are directly observed. The concrete `+0x5c` receiver and return,
+loader input/output identity and ordering, serialized fixup and resource-table
+relationship remain unresolved. The known `+0xac` implementation does not
+identify the actual lookup return. The pointer at `[EBP + 0x18]` and incoming
+32-bit value's representation, ownership and lifetime remain unresolved.
 The store establishes no FILE resource selection, texture default or format,
 shader alias, sampler name, downstream renderer result, or live client behavior.
 The reader side of the slots and the material sampler records that select slot
