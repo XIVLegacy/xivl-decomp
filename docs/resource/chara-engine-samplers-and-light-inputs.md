@@ -254,16 +254,76 @@ Setters on `SQEX::CDev::Engine::Fw::SceneObject::ModelObject` (vftable
 
 | Slot | Function | Observed stores |
 |---|---|---|
-| 37 | `0x008DD020` (`0x008DD510` for the Rapture class) | Argument to `this +0x288`. When the virtual at `+0x148` (it returns `this +0xD8`, `0x006576B0`) returns nonzero, the argument is also stored at that object's `+0xF4`. |
-| 46 | `0x008DD060` (`0x008DD570`) | Argument to `this +0x290`. The same virtual's object receives it at `+0xF0`. |
+| 37 | `0x008DD020` (`0x008DD510` for the Rapture class) | Argument to `this +0x288`. When the virtual at `+0x148` (it reads the pointer at `this +0xD8`, `0x006576B0`) returns nonzero, the getter is called again and the argument is stored at the second returned object's `+0xF4`. |
+| 46 | `0x008DD060` (`0x008DD570`) | Argument to `this +0x290`. The Rapture wrapper tests the same getter, rereads the saved `+0x290` value, calls the getter again and stores the saved value at the returned object's `+0xF0`. |
 
-(I: slot 37 installs the model's DrawEnv and slot 46 its light source. The
-function that calls either setter for a character model is U.) Cut-scene
-lighting uses separate machinery. The executable has the RTTI names
+(I: slot 37 installs the model's DrawEnv and slot 46 its light source.)
+A conditional controller caller is described below. Cut-scene lighting uses
+separate machinery. The executable has the RTTI names
 `CutDrawEnvListener`, `CutLightEnvListener`, `RaptureCutLightEnvListener`, the
 clip names `LayAmbientLightClip`, `LayRaptureAmbientLightClip`,
 `LayRaptureDirectionalLightClip`, `LayRapturePointLightClip` and
 `LayRaptureSpotLightClip`, and `RaptureDrawEnvNameClip`.
+
+## Conditional character controller installation (V unless marked)
+
+`0x007D81E0` dispatches controller `C` through primary slot `+0x70`, then
+its returned actor through primary slot `+0x11C`. A null model return exits.
+Original PE RTTI and table cells identify these conditional joins:
+
+| Receiver table | RTTI identity | Slot and target | Observed result |
+|---|---|---|---|
+| `0x00FEE17C` | `.?AVRaptureCharacterController@Controllers@Scene@Application@@` | `+0x70`, cell `0x00FEE1EC`, target `0x007143E0` | Reads actor pointer `[C+8]`. |
+| `0x00FC0D34` | `.?AVCharaActor@Chara@Actor@Scene@Application@@` | `+0x11C`, cell `0x00FC0E50`, target `0x00CB1C80` | Reads model pointer `[actor+0x0C]`. |
+| `0x010653A4` | `.?AVRaptureModelObject@Scene@Application@@` | `+0x94` and `+0xB8`, cells `0x01065438` and `0x0106545C` | Selects `0x008DD510` and `0x008DD570`. |
+
+These tables have complete-object offset zero in their RTTI locators
+`0x01162408`, `0x011581C8` and `0x01176D68`. Their type descriptors are
+`0x012C6320`, `0x012B7810` and `0x012DCD58`. Dispatch meanings require the
+receivers to retain the stated tables and the model to expose compatible
+slots. The getter at model `+0x148` reads `[model+0xD8]`. The Rapture wrappers
+call it a second time when its first return is nonzero. Getter stability, object survival
+and state across intervening virtual calls are not established.
+
+The installer first sends null to model slot `+0x94` at `0x007D8211`, then
+calls `0x008DCF30` on `C+0x6C0`. Its remaining pointer arguments and literal
+flag gates are:
+
+| Gate | Callsite | Model slot and argument |
+|---|---|---|
+| Mask `2` at byte `C+0x58` is set | `0x007D8231` | `+0xB8`, null. |
+| Mask `2` is clear | `0x007D8242` | `+0xB8`, address `C+0x6A0`, before testing `[C+0x6D8]`. |
+| `[C+0x6D8]` is nonnull and mask `8` is set | `0x007D8269` | `+0x94`, address `C+0x6E0`. |
+| `[C+0x6D8]` is nonnull, mask `2` is set and `0x00C1F330([C+0x6D8])` returns nonzero | `0x007D82C2` | `+0xB8`, address `C+0x6A0`. |
+
+A null current `C+0x6D8` source exits the later work at `0x007D824B`.
+Thus the mask-2-clear installation does not require a nonnull source or
+container. The mask-2-set path first clears the model slot and only later
+installs the embedded address under both gates. The DrawEnv argument is
+embedded storage at `C+0x6E0`, not the selected pointer `[C+0x6D8]`.
+Helper `0x007D6180` follows that installation with `C+0xB38`, `C+0x6E0`
+and receiver `[C+0x6DC]`. Its population and blending semantics are U.
+
+`0x007D85D0` provides a conditional source-change caller. It takes a separate
+actor argument and requires that actor's `+0x11C` model return to be nonnull.
+Its selection arm requires `[C+0x130]` to be nonnull or the string at `C+0x84`
+to begin with a nonzero byte. It saves `[C+0x6D8]` at `C+0x6D4`, calls
+`0x007D3B70` at `0x007D86AA` and `0x007D86CE`, and stores their returns at
+`C+0x6D8` and `C+0x6DC`. After a nonnull selected-source result and intervening
+calls, current `C+0x6D8 != C+0x6D4` at `0x007D8761` reaches the installer
+call at `0x007D876B`. This does not establish immutable state across calls.
+
+Controller table cell `0x00FEE208`, primary slot 35, selects `0x007D8AF0`.
+A reached arm loads `[C+0x1494]` at `0x007D8D13`, pushes that loaded pointer
+at `0x007D8D1B` and calls `0x007D85D0` with flag zero at `0x007D8D1E`.
+The entry has readiness tests and early exits. This is conditional reachability,
+not an unconditional scheduling claim. The argument is a stored pointer,
+not the field address. Its equality with the installer's actor `[C+8]` is U.
+
+The same-character spatial-query-to-installation join, authoritative containing
+environment, current actor position, work-set readiness, initialization,
+lifetime and selected cube remain U. This static call chain does not establish
+a live ordinary character session or a rendered lighting result.
 
 ## Per-node light list and ambient seed (V)
 
