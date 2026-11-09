@@ -125,6 +125,77 @@ sample and dispatch. Actual binding and operation-context identity,
 world and draw transforms, delivered samples, wall-clock duration
 and visible playback remain open.
 
+### Conditional ordinary clip delta
+
+The transform update passes the clip and its supplied scheduler context to
+`0x00A20F90` at `0x00A0E6B5` before the operation-context and transform
+gates. The context constructor `0x00A1FF70` retains scheduler S at
+context `+0x0C`. The running pass calls clip slot 2 at `0x00A1E1E7`.
+The tick path writes scheduler position minus clip start into its context
+at `0x00A1D6E8` and calls begin and update at `0x00A1D6FA` and
+`0x00A1D7D2`. Transform begin reaches `0x00A20F30` at
+`0x00A0ECCA`, which stores that overshoot at clip `+0x28` and sets
+state 1.
+
+The first update clears delta at clip `+0x2C` and changes state to 2.
+Later updates get the mutable frame dword from `0x012ED240` through
+`0x00A1FFC0 -> 0x00A1B840 -> 0x00A20470`. The multiplier is f32
+S `+0xE4` when S `+0xE8` is nonzero, otherwise 1.0
+(`0x00A20070 -> 0x00A1B830 -> 0x00A203B0`). On the finite, in-range
+branch the signed dword rounds to f32, widens to f64, multiplies by the
+factor and truncates to signed i32 (`0x00A20FCA..0x00A20FDC`).
+The wrapped sum replaces elapsed only when unsigned below
+`0x7FFFFFFF` (`0x00A20FED`). Duration checks also depend on state
+and phase (`0x00A1D7F3`, `0x00A1E208`).
+
+The image value at `0x012ED240` is 10010. The raw setter writes at
+`0x00A20484`. The rate setter at `0x00A204A9` writes truncated
+`300000.0 / rate` on its finite, in-range path. The guarded
+CutSceneObject slot 22 path calls it with a caller float at
+`0x00A036F3`. The ordinary CutScenePlayer update gets its rate
+through world slot 4 then configuration slot 2
+(`0x00A025E7`, `0x00A025F2`), and calls the setter at
+`0x00A025F8`. RaptureWorld cell `0x00FB6F54` selects
+`0x0060DE60`, which reads `0x01365574`. Framework publishes its
+`+0x20` ApplicationConfiguration at `0x00A5E494`. The
+SceneThreadImpl accessor (`0x00F931E8 -> 0x008DDB90`) resolves that
+same configuration. Its selected initializer writes f32 30.0 to
+configuration `+0x04` through slot 1 at `0x004E9F14`. Slot 2
+`0x00A558C0` reads the value. With the same configuration and 30.0 value retained and the ordinary
+branch admitted, the divisor is 10000.
+
+The [Framework callback](action-queue-scheduler-handoff.md#framework-callback-entry)
+forwards a pointer to the processed count through `0x00A4A118` and
+`0x00A48977` to `0x00A025C0`. The [selected scene
+clock](../actor/character-movement-displacement.md#selected-scene-clock-input)
+establishes the conditional QPC conversion to 300000 units per second
+and carry quantization. Further processing can change the count before
+delivery, and the shared pointer leaves prior callback writes open.
+After writing the divisor, the queue update skips iteration on a zero
+count or its disable byte. It rereads
+the configured rate at `0x00A0261F` and uses the processed count,
+a separately computed divisor and the player multiplier. The branch
+at `0x00A02823..0x00A02871` applies the wrapper multiplier or the
+128.0 override when S `+0xC8` is nonzero. LayScheduler's rate slot
+(`0x010A0498 -> 0x00A1B810 -> 0x00A20390`) writes S `+0xE4`.
+The clip delta can therefore vary between updates at a fixed divisor.
+
+With the selected Timeline and its factory and registry available,
+`0x00A784CA` calls `0x00A02F20`. Lay factory `0x00A78D80`
+constructs a LayScheduler via `0x00A84EE0`, and the creation helper
+retains it in the queue record at `0x00A030E5` and links that record
+at `0x00A03107..0x00A0311D`. The ordinary update calls
+`0x00A1F3C0` at `0x00A02883`. That path requires nonnull S `+0x50`
+and admitted state and wrapper branches to reach `0x00A1E380` at
+`0x00A1F4FA`. It runs the running pass, then skips the tick scan when
+signed S `+0x4C` is positive. The selected clip class is registered at
+`0x00A86C80` and its factory path installs table `0x010A14DC` at
+`0x00A86D1B`. Update eligibility requires the same retained queue
+and scheduler and successful clip population, start and admission.
+Actual configuration retention, selected ferry binding, callback
+cadence, endpoint delivery, wall-clock duration and visible playback
+remain open.
+
 ## Docked-ship boundary
 
 Bindings `196/456` and `496/456` expose `spin`, `spot`, `_ex_show`,
