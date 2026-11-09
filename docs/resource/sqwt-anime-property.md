@@ -10,7 +10,7 @@ plus a `Shown` event, and `Hide` ends as a `Hiding` event plus Visibility
 Hidden. This page records the path, the values it accepts, the two gates that
 look able to block it, and how a plain Visibility write differs.
 
-The machine-checked form of every STATIC fact is
+The machine-checked Anime contract is
 [`sqwt_anime_property.json`](../../config/sqwt_anime_property.json), checked by
 `tools/verify_sqwt_anime_property.py` against the pinned bytes. The reference
 model of the rule is in that tool. The command layer under this page is on the
@@ -54,9 +54,9 @@ Executable: retail FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
 `0x00400000`. All native addresses are VA.
 
 The producing tool is Python `capstone` 5.0.7 disassembly of the pinned image.
-Each STATIC row names a signature, string, table, range hash, event initializer
-or reference-count check in the manifest that the verifier compares with the
-pinned bytes. Signature rows are short. Longer spans are SHA-256 range hashes.
+The manifest identifies the signatures, strings, tables, range hashes, event
+initializers and reference counts checked by the verifier. The linked desktop
+attachment and focus contracts have their own evidence record. Signature rows are short. Longer spans are SHA-256 range hashes.
 The Sqwt string helpers are named by address: `0x00445210` returns the data
 pointer, `0x00445D20` compares two strings, `0x00445D60` and `0x00445E00` test a
 string against a C string for equality and difference, `0x00445DB0` tests two
@@ -257,12 +257,14 @@ bookkeeping argument, `always raise Shown` and `Visible`. STATIC.
 
 1. It reads whether the window is visible through slot `+0x5C` of the `+0xB4`
    table, `0x00939AA0`, and keeps the answer.
-2. It notifies the object at `[0x01356E10] +0x194` when that global is set. The
-   effect is UNKNOWN.
+2. If the desktop global is set, it calls slot `+8` on its `+0x194` interface.
+   The [desktop attachment](sqwt-window-trigger-order.md#desktop-attachment)
+   path can insert the Window visually and logically.
 3. It sets Visibility through `0x0093C2A0` to 2 (Visible) when `Visible` is
    nonzero and to 1 (Hidden) otherwise.
-4. It calls `0x009237D0` with the bookkeeping argument. What that call does and
-   what the argument means are UNKNOWN. `Show` and `ShowInactive` both pass 1.
+4. It calls `0x009237D0` with the bookkeeping argument. `Show` and
+   `ShowInactive` both pass 1. The same desktop attachment study records
+   the guards under which this call requests focus.
 5. It reads visibility again. It raises `Shown` (event id `0x47`, static
    `0x013573B0`) when the window is now visible and was not, or when `always
    raise Shown` is 1. `Shown` has this one raise site.
@@ -364,7 +366,7 @@ marks `PreviewExecuted` handled suppresses the Window effect.
 |---|---|
 | INFERRED | The owner-qualified name resolution inside 0x00912850 and the property lookup 0x00910F60 are not traced. The join from the engine call to the info setter 0x0095F6B0 rests on the registration at 0x00991FDB and on the descriptor test in the change handler. |
 | INFERRED | The chain from the Window element's slot 13, 0x00922030, to the generic dispatcher follows direct call edges through 0x00935380, 0x00938BA0, 0x0092D060 and 0x00939800. The branches inside those functions that could skip the dispatcher are not decoded. |
-| UNKNOWN | The effects of 0x009237D0, 0x0091DEC0, 0x0092ABC0, 0x00921B00, 0x00926250, 0x0093CC70 and of the notification sent to the object at [0x01356E10] +0x194 are not decoded. |
+| UNKNOWN | The effects of 0x0091DEC0, 0x0092ABC0, 0x00921B00, 0x00926250 and 0x0093CC70 remain open. |
 | UNKNOWN | How a Hiding handler cancels the hide is not traced. The cancel byte sits in the Hiding event object at +0x1C, set by a handler outside this page. |
 | INFERRED | No store to FormElement +0x9C other than the constructor is found by the instruction scan, so the receiver byte is read as constantly 1. An indirect store is not excluded. |
 | UNKNOWN | Window slot +0x34, 0x00922030, forwards each Executed event to the object at window +0x3A8 when it is set. That object is not identified. |

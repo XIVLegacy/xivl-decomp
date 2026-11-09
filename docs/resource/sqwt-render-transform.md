@@ -317,23 +317,21 @@ The `UIElement` constructor stores the table `0x0106C2A4` at element `+0xB4`
 is `0x0091C4B0`. The gate `0x0091B7B0` is true when the global `0x01356F34` is
 non-null and its byte `+0x158` is `2`. Slot `+0x14` returns true when the part is
 the object held in the global `0x01357020` or an ancestor of it, following the
-parent word at `+0x60`, and false otherwise. STATIC for the instructions. That
-the global holds the anchor the property name suggests is INFERRED from the walk.
+parent word at `+0x60`, and false otherwise. The global holds the current keyboard-focus interface.
+The anchor routed-event recipient is stored separately at `0x01356FCC`.
 Window interface table `0x01069F94`, cell `0x01069FDC`, also selects
 `0x0091C590` at `+0x48`. Its RTTI locator `0x01179078` identifies offset
 `+0xB4` of `.?AVWindow@Sqwt@@`, descriptor `0x01269E20`. Other derived
 tables remain outside this finding. The
-[subsequent Window focus route](sqwt-window-trigger-order.md#subsequent-focus-and-anchor-refresh)
-supplies a concrete caller, without establishing first attachment or initial
-property Trigger evaluation.
+[Window attachment and conditional focus notifications](sqwt-window-trigger-order.md#attachment-and-conditional-focus-notifications)
+records the focus store, anchor Visibility gate and changed-value guards.
 
 The value is therefore derived and not a constant. It reads false while
 `0x01357020` is null or the gate fails, and it can be true only when the global
 names the element or a descendant. The writes to `0x01357020` are at `0x0091DC8D`
 in `0x0091DBD0` and at `0x0091E75C` in `0x0091E3E0`, and the writes to
 `0x01356F34` are at `0x0091BFA5` in `0x0091BF40` and at `0x0091BEE9` in
-`0x0091BE10`. Which events run them, and what the byte `+0x158` of the
-singleton holds in a session with no input, are UNKNOWN.
+`0x0091BE10`. The runtime Visibility state and the remaining writer conditions are open.
 
 ## Surviving gaps
 
@@ -342,9 +340,8 @@ singleton holds in a session with no input, are UNKNOWN.
 - Hit testing under a transform.
 - The full caller and notification conditions for the separate centre update at `0x0093BBFF`.
 - The events that run the `IsMouseOver` setters `0x0093A410` and `0x0093A480`.
-- The writers of the anchor global `0x01357020` and of the gate global
-  `0x01356F34`, and the value of the singleton byte `+0x158` in a session with
-  no input.
+- The runtime Visibility state of the AnchorElement and the remaining caller
+  conditions for the keyboard-focus and AnchorElement pointer writers.
 - Whether a derived `UIElement` class overrides slot `+0x48` of the `+0xB4` table.
 - Initial evaluation and materialization order of a Window's Style and
   Template trigger sets. Their conditional

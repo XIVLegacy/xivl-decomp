@@ -180,6 +180,113 @@ first BeginStoryboard or endpoint capture. Generic and local-property callbacks,
 reentry, current table retention and object lifetime remain conditions. Other
 initialization and notification paths are not excluded.
 
+## Attachment and conditional focus notifications
+
+Ghidra CLI, LLVM disassembly and original PE tables establish these paths.
+Window constructor 0x009246F0 installs its tables at 0x00924724 and
+0x0092472A. UIElement base constructor 0x0093C750
+initializes IsKeyboardFocusWithin at E+0x15D (0x0093C9C5..0x0093CA17).
+Metadata 0x80 sets holder bit 1 and leaves value bit 5 clear. The
+[IsAnchorWithin holder](sqwt-render-transform.md#isanchorwithin-and-ismouseover)
+at E+0x160 has the same initial bits. The input parent I+0x60 starts null at 0x0091E117.
+
+### Desktop attachment
+
+The Window markup branch calls its constructor at 0x0094B61D and builds
+its wrapper at 0x0094B675 before entering its own recursive reader at
+0x0094B68E. For nonnull E, wrapper constructor 0x00946830 can pass E to
+the current parent markup +0x10 at 0x009468B9. The DesktopWindow branch
+at 0x0094B6D1..0x0094B6F3 builds a base wrapper with +0x10 cell
+0x0106D678 -> 0x00946AB0. With wrapper+0x14 equal to nonnull desktop D+0x194,
+that handler dispatches +4 through cell 0x01069214 -> 0x0091A2B0 (COL 0x01178D90, offset 0x194).
+That helper can insert E visually at 0x0091A2CC and logically at 0x0091A2E8
+before the child reader, subject to its D+0x78 and D+0x240 tests.
+
+The [Window show routine](sqwt-anime-property.md#show-and-hide-routines)
+has a separate route. Nonnull desktop D admits its +0x194 table +8 call
+at 0x00925AFD (0x01069218 -> 0x0091A270). This can insert E visually at
+0x0091A28A when E+0x78 differs from D and logically at 0x0091A29F when
+E+0x240 is zero. On return, show requests the Visibility write at 0x00925B17
+and calls 0x009237D0 at 0x00925B23. It can request focus through I+0x38 at
+0x00923889 if selection returns E, the incoming byte equals 1, E+0x15D bit 5
+is clear and E+0x15C bit 5 is set.
+
+Visual insertion 0x00940B30 writes E+0xA4 at 0x00940B69 and calls parent
+primary +0x3C at 0x00940C49. Logical insertion passes I to current parent
+input +0x50 at 0x00931405. DesktopWindow cell 0x01069274 and Window cell 0x01069FE4 select 0x0091E180.
+For a valid first parent it requests an append of I at 0x0091E1AD, stores the
+parent interface at I+0x60 at 0x0091E1B2 and sets I+0x70 mask 4 at 0x0091E1B5.
+The admitted Parent store at E+0x240 (0x0093145B) and the Parent descriptor
+0x01358B3C notification call (0x009314A2) follow. The insertion bodies
+directly write neither tested holder nor the focus global, and callbacks can
+reenter. The tail call at
+0x009314C6 searches from the complete parent's +0x240 in 0x0092B820.
+With a nonnull anchor recipient at 0x0092B829, a parentless desktop exits at
+0x0092B833 even when its interface equals the recipient. A matching ancestor can receive +0xD4 at 0x0092B85A.
+For the checked desktop and Window tables, 0x0092FBA0 can request focus at
+0x0092FBCC if its +0xE4 predicate is false and mode-9 selection succeeds.
+
+### Focus transfer and refresh
+
+Window I+0x14 (0x01069FA8 -> 0x0091C4B0) tests the current keyboard-focus
+interface at 0x01357020 and its input parents. I+0x48 adds the
+[anchor gate](sqwt-render-transform.md#isanchorwithin-and-ismouseover).
+The allocation arm at 0x0091BF89 and 0x0091BFA5 assigns a constructed
+Sqwt::Input::AnchorElement to 0x01356F34 (COL 0x01178E38). Its +0x158 is Visibility
+(0x013596BC, 0x0093C897..0x0093C8AE) and must equal 2. Separate global
+0x01356FCC supplies the anchor event recipient.
+
+The [focus request](sqwt-command-parameter-consumer.md#conditional-actionmenu-focus-request)
+reaches 0x0091E3E0. The direct new-target arm requires both virtual guards,
+a different target, a nonnull result from 0x0091C370 at 0x0091E502, no
+redirect, and a preview cancellation byte unequal to 1 at 0x0091E694.
+Cancellation can return a success-valued AL without the store. With a desktop
+present, the walk returns the input below it, the desktop target, or null
+for a disjoint chain. With no desktop it can return the last nonnull input
+at 0x0091C39E..0x0091C3A3.
+
+On that arm, 0x0091E75C stores the target input interface in 0x01357020.
+The call at 0x0091E762 enters 0x0091B890. It can dispatch LostAnchor to
+a nonnull old recipient at 0x0091B925 if the Visibility gate passes. It
+reloads the Visibility owner at 0x0091B92A after that dispatch, stores the
+new recipient at 0x0091B949 and checks the gate and new recipient before
+GotAnchor at 0x0091B9AD. After the helper returns, 0x0091E3E0 can dispatch
+LostKeyboardFocus at 0x0091E7B4, separate LostFocus and GotFocus events,
+then GotKeyboardFocus at 0x0091E880.
+
+These events pass three route flags of 1 and require a current descriptor
+and nonzero target input+0x64 in 0x0091E1C0. The walk at 0x0091E2A6 collects
+ancestors up to the desktop boundary and can append the desktop separately.
+For retained class 0, 0x0091D210 walks the list reversed at 0x0091E31D
+backwards, target before ancestors. It calls input +0x34 at 0x0091D2A6
+and stops further delivery when A+0x17 is nonzero at 0x0091D2AC. If the
+Window receives the event with its descriptor and tables retained, the
+[base dispatch chain](#conditional-event-passes) reaches 0x0091D320.
+
+| Event (descriptor, id) | Window cell and handler | Refresh call and changed notification |
+| --- | --- | --- |
+| GotAnchor (0x01356F5C, 0x4D) | 0x0106A070 -> 0x00921EA0 | 0x0092C01A -> 0x0093D510, 0x0093D57B |
+| LostAnchor (0x01356F68, 0x4E) | 0x0106A074 -> 0x0092C070 | 0x0092C079 -> 0x0093D5A0, 0x0093D60B |
+| GotKeyboardFocus (0x0135945C, 0x20) | 0x0106A07C -> 0x00930D20 | 0x00930DED -> 0x0093D370, 0x0093D3DB |
+| LostKeyboardFocus (0x013595B4, 0x22) | 0x0106A080 -> 0x009299D0 | 0x009299F1 -> 0x0093D400, 0x0093D46B |
+| AnchorVisibleChanged (0x01356F50, 0x4C) | 0x0106A0A4 -> 0x0092C2B0 | 0x0092C2B8 -> 0x0093D630, 0x0093D69B |
+
+0x0091B9D0 can dispatch AnchorVisibleChanged at 0x0091BACB. GotKeyboardFocus
+has a gated call at 0x00930DE5 before refresh. After optional holder processing,
+the refreshes require either holder bit 0 or 1 set and compare value bit 5
+with the sampled byte. Equality skips the store and notification, including
+false-to-false. A change calls 0x0099C680 with complete E, callback
+0x0093B700 and the matching descriptor.
+
+If E retains both defaults, old focus and anchor paths lie outside E, and
+focus moves to I or an input descendant, a delivered GotAnchor can notify
+IsAnchorWithin before GotKeyboardFocus can notify IsKeyboardFocusWithin.
+This requires the gate to stay open through the anchor refresh. With the gate
+closed, a false anchor sample against retained false skips the explicit changed
+notification. These STATIC paths depend on
+current state, callback return and delivery. The first matching ActionMenu
+event, initial false Trigger evaluation and first action remain UNKNOWN.
+
 ## Property Trigger and shared event flags
 
 Original Trigger primary table +8 cell 0x0107D0E0 selects 0x009B0620.
@@ -189,7 +296,7 @@ at A+0x70 and the dword at the pointed object's +8. It reads a property through 
 compares through 0x009AF8D0 when trigger+0x84 is nonempty, and calls action
 walker 0x009B1820 at 0x009B0695. False-return paths remain possible.
 This joins property Trigger evaluation to entry +8 without establishing its
-initial evaluation or event producer.
+initial evaluation or first matching event.
 
 The action walker reads shared A+0x14/+0x15/+0x16 and writes
 A+0x14/+0x15/+0x16/+0x19. Both A+0x14 and A+0x15 equal to 1 take its

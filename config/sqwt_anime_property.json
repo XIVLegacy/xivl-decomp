@@ -739,7 +739,7 @@
     },
     {
       "label": "UNKNOWN",
-      "question": "The effects of 0x009237D0, 0x0091DEC0, 0x0092ABC0, 0x00921B00, 0x00926250, 0x0093CC70 and of the notification sent to the object at [0x01356E10] +0x194 are not decoded."
+      "question": "The effects of 0x0091DEC0, 0x0092ABC0, 0x00921B00, 0x00926250 and 0x0093CC70 remain open."
     },
     {
       "label": "UNKNOWN",
