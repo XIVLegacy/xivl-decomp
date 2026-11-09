@@ -1100,6 +1100,48 @@ pointer is loaded separately through `0x00BD2100`. The wrapper loads
 the descriptor `+0x7C` at `0x00BDB694` and invokes it at `0x00BDB699`, selecting
 `0x00D667F0` for the DrawResource descriptor above.
 
+#### Selected drawable and tag fields
+
+The selected VEFF unit array has four records. Its root pointer at
+file `0x0D20` and one `0x38` stride select unit ordinal 1 at
+file `0x14BC`. The emitter parameter pointer at file `0x24DC`
+selects the same record. Unit ordinal 1 has byte `0x02` at
+`+0x35`, file `0x14F1`. The four instance records refer to units
+0, 2, 1 and 3 in order. Instance ordinal 2 starts at file `0x1E6C`
+and has byte zero at `+0x29`, file `0x1E95`. Neither flag byte
+falls within a relocation cell in this resource.
+
+The VEFF builder passes the relocated unit record through
+`0x00BD45F3 -> 0x00BAC670 -> 0x00BD2660`. The last routine retains
+the record at UnitData wrapper+`4` at `0x00BD2BC6`. The instance
+builder at `0x00BD468B` retains the relocated instance pointer
+at N+`4` and its UnitData pointer at N+`0x10` through
+`0x00BD1B70`. The emitter loads the selected unit pointer at
+`0x00D6B569` and calls `0x00E3A3C0`. The child lookup at
+`0x00BCE602..0x00BCE609` matches the unit record against the
+UnitData pointer field. It then matches that wrapper against
+N+`0x10` at `0x00BCE6D7..0x00BCE6DE`. The selected N supplies
+the UnitData at `0x00BCDDDA` and the unit record at `0x00BCDDE7`.
+With these pointers retained, the selected `0x02` passes the
+drawable mask at `0x00BCE1A9`.
+
+Both single-effect factory arms call the common constructor
+`0x00BB6D20`. It seeds S+`0x1C` and S+`0x18` with
+`0x01020201` at `0x00BB6F74/0x00BB6F77`. Both retained single-effect
+tables have methods at offsets `+0xC4` and `+0xC8` that clear and
+set bit 9 in these two flag dwords through `0x00BB45A0` and
+`0x00BB4600`. The registration branch tests the current bit at
+`0x00BCE299`. With the bit set and a valid manager, the call at
+`0x00BCE3BA` is followed by setting U+`0x98` bit 4.
+
+Construction retains N at U+`8` at `0x00BCD98A`. If the selected
+drawable reaches the tag callback with these unit and instance
+pointers retained, the zero-global branch at `0x00BF7BC2/0x00BF7BC5`
+recovers the instance record. Its selected zero byte at `+0x29`
+passes the bit-1 test at `0x00BF7BC8/0x00BF7BCC`. A nonzero
+global byte `0x01308480` enters dispatch at `0x00BF7BC0`
+before either pointer load.
+
 #### Conditional indexed submission
 
 The DrawResource handler requires ordered color alpha above 0.0 and
@@ -1137,10 +1179,12 @@ See [indexed submission](floor-model-render-path.md#indexed-submission)
 for the backend contract.
 
 The PE32 instructions and table cells establish conditional routes. The
-first open renderer edge is the selected drawable's construction,
-retention and admission before its tag callback. Live graph and material
-values, backend selection, queued task execution and device results
-remain unobserved.
+selected unit and instance flags admit the conditional drawable and tag
+paths. Construction still requires retained pointers and successful
+allocation. Registration requires the current S+`0x18` bit 9 and
+a valid manager result.
+Live tag delivery, graph and material values, backend selection, queued
+task execution and device results remain unobserved.
 
 ## Remaining boundary
 
