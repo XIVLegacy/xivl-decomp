@@ -95,6 +95,51 @@ selected block. The live layout mapping, block selection and `Ready`
 timing for a particular session remain UNKNOWN.
 [SetMap framing and native base](https://github.com/XIVLegacy/xivl-client-structs/blob/180ab8aaa49b0157fee8996abe4d27e05b588bda/docs/map-layout-selector.md#L31-L56).
 
+### Registered control readiness
+
+STATIC. Primary slot `+0x28` of MapScreenControl, cell `0x00FC35B4`,
+selects `0x00672690`. When the control's `+0x448` is zero, it calls
+`0x004D7610` with the control and its owner from `+0x5F0`
+(`0x00672693..0x006726A3`). The helper writes the pointer to owner
+`+0x17858`. Getter `0x004D7620` reads that same field.
+
+STATIC. MapNavigationWidget primary slot `+0x10`, cell `0x00F9EFC4`,
+selects `0x00529050`. The routine calls the getter on the owner reached
+through widget `+0x2C` then `+0x7C`, and caches the returned pointer
+at widget `+0x24C` (`0x00529313..0x0052931E`). The tail reloads the cache
+before each setter call. If the owner retains the registration and the
+cache continues to name that control, the tail requests these values on
+the same control:
+
+| Call site | Setter | Requested value |
+| --- | --- | --- |
+| `0x00529432` | `0x00674640` | Layout `-1` |
+| `0x00529441` | `0x006746A0` | Rect `-1` |
+| `0x00529450` | `0x00674700` | Ready `0` |
+| `0x00529460` | `0x00674700` | Ready `1` |
+
+All four calls request holder mode 0 and notification 1. Each needs
+current holder admission. The widget tail returns `AL=1` without checking
+the setter returns (`0x00529465`).
+
+STATIC. Ready wrapper `0x00674700` supplies holder `+0x480` and
+callback `0x006737A0` to `0x006848F0`. After any cleanup of holder
+mask `0x10`, mode 0 admits the write when mask `2` is clear
+(`0x0068490F..0x0068493D`). For the literal inputs 0 and 1, a changed
+Ready value with notification 1 calls the notification helper
+(`0x0068493F..0x00684976`).
+Descriptor tag 7 selects the Ready callback arm `0x00673846` through
+class cell `0x00673ACA` and jump cell `0x00673A8C`. The arm rereads
+Ready. True sets mask `0x10` at control `+0xA69` at `0x00673853`.
+False clears the same mask at `0x00673867`.
+
+INFERRED. If the registered control survives the admitted sequence and
+callback delivery, it can reach the later update with both Ready and
+the request mask set. The retained pair and separate request conditions
+still apply. The first live invocation, current holder state, layout and
+page selection, and visible painting remain UNKNOWN. Ghidra CLI listings
+and direct reads of the identified PE confirm the locators above.
+
 ### Numeric manager identity to layout sheet key
 
 STATIC. The selected manager's `+4` interface table `0x00FBFCEC`
