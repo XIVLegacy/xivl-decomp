@@ -591,6 +591,27 @@ selects row 0 at `0x00698FC9..0x00699049`. Empty text
 leaves an empty vector. The separate reader and render gates
 still require availability, current source handles and materialization.
 
+#### Conditional Gridania map row
+
+MEASURED. The installed region resource `0x03C00000` names layout
+keys 321 and 331 for child resources `0x29B00001` and `0x29B00002`.
+With either numeric manager admitted and page 0 supplied, the selected
+`_layout` column 2 yields navigation key 2700 or 2800, respectively.
+Both available `mapNavi_data` rows select piece 1211 in column 6 and
+marker start 3701 in column 7. The three decoded sheet identities match
+`xivl-client-data:manifests/tables.json`.
+
+STATIC. A new piece reader is required, so a retained piece key of
+1211 bypasses the request. With the state-0 scope, lookup, cast and
+write admitted, the writer supplies `3701-`. The range starts at
+3701 and the installed row exists. Its selected template key is
+`MapMarkerSymbol`, declared at line 47 of `common/MapMarker.tpl`.
+The row supplies `common/mapMarkerSymbol.le.spk` and sequence
+`ms00007`. The row's `HideLayout=-1` cannot reject through the
+comparison at `0x00671F47..0x00671F65`, which skips the equality
+test when the retained control field is also -1. Live manager and
+page selection, row admission, and marker painting remain unknown.
+
 #### Separate navigation SSD requests
 
 MEASURED. The two navigation forms select `quest_marker` for
@@ -619,12 +640,26 @@ Its decoded SHA-256 is
 Using the [LPB replay](minimap-base-tiles.md#ordinary-minimap-ready-requests),
 `root/proto43` at decoded code offset `0x3D03` calls `_setProperty`
 at zero-based PC 5 with self, nil scope, `ssd_marker_data`, `Row`
-and the first explicit argument. The ordinary MiniMap LPB has
+and the first explicit argument. The ordinary MiniMap LPB and its
+checked base and connector chunks have
 none of the three literal keys `ssd_marker_data`, `map_marker_data`
 or `Row`. A file-backed .text E8/E9 scan identifies `0x0067684C`
 as the only direct branch to `0x00699960`. Generic Row writes can
-reach `0x00699818` separately. A producer for the ordinary SSD
-reader and actual live reader identities remain UNKNOWN.
+reach `0x00699818` separately.
+
+The reader constructor `0x006999C0` starts with a null Row holder
+and empty parsed key vector. The exact native `ssd_marker_data`
+reference through cell `0x0126ADB8` occurs in the navigation
+initializer at operand `0x0052932B`. Its scoped result at
+`0x00529393` belongs to that navigation widget's `quest_marker`
+reader. Map control registration at `0x00672693..0x006726A3` also
+requires `Function=0`. Function 1 skips that registration and has
+a separate SSD list consumer at `0x00678E72..0x00678EAB` when the
+source and list are present. Exact string and file-backed operand
+scans, LLVM x86-32 decoding and the pinned carrier/chunk replays
+bound these exclusions. Indirect writes can take the generic Row
+path. A producer for the ordinary SSD reader and actual live reader
+identities remain UNKNOWN.
 
 ## Census
 
