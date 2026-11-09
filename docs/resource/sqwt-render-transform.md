@@ -156,6 +156,42 @@ branch of the origin notification, the retained pair has no own
 visual matrix effect. This does not establish the Window's live
 pointer, ancestor composition or trigger delivery.
 
+### Arranged position in draw and hit testing
+
+STATIC. The [Window arrange path](action-menu-timer-icon-style.md#window-top-offset-and-arrange)
+can store its adjusted position in `VisualOffset`, the binary32 pair
+at Visual `+0x24/+0x28`. The changed callback at `0x0093FE10..0x0093FE54`
+can pass the retained pair to current drawing context slot `+0x34`.
+First context acquisition can replay a dirty pair at
+`0x0093F8E9..0x0093F8FE`. These instruction and virtual table joins
+were checked against the PE with LLVM x86-32 decoding.
+
+The draw proxy `0x0055A000` truncates each finite in-range local
+component toward zero and stages it as binary32 for operation `0x0E`.
+Admitted delivery stores local XYZ in WindowContext at `+0x28..+0x30`.
+The additive path at `0x008CDA9E..0x008CDB0B` can accumulate parent
+position. The matrix path at `0x008CD90D/0x008CDA43` can compose
+`M_visual * T_context * M_parent` in row-vector order. Clip delivery
+and inherited context clipping remain separate inputs. A selected
+ContentPresenter with `ClipToBounds=False` can still inherit a clip.
+
+The admitted ordinary Window point route
+`0x00923090 -> 0x00939B10` subtracts each current UI-side binary32
+offset along visual parent `+0xA4`. It can visit visual children
+before the Window self test. The propagated clip test at
+`0x0097E0EC..0x0097E13E` and the Window's local rectangle test
+at `0x00926D40` use ordered half-open bounds. The Window callback
+`0x0092B640` has separate logical Visibility and local hit gates.
+[Child-first query](sqwt-command-parameter-consumer.md#local-hit-flags-and-child-first-query).
+
+The draw readiness value `+0x128 == 3` at `0x008CE7FF` can
+arise from an update and a generic command. The visibility byte
+`+0x12B` starts true. Neither field certifies delivery of the
+current position. The same arranged origin can therefore reach
+input as a fractional value while drawing uses an integer-staged
+or earlier queued value. The live Window selection, first frame,
+effective clip and final hit remain open.
+
 ## PlayerParameter Window origin
 
 OBSERVED markup. The PlayerParameter Window selects an origin-animation
