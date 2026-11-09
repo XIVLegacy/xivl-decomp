@@ -423,6 +423,92 @@ unit, link and control arrays with the effect body method. Read the
 selected Vmdl's model libraries with the
 [modern model geometry dictionary](vfx-modern-model-geometry.md#selected-frame).
 
+### Selected rain shader and texture inputs
+
+The shader inputs below come from the two named installed dependencies.
+File ranges are hexadecimal and half-open. The token walk uses
+[`d3d9_shader_decode.py`](../../tools/d3d9_shader_decode.py) and checks
+instruction lengths, relative operands and the Bool blocks against the
+complete streams. Python `struct` and `hashlib` check the wrapper,
+material and texture records. Ghidra disassembly, LLVM objdump 21.0.0
+and PE section reads check the native locators against the executable
+identified above.
+
+| Resource | File | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `0x898A0085` | `data/89/8A/00/85.DAT` | 11324 | `a9dd1cfbf65fa27de81f6fd03ad16f9b2531177c33ef39e6fdc8e22cc870621e` |
+| `0x89890052` | `data/89/89/00/52.DAT` | 87652 | `9afe04c1d4d834fc1c7cf5988f5afcdceb8e9a2e09c21f94002b2b7dc6f5d582` |
+
+The Vmdl root at file `0xA0` selects shader set 0 at file `0xE8`.
+Its pointers are relative to payload base `0x30`. Each wrapper holds
+a 16-byte key, a big-endian length, twelve zero padding bytes and a
+token stream. Both END tokens close their declared streams.
+The [program consumer](seasonal-model-material-bindings.md#program-and-geometry-consumers)
+owns the native wrapper submission route.
+
+| Stage and range | File range | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `vs_3_0` wrapper | `[0x1590,0x2A14)` | 5252 | `f3436ea3909e53be2956461712bba1f7c66cf71309e8158c099e22afeffe514b` |
+| `vs_3_0` stream | `[0x15B0,0x2A14)` | 5220 | `de3a6ceb846ee705220b342f3f6908463e553a0993d58ae60df79ed8b0b6895a` |
+| `ps_3_0` wrapper | `[0x2A14,0x2C3C)` | 552 | `fe60e3a152ad3d188de6dfc647d749fbd4569c01af9b29f03c6ba090fdb89d60` |
+| `ps_3_0` stream | `[0x2A34,0x2C3C)` | 520 | `9f04eaf6f67f280979eadcae39b9dde9227c1f4350250d3ace87865a96bb5120` |
+
+The VS CTAB header at `0x15BC` has 31 entries. It places
+`isSkining` at `b0` and eight lighting Bools at `b8..b15`.
+The VS input declarations at `0x1B58..0x1B94` name `v0..v5`
+as POSITION0, COLOR0, NORMAL0, TEXCOORD6, TEXCOORD7 and TEXCOORD0.
+Under hypothetical `b0=false`, the source operands use exactly the
+four supplied semantics for every lighting Bool assignment and have
+zero relative operands. The `b0=true` body at `[0x1C3C,0x1E58)`
+adds both absent semantics and 12 relative constant operands. The
+unchanged stream retains both declarations. A `b0=false`
+specialization that drops those declarations gives an exact four-element
+input match. Acceptance of the unchanged shader with the four-element
+declaration remains unverified.
+
+Constructor `0x00C0FAA0` clears shader `+0x4E` at `0x00C0FAE2`.
+With a nonzero `isSkining` handle, the call at `0x00C11010` requests
+Bool register 0 from the current byte. The selected draw-time byte
+remains unknown.
+
+VS CTAB entry `0x1830` assigns `worldViewProjMatrix` to four Float4
+registers at `c8..c11`. The operands at
+`0x1F00/0x1F0C/0x1F20/0x1F34` feed clip position `o0`, written at
+`0x29C8`. The [matrix producer](vfx-model-material-values.md#matrix-and-system-producers)
+conditionally requests these registers at `0x00C10952` from the
+supplied matrix multiplied by the current block at `0x013085E0`.
+
+The PS CTAB header at `0x2A40` declares `latitudeParam` at `c171`,
+`fogColor` at `c172`, `_sampler_00TexColor` at `c173` and
+`_sampler_00` at `s0`. The sampler declaration at `0x2BA4` is 2D
+and the only sample uses `s0` at operand `0x2BBC`. Its UVs are
+VS output TEXCOORD4.xy, produced from the supplied TEXCOORD0 and
+`textureMatrix0` registers `c187/c188/c190` at `0x1F78..0x1F9C`.
+The pixel TEXCOORD6.w input comes from the VS fog output at `0x296C`.
+
+Material ordinal 0 at `0x4E8` has one sampler. Its table at `0x65C`
+selects dependency ordinal 0 and sampler-name ordinal 0. The dependency
+at file `0xFC` names `032sPXrain0001s` with type `xetv`. The kind 7
+record at file `0x478` names `_sampler_00`. Under the ordinary
+[material and texture join](seasonal-model-material-bindings.md#material-and-texture-joins),
+the resolved dependency supplies material sampler ordinal 0.
+A successful [sampler reflection lookup](vfx-model-material-values.md#sampler-names-generated-values-and-native-records)
+maps the name to stage 0. The selected Vtex root at `0x6C` matches
+the dependency name and type. Its payload-relative pointer and length
+at root `+0x1C/+0x20` select GTEX file `[0x94,0x15664)`.
+The [GTEX header and surface table](gtex-pwib-loader.md#gtex) give
+format index 26, flags 0, a 256 by 256 2D texture with depth 1 and nine
+bounded DXT5 levels. The table and source bases are `0x18` and
+`0x60` relative to the GTEX header. The last level ends at the file
+boundary.
+
+The selected material and CTAB supply no `textureMatrix0` value.
+The named material parameter `latitudeParam` has no serialized
+payload. CTAB defaults and other serialized material components leave
+the current values, overrides and successful uploads unresolved.
+Current WVP, fog and lighting, sampler filtering and address modes,
+material state, backend creation and draw remain open.
+
 ### Deferred VFX resource binding and clearing
 
 The RaptureVfx primary table `0x0106236C` and generic VfxBaseObject
@@ -496,7 +582,8 @@ reference, the conditional DrawEnv interpolation contract, the VFX context
 producer, the application load's null receiver and the generic default
 resource-query receiver, plus deferred binding into the retained VFX fields.
 The ordinary graph decoder and the selected emitter-to-model reference are
-also identified. The remaining joins are listed below.
+also identified. The selected shader input profile and texture dependency
+leave current draw inputs unresolved. The remaining joins are listed below.
 
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
