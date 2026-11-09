@@ -691,6 +691,76 @@ report leaves the prior rectangle available to the click handler.
 The PE32 instructions establish these guarded writes. Live
 mode and geometry at a click, queue delivery and order, and detach remain open.
 
+### Rectangle 2 transform
+
+The positive-width reporter `0x008CC430` reads four binary32
+rectangle fields at WindowContext offsets `+0xF0` through `+0xFC`
+at `0x008CC4A3..0x008CC4B9`. Context operation `0x02` reaches
+`0x008CC2D0` at `0x008CED9F`. The latter truncates the four
+incoming floats to signed integers and writes the values as
+binary32.
+
+The call at `0x008CC762` gets XY from `0x008CC200`. With both
+context matrix fields `+0x20` and `+0x24` zero, the helper copies
+the accumulated origin at `+0x34/+0x38`. Otherwise it adds local
+XY at `+0x28/+0x2C` from the current context and each ancestor
+through `+0x70`. Each addition uses binary64 arithmetic and
+narrows the result to binary32. Context operation `0x0E` writes
+local XYZ at `0x008CF0BF/0x008CF0CE/0x008CF0D9`. The
+translation-only update `0x008CD700` accumulates that XYZ with
+its parent's accumulated origin when present. Its base writer
+requires nonzero sampled `+0x12D` OR argument 3 byte and zero
+matrix presence OR argument 4 byte. The branches are
+`0x008CD765..0x008CD796` and `0x008CD824..0x008CD826`.
+The later prepass at `0x008CDA6B..0x008CDA84` requires retained
+dirty state and either `0x00CA3E00` returning 1 or context
+`+0x12F` zero. It requires a nonnull entry with `+4` nonzero at
+`0x008CDC20..0x008CDC2E` and a true virtual `+0x14` at
+`0x008CDC53..0x008CDC5A`. After the offset fetch, the false
+matrix-presence result from `0x007FA970` at `0x008CDC73..0x008CDC7A`
+branches to the XYZ addition at `0x008CDCD8`.
+
+| Operand | Source |
+| --- | --- |
+| D | Global UI draw matrix at `0x013764A8`, sampled through `0x008CC4DA -> 0x00CA3BA0`. |
+| M1, M2 | Renderer transform registers 1 and 2 at `0x01329034` and `0x01329074`, copied through `0x004186D0` at `0x008CC520/0x008CC59C`. |
+| I | Affine inverse of M1 after replacing its last row with `(0,0,0,1)`, through `0x008CC65E/0x008CC662`. |
+| R | Row-vector Y rotation built at `0x008CC6F5` with the binary32 angle `0x40490FDB`. |
+
+The four multiply calls at `0x008CC741/0x008CC748/0x008CC74F/0x008CC756`
+form the row-vector transform `I * (R * (D * (M1 * M2)))` in that
+order. The row helper `0x0042EC50` multiplies binary32 lanes
+and adds the four row products in order 0, 1, 2, 3. The earlier
+UI draw-matrix write at `0x008CE9F1` uses the
+context matrix pointed to by `+0x24` when either matrix field is
+nonzero. Otherwise it uses the translation matrix built from
+`+0x34/+0x38/+0x3C`. Later callbacks at `0x008CEAA8` and
+`0x008CEB32` can run before the report samples D. The separate
+WindowActor anchor copy at `0x008CC4E4..0x008CC511` has no consumer
+in the corner calculation.
+
+Let X and Y be the rectangle origin plus the selected XY offset.
+The additions at `0x008CC767..0x008CC7AD` narrow X and Y to
+binary32. The two input rows built at `0x008CC7CC..0x008CC848` are:
+
+```text
+p0 = (f32(-0.0 - (X - 16.0)),           f32(Y - 16.0),            0, 1)
+p1 = (f32(-0.0 - ((X + width) + 16.0)), f32((height + Y) + 16.0), 0, 1)
+```
+
+The inner operations use binary64. Each row is transformed at
+`0x008CC8B0`. The reporter divides transformed X, Y and Z by W
+in binary64 and writes binary32 values at
+`0x008CC8ED..0x008CC94D`. The division is unconditional within
+this loop. The stored fourth lane
+of each corner stays 1.0. The comparisons at `0x008CC97E` and `0x008CC9AE` swap X and Y
+independently when the first value compares ordered greater than
+the second. Z stays in corner order. `0x008CC9CC` sends the two rows through the
+rectangle publication path above.
+
+The last matrix writer, active renderer registers, context origin
+and resulting coordinates remain live inputs.
+
 ### Hover
 
 `TargetElement` slot 6 stores kind 2 and runs the same pick at the floats at
@@ -747,8 +817,8 @@ hover gates are not on the click path.
   visible byte can be.
 - Which Cibs node wins when multiple actor roots are retained, and the
   runtime Drawable's matrix source and value for an individual actor.
-- The identity of the `+0x210` camera matrix and of the UI matrices and the
-  `0x008CC200` offset used for rectangle 2.
+- The identity of the rectangle 1 camera matrix at `+0x210`, and the live
+  matrix writer and register values for rectangle 2.
 - The writers of `G +0x470` and `G +0x474`.
 - The meaning of `G +0x4AC +0x18`, and which actors the registry holds.
 - The meanings of `DesktopWidget +0x78` and control byte `+0x5C`.
