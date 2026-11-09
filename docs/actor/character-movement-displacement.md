@@ -122,8 +122,8 @@ It selects the smaller of that remainder and 1.0, calls `0x007A5E70`
 with `C+0x1070` and `H+0x10`, then passes that selected scalar to
 `0x007B6C20` at `0x0066801E`. The latter call subtracts the selected
 scalar from the remainder afterward and repeats while the remainder is
-positive. The scalar is in caller timestep units; this trace does not assign
-those units a real-time duration.
+positive. The [selected scene clock](#selected-scene-clock-input) gives
+the conditional nominal units for that caller input.
 
 Within `0x007B6C20`, the ordinary addition branch requires
 `C+0x2B98 == 0`. Its selected-actor predicate `0x0065A500` compares C
@@ -161,6 +161,55 @@ return branch, not an observed or established producer of such a state.
 Switch arms 0..3 and the earlier `C+0x1108` arm can replace or further
 update `H+0x10`. Nonzero `H+0x1EC` selects a distinct interpolation
 path, including its own position writes.
+
+### Selected scene clock input
+
+STATIC. The selected SceneThreadImpl initializer `0x004E9E60` sets
+configuration rate `+4` to `30.0f`, optional scheduler cap rate `+8`
+to zero and byte `+0xC` to 1 (`0x004E9EDB..0x004E9F14`). A nonzero
+`+0xC` retains the quantized count in place of the fixed count. On
+the successful nondecreasing counter path with positive frequency
+and representable intermediate values, `0x00A4FDD0` converts the
+sample difference to integer
+microseconds, advances the baseline to the current sample, and caps
+the measured interval at 1,000,000 microseconds
+(`0x00A4FE4B..0x00A4FECC`). It then converts that interval to integer
+units at 300,000 per second (`0x00A4FECF..0x00A4FEF4`).
+
+STATIC. The scheduler adds the signed count to its retained 64-bit
+carry at `0x00A49EE1..0x00A49EEF`. For a nonnegative total, the loop
+chooses the first multiple of 1,000 strictly greater than the total.
+It stores total minus output as the next carry. For a negative total
+it emits zero and retains that total (`0x00A49EF2..0x00A49F23`).
+The carry stores precede the optional cap, measured-versus-fixed
+selection, zero gate, one-shot addend and scale
+(`0x00A49F26..0x00A4A09F`). The zero gate and scale convert their
+signed count through single precision before their multiplication
+and integer conversion.
+
+STATIC. The scheduler passes the address of the resulting count to
+the callback walk (`0x00A4A0FD..0x00A4A118`). The retained
+`UPDATE_AI_RAPTURE` record selects `0x004E9700` in bucket 145
+(`0x004EA9F5..0x004EAA15`, `0x004EA042..0x004EA074`).
+The callback reads the pointed signed count and divides by the
+configured-rate divisor, 10,000 at the selected `30.0f` setting
+(`0x004E9715..0x004E975F`). The actor walk forwards this normalized
+float to admitted current CharaActor slot 142
+(`0x004E99DC`, `0x0060C170`, `0x007C9000`, `0x007D25D0`,
+`0x007CDE40`, cell `0x00FC0F6C`). It is a processed scheduler
+count in nominal 1/30-second units at the retained `30.0f` setting.
+The actor subdivides this input into steps of at most 1.0 after its
+local gate.
+
+DERIVED. With the selected configuration retained, zero gate clear,
+zero addend, scale 1 and an established carry from -1,000 to -1,
+the successful measured path emits 0 to 300,000 count units before
+callback dispatch. The corresponding actor input is 0 to 30 only if
+the callback reads that value and the actor route admits it. A zero
+incoming carry with a maximal sample instead gives 301,000 before
+retaining -1,000. This is arithmetic. Initial or reset carry,
+intervening writes through the count pointer, actual callback cadence,
+stall recovery, and final movement remain UNKNOWN.
 
 ## Boundaries
 
