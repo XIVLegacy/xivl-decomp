@@ -197,9 +197,14 @@ posts message `0x4E` at `0x0066787B` (`STATIC`):
    0, at `0x0066791B` to `0x00667992` when the bone index `+0x138` is negative,
    when `[[+0x118] +0x64]` is null, or when slot `+0x11C` or its slot `+0x148`
    returns null (`0x00666B35` to `0x00666B7A`).
-2. It takes the bone matrix from `0x006693C0` with index `+0x138` and combines
-   it with the matrix at `[[+0x118] +0x64] +0x210` through the 4x4 routine
-   `0x0061D050` (`0x00666B97`, `0x00666BAE`). The matrix getter uses the
+2. CharaActor `+0x118` supplies the actor container. Its `+0x64` caches
+   the type-`0x0C` CameraActor built through `0x0079F7E0`.
+   At `0x00666B91` the box producer forms the address of CameraActor
+   `+0x210`, the [combined view and projection](../actor/camera-input-chain.md#combined-view-and-projection).
+   It passes that address in ECX at `0x00666BAC` and calls the 4x4
+   helper `0x0061D050` at `0x00666BAE` to form `bone * camera`.
+   The helper first reads a camera row at `0x0061D05F`.
+   The bone getter `0x006693C0` uses index `+0x138` and the
    index-dependent routes [below](#cibs-resource-ownership-and-c001-member).
 3. When `+0x2B94` points to an actor whose `+0x2B98` is this actor and whose
    slot `+0x268` returns 0, the local box is the union, smaller minimum and
@@ -208,9 +213,11 @@ posts message `0x4E` at `0x0066787B` (`STATIC`):
 4. It builds the 8 corners of the local box from min `+0x13C..+0x144` and max
    `+0x148..+0x150` with w 1.0 and transforms each as a row vector by the
    combined matrix (`0x00666C6F` to `0x00666E30`).
-5. When any transformed w is 0.0 or less, it posts the empty box
-   (`0x00666E50` to `0x00666E58`). Otherwise it scales each corner by 1/w
-   (`0x00666E5E` to `0x00666E84`).
+5. Nonpositive transformed W, or an unordered compare with invalid
+   exceptions masked, reaches the empty-box branch at `0x00666E55/0x00666E58`.
+   Otherwise `0x00666E5E..0x00666E69` computes the reciprocal in binary64
+   and narrows it to binary32. `0x00666E79..0x00666E80` broadcasts it
+   and multiplies all four corner lanes.
 6. It sorts the 8 values of each component with `0x00669EA0` (`0x00667025`,
    `0x0066705B`, `0x00667091`, `0x006670C7`). The posted min is 0.25 times the
    sum of the four smallest and the max is 0.25 times the sum of the four
@@ -219,7 +226,8 @@ posts message `0x4E` at `0x0066787B` (`STATIC`):
 The posted rectangle is therefore smaller than the full projected extent, and
 its depth `+0x22C`, min z, is the mean of the four nearest z values. An actor
 whose box has any corner at or behind w 0 is never on screen and never picked.
-Reading the `+0x210` matrix as the camera view-projection is `INFERRED`.
+The delivered rectangle is stored in CharaElement `+0x224..+0x243`
+through `0x0058E4BA`.
 
 `0x0065B440`, called from `0x006648B7`, zeroes the local box and queries
 the actor's retained resources for tag dword `0x63696273` through slot
@@ -817,8 +825,8 @@ hover gates are not on the click path.
   visible byte can be.
 - Which Cibs node wins when multiple actor roots are retained, and the
   runtime Drawable's matrix source and value for an individual actor.
-- The identity of the rectangle 1 camera matrix at `+0x210`, and the live
-  matrix writer and register values for rectangle 2.
+- The callback order and age of the rectangle 1 camera matrix, and the
+  live matrix writer and register values for rectangle 2.
 - The writers of `G +0x470` and `G +0x474`.
 - The meaning of `G +0x4AC +0x18`, and which actors the registry holds.
 - The meanings of `DesktopWidget +0x78` and control byte `+0x5C`.

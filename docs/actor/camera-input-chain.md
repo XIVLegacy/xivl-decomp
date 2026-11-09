@@ -333,37 +333,63 @@ STATIC for the formulas. The post-update arms (`0x00619922`, `0x00619A2D`,
 | 1, 3, 5, 7 | `0.5235988 + 0.4363323 * (+0x428)` |
 | 8, 9 | `+0x404`, with `-0.3` stored at `+0x414` |
 
-The update calls `0x00610F00` with argument 0 at `0x00619904`, before the
-per-key arm stores `+0x40C` (`0x006199E8`), so the projection of a frame uses
-the lens value of the previous frame. `0x00610F00` passes `+0x40C` to
-`0x0060E860`, which stores `+0x15C = +0x40C + 0.5235988`, near
-`0.25` at `+0x154` and far `10000.0` at `+0x158`, and builds the projection
-block with the aspect at `+0x150` (viewport width over height). The projection
-arm `0x00A5AEE9` passes field of view, aspect, near and far to `0x007DF8C0`.
-INFERRED. `+0x15C` is the vertical field of view in radians. With that reading:
+The ordinary update calls `0x00610F00` with argument 0 at
+`0x00619904`, before any mode arm writes a new `+0x40C` target.
+The call first builds an auxiliary projection at `+0x3B0` through
+`0x0060E860`, using `+0x40C + 0.5235988` as the lens input.
+The later path at `0x0061115D..0x006111F6` updates three lanes as
+`current + (target - current) * 0.30000001192092896`, then
+narrows each to binary32. The destination and target pairs are
+`+0x408/+0x40C`, `+0x410/+0x414` and `+0x418/+0x41C`.
 
-| Case | `+0x40C` | `+0x15C` |
-|---|---:|---:|
-| third person, `f = 18` | 0.7937 | 1.3173 (75.48 degrees) |
-| third person, `f = 28` | 0.5263 | 1.0499 (60.16 degrees) |
-| first person, zoom 0 | 0.5236 | 1.0472 (60 degrees) |
-| first person, zoom 1 | 0.9599 | 1.4835 (85 degrees) |
-| first person, zoom 0.75 | 0.8508 | 1.3744 (78.75 degrees) |
+The perspective call at `0x006112C4` uses the updated lens
+`+0x408` copied to `+0x15C`, near 0.25, far 10000.0 and the
+viewport width-to-height ratio. The projection builder reaches
+`0x007DF300` through `0x007DF8C0`. It narrows
+`double[0x00F62FF8] - fov * 0.5` at `0x007DF313`, calls tangent
+at `0x007DF31B`, and narrows the result at `0x007DF320` for Y.
+X uses that stored result divided by aspect at `0x007DF345`.
+The resulting perspective P is copied to camera `+0x170`.
+
+At `0x006112C9..0x0061131A` the camera stores
+`P * (T * S)` in `+0x290`. T has the translation row
+`(+0x410, +0x418, 0, 1)`. S starts as identity. Ordered positive
+`+0x45C` at `0x0061102B..0x0061102E` admits the X/Y scale from
+`0x0061F320`. The separate nonzero-argument route of
+`0x00610F00` copies the target lens to `+0x408/+0x15C`,
+uses near 0.01 and far 1000.0, and directly stores P in `+0x290`.
 
 The `atan` routine is `0x009DAC80`, identified by its error name at
-`0x012EAD50`. The offset `(+0x1C5 - 4) / 25.0` is stored at `+0x41C`. The
-branch of `0x00610F00` taken with a nonzero argument copies `+0x40C` to `+0x408`
-and `+0x15C` with near `0.01` and far `1000.0`. The update never takes it. The
-producers of `+0x1C4` and `+0x1C5` are the camera-move payload (command 1) and,
-upstream, the camera config widget. That upstream link is unresolved.
+`0x012EAD50`. The offset `(+0x1C5 - 4) / 25.0` is stored at
+`+0x41C`. The producers of `+0x1C4` and `+0x1C5` are the
+camera-move payload and, upstream, the camera config widget.
+That upstream link remains open.
 
-Client consequence. The lens planes are near 0.25 and far 10000.0, with the
-aspect taken from the viewport. The field of view
-1.3173 radians (`f = 18`) rests on the INFERRED reading of `+0x15C` above. It
-adds 30 degrees to a value that is already `2 * atan(sensor / (2 f))`, which is
-unproven, so the default stays a CALIBRATION value until the consumer of
-`+0x15C` in the projection builder is confirmed. Lens changes take effect one
-frame late.
+### Combined view and projection
+
+After the normal projection refresh and any mode target write,
+the update interpolates endpoints at `0x00619A92` and calls
+builder `0x00617A80` at `0x00619A9B`. The builder uses the
+`+0x310/+0x320` endpoints for its basis and translation and
+stores the adjusted view V in `+0x250`. The adjustment at
+`0x00617DEE` requires a remaining ordered positive duration
+`+0x46C`. The multiply at `0x00618197` and the stores through
+`0x006181C0` publish the row-vector product
+`V * projection` to CameraActor `+0x210`.
+
+With camera `+0x448` bit 0 set, the alternate path at
+`0x00619659..0x00619702` copies its endpoints, clears three
+adjustment fields, and calls the builder. It uses the projection
+already stored in `+0x290`. The normal and alternate paths
+enter through callback `0x004E8B50`. Its tail jump at
+`0x004E8B7D` requires the nonnull CameraActor cached at container
+`+0x64`.
+
+The ordinary path samples the target before any mode write within
+the same update. Keys above 10 bypass the mode write at
+`0x0061990E` and still reach interpolation and view construction. Live lens values, projection age on the
+alternate path, and the order relative to the
+[body box read](../net/target-cycle-and-pick.md#screen-box) remain open.
 
 ## Blend
 
