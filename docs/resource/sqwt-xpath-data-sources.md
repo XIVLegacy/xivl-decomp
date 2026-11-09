@@ -114,8 +114,8 @@ property table, with the index stores at `0x00F14B1F`, `0x00F14B3F` and
 `0x00F14B5F` (STATIC). The row builder
 `0x006986B0` returns without work unless `SheetName` is nonempty and the parsed
 `Row` vector names at least one row (STATIC, gate at `0x006986ED..0x00698732`).
-A reader without `Row` therefore builds nothing until something sets `Row`
-(UNKNOWN: the writer).
+The ordinary MiniMap's [map reader](#map-reader-row-request) has a
+conditional writer. Its separate SSD reader's producer remains UNKNOWN.
 
 Per row, the builder selects the list root through the node select with the
 create flag set (`0x006987C1`), appends one row element and writes one
@@ -128,9 +128,10 @@ adjacent `%d` format and the `ssdindex` literal). The builder ends with the
 node reselect `0x00982DA0`.
 
 `Row` is a list separated by spaces and commas. A token `a` names one row. A
-token `a-b` names a range, with the smaller number first. A token `a-0` names
-every row from `a` to the end of the sheet. The parser `0x00698EC0` stores a
-range as `low`, `-1`, `high` and an open range as `low`, `-2`, and the step
+token `a-b` names a range, with the smaller number first. For positive `a`,
+`a-0` and `a-` start an open range at `a`. Both `0-0` and `0-` select
+row 0. The parser `0x00698EC0` stores a range as `low`, `-1`, `high`
+and an open range as `low`, `-2`, and the step
 code of the builder reads the high end of a range as included (INFERRED, step
 logic at the end of `0x006986B0`). `Row` of `0-33` therefore names 34 rows.
 
@@ -139,6 +140,7 @@ logic at the end of `0x006986B0`). `Row` of `0-33` therefore names 34 rows.
 | `0-33` | `0, -1, 33` | 0 to 33 |
 | `5-3` | `3, -1, 5` | 3, 4, 5 |
 | `12-0` | `12, -2` | 12 to the last |
+| `0-0`, `0-` | `0` | 0 |
 | `1, 4-5` | `1, 4, -1, 5` | 1, 4, 5 |
 
 ## Binding resolution
@@ -493,11 +495,79 @@ working text to the target (STATIC).
   state through `0x00936DF0`, which can retry application when the retained
   template root is null (STATIC).
 
-The SSD and map readers at form lines 8 and 9 omit `Row`. The
-[reader gate](#rapturessddatareader-rows) leaves initial row selection
-to a separate producer. The first live row and inner key, actual
-binding activation order, the GL marker path, and marker painting
-remain UNKNOWN.
+The SSD and map readers at form lines 8 and 9 omit `Row`.
+The [reader gate](#rapturessddatareader-rows) leaves initial row
+selection to a separate producer. The first live row and inner key,
+binding activation order, GL marker routing and painting remain UNKNOWN.
+
+#### Map reader Row request
+
+STATIC. The [piece request](minimap-base-tiles.md#native-piece-producer)
+at `0x00679D78..0x00679D98` starts a new SSDReader only when the piece
+key differs from both `-1` and control `+0x9EC`. The navigation key
+may already have changed at `0x00679D20`. A repeated piece key
+skips starting a new reader even when that navigation key changes.
+
+The new reader receives the scope from the control's primary `+0xB0`
+at `0x00678089`. Cell `0x00FC363C` selects `0x0092B1F0`, which
+follows the logical parent at `+0x240` and calls its `+0xB0`.
+The checked Window cell `0x0106A16C` returns the Window itself.
+The reader retains the supplied scope at `+8`.
+
+STATIC. State 0 of callback `0x006765E0` reads signed column 7 from
+the selected `mapNavi_data` row at `0x00676774..0x00676787`.
+With a nonnull scope it looks up `map_marker_data` at
+`0x006767B8`. The cast at `0x006767E2` must resolve a
+`RaptureSsdDataReader`. This route selects the named reader,
+while the control's list property retains a separate handle.
+Column 7 equal to `-1` supplies empty text. Otherwise the writer
+uses format `%d-` at `0x00FC255C`. The typed Row call
+`0x0067684C -> 0x00699960` requests mode 0 and notification 1.
+State 1 proceeds to the piece lookup even if that cast fails.
+The callback does not check the Row setter's return.
+
+The setter uses Row holder `+0xD4` and callback `0x006996C0`.
+An admitted changed string reparses the range at `0x006996F3`.
+A positive start followed by a trailing hyphen uses the
+[open range](#rapturessddatareader-rows). Text `0-` instead
+selects row 0 at `0x00698FC9..0x00699049`. Empty text
+leaves an empty vector. The separate reader and render gates
+still require availability, current source handles and materialization.
+
+#### Separate navigation SSD requests
+
+MEASURED. The two navigation forms select `quest_marker` for
+their `ssd_marker_data` readers and `Function=0` for their map
+controls. The [ordinary MiniMap declaration](#minimapwidget) selects
+`2Dmap_marker` and `Function=1`. Decode these two carriers with the
+same SQWT extraction and source verification above.
+
+| Carrier | Bytes | SHA-256 | Decoded SHA-256 |
+| --- | ---: | --- | --- |
+| `widget/MapNavigationWidget.form` | 22364 | `137c5542a8dd41fcafe85b66d8954e238b8e13d884fd6c0d89d3316c6440ef0e` | `2012be5906707b43eadadcde937045257eed7735e9afec7a43b6b2bab5a4fa35` |
+| `widget_c/MapNavigationWidget.form` | 13169 | `4188d7e07416b8bf2da1ce9549c0af4ab0a3601728e8dc300031138799bda43f` | `7a7d3dda65c51759f7d5aba2a4adb0f25d0ad6a83a962c82eb6c2bdadf9d8b12` |
+
+STATIC. Navigation initialization at `0x00529393` caches its
+named reader at widget `+0x250`. With widget `+0x254=3`,
+`0x004FCA40` calls `0x004F1850` to request a decimal Row on
+that reader through `0x00912850` at `0x004F194D`.
+The next call at `0x004FCA56` requests QuestMapIndex on the
+different control at widget `+0x24C`.
+
+The navigation LPB `client/script/n1635q/x9uw9o139q1vwn1635q.le.lpb`
+is 15740 bytes with SHA-256
+`873ee821c979b9c0959743bc619444ec01bd39c96f71235235278bb602b4d0bb`.
+Its decoded SHA-256 is
+`21cc7f2f9c6e2a56e02620e18748fa9dd70bf02dab6a889fd6083826d60528c2`.
+Using the [LPB replay](minimap-base-tiles.md#ordinary-minimap-ready-requests),
+`root/proto43` at decoded code offset `0x3D03` calls `_setProperty`
+at zero-based PC 5 with self, nil scope, `ssd_marker_data`, `Row`
+and the first explicit argument. The ordinary MiniMap LPB has
+none of the three literal keys `ssd_marker_data`, `map_marker_data`
+or `Row`. A file-backed .text E8/E9 scan identifies `0x0067684C`
+as the only direct branch to `0x00699960`. Generic Row writes can
+reach `0x00699818` separately. A producer for the ordinary SSD
+reader and actual live reader identities remain UNKNOWN.
 
 ## Census
 
@@ -544,7 +614,7 @@ The client facts behind the rule, restated as contract lines:
 
 - UNKNOWN: The list names that the MainMenuWidget and AchievementPopupWidget scripts pass to the list natives.
 - UNKNOWN: What redraws a bound list or item after the first resolution when a row attribute or the row count changes.
-- UNKNOWN: The remaining MapScreenControl list consumers and the ordinary MiniMap writer of Row for the sheet readers that declare none. The [selected SSD and map marker route](#marker-wrapper-and-row-context) establishes the outer template and row assignment.
+- UNKNOWN: The remaining MapScreenControl list consumers and the ordinary SSD reader's Row writer. The [map reader request](#map-reader-row-request) and [marker wrapper](#marker-wrapper-and-row-context) establish separate steps of the map path.
 - UNKNOWN: Whether the SqwtDefaultTemplateSelector reference of ListBox_MainMenu resolves to a nonempty selector, because no markup file or executable string declares that key.
 - UNKNOWN: Ordinary initial contents of the MiniMap `GLMakerData` list. The [coordinate marker path](../actor/map-marker-lanes.md#coordinate-circles) supplies a separate script writer.
 - UNKNOWN: The reader of the child index range that a position predicate stores on a node.
@@ -561,8 +631,8 @@ the range arithmetic and the row range are covered by
 `tools/test_sqwt_xpath_binding.py`.
 
 The surviving gaps are the redraw signal after the first resolution, the
-`MapScreenControl` list consumers outside the selected route, the writer of
-`Row`, the script list names of two forms, the selector key, initial
+`MapScreenControl` list consumers outside the selected route, the ordinary
+SSD reader's Row writer, the script list names of two forms, the selector key, initial
 `GLMakerData` contents, the reader of the child range, the decoded
 child lookup by attribute and the per-property string setters that parse the
 written text.
