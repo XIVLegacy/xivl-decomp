@@ -329,9 +329,9 @@ list at owner `+0x34` supplies node manager `+8` and next node `+0`.
 At `0x00646016..0x00646053`, flag 0 excludes complete type `0x1000`.
 Flag 1 admits only that type.
 
-At `0x0064485A..0x0064488B`, an enabled manager requires byte `+0xF4`
-nonzero. It transforms the query through interface slot `+0x174` and
-calls `0x00644210` on manager `+0x100`. The XYZ sign-mask test at
+The [manager-local query](#manager-settings-and-local-point) at
+`0x0064485A..0x0064488B` needs a nonzero enable byte and passes the
+local point to `0x00644210` on manager `+0x100`. The XYZ sign-mask test at
 `0x00644220..0x00644242` rejects a point outside the aggregate bounds.
 
 The per-manager helper `0x00644100` first calls containment search
@@ -380,6 +380,48 @@ tavern layout/page, live cadence and painting remain UNKNOWN. Optional
 folder geometry and transforms require their own admission. NaN,
 infinities and signed-zero boundary cases are outside this finite
 ordered interpretation.
+
+### Manager settings and local point
+
+STATIC. Construction clears the ordinary complete manager's settings
+pointer `+0x80` at `0x00A8D7FB` and enable byte `+0xF4` at
+`0x00651D4F`. The [loaded wrapper path](map-layout-request-boundary.md#loaded-wrapper-argument)
+relocates the payload at `0x00642E87` and passes it to interface
+slot `+0x30`. Cell `0x00FBFD1C` selects `0x0064F430`.
+
+The loader follows payload `+0x14` to the first inventory wrapper
+at `0x0064F443..0x0064F446`. It visits the wrapper's definition
+array and count at `+0/+4`. The class test at
+`0x0064F492..0x0064F4A7` matches
+`MiscObjects/LaySettings/LaySettingsObject` through the descriptor
+chain. On each match, `0x0064F4A9` stores the definition at complete
+manager `+0x80` and `0x0064F4B1` stores definition byte
+`+0x2C & 1` at complete manager `+0xF4`. The last match supplies
+both values in a completed scan. The separate settings bit 1 check
+at `0x006454DC` can advance the load state to `0xA` when clear.
+
+STATIC. A zero manager `+0xF4` skips the query at `0x00644865`.
+With the concrete manager's interface retained, slot `+0x174`
+cell `0x00FBFE60` selects `0x00A8BDF0`. That calls slot `+0x16C`
+cell `0x00FBFE58`, selecting `0x00A8BD40`. The getter reads
+settings XYZ from `+0x40/+0x44/+0x48`. The packed f32 subtraction
+at `0x00A8BE14` computes world XYZ minus that translation.
+The output's fourth lane is the f32 `+1.0` at `0x00F54F70`.
+This route uses translation alone. The local point enters the
+manager's tree through `0x00644210` at `0x0064488B`.
+
+MEASURED. The [pinned Bridge DAT](https://github.com/XIVLegacy/xivl-client-data/blob/61125bad3035e142d5dae8b451d388004509fa4e/docs/bridge-map-identity.md#layout-resource)
+has 191 entries in its first wrapper's definition run. Replay the
+[layout parser](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/tools/research/census_layout.py)
+and follow each definition's class chain. The unique settings match
+is entry 2 at file `0x4B60`, with its pointer cell at file `0x4828`.
+Byte `0x4B8C` is `0x07` and XYZ at `0x4BA0` is
+`(-320, 0, -320)`. With this record retained in the admitted
+receiver, that world point becomes local `(0, 0, 0, 1)`.
+
+The input rule is conditional on a current manager and its retained
+settings. Live owner selection, load completion, the winning folder,
+and page delivery remain UNKNOWN.
 
 ### Folder bounds and tree order
 
