@@ -72,8 +72,7 @@ For a preserved selected payload whose `+0x04` equals 10001, the metadata
 lookup key is therefore 10001. The identified static row below supplies its
 text. Successful lookup/factory execution, actual native-control class,
 module loading and authoritative membership remain separate questions.
-Runtime registration, getter creation-mode effects and inbound `0x017C`
-header equality are not established by this consumer join.
+The receive path and getter admission are traced under [Packet kind and expected count](#packet-kind-and-expected-count).
 
 ## Identified static row 10001
 
@@ -141,5 +140,103 @@ The published
 entry `group/partygroup/playerpartygroup`, records class name
 `PlayerPartyGroup` and a require of `/Group/PartyGroup/PartyGroupBaseClass`.
 This is a matching named script and dependency, not an inheritance proof or
-an observed module load. Native class construction, initialization order,
-creation-mode effects and runtime membership remain unresolved.
+an observed module load. Runtime class loading, work initialization order and live membership remain open.
+
+## Packet kind and expected count
+
+STATIC. Focused Ghidra 12.1.4 and LLVM disassembly and raw PE section reads
+identify these paths in the executable above. The receive loop passes the
+GameMessage to `0x004DC690` at `0x004E221D`. After the dispatcher guards at
+`0x004DC6D5..0x004DC700`, the opcode at GameMessage `+0x02` maps clientbound
+`0x017C` to `0x004DD044` through `0x004DD5ED` and `0x004DD550`.
+The case adds `0x10` at `0x004DD04A` and passes the resulting application body
+through `0x00576250` to `0x006CC620`. The full SubPacket includes another
+`0x10`-byte header before GameMessage. See the [group packet routes](../event/group-shared-work-system.md#per-route-producer-and-update-paths).
+
+| EntryBuilder field | Application body | GameMessage | Full SubPacket |
+| --- | ---: | ---: | ---: |
+| Group kind dword | `+0x30` | `+0x40` | `+0x50` |
+| Expected record count word | `+0x74` | `+0x84` | `+0x94` |
+
+In `0x006CC070`, body `+0x10` equal to 14 and a true result from `0x006C2640`
+select OnlineStatusUpdater at `0x006CC0FE`. The other arm constructs EntryBuilder,
+subject to the allocation checks at `0x006CC27F` and `0x006CBF48`.
+The kind read at `0x006CC287` reaches payload `+0x04` through the constructor
+calls at `0x006CC2B6` and `0x006CBF67`, with the write at `0x006CBE06`.
+The getter compares this field and the control builder uses it for metadata.
+The request correlation key uses body `+0x08`, `+0x0C` and `+0x00`
+(`0x006CC2EA..0x006CC306`). The builder sequence pair is written separately
+at `0x006D6EDF..0x006D6EE7`.
+
+The constructor zeroes the member-vector bounds at `0x006CBE44..0x006CBE4A`.
+The zero-extended word read at `0x006CC283` supplies expected count `+0xF4`
+and the reserve request at `0x006CBE9B..0x006CBEB3`. Actual membership is
+stored in separate 16-byte records. Reserve leaves the vector length zero.
+
+### Early self replay and member append
+
+The early arm at `0x006CC64B..0x006CC695` requires group context `+0x24`
+zero, body `+0x30` equal to 10001, a context key equal to the world self ID
+through `0x0075BBF0`, no control resolving for that key, and group context
+`+0x0C` null. If temporary processor setup succeeds, `0x006CC5B0` copies
+`0x78` body bytes and overwrites only the copied count with 1 before calling
+`0x006CC070` at `0x006CC5FD`. The original count is tested as a signed word
+at `0x006CC5CE..0x006CC5D8`. A value above 1 sets the carrier flag that also
+permits the normal processor arm. On the replay's EntryBuilder arm, the
+expected count is 1 and the constructor still starts with an empty vector.
+See the [temporary processor routes](../event/group-shared-work-system.md#temporary-processor).
+
+A `0x017F` update can supply member records to its matching request in the
+selected processor.
+An active temporary carrier can retain them at `0x006C2F96` for replay at
+`0x006C3A95` on matching `0x017E` completion. For EntryBuilder,
+`0x006C1B9A` invokes slot `+0x40` through `0x006CD680`, which forwards the payload
+to `0x006CC760`. A nonzero record flag and successful member-control lookup
+bypass the append (`0x006CC79B..0x006CC7CC`). Otherwise a self-key match
+(`0x006CC7F5..0x006CC7FC`) builds a tag-0 member and appends it to the
+vector at payload `+0x80` through `0x006CC853`. Matching `0x017E` reaches
+`0x006C0570`, which marks the request ready for staging. A later callback
+can insert the payload at `0x006CBBA1..0x006CBBA6` on a nonzero pair key, a
+lookup miss and a nonnull
+incoming payload. The packet-to-getter join requires the same registry,
+preserved payload identity and successful intervening callbacks. See the
+[pair queue and callback](../event/group-shared-work-system.md#pointer-queue-to-pair-queue-and-callback).
+
+## Extended group lookup and factory mode
+
+The `_getExtendedTemporaryGroup` registration at `0x007554B9` binds
+`0x00708410`, which supplies mode 1 at `0x00708414` and calls `0x00701140`.
+The getter reads the first kind argument and uses world-side `+0xE4` and the
+receiver key at call-context `+0x0C` (`0x0070116D..0x007011C4`). An empty
+argument vector reaches `0x009D22B4` at `0x00701184`. Its effects are open.
+
+The registry walk at `0x006C3E50` checks payload kind at `0x006C3EA2..0x006C3EA7`
+and calls the membership test at `0x006C3EBC`. That test scans bounds
+`+0x84/+0x88` for the actor key in tag-0 or tag-1 records. It returns the
+first key match's control resolution and cast success
+(`0x006C3C4A..0x006C3C66`, `0x006D1C37..0x006D1C4A`). The cast target is
+`.?AVActorBase@Control@Client@Script@Lua@Application@@`. The registry walk
+selects its first kind and membership match, or clears the handle on exhaustion.
+
+Readiness is checked afterward at `0x007011D9` without retrying the registry
+walk. The readiness helper `0x006CB5F0` accepts nonzero cached byte `+0xF6`.
+Otherwise it requires expected count to equal vector length, accepts tags 0
+and 1, requires successful resolution for tags 2 and 3, rejects other tags,
+and requires nonzero byte `+0x61` before setting `+0xF6`. Cached readiness
+still follows membership.
+An absent handle or failed readiness returns nil at `0x007011EF`. Only the
+admitted arm calls the control builder at `0x00701206`.
+
+The builder uses mode 1 to reach `0x00CC8140` at `0x006E2332`. Mode 0 reaches
+`0x00CC80A0`. Both supply the kind-derived name to `0x00CD9360`. On its
+record-selection arms, calls at `0x00CD96A8` and `0x00CD989F` forward the mode
+to `0x00CD7850`. Mode 1 passes flag 1 to `0x00CCCD40` at `0x00CD787F`.
+Mode 0 passes flag 0 at `0x00CD7890`. Flag 1 adds one `0x3C` backward step
+under the bounds at `0x00D00B36..0x00D00B4A`, before the call at `0x00D00B74`.
+The builder casts the result to
+`.?AVGroupBase@Control@Client@Script@Lua@Application@@` and copies the admitted
+handle at `0x006E2343` and `0x006E2350`.
+
+The getter operates over an existing admitted payload. A packet-independent
+solo payload and its producer remain unestablished. Native owner work, live
+readiness and publication order remain open.
