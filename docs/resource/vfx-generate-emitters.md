@@ -12,14 +12,14 @@ The tables the controls belong to are on the
 read are on the [effect data body](vfx-effect-data-body.md) page and the frame
 update is on the [effect runtime](vfx-effect-runtime.md) page. The
 [DrawResource page](vfx-drawresource-and-shaders.md) owns what a child unit
-draws. The machine-checked form of every STATIC fact is the `generate` section
-and the `install.emitters` census of
-[`vfx_effect_runtime.json`](../../config/vfx_effect_runtime.json), checked by
-`tools/verify_vfx_effect_runtime.py`. The parser is `tools/vfx_emitter_body.py`
-and the reference math is `tools/vfx_emitter_math.py`. The identity and method
-section of the [container page](vfx-qix-resource-container.md#identity-and-method)
-applies here unchanged, and so do its tier labels. Addresses are virtual
-addresses of the pinned `ffxivgame.exe`.
+draws. The `generate` section and `install.emitters` census of
+[`vfx_effect_runtime.json`](../../config/vfx_effect_runtime.json) hold the
+machine-checked observations for `tools/verify_vfx_effect_runtime.py`.
+The parser is `tools/vfx_emitter_body.py` and the reference math is
+`tools/vfx_emitter_math.py`. The [shell observation](#generatetimearea-shell)
+uses separate bounded checks. The identity and tier labels on the
+[container page](vfx-qix-resource-container.md#identity-and-method)
+apply here. Addresses are virtual addresses of the pinned `ffxivgame.exe`.
 
 ## What the install uses
 
@@ -81,7 +81,7 @@ Draw conversions, STATIC from the constants and the instructions around
 | Draw | Rule | Constant |
 |---|---|---|
 | Unit | output word divided by 4294967295, stored as float. Range 0.0 to 1.0 | `0x010c6268` |
-| Signed | output word as a signed integer times 2^-31, stored as float. Range -1.0 up to just below 1.0 | `0x010cfd40` |
+| Signed | signed output word converted to binary32, multiplied by 2^-31 and narrowed to binary32. Round-to-nearest can produce +1.0. | `0x010cfd40` |
 | Integer up to n | `0x00e3f240` masks each output to the next power of two minus one and retries until `value - 1 <= n` as unsigned numbers. For n above 0 the value lies in 1 to n + 1 and a caller takes it modulo n + 1, which gives 0 to n | none |
 
 ## Graph time and the frame stage
@@ -368,13 +368,108 @@ factor is the float at manager `+0x2c`. It keeps a spawn when it is 1.0 or more 
 otherwise with that chance. Its default and its writers are UNKNOWN.
 `GenerateMaster` does not test it.
 
-`GenerateTimeArea` reads a center at `+0x20`, a base radius at `+0x2c`, euler
-angles at `+0x30` and a radius spread at `+0x3c`. Its routine `0x00d990c0` draws
-three signed values times pi as angles and one signed draw for the radius spread
-and composes a transform with the record angles and center. The spawned point and
-direction come from that transform. INFERRED. The shell composition is not decoded
-further. The census counts 84 of 85 nodes with a resolved child and all of them
-use group 0 only.
+### GenerateTimeArea shell
+
+STATIC. LLVM objdump 21.0.0, Ghidra disassembly and PE section reads check
+the handler, selector table, math helpers and constants. Python `struct`
+and the effect body parser check the selected record below.
+
+Descriptor `0x013126C0` slot `+0x9C` selects handler `0x00D6B540`. A null
+child pointer at record `+0x0C` returns before the density gate.
+`0x00D6B5A1` calls the same `0x00E3A100` density test as `GenerateTime`.
+For finite density `d`, `d >= 1` passes without a draw. Otherwise the
+test draws one unit value and passes when `draw <= d`.
+
+After density passes, bit 0 of record `+0x10` selects the camera gate.
+`0x00D9A6B0` passes the spawner translation row and the fourth row
+returned by `0x00420200` on the effect context matrix to `0x00D99DA0`.
+For finite inputs, far chance equal to 1 or XYZ distance at or below
+near passes without a draw. The other cases draw once and admit when
+`draw <= chance`. Chance equals far chance at or beyond far and varies
+linearly from 1 to far chance between the thresholds. The record holds
+near, far and far chance at `+0x00/+0x04/+0x08`.
+
+| Record offset | Shell input |
+| --- | --- |
+| `+0x20` | XYZ scale, three binary32 values |
+| `+0x2C` | Base radius |
+| `+0x30` | Authored XYZ Euler angles, in radians |
+| `+0x3C` | Radius spread |
+
+The shell helper `0x00D990C0` uses the shared RNG at `0x0137B780`.
+Its calls at `0x00D990D3/0x00D99108/0x00D9913D/0x00D991AF` reach
+`0x00E3F230 -> 0x00E3F1B0`. Each draw converts signed32 to binary32,
+widens and multiplies by binary64 `2^-31` at `0x010CFD40`, then
+narrows to binary32. The first three also multiply in binary64 by
+`3.1415927410125732` from `0x00F62F48` and narrow to binary32.
+They supply Z, Y and X angles in draw order. The fourth draw supplies
+`radius = base + spread * signedDraw`, evaluated in binary64 and
+narrowed once. Density and an enabled camera gate can advance the same
+RNG before the shell calls.
+
+Both angle matrix calls pass selector 4 at `0x00D991A1/0x00D99243`.
+The selector table at `0x00D95D4C` reaches `0x00D95AA8` in
+`0x00D95350`. Its orientation in row-vector convention is
+`Rz(z) * Rx(x) * Ry(y)`. With the usual sine and cosine abbreviations,
+the branch builds these three rows before applying the Z rotation.
+
+| Row | Value |
+| --- | --- |
+| A | `(cosY, 0, -sinY)` |
+| B | `(sinX*sinY, cosX, sinX*cosY)` |
+| C | `(cosX*sinY, -sinX, cosX*cosY)` |
+
+It writes `cosZ*A + sinZ*B`, `cosZ*B - sinZ*A`, C and the homogeneous
+row through `0x00D95B7E..0x00D95BEB` and `0x00D95941..0x00D9595B`.
+The all-zero angle branch at `0x00D953CB..0x00D953DA` copies the
+[initialized identity source](vfx-model-material-values.md#value-area-construction-reset-and-predefined-conditions).
+
+Let Q be the random rotation, E the authored rotation, S the diagonal
+scale and T(p) the translation with fourth row `(p.xyz, 1)`.
+The [shared row-product contract](vfx-root-matrix-mode-zero.md#conditional-equation-and-simd-boundary)
+gives the following operand order.
+
+| Locator | Operation |
+| --- | --- |
+| `0x00D9921E` | `p = (radius,0,0,1) * Q` through `0x0042EC50`. |
+| `0x00D99254/0x00D99269` | `0x00430350` builds `S = diag(sx,sy,sz,1)`. `0x0042EDB0` computes `S * E`. |
+| `0x00D992D2/0x00D992E7` | `0x00430430` builds `T(p)`. `0x0042EDB0` computes `T(p) * (S * E)`. |
+| `0x00D99335..0x00D9933E` | The helper copies the final matrix's fourth row as the position source. |
+| `0x00D6B680..0x00D6B684` | The caller supplies the same stack address as the fourth-row output to `0x0053B750`, which writes a separate direction vector. |
+
+For finite values without overflow, the position is the sampled XYZ scaled
+per axis and then rotated by E. The direction derives from that same XYZ.
+The normalizer at `0x0053B78D..0x0053B7EA` uses its ordered binary32
+length-squared accumulation and a reciprocal-square-root estimate with
+refinement. The mask retains each source lane when its length-squared
+comparison does not select normalization.
+
+The handler samples before child creation at `0x00D6B6D6`. A nonnull
+child and nonempty group 0 precede the coordinate transform at
+`0x00D6B720`. Helper `0x00E3A360` reads the first listener's
+coordinate ID from descriptor `+0x58`.
+The message-2 loop at `0x00D6B730..0x00D6B749` sends to group 0.
+The written fields are position XYZ at `+0x00`, direction XYZ at
+`+0x10`, speed and acceleration at `+0x40/+0x44` from work slot
+pointers `+0x20/+0x24`, and cleared bit 0 at `+0x48`. The builder
+leaves the other lanes unspecified. The [receiver contract](#payload-and-receivers) owns coordinate
+transforms and motion. The census counts 84 of 85 nodes with a resolved
+child, all using group 0 only.
+
+In the [selected Limsa rain effect](limsa-rain-presentation.md#concrete-request-decoder-and-selected-rain-draw-records),
+`data/89/8D/00/54.DAT` is 9616 bytes with SHA-256
+`d71826ba3098594b97ddca10724a46d47eaedae68164052643733fded2cacfbc`.
+Control 10 uses the block at file `0x24D0` with scale
+`(1, 2.200000047683716, 1.399999976158142)`, radius base `2.5`,
+spread `0.699999988079071`, zero angles and clear camera gate.
+The group 0 target is child unit 1's local node 1, whose
+`Position3DGenerated:GendNormal:CoordLocal` descriptor
+`0x01301D90` supplies ID 2. On the admitted path with the identity
+source retained, the sampled position and its sample-derived direction reach
+the local message without a matrix multiply in `0x00D98F00`.
+Slot records at file `0x11C0/0x11D0` select the
+constant speed `0.0010000000474974513` and acceleration `0.0`.
+These authored inputs leave live density, RNG state and event time open.
 
 ## ManyGenerate batches
 
@@ -462,8 +557,9 @@ with literal values.
   first updated are UNKNOWN. The same holds for the random time scale that the
   UnitNode constructor `0x00bcd8c0` applies in some modes.
 * The model vertex area, the weighted child list, the distance scale of the area,
-  the `GenerateTimeVertex` handler, the matrix to angle conversion and the shell of
-  `GenerateTimeArea` are not decoded.
+  the `GenerateTimeVertex` handler and the matrix to angle conversion remain
+  unexpanded. The `GenerateTimeArea` shell covers Euler selector 4. The internals
+  of matrix helper `0x00420200` and the other Euler selectors remain open.
 * The distance based calc of `GenerateMaster` (block kind 2) is not used by the
   install and not decoded.
 * The calc of `ContinualPolygonNormal`, the matrix controls that compose the
