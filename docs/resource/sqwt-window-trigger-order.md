@@ -146,6 +146,65 @@ rejected-child branch at 0x0094727A skips that hook. This hook alone performs
 no initial evaluation. Constructor, setter, child-reader, listener and binding
 activation effects remain separate joins.
 
+## Ordinary ActionMenu property elements
+
+The installed `client/sqwt/widget/ActionMenuWidget.form` visits its
+Window.Template property element before Window.Style on the admitted
+ordinary textual route. Authenticate the two SQEX carriers below, decode
+their bodies after byte 8 with `xivl-tools:tools/blowfish.py` using the exact
+basename as the key, and check the decoded SHA-256 before parsing.
+
+| Carrier | Bytes | SHA-256 | Decoded SHA-256 |
+| --- | ---: | --- | --- |
+| ActionMenuWidget.form | 40815 | d8a9dffea87cf0d5cea066a7f3d27b4749d7c2ac8b8fff33ecf5bc40fc0711b1 | c576f44ef70c45cf50fd1b8a4b0dcaf813b665a607fb647482521a43dc5a8286 |
+| ActionMenuWidget.tpl | 47246 | 18c4967b39ebce0c0b8a82d5d706b569bd538a2a5ea6b8c54bcb434612538be6 | 2c239989bd6bfc4022cd4a18499f78f9957b1791165f806644da4581698c4871 |
+
+The Window's direct children are Window.Resources (line 2),
+Window.Template (line 9), Window.Style (line 12), and Grid (line 15).
+The resources merge ActionMenuWidget.tpl. Each property element has one
+StaticResource child, selecting `ControlTemplate_Window_ActionMenu` and
+`Style_ActionBarWindow` respectively. The root has no Template or Style
+attribute.
+
+LLVM 21.0.0 disassembly and original PE table reads establish the join.
+The ordinary DOM parser appends an opening child at
+`0x00DC28BA -> 0x00DC34E0 -> 0x00945C80 -> 0x00813050` to its
+parent's `+0xBC` collection. The Window reader uses the ordinary built-in
+route at `0x0094B68E -> 0x00947040` when a registered factory does not
+consume the node first. It reads that collection through table cell
+`0x01129C14 -> 0x00942530`, then visits its entries in ascending index
+at `0x00947276`. It stops on child rejection.
+
+The Window.Template and Window.Style branches construct property wrappers
+at `0x0094BA6D` and `0x0094BB00`, retaining the same Window E. Each reads
+its own children inline. The StaticResource arm
+`0x0094A0C0 -> 0x004EC490` retains E at wrapper `+0x170` and the
+property-class name at `+0x11C`. The ResourceKey attribute handler
+`0x009463A0` requests Template or Style assignment on E through
+`0x0094649F -> 0x00912850`, before either property wrapper's end hook.
+The normal owner-property parser dispatch reaches the materialization
+and assignment arms above. The authored sequence therefore requests
+Template before Style. The same order applies to successful changed
+pointer stores when both requests are admitted and current state survives
+callbacks.
+
+Template notification callback `0x00937A70` first calls owner primary
+`+0x18`. A retained Template ordinal selects
+`0x00937CC9 -> 0x00937CB0 -> 0x00937C3A`, which calls
+`0x00936DF0` at `0x00937C7F`. With a current Template, a nonnull
+root at its `+0xB0` and null root logical parent at `+0x240`, the
+helper requests visual and logical attachment at `0x00936ECF` and
+`0x00936ED7`. This attachment attempt can occur before the Style
+child is visited.
+
+The direct installation events start with their own property descriptors.
+Neither matches the resolved IsAnchorWithin descriptor `0x013594FC`
+when the plain Trigger reaches its comparison at `0x009B063F` with
+both identities retained. That comparison gates the read for the
+`IsAnchorWithin=False` Trigger (template carrier line 601). The
+first matching owner event, nested notifications, callback reentry and
+first storyboard capture remain UNKNOWN.
+
 ## Subsequent focus and anchor refresh
 
 Initializer `0x00F229A0` supplies the IsKeyboardFocusWithin string at
