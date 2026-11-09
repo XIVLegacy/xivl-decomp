@@ -5,11 +5,10 @@ contains typed DrawEnv definitions and a referenced `vfx_cam_rain` definition.
 The checked native paths blend name-matched DrawEnv work and submit two VFX
 aliases through an initialization descriptor. These are conditional static
 contracts. The checked application Weather load supplies a null descriptor
-receiver and skips that submission; it does not establish a rendered effect.
-The checked later placement paths also supply no nonnull receiver. Instance
-VFX setup requires the resource pointers to have been populated separately.
-Deferred block binding supplies a conditional route to those fields through
-VFX slot 22. Its completion for the selected rain object remains unproved.
+receiver and skips the alias submission. Deferred block binding can populate
+the two VFX resource fields through VFX slot 22. The later direct instance
+setup can then request the selected Qix effect group. Cached group population,
+effect creation and rendering remain open.
 
 The [weather transition finding](../net/weather-transition-runtime.md#limsa-rain-selection)
 owns the packet, region lookup and queue route to resource `0x29D90013`.
@@ -226,8 +225,8 @@ at `0x00AB529B/0x00AB52A5` dispatch complete VFX slots 3/6, whose cells
 `0x01062378/0x01062384` select `0x00AB4F20/0x00AB4F70`. Those setters
 store the values at complete VFX `+0x4C/+0x50`, with guarded calls to
 `0x00A3E680/0x00A3E670` around pointer replacement. This closes the
-conditional alias-query-to-retained-pointer contract. Effect creation remains
-unresolved.
+conditional alias-query-to-retained-pointer contract. The deferred Weather
+route uses a separate binding and setup path.
 
 The wrapper and generic slot-12 bodies were decoded directly from the pinned
 PE at `0x00A8B7D0..0x00A8B8F1` and `0x00A8E290..0x00A8E5FC`.
@@ -245,12 +244,42 @@ instance creation. The same wrapper's definition inventory contains its
 the base object's guarded creation and null initialization above.
 
 Folder `blk_0000` is at LYB `0x8630`, file `0x8C40`. Its `+0x10`
-points to the entry array at LYB `0x770C`; zero-based entry 35 points to wrapper
-`0x872C`, file `0x8D3C`, whose first dword is Instance `0x5D80`,
-`cbind_rain`. Folder byte `+0x62` is zero. The
-[DivideMap registration and state-1 placement contract](layout-block-activation.md)
-therefore supplies a conditional later creation route for this record.
-The DAT does not establish that a block was selected or reached state 1.
+points to the 37-entry array at LYB `0x770C`. Zero-based entry 35 at
+file `0x7DA8` points to wrapper `0x872C`, file `0x8D3C`, whose first
+dword selects Instance `0x5D80`, `cbind_rain`. Folder byte `+0x62` at
+file `0x8CA2` is zero. After the DivideMap class check, its clear bit 0
+selects deferred registration at `0x0064F594..0x0064F5AE`.
+See [DivideMap registration and state-1 placement](layout-block-activation.md).
+
+With MapLayoutActor byte `+0x1B8` set, `0x0062B33F` calls `0x007E91D0`
+on the weather owner at actor `+0x158`. The owner's loop calls primary
+slot 6 on the complete resource at each queue record's `+8` at
+`0x007E927F`, before the blend call at `0x007E933D`. Weather table
+`0x0103D0BC` cell `0x0103D0D4` selects `0x0083B500`, which calls
+resource dispatcher `0x00648950` at `0x0083B504`.
+
+After the loaded-wrapper checks in resource state 4, `0x00645503`
+calls `0x00644B10`. For mode zero and clear resource byte `+0x1B2`,
+the helper returns 6. The dispatcher uses jump-table cell `0x00648A14`
+for resource state 6 and calls primary slot 15 at `0x0064899A`.
+Weather cell `0x0103D0F8` selects `0x0064E200`, which calls
+`0x0064C330` at `0x0064E20A` before setting resource state 9.
+The pass compares deferred, resident and pending counts. When the
+counts admit its scan, it creates or queues missing deferred folders.
+The pass computes distance without a per-folder radius cutoff and
+walks the existing deferred order. The separate queued creator sorts
+resident blocks at `0x006501AE` through comparator `0x006403E0`.
+The blend fraction is outside this selection.
+
+The separate actor update `0x0062AB70` uses the same `+0x1B8` guard
+and calls the weather owner through `0x007E6DB0` at `0x0062AC06`.
+Its queue loop calls primary slot 22 at `0x007E6E4B`. Weather cell
+`0x0103D114` selects `0x0083A820`, which supplies three zeros to
+`0x00650750` at `0x0083A826`. This manager pass processes admitted
+pending work and can stop after one pending entry. It dispatches
+retained blocks through `0x00650400` at `0x0065084E`.
+Its block state 1 calls `0x00648770` at `0x00650475`. The DAT
+and these two owner paths leave actual block admission and completion open.
 
 For a block owned by the constructed Weather resource, primary slot 2
 in table `0x0103D0BC` is `0x00640870`. Its missing-instance branch at
@@ -267,15 +296,31 @@ is `0x00A8E6E0`. Its admitted folder branch at
 The latter forwards that context to the missing-instance helper at
 `0x00A8E1CD..0x00A8E1DD`. It supplies no default listener substitution.
 
-The subsequent instance setup consumes existing VFX resource pointers:
+For a newly created direct instance on the state-1 route, `0x00A8D250`
+writes the nonnull block interface to setup descriptor `+0x48`.
+`0x00A8D23A` writes the separate zero context to descriptor `+0x4C`.
+The kind-`0x0F` branch at `0x007FEA0B` takes the nonnull-block exit
+to `0x007FEAB3`, bypassing the early base slot-18 call and the store
+to complete instance `+0x50` bit 0 at `0x007FEA29`. The fresh
+constructor clears that bit at `0x007FB7A5`.
+
+The setup gate `0x00624C50` returns true when the current MapLayoutActor's
+`+0x1F0` differs from 3. After admission, `0x007FE9C5..0x007FE9EF`
+copies serialized `+0x14` bit 0 through instance slot 38, `0x00A99DB0`,
+to interface `+0x2A` bit 1, and serialized bit 2 through slot 51,
+`0x00800430`, to interface `+0x2A` bit 2. The selected `0x05` sets
+both. Separately, `0x007FD710` supplies zero to slot 53 on the checked
+mode-zero owner route. Slot 53 clears interface `+0x2A` bit 3, which
+slot 52 reads during later setup.
+
+When base slot 18 is called, its VFX setup consumes existing resource pointers.
 
 | Locator | Checked setup behavior |
 | --- | --- |
-| `0x007FE9D7..0x007FE9EF` | Copies serialized Instance `+0x14` bit 2 through instance slot 51. On the constructed RaptureLayoutInstanceObject table `0x00FF279C`, this is `0x00800430`, which writes interface byte `+0x2A` bit 2. The selected byte `0x05` supplies a set bit. |
-| `0x007FE9F8..0x007FEA27` | With base-object kind different from `0x12` and setup descriptor `+0x48` zero, calls that base object's slot 18 with the instance interface and descriptor `+0x40`. RaptureVfx kind getter `0x005F0660` returns `0x0F`; table `0x010622B4` slot 18 is `0x008D4FA0`. |
+| `0x007FE9F8..0x007FEA27` | The zero-block branch for base-object kinds other than `0x12` calls slot 18 with the instance interface and descriptor `+0x40`. RaptureVfx kind getter `0x005F0660` returns `0x0F`. Its interface table `0x010622B4` slot 18 is `0x008D4FA0`. |
 | `0x008D4FA5..0x008D4FCB` | Requires instance slot 50 true, then calls `0x00AB5010` with the instance and unchanged second setup argument. Slot 50, `0x00800420`, reads the bit written above. A false helper result skips the remaining VFX-specific setup in this body. |
 | `0x00AB5019..0x00AB5027` | Requires both interface `+0x48/+0x4C`, complete VFX `+0x4C/+0x50`, nonnull. Either missing pointer returns false at `0x00AB50D5` before property setup. |
-| `0x00AB502D..0x00AB5086` | Obtains the instance's property through slot 47 and expects property kind `0x0F`. If its slot 37 is false, calls property slot 34 with the two retained pointers and the second setup argument. The [VFX property contract](ambient-garlean-fleet.md#conditional-vfx-property-and-backend-production) binds its concrete wrapper and conditional backend-field producer; the selected rain property's actual setup and effect remain separate. |
+| `0x00AB502D..0x00AB5086` | Obtains the instance's property through slot 47 and expects property kind `0x0F`. If its slot 37 is false, calls property slot 34 with the two retained pointers and the second setup argument. |
 
 Neither `0x008D4FA0` nor `0x00AB5010` contains a direct call to initializer
 `0x00AB5150` or constructs its two-pointer context. Within these bodies,
@@ -286,10 +331,8 @@ instance creation does not establish VFX resource binding or activation.
 Fresh VFX construction `0x008D4EF0 -> 0x00AB4FA0` zeros complete
 `+0x4C/+0x50` at `0x00AB4FEF/0x00AB4FF6`. With the initial null-receiver
 path and no intervening pointer writer, these checked later setup bodies
-cannot fill those fields and take the missing-pointer exit. This conditional
-result does not establish historical pointer values or permanently disabled
-rain. A later binding writer or another initializer invocation remains a
-separate evidence requirement.
+take the missing-pointer exit. The deferred block binder below supplies
+a separate pointer writer.
 
 ### Rain collection and bind-entry acquisition
 
@@ -675,15 +718,79 @@ These checks did not enumerate arbitrary virtual callers, writes through
 untyped aliases or bulk copies, or observe the selected rain object's bind
 entries and pointer values.
 
+### State-5 VFX activation and Qix group request
+
+Block state 4 calls the binder at `0x0064D544` for entries with
+`+0x18` clear. An empty list skips binding. Unless a budget exit
+precedes it, the check at `0x0064D5BF` tests the entry flags through
+`0x00642AA0` before writing block state 5 at `0x0064D5C8`. An
+empty list passes that flag check. In state 5, `0x0064D5E0` builds a parent
+translation matrix from Weather interface slot 91, `0x00A8BD40`, and
+walks the direct instance array at block `+0x20` with the low 24 bits of
+`+0x24` as its count. At `0x0064D6A9` it calls `0x007FF6D0` with the
+complete block and that matrix.
+
+With complete instance `+0x50` bit 0 clear, a kind-`0x0F` base and
+the fresh false slot-52 result, `0x007FF776` calls base slot 18.
+`0x008D4FA0 -> 0x00AB5010` applies the resource and property checks
+above. The placement helper sets instance `+0x50` bit 0 at
+`0x007FF7E8` without checking the base setup result. If the state-5
+loop finishes, `0x0064D764` sets block state 6. These completion fields
+can be set even if the VFX setup failed.
+
+When the property backend is empty and both VFX pointers are available,
+`0x00AA4170 -> 0x00AA47A0` supplies the two resources to the property
+setup. It requires a nonnull manipulator at `0x00AA4817` and a
+successful slot-1 setup at `0x00AA484A`. At `0x00AA4860` it reads
+instance slot 37, `0x00A99DA0`, which returns interface `+0x2A`
+bit 1. The fresh caller supplies zero as the third argument of
+`0x00AA47A0`, so the path keeps that byte at `0x00AA4867`.
+The alternate nonnull third argument can force 1 at `0x00AA4885`.
+The selected byte becomes the low byte of the first argument to
+LayEffectManipulator slot 4, `0x00A87510`, at `0x00AA48AC`. With the selected set bit retained and a nonnull
+creator, `0x00A87546` calls Qix EffectCreator `0x00B99E40` and
+`0x00A8754D` stores its result at the manipulator's interface
+`+0x0C`. A zero bit skips creation. The checked fresh route uses
+the placement and authored flags without an authored VFX timeline
+clip prerequisite.
+See the [VFX property contract](ambient-garlean-fleet.md#conditional-vfx-property-and-backend-production).
+
+The instance initializer passes the address of serialized Instance
+`+0x10` through slot 16 at `0x007FE935`. Slot 17, `0x00A99D10`,
+follows that field's pointer when `0x00AA47F3` calls it. The pointer
+cell at file `0x63A0` selects LYB `0x83F0`, file `0x8A00`.
+`0x00AA489B` reads the target's `+4` dword as the Qix key. File
+`0x8A04` supplies `0x00460000`.
+
+With the first bound `sniv` resource retained at creator `+0x10`,
+`0x00B99E52` takes the leaf-instance branch. `0x00B97D30..0x00B97D3C`
+requires a nonnull receiver at that resource's `+0x54` before calling
+`0x00BC0BA0`. The key masked by `0x000F0000`
+equals `0x00060000`. The selected call at `0x00BC0C74` passes
+the full key and creation argument zero to group lookup `0x00BC0560`.
+The lookup requires resource byte `+0x64` bit 7 clear and bit 1 set,
+plus `+0x66` bit 0 set. At `0x00BC05BD` it searches the nonnull
+`+0xC8` container. A miss skips on-demand population. A returned group
+node with `+4` bit 0 set can reach the owner-derived EffectFactory
+slot 2 at `0x00BDF31C` via `0x00BDF2C0`. The constructed factory's
+mode-2 route supplies the group effect on success.
+See [Qix effect runtime](vfx-effect-runtime.md#spawn-routes).
+
+For replay, disassemble the cited VA windows from the identified PE32
+with Apple LLVM `llvm-objdump` 21.0.0. Read the jump-table and vtable
+cells as little-endian dwords from their file-backed PE sections. Read
+the selected folder, instance and Qix key at the absolute DAT file
+offsets above.
+
 ## Remaining boundary
 
 The preserved artifacts establish the selected resource's typed rain
 reference, the conditional DrawEnv interpolation contract, the VFX context
 producer, the application load's null receiver and the generic default
-resource-query receiver, plus deferred binding into the retained VFX fields.
-The ordinary graph decoder and the selected emitter-to-model reference are
-also identified. The selected shader input profile and texture dependency
-leave current draw inputs unresolved. The remaining joins are listed below.
+resource-query receiver. Deferred binding and placement provide the
+conditional Qix group request. The ordinary graph decoder, selected
+emitter-to-model reference, shader input profile and texture dependency
+leave current draw inputs unresolved.
 
 - The selected DAT's admitted DrawEnv objects and their population of the
   manager returned from complete resource `+0xD0`.
@@ -693,8 +800,10 @@ leave current draw inputs unresolved. The remaining joins are listed below.
   unobserved.
   A separate nonnull initializer receiver and its concrete query interface
   remain unjoined to Weather; the generic default listener does not prove that join.
-- Actual selection/completion of the rain folder and instance, its property
-  setup, the active timeline or spatial lane, and emitter/renderer submission.
+- Live selection and completion of the rain folder and instance, cached VINS
+  group population, and the result of the group lookup at `0x00BC05BD`.
+- Successful Qix group construction and child membership in the Qix context
+  list, update delivery, emission and draw submission.
 
 Neither authored names nor the arithmetic above establish visible rain,
 camera following, particle density, opacity, a common fade duration, or GPU
