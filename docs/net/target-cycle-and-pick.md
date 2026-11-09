@@ -601,8 +601,8 @@ no terrain, collision or occlusion test. Its only calls are `0x004D67A0`, the
 predicate slots, `0x004CFE30`, `0x00586570`, `0x009172C0` and the iterator check
 `0x009D22B4` (`STATIC`).
 
-Rectangle 2 comes from `0x008CC430`, reached from `WindowContext` drawing
-(`INFERRED`). It reads a UI node's rectangle at `+0xF0` and `+0xF8`, pads it by
+The active rectangle 2 reporter is `0x008CC430`, reached from
+`WindowContext` drawing at `0x008CEB42` (`STATIC`). It reads a UI node's rectangle at `+0xF0` and `+0xF8`, pads it by
 16.0 (`0x00FC3320`) on each side, transforms it through UI matrices and posts
 it through `0x0065DF00`, which sends message `0x4F` with 32 bytes (`STATIC`).
 When the node width at `+0xF8` is 0.0 or less it posts all zeros
@@ -621,6 +621,75 @@ that path (`0x00565F75` to `0x00565FB5`, `STATIC`). The select routine returns
 at once when the cursor target already equals the object, so a null pick
 clears only an existing target, as the
 [select section](target-lock-decide-senders.md#select-0x00562d30) records.
+
+### NamePlate pick eligibility and rectangle reports
+
+The NamePlate constructor zeros byte `+0x190` at `0x006A3D25`
+and cached mode `+0xC4` at `0x006A3E60`. Attach sets actor
+`+0x274` bit 0 from the complete-byte-zero test at `0x006A29F0`.
+The `_setNameplateVisible` callback `0x006E4100` passes its Boolean
+through `0x006E415D -> 0x0075B630`. A resolved actor supplies its
+inline NamePlate at `+0xBA0`. That object's table offset `+0x44`
+selects `0x006A2A30`, which replaces byte `+0x190` bit 1 with the
+inverted Boolean. Three other setters replace bits 0, 2 and 3 at
+`0x006A2A00`, `0x006A2A60` and `0x006A2A90`.
+
+The update at `0x006A2E90` calls the same zero-byte test. Its
+selection at `0x006A2EE8..0x006A2F06` yields mode 3 for zero and
+mode 1 otherwise. A mode change from the cached value at `+0xC4`
+admits the `Grid_NamePlate` Visibility request at
+`0x006A30B3..0x006A30E6`. Mode 3 supplies value 2, Visible, and
+mode 1 supplies value 1, Hidden. The subsequent store at
+`0x006A310A` sets actor `+0x274` bit 0 for mode 3 and clears it
+for mode 1. The same update sends operation `0x15` at
+`0x006A3112` and caches the mode at `0x006A3117`. The Lua
+visibility setter changes the source flag before this guarded update.
+The other byte bits can keep the mode at 1 after that setter clears
+bit 1.
+
+With a successful `TextBlock_PrimaryLabel` lookup and
+DrawingToolContext cast, setup calls offset `+0xC4` at
+`0x006A3544`. The retained table selects `0x0055A620`, which
+sets record `+0x5A` bit 5 and seeds `+0x5C` to 1. The
+publisher entry at `0x0054E8C4..0x0054E8C8` requires nonzero
+`+0x5C`. It requires a nonzero return from preliminary operation
+`0x22` at `0x0054E8FB..0x0054E902`. When later gates allow
+the `0x20` send at `0x0054F019..0x0054F032`, the publisher
+clears the dirty bit on submission result 1. On later delivery
+through the [WindowActor queue](../resource/sparklecontrol-source-sequence.md),
+its guarded dispatcher forwards the local operation through its
+nonnull `+0x1A0` context at `0x007FA8FF`. The WindowContext dispatcher ORs `0x02` into byte
+`+0x128` at `0x008CEC72`. Its `0x20` case at `0x008CF3A8`
+sets rectangle-reporting field `+0x130` to 1.
+
+The WindowContext draw entry `0x008CE7D0` first checks the actor
+pass if `+0x74` is nonnull. The compare at
+`0x008CE7E1..0x008CE7F9` exits when the test that global
+`0x01355304` equals 1 differs from the scene-actor resolution
+Boolean returned by `0x007F8D00`. After this
+gate, a nonzero `+0x130` can admit either report.
+
+- State byte `+0x128 == 3` and nonzero `+0x12B` select the
+  regular call at `0x008CEB42 -> 0x008CC430`. This reporter
+  follows the parent chain to a WindowActor and requires its actor
+  to resolve and cast to CharaActor. It initializes a zero payload.
+  Ordered positive width at `+0xF8` reaches the padded transform.
+  The branch at `0x008CC4CC` uses the zero payload for nonpositive
+  width or an unordered compare with the floating exception masked.
+- A different state or zero `+0x12B` reaches `0x008CEBB7`.
+  The call at `0x008CEBC2 -> 0x008CBE10` also requires an owning
+  WindowActor and successful actor resolution and cast. It
+  initializes a shared zero payload on first use, guarded by
+  `0x01355330` bit 0. The call at `0x008CBEAF` sends that
+  payload without reading the width.
+
+Both report calls request publication through the `0x0065DF00`
+message `0x4F` route. The delivered actor message copies 32 bytes
+into `+0x244..+0x263`.
+The `+0x274` enable bit has its separate writer above. A skipped
+report leaves the prior rectangle available to the click handler.
+The PE32 instructions establish these guarded writes. Live
+mode and geometry at a click, queue delivery and order, and detach remain open.
 
 ### Hover
 
@@ -687,8 +756,8 @@ hover gates are not on the click path.
   config work 13 and `work.targetMode`.
 - The writer that sets state `+0x98` to 1.
 - Whether a left click on the 3D view reaches handler slot 65 unconsumed.
-- The meaning of `NamePlate +0x190` and of the partner link at
-  `CharaActor +0x2B94` and `+0x2B98`.
+- The callers and purposes of the other `NamePlate +0x190` writers,
+  and the partner link at `CharaActor +0x2B94` and `+0x2B98`.
 
 ## Reproduction
 
