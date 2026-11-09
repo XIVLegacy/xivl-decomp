@@ -282,6 +282,45 @@ at `0x1430` and `0x5A50` contain no other typed Cibs. This establishes
 the packaged member. Native factory selection, constructed backing,
 retention and whether this member wins the live lookup remain open.
 
+The same declared-directory check on `client/chara/pc/<model>/skl/0001`
+finds one typed 16-byte Cibs in each of `c002` through `c010`. Each top
+RES container starts at file `0x10` and its directory table at
+`0x50`. The count-sized metadata windows suffice even when the
+declared `RESOURCE_ID` extent overruns its RES view. The two nested
+declared RES views in each bank contain no other typed Cibs. The
+selected members have clear preparation flags and names of the form
+`cib\cibs\pc\info_<model>`. The rows give file coordinates and
+decoded minima and maxima in the reader's output units.
+
+| Model | Physical index | Type cell | Member span, end exclusive | Min | Max |
+| --- | ---: | --- | --- | --- | --- |
+| `c002` | 2 | `0xC744` | `0x141C..0x142C` | `(-0.266, -1.047, -0.266)` | `(0.266, 0.621, 0.266)` |
+| `c003` | 2 | `0xC964` | `0x141C..0x142C` | `(-0.332, -1.232, -0.332)` | `(0.332, 0.809, 0.332)` |
+| `c004` | 2 | `0xC7B4` | `0x141C..0x142C` | `(-0.295, -1.221, -0.295)` | `(0.295, 0.711, 0.295)` |
+| `c005` | 2 | `0xC7D4` | `0x141C..0x142C` | `(-0.214, -0.442, -0.214)` | `(0.214, 0.507, 0.214)` |
+| `c006` | 2 | `0xC7D4` | `0x141C..0x142C` | `(-0.214, -0.442, -0.214)` | `(0.214, 0.507, 0.214)` |
+| `c007` | 2 | `0xC7F4` | `0x141C..0x142C` | `(-0.470, -1.317, -0.492)` | `(0.470, 0.963, 0.458)` |
+| `c008` | 2 | `0xCF44` | `0x141C..0x142C` | `(-0.265, -0.996, -0.265)` | `(0.265, 0.592, 0.265)` |
+| `c009` | 2 | `0xC3F4` | `0x141C..0x142C` | `(-0.310, -1.087, -0.310)` | `(0.310, 0.703, 0.310)` |
+| `c010` | 3 | `0xC294` | `0xC278..0xC288` | `(-0.295, -1.221, -0.295)` | `(0.295, 0.711, 0.295)` |
+
+| Model | Bank bytes | Bank SHA-256 |
+| --- | ---: | --- |
+| `c002` | 51280 | `527f5a0ef7453e1248ca2fd523fd5f6a1473ba23a3cf75800a073418fcfce599` |
+| `c003` | 51824 | `c24dd9910fb054095e26e980732b601ad54d3a01cabb964ef349950e990e8ef2` |
+| `c004` | 51392 | `d297880a92ac6d137be12baa1eeb3ceb94060b105731f4376731799a8f4ab5e3` |
+| `c005` | 51424 | `04416e95fdec41ccb76ddf31f7b0dc598f44f53b9ccf0011033f669f73ef8793` |
+| `c006` | 51424 | `3cd2cc48950a021f2a76543b687c70d26570b5f4f79142af411e54a08b0c354e` |
+| `c007` | 51456 | `8558b8e65e778c6239146d78071fc847c0434b2f60ad8d88308bfbd87fccbf92` |
+| `c008` | 53328 | `46d7a983e8be4215d2ea6d33cf7fa99d73ad61beda75df7c08a5c794d9826c06` |
+| `c009` | 50432 | `5a33c61b6acf8bb1ae54f2a5be2ff673e8f6c39965ce048fc86e6dcc6fb64e6f` |
+| `c010` | 50064 | `633736c748e1c53ececef77f93306ec7ea7d93d1b9034de40f02b26022bab70c` |
+
+This census is bounded to the declared views of the named banks.
+Matching body bytes across different banks do not identify the
+active node. Other character families and the runtime winner remain
+open.
+
 The model getter `0x00CB1C80` supplies actor `+0x0C`. The
 RaptureModelObject's lookup and matrix paths both use Drawable at
 model `+0xD8`. Drawable `+0x334` holds CharacterSkeletonNode,
