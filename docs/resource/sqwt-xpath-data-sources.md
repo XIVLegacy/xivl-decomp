@@ -500,6 +500,40 @@ The [reader gate](#rapturessddatareader-rows) leaves initial row
 selection to a separate producer. The first live row and inner key,
 binding activation order, GL marker routing and painting remain UNKNOWN.
 
+#### Retained marker placement
+
+STATIC. The map source at control+`0x4A0` reconciles into its
+`+0x368` container, then visits the range at `+0x370/+0x374`
+(`0x00679022..0x006790D1`). The SSD source at `+0x498` uses its
+`+0x2F8` container and `+0x300/+0x304` range
+(`0x00678E72..0x00678F2E`). The GL path retains a separate container
+at `+0x330`.
+
+After the DataContext request, `0x0067C067..0x0067C0A0` stores the
+entry coordinates as X divided by resolution plus the X offset and
+Z divided by resolution plus the Y offset. Helper `0x00670990` reads
+the row's X and Z attributes and returns the supplied zero for empty
+text. The map path passes control fields `+0x614/+0x638/+0x63C`
+at `0x0067906D..0x006790CE`. The SSD path passes 1, 0 and 0
+at `0x00678EB0..0x00678F2B`.
+
+The arrange pass visits those entries at `0x00675CF8..0x00675D34`
+for map and `0x00675CE0..0x00675CF1` for SSD, through the
+per-entry call `0x0067DE5C -> 0x0067D030`. It requires entry
+`+0x3D` masks `0x02` and `0x04`. It subtracts the retained center
+and scales by the product of control `+0x610/+0x60C/+0x614`
+rounded to f32. For finite scaled deltas and half-extents, it checks
+inclusive half-viewport bounds at `0x0067D053..0x0067D15C`. With the optional named-element
+check passed or skipped, it requests Visible and the local Margin
+at `0x0067D3A2` and `0x0067D3FC`. The refusal arm requests Hidden
+at `0x0067D463`.
+
+The separate [area-image pass](minimap-base-tiles.md#the-declared-area-image)
+can consume the same SSD and map entries. It adds the radius bit and
+positive radius gate at `0x0067B9B5..0x0067B9DC`. The placement gate
+above requires only the other two bits. Live row selection, viewport,
+property admission, child drawing and pixels remain unknown.
+
 #### Map reader Row request
 
 STATIC. The [piece request](minimap-base-tiles.md#native-piece-producer)
