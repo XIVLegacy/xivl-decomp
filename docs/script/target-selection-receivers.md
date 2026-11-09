@@ -209,6 +209,37 @@ intermediate nesting guard. A literal false property returned in each
 path bypasses that read. A returned nil property value and an error
 indexing an absent array are separate outcomes.
 
+## Default Boolean read
+
+The actor work builder inserts the record at `0x00CEB805`. The uncached
+Lua work handle path looks up the actor key at `0x00D1CE9A`. A hit
+returns the existing record at `0x00CEB4F2`. The miss at `0x00CEB50A`
+takes a separate allocation path with factory call `0x00CEB536`.
+
+For a declaration on the same actor record, `_sync` lays out the
+descriptors at `0x00D1692F`. Its rounded byte count reaches the pool
+resize path through `0x00D1695B` only when the tuple check at
+`0x00D16936` and `0x00D1693D` passes. The check rejects the exact
+`(-2,0,0)` and `(-1,0,0)` tuples. With default access and a null
+provider, growth passes fill zero at `0x00CFE62A` and preserves the
+existing prefix. The append loop at `0x006D1939` fills added bytes.
+
+For an installed record and an in-range array index, the Boolean reader
+calls the backing bit getter at `0x00D288F5` and the Lua Boolean
+pusher at `0x00D28907`. The pusher writes type 1 at `0x00DCE36D` and
+payload 0 at `0x00DCE377` for a cleared bit. A read of Lua element 3
+therefore returns literal false if its backing bit is in the zero-filled
+extent of the same pool and still clear. A missing record or an invalid
+array index can return nil through `0x00D2889E` or `0x00D2E150`.
+
+The [actor work receiver](../net/actorimpl-receiver-dispatch.md) can retain
+a packet for later replay. The Boolean writer stages the value at
+`0x00D2F8BA`. A nonzero pending count admits the slot 7 call at
+`0x00D30C9F`. Its default access path stores a changed, in-bounds bit
+in the backing byte at `0x00CFE0E6`. The census leaves open whether an
+individual target callback saw the initial bit or a bit already changed by
+script, hydration, or an admitted incoming or replayed write.
+
 ## Open
 
 The group lookup registered at `0x007554B9` reaches `0x00701140`
