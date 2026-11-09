@@ -423,6 +423,106 @@ unit, link and control arrays with the effect body method. Read the
 selected Vmdl's model libraries with the
 [modern model geometry dictionary](vfx-modern-model-geometry.md#selected-frame).
 
+### Selected rain camera placement
+
+The selected veff `0x898D0054` is `data/89/8D/00/54.DAT`, 9,616 bytes,
+SHA-256 `d71826ba3098594b97ddca10724a46d47eaedae68164052643733fded2cacfbc`.
+The [Qix container](../../tools/vfx_qix_resource.py),
+[effect body](../../tools/vfx_effect_body.py) and
+[emitter body](../../tools/vfx_emitter_body.py) readers locate the selected
+records below. File offsets are hexadecimal. Native instruction windows
+were decoded from the identified PE32 with Apple LLVM `llvm-objdump` 21.0.0.
+Descriptor and table cells were read from the PE's file-backed sections.
+
+Unit 2 control 0 declares `Position3DCameraBind:CoordRoot`. The Rapture
+descriptor at `0x013171F8` gives coordinate ID 1 at `+0x58` and calc
+`0x00D7DF70` at `+0x78`. Its single slot record at file `0x1080` selects
+standard graph A0, binding 0, with no random graph. The graph at file
+`0x15F8` is `StandardPolynomialFloat32X3`. Bit 0 of the parameter byte at
+file `0x2380` is set.
+
+#### Camera matrix selection
+
+Calc reads the position pointer from work `W+0x20`, sets its fourth lane
+to 1 at `0x00D7DF8D`, and passes `W` to `0x00E39FA0`. In that selector,
+let `N = [W]`, `U = [N+8]`, `E = [U]`, `D = [U+8]` and `R = [D+0x18]`,
+where brackets load a pointer unless a field width is stated.
+
+| Selector condition | Returned camera object |
+| --- | --- |
+| Byte `R+3` is nonzero at `0x00E39FB1` | `[E+0xF0]` at `0x00E39FB7` |
+| Byte `R+3` is zero and the signed dword at `[C+0xBC]+0x64` is below 16 | `[C+0xB0]` at `0x00E39FD0` |
+| Byte `R+3` is zero and that dword is at least 16 | `[C+0xB4]` at `0x00E39FD7` |
+
+On the zero-byte branch, `C = [[E+0x10]+0x0C]`. The measured unit 2
+instance row at file `0x1E24` has byte `+3` equal to zero. That selects
+the latter pair if the runtime pointer retains that row.
+
+Calc dispatches virtual slot `+0x0C` on the returned object at
+`0x00D7DFA1`. For the BaseCamera table `0x0113E1F4` and SphereCamera
+table `0x0113DECC`, that cell is `0x00E3C780`, which returns receiver
+`+0x84`. For the D2Camera table `0x0113DFBC`, it is `0x00E3B780`,
+which returns receiver `+4`. These are conditional table examples.
+The actual selected object, its table and the getter's current matrix
+are unknown.
+
+#### Position calculation and child link
+
+Let `A` be the matrix returned by the camera getter and `p` the sampled
+XYZ. Calc calls the [affine inverse helper](model-draw-context-matrix-registers.md#apply-routine)
+`0x0042EE50` at `0x00D7DFAA`. With `I = inverse(A)`, it saves row 3 of
+`I` and, on the set-bit branch at `0x00D7DFB8`, replaces that row with
+`(0,0,0,1)` to form `J`. It builds translation matrix `T(p)` through
+`0x00430430` and computes `T(p) * J` at `0x00D7E041`. At
+`0x00D7E0C6` it adds the saved inverse row 3 to the product's row 3.
+It forces the fourth lane to 1 and stores that vector at work `+0x10` at
+`0x00D7E12A..0x00D7E12F`. In row-vector form, the XYZ is the sampled
+position times the inverse basis plus the inverse translation. This
+requires valid work, slot and camera pointers, and an invertible affine
+input.
+
+Unit 2 MatrixRoot's position link at file `0x1340` uses code `0x00020000`
+to consume that output. MatrixRoot's parameter byte at file `0x2390` is
+mode 0. Its [mode-zero calculation](vfx-root-matrix-mode-zero.md)
+retains the separate root getter and current matrix prerequisites.
+Unit 2 GenerateTimeArea's link at file `0x135C` uses code `0x00020003`
+for the MatrixRoot output. The optional emitter gate at `0x00D6B5B1` tests parameter
+`+0x10` bit 0, which is clear in the selected block at file `0x24D0`.
+On the admitted child path, the position coordinate ID from
+`0x00D6B6FB` is 2 for unit 1 group 0 node 1,
+`Position3DGenerated:GendNormal:CoordLocal`. The spawn preparation call
+at `0x00D6B720` reaches the local sample copy at `0x00D99072`,
+bypassing the spawn position and direction matrix operations for IDs 0
+and 1.
+
+The child has a separate matrix link. The create call at `0x00E3A3D5`
+supplies the emitter unit as parent, which the unit construction path
+stores at `+4` at `0x00BCD987`. The fourth code in unit 1 MatrixLinkEx's
+link row at file `0x12B4` is `0x100A0000`. Its family declaration 10
+at file `0x1FEC` names `AbstractMatrix3D`. The build reads that
+declaration's name and looks it up in the context registry at
+`0x00BD40C5..0x00BD40F9`. The successful path writes the context
+descriptor ordinal into bits 16 through 27 at `0x00BD4162..0x00BD418C`.
+
+The link resolver uses the remapped ordinal, starts at the parent at
+`0x00BDC135..0x00BDC13D` and follows each candidate descriptor's
+parent chain at `0x00BDC180..0x00BDC18C`. It stores the matched
+provider's work `+0x10` pointer at `0x00BDC272..0x00BDC27B`. With
+the successful remap, matching registry, and selected parent controls
+retained, the matching provider is unit 2's MatrixRoot. MatrixLinkEx's
+parameter byte at file `0x23A0` is mode 4. Calc `0x00BA7220` forwards
+to `0x00BA7030`, which passes the local position pointer at work
+`+0x60` and family matrix pointer at work `+0x6C` to
+`0x00BA9D30`. For coordinate ID 2, mode 4 and a nonnull family matrix,
+`0x00BAA176..0x00BAA1A3` applies that matrix to the child position before
+the mode-specific calculation. DrawResource's separate unit 1 link row 5
+references the MatrixLinkEx output.
+
+The joins identify the selected position input and the conditional path
+into the child transform. The current graph sample, camera matrix,
+MatrixRoot result, child completion, final draw matrix and submission
+remain unknown.
+
 ### Selected rain shader and texture inputs
 
 The shader inputs below come from the two named installed dependencies.
