@@ -191,6 +191,34 @@ nameplate text and passes literal false to `_setNameplateVisible`.
 It binds `charaWork/property` with work ID 3006 at PCs 468-472.
 The display-name callback at `main/f22` PCs 0-5 requests text.
 
+For an admitted fresh type-8 actor, the `0x00CA` path constructs the
+inline NamePlate and clears its suppression byte at `0x006A3D25` before
+inserting the actor into the world `+0x4E4` tree at `0x00537722`. The
+separate packet registry at world `+0x17804` supplies the actor to a later
+`0x00CC` bind at `0x004DD005`. The ordinary successful clone branch
+retains the actor key at binding `+0x70` through `0x00CDCE88` and requests
+`_onInit` at `0x0078BC50`.
+
+On the retained primary-table path, `0x00CD7A50` reads the table and
+`0x00CCCE29..0x00CCCE57` prepares the call with that table as `self`.
+The super call preserves it through `0x00CCD00F`. The nameplate native's
+closure `0x00D08000` reaches `0x00D19B70`, which resolves Lua slot 1 at
+`0x00D19BC0`. It puts that binding's key into invocation frame `+0x0C`
+at `0x00D19CF1` and the calling engine wrapper into frame `+4` at
+`0x00D19CDE`. The engine retains its CoreWork holder at `+0x220` through
+`0x00763634..0x00763648`. The actor init queue uses the same engine as
+the world's actor factory on this setup path. The callback unwraps the
+holder to recover that world at `0x006E413F..0x006E415D`.
+
+The callback resolves the current actor by that key in the world
+`+0x4E4` tree through `0x0075B639 -> 0x004D9970 -> 0x004DE190`.
+If the actor is still present, the false argument sets NamePlate
+`+0x190` bit 1 at `0x006A2A42`. Reserved key `0xC0000000` or a failed
+lookup exits without a pending write. A separate fallback at
+`0x00CD7A9D..0x00CD7AC4` substitutes the engine's default registry value
+when the primary read yields a non-table. The key still comes from the
+binding of the actual slot-1 argument.
+
 CharaBaseClass `_onUpdateWork` at `main/f23` PCs 2-9 first asks the
 local player's depiction judge to process the actor. That call chain
 has no Lua nil guard. PCs 10-26 admit slot `_init` or the pair
@@ -211,6 +239,41 @@ The [completion path](../net/actor-work-completion-targets.md) and
 the separate native guards. The first matching live notification,
 the two property values and successful depiction judge completion remain unknown.
 
+### Visibility in Block event cleanup
+
+STATIC. One route to literal true is a matching server-side Block end.
+EndEvent `0x0131` selector 0 reaches the player's active block check at
+`0x006E108C -> 0x008934A0`. The active record, name and completion latch
+must admit the selected slot-2 call. Its server-side method `0x00893E70`
+checks and clears record `+0x21`, calls the post callback with true and
+then calls cleanup `0x00703970` at `0x00893EBA`.
+
+At `0x007039D6..0x007039DD` the visibility branch requires signed player
+byte `+0x161` to be at least `0x15`. The `0x01A7` case at `0x0058D645` can seed
+pending bytes `+0xC7` and `+0xC8` from native operand bytes 0 and 1
+through `0x005751C0 -> 0x0076D280` on the NullActorImpl path. The
+LuaActorImpl cell returns. MyPlayer initialization copies the pending
+bytes to `+0x161` and `+0x162` at `0x006F3494..0x006F34AC`.
+
+Cleanup passes true on the player key at `0x00703A27`. The separate
+nonself branch reads player `+0x130`. With nonzero player `+0x161`,
+`_readyInnBed` stores the key of its admitted character argument at
+`0x00706772..0x00706791`. The
+[ObjectBed hook](https://github.com/XIVLegacy/xivl-client-scripts/blob/8d2aa874ed4609c54f6e0d7a3330dadedb94878b/docs/inn-bed-client-hook.md)
+calls with its own receiver. `0x00703A55` requires an active script record
+with installed work and a true indexed element 4 of binding 3006.
+`0x00CE5421..0x00CE5433` adds that zero-based index to the bound bit
+start when the binding metadata word `+8` is nonnegative. This is Lua
+`charaWork.property[5]` on the ordinary CharaBaseClass binding. The
+admitted call at `0x00703A6D` passes true on the retained key,
+independently of the event record's key comparison.
+
+Each true request requires the same current actor lookup as the Lua
+setter and clears only bit 1. The full suppression byte still governs
+visibility. The retained nonself key, a successful work read and the
+resulting live visibility remain unverified. The selected event route
+does not establish the first visible state of an ordinary NPC.
+
 ## Unknowns
 
 1. The displayType to `log_color` slot mapping and to tab category. This needs
@@ -224,6 +287,12 @@ the two property values and successful depiction judge completion remain unknown
    `xivl-opcodes:data/s2c_0003_wire_layout.json`.
 
 ## Reproduction
+
+For the visibility paths, verify the PE identity above and disassemble
+the cited addresses with LLVM objdump 21 in x86 mode. Resolve the
+factory, holder and event virtual cells through the file-backed PE
+sections. Check the receiver and invocation arguments against the
+authenticated Lua instruction listing.
 
 Decode each SQEX file with Blowfish keyed by its basename
 (`xivl-tools:docs/formats/sqex.md`) and parse the result as XML. For the
