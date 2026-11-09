@@ -199,9 +199,8 @@ posts message `0x4E` at `0x0066787B` (`STATIC`):
    returns null (`0x00666B35` to `0x00666B7A`).
 2. It takes the bone matrix from `0x006693C0` with index `+0x138` and combines
    it with the matrix at `[[+0x118] +0x64] +0x210` through the 4x4 routine
-   `0x0061D050` (`0x00666B97`, `0x00666BAE`). `0x006693C0` falls back to the
-   object's own matrix at `+0x30..+0x6F` when the skeleton `+0x334` is null or
-   the index is not below the bone count (`0x006693EC` to `0x00669445`).
+   `0x0061D050` (`0x00666B97`, `0x00666BAE`). The matrix getter uses the
+   index-dependent routes [below](#cibs-resource-ownership-and-c001-member).
 3. When `+0x2B94` points to an actor whose `+0x2B98` is this actor and whose
    slot `+0x268` returns 0, the local box is the union, smaller minimum and
    larger maximum per axis, of both actors' boxes (`0x00666BB3` to
@@ -222,19 +221,85 @@ its depth `+0x22C`, min z, is the mean of the four nearest z values. An actor
 whose box has any corner at or behind w 0 is never on screen and never picked.
 Reading the `+0x210` matrix as the camera view-projection is `INFERRED`.
 
-`0x0065B440`, called from `0x006648B7`, zeroes the local box and fetches the
-model chunk with tag dword `0x63696273` through slot `+0x188`
-(`0x0065B468` to `0x0065B4B6`). When the chunk exists, the `Cibs` reader
+`0x0065B440`, called from `0x006648B7`, zeroes the local box and queries
+the actor's retained resources for tag dword `0x63696273` through slot
+`+0x188` (`0x0065B468` to `0x0065B4B6`). When a node matches, the `Cibs` reader
 `0x00851C40` (class `.?AVCibs@Cib@Chara@Actor@Scene@Application@@`, locator
 `0x0116E7C8`) requires bit `0x80` of header byte 3. It reads signed words
 `+0x0A`, `+0x0C` and `+0x0E` into the min and `+0x04`, `+0x06` and `+0x08`
 into the max, each divided by 1000.0. When slot `+0x11C` then returns an
 object (`0x0065B4DA` to `0x0065B4E8`), the routine stores the index of bone
 `n_hara` from it at `+0x138` (`0x0065B4F4` to `0x0065B4FB`) (`STATIC`). A null
-result skips the store. A model
-without the chunk keeps a zero box and leaves `+0x138` unwritten
-(`0x0065B4BA`). The box is a per-model axis-aligned box in bone space, not a
-fixed radius (`INFERRED`).
+result skips the store. A search miss keeps a zero box and leaves
+`+0x138` unwritten (`0x0065B4BA`). The box is axis-aligned in the
+selected bone space (`INFERRED`).
+
+#### Cibs resource ownership and c001 member
+
+Original PE section reads and LLVM 21.0.0 disassembly trace the conditional
+CharaActor path. Table cell `0x00FC0EBC` selects `0x007CE9F0`, which
+calls `0x00857AB0` at `0x007CEA7C` with the RaptureReferenceResource at
+actor `+0x08` when that field is nonnull (`0x007CEA12`). The search
+visits roots in ascending vector order and uses `0x00A3D970` with flag
+0. It takes the first visited node with type dword `0x63696273` at
+`+0x30`. The walk holds at most 0x40 pending `+0x1C` alternatives
+(`0x00A3D9A7..0x00A3D9B0`). The selected call uses type alone.
+Ordinary CharaVisual completion for record mode other than 3 passes
+the completed root and index 0 through actor slot `+0x18`
+(`0x00632461..0x00632471`). RaptureReferenceResource inserts at that
+position at `0x00A6AC50`. Later retained insertions can therefore supersede
+earlier roots. Actual ordering depends on the completed and retained
+roots.
+
+The wrapper constructor `0x008523F0` retains the selected node at
+wrapper `+0x04`. Preparation `0x00851B80` gets the node's backing
+pointer through node `+0x40` virtual `+0x04`. With masked node length
+16 and bit `0x80` of backing byte 3 clear, it converts the six
+little-endian sign-magnitude words to signed words and sets the flag
+at `0x00851C2F`. Reader `0x00851C40` obtains the pointer again and
+tests the flag before the signed reads. The reader relies on valid
+backing storage covering the words. On the generic member-view dispatch,
+`0x00A447E3` can select DefaultResourceNodeFactory. Its raw slot
+(`0x00A465E0 -> 0x00A46380`) allocates and copies the member, while
+its view slot (`0x00A466E0 -> 0x00A46520`) retains a member view.
+Both supply the node's backing field. This path is conditional on
+the selected factory and the node that reaches the actor's vector.
+
+[Appearance bank 1](../actor/appearance-resource-slots.md#bank-numbers)
+requests the `skl/0001` path with flag 0. The installed
+`client/chara/pc/c001/skl/0001` is 54672 bytes with SHA-256
+`d90a756fc1cba6f03bb8dc102b367feb905b5e57a00d209ff4fccddaa17cd031`.
+The declared PWIB and RES directory views, using
+`xivl-tools:src/formats/src/gtex_pwib.rs` framing, give one
+`0x63696273` type cell at file `0xD484`. It selects root physical
+entry 2 named `cib\cibs\pc\info_c001`. Its 16-byte span
+`[0x141C,0x142C)` has SHA-256
+`9c2b3d4ce474a04df6d5fa8f47c8c95ee7db20085059b47a73a9d8b7b0a260c4`.
+The flag is clear. Its converted local minimum is
+`(-0.310, -1.087, -0.310)` and maximum is `(0.310, 0.703, 0.310)`
+in the reader's output units. Two nested declared RES directories
+at `0x1430` and `0x5A50` contain no other typed Cibs. This establishes
+the packaged member. Native factory selection, constructed backing,
+retention and whether this member wins the live lookup remain open.
+
+The model getter `0x00CB1C80` supplies actor `+0x0C`. The
+RaptureModelObject's lookup and matrix paths both use Drawable at
+model `+0xD8`. Drawable `+0x334` holds CharacterSkeletonNode,
+whose `+0x08` holds the constructed skeleton. `0x008DD880`
+searches the optional node `+0x0C` provider first for `n_hara`,
+then the skeleton, then the provider for `CDevDefault`. A provider
+hit carries bit `0x01000000` (`0x008DD8F6`). With an admitted
+ordinary index, `0x006693C0` reads the skeleton output at
+skeleton `+0x44` with stride `0xA0` and composes it with the
+skeleton matrix at `0x00669411`. A missing node or out-of-range index
+selects the Drawable matrix at `+0x30` (`0x006693EC..0x00669445`).
+The tagged path clears its tag and calls `0x00669340` at
+`0x006693DE`. A missing node, missing provider or out-of-range
+provider index falls back to the same Drawable matrix
+(`0x00669355`, `0x00669385`, `0x0066939B`, copy at `0x00669357`).
+An admitted tagged index goes through `0x00A3EC70` with a remap from
+node `+0x14` and provider slots `+0x10` and `+0x14`. These matrix
+paths are separate from the Cibs resource lookup.
 
 Slot 142 skips its whole update, both the box post and the visibility update,
 by jumping to `0x00668337` when slot `+0x268` returns nonzero (`0x00667A61`)
@@ -572,6 +637,8 @@ hover gates are not on the click path.
 
 - How often `CharaActor` slot 142 runs, and so how stale the box and the
   visible byte can be.
+- Which Cibs node wins when multiple actor roots are retained, and the
+  runtime Drawable's matrix source and value for an individual actor.
 - The identity of the `+0x210` camera matrix and of the UI matrices and the
   `0x008CC200` offset used for rectangle 2.
 - The writers of `G +0x470` and `G +0x474`.
