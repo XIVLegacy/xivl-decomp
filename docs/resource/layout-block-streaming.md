@@ -127,8 +127,8 @@ The selectors that call it:
   2. The query radius is scene `+0x1D0` plus manager radius from vtable slot
      `+0x188`. `0x0064C580` builds the cube of half-extent radius around the
      point and `0x0064AC60` walks the block box tree, keeping boxes that
-     intersect the cube and whose centre distance (`0x00640040`) is within
-     the radius. Each hit goes to `0x0064C200`.
+     intersect the cube and whose clamped point-to-box distance
+     (`0x00640040 -> 0x00628170`) is within the radius. Each hit goes to `0x0064C200`.
   3. `0x0064FE90` and `0x006505D0` additionally walk the area record's name
      pairs. Pairs whose layout name equals the manager name (or empty) call
      `0x0064E220`. With a nonempty group name it fetches that group's block

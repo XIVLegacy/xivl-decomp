@@ -57,6 +57,82 @@ structural rather than a decoder blind spot. The Tower's five point lights are
 authored layout state, not a light animation bank controlled by its shutter
 scheduler.
 
+## Region and deferred placement
+
+Region resource `0x03C00000` at `data/03/C0/00/00.DAT` has its region-105
+root at file `0x1810`. Four of its 15 children have types other than 0
+or 1. The [normal RegionInfo submission](map-layout-selector.md#normal-construction-and-name-resolution)
+passes all four to LayoutWorld.
+
+| Child key | Type | Resource | File offset |
+| ---: | --- | --- | --- |
+| 581 | `0x1000` | `0x03E70000` | `0x1A50` |
+| 501 | `0x2000` | `0x03E70001` | `0x1A80` |
+| 511 | `0x2002` | `0x03E7000B` | `0x1AB0` |
+| 591 | `0x4000` | `0x03E7000F` | `0x1AE0` |
+
+The type-`0x2002` submission takes the ordinary RaptureLayoutManager
+constructor at `0x00651CD0`. The SetMap zone dword follows a separate
+route through selector `0x0A` at `0x0059E44F`. Its immediate receiver
+stores it at scene `+0x198` at `0x0062CDCA`. The region transition copies
+it to scene `+0x194` at `0x0062D204`. The non-mode-3 special-zone
+comparisons test 239, 250 and 256. A previous zone in that set can
+still set scene `+0x1FF` at `0x0062D221` when the destination is 251 or
+264. The normal region submission loop does not read the zone dword.
+
+The shutter Instance occurs in deferred folder `Bk_ibgpl_000001` at
+file `0x4930`. Its member slot 1 uses wrapper `0x4A74` and refers to the
+Instance at `0x2E10`. Instance byte `+0x14` is `0x05`, with automatic
+bit 1 clear. Folder bytes `+0x60..+0x63` are `00 00 02 00`. The zero
+`+0x61` becomes priority zero at `0x0064279C`. Clear folder `+0x62`
+bit 0 selects deferred registration through `0x0064AF50`.
+The folder's `+0x50/+0x54` registration array names `lak0Dungeon01`
+and `lak0Dungeon01a`. Its separate area-pair pointer and count at
+`+0x58/+0x5C` are zero. The auxiliary geometry fields
+`+0x64/+0x68` are also zero.
+
+| Folder bounds | Minimum XYZ | Maximum XYZ |
+| --- | --- | --- |
+| Serialized local f32 | `(-23.999998092651367, -2.3841856489070778e-07, -23.999998092651367)` | `(23.999998092651367, 0.001999999862164259, 39.0)` |
+| Expanded local f32 | `(-24.009998321533203, -0.010000238195061684, -24.009998321533203)` | `(24.009998321533203, 0.012000000104308128, 39.0099983215332)` |
+
+The registration path at `0x006426C0` expands each endpoint by the
+binary64 value `0.009999999776482582` at `0x00FBF9D0`, then stores f32.
+LaySettings at file `0x1CE0` supplies translation `(0,-100,0)` and
+radius 128.0. The ordinary manager's world-to-local point method,
+`0x00A8BDF0` from cell `0x00FBFE60`, subtracts that translation at
+`0x00A8BE14`. Area selection and streaming call the point conversion
+through `0x00644840` and `0x006433D0` respectively.
+
+Scene `0x00629C40` refreshes the focus at `+0x164` before the area
+resolver. On the ordinary context path, `0x00624950` obtains a candidate
+through context `+0x64`, then tests its virtual `+0x2E4` predicate.
+`0x006243A0` reads the selected focus position through virtual `+0x88`.
+A constructed world position `(0,-100,22.66200065612793)` maps inside
+the shutter folder. The point is a coordinate witness for containment.
+
+If the ready Tower manager owns the current area with ordinary scene
+flags, the folder's zero area pairs leave mode 4 at `0x00629C22`.
+The manager's mode-4 path calls `0x00650020`. The current-area manager
+name admits the primary radius route through `0x006432E0`. With the
+snapshot gate admitted and the folder flags eligible,
+`0x0064C580 -> 0x0064BF60 -> 0x0064AC60` can request the block at
+`0x0064C200`. Its radius test calls `0x00640040`, whose clamped AABB
+distance is zero for the witness. The [area and block selection rules](layout-block-streaming.md#area-resolution)
+describe sibling comparisons and other modes.
+
+An admitted state-1 block reaches the folder's member walk at
+`0x00640870`. On a missing instance, `0x00640913` can create it through
+`0x00A8D0B0`. The selected parent descriptor at file `0x3D90` supplies
+child key 1 and byte `+4=0x05`. The child admission path forwards that
+byte's bit 2 to slot 51. Key 1's BGParts reference resolves the declared
+`brt` key `0x72E50063`. Focus history, the actual winning sibling
+manager, model completion and visible placement are outside this trace.
+
+The original PE instruction and table reads use the pinned image above.
+The resource records follow the declared RegionInfo counts and
+[LYB node shapes](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md).
+
 ## Shutter contract
 
 Layout instance `isgrp_000012` binds packet instance ID 12 to unit tree
