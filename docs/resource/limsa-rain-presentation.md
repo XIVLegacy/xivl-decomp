@@ -1042,6 +1042,106 @@ the group request above. The authored group key and dependency matches
 establish the selected inputs to these guarded routes. Actual dependency
 retention and cache fill before the spawn lookup remain unobserved.
 
+### Selected DrawResource dispatch
+
+The [Qix context update](vfx-effect-runtime.md#group-child-admission-to-context-updates)
+can reach the selected child's graph and unit update independently of the
+renderer. The continuing CDevEffect table `0x010B892C` dispatches
+`0x00BC6690` through offset `+0xE8`. It reads the process-1 head at S+`0x110`.
+The child path requires U+`0x98` bit 1 at `0x00BC66BC..0x00BC66C1`. After
+update, bit 2 clear permits removal from process 1 at `0x00BC67C4`. A
+nonnull U+`4` value saved before the update at `0x00BC66C7/66D5` and
+reloaded at `0x00BC67A8` permits insertion in process 3 at `0x00BC67D4`. Process 3
+uses U+`0x24` and head S+`0x128` through `0x00BB6780`.
+Here S is the single effect and U the child UnitNode.
+
+The unit walk `0x00BB4930` converts each entry to U by subtracting
+`0x24` and calls `0x00BCC1E0` at `0x00BB4986`. The call passes delta,
+literal 1 and elapsed plus delta. U+`0x98` bit 6 selects a scaled delta
+from S+`0xD0` and U+`0x94`. The literal 1 bypasses further scale in
+`0x00BCC1E0`. Its ordinary and loop arms call `0x00BCC000`. The graph
+dispatch at `0x00BE4550` uses graph descriptor offsets `+0x20` and
+`+0x24`. The draw callback uses a separate control list.
+
+#### Draw list and renderer admission
+
+The child construction path `0x00E3A3D5 -> 0x00BCE540` calls
+`0x00BCDDA0` at `0x00BCE754`. With an emitter parent, the test at
+`0x00BCE0DE..0x00BCE0EE` skips a control if the signed word at
+`[[ControlNode+4]]+0x16` is positive. The call at `0x00BCE11E` requires
+a parent and nonnull descriptor offset `+0x68`. A false result from
+that call leads to unit teardown. The selected DrawResource descriptor
+`0x01311670` has `+0x78` cell `0x013116E8` = `0x00D66790` and
+`+0x7C` cell `0x013116EC` = `0x00D667F0`. A nonzero descriptor
+`+0x7C` admits insertion of ControlNode+`0x18` through the queue at
+U+`0x80` at `0x00BCE182`. Queue initialization and insertion retain
+the corresponding head at U+`0x84`.
+
+The per-unit drawable path requires UnitData+`0x35` bit 1 at
+`0x00BCE1A9..0x00BCE1AD` and successful allocation at `0x00BCE217`.
+It constructs the drawable Q at `0x00BCE23C` and retains Q at U+`0xB0`.
+S+`0x18` bit 9 at `0x00BCE299..0x00BCE2A2` gates the
+`DrawManager::AddObject` call at `0x00BCE3BA`. Q holds U at
+`+0x2F0` and its tag at `+0x2F4`. Tag table `0x010D0B14` slot 1
+selects `0x00BF7BB0`. That callback returns before dispatch if
+global byte `0x01308480` is zero and bit 1 of the byte at
+`[[U+8]+4]+0x29` is set. Otherwise `0x00BF7BEB` calls `0x00BF7530`
+with U. The separate callback at `0x00BF6902` walks its owner's
+`+0x344` list and requires U+`0x98` bit 11.
+
+The renderer at `0x00BF7530` requires nonzero global byte `0x0130707E`,
+zero S+`0x1E4`, S+`0x18` bit 18 clear and either a zero
+`0x01369E58/5C` limit or a limit greater than the cumulative
+`0x01369EE0/E4` value. It reads the U+`0x84` head at `0x00BF7851`
+and subtracts `0x18` to recover the ControlNode. Its call at
+`0x00BF78B6` reaches `0x00BDB670`. Bit 0 of the byte at
+`[[ControlNode+4]]+0x18` gates that wrapper. The callback parameter
+pointer is loaded separately through `0x00BD2100`. The wrapper loads
+the descriptor `+0x7C` at `0x00BDB694` and invokes it at `0x00BDB699`, selecting
+`0x00D667F0` for the DrawResource descriptor above.
+
+#### Conditional indexed submission
+
+The DrawResource handler requires ordered color alpha above 0.0 and
+nonzero returns from `0x00D85E70` and `0x00D82750` before calling
+`0x00D87180` at `0x00D66884`. Its work, state and resolved resources
+must be nonnull. Resource virtual offset `+0x84` must return a value
+other than 3 and offset `+0x3C` must agree with the resolved record
+`+4` count. Resource kind 1 uses table cell `0x00D873DC`, bypassing
+the kind-8 matrix setup. `0x00D87358` calls `0x00D86820`. The model
+part at that call needs `+0x8F == 1`, a nonnull `+0x80` buffer,
+a successful binder at `0x00D868C3` and a nonnull resource slot
+`+0x40` result. The guarded call at `0x00D868E7` reaches the buffer
+slot 1 through `0x00C1DE60`. Selected table `0x010D3098` supplies
+`0x00C1E5A0`.
+
+The [selected fixed state](#drawresource-fixed-state) uses that buffer
+method. After current vertex/index buffer and node validation, the
+method calls the fixed-state and buffer setup helpers. It calls Core offset `+0x6C` at `0x00C1E69E`. The retained Core table
+`0x010B590C` selects `0x00BA07D0`. The nonzero index count reaches
+`0x0041CB10` at `0x00BA07ED`. That helper also requires a current
+index binding at `0x01328EC8` and a nonzero topology lookup. It
+passes six converted arguments through `0x004232F0` to backend slot
+26. If the current topology and counts match the selected serialized
+values 4, 101 and 534, the resulting indexed tuple is
+`(4, 0, 0, 101, 0, 178)`.
+
+Backend slot 26 selects one of `0x00438AF0`, `0x00437660` and
+`0x00434280` in the three retained table alternatives. The first
+calls the task processor directly at `0x00438B33`. The other two
+call queue helper `0x0043C2D0` with the allocated task at
+`0x004376BA/0x004342DA` or with null at `0x004376C9/0x004342E9` on
+allocation failure. The task processor `0x00435D60` calls
+device offset `+0x148` at `0x00435D86` with the six stored arguments.
+See [indexed submission](floor-model-render-path.md#indexed-submission)
+for the backend contract.
+
+The PE32 instructions and table cells establish conditional routes. The
+first open renderer edge is the selected drawable's construction,
+retention and admission before its tag callback. Live graph and material
+values, backend selection, queued task execution and device results
+remain unobserved.
+
 ## Remaining boundary
 
 The preserved artifacts establish the selected resource's typed rain

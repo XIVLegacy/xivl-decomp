@@ -166,7 +166,7 @@ These VAs and table cells were checked in the identified PE32 with
 Apple LLVM `llvm-objdump` 21.0.0 and little-endian PE table reads.
 The earlier scene delta producer, worker-mode delivery, retained
 live children and flags, and actual phase delivery remain open.
-The unit pass leaves selected DrawResource and GPU submission unverified.
+The selected unit also has a [separate conditional draw dispatch](limsa-rain-presentation.md#selected-drawresource-dispatch) through the renderer.
 
 ## Per frame update
 
