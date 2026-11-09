@@ -193,6 +193,81 @@ linear minification for M=3. Both request linear mip filtering. This static
 request contract remains subject to state timing, cache suppression and
 backend execution. It does not prove device acceptance or a pixel result.
 
+## Direct ConsoleIconTray design-data binding
+
+Authenticate these SQEX carriers under `client/sqwt/widget`. Decode
+the body after byte 8 using `xivl-tools:tools/blowfish.py` with the
+exact basename as key. Check both hashes before reading element lines.
+
+| Carrier | Bytes | SHA-256 | Decoded SHA-256 |
+| --- | ---: | --- | --- |
+| ConsoleIconTrayWidget.form | 11166 | 180b7d709e588ec86fccead327aec813d4baab5b41ead05d2610cf318e787a0d | efbf73d1ac6307ca4983e9eeaf3170ab507d48e012d4c797ae360119d49d5f3e |
+| ConsoleIconTrayWidget.tpl | 20238 | f3c362bb64d9e9b07dd60b2ba95e1b868640e43c82558b83c24d1fd32d3378f1 | 9f1f5a2c79c2d8b35ea0d0b510c5536bcb43464da236ce1f9dea665f01937386 |
+
+OBSERVED. Form line 6 merges that template dictionary. In the
+dictionary, eight direct IconControl IconDatas attributes use
+RelativeSource TemplatedParent and Mode OneWay. Seven use
+`SqwtDesignData.StringValue0` (lines 12, 18, 137, 145, 157, 159
+and 198). Line 222 uses `SqwtDesignData.StringValue2`. Form line 38
+selects ControlTemplate_Button_Icon and declares StringValue0 text 127
+on Button_MainMenu. The key appears once at dictionary line 141.
+Its IconControl_Icon is line 145. ToggleButton_WidgetLock (form line
+45) selects ControlTemplate_ToggleButton_Icon and declares StringValue2
+text 792. The separate TargetName Setters at dictionary lines 229 and
+232 are outside this direct attribute route.
+
+STATIC. LLVM disassembly and PE table reads establish the receiver.
+The [selected ControlTemplate construction](sqwt-template-initial-enabled-receiver.md)
+retains requesting control E at result container B+`0x34` at
+`0x0096E542`. The terminal template markup receives B and E through
+`0x0096A688 -> 0x00949330`. Child markup inherits the container at
+`0x0094686C..0x0094686F`. For the ordinary built-in IconControl tag,
+the reader calls container registration at `0x00947120` or
+`0x0094717E` before attribute iteration. The checked insertion
+stores B at IconControl+`0x298` at `0x0096E75A`.
+
+The [TemplatedParent parser](sqwt-binding-source-arms.md) calls
+the icon's primary `+0x24` at `0x00911C22`. Cell
+`0x01070FF0 -> 0x0092A030` returns null for an absent
+IconControl+`0x298`. With the selected B retained, it returns E
+from B+`0x34`. The receiver is the requesting control, including
+for declarations immediately nested in a Label in markup.
+
+The ordinary Binding constructor retains that source at
+Binding+`0x3C`. The direct target arm, with receiver+`0x20`
+mask 2 clear at `0x009123A1`, retains the icon at `+0x44`.
+The constructor sets mode 1 at `0x00912755`. Lookup at
+`0x00912110 -> 0x00910F60` can take the qualified-prefix miss
+at `0x00910FA2`, preserving E as the source object and resolving
+the full-key descriptor through `0x00910FF1 -> 0x0095EF70`. The [attached design-data descriptors](sqwt-qualified-property-lookup.md)
+are `0x0135FB48` for StringValue0 and `0x0135FBD8` for
+StringValue2. With an admitted full-key read, the provider obtains
+the per-owner proxy for E at `0x0095EEA8`. The selected string
+getter `0x0095E690` reads proxy+`0x24`. The source and target
+descriptors are retained at Binding+`0x5C/+0x60`.
+
+An admitted activation from IconControl cell
+`0x01070FF4 -> 0x0092A060` reaches the mode-1 forward slot
+through `0x00912190 -> 0x00999350`. A later binding notification
+through `0x00998A40` reaches it if the current source object and
+descriptor still match. Both select `0x01079CE8 -> 0x009993C0`.
+With a retained source descriptor, no converter and no XPath, the
+evaluator requires a successful source read at
+`0x00999466..0x0099946B` and requests the text write to the retained
+icon and target descriptor through `0x00999A07 -> 0x00912850`.
+With the ordinary target write admitted past interception, the
+property-info call at `0x00912A55` selects the IconDatas ordinal-zero
+setter `0x0096A120`, using descriptor `0x0135B23C`. Its call at
+`0x0096A14B` uses the icon holder at `+0x2A4`. The native direct
+helper `0x0096A010` is a separate entry.
+
+The traced transfer can request text 127 for the Main Menu icon if
+its authored source text survives and the current endpoints and
+activation are admitted. The first actual attachment and write order,
+holder change, resulting icon and presentation remain UNKNOWN.
+This route does not settle the targeted Setter receiver, empty or
+multiple icon semantics, or the full Tray's initial behavior.
+
 ## INFERRED: generic eligibility
 
 The concrete context factories, command arithmetic, WindowActor dispatch and
