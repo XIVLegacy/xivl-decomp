@@ -231,6 +231,66 @@ and the [SCB layout](cut-scheduler-clip-layout.md). A bounded Python
 struct walk resolves the MTB descriptors. LLVM i386 disassembly and
 original PE table reads establish the native paths.
 
+### Start template and terminal sample
+
+Each selected SCB has one `@CCNT` BlockInstance. The records at file
+`0x4EC0` and `0x54B0` store template index 1 at `+0` and connection count
+zero at `+1`. With scheduler `+0x88=2` and `+0x8C=1`, the start consumer
+selects BlockInstance ordinal 0 at `0x00A1D261`. It reads the template
+index through `0x00A27BD0` and populates template 1 through `0x00A1BA90`.
+Template 1 is the active block tabulated above. Template 0 is empty and
+outside this admitted start route. On the ordinary mode-zero completion
+branch, the zero connection count yields next-block result -1 through
+`0x00A27C50`. With that result retained after any listener, the scheduler
+ends in state 4.
+
+The newly begun and running-list update calls at `0x00A1D7D2` and
+`0x00A1E1E7` precede the signed duration comparisons at `0x00A1D7F3`
+and `0x00A1E208`. Transform slot 2 at `0x00A0E6A0` processes elapsed
+first, then samples and dispatches through the conditional context above.
+The first update can preserve the elapsed value. With the selected curves
+retained, reaching or crossing the duration takes MoveRatio's last-key
+return of 1. The fixed curve's last-key branch `0x00A32100` returns the
+authored Y endpoint, 4.5 for open and 0 for close. An absent or preserving
+hook and a valid context can deliver that sample on the threshold-triggering
+update. The ordinary end path for state 2 and phase 0 calls end and
+finalize at `0x00A0DAD0` and `0x00A0DAE0`, then unlinks the running clip.
+This cleanup has no second direct sample call. Abort, replacement and
+other cleanup paths have separate effects.
+
+### Repeated manual requests
+
+The ordinary `0x00D9` request passes the alias and phase zero through
+`0x00585320`. The selected route sends selector `0x28`, action
+`0x7F`, phase zero and second argument -1 through `0x0059D590`.
+Publication requires the retained actor binding and precedes the alias
+lookup. Queue helper `0x00805080` removes the first retained exact-name
+request through `0x00803130` before appending the new command. Immediate
+dispatch at `0x00806320` requires scene state other than 3, exact alias
+lookup, a kind-7 member and its manipulator's slot-11 admission. An
+unadmitted request can remain pending. The ordinary pending route can
+add elapsed time to the phase.
+
+On admitted action `0x7F`, `0x00801270` derives the member's group.
+The TimeLine record reader at `0x007FC93D` reads `+0x25`. Both selected
+records at file `0x4800` and `0x4828` store zero. The zero value enters
+the special-name fallback, where both aliases fail the `set?` check
+and return zero. The call at `0x0080250B` walks matching kind-7 group
+members through `0x00802210` before the chosen member's start slot at
+`0x0080256B`. Matching members with retained manipulators receive slot 4.
+This includes both Tower aliases with the expected member tables.
+Reaching scheduler reset at `0x00A1F0C0` additionally requires the
+retained wrapper, its readiness check and a scheduler. Reset clears
+running and held clips without a direct transform sample. The chosen
+start slot then requests the selected scheduler with the admitted phase.
+
+After admitted dispatch returns, `0x00803210` removes retained
+different-name requests whose aliases resolve to the same group.
+Both command-vector removal paths can remove completed records.
+A pending request reaches the reset only on admitted dispatch.
+Actual operation-context attachment to key 1, timing and visible pose
+across two requests remain open.
+
 ## Weather and material overrides
 
 Retail Mor Dhona resource 8032, `wtr_xmas`, is labeled Dalamud Thunder and
