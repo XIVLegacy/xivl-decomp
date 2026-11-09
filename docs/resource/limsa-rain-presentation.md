@@ -5,7 +5,8 @@ contains typed DrawEnv definitions and a referenced `vfx_cam_rain` definition.
 The native Weather resource constructs a DrawEnv container and can register
 the ten selected definitions in the map its blend path reads. Successfully
 initialized work enters the resource tree under the exact definition names
-and can be copied into the weather owner. The blend combines name-matched
+and can be copied into the weather owner. A deferred cube bind can refresh
+the matching work before the first copy. The blend combines name-matched
 work. The checked application Weather load supplies a
 null descriptor receiver and skips the alias submission. Deferred block
 binding can populate the two VFX resource fields through VFX slot 22. The
@@ -190,6 +191,7 @@ guard at `0x00AAD074` bypasses texture loading. On successful preparation
 with no intervening writer, the nonnull base's slot `+0xAC` can return
 zero for index zero, which `0x00A8239F..0x00A823A6` writes to W+`0x35C`.
 A nonzero texture needs another writer before that read.
+[Deferred cube delivery](#deferred-cube-delivery) supplies a later writer.
 
 The tree build at `0x0083BF38..0x0083BFDC` reads the work pointer and
 its name, makes four copies and stores the original and copies under
@@ -204,6 +206,46 @@ O+`0x20` to `0x007E7C50`. That call adds the names with five fresh
 work copies each. The destination can contain other names. The live
 owner resource, selected blend pair, optional receiver results and
 rendered output remain open.
+
+### Deferred cube delivery
+
+STATIC. The eight numbered definitions' cube keys also occur as Instance
+`+0x3C` references in `blk_0000`, folder file offset `0x8C40`. Its
+zero-based entries 21 through 27 and 34 join the same eight `envmap_NN`
+definitions. Each definition names one alias with a unique matching
+nonzero-key outer dependency row of type `bxt`. These joins use the
+mode-2 pointer records in the selected DAT. LLVM x86-32 decoding and
+direct PE table reads verify the native dispatch below.
+
+The admitted state-1 block path at `0x006408ED/0x00640926` offers the
+existing or freshly constructed instance to block slot 5. Its base can
+be the same registered cube used by the DrawEnv lookup. Resource
+enumeration requests its alias and type at `0x0064FB30`, and a surviving
+bind entry retains that cube interface at `+0x20`. With one prepared
+null slot and a nonnull bind result, block state 4 dispatch at
+`0x0064B0C2` calls cube slot 22, `0x00AACB90`, with notification byte 1.
+Calls at `0x00AACBF5..0x00AACBFD` read bind slot 5 for index zero and
+pass the value to the array writer. The writer at `0x00AACDFE` stores
+it when the index fits the live array.
+
+The notification at `0x00AACC27` can reach the constructed cube
+listener `0x00AAD4B0 -> 0x00AAD310`. The retained base manager leads
+back to the Weather resource and its DrawEnv container. The listener
+compares each DrawEnv's nonnull definition key to the cube's exact
+definition pointer at `0x00AAD465..0x00AAD476`. On a match the call
+`0x00AAD556 -> 0x00A816C0` rereads slot zero and stores it in the
+original W+`0x35C` at `0x00A816F2`. An existing resource tree entry at
+`+0x64` aliases W. The callback leaves independent copies outside its
+update path.
+
+States 1 through 5 of an admitted pending block contribute to the
+aggregate written at `0x006509E8` in resource states 8 and 9 with the
+latch clear. The Weather build gate at `0x0083B59A` waits for that
+aggregate to clear before the first tree copy through `0x0083B556`.
+When the selected block stays in that pending aggregate and its
+listener succeeds, the original work refresh precedes those copies.
+Other readiness routes, successful live texture delivery and rendered
+use remain open.
 
 The continuing blend branch uses the following contracts:
 
