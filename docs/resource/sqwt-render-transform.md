@@ -254,16 +254,77 @@ with the stored one through `0x0098FBB0`, and when they differ copies it into
 the property's matrix through `0x0098F8D0`. STATIC. The element's transform is
 thus held as a matrix on the visual.
 
-Not established: where the draw path reads `VisualTransform`, whether the
-element's layout offset is composed inside or outside the matrix, whether the
-matrix reaches hit testing, and what a parent's transform does to a child's
-centre. A lead, not a finding: the callers of the matrix multiply `0x0042EDB0`
-in `0x0090xxxx..0x009Fxxxx` are the two transform builders (`0x00990D91`,
-`0x00990DDD`, `0x00990F0F`, `0x00990F5B`) and the references to the
-`VisualTransform` descriptor are `0x0094026E`, `0x00940634`, its registration
-thunk and a data word. A reader that uses other math or reads the matrix
-elements directly would not appear in either list, so where the matrix is
-consumed is UNKNOWN.
+## ConsoleIconTray push icon descendant draw
+
+The [authenticated Tray carriers](sqwt-icon-control-textures.md#direct-consoleicontray-design-data-binding)
+declare ten collapsed Push Buttons at form lines 64-73, selecting
+ControlTemplate_Button_PushIcon. The unnamed LAB_null Label at
+template line 11 has RenderTransformOrigin `0.5,0.5`. Its slot at
+lines 13-14 declares ScaleX and ScaleY `1.25` and CenterX and CenterY
+`0.5`. The nested IconControl at line 12 declares width and height 24
+and VisualOpacity 0. A Button-level transform and the animated Label
+sibling at lines 17-20 are separate. Under the checked
+[default transform route](#default-transform-of-an-element), the
+Label's center is half its own RenderSize on each axis. The icon's
+declared dimensions do not specify the Label's RenderSize.
+
+STATIC. LLVM objdump 21.0.0 disassembly and original PE tables
+establish a visual matrix transfer. The changed VisualTransform
+write can set the dirty bit at `0x0094130B` and copy the matrix at
+`0x00941324`. The admitted callback sends Visual+`0x38` to drawing
+context `+0x30` at `0x0093FE6A`. Context acquisition also sends
+the dirty retained matrix at `0x0093F8D2..0x0093F8E7`.
+DrawingToolContext cell `0x00FA2914 -> 0x00559FB0` copies the
+nonnull holder matrix to pending state. The publisher submits its
+0x40 bytes as local operation 3 at `0x0054EB57`. Admitted
+WindowActor dispatch reaches WindowContext at `0x007FA8FF`.
+The matrix storage branch writes local matrix `+0x20` through
+`0x008CD0F8 -> 0x008CF4F0`.
+
+The nested icon can reach the Label's Content lane. Its markup
+passes the icon to parent markup `+0x10` at `0x009468B9`. The
+checked Label subobject `+0x194` cell `0x01073778 -> 0x00935160`
+calls `0x00934F40` at `0x00935178` when ContentTemplate is null.
+That path requests object Content. On the checked changed Content
+callback, holder+`0x10` mask 4 at `0x00935AD7` gates the call to
+`0x009349B0`. Its empty name resolves to the default Content
+name at `0x0092B3BA`. A matching ContentPresenter and the object
+flag admit the setter call at `0x009349D0`. With retained content
+nonnull and Presenter+`0x2BC` mask 8 clear, the callback can attach
+the supplied visual at `0x0099D108 -> 0x00940B30`. The actual
+LAB_null presenter and visual ancestry remain conditional. On admitted context parent
+insertion, operation `0x21` reaches `0x008CE440`, adding the
+child context to the parent's vector and storing parent at child+`0x70`.
+
+WindowContext update `0x008CD700` recomputes the matrix under its
+transform-dirty gates. With an incoming parent matrix,
+`0x008CD90D` multiplies context translation by that matrix and
+stores the result at context+`0x24`. If local matrix `+0x20` is
+present, `0x008CDA43` prepends it to that result. With the
+[row-vector convention](#matrix), this is
+`M_visual * T_context * M_parent` before later prepass changes.
+A descendant can inherit the parent matrix without its own local
+matrix. The recursion at `0x008CDD49..0x008CDDAE` can pass the
+accumulated matrix through the retained child contexts. A renderer
+prepass can adjust the matrix before recursion. RenderIcon's
+`+0x14` cell `0x010668B8 -> 0x008DF490` returns false for its own
+prepass offset, while intermediate renderers remain separate.
+
+On the admitted draw pass, `0x008CE7D0` can traverse those child
+contexts at `0x008CEB47..0x008CEB85`. A visited icon with retained
+matrix state installs its accumulated `+0x24` through
+`0x008CE9F1 -> 0x00CA3B20`. That conditionally flushes the prior mode, sets mode 8
+and copies the matrix to `0x013764A8`. The selected
+[RenderIcon path](sqwt-icon-control-textures.md#observed-ordinary-control-to-renderer)
+requires a drawable context and active icon texture. It calls the
+textured quad at `0x008E1D30`. Its setup uses the matrix global at
+`0x00CA56A6` or `0x00CA56E0` and supplies four float4 shader
+constants through `0x00CA2FC1`. The lower call can reuse matching
+constants. This is a static transfer from the Label's matrix to
+an admitted descendant draw. Actual presenter selection, local
+size, first visible texture, intermediate matrix adjustment,
+Measure, Arrange, hit testing and the final screen footprint remain
+UNKNOWN.
 
 ## IsAnchorWithin and IsMouseOver
 
@@ -335,14 +396,14 @@ in `0x0091DBD0` and at `0x0091E75C` in `0x0091E3E0`, and the writes to
 
 ## Surviving gaps
 
-- The reader of `VisualTransform` and the composition of the matrix with the
-  element's layout position.
+- Layout and final pixels under the [conditional descendant draw](#consoleicontray-push-icon-descendant-draw).
 - Hit testing under a transform.
 - The full caller and notification conditions for the separate centre update at `0x0093BBFF`.
 - The events that run the `IsMouseOver` setters `0x0093A410` and `0x0093A480`.
 - The runtime Visibility state of the AnchorElement and the remaining caller
   conditions for the keyboard-focus and AnchorElement pointer writers.
 - Whether a derived `UIElement` class overrides slot `+0x48` of the `+0xB4` table.
-- Initial evaluation and materialization order of a Window's Style and
-  Template trigger sets. Their conditional
-  [event-pass order](sqwt-window-trigger-order.md) is established separately.
+- First property trigger evaluation for the Window's selected Style.
+  [ActionMenu materialization](sqwt-window-trigger-order.md#ordinary-actionmenu-property-elements)
+  and [event-pass order](sqwt-window-trigger-order.md#conditional-event-passes)
+  have separate conditions.
