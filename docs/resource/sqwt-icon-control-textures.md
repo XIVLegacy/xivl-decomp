@@ -265,8 +265,79 @@ The traced transfer can request text 127 for the Main Menu icon if
 its authored source text survives and the current endpoints and
 activation are admitted. The first actual attachment and write order,
 holder change, resulting icon and presentation remain UNKNOWN.
-This route does not settle the targeted Setter receiver, empty or
-multiple icon semantics, or the full Tray's initial behavior.
+The [styled Setter route](#consoleicontray-styled-togglebutton-setter)
+has separate source and target resolution. Empty or multiple icon
+semantics and the full Tray's initial behavior remain UNKNOWN.
+
+### ConsoleIconTray styled ToggleButton Setter
+
+OBSERVED. In the same authenticated dictionary, the selected
+ControlTemplate_ToggleButton_Icon at line 218 binds the icon's
+IconDatas directly from StringValue2 at line 222. Style_ToggleButton
+at line 226 is a separate resource. Its IsChecked True and False
+triggers declare TargetName IconControl_Icon and Property IconDatas
+on their Setters at lines 229 and 232. The Setter Value attributes
+bind OneWay through RelativeSource TemplatedParent to
+`SqwtDesignData.StringValue0` and `SqwtDesignData.StringValue1`
+respectively.
+
+| Form line | ToggleButton | IsChecked | StringValue0 | StringValue1 | StringValue2 |
+| ---: | --- | --- | ---: | ---: | ---: |
+| 45 | ToggleButton_WidgetLock | False | 793 | 792 | 792 |
+| 46 | ToggleButton_PopupHelp | True | 794 | 795 | 794 |
+| 47 | ToggleButton_PopupHelp_ActionBar | True | 936 | 937 | 936 |
+
+STATIC. Let E be the requesting ToggleButton and S the constructed
+Setter. The plain Trigger retains its Style and E at `+0x3C/+0x40`
+at `0x009C2694/0x009C2697`. The markup reader adds S at
+`0x00949C4F` before reading its attributes at `0x00949C72`. The
+action collection's add hook `0x009B2170` stores the Trigger's
+`+0x18` subobject pointer at S+`0x40` at `0x009B2177`.
+
+The TriggerAction markup cell `0x0106DB2C -> 0x00946BA0` passes
+S+`0x18` to the attribute reader. On Value brace text, the binding
+pre-parser invokes that subobject's TemplatedParent slot through
+`0x00911C22`. Setter cell `0x0107D5D8 -> 0x00910AB0` reaches
+the Trigger subobject through S+`0x40`. Trigger cell
+`0x0107D0C0 -> 0x009C24E0` then reads complete Trigger+`0x40`
+and returns E. The declaring ToggleButton supplies the binding
+source. The named icon is chosen on the later action path.
+
+The admitted direct Binding target is S+`0x18`, with Setter.Value
+descriptor `0x01361D04`, ordinal 1. Its OneWay source is E with
+the selected full-key string descriptor. Attachment can be inline
+or deferred. The Setter subobject's activation slot
+`0x0107D5DC -> 0x00912190` can reach the mode-1 forward evaluator.
+Later matching source notifications can reach the same evaluator.
+With the admitted source descriptor, no converter and no XPath,
+source read success at `0x0099946B` permits a write request to the
+retained Setter.Value target. For an admitted property-info write,
+adapter `0x009B2090` adjusts from the subobject to S. Setter callback
+`0x009B24C0` passes S+`0x4C` to the string helper at `0x009B251D`,
+whose changed-value arm stores at `0x009B2FBE`. Callback
+`0x009B22B0` can notify listeners through `0x00912AC0`. The checked
+bodies perform no direct icon lookup or Setter action.
+
+An admitted IsChecked notification starts with descriptor
+`0x0135A79C`. Its property-event tail at `0x0093BEBA/0x0093BED2`
+supplies E at event+`8` and dispatches the event. After the
+[Style and plain Trigger guards](sqwt-window-trigger-order.md#property-trigger-and-shared-event-flags),
+the Setter action cell `0x0107D5F8 -> 0x009B22C0` casts event+`8`
+to DependencyObject at `0x009B2314` and exits on a null result.
+With a nonempty TargetName, it uses that object for the lookup at
+`0x009B2345 -> 0x00910980` with parent fallback enabled. It exits
+on a final name miss at `0x009B234C`. The selected
+ToggleButton subtree lookup can enumerate the retained template at
+E+`0x318` and its root at template+`0xB0`. On a hit, the action
+takes the property key from S+`0x44` and the already-retained text
+from S+`0x4C`, then requests the write at
+`0x009B2395 -> 0x00912850`. The admitted IconControl write reaches
+the same IconDatas property-info setter as the direct route above.
+
+This action uses the Setter's current text. A source refresh and
+an IsChecked action can occur separately. The first attachment,
+refresh and event order, actual TargetName hit, winning value
+between the direct and styled writes, and rendering remain UNKNOWN.
 
 ## INFERRED: generic eligibility
 
