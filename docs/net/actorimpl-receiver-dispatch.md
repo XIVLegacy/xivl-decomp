@@ -424,8 +424,9 @@ established here. Its result is separate from the receiver's later Kp.
 
 At `0x005750BB`, ECX is the captured D and the target is `[D]` virtual
 `+0xF0`, slot60. The LuaActorImpl cell `0x00FDFC1C` contains
-`0x00759ED0`; the paired NullActorImpl cell `0x00FE039C` contains
-`0x00775BD0`, whose body is outside this trace. With the Lua table installed,
+`0x00759ED0`. The paired NullActorImpl cell `0x00FE039C` selects
+`0x00775BD0` for [post-lookup retention](#retention-after-actor-lookup).
+With the Lua table installed,
 the [SyncMemory wrapper contract](actor-work-completion-targets.md#syncmemory-wrapper-inputs)
 therefore receives I=D and exactly P=M+0x10 as its second stack argument.
 That wrapper does not read the separate first argument. The current table,
@@ -454,6 +455,72 @@ rows to original bytes at these exact ranges, independently decode each
 range, and derive/read only the listed indexed cells from their operands.
 Unselected callees, other root arms, unwind paths and implementation bodies
 are outside the authenticated proof coverage.
+
+### Registry and holder misses
+
+STATIC. The predispatch call at `0x004DC715` enters `0x004CE190`.
+Opcode `0x0137` is below the `0x01C3` table base, so the
+unsigned range branch at `0x004CE1A1` returns at `0x004CE388`.
+The selected middle-range path then reaches `0x004DCFFF`.
+
+The call at `0x004DD005` passes the key to `0x004D9910`.
+The lookup on dispatcher `+0x17804` returns zero for the end
+iterator at `0x004D9941..0x004D994D`. A found node returns its
+value at `+0x10` at `0x004D9963`. An absent entry or a zero
+value takes `0x004DD00C -> 0x004DD3A9` and returns at
+`0x004DD3CC`. This branch has no receiver call, alternate actor
+lookup, or actor-level retention. The inspected caller at
+`0x004E221D` does not test a miss result. Its `0x0137` path uses
+the common packet-holder handoff at `0x004E2381 -> 0x004E5FF0`
+and advances to the next record.
+
+For a found CharaElement on the selected arm, a null holder
+`L=[E+0x80]` returns at `0x004D89F7 -> 0x004D8BBB`.
+A nonnull L whose implementation `D=[L]` is zero is a
+separate state. The wrapper dereferences D at `0x005750AF`
+after the key helper without a local null check. The static
+route does not establish that this state occurred in a live dispatch.
+
+On the checked kind-2 type-8 construction path, the base stores
+the holder and key at `0x004DABB1` and `0x004DABCE`.
+The call through `0x004DA9C9 -> 0x004DE940` can add the key
+and Element to the same registry. New nodes link at
+`0x004DE6AA/0x004DE6C1/0x004DE6CE`, before the final table store
+at `0x0058B53C`. This order establishes the dataflow on that
+constructor path. Dispatch during construction remains UNKNOWN.
+The [override pointer](state-id-transition-helper.md#override-publication-and-lookup)
+and the reporting pointer at dispatcher `+0x17834` are separate
+from the registry used by the selected receive arm.
+
+### Retention after actor lookup
+
+STATIC. A valid NullActorImpl can queue a stream in its slot-60
+body `0x00775BD0`. The arm at `0x00775C03..0x00775C26` checks
+implementation `+0x51` or an admitted work-context result from
+`0x00764480`. With the queue arm and successful allocation,
+`0x0089F4C0` builds the receiver and `0x00775D99` appends it
+to implementation `+0x20`. The alternate arm makes a
+temporary copy and calls `0x00775A30` at `0x00775C56`.
+The checked binding factory processes the retained queue at
+`0x0076CA10` before constructing the Lua implementation
+at `0x0076CA33`. The walker can stop at the limit in queue
+`+0x14` at `0x00794545..0x00794555`. Command virtual `+4` at `0x0079451A`
+selects `0x0089E550` for the retained receiver through
+cell `0x01057480`.
+
+The work-context gate at `0x00775A85..0x00775AA1` reaches
+a different cache when the supplied binding key misses or
+its context state `+0x24` is zero. The cache arm at
+`0x00775AC5` uses manager `+0x0C`. A later admitted context
+path through `0x00775890` can match its key, apply retained
+entries at `0x007759F2`, and erase the entry at `0x00775A19`.
+On this route, both retention paths follow successful
+Element lookup and admitted implementation dispatch.
+[Completion target and updater gates](actor-work-completion-targets.md).
+
+The locators use LLVM objdump 21.0.0 and file-backed PE cell reads
+on the identified executable. Live arrival order, receiver lifetime,
+and the identity of a later matching key remain UNKNOWN.
 
 ## Native 0x0133 UserData route
 
