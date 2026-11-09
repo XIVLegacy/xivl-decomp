@@ -38,6 +38,82 @@ state, manager priority, actor readiness, and the distinct fallback branches
 still matter. It does not establish that false is correct for every Notice
 caller or that a particular widget command uses a nonblocking source.
 
+### Matching condition and first EventStart
+
+OBSERVED. In the selected `0x016B` packet view, the name starts at
+`+2`. The byte at `+0` passes through `0x0075AEE0`, which substitutes
+the current byte at `0x01355296` for zero. The receiver constructor
+`0x0089D8A0` retains this effective byte at `+0x58` and the packet
+byte `+1` at receiver `+0x59`
+(`0x00761CFF..0x00761D57`). The successful DirectorBase apply reaches
+`0x006F1380`. Receiver `+0x59` equal to the current class byte at
+`0x0134C3FE` selects the blocking condition allocation path. On
+successful allocation, `0x00892770` keeps the name at condition `+4` and the effective priority at
+condition `+0x5C` (`0x008927B6`). The apply appends the condition to
+the adjusted director's container at `+0x60`.
+
+OBSERVED. In the selected type-5 `0x012F` view, when 5 differs from
+the current byte at `0x0134C3FF`, the acting object key at `+0` and
+condition owner key at `+4` drive separate lookups.
+The constructor copies the name at `+0x10` and 64 parameter bytes
+at `+0x30` into its retained fields. The fresh parameter buffer has
+128 bytes and is zeroed before that copy
+(`0x0076C110..0x0076C18E`, `0x0089F1BA..0x0089F232`,
+`0x0089EC61..0x0089ECC3`). The immediate receive's fresh-target branch
+compares both MyPlayer target dwords with the current sentinel dword
+at `0x0130C778`, whose initial image value is `0xE0000000`
+(`0x0089E475`). The selected false staging case keeps the receive
+success marker and reaches apply when the immediate gate admits it.
+
+OBSERVED. On the ready DirectorBase predicate at `0x006EE830..0x006EE897`,
+the named lookup uses `+0x60` of the original ActorBase pointer, not of
+the cast result. Helper `0x0071CA50` selects the first condition with a
+matching name. This join requires the registration container to be that
+same container and the condition to remain its first match. A missing
+condition does not establish a normal no-send outcome: the reached
+callee `0x00895D20` reads the condition vtable at `0x00895D25`.
+
+OBSERVED. For a blocking condition, `0x00895A30` obtains the priority and
+calls arbiter `0x008939C0`. With manager `+0x1E` clear and neither active
+nor pending record present, the selected arbiter result is 1. The
+activation branch requires the current Reject byte at `0x01355295`
+to differ from 1. On its admitted allocation path the manager stores the active record at
+`+8` (`0x00895BB2`), processes the parameters and calls `0x00893B50`
+at `0x00895BD6`. The successful EventStart path reaches the `0x012D`
+builder `0x00776760` via `0x0075E1C0` and `0x0089E0D0`.
+
+| Application offset | Value on this selected path |
+| --- | --- |
+| `+0x00` | Acting object reference recovered through `0x00CC73B0` |
+| `+0x04` | Retained condition owner key from Kick `+4` |
+| `+0x08` | Dword at `+0x14` of the context read through `0x00CC7510` on the manager registry. The caller dereferences the result and reads that object's `+4`. |
+| `+0x0C` | CRC-32 of the current parameter begin-to-end span |
+| `+0x10` | Condition type byte, 5 on the checked leaf |
+| `+0x11..+0x30` | Fixed 32-byte copy from the registered condition name |
+| `+0x31..+0xB0` | Fixed 128-byte copy from the current parameter buffer |
+| `+0xB1..+0xB7` | Bytes copied by the transport path that the selected builder does not initialize |
+
+The CRC path at `0x0089E104..0x0089E122` uses the current end minus begin.
+The separate fixed parameter copy in `0x00776760` does not use that
+length. The CRC tables match reflected polynomial `0xEDB88320`.
+Transport copies `0xB8` application bytes from builder record `+0x18`
+at `0x00DAE0AC..0x00DAE0C9`. The selected call through `0x004D6D30`
+requires a nonnull transport at owner `+0x174EC`. `0x004E0240` requires
+that transport's `+0x234` and its pointee's `+0x70` to be nonnull.
+`0x00DAE010` requires connection state 3, nonnull allocator context and
+record allocation success before calling the queue machinery.
+Neither the call nor the activation routine's `AL=1` return establishes
+emission.
+
+OBSERVED. Arbiter rejection with both acting target fields equal to
+the current sentinel dword can still build a `0x012D` through
+`0x0075E3A0` at `0x00895B13` and return zero. The selected unready
+target arm also calls that builder at `0x006EE969`. Stage can reach
+another builder at `0x00895CF3`. An outgoing `0x012D` by itself does
+not establish successful activation. The actual opener's registered
+condition, current object identities, parameter mutation, trailing
+byte contents and live queue outcome remain UNKNOWN.
+
 ## Clearing the staged target through Lua
 
 The Lua binding `_fadeInNowLoadingForNoticeEventJustInArea` invokes MyPlayer
