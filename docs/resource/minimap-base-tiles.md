@@ -95,6 +95,79 @@ selected block. The live layout mapping, block selection and `Ready`
 timing for a particular session remain UNKNOWN.
 [SetMap framing and native base](https://github.com/XIVLegacy/xivl-client-structs/blob/180ab8aaa49b0157fee8996abe4d27e05b588bda/docs/map-layout-selector.md#L31-L56).
 
+### Ordinary MiniMap Ready requests
+
+MEASURED. The [plain installed form](sqwt-xpath-data-sources.md#marker-wrapper-and-row-context)
+declares `CustomControl_MiniMap` with `Type=MapScreenControl` and
+`Function=1`. It supplies no Ready literal or binding. The script
+requests below resolve the control by this name.
+
+STATIC. Decode the following files from `client/script/n1635q` with
+[the LPB reader](https://github.com/XIVLegacy/xivl-client-scripts/blob/a21f608cbd58bfd551b77f2394b490a9debae1c0/tools/retail_script.py)
+and parse through EOF with
+[the chunk reader](https://github.com/XIVLegacy/xivl-client-scripts/blob/a21f608cbd58bfd551b77f2394b490a9debae1c0/tools/build_quest_contracts.py).
+The carrier hashes match the
+[coverage manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/a21f608cbd58bfd551b77f2394b490a9debae1c0/manifests/retail_lua_coverage.json).
+
+| File | Bytes | Carrier SHA-256 | Decoded SHA-256 |
+| --- | ---: | --- | --- |
+| `x1w1x9un1635q.le.lpb` | 1354 | `38f7f6ed9eeca2355a3fee51904817d8d65f2fbb29a0a20027fac0e664f9d6b5` | `dbc794e094ec052d537fa0dc32912c5dafdc5fd0242dc775e8060bb0e8c994b4` |
+| `n1635q89r57y9rr.le.lpb` | 4080 | `aad807a42296e93301582defc8f15e4003b8093af672794282cd54950cc556ad` | `11e5bab509c4dbbd7e2767d35cdf132a59b5c510c32c2e215f83cac713115140` |
+| `n1635q89r57y9rr_7vxxvw.le.lpb` | 32996 | `c549f746370366f9827570ee22201516e07a05d91829ca643a2e2ec0c73bcf3c` | `7c45426b1a9f168557d84e420c5767c6fdea4abf90b976b276546af4e6a5de5f` |
+
+STATIC. The MiniMap chunk assigns `root/proto0` as `MiniMapWidget.init`
+at root PCs 7 to 9. Zero-based PCs in that prototype use constant K0
+for `_setProperty`, the first parameter for self, nil for the form scope
+and K1 for the part name. The six calls request no returns and have no
+intervening admission check.
+
+| Call PC | Decoded offset | Property | Value |
+| ---: | --- | --- | --- |
+| 5 | `0x142` | Ready | false |
+| 11 | `0x15A` | Region | -1 |
+| 17 | `0x172` | Layout | -1 |
+| 23 | `0x18A` | Rect | -1 |
+| 29 | `0x1A2` | isDisplayGrid | false |
+| 35 | `0x1BA` | Ready | true |
+
+STATIC. On the admitted WidgetBaseClass `_onInit` branch,
+`root/proto0` PCs 86, 89, 95 and 98 request `initCommon`,
+`BeforeLuaInit`, `self.init` and `AfterLuaInit` in order.
+The connector chunk's `root/proto0` uses `getFormName` at PC 27
+or the basename branch at PC 35, then calls `loadFormData` at PC 39.
+The base chunk's `root/proto3` calls `_setFilename` at PC 2 and
+`_loadForm` at PC 4. The order of those requests does not establish
+when the commands complete.
+
+STATIC. `_loadForm` at `0x006E3760` requests the form through
+`0x0075B750 -> 0x00537D50`. The admitted request stores an index
+at FormElement `+0x98` at `0x00537DB2`.
+The wait checker `0x0071C930 -> 0x0075B770 -> 0x00535CE0`
+uses the nonnull result of `0x00535690` with lookup index 0.
+It checks a form record. Each later write still needs a current
+record and a matching part in that scope.
+[Form load completion](log-widget-window-placement.md#load-completion).
+
+STATIC. The bool processor at `0x00542680` formats the value for the
+FormElement setter at `0x00537DE0`. The part lookup at
+`0x00537E38..0x00537E5D` must succeed before the mode-0 write reaches
+`0x00912850` at `0x00537F63`. On a constructed MapScreenControl,
+info `0x01340448` supplies descriptor `0x0133FF34` from table cell
+`0x012BAB2C`. Parser jump cell `0x0067429C` selects
+`0x00673C2D`. That arm supplies holder `+0x480`, notification 1 and
+callback `0x006737A0` to `0x00596A80`. On the admitted literal branch,
+the store and callback use the same Ready bit and dirty request
+mask as the [registered control path](#registered-control-readiness).
+An equal false write skips the change callback. A subsequent admitted
+false-to-true write sets the dirty mask. Ready and dirty still gate
+a request to the checker, whose resource work is separate.
+
+The script resolves the part through its FormElement scope. The
+[registered control path](#registered-control-readiness) skips its
+owner-pointer write if the form's `Function=1` is retained at activation.
+The first live load, part resolution, holder flags, command delivery,
+scene pair and piece materialization remain UNKNOWN.
+
 ### Registered control readiness
 
 STATIC. Primary slot `+0x28` of MapScreenControl, cell `0x00FC35B4`,
@@ -160,9 +233,10 @@ listener and receiver are still current, the reached load callback
 `0x00506670` stores the root and calls primary `+0x10` at
 `0x00506768` on its admitted branch. With the navigation table in place,
 that slot selects the Ready producer above. The owner store must precede
-the callback's first read of widget `+0x2C` at `0x005066B5`. Which owner the installed
-ordinary control registers with, and whether that owner's field still
-names the control, remain UNKNOWN.
+the callback's first read of widget `+0x2C` at `0x005066B5`.
+The owner field and first callback remain conditional on the navigation
+path. The [ordinary MiniMap](#ordinary-minimap-ready-requests) has its own
+named-part writer.
 
 STATIC. The MapScreenControl constructor installs callback storage at
 control `+0x978` and scheduler item at `+0x990`
