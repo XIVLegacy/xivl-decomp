@@ -332,8 +332,19 @@ line 584 has no attributes. That text path supplies no write to
 replace the constructor's zero. The separate TriggersFactor slot
 `0x01083350` selects `0x00985930`, which writes at
 `0x009859AB` through the first argument's `+0x14` pointer.
-Whether that pointer can identify the Style read by the Window at
-`0x0092D0BE` remains unknown.
+The compiled reader calls that slot at `0x0098097F` for each
+admitted represented attribute. A zero attribute count skips the call
+at `0x00980956` and `0x00980959`. On the selected populated-context
+path, `0x009C94EE` copies the sixth argument to context+`0x14` before
+parsing at `0x009C951B`. Wrapper `0x009C62D0` forwards its fifth
+argument there at the call `0x009C6337`.
+
+The compiled admission tests the first little-endian word for
+`0x70DD` at `0x00981056`. The authenticated decoded form and template
+start with `0x573C` and `0x523C`, respectively. These direct inputs
+take the text route. A separate admitted compiled input and a
+populated context would be needed for this factor path to write the
+Style read by the Window at `0x0092D0BE`. That delivery remains unknown.
 
 First matching event, target cache contents, numeric capture,
 clock phase, overlapping writes, reentry, later C+`0x20` state
