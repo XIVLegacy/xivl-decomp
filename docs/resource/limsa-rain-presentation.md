@@ -748,6 +748,73 @@ value equality can suppress backend dispatch. See the
 The selected row can be changed by later writers. Live policy,
 cache contents, backend state and actual filtering remain unknown.
 
+#### DrawResource fixed state
+
+The selected VEFF kind byte at file `0x23B4` is 1. The record at
+`0x23B8` selects one element at `0x24A0`. Element bytes
+`+0x28..+0x2B` give blend code 3, cull index 1, depth comparison
+index 7 and flags `0x02`. The kind-1 path at `0x00D87358` reaches
+the material binder at `0x00D868C3`. Its writes at
+`0x00D86083..0x00D860DD` set draw-node `+0x46/+0x45/+0x47`
+to 3/1/7, clear depth-write bit 2 of `+0x30` and set bit 0.
+
+The selected Vmdl indexed libraries have one Node and one NodeValue.
+The Node at file `0x13D8` selects NodeValue ordinal 0 at `0x1374`
+through its signed index at `+0x0A`. The NodeValue has type 0 at
+`+0`, byte 1 at `+2`, and signed single/multi selectors 0 and -1
+at `+0x52/+0x54`. The model build copies the type to part `+0x8E`
+at `0x00C1732C` and sets part `+0x8F` from the nonzero test at
+`0x00C1759D..0x00C175A4`. With model table `0x010D2C14` retained,
+the type-0 arm at `0x00C170F4..0x00C17118` uses slot `+0x20`
+`0x00C19490` to retain single-buffer ordinal 0 at part `+0x80`.
+Constructor `0x00C1E580` installs the single-buffer table `0x010D3098`.
+
+After a true binder result and a nonnull model slot `+0x40` return,
+`0x00D868E7` calls `0x00C1DE60`. That helper requires part
+`+0x8F == 1` and nonnull `+0x80` before dispatching its slot 1.
+The single-buffer target `0x00C1E5A0` checks the current buffers
+and matching draw node, requires node flag bit 0, and admits positive
+current draw-color alpha with mode 3. It calls `0x00C13770` at
+`0x00C1E642` with the bound cull index still in place.
+`0x00C13792` skips the fixed-state block when `0x00C0EF60` returns 1.
+
+With the fixed-state block admitted and Core table `0x010B590C`
+retained, the selected values yield these numeric requests.
+
+| State IDs | Selected request | Consumer and lower setter |
+| --- | --- | --- |
+| 27 | 1, blend enabled | `0x00C13804 -> 0x00C0EF30 -> 0x00BA0260 -> 0x0041C1F0` |
+| 19/207, 20/208 | 5/5 for source alpha, 2/2 for destination factor one | Mode 3 at `0x00C0F05D -> 0x00BA0310 -> 0x0041D050` |
+| 171/209 | 1/1, add | `0x00C0F058 -> 0x00BA02B0 -> 0x0041D010` |
+| 14, 23 | 0 for depth write, 8 for comparison always | `0x00C137EA -> 0x00BA03C0 -> 0x0041C2B0` and `0x00C137D4 -> 0x00BA0390 -> 0x0041D100`, through the engine setters |
+| 7 | Node flag bit 6, forced to 0 by global `0x0136E868` mask `0x40` | `0x00C1379F..0x00C137C5 -> 0x00BA03E0 -> 0x0041C270`, through the engine setter |
+| 22 | 2, clockwise-face culling | `0x00C13822 -> 0x00C0F220 -> 0x00BA0360 -> 0x0041D0E0` |
+
+The normal factor and operation requests require blend setter object
+`+0xB8 != 1` and cached mode byte `+0xA0 != 3` at
+`0x00C0EFD0..0x00C0F017`. The `+0xB8 == 1` branch instead
+requests 2/2 for source factor one, 1/1 for destination factor zero
+and the same add operation. These factor and operation setters send
+color and alpha values separately. The active separate-alpha setting
+remains unknown.
+
+The constructor at `0x00C13B60` seeds draw-node flags `0x53` with
+the identified PE mask values at `0x01308680/0x01308684`. It zeros
+`+0x34/+0x38/+0x3C`. With those inputs retained through the selected
+bind, depth bit 6 is set and alpha-test bit 5 is clear. The alpha-test
+enable, comparison and reference requests are then 15=0, 25=7 and
+24=1. The reference addition at `0x00C1385B` uses the constant at
+`0x010A8A18` before the lower conversion at `0x0041CF50`. The bias
+requests from `0x00C1383C` give 175=0 and 195=0 through `0x0041CC00`.
+
+Replay the file records using the same Qix and indexed model methods
+above, and the native locators with the same LLVM and PE table reads.
+The engine caches can suppress unchanged requests. The lower
+[render-state cache and device dispatch](pram-packed-render-state.md#state-manager-dispatch)
+also suppresses equal numeric values before the backend call. Current
+flags, reference, biases, override state, cache contents and actual
+device calls remain unobserved.
+
 ### Deferred VFX resource binding and clearing
 
 The RaptureVfx primary table `0x0106236C` and generic VfxBaseObject
