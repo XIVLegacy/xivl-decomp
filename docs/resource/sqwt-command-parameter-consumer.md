@@ -730,6 +730,45 @@ The conditional group and gesture path leaves active profile,
 substituted values, actual desktop visitation, and eventual command
 recipient UNKNOWN.
 
+### Button-sourced MoveFocus
+
+STATIC. The [key configuration](../net/target-command-handler.md#key-bindings)
+supplies `ApplicationCommands.MoveFocus` in rows 12 and 21.
+The checked default substitutions give Enter with integer 9 and
+Escape with integer 10. Row 21 uses binding type 0 and parameter
+flag 1. The ordinary KeyBinding generator emits the integer as
+decimal text at `0x00551CFE..0x00551D42`. The parser at
+`0x0099E0A2..0x0099E0B1` retains kind 1 and the first integer.
+The admitted keyboard walker at `0x00921233` passes that parameter
+with a null source event to the command. Preview handling, current
+configuration and earlier bindings still qualify delivery.
+
+With a null command target, `0x0091F590 -> 0x0091EE90` selects
+the current keyboard-focus scope pair. Its recipient supplies the
+original source and source fields at `0x0091F0F0..0x0091F115`.
+For a retained ActionMenu Button, both fields can name that Button.
+The first route at `0x0091F199` with flags `(1,0,1)` can visit
+the attached Button and Window on the precomputed ancestor chain.
+
+The Button handler at `0x0092D2FD..0x0092D326` reads direction
+from event `+0x7C`, marks handled at `+0x19` and calls its
+input slot `+0x64`. Direction 10 takes
+`0x0092E7FB -> 0x0092B150` to find the first eligible logical
+ancestor. With a nonnull candidate, `0x0091CD7F` requests
+focus through its interface. Direction 9 takes the descendant
+search. The focus request has its own admission and preview gates.
+
+The route stop field is `+0x17`. The Window's separate template
+pass checks that field and its current template at `0x00938BA0`.
+The Button's handled write alone leaves this pass eligible.
+The trigger's class-path test at `0x009B1889..0x009B189E` uses
+the retained event source. Thus the installed Button-qualified
+MoveFocus action can see the original Button after the focus
+request. The live focus pair, accepted focus and sound remain
+open. These joins were checked with GNU objdump 2.46.1 and
+direct PE table reads.
+[Selected sound declaration](action-menu-timer-icon-style.md#complete-template-trigger-and-action-order).
+
 ## Executed event delivery
 
 `Sqwt::Input::RoutedCommand` slot 2 (`0x00927FA0`) builds a `PreviewExecuted`
