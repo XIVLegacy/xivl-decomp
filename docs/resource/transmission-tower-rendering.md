@@ -2,7 +2,8 @@
 
 This note separates the retail Castrum Novum Transmission Tower layout from
 weather and reconstruction assets that can replace its initial render state.
-Native addresses refer to the pinned FFXIV 1.23b executable with image base
+Native addresses are VAs in the pinned FFXIV 1.23b executable,
+`ffxivgame.exe`, PE32 i386, 15,996,808 bytes, with image base
 `0x00400000` and SHA-256
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`.
 
@@ -13,7 +14,7 @@ and 264, zone parameter 5014, and layout 511. Region resource
 `c04b0d998aea4c1b13ed322292a5aa5af45485c698da2315171c3c024bcb9a74`
 maps that layout to `lak_l0_dun01` at DAT key `0x03e7000b`.
 
-The 22,512-byte layout DAT has SHA-256
+The 22,512-byte layout at `data/03/E7/00/0B.DAT` has SHA-256
 `b7598ff9aedc1af4cda3cefb3372cc83e49e51445b2eb04ba77905d250827088`.
 It contains 67 placed instances across four divide-map folders, 12 nested
 unit-tree members, two draw-environment objects named `dwev_20` and `dwev_00`,
@@ -59,15 +60,100 @@ scheduler.
 ## Shutter contract
 
 Layout instance `isgrp_000012` binds packet instance ID 12 to unit tree
-`sgrp_shutter`. Its serialized node GID 935 is a different identifier. The
-unit tree exposes `open` and `clos`.
+`sgrp_shutter`. Its serialized node GID 935 is a separate identifier.
+The declared instance at file `0x2E10` references that UnitTree at
+`0x2480` through instance `+0x3C`. Its direct child keys are unique.
+Child `+0x14/+0x18/+0x1C` supplies the name, definition and key.
 
-`time_bg_gate_open` has a raw SCB active-block span of 1,000,000 units. Its
-transform starts at raw value 0 and its sound at 10,000. The close block has
-a raw span of 250,000, with sound and transform both starting at 0. No
-client SCB timebase is established here. These resources describe the
-callable shutter presentation; they do not define the server condition that
-opens it.
+| Child key | File offset | Child name | Definition |
+| --- | --- | --- | --- |
+| 1 | `0x2620` | `l0f0_q1_shtr1_h_001` | BGParts `l0f0_q1_shtr1_h` at `0x4130` |
+| 2 | `0x2650` | `open` | TimeLine `time_bg_gate_open` at `0x4800` |
+| 3 | `0x2680` | `clos` | TimeLine `time_bg_gate_close` at `0x4828` |
+
+The instance's authored translation is `(0, 0, 22.66200065612793)`.
+The UnitTree and key-1 placement have zero translation. All three have
+zero rotation and unit scale. These values describe the serialized placements.
+
+### Authored transform and sound clips
+
+TimeLine `+0x14/+0x18` gives the SCB reference and length. Both
+`LayTransformClip` records select actor ordinal 0 at record `+3`. Its
+`LayUnitMemberActor` record holds key 1 at `+0x20`. Original table cell
+`0x0109F6DC` selects getter `0x00A78950` for that field. This joins both
+clips to the same direct shutter member.
+
+| Alias | SCB file range | Actor ordinal 0 | Transform record | Extent |
+| --- | --- | --- | --- | ---: |
+| `open` | `[0x4C50,0x5240)` | `0x4D20` | `0x4E60` | 100 |
+| `clos` | `[0x5240,0x57F0)` | `0x5310` | `0x5470` | 25 |
+
+Both transforms start at raw value 0. Original table cell `0x010A14FC`
+selects `0x00A0DBC0`, which reads the end at record `+0x10`.
+The ends equal their active block spans, 1,000,000 for open and 250,000
+for close. Each block also contains one `LaySEClip`. The open sound span
+is 10,000 to 300,000. The close span is 0 to 290,000 and exceeds its block
+span by 40,000. Each scheduler also declares an empty block.
+
+### Translation curves
+
+Both transform records store mode 0 at `+0x14`, flags `0x0004` at
+`+0x18`, curve ordinal 0 at `+0x1A`, and the signed extent at `+0x1C`.
+The `@FCURVE` chunks start at file `0x4F10` and `0x5500`. The u16
+offsets at `0x4F32` and `0x5522` are zero and select the first
+descriptors at `0x4F40` and `0x5530`. The resolver at `0x00A220A0`
+uses 16-byte units for these offsets. The MTB bodies at `0x4F60`
+and `0x5550` are 518 and 454 bytes respectively.
+
+Each body declares `TransForm` mask `0xE077`. The X and Z translation and
+three rotation channels are type-0 zero constants. The three scale
+channels are type-0 unit constants. The varying Y channel is a type-2
+Hermite curve at file `0x5030` or `0x5620`. Its records contain four f32
+lanes, in coordinate, value, incoming and outgoing order. Native
+`0x00A2DF10`, `0x00A320B0` and `0x00A31F70` establish that ordering and
+evaluation. Open has ten keys from `(0, 0)` to `(100, 4.5)`. Close has
+six from `(0, 4.5)` to `(25, 0)`, including the negative key near the end
+at coordinate 24. The installed curve supplies the intermediate values
+and tangents.
+
+`MoveRatio.tx` at file `0x5128` or `0x56D8` is type 4 with flag zero.
+Its two keys range from `(0, 0)` to `(100, 1)` or `(25, 1)` respectively.
+Native loader `0x00A2E0C0` and evaluator `0x00A33610` agree with the
+serialized f32 value followed by a signed 16-bit coordinate.
+
+### Conditional native application
+
+For retained `LayTransformClip` table `0x010A14DC`, begin resolves the
+curve descriptor at `0x00A0ED5A` and caches Y at clip `+0x40`. The
+`0x00A0DC50` path takes local elapsed value L and signed duration d,
+bounded below by 1. It samples MoveRatio at extent times L divided by d,
+clamps the ratio to [0,1], and multiplies by the extent. The ideal sample
+coordinate over either authored interval is L divided by 10,000.
+Floating-point rounding and actual elapsed values govern delivered samples.
+
+Update `0x00A0E6A0` calls the base update first at `0x00A0E6B5`.
+Transform sampling then requires an operation context and clear flag
+`0x02`. The selected flags admit X, Y and Z sampling, including Y at
+`0x00A0E794`. Mode 0 stores the sampled vector at clip `+0x88/+0x8C/+0x90`.
+An optional context `+0x48` hook at `0x00A0EC44` receives translation
+and rotation by pointer. It precedes the context `+0x34` translation
+call at `0x00A0EC5C`. The submitted translation is the unmodified
+sample when the hook is absent or preserves that vector. The sampled
+rotation and scale branches are skipped. On normal return, the update
+still submits rotation through context `+0x3C` at `0x00A0EC76`. That
+argument is the retained vector when the hook is absent or preserves it.
+Clear flag `0x40` skips the scale dispatch.
+
+The shared [clip delta path](ferry-door-schedulers.md#conditional-ordinary-clip-delta)
+governs conditional update steps. These clips do not establish a Tower
+wall-clock duration, first or last visible sample, context side effects,
+simultaneous request arbitration, collision or audible output.
+
+The offsets were recovered from a declaration-driven LYB and SCB walk
+with the [world layout format](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md)
+and the [SCB layout](cut-scheduler-clip-layout.md). A bounded Python
+struct walk resolves the MTB descriptors. LLVM i386 disassembly and
+original PE table reads establish the native paths.
 
 ## Weather and material overrides
 
