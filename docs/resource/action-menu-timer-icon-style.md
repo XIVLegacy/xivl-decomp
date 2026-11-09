@@ -165,6 +165,49 @@ CompletedCommand ApplicationCommands.DestroyWindow. Hiding line 42 declares
 only CompletedCommand ApplicationCommands.InvisibleWindow. Thus all three
 omit CompletedCommandTarget, BeginTime, Duration and RepeatBehavior.
 
+### Window top offset and arrange
+
+STATIC. `SqwtTopOffset` is Window descriptor `0x0135710C`, ordinal 3
+with metadata `0x04`. The constructor at `0x009247BF..0x009247DB`
+initializes its binary32 holder at Window `+0x394` to positive zero.
+The admitted unnamed Setter in this template uses the requesting Window
+retained by the terminal TemplateMarkupObject. The direct setter at
+`0x0094F220..0x0094F296` passes the literal 32 through the generic
+mode-0 property path.
+
+The six unnamed DoubleAnimation tracks above can use the same Window.
+Markup setup at `0x00949EC4 -> 0x0094F030` walks to the terminal
+TemplateMarkupObject and seeds its requesting owner into the target
+cache. A retained nonnull seed reaches the unnamed-target return at
+`0x009A6BBF..0x009A6BC4`. A null cache can fail the fallback lookup.
+The admitted property getter at `0x0092235F` formats the holder.
+An omitted From can capture its current value at
+`0x009B4861..0x009B4929`. An admitted sample with the cached target
+and property key requests a mode-0 write at `0x009B4CA0`.
+The constructor, property tables and instructions were checked with
+file-backed PE reads and x86-32 disassembly.
+
+The ordinal-3 setter at `0x009257A1` uses the scalar helper at
+`0x009B9320`. Mode 0 requires holder mask `0x02` clear. An equal
+finite value bypasses the scalar store and change notification. A
+changed value can request arrange work through
+`0x0093BE98 -> 0x0093B250` with the current event masks
+`+0x78 & 0x02` and `+0x74 & 0x04` set. The queue can deduplicate
+an existing request. The separate ordinal-3 callback at
+`0x00923C99 -> 0x0092ACC0` can issue `ApplicationCommands.MoveHelp`
+when its global source is present and resolves the same Window.
+
+Window arrange at `0x00925490` gets effective scale through
+`0x00922280`, the product of Window `SqwtLayoutScale` at `+0x3E4`
+and global binary32 `0x012E0360`. The constructor value and global
+file value are both 1. At `0x009256CD..0x009256D7` it adds the
+top offset times that scale to the rectangle's Y origin. The
+adjusted rectangle goes to `0x009302F0` at `0x009256DB`. Its
+visibility and alignment paths can pass the resulting position
+to the `VisualOffset` descriptor `0x013597FC` through
+`0x00939782 -> 0x00940110`, with separate pair-write admission.
+Actual event order, live scale, clipping and hit geometry remain open.
+
 ### Complete style trigger and animation order
 
 The IsAnchorWithin True Trigger at line 585 begins Effect_ON at line 586,
