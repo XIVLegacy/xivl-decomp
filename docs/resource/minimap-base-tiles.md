@@ -95,6 +95,97 @@ selected block. The live layout mapping, block selection and `Ready`
 timing for a particular session remain UNKNOWN.
 [SetMap framing and native base](https://github.com/XIVLegacy/xivl-client-structs/blob/180ab8aaa49b0157fee8996abe4d27e05b588bda/docs/map-layout-selector.md#L31-L56).
 
+### Ordinary region owner and query admission
+
+STATIC. The [received SetMap input](../actor/zone-initialization-inputs.md)
+stores the zone dword on MapLayoutElement E at `+0x98` and can stage a
+nonzero region at `+0xAC` in the opcode-5 arm. A distinct admitted
+staged-region consumer at `0x0058A383 -> 0x0059E6D0` supplies region,
+companion ID, literal mode 1 and zone to `0x0059E3C0` at `0x0059E6F7`.
+Nonzero region and clear E+`0xBD` select operation 7 at
+`0x0059E418..0x0059E424`. The received mode byte instead passes through
+its minimum of 1 at `0x0059CF0E..0x0059CF20` to `0x00560FC0` and
+scene selector `0x17`.
+
+The publisher posts operation `0x0A` with the zone at `0x0059E44F`,
+then operation 7 with region in the low word and the companion ID in
+the high word at `0x0059E474`. Conditional on delivery to the same
+MapLayoutActor S through primary slot 157, `0x0062CDA0` stores the zone
+at S+`0x198` at `0x0062CDCA` and submits operation 7 with its packed
+dword at `0x0062CDE8`. The queue at S+`0x33C` retains the command
+record on successful allocation at `0x0062C4F6`. The allocation
+failure branch appends null through `0x0062C51D..0x0062C536`.
+
+SceneThreadImpl slot 32 calls `0x0062DD00` at `0x004EAB3D` and
+`0x0062AA70` at `0x004EAC53`. When both calls receive the same S and
+the RegionResourceData root range is nonempty, these are separate
+phases of the queued work:
+
+- The early phase can dispatch the head without removing it, at
+  `0x0062DD89 -> 0x0062DBE0`. Its operation 7 branch calls
+  `0x0062D1C0` with internal mode 2 at `0x0062DC3B`. The helper
+  copies S+`0x198` to `+0x194` before region validation. With a
+  valid region, the scene-update guard set, the prior mode
+  at S+`0x1F0` nonzero and different from 3, and the ordinary zone
+  flags clear,
+  `0x006274A0` returns 1 for a changed region and 0 for the same
+  region at `0x0062752D..0x00627540`. Result 1 takes the
+  [old-owner release](seasonal-decoration-update-order.md#pending-region-and-owner-construction)
+  at `0x0062D379` and stages the pending region and companion ID at
+  S+`0x188/+0x18C` at `0x0062D3DE/0x0062D3E4`. Result 0 skips
+  that staging.
+- The later phase can dispatch and remove the head at
+  `0x0062AB00/0x0062AB0E`. Its dispatcher covers `0x0C..0x12`,
+  so operation 7 has no effect in this dispatcher. Whether it
+  consumed the head or bypassed it, a nonzero pending region
+  reaches construction at `0x0062AB29 -> 0x00626DF0`. The helper
+  publishes the new owner at S+`0x17C` at `0x00626E57`, or null
+  on allocation failure. Both pending fields clear after return.
+
+Each phase separately checks an existing owner's retained list through
+`0x00644E90` before admitting the queued head. On a valid list it
+requires every retained manager's signed `+0x140` to be at least 5.
+A null owner bypasses that gate. State 13 from the typed-node
+rejection at `0x006454B1` also passes the numeric threshold. The
+[constructor](map-layout-selector.md#ordinary-manager-update) submits
+its initial managers before the owner is published. Neither publication
+nor the queue threshold proves loaded folder trees.
+
+The supplied-position query at `0x007D40C6` uses S+`0x17C` if present.
+Its list query at `0x00624ADE` checks each manager's enable byte and
+aggregate bounds before traversing its tree. This requires a valid tree
+on the admitted branch. A miss skips the three position-path posts at
+`0x007D40CD` and does not try S+`0x180`. That alternative is reached
+only when S+`0x17C` is null. Chara controller slot 35, table cell
+`0x00FEE208 -> 0x007D8AF0`, can separately reach a selector-1 query at
+`0x007D8A39` through its policy and countdown gates. Its controller
+serial branch can instead select `0x007D8A22 -> 0x006275E0`. These
+calls establish neither a manager-completion callback nor the first
+successful pair for a given load.
+
+MEASURED. The [authenticated RegionResourceData](region-weather-resource-rows.md)
+contains one region 202 root at file `0x8950` with ten children.
+Read the declared root count at file `+0x24` and child count at
+root `+0x0C`, with little-endian `0x30`-byte rows from `0x40`.
+Child type is at raw `+4` and resource key at raw `+8`. The initial
+submission skips its type-0 and type-1 rows at `0x8980/0x89B0`.
+The following are the remaining submissions in source order:
+
+| File offset | Child key | Type | Resource key |
+| --- | ---: | --- | --- |
+| 0x89E0 | 5002 | 0x3000 | 0x72420000 |
+| 0x8A10 | 5003 | 0x3000 | 0x72420001 |
+| 0x8A40 | 5001 | 0x3000 | 0x72420002 |
+| 0x8A70 | 5004 | 0x3000 | 0x72420006 |
+| 0x8AA0 | 5005 | 0x3000 | 0x72420007 |
+| 0x8AD0 | 5006 | 0x3000 | 0x72420008 |
+| 0x8B00 | 5008 | 0x3000 | 0x72420009 |
+| 0x8B30 | 5007 | 0x3000 | 0x7242000A |
+
+Bridge is the fifth submission in that region. Actual manager retention,
+first selection and a link from SetMap zone 140 to that selection remain
+UNKNOWN.
+
 ### Ordinary MiniMap Ready requests
 
 MEASURED. The [plain installed form](sqwt-xpath-data-sources.md#marker-wrapper-and-row-context)
