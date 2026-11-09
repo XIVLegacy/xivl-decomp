@@ -612,6 +612,65 @@ presentation values `FontSize`, `FontEdge`, `FontEdgeColor`, `LogFormat`,
 `LogControl:WaitCursor`. Painting the lines is outside this page, see the open
 questions.
 
+### Text area document metrics
+
+STATIC. Focused Ghidra CLI instruction walks and original PE table/RTTI reads
+join the owned TextBoxScrollInfo receiver S to its TextBox-derived owner T.
+Construction forms S=T+0x1010 at `0x0097D474`, calls `0x0097BB70` at
+`0x0097D4C8` and stores T at S+0x2A8 at `0x0097BC06`.
+Primary table `0x010754DC` has COL `0x0117D848`, offset zero, descriptor
+`0x012E4CC0`, `.?AVTextBoxScrollInfo@TextBoxBase@Primitives@Controls@Sqwt@@`.
+Its measure cell +0xDC, `0x010755B8`, selects `0x0097A9E0`.
+
+After its template-child visits, measure calls current owner primary +0x154
+at `0x0097AA44`. Retained TextBox table `0x0106EDB4` selects `0x00956C10`
+through cell `0x0106EF08`, returning [T+0x1978]. The TextBoxBase table instead
+selects `0x00979EE0`, which returns zero. This stored-document join requires
+the concrete current table, surviving fields and completed earlier calls.
+
+For ordered widths, a negative value or one above current
+float[[`0x01356E10`]+0x1C4] selects an alternate branch. It calls the owner
+getter again, dispatches +0x58 on that returned document and uses the result
+if nonnull. On the other branch, byte S+0x590 nonzero permits a document +0x0C call
+with requested width minus S+0x584. Getter stability, the threshold's meaning
+and unordered comparison behavior are not generalized here.
+
+With selected nonnull document P, calls `0x0097AABF` and `0x0097AAD2` read
+width through P+0x40 and height through P+0x44. Only width receives the
+S+0x584 addition at `0x0097AAC1`. An initial null document returns current
+S+0x2C8/+0x2CC at `0x0097AAF2..0x0097AB0D`. Constructor stores zero those
+fallback fields and S+0x584/+0x590, without fixing their later values.
+
+The admitted default TextBox construction branch, with no supplied document,
+calls LineTextDocument constructor `0x0098D6A0` at `0x0095C70F`, then
+WrapTextDocument constructor `0x0098DAA0` at `0x0095C725`. The chosen pointer
+is stored at T+0x1978 at `0x0095C75E`. Wrap stores its Line at W+0xAC at
+`0x0098DB84`. Its +0x58 getter `0x0098C1B0` returns that field, while Line's
+`0x0098C0F0` returns zero. Allocation, construction and current-table
+conditions remain necessary.
+
+| Document | Primary table | Height cell +0x44 | Observed returned height |
+| --- | --- | --- | --- |
+| WrapTextDocument | `0x01077C6C` | `0x01077CB0` -> `0x0098C2C0` | float32(float[W+0x64] - int32[[W+0x90]]) |
+| LineTextDocument | `0x01077C0C` | `0x01077C50` -> `0x0098C020` | float32(float[C+0x38] - int32[[L+0xA0]]) |
+
+For the Line equation, C=[L+0x68] retains its constructed container L+0x28.
+Container table `0x01077BD4`, +0x2C cell `0x01077C00`, selects
+`0x00A2C590` to read C+0x38. Both height getters subtract a signed integer
+through the stored pointer and round through a float temporary.
+Constructor helpers on W+0x30 and C+4 store zero to W+0x64 and C+0x38 at
+`0x0098E845` and `0x0098E705`, respectively.
+
+Wrap construction calls Line +0x54 with W and zero at `0x0098DB98`.
+Selected method `0x0098D960` stores W at L+0x8C and tests the second
+argument's byte against 1. Constructor zero skips its selected `0x0098CFE0`
+call. Other initialization and layout effects are not excluded.
+
+Current integer adjustments, empty-source shaping, admitted rows, font metrics,
+cache population and final outer size remain unknown. Empty source text is
+not equated with an empty row container. These getters establish neither
+unconditional zero height nor a minimum font-line height for empty text.
+
 ### LogWidget declared hit filters
 
 OBSERVED asset structure. The standard `widget/LogWidget.form` has two
