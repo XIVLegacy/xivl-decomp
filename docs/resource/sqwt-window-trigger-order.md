@@ -390,10 +390,10 @@ That method sets receiver+0x20 mask 1 at `0x00912199`. Its current D+0x18
 entries receive virtual +0x0C at `0x009121F5`. The separate D+0x14 loop
 requests attachment through `0x00911F50` with flag 1 at `0x00912252`.
 A nonzero result admits that entry's virtual +0x0C at `0x0091229B`.
-The actual entries, targets and indirect effects remain unresolved for this
-Trigger. The concrete Binding example on the
+The concrete Binding example on the
 [reverse-binding page](sqwt-style-reverse-binding.md#observed-attachment-activation-and-retention)
-does not identify them.
+uses its own endpoints and mode. It does not identify current entries for
+this Trigger.
 
 These entry activations are distinct from Trigger primary +8 evaluation and
 from Q's virtual +8, whose original cell `0x0107D094` selects `0x00933210`.
@@ -403,6 +403,38 @@ property event. Matching slot numbers do not join those call contracts.
 Current entry population, the first matching owner-property event, initial
 predicate evaluation and first BeginStoryboard capture remain unknown.
 Context, construction, reentry, current tables and lifetime remain conditions.
+
+### Plain ActionMenu Trigger
+
+The selected [ActionMenu Window Style](action-menu-timer-icon-style.md#actionmenu-window-template-and-style-write-sets)
+uses a plain IsAnchorWithin Property, a literal False Value and a
+BeginStoryboard action named Effect_OFF. The checked direct constructor,
+literal attribute and action child paths leave the Trigger's own D+0x14 and
+D+0x18 entry pointers at their null seeds from 0x00912E11 and 0x00912E14.
+
+The ordinary attribute path calls 0x00912850 at 0x00946A8B. The pending
+Binding arm requires the opening brace at 0x00912974 and an admitted
+Binding parse before 0x009129FD calls 0x00912340. Its deferred arm stores
+the container at D+0x14 at 0x0091281E and appends at 0x0091282D. Neither
+literal starts with a brace. The listener helper 0x00911E40 stores its
+container at +0x18 of the supplied receiver at 0x00911E97. Its calls in
+0x00911ED0 supply the explicit destination or a configured source. The
+checked direct paths supply no such call on this Trigger's D.
+
+The BeginStoryboard child uses its own dependency interface. Parent markup
++0x20 at 0x00949970 selects 0x0094EB10 through cell 0x0106DA5C. It
+appends to the Trigger's action collection at R+0x5C at 0x0094EB2C.
+The collection callback selects 0x009B2170 through cell 0x0107D50C and
+stores the Trigger interface on the action at action+0x40. The Storyboard
+reader attaches a timeline to the action at 0x00949D93.
+
+With both entry pointers still null at delivery, 0x00912190 sets
+D+0x20 mask 1, skips the listener callback at 0x009121F5 and branches
+at 0x0091220F to the epilogue. This arm has no owner read, predicate
+comparison or action dispatch. The separate primary +8 callback still
+requires a current matching owner-property event. Attribute preprocessing,
+indirect callbacks, reentry and external entry attachment remain conditions.
+The first matching owner event and first storyboard capture are unknown.
 
 ## Reproduction
 
