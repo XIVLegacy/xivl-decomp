@@ -265,6 +265,54 @@ through `0x0083A750` and its separate branch in `0x007E6690`.
 These DrawEnv interpolation instructions do not establish a rain emission
 rate or particle-opacity formula.
 
+### Conditional character sampler offer
+
+STATIC. The owner copy at `0x007E7C50` carries all 32 cube slots in
+each work through `0x008CB490..0x008CB4A7`. The mode-zero scalar
+interpolation at `0x008CB080` leaves that pointer array outside its
+write set. An existing name can reuse a tree node. The selected
+resource must supply the current work for a name to identify its cube.
+
+The ordinary owner build calls `0x007E8910` after copying the work.
+It passes all five works to `0x007E6300`. Each nonnull source slot
+compares four texture dwords at `+0x20..+0x2C` against the same index
+of a candidate pool list. The first compatible list replaces the
+prefix at `0x007E6438..0x007E6453`, including indices with null
+source slots. This requires valid pool objects and a prefix of at
+most 32 for in-bounds writes. With no compatible list the work retains
+its original pointers. The separate pool-processing input at
+`0x007E6766` takes the two resource `+0x42C` trees. Membership of the
+selected numbered cubes in those inputs remains open.
+
+The character query can read `RaptureAttribute` bits 7 through 11
+and obtain an indexed layout object at `0x007D425C..0x007D427E`.
+The base work name or an explicit override reaches `0x007D3C4A`
+with resource identity zero. With nonnull retained queue resources,
+that identity selects the owner tree at `0x007E4597`. The exact name
+lookup returns the controller's two work lanes through `0x007E4617`.
+A live query must select a name and lane supplied by this resource.
+
+With current controller work installed, `0x007D8269` can publish
+controller `+0x6E0` through the model to node `+0xF4`. A valid
+alternate work can supply the 32 slots copied through
+`0x007D6FCA` when the controller ratio is below 1. The other
+branch at `0x007D702F` copies the current work. The scene-query
+caller `0x007D8AA8` supplies flag 1. The separate flag-zero
+caller `0x007D8D1E` reuses current state and reaches the same
+cube-copy core.
+
+An admitted nonnull node with byte `+0x2A9` other than `0xDE` can
+offer its work to the retained draw context at `0x00C58375`.
+The environment record path at `0x00C40360..0x00C403A3` uses
+slot zero for both named records. A null slot takes the separate
+fallback at `0x00C403D6`. Both `reflectMap` and `lightDiffuseMap`
+pass encoded bind argument zero. The records and the separately
+named CTAB registers establish an offer through both records.
+Distinct device bindings, the live query result, selected pool
+entry and rendered output remain open. These joins use LLVM
+x86-32 decoding and direct reads of the original PE.
+[Character sampler records](chara-engine-samplers-and-light-inputs.md).
+
 ## Conditional VFX alias consumer
 
 Creator table `0x0103C574` supplies kind `0x0F` through slot 5
