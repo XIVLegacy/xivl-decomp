@@ -133,6 +133,59 @@ The original PE instruction and table reads use the pinned image above.
 The resource records follow the declared RegionInfo counts and
 [LYB node shapes](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/world-layout.md).
 
+## Declared collision and support witness
+
+The shutter folder's 16 instances contain no Attribute or CollisionBox.
+Its six distinct visual base keys resolve to `brt` rows. The two
+selected shutter timelines carry a transform and a sound clip, and
+neither addresses the two declared Attribute occurrences below.
+
+| Deferred folder | Instance and member | Attribute and PHB |
+| --- | --- | --- |
+| `Bk_isgrp_000001` at `0x48C0` | Instance `0x2B50`, `sgrp_room` key 7 at `0x2500` | Attribute `0x3FDC`, row `0x1C0`, `0x72E30099` |
+| `Bk_isgrp_000011` at `0x49A0` | Instance `0x2DD0`, `sgrp_taihi_room` key 3 at `0x25F0` | Attribute `0x4008`, row `0x300`, `0x72E300C3` |
+
+Both rows use the `bhp` tag. Their installed PHB identities are below.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `data/72/E3/00/99.DAT` | 153296 | `9507ef1dc5b3c55f415a9e52690042c62470479c7a37f0dc3f2af45d4c8feee4` |
+| `data/72/E3/00/C3.DAT` | 51408 | `db7e9de463a329a838e8271b630fd36d9c3f4393e84d29e438c9265dbd8f6da3` |
+
+The first Instance, its UnitTree and child have identity transforms.
+The second differs by Instance Z translation `51.444000244140625`.
+LaySettings translates both by `(0,-100,0)`. The first room's hull
+extends beyond its owner's streaming AABB.
+
+A vertical line at world XZ `(0.5,22.66200065612793)` crosses two
+strict triangle interiors in `0x72E30099`. Both are horizontal with
+positive Y winding and raw surface 0. Adding the authored Y translation
+gives `-99.80995951592922` for triangle 937 at file `0x16D08` and
+`-100.00000023841856` for triangle 994 at `0x16ED0`. A bounded offline
+grid/tree walk at the local intersections reaches both references in
+grid cell 332, in TBCs 134 and 159 respectively. The
+[quantized tree query](phb-branching-tree.md#tree-quantization)
+supplies the offline point-box rule. The triangle and transform reads follow the
+[PHB format](https://github.com/XIVLegacy/xivl-tools/blob/fd4c97d89eab3bbbf657021297e3d78156c63319/docs/formats/phb-collision.md)
+and the declared LYB instances.
+
+Both room folders have `+0x62` bit 0 clear for deferred registration,
+priority zero and zero area pairs. The expanded bounds of the first room, shutter and second
+room are each within 16 units of the constructed focus on that line at
+world Y -100. With a ready Tower manager owning the current area, admitted
+mode-4 radius processing can request all three even though the point is
+inside only the shutter folder.
+
+The selected room member descriptors at file `0x3C28` and `0x3D84`
+each have byte `+4=0x05`, whose bit 2 reaches child slot 51. The
+Attribute's attached group value is 1 in both cases. On the admitted
+category-`0x0B` path, `0x008D3DB0 -> 0x00AA81D0` sets up the Attribute
+and `0x00AA8480` supplies the collision group. On the checked single-result
+query path, the shape-flag and group gate at `0x00B0CAF3..0x00B0CB16`
+requires mask bit `0x2` to admit these group-1 shapes. Triangle and
+other filters apply separately. Query admission, accepted footing and
+movement remain open.
+
 ## Shutter contract
 
 Layout instance `isgrp_000012` binds packet instance ID 12 to unit tree
