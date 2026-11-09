@@ -58,6 +58,16 @@ path](work-update-callbacks.md#parameter-dispatch).
 | Local gauges | `widget/playerparameterwidget` `setParameter`, `main/f9` PCs 0-5, asks for maximum and current tuples. Connector `getPlayerGaugeMaxParameter` and `getPlayerGaugeCurrentParameter`, `main/f331-f332` PCs 0-8, independently resolve the local player and call HP, MP and TP getters without a nil guard. See the [TP operand contract](https://github.com/XIVLegacy/xivl-client-scripts/blob/a21f608cbd58bfd551b77f2394b490a9debae1c0/docs/player-parameter-tp-consumer.md#tp-operand-order). |
 | Target gauge | Connector `afterTargetChanged`, `main/f49` PCs 76-95, shows and updates widget 5 when the callback actor or active cursor lookup is nonnil. `widget/targetparameterwidget` `updateAll`, `main/f3` PCs 0-9, calls `setParameter`. Its `main/f7` PCs 1-9 request maximum, current and the actor separately. Connector `getTargetGaugeMaxParameter` and `getTargetGaugeCurrentParameter`, `main/f257-f258` PCs 0-21, each resolve the active target through `getCurrentTargetCharacter` (`main/f33` PCs 0-4). Nil yields a zero tuple. A present target supplies HP and MP through its getters. The widget retains HP. |
 
+The connector's `main/f49` PCs 11-22 can query the callback actor's
+talkability for the menu refresh. That result does not guard the later
+widget-5 update. With preceding calls returning, PCs 76-95 hide widget 5
+when both the callback actor and independent active cursor lookup are nil.
+The [character removal](../net/target-lock-decide-senders.md#character-removal)
+path can request such a callback. A main-cursor nil argument also calls
+`cancelLockon` at PCs 2-10. Its `main/f61` PCs 0-14 requests unlock when
+the work mode exceeds 1 and the local player's lock getter is nonnil.
+That script condition does not compare the lock with the removed actor.
+
 ## Local party and negotiation reads
 
 Connector `afterTargetChanged` calls the main-menu refresh on cursor 1 (`main/f49` PCs 23-44). Its

@@ -505,8 +505,40 @@ The `_aimCameraTutorial` and `_cancelAimCameraTutorial` registrars at
 `0x004DAF00` and `0x00563920` send the unlock before the select. A clear
 through them emits `0xCC` with `0xC0000000` followed by a `0xCD` for the null
 identity when the cursor had a target (`INFERRED` from the call order and the
-select conditions). The roles of `0x004DAF00` and of the `0x00563920` callers
-are `UNKNOWN`.
+select conditions). The selected removal caller is below.
+
+### Character removal
+
+STATIC. The `0x00CB` dispatcher arm at `0x004DCCF6` receives the normalized
+sub-event source key. It exits on the `0x00575750` refusal or when the
+current element lookup at `0x004DCD0F` returns null. The lookup uses the
+general map at `G+0x17804`. This arm takes no actor key from the application
+body and performs no generation comparison. `0x004DCD45` calls the
+current element's deleting slot 0 with argument 1.
+
+For CharaElement table `0x00FA7C50`, slot 0 selects `0x00590360`, which
+calls the destructor at `0x00590363`. The destructor requests separate
+actor-control release through `0x0058E8DC`, then passes the element
+pointer to `0x00563920` at `0x0058E8F0` if the TargetElement exists.
+The helper first resolves the locked key through the factory map at
+`G+0x4E4`. Only a result equal to the removed element invokes unlock.
+The cursor loop at `0x00563950..0x005639A0` selects null on each cursor
+whose `+0x0C` equals the same element. `0x0055E7ED..0x0055E7F4` sets
+the no-target key and clears that pointer. Before factory-map erase, the
+base cleanup repeats the equality pass at `0x004DAC6D` if the target
+element at `G+0x4C0` exists and differs from the removed element. Its
+deferred general-map path clears node `+0x10` at `0x004DACC9` before
+queuing the physical erase.
+
+The null select calls bridge slot `+0x64` at `0x00562E26` after clearing
+the cursor. The bound LuaActorImpl path reaches `0x006FE960`, which
+checks the one-based index and packages a nil actor for `0xC0000000`.
+`0x006FEACC` requests `_onTargetChanged(index, nil)` before element
+erase. The NullActorImpl cell `0x00FE0310` selects a return-only method.
+The [script consumers](../script/target-selection-receivers.md#widget-consumers)
+describe the separate active-cursor lookup and widget update. The
+clear request does not establish live Lua completion or presentation.
+The independent `0x00562E2E` gate still controls the outbound select.
 
 ## Active Mode request
 
