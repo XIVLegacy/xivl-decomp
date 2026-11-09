@@ -480,8 +480,10 @@ working text to the target (STATIC).
   `0x009362A2..0x00936306`. The default name starts empty at
   `0x0099B208..0x0099B20E`. The parser's same-name check at
   `0x00938644..0x00938697` bypasses application and assignment when the
-  current template exists and its name equals the incoming text. An empty
-  write can therefore retain this default template (STATIC).
+  current template exists and its name equals the incoming text by exact
+  case-sensitive bytes. An empty write can retain this default template.
+  An equal nonempty key can retain a rootless template without retrying
+  application (STATIC).
 - A different name, or an absent current template, takes the allocation
   and resource application path. Empty text can enter this path with a
   nonempty owner class name at `0x0099AFF9..0x0099B04A` and
@@ -494,6 +496,27 @@ working text to the target (STATIC).
   the store at `0x00926FA0`. Visual attachment uses the separate `+0x334`
   state through `0x00936DF0`, which can retry application when the retained
   template root is null (STATIC).
+- The fresh template retains the requesting inner control at template
+  `+0xC8` through `0x00936C00 -> 0x0099B3A0`. The parser materializes it
+  before assignment at `0x009386CF`. A resource match at `0x0094A2F6`
+  returns success after the markup request. Root presence at template
+  `+0xB0` has its own check. A nonnull root with no logical parent can
+  attach to the same control at `0x00936ECF/0x00936ED7` (STATIC).
+- The admitted change callback at `0x00937C3A` requests detach when the
+  previous property template equals the applied template and has a root.
+  Visual removal at `0x00940800` requires the root's visual parent
+  `+0xA4` to match the control. Logical removal at `0x0092FBE0`
+  separately checks the control's child vector before its parent-holder
+  write. The callback can retry the current rootless template at
+  `0x00936E11`. A persistent nonempty miss leaves `+0x334` unchanged
+  after the detach requests, with no new root attached. This can leave
+  the old root detached even while its template pointer remains applied.
+  A later empty key has a separate path that can update `+0x334` without
+  a root at `0x00936EA7` (STATIC).
+
+The selection and attachment locators were checked with LLVM objdump and
+GNU objdump 2.46.1 x86-32 decoding, with direct PE reads for the ordinal
+jump cells and RTTI identities.
 
 The SSD and map readers at form lines 8 and 9 omit `Row`.
 The [reader gate](#rapturessddatareader-rows) leaves initial row
