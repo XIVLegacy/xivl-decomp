@@ -231,6 +231,57 @@ and the [SCB layout](cut-scheduler-clip-layout.md). A bounded Python
 struct walk resolves the MTB descriptors. LLVM i386 disassembly and
 original PE table reads establish the native paths.
 
+### Shutter member translation
+
+On admitted placement, `0x007FD830` registers child key 1 in the
+UnitInfo at `0x007FDB5D` and assigns that UnitInfo to the TimeLine
+child at `0x007FDA61`. TimeLine callback `0x00A84F70` obtains that
+owner and resolves the constructed actor key through UnitInfo slot 37.
+A nonnull member reaches `0x00A78960` at `0x00A8506E`, which stores it
+at the LayUnitMemberActor's `+0x64` and registers a release listener.
+The transform update indexes the retained scheduler actor collection
+through `0x00A1FFA0`. This path requires the same scheduler, actor and
+registered member through binding and update.
+
+The class-key operation provider is retained at scheduler `+0x84`.
+When its LayTransformClip node lookup returns zero, the fallback
+holder table `0x00FBEAAC` supplies its listener through slot 9 at
+`0x00B36630`. That listener is the adjusted LayCutCharacterListener
+interface with table `0x0109E774`. The update calls the operation
+object's slot 9 at `0x00A0E6C2`. A nonzero class-node payload takes a
+different provider path with unresolved receiver and slots.
+
+In the selected actor records at file `0x4D20` and `0x5310`,
+`+0x14=2` leaves bit 0 clear. The retained actor's slot 8 therefore
+admits the optional hook through `0x00A1C050`. On the fallback listener,
+`+0x48` selects the return-only `0x00A729F0`. Listener `+0x34` selects
+`0x00A72810`, which copies the sampled vector and dispatches actor
+`+0x38`. Its retained target at `+0x64` receives the translation
+through instance slot `+0x5C`, `0x00A9A7F0`.
+
+That setter can allocate a translation controller when the authored
+local XYZ differs from the input. A retained valid controller stores
+three f32 lanes at `0x00A8BC29..0x00A8BC2D`. The write replaces the
+member's local translation. The effective translation reader reaches
+the same entry through `0x00A9AC30 -> 0x00A8BBC0`. Equality with the
+authored position can exit early when no controller exists.
+
+On the admitted BGParts property path, `0x00A98020` obtains the cached
+parent matrix and `0x00A97DB0` obtains the current local SRT.
+It composes them at `0x00A97DEB` and submits the result to model slot 5
+at `0x00A97DFD`. A retained LayDefaultModelObject reaches
+`0x00625B20`. The ordinary branch with model index -1 and descriptor
+bit `0x20` clear can write the DrawableObject matrix through
+`0x00A61620 -> 0x00C39B10 -> 0x00BB7550`, subject to its model,
+dirty and transform guards. A valid indexed branch instead calls
+`0x00C398A0 -> 0x00C3C7E0` for its 0x30-byte record.
+
+Actor teardown at `0x00A788D0` unregisters and clears the retained
+target. On member release, a matching listener call through
+`0x00A789A0` also clears it. Slot `+0x38` reads the retained pointer
+on update. Actual fallback selection, model setup, drawable branch
+and visible delivery remain open.
+
 ### Start template and terminal sample
 
 Each selected SCB has one `@CCNT` BlockInstance. The records at file
