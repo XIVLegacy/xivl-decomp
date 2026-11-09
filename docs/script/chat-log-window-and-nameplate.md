@@ -172,6 +172,45 @@ The attachment selector, the `name_plate_offset` path and the tests the class
 does and does not hold are in
 [nameplate-layout-and-attachment.md](../actor/nameplate-layout-and-attachment.md).
 
+
+### NPC visibility startup
+
+STATIC. The installed 1.23b Lua 5.1 chunks are identified by logical name
+and decoded hashes in the pinned [script coverage
+manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8d2aa874ed4609c54f6e0d7a3330dadedb94878b/manifests/retail_lua_coverage.json).
+Decode them with that revision's LPB reader and list their instructions
+with `unluac_2025_12_23.jar`, SHA-256
+`98be0fa84ac73ca66dce2842a2e4512226f4c611b6500dc96415571fc5538fcc`.
+The PCs are zero-based within each prototype.
+
+`PopulaceStandard` root PCs 0-9 select NpcBaseClass and override only
+`initForEvent`. NpcBaseClass forwards `_onInit` and `_onUpdateWork`
+to CharaBaseClass at `main/f10` and `main/f17` PCs 0-4 respectively.
+The CharaBaseClass initializer, `main/f21` PCs 418-425, requests
+nameplate text and passes literal false to `_setNameplateVisible`.
+It binds `charaWork/property` with work ID 3006 at PCs 468-472.
+The display-name callback at `main/f22` PCs 0-5 requests text.
+
+CharaBaseClass `_onUpdateWork` at `main/f23` PCs 2-9 first asks the
+local player's depiction judge to process the actor. That call chain
+has no Lua nil guard. PCs 10-26 admit slot `_init` or the pair
+`charaWork` and `property`. On the successful path the two
+`isPropertyEnabled` calls run in order. A falsy result for query 1
+still admits query 5 and supplies the setter's value. A truthy result
+for query 1 supplies query 5's result to the setter. Both queries
+read their corresponding Lua
+`charaWork.property` entries through `charabaseclass_cliprog`
+`main/f2` PCs 10-22.
+
+In the native path, an admitted ordinary completion targeting
+`charaWork/property` can deliver those two strings through
+`0x00774156`. The special empty-name, `_init` record changes
+context state 1 to 2 at `0x0077533C` with its callback flag clear.
+The [completion path](../net/actor-work-completion-targets.md) and
+[nameplate visibility bit](../net/target-cycle-and-pick.md) describe
+the separate native guards. The first matching live notification,
+the two property values and successful depiction judge completion remain unknown.
+
 ## Unknowns
 
 1. The displayType to `log_color` slot mapping and to tab category. This needs
