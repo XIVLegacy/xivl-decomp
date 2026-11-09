@@ -346,6 +346,88 @@ notification. These STATIC paths depend on
 current state, callback return and delivery. The first matching ActionMenu
 event, initial false Trigger evaluation and first action remain UNKNOWN.
 
+### ActionMenu show and focus retirement
+
+The authenticated [ordinary ActionMenu form](#ordinary-actionmenu-property-elements)
+declares no Visibility, Focusable, Anime or IsAnchorWithin on its root.
+The UIElement constructor in the Window base chain supplies byte 2
+to the Visibility initializer at `0x0093C8AA -> 0x00973EF0`. The
+Control constructor requests Focusable=true at `0x0093905C..0x00939063`.
+These are holder and request facts. Effective visibility, focus and
+callback delivery still depend on current object state.
+
+Authenticate the following LPBs under `client/script/n1635q` with
+the [retail script manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8d2aa874ed4609c54f6e0d7a3330dadedb94878b/manifests/retail_lua_coverage.json).
+Read the decoded chunks through EOF using that revision's
+`tools/retail_script.py:decode_lpb` and
+`tools/build_quest_contracts.py:ChunkReader`. PCs are zero-based
+within each prototype.
+
+| Script | Carrier | Bytes | Carrier SHA-256 | Decoded SHA-256 |
+| --- | --- | ---: | --- | --- |
+| ActionMenuWidget | 97q1vwx5wpn1635q.le.lpb | 25126 | bceeae7dc8ac024767ba65a7c1ecbf8682f7c4e89b5c4eb55310d4e00e58af31 | 826b09ef44102a51a34f53276ecafed348744688b8ce987831e82f7833fdcecc |
+| WidgetBaseClass common | n1635q89r57y9rr_7vxxvw.le.lpb | 32996 | c549f746370366f9827570ee22201516e07a05d91829ca643a2e2ec0c73bcf3c | 7c45426b1a9f168557d84e420c5767c6fdea4abf90b976b276546af4e6a5de5f |
+| DesktopWidget connector | 65rzqvun1635q_7vww57qvs.le.lpb | 213487 | 0f8ca1585bb97c40d36cbf120dd3f6fa6351927c4530e3fad76a71582af95425 | 685a0a6dda2d4ae6fe06a9c684e57efd7e819938e145cb1a4a65df56555bd621 |
+
+The Desktop connector's `root/proto168` obtains static slot 7 at PC 2
+and, when the computed show flag equals true at PCs 31/32, calls
+its `show` at PC 34 with only the receiver. An exact true third
+explicit argument exits the show branch at PCs 35/36 after that call.
+With ordinary inherited dispatch, WidgetBaseClass common `root/proto40` checks
+`forceHideFlag` and `isShow` before any show request. An exact true
+result at PCs 13/14 returns before the request. Its `isShow` at
+`root/proto45` reads Visibility at PC 2 and compares against Hidden
+at PC 3. A value unequal to Hidden and Anime unequal to Hide at PC 10
+take the true path. If these getters resolve to the retained root,
+this branch can leave the initial anchor value false without a
+new show request. The inherited work path requests Anime=Show
+at PC 37 when its first explicit argument is unequal to false
+at PCs 27/28. The selected no-extra-argument call supplies nil there.
+
+On the [admitted native show path](sqwt-anime-property.md#show-and-hide-routines),
+`0x00925B17` requests Visibility 2. The comparison at
+`0x009BCBA9..0x009BCBAB` skips the changed store and callback for the
+same value. A changed admitted value can notify with descriptor
+`0x013596BC`. The derived IsVisible setter at
+`0x0093B7F8 -> 0x0093A3B0` uses descriptor `0x013593D8`. Its
+PreviewIsVisibleChanged route calls primary `+0x7C` at `0x0093BA2B`.
+The Window implementation `0x009261E0` requires a null logical parent
+E+`0x240` at `0x00926202` for its recursive show request. A retained
+attached Window bypasses that request. Visibility, IsVisible and the
+Shown descriptor `0x013573B0` at `0x00925B4E` are distinct from a
+matching IsAnchorWithin property notification. The show bookkeeping
+and its conditional focus request still apply.
+
+On a separate non-show branch of the Desktop connector
+`root/proto168`, when `getConfigFlag(1)` does not equal false,
+`checkKeyboardFocused` returns exactly true and the slot-7 widget's
+`isShowMacro` returns exactly false, PC 72 requests
+`changeFocusedWidget` with Desktop itself as the target. The
+[admitted focus transfer](#focus-transfer-and-refresh) stores the new
+keyboard-focus interface before sending LostAnchor to the old
+recipient. If the route reaches this ActionMenu Window, the low-bit
+test at `0x0093D5D8` must admit the E+`0x160` holder. With retained
+true and false from the anchor-gated `I+0x48` sample,
+`0x0093D609/0x0093D60B` stores false and requests a notification
+with descriptor `0x013594FC`. An equal false sample skips both
+at `0x0093D5E6` and continues to the call at `0x0093D617`.
+The script comparison alone leaves the current native focus interface
+and anchor recipient unresolved.
+
+The [keyboard alias path](sqwt-command-parameter-consumer.md#actionmenu-keyboard-aliases)
+supplies a separate gate writer. For a matching admitted command
+whose result equals 1, the KeyBinding flag from SqwtShowAnchor can
+reach `0x00921246 -> 0x0091B530`. A nonnull AnchorElement receives
+the Visibility 2 request at `0x0091B54E`. Its primary `+0x7C` cell
+`0x01069840 -> 0x0091B9D0` can raise AnchorVisibleChanged at
+`0x0091BACB` for the current nonnull anchor recipient. This is the
+separate global gate object's path. A delivered event can refresh the
+Window holder through the existing route above.
+
+The first effective root getter results, native focus and recipient
+identities, first matching ActionMenu event and first Effect_OFF
+action capture remain UNKNOWN.
+
 ## Property Trigger and shared event flags
 
 Original Trigger primary table +8 cell 0x0107D0E0 selects 0x009B0620.
