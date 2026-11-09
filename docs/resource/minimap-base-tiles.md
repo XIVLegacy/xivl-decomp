@@ -140,6 +140,43 @@ still apply. The first live invocation, current holder state, layout and
 page selection, and visible painting remain UNKNOWN. Ghidra CLI listings
 and direct reads of the identified PE confirm the locators above.
 
+#### Navigation form and scheduled update
+
+STATIC. For the checked MainMenuWidget table `0x00F9EF0C`, input code 4
+reaches slot `+0x38` from `0x004FFFC8` when the input gate admits it.
+The slot target `0x0051AC50` requires the passed object to match the
+current list at widget `+0x33C`. Selection 10 reads widget ID `0x3D`
+from `0x00F9AB62` and calls `0x0066ECA0` on `[menu+0x2C]`
+(`0x0051AC57..0x0051AC7A`). Factory remap cell `0x0066E92D` and jump
+cell `0x0066E898` select construction at `0x0066E4CC`. The constructor
+`0x0052AFE0` selects `\widget_c\MapNavigationWidget.form`
+at `0x0052B011` and installs primary table `0x00F9EFB4` at
+`0x0052B03F`. This is a distinct form from the ordinary MiniMap.
+
+STATIC. Widget attachment `0x004FFCF0` registers the retained listener
+and requests the form before storing the owner at widget `+0x2C`
+on the form helper's `AL=1` return (`0x004FFD02..0x004FFD3D`). When the
+listener and receiver are still current, the reached load callback
+`0x00506670` stores the root and calls primary `+0x10` at
+`0x00506768` on its admitted branch. With the navigation table in place,
+that slot selects the Ready producer above. The owner store must precede
+the callback's first read of widget `+0x2C` at `0x005066B5`. Which owner the installed
+ordinary control registers with, and whether that owner's field still
+names the control, remain UNKNOWN.
+
+STATIC. The MapScreenControl constructor installs callback storage at
+control `+0x978` and scheduler item at `+0x990`
+(`0x0067A937..0x0067A959`). The item constructor `0x00987090`
+appends a record containing the item pointer to the TLS scheduler owner's
+collection at `+0x20C8`. The scheduler transfers the range to the same
+owner's `+0x20B8` at `0x00986D1C` and scans that collection.
+The eligible walk calls the callback's primary `+4` at `0x00986E94`. With the
+original holder retained, cell `0x00FC3334` selects `0x008757E0`,
+which dispatches `0x00679EC0` on the same complete control and reaches
+`0x00679940`. Current dirty and Ready checks still gate its request.
+The first actual load callback, first scheduler tick, tile request and
+ordinary MiniMap visibility remain UNKNOWN.
+
 ### Numeric manager identity to layout sheet key
 
 STATIC. The selected manager's `+4` interface table `0x00FBFCEC`
