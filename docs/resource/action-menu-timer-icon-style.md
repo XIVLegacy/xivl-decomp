@@ -240,12 +240,78 @@ The meaning and effect of the Style's empty SqwtIsAutoSetSkin attribute remain U
 
 The conditional native [Window event passes](sqwt-window-trigger-order.md)
 visit an admitted Style collection before an admitted ControlTemplate
-collection. This does not establish initial evaluation or materialization order.
+collection. This is separate from
+[initial materialization order](sqwt-window-trigger-order.md#ordinary-actionmenu-property-elements)
+and first trigger evaluation.
 Native name scope, implicit animation recipients, binding activation, initial
-property-trigger evaluation, clock creation and capture order, stop resolution,
-effective ancestor composition, popup command delivery, completion delivery
-and rendered state remain UNKNOWN. Distinct names and declared write sets do not prove
+property-trigger evaluation, effective ancestor composition, popup command
+delivery, completion delivery and rendered state remain UNKNOWN. The
+[conditional Style clock path](#conditional-style-capture-and-named-stops)
+covers its selected capture and stop calls. Distinct names and declared write sets do not prove
 commutativity, full-form admission or a live result.
+
+### Conditional Style capture and named stops
+
+STATIC. The authenticated False trigger begins Effect_OFF before the
+two named stops. On the matching owner-event and action route, plain
+Trigger slot +8 at `0x0107D0E0 -> 0x009B0620` supplies the installed
+Style's embedded TriggerCollection C at Style+`0x24` to its action
+walk. The BeginStoryboard cell `0x0106D7DC -> 0x009AF6F0` updates the
+current action at C+`0x1C` through `0x009C24F0`, retains C at
+Begin+`0x68` and calls the Storyboard at `0x009AF73F`. A group
+target hit at `0x009AC4B4` admits setup at `0x009AC4CD` and ordered
+child preparation through `0x009AC360`. Each child requires its
+own target hit to reach setup. A group miss skips setup and can
+still reach the timer reset at `0x009AC4EB`. Admitted setup is
+synchronous and precedes the later timer-dispatched sample.
+
+For the Effect_OFF line 606 track, the [target lookup](sqwt-keyframe-target-binding.md#observed-target-cache-and-begin)
+must retain or find the named E2 Border. With the VisualOpacity
+descriptor `0x0135988C` and the checked Border property-info path
+retained, the read at `0x009B4896 -> 0x00911020` reaches the
+VisualOpacity ordinal-4 arm `0x0093F2DA`. It formats the Border's
+local float at `+0x48`. DoubleAnimation converts that text back to a
+scalar at `0x009B48A9`. With a successful read, the omitted From takes
+this value at `0x009B48F0/0x009B48F6`, and the explicit To selects 1
+at `0x009B4911`. An admitted setup with a failed property read instead
+leaves the temporary scalar zero before offsets. Setup writes the
+track's state. The local input is separate from effective drawn
+opacity.
+
+StopStoryboard cell `0x0107DABC -> 0x009B4270` with an empty cache
+searches the supplied C through `0x009C2530`. The plain Trigger
+name arm `0x0107D0E4 -> 0x009B1740` returns the first matching
+retained action name. A name miss skips dispatch at `0x009B428F`.
+A hit passes zero at `0x009B4296` and calls the named Begin's
+Stop at `0x009B4298`. The checked Begin cell
+`0x0106D7E0 -> 0x009AF760` requests clearing the current action when
+its retained collection is nonnull and the Stop argument is zero
+at `0x009AF76C..0x009AF775`, then stops its own timelines. The
+clear does not compare the stopped Begin with the collection's
+current action. The Storyboard Stop path calls each child at
+`0x009CAD2B`, then its own stop at `0x009CAD42`. The timer stop at
+`0x009AC3D1/0x009AC3D6` resets its timer and clears the timeline's
+`+0x128` byte. These Stop bodies perform no final property sample,
+restore or completion command.
+
+STATIC. The collection constructor clears C+`0x20` at `0x009C27C9`.
+At `0x009C24FA..0x009C2510`, the replacement helper calls the
+current occupant's Stop with argument 1 if that byte is 1, the
+current pointer is nonnull and differs from the replacement. A
+named clear uses null as the replacement, so it can also stop the
+current occupant. The nested Stop skips clearing the collection.
+With the byte still zero, the False walk can prepare Effect_OFF, then clear the
+collection's current action by stopping the previously begun
+Effect_ON or Loop_Anime that retains the same C. Those calls
+disable the named timelines while the newly prepared Effect_OFF
+timer can remain armed. The separate True walk can similarly
+prepare Effect_ON and Loop_Anime before stopping a previously
+begun Effect_OFF. These conclusions require the stated guards
+and retained action objects.
+
+First matching event, target cache contents, numeric capture,
+clock phase, overlapping writes, reentry, later C+`0x20` state
+and effective composition remain UNKNOWN.
 
 ### Conditional SqwtIsAutoSetSkin property path
 
