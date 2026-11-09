@@ -372,13 +372,24 @@ EAX holds the old manager nibble and ECX the new nibble. `JA` rejects
 old greater than new. Equal keys replace the previous candidate, so
 the later retained manager visit wins a full tie.
 
+STATIC. On the initial region path, `0x0079DB4C` appends child
+records to the region vector and `0x0079DB54` advances the file cursor
+by `0x30`. The all-rows filter `0x4003` at `0x0064E89F` copies
+that vector in index order through `0x0079CE20`. The submission
+loop at `0x0064EA01..0x0064EA7E` skips exact types 0 and 1.
+For each admitted manager, `0x0064EA3D..0x0064EA4F` inserts a node
+using the sentinel and the old tail. The stores at
+`0x0064EA63/0x0064EA6D` update sentinel previous and old tail next.
+The initial query follows the resulting source order. On an unchanged
+list, a full tie favors the later eligible child in that order.
+[Region manager construction](map-layout-selector.md#ordinary-manager-update).
+
 The result is conditional on retained manager, list and tree state.
 The [folder bounds and tree order](#folder-bounds-and-tree-order) are
-reproducible given the registered vector. Actual inventory membership,
-registration order, manager readiness, list construction order, selected
-tavern layout/page, live cadence and painting remain UNKNOWN. Optional
-folder geometry and transforms require their own admission. NaN,
-infinities and signed-zero boundary cases are outside this finite
+reproducible given the registered vector. Current inventory membership,
+list mutation, manager readiness, the live winner and page delivery
+remain UNKNOWN. Optional folder transforms require their own admission.
+NaN, infinities and signed-zero boundary cases are outside this finite
 ordered interpretation.
 
 ### Manager settings and local point
@@ -468,6 +479,33 @@ of traversal order. Equal priorities and fallback queries require
 the checked tree order. Serialized typed-node enumeration alone does
 not establish the selected inventory's membership or registration
 sequence.
+
+### Folder exclusion flag
+
+STATIC. The [registration branch](layout-block-activation.md#folder-registration)
+tests folder byte `+0x62 & 1`. The set path appends to the resident
+range at complete manager `+0x1C8/+0x1CC` through
+`0x0064DF28..0x0064DF32`. The clear path appends to
+`+0x110/+0x114` at `0x0064AFF3..0x0064AFFE`.
+Tree construction reads the deferred range at
+`0x0064D28B..0x0064D2CE`.
+
+Both paths construct a BlockAABB. The masked store at
+`0x006427AD..0x006427BB` copies folder `+0x62 & 0x10`
+into block `+0x12 & 0x10` and preserves the other destination bits.
+Selector 1 skips a block with that bit set before containment at
+`0x00642245..0x00642249` and before fallback scoring at
+`0x006420B5..0x006420B9`. The [optional box transform](#optional-folder-box-transform)
+uses a separate dword. The traced tree, query and activation
+paths keep the copied bit on the same AABB. Other aliases and
+replacement remain UNKNOWN.
+
+MEASURED. In the [Bridge inventory replay](#manager-settings-and-local-point),
+the exact DivideMap definitions at zero-based indices 188 and 190
+have flags `0x05` at file `0x89A2` and `0x04` at `0x8A12`.
+Both clear the exclusion bit. The first selects the resident branch
+and the second selects the deferred branch. These bytes establish
+the authored flags. Live admission and selection remain UNKNOWN.
 
 ### Optional folder box transform
 
