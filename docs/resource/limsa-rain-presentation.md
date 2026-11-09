@@ -3,8 +3,10 @@
 The resource selected for supplied Limsa region key `101` and weather `8007`
 contains typed DrawEnv definitions and a referenced `vfx_cam_rain` definition.
 The native Weather resource constructs a DrawEnv container and can register
-the ten selected definitions in the map its blend path reads. The blend
-combines name-matched work. The checked application Weather load supplies a
+the ten selected definitions in the map its blend path reads. Successfully
+initialized work enters the resource tree under the exact definition names
+and can be copied into the weather owner. The blend combines name-matched
+work. The checked application Weather load supplies a
 null descriptor receiver and skips the alias submission. Deferred block
 binding can populate the two VFX resource fields through VFX slot 22. The
 later direct instance setup can then request the selected Qix effect group.
@@ -160,8 +162,48 @@ is complete object `+0x18`. The definition tail at
 `0x00A755C0`. Its object slot 39 selects `0x00A823E0 -> 0x00A82020`.
 The diagnostic-anchored
 [DrawEnv initialization finding](draw-env-texture-binding-boundary.md#caller-observations)
-owns the generic work-pointer setup. Which selected objects supply valid
-work to the later Weather tree remains open.
+owns the generic work-pointer setup.
+
+### Selected work and owner tree
+
+STATIC. In `0x00A82020` the object retains R+4 at complete offset
+`0x14` and clears the previous work. At `0x00A82072..0x00A820AA`
+it requests `0x458` bytes, constructs work W through `0x00C1FDD0`
+on successful allocation, and stores W at complete offset `0x18`.
+A zero result exits before the definition reads. The nonnull path
+passes relocated definition `+8` to `0x00C1F420` at `0x00A820D1`.
+That call stores the name pointer at W+`0x410` before optional lookups.
+
+The selected definitions supply the following inputs, checked in their
+relocated records and the LLVM 21.0.0 x86-32 decode of the work builder.
+
+| Definition input | Selected values and effect |
+| --- | --- |
+| Directional list `+0x20` | Null for `dwev_sky`. Each other record supplies one `0x30`-byte entry to the path at `0x00A820DA..0x00A82110`. |
+| Light set `+0x24` | Present on all ten. The `0x00A81C20` helper can store a light set at W+`0x328`. The additional list at `+0x14` has count zero on all ten. The live block or fallback result at `0x006453A0` and later type-1 receiver at `0x00A81D7C..0x00A81DD0` remain unresolved. |
+| Wind list `+0x18/+0x1C` | Only `dwev_00` and `dwev_11` request one key each, `wind_02_0000` and `wind_11_0000`. Weather slot `+0x5C` selects `0x00A8AC30`, which forwards to the exact relocated-definition lookup at `0x00A88E80`. The later wind call requires a nonnull lookup. |
+| Environment-map list `+0x28` | The eight numbered records each request index zero from the same-wrapper `envmap_NN` definition through that same lookup. Sky and cloud skip this path. A nonnull base result is required for the handoff to W+`0x35C`. |
+
+The default cube creator's fresh path uses `0x00AAD030`. It prepares
+and clears the slot array through `0x00AACFF0`, then the null context
+guard at `0x00AAD074` bypasses texture loading. On successful preparation
+with no intervening writer, the nonnull base's slot `+0xAC` can return
+zero for index zero, which `0x00A8239F..0x00A823A6` writes to W+`0x35C`.
+A nonzero texture needs another writer before that read.
+
+The tree build at `0x0083BF38..0x0083BFDC` reads the work pointer and
+its name, makes four copies and stores the original and copies under
+the name in R+`0x3D0`. The insertion path tests no optional light,
+wind or environment-map result. All ten names enter with valid
+registered objects, work allocations and copies. The tree build
+requires a usable W for the name read.
+
+With R retained at O+`0x68` and primary slot 18 returning true at
+`0x007E916F`, `0x007E912F..0x007E913E` passes R's tree and
+O+`0x20` to `0x007E7C50`. That call adds the names with five fresh
+work copies each. The destination can contain other names. The live
+owner resource, selected blend pair, optional receiver results and
+rendered output remain open.
 
 The continuing blend branch uses the following contracts:
 
