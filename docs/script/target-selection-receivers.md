@@ -98,16 +98,74 @@ written to `gameParameter` at PCs 416-417. The second gates battle declarations 
 sync at PCs 208-239. Declared self and peer nesting sizes are 512 and 64 for `battleSave` and 128 and 16
 for `battleTemp`.
 
-`initBattleSync` (`chara/charabaseclass_battle` `main/f50` PCs 0-39 and 259-265) declares common float
-`potencial` and the self-only two-Boolean `negotiationFlag`. CharaBaseClass appends those additions only
-for the local player (`main/f21` PCs 212-239). TargetParameterWidget's `setRank` (`main/f11` PCs 5-21)
-reaches `isNotoriousMonster` only for literal false `isPlayer`, true property 3 and battalion unequal to
-1. `chara/charabaseclass_cliprog` `isUndead` (`main/f20` PCs 0-14) exits for literal true `isPlayer` or
-false property 3. PlayerBaseClass `isPlayer` returns true (`main/f0` PCs 0-1), so both paths bypass the
-target's `potencial` read (`charabaseclass_battle` `main/f45-f46`).
+`initBattleSync` (`chara/charabaseclass_battle` `main/f50` PCs 0-39 and 259-265) declares the common
+float `potencial`. CharaBaseClass uses the local-player branch for the extra descriptors that include
+the two-Boolean `negotiationFlag` (`main/f21` PCs 212-239). TargetParameterWidget's `setRank` (`main/f11` PCs 5-21)
+checks for literal false `isPlayer`, literal true property 3 and battalion unequal to 1.
+`chara/charabaseclass_cliprog` `isUndead` (`main/f20` PCs 0-14) exits for literal true `isPlayer` or
+literal false property 3. PlayerBaseClass `isPlayer` returns true (`main/f0` PCs 0-1), so both paths
+bypass the target's `potencial` read (`charabaseclass_battle` `main/f45-f46`).
+
+## PopulaceStandard work and target guards
+
+`chara/npc/populace/populacestandard` requires NpcBaseClass and declares it as
+parent (root PCs 0-6). Its sole override is `initForEvent` (root PCs 8-9),
+which passes literal false to `_setGroundOn` (`main/f0` PCs 0-3). The
+[native parent table](native-class-registration-parents.md#parent-table) joins
+NpcBaseClass to CharaBaseClass. NpcBaseClass `isPlayer` returns literal
+false (`main/f0` PCs 0-1). NpcBaseClass `_onInit` uses the first
+received value as the NPC class ID (`main/f10` PCs 78-84). It forwards
+values 2 and 3, the game-parameter and battle switches, as inherited
+arguments 1 and 2 after self (PCs 0-4). The selected NPC event and battle
+hooks use separate `npcWork` and ground state.
+
+For this nonself actor, CharaBaseClass `_onInit` (`main/f21`) appends
+64-byte `battleSave` and 16-byte `battleTemp` descriptors when the battle
+switch is truthy (PCs 99-128). The game-parameter switch controls whether
+the appended list is included in `charaWork._sync` (PCs 129-162) and
+whether common parameter nesting is declared (PCs 164-202). The battle
+switch gates battle initialization (PCs 208-239) and the nonself bind
+2002 for `potencial` (PCs 458-467). With battle true and game-parameter
+false the battle initializer still accesses the omitted nesting.
+Provisioning through these paths requires both switches true and
+successful initialization.
+
+The [retained creation census](../../config/actor_instantiation.json) has
+269 nonself `0x00CC` records for class `PopulaceStandard` and path
+`/Chara/Npc/Populace/PopulaceStandard` under `observed.classes`. The
+shapes `iFFiii` (162) and `iFFiis` (98) have both switches false.
+The shapes `iTFiiiTFFFFFFFis` (7) and `iTFiiiTFFFFFFFii` (2) have
+game-parameter true and battle false. In all four shapes the inherited
+initializer omits battle nesting. The [stream
+reader](../actor/actor-instantiation-and-self-player.md#stream-reads)
+supplies the retained tagged inputs in order after the controls. Their
+application requires successful class binding and dispatch.
+
+The base sync list includes the 32-Boolean `charaWork.property` array with
+either switch value (PCs 129-162). Its tag and bind 3006 are separate
+(PCs 404-415 and 468-472). The examined initializers and selected direct
+Lua hooks have no explicit assignment to element 3. CharaBaseClass's
+`isPropertyEnabled(3)` reads Lua element 3 (`chara/charabaseclass_cliprog`
+`main/f2` PCs 10-22). The [wire property
+contract](https://github.com/XIVLegacy/xivl-client-structs/blob/8ee5be22e27b63b0442d4a413d584238796a744c/docs/actor-hostility-classification.md#wire-inputs)
+identifies canonical element 2 and `0x0137` hash `0x7B675313`. The extra
+property-1 check applies to query 2.
+
+| Target path | Result for its independently resolved actor |
+| --- | --- |
+| `setParameter` | `widget/targetparameterwidget` `main/f7` PCs 7-17 call `isUndead` for a nonnil actor. `isUndead` (`main/f20` PCs 0-22) returns false for literal true `isPlayer` or literal false property 3. A returned nil property value falls through to `isNotoriousMonster`. |
+| `setRank` | `main/f11` PCs 0-21 and 40-43 hide on a failed guard. For a nonnil actor, literal false `isPlayer`, literal true property 3 and battalion unequal to 1 admit the level call. `chara/charabaseclass_parameter` `main/f2` PCs 0-3 read `parameterSave` directly. The level call must return before the potential path. The game-parameter-false shapes omit that nesting. The base battalion getter returns 0 (`main/f43` PCs 0-1). |
+
+`chara/charabaseclass_battle` `isNotoriousMonster` and `getPotencial`
+(`main/f45-f46`) read `charaWork.battleSave.potencial` without an
+intermediate nesting guard. A literal false property returned in each
+path bypasses that read. A returned nil property value and an error
+indexing an absent array are separate outcomes.
 
 ## Open
 
 The writer and purpose of actor-control byte `+0x5C` remain open. The group lookup registered at
 `0x007554B9` reaches `0x00701140` through `0x00708410`. Solo group availability, live callback entry,
-work availability, party ownership, negotiation values and packet application remain unverified.
+work availability, party ownership, negotiation values and packet application remain unverified. The
+creation census supplies no current property value or packet and widget ordering
+for a particular PopulaceStandard selection.
