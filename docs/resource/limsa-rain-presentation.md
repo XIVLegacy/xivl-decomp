@@ -2,14 +2,14 @@
 
 The resource selected for supplied Limsa region key `101` and weather `8007`
 contains typed DrawEnv definitions and a referenced `vfx_cam_rain` definition.
-The checked native paths blend name-matched DrawEnv work and submit two VFX
-aliases through an initialization descriptor. These are conditional static
-contracts. The checked application Weather load supplies a null descriptor
-receiver and skips the alias submission. Deferred block binding can populate
-the two VFX resource fields through VFX slot 22. The later direct instance
-setup can then request the selected Qix effect group. The installed group
-selects one rain child through the VINS, LEAF and VEFF records. Live cache
-population, effect creation and rendering remain open.
+The native Weather resource constructs a DrawEnv container and can register
+the ten selected definitions in the map its blend path reads. The blend
+combines name-matched work. The checked application Weather load supplies a
+null descriptor receiver and skips the alias submission. Deferred block
+binding can populate the two VFX resource fields through VFX slot 22. The
+later direct instance setup can then request the selected Qix effect group.
+The installed group selects one rain child through the VINS, LEAF and VEFF
+records. Live cache population, effect creation and rendering remain open.
 
 The [weather transition finding](../net/weather-transition-runtime.md#limsa-rain-selection)
 owns the packet, region lookup and queue route to resource `0x29D90013`.
@@ -32,6 +32,9 @@ and dependency rows. These observations used preserved files without client
 execution.
 The vector-insertion tail at `0x0079EC05..0x0079ECD2` was decoded directly
 from the same PE.
+GNU objdump 2.46.1 and LLVM 21.0.0 x86-32 disassembly checked the DrawEnv
+constructor and registration branch. Independent PE32 and LYB relocation
+reads checked the interface cells and selected list records.
 
 The DAT's outer header dword at file `0x20` selects the `SEDBlyb` at
 `0x5E0`; its header length at `0x5EE` is `0x30`. Embedded LYB offsets
@@ -46,18 +49,18 @@ native loading and creation contracts.
 The selected LYB contains these `0x3C`-byte records of class ID `0x0DA4`,
 path `DrawEnvObjects/DrawEnv/DrawEnvObject`:
 
-| Name | LYB offset | File offset |
-| --- | --- | --- |
-| `dwev_sky` | `0x6058` | `0x6668` |
-| `dwev_cld` | `0x6094` | `0x66A4` |
-| `dwev_00` | `0x60D0` | `0x66E0` |
-| `dwev_10` | `0x610C` | `0x671C` |
-| `dwev_20` | `0x6148` | `0x6758` |
-| `dwev_11` | `0x6184` | `0x6794` |
-| `dwev_21` | `0x61C0` | `0x67D0` |
-| `dwev_12` | `0x61FC` | `0x680C` |
-| `dwev_22` | `0x6238` | `0x6848` |
-| `dwev_13` | `0x6274` | `0x6884` |
+| Name | LYB offset | File offset | Wrapper list index |
+| --- | --- | --- | --- |
+| `dwev_sky` | `0x6058` | `0x6668` | 34 |
+| `dwev_cld` | `0x6094` | `0x66A4` | 36 |
+| `dwev_00` | `0x60D0` | `0x66E0` | 37 |
+| `dwev_10` | `0x610C` | `0x671C` | 38 |
+| `dwev_20` | `0x6148` | `0x6758` | 39 |
+| `dwev_11` | `0x6184` | `0x6794` | 47 |
+| `dwev_21` | `0x61C0` | `0x67D0` | 48 |
+| `dwev_12` | `0x61FC` | `0x680C` | 49 |
+| `dwev_22` | `0x6238` | `0x6848` | 50 |
+| `dwev_13` | `0x6274` | `0x6884` | 55 |
 
 Their class descriptor is at LYB `0x4348`, file `0x4958`. This typed
 inventory does not identify which spatial or timeline lane is active.
@@ -89,6 +92,49 @@ The first alias/key also occurs at outer row `0x5C0` in the cloud group.
 The resource separately contains `vfx_cloud` at LYB `0x83C8`, file `0x89D8`.
 The `cbind_rain` and `vfx_cam_rain` names alone do not prove camera binding.
 
+## DrawEnv container and definition registration
+
+STATIC. Let R be a complete MapLayoutWeather resource and P a relocated
+definition. The mode-zero constructor chain `0x0083C99D -> 0x0083C300`,
+`0x0083C32D -> 0x00651CD0` and `0x00651D01 -> 0x00A8D770` preserves R.
+The base constructor clears R+`0xD0` at `0x00A8D8D7`. At
+`0x00A8D956..0x00A8D96C` it calls slot 8 of `[0x01365B08]`, calls slot 5
+on the returned interface, and stores the second result at R+`0xD0`.
+
+Default startup `0x00A77A30` publishes the wrapper through
+`0x00AB70F0`, installs the Draw manager through `0x00A84290` and passes
+the connector to wrapper slot 1 at `0x00A77C64`. Wrapper cell
+`0x010A8AE0 -> 0x00ABB970` forwards to connector slot 5. Its cell
+`0x010A0280 -> 0x00A841C0` returns the Draw manager interface at
+`[0x01365770]+4` when the manager exists. Draw manager cell
+`0x010A041C -> 0x00A842D0` requests a fresh LayoutDrawEnvContainer
+through `0x00A751E0` and returns its +4 interface or null. The container
+installs table `0x0109EC50` and requests hash capacity 16 at complete
+offset `0x0C`. Valid storage requires successful allocation.
+
+The state-4 path at `0x00645490` requires a nonzero result from
+`0x006434F0`. The call at `0x006454C6..0x006454D8` passes the stored
+pointer `[R+0x144]` and zero to Weather slot 13, `0x00642E10`.
+With the identity checks and a nonnull buffer, it relocates the payload
+through `0x00C1EF90` and calls slot 12, `0x0064F430`. The selected
+mode-2 DAT's first root wrapper is at file `0x3C9C`. Its first two fields
+select the list at file `0x3CBC` and count `0xD3`. The table above
+identifies the ten entries whose class chain matches
+`DrawEnvObjects/DrawEnv/DrawEnvObject` and bypasses every preceding
+class branch in this wrapper walk.
+
+At `0x0064F5FA..0x0064F61D` the class match and nonnull R+`0xD0`
+admit container slot 1 with P. Cell `0x0109EC54 -> 0x00A75250`
+requires nonnull P, a constructed `0x40`-byte object and a true
+`0x00A817C0` result. It requests insertion of P and the object's +4
+interface at `0x00A752F7..0x00A75309`. The map is the same complete
+container `+0x0C` storage used by the later Weather iterator. With
+fresh capacity 16 and these ten distinct inserts, the pre-insert
+threshold `used + (used >> 1)` reaches at most 13. All ten bypass
+growth under those conditions. The insertion result is unchecked.
+Actual load admission, storage success and per-object work validity
+remain conditions.
+
 ## Conditional DrawEnv blend contract
 
 Let R be a complete MapLayoutWeather resource and O the weather owner used
@@ -109,11 +155,13 @@ buffers (`0x0083BBE0`, calls at `0x0083BF50..0x0083BF6E`).
 On default LayoutDrawEnvObject interface table `0x0109FD44`, slot 40 is
 `0x00C4BAE0`. It returns interface `+0x14`; the complete-object locator
 at `0x0118AAC0` records interface offset four in its `+4` field, so this
-is complete object `+0x18`. The diagnostic-anchored
+is complete object `+0x18`. The definition tail at
+`0x00A8DDD1..0x00A8DDE9` calls nonnull container slot 8,
+`0x00A755C0`. Its object slot 39 selects `0x00A823E0 -> 0x00A82020`.
+The diagnostic-anchored
 [DrawEnv initialization finding](draw-env-texture-binding-boundary.md#caller-observations)
-owns that work-pointer setup. The checked path does not establish the
-selected DAT's population of R+`0xD0` or prove that all ten authored
-definitions enter the collection.
+owns the generic work-pointer setup. Which selected objects supply valid
+work to the later Weather tree remains open.
 
 The continuing blend branch uses the following contracts:
 
