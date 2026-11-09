@@ -381,11 +381,21 @@ is absent, resolves the class record of `DesktopWidget` through `0x00CC7A20` and
 passes it to `0x004D87C0`. That reaches `0x00774700`, which builds a request
 with key `0xC0000024`, path `/Widget/DesktopWidget`, class `DesktopWidget`, name
 `desktopWidget` and an empty value vector, so `desktopWidget` is a global in
-the same way. The conditions inside `0x00774700` are NOT TRACED. Because the
-call sits in the self branch, before the submission of the self record at
-`0x007750B0`, the request joins the queue ahead of the self record, which is
-INFERRED. It binds in queue state 8. Its `_onInit` receives no argument after
-`self`.
+the same way. In this branch, `0x0077473A` requires the supplied control's
+`+0x5C` byte clear and `0x007747C9` compares the class with `DesktopWidget`.
+The request at `0x00774969` passes a null owner and a zero immediate flag.
+The deferred construction branch builds the descriptor at `0x00774680`
+and enqueues it at `0x0077469F`. The constructor leaves candidate `+0x134`
+null, which skips the optional owner predicate at `0x00766748`.
+
+The self-key comparison at `0x00774B52` and Desktop request at `0x00774BD5`
+precede the self stream terminator check at `0x00774C47` and the self
+submission at `0x007750B0`. Request order and binding order are separate.
+Queue state 8 selects the Desktop key at `0x007666BE` after the
+[initialization gates](#initialization-gates). Its `_onInit` receives no
+argument after `self`. The
+[ActionMenu creation](../resource/sqwt-keyframe-target-binding.md#actionmenu-creation-and-registration)
+is one child request inside the Desktop initializer.
 
 ## Static actors
 
@@ -445,8 +455,6 @@ artifact.
 - The source of the constructor byte at `+0x175` is untraced. Take it false.
 - The owner readiness test `0x00765410` at the commit label is untraced. Take it
   true.
-- The conditions inside `0x00774700` that build the DesktopWidget request are
-  untraced.
 - The visitor slots of value tags `0x07` to `0x09` are untraced, and no retail
   `0x00CC` record carries them.
 - The initial value of `CoreWork+0x0C` is untraced.

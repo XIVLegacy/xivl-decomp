@@ -38,6 +38,50 @@ as `Visibility` and binds `Storyboard.TargetName` `OneWay` from
 | `UILuaCommands.ChangePagePrev`, 333 | 336 | `Name` | 337 | `0:0:0.2` | `Hidden` |
 | `UILuaCommands.ChangePagePrev`, 333 | 342 | `StringData.Value1` | 343 | `0:0:0` | `Visible` |
 
+## ActionMenu creation and registration
+
+STATIC. The [local DesktopWidget](../actor/actor-instantiation-and-self-player.md#local-desktopwidget)
+requests ActionMenu during initialization. Authenticate the installed
+DesktopWidget, connector, ActionMenuWidget, WidgetBaseClass and its common chunk with
+the pinned [Lua coverage manifest](https://github.com/XIVLegacy/xivl-client-scripts/blob/8d2aa874ed4609c54f6e0d7a3330dadedb94878b/manifests/retail_lua_coverage.json).
+The prototype numbers and PCs below are zero-based.
+
+DesktopWidget calls its superclass with the desktop parameters at
+`root/proto0` PCs 8-12. WidgetBaseClass invokes the common setup and the
+selected `init` at `root/proto0` PCs 83-95. The Desktop connector's
+`root/proto0` PCs 316-317 call `setDefaultWidgetLocation`. Its
+`root/proto142` PCs 63-69 request slot 7, class `ActionMenuWidget`, a nil
+name, widget index 2 and visible flag false. Earlier slot calls must return
+for execution to reach slot 7. The selected call has no combat or menu
+condition.
+
+The connector's `root/proto518` substitutes the class name for nil,
+calls `DesktopWidget.createWidget` and stores the returned instance in
+slot 7. DesktopWidget `root/proto2` requires `/Widget/ActionMenuWidget`
+at PC 15 and requests `_createActor` at PC 28 with the Desktop receiver
+as owner. The native at `0x00709640` takes the create branch with reuse
+false. WidgetBase's construction slot `0x006E3920` calls `0x0078BBB0` at
+`0x006E39AA`, leading to `_onInit` submission.
+
+The common widget initializer requests form loading before the selected
+`init`. Its `root/proto0` PCs 46-58 request root Hidden for a non-Desktop
+form. PCs 62-64 separately store the supplied false flag. ActionMenuWidget
+`root/proto0` PCs 107-109 requests `UILuaCommands.FinishAnimation`.
+The common wrapper at `root/proto54` PCs 0-4 supplies `_widget` and
+numeric 5. In the native numeric branch, `0x006EB801` supplies the
+condition to `0x007172A0`. The `_widget` arm requires a form record
+and nonnull root at `0x0053ABA0..0x0053ABA9`, then uses the root name
+at `+0x164` in the insertion at `0x0053ABE5`. The
+[subscription gate](sqwt-command-parameter-consumer.md#subscription-gate)
+describes the stored condition and priority.
+
+The connector later calls `updateActionMenuWidget` with true, config
+flag 1 and true at `root/proto143` PC 6. Its `root/proto168` reads the
+existing slot 7. The show request at PC 34 requires the second argument
+true and subtarget selection false. The third argument true exits the
+show arm before its focus request. Queue admission, successful loading
+and the first live show or completion remain unverified.
+
 ## OBSERVED page peer binding initialization
 
 The checked `ActionMenuWidget.form` declares four page Labels under the
