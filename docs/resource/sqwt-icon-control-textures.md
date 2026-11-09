@@ -126,6 +126,46 @@ render-argument `+0x10` color pointer to `0x00CA5670`. Its paths call
 Constant `0x00F54F70` is float 1.0. This selects the full normalized
 texture, without an atlas-cell or source-crop selection in this path.
 
+## World IconControl projection
+
+STATIC. On transition to batch mode 2 in world draw mode,
+`0x00CA56C5..0x00CA56E0` selects programs 5 and 1 and requests the
+matrix. The quad call at `0x00CA56FC` passes the anchor at `0x0130BBC4`
+in either case. `0x00CBA8D0` copies its
+32-byte vertices without arithmetic. The declaration at `0x0130C2C8`
+describes anchor XYZ, packed color, UV and local XY at offsets 0, 12,
+16 and 24. The batch flush at `0x00CBA7F0` binds that declaration before
+its draw request at `0x00CBA8C1`.
+
+Map these bounded original shader spans through the PE sections and
+decode them with `tools/d3d9_shader_decode.py`. Both are vertex shader
+model 2. The selected backend branch at `0x00CA358B..0x00CA35C8` can
+choose the alternate vertex object for the same selector.
+
+| Object | Payload VA | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| Vertex 5 | `0x01109C80` | 504 | `96db80e3a4eb88f50cd45732854ebe0e68d639ba05dc5a1f9636e2ea4731c69b` |
+| Vertex 7 | `0x0110A100` | 528 | `6c0510f97939eca4665e607d11ff4f04b4046f815beb89b477e9ae6248eed22a` |
+
+Both programs use the same position calculation. For anchor `A`, local
+offset `(u,v)` and constant rows `cN`, the data flow is
+
+1. `L = u*c0.xyz + v*c1.xyz + c3.xyz`.
+2. `B = A + L.x*c8.xyz + L.y*c9.xyz + L.z*c10.xyz`.
+3. `clip = B.x*c4 + B.y*c5 + B.z*c6 + c7`.
+
+The programs output homogeneous clip coordinates. The local displacement
+enters before perspective division. Vertex 7 also exports clip position
+as TEXCOORD1. On the mode transition, matrix selector 0 at `0x00CA56E0`
+reads the accumulated WindowContext matrix retained at `0x013764A8`.
+The vertex-5 matrix arm
+`0x00CA3188` supplies transform slot 1 times slot 2 for `c4..c7` and the
+affine inverse of slot 1 for `c8..c10`. The constant tables identify
+those inputs as World, ViewProj and ViewInverse, respectively. The
+[WindowActor parent scale](../actor/window-actor-anchor-producer.md#context-parent-scale)
+can already depend on view depth and lens before the shader executes.
+The active viewport and final icon footprint remain open.
+
 ## OBSERVED: size-dependent numeric sampler requests
 
 Setter `0x00CA4130` compares the argument with state `0x01376494`.

@@ -229,6 +229,45 @@ entry/exit `+0x180/+0x190/+0x1B8`. Ownership would have required the same
 join. This describes the unavailable evidence boundary; it is not a pending
 capture request.
 
+## Context parent scale
+
+STATIC. On the admitted update with a nonnull `+0x1A4` context, a
+nonzero context `+0x12B` and a successful actor lookup at `0x007F992E`,
+`0x007F9948` calls the matrix helper `0x007F9210`. The call at
+`0x007F997C` supplies its result as the incoming parent matrix of that
+context. Failed actor lookup supplies a null matrix.
+
+The helper transforms `+0x190` plus `+0x164` with matrix slot 1 at
+`0x007F9340` and forms `d = -0.0 - viewZ` at `0x007F9345..0x007F934D`.
+For finite `d`, define `b` as the binary32 value `0.0075` at `0x00FF1480`.
+Define `P(d,b)` as `b*d/10` for `0 < d < 10`, `b*d/17.5` for
+`d > 17.5`, and `b` otherwise. The first matching option at `+0x1BC`
+selects the scale below.
+
+| Option | Pre-camera scale | Instruction span |
+| --- | --- | --- |
+| Bit `0x02` | `d*b/6.4` | `0x007F9358..0x007F937F` |
+| Bit `0x04` | `P(d,b)` | `0x007F9384..0x007F93F1` |
+| Bit `0x08` | `1.5*P(d,b)` | `0x007F93F6..0x007F9469` |
+| Otherwise | Start with `0.006` when bit `0x100` is set, or `b` otherwise. Apply the `d/10` factor for `0 < d < 10`. Apply the `d/17.5` factor for `d > 17.5` only when bit `0x40` is set. | `0x007F946E..0x007F951C` |
+
+The divisors are loaded as binary64 and equal the widened binary32 values.
+The alternate base is binary32. These formulas describe data flow without
+fixing the intermediate rounding. With the
+camera pointer at `[WindowActor+0x118]+0x64` nonnull, the common tail
+multiplies the scale by `tan(camera[+0x40C]) / 1.016795039176941`
+at `0x007F952F..0x007F954C`. The output at `0x007F9588` is a diagonal
+scale `(s,-s,s,1)` with zero translation.
+
+Context composition at `0x008CD90D` combines its translation with the
+parent matrix. The optional local visual matrix enters at `0x008CDA43`.
+Child recursion at `0x008CDD75..0x008CDDAE` can carry the accumulated
+matrix to descendants. Under the matching view transforms in the
+[world icon shader](../resource/sqwt-icon-control-textures.md#world-iconcontrol-projection),
+depth-linear scale can compensate for perspective shrink. The exact
+option payload for the live NamePlate and final viewport placement
+remain open.
+
 ## Boundary
 
 The evidence proves that the accepted local PrimaryLabel consumed the
