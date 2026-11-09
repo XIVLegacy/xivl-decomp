@@ -23,14 +23,14 @@ Executable: retail FINAL FANTASY XIV 1.23b `ffxivgame.exe`, build
 `9341f2b4567440b310a4d494f5cc5599ca334ba51c8042247317ff466492f2e9`, image base
 `0x00400000`. All addresses are VA.
 
-Producing tools are `ghidra` CLI decompile and cross-reference queries and
-Capstone 5.0.7 x86-32 disassembly of raw PE reads. Decompiler output was
-treated as a lead and every cited branch was read from the disassembly. The
-bytes and constants this page relies on are pinned as `staticChecks` rows in
-`config/remote_actor_auto_move.json`.
+Producing tools are Ghidra CLI decompile and cross-reference queries,
+Capstone 5.0.7 x86-32 disassembly, LLVM 21.0.0 disassembly and original PE
+section mapping. Decompiler output supplied leads for instruction checks.
 `python tools/verify_remote_actor_auto_move.py --exe <ffxivgame.exe>`
-authenticates the executable identity and every row against a supplied copy.
-No live session was observed.
+authenticates the executable and the listed `staticChecks` ranges in
+`config/remote_actor_auto_move.json`. The Cibm producer and easing constants
+below are separate disassembly and PE observations. No live session was
+observed.
 
 Roles. `C` is the CharaActor. `H = C+0xBF0` is the movement helper. `E` is the
 CharaElement. `T` is the `0x00CF` or `0x00D0` wrapped actor record, counted
@@ -220,22 +220,81 @@ to 1.0 after the window. For the selected actor the multiplier is fixed at 1.0.
 
 ### Arrival radius
 
-The radius `H+0x1DC` is 0.0 after reset (row `helper reset clears arrival
-radius`). Its only writer is `0x007A45A0`, called by the state machine
-functor `0x008BF790` and four sibling functions. At the call site of
-`0x008BF790` (row `arrival radius sum`) it fetches the metadata record of the
-stop clip through `0x007B1F00`. From the dword at record offset `+0x20` it takes
-`n`, the signed byte 0, and an easing value, signed byte 1 divided by the double
-10.0. It then sums, for `i` from 0 to `n` inclusive, `0x007A4DB0` of the speed
-`table[H+0x80]` toward 0.0. `0x007A4DB0(a, b, n, i, ease)` returns
-`a + (i / n) * (b - a)` when `ease` is 0.0, and a curve from `0x009DB280`
-otherwise. The radius is the distance the stop clip covers while the speed ramps
-to zero. A clip with `n` steps and ease 0 gives `speed * (n + 1) / 2`.
+Reset stores 0.0 at `H+0x1DC` (row `helper reset clears arrival radius`).
+The computed-radius setter `0x007A45A0` has five direct callers, including
+field callback `0x008BF790`. At this call site a radius write requires a
+nonzero low byte of the seventh [callback argument](locomotion-selection.md#motion-callback-inputs)
+at `0x008BF84B` and a hit from the name lookup `0x007B1F00` at
+`0x008BF868..0x008BF86F`. A failed guard leaves the radius untouched at
+this call site. A hit supplies a 0x28-byte value `V`.
 
-The metadata record is read from a map keyed by motion name at `H+0x228`. Its
-source resource and the `n` and ease values per stop clip were not decoded. The
-radius is therefore unknown in value and stays 0.0 until the first stop clip
-evaluation.
+On a hit, the callback uses the value of `H+0x80` as index `j` into
+`H+0x10C+4*j`. The index must be valid. It reads `n` as signed byte
+`V+0x20` at `0x008BF897`. A negative `n` stores zero. Otherwise it sums
+`0x007A4DB0(table[j], 0, n, i, ease)` over integer `i` from 0 through `n`
+inclusive. The call at `0x008BF927` reaches the setter's store at
+`0x007A45A6` (row `arrival radius sum`). The ease input is the unsigned
+32-bit value of the sign-extended byte at `V+0x21`, divided by 10.0 and
+narrowed to f32.
+At `0x008BF8A6..0x008BF8D3`, the signed integer conversion is followed
+by an addition of f32 4294967296.0 from `0x00F54A54` for a negative
+operand. Both arms divide by f64 10.0 from `0x00F67848`.
+`0x007A4DB0(a, b, n, i, ease)` uses `a + (i / n) * (b - a)` when
+`ease` is zero and the curve through `0x009DB280` otherwise. For positive
+`n` and zero ease the linear sum is `speed * (n + 1) / 2`, subject to
+floating-point rounding. STATIC.
+
+#### Cibm metadata
+
+Constructor `0x007B82B0` initializes the map at `H+0x228` empty through
+`0x007C8E70` at `0x007B8312`. It separately clears the two 0x28-byte
+values at `H+0x234` and `H+0x25C` at `0x007B836A..0x007B83B6`.
+
+Initializer case 4 at `0x006BE4EF` reaches `0x00660570` at
+`0x006BE514` on a successful CDevActor-to-CharaActor cast. It passes
+`H` at `0x00660583` to the call chain `0x007B95C0 -> 0x007B8460`.
+The loader requests tag `0x6369626D` (`cibm`) through current actor
+virtual `+0x198` at `0x007B84D7`. CharaActor cell `0x00FC0ECC`
+selects `0x007CF490`, whose nonnull `C+8` arm forwards the query at
+`0x007CF544`. The loader puts resources whose name starts with
+`template` at the head of its list and the other resources at the
+tail (`0x007B856B..0x007B85F6`). Each visited resource constructs a
+temporary at `0x007B8646` through `0x00852370`. Its table
+`0x01040A1C` has COL `0x0116E738`, offset zero, and descriptor
+`0x012D11E8` naming `.?AVCibm@Cib@Chara@Actor@Scene@Application@@`.
+
+For a valid retained resource `R`, preparation `0x008516E0` obtains
+payload base `B` through `R+0x40` virtual `+4` at `0x008516F6`.
+It sets the count at `0x0085171C` when the u32 length
+`(u32(R+0x34) & 0x7FFFFFFF) - 4` is divisible by 0x2E. A missing
+resource or rejected length leaves the fresh count zero. The preparation
+pass replaces spaces with NUL in both 16-byte names unless `B+3` mask
+`0x80` is already set. It then sets the mask (`0x0085171F..0x00851758`).
+
+The signed count must exceed zero at `0x007B865D`. With valid storage and
+strings, decoder `0x00851770` selects row `B+4+i*0x2E` at
+`0x008517C1..0x008517C4`. It copies row names at `+0x00` and `+0x18`
+to `V+0x00` and `V+0x10`, and preserves row bytes `+0x10` and
+`+0x11` at `V+0x20` and `V+0x21` (`0x008518C4`, `0x008518D1`).
+The loop calls writer `0x007B75A0` at `0x007B8672`. The writer supplies
+the first name as key to `0x007C8A80`, which finds or inserts the map
+node and returns its `+0x28` value address. The writer copies the 0x28
+bytes of `V` there (`0x007B761A..0x007B764B`). A later row with the same
+key replaces the value. Reader `0x007B1F00` copies that value and returns
+one on a hit (`0x007B1FD7..0x007B2008`). A miss returns zero without a copy
+(`0x007B200C`). The separate current-clip fallback is outside this reader
+and supplies no value to the radius call. STATIC.
+
+The field callback requests state 13 for level 1 and the default arm
+(`0x008BF83C`), and state 22 for levels 2 and 3 (`0x008BF822`).
+The [state table](locomotion-selection.md#motion-state-tables) supplies
+`cbnm_01f_stp_ls` and `cbnm_02f_stp_ls`, respectively. Before lookup,
+`0x008AA100` calls `0x007B1960` on `C+0x590` at `0x008AA54D`.
+It copies the first alias hit from helper maps `+0x320` then `+0x32C`,
+or the original name after two misses. The level 0 arm leaves this
+lookup buffer empty. Actual Cibm resource selection, alias results and
+stop-row values remain OPEN. The [MTB clip lengths](locomotion-bank-census.md)
+describe a separate input.
 
 ### Deceleration
 
@@ -311,8 +370,8 @@ Keep as AUTHORED or CALIBRATION:
 
 - The wall-clock length of a step (CALIBRATION; 1/30 s is INFERRED only) and
   the frame clock that supplies `dt`.
-- The arrival radius. It depends on stop-clip metadata that is not decoded, so
-  it is CALIBRATION, with 0.0 as the pre-evaluation value.
+- The numeric arrival radius is CALIBRATION until the selected Cibm stop rows
+  and aliases are known. The reset value is 0.0.
 - The stop profile. The common retail case INFERRED to land on the target on the
   next playback step. An eased stop is AUTHORED.
 - Level change ramps (30 steps, 10 steps, easing 0.5) are INFERRED branch
@@ -332,7 +391,7 @@ Keep as AUTHORED or CALIBRATION:
   `0x006245D0` (zero displacement factor).
 - The frame clock that supplies `dt` and the link from the scene packet to the
   dispatcher command numbers.
-- The stop-clip metadata record: its source resource and its values.
+- The installed Cibm resource selection, stop-row values and runtime aliases.
 - The easing curve `0x009DB280` and the conditions of the level change ramp.
 - The role of the second 16-slot table at `H+0x14C`.
 - The smoothing from `+0x588` to `+0x58C` and the reader of the `E+0xB0` copy.

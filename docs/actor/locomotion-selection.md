@@ -163,12 +163,14 @@ stores it to `E+0xB0` and `E+0xB8` and sends element command `0x26`. The
 hit. The second vector does not drive displacement. Its `x` and `z` are 0 in all
 15100 records of the [capture census](../net/move-actor-wire-census.md#0x00cf-records).
 
-`H+0x1DC` is written by `0x007A45A0` from the state-machine callback
-`0x008BF790` (end of the section below): it sums, over the entry of the stop
-clip's metadata record (fetched by `0x007B1F00`), a lerp of the current
-speed (`table[H+0x80]`) toward zero. The sum is the distance covered while the
-stop clip decelerates. The [auto-move finding](remote-actor-auto-move.md#arrival-radius)
-owns its use as the arrival radius of the remote chase.
+The state-machine callback `0x008BF790` can write `H+0x1DC` through
+`0x007A45A0` when the requested-level-change low byte is nonzero and the
+name-keyed Cibm lookup hits. The key can be an alias or the empty probe.
+A negative signed row limit writes zero. Otherwise the result sums the
+selected speed toward zero with the row's easing input. A failed guard
+leaves the field untouched at this site. The [auto-move finding](remote-actor-auto-move.md#arrival-radius)
+records the metadata path, arithmetic and use of the result as the arrival
+radius.
 
 ## Motion state tables
 
