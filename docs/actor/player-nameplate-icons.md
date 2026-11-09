@@ -225,12 +225,30 @@ decimal ID. The positive path does not select an atlas called sheet 1.
 `0x0096A040` parses that property through `0x009170A0` into a list of at
 most five integers, retaining missing entries as `-1`.
 
-For N below one, `0x006A2B30` writes cache `-1`; it does not send a new
-IconDatas string in that branch. Tick `0x006A3560` calls `0x006A2E90` at
-`0x006A3801`. That helper tests cached positive IDs and configuration/group
-gates, then applies the control visibility through `0x0093C2A0` for slots
-1..4. The nonpositive-cache path applies visibility byte zero; the visible
-path applies byte two. A positive cached ID alone does not force display.
+For N below one, `0x006A2B30` writes cache `-1` without replacing the
+IconDatas string. Tick `0x006A3560` calls `0x006A2E90` at `0x006A3801`.
+The helper derives a desired mode for each slot at `0x006A2F10..0x006A2F27`.
+Slot 4 reads signed cache `NamePlate+0x40` and selects mode 3 if positive,
+mode 2 otherwise. The classification, configuration and group branches
+at `0x006A2F75..0x006A30AB` leave its local mode at `[esp+0x38]` intact.
+The slot-4 iteration at `0x006A3170..0x006A31A9` compares the desired
+mode to `NamePlate+0x54`. On change, it requests Visibility 2 for mode 3
+or Visibility 0 for mode 2 on the control at `NamePlate+0x2C`. The
+owner-marker branch at `0x006A2EB0..0x006A2EE5` can reset the cached
+mode at `0x006A2ED6` while preserving the icon ID. Effective rendering
+also depends on the control and its ancestors.
+
+The Lua setter and the native state-index writer both update the slot-4
+cache. The Lua setter requests size 64 and the state-index writer size 96.
+For a non-player non-retainer, the judge's `main/f0` PCs 184-188 and
+249-256 skip slot 4 when Lua property 3 is falsy. That property reads
+zero-based work array element 2. A truthy property admits the conditional
+group and target branches described above, which can replace or clear
+slot 4. The actor's inherited `_onUpdateWork` obtains the local player's
+judge and calls it on the receiver before its struct or slot test.
+A later repeat of the same wire
+index skips the native write at `0x00588A26..0x00588A3D`, so it does
+not restore the previous icon after a competing write.
 
 Lua `_onUpdateWork` judges all four slots before property-specific visibility
 handling (`chara/charabaseclass.lua:1142-1201`). The actor-main-state,
@@ -255,6 +273,26 @@ The standard form defaults the primary-right control to IconDatas 517 and
 Visible, with the other three collapsed. The setter replaces these defaults;
 they do not prove a spawned player's status. The SD form does not declare
 these IconDatas defaults or an auto-attack node.
+
+The standard form has two Auto rows in the outer Grid at lines 15-24.
+The secondary-right control at line 21 is the first child of the centered
+horizontal StackPanel, which declares no `Grid.Row`. It declares 96 by 96 and
+Collapsed. Its secondary label sibling also starts Collapsed. The separate
+`Grid_NamePlate` at line 24 declares `Grid.Row=1`. The constructor binds the
+icon and the lower grid at `0x006A3F77` and `0x006A3E4A`, respectively.
+The mode write at `0x006A30E6` targets the lower grid, outside the icon's
+ancestor chain in this form. The SD form separately declares a 48 by 48
+secondary-right control in its upper StackPanel and omits `Grid_NamePlate`.
+Panel alignment does not fix the icon's center when the secondary label
+contributes width.
+
+On the admitted world draw branch, WindowActor selects draw mode 1 at
+`0x007F9131` and publishes world XYZ at `0x007F91CD`. The icon draw
+passes that anchor to `0x00CBA970` at `0x00CA56FC`, which retains it in
+the vertices separately from local quad offsets. See the
+[WindowActor anchor](window-actor-anchor-producer.md) and
+[IconControl geometry](../resource/sqwt-icon-control-textures.md#observed-local-image-geometry).
+The active form, effective style and final icon footprint remain open.
 
 The IconControl parser/update path is `0x0096A010 -> 0x0096A040`, with
 the list forwarded to its drawing context by `0x00969FA0`. The native
