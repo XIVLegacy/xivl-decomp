@@ -95,6 +95,35 @@ These are object-generic construction and operation paths. Static code does
 not establish the operation values or flags selected for the captured local
 PrimaryLabel instance.
 
+### Stock NamePlate option request
+
+STATIC. The actor helper `0x0065FDA0` can post local event `0x55` at
+`0x0065FF37` after checking actor flag `+0x2B70` mask `0x400000` and a
+zero clamped decrement result at `0x0065FDCA..0x0065FDDC`. The helper
+passes 7 to the count setter at `0x0065FF22` before the post. On admitted
+keyed delivery, the CharaElement case `0x0058E3EC` passes the current actor key to its
+inline NamePlate slot 11 at `0x0058E405`. The slot selects `0x006A28F0`.
+The call at `0x006A290B` passes form root `+0x194`, actor key, selector
+`+0x13C`, null offset and literal mask `0x51` to `0x0054AF00`.
+
+On the admitted DrawingToolContext path, `0x0055A580` stores that mask
+at cache `+0x35C` and `0x0055A540` stores the actor key at `+0x36C`.
+The writes set their dirty bytes at `+0x364` and `+0x374`. Cache
+construction at `0x0054D45D..0x0054D497` assigns operation `0x1B`
+to the typed record starting at `+0x358` and `0x1C` to the next
+record at `+0x368`. Both enter the six-pointer array at `+0x3D4`.
+The ordinary flush sends the proxy selector `0x22` at `0x0054E8FB`
+before visiting the vector at `0x0054EBCE..0x0054EBF7`. Virtual method
+`0x005563E0` can send the four-byte mask and then the actor key through
+`0x0054B0D0`. Each admitted send clears that record's dirty byte.
+
+When the operations reach the receiver in order and the same proxy
+still selects the stock root context, `0x1B` sets the owner's low ten
+option bits to `0x51` and `0x1C` sets its primary key to the actor.
+That mask selects the final [parent scale family](#context-parent-scale)
+with the `0.0075` base and bit `0x40` set. The live delivery order,
+subsequent writes and first presented position remain open.
+
 ## Target production
 
 At `0x007F8D20`, both keys are looked up through `0x007A0150`.
